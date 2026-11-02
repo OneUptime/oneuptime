@@ -63,7 +63,7 @@ case $? in
 esac
 ```
 
-Foutmeldingen gaan naar de standaardfoutuitvoer, dus `incident.json` bevat alleen het antwoord.
+Foutmeldingen gaan naar de standaardfoutuitvoer, dus `incident.json` bevat alleen het antwoord. Met `-o json` is ook een fout JSON, met de exitcode erin: zie [JSON](/docs/cli/output-formats#json).
 
 ## Antwoorden lezen met jq
 
@@ -74,13 +74,16 @@ Schrijf `-o json` in scripts. In een pipe drukt de CLI toch JSON af, maar de vla
 oneuptime incident list -o json | jq -r '.[].title'
 
 # The ID of a new monitor
-MONITOR_ID=$(oneuptime monitor create --data '{"name":"Checkout API","monitorType":"Manual"}' -o json | jq -r '._id')
+MONITOR_ID=$(oneuptime monitor create --name "Checkout API" --monitor-type Manual -o json | jq -r '._id')
 
 # When each incident was created: dates come as objects
 oneuptime incident list -o json | jq -r '.[] | "\(.createdAt.value)  \(.title)"'
 
 # The newest 100 incidents as CSV
 oneuptime incident list --limit 100 -o json | jq -r '.[] | [._id, .title, .createdAt.value] | @csv'
+
+# Every incident, page after page, with only the two fields the script reads
+oneuptime incident list --all --fields title,createdAt -o json | jq -r '.[] | "\(.createdAt.value)  \(.title)"'
 ```
 
 Een telling drukt één getal af, klaar om te vergelijken:

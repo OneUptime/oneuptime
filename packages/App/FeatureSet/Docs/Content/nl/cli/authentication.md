@@ -38,7 +38,7 @@ oneuptime login <api-key> https://oneuptime.com --context-name production
 Hij antwoordt `Logged in successfully. Context "production" is now active.` Een schuine streep aan het eind van het adres wordt verwijderd, en opnieuw inloggen onder dezelfde naam vervangt die context.
 
 > [!NOTE]
-> `login` slaat de sleutel op zonder OneUptime ernaar te vragen. Voer een opdracht uit, zoals `oneuptime incident count`, om te zien dat de sleutel werkt.
+> `login` slaat de sleutel op zonder OneUptime ernaar te vragen. Voer `oneuptime whoami --check` uit om te zien dat OneUptime hem aanneemt.
 
 ## Contexten
 
@@ -154,10 +154,16 @@ API Key: 4f1c****0a13
 Context: production
 ```
 
-Alleen de eerste vier en de laatste vier tekens van de sleutel worden getoond. De regel `Context` verschijnt alleen als de URL en de sleutel die van de context zelf zijn, en geen waarden die een vlag of een omgevingsvariabele heeft vervangen. `whoami` leest je instellingen zonder OneUptime aan te roepen: hij toont wat een opdracht zal versturen, niet of OneUptime het accepteert. Is er niets opgeslagen of ingesteld, dan antwoordt hij:
+Alleen de eerste vier en de laatste vier tekens van de sleutel worden getoond. De regel `Context` verschijnt alleen als de URL en de sleutel die van de context zelf zijn, en geen waarden die een vlag of een omgevingsvariabele heeft vervangen. Op zichzelf leest `whoami` je instellingen zonder OneUptime aan te roepen: hij toont wat een opdracht zal sturen, niet of OneUptime dat aanneemt. Is er niets opgeslagen of ingesteld, dan antwoordt hij:
 
 ```text
 Not authenticated. Run `oneuptime login` to authenticate.
+```
+
+`--check` vraagt het ook aan OneUptime. Hij voegt het project van de sleutel toe, de versie van je OneUptime en die van de CLI, en, als de twee versies verschillen, de opdracht die de CLI van de versie van je OneUptime installeert. Een sleutel die OneUptime weigert, stopt hem met exitcode `2`:
+
+```bash
+oneuptime whoami --check
 ```
 
 ## Het configuratiebestand

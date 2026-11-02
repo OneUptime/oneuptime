@@ -85,7 +85,7 @@ provider "oneuptime" {
 
 這些頁面從不顯示機密。當設定需要機密時（例如監測器的 `Authorization` 標頭），會從標記為 `sensitive` 的 Terraform 變數中讀取。不需要的機密會被省略，Terraform 會保持它們在 OneUptime 中的原樣。
 
-同一區段中還有一個 **API** 頁面，提供該資源的 `curl` 命令；以及一個 **AI 助理** 頁面，可把 Claude、GitHub Copilot 或 Cursor 連接到 [MCP 伺服器](/docs/ai/mcp-server)。
+同一區段中還有一個 **API** 頁面，提供該資源的 `curl` 命令；一個 **CLI** 頁面，以 `oneuptime` 命令給出同樣的請求；以及一個 **AI 助理** 頁面，可把 Claude、GitHub Copilot 或 Cursor 連接到 [MCP 伺服器](/docs/ai/mcp-server)。
 
 ## 可以管理的內容
 

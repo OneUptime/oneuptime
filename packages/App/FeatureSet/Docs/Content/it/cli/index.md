@@ -3,15 +3,15 @@
 La CLI di OneUptime, `oneuptime`, gestisce il tuo progetto OneUptime da un terminale o da uno script. Elenca, legge, crea, modifica, elimina e conta monitor, incidenti, avvisi, pagine di stato e gli altri record che l'API di OneUptime offre, con una chiave API del tuo progetto.
 
 :::cards
-- [Come funziona la CLI](#come-funziona-la-cli): Un comando, una richiesta all'API, una risposta.
-- [Installare la CLI](#installare-la-cli): Un comando npm, e la versione da scegliere.
-- [Eseguire i primi comandi](#eseguire-i-primi-comandi): Salva la tua chiave API, poi elenca i tuoi incidenti.
+- [Come funziona la CLI](#come-funziona-la-cli): Un comando, le richieste all'API che invia e la sua risposta.
+- [Installare la CLI](#installare-la-cli): Lo script di installazione che il tuo OneUptime fornisce, oppure npm.
+- [Eseguire i primi comandi](#eseguire-i-primi-comandi): Salva la tua chiave API, verificala, poi elenca i tuoi incidenti.
 - [I comandi in sintesi](#i-comandi-in-sintesi): Ogni comando, e la pagina che lo spiega.
 :::
 
 ## Come funziona la CLI
 
-Ogni comando invia una richiesta all'API REST di OneUptime e stampa la risposta. La CLI prende la chiave API e l'indirizzo del tuo OneUptime da flag, variabili d'ambiente o da un contesto salvato da `oneuptime login`. La chiave decide che cosa un comando può leggere e modificare, esattamente come per l'API.
+La maggior parte dei comandi invia una richiesta all'API REST di OneUptime e stampa la risposta; un'azione, come `acknowledge`, invia le poche che invia il pulsante della dashboard. La CLI prende la chiave API e l'indirizzo del tuo OneUptime da flag, variabili d'ambiente o da un contesto salvato da `oneuptime login`. La chiave decide che cosa un comando può leggere e modificare, esattamente come per l'API.
 
 ```mermaid title="Un comando, una richiesta"
 flowchart TB
@@ -22,7 +22,7 @@ flowchart TB
     C -->|"una tabella nel terminale,<br/>JSON in una pipe"| T
 ```
 
-I comandi per i record arrivano con la CLI: ogni tipo di record che l'API di OneUptime apre agli strumenti ne ha uno, gli stessi record per cui il [server MCP](/docs/ai/mcp-server) ha degli strumenti. Esegui `oneuptime resources` per elencarli.
+Ogni risorsa dell'API di OneUptime è un comando, 450 e più, da `incident` e `monitor` a `status-page-subscriber` e `telemetry-ingestion-key`, ciascuno con le operazioni che l'API accetta per esso. La CLI esce insieme a OneUptime, quindi la CLI della versione del tuo OneUptime ha un comando per ogni risorsa del tuo server. Esegui `oneuptime resources` per elencarle.
 
 ## Prima di iniziare
 
@@ -32,7 +32,14 @@ I comandi per i record arrivano con la CLI: ogni tipo di record che l'API di One
 
 ## Installare la CLI
 
-Installa il pacchetto `@oneuptime/cli` da npm. Aggiunge il comando `oneuptime`, e `--version` stampa la versione installata:
+Ogni OneUptime fornisce lo script di installazione della CLI della propria versione: i comandi qui sotto lo scaricano da `https://oneuptime.com`, quindi su un OneUptime self-hosted sostituiscilo con il tuo URL. Lo script viene prima salvato come `install.sh`, così puoi leggerlo prima di eseguirlo. Chiede al tuo OneUptime la sua versione e installa la CLI della stessa versione con npm:
+
+```bash
+curl -fsSL https://oneuptime.com/install/cli -o install.sh
+ONEUPTIME_URL=https://oneuptime.com bash install.sh
+```
+
+Oppure installa tu stesso il pacchetto `@oneuptime/cli` da npm. Aggiunge il comando `oneuptime`, e `--version` stampa la versione installata:
 
 ```bash
 npm install -g @oneuptime/cli
@@ -61,13 +68,21 @@ oneuptime login <your-api-key> https://oneuptime.com
 
 Risponde `Logged in successfully. Context "default" is now active.` Su un OneUptime self-hosted, usa il suo indirizzo al posto di `https://oneuptime.com`.
 
+### Verificare la chiave
+
+```bash
+oneuptime whoami --check
+```
+
+`login` salva la chiave senza chiedere nulla a OneUptime. `--check` invece chiede: mostra il progetto della chiave, la versione del tuo OneUptime e quella della CLI, e che cosa installare quando le due differiscono. Se OneUptime rifiuta la chiave, vedi [Risoluzione dei problemi](/docs/cli/authentication#risoluzione-dei-problemi).
+
 ### Elencare i tuoi incidenti
 
 ```bash
 oneuptime incident list
 ```
 
-I dieci incidenti più recenti compaiono come tabella. `login` salva la chiave senza verificarla, quindi questo è il primo comando che mostra che la chiave funziona: se viene rifiutata, vedi [Risoluzione dei problemi](/docs/cli/authentication#risoluzione-dei-problemi).
+I dieci incidenti più recenti compaiono come tabella.
 
 ### Vedere che cos'altro puoi gestire
 
@@ -75,7 +90,7 @@ I dieci incidenti più recenti compaiono come tabella. `login` salva la chiave s
 oneuptime resources
 ```
 
-L'elenco mostra ogni tipo di record con cui puoi lavorare, e il suo comando, come `monitor`, `status-page` o `on-call-policy`.
+L'elenco mostra ogni tipo di record con cui puoi lavorare, e il suo comando, come `monitor`, `status-page` o `on-call-policy`. `oneuptime monitor fields` elenca i campi di un monitor e i flag che li impostano.
 :::
 
 ## I comandi in sintesi
@@ -84,9 +99,11 @@ L'elenco mostra ogni tipo di record con cui puoi lavorare, e il suo comando, com
 | --- | --- | --- |
 | `oneuptime login <api-key> <instance-url>` | Salva una chiave API e un indirizzo come contesto | [Autenticazione](/docs/cli/authentication#accedere) |
 | `oneuptime context list`, `use`, `current`, `delete` | Elenca, cambia, mostra ed elimina i contesti salvati | [Autenticazione](/docs/cli/authentication#contesti) |
-| `oneuptime whoami` | Mostra l'URL e la chiave API che userà il prossimo comando | [Autenticazione](/docs/cli/authentication#verificare-che-cosa-userà-la-cli) |
+| `oneuptime whoami` | Mostra l'URL e la chiave API che userà il prossimo comando, e con `--check` se OneUptime accetta la chiave | [Autenticazione](/docs/cli/authentication#verificare-che-cosa-userà-la-cli) |
 | `oneuptime deploy` | Registra un deploy, o un'altra modifica, per i grafici e OneUptime AI | [Deploy e modifiche](/docs/telemetry/change-events) |
 | `oneuptime <resource> list`, `get`, `create`, `update`, `delete`, `count` | Lavora con un tipo di record | [Operazioni sulle risorse](/docs/cli/resource-operations) |
+| `oneuptime <resource> fields` | Elenca i campi di una risorsa e i flag che li impostano | [Operazioni sulle risorse](/docs/cli/resource-operations#vedere-i-campi-di-una-risorsa) |
+| `oneuptime <resource> acknowledge`, `resolve`, `start`, `end`, `add-note` | Fa ciò che fanno i pulsanti della dashboard su incidenti, avvisi e manutenzioni programmate | [Operazioni sulle risorse](/docs/cli/resource-operations#riconoscere-risolvere-e-aggiungere-note) |
 | `oneuptime resources` | Elenca i tipi di record, con i loro comandi | [Riferimento dei comandi](/docs/cli/command-reference#oneuptime-resources) |
 | `oneuptime version` | Stampa la versione della CLI | [Riferimento dei comandi](/docs/cli/command-reference#oneuptime-version) |
 | `oneuptime help [command]` | Mostra la guida di un comando | [Ottenere aiuto](#ottenere-aiuto) |
@@ -101,6 +118,7 @@ Queste opzioni funzionano con ogni comando, prima o dopo di esso:
 | `--url <url>` | L'indirizzo del tuo OneUptime per questo comando |
 | `--context <name>` | Un contesto salvato per questo comando, al posto di quello attuale |
 | `-o, --output <format>` | `table`, `json` o `wide`: vedi [Formati di output](/docs/cli/output-formats) |
+| `--json` | Lo stesso di `-o json` |
 | `--no-color` | Stampa senza colori |
 | `-V, --version` | Stampa la versione della CLI |
 | `-h, --help` | Mostra la guida del comando |
@@ -122,5 +140,6 @@ oneuptime incident list --help
 - [Operazioni sulle risorse](/docs/cli/resource-operations): Elencare, leggere, creare, modificare, eliminare e contare record.
 - [Formati di output](/docs/cli/output-formats): Tabelle per le persone, JSON per gli script.
 - [Scripting e CI/CD](/docs/cli/scripting): Codici di uscita, jq e pipeline.
+- [CLI per agenti IA](/docs/cli/ai-agents): Quando un agente esegue la CLI e quando usa il server MCP.
 - [Riferimento dei comandi](/docs/cli/command-reference): Ogni comando, opzione e valore predefinito.
 :::

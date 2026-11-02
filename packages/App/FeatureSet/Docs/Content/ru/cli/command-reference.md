@@ -5,7 +5,7 @@
 :::cards
 - [Глобальные параметры](#глобальные-параметры): Параметры, которые принимает каждая команда.
 - [Вход и контексты](#вход-и-контексты): login и команды context.
-- [Команды ресурсов](#команды-ресурсов): list, get, create, update, delete и count.
+- [Команды ресурсов](#команды-ресурсов): Операции, поля и действия каждого ресурса.
 - [Другие команды](#другие-команды): deploy, whoami, resources, version и help.
 :::
 
@@ -17,7 +17,8 @@ flowchart LR
     O --> C["context"]
     C --> C1["list<br/>use<br/>current<br/>delete"]
     O --> R["incident, monitor<br/>и каждый ресурс"]
-    R --> R1["list<br/>get<br/>create<br/>update<br/>delete<br/>count"]
+    R --> R1["list<br/>get<br/>create<br/>update<br/>delete<br/>count<br/>fields"]
+    R --> R2["acknowledge<br/>resolve<br/>start<br/>end<br/>add-note"]
     O --> U["deploy<br/>whoami<br/>resources<br/>version<br/>help"]
 ```
 
@@ -29,11 +30,14 @@ flowchart LR
 | `--url <url>` | Адрес вашего OneUptime для этой команды | `ONEUPTIME_URL`, затем URL контекста |
 | `--context <name>` | Сохранённый контекст для этой команды | Текущий контекст |
 | `-o, --output <format>` | `json`, `table` или `wide` | `table` в терминале, `json` в конвейере |
+| `--json` | То же, что `-o json` | |
 | `--no-color` | Выводит без цветов | Цвета, если не задана `NO_COLOR` |
 | `-V, --version` | Выводит версию CLI | |
 | `-h, --help` | Показывает справку по команде | |
 
 Параметры ставятся до или после команды: `oneuptime --context staging incident list` и `oneuptime incident list --context staging` делают одно и то же.
+
+Каждая команда принимает `-o` и `--json`, поэтому таблицы ниже их не повторяют. Команда, чей ответ — предложение, например `delete`, выводит предложение, если только `-o json` или `--json` не запрашивает JSON: см. [Форматы вывода](/docs/cli/output-formats#json).
 
 ## Вход и контексты
 
@@ -53,15 +57,11 @@ oneuptime login <api-key> <instance-url> [--context-name <name>]
 
 ### `oneuptime context list`
 
-Выводит сохранённые контексты; `*` отмечает текущий. API-ключи никогда не выводятся.
+Выводит сохранённые контексты; `*` отмечает текущий. API-ключи никогда не выводятся: JSON даёт для каждого контекста `name`, `apiUrl` и `isCurrent`.
 
 ```bash
-oneuptime context list [-o <format>]
+oneuptime context list
 ```
-
-| Параметр | Обязателен | Что это |
-| --- | --- | --- |
-| `-o, --output <format>` | Нет | `json`, `table` или `wide`. JSON даёт `name`, `apiUrl` и `isCurrent` каждого контекста |
 
 ### `oneuptime context use`
 
@@ -97,14 +97,14 @@ oneuptime context delete <name>
 
 ## Команды ресурсов
 
-`<resource>` — это команда вида записей из таблиц раздела [Ресурсы](#ресурсы), например `incident` или `monitor`. Примеры см. в разделе [Операции с ресурсами](/docs/cli/resource-operations).
+`<resource>` — это команда вида записей из таблицы раздела [Ресурсы](#ресурсы), например `incident` или `monitor`. У ресурса те операции, которые API для него принимает, у большинства все шесть, а `oneuptime <resource> --help` выводит его собственные. Примеры см. в разделе [Операции с ресурсами](/docs/cli/resource-operations).
 
 ### `oneuptime <resource> list`
 
 Выводит записи, сначала самые новые. Метки же выводятся по названию, сначала нумерованные (`2. Team` перед `10. Owner`).
 
 ```bash
-oneuptime <resource> list [--query <json>] [--limit <n>] [--skip <n>] [--sort <json>] [-o <format>]
+oneuptime <resource> list [--query <json>] [--limit <n>] [--skip <n>] [--sort <json>] [--fields <names>] [--all]
 ```
 
 | Параметр | Что делает | По умолчанию |
@@ -113,52 +113,56 @@ oneuptime <resource> list [--query <json>] [--limit <n>] [--skip <n>] [--sort <j
 | `--limit <n>` | Наибольшее число возвращаемых записей, до 10 000 | `10` |
 | `--skip <n>` | Сколько записей пропустить сначала | `0` |
 | `--sort <json>` | Порядок в виде JSON: `{"<field>":"ASC"}` или `{"<field>":"DESC"}` | Сначала самые новые |
-| `-o, --output <format>` | `json`, `table` или `wide` | `table` в терминале, `json` в конвейере |
+| `--fields <names>` | Поля для возврата через запятую; поле связанной записи — после точки, как в `currentIncidentState.name` | Все поля, которые может читать ключ |
+| `--all` | Все подходящие записи, по 100 за раз, до 100 000, вместо `--limit` и `--skip`. Только записи: у телеметрии нет `--all` | |
 
 ### `oneuptime <resource> get`
 
-Читает одну запись. Только записи: у телеметрии нет `get`.
+Читает одну запись.
 
 ```bash
-oneuptime <resource> get <id> [-o <format>]
+oneuptime <resource> get <id> [--fields <names>]
 ```
 
 | Аргумент или параметр | Обязателен | Что это |
 | --- | --- | --- |
 | `<id>` | Да | ID записи, UUID |
-| `-o, --output <format>` | Нет | `json`, `table` или `wide` |
+| `--fields <names>` | Нет | Поля для возврата через запятую. По умолчанию: все поля, которые может читать ключ |
 
 ### `oneuptime <resource> create`
 
 Создаёт запись и выводит её.
 
 ```bash
-oneuptime <resource> create (--data <json> | --file <path>) [-o <format>]
+oneuptime <resource> create [--<field> <value>]... [--data <json>] [--file <path>]
 ```
 
 | Параметр | Обязателен | Что это |
 | --- | --- | --- |
-| `--data <json>` | Один из двух | Запись в виде JSON |
-| `--file <path>` | Один из двух | JSON-файл с записью. Если указан вместе с `--data`, используется файл |
-| `-o, --output <format>` | Нет | `json`, `table` или `wide` |
+| `--<field> <value>` | Поля, которые должно указать создание | Значение поля: `--title <text>`, `--incident-severity-id <id>`, `--labels <ids>`. `oneuptime <resource> create --help` выводит их. Только записи |
+| `--data <json>` | Нет | Запись в виде JSON |
+| `--file <path>` | Нет | JSON-файл с записью. Если указан вместе с `--data`, используется файл |
+
+Флаги накладываются поверх `--data` или `--file`. У поля, которое называет человека по ID пользователя, есть и флаг, который называет его по адресу электронной почты: `--user-email` рядом с `--user-id`.
 
 ### `oneuptime <resource> update`
 
-Изменяет поля, которые вы передаёте. Только записи: у телеметрии нет `update`.
+Изменяет указанные поля.
 
 ```bash
-oneuptime <resource> update <id> --data <json> [-o <format>]
+oneuptime <resource> update <id> [--<field> <value>]... [--data <json>] [--file <path>]
 ```
 
 | Аргумент или параметр | Обязателен | Что это |
 | --- | --- | --- |
 | `<id>` | Да | ID записи |
-| `--data <json>` | Да | Поля, которые нужно изменить, в виде JSON |
-| `-o, --output <format>` | Нет | `json`, `table` или `wide` |
+| `--<field> <value>` | Нет | Изменяемое поле: `oneuptime <resource> update --help` выводит их. Только записи |
+| `--data <json>` | Нет | Изменяемые поля в виде JSON |
+| `--file <path>` | Нет | JSON-файл с изменяемыми полями. Если указан вместе с `--data`, используется файл |
 
 ### `oneuptime <resource> delete`
 
-Удаляет запись сразу, ничего не спрашивая. Только записи: у телеметрии нет `delete`.
+Сразу удаляет запись, ничего не спрашивая.
 
 ```bash
 oneuptime <resource> delete <id> [--force]
@@ -174,37 +178,88 @@ oneuptime <resource> delete <id> [--force]
 Считает записи и выводит число.
 
 ```bash
-oneuptime <resource> count [--query <json>] [-o <format>]
+oneuptime <resource> count [--query <json>]
 ```
 
 | Параметр | Обязателен | Что это |
 | --- | --- | --- |
 | `--query <json>` | Нет | Фильтр в виде JSON. Без него — все записи, которые может читать ключ |
-| `-o, --output <format>` | Нет | `json`, `table` или `wide` |
+
+### `oneuptime <resource> fields`
+
+Выводит поля ресурса: для чего каждое, его тип, должно ли создание его указать, и флаг, который его задаёт. Берёт их из самой CLI, без API-ключа и без запроса.
+
+```bash
+oneuptime <resource> fields
+```
+
+### `oneuptime <resource> acknowledge`
+
+Переводит инцидент, оповещение или эпизод одного из них в состояние «подтверждён» вашего проекта, как кнопка панели управления. Запись, уже подтверждённая или находящаяся дальше, остаётся как есть.
+
+```bash
+oneuptime <resource> acknowledge <id>
+```
+
+| Аргумент | Обязателен | Что это |
+| --- | --- | --- |
+| `<id>` | Да | ID записи |
+
+### `oneuptime <resource> resolve`
+
+Переводит инцидент, оповещение или эпизод одного из них в состояние «решён» вашего проекта.
+
+```bash
+oneuptime <resource> resolve <id>
+```
+
+| Аргумент | Обязателен | Что это |
+| --- | --- | --- |
+| `<id>` | Да | ID записи |
+
+### `oneuptime <resource> start`
+
+Переводит событие планового обслуживания в состояние «продолжается» вашего проекта.
+
+```bash
+oneuptime <resource> start <id>
+```
+
+| Аргумент | Обязателен | Что это |
+| --- | --- | --- |
+| `<id>` | Да | ID события |
+
+### `oneuptime <resource> end`
+
+Переводит событие планового обслуживания в состояние «закончено» вашего проекта.
+
+```bash
+oneuptime <resource> end <id>
+```
+
+| Аргумент | Обязателен | Что это |
+| --- | --- | --- |
+| `<id>` | Да | ID события |
+
+### `oneuptime <resource> add-note`
+
+Добавляет заметку к инциденту, оповещению, эпизоду одного из них или к событию планового обслуживания.
+
+```bash
+oneuptime <resource> add-note <id> --note <markdown> [--public]
+```
+
+| Аргумент или параметр | Обязателен | Что это |
+| --- | --- | --- |
+| `<id>` | Да | ID записи |
+| `--note <markdown>` | Да | Заметка в Markdown |
+| `--public` | Нет | Публикует её на страницах состояния записи, где об этом узнают её подписчики. Только инциденты, их эпизоды и плановое обслуживание |
 
 ### Ресурсы
 
-Записи принимают `list`, `get`, `create`, `update`, `delete` и `count`:
+Каждый ресурс API OneUptime — это команда с теми операциями, которые API для него принимает, с `fields` и с действиями тех записей, у которых они есть:
 
-| Область | Команды |
-| --- | --- |
-| Мониторинг | `monitor`, `monitor-status`, `monitor-status-event` |
-| Инциденты | `incident`, `incident-state`, `incident-severity`, `incident-state-timeline`, `incident-public-note`, `incident-internal-note`, `incident-alert`, `postmortem-status` |
-| Оповещения | `alert`, `alert-state`, `alert-severity`, `alert-state-timeline`, `alert-internal-note` |
-| Страницы состояния | `status-page`, `status-page-announcement` |
-| Плановое обслуживание | `scheduled-maintenance-event`, `scheduled-maintenance-state`, `scheduled-maintenance-state-timeline` |
-| Команды и дежурства | `team`, `on-call-policy` |
-| Безопасность | `security-case`, `security-case-evidence`, `security-case-note`, `security-case-priority`, `security-case-status`, `security-case-task`, `security-detection`, `security-playbook` |
-| Безопасность данных | `data-store`, `data-store-finding`, `data-store-access-entry`, `data-security-identity`, `data-flow`, `data-security-issue`, `data-security-scan`, `custom-data-type`, `check-setting`, `residency-rule`, `data-security-setting` |
-| Метки | `label` |
-
-Телеметрия принимает `list`, `create` и `count`:
-
-| Область | Команды |
-| --- | --- |
-| Наблюдаемость | `log`, `metric`, `span`, `exception-instance`, `monitor-log` |
-| Безопасность | `security-event`, `threat-intel-indicator` |
-| Изменения и затраты | `change-event`, `kubernetes-cost-allocation` |
+{{CLI_RESOURCE_COMMANDS}}
 
 CLI выпускается вместе с OneUptime, поэтому `oneuptime resources` выводит команды той версии, которую вы установили.
 
@@ -220,6 +275,8 @@ CLI выпускается вместе с OneUptime, поэтому `oneuptime 
 | `update` | `PUT /api/<path>/<id>/` | `{"data": ...}` |
 | `delete` | `DELETE /api/<path>/<id>/` | Нет |
 | `count` | `POST /api/<path>/count` | `query` |
+
+Действие читает состояния вашего проекта и запись, затем создаёт строку в хронологии состояний записи, как кнопка панели управления: `acknowledge` для инцидента создаёт `incident-state-timeline`. `add-note` создаёт `incident-internal-note`, а с `--public` — `incident-public-note`. Флаг почты сначала выводит участников команд проекта с этим адресом. Когда OneUptime отклоняет поле, которое ключ не может читать, список или чтение запрашивает снова без него.
 
 ## Другие команды
 
@@ -250,24 +307,27 @@ oneuptime deploy [--service <name>] [--service-version <version>] [--previous-ve
 
 ### `oneuptime whoami`
 
-Показывает URL и API-ключ, которые использует следующая команда, с замаскированным ключом, и контекст, из которого они взяты. Она не обращается к OneUptime. См. [Проверьте, что будет использовать CLI](/docs/cli/authentication#проверьте-что-будет-использовать-cli).
+Показывает URL и API-ключ, которые использует следующая команда, с замаскированным ключом, и контекст, из которого они взяты. Без `--check` не обращается к OneUptime. См. [Проверьте, что будет использовать CLI](/docs/cli/authentication#проверьте-что-будет-использовать-cli).
 
 ```bash
-oneuptime whoami
+oneuptime whoami [--check]
 ```
+
+| Параметр | Обязателен | Что это |
+| --- | --- | --- |
+| `--check` | Нет | Спрашивает OneUptime, принимает ли он ключ, и показывает проект ключа, версию вашего OneUptime и версию CLI |
 
 ### `oneuptime resources`
 
-Выводит каждый вид записей, для которого у CLI есть команда: его команду, названия в единственном и множественном числе, тип и путь в API, а также общее число.
+Выводит каждый вид записей, для которого у CLI есть команда: его команду, названия в единственном и множественном числе, тип и путь в API, а также общее число. JSON даёт для каждого `name`, `singularName`, `pluralName`, `modelType`, `apiPath`, `operations` и `actions`.
 
 ```bash
-oneuptime resources [--type <type>] [-o <format>]
+oneuptime resources [--type <type>]
 ```
 
 | Параметр | Обязателен | Что это | По умолчанию |
 | --- | --- | --- | --- |
 | `--type <type>` | Нет | `database` для записей, `analytics` для телеметрии | Оба |
-| `-o, --output <format>` | Нет | `json`, `table` или `wide`. JSON даёт `name`, `singularName`, `pluralName`, `modelType` и `apiPath` каждого | `table` в терминале, `json` в конвейере |
 
 ### `oneuptime version`
 

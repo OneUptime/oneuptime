@@ -85,7 +85,7 @@ Die Listenseiten (zum Beispiel **Vorfälle** oder **Monitore**) haben denselben 
 
 Geheimnisse werden auf diesen Seiten nie angezeigt. Braucht die Konfiguration eines (zum Beispiel den `Authorization`-Header eines Monitors), liest sie es aus einer als `sensitive` markierten Terraform-Variablen. Geheimnisse, die sie nicht braucht, bleiben weg, und Terraform lässt sie in OneUptime, wie sie sind.
 
-Derselbe Bereich hat eine Seite **API** mit `curl`-Befehlen für die Ressource und eine Seite **KI-Assistenten**, die Claude, GitHub Copilot oder Cursor mit dem [MCP-Server](/docs/ai/mcp-server) verbindet.
+Derselbe Bereich hat eine Seite **API** mit `curl`-Befehlen für die Ressource, eine Seite **CLI** mit denselben Anfragen als `oneuptime`-Befehle und eine Seite **KI-Assistenten**, die Claude, GitHub Copilot oder Cursor mit dem [MCP-Server](/docs/ai/mcp-server) verbindet.
 
 ## Was Sie verwalten können
 

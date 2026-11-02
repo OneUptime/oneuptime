@@ -3,15 +3,15 @@
 OneUptime-CLI'en, `oneuptime`, administrerer dit OneUptime-projekt fra en terminal eller et script. Den viser, læser, opretter, ændrer, sletter og tæller monitorer, hændelser, advarsler, statussider og de andre poster, som OneUptime-API'et tilbyder, med en API-nøgle til dit projekt.
 
 :::cards
-- [Sådan virker CLI'en](#sådan-virker-clien): Én kommando, én API-anmodning, ét svar.
-- [Installér CLI'en](#installér-clien): Én npm-kommando, og hvilken version du skal vælge.
-- [Kør dine første kommandoer](#kør-dine-første-kommandoer): Gem din API-nøgle, og vis så dine hændelser.
+- [Sådan virker CLI'en](#sådan-virker-clien): En kommando, de API-anmodninger, den sender, og dens svar.
+- [Installér CLI'en](#installér-clien): Installationsscriptet, som din OneUptime stiller til rådighed, eller npm.
+- [Kør dine første kommandoer](#kør-dine-første-kommandoer): Gem din API-nøgle, tjek den, og vis så dine hændelser.
 - [Kommandoerne på et øjeblik](#kommandoerne-på-et-øjeblik): Hver kommando, og siden der forklarer den.
 :::
 
 ## Sådan virker CLI'en
 
-Hver kommando sender én anmodning til OneUptimes REST API og udskriver svaret. CLI'en tager API-nøglen og adressen på din OneUptime fra flag, miljøvariabler eller en kontekst, som `oneuptime login` har gemt. Nøglen afgør, hvad en kommando må læse og ændre, præcis som for API'et.
+De fleste kommandoer sender én anmodning til OneUptimes REST API og udskriver svaret; en handling som `acknowledge` sender de få, som knappen i dashboardet sender. CLI'en tager API-nøglen og adressen på din OneUptime fra flag, miljøvariabler eller en kontekst, som `oneuptime login` har gemt. Nøglen afgør, hvad en kommando må læse og ændre, præcis som for API'et.
 
 ```mermaid title="Én kommando, én anmodning"
 flowchart TB
@@ -22,7 +22,7 @@ flowchart TB
     C -->|"en tabel i en terminal,<br/>JSON i en pipe"| T
 ```
 
-Kommandoerne til poster følger med CLI'en: hver slags post, som OneUptime-API'et åbner for værktøjer, har én, de samme poster, som [MCP-serveren](/docs/ai/mcp-server) har værktøjer til. Kør `oneuptime resources` for at vise dem.
+Hver ressource i OneUptime-API'et er en kommando, 450 og flere, fra `incident` og `monitor` til `status-page-subscriber` og `telemetry-ingestion-key`, hver med de operationer, som API'et tager for den. CLI'en udgives sammen med OneUptime, så CLI'en i din OneUptimes version har en kommando for hver ressource, din server har. Kør `oneuptime resources` for at vise dem.
 
 ## Før du begynder
 
@@ -32,7 +32,14 @@ Kommandoerne til poster følger med CLI'en: hver slags post, som OneUptime-API'e
 
 ## Installér CLI'en
 
-Installér pakken `@oneuptime/cli` fra npm. Den tilføjer kommandoen `oneuptime`, og `--version` udskriver den version, du har installeret:
+Hver OneUptime stiller CLI'ens installationsscript til rådighed for sin egen udgivelse: kommandoerne nedenfor henter det fra `https://oneuptime.com`, så på en selvhostet OneUptime skal du erstatte den med din URL. Scriptet gemmes først som `install.sh`, så du kan læse det, før du kører det. Det spørger din OneUptime om dens version og installerer CLI'en i samme version med npm:
+
+```bash
+curl -fsSL https://oneuptime.com/install/cli -o install.sh
+ONEUPTIME_URL=https://oneuptime.com bash install.sh
+```
+
+Eller installér selv pakken `@oneuptime/cli` fra npm. Den tilføjer kommandoen `oneuptime`, og `--version` udskriver den version, du har installeret:
 
 ```bash
 npm install -g @oneuptime/cli
@@ -61,13 +68,21 @@ oneuptime login <your-api-key> https://oneuptime.com
 
 Den svarer `Logged in successfully. Context "default" is now active.` På en selvhostet OneUptime bruger du dens adresse i stedet for `https://oneuptime.com`.
 
+### Tjek nøglen
+
+```bash
+oneuptime whoami --check
+```
+
+`login` gemmer nøglen uden at spørge OneUptime om den. `--check` spørger: den viser nøglens projekt, din OneUptimes version og CLI'ens, og hvad du skal installere, når de to er forskellige. Afviser OneUptime nøglen, så se [Fejlfinding](/docs/cli/authentication#fejlfinding).
+
 ### Vis dine hændelser
 
 ```bash
 oneuptime incident list
 ```
 
-De ti nyeste hændelser vises som en tabel. `login` gemmer nøglen uden at tjekke den, så dette er den første kommando, der viser, at nøglen virker: bliver den afvist, så se [Fejlfinding](/docs/cli/authentication#fejlfinding).
+De ti nyeste hændelser vises som en tabel.
 
 ### Se, hvad du ellers kan administrere
 
@@ -75,7 +90,7 @@ De ti nyeste hændelser vises som en tabel. `login` gemmer nøglen uden at tjekk
 oneuptime resources
 ```
 
-Listen viser hver slags post, du kan arbejde med, og dens kommando, for eksempel `monitor`, `status-page` eller `on-call-policy`.
+Listen viser hver slags post, du kan arbejde med, og dens kommando, for eksempel `monitor`, `status-page` eller `on-call-policy`. `oneuptime monitor fields` viser en monitors felter og de flag, der sætter dem.
 :::
 
 ## Kommandoerne på et øjeblik
@@ -84,9 +99,11 @@ Listen viser hver slags post, du kan arbejde med, og dens kommando, for eksempel
 | --- | --- | --- |
 | `oneuptime login <api-key> <instance-url>` | Gemmer en API-nøgle og en adresse som en kontekst | [Godkendelse](/docs/cli/authentication#log-ind) |
 | `oneuptime context list`, `use`, `current`, `delete` | Viser, skifter, oplyser og sletter gemte kontekster | [Godkendelse](/docs/cli/authentication#kontekster) |
-| `oneuptime whoami` | Viser den URL og API-nøgle, som den næste kommando vil bruge | [Godkendelse](/docs/cli/authentication#tjek-hvad-clien-vil-bruge) |
+| `oneuptime whoami` | Viser den URL og API-nøgle, som den næste kommando vil bruge, og med `--check` om OneUptime tager imod nøglen | [Godkendelse](/docs/cli/authentication#tjek-hvad-clien-vil-bruge) |
 | `oneuptime deploy` | Registrerer en udrulning eller en anden ændring til grafer og OneUptime AI | [Udrulninger og ændringer](/docs/telemetry/change-events) |
 | `oneuptime <resource> list`, `get`, `create`, `update`, `delete`, `count` | Arbejder med én slags post | [Ressourceoperationer](/docs/cli/resource-operations) |
+| `oneuptime <resource> fields` | Viser en ressources felter og de flag, der sætter dem | [Ressourceoperationer](/docs/cli/resource-operations#se-en-ressources-felter) |
+| `oneuptime <resource> acknowledge`, `resolve`, `start`, `end`, `add-note` | Gør det, som dashboardets knapper gør på hændelser, advarsler og planlagt vedligeholdelse | [Ressourceoperationer](/docs/cli/resource-operations#bekræft-løs-og-tilføj-noter) |
 | `oneuptime resources` | Viser slagsene af poster med deres kommandoer | [Kommandoreference](/docs/cli/command-reference#oneuptime-resources) |
 | `oneuptime version` | Udskriver CLI'ens version | [Kommandoreference](/docs/cli/command-reference#oneuptime-version) |
 | `oneuptime help [command]` | Viser hjælpen til en kommando | [Få hjælp](#få-hjælp) |
@@ -101,6 +118,7 @@ Disse indstillinger virker med alle kommandoer, før eller efter dem:
 | `--url <url>` | Adressen på din OneUptime til denne kommando |
 | `--context <name>` | En gemt kontekst til denne kommando, i stedet for den aktuelle |
 | `-o, --output <format>` | `table`, `json` eller `wide`: se [Outputformater](/docs/cli/output-formats) |
+| `--json` | Det samme som `-o json` |
 | `--no-color` | Udskriver uden farver |
 | `-V, --version` | Udskriver CLI'ens version |
 | `-h, --help` | Viser hjælpen til kommandoen |
@@ -122,5 +140,6 @@ oneuptime incident list --help
 - [Ressourceoperationer](/docs/cli/resource-operations): Vis, læs, opret, ændr, slet og tæl poster.
 - [Outputformater](/docs/cli/output-formats): Tabeller til mennesker, JSON til scripts.
 - [Scripting og CI/CD](/docs/cli/scripting): Exitkoder, jq og pipelines.
+- [CLI til AI-agenter](/docs/cli/ai-agents): Hvornår en agent kører CLI'en, og hvornår den bruger MCP-serveren.
 - [Kommandoreference](/docs/cli/command-reference): Hver kommando, indstilling og standardværdi.
 :::
