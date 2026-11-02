@@ -40340,5 +40340,12 @@
   "Couldn't load this virtual machine": "この仮想マシンを読み込めませんでした",
   "Not known while a host is not effective": "有効でないホストがある間は不明です",
   "Needs at least two running hosts": "稼働中のホストが 2 台以上必要です",
-  "A host's memory size is not reported": "ホストのメモリ容量が報告されていません"
+  "A host's memory size is not reported": "ホストのメモリ容量が報告されていません",
+  "Google Ads Campaign ID": "Google 広告のキャンペーン ID",
+  "Google Ads Source": "Google 広告の参照元",
+  "SSO Session Idle Timeout (Minutes)": "SSO セッションの無操作タイムアウト（分）",
+  "SSO Session Length (Minutes)": "SSO セッションの長さ（分）",
+  "Separate Session Lengths for SSO": "SSO 用の個別のセッションの長さ",
+  "Session Idle Timeout (Minutes)": "セッションの無操作タイムアウト（分）",
+  "Session Length (Minutes)": "セッションの長さ（分）"
 }

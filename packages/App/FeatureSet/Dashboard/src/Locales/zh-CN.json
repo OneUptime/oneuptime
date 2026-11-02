@@ -40340,5 +40340,12 @@
   "Couldn't load this virtual machine": "无法加载此虚拟机",
   "Not known while a host is not effective": "存在无效主机时无法判断",
   "Needs at least two running hosts": "至少需要两台运行中的主机",
-  "A host's memory size is not reported": "有主机未报告内存大小"
+  "A host's memory size is not reported": "有主机未报告内存大小",
+  "Google Ads Campaign ID": "Google Ads 广告系列 ID",
+  "Google Ads Source": "Google Ads 来源",
+  "SSO Session Idle Timeout (Minutes)": "SSO 会话空闲超时（分钟）",
+  "SSO Session Length (Minutes)": "SSO 会话时长（分钟）",
+  "Separate Session Lengths for SSO": "为 SSO 单独设置会话时长",
+  "Session Idle Timeout (Minutes)": "会话空闲超时（分钟）",
+  "Session Length (Minutes)": "会话时长（分钟）"
 }

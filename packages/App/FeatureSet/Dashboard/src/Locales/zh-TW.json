@@ -40340,5 +40340,12 @@
   "Couldn't load this virtual machine": "無法載入此虛擬機器",
   "Not known while a host is not effective": "存在無效主機時無法判斷",
   "Needs at least two running hosts": "至少需要兩台執行中的主機",
-  "A host's memory size is not reported": "有主機未回報記憶體大小"
+  "A host's memory size is not reported": "有主機未回報記憶體大小",
+  "Google Ads Campaign ID": "Google Ads 廣告活動 ID",
+  "Google Ads Source": "Google Ads 來源",
+  "SSO Session Idle Timeout (Minutes)": "SSO 工作階段閒置逾時（分鐘）",
+  "SSO Session Length (Minutes)": "SSO 工作階段時長（分鐘）",
+  "Separate Session Lengths for SSO": "為 SSO 單獨設定工作階段時長",
+  "Session Idle Timeout (Minutes)": "工作階段閒置逾時（分鐘）",
+  "Session Length (Minutes)": "工作階段時長（分鐘）"
 }

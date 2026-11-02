@@ -40340,5 +40340,12 @@
   "Couldn't load this virtual machine": "بارگیری این ماشین مجازی ممکن نشد",
   "Not known while a host is not effective": "تا وقتی میزبانی مؤثر نیست، معلوم نیست",
   "Needs at least two running hosts": "دست‌کم دو میزبان در حال اجرا لازم است",
-  "A host's memory size is not reported": "اندازه حافظه یکی از میزبان‌ها گزارش نمی‌شود"
+  "A host's memory size is not reported": "اندازه حافظه یکی از میزبان‌ها گزارش نمی‌شود",
+  "Google Ads Campaign ID": "شناسه کارزار Google Ads",
+  "Google Ads Source": "منبع Google Ads",
+  "SSO Session Idle Timeout (Minutes)": "مهلت بی‌فعالیتی نشست SSO (دقیقه)",
+  "SSO Session Length (Minutes)": "مدت نشست SSO (دقیقه)",
+  "Separate Session Lengths for SSO": "مدت نشست جداگانه برای SSO",
+  "Session Idle Timeout (Minutes)": "مهلت بی‌فعالیتی نشست (دقیقه)",
+  "Session Length (Minutes)": "مدت نشست (دقیقه)"
 }
