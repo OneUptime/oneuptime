@@ -1,6 +1,6 @@
 # Durée de session
 
-Choisissez combien de temps les personnes restent connectées à OneUptime avant de devoir se reconnecter : un délai fixe après leur connexion, un délai sans utilisation, ou les deux. Cela s'applique à chaque connexion au tableau de bord, au Admin Dashboard et à l'application mobile, par mot de passe, clé d'accès, connexion avec Microsoft ou authentification unique. Les connexions SSO peuvent avoir leurs propres durées.
+Choisissez combien de temps les personnes restent connectées à OneUptime avant de devoir se reconnecter : un délai fixe après leur connexion, un délai sans utilisation, ou les deux. Cela s'applique à chaque connexion au tableau de bord, au Admin Dashboard et à l'application mobile, par mot de passe, clé d'accès, connexion avec Google, connexion avec Microsoft ou authentification unique. Les connexions SSO peuvent avoir leurs propres durées.
 
 > [!NOTE]
 > La durée de session fait partie de l'[OneUptime Enterprise Edition](/docs/self-hosted/enterprise). La Community Edition n'a pas de page **Durée de session**, et chaque connexion dure comme le décrit [Sans limite](#sans-limite).

@@ -1,6 +1,6 @@
 # 会话时长
 
-选择用户在需要重新登录之前保持登录 OneUptime 的时长：登录后的固定时间、未使用的时间，或两者都设。它适用于每一次登录仪表板、Admin Dashboard 和移动应用，无论使用密码、通行密钥、Microsoft 登录还是单点登录。SSO 登录可以有自己的时长。
+选择用户在需要重新登录之前保持登录 OneUptime 的时长：登录后的固定时间、未使用的时间，或两者都设。它适用于每一次登录仪表板、Admin Dashboard 和移动应用，无论使用密码、通行密钥、Google 登录、Microsoft 登录还是单点登录。SSO 登录可以有自己的时长。
 
 > [!NOTE]
 > 会话时长是 [OneUptime Enterprise Edition](/docs/self-hosted/enterprise) 的一部分。Community Edition 没有 **会话时长** 页面，每次登录的时长如 [无限制](#无限制) 所述。

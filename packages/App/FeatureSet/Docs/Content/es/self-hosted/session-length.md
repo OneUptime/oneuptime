@@ -1,6 +1,6 @@
 # Duración de la sesión
 
-Elija cuánto tiempo permanecen las personas con la sesión iniciada en OneUptime antes de volver a iniciarla: un tiempo fijo después de iniciar sesión, un tiempo sin uso, o ambos. Se aplica a cada inicio de sesión en el panel, el Admin Dashboard y la aplicación móvil, con contraseña, clave de acceso, inicio de sesión con Microsoft o inicio de sesión único. Los inicios de sesión con SSO pueden tener duraciones propias.
+Elija cuánto tiempo permanecen las personas con la sesión iniciada en OneUptime antes de volver a iniciarla: un tiempo fijo después de iniciar sesión, un tiempo sin uso, o ambos. Se aplica a cada inicio de sesión en el panel, el Admin Dashboard y la aplicación móvil, con contraseña, clave de acceso, inicio de sesión con Google, inicio de sesión con Microsoft o inicio de sesión único. Los inicios de sesión con SSO pueden tener duraciones propias.
 
 > [!NOTE]
 > La duración de la sesión forma parte de [OneUptime Enterprise Edition](/docs/self-hosted/enterprise). La Community Edition no tiene la página **Duración de la sesión**, y cada inicio de sesión dura como describe [Sin límite](#sin-límite).

@@ -1,6 +1,6 @@
 # Øktlengde
 
-Velg hvor lenge folk forblir pålogget OneUptime før de logger inn igjen: en fast tid etter at de logget inn, en tid uten bruk, eller begge deler. Det gjelder for hver pålogging på dashbordet, Admin Dashboard og mobilappen, med passord, passnøkkel, pålogging med Microsoft eller enkel pålogging. SSO-pålogginger kan ha egne lengder.
+Velg hvor lenge folk forblir pålogget OneUptime før de logger inn igjen: en fast tid etter at de logget inn, en tid uten bruk, eller begge deler. Det gjelder for hver pålogging på dashbordet, Admin Dashboard og mobilappen, med passord, passnøkkel, pålogging med Google, pålogging med Microsoft eller enkel pålogging. SSO-pålogginger kan ha egne lengder.
 
 > [!NOTE]
 > Øktlengde er en del av [OneUptime Enterprise Edition](/docs/self-hosted/enterprise). Community Edition har ingen side **Øktlengde**, og hver pålogging varer slik [Uten grense](#uten-grense) beskriver.

@@ -1,6 +1,6 @@
 # Sessieduur
 
-Kies hoe lang mensen bij OneUptime aangemeld blijven voordat ze zich opnieuw aanmelden: een vaste tijd na hun aanmelding, een tijd zonder gebruik, of beide. Het geldt voor elke aanmelding bij het dashboard, het Admin Dashboard en de mobiele app, met een wachtwoord, een passkey, aanmelden met Microsoft of single sign-on. SSO-aanmeldingen kunnen een eigen duur hebben.
+Kies hoe lang mensen bij OneUptime aangemeld blijven voordat ze zich opnieuw aanmelden: een vaste tijd na hun aanmelding, een tijd zonder gebruik, of beide. Het geldt voor elke aanmelding bij het dashboard, het Admin Dashboard en de mobiele app, met een wachtwoord, een passkey, aanmelden met Google, aanmelden met Microsoft of single sign-on. SSO-aanmeldingen kunnen een eigen duur hebben.
 
 > [!NOTE]
 > Sessieduur is onderdeel van de [OneUptime Enterprise Edition](/docs/self-hosted/enterprise). De Community Edition heeft geen pagina **Sessieduur**, en elke aanmelding duurt zoals [Geen limiet](#geen-limiet) beschrijft.

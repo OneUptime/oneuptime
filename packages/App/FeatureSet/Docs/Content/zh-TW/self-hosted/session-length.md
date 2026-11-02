@@ -1,6 +1,6 @@
 # 工作階段長度
 
-選擇使用者在需要重新登入之前保持登入 OneUptime 的時間：登入後的固定時間、未使用的時間，或兩者都設。它適用於每一次登入儀表板、Admin Dashboard 和行動應用程式，無論使用密碼、通行密鑰、Microsoft 登入還是單一登入。SSO 登入可以有自己的時間。
+選擇使用者在需要重新登入之前保持登入 OneUptime 的時間：登入後的固定時間、未使用的時間，或兩者都設。它適用於每一次登入儀表板、Admin Dashboard 和行動應用程式，無論使用密碼、通行密鑰、Google 登入、Microsoft 登入還是單一登入。SSO 登入可以有自己的時間。
 
 > [!NOTE]
 > 工作階段長度是 [OneUptime Enterprise Edition](/docs/self-hosted/enterprise) 的一部分。Community Edition 沒有 **工作階段長度** 頁面，每次登入的時間如 [無限制](#無限制) 所述。

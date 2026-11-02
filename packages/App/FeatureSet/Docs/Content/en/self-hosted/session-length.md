@@ -1,6 +1,6 @@
 # Session Length
 
-Choose how long people stay signed in to OneUptime before they sign in again: a set time after they sign in, a while without use, or both. It applies to every sign-in to the Dashboard, the Admin Dashboard and the mobile app, with a password, a passkey, Sign in with Microsoft or single sign-on. SSO sign-ins can have lengths of their own.
+Choose how long people stay signed in to OneUptime before they sign in again: a set time after they sign in, a while without use, or both. It applies to every sign-in to the Dashboard, the Admin Dashboard and the mobile app, with a password, a passkey, Continue with Google, Sign in with Microsoft or single sign-on. SSO sign-ins can have lengths of their own.
 
 > [!NOTE]
 > Session length is part of the [OneUptime Enterprise Edition](/docs/self-hosted/enterprise). The Community Edition has no **Session Length** page, and every sign-in lasts as [Without a limit](#without-a-limit) describes.

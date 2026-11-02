@@ -1,6 +1,6 @@
 # Duração da sessão
 
-Escolha por quanto tempo as pessoas permanecem conectadas ao OneUptime antes de entrar novamente: um tempo fixo depois de entrarem, um tempo sem uso, ou ambos. Vale para cada entrada no painel, no Admin Dashboard e no aplicativo móvel, com senha, chave de acesso, entrada com a Microsoft ou login único. As entradas por SSO podem ter durações próprias.
+Escolha por quanto tempo as pessoas permanecem conectadas ao OneUptime antes de entrar novamente: um tempo fixo depois de entrarem, um tempo sem uso, ou ambos. Vale para cada entrada no painel, no Admin Dashboard e no aplicativo móvel, com senha, chave de acesso, entrada com o Google, entrada com a Microsoft ou login único. As entradas por SSO podem ter durações próprias.
 
 > [!NOTE]
 > A duração da sessão faz parte do [OneUptime Enterprise Edition](/docs/self-hosted/enterprise). A Community Edition não tem a página **Duração da sessão**, e cada entrada dura como [Sem limite](#sem-limite) descreve.

@@ -1,6 +1,6 @@
 # Sitzungsdauer
 
-Legen Sie fest, wie lange Personen bei OneUptime angemeldet bleiben, bevor sie sich erneut anmelden: eine feste Zeit nach der Anmeldung, eine Zeit ohne Nutzung oder beides. Das gilt für jede Anmeldung im Dashboard, im Admin Dashboard und in der mobilen App, ob mit Passwort, Passkey, der Anmeldung mit Microsoft oder Single Sign-On. SSO-Anmeldungen können eigene Dauern haben.
+Legen Sie fest, wie lange Personen bei OneUptime angemeldet bleiben, bevor sie sich erneut anmelden: eine feste Zeit nach der Anmeldung, eine Zeit ohne Nutzung oder beides. Das gilt für jede Anmeldung im Dashboard, im Admin Dashboard und in der mobilen App, ob mit Passwort, Passkey, der Anmeldung mit Google, der Anmeldung mit Microsoft oder Single Sign-On. SSO-Anmeldungen können eigene Dauern haben.
 
 > [!NOTE]
 > Die Sitzungsdauer ist Teil der [OneUptime Enterprise Edition](/docs/self-hosted/enterprise). Die Community Edition hat keine Seite **Sitzungsdauer**, und jede Anmeldung dauert so, wie [Ohne Limit](#ohne-limit) es beschreibt.

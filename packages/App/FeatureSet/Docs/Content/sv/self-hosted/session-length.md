@@ -1,6 +1,6 @@
 # Sessionslängd
 
-Välj hur länge personer förblir inloggade i OneUptime innan de loggar in igen: en bestämd tid efter att de loggade in, en tid utan användning, eller båda. Det gäller varje inloggning i instrumentpanelen, Admin Dashboard och mobilappen, med lösenord, passnyckel, inloggning med Microsoft eller enkel inloggning. SSO-inloggningar kan ha egna längder.
+Välj hur länge personer förblir inloggade i OneUptime innan de loggar in igen: en bestämd tid efter att de loggade in, en tid utan användning, eller båda. Det gäller varje inloggning i instrumentpanelen, Admin Dashboard och mobilappen, med lösenord, passnyckel, inloggning med Google, inloggning med Microsoft eller enkel inloggning. SSO-inloggningar kan ha egna längder.
 
 > [!NOTE]
 > Sessionslängd ingår i [OneUptime Enterprise Edition](/docs/self-hosted/enterprise). Community Edition har ingen sida **Sessionslängd**, och varje inloggning varar så som [Ingen gräns](#ingen-gräns) beskriver.
