@@ -129,7 +129,7 @@ azure_container_apps|00000000-0000-0000-0000-000000000000|eastus
 | EC2, Compute Engine, Azure VM (`aws_ec2`, `gcp_compute_engine`, `azure_vm`) | **호스트** | 가상 머신은 호스트입니다. [호스트 OpenTelemetry 수집기](/docs/telemetry/host-otel-collector)를 참고하세요 |
 | EKS, GKE, AKS, 자체 관리형 Kubernetes | **Kubernetes** | `k8s.*` 속성으로 라우팅됩니다. [Kubernetes 에이전트](/docs/telemetry/kubernetes-agent)를 참고하세요 |
 | Lambda, Cloud Functions, Azure Functions (`aws_lambda`, `gcp_cloud_functions`, `azure_functions`) | **서버리스 함수** | `faas.name`으로, 또는 FaaS `cloud.platform`이 있으면 `service.name`으로 라우팅됩니다. [서버리스 함수](/docs/telemetry/serverless-functions)를 참고하세요 |
-| 로드 밸런서, 버킷, 관리형 데이터베이스 및 기타 IaaS·PaaS 리소스 | **Cloud Resources** | Azure Monitor, CloudWatch, Cloud Monitoring이 게시하는 메트릭에서 발견됩니다. [클라우드 리소스](/docs/telemetry/cloud-resources)를 참고하세요 |
+| 로드 밸런서, 버킷, 관리형 데이터베이스 및 기타 IaaS·PaaS 리소스 | **클라우드 리소스** | Azure Monitor, CloudWatch, Cloud Monitoring이 게시하는 메트릭에서 발견됩니다. [클라우드 리소스](/docs/telemetry/cloud-resources)를 참고하세요 |
 
 > [!NOTE]
 > Cloud Run과 App Engine은 의도적으로 두 곳에 표시됩니다. 이들의 감지기는 관리형 `cloud.platform`과 `faas.name`을 모두 설정하므로, 각 서비스는 그 자체로 **서버리스 함수**이기도 하고, **클라우드 환경**은 그 프로젝트와 리전의 모든 서비스를 묶습니다. 같은 텔레메트리가 두 곳 모두에 기록됩니다.

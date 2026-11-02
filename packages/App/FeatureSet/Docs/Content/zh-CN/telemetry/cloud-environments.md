@@ -129,7 +129,7 @@ azure_container_apps|00000000-0000-0000-0000-000000000000|eastus
 | EC2, Compute Engine, Azure VM (`aws_ec2`, `gcp_compute_engine`, `azure_vm`) | **主机** | 虚拟机就是主机。参见 [主机 OpenTelemetry Collector](/docs/telemetry/host-otel-collector) |
 | EKS、GKE、AKS、自管理的 Kubernetes | **Kubernetes** | 按 `k8s.*` 属性路由。参见 [Kubernetes 代理](/docs/telemetry/kubernetes-agent) |
 | Lambda, Cloud Functions, Azure Functions (`aws_lambda`, `gcp_cloud_functions`, `azure_functions`) | **无服务器函数** | 按 `faas.name` 路由，若 `cloud.platform` 为 FaaS 平台，则按 `service.name` 路由。参见 [无服务器函数](/docs/telemetry/serverless-functions) |
-| 负载均衡器、存储桶、托管数据库以及其他 IaaS 或 PaaS 资源 | **Cloud Resources** | 根据 Azure Monitor、CloudWatch 和 Cloud Monitoring 发布的指标发现。参见 [云资源](/docs/telemetry/cloud-resources) |
+| 负载均衡器、存储桶、托管数据库以及其他 IaaS 或 PaaS 资源 | **云资源** | 根据 Azure Monitor、CloudWatch 和 Cloud Monitoring 发布的指标发现。参见 [云资源](/docs/telemetry/cloud-resources) |
 
 > [!NOTE]
 > Cloud Run 和 App Engine 会有意出现在两个地方。它们的检测器同时设置了托管的 `cloud.platform` 和 `faas.name`，因此每个服务本身也是一个 **无服务器函数**，而 **云环境** 则汇总了该项目和区域中的所有服务。同一份遥测数据会同时归档到两处。
