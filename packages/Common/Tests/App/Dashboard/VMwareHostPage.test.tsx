@@ -637,6 +637,16 @@ describe("the hero says which host this is and whether vCenter still reports it"
     expect(tile("Memory")).toHaveTextContent("—");
     // Its VMs' 0% ranks nothing: no busiest list.
     expect(screen.queryByTestId("vmware-host-busiest-vms")).toBeNull();
+    /*
+     * How many VMs it has, never how many run: vCenter repeats their last
+     * power state, and does not know.
+     */
+    const chips: HTMLElement = screen.getByTestId("vmware-host-hero-chips");
+    expect(chips).toHaveTextContent("3 VMs");
+    expect(chips).not.toHaveTextContent("powered on");
+    expect(screen.getByTestId("vmware-host-detail-vms")).toHaveTextContent(
+      /^Virtual machines\s*3$/,
+    );
     // Needs attention names the host, critical.
     expect(
       within(screen.getByTestId("vmware-host-attention")).getByTestId(

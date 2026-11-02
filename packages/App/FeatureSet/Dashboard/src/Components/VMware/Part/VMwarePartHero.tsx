@@ -18,8 +18,10 @@ import {
   getVMwareClusterStatus,
   getVMwareDatastoreStatus,
   getVMwareDisplayName,
+  getVMwareHostState,
   getVMwareHostStatus,
   getVMwareVirtualMachineStatus,
+  knowsVMwareHostVirtualMachineStates,
   toVMwareDate,
   toVMwareNumber,
 } from "../../../Pages/VMware/Utils/VMwareHealth";
@@ -202,10 +204,13 @@ const VMwarePartHero: FunctionComponent<ComponentProps> = (
   let location: ReactNode = undefined;
   const chips: Array<ResourcePartChip> = [];
 
-  const pushVirtualMachines: () => void = (): void => {
+  const pushVirtualMachines: (powerStatesKnown?: boolean) => void = (
+    powerStatesKnown: boolean = true,
+  ): void => {
     /*
      * A host's VMs as its page read them; a cluster's as vCenter counts them
-     * (vcenter.cluster.vm.count) when its page has not read them.
+     * (vcenter.cluster.vm.count) when its page has not read them. On a host
+     * vCenter cannot reach, how many it has, not how many run.
      */
     const counted: number | null = toVMwareNumber(row?.vmCount);
     const summary: { total: number; running: number } | undefined =
@@ -220,15 +225,20 @@ const VMwarePartHero: FunctionComponent<ComponentProps> = (
       chips.push({
         key: "vms",
         icon: IconProp.Cube,
-        label: translator.translatePlural(
-          {
-            one: "{{poweredOn}}/{{count}} VM powered on",
-            other: "{{poweredOn}}/{{count}} VMs powered on",
-          },
-          summary.total,
-          // In the reader's digits, as the count beside it is.
-          { poweredOn: translator.formatNumber(summary.running) },
-        ),
+        label: powerStatesKnown
+          ? translator.translatePlural(
+              {
+                one: "{{poweredOn}}/{{count}} VM powered on",
+                other: "{{poweredOn}}/{{count}} VMs powered on",
+              },
+              summary.total,
+              // In the reader's digits, as the count beside it is.
+              { poweredOn: translator.formatNumber(summary.running) },
+            )
+          : translator.translatePlural(
+              { one: "{{count}} VM", other: "{{count}} VMs" },
+              summary.total,
+            ),
       });
     }
   };
@@ -291,7 +301,19 @@ const VMwarePartHero: FunctionComponent<ComponentProps> = (
       cpuMhz: toVMwareNumber(row?.cpuCapacityMhz),
       memoryBytes: toVMwareNumber(row?.maxMemoryBytes),
     });
-    pushVirtualMachines();
+    pushVirtualMachines(
+      !row ||
+        knowsVMwareHostVirtualMachineStates(
+          getVMwareHostState({
+            host: row,
+            datacenter: findVMwareDatacenter(
+              props.datacenters,
+              row.datacenterName,
+            ),
+            now: props.now,
+          }),
+        ),
+    );
   } else if (props.kind === VMwareResourceKind.VirtualMachine) {
     if (host && cluster && datacenter) {
       location = (

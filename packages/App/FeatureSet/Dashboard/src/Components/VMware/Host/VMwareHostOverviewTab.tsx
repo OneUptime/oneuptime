@@ -43,7 +43,9 @@ import {
   getVMwareAttentionKey,
   getVMwareHostState,
   isVMwareIssueAbout,
+  knowsVMwareHostVirtualMachineStates,
   reportsNoVMwareHostLoad,
+  VMwareHostState,
 } from "../../../Pages/VMware/Utils/VMwareHealth";
 import { VMWARE_HOST_ALERT_TEMPLATE_IDS } from "../../../Pages/VMware/Utils/VMwarePartFacts";
 import { getVMwarePartRoutes } from "../Part/VMwarePartRoutes";
@@ -303,14 +305,15 @@ const VMwareHostOverviewTab: FunctionComponent<ComponentProps> = (
    * 0% CPU and memory, and its VMs 0% too: the tiles say "—" for it, and
    * no VM on it is ranked as busy or idle.
    */
-  const hasNoLoad: boolean = row
-    ? reportsNoVMwareHostLoad(
-        getVMwareHostState({
-          host: row,
-          datacenter: props.datacenterRow,
-          now: OneUptimeDate.getCurrentDate(),
-        }),
-      )
+  const hostState: VMwareHostState | null = row
+    ? getVMwareHostState({
+        host: row,
+        datacenter: props.datacenterRow,
+        now: OneUptimeDate.getCurrentDate(),
+      })
+    : null;
+  const hasNoLoad: boolean = hostState
+    ? reportsNoVMwareHostLoad(hostState)
     : false;
 
   const busiest: Array<VMwareBusyVirtualMachine> =
@@ -677,6 +680,9 @@ const VMwareHostOverviewTab: FunctionComponent<ComponentProps> = (
         row={props.row}
         clusterRoute={props.clusterRoute}
         virtualMachines={props.virtualMachineSummary}
+        virtualMachineStatesKnown={
+          !hostState || knowsVMwareHostVirtualMachineStates(hostState)
+        }
       />
 
       {/*

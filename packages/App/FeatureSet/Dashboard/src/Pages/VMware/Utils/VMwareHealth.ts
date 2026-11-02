@@ -462,6 +462,22 @@ export function reportsNoVMwareHostLoad(state: VMwareHostState): boolean {
   );
 }
 
+/*
+ * Whether vCenter knows which of a host's VMs are running. Not on a host it
+ * has lost contact with: it repeats each VM's last power state while the VM
+ * may have stopped with the host, or run on with only its management network
+ * down - so a page says how many VMs the host has, never how many run. Nor on
+ * a host whose state it does not say. A host powered off or in standby has
+ * its VMs off (DPM moves the running ones away first), as vCenter reports.
+ */
+export function knowsVMwareHostVirtualMachineStates(
+  state: VMwareHostState,
+): boolean {
+  return (
+    state !== VMwareHostState.NotResponding && state !== VMwareHostState.NoUsage
+  );
+}
+
 export function assessVMwareHost(data: {
   host: VMwareResource;
   datacenter: VMwareResource | null;

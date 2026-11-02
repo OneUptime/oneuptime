@@ -54,6 +54,7 @@ import {
   isVMwareHostRunning,
   isVMwareIssueAbout,
   isVMwareVirtualMachineDisconnected,
+  knowsVMwareHostVirtualMachineStates,
   mergeVMwareSeverities,
   reportsNoVMwareHostLoad,
   reportsNoVMwareHostUsage,
@@ -549,6 +550,29 @@ describe("an ESXi host's state", () => {
     ]) {
       expect(isVMwareHostRunning(state)).toBe(false);
       expect(reportsNoVMwareHostLoad(state)).toBe(false);
+    }
+  });
+
+  /*
+   * vCenter repeats the last power state of the VMs on a host it lost: how
+   * many run there is not known. On a host off or in standby they are off.
+   */
+  test("which of a host's VMs run is known, except on a host vCenter cannot place or reach", () => {
+    for (const state of [
+      VMwareHostState.NotResponding,
+      VMwareHostState.NoUsage,
+    ]) {
+      expect(knowsVMwareHostVirtualMachineStates(state)).toBe(false);
+    }
+    for (const state of [
+      VMwareHostState.Connected,
+      VMwareHostState.PoweredOff,
+      VMwareHostState.Standby,
+      VMwareHostState.PoweredOffOrStandby,
+      VMwareHostState.NotReporting,
+      VMwareHostState.NoDataYet,
+    ]) {
+      expect(knowsVMwareHostVirtualMachineStates(state)).toBe(true);
     }
   });
 });

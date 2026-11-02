@@ -840,6 +840,13 @@ test.describe("an ESXi host's page", () => {
     await expect(tiles).not.toContainText("0.0%");
     // Its VMs' 0% ranks nothing.
     await expect(page.getByTestId("vmware-host-busiest-vms")).toHaveCount(0);
+    // How many VMs it has, not how many run: vCenter does not know.
+    await expect(page.getByTestId("vmware-host-hero-chips")).toContainText(
+      "1 VM",
+    );
+    await expect(page.getByTestId("vmware-host-hero-chips")).not.toContainText(
+      "powered on",
+    );
 
     await expect(page.getByTestId("vmware-host-open-item")).toHaveCount(1);
     await expect(page.getByTestId("vmware-host-open-item")).toContainText(
