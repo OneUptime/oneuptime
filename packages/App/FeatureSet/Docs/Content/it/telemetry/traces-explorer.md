@@ -56,7 +56,7 @@ Digitate una query e premete Invio, ad esempio `service:checkout status:error du
 
 ### Restringere con i filtri
 
-Fate clic su un valore nella barra laterale **Filtri** per aggiungerlo come chip. La barra laterale filtra per **Servizio**, per l'host, il cluster o l'altra risorsa che ha inviato lo span, per **Stato**, **Categoria di span**, **Ha eccezione**, **Tipo di span**, **Nome dello span**, **Istanza del servizio** e **Nome dell'host**.
+Fate clic su un valore nella barra laterale **Filtri** per aggiungerlo come chip. La barra laterale filtra per **Servizio**, per l'host, il cluster o l'altra risorsa che ha inviato lo span, per **Stato**, **Categoria di span**, **Ha eccezione**, **Tipo di span**, **Nome dello span**, **Istanza del servizio** e **Nome dell'host**. Fate clic sul segno meno accanto a un valore per escludere invece quegli span. Fate di nuovo clic sul valore per annullare.
 
 ### Aprire uno span
 

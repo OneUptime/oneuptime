@@ -56,7 +56,7 @@ Digite uma consulta e pressione Enter, por exemplo `service:checkout status:erro
 
 ### Refinar com filtros
 
-Clique em um valor da barra lateral **Filtros** para adicioná-lo como chip. A barra lateral filtra por **Serviço**, pelo host, cluster ou outro recurso que enviou o span, por **Status**, **Categoria de span**, **Tem exceção**, **Tipo de span**, **Nome do span**, **Instância do serviço** e **Nome do Host**.
+Clique em um valor da barra lateral **Filtros** para adicioná-lo como chip. A barra lateral filtra por **Serviço**, pelo host, cluster ou outro recurso que enviou o span, por **Status**, **Categoria de span**, **Tem exceção**, **Tipo de span**, **Nome do span**, **Instância do serviço** e **Nome do Host**. Clique no sinal de menos ao lado de um valor para excluir esses spans. Clique de novo no valor para desfazer.
 
 ### Abrir um span
 

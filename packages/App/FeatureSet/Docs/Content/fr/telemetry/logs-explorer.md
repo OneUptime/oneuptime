@@ -56,7 +56,7 @@ Tapez une requête dans la zone de recherche et appuyez sur Entrée, par exemple
 
 ### Affiner avec des filtres
 
-Cliquez sur une valeur de la barre latérale **Filtres** pour l'ajouter comme puce : une gravité, un service, ou un hôte, un cluster ou une autre ressource qui a envoyé des journaux. Chaque valeur indique combien de journaux la portent. Sur un téléphone, touchez **Filtres** pour ouvrir la barre latérale.
+Cliquez sur une valeur de la barre latérale **Filtres** pour l'ajouter comme puce : une gravité, un service, ou un hôte, un cluster ou une autre ressource qui a envoyé des journaux. Chaque valeur indique combien de journaux la portent. Cliquez plutôt sur le signe moins à côté d'une valeur pour exclure ces journaux. Cliquez de nouveau sur la valeur pour annuler. Sur un téléphone, touchez **Filtres** pour ouvrir la barre latérale.
 
 ### Ouvrir un journal
 

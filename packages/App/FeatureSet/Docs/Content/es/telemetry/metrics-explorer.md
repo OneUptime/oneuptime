@@ -43,7 +43,7 @@ El explorador tiene cinco pestañas:
 Vaya a **Productos → Observabilidad → Métricas**. El **Visor** enumera cada métrica que ha recibido su proyecto, por nombre, cada una con un pequeño gráfico del intervalo de tiempo y su último valor.
 
 - Busque nombres con palabras sueltas o `name:`, por ejemplo `name:http.server` encuentra `http.server.request.duration`. Consulte [Sintaxis de búsqueda](/docs/telemetry/search-syntax#métricas).
-- Filtre por **Servicio** en la barra lateral para ver solo las métricas que informa un servicio.
+- Filtre por **Servicio** en la barra lateral para ver solo las métricas que informa un servicio. Haga clic en el signo menos junto a un servicio para ocultar las métricas que informa.
 - Haga clic en una métrica para representarla en el explorador de métricas.
 
 ## Representar una métrica

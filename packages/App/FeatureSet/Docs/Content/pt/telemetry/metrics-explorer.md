@@ -43,7 +43,7 @@ O explorador tem cinco abas:
 Acesse **Produtos → Observabilidade → Métricas**. O **Visualizador** lista cada métrica que seu projeto já recebeu, por nome, cada uma com um pequeno gráfico do intervalo de tempo e o último valor.
 
 - Pesquise nomes com palavras soltas ou `name:`, por exemplo `name:http.server` encontra `http.server.request.duration`. Veja [Sintaxe de pesquisa](/docs/telemetry/search-syntax#métricas).
-- Filtre por **Serviço** na barra lateral para ver só as métricas que um serviço informa.
+- Filtre por **Serviço** na barra lateral para ver só as métricas que um serviço informa. Clique no sinal de menos ao lado de um serviço para ocultar as métricas que ele informa.
 - Clique em uma métrica para fazer o gráfico dela no explorador de métricas.
 
 ## Fazer o gráfico de uma métrica
