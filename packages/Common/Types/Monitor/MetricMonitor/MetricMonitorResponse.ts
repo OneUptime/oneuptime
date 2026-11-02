@@ -250,6 +250,15 @@ export default interface MetricMonitorResponse {
   dataCompleteFrom?: Date | undefined;
   metricResult: Array<AggregatedResult>;
   metricViewConfig: MetricsViewConfig;
+  /*
+   * The attribute filters each query was read with, in query order: its own
+   * and the ones an infrastructure monitor adds for its host, cluster or
+   * container, which the step does not show. The criteria evaluator reads a
+   * query's history with them, so that it is judged against its own series.
+   * Absent on a response that does not say: the evaluator then cannot narrow
+   * that history, and treats it as it would any query it cannot read back.
+   */
+  queryAttributes?: Array<Dictionary<unknown> | undefined> | undefined;
   monitorId: ObjectID;
   evaluationSummary?: MonitorEvaluationSummary | undefined;
   kubernetesResourceBreakdown?: KubernetesResourceBreakdown | undefined;

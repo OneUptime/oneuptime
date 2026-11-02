@@ -20,6 +20,7 @@ import MetricSeriesResult from "../../../../Types/Monitor/MetricMonitor/MetricSe
 import MonitorStep from "../../../../Types/Monitor/MonitorStep";
 import ObjectID from "../../../../Types/ObjectID";
 import SeriesLabelDisplay from "../../../../Types/Monitor/SeriesContext/SeriesLabelDisplay";
+import Dictionary from "../../../../Types/Dictionary";
 import { JSONObject } from "../../../../Types/JSON";
 import DataToProcess from "../DataToProcess";
 import CompareCriteria from "./CompareCriteria";
@@ -44,7 +45,11 @@ import MetricFormulaEvaluator from "../../../../Utils/Metrics/MetricFormulaEvalu
 import MetricBaselineService, {
   BaselineBand,
   BaselineSummary,
+  MetricBaselineQuery,
+  MetricBaselineRequest,
+  MetricBaselineScope,
   MetricBaselineService as MetricBaselineServiceClass,
+  MetricSeriesBaselines,
 } from "../../../Services/MetricBaselineService";
 import MetricHourBaseline from "../MetricHourBaseline";
 
@@ -75,10 +80,10 @@ export type IsCriteriaInEffect = (
 ) => Promise<boolean>;
 
 /*
- * The baselines one evaluation has read, by getBaselineKey. A metric's cell is
- * the same for every series of a grouped monitor, so it is read once.
+ * The baselines one evaluation has read, by getBaselineKey. An hour holds every
+ * series of a grouped monitor, so it is read once.
  */
-type BaselineReads = Map<string, Promise<BaselineSummary | null>>;
+type BaselineReads = Map<string, Promise<MetricSeriesBaselines>>;
 
 // One hour of a window: which hour of the week, and its earliest data point.
 interface HourJudged {
@@ -285,9 +290,13 @@ export default class MetricMonitorCriteria {
 
     /*
      * Only a Metrics monitor's query says all it reads. An infrastructure
-     * monitor's is narrowed to its cluster, host or container by the worker.
+     * monitor's is narrowed to its cluster, host or container by the worker,
+     * which says so on the response.
      */
     const isNarrowedByMonitor: boolean = !input.monitorStep.data?.metricMonitor;
+
+    const groupByAttributeKeys: Array<string> =
+      MonitorStep.getGroupByAttributeKeys(input.monitorStep);
 
     /*
      * Series-less path: one synthetic "all-series" evaluation over the
@@ -311,6 +320,8 @@ export default class MetricMonitorCriteria {
           baselineReads,
           telemetryServiceIds,
           isNarrowedByMonitor,
+          queryAttributes: metricResponse.queryAttributes,
+          groupByAttributeKeys,
         });
       return [result];
     }
@@ -333,6 +344,8 @@ export default class MetricMonitorCriteria {
           baselineReads,
           telemetryServiceIds,
           isNarrowedByMonitor,
+          queryAttributes: metricResponse.queryAttributes,
+          groupByAttributeKeys,
         });
       }),
     );
@@ -533,6 +546,9 @@ export default class MetricMonitorCriteria {
     telemetryServiceIds?: Array<ObjectID> | undefined;
     // The monitor narrows the query by attributes the query does not show.
     isNarrowedByMonitor?: boolean | undefined;
+    // What the worker read each query with, in query order.
+    queryAttributes?: Array<Dictionary<unknown> | undefined> | undefined;
+    groupByAttributeKeys?: Array<string> | undefined;
   }): Promise<MetricSeriesEvaluationResult> {
     const rawThreshold: number | null =
       CompareCriteria.convertMetricThresholdToNumber(
@@ -615,6 +631,12 @@ export default class MetricMonitorCriteria {
         window: input.window,
         telemetryServiceIds: input.telemetryServiceIds,
         isNarrowedByMonitor: input.isNarrowedByMonitor,
+        scope: MetricMonitorCriteria.getBaselineScope({
+          matchedQuery,
+          queryIndex: Math.max(0, aliasIndex),
+          queryAttributes: input.queryAttributes,
+          groupByAttributeKeys: input.groupByAttributeKeys,
+        }),
       });
     }
 
@@ -1422,6 +1444,7 @@ export default class MetricMonitorCriteria {
     window?: MetricEvaluationWindow | null | undefined;
     telemetryServiceIds?: Array<ObjectID> | undefined;
     isNarrowedByMonitor?: boolean | undefined;
+    scope?: MetricBaselineScope | undefined;
   }): Promise<MetricSeriesEvaluationResult> {
     const { criteriaFilter, metricContext } = input;
 
@@ -1542,11 +1565,26 @@ export default class MetricMonitorCriteria {
         })
       : AggregationInterval.Minute;
 
+    const query: MetricBaselineQuery = {
+      aggregationType,
+      isNarrowedByAttributes: input.scope
+        ? Object.keys(input.scope.attributes).length > 0 ||
+          input.scope.groupByAttributeKeys.length > 0
+        : Boolean(input.isNarrowedByMonitor) ||
+          Object.keys(metricContext.filterAttributes).length > 0 ||
+          metricContext.groupBy.length > 0,
+      interval,
+      scope: input.scope,
+      windowInMs: input.window
+        ? input.window.endMs - input.window.startMs
+        : undefined,
+    };
+
     const baselineByHour: Map<string, BaselineSummary> = new Map();
     for (const [key, hour] of hoursInWindow) {
-      const reading: Promise<BaselineSummary | null> =
+      const reading: Promise<MetricSeriesBaselines> =
         input.baselineReads.get(key) ||
-        MetricBaselineService.getBaseline({
+        MetricMonitorCriteria.readBaselines({
           projectId: input.projectId.toString(),
           metricName: metricContext.metricName,
           hourOfWeek: hour.hourOfWeek,
@@ -1555,19 +1593,16 @@ export default class MetricMonitorCriteria {
           minSamples,
           // Empty is what a monitor that reads every service holds.
           primaryEntityId: input.telemetryServiceIds,
-          query: {
-            aggregationType,
-            isNarrowedByAttributes:
-              Boolean(input.isNarrowedByMonitor) ||
-              Object.keys(metricContext.filterAttributes).length > 0 ||
-              metricContext.groupBy.length > 0,
-            interval,
-          },
+          query,
         });
 
       input.baselineReads.set(key, reading);
 
-      const baseline: BaselineSummary | null = await reading;
+      const baseline: BaselineSummary | null =
+        MetricBaselineServiceClass.getSeriesBaseline({
+          baselines: await reading,
+          seriesFingerprint: input.seriesFingerprint,
+        });
 
       if (baseline && baseline.isReliable) {
         baselineByHour.set(
@@ -1761,6 +1796,45 @@ export default class MetricMonitorCriteria {
       labels: input.seriesLabels,
       rootCause,
       context: metricContext,
+    };
+  }
+
+  /*
+   * What narrows a query, as far as it can be read back. The worker says what
+   * it read each query with, and a group by whole columns has no series a read
+   * could hand back. Undefined when either is so: such a query keeps the
+   * baseline that says nothing of them.
+   */
+  private static getBaselineScope(data: {
+    matchedQuery: MetricQueryConfigData | null;
+    queryIndex: number;
+    queryAttributes: Array<Dictionary<unknown> | undefined> | undefined;
+    groupByAttributeKeys: Array<string> | undefined;
+  }): MetricBaselineScope | undefined {
+    if (
+      !data.queryAttributes ||
+      Object.keys(data.matchedQuery?.metricQueryData?.groupBy || {}).length > 0
+    ) {
+      return undefined;
+    }
+
+    return {
+      attributes: data.queryAttributes[data.queryIndex] || {},
+      groupByAttributeKeys: data.groupByAttributeKeys || [],
+    };
+  }
+
+  // A query with a scope is read a series at a time, and any other as one.
+  private static async readBaselines(
+    request: MetricBaselineRequest & { query: MetricBaselineQuery },
+  ): Promise<MetricSeriesBaselines> {
+    if (request.query.scope && request.query.isNarrowedByAttributes) {
+      return await MetricBaselineService.getSeriesBaselines(request);
+    }
+
+    return {
+      series: new Map<string, BaselineSummary>(),
+      fallback: await MetricBaselineService.getBaseline(request),
     };
   }
 

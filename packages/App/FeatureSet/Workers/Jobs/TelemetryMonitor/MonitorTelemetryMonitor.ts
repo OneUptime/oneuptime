@@ -1598,6 +1598,9 @@ export const monitorMetric: MonitorMetricFunction = async (data: {
 
   const finalResult: Array<AggregatedResult> = [];
 
+  // What each query was read with, for what it is judged against.
+  const readAttributes: Array<Dictionary<unknown> | undefined> = [];
+
   // Where a read was cut at its row limit - see getCutReadCompleteFrom.
   let dataCompleteFrom: Date | undefined = undefined;
 
@@ -1708,6 +1711,7 @@ export const monitorMetric: MonitorMetricFunction = async (data: {
     });
 
     finalResult.push(aggregatedResults);
+    readAttributes.push(query.attributes);
   }
 
   /*
@@ -1778,6 +1782,7 @@ export const monitorMetric: MonitorMetricFunction = async (data: {
     startAndEndDate: startAndEndDate,
     dataCompleteFrom: dataCompleteFrom,
     metricResult: resultsWithFormulas,
+    queryAttributes: readAttributes,
     monitorId: data.monitorId,
     seriesBreakdown: seriesBreakdown,
     nativeUnitsByMetricName: buildNativeUnitsByMetricName({
@@ -1996,6 +2001,9 @@ export const monitorKubernetes: MonitorKubernetesFunction = async (data: {
 
   const finalResult: Array<AggregatedResult> = [];
 
+  // What each query was read with, for what it is judged against.
+  const readAttributes: Array<Dictionary<unknown> | undefined> = [];
+
   // Where a read was cut at its row limit - see getCutReadCompleteFrom.
   let dataCompleteFrom: Date | undefined = undefined;
 
@@ -2130,6 +2138,7 @@ export const monitorKubernetes: MonitorKubernetesFunction = async (data: {
     });
 
     finalResult.push(aggregatedResults);
+    readAttributes.push(query.attributes);
 
     // Fetch raw metrics to extract per-resource Kubernetes context
     const affectedResources: Array<KubernetesAffectedResource> | undefined =
@@ -2205,6 +2214,7 @@ export const monitorKubernetes: MonitorKubernetesFunction = async (data: {
     startAndEndDate: startAndEndDate,
     dataCompleteFrom: dataCompleteFrom,
     metricResult: resultsWithFormulas,
+    queryAttributes: readAttributes,
     monitorId: data.monitorId,
     kubernetesResourceBreakdowns:
       kubernetesResourceBreakdowns.length > 0
@@ -2242,6 +2252,9 @@ export const monitorDocker: MonitorDockerFunction = async (data: {
     );
 
   const finalResult: Array<AggregatedResult> = [];
+
+  // What each query was read with, for what it is judged against.
+  const readAttributes: Array<Dictionary<unknown> | undefined> = [];
 
   // Where a read was cut at its row limit - see getCutReadCompleteFrom.
   let dataCompleteFrom: Date | undefined = undefined;
@@ -2324,6 +2337,7 @@ export const monitorDocker: MonitorDockerFunction = async (data: {
     });
 
     finalResult.push(aggregatedResults);
+    readAttributes.push(query.attributes);
   }
 
   const nativeUnitsByMetricName: Map<string, string> =
@@ -2364,6 +2378,7 @@ export const monitorDocker: MonitorDockerFunction = async (data: {
     startAndEndDate: startAndEndDate,
     dataCompleteFrom: dataCompleteFrom,
     metricResult: resultsWithFormulas,
+    queryAttributes: readAttributes,
     seriesBreakdown: seriesBreakdown,
     monitorId: data.monitorId,
     nativeUnitsByMetricName: buildNativeUnitsByMetricName({
@@ -2401,6 +2416,9 @@ export const monitorHost: MonitorHostFunction = async (data: {
     );
 
   const finalResult: Array<AggregatedResult> = [];
+
+  // What each query was read with, for what it is judged against.
+  const readAttributes: Array<Dictionary<unknown> | undefined> = [];
 
   // Where a read was cut at its row limit - see getCutReadCompleteFrom.
   let dataCompleteFrom: Date | undefined = undefined;
@@ -2470,6 +2488,7 @@ export const monitorHost: MonitorHostFunction = async (data: {
     });
 
     finalResult.push(aggregatedResults);
+    readAttributes.push(query.attributes);
   }
 
   const nativeUnitsByMetricName: Map<string, string> =
@@ -2530,6 +2549,7 @@ export const monitorHost: MonitorHostFunction = async (data: {
     startAndEndDate: startAndEndDate,
     dataCompleteFrom: dataCompleteFrom,
     metricResult: resultsWithFormulas,
+    queryAttributes: readAttributes,
     seriesBreakdown: seriesBreakdown,
     monitorId: data.monitorId,
     nativeUnitsByMetricName: buildNativeUnitsByMetricName({
@@ -2567,6 +2587,9 @@ export const monitorPodman: MonitorPodmanFunction = async (data: {
     );
 
   const finalResult: Array<AggregatedResult> = [];
+
+  // What each query was read with, for what it is judged against.
+  const readAttributes: Array<Dictionary<unknown> | undefined> = [];
 
   // Where a read was cut at its row limit - see getCutReadCompleteFrom.
   let dataCompleteFrom: Date | undefined = undefined;
@@ -2649,6 +2672,7 @@ export const monitorPodman: MonitorPodmanFunction = async (data: {
     });
 
     finalResult.push(aggregatedResults);
+    readAttributes.push(query.attributes);
   }
 
   const nativeUnitsByMetricName: Map<string, string> =
@@ -2689,6 +2713,7 @@ export const monitorPodman: MonitorPodmanFunction = async (data: {
     startAndEndDate: startAndEndDate,
     dataCompleteFrom: dataCompleteFrom,
     metricResult: resultsWithFormulas,
+    queryAttributes: readAttributes,
     seriesBreakdown: seriesBreakdown,
     monitorId: data.monitorId,
     nativeUnitsByMetricName: buildNativeUnitsByMetricName({
@@ -2726,6 +2751,9 @@ export const monitorProxmox: MonitorProxmoxFunction = async (data: {
     );
 
   const finalResult: Array<AggregatedResult> = [];
+
+  // What each query was read with, for what it is judged against.
+  const readAttributes: Array<Dictionary<unknown> | undefined> = [];
 
   // Where a read was cut at its row limit - see getCutReadCompleteFrom.
   let dataCompleteFrom: Date | undefined = undefined;
@@ -2831,6 +2859,7 @@ export const monitorProxmox: MonitorProxmoxFunction = async (data: {
     });
 
     finalResult.push(aggregatedResults);
+    readAttributes.push(query.attributes);
 
     // Fetch raw metrics to extract per-resource Proxmox context
     const affectedResources: Array<ProxmoxAffectedResource> | undefined =
@@ -2904,6 +2933,7 @@ export const monitorProxmox: MonitorProxmoxFunction = async (data: {
     startAndEndDate: startAndEndDate,
     dataCompleteFrom: dataCompleteFrom,
     metricResult: resultsWithFormulas,
+    queryAttributes: readAttributes,
     proxmoxResourceBreakdowns:
       proxmoxResourceBreakdowns.length > 0
         ? proxmoxResourceBreakdowns
@@ -3006,6 +3036,9 @@ export const monitorVMware: MonitorVMwareFunction = async (data: {
 
   const finalResult: Array<AggregatedResult> = [];
 
+  // What each query was read with, for what it is judged against.
+  const readAttributes: Array<Dictionary<unknown> | undefined> = [];
+
   // Where a read was cut at its row limit - see getCutReadCompleteFrom.
   let dataCompleteFrom: Date | undefined = undefined;
 
@@ -3085,6 +3118,7 @@ export const monitorVMware: MonitorVMwareFunction = async (data: {
     });
 
     finalResult.push(aggregatedResults);
+    readAttributes.push(query.attributes);
 
     /*
      * Fetch raw metrics to extract per-object vSphere context. Best
@@ -3162,6 +3196,7 @@ export const monitorVMware: MonitorVMwareFunction = async (data: {
     startAndEndDate: startAndEndDate,
     dataCompleteFrom: dataCompleteFrom,
     metricResult: resultsWithFormulas,
+    queryAttributes: readAttributes,
     vmwareResourceBreakdowns:
       vmwareResourceBreakdowns.length > 0
         ? vmwareResourceBreakdowns
@@ -3199,6 +3234,9 @@ export const monitorIoT: MonitorIoTFunction = async (data: {
     );
 
   const finalResult: Array<AggregatedResult> = [];
+
+  // What each query was read with, for what it is judged against.
+  const readAttributes: Array<Dictionary<unknown> | undefined> = [];
 
   // Where a read was cut at its row limit - see getCutReadCompleteFrom.
   let dataCompleteFrom: Date | undefined = undefined;
@@ -3313,6 +3351,7 @@ export const monitorIoT: MonitorIoTFunction = async (data: {
     });
 
     finalResult.push(aggregatedResults);
+    readAttributes.push(query.attributes);
   }
 
   const nativeUnitsByMetricName: Map<string, string> =
@@ -3394,6 +3433,7 @@ export const monitorIoT: MonitorIoTFunction = async (data: {
     startAndEndDate: startAndEndDate,
     dataCompleteFrom: dataCompleteFrom,
     metricResult: resultsWithFormulas,
+    queryAttributes: readAttributes,
     seriesBreakdown: seriesBreakdown,
     monitorId: data.monitorId,
     nativeUnitsByMetricName: buildNativeUnitsByMetricName({
@@ -3431,6 +3471,9 @@ export const monitorDockerSwarm: MonitorDockerSwarmFunction = async (data: {
     );
 
   const finalResult: Array<AggregatedResult> = [];
+
+  // What each query was read with, for what it is judged against.
+  const readAttributes: Array<Dictionary<unknown> | undefined> = [];
 
   // Where a read was cut at its row limit - see getCutReadCompleteFrom.
   let dataCompleteFrom: Date | undefined = undefined;
@@ -3594,6 +3637,7 @@ export const monitorDockerSwarm: MonitorDockerSwarmFunction = async (data: {
     });
 
     finalResult.push(aggregatedResults);
+    readAttributes.push(query.attributes);
 
     /*
      * Fetch raw metrics to extract per-resource Docker Swarm context.
@@ -3677,6 +3721,7 @@ export const monitorDockerSwarm: MonitorDockerSwarmFunction = async (data: {
     startAndEndDate: startAndEndDate,
     dataCompleteFrom: dataCompleteFrom,
     metricResult: resultsWithFormulas,
+    queryAttributes: readAttributes,
     dockerSwarmResourceBreakdowns:
       dockerSwarmResourceBreakdowns.length > 0
         ? dockerSwarmResourceBreakdowns
@@ -3714,6 +3759,9 @@ export const monitorCeph: MonitorCephFunction = async (data: {
     );
 
   const finalResult: Array<AggregatedResult> = [];
+
+  // What each query was read with, for what it is judged against.
+  const readAttributes: Array<Dictionary<unknown> | undefined> = [];
 
   // Where a read was cut at its row limit - see getCutReadCompleteFrom.
   let dataCompleteFrom: Date | undefined = undefined;
@@ -3808,6 +3856,7 @@ export const monitorCeph: MonitorCephFunction = async (data: {
     });
 
     finalResult.push(aggregatedResults);
+    readAttributes.push(query.attributes);
 
     // Fetch raw metrics to extract per-resource Ceph context
     const affectedResources: Array<CephAffectedResource> | undefined =
@@ -3881,6 +3930,7 @@ export const monitorCeph: MonitorCephFunction = async (data: {
     startAndEndDate: startAndEndDate,
     dataCompleteFrom: dataCompleteFrom,
     metricResult: resultsWithFormulas,
+    queryAttributes: readAttributes,
     cephResourceBreakdowns:
       cephResourceBreakdowns.length > 0 ? cephResourceBreakdowns : undefined,
     seriesBreakdown: seriesBreakdown,
@@ -3992,6 +4042,9 @@ export const monitorStorageArray: MonitorStorageArrayFunction = async (data: {
 
   const finalResult: Array<AggregatedResult> = [];
 
+  // What each query was read with, for what it is judged against.
+  const readAttributes: Array<Dictionary<unknown> | undefined> = [];
+
   // Where a read was cut at its row limit - see getCutReadCompleteFrom.
   let dataCompleteFrom: Date | undefined = undefined;
 
@@ -4074,6 +4127,7 @@ export const monitorStorageArray: MonitorStorageArrayFunction = async (data: {
     });
 
     finalResult.push(aggregatedResults);
+    readAttributes.push(query.attributes);
 
     // Fetch raw metrics to extract per-object storage array context
     const affectedResources: Array<StorageArrayAffectedResource> | undefined =
@@ -4164,6 +4218,7 @@ export const monitorStorageArray: MonitorStorageArrayFunction = async (data: {
     startAndEndDate: startAndEndDate,
     dataCompleteFrom: dataCompleteFrom,
     metricResult: resultsWithFormulas,
+    queryAttributes: readAttributes,
     storageArrayResourceBreakdowns:
       storageArrayResourceBreakdowns.length > 0
         ? storageArrayResourceBreakdowns

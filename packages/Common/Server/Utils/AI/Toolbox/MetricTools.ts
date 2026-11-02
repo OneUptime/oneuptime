@@ -21,6 +21,7 @@ import MetricBaselineService, {
   BaselineSummary,
   MetricBaselineService as MetricBaselineServiceClass,
 } from "../../../Services/MetricBaselineService";
+import { ANOMALY_WINDOW_DAYS_OPTIONS } from "../../../../Types/Monitor/CriteriaFilter";
 import AggregatedResult from "../../../../Types/BaseDatabase/AggregatedResult";
 import AggregatedModel from "../../../../Types/BaseDatabase/AggregatedModel";
 import ToolResultSerializer, { SerializedResult } from "./Serializer";
@@ -356,7 +357,7 @@ export const BaselineAnomalyTool: ObservabilityTool = {
       },
       windowDays: {
         type: "number",
-        enum: [...MetricBaselineServiceClass.WINDOW_DAYS_OPTIONS],
+        enum: [...ANOMALY_WINDOW_DAYS_OPTIONS],
         description: "Rolling baseline window in days (default 14).",
       },
     },
@@ -416,7 +417,7 @@ export const BaselineAnomalyTool: ObservabilityTool = {
     });
     // Snap to the supported window options (they match the table's TTL).
     const windowDays: number =
-      [...MetricBaselineServiceClass.WINDOW_DAYS_OPTIONS]
+      [...ANOMALY_WINDOW_DAYS_OPTIONS]
         .reverse()
         .find((option: number) => {
           return option <= requestedWindowDays;
