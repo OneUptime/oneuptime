@@ -126,7 +126,8 @@ async function readWithSelect(data: {
 
   for (let attempt: number = 0; ; attempt++) {
     try {
-      const result: JSONValue = await data.read(select);
+      // A copy each time: what one request sent stays as it was sent.
+      const result: JSONValue = await data.read({ ...select });
 
       if (leftOut.length > 0) {
         printWarning(

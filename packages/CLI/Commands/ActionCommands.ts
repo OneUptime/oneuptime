@@ -165,7 +165,7 @@ export async function changeRecordState(data: {
 
   if (!target || !targetId) {
     throw new Error(
-      `This project has no state for "${change.action}" that the API key may read. Give the key a permission that reads ${new machine.stateModelType().pluralName || "states"}.`,
+      `This project has no state for "${change.action}" that this key may read. Give the key a permission that reads ${new machine.stateModelType().pluralName || "states"}.`,
     );
   }
 

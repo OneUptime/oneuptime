@@ -212,9 +212,9 @@ export function registerUtilityCommands(program: Command): void {
         try {
           creds = getResolvedCredentials(cliOpts);
         } catch (error) {
-          // Asked to check, a missing key is the answer: exit 2.
+          // Asked to check, a missing key is the answer: exit 2, below.
           if (options.check) {
-            handleError(error);
+            throw error;
           }
 
           if (asJson) {

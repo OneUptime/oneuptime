@@ -68,7 +68,10 @@ function rowsOf(result: JSONValue): Array<JSONValue> {
 
 /*
  * The user ID of the member or invitee of the key's project with this
- * address, or null when nobody in the project has it.
+ * address, or null when nobody in the project has it. A refusal says what
+ * the key needs - in words that never say "API key", which the error
+ * handler reads as the key itself being refused (exit 2): this is a
+ * permission the key lacks (exit 1).
  */
 export async function findPersonIdByEmail(data: {
   credentials: ResolvedCredentials;
@@ -93,7 +96,7 @@ export async function findPersonIdByEmail(data: {
     throw new Error(
       `The CLI finds ${data.email} among this project's members and invitees, and could not: ${
         error instanceof Error ? error.message : String(error)
-      } It reads them as the project's team members, so the API key needs a permission that may read those, such as Project Member, Project Admin or Read Teams. Or name the person by user ID instead.`,
+      } It reads them as the project's team members, so the key needs a permission that may read those, such as Project Member, Project Admin or Read Teams. Or name the person by user ID instead.`,
     );
   }
 
