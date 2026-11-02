@@ -1,6 +1,8 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import VMwareResource from "Common/Models/DatabaseModels/VMwareResource";
 import Route from "Common/Types/API/Route";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import ResourceTable, {
   InfrastructureResource,
   ResourceColumn,
@@ -46,6 +48,10 @@ export interface HostsTableProps {
 export const VMwareHostsTable: FunctionComponent<HostsTableProps> = (
   props: HostsTableProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+  // A host in no cluster, in the reader's words (a cell draws its value as given).
+  const standalone: string =
+    translator.translateText("Standalone") || "Standalone";
   const resources: Array<InfrastructureResource> = toVMwareListResources(
     props.rows,
     props.context,
@@ -57,7 +63,7 @@ export const VMwareHostsTable: FunctionComponent<HostsTableProps> = (
       title: "Cluster",
       key: "clusterName",
       getValue: (resource: InfrastructureResource): string => {
-        return resource.additionalAttributes["clusterName"] || "Standalone";
+        return resource.additionalAttributes["clusterName"] || standalone;
       },
     });
   }

@@ -8,6 +8,7 @@ import TranslatedSentence from "Common/UI/Components/TranslatedSentence/Translat
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import ResourcePartHero from "../../ResourcePart/ResourcePartHero";
+import { VMWARE_METRIC_DESCRIPTIONS } from "../../MetricDescriptions/VMwareMetricDescriptions";
 import {
   ResourcePartChip,
   ResourcePartStatus,
@@ -122,7 +123,11 @@ export function getVMwarePartHeroStatus(data: {
         now: data.now,
       });
     case VMwareResourceKind.VirtualMachine:
-      return getVMwareVirtualMachineStatus({ vm: row, now: data.now });
+      return {
+        ...getVMwareVirtualMachineStatus({ vm: row, now: data.now }),
+        // What a VM's state is read from: which VMs send CPU data.
+        description: VMWARE_METRIC_DESCRIPTIONS.vmPowerState,
+      };
     case VMwareResourceKind.Datastore:
       return getVMwareDatastoreStatus({ datastore: row, now: data.now });
     default:

@@ -204,7 +204,7 @@ const VMwareClusterOverview: FunctionComponent<ComponentProps> = (
         data-testid="vmware-cluster-tiles"
       >
         <GoldenMetricTile
-          title={tx("Effective Hosts")}
+          title={tx("Effective hosts")}
           icon={IconProp.ServerStack}
           iconColor="emerald"
           value={
@@ -320,7 +320,7 @@ const VMwareClusterOverview: FunctionComponent<ComponentProps> = (
         }}
         onShowAll={props.onShowHosts}
         showCluster={false}
-        description="Each of this cluster's hosts, its state and load at vCenter's latest report, the ones that need attention first."
+        description="This cluster's hosts: each one's state and load at vCenter's latest report, the ones that need attention first."
         now={props.now}
       />
 

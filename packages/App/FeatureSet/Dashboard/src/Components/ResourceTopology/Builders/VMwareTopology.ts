@@ -24,6 +24,33 @@ import {
   isRecent,
   toFiniteNumber,
 } from "../ResourceTopologyFormat";
+import {
+  ResourceAttentionSeverity,
+  ResourceAttentionText,
+} from "../../ResourcePart/ResourceAttention";
+import { ResourcePartStatus } from "../../ResourcePart/ResourcePartTypes";
+import {
+  VMWARE_CPU_READY_WARNING_PERCENT as RULES_CPU_READY_WARNING_PERCENT,
+  VMWARE_DATASTORE_CRITICAL_PERCENT as RULES_DATASTORE_CRITICAL_PERCENT,
+  VMWARE_DATASTORE_WARNING_PERCENT as RULES_DATASTORE_WARNING_PERCENT,
+  VMWARE_HOST_SATURATION_PERCENT as RULES_HOST_SATURATION_PERCENT,
+  VMWARE_READINGS_STALE_MS,
+  VMwareAssessment,
+  VMwareDatacenterFinding,
+  VMwareHostState,
+  assessVMwareClusterWithHosts,
+  assessVMwareDatastore,
+  assessVMwareHost,
+  assessVMwareVirtualMachine,
+  findVMwareDatacenter,
+  getVMwareDatacenterFindings,
+  getVMwareDatastoreStatus,
+  getVMwareHostState,
+  getVMwareHostStatus,
+  getVMwareVirtualMachineStatus,
+  isVMwareHostRunning,
+  mergeVMwareSeverities,
+} from "../../../Pages/VMware/Utils/VMwareHealth";
 
 /*
  * A vCenter's topology: vCenter > datacenter > cluster > ESXi host > virtual
@@ -33,29 +60,29 @@ import {
  * read from the same VMwareResource rows, so the map and the lists always
  * agree.
  *
- * Health follows the vCenter's Overview ("Needs attention") and the host
- * page, so a part is red or amber on the map for exactly the reason those
- * pages give:
- *
- *   - a cluster with hosts that are not effective (maintenance mode or
- *     unresponsive) is critical; a datacenter with hosts powered off or in
- *     standby needs attention;
- *   - a host vCenter stopped reporting needs attention, as does one past
- *     90% CPU or memory (the Host CPU / Memory Saturation templates);
- *   - a virtual machine the host swaps is critical; one that is ballooned
- *     or waits for a CPU (CPU ready over 10%) needs attention; a powered-off
- *     VM and a template are off, never a problem;
- *   - a datastore 90% full is critical, 80% needs attention (the Datastore
- *     Capacity templates).
+ * Health is the vCenter's one set of rules (Pages/VMware/Utils/VMwareHealth),
+ * so a part is red or amber on the map for exactly the reason its page, its
+ * list and the Overview's Needs attention give: an ESXi host vCenter cannot
+ * reach is critical, one powered off or in standby is off, a busy one needs
+ * attention; a VM the host swaps is critical, one ballooned or waiting for a
+ * CPU needs attention; a datastore past 90% is critical and past 80% needs
+ * attention; a cluster with a host that is not responding is critical, one
+ * running with hosts that are not effective, or without the memory to lose
+ * a host, needs attention; a datacenter's own alarm counts say what no part
+ * of it does.
  */
 
-// The host page's "Not reporting" age, and the lists' "stale" age.
-export const VMWARE_TOPOLOGY_STALE_MS: number = 15 * 60 * 1000;
+// The rules' "Not reporting" age, and the lists' "stale" age.
+export const VMWARE_TOPOLOGY_STALE_MS: number = VMWARE_READINGS_STALE_MS;
 
-export const VMWARE_DATASTORE_WARNING_PERCENT: number = 80;
-export const VMWARE_DATASTORE_CRITICAL_PERCENT: number = 90;
-export const VMWARE_CPU_READY_WARNING_PERCENT: number = 10;
-export const VMWARE_HOST_SATURATION_PERCENT: number = 90;
+export const VMWARE_DATASTORE_WARNING_PERCENT: number =
+  RULES_DATASTORE_WARNING_PERCENT;
+export const VMWARE_DATASTORE_CRITICAL_PERCENT: number =
+  RULES_DATASTORE_CRITICAL_PERCENT;
+export const VMWARE_CPU_READY_WARNING_PERCENT: number =
+  RULES_CPU_READY_WARNING_PERCENT;
+export const VMWARE_HOST_SATURATION_PERCENT: number =
+  RULES_HOST_SATURATION_PERCENT;
 
 export const VMWARE_ROOT_ID: string = "vcenter";
 
@@ -102,21 +129,6 @@ function displayName(row: VMwareResource): string {
   return slash >= 0 ? externalId.substring(slash + 1) : externalId;
 }
 
-function percentOf(row: VMwareResource): number | null {
-  const reported: number | null = toFiniteNumber(row.latestDiskPercent);
-
-  if (reported !== null) {
-    return reported;
-  }
-
-  const used: number | null = toFiniteNumber(row.latestDiskBytes);
-  const total: number | null = toFiniteNumber(row.maxDiskBytes);
-
-  return used !== null && total !== null && total > 0
-    ? (used / total) * 100
-    : null;
-}
-
 interface Assessment {
   health: ResourceTopologyHealth;
   status?: ResourceTopologyText | undefined;
@@ -124,253 +136,223 @@ interface Assessment {
   facts: Array<ResourceTopologyFact>;
 }
 
-function assessDatacenter(row: VMwareResource | null): Assessment {
-  const reasons: Array<ResourceTopologyText> = [];
-  let health: ResourceTopologyHealth = row ? "healthy" : "unknown";
-  const hosts: number | null = toFiniteNumber(row?.hostCount);
-  const hostsOn: number | null = toFiniteNumber(row?.poweredOnHostCount);
-
-  if (hosts !== null && hostsOn !== null && hostsOn < hosts) {
-    health = "warning";
-    reasons.push(
-      text(translationKey("Hosts powered off or in standby: {{count}}"), {
-        count: String(hosts - hostsOn),
-      }),
-    );
+// A rule's words as the map draws them: a count's form picked by its count.
+function toTopologyText(value: ResourceAttentionText): ResourceTopologyText {
+  if (value.plural) {
+    return {
+      text: value.plural.count === 1 ? value.plural.one : value.text,
+      values: { ...(value.values || {}), count: String(value.plural.count) },
+    };
   }
-
-  return { health: health, reasons: reasons, facts: [] };
+  return value.values ? text(value.text, value.values) : text(value.text);
 }
 
-function assessCluster(row: VMwareResource | null): Assessment {
+function toTopologyStatus(status: ResourcePartStatus): ResourceTopologyText {
+  return status.values ? text(status.label, status.values) : text(status.label);
+}
+
+function healthOf(
+  severity: ResourceAttentionSeverity | null,
+): ResourceTopologyHealth {
+  if (severity === ResourceAttentionSeverity.Critical) {
+    return "critical";
+  }
+  if (severity === ResourceAttentionSeverity.Warning) {
+    return "warning";
+  }
+  return "healthy";
+}
+
+// The context the rules read beside a part: its datacenters and hosts.
+interface VMwareTopologyContext {
+  datacenters: Array<VMwareResource>;
+  hosts: Array<VMwareResource>;
+  now: Date;
+}
+
+function assessDatacenter(
+  row: VMwareResource | null,
+  context: VMwareTopologyContext,
+): Assessment {
+  if (!row) {
+    return { health: "unknown", reasons: [], facts: [] };
+  }
+  const findings: Array<VMwareDatacenterFinding> = getVMwareDatacenterFindings(
+    {
+      datacenter: row,
+      hosts: context.hosts,
+      now: context.now,
+    },
+  );
   const reasons: Array<ResourceTopologyText> = [];
+  for (const finding of findings) {
+    for (const reason of finding.reasons) {
+      reasons.push(toTopologyText(reason));
+    }
+  }
+  return {
+    health: healthOf(
+      mergeVMwareSeverities(
+        findings.map(
+          (
+            finding: VMwareDatacenterFinding,
+          ): ResourceAttentionSeverity | null => {
+            return finding.severity;
+          },
+        ),
+      ),
+    ),
+    reasons: reasons,
+    facts: [],
+  };
+}
+
+function assessCluster(
+  row: VMwareResource | null,
+  context: VMwareTopologyContext,
+): Assessment {
+  if (!row) {
+    return { health: "unknown", reasons: [], facts: [] };
+  }
   const facts: Array<ResourceTopologyFact> = [];
-  let health: ResourceTopologyHealth = row ? "healthy" : "unknown";
-  const total: number | null = toFiniteNumber(row?.hostCount);
-  const effective: number | null = toFiniteNumber(row?.effectiveHostCount);
+  const total: number | null = toFiniteNumber(row.hostCount);
+  const effective: number | null = toFiniteNumber(row.effectiveHostCount);
 
   if (total !== null && effective !== null) {
     facts.push({
       label: translationKey("Effective hosts"),
       value: `${effective}/${total}`,
-      tone: effective < total ? "critical" : undefined,
+      tone: effective < total ? "warning" : undefined,
     });
-
-    if (effective < total) {
-      health = "critical";
-      reasons.push(
-        text(
-          translationKey(
-            "Hosts not effective (maintenance mode or unresponsive): {{count}}",
-          ),
-          { count: String(total - effective) },
-        ),
-      );
-    }
   }
 
-  return { health: health, reasons: reasons, facts: facts };
-}
-
-function assessHost(row: VMwareResource, now: Date): Assessment {
-  const reasons: Array<ResourceTopologyText> = [];
-  const facts: Array<ResourceTopologyFact> = [];
-
-  if (!row.metricsUpdatedAt) {
-    return {
-      health: "unknown",
-      status: text(translationKey("No data yet")),
-      reasons: [],
-      facts: [],
-    };
+  if (!isRecent(row.metricsUpdatedAt, context.now, VMWARE_TOPOLOGY_STALE_MS)) {
+    return { health: "unknown", reasons: [], facts: facts };
   }
 
-  if (!isRecent(row.metricsUpdatedAt, now, VMWARE_TOPOLOGY_STALE_MS)) {
-    return {
-      health: "warning",
-      status: text(translationKey("Not reporting")),
-      reasons: [
-        text(
-          translationKey(
-            "vCenter has sent no metrics for this host for more than 15 minutes.",
-          ),
-        ),
-      ],
-      facts: [],
-    };
-  }
-
-  let health: ResourceTopologyHealth = "healthy";
-  const cpu: number | null = toFiniteNumber(row.latestCpuPercent);
-  const memory: number | null = toFiniteNumber(row.latestMemoryPercent);
-
-  if (cpu !== null) {
-    const hot: boolean = cpu > VMWARE_HOST_SATURATION_PERCENT;
-    facts.push({
-      label: translationKey("CPU"),
-      value: formatTopologyPercent(cpu),
-      tone: hot ? "warning" : undefined,
-    });
-
-    if (hot) {
-      health = "warning";
-      reasons.push(
-        text(translationKey("CPU at {{percent}}"), {
-          percent: formatTopologyPercent(cpu, 1),
-        }),
-      );
-    }
-  }
-
-  if (memory !== null) {
-    const hot: boolean = memory > VMWARE_HOST_SATURATION_PERCENT;
-    facts.push({
-      label: translationKey("Memory"),
-      value: formatTopologyPercent(memory),
-      tone: hot ? "warning" : undefined,
-    });
-
-    if (hot) {
-      health = "warning";
-      reasons.push(
-        text(translationKey("Memory at {{percent}}"), {
-          percent: formatTopologyPercent(memory, 1),
-        }),
-      );
-    }
-  }
+  const assessment: VMwareAssessment = assessVMwareClusterWithHosts({
+    cluster: row,
+    hosts: context.hosts,
+    datacenters: context.datacenters,
+    now: context.now,
+  });
 
   return {
-    health: health,
-    status: text(translationKey("Reporting")),
-    reasons: reasons,
+    health: healthOf(assessment.severity),
+    reasons: assessment.reasons.map(toTopologyText),
     facts: facts,
   };
 }
 
-function assessVirtualMachine(row: VMwareResource, now: Date): Assessment {
-  if (row.isTemplate) {
-    return {
-      health: "off",
-      status: text(translationKey("Template")),
-      reasons: [],
-      facts: [],
-    };
+function usageFacts(row: VMwareResource): Array<ResourceTopologyFact> {
+  const facts: Array<ResourceTopologyFact> = [];
+  const cpu: number | null = toFiniteNumber(row.latestCpuPercent);
+  const memory: number | null = toFiniteNumber(row.latestMemoryPercent);
+
+  if (cpu !== null) {
+    facts.push({
+      label: translationKey("CPU"),
+      value: formatTopologyPercent(cpu),
+      tone: cpu > VMWARE_HOST_SATURATION_PERCENT ? "warning" : undefined,
+    });
+  }
+  if (memory !== null) {
+    facts.push({
+      label: translationKey("Memory"),
+      value: formatTopologyPercent(memory),
+      tone: memory > VMWARE_HOST_SATURATION_PERCENT ? "warning" : undefined,
+    });
+  }
+  return facts;
+}
+
+function assessHost(
+  row: VMwareResource,
+  context: VMwareTopologyContext,
+): Assessment {
+  const datacenter: VMwareResource | null = findVMwareDatacenter(
+    context.datacenters,
+    row.datacenterName,
+  );
+  const state: VMwareHostState = getVMwareHostState({
+    host: row,
+    datacenter: datacenter,
+    now: context.now,
+  });
+  const status: ResourceTopologyText = toTopologyStatus(
+    getVMwareHostStatus({ host: row, datacenter: datacenter, now: context.now }),
+  );
+  const assessment: VMwareAssessment = assessVMwareHost({
+    host: row,
+    datacenter: datacenter,
+    now: context.now,
+  });
+
+  if (
+    state === VMwareHostState.PoweredOff ||
+    state === VMwareHostState.Standby ||
+    state === VMwareHostState.PoweredOffOrStandby
+  ) {
+    return { health: "off", status: status, reasons: [], facts: [] };
+  }
+  if (
+    state === VMwareHostState.NoDataYet ||
+    state === VMwareHostState.NotReporting
+  ) {
+    return { health: "unknown", status: status, reasons: [], facts: [] };
   }
 
-  if (row.isPoweredOn === false) {
-    return {
-      health: "off",
-      status: text(translationKey("Powered off")),
-      reasons: [],
-      facts: [],
-    };
-  }
+  return {
+    health: healthOf(assessment.severity),
+    status: status,
+    reasons: assessment.reasons.map(toTopologyText),
+    facts: isVMwareHostRunning(state) ? usageFacts(row) : [],
+  };
+}
 
-  if (row.isPoweredOn !== true) {
-    return {
-      health: "unknown",
-      status: text(translationKey("No data yet")),
-      reasons: [],
-      facts: [],
-    };
-  }
-
-  const fresh: boolean = isRecent(
-    row.metricsUpdatedAt,
-    now,
-    VMWARE_TOPOLOGY_STALE_MS,
+function assessVirtualMachine(
+  row: VMwareResource,
+  context: VMwareTopologyContext,
+): Assessment {
+  const status: ResourceTopologyText = toTopologyStatus(
+    getVMwareVirtualMachineStatus({ vm: row, now: context.now }),
   );
 
-  if (!fresh) {
-    return {
-      health: "unknown",
-      status: text(translationKey("Not reporting")),
-      reasons: [],
-      facts: [],
-    };
+  if (row.isTemplate || row.isPoweredOn === false) {
+    return { health: "off", status: status, reasons: [], facts: [] };
   }
 
-  const reasons: Array<ResourceTopologyText> = [];
-  const facts: Array<ResourceTopologyFact> = [];
-  let health: ResourceTopologyHealth = "healthy";
-
-  const swapped: number | null = toFiniteNumber(row.memorySwappedBytes);
-  const ballooned: number | null = toFiniteNumber(row.memoryBalloonedBytes);
-  const ready: number | null = toFiniteNumber(row.cpuReadinessPercent);
-  const cpu: number | null = toFiniteNumber(row.latestCpuPercent);
-  const memory: number | null = toFiniteNumber(row.latestMemoryPercent);
-
-  if (swapped !== null && swapped > 0) {
-    health = "critical";
-    reasons.push(
-      text(translationKey("{{amount}} of memory swapped by the host"), {
-        amount: formatTopologyBytes(swapped),
-      }),
-    );
+  if (
+    row.isPoweredOn !== true ||
+    !isRecent(row.metricsUpdatedAt, context.now, VMWARE_TOPOLOGY_STALE_MS)
+  ) {
+    return { health: "unknown", status: status, reasons: [], facts: [] };
   }
 
-  if (ballooned !== null && ballooned > 0) {
-    health = health === "critical" ? health : "warning";
-    reasons.push(
-      text(translationKey("{{amount}} of memory ballooned"), {
-        amount: formatTopologyBytes(ballooned),
-      }),
-    );
-  }
-
-  if (ready !== null && ready > VMWARE_CPU_READY_WARNING_PERCENT) {
-    health = health === "critical" ? health : "warning";
-    reasons.push(
-      text(translationKey("CPU ready {{percent}} (host CPU contention)"), {
-        percent: formatTopologyPercent(ready, 1),
-      }),
-    );
-  }
-
-  if (cpu !== null) {
-    facts.push({
-      label: translationKey("CPU"),
-      value: formatTopologyPercent(cpu),
-    });
-  }
-
-  if (memory !== null) {
-    facts.push({
-      label: translationKey("Memory"),
-      value: formatTopologyPercent(memory),
-    });
-  }
+  const assessment: VMwareAssessment = assessVMwareVirtualMachine({
+    vm: row,
+    now: context.now,
+  });
 
   return {
-    health: health,
-    status: text(translationKey("Running")),
-    reasons: reasons,
-    facts: facts,
+    health: healthOf(assessment.severity),
+    status: status,
+    reasons: assessment.reasons.map(toTopologyText),
+    facts: usageFacts(row).map(
+      (fact: ResourceTopologyFact): ResourceTopologyFact => {
+        // A VM's own CPU and memory are its business: drawn, never toned.
+        return { label: fact.label, value: fact.value };
+      },
+    ),
   };
 }
 
-function assessDatastore(row: VMwareResource): Assessment {
-  const percent: number | null = percentOf(row);
+function assessDatastore(
+  row: VMwareResource,
+  context: VMwareTopologyContext,
+): Assessment {
   const facts: Array<ResourceTopologyFact> = [];
   const capacity: number | null = toFiniteNumber(row.maxDiskBytes);
-
-  if (percent === null) {
-    return {
-      health: "unknown",
-      status: text(translationKey("No data yet")),
-      reasons: [],
-      facts: [],
-    };
-  }
-
-  const health: ResourceTopologyHealth =
-    percent >= VMWARE_DATASTORE_CRITICAL_PERCENT
-      ? "critical"
-      : percent >= VMWARE_DATASTORE_WARNING_PERCENT
-        ? "warning"
-        : "healthy";
-
   if (capacity !== null) {
     facts.push({
       label: translationKey("Capacity"),
@@ -378,19 +360,29 @@ function assessDatastore(row: VMwareResource): Assessment {
     });
   }
 
+  const status: ResourcePartStatus = getVMwareDatastoreStatus({
+    datastore: row,
+    now: context.now,
+  });
+  if (!status.values) {
+    // No size reported yet, or not reported lately: nothing to judge.
+    return {
+      health: "unknown",
+      status: toTopologyStatus(status),
+      reasons: [],
+      facts: facts,
+    };
+  }
+
+  const assessment: VMwareAssessment = assessVMwareDatastore({
+    datastore: row,
+    now: context.now,
+  });
+
   return {
-    health: health,
-    status: text(translationKey("{{percent}} used"), {
-      percent: formatTopologyPercent(percent, 1),
-    }),
-    reasons:
-      health === "healthy"
-        ? []
-        : [
-            text(translationKey("{{percent}} of the datastore is used"), {
-              percent: formatTopologyPercent(percent, 1),
-            }),
-          ],
+    health: healthOf(assessment.severity),
+    status: toTopologyStatus(status),
+    reasons: assessment.reasons.map(toTopologyText),
     facts: facts,
   };
 }
@@ -479,6 +471,12 @@ export function buildVMwareTopology(
     return rowsByKind.get(kind) || [];
   };
 
+  const context: VMwareTopologyContext = {
+    datacenters: rowsOf(VMwareResourceKind.Datacenter),
+    hosts: rowsOf(VMwareResourceKind.Host),
+    now: input.now,
+  };
+
   const root: Assessment = assessVCenter(input.vcenter, input.rows, input.now);
   nodes.push({
     id: VMWARE_ROOT_ID,
@@ -507,7 +505,7 @@ export function buildVMwareTopology(
     }
 
     const id: string = nodeIdFor("vmware.datacenter", `datacenter/${name}`);
-    const assessment: Assessment = assessDatacenter(null);
+    const assessment: Assessment = assessDatacenter(null, context);
     datacenterIds.set(name, id);
     nodes.push({
       id: id,
@@ -529,7 +527,7 @@ export function buildVMwareTopology(
     }
 
     const id: string = nodeIdFor("vmware.datacenter", `datacenter/${name}`);
-    const assessment: Assessment = assessDatacenter(row);
+    const assessment: Assessment = assessDatacenter(row, context);
     datacenterIds.set(name, id);
     nodes.push({
       id: id,
@@ -554,7 +552,7 @@ export function buildVMwareTopology(
   for (const row of rowsOf(VMwareResourceKind.Cluster)) {
     const name: string = row.clusterName || displayName(row);
     const id: string = nodeIdFor("vmware.cluster", row.externalId!);
-    const assessment: Assessment = assessCluster(row);
+    const assessment: Assessment = assessCluster(row, context);
     clusterIds.set(clusterLookup(row.datacenterName, name), id);
     nodes.push({
       id: id,
@@ -624,7 +622,7 @@ export function buildVMwareTopology(
   for (const row of rowsOf(VMwareResourceKind.Host)) {
     const name: string = row.hostName || displayName(row);
     const id: string = nodeIdFor("vmware.host", row.externalId!);
-    const assessment: Assessment = assessHost(row, input.now);
+    const assessment: Assessment = assessHost(row, context);
     hostIds.set(hostKey(row.datacenterName, name), id);
     hostsByName.set(name.toLowerCase(), [
       ...(hostsByName.get(name.toLowerCase()) || []),
@@ -680,7 +678,7 @@ export function buildVMwareTopology(
   for (const row of rowsOf(VMwareResourceKind.VirtualMachine)) {
     const name: string = displayName(row);
     const id: string = nodeIdFor("vmware.vm", row.externalId!);
-    const assessment: Assessment = assessVirtualMachine(row, input.now);
+    const assessment: Assessment = assessVirtualMachine(row, context);
     const host: string | null = findHost(row.datacenterName, row.hostName);
 
     if (row.vmInstanceUuid) {
@@ -723,7 +721,7 @@ export function buildVMwareTopology(
   for (const row of rowsOf(VMwareResourceKind.Datastore)) {
     const name: string = displayName(row);
     const id: string = nodeIdFor("vmware.datastore", row.externalId!);
-    const assessment: Assessment = assessDatastore(row);
+    const assessment: Assessment = assessDatastore(row, context);
     datastoreIds.set(`${row.datacenterName || ""}/${name}`.toLowerCase(), id);
     nodes.push({
       id: id,

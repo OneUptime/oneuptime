@@ -152,28 +152,28 @@ const REASON_CANNOT_LOSE_A_HOST: string = translationKey(
   "Not enough memory to lose a host",
 );
 const REASON_HOSTS_NOT_EFFECTIVE: { one: string; other: string } = {
-  one: "{{count}} host not effective",
-  other: "{{count}} hosts not effective",
+  one: translationKey("{{count}} host not effective"),
+  other: translationKey("{{count}} hosts not effective"),
 };
 const REASON_HOSTS_NOT_RESPONDING: { one: string; other: string } = {
-  one: "{{count}} host not responding",
-  other: "{{count}} hosts not responding",
+  one: translationKey("{{count}} host not responding"),
+  other: translationKey("{{count}} hosts not responding"),
 };
 const REASON_HOSTS_CRITICAL_ALARM: { one: string; other: string } = {
-  one: "{{count}} host with a critical alarm",
-  other: "{{count}} hosts with a critical alarm",
+  one: translationKey("{{count}} host with a critical alarm"),
+  other: translationKey("{{count}} hosts with a critical alarm"),
 };
 const REASON_HOSTS_WARNING_ALARM: { one: string; other: string } = {
-  one: "{{count}} host with a warning alarm",
-  other: "{{count}} hosts with a warning alarm",
+  one: translationKey("{{count}} host with a warning alarm"),
+  other: translationKey("{{count}} hosts with a warning alarm"),
 };
 const REASON_VMS_CRITICAL_ALARM: { one: string; other: string } = {
-  one: "{{count}} VM with a critical alarm",
-  other: "{{count}} VMs with a critical alarm",
+  one: translationKey("{{count}} VM with a critical alarm"),
+  other: translationKey("{{count}} VMs with a critical alarm"),
 };
 const REASON_CLUSTERS_CRITICAL_ALARM: { one: string; other: string } = {
-  one: "{{count}} cluster with a critical alarm",
-  other: "{{count}} clusters with a critical alarm",
+  one: translationKey("{{count}} cluster with a critical alarm"),
+  other: translationKey("{{count}} clusters with a critical alarm"),
 };
 
 const STATUS_CONNECTED: string = translationKey("Connected");
@@ -1231,6 +1231,21 @@ export function getVMwareHealth(
   items: Array<ResourceAttentionItem>,
 ): ResourceHealth {
   return getResourceAttentionHealth(items);
+}
+
+// The worst of several findings' severities, none counting as nothing.
+export function mergeVMwareSeverities(
+  severities: Array<ResourceAttentionSeverity | null>,
+): ResourceAttentionSeverity | null {
+  return mergeResourceAttentionSeverity(
+    severities.filter(
+      (
+        severity: ResourceAttentionSeverity | null,
+      ): severity is ResourceAttentionSeverity => {
+        return severity !== null;
+      },
+    ),
+  );
 }
 
 // ---- Which part an open incident or alert is about ---------------------------

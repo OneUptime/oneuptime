@@ -41,14 +41,8 @@ export type VMwareMetric =
   | "overviewHostMemoryChart"
   | "overviewDatastoreUsedChart"
   | "overviewVmCpuReadyChart"
-  // Overview: summary strip.
+  // Overview: the hero's health and connection pills.
   | "overviewVCenterHealth"
-  | "overviewDatacenterCount"
-  | "overviewClusterCount"
-  | "overviewHostCount"
-  | "overviewVirtualMachineCount"
-  | "overviewDatastoreCount"
-  | "overviewResourcePoolCount"
   | "overviewAgentStatus"
   // Overview: Top Resource Consumers sections.
   | "topHostsByCpu"
@@ -104,7 +98,6 @@ export type VMwareMetric =
   | "clusterListStatus"
   // Virtual machines list.
   | "vmListStatus"
-  | "vmListPowerState"
   | "vmListCpuReady"
   | "vmListCpu"
   | "vmListMemory"
@@ -162,27 +155,9 @@ export const VMWARE_METRIC_DESCRIPTIONS: Record<VMwareMetric, string> = {
     "CPU Ready over the selected range: Avg is the average across powered-on VMs and Max the highest single VM in each interval. It is the share of time VMs waited for a physical CPU; above 10% they are noticeably slowed.",
   ),
 
-  // ---- Overview: summary strip ------------------------------------------
+  // ---- Overview: the hero's health and connection pills -------------------
   overviewVCenterHealth: translationKey(
-    "Unhealthy if a clustered host is in maintenance mode or not responding, a datastore is at least 90% full, or a VM is swapped to disk; Degraded if a datastore is at least 80% full, a VM is ballooned or above 10% CPU Ready, or hosts are powered off. Unknown while the agent is disconnected.",
-  ),
-  overviewDatacenterCount: translationKey(
-    "Number of vSphere datacenters in this vCenter, from the latest inventory. A datacenter is the top-level folder that holds hosts, clusters, VMs and datastores.",
-  ),
-  overviewClusterCount: translationKey(
-    "Number of vSphere clusters: groups of ESXi hosts that pool their CPU and memory. Clustered hosts in maintenance mode or not responding are counted in red beside the number.",
-  ),
-  overviewHostCount: translationKey(
-    "Number of ESXi hosts (the physical servers that run your VMs) in this vCenter, from the latest inventory, including standalone hosts that are not in a cluster.",
-  ),
-  overviewVirtualMachineCount: translationKey(
-    "Powered-on VMs out of all VMs in this vCenter, templates excluded, from the latest inventory. Only the total is shown until the agent has reported power state.",
-  ),
-  overviewDatastoreCount: translationKey(
-    "Number of datastores, plus used space against total capacity added up across all of them. The bar turns amber at 80% and red at 90% of the combined capacity.",
-  ),
-  overviewResourcePoolCount: translationKey(
-    "Number of resource pools, which group VMs so they can share and cap CPU and memory. Includes the built-in root pool that every cluster and standalone host has.",
+    "Unhealthy while something in this vCenter needs someone now: an ESXi host vCenter cannot reach, a critical alarm, a datastore more than 90% full, a VM the host swaps to disk. Degraded while something needs a look soon. Needs attention lists each, the most urgent first; unknown while the vCenter is disconnected.",
   ),
   overviewAgentStatus: translationKey(
     "Whether data is arriving for this vCenter - from the probe that collects it, or from the OneUptime VMware agent; it switches to Disconnected about 15 to 20 minutes after data stops arriving. While it is disconnected the numbers on this page stop updating and may be out of date.",
@@ -324,7 +299,7 @@ export const VMWARE_METRIC_DESCRIPTIONS: Record<VMwareMetric, string> = {
 
   // ---- Hosts list -------------------------------------------------------
   hostListStatus: translationKey(
-    "Connected while vCenter reports the host's CPU and memory use, amber when something on it needs a look. Not responding when vCenter has lost contact with it; Powered off and In standby when someone or vSphere DPM turned it off.",
+    "Connected while vCenter reports the host's CPU and memory use, amber when something on it needs a look. Not responding when vCenter has lost contact with it; Powered off or In standby when someone or vSphere DPM turned it off; No usage reported when vCenter does not say which.",
   ),
   hostListCpu: translationKey(
     "Share of each host's CPU capacity in use, from its latest report. N/A when the host has sent no data in the last 15 minutes.",
@@ -339,9 +314,6 @@ export const VMWARE_METRIC_DESCRIPTIONS: Record<VMwareMetric, string> = {
   // ---- Virtual machines list --------------------------------------------
   vmListStatus: translationKey(
     "Running, Powered off or Template, inferred from whether the VM sent CPU data in the latest collection. Running turns amber or red, with why under it, while the host swaps, balloons or makes the VM wait for a CPU.",
-  ),
-  vmListPowerState: translationKey(
-    "Powered on, Powered off or Template, inferred from whether the VM sent CPU data in the latest collection, so a suspended VM shows as Powered off. A dash means the VM has not been collected yet.",
   ),
   vmListCpuReady: translationKey(
     "Share of time the VM was ready to run but waited for a physical CPU, from its last report, however old; above about 10% busy hosts are slowing it down. A VM that is now off keeps its last reading.",

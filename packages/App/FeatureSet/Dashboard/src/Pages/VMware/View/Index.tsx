@@ -1459,14 +1459,20 @@ const VMwareVCenterOverview: FunctionComponent<
                     <h1 className="text-xl font-semibold text-gray-900 truncate">
                       {displayName}
                     </h1>
-                    <span
-                      data-testid="vmware-hero-connection"
-                      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${connectionBadgeClass}`}
-                    >
+                    <span className="inline-flex items-center gap-1">
                       <span
-                        className={`h-1.5 w-1.5 rounded-full ${connectionDotClass}`}
+                        data-testid="vmware-hero-connection"
+                        className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${connectionBadgeClass}`}
+                      >
+                        <span
+                          className={`h-1.5 w-1.5 rounded-full ${connectionDotClass}`}
+                        />
+                        {connectionLabel}
+                      </span>
+                      <InfoTooltip
+                        label="Data Status"
+                        text={VMWARE_METRIC_DESCRIPTIONS.overviewAgentStatus}
                       />
-                      {connectionLabel}
                     </span>
                     {/*
                      * A vCenter that has reported nothing yet has no health
