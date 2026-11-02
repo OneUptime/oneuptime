@@ -1625,6 +1625,11 @@ const DocsNav: NavGroup[] = [
         title: "Behind a VPN or Firewall",
         url: "/docs/self-hosted/behind-a-firewall",
       },
+      // How long a sign-in lasts (Enterprise Edition).
+      {
+        title: "Session Length",
+        url: "/docs/self-hosted/session-length",
+      },
       // What the daily update and security advisory check sends, and how to turn it off.
       {
         title: "Update and Security Checks",

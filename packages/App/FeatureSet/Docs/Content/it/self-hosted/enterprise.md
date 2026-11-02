@@ -52,6 +52,7 @@ Questa pagina spiega cosa include ogni edizione, come eseguire la Enterprise Edi
 | Avvisi sullo stato di salute di PostgreSQL e Valkey (Redis) | No | Sì | Non applicabile |
 | [Backup](/docs/installation/backups) di PostgreSQL e ClickHouse su uno storage di vostra proprietà, secondo una pianificazione, con ripristino | No | Sì | Non applicabile |
 | [Canali di notifica personalizzati](/docs/self-hosted/custom-notification-channels): avvisare le persone tramite un vostro servizio, come l'app della vostra azienda | No | Sì | Non applicabile |
+| [Durata della sessione](/docs/self-hosted/session-length): per quanto tempo le persone restano connesse, e per quanto tempo senza usare OneUptime | No | Sì | Non applicabile |
 | Vista della capacità di ClickHouse, avvisi sulla capacità e pulizia automatica del disco | Sì | Sì | Non applicabile |
 | Stato delle migrazioni, pacchetto di supporto e probe globali nel pannello amministratore | Sì | Sì | Non applicabile |
 | Gestione della licenza Enterprise, dei posti e delle istanze | No | Sì | Non applicabile |
@@ -203,6 +204,7 @@ Cosa **non** si ferma:
 - **Il monitoraggio di base non è mai interessato**: monitor, avvisi, incidenti, reperibilità, pagine di stato e telemetria continuano tutti a funzionare.
 - **I master admin possono sempre accedere con la propria password.**
 - **I ruoli personalizzati, le liste di IP consentiti e i controlli di accesso delle pagine di stato continuano ad applicarsi.** Potete rimuoverli, ma non crearli né modificarli.
+- **Le durate della sessione continuano ad applicarsi.** Potete rimuoverle, ma non impostarle né modificarle.
 - **Non viene eliminato nulla.** La configurazione SCIM, i log di audit e le sostituzioni della conservazione restano come sono.
 
 **Tutto riprende non appena viene attivata una licenza**, senza riavvio: il provisioning SCIM, la registrazione di audit e le sostituzioni della conservazione tornano con la configurazione che avete. OneUptime li spegne solo quando sa che la licenza è scaduta. Finché non riesce a leggere lo stato della licenza, per esempio per un momento mentre il server si avvia, SCIM, la registrazione di audit e le sostituzioni della conservazione restano attivi.
@@ -220,6 +222,7 @@ La vostra configurazione resta nel database. Tornare all'immagine Enterprise rip
 - **Le sostituzioni della conservazione smettono di applicarsi.** La nuova telemetria viene conservata per la conservazione predefinita del progetto, e le schede della conservazione in **Impostazioni del progetto > Telemetria e APM > Conservazione dei dati** e nella pagina delle impostazioni di ogni servizio e di ogni risorsa mostrano un invito all'aggiornamento. Le sostituzioni restano nel database e tornano ad applicarsi quando ritornate.
 - **Le pagine di stato mostrano di nuovo Powered by OneUptime.** L'impostazione resta nel database e nasconde di nuovo la riga quando ritornate.
 - **I ruoli personalizzati, le liste di IP consentiti e i controlli di accesso delle pagine di stato continuano ad applicarsi.** Le relative impostazioni mostrano un invito all'aggiornamento, con ciò che è ancora impostato e un pulsante per rimuoverlo.
+- **Le durate della sessione smettono di applicarsi.** Ogni accesso dura come nella Community Edition. Le durate restano nel database e tornano ad applicarsi quando tornate indietro.
 - **Le pagine delle impostazioni enterprise mostrano un invito all'aggiornamento.** Tramite l'API potete ancora leggere ed eliminare la configurazione enterprise e reimpostare un token bearer SCIM, ma non creare né modificare nient'altro. La registrazione di audit non può essere attivata.
 - **Le dashboard Health enterprise, la Query Console e gli avvisi sullo stato di salute di PostgreSQL e Valkey si fermano.** Il monitoraggio della capacità e la pulizia di ClickHouse, lo stato delle migrazioni e il pacchetto di supporto continuano a funzionare.
 
