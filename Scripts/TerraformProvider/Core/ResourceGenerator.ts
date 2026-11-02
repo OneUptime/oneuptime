@@ -9,7 +9,11 @@ import { StringUtils } from "./StringUtils";
 import { OpenAPIParser } from "./OpenAPIParser";
 import { GoCodeGenerator } from "./GoCodeGenerator";
 import { ObjectType } from "Common/Types/JSON";
-import { INVITATION_EMAIL_FIELD } from "Common/Utils/DeveloperDocs/PeopleByEmail";
+import {
+  INVITATION_EMAIL_FIELD,
+  MembershipKind,
+} from "Common/Utils/DeveloperDocs/PeopleByEmail";
+import { isSetAtCreate } from "Common/Utils/DeveloperDocs/SetAtCreate";
 import path from "path";
 import fs from "fs";
 
@@ -42,12 +46,19 @@ export class ResourceGenerator {
   private fileGenerator: FileGenerator;
 
   /*
-   * Read-only attributes the server sets once, at create, and never changes:
-   * planned as their state value rather than "(known after apply)", so an
-   * update's plan lists only what actually changes.
+   * Read-only attributes the server sets once, at create, and never changes
+   * (Common/Utils/DeveloperDocs/SetAtCreate.ts: when, by whom, the project,
+   * the slug, a record's number, a project's own teams' flags): planned as
+   * their state value rather than "(known after apply)", so an update's plan
+   * lists only what actually changes.
    */
-  public static readonly STABLE_COMPUTED_ATTRIBUTES: Set<string> =
-    new Set<string>(["created_at", "created_by_user_id", "project_id"]);
+  public static isSetAtCreateAttribute(
+    name: string,
+    attr: TerraformAttribute,
+    resource?: TerraformResource,
+  ): boolean {
+    return isSetAtCreate(resource?.tableName || "", attr.apiFieldName || name);
+  }
 
   /*
    * Required / Optional / Computed for one attribute, exactly as its schema
@@ -184,7 +195,10 @@ func New${resourceTypeName}LegacyResource() resource.Resource {
     resource: TerraformResource,
     resourceTypeName: string,
   ): string {
-    if (!resource.legacyName) {
+    const formerName: string | undefined =
+      resource.legacyName || resource.movedFrom;
+
+    if (!formerName) {
       return "";
     }
 
@@ -192,16 +206,20 @@ func New${resourceTypeName}LegacyResource() resource.Resource {
 // MoveState lets a moved block bring state over from the old name:
 //
 //     moved {
-//       from = ${this.providerName}_${resource.legacyName}.example
+//       from = ${this.providerName}_${formerName}.example
 //       to   = ${this.providerName}_${resource.name}.example
 //     }
-func (r *${resourceTypeName}Resource) MoveState(ctx context.Context) []resource.StateMover {
+func (r *${resourceTypeName}Resource) MoveState(ctx context.Context) []resource.StateMover {${
+      resource.legacyName
+        ? `
     if r.isLegacyAlias {
         return nil
     }
-
+`
+        : ""
+    }
     return []resource.StateMover{
-        legacyNameStateMover("${this.providerName}_${resource.legacyName}", r.schemaDefinition()),
+        legacyNameStateMover("${this.providerName}_${formerName}", r.schemaDefinition()),
     }
 }
 `;
@@ -592,9 +610,17 @@ func (r *${resourceTypeName}Resource) MoveState(ctx context.Context) []resource.
              * Must mirror generateSchemaAttribute's emission conditions
              * exactly, or Go ends up with unused imports.
              */
+            const flags: SchemaFlags = ResourceGenerator.getSchemaFlags(
+              name,
+              attr,
+              resource,
+            );
             return (
               (attr.optional && attr.computed && !isProjectId) ||
-              (attr.forceNew && !isComputedOnly && !isProjectId)
+              (attr.forceNew && !isComputedOnly && !isProjectId) ||
+              (flags.computed &&
+                !flags.optional &&
+                ResourceGenerator.isSetAtCreateAttribute(name, attr, resource))
             );
           },
         );
@@ -702,7 +728,7 @@ var _ resource.Resource = &${resourceTypeName}Resource{}
 var _ resource.ResourceWithImportState = &${resourceTypeName}Resource{}
 var _ resource.ResourceWithModifyPlan = &${resourceTypeName}Resource{}
 ${
-  resource.legacyName
+  resource.legacyName || resource.movedFrom
     ? `var _ resource.ResourceWithMoveState = &${resourceTypeName}Resource{}
 `
     : ""
@@ -785,12 +811,16 @@ ${this.generateCRUDMethods(resource, resourceTypeName, resourceVarName)}
 func (r *${resourceTypeName}Resource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 ${
   resource.membershipImport
-    ? `    // By its own ID, or by what it joins and who: <${resource.membershipImport.parentAttribute}>/<email address or user id> (see people.go).
+    ? `    // By its own ID, or by what it joins and who or what joins it: <${resource.membershipImport.parentAttribute}>/${resource.membershipImport.personEmailAttribute ? "<email address or user id>" : `<${resource.membershipImport.personAttribute}>`} (see people.go).
     id, email, ok := importIDOfMembership(ctx, r.client, req.ID, membershipImport{
         listPath:        "${resource.membershipImport.listPath}",
         parentField:     "${resource.membershipImport.parentApiField}",
         parentAttribute: "${resource.membershipImport.parentAttribute}",
+        parentNoun:      "${resource.membershipImport.parentNoun}",
         personField:     "${resource.membershipImport.personApiField}",
+        personAttribute: "${resource.membershipImport.personAttribute}",
+        byEmail:         ${Boolean(resource.membershipImport.personEmailAttribute)},
+        kind:            "${resource.membershipImport.kind}",
     }, &resp.Diagnostics)
     if !ok {
         return
@@ -1202,7 +1232,7 @@ ${this.generateValidObjectTypesMap()}
       (attr.optional && attr.computed && modifierPackage) ||
       (flags.computed &&
         !flags.optional &&
-        ResourceGenerator.STABLE_COMPUTED_ATTRIBUTES.has(name) &&
+        ResourceGenerator.isSetAtCreateAttribute(name, attr, resource) &&
         modifierPackage)
     ) {
       modifiers.push(
@@ -1864,9 +1894,10 @@ ${this.generateResponseMapping(resource, "readResponse", true)}
      * A membership that exists already says how to import it instead
      * (people.go alreadyInvitedHint).
      */
-    const createError: string = resource.membershipImport
-      ? `resp.Diagnostics.AddError("OneUptime API Error", fmt.Sprintf("Unable to create ${resource.name}: %s%s", err, alreadyInvitedHint(err, "${this.providerName}_${resource.name}", "${resource.membershipImport.parentAttribute}")))`
-      : `resp.Diagnostics.AddError("OneUptime API Error", fmt.Sprintf("Unable to create ${resource.name}: %s", err))`;
+    const createError: string =
+      resource.membershipImport?.kind === MembershipKind.Member
+        ? `resp.Diagnostics.AddError("OneUptime API Error", fmt.Sprintf("Unable to create ${resource.name}: %s%s", err, alreadyInvitedHint(err, "${this.providerName}_${resource.name}", "${resource.membershipImport.parentAttribute}")))`
+        : `resp.Diagnostics.AddError("OneUptime API Error", fmt.Sprintf("Unable to create ${resource.name}: %s", err))`;
 
     return `
 func (r *${resourceTypeName}Resource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {

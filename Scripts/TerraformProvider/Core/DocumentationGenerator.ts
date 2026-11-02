@@ -3,13 +3,17 @@ import {
   OpenAPISpec,
   TerraformAttribute,
   TerraformDataSource,
+  TerraformMembershipImport,
   TerraformResource,
 } from "./Types";
 import { FileGenerator } from "./FileGenerator";
 import { StringUtils } from "./StringUtils";
 import { OpenAPIParser } from "./OpenAPIParser";
 import { ResourceGenerator, SchemaFlags } from "./ResourceGenerator";
-import { EXAMPLE_PERSON_EMAIL } from "Common/Utils/DeveloperDocs/PeopleByEmail";
+import {
+  EXAMPLE_PERSON_EMAIL,
+  MembershipKind,
+} from "Common/Utils/DeveloperDocs/PeopleByEmail";
 import path from "path";
 import fs from "fs";
 
@@ -713,28 +717,21 @@ moved {
 }
 \`\`\`
 `
-      : "";
-
-    const importSection: string = resource.membershipImport
-      ? `## Import
-
-Import an existing ${resource.name.replace(/_/g, " ")} by its ${resource.membershipImport.parentAttribute.replace(/_id$/, "")} and the person's email address (or user ID), with an \`import\` block (Terraform 1.5+, OpenTofu 1.6+):
+      : resource.movedFrom
+        ? `
+~> **Renamed:** this resource was called \`${provider}_${resource.movedFrom}\` before, a name [another resource](./${resource.movedFrom}) has now. Rename the resource in your configuration and add a \`moved\` block, so Terraform keeps the existing ${resource.name.replace(/_/g, " ")}:
 
 \`\`\`terraform
-import {
-  to = ${provider}_${resource.name}.example
-  id = "<${resource.membershipImport.parentAttribute}>/alice@example.com"
+moved {
+  from = ${provider}_${resource.movedFrom}.example
+  to   = ${provider}_${resource.name}.example
 }
 \`\`\`
-
-or on the command line:
-
-\`\`\`shell
-terraform import ${provider}_${resource.name}.example <${resource.membershipImport.parentAttribute}>/alice@example.com
-\`\`\`
-
-Imported by its address, the person's \`user_email\` stays as you wrote it. Its own ID works too.
 `
+        : "";
+
+    const importSection: string = resource.membershipImport
+      ? this.getMembershipImportSection(resource, resource.membershipImport)
       : resource.operations?.read
         ? `## Import
 
@@ -792,11 +789,53 @@ ${importSection}`;
       return `\n${this.getOnCallScheduleLayerGuide()}\n`;
     }
 
-    if (resource.membershipImport) {
+    if (resource.membershipImport?.kind === MembershipKind.Member) {
       return `\n${this.getTeamMemberGuide()}`;
     }
 
     return "";
+  }
+
+  /*
+   * A row imported by what it joins and who or what joins it: a team member
+   * by its team and the person's address, a monitor's owner by the monitor
+   * and the person's address, an owner team or an escalation rule's team by
+   * both IDs.
+   */
+  private getMembershipImportSection(
+    resource: TerraformResource,
+    membership: TerraformMembershipImport,
+  ): string {
+    const provider: string = this.config.providerName;
+    const label: string = resource.name.replace(/_/g, " ");
+    const byEmail: boolean = Boolean(membership.personEmailAttribute);
+    const importId: string = `<${membership.parentAttribute}>/${byEmail ? EXAMPLE_PERSON_EMAIL : `<${membership.personAttribute}>`}`;
+    const by: string = byEmail
+      ? `its ${membership.parentNoun} and the person's email address (or user ID)`
+      : `its ${membership.parentNoun} and its \`${membership.personAttribute}\``;
+    const after: string = byEmail
+      ? `Imported by an address, the person's \`${membership.personEmailAttribute}\` stays as you wrote it. Its own ID works too.`
+      : "Its own ID works too.";
+
+    return `## Import
+
+Import an existing ${label} by ${by}, with an \`import\` block (Terraform 1.5+, OpenTofu 1.6+):
+
+\`\`\`terraform
+import {
+  to = ${provider}_${resource.name}.example
+  id = "${importId}"
+}
+\`\`\`
+
+or on the command line:
+
+\`\`\`shell
+terraform import ${provider}_${resource.name}.example ${importId}
+\`\`\`
+
+${after}
+`;
   }
 
   /*

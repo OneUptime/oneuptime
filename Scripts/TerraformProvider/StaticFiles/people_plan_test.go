@@ -348,7 +348,7 @@ func (a *peopleAPI) list(w http.ResponseWriter, table string, body map[string]in
 						a.t.Errorf("the lookup filtered people on %s", field)
 					}
 				}
-			case "_id", "userId", "teamId":
+			case "_id", "userId", "teamId", "monitorId", "onCallDutyPolicyScheduleLayerId":
 				matches = matches && strings.EqualFold(fmt.Sprint(row[key]), fmt.Sprint(want))
 			default:
 				a.t.Errorf("the lookup filtered %s on %s, which this test does not expect", table, key)
@@ -1145,6 +1145,76 @@ func TestPeopleOwnerReplacedOnlyForAnotherPerson(t *testing.T) {
 	_, replaced = tf.changes(monitorOwnerType, state, bob)
 	if len(replaced) != 1 || replaced[0] != "user_id" {
 		t.Fatalf("another owner replaces the row for %v, want user_id", replaced)
+	}
+}
+
+// A monitor's owner, and a person on an on-call layer, are imported by what
+// they own or are on and the person's address (or user ID), as a membership
+// is: no screen shows their own IDs. Imported by an address, the address
+// stays as written, so the plan after it is empty.
+func TestPeopleOwnerAndLayerRowsImportByParentAndAddress(t *testing.T) {
+	tf := newPeopleTerraform(t)
+	nothing := tftypes.NewValue(tf.objectType(monitorOwnerType), nil)
+	owner := tf.config(monitorOwnerType, map[string]tftypes.Value{
+		"monitor_id": str(peopleMonitorID),
+		"user_email": str("Alice@Example.com"),
+	})
+	tf.apply(monitorOwnerType, nothing, owner)
+	ownerID := tf.api.rows("/monitor-owner-user")[0]["_id"].(string)
+
+	for _, importID := range []string{
+		peopleMonitorID + "/Alice@Example.com",
+		peopleMonitorID + "/" + aliceID,
+		ownerID,
+	} {
+		imported, diagnostics := tf.importState(monitorOwnerType, importID)
+		failOnErrors(t, "importing "+importID, diagnostics)
+		if got := stringOf(t, imported, "id"); got != ownerID {
+			t.Fatalf("import %q found %q, want %q", importID, got, ownerID)
+		}
+		state := tf.refresh(monitorOwnerType, imported)
+		if got := stringOf(t, state, "user_id"); got != aliceID {
+			t.Fatalf("import %q: user_id = %q", importID, got)
+		}
+		if strings.Contains(importID, "@") {
+			tf.requireNoChanges(monitorOwnerType, state, owner)
+		}
+	}
+
+	// Someone who owns nothing there is named as such.
+	_, diagnostics := tf.importState(monitorOwnerType, peopleMonitorID+"/bob@example.com")
+	requireDiagnostic(t, diagnostics, tfprotov6.DiagnosticSeverityError, "Not Found")
+	if detail := diagnostics[0].Detail; !strings.Contains(detail, "bob@example.com is not an owner of the monitor") {
+		t.Fatalf("an owner not found says %q", detail)
+	}
+
+	// The person on a layer, by the layer and their address.
+	layerNothing := tftypes.NewValue(tf.objectType(layerUserType), nil)
+	tf.apply(layerUserType, layerNothing, layerUserConfig(tf, map[string]tftypes.Value{
+		"user_email": str("bob@example.com"),
+	}))
+	layerRowID := tf.api.rows("/on-call-duty-schedule-layer-user")[0]["_id"].(string)
+
+	imported, diagnostics := tf.importState(layerUserType, peopleLayerID+"/bob@example.com")
+	failOnErrors(t, "importing the layer's member", diagnostics)
+	if got := stringOf(t, imported, "id"); got != layerRowID {
+		t.Fatalf("the layer import found %q, want %q", got, layerRowID)
+	}
+	if got := stringOf(t, imported, "user_email"); got != "bob@example.com" {
+		t.Fatalf("the layer import keeps user_email %q", got)
+	}
+
+	_, diagnostics = tf.importState(layerUserType, peopleLayerID+"/alice@example.com")
+	requireDiagnostic(t, diagnostics, tfprotov6.DiagnosticSeverityError, "Not Found")
+	if detail := diagnostics[0].Detail; !strings.Contains(detail, "alice@example.com is not on the on call schedule layer") {
+		t.Fatalf("a person not on the layer says %q", detail)
+	}
+
+	// The form an import ID takes is said when it is not followed.
+	_, diagnostics = tf.importState(monitorOwnerType, "/alice@example.com")
+	requireDiagnostic(t, diagnostics, tfprotov6.DiagnosticSeverityError, "Invalid Import ID")
+	if detail := diagnostics[0].Detail; !strings.Contains(detail, "<monitor_id>/<email address or user id>") {
+		t.Fatalf("an import ID with no monitor says %q", detail)
 	}
 }
 

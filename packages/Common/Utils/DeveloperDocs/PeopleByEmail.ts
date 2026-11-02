@@ -129,20 +129,108 @@ export function isInvitedByEmail(
 export const INVITATION_EMAIL_FIELD: string = "email";
 
 /*
- * Memberships a client imports by what they join - the team, and the
- * person by email address or user ID: `<team id>/alice@example.com` - as
- * well as by their own ID, which no screen shows.
+ * Rows a client imports by what they join and who or what joins it - a
+ * team and the person by email address or user ID
+ * (`<team id>/alice@example.com`), a monitor and its owner, an escalation
+ * rule and the team it pages (`<rule id>/<team id>`) - as well as by their
+ * own ID, which no screen shows.
  */
+export enum MembershipKind {
+  // A team's member: invited, or in the team.
+  Member = "member",
+  // Who owns something: a monitor's owner, a status page's owner team.
+  Owner = "owner",
+  // Who an on-call layer or escalation rule pages.
+  OnCall = "on-call",
+}
+
 export interface MembershipImport {
-  // The column of what the person is a member of: teamId.
+  // The column of what the row joins: teamId, monitorId.
   parentColumn: string;
-  // The column of the person: userId.
+  // The column of who or what joins it: a person (userId), a team (teamId),
+  // an on-call schedule.
   personColumn: string;
+  kind: MembershipKind;
 }
 
 export const MEMBERSHIP_IMPORTS: Readonly<Record<string, MembershipImport>> = {
-  TeamMember: { parentColumn: "teamId", personColumn: "userId" },
+  TeamMember: {
+    parentColumn: "teamId",
+    personColumn: "userId",
+    kind: MembershipKind.Member,
+  },
+  OnCallDutyPolicyScheduleLayerUser: {
+    parentColumn: "onCallDutyPolicyScheduleLayerId",
+    personColumn: "userId",
+    kind: MembershipKind.OnCall,
+  },
+  OnCallDutyPolicyEscalationRuleUser: {
+    parentColumn: "onCallDutyPolicyEscalationRuleId",
+    personColumn: "userId",
+    kind: MembershipKind.OnCall,
+  },
+  OnCallDutyPolicyEscalationRuleTeam: {
+    parentColumn: "onCallDutyPolicyEscalationRuleId",
+    personColumn: "teamId",
+    kind: MembershipKind.OnCall,
+  },
+  OnCallDutyPolicyEscalationRuleSchedule: {
+    parentColumn: "onCallDutyPolicyEscalationRuleId",
+    personColumn: "onCallDutyPolicyScheduleId",
+    kind: MembershipKind.OnCall,
+  },
 };
+
+/*
+ * Owner rows - <Thing>OwnerUser and <Thing>OwnerTeam, 76 of them - by the
+ * one table suffix they share: the owner is the person or the team, and
+ * what they own the row's one other relation (getMembershipImport).
+ */
+export const OWNER_ROW_SUFFIXES: Readonly<Record<string, string>> = {
+  OwnerUser: "userId",
+  OwnerTeam: "teamId",
+};
+
+/*
+ * How a row of `tableName` is imported by what it joins, or undefined when
+ * it is imported by its own ID only. `relationColumns` are the relation
+ * columns a create of the row needs (monitorId, userId): an owner row's
+ * parent is the one of them that is neither its owner nor its project.
+ */
+export function getMembershipImport(
+  tableName: string,
+  relationColumns: ReadonlyArray<string>,
+): MembershipImport | undefined {
+  const listed: MembershipImport | undefined = MEMBERSHIP_IMPORTS[tableName];
+  if (listed) {
+    return listed;
+  }
+
+  for (const [suffix, ownerColumn] of Object.entries(OWNER_ROW_SUFFIXES)) {
+    if (!tableName.endsWith(suffix) || tableName.length === suffix.length) {
+      continue;
+    }
+
+    // Each relation once: a model can name its parent's ID column twice.
+    const parents: Array<string> = Array.from(new Set(relationColumns)).filter(
+      (column: string) => {
+        return column !== ownerColumn && column !== "projectId";
+      },
+    );
+
+    if (parents.length !== 1) {
+      return undefined;
+    }
+
+    return {
+      parentColumn: parents[0]!,
+      personColumn: ownerColumn,
+      kind: MembershipKind.Owner,
+    };
+  }
+
+  return undefined;
+}
 
 /*
  * COLUMNS SOMEONE ELSE DECIDES. The API takes these at create, and a

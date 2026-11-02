@@ -534,7 +534,7 @@ resource "oneuptime_escalation_rule" "first_line" {
   escalate_after_in_minutes = 5
 }
 
-resource "oneuptime_team_on_call_duty_escalation_rule" "sre" {
+resource "oneuptime_escalation_rule_team" "sre" {
   on_call_duty_policy_id                 = oneuptime_on_call_policy.primary.id
   on_call_duty_policy_escalation_rule_id = oneuptime_escalation_rule.first_line.id
   team_id                                = oneuptime_team.sre.id

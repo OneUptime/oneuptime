@@ -479,7 +479,9 @@ for test_name in "${TEST_DIRS[@]}"; do
 
     cd "$test_path"
     # Wipe any state left over from a previous local run of this checkout.
-    rm -rf tfplan terraform.tfstate terraform.tfstate.backup .terraform .terraform.lock.hcl
+    # terraform.tfstate.<timestamp>.backup: what each `terraform state rm` of
+    # the import round trip leaves behind.
+    rm -rf tfplan terraform.tfstate terraform.tfstate.backup terraform.tfstate.*.backup .terraform .terraform.lock.hcl
 
     # Stash update.tf before init: it redefines the same resources as main.tf,
     # so Terraform must not see both during the initial apply. The runner
@@ -686,7 +688,7 @@ for test_name in "${TEST_DIRS[@]}"; do
     restore_current_fixture
 
     # Cleanup state files
-    rm -rf tfplan terraform.tfstate terraform.tfstate.backup .terraform .terraform.lock.hcl
+    rm -rf tfplan terraform.tfstate terraform.tfstate.backup terraform.tfstate.*.backup .terraform .terraform.lock.hcl
 
     # Mark test result
     if [ $test_failed -eq 0 ]; then

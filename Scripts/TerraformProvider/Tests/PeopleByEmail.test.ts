@@ -7,6 +7,7 @@ import { DataSourceGenerator } from "../Core/DataSourceGenerator";
 import { DocumentationGenerator } from "../Core/DocumentationGenerator";
 import { ProviderGenerator } from "../Core/ProviderGenerator";
 import { GoCodeGenerator } from "../Core/GoCodeGenerator";
+import { MembershipKind } from "Common/Utils/DeveloperDocs/PeopleByEmail";
 import {
   TerraformAttribute,
   TerraformDataSource,
@@ -193,21 +194,57 @@ describe("the parser: what someone else decides is read-only", () => {
   });
 });
 
-describe("the parser: a membership is imported by team and person", () => {
+describe("the parser: a row is imported by what it joins and who joins it", () => {
   test("team member", () => {
     expect(resources.get("team_member")!.membershipImport).toEqual({
       parentAttribute: "team_id",
+      parentNoun: "team",
       parentApiField: "teamId",
+      personAttribute: "user_id",
       personApiField: "userId",
       personEmailAttribute: "user_email",
       listPath: "/team-member/get-list",
+      kind: MembershipKind.Member,
     });
     expect(resources.get("team_member")!.tableName).toBe("TeamMember");
   });
 
+  test("a monitor's owner, by the monitor and the person", () => {
+    expect(resources.get("monitor_owner_user")!.membershipImport).toEqual({
+      parentAttribute: "monitor_id",
+      parentNoun: "monitor",
+      parentApiField: "monitorId",
+      personAttribute: "user_id",
+      personApiField: "userId",
+      personEmailAttribute: "user_email",
+      listPath: "/monitor-owner-user/get-list",
+      kind: MembershipKind.Owner,
+    });
+  });
+
+  test("an on-call layer's person, by the layer and the person", () => {
+    expect(
+      resources.get("on_call_duty_policy_schedule_layer_user")!
+        .membershipImport,
+    ).toEqual(
+      expect.objectContaining({
+        parentAttribute: "on_call_duty_policy_schedule_layer_id",
+        personAttribute: "user_id",
+        personEmailAttribute: "user_email",
+        kind: MembershipKind.OnCall,
+      }),
+    );
+  });
+
   test("nothing else", () => {
     for (const [name, resource] of resources) {
-      if (name !== "team_member") {
+      if (
+        ![
+          "team_member",
+          "monitor_owner_user",
+          "on_call_duty_policy_schedule_layer_user",
+        ].includes(name)
+      ) {
         expect({ name, membershipImport: resource.membershipImport }).toEqual({
           name,
           membershipImport: undefined,
@@ -510,9 +547,25 @@ describe("the Go the generator writes", () => {
     expect(importState).toContain(
       'resp.State.SetAttribute(ctx, path.Root("user_email"), email)',
     );
-    expect(ownerGo).toContain(
-      'resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)',
+    // An owner the same way, by the monitor it owns and the person.
+    const ownerImport: string = between(
+      ownerGo,
+      "func (r *MonitorOwnerUserResource) ImportState",
+      "\n}\n",
     );
+    expect(ownerImport).toContain('parentField:     "monitorId"');
+    expect(ownerImport).toContain('parentNoun:      "monitor"');
+    expect(ownerImport).toContain("byEmail:         true");
+    expect(ownerImport).toContain('kind:            "owner"');
+    expect(ownerImport).toContain(
+      'resp.State.SetAttribute(ctx, path.Root("user_email"), email)',
+    );
+    expect(ownerImport).not.toContain("ImportStatePassthroughID");
+  });
+
+  test("only a team member's create says how to import a membership it finds", () => {
+    expect(teamMemberGo).toContain("alreadyInvitedHint(err,");
+    expect(ownerGo).not.toContain("alreadyInvitedHint(err,");
   });
 
   test("the owner notification and the invitation's acceptance are never sent", () => {
@@ -663,9 +716,24 @@ describe("the reference pages", () => {
       "terraform import oneuptime_team_member.example <team_id>/alice@example.com",
     );
     expect(importSection).toContain("Its own ID works too.");
-    // Every other page imports by ID, as before.
+
+    // An owner's page by the monitor and the person.
     expect(page("resources/monitor_owner_user")).toContain(
-      "terraform import oneuptime_monitor_owner_user.example <id>",
+      "terraform import oneuptime_monitor_owner_user.example <monitor_id>/alice@example.com",
+    );
+    expect(page("resources/monitor_owner_user")).toContain(
+      "by its monitor and the person's email address (or user ID)",
+    );
+    // Only the team member's page carries the guide to inviting people.
+    expect(page("resources/team_member")).toContain(
+      "## Invite people by email address",
+    );
+    expect(page("resources/monitor_owner_user")).not.toContain(
+      "## Invite people by email address",
+    );
+    // A page of a row without a parent imports by its ID, as before.
+    expect(page("resources/monitor_owner_rule")).toContain(
+      "terraform import oneuptime_monitor_owner_rule.example <id>",
     );
   });
 

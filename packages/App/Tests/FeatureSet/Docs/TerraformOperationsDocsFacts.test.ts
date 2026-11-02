@@ -1220,14 +1220,22 @@ describe("the OpenTofu page", () => {
     expect(main).toContain('resource "oneuptime_escalation_rule" "primary"');
 
     for (const responder of [
-      "oneuptime_team_on_call_duty_escalation_rule",
-      "oneuptime_users_on_call_duty_escalation_rule",
-      "oneuptime_schedules_on_call_duty_escalation_rule",
+      "oneuptime_escalation_rule_team",
+      "oneuptime_escalation_rule_user",
+      "oneuptime_escalation_rule_schedule",
     ]) {
       expect(main).not.toContain(responder);
       expect(provider.resources.has(responder.slice("oneuptime_".length))).toBe(
         true,
       );
+    }
+    // Nor under the names they had before (deprecated aliases now).
+    for (const formerName of [
+      "oneuptime_team_on_call_duty_escalation_rule",
+      "oneuptime_users_on_call_duty_escalation_rule",
+      "oneuptime_schedules_on_call_duty_escalation_rule",
+    ]) {
+      expect(main).not.toContain(formerName);
     }
 
     expect(englishSection(OPENTOFU, "## A reusable module")).toContain(

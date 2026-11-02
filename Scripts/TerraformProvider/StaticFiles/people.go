@@ -913,21 +913,61 @@ func sameIDSets(ctx context.Context, a types.Set, b types.Set) bool {
 }
 
 // ---------------------------------------------------------------------------
-// Import: a membership by its team and its person.
+// Import: a row by what it joins and who or what joins it.
 
-// membershipImport names the list a membership is found in, and the API
-// fields of its parent (the team) and its person.
+// The kinds of row imported so (Common/Utils/DeveloperDocs/PeopleByEmail.ts
+// MembershipKind).
+const (
+	membershipKindMember = "member"
+	membershipKindOwner  = "owner"
+	membershipKindOnCall = "on-call"
+)
+
+// membershipImport names the list a row is found in, and the API fields of
+// its parent (a team, a monitor, an escalation rule) and of who or what
+// joins it (a person, a team, a schedule).
 type membershipImport struct {
 	listPath        string
 	parentField     string
 	parentAttribute string
+	// What the parent is, in words: "team", "monitor".
+	parentNoun      string
 	personField     string
+	personAttribute string
+	// The member is a person, so an email address names them too.
+	byEmail bool
+	kind    string
 }
 
-// importIDOfMembership turns "<team id>/<email address or user id>" into the
-// membership's own ID, and the address it was given (to keep in state, in
-// its own case). An ID without a "/" is the membership's own, as it always
-// was.
+// importForm is how the import ID of a row of spec is written.
+func (spec membershipImport) importForm() string {
+	if spec.byEmail {
+		return fmt.Sprintf("<%s>/<email address or user id>", spec.parentAttribute)
+	}
+	return fmt.Sprintf("<%s>/<%s>", spec.parentAttribute, spec.personAttribute)
+}
+
+// notFound says that nothing joins what the import ID names, the way the
+// kind of row would say it.
+func (spec membershipImport) notFound(member string, parentID string) string {
+	parent := spec.parentNoun
+	if parent == "" {
+		parent = strings.ReplaceAll(strings.TrimSuffix(spec.parentAttribute, "_id"), "_", " ")
+	}
+	switch spec.kind {
+	case membershipKindOwner:
+		return fmt.Sprintf("%s is not an owner of the %s %q.", member, parent, parentID)
+	case membershipKindOnCall:
+		return fmt.Sprintf("%s is not on the %s %q.", member, parent, parentID)
+	default:
+		return fmt.Sprintf("%s is not a member of the %s %q, nor invited to it.", member, parent, parentID)
+	}
+}
+
+// importIDOfMembership turns "<team id>/<email address or user id>" - or
+// "<monitor id>/<team id>" for a row whose member is no person - into the
+// row's own ID, and the address it was given (to keep in state, in its own
+// case). An ID without a "/" is the row's own, as it always was.
 func importIDOfMembership(ctx context.Context, client *Client, importID string, spec membershipImport, diags *diag.Diagnostics) (string, string, bool) {
 	if !strings.Contains(importID, "/") {
 		return importID, "", true
@@ -938,18 +978,22 @@ func importIDOfMembership(ctx context.Context, client *Client, importID string, 
 	person := strings.TrimSpace(parts[1])
 
 	if parentID == "" || person == "" {
-		diags.AddError("Invalid Import ID", fmt.Sprintf("Import a membership by its ID, or as <%s>/<email address or user id>; got %q.", spec.parentAttribute, importID))
+		diags.AddError("Invalid Import ID", fmt.Sprintf("Import it by its ID, or as %s; got %q.", spec.importForm(), importID))
 		return "", "", false
 	}
 
 	if client == nil {
-		diags.AddError("Provider Not Configured", "The provider must be configured to import by team and person.")
+		diags.AddError("Provider Not Configured", "The provider must be configured to import by what a row joins.")
 		return "", "", false
 	}
 
 	userID := person
 	email := ""
 	if strings.Contains(person, "@") {
+		if !spec.byEmail {
+			diags.AddError("Invalid Import ID", fmt.Sprintf("%q is an email address, and %s takes no person: import it as %s.", person, spec.personAttribute, spec.importForm()))
+			return "", "", false
+		}
 		found, err := client.findPersonByEmail(ctx, person)
 		if err != nil {
 			diags.AddError("Could not look up "+person, personLookupFailedDetail(person, err))
@@ -984,7 +1028,7 @@ func importIDOfMembership(ctx context.Context, client *Client, importID string, 
 
 	items, _ := parsed["data"].([]interface{})
 	if len(items) == 0 {
-		diags.AddError("Not Found", fmt.Sprintf("%s is not a member of the %s %q, nor invited to it.", person, strings.TrimSuffix(spec.parentAttribute, "_id"), parentID))
+		diags.AddError("Not Found", spec.notFound(person, parentID))
 		return "", "", false
 	}
 

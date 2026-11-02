@@ -1,3 +1,4 @@
+import { getClientResourceName } from "./ClientResourceNames";
 import { splitCapitalRunsBeforeWords } from "../CapitalRuns";
 import DatabaseBaseModel, {
   DatabaseBaseModelType,
@@ -360,7 +361,10 @@ export function getTerraformTypeName(
   }
 
   const model: DatabaseBaseModel = new modelType();
-  const name: string = model.singularName || model.tableName || "";
+  const name: string = getClientResourceName(
+    model.tableName || "",
+    model.singularName || model.tableName || "",
+  );
 
   return `oneuptime_${toTerraformTypeSnakeCase(name)}`;
 }

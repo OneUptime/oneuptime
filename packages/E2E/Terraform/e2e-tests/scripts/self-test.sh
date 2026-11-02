@@ -551,6 +551,138 @@ assert_eq "" "$HOSTED_SOURCE" \
     "no fixture pins a provider source to a specific registry host"
 
 #######################################
+group "Import round trip"
+#######################################
+
+# run_import_phase imports each resource as import-ids.txt says, plans right
+# after the import, and lets that plan change only what import-settles.txt
+# names. Its two helpers are pure enough to run here: they are read out of
+# run-tests.sh (which runs the whole suite when executed) and called against
+# a canned state and a canned plan, with `terraform show` faked.
+IMPORT_HELPERS="$(sed -n '/^import_id_for() {/,/^}/p; /^planned_changes() {/,/^}/p' "$RUNNER")"
+assert_contains "$IMPORT_HELPERS" "planned_changes() {" \
+    "run-tests.sh defines planned_changes"
+assert_contains "$IMPORT_HELPERS" "import_id_for() {" \
+    "run-tests.sh defines import_id_for"
+
+IMPORT_DIR="$(mktemp -d)"
+cat > "$IMPORT_DIR/import-ids.txt" <<'IDS'
+# A comment is no address.
+oneuptime_team_member.me {team_id}/{user_email}
+oneuptime_monitor_team_owner.sre {monitor_id}/{team_id}
+oneuptime_escalation_rule_user.empty {on_call_duty_policy_escalation_rule_id}/{user_email}
+IDS
+IMPORT_STATE='{"values":{"root_module":{"resources":[
+  {"address":"oneuptime_team_member.me","values":{"id":"m-1","team_id":"t-1","user_email":"alice@example.com"}},
+  {"address":"oneuptime_monitor_team_owner.sre","values":{"id":"o-1","monitor_id":"mon-1","team_id":"t-1"}},
+  {"address":"oneuptime_escalation_rule_user.empty","values":{"id":"e-1","on_call_duty_policy_escalation_rule_id":"r-1","user_email":null}},
+  {"address":"oneuptime_monitor.api","values":{"id":"mon-1"}}
+]}}}'
+
+import_id() { # address
+    bash -c "$IMPORT_HELPERS"'
+        import_id_for "$1" "$2" "$3"' _ "$IMPORT_DIR" "$1" "$IMPORT_STATE" 2>/dev/null
+}
+
+assert_eq "t-1/alice@example.com" "$(import_id oneuptime_team_member.me)" \
+    "import-ids.txt imports a membership by its team and the person's address"
+assert_eq "mon-1/t-1" "$(import_id oneuptime_monitor_team_owner.sre)" \
+    "import-ids.txt imports an owner team by its monitor and team"
+assert_eq "mon-1" "$(import_id oneuptime_monitor.api)" \
+    "an address import-ids.txt does not list imports by its id"
+if import_id oneuptime_escalation_rule_user.empty >/dev/null; then
+    fail "an import id naming an empty attribute fails" "import_id_for succeeded"
+else
+    pass "an import id naming an empty attribute fails"
+fi
+
+# A plan right after an import, as `terraform show -json` writes it.
+cat > "$IMPORT_DIR/plan.json" <<'PLAN'
+{"resource_changes":[
+  {"address":"oneuptime_on_call_schedule_layer.layer","change":{"actions":["update"],
+    "before":{"name":"Layer","restriction_times":"{\"a\":1,\"b\":[]}","updated_at":"x"},
+    "after":{"name":"Layer","restriction_times":"{\"a\":1}"},
+    "after_unknown":{"updated_at":true}}},
+  {"address":"oneuptime_status_page_private_user.user","change":{"actions":["update"],
+    "before":{"email":"a@b.c","password":null},
+    "after":{"email":"a@b.c","password":"hunter2"},
+    "before_sensitive":{"password":true},"after_sensitive":{"password":true}}},
+  {"address":"oneuptime_monitor.only_unknowns","change":{"actions":["update"],
+    "before":{"updated_at":"x"},"after":{},"after_unknown":{"updated_at":true}}},
+  {"address":"oneuptime_probe.replaced","change":{"actions":["delete","create"],
+    "before":{"key":"k"},"after":{"key":"k"}}},
+  {"address":"oneuptime_label.unchanged","change":{"actions":["no-op"],"before":{"name":"a"},"after":{"name":"a"}}},
+  {"address":"data.oneuptime_user.me","change":{"actions":["read"],"before":null,"after":{"id":"u"}}}
+]}
+PLAN
+
+CHANGES="$(bash -c "$IMPORT_HELPERS"'
+    terraform() { if [ "$1 $2" = "show -json" ]; then cat "$3"; fi; }
+    planned_changes "$1"' _ "$IMPORT_DIR/plan.json" 2>/dev/null)"
+
+assert_contains "$CHANGES" 'oneuptime_on_call_schedule_layer.layer restriction_times: "{\"a\":1,\"b\":[]}" -> "{\"a\":1}"' \
+    "planned_changes names each attribute a change sets, with its values"
+assert_contains "$CHANGES" "oneuptime_status_page_private_user.user password: (sensitive)" \
+    "planned_changes masks a sensitive value"
+assert_contains "$CHANGES" "oneuptime_monitor.only_unknowns (updated)" \
+    "an update that only leaves values (known after apply) is still a change"
+assert_contains "$CHANGES" "oneuptime_probe.replaced (replaced)" \
+    "a replacement is a change"
+if grep -qE 'updated_at|layer name|oneuptime_label.unchanged|data\.oneuptime_user' <<<"$CHANGES"; then
+    fail "planned_changes leaves out what does not change" "got: $CHANGES"
+else
+    pass "planned_changes leaves out what does not change"
+fi
+if grep -qF "hunter2" <<<"$CHANGES"; then
+    fail "planned_changes never prints a sensitive value" "got: $CHANGES"
+else
+    pass "planned_changes never prints a sensitive value"
+fi
+rm -rf "$IMPORT_DIR"
+
+# The plan right after the import is the gate: no blanket settling apply
+# before it, and a change import-settles.txt does not name fails the test.
+assert_file_matches "$RUNNER" 'plan -detailed-exitcode -input=false -out="\$plan_file"' \
+    "the runner plans right after the import"
+assert_file_matches "$RUNNER" "the plan right after import changes what nothing changed" \
+    "a change right after the import fails the test"
+assert_file_matches "$RUNNER" 'apply -input=false -auto-approve "\$plan_file"' \
+    "only the plan of what import-settles.txt names is applied"
+assert_file_not_matches "$RUNNER" '^[[:space:]]*if ! terraform apply -input=false -auto-approve > /dev/null 2>&1; then' \
+    "no settling apply runs before the post-import plan is checked"
+
+# Every import-settles.txt line names an address and an attribute, and says
+# why the API never sends it back.
+BAD_SETTLES=""
+while IFS= read -r settles; do
+    while IFS= read -r line; do
+        case "$line" in
+            ""|\#*) continue ;;
+        esac
+        if ! grep -qE '^oneuptime_[a-z0-9_]+\.[a-z0-9_]+ [a-z0-9_]+[[:space:]]+# .+' <<<"$line"; then
+            BAD_SETTLES="$BAD_SETTLES $settles: '$line'"
+        fi
+    done < "$settles"
+done < <(find "$TEST_DIR/tests" -name "import-settles.txt")
+assert_eq "" "$BAD_SETTLES" \
+    "every import-settles.txt line is '<address> <attribute>  # why the API never sends it back'"
+
+# Every import-ids.txt line names an address and an import id of {attribute}s.
+BAD_IDS=""
+while IFS= read -r ids; do
+    while IFS= read -r line; do
+        case "$line" in
+            ""|\#*) continue ;;
+        esac
+        if ! grep -qE '^oneuptime_[a-z0-9_]+\.[a-z0-9_]+ [^ ]*\{[a-z0-9_]+\}[^ ]*$' <<<"$line"; then
+            BAD_IDS="$BAD_IDS $ids: '$line'"
+        fi
+    done < "$ids"
+done < <(find "$TEST_DIR/tests" -name "import-ids.txt")
+assert_eq "" "$BAD_IDS" \
+    "every import-ids.txt line is '<address> <import id of {attribute}s>'"
+
+#######################################
 group "CI workflow contract"
 #######################################
 
