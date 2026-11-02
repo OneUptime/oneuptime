@@ -6,7 +6,7 @@ import {
   translatableTerm,
   translationKey,
   Translator,
-} from "../../UI/Utils/TranslateTemplate";
+} from "../../Types/Translator";
 import {
   CLOUD_RESOURCE_KINDS,
   CloudCatalogProvider,
