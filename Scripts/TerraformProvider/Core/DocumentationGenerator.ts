@@ -9,6 +9,7 @@ import { FileGenerator } from "./FileGenerator";
 import { StringUtils } from "./StringUtils";
 import { OpenAPIParser } from "./OpenAPIParser";
 import { ResourceGenerator, SchemaFlags } from "./ResourceGenerator";
+import { EXAMPLE_PERSON_EMAIL } from "Common/Utils/DeveloperDocs/PeopleByEmail";
 import path from "path";
 import fs from "fs";
 
@@ -968,6 +969,23 @@ resource "${provider}_on_call_schedule_layer" "around_the_clock" {
       );
     }
 
+    /*
+     * A person the resource needs: named by email address, the way a
+     * configuration names people (user_email beside user_id).
+     */
+    for (const attr of Object.values(resource.schema)) {
+      if (!attr.person?.isRequired) {
+        continue;
+      }
+      fields.push(
+        `  ${attr.person.emailAttribute} = ${
+          attr.person.isList
+            ? `[${DocumentationGenerator.hclString(EXAMPLE_PERSON_EMAIL)}]`
+            : DocumentationGenerator.hclString(EXAMPLE_PERSON_EMAIL)
+        }`,
+      );
+    }
+
     for (const name of ["name", "description"]) {
       const attr: TerraformAttribute | undefined = resource.schema[name];
       const dumped: SchemaDumpAttribute | undefined = block.attributes[name];
@@ -1213,11 +1231,14 @@ resource "${provider}_monitor" "example" {
         return name;
       });
 
-    const byArgument: string | undefined = filters.includes("name")
-      ? "name"
-      : filters.find((name: string) => {
-          return dataSource.schema[name]?.type === "string";
-        }) || filters[0];
+    // People are found by email address; everything else by name.
+    const byArgument: string | undefined = filters.includes("email")
+      ? "email"
+      : filters.includes("name")
+        ? "name"
+        : filters.find((name: string) => {
+            return dataSource.schema[name]?.type === "string";
+          }) || filters[0];
 
     const lookupExample: string = byArgument
       ? `data "${provider}_${dataSource.name}" "example" {
@@ -1238,6 +1259,11 @@ data "${provider}_${dataSource.name}" "by_id" {
 `
       : "";
 
+    const lookupRule: string =
+      dataSource.name === "user"
+        ? `Look someone up by \`email\`, \`name\` or \`id\`: exactly one of them. Only the people of the API key's project are searched - its members, and those invited to it - so nobody outside it is ever found, and no match is an error rather than an empty result.`
+        : `Look one up by \`id\`, or by any of its other arguments: every argument you set must match, and exactly one ${label} may match them all - none, or more than one, is an error rather than an empty or arbitrary result.`;
+
     return `---
 page_title: "${provider}_${dataSource.name} Data Source - ${provider}"
 subcategory: "${this.getSubcategory(dataSource.name)}"
@@ -1249,7 +1275,7 @@ description: |-
 
 ${description}
 
-Look one up by \`id\`, or by any of its other arguments: every argument you set must match, and exactly one ${label} may match them all - none, or more than one, is an error rather than an empty or arbitrary result.
+${lookupRule}
 ${renamedNote}
 ## Example Usage
 
@@ -1272,6 +1298,9 @@ ${this.renderSchema(block.attributes)}
 
     if (name === "name") {
       return `"Example ${label}"`;
+    }
+    if (name === "email") {
+      return DocumentationGenerator.hclString(EXAMPLE_PERSON_EMAIL);
     }
     if (attr?.enumValues?.length) {
       return DocumentationGenerator.hclString(attr.enumValues[0]!);

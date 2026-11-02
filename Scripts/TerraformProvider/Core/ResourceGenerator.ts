@@ -9,6 +9,7 @@ import { StringUtils } from "./StringUtils";
 import { OpenAPIParser } from "./OpenAPIParser";
 import { GoCodeGenerator } from "./GoCodeGenerator";
 import { ObjectType } from "Common/Types/JSON";
+import { INVITATION_EMAIL_FIELD } from "Common/Utils/DeveloperDocs/PeopleByEmail";
 import path from "path";
 import fs from "fs";
 
@@ -19,6 +20,16 @@ import fs from "fs";
  * and avoids backtick-escaping the JSON fixtures inside the test file.
  */
 const STATIC_FILES_DIR: string = path.join(__dirname, "..", "StaticFiles");
+
+// A person attribute and its email companion, as the generated Go names them.
+export interface PersonAttributeFields {
+  idField: string;
+  emailField: string;
+  emailAttribute: string;
+  apiFieldName: string;
+  isSet: boolean;
+  invitesByEmail: boolean;
+}
 
 export interface SchemaFlags {
   required: boolean;
@@ -212,6 +223,16 @@ func (r *${resourceTypeName}Resource) MoveState(ctx context.Context) []resource.
     );
     await this.copyStaticFile("legacynames.go", "internal/provider");
     await this.copyStaticFile("legacynames_test.go", "internal/provider");
+
+    /*
+     * People named by email address beside their user IDs (user_email
+     * beside user_id): the lookups, plan modifiers and validators every
+     * resource that names a person shares, and their tests - the lookups
+     * against a fake API, and the plans through the real protocol server.
+     */
+    await this.copyStaticFile("people.go", "internal/provider");
+    await this.copyStaticFile("people_test.go", "internal/provider");
+    await this.copyStaticFile("people_plan_test.go", "internal/provider");
 
     // Writes the built provider's schema for the docs generator.
     await this.copyStaticFile(
@@ -516,6 +537,10 @@ func (r *${resourceTypeName}Resource) MoveState(ctx context.Context) []resource.
             if (attr.type !== type) {
               return false;
             }
+            // A person's attributes get their plan modifiers from people.go.
+            if (attr.person || attr.personEmailOf) {
+              return false;
+            }
             const isProjectId: boolean =
               name === "project_id" || name === "projectId";
             const isComputedOnly: boolean = Boolean(
@@ -634,6 +659,11 @@ ${importStatements}
 var _ resource.Resource = &${resourceTypeName}Resource{}
 var _ resource.ResourceWithImportState = &${resourceTypeName}Resource{}
 ${
+  this.getPersonAttributes(resource).length > 0
+    ? `var _ resource.ResourceWithModifyPlan = &${resourceTypeName}Resource{}
+`
+    : ""
+}${
   resource.legacyName
     ? `var _ resource.ResourceWithMoveState = &${resourceTypeName}Resource{}
 `
@@ -691,7 +721,7 @@ ${this.generateSchemaAttributes(resource)}
         },
     }
 }
-${this.generateMoveStateMethod(resource, resourceTypeName)}
+${this.generateMoveStateMethod(resource, resourceTypeName)}${this.generatePersonModifyPlan(resource, resourceTypeName)}
 func (r *${resourceTypeName}Resource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
     // Prevent panic if the provider has not been configured.
     if req.ProviderData == nil {
@@ -716,9 +746,30 @@ ${this.generateCRUDMethods(resource, resourceTypeName, resourceVarName)}
 
 func (r *${resourceTypeName}Resource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 ${
-  resource.operations.read
-    ? `    resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)`
-    : `    // Without a read endpoint, a passthrough import would silently create
+  resource.membershipImport
+    ? `    // By its own ID, or by what it joins and who: <${resource.membershipImport.parentAttribute}>/<email address or user id> (see people.go).
+    id, email, ok := importIDOfMembership(ctx, r.client, req.ID, membershipImport{
+        listPath:        "${resource.membershipImport.listPath}",
+        parentField:     "${resource.membershipImport.parentApiField}",
+        parentAttribute: "${resource.membershipImport.parentAttribute}",
+        personField:     "${resource.membershipImport.personApiField}",
+    }, &resp.Diagnostics)
+    if !ok {
+        return
+    }
+    resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), id)...)${
+      resource.membershipImport.personEmailAttribute
+        ? `
+    // The address it was imported by, as written: the refresh keeps it.
+    if email != "" {
+        resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("${resource.membershipImport.personEmailAttribute}"), email)...)
+    }`
+        : `
+    _ = email`
+    }`
+    : resource.operations.read
+      ? `    resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)`
+      : `    // Without a read endpoint, a passthrough import would silently create
     // id-only state that can never be refreshed. Fail loudly instead.
     resp.Diagnostics.AddError(
         "Import Not Supported",
@@ -935,6 +986,10 @@ ${this.generateValidObjectTypesMap()}
         attr.description ||
           "Monitoring steps: destinations, request settings, and alerting criteria.",
       )}")`;
+    }
+
+    if (attr.person || attr.personEmailOf) {
+      return this.generatePersonSchemaAttribute(attr as TerraformAttribute);
     }
 
     const attrType: string = this.mapTerraformTypeToSchemaType(attr.type);
@@ -1160,6 +1215,302 @@ ${this.generateValidObjectTypesMap()}
   }
 
   /*
+   * A person's ID attribute (user_id, owner_users) and its email companion
+   * (user_email, owner_user_emails): both optional and computed - the
+   * provider fills in one from the other - with the validators of
+   * people.go, and the address's plan modifiers (the ID is planned by the
+   * resource's ModifyPlan). Exactly one of the two when the API needs the
+   * person, at most one otherwise.
+   */
+  private generatePersonSchemaAttribute(attr: TerraformAttribute): string {
+    const isSet: boolean = attr.type === "set";
+    const options: Array<string> = [];
+
+    if (attr.description) {
+      options.push(
+        `MarkdownDescription: "${GoCodeGenerator.escapeString(attr.description)}"`,
+      );
+    }
+
+    options.push("Optional: true");
+    options.push("Computed: true");
+
+    if (isSet) {
+      options.push("ElementType: types.StringType");
+    }
+
+    if (attr.person) {
+      // Planned by the resource's ModifyPlan (generatePersonModifyPlan).
+      options.push(
+        isSet
+          ? `Validators: personIDsValidators("${attr.person.emailAttribute}", ${attr.person.isRequired})`
+          : `Validators: personIDValidators("${attr.person.emailAttribute}", ${attr.person.isRequired})`,
+      );
+    } else {
+      options.push(
+        isSet
+          ? `PlanModifiers: personEmailsPlanModifiers("${attr.personEmailOf}")`
+          : `PlanModifiers: personEmailPlanModifiers("${attr.personEmailOf}")`,
+      );
+      options.push(
+        isSet
+          ? "Validators: personEmailsValidators()"
+          : "Validators: personEmailValidators()",
+      );
+    }
+
+    return `schema.${isSet ? "Set" : "String"}Attribute{
+                ${options.join(",\n                ")},
+            }`;
+  }
+
+  /*
+   * The plan of the people a resource names (people.go planPersonID): found
+   * by email address in ModifyPlan, which runs on the configured resource -
+   * a plan modifier would have no client to ask with. ModifyPlan also asks
+   * for the replacement a different person needs where the API cannot
+   * change them, so the ID attribute has no RequiresReplace of its own.
+   */
+  private generatePersonModifyPlan(
+    resource: TerraformResource,
+    resourceTypeName: string,
+  ): string {
+    const people: Array<string> = Object.entries(resource.schema)
+      .filter(([, attr]: [string, TerraformAttribute]) => {
+        return Boolean(attr.person);
+      })
+      .map(([name, attr]: [string, TerraformAttribute]) => {
+        const person: NonNullable<TerraformAttribute["person"]> = attr.person!;
+        return `    ${person.isList ? "planPeopleIDs" : "planPersonID"}(ctx, r.client, req, resp, personAttribute{
+        id:       "${this.sanitizeAttributeName(name)}",
+        email:    "${person.emailAttribute}",
+        invites:  ${person.invitesByEmail},
+        replaces: ${Boolean(attr.forceNew)},
+    })`;
+      });
+
+    if (people.length === 0) {
+      return "";
+    }
+
+    return `
+// ModifyPlan finds, by email address, the people this ${resource.name.replace(/_/g, " ")} names
+// (see people.go).
+func (r *${resourceTypeName}Resource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+    // Destroying: nobody to find.
+    if req.Plan.Raw.IsNull() {
+        return
+    }
+
+${people.join("\n")}
+}
+`;
+  }
+
+  // Each person attribute and its email companion, as Go field names.
+  private getPersonAttributes(
+    resource: TerraformResource,
+  ): Array<PersonAttributeFields> {
+    return Object.entries(resource.schema)
+      .filter(([, attr]: [string, TerraformAttribute]) => {
+        return Boolean(attr.person);
+      })
+      .map(([name, attr]: [string, TerraformAttribute]) => {
+        const person: NonNullable<TerraformAttribute["person"]> = attr.person!;
+        return {
+          idField: StringUtils.toPascalCase(this.sanitizeAttributeName(name)),
+          emailField: StringUtils.toPascalCase(
+            this.sanitizeAttributeName(person.emailAttribute),
+          ),
+          emailAttribute: person.emailAttribute,
+          apiFieldName: attr.apiFieldName || name,
+          isSet: attr.type === "set",
+          invitesByEmail: person.invitesByEmail,
+        };
+      });
+  }
+
+  /*
+   * Before a create or an update: the user IDs of the people named by an
+   * address the plan could not find yet - someone this apply has just
+   * invited (people.go personIDForWrite). A team member named by address is
+   * invited by it instead, so its ID is not needed.
+   */
+  private generatePersonIDsForWrite(
+    resource: TerraformResource,
+    isCreate: boolean,
+  ): string {
+    const lines: Array<string> = [];
+
+    for (const person of this.getPersonAttributes(resource)) {
+      if (isCreate && person.invitesByEmail) {
+        continue;
+      }
+
+      lines.push(
+        person.isSet
+          ? `    if !personIDsForWrite(ctx, r.client, &data.${person.idField}, data.${person.emailField}, "${person.emailAttribute}", &resp.Diagnostics) {
+        return
+    }`
+          : `    if !personIDForWrite(ctx, r.client, &data.${person.idField}, data.${person.emailField}, "${person.emailAttribute}", &resp.Diagnostics) {
+        return
+    }`,
+      );
+    }
+
+    if (lines.length === 0) {
+      return "";
+    }
+
+    return `
+    // People named by email address: the user IDs to send (see people.go).
+${lines.join("\n")}
+`;
+  }
+
+  /*
+   * A team member named by address is invited by it, as the dashboard's
+   * Invite does: OneUptime finds the account with that address - or makes
+   * one - and emails the invitation; someone already in the project joins
+   * the team at once.
+   */
+  private generateInvitationByEmail(
+    resource: TerraformResource,
+    resourceVarName: string,
+  ): string {
+    const invited: Array<PersonAttributeFields> =
+      this.getPersonAttributes(resource).filter(
+        (person: PersonAttributeFields) => {
+          return person.invitesByEmail;
+        },
+      );
+
+    if (invited.length === 0) {
+      return "";
+    }
+
+    return invited
+      .map(
+        (person: PersonAttributeFields) => {
+          return `
+    // Named by email address: invited by it (see people.go).
+    if !data.${person.emailField}.IsNull() && !data.${person.emailField}.IsUnknown() {
+        delete(${resourceVarName}Request["data"].(map[string]interface{}), "${person.apiFieldName}")
+        ${resourceVarName}Request["miscDataProps"] = map[string]interface{}{
+            "${INVITATION_EMAIL_FIELD}": data.${person.emailField}.ValueString(),
+        }
+    }`;
+        },
+      )
+      .join("\n");
+  }
+
+  /*
+   * After a create, the people the response names, for a person whose ID
+   * the plan could not know (one invited by address): state must hold it
+   * even if the read that follows fails.
+   */
+  private generatePersonIDsFromCreateResponse(
+    resource: TerraformResource,
+    responseVar: string,
+  ): string {
+    const lines: Array<string> = this.getPersonAttributes(resource)
+      .filter(
+        (person: PersonAttributeFields) => {
+          return !person.isSet;
+        },
+      )
+      .map(
+        (person: PersonAttributeFields) => {
+          return `    if data.${person.idField}.IsUnknown() {
+        created := ${responseVar}
+        if wrapper, ok := ${responseVar}["data"].(map[string]interface{}); ok {
+            created = wrapper
+        }
+        if id := apiStringValue(created["${person.apiFieldName}"]); id != "" {
+            data.${person.idField} = types.StringValue(id)
+        } else {
+            data.${person.idField} = types.StringNull()
+        }
+    }`;
+        },
+      );
+
+    if (lines.length === 0) {
+      return "";
+    }
+
+    return `
+    // The person a create named by address, as the API has them.
+${lines.join("\n")}
+`;
+  }
+
+  /*
+   * After a create or an update: the address of a person the configuration
+   * named by ID, read now (people.go personEmailAfterWrite).
+   */
+  private generatePersonEmailsAfterWrite(resource: TerraformResource): string {
+    const lines: Array<string> = this.getPersonAttributes(resource).map(
+      (person: PersonAttributeFields) => {
+        return person.isSet
+          ? `    data.${person.emailField} = personEmailsAfterWrite(ctx, r.client, data.${person.idField}, data.${person.emailField})`
+          : `    data.${person.emailField} = personEmailAfterWrite(ctx, r.client, data.${person.idField}, data.${person.emailField})`;
+      },
+    );
+
+    if (lines.length === 0) {
+      return "";
+    }
+
+    return `
+    // The address of a person named by ID (see people.go).
+${lines.join("\n")}`;
+  }
+
+  // Before a refresh maps the response: who the state named.
+  private generatePriorPeople(resource: TerraformResource): string {
+    const lines: Array<string> = this.getPersonAttributes(resource).map(
+      (person: PersonAttributeFields) => {
+        return `    prior${person.idField} := data.${person.idField}
+    prior${person.emailField} := data.${person.emailField}`;
+      },
+    );
+
+    if (lines.length === 0) {
+      return "";
+    }
+
+    return `
+    // Who the state named, to keep their address (see people.go).
+${lines.join("\n")}
+`;
+  }
+
+  /*
+   * After a refresh: the address stays while the resource names the same
+   * person, and is read when there is none (an import) or the person changed
+   * outside Terraform (people.go personEmailAfterRead).
+   */
+  private generatePersonEmailsAfterRead(resource: TerraformResource): string {
+    const lines: Array<string> = this.getPersonAttributes(resource).map(
+      (person: PersonAttributeFields) => {
+        return person.isSet
+          ? `    data.${person.emailField} = personEmailsAfterRead(ctx, r.client, prior${person.idField}, data.${person.idField}, prior${person.emailField})`
+          : `    data.${person.emailField} = personEmailAfterRead(ctx, r.client, prior${person.idField}, data.${person.idField}, prior${person.emailField})`;
+      },
+    );
+
+    if (lines.length === 0) {
+      return "";
+    }
+
+    return `
+    // The person's address (see people.go).
+${lines.join("\n")}`;
+  }
+
+  /*
    * The optional attributes Terraform also computes: the ones whose planned
    * value Create and Update keep when the configuration leaves them out.
    */
@@ -1314,7 +1665,7 @@ ${assignments}
     let readBackCode: string = `
     // No read endpoint for this resource: map the create response directly.
     // Update the model with response data
-${this.generateResponseMapping(resource, resourceVarName + "Response", true)}${this.generateKeepPlannedValuesCall(resource)}`;
+${this.generateResponseMapping(resource, resourceVarName + "Response", true)}${this.generateKeepPlannedValuesCall(resource)}${this.generatePersonEmailsAfterWrite(resource)}`;
 
     if (resource.operations.read) {
       const readPath: string = this.buildPathExpression(
@@ -1335,7 +1686,7 @@ ${this.generateResponseMapping(resource, resourceVarName + "Response", true)}${t
         return
     }
     data.Id = types.StringValue(createdId)
-
+${this.generatePersonIDsFromCreateResponse(resource, resourceVarName + "Response")}
     /*
      * The server has committed the row. Persist what we know to state BEFORE
      * the read-back: if the read-back fails and we return without setting
@@ -1375,8 +1726,16 @@ ${this.generateSelectParameter(resource)}
     // Update the model with the authoritative read response
 ${this.generateResponseMapping(resource, "readResponse", true)}
     // The read response is authoritative, but never let it clobber the id we just received.
-    data.Id = types.StringValue(createdId)${this.generateKeepPlannedValuesCall(resource)}`;
+    data.Id = types.StringValue(createdId)${this.generateKeepPlannedValuesCall(resource)}${this.generatePersonEmailsAfterWrite(resource)}`;
     }
+
+    /*
+     * A membership that exists already says how to import it instead
+     * (people.go alreadyInvitedHint).
+     */
+    const createErrorArguments: string = resource.membershipImport
+      ? `"Unable to create ${resource.name}: %s%s", err, alreadyInvitedHint(err, "${this.providerName}_${resource.name}", "${resource.membershipImport.parentAttribute}")`
+      : `"Unable to create ${resource.name}: %s", err`;
 
     return `
 func (r *${resourceTypeName}Resource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -1389,7 +1748,7 @@ func (r *${resourceTypeName}Resource) Create(ctx context.Context, req resource.C
         return
     }
 ${this.generatePlanAndConfigCapture(resource, resourceTypeName)}
-${this.generateOriginalValueStorage(resource)}
+${this.generateOriginalValueStorage(resource)}${this.generatePersonIDsForWrite(resource, true)}
 
     // Create API request body. Unset (null/unknown) optional fields are
     // omitted so server-side defaults apply instead of being overwritten
@@ -1397,7 +1756,7 @@ ${this.generateOriginalValueStorage(resource)}
     ${resourceVarName}Request := map[string]interface{}{
         "data": map[string]interface{}{},
     }
-${this.generateGuardedCreateRequestBody(resource, resourceVarName)}
+${this.generateGuardedCreateRequestBody(resource, resourceVarName)}${this.generateInvitationByEmail(resource, resourceVarName)}
 
     // Make API call
     httpResp, err := r.client.Post(ctx, "${path}", ${resourceVarName}Request)
@@ -1409,7 +1768,7 @@ ${this.generateGuardedCreateRequestBody(resource, resourceVarName)}
     var ${resourceVarName}Response map[string]interface{}
     err = r.client.ParseResponse(httpResp, &${resourceVarName}Response)
     if err != nil {
-        resp.Diagnostics.AddError("OneUptime API Error", fmt.Sprintf("Unable to create ${resource.name}: %s", err))
+        resp.Diagnostics.AddError("OneUptime API Error", fmt.Sprintf(${createErrorArguments}))
         return
     }
 ${readBackCode}
@@ -1496,7 +1855,7 @@ func (r *${resourceTypeName}Resource) Read(ctx context.Context, req resource.Rea
     selectParam := map[string]interface{}{
 ${this.generateSelectParameter(resource)}
     }
-
+${this.generatePriorPeople(resource)}
     // Make API call with select parameter
     httpResp, err := r.client.PostWithSelect(ctx, ${finalPath}, selectParam)
     if err != nil {
@@ -1517,7 +1876,7 @@ ${this.generateSelectParameter(resource)}
     }
 
     // Update the model with response data
-${this.generateResponseMapping(resource, resourceVarName + "Response", false)}
+${this.generateResponseMapping(resource, resourceVarName + "Response", false)}${this.generatePersonEmailsAfterRead(resource)}
 
     // Save updated data into Terraform state
     resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -1570,9 +1929,9 @@ ${this.generateSelectParameter(resource)}
 
     // Update the model with response data from the Read operation
 ${this.generateResponseMapping(resource, "readResponse", false)}
-    data.Id = state.Id${this.generateKeepPlannedValuesCall(resource)}`
+    data.Id = state.Id${this.generateKeepPlannedValuesCall(resource)}${this.generatePersonEmailsAfterWrite(resource)}`
       : `
-    // No read endpoint for this resource: the planned values become state.`;
+    // No read endpoint for this resource: the planned values become state.${this.generatePersonEmailsAfterWrite(resource)}`;
 
     return `
 func (r *${resourceTypeName}Resource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
@@ -1593,7 +1952,7 @@ func (r *${resourceTypeName}Resource) Update(ctx context.Context, req resource.U
 
     // Use the ID from the current state
     data.Id = state.Id
-${hasRead ? this.generatePlanAndConfigCapture(resource, resourceTypeName) : ""}
+${hasRead ? this.generatePlanAndConfigCapture(resource, resourceTypeName) : ""}${this.generatePersonIDsForWrite(resource, false)}
     // Create API request body
     ${resourceVarName}Request := map[string]interface{}{
         "data": map[string]interface{}{},
