@@ -24,6 +24,12 @@ import path from "path";
 import { DataSourceGenerator } from "../Core/DataSourceGenerator";
 import { ProviderGenerator } from "../Core/ProviderGenerator";
 import { ResourceGenerator } from "../Core/ResourceGenerator";
+import { GoCodeGenerator } from "../Core/GoCodeGenerator";
+import {
+  API_KEY_ATTRIBUTE_DESCRIPTION,
+  PROVIDER_DESCRIPTION,
+  URL_ATTRIBUTE_DESCRIPTION,
+} from "../Core/ProviderWords";
 import { buildFixtureSpec } from "./Fixtures";
 
 let outputDir: string;
@@ -380,6 +386,30 @@ describe("static Go test wiring", () => {
     expect(contents).toContain(
       "func TestPostBodyWithSelect_PreservesTheRestOfTheBody(",
     );
+  });
+
+  /*
+   * What `terraform providers schema` and an editor's hover show: the
+   * provider's own words, not the API document's description of itself.
+   */
+  test("the provider's schema describes the provider and its two settings", () => {
+    const providerGo: string = fs.readFileSync(
+      path.join(outputDir, GENERATED_DIR, "provider.go"),
+      "utf-8",
+    );
+
+    for (const words of [
+      PROVIDER_DESCRIPTION,
+      URL_ATTRIBUTE_DESCRIPTION,
+      API_KEY_ATTRIBUTE_DESCRIPTION,
+    ]) {
+      expect(providerGo).toContain(
+        `MarkdownDescription: "${GoCodeGenerator.escapeString(words)}"`,
+      );
+    }
+
+    expect(providerGo).not.toContain(buildFixtureSpec().info.description!);
+    expect(providerGo).not.toContain("without /api path");
   });
 
   test("the copied test targets symbols the generator actually emits", () => {

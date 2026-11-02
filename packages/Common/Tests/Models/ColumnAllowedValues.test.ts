@@ -6,7 +6,13 @@ import AllModelTypes from "../../Models/DatabaseModels/Index";
 import CloudConnection from "../../Models/DatabaseModels/CloudConnection";
 import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import IncidentCustomField from "../../Models/DatabaseModels/IncidentCustomField";
+import LogDropFilter from "../../Models/DatabaseModels/LogDropFilter";
+import LogPipelineProcessor from "../../Models/DatabaseModels/LogPipelineProcessor";
+import LogScrubRule from "../../Models/DatabaseModels/LogScrubRule";
 import Monitor from "../../Models/DatabaseModels/Monitor";
+import TraceDropFilter from "../../Models/DatabaseModels/TraceDropFilter";
+import TracePipelineProcessor from "../../Models/DatabaseModels/TracePipelineProcessor";
+import TraceScrubRule from "../../Models/DatabaseModels/TraceScrubRule";
 import { CloudProvider } from "../../Types/Cloud/CloudPlatform";
 import CustomFieldType from "../../Types/CustomField/CustomFieldType";
 import {
@@ -15,7 +21,15 @@ import {
 } from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import Dictionary from "../../Types/Dictionary";
+import LogDropFilterAction from "../../Types/Log/LogDropFilterAction";
+import LogPipelineProcessorType from "../../Types/Log/LogPipelineProcessorType";
+import LogScrubAction from "../../Types/Log/LogScrubAction";
+import LogScrubPatternType from "../../Types/Log/LogScrubPatternType";
 import MonitorType from "../../Types/Monitor/MonitorType";
+import TraceDropFilterAction from "../../Types/Trace/TraceDropFilterAction";
+import TracePipelineProcessorType from "../../Types/Trace/TracePipelineProcessorType";
+import TraceScrubAction from "../../Types/Trace/TraceScrubAction";
+import TraceScrubPatternType from "../../Types/Trace/TraceScrubPatternType";
 import { ModelSchema } from "../../Utils/Schema/ModelSchema";
 import { getSchemaFields, SchemaField } from "../../Utils/Schema/SchemaFields";
 
@@ -151,7 +165,26 @@ function stringMemberValues(
   return values;
 }
 
-function findEnum(file: string, name: string): EnumDeclaration | null {
+/*
+ * How many modules a name is followed through (an import of a re-export of
+ * an import...) before the scan gives up on it.
+ */
+const MOST_MODULES_FOLLOWED: number = 8;
+
+/*
+ * The enum a module exports under a name: one it declares, one it
+ * re-exports (`export { Name } from "./Other"`), or one it imports and
+ * exports again.
+ */
+function findEnum(
+  file: string,
+  name: string,
+  depth: number = 0,
+): EnumDeclaration | null {
+  if (depth > MOST_MODULES_FOLLOWED) {
+    return null;
+  }
+
   const source: ts.SourceFile = parse(file);
 
   for (const statement of source.statements) {
@@ -160,11 +193,52 @@ function findEnum(file: string, name: string): EnumDeclaration | null {
     }
   }
 
-  return null;
+  for (const statement of source.statements) {
+    if (
+      !ts.isExportDeclaration(statement) ||
+      !statement.moduleSpecifier ||
+      !ts.isStringLiteral(statement.moduleSpecifier) ||
+      !statement.exportClause ||
+      !ts.isNamedExports(statement.exportClause)
+    ) {
+      continue;
+    }
+
+    for (const element of statement.exportClause.elements) {
+      if (element.name.text !== name) {
+        continue;
+      }
+
+      const module: string | null = resolveModule(
+        file,
+        statement.moduleSpecifier.text,
+      );
+      const exportedName: string = element.propertyName
+        ? element.propertyName.text
+        : element.name.text;
+
+      if (!module) {
+        return null;
+      }
+
+      return exportedName === "default"
+        ? findDefaultExportedEnum(module, depth + 1)
+        : findEnum(module, exportedName, depth + 1);
+    }
+  }
+
+  return resolveImportedEnum(file, source, name, depth);
 }
 
 // The enum a module's default export is: `export default Name;`.
-function findDefaultExportedEnum(file: string): EnumDeclaration | null {
+function findDefaultExportedEnum(
+  file: string,
+  depth: number = 0,
+): EnumDeclaration | null {
+  if (depth > MOST_MODULES_FOLLOWED) {
+    return null;
+  }
+
   const source: ts.SourceFile = parse(file);
 
   for (const statement of source.statements) {
@@ -172,7 +246,7 @@ function findDefaultExportedEnum(file: string): EnumDeclaration | null {
       ts.isExportAssignment(statement) &&
       ts.isIdentifier(statement.expression)
     ) {
-      return findEnum(file, statement.expression.text);
+      return findEnum(file, statement.expression.text, depth);
     }
 
     if (
@@ -198,15 +272,19 @@ function findDefaultExportedEnum(file: string): EnumDeclaration | null {
  */
 function resolveEnum(
   file: string,
-  source: ts.SourceFile,
+  _source: ts.SourceFile,
   localName: string,
 ): EnumDeclaration | null {
-  const declared: EnumDeclaration | null = findEnum(file, localName);
+  return findEnum(file, localName);
+}
 
-  if (declared) {
-    return declared;
-  }
-
+// The enum a name a module imports stands for, followed to its module.
+function resolveImportedEnum(
+  file: string,
+  source: ts.SourceFile,
+  localName: string,
+  depth: number,
+): EnumDeclaration | null {
   for (const statement of source.statements) {
     if (
       !ts.isImportDeclaration(statement) ||
@@ -223,7 +301,7 @@ function resolveEnum(
     const clause: ts.ImportClause = statement.importClause;
 
     if (clause.name && clause.name.text === localName) {
-      return module ? findDefaultExportedEnum(module) : null;
+      return module ? findDefaultExportedEnum(module, depth + 1) : null;
     }
 
     if (clause.namedBindings && ts.isNamedImports(clause.namedBindings)) {
@@ -241,8 +319,8 @@ function resolveEnum(
         }
 
         return importedName === "default"
-          ? findDefaultExportedEnum(module)
-          : findEnum(module, importedName);
+          ? findDefaultExportedEnum(module, depth + 1)
+          : findEnum(module, importedName, depth + 1);
       }
     }
   }
@@ -578,6 +656,81 @@ function columnsWithAllowedValues(): Array<ColumnWithAllowedValues> {
 
 const COLUMNS_WITH_ALLOWED_VALUES: Array<ColumnWithAllowedValues> =
   columnsWithAllowedValues();
+
+/*
+ * Columns typed `string` whose values are still an enum's: a telemetry
+ * pipeline's processor, drop filter and scrub rule each name what they do
+ * with one of a few words, which the service reads as that enum. Typed
+ * `string`, the scan above does not see them, so they are named here.
+ */
+const STRING_COLUMNS_OF_AN_ENUM: Array<{
+  label: string;
+  modelType: new () => DatabaseBaseModel;
+  column: string;
+  values: Array<string>;
+}> = [
+  {
+    label: "LogPipelineProcessor.processorType",
+    modelType: LogPipelineProcessor,
+    column: "processorType",
+    values: Object.values(LogPipelineProcessorType),
+  },
+  {
+    label: "TracePipelineProcessor.processorType",
+    modelType: TracePipelineProcessor,
+    column: "processorType",
+    values: Object.values(TracePipelineProcessorType),
+  },
+  {
+    label: "LogDropFilter.action",
+    modelType: LogDropFilter,
+    column: "action",
+    values: Object.values(LogDropFilterAction),
+  },
+  {
+    label: "TraceDropFilter.action",
+    modelType: TraceDropFilter,
+    column: "action",
+    values: Object.values(TraceDropFilterAction),
+  },
+  {
+    label: "LogScrubRule.patternType",
+    modelType: LogScrubRule,
+    column: "patternType",
+    values: Object.values(LogScrubPatternType),
+  },
+  {
+    label: "LogScrubRule.scrubAction",
+    modelType: LogScrubRule,
+    column: "scrubAction",
+    values: Object.values(LogScrubAction),
+  },
+  {
+    label: "TraceScrubRule.patternType",
+    modelType: TraceScrubRule,
+    column: "patternType",
+    values: Object.values(TraceScrubPatternType),
+  },
+  {
+    label: "TraceScrubRule.scrubAction",
+    modelType: TraceScrubRule,
+    column: "scrubAction",
+    values: Object.values(TraceScrubAction),
+  },
+];
+
+describe("a text column typed string whose values are an enum's", () => {
+  test.each(STRING_COLUMNS_OF_AN_ENUM)(
+    "$label says its enum's values",
+    (entry: (typeof STRING_COLUMNS_OF_AN_ENUM)[number]) => {
+      const column: TableColumnMetadata | undefined = getTableColumns(
+        new entry.modelType(),
+      )[entry.column];
+
+      expect(column?.allowedValues).toEqual(entry.values);
+    },
+  );
+});
 
 describe("the values a column says it takes", () => {
   test("are said by hundreds of columns", () => {

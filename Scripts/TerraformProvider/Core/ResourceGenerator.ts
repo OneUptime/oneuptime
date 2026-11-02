@@ -273,6 +273,8 @@ func (r *${resourceTypeName}Resource) MoveState(ctx context.Context) []resource.
       "monitorsteps_test.go",
       "internal/provider",
     );
+    // An NTP monitor's check_on values (#4617), which shipped untested.
+    await this.copyStaticFile("monitorsteps_ntp_test.go", "internal/provider");
     await this.copyStaticFile(
       "provider_schema_smoke_test.go",
       "internal/provider",
@@ -308,6 +310,13 @@ func (r *${resourceTypeName}Resource) MoveState(ctx context.Context) []resource.
     // The ID of another record is a UUID, refused otherwise at plan time.
     await this.copyStaticFile("ids.go", "internal/provider");
     await this.copyStaticFile("ids_test.go", "internal/provider");
+
+    /*
+     * A choice takes one of its values (the spec's enum, a OneOf
+     * validator), and a probe, an AI agent or a Runner only its name:
+     * through the protocol server, as terraform validate calls it.
+     */
+    await this.copyStaticFile("allowedvalues_test.go", "internal/provider");
 
     // Writes the built provider's schema for the docs generator.
     await this.copyStaticFile(

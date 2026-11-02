@@ -11,6 +11,12 @@ import { StringUtils } from "./StringUtils";
 import { OpenAPIParser } from "./OpenAPIParser";
 import { ResourceGenerator, SchemaFlags } from "./ResourceGenerator";
 import {
+  API_KEY_ATTRIBUTE_DESCRIPTION,
+  PROVIDER_DESCRIPTION,
+  PROVIDER_DISPLAY_NAME,
+  URL_ATTRIBUTE_DESCRIPTION,
+} from "./ProviderWords";
+import {
   EXAMPLE_PERSON_EMAIL,
   MembershipKind,
 } from "Common/Utils/DeveloperDocs/PeopleByEmail";
@@ -79,7 +85,6 @@ const ON_CALL_SCHEDULE_LAYER_GUIDE: {
 
 export class DocumentationGenerator {
   private config: TerraformProviderConfig;
-  private spec: OpenAPISpec;
   private fileGenerator: FileGenerator;
   private schemaDump: ProviderSchemaDump | undefined;
   private resources: Array<TerraformResource>;
@@ -91,7 +96,6 @@ export class DocumentationGenerator {
     schemaDump?: ProviderSchemaDump,
   ) {
     this.config = config;
-    this.spec = spec;
     this.fileGenerator = new FileGenerator(config.outputDir);
     this.schemaDump = schemaDump;
 
@@ -185,12 +189,12 @@ export class DocumentationGenerator {
 page_title: "${this.config.providerName} Provider"
 subcategory: ""
 description: |-
-  Terraform provider for ${StringUtils.capitalize(this.config.providerName)}.
+  ${PROVIDER_DESCRIPTION}
 ---
 
-# ${StringUtils.capitalize(this.config.providerName)} Provider
+# ${PROVIDER_DISPLAY_NAME} Provider
 
-${this.spec.info.description || `Terraform provider for ${StringUtils.capitalize(this.config.providerName)}.`}
+${PROVIDER_DESCRIPTION}
 
 ## Example Usage
 
@@ -216,8 +220,8 @@ provider "${this.config.providerName}" {
 
 ### Optional
 
-- \`api_key\` (String, Sensitive) Project-scoped API key for authentication. Falls back to the \`${StringUtils.toConstantCase(this.config.providerName)}_API_KEY\` environment variable; the provider fails at configure time when neither is set.
-- \`oneuptime_url\` (String) The ${this.config.providerName} URL (without /api path). Defaults to 'oneuptime.com' if not specified. The provider automatically appends '/api' to the URL. Can also be set via the \`${StringUtils.toConstantCase(this.config.providerName)}_URL\` environment variable.
+- \`api_key\` (String, Sensitive) ${API_KEY_ATTRIBUTE_DESCRIPTION}
+- \`oneuptime_url\` (String) ${URL_ATTRIBUTE_DESCRIPTION}
 
 ## Start Here
 
@@ -411,7 +415,7 @@ Pin \`ref\` to a published tag: this repository is regenerated on every release,
     return `
 ## Renamed resources
 
-These resources were renamed: names like IoT and vCenter now read as one word, and auto remediation rules became AI rules. Each old name still works, as a deprecated alias, so no configuration breaks; plans that use one say so.
+These resources were renamed to read the way the product names them: IoT and vCenter are one word, auto remediation rules are AI rules, an escalation rule's users, teams and schedules are \`escalation_rule_user\`, \`escalation_rule_team\` and \`escalation_rule_schedule\`, and every team owner is \`<thing>_team_owner\`. Each old name still works, as a deprecated alias, so no configuration breaks; plans that use one say so.
 
 | Old name | New name |
 |----------|----------|
@@ -1666,9 +1670,9 @@ output "${monitorStatus.name}_id" {
   }
 
   private async generateReadme(): Promise<void> {
-    const readmeContent: string = `# Terraform Provider for ${StringUtils.capitalize(this.config.providerName)}
+    const readmeContent: string = `# Terraform Provider for ${PROVIDER_DISPLAY_NAME}
 
-${this.spec.info.description || `Terraform provider for ${StringUtils.capitalize(this.config.providerName)}.`}
+${PROVIDER_DESCRIPTION}
 
 ## Requirements
 

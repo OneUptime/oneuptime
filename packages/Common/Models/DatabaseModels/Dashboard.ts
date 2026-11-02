@@ -1002,6 +1002,7 @@ export default class Dashboard extends BaseModel {
   })
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(DashboardTheme),
     title: "Theme",
     required: false,
     defaultValue: DashboardTheme.Light,

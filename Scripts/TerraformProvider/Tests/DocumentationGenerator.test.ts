@@ -2,12 +2,19 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 import { DocumentationGenerator } from "../Core/DocumentationGenerator";
+import {
+  API_KEY_ATTRIBUTE_DESCRIPTION,
+  PROVIDER_DESCRIPTION,
+  URL_ATTRIBUTE_DESCRIPTION,
+} from "../Core/ProviderWords";
 import { buildFixtureSpec } from "./Fixtures";
 
 let outputDir: string;
 let monitorDoc: string;
 let providerExample: string;
 let fileDoc: string;
+let providerDoc: string;
+let readme: string;
 
 beforeAll(async () => {
   outputDir = fs.mkdtempSync(path.join(os.tmpdir(), "tfgen-docs-"));
@@ -33,6 +40,51 @@ beforeAll(async () => {
     path.join(outputDir, "examples/provider.tf"),
     "utf-8",
   );
+  providerDoc = fs.readFileSync(path.join(outputDir, "docs/index.md"), "utf-8");
+  readme = fs.readFileSync(path.join(outputDir, "README.md"), "utf-8");
+});
+
+/*
+ * The provider's page on the registry is the first thing a developer reads.
+ * It opened with the API spec's description of itself ("OpenAPI
+ * specification for OneUptime. This document describes the API
+ * endpoints...") under the title "Oneuptime Provider".
+ */
+describe("the provider page", () => {
+  test("is titled with the product's name, and says what the provider does", () => {
+    expect(providerDoc).toContain("# OneUptime Provider\n");
+    expect(providerDoc).not.toContain("Oneuptime");
+    expect(providerDoc).toContain(`\n${PROVIDER_DESCRIPTION}\n`);
+    expect(providerDoc).toContain(
+      `description: |-\n  ${PROVIDER_DESCRIPTION}\n`,
+    );
+    expect(PROVIDER_DESCRIPTION).toContain("Terraform or OpenTofu");
+  });
+
+  test("never quotes the API document's description of itself", () => {
+    const spec: ReturnType<typeof buildFixtureSpec> = buildFixtureSpec();
+
+    expect(spec.info.description || "").not.toBe("");
+    expect(providerDoc).not.toContain(spec.info.description!);
+    expect(readme).not.toContain(spec.info.description!);
+  });
+
+  test("says where each setting comes from when it is left out", () => {
+    expect(providerDoc).toContain(
+      `- \`oneuptime_url\` (String) ${URL_ATTRIBUTE_DESCRIPTION}`,
+    );
+    expect(providerDoc).toContain(
+      `- \`api_key\` (String, Sensitive) ${API_KEY_ATTRIBUTE_DESCRIPTION}`,
+    );
+    expect(URL_ATTRIBUTE_DESCRIPTION).toContain("`ONEUPTIME_URL`");
+    expect(URL_ATTRIBUTE_DESCRIPTION).toContain("https://oneuptime.com");
+    expect(API_KEY_ATTRIBUTE_DESCRIPTION).toContain("`ONEUPTIME_API_KEY`");
+  });
+
+  test("the README is titled the same way", () => {
+    expect(readme).toContain("# Terraform Provider for OneUptime\n");
+    expect(readme).toContain(PROVIDER_DESCRIPTION);
+  });
 });
 
 afterAll(() => {

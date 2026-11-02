@@ -606,26 +606,23 @@ Per mettere i monitor dell'evento in uno stato mentre è in corso, collegali con
 
 ## Sonde
 
-Una sonda tua esegue i controlli dalla tua rete. La sua chiave è il segreto con cui la sonda si identifica, quindi passala in una variabile:
+Una sonda tua esegue i controlli dalla tua rete. Dalle un nome, e OneUptime genera la sua `key`, il segreto con cui la sonda si identifica. Terraform tiene la chiave fuori dai piani e dai log, e un output che la mostra va segnato come sensibile:
 
 ```hcl
-variable "probe_key" {
-  description = "The key the probe signs in with"
-  type        = string
-  sensitive   = true
-}
-
 resource "oneuptime_probe" "eu_west" {
-  key           = var.probe_key
-  name          = "EU West"
-  description   = "Probe in our eu-west-1 network"
-  probe_version = "1.0.0"
+  name        = "EU West"
+  description = "Probe in our eu-west-1 network"
 
   should_auto_enable_probe_on_new_monitors = true
 }
+
+output "eu_west_probe_key" {
+  value     = oneuptime_probe.eu_west.key
+  sensitive = true
+}
 ```
 
-Esegui la sonda con `PROBE_ID` impostato sull'`id` della sonda e `PROBE_KEY` sulla chiave: vedi [Sonde personalizzate](/docs/probe/custom-probe). Il test end-to-end `23-probe-crud` applica le sonde.
+Esegui la sonda con `PROBE_ID` impostato sull'`id` della sonda e `PROBE_KEY` sulla chiave, che `terraform output -raw eu_west_probe_key` stampa: vedi [Sonde personalizzate](/docs/probe/custom-probe). Per scegliere tu la chiave, imposta `key` da una variabile sensibile. I test end-to-end `23-probe-crud` e `61-name-only-and-choices` applicano le sonde.
 
 ## Prossimi passi
 

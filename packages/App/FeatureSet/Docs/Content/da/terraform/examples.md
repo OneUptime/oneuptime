@@ -606,26 +606,23 @@ For at sætte hændelsens monitorer i en status, mens den står på, tilknytter 
 
 ## Prober
 
-En egen probe kører tjek fra dit netværk. Dens nøgle er den hemmelighed, proben melder sig med, så giv den videre i en variabel:
+En egen probe kører tjek fra dit netværk. Giv den et navn, så genererer OneUptime dens `key`, den hemmelighed proben melder sig med. Terraform holder nøglen ude af planer og logs, og et output af den skal markeres som følsomt:
 
 ```hcl
-variable "probe_key" {
-  description = "The key the probe signs in with"
-  type        = string
-  sensitive   = true
-}
-
 resource "oneuptime_probe" "eu_west" {
-  key           = var.probe_key
-  name          = "EU West"
-  description   = "Probe in our eu-west-1 network"
-  probe_version = "1.0.0"
+  name        = "EU West"
+  description = "Probe in our eu-west-1 network"
 
   should_auto_enable_probe_on_new_monitors = true
 }
+
+output "eu_west_probe_key" {
+  value     = oneuptime_probe.eu_west.key
+  sensitive = true
+}
 ```
 
-Kør proben med `PROBE_ID` sat til probens `id` og `PROBE_KEY` sat til nøglen: se [Brugerdefinerede probes](/docs/probe/custom-probe). End-to-end-testen `23-probe-crud` anvender prober.
+Kør proben med `PROBE_ID` sat til probens `id` og `PROBE_KEY` sat til nøglen, som `terraform output -raw eu_west_probe_key` udskriver: se [Brugerdefinerede probes](/docs/probe/custom-probe). Vil du selv vælge nøglen, så sæt `key` fra en følsom variabel. End-to-end-testene `23-probe-crud` og `61-name-only-and-choices` anvender prober.
 
 ## Næste skridt
 

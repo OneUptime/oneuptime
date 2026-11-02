@@ -606,26 +606,23 @@ Om de monitoren van de gebeurtenis in een status te zetten zolang die loopt, kop
 
 ## Probes
 
-Een eigen probe voert controles uit vanuit je netwerk. Zijn sleutel is het geheim waarmee de probe zich aanmeldt, dus geef hem door in een variabele:
+Een eigen probe voert controles uit vanuit je netwerk. Geef hem een naam, en OneUptime maakt zijn `key` aan, het geheim waarmee de probe zich aanmeldt. Terraform houdt de sleutel buiten plannen en logs, en een output ervan moet als gevoelig gemarkeerd zijn:
 
 ```hcl
-variable "probe_key" {
-  description = "The key the probe signs in with"
-  type        = string
-  sensitive   = true
-}
-
 resource "oneuptime_probe" "eu_west" {
-  key           = var.probe_key
-  name          = "EU West"
-  description   = "Probe in our eu-west-1 network"
-  probe_version = "1.0.0"
+  name        = "EU West"
+  description = "Probe in our eu-west-1 network"
 
   should_auto_enable_probe_on_new_monitors = true
 }
+
+output "eu_west_probe_key" {
+  value     = oneuptime_probe.eu_west.key
+  sensitive = true
+}
 ```
 
-Voer de probe uit met `PROBE_ID` ingesteld op de `id` van de probe en `PROBE_KEY` op de sleutel: zie [Aangepaste probes](/docs/probe/custom-probe). De end-to-endtest `23-probe-crud` past probes toe.
+Voer de probe uit met `PROBE_ID` ingesteld op de `id` van de probe en `PROBE_KEY` op de sleutel, die `terraform output -raw eu_west_probe_key` toont: zie [Aangepaste probes](/docs/probe/custom-probe). Wil je de sleutel zelf kiezen, zet `key` dan uit een gevoelige variabele. De end-to-endtests `23-probe-crud` en `61-name-only-and-choices` passen probes toe.
 
 ## Volgende stappen
 

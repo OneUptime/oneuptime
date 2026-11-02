@@ -2927,6 +2927,7 @@ export default class StatusPage extends BaseModel {
   })
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(StatusPageTheme),
     title: "Theme",
     required: false,
     defaultValue: StatusPageTheme.Light,
