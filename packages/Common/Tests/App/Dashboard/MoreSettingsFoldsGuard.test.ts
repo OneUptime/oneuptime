@@ -22,7 +22,9 @@ import ts from "typescript";
  *     page's "#" - and a suite proves it: the page is rendered at such a
  *     link and the fold is open. MoreSettingsOneCard does so for every page
  *     it holds (each name its folded header lists, with and without rows);
- *     a few pages have suites of their own.
+ *     a few pages have suites of their own. An Enterprise Edition page's
+ *     suite is one of ee's own (ee/Tests/UI), which ee's jest runs: CI's
+ *     Common job deletes ee/.
  *
  * A new fold - or a page that moves a card into one - is listed here with
  * the suite that opens it at a place, or this fails.
@@ -64,7 +66,14 @@ interface Coverage {
    * fold a component draws on many pages - a page that draws it.
    */
   drawnBy: string;
+  /*
+   * Where the suites are, when not in Tests/App/Dashboard: ee/Tests/UI for
+   * an Enterprise Edition page's fold.
+   */
+  suitesDir?: string | undefined;
 }
+
+const EE_UI_SUITES_DIR: string = "ee/Tests/UI";
 
 const MORE_SETTINGS_ONE_CARD: string = "MoreSettingsOneCard.test.tsx";
 
@@ -170,6 +179,11 @@ const COVERED: Record<string, Coverage> = {
   "packages/App/FeatureSet/Dashboard/src/Pages/Teams/View/Permissions.tsx": {
     suites: [MORE_SETTINGS_ONE_CARD, "TeamViewPermissions.test.tsx"],
     drawnBy: "Pages/Teams/View/Permissions",
+  },
+  "ee/AdminDashboard/SessionLength/SessionLengthSettingsPage.tsx": {
+    suites: ["SessionLength/SessionLengthSettingsPage.test.tsx"],
+    drawnBy: "AdminDashboard/SessionLength/SessionLengthSettingsPage",
+    suitesDir: EE_UI_SUITES_DIR,
   },
 };
 
@@ -360,7 +374,16 @@ describe.each(Object.entries(COVERED))(
     test.each(coverage.suites)(
       "%s draws it and opens it at a place",
       (suite: string) => {
-        const suitePath: string = path.join(REPOSITORY_ROOT, SUITES_DIR, suite);
+        // CI's Common job deletes ee/: its pages and suites are held where it is present.
+        if (file.startsWith("ee/") && !isEePresent) {
+          return;
+        }
+
+        const suitePath: string = path.join(
+          REPOSITORY_ROOT,
+          coverage.suitesDir || SUITES_DIR,
+          suite,
+        );
 
         expect([file, suite, fs.existsSync(suitePath)]).toEqual([
           file,

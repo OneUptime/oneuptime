@@ -237,6 +237,10 @@ beforeEach(async () => {
     session,
     refreshToken: "integration-refresh-token",
     refreshTokenExpiresAt: REFRESH_EXPIRES,
+    signedInAt: new Date(),
+    lastActiveAt: new Date(),
+    accessTokenExpiresInSeconds: 15 * 60,
+    ssoSignInExpiresInSeconds: 30 * 24 * 60 * 60,
   });
   jest.mocked(AccessTokenService.refreshUserAllPermissions).mockResolvedValue();
   const credentialId: string = randomBytes(32).toString("base64url");

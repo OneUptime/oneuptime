@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "oneuptime",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Work with your OneUptime project from ChatGPT: investigate and respond to incidents and alerts, check monitors and status pages, and query logs, metrics and traces.",
   "author": {
     "name": "OneUptime",
@@ -102,7 +102,7 @@
         "commerce": false
       },
       "publication": {
-        "release_notes": "First release: work with the incidents, alerts, monitors, status pages, on-call policies and telemetry of your OneUptime project from ChatGPT."
+        "release_notes": "First release: work with the incidents, alerts, monitors, status pages, on-call policies and telemetry of your OneUptime project from ChatGPT and Codex, with four skills: add OpenTelemetry to an app, set up monitors and a status page, investigate an incident, and use the OneUptime CLI in scripts and CI."
       }
     }
   }

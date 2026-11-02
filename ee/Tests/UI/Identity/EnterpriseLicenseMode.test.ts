@@ -169,6 +169,7 @@ describe("the license features a screen is about", () => {
     expect(LicensedFeature.CustomNotificationChannels).toBe(
       EnterpriseFeature.CustomNotificationChannels,
     );
+    expect(LicensedFeature.SessionLength).toBe(EnterpriseFeature.SessionLength);
     expect(LICENSED_FEATURES_WILDCARD).toBe(ENTERPRISE_FEATURE_WILDCARD);
 
     const serverValues: Array<string> = Object.values(EnterpriseFeature);

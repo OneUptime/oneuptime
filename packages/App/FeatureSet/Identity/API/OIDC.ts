@@ -40,6 +40,7 @@ import UserSessionService, {
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import Select from "Common/Server/Types/Database/Select";
 import CookieUtil from "Common/Server/Utils/Cookie";
+import { getSessionCookieFields } from "Common/Server/Utils/SessionCookieFields";
 import JSONWebToken from "Common/Server/Utils/JsonWebToken";
 import Express, {
   ExpressRequest,
@@ -64,7 +65,6 @@ import SsoProviderType from "Common/Types/SSO/SsoProviderType";
 
 const router: ExpressRouter = Express.getRouter();
 
-const ACCESS_TOKEN_EXPIRY_SECONDS: number = 15 * 60;
 const OIDC_STATE_COOKIE_TTL_SECONDS: number = 10 * 60;
 
 const getOidcStateCookieName: (projectOidcId: ObjectID) => string = (
@@ -703,8 +703,10 @@ const handleOidcCallback: HandleOidcCallbackFunction = async (
           isMasterAdmin: alreadySavedUser.isMasterAdmin!,
           isGlobalLogin: false,
           sessionId: sessionMetadata.session.id!,
+          signedInAt: sessionMetadata.signedInAt,
+          lastActiveAt: sessionMetadata.lastActiveAt,
         },
-        expiresInSeconds: ACCESS_TOKEN_EXPIRY_SECONDS,
+        expiresInSeconds: sessionMetadata.accessTokenExpiresInSeconds,
       });
 
       const ssoToken: string = CookieUtil.getSSOToken({
@@ -712,6 +714,7 @@ const handleOidcCallback: HandleOidcCallbackFunction = async (
         projectId: projectId,
         ssoProviderId: projectOidcId,
         ssoProviderType: SsoProviderType.ProjectOIDC,
+        expiresInSeconds: sessionMetadata.ssoSignInExpiresInSeconds,
       });
 
       const params: URLSearchParams = new URLSearchParams();
@@ -747,16 +750,14 @@ const handleOidcCallback: HandleOidcCallbackFunction = async (
       expressResponse: res,
       ssoProviderId: projectOidcId,
       ssoProviderType: SsoProviderType.ProjectOIDC,
+      expiresInSeconds: sessionMetadata.ssoSignInExpiresInSeconds,
     });
 
     CookieUtil.setUserCookie({
       expressResponse: res,
       user: alreadySavedUser,
       isGlobalLogin: false,
-      sessionId: sessionMetadata.session.id!,
-      refreshToken: sessionMetadata.refreshToken,
-      refreshTokenExpiresAt: sessionMetadata.refreshTokenExpiresAt,
-      accessTokenExpiresInSeconds: ACCESS_TOKEN_EXPIRY_SECONDS,
+      ...getSessionCookieFields(sessionMetadata),
     });
 
     const host: Hostname = await DatabaseConfig.getHost();

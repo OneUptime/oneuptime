@@ -262,6 +262,15 @@ jest.mock("Common/Server/Services/UserSessionService", () => {
   return {
     __esModule: true,
     default: {
+      /*
+       * No session lengths are set: every renewal goes ahead
+       * (SessionLengthRefresh.test.ts drives them set).
+       */
+      ...(
+        jest.requireActual(
+          "./SessionLengthsNotSetStandIn",
+        ) as typeof import("./SessionLengthsNotSetStandIn")
+      ).sessionLengthsNotSet(),
       createSession: (): Promise<unknown> => {
         return Promise.resolve({
           session: { id: new ObjectID(SESSION_ID) },

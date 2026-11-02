@@ -248,10 +248,13 @@ describe("the dashboard shell resumes a pending MCP authorization", () => {
      * A cloud marketplace purchase waiting to be set up
      * (MarketplacePurchaseResume) and a Connect link from Slack or Microsoft
      * Teams (WorkspaceConnectResume.test.ts) are picked up the same way right
-     * after it: an MCP client waiting on a consent screen goes first.
+     * after it: an MCP client waiting on a consent screen goes first. The
+     * page a person was on when their session ended (SessionEndResume.test.ts)
+     * is taken before them all, so it is forgotten whichever opens, and
+     * opened last.
      */
     expect(fetchProjectsBody()).toMatch(
-      /setProjects\(result\.data\); if \(resumePendingMcpAuthorization\(\)\) \{ return; \} if \(resumePendingMarketplacePurchase\(\)\) \{ return; \} if \(resumeWorkspaceConnect\(\)\) \{ return; \} \} catch \(err\) \{/,
+      /setProjects\(result\.data\); const pageAfterSessionEnd: Route \| null = takePageAfterSessionEnd\(\); if \(resumePendingMcpAuthorization\(\)\) \{ return; \} if \(resumePendingMarketplacePurchase\(\)\) \{ return; \} if \(resumeWorkspaceConnect\(\)\) \{ return; \} if \(resumePageAfterSessionEnd\(pageAfterSessionEnd\)\) \{ return; \} \} catch \(err\) \{/,
     );
   });
 

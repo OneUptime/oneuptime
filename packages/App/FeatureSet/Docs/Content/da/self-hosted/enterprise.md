@@ -52,6 +52,7 @@ Denne side beskriver, hvad hver udgave indeholder, hvordan du kører Enterprise 
 | Health-advarsler for PostgreSQL og Valkey (Redis) | Nej | Ja | Ikke relevant |
 | [Sikkerhedskopier](/docs/installation/backups) af PostgreSQL og ClickHouse til dit eget lager, efter en tidsplan, med gendannelse | Nej | Ja | Ikke relevant |
 | [Brugerdefinerede notifikationskanaler](/docs/self-hosted/custom-notification-channels): tilkald folk gennem din egen tjeneste, for eksempel din virksomheds app | Nej | Ja | Ikke relevant |
+| [Sessionslængde](/docs/self-hosted/session-length): hvor længe folk forbliver logget ind, og hvor længe uden at bruge OneUptime | Nej | Ja | Ikke relevant |
 | Kapacitetsvisning for ClickHouse, kapacitetsadvarsler og automatisk oprydning af disken | Ja | Ja | Ikke relevant |
 | Migreringsstatus, supportpakke og globale prober i Admin-dashboardet | Ja | Ja | Ikke relevant |
 | Administration af Enterprise-licens, pladser og instanser | Nej | Ja | Ikke relevant |
@@ -203,6 +204,7 @@ Hvad der **ikke** stopper:
 - **Den grundlæggende overvågning påvirkes aldrig**: monitorer, advarsler, hændelser, vagtordning, statussider og telemetri virker alle fortsat.
 - **Masteradministratorer kan altid logge ind med deres adgangskode.**
 - **Brugerdefinerede roller, IP-tilladelseslister og adgangskontrol for statussider gælder fortsat.** Du kan fjerne dem, men ikke oprette eller ændre dem.
+- **Sessionslængder gælder fortsat.** Du kan fjerne dem, men ikke angive eller ændre dem.
 - **Intet slettes.** SCIM-konfiguration, auditlogs og tilsidesættelser af opbevaring forbliver, som de er.
 
 **Alt genoptages, så snart en licens aktiveres**, uden genstart: SCIM-provisionering, auditlogning og tilsidesættelser af opbevaring vender tilbage med den konfiguration, du har. OneUptime slår dem kun fra, når det ved, at licensen er udløbet. Så længe det ikke kan læse licenstilstanden, for eksempel et øjeblik mens serveren starter, forbliver SCIM, auditlogning og tilsidesættelser af opbevaring slået til.
@@ -220,6 +222,7 @@ Din konfiguration bliver i databasen. Et skift tilbage til Enterprise-imaget gen
 - **Tilsidesættelser af opbevaring holder op med at gælde.** Ny telemetri opbevares i projektets standardopbevaring, og opbevaringskortene under **Projektindstillinger > Telemetri og APM > Dataopbevaring** og på indstillingssiden for hver tjeneste og hver ressource viser en opfordring til at opgradere. Tilsidesættelserne bliver i databasen og gælder igen, når du skifter tilbage.
 - **Statussider viser Powered by OneUptime igen.** Indstillingen bliver i databasen og skjuler linjen igen, når du skifter tilbage.
 - **Brugerdefinerede roller, IP-tilladelseslister og adgangskontrol for statussider gælder fortsat.** Deres indstillinger viser en opfordring til at opgradere, med det, der stadig er indstillet, og en knap til at fjerne det.
+- **Sessionslængder holder op med at gælde.** Hvert login varer som i Community Edition. Længderne bliver i databasen og gælder igen, når du skifter tilbage.
 - **Enterprise-indstillingssider viser en opfordring til at opgradere.** Via API'en kan du stadig læse og slette enterprise-konfiguration og nulstille et SCIM-bearer-token, men ikke oprette eller ændre noget andet. Auditlogning kan ikke slås til.
 - **Enterprise-Health-dashboards, Query Console og health-advarslerne for PostgreSQL og Valkey stopper.** Kapacitetsovervågning og oprydning for ClickHouse, migreringsstatus og supportpakken virker fortsat.
 
