@@ -45,6 +45,7 @@ OneUptime 是一个开源的可观测性平台。它检查你的网站、API 和
 - **[工作流和运行手册](https://oneuptime.com/docs/zh-CN/workflows/index)**：把例行工作自动化，并连接 Jira、ServiceNow 以及你的团队已经在用的其他工具。
 - **[OneUptime AI](https://oneuptime.com/docs/zh-CN/ai/ai-sre)**：调查新的事件和告警，并发布带出处的根本原因分析。开启修复后，它可以打开一个包含修复的拉取请求，交给你的团队审查。
 - **[API、CLI 和 Terraform](https://oneuptime.com/docs/zh-CN/api-reference/api-reference)**：从你的脚本和 CI 自动化 OneUptime，并以代码方式管理监视器、状态页面和值班。
+- **[MCP 服务器](https://oneuptime.com/docs/zh-CN/ai/mcp-server)** (`https://oneuptime.com/mcp`)：连接 Claude、Cursor、带 GitHub Copilot 的 VS Code 或任何其他 Model Context Protocol（MCP）客户端，然后让它调查事件、查询日志和追踪、确认警报或设置监视器。
 
 其余内容都在[文档](https://oneuptime.com/docs/zh-CN/introduction/getting-started)中。
 

@@ -45,6 +45,7 @@ U kunt [OneUptime Cloud](https://oneuptime.com) gebruiken of OneUptime op uw eig
 - **[Workflows en runbooks](https://oneuptime.com/docs/nl/workflows/index)**: Routinewerk automatiseren, en Jira, ServiceNow en de andere tools koppelen die uw team al gebruikt.
 - **[OneUptime AI](https://oneuptime.com/docs/nl/ai/ai-sre)**: Onderzoekt nieuwe incidenten en waarschuwingen en plaatst een oorzaakanalyse met bronvermelding. Als u herstellen aanzet, kan het een pull request met een fix openen die uw team beoordeelt.
 - **[API, CLI en Terraform](https://oneuptime.com/docs/nl/api-reference/api-reference)**: OneUptime automatiseren vanuit uw scripts en uw CI, en monitoren, statuspagina's en bereikbaarheid als code beheren.
+- **[MCP-server](https://oneuptime.com/docs/nl/ai/mcp-server)** (`https://oneuptime.com/mcp`): Koppel Claude, Cursor, VS Code met GitHub Copilot of een andere client van het Model Context Protocol (MCP), en vraag hem een incident te bekijken, logs en traces op te vragen, een waarschuwing te bevestigen of een monitor in te stellen.
 
 Al het andere staat in de [documentatie](https://oneuptime.com/docs/nl/introduction/getting-started).
 

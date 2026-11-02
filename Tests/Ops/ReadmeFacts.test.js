@@ -1134,6 +1134,37 @@ describe("Persian keeps English punctuation in place", () => {
   });
 });
 
+/*
+ * An agent reading the repository learns from the README how to connect to
+ * OneUptime, so every language gives the address the MCP Registry lists,
+ * beside the docs page in its own language.
+ */
+describe("the MCP server", () => {
+  const registryEntry = JSON.parse(
+    read("packages/App/FeatureSet/MCP/server.json"),
+  );
+  const address = registryEntry.remotes[0].url;
+
+  test.each(byLanguage)(
+    "%s gives the address the MCP Registry lists",
+    (_language, readme) => {
+      expect(readme.text).toContain(`(\`${address}\`)`);
+    },
+  );
+
+  test.each(byLanguage)(
+    "%s links the MCP server docs in its own language",
+    (language, readme) => {
+      const docs =
+        language === "en"
+          ? "https://oneuptime.com/docs/ai/mcp-server"
+          : `https://oneuptime.com/docs/${language}/ai/mcp-server`;
+
+      expect(readme.text).toContain(`](${docs})`);
+    },
+  );
+});
+
 describe("the README stays plain", () => {
   test.each(byLanguage)("%s has no emoji", (_language, readme) => {
     const lines = readme.text.split("\n").filter((line) => {
