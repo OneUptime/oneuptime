@@ -26,6 +26,11 @@ import ListenToModelEventJSON from "../../../Types/Realtime/ListenToModelEventJS
 import SsoProviderType from "../../../Types/SSO/SsoProviderType";
 import ModelEventType from "../../../Types/Realtime/ModelEventType";
 import RealtimeUtil from "../../../Utils/Realtime";
+import { SessionLengths } from "../../../Types/UserSession/SessionLength";
+import FakeEnterpriseModule, {
+  installFakeEnterpriseModule,
+  uninstallEnterpriseModule,
+} from "../Enterprise/FakeEnterpriseModule";
 import {
   afterEach,
   beforeAll,
@@ -1781,6 +1786,275 @@ describe("Realtime (server) ListenToModelEvent", () => {
 
       expect(socket.subscribedRooms()).toEqual([]);
       expect(socket.authenticationRequiredEvents()).toEqual([{}]);
+    });
+  });
+
+  /*
+   * How long a sign-in lasts, as a master admin sets it (Enterprise, Admin
+   * Dashboard > Settings > Session Length): a join is decided under the
+   * lengths as they are now, its live updates end when its session does,
+   * and a change of them reaches the sockets that have already joined.
+   */
+  describe("the session lengths a master admin sets", () => {
+    const MINUTE_IN_MS: number = 60 * 1000;
+    const HOUR_IN_MS: number = 60 * MINUTE_IN_MS;
+
+    let fake: FakeEnterpriseModule;
+
+    const lengthsOf: (
+      standard: { length?: number; idle?: number },
+      sso?: { length?: number; idle?: number },
+    ) => SessionLengths = (
+      standard: { length?: number; idle?: number },
+      sso?: { length?: number; idle?: number },
+    ): SessionLengths => {
+      const ssoRule: { length?: number; idle?: number } = sso || standard;
+
+      return {
+        standard: {
+          lengthInMinutes: standard.length ?? null,
+          idleTimeoutInMinutes: standard.idle ?? null,
+        },
+        sso: {
+          lengthInMinutes: ssoRule.length ?? null,
+          idleTimeoutInMinutes: ssoRule.idle ?? null,
+        },
+      };
+    };
+
+    // An access token as a sign-in signs it now: when it began, and when its person was last active.
+    const signedInToken: (data: {
+      signedInAgoMs: number;
+      lastActiveAgoMs?: number | undefined;
+      isSsoSignIn?: boolean | undefined;
+      sessionId?: string | undefined;
+    }) => string = (data: {
+      signedInAgoMs: number;
+      lastActiveAgoMs?: number | undefined;
+      isSsoSignIn?: boolean | undefined;
+      sessionId?: string | undefined;
+    }): string => {
+      return validToken({
+        signedInAt: Date.now() - data.signedInAgoMs,
+        lastActiveAt: Date.now() - (data.lastActiveAgoMs ?? 0),
+        isGlobalLogin: !data.isSsoSignIn,
+        sessionId: data.sessionId || SESSION_ID,
+      });
+    };
+
+    beforeEach(() => {
+      memberOf([TENANT_ID]);
+      fake = installFakeEnterpriseModule({ userSessionLengths: null });
+    });
+
+    afterEach(() => {
+      uninstallEnterpriseModule();
+    });
+
+    test("a join whose session the lengths have already ended is refused, and the client is told to sign in again", async () => {
+      fake.userSessionLengths = lengthsOf({ length: 8 * 60 });
+
+      const socket: FakeServerSocket = new FakeServerSocket(
+        cookieWith(signedInToken({ signedInAgoMs: 9 * HOUR_IN_MS })),
+      );
+
+      await expect(listen(socket)).resolves.toBe(
+        ListenToModelEventOutcome.AuthenticationRequired,
+      );
+      expect(socket.joinedRooms).toEqual([]);
+      expect(socket.authenticationRequiredEvents()).toEqual([REQUEST]);
+      expect(RealtimeSessions.size()).toBe(0);
+    });
+
+    test("an idle timeout refuses the join of a person away longer, and lets in one who was active", async () => {
+      fake.userSessionLengths = lengthsOf({ idle: 30 });
+
+      const away: FakeServerSocket = new FakeServerSocket(
+        cookieWith(
+          signedInToken({
+            signedInAgoMs: 3 * HOUR_IN_MS,
+            lastActiveAgoMs: 45 * MINUTE_IN_MS,
+          }),
+        ),
+      );
+      const active: FakeServerSocket = new FakeServerSocket(
+        cookieWith(
+          signedInToken({
+            signedInAgoMs: 3 * HOUR_IN_MS,
+            lastActiveAgoMs: 5 * MINUTE_IN_MS,
+            sessionId: OTHER_SESSION_ID,
+          }),
+        ),
+      );
+
+      await expect(listen(away)).resolves.toBe(
+        ListenToModelEventOutcome.AuthenticationRequired,
+      );
+      await expect(listen(active)).resolves.toBe(
+        ListenToModelEventOutcome.Joined,
+      );
+    });
+
+    test("SSO sign-ins are held to their own lengths when the master admin set them apart", async () => {
+      fake.userSessionLengths = lengthsOf({ length: 60 }, { length: 12 * 60 });
+
+      const sso: FakeServerSocket = new FakeServerSocket(
+        cookieWith(
+          signedInToken({ signedInAgoMs: 2 * HOUR_IN_MS, isSsoSignIn: true }),
+        ),
+      );
+      const password: FakeServerSocket = new FakeServerSocket(
+        cookieWith(
+          signedInToken({
+            signedInAgoMs: 2 * HOUR_IN_MS,
+            sessionId: OTHER_SESSION_ID,
+          }),
+        ),
+      );
+
+      await expect(listen(sso)).resolves.toBe(ListenToModelEventOutcome.Joined);
+      await expect(listen(password)).resolves.toBe(
+        ListenToModelEventOutcome.AuthenticationRequired,
+      );
+    });
+
+    test("a join whose session ends before its access token hears until the session ends, asked to renew a minute before", async () => {
+      jest.useFakeTimers({ now: Date.now(), doNotFake: ["nextTick"] });
+      fake.userSessionLengths = lengthsOf({ length: 60 });
+
+      // Signed in 55 minutes ago: the session ends in 5, the token in 15.
+      const socket: FakeServerSocket = new FakeServerSocket(
+        cookieWith(signedInToken({ signedInAgoMs: 55 * MINUTE_IN_MS })),
+      );
+
+      await expect(listen(socket)).resolves.toBe(
+        ListenToModelEventOutcome.Joined,
+      );
+
+      jest.advanceTimersByTime(4 * MINUTE_IN_MS - 2_000);
+      expect(socket.emitted).toEqual([]);
+
+      jest.advanceTimersByTime(3_000);
+      expect(socket.eventsNamed(EventName.SessionExpiring)).toEqual([{}]);
+      expect(socket.subscribedRooms()).toEqual([ROOM_ID]);
+
+      jest.advanceTimersByTime(MINUTE_IN_MS);
+      expect(socket.subscribedRooms()).toEqual([]);
+      expect(socket.authenticationRequiredEvents()).toEqual([{}]);
+      expect(RealtimeSessions.getSession(socket)).toBeNull();
+    });
+
+    test("an access token from before session lengths, which says no sign-in time, is held to its own expiry", async () => {
+      fake.userSessionLengths = lengthsOf({ length: 15, idle: 15 });
+
+      const socket: FakeServerSocket = new FakeServerSocket(
+        cookieWith(validToken({ isGlobalLogin: true })),
+      );
+
+      await expect(listen(socket)).resolves.toBe(
+        ListenToModelEventOutcome.Joined,
+      );
+    });
+
+    test("lengths that cannot be read refuse the join: never a pass", async () => {
+      fake.userSessionLengthsError = new Error("not read yet");
+
+      const socket: FakeServerSocket = new FakeServerSocket(
+        cookieWith(signedInToken({ signedInAgoMs: MINUTE_IN_MS })),
+      );
+
+      await expect(listen(socket)).resolves.toBe(
+        ListenToModelEventOutcome.Failed,
+      );
+      expect(socket.joinedRooms).toEqual([]);
+    });
+
+    test("on the Community Edition the lengths are not there: every join is decided as before", async () => {
+      uninstallEnterpriseModule();
+
+      const socket: FakeServerSocket = new FakeServerSocket(
+        cookieWith(signedInToken({ signedInAgoMs: 400 * 24 * HOUR_IN_MS })),
+      );
+
+      await expect(listen(socket)).resolves.toBe(
+        ListenToModelEventOutcome.Joined,
+      );
+    });
+
+    test("shortening the lengths ends, on this server, the sockets whose sessions they have already ended (SessionLengthsChanged)", async () => {
+      const longSignedIn: FakeServerSocket = new FakeServerSocket(
+        cookieWith(signedInToken({ signedInAgoMs: 3 * HOUR_IN_MS })),
+      );
+      const justSignedIn: FakeServerSocket = new FakeServerSocket(
+        cookieWith(
+          signedInToken({
+            signedInAgoMs: 10 * MINUTE_IN_MS,
+            sessionId: OTHER_SESSION_ID,
+          }),
+        ),
+      );
+
+      await listen(longSignedIn);
+      await listen(justSignedIn);
+
+      // The master admin sets two hours, here or on another server.
+      fake.userSessionLengths = lengthsOf({ length: 2 * 60 });
+      const forgotten: number = fake.forgetUserSessionLengthsCount;
+
+      RealtimeAccessChanges.announce({
+        kind: RealtimeAccessChangeKind.SessionLengthsChanged,
+      });
+      await settle();
+
+      expect(fake.forgetUserSessionLengthsCount).toBe(forgotten + 1);
+      expect(longSignedIn.subscribedRooms()).toEqual([]);
+      expect(longSignedIn.authenticationRequiredEvents()).toEqual([{}]);
+      expect(justSignedIn.subscribedRooms()).toEqual([ROOM_ID]);
+      expect(justSignedIn.emitted).toEqual([]);
+    });
+
+    test("shortening them so a session ends before its access token ends that socket then, and lengthening them never extends one", async () => {
+      jest.useFakeTimers({ now: Date.now(), doNotFake: ["nextTick"] });
+
+      // Signed in 100 minutes ago, with no lengths: the token ends in 15.
+      const socket: FakeServerSocket = new FakeServerSocket(
+        cookieWith(signedInToken({ signedInAgoMs: 100 * MINUTE_IN_MS })),
+      );
+
+      await listen(socket);
+
+      fake.userSessionLengths = lengthsOf({ length: 105 });
+
+      await expect(Realtime.applySessionLengths()).resolves.toBe(1);
+      expect(RealtimeSessions.getSession(socket)?.expiresAtMs).toBe(
+        Date.now() + 5 * MINUTE_IN_MS,
+      );
+
+      // Set back to none: the socket still ends with its session as it was read.
+      fake.userSessionLengths = null;
+
+      await expect(Realtime.applySessionLengths()).resolves.toBe(0);
+
+      jest.advanceTimersByTime(5 * MINUTE_IN_MS + 1_000);
+
+      expect(socket.eventsNamed(EventName.SessionExpiring)).toEqual([{}]);
+      expect(socket.authenticationRequiredEvents()).toEqual([{}]);
+      expect(socket.subscribedRooms()).toEqual([]);
+    });
+
+    test("lengths that cannot be read after a change leave the sockets as they are", async () => {
+      const socket: FakeServerSocket = new FakeServerSocket(
+        cookieWith(signedInToken({ signedInAgoMs: 3 * HOUR_IN_MS })),
+      );
+
+      await listen(socket);
+
+      fake.userSessionLengthsError = new Error("the database went away");
+
+      await expect(Realtime.applySessionLengths()).rejects.toThrow(
+        "the database went away",
+      );
+      expect(socket.subscribedRooms()).toEqual([ROOM_ID]);
     });
   });
 });

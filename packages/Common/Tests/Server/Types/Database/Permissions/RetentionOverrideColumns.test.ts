@@ -299,9 +299,10 @@ describe("which columns are retention overrides", () => {
     /*
      * Every table with enterprise columns: the retention override tables,
      * the status page, dashboard and form settings
-     * (EnterpriseSettingColumns.test.ts), and an on-call rule's and a
+     * (EnterpriseSettingColumns.test.ts), an on-call rule's and a
      * person's notification setting's custom channel
-     * (CustomChannelEditionPermissions.test.ts).
+     * (CustomChannelEditionPermissions.test.ts), and the server's session
+     * lengths (SessionLengthEditionPermissions.test.ts).
      */
     expect(
       EnterpriseEdition.getTableNamesWithEnterpriseColumns().sort(),
@@ -312,6 +313,7 @@ describe("which columns are retention overrides", () => {
         ...IP_ALLOWLIST_TABLE_NAMES,
         "UserNotificationRule",
         "UserNotificationSetting",
+        "GlobalConfig",
       ].sort(),
     );
   });
