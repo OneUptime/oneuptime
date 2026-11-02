@@ -370,10 +370,23 @@ member's own page (`USER_VIEW`) is mounted too, where a connected member's name 
 card (`POST /security-case/resource-security`) counts the open cases naming their email off the
 fixture's own cases, and their risk off its Entity Risk.
 
+Under the records, In your logs and traces: `Fixture/TelemetryMentionsFixture.js` lays out a
+handful of log lines and spans, each standing for as many alike as its count says - okta-gateway's
+failed sign-ins from the spray's `203.0.113.47` (in the message, and as `client_ip`), the WAF's
+matches, a service the reader cannot name, `build-runner-07`'s lookups of
+`update-sync.bad-cdn.example` and egress-proxy's CONNECTs to it, auth's sessions of Kai Morgan's
+email and its spans of the spray (`client.address`, `net.peer.ip`), nginx's access lines of
+`203.0.113.30`, checkout-api's spans of Kai - with near misses the rules leave out (a longer
+number, a longer address, a longer name, a resource attribute) - and answers
+`POST /security-case/connections/telemetry` with the server's own rules
+(`Common/Utils/SecurityCase/SecurityTelemetrySearch`): which values are searched for, the pattern a
+message names one by, the spellings an attribute is held to, and where in them it was.
+
 | Parameter       | Values                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `?connections=` | `fail`: the first read fails (a 500), Try again reads it; `partial`: the role cannot read users and the clusters could not be read, Try again reads them; `busy`: a case naming one record of every kind (a monitor with its status, a cloud resource and a serverless function among them, in the server's order), every fact a record can have - a member's schedules and teams too - four possible matches and more records than are shown |
 | `?lang=`        | `de`, `ja` or `fa` (right to left): the Dashboard's German, Japanese or Persian words                                                                                                                                                                                                                                                                                                                                                         |
+| `?telemetry=`   | `fail`: the first search fails (a 500), the section's Refresh searches again; `limited`: the role cannot read logs and the traces could not be searched, Try again searches them                                                                                                                                                                                                                                                              |
 
 `ConnectedSignals.spec.ts` covers: the page under Investigation after Entities, its entry lit and
 its trail named for the case; the spray's member, by their email, with their on-call schedules

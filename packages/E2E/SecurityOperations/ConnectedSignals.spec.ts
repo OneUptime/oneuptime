@@ -12,7 +12,9 @@ import path from "path";
  * Connected Signals: what a security case names in the rest of OneUptime -
  * the project's hosts and members - as the fixture's records and the
  * server's own matching rules have it (Fixture/ConnectionsFixture.js), on a
- * case's own page and on an entity's.
+ * case's own page and on an entity's; and under them, where what it names
+ * appears in the logs and traces themselves
+ * (Fixture/TelemetryMentionsFixture.js).
  *
  * What the unit tests cannot see: that a record's line - its name, why it
  * is connected, the possible match's pill, its signals and what is going on
@@ -61,6 +63,7 @@ interface OpenOptions {
   lang?: "de" | "fa";
   role?: "viewer";
   connections?: "fail" | "partial" | "busy";
+  telemetry?: "fail" | "limited";
 }
 
 test.use({ deviceScaleFactor: 2, actionTimeout: 15000 });
@@ -141,6 +144,9 @@ async function open(
   }
   if (options.connections) {
     url.searchParams.set("connections", options.connections);
+  }
+  if (options.telemetry) {
+    url.searchParams.set("telemetry", options.telemetry);
   }
   await page.goto(`${url.pathname}${url.search}`);
   // The first load parses a large bundle.
@@ -347,7 +353,7 @@ async function partsOutsideTheCard(page: Page): Promise<Array<string>> {
 
     root
       .querySelectorAll(
-        "[data-testid='security-connected-record'] *, [data-testid='security-connected-not-found'] *",
+        "[data-testid='security-connected-record'] *, [data-testid='security-connected-not-found'] *, [data-testid='security-telemetry-mentions'] *",
       )
       .forEach((element: Element): void => {
         const box: DOMRect = element.getBoundingClientRect();
@@ -757,17 +763,17 @@ test.describe("a case's Connected Signals", () => {
     await expect(failed).toContainText(
       "Kubernetes Clusters could not be read just now.",
     );
-    // Nothing found - never "nothing it names is in OneUptime" - while a kind could not be read.
+    // No matching record found - never "no record matches what it names" - while a kind could not be read.
     const partly: Locator = page.getByTestId(
       "security-connected-partial-empty",
     );
-    await expect(partly).toContainText("Nothing it names was found");
+    await expect(partly).toContainText("No matching record was found");
     await expect(partly).toContainText(
-      "Some kinds of record could not be read, so it may still be in OneUptime.",
+      "Some kinds of record could not be read, so one may still match.",
     );
     await expect(page.getByTestId("security-connected-empty")).toHaveCount(0);
     await expect(connected(page)).not.toContainText(
-      "Nothing it names is in OneUptime",
+      "No record matches what it names",
     );
     // The emails may be members it cannot see, and the domain a cluster it could not read.
     const notFound: Locator = page.getByTestId("security-connected-not-found");
@@ -1164,7 +1170,7 @@ test.describe("a case's Connected Signals", () => {
     );
     await expect(
       page.getByTestId("security-connected-not-found"),
-    ).toContainText("Nicht in OneUptime");
+    ).toContainText("Kein passender Datensatz");
     expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
     expect(await partsOutsideTheCard(page)).toEqual([]);
     await screenshot(page, "case-connected-signals-de");
@@ -1403,5 +1409,572 @@ test.describe("an entity's page", () => {
         `entity-connected-signals-${width}${theme ? `-${theme}` : ""}`,
       );
     }
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * In your logs and traces: where what a case names appears in the logs and
+ * traces themselves (Fixture/TelemetryMentionsFixture.js lays the lines and
+ * spans out, and counts them with the server's own rules)
+ * ---------------------------------------------------------------------------
+ */
+
+function telemetry(page: Page): Locator {
+  return page.getByTestId("security-telemetry-mentions");
+}
+
+function telemetryValues(page: Page): Locator {
+  return telemetry(page).getByTestId("security-telemetry-value");
+}
+
+// A value's entry, by the value its chip shows.
+function telemetryValue(page: Page, value: string): Locator {
+  return telemetryValues(page).filter({
+    has: page
+      .getByTestId("security-telemetry-value-name")
+      .getByText(value, { exact: true }),
+  });
+}
+
+async function waitForTelemetry(page: Page): Promise<void> {
+  await expect(telemetryValues(page).first()).toBeVisible({ timeout: 30000 });
+}
+
+// The places a row lists, each as it reads: where, then how many.
+async function placeTexts(row: Locator): Promise<Array<string>> {
+  return (
+    await row.getByTestId("security-telemetry-place").allInnerTexts()
+  ).map((text: string): string => {
+    return text.replace(/\s+/g, " ").trim();
+  });
+}
+
+async function sourceNames(row: Locator): Promise<Array<string>> {
+  return (
+    await row
+      .getByTestId("security-telemetry-source")
+      .locator("bdi")
+      .allInnerTexts()
+  ).map((text: string): string => {
+    return text.trim();
+  });
+}
+
+function telemetryReads(
+  requests: Array<{ url: string; body: Record<string, unknown> }>,
+): Array<{ url: string; body: Record<string, unknown> }> {
+  return requests.filter((item: { url: string }) => {
+    return new URL(item.url).pathname.endsWith(
+      "/security-case/connections/telemetry",
+    );
+  });
+}
+
+async function fixtureRequests(
+  page: Page,
+): Promise<Array<{ url: string; body: Record<string, unknown> }>> {
+  return page.evaluate(() => {
+    const state: {
+      apiRequests: Array<{ url: string; body: Record<string, unknown> }>;
+    } = (
+      window as unknown as {
+        __securityOperationsFixture: {
+          apiRequests: Array<{ url: string; body: Record<string, unknown> }>;
+        };
+      }
+    ).__securityOperationsFixture;
+    return JSON.parse(JSON.stringify(state.apiRequests));
+  });
+}
+
+function linkOf(href: string | null): URL {
+  expect(href).toBeTruthy();
+  return new URL(href!, `http://127.0.0.1:${PORT}`);
+}
+
+interface TelemetryRowLayout {
+  row: string;
+  // The value's text column: the size container the row reads, as a record's.
+  sectionWidth: number;
+  label: Box;
+  labelText: Box;
+  items: Box;
+}
+
+// Every row of every value, as the browser lays it out.
+async function telemetryRowLayouts(
+  page: Page,
+): Promise<Array<TelemetryRowLayout>> {
+  return telemetry(page).evaluate(
+    (root: Element): Array<TelemetryRowLayout> => {
+      const boxOf: (element: Element | Range) => Box = (
+        element: Element | Range,
+      ): Box => {
+        const box: DOMRect = element.getBoundingClientRect();
+        return {
+          left: box.left,
+          right: box.right,
+          top: box.top,
+          bottom: box.bottom,
+        };
+      };
+
+      return Array.from(
+        root.querySelectorAll(
+          "[data-testid='security-telemetry-logs'], [data-testid='security-telemetry-spans']",
+        ),
+      ).map((row: Element): TelemetryRowLayout => {
+        const label: Element = row.querySelector("dt")!;
+        const words: Range = document.createRange();
+        words.selectNodeContents(label);
+
+        const container: Element | null = row.closest(
+          "[class*='container-type']",
+        );
+
+        return {
+          row: `${(row.closest("[data-testid='security-telemetry-value']")?.textContent || "").slice(0, 24)} ${row.getAttribute("data-testid")}`,
+          sectionWidth: container ? container.getBoundingClientRect().width : 0,
+          label: boxOf(label),
+          labelText: boxOf(words),
+          items: boxOf(row.querySelector("dd")!),
+        };
+      });
+    },
+  );
+}
+
+// The parts of the section that run past the card around it: none may.
+async function telemetryPartsOutside(page: Page): Promise<Array<string>> {
+  return connected(page).evaluate((root: Element): Array<string> => {
+    const card: DOMRect = root.getBoundingClientRect();
+    const outside: Array<string> = [];
+
+    root
+      .querySelectorAll("[data-testid='security-telemetry-mentions'] *")
+      .forEach((element: Element): void => {
+        const box: DOMRect = element.getBoundingClientRect();
+
+        if (box.width === 0 || box.height === 0) {
+          return;
+        }
+
+        if (box.left < card.left - 1 || box.right > card.right + 1) {
+          outside.push(
+            `${element.tagName.toLowerCase()} "${(element.textContent || "").trim().slice(0, 40)}" ${Math.round(box.left)}-${Math.round(box.right)} outside ${Math.round(card.left)}-${Math.round(card.right)}`,
+          );
+        }
+      });
+
+    return outside;
+  });
+}
+
+// The services and the host TelemetryMentionsFixture.js names.
+const OKTA_GATEWAY_ID: string = "2f000000-0000-4000-8000-000000000001";
+
+test.describe("In your logs and traces", () => {
+  test("under the spray case's records: the values found, in the order named, each with its log lines and spans, where in them and who sent them; the rest are not in them", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, SPRAY_CASE, { width: 1280 });
+    await waitForRecords(page);
+    await waitForTelemetry(page);
+
+    // Under the records, a rule between, its own heading and the window.
+    await expect(telemetry(page).getByRole("heading", { level: 3 })).toHaveText(
+      "In your logs and traces",
+    );
+    await expect(telemetry(page)).toContainText(
+      "Where what it names appears in your logs and traces from",
+    );
+    const below: boolean = await page.evaluate((): boolean => {
+      const section: Element | null = document.querySelector(
+        "[data-testid='security-telemetry-mentions']",
+      );
+      const lastRecord: Element | null = Array.from(
+        document.querySelectorAll("[data-testid='security-connected-record']"),
+      ).pop() as Element | null;
+      return Boolean(
+        section &&
+          lastRecord &&
+          lastRecord.compareDocumentPosition(section) &
+            Node.DOCUMENT_POSITION_FOLLOWING,
+      );
+    });
+    expect(below).toBe(true);
+
+    // Its rows line up with the records' facts above them: the same columns.
+    const recordRows: Array<FactRowLayout> = await factRowLayouts(page);
+    const valueRows: Array<TelemetryRowLayout> =
+      await telemetryRowLayouts(page);
+    expect(
+      Math.abs(recordRows[0]!.label.left - valueRows[0]!.label.left),
+    ).toBeLessThanOrEqual(1);
+    expect(
+      Math.abs(recordRows[0]!.items[0]!.left - valueRows[0]!.items.left),
+    ).toBeLessThanOrEqual(1);
+
+    // The values found, in the order the case names them.
+    await expect(telemetryValues(page)).toHaveCount(2);
+    await expect(telemetryValues(page).nth(0)).toContainText("203.0.113.47");
+    await expect(telemetryValues(page).nth(1)).toContainText(
+      "k.morgan@acme-commerce.example",
+    );
+
+    // The spray's address: in 1,344 log lines - 7 lines of 203.0.113.470 and 3 of 1203.0.113.47 left out.
+    const attacker: Locator = telemetryValue(page, "203.0.113.47");
+    const logs: Locator = attacker.getByTestId("security-telemetry-logs");
+    await expect(logs.getByTestId("security-connected-fact-label")).toHaveText(
+      "In 1,344 log lines",
+    );
+    expect(await placeTexts(logs)).toEqual([
+      "In the message 1,260",
+      "client_ip 84",
+    ]);
+    expect(await sourceNames(logs)).toEqual(["okta-gateway", "waf"]);
+    // A service the reader cannot name is counted, never listed.
+    await expect(logs).toContainText("+1 more");
+
+    const message: URL = linkOf(
+      await logs
+        .getByTestId("security-telemetry-place")
+        .nth(0)
+        .getAttribute("href"),
+    );
+    expect(message.pathname).toBe(`${DASHBOARD}/logs`);
+    expect(JSON.parse(message.searchParams.get("filters") || "[]")).toEqual([
+      ["body", ["203.0.113.47"]],
+    ]);
+    expect(message.searchParams.get("range")).toBe("Custom");
+    expect(
+      await logs
+        .getByTestId("security-telemetry-place")
+        .nth(0)
+        .getAttribute("title"),
+    ).toBe("Open in Logs");
+
+    const attribute: URL = linkOf(
+      await logs
+        .getByTestId("security-telemetry-place")
+        .nth(1)
+        .getAttribute("href"),
+    );
+    expect(JSON.parse(attribute.searchParams.get("filters") || "[]")).toEqual([
+      ["attributes.client_ip", ["203.0.113.47"]],
+    ]);
+
+    expect(
+      await logs
+        .getByTestId("security-telemetry-source")
+        .first()
+        .getByRole("link")
+        .getAttribute("href"),
+    ).toBe(`${DASHBOARD}/service/${OKTA_GATEWAY_ID}`);
+
+    // Its spans: one place each key holding it, opening the Traces explorer's search.
+    const spans: Locator = attacker.getByTestId("security-telemetry-spans");
+    await expect(
+      spans.getByTestId("security-connected-fact-label"),
+    ).toHaveText("In 312 spans");
+    expect(await placeTexts(spans)).toEqual([
+      "client.address 300",
+      "net.peer.ip 12",
+    ]);
+    expect(await sourceNames(spans)).toEqual(["auth"]);
+    const traces: URL = linkOf(
+      await spans
+        .getByTestId("security-telemetry-place")
+        .first()
+        .getAttribute("href"),
+    );
+    expect(traces.pathname).toBe(`${DASHBOARD}/traces`);
+    expect(traces.searchParams.get("search")).toBe(
+      "@client.address:203.0.113.47",
+    );
+
+    // Kai's email: as user.email in auth's lines, as enduser.id in checkout-api's spans.
+    const kai: Locator = telemetryValue(page, "k.morgan@acme-commerce.example");
+    expect(
+      await placeTexts(kai.getByTestId("security-telemetry-logs")),
+    ).toEqual(["user.email 3"]);
+    expect(
+      await sourceNames(kai.getByTestId("security-telemetry-spans")),
+    ).toEqual(["checkout-api"]);
+
+    // Searched in both, named by neither.
+    const notFound: Locator = telemetry(page).getByTestId(
+      "security-telemetry-not-found",
+    );
+    await expect(notFound).toContainText("Not in your logs or traces");
+    for (const value of [
+      "j.wilson@acme-commerce.example",
+      "a.ng@acme-commerce.example",
+      "acme-commerce.okta.example",
+    ]) {
+      await expect(notFound).toContainText(value);
+    }
+    await expect(notFound).not.toContainText("203.0.113.47");
+
+    // One read, of the case, beside the records' own.
+    expect(telemetryReads(await fixtureRequests(page))).toEqual([
+      expect.objectContaining({
+        body: { caseId: "20000000-0000-4000-8000-000000000142" },
+      }),
+    ]);
+    await screenshot(page, "case-telemetry-mentions-1280");
+  });
+
+  test("the domain case: a name never inside a longer one, a resource attribute never a place, a span's attribute as the span holds it, a bare host name not searched for", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, DOMAIN_CASE, { width: 1280 });
+    await waitForTelemetry(page);
+
+    const domain: Locator = telemetryValue(page, "update-sync.bad-cdn.example");
+    const logs: Locator = domain.getByTestId("security-telemetry-logs");
+    // 18 lookups and 6 CONNECTs; the 4 lookups of sub.update-sync.bad-cdn.example are another name.
+    await expect(logs.getByTestId("security-connected-fact-label")).toHaveText(
+      "In 24 log lines",
+    );
+    expect(await sourceNames(logs)).toEqual(["build-runner-07", "egress-proxy"]);
+    await expect(
+      logs.getByTestId("security-telemetry-source").first(),
+    ).toContainText("Host");
+
+    const span: Locator = domain
+      .getByTestId("security-telemetry-spans")
+      .getByTestId("security-telemetry-place");
+    await expect(span).toHaveText(/server\.address\s*2/);
+    expect(linkOf(await span.getAttribute("href")).searchParams.get("search")).toBe(
+      "@server.address:UPDATE-SYNC.BAD-CDN.EXAMPLE",
+    );
+
+    // The runner's address in the proxy's 6 CONNECTs - never the 120 heartbeats that only came from it.
+    await expect(
+      telemetryValue(page, "198.51.100.23")
+        .getByTestId("security-telemetry-logs")
+        .getByTestId("security-connected-fact-label"),
+    ).toHaveText("In 6 log lines");
+
+    // build-runner-07 is a bare name: its own record is its answer.
+    await expect(telemetryValue(page, "build-runner-07")).toHaveCount(0);
+    await expect(
+      telemetry(page).getByTestId("security-telemetry-not-found"),
+    ).toHaveCount(0);
+  });
+
+  test("a case that names nothing searched for shows no section at all", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, POWERSHELL_CASE, { width: 1280 });
+    await waitForRecords(page);
+    await expect
+      .poll(async () => {
+        return telemetryReads(await fixtureRequests(page)).length;
+      })
+      .toBe(1);
+    await expect(telemetry(page)).toHaveCount(0);
+    await expect(connected(page)).not.toContainText("In your logs and traces");
+  });
+
+  test("a search that fails says so in its own place, and its Refresh searches again; the records stay", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, SPRAY_CASE, { width: 1280, telemetry: "fail" });
+    await waitForRecords(page);
+
+    const error: Locator = page.getByTestId("security-telemetry-error");
+    await expect(error).toBeVisible({ timeout: 30000 });
+    await expect(page.getByTestId("security-connected-error")).toHaveCount(0);
+
+    await error.getByRole("button").first().click();
+    await waitForTelemetry(page);
+    await expect(error).toHaveCount(0);
+    await expect(records(page).first()).toBeVisible();
+  });
+
+  test("what the role keeps from it and what could not be searched are said - never that a value is not in them - and Try again searches", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, SPRAY_CASE, { width: 1280, telemetry: "limited" });
+    await waitForRecords(page);
+
+    await expect(
+      page.getByTestId("security-telemetry-unreadable"),
+    ).toHaveText("Your role cannot read Logs, so they were not searched.", {
+      timeout: 30000,
+    });
+    const failed: Locator = page.getByTestId("security-telemetry-failed");
+    await expect(failed).toContainText(
+      "Traces could not be searched just now.",
+    );
+    await expect(telemetryValues(page)).toHaveCount(0);
+    await expect(page.getByTestId("security-telemetry-not-found")).toHaveCount(
+      0,
+    );
+
+    await failed.getByRole("button", { name: "Try again" }).click();
+    await waitForTelemetry(page);
+    await expect(page.getByTestId("security-telemetry-unreadable")).toHaveCount(
+      0,
+    );
+    // The records were not read again.
+    expect(
+      (await fixtureRequests(page)).filter((item: { url: string }) => {
+        return new URL(item.url).pathname.endsWith(
+          "/security-case/connections",
+        );
+      }),
+    ).toHaveLength(1);
+  });
+
+  for (const view of [
+    { width: 1280, theme: undefined },
+    { width: 1024, theme: undefined },
+    { width: 768, theme: "dark" as const },
+    { width: 390, theme: undefined },
+    { width: 390, theme: "dark" as const },
+  ]) {
+    test(`at ${view.width}${view.theme ? ", dark" : ""}: each row's label beside its places from 32rem of the section, above them below it, nothing past the card`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await open(page, SPRAY_CASE, { width: view.width, theme: view.theme });
+      await waitForTelemetry(page);
+
+      const rows: Array<TelemetryRowLayout> = await telemetryRowLayouts(page);
+      expect(rows.length).toBe(4);
+
+      for (const row of rows) {
+        if (row.sectionWidth >= FACTS_BESIDE_FROM) {
+          // Beside: the label's column ends where the places start, on one line with them.
+          expect(row.label.right, row.row).toBeLessThanOrEqual(
+            row.items.left + 1,
+          );
+          expect(Math.abs(row.label.top - row.items.top), row.row).toBeLessThan(
+            4,
+          );
+        } else {
+          expect(row.label.bottom, row.row).toBeLessThanOrEqual(
+            row.items.top + 1,
+          );
+        }
+      }
+
+      expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+      expect(await telemetryPartsOutside(page)).toEqual([]);
+      await telemetry(page).screenshot({
+        path: path.join(
+          SCREENSHOTS,
+          `case-telemetry-mentions-section-${view.width}${view.theme ? `-${view.theme}` : ""}-synthetic.png`,
+        ),
+        animations: "disabled",
+      });
+    });
+  }
+
+  test("in German: the section's own words, its counts as German writes them", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, SPRAY_CASE, { width: 1280, lang: "de" });
+    await waitForTelemetry(page);
+
+    await expect(telemetry(page).getByRole("heading", { level: 3 })).toHaveText(
+      "In Ihren Protokollen und Traces",
+    );
+    const logs: Locator = telemetryValue(page, "203.0.113.47").getByTestId(
+      "security-telemetry-logs",
+    );
+    await expect(logs.getByTestId("security-connected-fact-label")).toHaveText(
+      "In 1.344 Protokollzeilen",
+    );
+    expect((await placeTexts(logs))[0]).toBe("In der Nachricht 1.260");
+    await expect(
+      telemetry(page).getByTestId("security-telemetry-not-found"),
+    ).toContainText("Nicht in Ihren Protokollen oder Traces");
+    expect(await telemetryPartsOutside(page)).toEqual([]);
+    await screenshot(page, "case-telemetry-mentions-de");
+  });
+
+  for (const width of [1280, 390]) {
+    test(`in Persian at ${width}: right to left, each label on the section's right, nothing past the card`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await open(page, SPRAY_CASE, { width, lang: "fa" });
+      await waitForTelemetry(page);
+
+      await expect(
+        telemetry(page).getByRole("heading", { level: 3 }),
+      ).toHaveText("\u{062F}\u{0631} \u{0644}\u{0627}\u{06AF}\u{200C}\u{0647}\u{0627} \u{0648} \u{062A}\u{0631}\u{0650}\u{06CC}\u{0633}\u{200C}\u{0647}\u{0627}\u{06CC} \u{0634}\u{0645}\u{0627}");
+
+      const rows: Array<TelemetryRowLayout> = await telemetryRowLayouts(page);
+      for (const row of rows) {
+        if (row.sectionWidth >= FACTS_BESIDE_FROM) {
+          // Right to left: the label's column on the right, the places to its left.
+          expect(row.label.left, row.row).toBeGreaterThanOrEqual(
+            row.items.right - 1,
+          );
+        } else {
+          // Above them, its words starting on the right.
+          expect(row.label.bottom, row.row).toBeLessThanOrEqual(
+            row.items.top + 1,
+          );
+          expect(
+            Math.abs(row.labelText.right - row.items.right),
+            row.row,
+          ).toBeLessThanOrEqual(2);
+        }
+      }
+
+      expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+      expect(await telemetryPartsOutside(page)).toEqual([]);
+      await screenshot(page, `case-telemetry-mentions-fa-${width}`);
+    });
+  }
+
+  test("an entity's page: its value searched over the hour around its last event", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const query: URLSearchParams = new URLSearchParams({
+      value: "203.0.113.47",
+      type: "IP Address",
+    });
+    await open(page, `${PRODUCT}/entity-risk/entity?${query.toString()}`, {
+      width: 1280,
+    });
+    await waitForTelemetry(page);
+
+    await expect(
+      telemetryValue(page, "203.0.113.47")
+        .getByTestId("security-telemetry-logs")
+        .getByTestId("security-connected-fact-label"),
+    ).toHaveText("In 1,344 log lines");
+
+    const [read] = telemetryReads(await fixtureRequests(page));
+    expect(read?.body).toMatchObject({
+      entities: [{ type: "IP Address", value: "203.0.113.47" }],
+    });
+    // Only what the search reads: the records' own knobs stay with them.
+    expect(Object.keys(read?.body || {}).sort()).toEqual(["entities", "time"]);
+    await screenshot(page, "entity-telemetry-mentions-1280");
   });
 });

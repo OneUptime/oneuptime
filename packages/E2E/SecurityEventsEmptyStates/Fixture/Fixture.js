@@ -29,7 +29,9 @@
  *            drawer, and the drawer's Connected tab reads what the event
  *            names in the rest of OneUptime (POST /security-case/connections),
  *            answered from Security Operations' records with the server's own
- *            matching rules (../../SecurityOperations/Fixture/ConnectionsFixture.js).
+ *            matching rules (../../SecurityOperations/Fixture/ConnectionsFixture.js),
+ *            and where what it names appears in the logs and traces (POST
+ *            /security-case/connections/telemetry, TelemetryMentionsFixture.js).
  *   ?logs=   off (default) | on | found | check-failed | fail. on: the
  *            project's Your logs is on, last checked two minutes before the
  *            pinned clock, nothing found yet (LOGS_ON_SOURCE). found: on,
@@ -100,6 +102,7 @@ import PermissionUtil from "Common/UI/Utils/Permission";
 import ProjectUtil from "Common/UI/Utils/Project";
 import UserUtil from "Common/UI/Utils/User";
 import { createConnectionsFixture } from "../../SecurityOperations/Fixture/ConnectionsFixture.js";
+import { createTelemetryMentionsFixture } from "../../SecurityOperations/Fixture/TelemetryMentionsFixture.js";
 
 const PROJECT_ID = "10000000-0000-4000-8000-000000000001";
 const USER_ID = "80000000-0000-4000-8000-000000000001";
@@ -178,6 +181,19 @@ const connections = createConnectionsFixture({
   findCase: () => {
     return null;
   },
+});
+
+// ...and where it appears in the logs and traces of the hour around it.
+const telemetryMentions = createTelemetryMentionsFixture({
+  now: NOW,
+  uuid: (prefix, number) => {
+    return `${prefix}-0000-4000-8000-${String(number).padStart(12, "0")}`;
+  },
+  scenario: null,
+  findCase: () => {
+    return null;
+  },
+  runnerHostId: connections.hosts[0].id,
 });
 
 /*
@@ -689,6 +705,18 @@ async function handleApi(method, options) {
     parsed.pathname.endsWith("/security-case/connections")
   ) {
     const answer = connections.answer(options.data);
+    return answer.status === 200
+      ? new HTTPResponse(200, answer.body, {})
+      : new HTTPErrorResponse(answer.status, answer.body, {});
+  }
+
+  // ...and where what it names appears in the logs and traces.
+  if (
+    events === "one" &&
+    method === "POST" &&
+    parsed.pathname.endsWith("/security-case/connections/telemetry")
+  ) {
+    const answer = telemetryMentions.answer(options.data);
     return answer.status === 200
       ? new HTTPResponse(200, answer.body, {})
       : new HTTPErrorResponse(answer.status, answer.body, {});

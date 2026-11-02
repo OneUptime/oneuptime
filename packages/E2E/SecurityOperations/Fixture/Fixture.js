@@ -65,6 +65,11 @@
  *            record from, or a case naming one record of every kind with
  *            every fact and four possible matches. (ConnectionsFixture.js
  *            lays the records out.)
+ *   ?telemetry= fail or limited: where what a case or an entity names
+ *            appears in the logs and traces - a first read that fails, or
+ *            one whose logs the role cannot read and whose traces could not
+ *            be searched. (TelemetryMentionsFixture.js lays the lines and
+ *            spans out.)
  *   ?retrohunt= quiet, noisy or fail: what Run on Past Events answers - a
  *            rule that would not have fired, one that would have fired more
  *            than a person can look at, or YAML the run refuses.
@@ -149,6 +154,10 @@ import {
   CONNECTION_SCENARIOS,
   createConnectionsFixture,
 } from "./ConnectionsFixture";
+import {
+  TELEMETRY_SCENARIOS,
+  createTelemetryMentionsFixture,
+} from "./TelemetryMentionsFixture";
 import { createCaseContextFixture } from "./CaseContextFixture";
 import { TARGET_SCENARIOS, createCaseWorkFixture } from "./CaseWorkFixture";
 import { createWatchlistsFixture } from "./WatchlistsFixture";
@@ -519,6 +528,10 @@ const connectionsScenario = CONNECTION_SCENARIOS.includes(
   params.get("connections"),
 )
   ? params.get("connections")
+  : "";
+// ?telemetry=: TelemetryMentionsFixture.js's scenarios.
+const telemetryScenario = TELEMETRY_SCENARIOS.includes(params.get("telemetry"))
+  ? params.get("telemetry")
   : "";
 let statusReads = 0;
 let overviewReads = 0;
@@ -4014,6 +4027,18 @@ const connections = createConnectionsFixture({
 });
 
 /*
+ * ...and where what they name appears in the project's logs and traces,
+ * on lines and spans of the fixture's own, with the server's own rules.
+ */
+const telemetryMentions = createTelemetryMentionsFixture({
+  now: NOW,
+  uuid,
+  scenario: telemetryScenario,
+  findCase,
+  runnerHostId: connections.hosts[0].id,
+});
+
+/*
  * ---------------------------------------------------------------------------
  * A case's response targets, and the spray case's tasks and evidence
  * (CaseWorkFixture.js lays them out). After every case is in: the targets
@@ -4113,6 +4138,15 @@ async function handleApi(method, options) {
   }
   if (method === "POST" && path.endsWith("/security-case/connections")) {
     const answer = connections.answer(options.data);
+    return answer.status === 200
+      ? new HTTPResponse(200, answer.body, {})
+      : new HTTPErrorResponse(answer.status, answer.body, {});
+  }
+  if (
+    method === "POST" &&
+    path.endsWith("/security-case/connections/telemetry")
+  ) {
+    const answer = telemetryMentions.answer(options.data);
     return answer.status === 200
       ? new HTTPResponse(200, answer.body, {})
       : new HTTPErrorResponse(answer.status, answer.body, {});
