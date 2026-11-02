@@ -44,6 +44,12 @@ Test" workflow provides both:
   which does the same with its ClickHouse and Valkey (they publish no port).
   The workflow sets it on the jest step, and the first suite checks that it
   does.
+- **packages/Common's and packages/Nginx's packages.**
+  `PruneUnreachablePackages.test.js` walks the real certificate sidecar's
+  imports, as the ingress image's build does, only where both are installed
+  (`npm ci` in each). The workflow's `ingress-prune` job installs them and
+  sets `RUN_REAL_SIDECAR_PRUNE_TESTS=1`, under which those tests fail rather
+  than skip when the packages are missing; the suite checks the job does.
 
 or from the repo root:
 
