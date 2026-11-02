@@ -163,6 +163,13 @@ describe("curation", () => {
     ["video_call_connection", "Slack, Teams & Video Calls"],
     ["subscriber_notification_template", "Status Pages"],
     ["incoming_call_policy", "On-Call & Escalation"],
+    ["user_on_call_log_timeline", "On-Call & Escalation"],
+    // What OneUptime sent, not the logs a service sends it.
+    ["email_log", "Notification Logs"],
+    ["user_notification_log", "Notification Logs"],
+    ["workspace_notification_log", "Notification Logs"],
+    ["log", "Logs, Traces & Metrics"],
+    ["scim_log", "Teams & Access"],
     ["postmortem_status", "Incidents"],
     ["scheduled_event_public_note", "Scheduled Maintenance"],
     ["custom_role", "Teams & Access"],

@@ -135,16 +135,22 @@ export class DocumentationGenerator {
     { pattern: /^alert/, name: "Alerts" },
     {
       pattern:
-        /^on_call|^escalation|schedule_layer|^user_override|^incoming_call/,
+        /^on_call|^escalation|schedule_layer|^user_override|^user_on_call|^incoming_call/,
       name: "On-Call & Escalation",
     },
     {
       pattern: /^scheduled_maintenance|^scheduled_event/,
       name: "Scheduled Maintenance",
     },
+    // What OneUptime sent, and how it went: not the logs a service sends.
     {
       pattern:
-        /^team|^user|^project|^api_key|^custom_role|^audit_log|^totp|^two_factor|^web_authn/,
+        /^(call|email|sms|push_notification|webhook|whatsapp|telegram|workspace_notification|user_notification)_log$/,
+      name: "Notification Logs",
+    },
+    {
+      pattern:
+        /^team|^user|^project|^api_key|^custom_role|^audit_log|^scim|^totp|^two_factor|^web_authn/,
       name: "Teams & Access",
     },
     {
