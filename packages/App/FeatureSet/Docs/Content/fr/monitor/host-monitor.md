@@ -4,7 +4,7 @@ Un moniteur d'hôte surveille une machine – son CPU, sa mémoire, ses disques,
 
 :::cards
 - [Créer le moniteur](#créer-un-moniteur-dhôte): Six étapes dans le tableau de bord.
-- [Modèles](#modèles-dalerte-prêts-à-lemploi): Six alertes prêtes à l'emploi pour un hôte devenu silencieux, le CPU, la mémoire, le disque, la charge et les processus.
+- [Modèles](#modèles-dalerte-prêts-à-lemploi): Dix alertes prêtes à l'emploi pour un hôte devenu silencieux ou redémarré, le CPU, la mémoire, le swap, le disque, les inodes, la charge, les processus et les unités systemd en échec.
 - [Métriques](#métriques-collectées): Les métriques d'hôte sur lesquelles vous pouvez alerter, et leurs unités.
 - [Hôte ou Serveur / VM ?](#moniteur-dhôte-ou-moniteur-serveur-vm): Lequel des deux moniteurs de machines utiliser.
 :::
@@ -95,27 +95,35 @@ Cliquez sur **Créer un moniteur**. OneUptime ouvre la page du moniteur et l'év
 
 ## Modèles d'alerte prêts à l'emploi
 
-La liste de **Sur quoi alerter** propose six modèles. Chacun construit un moniteur complet : une requête, un critère qui se déclenche et un autre qui rétablit. Les seuils sont des points de départ que vous pouvez modifier.
+La liste de **Sur quoi alerter** propose dix modèles. Chacun construit un moniteur complet : une requête, un critère qui se déclenche et un autre qui rétablit. Les seuils sont des points de départ que vous pouvez modifier.
 
 Un critère ne se déclenche que si la condition est remplie à chaque minute de sa fenêtre, et il se rétablit 10 % au-delà du seuil pour qu'une valeur qui oscille autour de la limite ne bascule pas sans cesse.
 
 | Modèle | Gravité | Surveille | Se déclenche quand | Se rétablit quand |
 | --- | --- | --- | --- | --- |
 | Host Stopped Reporting | Critique | `system.memory.usage`, Count, 10 dernières minutes | Aucune donnée pendant toute la fenêtre | Des données arrivent de nouveau |
+| Host Restarted | Avertissement | `system.uptime`, Min, 5 dernières minutes | Une valeur est sous 600 (dix minutes) | Chaque valeur est à 660 ou plus |
 | High CPU Utilization | Avertissement | `system.cpu.utilization` pour les états `user` et `system`, additionnés et affichés en pourcentage, 5 dernières minutes | Au-dessus de 80 % | À 72 % ou moins |
 | High Memory Utilization | Avertissement | `system.memory.utilization` pour l'état `used`, en pourcentage, 5 dernières minutes | Au-dessus de 85 % | À 76,5 % ou moins |
+| High Swap Usage | Avertissement | `system.paging.usage` pour les états `used` et `free`, utilisé divisé par utilisé plus libre, en pourcentage, 5 dernières minutes | Au-dessus de 80 % | À 72 % ou moins |
 | High Filesystem Usage | Critique | `system.filesystem.utilization`, Max par `mountpoint` et `device`, en pourcentage, 5 dernières minutes | Au-dessus de 90 % | À 81 % ou moins |
+| Running Out of Inodes | Critique | `system.filesystem.inodes.usage` pour les états `used` et `free`, utilisé divisé par utilisé plus libre, par `mountpoint` et `device`, en pourcentage, 5 dernières minutes | Au-dessus de 90 % | À 81 % ou moins |
 | High Load Average (1m) | Avertissement | `system.cpu.load_average.1m`, Avg, 5 dernières minutes | Au-dessus de 4 | À 3,6 ou moins |
 | High Process Count | Avertissement | `system.processes.count`, Max, 5 dernières minutes | Au-dessus de 2000 | À 1800 ou moins |
+| Systemd Unit Failed | Avertissement | `systemd.unit.state` avec `systemd.unit.active_state = failed`, Max par `resource.systemd.unit.name`, 5 dernières minutes | Au-dessus de 0 | À 0 ou moins |
 
 **Gravité** est le libellé qu'affiche le sélecteur. L'incident et l'alerte qu'un modèle crée commencent avec la gravité d'incident et d'alerte la plus élevée de votre projet ; changez-les dans les critères.
 
 - **Host Stopped Reporting** se déclenche quand rien n'arrive de l'hôte pendant dix minutes : la machine est en panne ou injoignable, ou son collecteur s'est arrêté, a perdu sa connexion à OneUptime ou a vu son jeton révoqué. Il se résout dès que les données reviennent. Quand les données cessent d'arriver, les autres modèles n'ont plus rien à comparer et gardent leur dernier état ; c'est donc lui qui vous prévient.
+- **Host Restarted** se déclenche au premier rapport après un démarrage : l'hôte fonctionne depuis moins de dix minutes. Il lit `system.uptime` depuis le scraper `system` du collecteur, que les configurations par défaut de OneUptime activent, et se résout dès que l'hôte fonctionne depuis onze minutes. Un hôte en panne déclenche plutôt **Host Stopped Reporting**.
 - **CPU** correspond au temps occupé (`user` plus `system`), le même chiffre que trace la **Vue d'ensemble** de l'hôte. L'attente d'E/S et le steal sont exclus.
 - **Mémoire** exclut les tampons et le cache de pages, si bien qu'un hôte surtout rempli de cache ne le déclenche pas.
+- **Swap** correspond au swap utilisé divisé par utilisé plus libre, sur tous les périphériques de swap, tel que `free` et `swapon` l'affichent. Un hôte sans swap n'en remonte aucun et ne se déclenche jamais.
 - **Système de fichiers** ouvre un incident par montage. Les pseudo-systèmes de fichiers en lecture seule, comme les montages snap `squashfs` ou `devfs` sous macOS, sont toujours pleins à 100 % : les configurations de collecteur de OneUptime les laissent hors du scraper `filesystem` avec `exclude_fs_types`, et une configuration à vous a besoin de la même chose.
+- **Inodes** ouvre un incident par montage, comme **Système de fichiers**. Quand un système de fichiers n'a plus d'inodes, plus rien ne peut y créer de fichier, quel que soit l'espace libre. Un système de fichiers sans table d'inodes propre, comme btrfs, n'en remonte aucun et ne se déclenche jamais.
 - **Charge moyenne** est une longueur brute de file d'exécution, non divisée par le nombre de cœurs : 4 est une saturation sur un hôte à 2 cœurs et une routine sur un hôte à 32 cœurs, alors relevez-le sur les grands hôtes.
 - **Nombre de processus** compare le plus grand état de processus (`running`, `sleeping`, …), pas le total de l'hôte, il ne correspondra donc pas à une liste de processus. Le scraper de processus remonte des données sous Linux, macOS et BSD, pas sous Windows.
+- **Systemd Unit Failed** ouvre une alerte par service systemd à l'état `failed`, à partir du receiver `systemd` du collecteur, que la configuration par défaut de OneUptime lit sur les hôtes Linux avec systemd. Elle se résout quand l'unité tourne de nouveau, ou une fois que `systemctl reset-failed` l'efface.
 
 ## Métriques collectées
 

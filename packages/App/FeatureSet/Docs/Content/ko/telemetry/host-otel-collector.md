@@ -31,7 +31,7 @@ flowchart TB
 
 | 호스트에서 보이는 것 | 출처 |
 | --- | --- |
-| **개요** 및 **메트릭** | `hostmetrics` 리시버: CPU, 메모리, 디스크, 파일 시스템, 네트워크, 부하, 페이징. |
+| **개요** 및 **메트릭** | `hostmetrics` 리시버: CPU, 메모리, 디스크, 파일 시스템, 네트워크, 부하, 페이징, 가동 시간. |
 | **프로세스** | `hostmetrics`의 `process` 스크레이퍼: 프로세스별 시계열 세트. |
 | **로그** | `filelog`, `journald`, `windowseventlog` 리시버. |
 | **Systemd Units** (Linux) | `systemd` 리시버. |
@@ -86,6 +86,8 @@ receivers:
       load:
       network:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes:
       process:
         mute_process_name_error: true
@@ -189,6 +191,8 @@ receivers:
       load:
       network:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes:
       process:
         mute_process_name_error: true
@@ -285,6 +289,8 @@ receivers:
       load:
       network:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes:
       process:
         mute_process_name_error: true
@@ -963,6 +969,8 @@ receivers:
       network:
       load:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes: # aggregate counts only — cheap
       process:
         mute_process_name_error: true
@@ -1117,6 +1125,8 @@ receivers:
       load:
       network:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes:
 
 processors:

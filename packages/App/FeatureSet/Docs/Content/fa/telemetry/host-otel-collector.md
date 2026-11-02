@@ -31,7 +31,7 @@ flowchart TB
 
 | آنچه روی میزبان می‌بینید | از کجا می‌آید |
 | --- | --- |
-| **نمای کلی** و **متریک‌ها** | گیرنده `hostmetrics`: CPU، حافظه، دیسک‌ها، سامانه‌های فایل، شبکه، بار، صفحه‌بندی. |
+| **نمای کلی** و **متریک‌ها** | گیرنده `hostmetrics`: CPU، حافظه، دیسک‌ها، سامانه‌های فایل، شبکه، بار، صفحه‌بندی، مدت روشن بودن. |
 | **فرایندها** | خراشگر `process` در `hostmetrics`: یک دسته سری برای هر فرایند. |
 | **لاگ‌ها** | گیرنده‌های `filelog`، `journald` و `windowseventlog`. |
 | **Systemd Units** (Linux) | گیرنده `systemd`. |
@@ -86,6 +86,8 @@ receivers:
       load:
       network:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes:
       process:
         mute_process_name_error: true
@@ -189,6 +191,8 @@ receivers:
       load:
       network:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes:
       process:
         mute_process_name_error: true
@@ -285,6 +289,8 @@ receivers:
       load:
       network:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes:
       process:
         mute_process_name_error: true
@@ -963,6 +969,8 @@ receivers:
       network:
       load:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes: # aggregate counts only — cheap
       process:
         mute_process_name_error: true
@@ -1117,6 +1125,8 @@ receivers:
       load:
       network:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes:
 
 processors:

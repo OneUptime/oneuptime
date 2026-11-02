@@ -4,7 +4,7 @@ Ein Host-Monitor überwacht einen einzelnen Rechner – seine CPU, seinen Arbeit
 
 :::cards
 - [Den Monitor erstellen](#einen-host-monitor-erstellen): Sechs Schritte im Dashboard.
-- [Vorlagen](#fertige-warnungsvorlagen): Sechs fertige Warnungen für einen verstummten Host, CPU, Arbeitsspeicher, Festplatte, Last und Prozesse.
+- [Vorlagen](#fertige-warnungsvorlagen): Zehn fertige Warnungen für einen verstummten oder neu gestarteten Host, CPU, Arbeitsspeicher, Swap, Festplatte, Inodes, Last, Prozesse und fehlgeschlagene Systemd-Units.
 - [Metriken](#erfasste-metriken): Die Host-Metriken, bei denen Sie warnen können, und ihre Einheiten.
 - [Host oder Server / VM?](#host-monitor-oder-server-vm-monitor): Welchen der beiden Rechner-Monitore Sie verwenden.
 :::
@@ -95,27 +95,35 @@ Klicken Sie auf **Monitor erstellen**. OneUptime öffnet die Seite des Monitors 
 
 ## Fertige Warnungsvorlagen
 
-Die Liste unter **Worüber benachrichtigt wird** bietet sechs Vorlagen. Jede baut einen vollständigen Monitor: eine Abfrage, ein Kriterium, das auslöst, und eines, das wiederherstellt. Die Schwellenwerte sind Ausgangswerte, die Sie anpassen können.
+Die Liste unter **Worüber benachrichtigt wird** bietet zehn Vorlagen. Jede baut einen vollständigen Monitor: eine Abfrage, ein Kriterium, das auslöst, und eines, das wiederherstellt. Die Schwellenwerte sind Ausgangswerte, die Sie anpassen können.
 
 Ein Kriterium löst nur aus, wenn die Bedingung in jeder Minute seines Zeitfensters gilt, und es wird 10 % jenseits des Schwellenwerts wiederhergestellt, damit ein Wert, der um die Grenze pendelt, nicht hin- und herspringt.
 
 | Vorlage | Schweregrad | Überwacht | Löst aus, wenn | Wiederhergestellt, wenn |
 | --- | --- | --- | --- | --- |
 | Host Stopped Reporting | Kritisch | `system.memory.usage`, Count, letzte 10 Minuten | Keine Daten im gesamten Zeitfenster | Daten treffen wieder ein |
+| Host Restarted | Warnung | `system.uptime`, Min, letzte 5 Minuten | Ein Wert liegt unter 600 (zehn Minuten) | Jeder Wert liegt bei oder über 660 |
 | High CPU Utilization | Warnung | `system.cpu.utilization` für die Zustände `user` und `system`, addiert und als Prozentsatz dargestellt, letzte 5 Minuten | Über 80 % | Bei oder unter 72 % |
 | High Memory Utilization | Warnung | `system.memory.utilization` für den Zustand `used`, als Prozentsatz, letzte 5 Minuten | Über 85 % | Bei oder unter 76,5 % |
+| High Swap Usage | Warnung | `system.paging.usage` für die Zustände `used` und `free`, belegt geteilt durch belegt plus frei, als Prozentsatz, letzte 5 Minuten | Über 80 % | Bei oder unter 72 % |
 | High Filesystem Usage | Kritisch | `system.filesystem.utilization`, Max pro `mountpoint` und `device`, als Prozentsatz, letzte 5 Minuten | Über 90 % | Bei oder unter 81 % |
+| Running Out of Inodes | Kritisch | `system.filesystem.inodes.usage` für die Zustände `used` und `free`, belegt geteilt durch belegt plus frei, pro `mountpoint` und `device`, als Prozentsatz, letzte 5 Minuten | Über 90 % | Bei oder unter 81 % |
 | High Load Average (1m) | Warnung | `system.cpu.load_average.1m`, Avg, letzte 5 Minuten | Über 4 | Bei oder unter 3,6 |
 | High Process Count | Warnung | `system.processes.count`, Max, letzte 5 Minuten | Über 2000 | Bei oder unter 1800 |
+| Systemd Unit Failed | Warnung | `systemd.unit.state` mit `systemd.unit.active_state = failed`, Max pro `resource.systemd.unit.name`, letzte 5 Minuten | Über 0 | Bei oder unter 0 |
 
 **Schweregrad** ist die Bezeichnung, die die Auswahl anzeigt. Vorfall und Warnung, die eine Vorlage erstellt, beginnen mit dem schwersten Vorfall- und Warnungsschweregrad Ihres Projekts; ändern Sie sie in den Kriterien.
 
 - **Host Stopped Reporting** löst aus, wenn zehn Minuten lang nichts vom Host eintrifft: Der Rechner ist ausgefallen oder nicht erreichbar, oder sein Collector läuft nicht mehr, hat die Verbindung zu OneUptime verloren oder sein Token wurde widerrufen. Sobald wieder Daten eintreffen, wird sie aufgelöst. Bleiben die Daten aus, haben die anderen Vorlagen nichts zu vergleichen und behalten ihren letzten Status, daher ist es diese Vorlage, die Ihnen das meldet.
+- **Host Restarted** löst beim ersten Bericht nach einem Neustart aus: Der Host läuft seit weniger als zehn Minuten. Sie liest `system.uptime` aus dem Scraper `system` des Collectors, den die Standardkonfigurationen von OneUptime einschalten, und wird aufgelöst, sobald der Host elf Minuten läuft. Ein ausgefallener Host löst stattdessen **Host Stopped Reporting** aus.
 - **CPU** ist die Belegtzeit (`user` plus `system`), derselbe Wert, den die **Übersicht** des Hosts in Diagrammen zeigt. I/O-Wartezeit und Steal sind nicht enthalten.
 - **Arbeitsspeicher** schließt Puffer und Seitencache aus, sodass ein Host, der überwiegend Cache enthält, sie nicht auslöst.
+- **Swap** ist der belegte Swap geteilt durch belegt plus frei, über alle Swap-Geräte, so wie `free` und `swapon` ihn anzeigen. Ein Host ohne Swap meldet keinen und löst nie aus.
 - **Dateisystem** löst einen Vorfall pro Mount aus. Schreibgeschützte Pseudo-Dateisysteme wie snap-Mounts vom Typ `squashfs` oder `devfs` unter macOS sind immer zu 100 % voll: Die Collector-Konfigurationen von OneUptime lassen sie mit `exclude_fs_types` im Scraper `filesystem` aus, und eine eigene Konfiguration braucht dasselbe.
+- **Inodes** löst wie **Dateisystem** einen Vorfall pro Mount aus. Gehen einem Dateisystem die Inodes aus, kann dort keine Datei mehr angelegt werden, egal wie viel Platz frei ist. Ein Dateisystem ohne eigene Inode-Tabelle, etwa btrfs, meldet keine und löst nie aus.
 - **Lastdurchschnitt** ist eine rohe Länge der Ausführungswarteschlange, nicht durch die Anzahl der Kerne geteilt: 4 ist auf einem Host mit 2 Kernen Sättigung und auf einem mit 32 Kernen Routine; erhöhen Sie ihn daher auf großen Hosts.
 - **Prozessanzahl** vergleicht den größten einzelnen Prozesszustand (`running`, `sleeping`, …), nicht die Gesamtzahl des Hosts, und stimmt daher nicht mit einer Prozessliste überein. Der Scraper für Prozesse meldet unter Linux, macOS und BSD, nicht unter Windows.
+- **Systemd Unit Failed** löst eine Warnung pro systemd-Dienst im Zustand `failed` aus, aus dem Receiver `systemd` des Collectors, den die Standardkonfiguration von OneUptime auf Linux-Hosts mit systemd liest. Sie wird aufgelöst, wenn die Unit wieder läuft oder `systemctl reset-failed` sie zurücksetzt.
 
 ## Erfasste Metriken
 

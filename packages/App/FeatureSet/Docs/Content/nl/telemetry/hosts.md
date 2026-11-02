@@ -4,6 +4,7 @@ Voeg met één opdracht een Linux-, Windows- of macOS-machine toe aan OneUptime.
 
 :::cards
 - [Een host toevoegen](#een-host-toevoegen): Eén opdracht op Linux, Windows of macOS.
+- [Zien welke hosts aandacht vragen](#zien-welke-hosts-aandacht-vragen): Eerst wat kapot is, dan de gezondheid, CPU, het geheugen en de schijf van elke host.
 - [Wijzigen wat hosts verzamelen](#wijzigen-wat-hosts-verzamelen): Collectorconfiguraties per systeem en label, met elke versie bewaard.
 - [De collector van een host controleren](#de-collector-van-een-host-controleren): De configuratie die hij uitvoert, de versie ervan en waarom een configuratie niet startte.
 - [Wat een configuratie mag](#wat-een-configuratie-mag): De host lezen en alleen naar deze OneUptime sturen.
@@ -75,8 +76,29 @@ Elke OneUptime serveert zijn eigen installatieprogramma's, zodat een zelf gehost
 
 ### Wacht op de host
 
-De laatste stap van het dialoogvenster meldt wanneer de host verbinding maakt, met een link ernaartoe. In de lijst staat hij als **Wordt gestart** tot zijn eerste metrics binnenkomen, meestal binnen een minuut, en daarna als verbonden, met zijn collector **Actief**. De pagina **Topologie** van de host tekent op één kaart wat erop draait, wat hem aanroept en wat hij aanroept: zie [Topologie](/docs/telemetry/topology#de-eigen-kaart-van-een-resource-openen).
+De laatste stap van het dialoogvenster meldt wanneer de host verbinding maakt, met een link ernaartoe. In de lijst staat hij als **Wordt gestart** tot zijn eerste metrics binnenkomen, meestal binnen een minuut, en daarna met zijn gezondheid, **Gezond** als er niets aandacht nodig heeft, en zijn collector **Actief**. De pagina **Topologie** van de host tekent op één kaart wat erop draait, wat hem aanroept en wat hij aanroept: zie [Topologie](/docs/telemetry/topology#de-eigen-kaart-van-een-resource-openen).
 :::
+
+## Zien welke hosts aandacht vragen
+
+De lijst **Hosts** begint met **Vraagt aandacht**: elke host die kapot is of aandacht nodig heeft, het dringendste eerst, elk met de reden en één stap naar zijn pagina. Een host die niet meer rapporteert, zegt wanneer hij dat het laatst deed. Vraagt niets aandacht, dan is er geen kaart.
+
+Daaronder zegt de **Status** van elke host in één woord hoe hij ervoor staat, met de reden eronder, en **CPU**, **Geheugen** en **Schijf** tonen wat hij het laatst meldde:
+
+| Status | Wanneer |
+| --- | --- |
+| **Gezond** | Hij rapporteert, en niets aan hem heeft aandacht nodig. |
+| **Verminderd** | Iets heeft aandacht nodig: een bestandssysteem of de inodes ervan voor meer dan 85% vol, geheugen voor meer dan 90% gebruikt, swap voor meer dan 80% gebruikt, een belastingsgemiddelde over 15 minuten boven het dubbele van zijn kernen, een mislukte systemd-unit of een collectorconfiguratie die niet is gestart. |
+| **Ongezond** | Iets is kritiek: een bestandssysteem of de inodes ervan voor meer dan 95% vol, of geheugen voor meer dan 95% gebruikt. |
+| **Rapporteert niet** | Er is 15 minuten niets van hem binnengekomen. Zijn laatste metingen kloppen niet meer, dus zijn rij toont geen getallen en zegt wanneer hij het laatst rapporteerde. |
+| **Wordt gestart** | Zijn collector heeft zich in de laatste tien minuten geregistreerd, en zijn eerste metrics zijn onderweg. Een host die daarna niets heeft gestuurd, toont **Nog geen gegevens**. |
+| **Rapporteert** | Hij rapporteert, maar stuurt geen van de metingen die deze regels beoordelen, zoals een host waarvan de collector zonder `hostmetrics` is geconfigureerd. |
+
+De metingen zijn de laatste melding van de host, die OneUptime ongeveer eens per minuut bij de host bewaart, dus de lijst heeft geen tijdsbereik om te kiezen. Een balk wordt oranje waar een host aandacht nodig heeft en rood waar hij kritiek is. **CPU** is de bezette tijd over alle kernen en wordt oranje boven 90%, nooit rood: een drukke CPU is een host aan het werk, en het belastingsgemiddelde zegt wanneer werk zich ophoopt. **Schijf** is het volste bestandssysteem, met zijn koppelpunt eronder, zoals `df` zijn `Use%` toont: ruimte die voor root is gereserveerd telt niet mee.
+
+Het **Overzicht** van een host zegt hetzelfde: zijn gezondheid naast de toestand van zijn collector, hoe lang hij al draait, en **Vraagt aandacht** voor zijn eigen bestandssystemen, geheugen, swap en belasting, zijn collector en elke mislukte systemd-unit, die de pagina van die unit opent. **Hostwaarschuwingen** toont de [waarschuwingen die OneUptime aanbeveelt](/docs/monitor/host-monitor#kant-en-klare-waarschuwingssjablonen) voor een host en welke daarvan deze bewaken, en de knop ervan opent **Aanbevelingen** met de rest geselecteerd.
+
+Hoe lang een host al draait komt uit `system.uptime`, dat de scraper `system` van de standaardconfiguratie van OneUptime stuurt. Een eigen configuratie heeft die scraper ook nodig: zie [OpenTelemetry Collector voor hosts](/docs/telemetry/host-otel-collector).
 
 ## Hosts labelen
 
@@ -224,6 +246,10 @@ Zijn pagina **Collector** toont waarom de configuratie niet startte. De host bli
 
 :::details De host toont 'Rapporteert niet'
 OneUptime heeft al meer dan 15 minuten niets gehoord van de supervisor van de host. Controleer of de service `oneuptime-collector` draait en of de host OneUptime nog bereikt.
+:::
+
+:::details De CPU, het geheugen of de schijf van een host toont een streepje
+OneUptime toont liever geen getal dan een oud getal: de host heeft 15 minuten niet gerapporteerd, of zijn collector stuurt geen `hostmetrics`. Een collector die u zelf hebt geconfigureerd, heeft de receiver `hostmetrics` nodig met de scrapers `cpu`, `memory` en `filesystem`, zoals in [OpenTelemetry Collector voor hosts](/docs/telemetry/host-otel-collector).
 :::
 
 ## Volgende stappen

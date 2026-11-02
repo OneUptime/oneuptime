@@ -1,0 +1,267 @@
+import { describe, expect, test } from "@jest/globals";
+import {
+  HOST_DISK_FULL_PERCENT,
+  HOST_DISK_NEAR_FULL_PERCENT,
+  HOST_MEMORY_CRITICAL_PERCENT,
+  HOST_MEMORY_HIGH_PERCENT,
+  HOST_READINGS_STALE_MS,
+  HostHealthRow,
+} from "Common/Types/Host/HostHealth";
+import {
+  HOST_CPU_BUSY_PERCENT,
+  HostStatusFacts,
+  formatHostBytes,
+  formatHostUsagePercent,
+  getHostStatusFacts,
+  getHostUptimeSeconds,
+  getHostUsage,
+  getHostUsageTone,
+} from "../../FeatureSet/Dashboard/src/Pages/Host/Utils/HostFacts";
+
+/*
+ * What a host's row and hero say from what it last reported
+ * (Pages/Host/Utils/HostFacts): the Status cell's word and reason, the
+ * CPU, Memory and Disk bars and their colours, and how long the host has
+ * been up - each from the same rules as its Needs attention card, so the
+ * list, the card and the host's page say one thing.
+ */
+
+const NOW: Date = new Date("2026-11-02T10:00:00.000Z");
+const MINUTE: number = 60_000;
+const GIB: number = 1024 * 1024 * 1024;
+
+function host(fields: Partial<HostHealthRow> = {}): HostHealthRow {
+  return {
+    otelCollectorStatus: "connected",
+    lastSeenAt: new Date(NOW.getTime() - MINUTE),
+    createdAt: new Date(NOW.getTime() - 30 * 24 * 60 * MINUTE),
+    cpuCores: 4,
+    latestCpuPercent: 42.4,
+    latestMemoryPercent: 55,
+    latestSwapPercent: 0,
+    latestDiskPercent: 61,
+    latestDiskMountpoint: "/",
+    latestLoadAverage15m: 1,
+    failedSystemdUnitCount: 0,
+    readingsUpdatedAt: new Date(NOW.getTime() - MINUTE),
+    ...fields,
+  };
+}
+
+describe("each bar's colour", () => {
+  test("CPU turns amber past its busy line and is never red", () => {
+    expect(getHostUsageTone("cpu", HOST_CPU_BUSY_PERCENT)).toBe("positive");
+    expect(getHostUsageTone("cpu", HOST_CPU_BUSY_PERCENT + 0.1)).toBe(
+      "warning",
+    );
+    expect(getHostUsageTone("cpu", 100)).toBe("warning");
+  });
+
+  test("memory and disk turn amber and red where Needs attention lists them", () => {
+    expect(getHostUsageTone("memory", HOST_MEMORY_HIGH_PERCENT)).toBe(
+      "positive",
+    );
+    expect(getHostUsageTone("memory", HOST_MEMORY_HIGH_PERCENT + 0.1)).toBe(
+      "warning",
+    );
+    expect(getHostUsageTone("memory", HOST_MEMORY_CRITICAL_PERCENT)).toBe(
+      "warning",
+    );
+    expect(getHostUsageTone("memory", HOST_MEMORY_CRITICAL_PERCENT + 0.1)).toBe(
+      "danger",
+    );
+    expect(getHostUsageTone("disk", HOST_DISK_NEAR_FULL_PERCENT)).toBe(
+      "positive",
+    );
+    expect(getHostUsageTone("disk", HOST_DISK_NEAR_FULL_PERCENT + 0.1)).toBe(
+      "warning",
+    );
+    expect(getHostUsageTone("disk", HOST_DISK_FULL_PERCENT + 0.1)).toBe(
+      "danger",
+    );
+  });
+});
+
+describe("each bar's number", () => {
+  test("what the host last reported, kept between 0 and 100", () => {
+    expect(getHostUsage({ row: host(), kind: "cpu", now: NOW })).toEqual({
+      percent: 42.4,
+      tone: "positive",
+    });
+    expect(
+      getHostUsage({
+        row: host({ latestDiskPercent: 104 }),
+        kind: "disk",
+        now: NOW,
+      }),
+    ).toEqual({ percent: 100, tone: "danger" });
+    expect(
+      getHostUsage({
+        row: host({ latestMemoryPercent: "93.5" }),
+        kind: "memory",
+        now: NOW,
+      }),
+    ).toEqual({ percent: 93.5, tone: "warning" });
+  });
+
+  test("no number from a host that is not reporting, readings too old, or none", () => {
+    const none: { percent: null; tone: string } = {
+      percent: null,
+      tone: "neutral",
+    };
+    expect(
+      getHostUsage({
+        row: host({ otelCollectorStatus: "disconnected" }),
+        kind: "cpu",
+        now: NOW,
+      }),
+    ).toEqual(none);
+    expect(
+      getHostUsage({
+        row: host({
+          readingsUpdatedAt: new Date(
+            NOW.getTime() - HOST_READINGS_STALE_MS - MINUTE,
+          ),
+        }),
+        kind: "cpu",
+        now: NOW,
+      }),
+    ).toEqual(none);
+    expect(
+      getHostUsage({
+        row: host({ latestDiskPercent: null }),
+        kind: "disk",
+        now: NOW,
+      }),
+    ).toEqual(none);
+  });
+
+  test("written whole from 10, with one decimal below", () => {
+    expect(formatHostUsagePercent(42.4)).toBe("42%");
+    expect(formatHostUsagePercent(99.6)).toBe("100%");
+    expect(formatHostUsagePercent(4.24)).toBe("4.2%");
+    expect(formatHostUsagePercent(0)).toBe("0%");
+  });
+});
+
+describe("the Status cell", () => {
+  test("a word, the most urgent reason and how many more", () => {
+    const facts: HostStatusFacts = getHostStatusFacts({
+      row: host({
+        latestDiskPercent: 97,
+        latestDiskMountpoint: "/var",
+        latestMemoryPercent: 92,
+      }),
+      now: NOW,
+    });
+
+    expect(facts.status).toEqual({ text: "Unhealthy" });
+    expect(facts.tone).toBe("danger");
+    expect(facts.firstReason).toEqual({
+      text: "{{mount}} {{percent}} full",
+      values: { mount: "/var", percent: "97%" },
+    });
+    expect(facts.moreReasons).toBe(1);
+    expect(facts.isStarting).toBe(false);
+    expect(facts.lastReportedAt).toBeNull();
+  });
+
+  test("a host gone quiet: when it last reported, not its word again as a reason", () => {
+    const lastSeenAt: Date = new Date(NOW.getTime() - 3 * 60 * MINUTE);
+    const facts: HostStatusFacts = getHostStatusFacts({
+      row: host({
+        otelCollectorStatus: "disconnected",
+        lastSeenAt: lastSeenAt,
+      }),
+      now: NOW,
+    });
+
+    expect(facts.status).toEqual({ text: "Not reporting" });
+    expect(facts.firstReason).toBeNull();
+    expect(facts.moreReasons).toBe(0);
+    expect(facts.lastReportedAt).toEqual(lastSeenAt);
+  });
+
+  test("a host that never sent anything says so once", () => {
+    const facts: HostStatusFacts = getHostStatusFacts({
+      row: host({
+        otelCollectorStatus: null,
+        lastSeenAt: null,
+        readingsUpdatedAt: null,
+        createdAt: new Date(NOW.getTime() - 60 * MINUTE),
+      }),
+      now: NOW,
+    });
+
+    expect(facts.status).toEqual({ text: "No data yet" });
+    expect(facts.firstReason).toBeNull();
+    expect(facts.lastReportedAt).toBeNull();
+  });
+
+  test("a host whose collector is still starting pulses", () => {
+    const facts: HostStatusFacts = getHostStatusFacts({
+      row: host({
+        otelCollectorStatus: null,
+        lastSeenAt: null,
+        readingsUpdatedAt: null,
+        collectorRegisteredAt: new Date(NOW.getTime() - 2 * MINUTE),
+      }),
+      now: NOW,
+    });
+
+    expect(facts.status).toEqual({ text: "Starting" });
+    expect(facts.isStarting).toBe(true);
+    expect(facts.tone).toBe("neutral");
+  });
+
+  test("a healthy host has no reason under its word", () => {
+    const facts: HostStatusFacts = getHostStatusFacts({
+      row: host(),
+      now: NOW,
+    });
+
+    expect(facts.status).toEqual({ text: "Healthy" });
+    expect(facts.tone).toBe("positive");
+    expect(facts.firstReason).toBeNull();
+  });
+});
+
+describe("how long the host has been up", () => {
+  test("from when it booted, while it reports", () => {
+    expect(
+      getHostUptimeSeconds({
+        row: { ...host(), bootedAt: new Date(NOW.getTime() - 90 * MINUTE) },
+        now: NOW,
+      }),
+    ).toBe(90 * 60);
+  });
+
+  test("nothing for a host that stopped reporting, never said, or boots in the future", () => {
+    expect(
+      getHostUptimeSeconds({
+        row: {
+          ...host({ otelCollectorStatus: "disconnected" }),
+          bootedAt: new Date(NOW.getTime() - 90 * MINUTE),
+        },
+        now: NOW,
+      }),
+    ).toBeNull();
+    expect(getHostUptimeSeconds({ row: host(), now: NOW })).toBeNull();
+    expect(
+      getHostUptimeSeconds({
+        row: { ...host(), bootedAt: new Date(NOW.getTime() + MINUTE) },
+        now: NOW,
+      }),
+    ).toBeNull();
+  });
+});
+
+describe("sizes", () => {
+  test("1024-based, one decimal under 10", () => {
+    expect(formatHostBytes(16 * GIB)).toBe("16 GiB");
+    expect(formatHostBytes(8 * GIB)).toBe("8.0 GiB");
+    expect(formatHostBytes(512)).toBe("512 B");
+    expect(formatHostBytes(null)).toBe("—");
+    expect(formatHostBytes(Number.NaN)).toBe("—");
+  });
+});

@@ -4,6 +4,7 @@ Ajoutez une machine Linux, Windows ou macOS à OneUptime avec une seule commande
 
 :::cards
 - [Ajouter un hôte](#ajouter-un-hôte): Une commande sous Linux, Windows ou macOS.
+- [Voir quels hôtes requièrent attention](#voir-quels-hôtes-requièrent-attention): D'abord ce qui est en panne, puis la santé, le CPU, la mémoire et le disque de chaque hôte.
 - [Changer ce que collectent les hôtes](#changer-ce-que-collectent-les-hôtes): Des configurations du collecteur par système et par étiquette, chaque version conservée.
 - [Vérifier le collecteur d'un hôte](#vérifier-le-collecteur-dun-hôte): La configuration qu'il exécute, sa version, et pourquoi une configuration n'a pas démarré.
 - [Ce qu'une configuration peut faire](#ce-quune-configuration-peut-faire): Lire l'hôte, et n'envoyer qu'à cette instance de OneUptime.
@@ -75,8 +76,29 @@ Chaque instance de OneUptime sert ses propres programmes d'installation, si bien
 
 ### Attendre l'hôte
 
-La dernière étape de la boîte de dialogue indique quand l'hôte se connecte, avec un lien vers lui. Dans la liste, il apparaît en **Démarrage** jusqu'à l'arrivée de ses premières métriques, en général dans la minute, puis comme connecté, avec son collecteur **En cours d'exécution**. La page **Topologie** de l'hôte dessine sur une seule carte ce qui tourne dessus, ce qui l'appelle et ce qu'il appelle : voir [Topologie](/docs/telemetry/topology#ouvrir-la-carte-propre-à-une-ressource).
+La dernière étape de la boîte de dialogue indique quand l'hôte se connecte, avec un lien vers lui. Dans la liste, il apparaît en **Démarrage** jusqu'à l'arrivée de ses premières métriques, en général dans la minute, puis avec sa santé, **Sain** quand rien sur lui ne mérite un coup d'œil, et son collecteur **En cours d'exécution**. La page **Topologie** de l'hôte dessine sur une seule carte ce qui tourne dessus, ce qui l'appelle et ce qu'il appelle : voir [Topologie](/docs/telemetry/topology#ouvrir-la-carte-propre-à-une-ressource).
 :::
+
+## Voir quels hôtes requièrent attention
+
+La liste **Hôtes** commence par **Attention requise** : chaque hôte en panne ou qui mérite un coup d'œil, le plus urgent d'abord, chacun avec la raison et une étape vers sa page. Un hôte qui ne remonte plus de données indique quand il l'a fait pour la dernière fois. Quand rien ne requiert attention, il n'y a pas de carte.
+
+En dessous, le **Statut** de chaque hôte dit en un mot comment il va, avec la raison en dessous, et **CPU**, **Mémoire** et **Disque** montrent ce qu'il a remonté en dernier :
+
+| Statut | Quand |
+| --- | --- |
+| **Sain** | Il remonte des données, et rien sur lui ne mérite un coup d'œil. |
+| **Dégradé** | Quelque chose mérite un coup d'œil : un système de fichiers ou ses inodes pleins à plus de 85 %, la mémoire utilisée à plus de 90 %, le swap utilisé à plus de 80 %, une charge moyenne sur 15 minutes au-dessus du double de ses cœurs, une unité systemd en échec, ou une configuration de collecteur qui n'a pas démarré. |
+| **Défaillant** | Quelque chose est critique : un système de fichiers ou ses inodes pleins à plus de 95 %, ou la mémoire utilisée à plus de 95 %. |
+| **Ne remonte plus de données** | Rien n'est arrivé de lui depuis 15 minutes. Ses dernières mesures ne sont plus vraies : sa ligne n'affiche donc aucun chiffre et indique quand il a remonté des données pour la dernière fois. |
+| **Démarrage** | Son collecteur s'est enregistré dans les dix dernières minutes, et ses premières métriques sont en route. Un hôte qui n'a rien envoyé passé ce délai affiche **Pas encore de données**. |
+| **Remonte des données** | Il remonte des données, mais aucune des mesures que ces règles jugent, comme un hôte dont le collecteur a été configuré sans `hostmetrics`. |
+
+Les mesures sont le dernier rapport de l'hôte, que OneUptime conserve sur l'hôte environ une fois par minute : la liste n'a donc pas de plage de temps à choisir. Une barre devient orange là où un hôte mérite un coup d'œil, et rouge là où il est critique. **CPU** est le temps occupé sur tous les cœurs et devient orange au-dessus de 90 %, jamais rouge : un CPU occupé, c'est un hôte au travail, et la charge moyenne dit quand le travail s'accumule. **Disque** est le système de fichiers le plus plein, avec son point de montage en dessous, comme `df` affiche son `Use%` : l'espace réservé à root n'est pas compté.
+
+La **Vue d'ensemble** d'un hôte dit la même chose : sa santé à côté de l'état de son collecteur, depuis combien de temps il fonctionne, et **Attention requise** pour ses propres systèmes de fichiers, sa mémoire, son swap et sa charge, son collecteur et chaque unité systemd en échec, qui ouvre la page de cette unité. **Alertes d'hôte** liste les [alertes que OneUptime recommande](/docs/monitor/host-monitor#modèles-dalerte-prêts-à-lemploi) pour un hôte et celles qui surveillent celui-ci, et son bouton ouvre **Recommandations** avec les autres sélectionnées.
+
+Le temps de fonctionnement d'un hôte vient de `system.uptime`, que le scraper `system` de la configuration par défaut de OneUptime envoie. Une configuration à vous a aussi besoin de ce scraper : voir [Collecteur OpenTelemetry pour hôte](/docs/telemetry/host-otel-collector).
 
 ## Étiqueter les hôtes
 
@@ -224,6 +246,10 @@ Sa page **Collecteur** montre pourquoi la configuration n'a pas démarré. L'hô
 
 :::details L'hôte affiche « Ne remonte plus de données »
 OneUptime n'a pas eu de nouvelles du superviseur de l'hôte depuis plus de 15 minutes. Vérifiez que le service `oneuptime-collector` tourne et que l'hôte peut toujours joindre OneUptime.
+:::
+
+:::details Le CPU, la mémoire ou le disque d'un hôte affiche un tiret
+OneUptime préfère n'afficher aucun chiffre plutôt qu'un ancien : l'hôte n'a rien remonté depuis 15 minutes, ou son collecteur n'envoie pas de `hostmetrics`. Un collecteur que vous avez configuré vous-même a besoin du receiver `hostmetrics` avec ses scrapers `cpu`, `memory` et `filesystem`, comme dans [Collecteur OpenTelemetry pour hôte](/docs/telemetry/host-otel-collector).
 :::
 
 ## Étapes suivantes

@@ -23,7 +23,9 @@ import {
   HOST_STALE_MS,
   HostTopologyInput,
   buildHostTopology,
+  getHostTopologyRootState,
 } from "../../FeatureSet/Dashboard/src/Components/ResourceTopology/Builders/HostTopology";
+import { HostHealthRow } from "Common/Types/Host/HostHealth";
 
 /*
  * A host's topology from the master Topology's own data: what runs on the
@@ -287,6 +289,135 @@ describe("the host's own state", () => {
     );
 
     expect(empty.nodes.size).toBe(1);
+  });
+});
+
+describe("the host's own card, by the rules its page and the Hosts list follow", () => {
+  // A reporting host with fresh readings that need nothing.
+  function health(fields: Partial<HostHealthRow> = {}): HostHealthRow {
+    return {
+      otelCollectorStatus: "connected",
+      lastSeenAt: NOW,
+      cpuCores: 4,
+      latestCpuPercent: 37.6,
+      latestMemoryPercent: 61.2,
+      latestDiskPercent: 40,
+      latestDiskMountpoint: "/",
+      readingsUpdatedAt: NOW,
+      ...fields,
+    };
+  }
+
+  function rootOf(row: HostHealthRow): ResourceTopologyNode {
+    return node(
+      buildHostTopology(
+        input({
+          host: {
+            id: "host-row",
+            name: "web-01",
+            lastSeenAt: row.lastSeenAt as Date | null,
+            health: row,
+          },
+        }),
+      ),
+      HOST_ROOT_ID,
+    );
+  }
+
+  test("healthy, with its CPU and memory as its two numbers", () => {
+    const root: ResourceTopologyNode = rootOf(health());
+
+    expect(root.health).toBe("healthy");
+    expect(root.status).toEqual({ text: "Healthy" });
+    expect(root.reasons).toEqual([]);
+    expect(root.facts).toEqual([
+      { label: "CPU", value: "38%" },
+      { label: "Memory", value: "61%" },
+    ]);
+  });
+
+  test("a filesystem past 95% is critical, with the list's reason", () => {
+    const root: ResourceTopologyNode = rootOf(
+      health({ latestDiskPercent: 97, latestDiskMountpoint: "/var" }),
+    );
+
+    expect(root.health).toBe("critical");
+    expect(root.status).toEqual({ text: "Unhealthy" });
+    expect(root.reasons).toEqual([
+      {
+        text: "{{mount}} {{percent}} full",
+        values: { mount: "/var", percent: "97%" },
+      },
+    ]);
+  });
+
+  test("something to look at is a warning; a count's form follows its count", () => {
+    const one: ResourceTopologyNode = rootOf(
+      health({ failedSystemdUnitCount: 1, failedSystemdUnits: ["a.service"] }),
+    );
+
+    expect(one.health).toBe("warning");
+    expect(one.reasons).toEqual([
+      { text: "{{count}} failed systemd unit", values: { count: "1" } },
+    ]);
+
+    const two: ResourceTopologyNode = rootOf(
+      health({
+        failedSystemdUnitCount: 2,
+        failedSystemdUnits: ["a.service", "b.service"],
+      }),
+    );
+
+    expect(two.reasons).toEqual([
+      { text: "{{count}} failed systemd units", values: { count: "2" } },
+    ]);
+  });
+
+  test("not reporting is critical, says why in a sentence and shows no numbers", () => {
+    const root: ResourceTopologyNode = rootOf(
+      health({
+        otelCollectorStatus: "disconnected",
+        lastSeenAt: new Date(NOW.getTime() - HOST_STALE_MS - 1000),
+        latestDiskPercent: 99,
+      }),
+    );
+
+    expect(root.health).toBe("critical");
+    expect(root.status).toEqual({ text: "Not reporting" });
+    expect(root.reasons).toEqual([
+      {
+        text: "Nothing has arrived from this host's agent for more than 15 minutes.",
+      },
+    ]);
+    expect(root.facts).toEqual([]);
+  });
+
+  test("a host still starting is unknown, with nothing to say yet", () => {
+    const state: ReturnType<typeof getHostTopologyRootState> =
+      getHostTopologyRootState({
+        health: {
+          otelCollectorStatus: null,
+          lastSeenAt: null,
+          collectorRegisteredAt: new Date(NOW.getTime() - 60_000),
+        },
+        now: NOW,
+      });
+
+    expect(state.health).toBe("unknown");
+    expect(state.status).toEqual({ text: "Starting" });
+    expect(state.reasons).toEqual([]);
+    expect(state.facts).toEqual([]);
+  });
+
+  test("readings too old to judge leave the numbers out", () => {
+    expect(
+      rootOf(
+        health({
+          readingsUpdatedAt: new Date(NOW.getTime() - 16 * 60_000),
+          latestMemoryPercent: 99,
+        }),
+      ).facts,
+    ).toEqual([]);
   });
 });
 

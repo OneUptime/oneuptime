@@ -4,7 +4,7 @@ Un monitor de host vigila una máquina – su CPU, su memoria, sus discos, su ca
 
 :::cards
 - [Crear el monitor](#crear-un-monitor-de-host): Seis pasos en el panel.
-- [Plantillas](#plantillas-de-alerta-listas-para-usar): Seis alertas listas para usar para un host silencioso, CPU, memoria, disco, carga y procesos.
+- [Plantillas](#plantillas-de-alerta-listas-para-usar): Diez alertas listas para usar para un host silencioso o reiniciado, CPU, memoria, swap, disco, inodos, carga, procesos y unidades de systemd fallidas.
 - [Métricas](#métricas-recopiladas): Las métricas de host sobre las que puede alertar, y sus unidades.
 - [¿Host o servidor / VM?](#monitor-de-host-o-monitor-de-servidor-vm): Cuál de los dos monitores de máquinas usar.
 :::
@@ -95,27 +95,35 @@ Haga clic en **Crear monitor**. OneUptime abre la página del monitor y lo eval�
 
 ## Plantillas de alerta listas para usar
 
-La lista de **Sobre qué alertar** ofrece seis plantillas. Cada una crea un monitor completo: una consulta, un criterio que se dispara y otro que se recupera. Los umbrales son puntos de partida que puede editar.
+La lista de **Sobre qué alertar** ofrece diez plantillas. Cada una crea un monitor completo: una consulta, un criterio que se dispara y otro que se recupera. Los umbrales son puntos de partida que puede editar.
 
 Un criterio solo se dispara cuando la condición se cumple en cada minuto de su ventana, y se recupera un 10 % más allá del umbral para que un valor que oscila en el límite no cambie de estado una y otra vez.
 
 | Plantilla | Gravedad | Vigila | Se dispara cuando | Se recupera cuando |
 | --- | --- | --- | --- | --- |
 | Host Stopped Reporting | Crítico | `system.memory.usage`, Count, últimos 10 minutos | Sin datos durante toda la ventana | Vuelven a llegar datos |
+| Host Restarted | Advertencia | `system.uptime`, Min, últimos 5 minutos | Algún valor está por debajo de 600 (diez minutos) | Todos los valores están en 660 o más |
 | High CPU Utilization | Advertencia | `system.cpu.utilization` para los estados `user` y `system`, sumados y mostrados como porcentaje, últimos 5 minutos | Por encima del 80 % | En el 72 % o menos |
 | High Memory Utilization | Advertencia | `system.memory.utilization` para el estado `used`, como porcentaje, últimos 5 minutos | Por encima del 85 % | En el 76,5 % o menos |
+| High Swap Usage | Advertencia | `system.paging.usage` para los estados `used` y `free`, usado entre usado más libre, como porcentaje, últimos 5 minutos | Por encima del 80 % | En el 72 % o menos |
 | High Filesystem Usage | Crítico | `system.filesystem.utilization`, Max por `mountpoint` y `device`, como porcentaje, últimos 5 minutos | Por encima del 90 % | En el 81 % o menos |
+| Running Out of Inodes | Crítico | `system.filesystem.inodes.usage` para los estados `used` y `free`, usado entre usado más libre, por `mountpoint` y `device`, como porcentaje, últimos 5 minutos | Por encima del 90 % | En el 81 % o menos |
 | High Load Average (1m) | Advertencia | `system.cpu.load_average.1m`, Avg, últimos 5 minutos | Por encima de 4 | En 3,6 o menos |
 | High Process Count | Advertencia | `system.processes.count`, Max, últimos 5 minutos | Por encima de 2000 | En 1800 o menos |
+| Systemd Unit Failed | Advertencia | `systemd.unit.state` con `systemd.unit.active_state = failed`, Max por `resource.systemd.unit.name`, últimos 5 minutos | Por encima de 0 | En 0 o menos |
 
 **Gravedad** es la etiqueta que muestra el selector. El incidente y la alerta que crea una plantilla empiezan con la gravedad de incidente y de alerta más alta de su proyecto; cámbielas en los criterios.
 
 - **Host Stopped Reporting** se dispara cuando no llega nada del host durante diez minutos: la máquina está caída o inaccesible, o su colector se detuvo, perdió su conexión con OneUptime o le revocaron el token. Se resuelve cuando vuelven a llegar datos. Cuando los datos dejan de llegar, las demás plantillas no tienen nada que comparar y mantienen su último estado, así que esta es la que le avisa.
+- **Host Restarted** se dispara con el primer informe tras un arranque: el host lleva menos de diez minutos activo. Lee `system.uptime` del scraper `system` del colector, que las configuraciones predeterminadas de OneUptime activan, y se resuelve cuando el host lleva once minutos activo. Un host caído dispara **Host Stopped Reporting** en su lugar.
 - **CPU** es el tiempo ocupado (`user` más `system`), la misma cifra que grafica la **Vista general** del host. La espera de E/S y el steal quedan fuera.
 - **Memoria** excluye los búferes y la caché de páginas, así que un host lleno sobre todo de caché no la dispara.
+- **Swap** es el swap usado entre usado más libre, en todos los dispositivos de swap, tal como lo muestran `free` y `swapon`. Un host sin swap no informa ninguno y nunca se dispara.
 - **Sistema de archivos** abre un incidente por montaje. Los pseudo sistemas de archivos de solo lectura, como los montajes snap `squashfs` o `devfs` de macOS, siempre están llenos al 100 %: las configuraciones de colector de OneUptime los dejan fuera del scraper `filesystem` con `exclude_fs_types`, y una configuración propia necesita lo mismo.
+- **Inodos** abre un incidente por montaje, como **Sistema de archivos**. Cuando un sistema de archivos se queda sin inodos ya no se puede crear ningún archivo en él, por mucho espacio libre que tenga. Un sistema de archivos sin tabla de inodos propia, como btrfs, no informa ninguno y nunca se dispara.
 - **Promedio de carga** es una longitud bruta de la cola de ejecución, no dividida por el número de núcleos: 4 es saturación en un host de 2 núcleos y rutina en uno de 32, así que súbalo en hosts grandes.
 - **Número de procesos** compara el estado de proceso individual más grande (`running`, `sleeping`, …), no el total del host, así que no coincidirá con una lista de procesos. El scraper de procesos informa en Linux, macOS y BSD, no en Windows.
+- **Systemd Unit Failed** abre una alerta por cada servicio de systemd en estado `failed`, desde el receiver `systemd` del colector, que la configuración predeterminada de OneUptime lee en hosts Linux con systemd. Se resuelve cuando la unidad vuelve a funcionar o cuando `systemctl reset-failed` la limpia.
 
 ## Métricas recopiladas
 

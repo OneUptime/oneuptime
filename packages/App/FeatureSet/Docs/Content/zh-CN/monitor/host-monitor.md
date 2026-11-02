@@ -4,7 +4,7 @@
 
 :::cards
 - [创建监视器](#创建主机监视器): 在仪表板中完成六个步骤。
-- [模板](#现成的警报模板): 六个现成的警报，覆盖停止报告的主机、CPU、内存、磁盘、负载和进程。
+- [模板](#现成的警报模板): 十个现成的警报，覆盖停止报告或重启的主机、CPU、内存、交换空间、磁盘、inode、负载、进程和失败的 systemd 单元。
 - [指标](#收集的指标): 可用于警报的主机指标及其单位。
 - [主机还是 Server / VM？](#主机监视器还是-server-vm-监视器): 两种机器监视器该用哪一个。
 :::
@@ -95,27 +95,35 @@ OneUptime 有两种用于机器的监视器。它们可以在同一台主机上�
 
 ## 现成的警报模板
 
-**告警内容** 列表提供六个模板。每个模板都会构建一个完整的监视器：一个查询、一个触发的条件和一个恢复的条件。阈值只是起点，你可以编辑。
+**告警内容** 列表提供十个模板。每个模板都会构建一个完整的监视器：一个查询、一个触发的条件和一个恢复的条件。阈值只是起点，你可以编辑。
 
 条件只有在其窗口的每一分钟都成立时才会触发，并在越过阈值 10% 处恢复，这样在边界附近徘徊的值不会来回跳动。
 
 | 模板 | 严重程度 | 监控内容 | 触发时机 | 恢复时机 |
 | --- | --- | --- | --- | --- |
 | Host Stopped Reporting | 严重 | `system.memory.usage`，Count，最近 10 分钟 | 整个窗口内都没有数据 | 数据再次到达 |
+| Host Restarted | 警告 | `system.uptime`，Min，最近 5 分钟 | 任一值低于 600（十分钟） | 所有值都不低于 660 |
 | High CPU Utilization | 警告 | `user` 和 `system` 状态的 `system.cpu.utilization`，相加后以百分比显示，最近 5 分钟 | 高于 80% | 不高于 72% |
 | High Memory Utilization | 警告 | `used` 状态的 `system.memory.utilization`，以百分比显示，最近 5 分钟 | 高于 85% | 不高于 76.5% |
+| High Swap Usage | 警告 | `used` 和 `free` 状态的 `system.paging.usage`，已用除以已用加可用，以百分比显示，最近 5 分钟 | 高于 80% | 不高于 72% |
 | High Filesystem Usage | 严重 | `system.filesystem.utilization`，按 `mountpoint` 和 `device` 取 Max，以百分比显示，最近 5 分钟 | 高于 90% | 不高于 81% |
+| Running Out of Inodes | 严重 | `used` 和 `free` 状态的 `system.filesystem.inodes.usage`，已用除以已用加可用，按 `mountpoint` 和 `device`，以百分比显示，最近 5 分钟 | 高于 90% | 不高于 81% |
 | High Load Average (1m) | 警告 | `system.cpu.load_average.1m`，Avg，最近 5 分钟 | 高于 4 | 不高于 3.6 |
 | High Process Count | 警告 | `system.processes.count`，Max，最近 5 分钟 | 高于 2000 | 不高于 1800 |
+| Systemd Unit Failed | 警告 | `systemd.unit.active_state = failed` 的 `systemd.unit.state`，按 `resource.systemd.unit.name` 取 Max，最近 5 分钟 | 高于 0 | 不高于 0 |
 
 **严重程度** 是选择列表中显示的标签。模板创建的事件和警报从项目中最严重的事件和警报严重程度开始；请在条件中更改它们。
 
 - **Host Stopped Reporting** 会在主机 10 分钟内没有任何数据到达时触发：机器宕机或无法访问，或者它的 Collector 已停止、失去了通往 OneUptime 的路由或令牌被撤销。数据恢复后即会解决。数据中断时，其他模板没有可比较的数据，会保持最后的状态，因此要靠这个模板告诉你。
+- **Host Restarted** 会在启动后的第一次报告时触发：主机运行时间不到十分钟。它从 Collector 的 `system` 抓取器读取 `system.uptime`，OneUptime 的默认配置会开启这个抓取器；主机运行满十一分钟后即会解决。宕机的主机则会触发 **Host Stopped Reporting**。
 - **CPU** 是繁忙时间（`user` 加 `system`），与主机 **概览** 图表中的数字相同。不包括 iowait 和 steal。
 - **内存** 不计缓冲区和页缓存，所以主要被缓存占用的主机不会触发它。
+- **交换空间** 是已用交换空间除以已用加可用，覆盖所有交换设备，与 `free` 和 `swapon` 显示的一致。没有交换空间的主机不会报告，也永远不会触发。
 - **文件系统** 为每个挂载点打开一个事件。只读的伪文件系统（例如 snap 的 `squashfs` 挂载或 macOS 的 `devfs`）总是 100% 已满：OneUptime 的 Collector 配置用 `exclude_fs_types` 把它们排除在 `filesystem` 抓取器之外，你自己的配置也需要这样做。
+- **inode** 与 **文件系统** 一样，为每个挂载点打开一个事件。文件系统的 inode 用尽后，无论还有多少可用空间，都无法再在其中创建文件。没有自己 inode 表的文件系统（例如 btrfs）不会报告，也永远不会触发。
 - **平均负载** 是原始的运行队列长度，没有除以核心数：4 在 2 核主机上意味着饱和，在 32 核主机上则很平常，所以在大型主机上请调高它。
 - **进程数** 比较的是最大的单个进程状态（`running`、`sleeping`、…），而不是主机的总数，因此它与进程列表对不上。进程抓取器在 Linux、macOS 和 BSD 上报告，Windows 上不报告。
+- **Systemd Unit Failed** 为每个处于 `failed` 状态的 systemd 服务打开一个警报，数据来自 Collector 的 `systemd` 接收器，OneUptime 的默认配置会在带 systemd 的 Linux 主机上读取它。单元重新运行，或被 `systemctl reset-failed` 清除后即会解决。
 
 ## 收集的指标
 

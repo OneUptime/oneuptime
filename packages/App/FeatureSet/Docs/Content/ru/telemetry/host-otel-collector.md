@@ -31,7 +31,7 @@ flowchart TB
 
 | Что вы видите на хосте | Откуда это берётся |
 | --- | --- |
-| **Обзор** и **Метрики** | Приёмник `hostmetrics`: CPU, память, диски, файловые системы, сеть, нагрузка, подкачка. |
+| **Обзор** и **Метрики** | Приёмник `hostmetrics`: CPU, память, диски, файловые системы, сеть, нагрузка, подкачка, время работы. |
 | **Процессы** | Сборщик `process` приёмника `hostmetrics`: один набор рядов на процесс. |
 | **Журналы** | Приёмники `filelog`, `journald` и `windowseventlog`. |
 | **Systemd Units** (Linux) | Приёмник `systemd`. |
@@ -86,6 +86,8 @@ receivers:
       load:
       network:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes:
       process:
         mute_process_name_error: true
@@ -189,6 +191,8 @@ receivers:
       load:
       network:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes:
       process:
         mute_process_name_error: true
@@ -285,6 +289,8 @@ receivers:
       load:
       network:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes:
       process:
         mute_process_name_error: true
@@ -963,6 +969,8 @@ receivers:
       network:
       load:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes: # aggregate counts only — cheap
       process:
         mute_process_name_error: true
@@ -1117,6 +1125,8 @@ receivers:
       load:
       network:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes:
 
 processors:

@@ -636,14 +636,12 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
             title: "Collector",
             type: FieldType.Element,
             /*
-             * Given way where the row has no room: a config that did not
-             * start is a reason in the Status column too.
+             * Given way where the row has no room, a phone's card
+             * included: what asks for action about a host's collector - a
+             * config that did not start, a collector that reports an
+             * error - is a reason in the Status column too.
              */
             hideBelowLargeScreen: true,
-            /*
-             * Shown on phones too: a config that failed on a host is the
-             * one thing in this row that asks for action.
-             */
             getElement: (item: Host): ReactElement => {
               // A collector installed by hand: nothing OneUptime manages.
               if (!isHostCollectorManaged(item)) {

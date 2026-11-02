@@ -4,6 +4,7 @@ Lägg till en Linux-, Windows- eller macOS-dator i OneUptime med ett enda komman
 
 :::cards
 - [Lägg till en värd](#lägg-till-en-värd): Ett kommando på Linux, Windows eller macOS.
+- [Se vilka värdar som kräver uppmärksamhet](#se-vilka-värdar-som-kräver-uppmärksamhet): Först det som är trasigt, sedan varje värds hälsa, CPU, minne och disk.
 - [Ändra vad värdar samlar in](#ändra-vad-värdar-samlar-in): Insamlarkonfigurationer efter system och etikett, med varje version sparad.
 - [Kontrollera en värds insamlare](#kontrollera-en-värds-insamlare): Konfigurationen den kör, dess version och varför en konfiguration inte startade.
 - [Vad en konfiguration får göra](#vad-en-konfiguration-får-göra): Läsa värden och bara skicka till den här OneUptime.
@@ -75,8 +76,29 @@ Varje OneUptime tillhandahåller sina egna installationsprogram, så en egenvär
 
 ### Vänta på värden
 
-Dialogrutans sista steg visar när värden ansluter, med en länk till den. I listan visas den som **Startar** tills dess första mått kommer in, oftast inom en minut, och sedan som ansluten, med sin insamlare **Körs**. Värdens sida **Topologi** ritar på en karta vad som körs på den, vad som anropar den och vad den anropar: se [Topologi](/docs/telemetry/topology#öppna-en-resurs-egen-karta).
+Dialogrutans sista steg visar när värden ansluter, med en länk till den. I listan visas den som **Startar** tills dess första mått kommer in, oftast inom en minut, och sedan med sin hälsa, **Felfri** när inget på den behöver ses över, och sin insamlare **Körs**. Värdens sida **Topologi** ritar på en karta vad som körs på den, vad som anropar den och vad den anropar: se [Topologi](/docs/telemetry/topology#öppna-en-resurs-egen-karta).
 :::
+
+## Se vilka värdar som kräver uppmärksamhet
+
+Listan **Värdar** börjar med **Kräver uppmärksamhet**: varje värd som är trasig eller behöver ses över, den mest brådskande först, var och en med orsaken och ett steg till sin sida. En värd som har slutat rapportera säger när den senast gjorde det. Kräver inget uppmärksamhet finns inget kort.
+
+Under det säger varje värds **Status** med ett ord hur den mår, med orsaken under, och **CPU**, **Minne** och **Disk** visar vad den senast rapporterade:
+
+| Status | När |
+| --- | --- |
+| **Felfri** | Den rapporterar, och inget på den behöver ses över. |
+| **Försämrad** | Något behöver ses över: ett filsystem eller dess inoder mer än 85 % fullt, minne mer än 90 % använt, swap mer än 80 % använt, ett belastningsmedelvärde över 15 minuter över dubbla antalet kärnor, en misslyckad systemd-enhet eller en insamlarkonfiguration som inte startade. |
+| **Ej felfri** | Något är kritiskt: ett filsystem eller dess inoder mer än 95 % fullt, eller minne mer än 95 % använt. |
+| **Ingen rapportering** | Inget har kommit från den på 15 minuter. Dess senaste mätvärden stämmer inte längre, så dess rad visar inga siffror och säger när den senast rapporterade. |
+| **Startar** | Dess insamlare registrerade sig under de senaste tio minuterna, och dess första mått är på väg. En värd som inte har skickat något efter det visar **Inga data ännu**. |
+| **Rapporterar** | Den rapporterar, men skickar inga av de mätvärden som de här reglerna bedömer, till exempel en värd vars insamlare konfigurerats utan `hostmetrics`. |
+
+Mätvärdena är värdens senaste rapport, som OneUptime sparar på värden ungefär en gång i minuten, så listan har inget tidsintervall att välja. En stapel blir gul där en värd behöver ses över och röd där den är kritisk. **CPU** är upptagen tid över alla kärnor och blir gul över 90 %, aldrig röd: en upptagen CPU är en värd i arbete, och belastningsmedelvärdet säger när arbete köar. **Disk** är det fullaste filsystemet, med dess monteringspunkt under, så som `df` visar sin `Use%`: utrymme reserverat för root räknas inte.
+
+En värds **Översikt** säger samma sak: dess hälsa bredvid dess insamlares tillstånd, hur länge den har varit uppe, och **Kräver uppmärksamhet** för dess egna filsystem, minne, swap och belastning, dess insamlare och varje misslyckad systemd-enhet, som öppnar den enhetens sida. **Värdlarm** listar de [larm som OneUptime rekommenderar](/docs/monitor/host-monitor#färdiga-larmmallar) för en värd och vilka av dem som bevakar den här, och dess knapp öppnar **Rekommendationer** med resten valda.
+
+Hur länge en värd har varit uppe kommer från `system.uptime`, som skrapan `system` i OneUptimes standardkonfiguration skickar. En egen konfiguration behöver också den skrapan: se [Host OpenTelemetry Collector](/docs/telemetry/host-otel-collector).
 
 ## Märk värdar
 
@@ -224,6 +246,10 @@ Dess sida **Insamlare** visar varför konfigurationen inte startade. Värden for
 
 :::details Värden visar ”Ingen rapportering”
 OneUptime har inte hört något från värdens supervisor på mer än 15 minuter. Kontrollera att tjänsten `oneuptime-collector` körs och att värden fortfarande når OneUptime.
+:::
+
+:::details En värds CPU, minne eller disk visar ett streck
+OneUptime visar hellre ingen siffra än en gammal: värden har inte rapporterat på 15 minuter, eller dess insamlare skickar inga `hostmetrics`. En insamlare som du har konfigurerat själv behöver mottagaren `hostmetrics` med skraporna `cpu`, `memory` och `filesystem`, som i [Host OpenTelemetry Collector](/docs/telemetry/host-otel-collector).
 :::
 
 ## Nästa steg

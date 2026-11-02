@@ -31,7 +31,7 @@ flowchart TB
 
 | Det, du ser på værten | Hvor det kommer fra |
 | --- | --- |
-| **Oversigt** og **Metrikker** | Receiveren `hostmetrics`: CPU, hukommelse, diske, filsystemer, netværk, belastning, paging. |
+| **Oversigt** og **Metrikker** | Receiveren `hostmetrics`: CPU, hukommelse, diske, filsystemer, netværk, belastning, paging, oppetid. |
 | **Processer** | Scraperen `process` i `hostmetrics`: ét sæt serier pr. proces. |
 | **Protokoller** | Receiverne `filelog`, `journald` og `windowseventlog`. |
 | **Systemd Units** (Linux) | Receiveren `systemd`. |
@@ -86,6 +86,8 @@ receivers:
       load:
       network:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes:
       process:
         mute_process_name_error: true
@@ -189,6 +191,8 @@ receivers:
       load:
       network:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes:
       process:
         mute_process_name_error: true
@@ -285,6 +289,8 @@ receivers:
       load:
       network:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes:
       process:
         mute_process_name_error: true
@@ -963,6 +969,8 @@ receivers:
       network:
       load:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes: # aggregate counts only — cheap
       process:
         mute_process_name_error: true
@@ -1117,6 +1125,8 @@ receivers:
       load:
       network:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes:
 
 processors:
