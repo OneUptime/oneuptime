@@ -22,6 +22,7 @@ import UserSessionService, {
 } from "Common/Server/Services/UserSessionService";
 import Attribution from "Common/Server/Utils/Attribution";
 import CookieUtil from "Common/Server/Utils/Cookie";
+import { getSessionCookieFields } from "Common/Server/Utils/SessionCookieFields";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -312,7 +313,7 @@ router.get(
         expressResponse: res,
         user: user,
         isGlobalLogin: true,
-        ...CookieUtil.getSessionCookieFields(sessionMetadata),
+        ...getSessionCookieFields(sessionMetadata),
       });
 
       logger.info(

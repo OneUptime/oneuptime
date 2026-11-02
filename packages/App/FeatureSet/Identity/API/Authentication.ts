@@ -63,10 +63,12 @@ import UserSessionService, {
 } from "Common/Server/Services/UserSessionService";
 import SessionEndedException from "Common/Types/Exception/SessionEndedException";
 import {
+  INACTIVE_FOR_IN_SECONDS_FIELD,
   readReportedInactivityInSeconds,
   SessionEndReason,
 } from "Common/Types/UserSession/SessionLength";
 import CookieUtil from "Common/Server/Utils/Cookie";
+import { getSessionCookieFields } from "Common/Server/Utils/SessionCookieFields";
 import JSONWebToken from "Common/Server/Utils/JsonWebToken";
 import Express, {
   ExpressRequest,
@@ -237,7 +239,7 @@ const finalizeUserLogin: (
       expressResponse: res,
       user,
       isGlobalLogin,
-      ...CookieUtil.getSessionCookieFields(sessionMetadata),
+      ...getSessionCookieFields(sessionMetadata),
     });
   }
 
@@ -2075,7 +2077,9 @@ router.post(
         await UserSessionService.decideRenewal({
           session,
           reportedInactivityInSeconds: readReportedInactivityInSeconds(
-            (req.body as JSONObject | undefined)?.["inactiveForInSeconds"],
+            (req.body as JSONObject | undefined)?.[
+              INACTIVE_FOR_IN_SECONDS_FIELD
+            ],
           ),
         });
 
@@ -2106,7 +2110,7 @@ router.post(
         expressResponse: res,
         user,
         isGlobalLogin,
-        ...CookieUtil.getSessionCookieFields(renewedSession),
+        ...getSessionCookieFields(renewedSession),
       });
 
       // Generate access token for response body (used by mobile clients)

@@ -7,6 +7,7 @@ import UserSessionService, {
   SessionMetadata,
 } from "Common/Server/Services/UserSessionService";
 import CookieUtil from "Common/Server/Utils/Cookie";
+import { getSessionCookieFields } from "Common/Server/Utils/SessionCookieFields";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -186,7 +187,7 @@ router.get(
         expressResponse: res,
         user: user,
         isGlobalLogin: true,
-        ...CookieUtil.getSessionCookieFields(sessionMetadata),
+        ...getSessionCookieFields(sessionMetadata),
       });
 
       logger.info(

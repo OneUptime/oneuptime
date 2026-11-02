@@ -50,6 +50,7 @@ import UserSessionService, {
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import Select from "Common/Server/Types/Database/Select";
 import CookieUtil from "Common/Server/Utils/Cookie";
+import { getSessionCookieFields } from "Common/Server/Utils/SessionCookieFields";
 import JSONWebToken from "Common/Server/Utils/JsonWebToken";
 import Express, {
   ExpressRequest,
@@ -895,7 +896,7 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
       expressResponse: res,
       user: alreadySavedUser,
       isGlobalLogin: false,
-      ...CookieUtil.getSessionCookieFields(sessionMetadata),
+      ...getSessionCookieFields(sessionMetadata),
     });
 
     const host: Hostname = await DatabaseConfig.getHost();

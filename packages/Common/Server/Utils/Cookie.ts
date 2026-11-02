@@ -20,20 +20,6 @@ import {
 } from "../../Types/Dashboard/MasterPassword";
 import CaptureSpan from "./Telemetry/CaptureSpan";
 import RequestTransport from "./RequestTransport";
-import type { SessionMetadata } from "../Services/UserSessionService";
-
-/*
- * What a session's cookies are set from (CookieUtil.setUserCookie), as the
- * session service hands it over (getSessionCookieFields).
- */
-export interface SessionCookieFields {
-  sessionId: ObjectID;
-  refreshToken: string;
-  refreshTokenExpiresAt: Date;
-  accessTokenExpiresInSeconds: number;
-  signedInAt: Date;
-  lastActiveAt: Date;
-}
 
 // The default life of an SSO sign-in's proof: thirty days.
 const SSO_SIGN_IN_LIFETIME_IN_DAYS: number = 30;
@@ -218,24 +204,6 @@ export default class CookieUtil {
     });
   }
 
-  /*
-   * The fields setUserCookie takes from a session the session service just
-   * made or renewed: its id and refresh token, and what its access token
-   * says and how long it lives (SessionMetadata).
-   */
-  public static getSessionCookieFields(
-    sessionMetadata: SessionMetadata,
-  ): SessionCookieFields {
-    return {
-      sessionId: sessionMetadata.session.id!,
-      refreshToken: sessionMetadata.refreshToken,
-      refreshTokenExpiresAt: sessionMetadata.refreshTokenExpiresAt,
-      accessTokenExpiresInSeconds: sessionMetadata.accessTokenExpiresInSeconds,
-      signedInAt: sessionMetadata.signedInAt,
-      lastActiveAt: sessionMetadata.lastActiveAt,
-    };
-  }
-
   @CaptureSpan()
   public static setUserCookie(data: {
     expressResponse: ExpressResponse;
@@ -247,7 +215,7 @@ export default class CookieUtil {
     accessTokenExpiresInSeconds?: number;
     /*
      * When the session signed in and when its person was last active
-     * (getSessionCookieFields): claims of its access token, which the
+     * (Utils/SessionCookieFields): claims of its access token, which the
      * server's session lengths are asked against on every request.
      */
     signedInAt?: Date | undefined;

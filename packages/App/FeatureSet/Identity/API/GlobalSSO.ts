@@ -41,6 +41,7 @@ import UserSessionService, {
   SessionMetadata,
 } from "Common/Server/Services/UserSessionService";
 import CookieUtil from "Common/Server/Utils/Cookie";
+import { getSessionCookieFields } from "Common/Server/Utils/SessionCookieFields";
 import JSONWebToken from "Common/Server/Utils/JsonWebToken";
 import Express, {
   ExpressRequest,
@@ -832,7 +833,7 @@ const loginUserWithGlobalSso: LoginUserWithGlobalSsoFunction = async (
       expressResponse: res,
       user: alreadySavedUser,
       isGlobalLogin: false,
-      ...CookieUtil.getSessionCookieFields(sessionMetadata),
+      ...getSessionCookieFields(sessionMetadata),
     });
 
     const host: Hostname = await DatabaseConfig.getHost();
