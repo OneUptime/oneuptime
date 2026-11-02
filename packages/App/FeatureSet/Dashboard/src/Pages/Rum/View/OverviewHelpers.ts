@@ -2,11 +2,11 @@ import Route from "Common/Types/API/Route";
 import OneUptimeDate from "Common/Types/Date";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
-import { RecordingHealthDiagnosis } from "Common/Types/Rum/SessionReplayHealth";
 import {
-  describeHealthError,
-  SessionReplayHealthError,
-} from "../../../Components/SessionReplay/SessionReplayHealthError";
+  RecordingHealthDiagnosis,
+  RecordingHealthState,
+} from "Common/Types/Rum/SessionReplayHealth";
+import { SessionReplayHealthError } from "../../../Components/SessionReplay/SessionReplayHealthError";
 import {
   formatCompact,
   formatDurationMs,
@@ -14,6 +14,7 @@ import {
 import {
   translatePlural,
   translateTemplate,
+  translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -74,8 +75,42 @@ export function buildRangedListRoute(
 }
 
 /*
- * The "Recording health" detail row's value, or undefined to leave the row
- * out entirely.
+ * What the "Recording Health" Details row says for each state the
+ * diagnosis can find: a few words, as the card's other values are, in the
+ * reader's language (the page looks them up). The whole sentence - what
+ * stopped, since when, for which reason, and what to do - is on the
+ * application's Health page, in the Session Replay section of its menu.
+ *
+ * The row used to carry that sentence, composed in English with its values
+ * glued in ("Uploads paused 3 hours ago", "12 uploads refused in 24h: ...",
+ * "No session recorded in the past 7 hours"), so it read in English on a
+ * German or a Persian Overview beside rows in the reader's language.
+ */
+export const RECORDING_HEALTH_ROW_WORDS: Readonly<
+  Record<RecordingHealthState, string>
+> = {
+  "disabled-project": translationKey("Switched off for this project"),
+  "disabled-app": translationKey("Switched off for this application"),
+  "budget-paused": translationKey("Uploads paused"),
+  refusing: translationKey("Uploads refused"),
+  "never-loaded": translationKey("Recorder never loaded"),
+  "loaded-never-uploaded": translationKey("Nothing uploaded yet"),
+  stale: translationKey("Uploads stopped"),
+  "healthy-quiet": translationKey("No recent sessions"),
+  healthy: translationKey("Healthy"),
+  unknown: translationKey("Unknown"),
+};
+
+// While the health is read, and when it could not be.
+export const RECORDING_HEALTH_ROW_CHECKING: string =
+  translationKey("Checking…");
+export const RECORDING_HEALTH_ROW_FAILED: string = translationKey(
+  "Could not be loaded",
+);
+
+/*
+ * The "Recording Health" detail row's value, in English (the page draws it
+ * in the reader's language), or undefined to leave the row out entirely.
  *
  * A viewer without the Read Session Replay permission (or on a plan that
  * does not include replay) is shown nothing rather than a permission error
@@ -89,7 +124,7 @@ export function describeRecordingHealthRow(health: {
   diagnosis: RecordingHealthDiagnosis;
 }): string | undefined {
   if (health.isLoading) {
-    return "Checking…";
+    return RECORDING_HEALTH_ROW_CHECKING;
   }
 
   if (health.error) {
@@ -97,10 +132,13 @@ export function describeRecordingHealthRow(health: {
       return undefined;
     }
 
-    return describeHealthError(health.error).title;
+    return RECORDING_HEALTH_ROW_FAILED;
   }
 
-  return health.diagnosis.title;
+  return (
+    RECORDING_HEALTH_ROW_WORDS[health.diagnosis.state] ||
+    RECORDING_HEALTH_ROW_WORDS.unknown
+  );
 }
 
 /*

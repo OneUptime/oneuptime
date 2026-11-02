@@ -792,19 +792,19 @@ test.describe("a host's Overview", () => {
     await expect(tile).toContainText("96.4%");
     await expect(tile).toContainText("/var/lib/postgresql");
 
-    // When it booted, in Details.
+    // When it booted, in Host Details.
     await expect(page.getByText("Booted", { exact: true })).toBeVisible();
 
     /*
      * What the host is doing comes first - its tiles, charts and
-     * Filesystems - then which alerts watch it, then its Details: ten
+     * Filesystems - then which alerts watch it, then its Host Details: ten
      * alert rows above the charts pushed them a screen down.
      */
     const filesystems: Locator = page.getByText("Filesystems", {
       exact: true,
     });
     const alerts: Locator = page.getByTestId("host-alerts");
-    const details: Locator = page.getByText("Details", { exact: true });
+    const details: Locator = page.getByText("Host Details", { exact: true });
     await expect(alerts.getByTestId("host-alerts-item")).toHaveCount(10);
     expect(await isBelow(filesystems, alerts)).toBe(true);
     expect(await isBelow(alerts, details)).toBe(true);

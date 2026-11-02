@@ -86,6 +86,80 @@ const PERSIAN: Record<string, string> = JSON.parse(
   ),
 ) as Record<string, string>;
 
+/*
+ * Each Overview's Details labels, in English, in the order a busy resource
+ * of the fixture's draws them (#5307's follow-up: one casing, Title Case,
+ * as every details card's labels are).
+ */
+const DETAIL_LABELS: Array<[string, Array<string>]> = [
+  [
+    "service",
+    [
+      "Technology",
+      "Runtime",
+      "Service Version",
+      "Deployment Environment",
+      "Service Namespace",
+      "Cloud Provider",
+      "Cloud Platform",
+      "Cloud Region",
+      "Cloud Account ID",
+    ],
+  ],
+  [
+    "database",
+    [
+      "Engine (db.system.name)",
+      "Version",
+      "Discovered From",
+      "Endpoints",
+      "Engine Metrics",
+    ],
+  ],
+  [
+    "queue",
+    [
+      "Messaging System",
+      "Destination",
+      "Broker Address",
+      "Discovered From",
+      "Queue Identifier",
+    ],
+  ],
+];
+
+// What each Details card says its rows are, under its title.
+const DETAILS_LINES: Record<string, string> = {
+  service: "Metadata captured from OpenTelemetry resource attributes.",
+  database:
+    "Its engine and endpoints, where OneUptime found it, and its engine metrics.",
+  queue:
+    "Its broker and destination, where OneUptime found it, and its broker metrics.",
+};
+
+/*
+ * Title Case: each word after the first starts with a capital, but for the
+ * short words Title Case keeps small. What is in brackets is the attribute
+ * the value is read from, as the telemetry names it.
+ */
+const SMALL_WORDS: Array<string> = ["a", "and", "by", "in", "of", "on", "the"];
+const IN_BRACKETS: RegExp = /\([^)]*\)/g;
+const BLANKS: RegExp = /\s+/;
+
+function isTitleCase(label: string): boolean {
+  return label
+    .replace(IN_BRACKETS, " ")
+    .split(BLANKS)
+    .filter(Boolean)
+    .every((word: string, index: number): boolean => {
+      const first: string = word.charAt(0);
+      return (
+        (index > 0 && SMALL_WORDS.includes(word)) ||
+        first === first.toUpperCase()
+      );
+    });
+}
+
 interface Recorded {
   unhandled: Array<Record<string, unknown>>;
   apiRequests: Array<{ method: string; url: string }>;
@@ -391,11 +465,11 @@ test.describe("the Details card ends with the record's ID line", () => {
       );
     };
 
-    await expect(valueOfRow(page, "Discovered from")).toHaveText(
+    await expect(valueOfRow(page, "Discovered From")).toHaveText(
       "Application traces",
     );
-    expect(await fontOf("Discovered from")).not.toMatch(/mono/i);
-    expect(await fontOf("Engine metrics")).not.toMatch(/mono/i);
+    expect(await fontOf("Discovered From")).not.toMatch(/mono/i);
+    expect(await fontOf("Engine Metrics")).not.toMatch(/mono/i);
     expect(await fontOf("Version")).toMatch(/mono/i);
     expect(await fontOf("Endpoints")).toMatch(/mono/i);
   });
@@ -429,6 +503,142 @@ test.describe("the Details card ends with the record's ID line", () => {
     );
     expect(labels).toContain(GERMAN["Cloud Account ID"]);
     expect(GERMAN["Cloud Account ID"]).not.toBe("Cloud Account ID");
+  });
+});
+
+/*
+ * #5307's follow-up: the Details rows read "Discovered from", "Engine
+ * metrics" and "Recording health" beside "Service Version" and "Cloud
+ * Provider"; a database's and a queue's card said its rows were "Metadata
+ * captured from OpenTelemetry resource attributes."; and where a database
+ * or a queue was found, and its engine metrics' status, read English on a
+ * German or a Persian page - in the hero's chips and in the rows.
+ */
+test.describe("one casing, a line of its own and its words in the reader's language", () => {
+  const PAGES: Record<string, string> = {
+    service: SERVICE_PAGE,
+    database: DATABASE_PAGE,
+    queue: QUEUE_PAGE,
+  };
+
+  test("every Details label is Title Case, on a service's, a database's and a queue's card", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const [name, labels] of DETAIL_LABELS) {
+      await openOverview(page, PAGES[name]!);
+
+      const drawn: Array<string> = (await detailRows(page)).map(
+        (row: string): string => {
+          return row.split(": ")[0]!;
+        },
+      );
+      expect({ name, drawn }).toEqual({ name, drawn: labels });
+      expect(
+        drawn.filter((label: string): boolean => {
+          return !isTitleCase(label);
+        }),
+      ).toEqual([]);
+    }
+  });
+
+  test("each card's line says where its rows come from: a database's and a queue's are their own", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const [name, line] of Object.entries(DETAILS_LINES)) {
+      await openOverview(page, PAGES[name]!);
+
+      await expect(page.getByText(line, { exact: true })).toBeVisible();
+      for (const other of Object.values(DETAILS_LINES)) {
+        if (other !== line) {
+          await expect(page.getByText(other, { exact: true })).toHaveCount(0);
+        }
+      }
+    }
+  });
+
+  test("in German, where a database was found and its engine metrics read in German, in its chips and its rows", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const found: string = GERMAN["Application traces"]!;
+    const notConnected: string = GERMAN["Not connected"]!;
+    expect(found).toBeTruthy();
+    expect(found).not.toBe("Application traces");
+    expect(notConnected).toBeTruthy();
+    expect(notConnected).not.toBe("Not connected");
+
+    await openOverview(page, DATABASE_PAGE, "lang=de");
+
+    await expect(valueOfRow(page, GERMAN["Discovered From"]!)).toHaveText(
+      found,
+    );
+    await expect(valueOfRow(page, GERMAN["Engine Metrics"]!)).toHaveText(
+      notConnected,
+    );
+    // The hero's chips, under its top row, say the same in the same words.
+    const hero: Locator = page
+      .getByTestId("resource-overview-header-row")
+      .locator("xpath=..");
+    await expect(hero.getByText(found, { exact: true })).toBeVisible();
+    await expect(hero).toContainText(notConnected);
+    await expect(hero).not.toContainText("Application traces");
+    await expect(hero).not.toContainText("Not connected");
+    await expect(
+      page.getByText(
+        GERMAN[
+          "Its engine and endpoints, where OneUptime found it, and its engine metrics."
+        ]!,
+        { exact: true },
+      ),
+    ).toBeVisible();
+    await screenshot(page, "resource-overview-database-german");
+  });
+
+  test("in German, where a queue was found reads in German", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openOverview(page, QUEUE_PAGE, "lang=de");
+
+    await expect(valueOfRow(page, GERMAN["Discovered From"]!)).toHaveText(
+      GERMAN["Application traces"]!,
+    );
+  });
+
+  test("in Persian, every Details label of the three cards reads in Persian", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const [name, labels] of DETAIL_LABELS) {
+      await openOverview(page, PAGES[name]!, "lang=fa");
+
+      const drawn: Array<string> = (await detailRows(page)).map(
+        (row: string): string => {
+          return row.split(": ")[0]!;
+        },
+      );
+      expect({ name, drawn }).toEqual({
+        name,
+        drawn: labels.map((english: string): string => {
+          return PERSIAN[english]!;
+        }),
+      });
+      // Persian lacked several of them: none is English now.
+      for (const english of labels) {
+        expect({ english, persian: PERSIAN[english] }).not.toEqual({
+          english,
+          persian: english,
+        });
+      }
+    }
+    await screenshot(page, "resource-overview-queue-persian");
   });
 });
 

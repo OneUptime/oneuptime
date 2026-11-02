@@ -242,7 +242,9 @@ jest.mock(
 );
 
 import DatabaseServerOverview from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/View/Overview";
-import ResourceOverview from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/ResourceOverview";
+import ResourceOverview, {
+  RESOURCE_OVERVIEW_DETAILS_DESCRIPTION,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/ResourceOverview";
 import {
   RESOURCE_HERO_CONTROLS_CLASS_NAME,
   RESOURCE_HERO_IDENTITY_CLASS_NAME,
@@ -428,6 +430,7 @@ describe("ResourceOverview's status pill", () => {
           chips={[]}
           tiles={[]}
           detailRows={[]}
+          detailsDescription={RESOURCE_OVERVIEW_DETAILS_DESCRIPTION}
           controls={<div data-testid="controls" />}
           {...props}
         />

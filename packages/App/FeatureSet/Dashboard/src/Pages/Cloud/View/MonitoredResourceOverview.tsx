@@ -218,10 +218,16 @@ const CloudMonitoredResourceOverview: FunctionComponent<
         : undefined,
       mono: false,
     },
+    /*
+     * The category in the reader's language: one of the product's own
+     * words ("Databases and caches"), which read English on every page.
+     */
     {
       label: "Category",
       value: descriptor
-        ? CLOUD_RESOURCE_CATEGORY_LABELS[descriptor.category]
+        ? translator.translateText(
+            CLOUD_RESOURCE_CATEGORY_LABELS[descriptor.category],
+          ) || CLOUD_RESOURCE_CATEGORY_LABELS[descriptor.category]
         : undefined,
       mono: false,
     },
