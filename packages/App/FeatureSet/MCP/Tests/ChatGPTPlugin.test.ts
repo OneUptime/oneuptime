@@ -83,6 +83,9 @@ const SKILLS_DIRECTORY: string = path.join(
 
 const FRONTMATTER_PATTERN: RegExp = /^---\n([\s\S]*?)\n---\n/;
 
+// A skill's name, as the Agent Skills format allows it.
+const SKILL_NAME_PATTERN: RegExp = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
 // The clients that load these skills, and the ones like them.
 const CLIENT_NAME_PATTERN: RegExp =
   /\b(?:Claude|Cursor|ChatGPT|Codex|Copilot|Windsurf|Gemini)\b/;
@@ -422,7 +425,7 @@ describe("the ChatGPT plugin package", () => {
         expect([
           skill.directory,
           name === skill.directory,
-          typeof name === "string" && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(name),
+          typeof name === "string" && SKILL_NAME_PATTERN.test(name),
           typeof description === "string" &&
             description.trim().length > 0 &&
             description.length <= 1024,
