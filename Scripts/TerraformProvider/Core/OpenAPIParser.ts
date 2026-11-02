@@ -1105,6 +1105,15 @@ export class OpenAPIParser {
 
     const relationTag: unknown = prop["x-oneuptime-relation"]?.tag;
     const relationTableName: unknown = prop["x-oneuptime-relation"]?.tableName;
+    /*
+     * A secret - a key, a token, a passphrase, a webhook address - whatever
+     * its type: the spec marks every one x-oneuptime-secret
+     * (Common/Utils/Schema/ModelSchema.isSecretColumn), and an encrypted
+     * string format: password too. Sensitive, so plans, logs and outputs
+     * print (sensitive value) instead of it.
+     */
+    const isSecret: boolean =
+      prop["x-oneuptime-secret"] === true || format === "password";
 
     const base: TerraformAttribute = {
       type: "string",
@@ -1121,6 +1130,7 @@ export class OpenAPIParser {
       ...(typeof relationTableName === "string" && relationTableName
         ? { relationTableName }
         : {}),
+      ...(isSecret ? { sensitive: true } : {}),
     };
 
     /*
@@ -1193,6 +1203,7 @@ export class OpenAPIParser {
             ...base,
             type: "string",
             isComplexObject: true,
+            ...(isWrappedScalar ? { isWrappedScalar: true } : {}),
             description: [description, hint].filter(Boolean).join(" "),
           },
           requiredInCreate: required,
@@ -1204,9 +1215,6 @@ export class OpenAPIParser {
           attribute.enumValues = prop.enum.map((value: any) => {
             return String(value);
           });
-        }
-        if (format === "password") {
-          attribute.sensitive = true;
         }
         return { attribute, requiredInCreate: required };
       }

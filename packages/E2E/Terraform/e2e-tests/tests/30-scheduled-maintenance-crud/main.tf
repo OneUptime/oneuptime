@@ -29,10 +29,13 @@ resource "random_id" "suffix" {
 # 4. Idempotency
 
 locals {
-  # Fixed future timestamps: the provider must round-trip these without drift
-  # (its semantic date equality has to treat server-normalized forms as equal).
-  starts_at = "2030-06-01T10:00:00.000Z"
-  ends_at   = "2030-06-01T11:00:00.000Z"
+  # Fixed future timestamps, written without milliseconds as a person (or
+  # timeadd()) writes them. OneUptime keeps them with milliseconds
+  # ("2030-06-01T10:00:00.000Z"): the provider's date equality has to treat
+  # that as the same instant after an apply, and the import round trip has
+  # to plan no change for it either.
+  starts_at = "2030-06-01T10:00:00Z"
+  ends_at   = "2030-06-01T11:00:00Z"
 }
 
 # Test Case 1: Basic Scheduled Maintenance

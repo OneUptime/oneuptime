@@ -231,21 +231,112 @@ run_drift_gate() {
     fi
 }
 
+# The import ID of one address: its id, or what the test's import-ids.txt
+# says - "<address> <import id>", where each {attribute} is that attribute's
+# value in state ("{team_id}/{user_email}" imports a membership by its team
+# and the person's address, as a reader would write it).
+import_id_for() {
+    local test_path="$1"
+    local addr="$2"
+    local show_json="$3"
+    local values
+    local template=""
+    local placeholder
+    local attribute
+    local value
+
+    values=$(echo "$show_json" | jq -c --arg addr "$addr" \
+        '.values.root_module.resources[] | select(.address == $addr) | .values')
+
+    if [ -f "$test_path/import-ids.txt" ]; then
+        template=$(grep -v '^[[:space:]]*#' "$test_path/import-ids.txt" | awk -v a="$addr" '$1 == a { print $2; exit }')
+    fi
+
+    if [ -z "$template" ]; then
+        echo "$values" | jq -r '.id // empty'
+        return 0
+    fi
+
+    while IFS= read -r placeholder; do
+        [ -z "$placeholder" ] && continue
+        attribute="${placeholder#\{}"
+        attribute="${attribute%\}}"
+        value=$(echo "$values" | jq -r --arg a "$attribute" '.[$a] // empty')
+        if [ -z "$value" ]; then
+            echo "  ✗ FAILED: import-ids.txt names {$attribute} for $addr, which is empty in state" >&2
+            return 1
+        fi
+        template="${template//"$placeholder"/$value}"
+    done < <(echo "$template" | grep -o '{[a-z0-9_]*}' | sort -u)
+
+    echo "$template"
+}
+
+# What the plan in <plan file> changes, one "<address> <attribute>" line per
+# attribute whose value it changes (an attribute the change only leaves
+# "known after apply" is not one), and "<address> (replaced)" for a
+# replacement. Values are shown, sensitive ones masked.
+planned_changes() {
+    local plan_file="$1"
+
+    terraform show -json "$plan_file" | jq -r '
+        .resource_changes[]?
+        | select((.change.actions | index("no-op")) == null and (.change.actions | index("read")) == null)
+        | . as $rc
+        | ($rc.change.before // {}) as $before
+        | ($rc.change.after // {}) as $after
+        | ($rc.change.after_unknown // {}) as $unknown
+        | if ($rc.change.actions | index("delete")) != null then
+            "\($rc.address) (replaced)"
+          else
+            ([($before | keys[]), ($after | keys[])] | unique
+              | map(select($unknown[.] != true and $before[.] != $after[.]))) as $changed
+            | if ($changed | length) == 0 then
+                "\($rc.address) (updated)"
+              else
+                $changed[]
+                | . as $k
+                | if (($rc.change.before_sensitive // {})[$k] // false) != false
+                     or (($rc.change.after_sensitive // {})[$k] // false) != false then
+                    "\($rc.address) \($k): (sensitive)"
+                  else
+                    "\($rc.address) \($k): \($before[$k] | tojson) -> \($after[$k] | tojson)"
+                  end
+              end
+          end'
+}
+
 # Import round-trip: for every oneuptime_* resource in state, drop it from
-# state and re-import it by id, run one settling apply, then require a clean
-# plan. The settling apply is standard post-import practice: imported state
-# holds the server's full normalized form while config holds the sparse
-# form, so Terraform core plans one update whose only effect is aligning
-# state (the provider sends no API mutation when nothing really changed).
-# Catches broken or missing Read/import implementations. Addresses listed in
-# the test's skip-import.txt (one per line, e.g. resources whose API has no
-# read endpoint or write-only fields) are skipped.
+# state and import it again (import_id_for), then require that the very next
+# plan is clean. An import has to settle on its own: someone who imports what
+# they made in the dashboard into a configuration they wrote by hand must not
+# be shown changes to things they never changed - a timestamp written without
+# milliseconds, a URL without its trailing slash, the defaults of a monitor's
+# criteria. Catches broken or missing Read/import implementations, and
+# attributes whose imported value does not match how a configuration writes
+# them.
+#
+# The only changes that plan may make are the ones the test's
+# import-settles.txt names ("<address> <attribute>", one per line, each with a
+# comment saying why): attributes the API never sends back, such as a
+# password it keeps write-only, which an import cannot know. The runner then
+# applies once to settle them, and requires a clean plan after that.
+#
+# Addresses listed in the test's skip-import.txt (one per line, e.g.
+# resources whose API has no read endpoint) are not imported.
 run_import_phase() {
     local test_path="$1"
     local addrs
     local addr
     local id
     local show_json
+    local plan_file
+    local plan_exit=0
+    local plan_output
+    local changes
+    local change
+    local allowed
+    local unexpected=""
 
     addrs=$(terraform state list 2>/dev/null | grep '^oneuptime_' || true)
     if [ -z "$addrs" ]; then
@@ -267,14 +358,12 @@ run_import_phase() {
             continue
         fi
 
-        id=$(echo "$show_json" | jq -r --arg addr "$addr" \
-            '.values.root_module.resources[] | select(.address == $addr) | .values.id // empty')
-        if [ -z "$id" ]; then
-            echo "  ✗ FAILED: could not extract id for $addr from terraform show -json"
+        if ! id=$(import_id_for "$test_path" "$addr" "$show_json") || [ -z "$id" ]; then
+            echo "  ✗ FAILED: could not work out the import id for $addr from terraform show -json"
             return 1
         fi
 
-        echo "    Import round-trip: $addr (id: $id)"
+        echo "    Import round-trip: $addr (import id: $id)"
         if ! terraform state rm "$addr"; then
             echo "  ✗ FAILED: terraform state rm $addr"
             return 1
@@ -291,12 +380,52 @@ run_import_phase() {
         return 0
     fi
 
-    echo "  Running settling apply after import..."
-    if ! terraform apply -input=false -auto-approve > /dev/null 2>&1; then
-        echo "  ✗ FAILED: settling apply after import failed"
-        terraform apply -input=false -auto-approve 2>&1 | tail -40
+    echo "  Planning right after import..."
+    plan_file="$(mktemp -d)/import.tfplan"
+    plan_output=$(terraform plan -detailed-exitcode -input=false -out="$plan_file" 2>&1) || plan_exit=$?
+
+    if [ "$plan_exit" -eq 1 ]; then
+        echo "  ✗ FAILED: terraform plan errored right after import"
+        echo "$plan_output"
+        rm -rf "$(dirname "$plan_file")"
         return 1
     fi
+
+    if [ "$plan_exit" -eq 2 ]; then
+        if ! changes=$(planned_changes "$plan_file"); then
+            echo "  ✗ FAILED: could not read the plan made right after import"
+            rm -rf "$(dirname "$plan_file")"
+            return 1
+        fi
+
+        while IFS= read -r change; do
+            [ -z "$change" ] && continue
+            # "<address> <attribute>" without what follows the colon.
+            allowed="${change%%:*}"
+            if [ -f "$test_path/import-settles.txt" ] && \
+                grep -v '^[[:space:]]*#' "$test_path/import-settles.txt" | sed 's/[[:space:]]*#.*$//' | grep -Fxq "$allowed"; then
+                echo "    Settles after import (import-settles.txt): $change"
+            else
+                unexpected="$unexpected"$'\n'"      $change"
+            fi
+        done <<< "$changes"
+
+        if [ -n "$unexpected" ]; then
+            echo "  ✗ FAILED: the plan right after import changes what nothing changed:$unexpected"
+            echo "$plan_output"
+            rm -rf "$(dirname "$plan_file")"
+            return 1
+        fi
+
+        echo "  Applying what the API never sends back (import-settles.txt)..."
+        if ! terraform apply -input=false -auto-approve "$plan_file" > /dev/null 2>&1; then
+            echo "  ✗ FAILED: settling apply after import failed"
+            terraform apply -input=false -auto-approve 2>&1 | tail -40
+            rm -rf "$(dirname "$plan_file")"
+            return 1
+        fi
+    fi
+    rm -rf "$(dirname "$plan_file")"
 
     if ! run_drift_gate "post-import"; then
         echo "  ✗ FAILED: plan not clean after import round-trip"

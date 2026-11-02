@@ -169,6 +169,11 @@ export interface TerraformAttribute {
   apiFieldName?: string; // Original OpenAPI field name for API requests
   example?: any; // Example value from OpenAPI spec
   isComplexObject?: boolean; // Flag to indicate this string field is actually a complex object
+  /*
+   * A complex object that is one value in a wrapper ({_type: "Color",
+   * value: "#ff0000"}): written, and kept in state, as the plain value.
+   */
+  isWrappedScalar?: boolean;
   format?: string; // OpenAPI format information (e.g., "binary", "date-time", etc.)
   isDateTime?: boolean; // RFC3339 timestamp (spec DateTime wrapper) — uses semantic instant equality
   isMonitorSteps?: boolean; // MonitorSteps wrapper — emitted as a typed nested attribute (monitorsteps.go)

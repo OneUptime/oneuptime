@@ -480,9 +480,21 @@ describe("the Go the generator writes", () => {
     expect(ruleGo).not.toContain("setplanmodifier");
   });
 
-  test("a resource that names nobody is as it was", () => {
-    expect(teamGo).not.toContain("ModifyPlan");
+  test("a resource that names nobody plans nobody", () => {
     expect(teamGo).not.toContain("person");
+    expect(teamGo).not.toContain("planPersonID");
+    expect(teamGo).not.toContain("planPeopleIDs");
+
+    /*
+     * Its ModifyPlan, which every resource has, only keeps the state when
+     * nothing a configuration sets changes (importsettle.go).
+     */
+    const modifyPlan: string = between(
+      teamGo,
+      "func (r *TeamResource) ModifyPlan",
+      "\n}\n",
+    );
+    expect(modifyPlan).toContain("keepStateWhenNothingChanges(ctx, req, resp)");
   });
 
   test("a membership is imported by its ID, or by team and person", () => {
