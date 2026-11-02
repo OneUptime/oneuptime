@@ -197,6 +197,7 @@ import KubernetesResourceAPI from "Common/Server/API/KubernetesResourceAPI";
 import KubernetesClusterAiAccessAPI from "Common/Server/API/KubernetesClusterAiAccessAPI";
 import ResourceAiAccessAPI from "Common/Server/API/ResourceAiAccessAPI";
 import ProxmoxResourceAPI from "Common/Server/API/ProxmoxResourceAPI";
+import HostAPI from "Common/Server/API/HostAPI";
 import VMwareResourceAPI from "Common/Server/API/VMwareResourceAPI";
 import IoTDeviceAPI from "Common/Server/API/IoTDeviceAPI";
 import DockerSwarmResourceAPI from "Common/Server/API/DockerSwarmResourceAPI";
@@ -978,9 +979,6 @@ import MessageQueueLabelRuleService, {
 import MessageQueueOwnerRuleService, {
   Service as MessageQueueOwnerRuleServiceType,
 } from "Common/Server/Services/MessageQueueOwnerRuleService";
-import HostService, {
-  Service as HostServiceType,
-} from "Common/Server/Services/HostService";
 import HostOwnerTeamService, {
   Service as HostOwnerTeamServiceType,
 } from "Common/Server/Services/HostOwnerTeamService";
@@ -1594,7 +1592,6 @@ import MessageQueueOwnerTeam from "Common/Models/DatabaseModels/MessageQueueOwne
 import MessageQueueOwnerUser from "Common/Models/DatabaseModels/MessageQueueOwnerUser";
 import MessageQueueLabelRule from "Common/Models/DatabaseModels/MessageQueueLabelRule";
 import MessageQueueOwnerRule from "Common/Models/DatabaseModels/MessageQueueOwnerRule";
-import Host from "Common/Models/DatabaseModels/Host";
 import HostOwnerTeam from "Common/Models/DatabaseModels/HostOwnerTeam";
 import HostOwnerUser from "Common/Models/DatabaseModels/HostOwnerUser";
 import HostCollectorConfig from "Common/Models/DatabaseModels/HostCollectorConfig";
@@ -5609,10 +5606,8 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
-    app.use(
-      `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<Host, HostServiceType>(Host, HostService).getRouter(),
-    );
+    // The hosts' CRUD routes and the Hosts list's Needs attention read.
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, new HostAPI().getRouter());
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,

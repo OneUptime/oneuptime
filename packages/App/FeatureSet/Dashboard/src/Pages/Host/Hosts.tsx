@@ -21,6 +21,7 @@ import React, {
   useState,
 } from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import BreakableName from "Common/UI/Components/BreakableName/BreakableName";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
@@ -45,19 +46,20 @@ import {
   isHostCollectorManaged,
 } from "../../Components/HostCollector/HostCollectorStatus";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import Pill from "Common/UI/Components/Pill/Pill";
-import { Blue, Green, Red } from "Common/Types/BrandColors";
 import AppLink from "../../Components/AppLink/AppLink";
+import HostFleetAttentionCard from "../../Components/Host/HostFleetAttentionCard";
+import {
+  HOST_STATUS_COLUMN_CLASS_NAME,
+  HOST_USAGE_COLUMN_CLASS_NAME,
+  HostCellLine,
+  HostStatusCell,
+  HostUsageCell,
+  getHostCellLine,
+} from "../../Components/Host/HostListCells";
 import ObjectID from "Common/Types/ObjectID";
 import { HOST_METRIC_DESCRIPTIONS } from "../../Components/MetricDescriptions/HostMetricDescriptions";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
-
-interface ResourceSummary {
-  cores: number | undefined;
-  memoryBytes: number | undefined;
-  processes: number | undefined;
-}
 
 /*
  * The config a host runs, under its collector's state: as wide as the
@@ -68,21 +70,25 @@ interface ResourceSummary {
 const HOSTS_COLLECTOR_CONFIG_LABEL_CLASS_NAME: string =
   "w-0 min-w-full truncate text-xs text-gray-500";
 
-const formatMemory: (bytes: number | undefined) => string = (
-  bytes: number | undefined,
-): string => {
-  if (bytes === undefined || bytes === null || !Number.isFinite(bytes)) {
-    return "—";
-  }
-  const units: Array<string> = ["B", "KiB", "MiB", "GiB", "TiB"];
-  let v: number = bytes;
-  let i: number = 0;
-  while (v >= 1024 && i < units.length - 1) {
-    v /= 1024;
-    i++;
-  }
-  return `${v.toFixed(v < 10 ? 1 : 0)} ${units[i]}`;
-};
+/*
+ * The host's name, never narrower than 8rem beside its Status and usage
+ * bars, cut short at 12rem: named here, the table leaves the column's
+ * width to the page rather than giving the name's room to the bars.
+ */
+export const HOSTS_NAME_CELL_WIDTH_CLASS_NAME: string =
+  "min-w-[8rem] max-w-[12rem]";
+
+/*
+ * The host's name, the row's link: two lines at most, broken between its
+ * words and after its dots and hyphens (BreakableName) before anywhere
+ * else, the whole of it under the pointer. Cut to one line, "Payments
+ * database" read "Payments datab..." in German at 1280, where the longer
+ * column headings leave the name its least width. A table's cell keeps its
+ * values on one line (whitespace-nowrap), so the name says it wraps, and
+ * its two lines sit as close as a name's do (leading-5), not a cell's.
+ */
+export const HOSTS_NAME_LINE_CLASS_NAME: string =
+  "line-clamp-2 whitespace-normal text-sm leading-5 [overflow-wrap:anywhere]";
 
 const isIPv4: (ip: string) => boolean = (ip: string): boolean => {
   return ip.includes(".") && !ip.includes(":");
@@ -234,9 +240,15 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
   );
 
   const hostExtraFacets: Array<ResourceFacet> = [
+    /*
+     * Whether OneUptime hears from the host, in the words its hero's pill
+     * uses. Not "Status": the Status column says the host's health -
+     * Healthy, Degraded, Not reporting - and a Status filter offering
+     * Connected and Disconnected answered a different question.
+     */
     {
       key: "otelCollectorStatus",
-      label: "Status",
+      label: "Connection",
       icon: IconProp.Wifi,
       isMultiSelect: false,
       options: [
@@ -319,6 +331,9 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
     );
   }
 
+  // Every row's readings are judged against one moment (HostHealth).
+  const now: Date = new Date();
+
   /*
    * A host is added by running one command on it (Add Host): the command
    * installs the collector OneUptime configures, and the host registers
@@ -328,6 +343,18 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
    */
   return (
     <Fragment>
+      {/*
+       * What on the fleet needs someone, the most urgent first, before the
+       * list: hosts not reporting, filling up, short of memory, overloaded,
+       * with failed units or a config that did not start (HostHealth).
+       */}
+      {(firstRecordWatch.count ?? 0) > 0 ? (
+        <HostFleetAttentionCard
+          refreshToken={`${firstRecordWatch.refreshToken}-${connectedCount}`}
+        />
+      ) : (
+        <></>
+      )}
       <ModelTable<Host>
         modelType={Host}
         // Archive in each row's ⋯ menu, as in Bulk Actions.
@@ -377,13 +404,27 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
           processCount: true,
           containerRuntime: true,
           lastSeenAt: true,
+          createdAt: true,
           collectorInstanceUid: true,
           collectorLastContactAt: true,
+          collectorRegisteredAt: true,
           collectorConfigStatus: true,
           isCollectorHealthy: true,
           collectorConfig: {
             name: true,
           },
+          // What the host last reported, for Status, CPU, Memory and Disk.
+          latestCpuPercent: true,
+          latestMemoryPercent: true,
+          latestSwapPercent: true,
+          latestDiskPercent: true,
+          latestDiskMountpoint: true,
+          latestInodesPercent: true,
+          latestInodesMountpoint: true,
+          latestLoadAverage15m: true,
+          failedSystemdUnitCount: true,
+          failedSystemdUnits: true,
+          readingsUpdatedAt: true,
         }}
         cardProps={{
           title: "Hosts",
@@ -447,118 +488,89 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
             title: "Name",
             type: FieldType.Element,
+            contentClassName: HOSTS_NAME_CELL_WIDTH_CLASS_NAME,
             getElement: (item: Host): ReactElement => {
               const id: string = (item.hostIdentifier as string) || "";
               const name: string = (item.name as string) || "";
               const showId: boolean = id !== "" && id !== name;
+              const osType: string = (item.osType as string) || "";
+              const arch: string = (item.hostArch as string) || "";
               const route: Route = RouteUtil.populateRouteParams(
                 RouteMap[PageMap.HOST_VIEW] as Route,
                 {
                   modelId: new ObjectID(item._id as string),
                 },
               );
+              const osLabel: string =
+                osType || translator.translateText("unknown") || "unknown";
+              /*
+               * Its name, its host name where that is another, and what it
+               * runs: the OS and architecture a column of their own held.
+               * The name wraps onto a second line where the column is
+               * narrow (HOSTS_NAME_LINE_CLASS_NAME); the host name and the
+               * OS end in "..." where the column does. Each is whole under
+               * the pointer, and on a Persian page reads, and is cut short,
+               * at its own end (getHostCellLine).
+               */
+              const nameLine: HostCellLine = getHostCellLine({
+                text: name,
+                language: translator.language,
+                className: HOSTS_NAME_LINE_CLASS_NAME,
+              });
+              const idLine: HostCellLine = getHostCellLine({
+                text: id,
+                language: translator.language,
+                className: "truncate font-mono text-xs text-gray-500",
+              });
+              const osLine: HostCellLine = getHostCellLine({
+                text: [osLabel, arch].filter(Boolean).join(" "),
+                language: translator.language,
+                className: "truncate text-xs text-gray-500",
+              });
               return (
                 <div className="min-w-0">
-                  <AppLink
-                    to={route}
-                    className="text-sm font-medium text-gray-900 truncate hover:underline"
+                  <div
+                    dir={nameLine.dir}
+                    className={nameLine.className}
+                    title={name || undefined}
                   >
-                    {name || "—"}
-                  </AppLink>
+                    <AppLink
+                      to={route}
+                      className="text-sm font-medium text-gray-900 hover:underline"
+                    >
+                      {name ? <BreakableName text={name} /> : "—"}
+                    </AppLink>
+                  </div>
                   {showId && (
-                    <div className="text-xs text-gray-500 font-mono truncate">
+                    <div
+                      dir={idLine.dir}
+                      className={idLine.className}
+                      title={id}
+                      data-testid="host-identifier"
+                    >
                       {id}
                     </div>
                   )}
-                </div>
-              );
-            },
-          },
-          {
-            field: {
-              osType: true,
-            },
-            title: "OS",
-            type: FieldType.Element,
-            hideOnMobile: true,
-            getElement: (item: Host): ReactElement => {
-              const osType: string = (item.osType as string) || "";
-              const arch: string = (item.hostArch as string) || "";
-              if (!osType && !arch) {
-                return <span className="text-sm text-gray-400">—</span>;
-              }
-              return (
-                <div className="text-sm text-gray-700">
-                  <span className="capitalize">
-                    {osType || translator.translateText("unknown")}
-                  </span>
-                  {arch && (
-                    <span className="ml-1.5 text-xs font-mono text-gray-500">
-                      {arch}
-                    </span>
-                  )}
-                </div>
-              );
-            },
-          },
-          {
-            field: {
-              hostIpAddresses: true,
-            },
-            title: "IP Address",
-            type: FieldType.Element,
-            hideOnMobile: true,
-            getElement: (item: Host): ReactElement => {
-              return (
-                <IpAddressCell
-                  ipString={(item.hostIpAddresses as string) || ""}
-                />
-              );
-            },
-          },
-          {
-            field: {
-              cpuCores: true,
-            },
-            title: "Resources",
-            type: FieldType.Element,
-            hideOnMobile: true,
-            headerTooltip: HOST_METRIC_DESCRIPTIONS.hostListResources,
-            getElement: (item: Host): ReactElement => {
-              const summary: ResourceSummary = {
-                cores: item.cpuCores ?? undefined,
-                memoryBytes: item.totalMemoryBytes ?? undefined,
-                processes: item.processCount ?? undefined,
-              };
-              if (
-                summary.cores === undefined &&
-                summary.memoryBytes === undefined &&
-                summary.processes === undefined
-              ) {
-                return <span className="text-sm text-gray-400">—</span>;
-              }
-              const parts: Array<string> = [];
-              if (summary.cores !== undefined) {
-                parts.push(
-                  `${summary.cores} core${summary.cores === 1 ? "" : "s"}`,
-                );
-              }
-              if (summary.memoryBytes !== undefined) {
-                parts.push(formatMemory(summary.memoryBytes));
-              }
-              return (
-                <div className="text-sm text-gray-700">
-                  <div>{parts.join(" · ") || "—"}</div>
-                  {summary.processes !== undefined && (
-                    <div className="text-xs text-gray-500">
-                      {translator.translatePlural(
-                        {
-                          one: "{{count}} process",
-                          other: "{{count}} processes",
-                        },
-                        summary.processes,
+                  {osType || arch ? (
+                    <div
+                      dir={osLine.dir}
+                      className={osLine.className}
+                      data-testid="host-os"
+                    >
+                      <span className="capitalize">{osLabel}</span>
+                      {arch ? (
+                        <>
+                          {" "}
+                          <span className="font-mono text-gray-400">
+                            {arch}
+                          </span>
+                        </>
+                      ) : (
+                        <></>
                       )}
                     </div>
+                  ) : (
+                    <></>
                   )}
                 </div>
               );
@@ -570,24 +582,73 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
             title: "Status",
             type: FieldType.Element,
+            contentClassName: HOST_STATUS_COLUMN_CLASS_NAME,
+            headerTooltip: HOST_METRIC_DESCRIPTIONS.hostListStatus,
+            /*
+             * The host's health in one word, by the rules its Needs
+             * attention card follows, with the reason under it. A managed
+             * host whose collector registered and is still starting says
+             * so, pulsing, as it did.
+             */
             getElement: (item: Host): ReactElement => {
-              const isConnected: boolean =
-                item.otelCollectorStatus === "connected";
-              /*
-               * A host whose collector OneUptime manages registers before
-               * its first metrics: it is starting, not disconnected.
-               */
-              if (
-                !isConnected &&
-                !item.lastSeenAt &&
-                isHostCollectorManaged(item)
-              ) {
-                return <Pill text="Starting" color={Blue} isPulsing={true} />;
-              }
+              return <HostStatusCell host={item} now={now} />;
+            },
+          },
+          {
+            field: {
+              latestCpuPercent: true,
+            },
+            title: "CPU",
+            type: FieldType.Element,
+            contentClassName: HOST_USAGE_COLUMN_CLASS_NAME,
+            hideOnMobile: true,
+            headerTooltip: HOST_METRIC_DESCRIPTIONS.hostListCpu,
+            getElement: (item: Host): ReactElement => {
+              return <HostUsageCell host={item} kind="cpu" now={now} />;
+            },
+          },
+          {
+            field: {
+              latestMemoryPercent: true,
+            },
+            title: "Memory",
+            type: FieldType.Element,
+            contentClassName: HOST_USAGE_COLUMN_CLASS_NAME,
+            hideOnMobile: true,
+            headerTooltip: HOST_METRIC_DESCRIPTIONS.hostListMemory,
+            getElement: (item: Host): ReactElement => {
+              return <HostUsageCell host={item} kind="memory" now={now} />;
+            },
+          },
+          {
+            field: {
+              latestDiskPercent: true,
+            },
+            title: "Disk",
+            type: FieldType.Element,
+            contentClassName: HOST_USAGE_COLUMN_CLASS_NAME,
+            hideOnMobile: true,
+            headerTooltip: HOST_METRIC_DESCRIPTIONS.hostListDisk,
+            getElement: (item: Host): ReactElement => {
+              return <HostUsageCell host={item} kind="disk" now={now} />;
+            },
+          },
+          {
+            field: {
+              hostIpAddresses: true,
+            },
+            title: "IP Address",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            /*
+             * Gives way where the row has no room for every column: the
+             * host's health and its numbers come first.
+             */
+            hideBelowLargeScreen: true,
+            getElement: (item: Host): ReactElement => {
               return (
-                <Pill
-                  text={isConnected ? "Connected" : "Disconnected"}
-                  color={isConnected ? Green : Red}
+                <IpAddressCell
+                  ipString={(item.hostIpAddresses as string) || ""}
                 />
               );
             },
@@ -599,9 +660,12 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
             title: "Collector",
             type: FieldType.Element,
             /*
-             * Shown on phones too: a config that failed on a host is the
-             * one thing in this row that asks for action.
+             * Given way where the row has no room, a phone's card
+             * included: what asks for action about a host's collector - a
+             * config that did not start, a collector that reports an
+             * error - is a reason in the Status column too.
              */
+            hideBelowLargeScreen: true,
             getElement: (item: Host): ReactElement => {
               // A collector installed by hand: nothing OneUptime manages.
               if (!isHostCollectorManaged(item)) {
@@ -638,6 +702,7 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
             title: "Last Seen",
             type: FieldType.DateTime,
+            hideBelowLargeScreen: true,
           },
           {
             field: {
@@ -649,6 +714,8 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
             title: "Labels",
             type: FieldType.EntityArray,
             hideOnMobile: true,
+            hideBelowLargeScreen: true,
+            foldInto: "name",
             getElement: (item: Host): ReactElement => {
               return <LabelsElement labels={item["labels"] || []} />;
             },
@@ -660,6 +727,8 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
             title: "Owners",
             type: FieldType.Element,
             hideOnMobile: true,
+            hideBelowLargeScreen: true,
+            foldInto: "name",
             getElement: (item: Host): ReactElement => {
               return (
                 <OwnersCell

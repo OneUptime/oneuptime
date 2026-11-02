@@ -368,14 +368,19 @@ export class AnalyticsModelSchema extends BaseSchema {
           this.addDefaultToOpenApi({ type: "boolean", example: true }, column),
           disableOpenApiSchema,
         );
+      // Any JSON value: an object, or an array, as a span's links are.
       case TableColumnType.JSON:
         return this.applyOpenApi(
           z.any(),
+          this.addDefaultToOpenApi({ example: { key: "value" } }, column),
+          disableOpenApiSchema,
+        );
+      // Strings by key, as a log's or a span's attributes.
+      case TableColumnType.MapStringString:
+        return this.applyOpenApi(
+          z.object({}).catchall(z.string()),
           this.addDefaultToOpenApi(
-            {
-              type: "object",
-              example: { key: "value" },
-            },
+            { example: { "http.method": "GET" } },
             column,
           ),
           disableOpenApiSchema,
@@ -406,6 +411,8 @@ export class AnalyticsModelSchema extends BaseSchema {
           disableOpenApiSchema,
         );
       case TableColumnType.ArrayNumber:
+      case TableColumnType.ArrayDecimal:
+      case TableColumnType.ArrayBigNumber:
         return this.applyOpenApi(
           z.array(z.number()),
           this.addDefaultToOpenApi(
@@ -462,8 +469,11 @@ export class AnalyticsModelSchema extends BaseSchema {
   }
 
   /*
-   * The fields a create may send: the columns somebody may create, less
-   * those with a default. Its example sends the fields it requires.
+   * The fields a create may send: the columns somebody may create. One with
+   * a default is optional - the API writes the default
+   * (AnalyticsDatabaseService.checkRequiredFields) - and so is the project,
+   * which the API takes from the request. Its example sends the fields it
+   * requires.
    *
    * Its .openapi() names no `type`: zod-to-openapi takes a `type` there for
    * the whole schema and leaves out the properties it would have generated,
@@ -481,16 +491,14 @@ export class AnalyticsModelSchema extends BaseSchema {
     const example: SchemaExample = {};
 
     for (const column of this.getWritableColumns(model, "create")) {
-      if (column.isDefaultValueColumn) {
-        continue;
-      }
-
       const value: ZodTypes.ZodTypeAny = this.getWriteValueSchema(
         column,
         disableOpenApiSchema,
       );
       const isRequired: boolean =
-        column.required && column.key !== tenantColumn;
+        column.required &&
+        !column.isDefaultValueColumn &&
+        column.key !== tenantColumn;
 
       shape[column.key] = this.applyOpenApi(
         isRequired ? value : value.optional(),

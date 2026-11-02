@@ -4,6 +4,7 @@ Legg til en Linux-, Windows- eller macOS-maskin i OneUptime med én kommando. Ko
 
 :::cards
 - [Legg til en vert](#legg-til-en-vert): Én kommando på Linux, Windows eller macOS.
+- [Se hvilke verter som krever oppmerksomhet](#se-hvilke-verter-som-krever-oppmerksomhet): Først det som er ødelagt, så hver verts tilstand, CPU, minne og disk.
 - [Endre hva verter samler inn](#endre-hva-verter-samler-inn): Innsamlerkonfigurasjoner etter system og etikett, med hver versjon tatt vare på.
 - [Sjekk innsamleren til en vert](#sjekk-innsamleren-til-en-vert): Konfigurasjonen den kjører, versjonen og hvorfor en konfigurasjon ikke startet.
 - [Hva en konfigurasjon kan gjøre](#hva-en-konfigurasjon-kan-gjøre): Lese verten og bare sende til denne OneUptime.
@@ -75,8 +76,29 @@ Hver OneUptime leverer sine egne installasjonsprogrammer, så en selvdriftet One
 
 ### Vent på verten
 
-Det siste trinnet i dialogen viser når verten kobler til, med en lenke til den. I listen vises den som **Starter** til de første målingene kommer, vanligvis innen et minutt, og deretter som tilkoblet, med innsamleren **Kjører**. Vertens side **Topologi** tegner på ett kart hva som kjører på den, hva som kaller den og hva den kaller: se [Topologi](/docs/telemetry/topology#åpne-en-ressurs-sitt-eget-kart).
+Det siste trinnet i dialogen viser når verten kobler til, med en lenke til den. I listen vises den som **Starter** til de første målingene kommer, vanligvis innen et minutt, og deretter med tilstanden sin, **Feilfri** når ingenting på den bør sjekkes, og innsamleren **Kjører**. Vertens side **Topologi** tegner på ett kart hva som kjører på den, hva som kaller den og hva den kaller: se [Topologi](/docs/telemetry/topology#åpne-en-ressurs-sitt-eget-kart).
 :::
+
+## Se hvilke verter som krever oppmerksomhet
+
+Listen **Verter** begynner med **Krever oppmerksomhet**: hver vert som er ødelagt eller bør sjekkes, den mest akutte først, hver med årsaken og ett steg til siden sin. En vert som har sluttet å rapportere, sier når den sist gjorde det. Krever ingenting oppmerksomhet, er det ikke noe kort.
+
+Under det sier hver verts **Status** med ett ord hvordan den har det, med årsaken under, og **CPU**, **Minne** og **Disk** viser hva den sist rapporterte:
+
+| Status | Når |
+| --- | --- |
+| **Feilfri** | Den rapporterer, og ingenting på den bør sjekkes. |
+| **Redusert** | Noe bør sjekkes: et filsystem eller inodene dets mer enn 85 % fullt, minne mer enn 90 % brukt, swap mer enn 80 % brukt, et lastgjennomsnitt over 15 minutter over det dobbelte av kjernene dens, en mislykket systemd-enhet eller en innsamlerkonfigurasjon som ikke startet. |
+| **Ikke feilfri** | Noe er kritisk: et filsystem eller inodene dets mer enn 95 % fullt, eller minne mer enn 95 % brukt. |
+| **Rapporterer ikke** | Ingenting har kommet fra den på 15 minutter. De siste målingene stemmer ikke lenger, så raden viser ingen tall og sier når den sist rapporterte. |
+| **Starter** | Innsamleren registrerte seg i løpet av de siste ti minuttene, og de første målingene er på vei. En vert som ikke har sendt noe etter det, viser **Ingen data ennå**. |
+| **Rapporterer** | Den rapporterer, men sender ingen av målingene disse reglene vurderer, for eksempel en vert der innsamleren er konfigurert uten `hostmetrics`. |
+
+Målingene er vertens siste rapport, som OneUptime lagrer på verten omtrent én gang i minuttet, så listen har ikke noe tidsrom å velge. En linje blir gul der en vert bør sjekkes, og rød der den er kritisk. **CPU** er opptatt tid på tvers av alle kjerner og blir gul over 90 %, aldri rød: en travel CPU er en vert i arbeid, og lastgjennomsnittet sier når arbeid hoper seg opp. **Disk** er det fulleste filsystemet, med monteringspunktet under, slik `df` viser sin `Use%`: plass reservert for root regnes ikke med.
+
+En verts **Oversikt** sier det samme: tilstanden ved siden av tilstanden til innsamleren, hvor lenge den har vært oppe, og **Krever oppmerksomhet** for dens egne filsystemer, minne, swap og last, innsamleren og hver mislykket systemd-enhet, som åpner siden til den enheten. **Vertsvarsler** viser [varslene OneUptime anbefaler](/docs/monitor/host-monitor#ferdige-varslingsmaler) for en vert, og hvilke av dem som overvåker denne, og knappen åpner **Anbefalinger** med resten valgt.
+
+Hvor lenge en vert har vært oppe, kommer fra `system.uptime`, som skraperen `system` i OneUptimes standardkonfigurasjon sender. En konfigurasjon du skriver selv, trenger også den skraperen: se [Host OpenTelemetry Collector](/docs/telemetry/host-otel-collector).
 
 ## Merk verter
 
@@ -224,6 +246,10 @@ Siden **Innsamler** viser hvorfor konfigurasjonen ikke startet. Verten fortsette
 
 :::details Verten viser «Rapporterer ikke»
 OneUptime har ikke hørt fra vertens supervisor på mer enn 15 minutter. Sjekk at tjenesten `oneuptime-collector` kjører, og at verten fortsatt når OneUptime.
+:::
+
+:::details En verts CPU, minne eller disk viser en strek
+OneUptime viser heller ingen tall enn et gammelt: verten har ikke rapportert på 15 minutter, eller innsamleren sender ingen `hostmetrics`. En innsamler du har konfigurert selv, trenger mottakeren `hostmetrics` med skraperne `cpu`, `memory` og `filesystem`, som i [Host OpenTelemetry Collector](/docs/telemetry/host-otel-collector).
 :::
 
 ## Neste steg

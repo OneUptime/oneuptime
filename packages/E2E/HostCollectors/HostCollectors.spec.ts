@@ -418,10 +418,17 @@ test("the last step waits for the host and says when it connected; the list show
   /*
    * Registered, its first metrics on the way: starting, not disconnected -
    * its status and its collector both, until the first data and the
-   * collector's first report a minute later.
+   * collector's first report a minute later. On a laptop the Status
+   * column says so, pulsing; the Collector column, which gives way first
+   * where a row has no room, says so too on a screen wide enough for it.
    */
   const newHost: Locator = row(card(page, "Hosts"), "web-09");
   await expect(newHost).toBeVisible();
+  await expect(newHost.getByTestId("host-status")).toHaveText("Starting");
+  await expect(
+    newHost.getByTestId("host-status").getByTestId("pill-dot"),
+  ).toHaveAttribute("data-pulsing", "true");
+  await page.setViewportSize({ width: 1920, height: 1000 });
   await expect(newHost.getByText("Starting", { exact: true })).toHaveCount(2);
   await expect(newHost.getByTestId("host-collector-state-waiting")).toHaveText(
     "Starting",
@@ -436,6 +443,21 @@ test("the list says where each host's collector stands and which config it runs"
   await open(page, HOSTS);
   const hosts: Locator = card(page, "Hosts");
 
+  /*
+   * On a laptop a row has room for the host's health and its numbers: what
+   * asks for action about its collector is its Status's reason. A config
+   * that did not start, and a collector that reports an error, are both
+   * there.
+   */
+  await expect(
+    row(hosts, "db-01").getByTestId("host-status-reason"),
+  ).toHaveText("Collector config failed");
+  await expect(
+    row(hosts, "win-01").getByTestId("host-status-reason"),
+  ).toHaveText("Collector error");
+
+  // On a screen wide enough for every column, the Collector column says more.
+  await page.setViewportSize({ width: 1920, height: 1000 });
   const web: Locator = row(hosts, "web-01");
   await expect(web.getByTestId("host-collector-state-running")).toBeVisible();
   await expect(web.getByText("Web servers", { exact: true })).toBeVisible();
@@ -1163,9 +1185,11 @@ test("on a phone the pages fit", async ({ page }: { page: Page }) => {
   expect(await scrollsSideways(page)).toBe(false);
 
   await open(page, HOSTS);
-  // A failed config is the one thing in a row that asks for action: shown on a phone too.
+  // A failed config is the one thing in a row that asks for action: its Status says so on a phone too.
   await expect(
-    card(page, "Hosts").getByTestId("host-collector-state-failed"),
+    card(page, "Hosts")
+      .getByTestId("host-status-reason")
+      .filter({ hasText: "Collector config failed" }),
   ).toBeVisible();
   await headerButton(card(page, "Hosts"), "Add Host").click();
   await expect(

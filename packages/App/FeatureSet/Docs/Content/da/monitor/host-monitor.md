@@ -4,7 +4,7 @@ En værts-monitor overvåger én maskine – dens CPU, hukommelse, diske, belast
 
 :::cards
 - [Opret monitoren](#opret-en-værts-monitor): Seks trin i dashboardet.
-- [Skabeloner](#færdige-advarselsskabeloner): Seks færdige advarsler for en tavs vært, CPU, hukommelse, disk, belastning og processer.
+- [Skabeloner](#færdige-advarselsskabeloner): Ti færdige advarsler for en tavs eller genstartet vært, CPU, hukommelse, swap, disk, inodes, belastning, processer og mislykkede systemd-units.
 - [Metrikker](#indsamlede-metrikker): De værtsmetrikker, du kan advare på, og deres enheder.
 - [Vært eller Server / VM?](#værts-monitor-eller-server-vm-monitor): Hvilken af de to maskinmonitorer du skal bruge.
 :::
@@ -95,27 +95,35 @@ Klik på **Opret monitor**. OneUptime åbner monitorens side og evaluerer den hv
 
 ## Færdige advarselsskabeloner
 
-Listen under **Hvad der skal advares om** tilbyder seks skabeloner. Hver bygger en komplet monitor: en forespørgsel, et kriterium, der udløses, og et, der genopretter. Tærsklerne er udgangspunkter, du kan redigere.
+Listen under **Hvad der skal advares om** tilbyder ti skabeloner. Hver bygger en komplet monitor: en forespørgsel, et kriterium, der udløses, og et, der genopretter. Tærsklerne er udgangspunkter, du kan redigere.
 
 Et kriterium udløses kun, når betingelsen gælder i hvert minut af dets vindue, og det genopretter 10 % forbi tærsklen, så en værdi, der svæver ved grænsen, ikke blafrer.
 
 | Skabelon | Alvorlighed | Overvåger | Udløses, når | Genopretter, når |
 | --- | --- | --- | --- | --- |
 | Host Stopped Reporting | Kritisk | `system.memory.usage`, Count, seneste 10 minutter | Ingen data i hele vinduet | Data kommer igen |
+| Host Restarted | Advarsel | `system.uptime`, Min, seneste 5 minutter | En værdi er under 600 (ti minutter) | Alle værdier er ved eller over 660 |
 | High CPU Utilization | Advarsel | `system.cpu.utilization` for tilstandene `user` og `system`, lagt sammen og vist som procent, seneste 5 minutter | Over 80 % | Ved eller under 72 % |
 | High Memory Utilization | Advarsel | `system.memory.utilization` for tilstanden `used`, som procent, seneste 5 minutter | Over 85 % | Ved eller under 76,5 % |
+| High Swap Usage | Advarsel | `system.paging.usage` for tilstandene `used` og `free`, brugt delt med brugt plus ledig, som procent, seneste 5 minutter | Over 80 % | Ved eller under 72 % |
 | High Filesystem Usage | Kritisk | `system.filesystem.utilization`, Max pr. `mountpoint` og `device`, som procent, seneste 5 minutter | Over 90 % | Ved eller under 81 % |
+| Running Out of Inodes | Kritisk | `system.filesystem.inodes.usage` for tilstandene `used` og `free`, brugt delt med brugt plus ledig, pr. `mountpoint` og `device`, som procent, seneste 5 minutter | Over 90 % | Ved eller under 81 % |
 | High Load Average (1m) | Advarsel | `system.cpu.load_average.1m`, Avg, seneste 5 minutter | Over 4 | Ved eller under 3,6 |
 | High Process Count | Advarsel | `system.processes.count`, Max, seneste 5 minutter | Over 2000 | Ved eller under 1800 |
+| Systemd Unit Failed | Advarsel | `systemd.unit.state` med `systemd.unit.active_state = failed`, Max pr. `resource.systemd.unit.name`, seneste 5 minutter | Over 0 | Ved eller under 0 |
 
 **Alvorlighed** er den etiket, vælgeren viser. Hændelsen og advarslen, som en skabelon opretter, starter på dit projekts mest alvorlige hændelses- og advarselsalvorlighed; ændr dem i kriterierne.
 
 - **Host Stopped Reporting** udløses, når der ikke kommer noget fra værten i ti minutter: maskinen er nede eller utilgængelig, eller dens collector er stoppet, har mistet sin rute til OneUptime eller har fået sit token tilbagekaldt. Den løser sig selv, når data kommer tilbage. Når data stopper, har de andre skabeloner intet at sammenligne og beholder deres seneste status, så det er denne skabelon, der giver dig besked.
+- **Host Restarted** udløses ved den første rapport efter en opstart: værten har kørt i mindre end ti minutter. Den læser `system.uptime` fra collectorens scraper `system`, som OneUptimes standardkonfigurationer slår til, og løser sig selv omkring et kvarter efter opstarten, når hver værdi i dens vindue på fem minutter er mindst elleve minutter. En vært, der er nede, udløser i stedet **Host Stopped Reporting**.
 - **CPU** er optaget tid (`user` plus `system`), det samme tal, som værtens **Oversigt** viser i diagrammer. Iowait og steal er udeladt.
 - **Hukommelse** udelader buffere og sidecache, så en vært, der mest indeholder cache, ikke udløser den.
+- **Swap** er brugt swap delt med brugt plus ledig på tværs af alle swap-enheder, som `free` og `swapon` viser det. En vært uden swap rapporterer ingen og udløser aldrig.
 - **Filsystem** åbner én hændelse pr. montering. Skrivebeskyttede pseudofilsystemer, som snap-monteringer af typen `squashfs` eller `devfs` på macOS, er altid 100 % fulde: OneUptimes collector-konfigurationer udelader dem fra scraperen `filesystem` med `exclude_fs_types`, og en konfiguration, du selv skriver, skal have det samme.
+- **Inodes** åbner én hændelse pr. montering, ligesom **Filsystem**. Når et filsystem løber tør for inodes, kan der ikke oprettes flere filer der, uanset hvor meget plads der er ledig. Et filsystem uden egen inode-tabel, som btrfs, rapporterer ingen og udløser aldrig.
 - **Belastningsgennemsnit** er en rå længde af kørselskøen, ikke divideret med antallet af kerner: 4 er mætning på en vært med 2 kerner og rutine på en med 32, så hæv den på store værter.
 - **Antal processer** sammenligner den største enkelte procestilstand (`running`, `sleeping`, …), ikke værtens samlede antal, så det vil ikke svare til en procesliste. Scraperen for processer rapporterer på Linux, macOS og BSD, men ikke på Windows.
+- **Systemd Unit Failed** åbner én advarsel pr. systemd-tjeneste i tilstanden `failed`, fra collectorens receiver `systemd`, som OneUptimes standardkonfiguration læser på Linux-værter med systemd. Den løser sig selv, når unitten kører igen, eller når `systemctl reset-failed` rydder den.
 
 ## Indsamlede metrikker
 

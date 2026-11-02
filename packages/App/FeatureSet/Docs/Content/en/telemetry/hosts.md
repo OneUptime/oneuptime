@@ -4,6 +4,7 @@ Add a Linux, Windows or macOS machine to OneUptime with one command. The command
 
 :::cards
 - [Add a host](#add-a-host): One command on Linux, Windows or macOS.
+- [See which hosts need attention](#see-which-hosts-need-attention): What is broken first, then each host's health, CPU, memory and disk.
 - [Change what hosts collect](#change-what-hosts-collect): Collector Configs by system and label, with every version kept.
 - [Check on a host's collector](#check-on-a-hosts-collector): The config it runs, its version, and why a config did not start.
 - [What a config may do](#what-a-config-may-do): Read the host, and send only to this OneUptime.
@@ -75,8 +76,29 @@ Every OneUptime serves its own installers, so a self-hosted OneUptime hands out 
 
 ### Wait for the host
 
-The dialog's last step says when the host connects, with a link to it. In the list it shows as **Starting** until its first metrics arrive, usually within a minute, then as connected, with its collector **Running**. The host's **Topology** page draws what runs on it, what calls it and what it calls as one map: see [Topology](/docs/telemetry/topology#open-a-resources-own-map).
+The dialog's last step says when the host connects, with a link to it. In the list it shows as **Starting** until its first metrics arrive, usually within a minute, then with its health, **Healthy** when nothing on it needs a look, and its collector **Running**. The host's **Topology** page draws what runs on it, what calls it and what it calls as one map: see [Topology](/docs/telemetry/topology#open-a-resources-own-map).
 :::
+
+## See which hosts need attention
+
+The **Hosts** list starts with **Needs attention**: every host that is broken or needs a look, the most urgent first, each with why and one step to its page. A host that stopped reporting says when it last did. When nothing needs attention, there is no card.
+
+Under it, each host's **Status** says how it is in one word, with the reason under it, and **CPU**, **Memory** and **Disk** show what it last reported:
+
+| Status | When |
+| --- | --- |
+| **Healthy** | It reports, and nothing on it needs a look. |
+| **Degraded** | Something needs a look: a filesystem or its inodes more than 85% full, memory more than 90% used, swap more than 80% used, a 15-minute load average above twice its cores, a failed systemd unit, or a collector config that did not start. |
+| **Unhealthy** | Something is critical: a filesystem or its inodes more than 95% full, or memory more than 95% used. |
+| **Not reporting** | Nothing has arrived from it for 15 minutes. Its last readings are no longer the truth, so its row shows no numbers, and says when it last reported. |
+| **Starting** | Its collector registered in the last ten minutes, and its first metrics are on their way. A host that has sent nothing after that reads **No data yet**. |
+| **Reporting** | It reports, but sends none of the readings these rules judge, such as a host whose collector was configured without `hostmetrics`. |
+
+The readings are the host's last report, which OneUptime keeps on the host about once a minute, so the list has no time range to pick. A bar turns amber where a host needs a look and red where it is critical. **CPU** is busy time across every core and turns amber above 90%, never red: a busy CPU is a host at work, and the load average says when work queues. **Disk** is the fullest filesystem, with its mount point under it, as `df` prints its `Use%`: space reserved for root is not counted.
+
+A host's **Overview** says the same: its health beside its collector's state, how long it has been up, and **Needs attention** for its own filesystems, memory, swap and load, its collector and each failed systemd unit, which opens that unit's page. **Host alerts** lists the [alerts OneUptime recommends](/docs/monitor/host-monitor#pre-built-alert-templates) for a host and which of them watch this one, and its button opens **Recommendations** with the rest selected.
+
+How long a host has been up comes from `system.uptime`, which the `system` scraper of OneUptime's default config sends. A config of your own needs that scraper too: see [Host OpenTelemetry Collector](/docs/telemetry/host-otel-collector).
 
 ## Label hosts
 
@@ -224,6 +246,10 @@ Its **Collector** page shows why the config did not start. The host keeps runnin
 
 :::details The host shows Not reporting
 OneUptime has not heard from the host's supervisor for more than 15 minutes. Check that the `oneuptime-collector` service runs, and that the host can still reach OneUptime.
+:::
+
+:::details A host's CPU, Memory or Disk shows a dash
+OneUptime shows no number rather than an old one: the host has not reported for 15 minutes, or its collector sends no `hostmetrics`. A collector you configured yourself needs the `hostmetrics` receiver with its `cpu`, `memory` and `filesystem` scrapers, as in [Host OpenTelemetry Collector](/docs/telemetry/host-otel-collector).
 :::
 
 ## Next steps

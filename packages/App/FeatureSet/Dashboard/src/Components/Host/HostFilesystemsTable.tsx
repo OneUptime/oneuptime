@@ -5,6 +5,10 @@ import Column from "Common/UI/Components/Table/Types/Column";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import {
+  HOST_DISK_FULL_PERCENT,
+  HOST_DISK_NEAR_FULL_PERCENT,
+} from "Common/Types/Host/HostHealth";
 import React, { FunctionComponent, ReactElement } from "react";
 
 // One mount point a host reports, with its capacity and how full it is.
@@ -27,15 +31,18 @@ export const HOST_FILESYSTEMS_TABLE_KEY: string = "host-filesystems-table";
 
 export const HOST_FILESYSTEMS_TABLE_ID: string = "host-filesystems";
 
-// How full a mount is, by colour: green, amber from 75%, red from 90%.
+/*
+ * How full a mount is, by colour: green, amber above 85% and red above 95% -
+ * where the host's Needs attention starts to list it (HostHealth).
+ */
 export const getMountBarClassName: (percent: number) => string = (
   percent: number,
 ): string => {
-  if (percent >= 90) {
+  if (percent > HOST_DISK_FULL_PERCENT) {
     return "bg-red-500";
   }
 
-  if (percent >= 75) {
+  if (percent > HOST_DISK_NEAR_FULL_PERCENT) {
     return "bg-amber-500";
   }
 
@@ -64,8 +71,17 @@ const HostFilesystemsTable: FunctionComponent<ComponentProps> = (
       title: "Mount",
       type: FieldType.Element,
       disableSort: true,
+      /*
+       * Each value reads the way the host wrote it (bdi): on a Persian page
+       * /var/lib/postgresql kept its leading slash at its far end, and
+       * "472 GiB / 500 GiB" put 472 after the total.
+       */
       getElement: (mount: HostMount): ReactElement => {
-        return <span className="font-mono">{mount.mountpoint}</span>;
+        return (
+          <bdi className="font-mono" data-testid="host-filesystem-mount">
+            {mount.mountpoint}
+          </bdi>
+        );
       },
     },
     {
@@ -101,7 +117,11 @@ const HostFilesystemsTable: FunctionComponent<ComponentProps> = (
           return <TableEmptyValue />;
         }
 
-        return <span className="font-mono">{mount.device}</span>;
+        return (
+          <bdi className="font-mono" data-testid="host-filesystem-device">
+            {mount.device}
+          </bdi>
+        );
       },
     },
     {
@@ -115,13 +135,13 @@ const HostFilesystemsTable: FunctionComponent<ComponentProps> = (
       foldInto: "utilization",
       getElement: (mount: HostMount): ReactElement => {
         return (
-          <span className="tabular-nums">
+          <bdi className="tabular-nums" data-testid="host-filesystem-used">
             <span className="font-medium text-gray-900">
               {props.formatBytes(mount.usedBytes)}
             </span>
             <span className="mx-1 text-gray-400">/</span>
             <span>{props.formatBytes(mount.totalBytes)}</span>
-          </span>
+          </bdi>
         );
       },
     },
