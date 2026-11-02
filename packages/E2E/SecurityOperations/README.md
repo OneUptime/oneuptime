@@ -33,6 +33,9 @@ An offline harness for the Security Events SOC pages, on a month of synthetic se
 | Case Priorities    | `SECURITY_EVENTS_SETTINGS_CASE_PRIORITIES` `.../security-events/settings/case-priorities` | `Pages/SecurityEvents/Settings/CasePriorities`, `StateSettings/*`, `ArchivableValue/*`       |
 | Case Statuses      | `SECURITY_EVENTS_SETTINGS_CASE_STATUSES` `.../security-events/settings/case-statuses`     | `Pages/SecurityEvents/Settings/CaseStatuses`, the same                                       |
 | Response Targets   | `SECURITY_EVENTS_SETTINGS_RESPONSE_TARGETS` `.../settings/response-targets`               | `Pages/SecurityEvents/Settings/ResponseTargets`, `SecurityCase/ResponseTargets/*`            |
+| Custom Fields      | `SECURITY_EVENTS_SETTINGS_CUSTOM_FIELDS` `.../settings/custom-fields`                     | `Pages/SecurityEvents/Settings/CustomFields`, `Pages/Settings/Base/CustomFieldsPageBase`     |
+| Note Templates     | `SECURITY_EVENTS_SETTINGS_NOTE_TEMPLATES` `.../settings/note-templates` (and `/:id`)      | `Pages/SecurityEvents/Settings/{NoteTemplates,NoteTemplateView}`                             |
+| Numbering          | `SECURITY_EVENTS_SETTINGS_NUMBERING` `.../settings/numbering`                             | `Pages/SecurityEvents/Settings/Numbering`, `NextNumber/NumberingCards`                       |
 | A member's page    | `USER_VIEW` `/dashboard/:projectId/users/:id`, a member Connected Signals names           | `Pages/Users/View/{Layout,Index}` and its Security card (`SecurityConnections/*`)            |
 
 `Fixture/server.js` bundles the production layout (breadcrumbs, the Security Events side menu) and
@@ -129,10 +132,10 @@ history is laid out from it with a seeded generator, so every run draws the same
 
 ## What the fixture records
 
-`window.__securityOperationsFixture` holds `getItemRequests`, `listRequests`, `countRequests`,
-`apiRequests`, `realtimeSubscriptions`, `creates`, `updates`, `deletes` and `unhandled`. Anything a
-page reads that the fixture does not model lands in `unhandled`; the spec's `afterEach` fails when
-that list is not empty.
+`window.__securityOperationsFixture` holds `getItemRequests` (each with the columns it selected),
+`listRequests`, `countRequests`, `apiRequests`, `realtimeSubscriptions`, `creates`, `updates`,
+`deletes` and `unhandled`. Anything a page reads that the fixture does not model lands in
+`unhandled`; the spec's `afterEach` fails when that list is not empty.
 
 ## What the spec covers
 
@@ -557,6 +560,30 @@ dark theme. Its screenshots are named `case-tasks-*` (`case-tasks-empty-*` among
 `case-header-target-missed-1280-light`, `case-overview-targets-1280-light`,
 `case-close-open-tasks-1280-light` and `cases-due-lines-*`.
 
+## Case custom fields, note templates and numbering
+
+The project's own case setup, with its own spec, `CaseSetup.spec.ts`. `Fixture/CaseSetupFixture.js`
+lays it out: two case custom fields - Business Unit, a dropdown of Corporate IT, Payments and
+Storefront, and External Ticket, text - the spray case (CASE-142) filled in as Corporate IT's,
+INC-48213; two note templates, Containment checklist and Shift hand-over; and numbering with
+`CASE-` in front, the next number one past the highest case's (`GET /project/:id/numbering`). A new
+project (`?empty=1`) has no fields and no templates. Turn on recommended turns on the project's
+traces, network flows and session replays beside its logs, as SecuritySetup does in OneUptime
+Community (no audit log), so the pipeline counts 4 sources after it.
+
+`CaseSetup.spec.ts` covers: Custom Fields, Note Templates and Numbering under Settings, after Case
+Statuses, each its own page with its entry lit and its trail; the fields' list; the case's
+Overview ending with its fields, and Advanced > Custom Fields saving a change (the update the
+fixture records); the queue offering each field as a column, off until picked in Columns; the
+templates' list, Create on one page, a template's page with its two cards and Delete going back to
+the list; the case composer's Templates menu offering the project's templates, a pick landing in
+the note and Manage templates opening the list; Numbering's prefix and next number, a start at or
+below the highest refused, a new start and prefix saved; and every page at 390, 768, 1024 and 1280
+in both themes, and in German and Persian at 1280 and 390, with nothing scrolling sideways. Its
+screenshots are named `case-custom-fields-*`, `case-custom-fields-settings-*`,
+`case-note-templates-*`, `case-note-template-*`, `case-numbering-*` and
+`cases-business-unit-column-1280-light`, beside the other screenshots (below).
+
 ## Run it
 
 ```
@@ -570,8 +597,8 @@ npm run test-security-hunts-ui
 The specs run as three suites, in three App Test groups, each on its own server of this fixture:
 `test-security-operations-ui` runs `SecurityOperations.spec.ts` (group 11);
 `test-security-cases-detections-ui` (`playwright.security-cases-detections-ui.config.ts`, group 5)
-runs `CaseWork.spec.ts`, `ConnectedSignals.spec.ts`, `EntityRisk.spec.ts`, `RuleExceptions.spec.ts`
-and `Watchlists.spec.ts`; and `test-security-hunts-ui` (group 6) runs `Hunts.spec.ts`. A new spec
+runs `CaseWork.spec.ts`, `CaseSetup.spec.ts`, `ConnectedSignals.spec.ts`, `EntityRisk.spec.ts`,
+`RuleExceptions.spec.ts` and `Watchlists.spec.ts`; and `test-security-hunts-ui` (group 6) runs `Hunts.spec.ts`. A new spec
 runs with `test-security-operations-ui` until one of the other two configs lists it.
 
 Playwright reuses a server already listening on port 4234 outside CI. If one from another checkout

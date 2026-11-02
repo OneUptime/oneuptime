@@ -2,8 +2,9 @@
  * Offline fixture for the Security Events SOC pages: the overview, the case
  * queue, a case, the detection rules, the rule library, threat
  * intel, ATT&CK coverage, playbooks, a playbook, the playbook runs, entity
- * risk and an entity's page, and the project's case priorities, statuses and
- * risk scoring (Settings) - the production layout
+ * risk and an entity's page, and the project's case priorities, statuses,
+ * custom fields, note templates, numbering and risk scoring (Settings) - the
+ * production layout
  * (breadcrumbs and side menu) and pages from this branch, mounted under
  * their real RouteMap patterns.
  *
@@ -86,6 +87,9 @@
  *            by hand and one whose last run failed - over the month's
  *            security events, which the Events page and a hunt's page list
  *            (HuntsFixture.js lays them out, and keeps events on a case).
+ *   The project's case setup is laid out by CaseSetupFixture.js: two case
+ *            custom fields (Business Unit and External Ticket, filled in on
+ *            CASE-142), two note templates, and CASE- numbering.
  *
  * Every read is recorded on window.__securityOperationsFixture: getItem,
  * list, count and API requests, the writes, and `unhandled` - anything the
@@ -123,6 +127,7 @@ import SecurityCasePlaybookRunsPage from "../../../App/FeatureSet/Dashboard/src/
 import SecurityCaseNotesPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/Notes";
 import SecurityCaseAuditLogsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/AuditLogs";
 import SecurityCaseDeletePage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/Delete";
+import SecurityCaseCustomFieldsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/CustomFields";
 import RuleLibraryPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/RuleLibrary";
 import DetectionRulesPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/DetectionRules";
 import SecurityRuleExceptionsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/RuleExceptions";
@@ -138,6 +143,10 @@ import SecurityEventsAISettingsPage from "../../../App/FeatureSet/Dashboard/src/
 import SecurityCasePrioritiesPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Settings/CasePriorities";
 import SecurityCaseStatusesPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Settings/CaseStatuses";
 import SecurityResponseTargetsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Settings/ResponseTargets";
+import SecurityCaseCustomFieldsSettingsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Settings/CustomFields";
+import SecurityCaseNoteTemplatesPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Settings/NoteTemplates";
+import SecurityCaseNoteTemplateViewPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Settings/NoteTemplateView";
+import SecurityCaseNumberingPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Settings/Numbering";
 import SecurityEntityRiskPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/EntityRisk";
 import SecurityEntityRiskViewPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/EntityRiskView";
 import SecurityRiskScoringPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Settings/RiskScoring";
@@ -160,6 +169,7 @@ import {
 } from "./TelemetryMentionsFixture";
 import { createCaseContextFixture } from "./CaseContextFixture";
 import { TARGET_SCENARIOS, createCaseWorkFixture } from "./CaseWorkFixture";
+import { createCaseSetupFixture } from "./CaseSetupFixture";
 import { createWatchlistsFixture } from "./WatchlistsFixture";
 import { HUNT_SCENARIOS, createHuntsFixture } from "./HuntsFixture";
 import SecurityEventsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Index";
@@ -197,6 +207,10 @@ import SecurityDetection from "Common/Models/DatabaseModels/SecurityDetection";
 import SecurityEventConnection from "Common/Models/DatabaseModels/SecurityEventConnection";
 import SecurityLogSource from "Common/Models/DatabaseModels/SecurityLogSource";
 import SecurityTelemetrySource from "Common/Models/DatabaseModels/SecurityTelemetrySource";
+import {
+  SECURITY_TELEMETRY_SOURCE_KINDS,
+  SecurityTelemetrySourceKind,
+} from "Common/Types/SecurityEvent/SecurityTelemetrySource";
 import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
 import SecurityPlaybookRun from "Common/Models/DatabaseModels/SecurityPlaybookRun";
 import SecurityProtectedEntity from "Common/Models/DatabaseModels/SecurityProtectedEntity";
@@ -206,6 +220,7 @@ import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import Team from "Common/Models/DatabaseModels/Team";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import TeamMemberCustomField from "Common/Models/DatabaseModels/TeamMemberCustomField";
+import TableView from "Common/Models/DatabaseModels/TableView";
 import { RESOURCE_SECURITY_MAX_CASES } from "Common/Types/SecurityCase/SecurityConnection";
 import ThreatIntelFeed from "Common/Models/DatabaseModels/ThreatIntelFeed";
 import ThreatIntelIndicator from "Common/Models/AnalyticsModels/ThreatIntelIndicator";
@@ -580,6 +595,8 @@ const ID = {
   hunt: (n) => uuid("3b000000", n),
   event: (n) => uuid("3c000000", n),
   source: (n) => uuid("3d000000", n),
+  caseField: (n) => uuid("4a000000", n),
+  noteTemplate: (n) => uuid("4b000000", n),
 };
 
 let rowCounter = 9000;
@@ -827,6 +844,9 @@ const PROJECT_RECORD = {
   enableAutomaticSecurityCaseTriage: triageScenario !== "auto-off",
   enableSecurityRiskCases: riskScenario.isRiskCaseEnabled,
   securityRiskCaseThreshold: riskScenario.threshold,
+  // Settings > Numbering: CASE- (the column's default), counting on from the highest.
+  securityCaseNumberPrefix: "CASE-",
+  securityCaseNumbersStartAt: null,
 };
 const project = make(Project, PROJECT_RECORD);
 table(Project).push(PROJECT_RECORD);
@@ -2635,6 +2655,8 @@ for (const modelType of [
   // A member's page asks for the project's member fields: it has none.
   TeamMemberCustomField,
   WorkspaceProjectAuthToken,
+  // Settings > Custom Fields offers saved views of its list: nobody has saved one.
+  TableView,
 ]) {
   table(modelType);
 }
@@ -2861,6 +2883,7 @@ function setupStatus() {
   return {
     connections: table(SecurityEventConnection).length,
     logsSourceEnabled: table(SecurityLogSource).some(isOn),
+    telemetrySourcesEnabled: table(SecurityTelemetrySource).filter(isOn).length,
     eventsLast24Hours:
       isEmpty || areSourcesSilent ? 0 : hasHistory ? 18432 : 2310,
     lastEventAt: isEmpty
@@ -2887,6 +2910,7 @@ function turnOnRecommended(body) {
     rulesAdded: 0,
     rulesTurnedOn: 0,
     logsTurnedOn: false,
+    telemetrySourcesTurnedOn: 0,
     playbookAdded: false,
     playbookTurnedOn: false,
     problems: [],
@@ -2902,6 +2926,27 @@ function turnOnRecommended(body) {
     } else if (!isOn(source)) {
       source.isEnabled = true;
       result.logsTurnedOn = true;
+    }
+
+    /*
+     * The rest of your OneUptime data beside the logs, as SecuritySetup
+     * turns it on: each kind added, or turned back on. The audit log is
+     * left alone - this is OneUptime Community, which does not write one.
+     */
+    for (const kind of SECURITY_TELEMETRY_SOURCE_KINDS) {
+      if (kind === SecurityTelemetrySourceKind.AuditLog) {
+        continue;
+      }
+      const existing = table(SecurityTelemetrySource).find((item) => {
+        return item.kind === kind;
+      });
+      if (!existing) {
+        insert(SecurityTelemetrySource, { kind, isEnabled: true });
+        result.telemetrySourcesTurnedOn++;
+      } else if (!isOn(existing)) {
+        existing.isEnabled = true;
+        result.telemetrySourcesTurnedOn++;
+      }
     }
   }
 
@@ -3393,7 +3438,12 @@ function knownTable(modelType, kind, extra) {
 ModelAPI.getItem = async (options) => {
   const modelName = tableName(options.modelType);
   const id = options.id?.toString();
-  fixture.getItemRequests.push({ modelName, id });
+  // With the columns it asked for: a custom fields card reads only customFields.
+  fixture.getItemRequests.push({
+    modelName,
+    id,
+    select: Object.keys(options.select || {}),
+  });
   const known = knownTable(options.modelType, "getItem", { id });
   const record = known?.records.find((item) => {
     return String(item._id) === id;
@@ -3565,7 +3615,8 @@ ModelAPI.deleteItem = async (options) => {
     isEntityRiskTable(options.modelType) ||
     caseWork.isCaseWorkTable(modelName) ||
     watchlists.isWatchlistTable(modelName) ||
-    hunts.isHuntTable(modelName)
+    hunts.isHuntTable(modelName) ||
+    caseSetup.isCaseSetupTable(modelName)
   ) {
     const records = table(options.modelType);
     const index = records.findIndex((item) => {
@@ -4078,6 +4129,13 @@ const caseWork = createCaseWorkFixture({
 });
 caseWork.seed();
 caseWork.seedTargets();
+
+/*
+ * The project's case fields, note templates and numbering
+ * (CaseSetupFixture.js), and the spray case's values of its fields.
+ */
+const caseSetup = createCaseSetupFixture({ insert, table, ID, isEmpty });
+caseSetup.seed();
 fixture.ids.tasks = [ID.task(1), ID.task(2), ID.task(3)];
 fixture.ids.evidence = [ID.evidence(1), ID.evidence(2)];
 
@@ -4150,6 +4208,9 @@ async function handleApi(method, options) {
   }
   if (method === "POST" && path.endsWith("/security-case/setup/test")) {
     return new HTTPResponse(200, runSetupTest(), {});
+  }
+  if (method === "GET" && path.endsWith(`/project/${PROJECT_ID}/numbering`)) {
+    return new HTTPResponse(200, caseSetup.numbering(), {});
   }
   if (method === "POST" && path.endsWith("/security-case/entity-activity")) {
     return new HTTPResponse(200, entityActivity(options.data), {});
@@ -4359,6 +4420,19 @@ const PAGES = [
     PageMap.SECURITY_EVENTS_SETTINGS_RESPONSE_TARGETS,
     SecurityResponseTargetsPage,
   ],
+  [
+    PageMap.SECURITY_EVENTS_SETTINGS_CUSTOM_FIELDS,
+    SecurityCaseCustomFieldsSettingsPage,
+  ],
+  [
+    PageMap.SECURITY_EVENTS_SETTINGS_NOTE_TEMPLATES,
+    SecurityCaseNoteTemplatesPage,
+  ],
+  [
+    PageMap.SECURITY_EVENTS_SETTINGS_NOTE_TEMPLATE_VIEW,
+    SecurityCaseNoteTemplateViewPage,
+  ],
+  [PageMap.SECURITY_EVENTS_SETTINGS_NUMBERING, SecurityCaseNumberingPage],
   [PageMap.SECURITY_EVENTS_SETTINGS_RISK_SCORING, SecurityRiskScoringPage],
 ];
 const STUB_PAGES = [
@@ -4390,6 +4464,7 @@ const CASE_PAGES = [
   [PageMap.SECURITY_CASE_VIEW_TASKS, SecurityCaseTasksPage],
   [PageMap.SECURITY_CASE_VIEW_PLAYBOOK_RUNS, SecurityCasePlaybookRunsPage],
   [PageMap.SECURITY_CASE_VIEW_NOTES, SecurityCaseNotesPage],
+  [PageMap.SECURITY_CASE_VIEW_CUSTOM_FIELDS, SecurityCaseCustomFieldsPage],
   [PageMap.SECURITY_CASE_VIEW_AUDIT_LOGS, SecurityCaseAuditLogsPage],
   [PageMap.SECURITY_CASE_VIEW_DELETE, SecurityCaseDeletePage],
 ];

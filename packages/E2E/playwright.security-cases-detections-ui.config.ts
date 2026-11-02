@@ -2,10 +2,11 @@ import { defineConfig, devices } from "@playwright/test";
 import path from "path";
 
 /*
- * The Security Operations fixture's five shorter specs - a case's tasks,
- * evidence and response targets (CaseWork.spec.ts), a case's Connected
- * Signals, entity risk, detection rule exceptions and Run on Past Events,
- * and watchlists - on its own server and data, as a suite of its own. The
+ * The Security Operations fixture's six shorter specs - a case's tasks,
+ * evidence and response targets (CaseWork.spec.ts), the project's case
+ * fields, note templates and numbering (CaseSetup.spec.ts), a case's
+ * Connected Signals, entity risk, detection rule exceptions and Run on Past
+ * Events, and watchlists - on its own server and data, as a suite of its own. The
  * long one, SecurityOperations.spec.ts, runs as test-security-operations-ui,
  * which leaves these out: the two run in different App Test groups, so the
  * pair no longer adds up to more than one group's run step can hold.
@@ -16,6 +17,7 @@ export default defineConfig({
   testDir: "./SecurityOperations",
   testMatch: [
     "CaseWork.spec.ts",
+    "CaseSetup.spec.ts",
     "ConnectedSignals.spec.ts",
     "EntityRisk.spec.ts",
     "RuleExceptions.spec.ts",
