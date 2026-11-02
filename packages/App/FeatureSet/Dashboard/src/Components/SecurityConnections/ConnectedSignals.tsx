@@ -4,6 +4,7 @@ import SecurityCaseApi, {
 } from "../SecurityCase/SecurityCaseApi";
 import { SecurityEntityChip } from "../SecurityCase/SecurityEntityChips";
 import { formatNameList } from "../AiAccess/AiAccessModes";
+import TelemetryMentions from "./TelemetryMentions";
 import {
   CONNECTED_ACTIVE_ALERTS,
   CONNECTED_ACTIVE_INCIDENTS,
@@ -109,8 +110,10 @@ import React, {
  * a line of its own, so a long title, another language or a right-to-left
  * page never runs one item into the next. The possible matches follow under a
  * heading of their own that says what "possible" means, each still with its
- * pill. Then what OneUptime looked for and did not find, and what the
- * reader's role keeps from them.
+ * pill. Then what OneUptime looked for and no record matches, and what the
+ * reader's role keeps from them. Under them, on a read of its own, where
+ * what it names appears in the logs and traces themselves
+ * (TelemetryMentions).
  *
  * The same answer the case's triage reads, so OneUptime AI and the person
  * reading the case see the same connections.
@@ -160,9 +163,13 @@ export const CONNECTED_CHANGE_ITEM_CLASS_NAME: string =
 export const CONNECTED_CHANGE_TITLE_CLASS_NAME: string =
   "min-w-0 flex-1 basis-64 text-gray-900 [overflow-wrap:anywhere]";
 
-// A section's heading in the card: Possible matches, Not in OneUptime.
+// A section's heading in the card: Possible matches, No matching record.
 const SECTION_HEADING_CLASS_NAME: string =
   "text-xs font-medium uppercase tracking-wide text-gray-500";
+
+// The logs and traces under the records: a rule between, as the possible matches have.
+export const TELEMETRY_SECTION_CLASS_NAME: string =
+  "mt-4 border-t border-gray-100 pt-4";
 
 function readColor(value: string | undefined): Color {
   return value ? new Color(value) : Gray500;
@@ -952,6 +959,19 @@ const ConnectedSignals: FunctionComponent<ComponentProps> = (
     );
   }
 
+  /*
+   * Read with the records, not after them: the two reads run side by side,
+   * and the logs and traces show under the records when they are in.
+   */
+  const telemetry: ReactElement = (
+    <TelemetryMentions
+      request={props.request}
+      requestKey={props.requestKey}
+      refreshToken={props.refreshToken}
+      className={TELEMETRY_SECTION_CLASS_NAME}
+    />
+  );
+
   if (props.isEmbedded) {
     return (
       <div
@@ -962,6 +982,7 @@ const ConnectedSignals: FunctionComponent<ComponentProps> = (
           {translator.translateText(props.description)}
         </p>
         {body}
+        {telemetry}
       </div>
     );
   }
@@ -969,7 +990,10 @@ const ConnectedSignals: FunctionComponent<ComponentProps> = (
   return (
     <div data-testid={SECURITY_CONNECTIONS_TEST_IDS.connectedSignals}>
       <Card title={CONNECTED_SIGNALS_TITLE} description={props.description}>
-        {body}
+        <>
+          {body}
+          {telemetry}
+        </>
       </Card>
     </div>
   );

@@ -27,8 +27,11 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * card): one line per record the case names - its name opening its page,
  * why OneUptime connects it, a pill when it is only possibly the same, its
  * signals opening the explorers on it and the window, and what is going on
- * there - then what was looked for and not found, and what the reader's
- * role keeps from them.
+ * there - then what was looked for and no record matches, and what the
+ * reader's role keeps from them. Under them, on a read of its own, where
+ * what it names appears in the logs and traces themselves: each value with
+ * how many log lines and spans name it, where in them (each opening its
+ * explorer on exactly those) and the records that sent them.
  *
  * The way back: a host's, a cluster's, a service's page has a Security card
  * - drawn only for a reader who may read security events, in a project
@@ -38,6 +41,7 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  */
 
 const getConnectionsMock: MockFunction = getJestMockFunction();
+const getTelemetryMentionsMock: MockFunction = getJestMockFunction();
 const getResourceSecurityMock: MockFunction = getJestMockFunction();
 const getIncidentSecurityMock: MockFunction = getJestMockFunction();
 const getItemMock: MockFunction = getJestMockFunction();
@@ -62,6 +66,9 @@ jest.mock(
       default: {
         getConnections: (...args: Array<unknown>) => {
           return getConnectionsMock(...args);
+        },
+        getTelemetryMentions: (...args: Array<unknown>) => {
+          return getTelemetryMentionsMock(...args);
         },
         getResourceSecurity: (...args: Array<unknown>) => {
           return getResourceSecurityMock(...args);
@@ -90,13 +97,19 @@ import ConnectedSignals, {
   CONNECTED_CHANGE_TITLE_CLASS_NAME,
   CONNECTED_FACT_ROW_CLASS_NAME,
   CONNECTED_RECORD_TEXT_CLASS_NAME,
+  TELEMETRY_SECTION_CLASS_NAME,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityConnections/ConnectedSignals";
+import {
+  TELEMETRY_PLACE_LINK_CLASS_NAME,
+  TELEMETRY_ROW_CLASS_NAME,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityConnections/TelemetryMentions";
 import IncidentSecurityCard from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityConnections/IncidentSecurityCard";
 import ResourceSecurityCard, {
   RESOURCE_SECURITY_OPEN_LINK_CLASS_NAME,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityConnections/ResourceSecurityCard";
 import {
   CONNECTED_SIGNALS_CASE_DESCRIPTION,
+  CONNECTED_SIGNALS_EVENT_DESCRIPTION,
   SECURITY_CONNECTIONS_TEST_IDS,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityConnections/SecurityConnectionsCopy";
 import ObjectID from "../../../Types/ObjectID";
@@ -108,6 +121,10 @@ import {
   SecurityConnectionKind,
   SecurityConnectionReason,
   SecurityConnectionsJson,
+  SECURITY_TELEMETRY_MESSAGE_PLACE,
+  SecurityTelemetryHitsJson,
+  SecurityTelemetryMentionsJson,
+  SecurityTelemetrySignal,
 } from "../../../Types/SecurityCase/SecurityConnection";
 import { SecurityEntityType } from "../../../Types/SecurityCase/SecurityEntity";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
@@ -188,6 +205,34 @@ function answer(
   };
 }
 
+// Where what it names appears in the logs and traces: nothing searched, unless a test says.
+function mentions(
+  overrides: Partial<SecurityTelemetryMentionsJson> = {},
+): SecurityTelemetryMentionsJson {
+  return {
+    windowStart: "2026-10-25T09:30:00.000Z",
+    windowEnd: "2026-10-25T10:30:00.000Z",
+    values: [],
+    hasMoreValues: false,
+    unreadableSignals: [],
+    failedSignals: [],
+    ...overrides,
+  };
+}
+
+function hits(
+  overrides: Partial<SecurityTelemetryHitsJson> = {},
+): SecurityTelemetryHitsJson {
+  return {
+    count: 0,
+    sources: [],
+    sourceCount: 0,
+    places: [],
+    lastSeen: null,
+    ...overrides,
+  };
+}
+
 async function drawConnectedSignals(
   props: { requestKey?: string; refreshToken?: number } = {},
 ): Promise<ReturnType<typeof render>> {
@@ -227,6 +272,8 @@ let isAllowed: boolean = true;
 beforeEach(() => {
   isAllowed = true;
   getConnectionsMock.mockReset();
+  getTelemetryMentionsMock.mockReset();
+  getTelemetryMentionsMock.mockResolvedValue(mentions() as never);
   getResourceSecurityMock.mockReset();
   getIncidentSecurityMock.mockReset();
   getItemMock.mockReset();
@@ -916,7 +963,7 @@ describe("Connected Signals", () => {
     expect(screen.queryByTestId(IDS.possibleGroup)).toBeNull();
   });
 
-  test("every kind of record read and none is what it names: then, and only then, nothing it names is in OneUptime", async () => {
+  test("every kind of record read and none is what it names: then, and only then, no record matches what it names", async () => {
     getConnectionsMock.mockResolvedValue(
       answer({
         resources: [],
@@ -928,7 +975,10 @@ describe("Connected Signals", () => {
 
     // An empty state's title is a headline: its sentence without the stop.
     expect(await screen.findByTestId(IDS.empty)).toHaveTextContent(
-      "Nothing it names is in OneUptime",
+      "No record matches what it names",
+    );
+    expect(screen.getByTestId(IDS.notFound)).toHaveTextContent(
+      "No matching record",
     );
     expect(screen.getByTestId(IDS.notFound)).toHaveTextContent("kiosk-17");
     expect(screen.queryByTestId(IDS.partialEmpty)).toBeNull();
@@ -956,17 +1006,17 @@ describe("Connected Signals", () => {
 
     /*
      * Kinds the role cannot see, or that could not be read, may still hold
-     * what it names: nothing found, never "not in OneUptime".
+     * what it names: no matching record found, never "no record matches".
      */
     expect(await screen.findByTestId(IDS.partialEmpty)).toHaveTextContent(
-      "Nothing it names was found",
+      "No matching record was found",
     );
     expect(screen.getByTestId(IDS.partialEmpty)).toHaveTextContent(
-      "Some kinds of record could not be read, so it may still be in OneUptime.",
+      "Some kinds of record could not be read, so one may still match.",
     );
     expect(screen.queryByTestId(IDS.empty)).toBeNull();
     expect(document.body).not.toHaveTextContent(
-      "Nothing it names is in OneUptime",
+      "No record matches what it names",
     );
     expect(document.body).not.toHaveTextContent("found none of them");
     expect(screen.getByTestId(IDS.notFound)).toHaveTextContent(
@@ -1087,6 +1137,424 @@ describe("Connected Signals", () => {
 
     expect(screen.queryByTestId(IDS.record)).toBeNull();
     expect(screen.getByTestId(IDS.notFound)).toHaveTextContent("db-9");
+  });
+});
+
+describe("In your logs and traces, under Connected Signals", () => {
+  const attacker: SecurityTelemetryMentionsJson["values"][number] = {
+    entityType: SecurityEntityType.IpAddress,
+    entityValue: "203.0.113.7",
+    logs: hits({
+      count: 1284,
+      sources: [
+        {
+          kind: SecurityConnectionKind.Service,
+          id: SERVICE_ID,
+          name: "checkout-api",
+          count: 1200,
+        },
+        {
+          kind: SecurityConnectionKind.Host,
+          id: HOST_ID,
+          name: "edge-1",
+          count: 80,
+        },
+      ],
+      sourceCount: 4,
+      places: [
+        { key: SECURITY_TELEMETRY_MESSAGE_PLACE, count: 1200 },
+        { key: "client_ip", count: 84, value: "203.0.113.7" },
+      ],
+      lastSeen: "2026-10-25T10:12:00.000Z",
+    }),
+    traces: hits({
+      count: 312,
+      sources: [
+        {
+          kind: SecurityConnectionKind.Service,
+          id: SERVICE_ID,
+          name: "checkout-api",
+          count: 312,
+        },
+      ],
+      sourceCount: 1,
+      places: [{ key: "client.address", count: 312, value: "203.0.113.7" }],
+    }),
+  };
+  const quiet: SecurityTelemetryMentionsJson["values"][number] = {
+    entityType: SecurityEntityType.Domain,
+    entityValue: "evil-c2.example.net",
+    logs: hits(),
+    traces: hits(),
+  };
+
+  function section(): HTMLElement {
+    return screen.getByTestId(IDS.telemetry);
+  }
+
+  test("read with the same request as the records, side by side, not after them", async () => {
+    let resolveRecords: (value: SecurityConnectionsJson) => void = () => {};
+
+    getConnectionsMock.mockReturnValue(
+      new Promise<SecurityConnectionsJson>(
+        (done: (value: SecurityConnectionsJson) => void) => {
+          resolveRecords = done;
+        },
+      ) as never,
+    );
+    getTelemetryMentionsMock.mockResolvedValue(
+      mentions({ values: [attacker] }) as never,
+    );
+
+    await drawConnectedSignals();
+
+    expect(getTelemetryMentionsMock).toHaveBeenCalledWith({
+      caseId: new ObjectID(CASE_ID),
+    });
+    // In before the records are.
+    expect(await screen.findByTestId(IDS.telemetryValue)).toBeInTheDocument();
+    expect(screen.queryByTestId(IDS.record)).toBeNull();
+
+    await act(async () => {
+      resolveRecords(answer());
+    });
+
+    expect(screen.getByTestId(IDS.record)).toBeInTheDocument();
+
+    // Under the records, a rule between.
+    const records: HTMLElement = screen.getByTestId(IDS.record);
+
+    expect(
+      records.compareDocumentPosition(section()) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(section().className).toContain(TELEMETRY_SECTION_CLASS_NAME);
+  });
+
+  test("a value found: how many log lines and spans name it, where in them - each opening its explorer on exactly those - and the records that sent them", async () => {
+    getConnectionsMock.mockResolvedValue(answer() as never);
+    getTelemetryMentionsMock.mockResolvedValue(
+      mentions({ values: [attacker] }) as never,
+    );
+
+    await drawConnectedSignals();
+
+    const value: HTMLElement = await screen.findByTestId(IDS.telemetryValue);
+
+    expect(section()).toHaveTextContent("In your logs and traces");
+    expect(section()).toHaveTextContent(
+      "Where what it names appears in your logs and traces from",
+    );
+    expect(value).toHaveTextContent("203.0.113.7");
+
+    // The log lines: their count is the row's label, a dt.
+    const logs: HTMLElement = within(value).getByTestId(IDS.telemetryLogs);
+    const logsLabel: HTMLElement = within(logs).getByTestId(IDS.factLabel);
+
+    expect(logsLabel.tagName).toBe("DT");
+    expect(logsLabel).toHaveTextContent("In 1,284 log lines");
+    expect(logs.className).toBe(TELEMETRY_ROW_CLASS_NAME);
+
+    // Where in them: the message, then an attribute by its key, each with its count.
+    const places: Array<HTMLElement> = within(logs).getAllByTestId(
+      IDS.telemetryPlace,
+    );
+
+    expect(
+      places.map((place: HTMLElement): string => {
+        return (place.textContent || "").trim();
+      }),
+    ).toEqual(["In the message1,200", "client_ip84"]);
+    expect(places[0]!.className).toContain(TELEMETRY_PLACE_LINK_CLASS_NAME);
+    expect(places[0]).toHaveAttribute("title", "Open in Logs");
+
+    const message: globalThis.URL = new globalThis.URL(
+      href(places[0]!),
+      "https://oneuptime.example",
+    );
+
+    expect(message.pathname).toBe(`${BASE}/logs`);
+    expect(JSON.parse(message.searchParams.get("filters") || "[]")).toEqual([
+      ["body", ["203.0.113.7"]],
+    ]);
+    expect(message.searchParams.get("range")).toBe("Custom");
+
+    const attribute: globalThis.URL = new globalThis.URL(
+      href(places[1]!),
+      "https://oneuptime.example",
+    );
+
+    expect(JSON.parse(attribute.searchParams.get("filters") || "[]")).toEqual([
+      ["attributes.client_ip", ["203.0.113.7"]],
+    ]);
+    // An attribute's key is the telemetry's own text, isolated.
+    expect(places[1]!.querySelector("bdi")).toHaveTextContent("client_ip");
+
+    // The records that sent them, each opening its page; the rest counted.
+    const sources: Array<HTMLElement> = within(logs).getAllByTestId(
+      IDS.telemetrySource,
+    );
+
+    expect(
+      sources.map((source: HTMLElement): string => {
+        return (source.querySelector("bdi")?.textContent || "").trim();
+      }),
+    ).toEqual(["checkout-api", "edge-1"]);
+    expect(sources[0]).toHaveTextContent("Service");
+    expect(sources[0]).toHaveTextContent("1,200");
+    expect(href(sources[0]!.querySelector("bdi")!)).toBe(
+      `${BASE}/service/${SERVICE_ID}`,
+    );
+    expect(href(sources[1]!.querySelector("bdi")!)).toBe(
+      `${BASE}/host/${HOST_ID}`,
+    );
+    expect(logs).toHaveTextContent("+2 more");
+
+    // The spans: an attribute, opening the Traces explorer's search on it.
+    const spans: HTMLElement = within(value).getByTestId(IDS.telemetrySpans);
+
+    expect(within(spans).getByTestId(IDS.factLabel)).toHaveTextContent(
+      "In 312 spans",
+    );
+
+    const spanPlace: HTMLElement = within(spans).getByTestId(
+      IDS.telemetryPlace,
+    );
+
+    expect(spanPlace).toHaveAttribute("title", "Open in Traces");
+
+    const traces: globalThis.URL = new globalThis.URL(
+      href(spanPlace),
+      "https://oneuptime.example",
+    );
+
+    expect(traces.pathname).toBe(`${BASE}/traces`);
+    expect(traces.searchParams.get("search")).toBe(
+      "@client.address:203.0.113.7",
+    );
+    expect(spans).not.toHaveTextContent("more");
+  });
+
+  test("a value only one signal named shows that one; the values every signal was searched for and none named follow, under their own heading", async () => {
+    getConnectionsMock.mockResolvedValue(answer() as never);
+    getTelemetryMentionsMock.mockResolvedValue(
+      mentions({
+        values: [
+          quiet,
+          {
+            ...attacker,
+            traces: hits(),
+          },
+        ],
+      }) as never,
+    );
+
+    await drawConnectedSignals();
+
+    const value: HTMLElement = await screen.findByTestId(IDS.telemetryValue);
+
+    expect(screen.getAllByTestId(IDS.telemetryValue)).toHaveLength(1);
+    expect(within(value).getByTestId(IDS.telemetryLogs)).toBeInTheDocument();
+    expect(within(value).queryByTestId(IDS.telemetrySpans)).toBeNull();
+
+    const notFound: HTMLElement = screen.getByTestId(IDS.telemetryNotFound);
+
+    expect(notFound).toHaveTextContent("Not in your logs or traces");
+    expect(notFound).toHaveTextContent("evil-c2.example.net");
+    // After the values found, a rule between.
+    expect(notFound.className).toContain("border-t");
+  });
+
+  test("a value a signal could not be searched for is never said not to be in them; the role's limits and a failed search are said, with a way to search again", async () => {
+    getConnectionsMock.mockResolvedValue(answer() as never);
+    getTelemetryMentionsMock.mockResolvedValue(
+      mentions({
+        values: [
+          {
+            ...quiet,
+            logs: null,
+          },
+          {
+            ...attacker,
+            entityValue: "198.51.100.4",
+            logs: null,
+            traces: null,
+          },
+        ],
+        unreadableSignals: [SecurityTelemetrySignal.Logs],
+        failedSignals: [SecurityTelemetrySignal.Traces],
+        hasMoreValues: true,
+      }) as never,
+    );
+
+    await drawConnectedSignals();
+
+    const unreadable: HTMLElement = await screen.findByTestId(
+      IDS.telemetryUnreadable,
+    );
+
+    expect(unreadable).toHaveTextContent(
+      "Your role cannot read Logs, so they were not searched.",
+    );
+    expect(screen.getByTestId(IDS.telemetryFailed)).toHaveTextContent(
+      "Traces could not be searched just now.",
+    );
+    expect(screen.getByTestId(IDS.telemetryMoreValues)).toHaveTextContent(
+      "It names more values than were searched for.",
+    );
+    expect(screen.queryByTestId(IDS.telemetryNotFound)).toBeNull();
+    expect(screen.queryByTestId(IDS.telemetryValue)).toBeNull();
+
+    getTelemetryMentionsMock.mockResolvedValue(
+      mentions({ values: [attacker] }) as never,
+    );
+
+    await act(async () => {
+      fireEvent.click(
+        within(screen.getByTestId(IDS.telemetryFailed)).getByRole("button", {
+          name: "Try again",
+        }),
+      );
+    });
+
+    // Only the search is read again, not the records.
+    expect(getTelemetryMentionsMock).toHaveBeenCalledTimes(2);
+    expect(getConnectionsMock).toHaveBeenCalledTimes(1);
+    expect(await screen.findByTestId(IDS.telemetryValue)).toBeInTheDocument();
+    expect(screen.queryByTestId(IDS.telemetryFailed)).toBeNull();
+  });
+
+  test("a case that names nothing searched for shows no section at all", async () => {
+    getConnectionsMock.mockResolvedValue(answer() as never);
+
+    await drawConnectedSignals();
+
+    await screen.findByTestId(IDS.record);
+    await waitFor(() => {
+      expect(getTelemetryMentionsMock).toHaveBeenCalled();
+    });
+    expect(screen.queryByTestId(IDS.telemetry)).toBeNull();
+    expect(document.body).not.toHaveTextContent("In your logs and traces");
+  });
+
+  test("a search that fails says why, in its own place, and can be tried again; the records stay", async () => {
+    getConnectionsMock.mockResolvedValue(answer() as never);
+    getTelemetryMentionsMock.mockRejectedValue(
+      new Error("This query took longer than 15 seconds.") as never,
+    );
+
+    await drawConnectedSignals();
+
+    const error: HTMLElement = await screen.findByTestId(IDS.telemetryError);
+
+    expect(error).toHaveTextContent("This query took longer than 15 seconds.");
+    expect(screen.getByTestId(IDS.record)).toBeInTheDocument();
+    expect(screen.queryByTestId(IDS.error)).toBeNull();
+
+    getTelemetryMentionsMock.mockResolvedValue(
+      mentions({ values: [attacker] }) as never,
+    );
+
+    await act(async () => {
+      fireEvent.click(within(error).getByRole("button"));
+    });
+
+    expect(await screen.findByTestId(IDS.telemetryValue)).toBeInTheDocument();
+  });
+
+  test("records that fail to read take nothing from the logs and traces", async () => {
+    getConnectionsMock.mockRejectedValue(
+      new Error("Reading security events takes a Security role.") as never,
+    );
+    getTelemetryMentionsMock.mockResolvedValue(
+      mentions({ values: [attacker] }) as never,
+    );
+
+    await drawConnectedSignals();
+
+    expect(await screen.findByTestId(IDS.error)).toBeInTheDocument();
+    expect(await screen.findByTestId(IDS.telemetryValue)).toBeInTheDocument();
+  });
+
+  test("the same case read again reads its logs and traces again, keeping what they show until the new answer is in", async () => {
+    getConnectionsMock.mockResolvedValue(answer() as never);
+    getTelemetryMentionsMock.mockResolvedValue(
+      mentions({ values: [attacker] }) as never,
+    );
+
+    const rendered: ReturnType<typeof render> = await drawConnectedSignals({
+      refreshToken: 1,
+    });
+
+    await screen.findByTestId(IDS.telemetryValue);
+
+    let resolve: (value: SecurityTelemetryMentionsJson) => void = () => {};
+
+    getTelemetryMentionsMock.mockReturnValue(
+      new Promise<SecurityTelemetryMentionsJson>(
+        (done: (value: SecurityTelemetryMentionsJson) => void) => {
+          resolve = done;
+        },
+      ) as never,
+    );
+
+    await act(async () => {
+      rendered.rerender(
+        <MemoryRouter>
+          <ConnectedSignals
+            request={{ caseId: new ObjectID(CASE_ID) }}
+            requestKey={CASE_ID}
+            refreshToken={2}
+            description={CONNECTED_SIGNALS_CASE_DESCRIPTION}
+          />
+        </MemoryRouter>,
+      );
+    });
+
+    expect(getTelemetryMentionsMock).toHaveBeenCalledTimes(2);
+    expect(screen.getByTestId(IDS.telemetryValue)).toBeInTheDocument();
+
+    await act(async () => {
+      resolve(mentions({ values: [quiet] }));
+    });
+
+    expect(screen.queryByTestId(IDS.telemetryValue)).toBeNull();
+    expect(screen.getByTestId(IDS.telemetryNotFound)).toHaveTextContent(
+      "evil-c2.example.net",
+    );
+  });
+
+  test("an event's Connected tab carries it too, with the event's own values and time", async () => {
+    getConnectionsMock.mockResolvedValue(answer() as never);
+    getTelemetryMentionsMock.mockResolvedValue(
+      mentions({ values: [attacker] }) as never,
+    );
+
+    const time: Date = new Date("2026-10-25T10:00:00.000Z");
+
+    await act(async () => {
+      render(
+        <MemoryRouter>
+          <ConnectedSignals
+            request={{
+              entities: [
+                { type: SecurityEntityType.IpAddress, value: "203.0.113.7" },
+              ],
+              time,
+            }}
+            requestKey="event:1"
+            description={CONNECTED_SIGNALS_EVENT_DESCRIPTION}
+            isEmbedded={true}
+          />
+        </MemoryRouter>,
+      );
+    });
+
+    expect(await screen.findByTestId(IDS.telemetryValue)).toBeInTheDocument();
+    expect(getTelemetryMentionsMock).toHaveBeenCalledWith({
+      entities: [{ type: SecurityEntityType.IpAddress, value: "203.0.113.7" }],
+      time,
+    });
   });
 });
 

@@ -1,6 +1,7 @@
 import {
   SecurityConnectionKind,
   SecurityConnectionReason,
+  SecurityTelemetrySignal,
 } from "Common/Types/SecurityCase/SecurityConnection";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
@@ -11,7 +12,8 @@ import {
 /*
  * The words of Security Events' connections to the rest of OneUptime: a
  * case's Connected Signals, an event's Connected tab and an entity's
- * Connected Signals card (what they name, the other way), and the Security
+ * Connected Signals card (what they name, the other way, and where it
+ * appears in the logs and traces themselves), and the Security
  * card on a host's, a cluster's, a device's, a cloud resource's, a
  * serverless function's, a service's, a monitor's, a user's and an
  * incident's page (the way back). Each is an en.json key, looked up where
@@ -47,8 +49,12 @@ export const CONNECTED_WINDOW: string = translationKey(
   "Signals from {{start}} to {{end}}",
 );
 
+/*
+ * Said of the records alone: what it names may still be in the logs and
+ * traces, which "In your logs and traces" says below.
+ */
 export const CONNECTED_EMPTY_TITLE: string = translationKey(
-  "Nothing it names is in OneUptime.",
+  "No record matches what it names.",
 );
 
 export const CONNECTED_EMPTY_DESCRIPTION: string = translationKey(
@@ -61,11 +67,11 @@ export const CONNECTED_EMPTY_DESCRIPTION: string = translationKey(
  * said to be missing from OneUptime.
  */
 export const CONNECTED_PARTIAL_EMPTY_TITLE: string = translationKey(
-  "Nothing it names was found.",
+  "No matching record was found.",
 );
 
 export const CONNECTED_PARTIAL_EMPTY_DESCRIPTION: string = translationKey(
-  "Some kinds of record could not be read, so it may still be in OneUptime.",
+  "Some kinds of record could not be read, so one may still match.",
 );
 
 export const CONNECTED_NOTHING_TO_LOOK_UP_TITLE: string = translationKey(
@@ -76,8 +82,9 @@ export const CONNECTED_NOTHING_TO_LOOK_UP_DESCRIPTION: string = translationKey(
   "Only hosts, addresses and users with an email can be found in OneUptime.",
 );
 
+// The values looked for that no record matches.
 export const CONNECTED_NOT_FOUND_TITLE: string =
-  translationKey("Not in OneUptime");
+  translationKey("No matching record");
 
 export const CONNECTED_MORE_RECORDS: string = translationKey(
   "It names more records than are shown here.",
@@ -176,6 +183,64 @@ export const SIGNAL_LINK_ICONS: Readonly<Record<string, IconProp>> = {
 export const SIGNAL_LINKS_ARIA_LABEL: string = translationKey(
   "Signals of {{name}} in this window",
 );
+
+// ---------- In your logs and traces ----------
+
+export const TELEMETRY_MENTIONS_TITLE: string = translationKey(
+  "In your logs and traces",
+);
+
+// "Where what it names appears in your logs and traces from Oct 14, 10:02 to 11:40."
+export const TELEMETRY_MENTIONS_DESCRIPTION: string = translationKey(
+  "Where what it names appears in your logs and traces from {{start}} to {{end}}.",
+);
+
+// A value's rows: how many log lines, and how many spans, named it.
+export const TELEMETRY_LOG_LINES: PluralTemplate = {
+  one: "In {{count}} log line",
+  other: "In {{count}} log lines",
+};
+
+export const TELEMETRY_SPANS: PluralTemplate = {
+  one: "In {{count}} span",
+  other: "In {{count}} spans",
+};
+
+/*
+ * Where in them it was: a log line's message, or an attribute - shown by
+ * its key, as the telemetry writes it.
+ */
+export const TELEMETRY_PLACE_MESSAGE: string = translationKey("In the message");
+
+// What a place's link opens, as its tooltip.
+export const TELEMETRY_OPEN_IN_LOGS: string = translationKey("Open in Logs");
+
+export const TELEMETRY_OPEN_IN_TRACES: string = translationKey("Open in Traces");
+
+// The values searched for in every signal and named by none.
+export const TELEMETRY_NOT_FOUND_TITLE: string = translationKey(
+  "Not in your logs or traces",
+);
+
+export const TELEMETRY_UNREADABLE: string = translationKey(
+  "Your role cannot read {{signals}}, so they were not searched.",
+);
+
+export const TELEMETRY_FAILED: string = translationKey(
+  "{{signals}} could not be searched just now.",
+);
+
+export const TELEMETRY_MORE_VALUES: string = translationKey(
+  "It names more values than were searched for.",
+);
+
+// The signals, as the notes name them.
+export const TELEMETRY_SIGNAL_LABELS: Readonly<
+  Record<SecurityTelemetrySignal, string>
+> = {
+  [SecurityTelemetrySignal.Logs]: translationKey("Logs"),
+  [SecurityTelemetrySignal.Traces]: translationKey("Traces"),
+};
 
 // ---------- The kinds of record ----------
 
@@ -421,6 +486,17 @@ export const SECURITY_CONNECTIONS_TEST_IDS: {
   incidentSecurity: string;
   incidentSecurityDeclared: string;
   incidentSecurityNaming: string;
+  telemetry: string;
+  telemetryValue: string;
+  telemetryLogs: string;
+  telemetrySpans: string;
+  telemetryPlace: string;
+  telemetrySource: string;
+  telemetryNotFound: string;
+  telemetryUnreadable: string;
+  telemetryFailed: string;
+  telemetryMoreValues: string;
+  telemetryError: string;
 } = {
   connectedSignals: "security-connected-signals",
   window: "security-connected-window",
@@ -459,4 +535,15 @@ export const SECURITY_CONNECTIONS_TEST_IDS: {
   incidentSecurity: "incident-security-card",
   incidentSecurityDeclared: "incident-security-declared",
   incidentSecurityNaming: "incident-security-naming",
+  telemetry: "security-telemetry-mentions",
+  telemetryValue: "security-telemetry-value",
+  telemetryLogs: "security-telemetry-logs",
+  telemetrySpans: "security-telemetry-spans",
+  telemetryPlace: "security-telemetry-place",
+  telemetrySource: "security-telemetry-source",
+  telemetryNotFound: "security-telemetry-not-found",
+  telemetryUnreadable: "security-telemetry-unreadable",
+  telemetryFailed: "security-telemetry-failed",
+  telemetryMoreValues: "security-telemetry-more-values",
+  telemetryError: "security-telemetry-error",
 };

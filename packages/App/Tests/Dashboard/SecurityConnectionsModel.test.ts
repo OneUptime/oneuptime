@@ -4,11 +4,15 @@ import { JSONObject } from "Common/Types/JSON";
 import {
   ResourceSecurityJson,
   SECURITY_LOG_RESOURCE_ID_ATTRIBUTE,
+  SECURITY_TELEMETRY_MESSAGE_PLACE,
   SecurityConnectedResourceJson,
   SecurityConnectionCertainty,
   SecurityConnectionKind,
   SecurityConnectionReason,
   SecurityConnectionsJson,
+  SecurityTelemetryMentionsJson,
+  SecurityTelemetrySignal,
+  SecurityTelemetryValueJson,
   IncidentSecurityJson,
 } from "Common/Types/SecurityCase/SecurityConnection";
 import { SecurityEntityType } from "Common/Types/SecurityCase/SecurityEntity";
@@ -1137,5 +1141,315 @@ describe("what a record's Security card says it is about", () => {
         isSearchedByLogs: true,
       } as JSONObject).isSearchedByLogs,
     ).toBe(true);
+  });
+});
+
+describe("reading where what it names appears in the logs and traces", () => {
+  const answer: JSONObject = {
+    windowStart: WINDOW_START,
+    windowEnd: WINDOW_END,
+    values: [
+      {
+        entityType: SecurityEntityType.IpAddress,
+        entityValue: "203.0.113.7",
+        logs: {
+          count: 1284,
+          sources: [
+            {
+              kind: SecurityConnectionKind.Service,
+              id: SERVICE_ID,
+              name: "checkout-api",
+              count: 1200,
+            },
+            // A kind it does not know, or no id: not a record to list.
+            { kind: "Probe", id: HOST_ID, name: "probe", count: 1 },
+            { kind: SecurityConnectionKind.Host, name: "no id", count: 1 },
+          ],
+          sourceCount: 3,
+          places: [
+            { key: SECURITY_TELEMETRY_MESSAGE_PLACE, count: 1200 },
+            { key: "client_ip", count: 84, value: "203.0.113.7" },
+            // A place nothing was in, or one with no key: none.
+            { key: "net.peer.ip", count: 0 },
+            { count: 4 },
+          ],
+          lastSeen: "2026-10-25T10:12:00.000Z",
+        },
+        // Not searched: the reader's role cannot read traces.
+        traces: null,
+      },
+      {
+        entityType: SecurityEntityType.Domain,
+        entityValue: "evil.example",
+        logs: { count: 0, sources: [], sourceCount: 0, places: [] },
+        traces: { count: 0, sources: [], sourceCount: 0, places: [] },
+      },
+      // A value with no value is none.
+      { entityType: SecurityEntityType.Domain, entityValue: "" },
+      "not a value",
+    ],
+    hasMoreValues: true,
+    unreadableSignals: [SecurityTelemetrySignal.Traces, "Profiles"],
+    failedSignals: "not a list",
+  } as JSONObject;
+
+  test("the values, each signal as the server said it, what is not one left out", () => {
+    const mentions: SecurityTelemetryMentionsJson =
+      model.parseSecurityTelemetryMentions(answer);
+
+    expect(mentions).toEqual({
+      windowStart: WINDOW_START,
+      windowEnd: WINDOW_END,
+      values: [
+        {
+          entityType: SecurityEntityType.IpAddress,
+          entityValue: "203.0.113.7",
+          logs: {
+            count: 1284,
+            sources: [
+              {
+                kind: SecurityConnectionKind.Service,
+                id: SERVICE_ID,
+                name: "checkout-api",
+                count: 1200,
+              },
+            ],
+            sourceCount: 3,
+            places: [
+              { key: SECURITY_TELEMETRY_MESSAGE_PLACE, count: 1200 },
+              { key: "client_ip", count: 84, value: "203.0.113.7" },
+            ],
+            lastSeen: "2026-10-25T10:12:00.000Z",
+          },
+          traces: null,
+        },
+        {
+          entityType: SecurityEntityType.Domain,
+          entityValue: "evil.example",
+          logs: {
+            count: 0,
+            sources: [],
+            sourceCount: 0,
+            places: [],
+            lastSeen: null,
+          },
+          traces: {
+            count: 0,
+            sources: [],
+            sourceCount: 0,
+            places: [],
+            lastSeen: null,
+          },
+        },
+      ],
+      hasMoreValues: true,
+      unreadableSignals: [SecurityTelemetrySignal.Traces],
+      failedSignals: [],
+    });
+  });
+
+  test("an answer an older server never sent reads as nothing searched", () => {
+    expect(model.parseSecurityTelemetryMentions({})).toEqual({
+      windowStart: "",
+      windowEnd: "",
+      values: [],
+      hasMoreValues: false,
+      unreadableSignals: [],
+      failedSignals: [],
+    });
+  });
+
+  test("the values found, and those every signal was searched for and none named; one a signal was not searched for is neither", () => {
+    const mentions: SecurityTelemetryMentionsJson =
+      model.parseSecurityTelemetryMentions(answer);
+    const unsure: SecurityTelemetryValueJson = {
+      entityType: SecurityEntityType.Domain,
+      entityValue: "unsure.example",
+      logs: null,
+      traces: {
+        count: 0,
+        sources: [],
+        sourceCount: 0,
+        places: [],
+        lastSeen: null,
+      },
+    };
+
+    const groups: {
+      found: Array<SecurityTelemetryValueJson>;
+      notFound: Array<SecurityTelemetryValueJson>;
+    } = model.getTelemetryMentionsGroups({
+      values: [...mentions.values, unsure],
+    });
+
+    expect(
+      groups.found.map((value: SecurityTelemetryValueJson): string => {
+        return value.entityValue;
+      }),
+    ).toEqual(["203.0.113.7"]);
+    expect(
+      groups.notFound.map((value: SecurityTelemetryValueJson): string => {
+        return value.entityValue;
+      }),
+    ).toEqual(["evil.example"]);
+
+    // A signal's hits, when it has any.
+    expect(
+      model.getTelemetryHits(mentions.values[0]!, SecurityTelemetrySignal.Logs)
+        ?.count,
+    ).toBe(1284);
+    expect(
+      model.getTelemetryHits(
+        mentions.values[0]!,
+        SecurityTelemetrySignal.Traces,
+      ),
+    ).toBeNull();
+    expect(
+      model.getTelemetryHits(mentions.values[1]!, SecurityTelemetrySignal.Logs),
+    ).toBeNull();
+  });
+});
+
+describe("where a place it was found in opens", () => {
+  test("the message: the Logs explorer on the lines whose message contains it, pinned to the window", () => {
+    const link: { path: string; query: Record<string, string> } = open(
+      model.getTelemetryPlaceRoute({
+        signal: SecurityTelemetrySignal.Logs,
+        entityValue: "203.0.113.7",
+        place: { key: SECURITY_TELEMETRY_MESSAGE_PLACE, count: 1200 },
+        windowStart: WINDOW_START,
+        windowEnd: WINDOW_END,
+      }),
+    );
+
+    expect(link.path).toBe(`${BASE}/logs`);
+    expect(JSON.parse(link.query["filters"]!)).toEqual([
+      ["body", ["203.0.113.7"]],
+    ]);
+    expect(link.query["range"]).toBe("Custom");
+    expect(new Date(link.query["start"]!).toISOString()).toBe(WINDOW_START);
+    expect(new Date(link.query["end"]!).toISOString()).toBe(WINDOW_END);
+  });
+
+  test("an IPv6 address in the short form logs write it in", () => {
+    const link: { path: string; query: Record<string, string> } = open(
+      model.getTelemetryPlaceRoute({
+        signal: SecurityTelemetrySignal.Logs,
+        entityValue: "2001:0DB8:0:0:0:0:0:7",
+        place: { key: SECURITY_TELEMETRY_MESSAGE_PLACE, count: 3 },
+        windowStart: WINDOW_START,
+        windowEnd: WINDOW_END,
+      }),
+    );
+
+    expect(JSON.parse(link.query["filters"]!)).toEqual([
+      ["body", ["2001:db8::7"]],
+    ]);
+  });
+
+  test("a log line's attribute: the Logs explorer on it, as the attribute holds the value, escaped for its search", () => {
+    const link: { path: string; query: Record<string, string> } = open(
+      model.getTelemetryPlaceRoute({
+        signal: SecurityTelemetrySignal.Logs,
+        entityValue: "K.Morgan@acme.example",
+        place: {
+          key: "user.email",
+          count: 2,
+          value: "k.morgan@acme.example",
+        },
+        windowStart: WINDOW_START,
+        windowEnd: WINDOW_END,
+      }),
+    );
+
+    expect(link.path).toBe(`${BASE}/logs`);
+    expect(JSON.parse(link.query["filters"]!)).toEqual([
+      ["attributes.user.email", ["k.morgan@acme.example"]],
+    ]);
+
+    // A value with the search's own characters in it means itself.
+    const url: { path: string; query: Record<string, string> } = open(
+      model.getTelemetryPlaceRoute({
+        signal: SecurityTelemetrySignal.Logs,
+        entityValue: "https://evil.example/*",
+        place: { key: "url.full", count: 1 },
+        windowStart: WINDOW_START,
+        windowEnd: WINDOW_END,
+      }),
+    );
+
+    expect(JSON.parse(url.query["filters"]!)).toEqual([
+      ["attributes.url.full", ["https://evil.example/\\*"]],
+    ]);
+  });
+
+  test("a span's attribute: the Traces explorer's search on it", () => {
+    const link: { path: string; query: Record<string, string> } = open(
+      model.getTelemetryPlaceRoute({
+        signal: SecurityTelemetrySignal.Traces,
+        entityValue: "evil-c2.example.net",
+        place: {
+          key: "server.address",
+          count: 1,
+          value: "EVIL-C2.EXAMPLE.NET",
+        },
+        windowStart: WINDOW_START,
+        windowEnd: WINDOW_END,
+      }),
+    );
+
+    expect(link.path).toBe(`${BASE}/traces`);
+    expect(link.query["search"]).toBe("@server.address:EVIL-C2.EXAMPLE.NET");
+    expect(link.query["range"]).toBe("Custom");
+  });
+
+  test("a span has no message; a window it cannot read leaves the explorer on its own range", () => {
+    expect(
+      model.getTelemetryPlaceRoute({
+        signal: SecurityTelemetrySignal.Traces,
+        entityValue: "203.0.113.7",
+        place: { key: SECURITY_TELEMETRY_MESSAGE_PLACE, count: 1 },
+        windowStart: WINDOW_START,
+        windowEnd: WINDOW_END,
+      }),
+    ).toBeNull();
+
+    const link: { path: string; query: Record<string, string> } = open(
+      model.getTelemetryPlaceRoute({
+        signal: SecurityTelemetrySignal.Logs,
+        entityValue: "203.0.113.7",
+        place: { key: SECURITY_TELEMETRY_MESSAGE_PLACE, count: 1 },
+        windowStart: WINDOW_END,
+        windowEnd: WINDOW_START,
+      }),
+    );
+
+    expect(link.query["range"]).toBeUndefined();
+    expect(
+      model.getTelemetryPlaceRoute({
+        signal: SecurityTelemetrySignal.Logs,
+        entityValue: " ",
+        place: { key: SECURITY_TELEMETRY_MESSAGE_PLACE, count: 1 },
+        windowStart: WINDOW_START,
+        windowEnd: WINDOW_END,
+      }),
+    ).toBeNull();
+  });
+
+  test("a record that sent them opens its own page", () => {
+    expect(
+      open(
+        model.getTelemetrySourceRoute({
+          kind: SecurityConnectionKind.Service,
+          id: SERVICE_ID,
+        }),
+      ).path,
+    ).toBe(`${BASE}/service/${SERVICE_ID}`);
+    expect(
+      model.getTelemetrySourceRoute({
+        kind: SecurityConnectionKind.Host,
+        id: "edge-1",
+      }),
+    ).toBeNull();
   });
 });

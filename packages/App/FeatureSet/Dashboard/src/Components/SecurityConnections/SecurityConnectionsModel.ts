@@ -36,6 +36,14 @@ import {
   SecurityConnectionScheduleListJson,
   SecurityConnectionStatusJson,
   SecurityConnectionsJson,
+  SECURITY_TELEMETRY_MESSAGE_PLACE,
+  SECURITY_TELEMETRY_SIGNALS,
+  SecurityTelemetryHitsJson,
+  SecurityTelemetryMentionsJson,
+  SecurityTelemetryPlaceJson,
+  SecurityTelemetrySignal,
+  SecurityTelemetrySourceJson,
+  SecurityTelemetryValueJson,
 } from "Common/Types/SecurityCase/SecurityConnection";
 import {
   SECURITY_EVENT_ENTITY_FIELDS,
@@ -53,6 +61,7 @@ import {
   toTracesExplorerQueryParams,
 } from "Common/Utils/Telemetry/CrossSignalScope";
 import TimeRange from "Common/Types/Time/TimeRange";
+import { getTelemetryMessageSearchText } from "Common/Utils/SecurityCase/SecurityTelemetrySearch";
 
 /*
  * What the Connected Signals views and the Security cards draw from the
@@ -989,4 +998,234 @@ export function getLeadingMatch(
     resource.matches[0] ||
     null
   );
+}
+
+// ---------- In your logs and traces ----------
+
+function isSignal(value: unknown): value is SecurityTelemetrySignal {
+  return (
+    typeof value === "string" &&
+    (SECURITY_TELEMETRY_SIGNALS as ReadonlyArray<string>).includes(value)
+  );
+}
+
+// One signal's hits for a value: null when the answer says it was not searched.
+function readTelemetryHits(
+  value: JSONValue | undefined,
+): SecurityTelemetryHitsJson | null {
+  const hits: JSONObject | null = readObject(value);
+
+  if (!hits) {
+    return null;
+  }
+
+  const sources: Array<SecurityTelemetrySourceJson> = readArray(
+    hits["sources"],
+  )
+    .map((item: JSONValue): SecurityTelemetrySourceJson | null => {
+      const source: JSONObject | null = readObject(item);
+      const id: string = readString(source?.["id"]);
+
+      if (!source || !isKind(source["kind"]) || !id) {
+        return null;
+      }
+
+      return {
+        kind: source["kind"],
+        id,
+        name: readString(source["name"]),
+        count: readNumber(source["count"]),
+      };
+    })
+    .filter(
+      (
+        source: SecurityTelemetrySourceJson | null,
+      ): source is SecurityTelemetrySourceJson => {
+        return source !== null;
+      },
+    );
+
+  const places: Array<SecurityTelemetryPlaceJson> = readArray(hits["places"])
+    .map((item: JSONValue): SecurityTelemetryPlaceJson | null => {
+      const place: JSONObject | null = readObject(item);
+
+      if (!place || typeof place["key"] !== "string") {
+        return null;
+      }
+
+      return {
+        key: place["key"],
+        count: readNumber(place["count"]),
+        ...(readOptionalString(place["value"])
+          ? { value: readOptionalString(place["value"]) }
+          : {}),
+      };
+    })
+    .filter(
+      (
+        place: SecurityTelemetryPlaceJson | null,
+      ): place is SecurityTelemetryPlaceJson => {
+        return place !== null && place.count > 0;
+      },
+    );
+
+  return {
+    count: readNumber(hits["count"]),
+    sources,
+    sourceCount: Math.max(readNumber(hits["sourceCount"]), sources.length),
+    places,
+    lastSeen: readOptionalString(hits["lastSeen"]) || null,
+  };
+}
+
+export function parseSecurityTelemetryMentions(
+  json: JSONObject,
+): SecurityTelemetryMentionsJson {
+  return {
+    windowStart: readString(json["windowStart"]),
+    windowEnd: readString(json["windowEnd"]),
+    values: readArray(json["values"])
+      .map((item: JSONValue): SecurityTelemetryValueJson | null => {
+        const value: JSONObject | null = readObject(item);
+        const entityValue: string = readString(value?.["entityValue"]);
+
+        if (!value || !entityValue) {
+          return null;
+        }
+
+        return {
+          entityType: readString(value["entityType"]),
+          entityValue,
+          logs: readTelemetryHits(value["logs"]),
+          traces: readTelemetryHits(value["traces"]),
+        };
+      })
+      .filter(
+        (
+          value: SecurityTelemetryValueJson | null,
+        ): value is SecurityTelemetryValueJson => {
+          return value !== null;
+        },
+      ),
+    hasMoreValues: json["hasMoreValues"] === true,
+    unreadableSignals: readArray(json["unreadableSignals"]).filter(
+      isSignal,
+    ) as Array<SecurityTelemetrySignal>,
+    failedSignals: readArray(json["failedSignals"]).filter(
+      isSignal,
+    ) as Array<SecurityTelemetrySignal>,
+  };
+}
+
+// A value's hits in one signal, when it has any.
+export function getTelemetryHits(
+  value: SecurityTelemetryValueJson,
+  signal: SecurityTelemetrySignal,
+): SecurityTelemetryHitsJson | null {
+  const hits: SecurityTelemetryHitsJson | null =
+    signal === SecurityTelemetrySignal.Logs ? value.logs : value.traces;
+
+  return hits && hits.count > 0 ? hits : null;
+}
+
+/*
+ * The values, as the section lists them:
+ *   - found: named by a log line or a span, in the order searched;
+ *   - notFound: searched in every signal, and named by none - the one
+ *     answer that may say it is not in the logs or traces. A value a
+ *     signal could not be searched for (a role, a failed read) and that
+ *     the other did not find is in neither: nothing can be said of it.
+ */
+export interface TelemetryMentionsGroups {
+  found: Array<SecurityTelemetryValueJson>;
+  notFound: Array<SecurityTelemetryValueJson>;
+}
+
+export function getTelemetryMentionsGroups(
+  mentions: Pick<SecurityTelemetryMentionsJson, "values">,
+): TelemetryMentionsGroups {
+  const groups: TelemetryMentionsGroups = { found: [], notFound: [] };
+
+  for (const value of mentions.values) {
+    const isFound: boolean = SECURITY_TELEMETRY_SIGNALS.some(
+      (signal: SecurityTelemetrySignal): boolean => {
+        return getTelemetryHits(value, signal) !== null;
+      },
+    );
+
+    if (isFound) {
+      groups.found.push(value);
+    } else if (value.logs && value.traces) {
+      groups.notFound.push(value);
+    }
+  }
+
+  return groups;
+}
+
+/*
+ * Where one place a value was found opens, on the window: the Logs
+ * explorer on the lines whose message contains it (an IPv6 address in the
+ * short form logs write it in), or on the lines - the Traces explorer on
+ * the spans - whose attribute holds it, as that attribute holds it (an
+ * attribute is matched exactly there).
+ */
+export function getTelemetryPlaceRoute(data: {
+  signal: SecurityTelemetrySignal;
+  entityValue: string;
+  place: SecurityTelemetryPlaceJson;
+  windowStart: string;
+  windowEnd: string;
+}): Route | null {
+  const window: { start: Date; end: Date } | null = readWindow(
+    data.windowStart,
+    data.windowEnd,
+  );
+  const scope: TelemetryCrossSignalScope = {
+    ...(window ? { startTime: window.start, endTime: window.end } : {}),
+  };
+  const isMessage: boolean =
+    data.place.key === SECURITY_TELEMETRY_MESSAGE_PLACE;
+
+  if (isMessage) {
+    if (data.signal !== SecurityTelemetrySignal.Logs) {
+      return null;
+    }
+
+    const text: string = getTelemetryMessageSearchText(data.entityValue);
+
+    if (!text) {
+      return null;
+    }
+
+    return withRouteQueryParams(
+      RouteUtil.populateRouteParams(RouteMap[PageMap.LOGS] as Route),
+      toLogsExplorerQueryParams({ ...scope, bodyContains: text }).params,
+    );
+  }
+
+  const held: string = data.place.value || data.entityValue.trim();
+
+  if (!held) {
+    return null;
+  }
+
+  const attributes: Dictionary<string> = { [data.place.key]: held };
+
+  return data.signal === SecurityTelemetrySignal.Logs
+    ? withRouteQueryParams(
+        RouteUtil.populateRouteParams(RouteMap[PageMap.LOGS] as Route),
+        toLogsExplorerQueryParams({ ...scope, attributes }).params,
+      )
+    : withRouteQueryParams(
+        RouteUtil.populateRouteParams(RouteMap[PageMap.TRACES] as Route),
+        toTracesExplorerQueryParams({ ...scope, attributes }).params,
+      );
+}
+
+// A record that sent the lines or spans: its own page.
+export function getTelemetrySourceRoute(
+  source: Pick<SecurityTelemetrySourceJson, "kind" | "id">,
+): Route | null {
+  return getConnectedRecordRoute(source.kind, source.id);
 }
