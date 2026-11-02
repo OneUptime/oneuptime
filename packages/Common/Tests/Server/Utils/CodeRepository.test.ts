@@ -518,7 +518,7 @@ describe("CodeRepositoryUtil", () => {
       expect(lastCall().args).toEqual([
         "log",
         "--no-merges",
-        `--pretty=format:${RECORD}%an${UNIT}%ae`,
+        `--pretty=format:${RECORD}%an${UNIT}%ae${UNIT}%cI`,
         "--name-only",
       ]);
     });
@@ -572,9 +572,9 @@ describe("CodeRepositoryUtil", () => {
       expect(lastCall()).not.toHaveProperty("timeoutInMS");
     });
 
-    it("parses author and files out of one commit", async () => {
+    it("parses author, time and files out of one commit", async () => {
       executeCommandFileMock.mockResolvedValue(
-        `${RECORD}Ada Lovelace${UNIT}ada@example.com\nposts/a.md\nposts/b.md\n` as never,
+        `${RECORD}Ada Lovelace${UNIT}ada@example.com${UNIT}2026-09-29T08:02:03+00:00\nposts/a.md\nposts/b.md\n` as never,
       );
 
       await expect(
@@ -583,9 +583,29 @@ describe("CodeRepositoryUtil", () => {
         {
           authorName: "Ada Lovelace",
           authorEmail: "ada@example.com",
+          committedAt: "2026-09-29T08:02:03+00:00",
           files: ["posts/a.md", "posts/b.md"],
         },
       ]);
+    });
+
+    // Home reads a blog post's updated date from it (Utils/BlogPostUpdatedDate.ts).
+    it("gives each commit its own time, in git's order", async () => {
+      executeCommandFileMock.mockResolvedValue(
+        (`${RECORD}A${UNIT}a@example.com${UNIT}2026-10-05T10:00:00-04:00\nx.md\n` +
+          `${RECORD}B${UNIT}b@example.com${UNIT}2026-01-06T10:00:00Z\ny.md\n`) as never,
+      );
+
+      const commits: Array<{ committedAt: string }> =
+        await CodeRepositoryUtil.getCommitAuthorsWithFiles({
+          repoPath: REPO_PATH,
+        });
+
+      expect(
+        commits.map((commit: { committedAt: string }) => {
+          return commit.committedAt;
+        }),
+      ).toEqual(["2026-10-05T10:00:00-04:00", "2026-01-06T10:00:00Z"]);
     });
 
     it("parses several commits", async () => {
@@ -612,7 +632,12 @@ describe("CodeRepositoryUtil", () => {
       await expect(
         CodeRepositoryUtil.getCommitAuthorsWithFiles({ repoPath: REPO_PATH }),
       ).resolves.toEqual([
-        { authorName: "A", authorEmail: "a@example.com", files: [] },
+        {
+          authorName: "A",
+          authorEmail: "a@example.com",
+          committedAt: "",
+          files: [],
+        },
       ]);
     });
 
@@ -632,9 +657,122 @@ describe("CodeRepositoryUtil", () => {
       await expect(
         CodeRepositoryUtil.getCommitAuthorsWithFiles({ repoPath: REPO_PATH }),
       ).resolves.toEqual([
-        { authorName: "OnlyName", authorEmail: "", files: ["x.md"] },
+        {
+          authorName: "OnlyName",
+          authorEmail: "",
+          committedAt: "",
+          files: ["x.md"],
+        },
       ]);
     });
+  });
+
+  describe("getFilesChangedBetweenCommits", () => {
+    const FROM: string = "aaaa1111";
+    const TO: string = "bbbb2222cccc3333dddd4444eeee5555ffff6666";
+
+    it("lists the files that differ, renames as both paths, paths unquoted", async () => {
+      executeCommandFileMock.mockResolvedValue(
+        "posts/a/README.md\nposts/b/validation.json\n" as never,
+      );
+
+      await expect(
+        CodeRepositoryUtil.getFilesChangedBetweenCommits({
+          repoPath: REPO_PATH,
+          fromCommitHash: FROM,
+          toCommitHash: TO,
+        }),
+      ).resolves.toEqual(["posts/a/README.md", "posts/b/validation.json"]);
+
+      expect(lastCall().args).toEqual([
+        "-c",
+        "core.quotePath=false",
+        "diff",
+        "--name-only",
+        "--no-renames",
+        FROM,
+        TO,
+      ]);
+      expect(lastCall().cwd).toBe(REPO_PATH);
+    });
+
+    it("separates a pathspec from the revisions", async () => {
+      await CodeRepositoryUtil.getFilesChangedBetweenCommits({
+        repoPath: REPO_PATH,
+        fromCommitHash: FROM,
+        toCommitHash: TO,
+        path: "posts",
+      });
+
+      const args: Array<string> = lastCall().args;
+
+      expect(args.slice(-2)).toEqual(["--", "posts"]);
+      expect(args.indexOf(TO)).toBeLessThan(args.indexOf("--"));
+    });
+
+    it("raises the output buffer past the default, for a pull of thousands of files", async () => {
+      await CodeRepositoryUtil.getFilesChangedBetweenCommits({
+        repoPath: REPO_PATH,
+        fromCommitHash: FROM,
+        toCommitHash: TO,
+      });
+
+      expect(lastCall().maxBuffer).toBeGreaterThan(1024 * 1024);
+    });
+
+    it("keeps paths that are not ASCII, and drops blank lines", async () => {
+      executeCommandFileMock.mockResolvedValue(
+        "\nposts/2026-09-29-日本語/README.md\n\n  \n" as never,
+      );
+
+      await expect(
+        CodeRepositoryUtil.getFilesChangedBetweenCommits({
+          repoPath: REPO_PATH,
+          fromCommitHash: FROM,
+          toCommitHash: TO,
+        }),
+      ).resolves.toEqual(["posts/2026-09-29-日本語/README.md"]);
+    });
+
+    it("is nothing when nothing changed", async () => {
+      executeCommandFileMock.mockResolvedValue("" as never);
+
+      await expect(
+        CodeRepositoryUtil.getFilesChangedBetweenCommits({
+          repoPath: REPO_PATH,
+          fromCommitHash: FROM,
+          toCommitHash: TO,
+        }),
+      ).resolves.toEqual([]);
+    });
+
+    it.each([
+      "--output=/etc/passwd",
+      "-p",
+      "HEAD",
+      "main",
+      "abc",
+      "abcd1234 --stat",
+      "g123456789",
+      "",
+    ])(
+      "refuses %p as a commit, so no option reaches git",
+      async (notAHash: string) => {
+        for (const commits of [
+          { fromCommitHash: notAHash, toCommitHash: TO },
+          { fromCommitHash: FROM, toCommitHash: notAHash },
+        ]) {
+          await expect(
+            CodeRepositoryUtil.getFilesChangedBetweenCommits({
+              repoPath: REPO_PATH,
+              ...commits,
+            }),
+          ).rejects.toThrow("Not a commit hash");
+        }
+
+        expect(executeCommandFileMock).not.toHaveBeenCalled();
+      },
+    );
   });
 
   describe("filesystem helpers", () => {
