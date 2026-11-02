@@ -29,6 +29,7 @@ export default class FileModel extends BaseModel {
     required: true,
     type: TableColumnType.File,
     canReadOnRelationQuery: true,
+    description: "The file's content.",
   })
   @Column({
     nullable: false,
@@ -63,7 +64,9 @@ export default class FileModel extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(MimeType),
     canReadOnRelationQuery: true,
+    description: "The file's media type, such as image/png.",
   })
   @Column({
     nullable: false,
@@ -82,6 +85,7 @@ export default class FileModel extends BaseModel {
     unique: true,
     type: TableColumnType.Slug,
     canReadOnRelationQuery: true,
+    description: "Friendly globally unique name for your object",
   })
   @Column({
     nullable: false,
@@ -150,6 +154,8 @@ export default class FileModel extends BaseModel {
     type: TableColumnType.ShortText,
     canReadOnRelationQuery: true,
     computed: true,
+    description:
+      "Addresses the file in a link (/file/image/access-token/<token>) without its ID. Opening it still takes the right to see the file. Set by OneUptime.",
   })
   @Column({
     nullable: true,

@@ -82,6 +82,7 @@ export default class InstanceHealthLog extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(InstanceHealthLogEventType),
     title: "Event Type",
     description: "The instance-health event represented by this log entry.",
   })
@@ -100,6 +101,7 @@ export default class InstanceHealthLog extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(InstanceHealthLogStatus),
     title: "Status",
     description: "Current or final status of the instance-health work.",
   })

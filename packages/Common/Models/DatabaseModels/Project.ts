@@ -427,7 +427,10 @@ export default class Project extends TenantModel {
     ],
     update: [],
   })
-  @TableColumn({ type: TableColumnType.ShortText })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    allowedValues: Object.values(SubscriptionStatus),
+  })
   @Column({
     type: ColumnType.ShortText,
     length: ColumnLength.ShortText,
@@ -452,7 +455,10 @@ export default class Project extends TenantModel {
     ],
     update: [],
   })
-  @TableColumn({ type: TableColumnType.ShortText })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    allowedValues: Object.values(SubscriptionStatus),
+  })
   @Column({
     type: ColumnType.ShortText,
     length: ColumnLength.ShortText,
@@ -478,7 +484,11 @@ export default class Project extends TenantModel {
     ],
     update: [],
   })
-  @TableColumn({ type: TableColumnType.ShortText })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    description:
+      "The promotion code the project's subscription was started with.",
+  })
   @Column({
     type: ColumnType.ShortText,
     length: ColumnLength.ShortText,
@@ -741,6 +751,8 @@ export default class Project extends TenantModel {
     type: TableColumnType.Boolean,
     isDefaultValueColumn: true,
     defaultValue: false,
+    description:
+      "When on, the project's members sign in to it with the project's SSO only.",
   })
   @Column({
     type: ColumnType.Boolean,
@@ -791,7 +803,11 @@ export default class Project extends TenantModel {
     read: [],
     update: [],
   })
-  @TableColumn({ type: TableColumnType.Number })
+  @TableColumn({
+    type: TableColumnType.Number,
+    description:
+      "The most monitors the project may have active, from a plan bought from a reseller. Empty means the plan's own limit.",
+  })
   @Column({
     type: ColumnType.Number,
     nullable: true,
@@ -804,7 +820,11 @@ export default class Project extends TenantModel {
     read: [],
     update: [],
   })
-  @TableColumn({ type: TableColumnType.Number })
+  @TableColumn({
+    type: TableColumnType.Number,
+    description:
+      "The most members the project may have, from a plan bought from a reseller. Empty or 0 means no limit.",
+  })
   @Column({
     type: ColumnType.Number,
     nullable: true,
@@ -3467,6 +3487,7 @@ export default class Project extends TenantModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(PlanType),
     title: "Plan Name",
     description: "Name of the plan this project is subscribed to.",
     canReadOnRelationQuery: true,
@@ -3652,7 +3673,10 @@ export default class Project extends TenantModel {
     read: [],
     update: [],
   })
-  @TableColumn({ type: TableColumnType.LongText })
+  @TableColumn({
+    type: TableColumnType.LongText,
+    description: "The utm_content of the link the project was signed up from.",
+  })
   @Column({
     type: ColumnType.LongText,
     length: ColumnLength.LongText,
@@ -3728,6 +3752,46 @@ export default class Project extends TenantModel {
     unique: false,
   })
   public utmMarketingTactic?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.LongText,
+    hideColumnInDocumentation: true,
+    title: "Google Ads Source",
+    description:
+      "gad_source copied from the user who created this project: which of Google's surfaces showed the ad they clicked.",
+  })
+  @Column({
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+    nullable: true,
+    unique: false,
+  })
+  public gadSource?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.LongText,
+    hideColumnInDocumentation: true,
+    title: "Google Ads Campaign ID",
+    description:
+      "gad_campaignid copied from the user who created this project: the Google Ads campaign of the ad they clicked.",
+  })
+  @Column({
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+    nullable: true,
+    unique: false,
+  })
+  public gadCampaignId?: string = undefined;
 
   @ColumnAccessControl({
     create: [Permission.User],
@@ -4007,6 +4071,7 @@ export default class Project extends TenantModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(CloudMarketplace),
     title: "Billing Marketplace",
     description:
       "The cloud marketplace that bills this project (AWS, Azure or GoogleCloud). Empty when the project is billed by a card on file.",

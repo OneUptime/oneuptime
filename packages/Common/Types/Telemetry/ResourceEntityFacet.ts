@@ -1,4 +1,5 @@
 import { RESOURCE_FACET_CATALOG_KEYS } from "./ResourceFacetCatalog";
+import { getExcludedFacetEntries } from "./FacetExcludeKey";
 
 /*
  * The resource facets of the telemetry explorers (Logs / Traces), split by
@@ -91,6 +92,16 @@ export function isResourceFacetKey(facetKey: string): boolean {
  */
 export type ResourceEntityFacetSelections = Record<string, Array<string>>;
 
+/*
+ * Where the selections ride, in a request body and on an analytics list
+ * query: the resources kept under `resourceFilters`, the ones a reader left
+ * out ("Host is not web-01") under `excludedResourceFilters`, in the same
+ * shape. The server resolves both (ResourceEntityFilter).
+ */
+export const RESOURCE_FILTERS_FIELD: string = "resourceFilters";
+export const EXCLUDED_RESOURCE_FILTERS_FIELD: string =
+  "excludedResourceFilters";
+
 /**
  * Collect the non-Service resource selections out of applied facet filters.
  * Accepts anything entry-iterable so the Logs explorer can pass a
@@ -145,6 +156,25 @@ export function collectServiceFacetSelections(
   }
 
   return Array.from(unique);
+}
+
+/*
+ * The resources a reader LEFT OUT, read with the same rules: the chips keyed
+ * `!<facet>` (FacetExcludeKey), each under the facet it filters. A host left
+ * out is `{ hostId: [<id>] }` here, sent as `excludedResourceFilters`; a
+ * service left out is an id in the second list, sent as
+ * `excludedServiceIds`. A chip that keeps its value is never read here.
+ */
+export function collectExcludedResourceEntityFacetSelections(
+  entries: Iterable<[string, Iterable<string>]>,
+): ResourceEntityFacetSelections {
+  return collectResourceEntityFacetSelections(getExcludedFacetEntries(entries));
+}
+
+export function collectExcludedServiceFacetSelections(
+  entries: Iterable<[string, Iterable<string>]>,
+): Array<string> {
+  return collectServiceFacetSelections(getExcludedFacetEntries(entries));
 }
 
 /*

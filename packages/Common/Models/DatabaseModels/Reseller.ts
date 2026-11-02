@@ -119,6 +119,7 @@ export default class Reseller extends BaseModel {
     update: [],
   })
   @TableColumn({
+    secret: true,
     required: true,
     type: TableColumnType.ShortText,
     canReadOnRelationQuery: false,

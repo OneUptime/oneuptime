@@ -159,6 +159,7 @@ export default class NetworkControllerConnection extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(NetworkControllerProvider),
     canReadOnRelationQuery: true,
     title: "Controller",
     description:

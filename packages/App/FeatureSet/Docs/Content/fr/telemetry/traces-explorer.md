@@ -56,7 +56,7 @@ Tapez une requête et appuyez sur Entrée, par exemple `service:checkout status:
 
 ### Affiner avec des filtres
 
-Cliquez sur une valeur de la barre latérale **Filtres** pour l'ajouter comme puce. La barre latérale filtre par **Service**, par l'hôte, le cluster ou l'autre ressource qui a envoyé le span, par **Statut**, **Catégorie de span**, **Possède une exception**, **Type de span**, **Nom du span**, **Instance de service** et **Nom de l'hôte**.
+Cliquez sur une valeur de la barre latérale **Filtres** pour l'ajouter comme puce. La barre latérale filtre par **Service**, par l'hôte, le cluster ou l'autre ressource qui a envoyé le span, par **Statut**, **Catégorie de span**, **Possède une exception**, **Type de span**, **Nom du span**, **Instance de service** et **Nom de l'hôte**. Cliquez plutôt sur le signe moins à côté d'une valeur pour exclure ces spans. Cliquez de nouveau sur la valeur pour annuler.
 
 ### Ouvrir un span
 

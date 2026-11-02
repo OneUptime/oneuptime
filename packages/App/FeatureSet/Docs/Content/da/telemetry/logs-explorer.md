@@ -56,7 +56,7 @@ Skriv en forespørgsel i søgefeltet, og tryk på Enter, for eksempel `severity:
 
 ### Indsnævr med filtre
 
-Klik på en værdi i sidepanelet **Filtre** for at tilføje den som en chip: en alvorlighed, en tjeneste eller en vært, en klynge eller en anden ressource, der har sendt protokoller. Hver værdi viser, hvor mange protokoller der har den. På en telefon trykker du på **Filtre** for at åbne sidepanelet.
+Klik på en værdi i sidepanelet **Filtre** for at tilføje den som en chip: en alvorlighed, en tjeneste eller en vært, en klynge eller en anden ressource, der har sendt protokoller. Hver værdi viser, hvor mange protokoller der har den. Klik på minustegnet ved siden af en værdi for i stedet at udelade de protokoller. Klik på værdien igen for at fortryde. På en telefon trykker du på **Filtre** for at åbne sidepanelet.
 
 ### Åbn en protokol
 

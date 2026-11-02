@@ -191,8 +191,9 @@ class UserNotificationRule extends BaseModel {
     required: true,
     unique: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(NotificationRuleType),
     canReadOnRelationQuery: true,
-    example: "Send Notification When Incident Created",
+    example: "When incident on-call policy is executed",
   })
   @Column({
     type: ColumnType.ShortText,
@@ -1148,6 +1149,7 @@ class UserNotificationRule extends BaseModel {
   })
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(PushNotificationLevel),
     required: false,
     isDefaultValueColumn: true,
     canReadOnRelationQuery: true,

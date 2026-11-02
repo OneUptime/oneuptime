@@ -108,6 +108,7 @@ export default class McpOAuthToken extends BaseModel {
   })
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(McpOAuthTokenType),
     required: true,
     title: "Token Type",
     description: "authorization_code, access_token or refresh_token",

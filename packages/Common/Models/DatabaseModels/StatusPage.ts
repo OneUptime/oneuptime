@@ -537,8 +537,7 @@ export default class StatusPage extends BaseModel {
     type: TableColumnType.EntityArray,
     modelType: Label,
     title: "Labels",
-    description:
-      "Relation to Labels Array where this object is categorized in.",
+    description: "Labels to group and filter by.",
   })
   @ManyToMany(
     () => {
@@ -2927,6 +2926,7 @@ export default class StatusPage extends BaseModel {
   })
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(StatusPageTheme),
     title: "Theme",
     required: false,
     defaultValue: StatusPageTheme.Light,
@@ -3300,6 +3300,7 @@ export default class StatusPage extends BaseModel {
   })
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(StatusPageReportPeriodType),
     defaultValue: StatusPageReportPeriodType.Rolling,
     title: "Report Period Type",
     description:
@@ -3440,6 +3441,7 @@ export default class StatusPage extends BaseModel {
   })
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(UptimePrecision),
     title: "Overall Uptime Percent Precision",
     required: false,
     defaultValue: UptimePrecision.TWO_DECIMAL,
@@ -4088,6 +4090,7 @@ export default class StatusPage extends BaseModel {
   })
   @Index()
   @TableColumn({
+    secret: true,
     type: TableColumnType.ShortText,
     required: false,
     title: "Embedded Overall Status Token",

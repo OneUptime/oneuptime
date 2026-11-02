@@ -318,6 +318,7 @@ export default class MonitorProbe extends BaseModel {
   @TableColumn({
     type: TableColumnType.Date,
     example: "2024-01-15T10:30:00.000Z",
+    description: "When the probe last checked the monitor. Set by OneUptime.",
   })
   @Column({
     type: ColumnType.Date,
@@ -350,6 +351,8 @@ export default class MonitorProbe extends BaseModel {
   @TableColumn({
     type: TableColumnType.Date,
     example: "2024-01-15T10:35:00.000Z",
+    description:
+      "When the probe checks the monitor next. Set by OneUptime: right away for a new one, then on the monitor's interval.",
   })
   @Column({
     type: ColumnType.Date,
@@ -528,6 +531,7 @@ export default class MonitorProbe extends BaseModel {
     type: TableColumnType.Boolean,
     defaultValue: true,
     example: true,
+    description: "When on, the probe checks the monitor.",
   })
   @Column({
     type: ColumnType.Boolean,

@@ -534,7 +534,7 @@ resource "oneuptime_escalation_rule" "first_line" {
   escalate_after_in_minutes = 5
 }
 
-resource "oneuptime_team_on_call_duty_escalation_rule" "sre" {
+resource "oneuptime_escalation_rule_team" "sre" {
   on_call_duty_policy_id                 = oneuptime_on_call_policy.primary.id
   on_call_duty_policy_escalation_rule_id = oneuptime_escalation_rule.first_line.id
   team_id                                = oneuptime_team.sre.id
@@ -606,26 +606,23 @@ resource "oneuptime_scheduled_maintenance_event" "database_upgrade" {
 
 ## Зонды
 
-Собственный зонд выполняет проверки из вашей сети. Его ключ — это секрет, с которым зонд входит в систему, поэтому передавайте его в переменной:
+Собственный зонд выполняет проверки из вашей сети. Дайте ему имя, и OneUptime создаст его `key` — секрет, с которым зонд входит в систему. Terraform не показывает ключ в планах и журналах, а вывод с ним нужно пометить как чувствительный:
 
 ```hcl
-variable "probe_key" {
-  description = "The key the probe signs in with"
-  type        = string
-  sensitive   = true
-}
-
 resource "oneuptime_probe" "eu_west" {
-  key           = var.probe_key
-  name          = "EU West"
-  description   = "Probe in our eu-west-1 network"
-  probe_version = "1.0.0"
+  name        = "EU West"
+  description = "Probe in our eu-west-1 network"
 
   should_auto_enable_probe_on_new_monitors = true
 }
+
+output "eu_west_probe_key" {
+  value     = oneuptime_probe.eu_west.key
+  sensitive = true
+}
 ```
 
-Запустите зонд, задав `PROBE_ID` равным `id` зонда, а `PROBE_KEY` — ключу: см. [Пользовательские probes](/docs/probe/custom-probe). Сквозной тест `23-probe-crud` применяет зонды.
+Запустите зонд, задав `PROBE_ID` равным `id` зонда, а `PROBE_KEY` — ключу, который печатает `terraform output -raw eu_west_probe_key`: см. [Пользовательские probes](/docs/probe/custom-probe). Чтобы выбрать ключ самостоятельно, задайте `key` из чувствительной переменной. Сквозные тесты `23-probe-crud` и `61-name-only-and-choices` применяют зонды.
 
 ## Дальнейшие шаги
 

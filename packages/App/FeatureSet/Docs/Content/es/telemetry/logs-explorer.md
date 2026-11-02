@@ -56,7 +56,7 @@ Escriba una consulta en el cuadro de búsqueda y pulse Intro, por ejemplo `sever
 
 ### Acotar con filtros
 
-Haga clic en un valor de la barra lateral **Filtros** para añadirlo como chip: una gravedad, un servicio, o un host, un clúster u otro recurso que haya enviado registros. Cada valor indica cuántos registros lo llevan. En un teléfono, toque **Filtros** para abrir la barra lateral.
+Haga clic en un valor de la barra lateral **Filtros** para añadirlo como chip: una gravedad, un servicio, o un host, un clúster u otro recurso que haya enviado registros. Cada valor indica cuántos registros lo llevan. Haga clic en el signo menos junto a un valor para excluir esos registros. Vuelva a hacer clic en el valor para deshacerlo. En un teléfono, toque **Filtros** para abrir la barra lateral.
 
 ### Abrir un registro
 

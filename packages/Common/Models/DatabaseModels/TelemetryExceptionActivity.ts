@@ -199,6 +199,7 @@ export default class TelemetryExceptionActivity extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(TelemetryExceptionActivityType),
     canReadOnRelationQuery: true,
     title: "Activity Type",
     description:

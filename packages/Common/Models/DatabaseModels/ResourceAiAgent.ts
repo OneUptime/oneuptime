@@ -167,6 +167,7 @@ export default class ResourceAiAgent extends BaseModel {
   @Index()
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(AiResourceType),
     required: true,
     canReadOnRelationQuery: true,
     title: "Resource Type",

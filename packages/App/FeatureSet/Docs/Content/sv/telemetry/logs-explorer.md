@@ -56,7 +56,7 @@ Skriv en fråga i sökrutan och tryck på Enter, till exempel `severity:error se
 
 ### Avgränsa med filter
 
-Klicka på ett värde i sidopanelen **Filter** för att lägga till det som ett chip: en allvarlighetsgrad, en tjänst, eller en värd, ett kluster eller en annan resurs som har skickat loggar. Varje värde visar hur många loggar som har det. På en telefon trycker du på **Filter** för att öppna sidopanelen.
+Klicka på ett värde i sidopanelen **Filter** för att lägga till det som ett chip: en allvarlighetsgrad, en tjänst, eller en värd, ett kluster eller en annan resurs som har skickat loggar. Varje värde visar hur många loggar som har det. Klicka på minustecknet bredvid ett värde för att i stället utesluta de loggarna. Klicka på värdet igen för att ångra. På en telefon trycker du på **Filter** för att öppna sidopanelen.
 
 ### Öppna en logg
 

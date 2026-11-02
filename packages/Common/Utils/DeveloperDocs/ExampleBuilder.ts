@@ -447,7 +447,11 @@ function getDefaultFieldValue(data: {
     };
   }
 
-  const example: unknown = metadata.example;
+  // Its own example, else a value it takes when it takes one of a few.
+  const example: unknown =
+    metadata.example !== undefined
+      ? metadata.example
+      : metadata.allowedValues?.[0];
 
   if (
     (typeof example === "string" &&

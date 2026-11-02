@@ -188,12 +188,18 @@ export default class TelemetryReadAccess {
     modelType: { new (): AnalyticsBaseModel };
     props: DatabaseCommonInteractionProps;
     requested?: ReadonlyArray<ObjectID | string> | null | undefined;
+    // The resources the caller asked to leave out (see toServiceFilter).
+    excluded?: ReadonlyArray<ObjectID | string> | null | undefined;
   }): Promise<TelemetryServiceFilter> {
     const scope: TelemetryReadScope = await TelemetryReadAccess.getScope(
       data.modelType,
       data.props,
     );
 
-    return TelemetryReadScopeUtil.toServiceFilter(scope, data.requested);
+    return TelemetryReadScopeUtil.toServiceFilter(
+      scope,
+      data.requested,
+      data.excluded,
+    );
   }
 }

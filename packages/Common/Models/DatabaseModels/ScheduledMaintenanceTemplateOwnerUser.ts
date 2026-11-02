@@ -233,7 +233,7 @@ export default class ScheduledMaintenanceTemplateOwnerUser extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "User ID",
-    description: "ID of your OneUptime User in which this object belongs",
+    description: "ID of the user who owns the scheduled maintenance template",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -313,8 +313,7 @@ export default class ScheduledMaintenanceTemplateOwnerUser extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "Scheduled Maintenance Template ID",
-    description:
-      "ID of your OneUptime Scheduled Maintenance Template in which this object belongs",
+    description: "ID of the scheduled maintenance template the user owns",
   })
   @Column({
     type: ColumnType.ObjectID,

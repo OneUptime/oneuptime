@@ -781,6 +781,7 @@ export default class StatusPageGroup extends BaseModel {
   })
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(UptimePrecision),
     title: "Uptime Percent Precision",
     required: false,
     description:
@@ -822,6 +823,7 @@ export default class StatusPageGroup extends BaseModel {
   })
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(StatusPageGroupViewMode),
     title: "View Mode",
     required: false,
     description:

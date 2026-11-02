@@ -1057,8 +1057,7 @@ export default class IncidentTemplate extends BaseModel {
     type: TableColumnType.EntityArray,
     modelType: Label,
     title: "Labels",
-    description:
-      "Relation to Labels Array where this object is categorized in.",
+    description: "Labels to group and filter by.",
   })
   @ManyToMany(
     () => {

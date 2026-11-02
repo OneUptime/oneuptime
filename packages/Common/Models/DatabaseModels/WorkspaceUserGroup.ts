@@ -204,6 +204,7 @@ export default class WorkspaceUserGroup extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(WorkspaceType),
     title: "Workspace Type",
     description:
       "Where the group is: Slack (a user group) or MicrosoftTeams (a tag in a team).",

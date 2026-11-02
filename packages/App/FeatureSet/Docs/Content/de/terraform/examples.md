@@ -534,7 +534,7 @@ resource "oneuptime_escalation_rule" "first_line" {
   escalate_after_in_minutes = 5
 }
 
-resource "oneuptime_team_on_call_duty_escalation_rule" "sre" {
+resource "oneuptime_escalation_rule_team" "sre" {
   on_call_duty_policy_id                 = oneuptime_on_call_policy.primary.id
   on_call_duty_policy_escalation_rule_id = oneuptime_escalation_rule.first_line.id
   team_id                                = oneuptime_team.sre.id
@@ -606,26 +606,23 @@ Um die Monitore des Ereignisses während seiner Dauer in einen Status zu versetz
 
 ## Probes
 
-Eine eigene Probe führt Prüfungen aus Ihrem Netzwerk aus. Ihr Schlüssel ist das Geheimnis, mit dem sich die Probe anmeldet, also übergeben Sie ihn in einer Variablen:
+Eine eigene Probe führt Prüfungen aus Ihrem Netzwerk aus. Geben Sie ihr einen Namen, und OneUptime erzeugt ihren `key`, das Geheimnis, mit dem sich die Probe anmeldet. Terraform hält den Schlüssel aus Plänen und Logs heraus, und eine Ausgabe davon muss als sensibel markiert sein:
 
 ```hcl
-variable "probe_key" {
-  description = "The key the probe signs in with"
-  type        = string
-  sensitive   = true
-}
-
 resource "oneuptime_probe" "eu_west" {
-  key           = var.probe_key
-  name          = "EU West"
-  description   = "Probe in our eu-west-1 network"
-  probe_version = "1.0.0"
+  name        = "EU West"
+  description = "Probe in our eu-west-1 network"
 
   should_auto_enable_probe_on_new_monitors = true
 }
+
+output "eu_west_probe_key" {
+  value     = oneuptime_probe.eu_west.key
+  sensitive = true
+}
 ```
 
-Starten Sie die Probe mit `PROBE_ID` auf die `id` der Probe und `PROBE_KEY` auf den Schlüssel gesetzt: siehe [Benutzerdefinierte Probes](/docs/probe/custom-probe). Der End-to-End-Test `23-probe-crud` wendet Probes an.
+Starten Sie die Probe mit `PROBE_ID` auf die `id` der Probe und `PROBE_KEY` auf den Schlüssel gesetzt, den `terraform output -raw eu_west_probe_key` ausgibt: siehe [Benutzerdefinierte Probes](/docs/probe/custom-probe). Um den Schlüssel selbst zu wählen, setzen Sie `key` aus einer sensiblen Variablen. Die End-to-End-Tests `23-probe-crud` und `61-name-only-and-choices` wenden Probes an.
 
 ## Nächste Schritte
 

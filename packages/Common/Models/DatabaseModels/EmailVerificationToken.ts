@@ -91,6 +91,7 @@ export default class EmailVerificationToken extends BaseModel {
   })
   @Index()
   @TableColumn({
+    secret: true,
     required: true,
     unique: true,
     type: TableColumnType.ObjectID,

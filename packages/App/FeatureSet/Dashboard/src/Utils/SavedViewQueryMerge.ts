@@ -1,5 +1,10 @@
 import { JSONObject } from "Common/Types/JSON";
+import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
+import NotContains from "Common/Types/BaseDatabase/NotContains";
+import NotEqual from "Common/Types/BaseDatabase/NotEqual";
+import { toExcludeFacetKey } from "Common/Types/Telemetry/FacetExcludeKey";
 import { BODY_FACET_KEY } from "./LogsCrossSignalPivot";
+import { EXCLUDED_RESOURCE_FILTERS_FIELD } from "Common/Types/Telemetry/ResourceEntityFacet";
 import { ATTRIBUTE_FACET_PREFIX } from "../Components/Logs/LogsHistogramRequest";
 
 /*
@@ -89,6 +94,11 @@ export function buildSavedViewQueryForOverrides(
     delete merged[RESOURCE_FILTERS_KEY];
   }
 
+  // The resources a view leaves out are chips too (`!hostId`).
+  if (baseQuery[EXCLUDED_RESOURCE_FILTERS_FIELD] === undefined) {
+    delete merged[EXCLUDED_RESOURCE_FILTERS_FIELD];
+  }
+
   /*
    * Attributes are a chip group too (`attributes.<key>`), so the same rule
    * applies — but they share one object, so the host's entries have to be
@@ -118,6 +128,17 @@ export function buildSavedViewQueryForOverrides(
   return merged;
 }
 
+// Whether a stored column predicate leaves values out (a `!` chip's form).
+const isLeftOutQueryValue: (value: unknown) => boolean = (
+  value: unknown,
+): boolean => {
+  return (
+    value instanceof NotEqual ||
+    value instanceof IncludesNone ||
+    value instanceof NotContains
+  );
+};
+
 /**
  * The chip keys a query carries that a user could remove — the set
  * buildSavedViewQueryForOverrides is responsible for clearing.
@@ -132,7 +153,12 @@ export function listRemovableChipKeys(query: JSONObject): Array<string> {
 
   for (const facetKey of LOGS_CHIP_FACET_KEYS) {
     if (query[facetKey] !== undefined) {
-      keys.push(facetKey);
+      // A column that leaves values out is the `!` chip's.
+      keys.push(
+        isLeftOutQueryValue(query[facetKey])
+          ? toExcludeFacetKey(facetKey)
+          : facetKey,
+      );
     }
   }
 
@@ -141,6 +167,15 @@ export function listRemovableChipKeys(query: JSONObject): Array<string> {
 
   for (const facetKey of Object.keys(resourceFilters)) {
     keys.push(facetKey);
+  }
+
+  const excludedResourceFilters: Record<string, unknown> =
+    (query[EXCLUDED_RESOURCE_FILTERS_FIELD] as
+      | Record<string, unknown>
+      | undefined) || {};
+
+  for (const facetKey of Object.keys(excludedResourceFilters)) {
+    keys.push(toExcludeFacetKey(facetKey));
   }
 
   const attributes: Record<string, unknown> =

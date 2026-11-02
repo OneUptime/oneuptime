@@ -253,6 +253,7 @@ export default class FormSubmission extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(FormTargetType),
     title: "Created",
     description:
       "What the submission created: Incident, or ScheduledMaintenance (a scheduled maintenance event).",

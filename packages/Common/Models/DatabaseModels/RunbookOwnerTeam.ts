@@ -224,7 +224,7 @@ export default class RunbookOwnerTeam extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "Team ID",
-    description: "ID of your OneUptime Team in which this object belongs",
+    description: "ID of the team that owns the runbook",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -300,7 +300,7 @@ export default class RunbookOwnerTeam extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "Runbook ID",
-    description: "ID of your OneUptime Runbook in which this object belongs",
+    description: "ID of the runbook the team owns",
   })
   @Column({
     type: ColumnType.ObjectID,

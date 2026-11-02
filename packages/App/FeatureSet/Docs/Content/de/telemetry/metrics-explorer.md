@@ -43,7 +43,7 @@ Der Explorer hat fünf Tabs:
 Öffnen Sie **Produkte → Observability → Metriken**. Der **Betrachter** listet jede Metrik, die Ihr Projekt empfangen hat, nach Namen, jede mit einem kleinen Diagramm des Zeitraums und ihrem letzten Wert.
 
 - Suchen Sie Namen mit freien Wörtern oder `name:`, zum Beispiel findet `name:http.server` die Metrik `http.server.request.duration`. Siehe [Suchsyntax](/docs/telemetry/search-syntax#metriken).
-- Filtern Sie in der Seitenleiste nach **Dienst**, um nur die Metriken eines Dienstes zu sehen.
+- Filtern Sie in der Seitenleiste nach **Dienst**, um nur die Metriken eines Dienstes zu sehen. Klicken Sie stattdessen auf das Minuszeichen neben einem Dienst, um die Metriken auszublenden, die er meldet.
 - Klicken Sie auf eine Metrik, um sie im Metrik-Explorer darzustellen.
 
 ## Eine Metrik darstellen

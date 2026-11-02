@@ -93,6 +93,31 @@ const OLD_FACET_EXCLUDE_CLASS: string =
 const NEW_FACET_EXCLUDE_CLASS: string =
   "flex h-5 w-5 items-center justify-center rounded text-[10px] text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500 group-[:not(:hover)]:hidden";
 
+/*
+ * What the row ships since #5574: that inversion, kept to a pointer that can
+ * hover (a touch screen always shows the button), shown to the keyboard too
+ * (in the layout while the row holds focus, see-through while that focus is
+ * not the keyboard's), with the red ring its pressed twin has. The guard's
+ * own fix stays the plain inversion; the row only adds to it.
+ */
+const SHIPPED_FACET_EXCLUDE_CLASS: string =
+  "flex h-5 w-5 items-center justify-center rounded text-[10px] text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 [@media(hover:hover)]:group-[:not(:hover):not(:focus-within)]:hidden [@media(hover:hover)]:group-[:not(:hover):not(:has(:focus-visible))]:opacity-0";
+
+// The token that hides the shipped button off hover, where hover exists.
+const SHIPPED_FACET_EXCLUDE_HIDE: string =
+  "[@media(hover:hover)]:group-[:not(:hover):not(:focus-within)]:hidden";
+
+/*
+ * Site texts a module ships beyond the guard's replacement: the guard's fix
+ * for the line, then what was added to it by hand.
+ */
+const SHIPPED_BEYOND_THE_REPLACEMENT: Record<string, string> = {
+  [NEW_FACET_EXCLUDE_CLASS]: SHIPPED_FACET_EXCLUDE_CLASS,
+};
+
+// A negated-hover hide, with or without more conditions and a media gate.
+const NEGATED_HOVER_HIDE: RegExp = /group-\[:not\(:hover\)[^\s"]*\]:hidden/;
+
 // ExecutionView's "Hide output" label before and after.
 const OLD_DISCLOSURE_CLASS: string = "hidden group-open:inline";
 const NEW_DISCLOSURE_CLASS: string =
@@ -382,12 +407,27 @@ describe("ForeignHiddenRuleGuard detector", () => {
     );
 
     expect(facet.unhidingTokens).toEqual(["group-hover:flex"]);
-    // The mechanical inversion is exactly what TelemetryFacetValueRow.tsx ships.
+    /*
+     * The mechanical inversion, which TelemetryFacetValueRow.tsx ships with
+     * its hide kept to a pointer that can hover and shown to the keyboard:
+     * every other token of the inversion is in what it ships.
+     */
     expect(facet.replacement).toBe(NEW_FACET_EXCLUDE_CLASS);
     expect(facet.advice).toBe(GROUP_HOVER_REWRITE_ADVICE);
     expect(readRepositoryFile(GROUP_HOVER_EXAMPLE_FILE)).toContain(
-      `"${NEW_FACET_EXCLUDE_CLASS}"`,
+      `"${SHIPPED_FACET_EXCLUDE_CLASS}"`,
     );
+
+    const shippedTokens: Array<string> = SHIPPED_FACET_EXCLUDE_CLASS.split(" ");
+    expect(
+      NEW_FACET_EXCLUDE_CLASS.split(" ").filter((token: string): boolean => {
+        return (
+          token !== "group-[:not(:hover)]:hidden" &&
+          !shippedTokens.includes(token)
+        );
+      }),
+    ).toEqual([]);
+    expect(shippedTokens).toContain(SHIPPED_FACET_EXCLUDE_HIDE);
 
     const stateVariants: Array<string> = [
       OLD_DISCLOSURE_CLASS,
@@ -895,6 +935,7 @@ describe("ForeignHiddenRuleGuard detector", () => {
       ),
       // The converted forms themselves.
       jsxWithClass(NEW_FACET_EXCLUDE_CLASS),
+      jsxWithClass(SHIPPED_FACET_EXCLUDE_CLASS),
       jsxWithClass(NEW_DISCLOSURE_CLASS),
       // Comments and JSX text are not strings.
       '// <div className="hidden md:flex" />',
@@ -1013,8 +1054,8 @@ describe("ForeignHiddenRuleGuard detector", () => {
      * A failure message that sends a developer to an example that no longer
      * exists is worse than none.
      */
-    expect(readRepositoryFile(GROUP_HOVER_EXAMPLE_FILE)).toContain(
-      "group-[:not(:hover)]:hidden",
+    expect(readRepositoryFile(GROUP_HOVER_EXAMPLE_FILE)).toMatch(
+      NEGATED_HOVER_HIDE,
     );
     expect(readRepositoryFile(DISCLOSURE_EXAMPLE_FILE)).toContain(
       `"${NEW_DISCLOSURE_CLASS}"`,
@@ -1806,9 +1847,11 @@ describe("ForeignHiddenRuleGuard over the real source tree", () => {
       ),
     ).toBe(true);
     expect(sitesIn(GROUP_HOVER_EXAMPLE_FILE)).toContain(
-      NEW_FACET_EXCLUDE_CLASS,
+      SHIPPED_FACET_EXCLUDE_CLASS,
     );
-    expect(sitesIn(TELEMETRY_FACET_FILE)).toContain(NEW_FACET_EXCLUDE_CLASS);
+    expect(sitesIn(TELEMETRY_FACET_FILE)).toContain(
+      SHIPPED_FACET_EXCLUDE_CLASS,
+    );
     expect(sitesIn(DISCLOSURE_EXAMPLE_FILE)).toContain(NEW_DISCLOSURE_CLASS);
 
     // And the class attributes of the views the EJS codemod converted.
@@ -1852,7 +1895,7 @@ describe("ForeignHiddenRuleGuard over the real source tree", () => {
       const reverted: string = source
         .replace(MAX_WIDTH_HIDDEN, "$1hidden")
         .replace(MAX_WIDTH_SR_ONLY, "$1sr-only")
-        .split(`"${NEW_FACET_EXCLUDE_CLASS}"`)
+        .split(`"${SHIPPED_FACET_EXCLUDE_CLASS}"`)
         .join(`"${OLD_FACET_EXCLUDE_CLASS}"`)
         .split(`"${NEW_DISCLOSURE_CLASS}"`)
         .join(`"${OLD_DISCLOSURE_CLASS}"`);
@@ -1879,7 +1922,10 @@ describe("ForeignHiddenRuleGuard over the real source tree", () => {
         if (
           finding.replacement !== null &&
           !shippedSites.has(
-            `${relative}:${finding.line} ${finding.replacement}`,
+            `${relative}:${finding.line} ${
+              SHIPPED_BEYOND_THE_REPLACEMENT[finding.replacement] ||
+              finding.replacement
+            }`,
           )
         ) {
           disagreements.push(
@@ -1945,11 +1991,19 @@ describe("ForeignHiddenRuleGuard over the real source tree", () => {
     expect(failingFiles.size - failingViews.length).toBeGreaterThan(60);
     expect(disagreements).toEqual([]);
 
+    /*
+     * The facet row reverted: the guard's fix is the plain inversion, which
+     * the row ships kept to a pointer that can hover and shown to the
+     * keyboard (SHIPPED_BEYOND_THE_REPLACEMENT).
+     */
     const facetSource: string = readRepositoryFile(GROUP_HOVER_EXAMPLE_FILE);
     const facetFindings: Array<ForeignHiddenRuleFinding> =
       findForeignHiddenRuleHazards(
         GROUP_HOVER_EXAMPLE_FILE,
-        facetSource.replace(NEW_FACET_EXCLUDE_CLASS, OLD_FACET_EXCLUDE_CLASS),
+        facetSource.replace(
+          SHIPPED_FACET_EXCLUDE_CLASS,
+          OLD_FACET_EXCLUDE_CLASS,
+        ),
       );
 
     expect(

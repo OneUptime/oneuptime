@@ -436,6 +436,7 @@ export default class ServiceLevelObjectiveFeed extends BaseModel {
   })
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(ServiceLevelObjectiveFeedEventType),
     required: true,
     title: "Service Level Objective Feed Event",
     description: "Service Level Objective Feed Event",

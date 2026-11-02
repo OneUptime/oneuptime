@@ -52,6 +52,7 @@ export default class InstanceTokenSigningKey extends BaseModel {
     update: [],
   })
   @TableColumn({
+    secret: true,
     required: true,
     type: TableColumnType.ShortText,
     title: "Signing Key",

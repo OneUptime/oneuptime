@@ -295,6 +295,7 @@ export default class StatusPageSCIM extends BaseModel {
     ],
   })
   @TableColumn({
+    secret: true,
     required: true,
     type: TableColumnType.LongText,
     title: "Bearer Token",

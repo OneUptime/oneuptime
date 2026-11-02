@@ -107,6 +107,15 @@ output "alice_teams" {
 }
 ```
 
+Outras fontes de dados encontram um registro pelo endereço da pessoa que ele indica, ao lado do ID dela. Esta lê a associação de Alice à equipe SRE:
+
+```hcl
+data "oneuptime_team_member" "alice" {
+  team_id    = oneuptime_team.sre.id
+  user_email = "alice@example.com"
+}
+```
+
 ## Desligar alguém
 
 Remova as associações da pessoa da sua configuração e aplique. Fora da sua última equipe do projeto, ela está fora do projeto, e o OneUptime a retira de toda escala de plantão, regra de escalonamento e substituição, e do que ela tem: de tudo, exceto os incidentes, alertas e eventos de manutenção que já terminaram. Remova no mesmo change os blocos que a indicam, ou o próximo plano os cria de novo para alguém que não está mais no projeto.
@@ -122,6 +131,13 @@ terraform import oneuptime_team_member.alice 6b1d1c2e-4f3a-4b5c-8d6e-7f8091a2b3c
 ```
 
 O endereço fica como você o escreveu, então escreva-o como a sua configuração faz. O próprio ID da associação também a importa, e então o endereço é lido do OneUptime, em minúsculas.
+
+Donos e linhas de plantão são importados do mesmo jeito, por aquilo a que pertencem. O dono de um monitor recebe o ID do monitor e o endereço da pessoa. Uma linha que nomeia uma equipe ou uma escala, como uma equipe dona ou a equipe que uma regra de escalonamento aciona, recebe os dois IDs:
+
+```bash
+terraform import oneuptime_monitor_user_owner.api 68a1b2c3-d4e5-4f6a-8b9c-0d1e2f3a4b01/bob@example.com
+terraform import oneuptime_escalation_rule_team.sre 68a1b2c3-d4e5-4f6a-8b9c-0d1e2f3a4b06/6b1d1c2e-4f3a-4b5c-8d6e-7f8091a2b3c4
+```
 
 ## Quando alguém muda de endereço
 

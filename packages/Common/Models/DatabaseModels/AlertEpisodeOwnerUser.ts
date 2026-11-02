@@ -229,7 +229,7 @@ export default class AlertEpisodeOwnerUser extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "User ID",
-    description: "ID of the user who is the owner",
+    description: "ID of the user who owns the alert episode",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -308,8 +308,7 @@ export default class AlertEpisodeOwnerUser extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "Alert Episode ID",
-    description:
-      "ID of your OneUptime Alert Episode in which this object belongs",
+    description: "ID of the alert episode the user owns",
   })
   @Column({
     type: ColumnType.ObjectID,

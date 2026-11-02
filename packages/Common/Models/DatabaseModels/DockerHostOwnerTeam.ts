@@ -231,7 +231,7 @@ export default class DockerHostOwnerTeam extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "Team ID",
-    description: "ID of your OneUptime Team in which this object belongs",
+    description: "ID of the team that owns the Docker host",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -310,8 +310,7 @@ export default class DockerHostOwnerTeam extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "Docker Host ID",
-    description:
-      "ID of your OneUptime Docker Host in which this object belongs",
+    description: "ID of the Docker host the team owns",
   })
   @Column({
     type: ColumnType.ObjectID,

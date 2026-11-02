@@ -332,6 +332,23 @@ export default class SeriesDebugHints {
       });
     }
 
+    const unit: string = SeriesLabelDisplay.findLabelValue(seriesLabels, [
+      "systemd.unit.name",
+    ]);
+
+    if (unit) {
+      const quoted: string = SeriesDebugHints.quoteForShell(unit);
+
+      commands.push({
+        purpose: "The unit's state, and why it stopped",
+        command: `systemctl status ${quoted} --no-pager`,
+      });
+      commands.push({
+        purpose: "The unit's last 50 log lines",
+        command: `journalctl -u ${quoted} -n 50 --no-pager`,
+      });
+    }
+
     return commands;
   }
 

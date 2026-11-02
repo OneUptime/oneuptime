@@ -131,6 +131,19 @@ describe("SeriesLabelDisplay", () => {
     test("does not claim an unregistered key", () => {
       expect(SeriesLabelDisplay.isKnownLabelKey("tenant_id")).toBe(false);
     });
+
+    test("a failed systemd unit's alert names it Unit, ranked as a mount is", () => {
+      // The host Systemd Unit Failed template groups by this resource attribute.
+      expect(
+        SeriesLabelDisplay.isKnownLabelKey("resource.systemd.unit.name"),
+      ).toBe(true);
+      expect(
+        SeriesLabelDisplay.getFriendlyLabelName("resource.systemd.unit.name"),
+      ).toBe("Unit");
+      expect(
+        SeriesLabelDisplay.getLabelPriority("resource.systemd.unit.name"),
+      ).toBe(SeriesLabelDisplay.getLabelPriority("mountpoint"));
+    });
   });
 
   describe("getLabelPriority", () => {

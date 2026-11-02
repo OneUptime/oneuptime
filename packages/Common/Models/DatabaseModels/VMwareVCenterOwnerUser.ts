@@ -230,7 +230,7 @@ export default class VMwareVCenterOwnerUser extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "User ID",
-    description: "ID of your OneUptime User in which this object belongs",
+    description: "ID of the user who owns the vCenter",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -308,7 +308,7 @@ export default class VMwareVCenterOwnerUser extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "vCenter ID",
-    description: "ID of your OneUptime vCenter in which this object belongs",
+    description: "ID of the vCenter the user owns",
   })
   @Column({
     type: ColumnType.ObjectID,

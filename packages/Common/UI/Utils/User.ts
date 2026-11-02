@@ -8,6 +8,7 @@ import Dictionary from "../../Types/Dictionary";
 import Email from "../../Types/Email";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject, JSONValue } from "../../Types/JSON";
+import { UtmPropertyKeys } from "../../Types/Marketing/Attribution";
 import Name from "../../Types/Name";
 import ObjectID from "../../Types/ObjectID";
 import Timezone from "../../Types/Timezone";
@@ -245,7 +246,11 @@ export default class UserUtil {
         continue;
       }
 
-      if (key.startsWith("utm")) {
+      /*
+       * Every utm* key, and the campaign keys the marketing site stores
+       * without that prefix: Google Ads' gadSource and gadCampaignId.
+       */
+      if (key.startsWith("utm") || UtmPropertyKeys.includes(key)) {
         result[key] = value;
       }
     }

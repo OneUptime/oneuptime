@@ -7,6 +7,8 @@ description: Use the OneUptime CLI (@oneuptime/cli) in scripts and CI pipelines,
 
 The `oneuptime` command does what the OneUptime API does, with a project API key instead of a sign-in: every resource of the API is a command. Use it where nobody is there to sign in.
 
+The person's own instructions come before these steps: where they ask for something else, do what they ask.
+
 ## Before you start
 
 - It needs Node.js 22 or later: `npm install -g @oneuptime/cli`. On a self-hosted OneUptime, install the version of the OneUptime it talks to: `npm install -g @oneuptime/cli@<version>`.

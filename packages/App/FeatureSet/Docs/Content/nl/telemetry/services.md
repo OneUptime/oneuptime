@@ -47,7 +47,7 @@ Telkens als er telemetrie binnenkomt, schuift **Laatst gezien** van de service o
 
 ## Een service vinden
 
-Ga naar **Producten → Bronnen → Services**. **Alle services** toont elke service met **Naam**, **Beschrijving**, **Technology**, **Laatst gezien**, **Labels** en **Eigenaren**.
+Ga naar **Producten → Bronnen → Services**. **Alle services** toont elke service met **Naam**, **Beschrijving**, **Technologie**, **Laatst gezien**, **Labels** en **Eigenaren**.
 
 - Zoek op naam of beschrijving, en filter op eigenaar of label met de balk boven de lijst.
 - Selecteer meerdere services om ze allemaal tegelijk labels of eigenaren te geven, of om ze te archiveren.

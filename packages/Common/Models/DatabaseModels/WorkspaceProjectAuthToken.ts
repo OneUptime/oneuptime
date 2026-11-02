@@ -259,6 +259,7 @@ class WorkspaceProjectAuthToken extends BaseModel {
     update: [],
   })
   @TableColumn({
+    secret: true,
     title: "Auth Token",
     required: true,
     unique: false,
@@ -316,6 +317,7 @@ class WorkspaceProjectAuthToken extends BaseModel {
     required: true,
     unique: false,
     type: TableColumnType.LongText,
+    allowedValues: Object.values(WorkspaceType),
     canReadOnRelationQuery: true,
   })
   @Column({

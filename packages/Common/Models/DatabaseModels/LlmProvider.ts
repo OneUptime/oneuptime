@@ -228,6 +228,7 @@ export default class LlmProvider extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(LlmType),
     title: "LLM Type",
     description:
       "The type of LLM provider (OpenAI, Azure OpenAI, Anthropic, Groq, Mistral, Ollama, OpenAICompatible, etc.)",

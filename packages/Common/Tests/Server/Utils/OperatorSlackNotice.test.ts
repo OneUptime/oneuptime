@@ -880,6 +880,67 @@ describe("OperatorSlackNotice.getUserCreatedText", () => {
       ).toContain("*Source:* google");
     });
 
+    test("a Google Ads click with no UTM values names the campaign Google put on it", () => {
+      expect(
+        lines(
+          OperatorSlackNotice.getUserCreatedText({
+            user: makeUser({
+              clickIds: { gclid: "abc" },
+              gadSource: "1",
+              gadCampaignId: "23145678901",
+            }),
+          }),
+        ),
+      ).toContain("*Source:* Google Ads, campaign 23145678901");
+    });
+
+    // gad_source comes with auto-tagging off too, when there is no click ID.
+    test.each([
+      [{ gadSource: "1" }, "*Source:* Google Ads"],
+      [
+        { gadCampaignId: "23145678901" },
+        "*Source:* Google Ads, campaign 23145678901",
+      ],
+    ])(
+      "Google Ads' own parameters with no click ID read as Google Ads (%o)",
+      (values: Record<string, string>, line: string) => {
+        expect(
+          lines(
+            OperatorSlackNotice.getUserCreatedText({
+              user: makeUser(values),
+            }),
+          ),
+        ).toContain(line);
+      },
+    );
+
+    test("the campaign's own words win over the campaign Google Ads names", () => {
+      expect(
+        lines(
+          OperatorSlackNotice.getUserCreatedText({
+            user: makeUser({
+              utmSource: "google",
+              utmMedium: "cpc",
+              gadCampaignId: "23145678901",
+              clickIds: { gclid: "abc" },
+            }),
+          }),
+        ),
+      ).toContain("*Source:* google / cpc");
+    });
+
+    test("a campaign ID anybody can put on an address notifies nobody and links nowhere", () => {
+      const text: string = OperatorSlackNotice.getUserCreatedText({
+        user: makeUser({
+          clickIds: { gclid: "abc" },
+          gadCampaignId: `${HOSTILE_NAME}\n*Company:* Somebody Else`,
+        }),
+      });
+
+      expectNoSlackControls(text);
+      expect(lines(text)).toHaveLength(6);
+    });
+
     test("anybody can put anything on an address, so it notifies nobody and links nowhere", () => {
       const text: string = OperatorSlackNotice.getUserCreatedText({
         user: makeUser({

@@ -8,6 +8,7 @@ import {
   isResourceEntityFacetKey,
   isServiceFacetKey,
 } from "Common/Types/Telemetry/ResourceEntityFacet";
+import { isExcludeFacetKey } from "Common/Types/Telemetry/FacetExcludeKey";
 import {
   TRACE_SPAN_TYPE_URL_PARAM,
   TraceSpanType,
@@ -426,6 +427,15 @@ export function describeUnappliedScopeFilters(
   };
 
   for (const [facetKey] of tuples) {
+    /*
+     * A value the Viewer leaves out ("Severity is not debug"): no Insights
+     * page has a dimension for "is not", so it rides along and is named.
+     */
+    if (isExcludeFacetKey(facetKey)) {
+      addTerm(translationKey("excluded values"));
+      continue;
+    }
+
     if (facetKey.startsWith(ATTRIBUTE_FACET_PREFIX)) {
       const name: string = facetKey.substring(ATTRIBUTE_FACET_PREFIX.length);
 

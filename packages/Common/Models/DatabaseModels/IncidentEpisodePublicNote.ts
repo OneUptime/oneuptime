@@ -503,6 +503,7 @@ export default class IncidentEpisodePublicNote extends BaseModel {
     computed: true,
     hideColumnInDocumentation: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(StatusPageSubscriberNotificationStatus),
     title: "Subscriber Notification Status",
     description: "Status of notification sent to subscribers about this note",
     defaultValue: StatusPageSubscriberNotificationStatus.Pending,
@@ -584,6 +585,7 @@ export default class IncidentEpisodePublicNote extends BaseModel {
     hideColumnInDocumentation: true,
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(StatusPageSubscriberNotificationStatus),
     title: "Subscriber Notification Status on Note Updated",
     description:
       "Status of the notification sent to subscribers when this note was last updated. Empty until an update notification is requested.",

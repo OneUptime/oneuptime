@@ -239,7 +239,7 @@ export default class IncomingCallPolicyOwnerTeam extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "Team ID",
-    description: "ID of your OneUptime Team in which this object belongs",
+    description: "ID of the team that owns the incoming call policy",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -318,8 +318,7 @@ export default class IncomingCallPolicyOwnerTeam extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "Incoming Call Policy ID",
-    description:
-      "ID of your OneUptime Incoming Call Policy in which this object belongs",
+    description: "ID of the incoming call policy the team owns",
   })
   @Column({
     type: ColumnType.ObjectID,
