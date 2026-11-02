@@ -474,6 +474,26 @@ describe("first_payment", () => {
     expect(sendPurchase).not.toHaveBeenCalled();
   });
 
+  it("does not take a later cycle's invoice, on a project that left its trial for the free plan and came back, for a trial converting", async () => {
+    /*
+     * The trial ended on the free plan, so nothing was paid then. The move
+     * back to Growth is billed with the next cycle, a month on - and the
+     * browser already sent Google Analytics that purchase.
+     */
+    const laterCycle: number = TRIAL_ENDED_AT_UNIX + 40 * 86400;
+    const invoice: Stripe.Invoice = fakeInvoice({
+      id: "in_back_on_growth",
+      created: laterCycle,
+      status_transitions: { paid_at: laterCycle + 60 },
+    });
+    stripe.invoices.list.mockResolvedValue(page([invoice]) as never);
+
+    await marketingEvents.report(invoicePaidEvent(invoice));
+
+    expect(onlyEmittedEvent().data["is_trial_conversion"]).toBe(false);
+    expect(sendPurchase).not.toHaveBeenCalled();
+  });
+
   it("reports nothing for a payment that is not the project's first", async () => {
     const renewal: Stripe.Invoice = fakeInvoice({
       id: "in_renewal_002",

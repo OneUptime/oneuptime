@@ -320,10 +320,12 @@ unit (dollars, not cents). They are not the plan's price: a first payment that
 is a usage invoice reports that invoice.
 
 `is_trial_conversion` is `true` when the payment is the invoice Stripe raised
-as the subscription left its free trial — a trial converting. It is `false` for
-a project that pays at once or moves from the free plan to a paid one: those are
-conversions too, but their browser has already reported them
-(`subscription_started` or `subscription_upgraded`, and GA4's `purchase`).
+as the subscription left its free trial, at the end of the trial — a trial
+converting. It is `false` for a project that pays at once or moves from the
+free plan to a paid one, including one that left its trial for the free plan
+and came back: those are conversions too, but their browser has already
+reported them (`subscription_started` or `subscription_upgraded`, and GA4's
+`purchase`).
 
 Free-plan projects emit nothing, even for usage they pay for: like
 `subscription_started`, this reports a plan's revenue.

@@ -66,6 +66,13 @@ const INVOICE_PAGE_SIZE: number = 100;
 const MAX_LIST_PAGES: number = 20;
 
 /*
+ * How close to the end of a project's trial the invoice that ends it is
+ * raised. Stripe raises it as the trial ends; the next cycle's invoice comes
+ * a month or a year later.
+ */
+const TRIAL_END_INVOICE_WINDOW_IN_SECONDS: number = 2 * 24 * 60 * 60;
+
+/*
  * Stripe's amounts are in a currency's smallest unit: a hundredth for most,
  * the unit itself for these, a thousandth for the three-decimal ones.
  */
@@ -263,15 +270,19 @@ export default class BillingMarketingEvents {
 
     /*
      * The trial converting: the invoice Stripe raises as the subscription
-     * moves from its trial into its first paid period, on a project that
-     * started on a trial. A project that pays at once, or moves from the
-     * free plan to a paid one, pays on an invoice of another kind - and its
-     * browser has already sent Google Analytics the purchase.
+     * moves from its trial into its first paid period, when the trial ends.
+     * A project that pays at once, or moves from the free plan to a paid one
+     * - even one that left a trial for the free plan and came back - pays on
+     * another invoice, and its browser has already sent Google Analytics the
+     * purchase.
      */
     const isTrialConversion: boolean =
       invoice.billing_reason === "subscription_cycle" &&
       Boolean(trialEndsAt) &&
-      !OneUptimeDate.isAfter(trialEndsAt!, paidAt);
+      Math.abs(
+        invoice.created -
+          OneUptimeDate.toUnixTimestamp(OneUptimeDate.fromString(trialEndsAt!)),
+      ) <= TRIAL_END_INVOICE_WINDOW_IN_SECONDS;
 
     const eventId: string = `${MarketingEventType.FirstPayment}:${project.id.toString()}`;
 
