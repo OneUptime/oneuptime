@@ -84,6 +84,9 @@ x-common-variables: &common-variables
   # Sign in with Microsoft: the public client id (see config.example.env).
   MICROSOFT_SIGN_IN_CLIENT_ID: ${MICROSOFT_SIGN_IN_CLIENT_ID:-}
 
+  # Continue with Google: the public client id (see config.example.env).
+  GOOGLE_SIGN_IN_CLIENT_ID: ${GOOGLE_SIGN_IN_CLIENT_ID:-}
+
 x-common-runtime-variables: &common-runtime-variables
   <<: *common-variables
   ONEUPTIME_SECRET: ${ONEUPTIME_SECRET}
@@ -265,6 +268,9 @@ x-common-runtime-variables: &common-runtime-variables
 
   # Sign in with Microsoft: the app's secret (see config.example.env).
   MICROSOFT_SIGN_IN_CLIENT_SECRET: ${MICROSOFT_SIGN_IN_CLIENT_SECRET:-}
+
+  # Continue with Google: the OAuth client's secret (see config.example.env).
+  GOOGLE_SIGN_IN_CLIENT_SECRET: ${GOOGLE_SIGN_IN_CLIENT_SECRET:-}
 
   # Cloud marketplaces: AWS, Microsoft, Google Cloud and Vercel Marketplace
   # (see config.example.env). OneUptime Cloud only; empty everywhere else.

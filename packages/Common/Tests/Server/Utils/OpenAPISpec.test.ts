@@ -1,4 +1,8 @@
 import { beforeAll, describe, expect, it } from "@jest/globals";
+import AnalyticsBaseModel from "../../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
+import AnalyticsModels from "../../../Models/AnalyticsModels/Index";
+import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import Models from "../../../Models/DatabaseModels/Index";
 import OpenAPIUtil from "../../../Server/Utils/OpenAPI";
 import { JSONObject } from "../../../Types/JSON";
 
@@ -560,6 +564,146 @@ describe("OpenAPI specification", () => {
       }
 
       expect(optional).toEqual([]);
+    });
+  });
+
+  describe("telemetry queries", () => {
+    /*
+     * zod-to-openapi took the `type` the analytics schemas gave .openapi() for
+     * the whole schema, so every telemetry query and sort was documented as an
+     * object that allowed no field at all. They list their fields, the time
+     * column every telemetry query is bounded and sorted by among them
+     * (Tests/Utils/Schema/AnalyticsModelSchema holds the operators).
+     */
+    it("lists the fields of every telemetry table's query and sort, its time column among them", () => {
+      const problems: Array<string> = [];
+
+      for (const modelType of AnalyticsModels) {
+        const model: AnalyticsBaseModel = new modelType();
+
+        if (!model.crudApiPath) {
+          continue;
+        }
+
+        for (const kind of ["QuerySchema", "SortSchema"]) {
+          const properties: JSONObject = ((
+            schemas[`${model.tableName}${kind}`] as JSONObject | undefined
+          )?.["properties"] || {}) as JSONObject;
+
+          if (!(model.defaultSortColumn in properties)) {
+            problems.push(
+              `${model.tableName}${kind}: ${Object.keys(properties).length} fields, none of them ${model.defaultSortColumn}`,
+            );
+          }
+        }
+      }
+
+      expect(problems).toEqual([]);
+    });
+
+    it("lists the fields of every telemetry table's select and group by", () => {
+      const problems: Array<string> = [];
+
+      for (const modelType of AnalyticsModels) {
+        const model: AnalyticsBaseModel = new modelType();
+
+        if (!model.crudApiPath) {
+          continue;
+        }
+
+        for (const kind of ["SelectSchema", "GroupBySchema"]) {
+          const properties: JSONObject = ((
+            schemas[`${model.tableName}${kind}`] as JSONObject | undefined
+          )?.["properties"] || {}) as JSONObject;
+
+          if (Object.keys(properties).length === 0) {
+            problems.push(`${model.tableName}${kind}: no fields`);
+          }
+        }
+      }
+
+      expect(problems).toEqual([]);
+    });
+  });
+
+  describe("database queries", () => {
+    /*
+     * The same `type` in BaseSchema left every database model's query, sort
+     * and select with no field. Each lists its fields now, a query field
+     * referring to its type's filter (Tests/Utils/Schema/ModelSchemaQuery
+     * holds them to what the API takes). Records of a database table are not
+     * grouped - findBy refuses a groupBy - so their group by lists none, and
+     * no path refers to it.
+     */
+    it("lists the fields of every model's query, sort and select, its creation time among them", () => {
+      const problems: Array<string> = [];
+
+      for (const modelType of Models) {
+        const model: DatabaseBaseModel = new modelType();
+
+        if (
+          !model.tableName ||
+          !model.enableDocumentation ||
+          !model.crudApiPath
+        ) {
+          continue;
+        }
+
+        for (const kind of ["QuerySchema", "SortSchema", "SelectSchema"]) {
+          const properties: JSONObject = ((
+            schemas[`${model.tableName}${kind}`] as JSONObject | undefined
+          )?.["properties"] || {}) as JSONObject;
+
+          if (!("createdAt" in properties)) {
+            problems.push(
+              `${model.tableName}${kind}: ${Object.keys(properties).length} fields, none of them createdAt`,
+            );
+          }
+        }
+
+        const groupBy: JSONObject = schemas[
+          `${model.tableName}GroupBySchema`
+        ] as JSONObject;
+
+        if (Object.keys((groupBy["properties"] || {}) as JSONObject).length) {
+          problems.push(`${model.tableName}GroupBySchema: has fields`);
+        }
+      }
+
+      expect(problems).toEqual([]);
+    });
+
+    it("writes each operator once, in a filter every query field of its type refers to", () => {
+      const queries: Array<JSONObject> = Object.keys(schemas)
+        .filter((name: string): boolean => {
+          return name.endsWith("QuerySchema");
+        })
+        .map((name: string): JSONObject => {
+          return schemas[name] as JSONObject;
+        });
+
+      const refs: Set<string> = new Set();
+
+      for (const query of queries) {
+        for (const property of Object.values(
+          (query["properties"] || {}) as JSONObject,
+        )) {
+          const ref: unknown = (property as JSONObject)["$ref"];
+
+          if (typeof ref === "string") {
+            refs.add(ref.replace("#/components/schemas/", ""));
+          }
+        }
+      }
+
+      expect(refs.size).toBeGreaterThan(25);
+
+      for (const name of refs) {
+        expect([name, (schemas[name] as JSONObject)["anyOf"]]).toEqual([
+          name,
+          expect.any(Array),
+        ]);
+      }
     });
   });
 

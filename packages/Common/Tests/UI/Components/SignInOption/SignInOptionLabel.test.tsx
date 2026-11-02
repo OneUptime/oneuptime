@@ -7,9 +7,12 @@ import Icon from "../../../../UI/Components/Icon/Icon";
 import SignInOptionLabel from "../../../../UI/Components/SignInOption/SignInOptionLabel";
 import {
   getSignInOptionClassName,
+  SIGN_IN_OPTION_GOOGLE_CLASS,
+  SIGN_IN_OPTION_GOOGLE_ICON_SLOT_CLASS,
   SIGN_IN_OPTION_ICON_CLASS,
   SIGN_IN_OPTION_ICON_SLOT_CLASS,
   SIGN_IN_OPTION_LABEL_CLASS,
+  SIGN_IN_OPTION_LAYOUT_CLASS,
 } from "../../../../UI/Components/SignInOption/SignInOptionStyle";
 
 /*
@@ -23,6 +26,10 @@ import {
  */
 
 const SPANISH_PASSKEY: string = "Iniciar sesión con una clave de acceso";
+
+// A colour the other options draw themselves in: white, and grey borders and words.
+const OPTION_COLOUR: RegExp =
+  /^(?:hover:)?(?:bg|text|border)-(?:white|gray-\d+)$/;
 
 const classesOf: (className: string) => Array<string> = (
   className: string,
@@ -152,5 +159,56 @@ describe("SignInOptionLabel", () => {
     expect(screen.getByTestId("microsoft")).toHaveAccessibleName(
       "Sign in with Microsoft",
     );
+  });
+
+  /*
+   * Google's sign-in branding puts its "G" 10px before the words, where the
+   * other options' icons sit 8px before theirs: the same slot otherwise.
+   */
+  test("takes a brand's own gap before the words, and keeps the slot otherwise", () => {
+    render(
+      <a href="/identity/google/sign-in" data-testid="google">
+        <SignInOptionLabel
+          icon={<svg aria-hidden="true" data-testid="g" />}
+          iconSlotClassName={SIGN_IN_OPTION_GOOGLE_ICON_SLOT_CLASS}
+          title="Continue with Google"
+        />
+      </a>,
+    );
+
+    const slot: Element = screen.getByText("Continue with Google")
+      .firstElementChild as Element;
+
+    expect(slot).toContainElement(screen.getByTestId("g"));
+    expect(slot).toHaveClass("me-2.5");
+    expect(slot).not.toHaveClass("me-2");
+    expect(slot).toHaveAttribute("aria-hidden", "true");
+    expect(
+      classesOf(SIGN_IN_OPTION_GOOGLE_ICON_SLOT_CLASS).filter(
+        (name: string) => {
+          return name !== "me-2.5";
+        },
+      ),
+    ).toEqual(
+      classesOf(SIGN_IN_OPTION_ICON_SLOT_CLASS).filter((name: string) => {
+        return name !== "me-2";
+      }),
+    );
+  });
+
+  test("Continue with Google is the options' box in Google's colours, not theirs", () => {
+    const google: Array<string> = classesOf(SIGN_IN_OPTION_GOOGLE_CLASS);
+
+    for (const name of classesOf(SIGN_IN_OPTION_LAYOUT_CLASS)) {
+      expect(google).toContain(name);
+    }
+    expect(google).toContain("ou-google-sign-in");
+    // No colour of the options' own to tie with Google's (Theme.css).
+    for (const name of google) {
+      expect({
+        name,
+        colour: OPTION_COLOUR.test(name),
+      }).toEqual({ name, colour: false });
+    }
   });
 });

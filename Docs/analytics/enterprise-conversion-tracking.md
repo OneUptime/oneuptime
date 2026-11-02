@@ -23,6 +23,7 @@ the CRM can read it back.
 | Campaign attribution for an emitted conversion        | The event's `attribution` object        | Copied from the User/Project row the conversion happened on.                                      |
 | Which conversions belong to one person                | `emailHash` on each event               | The receiver joins on it. Nothing in OneUptime joins them.                                        |
 | Enterprise contract value                             | `EnterpriseLicense.annualContractValue` | Reported by `enterprise_license_issued`, attributed through `EnterpriseLicense.email`.            |
+| Money received, and a subscription ending             | Stripe                                  | Reported by `first_payment` and `subscription_ended`, read from Stripe's webhook.                 |
 | Web analytics                                         | GA4 / PostHog / GTM                     | Aggregate funnel analysis and client-side diagnostics.                                            |
 
 The enterprise licence conversation is not a separate conversion type: asking
@@ -133,10 +134,11 @@ It leaves the browser through three doors:
    `window.oneUptimeCalAttributionMetadata(bookingKind)` and pass the result as
    the embed `config`. Cal returns it on `BOOKING_CREATED` to the CRM, which is
    what makes a booked demo attributable to the ad that produced it.
-3. **The Sign in with Microsoft button.** Signing up that way posts no form: the
-   button is a link, and the account is made on Microsoft's way back, by a
-   request that cannot read localStorage. So the button leaves the attribution
-   in a ten-minute cookie on `/identity/microsoft`
+3. **The Continue with Google and Sign in with Microsoft buttons.** Signing up
+   either way posts no form: the button is a link, and the account is made on
+   the provider's way back, by a request that cannot read localStorage. So the
+   button leaves the attribution in a ten-minute cookie on `/identity`, the
+   path both providers' sign-ins are under
    (`packages/App/FeatureSet/Accounts/src/Utils/SignInAttribution.ts`), and the
    callback puts it on the new user through the same whitelists as the form
    (`Attribution.fromSignInCookie`). A cookie that is missing or malformed costs
@@ -279,19 +281,33 @@ Sign-up and the dashboard load Google Analytics alone, so
   `subscription_upgraded:{projectId}:{time}`; see
   `marketing-event-webhooks.md`), `value` the monthly recurring revenue after
   the change, and the plan is the one item.
+- **`purchase` when a trial converts.** That moment has no browser: Stripe
+  charges the card when the trial ends. So the server sends it, through the
+  Measurement Protocol, with `transaction_id` `first_payment:{projectId}` and
+  the amount Stripe took as `value` — only once a maintainer has created the
+  Measurement Protocol API secret and set
+  `GOOGLE_ANALYTICS_MEASUREMENT_PROTOCOL_API_SECRET`, and only for a project
+  whose row carries a campaign, which the signup form hands over only while
+  measurement is allowed. The campaign goes with it as `campaign_details`,
+  since no session is left for it to join (`first_payment` in
+  `marketing-event-webhooks.md`).
 - **`user_id`.** Every signed-in dashboard page sets `user_id` to the internal
   user ID, never an email address, so one person's sessions join up across
   devices.
-- **`sign_up` from Microsoft.** A sign-in that made a new account never reaches
-  the sign-up page's reporting. The callback marks the address it sends them to
-  (`?signed_up_with=microsoft`), and the Dashboard reports `sign_up`, identifies
-  the person to product analytics and takes the mark off the address, so a
-  reload reports nothing
-  (`packages/App/FeatureSet/Dashboard/src/Utils/ReportSignUpFromSignIn.ts`).
+- **`sign_up` from Google and Microsoft.** A sign-in that made a new account
+  never reaches the sign-up page's reporting. The callback marks the address it
+  sends them to with the provider (`?signed_up_with=google`,
+  `?signed_up_with=microsoft`), and the Dashboard reports `sign_up` with that
+  `signup_method`, identifies the person to product analytics and takes the
+  mark off the address, so a reload reports nothing
+  (`packages/App/FeatureSet/Dashboard/src/Utils/ReportSignUpFromSignIn.ts`). A
+  mark naming any other provider is taken off and reports nothing.
 
-All four wait for consent like everything else: gtag holds the calls until
-Google Analytics loads, and on a self-hosted install there is no Google tag to
-send them to.
+The browser's calls wait for consent like everything else: gtag holds them
+until Google Analytics loads, and on a self-hosted install there is no Google
+tag to send them to. The converted trial's purchase is the server's, and the
+campaign on the project row is its evidence of consent; a self-hosted install
+has no API secret to send it with.
 
 **Sign-up never reports an address that holds an email address or a
 credential.** Google Analytics reports each page's full URL, query string
@@ -363,10 +379,3 @@ can turn it on.
    canonical `meeting_booked` with the older `bookingSuccessful`-derived
    events. Separating them, and documenting the historical discontinuity, is
    follow-up work.
-10. **The first payment, and the end of a subscription.** On OneUptime Cloud every
-    paid plan starts with a 14 day trial that asks for no card, so
-    `subscription_started` reports a plan chosen, not money received. Nothing
-    reports the moment a trial becomes a payment, or a subscription ending: the
-    Stripe webhook handles `invoice.finalized` and nothing else. Until those
-    are events of their own, revenue from a trial that converts reaches neither
-    GA4 nor a receiver, and return on ad spend cannot be measured.

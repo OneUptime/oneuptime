@@ -14,6 +14,8 @@ import path from "path";
  *  - "Sign in with SSO" sits beside "Sign in with Microsoft" and "Sign in
  *    with a passkey", so it is worded like them: the same words for "sign
  *    in", and the Microsoft label with the provider swapped;
+ *  - "Continue with Google" names Google as Google writes it, in every
+ *    language, as Google's sign-in branding asks;
  *  - "Sign in with password", the single sign-on page's way back, names the
  *    password the way the sign-in form's Password field does;
  *  - a status page's "Log in with SSO" is the title of the page it opens;
@@ -70,6 +72,8 @@ const MICROSOFT_ARTICLE: Record<string, string> = {
 const PLACEHOLDER: RegExp = /\{\{|\}\}/;
 const WHITESPACE: RegExp = /\s/;
 const SENTENCE_END: RegExp = /[.!?。।؟]$/;
+// Google, as a word of its own: Korean's particle may follow it ("Google로").
+const GOOGLE_AS_A_WORD: RegExp = /(^|[^A-Za-z0-9])Google([^A-Za-z0-9]|$)/;
 
 type Json = Record<string, unknown>;
 
@@ -162,6 +166,7 @@ const readSource: (...parts: Array<string>) => string = (
 
 const ACCOUNTS_KEYS: Array<string> = [
   "common.or",
+  "common.continueWithGoogle",
   "login.signInWithSso",
   "sso.signInWithPassword",
 ];
@@ -294,6 +299,41 @@ describe("The other ways to sign in, in every language", () => {
       });
     },
   );
+
+  /*
+   * Google's name is never translated or transliterated, and the label is
+   * not the name alone: Google's branding allows "Sign in with Google",
+   * "Sign up with Google" or "Continue with Google", in the page's language.
+   */
+  test.each(LANGUAGES)(
+    "%s: 'Continue with Google' names Google as Google writes it, once, with words around it",
+    (language: string) => {
+      const label: string = text(
+        accounts(language),
+        "common.continueWithGoogle",
+      );
+
+      expect({
+        language,
+        label,
+        names: label.split("Google").length - 1,
+        nameAlone: label.trim() === "Google",
+        nameAsAWord: GOOGLE_AS_A_WORD.test(label),
+      }).toEqual({
+        language,
+        label,
+        names: 1,
+        nameAlone: false,
+        nameAsAWord: true,
+      });
+    },
+  );
+
+  test("English says Google's own words for it", () => {
+    expect(text(accounts("en"), "common.continueWithGoogle")).toBe(
+      "Continue with Google",
+    );
+  });
 
   test.each(LANGUAGES)(
     "%s: the sign-in pages' options share the words for 'sign in'",
@@ -455,6 +495,12 @@ describe("The pages read these words, and draw these buttons", () => {
     "MicrosoftSignInButton",
     "MicrosoftSignInButton.tsx",
   );
+  const google: string = readSource(
+    ACCOUNTS_SRC,
+    "Components",
+    "GoogleSignInButton",
+    "GoogleSignInButton.tsx",
+  );
   const statusPageLogin: string = readSource(
     STATUS_PAGE_SRC,
     "Pages",
@@ -468,6 +514,8 @@ describe("The pages read these words, and draw these buttons", () => {
     expect(singleSignOn).toContain('t("common.or")');
     expect(singleSignOn).toContain('t("sso.signInWithPassword")');
     expect(register).toContain('t("common.or")');
+    expect(login).toContain('t("common.continueWithGoogle")');
+    expect(register).toContain('t("common.continueWithGoogle")');
     expect(statusPageLogin).toContain('t("accounts.login.or")');
     expect(statusPageLogin).toContain('t("accounts.login.logInWithSso")');
   });
@@ -509,9 +557,14 @@ describe("The pages read these words, and draw these buttons", () => {
     // The single sign-on page's way back.
     expect(singleSignOn).toContain("<SignInOptionLink");
     expect(singleSignOn).toContain('to={new Route("/accounts/login")}');
-    // Sign up with Microsoft sits under the divider.
+    // Continue with Google: the shared box, in Google's colours.
+    expect(google).toContain("className={SIGN_IN_OPTION_GOOGLE_CLASS}");
+    // Continue with Google, then Sign up with Microsoft, sit under the divider.
     expect(register.indexOf("<LabelledDivider")).toBeGreaterThan(-1);
     expect(register.indexOf("<LabelledDivider")).toBeLessThan(
+      register.indexOf("<GoogleSignInButton"),
+    );
+    expect(register.indexOf("<GoogleSignInButton")).toBeLessThan(
       register.indexOf("<MicrosoftSignInButton"),
     );
     // A status page's single sign-on.

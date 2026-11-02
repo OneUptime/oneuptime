@@ -246,8 +246,9 @@ function getPageConfig(path: string): SitemapPageConfig {
 }
 
 /*
- * `lastmod` is given only where a real date is known: a blog post's date, and
- * for a blog sitemap the newest of its posts'. A static page, a comparison,
+ * `lastmod` is given only where a real date is known: a blog post's date - the
+ * day its text last changed, or else the day it was published - and for a
+ * blog sitemap the newest of its posts'. A static page, a comparison,
  * the docs and the reference have none, so theirs is left out rather than
  * set to the moment the sitemap was generated. A date that changes on every
  * fetch tells a crawler every page changed every time it looked, and it
@@ -315,6 +316,17 @@ export const getPostLastmod: GetPostLastmodFunction = (
 };
 
 /*
+ * A post's lastmod: the day its text last changed after it was published,
+ * from the blog's git history (BlogPostUtil.getUpdatedDate), or else the day
+ * it was published.
+ */
+function getBlogPostLastmod(post: BlogPostHeader): string | undefined {
+  return getPostLastmod(
+    BlogPostUtil.getUpdatedDate(post.fileName, post.postDate) || post.postDate,
+  );
+}
+
+/*
  * The lightweight post list (no git-history contributors). The sitemap only
  * needs the posts' addresses and dates, and resolving contributors runs an
  * expensive `git log` over the whole blog repo that previously timed the
@@ -340,7 +352,7 @@ function getBlogSitemapLastmod(
   let newest: string | undefined = undefined;
 
   for (const post of posts) {
-    const lastmod: string | undefined = getPostLastmod(post.postDate);
+    const lastmod: string | undefined = getBlogPostLastmod(post);
 
     if (lastmod && (!newest || lastmod > newest)) {
       newest = lastmod;
@@ -688,7 +700,7 @@ export async function generateBlogSitemapXml(page: number): Promise<string> {
 
     return {
       loc,
-      lastmod: getPostLastmod(post.postDate),
+      lastmod: getBlogPostLastmod(post),
       priority: BLOG_POST_CONFIG.priority,
       changefreq: BLOG_POST_CONFIG.changefreq,
     };

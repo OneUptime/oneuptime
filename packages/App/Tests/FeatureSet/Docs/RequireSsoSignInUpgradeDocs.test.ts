@@ -173,15 +173,28 @@ describe("the note is true to the change", () => {
     expect(authentication).toContain("assertNonSsoSignInAllowed(");
     expect(authentication).toContain("assertSignUpAllowed(");
     /*
-     * Sign in with Microsoft signs nobody in while SSO is required, master
-     * admins included: only their password or passkey still works.
+     * Sign in with Microsoft and Continue with Google sign nobody in while
+     * SSO is required, master admins included: only their password or
+     * passkey still works. Both are the one provider sign-in.
      */
-    const microsoft: string = source(
-      "App/FeatureSet/Identity/API/MicrosoftSignIn.ts",
+    const providerSignIn: string = source(
+      "App/FeatureSet/Identity/Utils/ProviderSignIn.ts",
     );
 
-    expect(microsoft).toContain("await SsoRequiredSignIn.isSsoRequired()");
-    expect(microsoft).not.toContain("isNonSsoSignInRefused(");
+    expect(providerSignIn).toContain("await SsoRequiredSignIn.isSsoRequired()");
+    expect(providerSignIn).not.toContain("isNonSsoSignInRefused(");
+
+    for (const provider of [
+      "App/FeatureSet/Identity/API/MicrosoftSignIn.ts",
+      "App/FeatureSet/Identity/API/GoogleSignIn.ts",
+    ]) {
+      expect({
+        provider,
+        isTheProviderSignIn: source(provider).includes(
+          "createProviderSignInRouter(",
+        ),
+      }).toEqual({ provider, isTheProviderSignIn: true });
+    }
     expect(refusal).toContain("isMasterAdmin");
     expect(
       fs

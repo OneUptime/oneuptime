@@ -22,7 +22,8 @@ jobs; OneUptime Cloud runs the Enterprise image). The Community image has none
 of it. What every edition uses stays next to this guide: the HTTP client
 ([MarketplaceHttp.ts](MarketplaceHttp.ts)) and the token verifier
 ([RemoteJwtVerifier.ts](RemoteJwtVerifier.ts)) Sign in with Microsoft is built
-on.
+on, and Continue with Google too
+([GoogleSignIn/RELEASING.md](../GoogleSignIn/RELEASING.md)).
 
 Written on **16 October 2026**, together with the integration code, before any
 listing existed. Nothing in this guide had been submitted to any marketplace

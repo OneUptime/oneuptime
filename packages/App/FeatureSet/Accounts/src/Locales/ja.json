@@ -23,7 +23,8 @@
     "newPassword": "新しいパスワード",
     "code": "コード",
     "yourCompany": "あなたの会社",
-    "or": "または"
+    "or": "または",
+    "continueWithGoogle": "Google で続行"
   },
   "language": {
     "label": "言語",

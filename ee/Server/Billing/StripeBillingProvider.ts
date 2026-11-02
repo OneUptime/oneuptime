@@ -37,6 +37,7 @@ import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
 import PayAsYouGoBillingService, {
   LiveUsageAuthorization,
 } from "Common/Server/Services/PayAsYouGoBillingService";
+import BillingMarketingEvents from "./BillingMarketingEvents";
 
 /*
  * OneUptime Cloud's payment provider: Stripe. Core's BillingService hands it
@@ -163,6 +164,10 @@ export class StripeBillingProvider implements BillingProvider {
     maxNetworkRetries: STRIPE_MAX_NETWORK_RETRIES,
     timeout: STRIPE_REQUEST_TIMEOUT_IN_MS,
   });
+
+  private marketingEvents: BillingMarketingEvents = new BillingMarketingEvents(
+    this.stripe,
+  );
 
   // returns billing id of the customer.
   @CaptureSpan()
@@ -2902,6 +2907,14 @@ export class StripeBillingProvider implements BillingProvider {
       );
       return;
     }
+
+    /*
+     * A first payment and a subscription ending, as marketing events
+     * (BillingMarketingEvents). In the background: a marketing endpoint,
+     * PostHog or Google Analytics being slow or down must neither fail nor
+     * hold up the webhook, or Stripe would send it again.
+     */
+    this.marketingEvents.reportInBackground(event);
 
     // Handle invoice.finalized event to send invoice by email if customer has opted in
     if (event.type === "invoice.finalized") {

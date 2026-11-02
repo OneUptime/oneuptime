@@ -6,7 +6,7 @@ import {
 import Cookie from "Common/UI/Utils/Cookie";
 import UserUtil from "Common/UI/Utils/User";
 
-// As long as the sign-in's own state cookie lasts (Identity/API/MicrosoftSignIn).
+// As long as the sign-in's own state cookie lasts (Identity/Utils/ProviderSignIn).
 const COOKIE_MAX_AGE_IN_SECONDS: number = 10 * 60;
 
 /*
@@ -51,8 +51,9 @@ export const getSignInAttributionCookieValue: () => string | null = ():
 };
 
 /*
- * Leaves the attribution where the sign-in's callback can read it. Never
- * throws: this runs as a button is pressed, and the sign-in matters more.
+ * Leaves the attribution where the sign-in's callback can read it - Google's
+ * or Microsoft's: one cookie, on the path both are under. Never throws: this
+ * runs as a button is pressed, and the sign-in matters more.
  */
 export const rememberAttributionForSignIn: () => void = (): void => {
   try {

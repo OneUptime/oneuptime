@@ -144,11 +144,31 @@ export default class WorkspaceNoteReactionUtil {
    * "speaking-head" → "speaking_head".
    */
   private static normalizeName(value: string): string {
-    return this.stripEmojiModifiers(value)
-      .trim()
-      .toLowerCase()
-      .replace(/^:+|:+$/g, "")
+    return this.withoutColonsAtEnds(
+      this.stripEmojiModifiers(value).trim().toLowerCase(),
+    )
       .replace(/[\s-]+/g, "_")
       .replace(/^(?:[0-9a-f]{4,6}_)+/, "");
+  }
+
+  /*
+   * ":pushpin:" → "pushpin". Counted in from each end: a pattern for the
+   * colons at the end (/:+$/) may try every colon of a long run of them,
+   * which code scanning reads as time that grows with the run's square
+   * (js/polynomial-redos) on a name any chat member writes.
+   */
+  private static withoutColonsAtEnds(value: string): string {
+    let start: number = 0;
+    let end: number = value.length;
+
+    while (start < end && value[start] === ":") {
+      start++;
+    }
+
+    while (end > start && value[end - 1] === ":") {
+      end--;
+    }
+
+    return value.slice(start, end);
   }
 }

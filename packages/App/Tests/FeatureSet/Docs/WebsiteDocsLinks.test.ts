@@ -1,5 +1,6 @@
 import DocsFeatureSet from "../../../FeatureSet/Docs/Index";
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
+import DocsNav, { NavGroup, NavLink } from "../../../FeatureSet/Docs/Utils/Nav";
 import Express, {
   ExpressApplication,
   ExpressRequest,
@@ -168,6 +169,37 @@ const isDocsInstaller: (address: DocsAddress) => boolean = (
     address.anchor === null &&
     fs.existsSync(path.join(DOCS_INSTALLERS, ...rest)) &&
     fs.statSync(path.join(DOCS_INSTALLERS, ...rest)).isFile()
+  );
+};
+
+// Every page the docs list, by its address after /docs/: "ai/mcp-server".
+const DOCS_NAV_PAGES: Array<string> = DocsNav.flatMap(
+  (group: NavGroup): Array<string> => {
+    return group.links.map((link: NavLink): string => {
+      return link.url.replace(/^\/docs\//, "");
+    });
+  },
+);
+
+/*
+ * A docs page's raw Markdown (/docs/as-markdown/<language>/<category>/<page>):
+ * no page, but a copy of one, which the website may name where it sends an
+ * AI agent to read the page - the MCP server's guide, in the AI discovery
+ * files Home builds (Utils/McpServerPage). It names a page when the
+ * language is one of the docs' and the docs list the page, as Home's
+ * Tests/DocsLinks reads it; that the docs serve it is checked below with
+ * every other address.
+ */
+const isDocsMarkdownCopy: (address: DocsAddress) => boolean = (
+  address: DocsAddress,
+): boolean => {
+  const [endpoint, language, ...names] = address.names;
+
+  return (
+    endpoint === "as-markdown" &&
+    SUPPORTED_DOCS_LANGUAGE_CODES.includes(language || "") &&
+    address.anchor === null &&
+    DOCS_NAV_PAGES.includes(names.join("/").toLowerCase())
   );
 };
 
@@ -423,7 +455,9 @@ describe("the website's links into the docs", () => {
         const firstName: string = (link.target.name || "").split("/")[0]!;
         return (
           link.target.kind === "category" ||
-          (link.target.kind === "other" && !isDocsInstaller(link.address)) ||
+          (link.target.kind === "other" &&
+            !isDocsInstaller(link.address) &&
+            !isDocsMarkdownCopy(link.address)) ||
           (link.target.kind === "page" && DOCS_ENDPOINTS.includes(firstName))
         );
       })
@@ -512,5 +546,37 @@ describe("the docs' 404 for the addresses the website used to link", () => {
     const page: Landing = await landingOf("/docs/cli/index");
     expect(idsOf(page.body).has("install-the-cli")).toBe(true);
     expect(idsOf(page.body).has("no-such-heading")).toBe(false);
+  });
+});
+
+describe("a docs page's raw Markdown, which the website may name for an AI agent", () => {
+  it("names a page's copy only in one of the docs' languages, for a page the docs list, at no heading", () => {
+    for (const [text, named] of [
+      ['"/docs/as-markdown/en/ai/mcp-server"', true],
+      ['"/docs/as-markdown/de/ai/mcp-server"', true],
+      ['"/docs/as-markdown/en/ai/no-such-page"', false],
+      ['"/docs/as-markdown/xx/ai/mcp-server"', false],
+      ['"/docs/as-markdown/en/ai/mcp-server#a-heading"', false],
+      ['"/docs/as-markdown/en/ai"', false],
+      ['"/docs/static/ai/mcp-server"', false],
+    ] as Array<[string, boolean]>) {
+      const addresses: Array<DocsAddress> = docsAddressesIn(text);
+
+      expect({ text, found: addresses.length }).toEqual({ text, found: 1 });
+      expect({ text, named: isDocsMarkdownCopy(addresses[0]!) }).toEqual({
+        text,
+        named,
+      });
+    }
+  });
+
+  it("is served by the docs, and a page they do not list is not", async () => {
+    const copy: Landing = await landingOf("/docs/as-markdown/en/ai/mcp-server");
+
+    expect(copy.status).toBe(200);
+    expect(copy.body).toContain("MCP");
+    expect(
+      (await landingOf("/docs/as-markdown/en/ai/no-such-page")).status,
+    ).not.toBe(200);
   });
 });

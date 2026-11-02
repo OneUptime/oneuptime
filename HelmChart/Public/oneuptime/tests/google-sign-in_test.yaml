@@ -1,0 +1,78 @@
+# Continue with Google on the sign-in and sign-up pages.
+#
+# The button is drawn from the public client id in env.js, and the app needs
+# the matching secret to finish the sign-in, so both have to reach the app.
+# An install that offers no Google sign-in must start and show nothing new,
+# so both default to empty, and an empty one leaves Google off.
+suite: google sign-in
+release:
+  name: oneuptime
+  namespace: oneuptime
+tests:
+  - it: ships with no Google sign-in
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GOOGLE_SIGN_IN_CLIENT_ID
+            value: ""
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GOOGLE_SIGN_IN_CLIENT_SECRET
+            value: ""
+
+  - it: passes the client id and secret to the app
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      googleSignInApp.clientId: 1234567890-abc.apps.googleusercontent.com
+      googleSignInApp.clientSecret: google-sign-in-secret
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GOOGLE_SIGN_IN_CLIENT_ID
+            value: 1234567890-abc.apps.googleusercontent.com
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GOOGLE_SIGN_IN_CLIENT_SECRET
+            value: google-sign-in-secret
+
+  - it: reads them from an existing secret when one is named
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      googleSignInApp.existingSecret:
+        name: google-sign-in
+        clientIdKey: id
+        clientSecretKey: secret
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GOOGLE_SIGN_IN_CLIENT_ID
+            valueFrom:
+              secretKeyRef:
+                name: google-sign-in
+                key: id
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GOOGLE_SIGN_IN_CLIENT_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: google-sign-in
+                key: secret

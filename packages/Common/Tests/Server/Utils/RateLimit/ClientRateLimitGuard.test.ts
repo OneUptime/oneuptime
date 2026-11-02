@@ -98,8 +98,8 @@ const ADDRESS_READERS_THAT_DO_NOT_COUNT: Record<string, string> = {
     "records the address of a single sign-on",
   "packages/App/FeatureSet/Identity/API/GlobalOIDC.ts":
     "records the address of a single sign-on",
-  "packages/App/FeatureSet/Identity/API/MicrosoftSignIn.ts":
-    "records the address of a Microsoft sign-in",
+  "packages/App/FeatureSet/Identity/Utils/ProviderSignIn.ts":
+    "records the address of a Microsoft or Google sign-in",
   "packages/App/FeatureSet/Identity/API/StatusPageSSO.ts":
     "records the address of a status page single sign-on",
   "packages/App/FeatureSet/Identity/API/StatusPageOIDC.ts":
