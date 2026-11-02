@@ -45,6 +45,19 @@ import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
 import { getOpenTelemetryGuidesIndexUrl } from "Common/Types/Telemetry/OpenTelemetryGuides";
+import { DatabaseBaseModelType } from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import {
+  CLI_FIELDS_SUBCOMMAND,
+  CliFieldFlag,
+  CliOperation,
+  getCliFieldFlags,
+} from "Common/Utils/DeveloperDocs/CliCommands";
+import {
+  CliResource,
+  getCliDatabaseModelType,
+  getCliResource,
+  getCliResources,
+} from "Common/Utils/DeveloperDocs/CliResources";
 
 interface Skill {
   directory: string;
@@ -1106,54 +1119,110 @@ describe("the coding agent plugin", () => {
       })
       .join("\n");
 
+    /*
+     * The flags create and update take for a resource's fields, and the
+     * email flags beside the ID flags of people: read from the models as
+     * the CLI reads them, not written in its sources.
+     */
+    // The flags Commander gives every command, and the program its version.
+    const COMMANDER_FLAGS: ReadonlyArray<string> = ["--help", "--version"];
+
+    const fieldFlags: Set<string> = new Set(
+      getCliResources().flatMap((resource: CliResource): Array<string> => {
+        const modelType: DatabaseBaseModelType | null =
+          getCliDatabaseModelType(resource);
+
+        return modelType
+          ? getCliFieldFlags(modelType).flatMap(
+              (flag: CliFieldFlag): Array<string> => {
+                return flag.person
+                  ? [flag.flag, flag.person.flag]
+                  : [flag.flag];
+              },
+            )
+          : [];
+      }),
+    );
+
     test("gives only options the CLI has", () => {
       const options: Array<string> = skill.text.match(
         /(?<![\w-])--[a-z][a-z-]*/g,
       )!;
 
       expect(options.length).toBeGreaterThan(5);
+      expect(fieldFlags.has("--monitor-type")).toBe(true);
+      expect(fieldFlags.has("--owner-user-emails")).toBe(true);
 
       for (const option of new Set(options)) {
-        expect([option, source.includes(`"${option}`)]).toEqual([option, true]);
+        expect([
+          option,
+          source.includes(`"${option}`) ||
+            fieldFlags.has(option) ||
+            COMMANDER_FLAGS.includes(option),
+        ]).toEqual([option, true]);
       }
     });
 
-    test("runs only commands the CLI has", () => {
-      const resources: Set<string> = new Set(
-        (
-          readText(CLI_DIRECTORY, "README.md").match(/`[a-z]+(?:-[a-z]+)*`/g) ||
-          []
-        ).map((name: string): string => {
-          return name.replace(/`/g, "");
-        }),
-      );
+    test("runs only commands the CLI has, and subcommands its resources take", () => {
       const topLevel: Array<string> = [
         ...source.matchAll(/\.command\("([a-z-]+)/g),
       ].map((match: RegExpMatchArray): string => {
         return match[1]!;
       });
-      const commands: Array<string> = [
-        ...skill.text.matchAll(/\boneuptime ([a-z][a-z-]*)/g),
-      ].map((match: RegExpMatchArray): string => {
-        return match[1]!;
+      const commands: Array<[string, string]> = [
+        ...skill.text.matchAll(
+          /\boneuptime ([a-z][a-z-]*)(?: ([a-z][a-z-]*))?/g,
+        ),
+      ].map((match: RegExpMatchArray): [string, string] => {
+        return [match[1]!, match[2] || ""];
       });
 
-      expect(commands.length).toBeGreaterThan(5);
+      expect(commands.length).toBeGreaterThan(10);
 
-      for (const command of commands) {
+      for (const [command, subcommand] of commands) {
+        const resource: CliResource | null = getCliResource(command);
+
         expect([
           command,
-          resources.has(command) || topLevel.includes(command),
+          Boolean(resource) || topLevel.includes(command),
         ]).toEqual([command, true]);
+
+        if (!resource) {
+          continue;
+        }
+
+        // A resource's subcommands: its operations, fields, then its actions.
+        expect([
+          command,
+          subcommand,
+          [
+            ...resource.operations,
+            CLI_FIELDS_SUBCOMMAND,
+            ...resource.actions,
+          ].includes(subcommand),
+        ]).toEqual([command, subcommand, true]);
       }
 
-      for (const note of ["incident-internal-note", "incident-public-note"]) {
-        expect([note, resources.has(note), skill.text.includes(note)]).toEqual([
-          note,
-          true,
-          true,
+      expect(commands).toEqual(
+        expect.arrayContaining([
+          ["incident", "acknowledge"],
+          ["incident", "resolve"],
+          ["incident", "add-note"],
+          ["monitor", "create"],
+        ]),
+      );
+    });
+
+    test("no longer says a monitor cannot go on a status page, or an ingestion key be made, from the CLI", () => {
+      for (const name of ["status-page-resource", "telemetry-ingestion-key"]) {
+        expect([name, getCliResource(name)?.operations]).toEqual([
+          name,
+          expect.arrayContaining([CliOperation.Create]),
         ]);
       }
+
+      expect(skill.text).not.toContain("There is no command for");
+      expect(skill.text).not.toContain("Telemetry |");
     });
 
     test("names the variables the CLI reads", () => {
