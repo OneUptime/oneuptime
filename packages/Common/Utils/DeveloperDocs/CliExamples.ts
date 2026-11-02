@@ -52,7 +52,9 @@ export interface CliExample {
  */
 export const CLI_EXAMPLE_LINE_LIMIT: number = 72;
 
-const CONTINUATION: string = " \\\n  ";
+// A flag's line, after the first, starts here.
+const FLAG_INDENT: string = "  ";
+const CONTINUATION: string = ` \\\n${FLAG_INDENT}`;
 
 // The words, quoted, on one line or a flag (with its value) a line.
 export function formatCliCommand(args: Array<string>): string {
@@ -80,8 +82,75 @@ export function formatCliCommand(args: Array<string>): string {
   return lines.join(CONTINUATION);
 }
 
-function example(args: Array<string>): CliExample {
-  return { args, command: formatCliCommand(args) };
+// The flags whose values are JSON, whatever the resource.
+const JSON_VALUE_FLAGS: ReadonlyArray<string> = ["--query", "--sort", "--data"];
+
+const JSON_INDENT: number = 2;
+
+/*
+ * A JSON value too long for its flag's line, written as the curl commands
+ * write a body: a key a line, indented under its flag. On one line,
+ * --monitor-steps (every criterion of a monitor) ran 14,000 pixels past
+ * the code block's edge. The shell hands the CLI the value with its line
+ * breaks, and JSON allows them, so the request is the same.
+ */
+function laidOutJson(text: string): string {
+  try {
+    return JSON.stringify(JSON.parse(text), null, JSON_INDENT)
+      .split("\n")
+      .join(`\n${FLAG_INDENT}`);
+  } catch {
+    return text;
+  }
+}
+
+/*
+ * The words the CLI is given and the command a reader copies, which reads
+ * back as those very words: a long command goes a flag a line, and in it a
+ * long JSON value (after one of `jsonFlags`) a key a line.
+ */
+function example(
+  args: Array<string>,
+  jsonFlags: ReadonlyArray<string> = JSON_VALUE_FLAGS,
+): CliExample {
+  if (!formatCliCommand(args).includes("\n")) {
+    return { args, command: formatCliCommand(args) };
+  }
+
+  const laidOut: Array<string> = args.map(
+    (word: string, index: number): string => {
+      const flag: string | undefined = args[index - 1];
+      const line: string = `${FLAG_INDENT}${flag} ${shellQuote(word)} \\`;
+
+      return flag &&
+        jsonFlags.includes(flag) &&
+        line.length > CLI_EXAMPLE_LINE_LIMIT
+        ? laidOutJson(word)
+        : word;
+    },
+  );
+
+  return { args: laidOut, command: formatCliCommand(laidOut) };
+}
+
+// A write's JSON flags: --data, and the flags of fields that hold JSON.
+function writeJsonFlags(
+  modelType: DatabaseBaseModelType,
+  operation: CliOperation.Create | CliOperation.Update,
+): Array<string> {
+  return [
+    ...JSON_VALUE_FLAGS,
+    ...getCliFieldFlagsFor(modelType, operation)
+      .filter((flag: CliFieldFlag): boolean => {
+        return (
+          flag.kind === TerraformValueKind.Json ||
+          flag.kind === TerraformValueKind.MonitorSteps
+        );
+      })
+      .map((flag: CliFieldFlag): string => {
+        return flag.flag;
+      }),
+  ];
 }
 
 export function getCliCommandOf(modelType: DatabaseBaseModelType): string {
@@ -220,12 +289,15 @@ export function getCliCreateExample(data: {
   values: JSONObject;
   emailsById?: Readonly<Record<string, string>> | undefined;
 }): CliExample {
-  return example([
-    getCliCommandOf(data.modelType),
-    CliOperation.Create,
-    ...getCliWriteArgs({ ...data, operation: CliOperation.Create }),
-    JSON_FLAG,
-  ]);
+  return example(
+    [
+      getCliCommandOf(data.modelType),
+      CliOperation.Create,
+      ...getCliWriteArgs({ ...data, operation: CliOperation.Create }),
+      JSON_FLAG,
+    ],
+    writeJsonFlags(data.modelType, CliOperation.Create),
+  );
 }
 
 export function getCliUpdateExample(data: {
@@ -234,13 +306,16 @@ export function getCliUpdateExample(data: {
   values: JSONObject;
   emailsById?: Readonly<Record<string, string>> | undefined;
 }): CliExample {
-  return example([
-    getCliCommandOf(data.modelType),
-    CliOperation.Update,
-    data.id,
-    ...getCliWriteArgs({ ...data, operation: CliOperation.Update }),
-    JSON_FLAG,
-  ]);
+  return example(
+    [
+      getCliCommandOf(data.modelType),
+      CliOperation.Update,
+      data.id,
+      ...getCliWriteArgs({ ...data, operation: CliOperation.Update }),
+      JSON_FLAG,
+    ],
+    writeJsonFlags(data.modelType, CliOperation.Update),
+  );
 }
 
 // The fields a read asks for, as --fields names them: `_id` always comes.
@@ -261,9 +336,7 @@ function fieldsArgs(select: JSONObject | undefined): Array<string> {
 const NEWEST_FIRST: JSONObject = { createdAt: "DESC" };
 
 function isNewestFirst(sort: JSONObject | undefined): boolean {
-  return (
-    !sort || JSON.stringify(sort) === JSON.stringify(NEWEST_FIRST)
-  );
+  return !sort || JSON.stringify(sort) === JSON.stringify(NEWEST_FIRST);
 }
 
 /*
@@ -277,7 +350,10 @@ export function getCliListExample(data: {
   sort?: JSONObject | undefined;
   limit?: number | undefined;
 }): CliExample {
-  const args: Array<string> = [getCliCommandOf(data.modelType), CliOperation.List];
+  const args: Array<string> = [
+    getCliCommandOf(data.modelType),
+    CliOperation.List,
+  ];
 
   if (data.query && Object.keys(data.query).length > 0) {
     args.push("--query", JSON.stringify(data.query));
@@ -392,7 +468,9 @@ const DEVELOPMENT_VERSION: string = "1.0.0";
  * npm's: the CLI of this OneUptime's version, which knows the resources it
  * has; the newest when the version is not a release's.
  */
-export function getCliNpmInstallCommand(platformVersion: string | null): string {
+export function getCliNpmInstallCommand(
+  platformVersion: string | null,
+): string {
   const version: string | null =
     platformVersion &&
     RELEASE_VERSION.test(platformVersion.trim()) &&

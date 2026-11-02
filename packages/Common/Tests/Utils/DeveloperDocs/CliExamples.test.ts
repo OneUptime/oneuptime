@@ -3,7 +3,11 @@ import Incident from "../../../Models/DatabaseModels/Incident";
 import Label from "../../../Models/DatabaseModels/Label";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import TeamMember from "../../../Models/DatabaseModels/TeamMember";
-import { CliAction, CliOperation } from "../../../Utils/DeveloperDocs/CliCommands";
+import { JSONObject } from "../../../Types/JSON";
+import {
+  CliAction,
+  CliOperation,
+} from "../../../Utils/DeveloperDocs/CliCommands";
 import {
   CLI_EXAMPLE_LINE_LIMIT,
   CliExample,
@@ -62,7 +66,9 @@ describe("a command's line", () => {
         "  --json",
       ].join("\n"),
     );
-    expect(line.split("\n")[0]?.length).toBeLessThanOrEqual(CLI_EXAMPLE_LINE_LIMIT);
+    expect(line.split("\n")[0]?.length).toBeLessThanOrEqual(
+      CLI_EXAMPLE_LINE_LIMIT,
+    );
   });
 
   test("quotes a word a shell would split or read: spaces, quotes, JSON", () => {
@@ -108,7 +114,10 @@ describe("a create's and an update's fields, as flags", () => {
       getCliWriteArgs({
         modelType: Label,
         operation: CliOperation.Create,
-        values: { name: "production", color: { _type: "Color", value: "#ff0000" } },
+        values: {
+          name: "production",
+          color: { _type: "Color", value: "#ff0000" },
+        },
       }),
     ).toEqual(["--name", "production", "--color", "#ff0000"]);
   });
@@ -120,7 +129,12 @@ describe("a create's and an update's fields, as flags", () => {
         operation: CliOperation.Update,
         values: { name: "Website", projectId: ID },
       }),
-    ).toEqual(["--name", "Website", "--data", JSON.stringify({ projectId: ID })]);
+    ).toEqual([
+      "--name",
+      "Website",
+      "--data",
+      JSON.stringify({ projectId: ID }),
+    ]);
   });
 
   test("name the viewer by their address, and anyone else by ID", () => {
@@ -144,10 +158,22 @@ describe("a create's and an update's fields, as flags", () => {
 
   test("end with --json, for what the page shows the CLI printing", () => {
     expect(
-      getCliCreateExample({ modelType: Label, values: { name: "a", color: "#000000" } }).args,
-    ).toEqual(["label", "create", "--name", "a", "--color", "#000000", "--json"]);
+      getCliCreateExample({
+        modelType: Label,
+        values: { name: "a", color: "#000000" },
+      }).args,
+    ).toEqual([
+      "label",
+      "create",
+      "--name",
+      "a",
+      "--color",
+      "#000000",
+      "--json",
+    ]);
     expect(
-      getCliUpdateExample({ modelType: Label, id: ID, values: { name: "b" } }).args,
+      getCliUpdateExample({ modelType: Label, id: ID, values: { name: "b" } })
+        .args,
     ).toEqual(["label", "update", ID, "--name", "b", "--json"]);
   });
 });
@@ -194,12 +220,18 @@ describe("reads", () => {
     expect(getCliDeleteExample({ modelType: Incident, id: ID }).command).toBe(
       `oneuptime incident delete ${ID}`,
     );
-    expect(getCliFieldsExample(Incident).command).toBe("oneuptime incident fields");
+    expect(getCliFieldsExample(Incident).command).toBe(
+      "oneuptime incident fields",
+    );
   });
 
   test("a dashboard button: acknowledge, and a public note", () => {
     expect(
-      getCliActionExample({ modelType: Incident, action: CliAction.Acknowledge, id: ID }).args,
+      getCliActionExample({
+        modelType: Incident,
+        action: CliAction.Acknowledge,
+        id: ID,
+      }).args,
     ).toEqual(["incident", "acknowledge", ID]);
     expect(
       getCliActionExample({
@@ -210,6 +242,102 @@ describe("reads", () => {
         isPublic: true,
       }).args,
     ).toEqual(["incident", "add-note", ID, "--note", "Fixed.", "--public"]);
+  });
+});
+
+/*
+ * A JSON value too long for its flag's line goes a key a line, under its
+ * flag, as the API page lays out a body: on one line, a monitor's steps ran
+ * 14,000 pixels past the code block's edge. The words the CLI is given
+ * hold the same text, so the command still reads back as them.
+ */
+describe("a long JSON value", () => {
+  const STEPS: JSONObject = {
+    _type: "MonitorSteps",
+    value: {
+      monitorStepsInstanceArray: [
+        {
+          _type: "MonitorStep",
+          value: {
+            id: OTHER,
+            monitorDestination: {
+              _type: "URL",
+              value: "https://example.com/",
+            },
+            requestType: "GET",
+          },
+        },
+      ],
+    },
+  };
+
+  test("goes a key a line, indented under its flag, in the command and in the CLI's words", () => {
+    const create: CliExample = getCliCreateExample({
+      modelType: Monitor,
+      values: { name: "Website", monitorType: "Website", monitorSteps: STEPS },
+    });
+    const steps: string = create.args[
+      create.args.indexOf("--monitor-steps") + 1
+    ] as string;
+
+    expect(JSON.parse(steps)).toEqual(STEPS);
+    expect(steps).toBe(JSON.stringify(STEPS, null, 2).split("\n").join("\n  "));
+    expect(create.command).toContain(`\n  --monitor-steps '${steps}' \\\n`);
+    expect(create.command.split("\n")).toContain("  }' \\");
+
+    for (const line of create.command.split("\n")) {
+      expect({ line, fits: line.length <= CLI_EXAMPLE_LINE_LIMIT }).toEqual({
+        line,
+        fits: true,
+      });
+    }
+  });
+
+  test("does the same for a list's filter, and leaves a short one on its flag's line", () => {
+    const query: JSONObject = {
+      currentMonitorStatusId: { _type: "NotEqual", value: OTHER },
+    };
+    const list: CliExample = getCliListExample({
+      modelType: Monitor,
+      query,
+      sort: { name: "ASC" },
+      select: { _id: true, name: true, createdAt: true },
+      limit: 10,
+    });
+
+    expect(list.args).toEqual([
+      "monitor",
+      "list",
+      "--query",
+      JSON.stringify(query, null, 2).split("\n").join("\n  "),
+      "--sort",
+      '{"name":"ASC"}',
+      "--fields",
+      "name,createdAt",
+      "--limit",
+      "10",
+      "--json",
+    ]);
+    expect(list.command).toContain(`  --sort '{"name":"ASC"}' \\\n`);
+  });
+
+  test("stays on one line in a command that fits on one", () => {
+    expect(
+      getCliCountExample({ modelType: Incident, query: { title: "x" } })
+        .command,
+    ).toBe(`oneuptime incident count --query '{"title":"x"}'`);
+  });
+
+  test("is laid out only after a flag that takes JSON: text that looks like JSON is kept as written", () => {
+    const description: string = JSON.stringify({
+      note: "A description that a person wrote as JSON, too long for one line",
+    });
+    const create: CliExample = getCliCreateExample({
+      modelType: Monitor,
+      values: { name: "Website", description },
+    });
+
+    expect(create.args).toContain(description);
   });
 });
 
@@ -238,9 +366,12 @@ describe("installing and connecting", () => {
     ["1.0.0", "npm install -g @oneuptime/cli"],
     ["unknown", "npm install -g @oneuptime/cli"],
     [null, "npm install -g @oneuptime/cli"],
-  ])("installs with npm for OneUptime %j: %s", (version: string | null, command: string) => {
-    expect(getCliNpmInstallCommand(version)).toBe(command);
-  });
+  ])(
+    "installs with npm for OneUptime %j: %s",
+    (version: string | null, command: string) => {
+      expect(getCliNpmInstallCommand(version)).toBe(command);
+    },
+  );
 
   test("connects with the key and the address in the environment, then checks them", () => {
     expect(getCliConnectCommands(ORIGIN)).toBe(
@@ -250,6 +381,8 @@ describe("installing and connecting", () => {
         "oneuptime whoami --check",
       ].join("\n"),
     );
-    expect(getCliLoginCommand(ORIGIN)).toBe(`oneuptime login <api-key> ${ORIGIN}`);
+    expect(getCliLoginCommand(ORIGIN)).toBe(
+      `oneuptime login <api-key> ${ORIGIN}`,
+    );
   });
 });
