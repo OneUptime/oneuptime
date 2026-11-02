@@ -358,11 +358,18 @@ export default class ModelPermission {
     return query;
   }
 
+  /*
+   * `columnsSetByServer` are the columns the create's own service wrote
+   * into the row (AnalyticsDatabaseService.getRetentionDateOnCreate), which
+   * no caller may write: the check lets those values through, and refuses
+   * the same column when it is the caller who sent it.
+   */
   @CaptureSpan()
   public static checkCreatePermissions<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
     data: TBaseModel,
     props: DatabaseCommonInteractionProps,
+    columnsSetByServer: Array<string> = [],
   ): void {
     DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(props);
 
@@ -382,6 +389,7 @@ export default class ModelPermission {
       data,
       props,
       DatabaseRequestType.Create,
+      columnsSetByServer,
     );
   }
 
@@ -390,6 +398,7 @@ export default class ModelPermission {
     data: TBaseModel,
     props: DatabaseCommonInteractionProps,
     requestType: DatabaseRequestType,
+    columnsSetByServer: Array<string> = [],
   ): void {
     const model: BaseModel = new modelType();
     const permissionColumns: Columns = this.getModelColumnsByPermissions(
@@ -410,6 +419,10 @@ export default class ModelPermission {
       }
 
       if (excludedColumnNames.includes(key)) {
+        continue;
+      }
+
+      if (columnsSetByServer.includes(key)) {
         continue;
       }
 

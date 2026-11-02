@@ -7,6 +7,7 @@ import {
   INTERACTIVE_READ_TIME_LIMIT,
 } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import TelemetryRowRetention from "../Utils/Telemetry/TelemetryRowRetention";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 import Includes from "../../Types/BaseDatabase/Includes";
 import { JSONObject } from "../../Types/JSON";
@@ -19,6 +20,20 @@ export const TRACE_EXCEPTION_MESSAGE_LENGTH: number = 500;
 export class ExceptionInstanceService extends AnalyticsDatabaseService<ExceptionInstance> {
   public constructor(clickhouseDatabase?: ClickhouseDatabase | undefined) {
     super({ modelType: ExceptionInstance, database: clickhouseDatabase });
+  }
+
+  /*
+   * Its resource's retention for traces of its span's status, as the
+   * traces ingest gives the exceptions it records.
+   */
+  protected override async getRetentionDateOnCreate(
+    exception: ExceptionInstance,
+  ): Promise<Date | null> {
+    return await TelemetryRowRetention.getRetentionDate({
+      row: exception,
+      pillar: "traces",
+      bucketKey: exception.spanStatusCode,
+    });
   }
 
   /*
