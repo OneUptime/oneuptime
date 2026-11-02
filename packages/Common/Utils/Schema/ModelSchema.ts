@@ -10,7 +10,12 @@ import { z as ZodTypes } from "zod";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Permission, { PermissionHelper } from "../../Types/Permission";
 import { ColumnAccessControl } from "../../Types/BaseDatabase/AccessControl";
-import { BaseSchema, SchemaExample, ShapeRecord } from "./BaseSchema";
+import {
+  ALWAYS_READABLE_COLUMNS,
+  BaseSchema,
+  SchemaExample,
+  ShapeRecord,
+} from "./BaseSchema";
 import {
   getColorSchema,
   getDateSchema,
@@ -47,6 +52,127 @@ export interface ModelRelationReference {
   tag: string;
   tableName: string;
 }
+
+// A column a query, sort or select may name.
+interface ReadableColumn {
+  key: string;
+  column: TableColumnMetadata;
+}
+
+/*
+ * WHAT A QUERY CAN DO WITH A COLUMN OF EACH TYPE, as the API runs it:
+ * JSONFunctions.deserialize reads the operator, QueryPermission checks the
+ * column and QueryUtil.serializeQuery compiles it.
+ * Tests/Utils/Schema/ModelSchemaQuery runs every filter the spec documents,
+ * on every column of every documented model, through all three. The OpenAPI
+ * spec, the MCP server's oneuptime_describe_resource and the developer docs
+ * read these lists.
+ */
+const PRESENCE_OPERATORS: Array<string> = ["IsNull", "NotNull"];
+
+const COMMON_OPERATORS: Array<string> = [
+  "EqualTo",
+  "NotEqual",
+  ...PRESENCE_OPERATORS,
+  "EqualToOrNull",
+];
+
+const ID_OPERATORS: Array<string> = [...COMMON_OPERATORS, "Includes"];
+
+const TEXT_OPERATORS: Array<string> = [
+  ...COMMON_OPERATORS,
+  "Search",
+  "Includes",
+];
+
+const RANGE_OPERATORS: Array<string> = [
+  ...COMMON_OPERATORS,
+  "GreaterThan",
+  "LessThan",
+  "GreaterThanOrEqual",
+  "LessThanOrEqual",
+  "InBetween",
+];
+
+const OPERATORS_BY_COLUMN_TYPE: Record<TableColumnType, Array<string>> = {
+  [TableColumnType.ObjectID]: ID_OPERATORS,
+  [TableColumnType.Email]: ID_OPERATORS,
+  [TableColumnType.Phone]: ID_OPERATORS,
+  [TableColumnType.HashedString]: ID_OPERATORS,
+  [TableColumnType.Slug]: ID_OPERATORS,
+  [TableColumnType.ShortText]: TEXT_OPERATORS,
+  [TableColumnType.LongText]: TEXT_OPERATORS,
+  [TableColumnType.VeryLongText]: TEXT_OPERATORS,
+  [TableColumnType.Name]: TEXT_OPERATORS,
+  [TableColumnType.Description]: TEXT_OPERATORS,
+  [TableColumnType.Domain]: TEXT_OPERATORS,
+  [TableColumnType.Markdown]: TEXT_OPERATORS,
+  [TableColumnType.Number]: RANGE_OPERATORS,
+  [TableColumnType.PositiveNumber]: RANGE_OPERATORS,
+  [TableColumnType.SmallNumber]: RANGE_OPERATORS,
+  [TableColumnType.SmallPositiveNumber]: RANGE_OPERATORS,
+  [TableColumnType.BigNumber]: RANGE_OPERATORS,
+  [TableColumnType.BigPositiveNumber]: RANGE_OPERATORS,
+  [TableColumnType.Date]: RANGE_OPERATORS,
+  [TableColumnType.Boolean]: COMMON_OPERATORS,
+  /*
+   * On each key: {"customFields": {"<key>": <value or operator>}}, as
+   * JSONColumnQuery compiles it. NotEqual on the column itself is read as a
+   * key named "_value".
+   */
+  [TableColumnType.JSON]: [
+    ...TEXT_OPERATORS,
+    "GreaterThan",
+    "LessThan",
+    "GreaterThanOrEqual",
+    "LessThanOrEqual",
+    "InBetween",
+  ],
+  // A relation list. The API refuses NotEqual on one (UUIDColumnFilter).
+  [TableColumnType.EntityArray]: ["EqualTo", ...PRESENCE_OPERATORS, "Includes"],
+  // A relation, filtered through its own fields, is no field of a query.
+  [TableColumnType.Entity]: [
+    "EqualTo",
+    "NotEqual",
+    ...PRESENCE_OPERATORS,
+    "Includes",
+  ],
+  /*
+   * A JSON document or a file's bytes: only whether there is one can be
+   * asked. Postgres reads text compared with a monitor's steps as JSON, and
+   * refuses it.
+   */
+  [TableColumnType.MonitorSteps]: PRESENCE_OPERATORS,
+  [TableColumnType.File]: PRESENCE_OPERATORS,
+  [TableColumnType.Buffer]: PRESENCE_OPERATORS,
+  [TableColumnType.Array]: ["EqualTo", "NotEqual", ...PRESENCE_OPERATORS],
+  [TableColumnType.Color]: COMMON_OPERATORS,
+  [TableColumnType.Version]: COMMON_OPERATORS,
+  [TableColumnType.Password]: COMMON_OPERATORS,
+  [TableColumnType.OTP]: COMMON_OPERATORS,
+  [TableColumnType.ShortURL]: COMMON_OPERATORS,
+  [TableColumnType.LongURL]: COMMON_OPERATORS,
+  [TableColumnType.HTML]: COMMON_OPERATORS,
+  [TableColumnType.JavaScript]: COMMON_OPERATORS,
+  [TableColumnType.CSS]: COMMON_OPERATORS,
+  [TableColumnType.Permission]: COMMON_OPERATORS,
+  [TableColumnType.CustomFieldType]: COMMON_OPERATORS,
+  [TableColumnType.MonitorType]: COMMON_OPERATORS,
+  [TableColumnType.WorkflowStatus]: COMMON_OPERATORS,
+  [TableColumnType.IP]: COMMON_OPERATORS,
+  [TableColumnType.Port]: COMMON_OPERATORS,
+};
+
+// Each type's filter, built once (ModelSchema.getQueryFilterSchema).
+const QUERY_FILTER_SCHEMAS: Map<TableColumnType, ZodTypes.ZodTypeAny> =
+  new Map();
+
+// Each model's relation select, built once (getRelationSelectSchema).
+const RELATION_SELECT_SCHEMAS: Map<string, ModelSchemaType> = new Map();
+
+const EXAMPLE_ID: string = "123e4567-e89b-12d3-a456-426614174000";
+
+const EXAMPLE_TIME: string = "2026-01-01T00:00:00.000Z";
 
 // Type for schema method functions
 type SchemaMethodFunction = (data: {
@@ -572,226 +698,187 @@ export class ModelSchema extends BaseSchema {
     ];
   }
 
+  /*
+   * The columns a query may name, each referring to its type's filter
+   * (getQueryFilterSchema).
+   *
+   * Neither this object's .openapi() nor a field's names a `type`:
+   * zod-to-openapi takes a `type` there for the whole schema and leaves out
+   * the properties and operators it would have generated, so the spec listed
+   * no field of any query at all.
+   *
+   * Other keys are not refused: a query also filters a record by the fields
+   * of a record its relation names, and one with owners by who owns it
+   * (QueryPermission checks both), as the API reference describes.
+   */
   public static getQueryModelSchema(data: {
     modelType: new () => DatabaseBaseModel;
     disableOpenApiSchema?: boolean;
   }): ModelSchemaType {
-    const modelType: new () => DatabaseBaseModel = data.modelType;
-    const model: DatabaseBaseModel = new modelType();
+    const model: DatabaseBaseModel = new data.modelType();
+    const columns: Array<ReadableColumn> = this.getReadableColumns(model);
+    const shape: ShapeRecord = {};
 
-    return this.generateQuerySchema({
-      model,
-      tableName: model.tableName || "model",
-      getColumns: (model: DatabaseBaseModel) => {
-        const columns: Dictionary<TableColumnMetadata> = getTableColumns(model);
-        return Object.keys(columns)
-          .map((key: string) => {
-            const column: TableColumnMetadata | undefined = columns[key];
-            return column ? { key, type: column.type } : null;
-          })
-          .filter((col: { key: string; type: any } | null) => {
-            // Skip Entity columns but keep EntityArray columns
-            if (col && col.type === TableColumnType.Entity) {
-              return false;
-            }
-            return col !== null;
-          }) as Array<{ key: string; type: any }>;
+    for (const { key, column } of columns) {
+      shape[key] = this.getQueryFilterSchema(column.type).optional();
+    }
+
+    return this.applyOpenApi(
+      z.object(shape),
+      {
+        description: `Query schema for ${model.tableName || "model"}. A field takes a value, which it matches exactly, or an operator its type allows. A relation is filtered by the fields of the record it names, {"<relation>": {"<field>": <value or Search>}}, and a resource with owners by who owns it, {"owners": {"_type": "OwnedBy", "userIds": [...], "teamIds": [...]}}.`,
+        example: this.getQuerySchemaExample(columns),
       },
-      getValidOperatorsForColumnType: (columnType: TableColumnType) => {
-        return this.getValidOperatorsForColumnType(columnType);
-      },
-      getOperatorSchema: (
-        operatorType: string,
-        columnType: TableColumnType,
-      ) => {
-        return this.getOperatorSchema(operatorType, columnType);
-      },
-      getQuerySchemaExample: () => {
-        return this.getQuerySchemaExample(modelType);
-      },
-      getExampleValueForColumn: (columnType: TableColumnType) => {
-        return this.getExampleValueForColumn(columnType);
-      },
-      disableOpenApiSchema: data.disableOpenApiSchema || false,
-    });
+      data.disableOpenApiSchema || false,
+    );
   }
 
+  /*
+   * The operators a query can use on a column of this type - on a JSON
+   * column, on each of its keys.
+   */
   public static getValidOperatorsForColumnType(
     columnType: TableColumnType,
   ): Array<string> {
-    const commonOperators: Array<string> = [
-      "EqualTo",
-      "NotEqual",
-      "IsNull",
-      "NotNull",
-      "EqualToOrNull",
-    ];
-
-    switch (columnType) {
-      case TableColumnType.ObjectID:
-      case TableColumnType.Email:
-      case TableColumnType.Phone:
-      case TableColumnType.HashedString:
-      case TableColumnType.Slug:
-        return [...commonOperators, "Includes"];
-
-      case TableColumnType.ShortText:
-      case TableColumnType.LongText:
-      case TableColumnType.VeryLongText:
-      case TableColumnType.Name:
-      case TableColumnType.Description:
-      case TableColumnType.Domain:
-      case TableColumnType.Markdown:
-        return [...commonOperators, "Search", "Includes"];
-
-      case TableColumnType.Number:
-      case TableColumnType.PositiveNumber:
-      case TableColumnType.SmallNumber:
-      case TableColumnType.SmallPositiveNumber:
-      case TableColumnType.BigNumber:
-      case TableColumnType.BigPositiveNumber:
-        return [
-          ...commonOperators,
-          "GreaterThan",
-          "LessThan",
-          "GreaterThanOrEqual",
-          "LessThanOrEqual",
-          "InBetween",
-        ];
-
-      case TableColumnType.Date:
-        return [
-          ...commonOperators,
-          "GreaterThan",
-          "LessThan",
-          "GreaterThanOrEqual",
-          "LessThanOrEqual",
-          "InBetween",
-        ];
-
-      case TableColumnType.Boolean:
-        return commonOperators;
-
-      case TableColumnType.JSON:
-      case TableColumnType.Array:
-        return ["EqualTo", "NotEqual", "IsNull", "NotNull"];
-
-      case TableColumnType.Entity:
-      case TableColumnType.EntityArray:
-        return ["EqualTo", "NotEqual", "IsNull", "NotNull", "Includes"];
-
-      case TableColumnType.Color:
-      case TableColumnType.File:
-      case TableColumnType.Buffer:
-        return commonOperators;
-
-      default:
-        return commonOperators;
-    }
+    return OPERATORS_BY_COLUMN_TYPE[columnType] || COMMON_OPERATORS;
   }
 
-  private static getOperatorSchema(
-    operatorType: string,
+  /*
+   * What a query field of this type takes: a value, which it matches exactly,
+   * or one of its operators. Built once for each type and published as a
+   * schema of its own, <Type>Filter, that every query field of the type
+   * refers to: spelled out on each of the 7,700 query fields, the operators
+   * would have made most of the spec, and a client generated from it would
+   * have had a type for each.
+   */
+  public static getQueryFilterSchema(
     columnType: TableColumnType,
   ): ZodTypes.ZodTypeAny {
-    const baseValue: ZodTypes.ZodTypeAny =
-      this.getBaseValueSchemaForColumnType(columnType);
+    let filter: ZodTypes.ZodTypeAny | undefined =
+      QUERY_FILTER_SCHEMAS.get(columnType);
 
-    switch (operatorType) {
-      case "EqualTo":
-        return baseValue;
+    if (filter) {
+      return filter;
+    }
 
-      case "NotEqual":
-      case "EqualToOrNull":
-        return z.object({
-          _type: z.literal(operatorType),
-          value: baseValue,
-        });
+    const operators: Array<string> =
+      this.getValidOperatorsForColumnType(columnType);
+    const value: ZodTypes.ZodTypeAny = this.getQueryValueSchema(columnType);
 
-      case "GreaterThan":
-      case "LessThan":
-      case "GreaterThanOrEqual":
-      case "LessThanOrEqual":
-        return z.object({
-          _type: z.literal(operatorType),
-          value: baseValue,
-        });
+    /*
+     * A JSON column is filtered by key. IsNull and NotNull on the column
+     * itself ask whether it holds anything; any other operator there would
+     * be read as a key of its own.
+     */
+    filter =
+      columnType === TableColumnType.JSON
+        ? z.union([
+            this.getOperatorSchema("IsNull", value),
+            this.getOperatorSchema("NotNull", value),
+            z
+              .object({})
+              .catchall(this.getValueOrOperatorSchema(columnType, operators)),
+          ])
+        : this.getValueOrOperatorSchema(columnType, operators);
 
-      case "Search":
-        return z.object({
-          _type: z.literal("Search"),
-          value: z.string(),
-        });
+    filter = filter.openapi(`${this.getColumnTypeKey(columnType)}Filter`, {
+      description: this.getQueryFilterDescription(columnType, operators),
+      example: this.getQueryFilterExample(columnType),
+    });
+
+    QUERY_FILTER_SCHEMAS.set(columnType, filter);
+
+    return filter;
+  }
+
+  /*
+   * A value, which matches exactly, or one of the operators. A relation
+   * list's value is a list of ids, which matches the records related to any
+   * of them.
+   */
+  private static getValueOrOperatorSchema(
+    columnType: TableColumnType,
+    operators: Array<string>,
+  ): ZodTypes.ZodTypeAny {
+    const value: ZodTypes.ZodTypeAny = this.getQueryValueSchema(columnType);
+    const branches: Array<ZodTypes.ZodTypeAny> = [];
+
+    for (const operator of operators) {
+      if (
+        operator === "EqualTo" &&
+        columnType === TableColumnType.EntityArray
+      ) {
+        branches.push(z.array(value));
+        continue;
+      }
+
+      if (operator === "EqualTo") {
+        branches.push(value);
+      }
+
+      branches.push(this.getOperatorSchema(operator, value));
+    }
+
+    return branches.length === 1
+      ? branches[0]!
+      : z.union(
+          branches as [
+            ZodTypes.ZodTypeAny,
+            ZodTypes.ZodTypeAny,
+            ...ZodTypes.ZodTypeAny[],
+          ],
+        );
+  }
+
+  // An operator as JSONFunctions.deserialize reads it on the API.
+  private static getOperatorSchema(
+    operator: string,
+    value: ZodTypes.ZodTypeAny,
+  ): ZodTypes.ZodTypeAny {
+    switch (operator) {
+      case "IsNull":
+      case "NotNull":
+        return z.object({ _type: z.literal(operator) });
 
       case "InBetween":
         return z.object({
-          _type: z.literal("InBetween"),
-          startValue: baseValue,
-          endValue: baseValue,
-        });
-
-      case "IsNull":
-      case "NotNull":
-        return z.object({
-          _type: z.literal(operatorType),
+          _type: z.literal(operator),
+          startValue: value,
+          endValue: value,
         });
 
       case "Includes":
-        return z.object({
-          _type: z.literal("Includes"),
-          value: z.array(baseValue),
-        });
+        return z.object({ _type: z.literal(operator), value: z.array(value) });
+
+      case "Search":
+        return z.object({ _type: z.literal(operator), value: z.string() });
 
       default:
-        return z.object({
-          _type: z.literal(operatorType),
-          value: baseValue,
-        });
+        return z.object({ _type: z.literal(operator), value: value });
     }
   }
 
-  private static getBaseValueSchemaForColumnType(
+  /*
+   * What a query compares a column of this type with, as JSON carries it: on
+   * a relation list, one of its ids; on a JSON column, a key's value. Always
+   * the plain value, never the {_type, value} a response writes for an
+   * email, a name or a color: inside an operator the API binds that as
+   * "[object Object]".
+   */
+  private static getQueryValueSchema(
     columnType: TableColumnType,
   ): ZodTypes.ZodTypeAny {
     switch (columnType) {
       case TableColumnType.ObjectID:
-        return getObjectIDSchema();
+      case TableColumnType.Entity:
+      case TableColumnType.EntityArray:
+        return z.string().openapi({ format: "uuid" });
 
       case TableColumnType.Email:
-        return getEmailSchema();
+        return z.string().openapi({ format: "email" });
 
-      case TableColumnType.Phone:
-        return getPhoneSchema();
-
-      case TableColumnType.Name:
-        return getNameSchema();
-
-      case TableColumnType.Domain:
-        return getDomainSchema();
-
-      case TableColumnType.Version:
-        return getVersionSchema();
-
-      case TableColumnType.IP:
-        return getIPSchema();
-      case TableColumnType.Port:
-        return getPortSchema();
-
-      case TableColumnType.HashedString:
-      case TableColumnType.Slug:
-      case TableColumnType.ShortText:
-      case TableColumnType.LongText:
-      case TableColumnType.VeryLongText:
-      case TableColumnType.Description:
-      case TableColumnType.Markdown:
-      case TableColumnType.HTML:
-      case TableColumnType.JavaScript:
-      case TableColumnType.CSS:
-      case TableColumnType.LongURL:
-      case TableColumnType.ShortURL:
-      case TableColumnType.OTP:
-      case TableColumnType.Password:
-        return z.string();
+      case TableColumnType.Date:
+        return z.string().openapi({ format: "date-time" });
 
       case TableColumnType.Number:
       case TableColumnType.PositiveNumber:
@@ -799,40 +886,125 @@ export class ModelSchema extends BaseSchema {
       case TableColumnType.SmallPositiveNumber:
       case TableColumnType.BigNumber:
       case TableColumnType.BigPositiveNumber:
+      case TableColumnType.Port:
         return z.number();
-
-      case TableColumnType.Date:
-        return z.date();
 
       case TableColumnType.Boolean:
         return z.boolean();
 
       case TableColumnType.JSON:
-      case TableColumnType.Array:
-      case TableColumnType.Permission:
-      case TableColumnType.CustomFieldType:
-        return z.any();
-
-      case TableColumnType.Color:
-        return getColorSchema();
-
-      case TableColumnType.Entity:
-        return z.string(); // Entity IDs are typically strings
-
-      case TableColumnType.EntityArray:
-        return z.array(z.string()); // Array of entity IDs
-
-      case TableColumnType.File:
-      case TableColumnType.Buffer:
-        return z.any();
-
-      case TableColumnType.MonitorType:
-      case TableColumnType.WorkflowStatus:
-        return z.string();
+        return z.union([z.string(), z.number(), z.boolean()]);
 
       default:
         return z.string();
     }
+  }
+
+  private static getQueryFilterDescription(
+    columnType: TableColumnType,
+    operators: Array<string>,
+  ): string {
+    if (columnType === TableColumnType.JSON) {
+      return `A filter on a ${columnType} field, by key: {"<field>": {"<key>": <value or operator>}}. A key takes a value, which it matches exactly, or one of these operators: ${operators.join(", ")}. IsNull and NotNull on the field itself ask whether it holds anything.`;
+    }
+
+    if (!operators.includes("EqualTo")) {
+      return `A filter on a ${columnType} field: only whether it holds anything can be asked, with ${operators.join(" or ")}.`;
+    }
+
+    let description: string = `A filter on a ${columnType} field: a value, which it matches exactly, or one of these operators: ${operators.join(", ")}.`;
+
+    if (columnType === TableColumnType.EntityArray) {
+      description +=
+        " A list of ids, or Includes, matches the records related to any of them; IsNull those related to none.";
+    } else if (columnType === TableColumnType.Date) {
+      description += ` Times are ISO-8601, such as ${EXAMPLE_TIME}.`;
+    }
+
+    return description;
+  }
+
+  private static getQueryFilterExample(columnType: TableColumnType): unknown {
+    const operators: Array<string> =
+      this.getValidOperatorsForColumnType(columnType);
+
+    if (columnType === TableColumnType.JSON) {
+      return { key: "value" };
+    }
+
+    if (columnType === TableColumnType.EntityArray) {
+      return [EXAMPLE_ID];
+    }
+
+    if (operators.includes("Search")) {
+      return { _type: "Search", value: "example" };
+    }
+
+    if (operators.includes("GreaterThan")) {
+      return {
+        _type: "GreaterThan",
+        value: columnType === TableColumnType.Date ? EXAMPLE_TIME : 10,
+      };
+    }
+
+    switch (columnType) {
+      case TableColumnType.ObjectID:
+        return EXAMPLE_ID;
+      case TableColumnType.Boolean:
+        return true;
+      case TableColumnType.Email:
+        return "user@example.com";
+      default:
+        return { _type: "NotNull" };
+    }
+  }
+
+  // A column type as an identifier: its key in TableColumnType.
+  private static getColumnTypeKey(columnType: TableColumnType): string {
+    return (
+      Object.keys(TableColumnType).find((key: string): boolean => {
+        return (
+          TableColumnType[key as keyof typeof TableColumnType] === columnType
+        );
+      }) || "Unknown"
+    );
+  }
+
+  /*
+   * The columns of a model a query, sort or select may name, as the API
+   * checks them (QueryPermission, SelectPermission): those somebody may
+   * read, and the ids and times it lets through all the same. Not a
+   * relation, which is filtered and selected through its own fields, nor a
+   * column the documentation hides.
+   */
+  private static getReadableColumns(
+    model: DatabaseBaseModel,
+  ): Array<ReadableColumn> {
+    const columns: Dictionary<TableColumnMetadata> = getTableColumns(model);
+    const accessControl: Dictionary<ColumnAccessControl> =
+      model.getColumnAccessControlForAllColumns();
+    const readable: Array<ReadableColumn> = [];
+
+    for (const key in columns) {
+      const column: TableColumnMetadata | undefined = columns[key];
+
+      if (
+        !column ||
+        column.type === TableColumnType.Entity ||
+        column.hideColumnInDocumentation
+      ) {
+        continue;
+      }
+
+      if (
+        ALWAYS_READABLE_COLUMNS.includes(key) ||
+        (accessControl[key]?.read || []).length > 0
+      ) {
+        readable.push({ key, column });
+      }
+    }
+
+    return readable;
   }
 
   public static getSortModelSchema(data: {
@@ -849,15 +1021,11 @@ export class ModelSchema extends BaseSchema {
         return this.getSortableTypes();
       },
       getColumnsForSorting: (model: DatabaseBaseModel) => {
-        const columns: Dictionary<TableColumnMetadata> = getTableColumns(model);
-        return Object.keys(columns)
-          .map((key: string) => {
-            const column: TableColumnMetadata | undefined = columns[key];
-            return column ? { key, type: column.type } : null;
-          })
-          .filter((col: { key: string; type: any } | null) => {
-            return col !== null;
-          }) as Array<{ key: string; type: any }>;
+        return this.getReadableColumns(model).map(
+          ({ key, column }: ReadableColumn) => {
+            return { key, type: column.type };
+          },
+        );
       },
       disableOpenApiSchema: data.disableOpenApiSchema || false,
     });
@@ -865,7 +1033,6 @@ export class ModelSchema extends BaseSchema {
 
   public static getSelectModelSchema(data: {
     modelType: new () => DatabaseBaseModel;
-    isNested?: boolean;
   }): ModelSchemaType {
     const modelType: new () => DatabaseBaseModel = data.modelType;
     const model: DatabaseBaseModel = new modelType();
@@ -874,214 +1041,145 @@ export class ModelSchema extends BaseSchema {
       model,
       tableName: model.tableName || "model",
       getColumns: (model: DatabaseBaseModel) => {
-        const columns: Dictionary<TableColumnMetadata> = getTableColumns(model);
-        return Object.keys(columns)
-          .map((key: string) => {
-            const column: TableColumnMetadata | undefined = columns[key];
-            return column ? { key, type: column.type } : null;
-          })
-          .filter((col: { key: string; type: any } | null) => {
-            // Skip Entity columns but keep EntityArray columns
-            if (col && col.type === TableColumnType.Entity) {
-              return false;
-            }
-            return col !== null;
-          }) as Array<{ key: string; type?: any }>;
+        return this.getReadableColumns(model).map(
+          ({ key, column }: ReadableColumn) => {
+            return { key, type: column.type };
+          },
+        );
       },
       getSelectSchemaExample: () => {
         return this.getSelectSchemaExample(modelType);
       },
-      allowNested: !data.isNested,
+      allowNested: true,
       getNestedSchema: (key: string, model: DatabaseBaseModel) => {
-        const columns: Dictionary<TableColumnMetadata> = getTableColumns(model);
-        const column: TableColumnMetadata | undefined = columns[key];
+        const column: TableColumnMetadata | undefined =
+          getTableColumns(model)[key];
+
         if (
           column &&
           column.modelType &&
-          // Only allow EntityArray columns, exclude Entity columns
           column.type === TableColumnType.EntityArray
         ) {
-          return this.getSelectModelSchema({
-            modelType: column.modelType as new () => DatabaseBaseModel,
-            isNested: true,
-          });
+          return this.getRelationSelectSchema(
+            column.modelType as new () => DatabaseBaseModel,
+          );
         }
+
         return null;
       },
     });
   }
 
+  /*
+   * What a select may name of the records a relation list holds, as the API
+   * checks it (QueryPermission.checkRelationQueryPermission): their ids and
+   * times, and the columns marked canReadOnRelationQuery. Built once for each
+   * model and published as <Table>RelationSelectSchema, which every relation
+   * list of its records refers to.
+   */
+  public static getRelationSelectSchema(
+    modelType: new () => DatabaseBaseModel,
+  ): ModelSchemaType {
+    const model: DatabaseBaseModel = new modelType();
+    const tableName: string = model.tableName || "model";
+
+    let schema: ModelSchemaType | undefined =
+      RELATION_SELECT_SCHEMAS.get(tableName);
+
+    if (schema) {
+      return schema;
+    }
+
+    const columns: Dictionary<TableColumnMetadata> = getTableColumns(model);
+    const shape: ShapeRecord = {};
+
+    for (const key in columns) {
+      const column: TableColumnMetadata | undefined = columns[key];
+
+      if (
+        !column ||
+        column.type === TableColumnType.Entity ||
+        column.type === TableColumnType.EntityArray ||
+        column.hideColumnInDocumentation
+      ) {
+        continue;
+      }
+
+      /*
+       * An id or a time is read with the model's own read permissions, which
+       * a model read through other records only (a File) does not have.
+       */
+      const readers: Array<Permission> =
+        model.getColumnAccessControlFor(key)?.read ||
+        model.getReadPermissions() ||
+        [];
+
+      if (
+        column.canReadOnRelationQuery ||
+        (ALWAYS_READABLE_COLUMNS.includes(key) && readers.length > 0)
+      ) {
+        shape[key] = z.boolean().optional();
+      }
+    }
+
+    schema = z.object(shape).openapi(`${tableName}RelationSelectSchema`, {
+      description: `What a select may name of the ${tableName} records a relation holds: set a field to true to include it.`,
+      example: shape["_id"] ? { _id: true } : {},
+      additionalProperties: false,
+    }) as ModelSchemaType;
+
+    RELATION_SELECT_SCHEMAS.set(tableName, schema);
+
+    return schema;
+  }
+
+  /*
+   * Records of a database table are not grouped: DatabaseService.findBy
+   * refuses any groupBy ("GroupBy is currently not supported"), so no field
+   * is offered, and no path of the spec refers to this schema.
+   */
   public static getGroupByModelSchema(data: {
     modelType: new () => DatabaseBaseModel;
   }): ModelSchemaType {
-    const modelType: new () => DatabaseBaseModel = data.modelType;
-    const model: DatabaseBaseModel = new modelType();
+    const model: DatabaseBaseModel = new data.modelType();
 
-    return this.generateGroupBySchema({
-      model,
-      tableName: model.tableName || "model",
-      getColumns: (model: DatabaseBaseModel) => {
-        const columns: Dictionary<TableColumnMetadata> = getTableColumns(model);
-        return Object.keys(columns)
-          .map((key: string) => {
-            const column: TableColumnMetadata | undefined = columns[key];
-            return column ? { key, type: column.type } : null;
-          })
-          .filter((col: { key: string; type: any } | null) => {
-            // Skip Entity columns but keep EntityArray columns
-            if (col && col.type === TableColumnType.Entity) {
-              return false;
-            }
-            return col !== null;
-          }) as Array<{ key: string; type: any }>;
-      },
-      getGroupableTypes: () => {
-        return [
-          TableColumnType.ShortText,
-          TableColumnType.LongText,
-          TableColumnType.Name,
-          TableColumnType.Email,
-          TableColumnType.Slug,
-          TableColumnType.ObjectID,
-          TableColumnType.Boolean,
-          TableColumnType.Date,
-          TableColumnType.Number,
-          TableColumnType.PositiveNumber,
-          TableColumnType.SmallNumber,
-          TableColumnType.SmallPositiveNumber,
-          TableColumnType.BigNumber,
-          TableColumnType.BigPositiveNumber,
-        ];
-      },
-      getGroupBySchemaExample: () => {
-        return this.getGroupBySchemaExample(modelType);
-      },
+    return z.object({}).openapi({
+      description: `Group by schema for ${model.tableName || "model"}. Its records cannot be grouped: the API refuses a groupBy on them.`,
+      example: {},
+      additionalProperties: false,
     });
   }
 
-  private static getExampleValueForColumn(
-    columnType: TableColumnType,
-    isSecondValue: boolean = false,
-  ): unknown {
-    switch (columnType) {
-      case TableColumnType.ObjectID:
-        return isSecondValue
-          ? "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
-          : "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
-      case TableColumnType.Email:
-        return isSecondValue ? "jane@example.com" : "john@example.com";
-      case TableColumnType.Phone:
-        return isSecondValue ? "+1-555-987-6543" : "+1-555-123-4567";
-      case TableColumnType.Number:
-      case TableColumnType.PositiveNumber:
-        return isSecondValue ? 100 : 50;
-      case TableColumnType.SmallNumber:
-        return isSecondValue ? 20 : 10;
-      case TableColumnType.SmallPositiveNumber:
-        return isSecondValue ? 25 : 15;
-      case TableColumnType.BigNumber:
-        return isSecondValue ? 2000000 : 1000000;
-      case TableColumnType.BigPositiveNumber:
-        return isSecondValue ? 2500000 : 1500000;
-      case TableColumnType.Date:
-        return isSecondValue
-          ? "2023-12-31T23:59:59.000Z"
-          : "2023-01-01T00:00:00.000Z";
-      case TableColumnType.Boolean:
-        return !isSecondValue;
-      case TableColumnType.ShortText:
-      case TableColumnType.Name:
-        return isSecondValue ? "Jane Doe" : "John Doe";
-      case TableColumnType.Description:
-        return isSecondValue
-          ? "Second example description"
-          : "Example description";
-      case TableColumnType.Domain:
-        return isSecondValue ? "example.org" : "example.com";
-      default:
-        return isSecondValue ? "example_value_2" : "example_value_1";
-    }
-  }
-
+  // A query on a record's age and on words in it, where the model has them.
   private static getQuerySchemaExample(
-    modelType: new () => DatabaseBaseModel,
+    columns: Array<ReadableColumn>,
   ): SchemaExample {
-    const model: DatabaseBaseModel = new modelType();
-    const columns: Dictionary<TableColumnMetadata> = getTableColumns(model);
     const example: SchemaExample = {};
 
-    let exampleCount: number = 0;
-    const maxExamples: number = 3;
+    const createdAt: ReadableColumn | undefined = columns.find(
+      ({ key }: ReadableColumn): boolean => {
+        return key === "createdAt";
+      },
+    );
 
-    for (const key in columns) {
-      if (exampleCount >= maxExamples) {
-        break;
-      }
+    const searchable: ReadableColumn | undefined = columns.find(
+      ({ column }: ReadableColumn): boolean => {
+        return this.getValidOperatorsForColumnType(column.type).includes(
+          "Search",
+        );
+      },
+    );
 
-      const column: TableColumnMetadata | undefined = columns[key];
-      if (!column) {
-        continue;
-      }
-
-      const validOperators: Array<string> = this.getValidOperatorsForColumnType(
-        column.type,
-      );
-      if (validOperators.length === 0) {
-        continue;
-      }
-
-      // Add example based on column type and available operators
-      if (
-        column.type === TableColumnType.ShortText ||
-        column.type === TableColumnType.Name
-      ) {
-        if (validOperators.includes("EqualTo")) {
-          example[key] = { _type: "EqualTo", value: "Example Text" };
-          exampleCount++;
-        } else if (validOperators.includes("Search")) {
-          example[key] = { _type: "Search", value: "example" };
-          exampleCount++;
-        }
-      } else if (
-        column.type === TableColumnType.Email &&
-        validOperators.includes("EqualTo")
-      ) {
-        example[key] = { _type: "EqualTo", value: "user@example.com" };
-        exampleCount++;
-      } else if (
-        column.type === TableColumnType.Date &&
-        validOperators.includes("GreaterThan")
-      ) {
-        example[key] = {
-          _type: "GreaterThan",
-          value: "2023-01-01T00:00:00.000Z",
-        };
-        exampleCount++;
-      } else if (
-        column.type === TableColumnType.Boolean &&
-        validOperators.includes("EqualTo")
-      ) {
-        example[key] = { _type: "EqualTo", value: true };
-        exampleCount++;
-      } else if (
-        (column.type === TableColumnType.Number ||
-          column.type === TableColumnType.PositiveNumber) &&
-        validOperators.includes("GreaterThan")
-      ) {
-        example[key] = { _type: "GreaterThan", value: 10 };
-        exampleCount++;
-      } else if (validOperators.includes("EqualTo")) {
-        example[key] = this.getExampleValueForColumn(column.type);
-        exampleCount++;
+    for (const field of [createdAt, searchable]) {
+      if (field) {
+        example[field.key] = this.getQueryFilterExample(field.column.type);
       }
     }
 
-    // If no examples were added, add a generic one
-    if (exampleCount === 0) {
-      example["_id"] = {
-        _type: "EqualTo",
-        value: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
-      };
+    if (Object.keys(example).length === 0 && columns[0]) {
+      example[columns[0].key] = this.getQueryFilterExample(
+        columns[0].column.type,
+      );
     }
 
     return example;
@@ -1097,27 +1195,26 @@ export class ModelSchema extends BaseSchema {
     }
 
     const model: DatabaseBaseModel = new modelType();
-    const columns: Dictionary<TableColumnMetadata> = getTableColumns(model);
+    const columns: Array<ReadableColumn> = this.getReadableColumns(model);
     const example: SchemaExample = {};
 
     // Add common fields that most models have
     const commonFields: Array<string> = ["_id", "createdAt", "updatedAt"];
-    for (const field of commonFields) {
-      if (columns[field]) {
-        example[field] = true;
+    for (const { key } of columns) {
+      if (commonFields.includes(key)) {
+        example[key] = true;
       }
     }
 
     // Add first few non-common fields as examples
     let fieldCount: number = 0;
     const maxFields: number = 5;
-    for (const key in columns) {
+    for (const { key, column } of columns) {
       if (fieldCount >= maxFields) {
         break;
       }
 
-      const column: TableColumnMetadata | undefined = columns[key];
-      if (!column || commonFields.includes(key)) {
+      if (commonFields.includes(key)) {
         continue;
       }
 
@@ -1134,69 +1231,6 @@ export class ModelSchema extends BaseSchema {
     }
 
     return example;
-  }
-
-  private static getGroupBySchemaExample(
-    modelType: new () => DatabaseBaseModel,
-  ): SchemaExample {
-    if (!modelType) {
-      throw new BadDataException(
-        "Model type is required to generate group by schema example.",
-      );
-    }
-
-    const model: DatabaseBaseModel = new modelType();
-    const columns: Dictionary<TableColumnMetadata> = getTableColumns(model);
-
-    // Find the first suitable field for grouping
-    for (const key in columns) {
-      const column: TableColumnMetadata | undefined = columns[key];
-      if (!column) {
-        continue;
-      }
-
-      // Prioritize common groupable fields
-      if (
-        column.type === TableColumnType.ShortText ||
-        column.type === TableColumnType.Name ||
-        column.type === TableColumnType.Boolean ||
-        column.type === TableColumnType.Date
-      ) {
-        return { [key]: true };
-      }
-    }
-
-    // Fallback to any available field
-    for (const key in columns) {
-      const column: TableColumnMetadata | undefined = columns[key];
-      if (!column) {
-        continue;
-      }
-
-      const isGroupable: boolean = [
-        TableColumnType.ShortText,
-        TableColumnType.LongText,
-        TableColumnType.Name,
-        TableColumnType.Email,
-        TableColumnType.Slug,
-        TableColumnType.ObjectID,
-        TableColumnType.Boolean,
-        TableColumnType.Date,
-        TableColumnType.Number,
-        TableColumnType.PositiveNumber,
-        TableColumnType.SmallNumber,
-        TableColumnType.SmallPositiveNumber,
-        TableColumnType.BigNumber,
-        TableColumnType.BigPositiveNumber,
-      ].includes(column.type);
-
-      if (isGroupable) {
-        return { [key]: true };
-      }
-    }
-
-    // Final fallback
-    return { status: true };
   }
 
   // Shared method to build model schemas with different field exclusions
