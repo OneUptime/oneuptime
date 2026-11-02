@@ -28,6 +28,12 @@ export interface ApiRequestOptions {
   skip?: number | undefined;
   limit?: number | undefined;
   sort?: JSONObject | undefined;
+  /*
+   * What a create sends beside its data: a team member named by an
+   * address nobody in the project has is invited by it (`email`), as the
+   * dashboard's Invite does.
+   */
+  miscDataProps?: JSONObject | undefined;
 }
 
 function buildApiRoute(
@@ -75,7 +81,13 @@ function buildHeaders(apiKey: string): Headers {
 function buildRequestData(options: ApiRequestOptions): JSONObject | undefined {
   switch (options.operation) {
     case "create":
-      return { data: options.data || {} } as JSONObject;
+      return {
+        data: options.data || {},
+        ...(options.miscDataProps &&
+        Object.keys(options.miscDataProps).length > 0
+          ? { miscDataProps: options.miscDataProps }
+          : {}),
+      } as JSONObject;
     case "update":
       return { data: options.data || {} } as JSONObject;
     case "list":
@@ -95,6 +107,34 @@ function buildRequestData(options: ApiRequestOptions): JSONObject | undefined {
     default:
       return undefined;
   }
+}
+
+// Where OneUptime says which release it is, for anyone: no key needed.
+export const SERVER_VERSION_PATH: string = "/api/version";
+
+/*
+ * The release of the OneUptime at this address - "14.0.101" - or null when
+ * it does not say (an address that is not OneUptime, one too old to answer).
+ * The CLI is released with OneUptime under the same version, so a
+ * difference means the CLI may not know the server's newest resources.
+ */
+export async function getServerVersion(apiUrl: string): Promise<string | null> {
+  const url: URL = URL.fromString(apiUrl);
+  const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+    await API.get<JSONObject>({
+      url: new URL(url.protocol, url.hostname, new Route(SERVER_VERSION_PATH)),
+      headers: { Accept: "application/json" },
+    });
+
+  if (response instanceof HTTPErrorResponse) {
+    return null;
+  }
+
+  const version: unknown = response.data?.["version"];
+
+  return typeof version === "string" && version.trim()
+    ? version.trim()
+    : null;
 }
 
 export async function executeApiRequest(

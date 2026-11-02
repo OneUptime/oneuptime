@@ -16,6 +16,15 @@ export function createOutputOption(): Option {
 }
 
 /*
+ * --json: -o json in four letters fewer, for scripts and AI agents. Like
+ * -o, declared on the root program and again on every command that prints,
+ * so it shows in each one's --help. It wins over -o.
+ */
+export function createJsonOption(): Option {
+  return new Option("--json", "Print JSON, the same as -o json");
+}
+
+/*
  * The output format a command should print in. Without
  * enablePositionalOptions, Commander lets the root program consume its
  * global -o wherever it appears on the command line, so the -o a command
@@ -25,7 +34,63 @@ export function createOutputOption(): Option {
  * programs built without the global option.
  */
 export function resolveOutputFormat(cmd: Command): OutputFormat {
-  return detectOutputFormat(cmd.optsWithGlobals<{ output?: string }>().output);
+  const options: { output?: string; json?: boolean } = cmd.optsWithGlobals<{
+    output?: string;
+    json?: boolean;
+  }>();
+
+  if (options.json) {
+    return OutputFormat.JSON;
+  }
+
+  return detectOutputFormat(options.output);
+}
+
+/*
+ * Whether a command was asked for JSON by name (--json, -o json), not only
+ * given it for a pipe. A command whose answer is a sentence for people -
+ * delete, login, acknowledge - prints the sentence in a pipe as in a
+ * terminal, and its JSON only when asked: scripts read its exit code.
+ */
+export function isJsonOutputRequested(cmd: Command): boolean {
+  const options: { output?: string; json?: boolean } = cmd.optsWithGlobals<{
+    output?: string;
+    json?: boolean;
+  }>();
+
+  return Boolean(options.json) || options.output === OutputFormat.JSON;
+}
+
+const OUTPUT_FLAGS: ReadonlyArray<string> = ["-o", "--output"];
+const OUTPUT_FLAG_WITH_VALUE: ReadonlyArray<string> = [
+  "-ojson",
+  "--output=json",
+];
+
+/*
+ * Whether the command line asks for JSON (--json, -o json, --output=json),
+ * for the error handler, which runs where no command is at hand: it then
+ * prints its error as JSON too, so a script or an agent reads a failure the
+ * way it reads an answer. Only when asked: a pipe alone keeps the sentence.
+ */
+export function isJsonRequested(argv: ReadonlyArray<string> = process.argv): boolean {
+  for (let index: number = 0; index < argv.length; index++) {
+    const word: string = argv[index] as string;
+
+    if (word === "--") {
+      return false;
+    }
+
+    if (word === "--json" || OUTPUT_FLAG_WITH_VALUE.includes(word)) {
+      return true;
+    }
+
+    if (OUTPUT_FLAGS.includes(word) && argv[index + 1] === "json") {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 function isColorDisabled(): boolean {
@@ -196,6 +261,21 @@ export function printError(message: string): void {
   if (useColor) {
     // eslint-disable-next-line no-console
     console.error(chalk.red(message));
+  } else {
+    // eslint-disable-next-line no-console
+    console.error(message);
+  }
+}
+
+/*
+ * What to do about an error, on the line after it: on standard error, like
+ * the error, so standard output holds only answers.
+ */
+export function printHint(message: string): void {
+  const useColor: boolean = !isColorDisabled();
+  if (useColor) {
+    // eslint-disable-next-line no-console
+    console.error(chalk.yellow(message));
   } else {
     // eslint-disable-next-line no-console
     console.error(message);

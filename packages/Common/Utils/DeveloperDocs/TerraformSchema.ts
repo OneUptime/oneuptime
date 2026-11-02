@@ -301,9 +301,10 @@ export function toTerraformTypeSnakeCase(value: string): string {
 /*
  * Whether a list of permissions keeps an API from being generated
  * (OpenAPIUtil.shouldExcludeApiForPermissions): none at all, or only Public
- * and CurrentUser.
+ * and CurrentUser. The CLI's commands follow the same rule (CliCommands.ts),
+ * for telemetry as for records.
  */
-function isApiExcludedForPermissions(
+export function isApiExcludedForPermissions(
   permissions: Array<Permission> | undefined,
 ): boolean {
   if (!permissions || permissions.length === 0) {
