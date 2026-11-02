@@ -45,7 +45,9 @@ import {
 import slugify from "Common/Server/Types/MarkdownSlugify";
 import CompareCriteria from "Common/Server/Utils/Monitor/Criteria/CompareCriteria";
 import LogMonitorCriteria from "Common/Server/Utils/Monitor/Criteria/LogMonitorCriteria";
-import { METRIC_BASELINE_MINIMUM_WEEKS } from "Common/Server/Utils/Monitor/MetricHourBaseline";
+import MetricHourBaseline, {
+  METRIC_BASELINE_MINIMUM_WEEKS,
+} from "Common/Server/Utils/Monitor/MetricHourBaseline";
 import { HARDCODED_DEFAULT_TELEMETRY_RETENTION_IN_DAYS } from "Common/Types/Telemetry/TelemetryRetentionConfig";
 import MetricWindowCoverage, {
   MetricEvaluationWindow,
@@ -1451,18 +1453,65 @@ describe("criteria", () => {
     expect(METRICS).toContain(
       `**A Sum or a Count, and any query on a histogram,** is compared with the query's own data points. Those are kept as long as your metrics are, so the comparison reaches back no further than that: ${HARDCODED_DEFAULT_TELEMETRY_RETENTION_IN_DAYS} days unless you changed it.`,
     );
+    // A query narrowed by an attribute: MetricHourBaseline.getSource and keepsWeeksNeeded.
     expect(METRICS).toContain(
-      "If it is a Sum, a Count or a query on a histogram, there is nothing to compare it with and it stays learning. So does a percentile of a histogram.",
+      "**A query filtered or grouped by an attribute** is compared with its own data points, each series with its own, so a host is judged by what that host does. Those reach back as far as your metrics are kept.",
     );
     expect(METRICS).toContain(
-      "A Sum, a Count or a query on a histogram that is filtered or grouped by an attribute stays learning for good, and so does a percentile of a histogram",
+      "If that is under two weeks, an average, minimum, maximum or percentile is compared with every series of its services instead, which only notices a change large enough to leave the range of them all, and a Sum, a Count or a query on a histogram stays learning. A percentile of a histogram always stays learning.",
     );
+    expect(METRICS).toContain(
+      "A query filtered or grouped by an attribute learns from its own series, so a new host or pod has to learn, however long the metric has been reporting.",
+    );
+    expect(METRICS).toContain(
+      "A percentile of a histogram stays learning for good, and so does a Sum, a Count or a query on a histogram filtered or grouped by an attribute if your metrics are kept for under two weeks",
+    );
+    expect(
+      MetricHourBaseline.getSource({
+        isTotal: true,
+        isPercentile: false,
+        isDistribution: false,
+        isNarrowedByAttributes: true,
+        bucketInMinutes: 1,
+      }),
+    ).toBeNull();
+    expect(
+      MetricHourBaseline.getSource({
+        isTotal: false,
+        isPercentile: true,
+        isDistribution: true,
+        isNarrowedByAttributes: true,
+        bucketInMinutes: 1,
+        hasScope: true,
+      }),
+    ).toBeNull();
+    expect(METRIC_BASELINE_MINIMUM_WEEKS * 7).toBe(14);
     expect(METRICS).toContain(
       "A Sum or a Count only counts as low on a complete data point with another complete one after it",
     );
-    expect(readPage("en", "monitor/host-monitor")).toContain(
-      "A Sum, a Count or a query on a histogram stays in that state for good: this monitor filters its queries by attributes",
-    );
+    for (const page of [
+      "ceph",
+      "docker",
+      "docker-swarm",
+      "host",
+      "iot-device",
+      "kubernetes",
+      "podman",
+      "proxmox",
+      "storage-array",
+      "vmware",
+    ]) {
+      expect(readPage("en", `monitor/${page}-monitor`)).toContain(
+        "This monitor filters its queries by attributes, so each query, and each series of a grouped one, is compared with its own history, as far back as your metrics are kept. If that is under two weeks, a Sum, a Count or a query on a histogram stays in that state for good, and anything else is compared with every series of the metric. A percentile of a histogram always stays in that state.",
+      );
+    }
+
+    // Every monitor that page speaks for hands over what it read.
+    expect(
+      readSource(
+        "App/FeatureSet/Workers/Jobs/TelemetryMonitor/MonitorTelemetryMonitor.ts",
+      ).match(/queryAttributes: readAttributes,/g),
+    ).toHaveLength(11);
     expect(readPage("en", "monitor/kubernetes-monitor")).toContain(
       'Anomaly conditions stay in a "Learning" state and produce no alerts until that hour of the week has two weeks of history.',
     );

@@ -138,7 +138,7 @@ Con che cosa viene confrontato un punto dati dipende dalla query:
 - **I suoi servizi.** Un monitor che nomina dei servizi viene confrontato solo con quei servizi. Uno che non ne nomina nessuno viene confrontato con tutti i servizi che riportano la metrica.
 - **Una media, un minimo, un massimo o un percentile di una metrica semplice** viene confrontato con i campioni della metrica, fin dove arriva la **Finestra di riferimento**.
 - **Una somma o un conteggio, e qualsiasi query su un istogramma,** viene confrontato con i punti dati della query stessa. Vengono conservati quanto le vostre metriche, quindi il confronto non va più indietro di così: 15 giorni, se non l'avete cambiato.
-- **Una query filtrata o raggruppata per un attributo** viene confrontata con tutte le serie dei suoi servizi, perché una baseline non contiene attributi, quindi nota solo un cambiamento abbastanza grande da uscire dall'intervallo di tutte. Se è una somma, un conteggio o una query su un istogramma, non c'è nulla con cui confrontarla e continua a imparare. Lo stesso vale per un percentile di un istogramma.
+- **Una query filtrata o raggruppata per un attributo** viene confrontata con i propri punti dati, ogni serie con i suoi, così un host viene giudicato da ciò che fa quell'host. Arrivano indietro fin dove vengono conservate le vostre metriche. Se sono meno di due settimane, una media, un minimo, un massimo o un percentile viene invece confrontato con tutte le serie dei suoi servizi, il che nota solo un cambiamento abbastanza grande da uscire dall'intervallo di tutte, e una somma, un conteggio o una query su un istogramma continua a imparare. Un percentile di un istogramma continua sempre a imparare.
 
 Una somma o un conteggio conta come basso solo su un punto dati completo seguito da un altro punto completo, perché i più recenti si stanno ancora riempiendo. Una finestra di un minuto può quindi trovarne solo uno alto.
 
@@ -223,7 +223,7 @@ La query non ha **Raggruppa per**, quindi tutti gli host vengono ridotti a un so
 :::
 
 :::details Un criterio di anomalia non scatta mai
-Sta ancora imparando: l'ora della settimana con cui confronta non ha ancora due settimane di storico. Una somma, un conteggio o una query su un istogramma filtrati o raggruppati per un attributo continuano a imparare per sempre, e così un percentile di un istogramma: non esiste uno storico con cui confrontarli.
+Sta ancora imparando: l'ora della settimana con cui confronta non ha ancora due settimane di storico. Una query filtrata o raggruppata per un attributo impara dalla propria serie, quindi un nuovo host o pod deve imparare, da qualunque tempo la metrica stia inviando dati. Un percentile di un istogramma continua a imparare per sempre, e così una somma, un conteggio o una query su un istogramma filtrati o raggruppati per un attributo se le vostre metriche vengono conservate per meno di due settimane: non esiste uno storico con cui confrontarli.
 :::
 
 ## Passaggi successivi

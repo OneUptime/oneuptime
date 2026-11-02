@@ -138,7 +138,7 @@ Con qué se compara un punto de datos depende de la consulta:
 - **Sus servicios.** Un monitor que nombra servicios se compara solo con esos servicios. Uno que no nombra ninguno se compara con todos los servicios que informan la métrica.
 - **Un promedio, mínimo, máximo o percentil de una métrica simple** se compara con las muestras de la métrica, hasta donde llega la **Ventana de referencia**.
 - **Una suma o un recuento, y cualquier consulta sobre un histograma,** se compara con los propios puntos de datos de la consulta. Estos se conservan tanto como tus métricas, así que la comparación no llega más atrás: 15 días, salvo que lo hayas cambiado.
-- **Una consulta filtrada o agrupada por un atributo** se compara con todas las series de sus servicios, porque una línea de referencia no guarda atributos, así que solo nota un cambio lo bastante grande como para salir del rango de todas ellas. Si es una suma, un recuento o una consulta sobre un histograma, no hay nada con qué compararla y sigue aprendiendo. Lo mismo ocurre con un percentil de un histograma.
+- **Una consulta filtrada o agrupada por un atributo** se compara con sus propios puntos de datos, cada serie con los suyos, de modo que un host se juzga por lo que hace ese host. Estos llegan tan atrás como se conserven tus métricas. Si es menos de dos semanas, una media, un mínimo, un máximo o un percentil se compara en su lugar con todas las series de sus servicios, lo que solo nota un cambio lo bastante grande como para salir del rango de todas ellas, y una suma, un recuento o una consulta sobre un histograma sigue aprendiendo. Un percentil de un histograma siempre sigue aprendiendo.
 
 Una suma o un recuento solo cuenta como bajo en un punto de datos completo con otro completo después, porque los más recientes aún se están llenando. Por eso una ventana de un minuto solo puede encontrar uno alto.
 
@@ -223,7 +223,7 @@ La consulta no tiene **Agrupar por**, así que todos los hosts se reducen a un s
 :::
 
 :::details Un criterio de anomalía nunca se dispara
-Sigue aprendiendo: la hora de la semana con la que compara aún no tiene dos semanas de historial. Una suma, un recuento o una consulta sobre un histograma filtrados o agrupados por un atributo siguen aprendiendo para siempre, y lo mismo un percentil de un histograma: no hay historial con el que compararlos.
+Sigue aprendiendo: la hora de la semana con la que compara aún no tiene dos semanas de historial. Una consulta filtrada o agrupada por un atributo aprende de su propia serie, así que un host o pod nuevo tiene que aprender, por mucho tiempo que lleve informando la métrica. Un percentil de un histograma sigue aprendiendo para siempre, y lo mismo una suma, un recuento o una consulta sobre un histograma filtrados o agrupados por un atributo si tus métricas se conservan menos de dos semanas: no hay historial con el que compararlos.
 :::
 
 ## Próximos pasos

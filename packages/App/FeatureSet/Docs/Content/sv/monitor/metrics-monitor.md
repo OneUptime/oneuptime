@@ -138,7 +138,7 @@ Vad en datapunkt jämförs med beror på frågan:
 - **Dess tjänster.** En monitor som namnger tjänster jämförs bara med de tjänsterna. En som inte namnger någon jämförs med alla tjänster som rapporterar metriken.
 - **Ett medelvärde, minimum, maximum eller percentil av en vanlig metrik** jämförs med metrikens mätvärden, så långt tillbaka som **Baslinjefönster** räcker.
 - **En summa eller ett antal, och varje fråga på ett histogram,** jämförs med frågans egna datapunkter. De sparas lika länge som dina metriker, så jämförelsen räcker inte längre tillbaka än så: 15 dagar, om du inte har ändrat det.
-- **En fråga som är filtrerad eller grupperad på ett attribut** jämförs med alla serier i dess tjänster, eftersom en baslinje inte innehåller några attribut. Den märker därför bara en förändring som är tillräckligt stor för att lämna allas intervall. Är det en summa, ett antal eller en fråga på ett histogram finns inget att jämföra med, och den fortsätter att lära sig. Detsamma gäller en percentil av ett histogram.
+- **En fråga som är filtrerad eller grupperad på ett attribut** jämförs med sina egna datapunkter, varje serie med sina, så att en värd bedöms utifrån vad just den värden gör. De når så långt tillbaka som dina metriker sparas. Är det under två veckor jämförs ett medelvärde, ett minimum, ett maximum eller en percentil i stället med alla serier i dess tjänster, vilket bara märker en förändring som är tillräckligt stor för att lämna allas intervall, och en summa, ett antal eller en fråga på ett histogram fortsätter att lära sig. En percentil av ett histogram fortsätter alltid att lära sig.
 
 En summa eller ett antal räknas bara som lågt på en fullständig datapunkt med ytterligare en fullständig efter sig, eftersom de nyaste fortfarande fylls på. Ett fönster på en minut kan därför bara hitta ett som är högt.
 
@@ -223,7 +223,7 @@ Frågan har ingen **Gruppera efter**, så alla värdar slås ihop till ett tal. 
 :::
 
 :::details Ett avvikelsekriterium utlöses aldrig
-Det lär sig fortfarande: timmen i veckan som det jämför med har ännu inte två veckors historik. En summa, ett antal eller en fråga på ett histogram som är filtrerade eller grupperade på ett attribut fortsätter att lära sig för alltid, och det gör även en percentil av ett histogram: det finns ingen historik att jämföra dem med.
+Det lär sig fortfarande: timmen i veckan som det jämför med har ännu inte två veckors historik. En fråga som är filtrerad eller grupperad på ett attribut lär sig av sin egen serie, så en ny värd eller pod måste lära sig, oavsett hur länge metriken har rapporterats. En percentil av ett histogram fortsätter att lära sig för alltid, och det gör även en summa, ett antal eller en fråga på ett histogram som är filtrerade eller grupperade på ett attribut om dina metriker sparas i under två veckor: det finns ingen historik att jämföra dem med.
 :::
 
 ## Nästa steg

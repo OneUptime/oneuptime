@@ -138,7 +138,7 @@ Waarmee een datapunt wordt vergeleken, hangt af van de query:
 - **Zijn services.** Een monitor die services noemt, wordt alleen met die services vergeleken. Een monitor die er geen noemt, wordt vergeleken met elke service die de metric rapporteert.
 - **Een gemiddelde, minimum, maximum of percentiel van een gewone metric** wordt vergeleken met de samples van de metric, zo ver als het **Baseline-venster** teruggaat.
 - **Een som of een telling, en elke query op een histogram,** wordt vergeleken met de eigen datapunten van de query. Die worden net zo lang bewaard als de metrics, dus de vergelijking gaat niet verder terug dan dat: 15 dagen, tenzij dat is gewijzigd.
-- **Een query die op een attribuut is gefilterd of gegroepeerd** wordt vergeleken met alle reeksen van zijn services, omdat een baseline geen attributen bevat. Hij merkt dus alleen een verandering op die groot genoeg is om buiten het bereik van al die reeksen te vallen. Is het een som, een telling of een query op een histogram, dan is er niets om mee te vergelijken en blijft hij leren. Dat geldt ook voor een percentiel van een histogram.
+- **Een query die op een attribuut is gefilterd of gegroepeerd** wordt vergeleken met zijn eigen datapunten, elke reeks met die van zichzelf, zodat een host wordt beoordeeld op wat die host doet. Die gaan zo ver terug als de metrics worden bewaard. Is dat minder dan twee weken, dan wordt een gemiddelde, minimum, maximum of percentiel in plaats daarvan vergeleken met alle reeksen van zijn services, wat alleen een verandering opmerkt die groot genoeg is om buiten het bereik van al die reeksen te vallen, en blijft een som, een telling of een query op een histogram leren. Een percentiel van een histogram blijft altijd leren.
 
 Een som of een telling telt alleen als laag op een volledig datapunt met nog een volledig datapunt erna, omdat de nieuwste nog vollopen. Een venster van één minuut kan dus alleen een hoge waarde vinden.
 
@@ -223,7 +223,7 @@ De query heeft geen **Groeperen op**, dus alle hosts worden samengevoegd tot é�
 :::
 
 :::details Een anomaliecriterium gaat nooit af
-Het is nog aan het leren: het uur van de week waarmee het vergelijkt, heeft nog geen twee weken geschiedenis. Een som, een telling of een query op een histogram die op een attribuut is gefilterd of gegroepeerd, blijft voorgoed leren, en dat geldt ook voor een percentiel van een histogram: er is geen geschiedenis om ze mee te vergelijken.
+Het is nog aan het leren: het uur van de week waarmee het vergelijkt, heeft nog geen twee weken geschiedenis. Een query die op een attribuut is gefilterd of gegroepeerd, leert van zijn eigen reeks, dus een nieuwe host of pod moet leren, hoe lang de metric ook al rapporteert. Een percentiel van een histogram blijft voorgoed leren, en dat geldt ook voor een som, een telling of een query op een histogram die op een attribuut is gefilterd of gegroepeerd als de metrics minder dan twee weken worden bewaard: er is geen geschiedenis om ze mee te vergelijken.
 :::
 
 ## Volgende stappen
