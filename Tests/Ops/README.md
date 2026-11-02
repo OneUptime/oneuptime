@@ -1347,6 +1347,23 @@ their licence; and its `install.sh`, run here with stand-ins for `fc-cache`
 and `fc-match`, copies them into the user's fonts, builds their cache, and
 fails unless fontconfig answers DejaVu for each family.
 
+### `ProbeAptCache.test.js`
+
+The Probe's suite runs Chromium and Firefox, under strace too, and compiles a
+shim with gcc, so its job cannot run in the Playwright image: the browsers'
+system packages and fonts and strace come from apt, and the runner's Ubuntu
+mirror serves some runners at a few dozen kB/s. `Scripts/GHA/apt_archive_cache.sh`
+keeps what apt fetched in the Actions cache, keyed on the runner image, the
+Probe's lockfile and the workflow, and the next run on that image installs it
+with no package source at all (its own tests:
+`Scripts/GHA/Tests/apt_archive_cache_test.sh`). The suite holds the job to the
+wiring: the image named and the cache restored before anything installs; the
+cache's packages installed only on a hit, without failing the job when that
+install does not work; every install from the mirror run when it did not, after
+apt is told to keep its downloads; on a miss, what apt kept copied out and saved
+under the restore's key; on a hit, the browsers alone, without `--with-deps`;
+the suite last, either way; and a job limit that holds every step's.
+
 ### `DashboardOfflineUiShards.test.js`
 
 App Test runs Event Overview and the Workflow Builder suite in halves, one per
