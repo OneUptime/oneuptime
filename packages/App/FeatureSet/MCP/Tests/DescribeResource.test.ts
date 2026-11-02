@@ -574,9 +574,9 @@ describe("what it says of telemetry is what the API does", () => {
   });
 
   /*
-   * The analytics schemas give a DateTime64 column no range operators and no
-   * sort, and every telemetry table's time column is one. Read from them, this
-   * would tell an agent it cannot do the one thing it must do on every query.
+   * Every telemetry table's time column is a DateTime64. The analytics schema
+   * this reads once gave one no range operators and no sort, which told an
+   * agent it could not do the one thing it must do on every query.
    */
   test("filters and sorts every table on its time column, which its tool names", () => {
     for (const tool of telemetryTools) {
