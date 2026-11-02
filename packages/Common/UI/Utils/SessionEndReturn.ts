@@ -1,4 +1,4 @@
-import { AccountsRoute, DashboardRoute } from "../../ServiceRoute";
+import { DashboardRoute } from "../../ServiceRoute";
 import Route from "../../Types/API/Route";
 import {
   SESSION_ENDED_QUERY_PARAM,
@@ -87,7 +87,9 @@ export default class SessionEndReturn {
    * the person `userId` names. False when it is not a page to return to,
    * or there is no person.
    */
-  public static rememberCurrentPage(userId: string | null | undefined): boolean {
+  public static rememberCurrentPage(
+    userId: string | null | undefined,
+  ): boolean {
     if (typeof window === "undefined") {
       return false;
     }
@@ -205,10 +207,5 @@ export default class SessionEndReturn {
     return new Route(loginRoute.toString()).addQueryParams({
       [SESSION_ENDED_QUERY_PARAM]: reason,
     });
-  }
-
-  // Whether a route is the Dashboard's sign-in page (where a reason is said).
-  public static isAccountsSignInRoute(route: Route): boolean {
-    return route.toString() === `${AccountsRoute.toString()}/login`;
   }
 }

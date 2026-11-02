@@ -13,7 +13,8 @@ import UserUtil from "Common/UI/Utils/User";
  * SessionEndReturn explains how it waits, and for whom). Every kind of
  * sign-in ends on the Dashboard, so the Dashboard reads it back once its
  * project list has loaded, which proves there is a session, and opens it:
- * a Dashboard page, or an Admin Dashboard page for a master admin.
+ * a Dashboard page, or an Admin Dashboard page (which, as ever, opens only
+ * for a master admin).
  *
  * Read first, before the other pages a sign-in can lead back to (an MCP
  * authorization, a marketplace purchase, a Connect link from Slack or
@@ -23,10 +24,9 @@ import UserUtil from "Common/UI/Utils/User";
  */
 
 // The remembered page for the person signed in now, forgotten as it is read.
-export const takePageAfterSessionEnd: () => Route | null =
-  (): Route | null => {
-    return SessionEndReturn.consumeRoute(UserUtil.getUserId().toString());
-  };
+export const takePageAfterSessionEnd: () => Route | null = (): Route | null => {
+  return SessionEndReturn.consumeRoute(UserUtil.getUserId().toString());
+};
 
 /*
  * Opens a remembered page. Returns true when the browser is being sent
