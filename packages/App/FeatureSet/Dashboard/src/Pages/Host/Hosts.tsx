@@ -21,6 +21,7 @@ import React, {
   useState,
 } from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import BreakableName from "Common/UI/Components/BreakableName/BreakableName";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
@@ -76,6 +77,17 @@ const HOSTS_COLLECTOR_CONFIG_LABEL_CLASS_NAME: string =
  */
 export const HOSTS_NAME_CELL_WIDTH_CLASS_NAME: string =
   "min-w-[8rem] max-w-[12rem]";
+
+/*
+ * The host's name, the row's link: two lines at most, broken between its
+ * words and after its dots and hyphens (BreakableName) before anywhere
+ * else, the whole of it under the pointer. Cut to one line, "Payments
+ * database" read "Payments datab..." in German at 1280, where the longer
+ * column headings leave the name its least width. A table's cell keeps its
+ * values on one line (whitespace-nowrap), so the name says it wraps.
+ */
+export const HOSTS_NAME_LINE_CLASS_NAME: string =
+  "line-clamp-2 whitespace-normal [overflow-wrap:anywhere]";
 
 const isIPv4: (ip: string) => boolean = (ip: string): boolean => {
   return ip.includes(".") && !ip.includes(":");
@@ -227,9 +239,15 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
   );
 
   const hostExtraFacets: Array<ResourceFacet> = [
+    /*
+     * Whether OneUptime hears from the host, in the words its hero's pill
+     * uses. Not "Status": the Status column says the host's health -
+     * Healthy, Degraded, Not reporting - and a Status filter offering
+     * Connected and Disconnected answered a different question.
+     */
     {
       key: "otelCollectorStatus",
-      label: "Status",
+      label: "Connection",
       icon: IconProp.Wifi,
       isMultiSelect: false,
       options: [
@@ -487,14 +505,16 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
               /*
                * Its name, its host name where that is another, and what it
                * runs: the OS and architecture a column of their own held.
-               * Each line ends in "..." where the column does, is whole
-               * under the pointer, and on a Persian page is cut short at
-               * its own end (getHostCellLine).
+               * The name wraps onto a second line where the column is
+               * narrow (HOSTS_NAME_LINE_CLASS_NAME); the host name and the
+               * OS end in "..." where the column does. Each is whole under
+               * the pointer, and on a Persian page reads, and is cut short,
+               * at its own end (getHostCellLine).
                */
               const nameLine: HostCellLine = getHostCellLine({
                 text: name,
                 language: translator.language,
-                className: "truncate",
+                className: HOSTS_NAME_LINE_CLASS_NAME,
               });
               const idLine: HostCellLine = getHostCellLine({
                 text: id,
@@ -517,7 +537,7 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
                       to={route}
                       className="text-sm font-medium text-gray-900 hover:underline"
                     >
-                      {name || "—"}
+                      {name ? <BreakableName text={name} /> : "—"}
                     </AppLink>
                   </div>
                   {showId && (

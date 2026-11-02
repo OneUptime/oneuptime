@@ -196,9 +196,14 @@ const REASON_MOUNT_INODES_USED: string = translationKey(
 );
 const REASON_MEMORY_USED: string = translationKey("Memory {{percent}} used");
 const REASON_SWAP_USED: string = translationKey("Swap {{percent}} used");
+/*
+ * The 15-minute load, named as such: a host's page shows its 1-minute load
+ * in a tile beside it ("Load avg (1m)"), and a bare "Load 9.6" read as that
+ * tile's number when the tile said 10.35.
+ */
 const REASON_LOAD_ON_CORES: { one: string; other: string } = {
-  one: translationKey("Load {{load}} on {{count}} core"),
-  other: translationKey("Load {{load}} on {{count}} cores"),
+  one: translationKey("15-minute load {{load}} on {{count}} core"),
+  other: translationKey("15-minute load {{load}} on {{count}} cores"),
 };
 const REASON_UNIT_FAILED: string = translationKey("Failed");
 const REASON_FAILED_UNITS: { one: string; other: string } = {

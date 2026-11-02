@@ -40108,9 +40108,6 @@
   "Latest Inodes Percent": "Seneste inode-procent",
   "Latest Load Average (15m)": "Seneste belastningsgennemsnit (15m)",
   "Latest Swap Percent": "Seneste swap-procent",
-  "Load {{load}} on {{count}} core": "Belastning {{load}} på {{count}} kerne",
-  "Load {{load}} on {{count}} cores": "Belastning {{load}} på {{count}} kerner",
-  "Load {{load}} on {{count}} cores_one": "Belastning {{load}} på {{count}} kerne",
   "Memory {{percent}} used": "Hukommelse {{percent}} brugt",
   "Readings Updated At": "Målinger opdateret",
   "Share of CPU time spent running programs and the operating system (user plus system time) across every core, from the host's last report, updated about once a minute; below, its logical cores. Amber above 90%.": "Andel af CPU-tiden brugt på at køre programmer og operativsystemet (bruger- plus systemtid) på tværs af alle kerner, fra værtens seneste rapport, opdateret cirka én gang i minuttet; nedenunder dens logiske kerner. Gul over 90 %.",
@@ -40135,5 +40132,8 @@
   "{{percent}}% of {{count}} cores": "{{percent}} % af {{count}} kerner",
   "{{percent}}% of {{count}} cores_one": "{{percent}} % af {{count}} kerne",
   "How full the host's fullest filesystem is, as df's Use% (used space over used plus free, space reserved for root not counted), averaged over the whole selected range, not the last 5 minutes; below, its mount point. The Filesystems table lists every mount.": "Hvor fyldt værtens mest fyldte filsystem er, som dfs Use% (brugt plads delt med brugt plus ledig, plads reserveret til root tæller ikke med), i gennemsnit over hele det valgte tidsrum, ikke de seneste 5 minutter; nedenunder dens monteringspunkt. Tabellen Filsystemer viser alle monteringspunkter.",
-  "The host's health by the rules its Needs attention card follows: Unhealthy when something is critical (a filesystem or memory past 95%), Degraded when something needs a look, Not reporting when nothing has arrived for 15 minutes. Below, the reason.": "Værtens tilstand efter reglerne for dens kort Kræver opmærksomhed: Usund, når noget er kritisk (et filsystem eller hukommelsen over 95 %), Forringet, når noget bør ses på, Rapporterer ikke, når intet er kommet i 15 minutter. Nedenunder årsagen."
+  "The host's health by the rules its Needs attention card follows: Unhealthy when something is critical (a filesystem or memory past 95%), Degraded when something needs a look, Not reporting when nothing has arrived for 15 minutes. Below, the reason.": "Værtens tilstand efter reglerne for dens kort Kræver opmærksomhed: Usund, når noget er kritisk (et filsystem eller hukommelsen over 95 %), Forringet, når noget bør ses på, Rapporterer ikke, når intet er kommet i 15 minutter. Nedenunder årsagen.",
+  "15-minute load {{load}} on {{count}} core": "15-minutters belastning {{load}} på {{count}} kerne",
+  "15-minute load {{load}} on {{count}} cores": "15-minutters belastning {{load}} på {{count}} kerner",
+  "15-minute load {{load}} on {{count}} cores_one": "15-minutters belastning {{load}} på {{count}} kerne"
 }

@@ -33,6 +33,15 @@ export type HostUsageKind = "cpu" | "memory" | "disk";
 // CPU's bar turns amber past this: busy, and worth a glance.
 export const HOST_CPU_BUSY_PERCENT: number = 90;
 
+/*
+ * The load tile's bar (its 1-minute load as a share of the cores) turns
+ * amber past this: more work than cores, so work queues, as the tile's (i)
+ * says. Never red: the rules never call load critical (HostHealth lists a
+ * 15-minute load above twice the cores as one to look at), so a red bar
+ * would say more than the host's Needs attention does.
+ */
+export const HOST_LOAD_QUEUING_PERCENT: number = 100;
+
 export interface HostUsage {
   // Null when there is no fresh reading: the cell shows a dash.
   percent: number | null;
@@ -137,6 +146,25 @@ export function getHostStatusFacts(data: {
         ? toHostDate(data.row.lastSeenAt)
         : null,
   };
+}
+
+/*
+ * Whether a host's hero says "Starting" in place of its connection: a host
+ * OneUptime installed the collector on (Add Host), within its first ten
+ * minutes and still waiting for its first metrics - what its row in the
+ * Hosts list and the "This host is starting" card under the hero say. A
+ * host whose collector was set up by hand reads "Disconnected" until it
+ * reports, as its connection card ("Connect this host") explains.
+ */
+export function isHostStarting(data: {
+  row: HostHealthRow;
+  now: Date;
+}): boolean {
+  if (!data.row.collectorInstanceUid) {
+    return false;
+  }
+
+  return assessHost(data.row, { now: data.now }).state === "starting";
 }
 
 /*

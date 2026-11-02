@@ -263,10 +263,16 @@ describe("HostHealth: memory, swap and load", () => {
       healthyRow({ cpuCores: 4, latestLoadAverage15m: 9.64 }),
     );
     expect(warning.severity).toBe(HostHealthSeverity.Warning);
-    expect(texts(warning.fleetReasons)).toEqual(["Load 9.6 on 4 cores"]);
+    /*
+     * The reason names its window: a host's page shows the 1-minute load
+     * in a tile beside it, and a bare "Load 9.6" read as that tile's.
+     */
+    expect(texts(warning.fleetReasons)).toEqual([
+      "15-minute load 9.6 on 4 cores",
+    ]);
     const reason: HostHealthText = warning.fleetReasons[0]!;
     expect(reason.plural).toEqual({
-      one: "Load {{load}} on {{count}} core",
+      one: "15-minute load {{load}} on {{count}} core",
       count: 4,
     });
   });
@@ -300,7 +306,7 @@ describe("HostHealth: memory, swap and load", () => {
     expect(texts(assessment.findings[0]!.reasons)).toEqual([
       "Memory 97% used",
       "Swap 85% used",
-      "Load 12.0 on 4 cores",
+      "15-minute load 12.0 on 4 cores",
     ]);
   });
 });

@@ -40108,9 +40108,6 @@
   "Latest Inodes Percent": "Siste inode-prosent",
   "Latest Load Average (15m)": "Siste lastgjennomsnitt (15m)",
   "Latest Swap Percent": "Siste swap-prosent",
-  "Load {{load}} on {{count}} core": "Last {{load}} på {{count}} kjerne",
-  "Load {{load}} on {{count}} cores": "Last {{load}} på {{count}} kjerner",
-  "Load {{load}} on {{count}} cores_one": "Last {{load}} på {{count}} kjerne",
   "Memory {{percent}} used": "Minne {{percent}} brukt",
   "Readings Updated At": "Målinger oppdatert",
   "Share of CPU time spent running programs and the operating system (user plus system time) across every core, from the host's last report, updated about once a minute; below, its logical cores. Amber above 90%.": "Andel av CPU-tiden brukt på å kjøre programmer og operativsystemet (bruker- pluss systemtid) på tvers av alle kjerner, fra vertens siste rapport, oppdatert omtrent én gang i minuttet; under, de logiske kjernene. Gul over 90 %.",
@@ -40135,5 +40132,8 @@
   "{{percent}}% of {{count}} cores": "{{percent}} % av {{count}} kjerner",
   "{{percent}}% of {{count}} cores_one": "{{percent}} % av {{count}} kjerne",
   "How full the host's fullest filesystem is, as df's Use% (used space over used plus free, space reserved for root not counted), averaged over the whole selected range, not the last 5 minutes; below, its mount point. The Filesystems table lists every mount.": "Hvor fullt vertens fulleste filsystem er, som Use% fra df (brukt plass delt på brukt pluss ledig, plass reservert for root regnes ikke med), i gjennomsnitt over hele det valgte tidsrommet, ikke de siste 5 minuttene; under, monteringspunktet. Tabellen Filsystemer viser hvert monteringspunkt.",
-  "The host's health by the rules its Needs attention card follows: Unhealthy when something is critical (a filesystem or memory past 95%), Degraded when something needs a look, Not reporting when nothing has arrived for 15 minutes. Below, the reason.": "Vertens tilstand etter reglene for kortet Krever oppmerksomhet: Ikke feilfri når noe er kritisk (et filsystem eller minnet over 95 %), Redusert når noe bør sjekkes, Rapporterer ikke når ingenting har kommet på 15 minutter. Under, årsaken."
+  "The host's health by the rules its Needs attention card follows: Unhealthy when something is critical (a filesystem or memory past 95%), Degraded when something needs a look, Not reporting when nothing has arrived for 15 minutes. Below, the reason.": "Vertens tilstand etter reglene for kortet Krever oppmerksomhet: Ikke feilfri når noe er kritisk (et filsystem eller minnet over 95 %), Redusert når noe bør sjekkes, Rapporterer ikke når ingenting har kommet på 15 minutter. Under, årsaken.",
+  "15-minute load {{load}} on {{count}} core": "15-minutters last {{load}} på {{count}} kjerne",
+  "15-minute load {{load}} on {{count}} cores": "15-minutters last {{load}} på {{count}} kjerner",
+  "15-minute load {{load}} on {{count}} cores_one": "15-minutters last {{load}} på {{count}} kjerne"
 }

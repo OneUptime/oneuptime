@@ -419,6 +419,28 @@ describe("the host's own card, by the rules its page and the Hosts list follow",
       ).facts,
     ).toEqual([]);
   });
+
+  /*
+   * The host's UI review: a host that reports with nothing to judge - no
+   * host metrics lately - was a green card saying Reporting, while the
+   * Hosts list draws its Reporting grey: green would be a guess.
+   */
+  test("a host reporting with nothing to judge is grey, as the list draws it", () => {
+    const root: ResourceTopologyNode = rootOf(
+      health({
+        readingsUpdatedAt: new Date(NOW.getTime() - 16 * 60_000),
+      }),
+    );
+
+    expect(root.status).toEqual({ text: "Reporting" });
+    expect(root.health).toBe("unknown");
+
+    const never: ResourceTopologyNode = rootOf(
+      health({ readingsUpdatedAt: null }),
+    );
+    expect(never.status).toEqual({ text: "Reporting" });
+    expect(never.health).toBe("unknown");
+  });
 });
 
 describe("open incidents and alerts", () => {

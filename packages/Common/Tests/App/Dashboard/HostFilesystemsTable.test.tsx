@@ -130,6 +130,37 @@ describe("a host's Filesystems, on a wide screen", () => {
     expect(cells[4]).toHaveTextContent("95.3%");
   });
 
+  /*
+   * The host's UI review: on a Persian page /var/lib/postgresql read
+   * "var/lib/postgresql/", /dev/nvme0n1p2 "dev/nvme0n1p2/", and "472 GiB /
+   * 500 GiB" put 472 after the total. Each is isolated (bdi), so it reads
+   * the way the host wrote it whatever the page's direction.
+   */
+  test("the mount, its device and its sizes each read the way the host wrote them", () => {
+    draw(1280);
+
+    const cells: Array<HTMLTableCellElement> = Array.from(rows()[0]!.cells);
+
+    const mount: HTMLElement = within(cells[0]!).getByTestId(
+      "host-filesystem-mount",
+    );
+    expect(mount.tagName).toBe("BDI");
+    expect(mount).toHaveTextContent("/");
+
+    const device: HTMLElement = within(cells[2]!).getByTestId(
+      "host-filesystem-device",
+    );
+    expect(device.tagName).toBe("BDI");
+    expect(device).toHaveTextContent("/dev/nvme0n1p2");
+
+    const used: HTMLElement = within(cells[3]!).getByTestId(
+      "host-filesystem-used",
+    );
+    expect(used.tagName).toBe("BDI");
+    // The used size first, then the total, in one isolated run.
+    expect(used).toHaveTextContent("488 GiB/512 GiB");
+  });
+
   test("a mount that names no type or device shows the quiet dash", () => {
     draw(1280);
 

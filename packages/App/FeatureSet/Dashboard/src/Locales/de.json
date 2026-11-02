@@ -40108,9 +40108,6 @@
   "Latest Inodes Percent": "Letzter Inode-Anteil (%)",
   "Latest Load Average (15m)": "Letzter Last-Durchschnitt (15 m)",
   "Latest Swap Percent": "Letzter Swap-Anteil (%)",
-  "Load {{load}} on {{count}} core": "Last {{load}} auf {{count}} Kern",
-  "Load {{load}} on {{count}} cores": "Last {{load}} auf {{count}} Kernen",
-  "Load {{load}} on {{count}} cores_one": "Last {{load}} auf {{count}} Kern",
   "Memory {{percent}} used": "Arbeitsspeicher zu {{percent}} belegt",
   "Readings Updated At": "Messwerte aktualisiert am",
   "Share of CPU time spent running programs and the operating system (user plus system time) across every core, from the host's last report, updated about once a minute; below, its logical cores. Amber above 90%.": "Anteil der CPU-Zeit, in der Programme und das Betriebssystem liefen (User- plus Systemzeit), über alle Kerne, aus der letzten Meldung des Hosts, etwa einmal pro Minute aktualisiert; darunter seine logischen Kerne. Gelb über 90 %.",
@@ -40135,5 +40132,8 @@
   "{{percent}}% of {{count}} cores": "{{percent}} % von {{count}} Kernen",
   "{{percent}}% of {{count}} cores_one": "{{percent}} % von {{count}} Kern",
   "How full the host's fullest filesystem is, as df's Use% (used space over used plus free, space reserved for root not counted), averaged over the whole selected range, not the last 5 minutes; below, its mount point. The Filesystems table lists every mount.": "Wie voll das vollste Dateisystem des Hosts ist, als Use% von df (belegter Platz geteilt durch belegt plus frei, für root reservierter Platz nicht mitgezählt), gemittelt über den gesamten gewählten Zeitraum, nicht über die letzten 5 Minuten; darunter sein Einhängepunkt. Die Tabelle „Dateisysteme“ listet jeden Einhängepunkt.",
-  "The host's health by the rules its Needs attention card follows: Unhealthy when something is critical (a filesystem or memory past 95%), Degraded when something needs a look, Not reporting when nothing has arrived for 15 minutes. Below, the reason.": "Die Integrität des Hosts nach den Regeln seiner Karte „Erfordert Aufmerksamkeit“: Fehlerhaft, wenn etwas kritisch ist (ein Dateisystem oder der Arbeitsspeicher über 95 %), Beeinträchtigt, wenn etwas geprüft werden sollte, Meldet nicht, wenn 15 Minuten lang nichts angekommen ist. Darunter der Grund."
+  "The host's health by the rules its Needs attention card follows: Unhealthy when something is critical (a filesystem or memory past 95%), Degraded when something needs a look, Not reporting when nothing has arrived for 15 minutes. Below, the reason.": "Die Integrität des Hosts nach den Regeln seiner Karte „Erfordert Aufmerksamkeit“: Fehlerhaft, wenn etwas kritisch ist (ein Dateisystem oder der Arbeitsspeicher über 95 %), Beeinträchtigt, wenn etwas geprüft werden sollte, Meldet nicht, wenn 15 Minuten lang nichts angekommen ist. Darunter der Grund.",
+  "15-minute load {{load}} on {{count}} core": "15-Minuten-Last {{load}} auf {{count}} Kern",
+  "15-minute load {{load}} on {{count}} cores": "15-Minuten-Last {{load}} auf {{count}} Kernen",
+  "15-minute load {{load}} on {{count}} cores_one": "15-Minuten-Last {{load}} auf {{count}} Kern"
 }

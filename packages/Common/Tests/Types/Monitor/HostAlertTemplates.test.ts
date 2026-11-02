@@ -719,9 +719,18 @@ describe("HostAlertTemplates", () => {
     // Ten minutes, as Zabbix's "has been restarted" reads it; recovery at 11.
     expect(HOST_RESTARTED_UPTIME_SECONDS).toBe(600);
     expect(online.data.filters[0].value).toBe(660);
-    expect(getOfflineInstance(step).data.incidents[0].description).toContain(
-      "eleven minutes",
+    /*
+     * Every value of the five-minute window must read eleven minutes or
+     * more, so the incident resolves about fifteen minutes after the boot:
+     * it said "once the host has been up for eleven minutes".
+     */
+    const description: string = getOfflineInstance(step).data.incidents[0]
+      .description as string;
+    expect(description).toContain("about a quarter of an hour after the boot");
+    expect(description).toContain(
+      "every value of the monitoring window reads eleven minutes or more",
     );
+    expect(description).not.toContain("up for eleven minutes");
   });
 
   test("host-systemd-unit-failed raises one alert per unit, by the unit's resource attribute", () => {

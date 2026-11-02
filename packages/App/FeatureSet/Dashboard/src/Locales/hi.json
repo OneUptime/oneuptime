@@ -40108,9 +40108,6 @@
   "Latest Inodes Percent": "नवीनतम inode प्रतिशत",
   "Latest Load Average (15m)": "नवीनतम लोड औसत (15m)",
   "Latest Swap Percent": "नवीनतम स्वैप प्रतिशत",
-  "Load {{load}} on {{count}} core": "{{count}} कोर पर लोड {{load}}",
-  "Load {{load}} on {{count}} cores": "{{count}} कोर पर लोड {{load}}",
-  "Load {{load}} on {{count}} cores_one": "{{count}} कोर पर लोड {{load}}",
   "Memory {{percent}} used": "मेमोरी {{percent}} इस्तेमाल",
   "Readings Updated At": "रीडिंग अपडेट होने का समय",
   "Share of CPU time spent running programs and the operating system (user plus system time) across every core, from the host's last report, updated about once a minute; below, its logical cores. Amber above 90%.": "सभी कोर पर प्रोग्राम और ऑपरेटिंग सिस्टम चलाने में लगे CPU समय का हिस्सा (यूज़र और सिस्टम समय मिलाकर), होस्ट की आखिरी रिपोर्ट से, लगभग हर मिनट अपडेट होता है; नीचे, उसके लॉजिकल कोर। 90% से ऊपर पीला।",
@@ -40135,5 +40132,8 @@
   "{{percent}}% of {{count}} cores": "{{count}} कोर का {{percent}}%",
   "{{percent}}% of {{count}} cores_one": "{{count}} कोर का {{percent}}%",
   "How full the host's fullest filesystem is, as df's Use% (used space over used plus free, space reserved for root not counted), averaged over the whole selected range, not the last 5 minutes; below, its mount point. The Filesystems table lists every mount.": "होस्ट का सबसे भरा फ़ाइल सिस्टम कितना भरा है, df के Use% की तरह (इस्तेमाल हुई जगह को इस्तेमाल और खाली जगह के योग से भाग देकर, root के लिए आरक्षित जगह को छोड़कर), पूरी चुनी गई अवधि का औसत, आखिरी 5 मिनट का नहीं; नीचे, उसका माउंट पॉइंट। फ़ाइल सिस्टम तालिका हर माउंट पॉइंट दिखाती है।",
-  "The host's health by the rules its Needs attention card follows: Unhealthy when something is critical (a filesystem or memory past 95%), Degraded when something needs a look, Not reporting when nothing has arrived for 15 minutes. Below, the reason.": "होस्ट के 'ध्यान देने की ज़रूरत' कार्ड के नियमों के अनुसार उसका स्वास्थ्य: कुछ गंभीर हो तो अस्वस्थ (कोई फ़ाइल सिस्टम या मेमोरी 95% से ऊपर), कुछ जांचने लायक हो तो प्रदर्शन में गिरावट, 15 मिनट तक कुछ न आए तो रिपोर्ट नहीं कर रहा। नीचे, कारण।"
+  "The host's health by the rules its Needs attention card follows: Unhealthy when something is critical (a filesystem or memory past 95%), Degraded when something needs a look, Not reporting when nothing has arrived for 15 minutes. Below, the reason.": "होस्ट के 'ध्यान देने की ज़रूरत' कार्ड के नियमों के अनुसार उसका स्वास्थ्य: कुछ गंभीर हो तो अस्वस्थ (कोई फ़ाइल सिस्टम या मेमोरी 95% से ऊपर), कुछ जांचने लायक हो तो प्रदर्शन में गिरावट, 15 मिनट तक कुछ न आए तो रिपोर्ट नहीं कर रहा। नीचे, कारण।",
+  "15-minute load {{load}} on {{count}} core": "{{count}} कोर पर 15 मिनट का लोड {{load}}",
+  "15-minute load {{load}} on {{count}} cores": "{{count}} कोर पर 15 मिनट का लोड {{load}}",
+  "15-minute load {{load}} on {{count}} cores_one": "{{count}} कोर पर 15 मिनट का लोड {{load}}"
 }

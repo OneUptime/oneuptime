@@ -15,6 +15,7 @@ import {
   screen,
 } from "@testing-library/react";
 import * as React from "react";
+import { MemoryRouter } from "react-router-dom";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import {
   explanationOnFocus,
@@ -43,6 +44,8 @@ const GIB: number = 1024 * 1024 * 1024;
 
 const modelTableMock: MockFunction = getJestMockFunction();
 const countMock: MockFunction = getJestMockFunction();
+// What the page hands useResourceOwners: its facets among them.
+const resourceOwnersMock: MockFunction = getJestMockFunction();
 
 jest.mock("react-i18next", () => {
   return {
@@ -101,7 +104,8 @@ jest.mock(
     return {
       ...actual,
       __esModule: true,
-      default: () => {
+      default: (options: unknown) => {
+        resourceOwnersMock(options);
         return {
           getOwnersForResource: () => {
             return [];
@@ -264,6 +268,7 @@ beforeEach(() => {
   jest.useFakeTimers();
   modelTableMock.mockReset();
   countMock.mockReset();
+  resourceOwnersMock.mockReset();
   // A project that already has hosts, so the list (not the guide) shows.
   countMock.mockResolvedValue(3);
 });
@@ -290,6 +295,92 @@ function reportingHost(): GenericObject {
     latestDiskMountpoint: "/var",
   };
 }
+
+type CapturedFacet = {
+  key: string;
+  label: string;
+  options: Array<{ value: string; label: string }>;
+};
+
+async function capturedFacets(): Promise<Array<CapturedFacet>> {
+  render(<Hosts {...PAGE_PROPS} />);
+  await flush();
+
+  expect(resourceOwnersMock).toHaveBeenCalled();
+
+  const options: { extraFacets: Array<CapturedFacet> } = resourceOwnersMock.mock
+    .calls[resourceOwnersMock.mock.calls.length - 1]![0] as {
+    extraFacets: Array<CapturedFacet>;
+  };
+
+  cleanup();
+
+  return options.extraFacets;
+}
+
+describe("the list's filters", () => {
+  /*
+   * The host's UI review: the Status column says a host's health -
+   * Healthy, Degraded, Not reporting - and a filter called Status offered
+   * Connected and Disconnected, an answer to another question. It is the
+   * Connection filter now, in the words the host's hero uses.
+   */
+  test("whether OneUptime hears from a host is the Connection filter, not a second Status", async () => {
+    const facets: Array<CapturedFacet> = await capturedFacets();
+    const connection: CapturedFacet | undefined = facets.find(
+      (facet: CapturedFacet): boolean => {
+        return facet.key === "otelCollectorStatus";
+      },
+    );
+
+    expect(connection).toBeDefined();
+    expect(connection!.label).toBe("Connection");
+    expect(
+      connection!.options.map((option: { label: string }): string => {
+        return option.label;
+      }),
+    ).toEqual(["Connected", "Disconnected"]);
+    expect(
+      facets.filter((facet: CapturedFacet): boolean => {
+        return facet.label === "Status";
+      }),
+    ).toEqual([]);
+  });
+});
+
+describe("a host's name", () => {
+  /*
+   * Cut to one line, "Payments database" read "Payments datab..." in
+   * German at 1280, where the longer headings leave the name its least
+   * width. It wraps onto a second line now, between its words and after
+   * its dots and hyphens first, and is whole under the pointer.
+   */
+  test("wraps onto two lines rather than ending in ...", async () => {
+    const columns: Array<CapturedColumn> = await capturedColumns();
+    const name: CapturedColumn = column(columns, "Name");
+
+    render(
+      <MemoryRouter>
+        {name.getElement!({
+          _id: "10000000-0000-4000-8000-0000000000a1",
+          name: "Payments database",
+          hostIdentifier: "db-01.prod.internal",
+          osType: "linux",
+        })}
+      </MemoryRouter>,
+    );
+
+    const link: HTMLElement = screen.getByRole("link");
+    expect(link).toHaveTextContent("Payments database");
+    const line: HTMLElement = link.parentElement as HTMLElement;
+    expect(line).toHaveClass("line-clamp-2");
+    expect(line).toHaveClass("whitespace-normal");
+    expect(line).not.toHaveClass("truncate");
+    expect(line).toHaveAttribute("title", "Payments database");
+    // The host name under it still ends in "..." where the column does.
+    expect(screen.getByTestId("host-identifier")).toHaveClass("truncate");
+  });
+});
 
 describe("Hosts list columns", () => {
   test("Status, CPU, Memory and Disk carry their header tooltips; names, network, collector and ownership carry none", async () => {

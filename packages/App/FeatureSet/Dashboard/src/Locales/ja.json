@@ -40108,9 +40108,6 @@
   "Latest Inodes Percent": "最新の inode 使用率",
   "Latest Load Average (15m)": "最新のロードアベレージ（15 分）",
   "Latest Swap Percent": "最新のスワップ使用率",
-  "Load {{load}} on {{count}} core": "{{count}} コアで負荷 {{load}}",
-  "Load {{load}} on {{count}} cores": "{{count}} コアで負荷 {{load}}",
-  "Load {{load}} on {{count}} cores_one": "{{count}} コアで負荷 {{load}}",
   "Memory {{percent}} used": "メモリ使用率 {{percent}}",
   "Readings Updated At": "測定値の更新日時",
   "Share of CPU time spent running programs and the operating system (user plus system time) across every core, from the host's last report, updated about once a minute; below, its logical cores. Amber above 90%.": "全コアで、プログラムとオペレーティングシステムの実行に使われた CPU 時間の割合（ユーザー時間とシステム時間の合計）です。ホストの最後の報告の値で、約 1 分ごとに更新されます。下は論理コア数です。90% 超で黄になります。",
@@ -40135,5 +40132,8 @@
   "{{percent}}% of {{count}} cores": "{{count}} コアの {{percent}}%",
   "{{percent}}% of {{count}} cores_one": "{{count}} コアの {{percent}}%",
   "How full the host's fullest filesystem is, as df's Use% (used space over used plus free, space reserved for root not counted), averaged over the whole selected range, not the last 5 minutes; below, its mount point. The Filesystems table lists every mount.": "ホストで最も使用率の高いファイルシステムの使用率で、df の Use% と同じく使用量を使用量と空き容量の合計で割った値です（root 用の予約領域は含みません）。直近 5 分ではなく選択した範囲全体で平均しています。下はそのマウントポイントで、ファイルシステムの表にはすべてのマウントポイントが表示されます。",
-  "The host's health by the rules its Needs attention card follows: Unhealthy when something is critical (a filesystem or memory past 95%), Degraded when something needs a look, Not reporting when nothing has arrived for 15 minutes. Below, the reason.": "ホストの「対応が必要」カードと同じルールによるヘルスです。重大な問題（ファイルシステムまたはメモリが 95% 超）があれば異常、確認が必要なものがあれば機能低下、15 分間何も届いていなければ報告なしです。下はその理由です。"
+  "The host's health by the rules its Needs attention card follows: Unhealthy when something is critical (a filesystem or memory past 95%), Degraded when something needs a look, Not reporting when nothing has arrived for 15 minutes. Below, the reason.": "ホストの「対応が必要」カードと同じルールによるヘルスです。重大な問題（ファイルシステムまたはメモリが 95% 超）があれば異常、確認が必要なものがあれば機能低下、15 分間何も届いていなければ報告なしです。下はその理由です。",
+  "15-minute load {{load}} on {{count}} core": "{{count}} コアで 15 分間の負荷 {{load}}",
+  "15-minute load {{load}} on {{count}} cores": "{{count}} コアで 15 分間の負荷 {{load}}",
+  "15-minute load {{load}} on {{count}} cores_one": "{{count}} コアで 15 分間の負荷 {{load}}"
 }

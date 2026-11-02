@@ -40108,9 +40108,6 @@
   "Latest Inodes Percent": "آخرین درصد inode",
   "Latest Load Average (15m)": "آخرین میانگین بار (۱۵ دقیقه)",
   "Latest Swap Percent": "آخرین درصد swap",
-  "Load {{load}} on {{count}} core": "بار {{load}} روی {{count}} هسته",
-  "Load {{load}} on {{count}} cores": "بار {{load}} روی {{count}} هسته",
-  "Load {{load}} on {{count}} cores_one": "بار {{load}} روی {{count}} هسته",
   "Memory {{percent}} used": "{{percent}} از حافظه استفاده شده",
   "Readings Updated At": "زمان به‌روزرسانی مقادیر",
   "Share of CPU time spent running programs and the operating system (user plus system time) across every core, from the host's last report, updated about once a minute; below, its logical cores. Amber above 90%.": "سهم زمان CPU که صرف اجرای برنامه‌ها و سیستم‌عامل شده (زمان کاربر به‌علاوه زمان سیستم) در همه هسته‌ها، از آخرین گزارش میزبان، تقریباً هر دقیقه یک بار به‌روز می‌شود؛ زیر آن، هسته‌های منطقی آن. بالای ۹۰٪ کهربایی.",
@@ -40135,5 +40132,8 @@
   "{{percent}}% of {{count}} cores": "{{percent}}٪ از {{count}} هسته",
   "{{percent}}% of {{count}} cores_one": "{{percent}}٪ از {{count}} هسته",
   "How full the host's fullest filesystem is, as df's Use% (used space over used plus free, space reserved for root not counted), averaged over the whole selected range, not the last 5 minutes; below, its mount point. The Filesystems table lists every mount.": "میزان پر بودن پرترین سامانه فایل میزبان، مانند Use% در df (فضای استفاده‌شده تقسیم بر مجموع فضای استفاده‌شده و آزاد، بدون فضای رزروشده برای root)، به‌طور میانگین در کل محدوده انتخاب‌شده، نه ۵ دقیقه آخر؛ زیر آن، نقطه اتصال آن. جدول سامانه‌های فایل همه نقاط اتصال را فهرست می‌کند.",
-  "The host's health by the rules its Needs attention card follows: Unhealthy when something is critical (a filesystem or memory past 95%), Degraded when something needs a look, Not reporting when nothing has arrived for 15 minutes. Below, the reason.": "سلامت میزبان طبق قواعد کارت «نیاز به توجه» آن: ناسالم وقتی چیزی بحرانی است (یک سامانه فایل یا حافظه بالای ۹۵٪)، کاهش کارایی وقتی چیزی نیاز به بررسی دارد، بدون گزارش‌دهی وقتی ۱۵ دقیقه چیزی نرسیده است. زیر آن، دلیل."
+  "The host's health by the rules its Needs attention card follows: Unhealthy when something is critical (a filesystem or memory past 95%), Degraded when something needs a look, Not reporting when nothing has arrived for 15 minutes. Below, the reason.": "سلامت میزبان طبق قواعد کارت «نیاز به توجه» آن: ناسالم وقتی چیزی بحرانی است (یک سامانه فایل یا حافظه بالای ۹۵٪)، کاهش کارایی وقتی چیزی نیاز به بررسی دارد، بدون گزارش‌دهی وقتی ۱۵ دقیقه چیزی نرسیده است. زیر آن، دلیل.",
+  "15-minute load {{load}} on {{count}} core": "بار ۱۵ دقیقه‌ای {{load}} روی {{count}} هسته",
+  "15-minute load {{load}} on {{count}} cores": "بار ۱۵ دقیقه‌ای {{load}} روی {{count}} هسته",
+  "15-minute load {{load}} on {{count}} cores_one": "بار ۱۵ دقیقه‌ای {{load}} روی {{count}} هسته"
 }

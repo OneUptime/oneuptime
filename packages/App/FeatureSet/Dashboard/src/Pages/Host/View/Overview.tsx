@@ -109,7 +109,9 @@ import {
 } from "../Utils/HostAttention";
 import {
   HOST_CPU_BUSY_PERCENT,
+  HOST_LOAD_QUEUING_PERCENT,
   getHostUptimeSeconds,
+  isHostStarting,
 } from "../Utils/HostFacts";
 import { encodeUnitNameForUrl } from "../Utils/SystemdUnits";
 import { getHostCollectorConfigLabel } from "../../../Components/HostCollector/HostCollectorStatus";
@@ -1318,18 +1320,6 @@ const HostOverview: FunctionComponent<
       });
     }
 
-    const statusBadgeClass: string = isConnected
-      ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
-      : "bg-amber-50 text-amber-700 ring-amber-200";
-    const statusDotClass: string = isConnected
-      ? "bg-emerald-500"
-      : "bg-amber-500";
-    const statusLabel: string = getResourceConnectionLabel({
-      translator: translator,
-      isConnected: isConnected,
-      status: status,
-    });
-
     /*
      * Its health beside its connection, by the rules its Needs attention
      * card and the Hosts list follow (HostHealth). While it is not
@@ -1340,6 +1330,35 @@ const HostOverview: FunctionComponent<
      */
     const assessment: HostHealthAssessment = assessHost(host, {
       now: new Date(),
+    });
+
+    /*
+     * A host OneUptime installed the collector on, still waiting for its
+     * first metrics, says "Starting" - as its row in the Hosts list and the
+     * "This host is starting" card under the hero say - not an amber
+     * "Disconnected" a minute after Add Host. A host set up by hand keeps
+     * "Disconnected", which its card explains.
+     */
+    const isStarting: boolean = isHostStarting({
+      row: host,
+      now: new Date(),
+    });
+
+    const statusBadgeClass: string = isStarting
+      ? "bg-blue-50 text-blue-700 ring-blue-200"
+      : isConnected
+        ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
+        : "bg-amber-50 text-amber-700 ring-amber-200";
+    const statusDotClass: string = isStarting
+      ? "bg-blue-500"
+      : isConnected
+        ? "bg-emerald-500"
+        : "bg-amber-500";
+    const statusLabel: string = getResourceConnectionLabel({
+      translator: translator,
+      isConnected: isConnected,
+      status: status,
+      isStarting: isStarting,
     });
     const health: ResourceHealth =
       assessment.state === "unhealthy"
@@ -1407,11 +1426,27 @@ const HostOverview: FunctionComponent<
                       {displayName}
                     </h1>
                     <span
+                      data-testid="host-hero-connection"
+                      data-starting={isStarting ? "true" : undefined}
                       className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${statusBadgeClass}`}
                     >
-                      <span
-                        className={`h-1.5 w-1.5 rounded-full ${statusDotClass}`}
-                      />
+                      {/*
+                       * Starting pulses, as the Hosts list's pill does
+                       * (Pill's isPulsing); still for anyone who asked
+                       * for less motion.
+                       */}
+                      <span className="relative flex h-1.5 w-1.5">
+                        {isStarting ? (
+                          <span
+                            className={`absolute inline-flex h-full w-full rounded-full opacity-75 motion-safe:animate-ping ${statusDotClass}`}
+                          />
+                        ) : (
+                          <></>
+                        )}
+                        <span
+                          className={`relative inline-flex h-1.5 w-1.5 rounded-full ${statusDotClass}`}
+                        />
+                      </span>
                       {statusLabel}
                     </span>
                     {showHealth ? (
@@ -1595,8 +1630,9 @@ const HostOverview: FunctionComponent<
           description={HOST_METRIC_DESCRIPTIONS.memory}
         />
         {/*
-         * The fullest mount, named under its number; amber and red where the
-         * host's Needs attention starts to list it.
+         * The fullest mount, named under its number as the host wrote it
+         * (its slashes where they are on a Persian page); amber and red
+         * where the host's Needs attention starts to list it.
          */}
         <GoldenMetricTile
           title={tx("Filesystem")}
@@ -1604,6 +1640,7 @@ const HostOverview: FunctionComponent<
           iconColor="amber"
           value={formatPercent(s.filesystemPercent)}
           sublabel={s.filesystemMountpoint || undefined}
+          isSublabelAsWritten={true}
           percent={s.filesystemPercent}
           thresholds={{
             warn: HOST_DISK_NEAR_FULL_PERCENT,
@@ -1611,6 +1648,11 @@ const HostOverview: FunctionComponent<
           }}
           description={HOST_METRIC_DESCRIPTIONS.filesystem}
         />
+        {/*
+         * Amber once there is more work than cores, never red: the rules
+         * call a high load one to look at, never critical, and the host's
+         * Needs attention says so in amber.
+         */}
         <GoldenMetricTile
           title={tx("Load avg (1m)")}
           icon={IconProp.Heartbeat}
@@ -1618,7 +1660,10 @@ const HostOverview: FunctionComponent<
           value={formatNumber(s.load1m)}
           sublabel={loadSublabel}
           percent={loadSaturationPct}
-          thresholds={{ warn: 70, danger: 100 }}
+          thresholds={{
+            warn: HOST_LOAD_QUEUING_PERCENT,
+            danger: Number.POSITIVE_INFINITY,
+          }}
           description={HOST_METRIC_DESCRIPTIONS.loadAverage}
         />
         <GoldenMetricTile
@@ -2163,10 +2208,24 @@ const HostOverview: FunctionComponent<
         )}
       />
       {/*
+       * What Security Events found about it this week, for whoever
+       * may read it (Components/SecurityConnections).
+       */}
+      <ResourceSecurityCard
+        kind={SecurityConnectionKind.Host}
+        modelId={modelId}
+        refreshToken={lastRefreshedAt ? lastRefreshedAt.getTime() : undefined}
+      />
+      {renderCharts()}
+      <div className="mb-6">{renderCrossLinks()}</div>
+      {renderMounts()}
+      {/*
        * "Will I hear about it when this host is in trouble?": the alerts
        * OneUptime recommends for a host, which are on for this one, and one
        * step to turn on the rest - its Recommendations, with exactly those
-       * ticked.
+       * ticked. After what the host is doing (its numbers, charts and
+       * filesystems), before its Details, as a Proxmox node's page puts its
+       * alerts: ten rows above the charts pushed them a screen down.
        */}
       {host?.hostIdentifier ? (
         <ResourcePartAlertsCard
@@ -2198,18 +2257,6 @@ const HostOverview: FunctionComponent<
       ) : (
         <></>
       )}
-      {/*
-       * What Security Events found about it this week, for whoever
-       * may read it (Components/SecurityConnections).
-       */}
-      <ResourceSecurityCard
-        kind={SecurityConnectionKind.Host}
-        modelId={modelId}
-        refreshToken={lastRefreshedAt ? lastRefreshedAt.getTime() : undefined}
-      />
-      {renderCharts()}
-      <div className="mb-6">{renderCrossLinks()}</div>
-      {renderMounts()}
 
       {/*
        * What the host is and runs, as its collector reports it: one Details

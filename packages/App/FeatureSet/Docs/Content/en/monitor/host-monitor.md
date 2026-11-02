@@ -115,7 +115,7 @@ A criteria fires only when the condition holds for every minute of its window, a
 **Severity** is the label the picker shows. The incident and alert a template creates start on your project's most severe incident and alert severity; change them in the criteria.
 
 - **Host Stopped Reporting** fires when nothing arrives from the host for ten minutes: the machine is down or unreachable, or its collector stopped, lost its route to OneUptime or had its token revoked. It resolves when data comes back. When data stops, the other templates have nothing to compare and keep their last status, so this is the one that tells you.
-- **Host Restarted** fires on the first report after a boot: the host has been up for less than ten minutes. It reads `system.uptime` from the collector's `system` scraper, which OneUptime's default configs turn on, and resolves once the host has been up for eleven minutes. A host that is down raises **Host Stopped Reporting** instead.
+- **Host Restarted** fires on the first report after a boot: the host has been up for less than ten minutes. It reads `system.uptime` from the collector's `system` scraper, which OneUptime's default configs turn on, and resolves on its own about a quarter of an hour after the boot, once every value of its five-minute window reads eleven minutes or more. A host that is down raises **Host Stopped Reporting** instead.
 - **CPU** is busy time (`user` plus `system`), the same figure the host's **Overview** charts. Iowait and steal are left out.
 - **Memory** excludes buffers and page cache, so a host that is mostly cache does not trip it.
 - **Swap** is used swap over used plus free, across every swap device, as `free` and `swapon` print it. A host without swap reports none and never fires.

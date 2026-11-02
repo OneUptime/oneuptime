@@ -40108,9 +40108,6 @@
   "Latest Inodes Percent": "Последний процент inode",
   "Latest Load Average (15m)": "Последняя средняя нагрузка (15 мин)",
   "Latest Swap Percent": "Последний процент swap",
-  "Load {{load}} on {{count}} core": "Нагрузка {{load}} на {{count}} ядре",
-  "Load {{load}} on {{count}} cores": "Нагрузка {{load}} на {{count}} ядрах",
-  "Load {{load}} on {{count}} cores_one": "Нагрузка {{load}} на {{count}} ядре",
   "Memory {{percent}} used": "Память занята на {{percent}}",
   "Readings Updated At": "Показания обновлены",
   "Share of CPU time spent running programs and the operating system (user plus system time) across every core, from the host's last report, updated about once a minute; below, its logical cores. Amber above 90%.": "Доля процессорного времени, затраченного на выполнение программ и операционной системы (пользовательское плюс системное время), по всем ядрам, по последнему отчёту хоста, обновляется примерно раз в минуту; ниже — его логические ядра. Жёлтый выше 90 %.",
@@ -40135,5 +40132,8 @@
   "{{percent}}% of {{count}} cores": "{{percent}} % от {{count}} ядер",
   "{{percent}}% of {{count}} cores_one": "{{percent}} % от {{count}} ядра",
   "How full the host's fullest filesystem is, as df's Use% (used space over used plus free, space reserved for root not counted), averaged over the whole selected range, not the last 5 minutes; below, its mount point. The Filesystems table lists every mount.": "Насколько заполнена самая заполненная файловая система хоста, как Use% в df (занятое место, делённое на занятое плюс свободное, без места, зарезервированного для root), в среднем за весь выбранный диапазон, а не за последние 5 минут; ниже — её точка монтирования. Таблица «Файловые системы» показывает каждую точку монтирования.",
-  "The host's health by the rules its Needs attention card follows: Unhealthy when something is critical (a filesystem or memory past 95%), Degraded when something needs a look, Not reporting when nothing has arrived for 15 minutes. Below, the reason.": "Состояние хоста по правилам его карточки «Требует внимания»: Неисправно, когда что-то критично (файловая система или память заполнены более чем на 95 %), Деградация, когда что-то требует проверки, Не передаёт данные, когда за 15 минут ничего не пришло. Ниже — причина."
+  "The host's health by the rules its Needs attention card follows: Unhealthy when something is critical (a filesystem or memory past 95%), Degraded when something needs a look, Not reporting when nothing has arrived for 15 minutes. Below, the reason.": "Состояние хоста по правилам его карточки «Требует внимания»: Неисправно, когда что-то критично (файловая система или память заполнены более чем на 95 %), Деградация, когда что-то требует проверки, Не передаёт данные, когда за 15 минут ничего не пришло. Ниже — причина.",
+  "15-minute load {{load}} on {{count}} core": "Нагрузка за 15 мин {{load}} на {{count}} ядре",
+  "15-minute load {{load}} on {{count}} cores": "Нагрузка за 15 мин {{load}} на {{count}} ядрах",
+  "15-minute load {{load}} on {{count}} cores_one": "Нагрузка за 15 мин {{load}} на {{count}} ядре"
 }

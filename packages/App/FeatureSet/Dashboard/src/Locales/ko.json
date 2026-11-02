@@ -40108,9 +40108,6 @@
   "Latest Inodes Percent": "최근 inode 사용률",
   "Latest Load Average (15m)": "최근 평균 부하(15분)",
   "Latest Swap Percent": "최근 스왑 사용률",
-  "Load {{load}} on {{count}} core": "코어 {{count}}개에서 부하 {{load}}",
-  "Load {{load}} on {{count}} cores": "코어 {{count}}개에서 부하 {{load}}",
-  "Load {{load}} on {{count}} cores_one": "코어 {{count}}개에서 부하 {{load}}",
   "Memory {{percent}} used": "메모리 {{percent}} 사용",
   "Readings Updated At": "측정값 갱신 시각",
   "Share of CPU time spent running programs and the operating system (user plus system time) across every core, from the host's last report, updated about once a minute; below, its logical cores. Amber above 90%.": "모든 코어에서 프로그램과 운영 체제를 실행하는 데 쓰인 CPU 시간의 비율(사용자 시간과 시스템 시간의 합)입니다. 호스트의 마지막 보고 값이며 약 1분마다 갱신됩니다. 아래는 논리 코어 수입니다. 90% 초과 시 노란색입니다.",
@@ -40135,5 +40132,8 @@
   "{{percent}}% of {{count}} cores": "코어 {{count}}개의 {{percent}}%",
   "{{percent}}% of {{count}} cores_one": "코어 {{count}}개의 {{percent}}%",
   "How full the host's fullest filesystem is, as df's Use% (used space over used plus free, space reserved for root not counted), averaged over the whole selected range, not the last 5 minutes; below, its mount point. The Filesystems table lists every mount.": "호스트에서 가장 많이 찬 파일 시스템의 사용률로, df의 Use%와 같습니다(사용 공간을 사용 공간과 여유 공간의 합으로 나눈 값, root용 예약 공간 제외). 최근 5분이 아니라 선택한 범위 전체에 걸쳐 평균을 냅니다. 아래는 마운트 지점이며, 파일 시스템 표에 모든 마운트 지점이 나열됩니다.",
-  "The host's health by the rules its Needs attention card follows: Unhealthy when something is critical (a filesystem or memory past 95%), Degraded when something needs a look, Not reporting when nothing has arrived for 15 minutes. Below, the reason.": "호스트의 확인 필요 카드와 같은 규칙에 따른 상태입니다. 심각한 문제(파일 시스템 또는 메모리 95% 초과)가 있으면 비정상, 확인이 필요하면 저하됨, 15분 동안 아무것도 도착하지 않으면 보고 없음입니다. 아래는 그 이유입니다."
+  "The host's health by the rules its Needs attention card follows: Unhealthy when something is critical (a filesystem or memory past 95%), Degraded when something needs a look, Not reporting when nothing has arrived for 15 minutes. Below, the reason.": "호스트의 확인 필요 카드와 같은 규칙에 따른 상태입니다. 심각한 문제(파일 시스템 또는 메모리 95% 초과)가 있으면 비정상, 확인이 필요하면 저하됨, 15분 동안 아무것도 도착하지 않으면 보고 없음입니다. 아래는 그 이유입니다.",
+  "15-minute load {{load}} on {{count}} core": "코어 {{count}}개에서 15분 부하 {{load}}",
+  "15-minute load {{load}} on {{count}} cores": "코어 {{count}}개에서 15분 부하 {{load}}",
+  "15-minute load {{load}} on {{count}} cores_one": "코어 {{count}}개에서 15분 부하 {{load}}"
 }

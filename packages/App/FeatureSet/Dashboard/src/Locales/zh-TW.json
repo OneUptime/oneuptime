@@ -40108,9 +40108,6 @@
   "Latest Inodes Percent": "最新 inode 使用率",
   "Latest Load Average (15m)": "最新負載平均值（15 分鐘）",
   "Latest Swap Percent": "最新交換空間使用率",
-  "Load {{load}} on {{count}} core": "{{count}} 核心上負載 {{load}}",
-  "Load {{load}} on {{count}} cores": "{{count}} 核心上負載 {{load}}",
-  "Load {{load}} on {{count}} cores_one": "{{count}} 核心上負載 {{load}}",
   "Memory {{percent}} used": "記憶體已用 {{percent}}",
   "Readings Updated At": "讀數更新時間",
   "Share of CPU time spent running programs and the operating system (user plus system time) across every core, from the host's last report, updated about once a minute; below, its logical cores. Amber above 90%.": "所有核心上用於執行程式與作業系統的 CPU 時間比例（使用者時間加系統時間），取自主機的最後一次回報，大約每分鐘更新一次；下方為其邏輯核心數。超過 90% 為黃色。",
@@ -40135,5 +40132,8 @@
   "{{percent}}% of {{count}} cores": "{{count}} 核心的 {{percent}}%",
   "{{percent}}% of {{count}} cores_one": "{{count}} 核心的 {{percent}}%",
   "How full the host's fullest filesystem is, as df's Use% (used space over used plus free, space reserved for root not counted), averaged over the whole selected range, not the last 5 minutes; below, its mount point. The Filesystems table lists every mount.": "主機最滿的檔案系統的使用率，與 df 的 Use% 相同（已用空間除以已用加可用空間，不計入保留給 root 的空間），依整個所選範圍取平均值，而不是最近 5 分鐘；下方為其掛載點。檔案系統表格列出了每個掛載點。",
-  "The host's health by the rules its Needs attention card follows: Unhealthy when something is critical (a filesystem or memory past 95%), Degraded when something needs a look, Not reporting when nothing has arrived for 15 minutes. Below, the reason.": "依主機「需要注意」卡片的規則判定的健康狀態：有嚴重問題（檔案系統或記憶體超過 95%）時為不健康，有需要查看的內容時為效能下降，15 分鐘內未收到任何資料時為未回報。下方為原因。"
+  "The host's health by the rules its Needs attention card follows: Unhealthy when something is critical (a filesystem or memory past 95%), Degraded when something needs a look, Not reporting when nothing has arrived for 15 minutes. Below, the reason.": "依主機「需要注意」卡片的規則判定的健康狀態：有嚴重問題（檔案系統或記憶體超過 95%）時為不健康，有需要查看的內容時為效能下降，15 分鐘內未收到任何資料時為未回報。下方為原因。",
+  "15-minute load {{load}} on {{count}} core": "{{count}} 核心上 15 分鐘負載 {{load}}",
+  "15-minute load {{load}} on {{count}} cores": "{{count}} 核心上 15 分鐘負載 {{load}}",
+  "15-minute load {{load}} on {{count}} cores_one": "{{count}} 核心上 15 分鐘負載 {{load}}"
 }

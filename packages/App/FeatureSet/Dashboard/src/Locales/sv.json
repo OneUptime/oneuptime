@@ -40108,9 +40108,6 @@
   "Latest Inodes Percent": "Senaste inode-procent",
   "Latest Load Average (15m)": "Senaste genomsnittliga belastning (15 min)",
   "Latest Swap Percent": "Senaste swap-procent",
-  "Load {{load}} on {{count}} core": "Belastning {{load}} på {{count}} kärna",
-  "Load {{load}} on {{count}} cores": "Belastning {{load}} på {{count}} kärnor",
-  "Load {{load}} on {{count}} cores_one": "Belastning {{load}} på {{count}} kärna",
   "Memory {{percent}} used": "Minne {{percent}} använt",
   "Readings Updated At": "Mätvärden uppdaterade",
   "Share of CPU time spent running programs and the operating system (user plus system time) across every core, from the host's last report, updated about once a minute; below, its logical cores. Amber above 90%.": "Andel av CPU-tiden som gick åt till att köra program och operativsystemet (användar- plus systemtid) över alla kärnor, från värdens senaste rapport, uppdaterad ungefär en gång i minuten; nedanför, dess logiska kärnor. Gul över 90 %.",
@@ -40135,5 +40132,8 @@
   "{{percent}}% of {{count}} cores": "{{percent}} % av {{count}} kärnor",
   "{{percent}}% of {{count}} cores_one": "{{percent}} % av {{count}} kärna",
   "How full the host's fullest filesystem is, as df's Use% (used space over used plus free, space reserved for root not counted), averaged over the whole selected range, not the last 5 minutes; below, its mount point. The Filesystems table lists every mount.": "Hur fullt värdens fullaste filsystem är, som dfs Use% (använt utrymme delat med använt plus ledigt, utrymme reserverat för root räknas inte), i genomsnitt över hela det valda tidsintervallet, inte de senaste 5 minuterna; nedanför, dess monteringspunkt. Tabellen Filsystem listar varje monteringspunkt.",
-  "The host's health by the rules its Needs attention card follows: Unhealthy when something is critical (a filesystem or memory past 95%), Degraded when something needs a look, Not reporting when nothing has arrived for 15 minutes. Below, the reason.": "Värdens hälsa enligt reglerna för dess kort Kräver uppmärksamhet: Ej felfri när något är kritiskt (ett filsystem eller minnet över 95 %), Försämrad när något behöver ses över, Ingen rapportering när inget har kommit på 15 minuter. Nedanför, orsaken."
+  "The host's health by the rules its Needs attention card follows: Unhealthy when something is critical (a filesystem or memory past 95%), Degraded when something needs a look, Not reporting when nothing has arrived for 15 minutes. Below, the reason.": "Värdens hälsa enligt reglerna för dess kort Kräver uppmärksamhet: Ej felfri när något är kritiskt (ett filsystem eller minnet över 95 %), Försämrad när något behöver ses över, Ingen rapportering när inget har kommit på 15 minuter. Nedanför, orsaken.",
+  "15-minute load {{load}} on {{count}} core": "15-minutersbelastning {{load}} på {{count}} kärna",
+  "15-minute load {{load}} on {{count}} cores": "15-minutersbelastning {{load}} på {{count}} kärnor",
+  "15-minute load {{load}} on {{count}} cores_one": "15-minutersbelastning {{load}} på {{count}} kärna"
 }

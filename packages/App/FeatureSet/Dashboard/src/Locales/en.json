@@ -40108,9 +40108,6 @@
   "Latest Inodes Percent": "Latest Inodes Percent",
   "Latest Load Average (15m)": "Latest Load Average (15m)",
   "Latest Swap Percent": "Latest Swap Percent",
-  "Load {{load}} on {{count}} core": "Load {{load}} on {{count}} core",
-  "Load {{load}} on {{count}} cores": "Load {{load}} on {{count}} cores",
-  "Load {{load}} on {{count}} cores_one": "Load {{load}} on {{count}} core",
   "Memory {{percent}} used": "Memory {{percent}} used",
   "Readings Updated At": "Readings Updated At",
   "Share of CPU time spent running programs and the operating system (user plus system time) across every core, from the host's last report, updated about once a minute; below, its logical cores. Amber above 90%.": "Share of CPU time spent running programs and the operating system (user plus system time) across every core, from the host's last report, updated about once a minute; below, its logical cores. Amber above 90%.",
@@ -40135,5 +40132,8 @@
   "{{percent}}% of {{count}} cores": "{{percent}}% of {{count}} cores",
   "{{percent}}% of {{count}} cores_one": "{{percent}}% of {{count}} core",
   "How full the host's fullest filesystem is, as df's Use% (used space over used plus free, space reserved for root not counted), averaged over the whole selected range, not the last 5 minutes; below, its mount point. The Filesystems table lists every mount.": "How full the host's fullest filesystem is, as df's Use% (used space over used plus free, space reserved for root not counted), averaged over the whole selected range, not the last 5 minutes; below, its mount point. The Filesystems table lists every mount.",
-  "The host's health by the rules its Needs attention card follows: Unhealthy when something is critical (a filesystem or memory past 95%), Degraded when something needs a look, Not reporting when nothing has arrived for 15 minutes. Below, the reason.": "The host's health by the rules its Needs attention card follows: Unhealthy when something is critical (a filesystem or memory past 95%), Degraded when something needs a look, Not reporting when nothing has arrived for 15 minutes. Below, the reason."
+  "The host's health by the rules its Needs attention card follows: Unhealthy when something is critical (a filesystem or memory past 95%), Degraded when something needs a look, Not reporting when nothing has arrived for 15 minutes. Below, the reason.": "The host's health by the rules its Needs attention card follows: Unhealthy when something is critical (a filesystem or memory past 95%), Degraded when something needs a look, Not reporting when nothing has arrived for 15 minutes. Below, the reason.",
+  "15-minute load {{load}} on {{count}} core": "15-minute load {{load}} on {{count}} core",
+  "15-minute load {{load}} on {{count}} cores": "15-minute load {{load}} on {{count}} cores",
+  "15-minute load {{load}} on {{count}} cores_one": "15-minute load {{load}} on {{count}} core"
 }

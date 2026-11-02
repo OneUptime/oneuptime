@@ -71,8 +71,17 @@ const HostFilesystemsTable: FunctionComponent<ComponentProps> = (
       title: "Mount",
       type: FieldType.Element,
       disableSort: true,
+      /*
+       * Each value reads the way the host wrote it (bdi): on a Persian page
+       * /var/lib/postgresql kept its leading slash at its far end, and
+       * "472 GiB / 500 GiB" put 472 after the total.
+       */
       getElement: (mount: HostMount): ReactElement => {
-        return <span className="font-mono">{mount.mountpoint}</span>;
+        return (
+          <bdi className="font-mono" data-testid="host-filesystem-mount">
+            {mount.mountpoint}
+          </bdi>
+        );
       },
     },
     {
@@ -108,7 +117,11 @@ const HostFilesystemsTable: FunctionComponent<ComponentProps> = (
           return <TableEmptyValue />;
         }
 
-        return <span className="font-mono">{mount.device}</span>;
+        return (
+          <bdi className="font-mono" data-testid="host-filesystem-device">
+            {mount.device}
+          </bdi>
+        );
       },
     },
     {
@@ -122,13 +135,13 @@ const HostFilesystemsTable: FunctionComponent<ComponentProps> = (
       foldInto: "utilization",
       getElement: (mount: HostMount): ReactElement => {
         return (
-          <span className="tabular-nums">
+          <bdi className="tabular-nums" data-testid="host-filesystem-used">
             <span className="font-medium text-gray-900">
               {props.formatBytes(mount.usedBytes)}
             </span>
             <span className="mx-1 text-gray-400">/</span>
             <span>{props.formatBytes(mount.totalBytes)}</span>
-          </span>
+          </bdi>
         );
       },
     },

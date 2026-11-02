@@ -127,7 +127,7 @@ const PART_SENTENCES: Record<string, Array<string>> = {
     "Degraded",
     "Failed",
     "Healthy",
-    "Load {{load}} on {{count}} cores",
+    "15-minute load {{load}} on {{count}} cores",
     "Memory {{percent}} used",
     "No data yet",
     "Not reporting",
@@ -149,7 +149,8 @@ const ONE_FORMS: Record<string, string> = {
   "{{count}} cores": "{{count}} core",
   "across {{count}} cores": "across {{count}} core",
   "{{percent}}% of {{count}} cores": "{{percent}}% of {{count}} core",
-  "Load {{load}} on {{count}} cores": "Load {{load}} on {{count}} core",
+  "15-minute load {{load}} on {{count}} cores":
+    "15-minute load {{load}} on {{count}} core",
   "{{count}} failed systemd units": "{{count}} failed systemd unit",
 };
 

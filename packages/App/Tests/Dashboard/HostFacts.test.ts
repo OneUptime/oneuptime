@@ -9,6 +9,7 @@ import {
 } from "Common/Types/Host/HostHealth";
 import {
   HOST_CPU_BUSY_PERCENT,
+  HOST_LOAD_QUEUING_PERCENT,
   HostStatusFacts,
   formatHostBytes,
   formatHostUsagePercent,
@@ -16,6 +17,7 @@ import {
   getHostUptimeSeconds,
   getHostUsage,
   getHostUsageTone,
+  isHostStarting,
 } from "../../FeatureSet/Dashboard/src/Pages/Host/Utils/HostFacts";
 
 /*
@@ -79,6 +81,18 @@ describe("each bar's colour", () => {
     expect(getHostUsageTone("disk", HOST_DISK_FULL_PERCENT + 0.1)).toBe(
       "danger",
     );
+  });
+});
+
+describe("the load tile's line", () => {
+  /*
+   * The host's UI review: the load tile's bar was red from 100% of the
+   * cores, beside an amber "15-minute load" in the host's Needs attention.
+   * Its (i) says over 100% means work is queuing: amber from there, and
+   * never red, as the rules call a high load one to look at.
+   */
+  test("is where work starts to queue: as many runnable processes as cores", () => {
+    expect(HOST_LOAD_QUEUING_PERCENT).toBe(100);
   });
 });
 
@@ -223,6 +237,69 @@ describe("the Status cell", () => {
     expect(facts.status).toEqual({ text: "Healthy" });
     expect(facts.tone).toBe("positive");
     expect(facts.firstReason).toBeNull();
+  });
+});
+
+describe("a host still starting, in its hero", () => {
+  /*
+   * The hero said an amber Disconnected a minute after Add Host, above a
+   * card saying "This host is starting", while its Hosts row said
+   * Starting. Now the hero says Starting too - for a host OneUptime
+   * installed the collector on, within its first ten minutes.
+   */
+  function starting(fields: Partial<HostHealthRow> = {}): HostHealthRow {
+    return host({
+      otelCollectorStatus: "disconnected",
+      lastSeenAt: null,
+      readingsUpdatedAt: null,
+      collectorInstanceUid: "uid-new-01",
+      collectorRegisteredAt: new Date(NOW.getTime() - 2 * MINUTE),
+      createdAt: new Date(NOW.getTime() - 2 * MINUTE),
+      ...fields,
+    });
+  }
+
+  test("a managed host waiting for its first metrics is starting", () => {
+    expect(isHostStarting({ row: starting(), now: NOW })).toBe(true);
+  });
+
+  test("ten minutes after its collector registered, it no longer is", () => {
+    expect(
+      isHostStarting({
+        row: starting({
+          collectorRegisteredAt: new Date(NOW.getTime() - 11 * MINUTE),
+          createdAt: new Date(NOW.getTime() - 11 * MINUTE),
+        }),
+        now: NOW,
+      }),
+    ).toBe(false);
+  });
+
+  test("a host set up by hand reads Disconnected, as its connection card explains", () => {
+    expect(
+      isHostStarting({
+        row: starting({ collectorInstanceUid: null }),
+        now: NOW,
+      }),
+    ).toBe(false);
+  });
+
+  test("a host that has reported, or reports now, is not starting", () => {
+    expect(
+      isHostStarting({
+        row: starting({ lastSeenAt: new Date(NOW.getTime() - 3 * MINUTE) }),
+        now: NOW,
+      }),
+    ).toBe(false);
+    expect(
+      isHostStarting({
+        row: starting({
+          otelCollectorStatus: "connected",
+          lastSeenAt: new Date(NOW.getTime() - MINUTE),
+        }),
+        now: NOW,
+      }),
+    ).toBe(false);
   });
 });
 

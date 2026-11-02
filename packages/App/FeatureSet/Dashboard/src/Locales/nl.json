@@ -40108,9 +40108,6 @@
   "Latest Inodes Percent": "Laatste inodepercentage",
   "Latest Load Average (15m)": "Laatste belastingsgemiddelde (15m)",
   "Latest Swap Percent": "Laatste swappercentage",
-  "Load {{load}} on {{count}} core": "Belasting {{load}} op {{count}} kern",
-  "Load {{load}} on {{count}} cores": "Belasting {{load}} op {{count}} kernen",
-  "Load {{load}} on {{count}} cores_one": "Belasting {{load}} op {{count}} kern",
   "Memory {{percent}} used": "Geheugen voor {{percent}} gebruikt",
   "Readings Updated At": "Metingen bijgewerkt op",
   "Share of CPU time spent running programs and the operating system (user plus system time) across every core, from the host's last report, updated about once a minute; below, its logical cores. Amber above 90%.": "Deel van de CPU-tijd besteed aan het uitvoeren van programma's en het besturingssysteem (gebruikers- plus systeemtijd) over alle kernen, uit de laatste melding van de host, ongeveer eens per minuut bijgewerkt; eronder de logische kernen. Oranje boven 90%.",
@@ -40135,5 +40132,8 @@
   "{{percent}}% of {{count}} cores": "{{percent}}% van {{count}} kernen",
   "{{percent}}% of {{count}} cores_one": "{{percent}}% van {{count}} kern",
   "How full the host's fullest filesystem is, as df's Use% (used space over used plus free, space reserved for root not counted), averaged over the whole selected range, not the last 5 minutes; below, its mount point. The Filesystems table lists every mount.": "Hoe vol het volste bestandssysteem van de host is, als de Use% van df (gebruikte ruimte gedeeld door gebruikt plus vrij, ruimte die voor root is gereserveerd niet meegeteld), gemiddeld over het hele gekozen bereik, niet over de laatste 5 minuten; eronder het koppelpunt. De tabel Bestandssystemen toont elk koppelpunt.",
-  "The host's health by the rules its Needs attention card follows: Unhealthy when something is critical (a filesystem or memory past 95%), Degraded when something needs a look, Not reporting when nothing has arrived for 15 minutes. Below, the reason.": "De gezondheid van de host volgens de regels van zijn kaart Vraagt aandacht: Ongezond als iets kritiek is (een bestandssysteem of het geheugen boven 95%), Verminderd als iets aandacht nodig heeft, Rapporteert niet als er 15 minuten niets is binnengekomen. Eronder de reden."
+  "The host's health by the rules its Needs attention card follows: Unhealthy when something is critical (a filesystem or memory past 95%), Degraded when something needs a look, Not reporting when nothing has arrived for 15 minutes. Below, the reason.": "De gezondheid van de host volgens de regels van zijn kaart Vraagt aandacht: Ongezond als iets kritiek is (een bestandssysteem of het geheugen boven 95%), Verminderd als iets aandacht nodig heeft, Rapporteert niet als er 15 minuten niets is binnengekomen. Eronder de reden.",
+  "15-minute load {{load}} on {{count}} core": "15-minutenbelasting {{load}} op {{count}} kern",
+  "15-minute load {{load}} on {{count}} cores": "15-minutenbelasting {{load}} op {{count}} kernen",
+  "15-minute load {{load}} on {{count}} cores_one": "15-minutenbelasting {{load}} op {{count}} kern"
 }

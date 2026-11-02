@@ -734,7 +734,7 @@ const hostRestartedTemplate: HostAlertTemplate = {
         value: HOST_RESTARTED_UPTIME_SECONDS,
         metricAggregationType: EvaluateOverTimeType.AnyValue,
         incidentTitle: `[Host] Host Restarted${hostTitleSuffix(args)}`,
-        incidentDescription: `This host has been up for less than ten minutes: it rebooted, or it crashed and came back. If nobody restarted it, read the journal of the boot before (journalctl -b -1, or the System event log on Windows) for a kernel panic, an out-of-memory kill, a watchdog or a power event, and check that the services it runs came back. The incident resolves once the host has been up for eleven minutes.`,
+        incidentDescription: `This host has been up for less than ten minutes: it rebooted, or it crashed and came back. If nobody restarted it, read the journal of the boot before (journalctl -b -1, or the System event log on Windows) for a kernel panic, an out-of-memory kill, a watchdog or a power event, and check that the services it runs came back. The incident resolves on its own about a quarter of an hour after the boot, once every value of the monitoring window reads eleven minutes or more.`,
         criteriaName: "Host Restarted - Uptime < 10 minutes",
         criteriaDescription:
           "Triggers when the host reports an uptime below ten minutes at any point in the monitoring window.",

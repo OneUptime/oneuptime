@@ -928,7 +928,8 @@ describe("a root that marks its keys", () => {
     }
 
     expect(plurals).toEqual({
-      "Load {{load}} on {{count}} cores": "Load {{load}} on {{count}} core",
+      "15-minute load {{load}} on {{count}} cores":
+        "15-minute load {{load}} on {{count}} core",
       "{{count}} failed systemd units": "{{count}} failed systemd unit",
     });
     expect(textsOf(result)).toEqual(

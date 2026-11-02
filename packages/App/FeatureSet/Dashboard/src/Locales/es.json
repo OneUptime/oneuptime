@@ -40108,9 +40108,6 @@
   "Latest Inodes Percent": "Último porcentaje de inodos",
   "Latest Load Average (15m)": "Última carga media (15 m)",
   "Latest Swap Percent": "Último porcentaje de swap",
-  "Load {{load}} on {{count}} core": "Carga {{load}} en {{count}} núcleo",
-  "Load {{load}} on {{count}} cores": "Carga {{load}} en {{count}} núcleos",
-  "Load {{load}} on {{count}} cores_one": "Carga {{load}} en {{count}} núcleo",
   "Memory {{percent}} used": "Memoria usada al {{percent}}",
   "Readings Updated At": "Lecturas actualizadas el",
   "Share of CPU time spent running programs and the operating system (user plus system time) across every core, from the host's last report, updated about once a minute; below, its logical cores. Amber above 90%.": "Parte del tiempo de CPU dedicada a ejecutar programas y el sistema operativo (tiempo de usuario más de sistema) en todos los núcleos, según el último informe del host, actualizada aproximadamente una vez por minuto; debajo, sus núcleos lógicos. Ámbar por encima del 90 %.",
@@ -40135,5 +40132,8 @@
   "{{percent}}% of {{count}} cores": "{{percent}} % de {{count}} núcleos",
   "{{percent}}% of {{count}} cores_one": "{{percent}} % de {{count}} núcleo",
   "How full the host's fullest filesystem is, as df's Use% (used space over used plus free, space reserved for root not counted), averaged over the whole selected range, not the last 5 minutes; below, its mount point. The Filesystems table lists every mount.": "Lo lleno que está el sistema de archivos más lleno del host, como el Use% de df (espacio usado entre usado más libre, sin contar el espacio reservado para root), promediado en todo el rango seleccionado, no en los últimos 5 minutos; debajo, su punto de montaje. La tabla Sistemas de archivos muestra cada punto de montaje.",
-  "The host's health by the rules its Needs attention card follows: Unhealthy when something is critical (a filesystem or memory past 95%), Degraded when something needs a look, Not reporting when nothing has arrived for 15 minutes. Below, the reason.": "La salud del host según las reglas de su tarjeta Requiere atención: Con problemas cuando algo es crítico (un sistema de archivos o la memoria por encima del 95 %), Degradado cuando algo necesita revisión, Sin informar cuando no ha llegado nada en 15 minutos. Debajo, el motivo."
+  "The host's health by the rules its Needs attention card follows: Unhealthy when something is critical (a filesystem or memory past 95%), Degraded when something needs a look, Not reporting when nothing has arrived for 15 minutes. Below, the reason.": "La salud del host según las reglas de su tarjeta Requiere atención: Con problemas cuando algo es crítico (un sistema de archivos o la memoria por encima del 95 %), Degradado cuando algo necesita revisión, Sin informar cuando no ha llegado nada en 15 minutos. Debajo, el motivo.",
+  "15-minute load {{load}} on {{count}} core": "Carga de 15 min {{load}} en {{count}} núcleo",
+  "15-minute load {{load}} on {{count}} cores": "Carga de 15 min {{load}} en {{count}} núcleos",
+  "15-minute load {{load}} on {{count}} cores_one": "Carga de 15 min {{load}} en {{count}} núcleo"
 }

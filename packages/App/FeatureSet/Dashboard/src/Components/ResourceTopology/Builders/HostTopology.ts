@@ -190,14 +190,19 @@ export function getHostTopologyRootState(data: {
     now: data.now,
   });
 
+  /*
+   * Green only for a host the rules call Healthy. One still starting, or
+   * reporting with nothing to judge (no host metrics lately), is grey, as
+   * the Hosts list draws its Starting and Reporting: green would be a guess.
+   */
   const health: ResourceTopologyHealth =
     assessment.severity === HostHealthSeverity.Critical
       ? "critical"
       : assessment.severity === HostHealthSeverity.Warning
         ? "warning"
-        : assessment.state === "starting"
-          ? "unknown"
-          : "healthy";
+        : assessment.state === "healthy"
+          ? "healthy"
+          : "unknown";
 
   const reasons: Array<ResourceTopologyText> =
     assessment.state === "not-reporting"

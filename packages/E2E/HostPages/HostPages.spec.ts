@@ -263,6 +263,20 @@ async function expectTableFitsItsCard(page: Page): Promise<void> {
   expect(widths.table).toBeLessThanOrEqual(widths.box);
 }
 
+// The direction the browser draws an element's text in.
+async function drawnDirection(locator: Locator): Promise<string> {
+  return await locator.evaluate((element: Element): string => {
+    return getComputedStyle(element).direction;
+  });
+}
+
+// Whether `later` is drawn below `earlier` on the page.
+async function isBelow(earlier: Locator, later: Locator): Promise<boolean> {
+  const first: { y: number } | null = await earlier.boundingBox();
+  const second: { y: number } | null = await later.boundingBox();
+  return Boolean(first && second && second.y > first.y);
+}
+
 // A golden tile on the Overview, found by its title in the reader's language.
 function goldenTile(page: Page, title: string): Locator {
   return page
@@ -318,7 +332,7 @@ test.describe("the Hosts list", () => {
       attentionRow(card, HOST_IDS["edge01"]!).getByTestId(
         "host-fleet-attention-reason",
       ),
-    ).toHaveText(["Swap 86% used", "Load 9.6 on 4 cores"]);
+    ).toHaveText(["Swap 86% used", "15-minute load 9.6 on 4 cores"]);
     await expect(
       attentionRow(card, HOST_IDS["app02"]!).getByTestId(
         "host-fleet-attention-reason",
@@ -449,6 +463,28 @@ test.describe("the Hosts list", () => {
       "db-01.prod.internal",
     );
     await expect(db01.getByTestId("host-os")).toHaveText("linux amd64");
+
+    /*
+     * Whether OneUptime hears from a host is the Connection filter: a
+     * Status filter offering Connected and Disconnected sat beside a
+     * Status column that says the host's health.
+     */
+    const filters: Locator = page.getByTestId("facet-filter-bar");
+    await expect(filters.getByTestId("filter-chip")).toHaveText([
+      "Owner",
+      "Labels",
+      "Connection",
+      "OS",
+      "Architecture",
+    ]);
+    await page.getByRole("button", { name: "Connection", exact: true }).click();
+    await expect(
+      page.getByRole("option", { name: "Connected", exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("option", { name: "Disconnected", exact: true }),
+    ).toBeVisible();
+    await page.keyboard.press("Escape");
 
     // The whole table fits its card at a laptop's width.
     await expectTableFitsItsCard(page);
@@ -624,6 +660,28 @@ test.describe("the Hosts list", () => {
       tableRow(page, "web-01").getByTestId("host-usage-memory"),
     ).toContainText(fill(GERMAN, "of {{total}}", { total: "32 GiB" }));
 
+    /*
+     * The German headings leave the name its least width: "Payments
+     * database" read "Payments datab...". It wraps onto a second line,
+     * whole.
+     */
+    const name: { lines: number; isCut: boolean } = await page
+      .getByRole("link", { name: "Payments database", exact: true })
+      .first()
+      .evaluate((link: Element): { lines: number; isCut: boolean } => {
+        const line: HTMLElement = link.parentElement as HTMLElement;
+        const lineHeight: number = parseFloat(
+          getComputedStyle(line).lineHeight,
+        );
+        return {
+          lines: Math.round(line.getBoundingClientRect().height / lineHeight),
+          isCut: line.scrollHeight > line.clientHeight + 1,
+        };
+      });
+    expect(name.isCut).toBe(false);
+    expect(name.lines).toBeLessThanOrEqual(2);
+    await expectTableFitsItsCard(page);
+
     await expectNoSidewaysScroll(page);
     await screenshot(page, "hosts-list-german");
   });
@@ -737,8 +795,45 @@ test.describe("a host's Overview", () => {
     // When it booted, in Details.
     await expect(page.getByText("Booted", { exact: true })).toBeVisible();
 
+    /*
+     * What the host is doing comes first - its tiles, charts and
+     * Filesystems - then which alerts watch it, then its Details: ten
+     * alert rows above the charts pushed them a screen down.
+     */
+    const filesystems: Locator = page.getByText("Filesystems", {
+      exact: true,
+    });
+    const alerts: Locator = page.getByTestId("host-alerts");
+    const details: Locator = page.getByText("Details", { exact: true });
+    await expect(alerts.getByTestId("host-alerts-item")).toHaveCount(10);
+    expect(await isBelow(filesystems, alerts)).toBe(true);
+    expect(await isBelow(alerts, details)).toBe(true);
+
     await expectNoSidewaysScroll(page);
     await screenshot(page, "host-overview");
+  });
+
+  test("more work than cores: the load tile is amber, never red, and Needs attention names the 15-minute load", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openHost(page, HOST_IDS["edge01"]!);
+
+    const own: Locator = attentionRow(
+      page.getByTestId("host-needs-attention"),
+      "host",
+    );
+    await expect(own.getByTestId("host-needs-attention-reason")).toHaveText([
+      "Swap 86% used",
+      "15-minute load 9.6 on 4 cores",
+    ]);
+
+    // Its 1-minute load, over twice its cores: amber, as the card says it.
+    const load: Locator = goldenTile(page, "Load avg (1m)");
+    const bar: Locator = load.locator(".rounded-full.transition-all");
+    await expect(bar).toHaveClass(/bg-amber-500/);
+    await expect(bar).not.toHaveClass(/bg-red-500/);
   });
 
   test("Host alerts turn on in one step, into Recommendations with exactly those selected", async ({
@@ -864,6 +959,19 @@ test.describe("a host's Overview", () => {
     await expect(page.getByTestId("resource-connection-guide")).toBeVisible();
     await expect(page.getByTestId("host-hero-health")).toHaveCount(0);
     await expect(page.getByTestId("host-needs-attention")).toHaveCount(0);
+    /*
+     * Starting, as its row in the Hosts list and the card under the hero
+     * say - not an amber Disconnected a minute after Add Host.
+     */
+    const connection: Locator = page.getByTestId("host-hero-connection");
+    await expect(connection).toHaveText("Starting");
+    await expect(connection).toHaveAttribute("data-starting", "true");
+
+    // A host that stopped reporting still says Disconnected.
+    await page.goto(hostPath(HOST_IDS["web03"]!));
+    await expect(page.getByTestId("host-hero-connection")).toHaveText(
+      "Disconnected",
+    );
   });
 
   test("a healthy host's page has no Needs attention card", async ({
@@ -918,6 +1026,26 @@ test.describe("a host's Overview", () => {
         .getByTestId("host-needs-attention-name")
         .locator("bdi"),
     ).toHaveText("/var/lib/postgresql");
+    /*
+     * The Filesystem tile named it "var/lib/postgresql/", and the
+     * Filesystems table its mounts, devices and "472 GiB / 500 GiB" the
+     * other way round: each reads left to right now.
+     */
+    const tileMount: Locator = goldenTile(page, PERSIAN["Filesystem"] as string)
+      .getByTestId("golden-metric-tile-sublabel")
+      .locator("bdi");
+    await expect(tileMount).toHaveText("/var/lib/postgresql");
+    expect(await drawnDirection(tileMount)).toBe("ltr");
+    for (const testId of [
+      "host-filesystem-mount",
+      "host-filesystem-device",
+      "host-filesystem-used",
+    ]) {
+      expect({
+        testId: testId,
+        direction: await drawnDirection(page.getByTestId(testId).first()),
+      }).toEqual({ testId: testId, direction: "ltr" });
+    }
     await expectNoSidewaysScroll(page);
     await screenshot(page, "host-overview-persian");
 
