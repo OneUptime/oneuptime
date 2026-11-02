@@ -404,7 +404,14 @@ export default class ModelPermission {
 
     for (const column of tableColumns) {
       const key: string = column.key;
-      if ((data as any)[key] === undefined) {
+      /*
+       * The value the record holds, not a property of the model: a column
+       * the model declares no property for (a log's serviceEntityKey) is
+       * written all the same, so it is checked all the same.
+       */
+      const value: unknown = data.getColumnValue(key);
+
+      if (value === undefined) {
         continue;
       }
 
@@ -451,7 +458,7 @@ export default class ModelPermission {
         if (
           (requestType === DatabaseRequestType.Create ||
             requestType === DatabaseRequestType.Update) &&
-          isAnalyticsPlanGatedColumnDefault(column, (data as any)[key])
+          isAnalyticsPlanGatedColumnDefault(column, value)
         ) {
           continue;
         }
