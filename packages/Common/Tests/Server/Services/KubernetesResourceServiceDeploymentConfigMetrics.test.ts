@@ -67,7 +67,10 @@ describe("getLatestMetricsByOwner for a DeploymentConfig", () => {
     const sql: string = query.mock.calls[0]![0];
 
     expect(sql).toContain(`"labels"->>'deploymentconfig' AS "ownerName"`);
-    expect(sql).toContain(`GROUP BY "labels"->>'deploymentconfig'`);
+    // In its namespace: the same name in another is another DeploymentConfig.
+    expect(sql).toContain(
+      `GROUP BY "namespaceKey", "labels"->>'deploymentconfig'`,
+    );
     expect(sql).not.toContain("ownerReferences");
     expect(sql).not.toContain("controllerDeploymentName");
   });
@@ -93,20 +96,49 @@ describe("getLatestMetricsByOwner for a DeploymentConfig", () => {
 
   test("adds up each DeploymentConfig's pods, and skips a row with no name", async () => {
     query.mockResolvedValue([
-      { ownerName: "frontend", cpu: "12.5", mem: "4096", memPct: "1.5" },
-      { ownerName: "worker", cpu: null, mem: null, memPct: null },
-      { ownerName: "", cpu: "1", mem: "1", memPct: "1" },
+      {
+        namespaceKey: "shop",
+        ownerName: "frontend",
+        cpu: "12.5",
+        mem: "4096",
+        memPct: "1.5",
+      },
+      {
+        namespaceKey: "payments",
+        ownerName: "frontend",
+        cpu: "3",
+        mem: "1024",
+        memPct: "0.5",
+      },
+      {
+        namespaceKey: "shop",
+        ownerName: "worker",
+        cpu: null,
+        mem: null,
+        memPct: null,
+      },
+      { namespaceKey: "shop", ownerName: "", cpu: "1", mem: "1", memPct: "1" },
     ]);
 
     const metrics: Awaited<ReturnType<typeof read>> = await read();
 
-    expect(Array.from(metrics.keys())).toEqual(["frontend", "worker"]);
-    expect(metrics.get("frontend")).toEqual({
+    // Keyed by namespace and name: two namespaces' frontend are two rows.
+    expect(Array.from(metrics.keys())).toEqual([
+      "shop/frontend",
+      "payments/frontend",
+      "shop/worker",
+    ]);
+    expect(metrics.get("shop/frontend")).toEqual({
       cpuPercent: 12.5,
       memoryBytes: 4096,
       memoryPercent: 1.5,
     });
-    expect(metrics.get("worker")).toEqual({
+    expect(metrics.get("payments/frontend")).toEqual({
+      cpuPercent: 3,
+      memoryBytes: 1024,
+      memoryPercent: 0.5,
+    });
+    expect(metrics.get("shop/worker")).toEqual({
       cpuPercent: 0,
       memoryBytes: 0,
       memoryPercent: 0,
@@ -133,6 +165,13 @@ describe("getLatestMetricsByOwner for a DeploymentConfig", () => {
     expect(query.mock.calls[0]![0]).not.toContain("deploymentconfig");
     expect(query.mock.calls[1]![0]).toContain("ownerReferences");
     expect(query.mock.calls[1]![0]).not.toContain("deploymentconfig");
+    // Every kind's pods are added up in their own namespace.
+    expect(query.mock.calls[0]![0]).toContain(
+      `GROUP BY "namespaceKey", "controllerDeploymentName"`,
+    );
+    expect(query.mock.calls[1]![0]).toContain(
+      `GROUP BY "namespaceKey", (owner->>'name')`,
+    );
   });
 });
 

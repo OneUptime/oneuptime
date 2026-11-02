@@ -70,6 +70,15 @@ const READ_PERMISSIONS: Array<Permission> = [
 @Index(["projectId", "kubernetesClusterId", "kind", "namespaceKey", "name"], {
   unique: true,
 })
+/*
+ * What needs attention in a cluster (healthSeverity set): what its Overview
+ * reads every time it refreshes. Partial, so it holds the few objects that
+ * need someone rather than the whole inventory; "deletedAt" IS NULL as the
+ * read always carries it. Built online in its own migration (OnlineDdl).
+ */
+@Index(["kubernetesClusterId"], {
+  where: '"healthSeverity" IS NOT NULL AND "deletedAt" IS NULL',
+})
 @Entity({
   name: "KubernetesResource",
 })
@@ -442,6 +451,31 @@ export default class KubernetesResource extends BaseModel {
     type: ColumnType.JSON,
   })
   public status?: JSONObject = undefined;
+
+  /*
+   * The object's verdict when it was last seen, by
+   * Common/Types/Kubernetes/KubernetesHealth: what the Overview's Needs
+   * attention reads, and lists can sort by. Written by ingest only.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: READ_PERMISSIONS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+    title: "Health Severity",
+    description:
+      "Whether the object needed attention when last seen: critical or warning, empty when it did not.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public healthSeverity?: string = undefined;
 
   @ColumnAccessControl({
     create: [],

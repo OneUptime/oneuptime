@@ -338,32 +338,24 @@ describe("cluster overview: hero chips", () => {
 });
 
 describe("cluster overview: node pressure, summary cards and sections", () => {
-  test("each pressure badge carries its own description", () => {
-    const badges: string = between(
-      OVERVIEW,
-      "const pressureBadges:",
-      "const renderRefreshControl:",
-    );
-
-    expect(
-      pairsIn({
-        block: badges,
-        opener: "pressureBadges.push({",
-        closer: "});",
-        titlePattern: LABEL_PROPERTY,
-        prop: "description",
-        record: CLUSTER_RECORD,
-      }),
-    ).toEqual([
-      ["Memory Pressure", "memoryPressure"],
-      ["Disk Pressure", "diskPressure"],
-      ["PID Pressure", "pidPressure"],
-    ]);
-
+  test("a node under pressure is a row of Needs attention, by node, not a banner of its own", () => {
+    /*
+     * The banner of pressure badges said how many nodes were under memory,
+     * disk or PID pressure and not which: each one is now a row of Needs
+     * attention, the node's name and why, a step from its page.
+     */
+    expect(OVERVIEW).not.toContain("pressureBadges");
     expectCode(
       OVERVIEW,
-      "<InfoTooltip label={badge.label} text={badge.description} />",
+      '<NeedsAttentionCard testId="kubernetes-needs-attention"',
     );
+
+    const rules: string = readCommonCode(
+      "Types/Kubernetes/KubernetesHealth.ts",
+    );
+    for (const reason of ["Memory pressure", "Disk pressure", "PID pressure"]) {
+      expectCode(rules, `translationKey("${reason}")`);
+    }
   });
 
   test("every summary card has a tooltip of its own", () => {
@@ -580,18 +572,27 @@ describe("accuracy anchors: the numbers the overview texts quote", () => {
   });
 
   test("the health rule in the texts is the rule in the code", () => {
-    const summary: string = between(
-      OVERVIEW,
-      "if (failed > 0 || notReady > 0) {",
-      "} catch (err) {",
-    );
+    /*
+     * The pill and the Cluster Health card read what Needs attention lists
+     * (KubernetesHealth), so the two never disagree: Unhealthy on anything
+     * critical, Degraded on anything else it lists, Healthy on nothing.
+     */
+    expectCode(OVERVIEW, "getKubernetesClusterHealth(attentionFindings)");
 
-    expectCode(summary, 'setClusterHealth("Unhealthy");');
-    expectCode(
-      summary,
-      "pending > 0 || memoryPressure > 0 || diskPressure > 0 || pidPressure > 0",
+    const rule: string = between(
+      readCommonCode("Types/Kubernetes/KubernetesHealth.ts"),
+      "export function getKubernetesClusterHealth(",
+      'return findings.length > 0 ? "Degraded" : "Healthy";',
     );
-    expectCode(summary, 'setClusterHealth("Degraded");');
+    expectCode(rule, "finding.severity === KubernetesHealthSeverity.Critical;");
+    expectCode(rule, 'return "Unhealthy";');
+
+    expect(KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.clusterHealth).toContain(
+      "Unhealthy if something is broken",
+    );
+    expect(KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.clusterHealth).toContain(
+      "Degraded if something needs a look",
+    );
   });
 
   test("the agent disconnect threshold is the one the text names", () => {

@@ -55,10 +55,16 @@ export interface ComponentProps {
 }
 
 export function routeForTopologyLink(link: ResourceTopologyLinkTarget): Route {
-  return RouteUtil.populateRouteParams(RouteMap[link.page] as Route, {
-    modelId: link.modelId,
-    ...(link.subModelId ? { subModelId: link.subModelId } : {}),
-  });
+  const route: Route = RouteUtil.populateRouteParams(
+    RouteMap[link.page] as Route,
+    {
+      modelId: link.modelId,
+      ...(link.subModelId ? { subModelId: link.subModelId } : {}),
+    },
+  );
+  return link.queryParams && Object.keys(link.queryParams).length > 0
+    ? route.addQueryParams(link.queryParams)
+    : route;
 }
 
 /* "Open host page": what the button that opens a part's own page says. */

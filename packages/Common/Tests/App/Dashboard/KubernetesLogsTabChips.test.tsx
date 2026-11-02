@@ -89,6 +89,89 @@ const renderChips: RenderChipsFunction = (
   );
 };
 
+describe("KubernetesLogsTab — a workload's page", () => {
+  beforeEach(() => {
+    logsViewerProbe.mockReset();
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  test("reads every pod's lines of the Deployment, in its namespace, with no pod named", () => {
+    render(
+      <KubernetesLogsTab
+        clusterIdentifier="prod-eks-01"
+        clusterName="Production EKS"
+        namespace="shop"
+        workloadKind="Deployment"
+        workloadName="checkout"
+      />,
+    );
+
+    const props: RecordedProps = lastViewerProps();
+
+    expect(props.logQuery.attributes).toEqual({
+      "resource.k8s.cluster.name": "prod-eks-01",
+      "resource.k8s.namespace.name": "shop",
+      "resource.k8s.deployment.name": "checkout",
+    });
+    expect(props.id).toBe("k8s-logs-deployment-checkout");
+  });
+
+  test("its chips read the kind as kubectl writes it, and the cluster's name", () => {
+    render(
+      <KubernetesLogsTab
+        clusterIdentifier="prod-eks-01"
+        clusterName="Production EKS"
+        namespace="shop"
+        workloadKind="StatefulSet"
+        workloadName="postgres"
+      />,
+    );
+
+    const chips: Array<ActiveFilter> = chipsFromProps(lastViewerProps());
+    cleanup();
+
+    const workloadChip: ActiveFilter | undefined = chips.find(
+      (chip: ActiveFilter) => {
+        return chip.facetKey === "attributes.resource.k8s.statefulset.name";
+      },
+    );
+
+    expect(workloadChip).toBeDefined();
+    expect(workloadChip!.displayKey).toBe("StatefulSet");
+    expect(workloadChip!.value).toBe("postgres");
+    expect(workloadChip!.readOnly).toBe(true);
+    expect(
+      chips.some((chip: ActiveFilter) => {
+        return chip.facetKey === "attributes.resource.k8s.pod.name";
+      }),
+    ).toBe(false);
+
+    renderChips(chips);
+
+    expect(screen.getByText("postgres")).toBeInTheDocument();
+    expect(screen.getByText("Production EKS")).toBeInTheDocument();
+    expect(screen.queryByText(/resource\.k8s\./)).not.toBeInTheDocument();
+  });
+
+  test("a node's tab reads every line from it", () => {
+    render(
+      <KubernetesLogsTab
+        clusterIdentifier="prod-eks-01"
+        workloadKind="Node"
+        workloadName="node-a"
+      />,
+    );
+
+    expect(lastViewerProps().logQuery.attributes).toEqual({
+      "resource.k8s.cluster.name": "prod-eks-01",
+      "resource.k8s.node.name": "node-a",
+    });
+  });
+});
+
 describe("KubernetesLogsTab — pod page", () => {
   beforeEach(() => {
     logsViewerProbe.mockReset();
@@ -129,12 +212,14 @@ describe("KubernetesLogsTab — pod page", () => {
 
     const props: RecordedProps = lastViewerProps();
 
-    expect(props.attributeFilterDisplayKeys).toEqual({
-      "resource.k8s.cluster.name": "Cluster",
-      "resource.k8s.pod.name": "Pod",
-      "resource.k8s.container.name": "Container",
-      "resource.k8s.namespace.name": "Namespace",
-    });
+    expect(props.attributeFilterDisplayKeys).toEqual(
+      expect.objectContaining({
+        "resource.k8s.cluster.name": "Cluster",
+        "resource.k8s.pod.name": "Pod",
+        "resource.k8s.container.name": "Container",
+        "resource.k8s.namespace.name": "Namespace",
+      }),
+    );
     expect(props.attributeFilterDisplayValues).toEqual({
       "resource.k8s.cluster.name": "Production EKS",
     });

@@ -171,6 +171,15 @@ export function getArrayValues(
     .filter(Boolean) as Array<JSONObject>;
 }
 
+// How many items an OTLP arrayValue holds, whatever their type; 0 for none.
+export function countArrayValues(value: string | JSONObject | null): number {
+  if (!value || typeof value === "string") {
+    return 0;
+  }
+  const values: unknown = value["values"];
+  return Array.isArray(values) ? values.length : 0;
+}
+
 /**
  * Recursively convert an OTLP value wrapper to a plain JavaScript value.
  * Handles stringValue, intValue, boolValue, kvlistValue, and arrayValue.
@@ -325,6 +334,43 @@ export interface KubernetesContainerStatus {
   state: string;
   reason: string;
   image: string;
+  /*
+   * What the kubelet says about the current state, as it wrote it: why a
+   * container waits ("Back-off pulling image ...") or ended. Kept short
+   * (KUBERNETES_STATUS_MESSAGE_MAX_LENGTH). Optional: objects stored before
+   * these were read have none.
+   */
+  message?: string | undefined;
+  // The current state's exit code, while it is terminated.
+  exitCode?: number | null | undefined;
+  // When the current state began: a running container's start.
+  startedAt?: string | undefined;
+  /*
+   * How the container's previous run ended (status.lastState.terminated) -
+   * the "Last State" kubectl describe shows: OOMKilled, Error, Completed;
+   * its exit code; and when it ended. A container in CrashLoopBackOff waits
+   * with no reason of its own: this is why it keeps crashing.
+   */
+  lastTerminationReason?: string | undefined;
+  lastTerminationExitCode?: number | null | undefined;
+  lastTerminatedAt?: string | undefined;
+}
+
+/*
+ * The longest message from the kubelet or the scheduler an object keeps: a
+ * pull error can run to kilobytes of registry response, and the pages show
+ * two lines of it.
+ */
+export const KUBERNETES_STATUS_MESSAGE_MAX_LENGTH: number = 1024;
+
+export function shortenKubernetesMessage(message: string): string {
+  const trimmed: string = message.trim();
+
+  if (trimmed.length <= KUBERNETES_STATUS_MESSAGE_MAX_LENGTH) {
+    return trimmed;
+  }
+
+  return `${trimmed.substring(0, KUBERNETES_STATUS_MESSAGE_MAX_LENGTH - 1)}…`;
 }
 
 export interface KubernetesPodObject {
@@ -355,11 +401,37 @@ export interface KubernetesPodObject {
     conditions: Array<KubernetesCondition>;
     containerStatuses: Array<KubernetesContainerStatus>;
     initContainerStatuses: Array<KubernetesContainerStatus>;
+    /*
+     * Why the pod is in its phase, when Kubernetes says: "Evicted" with
+     * "The node was low on resource: memory.", "NodeLost", "Shutdown".
+     * Optional: pods stored before these were read have none.
+     */
+    reason?: string | undefined;
+    message?: string | undefined;
+    // When the kubelet started the pod.
+    startTime?: string | undefined;
   };
+}
+
+export interface KubernetesNodeTaint {
+  key: string;
+  value: string;
+  effect: string;
 }
 
 export interface KubernetesNodeObject {
   metadata: KubernetesObjectMetadata;
+  /*
+   * Whether new pods may land on it: `kubectl cordon` sets unschedulable,
+   * and a drain or the node controller add taints. Optional: nodes stored
+   * before this was read have no spec.
+   */
+  spec?:
+    | {
+        unschedulable: boolean;
+        taints: Array<KubernetesNodeTaint>;
+      }
+    | undefined;
   status: {
     conditions: Array<KubernetesCondition>;
     nodeInfo: {
@@ -382,6 +454,8 @@ export interface KubernetesDeploymentObject {
     replicas: number;
     strategy: string;
     selector: Record<string, string>;
+    // `kubectl rollout pause`. Optional: stored before it was read.
+    paused?: boolean | undefined;
   };
   status: {
     replicas: number;
@@ -389,6 +463,8 @@ export interface KubernetesDeploymentObject {
     availableReplicas: number;
     unavailableReplicas: number;
     conditions: Array<KubernetesCondition>;
+    // Replicas already on the newest pod template: a rollout's progress.
+    updatedReplicas?: number | undefined;
   };
 }
 
@@ -404,6 +480,15 @@ export interface KubernetesStatefulSetObject {
     replicas: number;
     readyReplicas: number;
     currentReplicas: number;
+    /*
+     * A rollout's progress: replicas on the update revision, and the two
+     * revisions, which differ while an update is under way. Optional:
+     * stored before they were read.
+     */
+    updatedReplicas?: number | undefined;
+    availableReplicas?: number | undefined;
+    currentRevision?: string | undefined;
+    updateRevision?: string | undefined;
   };
 }
 
@@ -418,6 +503,9 @@ export interface KubernetesDaemonSetObject {
     numberReady: number;
     numberMisscheduled: number;
     numberAvailable: number;
+    // Nodes running the newest pod template; fewer while a rollout runs.
+    updatedNumberScheduled?: number | undefined;
+    numberUnavailable?: number | undefined;
   };
 }
 
@@ -450,6 +538,8 @@ export interface KubernetesCronJobObject {
   status: {
     lastScheduleTime: string;
     activeCount: number;
+    // When a run last succeeded. Optional: stored before it was read.
+    lastSuccessfulTime?: string | undefined;
   };
 }
 
@@ -819,6 +909,69 @@ export function parseConditions(
   });
 }
 
+/*
+ * A container state as the API writes it: a kvlist with one key - running,
+ * waiting or terminated - whose value holds the state's details (a
+ * waiting reason and message; a terminated exit code, reason and finish
+ * time). Null when there is no state (a lastState of a container that
+ * never restarted is empty).
+ */
+interface ParsedContainerState {
+  state: string;
+  reason: string;
+  message: string;
+  exitCode: number | null;
+  startedAt: string;
+  finishedAt: string;
+}
+
+function parseContainerState(
+  stateKv: string | JSONObject | null,
+): ParsedContainerState | null {
+  if (!stateKv || typeof stateKv === "string") {
+    return null;
+  }
+
+  const stateValues: Array<JSONObject> | undefined = stateKv["values"] as
+    | Array<JSONObject>
+    | undefined;
+
+  if (!stateValues || stateValues.length === 0 || !stateValues[0]) {
+    return null;
+  }
+
+  const state: string = (stateValues[0]["key"] as string) || "";
+
+  if (!state) {
+    return null;
+  }
+
+  const stateDetail: JSONObject | undefined = stateValues[0]["value"] as
+    | JSONObject
+    | undefined;
+  const detail: JSONObject | undefined = stateDetail
+    ? ((stateDetail["kvlistValue"] || stateDetail["kvlist_value"]) as
+        | JSONObject
+        | undefined)
+    : undefined;
+
+  const exitCodeText: string = detail
+    ? getKvStringValue(detail, "exitCode")
+    : "";
+  const exitCode: number = parseInt(exitCodeText);
+
+  return {
+    state: state,
+    reason: detail ? getKvStringValue(detail, "reason") : "",
+    message: detail
+      ? shortenKubernetesMessage(getKvStringValue(detail, "message"))
+      : "",
+    exitCode: exitCodeText && Number.isFinite(exitCode) ? exitCode : null,
+    startedAt: detail ? getKvStringValue(detail, "startedAt") : "",
+    finishedAt: detail ? getKvStringValue(detail, "finishedAt") : "",
+  };
+}
+
 function parseContainerStatuses(
   statusesArrayValue: JSONObject | null,
 ): Array<KubernetesContainerStatus> {
@@ -828,36 +981,48 @@ function parseContainerStatuses(
   const items: Array<JSONObject> = getArrayValues(statusesArrayValue);
   return items.map((kvList: JSONObject) => {
     // state is a kvlist with one key (running/waiting/terminated)
-    const stateKv: string | JSONObject | null = getKvValue(kvList, "state");
-    let state: string = "Unknown";
-    let reason: string = "";
-    if (stateKv && typeof stateKv !== "string") {
-      const stateValues: Array<JSONObject> | undefined = stateKv["values"] as
-        | Array<JSONObject>
-        | undefined;
-      if (stateValues && stateValues.length > 0 && stateValues[0]) {
-        state = (stateValues[0]["key"] as string) || "Unknown";
-        // Extract reason from the state's nested kvlist value (e.g., waiting -> { reason: "CrashLoopBackOff" })
-        const stateDetail: JSONObject | undefined = stateValues[0]["value"] as
-          | JSONObject
-          | undefined;
-        if (stateDetail && stateDetail["kvlistValue"]) {
-          reason = getKvStringValue(
-            stateDetail["kvlistValue"] as JSONObject,
-            "reason",
-          );
-        }
-      }
-    }
+    const current: ParsedContainerState | null = parseContainerState(
+      getKvValue(kvList, "state"),
+    );
+    /*
+     * How the previous run ended. Only a terminated last state says
+     * anything: the kubelet keeps it until the container ends again.
+     */
+    const last: ParsedContainerState | null = parseContainerState(
+      getKvValue(kvList, "lastState"),
+    );
+    const lastTerminated: ParsedContainerState | null =
+      last && last.state === "terminated" ? last : null;
 
-    return {
+    const status: KubernetesContainerStatus = {
       name: getKvStringValue(kvList, "name"),
       ready: getKvStringValue(kvList, "ready") === "true",
       restartCount: parseInt(getKvStringValue(kvList, "restartCount")) || 0,
-      state,
-      reason,
+      state: current?.state || "Unknown",
+      reason: current?.reason || "",
       image: getKvStringValue(kvList, "image"),
     };
+
+    if (current?.message) {
+      status.message = current.message;
+    }
+    if (
+      current &&
+      current.state === "terminated" &&
+      current.exitCode !== null
+    ) {
+      status.exitCode = current.exitCode;
+    }
+    if (current?.startedAt) {
+      status.startedAt = current.startedAt;
+    }
+    if (lastTerminated) {
+      status.lastTerminationReason = lastTerminated.reason;
+      status.lastTerminationExitCode = lastTerminated.exitCode;
+      status.lastTerminatedAt = lastTerminated.finishedAt;
+    }
+
+    return status;
   });
 }
 
@@ -1000,6 +1165,9 @@ export function parsePodObject(
     let podIP: string = "";
     let hostIP: string = "";
     let qosClass: string = "";
+    let podReason: string = "";
+    let podMessage: string = "";
+    let startTime: string = "";
     let conditions: Array<KubernetesCondition> = [];
     let containerStatuses: Array<KubernetesContainerStatus> = [];
     let initContainerStatuses: Array<KubernetesContainerStatus> = [];
@@ -1009,6 +1177,11 @@ export function parsePodObject(
       podIP = getKvStringValue(statusKv, "podIP");
       hostIP = getKvStringValue(statusKv, "hostIP");
       qosClass = getKvStringValue(statusKv, "qosClass");
+      podReason = getKvStringValue(statusKv, "reason");
+      podMessage = shortenKubernetesMessage(
+        getKvStringValue(statusKv, "message"),
+      );
+      startTime = getKvStringValue(statusKv, "startTime");
 
       const condArray: string | JSONObject | null = getKvValue(
         statusKv,
@@ -1031,6 +1204,27 @@ export function parsePodObject(
       );
     }
 
+    const podStatus: KubernetesPodObject["status"] = {
+      phase,
+      podIP,
+      hostIP,
+      qosClass,
+      conditions,
+      containerStatuses,
+      initContainerStatuses,
+    };
+
+    // Only when Kubernetes said them, so a stored pod keeps its old shape.
+    if (podReason) {
+      podStatus.reason = podReason;
+    }
+    if (podMessage) {
+      podStatus.message = podMessage;
+    }
+    if (startTime) {
+      podStatus.startTime = startTime;
+    }
+
     return {
       metadata,
       spec: {
@@ -1046,15 +1240,7 @@ export function parsePodObject(
         tolerations,
         volumes,
       },
-      status: {
-        phase,
-        podIP,
-        hostIP,
-        qosClass,
-        conditions,
-        containerStatuses,
-        initContainerStatuses,
-      },
+      status: podStatus,
     };
   } catch {
     return null;
@@ -1077,6 +1263,7 @@ export function parseNodeObject(
       objectKvList,
       "status",
     );
+    const specKv: string | JSONObject | null = getKvValue(objectKvList, "spec");
 
     let conditions: Array<KubernetesCondition> = [];
     let nodeInfo: KubernetesNodeObject["status"]["nodeInfo"] = {
@@ -1147,7 +1334,7 @@ export function parseNodeObject(
       }
     }
 
-    return {
+    const node: KubernetesNodeObject = {
       metadata: parseMetadata(metadataKv),
       status: {
         conditions,
@@ -1157,6 +1344,30 @@ export function parseNodeObject(
         addresses,
       },
     };
+
+    if (specKv && typeof specKv !== "string") {
+      const taintsArray: string | JSONObject | null = getKvValue(
+        specKv,
+        "taints",
+      );
+      node.spec = {
+        unschedulable: getKvStringValue(specKv, "unschedulable") === "true",
+        taints:
+          taintsArray && typeof taintsArray !== "string"
+            ? getArrayValues(taintsArray).map(
+                (taint: JSONObject): KubernetesNodeTaint => {
+                  return {
+                    key: getKvStringValue(taint, "key"),
+                    value: getKvStringValue(taint, "value"),
+                    effect: getKvStringValue(taint, "effect"),
+                  };
+                },
+              )
+            : [],
+      };
+    }
+
+    return node;
   } catch {
     return null;
   }
@@ -1183,8 +1394,10 @@ export function parseDeploymentObject(
     let replicas: number = 0;
     let strategy: string = "";
     let selector: Record<string, string> = {};
+    let paused: boolean = false;
     if (specKv && typeof specKv !== "string") {
       replicas = parseInt(getKvStringValue(specKv, "replicas")) || 0;
+      paused = getKvStringValue(specKv, "paused") === "true";
       const strategyKv: string | JSONObject | null = getKvValue(
         specKv,
         "strategy",
@@ -1211,6 +1424,7 @@ export function parseDeploymentObject(
     let readyReplicas: number = 0;
     let availableReplicas: number = 0;
     let unavailableReplicas: number = 0;
+    let updatedReplicas: number = 0;
     let conditions: Array<KubernetesCondition> = [];
     if (statusKv && typeof statusKv !== "string") {
       statusReplicas = parseInt(getKvStringValue(statusKv, "replicas")) || 0;
@@ -1220,6 +1434,8 @@ export function parseDeploymentObject(
         parseInt(getKvStringValue(statusKv, "availableReplicas")) || 0;
       unavailableReplicas =
         parseInt(getKvStringValue(statusKv, "unavailableReplicas")) || 0;
+      updatedReplicas =
+        parseInt(getKvStringValue(statusKv, "updatedReplicas")) || 0;
       const condArray: string | JSONObject | null = getKvValue(
         statusKv,
         "conditions",
@@ -1229,13 +1445,14 @@ export function parseDeploymentObject(
 
     return {
       metadata: parseMetadata(metadataKv),
-      spec: { replicas, strategy, selector },
+      spec: { replicas, strategy, selector, paused },
       status: {
         replicas: statusReplicas,
         readyReplicas,
         availableReplicas,
         unavailableReplicas,
         conditions,
+        updatedReplicas,
       },
     };
   } catch {
@@ -1278,23 +1495,26 @@ export function parseStatefulSetObject(
       }
     }
 
+    const readStatusNumber: (key: string) => number = (key: string): number => {
+      return statusKv
+        ? parseInt(getKvStringValue(statusKv as JSONObject, key)) || 0
+        : 0;
+    };
+    const readStatusString: (key: string) => string = (key: string): string => {
+      return statusKv ? getKvStringValue(statusKv as JSONObject, key) : "";
+    };
+
     return {
       metadata: parseMetadata(metadataKv),
       spec: { replicas, serviceName, podManagementPolicy, updateStrategy },
       status: {
-        replicas: statusKv
-          ? parseInt(getKvStringValue(statusKv as JSONObject, "replicas")) || 0
-          : 0,
-        readyReplicas: statusKv
-          ? parseInt(
-              getKvStringValue(statusKv as JSONObject, "readyReplicas"),
-            ) || 0
-          : 0,
-        currentReplicas: statusKv
-          ? parseInt(
-              getKvStringValue(statusKv as JSONObject, "currentReplicas"),
-            ) || 0
-          : 0,
+        replicas: readStatusNumber("replicas"),
+        readyReplicas: readStatusNumber("readyReplicas"),
+        currentReplicas: readStatusNumber("currentReplicas"),
+        updatedReplicas: readStatusNumber("updatedReplicas"),
+        availableReplicas: readStatusNumber("availableReplicas"),
+        currentRevision: readStatusString("currentRevision"),
+        updateRevision: readStatusString("updateRevision"),
       },
     };
   } catch {
@@ -1363,6 +1583,19 @@ export function parseDaemonSetObject(
         numberAvailable: statusKv
           ? parseInt(
               getKvStringValue(statusKv as JSONObject, "numberAvailable"),
+            ) || 0
+          : 0,
+        updatedNumberScheduled: statusKv
+          ? parseInt(
+              getKvStringValue(
+                statusKv as JSONObject,
+                "updatedNumberScheduled",
+              ),
+            ) || 0
+          : 0,
+        numberUnavailable: statusKv
+          ? parseInt(
+              getKvStringValue(statusKv as JSONObject, "numberUnavailable"),
             ) || 0
           : 0,
       },
@@ -1483,9 +1716,18 @@ export function parseCronJobObject(
         lastScheduleTime: statusKv
           ? getKvStringValue(statusKv as JSONObject, "lastScheduleTime")
           : "",
+        /*
+         * status.active is the list of the Jobs it runs now (object
+         * references), not a number: count them.
+         */
         activeCount: statusKv
-          ? parseInt(getKvStringValue(statusKv as JSONObject, "active")) || 0
+          ? countArrayValues(getKvValue(statusKv as JSONObject, "active")) ||
+            parseInt(getKvStringValue(statusKv as JSONObject, "active")) ||
+            0
           : 0,
+        lastSuccessfulTime: statusKv
+          ? getKvStringValue(statusKv as JSONObject, "lastSuccessfulTime")
+          : "",
       },
     };
   } catch {

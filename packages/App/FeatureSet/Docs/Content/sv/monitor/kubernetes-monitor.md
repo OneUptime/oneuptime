@@ -5,7 +5,7 @@ En Kubernetes-monitor varnar på de mätvärden som OneUptimes Kubernetes-agent 
 :::cards
 - [Installera agenten](/docs/monitor/kubernetes-agent): Ett Helm-kommando tar in klustret i OneUptime.
 - [Skapa monitorn](#skapa-en-kubernetes-monitor): Välj klustret, sedan en mall, ett mätvärde eller en fråga.
-- [Larmmallar](#färdiga-larmmallar): Arton färdiga larm, från ett tyst kluster till etcd.
+- [Larmmallar](#färdiga-larmmallar): Tjugoett färdiga larm, från ett tyst kluster till etcd.
 - [Kriterier](#övervakningskriterier): Statiska trösklar och avvikelseidentifiering.
 :::
 
@@ -86,9 +86,9 @@ Fliken **Custom Metric** erbjuder de här mätvärdena, grupperade efter resurst
 | Kategori | Mätvärden |
 | --- | --- |
 | Podd | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
-| Nod | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Filesystem Available |
+| Nod | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Memory Pressure Condition, Node Disk Pressure Condition, Node PID Pressure Condition, Node Filesystem Available |
 | Container | Container Restarts, Container Restarts (Increase), Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
-| Arbetsbelastning | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Ready Replicas, Job Failed Pods, Job Failed Pods (Increase), Job Successful Pods |
+| Arbetsbelastning | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Desired Nodes, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Desired Replicas, StatefulSet Ready Replicas, Job Failed Pods, Job Failed Pods (Increase), Job Successful Pods |
 | HPA | HPA Current Replicas, HPA Desired Replicas, HPA Max Replicas, HPA Min Replicas |
 | Kontrollplan | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
 
@@ -124,7 +124,7 @@ Avvikelseidentifiering mot en baslinje behöver ingen tröskel. Välj ett av de 
 | **Anomalously Low** | Sjunker under det förväntade intervallet |
 | **Anomalous** | Lämnar det förväntade intervallet åt något håll |
 
-Varje mätning jämförs med en baslinje för samma timme i veckan, byggd från **Baslinjefönster** (14 dagar som standard; 28, 60 eller 90 dagar). **Känslighet** anger hur brett det förväntade intervallet är: **Låg (4σ — endast grova avvikelser)**, **Medel (3σ — rekommenderas)**, som är standard, eller **Hög (2σ — brusigare, mycket stabila tjänster)**. Avvikelsevillkor stannar i ett "Learning"-läge och ger inga larm förrän den timmen i veckan har två veckors historik. En summa, ett antal eller en fråga på ett histogram stannar i det tillståndet för alltid: den här monitorn filtrerar sina frågor på attribut, och baslinjen innehåller inga.
+Varje mätning jämförs med en baslinje för samma timme i veckan, byggd från **Baslinjefönster** (14 dagar som standard; 28, 60 eller 90 dagar). **Känslighet** anger hur brett det förväntade intervallet är: **Låg (4σ — endast grova avvikelser)**, **Medel (3σ — rekommenderas)**, som är standard, eller **Hög (2σ — brusigare, mycket stabila tjänster)**. Avvikelsevillkor stannar i ett "Learning"-läge och ger inga larm förrän den timmen i veckan har två veckors historik. Den här monitorn filtrerar sina frågor på attribut, så varje fråga, och varje serie i en grupperad fråga, jämförs med sin egen historik, så långt tillbaka som dina metriker sparas. Är det under två veckor stannar en summa, ett antal eller en fråga på ett histogram i det tillståndet för alltid, och allt annat jämförs med alla serier i metriken. En percentil av ett histogram stannar alltid i det tillståndet.
 
 **Om ingen data**, under **Fler fält**, avgör vad som händer när frågan inte returnerar något i fönstret: **Ignore** (standard) matchar inte, **Utlösare** behandlar tystnaden som problemet och **Treat As Zero** jämför en nolla. Tid då OneUptime själv inte tog emot data är aldrig saknade data: en kontroll vars fönster innehåller sådan tid väntar i stället, som [När OneUptime inte tar emot data](/docs/monitor/when-oneuptime-is-not-receiving) förklarar.
 
@@ -138,14 +138,17 @@ Listan under **Vad som ska larmas om** visar de här mallarna, grupperade efter 
 | CrashLoopBackOff Detection | Arbetsbelastning | En container startades om inom 15 minuter och var redo mindre än hälften av dem | Kritisk |
 | Pod Stuck in Pending | Schemaläggning | Någon podd är i fasen Pending i varje mätning under ett fönster på 15 minuter | Varning |
 | Node Not Ready | Nod | En nod rapporterar NotReady eller slutar rapportera sin status (Unknown) | Kritisk |
+| Node Under Pressure | Nod | En nod rapporterar MemoryPressure, DiskPressure eller PIDPressure i 10 minuter | Varning |
 | High Node CPU Utilization | Nod | En nods genomsnittliga CPU-användning är över 90 % av dess allokerbara CPU | Varning |
 | High Node Memory Utilization | Nod | En nods genomsnittliga working set-minne är över 85 % av dess allokerbara minne | Varning |
 | Deployment Replica Mismatch | Arbetsbelastning | En deployment har färre tillgängliga repliker än önskat i 15 minuter | Varning |
+| StatefulSet Replica Mismatch | Arbetsbelastning | Ett StatefulSet har färre redo repliker än önskat i 15 minuter | Varning |
 | Job Failures | Arbetsbelastning | En podd i ett job misslyckades inom 15 minuter | Varning |
 | etcd No Leader | Kontrollplan | etcd har ingen vald ledare | Kritisk |
 | API Server Request Saturation | Kontrollplan | API-servern håller 200 eller fler pågående begäranden under hela fönstret | Kritisk |
 | Scheduler Backlog | Schemaläggning | Schemaläggarens kö av väntande poddar är inte tom på 5 minuter | Varning |
 | High Node Disk Usage | Lagring | En nods filsystem är mer än 90 % fullt | Varning |
+| DaemonSet Pods Not Ready | Arbetsbelastning | Ett DaemonSet har noder utan en redo podd från det i 15 minuter | Varning |
 | DaemonSet Misscheduled Nodes | Arbetsbelastning | Ett DaemonSet kör poddar på noder som inte längre matchar dess nodselektor, affinitet eller toleranser | Varning |
 | High Node CPU Request Commitment | Nod | En nods summerade CPU-förfrågningar från containrar överstiger 90 % av dess allokerbara CPU | Varning |
 | High Node Memory Request Commitment | Nod | En nods summerade minnesförfrågningar från containrar överstiger 90 % av dess allokerbara minne | Varning |

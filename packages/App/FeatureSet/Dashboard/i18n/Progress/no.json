@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39842,
-    "untranslated": 12799
+    "keys": 40054,
+    "untranslated": 12732
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -31,6 +31,7 @@
     "CloudWatch Metric Streams",
     "Container",
     "Container {{container}}: {{reason}}",
+    "Container: {{name}}",
     "Content Security Policy",
     "CrowdStrike",
     "DE",
@@ -98,6 +99,8 @@
     "Path traversal",
     "Pause",
     "Peer",
+    "Persistent volume claims",
+    "Persistent volumes",
     "Person",
     "Playbook",
     "Playbooks",
@@ -148,6 +151,8 @@
     "Tunnel",
     "Type",
     "UTC",
+    "Uplink",
+    "Uplink {{uplink}}",
     "VLAN",
     "VM",
     "VM 101 · pve1",
@@ -206,9 +211,15 @@
     "{{count}} VM",
     "{{count}} alarm",
     "{{count}} appliance",
+    "{{count}} container",
     "{{count}} filter",
     "{{count}} filter ({{condition}})",
+    "{{count}} flow",
+    "{{count}} flows",
+    "{{count}} node",
     "{{count}} person",
+    "{{count}} pod",
+    "{{count}} pods",
     "{{count}} repository",
     "{{count}} sample",
     "{{count}} samples",

@@ -24,6 +24,7 @@ import Search from "Common/Types/BaseDatabase/Search";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { withSentenceDigits } from "../ResourcePart/SentenceDigits";
 
 /*
  * Product-neutral client-side view-model for infrastructure resource
@@ -53,9 +54,40 @@ export interface InfrastructureResource {
    */
   memoryUtilization?: number | null;
   status: string;
+  /*
+   * How the status reads when the product's own rules say so (a Kubernetes
+   * pod's "CrashLoopBackOff" in red): the word may be translated or a
+   * template's, so its colour cannot be read off it. Unset, the colour
+   * follows the word (getStatusBadgeClass).
+   */
+  statusTone?: ResourceStatusTone | undefined;
+  /*
+   * The status as an English template and its values, when it is one of
+   * the product's own words ("{{available}} of {{desired}} available"):
+   * drawn in the reader's language. `status` then holds its English
+   * wording, which the filter and the sort read.
+   */
+  statusText?: ResourceStatusText | undefined;
   age: string;
   additionalAttributes: Record<string, string>;
 }
+
+export interface ResourceStatusText {
+  text: string;
+  values?: Record<string, string> | undefined;
+}
+
+export type ResourceStatusTone = "positive" | "warning" | "danger" | "neutral";
+
+export const RESOURCE_STATUS_TONE_CLASS_NAMES: Record<
+  ResourceStatusTone,
+  string
+> = {
+  positive: "bg-green-50 text-green-700",
+  warning: "bg-yellow-50 text-yellow-700",
+  danger: "bg-red-50 text-red-700",
+  neutral: "bg-gray-50 text-gray-700",
+};
 
 /*
  * How a column's cell reads beside the plain ones: a failed backup in red,
@@ -151,6 +183,20 @@ export function formatMemoryValue(bytes: number | null): string {
   }
 
   return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+}
+
+// A row's status in the reader's language.
+export function getResourceStatusLabel(
+  resource: Pick<InfrastructureResource, "status" | "statusText">,
+  translator: Translator,
+): string {
+  const text: ResourceStatusText | undefined = resource.statusText;
+  if (!text) {
+    return resource.status;
+  }
+  return text.values
+    ? translator.translateTemplate(text.text, withSentenceDigits(text.values))
+    : translator.translateText(text.text) || text.text;
 }
 
 export function getStatusBadgeClass(status: string): string {
@@ -286,18 +332,32 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
             .filter(Boolean),
         ),
       ).sort();
+      // Each status as its cells draw it.
+      const labelOf: (status: string) => string = (status: string): string => {
+        const resource: InfrastructureResource | undefined =
+          props.resources.find((r: InfrastructureResource): boolean => {
+            return r.status === status;
+          });
+        return resource ? getResourceStatusLabel(resource, translator) : status;
+      };
       result.push({
         title: "Status",
         key: "status",
         type: FieldType.Dropdown,
         filterDropdownOptions: statuses.map((s: string) => {
-          return { label: s, value: s };
+          return { label: labelOf(s), value: s };
         }),
       });
     }
 
     return result;
-  }, [props.resources, showGroupColumn, groupColumnTitle, showStatus]);
+  }, [
+    props.resources,
+    showGroupColumn,
+    groupColumnTitle,
+    showStatus,
+    translator,
+  ]);
 
   // Filter and sort data client-side
   const processedData: Array<InfrastructureResource> = useMemo(() => {
@@ -433,9 +493,14 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
         }
         return (
           <span
-            className={`inline-flex px-2 py-0.5 text-xs font-medium rounded ${getStatusBadgeClass(resource.status)}`}
+            data-tone={resource.statusTone}
+            className={`inline-flex px-2 py-0.5 text-xs font-medium rounded ${
+              resource.statusTone
+                ? RESOURCE_STATUS_TONE_CLASS_NAMES[resource.statusTone]
+                : getStatusBadgeClass(resource.status)
+            }`}
           >
-            {resource.status}
+            {getResourceStatusLabel(resource, translator)}
           </span>
         );
       },

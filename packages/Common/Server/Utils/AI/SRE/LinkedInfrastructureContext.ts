@@ -20,6 +20,7 @@ import LinkedAffectedResources, {
   LinkedAffectedResourceType,
 } from "../../AffectedResources/LinkedAffectedResources";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import { isCloudResourceKindResource } from "../../../../Types/Cloud/CloudResourceKind";
 
 /*
  * AI SRE - the infrastructure an incident or alert is linked to, and the
@@ -48,6 +49,13 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
  *     everyone who can see the subject reads;
  *   - for an alert subject, the alert itself.
  */
+
+/*
+ * What the context calls an App Platforms environment (ECS on Fargate in
+ * one account and region, a Cloud Run region, ...): a place apps run, which
+ * its account's Cloud AI agent fixes by the services running there.
+ */
+export const CLOUD_ENVIRONMENT_NOUN: string = "Cloud environment";
 
 // How far before the subject an alert on its infrastructure counts.
 export const RELATED_ALERTS_LOOKBACK_MINUTES: number = 30;
@@ -144,6 +152,12 @@ export interface LinkedInfrastructureResource {
   type: LinkedAffectedResourceType;
   id: string;
   name: string;
+  /*
+   * A cloud row's kind, when it was read (LinkedAffectedResource): an App
+   * Platforms environment is a "Cloud environment", a resource of a
+   * connected account a "Cloud resource".
+   */
+  cloudResourceKind?: string | undefined;
 }
 
 // One alert on the linked infrastructure.
@@ -193,7 +207,12 @@ export function describeLinkedResourceKind(
 export function describeLinkedResource(
   resource: LinkedInfrastructureResource,
 ): string {
-  const noun: string = describeLinkedResourceKind(resource.type);
+  const noun: string =
+    resource.type === LinkedAffectedResourceType.CloudResource &&
+    resource.cloudResourceKind &&
+    !isCloudResourceKindResource(resource.cloudResourceKind)
+      ? CLOUD_ENVIRONMENT_NOUN
+      : describeLinkedResourceKind(resource.type);
   const name: string = resource.name.trim();
 
   return name ? `${noun} ${JSON.stringify(name)}` : noun;
@@ -284,7 +303,14 @@ export default class LinkedInfrastructureContext {
       })
       .slice(0, MAX_LINKED_RESOURCES)
       .map((resource: LinkedAffectedResource) => {
-        return { type: resource.type, id: resource.id, name: resource.name };
+        return {
+          type: resource.type,
+          id: resource.id,
+          name: resource.name,
+          ...(resource.cloudResourceKind
+            ? { cloudResourceKind: resource.cloudResourceKind }
+            : {}),
+        };
       });
   }
 

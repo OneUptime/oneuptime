@@ -12,6 +12,7 @@ import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import { hasRecoveryDeadBand } from "./Utils/RecommendationCriteriaAssertions";
 import { AGENT_EMITTED_METRIC_NAMES } from "./Utils/KubernetesAgentEmittedMetrics";
 import MonitorStepKubernetesMonitor, {
+  KubernetesResourceScope,
   MonitorStepKubernetesMonitorUtil,
 } from "../../../Types/Monitor/MonitorStepKubernetesMonitor";
 import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationType";
@@ -1109,6 +1110,21 @@ describe("KubernetesAlertTemplates - deliberate rolling windows", () => {
       window: RollingTime.Past1Minute,
       why: "a single lost leader is itself the incident",
     },
+    {
+      id: "k8s-statefulset-replica-mismatch",
+      window: RollingTime.Past15Minutes,
+      why: "an update replaces its pods one at a time, each briefly not ready",
+    },
+    {
+      id: "k8s-daemonset-pods-not-ready",
+      window: RollingTime.Past15Minutes,
+      why: "a rolling update replaces one node's pod at a time",
+    },
+    {
+      id: "k8s-node-pressure",
+      window: RollingTime.Past10Minutes,
+      why: "it must outlast the kubelet's own five-minute hold on a pressure that passed",
+    },
   ];
 
   test.each(ROLLING_WINDOWS)(
@@ -1468,6 +1484,7 @@ function evaluate(
   const monitor: MonitorStepKubernetesMonitor = getKubernetesMonitor(step);
   const windowMinutes: Record<string, number> = {
     [RollingTime.Past5Minutes]: 5,
+    [RollingTime.Past10Minutes]: 10,
     [RollingTime.Past15Minutes]: 15,
   };
 
@@ -1884,6 +1901,331 @@ describe("KubernetesAlertTemplates - Job Failures clear on their own", () => {
       "k8s.job.failed_pods.increase",
     );
     expect(AGENT_EMITTED_METRIC_NAMES).toContain("k8s.job.failed_pods");
+  });
+});
+
+/*
+ * The three alerts the cluster's own pages already flag (KubernetesHealth)
+ * and no template watched: a StatefulSet short of ready pods, a DaemonSet
+ * with nodes that have no ready pod of it, and a node under memory, disk or
+ * PID pressure.
+ */
+describe("KubernetesAlertTemplates - what the cluster's pages flag, as alerts", () => {
+  test("StatefulSet Replica Mismatch computes desired - ready, per namespace + StatefulSet, on both queries", () => {
+    const monitor: MonitorStepKubernetesMonitor = getKubernetesMonitor(
+      getStep("k8s-statefulset-replica-mismatch"),
+    );
+
+    expect(
+      (monitor.metricViewConfig.queryConfigs as Array<any>).map(
+        (query: any) => {
+          return [
+            query.metricAliasData.metricVariable,
+            query.metricQueryData.filterData.metricName,
+            query.metricQueryData.filterData.aggegationType,
+            query.metricQueryData.groupByAttributeKeys,
+          ];
+        },
+      ),
+    ).toEqual(
+      [
+        ["desired_pods", "k8s.statefulset.desired_pods"],
+        ["ready_pods", "k8s.statefulset.ready_pods"],
+      ].map(([alias, metricName]: Array<string>) => {
+        return [
+          alias,
+          metricName,
+          MetricsAggregationType.Avg,
+          ["resource.k8s.namespace.name", "resource.k8s.statefulset.name"],
+        ];
+      }),
+    );
+    expect(
+      (monitor.metricViewConfig.formulaConfigs as Array<any>).map(
+        (formula: any) => {
+          return [
+            formula.metricAliasData.metricVariable,
+            formula.metricFormulaData.metricFormula,
+            formula.metricAliasData.legendUnit,
+          ];
+        },
+      ),
+    ).toEqual([
+      ["statefulset_replica_shortfall", "desired_pods - ready_pods", ""],
+    ]);
+    expect(monitor.resourceScope).toBe(KubernetesResourceScope.Workload);
+    expect(monitor.rollingTime).toBe(RollingTime.Past15Minutes);
+  });
+
+  test("StatefulSet Replica Mismatch fires on a shortfall held for the window, and recovers at or below zero", async () => {
+    const id: string = "k8s-statefulset-replica-mismatch";
+
+    expect(
+      await evaluate(id, {
+        desired_pods: Array(15).fill(3),
+        ready_pods: Array(15).fill(2),
+      }),
+    ).toEqual({ breached: true, healthy: false });
+    expect(
+      await evaluate(id, {
+        desired_pods: Array(15).fill(3),
+        ready_pods: Array(15).fill(3),
+      }),
+    ).toEqual({ breached: false, healthy: true });
+    // An update that brought a pod back inside the window: no page.
+    expect(
+      await evaluate(id, {
+        desired_pods: Array(15).fill(3),
+        ready_pods: [...Array(14).fill(2), 3],
+      }),
+    ).toEqual({ breached: false, healthy: false });
+  });
+
+  test("DaemonSet Pods Not Ready computes desired - ready nodes, per namespace + DaemonSet", async () => {
+    const id: string = "k8s-daemonset-pods-not-ready";
+    const monitor: MonitorStepKubernetesMonitor = getKubernetesMonitor(
+      getStep(id),
+    );
+
+    expect(
+      (monitor.metricViewConfig.queryConfigs as Array<any>).map(
+        (query: any) => {
+          return [
+            query.metricAliasData.metricVariable,
+            query.metricQueryData.filterData.metricName,
+            query.metricQueryData.groupByAttributeKeys,
+          ];
+        },
+      ),
+    ).toEqual([
+      [
+        "desired_nodes",
+        "k8s.daemonset.desired_scheduled_nodes",
+        ["resource.k8s.namespace.name", "resource.k8s.daemonset.name"],
+      ],
+      [
+        "ready_nodes",
+        "k8s.daemonset.ready_nodes",
+        ["resource.k8s.namespace.name", "resource.k8s.daemonset.name"],
+      ],
+    ]);
+    expect(
+      (monitor.metricViewConfig.formulaConfigs as Array<any>)[0]
+        .metricFormulaData.metricFormula,
+    ).toBe("desired_nodes - ready_nodes");
+    expect(monitor.rollingTime).toBe(RollingTime.Past15Minutes);
+
+    expect(
+      await evaluate(id, {
+        desired_nodes: Array(15).fill(5),
+        ready_nodes: Array(15).fill(4),
+      }),
+    ).toEqual({ breached: true, healthy: false });
+    expect(
+      await evaluate(id, {
+        desired_nodes: Array(15).fill(5),
+        ready_nodes: Array(15).fill(5),
+      }),
+    ).toEqual({ breached: false, healthy: true });
+  });
+
+  test("DaemonSet Pods Not Ready is not DaemonSet Misscheduled Nodes: each says what it measures", () => {
+    const notReady: KubernetesAlertTemplate = getKubernetesAlertTemplateById(
+      "k8s-daemonset-pods-not-ready",
+    )!;
+    const misscheduled: KubernetesAlertTemplate =
+      getKubernetesAlertTemplateById("k8s-daemonset-unavailable")!;
+
+    expect(notReady.name).toBe("DaemonSet Pods Not Ready");
+    expect(notReady.description).toContain(
+      "k8s.daemonset.desired_scheduled_nodes - k8s.daemonset.ready_nodes",
+    );
+    // What it fires next to, and what a long rollout reads as.
+    expect(notReady.description).toContain("Node Not Ready");
+    expect(notReady.description).toContain("lengthen the Time Range");
+    expect(misscheduled.name).toBe("DaemonSet Misscheduled Nodes");
+  });
+
+  test("Node Under Pressure sums the three pressure conditions, per node", () => {
+    const monitor: MonitorStepKubernetesMonitor = getKubernetesMonitor(
+      getStep("k8s-node-pressure"),
+    );
+
+    expect(
+      (monitor.metricViewConfig.queryConfigs as Array<any>).map(
+        (query: any) => {
+          return [
+            query.metricAliasData.metricVariable,
+            query.metricQueryData.filterData.metricName,
+            query.metricQueryData.filterData.aggegationType,
+            query.metricQueryData.groupByAttributeKeys,
+          ];
+        },
+      ),
+    ).toEqual(
+      [
+        ["memory_pressure", "k8s.node.condition_memory_pressure"],
+        ["disk_pressure", "k8s.node.condition_disk_pressure"],
+        ["pid_pressure", "k8s.node.condition_pid_pressure"],
+      ].map(([alias, metricName]: Array<string>) => {
+        return [
+          alias,
+          metricName,
+          MetricsAggregationType.Max,
+          ["resource.k8s.node.name"],
+        ];
+      }),
+    );
+    expect(
+      (monitor.metricViewConfig.formulaConfigs as Array<any>).map(
+        (formula: any) => {
+          return [
+            formula.metricAliasData.metricVariable,
+            formula.metricFormulaData.metricFormula,
+          ];
+        },
+      ),
+    ).toEqual([
+      [
+        "node_pressure_conditions",
+        "memory_pressure + disk_pressure + pid_pressure",
+      ],
+    ]);
+    expect(monitor.resourceScope).toBe(KubernetesResourceScope.Node);
+    expect(monitor.rollingTime).toBe(RollingTime.Past10Minutes);
+  });
+
+  test("Node Under Pressure fires on any one pressure held for ten minutes", async () => {
+    const id: string = "k8s-node-pressure";
+    const none: Array<number> = Array(10).fill(0);
+    const all: Array<number> = Array(10).fill(1);
+
+    for (const pressured of [
+      "memory_pressure",
+      "disk_pressure",
+      "pid_pressure",
+    ]) {
+      const samples: SamplesByAlias = {
+        memory_pressure: none,
+        disk_pressure: none,
+        pid_pressure: none,
+      };
+      samples[pressured] = all;
+
+      expect({ pressured, ...(await evaluate(id, samples)) }).toEqual({
+        pressured,
+        breached: true,
+        healthy: false,
+      });
+    }
+
+    expect(
+      await evaluate(id, {
+        memory_pressure: none,
+        disk_pressure: none,
+        pid_pressure: none,
+      }),
+    ).toEqual({ breached: false, healthy: true });
+  });
+
+  test("Node Under Pressure leaves a node that stopped reporting to Node Not Ready", async () => {
+    const unknown: Array<number> = Array(10).fill(-1);
+
+    expect(
+      await evaluate("k8s-node-pressure", {
+        memory_pressure: unknown,
+        disk_pressure: unknown,
+        pid_pressure: unknown,
+      }),
+    ).toEqual({ breached: false, healthy: true });
+    expect(
+      await evaluate("k8s-node-not-ready", {
+        node_ready: Array(5).fill(-1),
+      }),
+    ).toEqual({ breached: true, healthy: false });
+  });
+
+  test("a pressure that cleared inside the window does not fire", async () => {
+    expect(
+      await evaluate("k8s-node-pressure", {
+        memory_pressure: [...Array(9).fill(1), 0],
+        disk_pressure: Array(10).fill(0),
+        pid_pressure: Array(10).fill(0),
+      }),
+    ).toEqual({ breached: false, healthy: false });
+  });
+
+  test("the agent reports every condition these read, and the catalog says what the values mean", () => {
+    for (const metricName of [
+      "k8s.statefulset.desired_pods",
+      "k8s.statefulset.ready_pods",
+      "k8s.daemonset.desired_scheduled_nodes",
+      "k8s.daemonset.ready_nodes",
+      "k8s.node.condition_memory_pressure",
+      "k8s.node.condition_disk_pressure",
+      "k8s.node.condition_pid_pressure",
+    ]) {
+      expect(AGENT_EMITTED_METRIC_NAMES).toContain(metricName);
+      expect(getKubernetesMetricByMetricName(metricName)?.unit).toBe("count");
+    }
+
+    const config: string = fs.readFileSync(
+      path.resolve(
+        __dirname,
+        "../../../../../HelmChart/Public/kubernetes-agent/templates/configmap-deployment.yaml",
+      ),
+      "utf8",
+    );
+    expect(config).toContain(
+      "node_conditions_to_report:\n          - Ready\n          - MemoryPressure\n          - DiskPressure\n          - PIDPressure\n",
+    );
+
+    for (const metricName of [
+      "k8s.node.condition_memory_pressure",
+      "k8s.node.condition_disk_pressure",
+      "k8s.node.condition_pid_pressure",
+    ]) {
+      const description: string =
+        getKubernetesMetricByMetricName(metricName)!.description;
+      expect(description).toContain("1 = True");
+      expect(description).toContain("-1 = Unknown");
+      // True is the bad state: any sample under pressure.
+      expect(
+        getKubernetesMetricByMetricName(metricName)!.defaultAggregation,
+      ).toBe(MetricsAggregationType.Max);
+    }
+  });
+
+  test("a Kubernetes object's page offers the templates that watch it, and every one exists", () => {
+    const facts: string = fs.readFileSync(
+      path.resolve(
+        __dirname,
+        "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/KubernetesPartFacts.ts",
+      ),
+      "utf8",
+    );
+    const block: string = facts.slice(
+      facts.indexOf("export const KUBERNETES_PART_ALERT_TEMPLATE_IDS"),
+    );
+    const ids: Array<string> = Array.from(
+      block.slice(0, block.indexOf("};")).matchAll(/"(k8s-[a-z0-9-]+)"/g),
+    ).map((match: RegExpMatchArray): string => {
+      return match[1] as string;
+    });
+
+    expect(ids).toEqual(
+      expect.arrayContaining([
+        "k8s-statefulset-replica-mismatch",
+        "k8s-daemonset-pods-not-ready",
+        "k8s-node-pressure",
+      ]),
+    );
+    for (const id of ids) {
+      expect({
+        id,
+        exists: Boolean(getKubernetesAlertTemplateById(id)),
+      }).toEqual({ id, exists: true });
+    }
   });
 });
 

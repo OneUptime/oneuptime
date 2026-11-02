@@ -12,6 +12,7 @@ import { SQL, Statement } from "../Utils/AnalyticsDatabase/Statement";
 import { getQuerySettings } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
 import {
   getDistributionAwareAggregationExpression,
+  getRollupAggregationExpression,
   isDistributionPointType,
 } from "../Utils/AnalyticsDatabase/DistributionAggregation";
 import AggregationType, {
@@ -79,6 +80,13 @@ type EntityMVRoute = {
    */
   keyForValue: ((projectId: string, value: string) => string) | null;
 };
+
+// The per-entity rollup a query can be read from, and which of its rows.
+export interface MetricEntityRollup {
+  tableName: AnalyticsTableName;
+  keyColumn: string;
+  keys: Array<string>;
+}
 
 const ENTITY_MV_ROUTES: ReadonlyArray<EntityMVRoute> = [
   {
@@ -2266,19 +2274,7 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     }
     const databaseName: string = this.database.getDatasourceOptions().database!;
 
-    let mergedExpr: string;
-    if (aggType === AggregationType.Sum) {
-      mergedExpr = `sumMerge(valueSumState)`;
-    } else if (aggType === AggregationType.Count) {
-      mergedExpr = `countMerge(valueCountState)`;
-    } else if (aggType === AggregationType.Min) {
-      mergedExpr = `minMerge(valueMinState)`;
-    } else if (aggType === AggregationType.Max) {
-      mergedExpr = `maxMerge(valueMaxState)`;
-    } else {
-      // Avg = sum / count, derived from the two stored states.
-      mergedExpr = `if(countMerge(valueCountState) = 0, 0, sumMerge(valueSumState) / countMerge(valueCountState))`;
-    }
+    const mergedExpr: string = getRollupAggregationExpression(aggType);
 
     /*
      * Build the WHERE on a copy of the query with `time` removed so
@@ -2494,18 +2490,7 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     }
     const databaseName: string = this.database.getDatasourceOptions().database!;
 
-    let mergedExpr: string;
-    if (aggType === AggregationType.Sum) {
-      mergedExpr = `sumMerge(valueSumState)`;
-    } else if (aggType === AggregationType.Count) {
-      mergedExpr = `countMerge(valueCountState)`;
-    } else if (aggType === AggregationType.Min) {
-      mergedExpr = `minMerge(valueMinState)`;
-    } else if (aggType === AggregationType.Max) {
-      mergedExpr = `maxMerge(valueMaxState)`;
-    } else {
-      mergedExpr = `if(countMerge(valueCountState) = 0, 0, sumMerge(valueSumState) / countMerge(valueCountState))`;
-    }
+    const mergedExpr: string = getRollupAggregationExpression(aggType);
 
     /*
      * Strip `time` (column doesn't exist on the MV; we inject an
@@ -2818,8 +2803,19 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
    * and disable the fast path this backstops.
    */
   private applyRawEntityKeyPrune(aggregateBy: AggregateBy<Metric>): void {
+    /*
+     * Replace `query` rather than mutating it in place: callers (the API
+     * aggregate cache, the metric-monitor worker) may still hold the
+     * object they passed in. `aggregateBy` itself keeps its identity, so
+     * the point-type / service-key hints keyed on it in WeakMaps survive.
+     */
+    aggregateBy.query = this.withRawEntityKeyPrune(aggregateBy.query);
+  }
+
+  // A query with that predicate on it, as a new query: see above.
+  public withRawEntityKeyPrune(query: Query<Metric>): Query<Metric> {
     const queryRecord: Record<string, unknown> =
-      (aggregateBy.query as unknown as Record<string, unknown>) || {};
+      (query as unknown as Record<string, unknown>) || {};
 
     /*
      * Entity keys fold the tenant into the hash, so they are only
@@ -2833,12 +2829,12 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
       projectId = projectIdValue;
     }
     if (!projectId) {
-      return;
+      return query;
     }
 
     const attrs: unknown = queryRecord["attributes"];
     if (!attrs || typeof attrs !== "object" || Array.isArray(attrs)) {
-      return;
+      return query;
     }
 
     const prunePredicates: Record<string, Includes> = {};
@@ -2883,19 +2879,58 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     }
 
     if (Object.keys(prunePredicates).length === 0) {
-      return;
+      return query;
     }
 
-    /*
-     * Replace `query` rather than mutating it in place: callers (the API
-     * aggregate cache, the metric-monitor worker) may still hold the
-     * object they passed in. `aggregateBy` itself keeps its identity, so
-     * the point-type / service-key hints keyed on it in WeakMaps survive.
-     */
-    aggregateBy.query = {
-      ...(aggregateBy.query as unknown as Record<string, unknown>),
+    return {
+      ...(query as unknown as Record<string, unknown>),
       ...prunePredicates,
-    } as unknown as typeof aggregateBy.query;
+    } as unknown as Query<Metric>;
+  }
+
+  /**
+   * The per-entity rollup that holds what a query reads, or null when no
+   * branch of the routing decision table (tryBuildEntityAggregateMVStatement)
+   * matches. It is the decision the query's own read takes, for a caller that
+   * reads the rollup by other hours than a window's: only that read's filter,
+   * and nothing about what it aggregates, which is the caller's to hold to
+   * what a rollup can say.
+   */
+  public async getEntityRollup(
+    query: Query<Metric>,
+  ): Promise<MetricEntityRollup | null> {
+    const queryRecord: Record<string, unknown> =
+      (query as unknown as Record<string, unknown>) || {};
+    const projectIdValue: unknown = queryRecord["projectId"];
+    const projectId: string =
+      projectIdValue instanceof ObjectID || typeof projectIdValue === "string"
+        ? projectIdValue.toString()
+        : "";
+
+    if (!projectId) {
+      return null;
+    }
+
+    const aggregateBy: AggregateBy<Metric> = {
+      query,
+    } as unknown as AggregateBy<Metric>;
+    const serviceKeys: Array<string> | null =
+      await this.resolveServiceEntityKeysHint(aggregateBy);
+
+    if (serviceKeys) {
+      this.serviceEntityKeysHintByAggregate.set(aggregateBy, serviceKeys);
+    }
+
+    const resolved: { route: EntityMVRoute; keys: Array<string> } | null =
+      this.resolveEntityMVRouteAndKeys(aggregateBy, queryRecord, projectId);
+
+    return resolved
+      ? {
+          tableName: resolved.route.tableName,
+          keyColumn: resolved.route.keyColumn,
+          keys: resolved.keys,
+        }
+      : null;
   }
 
   private stripEntityFilterAndTimeFromQuery(query: unknown): typeof query {

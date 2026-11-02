@@ -44,6 +44,12 @@ export interface ResourceAttentionItem {
   key: string;
   // What the part is, in English: "Node", "Guest", "Storage".
   kind: string;
+  /*
+   * The kind is a name of the product's own and reads the same in every
+   * language - a Kubernetes kind ("Deployment", "StatefulSet") as kubectl
+   * and the object's YAML write it - rather than a word to translate.
+   */
+  kindAsWritten?: boolean | undefined;
   icon: IconProp;
   // The part's own name, as its product writes it.
   name: string;
@@ -51,6 +57,12 @@ export interface ResourceAttentionItem {
   detail?: string | undefined;
   severity: ResourceAttentionSeverity;
   reasons: Array<ResourceAttentionText>;
+  /*
+   * What the resource itself says about it, as it wrote it - the
+   * scheduler's "0/3 nodes are available: 3 Insufficient memory." - drawn
+   * under the reasons, two lines at most. Never translated.
+   */
+  message?: string | undefined;
   // The part's own page.
   route?: Route | undefined;
 }

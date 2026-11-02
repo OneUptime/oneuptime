@@ -5,7 +5,7 @@ A Kubernetes monitor alerts on the metrics the OneUptime Kubernetes agent sends 
 :::cards
 - [Install the agent](/docs/monitor/kubernetes-agent): One Helm command puts the cluster into OneUptime.
 - [Create the monitor](#create-a-kubernetes-monitor): Pick the cluster, then a template, a metric or a query.
-- [Alert templates](#pre-built-alert-templates): Eighteen ready-made alerts, from a silent cluster to etcd.
+- [Alert templates](#pre-built-alert-templates): Twenty-one ready-made alerts, from a silent cluster to etcd.
 - [Criteria](#monitoring-criteria): Static thresholds and anomaly detection.
 :::
 
@@ -86,9 +86,9 @@ The **Custom Metric** tab offers these metrics, grouped by resource type:
 | Category | Metrics |
 | --- | --- |
 | Pod | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
-| Node | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Filesystem Available |
+| Node | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Memory Pressure Condition, Node Disk Pressure Condition, Node PID Pressure Condition, Node Filesystem Available |
 | Container | Container Restarts, Container Restarts (Increase), Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
-| Workload | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Ready Replicas, Job Failed Pods, Job Failed Pods (Increase), Job Successful Pods |
+| Workload | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Desired Nodes, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Desired Replicas, StatefulSet Ready Replicas, Job Failed Pods, Job Failed Pods (Increase), Job Successful Pods |
 | HPA | HPA Current Replicas, HPA Desired Replicas, HPA Max Replicas, HPA Min Replicas |
 | Control Plane | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
 
@@ -124,7 +124,7 @@ Baseline anomaly detection needs no threshold. Pick one of these conditions, and
 | **Anomalously Low** | Falls below the expected range |
 | **Anomalous** | Leaves the expected range in either direction |
 
-Each sample is compared with a same-hour-of-week baseline built from the **Baseline Window** (14 days by default; 28, 60 or 90 days). **Sensitivity** sets how wide the expected range is: **Low (4σ — egregious deviations only)**, **Medium (3σ — recommended)**, the default, or **High (2σ — noisier, very stable services)**. Anomaly conditions stay in a "Learning" state and produce no alerts until that hour of the week has two weeks of history. A Sum, a Count or a query on a histogram stays in that state for good: this monitor filters its queries by attributes, and the baseline holds none.
+Each sample is compared with a same-hour-of-week baseline built from the **Baseline Window** (14 days by default; 28, 60 or 90 days). **Sensitivity** sets how wide the expected range is: **Low (4σ — egregious deviations only)**, **Medium (3σ — recommended)**, the default, or **High (2σ — noisier, very stable services)**. Anomaly conditions stay in a "Learning" state and produce no alerts until that hour of the week has two weeks of history. This monitor filters its queries by attributes, so each query, and each series of a grouped one, is compared with its own history, as far back as your metrics are kept. If that is under two weeks, a Sum, a Count or a query on a histogram stays in that state for good, and anything else is compared with every series of the metric. A percentile of a histogram always stays in that state.
 
 **If No Data**, under **More fields**, decides what happens when the query returns nothing in the window: **Ignore** (the default) does not match, **Trigger** treats the silence as the problem, and **Treat As Zero** compares a zero. Time OneUptime itself was not receiving is never no data: a check whose window holds it waits instead, as [When OneUptime Is Not Receiving Data](/docs/monitor/when-oneuptime-is-not-receiving) explains.
 
@@ -138,14 +138,17 @@ The **What to alert on** list holds these templates, grouped by category. Each o
 | CrashLoopBackOff Detection | Workload | A container restarted within 15 minutes and was ready for less than half of them | Critical |
 | Pod Stuck in Pending | Scheduling | Some pod is in the Pending phase in every sample of a 15-minute window | Warning |
 | Node Not Ready | Node | A node reports NotReady, or stops reporting its status (Unknown) | Critical |
+| Node Under Pressure | Node | A node reports MemoryPressure, DiskPressure or PIDPressure for 10 minutes | Warning |
 | High Node CPU Utilization | Node | A node's average CPU usage is above 90% of its allocatable CPU | Warning |
 | High Node Memory Utilization | Node | A node's average memory working set is above 85% of its allocatable memory | Warning |
 | Deployment Replica Mismatch | Workload | A deployment has fewer available replicas than desired for 15 minutes | Warning |
+| StatefulSet Replica Mismatch | Workload | A StatefulSet has fewer ready replicas than desired for 15 minutes | Warning |
 | Job Failures | Workload | A pod of a job failed within 15 minutes | Warning |
 | etcd No Leader | Control Plane | etcd has no elected leader | Critical |
 | API Server Request Saturation | Control Plane | The API server holds 200 or more in-flight requests for the whole window | Critical |
 | Scheduler Backlog | Scheduling | The scheduler's pending-pod queue is non-empty for 5 minutes | Warning |
 | High Node Disk Usage | Storage | A node's filesystem is more than 90% full | Warning |
+| DaemonSet Pods Not Ready | Workload | A DaemonSet has nodes without a ready pod of it for 15 minutes | Warning |
 | DaemonSet Misscheduled Nodes | Workload | A DaemonSet runs pods on nodes that no longer match its node selector, affinity or tolerations | Warning |
 | High Node CPU Request Commitment | Node | A node's summed container CPU requests exceed 90% of its allocatable CPU | Warning |
 | High Node Memory Request Commitment | Node | A node's summed container memory requests exceed 90% of its allocatable memory | Warning |

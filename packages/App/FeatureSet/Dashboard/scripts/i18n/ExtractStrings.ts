@@ -221,6 +221,35 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
       "packages/Common/Types/Dashboard/DashboardTemplateFallbackHints.ts",
     kind: "keys",
   },
+  /*
+   * How a change OneUptime AI proposes went the last times it ran on the
+   * same cluster or resource: the Remediation step says it under the
+   * change.
+   */
+  {
+    directory:
+      "packages/Common/Types/AutoRemediation/RemediationTrackRecordWords.ts",
+    kind: "ui",
+  },
+  /*
+   * A cloud change in plain words, above its exact command on the
+   * Remediation step: each change's sentence and each kind of resource.
+   */
+  {
+    directory: "packages/Common/Utils/AiRemediation/CloudChangeWords.ts",
+    kind: "ui",
+  },
+  /*
+   * A Kubernetes object's status and what needs attention about it, by the
+   * cluster's own rules: the Overview's Needs attention, every part's page,
+   * the lists and the Topology say them in the reader's language. Only the
+   * words the file marks are read: Kubernetes' own reasons
+   * (CrashLoopBackOff, OOMKilled) are drawn as written.
+   */
+  {
+    directory: "packages/Common/Types/Kubernetes/KubernetesHealth.ts",
+    kind: "keys",
+  },
 ];
 
 /*

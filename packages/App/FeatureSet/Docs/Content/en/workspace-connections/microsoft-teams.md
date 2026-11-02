@@ -264,6 +264,10 @@ The buttons on OneUptime's cards act as the person who presses them, in a person
 - **Where the person is answered.** In a reply in the same conversation, the card's thread in a channel, that mentions them, so Microsoft Teams notifies them. A button pressed too late says who got there first, and when, such as "Incident INC-2 was already acknowledged by Simon Lee at 6:07 PM."
 - **If their account is not connected.** The reply asks them to connect it, with a **Connect Microsoft Teams account** button. The button opens their own Microsoft Teams settings in OneUptime and connects their account in one step, after they sign in to OneUptime if they need to. OneUptime then finishes what they pressed, as them, and replies in the same conversation; for a button that opens a form, or a command, it asks them to press or type it again. The button works once, for 30 minutes, and only for the Microsoft account that pressed it.
 
+## Approving a fix OneUptime AI proposes
+
+A fix OneUptime AI proposes for approval is posted to the incident's or alert's channels as a card with its changes and three buttons. **Review and approve** replies with a card of everything the fix runs and **Approve and run**, which runs exactly that, as the person who presses it; once it is approved, that card is removed and they are told the fix is being made. **Dismiss** dismisses the fix, and **View in OneUptime** opens the incident or alert. They act as the person who presses them, like every button on OneUptime's cards: approving needs permission to approve fixes in the project and, for a fix to a cluster or resource, to edit it. A fix that changed after its card was posted is refused, and nothing runs. See [Approve or dismiss a fix from Slack or Microsoft Teams](/docs/ai/ai-sre#approve-or-dismiss-a-fix-from-slack-or-microsoft-teams).
+
 ## Disconnecting
 
 - **Disconnect** unlinks only your own Microsoft Teams account, and removes your Microsoft Teams notification method with it.

@@ -25,6 +25,7 @@ import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { NAMESPACED_KUBERNETES_KINDS } from "../../Pages/Kubernetes/Utils/KubernetesAttention";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -126,12 +127,12 @@ const OBJECT_PAGES: Record<string, PageMap> = {
   Service: PageMap.KUBERNETES_CLUSTER_VIEW_SERVICE_DETAIL,
 };
 
-// The Kinds whose names repeat across namespaces, and whose page asks which.
-const PAGES_THAT_READ_THE_NAMESPACE: ReadonlyArray<string> = [
-  "DeploymentConfig",
-  "Route",
-  "Service",
-];
+/*
+ * The Kinds whose names repeat across namespaces, and whose page asks
+ * which: every namespaced kind's (KubernetesPartRoutes).
+ */
+const PAGES_THAT_READ_THE_NAMESPACE: ReadonlySet<string> =
+  NAMESPACED_KUBERNETES_KINDS;
 
 /*
  * The page of an Event's object, or null for a Kind OneUptime has no page
@@ -170,7 +171,7 @@ export function getKubernetesObjectRoute(data: {
     subModelId: new ObjectID(name),
   });
 
-  return data.namespace && PAGES_THAT_READ_THE_NAMESPACE.includes(kind)
+  return data.namespace && PAGES_THAT_READ_THE_NAMESPACE.has(kind)
     ? route.addQueryParams({ namespace: data.namespace })
     : route;
 }

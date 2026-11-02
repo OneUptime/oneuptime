@@ -12,7 +12,7 @@ import Permission from "../../Types/Permission";
  * Traffic a network's controller reported - today the Meraki dashboard API
  * (OneUptime issue #5140) - read on a schedule by a
  * NetworkControllerConnection. Unlike a NetworkFlow, a row is a TOTAL over
- * a window the read covered, of one of three kinds
+ * a window the read covered, of one of four kinds
  * (Types/NetFlow/NetworkTrafficUsage):
  *
  *   uplink       the bytes one appliance sent and received on one uplink
@@ -22,7 +22,9 @@ import Permission from "../../Types/Permission";
  *                Meraki's own aggregation; the rest of a busy window
  *                summed into one row whose application is empty;
  *   client       the bytes one client sent and received on one network,
- *                read with the applications.
+ *                read with the applications;
+ *   uplinkHealth the packet loss and latency Meraki measured on one uplink
+ *                of one appliance - five-minute windows, no bytes.
  *
  * Every row carries the window it covers, so a page counts each window's
  * share of its range. A window that was read again replaces nothing: the
@@ -31,8 +33,8 @@ import Permission from "../../Types/Permission";
  *
  * Read through the device the traffic belongs to, exactly as flows are:
  * an appliance that is a device in OneUptime (matched by serial number or
- * MAC address when the row was written) owns its uplinks and its network's
- * applications and clients; everything else carries the project's ID in
+ * MAC address when the row was written) owns its uplinks, their health and
+ * its network's applications and clients; everything else carries the project's ID in
  * its place - the project's bucket, which a project-wide or Owned grant
  * reads and a grant limited to labels does not.
  *
@@ -128,7 +130,7 @@ export default class NetworkTrafficUsage extends AnalyticsBaseModel {
           key: "kind",
           title: "Kind",
           description:
-            "What the row totals: 'uplink' (one uplink of one appliance), 'application' (one application and destination of one network) or 'client' (one client of one network)",
+            "What the row totals: 'uplink' (one uplink of one appliance), 'application' (one application and destination of one network), 'client' (one client of one network) or 'uplinkHealth' (the loss and latency of one uplink of one appliance)",
           type: TableColumnType.Text,
           isLowCardinality: true,
         }),
@@ -151,7 +153,7 @@ export default class NetworkTrafficUsage extends AnalyticsBaseModel {
           key: "deviceSerial",
           title: "Device Serial",
           description:
-            "Uplink rows: the appliance's serial number. Empty on other rows",
+            "Uplink and uplink health rows: the appliance's serial number. Empty on other rows",
           type: TableColumnType.Text,
           isLowCardinality: true,
         }),
@@ -159,7 +161,7 @@ export default class NetworkTrafficUsage extends AnalyticsBaseModel {
           key: "deviceName",
           title: "Device Name",
           description:
-            "Uplink rows: the appliance's name in the controller. Empty on other rows",
+            "Uplink and uplink health rows: the appliance's name in the controller. Empty on other rows",
           type: TableColumnType.Text,
           isLowCardinality: true,
         }),
@@ -167,7 +169,7 @@ export default class NetworkTrafficUsage extends AnalyticsBaseModel {
           key: "interfaceName",
           title: "Interface Name",
           description:
-            "Uplink rows: the uplink (wan1, wan2, wan3, cellular). Empty on other rows",
+            "Uplink and uplink health rows: the uplink (wan1, wan2, wan3, cellular). Empty on other rows",
           type: TableColumnType.Text,
           isLowCardinality: true,
         }),
@@ -261,6 +263,26 @@ export default class NetworkTrafficUsage extends AnalyticsBaseModel {
             "Application rows: how many clients used the application. 0 on other rows",
           type: TableColumnType.Number,
         }),
+        /*
+         * Nullable: a row of any other kind measures neither, and an uplink
+         * that is down can lose every packet with no latency to report.
+         */
+        column({
+          key: "lossPercent",
+          title: "Loss Percent",
+          description:
+            "Uplink health rows: the average packet loss the controller measured over the window, 0 to 100. Empty on other rows",
+          type: TableColumnType.Decimal,
+          required: false,
+        }),
+        column({
+          key: "latencyMs",
+          title: "Latency",
+          description:
+            "Uplink health rows: the average latency the controller measured over the window, in milliseconds. Empty on other rows",
+          type: TableColumnType.Decimal,
+          required: false,
+        }),
         column({
           key: "windowStartAt",
           title: "Window Start",
@@ -283,8 +305,8 @@ export default class NetworkTrafficUsage extends AnalyticsBaseModel {
       projections: [],
       /*
        * Every read is one kind over a time range of one project, so the key
-       * leads with those: a page's nine reads each touch only the parts of
-       * their kind and their window.
+       * leads with those: each of a page's reads touches only the parts of
+       * its kind and its window.
        */
       sortKeys: ["projectId", "kind", "windowStartAt"],
       primaryKeys: ["projectId", "kind", "windowStartAt"],

@@ -5,7 +5,7 @@ Kubernetes 監測器依據 OneUptime Kubernetes 代理程式從叢集傳送的�
 :::cards
 - [安裝代理程式](/docs/monitor/kubernetes-agent): 一個 Helm 指令就能把叢集接入 OneUptime。
 - [建立監測器](#建立-kubernetes-監測器): 選擇叢集，然後選擇範本、指標或查詢。
-- [警示範本](#現成的警示範本): 十八個現成的警示，從停止回報的叢集到 etcd。
+- [警示範本](#現成的警示範本): 二十一個現成的警示，從停止回報的叢集到 etcd。
 - [條件](#監控條件): 靜態閾值和異常偵測。
 :::
 
@@ -86,9 +86,9 @@ flowchart TB
 | 類別 | 指標 |
 | --- | --- |
 | Pod | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
-| 節點 | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Filesystem Available |
+| 節點 | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Memory Pressure Condition, Node Disk Pressure Condition, Node PID Pressure Condition, Node Filesystem Available |
 | 容器 | Container Restarts, Container Restarts (Increase), Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
-| 工作負載 | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Ready Replicas, Job Failed Pods, Job Failed Pods (Increase), Job Successful Pods |
+| 工作負載 | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Desired Nodes, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Desired Replicas, StatefulSet Ready Replicas, Job Failed Pods, Job Failed Pods (Increase), Job Successful Pods |
 | HPA | HPA Current Replicas, HPA Desired Replicas, HPA Max Replicas, HPA Min Replicas |
 | 控制平面 | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
 
@@ -124,7 +124,7 @@ flowchart TB
 | **Anomalously Low** | 低於預期範圍 |
 | **Anomalous** | 往任一方向偏離預期範圍 |
 
-每個樣本都會與依 **基準視窗**（預設 14 天；也可選 28、60 或 90 天）建立的、一週中同一小時的基準比較。**敏感度** 決定預期範圍的寬度：**低 (4σ — 僅限明顯偏差)**、預設的 **中 (3σ — 建議)**，或 **高 (2σ — 雜訊較多，適用於非常穩定的服務)**。在一週中的這一小時累積兩週的歷史之前，異常條件會停留在「Learning」狀態，不會產生警示。 總和、計數或針對直方圖的查詢會一直保持這個狀態：此監測器依屬性篩選查詢，而基準不保存屬性。
+每個樣本都會與依 **基準視窗**（預設 14 天；也可選 28、60 或 90 天）建立的、一週中同一小時的基準比較。**敏感度** 決定預期範圍的寬度：**低 (4σ — 僅限明顯偏差)**、預設的 **中 (3σ — 建議)**，或 **高 (2σ — 雜訊較多，適用於非常穩定的服務)**。在一週中的這一小時累積兩週的歷史之前，異常條件會停留在「Learning」狀態，不會產生警示。 此監測器依屬性篩選查詢，因此每個查詢以及分組查詢的每個序列都與自身的歷史比較，回溯範圍取決於您的指標的保留時長。如果不足兩週，總和、計數或針對直方圖的查詢會一直保持這個狀態，其餘查詢則與該指標的所有序列比較。直方圖的百分位數始終保持這個狀態。
 
 **更多欄位** 下的 **如果沒有資料** 決定查詢在視窗內沒有傳回任何內容時的處理方式：**Ignore**（預設）不符合，**觸發器** 把靜默視為問題，**Treat As Zero** 以零比較。OneUptime 本身未接收資料的時間永遠不算是沒有資料：視窗中包含這類時間的檢查會改為等待，詳見 [OneUptime 未接收資料時](/docs/monitor/when-oneuptime-is-not-receiving)。
 
@@ -138,14 +138,17 @@ flowchart TB
 | CrashLoopBackOff Detection | 工作負載 | 某個容器在 15 分鐘內重新啟動，且其中不到一半的時間處於就緒狀態 | 嚴重 |
 | Pod Stuck in Pending | 排程中 | 在 15 分鐘視窗的每個樣本中，都有某個 Pod 處於 Pending 階段 | 警告 |
 | Node Not Ready | 節點 | 某個節點回報 NotReady，或不再回報其狀態（Unknown） | 嚴重 |
+| Node Under Pressure | 節點 | 某個節點在 10 分鐘內一直回報 MemoryPressure、DiskPressure 或 PIDPressure | 警告 |
 | High Node CPU Utilization | 節點 | 節點的平均 CPU 使用量超過其可配置 CPU 的 90% | 警告 |
 | High Node Memory Utilization | 節點 | 節點的平均記憶體工作集超過其可配置記憶體的 85% | 警告 |
 | Deployment Replica Mismatch | 工作負載 | Deployment 的可用複本數在 15 分鐘內一直少於期望值 | 警告 |
+| StatefulSet Replica Mismatch | 工作負載 | StatefulSet 的就緒複本數在 15 分鐘內一直少於期望值 | 警告 |
 | Job Failures | 工作負載 | 某個 Job 的 Pod 在 15 分鐘內失敗 | 警告 |
 | etcd No Leader | 控制平面 | etcd 沒有選出領導者 | 嚴重 |
 | API Server Request Saturation | 控制平面 | API 伺服器在整個視窗內持有 200 個以上正在處理的請求 | 嚴重 |
 | Scheduler Backlog | 排程中 | 排程器的待處理 Pod 佇列在 5 分鐘內一直不是空的 | 警告 |
 | High Node Disk Usage | 儲存空間 | 節點的檔案系統使用率超過 90% | 警告 |
+| DaemonSet Pods Not Ready | 工作負載 | DaemonSet 在 15 分鐘內一直有節點上沒有它的就緒 Pod | 警告 |
 | DaemonSet Misscheduled Nodes | 工作負載 | DaemonSet 在不再符合其節點選取器、親和性或容忍度的節點上執行 Pod | 警告 |
 | High Node CPU Request Commitment | 節點 | 節點上容器的 CPU 請求總和超過其可配置 CPU 的 90% | 警告 |
 | High Node Memory Request Commitment | 節點 | 節點上容器的記憶體請求總和超過其可配置記憶體的 90% | 警告 |

@@ -5,7 +5,7 @@ Kubernetes 모니터는 OneUptime Kubernetes 에이전트가 클러스터에서 
 :::cards
 - [에이전트 설치](/docs/monitor/kubernetes-agent): Helm 명령 하나로 클러스터를 OneUptime에 연결합니다.
 - [모니터 만들기](#kubernetes-모니터-만들기): 클러스터를 고른 다음 템플릿, 메트릭, 쿼리 중 하나를 고릅니다.
-- [알림 템플릿](#미리-만들어진-알림-템플릿): 보고를 멈춘 클러스터부터 etcd까지 18개의 미리 만들어진 알림.
+- [알림 템플릿](#미리-만들어진-알림-템플릿): 보고를 멈춘 클러스터부터 etcd까지 21개의 미리 만들어진 알림.
 - [기준](#모니터링-기준): 정적 임계값과 이상 탐지.
 :::
 
@@ -86,9 +86,9 @@ flowchart TB
 | 범주 | 메트릭 |
 | --- | --- |
 | Pod | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
-| 노드 | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Filesystem Available |
+| 노드 | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Memory Pressure Condition, Node Disk Pressure Condition, Node PID Pressure Condition, Node Filesystem Available |
 | 컨테이너 | Container Restarts, Container Restarts (Increase), Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
-| 워크로드 | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Ready Replicas, Job Failed Pods, Job Failed Pods (Increase), Job Successful Pods |
+| 워크로드 | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Desired Nodes, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Desired Replicas, StatefulSet Ready Replicas, Job Failed Pods, Job Failed Pods (Increase), Job Successful Pods |
 | HPA | HPA Current Replicas, HPA Desired Replicas, HPA Max Replicas, HPA Min Replicas |
 | 컨트롤 플레인 | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
 
@@ -124,7 +124,7 @@ flowchart TB
 | **Anomalously Low** | 예상 범위보다 내려감 |
 | **Anomalous** | 어느 방향으로든 예상 범위를 벗어남 |
 
-각 샘플은 **기준선 기간**(기본 14일, 그 밖에 28, 60, 90일)으로 만든, 같은 요일·같은 시간대의 기준선과 비교됩니다. **민감도** 는 예상 범위의 폭을 정합니다. **낮음 (4σ — 심각한 편차만)**, 기본값인 **중간 (3σ — 권장)**, **높음 (2σ — 노이즈가 많음, 매우 안정적인 서비스)** 중에서 고릅니다. 이상 조건은 같은 요일·같은 시간대에 2주 분량의 기록이 쌓일 때까지 "Learning" 상태로 남으며 알림을 만들지 않습니다. 합계, 개수 또는 히스토그램에 대한 쿼리는 계속 이 상태로 남습니다. 이 모니터는 쿼리를 속성으로 필터링하는데 기준선에는 속성이 없기 때문입니다.
+각 샘플은 **기준선 기간**(기본 14일, 그 밖에 28, 60, 90일)으로 만든, 같은 요일·같은 시간대의 기준선과 비교됩니다. **민감도** 는 예상 범위의 폭을 정합니다. **낮음 (4σ — 심각한 편차만)**, 기본값인 **중간 (3σ — 권장)**, **높음 (2σ — 노이즈가 많음, 매우 안정적인 서비스)** 중에서 고릅니다. 이상 조건은 같은 요일·같은 시간대에 2주 분량의 기록이 쌓일 때까지 "Learning" 상태로 남으며 알림을 만들지 않습니다. 이 모니터는 쿼리를 속성으로 필터링하므로, 각 쿼리와 그룹화한 쿼리의 각 시리즈는 메트릭이 보관되는 기간까지 자신의 기록과 비교합니다. 그 기간이 2주 미만이면 합계, 개수 또는 히스토그램에 대한 쿼리는 계속 이 상태로 남고, 나머지는 메트릭의 모든 시리즈와 비교합니다. 히스토그램의 백분위수는 항상 이 상태로 남습니다.
 
 **추가 필드** 아래의 **데이터가 없는 경우** 는 기간 동안 쿼리가 아무것도 반환하지 않을 때의 동작을 정합니다. **Ignore**(기본값)는 일치하지 않고, **트리거** 는 무응답을 문제로 취급하며, **Treat As Zero** 는 0으로 비교합니다. OneUptime 자체가 데이터를 받지 못한 시간은 절대 데이터 없음으로 취급되지 않습니다. 그런 시간이 포함된 기간의 확인은 대신 기다리며, 자세한 내용은 [OneUptime이 데이터를 받지 못할 때](/docs/monitor/when-oneuptime-is-not-receiving)에서 설명합니다.
 
@@ -138,14 +138,17 @@ flowchart TB
 | CrashLoopBackOff Detection | 워크로드 | 컨테이너가 15분 안에 다시 시작되었고 그중 절반 미만 동안만 준비됨 | 심각 |
 | Pod Stuck in Pending | 예약 중 | 15분 기간의 모든 샘플에서 어떤 Pod가 Pending 단계에 있음 | 경고 |
 | Node Not Ready | 노드 | 노드가 NotReady를 보고하거나 상태 보고를 멈춤(Unknown) | 심각 |
+| Node Under Pressure | 노드 | 노드가 10분 동안 MemoryPressure, DiskPressure 또는 PIDPressure를 보고함 | 경고 |
 | High Node CPU Utilization | 노드 | 노드의 평균 CPU 사용량이 할당 가능한 CPU의 90%를 넘음 | 경고 |
 | High Node Memory Utilization | 노드 | 노드의 평균 메모리 워킹 셋이 할당 가능한 메모리의 85%를 넘음 | 경고 |
 | Deployment Replica Mismatch | 워크로드 | Deployment의 사용 가능한 레플리카가 15분 동안 원하는 수보다 적음 | 경고 |
+| StatefulSet Replica Mismatch | 워크로드 | StatefulSet의 준비된 레플리카가 15분 동안 원하는 수보다 적음 | 경고 |
 | Job Failures | 워크로드 | Job의 Pod가 15분 안에 실패함 | 경고 |
 | etcd No Leader | 컨트롤 플레인 | etcd에 선출된 리더가 없음 | 심각 |
 | API Server Request Saturation | 컨트롤 플레인 | API 서버가 기간 내내 처리 중인 요청을 200개 이상 보유함 | 심각 |
 | Scheduler Backlog | 예약 중 | 스케줄러의 대기 중인 Pod 큐가 5분 동안 비지 않음 | 경고 |
 | High Node Disk Usage | 스토리지 | 노드의 파일 시스템이 90% 넘게 참 | 경고 |
+| DaemonSet Pods Not Ready | 워크로드 | DaemonSet의 준비된 Pod가 없는 노드가 15분 동안 있음 | 경고 |
 | DaemonSet Misscheduled Nodes | 워크로드 | DaemonSet이 노드 셀렉터, 어피니티, 톨러레이션에 더 이상 맞지 않는 노드에서 Pod를 실행함 | 경고 |
 | High Node CPU Request Commitment | 노드 | 노드의 컨테이너 CPU 요청 합계가 할당 가능한 CPU의 90%를 넘음 | 경고 |
 | High Node Memory Request Commitment | 노드 | 노드의 컨테이너 메모리 요청 합계가 할당 가능한 메모리의 90%를 넘음 | 경고 |

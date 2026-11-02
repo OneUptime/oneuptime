@@ -228,7 +228,9 @@ const KubernetesClusterNamespaceDetail: FunctionComponent<
       },
       {
         title: "Created",
-        value: namespaceObject.metadata.creationTimestamp || "N/A",
+        value: KubernetesResourceUtils.formatAge(
+          namespaceObject.metadata.creationTimestamp,
+        ),
       },
     );
   }

@@ -38,6 +38,7 @@ När en utredning är klar publicerar OneUptime AI en orsaksanalys med de här a
 - **Summary**: en eller två meningar som en larmad person kan läsa på fem sekunder.
 - **Most likely root cause**: hypotesen, bara med den säkerhet som bevisen ger, och med källa för varje faktapåstående. Räcker telemetrin inte till säger AI:n det rakt ut och listar vad den kontrollerade i stället för att gissa.
 - **Evidence**: de viktigaste fynden som stöder eller utesluter hypotesen, vart och ett med källa.
+- **Ruled out**: de andra troliga orsakerna som den kontrollerade, till exempel en nylig ändring, en kapacitetsgräns, ett beroende eller molnet under, var och en med det citerade beviset som utesluter den. Kortet visar dem en per rad. En analys som inte kontrollerade någon annan orsak utelämnar avsnittet.
 - **Suggested next steps**: konkreta åtgärder för den som har jour.
 
 För incidenter publiceras analysen i incidentens flöde **och** som en intern anteckning på incidenten (där de som hanterar den samarbetar). För larm publiceras den i larmets flöde.
@@ -65,6 +66,7 @@ En utredning utgår från incidenten eller larmet och från infrastrukturen den 
 - Infrastrukturens egna mätvärden, lästa så som människor läser dem. Värdmätvärden som `system.cpu.utilization` och `system.memory.utilization` rapporteras en gång per tillstånd, och tillstånden summerar till 100 %, så ett medelvärde över dem alla säger ingenting. OneUptime AI läser dem ett tillstånd i taget (upptagen CPU är user plus system), och vilket mätvärde som helst per container, per monteringspunkt eller efter vilket annat attribut som helst.
 - Containrarna på en Docker- eller Podman-värd: de mest belastade efter CPU, minne eller omstarter, och de som slutade rapportera. En stoppad container skickar ingenting i stället för noll, så siffrorna för hela värden döljer den.
 - Ändringarna som registrerades under de 2 timmarna före incidenten eller larmet (driftsättningar, utrullningar i Kubernetes, konfigurationsändringar och de åtgärder som OneUptime körde) och vilka av dem som tjänsternas telemetri gör misstänkta: en tjänst som blev mätbart sämre direkt efter en ändring. Se [Driftsättningar och ändringar](/docs/telemetry/change-events).
+- Projektets lösta incidenter som delar incidentens monitorer eller etiketter: hur var och en löstes och, när OneUptime AI:s åtgärd för en av dem verifierades, vad den åtgärden körde, så att en upprepning nämner åtgärden som fungerade förra gången. Privata incidenter utelämnas.
 
 Utredningens aktivitet på kortet **OneUptime AI** säger hur många öppna eller nya larm den läste, och på vilka resurser.
 
@@ -412,6 +414,25 @@ När incidenten inte är kopplad till något kluster och någon infrastrukturres
 Ett beslut fattas en gång, med projektets inställningar i det ögonblicket: en brytare som slås på senare verkar inte bakåt på incidenter som redan är öppna. När en sådan brytare är påslagen säger raden att den var avstängd när OneUptime AI kontrollerade och är påslagen nu, och på en öppen incident där ingenting åtgärdades beslutar **Försök igen** på nytt med inställningarna som de är nu, som för en ny incident. Alla som får redigera incidenten kan trycka på den. Den erbjuds inte medan en åtgärd arbetas fram eller väntar på godkännande, eller medan åtgärden väntar på utredningen, och direkt efter att OneUptime AI har kontrollerat ber den dig försöka igen om en stund.
 
 När utredningen hittar orsaken i koden säger steget vad som blev av det: pull-förfrågan med rättningen som OneUptime AI skriver eller har öppnat, med en länk till den i Code; det enda konfigurationssteget som står i vägen, till exempel **Anslut ett kodförråd**; eller **Öppna pull request med rättning**, med orsaken till att OneUptime AI inte öppnade den själv (se [Automatiska kodkorrigeringar](#automatiska-kodkorrigeringar)).
+
+### Innan du godkänner en åtgärd
+
+En åtgärd som väntar på godkännande visar under varje ändring det du behöver för att bestämma dig:
+
+- **Vad den gör, med vanliga ord.** En molnändring säger det ovanför sitt exakta kommando, till exempel ”ECS-tjänst checkout-api: skala upp till 8 uppgifter”. Orden läses ur själva kommandot, aldrig ur det som modellen skrev, och det är kommandot som körs.
+- **Hur samma ändring gick tidigare.** När OneUptime AI har gjort samma ändring på samma kluster eller resurs för andra incidenter och larm under de senaste 90 dagarna säger ändringen hur ofta den fungerade, till exempel ”Fungerade alla 3 gånger den kördes här tidigare”, med en länk till varje incident och larm som den kördes för, och i rött när den aldrig fungerade. En ändring fungerade när verifieringen fann att dess åtgärd fungerade; en ändring som aldrig kördes räknas inte. Samma ändring är samma handling på samma objekt, oavsett dess tal: en skalning till 6 och en till 8 är en ändring. Privata incidenter och larm varken nämns eller räknas.
+
+OneUptime AI läser samma historik innan den planerar: när bevisen stämmer med en åtgärd som fungerade här tidigare prövar den den åtgärden först, och den föreslår inte igen en ändring som inte fungerade utan att säga varför den skulle fungera nu.
+
+### Godkänn eller avvisa en åtgärd från Slack eller Microsoft Teams
+
+När en åtgärd väntar på godkännande visar dess meddelande i incidentens eller larmets Slack- och Microsoft Teams-kanaler dess ändringar, var och en med hur den gick tidigare, och tre knappar:
+
+- **Review and approve** visar allt som åtgärden kör, med **Approve and run**. Ett godkännande kör exakt det som visades, som ditt eget OneUptime-konto, och åtgärden verifieras och återställs som en som har godkänts på kortet.
+- **Dismiss** avvisar åtgärden: OneUptime AI kör den inte, och incidenten eller larmet behåller det som den föreslog.
+- **View in OneUptime** öppnar incidenten eller larmet.
+
+Ett tryck kontrolleras som kortets knappar: ditt chattkonto måste vara anslutet till OneUptime, du måste få godkänna åtgärder i projektet och se incidenten eller larmet, och en åtgärd på ett kluster eller en resurs kräver behörighet att redigera den. En åtgärd som ändrades efter att dess meddelande skickades avvisas, och inget körs. Ett tryck efter att någon annan har godkänt eller avvisat åtgärden säger vem som gjorde det, och när. Incidentens eller larmets flöde säger vem som godkände eller avvisade den, och från vilken chatt.
 
 ## OneUptime AI reagerar först
 

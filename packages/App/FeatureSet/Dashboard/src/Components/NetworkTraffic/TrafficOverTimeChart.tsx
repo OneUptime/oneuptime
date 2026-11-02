@@ -78,6 +78,76 @@ export function getTrafficAxisPrecision(
   return getCoarsestChartGridStepWithin(bucketSeconds);
 }
 
+/*
+ * The time axis of a chart over a page's window, for the buckets it draws.
+ *
+ * It spans the whole window the page asked for, so a quiet start or end still
+ * reads as time passing, and a drag maps to real instants. It starts on the
+ * grid, at the step that holds the FIRST bucket: buckets are aligned to the
+ * epoch, so the first one usually begins before the window does, and an axis
+ * walked from the window start - or from any instant off the grid - can label
+ * its first or last slot past a bucket. The chart silently drops a point with
+ * no slot: a burst at either end of the window drew nothing.
+ *
+ * Null when the window cannot be drawn.
+ */
+export function getTrafficChartXAxis(data: {
+  firstBucketMs: number;
+  lastBucketMs: number;
+  bucketSeconds: number;
+  windowStartAt: string;
+  windowEndAt: string;
+}): ChartXAxis | null {
+  const precision: XAxisPrecision | undefined = getTrafficAxisPrecision(
+    data.bucketSeconds,
+  );
+  const windowStartMs: number = parseBucketTime(data.windowStartAt);
+  const windowEndMs: number = parseBucketTime(data.windowEndAt);
+  const axisFromMs: number = Number.isFinite(windowStartMs)
+    ? Math.min(windowStartMs, data.firstBucketMs)
+    : data.firstBucketMs;
+  const axisStartMs: number = precision
+    ? XAxisUtil.getBucketStart(new Date(axisFromMs), precision).getTime()
+    : axisFromMs;
+  const axisEndMs: number = Number.isFinite(windowEndMs)
+    ? windowEndMs
+    : data.lastBucketMs + data.bucketSeconds * 1000;
+
+  if (!Number.isFinite(axisStartMs) || axisEndMs <= axisStartMs) {
+    return null;
+  }
+
+  return {
+    legend: "Time",
+    options: {
+      type: XAxisType.Time,
+      min: new Date(axisStartMs),
+      max: new Date(axisEndMs),
+      /*
+       * One bucket per slot (see getTrafficAxisPrecision); should a
+       * daylight-saving change ever fold two into one, it shows their
+       * average rate.
+       */
+      aggregateType: XAxisAggregateType.Average,
+      precision: precision,
+    },
+  };
+}
+
+// The rate axis every Traffic chart reads in.
+export function getTrafficChartRateAxis(): YAxis {
+  return {
+    legend: "Mbps",
+    options: {
+      type: YAxisType.Number,
+      min: 0,
+      max: "auto",
+      precision: YAxisPrecision.TwoDecimals,
+      formatter: formatAxisRate,
+    },
+  };
+}
+
 export interface ComponentProps {
   // Gap-filled (fillTrafficSeriesGaps).
   series: Array<NetworkTrafficSeriesPoint>;
@@ -162,62 +232,17 @@ const TrafficOverTimeChart: FunctionComponent<ComponentProps> = (
     return <></>;
   }
 
-  const precision: XAxisPrecision | undefined =
-    getTrafficAxisPrecision(bucketSeconds);
+  const xAxis: ChartXAxis | null = getTrafficChartXAxis({
+    firstBucketMs: firstPoints[0]!.x.getTime(),
+    lastBucketMs: firstPoints[firstPoints.length - 1]!.x.getTime(),
+    bucketSeconds,
+    windowStartAt: props.windowStartAt,
+    windowEndAt: props.windowEndAt,
+  });
 
-  /*
-   * The axis spans the whole window the page asked for, so a quiet start or
-   * end still reads as time passing, and a drag maps to real instants. It
-   * starts on the grid, at the step that holds the FIRST bucket: buckets are
-   * aligned to the epoch, so the first one usually begins before the window
-   * does, and an axis walked from the window start - or from any instant off
-   * the grid - can label its first or last slot past a bucket. The chart
-   * silently drops a point with no slot: a burst at either end of the window
-   * drew nothing.
-   */
-  const windowStartMs: number = parseBucketTime(props.windowStartAt);
-  const windowEndMs: number = parseBucketTime(props.windowEndAt);
-  const firstBucketMs: number = firstPoints[0]!.x.getTime();
-  const axisFromMs: number = Number.isFinite(windowStartMs)
-    ? Math.min(windowStartMs, firstBucketMs)
-    : firstBucketMs;
-  const axisStartMs: number = precision
-    ? XAxisUtil.getBucketStart(new Date(axisFromMs), precision).getTime()
-    : axisFromMs;
-  const axisEndMs: number = Number.isFinite(windowEndMs)
-    ? windowEndMs
-    : firstPoints[firstPoints.length - 1]!.x.getTime() + bucketSeconds * 1000;
-
-  if (!Number.isFinite(axisStartMs) || axisEndMs <= axisStartMs) {
+  if (!xAxis) {
     return <></>;
   }
-
-  const xAxis: ChartXAxis = {
-    legend: "Time",
-    options: {
-      type: XAxisType.Time,
-      min: new Date(axisStartMs),
-      max: new Date(axisEndMs),
-      /*
-       * One bucket per slot (see getTrafficAxisPrecision); should a
-       * daylight-saving change ever fold two into one, it shows their
-       * average rate.
-       */
-      aggregateType: XAxisAggregateType.Average,
-      precision: precision,
-    },
-  };
-
-  const yAxis: YAxis = {
-    legend: "Mbps",
-    options: {
-      type: YAxisType.Number,
-      min: 0,
-      max: "auto",
-      precision: YAxisPrecision.TwoDecimals,
-      formatter: formatAxisRate,
-    },
-  };
 
   return (
     <div>
@@ -237,7 +262,7 @@ const TrafficOverTimeChart: FunctionComponent<ComponentProps> = (
         <AreaChartElement
           data={series}
           xAxis={xAxis}
-          yAxis={yAxis}
+          yAxis={getTrafficChartRateAxis()}
           curve={ChartCurve.MONOTONE}
           sync={false}
           syncid="network-traffic-over-time"

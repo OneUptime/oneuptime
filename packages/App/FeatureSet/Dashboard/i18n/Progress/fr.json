@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39842,
-    "untranslated": 7328
+    "keys": 40054,
+    "untranslated": 7278
   },
   "sameAsEnglish": [
     " incidents",
@@ -383,6 +383,7 @@
     "Red Hat OpenShift",
     "Restrictions",
     "Rotations",
+    "Routes",
     "Runbook",
     "Runbooks",
     "SCIM (System for Cross-domain Identity Management)",
@@ -423,6 +424,8 @@
     "Type",
     "UTC",
     "Up · In",
+    "Uplink",
+    "Uplink {{uplink}}",
     "Uplinks",
     "VLAN",
     "VM",
@@ -500,6 +503,7 @@
     "{{count}} actions",
     "{{count}} appliance",
     "{{count}} appliances",
+    "{{count}} client",
     "{{count}} cluster",
     "{{count}} clusters",
     "{{count}} datacenter",
@@ -508,6 +512,7 @@
     "{{count}} datastores",
     "{{count}} exception",
     "{{count}} exceptions",
+    "{{count}} flow",
     "{{count}} incident",
     "{{count}} incidents",
     "{{count}} instance",
@@ -516,6 +521,8 @@
     "{{count}} minutes",
     "{{count}} option",
     "{{count}} options",
+    "{{count}} pod",
+    "{{count}} pods",
     "{{count}} rotation",
     "{{count}} rotations",
     "{{count}} source",

@@ -19544,6 +19544,319 @@ test.describe("a cloud fix's dry run on the Remediation step", () => {
 });
 
 /*
+ * What a person approving a fix weighs, under each change (block 42): a
+ * cloud change says what it does in plain words above its exact command,
+ * read from the command itself - "Scale the ECS service checkout-api out to
+ * 8 tasks" - and a change that waits says how the same change went the last
+ * times OneUptime AI made it there (RemediationTrackRecordLine): its words
+ * after a dot, red when it never worked, and each incident it ran for, a
+ * link to its page. ?cloudfix= is a fix on Incident #1042 for the AWS
+ * account "prod"; ?trackrecord= its record on the account. Kept to a few
+ * page loads: Event Overview's halves are near their groups' time.
+ */
+test.describe("a fix's changes in plain words, and how each went before", () => {
+  const SERVICE: string =
+    "arn:aws:ecs:us-east-1:123456789012:service/prod/checkout-api";
+  const COMMAND: string = `cloud scale-out ${SERVICE} --count 8`;
+  const WORDS: string = "Scale the ECS service checkout-api out to 8 tasks";
+
+  // The plan's row of the change.
+  function changeRow(page: Page): Locator {
+    return remediationCard(page)
+      .locator("li")
+      .filter({ hasText: COMMAND })
+      .last();
+  }
+
+  function trackRecord(page: Page): Locator {
+    return changeRow(page).getByTestId("remediation-command-track-record");
+  }
+
+  function trackRecordText(page: Page): Locator {
+    return changeRow(page).getByTestId("remediation-command-track-record-text");
+  }
+
+  async function openChange(page: Page, query: string): Promise<void> {
+    await open(page, INCIDENT_PATH, query);
+    await expect(
+      remediationCard(page).getByText(COMMAND, { exact: true }),
+    ).toBeVisible({ timeout: 30000 });
+  }
+
+  // The words above the command, the record under it, and its runs' links.
+  async function expectWordsAndRecord(page: Page): Promise<void> {
+    const row: Locator = changeRow(page);
+    const words: Locator = row.getByTestId("remediation-command-words");
+
+    await expect(words).toHaveText(WORDS);
+    await expect(trackRecord(page)).toHaveAttribute("data-tone", "Worked");
+    await expect(trackRecordText(page)).toHaveText(
+      "Worked all 3 times it ran here before",
+    );
+
+    const [wordsBox, commandBox, recordBox]: Array<Box> = await documentBoxes(
+      page,
+      [words, row.getByText(COMMAND, { exact: true }), trackRecord(page)],
+    );
+    expect(wordsBox!.y).toBeLessThan(commandBox!.y);
+    expect(commandBox!.y).toBeLessThan(recordBox!.y);
+
+    const runs: Locator = trackRecord(page).getByTestId(
+      "remediation-track-record-run",
+    );
+    await expect(runs).toHaveText(["#1036", "#1029", "#1017"]);
+    await expect(runs.first()).toHaveAttribute("href", incidentPath(1036));
+    // The link says how its run went.
+    await expect(runs.first()).toHaveAttribute("title", "Worked here");
+
+    /*
+     * The runs move as one group: on a narrow card they sit together under
+     * the sentence, never one left behind at the end of its line.
+     */
+    const runBoxes: Array<Box> = await documentBoxes(page, [
+      runs.nth(0),
+      runs.nth(1),
+      runs.nth(2),
+    ]);
+    expect(runBoxes[1]!.y).toBe(runBoxes[0]!.y);
+    expect(runBoxes[2]!.y).toBe(runBoxes[0]!.y);
+
+    await expectNoHorizontalOverflow(page);
+    expect(await isOverflowing(words)).toBe(false);
+  }
+
+  test("at 1280px: the words above the command, the record under it, and a run's link opens the incident it fixed (?trackrecord=worked)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await openChange(page, "cloudfix=would-run&trackrecord=worked");
+
+    await expectWordsAndRecord(page);
+    await screenshotElement(
+      remediationCard(page),
+      "remediation-track-record-worked-1280",
+    );
+
+    await trackRecord(page)
+      .getByTestId("remediation-track-record-run")
+      .filter({ hasText: "#1029" })
+      .click();
+    await expect(page).toHaveURL(new RegExp(`${incidentPath(1029)}$`));
+  });
+
+  test("at a 390px phone, dark: the same, inside the card", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openChange(page, "cloudfix=would-run&trackrecord=worked&theme=dark");
+
+    await expectWordsAndRecord(page);
+    await screenshotElement(
+      remediationCard(page),
+      "remediation-track-record-worked-390-dark",
+    );
+  });
+
+  test("never worked here: red; worked some times: an amber dot and the failed run in red; no record: no line, the words still", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openChange(page, "cloudfix=would-run&trackrecord=failed");
+    await expect(trackRecord(page)).toHaveAttribute("data-tone", "DidNotWork");
+    // Two runs: "either", never "the 2 times".
+    await expect(trackRecordText(page)).toHaveText(
+      "Didn't work either time it ran here before",
+    );
+    await expect(trackRecordText(page).locator("..")).toHaveClass(
+      /text-rose-700/,
+    );
+    await expect(
+      trackRecord(page).getByTestId("remediation-track-record-run").first(),
+    ).toHaveAttribute("title", "Didn't work here");
+    await screenshotElement(changeRow(page), "remediation-track-record-failed");
+
+    await openChange(page, "cloudfix=would-run&trackrecord=mixed");
+    await expect(trackRecord(page)).toHaveAttribute("data-tone", "Mixed");
+    await expect(trackRecordText(page)).toHaveText(
+      "Worked 2 of the 3 times it ran here before",
+    );
+    await expect(trackRecord(page).locator(".bg-amber-500")).toHaveCount(1);
+    // The one run that did not work is the red link, and says so.
+    const mixedRuns: Locator = trackRecord(page).getByTestId(
+      "remediation-track-record-run",
+    );
+    await expect(mixedRuns.nth(1)).toHaveText("#1029");
+    await expect(mixedRuns.nth(1)).toHaveClass(/text-rose-700/);
+    await expect(mixedRuns.nth(1)).toHaveAttribute("title", "Didn't work here");
+    await expect(mixedRuns.nth(0)).toHaveClass(/text-indigo-600/);
+
+    await openChange(page, "cloudfix=would-run");
+    await expect(
+      changeRow(page).getByTestId("remediation-command-words"),
+    ).toHaveText(WORDS);
+    await expect(trackRecord(page)).toHaveCount(0);
+  });
+
+  test("reads in German: the kind translated with the sentence, the record in German (?lang=de)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openChange(page, "cloudfix=would-run&trackrecord=worked&lang=de");
+
+    await expect(
+      changeRow(page).getByTestId("remediation-command-words"),
+    ).toHaveText("ECS-Dienst checkout-api: auf 8 Tasks hochskalieren");
+    await expect(trackRecordText(page)).toHaveText(
+      "Hat bei allen 3 früheren Ausführungen hier geholfen",
+    );
+    await screenshotElement(
+      changeRow(page),
+      "remediation-track-record-worked-de",
+    );
+  });
+
+  test("reads in Persian, right to left, at 390px (?lang=fa&dir=auto)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openChange(
+      page,
+      "cloudfix=would-run&trackrecord=worked&lang=fa&dir=auto",
+    );
+
+    const words: Locator = changeRow(page).getByTestId(
+      "remediation-command-words",
+    );
+    await expect(words).toHaveText(
+      "سرویس ECS checkout-api را به ۸ تسک افزایش دهید",
+    );
+    // The line reads the language's way, whatever word it starts with.
+    expect(
+      await words.evaluate((element: Element): string => {
+        return getComputedStyle(element).direction;
+      }),
+    ).toBe("rtl");
+    await expect(trackRecordText(page)).toHaveText(
+      "در همهٔ ۳ باری که پیش‌تر اینجا اجرا شد مؤثر بود",
+    );
+    await expectNoHorizontalOverflow(page);
+    await screenshotElement(
+      remediationCard(page),
+      "remediation-track-record-worked-390-fa",
+    );
+  });
+});
+
+/*
+ * What the investigation ruled out (block 42): a responder trusts a cause
+ * they can see was weighed against the others. The report's Ruled out
+ * section is drawn as the list it is - one cause a line, a cross before it,
+ * the cause and then why, citations and all - between the evidence and the
+ * next steps. ?ruledout=on is such a report on Incident #1042.
+ */
+test.describe("what the investigation ruled out", () => {
+  async function openRuledOut(page: Page, query: string): Promise<Locator> {
+    await open(page, INCIDENT_PATH, query);
+    await showFullReport(page);
+
+    const list: Locator = reportSection(page).getByTestId(
+      "investigation-ruled-out",
+    );
+    await expect(list).toBeVisible({ timeout: 30000 });
+    return list;
+  }
+
+  test("at 1280px: one cause a line, the cause first, cited, between the evidence and the next steps", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    const list: Locator = await openRuledOut(page, "ruledout=on");
+
+    const causes: Locator = list.getByTestId("investigation-ruled-out-cause");
+    await expect(causes).toHaveCount(3);
+    await expect(
+      causes.getByTestId("investigation-ruled-out-cause-name"),
+    ).toHaveText([
+      "The orders database itself",
+      "A traffic spike",
+      "The cloud underneath",
+    ]);
+    const firstReason: Locator = causes
+      .first()
+      .getByTestId("investigation-ruled-out-cause-reason");
+    // On a line of its own, why starts with a capital.
+    await expect(firstReason).toContainText("Its CPU stayed under 30%");
+    await expect(
+      firstReason.getByRole("button", { name: /^Citation C6:/ }),
+    ).toBeVisible();
+
+    const headings: Array<string> = await reportSection(page)
+      .getByRole("heading", { level: 3 })
+      .allTextContents();
+    expect(headings.indexOf("Ruled out")).toBeGreaterThan(
+      headings.indexOf("Evidence"),
+    );
+    expect(headings.indexOf("Suggested next steps")).toBeGreaterThan(
+      headings.indexOf("Ruled out"),
+    );
+
+    await expectNoHorizontalOverflow(page);
+    await screenshotElement(list, "investigation-ruled-out-1280");
+  });
+
+  test("at a 390px phone, dark: the list stays inside the report", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const list: Locator = await openRuledOut(page, "ruledout=on&theme=dark");
+
+    await expect(list.getByTestId("investigation-ruled-out-cause")).toHaveCount(
+      3,
+    );
+    await expectNoHorizontalOverflow(page);
+    await screenshotElement(list, "investigation-ruled-out-390-dark");
+  });
+
+  test("on a Persian page, an English cause keeps its cross at its left, beside its first word (?lang=fa&dir=auto)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const list: Locator = await openRuledOut(
+      page,
+      "ruledout=on&lang=fa&dir=auto",
+    );
+
+    const cause: Locator = list
+      .getByTestId("investigation-ruled-out-cause")
+      .first();
+    await expect(cause).toHaveAttribute("dir", "ltr");
+
+    const [crossBox, nameBox]: Array<Box> = await documentBoxes(page, [
+      cause.locator("svg"),
+      cause.getByTestId("investigation-ruled-out-cause-name"),
+    ]);
+    expect(crossBox!.x).toBeLessThan(nameBox!.x);
+
+    await expectNoHorizontalOverflow(page);
+    await screenshotElement(list, "investigation-ruled-out-390-fa");
+  });
+});
+
+/*
  * ---------------------------------------------------------------------------
  * The AI card in two steps (block 43): "Can you make it in two steps?
  * Investigation would be one step, and remediation would be the other

@@ -187,15 +187,17 @@ const ResourcePartAlertsCard: FunctionComponent<ComponentProps> = (
                 >
                   {/*
                    * The template's own name and summary, as the
-                   * Recommendations page shows them.
+                   * Recommendations page shows them - in English, so each
+                   * reads in its own direction: on a Persian page an
+                   * English summary kept its full stop at its start.
                    */}
                   <div className="min-w-0">
                     <div className="text-sm font-medium text-gray-900">
-                      {viewModel.recommendation.name}
+                      <bdi>{viewModel.recommendation.name}</bdi>
                     </div>
                     {viewModel.recommendation.summary ? (
                       <div className="mt-0.5 text-xs text-gray-500">
-                        {viewModel.recommendation.summary}
+                        <bdi>{viewModel.recommendation.summary}</bdi>
                       </div>
                     ) : (
                       <></>
