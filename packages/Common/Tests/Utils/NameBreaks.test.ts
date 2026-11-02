@@ -13,8 +13,8 @@ import { FastestRun, fastestRun } from "../Helpers/FastestRun";
  * to the text as written.
  */
 
-function breaks(text: string): Array<string> {
-  const parts: Array<string> = splitAtNameBreaks(text);
+function breaks(text: string, fromLength?: number): Array<string> {
+  const parts: Array<string> = splitAtNameBreaks(text, fromLength);
 
   // Nothing is added or lost: a copy reads as written.
   expect(parts.join("")).toBe(text);
@@ -87,6 +87,24 @@ describe("what stays whole", () => {
       "server.",
       "duration",
     ]);
+  });
+
+  test("a name alone in a narrow box breaks from the length its caller gives", () => {
+    // In running text a space before it takes the break: whole.
+    expect(breaks("esx02.acme.example")).toEqual(["esx02.acme.example"]);
+    // Alone beside a value (a top-5 row), after its dots - not "exampl" / "e".
+    expect(breaks("esx02.acme.example", 0)).toEqual([
+      "esx02.",
+      "acme.",
+      "example",
+    ]);
+    // Unchanged where nothing follows a dot but a digit, or there is no dot.
+    expect(breaks("v2.5.1", 0)).toEqual(["v2.5.1"]);
+    expect(breaks("4.8", 0)).toEqual(["4.8"]);
+    expect(breaks("ci-runner-01", 0)).toEqual(["ci-runner-01"]);
+    // A length given is the length used, in a sentence too.
+    expect(breaks("on user.id now", 7)).toEqual(["on user.", "id now"]);
+    expect(breaks("on user.id now", 8)).toEqual(["on user.id now"]);
   });
 
   test("a number's decimal point, and a version's", () => {

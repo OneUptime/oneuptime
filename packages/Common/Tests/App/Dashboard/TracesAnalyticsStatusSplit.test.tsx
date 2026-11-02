@@ -349,10 +349,11 @@ const renderView: () => void = (): void => {
 
 type ChooseFunction = (caption: string, value: string) => void;
 
-// Picks an option of the query-builder control with this caption.
+// Picks an option of the query-builder control with this caption (the select is named by it).
 const choose: ChooseFunction = (caption: string, value: string): void => {
-  const select: HTMLSelectElement = screen.getByText(caption)
-    .nextElementSibling as HTMLSelectElement;
+  const select: HTMLSelectElement = screen.getByRole("combobox", {
+    name: caption,
+  }) as HTMLSelectElement;
   fireEvent.change(select, { target: { value } });
   // An option the control does not offer would silently pick "".
   expect(select.value).toBe(value);

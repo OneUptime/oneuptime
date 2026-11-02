@@ -6,9 +6,9 @@ import path from "path";
  * Every number on the VMware (vCenter) pages carries an (i) that says what
  * it means. The texts live in
  * Components/MetricDescriptions/VMwareMetricDescriptions.ts; this file pins
- * that each tile, chart card, summary card, top-5 section, detail-page
- * summary field and table column is handed the RIGHT text - a tile wired to
- * its neighbour's description would read fine and be wrong.
+ * that each tile, chart card, status pill, top-5 section, details row and
+ * table column is handed the RIGHT text - a tile wired to its neighbour's
+ * description would read fine and be wrong.
  *
  * The App suite runs in plain Node with no renderer, so this reads the page
  * sources (comments stripped, whitespace squashed, so Prettier reflows and
@@ -31,14 +31,12 @@ const WHITESPACE: RegExp = /\s+/g;
 const BLOCK_COMMENT: RegExp = /\/\*[\s\S]*?\*\//g;
 const LINE_COMMENT: RegExp = /(^|[^:])\/\/[^\n]*/g;
 const REFERENCE: RegExp = /VMWARE_METRIC_DESCRIPTIONS\.(\w+)/g;
-const TILE_TITLE: RegExp = /title="([^"]+)"/;
 const TILE_DESCRIPTION: RegExp =
   /description=\{VMWARE_METRIC_DESCRIPTIONS\.(\w+)\}/;
 const CARD_TOOLTIP: RegExp = /tooltip=\{VMWARE_METRIC_DESCRIPTIONS\.(\w+)\}/;
 const CALL_TITLE: RegExp = /title: "([^"]+)"/;
 const CALL_DESCRIPTION: RegExp =
   /description: VMWARE_METRIC_DESCRIPTIONS\.(\w+)/;
-const FIELD_TITLE: RegExp = /title: (.+?), (?:value|description):/;
 const COLUMN_TITLE: RegExp = /^"([^"]+)"/;
 const BUILT_IN_ENTRY: RegExp = /(\w+): VMWARE_METRIC_DESCRIPTIONS\.(\w+)/g;
 
@@ -104,9 +102,11 @@ function piecesAfter(
 type Pairs = Array<[string, string | null]>;
 
 /*
- * The pages and the parts of a page that show a VMware number. An ESXi
- * host's page (Pages/VMware/View/HostDetail.tsx) is put together from
- * Components/VMware/Host, and its numbers live in those parts.
+ * The pages and the parts of a page that show a VMware number. A part's
+ * page (an ESXi host's, a VM's, a datastore's, a cluster's) is put
+ * together from Components/VMware/Host and Components/VMware/Part, and the
+ * hosts and VMs lists - a vCenter's, a cluster's, a host's - are one
+ * shared pair of tables (VMwareResourceTables): their numbers live there.
  */
 const PAGES: Record<string, string> = {
   overview: "Pages/VMware/View/Index.tsx",
@@ -114,17 +114,92 @@ const PAGES: Record<string, string> = {
   hostBusiestVms: "Components/VMware/Host/VMwareHostBusiestVirtualMachines.tsx",
   hostDevices: "Components/VMware/Host/VMwareHostDeviceTables.tsx",
   hostDetails: "Components/VMware/Host/VMwareHostDetailsCard.tsx",
-  hostVirtualMachines:
-    "Components/VMware/Host/VMwareHostVirtualMachinesTab.tsx",
-  vmDetail: "Pages/VMware/View/VirtualMachineDetail.tsx",
-  datastoreDetail: "Pages/VMware/View/DatastoreDetail.tsx",
-  clusterDetail: "Pages/VMware/View/ClusterDetail.tsx",
-  hosts: "Pages/VMware/View/Hosts.tsx",
-  vms: "Pages/VMware/View/VirtualMachines.tsx",
+  partHero: "Components/VMware/Part/VMwarePartHero.tsx",
+  vmOverview: "Components/VMware/Part/VMwareVirtualMachineOverview.tsx",
+  datastoreOverview: "Components/VMware/Part/VMwareDatastoreOverview.tsx",
+  clusterOverview: "Components/VMware/Part/VMwareClusterOverview.tsx",
+  resourceTables: "Components/VMware/VMwareResourceTables.tsx",
   datastores: "Pages/VMware/View/Datastores.tsx",
   clusters: "Pages/VMware/View/Clusters.tsx",
   resourcePools: "Pages/VMware/View/ResourcePools.tsx",
 };
+
+/*
+ * The pages that show VMware numbers only through those parts, and the
+ * parts each one draws: a page that drew a number of its own would need
+ * its own entry in PAGES.
+ */
+const DRAWN_BY_PARTS: Array<[string, Array<[string, string]>]> = [
+  [
+    "Pages/VMware/View/VirtualMachineDetail.tsx",
+    [
+      ["VMwarePartHero", "../../../Components/VMware/Part/VMwarePartHero"],
+      [
+        "VMwareVirtualMachineOverview",
+        "../../../Components/VMware/Part/VMwareVirtualMachineOverview",
+      ],
+    ],
+  ],
+  [
+    "Pages/VMware/View/DatastoreDetail.tsx",
+    [
+      ["VMwarePartHero", "../../../Components/VMware/Part/VMwarePartHero"],
+      [
+        "VMwareDatastoreOverview",
+        "../../../Components/VMware/Part/VMwareDatastoreOverview",
+      ],
+    ],
+  ],
+  [
+    "Pages/VMware/View/ClusterDetail.tsx",
+    [
+      ["VMwarePartHero", "../../../Components/VMware/Part/VMwarePartHero"],
+      [
+        "VMwareClusterOverview",
+        "../../../Components/VMware/Part/VMwareClusterOverview",
+      ],
+      [
+        "{ VMwareHostsTable, VMwareVirtualMachinesTable, }",
+        "../../../Components/VMware/VMwareResourceTables",
+      ],
+    ],
+  ],
+  [
+    "Pages/VMware/View/Hosts.tsx",
+    [
+      [
+        "{ VMwareHostsTable }",
+        "../../../Components/VMware/VMwareResourceTables",
+      ],
+    ],
+  ],
+  [
+    "Pages/VMware/View/VirtualMachines.tsx",
+    [
+      [
+        "{ VMwareVirtualMachinesTable }",
+        "../../../Components/VMware/VMwareResourceTables",
+      ],
+    ],
+  ],
+  [
+    "Components/VMware/Host/VMwareHostVirtualMachinesTab.tsx",
+    [["{ VMwareVirtualMachinesTable }", "../VMwareResourceTables"]],
+  ],
+];
+
+// "{ VMwareHostsTable, VMwareVirtualMachinesTable, }" -> each one's tag.
+function tagsOf(binding: string): Array<string> {
+  return binding
+    .replace(/[{}]/g, "")
+    .split(",")
+    .map((name: string): string => {
+      return name.trim();
+    })
+    .filter((name: string): boolean => {
+      return name.length > 0;
+    });
+}
 
 // The import of the description record, relative to the importing file.
 function importLineFor(page: string): string {
@@ -196,6 +271,39 @@ describe("the VMware pages and the description record agree", () => {
     expect(overview).toContain("<VMwareHostDetailsCard");
   });
 
+  test.each(DRAWN_BY_PARTS)(
+    "%s shows no VMware number of its own, only through its parts",
+    (page: string, parts: Array<[string, string]>) => {
+      const code: string = readCode(page);
+
+      expect(code).not.toContain("VMWARE_METRIC_DESCRIPTIONS");
+      expect(code).not.toContain("summaryFields");
+
+      for (const [binding, from] of parts) {
+        expect(code).toContain(`import ${binding} from "${from}";`);
+
+        for (const tag of tagsOf(binding)) {
+          expect(code).toContain(`<${tag}`);
+        }
+      }
+    },
+  );
+
+  test("every part a page draws its numbers through is checked here", () => {
+    const checked: Set<string> = new Set<string>(Object.values(PAGES));
+
+    for (const [, parts] of DRAWN_BY_PARTS) {
+      for (const [, from] of parts) {
+        const file: string = from.replace(/^(\.\.\/)+/, "");
+        const inComponents: string = file.startsWith("Components/")
+          ? file
+          : `Components/VMware/${file}`;
+
+        expect(checked).toContain(`${inComponents}.tsx`);
+      }
+    }
+  });
+
   test("every key a page references exists in the record", () => {
     const missing: Array<string> = [];
 
@@ -228,56 +336,31 @@ describe("the VMware pages and the description record agree", () => {
 
   test("no description is wired to two different places by mistake", () => {
     /*
-     * The intentional reuses: the VM detail page's CPU row has two branches
-     * (a reading, or N/A while powered off) that explain the same thing,
-     * and an ESXi host's Virtual machines tab is the vCenter's Virtual
-     * Machines list for one host, so its columns explain themselves with
-     * that list's texts - each once there and once on the host.
+     * The one intentional reuse: a cluster's CPU and Memory tiles and the
+     * Clusters list's CPU and Memory columns are the same measure (what
+     * its hosts use of its effective capacity), so they explain themselves
+     * with the same text - once on the cluster's page, once in the list.
+     * The hosts and VMs lists of a vCenter, a cluster and a host are one
+     * shared table each, so their texts are written once.
      */
-    const uses: Map<string, number> = new Map<string, number>();
+    const uses: Map<string, Array<string>> = new Map<string, Array<string>>();
 
-    for (const page of Object.values(PAGES)) {
+    for (const [name, page] of Object.entries(PAGES)) {
       for (const match of readCode(page).matchAll(REFERENCE)) {
-        uses.set(match[1]!, (uses.get(match[1]!) || 0) + 1);
+        uses.set(match[1]!, [...(uses.get(match[1]!) || []), name]);
       }
     }
 
-    const reused: Array<string> = Array.from(uses.entries())
-      .filter(([, count]: [string, number]): boolean => {
-        return count > 1;
-      })
-      .map(([key]: [string, number]): string => {
-        return key;
-      })
-      .sort();
+    const reused: Array<[string, Array<string>]> = Array.from(
+      uses.entries(),
+    ).filter(([, where]: [string, Array<string>]): boolean => {
+      return where.length > 1;
+    });
 
-    const hostVmTab: Array<string> = Array.from(
-      readCode(PAGES["hostVirtualMachines"]!).matchAll(REFERENCE),
-    )
-      .map((match: RegExpMatchArray): string => {
-        return match[1]!;
-      })
-      .sort();
-    const vmList: Set<string> = new Set<string>(
-      Array.from(readCode(PAGES["vms"]!).matchAll(REFERENCE)).map(
-        (match: RegExpMatchArray): string => {
-          return match[1]!;
-        },
-      ),
-    );
-
-    expect(hostVmTab.length).toBeGreaterThan(0);
-    expect(
-      hostVmTab.filter((key: string): boolean => {
-        return !vmList.has(key);
-      }),
-    ).toEqual([]);
-    expect(reused).toEqual([...hostVmTab, "vmCpu"].sort());
-    expect(uses.get("vmCpu")).toBe(2);
-
-    for (const key of hostVmTab) {
-      expect(uses.get(key)).toBe(2);
-    }
+    expect(Object.fromEntries(reused)).toEqual({
+      clusterCpuInUse: ["clusterOverview", "clusters"],
+      clusterMemoryInUse: ["clusterOverview", "clusters"],
+    });
   });
 });
 
@@ -297,7 +380,8 @@ describe("VMware overview (Index.tsx)", () => {
       "const renderGoldenMetrics:",
     );
 
-    expect(countOf(hero, "<InfoTooltip")).toBe(1);
+    // Data Status, vCenter Health, and the count chips' one.
+    expect(countOf(hero, "<InfoTooltip")).toBe(3);
     expect(hero).toContain(
       '{hasCountChips && ( <InfoTooltip label="vCenter inventory counts" text={VMWARE_METRIC_DESCRIPTIONS.overviewInventoryCounts} /> )}',
     );
@@ -316,7 +400,11 @@ describe("VMware overview (Index.tsx)", () => {
       between(hero, "const specChips:", "const hasCountChips"),
     ).not.toContain("agentVersion");
 
-    // The (i) sits in the chip row, after the chips, not inside one.
+    /*
+     * The (i) sits in the chip row right after the count chips, not inside
+     * one, and before the agent version chip: after it, it read as that
+     * chip's (i), alone with it where the row wraps.
+     */
     const row: string = between(
       hero,
       "{(specChips.length > 0 || Boolean(vcenter.agentVersion)) && (",
@@ -324,7 +412,8 @@ describe("VMware overview (Index.tsx)", () => {
     );
 
     expect(row).toContain("{specChips.map(");
-    expect(row).toContain(
+    expect(row).not.toContain("<AgentVersion");
+    expect(between(hero, "{hasCountChips && (", "</div>")).toContain(
       '<AgentVersion kind={AgentKind.VMwareAgent} version={vcenter.agentVersion} variant="chip" />',
     );
   });
@@ -336,20 +425,25 @@ describe("VMware overview (Index.tsx)", () => {
       "const renderChartCard:",
     );
     const tiles: Array<string> = piecesAfter(golden, "<GoldenMetricTile", "/>");
+    // Titles in the reader's language: a tile draws its title as given.
     const pairs: Pairs = tiles.map((tile: string): [string, string | null] => {
       return [
-        firstMatch(tile, TILE_TITLE) || "",
+        firstMatch(tile, TRANSLATED_TITLE) || "",
         firstMatch(tile, TILE_DESCRIPTION),
       ];
     });
 
+    /*
+     * How many hosts can run VMs, how busy they are, the fullest datastore
+     * and how long VMs wait for a CPU. How many VMs run is the hero's count
+     * chip, one step from the list.
+     */
     expect(pairs).toEqual([
-      ["Host Effectiveness", "overviewHostEffectiveness"],
+      ["Effective hosts", "overviewHostEffectiveness"],
       ["Host CPU", "overviewHostCpu"],
       ["Host Memory", "overviewHostMemory"],
       ["Datastores", "overviewDatastores"],
       ["VM CPU Ready", "overviewVmCpuReady"],
-      ["Virtual Machines", "overviewVirtualMachines"],
     ]);
     // No tile outside the golden row.
     expect(countOf(code, "<GoldenMetricTile")).toBe(tiles.length);
@@ -359,7 +453,7 @@ describe("VMware overview (Index.tsx)", () => {
     const charts: string = between(
       code,
       "const renderGoldenCharts:",
-      "const renderWhyDegraded:",
+      "const renderTopList:",
     );
     const calls: Array<string> = piecesAfter(charts, "renderChartCard({", "})");
     const pairs: Pairs = calls.map((call: string): [string, string | null] => {
@@ -397,11 +491,12 @@ describe("VMware overview (Index.tsx)", () => {
     expect(countOf(card, "return (")).toBe(2);
     expect(countOf(card, "{header}")).toBe(2);
     /*
-     * ...and the title is drawn nowhere else (once as text, once as the
-     * (i)'s label), so no branch can lose the (i).
+     * ...and the title is drawn nowhere else (once as text, in the reader's
+     * language, once as the (i)'s label), so no branch can lose the (i).
      */
-    expect(countOf(card, "{params.title}")).toBe(2);
-    expect(countOf(card, "{params.title} </span>")).toBe(1);
+    expect(countOf(card, "params.title")).toBe(2);
+    expect(countOf(card, "{tx(params.title)} </span>")).toBe(1);
+    expect(countOf(card, "label={params.title}")).toBe(1);
 
     const skeleton: string = between(
       card,
@@ -417,7 +512,7 @@ describe("VMware overview (Index.tsx)", () => {
     const top: string = between(
       code,
       "const renderTopConsumers:",
-      "const renderResourceLinks:",
+      "<TimeRangeZoomScope timeRange=",
     );
     const calls: Array<string> = piecesAfter(
       top,
@@ -450,78 +545,89 @@ describe("VMware overview (Index.tsx)", () => {
     );
   });
 
-  test("every summary card explains itself, clickable ones included", () => {
-    const strip: string = between(
+  /*
+   * The hero's two pills say how the vCenter's data arrives and how its
+   * inventory is, each with its (i) beside it - where a strip of summary
+   * cards once repeated the hero's counts.
+   */
+  test("the hero's pills explain themselves; no summary card repeats the hero", () => {
+    const hero: string = between(
       code,
-      '<InfoCard title="vCenter Health"',
-      "<ResourceActivityCards",
-    );
-    const cards: Array<string> = strip.split("<InfoCard").slice(1);
-    const pairs: Array<[string, string | null, boolean]> = cards.map(
-      (card: string): [string, string | null, boolean] => {
-        return [
-          firstMatch(card, TILE_TITLE) || "",
-          firstMatch(card, CARD_TOOLTIP),
-          card.includes("onClick="),
-        ];
-      },
+      "const renderHero:",
+      "const renderGoldenMetrics:",
     );
 
-    expect(pairs).toEqual([
-      ["vCenter Health", "overviewVCenterHealth", false],
-      ["Datacenters", "overviewDatacenterCount", false],
-      ["Clusters", "overviewClusterCount", true],
-      ["Hosts", "overviewHostCount", true],
-      ["Virtual Machines", "overviewVirtualMachineCount", true],
-      ["Datastores", "overviewDatastoreCount", true],
-      ["Resource Pools", "overviewResourcePoolCount", true],
-      ["Data Status", "overviewAgentStatus", false],
-    ]);
-    expect(countOf(code, "<InfoCard")).toBe(cards.length);
+    // Prettier may break a long attribute's braces over lines: read it tight.
+    const tight: string = hero.replace(/\{ /g, "{").replace(/ \}/g, "}");
+
+    expect(tight).toContain(
+      '<InfoTooltip label="Data Status" text={VMWARE_METRIC_DESCRIPTIONS.overviewAgentStatus} />',
+    );
+    expect(tight).toContain(
+      '<InfoTooltip label="vCenter Health" text={VMWARE_METRIC_DESCRIPTIONS.overviewVCenterHealth} />',
+    );
+    // Each (i) right after its pill, outside it.
+    expect(
+      between(hero, 'data-testid="vmware-hero-connection"', '"Data Status"'),
+    ).toContain("{connectionLabel} </span> <InfoTooltip");
+    expect(
+      between(hero, 'data-testid="vmware-hero-health"', '"vCenter Health"'),
+    ).toContain("{healthLabel} </span> <InfoTooltip");
+    expect(code).not.toContain("<InfoCard");
+    expect(code).not.toMatch(CARD_TOOLTIP);
   });
 
   test("no (i) sits inside a link or a button on the page", () => {
     /*
-     * The clickable summary cards are InfoCards, which lay their own click
-     * target beside the (i) rather than around it (the jsdom test checks
-     * that); nothing on the page itself wraps content in an anchor or a
-     * button.
+     * The count chips that open a list are links holding only their icon
+     * and their words: the chips' (i) sits after them in the row. Nothing
+     * on the page wraps content in an anchor or a button.
      */
+    const links: Array<string> = piecesAfter(code, "<Link", "</Link>");
+
+    expect(links.length).toBeGreaterThan(0);
+    for (const link of links) {
+      expect(link).not.toContain("<InfoTooltip");
+    }
     expect(code).not.toContain("<button");
     expect(code).not.toContain("<a ");
-    expect(code).not.toContain("<Link");
     expect(code).not.toContain("<AppLink");
   });
 });
 
-/*
- * The summary fields of a detail page, in order: each pushed field's title
- * and the description it carries (null for identity fields and timestamps).
- */
-function summaryFieldPairs(code: string): Pairs {
-  return piecesAfter(code, "summaryFields.push({", "});").map(
-    (field: string): [string, string | null] => {
+const TRANSLATED_TITLE: RegExp = /title=\{tx\("([^"]+)"\)\}/;
+const ROW_LABEL: RegExp = /label: "([^"]+)"/;
+
+// A part page's tiles, in order: each one's title and its text.
+function tilePairs(code: string): Pairs {
+  return piecesAfter(code, "<GoldenMetricTile", "/>").map(
+    (tile: string): [string, string | null] => {
       return [
-        firstMatch(field, FIELD_TITLE) || "",
-        firstMatch(field, CALL_DESCRIPTION),
+        firstMatch(tile, TRANSLATED_TITLE) || "",
+        firstMatch(tile, TILE_DESCRIPTION),
       ];
     },
   );
 }
 
-function initialFieldsCarryNoDescription(code: string): void {
-  const initial: string = between(
-    code,
-    "const summaryFields: Array<SummaryField> = [",
-    "];",
-  );
+/*
+ * A part page's details rows, in order: each one's label and its text
+ * (null for names, ids and times - nothing to explain).
+ */
+function detailRowPairs(code: string): Pairs {
+  return code
+    .split(/\{ key: "/)
+    .slice(1)
+    .map((row: string): [string, string | null] => {
+      const end: number = row.indexOf("});");
+      const body: string = end >= 0 ? row.slice(0, end) : row;
 
-  // Name and vCenter: identity, nothing to explain.
-  expect(initial).not.toContain("description:");
+      return [
+        firstMatch(body, ROW_LABEL) || "",
+        firstMatch(body, CALL_DESCRIPTION),
+      ];
+    });
 }
-
-const TRANSLATED_TITLE: RegExp = /title=\{tx\("([^"]+)"\)\}/;
-const ROW_LABEL: RegExp = /label: "([^"]+)"/;
 
 describe("VMware ESXi host page", () => {
   test("every tile explains itself with its own text", () => {
@@ -654,91 +760,105 @@ describe("VMware ESXi host page", () => {
     );
   });
 
-  test("the Virtual machines tab explains its columns as the VM list does", () => {
-    const code: string = readCode(PAGES["hostVirtualMachines"]!);
+  /*
+   * The tab is the vCenter's Virtual Machines list for one host: the same
+   * shared table, so its columns explain themselves with that list's
+   * texts, written once (checked under the lists below).
+   */
+  test("the Virtual machines tab is the VM list's table, for one host", () => {
+    const code: string = readCode(
+      "Components/VMware/Host/VMwareHostVirtualMachinesTab.tsx",
+    );
 
-    expect(columnPairs(code)).toEqual([
-      ["Resource Pool", null],
-      ["CPU Ready", "vmListCpuReady"],
-    ]);
-    expect(code).not.toContain("showStatus={false}");
-    expect(code).not.toContain("showResourceMetrics={false}");
-    expect(builtInDescriptions(code)).toEqual({
-      status: "vmListStatus",
-      cpu: "vmListCpu",
-      memory: "vmListMemory",
-      age: "vmListAge",
-    });
+    expect(code).toContain("<VMwareVirtualMachinesTable");
+    expect(code).toContain('scope="host"');
+    expect(code).not.toContain("columns=");
+    expect(code).not.toContain("builtInColumnDescriptions");
   });
 });
 
-describe("VMware detail pages: summary fields", () => {
-  test("virtual machine detail", () => {
-    const code: string = readCode(PAGES["vmDetail"]!);
+describe("VMware part pages: tiles and details", () => {
+  test("a virtual machine's tiles and the rows that need an (i)", () => {
+    const code: string = readCode(PAGES["vmOverview"]!);
 
-    initialFieldsCarryNoDescription(code);
-    expect(summaryFieldPairs(code)).toEqual([
-      ['isTemplate ? "Type" : "Power State"', "vmPowerState"],
-      ['"Instance UUID"', null],
-      ['"Host"', null],
-      ['"Cluster"', null],
-      ['"Datacenter"', null],
-      ['"vApp"', null],
-      ['"Resource Pool"', null],
-      // A reading, or N/A while powered off - both explained.
-      ['"CPU"', "vmCpu"],
-      ['"CPU"', "vmCpu"],
-      ['"CPU Ready"', "vmCpuReady"],
-      ['"Memory (Used / Configured)"', "vmMemory"],
-      ['"Memory Ballooned"', "vmMemoryBallooned"],
-      ['"Memory Swapped"', "vmMemorySwapped"],
-      ['"Disk (Used / Provisioned)"', "vmDisk"],
-      ['"External ID"', null],
-      ['"Metrics Updated"', null],
-      ['"Last Seen"', null],
+    expect(tilePairs(code)).toEqual([
+      ["CPU", "vmCpu"],
+      ["CPU Ready", "vmCpuReady"],
+      ["Memory", "vmMemory"],
+      ["Disk", "vmDisk"],
+    ]);
+    expect(detailRowPairs(code)).toEqual([
+      ["Name", null],
+      ["Instance UUID", null],
+      ["Host", null],
+      ["vApp", null],
+      ["Resource Pool", null],
+      ["Inventory Path", null],
+      ["Memory Ballooned", "vmMemoryBallooned"],
+      ["Memory Swapped", "vmMemorySwapped"],
+      ["vCenter ID", null],
+      ["Last report", null],
     ]);
   });
 
-  test("datastore detail", () => {
-    const code: string = readCode(PAGES["datastoreDetail"]!);
+  test("a datastore's tiles; its details are names, ids and times", () => {
+    const code: string = readCode(PAGES["datastoreOverview"]!);
 
-    initialFieldsCarryNoDescription(code);
-    expect(summaryFieldPairs(code)).toEqual([
-      ['"Datacenter"', null],
-      ['"Used"', "datastoreUsed"],
-      ['"Capacity"', "datastoreCapacity"],
-      ['"Free"', "datastoreFree"],
-      ['"Used %"', "datastoreUsedPercent"],
-      ['"Growth Forecast"', "datastoreGrowthForecast"],
-      ['"External ID"', null],
-      ['"Metrics Updated"', null],
-      ['"Last Seen"', null],
+    expect(tilePairs(code)).toEqual([
+      ["Used", "datastoreUsedPercent"],
+      ["Free", "datastoreFree"],
+      ["Growth Forecast", "datastoreGrowthForecast"],
+    ]);
+    expect(detailRowPairs(code)).toEqual([
+      ["Name", null],
+      ["Datacenter", null],
+      ["vCenter ID", null],
+      ["Last report", null],
     ]);
   });
 
-  test("cluster detail", () => {
-    const code: string = readCode(PAGES["clusterDetail"]!);
+  test("a cluster's tiles, and its effective capacity in its details", () => {
+    const code: string = readCode(PAGES["clusterOverview"]!);
 
-    initialFieldsCarryNoDescription(code);
-    expect(summaryFieldPairs(code)).toEqual([
-      ['"Datacenter"', null],
-      ['"Hosts"', "clusterHosts"],
-      ['"Virtual Machines"', "clusterVirtualMachines"],
-      ['"VM Templates"', "clusterTemplates"],
-      ['"CPU (Effective / Total)"', "clusterCpu"],
-      ['"Memory (Effective / Total)"', "clusterMemory"],
-      ['"External ID"', null],
-      ['"Metrics Updated"', null],
-      ['"Last Seen"', null],
+    expect(tilePairs(code)).toEqual([
+      ["Effective hosts", "clusterHosts"],
+      ["CPU", "clusterCpuInUse"],
+      ["Memory", "clusterMemoryInUse"],
+      ["Host failure", "clusterHostFailure"],
+    ]);
+    expect(detailRowPairs(code)).toEqual([
+      ["Name", null],
+      ["Datacenter", null],
+      ["CPU (Effective / Total)", "clusterCpu"],
+      ["Memory (Effective / Total)", "clusterMemory"],
+      ["vCenter ID", null],
+      ["Last report", null],
     ]);
   });
 
-  test("the summary grid still forwards a field's description to its card", () => {
-    const grid: string = readCode(
-      "Components/Infrastructure/ResourceOverviewTab.tsx",
+  /*
+   * A VM's status says what it is doing; what that is read from (which
+   * VMs send CPU data) is its (i), unless the status has a sentence of its
+   * own (a VM on a host vCenter lost says why it is Disconnected).
+   */
+  test("a VM's status in the hero says what it is read from", () => {
+    const code: string = readCode(PAGES["partHero"]!);
+
+    expect(code).toContain(
+      "description: status.description || VMWARE_METRIC_DESCRIPTIONS.vmPowerState,",
     );
+    expect(countOf(code, "VMWARE_METRIC_DESCRIPTIONS.")).toBe(1);
+  });
 
-    expect(grid).toContain("tooltip={field.description}");
+  test("the shared tile and details card turn a text into an (i)", () => {
+    expect(
+      readCode("Components/Infrastructure/GoldenMetricTile.tsx"),
+    ).toContain("<InfoTooltip label={props.title} text={props.description} />");
+    expect(
+      readCode("Components/ResourcePart/ResourcePartDetailsCard.tsx"),
+    ).toContain(
+      "{row.description ? ( <InfoTooltip label={row.label} text={row.description} /> ) : ( <></> )}",
+    );
   });
 });
 
@@ -789,39 +909,69 @@ function builtInDescriptions(code: string): Record<string, string> {
   return result;
 }
 
-describe("VMware list pages: column headers", () => {
-  test("Hosts", () => {
-    const code: string = readCode(PAGES["hosts"]!);
+/*
+ * The columns a shared table pushes, in order: each one's title and the
+ * description it carries.
+ */
+function pushedColumnPairs(code: string): Pairs {
+  return code
+    .split("{ title: ")
+    .slice(1)
+    .map((column: string): [string, string | null] => {
+      const head: string = column.slice(0, column.indexOf("getValue"));
 
-    expect(columnPairs(code)).toEqual([
+      return [
+        firstMatch(column, COLUMN_TITLE) || "",
+        firstMatch(head, CALL_DESCRIPTION),
+      ];
+    });
+}
+
+describe("VMware list pages: column headers", () => {
+  const tables: string = readCode(PAGES["resourceTables"]!);
+  const hostsTable: string = between(
+    tables,
+    "export const VMwareHostsTable:",
+    "export interface VirtualMachinesTableProps",
+  );
+  const vmsTable: string = tables.slice(
+    tables.indexOf("export const VMwareVirtualMachinesTable:"),
+  );
+
+  /*
+   * A host's status is vCenter's word for it (Connected, Not responding,
+   * In standby...), so the Status column says how it is read; vCenter
+   * reports no uptime, so there is no Age column.
+   */
+  test("Hosts", () => {
+    expect(pushedColumnPairs(hostsTable)).toEqual([
       ["Cluster", null],
       ["CPU Capacity", "hostListCpuCapacity"],
     ]);
-    // Status and Age are hidden, so only CPU and Memory need a text.
-    expect(code).toContain("showStatus={false}");
-    expect(builtInDescriptions(code)).toEqual({
+    expect(hostsTable).not.toContain("showStatus={false}");
+    expect(hostsTable).toContain("showAge={false}");
+    expect(builtInDescriptions(hostsTable)).toEqual({
+      status: "hostListStatus",
       cpu: "hostListCpu",
       memory: "hostListMemory",
     });
   });
 
   test("Virtual Machines", () => {
-    const code: string = readCode(PAGES["vms"]!);
-
-    expect(columnPairs(code)).toEqual([
-      ["Power State", "vmListPowerState"],
+    expect(vmsTable.length).toBeGreaterThan(0);
+    expect(pushedColumnPairs(vmsTable)).toEqual([
       ["Cluster", null],
       ["Resource Pool", null],
       ["CPU Ready", "vmListCpuReady"],
     ]);
-    // Every built-in column is on (status, CPU, memory and age).
-    expect(code).not.toContain("showStatus={false}");
-    expect(code).not.toContain("showResourceMetrics={false}");
-    expect(builtInDescriptions(code)).toEqual({
+    // Status, CPU and memory; no Age column (vCenter reports no start time).
+    expect(vmsTable).not.toContain("showStatus={false}");
+    expect(vmsTable).not.toContain("showResourceMetrics={false}");
+    expect(vmsTable).toContain("showAge={false}");
+    expect(builtInDescriptions(vmsTable)).toEqual({
       status: "vmListStatus",
       cpu: "vmListCpu",
       memory: "vmListMemory",
-      age: "vmListAge",
     });
   });
 
@@ -836,19 +986,25 @@ describe("VMware list pages: column headers", () => {
     expect(builtInDescriptions(code)).toEqual({});
   });
 
+  /*
+   * A cluster's status (Healthy, Degraded, Unhealthy) and how much of its
+   * effective capacity its hosts use, as its page's tiles say them.
+   */
   test("Clusters", () => {
     const code: string = readCode(PAGES["clusters"]!);
 
     expect(columnPairs(code)).toEqual([
-      ["Hosts (effective / total)", "clusterListHosts"],
-      ["VMs (powered on / total)", "clusterListVirtualMachines"],
-      ["Templates", "clusterListTemplates"],
-      ["Effective CPU", "clusterListEffectiveCpu"],
-      ["Effective Memory", "clusterListEffectiveMemory"],
+      ["Hosts", "clusterListHosts"],
+      ["VMs", "clusterListVirtualMachines"],
     ]);
-    expect(code).toContain("showStatus={false}");
-    expect(code).toContain("showResourceMetrics={false}");
-    expect(builtInDescriptions(code)).toEqual({});
+    expect(code).not.toContain("showStatus={false}");
+    expect(code).not.toContain("showResourceMetrics={false}");
+    expect(code).toContain("showAge={false}");
+    expect(builtInDescriptions(code)).toEqual({
+      status: "clusterListStatus",
+      cpu: "clusterCpuInUse",
+      memory: "clusterMemoryInUse",
+    });
   });
 
   test("Resource Pools", () => {

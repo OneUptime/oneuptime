@@ -1,6 +1,7 @@
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONValue } from "../../../../Types/JSON";
 import TableColumnType from "../../../../Types/AnalyticsDatabase/TableColumnType";
+import lookupTable from "../../../../Utils/LookupTable";
 import SigmaRule, {
   SigmaConditionNode,
   SigmaFieldRequirement,
@@ -102,7 +103,7 @@ const ARRAY_COLUMNS: Set<string> = new Set<string>([
  * all define them. principalProcess, the acting process, is never one of
  * them: in a process creation event the actor is the parent.
  */
-export const FIELD_ALIASES: Record<string, string> = {
+export const FIELD_ALIASES: ReadonlyMap<string, string> = lookupTable({
   user: "principalUser",
   username: "principalUser",
   "user.name": "principalUser",
@@ -146,7 +147,7 @@ export const FIELD_ALIASES: Record<string, string> = {
   span_id: "spanId",
   session_id: "sessionId",
   request_outcome: "requestOutcome",
-};
+});
 
 type ResolvedField =
   | { kind: "textColumn"; column: string }
@@ -157,7 +158,7 @@ type ResolvedField =
 export function resolveSigmaField(field: string): ResolvedField {
   const lowered: string = field.toLowerCase();
 
-  const aliased: string | undefined = FIELD_ALIASES[lowered];
+  const aliased: string | undefined = FIELD_ALIASES.get(lowered);
   const canonical: string | undefined =
     aliased ||
     [...TEXT_COLUMNS, ...NUMBER_COLUMNS, ...ARRAY_COLUMNS].find(

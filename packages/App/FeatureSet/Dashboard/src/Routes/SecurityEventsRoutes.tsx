@@ -43,6 +43,7 @@ import SecurityCaseEvidencePage from "../Pages/SecurityEvents/CaseView/Evidence"
 import SecurityCaseTasksPage from "../Pages/SecurityEvents/CaseView/Tasks";
 import SecurityCasePlaybookRunsPage from "../Pages/SecurityEvents/CaseView/PlaybookRuns";
 import SecurityCaseNotesPage from "../Pages/SecurityEvents/CaseView/Notes";
+import SecurityCaseCustomFieldsPage from "../Pages/SecurityEvents/CaseView/CustomFields";
 import SecurityCaseAuditLogsPage from "../Pages/SecurityEvents/CaseView/AuditLogs";
 import SecurityCaseDeletePage from "../Pages/SecurityEvents/CaseView/Delete";
 import RuleLibraryPage from "../Pages/SecurityEvents/RuleLibrary";
@@ -61,6 +62,10 @@ import SecurityCaseStatusesPage from "../Pages/SecurityEvents/Settings/CaseStatu
 import SecurityEntityRiskPage from "../Pages/SecurityEvents/EntityRisk";
 import SecurityEntityRiskViewPage from "../Pages/SecurityEvents/EntityRiskView";
 import SecurityRiskScoringPage from "../Pages/SecurityEvents/Settings/RiskScoring";
+import SecurityCaseCustomFieldsSettingsPage from "../Pages/SecurityEvents/Settings/CustomFields";
+import SecurityCaseNoteTemplatesPage from "../Pages/SecurityEvents/Settings/NoteTemplates";
+import SecurityCaseNoteTemplateViewPage from "../Pages/SecurityEvents/Settings/NoteTemplateView";
+import SecurityCaseNumberingPage from "../Pages/SecurityEvents/Settings/Numbering";
 
 /*
  * Every page under the product's side menu renders inside its layout. A case
@@ -499,6 +504,72 @@ const SecurityEventsRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+        <PageRoute
+          path={
+            SecurityEventsRoutePath[
+              PageMap.SECURITY_EVENTS_SETTINGS_CUSTOM_FIELDS
+            ] || ""
+          }
+          element={
+            <SecurityCaseCustomFieldsSettingsPage
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.SECURITY_EVENTS_SETTINGS_CUSTOM_FIELDS
+                ] as Route
+              }
+            />
+          }
+        />
+        <PageRoute
+          path={
+            SecurityEventsRoutePath[
+              PageMap.SECURITY_EVENTS_SETTINGS_NOTE_TEMPLATES
+            ] || ""
+          }
+          element={
+            <SecurityCaseNoteTemplatesPage
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.SECURITY_EVENTS_SETTINGS_NOTE_TEMPLATES
+                ] as Route
+              }
+            />
+          }
+        />
+        <PageRoute
+          path={
+            SecurityEventsRoutePath[
+              PageMap.SECURITY_EVENTS_SETTINGS_NOTE_TEMPLATE_VIEW
+            ] || ""
+          }
+          element={
+            <SecurityCaseNoteTemplateViewPage
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.SECURITY_EVENTS_SETTINGS_NOTE_TEMPLATE_VIEW
+                ] as Route
+              }
+            />
+          }
+        />
+        <PageRoute
+          path={
+            SecurityEventsRoutePath[
+              PageMap.SECURITY_EVENTS_SETTINGS_NUMBERING
+            ] || ""
+          }
+          element={
+            <SecurityCaseNumberingPage
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SECURITY_EVENTS_SETTINGS_NUMBERING] as Route
+              }
+            />
+          }
+        />
       </PageRoute>
       <PageRoute
         path={SecurityEventsRoutePath[PageMap.SECURITY_CASE_VIEW] || ""}
@@ -609,6 +680,19 @@ const SecurityEventsRoutes: FunctionComponent<ComponentProps> = (
             <SecurityCaseNotesPage
               {...props}
               pageRoute={RouteMap[PageMap.SECURITY_CASE_VIEW_NOTES] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SECURITY_CASE_VIEW_CUSTOM_FIELDS,
+          )}
+          element={
+            <SecurityCaseCustomFieldsPage
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SECURITY_CASE_VIEW_CUSTOM_FIELDS] as Route
+              }
             />
           }
         />

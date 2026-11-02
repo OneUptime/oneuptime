@@ -1048,4 +1048,28 @@ describe("NoteTemplateMenu", () => {
 
     expect(screen.queryByTestId("note-template-menu")).toBeNull();
   });
+
+  /*
+   * A template's name and first line are what someone wrote: each reads the
+   * way it is written, in an isolate of its own (IsolatedText), so an
+   * English one in a Persian menu keeps its full stop and colon at its end
+   * (":Contained" was what a case's menu showed, #5577).
+   */
+  test("draws each template's name and first line the way they are written", async () => {
+    renderMenu({});
+
+    fireEvent.click(screen.getByTestId("note-template-menu-button"));
+    const menu: HTMLElement = await screen.findByTestId("note-template-menu");
+    const name: HTMLElement = (
+      await within(menu).findAllByText("Identified")
+    )[0]!;
+    const preview: HTMLElement = within(menu).getByText(
+      "Identified. We know why.",
+    );
+
+    for (const written of [name, preview]) {
+      expect(written.tagName).toBe("BDI");
+      expect(written).toHaveAttribute("dir", "ltr");
+    }
+  });
 });

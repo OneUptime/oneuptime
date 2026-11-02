@@ -244,22 +244,40 @@ De receiver stuurt geen metric voor de aan/uit-status van een VM. Hij stuurt `vc
 
 ![Het vCenter-overzicht met de aantallen datacenters, clusters, ESXi-hosts, virtuele machines en datastores naast host-CPU, hostgeheugen, datastoregebruik en VM-CPU-ready](/docs/static/images/VMwareVCenterOverview.png)
 
-De pagina **Overzicht** beantwoordt eerst de vraag "is dit vCenter gezond": de effectieve hosts, host-CPU en -geheugen gewogen naar capaciteit, de volste datastore en de slechtste CPU-ready-tijd van een VM. Als er iets gedegradeerd is, noemt de pagina het verantwoordelijke object, zodat je niet hoeft te zoeken.
+De pagina **Overzicht** beantwoordt eerst de vraag "is dit vCenter gezond". De kop zegt of er gegevens binnenkomen en hoe het met het vCenter gaat: **Gezond**, **Verminderd** zolang iets een blik nodig heeft, **Ongezond** zolang iets nu iemand nodig heeft, of **Gezondheid onbekend** zolang het vCenter niet verbonden is, omdat zijn laatste melding dan niet meer de waarheid is. De chips tellen de datacenters, de clusters, de ESXi-hosts die vCenter bereikt van het totaal, de ingeschakelde VM's van het totaal, de sjablonen en de datastores, en alle behalve de datacenters openen hun lijst.
+
+Daarna komt **Vraagt aandacht**: alles wat iemand nodig heeft, het dringendste eerst, elk met de reden en één stap van zijn pagina. Een ESXi-host die vCenter niet bereikt, een datastore die voor meer dan 90 % vol is en een VM waarvan de host het geheugen naar schijf swapt, zijn kritiek. Een host die voor meer dan 90 % bezet is, een datastore die voor meer dan 80 % vol is, een VM die op een vrije CPU wacht of waarvan de host geheugen terugneemt, een cluster met hosts die niet effectief zijn of zonder het geheugen om er een te verliezen, en de alarmen die vCenter in elk datacenter telt, hebben een blik nodig. Elke drempel is die waarbij zijn [waarschuwingstemplate](/docs/monitor/vmware-monitor#kant-en-klare-waarschuwingstemplates) afgaat. Als niets aandacht vraagt, is er geen kaart.
+
+Daaronder staan de effectieve hosts, host-CPU en -geheugen gewogen naar capaciteit, de volste datastore en de slechtste CPU-ready-tijd van een VM, met hun grafieken; **ESXi-hosts**, de status en belasting van elke host op één stap van zijn pagina; en de grootste verbruikers.
+
+### Wat de status van een host zegt
+
+vCenter meldt het CPU- en geheugengebruik van een host alleen zolang de host verbonden is en draait, en een draaiende ESXi-host gebruikt altijd geheugen. Een host die helemaal geen gebruik meldt, is dus niet in de lucht, en wat zijn datacenter telt (hosts waarmee vCenter het contact heeft verloren, uitgeschakelde hosts en hosts in stand-by) zegt op welke manier:
+
+| Status | Wanneer |
+| --- | --- |
+| **Verbonden** | vCenter bereikt hem en hij meldt wat hij gebruikt. Hij heeft een blik nodig zolang zijn CPU of geheugen voor meer dan 90 % bezet is. |
+| **Reageert niet** | vCenter heeft het contact met hem verloren: hij crashte, verloor stroom of zijn beheernetwerk, of werd losgekoppeld. Kritiek: zijn VM's tonen **Verbinding verbroken** en liggen plat, tenzij vSphere HA ze elders opnieuw heeft gestart. |
+| **Uitgeschakeld** | Iemand heeft hem via vCenter uitgeschakeld. Op zich geen probleem. |
+| **In stand-by** | vSphere DPM heeft hem in stand-by gezet om stroom te besparen, en wekt hem wanneer het cluster hem nodig heeft. Op zich geen probleem. |
+| **Uitgeschakeld of in stand-by** | Hij meldt geen gebruik, en zijn datacenter heeft uitgeschakelde hosts en andere in stand-by. |
+| **Geen gebruik gemeld** | Hij meldt geen gebruik, en wat zijn datacenter telt, zegt niet waarom. Hij heeft een blik nodig. |
+| **Rapporteert niet** | vCenter heeft hem al meer dan 15 minuten niet gemeld. |
 
 ### ESXi-hosts
 
 ![De pagina Hosts met elke ESXi-host en zijn cluster, datacenter en CPU- en geheugenbenutting](/docs/static/images/VMwareHosts.png)
 
-Selecteer een host om zijn pagina te openen. Die beantwoordt wat de pagina van een host buiten VMware beantwoordt, met wat vCenter over een hypervisor weet:
+De lijst **Hosts** geeft de status van elke host, met daaronder waarom hij een blik nodig heeft, en zijn CPU en geheugen, oranje boven 90 %. Selecteer een host om zijn pagina te openen. Die beantwoordt wat de pagina van een host buiten VMware beantwoordt, met wat vCenter over een hypervisor weet:
 
-- **Overzicht**: CPU, geheugen, de latentie van de traagste schijf en de netwerkdoorvoer over het tijdsbereik dat u kiest, als tegels en grafieken (sleep over een grafiek om in te zoomen); de open incidenten en waarschuwingen van de host; zijn drukste virtuele machines, met de machines die op een fysieke CPU wachten gemarkeerd; zijn fysieke netwerkadapters en opslagapparaten, met pakketfouten en trage schijven gemarkeerd; welke hostwaarschuwingen aan staan; en de details van de host.
+- **Overzicht**: **Vraagt aandacht** voor de host en de VM's die hij draait; CPU, geheugen, de latentie van de traagste schijf en de netwerkdoorvoer over het tijdsbereik dat u kiest, als tegels en grafieken (sleep over een grafiek om in te zoomen); de open incidenten en waarschuwingen van de host; zijn drukste virtuele machines, met de machines die op een fysieke CPU wachten gemarkeerd; zijn fysieke netwerkadapters en opslagapparaten, met pakketfouten en trage schijven gemarkeerd; welke hostwaarschuwingen aan staan; en de details van de host.
 - **Virtuele machines**: de VM's en sjablonen op de host, met hun status, resourcepool, CPU ready, CPU en geheugen.
 - **Metrieken**: de CPU-, geheugen-, netwerk- en schijfreeksen van de host als grafieken, per netwerkadapter en opslagapparaat, elk te openen in de metriekenverkenner.
 - **Logboeken**: de eigen syslog van de host, zodra hij die verstuurt (zie [ESXi-syslog versturen](#optioneel-esxi-syslog-versturen)). Tot dan geeft het tabblad de opdrachten die deze host, of zijn hele cluster, naar de agent laten wijzen. Een vCenter dat een sonde verzamelt, heeft geen syslog, omdat een sonde die niet ontvangt.
 
 Als vCenter een host niet meer meldt, zegt de pagina dat boven zijn tabbladen, met wanneer vCenter hem voor het laatst meldde. Na 15 minuten zonder melding verlaat de host de inventaris: zijn pagina zegt dat dan, en toont nog steeds zijn eerdere metrieken.
 
-De vijf hostwaarschuwingen (CPU- en geheugenverzadiging, hoge schijflatentie, netwerkpakketfouten en verworpen pakketten) bewaken elk alle hosts van de vCenter en gaan af voor elke host die de drempel overschrijdt. De kaart **Hostwaarschuwingen** op de pagina van een host toont welke aan staan, en de knop ervan opent de **Aanbevelingen** van de vCenter met de ontbrekende al geselecteerd: maak ze daar één keer aan, voor alle hosts.
+De zes hostwaarschuwingen (een host die niet reageert, CPU- en geheugenverzadiging, hoge schijflatentie, netwerkpakketfouten en verworpen pakketten) bewaken elk alle hosts van de vCenter en gaan af voor elke host die de drempel overschrijdt. De kaart **Hostwaarschuwingen** op de pagina van een host toont welke aan staan, en de knop ervan opent de **Aanbevelingen** van de vCenter met de ontbrekende al geselecteerd: maak ze daar één keer aan, voor alle hosts.
 
 ### Virtuele machines
 
@@ -267,9 +285,19 @@ De vijf hostwaarschuwingen (CPU- en geheugenverzadiging, hoge schijflatentie, ne
 
 Uitgeschakelde virtuele machines en sjablonen staan er ook bij. vCenter meldt CPU-counters alleen voor ingeschakelde VM's, dus hun CPU-kolommen tonen N/A in plaats van een misleidende nul.
 
+De pagina van een VM zegt wat die doet (**Actief**, **Uitgeschakeld**, **Sjabloon**, of **Verbinding verbroken** zolang vCenter zijn host niet bereikt) en waar die draait, met zijn host en cluster op één stap. Het **Overzicht** heeft **Vraagt aandacht** voor de VM, zijn CPU, CPU ready, geheugen en schijf, de open incidenten en waarschuwingen van de VM, welke van de zeven VM-waarschuwingen aan staan, en zijn details. **Metrieken** heeft zijn grafieken.
+
 ### Datastores
 
 ![De pagina Datastores met elke datastore en zijn gebruikte en totale capaciteit en een benuttingsbalk](/docs/static/images/VMwareDatastores.png)
+
+De pagina van een datastore zegt hoe vol hij is, rood boven 90 % en oranje boven 80 %, hoeveel er vrij is en, zolang hij groeit, hoeveel dagen er over zijn tot hij vol is. Hij toont de open incidenten en waarschuwingen van de datastore, en welke van zijn twee capaciteitswaarschuwingen aan staan.
+
+### Clusters
+
+De pagina van een cluster zegt of het **Gezond**, **Verminderd** of **Ongezond** is: hoeveel van zijn hosts effectief zijn, hoeveel van zijn effectieve CPU en geheugen zijn hosts gebruiken, en of zijn andere hosts de VM's van zijn grootste host zouden kunnen overnemen (**Uitval van een host**). Zijn **Vraagt aandacht** omvat zijn hosts en hun VM's, zijn tabbladen **ESXi-hosts** en **Virtuele machines** tonen ze, en **Clusterwaarschuwingen** toont welke van zijn drie waarschuwingen aan staan.
+
+Een pagina waarvan de gegevens niet gelezen kunnen worden, zegt dat, met **Opnieuw proberen**, en een lijst zegt het in zijn tabel, met **Vernieuwen**.
 
 ## Optioneel — ESXi-syslog versturen
 
@@ -459,6 +487,10 @@ De rol Read-Only is toegekend op het vCenter-object zonder **Propagate to childr
 
 :::details Elke VM wordt als uitgeschakeld weergegeven
 De aan/uit-status van een VM wordt afgeleid uit `vcenter.vm.cpu.*`-datapunten die in dezelfde verzameling binnenkomen als haar geheugen- en schijfdatapunten (zie [Aan/uit-status van VM's](#aanuit-status-van-vms)). Als je de processor `batch` hebt gewijzigd en een `send_batch_max_size` hebt toegevoegd, wordt een grote inventaris over exports verdeeld en komen de CPU-datapunten in een ander verzoek terecht dan de rest: zet de meegeleverde batchinstellingen terug.
+:::
+
+:::details Een host toont Reageert niet of Geen gebruik gemeld
+vCenter meldt geen CPU- of geheugengebruik voor de host, dus hij is niet met vCenter verbonden of draait niet (zie [Wat de status van een host zegt](#wat-de-status-van-een-host-zegt)). Bij **Reageert niet** controleer je het out-of-band-beheer van de host (iDRAC, iLO of BMC) op een stroom- of hardwarefout en zijn beheernetwerk, en daarna of vSphere HA zijn VM's opnieuw heeft gestart. **Geen gebruik gemeld** betekent dat zijn datacenter het contact met een host heeft verloren en andere uitgeschakeld of in stand-by heeft, of dat zijn tellingen nog niet zijn aangekomen: de weergave **Hosts and Clusters** van vCenter zegt wat voor deze host geldt.
 :::
 
 :::details Grote inventarissen: trage verzamelingen, fouten met vpxd.stats.maxQueryMetrics

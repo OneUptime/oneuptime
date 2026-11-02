@@ -270,7 +270,7 @@ describe("ProjectService number prefixes", () => {
   });
 
   describe("onBeforeCreate", () => {
-    it("gives a new project the five default prefixes", async () => {
+    it("gives a new project the six default prefixes", async () => {
       const project: Project = new Project();
       project.name = "Acme";
 
@@ -288,6 +288,7 @@ describe("ProjectService number prefixes", () => {
         ["alertNumberPrefix", "ALT-"],
         ["alertEpisodeNumberPrefix", "AE-"],
         ["scheduledMaintenanceNumberPrefix", "SM-"],
+        ["securityCaseNumberPrefix", "CASE-"],
       ]);
     });
 

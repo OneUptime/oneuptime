@@ -983,11 +983,11 @@ describe("Detection Rules guide: field names", () => {
       }),
     );
 
-    for (const alias of Object.keys(FIELD_ALIASES)) {
+    for (const alias of FIELD_ALIASES.keys()) {
       expect(documented).toContain(alias);
     }
 
-    expect(documented.size).toBe(Object.keys(FIELD_ALIASES).length);
+    expect(documented.size).toBe(FIELD_ALIASES.size);
   });
 
   test("every documented column is a typed column, reachable by its own name", () => {

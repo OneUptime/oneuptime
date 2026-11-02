@@ -646,10 +646,17 @@ export default class VMwareOtlpBuilder {
 
     const builder: ResourceMetricsBuilder = this.newBuilder();
 
-    const memoryUsage: number | null = host.overallMemoryUsage;
+    /*
+     * vCenter reports a host's quick stats only while the host is connected:
+     * for one it lost contact with, powered off or put in standby it leaves
+     * them out, and the receiver (govmomi reads the missing number as 0)
+     * records 0 MiB and 0 MHz. So does the probe - and that zero is what
+     * OneUptime reads as "this host is not running" (VMwareHealth).
+     */
+    const memoryUsage: number = host.overallMemoryUsage ?? 0;
     const memoryCapacityMiB: number | null =
       host.memorySize === null ? null : Math.floor(host.memorySize / 1048576);
-    const cpuUsage: number | null = host.overallCpuUsage;
+    const cpuUsage: number = host.overallCpuUsage ?? 0;
     const cpuCapacity: number | null =
       host.numCpuCores === null || host.cpuMhz === null
         ? null
@@ -657,7 +664,7 @@ export default class VMwareOtlpBuilder {
 
     builder.record("vcenter.host.memory.usage", memoryUsage, now);
 
-    if (memoryUsage !== null && memoryCapacityMiB) {
+    if (memoryCapacityMiB) {
       builder.record(
         "vcenter.host.memory.utilization",
         (100 * memoryUsage) / memoryCapacityMiB,
@@ -669,7 +676,7 @@ export default class VMwareOtlpBuilder {
     builder.record("vcenter.host.cpu.capacity", cpuCapacity, now);
     builder.record("vcenter.host.memory.capacity", memoryCapacityMiB, now);
 
-    if (cpuUsage !== null && cpuCapacity) {
+    if (cpuCapacity) {
       builder.record(
         "vcenter.host.cpu.utilization",
         (100 * cpuUsage) / cpuCapacity,

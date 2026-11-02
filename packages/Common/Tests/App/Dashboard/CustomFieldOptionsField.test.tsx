@@ -63,6 +63,7 @@ import AlertCustomField from "../../../Models/DatabaseModels/AlertCustomField";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import IncidentCustomField from "../../../Models/DatabaseModels/IncidentCustomField";
 import InventoryItemCustomField from "../../../Models/DatabaseModels/InventoryItemCustomField";
+import SecurityCaseCustomField from "../../../Models/DatabaseModels/SecurityCaseCustomField";
 import MonitorCustomField from "../../../Models/DatabaseModels/MonitorCustomField";
 import OnCallDutyPolicyCustomField from "../../../Models/DatabaseModels/OnCallDutyPolicyCustomField";
 import ScheduledMaintenanceCustomField from "../../../Models/DatabaseModels/ScheduledMaintenanceCustomField";
@@ -448,6 +449,10 @@ describe("what each resource's records are called", () => {
       [
         InventoryItemCustomField,
         { singular: "Inventory Item", plural: "Inventory Items" },
+      ],
+      [
+        SecurityCaseCustomField,
+        { singular: "Security Case", plural: "Security Cases" },
       ],
     ];
 

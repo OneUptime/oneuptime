@@ -1,3 +1,5 @@
+import lookupTable from "../../Utils/LookupTable";
+
 /*
  * OCSF (Open Cybersecurity Schema Framework) severity levels.
  *
@@ -74,6 +76,14 @@ export const OCSF_SEVERITY_ALIASES: Readonly<Record<string, OcsfSeverity>> = {
 };
 
 /*
+ * The aliases above, read by a source's severity text: a Map answers only
+ * for them, never for what every object inherits (Utils/LookupTable).
+ */
+const SEVERITY_BY_ALIAS: ReadonlyMap<string, OcsfSeverity> = lookupTable(
+  OCSF_SEVERITY_ALIASES,
+);
+
+/*
  * Loose severity text -> OCSF severity. Accepts the dialects we ingest:
  * UDM security_result severities (EMERGENCY/ALERT/CRITICAL/ERROR/HIGH/...),
  * syslog-style levels, and common vendor strings. Returns null for anything
@@ -87,7 +97,7 @@ export function normalizeOcsfSeverity(text: string): OcsfSeverity | null {
     return null;
   }
 
-  return OCSF_SEVERITY_ALIASES[normalized] || null;
+  return SEVERITY_BY_ALIAS.get(normalized) || null;
 }
 
 export default OcsfSeverity;

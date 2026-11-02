@@ -44,9 +44,24 @@ export interface GoldenMetricTileProps {
    * behavior.
    */
   higherIsBetter?: boolean | undefined;
+  /*
+   * The bar's colour as the product's rules say it, when they read more
+   * than the number: a vCenter's 1/3 hosts effective is calm while the two
+   * others are in standby, and red while one is not responding. Overrides
+   * `thresholds`.
+   */
+  tone?: GoldenMetricTileTone | undefined;
   // What the number means, shown in an (i) tooltip beside the title.
   description?: string | undefined;
 }
+
+export type GoldenMetricTileTone = "positive" | "warning" | "danger";
+
+const TONE_BAR_CLASS_NAMES: Record<GoldenMetricTileTone, string> = {
+  positive: "bg-emerald-500",
+  warning: "bg-amber-500",
+  danger: "bg-red-500",
+};
 
 /*
  * Exported so overview pages can reuse the same palette for sibling
@@ -81,6 +96,9 @@ const GoldenMetricTile: FunctionComponent<GoldenMetricTileProps> = (
   const barColor: string = (() => {
     if (props.percent === null || props.percent === undefined) {
       return "bg-gray-300";
+    }
+    if (props.tone) {
+      return TONE_BAR_CLASS_NAMES[props.tone];
     }
     const t: { warn: number; danger: number } = props.thresholds || {
       warn: 70,

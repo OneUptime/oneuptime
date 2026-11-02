@@ -134,6 +134,12 @@ describe("a case's side menu", () => {
       ],
       [["Private Notes", "SECURITY_CASE_VIEW_NOTES", IconProp.Lock]],
       [
+        // The project's own fields on the case, as an incident's are.
+        [
+          "Custom Fields",
+          "SECURITY_CASE_VIEW_CUSTOM_FIELDS",
+          IconProp.ViewColumns,
+        ],
         ["Audit Logs", "SECURITY_CASE_VIEW_AUDIT_LOGS", IconProp.List],
         ["Delete Case", "SECURITY_CASE_VIEW_DELETE", IconProp.Trash],
       ],
@@ -289,6 +295,7 @@ describe("a case's pages and their addresses", () => {
       "cases/:id/tasks",
       "cases/:id/playbook-runs",
       "cases/:id/notes",
+      "cases/:id/custom-fields",
       "cases/:id/audit-logs",
       "cases/:id/delete",
     ]);
@@ -366,6 +373,7 @@ describe("where each page of a case says it is", () => {
       ["View Case", "Tasks"],
       ["View Case", "Playbooks"],
       ["View Case", "Private Notes"],
+      ["View Case", "Custom Fields"],
       ["View Case", "Audit Logs"],
       ["View Case", "Delete Case"],
     ]);

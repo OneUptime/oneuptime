@@ -359,7 +359,8 @@ const OVERVIEWS: Array<[string, OverviewCase]> = [
       guide: getVMwareVCenterConnectionGuide("prod-vcenter", READER_URL),
       documentationPage: PageMap.VMWARE_VCENTER_VIEW_DOCUMENTATION,
       heroStatus: pillBesideTitle,
-      firstTile: "Host Effectiveness",
+      // The tile the vCenter Overview opens its row of tiles with.
+      firstTile: "Effective hosts",
     },
   ],
   [

@@ -244,22 +244,40 @@ Mottakeren sender ingen metrikk for strømtilstanden til en VM. Den sender `vcen
 
 ![vCenter-oversikten med antall datasentre, klynger, ESXi-verter, virtuelle maskiner og datastores, sammen med vertenes CPU og minne, datastorebruk og VM-CPU ready](/docs/static/images/VMwareVCenterOverview.png)
 
-Siden **Oversikt** svarer først på "er dette vCenter-et friskt": de effektive vertene, vertenes CPU og minne vektet etter kapasitet, den fulleste datastoren og den verste CPU ready-tiden for en VM. Når noe er degradert, navngir den objektet som er ansvarlig, så du slipper å lete.
+Siden **Oversikt** svarer først på "er dette vCenter-et friskt". Topptekstet viser om data kommer fram og hvordan det står til med vCenter-et: **Feilfri**, **Redusert** mens noe trenger en titt, **Ikke feilfri** mens noe trenger noen nå, eller **Tilstand ukjent** mens vCenter-et er frakoblet, siden den siste rapporten da ikke lenger er sannheten. Brikkene teller datasentrene, klyngene, ESXi-vertene vCenter når av alle, de påslåtte VM-ene av alle, malene og datastorene, og alle unntatt datasentrene åpner listen sin.
+
+Deretter kommer **Krever oppmerksomhet**: alt som trenger noen, det mest presserende først, hver med årsaken og ett steg fra siden sin. En ESXi-vert som vCenter ikke når, en datastore som er mer enn 90 % full, og en VM der verten swapper minnet til disk, er kritiske. En vert som er mer enn 90 % opptatt, en datastore som er mer enn 80 % full, en VM som venter på en ledig CPU eller der verten tar tilbake minne, en klynge med verter som ikke er effektive eller uten minnet til å miste én av dem, og alarmene vCenter teller i hvert datasenter, trenger en titt. Hver terskel er den som [varslingsmalen](/docs/monitor/vmware-monitor#ferdige-varslingsmaler) utløses ved. Når ingenting krever oppmerksomhet, vises ikke noe kort.
+
+Under det står de effektive vertene, vertenes CPU og minne vektet etter kapasitet, den fulleste datastoren og den verste CPU ready-tiden for en VM, med diagrammene sine; **ESXi-verter**, status og last for hver vert ett steg fra siden dens; og de største forbrukerne.
+
+### Hva en verts status sier
+
+vCenter rapporterer en verts CPU- og minnebruk bare mens verten er tilkoblet og kjører, og en ESXi-vert som kjører, bruker alltid minne. En vert som ikke rapporterer noen bruk i det hele tatt, er derfor nede, og det datasenteret teller (verter vCenter har mistet kontakten med, avslåtte verter og verter i standby), sier på hvilken måte:
+
+| Status | Når |
+| --- | --- |
+| **Tilkoblet** | vCenter når den, og den rapporterer hva den bruker. Den trenger en titt mens CPU-en eller minnet er mer enn 90 % opptatt. |
+| **Svarer ikke** | vCenter har mistet kontakten med den: den krasjet, mistet strømmen eller administrasjonsnettverket, eller ble koblet fra. Kritisk: VM-ene på den viser **Frakoblet** og er nede, med mindre vSphere HA har startet dem på nytt et annet sted. |
+| **Slått av** | Noen slo den av via vCenter. Ikke et problem i seg selv. |
+| **I standby** | vSphere DPM satte den i standby for å spare strøm, og vekker den når klyngen trenger den. Ikke et problem i seg selv. |
+| **Slått av eller i standby** | Den rapporterer ingen bruk, og datasenteret har verter som er slått av, og andre i standby. |
+| **Ingen bruk rapportert** | Den rapporterer ingen bruk, og det datasenteret teller, sier ikke hvorfor. Den trenger en titt. |
+| **Rapporterer ikke** | vCenter har ikke rapportert den på mer enn 15 minutter. |
 
 ### ESXi-verter
 
 ![Siden med verter som viser hver ESXi-vert med klynge, datasenter og CPU- og minneutnyttelse](/docs/static/images/VMwareHosts.png)
 
-Velg en vert for å åpne siden dens. Den svarer på det siden til en vert utenfor VMware svarer på, med det vCenter vet om en hypervisor:
+Listen **Verter** gir hver verts status, med årsaken til at den trenger en titt under, og CPU og minne, gule over 90 %. Velg en vert for å åpne siden dens. Den svarer på det siden til en vert utenfor VMware svarer på, med det vCenter vet om en hypervisor:
 
-- **Oversikt**: CPU, minne, latensen til den tregeste disken og nettverksgjennomstrømning i tidsrommet du velger, som fliser og diagrammer (dra over et diagram for å zoome inn); hendelsene og varslene som er åpne på verten; de mest belastede virtuelle maskinene, med dem som venter på en fysisk CPU markert; de fysiske nettverkskortene og lagringsenhetene, med pakkefeil og trege disker markert; hvilke vertsvarsler som er slått på; og detaljene om verten.
+- **Oversikt**: **Krever oppmerksomhet** for verten og VM-ene den kjører; CPU, minne, latensen til den tregeste disken og nettverksgjennomstrømning i tidsrommet du velger, som fliser og diagrammer (dra over et diagram for å zoome inn); hendelsene og varslene som er åpne på verten; de mest belastede virtuelle maskinene, med dem som venter på en fysisk CPU markert; de fysiske nettverkskortene og lagringsenhetene, med pakkefeil og trege disker markert; hvilke vertsvarsler som er slått på; og detaljene om verten.
 - **Virtuelle maskiner**: VM-ene og malene på verten, med status, ressurspool, CPU ready, CPU og minne.
 - **Målinger**: vertens CPU-, minne-, nettverks- og diskserier som diagrammer, per nettverkskort og lagringsenhet, der hver kan åpnes i måleutforskeren.
 - **Logger**: vertens egen syslog, så snart den sender den (se [Send ESXi-syslog](#valgfritt-send-esxi-syslog)). Inntil da gir fanen kommandoene som peker denne verten, eller hele klyngen dens, mot agenten. En vCenter som en sonde samler inn, har ingen syslog, fordi en sonde ikke mottar den.
 
 Når vCenter slutter å rapportere en vert, sier siden det over fanene, med når vCenter sist rapporterte den. Etter 15 minutter uten rapport forlater verten inventaret: siden dens sier det da, og viser fortsatt de tidligere målingene.
 
-De fem vertsvarslene (CPU- og minnemetning, høy disklatens, nettverkspakkefeil og forkastede pakker) overvåker hver for seg alle vertene i vCenter og utløses for hver vert som går over dem. Kortet **Vertsvarsler** på en verts side viser hvilke som er slått på, og knappen åpner vCenters **Anbefalinger** med de manglende allerede valgt: Opprett dem der, én gang, for alle vertene.
+De seks vertsvarslene (en vert som ikke svarer, CPU- og minnemetning, høy disklatens, nettverkspakkefeil og forkastede pakker) overvåker hver for seg alle vertene i vCenter og utløses for hver vert som går over dem. Kortet **Vertsvarsler** på en verts side viser hvilke som er slått på, og knappen åpner vCenters **Anbefalinger** med de manglende allerede valgt: Opprett dem der, én gang, for alle vertene.
 
 ### Virtuelle maskiner
 
@@ -267,9 +285,19 @@ De fem vertsvarslene (CPU- og minnemetning, høy disklatens, nettverkspakkefeil 
 
 Avslåtte virtuelle maskiner og maler vises også. vCenter rapporterer CPU-tellere bare for påslåtte VM-er, så CPU-kolonnene deres viser N/A i stedet for en villedende null.
 
+Siden til en VM sier hva den gjør (**Kjører**, **Slått av**, **Mal**, eller **Frakoblet** mens vCenter ikke når verten dens) og hvor den kjører, med verten og klyngen ett steg unna. **Oversikt** har **Krever oppmerksomhet** for VM-en, CPU, CPU ready, minne og disk, hendelsene og varslene som er åpne på den, hvilke av de sju VM-varslene som er slått på, og detaljene. **Målinger** har diagrammene.
+
 ### Datastores
 
 ![Siden med datastores som viser hver datastore med brukt og total kapasitet og en utnyttelseslinje](/docs/static/images/VMwareDatastores.png)
+
+Siden til en datastore sier hvor full den er, rød over 90 % og gul over 80 %, hvor mye som er ledig og, mens den vokser, hvor mange dager som er igjen til den er full. Den viser hendelsene og varslene som er åpne på den, og hvilke av de to kapasitetsvarslene som er slått på.
+
+### Klynger
+
+Siden til en klynge sier om den er **Feilfri**, **Redusert** eller **Ikke feilfri**: hvor mange av vertene som er effektive, hvor mye av den effektive CPU-en og det effektive minnet vertene bruker, og om de andre vertene kunne tatt over VM-ene til den største verten (**Vertsfeil**). **Krever oppmerksomhet** for klyngen omfatter vertene og VM-ene deres, fanene **ESXi-verter** og **Virtuelle maskiner** viser dem, og **Klyngevarsler** viser hvilke av de tre varslene som er slått på.
+
+En side der dataene ikke kan leses, sier det, med **Prøv igjen**, og en liste sier det i tabellen sin, med **Oppdater**.
 
 ## Valgfritt — Send ESXi-syslog
 
@@ -459,6 +487,10 @@ Rollen Read-Only ble tildelt på vCenter-objektet uten **Propagate to children**
 
 :::details Alle VM-er vises som avslått
 Strømtilstanden til en VM utledes fra `vcenter.vm.cpu.*`-datapunkter som kommer i den samme innsamlingen som minne- og diskdatapunktene dens (se [Strømtilstanden til VM-er](#strømtilstanden-til-vm-er)). Hvis du endret prosessoren `batch` og la til en `send_batch_max_size`, deles et stort inventar over flere eksporter, og CPU-datapunktene havner i en annen forespørsel enn resten: Sett tilbake de medfølgende batch-innstillingene.
+:::
+
+:::details En vert viser Svarer ikke eller Ingen bruk rapportert
+vCenter rapporterer ingen CPU- eller minnebruk for verten, så den er ikke koblet til vCenter eller kjører ikke (se [Hva en verts status sier](#hva-en-verts-status-sier)). Ved **Svarer ikke** sjekker du vertens out-of-band-administrasjon (iDRAC, iLO eller BMC) for en strøm- eller maskinvarefeil og administrasjonsnettverket, og deretter om vSphere HA har startet VM-ene på nytt. **Ingen bruk rapportert** betyr at datasenteret har mistet kontakten med en vert og har andre som er slått av eller i standby, eller at tellingene ikke har kommet fram ennå: visningen **Hosts and Clusters** i vCenter sier hva som gjelder for denne verten.
 :::
 
 :::details Store inventarer: trege innsamlinger, feil med vpxd.stats.maxQueryMetrics

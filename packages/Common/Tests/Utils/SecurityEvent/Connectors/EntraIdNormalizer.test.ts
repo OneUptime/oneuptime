@@ -1,4 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
+import { INHERITED_PROPERTY_NAME_SPELLINGS } from "../../../Helpers/InheritedNames";
 import {
   ENTRA_INTERRUPT_CODES,
   ENTRA_LOG_ATTRIBUTE,
@@ -301,5 +302,22 @@ describe("EntraIdNormalizer - shapes and both paths", () => {
     expect(exported?.eventUid).toBe(fromGraph.eventUid);
     expect(exported?.message).toBe(fromGraph.message);
     expect(exported?.statusName).toBe(fromGraph.statusName);
+  });
+});
+
+describe("EntraIdNormalizer: words named after what every object inherits", () => {
+  test("a risk type named after one is titled as written, and a risk level named after one is Medium", () => {
+    for (const name of INHERITED_PROPERTY_NAME_SPELLINGS) {
+      const reading: SecurityRecordReading | null = readEntraRisk(
+        entraRiskDetection({ riskEventType: name, riskLevel: name }),
+        EntraLog.UserRiskEvents,
+      );
+
+      expect({
+        name,
+        title: reading?.ruleName,
+        severity: reading?.severity,
+      }).toEqual({ name, title: name, severity: OcsfSeverity.Medium });
+    }
   });
 });

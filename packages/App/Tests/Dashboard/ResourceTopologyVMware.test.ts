@@ -39,8 +39,11 @@ function estate(): Array<VMwareResource> {
       kind: VMwareResourceKind.Datacenter,
       externalId: "dc/Amsterdam",
       name: "Amsterdam",
+      metricsUpdatedAt: FRESH,
       hostCount: 3,
       poweredOnHostCount: 3,
+      notRespondingHostCount: 0,
+      standbyHostCount: 0,
     }),
     row({
       kind: VMwareResourceKind.Cluster,
@@ -48,6 +51,7 @@ function estate(): Array<VMwareResource> {
       name: "ams-prod",
       clusterName: "ams-prod",
       datacenterName: "Amsterdam",
+      metricsUpdatedAt: FRESH,
       hostCount: 3,
       effectiveHostCount: 2,
     }),
@@ -112,6 +116,7 @@ function estate(): Array<VMwareResource> {
       externalId: "ds/full",
       name: "ssd-full",
       datacenterName: "Amsterdam",
+      metricsUpdatedAt: FRESH,
       latestDiskPercent: 93.4,
       maxDiskBytes: 2 * 1024 ** 4,
     }),
@@ -120,6 +125,7 @@ function estate(): Array<VMwareResource> {
       externalId: "ds/busy",
       name: "ssd-busy",
       datacenterName: "Amsterdam",
+      metricsUpdatedAt: FRESH,
       latestDiskBytes: 84,
       maxDiskBytes: 100,
     }),
@@ -128,6 +134,7 @@ function estate(): Array<VMwareResource> {
       externalId: "ds/fine",
       name: "ssd-fine",
       datacenterName: "Amsterdam",
+      metricsUpdatedAt: FRESH,
       latestDiskPercent: 30,
     }),
     row({
@@ -154,6 +161,26 @@ function build(
     ...overrides,
   });
 }
+
+/*
+ * The estate with one row changed: the rows the rules read beside a part
+ * (its datacenter's counts, its hosts) are what a test varies.
+ */
+function estateWith(
+  externalId: string,
+  fields: Partial<VMwareResource>,
+): Array<VMwareResource> {
+  return estate().map((item: VMwareResource): VMwareResource => {
+    return item.externalId === externalId ? Object.assign(item, fields) : item;
+  });
+}
+
+// esx-02 reporting now, but no CPU or memory use: not connected, or not up.
+const ESX_02_NO_USAGE: Partial<VMwareResource> = {
+  metricsUpdatedAt: FRESH,
+  latestCpuMhz: 0,
+  latestMemoryBytes: 0,
+};
 
 function node(graph: ResourceTopologyGraph, id: string): ResourceTopologyNode {
   const found: ResourceTopologyNode | undefined = graph.nodes.get(id);
@@ -258,24 +285,154 @@ describe("containment, as the vCenter's pages list it", () => {
 describe("health, for the reasons the vCenter's pages give", () => {
   const graph: ResourceTopologyGraph = build();
 
-  test("a cluster with hosts that are not effective is critical", () => {
+  /*
+   * One of three hosts is not effective, and no host row says why (esx-01
+   * runs, esx-02 has not reported lately): a host in maintenance mode - the
+   * cluster runs, with less room, so it needs a look.
+   */
+  test("a cluster with a host that is not effective needs attention", () => {
     const cluster: ResourceTopologyNode = node(
       graph,
       "vmware.cluster:cluster/ams-prod",
     );
 
-    expect(cluster.health).toBe("critical");
+    expect(cluster.health).toBe("warning");
+    expect(cluster.reasons).toEqual([
+      { text: "{{count}} host not effective", values: { count: "1" } },
+    ]);
     expect(cluster.facts).toEqual([
-      { label: "Effective hosts", value: "2/3", tone: "critical" },
+      { label: "Effective hosts", value: "2/3", tone: "warning" },
     ]);
   });
 
-  test("a hot host needs attention; a silent one is not reporting", () => {
-    expect(node(graph, "vmware.host:host/esx-01").health).toBe("warning");
-    expect(node(graph, "vmware.host:host/esx-02").health).toBe("warning");
-    expect(node(graph, "vmware.host:host/esx-02").status?.text).toBe(
-      "Not reporting",
+  test("a cluster not reported lately is not judged", () => {
+    const stale: ResourceTopologyGraph = build(
+      estateWith("cluster/ams-prod", { metricsUpdatedAt: STALE }),
     );
+    const cluster: ResourceTopologyNode = node(
+      stale,
+      "vmware.cluster:cluster/ams-prod",
+    );
+
+    expect(cluster.health).toBe("unknown");
+    expect(cluster.reasons).toEqual([]);
+    // What it last said is still drawn.
+    expect(cluster.facts?.[0]?.value).toBe("2/3");
+  });
+
+  test("a hot host needs attention; a silent one is not reporting, not a problem", () => {
+    const hot: ResourceTopologyNode = node(graph, "vmware.host:host/esx-01");
+
+    expect(hot.health).toBe("warning");
+    expect(hot.status).toEqual({ text: "Connected" });
+    expect(hot.reasons).toEqual([
+      { text: "CPU at {{percent}}", values: { percent: "95%" } },
+    ]);
+    expect(hot.facts).toEqual([
+      { label: "CPU", value: "95%", tone: "warning" },
+      { label: "Memory", value: "40%", tone: undefined },
+    ]);
+    expect(node(graph, "vmware.host:host/esx-02").health).toBe("unknown");
+    expect(node(graph, "vmware.host:host/esx-02").status).toEqual({
+      text: "Not reporting",
+    });
+  });
+
+  /*
+   * A host vCenter lost reports no usage, and its datacenter counts one
+   * host not responding: the host is critical, its cluster is critical for
+   * it (the host it lost is all that is not effective, so nothing else is
+   * said), and a VM on it is not known to be doing anything.
+   */
+  test("a host vCenter lost is critical, and so is its cluster; its VMs are not judged", () => {
+    const rows: Array<VMwareResource> = estate().map(
+      (item: VMwareResource): VMwareResource => {
+        if (item.externalId === "host/esx-02") {
+          return Object.assign(item, ESX_02_NO_USAGE);
+        }
+        if (item.externalId === "dc/Amsterdam") {
+          return Object.assign(item, {
+            poweredOnHostCount: 2,
+            notRespondingHostCount: 1,
+          });
+        }
+        return item;
+      },
+    );
+    rows.push(
+      row({
+        kind: VMwareResourceKind.VirtualMachine,
+        externalId: "vm/stranded",
+        name: "stranded",
+        hostName: "esx-02",
+        clusterName: "ams-prod",
+        datacenterName: "Amsterdam",
+        isPoweredOn: true,
+        metricsUpdatedAt: FRESH,
+        memorySwappedBytes: 1024,
+      }),
+    );
+    const lost: ResourceTopologyGraph = build(rows);
+    const host: ResourceTopologyNode = node(lost, "vmware.host:host/esx-02");
+    const cluster: ResourceTopologyNode = node(
+      lost,
+      "vmware.cluster:cluster/ams-prod",
+    );
+
+    expect(host.health).toBe("critical");
+    expect(host.status).toEqual({ text: "Not responding" });
+    expect(host.facts).toEqual([]);
+    expect(cluster.health).toBe("critical");
+    expect(cluster.reasons).toEqual([
+      { text: "{{count}} host not responding", values: { count: "1" } },
+    ]);
+    expect(node(lost, "vmware.vm:vm/stranded").health).toBe("unknown");
+    expect(node(lost, "vmware.vm:vm/stranded").status).toEqual({
+      text: "Disconnected",
+    });
+    // The datacenter's count is the host's own: said once, on the host.
+    expect(node(lost, "vmware.datacenter:datacenter/Amsterdam").health).toBe(
+      "healthy",
+    );
+  });
+
+  test("a host vSphere DPM put in standby is off, and its 0% is no reading", () => {
+    const rows: Array<VMwareResource> = estate().map(
+      (item: VMwareResource): VMwareResource => {
+        if (item.externalId === "host/esx-02") {
+          return Object.assign(item, ESX_02_NO_USAGE);
+        }
+        if (item.externalId === "dc/Amsterdam") {
+          return Object.assign(item, {
+            poweredOnHostCount: 2,
+            standbyHostCount: 1,
+          });
+        }
+        return item;
+      },
+    );
+    const asleep: ResourceTopologyNode = node(
+      build(rows),
+      "vmware.host:host/esx-02",
+    );
+
+    expect(asleep.health).toBe("off");
+    expect(asleep.status).toEqual({ text: "In standby" });
+    expect(asleep.facts).toEqual([]);
+    expect(asleep.reasons).toEqual([]);
+  });
+
+  test("a host with no usage that the counts cannot place needs a look", () => {
+    const unplaced: ResourceTopologyNode = node(
+      build(estateWith("host/esx-02", ESX_02_NO_USAGE)),
+      "vmware.host:host/esx-02",
+    );
+
+    expect(unplaced.health).toBe("warning");
+    expect(unplaced.status).toEqual({ text: "No usage reported" });
+    expect(unplaced.reasons).toEqual([
+      { text: "No CPU or memory use reported" },
+    ]);
   });
 
   test("swapping is critical, CPU ready needs attention, off and templates are off", () => {
@@ -285,14 +442,21 @@ describe("health, for the reasons the vCenter's pages give", () => {
     expect(node(graph, "vmware.vm:vm/golden").health).toBe("off");
   });
 
-  test("a datastore 90% full is critical, 80% needs attention", () => {
+  test("a datastore more than 90% full is critical, 80% needs attention", () => {
     expect(node(graph, "vmware.datastore:ds/full").health).toBe("critical");
+    expect(node(graph, "vmware.datastore:ds/full").reasons).toEqual([
+      { text: "{{percent}} full", values: { percent: "93%" } },
+    ]);
     expect(node(graph, "vmware.datastore:ds/busy").health).toBe("warning");
+    expect(node(graph, "vmware.datastore:ds/busy").status).toEqual({
+      text: "{{percent}} used",
+      values: { percent: "84%" },
+    });
     expect(node(graph, "vmware.datastore:ds/fine").health).toBe("healthy");
     // The status says how full; the card adds only what it does not.
     expect(node(graph, "vmware.datastore:ds/full").status).toEqual({
       text: "{{percent}} used",
-      values: { percent: "93.4%" },
+      values: { percent: "93%" },
     });
     expect(
       node(graph, "vmware.datastore:ds/full").facts?.map(
@@ -301,6 +465,36 @@ describe("health, for the reasons the vCenter's pages give", () => {
         },
       ),
     ).toEqual(["Capacity"]);
+  });
+
+  test("a datastore not reported lately is not judged on what it last said", () => {
+    const stale: ResourceTopologyNode = node(
+      build(estateWith("ds/full", { metricsUpdatedAt: STALE })),
+      "vmware.datastore:ds/full",
+    );
+
+    expect(stale.health).toBe("unknown");
+    expect(stale.status).toEqual({ text: "Not reporting" });
+    expect(stale.reasons).toEqual([]);
+  });
+
+  /*
+   * vCenter's alarm roll-up for the datacenter says what no row of a part
+   * does: a cluster with a red alarm (an HA failover that failed, say).
+   */
+  test("a datacenter's own alarms make it critical, for the reason they give", () => {
+    const red: ResourceTopologyNode = node(
+      build(estateWith("dc/Amsterdam", { criticalClusterCount: 1 })),
+      "vmware.datacenter:datacenter/Amsterdam",
+    );
+
+    expect(red.health).toBe("critical");
+    expect(red.reasons).toEqual([
+      {
+        text: "{{count}} cluster with a critical alarm",
+        values: { count: "1" },
+      },
+    ]);
   });
 
   test("a vCenter whose collection failed is critical", () => {
@@ -328,10 +522,13 @@ describe("health, for the reasons the vCenter's pages give", () => {
 
     // The datacenter itself is fine; what is inside it is not.
     expect(dc.needsAttention).toBe(false);
-    // The cluster, web-1 and the full datastore are critical.
-    expect(dc.criticalBelow).toBe(3);
-    // And the two hosts, web-2 and the busy datastore need attention.
-    expect(dc.attentionBelow).toBe(7);
+    // web-1 (swapped) and the full datastore are critical.
+    expect(dc.criticalBelow).toBe(2);
+    /*
+     * And the cluster, the hot host, web-2 and the busy datastore need
+     * attention; esx-02, not reporting, is grey - not a problem yet.
+     */
+    expect(dc.attentionBelow).toBe(6);
   });
 });
 

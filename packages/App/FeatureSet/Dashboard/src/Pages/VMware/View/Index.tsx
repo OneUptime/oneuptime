@@ -7,8 +7,8 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import ResourceRecordDetailsCard from "../../../Components/TelemetryResource/ResourceRecordDetailsCard";
 import AgentVersion from "../../../Components/AgentVersion/AgentVersion";
 import { AgentKind } from "../../../Components/AgentVersion/AgentKind";
-import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import Card from "Common/UI/Components/Card/Card";
+import Link from "Common/UI/Components/Link/Link";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import ResourceConnectionGuideCard from "../../../Components/ResourceConnection/ResourceConnectionGuideCard";
@@ -36,9 +36,6 @@ import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoade
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import OneUptimeDate from "Common/Types/Date";
-import StatusBadge, {
-  StatusBadgeType,
-} from "Common/UI/Components/StatusBadge/StatusBadge";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
@@ -90,18 +87,55 @@ import RangeStartAndEndDateTime, {
 import TimeRange from "Common/Types/Time/TimeRange";
 import ValueFormatter from "Common/Utils/ValueFormatter";
 import GoldenMetricTile, {
+  GoldenMetricTileTone,
   tileColorClasses,
 } from "../../../Components/Infrastructure/GoldenMetricTile";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import { VMWARE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/VMwareMetricDescriptions";
 import {
+  VMwareInventorySummary as VMwareInventoryCounts,
   VMwareResourceKind,
   fetchVMwareInventoryRows,
+  fetchVMwareInventorySummary,
+  fetchVMwareVirtualMachinesByCpuReady,
+  fetchVMwareVirtualMachinesThatMayNeedAttention,
   formatBytes,
-  routeParamFromExternalId,
   displayNameForResource,
   hasFreshMetrics,
 } from "../Utils/VMwareResourceUtils";
+import {
+  VMWARE_CPU_READY_WARNING_PERCENT,
+  VMWARE_DATASTORE_CRITICAL_PERCENT,
+  VMWARE_DATASTORE_WARNING_PERCENT,
+  findVMwareDatacenter,
+  getVMwareAttentionItems,
+  getVMwareDatastorePercent,
+  getVMwareHealth,
+  getVMwareHostState,
+  hasFreshVMwareReadings,
+  isVMwareHostRunning,
+} from "../Utils/VMwareHealth";
+import {
+  VMwareNotEffectiveHosts,
+  VMwareUsageTone,
+  countVMwareNotEffectiveHosts,
+  getVMwareCpuReadyPercentTone,
+  getVMwareDatastoreFullTone,
+  getVMwareHostLoad,
+  getVMwareHostLoadTone,
+  getVMwareHostsReportingNoMemory,
+  getVMwareNotEffectiveHostsTone,
+} from "../Utils/VMwarePartFacts";
+import BreakableName from "Common/UI/Components/BreakableName/BreakableName";
+import { getVMwareNotEffectiveHostsText } from "../../../Components/VMware/Part/VMwareNotEffectiveHosts";
+import NeedsAttentionCard from "../../../Components/ResourcePart/NeedsAttentionCard";
+import { ResourceAttentionItem } from "../../../Components/ResourcePart/ResourceAttention";
+import ResourcePartRow from "../../../Components/ResourcePart/ResourcePartRow";
+import VMwareHostsCard from "../../../Components/VMware/VMwareHostsCard";
+import {
+  VMwarePartRoutes,
+  getVMwarePartRoutes,
+} from "../../../Components/VMware/Part/VMwarePartRoutes";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
@@ -126,42 +160,56 @@ interface TopRow {
   value: number;
   /* 0..100 for the bar. */
   percent: number;
+  // A host's share of its own memory in use, which colours its memory bar.
+  memoryPercent?: number | null | undefined;
 }
 
-interface DegradedItem {
-  kind: "Datacenter" | "Cluster" | "Host" | "VirtualMachine" | "Datastore";
-  externalId: string;
-  name: string;
-  reasons: Array<string>;
-  /* true = drives Unhealthy (red), false = drives Degraded (amber). */
-  isCritical: boolean;
-}
+// A top consumer's bar, by its tone (VMwareUsageTone).
+const TOP_CONSUMER_BAR_CLASS_NAMES: Record<VMwareUsageTone, string> = {
+  positive: "bg-emerald-500",
+  warning: "bg-amber-500",
+  danger: "bg-red-500",
+};
 
+/*
+ * What the Overview knows about the vCenter's parts. It reads every part
+ * but the VMs whole - the datacenters, clusters, hosts, datastores and pools
+ * a vCenter has a few hundred of - and of the VMs, which can be tens of
+ * thousands, only the ones that may need attention and the five that wait
+ * longest for a CPU; the counts come from Postgres in one read.
+ */
 interface InventorySummary {
+  // Every part but the VMs, and the VMs that may need attention.
+  rows: Array<VMwareResourceModel>;
+  datacenters: Array<VMwareResourceModel>;
+  hosts: Array<VMwareResourceModel>;
+  // What needs attention, most urgent first (VMwareHealth).
+  attentionItems: Array<ResourceAttentionItem>;
   datacenterCount: number;
   clusterCount: number;
   hostCount: number;
-  /* Non-template VMs. */
-  vmTotal: number;
-  vmPoweredOn: number;
-  /* VMs whose power state has been inferred at least once. */
-  vmWithPowerState: number;
-  templateCount: number;
+  // Hosts vCenter reports usage for: up and connected.
+  connectedHostCount: number;
+  /*
+   * Non-template VMs, powered on and templates, as Postgres counts them;
+   * null when that count could not be read (the vCenter's own columns
+   * stand in then, never a 0 beside a count from elsewhere).
+   */
+  vmTotal: number | null;
+  vmPoweredOn: number | null;
+  templateCount: number | null;
   datastoreCount: number;
-  resourcePoolCount: number;
-  /* Σ across Datastore rows — null until at least one datastore reports. */
-  datastoreUsedBytes: number | null;
-  datastoreCapacityBytes: number | null;
   worstDatastorePercent: number | null;
   worstDatastoreName: string;
   /* Σ across Cluster rows (hosts DRS/HA can schedule vs. all). */
   clusterHostsTotal: number;
   clusterHostsEffective: number;
+  // Why clustered hosts are not effective, as the rules read each.
+  clusterHostsNotEffective: VMwareNotEffectiveHosts;
   topHostsByCpu: Array<TopRow>;
   topHostsByMemory: Array<TopRow>;
   topDatastoresByUtilization: Array<TopRow>;
   topVmsByCpuReady: Array<TopRow>;
-  degradedItems: Array<DegradedItem>;
   health: VCenterHealth;
 }
 
@@ -177,11 +225,14 @@ const formatPercent: (value: number | null) => string = (
 const TILE_WINDOW_MINUTES: number = 5;
 
 /* Aligned with the vmware-datastore-capacity-{warning,critical} templates. */
-const DATASTORE_WARN_PERCENT: number = 80;
-const DATASTORE_CRITICAL_PERCENT: number = 90;
+const DATASTORE_WARN_PERCENT: number = VMWARE_DATASTORE_WARNING_PERCENT;
+const DATASTORE_CRITICAL_PERCENT: number = VMWARE_DATASTORE_CRITICAL_PERCENT;
 
 /* Aligned with the vmware-vm-cpu-ready-contention template (avg > 10 %). */
-const VM_CPU_READY_WARN_PERCENT: number = 10;
+const VM_CPU_READY_WARN_PERCENT: number = VMWARE_CPU_READY_WARNING_PERCENT;
+
+// How many rows each Top Resource Consumers section ranks.
+const TOP_ROWS: number = 5;
 
 const MIB: number = 1024 * 1024;
 
@@ -196,6 +247,11 @@ const VMwareVCenterOverview: FunctionComponent<
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
+
+  // A word the page draws itself, in the reader's language.
+  const tx: (text: string) => string = (text: string): string => {
+    return translator.translateText(text) || text;
+  };
 
   const [vcenter, setVCenter] = useState<VMwareVCenter | null>(null);
   /*
@@ -261,33 +317,97 @@ const VMwareVCenterOverview: FunctionComponent<
   };
 
   /*
-   * Inventory-derived summary — health, counts, top-N lists and the
-   * "why degraded?" drill-down all come from the VMwareResource
-   * Postgres table (instant; no ClickHouse).
+   * The inventory: what needs attention (VMwareHealth), the counts, the
+   * hosts at a glance and the top consumers, from the VMwareResource
+   * Postgres table (instant; no ClickHouse) - read by kind, never every
+   * VM at once (see InventorySummary).
    */
   const loadInventory: PromiseVoidFunction = async (): Promise<void> => {
     setInventoryError("");
     try {
-      const rows: Array<VMwareResourceModel> = await fetchVMwareInventoryRows({
-        vmwareVCenterId: modelId,
-      });
+      const now: Date = OneUptimeDate.getCurrentDate();
+      const routes: VMwarePartRoutes = getVMwarePartRoutes(modelId);
 
-      let datacenterCount: number = 0;
-      let clusterCount: number = 0;
-      let hostCount: number = 0;
-      let vmTotal: number = 0;
-      let vmPoweredOn: number = 0;
-      let vmWithPowerState: number = 0;
-      let templateCount: number = 0;
-      let datastoreCount: number = 0;
-      let resourcePoolCount: number = 0;
-      let datastoreUsedBytes: number | null = null;
-      let datastoreCapacityBytes: number | null = null;
+      const [partRows, attentionVms, cpuReadyVms, counts]: [
+        Array<VMwareResourceModel>,
+        Array<VMwareResourceModel>,
+        Array<VMwareResourceModel>,
+        VMwareInventoryCounts | null,
+      ] = await Promise.all([
+        fetchVMwareInventoryRows({
+          vmwareVCenterId: modelId,
+          kinds: [
+            VMwareResourceKind.Datacenter,
+            VMwareResourceKind.Cluster,
+            VMwareResourceKind.Host,
+            VMwareResourceKind.Datastore,
+            VMwareResourceKind.ResourcePool,
+          ],
+        }),
+        fetchVMwareVirtualMachinesThatMayNeedAttention({
+          vmwareVCenterId: modelId,
+          now: now,
+          cpuReadyWarningPercent: VM_CPU_READY_WARN_PERCENT,
+        }),
+        fetchVMwareVirtualMachinesByCpuReady({
+          vmwareVCenterId: modelId,
+          now: now,
+          limit: TOP_ROWS,
+        }),
+        fetchVMwareInventorySummary(modelId).catch(() => {
+          // The counts fall back to the vCenter's own columns.
+          return null;
+        }),
+      ]);
+
+      const ofKind: (kind: VMwareResourceKind) => Array<VMwareResourceModel> = (
+        kind: VMwareResourceKind,
+      ): Array<VMwareResourceModel> => {
+        return partRows.filter((row: VMwareResourceModel): boolean => {
+          return row.kind === kind;
+        });
+      };
+
+      const datacenters: Array<VMwareResourceModel> = ofKind(
+        VMwareResourceKind.Datacenter,
+      );
+      const clusters: Array<VMwareResourceModel> = ofKind(
+        VMwareResourceKind.Cluster,
+      );
+      const hosts: Array<VMwareResourceModel> = ofKind(VMwareResourceKind.Host);
+      const datastores: Array<VMwareResourceModel> = ofKind(
+        VMwareResourceKind.Datastore,
+      );
+
       let worstDatastorePercent: number | null = null;
       let worstDatastoreName: string = "";
       let clusterHostsTotal: number = 0;
       let clusterHostsEffective: number = 0;
-      const hosts: Array<{
+      let connectedHostCount: number = 0;
+      const datastoreRows: Array<TopRow> = [];
+
+      for (const cluster of clusters) {
+        /*
+         * vcenter.cluster.host.count{effective=false}: a host in maintenance
+         * mode or disconnected/unresponsive is counted but not effective -
+         * DRS/HA cannot place VMs on it. A cluster that has not reported for
+         * a while says nothing about now, as on its own page: a vCenter
+         * quiet for days showed its last 6/8 as today's.
+         */
+        if (!hasFreshVMwareReadings(cluster, now)) {
+          continue;
+        }
+        const total: number | null = toNumber(cluster.hostCount);
+        const effective: number | null = toNumber(cluster.effectiveHostCount);
+        if (total !== null) {
+          clusterHostsTotal += total;
+          if (effective !== null) {
+            clusterHostsEffective += effective;
+          }
+        }
+      }
+
+      const hostRows: Array<{
         externalId: string;
         name: string;
         context: string;
@@ -295,183 +415,70 @@ const VMwareVCenterOverview: FunctionComponent<
         memoryBytes: number | null;
         memoryPercent: number | null;
       }> = [];
-      const datastores: Array<TopRow> = [];
-      const vmsByCpuReady: Array<TopRow> = [];
-      const degradedItems: Array<DegradedItem> = [];
+      for (const host of hosts) {
+        const datacenter: VMwareResourceModel | null = findVMwareDatacenter(
+          datacenters,
+          host.datacenterName,
+        );
+        if (
+          isVMwareHostRunning(
+            getVMwareHostState({
+              host: host,
+              datacenter: datacenter,
+              now: now,
+            }),
+          )
+        ) {
+          connectedHostCount++;
+        }
+        /*
+         * Top-N source: a stale reading, or one of a host that is not
+         * running, renders as no data rather than an idle 0%.
+         */
+        const load: {
+          cpuPercent: number | null;
+          memoryPercent: number | null;
+        } = getVMwareHostLoad({ host: host, datacenter: datacenter, now: now });
+        hostRows.push({
+          externalId: host.externalId || "",
+          name: displayNameForResource(host),
+          context: host.clusterName || host.datacenterName || "",
+          cpuPercent: load.cpuPercent,
+          memoryBytes:
+            load.memoryPercent !== null
+              ? toNumber(host.latestMemoryBytes)
+              : null,
+          memoryPercent: load.memoryPercent,
+        });
+      }
 
-      for (const row of rows) {
-        const name: string = displayNameForResource(row);
-        const externalId: string = row.externalId || "";
-        const fresh: boolean = hasFreshMetrics(row);
-
-        if (row.kind === VMwareResourceKind.Datacenter) {
-          datacenterCount++;
-          /*
-           * vcenter.datacenter.host.count fans out over power_state —
-           * the ingest scan folds the powered-on slice separately, so
-           * a shortfall here is hosts that are off or in standby.
-           */
-          const dcHosts: number | null = toNumber(row.hostCount);
-          const dcHostsOn: number | null = toNumber(row.poweredOnHostCount);
-          if (dcHosts !== null && dcHostsOn !== null && dcHostsOn < dcHosts) {
-            const off: number = dcHosts - dcHostsOn;
-            degradedItems.push({
-              kind: "Datacenter",
-              externalId,
-              name,
-              reasons: [
-                `${off} host${off === 1 ? "" : "s"} powered off or in standby`,
-              ],
-              isCritical: false,
-            });
+      for (const datastore of datastores) {
+        const pct: number | null = getVMwareDatastorePercent(datastore);
+        if (pct !== null) {
+          const name: string = displayNameForResource(datastore);
+          if (worstDatastorePercent === null || pct > worstDatastorePercent) {
+            worstDatastorePercent = pct;
+            worstDatastoreName = name;
           }
-        } else if (row.kind === VMwareResourceKind.Cluster) {
-          clusterCount++;
-          /*
-           * vcenter.cluster.host.count{effective=false} is the receiver's
-           * only per-cluster host-health signal: a host in maintenance
-           * mode or disconnected/unresponsive is counted but not
-           * effective — DRS/HA cannot place VMs on it.
-           */
-          const total: number | null = toNumber(row.hostCount);
-          const effective: number | null = toNumber(row.effectiveHostCount);
-          if (total !== null) {
-            clusterHostsTotal += total;
-            if (effective !== null) {
-              clusterHostsEffective += effective;
-              if (effective < total) {
-                const notEffective: number = total - effective;
-                degradedItems.push({
-                  kind: "Cluster",
-                  externalId,
-                  name,
-                  reasons: [
-                    `${notEffective} host${notEffective === 1 ? "" : "s"} not effective (maintenance mode or unresponsive)`,
-                  ],
-                  isCritical: true,
-                });
-              }
-            }
-          }
-        } else if (row.kind === VMwareResourceKind.Host) {
-          hostCount++;
-          // Top-N source: stale metric values render as no-data.
-          hosts.push({
-            externalId,
-            name,
-            context: row.clusterName || row.datacenterName || "",
-            cpuPercent: fresh ? toNumber(row.latestCpuPercent) : null,
-            memoryBytes: fresh ? toNumber(row.latestMemoryBytes) : null,
-            memoryPercent: fresh ? toNumber(row.latestMemoryPercent) : null,
+          datastoreRows.push({
+            externalId: datastore.externalId || "",
+            name: name,
+            context: datastore.datacenterName || "",
+            value: pct,
+            percent: pct,
           });
-        } else if (row.kind === VMwareResourceKind.VirtualMachine) {
-          if (row.isTemplate) {
-            templateCount++;
-            continue;
-          }
-          vmTotal++;
-          if (row.isPoweredOn !== null && row.isPoweredOn !== undefined) {
-            vmWithPowerState++;
-            if (row.isPoweredOn) {
-              vmPoweredOn++;
-            }
-          }
-
-          const reasons: Array<string> = [];
-          let isCritical: boolean = false;
-          const swapped: number | null = toNumber(row.memorySwappedBytes);
-          if (fresh && swapped !== null && swapped > 0) {
-            // Hypervisor swapping = the guest is paging through the host — red.
-            reasons.push(
-              `${formatBytes(swapped)} of memory swapped by the host`,
-            );
-            isCritical = true;
-          }
-          const ballooned: number | null = toNumber(row.memoryBalloonedBytes);
-          if (fresh && ballooned !== null && ballooned > 0) {
-            reasons.push(`${formatBytes(ballooned)} of memory ballooned`);
-          }
-          const cpuReady: number | null = fresh
-            ? toNumber(row.cpuReadinessPercent)
-            : null;
-          if (cpuReady !== null && cpuReady > VM_CPU_READY_WARN_PERCENT) {
-            reasons.push(
-              `CPU ready ${cpuReady.toFixed(1)}% (host CPU contention)`,
-            );
-          }
-          if (reasons.length > 0) {
-            degradedItems.push({
-              kind: "VirtualMachine",
-              externalId,
-              name,
-              reasons,
-              isCritical,
-            });
-          }
-          if (cpuReady !== null && row.isPoweredOn) {
-            vmsByCpuReady.push({
-              externalId,
-              name,
-              context: row.hostName || "",
-              value: cpuReady,
-              percent: cpuReady,
-            });
-          }
-        } else if (row.kind === VMwareResourceKind.Datastore) {
-          datastoreCount++;
-          const used: number | null = toNumber(row.latestDiskBytes);
-          const total: number | null = toNumber(row.maxDiskBytes);
-          if (used !== null) {
-            datastoreUsedBytes = (datastoreUsedBytes ?? 0) + used;
-          }
-          if (total !== null) {
-            datastoreCapacityBytes = (datastoreCapacityBytes ?? 0) + total;
-          }
-          const pctFromReceiver: number | null = toNumber(
-            row.latestDiskPercent,
-          );
-          const pct: number | null =
-            pctFromReceiver !== null
-              ? pctFromReceiver
-              : used !== null && total !== null && total > 0
-                ? (used / total) * 100
-                : null;
-          if (pct !== null) {
-            if (worstDatastorePercent === null || pct > worstDatastorePercent) {
-              worstDatastorePercent = pct;
-              worstDatastoreName = name;
-            }
-            datastores.push({
-              externalId,
-              name,
-              context: row.datacenterName || "",
-              value: pct,
-              percent: pct,
-            });
-            if (pct >= DATASTORE_WARN_PERCENT) {
-              degradedItems.push({
-                kind: "Datastore",
-                externalId,
-                name,
-                reasons: [`${pct.toFixed(1)}% used`],
-                isCritical: pct >= DATASTORE_CRITICAL_PERCENT,
-              });
-            }
-          }
-        } else if (row.kind === VMwareResourceKind.ResourcePool) {
-          resourcePoolCount++;
         }
       }
 
-      const topHostsByCpu: Array<TopRow> = hosts
-        .filter((h: (typeof hosts)[number]) => {
+      const topHostsByCpu: Array<TopRow> = hostRows
+        .filter((h: (typeof hostRows)[number]) => {
           return h.cpuPercent !== null;
         })
-        .sort((a: (typeof hosts)[number], b: (typeof hosts)[number]) => {
+        .sort((a: (typeof hostRows)[number], b: (typeof hostRows)[number]) => {
           return (b.cpuPercent ?? 0) - (a.cpuPercent ?? 0);
         })
-        .slice(0, 5)
-        .map((h: (typeof hosts)[number]): TopRow => {
+        .slice(0, TOP_ROWS)
+        .map((h: (typeof hostRows)[number]): TopRow => {
           return {
             externalId: h.externalId,
             name: h.name,
@@ -481,21 +488,21 @@ const VMwareVCenterOverview: FunctionComponent<
           };
         });
 
-      const maxMemory: number = hosts.reduce(
-        (max: number, h: (typeof hosts)[number]) => {
+      const maxMemory: number = hostRows.reduce(
+        (max: number, h: (typeof hostRows)[number]) => {
           return Math.max(max, h.memoryBytes ?? 0);
         },
         0,
       );
-      const topHostsByMemory: Array<TopRow> = hosts
-        .filter((h: (typeof hosts)[number]) => {
+      const topHostsByMemory: Array<TopRow> = hostRows
+        .filter((h: (typeof hostRows)[number]) => {
           return h.memoryBytes !== null;
         })
-        .sort((a: (typeof hosts)[number], b: (typeof hosts)[number]) => {
+        .sort((a: (typeof hostRows)[number], b: (typeof hostRows)[number]) => {
           return (b.memoryBytes ?? 0) - (a.memoryBytes ?? 0);
         })
-        .slice(0, 5)
-        .map((h: (typeof hosts)[number]): TopRow => {
+        .slice(0, TOP_ROWS)
+        .map((h: (typeof hostRows)[number]): TopRow => {
           return {
             externalId: h.externalId,
             name: h.name,
@@ -507,61 +514,74 @@ const VMwareVCenterOverview: FunctionComponent<
                 : maxMemory > 0
                   ? ((h.memoryBytes ?? 0) / maxMemory) * 100
                   : 0,
+            memoryPercent: h.memoryPercent,
           };
         });
 
-      const topDatastoresByUtilization: Array<TopRow> = datastores
+      const topDatastoresByUtilization: Array<TopRow> = datastoreRows
         .sort((a: TopRow, b: TopRow) => {
           return b.value - a.value;
         })
-        .slice(0, 5);
+        .slice(0, TOP_ROWS);
 
-      const topVmsByCpuReady: Array<TopRow> = vmsByCpuReady
-        .sort((a: TopRow, b: TopRow) => {
-          return b.value - a.value;
+      const topVmsByCpuReady: Array<TopRow> = cpuReadyVms
+        .filter((vm: VMwareResourceModel): boolean => {
+          return (
+            vm.isTemplate !== true &&
+            vm.isPoweredOn === true &&
+            hasFreshMetrics(vm, now) &&
+            toNumber(vm.cpuReadinessPercent) !== null
+          );
         })
-        .slice(0, 5);
+        .slice(0, TOP_ROWS)
+        .map((vm: VMwareResourceModel): TopRow => {
+          const ready: number = toNumber(vm.cpuReadinessPercent) ?? 0;
+          return {
+            externalId: vm.externalId || "",
+            name: displayNameForResource(vm),
+            context: vm.hostName || "",
+            value: ready,
+            percent: ready,
+          };
+        });
 
-      /*
-       * Health: Unhealthy when a cluster has non-effective hosts, a
-       * datastore is at/over the critical threshold, or a VM is being
-       * swapped by the hypervisor; Degraded for datastores past the
-       * warning threshold, ballooned VMs, CPU-ready contention, or
-       * hosts powered off / in standby.
-       */
-      let health: VCenterHealth = "Healthy";
-      if (
-        degradedItems.some((item: DegradedItem) => {
-          return item.isCritical;
-        })
-      ) {
-        health = "Unhealthy";
-      } else if (degradedItems.length > 0) {
-        health = "Degraded";
-      }
+      const rows: Array<VMwareResourceModel> = [...partRows, ...attentionVms];
+      const attentionItems: Array<ResourceAttentionItem> =
+        getVMwareAttentionItems({
+          rows: rows,
+          now: now,
+          routeFor: routes.getPartRoute,
+          listRouteFor: routes.getListRoute,
+        });
 
       setInventory({
-        datacenterCount,
-        clusterCount,
-        hostCount,
-        vmTotal,
-        vmPoweredOn,
-        vmWithPowerState,
-        templateCount,
-        datastoreCount,
-        resourcePoolCount,
-        datastoreUsedBytes,
-        datastoreCapacityBytes,
+        rows: rows,
+        datacenters: datacenters,
+        hosts: hosts,
+        attentionItems: attentionItems,
+        datacenterCount: counts?.datacenterCount ?? datacenters.length,
+        clusterCount: counts?.clusterCount ?? clusters.length,
+        hostCount: counts?.hostCount ?? hosts.length,
+        connectedHostCount: connectedHostCount,
+        vmTotal: counts ? counts.virtualMachineCount : null,
+        vmPoweredOn: counts ? counts.poweredOnVirtualMachineCount : null,
+        templateCount: counts ? counts.virtualMachineTemplateCount : null,
+        datastoreCount: counts?.datastoreCount ?? datastores.length,
         worstDatastorePercent,
         worstDatastoreName,
         clusterHostsTotal,
         clusterHostsEffective,
+        clusterHostsNotEffective: countVMwareNotEffectiveHosts({
+          clusters: clusters,
+          hosts: hosts,
+          datacenters: datacenters,
+          now: now,
+        }),
         topHostsByCpu,
         topHostsByMemory,
         topDatastoresByUtilization,
         topVmsByCpuReady,
-        degradedItems,
-        health,
+        health: getVMwareHealth(attentionItems),
       });
     } catch (err) {
       /*
@@ -864,6 +884,18 @@ const VMwareVCenterOverview: FunctionComponent<
       };
 
       /*
+       * Memory in use per host per bucket, read first: a host reporting
+       * none is not running (vCenter cannot reach it, or it is off or in
+       * standby), and the vCenter's CPU and memory leave it out in that
+       * bucket rather than count its capacity as idle
+       * (getVMwareHostsReportingNoMemory).
+       */
+      const memUsageByBucket: Map<
+        number,
+        Map<string, number>
+      > = collectByBucketAndObject(hostMemUsageResult);
+
+      /*
        * vCenter CPU% per bucket — capacity-weighted across host series.
        * Falls back to a plain mean of the utilizations when no
        * vcenter.host.cpu.capacity series exists in the window.
@@ -881,11 +913,17 @@ const VMwareVCenterOverview: FunctionComponent<
       for (const [t, utilizations] of cpuByBucket.entries()) {
         const capacities: Map<string, number> | undefined =
           cpuCapacityByBucket.get(t);
+        const notRunning: Set<string> = getVMwareHostsReportingNoMemory(
+          memUsageByBucket.get(t),
+        );
         let weightedSum: number = 0;
         let weightTotal: number = 0;
         let plainSum: number = 0;
         let plainCount: number = 0;
         for (const [key, utilization] of utilizations.entries()) {
+          if (notRunning.has(key)) {
+            continue;
+          }
           plainSum += utilization;
           plainCount++;
           const capacity: number | undefined = capacities?.get(key);
@@ -902,11 +940,10 @@ const VMwareVCenterOverview: FunctionComponent<
       }
       const cpuPoints: Array<TimeValuePoint> = toSortedPoints(cpuPerBucket);
 
-      // Memory: Σ usage and Σ capacity (MiB) per bucket across host series.
-      const memUsageByBucket: Map<
-        number,
-        Map<string, number>
-      > = collectByBucketAndObject(hostMemUsageResult);
+      /*
+       * Memory: Σ usage and Σ capacity (MiB) per bucket across the host
+       * series of the hosts that run in it.
+       */
       const memCapacityByBucket: Map<
         number,
         Map<string, number>
@@ -921,6 +958,7 @@ const VMwareVCenterOverview: FunctionComponent<
       let latestMemCapacity: number | null = null;
       let latestMemTs: number = 0;
       for (const [t, usages] of memUsageByBucket.entries()) {
+        const notRunning: Set<string> = getVMwareHostsReportingNoMemory(usages);
         let usedSum: number = 0;
         for (const v of usages.values()) {
           usedSum += v;
@@ -929,8 +967,10 @@ const VMwareVCenterOverview: FunctionComponent<
           memCapacityByBucket.get(t);
         if (capacities && capacities.size > 0) {
           let capacitySum: number = 0;
-          for (const v of capacities.values()) {
-            capacitySum += v;
+          for (const [key, v] of capacities.entries()) {
+            if (!notRunning.has(key)) {
+              capacitySum += v;
+            }
           }
           if (capacitySum > 0) {
             memPercentPerBucket.set(t, (usedSum / capacitySum) * 100);
@@ -945,9 +985,15 @@ const VMwareVCenterOverview: FunctionComponent<
       if (memPercentPerBucket.size === 0) {
         // No capacity series — plain mean of the receiver's own utilization.
         for (const [t, utilizations] of memUtilizationByBucket.entries()) {
+          const notRunning: Set<string> = getVMwareHostsReportingNoMemory(
+            memUsageByBucket.get(t),
+          );
           let sum: number = 0;
           let count: number = 0;
-          for (const v of utilizations.values()) {
+          for (const [key, v] of utilizations.entries()) {
+            if (notRunning.has(key)) {
+              continue;
+            }
             sum += v;
             count++;
           }
@@ -1026,26 +1072,26 @@ const VMwareVCenterOverview: FunctionComponent<
 
       setCpuSeries(
         cpuPoints.length > 0
-          ? [{ seriesName: "Host CPU %", data: cpuPoints }]
+          ? [{ seriesName: tx("Host CPU %"), data: cpuPoints }]
           : [],
       );
       setMemorySeries(
         memoryPercentPoints.length > 0
-          ? [{ seriesName: "Host Memory %", data: memoryPercentPoints }]
+          ? [{ seriesName: tx("Host Memory %"), data: memoryPercentPoints }]
           : [],
       );
       setDatastoreSeries(
         datastorePoints.length > 0
-          ? [{ seriesName: "Datastore Used", data: datastorePoints }]
+          ? [{ seriesName: tx("Datastore Used"), data: datastorePoints }]
           : [],
       );
       setCpuReadySeries(
         [
           cpuReadyAvgPoints.length > 0
-            ? { seriesName: "Avg", data: cpuReadyAvgPoints }
+            ? { seriesName: tx("Avg"), data: cpuReadyAvgPoints }
             : null,
           cpuReadyMaxPoints.length > 0
-            ? { seriesName: "Max", data: cpuReadyMaxPoints }
+            ? { seriesName: tx("Max"), data: cpuReadyMaxPoints }
             : null,
         ].filter((s: SeriesPoint | null): s is SeriesPoint => {
           return s !== null;
@@ -1213,29 +1259,17 @@ const VMwareVCenterOverview: FunctionComponent<
   const clusterCount: number =
     inventory?.clusterCount || vcenter.clusterCount || 0;
   const hostCount: number = inventory?.hostCount || vcenter.hostCount || 0;
-  const vmTotal: number = inventory?.vmTotal || vcenter.vmCount || 0;
-  const vmPoweredOn: number = inventory
-    ? inventory.vmPoweredOn
-    : vcenter.poweredOnVmCount || 0;
-  const vmPowerStateKnown: boolean = inventory
-    ? inventory.vmWithPowerState > 0
-    : vcenter.poweredOnVmCount !== null &&
-      vcenter.poweredOnVmCount !== undefined;
+  const vmTotal: number = inventory?.vmTotal ?? vcenter.vmCount ?? 0;
+  const vmPoweredOn: number =
+    inventory?.vmPoweredOn ?? vcenter.poweredOnVmCount ?? 0;
+  /*
+   * The ingest writes the vCenter's powered-on count once a collection
+   * carried VMs: before that, power state is not known yet.
+   */
+  const vmPowerStateKnown: boolean =
+    vcenter.poweredOnVmCount !== null && vcenter.poweredOnVmCount !== undefined;
   const datastoreCount: number =
     inventory?.datastoreCount || vcenter.datastoreCount || 0;
-  const resourcePoolCount: number =
-    inventory?.resourcePoolCount || vcenter.resourcePoolCount || 0;
-  const datastoreUsedBytes: number | null =
-    inventory?.datastoreUsedBytes ?? toNumber(vcenter.datastoreUsedBytes);
-  const datastoreCapacityBytes: number | null =
-    inventory?.datastoreCapacityBytes ??
-    toNumber(vcenter.datastoreCapacityBytes);
-  const datastoreUsedPercent: number | null =
-    datastoreUsedBytes !== null &&
-    datastoreCapacityBytes !== null &&
-    datastoreCapacityBytes > 0
-      ? (datastoreUsedBytes / datastoreCapacityBytes) * 100
-      : null;
 
   const clusterHostsTotal: number = inventory?.clusterHostsTotal || 0;
   const clusterHostsEffective: number = inventory?.clusterHostsEffective || 0;
@@ -1244,20 +1278,42 @@ const VMwareVCenterOverview: FunctionComponent<
       ? (clusterHostsEffective / clusterHostsTotal) * 100
       : null;
 
+  /*
+   * Why clustered hosts are not effective, the most urgent first, and the
+   * bar's colour as the rules read it (VMwareNotEffectiveHosts).
+   */
+  const effectiveHostsReasons: Array<string> = inventory
+    ? getVMwareNotEffectiveHostsText(
+        inventory.clusterHostsNotEffective,
+        translator,
+      )
+    : [];
+  const effectiveHostsTone: GoldenMetricTileTone = inventory
+    ? getVMwareNotEffectiveHostsTone(inventory.clusterHostsNotEffective)
+    : "positive";
+
+  const hasTopConsumers: boolean = Boolean(
+    inventory &&
+      (inventory.topHostsByCpu.length > 0 ||
+        inventory.topHostsByMemory.length > 0 ||
+        inventory.topDatastoresByUtilization.length > 0 ||
+        inventory.topVmsByCpuReady.length > 0),
+  );
+
   const vcenterHealth: VCenterHealth = inventory?.health || "Healthy";
-  const allDegradedItems: Array<DegradedItem> = inventory?.degradedItems || [];
+  const attentionItems: Array<ResourceAttentionItem> =
+    inventory?.attentionItems || [];
 
   /*
    * When the collector is disconnected the inventory snapshot is stale, so
-   * the derived health is no longer trustworthy. Surface "Unknown" instead
-   * of a misleading last-known status (mirrors the hero badge).
+   * the derived health is no longer trustworthy: the hero says Health
+   * Unknown and Needs attention is left out, as on every resource product.
    */
   const isVCenterConnected: boolean = ["connected", "active"].includes(
     ((vcenter?.otelCollectorStatus as string) || "").toLowerCase(),
   );
-  const displayVCenterHealth: string = isVCenterConnected
-    ? vcenterHealth
-    : "Unknown";
+
+  const partRoutes: VMwarePartRoutes = getVMwarePartRoutes(modelId);
 
   const hostsRoute: Route = RouteUtil.populateRouteParams(
     RouteMap[PageMap.VMWARE_VCENTER_VIEW_HOSTS] as Route,
@@ -1275,44 +1331,6 @@ const VMwareVCenterOverview: FunctionComponent<
     RouteMap[PageMap.VMWARE_VCENTER_VIEW_CLUSTERS] as Route,
     { modelId: modelId },
   );
-  const resourcePoolsRoute: Route = RouteUtil.populateRouteParams(
-    RouteMap[PageMap.VMWARE_VCENTER_VIEW_RESOURCE_POOLS] as Route,
-    { modelId: modelId },
-  );
-
-  const detailPageMapForKind: (kind: DegradedItem["kind"]) => PageMap | null = (
-    kind: DegradedItem["kind"],
-  ): PageMap | null => {
-    switch (kind) {
-      case "Host":
-        return PageMap.VMWARE_VCENTER_VIEW_HOST_DETAIL;
-      case "VirtualMachine":
-        return PageMap.VMWARE_VCENTER_VIEW_VIRTUAL_MACHINE_DETAIL;
-      case "Datastore":
-        return PageMap.VMWARE_VCENTER_VIEW_DATASTORE_DETAIL;
-      case "Cluster":
-        return PageMap.VMWARE_VCENTER_VIEW_CLUSTER_DETAIL;
-      default:
-        // Datacenters have no detail page.
-        return null;
-    }
-  };
-
-  const navigateToDetail: (
-    kind: DegradedItem["kind"],
-    externalId: string,
-  ) => void = (kind: DegradedItem["kind"], externalId: string): void => {
-    const pageMap: PageMap | null = detailPageMapForKind(kind);
-    if (!pageMap || !externalId) {
-      return;
-    }
-    Navigation.navigate(
-      RouteUtil.populateRouteParams(RouteMap[pageMap] as Route, {
-        modelId: modelId,
-        subModelId: routeParamFromExternalId(externalId),
-      }),
-    );
-  };
 
   const renderRefreshControl: () => ReactElement = (): ReactElement => {
     return (
@@ -1393,13 +1411,21 @@ const VMwareVCenterOverview: FunctionComponent<
           ? "bg-amber-500"
           : "bg-red-500";
 
+    /*
+     * The count chips open their list: the Overview's one step to the
+     * hosts, the VMs, the datastores and the clusters (the side menu has
+     * the rest).
+     */
     const specChips: Array<{
       icon: IconProp;
       label: string;
+      route?: Route | undefined;
+      testId?: string | undefined;
     }> = [];
     if (datacenterCount > 0) {
       specChips.push({
         icon: IconProp.Folder,
+        testId: "vmware-hero-datacenters",
         label: translator.translatePlural(
           { one: "{{count}} datacenter", other: "{{count}} datacenters" },
           datacenterCount,
@@ -1409,6 +1435,8 @@ const VMwareVCenterOverview: FunctionComponent<
     if (clusterCount > 0) {
       specChips.push({
         icon: IconProp.SquareStack,
+        route: clustersRoute,
+        testId: "vmware-hero-clusters",
         label: translator.translatePlural(
           { one: "{{count}} cluster", other: "{{count}} clusters" },
           clusterCount,
@@ -1418,15 +1446,38 @@ const VMwareVCenterOverview: FunctionComponent<
     if (hostCount > 0) {
       specChips.push({
         icon: IconProp.ServerStack,
-        label: translator.translatePlural(
-          { one: "{{count}} ESXi host", other: "{{count}} ESXi hosts" },
-          hostCount,
-        ),
+        route: hostsRoute,
+        testId: "vmware-hero-hosts",
+        /*
+         * How many vCenter can reach, while the inventory says so and
+         * the vCenter reports: the first number a vSphere admin looks for.
+         */
+        label:
+          inventory && isVCenterConnected
+            ? translator.translatePlural(
+                {
+                  one: "{{connected}}/{{count}} ESXi host connected",
+                  other: "{{connected}}/{{count}} ESXi hosts connected",
+                },
+                hostCount,
+                // In the reader's digits, as the count beside it is.
+                {
+                  connected: translator.formatNumber(
+                    inventory.connectedHostCount,
+                  ),
+                },
+              )
+            : translator.translatePlural(
+                { one: "{{count}} ESXi host", other: "{{count}} ESXi hosts" },
+                hostCount,
+              ),
       });
     }
     if (vmTotal > 0) {
       specChips.push({
         icon: IconProp.Cube,
+        route: virtualMachinesRoute,
+        testId: "vmware-hero-vms",
         label: vmPowerStateKnown
           ? translator.translatePlural(
               {
@@ -1434,7 +1485,7 @@ const VMwareVCenterOverview: FunctionComponent<
                 other: "{{poweredOn}}/{{count}} VMs powered on",
               },
               vmTotal,
-              { poweredOn: vmPoweredOn },
+              { poweredOn: translator.formatNumber(vmPoweredOn) },
             )
           : translator.translatePlural(
               { one: "{{count}} VM", other: "{{count}} VMs" },
@@ -1442,9 +1493,23 @@ const VMwareVCenterOverview: FunctionComponent<
             ),
       });
     }
+    const templateCount: number = inventory?.templateCount ?? 0;
+    if (templateCount > 0) {
+      specChips.push({
+        icon: IconProp.DocumentDuplicate,
+        route: virtualMachinesRoute,
+        testId: "vmware-hero-templates",
+        label: translator.translatePlural(
+          { one: "{{count}} template", other: "{{count}} templates" },
+          templateCount,
+        ),
+      });
+    }
     if (datastoreCount > 0) {
       specChips.push({
         icon: IconProp.Database,
+        route: datastoresRoute,
+        testId: "vmware-hero-datastores",
         label: translator.translatePlural(
           { one: "{{count}} datastore", other: "{{count}} datastores" },
           datastoreCount,
@@ -1492,24 +1557,46 @@ const VMwareVCenterOverview: FunctionComponent<
                     <h1 className="text-xl font-semibold text-gray-900 truncate">
                       {displayName}
                     </h1>
-                    <span
-                      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${connectionBadgeClass}`}
-                    >
+                    <span className="inline-flex items-center gap-1">
                       <span
-                        className={`h-1.5 w-1.5 rounded-full ${connectionDotClass}`}
-                      />
-                      {connectionLabel}
-                    </span>
-                    {!isInventoryLoading && !inventoryError && (
-                      <span
-                        className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${healthBadgeClass}`}
+                        data-testid="vmware-hero-connection"
+                        className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${connectionBadgeClass}`}
                       >
                         <span
-                          className={`h-1.5 w-1.5 rounded-full ${healthDotClass}`}
+                          className={`h-1.5 w-1.5 rounded-full ${connectionDotClass}`}
                         />
-                        {healthLabel}
+                        {connectionLabel}
                       </span>
-                    )}
+                      <InfoTooltip
+                        label="Data Status"
+                        text={VMWARE_METRIC_DESCRIPTIONS.overviewAgentStatus}
+                      />
+                    </span>
+                    {/*
+                     * A vCenter that has reported nothing yet has no health
+                     * to tell: "Healthy" there would be a guess.
+                     */}
+                    {!isInventoryLoading &&
+                      !inventoryError &&
+                      (inventory?.rows.length ?? 0) > 0 && (
+                        <span className="inline-flex items-center gap-1">
+                          <span
+                            data-testid="vmware-hero-health"
+                            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${healthBadgeClass}`}
+                          >
+                            <span
+                              className={`h-1.5 w-1.5 rounded-full ${healthDotClass}`}
+                            />
+                            {healthLabel}
+                          </span>
+                          <InfoTooltip
+                            label="vCenter Health"
+                            text={
+                              VMWARE_METRIC_DESCRIPTIONS.overviewVCenterHealth
+                            }
+                          />
+                        </span>
+                      )}
                   </div>
                   <ResourceHeroDescription
                     text={vcenter.description as string | undefined}
@@ -1531,31 +1618,52 @@ const VMwareVCenterOverview: FunctionComponent<
               <div className="mt-4 flex flex-wrap items-center gap-1.5">
                 {specChips.map(
                   (
-                    chip: { icon: IconProp; label: string },
+                    chip: {
+                      icon: IconProp;
+                      label: string;
+                      route?: Route | undefined;
+                      testId?: string | undefined;
+                    },
                     idx: number,
                   ): ReactElement => {
-                    return (
-                      <span
-                        key={`spec-${idx}`}
-                        className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-700"
-                      >
+                    const content: ReactElement = (
+                      <>
                         <Icon
                           icon={chip.icon}
                           className="h-3 w-3 text-gray-500"
                         />
                         <span className="font-medium">{chip.label}</span>
+                      </>
+                    );
+                    if (chip.route) {
+                      return (
+                        <Link
+                          key={`spec-${idx}`}
+                          to={chip.route}
+                          dataTestId={chip.testId}
+                          className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-700 hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                        >
+                          {content}
+                        </Link>
+                      );
+                    }
+                    return (
+                      <span
+                        key={`spec-${idx}`}
+                        data-testid={chip.testId}
+                        className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-700"
+                      >
+                        {content}
                       </span>
                     );
                   },
                 )}
-                <AgentVersion
-                  kind={AgentKind.VMwareAgent}
-                  version={vcenter.agentVersion}
-                  variant="chip"
-                />
                 {/*
-                 * One (i) for the count chips; a row holding only the
-                 * agent version chip is metadata and gets none.
+                 * One (i) for the count chips, right after the last of
+                 * them: after the agent version chip it read as that chip's,
+                 * alone on the row's second line where the chips wrap. A row
+                 * holding only the agent version chip is metadata and gets
+                 * none.
                  */}
                 {hasCountChips && (
                   <InfoTooltip
@@ -1563,6 +1671,11 @@ const VMwareVCenterOverview: FunctionComponent<
                     text={VMWARE_METRIC_DESCRIPTIONS.overviewInventoryCounts}
                   />
                 )}
+                <AgentVersion
+                  kind={AgentKind.VMwareAgent}
+                  version={vcenter.agentVersion}
+                  variant="chip"
+                />
               </div>
             )}
           </div>
@@ -1574,8 +1687,8 @@ const VMwareVCenterOverview: FunctionComponent<
   const renderGoldenMetrics: () => ReactElement = (): ReactElement => {
     if (isGoldenLoading && !goldenStats) {
       return (
-        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-          {Array.from({ length: 6 }, (_: unknown, idx: number) => {
+        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          {Array.from({ length: 5 }, (_: unknown, idx: number) => {
             return (
               <div
                 key={`golden-skeleton-${idx}`}
@@ -1605,9 +1718,6 @@ const VMwareVCenterOverview: FunctionComponent<
       return <Fragment />;
     }
 
-    const vmPoweredOnPct: number | null =
-      vmPowerStateKnown && vmTotal > 0 ? (vmPoweredOn / vmTotal) * 100 : null;
-
     /*
      * Datastore tile: the inventory's worst datastore (instant, names the
      * culprit) wins; the ClickHouse worst-per-bucket mean is the fallback
@@ -1616,46 +1726,45 @@ const VMwareVCenterOverview: FunctionComponent<
     const worstDatastorePercent: number | null =
       inventory?.worstDatastorePercent ?? s.datastoreWorstPercent;
 
+    /*
+     * Five tiles: how many hosts can run VMs, how busy they are, the fullest
+     * datastore and how long VMs wait for a CPU. How many VMs run is the
+     * hero's count chip, one step from the list. A tile draws its title and
+     * line as given, so the page hands them in the reader's language.
+     */
     return (
-      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <GoldenMetricTile
-          title="Host Effectiveness"
+          title={tx("Effective hosts")}
           icon={IconProp.Heartbeat}
           iconColor="emerald"
           value={
             hostEffectivenessPct === null
               ? "—"
-              : `${clusterHostsEffective}/${clusterHostsTotal}`
+              : // Counts in the reader's digits, as the hero's chips write them.
+                `${translator.formatNumber(clusterHostsEffective)}/${translator.formatNumber(clusterHostsTotal)}`
           }
           sublabel={
-            hostEffectivenessPct === null
-              ? "clustered hosts DRS/HA can schedule"
-              : clusterHostsEffective < clusterHostsTotal
-                ? translator.translatePlural(
-                    {
-                      one: "{{count}} in maintenance or unresponsive",
-                      other: "{{count}} in maintenance or unresponsive",
-                    },
-                    clusterHostsTotal - clusterHostsEffective,
-                  )
-                : "clustered hosts DRS/HA can schedule"
+            clusterHostsEffective < clusterHostsTotal &&
+            effectiveHostsReasons.length > 0
+              ? effectiveHostsReasons.join(" · ")
+              : tx("clustered hosts DRS/HA can schedule")
           }
           percent={hostEffectivenessPct}
-          thresholds={{ warn: 99, danger: 51 }}
-          higherIsBetter={true}
+          tone={effectiveHostsTone}
           description={VMWARE_METRIC_DESCRIPTIONS.overviewHostEffectiveness}
         />
         <GoldenMetricTile
-          title="Host CPU"
+          title={tx("Host CPU")}
           icon={IconProp.ChartBar}
           iconColor="blue"
           value={formatPercent(s.hostCpuPercent)}
-          sublabel="capacity-weighted across ESXi hosts"
+          sublabel={tx("capacity-weighted across ESXi hosts")}
           percent={s.hostCpuPercent}
           description={VMWARE_METRIC_DESCRIPTIONS.overviewHostCpu}
         />
         <GoldenMetricTile
-          title="Host Memory"
+          title={tx("Host Memory")}
           icon={IconProp.SquareStack}
           iconColor="violet"
           value={formatPercent(s.hostMemoryPercent)}
@@ -1665,14 +1774,14 @@ const VMwareVCenterOverview: FunctionComponent<
                   used: formatBytes(s.hostMemoryUsedBytes),
                   total: formatBytes(s.hostMemoryCapacityBytes),
                 })
-              : "of ESXi host memory"
+              : tx("of ESXi host memory")
           }
           percent={s.hostMemoryPercent}
           thresholds={{ warn: 80, danger: 95 }}
           description={VMWARE_METRIC_DESCRIPTIONS.overviewHostMemory}
         />
         <GoldenMetricTile
-          title="Datastores"
+          title={tx("Datastores")}
           icon={IconProp.Database}
           iconColor="amber"
           value={formatPercent(worstDatastorePercent)}
@@ -1681,7 +1790,7 @@ const VMwareVCenterOverview: FunctionComponent<
               ? translator.translateTemplate("fullest: {{storageName}}", {
                   storageName: inventory.worstDatastoreName,
                 })
-              : "fullest datastore"
+              : tx("fullest datastore")
           }
           percent={worstDatastorePercent}
           thresholds={{
@@ -1691,7 +1800,7 @@ const VMwareVCenterOverview: FunctionComponent<
           description={VMWARE_METRIC_DESCRIPTIONS.overviewDatastores}
         />
         <GoldenMetricTile
-          title="VM CPU Ready"
+          title={tx("VM CPU Ready")}
           icon={IconProp.CPUChip}
           iconColor="sky"
           value={formatPercent(s.vmCpuReadyAvgPercent)}
@@ -1705,7 +1814,7 @@ const VMwareVCenterOverview: FunctionComponent<
                   s.vmCpuReadyVmCount,
                   { max: formatPercent(s.vmCpuReadyMaxPercent) },
                 )
-              : "avg across powered-on VMs"
+              : tx("avg across powered-on VMs")
           }
           percent={s.vmCpuReadyAvgPercent}
           /*
@@ -1714,39 +1823,6 @@ const VMwareVCenterOverview: FunctionComponent<
            */
           thresholds={{ warn: 5, danger: VM_CPU_READY_WARN_PERCENT }}
           description={VMWARE_METRIC_DESCRIPTIONS.overviewVmCpuReady}
-        />
-        <GoldenMetricTile
-          title="Virtual Machines"
-          icon={IconProp.Cube}
-          iconColor="slate"
-          value={
-            vmTotal > 0
-              ? vmPowerStateKnown
-                ? `${vmPoweredOn}/${vmTotal}`
-                : String(vmTotal)
-              : "—"
-          }
-          sublabel={
-            vmPowerStateKnown
-              ? inventory && inventory.templateCount > 0
-                ? translator.translatePlural(
-                    {
-                      one: "powered on · {{count}} template",
-                      other: "powered on · {{count}} templates",
-                    },
-                    inventory.templateCount,
-                  )
-                : translator.translateTemplate("powered on")
-              : "power state inferred after the first collection"
-          }
-          percent={vmPoweredOnPct}
-          /*
-           * A powered-off VM is not a fault — the bar only shows the
-           * proportion, it never turns amber or red.
-           */
-          thresholds={{ warn: 0, danger: 0 }}
-          higherIsBetter={true}
-          description={VMWARE_METRIC_DESCRIPTIONS.overviewVirtualMachines}
         />
       </div>
     );
@@ -1780,8 +1856,12 @@ const VMwareVCenterOverview: FunctionComponent<
     const header: ReactElement = (
       <div className="flex items-center justify-between mb-3">
         <div className="flex min-w-0 items-center gap-1">
-          <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-            {params.title}
+          {/*
+           * In the reader's language, as a tile's title; a long German word
+           * breaks inside its box rather than running under the icon.
+           */}
+          <span className="min-w-0 text-xs font-medium text-gray-500 uppercase tracking-wider hyphens-auto [overflow-wrap:anywhere]">
+            {tx(params.title)}
           </span>
           <InfoTooltip label={params.title} text={params.description} />
         </div>
@@ -1929,172 +2009,107 @@ const VMwareVCenterOverview: FunctionComponent<
     );
   };
 
-  const renderWhyDegraded: () => ReactElement = (): ReactElement => {
-    if (vcenterHealth === "Healthy" || allDegradedItems.length === 0) {
-      return <Fragment />;
-    }
-
-    const kindLabel: (kind: DegradedItem["kind"]) => string = (
-      kind: DegradedItem["kind"],
-    ): string => {
-      switch (kind) {
-        case "VirtualMachine":
-          return "VM";
-        case "Host":
-          return "ESXi Host";
-        default:
-          return kind;
-      }
-    };
-
-    return (
-      <Card
-        title="Why is this vCenter degraded?"
-        description="Specific clusters, datacenters, virtual machines and datastores that are driving the current health status. Click through to investigate."
-      >
-        <div className="divide-y divide-gray-100">
-          {allDegradedItems.map((item: DegradedItem, index: number) => {
-            const icon: IconProp =
-              item.kind === "Cluster"
-                ? IconProp.SquareStack
-                : item.kind === "Datacenter"
-                  ? IconProp.Folder
-                  : item.kind === "Host"
-                    ? IconProp.ServerStack
-                    : item.kind === "VirtualMachine"
-                      ? IconProp.Cube
-                      : IconProp.Database;
-            const iconBgClass: string = item.isCritical
-              ? "bg-red-100"
-              : "bg-amber-100";
-            const iconColorClass: string = item.isCritical
-              ? "text-red-600"
-              : "text-amber-600";
-            const chipClass: string = item.isCritical
-              ? "bg-red-50 text-red-700 border-red-200"
-              : "bg-amber-50 text-amber-700 border-amber-200";
-            const isClickable: boolean =
-              detailPageMapForKind(item.kind) !== null &&
-              Boolean(item.externalId);
-            return (
-              <div
-                key={`degraded-${index}`}
-                onClick={() => {
-                  navigateToDetail(item.kind, item.externalId);
-                }}
-                className={`flex items-start gap-3 px-5 py-3.5 transition-colors ${
-                  isClickable ? "hover:bg-gray-50 cursor-pointer" : ""
-                }`}
-              >
-                <div
-                  className={`flex-shrink-0 mt-0.5 w-6 h-6 rounded-full ${iconBgClass} flex items-center justify-center`}
-                >
-                  <Icon
-                    icon={icon}
-                    className={`h-3.5 w-3.5 ${iconColorClass}`}
-                  />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                    <span className="text-sm font-medium text-gray-900 truncate">
-                      {item.name}
-                    </span>
-                    <span className="inline-flex px-1.5 py-0.5 text-xs font-medium rounded bg-slate-100 text-slate-600">
-                      {kindLabel(item.kind)}
-                    </span>
-                    {item.reasons.map((reason: string) => {
-                      return (
-                        <span
-                          key={reason}
-                          className={`inline-flex px-1.5 py-0.5 text-xs font-medium rounded border ${chipClass}`}
-                        >
-                          {reason}
-                        </span>
-                      );
-                    })}
-                  </div>
-                  <p className="text-xs text-gray-400 font-mono">
-                    {item.externalId}
-                  </p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </Card>
-    );
-  };
-
   const renderTopList: (params: {
     rows: Array<TopRow>;
-    kind: DegradedItem["kind"];
+    kind: VMwareResourceKind;
     valueOf: (row: TopRow) => string;
-    barColorClass: string;
+    // The bar's colour, by the line the part's alert fires at.
+    toneOf: (row: TopRow) => VMwareUsageTone;
     emptyMessage: string;
   }) => ReactElement = (params: {
     rows: Array<TopRow>;
-    kind: DegradedItem["kind"];
+    kind: VMwareResourceKind;
     valueOf: (row: TopRow) => string;
-    barColorClass: string;
+    toneOf: (row: TopRow) => VMwareUsageTone;
     emptyMessage: string;
   }): ReactElement => {
     if (params.rows.length === 0) {
       return (
         <p className="text-gray-400 text-sm py-8 text-center">
-          {params.emptyMessage}
+          {tx(params.emptyMessage)}
         </p>
       );
     }
+    /*
+     * Each row opens its part's page - the whole row, as Needs attention's
+     * rows do (ResourcePartRow): a wide target, a focus ring for a keyboard.
+     * The name is never cut short: on a phone "esx-wes..." and "esx-we..."
+     * were two hosts nobody could tell apart, so it breaks after its dots
+     * and its cluster or host moves under it where the line has no room.
+     */
     return (
-      <div className="space-y-3">
+      <ul className="-mx-5 divide-y divide-gray-100">
         {params.rows.map((row: TopRow, index: number) => {
           const pct: number = Math.min(Math.max(row.percent, 0), 100);
+          const tone: VMwareUsageTone = params.toneOf(row);
           return (
-            <div
+            <li
               key={row.externalId}
-              onClick={() => {
-                navigateToDetail(params.kind, row.externalId);
-              }}
-              className="group cursor-pointer rounded-lg p-3 hover:bg-gray-50 transition-colors"
+              data-testid="vmware-top-consumer"
+              data-tone={tone}
             >
-              <div className="flex items-center justify-between mb-1.5">
-                <div className="flex items-center gap-2 min-w-0 flex-1">
-                  <span className="flex-shrink-0 text-xs font-medium text-gray-400 w-4">
-                    {index + 1}.
-                  </span>
-                  <span className="text-sm font-medium text-gray-900 truncate group-hover:text-indigo-700">
-                    {row.name}
-                  </span>
-                  {row.context && (
-                    <span className="flex-shrink-0 inline-flex px-1.5 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-600 truncate max-w-[10rem]">
-                      {row.context}
+              <ResourcePartRow
+                to={partRoutes.getPartRoute(params.kind, row.externalId)}
+                className="block"
+              >
+                <div className="mb-1.5 flex items-start justify-between gap-2">
+                  <div className="flex min-w-0 flex-1 items-start gap-2">
+                    <span className="w-4 flex-shrink-0 text-xs font-medium leading-5 text-gray-400">
+                      {index + 1}.
                     </span>
-                  )}
+                    <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                      <span
+                        className="min-w-0 text-sm font-medium text-gray-900 [overflow-wrap:anywhere]"
+                        data-testid="vmware-top-consumer-name"
+                      >
+                        {/*
+                         * Alone on its line beside the value, a name of any
+                         * length breaks after its dots: at 1024px beside the
+                         * side menu "esx02.acme.example" broke as
+                         * "esx02.acme.exampl" / "e".
+                         */}
+                        <bdi>
+                          <BreakableName text={row.name} breaksFromLength={0} />
+                        </bdi>
+                      </span>
+                      {row.context && (
+                        <span className="inline-flex max-w-full rounded bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-600 [overflow-wrap:anywhere]">
+                          <bdi>
+                            <BreakableName
+                              text={row.context}
+                              breaksFromLength={0}
+                            />
+                          </bdi>
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <span className="ms-2 flex-shrink-0 text-sm font-semibold leading-5 text-gray-700 tabular-nums">
+                    {params.valueOf(row)}
+                  </span>
                 </div>
-                <span className="flex-shrink-0 text-sm font-semibold text-gray-700 tabular-nums ml-2">
-                  {params.valueOf(row)}
-                </span>
-              </div>
-              <div className="pl-6">
-                <div className="w-full bg-gray-100 rounded-full h-1.5">
-                  <div
-                    className={`h-1.5 rounded-full transition-all duration-300 ${
-                      pct > 80
-                        ? "bg-red-500"
-                        : pct > 60
-                          ? "bg-amber-500"
-                          : params.barColorClass
-                    }`}
-                    style={{
-                      width: `${Math.max(pct, 2)}%`,
-                    }}
-                  />
+                <div className="ps-6">
+                  <div className="w-full bg-gray-100 rounded-full h-1.5">
+                    {/*
+                     * Green, amber past the line the part's alert fires at,
+                     * red only where its rules call it broken - as Needs
+                     * attention, the lists and the ESXi Hosts card colour
+                     * the same part.
+                     */}
+                    <div
+                      data-testid="vmware-top-consumer-bar"
+                      className={`h-1.5 rounded-full transition-all duration-300 ${TOP_CONSUMER_BAR_CLASS_NAMES[tone]}`}
+                      style={{
+                        width: `${Math.max(pct, 2)}%`,
+                      }}
+                    />
+                  </div>
                 </div>
-              </div>
-            </div>
+              </ResourcePartRow>
+            </li>
           );
         })}
-      </div>
+      </ul>
     );
   };
 
@@ -2105,6 +2120,7 @@ const VMwareVCenterOverview: FunctionComponent<
     iconBgClass: string;
     iconTextClass: string;
     children: ReactElement;
+    testId: string;
     className?: string;
     // What the ranked value means, in an (i) beside the title.
     description?: string | undefined;
@@ -2115,11 +2131,15 @@ const VMwareVCenterOverview: FunctionComponent<
     iconBgClass: string;
     iconTextClass: string;
     children: ReactElement;
+    testId: string;
     className?: string;
     description?: string | undefined;
   }): ReactElement => {
     return (
-      <div className={`p-5 ${params.className || ""}`}>
+      <div
+        className={`p-5 ${params.className || ""}`}
+        data-testid={params.testId}
+      >
         <div className="flex items-center gap-2 mb-4">
           <div
             className={`w-8 h-8 rounded-lg ${params.iconBgClass} flex items-center justify-center`}
@@ -2129,14 +2149,14 @@ const VMwareVCenterOverview: FunctionComponent<
               className={`h-4 w-4 ${params.iconTextClass}`}
             />
           </div>
-          <div>
+          <div className="min-w-0">
             <div className="flex items-center gap-1">
               <h4 className="text-sm font-semibold text-gray-900">
-                {params.title}
+                {tx(params.title)}
               </h4>
               <InfoTooltip label={params.title} text={params.description} />
             </div>
-            <p className="text-xs text-gray-500">{params.subtitle}</p>
+            <p className="text-xs text-gray-500">{tx(params.subtitle)}</p>
           </div>
         </div>
         {params.children}
@@ -2146,264 +2166,103 @@ const VMwareVCenterOverview: FunctionComponent<
 
   const renderTopConsumers: () => ReactElement = (): ReactElement => {
     return (
-      <Card
-        title="Top Resource Consumers"
-        description="ESXi hosts, datastores and virtual machines with the highest utilization in this vCenter — read from the Postgres inventory, instant."
-      >
-        {isInventoryLoading ? (
-          <ComponentLoader />
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 lg:divide-x lg:divide-gray-100">
-            {renderTopSection({
-              title: "Host CPU",
-              subtitle: "Top 5 ESXi hosts by CPU utilization",
-              icon: IconProp.CPUChip,
-              iconBgClass: "bg-blue-50",
-              iconTextClass: "text-blue-600",
-              description: VMWARE_METRIC_DESCRIPTIONS.topHostsByCpu,
-              children: renderTopList({
-                rows: inventory?.topHostsByCpu || [],
-                kind: "Host",
-                valueOf: (row: TopRow): string => {
-                  return formatPercent(row.value);
-                },
-                barColorClass: "bg-blue-500",
-                emptyMessage: "No host CPU data available.",
-              }),
-            })}
-            {renderTopSection({
-              title: "Host Memory",
-              subtitle: "Top 5 ESXi hosts by memory usage",
-              icon: IconProp.SquareStack,
-              iconBgClass: "bg-purple-50",
-              iconTextClass: "text-purple-600",
-              className: "border-t lg:border-t-0 border-gray-100",
-              description: VMWARE_METRIC_DESCRIPTIONS.topHostsByMemory,
-              children: renderTopList({
-                rows: inventory?.topHostsByMemory || [],
-                kind: "Host",
-                valueOf: (row: TopRow): string => {
-                  return formatBytes(row.value);
-                },
-                barColorClass: "bg-purple-500",
-                emptyMessage: "No host memory data available.",
-              }),
-            })}
-            {renderTopSection({
-              title: "Datastore Utilization",
-              subtitle: "Top 5 datastores by used capacity",
-              icon: IconProp.Database,
-              iconBgClass: "bg-amber-50",
-              iconTextClass: "text-amber-600",
-              className: "border-t border-gray-100",
-              description:
-                VMWARE_METRIC_DESCRIPTIONS.topDatastoresByUtilization,
-              children: renderTopList({
-                rows: inventory?.topDatastoresByUtilization || [],
-                kind: "Datastore",
-                valueOf: (row: TopRow): string => {
-                  return formatPercent(row.value);
-                },
-                barColorClass: "bg-amber-500",
-                emptyMessage: "No datastore capacity data available.",
-              }),
-            })}
-            {renderTopSection({
-              title: "VM CPU Ready",
-              subtitle: "Top 5 powered-on VMs by CPU ready time",
-              icon: IconProp.Cube,
-              iconBgClass: "bg-sky-50",
-              iconTextClass: "text-sky-600",
-              className: "border-t border-gray-100",
-              description: VMWARE_METRIC_DESCRIPTIONS.topVmsByCpuReady,
-              children: renderTopList({
-                rows: inventory?.topVmsByCpuReady || [],
-                kind: "VirtualMachine",
-                valueOf: (row: TopRow): string => {
-                  return formatPercent(row.value);
-                },
-                barColorClass: "bg-sky-500",
-                emptyMessage:
-                  "No CPU ready data available — reported only for powered-on VMs.",
-              }),
-            })}
-          </div>
-        )}
-      </Card>
-    );
-  };
-
-  const renderResourceLinks: () => ReactElement = (): ReactElement => {
-    const links: Array<{
-      title: string;
-      description: string;
-      route: Route;
-      count: number | undefined;
-      icon: IconProp;
-      iconBgClass: string;
-      iconTextClass: string;
-    }> = [
-      {
-        title: "Hosts",
-        description: "ESXi hosts with CPU, memory, disk latency and NIC health",
-        route: hostsRoute,
-        count: hostCount > 0 ? hostCount : undefined,
-        icon: IconProp.ServerStack,
-        iconBgClass: "bg-slate-100",
-        iconTextClass: "text-slate-600",
-      },
-      {
-        title: "Virtual Machines",
-        description:
-          "VMs and templates with power state and live resource usage",
-        route: virtualMachinesRoute,
-        count: vmTotal > 0 ? vmTotal : undefined,
-        icon: IconProp.Cube,
-        iconBgClass: "bg-emerald-100",
-        iconTextClass: "text-emerald-600",
-      },
-      {
-        title: "Datastores",
-        description: "Datastores with usage, capacity and growth forecast",
-        route: datastoresRoute,
-        count: datastoreCount > 0 ? datastoreCount : undefined,
-        icon: IconProp.Database,
-        iconBgClass: "bg-amber-100",
-        iconTextClass: "text-amber-600",
-      },
-      {
-        title: "Clusters",
-        description: "vSphere clusters with host effectiveness and vSAN health",
-        route: clustersRoute,
-        count: clusterCount > 0 ? clusterCount : undefined,
-        icon: IconProp.SquareStack,
-        iconBgClass: "bg-sky-100",
-        iconTextClass: "text-sky-600",
-      },
-      {
-        title: "Resource Pools",
-        description: "Resource pools with CPU, memory, ballooning and swapping",
-        route: resourcePoolsRoute,
-        count: resourcePoolCount > 0 ? resourcePoolCount : undefined,
-        icon: IconProp.Layers,
-        iconBgClass: "bg-violet-100",
-        iconTextClass: "text-violet-600",
-      },
-    ];
-
-    return (
-      <Card
-        title="Resources"
-        description="Explore the vSphere inventory managed by this vCenter."
-      >
-        {isInventoryLoading ? (
-          <ComponentLoader />
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 py-4 pr-4 pl-1">
-            {links.map(
-              (link: {
-                title: string;
-                description: string;
-                route: Route;
-                count: number | undefined;
-                icon: IconProp;
-                iconBgClass: string;
-                iconTextClass: string;
-              }) => {
-                return (
-                  <div
-                    key={link.title}
-                    onClick={() => {
-                      Navigation.navigate(link.route);
-                    }}
-                    className="flex items-center gap-3 p-4 rounded-xl border border-gray-200 hover:border-indigo-300 hover:shadow-md transition-all duration-200 group cursor-pointer"
-                  >
-                    <div
-                      className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center ${link.iconBgClass}`}
-                    >
-                      <Icon
-                        icon={link.icon}
-                        className={`h-5 w-5 ${link.iconTextClass}`}
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium text-gray-900 group-hover:text-indigo-700 flex items-center justify-between">
-                        <span>{link.title}</span>
-                        {link.count !== undefined && (
-                          <span className="inline-flex items-center justify-center min-w-[1.5rem] h-6 px-2 text-xs font-semibold rounded-full bg-indigo-100 text-indigo-700">
-                            {link.count}
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-xs text-gray-500 mt-0.5">
-                        {link.description}
-                      </div>
-                    </div>
-                  </div>
-                );
-              },
-            )}
-          </div>
-        )}
-      </Card>
-    );
-  };
-
-  const renderSummaryValue: (value: ReactElement) => ReactElement = (
-    value: ReactElement,
-  ): ReactElement => {
-    if (isInventoryLoading) {
-      return <span className="text-2xl font-semibold text-gray-300">…</span>;
-    }
-    if (inventoryError) {
-      return <span className="text-2xl font-semibold text-gray-300">—</span>;
-    }
-    return value;
-  };
-
-  const renderDatastoreSummaryValue: () => ReactElement = (): ReactElement => {
-    const barColor: string =
-      datastoreUsedPercent === null
-        ? "bg-gray-300"
-        : datastoreUsedPercent >= DATASTORE_CRITICAL_PERCENT
-          ? "bg-red-500"
-          : datastoreUsedPercent >= DATASTORE_WARN_PERCENT
-            ? "bg-amber-500"
-            : "bg-emerald-500";
-    const clamped: number =
-      datastoreUsedPercent === null
-        ? 0
-        : Math.min(100, Math.max(0, datastoreUsedPercent));
-    return (
-      <div>
-        <span className="text-2xl font-semibold">
-          {datastoreCount.toString()}
-        </span>
-        {datastoreCapacityBytes !== null && datastoreUsedBytes !== null && (
-          <div className="mt-1.5">
-            <div className="mb-1 text-xs text-gray-500">
-              {datastoreUsedPercent !== null
-                ? translator.translateTemplate(
-                    "{{used}} of {{total}} used ({{percent}}%)",
-                    {
-                      used: formatBytes(datastoreUsedBytes),
-                      total: formatBytes(datastoreCapacityBytes),
-                      percent: datastoreUsedPercent.toFixed(1),
-                    },
-                  )
-                : translator.translateTemplate("{{used}} of {{total}} used", {
-                    used: formatBytes(datastoreUsedBytes),
-                    total: formatBytes(datastoreCapacityBytes),
-                  })}
+      <div data-testid="vmware-top-consumers">
+        <Card
+          title="Top Resource Consumers"
+          description="The ESXi hosts, datastores and virtual machines using the most of what they have, at vCenter's latest report."
+        >
+          {isInventoryLoading ? (
+            <ComponentLoader />
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 lg:divide-x lg:divide-gray-100">
+              {renderTopSection({
+                testId: "vmware-top-host-cpu",
+                title: "Host CPU",
+                subtitle: "Top 5 ESXi hosts by CPU utilization",
+                icon: IconProp.CPUChip,
+                iconBgClass: "bg-blue-50",
+                iconTextClass: "text-blue-600",
+                description: VMWARE_METRIC_DESCRIPTIONS.topHostsByCpu,
+                children: renderTopList({
+                  rows: inventory?.topHostsByCpu || [],
+                  kind: VMwareResourceKind.Host,
+                  valueOf: (row: TopRow): string => {
+                    return formatPercent(row.value);
+                  },
+                  toneOf: (row: TopRow): VMwareUsageTone => {
+                    return getVMwareHostLoadTone(row.value);
+                  },
+                  emptyMessage: "No host CPU data available.",
+                }),
+              })}
+              {renderTopSection({
+                testId: "vmware-top-host-memory",
+                title: "Host Memory",
+                subtitle: "Top 5 ESXi hosts by memory usage",
+                icon: IconProp.SquareStack,
+                iconBgClass: "bg-purple-50",
+                iconTextClass: "text-purple-600",
+                className: "border-t lg:border-t-0 border-gray-100",
+                description: VMWARE_METRIC_DESCRIPTIONS.topHostsByMemory,
+                children: renderTopList({
+                  rows: inventory?.topHostsByMemory || [],
+                  kind: VMwareResourceKind.Host,
+                  valueOf: (row: TopRow): string => {
+                    return formatBytes(row.value);
+                  },
+                  toneOf: (row: TopRow): VMwareUsageTone => {
+                    return getVMwareHostLoadTone(row.memoryPercent);
+                  },
+                  emptyMessage: "No host memory data available.",
+                }),
+              })}
+              {renderTopSection({
+                testId: "vmware-top-datastores",
+                title: "Datastore Utilization",
+                subtitle: "Top 5 datastores by used capacity",
+                icon: IconProp.Database,
+                iconBgClass: "bg-amber-50",
+                iconTextClass: "text-amber-600",
+                className: "border-t border-gray-100",
+                description:
+                  VMWARE_METRIC_DESCRIPTIONS.topDatastoresByUtilization,
+                children: renderTopList({
+                  rows: inventory?.topDatastoresByUtilization || [],
+                  kind: VMwareResourceKind.Datastore,
+                  valueOf: (row: TopRow): string => {
+                    return formatPercent(row.value);
+                  },
+                  toneOf: (row: TopRow): VMwareUsageTone => {
+                    return getVMwareDatastoreFullTone(row.value);
+                  },
+                  emptyMessage: "No datastore capacity data available.",
+                }),
+              })}
+              {renderTopSection({
+                testId: "vmware-top-vm-cpu-ready",
+                title: "VM CPU Ready",
+                subtitle: "Top 5 powered-on VMs by CPU ready time",
+                icon: IconProp.Cube,
+                iconBgClass: "bg-sky-50",
+                iconTextClass: "text-sky-600",
+                className: "border-t border-gray-100",
+                description: VMWARE_METRIC_DESCRIPTIONS.topVmsByCpuReady,
+                children: renderTopList({
+                  rows: inventory?.topVmsByCpuReady || [],
+                  kind: VMwareResourceKind.VirtualMachine,
+                  valueOf: (row: TopRow): string => {
+                    return formatPercent(row.value);
+                  },
+                  toneOf: (row: TopRow): VMwareUsageTone => {
+                    return getVMwareCpuReadyPercentTone(row.value);
+                  },
+                  emptyMessage:
+                    "No CPU ready data available — reported only for powered-on VMs.",
+                }),
+              })}
             </div>
-            <div className="h-1.5 w-full rounded-full bg-gray-200">
-              <div
-                className={`h-1.5 rounded-full ${barColor}`}
-                style={{ width: `${clamped}%` }}
-              />
-            </div>
-          </div>
-        )}
+          )}
+        </Card>
       </div>
     );
   };
@@ -2443,142 +2302,52 @@ const VMwareVCenterOverview: FunctionComponent<
         />
       )}
 
+      {/*
+       * What needs someone, most urgent first - while the vCenter reports:
+       * a disconnected vCenter's last snapshot is no longer the truth, and
+       * the hero says Health Unknown instead.
+       */}
+      {isVCenterConnected && !isInventoryLoading && !inventoryError && (
+        <NeedsAttentionCard
+          testId="vmware-needs-attention"
+          items={attentionItems}
+        />
+      )}
+
+      {/*
+       * A failed read says so in the card's own frame, with Refresh - not a
+       * bare sentence under the hero, and never an all-clear - as the
+       * Kubernetes Overview says it.
+       */}
+      {inventoryError && (
+        <NeedsAttentionCard
+          testId="vmware-needs-attention"
+          items={[]}
+          error={inventoryError}
+          onRetry={() => {
+            void loadInventory();
+          }}
+        />
+      )}
+
       {/* Golden metrics — at-a-glance vCenter health */}
       {renderGoldenMetrics()}
 
       {/* Golden charts — vCenter resource usage (synced) */}
       {renderGoldenCharts()}
 
-      {/* Why is this vCenter degraded? */}
-      {renderWhyDegraded()}
-
-      {/* Summary InfoCards */}
-      {inventoryError && (
-        <div className="mb-5">
-          <ErrorMessage message={inventoryError} />
-        </div>
+      {/* Each ESXi host at a glance, one step from its page */}
+      {inventory && (
+        <VMwareHostsCard
+          hosts={inventory.hosts}
+          datacenters={inventory.datacenters}
+          getHostRoute={(externalId: string) => {
+            return partRoutes.getPartRoute(VMwareResourceKind.Host, externalId);
+          }}
+          hostsRoute={hostsRoute}
+          now={OneUptimeDate.getCurrentDate()}
+        />
       )}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
-        <InfoCard
-          title="vCenter Health"
-          tooltip={VMWARE_METRIC_DESCRIPTIONS.overviewVCenterHealth}
-          value={renderSummaryValue(
-            <span
-              className={`text-2xl font-semibold ${
-                !isVCenterConnected
-                  ? "text-gray-500"
-                  : vcenterHealth === "Healthy"
-                    ? "text-emerald-600"
-                    : vcenterHealth === "Degraded"
-                      ? "text-amber-600"
-                      : "text-red-600"
-              }`}
-            >
-              {displayVCenterHealth}
-            </span>,
-          )}
-        />
-        <InfoCard
-          title="Datacenters"
-          tooltip={VMWARE_METRIC_DESCRIPTIONS.overviewDatacenterCount}
-          value={renderSummaryValue(
-            <span className="text-2xl font-semibold">
-              {datacenterCount.toString()}
-            </span>,
-          )}
-        />
-        <InfoCard
-          title="Clusters"
-          tooltip={VMWARE_METRIC_DESCRIPTIONS.overviewClusterCount}
-          onClick={() => {
-            Navigation.navigate(clustersRoute);
-          }}
-          value={renderSummaryValue(
-            <span className="text-2xl font-semibold">
-              {clusterCount.toString()}
-              {clusterHostsTotal > 0 &&
-                clusterHostsEffective < clusterHostsTotal && (
-                  <span className="text-sm text-red-500 ml-1">
-                    {translator.translatePlural(
-                      {
-                        one: "({{count}} host not effective)",
-                        other: "({{count}} hosts not effective)",
-                      },
-                      clusterHostsTotal - clusterHostsEffective,
-                    )}
-                  </span>
-                )}
-            </span>,
-          )}
-        />
-        <InfoCard
-          title="Hosts"
-          tooltip={VMWARE_METRIC_DESCRIPTIONS.overviewHostCount}
-          onClick={() => {
-            Navigation.navigate(hostsRoute);
-          }}
-          value={renderSummaryValue(
-            <span className="text-2xl font-semibold">
-              {hostCount.toString()}
-            </span>,
-          )}
-        />
-        <InfoCard
-          title="Virtual Machines"
-          tooltip={VMWARE_METRIC_DESCRIPTIONS.overviewVirtualMachineCount}
-          onClick={() => {
-            Navigation.navigate(virtualMachinesRoute);
-          }}
-          value={renderSummaryValue(
-            <span className="text-2xl font-semibold">
-              {vmPowerStateKnown ? `${vmPoweredOn} / ${vmTotal}` : vmTotal}
-              {vmPowerStateKnown && (
-                <span className="text-sm text-gray-500 ml-1">
-                  {translator.translateText("powered on")}
-                </span>
-              )}
-            </span>,
-          )}
-        />
-        <InfoCard
-          title="Datastores"
-          tooltip={VMWARE_METRIC_DESCRIPTIONS.overviewDatastoreCount}
-          onClick={() => {
-            Navigation.navigate(datastoresRoute);
-          }}
-          value={renderSummaryValue(renderDatastoreSummaryValue())}
-        />
-        <InfoCard
-          title="Resource Pools"
-          tooltip={VMWARE_METRIC_DESCRIPTIONS.overviewResourcePoolCount}
-          onClick={() => {
-            Navigation.navigate(resourcePoolsRoute);
-          }}
-          value={renderSummaryValue(
-            <span className="text-2xl font-semibold">
-              {resourcePoolCount.toString()}
-            </span>,
-          )}
-        />
-        <InfoCard
-          title="Data Status"
-          tooltip={VMWARE_METRIC_DESCRIPTIONS.overviewAgentStatus}
-          value={
-            <StatusBadge
-              text={
-                vcenter.otelCollectorStatus === "connected"
-                  ? "Connected"
-                  : "Disconnected"
-              }
-              type={
-                vcenter.otelCollectorStatus === "connected"
-                  ? StatusBadgeType.Success
-                  : StatusBadgeType.Danger
-              }
-            />
-          }
-        />
-      </div>
 
       <ResourceActivityCards
         modelId={modelId}
@@ -2598,11 +2367,12 @@ const VMwareVCenterOverview: FunctionComponent<
         )}
       />
 
-      {/* Quick Navigation */}
-      {renderResourceLinks()}
-
-      {/* Top Resource Consumers */}
-      {renderTopConsumers()}
+      {/*
+       * Top Resource Consumers, while there is something to rank: a vCenter
+       * that has reported nothing yet, or whose inventory could not be read,
+       * drew four "No ... data available." boxes here.
+       */}
+      {(isInventoryLoading || hasTopConsumers) && renderTopConsumers()}
 
       {/*
        * What the vCenter reported about itself, and only that

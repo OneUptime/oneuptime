@@ -29,6 +29,7 @@ import {
   ToolContext,
   ToolExecutionResult,
 } from "./ToolTypes";
+import { translationKey } from "../../../../Types/Translator";
 
 /*
  * Derived from the model ACL so the tool gate can never drift from RBAC.
@@ -814,21 +815,37 @@ export const QuerySlosTool: ObservabilityTool = {
               description:
                 "Compliance columns are as of each SLO's last evaluation.",
               columns: [
-                { key: "name", title: "Name", type: "text" },
-                { key: "targetPercentage", title: "Target %", type: "number" },
-                { key: "window", title: "Window", type: "text" },
+                { key: "name", title: translationKey("Name"), type: "text" },
+                {
+                  key: "targetPercentage",
+                  title: translationKey("Target %"),
+                  type: "number",
+                },
+                {
+                  key: "window",
+                  title: translationKey("Window"),
+                  type: "text",
+                },
                 {
                   key: "currentSliPercentage",
-                  title: "Current SLI %",
+                  title: translationKey("Current SLI %"),
                   type: "number",
                 },
                 {
                   key: "errorBudgetRemainingPercentage",
-                  title: "Budget left %",
+                  title: translationKey("Budget left %"),
                   type: "number",
                 },
-                { key: "currentBurnRate", title: "Burn rate", type: "number" },
-                { key: "sloStatus", title: "Status", type: "text" },
+                {
+                  key: "currentBurnRate",
+                  title: translationKey("Burn rate"),
+                  type: "number",
+                },
+                {
+                  key: "sloStatus",
+                  title: translationKey("Status"),
+                  type: "text",
+                },
               ],
               rows: rows,
               link: { type: AIChatCitationTargetType.Slos },

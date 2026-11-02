@@ -5,6 +5,7 @@ import OcsfSeverity, {
   normalizeOcsfSeverity,
 } from "../../../Types/SecurityEvent/OcsfSeverity";
 import { ocsfCategoryForClassUid } from "../../../Types/SecurityEvent/OcsfEventClass";
+import { findMitreTacticIdByName } from "../../../Types/SecurityEvent/MitreAttack";
 import SecurityEventConnectorProvider from "../../../Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
 import {
   SecurityEventConnectorDefinition,
@@ -61,29 +62,6 @@ export const AWS_SECURITY_HUB_COMPLIANCE_CLASS_UID: number = 2003;
 export const AWS_SECURITY_HUB_COMPLIANCE_CLASS_NAME: string =
   "Compliance Finding";
 
-/*
- * ASFF's TTPs categories are MITRE ATT&CK enterprise tactic names;
- * NormalizedSecurityEvent.mitreTactics stores ATT&CK ids ("TA0001") so
- * rows from every source join on the same key. Keyed by the name with
- * everything but letters removed, lowercased.
- */
-export const AWS_SECURITY_HUB_TACTIC_IDS: Record<string, string> = {
-  reconnaissance: "TA0043",
-  resourcedevelopment: "TA0042",
-  initialaccess: "TA0001",
-  execution: "TA0002",
-  persistence: "TA0003",
-  privilegeescalation: "TA0004",
-  defenseevasion: "TA0005",
-  credentialaccess: "TA0006",
-  discovery: "TA0007",
-  lateralmovement: "TA0008",
-  collection: "TA0009",
-  exfiltration: "TA0010",
-  commandandcontrol: "TA0011",
-  impact: "TA0040",
-};
-
 const TTPS_NAMESPACE: string = "TTPs";
 
 function definition(): SecurityEventConnectorDefinition {
@@ -136,10 +114,14 @@ function uniqueNonEmpty(values: Array<string>): Array<string> {
   return result;
 }
 
+/*
+ * ASFF's TTPs categories are MITRE ATT&CK enterprise tactic names;
+ * NormalizedSecurityEvent.mitreTactics stores ATT&CK ids ("TA0001") so
+ * rows from every source join on the same key (findMitreTacticIdByName).
+ * A name that is no tactic is kept as written: it is still searchable.
+ */
 function mapTactic(name: string): string {
-  const key: string = name.replace(/[^A-Za-z]/g, "").toLowerCase();
-
-  return AWS_SECURITY_HUB_TACTIC_IDS[key] || name.trim();
+  return findMitreTacticIdByName(name) || name.trim();
 }
 
 /*

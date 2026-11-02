@@ -202,7 +202,9 @@ describe("the Security Events menu", () => {
       /*
        * The project's own scales, as Incidents and Alerts keep theirs; how
        * fast a case at each priority must be worked right under the
-       * priorities themselves.
+       * priorities themselves; the rest of how its cases are kept - their
+       * own fields, the text their notes start from, their numbers - as
+       * those products keep theirs; and Risk Scoring, about entities, last.
        */
       [
         "Settings",
@@ -210,6 +212,9 @@ describe("the Security Events menu", () => {
           "Case Priorities",
           "Response Targets",
           "Case Statuses",
+          "Custom Fields",
+          "Note Templates",
+          "Numbering",
           "Risk Scoring",
         ],
       ],
@@ -251,15 +256,19 @@ describe("the Security Events menu", () => {
       ["Case Priorities", "SECURITY_EVENTS_SETTINGS_CASE_PRIORITIES"],
       ["Response Targets", "SECURITY_EVENTS_SETTINGS_RESPONSE_TARGETS"],
       ["Case Statuses", "SECURITY_EVENTS_SETTINGS_CASE_STATUSES"],
+      ["Custom Fields", "SECURITY_EVENTS_SETTINGS_CUSTOM_FIELDS"],
+      ["Note Templates", "SECURITY_EVENTS_SETTINGS_NOTE_TEMPLATES"],
+      ["Numbering", "SECURITY_EVENTS_SETTINGS_NUMBERING"],
       ["Risk Scoring", "SECURITY_EVENTS_SETTINGS_RISK_SCORING"],
     ]);
   });
 
-  test("lights Hunts on a hunt's page, Entity Risk on an entity's and Watchlists on a list's, the pages in its layout no entry names", () => {
+  test("lights Hunts on a hunt's page, Entity Risk on an entity's, Watchlists on a list's and Note Templates on a template's, the pages in its layout no entry names", () => {
     expect(getSecurityEventsMenuDetailPages()).toEqual([
       "SECURITY_EVENTS_HUNT_VIEW",
       "SECURITY_EVENTS_ENTITY_RISK_VIEW",
       "SECURITY_EVENTS_WATCHLIST_VIEW",
+      "SECURITY_EVENTS_SETTINGS_NOTE_TEMPLATE_VIEW",
     ]);
     expect(
       getSecurityEventsMenuItems()
@@ -273,6 +282,7 @@ describe("the Security Events menu", () => {
       ["Hunts", ["SECURITY_EVENTS_HUNT_VIEW"]],
       ["Entity Risk", ["SECURITY_EVENTS_ENTITY_RISK_VIEW"]],
       ["Watchlists", ["SECURITY_EVENTS_WATCHLIST_VIEW"]],
+      ["Note Templates", ["SECURITY_EVENTS_SETTINGS_NOTE_TEMPLATE_VIEW"]],
     ]);
     // Not pages that open on their own, outside the menu.
     expect(SECURITY_EVENTS_DETAIL_PAGES).not.toContain(
@@ -690,6 +700,9 @@ describe("where each page says it is", () => {
       ["Security Events", "Settings", "Case Priorities"],
       ["Security Events", "Settings", "Response Targets"],
       ["Security Events", "Settings", "Case Statuses"],
+      ["Security Events", "Settings", "Custom Fields"],
+      ["Security Events", "Settings", "Note Templates"],
+      ["Security Events", "Settings", "Numbering"],
       ["Security Events", "Settings", "Risk Scoring"],
     ]);
   });

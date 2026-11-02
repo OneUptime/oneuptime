@@ -185,13 +185,15 @@ test.describe.skip("VMware Product Onboarding", () => {
     await page.getByTestId("alert-template-change").click();
 
     /*
-     * Every template VMwareTemplatePicker renders — all 24 from
+     * Every template VMwareTemplatePicker renders — all 25 from
      * Common/Types/Monitor/VMwareAlertTemplates.ts (getAllVMwareAlertTemplates),
-     * in catalog order: vCenter Stopped Reporting, Host, Virtual Machine,
-     * Datastore, Cluster, Datacenter, vSAN and the resource-pool template.
+     * in catalog order: vCenter Stopped Reporting, Host (Host Not Responding
+     * first), Virtual Machine, Datastore, Cluster, Datacenter, vSAN and the
+     * resource-pool template.
      */
     const expectedTemplateNames: Array<string> = [
       "vCenter Stopped Reporting",
+      "Host Not Responding",
       "Host CPU Saturation",
       "Host Memory Saturation",
       "Host Disk Latency High",

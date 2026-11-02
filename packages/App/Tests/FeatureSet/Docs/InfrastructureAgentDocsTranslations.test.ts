@@ -210,7 +210,14 @@ const OTHER_CONSOLES: Record<string, Array<string>> = {
     "API Token Permission",
     "User Permission",
   ],
-  [VMWARE]: ["Read-Only", "Add", "Permissions", "Propagate to children"],
+  [VMWARE]: [
+    "Read-Only",
+    "Add",
+    "Permissions",
+    "Propagate to children",
+    // The vSphere Client's view that says which state a host is in.
+    "Hosts and Clusters",
+  ],
   [STORAGE_ARRAYS]: [
     "readonly",
     "Users",

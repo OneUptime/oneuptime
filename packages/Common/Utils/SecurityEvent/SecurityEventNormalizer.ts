@@ -1,10 +1,27 @@
 import { JSONObject } from "../../Types/JSON";
+import lookupTable from "../LookupTable";
 import NormalizedSecurityEvent from "../../Types/SecurityEvent/NormalizedSecurityEvent";
 import SecurityEventFormat from "../../Types/SecurityEvent/SecurityEventFormat";
 import GenericNormalizer from "./GenericNormalizer";
 import GoogleSecOpsAlertNormalizer from "./GoogleSecOpsAlertNormalizer";
 import OcsfNormalizer from "./OcsfNormalizer";
 import UdmNormalizer from "./UdmNormalizer";
+
+/*
+ * The names a sender may give its events' format (the `format` it sends,
+ * lowercased), each the dialect it means. Read by the sender's words, so a
+ * Map: "constructor" is no format (Utils/LookupTable).
+ */
+const FORMAT_ALIASES: ReadonlyMap<string, SecurityEventFormat> = lookupTable({
+  ocsf: SecurityEventFormat.Ocsf,
+  udm: SecurityEventFormat.Udm,
+  chronicle: SecurityEventFormat.Udm,
+  "google-secops": SecurityEventFormat.Udm,
+  "google-secops-alert": SecurityEventFormat.GoogleSecOpsAlert,
+  "secops-alert": SecurityEventFormat.GoogleSecOpsAlert,
+  detection: SecurityEventFormat.GoogleSecOpsAlert,
+  generic: SecurityEventFormat.Generic,
+});
 
 /*
  * Entry point for security-event normalization: pick the dialect (caller
@@ -36,18 +53,7 @@ export default class SecurityEventNormalizer {
       return null;
     }
 
-    const aliases: Record<string, SecurityEventFormat> = {
-      ocsf: SecurityEventFormat.Ocsf,
-      udm: SecurityEventFormat.Udm,
-      chronicle: SecurityEventFormat.Udm,
-      "google-secops": SecurityEventFormat.Udm,
-      "google-secops-alert": SecurityEventFormat.GoogleSecOpsAlert,
-      "secops-alert": SecurityEventFormat.GoogleSecOpsAlert,
-      detection: SecurityEventFormat.GoogleSecOpsAlert,
-      generic: SecurityEventFormat.Generic,
-    };
-
-    return aliases[normalized] || null;
+    return FORMAT_ALIASES.get(normalized) || null;
   }
 
   public static normalize(

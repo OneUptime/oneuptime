@@ -501,6 +501,12 @@ describe("VMwareResourceService.bulkUpdateLatestMetrics", () => {
       vmTemplateCount: null,
       datastoreCount: null,
       clusterCount: null,
+      notRespondingHostCount: null,
+      standbyHostCount: null,
+      criticalHostCount: null,
+      warningHostCount: null,
+      criticalVmCount: null,
+      criticalClusterCount: null,
       observedAt: new Date("2026-06-13T00:00:00.000Z"),
       ...overrides,
     };
@@ -511,9 +517,10 @@ describe("VMwareResourceService.bulkUpdateLatestMetrics", () => {
    * (kind, externalId, cpu, cpuMhz, cpuCap, cpuEff, mem, maxMem, memEff,
    *  memPct, disk, maxDisk, diskPct, cpuReady, balloon, swap, hostCnt,
    *  effHostCnt, onHostCnt, vmCnt, onVmCnt, tmplCnt, dsCnt, clCnt,
-   *  observedAt) — 25 values.
+   *  notRespHostCnt, standbyHostCnt, critHostCnt, warnHostCnt, critVmCnt,
+   *  critClCnt, observedAt) — 31 values.
    */
-  const ROW_WIDTH: number = 25;
+  const ROW_WIDTH: number = 31;
 
   test("does nothing for an empty batch", async () => {
     const query: jest.Mock = mockQueryRunner();
@@ -558,6 +565,12 @@ describe("VMwareResourceService.bulkUpdateLatestMetrics", () => {
       ["vmTemplateCount", "tmplCnt"],
       ["datastoreCount", "dsCnt"],
       ["clusterCount", "clCnt"],
+      ["notRespondingHostCount", "notRespHostCnt"],
+      ["standbyHostCount", "standbyHostCnt"],
+      ["criticalHostCount", "critHostCnt"],
+      ["warningHostCount", "warnHostCnt"],
+      ["criticalVmCount", "critVmCnt"],
+      ["criticalClusterCount", "critClCnt"],
     ]) {
       expect(sql).toContain(
         `"${column}" = COALESCE(v."${alias}", p."${column}")`,
@@ -646,7 +659,69 @@ describe("VMwareResourceService.bulkUpdateLatestMetrics", () => {
     expect(params[22]).toBe(118); // onVmCnt
     // Decimal columns keep their fraction.
     expect(params[14]).toBe(50); // diskPct
-    expect(params[26]).toEqual(new Date("2026-06-13T00:00:00.000Z"));
+    expect(params[32]).toEqual(new Date("2026-06-13T00:00:00.000Z"));
+  });
+
+  /*
+   * A datacenter's own roll-up: the hosts vCenter has lost contact with
+   * and the ones in standby, the red and yellow hosts, the red VMs and
+   * clusters. Each is a whole count, written as an integer where the
+   * datacenter's other counts are; a zero is a value (nothing red), and a
+   * count the collection did not carry stays NULL, so the stored one is kept.
+   */
+  test("a datacenter's host states and red and yellow counts ride the update as integers, a zero kept and a missing one NULL", async () => {
+    const query: jest.Mock = mockQueryRunner();
+    await VMwareResourceService.bulkUpdateLatestMetrics({
+      projectId: PROJECT_ID,
+      vmwareVCenterId: VCENTER_ID,
+      metrics: [
+        latestMetric({
+          kind: "Datacenter",
+          externalId: "datacenter/dc-east",
+          cpuPercent: null,
+          cpuMhz: null,
+          memoryBytes: null,
+          maxMemoryBytes: null,
+          memoryPercent: null,
+          cpuReadinessPercent: null,
+          memoryBalloonedBytes: null,
+          hostCount: 8,
+          poweredOnHostCount: 6,
+          notRespondingHostCount: 1,
+          standbyHostCount: 1,
+          criticalHostCount: 2.9,
+          warningHostCount: 0,
+          criticalVmCount: 3,
+          criticalClusterCount: null,
+        }),
+      ],
+    });
+
+    const [sql, params] = query.mock.calls[0] as QueryCall;
+    expect(params).toHaveLength(2 + ROW_WIDTH);
+    expect(params[2]).toBe("Datacenter");
+    expect(params[26]).toBe(1); // notRespHostCnt
+    expect(params[27]).toBe(1); // standbyHostCnt
+    expect(params[28]).toBe(2); // critHostCnt, truncated
+    expect(params[29]).toBe(0); // warnHostCnt: nothing yellow is a value
+    expect(params[30]).toBe(3); // critVmCnt
+    expect(params[31]).toBeNull(); // critClCnt: not carried, the stored one is kept
+    // Each is cast as the integer column it lands in, before observedAt.
+    expect(sql).toContain(
+      "$27::integer, $28::integer, $29::integer, $30::integer, $31::integer, $32::integer, $33::timestamptz",
+    );
+  });
+
+  test("a VM's row leaves every datacenter count NULL: COALESCE keeps what is stored", async () => {
+    const query: jest.Mock = mockQueryRunner();
+    await VMwareResourceService.bulkUpdateLatestMetrics({
+      projectId: PROJECT_ID,
+      vmwareVCenterId: VCENTER_ID,
+      metrics: [latestMetric()],
+    });
+
+    const [, params] = query.mock.calls[0] as QueryCall;
+    expect(params.slice(26, 32)).toEqual([null, null, null, null, null, null]);
   });
 
   test("chunks batches of more than 500 rows into multiple statements", async () => {
