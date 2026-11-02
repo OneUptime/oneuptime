@@ -822,7 +822,7 @@ resource "${provider}_monitor_user_owner" "alice" {
 
 ## Remove someone
 
-Removing a member from the configuration removes them from the team. Out of their last team of the project, they are out of the project: OneUptime takes them off every on-call schedule, escalation rule and override, and off everything they own. Remove those from the configuration in the same change. Their OneUptime account stays theirs. A team that must keep a member refuses to lose its last one who has accepted.
+Removing a member from the configuration removes them from the team. Out of their last team of the project, they are out of the project: OneUptime takes them off every on-call schedule, escalation rule and override, and off what they own, except the incidents, alerts and maintenance events that are over. Remove the blocks that name them in the same change. Their OneUptime account stays theirs. A team that must keep a member refuses to lose its last one who has accepted.
 
 ## Email addresses
 
@@ -863,11 +863,28 @@ resource "${provider}_team_member" "alice" {
   user_email = "alice@example.com"
 }
 
+resource "${provider}_on_call_policy_schedule" "weekly" {
+  name     = "SRE weekly"
+  timezone = "UTC"
+}
+
+resource "${provider}_on_call_schedule_layer" "weekly" {
+  on_call_duty_policy_schedule_id = ${provider}_on_call_policy_schedule.weekly.id
+  name                            = "Weekly"
+  starts_at                       = "2030-01-07T09:00:00Z"
+  hand_off_time                   = "2030-01-14T09:00:00Z"
+}
+
 # Alice takes turns on call from her first day: invited people can.
 resource "${provider}_on_call_schedule_layer_user" "alice" {
   on_call_duty_policy_schedule_id       = ${provider}_on_call_policy_schedule.weekly.id
   on_call_duty_policy_schedule_layer_id = ${provider}_on_call_schedule_layer.weekly.id
   user_id                               = ${provider}_team_member.alice.user_id
+}
+
+resource "${provider}_monitor" "api" {
+  name         = "Public API"
+  monitor_type = "Manual"
 }
 
 # Bob is in the project already: name him by address anywhere.
@@ -893,7 +910,7 @@ data "${provider}_user" "alice" {
 
 ## Offboarding
 
-Remove the person's memberships from the configuration. Out of their last team, they are out of the project, and OneUptime takes them off every on-call schedule, escalation rule and override, and off everything they own. Remove those resources in the same change. Their OneUptime account stays theirs; only the project is left.
+Remove the person's memberships from the configuration. Out of their last team, they are out of the project, and OneUptime takes them off every on-call schedule, escalation rule and override, and off what they own, except the incidents, alerts and maintenance events that are over. Remove the blocks that name them in the same change. Their OneUptime account stays theirs; only the project is left.
 
 ## Importing
 

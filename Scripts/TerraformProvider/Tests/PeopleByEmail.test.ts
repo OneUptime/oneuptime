@@ -607,6 +607,89 @@ describe("the reference pages", () => {
     expect(example).not.toContain("user_id");
   });
 
+  test("the team member page says what naming someone by address does", () => {
+    const teamMember: string = page("resources/team_member");
+
+    for (const heading of [
+      "## Invite people by email address",
+      "## Remove someone",
+      "## Email addresses",
+    ]) {
+      expect(teamMember).toContain(heading);
+    }
+    // The guide sits between the example and the schema.
+    expect(teamMember.indexOf("## Invite people by email address")).toBeLessThan(
+      teamMember.indexOf("## Schema"),
+    );
+    expect(teamMember.indexOf("## Example Usage")).toBeLessThan(
+      teamMember.indexOf("## Invite people by email address"),
+    );
+    expect(teamMember).toContain(
+      "user_id    = oneuptime_team_member.example.user_id",
+    );
+  });
+
+  test("a membership's page imports it by team and address", () => {
+    const teamMember: string = page("resources/team_member");
+    const importSection: string = teamMember.substring(
+      teamMember.indexOf("## Import"),
+    );
+
+    expect(importSection).toContain(
+      'id = "<team_id>/alice@example.com"',
+    );
+    expect(importSection).toContain(
+      "terraform import oneuptime_team_member.example <team_id>/alice@example.com",
+    );
+    expect(importSection).toContain("Its own ID works too.");
+    // Every other page imports by ID, as before.
+    expect(page("resources/monitor_owner_user")).toContain(
+      "terraform import oneuptime_monitor_owner_user.example <id>",
+    );
+  });
+
+  test("the people guide covers onboarding and offboarding as code", () => {
+    const guide: string = page("guides/people");
+
+    expect(guide).toContain('page_title: "Managing people and teams"');
+    expect(guide).toContain('subcategory: "Guides"');
+    for (const heading of [
+      "## Onboarding",
+      "## Finding someone",
+      "## Offboarding",
+      "## Importing",
+      "## When someone changes their address",
+      "## With an identity provider",
+    ]) {
+      expect(guide).toContain(heading);
+    }
+    expect(guide).toContain('user_email = "alice@example.com"');
+    expect(guide).toContain(
+      "user_id                               = oneuptime_team_member.alice.user_id",
+    );
+    expect(guide).toContain(
+      "terraform import oneuptime_team_member.alice <team id>/alice@example.com",
+    );
+    // Its example declares everything it refers to.
+    for (const declared of [
+      'resource "oneuptime_on_call_policy_schedule" "weekly"',
+      'resource "oneuptime_on_call_schedule_layer" "weekly"',
+      'resource "oneuptime_monitor" "api"',
+    ]) {
+      expect(guide).toContain(declared);
+    }
+  });
+
+  test("the provider's index points at people by address and the guide", () => {
+    const index: string = page("index");
+
+    expect(index).toContain("## People by email address");
+    expect(index).toContain("(./guides/people)");
+    expect(index.indexOf("## People by email address")).toBeLessThan(
+      index.indexOf("## OpenTofu"),
+    );
+  });
+
   test("the user data source is looked up by email", () => {
     const user: string = page("data-sources/user");
     expect(user).toContain('email = "alice@example.com"');
