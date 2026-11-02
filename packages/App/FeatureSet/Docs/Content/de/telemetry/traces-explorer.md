@@ -56,7 +56,7 @@ Geben Sie eine Abfrage ein und drücken Sie Enter, zum Beispiel `service:checkou
 
 ### Mit Filtern eingrenzen
 
-Klicken Sie auf einen Wert in der Seitenleiste **Filter**, um ihn als Chip hinzuzufügen. Die Seitenleiste filtert nach **Dienst**, nach dem Host, Cluster oder der anderen Ressource, die den Span gesendet hat, nach **Status**, **Span-Typ**, **Hat Ausnahme**, **Span-Art**, **Span-Name**, **Dienstinstanz** und **Host-Name**.
+Klicken Sie auf einen Wert in der Seitenleiste **Filter**, um ihn als Chip hinzuzufügen. Die Seitenleiste filtert nach **Dienst**, nach dem Host, Cluster oder der anderen Ressource, die den Span gesendet hat, nach **Status**, **Span-Typ**, **Hat Ausnahme**, **Span-Art**, **Span-Name**, **Dienstinstanz** und **Host-Name**. Klicken Sie stattdessen auf das Minuszeichen neben einem Wert, um diese Spans auszuschließen. Klicken Sie erneut auf den Wert, um das rückgängig zu machen.
 
 ### Einen Span öffnen
 

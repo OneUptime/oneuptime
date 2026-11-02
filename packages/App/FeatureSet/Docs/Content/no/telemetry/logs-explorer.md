@@ -56,7 +56,7 @@ Skriv et søk i søkefeltet og trykk Enter, for eksempel `severity:error service
 
 ### Snevre inn med filtre
 
-Klikk på en verdi i sidepanelet **Filtre** for å legge den til som en brikke: en alvorlighetsgrad, en tjeneste, eller en vert, en klynge eller en annen ressurs som har sendt logger. Hver verdi viser hvor mange logger som har den. På en telefon trykker du på **Filtre** for å åpne sidepanelet.
+Klikk på en verdi i sidepanelet **Filtre** for å legge den til som en brikke: en alvorlighetsgrad, en tjeneste, eller en vert, en klynge eller en annen ressurs som har sendt logger. Hver verdi viser hvor mange logger som har den. Klikk på minustegnet ved siden av en verdi for i stedet å utelate de loggene. Klikk på verdien igjen for å angre. På en telefon trykker du på **Filtre** for å åpne sidepanelet.
 
 ### Åpne en logg
 

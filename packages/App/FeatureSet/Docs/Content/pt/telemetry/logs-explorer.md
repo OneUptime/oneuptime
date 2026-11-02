@@ -56,7 +56,7 @@ Digite uma consulta na caixa de pesquisa e pressione Enter, por exemplo `severit
 
 ### Refinar com filtros
 
-Clique em um valor da barra lateral **Filtros** para adicioná-lo como chip: uma gravidade, um serviço, ou um host, cluster ou outro recurso que enviou registros. Cada valor mostra quantos registros o têm. Em um celular, toque em **Filtros** para abrir a barra lateral.
+Clique em um valor da barra lateral **Filtros** para adicioná-lo como chip: uma gravidade, um serviço, ou um host, cluster ou outro recurso que enviou registros. Cada valor mostra quantos registros o têm. Clique no sinal de menos ao lado de um valor para excluir esses registros. Clique de novo no valor para desfazer. Em um celular, toque em **Filtros** para abrir a barra lateral.
 
 ### Abrir um registro
 

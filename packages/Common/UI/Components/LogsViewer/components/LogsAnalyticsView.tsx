@@ -32,6 +32,7 @@ import URL from "../../../../Types/API/URL";
 import HTTPResponse from "../../../../Types/API/HTTPResponse";
 import HTTPErrorResponse from "../../../../Types/API/HTTPErrorResponse";
 import { JSONObject } from "../../../../Types/JSON";
+import { applyLogsFacetExclusionsToRequest } from "../LogsFacetExclusions";
 import {
   ResourceEntityFacetSelections,
   collectResourceEntityFacetSelections,
@@ -535,6 +536,15 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
           (requestData as Record<string, unknown>)["spanIds"] =
             Array.from(spanFilterValues);
         }
+
+        /*
+         * And what the chips leave out ("Severity is not debug"), so the
+         * analytics count the rows the list shows.
+         */
+        applyLogsFacetExclusionsToRequest(
+          requestData,
+          props.appliedFacetFilters,
+        );
 
         const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
           await API.post({

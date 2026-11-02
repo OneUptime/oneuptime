@@ -1,13 +1,27 @@
 import React, { FunctionComponent, ReactElement } from "react";
-import { translatableTerm, Translator } from "../../../Utils/TranslateTemplate";
+import {
+  composedValue,
+  translatableTerm,
+  Translator,
+} from "../../../Utils/TranslateTemplate";
 import useTranslator from "../../../Utils/UseTranslator";
 import { ActiveFilter } from "../types";
 import Icon from "../../Icon/Icon";
+import IsolatedText from "../../IsolatedText/IsolatedText";
 import IconProp from "../../../../Types/Icon/IconProp";
 import Link from "../../Link/Link";
 import { formatDictionaryValueForDisplay } from "../../Dictionary/DictionaryFilterOperator";
 import LockedFilterChip from "../../TelemetryViewer/components/LockedFilterChip";
 import { TelemetrySignal } from "../../../../Utils/Telemetry/LockedFilterSearch";
+import {
+  EXCLUDED_FILTER_CHIP_TEST_ID,
+  getFilterChipKeyText,
+} from "../../TelemetryViewer/components/TelemetryActiveFilterChips";
+import {
+  FacetChipReading,
+  FacetValueState,
+  readFacetChip,
+} from "../../TelemetryViewer/FacetSelection";
 
 export interface ActiveFilterChipsProps {
   filters: Array<ActiveFilter>;
@@ -109,23 +123,64 @@ const ActiveFilterChips: FunctionComponent<ActiveFilterChipsProps> = (
       })}
       {removableFilters.map((filter: ActiveFilter) => {
         const chipKey: string = `${filter.facetKey}:${chipText(filter.value)}`;
+        /*
+         * A chip that leaves its value out reads "Severity is not: debug",
+         * in the red the sidebar draws an excluded value in - the words and
+         * the colour every explorer's chip row uses for it
+         * (TelemetryActiveFilterChips), never the indigo of a kept value.
+         */
+        const reading: FacetChipReading | null = readFacetChip({
+          facetKey: filter.facetKey,
+          value: chipText(filter.value),
+        });
+        const isExcluded: boolean = reading?.state === FacetValueState.Excluded;
+        const keyText: string = getFilterChipKeyText(
+          filter.displayKey,
+          isExcluded,
+          translator,
+        );
         return (
           <span
             key={chipKey}
-            className="inline-flex items-center gap-1 rounded-md border border-indigo-200 bg-indigo-50 py-0.5 pl-2 pr-1 text-xs text-indigo-700"
+            data-testid={isExcluded ? EXCLUDED_FILTER_CHIP_TEST_ID : undefined}
+            className={
+              isExcluded
+                ? "inline-flex items-center gap-1 rounded-md border border-red-200 bg-red-50 py-0.5 pl-2 pr-1 text-xs text-red-700"
+                : "inline-flex items-center gap-1 rounded-md border border-indigo-200 bg-indigo-50 py-0.5 pl-2 pr-1 text-xs text-indigo-700"
+            }
           >
-            <span className="font-medium text-indigo-500">
-              {translator.translateText(filter.displayKey)}:
+            <span
+              className={
+                isExcluded
+                  ? "font-medium text-red-600"
+                  : "font-medium text-indigo-500"
+              }
+            >
+              {keyText}:
             </span>
-            <span>{chipText(filter.displayValue)}</span>
+            {/*
+             * The value as its telemetry wrote it - a service, a host, a
+             * message - read its own way on a page read the other way. In a
+             * span of the page's direction, so a value long enough to wrap
+             * still wraps from the chip's side.
+             */}
+            <span>
+              <IsolatedText text={chipText(filter.displayValue)} />
+            </span>
             {renderOpenAffordance(
               filter,
-              "text-indigo-400 hover:bg-indigo-100 hover:text-indigo-600",
+              isExcluded
+                ? "text-red-500 hover:bg-red-100 hover:text-red-700"
+                : "text-indigo-400 hover:bg-indigo-100 hover:text-indigo-600",
               translator,
             )}
             <button
               type="button"
-              className="ml-0.5 inline-flex h-4 w-4 items-center justify-center rounded text-indigo-400 transition-colors hover:bg-indigo-100 hover:text-indigo-600"
+              className={
+                isExcluded
+                  ? "ml-0.5 inline-flex h-4 w-4 items-center justify-center rounded text-red-500 transition-colors hover:bg-red-100 hover:text-red-700"
+                  : "ml-0.5 inline-flex h-4 w-4 items-center justify-center rounded text-indigo-400 transition-colors hover:bg-indigo-100 hover:text-indigo-600"
+              }
               onClick={() => {
                 /*
                  * The same coercion the chip's text gets. `value` is what the
@@ -136,7 +191,16 @@ const ActiveFilterChips: FunctionComponent<ActiveFilterChipsProps> = (
                 props.onRemove(filter.facetKey, chipText(filter.value));
               }}
               title={translator.translateTemplate("Remove {{key}}: {{value}}", {
-                key: translatableTerm(filter.displayKey),
+                // In the sentence's language, so it never mixes two.
+                key: isExcluded
+                  ? composedValue((sentence: Translator): string => {
+                      return getFilterChipKeyText(
+                        filter.displayKey,
+                        true,
+                        sentence,
+                      );
+                    })
+                  : translatableTerm(filter.displayKey),
                 value: chipText(filter.displayValue),
               })}
             >

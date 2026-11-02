@@ -47,7 +47,7 @@ Ogni volta che arriva telemetria, **Visto l'ultima volta** del servizio avanza e
 
 ## Trovare un servizio
 
-Aprite **Prodotti → Risorse → Servizi**. **Tutti i servizi** elenca ogni servizio con **Nome**, **Descrizione**, **Technology**, **Visto l'ultima volta**, **Etichette** e **Proprietari**.
+Aprite **Prodotti → Risorse → Servizi**. **Tutti i servizi** elenca ogni servizio con **Nome**, **Descrizione**, **Tecnologia**, **Visto l'ultima volta**, **Etichette** e **Proprietari**.
 
 - Cercate per nome o descrizione, e filtrate per proprietario o etichetta con la barra sopra l'elenco.
 - Selezionate più servizi per aggiungere a tutti etichette o proprietari in una volta, oppure per archiviarli.

@@ -51,6 +51,22 @@ import {
   getExceptionChosenFacetKeys,
   getExceptionFacetServiceIds,
 } from "./ExceptionsFacetCounts";
+import {
+  ExceptionExclusions,
+  applyExceptionExclusionsToPayload,
+  applyExceptionExclusionsToQuery,
+  readExceptionExclusions,
+  toExcludedExceptionValue,
+} from "./ExceptionsFacetExclusions";
+import {
+  FacetChoiceState,
+  chooseFacetValueInChips,
+} from "Common/UI/Components/TelemetryViewer/FacetExclusion";
+import { FacetValueState } from "Common/UI/Components/TelemetryViewer/FacetSelection";
+import {
+  getBaseFacetKey,
+  isExcludeFacetKey,
+} from "Common/Types/Telemetry/FacetExcludeKey";
 import { buildResourceFacetConfigs } from "Common/UI/Components/TelemetryViewer/ResourceFacetConfigs";
 import ModelAPI, {
   ListResult as ModelListResult,
@@ -1158,7 +1174,9 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     for (const facetKey of Object.keys(facetGroups)) {
       if (
         RESOURCE_FACET_KEYS.has(facetKey) ||
-        isExceptionAttributeFacetKey(facetKey)
+        isExceptionAttributeFacetKey(facetKey) ||
+        // What a chip leaves out is read apart (readExceptionExclusions).
+        isExcludeFacetKey(facetKey)
       ) {
         continue;
       }
@@ -1171,6 +1189,16 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
 
     return merged;
   }, [facetGroups, searchFieldFilters]);
+
+  /*
+   * What the chips leave out ("Exception Type is not TypeError"), read once
+   * for the list, the chart, the class lens and the instance scope (see
+   * ExceptionsFacetExclusions). The facet counts read it again per facet,
+   * each without its own.
+   */
+  const exclusions: ExceptionExclusions = useMemo(() => {
+    return readExceptionExclusions({ chips: activeFilters });
+  }, [activeFilters]);
 
   /*
    * `class:` tokens, resolved against the ErrorClass vocabulary here rather
@@ -1223,6 +1251,15 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
 
       const excluded: Array<string> = [...resolvedErrorClasses.excludedClasses];
 
+      // The classes a chip leaves out ("Error Class is not User error").
+      for (const value of (
+        exclusions.columns[EXCEPTION_ERROR_CLASS_COLUMN] || []
+      ).map(canonicalizeExceptionErrorClass)) {
+        if (!excluded.includes(value)) {
+          excluded.push(value);
+        }
+      }
+
       if (classScope === "user-errors") {
         const nonActionable: Array<string> = [...NON_ACTIONABLE_ERROR_CLASSES];
         included =
@@ -1270,7 +1307,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       }
 
       return excluded.length > 0 ? new IncludesNone(excluded) : null;
-    }, [classScope, columnLiterals, resolvedErrorClasses]);
+    }, [classScope, columnLiterals, resolvedErrorClasses, exclusions]);
 
   const resourceIds: Array<string> = useMemo(() => {
     const ids: Set<string> = new Set<string>(resolvedServices.serviceIds);
@@ -1300,6 +1337,19 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       ).map((predicate: SearchValuePredicate): SearchQueryValue => {
         return predicateToQueryValue(predicate);
       });
+    }
+
+    /*
+     * An attribute a chip leaves out narrows through the instance rows, as
+     * every attribute filter does: the groups have no attributes.
+     */
+    for (const [attributeKey, values] of Object.entries(
+      exclusions.attributes,
+    )) {
+      attributePredicates[attributeKey] = [
+        ...(attributePredicates[attributeKey] || []),
+        toExcludedExceptionValue(values),
+      ];
     }
 
     const columnPredicates: Dictionary<Array<SearchQueryValue>> = {
@@ -1343,6 +1393,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     resolvedServices,
     hostScope,
     entityKeysFilter,
+    exclusions,
   ]);
 
   const instanceScopeKey: string | null = useMemo(() => {
@@ -1599,6 +1650,18 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     }
 
     /*
+     * The values the chips leave out, once every filter that keeps rows is
+     * on the query: a column that keeps values drops them, as the chart and
+     * the counts do (applyExceptionExclusionsToPayload). The class lens
+     * already holds the classes left out.
+     */
+    applyExceptionExclusionsToQuery({
+      query: q as Record<string, unknown>,
+      exclusions: exclusions,
+      skipColumns: [EXCEPTION_ERROR_CLASS_COLUMN],
+    });
+
+    /*
      * Scope the list by the selected time range using lastSeenAt so the
      * viewer + histogram share the same window.
      *
@@ -1633,6 +1696,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     hostScope,
     instanceScopeKey,
     resolvedScopeFingerprints,
+    exclusions,
   ]);
 
   // Fetch exceptions
@@ -1776,6 +1840,8 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     if (parsedSearch.freeText.length > 0) {
       payload["messageSearchText"] = parsedSearch.freeText;
     }
+    // What the chips leave out, by the list's own rule.
+    applyExceptionExclusionsToPayload(payload, exclusions);
     /*
      * The class lens is deliberately NOT sent, because there is nowhere to
      * send it: this endpoint aggregates ClickHouse ExceptionInstance rows and
@@ -1831,6 +1897,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     primaryEntityId,
     instanceScopeKey,
     resolvedScopeFingerprints,
+    exclusions,
   ]);
 
   useEffect(() => {
@@ -2034,6 +2101,11 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       if (parsedSearch.freeText.length > 0) {
         payload["messageSearchText"] = parsedSearch.freeText;
       }
+      // What the chips leave out - all but the counted facet's own.
+      applyExceptionExclusionsToPayload(
+        payload,
+        readExceptionExclusions({ chips: activeFilters, omitFacetKey: omit }),
+      );
       if (Object.keys(facetSearchTextActive).length > 0) {
         payload["facetSearchText"] = facetSearchTextActive;
       }
@@ -2216,37 +2288,64 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     };
   }, [facetData, errorClassFacetValues, facetLoading, holdsReads]);
 
+  /*
+   * Put a value in exactly one state: kept (a click, a picked `key:value`)
+   * or left out (a facet row's minus: "Exception Type is not TypeError").
+   * A value in the other state moves; asking for the state it is already in
+   * changes nothing. The sidebar takes a checked or excluded value off
+   * through handleRemoveFilter, the chip's own x.
+   */
+  const chooseFacetValue: (
+    facetKey: string,
+    value: string,
+    state: FacetChoiceState,
+  ) => void = useCallback(
+    (facetKey: string, value: string, state: FacetChoiceState) => {
+      const config: FacetConfig | undefined = facetConfigs.find(
+        (c: FacetConfig): boolean => {
+          return c.key === facetKey;
+        },
+      );
+      const displayKey: string = config?.title || facetKey;
+      /*
+       * The server's resolved name is the fallback for a resource the
+       * client-side list (capped per project) never loaded.
+       */
+      const displayValue: string = getExceptionFacetIncludeDisplayValue({
+        value,
+        config,
+        facetValues: mergedFacetData[facetKey],
+      });
+      setActiveFilters((prev: Array<ActiveFilter>): Array<ActiveFilter> => {
+        return chooseFacetValueInChips(
+          prev,
+          facetKey,
+          value,
+          state,
+          (chipKey: string): ActiveFilter => {
+            return { facetKey: chipKey, value, displayKey, displayValue };
+          },
+        );
+      });
+      setPage(1);
+    },
+    [facetConfigs, mergedFacetData],
+  );
+
   const handleFacetInclude: (facetKey: string, value: string) => void =
     useCallback(
-      (facetKey: string, value: string) => {
-        setActiveFilters((prev: Array<ActiveFilter>): Array<ActiveFilter> => {
-          if (
-            prev.some((f: ActiveFilter): boolean => {
-              return f.facetKey === facetKey && f.value === value;
-            })
-          ) {
-            return prev;
-          }
-          const config: FacetConfig | undefined = facetConfigs.find(
-            (c: FacetConfig): boolean => {
-              return c.key === facetKey;
-            },
-          );
-          const displayKey: string = config?.title || facetKey;
-          /*
-           * The server's resolved name is the fallback for a resource the
-           * client-side list (capped per project) never loaded.
-           */
-          const displayValue: string = getExceptionFacetIncludeDisplayValue({
-            value,
-            config,
-            facetValues: mergedFacetData[facetKey],
-          });
-          return [...prev, { facetKey, value, displayKey, displayValue }];
-        });
-        setPage(1);
+      (facetKey: string, value: string): void => {
+        chooseFacetValue(facetKey, value, FacetValueState.Included);
       },
-      [facetConfigs, mergedFacetData],
+      [chooseFacetValue],
+    );
+
+  const handleFacetExclude: (facetKey: string, value: string) => void =
+    useCallback(
+      (facetKey: string, value: string): void => {
+        chooseFacetValue(facetKey, value, FacetValueState.Excluded);
+      },
+      [chooseFacetValue],
     );
 
   const handleRemoveFilter: (facetKey: string, value: string) => void =
@@ -2277,7 +2376,8 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
   const entityChipRefs: Array<ExceptionEntityChipRef> = useMemo(() => {
     return [...hostScope.chips, ...activeFilters].map(
       (chip: ExceptionEntityChipRef): ExceptionEntityChipRef => {
-        return { facetKey: chip.facetKey, value: chip.value };
+        // A resource left out (`!primaryEntityId`) is named like one kept.
+        return { facetKey: getBaseFacetKey(chip.facetKey), value: chip.value };
       },
     );
   }, [hostScope, activeFilters]);
@@ -2338,6 +2438,19 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     const resolveDisplay: (chip: ActiveFilter) => ActiveFilter = (
       chip: ActiveFilter,
     ) => {
+      /*
+       * A chip that leaves its value out is named as the chip that keeps
+       * it would be, and keeps its own key: the chip row says it excludes.
+       */
+      if (isExcludeFacetKey(chip.facetKey)) {
+        return {
+          ...resolveDisplay({
+            ...chip,
+            facetKey: getBaseFacetKey(chip.facetKey),
+          }),
+          facetKey: chip.facetKey,
+        };
+      }
       const config: FacetConfig | undefined = facetConfigs.find(
         (c: FacetConfig): boolean => {
           return c.key === chip.facetKey;
@@ -2955,6 +3068,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
         }
       }}
       onFacetInclude={handleFacetInclude}
+      onFacetExclude={handleFacetExclude}
       onFacetSearchChange={(facetKey: string, text: string) => {
         setFacetSearchText(
           (prev: Record<string, string>): Record<string, string> => {
