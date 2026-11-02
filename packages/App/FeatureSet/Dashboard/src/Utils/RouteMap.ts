@@ -8948,7 +8948,7 @@ const RouteMap: Dictionary<Route> = {
 };
 
 /*
- * The Developer pages (Terraform, API, AI Assistants) of every resource:
+ * The Developer pages (Terraform, API, CLI, AI Assistants) of every resource:
  * three under each registered list page and three under each view page,
  * generated from Components/DeveloperDocs/DeveloperDocsPages.ts instead
  * of being written out here a hundred and more times. Their keys are

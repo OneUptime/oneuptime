@@ -13,7 +13,7 @@ import { DeveloperDocsScope } from "../DeveloperDocs/DeveloperDocsPages";
 /*
  * Code's side menu: Tasks - where AI is asked, in any repository, and every
  * task is listed - then the connected repositories, then the Developer
- * pages for code repositories (Terraform, API, AI Assistants). A
+ * pages for code repositories (Terraform, API, CLI, AI Assistants). A
  * repository's own pages have a menu of their own.
  */
 const CodeSideMenu: FunctionComponent = (): ReactElement => {

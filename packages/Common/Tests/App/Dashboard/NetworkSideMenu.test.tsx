@@ -314,6 +314,12 @@ const EXPECTED_SECTIONS: Array<ExpectedMenuSection> = [
         breadcrumbTitles: ["Project", "Network", "Devices", "API"],
       },
       {
+        title: "CLI",
+        pageMapKey: "NETWORK_DEVICES_DEVELOPER_CLI",
+        getBreadcrumbs: getNetworkDeviceBreadcrumbs,
+        breadcrumbTitles: ["Project", "Network", "Devices", "CLI"],
+      },
+      {
         title: "AI Assistants",
         pageMapKey: "NETWORK_DEVICES_DEVELOPER_AI_ASSISTANTS",
         getBreadcrumbs: getNetworkDeviceBreadcrumbs,
@@ -622,11 +628,11 @@ describe("Network side menu", () => {
   });
 
   describe("coverage", () => {
-    test("keeps all twenty-seven destinations reachable exactly once", async () => {
+    test("keeps all twenty-eight destinations reachable exactly once", async () => {
       await renderNetworkMenu();
 
-      expect(EXPECTED_ENTRIES).toHaveLength(27);
-      expect(allLinks()).toHaveLength(27);
+      expect(EXPECTED_ENTRIES).toHaveLength(28);
+      expect(allLinks()).toHaveLength(28);
       expect(hrefsInMenu().sort()).toEqual(
         EXPECTED_ENTRIES.map(expectedHref).sort(),
       );

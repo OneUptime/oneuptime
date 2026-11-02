@@ -141,9 +141,19 @@ function toPageKind(page: DeveloperDocsPageType): DeveloperDocsPageKind {
       return "terraform";
     case DeveloperDocsPageType.Api:
       return "api";
+    case DeveloperDocsPageType.Cli:
+      return "cli";
     case DeveloperDocsPageType.AiAssistants:
       return "ai-assistants";
   }
+}
+
+/*
+ * The pages that show a record as a read of the API answers it: the API
+ * page's response, and the CLI page's, which prints that JSON as it is.
+ */
+function showsApiRecords(page: DeveloperDocsPageType): boolean {
+  return page === DeveloperDocsPageType.Api || page === DeveloperDocsPageType.Cli;
 }
 
 /*
@@ -171,7 +181,7 @@ export function getDeveloperDocsRecordSelect(data: {
     select[nameColumn] = true;
   }
 
-  if (data.page === DeveloperDocsPageType.Api) {
+  if (showsApiRecords(data.page)) {
     const secrets: Set<string> = new Set<string>(
       attributes
         .filter((descriptor: TerraformAttributeDescriptor): boolean => {
@@ -382,28 +392,52 @@ export const DeveloperDocsPromptList: FunctionComponent<PromptListProps> = (
   );
 };
 
+/*
+ * A guide's words in the reader's language, where it has them: the steps'
+ * and sections' titles and descriptions, the tabs' labels, the topics,
+ * the notice and the links - as the product's setup guides show theirs
+ * (SetupGuideCard). A sentence the guide built with translateTemplate is
+ * in the reader's language already, and comes back as it is; the code,
+ * and the markdown written around a record's own values, stay as written.
+ */
+export type DeveloperDocsTranslate = (text: string) => string;
+
+function toTranslate(
+  translateString: (value: string | undefined) => string | undefined,
+): DeveloperDocsTranslate {
+  return (text: string): string => {
+    return translateString(text) || text;
+  };
+}
+
 function toVariantViews(
   variants: Array<SetupGuideStepVariant>,
+  translate: DeveloperDocsTranslate,
 ): Array<SetupGuideStepVariantView> {
   return variants.map(
     (variant: SetupGuideStepVariant): SetupGuideStepVariantView => {
       return {
-        label: variant.label,
+        label: translate(variant.label),
         content: <SetupGuideMarkdown text={variant.markdown} />,
       };
     },
   );
 }
 
-function toStepView(step: DeveloperDocsStep): SetupGuideStepView {
+function toStepView(
+  step: DeveloperDocsStep,
+  translate: DeveloperDocsTranslate,
+): SetupGuideStepView {
   return {
-    title: step.title,
-    description: step.description,
+    title: translate(step.title),
+    description: step.description ? translate(step.description) : undefined,
     content: (
       <div className="space-y-3">
         {step.markdown && <SetupGuideMarkdown text={step.markdown} />}
         {step.variants && step.variants.length > 0 && (
-          <SetupGuideStepVariants variants={toVariantViews(step.variants)} />
+          <SetupGuideStepVariants
+            variants={toVariantViews(step.variants, translate)}
+          />
         )}
         {step.prompts && step.prompts.length > 0 && (
           <DeveloperDocsPromptList prompts={step.prompts} />
@@ -425,6 +459,8 @@ export interface SectionViewProps {
 export const DeveloperDocsSectionView: FunctionComponent<SectionViewProps> = (
   props: SectionViewProps,
 ): ReactElement => {
+  const { translateString } = useTranslateValue();
+  const translate: DeveloperDocsTranslate = toTranslate(translateString);
   const section: DeveloperDocsSection = props.section;
 
   return (
@@ -432,16 +468,20 @@ export const DeveloperDocsSectionView: FunctionComponent<SectionViewProps> = (
       className="mt-8 border-t border-gray-100 pt-6"
       data-testid="developer-docs-section"
     >
-      <h3 className="text-sm font-semibold text-gray-900">{section.title}</h3>
+      <h3 className="text-sm font-semibold text-gray-900">
+        {translate(section.title)}
+      </h3>
       {section.description && (
         <p className="mb-3 mt-0.5 text-sm leading-relaxed text-gray-500">
-          {section.description}
+          {translate(section.description)}
         </p>
       )}
       <div className="space-y-3">
         {section.markdown && <SetupGuideMarkdown text={section.markdown} />}
         {section.variants && section.variants.length > 0 && (
-          <SetupGuideStepVariants variants={toVariantViews(section.variants)} />
+          <SetupGuideStepVariants
+            variants={toVariantViews(section.variants, translate)}
+          />
         )}
       </div>
     </section>
@@ -458,13 +498,14 @@ export const DeveloperDocsGuideView: FunctionComponent<GuideViewProps> = (
   props: GuideViewProps,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
+  const translate: DeveloperDocsTranslate = toTranslate(translateString);
   const guide: DeveloperDocsGuide = props.guide;
 
   const topics: Array<SetupGuideTopicView> = guide.topics.map(
     (topic: SetupGuideTopic): SetupGuideTopicView => {
       return {
-        title: topic.title,
-        summary: topic.summary,
+        title: translate(topic.title),
+        summary: topic.summary ? translate(topic.summary) : undefined,
         content: <SetupGuideMarkdown text={topic.markdown} />,
       };
     },
@@ -492,11 +533,17 @@ export const DeveloperDocsGuideView: FunctionComponent<GuideViewProps> = (
         <div className="px-4 py-6 sm:px-6">
           {guide.notice && (
             <div className="mb-6" data-testid="developer-docs-notice">
-              <Alert type={AlertType.INFO} title={guide.notice} />
+              <Alert type={AlertType.INFO} title={translate(guide.notice)} />
             </div>
           )}
 
-          <SetupGuideSteps steps={guide.steps.map(toStepView)} />
+          <SetupGuideSteps
+            steps={guide.steps.map(
+              (step: DeveloperDocsStep): SetupGuideStepView => {
+                return toStepView(step, translate);
+              },
+            )}
+          />
 
           {guide.sections.map((section: DeveloperDocsSection) => {
             return (
@@ -538,7 +585,7 @@ export const DeveloperDocsGuideView: FunctionComponent<GuideViewProps> = (
                     rel="noopener noreferrer"
                     className="font-medium text-indigo-600 hover:text-indigo-800 hover:underline"
                   >
-                    {link.title}
+                    {translate(link.title)}
                   </a>
                 );
               })}
@@ -577,8 +624,7 @@ const DeveloperDocsPage: FunctionComponent<ComponentProps> = (
   const isView: boolean = props.scope === DeveloperDocsScope.View;
   const needsImports: boolean =
     !isView && props.page === DeveloperDocsPageType.Terraform;
-  const needsSample: boolean =
-    !isView && props.page === DeveloperDocsPageType.Api;
+  const needsSample: boolean = !isView && showsApiRecords(props.page);
   const usesLiveData: boolean =
     props.page !== DeveloperDocsPageType.AiAssistants;
 

@@ -99,6 +99,7 @@ const DETAIL_PAGES: ReadonlyArray<DetailPage> = [
     path: `${SLO_PATH}/developer/terraform`,
   },
   { title: "API", section: "Developer", path: `${SLO_PATH}/developer/api` },
+  { title: "CLI", section: "Developer", path: `${SLO_PATH}/developer/cli` },
   {
     title: "AI Assistants",
     section: "Developer",
@@ -171,13 +172,13 @@ describe("SLO detail side menu", () => {
     },
   );
 
-  test("keeps all fifteen destinations unique and fully populated", async () => {
+  test("keeps all sixteen destinations unique and fully populated", async () => {
     await renderSloMenu();
 
     const hrefs: Array<string> = hrefsInMenu();
     const titles: Array<string> = titlesInMenu();
 
-    expect(hrefs).toHaveLength(15);
+    expect(hrefs).toHaveLength(16);
     expect(hrefs).toEqual(Array.from(new Set(hrefs)));
     expect(titles).toEqual(Array.from(new Set(titles)));
     expect(hrefs).toEqual(

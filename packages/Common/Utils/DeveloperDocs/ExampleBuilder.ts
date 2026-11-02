@@ -1712,6 +1712,26 @@ export interface DeveloperDocsApiTask {
   operation: "create" | "list";
   body: JSONObject;
   isPlaceholder: boolean;
+  /*
+   * The flag each field's record was picked by (`incidentStateId`:
+   * "isAcknowledgedState"), for a page that words the task its own way:
+   * the CLI page writes "Acknowledge it" as `oneuptime incident
+   * acknowledge`, not as the state timeline row it makes.
+   */
+  liveFlags: Record<string, string>;
+}
+
+// The flags a task's live fields were picked by, by column.
+function getLiveFlags(task: DeveloperDocsTask): Record<string, string> {
+  const flags: Record<string, string> = {};
+
+  for (const field of task.fields || []) {
+    if (field.value?.kind === "live" && field.value.pick?.flag) {
+      flags[field.column] = field.value.pick.flag;
+    }
+  }
+
+  return flags;
 }
 
 // The profile's tasks for a scope, as request bodies.
@@ -1765,6 +1785,7 @@ export function getApiTasks(data: {
           operation: "create",
           body: { data: created.body },
           isPlaceholder: created.isPlaceholder,
+          liveFlags: getLiveFlags(task),
         };
       }
 
@@ -1791,6 +1812,7 @@ export function getApiTasks(data: {
         operation: "list",
         body: { query: query.query, select, sort: toSortJson(task.sort) },
         isPlaceholder: query.isPlaceholder,
+        liveFlags: getLiveFlags(task),
       };
     });
 }
