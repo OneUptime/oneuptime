@@ -56,7 +56,7 @@ Skriv en fråga och tryck på Enter, till exempel `service:checkout status:error
 
 ### Avgränsa med filter
 
-Klicka på ett värde i sidopanelen **Filter** för att lägga till det som ett chip. Sidopanelen filtrerar på **Tjänst**, på värden, klustret eller den andra resursen som skickade spannet, på **Status**, **Span-kategori**, **Har undantag**, **Span-typ**, **Span-namn**, **Tjänstinstans** och **Värdens namn**.
+Klicka på ett värde i sidopanelen **Filter** för att lägga till det som ett chip. Sidopanelen filtrerar på **Tjänst**, på värden, klustret eller den andra resursen som skickade spannet, på **Status**, **Span-kategori**, **Har undantag**, **Span-typ**, **Span-namn**, **Tjänstinstans** och **Värdens namn**. Klicka på minustecknet bredvid ett värde för att i stället utesluta de spannen. Klicka på värdet igen för att ångra.
 
 ### Öppna ett span
 

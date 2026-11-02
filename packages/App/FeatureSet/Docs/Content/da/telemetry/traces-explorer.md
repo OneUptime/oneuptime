@@ -56,7 +56,7 @@ Skriv en forespørgsel, og tryk på Enter, for eksempel `service:checkout status
 
 ### Indsnævr med filtre
 
-Klik på en værdi i sidepanelet **Filtre** for at tilføje den som en chip. Sidepanelet filtrerer efter **Tjeneste**, efter den vært, klynge eller anden ressource, der sendte spannet, efter **Status**, **Span-kategori**, **Har undtagelse**, **Span-type**, **Span-navn**, **Tjenesteinstans** og **Værtens navn**.
+Klik på en værdi i sidepanelet **Filtre** for at tilføje den som en chip. Sidepanelet filtrerer efter **Tjeneste**, efter den vært, klynge eller anden ressource, der sendte spannet, efter **Status**, **Span-kategori**, **Har undtagelse**, **Span-type**, **Span-navn**, **Tjenesteinstans** og **Værtens navn**. Klik på minustegnet ved siden af en værdi for i stedet at udelade de spans. Klik på værdien igen for at fortryde.
 
 ### Åbn et span
 

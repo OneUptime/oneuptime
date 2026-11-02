@@ -22,6 +22,10 @@ import ObjectID from "Common/Types/ObjectID";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import { describeSearchValue } from "Common/Types/Telemetry/TelemetrySearchQuery";
 import {
+  getBaseFacetKey,
+  isExcludeFacetKey,
+} from "Common/Types/Telemetry/FacetExcludeKey";
+import {
   ActiveFilter,
   FacetConfig,
   FacetData,
@@ -211,7 +215,8 @@ export const collectTraceEntityIdsToResolve: CollectTraceEntityIdsToResolveFunct
     };
 
     for (const chip of data.chips) {
-      if (isTraceEntityFacetKey(chip.facetKey)) {
+      // A service left out (`!primaryEntityId`) is named like one kept.
+      if (isTraceEntityFacetKey(getBaseFacetKey(chip.facetKey))) {
         consider(chip.value);
       }
     }
@@ -339,6 +344,21 @@ export const resolveTraceChipDisplay: ResolveTraceChipDisplayFunction = (
   chip: ActiveFilter,
   context: TraceChipDisplayContext,
 ): ActiveFilter => {
+  /*
+   * A chip that leaves its value out (`!statusCode`) is named as the chip
+   * that keeps it would be - the facet's title, the value's name - and
+   * keeps its own key: the chip row says it excludes ("Status is not").
+   */
+  if (isExcludeFacetKey(chip.facetKey)) {
+    return {
+      ...resolveTraceChipDisplay(
+        { ...chip, facetKey: getBaseFacetKey(chip.facetKey) },
+        context,
+      ),
+      facetKey: chip.facetKey,
+    };
+  }
+
   if (chip.facetKey.startsWith(ATTRIBUTE_SEARCH_CHIP_PREFIX)) {
     return {
       ...chip,

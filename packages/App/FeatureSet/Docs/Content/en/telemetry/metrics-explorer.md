@@ -43,7 +43,7 @@ The explorer has five tabs:
 Go to **Products → Observability → Metrics**. The **Viewer** lists every metric your project has received, by name, each with a small chart of the time range and its latest value.
 
 - Search names with bare words or `name:`, for example `name:http.server` finds `http.server.request.duration`. See [Search Syntax](/docs/telemetry/search-syntax#metrics).
-- Filter by **Service** in the sidebar to see only the metrics one service reports.
+- Filter by **Service** in the sidebar to see only the metrics one service reports. Click the minus beside a service to hide the metrics it reports instead.
 - Click a metric to chart it in the metric explorer.
 
 ## Chart a metric

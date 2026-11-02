@@ -43,7 +43,7 @@ Utforskaren har fem flikar:
 Gå till **Produkter → Observerbarhet → Mått**. **Tittare** visar varje mätvärde som ditt projekt har tagit emot, efter namn, vart och ett med ett litet diagram över tidsintervallet och sitt senaste värde.
 
 - Sök i namnen med lösa ord eller `name:`, till exempel hittar `name:http.server` mätvärdet `http.server.request.duration`. Se [Söksyntax](/docs/telemetry/search-syntax#mätvärden).
-- Filtrera på **Tjänst** i sidopanelen för att bara se de mätvärden som en tjänst rapporterar.
+- Filtrera på **Tjänst** i sidopanelen för att bara se de mätvärden som en tjänst rapporterar. Klicka på minustecknet bredvid en tjänst för att i stället dölja de mätvärden den rapporterar.
 - Klicka på ett mätvärde för att visa det i ett diagram i utforskaren.
 
 ## Visa ett mätvärde i ett diagram

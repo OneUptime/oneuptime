@@ -1,5 +1,19 @@
 import Includes from "Common/Types/BaseDatabase/Includes";
-import { compileAttributeChipValues } from "Common/Types/Telemetry/TelemetrySearchQuery";
+import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
+import NotContains from "Common/Types/BaseDatabase/NotContains";
+import NotEqual from "Common/Types/BaseDatabase/NotEqual";
+import {
+  SearchQueryValue,
+  SearchValueOperator,
+  SearchValuePredicate,
+  compileAttributeChipValues,
+  parseSearchValue,
+  predicateToQueryValue,
+} from "Common/Types/Telemetry/TelemetrySearchQuery";
+import {
+  getBaseFacetKey,
+  isExcludeFacetKey,
+} from "Common/Types/Telemetry/FacetExcludeKey";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import Search from "Common/Types/BaseDatabase/Search";
 import Query from "Common/Types/BaseDatabase/Query";
@@ -16,10 +30,15 @@ import RouteMap, { RouteUtil } from "./RouteMap";
 import PageMap from "./PageMap";
 import { RESOURCE_FACET_KEYS } from "../Components/Logs/LogsHistogramRequest";
 import {
+  EXCLUDED_RESOURCE_FILTERS_FIELD,
   ResourceEntityFacetSelections,
+  collectExcludedResourceEntityFacetSelections,
+  collectExcludedServiceFacetSelections,
   collectResourceEntityFacetSelections,
   collectServiceFacetSelections,
+  isResourceEntityFacetKey,
   isResourceFacetKey,
+  isServiceFacetKey,
 } from "Common/Types/Telemetry/ResourceEntityFacet";
 
 /*
@@ -433,6 +452,39 @@ const DROPPED_FIELD_LABELS: Record<string, string> = {
   databaseServerId: "databases",
 };
 
+/*
+ * Chip keys a pivot reports dropped by the chip's own key (an unknown
+ * facet, or one that leaves its value out), named as the hint reads them.
+ */
+const DROPPED_CHIP_LABELS: Record<string, string> = {
+  severityText: "severity",
+  primaryEntityId: "services",
+  serviceId: "services",
+  traceId: "traces",
+  spanId: "spans",
+  body: "message text",
+};
+
+/*
+ * How one dropped field reads mid-sentence. A chip that leaves values out
+ * (`!severityText`) is never carried over - no pivot target has a scope
+ * field for "is not" yet - and reads as what it leaves out: "excluded
+ * severity", "excluded hosts".
+ */
+const getDroppedFieldLabel: (field: string) => string = (
+  field: string,
+): string => {
+  const baseField: string = getBaseFacetKey(field);
+
+  const label: string = baseField.startsWith(ATTRIBUTE_FACET_PREFIX)
+    ? `attribute ${baseField.substring(ATTRIBUTE_FACET_PREFIX.length)}`
+    : DROPPED_FIELD_LABELS[baseField] ||
+      DROPPED_CHIP_LABELS[baseField] ||
+      baseField;
+
+  return isExcludeFacetKey(field) ? `excluded ${label}` : label;
+};
+
 type FormatDroppedScopeHintFunction = (dropped: Array<string>) => string;
 
 /**
@@ -447,9 +499,7 @@ export const formatDroppedScopeHint: FormatDroppedScopeHintFunction = (
   const seen: Set<string> = new Set<string>();
 
   for (const field of dropped) {
-    const label: string = field.startsWith(ATTRIBUTE_FACET_PREFIX)
-      ? `attribute ${field.substring(ATTRIBUTE_FACET_PREFIX.length)}`
-      : DROPPED_FIELD_LABELS[field] || field;
+    const label: string = getDroppedFieldLabel(field);
 
     if (seen.has(label)) {
       continue;
@@ -515,7 +565,10 @@ type ApplyLogsFacetFiltersToQueryFunction = (
  *    lets an Insights "Top Errors" row deep-link to the raw occurrences it
  *    counted;
  *  - every other facet key is a top-level column predicate;
- *  - single values compile to equality, multiple to Includes.
+ *  - single values compile to equality, multiple to Includes;
+ *  - a chip that LEAVES its value out (`!severityText`, FacetExcludeKey)
+ *    compiles after the ones that keep values: see
+ *    applyLogsFacetExclusionsToQuery.
  */
 export const applyLogsFacetFiltersToQuery: ApplyLogsFacetFiltersToQueryFunction =
   (query: Query<Log>, facetFilters: Map<string, Set<string>>): Query<Log> => {
@@ -532,6 +585,16 @@ export const applyLogsFacetFiltersToQuery: ApplyLogsFacetFiltersToQueryFunction 
       delete (query as any).resourceFilters;
     }
 
+    // The same for the resources left out ("Host is not web-01").
+    const excludedResourceFilters: ResourceEntityFacetSelections =
+      collectExcludedResourceEntityFacetSelections(facetFilters.entries());
+
+    if (Object.keys(excludedResourceFilters).length > 0) {
+      (query as any)[EXCLUDED_RESOURCE_FILTERS_FIELD] = excludedResourceFilters;
+    } else {
+      delete (query as any)[EXCLUDED_RESOURCE_FILTERS_FIELD];
+    }
+
     const resourceIds: Set<string> = new Set<string>(
       collectServiceFacetSelections(facetFilters.entries()),
     );
@@ -543,6 +606,11 @@ export const applyLogsFacetFiltersToQuery: ApplyLogsFacetFiltersToQueryFunction 
 
       // Both resource groups are compiled above.
       if (isResourceFacetKey(key)) {
+        continue;
+      }
+
+      // Left-out values are compiled below, once every kept one is.
+      if (isExcludeFacetKey(key)) {
         continue;
       }
 
@@ -607,8 +675,168 @@ export const applyLogsFacetFiltersToQuery: ApplyLogsFacetFiltersToQueryFunction 
       (query as any).primaryEntityId = new Includes(Array.from(resourceIds));
     }
 
+    return applyLogsFacetExclusionsToQuery(query, facetFilters);
+  };
+
+type ApplyLogsFacetExclusionsToQueryFunction = (
+  query: Query<Log>,
+  facetFilters: Map<string, Set<string>>,
+) => Query<Log>;
+
+/*
+ * The values the chips LEAVE OUT, onto a logs query that already carries
+ * what they keep (and the page's own scope):
+ *
+ *   !severityText: debug          severityText != 'debug'
+ *   !severityText: debug, trace   severityText NOT IN ('debug', 'trace')
+ *   !primaryEntityId: <id>        primaryEntityId != <id>
+ *   !hostId: <id>                 excludedResourceFilters (above)
+ *   !body: text                   body does not contain the text
+ *   !attributes.k: v              attributes['k'] != 'v'
+ *
+ * A column that already holds a predicate keeps it, and the values left out
+ * of it are dropped: a log has one severity and one primary entity, so
+ * leaving a value out beside kept ones changes nothing, and a query holds
+ * one predicate per column. The page's own service scope counts as kept, as
+ * a chip's does. The aggregate requests drop them the same way
+ * (applyLogsFacetExclusionsToRequest), so the chart and the counts agree
+ * with the list.
+ */
+export const applyLogsFacetExclusionsToQuery: ApplyLogsFacetExclusionsToQueryFunction =
+  (query: Query<Log>, facetFilters: Map<string, Set<string>>): Query<Log> => {
+    const record: Record<string, unknown> = query as unknown as Record<
+      string,
+      unknown
+    >;
+
+    const excludedServiceIds: Array<string> =
+      collectExcludedServiceFacetSelections(facetFilters.entries());
+
+    if (
+      excludedServiceIds.length > 0 &&
+      record["primaryEntityId"] === undefined
+    ) {
+      record["primaryEntityId"] = toExcludedQueryValue(excludedServiceIds);
+    }
+
+    for (const [chipKey, valueSet] of facetFilters.entries()) {
+      if (!isExcludeFacetKey(chipKey)) {
+        continue;
+      }
+
+      const key: string = getBaseFacetKey(chipKey);
+      const values: Array<string> = Array.from(valueSet).filter(
+        (value: string): boolean => {
+          return typeof value === "string" && value.length > 0;
+        },
+      );
+
+      // Resources and services are compiled above.
+      if (
+        !key ||
+        values.length === 0 ||
+        isServiceFacetKey(key) ||
+        isResourceEntityFacetKey(key)
+      ) {
+        continue;
+      }
+
+      if (key === BODY_FACET_KEY) {
+        if (record["body"] === undefined) {
+          record["body"] = new NotContains(values[0]!);
+        }
+        continue;
+      }
+
+      if (key.startsWith(ATTRIBUTE_FACET_PREFIX)) {
+        const attributeKey: string = key.substring(
+          ATTRIBUTE_FACET_PREFIX.length,
+        );
+        const attributes: Record<string, unknown> = {
+          ...((record["attributes"] as Record<string, unknown>) || {}),
+        };
+
+        if (!attributeKey || attributes[attributeKey] !== undefined) {
+          continue;
+        }
+
+        const compiled: unknown = compileExcludedAttributeChipValues(values);
+
+        if (compiled !== undefined) {
+          attributes[attributeKey] = compiled;
+          record["attributes"] = attributes;
+        }
+        continue;
+      }
+
+      if (record[key] === undefined) {
+        record[key] = toExcludedQueryValue(values);
+      }
+    }
+
     return query;
   };
+
+/*
+ * Several values left out are one NOT IN; one value is a plain `!=`, which
+ * keeps the column's skip index usable.
+ */
+const toExcludedQueryValue: (
+  values: Array<string>,
+) => NotEqual<string> | IncludesNone = (
+  values: Array<string>,
+): NotEqual<string> | IncludesNone => {
+  const unique: Array<string> = Array.from(new Set<string>(values));
+
+  return unique.length === 1
+    ? new NotEqual<string>(unique[0]!)
+    : new IncludesNone(unique);
+};
+
+/*
+ * An attribute chip's values are search-grammar tokens (a literal clicked
+ * or typed is written as one), so the values it leaves out are read as the
+ * grammar reads them: literals are one NOT IN, and a token that is a
+ * pattern is negated as the grammar negates it (`a*` -> not like `a*`), the
+ * negations AND-ed.
+ */
+const compileExcludedAttributeChipValues: (
+  values: Array<string>,
+) => SearchQueryValue | Array<SearchQueryValue> | undefined = (
+  values: Array<string>,
+): SearchQueryValue | Array<SearchQueryValue> | undefined => {
+  const predicates: Array<SearchValuePredicate> = values.map(
+    (value: string): SearchValuePredicate => {
+      return parseSearchValue(value);
+    },
+  );
+
+  if (predicates.length === 0) {
+    return undefined;
+  }
+
+  const isEveryLiteral: boolean = predicates.every(
+    (predicate: SearchValuePredicate): boolean => {
+      return predicate.operator === SearchValueOperator.Equals;
+    },
+  );
+
+  if (isEveryLiteral) {
+    return toExcludedQueryValue(
+      predicates.map((predicate: SearchValuePredicate): string => {
+        return predicate.value;
+      }),
+    );
+  }
+
+  const negated: Array<SearchQueryValue> = values.map(
+    (value: string): SearchQueryValue => {
+      return predicateToQueryValue(parseSearchValue(value, true));
+    },
+  );
+
+  return negated.length === 1 ? negated[0]! : negated;
+};
 
 type ExtractTraceIdFromSpansFunction = (spans: Array<Span>) => string | null;
 

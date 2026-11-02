@@ -26,6 +26,8 @@ import {
 } from "../../../Utils/Telemetry/EntityKey";
 import { getDatabaseServerSignalEntityKeys } from "../../../Utils/Telemetry/DatabaseServerEntityKeys";
 import {
+  EXCLUDED_RESOURCE_FILTERS_FIELD,
+  RESOURCE_FILTERS_FIELD,
   ResourceEntityFacetSelections,
   isResourceEntityFacetKey,
   parseResourceEntityFacetSelections,
@@ -64,6 +66,14 @@ export interface ResourceEntityScope {
   entityKeys: Array<string>;
   attributeKey?: string | undefined;
   attributeValues?: Array<string> | undefined;
+  /*
+   * The resource is left out rather than kept (an explorer's "Host is not
+   * web-01"): the same branches, negated as one - `AND NOT (... OR ...)` -
+   * so a row that belongs to the resource in ANY of the three ways is left
+   * out. Read from `excludedResourceFilters`, never sent by a client as a
+   * scope (see rewriteAnalyticsQuery).
+   */
+  isExcluded?: boolean | undefined;
 }
 
 interface ResourceFacetDefinition {
@@ -394,6 +404,11 @@ function getFacetDefinitions(): Record<string, ResourceFacetDefinition> {
  *
  * A scope with no usable branch appends nothing rather than an empty
  * `IN ()`: an unresolvable filter must not silently match zero rows.
+ *
+ * An excluded scope (isExcluded) negates its group as a whole:
+ * `AND NOT (primaryEntityId IN (...) OR hasAny(entityKeys, ...) OR ...)`.
+ * A row that lacks the resource attribute reads it as '', which is in no
+ * IN list, so it is kept: it does not belong to the resource.
  */
 export function appendResourceScopeFilters(
   statement: Statement,
@@ -462,7 +477,7 @@ export function appendResourceScopeFilters(
       continue;
     }
 
-    statement.append(SQL` AND (`);
+    statement.append(scope.isExcluded ? SQL` AND NOT (` : SQL` AND (`);
 
     for (const [index, branch] of branches.entries()) {
       if (index > 0) {
@@ -498,12 +513,16 @@ export default class ResourceEntityFilter {
    * id no longer resolves, the scope keeps its `entityIds` branch and
    * simply loses the entity-key one. That degrades to today's behavior
    * rather than dropping the constraint (which would silently widen the
-   * result set).
+   * result set). For a resource left out (`isExcluded`) the same
+   * degradation leaves out fewer rows - the ones primary-keyed on it are
+   * still left out - which is the closest reading the lookup allows.
    */
   @CaptureSpan()
   public static async resolveScopes(data: {
     projectId: ObjectID;
     selections: ResourceEntityFacetSelections;
+    // The selections name resources to leave out, not to keep.
+    isExcluded?: boolean | undefined;
   }): Promise<Array<ResourceEntityScope>> {
     const facetKeys: Array<string> = Object.keys(data.selections).filter(
       (key: string): boolean => {
@@ -518,7 +537,7 @@ export default class ResourceEntityFilter {
       return [];
     }
 
-    return Promise.all(
+    const scopes: Array<ResourceEntityScope> = await Promise.all(
       facetKeys.map(async (facetKey: string): Promise<ResourceEntityScope> => {
         return ResourceEntityFilter.resolveOne({
           projectId: data.projectId,
@@ -527,20 +546,32 @@ export default class ResourceEntityFilter {
         });
       }),
     );
+
+    if (!data.isExcluded) {
+      return scopes;
+    }
+
+    return scopes.map((scope: ResourceEntityScope): ResourceEntityScope => {
+      return { ...scope, isExcluded: true };
+    });
   }
 
   /**
    * Query key the client puts the raw selected ids under, and the key the
    * compiled scopes are written to. Kept together so the rewrite below is
-   * the only thing that has to know the pair.
+   * the only thing that has to know the pair. The resources a reader left
+   * out ride a key of their own, in the same shape.
    */
-  public static readonly QUERY_FILTER_KEY: string = "resourceFilters";
+  public static readonly QUERY_FILTER_KEY: string = RESOURCE_FILTERS_FIELD;
+  public static readonly QUERY_EXCLUDED_FILTER_KEY: string =
+    EXCLUDED_RESOURCE_FILTERS_FIELD;
   public static readonly QUERY_SCOPE_KEY: string = "resourceEntityScopes";
 
   /**
    * Rewrite an analytics list query in place: consume the client-sent
-   * `resourceFilters` ids and replace them with the resolved
-   * `resourceEntityScopes` that StatementGenerator compiles.
+   * `resourceFilters` (and `excludedResourceFilters`) ids and replace them
+   * with the resolved `resourceEntityScopes` that StatementGenerator
+   * compiles - the left-out ones marked `isExcluded`.
    *
    * The compiled key is always rebuilt from scratch — a client cannot
    * hand-craft one, so the only way a scope reaches the SQL is through this
@@ -563,39 +594,69 @@ export default class ResourceEntityFilter {
     }
 
     const raw: unknown = query[ResourceEntityFilter.QUERY_FILTER_KEY];
+    const rawExcluded: unknown =
+      query[ResourceEntityFilter.QUERY_EXCLUDED_FILTER_KEY];
 
     delete query[ResourceEntityFilter.QUERY_FILTER_KEY];
+    delete query[ResourceEntityFilter.QUERY_EXCLUDED_FILTER_KEY];
     delete query[ResourceEntityFilter.QUERY_SCOPE_KEY];
 
-    if (raw === undefined || raw === null) {
-      return;
-    }
-
-    const selections: ResourceEntityFacetSelections =
-      ResourceEntityFilter.parseSelections(raw as JSONObject);
-
-    if (Object.keys(selections).length === 0) {
-      return;
-    }
-
-    if (!data.projectId) {
-      query[ResourceEntityFilter.QUERY_SCOPE_KEY] = Object.keys(selections).map(
-        (facetKey: string): ResourceEntityScope => {
-          return { entityIds: selections[facetKey] || [], entityKeys: [] };
-        },
-      );
-      return;
-    }
-
-    const scopes: Array<ResourceEntityScope> =
-      await ResourceEntityFilter.resolveScopes({
+    const scopes: Array<ResourceEntityScope> = [
+      ...(await ResourceEntityFilter.resolveQuerySelections({
+        raw,
         projectId: data.projectId,
-        selections,
-      });
+        isExcluded: false,
+      })),
+      ...(await ResourceEntityFilter.resolveQuerySelections({
+        raw: rawExcluded,
+        projectId: data.projectId,
+        isExcluded: true,
+      })),
+    ];
 
     if (scopes.length > 0) {
       query[ResourceEntityFilter.QUERY_SCOPE_KEY] = scopes;
     }
+  }
+
+  /*
+   * One of the two client-sent keys, resolved. Without a tenant only the id
+   * branch is kept (see rewriteAnalyticsQuery).
+   */
+  private static async resolveQuerySelections(data: {
+    raw: unknown;
+    projectId?: ObjectID | undefined;
+    isExcluded: boolean;
+  }): Promise<Array<ResourceEntityScope>> {
+    if (data.raw === undefined || data.raw === null) {
+      return [];
+    }
+
+    const selections: ResourceEntityFacetSelections =
+      ResourceEntityFilter.parseSelections(data.raw as JSONObject);
+
+    if (Object.keys(selections).length === 0) {
+      return [];
+    }
+
+    if (!data.projectId) {
+      return Object.keys(selections).map(
+        (facetKey: string): ResourceEntityScope => {
+          const scope: ResourceEntityScope = {
+            entityIds: selections[facetKey] || [],
+            entityKeys: [],
+          };
+
+          return data.isExcluded ? { ...scope, isExcluded: true } : scope;
+        },
+      );
+    }
+
+    return ResourceEntityFilter.resolveScopes({
+      projectId: data.projectId,
+      selections,
+      isExcluded: data.isExcluded,
+    });
   }
 
   private static async resolveOne(data: {

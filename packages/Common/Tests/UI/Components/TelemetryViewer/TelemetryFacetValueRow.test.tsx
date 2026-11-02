@@ -14,6 +14,7 @@ import React from "react";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import TelemetryFacetValueRow, {
   FACET_COUNT_COLUMN_CLASS,
+  FACET_VALUE_BAR_TEST_ID,
   FACET_VALUE_COUNT_TEST_ID,
   FACET_VALUE_ROW_TEST_ID,
   TelemetryFacetValueRowProps,
@@ -101,6 +102,16 @@ function classesOf(classText: string): Array<string> {
 // `invisible` on its own: hidden at rest, not only while the row is hovered.
 const INVISIBLE_AT_REST: RegExp = /(^|\s)invisible(\s|$)/;
 
+// `hidden` or `opacity-0` on its own, behind no variant.
+const HIDDEN_AT_REST: RegExp = /(^|\s)(hidden|opacity-0)(\s|$)/;
+
+/*
+ * The not-pressed exclude button, as the row ships it - the class the
+ * foreign-.hidden guard and the dark theme's hover rule read too.
+ */
+const SHIPPED_EXCLUDE_CLASS: string =
+  "flex h-5 w-5 items-center justify-center rounded text-[10px] text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 [@media(hover:hover)]:group-[:not(:hover):not(:focus-within)]:hidden [@media(hover:hover)]:group-[:not(:hover):not(:has(:focus-visible))]:opacity-0";
+
 afterEach(() => {
   cleanup();
   jest.restoreAllMocks();
@@ -146,13 +157,37 @@ describe("a value that is not filtering", () => {
     expect(calls.onClear).not.toHaveBeenCalled();
   });
 
-  test("the exclude button shows on hover only, in the class the foreign-.hidden guard ships", () => {
+  /*
+   * Where the pointer can hover, out of the layout until the row is hovered
+   * or focused, and see-through until that focus is the keyboard's; on a
+   * touch screen, always shown. jsdom applies no stylesheet, so what each
+   * of those does is checked in real Chromium (E2E ChartTimeZoom
+   * ExplorerFacetToggle.spec.ts); this pins the class the foreign-.hidden
+   * guard and the dark theme's hover rule both read
+   * (ForeignHiddenRuleGuard, ThemeGroupHoverReveal).
+   */
+  test("the exclude button shows on hover and to the keyboard, in the class the foreign-.hidden guard ships", () => {
     mount({});
 
-    expect(excludeButton().className).toBe(
-      "flex h-5 w-5 items-center justify-center rounded text-[10px] text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500 group-[:not(:hover)]:hidden",
-    );
+    expect(excludeButton().className).toBe(SHIPPED_EXCLUDE_CLASS);
     expect(screen.getByTestId(FACET_VALUE_ROW_TEST_ID)).toHaveClass("group");
+  });
+
+  test("the hover hides it only where the pointer can hover: a touch screen always shows it", () => {
+    mount({});
+
+    const hidingTokens: Array<string> = excludeButton()
+      .className.split(" ")
+      .filter((token: string): boolean => {
+        return token.endsWith(":hidden") || token.endsWith(":opacity-0");
+      });
+
+    expect(hidingTokens).toEqual([
+      "[@media(hover:hover)]:group-[:not(:hover):not(:focus-within)]:hidden",
+      "[@media(hover:hover)]:group-[:not(:hover):not(:has(:focus-visible))]:opacity-0",
+    ]);
+    // Nothing hides it unconditionally.
+    expect(excludeButton().className).not.toMatch(HIDDEN_AT_REST);
   });
 
   test("a resource with nothing in the range is muted", () => {
@@ -434,18 +469,76 @@ describe("the exclude button lies over the count", () => {
     expect(within(layer).getByRole("button")).toBe(excludeButton());
   });
 
-  test("the count steps aside while the row is hovered, when the button shows", () => {
-    mount({ count: 1302, maxCount: 38811 });
+  test("on a touch screen the button takes a column of its own after the count", () => {
+    mount({});
 
-    expect(count()).toHaveClass("group-hover/row:invisible");
-    expect(count().className).not.toMatch(INVISIBLE_AT_REST);
+    const layer: HTMLElement = row().lastElementChild as HTMLElement;
+    expect(layer).toHaveClass("[@media(hover:none)]:static");
+    // After the count, in the row's own order.
+    expect(layer.previousElementSibling).toContainElement(count());
   });
 
-  test("an excluded value's pressed button stands where its count was, for good", () => {
+  /*
+   * A tablet's sidebar beside the list is as narrow as a desktop's: there
+   * the touch screen's column for the button would come out of the name,
+   * so the bar gives it its place. The row is the container the query
+   * measures; a phone's full-width row keeps its bar.
+   */
+  test("on a touch screen, in a row as narrow as a tablet's sidebar, the bar gives the button its place", () => {
+    mount({});
+
+    expect(row()).toHaveClass("[container-type:inline-size]");
+    expect(screen.getByTestId(FACET_VALUE_BAR_TEST_ID).className).toBe(
+      "w-10 [@media(hover:none)]:[@container(max-width:18rem)]:hidden",
+    );
+    // The bar stands right before the count.
+    expect(screen.getByTestId(FACET_VALUE_BAR_TEST_ID).nextElementSibling).toBe(
+      count(),
+    );
+  });
+
+  test.each([
+    ["with no exclude button", { withExclude: false }, {}],
+    [
+      "locked by the page",
+      {},
+      { state: FacetValueState.Included, isLocked: true },
+    ],
+  ])(
+    "a row %s keeps its bar everywhere: there is no button to make room for",
+    (
+      _name: string,
+      options: { withExclude?: boolean },
+      overrides: Partial<TelemetryFacetValueRowProps>,
+    ) => {
+      mount(overrides, handlers(), options);
+
+      expect(screen.getByTestId(FACET_VALUE_BAR_TEST_ID).className).toBe(
+        "w-10",
+      );
+    },
+  );
+
+  test("the count steps aside while the row is hovered or holds the keyboard, when the button shows", () => {
+    mount({ count: 1302, maxCount: 38811 });
+
+    expect(count()).toHaveClass(
+      "[@media(hover:hover)]:group-hover/row:invisible",
+      "[@media(hover:hover)]:group-has-[:focus-visible]/row:invisible",
+    );
+    expect(count().className).not.toMatch(INVISIBLE_AT_REST);
+    // Never on a touch screen, where the button stands beside it.
+    expect(count()).not.toHaveClass("group-hover/row:invisible");
+  });
+
+  test("an excluded value's pressed button stands where its count was, for good, where the pointer can hover", () => {
     mount({ state: FacetValueState.Excluded, count: 0 });
 
-    expect(count()).toHaveClass("invisible");
-    expect(count()).not.toHaveClass("group-hover/row:invisible");
+    expect(count()).toHaveClass("[@media(hover:hover)]:invisible");
+    expect(count().className).not.toMatch(INVISIBLE_AT_REST);
+    expect(count()).not.toHaveClass(
+      "[@media(hover:hover)]:group-hover/row:invisible",
+    );
     expect(excludeButton()).toHaveAttribute("aria-pressed", "true");
   });
 
@@ -453,7 +546,8 @@ describe("the exclude button lies over the count", () => {
     mount({ isCountUnknown: true });
 
     expect(screen.getByTestId("facet-count-unknown")).toHaveClass(
-      "group-hover/row:invisible",
+      "[@media(hover:hover)]:group-hover/row:invisible",
+      "[@media(hover:hover)]:group-has-[:focus-visible]/row:invisible",
     );
   });
 
@@ -490,6 +584,48 @@ describe("focus", () => {
       "focus-visible:ring-2",
       "focus-visible:ring-red-500",
     );
+  });
+
+  test("so does the exclude button that is not pressed, now the keyboard reaches it too", () => {
+    mount({});
+
+    expect(excludeButton()).toHaveClass(
+      "focus:outline-none",
+      "focus-visible:ring-2",
+      "focus-visible:ring-red-500",
+    );
+  });
+});
+
+/*
+ * A value is a name someone's telemetry wrote: on a Persian page an English
+ * service name is read left to right, and cut short at its own end
+ * ("payments-wor…", never "…yments-worker").
+ */
+describe("the value's name", () => {
+  test("is set apart in the direction its letters read", () => {
+    mount({ displayValue: "payments-worker" });
+
+    const name: HTMLElement = screen.getByText("payments-worker");
+    expect(name.tagName).toBe("BDI");
+    expect(name).toHaveAttribute("dir", "ltr");
+    expect(name).toHaveClass("min-w-0", "truncate");
+    expect(rowCheckbox()).toContainElement(name);
+  });
+
+  test("a name in Persian letters reads right to left", () => {
+    mount({ displayValue: "سرویس پرداخت" });
+
+    expect(screen.getByText("سرویس پرداخت")).toHaveAttribute("dir", "rtl");
+    expect(rowCheckbox()).toHaveAccessibleName("سرویس پرداخت");
+  });
+
+  test("an excluded name keeps its red and its line through", () => {
+    mount({ state: FacetValueState.Excluded, displayValue: "payments-worker" });
+
+    const name: HTMLElement = screen.getByText("payments-worker");
+    expect(name.tagName).toBe("BDI");
+    expect(name).toHaveClass("line-through", "text-red-700");
   });
 });
 

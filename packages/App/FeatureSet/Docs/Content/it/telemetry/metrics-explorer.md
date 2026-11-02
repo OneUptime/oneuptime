@@ -43,7 +43,7 @@ L'esploratore ha cinque schede:
 Aprite **Prodotti → Osservabilità → Metriche**. Il **Visualizzatore** elenca ogni metrica che il vostro progetto ha ricevuto, per nome, ciascuna con un piccolo grafico dell'intervallo di tempo e il suo ultimo valore.
 
 - Cercate i nomi con parole semplici o `name:`, ad esempio `name:http.server` trova `http.server.request.duration`. Vedere [Sintassi di ricerca](/docs/telemetry/search-syntax#metriche).
-- Filtrate per **Servizio** nella barra laterale per vedere solo le metriche riportate da un servizio.
+- Filtrate per **Servizio** nella barra laterale per vedere solo le metriche riportate da un servizio. Fate clic sul segno meno accanto a un servizio per nascondere invece le metriche che riporta.
 - Fate clic su una metrica per rappresentarla nell'esploratore metriche.
 
 ## Rappresentare una metrica

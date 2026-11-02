@@ -280,18 +280,29 @@ function tokensOf(classText: string): Array<string> {
 }
 
 /*
+ * Where the pointer can hover. The facet row's exclude button hides off
+ * hover only there (`[@media(hover:hover)]:group-[...]:hidden`): a touch
+ * screen has no hover to show it on, so there it is always in view. Still a
+ * group-hover reveal, and its gray still has to brighten.
+ */
+const HOVER_CAPABLE_VARIANT: string = "[@media(hover:hover)]";
+
+/*
  * `group-[:not(:hover)]:hidden` and the like: a group-hover reveal written so
- * the foreign rule cannot pin it shut. Only the unnamed group counts - the
- * Theme.css rule is gated on `.group:hover`, which a named group
- * (`group/nav-row`, revealed by `group-[...]/nav-row:hidden`) never matches.
+ * the foreign rule cannot pin it shut, on any device or only where the
+ * pointer can hover. Only the unnamed group counts - the Theme.css rule is
+ * gated on `.group:hover`, which a named group (`group/nav-row`, revealed by
+ * `group-[...]/nav-row:hidden`) never matches.
  */
 function isGroupHoverReveal(token: string): boolean {
   const parts: Array<string> = splitVariants(token);
+  const variants: Array<string> =
+    parts[0] === HOVER_CAPABLE_VARIANT ? parts.slice(1) : parts;
 
   return (
-    parts.length === 2 &&
-    parts[1] === "hidden" &&
-    NEGATED_GROUP_HOVER_VARIANT.test(parts[0]!)
+    variants.length === 2 &&
+    variants[1] === "hidden" &&
+    NEGATED_GROUP_HOVER_VARIANT.test(variants[0]!)
   );
 }
 
@@ -334,10 +345,29 @@ function findGroupHoverReveals(): RevealScan {
 }
 
 /*
+ * Something else the converted reveal does while its group is not hovered -
+ * the facet row's exclude button stays see-through until the keyboard's
+ * focus is in its row (`[@media(hover:hover)]:group-[...]:opacity-0`). The
+ * idiom before the fix had no form of it.
+ */
+function isNegatedHoverCompanion(token: string): boolean {
+  const parts: Array<string> = splitVariants(token);
+  const variants: Array<string> =
+    parts[0] === HOVER_CAPABLE_VARIANT ? parts.slice(1) : parts;
+
+  return (
+    variants.length === 2 &&
+    variants[1] !== "hidden" &&
+    NEGATED_GROUP_HOVER_VARIANT.test(variants[0]!)
+  );
+}
+
+/*
  * Put the pre-fix idiom back: the element's own display utility becomes the
  * bare `hidden` it replaced, and the negated-hover hide becomes the
  * `group-hover:<display>` that used to show it. Every converted reveal was
- * written that way before the fix, so this rebuilds the old class exactly.
+ * written that way before the fix, so this rebuilds the old class exactly -
+ * less what was added beside the hide later (isNegatedHoverCompanion).
  */
 function restorePreFixHoverReveal(classText: string): string {
   const tokens: Array<string> = tokensOf(classText);
@@ -354,7 +384,11 @@ function restorePreFixHoverReveal(classText: string): string {
   tokens[displayIndex] = "hidden";
   tokens[revealIndex] = `group-hover:${display}`;
 
-  return tokens.join(" ");
+  return tokens
+    .filter((token: string): boolean => {
+      return !isNegatedHoverCompanion(token);
+    })
+    .join(" ");
 }
 
 function hasGrayText(classText: string): boolean {
@@ -633,6 +667,22 @@ describe("helpers", () => {
     expect(isGroupHoverReveal("group-hover:flex")).toBe(false);
     expect(isGroupHoverReveal("group-[:not(:hover)]:flex")).toBe(false);
     expect(isGroupHoverReveal("hidden")).toBe(false);
+    // Only where the pointer can hover, as the facet row's exclude button.
+    expect(
+      isGroupHoverReveal(
+        "[@media(hover:hover)]:group-[:not(:hover):not(:focus-within)]:hidden",
+      ),
+    ).toBe(true);
+    // See-through is not a reveal the foreign rule could pin shut.
+    expect(
+      isGroupHoverReveal(
+        "[@media(hover:hover)]:group-[:not(:hover):not(:has(:focus-visible))]:opacity-0",
+      ),
+    ).toBe(false);
+    // Another media query in front is not the hover-capable gate.
+    expect(
+      isGroupHoverReveal("[@media(hover:none)]:group-[:not(:hover)]:hidden"),
+    ).toBe(false);
   });
 
   test("collectClassCandidates expands a template's branches, never its condition", () => {
@@ -662,6 +712,15 @@ describe("helpers", () => {
     expect(restorePreFixHoverReveal("flex text-gray-400")).toBe(
       "flex text-gray-400",
     );
+    /*
+     * The hide kept to a pointer that can hover, with its see-through
+     * companion: the old idiom back, without the companion it never had.
+     */
+    expect(
+      restorePreFixHoverReveal(
+        "flex text-gray-400 [@media(hover:hover)]:group-[:not(:hover):not(:focus-within)]:hidden [@media(hover:hover)]:group-[:not(:hover):not(:has(:focus-visible))]:opacity-0",
+      ),
+    ).toBe("hidden text-gray-400 group-hover:flex");
   });
 
   test("withoutHoverGate lifts the gate and refuses what jsdom cannot answer", () => {

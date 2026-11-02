@@ -40155,5 +40155,6 @@
   "OneUptime looked for them among your hosts, clusters, devices, cloud resources, services, monitors and users, and found none.": "OneUptime letade efter dem bland dina värdar, kluster, enheter, molnresurser, tjänster, monitorer och användare och hittade ingen.",
   "Records are found by a host name, an address, a URL, a cloud resource ID or a user's email.": "Poster hittas med ett värdnamn, en adress, en URL, ett molnresurs-ID eller en användares e-postadress.",
   "Searching your logs and traces…": "Söker i dina loggar och spår…",
-  "Where the values it names appear in your logs and traces from {{start}} to {{end}}.": "Var värdena som den nämner förekommer i dina loggar och spår från {{start}} till {{end}}."
+  "Where the values it names appear in your logs and traces from {{start}} to {{end}}.": "Var värdena som den nämner förekommer i dina loggar och spår från {{start}} till {{end}}.",
+  "excluded values": "exkluderade värden"
 }
