@@ -29,12 +29,12 @@ settings.
 All in the **hackerbay.io** Google Cloud organization, managed by
 `nawazdhandala@oneuptime.com`:
 
-| What               | Value                                                                                                                            |
-| ------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
-| Project            | **google-signin-oauth-oneuptime** (ID `eminent-scanner-513511-k7`), kept apart from the Google Meet and marketplace projects     |
-| Consent screen     | Branding **OneUptime**, External, **In production**; scopes `openid`, `userinfo.email`, `userinfo.profile` only; no logo         |
-| oneuptime.com      | Client **OneUptime sign-in (oneuptime.com)**, ID `226507820311-3ljt9oehmc1ut8bfdjupuuqmgqnqbvpp.apps.googleusercontent.com`      |
-| test.oneuptime.com | Client **OneUptime sign-in (test.oneuptime.com)**, ID `226507820311-lo7nhe8d0qbhs318u4otl3fhpr43k7sh.apps.googleusercontent.com` |
+| What               | Value                                                                                                                                                     |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Project            | **google-signin-oauth-oneuptime** (ID `eminent-scanner-513511-k7`), kept apart from the Google Meet and marketplace projects                              |
+| Consent screen     | Branding **OneUptime**, External, **In production**; scopes `openid`, `userinfo.email`, `userinfo.profile` only; no logo; branding verified and published |
+| oneuptime.com      | Client **OneUptime sign-in (oneuptime.com)**, ID `226507820311-3ljt9oehmc1ut8bfdjupuuqmgqnqbvpp.apps.googleusercontent.com`                               |
+| test.oneuptime.com | Client **OneUptime sign-in (test.oneuptime.com)**, ID `226507820311-lo7nhe8d0qbhs318u4otl3fhpr43k7sh.apps.googleusercontent.com`                          |
 
 The client IDs are public (they reach `env.js`). The secrets are not, and are
 not written here: Google showed each once, when the client was created. A lost
@@ -52,7 +52,7 @@ these from the repository:
 2. Create the OAuth client and copy its secret. Done on 2 November 2026, for
    both servers.
 3. Put the client ID and secret into the servers' configuration.
-4. Submit the branding for verification.
+4. Submit the branding for verification. Done on 2 November 2026.
 5. Test it end to end on test.oneuptime.com, then on oneuptime.com.
 
 ## 1. The project and its consent screen
@@ -124,11 +124,14 @@ people use.
 ## 4. Branding verification
 
 **Google Auth Platform > Branding > Verify branding**. Google checks that the
-app name, logo, home page and privacy policy belong to `oneuptime.com`; the
-domain must be verified in [Google Search Console](https://search.google.com/search-console)
-by one of its owners first. It takes a few business days. Until it is done,
-Google may show the consent screen without the logo, and with the domain where
-the app name would be; sign-in works either way.
+app name, home page, privacy policy and terms belong to `oneuptime.com`, a
+domain verified in [Google Search Console](https://search.google.com/search-console).
+Without a logo the check is automatic: on 2 November 2026 it took about a
+minute (the page says up to 5 minutes). Then press **Publish branding**: a
+verified result that is not published expires after 7 days. Until the branding
+is published, Google's sign-in screen does not show the app's name; sign-in
+works either way. A new logo, name or link sends the branding through
+verification again.
 
 ## 5. Testing end to end
 
@@ -236,4 +239,7 @@ secret. Sign-ins in flight when the server restarts are asked to start again.
   and the two Web application clients in the table above, each with its one
   redirect URI and no JavaScript origin. Their secrets were handed to the
   maintainer from Google's creation dialogs. Neither server has the settings
-  yet; Continue with Google is off everywhere.
+  yet; Continue with Google is off everywhere. Later the same day the branding
+  was submitted for verification, verified automatically within a minute, and
+  published: the Verification Center shows the branding verified and shown to
+  users, and data access needing no verification.
