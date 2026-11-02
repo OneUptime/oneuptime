@@ -1131,10 +1131,59 @@ describe("the VMware templates", () => {
     );
   });
 
+  /*
+   * The one template that fires at or below its line: a running ESXi host
+   * always uses memory, so a host whose highest reading in every minute of
+   * the window is 0 is one vCenter reports nothing for - down, or off.
+   */
+  it("Host Not Responding fires at 0 memory in use, per host, and recovers once the host reports any", () => {
+    const template: VMwareAlertTemplate = templates.find(
+      (candidate: VMwareAlertTemplate): boolean => {
+        return candidate.name === "Host Not Responding";
+      },
+    ) as VMwareAlertTemplate;
+    const criteria: BuiltCriteria = built(template);
+    const row: TemplateRow = rows.find((candidate: TemplateRow) => {
+      return candidate.name === template.name;
+    }) as TemplateRow;
+
+    // Right after vCenter Stopped Reporting, ahead of the busy-host alerts.
+    expect(templates.indexOf(template)).toBe(1);
+    expect(row.severity).toBe(template.severity);
+    expect(criteria.metricName).toBe("vcenter.host.memory.usage");
+    expect(row.watches).toContain("`vcenter.host.memory.usage`");
+    expect(criteria.groupBy).toEqual(["resource.vcenter.host.name"]);
+    expect(row.watches).toContain("per `resource.vcenter.host.name`");
+    expect(criteria.aggregation).toBe(MetricsAggregationType.Max);
+    expect(row.watches).toContain("Max");
+    expect(criteria.rollingTime).toBe(RollingTime.Past5Minutes);
+    expect(row.watches).not.toContain("past ");
+    expect(criteria.fire.filterType).toBe(FilterType.LessThanOrEqualTo);
+    expect(Number(criteria.fire.value)).toBe(0);
+    expect(criteria.fire.metricMonitorOptions?.metricAggregationType).toBe(
+      EvaluateOverTimeType.AllValues,
+    );
+    expect(row.fires.startsWith("At 0, no memory in use")).toBe(true);
+    expect(criteria.recover.filterType).toBe(FilterType.GreaterThan);
+    expect(Number(criteria.recover.value)).toBe(0);
+    expect(row.recovers).toBe("Above 0");
+    // What it cannot tell apart, and the template that can.
+    expect(row.fires).toContain("powered off or in standby");
+    expect(row.fires).toContain("**Datacenter Hosts Not Responding**");
+    expect(
+      templates.some((candidate: VMwareAlertTemplate): boolean => {
+        return candidate.name === "Datacenter Hosts Not Responding";
+      }),
+    ).toBe(true);
+  });
+
   it.each(
     templates
       .filter((template: VMwareAlertTemplate): boolean => {
-        return template.name !== "vCenter Stopped Reporting";
+        return (
+          template.name !== "vCenter Stopped Reporting" &&
+          template.name !== "Host Not Responding"
+        );
       })
       .map((template: VMwareAlertTemplate) => {
         return [template.name, template] as [string, VMwareAlertTemplate];

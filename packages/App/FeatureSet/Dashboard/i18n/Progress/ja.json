@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 40184,
+    "keys": 40302,
     "untranslated": 1140
   },
   "sameAsEnglish": [
@@ -302,6 +302,7 @@
     "unit-1042-*",
     "user1@example.com\nuser2@example.com\nuser3@example.com",
     "user@company.com",
+    "vApp {{name}}",
     "vCenter",
     "vCenter ID",
     "vSphere Client",

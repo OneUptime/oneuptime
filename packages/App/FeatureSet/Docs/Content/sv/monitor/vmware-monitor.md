@@ -4,7 +4,7 @@ En VMware-monitor bevakar ett vCenter - datacenter, kluster, ESXi-värdar, virtu
 
 :::cards
 - [Skapa monitorn](#skapa-en-vmware-monitor): Sex steg i instrumentpanelen.
-- [Mallar](#färdiga-larmmallar): Tjugofyra färdiga larm, en incident per värd, VM eller datastore.
+- [Mallar](#färdiga-larmmallar): Tjugofem färdiga larm, en incident per värd, VM eller datastore.
 - [Identitetsattribut](#identitetsattribut): Så träffar du en värd, VM eller datastore.
 - [Mätvärden](#insamlade-mätvärden): Varje `vcenter.*`-serie som monitorn kan varna på.
 :::
@@ -106,14 +106,15 @@ I monitorfilter och grupperingsnycklar börjar resursattribut med `resource.` (`
 
 ## Färdiga larmmallar
 
-OneUptime levererar 24 mallar för vanliga VMware-problem, och listan under **Vad som ska larmas om** erbjuder alla. Var och en bygger en komplett monitor: mätvärdesfrågan, attributfiltren, en gruppering på objektets eget identitetsattribut, ett kriterium som utlöser och ett som återhämtar. Tröskelvärdena är utgångspunkter som du kan redigera.
+OneUptime levererar 25 mallar för vanliga VMware-problem, och listan under **Vad som ska larmas om** erbjuder alla. Var och en bygger en komplett monitor: mätvärdesfrågan, attributfiltren, en gruppering på objektets eget identitetsattribut, ett kriterium som utlöser och ett som återhämtar. Tröskelvärdena är utgångspunkter som du kan redigera.
 
 Mallarna läser de senaste 5 minuterna, om inte tabellen säger något annat. Ett kriterium utlöser bara när villkoret gäller för varje minut i fönstret, och ett tröskelkriterium återhämtar sig 10 % förbi tröskeln, så ett värde som pendlar kring linjen inte växlar fram och tillbaka.
 
 | Mall | Kategori | Allvarlighetsgrad | Bevakar | Utlöser när | Återhämtar när |
 | --- | --- | --- | --- | --- | --- |
 | vCenter Stopped Reporting | Tillgänglighet | Kritisk | `vcenter.datacenter.cpu.limit`, Count över hela vCenter, **senaste 10 minuterna** | Inga data under hela fönstret: agenten eller proben har stoppat, eller vCenter har slutat svara den | Data kommer in igen |
-| Host CPU Saturation | Värd | Varning | `vcenter.host.cpu.utilization`, Avg per `resource.vcenter.host.name` | Över 90 %: varje VM på värden konkurrerar om kärnor och visar CPU-ready-tid | Vid 81 % eller mindre |
+| Host Not Responding | Värd | Kritisk | `vcenter.host.memory.usage`, Max per `resource.vcenter.host.name` | Vid 0, inget minne i användning: vCenter har tappat kontakten med värden (den kraschade, förlorade strömmen eller sitt hanteringsnätverk, eller kopplades från), eller så är den avstängd eller i standby. Där vSphere DPM försätter värdar i standby, använd **Datacenter Hosts Not Responding**, som utelämnar dem | Över 0 |
+| Host CPU Saturation | Värd | Varning | `vcenter.host.cpu.utilization`, Avg per värd | Över 90 %: varje VM på värden konkurrerar om kärnor och visar CPU-ready-tid | Vid 81 % eller mindre |
 | Host Memory Saturation | Värd | Varning | `vcenter.host.memory.utilization`, Avg per värd | Över 90 %: värden börjar ta tillbaka minne med ballooning, komprimering och swappning | Vid 81 % eller mindre |
 | Host Disk Latency High | Värd | Varning | `vcenter.host.disk.latency.max`, Max per värd | Över 50 ms: varje VM med diskar på den sökvägen väntar på lagring. Kräver prestandaräknarnivå 3 | Vid 45 ms eller mindre |
 | Host Network Packet Errors | Värd | Varning | `vcenter.host.network.packet.error.rate`, Max per värd | Över 0: nästan alltid ett fel i kabel, SFP eller switchport | Vid 0 |
@@ -142,6 +143,7 @@ Mallarna läser de senaste 5 minuterna, om inte tabellen säger något annat. Et
 - **Utnyttjandemallar använder Avg:** receivern rapporterar en äkta procentsats från 0 till 100 för varje objekt, så genomsnittet under en minut är det ihållande utnyttjandet.
 - **Latensmallar använder Max:** mätvärdet är redan den sämsta latensen över objektets diskar, så det högsta stickprovet är det ärliga.
 - **Antals- och tillståndsmallar använder Max**, så en enda insamling som visar tillståndet utlöser dem: paketfel, ballooning, swappning, röd och gul status, värdar som inte är effektiva, överbelastning.
+- **Host Not Responding använder Max och utlöses vid 0:** en ESXi-värd som körs använder alltid minne, så en insamling som rapporterar minne i användning är en värd som svarar, och bara ett fönster där ingen gjorde det utlöser den.
 - **Varje mall grupperar på objektets eget identitetsattribut**, så det utlöses en incident per berört objekt, och incidenten nämner det. Undantaget är **vCenter Stopped Reporting**, som bevakar hela vCenter: när data upphör har de andra mallarna inget att jämföra och behåller sin senaste status, så det är den här mallen som säger till.
 - **Tröskelvärden är låsta till sin enhet** (`%`, `ms`, `us`), så de behåller sin betydelse oavsett vilken enhet ett diagram visar.
 

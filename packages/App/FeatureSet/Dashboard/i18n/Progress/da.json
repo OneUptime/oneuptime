@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40184,
-    "untranslated": 12618
+    "keys": 40302,
+    "untranslated": 12609
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -279,6 +279,7 @@
     "teams",
     "timeout|connection refused",
     "total",
+    "vApp {{name}}",
     "vCenter",
     "vSphere Client",
     "z",

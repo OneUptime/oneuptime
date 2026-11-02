@@ -1285,7 +1285,7 @@ describe("the real source roots", () => {
       "keys packages/Common/Types/Kubernetes/KubernetesHealth.ts",
       // A host's status and reasons - not its mount points or unit names.
       "keys packages/Common/Types/Host/HostHealth.ts",
-      // Where a database or a queue was found, and a cloud resource's kind.
+      // Where a database or a queue was found, and what kind of cloud resource one is.
       "keys packages/Common/Types/DatabaseServer/DatabaseServerDiscoverySource.ts",
       "keys packages/Common/Models/DatabaseModels/MessageQueue.ts",
       "keys packages/Common/Types/Cloud/CloudResourceCatalog.ts",

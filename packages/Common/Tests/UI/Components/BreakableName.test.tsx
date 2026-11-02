@@ -104,6 +104,23 @@ describe("BreakableName", () => {
     }
   });
 
+  test("a short name alone in a narrow box breaks after its dots when asked", () => {
+    render(
+      <span data-testid="alone">
+        <BreakableName text="esx02.acme.example" breaksFromLength={0} />
+      </span>,
+    );
+    const alone: HTMLElement = screen.getByTestId("alone");
+
+    expect(partsOf(alone)).toEqual(["esx02.", "acme.", "example"]);
+    expect(alone.textContent).toBe("esx02.acme.example");
+
+    // Unasked, it is drawn as written: in running text a space takes the break.
+    const holder: HTMLElement = draw("esx02.acme.example");
+
+    expect(holder.querySelectorAll("wbr")).toHaveLength(0);
+  });
+
   test("a sentence keeps its spaces and breaks only inside its long names", () => {
     const sentence: string =
       "Reads http.server.request.duration from checkout every minute";

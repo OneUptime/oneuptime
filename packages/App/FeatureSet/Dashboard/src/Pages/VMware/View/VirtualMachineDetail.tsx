@@ -19,29 +19,28 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import { Tab } from "Common/UI/Components/Tabs/Tab";
-import ResourceOverviewTab, {
-  SummaryField,
-} from "../../../Components/Infrastructure/ResourceOverviewTab";
 import ResourceMetricsTab from "../../../Components/Infrastructure/ResourceMetricsTab";
-import StatusBadge, {
-  StatusBadgeType,
-} from "Common/UI/Components/StatusBadge/StatusBadge";
 import {
   VMwareResourceKind,
   externalIdFromRouteParam,
   fetchVMwareInventoryRow,
+  fetchVMwareInventoryRows,
   formatBytes,
-  formatMhz,
-  formatPercent,
   displayNameForResource,
   identityAttributesForResource,
-  powerStateLabelForVM,
 } from "../Utils/VMwareResourceUtils";
+import Route from "Common/Types/API/Route";
 import OneUptimeDate from "Common/Types/Date";
 import ValueFormatter from "Common/Utils/ValueFormatter";
-import { VMWARE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/VMwareMetricDescriptions";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import VMwarePartHero from "../../../Components/VMware/Part/VMwarePartHero";
+import VMwareVirtualMachineOverview from "../../../Components/VMware/Part/VMwareVirtualMachineOverview";
+import VMwarePartReadError from "../../../Components/VMware/Part/VMwarePartReadError";
+import {
+  VMwarePartRoutes,
+  getVMwarePartRoutes,
+} from "../../../Components/VMware/Part/VMwarePartRoutes";
 
 const MIB: number = 1024 * 1024;
 const KIB: number = 1024;
@@ -66,9 +65,83 @@ const VMwareVCenterVirtualMachineDetail: FunctionComponent<
 
   const [vcenter, setVCenter] = useState<VMwareVCenter | null>(null);
   const [row, setRow] = useState<VMwareResourceModel | null>(null);
+  /*
+   * The host the VM runs on and its cluster, for the hero's links: their
+   * rows carry the inventory ids their pages are found by. The host's row
+   * and its datacenter's also say whether vCenter can reach the host - on
+   * one it cannot, the VM is Disconnected.
+   */
+  const [hostRow, setHostRow] = useState<VMwareResourceModel | null>(null);
+  const [datacenterRows, setDatacenterRows] = useState<
+    Array<VMwareResourceModel>
+  >([]);
+  const [clusterRow, setClusterRow] = useState<VMwareResourceModel | null>(
+    null,
+  );
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isLoadingRow, setIsLoadingRow] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+  // Why the VM's own row could not be read: said in its Overview, with Try again.
+  const [rowError, setRowError] = useState<string>("");
+
+  /*
+   * The VM's row, and where it runs - its host and cluster, for the hero's
+   * links, and the host's and datacenters' rows, which say whether vCenter
+   * can reach its host (on one it cannot, the VM is Disconnected).
+   */
+  const fetchRow: PromiseVoidFunction = async (): Promise<void> => {
+    try {
+      const inventoryRow: VMwareResourceModel | null =
+        await fetchVMwareInventoryRow({
+          vmwareVCenterId: modelId,
+          kind: VMwareResourceKind.VirtualMachine,
+          externalId: externalId,
+        });
+
+      let hosts: Array<VMwareResourceModel> = [];
+      let clusters: Array<VMwareResourceModel> = [];
+      let datacenters: Array<VMwareResourceModel> = [];
+      if (inventoryRow?.hostName) {
+        [hosts, clusters, datacenters] = await Promise.all([
+          fetchVMwareInventoryRows({
+            vmwareVCenterId: modelId,
+            kind: VMwareResourceKind.Host,
+            hostName: inventoryRow.hostName,
+            datacenterName: inventoryRow.datacenterName || undefined,
+          }),
+          inventoryRow.clusterName
+            ? fetchVMwareInventoryRows({
+                vmwareVCenterId: modelId,
+                kind: VMwareResourceKind.Cluster,
+                clusterName: inventoryRow.clusterName,
+                datacenterName: inventoryRow.datacenterName || undefined,
+              })
+            : Promise.resolve([]),
+          fetchVMwareInventoryRows({
+            vmwareVCenterId: modelId,
+            kind: VMwareResourceKind.Datacenter,
+          }),
+        ]);
+      }
+      setRow(inventoryRow);
+      setHostRow(hosts[0] || null);
+      setClusterRow(clusters[0] || null);
+      setDatacenterRows(datacenters);
+      setRowError("");
+    } catch (err) {
+      setRowError(API.getFriendlyMessage(err));
+    }
+    setIsLoadingRow(false);
+  };
+
+  // Try again after a failed read: the loader while it reads again.
+  const retryRow: () => void = (): void => {
+    setIsLoadingRow(true);
+    fetchRow().catch((err: Error) => {
+      setRowError(API.getFriendlyMessage(err));
+      setIsLoadingRow(false);
+    });
+  };
 
   const fetchData: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
@@ -86,18 +159,7 @@ const VMwareVCenterVirtualMachineDetail: FunctionComponent<
     }
     setIsLoading(false);
 
-    try {
-      const inventoryRow: VMwareResourceModel | null =
-        await fetchVMwareInventoryRow({
-          vmwareVCenterId: modelId,
-          kind: VMwareResourceKind.VirtualMachine,
-          externalId: externalId,
-        });
-      setRow(inventoryRow);
-    } catch {
-      // Graceful degradation — overview tab shows its empty state.
-    }
-    setIsLoadingRow(false);
+    await fetchRow();
   };
 
   useEffect(() => {
@@ -394,186 +456,6 @@ const VMwareVCenterVirtualMachineDetail: FunctionComponent<
     },
   };
 
-  // Build overview summary fields from the inventory row.
-  const summaryFields: Array<SummaryField> = [
-    { title: "VM Name", value: vmName },
-    { title: "vCenter", value: vcenterName },
-  ];
-
-  if (row) {
-    const powerState: string = powerStateLabelForVM(row);
-    if (powerState) {
-      summaryFields.push({
-        title: isTemplate ? "Type" : "Power State",
-        description: VMWARE_METRIC_DESCRIPTIONS.vmPowerState,
-        value: (
-          <StatusBadge
-            text={powerState}
-            type={
-              isTemplate
-                ? StatusBadgeType.Neutral
-                : row.isPoweredOn
-                  ? StatusBadgeType.Success
-                  : StatusBadgeType.Warning
-            }
-          />
-        ),
-      });
-    }
-
-    if (row.vmInstanceUuid) {
-      summaryFields.push({
-        title: "Instance UUID",
-        value: row.vmInstanceUuid,
-      });
-    }
-    if (row.hostName) {
-      summaryFields.push({ title: "Host", value: row.hostName });
-    }
-    if (row.clusterName) {
-      summaryFields.push({ title: "Cluster", value: row.clusterName });
-    }
-    if (row.datacenterName) {
-      summaryFields.push({ title: "Datacenter", value: row.datacenterName });
-    }
-    if (row.virtualAppName) {
-      summaryFields.push({ title: "vApp", value: row.virtualAppName });
-    } else if (row.resourcePoolName) {
-      summaryFields.push({
-        title: "Resource Pool",
-        value: row.resourcePoolPath
-          ? `${row.resourcePoolName} (${row.resourcePoolPath})`
-          : row.resourcePoolName,
-      });
-    }
-
-    if (!isTemplate) {
-      if (row.latestCpuPercent !== null && row.latestCpuPercent !== undefined) {
-        const usage: string =
-          row.latestCpuMhz !== null && row.latestCpuMhz !== undefined
-            ? ` (${formatMhz(Number(row.latestCpuMhz))})`
-            : "";
-        summaryFields.push({
-          title: "CPU",
-          value: `${formatPercent(Number(row.latestCpuPercent))}${usage}`,
-          description: VMWARE_METRIC_DESCRIPTIONS.vmCpu,
-        });
-      } else if (row.isPoweredOn === false) {
-        summaryFields.push({
-          title: "CPU",
-          value: "N/A — CPU metrics are only reported while powered on",
-          description: VMWARE_METRIC_DESCRIPTIONS.vmCpu,
-        });
-      }
-
-      if (
-        row.cpuReadinessPercent !== null &&
-        row.cpuReadinessPercent !== undefined
-      ) {
-        const readiness: number = Number(row.cpuReadinessPercent);
-        summaryFields.push({
-          title: "CPU Ready",
-          description: VMWARE_METRIC_DESCRIPTIONS.vmCpuReady,
-          value:
-            readiness > 10 ? (
-              <StatusBadge
-                text={translator.translateTemplate(
-                  "{{readiness}} — CPU contention",
-                  { readiness: formatPercent(readiness) },
-                )}
-                type={StatusBadgeType.Warning}
-              />
-            ) : (
-              formatPercent(readiness)
-            ),
-        });
-      }
-    }
-
-    if (row.latestMemoryBytes !== null && row.latestMemoryBytes !== undefined) {
-      const pct: string =
-        row.latestMemoryPercent !== null &&
-        row.latestMemoryPercent !== undefined
-          ? ` (${formatPercent(Number(row.latestMemoryPercent))})`
-          : "";
-      summaryFields.push({
-        title: "Memory (Used / Configured)",
-        value: `${formatBytes(Number(row.latestMemoryBytes))} / ${formatBytes(
-          row.maxMemoryBytes !== null && row.maxMemoryBytes !== undefined
-            ? Number(row.maxMemoryBytes)
-            : null,
-        )}${pct}`,
-        description: VMWARE_METRIC_DESCRIPTIONS.vmMemory,
-      });
-    }
-
-    const ballooned: number =
-      row.memoryBalloonedBytes !== null &&
-      row.memoryBalloonedBytes !== undefined
-        ? Number(row.memoryBalloonedBytes)
-        : 0;
-    if (ballooned > 0) {
-      summaryFields.push({
-        title: "Memory Ballooned",
-        description: VMWARE_METRIC_DESCRIPTIONS.vmMemoryBallooned,
-        value: (
-          <StatusBadge
-            text={formatBytes(ballooned)}
-            type={StatusBadgeType.Warning}
-          />
-        ),
-      });
-    }
-    const swapped: number =
-      row.memorySwappedBytes !== null && row.memorySwappedBytes !== undefined
-        ? Number(row.memorySwappedBytes)
-        : 0;
-    if (swapped > 0) {
-      summaryFields.push({
-        title: "Memory Swapped",
-        description: VMWARE_METRIC_DESCRIPTIONS.vmMemorySwapped,
-        value: (
-          <StatusBadge
-            text={formatBytes(swapped)}
-            type={StatusBadgeType.Danger}
-          />
-        ),
-      });
-    }
-
-    if (row.latestDiskBytes !== null && row.latestDiskBytes !== undefined) {
-      const pct: string =
-        row.latestDiskPercent !== null && row.latestDiskPercent !== undefined
-          ? ` (${formatPercent(Number(row.latestDiskPercent))})`
-          : "";
-      summaryFields.push({
-        title: "Disk (Used / Provisioned)",
-        value: `${formatBytes(Number(row.latestDiskBytes))} / ${formatBytes(
-          row.maxDiskBytes !== null && row.maxDiskBytes !== undefined
-            ? Number(row.maxDiskBytes)
-            : null,
-        )}${pct}`,
-        description: VMWARE_METRIC_DESCRIPTIONS.vmDisk,
-      });
-    }
-
-    summaryFields.push({ title: "External ID", value: externalId });
-
-    if (row.metricsUpdatedAt) {
-      summaryFields.push({
-        title: "Metrics Updated",
-        value: OneUptimeDate.fromNow(new Date(row.metricsUpdatedAt as Date)),
-      });
-    }
-
-    if (row.lastSeenAt) {
-      summaryFields.push({
-        title: "Last Seen",
-        value: OneUptimeDate.fromNow(new Date(row.lastSeenAt as Date)),
-      });
-    }
-  }
-
   /*
    * A VM template never runs: the receiver emits only
    * vcenter.vm.disk.usage for it, so every other chart would be empty.
@@ -593,16 +475,37 @@ const VMwareVCenterVirtualMachineDetail: FunctionComponent<
         diskLatencyQuery,
       ];
 
+  const now: Date = OneUptimeDate.getCurrentDate();
+  const routes: VMwarePartRoutes = getVMwarePartRoutes(modelId);
+  const hostRoute: Route | undefined = hostRow?.externalId
+    ? routes.getPartRoute(VMwareResourceKind.Host, hostRow.externalId)
+    : undefined;
+  const clusterRoute: Route | undefined = clusterRow?.externalId
+    ? routes.getPartRoute(VMwareResourceKind.Cluster, clusterRow.externalId)
+    : undefined;
+
   const tabs: Array<Tab> = [
     {
       name: "Overview",
-      children: (
-        <ResourceOverviewTab
-          summaryFields={row ? summaryFields : []}
-          labels={{}}
-          annotations={{}}
-          isLoading={isLoadingRow}
-          emptyMessage="Virtual machine details not reported yet. Make sure the VMware agent is sending metrics."
+      children: isLoadingRow ? (
+        <PageLoader isVisible={true} />
+      ) : rowError ? (
+        <VMwarePartReadError
+          kind={VMwareResourceKind.VirtualMachine}
+          message={rowError}
+          onRetry={retryRow}
+        />
+      ) : (
+        <VMwareVirtualMachineOverview
+          vcenterId={modelId}
+          vcenterName={vcenterName}
+          externalId={externalId}
+          row={row}
+          hostRow={hostRow}
+          datacenters={datacenterRows}
+          routes={routes}
+          hostRoute={hostRoute}
+          now={now}
         />
       ),
     },
@@ -631,7 +534,22 @@ const VMwareVCenterVirtualMachineDetail: FunctionComponent<
     },
   ];
 
-  return <Tabs tabs={tabs} onTabChange={() => {}} />;
+  return (
+    <div data-testid="vmware-vm-page">
+      <VMwarePartHero
+        kind={VMwareResourceKind.VirtualMachine}
+        row={row}
+        isRowRead={!isLoadingRow && !rowError}
+        externalId={externalId}
+        datacenters={datacenterRows}
+        hosts={hostRow ? [hostRow] : []}
+        hostRoute={hostRoute}
+        clusterRoute={clusterRoute}
+        now={now}
+      />
+      <Tabs tabs={tabs} wrap={true} onTabChange={() => {}} />
+    </div>
+  );
 };
 
 export default VMwareVCenterVirtualMachineDetail;
