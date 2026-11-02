@@ -7,6 +7,8 @@ description: Add OpenTelemetry to an application and send its traces, metrics an
 
 OneUptime takes telemetry over the OpenTelemetry Protocol (OTLP), so the app uses the standard OpenTelemetry SDK for its language. Nothing specific to OneUptime goes in the code: the exporter reads where to send and which key to use from environment variables.
 
+The person's own instructions come before these steps: where they ask for something else, do what they ask.
+
 ## 1. See what is there
 
 Read the project: its language and framework, how it runs (a process, Docker, Kubernetes), and whether it already has OpenTelemetry or runs a Collector. If it does, change only where the data goes.

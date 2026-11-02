@@ -4,10 +4,12 @@
  * Scripts/MCP/BuildChatGPTPlugin.sh (`npm run build-chatgpt-plugin`) builds
  * the ZIP OneUptime uploads to the ChatGPT plugin directory, from the package
  * in packages/App/FeatureSet/MCP/ChatGPTPlugin. The portal reads plugin.json,
- * mcp.json and the files they name from the root of the archive, so this
- * holds what the ZIP contains: every file of the package but its README, at
- * the root, byte for byte, and nothing left from an earlier build. What the
- * package says is held by packages/App/FeatureSet/MCP/Tests/ChatGPTPlugin.test.ts.
+ * mcp.json, skills/ and the files they name from the root of the archive, so
+ * this holds what the ZIP contains: every file of the package but its README,
+ * at the root, and the coding agent plugin's skills under skills/, byte for
+ * byte, and nothing left from an earlier build. What the package says is held
+ * by packages/App/FeatureSet/MCP/Tests/ChatGPTPlugin.test.ts, and what the
+ * skills say by CodingAgentPlugin.test.ts beside it.
  *
  * It needs zip and unzip, which the Ops workflow's runner has. Without them
  * the ZIP checks are skipped with the reason logged, except when CI is set:
@@ -22,6 +24,7 @@ const { spawnSync } = require("child_process");
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 const SCRIPT = "Scripts/MCP/BuildChatGPTPlugin.sh";
 const PACKAGE_DIRECTORY = "packages/App/FeatureSet/MCP/ChatGPTPlugin";
+const SKILLS_DIRECTORY = "packages/App/FeatureSet/MCP/CodingAgentPlugin/skills";
 
 function hasCommand(command) {
   return spawnSync("sh", ["-c", `command -v ${command}`]).status === 0;
@@ -43,18 +46,39 @@ function filesUnder(directory) {
   });
 }
 
-// Every file of the package, as a path from its root, but the README.
-function packageFiles() {
-  const root = path.join(REPO_ROOT, PACKAGE_DIRECTORY);
+// Every file under a directory of the repository, as a path from it.
+function relativeFiles(directory) {
+  const root = path.join(REPO_ROOT, directory);
 
-  return filesUnder(root)
-    .map((file) => {
-      return path.relative(root, file).split(path.sep).join("/");
-    })
-    .filter((file) => {
-      return file !== "README.md";
-    })
-    .sort();
+  return filesUnder(root).map((file) => {
+    return path.relative(root, file).split(path.sep).join("/");
+  });
+}
+
+/*
+ * What the ZIP holds, each entry with the file it is copied from: every file
+ * of the package but its README, and the coding agent plugin's skills.
+ */
+function zipSources() {
+  const sources = new Map();
+
+  for (const file of relativeFiles(PACKAGE_DIRECTORY)) {
+    if (file !== "README.md") {
+      sources.set(file, path.join(PACKAGE_DIRECTORY, file));
+    }
+  }
+
+  for (const file of relativeFiles(SKILLS_DIRECTORY)) {
+    if (path.basename(file) !== ".DS_Store") {
+      sources.set(`skills/${file}`, path.join(SKILLS_DIRECTORY, file));
+    }
+  }
+
+  return sources;
+}
+
+function packageFiles() {
+  return [...zipSources().keys()].sort();
 }
 
 function entriesOf(zipFile) {
@@ -106,13 +130,17 @@ test("npm run build-chatgpt-plugin runs it", () => {
     });
   }
 
-  test("puts every file of the package but its README at the root of the ZIP (the checks below are not vacuous)", () => {
+  test("puts every file of the package but its README at the root of the ZIP, and the coding agent plugin's skills under skills/ (the checks below are not vacuous)", () => {
     const zipFile = path.join(workDir, "plugin.zip");
     const result = build([zipFile]);
 
     expect(result.status).toBe(0);
     expect(packageFiles()).toEqual(
-      expect.arrayContaining(["plugin.json", "mcp.json"]),
+      expect.arrayContaining([
+        "plugin.json",
+        "mcp.json",
+        "skills/investigate-incident/SKILL.md",
+      ]),
     );
     expect(entriesOf(zipFile)).toEqual(packageFiles());
   });
@@ -121,11 +149,9 @@ test("npm run build-chatgpt-plugin runs it", () => {
     const zipFile = path.join(workDir, "bytes.zip");
     expect(build([zipFile]).status).toBe(0);
 
-    for (const file of packageFiles()) {
+    for (const [file, sourceFile] of zipSources()) {
       const unzipped = spawnSync("unzip", ["-p", zipFile, file]);
-      const source = fs.readFileSync(
-        path.join(REPO_ROOT, PACKAGE_DIRECTORY, file),
-      );
+      const source = fs.readFileSync(path.join(REPO_ROOT, sourceFile));
 
       expect([file, Buffer.compare(unzipped.stdout, source)]).toEqual([
         file,
