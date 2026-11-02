@@ -231,7 +231,7 @@ export default class StorageArrayOwnerTeam extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "Team ID",
-    description: "ID of your OneUptime Team in which this object belongs",
+    description: "ID of the team that owns the storage array",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -310,8 +310,7 @@ export default class StorageArrayOwnerTeam extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "Storage Array ID",
-    description:
-      "ID of your OneUptime Storage Array in which this object belongs",
+    description: "ID of the storage array the team owns",
   })
   @Column({
     type: ColumnType.ObjectID,

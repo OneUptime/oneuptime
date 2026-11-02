@@ -272,7 +272,7 @@ export default class RumApplicationOwnerUser extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "User ID",
-    description: "ID of your OneUptime User in which this object belongs",
+    description: "ID of the user who owns the RUM application",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -308,8 +308,7 @@ export default class RumApplicationOwnerUser extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "RUM Application ID",
-    description:
-      "ID of your OneUptime RUM Application in which this object belongs",
+    description: "ID of the RUM application the user owns",
   })
   @Column({
     type: ColumnType.ObjectID,

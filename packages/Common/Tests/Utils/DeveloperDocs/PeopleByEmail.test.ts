@@ -410,6 +410,75 @@ describe("rows imported by what they join", () => {
     }
   });
 
+  /*
+   * The two IDs of such a row are what a client asks for (user_id and
+   * monitor_id beside each other on oneuptime_monitor_user_owner), so each
+   * says what it is: the owner and what they own, the person and the layer
+   * they take turns in - never the boilerplate every column was given ("ID
+   * of your OneUptime User in which this object belongs"), nor another
+   * row's words ("where this escalation rule belongs" on a layer).
+   */
+  test("the two IDs of a row that joins two records say what each is", () => {
+    const BOILERPLATE: RegExp =
+      /in which this object belongs|where this (?:escalation rule|user) belongs/;
+    const wrong: Array<string> = [];
+    let rows: number = 0;
+
+    for (const modelType of Models) {
+      const table: string = new modelType().tableName || "";
+      const rule: MembershipImport | undefined = table
+        ? getMembershipImport(table, relationColumns(modelType))
+        : undefined;
+      if (!rule) {
+        continue;
+      }
+      rows++;
+      const columns: ReturnType<typeof getTableColumns> = getTableColumns(
+        new modelType(),
+      );
+
+      for (const column of [rule.parentColumn, rule.personColumn]) {
+        const description: string = columns[column]?.description || "";
+        if (!description || BOILERPLATE.test(description)) {
+          wrong.push(`${table}.${column}: ${description}`);
+        }
+      }
+
+      // An owner row names its owner and what they own.
+      if (rule.kind === MembershipKind.Owner) {
+        for (const column of [rule.parentColumn, rule.personColumn]) {
+          if (!/\bowns?\b/.test(columns[column]?.description || "")) {
+            wrong.push(`${table}.${column} does not say who owns what`);
+          }
+        }
+      }
+
+      /*
+       * The table says what the row adds, in words: "Add teams as owners to
+       * your on-call policies.", never a code name ("onCallDutyPolicys",
+       * "DockerSwarm") - brand names that are written so excepted.
+       */
+      const tableDescription: string = new modelType().tableDescription || "";
+      const codeNames: Array<string> = (
+        tableDescription.match(/[A-Za-z]+/g) || []
+      ).filter((word: string) => {
+        return /[a-z][A-Z]/.test(word) && !["IoT", "vCenters"].includes(word);
+      });
+      if (!tableDescription.endsWith(".") || codeNames.length > 0) {
+        wrong.push(`${table}: ${tableDescription}`);
+      }
+      if (rule.kind === MembershipKind.Owner) {
+        const owners: string = table.endsWith("OwnerTeam") ? "teams" : "users";
+        if (!tableDescription.startsWith(`Add ${owners} as owners to your `)) {
+          wrong.push(`${table}: ${tableDescription}`);
+        }
+      }
+    }
+
+    expect(wrong).toEqual([]);
+    expect(rows).toBeGreaterThanOrEqual(80);
+  });
+
   test("an owner row's parent is what it owns, and its member the person or the team", () => {
     expect(
       getMembershipImport("MonitorOwnerUser", [

@@ -231,7 +231,7 @@ export default class IncidentEpisodeOwnerTeam extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "Team ID",
-    description: "ID of your OneUptime Team in which this object belongs",
+    description: "ID of the team that owns the incident episode",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -310,8 +310,7 @@ export default class IncidentEpisodeOwnerTeam extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "Incident Episode ID",
-    description:
-      "ID of your OneUptime Incident Episode in which this object belongs",
+    description: "ID of the incident episode the team owns",
   })
   @Column({
     type: ColumnType.ObjectID,
