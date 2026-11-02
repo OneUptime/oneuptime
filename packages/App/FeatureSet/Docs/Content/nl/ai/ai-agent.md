@@ -103,18 +103,18 @@ Elke run is gebonden aan budgetten die de server afdwingt: hoogstens **40 LLM-aa
 
 | Waar | Klik | De pull request |
 | --- | --- | --- |
-| De pagina **AI Assistance** van een uitzondering | **Oplossen met AI** | Herstelt de bug achter de uitzondering. |
-| De pagina **AI Assistance** van een uitzondering | **Generate Regression Test** | Voegt een test toe die de uitzondering reproduceert en faalt tot de bug is hersteld. |
-| De pagina **AI Assistance** van een uitzondering | **Foutafhandeling verbeteren** | Voor een verwachte fout, zoals ongeldige invoer: haalt gebruikersgegevens uit het bericht, valideert de invoer eerder en markeert de fout als afgehandeld, zonder het gedrag te veranderen. |
+| De pagina **AI-assistentie** van een uitzondering | **Oplossen met AI** | Herstelt de bug achter de uitzondering. |
+| De pagina **AI-assistentie** van een uitzondering | **Generate Regression Test** | Voegt een test toe die de uitzondering reproduceert en faalt tot de bug is hersteld. |
+| De pagina **AI-assistentie** van een uitzondering | **Foutafhandeling verbeteren** | Voor een verwachte fout, zoals ongeldige invoer: haalt gebruikersgegevens uit het bericht, valideert de invoer eerder en markeert de fout als afgehandeld, zonder het gedrag te veranderen. |
 | De stap **Herstel** van de kaart **OneUptime AI** van een incident of een waarschuwing | **Herstel-pull-request openen** | Herstelt de hoofdoorzaak die het onderzoek plaatste (zie [Automatische codeherstellingen uit onderzoeken](#automatische-codeherstellingen-uit-onderzoeken)). |
 | Een trace die het verhelpen waard is | **Versnellen met AI** | Herstelt het trage patroon dat de knop noemt, zoals een N+1-query of aanroepen die parallel zouden kunnen lopen. |
 | De pagina **Logboeken** van een service | **Logging verbeteren** | Maakt de logs van de service gestructureerd, met de juiste ernst en gekoppeld aan zijn traces, zonder het gedrag te veranderen. |
 | De pagina **Traces** van een service | **Tracing verbeteren** | Voegt spans en attributen toe waar de tracing van de service ontbreekt, zonder het gedrag te veranderen. |
 | Een functie in **Prestatieprofielen** | **Oplossen met AI** | Laat de functie hetzelfde werk doen met minder tijd of geheugen, met haar profiel als bewijs. |
 
-Deze knoppen verschijnen alleen waar ze een taak kunnen starten. Staat AI voor het project uit, dan verschijnt er geen en heeft het zijmenu van een uitzondering geen **AI Assistance**. **Logging verbeteren** en **Tracing verbeteren** verschijnen zodra er een repository is gekoppeld en niets de AI erin tegenhoudt (zoals het abonnement, opgebruikte AI-tegoeden of geen Runner die online is), en **Versnellen met AI** alleen bij een trace die het verhelpen waard is (zie [Traceverkenner](/docs/telemetry/traces-explorer)). **Oplossen met AI** bij een functie verschijnt alleen bij de eigen code van de applicatie die minstens 5% van de tijd of het geheugen van het profiel inneemt, of waarvan het aandeel met 3 punten of meer is gegroeid sinds het venster waarmee het wordt vergeleken (zie [Continue profilering](/docs/telemetry/profiles)).
+Deze knoppen verschijnen alleen waar ze een taak kunnen starten. Staat AI voor het project uit, dan verschijnt er geen en heeft het zijmenu van een uitzondering geen **AI-assistentie**. **Logging verbeteren** en **Tracing verbeteren** verschijnen zodra er een repository is gekoppeld en niets de AI erin tegenhoudt (zoals het abonnement, opgebruikte AI-tegoeden of geen Runner die online is), en **Versnellen met AI** alleen bij een trace die het verhelpen waard is (zie [Traceverkenner](/docs/telemetry/traces-explorer)). **Oplossen met AI** bij een functie verschijnt alleen bij de eigen code van de applicatie die minstens 5% van de tijd of het geheugen van het profiel inneemt, of waarvan het aandeel met 3 punten of meer is gegroeid sinds het venster waarmee het wordt vergeleken (zie [Continue profilering](/docs/telemetry/profiles)).
 
-Om de pagina **AI Assistance** van een uitzondering te openen, open je de uitzondering onder **Producten → Observability → Uitzonderingen** en kies je **AI Assistance** in het zijmenu. Een opgeloste of gearchiveerde uitzondering moet eerst als onopgelost worden gemarkeerd.
+Om de pagina **AI-assistentie** van een uitzondering te openen, open je de uitzondering onder **Producten → Observability → Uitzonderingen** en kies je **AI-assistentie** in het zijmenu. Een opgeloste of gearchiveerde uitzondering moet eerst als onopgelost worden gemarkeerd.
 
 OneUptime AI start hersteltaken ook zelf: vanuit een onderzoek dat een codewijziging vindt, vanuit een onderzoek dat zonder conclusie eindigt omdat er telemetrie ontbrak, en vanuit AI Insights over uitzonderingen en trage traces. Elk heeft een eigen schakelaar; zie [Automatische codeherstellingen](/docs/ai/ai-sre#automatische-codefixes).
 
@@ -200,7 +200,7 @@ De opdrachten zijn repository-instellingen die je team schrijft en die op je eig
 
 ## Na het mergen van een fix
 
-Een fix mergen lost niets op totdat hij draait. Zodra een pull request met een fix gemerged is, wacht OneUptime op een vastgelegde deploy die hem bevat (zie [Deploys en wijzigingen](/docs/telemetry/change-events)) en houdt in die deploy in de gaten waarvoor de fix bedoeld was. De pull request van de taak in Code zegt hoe het ging, net als de pagina **AI Assistance** van de uitzondering, de AI-logboeken van het incident en de AI-insight waar de fix uit voortkwam:
+Een fix mergen lost niets op totdat hij draait. Zodra een pull request met een fix gemerged is, wacht OneUptime op een vastgelegde deploy die hem bevat (zie [Deploys en wijzigingen](/docs/telemetry/change-events)) en houdt in die deploy in de gaten waarvoor de fix bedoeld was. De pull request van de taak in Code zegt hoe het ging, net als de pagina **AI-assistentie** van de uitzondering, de AI-logboeken van het incident en de AI-insight waar de fix uit voortkwam:
 
 | Een fix van | Wat wordt gevolgd | Het werkte | Het werkte niet |
 | --- | --- | --- | --- |
@@ -232,7 +232,7 @@ OneUptime Cloud bereikt alleen Git-servers op internet, nooit een privé-, loopb
 
 ## Voordat je begint
 
-Een taak heeft drie dingen nodig. Het vraagvak van Code en de pagina **AI Assistance** van de uitzondering controleren alle drie voordat ze aanbieden te starten, en zeggen wat er ontbreekt.
+Een taak heeft drie dingen nodig. Het vraagvak van Code en de pagina **AI-assistentie** van de uitzondering controleren alle drie voordat ze aanbieden te starten, en zeggen wat er ontbreekt.
 
 | Wat | OneUptime Cloud | Zelf gehost |
 | --- | --- | --- |
@@ -253,7 +253,7 @@ GLOBAL_LLM_PROVIDER_MODEL_NAME=llama3.1
 
 Elke ondersteunde provider werkt: zie [LLM-providers](/docs/ai/llm-provider) voor alle providers en elke omgevingsvariabele.
 
-Je koppelt repositories niet aan services. Als een taak start, vindt OneUptime de repository door de bestandspaden uit de stack trace van de uitzondering te vergelijken met je gekoppelde repositories. Als niets overeenkomt, valt hij terug op een repository met dezelfde naam als de service, en dan op de enige repository van het project als er maar één is. De pagina **AI Assistance** toont welke repository hij vond.
+Je koppelt repositories niet aan services. Als een taak start, vindt OneUptime de repository door de bestandspaden uit de stack trace van de uitzondering te vergelijken met je gekoppelde repositories. Als niets overeenkomt, valt hij terug op een repository met dezelfde naam als de service, en dan op de enige repository van het project als er maar één is. De pagina **AI-assistentie** toont welke repository hij vond.
 
 ### De Runner van de repository kiezen
 

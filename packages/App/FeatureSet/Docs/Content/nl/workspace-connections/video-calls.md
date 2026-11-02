@@ -23,7 +23,7 @@ flowchart TB
 :::steps
 ### Een provider koppelen
 
-Ga naar **Projectinstellingen** > **Werkruimte** > **Video Calls** en koppel Zoom, Google Meet of Microsoft Teams, of voeg een vaste vergaderlink toe. Op OneUptime Cloud is het koppelen van Zoom, Google Meet of Microsoft Teams één klik: meld je aan en sta OneUptime toe vergaderingen aan te maken (zie [Koppelen met één klik](#koppelen-met-één-klik)). Slack-huddles hebben niets meer nodig dan de Slack-koppeling van het project.
+Ga naar **Projectinstellingen** > **Werkruimte** > **Videogesprekken** en koppel Zoom, Google Meet of Microsoft Teams, of voeg een vaste vergaderlink toe. Op OneUptime Cloud is het koppelen van Zoom, Google Meet of Microsoft Teams één klik: meld je aan en sta OneUptime toe vergaderingen aan te maken (zie [Koppelen met één klik](#koppelen-met-één-klik)). Slack-huddles hebben niets meer nodig dan de Slack-koppeling van het project.
 
 ### Het aanzetten in een regel
 
@@ -44,7 +44,7 @@ Een gesprek wordt één keer per incident gestart voor elke plek waar een gespre
 
 Een incident melden wacht nooit op een provider van videogesprekken. Het gesprek wordt gestart nadat het incident is aangemaakt, dus een trage of falende provider vertraagt nooit het incident of de oproepen van de bereikbaarheidsdienst.
 
-Als de provider weigert (een verlopen geheim, een ontbrekend recht, een verwijderde host), zegt de feed van het incident dat het gesprek van de regel niet kon worden gestart, met de reden van de provider, zodat responders weten dat ze er een vanaf de pagina van het incident moeten starten. De uitvoering van de regel staat in de meldingslogboeken van de workspace als **Videogesprek starten**, en de rij van de koppeling in **Projectinstellingen** > **Werkruimte** > **Video Calls** toont de fout tot er weer een gesprek start.
+Als de provider weigert (een verlopen geheim, een ontbrekend recht, een verwijderde host), zegt de feed van het incident dat het gesprek van de regel niet kon worden gestart, met de reden van de provider, zodat responders weten dat ze er een vanaf de pagina van het incident moeten starten. De uitvoering van de regel staat in de meldingslogboeken van de workspace als **Videogesprek starten**, en de rij van de koppeling in **Projectinstellingen** > **Werkruimte** > **Videogesprekken** toont de fout tot er weer een gesprek start.
 
 ### Privé-incidenten
 
@@ -55,7 +55,7 @@ Een vergadering krijgt de naam van het incident waarvoor ze is, met het nummer e
 Op OneUptime Cloud kost het koppelen van Zoom, Google Meet of Microsoft Teams één klik en hoeft er bij de provider niets te worden ingesteld:
 
 :::steps
-1. Ga naar **Projectinstellingen** > **Werkruimte** > **Video Calls** en klik op **Koppelen** bij Zoom, Google Meet of Microsoft Teams.
+1. Ga naar **Projectinstellingen** > **Werkruimte** > **Videogesprekken** en klik op **Koppelen** bij Zoom, Google Meet of Microsoft Teams.
 2. Klik op **Continue to Zoom** (of Google, of Microsoft), meld je aan en sta OneUptime toe vergaderingen aan te maken.
 3. Je komt terug op de pagina met videogesprekken, met de koppeling gemaakt. **Start a test meeting** controleert haar van begin tot eind; kies de koppeling daarna in een meldingsregel van Slack of Microsoft Teams.
 :::
@@ -124,7 +124,7 @@ OneUptime AI stelt alleen een oorzaak voor als het gesprek er een noemt, met de 
 
 ### Elk gesprek opnemen en transcriberen
 
-Om te zorgen dat niemand eraan hoeft te denken een gesprek op te nemen of de transcriptie ervan op te halen, zet u **Incidentgesprekken opnemen en transcriberen** aan in **Projectinstellingen** > **Werkruimte** > **Video Calls**. Zolang dat aan staat:
+Om te zorgen dat niemand eraan hoeft te denken een gesprek op te nemen of de transcriptie ervan op te halen, zet u **Incidentgesprekken opnemen en transcriberen** aan in **Projectinstellingen** > **Werkruimte** > **Videogesprekken**. Zolang dat aan staat:
 
 - OneUptime vraagt Zoom om elke incidentvergadering die het start, in de cloud op te nemen, Google Meet om die te transcriberen, en Microsoft Teams om die automatisch op te nemen en te transcriberen. Het bericht waarmee het gesprek wordt geplaatst, meldt dat voordat iemand deelneemt.
 - Zodra het gesprek voorbij is, haalt OneUptime de transcriptie zelf op, zoals **Ophalen uit Zoom** zou doen, waarna OneUptime AI die leest. Tot dan zegt de kaart **Video Call** dat ze erop wacht.

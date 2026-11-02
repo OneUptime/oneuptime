@@ -9,11 +9,12 @@ import ProviderLogoOrIcon from "Common/UI/Components/ProviderLogo/ProviderLogoOr
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
- * A cloud's official logo on Cloud > Connect (the catalog's logo, drawn by
- * ProviderLogoImage): its tile, its form and its row of the list show the
- * same one, so they read as the same cloud at a glance. A cloud this build
- * does not know is drawn as a cloud. The cloud's name is always written
- * beside it, so the logo is not read out again.
+ * A cloud's official mark on Cloud > Connect (the catalog's logo, drawn by
+ * ProviderLogoImage in one colour, as icons are): its tile, its form and
+ * its row of the list show the same one, so they read as the same cloud at
+ * a glance. Amazon Web Services, which asks to be named in plain text, and
+ * a cloud this build does not know are drawn as a cloud. The cloud's name
+ * is always written beside it, so the mark is not read out again.
  */
 
 const TILE_SIZES: Readonly<Record<"sm" | "md" | "lg", ProviderLogoSize>> = {

@@ -25,9 +25,10 @@ import React, {
  * wraps (10rem). The line under it wraps between its parts, never inside
  * one ("Google SecOps ·" / "Alerts only").
  *
- * A row may lead with a mark (a security tool's product logo): it sits
- * before the name, and the name and the line under it keep one start
- * beside it.
+ * A row may lead with a mark (a security tool's product logo, on its
+ * tile): it sits before the name, as far from it as a SIEM's tile from its
+ * name in Send to your SIEM, and the name and the line under it keep one
+ * start beside it.
  */
 
 export const SECURITY_LIST_NAME_COLUMN_MAX_WIDTH_CLASS_NAME: string =
@@ -112,7 +113,7 @@ const SecurityListNameCell: FunctionComponent<ComponentProps> = (
 
   return (
     <span
-      className="flex items-start gap-2"
+      className="flex items-start gap-3"
       data-testid="security-list-name-cell"
     >
       {props.mark}

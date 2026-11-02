@@ -175,7 +175,7 @@ OneUptime har sit eget MQTT-endpoint, så enheder, der taler MQTT, publicerer m�
 ### Godkendelse
 
 - **Med indtagelsesnøglen**: send den som MQTT-adgangskoden. Brugernavnet ignoreres; har din klient kun et brugernavnsfelt, så sæt nøglen der. Det passer til en gateway, der publicerer for mange enheder.
-- **Med legitimationsoplysninger pr. enhed**: anbefales til enheder, der forbinder direkte. Åbn flådens side **Device Registry**, og registrer enheden med det **Device ID**, den bruger som `device.id`. Enhedens **MQTT Username** er dens brugernavn, og dens **MQTT Password (Secret)** dens adgangskode.
+- **Med legitimationsoplysninger pr. enhed**: anbefales til enheder, der forbinder direkte. Åbn flådens side **Enhedsregister**, og registrer enheden med det **Device ID**, den bruger som `device.id`. Enhedens **MQTT Username** er dens brugernavn, og dens **MQTT Password (Secret)** dens adgangskode.
 
 En enheds legitimationsoplysninger kan kun publicere under dens egne `oneuptime/<fleet>/<device>/`-topics. Du kan tilbagekalde én enhed uden at røre resten af flåden: slå dens kontakt **Aktiveret** fra, eller slet den, og en forbundet enhed afbrydes inden for omkring et minut. En registreret enhed, der bliver tavs, bliver i inventaret som offline, og advarselsskabelonen Device Offline udløses for den, selv hvis den dør uden en Last Will.
 

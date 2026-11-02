@@ -130,7 +130,7 @@ For at sætte et lavere loft på denne sonde end det, alle sonder holder sig til
 :::steps
 ### Åbn sonden eller enheden
 
-Åbn **Monitorer → Indstillinger → Sonder** og klik på din sonde: dens kort **Pakkeopsamlinger** viser dens opsamlinger. Eller åbn en netværksenhed og gå til dens side **Traffic**: opsamlinger der kører på enhedens egen sonde og starter filtreret på enhedens adresse.
+Åbn **Monitorer → Indstillinger → Sonder** og klik på din sonde: dens kort **Pakkeopsamlinger** viser dens opsamlinger. Eller åbn en netværksenhed og gå til dens side **Trafik**: opsamlinger der kører på enhedens egen sonde og starter filtreret på enhedens adresse.
 
 ### Klik på Start pakkeopsamling
 

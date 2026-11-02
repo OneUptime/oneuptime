@@ -26,8 +26,14 @@ import { execFileSync } from "child_process";
 import fs from "fs";
 import os from "os";
 import path from "path";
-import { generatePublicStatusPageTools } from "../Tools/PublicStatusPageTools";
+import { getFilterProblem } from "../Tools/FilterCheck";
+import { handleHelperTool, isHelperTool } from "../Tools/HelperTools";
+import {
+  generatePublicStatusPageTools,
+  isPublicStatusPageTool,
+} from "../Tools/PublicStatusPageTools";
 import { generateAllTools } from "../Tools/ToolGenerator";
+import { isWorkflowTool } from "../Tools/WorkflowTools";
 import { McpToolInfo } from "../Types/McpTypes";
 import ApiKey from "Common/Models/DatabaseModels/ApiKey";
 import McpOAuthGrant from "Common/Models/DatabaseModels/McpOAuthGrant";
@@ -251,6 +257,39 @@ const TOOLS: Map<string, McpToolInfo> = new Map(
     return [tool.name, tool];
   }),
 );
+
+// What oneuptime_describe_resource says a resource's fields can do.
+type DescribedFields = Record<
+  string,
+  { filter?: true; sort?: true } | undefined
+>;
+
+// The tools of resources, which oneuptime_describe_resource describes.
+const RESOURCE_TOOLS: Array<McpToolInfo> = [...TOOLS.values()].filter(
+  (tool: McpToolInfo): boolean => {
+    return (
+      !isHelperTool(tool.name) &&
+      !isPublicStatusPageTool(tool.name) &&
+      !isWorkflowTool(tool.name)
+    );
+  },
+);
+
+// The fields of a tool's resource, as an agent reads them before a call.
+function describedFieldsOf(toolName: string): DescribedFields {
+  const description: { success?: boolean; fields?: DescribedFields } =
+    JSON.parse(
+      handleHelperTool(
+        "oneuptime_describe_resource",
+        { resource: toolName },
+        RESOURCE_TOOLS,
+      ),
+    ) as { success?: boolean; fields?: DescribedFields };
+
+  expect([toolName, description.success]).toEqual([toolName, true]);
+
+  return description.fields || {};
+}
 
 describe("the coding agent plugin", () => {
   describe("as an Agent Plugin, which is what Cursor's Marketplace loads", () => {
@@ -657,21 +696,41 @@ describe("the coding agent plugin", () => {
           ]);
         }
 
-        for (const nested of ["query", "sort"]) {
-          const allowed: JSONObject | undefined = (
-            fields[nested] as JSONObject | undefined
-          )?.["properties"] as JSONObject | undefined;
+        if (
+          example.args["query"] === undefined &&
+          example.args["sort"] === undefined
+        ) {
+          continue;
+        }
 
+        /*
+         * A list tool's query and sort name no fields since #5529: an agent
+         * looks a resource's fields up with oneuptime_describe_resource. So
+         * the example's fields are the ones it says the resource can be
+         * filtered and sorted on, and its query is one the API reads as a
+         * filter (FilterCheck).
+         */
+        const described: DescribedFields = describedFieldsOf(example.tool);
+
+        for (const [nested, can] of [
+          ["query", "filter"],
+          ["sort", "sort"],
+        ] as Array<["query" | "sort", "filter" | "sort"]>) {
           expect([
             example.tool,
             nested,
             Object.keys((example.args[nested] as JSONObject) || {}).filter(
               (key: string): boolean => {
-                return !allowed || !(key in allowed);
+                return described[key]?.[can] !== true;
               },
             ),
           ]).toEqual([example.tool, nested, []]);
         }
+
+        expect([
+          example.tool,
+          getFilterProblem(tool!, example.args["query"]),
+        ]).toEqual([example.tool, null]);
       }
     });
 
@@ -771,7 +830,10 @@ describe("the coding agent plugin", () => {
 
     /*
      * The example as the tool would get it: the IDs a skill leaves to the
-     * reader become real ones, the same one for the same placeholder.
+     * reader become real ones, the same one for the same placeholder. A
+     * placeholder is a few words that end in "id", in angle brackets
+     * ("<offline status id>"); a pattern for anything in angle brackets
+     * would take HTML tags out too, which TestTagStripGuard refuses.
      */
     function monitorExample(): {
       args: JSONObject;
@@ -786,7 +848,7 @@ describe("the coding agent plugin", () => {
 
       return {
         args: JSON.parse(
-          block.replace(/<[^>]+>/g, (placeholder: string): string => {
+          block.replace(/<[a-z ]+ id>/g, (placeholder: string): string => {
             if (!ids.has(placeholder)) {
               ids.set(placeholder, ObjectID.generate().toString());
             }

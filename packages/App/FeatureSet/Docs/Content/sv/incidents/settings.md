@@ -32,7 +32,7 @@ Det som OneUptime AI gör på egen hand ställs inte in här: det har ett eget a
 
 **Incidentstatus** och **Incidentallvar** beskrivs ingående i [Incidentstatusar och allvarlighetsgrader](/docs/incidents/states-and-severities) — resten av den här sidan fortsätter från **Incidentmallar**. Formulär som låter folk utanför ditt team rapportera incidenter är en egen produkt: se [Formulär](/docs/forms/index). Verktyg som själva öppnar incidenter, som [Huntress](/docs/integrations/huntress), konfigureras som arbetsflöden.
 
-Fäll ut **Regler**, så får du åtta sidor till: **Grupperingsregler**, **Jourregler**, **Ägarregler**, **Runbook-regler**, **Sekretessregler**, **Etikettregler**, **SLA-regler** och **Reminder Rules**. De beskrivs längre ner.
+Fäll ut **Regler**, så får du åtta sidor till: **Grupperingsregler**, **Jourregler**, **Ägarregler**, **Runbook-regler**, **Sekretessregler**, **Etikettregler**, **SLA-regler** och **Påminnelseregler**. De beskrivs längre ner.
 
 ## Incidentmallar
 
@@ -598,12 +598,12 @@ Grupperings-, SLA-, påminnelse- och AI-regler verkar också på den nya inciden
 - **Sekretessregler** — avgör om en matchande incident är privat.
 - **Etikettregler** — sätter etiketter automatiskt.
 - **SLA-regler** — följer svars- och lösningstider. Reglerna utvärderas från toppen av listan och nedåt; dra en regel för att ändra dess plats.
-- **Reminder Rules** — påminner regelbundet en incidents ägare medan den fortfarande är öppen. Reglerna utvärderas från toppen av listan och nedåt och den första matchande regeln vinner; dra en regel för att ändra dess plats. En incidents regel matchas igen, och väntan till dess nästa påminnelse börjar om, när dess allvarlighetsgrad eller etiketter ändras eller dess reglage **Skicka påminnelser** slås om. Att spara den allvarlighetsgrad och de etiketter som den redan har — varje sparning av kortet **Incidentdetaljer** skickar dem — lämnar dess nästa påminnelse där den var. Larm fungerar på samma sätt.
+- **Påminnelseregler** — påminner regelbundet en incidents ägare medan den fortfarande är öppen. Reglerna utvärderas från toppen av listan och nedåt och den första matchande regeln vinner; dra en regel för att ändra dess plats. En incidents regel matchas igen, och väntan till dess nästa påminnelse börjar om, när dess allvarlighetsgrad eller etiketter ändras eller dess reglage **Skicka påminnelser** slås om. Att spara den allvarlighetsgrad och de etiketter som den redan har — varje sparning av kortet **Incidentdetaljer** skickar dem — lämnar dess nästa påminnelse där den var. Larm fungerar på samma sätt.
 
 > [!IMPORTANT]
 > **Ordningens betydelse är inte enhetlig.** Grupperingsregler, SLA-regler och Reminder Rules utvärderas i ordning, och deras listor ordnas genom att dra: en ny regel läggs till sist. Jourregler gör inte det — varje matchande regel utlöses. Anta inte att en modell gäller för alla nio.
 
-Sidorna **Jourregler**, **Ägarregler**, **Etikettregler** och **Sekretessregler** har flikar — en flik **Incident Rules** och en flik **Episode Rules**, var och en med sin egen tabell. Konfigurera fliken **Incident Rules** om du inte specifikt menar episoder. **Grupperingsregler**, **Runbook-regler**, **AI-regler**, **SLA-regler** och **Reminder Rules** är enkla tabeller.
+Sidorna **Jourregler**, **Ägarregler**, **Etikettregler** och **Sekretessregler** har flikar — en flik **Incident Rules** och en flik **Episode Rules**, var och en med sin egen tabell. Konfigurera fliken **Incident Rules** om du inte specifikt menar episoder. **Grupperingsregler**, **Runbook-regler**, **AI-regler**, **SLA-regler** och **Påminnelseregler** är enkla tabeller.
 
 Ägar-, etikett- och sekretessregler verkar bara på incidenter och episoder som skapas efter att regeln finns. För att tillämpa en av dem på incidenter som redan finns använder du **Kör nu** på regelns rad, på dess egen sida eller från tabellens massåtgärder — se [Köra regler på befintliga resurser](/docs/configuration/run-rules-now). Jour-, runbook-, AI-, grupperings-, SLA- och påminnelseregler kan inte köras mot befintliga incidenter.
 

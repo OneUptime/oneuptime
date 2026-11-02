@@ -83,7 +83,7 @@ Em instalações auto-hospedadas, substitua `oneuptime.com` pelo seu host do One
 
 ### Conferir o envio
 
-Um envio bem-sucedido retorna um corpo JSON com a lista dos maps armazenados, para que a CI possa verificar. Os maps também aparecem na página **Source Maps** do serviço no OneUptime.
+Um envio bem-sucedido retorna um corpo JSON com a lista dos maps armazenados, para que a CI possa verificar. Os maps também aparecem na página **Source maps** do serviço no OneUptime.
 :::
 
 Uma etapa típica de CI envia todos os maps que o build gerou:
@@ -127,7 +127,7 @@ Instalações auto-hospedadas podem mudar esses valores. Os cinco são variávei
 
 Abra qualquer exceção em **Exceções** no painel. Os frames resolvidos por um source map mostram um selo **Source mapped** e exibem o nome da função e o local do arquivo originais; expandir um frame mostra o trecho do código-fonte original (quando o map traz `sourcesContent`) ao lado do local minificado.
 
-Os maps enviados de um serviço podem ser revisados e excluídos em **Produtos → Serviços → seu serviço → Source Maps**, que lista a versão, o bundle, o tamanho e o horário de envio de cada map.
+Os maps enviados de um serviço podem ser revisados e excluídos em **Produtos → Serviços → seu serviço → Source maps**, que lista a versão, o bundle, o tamanho e o horário de envio de cada map.
 
 ## Retenção
 
@@ -142,7 +142,7 @@ Os source maps são mantidos por 90 dias após o envio e depois excluídos autom
 ## Solução de problemas
 
 :::details Os frames continuam minificados
-A versão da exceção não tem maps correspondentes. Confira se o `service.version` que sua aplicação envia é exatamente o `serviceVersion` usado no envio, se `serviceName` corresponde a `service.name` e se um map foi enviado para esse arquivo de bundle: a página **Source Maps** do serviço lista a versão e o bundle de cada map.
+A versão da exceção não tem maps correspondentes. Confira se o `service.version` que sua aplicação envia é exatamente o `serviceVersion` usado no envio, se `serviceName` corresponde a `service.name` e se um map foi enviado para esse arquivo de bundle: a página **Source maps** do serviço lista a versão e o bundle de cada map.
 :::
 
 :::details O envio é rejeitado porque um map é grande demais

@@ -1,6 +1,6 @@
 # Kubernetes-kostnadsobserverbarhet
 
-Se hva hver Kubernetes-arbeidsbelastning koster — forbruk per navnerom, arbeidsbelastning og pod, ledig kapasitet og hvor mye av hver request som brukes — ved siden av metrikkene, loggene og sporene [Kubernetes-agenten](/docs/telemetry/kubernetes-agent) allerede samler inn. Én Helm-verdi slår det på, uten skylegitimasjon, og klyngens side **Costs** forteller deg deretter hvilke requests som bør krympes.
+Se hva hver Kubernetes-arbeidsbelastning koster — forbruk per navnerom, arbeidsbelastning og pod, ledig kapasitet og hvor mye av hver request som brukes — ved siden av metrikkene, loggene og sporene [Kubernetes-agenten](/docs/telemetry/kubernetes-agent) allerede samler inn. Én Helm-verdi slår det på, uten skylegitimasjon, og klyngens side **Kostnader** forteller deg deretter hvilke requests som bør krympes.
 
 :::cards
 - [Slå det på](#slå-på-kostnadsobserverbarhet): Én `helm upgrade`.
@@ -51,8 +51,8 @@ De første kostnadene vises etter at den første hele timen er avsluttet, og Ope
 
 ### Åpne Costs-sidene
 
-- **Produkter → Infrastruktur → Kubernetes → Costs** viser forbruket på tvers av alle klynger i prosjektet.
-- På en klynge viser **Costs** forbrukstrenden, **Spend by Namespace** med fordelingen på CPU, minne og lagring, **Spend by Workload**, forbruk på ledig kapasitet, effektivitet og kortet **Right-Sizing**.
+- **Produkter → Infrastruktur → Kubernetes → Kostnader** viser forbruket på tvers av alle klynger i prosjektet.
+- På en klynge viser **Kostnader** forbrukstrenden, **Spend by Namespace** med fordelingen på CPU, minne og lagring, **Spend by Workload**, forbruk på ledig kapasitet, effektivitet og kortet **Right-Sizing**.
 :::
 
 Kostnadsmetrikkene (`node_total_hourly_cost`, `pv_hourly_cost` og resten) er vanlige metrikker: de finnes i metrikkutforskeren, på egendefinerte dashbord og i metrikkmonitorer. For et ferdig dashbord, gå til **Produkter → Dashbord**, velg **Opprett dashbord** og velg **Kubernetes Cost Dashboard**: trender for nodenes timekostnad, enhetskostnader for CPU og minne, og forbruk på volumer og lastbalanserere.
@@ -113,7 +113,7 @@ cost:
 
 ## Right-sizing
 
-Kortet **Right-Sizing** på en klynges side **Costs** anbefaler en CPU- og en minne-request for hver container det har nok historikk for, rangert etter hvor mye hver endring sparer per måned.
+Kortet **Right-Sizing** på en klynges side **Kostnader** anbefaler en CPU- og en minne-request for hver container det har nok historikk for, rangert etter hvor mye hver endring sparer per måned.
 
 En anbefaling er den observerte etterspørselen pluss 25 % margin, avrundet til en verdi du kan lime inn i et manifest (10m CPU, 16Mi minne):
 

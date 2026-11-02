@@ -25,7 +25,7 @@ flowchart TB
     issues --> owners["E-mail aos proprietários"]
 ```
 
-1. O **Discovery** encontra os repositórios que o OneUptime já conhece: o seu inventário de nuvem, os bancos de dados que o produto Database monitora, os bancos de dados com que os seus serviços se comunicam no mapa de serviços e a telemetria de cada serviço. Você só adiciona um repositório manualmente quando nenhuma origem o lista.
+1. A **Descoberta** encontra os repositórios que o OneUptime já conhece: o seu inventário de nuvem, os bancos de dados que o produto Database monitora, os bancos de dados com que os seus serviços se comunicam no mapa de serviços e a telemetria de cada serviço. Você só adiciona um repositório manualmente quando nenhuma origem o lista.
 2. **A leitura da configuração** pergunta a cada nuvem como cada repositório está configurado: quem pode acessá-lo e como ele é criptografado, copiado em backup e registrado em logs. Ela lê configurações, nunca dados.
 3. **As amostras de conteúdo** leem um pouco do que um repositório contém, onde você permitir: alguns objetos de cada tipo em um bucket, algumas linhas de cada tabela, os registros mais recentes da telemetria de cada serviço.
 4. A **Classificação** encontra valores sensíveis nas amostras e guarda contagens e amostras mascaradas, nunca um valor.

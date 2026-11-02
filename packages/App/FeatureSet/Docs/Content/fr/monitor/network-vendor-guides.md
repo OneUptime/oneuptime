@@ -60,13 +60,13 @@ Après l'interrogation suivante, la page **Tables SNMP** de l'équipement liste 
 
 Sur la page de l'équipement, cliquez sur **Créer un moniteur**. Les alertes recommandées incluent **IPsec Tunnels: row unhealthy**, un critère **SNMP Table Row Is Unhealthy** sur la table `ipsec_tunnels` avec Row `*` : il ouvre un incident par tunnel inactif, nommé d'après le tunnel, et résout chacun quand son tunnel revient.
 
-Un tunnel que Sophos déclare actif n'a que ses associations de sécurité établies. Pour prouver que du trafic le traverse, ajoutez un [moniteur Ping](/docs/monitor/ping-monitor) depuis une sonde d'un site vers un hôte de l'autre côté de chaque tunnel, et dessinez le tunnel comme lien de site sous **Réseau → Topologie → Site Links** entre les deux [sites](/docs/monitor/network-sites), lié à ce moniteur : le lien sur la carte prend alors la couleur du moniteur.
+Un tunnel que Sophos déclare actif n'a que ses associations de sécurité établies. Pour prouver que du trafic le traverse, ajoutez un [moniteur Ping](/docs/monitor/ping-monitor) depuis une sonde d'un site vers un hôte de l'autre côté de chaque tunnel, et dessinez le tunnel comme lien de site sous **Réseau → Topologie → Liens du site** entre les deux [sites](/docs/monitor/network-sites), lié à ce moniteur : le lien sur la carte prend alors la couleur du moniteur.
 
 ### Liens WAN
 
 - **Santé des ports.** Le parcours des interfaces mesure déjà le statut, les bits entrants et sortants, l'utilisation et les erreurs de chaque port WAN. Sur le moniteur du pare-feu, un critère **SNMP Interface Is Down** ou **SNMP Interface Utilization (in %)** avec **Interface** réglé sur le nom du port WAN, ou `*` pour chaque port, alerte par lien.
 - **Qualité du chemin.** La latence, la perte de paquets et la gigue de chaque lien se mesurent depuis l'extérieur du pare-feu : un moniteur Ping depuis les sondes cloud de OneUptime vers l'adresse publique de chaque lien WAN, et un moniteur Ping depuis une sonde du site vers la passerelle de chaque fournisseur d'accès. Des critères de perte de paquets et de gigue sur ces moniteurs alertent par lien, et **Réseau → Topologie → Matrice de latence** montre chaque sonde face à chaque moniteur d'un coup d'œil.
-- **Trafic.** SFOS exporte du NetFlow v5. Envoyez-le à la sonde sur UDP 2055, où le collecteur de flux de la sonde écoute par défaut, et la page **Traffic** de l'équipement montre qui parle à qui sur chaque lien WAN ; [Trafic réseau](/docs/monitor/network-traffic) donne les détails.
+- **Trafic.** SFOS exporte du NetFlow v5. Envoyez-le à la sonde sur UDP 2055, où le collecteur de flux de la sonde écoute par défaut, et la page **Trafic** de l'équipement montre qui parle à qui sur chaque lien WAN ; [Trafic réseau](/docs/monitor/network-traffic) donne les détails.
 
 ### Passerelles et SD-WAN depuis le syslog
 
@@ -111,7 +111,7 @@ Les alimentations, les ventilateurs, les capteurs de température et les membres
 
 ### Flux et Wi-Fi
 
-EXOS et Fabric Engine exportent des flux en sFlow et en IPFIX. Envoyez le sFlow à la sonde sur UDP 6343, ou l'IPFIX sur UDP 4739, et la page **Traffic** de l'équipement montre son trafic ; voir [Trafic réseau](/docs/monitor/network-traffic).
+EXOS et Fabric Engine exportent des flux en sFlow et en IPFIX. Envoyez le sFlow à la sonde sur UDP 6343, ou l'IPFIX sur UDP 4739, et la page **Trafic** de l'équipement montre son trafic ; voir [Trafic réseau](/docs/monitor/network-traffic).
 
 Les points d'accès IQ Engine (HiveOS) et ExtremeCloud IQ Controller ont leurs propres modèles constructeurs, qui remplissent la page **Wi-Fi** de l'équipement. [Constructeurs Wi-Fi pris en charge](/docs/monitor/network-device-monitor#constructeurs-wi-fi-pris-en-charge) les décrit, avec Ubiquiti UniFi, HPE Aruba, TP-Link Omada et Juniper Mist.
 

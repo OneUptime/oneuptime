@@ -130,7 +130,7 @@ curl -X POST 'https://oneuptime.com/api/inventory-item/get-list?output-type=csv'
   -o inventory.csv
 ```
 
-Listan **All Items** i instrumentpanelen exporterar på samma sätt, med de kolumner för anpassade fält som du har slagit på. Varje [tillgångsdetalj](#tillgångsdetaljer) är också en kolumn där: **Värdnamn**, **IP-adress**, **Serienummer**, **Modell** och resten är dolda från början, så slå på dem från kolumnväljaren, och exporten innehåller en kolumn per uppgift, oavsett om en rad är en värd eller en nätverksenhet.
+Listan **Alla objekt** i instrumentpanelen exporterar på samma sätt, med de kolumner för anpassade fält som du har slagit på. Varje [tillgångsdetalj](#tillgångsdetaljer) är också en kolumn där: **Värdnamn**, **IP-adress**, **Serienummer**, **Modell** och resten är dolda från början, så slå på dem från kolumnväljaren, och exporten innehåller en kolumn per uppgift, oavsett om en rad är en värd eller en nätverksenhet.
 
 ## Tillgångsdetaljer
 

@@ -441,7 +441,7 @@ Se [Omdirigeringar till ett annat ursprung](/docs/telemetry/session-replay#omdir
 
 ## Varje session i listan säger Anonymous eller Visitor
 
-Inspelaren vet inte vem din användare är om inte din sida berättar det. Anropa `OneUptimeReplay.identify(userRef, traits)` så snart du vet det, eller lägg det i kön `window.OneUptimeReplayQueue` innan skriptet laddas — se [Identifiera dina användare](/docs/telemetry/session-replay#identifiera-dina-användare). Fram till dess grupperar listan en webbläsares sessioner under _Visitor a1b2c3_, det slumpmässiga [besöks-ID](/docs/telemetry/session-replay#anonyma-besökare) som inspelaren skapar för varje webbläsare, som följer en webbläsare och aldrig en person mellan enheter; sidan **Replay Users** och spelarens meny med andra sessioner fungerar med det, sökningen `user:` gör det inte.
+Inspelaren vet inte vem din användare är om inte din sida berättar det. Anropa `OneUptimeReplay.identify(userRef, traits)` så snart du vet det, eller lägg det i kön `window.OneUptimeReplayQueue` innan skriptet laddas — se [Identifiera dina användare](/docs/telemetry/session-replay#identifiera-dina-användare). Fram till dess grupperar listan en webbläsares sessioner under _Visitor a1b2c3_, det slumpmässiga [besöks-ID](/docs/telemetry/session-replay#anonyma-besökare) som inspelaren skapar för varje webbläsare, som följer en webbläsare och aldrig en person mellan enheter; sidan **Användare i uppspelningar** och spelarens meny med andra sessioner fungerar med det, sökningen `user:` gör det inte.
 
 Fem saker som raderna berättar:
 

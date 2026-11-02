@@ -441,7 +441,7 @@ OpenTelemetry 浏览器 SDK 的 OTLP/HTTP 导出器发送 `application/json` ，
 
 ## 列表中的每个会话都显示 Anonymous 或 Visitor
 
-除非你的页面告诉录制器，否则它不知道你的用户是谁。一旦知道就调用 `OneUptimeReplay.identify(userRef, traits)` ，或者在脚本加载之前把它放进 `window.OneUptimeReplayQueue` 队列 — 参见 [识别你的用户](/docs/telemetry/session-replay#识别你的用户) 。在此之前，列表会把同一个浏览器的会话归到 _Visitor a1b2c3_ 名下，这是录制器为每个浏览器创建的随机 [访客 ID](/docs/telemetry/session-replay#匿名访客) ，它跟随的是浏览器，而不会跨设备跟随某个人； **Replay Users** 页面和播放器的其他会话菜单可以使用它， `user:` 搜索则不行。
+除非你的页面告诉录制器，否则它不知道你的用户是谁。一旦知道就调用 `OneUptimeReplay.identify(userRef, traits)` ，或者在脚本加载之前把它放进 `window.OneUptimeReplayQueue` 队列 — 参见 [识别你的用户](/docs/telemetry/session-replay#识别你的用户) 。在此之前，列表会把同一个浏览器的会话归到 _Visitor a1b2c3_ 名下，这是录制器为每个浏览器创建的随机 [访客 ID](/docs/telemetry/session-replay#匿名访客) ，它跟随的是浏览器，而不会跨设备跟随某个人； **回放用户** 页面和播放器的其他会话菜单可以使用它， `user:` 搜索则不行。
 
 这些行能说明的五件事：
 

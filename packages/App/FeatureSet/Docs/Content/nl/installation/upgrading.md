@@ -398,7 +398,7 @@ Het oude adres van de pagina **AI Access** opent **Runbooks → Runbook-agenten*
 
 ### AI inschakelen is de enige AI-schakelaar
 
-**Projectinstellingen → AI → AI Features** had drie schakelaars. **Enable Auto-Remediation** en **Enable AI Command Execution (for Runners)** zijn verdwenen: automatisch herstel en AI-opdrachten op Runners draaien zodra **AI inschakelen** aan staat. **AI inschakelen** uitzetten stopt ze samen met elke andere AI-functie, inclusief regels voor automatisch herstel die een runbook zonder AI starten. Een project waarin **AI inschakelen** al uit staat, stopt daarom na de upgrade met het uitvoeren van die regels; zet **AI inschakelen** aan om ze te houden.
+**Projectinstellingen → AI → AI-functies** had drie schakelaars. **Enable Auto-Remediation** en **Enable AI Command Execution (for Runners)** zijn verdwenen: automatisch herstel en AI-opdrachten op Runners draaien zodra **AI inschakelen** aan staat. **AI inschakelen** uitzetten stopt ze samen met elke andere AI-functie, inclusief regels voor automatisch herstel die een runbook zonder AI starten. Een project waarin **AI inschakelen** al uit staat, stopt daarom na de upgrade met het uitvoeren van die regels; zet **AI inschakelen** aan om ze te houden.
 
 De twee schakelaars hielden sommige herstelacties tegen. Zodat niets uw systemen begint te wijzigen zonder een mens als ze verdwijnen, laat de serverupgrade die herstelacties eerst om goedkeuring vragen:
 
@@ -436,7 +436,7 @@ De AI-pagina's zijn ook veranderd in de zijmenu's van Incidenten en Waarschuwing
 
 ### De AI Logs krijgen een index voor de dagelijkse AI-limieten
 
-De dagelijkse AI-limieten van een project (**Projectinstellingen → AI → AI Features → Meer instellingen**) en de dagelijkse tokenlimieten voor incidenten en waarschuwingen tellen vóór elke AI-aanroep de AI Logs van die dag op. Tot nu toe las dat elke AI Log die het project ooit had geschreven, en een zelf gehoste installatie bewaart ze allemaal. De upgrade voegt een index toe op de AI Logs (`LlmLog`), op het project en het tijdstip van elke aanroep, zodat elke controle alleen die van die dag leest. De pagina met AI Logs toont de logs van een project ook sneller.
+De dagelijkse AI-limieten van een project (**Projectinstellingen → AI → AI-functies → Meer instellingen**) en de dagelijkse tokenlimieten voor incidenten en waarschuwingen tellen vóór elke AI-aanroep de AI Logs van die dag op. Tot nu toe las dat elke AI Log die het project ooit had geschreven, en een zelf gehoste installatie bewaart ze allemaal. De upgrade voegt een index toe op de AI Logs (`LlmLog`), op het project en het tijdstip van elke aanroep, zodat elke controle alleen die van die dag leest. De pagina met AI Logs toont de logs van een project ook sneller.
 
 Niets te doen: de index wordt tijdens de upgrade online gebouwd (`CREATE INDEX CONCURRENTLY`), en AI-aanroepen blijven werken terwijl hij wordt gebouwd. Op een grote AI Logs-tabel duurt dat een paar minuten. Het bouwen wacht hooguit twee minuten achter één langlopende transactie, zoals een back-up, en duurt hooguit vijftien. Lukt het niet af te ronden, dan wordt de upgrade toch voltooid, blijven de limieten zonder de index werken, en zegt het logboek dat en hoe u hem bouwt. Voer dit op elk moment uit op de OneUptime-database, buiten een transactie:
 

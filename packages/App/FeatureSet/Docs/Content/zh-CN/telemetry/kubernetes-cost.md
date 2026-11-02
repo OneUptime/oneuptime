@@ -1,6 +1,6 @@
 # Kubernetes 成本可观测性
 
-查看每个 Kubernetes 工作负载的成本——按命名空间、工作负载和 Pod 统计的支出、空闲容量，以及每个 request 被实际使用了多少——就在 [Kubernetes 代理](/docs/telemetry/kubernetes-agent) 已经采集的指标、日志和追踪旁边。一个 Helm 值即可开启，无需任何云凭据，随后集群的 **Costs** 页面会告诉你应缩减哪些 request。
+查看每个 Kubernetes 工作负载的成本——按命名空间、工作负载和 Pod 统计的支出、空闲容量，以及每个 request 被实际使用了多少——就在 [Kubernetes 代理](/docs/telemetry/kubernetes-agent) 已经采集的指标、日志和追踪旁边。一个 Helm 值即可开启，无需任何云凭据，随后集群的 **成本** 页面会告诉你应缩减哪些 request。
 
 :::cards
 - [开启它](#开启成本可观测性): 一条 `helm upgrade`。
@@ -49,10 +49,10 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 第一批成本会在第一个完整的小时结束后出现，而且 OpenCost 启动后需要几分钟来为它的第一个小时定价。
 
-### 打开 Costs 页面
+### 打开成本页面
 
-- **产品 → 基础设施 → Kubernetes → Costs** 显示项目中所有集群的支出。
-- 在某个集群上，**Costs** 显示其支出趋势、按 CPU、内存和存储拆分的 **Spend by Namespace**、**Spend by Workload**、空闲支出、效率，以及 **Right-Sizing** 卡片。
+- **产品 → 基础设施 → Kubernetes → 成本** 显示项目中所有集群的支出。
+- 在某个集群上，**成本** 显示其支出趋势、按 CPU、内存和存储拆分的 **Spend by Namespace**、**Spend by Workload**、空闲支出、效率，以及 **Right-Sizing** 卡片。
 :::
 
 成本指标（`node_total_hourly_cost`、`pv_hourly_cost` 等）都是普通指标：它们出现在指标浏览器中、自定义仪表板上和指标监视器中。要使用现成的仪表板，请转到 **产品 → 仪表板**，选择 **创建仪表板**，然后挑选 **Kubernetes Cost Dashboard**：其中包含节点每小时成本趋势、CPU 和内存单价，以及卷和负载均衡器的支出。
@@ -113,7 +113,7 @@ cost:
 
 ## 资源规格调整
 
-集群 **Costs** 页面上的 **Right-Sizing** 卡片，会为每个有足够历史数据的容器推荐 CPU 和内存 request，并按每项更改每月能节省多少进行排序。
+集群 **成本** 页面上的 **Right-Sizing** 卡片，会为每个有足够历史数据的容器推荐 CPU 和内存 request，并按每项更改每月能节省多少进行排序。
 
 建议值是观测到的需求加上 25% 的余量，并取整为可以直接粘贴到清单文件中的值（CPU 以 10m 为单位，内存以 16Mi 为单位）：
 

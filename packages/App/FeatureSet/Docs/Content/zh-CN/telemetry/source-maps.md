@@ -83,7 +83,7 @@ curl --fail -X POST "https://oneuptime.com/source-maps/v1/upload" \
 
 ### 检查上传结果
 
-上传成功后会返回一个列出已存储映射的 JSON 正文，CI 可以据此进行断言。这些映射也会列在 OneUptime 中该服务的 **Source Maps** 页面上。
+上传成功后会返回一个列出已存储映射的 JSON 正文，CI 可以据此进行断言。这些映射也会列在 OneUptime 中该服务的 **源映射** 页面上。
 :::
 
 典型的 CI 步骤会上传构建输出的每个映射：
@@ -127,7 +127,7 @@ done
 
 在仪表板的 **异常** 下打开任意异常。通过源代码映射解析的栈帧会显示 **Source mapped** 徽章，并显示原始函数名和文件位置；展开栈帧会在压缩位置旁边显示原始源代码片段（当映射包含 `sourcesContent` 时）。
 
-某个服务已上传的映射可以在 **产品 → 服务 → 你的服务 → Source Maps** 中查看和删除，那里列出了每个映射的版本、bundle、大小和上传时间。
+某个服务已上传的映射可以在 **产品 → 服务 → 你的服务 → 源映射** 中查看和删除，那里列出了每个映射的版本、bundle、大小和上传时间。
 
 ## 保留
 
@@ -142,7 +142,7 @@ done
 ## 故障排查
 
 :::details 栈帧仍然是压缩后的
-该异常的版本没有匹配的映射。请检查：你的应用发送的 `service.version` 是否与上传时使用的 `serviceVersion` 完全相同，`serviceName` 是否与 `service.name` 匹配，以及是否为该 bundle 文件上传了映射。服务的 **Source Maps** 页面列出了每个映射的版本和 bundle。
+该异常的版本没有匹配的映射。请检查：你的应用发送的 `service.version` 是否与上传时使用的 `serviceVersion` 完全相同，`serviceName` 是否与 `service.name` 匹配，以及是否为该 bundle 文件上传了映射。服务的 **源映射** 页面列出了每个映射的版本和 bundle。
 :::
 
 :::details 上传因映射太大而被拒绝

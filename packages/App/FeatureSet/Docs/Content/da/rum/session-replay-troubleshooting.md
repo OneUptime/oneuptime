@@ -441,7 +441,7 @@ Se [Omdirigeringer til en anden oprindelse](/docs/telemetry/session-replay#omdir
 
 ## Hver session i listen siger Anonymous eller Visitor
 
-Optageren ved ikke, hvem din bruger er, medmindre din side fortæller det. Kald `OneUptimeReplay.identify(userRef, traits)`, så snart du ved det, eller sæt det i kø i `window.OneUptimeReplayQueue`, før scriptet indlæses — se [Identificer dine brugere](/docs/telemetry/session-replay#identificer-dine-brugere). Indtil da grupperer listen en browsers sessioner under _Visitor a1b2c3_, det tilfældige [besøgs-id](/docs/telemetry/session-replay#anonyme-besøgende), som optageren opretter for hver browser, og som følger en browser og aldrig en person på tværs af enheder; siden **Replay Users** og afspillerens menu med andre sessioner virker med det, søgningen `user:` gør ikke.
+Optageren ved ikke, hvem din bruger er, medmindre din side fortæller det. Kald `OneUptimeReplay.identify(userRef, traits)`, så snart du ved det, eller sæt det i kø i `window.OneUptimeReplayQueue`, før scriptet indlæses — se [Identificer dine brugere](/docs/telemetry/session-replay#identificer-dine-brugere). Indtil da grupperer listen en browsers sessioner under _Visitor a1b2c3_, det tilfældige [besøgs-id](/docs/telemetry/session-replay#anonyme-besøgende), som optageren opretter for hver browser, og som følger en browser og aldrig en person på tværs af enheder; siden **Brugere i afspilninger** og afspillerens menu med andre sessioner virker med det, søgningen `user:` gør ikke.
 
 Fem ting, rækkerne fortæller dig:
 

@@ -60,13 +60,13 @@ Depois da próxima sondagem, a página **Tabelas SNMP** do dispositivo lista cad
 
 Na página do dispositivo, clique em **Criar monitor**. Os alertas recomendados incluem **IPsec Tunnels: row unhealthy**, um critério **SNMP Table Row Is Unhealthy** sobre a tabela `ipsec_tunnels` com Row `*`: ele abre um incidente por túnel que não está ativo, com o nome do túnel, e resolve cada um quando o túnel dele volta.
 
-Um túnel que a Sophos informa como ativo só tem as associações de segurança estabelecidas. Para provar que o tráfego passa por ele, adicione um [monitor Ping](/docs/monitor/ping-monitor) de uma sonda em um site para um host do outro lado de cada túnel, e desenhe o túnel como um enlace entre sites em **Rede → Topologia → Site Links** entre os dois [sites](/docs/monitor/network-sites), vinculado a esse monitor: o enlace no mapa passa a ter a cor do monitor.
+Um túnel que a Sophos informa como ativo só tem as associações de segurança estabelecidas. Para provar que o tráfego passa por ele, adicione um [monitor Ping](/docs/monitor/ping-monitor) de uma sonda em um site para um host do outro lado de cada túnel, e desenhe o túnel como um enlace entre sites em **Rede → Topologia → Links do site** entre os dois [sites](/docs/monitor/network-sites), vinculado a esse monitor: o enlace no mapa passa a ter a cor do monitor.
 
 ### Enlaces WAN
 
 - **Saúde das portas.** O walk das interfaces já mede o status, os bits de entrada e saída, a utilização e os erros de cada porta WAN. No monitor do firewall, um critério **SNMP Interface Is Down** ou **SNMP Interface Utilization (in %)** com **Interface** definido como o nome da porta WAN, ou `*` para todas as portas, alerta por enlace.
-- **Qualidade do caminho.** A latência, a perda de pacotes e o jitter de cada enlace são medidos de fora do firewall: um monitor Ping a partir das sondas em nuvem do OneUptime para o endereço público de cada enlace WAN, e um monitor Ping a partir de uma sonda no site para o gateway de cada provedor. Critérios de perda de pacotes e de jitter nesses monitores alertam por enlace, e **Rede → Topologia → Latency Matrix** mostra de relance cada sonda contra cada monitor.
-- **Tráfego.** O SFOS exporta NetFlow v5. Envie-o para a sonda em UDP 2055, onde o coletor de fluxos da sonda escuta por padrão, e a página **Traffic** do dispositivo mostra quem fala com quem em cada enlace WAN; [Tráfego de rede](/docs/monitor/network-traffic) tem os detalhes.
+- **Qualidade do caminho.** A latência, a perda de pacotes e o jitter de cada enlace são medidos de fora do firewall: um monitor Ping a partir das sondas em nuvem do OneUptime para o endereço público de cada enlace WAN, e um monitor Ping a partir de uma sonda no site para o gateway de cada provedor. Critérios de perda de pacotes e de jitter nesses monitores alertam por enlace, e **Rede → Topologia → Matriz de latência** mostra de relance cada sonda contra cada monitor.
+- **Tráfego.** O SFOS exporta NetFlow v5. Envie-o para a sonda em UDP 2055, onde o coletor de fluxos da sonda escuta por padrão, e a página **Tráfego** do dispositivo mostra quem fala com quem em cada enlace WAN; [Tráfego de rede](/docs/monitor/network-traffic) tem os detalhes.
 
 ### Gateways e SD-WAN a partir do syslog
 
@@ -111,7 +111,7 @@ Fontes de alimentação, ventoinhas, sensores de temperatura e membros da pilha 
 
 ### Fluxos e Wi-Fi
 
-O EXOS e o Fabric Engine exportam fluxos como sFlow e IPFIX. Envie o sFlow para a sonda em UDP 6343, ou o IPFIX em UDP 4739, e a página **Traffic** do dispositivo mostra o tráfego dele; veja [Tráfego de rede](/docs/monitor/network-traffic).
+O EXOS e o Fabric Engine exportam fluxos como sFlow e IPFIX. Envie o sFlow para a sonda em UDP 6343, ou o IPFIX em UDP 4739, e a página **Tráfego** do dispositivo mostra o tráfego dele; veja [Tráfego de rede](/docs/monitor/network-traffic).
 
 Os access points IQ Engine (HiveOS) e o ExtremeCloud IQ Controller têm modelos do fabricante próprios, que preenchem a página **Wi-Fi** do dispositivo. [Fabricantes de Wi-Fi compatíveis](/docs/monitor/network-device-monitor#fabricantes-de-wi-fi-compatíveis) trata deles, junto com Ubiquiti UniFi, HPE Aruba, TP-Link Omada e Juniper Mist.
 

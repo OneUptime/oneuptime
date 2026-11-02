@@ -73,7 +73,7 @@ Vul de waarden in op de pagina **Aangepaste velden** van een item. Elk item neem
 
 ## De lijst filteren
 
-Elk aangepast veld wordt een filter boven de lijst **All Items**, en het filter biedt de vergelijkingen die bij het type passen:
+Elk aangepast veld wordt een filter boven de lijst **Alle items**, en het filter biedt de vergelijkingen die bij het type passen:
 
 | Veldtype | Vergelijkingen |
 | --- | --- |

@@ -32,7 +32,7 @@ flowchart LR
 
 ## Åbn Topologi
 
-Gå til **Produkter → Observabilitet → Topologi**. **Inventar → Topology Map** åbner den samme side. Den åbner på **Service Map** for **Seneste dag**.
+Gå til **Produkter → Observabilitet → Topologi**. **Inventar → Topologikort** åbner den samme side. Den åbner på **Service Map** for **Seneste dag**.
 
 | Visning | Spørgsmålet, den besvarer |
 | --- | --- |

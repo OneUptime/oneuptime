@@ -137,7 +137,7 @@ Agenten skickar allt som mgr-modulen `prometheus` exporterar. OneUptimes Ceph-si
 | OSD | `ceph_osd_up`, `ceph_osd_in`, `ceph_osd_apply_latency_ms`, `ceph_osd_commit_latency_ms`, `ceph_osd_stat_bytes`, `ceph_osd_stat_bytes_used`, `ceph_osd_numpg`, `ceph_osd_metadata`, per OSD efter etiketten `ceph_daemon` (till exempel `osd.3`) |
 | Pool | `ceph_pool_stored`, `ceph_pool_max_avail`, `ceph_pool_objects`, `ceph_pool_rd`, `ceph_pool_wr`, `ceph_pool_rd_bytes`, `ceph_pool_wr_bytes`, `ceph_pool_metadata`. Dataserierna har bara en etikett `pool_id`; poolens namn står på `ceph_pool_metadata`. |
 | Placement groups | `ceph_pg_total`, `ceph_pg_active`, `ceph_pg_clean`, `ceph_pg_degraded`, `ceph_pg_undersized` (alla per pool, efter `pool_id`), `ceph_num_objects_degraded`, `ceph_num_objects_misplaced` |
-| Daemoner | `ceph_mgr_metadata`, `ceph_mds_metadata` och `ceph_rgw_metadata`, utöver monitor- och OSD-metadata ovan. Var och en namnger en daemon och bär dess version i etiketten `ceph_version`: Sidan **Daemons** listar dem. |
+| Daemoner | `ceph_mgr_metadata`, `ceph_mds_metadata` och `ceph_rgw_metadata`, utöver monitor- och OSD-metadata ovan. Var och en namnger en daemon och bär dess version i etiketten `ceph_version`: Sidan **Daemoner** listar dem. |
 
 ### Fler skrapmål
 
@@ -150,7 +150,7 @@ Båda får resursattributet `ceph.cluster.name` från den medföljande processor
 
 ## Valfritt — Skicka Ceph-klusterloggen
 
-Agenten kan följa `/var/log/ceph/ceph.log` och skicka den till OneUptime, vilket fyller klustrets sida **Cluster Log**. Det är avstängt som standard eftersom agenten då måste köras på en värd som har klusterloggen: som standard en monitorvärd.
+Agenten kan följa `/var/log/ceph/ceph.log` och skicka den till OneUptime, vilket fyller klustrets sida **Klusterlogg**. Det är avstängt som standard eftersom agenten då måste köras på en värd som har klusterloggen: som standard en monitorvärd.
 
 :::steps
 ### Slå på receivern

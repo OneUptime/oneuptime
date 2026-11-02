@@ -15,7 +15,10 @@ import path from "path";
  * the lit entry kept in sight in a menu taller than the window, with the
  * list fading out at an edge that hides entries. SideMenuWordBreaks.spec.ts
  * measures where its words break, in Firefox too: Firefox hyphenates
- * whatever word ends a line where Chrome moves it whole to the next.
+ * whatever word ends a line where Chrome moves it whole to the next. Its
+ * tests of what may be hyphenated run in WebKit as well, Safari's engine,
+ * which reads its own limits (-webkit-hyphenate-limit-before and -after)
+ * and no hyphenate-limit-chars.
  */
 const port: string = process.env["RULES_MENU_SECTION_FIXTURE_PORT"] || "4385";
 
@@ -48,6 +51,22 @@ export default defineConfig({
       testMatch: "SideMenuWordBreaks.spec.ts",
       use: {
         ...devices["Desktop Firefox"],
+        viewport: { width: 1280, height: 900 },
+      },
+    },
+    /*
+     * ...and what may be hyphenated, in Safari's engine: the long words
+     * alone, with WebKit's own limits. Playwright's WebKit on Linux has no
+     * hyphenation dictionaries, so where it would break a word cannot be
+     * measured in it: that is measured in Firefox, told to read no
+     * hyphenate-limit-chars, as Safari.
+     */
+    {
+      name: "webkit",
+      testMatch: "SideMenuWordBreaks.spec.ts",
+      grep: /may be hyphenated/,
+      use: {
+        ...devices["Desktop Safari"],
         viewport: { width: 1280, height: 900 },
       },
     },

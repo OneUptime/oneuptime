@@ -85,32 +85,27 @@ const FOCUS_RING: string =
 
 interface IconBoxProps {
   icon: IconProp;
-  // The official logo of the product a step talks to, drawn instead.
+  /*
+   * The product a step talks to (Slack, Discord): its official mark is
+   * drawn where the icon would be, in the icon's grey, so a chat step sits
+   * among the other steps as one of them.
+   */
   logo?: ProviderLogo | undefined;
   size?: "small" | "regular" | "large";
 }
 
-const LOGO_BOX_SIZES: Readonly<
+// The mark's size in each box: the icon's.
+const LOGO_MARK_SIZES: Readonly<
   Record<"small" | "regular" | "large", ProviderLogoSize>
 > = {
-  small: 28,
-  regular: 36,
-  large: 44,
+  small: 14,
+  regular: 16,
+  large: 20,
 };
 
 export const IconBox: FunctionComponent<IconBoxProps> = (
   props: IconBoxProps,
 ): ReactElement => {
-  if (props.logo) {
-    return (
-      <ProviderLogoImage
-        logo={props.logo}
-        size={LOGO_BOX_SIZES[props.size || "regular"]}
-        isDecorative={true}
-      />
-    );
-  }
-
   let boxClass: string = "h-9 w-9 rounded-lg";
   let iconClass: string = "h-4 w-4";
 
@@ -127,7 +122,17 @@ export const IconBox: FunctionComponent<IconBoxProps> = (
       aria-hidden="true"
       className={`flex flex-shrink-0 items-center justify-center bg-gray-100 text-gray-600 ${boxClass}`}
     >
-      <Icon icon={props.icon} className={iconClass} />
+      {props.logo ? (
+        <ProviderLogoImage
+          logo={props.logo}
+          size={LOGO_MARK_SIZES[props.size || "regular"]}
+          isBare={true}
+          isDecorative={true}
+          colorClassName="text-current"
+        />
+      ) : (
+        <Icon icon={props.icon} className={iconClass} />
+      )}
     </div>
   );
 };

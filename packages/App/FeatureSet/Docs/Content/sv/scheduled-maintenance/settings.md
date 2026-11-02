@@ -18,7 +18,7 @@ Konfigurationen av underhåll finns i **Schemalagt underhåll**, inte i **Projek
 | **Ägarregler**     | Lägger till ägare på matchande händelser.                           |
 | **Runbook-regler** | Startar runbooks för matchande händelser.                           |
 | **Etikettregler**  | Lägger till etiketter på matchande händelser.                       |
-| **Reminder Rules** | Påminner ägarna med ett intervall tills en händelse är slutförd.    |
+| **Påminnelseregler** | Påminner ägarna med ett intervall tills en händelse är slutförd.    |
 
 Avsnittet **Inställningar** rymmer **Händelsestatus**, som beskrivs på [Underhållsstatusar](/docs/scheduled-maintenance/states), **Händelsemallar**, som beskrivs på [Mallar och återkommande händelser](/docs/scheduled-maintenance/templates), och sedan **Anteckningsmallar**, **Anpassade fält**, **Mätningar**, **Kalenderinställningar** och **Numrering**. **Kalenderinställningar** beskrivs på [Underhållskalender](/docs/scheduled-maintenance/calendar#externa-kalendrar), resten nedan.
 
@@ -37,7 +37,7 @@ flowchart TB
 Reglerna skiljer sig åt i hur flera träffar avgörs:
 
 - **Ägarregler**, **Etikettregler** och **Runbook-regler** verkar alla när de matchar. Ägare och etiketter som flera regler lägger till läggs till en gång.
-- **Reminder Rules** kontrolleras uppifrån och ned i sin lista, och den första träffen vinner. Dra en regel för att ändra dess plats; en ny regel hamnar sist.
+- **Påminnelseregler** kontrolleras uppifrån och ned i sin lista, och den första träffen vinner. Dra en regel för att ändra dess plats; en ny regel hamnar sist.
 
 En ny regel börjar aktiverad; stäng av **Aktiverad** i dess redigeringsformulär för att pausa den, och listan visar en grön **Aktiverad** eller en röd **Inaktiverad** för varje regel. Ägar-, etikett- och runbook-regler verkar på händelser som skapas efter att du har sparat dem. För att tillämpa en ägar- eller etikettregel på de händelser du redan har använder du **Kör nu**: se [Köra regler på befintliga resurser](/docs/configuration/run-rules-now).
 
@@ -64,7 +64,7 @@ En regel matchar bara när varje villkor du fyller i stämmer; ett villkor som l
 
 ## Påminnelseregler
 
-**Schemalagt underhåll → Regler → Reminder Rules** påminner en händelses ägare tills arbetet är godkänt. Varje händelse får den första regel som matchar den, uppifrån och ned i listan.
+**Schemalagt underhåll → Regler → Påminnelseregler** påminner en händelses ägare tills arbetet är godkänt. Varje händelse får den första regel som matchar den, uppifrån och ned i listan.
 
 :::steps
 ### Välj vilka händelser det ska påminnas om

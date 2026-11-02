@@ -9,13 +9,15 @@
  * ModelPermission and StatementGenerator take it on a telemetry one.
  *
  * Nothing an agent could do before is lost: a field the tools used to list is
- * still here, unless no permission lets anybody filter on it.
+ * still here, unless no permission lets anybody filter on it. And the MCP
+ * server's own check of a filter (Tools/FilterCheck) refuses none of it.
  */
 
 import { describe, expect, jest, test } from "@jest/globals";
 
 jest.mock("../Utils/MCPLogger");
 
+import { getFilterProblem } from "../Tools/FilterCheck";
 import { handleHelperTool, isHelperTool } from "../Tools/HelperTools";
 import { isPublicStatusPageTool } from "../Tools/PublicStatusPageTools";
 import { generateAllTools } from "../Tools/ToolGenerator";
@@ -193,6 +195,15 @@ function fillIn(syntax: JSONObject, type: string): JSONObject {
   }
 
   return filled;
+}
+
+// The MCP server's check of a filter lets this one through.
+function expectNoFilterProblem(tool: McpToolInfo, query: JSONObject): void {
+  expect([tool.name, query, getFilterProblem(tool, query)]).toEqual([
+    tool.name,
+    query,
+    null,
+  ]);
 }
 
 // What the API does with a database query, up to the database itself.
@@ -508,9 +519,12 @@ describe("what it says of a database resource is what the API does", () => {
         checked++;
 
         for (const operator of operatorsByType[field.type] || []) {
-          runDatabaseQuery(modelType, {
+          const query: JSONObject = {
             [name]: fillIn(operators[operator] as JSONObject, field.type),
-          });
+          };
+
+          expectNoFilterProblem(tool, query);
+          runDatabaseQuery(modelType, query);
           checked++;
         }
       }
@@ -548,12 +562,15 @@ describe("what it says of a database resource is what the API does", () => {
       expect(example.tool).toBe(tool.name);
 
       for (const [name, syntax] of Object.entries(query)) {
-        runDatabaseQuery(databaseModel(tool), {
+        const filled: JSONObject = {
           [name]: fillIn(
             syntax as JSONObject,
             (fields[name] as DescribedField).type,
           ),
-        });
+        };
+
+        expectNoFilterProblem(tool, filled);
+        runDatabaseQuery(databaseModel(tool), filled);
       }
 
       expect(example.arguments["sort"]).toEqual({ createdAt: "DESC" });
@@ -574,9 +591,9 @@ describe("what it says of telemetry is what the API does", () => {
   });
 
   /*
-   * The analytics schemas give a DateTime64 column no range operators and no
-   * sort, and every telemetry table's time column is one. Read from them, this
-   * would tell an agent it cannot do the one thing it must do on every query.
+   * Every telemetry table's time column is a DateTime64. The analytics schema
+   * this reads once gave one no range operators and no sort, which told an
+   * agent it could not do the one thing it must do on every query.
    */
   test("filters and sorts every table on its time column, which its tool names", () => {
     for (const tool of telemetryTools) {
@@ -640,9 +657,12 @@ describe("what it says of telemetry is what the API does", () => {
             field.type === MAP_TYPE ? "Text" : field.type,
           );
 
-          runTelemetryQuery(modelType, {
+          const query: JSONObject = {
             [name]: field.type === MAP_TYPE ? { aKey: filled } : filled,
-          });
+          };
+
+          expectNoFilterProblem(tool, query);
+          runTelemetryQuery(modelType, query);
           checked++;
         }
       }
@@ -735,12 +755,15 @@ describe("what it says of telemetry is what the API does", () => {
       });
 
       for (const [name, syntax] of Object.entries(query)) {
-        runTelemetryQuery(telemetryModel(tool), {
+        const filled: JSONObject = {
           [name]: fillIn(
             syntax as JSONObject,
             (fields[name] as DescribedField).type,
           ),
-        });
+        };
+
+        expectNoFilterProblem(tool, filled);
+        runTelemetryQuery(telemetryModel(tool), filled);
       }
     }
   });

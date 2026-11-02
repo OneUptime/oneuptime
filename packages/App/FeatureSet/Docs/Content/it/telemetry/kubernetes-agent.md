@@ -591,7 +591,7 @@ Alcuni grafici mostrano metriche per cui l'agent non ha una raccolta: **kube-pro
 
 ### Attivare l'osservabilità dei costi
 
-Guarda nella pagina **Costs** del cluster quanto costa ogni namespace, carico di lavoro e pod, con la capacità inutilizzata e la quota di ogni richiesta effettivamente usata:
+Guarda nella pagina **Costi** del cluster quanto costa ogni namespace, carico di lavoro e pod, con la capacità inutilizzata e la quota di ogni richiesta effettivamente usata:
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \

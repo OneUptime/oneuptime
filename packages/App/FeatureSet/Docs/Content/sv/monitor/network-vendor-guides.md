@@ -60,13 +60,13 @@ Efter nästa avsökning listar enhetens sida **SNMP-tabeller** varje IPsec-anslu
 
 Klicka på **Skapa monitor** på enhetens sida. De rekommenderade larmen innefattar **IPsec Tunnels: row unhealthy**, ett kriterium **SNMP Table Row Is Unhealthy** på tabellen `ipsec_tunnels` med Row `*`: det skapar en incident per tunnel som inte är aktiv, namngiven efter tunneln, och löser var och en när dess tunnel kommer tillbaka.
 
-En tunnel som Sophos rapporterar som aktiv har bara sina security associations uppe. För att bevisa att trafik går genom den lägger du till en [Ping-monitor](/docs/monitor/ping-monitor) från en sond på en plats till en värd på andra sidan av varje tunnel, och ritar tunneln som en platslänk under **Nätverk → Topologi → Site Links** mellan de två [platserna](/docs/monitor/network-sites), bunden till den monitorn: länken på kartan får då monitorns färg.
+En tunnel som Sophos rapporterar som aktiv har bara sina security associations uppe. För att bevisa att trafik går genom den lägger du till en [Ping-monitor](/docs/monitor/ping-monitor) från en sond på en plats till en värd på andra sidan av varje tunnel, och ritar tunneln som en platslänk under **Nätverk → Topologi → Platslänkar** mellan de två [platserna](/docs/monitor/network-sites), bunden till den monitorn: länken på kartan får då monitorns färg.
 
 ### WAN-länkar
 
 - **Portarnas hälsa.** Gränssnittswalken mäter redan varje WAN-ports status, bitar in och ut, utnyttjande och fel. På brandväggens monitor varnar ett kriterium **SNMP Interface Is Down** eller **SNMP Interface Utilization (in %)** med **Gränssnitt** satt till WAN-portens namn, eller `*` för varje port, per länk.
-- **Vägens kvalitet.** Varje länks latens, paketförlust och jitter mäts utanför brandväggen: en Ping-monitor från OneUptimes molnsonder till varje WAN-länks publika adress, och en Ping-monitor från en sond på platsen till varje leverantörs gateway. Kriterier för paketförlust och jitter på de monitorerna varnar per länk, och **Nätverk → Topologi → Latency Matrix** visar varje sond mot varje monitor i en överblick.
-- **Trafik.** SFOS exporterar NetFlow v5. Skicka det till sonden på UDP 2055, där sondens flödesinsamlare lyssnar som standard, så visar enhetens sida **Traffic** vem som pratar med vem över varje WAN-länk; [Nätverkstrafik](/docs/monitor/network-traffic) har detaljerna.
+- **Vägens kvalitet.** Varje länks latens, paketförlust och jitter mäts utanför brandväggen: en Ping-monitor från OneUptimes molnsonder till varje WAN-länks publika adress, och en Ping-monitor från en sond på platsen till varje leverantörs gateway. Kriterier för paketförlust och jitter på de monitorerna varnar per länk, och **Nätverk → Topologi → Latensmatris** visar varje sond mot varje monitor i en överblick.
+- **Trafik.** SFOS exporterar NetFlow v5. Skicka det till sonden på UDP 2055, där sondens flödesinsamlare lyssnar som standard, så visar enhetens sida **Trafik** vem som pratar med vem över varje WAN-länk; [Nätverkstrafik](/docs/monitor/network-traffic) har detaljerna.
 
 ### Gateways och SD-WAN från syslog
 
@@ -111,7 +111,7 @@ Nätaggregat, fläktar, temperatursensorer och stackmedlemmar är tabeller som a
 
 ### Flöden och Wi-Fi
 
-EXOS och Fabric Engine exporterar flöden som sFlow och IPFIX. Skicka sFlow till sonden på UDP 6343, eller IPFIX på UDP 4739, så visar enhetens sida **Traffic** dess trafik; se [Nätverkstrafik](/docs/monitor/network-traffic).
+EXOS och Fabric Engine exporterar flöden som sFlow och IPFIX. Skicka sFlow till sonden på UDP 6343, eller IPFIX på UDP 4739, så visar enhetens sida **Trafik** dess trafik; se [Nätverkstrafik](/docs/monitor/network-traffic).
 
 IQ Engine-accesspunkter (HiveOS) och ExtremeCloud IQ Controller har egna tillverkarmallar, som fyller enhetens sida **Wi-Fi**. [Wi-Fi-tillverkare som stöds](/docs/monitor/network-device-monitor#wi-fi-tillverkare-som-stöds) tar upp dem, tillsammans med Ubiquiti UniFi, HPE Aruba, TP-Link Omada och Juniper Mist.
 

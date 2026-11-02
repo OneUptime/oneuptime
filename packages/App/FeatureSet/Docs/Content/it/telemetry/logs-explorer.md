@@ -72,7 +72,7 @@ Il pannello dei dettagli ha due schede:
 | Scheda | Cosa mostra |
 | --- | --- |
 | **Dettagli** | Il **Corpo del log**, il suo **ID traccia**, **ID span** e **Sessione** quando li ha, e i suoi **Attributi**, come elenco o come JSON. |
-| **Context** | Il log tra i suoi vicini. **Nearby (service + time)** mostra le cinque righe prima e dopo dello stesso servizio, e **This trace** mostra fino a 100 log della sua traccia. |
+| **Contesto** | Il log tra i suoi vicini. **Nearby (service + time)** mostra le cinque righe prima e dopo dello stesso servizio, e **This trace** mostra fino a 100 log della sua traccia. |
 
 - Fate clic sull'ID traccia per aprire l'intera richiesta nell'[Esploratore tracce](/docs/telemetry/traces-explorer).
 - Puntate un attributo e fate clic sull'icona del filtro per cercare quel valore, oppure copiatelo. Potete copiare tutti gli attributi in una volta come JSON.

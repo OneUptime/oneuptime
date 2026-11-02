@@ -23,7 +23,7 @@ flowchart TB
 :::steps
 ### Anslut en leverantör
 
-Gå till **Projektinställningar** > **Arbetsyta** > **Video Calls** och anslut Zoom, Google Meet eller Microsoft Teams, eller lägg till en fast möteslänk. På OneUptime Cloud är det ett klick att ansluta Zoom, Google Meet eller Microsoft Teams: logga in och tillåt OneUptime att skapa möten (se [Anslut med ett klick](#anslut-med-ett-klick)). Slack-huddles behöver inget utöver projektets Slack-anslutning.
+Gå till **Projektinställningar** > **Arbetsyta** > **Videosamtal** och anslut Zoom, Google Meet eller Microsoft Teams, eller lägg till en fast möteslänk. På OneUptime Cloud är det ett klick att ansluta Zoom, Google Meet eller Microsoft Teams: logga in och tillåt OneUptime att skapa möten (se [Anslut med ett klick](#anslut-med-ett-klick)). Slack-huddles behöver inget utöver projektets Slack-anslutning.
 
 ### Slå på det i en regel
 
@@ -44,7 +44,7 @@ Ett samtal startas en gång per incident för varje plats där ett samtal hålls
 
 Att deklarera en incident väntar aldrig på en leverantör av videosamtal. Samtalet startas efter att incidenten har skapats, så en långsam eller felande leverantör fördröjer aldrig incidenten eller dess jourlarm.
 
-Om leverantören avvisar (en hemlighet som har gått ut, en saknad behörighet, en borttagen värd) säger incidentens feed att regelns samtal inte kunde startas, med leverantörens skäl, så att responders vet att de ska starta ett från incidentens sida. Regelns körning visas i arbetsytans aviseringsloggar som **Starta videosamtal**, och anslutningens rad i **Projektinställningar** > **Arbetsyta** > **Video Calls** visar felet tills ett samtal startar igen.
+Om leverantören avvisar (en hemlighet som har gått ut, en saknad behörighet, en borttagen värd) säger incidentens feed att regelns samtal inte kunde startas, med leverantörens skäl, så att responders vet att de ska starta ett från incidentens sida. Regelns körning visas i arbetsytans aviseringsloggar som **Starta videosamtal**, och anslutningens rad i **Projektinställningar** > **Arbetsyta** > **Videosamtal** visar felet tills ett samtal startar igen.
 
 ### Privata incidenter
 
@@ -55,7 +55,7 @@ Ett möte får namn efter den incident det gäller, med dess nummer och titel, o
 På OneUptime Cloud tar det ett klick att ansluta Zoom, Google Meet eller Microsoft Teams, och inget behöver konfigureras hos leverantören:
 
 :::steps
-1. Gå till **Projektinställningar** > **Arbetsyta** > **Video Calls** och klicka på **Anslut** vid Zoom, Google Meet eller Microsoft Teams.
+1. Gå till **Projektinställningar** > **Arbetsyta** > **Videosamtal** och klicka på **Anslut** vid Zoom, Google Meet eller Microsoft Teams.
 2. Klicka på **Continue to Zoom** (eller Google, eller Microsoft), logga in och tillåt OneUptime att skapa möten.
 3. Du kommer tillbaka till sidan för videosamtal med anslutningen gjord. **Start a test meeting** kontrollerar den från början till slut; välj sedan anslutningen i en aviseringsregel för Slack eller Microsoft Teams.
 :::
@@ -124,7 +124,7 @@ OneUptime AI föreslår bara en orsak när samtalet nämner en, med raderna som 
 
 ### Spela in och transkribera varje samtal
 
-Så att ingen behöver komma ihåg att spela in ett samtal eller hämta dess transkription slår du på **Spela in och transkribera incidentsamtal** i **Projektinställningar** > **Arbetsyta** > **Video Calls**. Medan inställningen är påslagen:
+Så att ingen behöver komma ihåg att spela in ett samtal eller hämta dess transkription slår du på **Spela in och transkribera incidentsamtal** i **Projektinställningar** > **Arbetsyta** > **Videosamtal**. Medan inställningen är påslagen:
 
 - För varje incidentmöte som OneUptime startar ber den Zoom att spela in mötet i molnet, Google Meet att transkribera det och Microsoft Teams att spela in och transkribera det automatiskt. Meddelandet som publicerar samtalet säger det innan någon ansluter.
 - När samtalet är slut hämtar OneUptime transkriptionen själv, som **Hämta från Zoom** skulle göra, och OneUptime AI läser den. Fram till dess visar kortet **Video Call** att det väntar.

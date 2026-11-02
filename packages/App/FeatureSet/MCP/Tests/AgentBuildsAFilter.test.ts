@@ -411,6 +411,53 @@ describe("an agent builds a filter from what the server tells it", () => {
     expect(lastRequest().route).toBe("/api/incident/get-list");
   });
 
+  test("a filter written another way never reaches the API, and the agent is told how to write it", async () => {
+    const connected: Client = await connect(API_KEY);
+
+    for (const [toolName, query, named] of [
+      [
+        "list_incidents",
+        { title: { $regex: "database" } },
+        'title {"$regex":"database"}',
+      ],
+      [
+        "count_logs",
+        { time: { $gt: A_DAY_AGO } },
+        `time {"$gt":"${A_DAY_AGO}"}`,
+      ],
+    ] as Array<[string, JSONObject, string]>) {
+      const result: ToolAnswer = await callTool(connected, toolName, {
+        query,
+      });
+
+      expect([toolName, result.isError]).toEqual([toolName, true]);
+
+      const payload: { error: string; suggestion: string } = JSON.parse(
+        textOf(result),
+      ) as { error: string; suggestion: string };
+
+      expect(payload.error).toContain(named);
+      expect(payload.suggestion).toContain("oneuptime_describe_resource");
+    }
+
+    // Without the check, the database would have matched the object's JSON.
+    expect(makeApiRequest).not.toHaveBeenCalled();
+  });
+
+  test("a relation still filters by its own fields, as the CLI's skill writes it", async () => {
+    const connected: Client = await connect(API_KEY);
+    const query: JSONObject = {
+      currentIncidentState: { isResolvedState: false },
+    };
+
+    const result: ToolAnswer = await callTool(connected, "count_incidents", {
+      query,
+    });
+
+    expect(result.isError).toBeUndefined();
+    expect(lastRequest().body["query"]).toEqual(query);
+  });
+
   test("a field the API refuses comes back as a failed call that says where the fields are", async () => {
     makeApiRequest.mockRejectedValueOnce(
       new OneUptimeApiError(

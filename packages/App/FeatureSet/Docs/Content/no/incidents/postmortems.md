@@ -71,7 +71,7 @@ Klikk på **Generate with AI**. Dialogen **Generate Postmortem with AI** tilbyr 
 
 Klikk på **Generate with AI** nederst i dialogen. OneUptime AI leser hendelsen (beskrivelsen, rotårsaken og utbedringen, statustidslinjen, de offentlige og private notatene, meldingene i hendelsens Slack- eller Microsoft Teams-kanal og det som ble sagt i [samtalene](/docs/workspace-connections/video-calls#transkripsjoner-av-samtaler)) og skriver etteranalysen etter disposisjonen din. Deretter åpnes editoren med resultatet.
 
-Å generere krever at KI er slått på for prosjektet, under **Prosjektinnstillinger → KI → AI Features**, og en LLM-leverandør: se [LLM-leverandører](/docs/ai/llm-provider). Det krever også rollen Project Owner eller Project Admin, eller en egendefinert rolle med tillatelsen Edit Incident: andre roller kan skrive etteranalysen, men ikke generere den.
+Å generere krever at KI er slått på for prosjektet, under **Prosjektinnstillinger → KI → AI-funksjoner**, og en LLM-leverandør: se [LLM-leverandører](/docs/ai/llm-provider). Det krever også rollen Project Owner eller Project Admin, eller en egendefinert rolle med tillatelsen Edit Incident: andre roller kan skrive etteranalysen, men ikke generere den.
 
 ### La OneUptime AI skrive et utkast når en hendelse løses
 
@@ -198,7 +198,7 @@ Prosjektet har ennå ingen mal for etteranalyse, eller rollen din kan ikke lese 
 :::
 
 :::details Generate with AI sier at KI er slått av, eller at du mangler tillatelse
-Slå på KI under **Prosjektinnstillinger → KI → AI Features**. Å generere krever rollen Project Owner eller Project Admin, eller en egendefinert rolle med tillatelsen Edit Incident, også for den som kan redigere etteranalysen.
+Slå på KI under **Prosjektinnstillinger → KI → AI-funksjoner**. Å generere krever rollen Project Owner eller Project Admin, eller en egendefinert rolle med tillatelsen Edit Incident, også for den som kan redigere etteranalysen.
 :::
 
 :::details Etteranalysen vises ikke på statussiden

@@ -34,7 +34,7 @@ flowchart TB
 | **अवलोकन** और **मेट्रिक्स** | `hostmetrics` रिसीवर: CPU, मेमोरी, डिस्क, फ़ाइल सिस्टम, नेटवर्क, लोड, पेजिंग। |
 | **प्रक्रियाएँ** | `hostmetrics` का `process` स्क्रैपर: हर प्रक्रिया के लिए सीरीज़ का एक सेट। |
 | **लॉग** | `filelog`, `journald` और `windowseventlog` रिसीवर। |
-| **Systemd Units** (Linux) | `systemd` रिसीवर। |
+| **Systemd यूनिट** (Linux) | `systemd` रिसीवर। |
 | **सेवाएं** (Windows) | `windows_service` रिसीवर। |
 | इन्वेंटरी आइटम | `resourcedetection` प्रोसेसर, साथ में [आपके लगाए एट्रिब्यूट](#इन्वेंटरी-एट्रिब्यूट-ip-mac-सीरियल-नंबर-निर्माता-मॉडल-फ़र्मवेयर)। |
 | **एजेंट संस्करण** | `resource` प्रोसेसर में `oneuptime.agent.version`। |
@@ -555,7 +555,7 @@ receivers:
 
 ### Linux सेवाएँ (systemd यूनिट, मेट्रिक्स)
 
-होस्ट का **Systemd Units** पेज हर यूनिट और उसकी स्थिति [`systemdreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/systemdreceiver) (कॉन्फ़िगरेशन टाइप `systemd`) से दिखाता है, जो Windows के **सेवाएं** पेज का Linux समकक्ष है। ऊपर का Linux कॉन्फ़िगरेशन इसे चालू करता है:
+होस्ट का **Systemd यूनिट** पेज हर यूनिट और उसकी स्थिति [`systemdreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/systemdreceiver) (कॉन्फ़िगरेशन टाइप `systemd`) से दिखाता है, जो Windows के **सेवाएं** पेज का Linux समकक्ष है। ऊपर का Linux कॉन्फ़िगरेशन इसे चालू करता है:
 
 ```yaml
 receivers:
@@ -990,7 +990,7 @@ receivers:
         enabled: false
 ```
 
-ये दोनों मिलकर 300 यूनिट वाले होस्ट को लगभग 6,000 डेटापॉइंट प्रति मिनट से 100 से काफ़ी नीचे ले आते हैं। सूची से हटाई गई यूनिट कुछ मिनट बाद **Systemd Units** पेज से हट जाती हैं, जब उनके आखिरी सैंपल उसकी रोलिंग विंडो से बाहर हो जाते हैं।
+ये दोनों मिलकर 300 यूनिट वाले होस्ट को लगभग 6,000 डेटापॉइंट प्रति मिनट से 100 से काफ़ी नीचे ले आते हैं। सूची से हटाई गई यूनिट कुछ मिनट बाद **Systemd यूनिट** पेज से हट जाती हैं, जब उनके आखिरी सैंपल उसकी रोलिंग विंडो से बाहर हो जाते हैं।
 
 ### filter प्रोसेसर से रिकॉर्ड हटाएँ
 

@@ -21,7 +21,7 @@ Konfigurationen af advarsler ligger under **Advarsler**, ikke i **Projektindstil
 | **Runbook-regler**    | Starter runbooks for matchende advarsler.                                                      |
 | **Privatlivsregler**  | Gør matchende advarsler og episoder private.                                                   |
 | **Etiketregler**      | Tilføjer etiketter til matchende advarsler og episoder.                                        |
-| **Reminder Rules**    | Påminder ejere med et interval, mens en advarsel er åben.                                      |
+| **Påmindelsesregler**    | Påminder ejere med et interval, mens en advarsel er åben.                                      |
 
 Sektionen **Indstillinger** rummer **Advarselsstatus** og **Advarselsalvor**, som er beskrevet på [Advarselstilstande og alvorsgrader](/docs/alerts/states-and-severities), og derefter **Noteskabeloner**, **Brugerdefinerede felter**, **Målinger**, **Medlemskab af episoder** og **Nummerering**, som er beskrevet nedenfor.
 
@@ -54,7 +54,7 @@ flowchart TB
 
 Reglerne adskiller sig i, hvordan flere match afgøres:
 
-- **Grupperingsregler** og **Reminder Rules** kontrolleres oppefra og ned i deres liste, og det første match vinder. Træk en regel for at ændre dens plads; en ny regel kommer sidst.
+- **Grupperingsregler** og **Påmindelsesregler** kontrolleres oppefra og ned i deres liste, og det første match vinder. Træk en regel for at ændre dens plads; en ny regel kommer sidst.
 - **Vagtregler**, **Ejerregler**, **Etiketregler**, **Privatlivsregler** og **Runbook-regler** handler alle, når de matcher. Vagtpolitikker, ejere og etiketter, som flere regler tilføjer, tilføjes én gang.
 
 **Vagtregler**, **Ejerregler**, **Etiketregler** og **Privatlivsregler** har to faner: **Alert Rules** for advarsler og **Episode Rules**, som handler på samme måde på hver ny advarselsepisode. En ny regel starter aktiveret; slå **Aktiveret** fra på dens redigeringsformular for at sætte den på pause, og listen viser et grønt **Aktiveret** eller et rødt **Deaktiveret** for hver regel.
@@ -108,7 +108,7 @@ En regel tilkalder, så snart en advarsel matcher den. For at lade den vente på
 
 ## Påmindelsesregler
 
-**Advarsler → Regler → Reminder Rules** påminder en advarsels ejere, mens den forbliver åben. Hver ny advarsel får den første regel, der matcher den, oppefra og ned i listen.
+**Advarsler → Regler → Påmindelsesregler** påminder en advarsels ejere, mens den forbliver åben. Hver ny advarsel får den første regel, der matcher den, oppefra og ned i listen.
 
 :::steps
 ### Vælg, hvilke advarsler der skal påmindes om
