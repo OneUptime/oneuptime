@@ -1,4 +1,5 @@
 import { JSONObject, JSONValue } from "../../../Types/JSON";
+import lookupTable from "../../LookupTable";
 import NormalizedSecurityEvent from "../../../Types/SecurityEvent/NormalizedSecurityEvent";
 import OcsfSeverity, {
   OcsfSeverityId,
@@ -60,19 +61,21 @@ export const OKTA_DETECTION_FINDING_CLASS_NAME: string = "Detection Finding";
  * activity reports and failed policy evaluations, and ERROR for failures
  * of Okta's own processing — both worth a look, not a log line.
  */
-export const OKTA_SEVERITY_MAP: Record<string, OcsfSeverity> = {
-  DEBUG: OcsfSeverity.Informational,
-  INFO: OcsfSeverity.Informational,
-  WARN: OcsfSeverity.Medium,
-  ERROR: OcsfSeverity.High,
-};
+export const OKTA_SEVERITY_MAP: ReadonlyMap<string, OcsfSeverity> =
+  lookupTable({
+    DEBUG: OcsfSeverity.Informational,
+    INFO: OcsfSeverity.Informational,
+    WARN: OcsfSeverity.Medium,
+    ERROR: OcsfSeverity.High,
+  });
 
 /*
  * `outcome.result` values (the LogOutcome enum) as the status words the
  * rest of the product uses. Values Okta adds later fall through to a
  * prettified copy of the raw word rather than being lost.
  */
-export const OKTA_OUTCOME_STATUS_MAP: Record<string, string> = {
+export const OKTA_OUTCOME_STATUS_MAP: ReadonlyMap<string, string> =
+  lookupTable({
   SUCCESS: "Success",
   FAILURE: "Failure",
   SKIPPED: "Skipped",
@@ -85,7 +88,7 @@ export const OKTA_OUTCOME_STATUS_MAP: Record<string, string> = {
   SCHEDULED: "Scheduled",
   ABANDONED: "Abandoned",
   UNANSWERED: "Unanswered",
-};
+  });
 
 /*
  * Outcomes that mean the actor did NOT get what it asked for. On an
@@ -341,7 +344,7 @@ export default class OktaNormalizer {
   ): OcsfSeverity {
     const key: string = severityText.trim().toUpperCase();
     let severity: OcsfSeverity =
-      OKTA_SEVERITY_MAP[key] ||
+      OKTA_SEVERITY_MAP.get(key) ||
       normalizeOcsfSeverity(severityText) ||
       OcsfSeverity.Unknown;
 
@@ -363,7 +366,7 @@ export default class OktaNormalizer {
       return "";
     }
 
-    return OKTA_OUTCOME_STATUS_MAP[key] || prettifyUdmEventType(key);
+    return OKTA_OUTCOME_STATUS_MAP.get(key) || prettifyUdmEventType(key);
   }
 
   public static normalize(raw: JSONObject): NormalizedSecurityEvent {

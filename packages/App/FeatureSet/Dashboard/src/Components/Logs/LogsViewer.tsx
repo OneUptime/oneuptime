@@ -2672,14 +2672,21 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
   const handleFieldValueSelect: (fieldKey: string, value: string) => void =
     useCallback(
       (fieldKey: string, value: string): void => {
-        // Map user-facing field names to internal keys (case-insensitive)
-        const fieldAliases: Record<string, string> = {
-          severity: "severityText",
-          level: "severityText",
-          service: "primaryEntityId",
-          trace: "traceId",
-          span: "spanId",
-        };
+        /*
+         * Map user-facing field names to internal keys (case-insensitive),
+         * by what was typed: a Map answers only for these, never for
+         * "constructor" or the rest every object inherits.
+         */
+        const fieldAliases: ReadonlyMap<string, string> = new Map<
+          string,
+          string
+        >([
+          ["severity", "severityText"],
+          ["level", "severityText"],
+          ["service", "primaryEntityId"],
+          ["trace", "traceId"],
+          ["span", "spanId"],
+        ]);
         /*
          * Unknown keys are telemetry attributes (e.g. `http.method`,
          * `requestId`). Prefix them with `attributes.` so the rebuild step
@@ -2689,8 +2696,9 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
          * matches them case-insensitively. The chip displays without the
          * `attributes.` prefix.
          */
-        const aliased: string | undefined =
-          fieldAliases[fieldKey.toLowerCase()];
+        const aliased: string | undefined = fieldAliases.get(
+          fieldKey.toLowerCase(),
+        );
         const resolvedKey: string = aliased
           ? aliased
           : `attributes.${fieldKey}`;

@@ -1,4 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
+import { INHERITED_PROPERTY_NAME_SPELLINGS } from "../../../Helpers/InheritedNames";
 import {
   MAX_WINDOWS_EVENT_FIELDS,
   MAX_WINDOWS_FIELD_VALUE_LENGTH,
@@ -66,7 +67,9 @@ describe("readWindowsEventRecord - the same record from every shape", () => {
   test("Fluent Bit's positional fields are named for the events that have names", () => {
     const record: WindowsEventRecord = read(fluentBitBody(failedSignIn()));
 
-    STRING_INSERT_FIELDS["microsoft-windows-security-auditing:4625"]!.forEach(
+    STRING_INSERT_FIELDS.get(
+      "microsoft-windows-security-auditing:4625",
+    )!.forEach(
       (name: string, index: number): void => {
         expect([name, record.data[name]]).toEqual([
           name,
@@ -292,5 +295,15 @@ describe("decodeXmlText", () => {
     expect(decodeXmlText("&#0;&#x110000;")).toBe("&#0;&#x110000;");
     expect(decodeXmlText("& and a far ;")).toBe("& and a far ;");
     expect(decodeXmlText("text")).toBe("text");
+  });
+});
+
+describe("WindowsEventRecord: words named after what every object inherits", () => {
+  test("an entity named after one is left as written", () => {
+    for (const name of INHERITED_PROPERTY_NAME_SPELLINGS) {
+      expect(decodeXmlText(`a &${name}; b`)).toBe(`a &${name}; b`);
+    }
+
+    expect(decodeXmlText("&lt;&amp;&gt;&quot;&apos;")).toBe(`<&>"'`);
   });
 });

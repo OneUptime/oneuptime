@@ -1,4 +1,5 @@
 import { JSONObject } from "../../Types/JSON";
+import lookupTable from "../LookupTable";
 import NormalizedSecurityEvent from "../../Types/SecurityEvent/NormalizedSecurityEvent";
 import OcsfSeverity, {
   OcsfSeverityId,
@@ -39,7 +40,8 @@ interface UdmClassMapping {
   activityName: string;
 }
 
-const UDM_EVENT_TYPE_TO_OCSF: Record<string, UdmClassMapping> = {
+const UDM_EVENT_TYPE_TO_OCSF: ReadonlyMap<string, UdmClassMapping> =
+  lookupTable({
   // Identity & Access Management
   USER_LOGIN: { classUid: 3002, activityName: "Logon" },
   USER_LOGOUT: { classUid: 3002, activityName: "Logoff" },
@@ -130,16 +132,16 @@ const UDM_EVENT_TYPE_TO_OCSF: Record<string, UdmClassMapping> = {
   RESOURCE_WRITTEN: { classUid: 6003, activityName: "Update" },
 
   GENERIC_EVENT: { classUid: 0, activityName: "" },
-};
+  });
 
-const UDM_ACTION_TO_STATUS: Record<string, string> = {
+const UDM_ACTION_TO_STATUS: ReadonlyMap<string, string> = lookupTable({
   ALLOW: "Allowed",
   ALLOW_WITH_MODIFICATION: "Allowed",
   BLOCK: "Blocked",
   QUARANTINE: "Quarantined",
   FAIL: "Failure",
   UNKNOWN_ACTION: "",
-};
+});
 
 /** "NETWORK_CONNECTION" -> "Network Connection". */
 export function prettifyUdmEventType(eventType: string): string {
@@ -301,8 +303,9 @@ function summarizeSecurityResults(payload: JSONObject): SecurityResultSummary {
     if (!summary.statusName) {
       const actions: Array<string> = readStringArray(result, "action");
       for (const action of actions) {
-        const mapped: string | undefined =
-          UDM_ACTION_TO_STATUS[action.toUpperCase()];
+        const mapped: string | undefined = UDM_ACTION_TO_STATUS.get(
+          action.toUpperCase(),
+        );
         if (mapped) {
           summary.statusName = mapped;
           break;
@@ -371,7 +374,7 @@ export default class UdmNormalizer {
     ]).toUpperCase();
 
     const mapping: UdmClassMapping | undefined =
-      UDM_EVENT_TYPE_TO_OCSF[eventType];
+      UDM_EVENT_TYPE_TO_OCSF.get(eventType);
 
     const classUid: number = mapping ? mapping.classUid : 0;
     const mappedClass: OcsfEventClassProps | undefined =

@@ -1,4 +1,5 @@
 import { JSONObject, JSONValue } from "../../../Types/JSON";
+import lookupTable from "../../LookupTable";
 import NormalizedSecurityEvent from "../../../Types/SecurityEvent/NormalizedSecurityEvent";
 import OcsfSeverity from "../../../Types/SecurityEvent/OcsfSeverity";
 import SecurityLogFormat from "../../../Types/SecurityEvent/SecurityLogFormat";
@@ -114,12 +115,12 @@ const ENDED_STATUSES: ReadonlyArray<string> = [
 
 const FAILED_STATUSES: ReadonlyArray<string> = ["failure", "failed"];
 
-const DEFENDER_SEVERITIES: Record<string, OcsfSeverity> = {
+const DEFENDER_SEVERITIES: ReadonlyMap<string, OcsfSeverity> = lookupTable({
   high: OcsfSeverity.High,
   medium: OcsfSeverity.Medium,
   low: OcsfSeverity.Low,
   informational: OcsfSeverity.Informational,
-};
+});
 
 function text(value: JSONValue | undefined): string {
   if (value === null || value === undefined || typeof value === "object") {
@@ -268,7 +269,7 @@ export function readAzureActivityRecord(
       classUid: DETECTION_FINDING,
       activityName: "Create",
       statusName: "Detected",
-      severity: DEFENDER_SEVERITIES[severityWord] || OcsfSeverity.Medium,
+      severity: DEFENDER_SEVERITIES.get(severityWord) || OcsfSeverity.Medium,
       message: `Microsoft Defender for Cloud: ${alertName}${resourceId ? ` on ${resourceId}` : ""}`,
       ruleName: alertName,
       principalUser: caller,

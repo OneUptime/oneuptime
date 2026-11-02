@@ -5,6 +5,8 @@ import OcsfSeverity, {
   normalizeOcsfSeverity,
 } from "../../../Types/SecurityEvent/OcsfSeverity";
 import { ocsfCategoryForClassUid } from "../../../Types/SecurityEvent/OcsfEventClass";
+import { findMitreTacticIdByName } from "../../../Types/SecurityEvent/MitreAttack";
+import lookupTable from "../../LookupTable";
 import {
   DETECTION_FINDING_CLASS_NAME,
   DETECTION_FINDING_CLASS_UID,
@@ -50,39 +52,15 @@ const MAX_EVIDENCE_ITEMS: number = 100;
 const MAX_OBSERVABLES: number = 200;
 
 /*
- * Defender's kill-chain categories are MITRE ATT&CK tactic names without
- * spaces. Only names that ARE tactics map; Defender also emits
- * categories such as Malware, Ransomware or SuspiciousActivity, which are
- * left to the attributes rather than invented into a tactic id.
- * https://attack.mitre.org/tactics/enterprise/
- */
-const TACTIC_ID_BY_NAME: Record<string, string> = {
-  reconnaissance: "TA0043",
-  resourcedevelopment: "TA0042",
-  initialaccess: "TA0001",
-  execution: "TA0002",
-  persistence: "TA0003",
-  privilegeescalation: "TA0004",
-  defenseevasion: "TA0005",
-  credentialaccess: "TA0006",
-  discovery: "TA0007",
-  lateralmovement: "TA0008",
-  collection: "TA0009",
-  commandandcontrol: "TA0011",
-  exfiltration: "TA0010",
-  impact: "TA0040",
-};
-
-/*
  * OCSF Detection Finding status_id names for Graph alertStatus values
  * (unknown, new, inProgress, resolved).
  */
-const STATUS_NAME_BY_GRAPH_STATUS: Record<string, string> = {
+const STATUS_NAME_BY_GRAPH_STATUS: ReadonlyMap<string, string> = lookupTable({
   unknown: "Unknown",
   new: "New",
   inprogress: "In Progress",
   resolved: "Resolved",
-};
+});
 
 /*
  * evidenceRole values that put an entity on the actor side versus the
@@ -473,9 +451,14 @@ function mapTactics(payload: JSONObject): Array<string> {
   ];
   const tactics: Array<string> = [];
 
+  /*
+   * Defender's kill-chain categories are MITRE ATT&CK tactic names without
+   * spaces. Only names that ARE tactics map; Defender also emits
+   * categories such as Malware, Ransomware or SuspiciousActivity, which are
+   * left to the attributes rather than invented into a tactic id.
+   */
   for (const name of names) {
-    const key: string = name.toLowerCase().replace(/[^a-z]/g, "");
-    const id: string | undefined = TACTIC_ID_BY_NAME[key];
+    const id: string | undefined = findMitreTacticIdByName(name);
 
     if (id && !tactics.includes(id)) {
       tactics.push(id);
@@ -572,7 +555,7 @@ export default class MicrosoftDefenderXdrNormalizer {
       activityName: "Create",
       severityId: OcsfSeverityId[severityName],
       severityName,
-      statusName: STATUS_NAME_BY_GRAPH_STATUS[status] || "",
+      statusName: STATUS_NAME_BY_GRAPH_STATUS.get(status) || "",
       message:
         title ||
         readString(payload, "description") ||

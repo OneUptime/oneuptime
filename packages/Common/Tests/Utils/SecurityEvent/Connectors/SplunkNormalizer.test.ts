@@ -1,4 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
+import { INHERITED_PROPERTY_NAME_SPELLINGS } from "../../../Helpers/InheritedNames";
 import SplunkNormalizer, {
   isIpAddress,
 } from "../../../../Utils/SecurityEvent/Connectors/SplunkNormalizer";
@@ -462,5 +463,44 @@ describe("SplunkNormalizer: the process the notable is about", () => {
 
     expect(event.processCommandLine).toBe("");
     expect(event.parentProcessCommandLine).toBe("cmd.exe /c whoami");
+  });
+});
+
+describe("SplunkNormalizer: words named after what every object inherits", () => {
+  test("a tactic named after one is no tactic, and a status named after one is that status as written", () => {
+    for (const name of INHERITED_PROPERTY_NAME_SPELLINGS) {
+      const payload: JSONObject = bruteForceNotable();
+      delete payload["annotations.mitre_attack.mitre_tactic_id"];
+      delete payload["status_label"];
+      delete payload["status_description"];
+      payload["annotations.mitre_attack.mitre_tactic"] = name;
+      payload["status"] = name;
+
+      const event: NormalizedSecurityEvent = SplunkNormalizer.normalize(payload);
+
+      expect({
+        name,
+        tactics: event.mitreTactics,
+        status: event.statusName,
+      }).toEqual({ name, tactics: [], status: name });
+    }
+  });
+
+  test("Splunk ES's numeric review statuses still read as their labels", () => {
+    for (const [id, label] of [
+      ["0", "Unassigned"],
+      ["1", "New"],
+      ["2", "In Progress"],
+      ["3", "Pending"],
+      ["4", "Resolved"],
+      ["5", "Closed"],
+    ]) {
+      const payload: JSONObject = bruteForceNotable();
+      delete payload["status_label"];
+      delete payload["status_description"];
+      payload["status"] = id!;
+
+      expect(SplunkNormalizer.normalize(payload).statusName).toBe(label);
+    }
   });
 });
