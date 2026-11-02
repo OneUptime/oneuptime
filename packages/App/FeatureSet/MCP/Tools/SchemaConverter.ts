@@ -5,7 +5,6 @@
 
 import { JSONSchemaProperty } from "../Types/McpTypes";
 import { ModelSchemaType } from "Common/Utils/Schema/ModelSchema";
-import { AnalyticsModelSchemaType } from "Common/Utils/Schema/AnalyticsModelSchema";
 import { getSchemaFields, SchemaField } from "Common/Utils/Schema/SchemaFields";
 
 // The OpenAPI metadata a property is built from.
@@ -31,7 +30,7 @@ export interface ZodToJsonSchemaResult {
  * Convert a Zod schema to JSON Schema format for MCP tools
  */
 export function zodToJsonSchema(
-  zodSchema: ModelSchemaType | AnalyticsModelSchemaType,
+  zodSchema: ModelSchemaType,
 ): ZodToJsonSchemaResult {
   try {
     /*
@@ -125,10 +124,18 @@ function buildPropertyFromMetadata(
     description,
   };
 
-  // Add optional fields if present
-  if (metadata.example !== undefined) {
-    (property as JSONSchemaProperty & { example: unknown }).example =
-      metadata.example;
+  /*
+   * Examples stay out: every client pays for them on every connection, and
+   * almost all of them only repeat the type. A typed value is the exception,
+   * as its example is the only place that says what the API reads (a date is
+   * {"_type": "DateTime", "value": ...}), so that shape is kept as schema.
+   */
+  const typedValueProperties: Record<string, JSONSchemaProperty> | undefined =
+    getTypedValueProperties(metadata.example);
+
+  if (typedValueProperties) {
+    property.properties = typedValueProperties;
+    property.required = Object.keys(typedValueProperties);
   }
 
   if (metadata.format) {
@@ -153,6 +160,55 @@ function buildPropertyFromMetadata(
   }
 
   return property;
+}
+
+/**
+ * The fields of a typed value such as {"_type": "Color", "value": "#ff0000"},
+ * read from its example. Nothing for an example of any other shape.
+ */
+function getTypedValueProperties(
+  example: unknown,
+): Record<string, JSONSchemaProperty> | undefined {
+  if (!example || typeof example !== "object" || Array.isArray(example)) {
+    return undefined;
+  }
+
+  const typedValue: { _type?: unknown; value?: unknown } = example as {
+    _type?: unknown;
+    value?: unknown;
+  };
+
+  if (typeof typedValue._type !== "string" || typedValue.value === undefined) {
+    return undefined;
+  }
+
+  return {
+    _type: { type: "string", enum: [typedValue._type] },
+    value: { type: typeof typedValue.value },
+  };
+}
+
+/**
+ * The fields of a tool without what each one means, but for the fields named.
+ * Names, types, enums and defaults stay, so a client can still check a call.
+ */
+export function withoutFieldDescriptions(
+  properties: Record<string, JSONSchemaProperty>,
+  fieldsToKeep: Array<string> = [],
+): Record<string, JSONSchemaProperty> {
+  const compacted: Record<string, JSONSchemaProperty> = {};
+
+  for (const [name, property] of Object.entries(properties)) {
+    const compactedProperty: JSONSchemaProperty = { ...property };
+
+    if (!fieldsToKeep.includes(name)) {
+      delete compactedProperty.description;
+    }
+
+    compacted[name] = compactedProperty;
+  }
+
+  return compacted;
 }
 
 /**

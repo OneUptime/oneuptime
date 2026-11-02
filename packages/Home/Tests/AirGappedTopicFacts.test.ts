@@ -1748,9 +1748,9 @@ const EVIDENCE: Record<string, Array<Evidence>> = {
     ),
     fact("Cluster collector", AGENT_INSTALL, 'collector["Cluster collector"]'),
     fact(
-      "Eighteen templates",
+      "Twenty-one templates",
       KUBERNETES_MONITOR,
-      "Eighteen ready-made alerts, from a silent cluster to etcd.",
+      "Twenty-one ready-made alerts, from a silent cluster to etcd.",
     ),
   ],
   "kubernetes/install": [
@@ -1806,7 +1806,7 @@ const EVIDENCE: Record<string, Array<Evidence>> = {
     fact(
       "from a silent cluster to etcd",
       KUBERNETES_MONITOR,
-      "Eighteen ready-made alerts, from a silent cluster to etcd.",
+      "Twenty-one ready-made alerts, from a silent cluster to etcd.",
     ),
   ],
   "kubernetes/capability/openshift": [

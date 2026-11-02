@@ -196,14 +196,21 @@ export default class Analytics {
 
   /**
    * The purchase a project created on a paid plan makes. None for custom
-   * pricing, which has no amount to report.
+   * pricing, which has no amount to report, and none on a free trial, which
+   * asks for no card: nothing has been bought, and Google Ads would bid on
+   * revenue that may never come.
    */
   public static purchaseForNewProject(data: {
     projectId: string;
     planName: string;
     monthlyAmountInUSD: number | null;
+    isOnFreeTrial: boolean;
   }): PurchaseData | null {
-    if (!data.projectId || data.monthlyAmountInUSD === null) {
+    if (
+      !data.projectId ||
+      data.monthlyAmountInUSD === null ||
+      data.isOnFreeTrial
+    ) {
       return null;
     }
 

@@ -50,6 +50,7 @@ import {
   generateResellersMarkdown,
   generateAirGappedMarkdown,
   generateAirGappedTopicMarkdown,
+  generateMcpServerMarkdown,
   RecentBlogPostLink,
 } from "./Utils/AIDiscovery";
 import { generateNostrWellKnown } from "./Utils/Nostr";
@@ -72,6 +73,10 @@ import { getDatabasesPageContent } from "./Utils/Databases";
 import { getQueuesPageContent } from "./Utils/Queues";
 import { getAppPlatformsPageContent } from "./Utils/AppPlatforms";
 import { getCliPageContent } from "./Utils/CliPage";
+import {
+  getMcpServerPageContent,
+  McpServerPagePath,
+} from "./Utils/McpServerPage";
 import { getResellersPageContent } from "./Utils/Resellers";
 import { getCloudMarketplacesContent } from "./Utils/CloudMarketplaces";
 import {
@@ -498,6 +503,11 @@ const HomeFeatureSet: FeatureSet = {
 
       if (pagePath === "/pricing") {
         markdown = generatePricingMarkdown(homeUrl);
+      } else if (pagePath === McpServerPagePath) {
+        markdown = generateMcpServerMarkdown(
+          homeUrl,
+          getMcpServerPageContent(homeUrl),
+        );
       } else if (pagePath === "/resellers") {
         markdown = generateResellersMarkdown(
           homeUrl,
@@ -1332,6 +1342,7 @@ const HomeFeatureSet: FeatureSet = {
         res.render(`${ViewsPath}/mcp-server`, {
           enableGoogleTagManager: GoogleTagManagerEnabled,
           seo,
+          mcpServer: getMcpServerPageContent(res.locals["homeUrl"] as string),
         });
       },
     );
