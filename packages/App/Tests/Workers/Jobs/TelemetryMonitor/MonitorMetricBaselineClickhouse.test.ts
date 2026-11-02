@@ -16,6 +16,8 @@ import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel
 import Metric from "Common/Models/AnalyticsModels/Metric";
 import MetricBaselineHourly from "Common/Models/AnalyticsModels/MetricBaselineHourly";
 import MetricItemAggMV1m from "Common/Models/AnalyticsModels/MetricItemAggMV1m";
+import MetricItemAggMV1mByHostV2 from "Common/Models/AnalyticsModels/MetricItemAggMV1mByHostV2";
+import MetricItemAggMV1mByK8sCluster from "Common/Models/AnalyticsModels/MetricItemAggMV1mByK8sCluster";
 import { ClickHouseClientConfigOptions } from "Common/Server/Infrastructure/ClickhouseConfig";
 import ClickhouseDatabase, {
   ClickhouseClient,
@@ -25,10 +27,23 @@ import MetricBaselineService, {
   BaselineBand,
   BaselineSummary,
   MetricBaselineQuery,
+  MetricBaselineScope,
   MetricBaselineService as MetricBaselineServiceClass,
+  MetricSeriesBaselines,
 } from "Common/Server/Services/MetricBaselineService";
+import MetricService from "Common/Server/Services/MetricService";
+import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import AggregationInterval from "Common/Types/BaseDatabase/AggregationInterval";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
+import InBetween from "Common/Types/BaseDatabase/InBetween";
+import Includes from "Common/Types/BaseDatabase/Includes";
+import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
+import NotEqual from "Common/Types/BaseDatabase/NotEqual";
+import MetricSeriesFingerprint from "Common/Utils/Metrics/MetricSeriesFingerprint";
+import {
+  keyForHost,
+  keyForKubernetesCluster,
+} from "Common/Utils/Telemetry/EntityKey";
 import { Statement } from "Common/Server/Utils/AnalyticsDatabase/Statement";
 import StatementGenerator from "Common/Server/Utils/AnalyticsDatabase/StatementGenerator";
 import MetricMonitorCriteria from "Common/Server/Utils/Monitor/Criteria/MetricMonitorCriteria";
@@ -132,6 +147,31 @@ interface Sample {
   serviceId?: ObjectID;
   // A histogram's datapoint: how many observations `value` is the sum of.
   count?: number;
+  attributes?: JSONObject;
+  // When the row leaves, in days from its own time: retention by default.
+  keptForDays?: number;
+}
+
+const HOST_ATTRIBUTE: string = "resource.host.name";
+const CLUSTER_ATTRIBUTE: string = "resource.k8s.cluster.name";
+
+function entityKeysOf(sample: Sample): JSONObject {
+  const host: unknown = sample.attributes?.[HOST_ATTRIBUTE];
+  const cluster: unknown = sample.attributes?.[CLUSTER_ATTRIBUTE];
+
+  return {
+    ...(host
+      ? { hostEntityKey: keyForHost(sample.project.toString(), String(host)) }
+      : {}),
+    ...(cluster
+      ? {
+          k8sClusterEntityKey: keyForKubernetesCluster(
+            sample.project.toString(),
+            String(cluster),
+          ),
+        }
+      : {}),
+  };
 }
 
 // A sample as ingest writes it: UTC text with no zone.
@@ -154,11 +194,18 @@ function rowOf(sample: Sample): JSONObject {
       : { count: sample.count, sum: sample.value }),
     time: OneUptimeDate.toClickhouseDateTime64(time),
     timeUnixNano: String(time.getTime() * 1000000 + rowIndex),
-    attributes: {},
-    attributeKeys: [],
+    attributes: sample.attributes || {},
+    attributeKeys: Object.keys(sample.attributes || {}),
     entityKeys: [],
+    // As ingest stamps them, from the resource.
+    ...entityKeysOf(sample),
     value: sample.value,
-    retentionDate: retention,
+    retentionDate:
+      sample.keptForDays === undefined
+        ? retention
+        : OneUptimeDate.toClickhouseDateTime(
+            new Date(sample.time + sample.keptForDays * DAY),
+          ),
   };
 }
 
@@ -311,6 +358,8 @@ integration("A metric's baseline against ClickHouse", () => {
     await createTable(client, clickhouse, Metric);
     await createTable(client, clickhouse, MetricBaselineHourly);
     await createTable(client, clickhouse, MetricItemAggMV1m);
+    await createTable(client, clickhouse, MetricItemAggMV1mByHostV2);
+    await createTable(client, clickhouse, MetricItemAggMV1mByK8sCluster);
 
     original = {
       database: MetricBaselineService.database,
@@ -323,11 +372,19 @@ integration("A metric's baseline against ClickHouse", () => {
     MetricBaselineService.databaseClient = client;
     MetricBaselineService.ingestDatabase = clickhouse;
     MetricBaselineService.ingestDatabaseClient = client;
+
+    Object.assign(MetricService, {
+      database: clickhouse,
+      databaseClient: client,
+      ingestDatabase: clickhouse,
+      ingestDatabaseClient: client,
+    });
   });
 
   afterAll(async (): Promise<void> => {
     if (original) {
       Object.assign(MetricBaselineService, original);
+      Object.assign(MetricService, original);
     }
 
     if (client) {
@@ -1000,6 +1057,690 @@ integration("A metric's baseline against ClickHouse", () => {
       expect(baseline.hourOfWeek).toBe(167);
       expect(baseline.mean).toBeCloseTo(600, 6);
       expect(baseline.isReliable).toBe(true);
+    });
+  });
+
+  /*
+   * A query narrowed by an attribute: what no rollup of the whole metric holds.
+   * Rows here carry attributes and entity keys as ingest writes them, and the
+   * per-entity rollups fill from their real views.
+   */
+  describe("a query narrowed by an attribute", () => {
+    const WEB_1: string = "web-1.example.internal";
+    const WEB_2: string = "web-2.example.internal";
+
+    function hostHour(data: {
+      project: ObjectID;
+      start: number;
+      host?: string;
+      mean: number;
+      spread?: number;
+      minutes?: number;
+      attributes?: JSONObject;
+      keptForDays?: number;
+      count?: number;
+    }): Array<Sample> {
+      const spread: number = data.spread ?? 5;
+
+      return new Array<number>(data.minutes ?? 60)
+        .fill(0)
+        .map((_: number, minute: number): Sample => {
+          return {
+            project: data.project,
+            time: data.start + minute * MINUTE,
+            value: data.mean + (minute % 2 === 0 ? spread : -spread),
+            attributes: {
+              ...(data.host ? { [HOST_ATTRIBUTE]: data.host } : {}),
+              ...data.attributes,
+            },
+            ...(data.keptForDays !== undefined
+              ? { keptForDays: data.keptForDays }
+              : {}),
+            ...(data.count !== undefined ? { count: data.count } : {}),
+          };
+        });
+    }
+
+    // Two earlier weeks of an hour.
+    function earlierWeeks(
+      data: Omit<Parameters<typeof hostHour>[0], "start">,
+    ): Array<Sample> {
+      return [
+        ...hostHour({ ...data, start: hourStart - 2 * WEEK }),
+        ...hostHour({ ...data, start: hourStart - WEEK }),
+      ];
+    }
+
+    function queryOf(
+      scope: Partial<MetricBaselineScope>,
+      query: Partial<MetricBaselineQuery> = {},
+    ): MetricBaselineQuery {
+      return {
+        aggregationType: AggregationType.Avg,
+        isNarrowedByAttributes: true,
+        interval: AggregationInterval.Minute,
+        scope: { attributes: {}, groupByAttributeKeys: [], ...scope },
+        ...query,
+      };
+    }
+
+    function readOwn(
+      project: ObjectID,
+      scope: Partial<MetricBaselineScope>,
+      query: Partial<MetricBaselineQuery> = {},
+    ): Promise<BaselineSummary | null> {
+      return MetricBaselineService.getBaseline({
+        projectId: project,
+        metricName: METRIC,
+        hourOfWeek: MetricBaselineServiceClass.computeHourOfWeek(judgedAt),
+        judgedAt,
+        query: queryOf(scope, query),
+      });
+    }
+
+    function readSeries(
+      project: ObjectID,
+      scope: Partial<MetricBaselineScope>,
+      query: Partial<MetricBaselineQuery> = {},
+    ): Promise<MetricSeriesBaselines> {
+      return MetricBaselineService.getSeriesBaselines({
+        projectId: project,
+        metricName: METRIC,
+        hourOfWeek: MetricBaselineServiceClass.computeHourOfWeek(judgedAt),
+        judgedAt,
+        query: queryOf(scope, query),
+      });
+    }
+
+    test("a filter reads its own rows, and not its neighbour's", async () => {
+      const project: ObjectID = newProject();
+
+      await write([
+        ...earlierWeeks({
+          project,
+          host: WEB_1,
+          mean: 100,
+          attributes: { state: "idle" },
+        }),
+        ...earlierWeeks({
+          project,
+          host: WEB_2,
+          mean: 900,
+          attributes: { state: "idle" },
+        }),
+        ...earlierWeeks({
+          project,
+          host: WEB_1,
+          mean: 5000,
+          attributes: { state: "user" },
+        }),
+      ]);
+
+      const baseline: BaselineSummary = (await readOwn(project, {
+        attributes: { [HOST_ATTRIBUTE]: WEB_1, state: "idle" },
+      }))!;
+
+      expect(baseline.mean).toBeCloseTo(100, 6);
+      expect(baseline.sampleCount).toBe(120);
+      expect(baseline.isReliable).toBe(true);
+    });
+
+    test("what is judged is not in it, however far it has moved", async () => {
+      const project: ObjectID = newProject();
+
+      await write([
+        ...earlierWeeks({ project, attributes: { state: "idle" }, mean: 100 }),
+        ...hostHour({
+          project,
+          start: hourStart,
+          attributes: { state: "idle" },
+          mean: 100000,
+          minutes: 40,
+        }),
+      ]);
+
+      expect(
+        (await readOwn(project, { attributes: { state: "idle" } }))!.mean,
+      ).toBeCloseTo(100, 6);
+    });
+
+    test.each([
+      ["is any of", { state: new Includes(["idle", "user"]) }, 2],
+      ["is none of", { state: new IncludesNone(["system"]) }, 2],
+      ["is not", { state: new NotEqual("system") }, 2],
+      ["is", { state: "idle" }, 1],
+    ])(
+      "a filter that %s holds as the query's does",
+      async (_: string, attributes: JSONObject, seriesRead: number) => {
+        const project: ObjectID = newProject();
+
+        await write(
+          ["idle", "user", "system"].flatMap((state: string): Array<Sample> => {
+            return earlierWeeks({ project, mean: 100, attributes: { state } });
+          }),
+        );
+
+        expect(
+          (await readOwn(project, { attributes }, {
+            aggregationType: AggregationType.Count,
+          }))!.mean,
+        ).toBeCloseTo(seriesRead, 6);
+      },
+    );
+
+    describe("filtered to one entity", () => {
+      test("a host's rollup holds what its rows hold", async () => {
+        const project: ObjectID = newProject();
+
+        await write([
+          ...earlierWeeks({
+            project,
+            host: WEB_1,
+            mean: 100,
+            attributes: { state: "idle" },
+          }),
+          ...earlierWeeks({
+            project,
+            host: WEB_2,
+            mean: 900,
+            attributes: { state: "idle" },
+          }),
+        ]);
+
+        // A second filter holds it to the rows, without changing what they hold.
+        const fromRollup: BaselineSummary = (await readOwn(project, {
+          attributes: { [HOST_ATTRIBUTE]: WEB_1 },
+        }))!;
+        const fromRows: BaselineSummary = (await readOwn(project, {
+          attributes: { [HOST_ATTRIBUTE]: WEB_1, state: "idle" },
+        }))!;
+
+        expect(fromRollup.sampleCount).toBe(fromRows.sampleCount);
+        expect(fromRollup.mean).toBeCloseTo(fromRows.mean, 6);
+        expect(fromRollup.stddev).toBeCloseTo(fromRows.stddev, 6);
+        expect(fromRollup.minObserved).toBeCloseTo(fromRows.minObserved, 6);
+        expect(fromRollup.maxObserved).toBeCloseTo(fromRows.maxObserved, 6);
+      });
+
+      test.each([
+        [AggregationType.Avg, 200],
+        [AggregationType.Sum, 400],
+        [AggregationType.Count, 2],
+        [AggregationType.Min, 100],
+        [AggregationType.Max, 300],
+      ])(
+        "a %s merges to what the rows make of it",
+        async (aggregationType: AggregationType, point: number) => {
+          const project: ObjectID = newProject();
+
+          // Two series of the host, on the same minute.
+          await write([
+            ...earlierWeeks({
+              project,
+              host: WEB_1,
+              mean: 100,
+              spread: 0,
+              attributes: { device: "a", state: "idle" },
+            }),
+            ...earlierWeeks({
+              project,
+              host: WEB_1,
+              mean: 300,
+              spread: 0,
+              attributes: { device: "b", state: "idle" },
+            }),
+          ]);
+
+          const query: Partial<MetricBaselineQuery> = { aggregationType };
+          const fromRollup: BaselineSummary = (await readOwn(
+            project,
+            { attributes: { [HOST_ATTRIBUTE]: WEB_1 } },
+            query,
+          ))!;
+          const fromRows: BaselineSummary = (await readOwn(
+            project,
+            { attributes: { [HOST_ATTRIBUTE]: WEB_1, state: "idle" } },
+            query,
+          ))!;
+
+          expect(fromRollup.sampleCount).toBe(120);
+          expect(fromRollup.mean).toBeCloseTo(point, 6);
+          expect(fromRows.mean).toBeCloseTo(point, 6);
+        },
+      );
+
+      test("a cluster's rollup is read the same way", async () => {
+        const project: ObjectID = newProject();
+
+        await write([
+          ...earlierWeeks({
+            project,
+            mean: 100,
+            attributes: { [CLUSTER_ATTRIBUTE]: "prod" },
+          }),
+          ...earlierWeeks({
+            project,
+            mean: 900,
+            attributes: { [CLUSTER_ATTRIBUTE]: "staging" },
+          }),
+        ]);
+
+        expect(
+          (await readOwn(project, {
+            attributes: { [CLUSTER_ATTRIBUTE]: "prod" },
+          }))!.mean,
+        ).toBeCloseTo(100, 6);
+      });
+    });
+
+    test("a percentile is of a minute's values", async () => {
+      const project: ObjectID = newProject();
+
+      await write(
+        [10, 20, 30, 40, 1000].flatMap((mean: number): Array<Sample> => {
+          return earlierWeeks({
+            project,
+            mean,
+            spread: 0,
+            attributes: { state: "idle", device: String(mean) },
+          });
+        }),
+      );
+
+      expect(
+        (await readOwn(
+          project,
+          { attributes: { state: "idle" } },
+          { aggregationType: AggregationType.P50 },
+        ))!.mean,
+      ).toBeCloseTo(30, 6);
+    });
+
+    test("a histogram's average is of its observations", async () => {
+      const project: ObjectID = newProject();
+
+      await write(
+        earlierWeeks({
+          project,
+          mean: 500,
+          spread: 0,
+          count: 100,
+          attributes: { route: "/checkout" },
+        }),
+      );
+
+      expect(
+        (await readOwn(project, {
+          attributes: { route: "/checkout" },
+        }))!.mean,
+      ).toBeCloseTo(5, 6);
+    });
+
+    describe("split into series", () => {
+      test("each series reads its own history", async () => {
+        const project: ObjectID = newProject();
+
+        await write([
+          ...earlierWeeks({ project, host: WEB_1, mean: 100 }),
+          ...earlierWeeks({ project, host: WEB_2, mean: 900 }),
+        ]);
+
+        const baselines: MetricSeriesBaselines = await readSeries(project, {
+          groupByAttributeKeys: [HOST_ATTRIBUTE],
+        });
+
+        expect(baselines.series.size).toBe(2);
+        expect(
+          baselines.series.get(
+            MetricSeriesFingerprint.computeFingerprint({
+              [HOST_ATTRIBUTE]: WEB_1,
+            }),
+          )?.mean,
+        ).toBeCloseTo(100, 6);
+        expect(
+          baselines.series.get(
+            MetricSeriesFingerprint.computeFingerprint({
+              [HOST_ATTRIBUTE]: WEB_2,
+            }),
+          )?.mean,
+        ).toBeCloseTo(900, 6);
+      });
+
+      /*
+       * What ties a baseline to its series is the fingerprint. The two reads
+       * are written apart, so the worker's own read is what this is held to,
+       * a series that does not carry an attribute included.
+       */
+      test("under the fingerprints the worker's read gives them", async () => {
+        const project: ObjectID = newProject();
+        const keys: Array<string> = [HOST_ATTRIBUTE, "device"];
+
+        await write([
+          ...earlierWeeks({
+            project,
+            host: WEB_1,
+            mean: 100,
+            attributes: { device: "sda" },
+          }),
+          ...earlierWeeks({ project, host: WEB_1, mean: 200 }),
+          ...earlierWeeks({ project, mean: 300, attributes: { device: "sdb" } }),
+        ]);
+
+        const start: Date = new Date(hourStart - WEEK);
+        const read: AggregatedResult = await MetricService.aggregateBy({
+          query: {
+            projectId: project,
+            name: METRIC,
+            time: new InBetween<Date>(start, new Date(hourStart - WEEK + HOUR)),
+          } as never,
+          aggregationType: AggregationType.Avg,
+          aggregateColumnName: "value",
+          aggregationTimestampColumnName: "time",
+          startTimestamp: start,
+          endTimestamp: new Date(hourStart - WEEK + HOUR),
+          limit: 10000,
+          skip: 0,
+          groupByAttributeKeys: keys,
+          props: { isRoot: true },
+        } as never);
+
+        const fromWorker: Set<string> = new Set<string>(
+          read.data.map((row: AggregatedResult["data"][number]): string => {
+            return MetricSeriesFingerprint.computeFingerprint(
+              MetricSeriesFingerprint.extractSeriesLabels({
+                sample: row,
+                attributeKeys: keys,
+              }),
+            );
+          }),
+        );
+
+        const baselines: MetricSeriesBaselines = await readSeries(project, {
+          groupByAttributeKeys: keys,
+        });
+
+        expect(fromWorker.size).toBe(3);
+        expect(new Set<string>(baselines.series.keys())).toEqual(fromWorker);
+      });
+
+      test("a filter holds over every series", async () => {
+        const project: ObjectID = newProject();
+
+        await write([
+          ...earlierWeeks({
+            project,
+            host: WEB_1,
+            mean: 100,
+            attributes: { mountpoint: "/" },
+          }),
+          ...earlierWeeks({
+            project,
+            host: WEB_1,
+            mean: 200,
+            attributes: { mountpoint: "/data" },
+          }),
+          ...earlierWeeks({
+            project,
+            host: WEB_2,
+            mean: 900,
+            attributes: { mountpoint: "/" },
+          }),
+        ]);
+
+        const baselines: MetricSeriesBaselines = await readSeries(project, {
+          attributes: { [HOST_ATTRIBUTE]: WEB_1 },
+          groupByAttributeKeys: ["mountpoint"],
+        });
+
+        expect(baselines.series.size).toBe(2);
+        expect(
+          baselines.series.get(
+            MetricSeriesFingerprint.computeFingerprint({ mountpoint: "/" }),
+          )?.mean,
+        ).toBeCloseTo(100, 6);
+      });
+    });
+
+    describe("how far its rows reach", () => {
+      /*
+       * What is judged here is days old, so what a row is kept for is held
+       * apart from the 15 days it would be for a check of today.
+       */
+      test("rows kept past the check hold two earlier weeks", async () => {
+        const project: ObjectID = newProject();
+
+        await write(
+          earlierWeeks({
+            project,
+            mean: 100,
+            attributes: { state: "idle" },
+            keptForDays: 20,
+          }),
+        );
+
+        expect(
+          await readOwn(project, { attributes: { state: "idle" } }),
+        ).toMatchObject({ isReliable: true, sampleCount: 120 });
+      });
+
+      test("rows gone by now are not read", async () => {
+        const project: ObjectID = newProject();
+
+        await write([
+          ...hostHour({
+            project,
+            start: hourStart - 2 * WEEK,
+            mean: 5000,
+            attributes: { state: "idle" },
+            keptForDays: 1,
+          }),
+          ...hostHour({
+            project,
+            start: hourStart - WEEK,
+            mean: 100,
+            attributes: { state: "idle" },
+          }),
+        ]);
+
+        expect(
+          (await readOwn(project, { attributes: { state: "idle" } }))!.mean,
+        ).toBeCloseTo(100, 6);
+      });
+
+      test("an average kept too briefly stays on the cell", async () => {
+        const project: ObjectID = newProject();
+
+        // On a retention under two weeks, the older hour has left its rows.
+        await write([
+          ...hostHour({
+            project,
+            start: hourStart - 2 * WEEK,
+            mean: 500,
+            attributes: { state: "idle" },
+            keptForDays: 12,
+          }),
+          ...hostHour({
+            project,
+            start: hourStart - WEEK,
+            mean: 500,
+            attributes: { state: "idle" },
+            keptForDays: 12,
+          }),
+        ]);
+
+        const baseline: BaselineSummary = (await readOwn(project, {
+          attributes: { state: "idle" },
+        }))!;
+
+        expect(baseline.isReliable).toBe(true);
+        // The rollup keeps both weeks; the rows of one are all that is left.
+        expect(baseline.sampleCount).toBe(120);
+      });
+
+      test("a Sum kept too briefly keeps learning: the cell is not on its scale", async () => {
+        const project: ObjectID = newProject();
+
+        await write(
+          hostHour({
+            project,
+            start: hourStart - WEEK,
+            mean: 500,
+            attributes: { state: "idle" },
+            keptForDays: 12,
+          }),
+        );
+
+        expect(
+          await readOwn(
+            project,
+            { attributes: { state: "idle" } },
+            { aggregationType: AggregationType.Sum },
+          ),
+        ).toMatchObject({ isReliable: false, sampleCount: 60 });
+      });
+
+      test("a series that is only young learns, whatever the cell says", async () => {
+        const project: ObjectID = newProject();
+
+        await write([
+          ...earlierWeeks({ project, mean: 100, attributes: { state: "old" } }),
+          ...hostHour({
+            project,
+            start: hourStart - WEEK,
+            mean: 100,
+            attributes: { state: "young" },
+          }),
+        ]);
+
+        expect(
+          await readOwn(project, { attributes: { state: "young" } }),
+        ).toMatchObject({ isReliable: false });
+      });
+    });
+
+    /*
+     * The finding, on the real tables: the same doubling of the same host, as
+     * an infrastructure monitor reads it. The worker's filter is on the response
+     * and not on the step, so this is the whole way through.
+     */
+    describe("a Host monitor's criteria, end to end", () => {
+      const metricViewConfig: MetricsViewConfig = {
+        queryConfigs: [
+          {
+            metricAliasData: {
+              metricVariable: "a",
+              title: METRIC,
+              description: undefined,
+              legend: undefined,
+              legendUnit: undefined,
+            },
+            metricQueryData: {
+              filterData: { metricName: METRIC },
+            } as unknown as MetricQueryData,
+          } as MetricQueryConfigData,
+        ],
+        formulaConfigs: [],
+      };
+
+      function judge(data: {
+        project: ObjectID;
+        value: number;
+        // Nothing here is what the worker said before it said anything.
+        queryAttributes?: Array<JSONObject>;
+      }): Promise<string | null> {
+        const monitorStep: MonitorStep = new MonitorStep();
+
+        monitorStep.data = {
+          id: ObjectID.generate().toString(),
+          monitorCriteria: { data: undefined } as never,
+          hostMonitor: { metricViewConfig },
+        } as unknown as MonitorStep["data"];
+
+        return MetricMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess: {
+            projectId: data.project,
+            metricResult: [
+              { data: [{ timestamp: judgedAt, value: data.value }] },
+            ],
+            metricViewConfig,
+            monitorId: ObjectID.generate(),
+            ...(data.queryAttributes
+              ? { queryAttributes: data.queryAttributes }
+              : {}),
+          } as unknown as MetricMonitorResponse,
+          criteriaFilter: {
+            checkOn: CheckOn.MetricValue,
+            filterType: FilterType.AnomalouslyHigh,
+            value: undefined,
+            metricMonitorOptions: { metricAlias: "a" },
+          } as CriteriaFilter,
+          monitorStep,
+        });
+      }
+
+      // A fleet whose hosts sit far apart, and the middling one doubles.
+      async function fleet(project: ObjectID): Promise<void> {
+        await write(
+          [
+            ["web-a.example.internal", 20],
+            ["web-b.example.internal", 50],
+            [WEB_1, 100],
+            ["web-c.example.internal", 300],
+            ["web-d.example.internal", 800],
+          ].flatMap(([host, mean]: Array<string | number>): Array<Sample> => {
+            return earlierWeeks({
+              project,
+              host: host as string,
+              mean: mean as number,
+            });
+          }),
+        );
+        await write(
+          hostHour({
+            project,
+            start: hourStart,
+            host: WEB_1,
+            mean: 200,
+            minutes: 40,
+          }),
+        );
+      }
+
+      test("a host's doubling stays inside its fleet's samples", async () => {
+        const project: ObjectID = newProject();
+
+        await fleet(project);
+
+        expect(await judge({ project, value: 200 })).toBeNull();
+      });
+
+      test("and fires against its own history", async () => {
+        const project: ObjectID = newProject();
+
+        await fleet(project);
+
+        expect(
+          await judge({
+            project,
+            value: 200,
+            queryAttributes: [{ [HOST_ATTRIBUTE]: WEB_1 }],
+          }),
+        ).toContain("above the same-hour baseline");
+      });
+
+      test("its usual level does not", async () => {
+        const project: ObjectID = newProject();
+
+        await fleet(project);
+
+        expect(
+          await judge({
+            project,
+            value: 100,
+            queryAttributes: [{ [HOST_ATTRIBUTE]: WEB_1 }],
+          }),
+        ).toBeNull();
+      });
     });
   });
 
