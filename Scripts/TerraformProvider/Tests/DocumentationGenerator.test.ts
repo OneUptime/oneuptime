@@ -127,6 +127,59 @@ describe("curation", () => {
     expect(fileDoc).toContain('subcategory: "Organization"');
   });
 
+  /*
+   * The registry's sidebar groups pages by product, as the dashboard's
+   * menus do. Half the resources used to fall into "Other": a host, a
+   * Kubernetes cluster and their owners, AI, security, network, cloud,
+   * runbooks, and the log and trace pipelines.
+   */
+  test.each([
+    ["host", "Infrastructure"],
+    ["kubernetes_cluster_team_owner", "Infrastructure"],
+    ["vcenter_feed", "Infrastructure"],
+    ["database_endpoint", "Infrastructure"],
+    ["inventory_item", "Infrastructure"],
+    ["cloud_account", "Cloud"],
+    ["network_device", "Network"],
+    ["snmp_credential_profile", "Network"],
+    ["ai_rule", "AI"],
+    ["llm_provider", "AI"],
+    ["auto_remediation_decision", "AI"],
+    ["security_case", "Security"],
+    ["hunt", "Security"],
+    ["entity_risk", "Security"],
+    // A security rule's exception, not a telemetry exception.
+    ["rule_exception", "Security"],
+    ["exception", "Telemetry & Dashboards"],
+    ["data_store", "Data Security"],
+    ["residency_rule", "Data Security"],
+    ["runbook", "Runbooks & Runners"],
+    ["runner_team_owner", "Runbooks & Runners"],
+    ["log_pipeline", "Logs, Traces & Metrics"],
+    ["trace_scrub_rule", "Logs, Traces & Metrics"],
+    ["iot_fleet", "IoT"],
+    ["form_domain", "Forms"],
+    ["workspace_notification_rule", "Slack, Teams & Video Calls"],
+    ["video_call_connection", "Slack, Teams & Video Calls"],
+    ["subscriber_notification_template", "Status Pages"],
+    ["incoming_call_policy", "On-Call & Escalation"],
+    ["postmortem_status", "Incidents"],
+    ["scheduled_event_public_note", "Scheduled Maintenance"],
+    ["custom_role", "Teams & Access"],
+    ["packet_capture", "Probes"],
+    // The first group that matches wins: a monitor's probe is a monitor's.
+    ["monitor_probe", "Monitors"],
+    ["slo_burn_rate_rule", "Telemetry & Dashboards"],
+  ])("%s is under %s", (name: string, subcategory: string) => {
+    expect(DocumentationGenerator.getSubcategory(name)).toBe(subcategory);
+  });
+
+  test("a resource of no product's is under Other", () => {
+    expect(DocumentationGenerator.getSubcategory("something_new")).toBe(
+      "Other",
+    );
+  });
+
   test("the provider index has a start-here section", () => {
     const indexDoc: string = fs.readFileSync(
       path.join(outputDir, "docs/index.md"),

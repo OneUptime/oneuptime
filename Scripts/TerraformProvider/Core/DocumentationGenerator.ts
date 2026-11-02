@@ -111,35 +111,91 @@ export class DocumentationGenerator {
 
   /*
    * Registry sidebar grouping. registry.terraform.io groups pages by the
-   * frontmatter `subcategory`; without it, 289 resources render as one flat
-   * list. Order matters: first match wins.
+   * frontmatter `subcategory`; without it, 400 resources render as one flat
+   * list. Order matters: first match wins. The groups follow the products
+   * a resource belongs to, as the dashboard's menus have them: a host, a
+   * Kubernetes cluster and their owners, rules and feeds are Infrastructure,
+   * a security case, a hunt and a rule exception are Security. Before, half
+   * the resources - hosts, clusters, AI, security, network, cloud, runbooks,
+   * log and trace pipelines - fell into "Other", and a security rule
+   * exception into Telemetry, by the "exception" in its name.
    */
   private static readonly SUBCATEGORIES: Array<{
     pattern: RegExp;
     name: string;
   }> = [
     { pattern: /^monitor/, name: "Monitors" },
-    { pattern: /probe/, name: "Probes" },
-    { pattern: /^status_page/, name: "Status Pages" },
-    { pattern: /^incident/, name: "Incidents" },
+    // A packet capture runs on a probe.
+    { pattern: /probe|^packet_capture/, name: "Probes" },
+    {
+      pattern: /^status_page|^subscriber_notification_template/,
+      name: "Status Pages",
+    },
+    { pattern: /^incident|^postmortem/, name: "Incidents" },
     { pattern: /^alert/, name: "Alerts" },
     {
-      pattern: /^on_call|^escalation|schedule_layer|^user_override/,
+      pattern:
+        /^on_call|^escalation|schedule_layer|^user_override|^incoming_call/,
       name: "On-Call & Escalation",
     },
-    { pattern: /^scheduled_maintenance/, name: "Scheduled Maintenance" },
-    { pattern: /^team|^user|^project|^api_key/, name: "Teams & Access" },
-    { pattern: /^label|^custom_field|^file|^domain/, name: "Organization" },
-    { pattern: /^workflow/, name: "Workflows" },
     {
-      pattern: /^service|^telemetry|^dashboard|exception|^usage/,
+      pattern: /^scheduled_maintenance|^scheduled_event/,
+      name: "Scheduled Maintenance",
+    },
+    {
+      pattern:
+        /^team|^user|^project|^api_key|^custom_role|^audit_log|^totp|^two_factor|^web_authn/,
+      name: "Teams & Access",
+    },
+    {
+      pattern: /^label|^custom_field|^file|^domain|^table_view|^recommendation/,
+      name: "Organization",
+    },
+    { pattern: /^workflow/, name: "Workflows" },
+    { pattern: /^runbook|^runner/, name: "Runbooks & Runners" },
+    {
+      pattern: /^ai_|^llm_|^external_mcp_server|^auto_remediation/,
+      name: "AI",
+    },
+    {
+      pattern:
+        /^security_|^detection_rule|^hunt|^threat_intel|^watchlist|^entity_|^protected_entity|^rule_exception/,
+      name: "Security",
+    },
+    {
+      pattern:
+        /^data_store|^data_security|^data_flow|^custom_data_type|^residency_rule|^check_setting/,
+      name: "Data Security",
+    },
+    {
+      pattern: /^network_|^snmp_|^oid_|^address_name/,
+      name: "Network",
+    },
+    { pattern: /^cloud_/, name: "Cloud" },
+    {
+      pattern:
+        /^host|^docker_|^podman_|^kubernetes_|^proxmox_|^ceph_|^storage_array|^vcenter|^database|^queue|^serverless_function|^collector_config|^inventory_item/,
+      name: "Infrastructure",
+    },
+    { pattern: /^iot_/, name: "IoT" },
+    { pattern: /^form/, name: "Forms" },
+    {
+      pattern:
+        /^service|^telemetry|^dashboard|^exception|^usage|^rum_|^source_map|^slo_|^data_source/,
       name: "Telemetry & Dashboards",
     },
     { pattern: /^copilot|^code_repository/, name: "Reliability Copilot" },
-    { pattern: /log$|^span|^metric/, name: "Logs & Metrics" },
+    {
+      pattern: /^log_|log$|^trace_|^span|^metric|^profile|^change_event/,
+      name: "Logs, Traces & Metrics",
+    },
+    {
+      pattern: /^workspace_|^video_call/,
+      name: "Slack, Teams & Video Calls",
+    },
   ];
 
-  private getSubcategory(name: string): string {
+  public static getSubcategory(name: string): string {
     for (const entry of DocumentationGenerator.SUBCATEGORIES) {
       if (entry.pattern.test(name)) {
         return entry.name;
@@ -811,7 +867,7 @@ This resource does not support import: the OneUptime API exposes no read endpoin
 
     return `---
 page_title: "${provider}_${resource.name} Resource - ${provider}"
-subcategory: "${this.getSubcategory(resource.name)}"
+subcategory: "${DocumentationGenerator.getSubcategory(resource.name)}"
 description: |-
   ${resourceDescription}
 ---
@@ -1585,7 +1641,7 @@ data "${provider}_${dataSource.name}" "by_id" {
 
     return `---
 page_title: "${provider}_${dataSource.name} Data Source - ${provider}"
-subcategory: "${this.getSubcategory(dataSource.name)}"
+subcategory: "${DocumentationGenerator.getSubcategory(dataSource.name)}"
 description: |-
   ${description}
 ---
