@@ -46,13 +46,6 @@ export class ResourceGenerator {
   private fileGenerator: FileGenerator;
 
   /*
-   * Read-only attributes the server sets once, at create, and never changes
-   * (Common/Utils/DeveloperDocs/SetAtCreate.ts: when, by whom, the project,
-   * the slug, a record's number, a project's own teams' flags): planned as
-   * their state value rather than "(known after apply)", so an update's plan
-   * lists only what actually changes.
-   */
-  /*
    * The validators of an attribute that holds the ID of another record, or
    * the IDs of several, by the attribute's type (StaticFiles/ids.go): a
    * name or a slug where an ID goes is refused at plan time.
@@ -65,6 +58,13 @@ export class ResourceGenerator {
     list: "recordIDListValidators",
   };
 
+  /*
+   * Read-only attributes the server sets once, at create, and never changes
+   * (Common/Utils/DeveloperDocs/SetAtCreate.ts: when, by whom, the project,
+   * the slug, a record's number, a project's own teams' flags): planned as
+   * their state value rather than "(known after apply)", so an update's plan
+   * lists only what actually changes.
+   */
   public static isSetAtCreateAttribute(
     name: string,
     attr: TerraformAttribute,

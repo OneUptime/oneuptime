@@ -474,7 +474,8 @@ export class OpenAPIParser {
       const name: string = this.getNameOfTag(tag);
       /*
        * A model renamed in the product names its former name; one a client
-       * names otherwise (x-oneuptime-client-name) had its own.
+       * names otherwise (CLIENT_RESOURCE_NAMES, by its x-oneuptime-table)
+       * had the name of its tag.
        */
       const formerName: string | undefined = (tag["x-former-names"] || [])[0];
       const legacyName: string = formerName

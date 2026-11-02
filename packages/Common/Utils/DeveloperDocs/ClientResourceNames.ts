@@ -22,10 +22,11 @@
  *     won, and no template could be made with Terraform at all. The
  *     template keeps the name; the link is a status page's.
  *
- * A client names each of them as below instead. The OpenAPI spec says so on
- * the model's tag (x-oneuptime-client-name), and the provider keeps the old
- * name working as a deprecated alias that a moved block leaves behind - or,
- * where the old name is another resource's now, takes a moved block from it.
+ * A client names each of them as below instead, by the model's table, which
+ * the OpenAPI spec says on each tag (x-oneuptime-table). The provider keeps
+ * the old name working as a deprecated alias that a moved block leaves
+ * behind - or, where the old name is another resource's now, takes a moved
+ * block from it.
  * The dashboard's own words for the records, its singular names, stay as
  * they are. No two models may share a name (ClientResourceNames.test.ts),
  * and the provider's generator stops when two do.

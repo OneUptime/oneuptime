@@ -324,7 +324,41 @@ describe("two models of one singular name", () => {
     expect(linkPage).toContain(
       "from = oneuptime_subscriber_notification_template.example",
     );
+    // And how to keep it where the engine cannot move it to another type.
+    expect(linkPage).toContain(
+      DocumentationGenerator.MOVE_TO_ANOTHER_TYPE_FALLBACK,
+    );
+    expect(DocumentationGenerator.MOVE_TO_ANOTHER_TYPE_FALLBACK).toContain(
+      "`terraform state rm`",
+    );
     expect(templatePage).not.toContain("~> **Renamed:**");
+  });
+
+  test("the provider's index says the old name is the template's now, where it lists the renames", () => {
+    const renamed: string = indexPage.slice(
+      indexPage.indexOf("## Renamed resources"),
+    );
+
+    expect(renamed).toContain(
+      "One old name is another resource's now, so no alias can keep it.",
+    );
+    expect(renamed).toContain(
+      "| [`oneuptime_subscriber_notification_template`](./resources/subscriber_notification_template) | [`oneuptime_status_page_subscriber_notification_template`](./resources/status_page_subscriber_notification_template) |",
+    );
+    expect(renamed).toContain(
+      "  from = oneuptime_subscriber_notification_template.example\n  to   = oneuptime_status_page_subscriber_notification_template.example",
+    );
+    expect(renamed).toContain(
+      DocumentationGenerator.MOVE_TO_ANOTHER_TYPE_FALLBACK,
+    );
+    // It is no alias: the table of names that still work leaves it out.
+    expect(renamed).not.toContain(
+      "| `oneuptime_subscriber_notification_template` |",
+    );
+    // The aliases still have their table.
+    expect(renamed).toContain(
+      "| `oneuptime_users_on_call_duty_escalation_rule` | [`oneuptime_escalation_rule_user`](./resources/escalation_rule_user) |",
+    );
   });
 
   test("without a name of its own, the generation stops and says how to fix it", () => {

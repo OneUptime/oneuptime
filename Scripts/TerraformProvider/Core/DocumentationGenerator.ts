@@ -387,34 +387,53 @@ Pin \`ref\` to a published tag: this repository is regenerated on every release,
   }
 
   /*
+   * What a configuration does where moving a resource to another type is
+   * not possible: Terraform before 1.8 has no moved block between types.
+   */
+  public static readonly MOVE_TO_ANOTHER_TYPE_FALLBACK: string =
+    "Where the engine cannot move a resource to another type (Terraform before 1.8), remove it from the state with `terraform state rm` and import it under its new name instead.";
+
+  /*
    * The provider index lists the resources whose name changed, with the
-   * moved block that carries their state over.
+   * moved block that carries their state over - and the names that could
+   * not stay aliases, because another resource has them now: a
+   * configuration that used one for what it managed before stops planning
+   * until it is renamed, so the index says so where renames are read.
    */
   private generateRenamedSection(): string {
+    const byName: (a: TerraformResource, b: TerraformResource) => number = (
+      a: TerraformResource,
+      b: TerraformResource,
+    ): number => {
+      return a.name.localeCompare(b.name);
+    };
     const renamed: Array<TerraformResource> = this.resources
       .filter((resource: TerraformResource) => {
         return Boolean(resource.legacyName);
       })
-      .sort((a: TerraformResource, b: TerraformResource) => {
-        return a.name.localeCompare(b.name);
-      });
+      .sort(byName);
+    const moved: Array<TerraformResource> = this.resources
+      .filter((resource: TerraformResource) => {
+        return Boolean(resource.movedFrom);
+      })
+      .sort(byName);
 
-    if (renamed.length === 0) {
+    if (renamed.length === 0 && moved.length === 0) {
       return "";
     }
 
     const provider: string = this.config.providerName;
 
     // The moved example uses the plainest of them: iot_fleet, not its rules.
-    const example: TerraformResource = [...renamed].sort(
+    const example: TerraformResource | undefined = [...renamed].sort(
       (a: TerraformResource, b: TerraformResource) => {
         return a.name.length - b.name.length || a.name.localeCompare(b.name);
       },
-    )[0]!;
+    )[0];
 
-    return `
-## Renamed resources
-
+    const aliases: string =
+      renamed.length > 0 && example
+        ? `
 These resources were renamed to read the way the product names them: IoT and vCenter are one word, auto remediation rules are AI rules, an escalation rule's users, teams and schedules are \`escalation_rule_user\`, \`escalation_rule_team\` and \`escalation_rule_schedule\`, and every team owner is \`<thing>_team_owner\`. Each old name still works, as a deprecated alias, so no configuration breaks; plans that use one say so.
 
 | Old name | New name |
@@ -433,7 +452,36 @@ moved {
   to   = ${provider}_${example.name}.example
 }
 \`\`\`
-`;
+`
+        : "";
+
+    const takenNames: string =
+      moved.length > 0
+        ? `
+${moved.length === 1 ? "One old name is" : "These old names are"} another resource's now, so no alias can keep ${moved.length === 1 ? "it" : "them"}. A configuration that uses ${moved.length === 1 ? "it" : "one"} for what it managed before stops planning until you rename the resource and add a \`moved\` block:
+
+| Old name, now another resource | What it managed is now |
+|----------|----------|
+${moved
+  .map((resource: TerraformResource) => {
+    return `| [\`${provider}_${resource.movedFrom}\`](./resources/${resource.movedFrom}) | [\`${provider}_${resource.name}\`](./resources/${resource.name}) |`;
+  })
+  .join("\n")}
+
+\`\`\`terraform
+moved {
+  from = ${provider}_${moved[0]!.movedFrom}.example
+  to   = ${provider}_${moved[0]!.name}.example
+}
+\`\`\`
+
+${DocumentationGenerator.MOVE_TO_ANOTHER_TYPE_FALLBACK}
+`
+        : "";
+
+    return `
+## Renamed resources
+${aliases}${takenNames}`;
   }
 
   private async generateResourceDocs(): Promise<void> {
@@ -731,6 +779,8 @@ moved {
   to   = ${provider}_${resource.name}.example
 }
 \`\`\`
+
+${DocumentationGenerator.MOVE_TO_ANOTHER_TYPE_FALLBACK}
 `
         : "";
 
