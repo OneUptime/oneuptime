@@ -296,7 +296,7 @@ const MerakiUplinkComparison: FunctionComponent<ComponentProps> = (
         )}
 
         <div
-          className={`mt-5 hidden gap-x-4 pb-1 text-xs font-medium text-gray-500 sm:grid ${columnsClassName}`}
+          className={`mt-5 max-sm:hidden gap-x-4 pb-1 text-xs font-medium text-gray-500 sm:grid ${columnsClassName}`}
           aria-hidden="true"
         >
           {headings.map((heading: string): ReactElement => {
