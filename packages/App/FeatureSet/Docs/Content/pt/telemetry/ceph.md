@@ -150,7 +150,7 @@ Os dois recebem o atributo de recurso `ceph.cluster.name` do processador `resour
 
 ## Opcional — Enviar o log do cluster Ceph
 
-O agente pode acompanhar `/var/log/ceph/ceph.log` e enviá-lo ao OneUptime, o que preenche a página **Cluster Log** do cluster. Isso vem desativado por padrão porque o agente precisa rodar em um host que tenha o log do cluster: por padrão, um host de monitor.
+O agente pode acompanhar `/var/log/ceph/ceph.log` e enviá-lo ao OneUptime, o que preenche a página **Registro do cluster** do cluster. Isso vem desativado por padrão porque o agente precisa rodar em um host que tenha o log do cluster: por padrão, um host de monitor.
 
 :::steps
 ### Ative o receiver

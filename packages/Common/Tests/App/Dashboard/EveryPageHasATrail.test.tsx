@@ -122,6 +122,8 @@ const TRAIL_GETTERS: Dictionary<BreadcrumbGetter> = {
   TracesRoutePath: getTracesBreadcrumbs,
   ProfilesRoutePath: getProfilesBreadcrumbs,
   InventoryRoutePath: getInventoryBreadcrumbs,
+  // The Topology Map is drawn in the Inventory layout, under its trail.
+  TopologyRoutePath: getInventoryBreadcrumbs,
   ExceptionsRoutePath: getExceptionsBreadcrumbs,
   LlmRoutePath: getLlmBreadcrumbs,
   DashboardsRoutePath: getDashboardBreadcrumbs,
@@ -143,12 +145,11 @@ const TRAIL_GETTERS: Dictionary<BreadcrumbGetter> = {
 };
 
 /*
- * Route tables drawn without a trail of their own, and why.
+ * Route tables drawn without a trail of their own, and why. None today:
+ * the last, Topology's, gained its trail ("Project > Inventory > Topology
+ * Map", as the Inventory menu it is drawn beside names it).
  */
-const TABLES_WITHOUT_TRAILS: Dictionary<string> = {
-  TopologyRoutePath:
-    "Topology is drawn in the Inventory layout under its own title and the Inventory menu, with no trail - a page of its own kind; a trail for it is a follow-up.",
-};
+const TABLES_WITHOUT_TRAILS: Dictionary<string> = {};
 
 /*
  * Pages that are not drawn under a trail, each with the reason. Each must
@@ -277,6 +278,7 @@ describe("a trail is drawn as the Page's header draws it", () => {
     PageMap.PODMAN_HOST_VIEW_CONTAINER_DETAIL,
     PageMap.RUM_APPLICATION_VIEW_CLIENTS,
     PageMap.USER_SETTINGS_ON_CALL_LOGS_TIMELINE,
+    PageMap.TOPOLOGY,
   ])("%s", (page: string) => {
     const currentPath: string = visit(page);
     const table: string = Object.keys(routeTables).find(

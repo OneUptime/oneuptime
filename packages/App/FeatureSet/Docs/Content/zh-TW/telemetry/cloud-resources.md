@@ -37,7 +37,7 @@ flowchart TB
 | ECS、Cloud Run、Container Apps、App Service 等上的容器 | **應用程式平台 → 所有環境** | 工作負載本身的遙測資料，依其 `cloud.platform` 區分。請參閱 [雲端環境](/docs/telemetry/cloud-environments) |
 | 提供者監控的任何 IaaS 或 PaaS 資源 | **雲端 → 所有資源** | 由 Collector 讀取的提供者監控 API：也就是本頁 |
 | 裝有 OpenTelemetry Collector 的虛擬機器 | **主機** | 主機本身的指標與日誌。請參閱 [主機 OpenTelemetry Collector](/docs/telemetry/host-otel-collector) |
-| 你的應用程式使用的佇列與主題 | **Queues** | span，以及相同的雲端指標。請參閱 [佇列](/docs/telemetry/queues) |
+| 你的應用程式使用的佇列與主題 | **佇列** | span，以及相同的雲端指標。請參閱 [佇列](/docs/telemetry/queues) |
 
 一個資源可能出現在多個地方。裝有 Collector 的虛擬機器是一台 **主機**，而它的平台指標（Hypervisor 看到的 CPU 點數、磁碟與網路）又讓它成為一個 **雲端資源**。SQS 佇列既是 **Queue**，也是 **雲端資源**。每個檢視顯示的是其資料來源所知道的內容。
 

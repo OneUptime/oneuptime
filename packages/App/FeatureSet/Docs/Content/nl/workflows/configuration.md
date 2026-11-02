@@ -145,7 +145,7 @@ Wat er wordt gelogd:
 
 Wat het blok nodig heeft, en wat het kost:
 
-- **AI inschakelen** moet aan staan, onder **Projectinstellingen → AI → AI Features**. In OneUptime Cloud heeft het project bovendien het abonnement Growth of hoger en een betaald abonnement nodig. Zelf gehoste installaties zonder facturering hebben geen abonnementsdrempel.
+- **AI inschakelen** moet aan staan, onder **Projectinstellingen → AI → AI-functies**. In OneUptime Cloud heeft het project bovendien het abonnement Growth of hoger en een betaald abonnement nodig. Zelf gehoste installaties zonder facturering hebben geen abonnementsdrempel.
 - Aanroepen via een betaalde globale provider gebruiken de AI-tegoeden van het project.
 - Elke aanroep telt mee voor de [eigen dagelijkse AI-limieten van het project](/docs/ai/ai-sre#de-eigen-daglimieten-van-het-project), als een projecteigenaar die instelt. Is een limiet bereikt, dan neemt het blok **Error** zonder het model te benaderen, tot middernacht UTC.
 

@@ -25,7 +25,7 @@ Een beoordeling leest alleen. Ze draait op de eigen AI van het project: **AI ins
 
 ## Voordat je begint
 
-- **AI inschakelen** aan, onder **Projectinstellingen → AI → AI Features**. Staat het uit, dan toont beveiliging niets van OneUptime AI en draait er niets.
+- **AI inschakelen** aan, onder **Projectinstellingen → AI → AI-functies**. Staat het uit, dan toont beveiliging niets van OneUptime AI en draait er niets.
 - Een LLM-provider die OneUptime AI kan gebruiken, onder **Projectinstellingen → AI → LLM-providers**. OneUptime Cloud levert er een.
 - Een rol die beveiligingszaken mag behandelen, om een beoordeling te starten: Project Owner, Project Admin, Security Admin of Security Member. Security Viewer leest elke beoordeling, maar kan er geen starten. Zie [Rollen](/docs/permissions/reference#rollen).
 
@@ -112,7 +112,7 @@ Als een zaak een incident meldt, leest ook het AI-onderzoek van het incident de 
 
 ## Kosten en limieten
 
-Een beoordeling is werk van OneUptime AI, net als het onderzoek van een incident. Op OneUptime Cloud wordt ze betaald uit de AI-tegoeden van het project, en ze telt mee voor de eigen dagelijkse AI-limieten van het project (**Daglimieten**, onder **Projectinstellingen → AI → AI Features**). De dagelijkse limieten voor incidenten en waarschuwingen gelden niet. Een zaak heeft één beoordeling tegelijk, en de AI-logboeken (**Projectinstellingen → AI → AI-logboeken**) tonen haar aanroepen.
+Een beoordeling is werk van OneUptime AI, net als het onderzoek van een incident. Op OneUptime Cloud wordt ze betaald uit de AI-tegoeden van het project, en ze telt mee voor de eigen dagelijkse AI-limieten van het project (**Daglimieten**, onder **Projectinstellingen → AI → AI-functies**). De dagelijkse limieten voor incidenten en waarschuwingen gelden niet. Een zaak heeft één beoordeling tegelijk, en de AI-logboeken (**Projectinstellingen → AI → AI-logboeken**) tonen haar aanroepen.
 
 Als de AI-tegoeden van het project op zijn of een dagelijkse AI-limiet is bereikt, worden nieuwe zaken niet beoordeeld: de kaart zegt waarom, en **Beoordelen met AI** werkt weer zodra er tegoed is toegevoegd of de limiet opnieuw begint.
 
@@ -123,7 +123,7 @@ Controleer of **AI inschakelen** aan staat, en ook **Nieuwe zaken beoordelen** o
 :::
 
 :::details De kaart zegt dat het project geen AI-tegoed meer heeft, of zijn dagelijkse AI-limiet heeft bereikt
-Een projecteigenaar of iemand met Manage Billing kan tegoed toevoegen onder **Projectinstellingen → AI → AI-tegoeden**, of de limiet verhogen of verwijderen onder **Projectinstellingen → AI → AI Features**. Klik daarna op de zaak op **Beoordelen met AI**.
+Een projecteigenaar of iemand met Manage Billing kan tegoed toevoegen onder **Projectinstellingen → AI → AI-tegoeden**, of de limiet verhogen of verwijderen onder **Projectinstellingen → AI → AI-functies**. Klik daarna op de zaak op **Beoordelen met AI**.
 :::
 
 :::details De kaart zegt dat tekst in de zaak leest als instructies aan een AI

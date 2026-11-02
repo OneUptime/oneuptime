@@ -34,6 +34,13 @@ import {
 import SecurityEventConnectorProvider from "../../../Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
 import Icon from "../../../UI/Components/Icon/Icon";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import ProviderLogo from "../../../Types/ProviderLogo/ProviderLogo";
+import {
+  getDrawnMark,
+  getDrawnPathData,
+  getMarkPathData,
+  preloadProviderLogoMarks,
+} from "../../Helpers/ProviderLogoMarks";
 
 /*
  * Security Events > Connections with no connections.
@@ -129,6 +136,7 @@ const english: i18n = createInstance();
 const german: i18n = createInstance();
 
 beforeAll(async (): Promise<void> => {
+  await preloadProviderLogoMarks();
   await english.init({
     lng: "en",
     fallbackLng: "en",
@@ -535,11 +543,13 @@ describe("SecurityEventConnectionsEmptyState", () => {
         ).not.toBeInTheDocument();
         expect(root().querySelectorAll("svg")).toHaveLength(
           /*
-           * Badge, Add icon, 10 external-link icons, 2 requirements: the 10
-           * products are drawn with their logos (images), not icons.
+           * Badge, Add icon, 10 external-link icons, 2 requirements, and the
+           * 10 products' marks: each drawn inline, in one colour, as an icon
+           * is (the brands that allow no logo here by an icon of OneUptime's).
            */
-          1 + 1 + 10 + 2,
+          1 + 1 + 10 + 2 + 10,
         );
+        expect(root().querySelectorAll("img")).toHaveLength(0);
         expect(root().querySelectorAll("[data-provider-logo]")).toHaveLength(
           10,
         );
@@ -1214,18 +1224,36 @@ describe("SecurityEventConnectionsEmptyState", () => {
     /*
      * Sentinel, Elastic and Google SecOps all used to be drawn with a
      * shield, three identical marks in a row of eight; then with three
-     * generic icons. Each is now its own product's logo.
+     * generic icons. Each is now its own product's mark - Sentinel by
+     * Azure's, Google SecOps by Google Cloud's. The one shield left is AWS
+     * Security Hub's: AWS allows its services to be named in plain text
+     * only, so an icon of OneUptime's stands for it.
      */
-    test("Sentinel, Elastic and Google SecOps each show their own logo, no generic icon", () => {
+    test("Sentinel, Elastic and Google SecOps each show their own mark, no generic icon", () => {
       renderEmptyState();
 
       const shield: string = iconMarkup(IconProp.ShieldCheck);
-      const shielded: Array<HTMLElement> = tiles().filter(
-        (tile: HTMLElement): boolean => {
+      const shielded: Array<string> = tiles()
+        .filter((tile: HTMLElement): boolean => {
           return svgMarkup(tile.children[0]!) === shield;
-        },
-      );
-      expect(shielded).toHaveLength(0);
+        })
+        .map((tile: HTMLElement): string => {
+          return tile.children[0]!.getAttribute("data-provider-logo") || "";
+        });
+      expect(shielded).toEqual(["aws-security-hub"]);
+
+      for (const provider of [
+        SecurityEventConnectorProvider.MicrosoftSentinel,
+        SecurityEventConnectorProvider.ElasticSecurity,
+        SecurityEventConnectorProvider.GoogleSecOps,
+      ]) {
+        const badge: Element = tileFor(provider).children[0]!;
+        const logo: string = badge.getAttribute("data-provider-logo") || "";
+
+        expect(getDrawnPathData(getDrawnMark(badge))).toEqual(
+          getMarkPathData(logo as ProviderLogo),
+        );
+      }
       expect(
         tileFor(SecurityEventConnectorProvider.MicrosoftSentinel).children[0],
       ).toHaveAttribute("data-provider-logo", "microsoft-sentinel");

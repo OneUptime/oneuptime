@@ -77,10 +77,10 @@ Sidemenyen på siden samler det du gjør med et unntak:
 | --- | --- |
 | **Oversikt** | Meldingen, tjenesten, hvor ofte det skjedde og når det først og sist ble sett, utviklingen over tid, og den siste forekomsten: release, miljø, span, spor og brukerøkt. Øverst OneUptime AIs forklaring av hva som skjedde, når AI er på. |
 | **Stack trace** | Rammene i stakken. For nettleserkode de opprinnelige filene og linjene, når du har lastet opp [Source maps](/docs/telemetry/source-maps) for releasen. |
-| **Occurrences** | Hver forekomst, med tidspunkt, melding og sporet den skjedde i. |
-| **Context** | Attributtene til den siste forekomsten, øktopptaket når det finnes, og trinnene som førte frem til den. |
+| **Forekomster** | Hver forekomst, med tidspunkt, melding og sporet den skjedde i. |
+| **Kontekst** | Attributtene til den siste forekomsten, øktopptaket når det finnes, og trinnene som førte frem til den. |
 | **Logger** | Loggene som ble skrevet rundt den siste forekomsten. |
-| **AI Assistance** | AI-oppgaver som retter unntaket eller tester det. |
+| **AI-hjelp** | AI-oppgaver som retter unntaket eller tester det. |
 | **Innstillinger** | Løs eller arkiver unntaket. Den ligger under **Administrer**, som er lukket i starten. |
 
 ## Løs, gjenåpne og arkiver
@@ -131,7 +131,7 @@ Med **Arkiver forventede unntak** slått på, i innstillingene for AI-innsikt, a
 | **Hvor du bør se** | Rammene i stack trace du bør åpne først. |
 | **Neste steg** | Høyst tre steg for å bekrefte eller rette det. |
 
-Forklaringen lagres på unntaket, så den neste som åpner det leser den med en gang, og **Forklar på nytt** ber om en ny. **Åpne en pull-forespørsel med rettingen** åpner unntakets side **AI Assistance**, og **Still et oppfølgingsspørsmål** åpner Ask AI om unntaket.
+Forklaringen lagres på unntaket, så den neste som åpner det leser den med en gang, og **Forklar på nytt** ber om en ny. **Åpne en pull-forespørsel med rettingen** åpner unntakets side **AI-hjelp**, og **Still et oppfølgingsspørsmål** åpner Ask AI om unntaket.
 
 ID-er, e-post- og IP-adresser og tokener fjernes fra alt som sendes, og av et spans attributter sendes bare noen få, som ruten og statuskoden. Forklaringen bruker prosjektets LLM-leverandør og AI-kreditter og tilbys ikke mens **Aktiver AI** er av. Alle som kan lese unntaket, kan be om en.
 
@@ -141,7 +141,7 @@ Slå et som OneUptime AI kaller **Sannsynligvis den samme feilen**, og som høre
 
 ## Rett det med AI
 
-Siden **AI Assistance** tilbyr tre oppgaver. Hver kjører som en AI-oppgave som åpner en pull request i kodelageret ditt:
+Siden **AI-hjelp** tilbyr tre oppgaver. Hver kjører som en AI-oppgave som åpner en pull request i kodelageret ditt:
 
 | Oppgave | Hva pull requesten gjør |
 | --- | --- |
@@ -161,7 +161,7 @@ Hvert 15. minutt går OneUptime gjennom unntakene dine etter nye, etter dem som 
 | **Topp i unntak** | Et unntak som har skjedd 10 ganger eller mer i løpet av den siste timen, med 5 ganger eller mer sin timerate fra de 24 timene før. | Retter unntaket, eller håndterer det bedre. |
 | **Manglende stack trace** | Unntakene en tjeneste registrerte det siste døgnet har ingen stack trace og har til sammen skjedd 20 ganger eller mer. | Får tjenesten til å registrere en stack trace med hvert unntak. |
 
-Pull requesten for et nytt eller økende unntak er unntakets egen AI-oppgave, den som siden **AI Assistance** til unntaket starter, og den venter til OneUptime AI har undersøkt funnet. Finner den koden som har skylden (`code-fault`), retter pull requesten den, slik **Fix this exception with AI** gjør. Finner den en forventet feil (`user-error` eller `expected-denial`), håndterer pull requesten feilen bedre, slik **Forbedre feilhåndtering** gjør. Enhver annen konklusjon åpner ingen pull request av seg selv. Med **Arkiver forventede unntak** slått på arkiveres en forventet avvisning i stedet og får ingen pull request.
+Pull requesten for et nytt eller økende unntak er unntakets egen AI-oppgave, den som siden **AI-hjelp** til unntaket starter, og den venter til OneUptime AI har undersøkt funnet. Finner den koden som har skylden (`code-fault`), retter pull requesten den, slik **Fix this exception with AI** gjør. Finner den en forventet feil (`user-error` eller `expected-denial`), håndterer pull requesten feilen bedre, slik **Forbedre feilhåndtering** gjør. Enhver annen konklusjon åpner ingen pull request av seg selv. Med **Arkiver forventede unntak** slått på arkiveres en forventet avvisning i stedet og får ingen pull request.
 
 OneUptime AI åpner bare selv en for et unntak som er kastet i din egen kode: et unntak der stack tracen har en ramme fra koden din, og ikke bare rammer fra biblioteker eller kjøretidsmiljøet. En pull request som noen lukket uten å flette den, setter de automatiske på pause for det unntaket. Alle kan fortsatt be om hvilken som helst av dem med **Fiks med AI** på funnet.
 
@@ -187,7 +187,7 @@ Under **Flere felt** velger en regel kodelagrene, MCP-serverne og LLM-leverandø
 
 - **Unntak → KI → Innsikt** viser hva OneUptime fant, hvert funn med bevisene, rammene fra koden din i stack tracen medregnet. **View Exception Group** åpner unntaket, og for en tjenestes manglende stack traces åpner **Åpne i Unntak** de uløste unntakene dens fra det siste døgnet.
 - **Unntak → KI → Logger** viser hver undersøkelse og hver pull request, nyeste først, med status for hver og hva hver undersøkelse fant.
-- Pull requesten sier hvorfor den ble åpnet, med en lenke til funnet. Den for et nytt eller økende unntak lenker også til unntaket og vises på siden **AI Assistance** til unntaket. I Kode nevner oppgaven unntaket den retter, eller funnet den kom fra.
+- Pull requesten sier hvorfor den ble åpnet, med en lenke til funnet. Den for et nytt eller økende unntak lenker også til unntaket og vises på siden **AI-hjelp** til unntaket. I Kode nevner oppgaven unntaket den retter, eller funnet den kom fra.
 
 ## Innsikt i unntak
 

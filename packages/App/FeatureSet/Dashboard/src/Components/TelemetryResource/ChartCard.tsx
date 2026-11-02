@@ -23,7 +23,11 @@ import {
 import { getDrawnLanguage } from "Common/UI/Components/SideMenu/SideMenuEntryState";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
-import { getTileTitleWordsClassName } from "./TileTitleWords";
+import {
+  getTileTitleWordsClassName,
+  TILE_TITLE_LONG_WORDS,
+} from "./TileTitleWords";
+import HyphenatedWords from "Common/UI/Components/HyphenatedWords/HyphenatedWords";
 
 export type ChartCardColor =
   | "blue"
@@ -134,7 +138,11 @@ const ChartCard: FunctionComponent<ChartCardProps> = (
           )}`}
           lang={titleLanguage}
         >
-          {title}
+          <HyphenatedWords
+            text={title}
+            lang={titleLanguage}
+            rule={TILE_TITLE_LONG_WORDS}
+          />
         </span>
         <InfoTooltip label={props.title} text={props.description} />
       </div>

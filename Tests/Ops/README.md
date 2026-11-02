@@ -1664,6 +1664,20 @@ ZIP checks are skipped with the reason logged, except in CI, where they fail.
 What the package says is held by
 `packages/App/FeatureSet/MCP/Tests/ChatGPTPlugin.test.ts`.
 
+### `CodingAgentPluginPackage.test.js`
+
+`npm run build-coding-agent-plugin` (`Scripts/MCP/BuildCodingAgentPlugin.js`)
+builds the folder OneUptime publishes as its plugin for coding agents, from
+`packages/App/FeatureSet/MCP/CodingAgentPlugin` and the ChatGPT package's
+listing. The suite runs the script and reads the folder back: the three
+manifests, both server files, the README, the licence, the icon and every
+skill, and nothing else, each copied byte for byte. A rebuild replaces an
+earlier build but keeps a clone's `.git`. A folder that is neither empty nor an
+earlier build is refused and left as it was. A relative output path lands where
+the command was typed, through npm (`INIT_CWD`) as well as node. What the
+plugin says is held by
+`packages/App/FeatureSet/MCP/Tests/CodingAgentPlugin.test.ts`.
+
 ### `agent-ebpf-e2e/`
 
 Not part of `npm test`: it installs the Kubernetes agent chart on a throwaway

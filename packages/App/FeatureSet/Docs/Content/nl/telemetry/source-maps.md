@@ -83,7 +83,7 @@ Vervang bij zelf gehoste installaties `oneuptime.com` door uw OneUptime-host. `A
 
 ### De upload controleren
 
-Een geslaagde upload geeft een JSON-body met de opgeslagen maps terug, zodat CI erop kan controleren. De maps staan ook op de pagina **Source Maps** van de service in OneUptime.
+Een geslaagde upload geeft een JSON-body met de opgeslagen maps terug, zodat CI erop kan controleren. De maps staan ook op de pagina **Source maps** van de service in OneUptime.
 :::
 
 Een gangbare CI-stap uploadt elke map die de build heeft gemaakt:
@@ -127,7 +127,7 @@ Zelf gehoste installaties kunnen deze waarden wijzigen. Alle vijf zijn gewone om
 
 Open een willekeurige uitzondering onder **Uitzonderingen** in het dashboard. Frames die via een source map zijn opgelost, tonen een badge **Source mapped** en de oorspronkelijke functienaam en bestandslocatie; een opengeklapt frame toont het oorspronkelijke codefragment (als de map `sourcesContent` bevat) naast de geminificeerde locatie.
 
-De geüploade maps van een service kunt u bekijken en verwijderen onder **Producten → Services → uw service → Source Maps**, met per map de release, de bundel, de grootte en het uploadtijdstip.
+De geüploade maps van een service kunt u bekijken en verwijderen onder **Producten → Services → uw service → Source maps**, met per map de release, de bundel, de grootte en het uploadtijdstip.
 
 ## Bewaartermijn
 
@@ -142,7 +142,7 @@ Source maps worden 90 dagen na het uploaden bewaard en daarna automatisch verwij
 ## Problemen oplossen
 
 :::details Frames zijn nog steeds geminificeerd
-De release van de uitzondering heeft geen overeenkomende maps. Controleer of de `service.version` die uw app stuurt precies de `serviceVersion` is waarmee u hebt geüpload, of `serviceName` overeenkomt met `service.name`, en of er een map voor dat bundelbestand is geüpload: de pagina **Source Maps** van de service toont de release en bundel van elke map.
+De release van de uitzondering heeft geen overeenkomende maps. Controleer of de `service.version` die uw app stuurt precies de `serviceVersion` is waarmee u hebt geüpload, of `serviceName` overeenkomt met `service.name`, en of er een map voor dat bundelbestand is geüpload: de pagina **Source maps** van de service toont de release en bundel van elke map.
 :::
 
 :::details De upload wordt geweigerd omdat een map te groot is

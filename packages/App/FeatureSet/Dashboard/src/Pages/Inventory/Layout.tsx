@@ -47,7 +47,7 @@ const InventoryLayout: FunctionComponent<LayoutPageComponentProps> = (
           : undefined
       }
       sideMenu={<SideMenu />}
-      breadcrumbLinks={isTopology ? [] : getInventoryBreadcrumbs(path)}
+      breadcrumbLinks={getInventoryBreadcrumbs(path)}
     >
       {content}
     </Page>

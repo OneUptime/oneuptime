@@ -37,7 +37,7 @@ Cloud-resources zijn een van de plekken waar je cloud verschijnt:
 | Containers op ECS, Cloud Run, Container Apps, App Service, … | **App-platforms → Alle omgevingen** | De eigen telemetrie van je workloads, op basis van hun `cloud.platform`. Zie [Cloud-omgevingen](/docs/telemetry/cloud-environments) |
 | Elke IaaS- of PaaS-resource die de provider monitort | **Cloud → Alle resources** | De monitoring-API van de provider, gelezen door een collector: deze pagina |
 | Virtuele machines met een OpenTelemetry Collector erop | **Hosts** | De eigen metrieken en logs van de host. Zie [OpenTelemetry-collector op de host](/docs/telemetry/host-otel-collector) |
-| Wachtrijen en topics die je applicaties gebruiken | **Queues** | Spans, en dezelfde cloudmetrieken. Zie [Wachtrijen](/docs/telemetry/queues) |
+| Wachtrijen en topics die je applicaties gebruiken | **Wachtrijen** | Spans, en dezelfde cloudmetrieken. Zie [Wachtrijen](/docs/telemetry/queues) |
 
 Een resource kan op meer dan één plek verschijnen. Een virtuele machine met de collector erop is een **Host**, en zijn platformmetrieken (CPU-tegoed, schijf en netwerk zoals de hypervisor ze ziet) maken hem ook een **Cloud-resource**. Een SQS-wachtrij is een **Queue** en een **Cloud-resource**. Elke weergave toont wat haar bron weet.
 

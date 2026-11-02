@@ -7,9 +7,9 @@ import {
 } from "Common/Types/Telemetry/OpenTelemetryGuides";
 import { JSONObject } from "Common/Types/JSON";
 import {
-  ProviderLogoImage,
-  getProviderLogoImage,
-} from "../../ProviderLogoFiles";
+  ProviderLogoMarkup,
+  getProviderLogoMarkup,
+} from "../../ProviderLogoMarkup";
 import {
   ExampleSpan,
   GuideCodeSection,
@@ -88,7 +88,7 @@ export interface RenderedQuestion {
 }
 
 export interface GuideMark {
-  logo?: ProviderLogoImage | undefined;
+  logo?: ProviderLogoMarkup | undefined;
   /*
    * A guide no one brand owns - plain JavaScript in the browser - has a
    * generic mark instead: a browser window.
@@ -190,7 +190,7 @@ export function monogramOf(name: string): string {
 
 export function guideMark(entry: OpenTelemetryGuideEntry): GuideMark {
   return {
-    logo: entry.logo ? getProviderLogoImage(entry.logo) : undefined,
+    logo: entry.logo ? getProviderLogoMarkup(entry.logo) : undefined,
     icon: !entry.logo && entry.kind === "browser" ? "browser" : undefined,
     monogram: monogramOf(entry.name),
   };

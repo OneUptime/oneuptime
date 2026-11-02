@@ -169,7 +169,13 @@ describe.each(PRODUCT_PAGES)(
         }),
       );
       for (const card of cards) {
-        expect(card.querySelector("img")?.getAttribute("alt")).toBe("");
+        // An inline mark in one colour, out of the reading order: never an image.
+        expect(card.querySelector("img")).toBeNull();
+        expect(
+          card
+            .querySelector("svg[data-mark-logo], svg[data-mark-icon]")
+            ?.getAttribute("aria-hidden"),
+        ).toBe("true");
       }
 
       /*

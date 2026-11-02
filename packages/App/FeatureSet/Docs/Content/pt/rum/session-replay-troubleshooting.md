@@ -441,7 +441,7 @@ Consulte [Redirecionamentos para outra origem](/docs/telemetry/session-replay#re
 
 ## Toda sessão da lista diz Anonymous ou Visitor
 
-O gravador não sabe quem é o seu usuário a menos que a sua página diga. Chame `OneUptimeReplay.identify(userRef, traits)` assim que souber, ou coloque na fila em `window.OneUptimeReplayQueue` antes de o script carregar — consulte [Identificar os seus usuários](/docs/telemetry/session-replay#identificar-os-seus-usuários). Até lá, a lista agrupa as sessões de um navegador sob _Visitor a1b2c3_, o [id de visitante](/docs/telemetry/session-replay#visitantes-anônimos) aleatório que o gravador cria para cada navegador, que acompanha um navegador e nunca uma pessoa entre dispositivos; a página **Replay Users** e o menu de outras sessões do reprodutor funcionam com ele, a busca `user:` não.
+O gravador não sabe quem é o seu usuário a menos que a sua página diga. Chame `OneUptimeReplay.identify(userRef, traits)` assim que souber, ou coloque na fila em `window.OneUptimeReplayQueue` antes de o script carregar — consulte [Identificar os seus usuários](/docs/telemetry/session-replay#identificar-os-seus-usuários). Até lá, a lista agrupa as sessões de um navegador sob _Visitor a1b2c3_, o [id de visitante](/docs/telemetry/session-replay#visitantes-anônimos) aleatório que o gravador cria para cada navegador, que acompanha um navegador e nunca uma pessoa entre dispositivos; a página **Usuários das reproduções** e o menu de outras sessões do reprodutor funcionam com ele, a busca `user:` não.
 
 Cinco coisas que as linhas dizem:
 

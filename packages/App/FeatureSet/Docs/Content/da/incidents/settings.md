@@ -32,7 +32,7 @@ Det, OneUptime AI gør på egen hånd, sættes ikke her: det har sit eget afsnit
 
 **Hændelsesstatus** og **Hændelsesalvor** gennemgås grundigt i [Hændelsestilstande og alvorsgrader](/docs/incidents/states-and-severities) — resten af denne side fortsætter fra **Hændelsesskabeloner**. Formularer, der lader folk uden for dit team melde hændelser, er et produkt for sig: se [Formularer](/docs/forms/index). Værktøjer, der selv åbner hændelser, som [Huntress](/docs/integrations/huntress), sættes op som workflows.
 
-Fold **Regler** ud, og du får otte sider mere: **Grupperingsregler**, **Vagtregler**, **Ejerregler**, **Runbook-regler**, **Privatlivsregler**, **Etiketregler**, **SLA-regler** og **Reminder Rules**. De gennemgås længere nede.
+Fold **Regler** ud, og du får otte sider mere: **Grupperingsregler**, **Vagtregler**, **Ejerregler**, **Runbook-regler**, **Privatlivsregler**, **Etiketregler**, **SLA-regler** og **Påmindelsesregler**. De gennemgås længere nede.
 
 ## Hændelsesskabeloner
 
@@ -598,12 +598,12 @@ Grupperings-, SLA-, påmindelses- og AI-regler virker også på den nye hændels
 - **Privatlivsregler** — afgør, om en matchende hændelse er privat.
 - **Etiketregler** — sætter etiketter automatisk.
 - **SLA-regler** — følger svar- og løsningstider. Reglerne evalueres fra toppen af listen og nedad; træk en regel for at ændre dens plads.
-- **Reminder Rules** — minder jævnligt en hændelses ejere om den, mens den stadig er åben. Reglerne evalueres fra toppen af listen og nedad, og den første matchende regel vinder; træk en regel for at ændre dens plads. En hændelses regel matches igen, og ventetiden til dens næste påmindelse starter forfra, når dens alvorsgrad eller etiketter ændres, eller dens kontakt **Send påmindelser** slås om. At gemme den alvorsgrad og de etiketter, den allerede har — hver gemning af kortet **Hændelsesdetaljer** sender dem — lader dens næste påmindelse blive, hvor den var. Advarsler virker på samme måde.
+- **Påmindelsesregler** — minder jævnligt en hændelses ejere om den, mens den stadig er åben. Reglerne evalueres fra toppen af listen og nedad, og den første matchende regel vinder; træk en regel for at ændre dens plads. En hændelses regel matches igen, og ventetiden til dens næste påmindelse starter forfra, når dens alvorsgrad eller etiketter ændres, eller dens kontakt **Send påmindelser** slås om. At gemme den alvorsgrad og de etiketter, den allerede har — hver gemning af kortet **Hændelsesdetaljer** sender dem — lader dens næste påmindelse blive, hvor den var. Advarsler virker på samme måde.
 
 > [!IMPORTANT]
 > **Betydningen af rækkefølge er ikke ens.** Grupperingsregler, SLA-regler og Reminder Rules evalueres i rækkefølge, og deres lister ordnes ved at trække: en ny regel tilføjes til sidst. Vagtregler gør ikke — hver matchende regel udløses. Gå ikke ud fra, at én model gælder for alle ni.
 
-Siderne **Vagtregler**, **Ejerregler**, **Etiketregler** og **Privatlivsregler** har faner — en fane **Incident Rules** og en fane **Episode Rules**, hver med sin egen tabel. Sæt fanen **Incident Rules** op, medmindre du specifikt mener episoder. **Grupperingsregler**, **Runbook-regler**, **AI-regler**, **SLA-regler** og **Reminder Rules** er enkelte tabeller.
+Siderne **Vagtregler**, **Ejerregler**, **Etiketregler** og **Privatlivsregler** har faner — en fane **Incident Rules** og en fane **Episode Rules**, hver med sin egen tabel. Sæt fanen **Incident Rules** op, medmindre du specifikt mener episoder. **Grupperingsregler**, **Runbook-regler**, **AI-regler**, **SLA-regler** og **Påmindelsesregler** er enkelte tabeller.
 
 Ejer-, etiket- og privatlivsregler virker kun på hændelser og episoder, der oprettes, efter at reglen findes. For at anvende en af dem på hændelser, der allerede findes, bruger du **Kør nu** på reglens række, på dens egen side eller fra tabellens massehandlinger — se [Kør regler på eksisterende ressourcer](/docs/configuration/run-rules-now). Vagt-, runbook-, AI-, grupperings-, SLA- og påmindelsesregler kan ikke køres på eksisterende hændelser.
 

@@ -21,7 +21,7 @@ Aprite **Avvisi** dal menu **Prodotti** nella barra superiore. Le sezioni **Rego
 | **Regole di runbook**          | Avvia runbook per gli avvisi corrispondenti.                                                   |
 | **Regole di privacy**          | Rende privati gli avvisi e gli episodi corrispondenti.                                         |
 | **Regole etichette**           | Aggiunge etichette agli avvisi e agli episodi corrispondenti.                                  |
-| **Reminder Rules**             | Ricorda ai proprietari, a intervalli, un avviso finché è aperto.                               |
+| **Regole dei promemoria**             | Ricorda ai proprietari, a intervalli, un avviso finché è aperto.                               |
 
 La sezione **Impostazioni** contiene **Stato avviso** e **Gravità avviso**, trattati in [Stati e gravità degli avvisi](/docs/alerts/states-and-severities), poi **Modelli di note**, **Campi personalizzati**, **Misurazioni**, **Appartenenza agli episodi** e **Numerazione**, trattati più sotto.
 
@@ -54,7 +54,7 @@ flowchart TB
 
 Le regole differiscono nel modo in cui si risolvono più corrispondenze:
 
-- **Regole di raggruppamento** e **Reminder Rules** vengono controllate dall'alto verso il basso del loro elenco, e vince la prima corrispondenza. Trascinate una regola per cambiarne la posizione; una nuova regola va in fondo.
+- **Regole di raggruppamento** e **Regole dei promemoria** vengono controllate dall'alto verso il basso del loro elenco, e vince la prima corrispondenza. Trascinate una regola per cambiarne la posizione; una nuova regola va in fondo.
 - **Regole di reperibilità**, **Regole del proprietario**, **Regole etichette**, **Regole di privacy** e **Regole di runbook** agiscono tutte quando corrispondono. Policy di reperibilità, proprietari ed etichette aggiunti da più regole vengono aggiunti una sola volta.
 
 **Regole di reperibilità**, **Regole del proprietario**, **Regole etichette** e **Regole di privacy** hanno due schede: **Alert Rules**, per gli avvisi, ed **Episode Rules**, che agiscono allo stesso modo su ogni nuovo episodio di avviso. Una nuova regola parte abilitata; disattivate **Abilitato** nel suo modulo di modifica per sospenderla, e l'elenco mostra un **Abilitato** verde o un **Disabilitato** rosso per ogni regola.
@@ -108,7 +108,7 @@ Le **Regole di runbook** avviano un runbook quando un nuovo avviso corrisponde, 
 
 ## Regole di promemoria
 
-**Avvisi → Regole → Reminder Rules** ricorda un avviso ai suoi proprietari finché resta aperto. Ogni nuovo avviso riceve la prima regola che gli corrisponde, dall'alto verso il basso dell'elenco.
+**Avvisi → Regole → Regole dei promemoria** ricorda un avviso ai suoi proprietari finché resta aperto. Ogni nuovo avviso riceve la prima regola che gli corrisponde, dall'alto verso il basso dell'elenco.
 
 :::steps
 ### Scegliere gli avvisi da ricordare

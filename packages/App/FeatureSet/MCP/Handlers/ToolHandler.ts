@@ -22,7 +22,12 @@ import OneUptimeApiService, {
   OneUptimeApiError,
 } from "../Services/OneUptimeApiService";
 import { LIST_DEFAULT_LIMIT } from "../Config/ServerConfig";
-import { isHelperTool, handleHelperTool } from "../Tools/HelperTools";
+import {
+  DESCRIBE_RESOURCE_TOOL_NAME,
+  isHelperTool,
+  handleHelperTool,
+} from "../Tools/HelperTools";
+import { getFilterProblem } from "../Tools/FilterCheck";
 import {
   isPublicStatusPageTool,
   handlePublicStatusPageTool,
@@ -334,6 +339,26 @@ async function handleCallTool(
           "API key is required. Please provide the x-api-key header in your MCP server configuration. Use 'oneuptime_help' to learn more.",
         ),
       );
+    }
+
+    // A filter the API would not read as one never reaches it (Tools/FilterCheck).
+    if (
+      tool.operation === OneUptimeOperation.List ||
+      tool.operation === OneUptimeOperation.Count
+    ) {
+      const filterProblem: string | null = getFilterProblem(
+        tool,
+        args["query"],
+      );
+
+      if (filterProblem) {
+        return buildErrorResult(
+          name,
+          new Error(filterProblem),
+          credential,
+          `Write the filter again and retry. ${DESCRIBE_RESOURCE_TOOL_NAME} lists each field's operators and how each is written.`,
+        );
+      }
     }
 
     // Execute the OneUptime operation with this request's credential

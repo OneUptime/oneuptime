@@ -35,7 +35,7 @@ flowchart TB
 
 - **让你的设备开始上报。** [IoT 设备指南](/docs/telemetry/iot-devices) 介绍了如何用 OpenTelemetry SDK 或 Collector，或通过 MQTT 发送指标。
 - **确认机群已注册。** 它会以设备发送的 `iot.fleet.name` 命名，出现在 **产品 → 基础设施 → IoT → All Fleets** 下。
-- **注册你预期的设备**，在机群的 **Device Registry** 下注册，这样设备静默时你会收到通知：请参阅 [离线检测](#离线检测)。
+- **注册你预期的设备**，在机群的 **设备注册表** 下注册，这样设备静默时你会收到通知：请参阅 [离线检测](#离线检测)。
 
 ## 创建 IoT 设备监视器
 
@@ -114,7 +114,7 @@ flowchart TB
 | --- | --- |
 | **网关上报** | 网关或采集器为它无法再访问的设备发送 `iot_device_up = 0`。 |
 | **MQTT Last Will** | 连接到 OneUptime MQTT 端点的设备会在其 `status` 主题上注册一个 Last Will。设备死机时，代理服务器会在会话断开的那一刻为它发送 `iot_device_up = 0`：无需轮询，也无需等待错过的上报。请参阅 [通过 MQTT 发送指标](/docs/telemetry/iot-devices#通过-mqtt-发送指标)。 |
-| **设备已注册** | 机群 **Device Registry** 中的设备是预期会上报的。它在整个窗口内什么也没发送时，监视器会把它当作上报了 `0`，因此它会得到自己的事件，并在设备再次上报时自行解决。 |
+| **设备已注册** | 机群 **设备注册表** 中的设备是预期会上报的。它在整个窗口内什么也没发送时，监视器会把它当作上报了 `0`，因此它会得到自己的事件，并在设备再次上报时自行解决。 |
 
 已注册的设备还会以离线状态保留在机群的清单中，而未注册的设备在静默 15 分钟后会被移除。静默检测需要在 `iot_device_up` 的条件上使用 **Treat As Zero** 无数据策略，从模板创建的 Device Offline 监视器已经带有该策略。在设备注册功能出现之前创建的 Device Offline 监视器，需要手动设置该策略，或从模板重新创建。
 
@@ -209,7 +209,7 @@ monitor_steps = [{
 :::
 
 :::details 设备死机了，但 Device Offline 没有触发
-设备没有发送 Last Will，也没有网关上报它，因此它只是静默了。请在机群的 **Device Registry** 中注册它，并检查 `iot_device_up` 条件的 **如果无数据** 是否为 **Treat As Zero**。请参阅 [离线检测](#离线检测)。
+设备没有发送 Last Will，也没有网关上报它，因此它只是静默了。请在机群的 **设备注册表** 中注册它，并检查 `iot_device_up` 条件的 **如果无数据** 是否为 **Treat As Zero**。请参阅 [离线检测](#离线检测)。
 :::
 
 :::details Device Offline 对正常的设备触发

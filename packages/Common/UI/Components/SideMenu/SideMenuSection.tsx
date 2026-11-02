@@ -5,7 +5,9 @@ import { startsCollapsed } from "./SideMenuSectionState";
 import {
   getDrawnLanguage,
   getMenuWordsBreakClassName,
+  SIDE_MENU_LONG_WORDS,
 } from "./SideMenuEntryState";
+import HyphenatedWords from "../HyphenatedWords/HyphenatedWords";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -143,8 +145,8 @@ const SideMenuSection: FunctionComponent<ComponentProps> = (
    * Drawn whole, on a second line when it needs one: cut to one line, the
    * German "Benachrichtigungsprotokolle" (Notification Logs) read
    * "BENACHRICHTIGUNGSPROT…". A word longer than the line is hyphenated in
-   * its language (getDrawnLanguage, getMenuWordsBreakClassName), or else
-   * breaks at its edge; a shorter one moves to the next line whole. The lines
+   * its language (getDrawnLanguage, HyphenatedWords), or else breaks at its
+   * edge; a shorter one moves to the next line whole. The lines
    * start at the heading's start (a <button> centres its text), and the
    * icon and the chevron stay level with the first line, so a heading of
    * one line is drawn as before.
@@ -164,7 +166,11 @@ const SideMenuSection: FunctionComponent<ComponentProps> = (
         })} text-start text-xs font-semibold uppercase tracking-wider text-gray-400`}
         lang={titleLanguage}
       >
-        {translatedTitle}
+        <HyphenatedWords
+          text={translatedTitle}
+          lang={titleLanguage}
+          rule={SIDE_MENU_LONG_WORDS}
+        />
       </h6>
     </div>
   );

@@ -77,10 +77,10 @@ O menu lateral da página agrupa o que você faz com uma exceção:
 | --- | --- |
 | **Visão geral** | A mensagem, o serviço, quantas vezes ela aconteceu e quando foi vista pela primeira e pela última vez, a tendência ao longo do tempo e a ocorrência mais recente: release, ambiente, span, traço e sessão do usuário. No topo, a explicação da OneUptime AI sobre o que aconteceu, quando a IA está ligada. |
 | **Stack trace** | Os frames da pilha. Para código de navegador, os arquivos e as linhas originais, depois que você enviar os [Source maps](/docs/telemetry/source-maps) da release. |
-| **Occurrences** | Cada ocorrência, com a hora, a mensagem e o traço em que aconteceu. |
-| **Context** | Os atributos da ocorrência mais recente, a gravação da sessão quando houver uma, e as etapas que levaram a ela. |
+| **Ocorrências** | Cada ocorrência, com a hora, a mensagem e o traço em que aconteceu. |
+| **Contexto** | Os atributos da ocorrência mais recente, a gravação da sessão quando houver uma, e as etapas que levaram a ela. |
 | **Registros** | Os registros escritos em torno da ocorrência mais recente. |
-| **AI Assistance** | Tarefas de IA que corrigem a exceção ou a testam. |
+| **Assistência de IA** | Tarefas de IA que corrigem a exceção ou a testam. |
 | **Configurações** | Resolver ou arquivar a exceção. Fica em **Gerenciar**, que começa recolhido. |
 
 ## Resolver, reabrir e arquivar
@@ -131,7 +131,7 @@ No topo da **Visão geral** de uma exceção, **Explicar com OneUptime AI** perg
 | **Onde olhar** | Os frames do stack trace a abrir primeiro. |
 | **Próximos passos** | No máximo três passos para confirmá-la ou corrigi-la. |
 
-A explicação fica guardada na exceção, então a próxima pessoa que a abre já a lê, e **Explicar novamente** pede uma nova. **Abrir uma pull request com a correção** abre a página **AI Assistance** da exceção, e **Fazer uma pergunta de acompanhamento** abre o Ask AI sobre a exceção.
+A explicação fica guardada na exceção, então a próxima pessoa que a abre já a lê, e **Explicar novamente** pede uma nova. **Abrir uma pull request com a correção** abre a página **Assistência de IA** da exceção, e **Fazer uma pergunta de acompanhamento** abre o Ask AI sobre a exceção.
 
 IDs, endereços de e-mail e IP e tokens são retirados de tudo o que é enviado, e dos atributos de um span só alguns são enviados, como a rota e o código de status. A explicação usa o provedor de LLM e os créditos de IA do projeto, e não é oferecida enquanto **Habilitar IA** estiver desligado. Qualquer pessoa que possa ler a exceção pode pedir uma.
 
@@ -141,7 +141,7 @@ Mescle a esta exceção uma que a OneUptime AI chame de **Provavelmente o mesmo 
 
 ## Corrigir com IA
 
-A página **AI Assistance** oferece três tarefas. Cada uma roda como uma tarefa de IA que abre um pull request no seu repositório de código:
+A página **Assistência de IA** oferece três tarefas. Cada uma roda como uma tarefa de IA que abre um pull request no seu repositório de código:
 
 | Tarefa | O que o pull request faz |
 | --- | --- |
@@ -161,7 +161,7 @@ A cada 15 minutos o OneUptime procura, nas suas exceções, as novas, as que de 
 | **Pico de exceções** | Uma exceção que aconteceu 10 vezes ou mais na última hora, a 5 vezes ou mais o seu ritmo por hora das 24 horas anteriores. | Corrige a exceção, ou a trata melhor. |
 | **Stack trace ausente** | As exceções que um serviço registrou no último dia não trazem stack trace e, juntas, aconteceram 20 vezes ou mais. | Faz o serviço registrar um stack trace com cada exceção. |
 
-O pull request de uma exceção nova ou em alta é a própria tarefa de IA da exceção, a que a página **AI Assistance** dela inicia, e ele espera o OneUptime AI analisar a constatação. Se ele encontra o código culpado (`code-fault`), o pull request o corrige, como faz **Fix this exception with AI**. Se encontra um erro esperado (`user-error` ou `expected-denial`), o pull request trata melhor o erro, como faz **Melhorar o tratamento de erros**. Qualquer outro veredito não abre nenhum pull request por conta própria. Com **Arquivar exceções esperadas** ativado, uma negação esperada é arquivada em vez disso e não recebe nenhum pull request.
+O pull request de uma exceção nova ou em alta é a própria tarefa de IA da exceção, a que a página **Assistência de IA** dela inicia, e ele espera o OneUptime AI analisar a constatação. Se ele encontra o código culpado (`code-fault`), o pull request o corrige, como faz **Fix this exception with AI**. Se encontra um erro esperado (`user-error` ou `expected-denial`), o pull request trata melhor o erro, como faz **Melhorar o tratamento de erros**. Qualquer outro veredito não abre nenhum pull request por conta própria. Com **Arquivar exceções esperadas** ativado, uma negação esperada é arquivada em vez disso e não recebe nenhum pull request.
 
 O OneUptime AI abre um por conta própria só para uma exceção lançada no seu próprio código: uma cujo stack trace tem um frame do seu código, e não só frames de bibliotecas ou do runtime. Um pull request que alguém fechou sem mesclar pausa os automáticos para essa exceção. Qualquer pessoa ainda pode pedir qualquer um deles com **Corrigir com IA** na constatação.
 
@@ -187,7 +187,7 @@ Em **Mais campos** uma regra escolhe os repositórios de código, os servidores 
 
 - **Exceções → IA → Insights** lista o que o OneUptime encontrou, cada constatação com suas evidências, incluindo os frames do seu código no stack trace dela. **View Exception Group** abre a exceção e, nos stack traces ausentes de um serviço, **Abrir em Exceções** abre as exceções não resolvidas dele do último dia.
 - **Exceções → IA → Registros** lista cada investigação e cada pull request, do mais recente, com a situação de cada um e o que cada investigação encontrou.
-- O pull request diz por que foi aberto, com um link para a constatação. O de uma exceção nova ou em alta também leva à exceção e aparece na página **AI Assistance** dela. Em Código, a tarefa dele nomeia a exceção que corrige, ou a constatação de onde veio.
+- O pull request diz por que foi aberto, com um link para a constatação. O de uma exceção nova ou em alta também leva à exceção e aparece na página **Assistência de IA** dela. Em Código, a tarefa dele nomeia a exceção que corrige, ou a constatação de onde veio.
 
 ## Insights de exceções
 

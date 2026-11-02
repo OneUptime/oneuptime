@@ -1,7 +1,7 @@
 {
   "baseline": {
     "keys": 40054,
-    "untranslated": 12729
+    "untranslated": 12684
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -74,6 +74,7 @@
     "Index",
     "Info",
     "Information",
+    "IoT",
     "Israel (+972)",
     "Japan (+81)",
     "LXC 201 · pve3",
@@ -110,6 +111,7 @@
     "Persistent volume claims",
     "Persistent volumes",
     "Person",
+    "Pipelines",
     "Plan",
     "Playbook",
     "Playbooks",
@@ -141,6 +143,7 @@
     "Samples",
     "Sampling",
     "Server",
+    "Service Mesh",
     "Session",
     "Signal",
     "Singapore (+65)",
