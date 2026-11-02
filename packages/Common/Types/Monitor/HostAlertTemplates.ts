@@ -688,14 +688,265 @@ const highProcessCountTemplate: HostAlertTemplate = {
   },
 };
 
+/*
+ * How long a host counts as just restarted: ten minutes, as Zabbix's "has
+ * been restarted" trigger and the database templates' Server Restarted
+ * read it.
+ */
+export const HOST_RESTARTED_UPTIME_SECONDS: number = 600;
+
+const hostRestartedTemplate: HostAlertTemplate = {
+  id: "host-restarted",
+  name: "Host Restarted",
+  summary: "The host started less than 10 minutes ago.",
+  description:
+    "Alert when the host has been up for less than ten minutes (system.uptime below 600 seconds): it rebooted, or crashed and came back. Reads system.uptime from the collector's system scraper, which OneUptime's default configs turn on. A host that is down raises Host Stopped Reporting instead.",
+  category: "Availability",
+  severity: "Warning",
+  getMonitorStep: (args: HostAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = "host_uptime";
+
+    return buildHostMonitorStep({
+      hostMonitor: buildHostMonitorConfig({
+        hostIdentifier: args.hostIdentifier,
+        metricName: "system.uptime",
+        metricAlias,
+        rollingTime: RollingTime.Past5Minutes,
+        /*
+         * Min per bucket, so a bucket that spans the boot reads the young
+         * uptime rather than the old one.
+         */
+        aggregationType: MetricsAggregationType.Min,
+      }),
+      /*
+       * A restart is an event: requiring every sample of the window to be
+       * young would never hold once the window is longer than the restart
+       * is old. Any value fires on the first report after the boot; the
+       * host is healthy again once the whole window is past the line.
+       */
+      offlineCriteriaInstance: buildHostOfflineCriteriaInstance({
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        incidentSeverityId: args.defaultIncidentSeverityId,
+        alertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+        metricAlias,
+        filterType: FilterType.LessThan,
+        value: HOST_RESTARTED_UPTIME_SECONDS,
+        metricAggregationType: EvaluateOverTimeType.AnyValue,
+        incidentTitle: `[Host] Host Restarted${hostTitleSuffix(args)}`,
+        incidentDescription: `This host has been up for less than ten minutes: it rebooted, or it crashed and came back. If nobody restarted it, read the journal of the boot before (journalctl -b -1, or the System event log on Windows) for a kernel panic, an out-of-memory kill, a watchdog or a power event, and check that the services it runs came back. The incident resolves once the host has been up for eleven minutes.`,
+        criteriaName: "Host Restarted - Uptime < 10 minutes",
+        criteriaDescription:
+          "Triggers when the host reports an uptime below ten minutes at any point in the monitoring window.",
+      }),
+      onlineCriteriaInstance: buildHostOnlineCriteriaInstance({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        metricAlias,
+        filterType: FilterType.GreaterThanOrEqualTo,
+        value: HOST_RESTARTED_UPTIME_SECONDS,
+        metricAggregationType: EvaluateOverTimeType.AllValues,
+      }),
+    });
+  },
+};
+
+const highSwapTemplate: HostAlertTemplate = {
+  id: "host-high-swap",
+  name: "High Swap Usage",
+  summary: "More than 80% of swap space stays in use.",
+  description:
+    "Alert when more than 80% of the host's swap space is in use for the whole evaluation window: memory has run short and the host is paging. Reads system.paging.usage (used over used plus free, across every swap device). A host without swap reports none and never fires.",
+  category: "Resource",
+  severity: "Warning",
+  getMonitorStep: (args: HostAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = "host_swap";
+
+    return buildHostMonitorStep({
+      /*
+       * The paging scraper reports bytes per swap device and state (used,
+       * free, and on Linux cached, which is also counted in used). Used
+       * over used plus free, each averaged across the devices and the
+       * window, is the share `free` and `swapon` print. The optional
+       * system.paging.utilization is not used: hosts set up by hand rarely
+       * turn it on.
+       */
+      hostMonitor: buildHostFormulaMonitorConfig({
+        hostIdentifier: args.hostIdentifier,
+        queries: [
+          {
+            metricAlias: "host_swap_used",
+            metricName: "system.paging.usage",
+            aggregationType: MetricsAggregationType.Avg,
+            attributes: { state: "used" },
+          },
+          {
+            metricAlias: "host_swap_free",
+            metricName: "system.paging.usage",
+            aggregationType: MetricsAggregationType.Avg,
+            attributes: { state: "free" },
+          },
+        ],
+        resultAlias: metricAlias,
+        resultLegend: "Swap Used (%)",
+        formula: "host_swap_used / (host_swap_used + host_swap_free) * 100",
+        legendUnit: "%",
+        rollingTime: RollingTime.Past5Minutes,
+      }),
+      offlineCriteriaInstance: buildHostOfflineCriteriaInstance({
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        incidentSeverityId: args.defaultIncidentSeverityId,
+        alertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+        metricAlias,
+        filterType: FilterType.GreaterThan,
+        // The formula already scales the share to percent, so 80 == 80%.
+        value: 80,
+        incidentTitle: `[Host] High Swap Usage (>80%)${hostTitleSuffix(args)}`,
+        incidentDescription: `More than 80% of this host's swap space stayed in use for the whole evaluation window. The host has run short of memory and pages to disk, which slows everything it runs; once swap fills, the kernel's out-of-memory killer stops processes. Look at the host's Processes page for what holds the most memory. See the root cause below for the measured values.`,
+        criteriaName: "High Swap - Usage > 80%",
+        criteriaDescription:
+          "Triggers when more than 80% of the host's swap space is in use for every sample in the monitoring window.",
+      }),
+      onlineCriteriaInstance: buildHostOnlineCriteriaInstance({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        metricAlias,
+        filterType: FilterType.LessThanOrEqualTo,
+        value: 80,
+      }),
+    });
+  },
+};
+
+const lowInodesTemplate: HostAlertTemplate = {
+  id: "host-running-out-of-inodes",
+  name: "Running Out of Inodes",
+  summary: "A filesystem has used more than 90% of its inodes.",
+  description:
+    "Alert when a filesystem has used more than 90% of its inodes: past 100% nothing can create a file there, however much space is free. Reads system.filesystem.inodes.usage (used over used plus free). One alert per mountpoint.",
+  category: "Resource",
+  severity: "Critical",
+  getMonitorStep: (args: HostAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = "host_inodes";
+
+    return buildHostMonitorStep({
+      hostMonitor: buildHostFormulaMonitorConfig({
+        hostIdentifier: args.hostIdentifier,
+        queries: [
+          {
+            metricAlias: "host_inodes_used",
+            metricName: "system.filesystem.inodes.usage",
+            aggregationType: MetricsAggregationType.Avg,
+            attributes: { state: "used" },
+          },
+          {
+            metricAlias: "host_inodes_free",
+            metricName: "system.filesystem.inodes.usage",
+            aggregationType: MetricsAggregationType.Avg,
+            attributes: { state: "free" },
+          },
+        ],
+        resultAlias: metricAlias,
+        resultLegend: "Inodes Used (%)",
+        formula:
+          "host_inodes_used / (host_inodes_used + host_inodes_free) * 100",
+        legendUnit: "%",
+        rollingTime: RollingTime.Past5Minutes,
+        /*
+         * One incident per mount, named with its device, as High
+         * Filesystem Usage groups. A filesystem with no inode table of its
+         * own (btrfs) reports none and never fires.
+         */
+        groupByAttributeKeys: ["mountpoint", "device"],
+      }),
+      offlineCriteriaInstance: buildHostOfflineCriteriaInstance({
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        incidentSeverityId: args.defaultIncidentSeverityId,
+        alertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+        metricAlias,
+        filterType: FilterType.GreaterThan,
+        // The formula already scales the share to percent, so 90 == 90%.
+        value: 90,
+        incidentTitle: `[Host] Running Out of Inodes (>90%)${hostTitleSuffix(args)}`,
+        incidentDescription: `This mount has used more than 90% of its inodes for the whole evaluation window. Once they run out nothing can create a file there - writes fail with "No space left on device" while df still shows free space. Usually millions of small files are to blame: a mail or job queue, a cache, session files or old logs. The mount and device are named above, and df -i on the host shows how many inodes each filesystem has left.`,
+        criteriaName: "Low Inodes - Used > 90%",
+        criteriaDescription:
+          "Triggers when a filesystem has used more than 90% of its inodes for every sample in the monitoring window.",
+      }),
+      onlineCriteriaInstance: buildHostOnlineCriteriaInstance({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        metricAlias,
+        filterType: FilterType.LessThanOrEqualTo,
+        value: 90,
+      }),
+    });
+  },
+};
+
+const systemdUnitFailedTemplate: HostAlertTemplate = {
+  id: "host-systemd-unit-failed",
+  name: "Systemd Unit Failed",
+  summary: "A systemd service is in the failed state. Linux only.",
+  description:
+    "Alert when a systemd service on the host is in the failed state for the whole evaluation window: it crashed, exited with an error, or could not start. Reads systemd.unit.state for active_state failed, from the collector's systemd receiver (OneUptime's default config on Linux reads it where the host has systemd). One alert per unit; it resolves when the unit runs again or is reset with systemctl reset-failed.",
+  category: "Host",
+  severity: "Warning",
+  getMonitorStep: (args: HostAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = "host_unit_failed";
+
+    return buildHostMonitorStep({
+      hostMonitor: buildHostMonitorConfig({
+        hostIdentifier: args.hostIdentifier,
+        /*
+         * One point per unit per active state, 1 for the state the unit is
+         * in and 0 for the rest. Filtered to `failed`, a unit's series is 1
+         * while it is failed. The unit's name is a resource attribute, so
+         * the group-by key carries the `resource.` prefix ingest stores it
+         * under (Pages/Host/Utils/SystemdUnits reads the same key).
+         */
+        metricName: "systemd.unit.state",
+        metricAlias,
+        attributes: { "systemd.unit.active_state": "failed" },
+        rollingTime: RollingTime.Past5Minutes,
+        aggregationType: MetricsAggregationType.Max,
+        groupByAttributeKeys: ["resource.systemd.unit.name"],
+      }),
+      offlineCriteriaInstance: buildHostOfflineCriteriaInstance({
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        incidentSeverityId: args.defaultIncidentSeverityId,
+        alertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+        metricAlias,
+        filterType: FilterType.GreaterThan,
+        value: 0,
+        incidentTitle: `[Host] Systemd Unit Failed${hostTitleSuffix(args)}`,
+        incidentDescription: `A systemd service on this host has been in the failed state for the whole evaluation window: it crashed, exited with an error, or could not start, and systemd now calls the whole system degraded. The unit is named above. On the host, systemctl status <unit> and journalctl -u <unit> -n 50 say why; once it is fixed, start it again or clear it with systemctl reset-failed <unit>, and the alert resolves.`,
+        criteriaName: "Systemd Unit Failed - Failed state",
+        criteriaDescription:
+          "Triggers when a systemd service is in the failed state for every sample in the monitoring window.",
+      }),
+      onlineCriteriaInstance: buildHostOnlineCriteriaInstance({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        metricAlias,
+        filterType: FilterType.LessThanOrEqualTo,
+        value: 0,
+      }),
+    });
+  },
+};
+
 export function getAllHostAlertTemplates(): Array<HostAlertTemplate> {
   return [
     hostStoppedReportingTemplate,
+    hostRestartedTemplate,
     highCpuTemplate,
     highMemoryTemplate,
+    highSwapTemplate,
     highFilesystemUsageTemplate,
+    lowInodesTemplate,
     highLoadAverageTemplate,
     highProcessCountTemplate,
+    systemdUnitFailedTemplate,
   ];
 }
 

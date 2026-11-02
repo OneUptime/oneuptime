@@ -304,6 +304,7 @@ const NUMBER_WORDS: Record<number, string> = {
   5: "five",
   6: "six",
   7: "seven",
+  10: "ten",
   11: "eleven",
   12: "twelve",
   15: "fifteen",
@@ -594,6 +595,11 @@ const GROUP_BY_WORDS: Array<{ pattern: RegExp; keys: Array<string> }> = [
   {
     pattern: /\bper `mountpoint` and `device`/,
     keys: ["mountpoint", "device"],
+  },
+  // A systemd unit's name: a resource attribute of the systemd receiver.
+  {
+    pattern: /\bper `resource\.systemd\.unit\.name`/,
+    keys: ["resource.systemd.unit.name"],
   },
 ];
 

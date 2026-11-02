@@ -1,4 +1,5 @@
 import {
+  HOST_RESTARTED_UPTIME_SECONDS,
   HostAlertTemplate,
   HostAlertTemplateArgs,
   HostAlertTemplateCategory,
@@ -11,7 +12,10 @@ import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import { hasRecoveryDeadBand } from "./Utils/RecommendationCriteriaAssertions";
 import MonitorStepHostMonitor from "../../../Types/Monitor/MonitorStepHostMonitor";
 import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationType";
-import { FilterType } from "../../../Types/Monitor/CriteriaFilter";
+import {
+  EvaluateOverTimeType,
+  FilterType,
+} from "../../../Types/Monitor/CriteriaFilter";
 import ObjectID from "../../../Types/ObjectID";
 
 /*
@@ -99,6 +103,27 @@ const HOST_TEMPLATES: Array<HostTemplateCase> = [
     threshold: 0,
   },
   {
+    id: "host-restarted",
+    category: "Availability",
+    severity: "Warning",
+    /*
+     * The shortest uptime in each bucket, so a bucket that spans the boot
+     * reads the young uptime. From the collector's `system` scraper.
+     */
+    queries: [
+      {
+        metricName: "system.uptime",
+        metricAlias: "host_uptime",
+        aggregation: MetricsAggregationType.Min,
+        attributes: {},
+      },
+    ],
+    metricAlias: "host_uptime",
+    formula: null,
+    legendUnit: undefined,
+    threshold: 600,
+  },
+  {
     id: "host-high-cpu",
     category: "Resource",
     severity: "Warning",
@@ -143,6 +168,33 @@ const HOST_TEMPLATES: Array<HostTemplateCase> = [
     threshold: 85,
   },
   {
+    id: "host-high-swap",
+    category: "Resource",
+    severity: "Warning",
+    /*
+     * Used over used plus free: the paging scraper's usage, which every
+     * collector sends (its utilization metric is optional).
+     */
+    queries: [
+      {
+        metricName: "system.paging.usage",
+        metricAlias: "host_swap_used",
+        aggregation: MetricsAggregationType.Avg,
+        attributes: { state: "used" },
+      },
+      {
+        metricName: "system.paging.usage",
+        metricAlias: "host_swap_free",
+        aggregation: MetricsAggregationType.Avg,
+        attributes: { state: "free" },
+      },
+    ],
+    metricAlias: "host_swap",
+    formula: "host_swap_used / (host_swap_used + host_swap_free) * 100",
+    legendUnit: "%",
+    threshold: 80,
+  },
+  {
     id: "host-high-filesystem",
     category: "Resource",
     severity: "Critical",
@@ -157,6 +209,29 @@ const HOST_TEMPLATES: Array<HostTemplateCase> = [
     ],
     metricAlias: "host_filesystem",
     formula: "host_filesystem_ratio * 100",
+    legendUnit: "%",
+    threshold: 90,
+  },
+  {
+    id: "host-running-out-of-inodes",
+    category: "Resource",
+    severity: "Critical",
+    queries: [
+      {
+        metricName: "system.filesystem.inodes.usage",
+        metricAlias: "host_inodes_used",
+        aggregation: MetricsAggregationType.Avg,
+        attributes: { state: "used" },
+      },
+      {
+        metricName: "system.filesystem.inodes.usage",
+        metricAlias: "host_inodes_free",
+        aggregation: MetricsAggregationType.Avg,
+        attributes: { state: "free" },
+      },
+    ],
+    metricAlias: "host_inodes",
+    formula: "host_inodes_used / (host_inodes_used + host_inodes_free) * 100",
     legendUnit: "%",
     threshold: 90,
   },
@@ -194,6 +269,27 @@ const HOST_TEMPLATES: Array<HostTemplateCase> = [
     formula: null,
     legendUnit: undefined,
     threshold: 2000,
+  },
+  {
+    id: "host-systemd-unit-failed",
+    category: "Host",
+    severity: "Warning",
+    /*
+     * 1 for the state a unit is in, 0 for the rest: filtered to `failed`,
+     * Max is 1 while the unit is failed.
+     */
+    queries: [
+      {
+        metricName: "systemd.unit.state",
+        metricAlias: "host_unit_failed",
+        aggregation: MetricsAggregationType.Max,
+        attributes: { "systemd.unit.active_state": "failed" },
+      },
+    ],
+    metricAlias: "host_unit_failed",
+    formula: null,
+    legendUnit: undefined,
+    threshold: 0,
   },
 ];
 
@@ -455,7 +551,7 @@ describe("HostAlertTemplates", () => {
        * healthy - except the heartbeat, whose "< 0" on a count can only
        * fire through its no-data policy.
        */
-      if (tc.id === "host-stopped-reporting") {
+      if (tc.id === "host-stopped-reporting" || tc.id === "host-restarted") {
         expect(offlineFilter.filterType).toBe(FilterType.LessThan);
         expect(onlineFilter.filterType).toBe(FilterType.GreaterThanOrEqualTo);
       } else {
@@ -483,7 +579,9 @@ describe("HostAlertTemplates", () => {
     const percentIds: Array<string> = [
       "host-high-cpu",
       "host-high-memory",
+      "host-high-swap",
       "host-high-filesystem",
+      "host-running-out-of-inodes",
     ];
     for (const id of percentIds) {
       const tc: HostTemplateCase = HOST_TEMPLATES.find(
@@ -596,6 +694,139 @@ describe("HostAlertTemplates", () => {
     expect(description).toContain("NOT the host's total process count");
     // The scraper is Linux-only; a silent monitor elsewhere needs saying.
     expect(description.toLowerCase()).toContain("linux only");
+  });
+
+  test("host-restarted fires on the first young uptime and recovers once the whole window is past the line", () => {
+    /*
+     * A restart is an event. Held to every sample of the window, as the
+     * other templates are, it could only fire once the window is younger
+     * than the boot - never, for a window longer than ten minutes - so it
+     * fires on any value and recovers on all of them.
+     */
+    const template: HostAlertTemplate =
+      getHostAlertTemplateById("host-restarted")!;
+    const step: MonitorStep = template.getMonitorStep(buildArgs());
+    const [offline, online] = step.data?.monitorCriteria.data
+      ?.monitorCriteriaInstanceArray as Array<any>;
+
+    expect(
+      offline.data.filters[0].metricMonitorOptions.metricAggregationType,
+    ).toBe(EvaluateOverTimeType.AnyValue);
+    expect(offline.data.filters[0].value).toBe(HOST_RESTARTED_UPTIME_SECONDS);
+    expect(
+      online.data.filters[0].metricMonitorOptions.metricAggregationType,
+    ).toBe(EvaluateOverTimeType.AllValues);
+    // Ten minutes, as Zabbix's "has been restarted" reads it; recovery at 11.
+    expect(HOST_RESTARTED_UPTIME_SECONDS).toBe(600);
+    expect(online.data.filters[0].value).toBe(660);
+    expect(getOfflineInstance(step).data.incidents[0].description).toContain(
+      "eleven minutes",
+    );
+  });
+
+  test("host-systemd-unit-failed raises one alert per unit, by the unit's resource attribute", () => {
+    /*
+     * The systemd receiver reports one resource per unit, so its name is a
+     * RESOURCE attribute, stored with the `resource.` prefix. Grouped by the
+     * bare key, every failed unit would collapse into one series and the
+     * alert could not say which one failed.
+     */
+    const template: HostAlertTemplate = getHostAlertTemplateById(
+      "host-systemd-unit-failed",
+    )!;
+    const monitor: MonitorStepHostMonitor = getHostMonitor(
+      template.getMonitorStep(buildArgs()),
+    );
+
+    expect(
+      (monitor.metricViewConfig.queryConfigs as Array<any>)[0].metricQueryData
+        .groupByAttributeKeys,
+    ).toEqual(["resource.systemd.unit.name"]);
+    expect(template.summary.toLowerCase()).toContain("linux only");
+  });
+
+  test("host-running-out-of-inodes raises one alert per mount, as High Filesystem Usage does", () => {
+    const template: HostAlertTemplate = getHostAlertTemplateById(
+      "host-running-out-of-inodes",
+    )!;
+    const monitor: MonitorStepHostMonitor = getHostMonitor(
+      template.getMonitorStep(buildArgs()),
+    );
+
+    for (const query of monitor.metricViewConfig.queryConfigs as Array<any>) {
+      expect(query.metricQueryData.groupByAttributeKeys).toEqual([
+        "mountpoint",
+        "device",
+      ]);
+    }
+  });
+
+  test("the share templates divide a used state by used plus free, both operands in the formula", () => {
+    for (const id of ["host-high-swap", "host-running-out-of-inodes"]) {
+      const template: HostAlertTemplate = getHostAlertTemplateById(id)!;
+      const monitor: MonitorStepHostMonitor = getHostMonitor(
+        template.getMonitorStep(buildArgs()),
+      );
+      const queries: Array<any> = monitor.metricViewConfig
+        .queryConfigs as Array<any>;
+      const formula: string = (
+        monitor.metricViewConfig.formulaConfigs as Array<any>
+      )[0].metricFormulaData.metricFormula;
+      const [used, free] = queries.map((query: any): string => {
+        return query.metricAliasData.metricVariable;
+      });
+
+      expect(
+        queries.map((query: any): string => {
+          return query.metricQueryData.filterData.attributes["state"];
+        }),
+      ).toEqual(["used", "free"]);
+      expect(formula).toBe(`${used} / (${used} + ${free}) * 100`);
+    }
+  });
+
+  test("the templates for a host's own failures name the metric they read", () => {
+    for (const template of getAllHostAlertTemplates().filter(
+      (each: HostAlertTemplate): boolean => {
+        return [
+          "host-restarted",
+          "host-high-swap",
+          "host-running-out-of-inodes",
+          "host-systemd-unit-failed",
+        ].includes(each.id);
+      },
+    )) {
+      const monitor: MonitorStepHostMonitor = getHostMonitor(
+        template.getMonitorStep(buildArgs()),
+      );
+      for (const query of monitor.metricViewConfig.queryConfigs as Array<any>) {
+        expect({
+          template: template.id,
+          named: template.description.includes(
+            query.metricQueryData.filterData.metricName,
+          ),
+        }).toEqual({ template: template.id, named: true });
+      }
+    }
+  });
+
+  test("the templates come in the picker's order, a heartbeat first", () => {
+    expect(
+      getAllHostAlertTemplates().map((template: HostAlertTemplate): string => {
+        return template.id;
+      }),
+    ).toEqual([
+      "host-stopped-reporting",
+      "host-restarted",
+      "host-high-cpu",
+      "host-high-memory",
+      "host-high-swap",
+      "host-high-filesystem",
+      "host-running-out-of-inodes",
+      "host-high-load-average",
+      "host-high-processes",
+      "host-systemd-unit-failed",
+    ]);
   });
 
   test("host-high-load-average admits its threshold is not core-normalized", () => {
