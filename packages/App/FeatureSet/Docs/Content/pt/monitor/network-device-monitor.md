@@ -62,14 +62,14 @@ Abaixo dela, uma linha diz se alguma coisa abre um incidente quando um dispositi
 
 Antes de qualquer coisa ser adicionada, a visão geral guia você por três etapas. **Coloque uma sonda na sua rede**: uma sonda faz ping e walk nos seus dispositivos de dentro da rede deles, então **Adicionar uma sonda** dá nome a uma, mostra o comando que a executa e acompanha a conexão dela. **Traga seus dispositivos**: **Descobrir dispositivos** varre uma faixa de endereços para você escolher o que adicionar, o melhor para uma rede inteira ou um site novo, e **Adicionar um único dispositivo** adiciona um pelo endereço IP ou nome do host. **Seja avisado quando um dispositivo cair**: **Configurar alertas** abre as [políticas de alertas](#políticas-de-alertas), onde a política recomendada está a um clique. No OneUptime Cloud, [adicionar uma sonda](/docs/probe/custom-probe) exige o plano Growth: abaixo dele, a etapa avisa e leva às suas configurações de cobrança, e as sondas da própria OneUptime na internet ainda podem verificar dispositivos com um endereço público.
 
-O menu Rede mantém à vista o que você abre todos os dias: **Visão geral**, **Dispositivos**, **Sites**, **Mapa**, **Traffic**, **Eventos** e **Discovery**. O resto fica recolhido em seções, e uma seção se abre sozinha em qualquer uma das suas páginas:
+O menu Rede mantém à vista o que você abre todos os dias: **Visão geral**, **Dispositivos**, **Sites**, **Mapa**, **Tráfego**, **Eventos** e **Descoberta**. O resto fica recolhido em seções, e uma seção se abre sozinha em qualquer uma das suas páginas:
 
 | Seção | Páginas |
 | --- | --- |
-| **Topologia** | **Device Topology**, **Endpoints**, **Latency Matrix**, **Site Links**, **Device Links** |
-| **Regras** | **Auto Import Rules**, **Site Assignment Rules**, **Regras de proprietário**, **Regras de Rótulos**, **Link Rules** |
-| **Configurações** | **Alert Policies**, **Credenciais SNMP**, **Device Roles**, **Site Types**, **Nomes de endereço**, **OID Collection Templates** |
-| **Avançado** | **Archived Devices** |
+| **Topologia** | **Topologia do dispositivo**, **Endpoints**, **Matriz de latência**, **Links do site**, **Links do dispositivo** |
+| **Regras** | **Regras de importação automática**, **Regras de atribuição de sites**, **Regras de proprietário**, **Regras de Rótulos**, **Regras de links** |
+| **Configurações** | **Políticas de alerta**, **Credenciais SNMP**, **Funções de dispositivo**, **Tipos de site**, **Nomes de endereço**, **Modelos de coleta de OID** |
+| **Avançado** | **Dispositivos arquivados** |
 
 ## Adicionar um dispositivo de rede
 
@@ -144,17 +144,17 @@ Uma varredura de descoberta da rede de um cliente traz dezenas de dispositivos q
 
 | Ação | O que faz |
 | --- | --- |
-| **Definir site** / **Remover do site** | Move cada dispositivo selecionado para o site que você escolher, onde ele conta para a saúde do site; um dispositivo sem sonda própria assume a sonda padrão do site. **Remover do site** os tira dos seus sites. Um dispositivo que uma regra de atribuição de site encontra volta para o site da regra na próxima sondagem, então, para os dispositivos que a descoberta continua encontrando, adicione uma regra em **Rede → Regras → Site Assignment Rules**; a caixa de diálogo **Definir site** leva até lá. |
-| **Definir função do dispositivo** / **Remover função do dispositivo** | Dá a mesma função a cada dispositivo selecionado, como os vinte switches que são todos "Access Switch". As funções são as do projeto, em **Rede → Configurações → Device Roles**, para onde a caixa de diálogo leva. **Remover função do dispositivo** volta a deduzir a função de cada dispositivo a partir da identidade SNMP dele. |
+| **Definir site** / **Remover do site** | Move cada dispositivo selecionado para o site que você escolher, onde ele conta para a saúde do site; um dispositivo sem sonda própria assume a sonda padrão do site. **Remover do site** os tira dos seus sites. Um dispositivo que uma regra de atribuição de site encontra volta para o site da regra na próxima sondagem, então, para os dispositivos que a descoberta continua encontrando, adicione uma regra em **Rede → Regras → Regras de atribuição de sites**; a caixa de diálogo **Definir site** leva até lá. |
+| **Definir função do dispositivo** / **Remover função do dispositivo** | Dá a mesma função a cada dispositivo selecionado, como os vinte switches que são todos "Access Switch". As funções são as do projeto, em **Rede → Configurações → Funções de dispositivo**, para onde a caixa de diálogo leva. **Remover função do dispositivo** volta a deduzir a função de cada dispositivo a partir da identidade SNMP dele. |
 | **Aplicar modelo do fabricante** | Adiciona os OIDs de saúde e as tabelas SNMP de um [modelo do fabricante](#modelos-de-saúde-dos-fabricantes) a cada dispositivo selecionado. **De acordo com o fabricante de cada dispositivo**, a primeira opção da caixa de diálogo, escolhe o modelo de cada dispositivo a partir do que o walk SNMP dele informa, para que uma seleção mista receba o modelo certo em todo lugar; ou escolha um único modelo para todos. |
 
 Cada ação é uma caixa de diálogo e um salvamento para a seleção inteira, e cada dispositivo passa pelas mesmas verificações de uma edição na própria página de Configurações: permissões, o escopo de rótulos e de proprietários da sua função e os limites do que um dispositivo pode coletar.
 
-**Aplicar modelo do fabricante** mostra o que vai fazer antes de fazer qualquer coisa: quantos dispositivos recebem qual modelo, e quantos ele deixa como estão e por quê. Ele acrescenta ao que cada dispositivo já coleta e não remove nada, e um dispositivo que já tem tudo o que o modelo traz não é regravado. Ele deixa como estão um dispositivo baseado em monitor (nada o consulta), um dispositivo vinculado a um [OID Collection Template](#oid-collection-templates) (o modelo decide o que ele coleta, então adicione lá os OIDs do fabricante) e, na correspondência, um dispositivo que ainda não passou por walk SNMP ou cujo fabricante não tem modelo.
+**Aplicar modelo do fabricante** mostra o que vai fazer antes de fazer qualquer coisa: quantos dispositivos recebem qual modelo, e quantos ele deixa como estão e por quê. Ele acrescenta ao que cada dispositivo já coleta e não remove nada, e um dispositivo que já tem tudo o que o modelo traz não é regravado. Ele deixa como estão um dispositivo baseado em monitor (nada o consulta), um dispositivo vinculado a um [OID Collection Template](#modelos-de-coleta-de-oid) (o modelo decide o que ele coleta, então adicione lá os OIDs do fabricante) e, na correspondência, um dispositivo que ainda não passou por walk SNMP ou cujo fabricante não tem modelo.
 
 Quando uma ação termina, ela lista quantos dispositivos mudaram, quais falharam e por quê — um dispositivo que a sua função não pode editar, uma lista acima do limite — e quais não mudaram e por quê: um dispositivo que já estava naquele site ou função, ou um que o modelo do fabricante deixa como está.
 
-As demais ações em massa são tratadas onde fazem sentido: **Set OID Collection Template** em [OID Collection Templates](#oid-collection-templates), **Set SNMP Credential Profile**, **Switch to Probe Polling** e **Create Ping Monitors** em [Em massa](#em-massa), e **Shorten Names to Hostname** em [Como os dispositivos descobertos recebem nome](#como-os-dispositivos-descobertos-recebem-nome).
+As demais ações em massa são tratadas onde fazem sentido: **Set OID Collection Template** em [OID Collection Templates](#modelos-de-coleta-de-oid), **Set SNMP Credential Profile**, **Switch to Probe Polling** e **Create Ping Monitors** em [Em massa](#em-massa), e **Shorten Names to Hostname** em [Como os dispositivos descobertos recebem nome](#como-os-dispositivos-descobertos-recebem-nome).
 
 ## O que uma sondagem realmente faz
 
@@ -326,9 +326,9 @@ Os dispositivos com **Auto-Apply Vendor Health Template** ativado recebem os OID
 
 Aplicar um modelo do fabricante é uma cópia única, então nada se propaga quando o modelo muda. Para qualquer coisa além de um único dispositivo, use um **OID Collection Template**; os modelos dos fabricantes são oferecidos como ponto de partida quando você cria um.
 
-### OID Collection Templates
+### Modelos de coleta de OID
 
-Um **OID Collection Template** (**Rede → Configurações → OID Collection Templates**) é uma lista de OIDs com nome, normalmente o de um tipo de dispositivo como "Cisco Catalyst 9300", à qual quantos dispositivos você quiser se vinculam. O vínculo é vivo, não uma cópia: a lista de OIDs de um dispositivo é montada a cada sondagem, então editar um modelo muda o que cada dispositivo vinculado coleta na próxima sondagem, sem nenhuma etapa de sincronização.
+Um **OID Collection Template** (**Rede → Configurações → Modelos de coleta de OID**) é uma lista de OIDs com nome, normalmente o de um tipo de dispositivo como "Cisco Catalyst 9300", à qual quantos dispositivos você quiser se vinculam. O vínculo é vivo, não uma cópia: a lista de OIDs de um dispositivo é montada a cada sondagem, então editar um modelo muda o que cada dispositivo vinculado coleta na próxima sondagem, sem nenhuma etapa de sincronização.
 
 Antes de criar um, confirme que você precisa dele. Os bits de entrada e saída por porta, o status operacional, a utilização e os erros por segundo são coletados de cada porta a cada sondagem sem OID nenhum (veja [Walk das interfaces](#walk-das-interfaces)), e já podem gerar alertas por porta. Os modelos servem para o que não é por porta: CPU, memória, temperatura, ventoinhas, fontes de alimentação, pares BGP.
 
@@ -414,7 +414,7 @@ Números são lidos como números, e um texto que começa com um número é lido
 
 Algumas colunas dos modelos dos fabricantes também **ajustam** o número que leem, para MIBs que guardam um valor em uma unidade própria: o ArubaOS informa a potência de transmissão dobrada (lida × 0.5), o Aruba Instant o ruído de fundo sem o sinal (× −1), o Aerohive o ruído de fundo mais 256 (− 256), e o controlador da Extreme a largura do canal em passos de 20 MHz (× 20). O número ajustado é o que é exibido, colocado em gráficos e comparado, então **Noise Floor Maior que -80** significa o mesmo em todos os fabricantes, e o editor de tabelas mostra a conta embaixo da coluna.
 
-As tabelas vêm de um [OID Collection Template](#oid-collection-templates), compartilhado por cada dispositivo vinculado (até 10 tabelas), ou do próprio dispositivo em **Device-Specific SNMP Tables** (até mais 10). Elas são mescladas por chave a cada sondagem, o modelo primeiro, e uma tabela do dispositivo com a mesma chave substitui a do modelo. Os dois editores oferecem **Add a Vendor's Tables**.
+As tabelas vêm de um [OID Collection Template](#modelos-de-coleta-de-oid), compartilhado por cada dispositivo vinculado (até 10 tabelas), ou do próprio dispositivo em **Device-Specific SNMP Tables** (até mais 10). Elas são mescladas por chave a cada sondagem, o modelo primeiro, e uma tabela do dispositivo com a mesma chave substitui a do modelo. Os dois editores oferecem **Add a Vendor's Tables**.
 
 A sonda faz o walk de cada coluna como uma subárvore, dentro de um orçamento de 30 segundos compartilhado por todas as tabelas do dispositivo. Uma tabela cujo walk não é possível diz por quê e nunca faz a sondagem falhar: a página **Tabelas SNMP** do dispositivo mantém as últimas linhas válidas e informa que o walk mais recente falhou, enquanto os critérios julgam só o que este walk produziu, então um timeout nunca é lido como uma tabela vazia. Cada célula numérica é registrada como a métrica `oneuptime.monitor.snmp.table.value`, com os atributos `snmpTableKey`, `snmpTableName`, `snmpTableColumn`, `snmpTableColumnOid`, `snmpTableRow` e `snmpTableRowIndex`, então um painel pode mostrar o status de cada túnel ou a potência de transmissão de cada rádio, e um monitor de métricas pode agrupar por `snmpTableRow`.
 
@@ -546,8 +546,8 @@ flowchart TB
 ```
 
 :::steps
-### Abrir o Discovery
-Acesse **Rede → Discovery** e clique em **Iniciar varredura**. **Discover Devices** na **Visão geral** da Rede abre o mesmo formulário.
+### Abrir a Descoberta
+Acesse **Rede → Descoberta** e clique em **Iniciar varredura**. **Discover Devices** na **Visão geral** da Rede abre o mesmo formulário.
 
 ### Dizer o que varrer
 Digite a faixa em **Alvo da varredura**, confira a **Sonda** e escolha o **Método de varredura**: **ICMP (ping)**, com o qual uma varredura nova começa, ou **SNMP**.
@@ -681,7 +681,7 @@ Um nome só melhora: um dispositivo mantém o nome quando o registro DNS dele mu
 
 ### Importar automaticamente com regras de importação automática
 
-Revisar cada varredura à mão não escala além das primeiras sub-redes. **Rede → Regras → Auto Import Rules** é onde você escreve a importação uma vez: uma regra diz quais hosts descobertos reivindicar (uma faixa de IPs, e padrões opcionais de nome de sistema, descrição e `sysObjectID`) e, opcionalmente, qual modelo de monitor e qual [OID Collection Template](#oid-collection-templates) os dispositivos que ela importa recebem. Uma regra marcada como exclusão não reivindica nada e veta as outras: é assim que impressoras e telefones são separados de uma regra de sub-rede ampla.
+Revisar cada varredura à mão não escala além das primeiras sub-redes. **Rede → Regras → Regras de importação automática** é onde você escreve a importação uma vez: uma regra diz quais hosts descobertos reivindicar (uma faixa de IPs, e padrões opcionais de nome de sistema, descrição e `sysObjectID`) e, opcionalmente, qual modelo de monitor e qual [OID Collection Template](#modelos-de-coleta-de-oid) os dispositivos que ela importa recebem. Uma regra marcada como exclusão não reivindica nada e veta as outras: é assim que impressoras e telefones são separados de uma regra de sub-rede ampla.
 
 Em uma regra, **Verificar a cada** define com que frequência a sonda da varredura consulta cada dispositivo que a regra importa, como **Verificar a cada** faz quando você importa de **Revisar resultados**; vazio, é a cada 5 minutos. Uma regra com **Include Ping-Only Hosts** ativado também importa hosts que responderam só ao ping, entre eles todo host que uma [varredura ICMP](#varreduras-icmp) encontra, e também dá a eles o modelo de monitor dela: a sonda envia ping a eles, então as verificações do modelo sobre se um dispositivo está no ar e sobre os traps que ele envia funcionam para eles na hora, e as verificações que leem um walk SNMP, assim que o dispositivo tiver credenciais.
 
@@ -722,7 +722,7 @@ A sondagem dá a você status, inventário e gráficos. Incidentes, alertas e ac
 
 ### Políticas de alertas
 
-**Rede → Configurações → Alert Policies** é onde os alertas de uma frota são escritos uma vez. Uma política diz quais dispositivos (um escopo de sites, funções de dispositivo e rótulos) e sobre o que eles alertam (um modelo de monitor de dispositivo de rede), então "todo switch de armazém abre um incidente quando fica inacessível" é uma linha, e não duzentos monitores.
+**Rede → Configurações → Políticas de alerta** é onde os alertas de uma frota são escritos uma vez. Uma política diz quais dispositivos (um escopo de sites, funções de dispositivo e rótulos) e sobre o que eles alertam (um modelo de monitor de dispositivo de rede), então "todo switch de armazém abre um incidente quando fica inacessível" é uma linha, e não duzentos monitores.
 
 ```mermaid title="O que uma política de alertas mantém"
 flowchart TB
@@ -950,7 +950,7 @@ vira "Gi0/1 on core-switch-01 is down". [Modelos de incidentes e alertas](/docs/
 
 ## Topologia da rede
 
-**Rede → Topologia → Device Topology** é um mapa ao vivo da sua rede, construído a partir dos vizinhos LLDP que os walks de interfaces coletam, com o CDP acrescentado em parques Cisco. Os dispositivos gerenciados são preenchidos e os pares LLDP não gerenciados são vazados; a cor de um nó é o status do dispositivo dele, e clicar em um dispositivo gerenciado o abre.
+**Rede → Topologia → Topologia do dispositivo** é um mapa ao vivo da sua rede, construído a partir dos vizinhos LLDP que os walks de interfaces coletam, com o CDP acrescentado em parques Cisco. Os dispositivos gerenciados são preenchidos e os pares LLDP não gerenciados são vazados; a cor de um nó é o status do dispositivo dele, e clicar em um dispositivo gerenciado o abre.
 
 Para o mapa se preencher:
 
@@ -963,7 +963,7 @@ Clique em um par não gerenciado e **Add to Monitoring** o registra como disposi
 
 ### Exportar o mapa em PDF
 
-**Exportar PDF**, no topo do mapa, baixa o mapa que você está vendo como um PDF que você pode anexar a uma avaliação, a uma solicitação de mudança ou a uma revisão de incidente, ou ler offline. Toda visão do mapa de dispositivos tem essa opção: **Device Topology**, um site no **Mapa** e a aba **Rede** de **Topologia**.
+**Exportar PDF**, no topo do mapa, baixa o mapa que você está vendo como um PDF que você pode anexar a uma avaliação, a uma solicitação de mudança ou a uma revisão de incidente, ou ler offline. Toda visão do mapa de dispositivos tem essa opção: **Topologia do dispositivo**, um site no **Mapa** e a aba **Rede** de **Topologia**.
 
 O PDF traz:
 
@@ -999,7 +999,7 @@ O switch do qual o dispositivo depende também precisa de **Collect Connected En
 
 Uma [conexão Meraki](/docs/monitor/network-traffic#cisco-meraki-sem-netflow) faz tudo isso sem nada para ativar. A lista de clientes do Meraki diz em qual switch e porta cada cliente está, então um dispositivo é posicionado assim que esse switch é um dispositivo de rede aqui, no mesmo site. A lista também dá ao dispositivo seu endereço MAC, e o nome que o Meraki dá a um cliente aparece na coluna **Nome do host** em **Endpoints**. Ela é lida a cada duas horas, então um dispositivo novo pode levar esse tempo para aparecer. Enquanto o Meraki informa um cliente, a porta dele prevalece sobre uma tabela de encaminhamento lida por varredura, porque o Meraki distingue uma porta de acesso de um uplink. Um cliente Wi-Fi só é posicionado no ponto de acesso quando é um dispositivo daqui: os telefones de uma rede de convidados ficam fora do mapa.
 
-A visão geral do dispositivo tem um cartão **Conectado a** que indica o switch, a porta e a VLAN. Um switch, roteador ou firewall que informa seus vizinhos por LLDP ou CDP os lista ali no lugar: a própria porta, o vizinho (um link quando é um dispositivo daqui) e a porta na outra ponta, com **Abrir o mapa** ao lado. No mapa, o painel do dispositivo mostra o mesmo em **Conectado a**, e o painel do enlace diz que ele foi aprendido da tabela de encaminhamento do switch. A visão Parent-Child desenha o dispositivo abaixo do switch dele. Um enlace que você desenhou à mão em **Device Links** para o mesmo par se funde com o aprendido em vez de duplicá-lo: a porta aprendida substitui uma digitada errado, e um pai que você definiu no enlace desenhado à mão é mantido.
+A visão geral do dispositivo tem um cartão **Conectado a** que indica o switch, a porta e a VLAN. Um switch, roteador ou firewall que informa seus vizinhos por LLDP ou CDP os lista ali no lugar: a própria porta, o vizinho (um link quando é um dispositivo daqui) e a porta na outra ponta, com **Abrir o mapa** ao lado. No mapa, o painel do dispositivo mostra o mesmo em **Conectado a**, e o painel do enlace diz que ele foi aprendido da tabela de encaminhamento do switch. A visão Parent-Child desenha o dispositivo abaixo do switch dele. Um enlace que você desenhou à mão em **Links do dispositivo** para o mesmo par se funde com o aprendido em vez de duplicá-lo: a porta aprendida substitui uma digitada errado, e um pai que você definiu no enlace desenhado à mão é mantido.
 
 ![Visão de topologia Parent-Child desenhando um caixa só com ping abaixo do seu switch por um enlace aprendido](/docs/static/images/NetworkTopologyLearnedLink.png)
 

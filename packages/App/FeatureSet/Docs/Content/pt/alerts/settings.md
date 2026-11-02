@@ -21,7 +21,7 @@ Abra **Alertas** no menu **Produtos** da barra superior. As seções **Regras** 
 | **Regras de runbook**        | Inicia runbooks para os alertas correspondentes.                                               |
 | **Regras de privacidade**    | Torna privados os alertas e episódios correspondentes.                                         |
 | **Regras de Rótulos**        | Adiciona rótulos aos alertas e episódios correspondentes.                                      |
-| **Reminder Rules**           | Lembra os proprietários em intervalos enquanto um alerta está aberto.                          |
+| **Regras de lembrete**           | Lembra os proprietários em intervalos enquanto um alerta está aberto.                          |
 
 A seção **Configurações** contém **Estado do alerta** e **Severidade do alerta**, tratados em [Estados e severidades de alertas](/docs/alerts/states-and-severities), e depois **Modelos de notas**, **Campos personalizados**, **Medições**, **Participação em episódios** e **Numeração**, tratados abaixo.
 
@@ -54,7 +54,7 @@ flowchart TB
 
 As regras diferem na forma como várias correspondências são resolvidas:
 
-- **Regras de agrupamento** e **Reminder Rules** são verificadas de cima para baixo na lista, e a primeira correspondência vence. Arraste uma regra para mudar sua posição; uma regra nova vai para o fim.
+- **Regras de agrupamento** e **Regras de lembrete** são verificadas de cima para baixo na lista, e a primeira correspondência vence. Arraste uma regra para mudar sua posição; uma regra nova vai para o fim.
 - **Regras de Plantão**, **Regras de proprietário**, **Regras de Rótulos**, **Regras de privacidade** e **Regras de runbook** atuam todas quando correspondem. Políticas de plantão, proprietários e rótulos que várias regras adicionam são adicionados uma única vez.
 
 **Regras de Plantão**, **Regras de proprietário**, **Regras de Rótulos** e **Regras de privacidade** têm duas abas: **Alert Rules**, para alertas, e **Episode Rules**, que atuam da mesma forma sobre cada novo episódio de alerta. Uma regra nova começa habilitada; desative **Habilitado** no formulário de edição para pausá-la, e a lista mostra um **Habilitado** verde ou um **Desabilitado** vermelho para cada regra.
@@ -108,7 +108,7 @@ As **Regras de runbook** iniciam um runbook quando um novo alerta corresponde, a
 
 ## Regras de lembrete
 
-**Alertas → Regras → Reminder Rules** lembra os proprietários de um alerta enquanto ele continua aberto. Cada alerta novo recebe a primeira regra que corresponde a ele, de cima para baixo na lista.
+**Alertas → Regras → Regras de lembrete** lembra os proprietários de um alerta enquanto ele continua aberto. Cada alerta novo recebe a primeira regra que corresponde a ele, de cima para baixo na lista.
 
 :::steps
 ### Escolher sobre quais alertas lembrar

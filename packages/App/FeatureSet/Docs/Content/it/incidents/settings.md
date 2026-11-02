@@ -32,7 +32,7 @@ Ciò che OneUptime AI fa da sola non si imposta qui: ha una sezione propria, **I
 
 **Stato incidente** e **Gravità incidente** sono trattati in dettaglio in [Stati e gravità degli incidenti](/docs/incidents/states-and-severities) — il resto di questa pagina riparte da **Modelli di incidenti**. I moduli che permettono a persone esterne al vostro team di segnalare incidenti sono un prodotto a sé: vedete [Moduli](/docs/forms/index). Gli strumenti che aprono incidenti da soli, come [Huntress](/docs/integrations/huntress), si configurano come workflow.
 
-Espandete **Regole** e trovate altre otto pagine: **Regole di raggruppamento**, **Regole di reperibilità**, **Regole del proprietario**, **Regole di runbook**, **Regole di privacy**, **Regole etichette**, **Regole SLA** e **Reminder Rules**. Vengono trattate più sotto.
+Espandete **Regole** e trovate altre otto pagine: **Regole di raggruppamento**, **Regole di reperibilità**, **Regole del proprietario**, **Regole di runbook**, **Regole di privacy**, **Regole etichette**, **Regole SLA** e **Regole dei promemoria**. Vengono trattate più sotto.
 
 ## Modelli di incidenti
 
@@ -598,12 +598,12 @@ Anche le regole di raggruppamento, SLA, dei promemoria e le regole IA agiscono s
 - **Regole di privacy** — decidono se un incidente corrispondente è privato.
 - **Regole etichette** — applicano etichette automaticamente.
 - **Regole SLA** — tracciano i tempi di risposta e di risoluzione. Le regole vengono valutate dall'alto verso il basso dell'elenco; trascinate una regola per cambiarne la posizione.
-- **Reminder Rules** — ricordano periodicamente ai proprietari di un incidente che è ancora aperto. Le regole vengono valutate dall'alto verso il basso dell'elenco e vince la prima regola corrispondente; trascinate una regola per cambiarne la posizione. La regola di un incidente viene riabbinata, e l'attesa fino al suo prossimo promemoria ricomincia da capo, quando cambiano la sua gravità o le sue etichette o quando viene cambiato il suo interruttore **Invia promemoria**. Salvare la gravità e le etichette che ha già — ogni salvataggio della scheda **Dettagli dell'incidente** le invia — lascia il suo prossimo promemoria dov'era. Gli avvisi funzionano allo stesso modo.
+- **Regole dei promemoria** — ricordano periodicamente ai proprietari di un incidente che è ancora aperto. Le regole vengono valutate dall'alto verso il basso dell'elenco e vince la prima regola corrispondente; trascinate una regola per cambiarne la posizione. La regola di un incidente viene riabbinata, e l'attesa fino al suo prossimo promemoria ricomincia da capo, quando cambiano la sua gravità o le sue etichette o quando viene cambiato il suo interruttore **Invia promemoria**. Salvare la gravità e le etichette che ha già — ogni salvataggio della scheda **Dettagli dell'incidente** le invia — lascia il suo prossimo promemoria dov'era. Gli avvisi funzionano allo stesso modo.
 
 > [!IMPORTANT]
 > **La semantica dell'ordine non è uniforme.** Le regole di raggruppamento, le regole SLA e le Reminder Rules vengono valutate in ordine, e i loro elenchi si ordinano trascinando: una nuova regola viene aggiunta in fondo. Le regole di reperibilità no — scatta ogni regola corrispondente. Non date per scontato che un unico modello valga per tutte e nove.
 
-Le pagine **Regole di reperibilità**, **Regole del proprietario**, **Regole etichette** e **Regole di privacy** hanno delle schede — una scheda **Incident Rules** e una scheda **Episode Rules**, ciascuna con la propria tabella. Configurate la scheda **Incident Rules** a meno che non intendiate specificamente gli episodi. **Regole di raggruppamento**, **Regole di runbook**, **Regole IA**, **Regole SLA** e **Reminder Rules** sono tabelle singole.
+Le pagine **Regole di reperibilità**, **Regole del proprietario**, **Regole etichette** e **Regole di privacy** hanno delle schede — una scheda **Incident Rules** e una scheda **Episode Rules**, ciascuna con la propria tabella. Configurate la scheda **Incident Rules** a meno che non intendiate specificamente gli episodi. **Regole di raggruppamento**, **Regole di runbook**, **Regole IA**, **Regole SLA** e **Regole dei promemoria** sono tabelle singole.
 
 Le regole del proprietario, delle etichette e di privacy agiscono solo sugli incidenti e sugli episodi creati dopo che la regola esiste. Per applicarne una agli incidenti già presenti, usate **Esegui ora** sulla riga della regola, nella sua pagina, oppure dalle azioni di massa della tabella — vedete [Eseguire le regole sulle risorse esistenti](/docs/configuration/run-rules-now). Le regole di reperibilità e di runbook, le regole IA e le regole di raggruppamento, SLA e dei promemoria non possono essere eseguite su incidenti esistenti.
 

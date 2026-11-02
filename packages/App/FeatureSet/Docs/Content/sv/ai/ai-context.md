@@ -26,8 +26,8 @@ Eftersom anteckningarna kommer först och är desamma från en körning till nä
 ## Skriv AI-kontexten
 
 :::steps
-### Öppna AI Features
-Öppna **Projektinställningar → AI → AI Features**. Kortet **AI-kontext** finns under **Aktivera AI**.
+### Öppna AI-funktioner
+Öppna **Projektinställningar → AI → AI-funktioner**. Kortet **AI-kontext** finns under **Aktivera AI**.
 
 ### Skriv anteckningarna
 Klicka på **Lägg till AI-kontext**, eller på **Redigera** när det finns anteckningar. Skriv i Markdown, eller klicka på **Börja med en disposition** för att få en rubrik för varje sorts anteckning.

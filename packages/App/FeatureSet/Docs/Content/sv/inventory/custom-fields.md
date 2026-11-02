@@ -73,7 +73,7 @@ Ange värdena på ett objekts sida **Anpassade fält**. Alla objekt tar emot dem
 
 ## Filtrera listan
 
-Varje anpassat fält blir ett filter ovanför listan **All Items**, och filtret erbjuder de jämförelser som passar dess typ:
+Varje anpassat fält blir ett filter ovanför listan **Alla objekt**, och filtret erbjuder de jämförelser som passar dess typ:
 
 | Fälttyp | Jämförelser |
 | --- | --- |

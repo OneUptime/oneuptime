@@ -1,6 +1,6 @@
 # Kubernetes-kostenobservability
 
-Zie wat elke Kubernetes-workload kost — uitgaven per namespace, workload en pod, inactieve capaciteit en hoeveel van elk request wordt gebruikt — naast de metrics, logs en traces die de [Kubernetes-agent](/docs/telemetry/kubernetes-agent) al verzamelt. Eén Helm-waarde zet het aan, zonder cloudinloggegevens, en de pagina **Costs** van het cluster vertelt je daarna welke requests kleiner kunnen.
+Zie wat elke Kubernetes-workload kost — uitgaven per namespace, workload en pod, inactieve capaciteit en hoeveel van elk request wordt gebruikt — naast de metrics, logs en traces die de [Kubernetes-agent](/docs/telemetry/kubernetes-agent) al verzamelt. Eén Helm-waarde zet het aan, zonder cloudinloggegevens, en de pagina **Kosten** van het cluster vertelt je daarna welke requests kleiner kunnen.
 
 :::cards
 - [Inschakelen](#kostenobservability-inschakelen): Eén `helm upgrade`.
@@ -51,8 +51,8 @@ De eerste kosten verschijnen nadat het eerste volledige uur is afgesloten, en Op
 
 ### De kostenpagina's openen
 
-- **Producten → Infrastructuur → Kubernetes → Costs** toont de uitgaven van alle clusters in het project.
-- Op een cluster toont **Costs** het verloop van de uitgaven, **Spend by Namespace** met de verdeling over CPU, geheugen en opslag, **Spend by Workload**, inactieve uitgaven, efficiëntie en de kaart **Right-Sizing**.
+- **Producten → Infrastructuur → Kubernetes → Kosten** toont de uitgaven van alle clusters in het project.
+- Op een cluster toont **Kosten** het verloop van de uitgaven, **Spend by Namespace** met de verdeling over CPU, geheugen en opslag, **Spend by Workload**, inactieve uitgaven, efficiëntie en de kaart **Right-Sizing**.
 :::
 
 De kostenmetrics (`node_total_hourly_cost`, `pv_hourly_cost` en de rest) zijn gewone metrics: ze staan in de metricverkenner, op aangepaste dashboards en in metricmonitors. Voor een kant-en-klaar dashboard ga je naar **Producten → Dashboards**, selecteer je **Dashboard aanmaken** en kies je **Kubernetes Cost Dashboard**: het verloop van de uurkosten van nodes, eenheidskosten voor CPU en geheugen, en uitgaven aan volumes en load balancers.
@@ -113,7 +113,7 @@ cost:
 
 ## Right-sizing
 
-De kaart **Right-Sizing** op de pagina **Costs** van een cluster beveelt een CPU- en een geheugen-request aan voor elke container waarvan hij genoeg geschiedenis heeft, gerangschikt op hoeveel elke wijziging per maand bespaart.
+De kaart **Right-Sizing** op de pagina **Kosten** van een cluster beveelt een CPU- en een geheugen-request aan voor elke container waarvan hij genoeg geschiedenis heeft, gerangschikt op hoeveel elke wijziging per maand bespaart.
 
 Een aanbeveling is de waargenomen vraag plus 25% marge, afgerond op een waarde die je in een manifest kunt plakken (10m CPU, 16Mi geheugen):
 

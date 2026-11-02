@@ -23,7 +23,7 @@ flowchart TB
 :::steps
 ### Conectar um provedor
 
-Vá para **Configurações do projeto** > **Espaço de trabalho** > **Video Calls** e conecte o Zoom, o Google Meet ou o Microsoft Teams, ou adicione um link de reunião permanente. No OneUptime Cloud, conectar o Zoom, o Google Meet ou o Microsoft Teams é um clique: faça login e permita que o OneUptime crie reuniões (consulte [Conectar com um clique](#conectar-com-um-clique)). Os huddles do Slack não precisam de nada além da conexão do Slack do projeto.
+Vá para **Configurações do projeto** > **Espaço de trabalho** > **Videochamadas** e conecte o Zoom, o Google Meet ou o Microsoft Teams, ou adicione um link de reunião permanente. No OneUptime Cloud, conectar o Zoom, o Google Meet ou o Microsoft Teams é um clique: faça login e permita que o OneUptime crie reuniões (consulte [Conectar com um clique](#conectar-com-um-clique)). Os huddles do Slack não precisam de nada além da conexão do Slack do projeto.
 
 ### Ativá-la em uma regra
 
@@ -44,7 +44,7 @@ Uma chamada é iniciada uma vez por incidente para cada lugar onde uma chamada a
 
 Declarar um incidente nunca espera por um provedor de videochamadas. A chamada é iniciada depois que o incidente é criado, então um provedor lento ou com falha nunca atrasa o incidente nem as notificações de plantão dele.
 
-Se o provedor recusar (um segredo expirado, uma permissão ausente, um host excluído), o feed do incidente diz que a chamada da regra não pôde ser iniciada, com o motivo do provedor, para que os responders saibam iniciar uma a partir da página do incidente. A execução da regra aparece nos logs de notificação do workspace como **Iniciar videochamada**, e a linha da conexão em **Configurações do projeto** > **Espaço de trabalho** > **Video Calls** mostra o erro até que uma chamada comece de novo.
+Se o provedor recusar (um segredo expirado, uma permissão ausente, um host excluído), o feed do incidente diz que a chamada da regra não pôde ser iniciada, com o motivo do provedor, para que os responders saibam iniciar uma a partir da página do incidente. A execução da regra aparece nos logs de notificação do workspace como **Iniciar videochamada**, e a linha da conexão em **Configurações do projeto** > **Espaço de trabalho** > **Videochamadas** mostra o erro até que uma chamada comece de novo.
 
 ### Incidentes privados
 
@@ -55,7 +55,7 @@ Uma reunião recebe o nome do incidente para o qual existe, com o seu número e 
 No OneUptime Cloud, conectar o Zoom, o Google Meet ou o Microsoft Teams leva um clique e não há nada a configurar no provedor:
 
 :::steps
-1. Vá para **Configurações do projeto** > **Espaço de trabalho** > **Video Calls** e clique em **Conectar** no Zoom, no Google Meet ou no Microsoft Teams.
+1. Vá para **Configurações do projeto** > **Espaço de trabalho** > **Videochamadas** e clique em **Conectar** no Zoom, no Google Meet ou no Microsoft Teams.
 2. Clique em **Continue to Zoom** (ou Google, ou Microsoft), faça login e permita que o OneUptime crie reuniões.
 3. Você volta à página de videochamadas com a conexão feita. **Start a test meeting** a verifica de ponta a ponta; depois escolha a conexão em uma regra de notificação do Slack ou do Microsoft Teams.
 :::
@@ -124,7 +124,7 @@ A OneUptime AI só sugere uma causa quando a chamada cita uma, com as linhas que
 
 ### Gravar e transcrever todas as chamadas
 
-Para que ninguém precise se lembrar de gravar uma chamada nem de obter a transcrição dela, ative **Gravar e transcrever chamadas de incidentes** em **Configurações do projeto** > **Espaço de trabalho** > **Video Calls**. Enquanto a opção estiver ativada:
+Para que ninguém precise se lembrar de gravar uma chamada nem de obter a transcrição dela, ative **Gravar e transcrever chamadas de incidentes** em **Configurações do projeto** > **Espaço de trabalho** > **Videochamadas**. Enquanto a opção estiver ativada:
 
 - O OneUptime pede ao Zoom que grave na nuvem cada reunião de incidente que ele inicia, ao Google Meet que a transcreva e ao Microsoft Teams que a grave e a transcreva automaticamente. A mensagem que publica a chamada avisa isso antes que alguém entre.
 - Quando a chamada termina, o OneUptime obtém a transcrição sozinho, como **Obter do Zoom** faria, e a OneUptime AI a lê. Até lá, o card **Video Call** diz que está aguardando.

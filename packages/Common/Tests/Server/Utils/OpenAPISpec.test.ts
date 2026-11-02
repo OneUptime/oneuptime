@@ -1,4 +1,6 @@
 import { beforeAll, describe, expect, it } from "@jest/globals";
+import AnalyticsBaseModel from "../../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
+import AnalyticsModels from "../../../Models/AnalyticsModels/Index";
 import OpenAPIUtil from "../../../Server/Utils/OpenAPI";
 import { JSONObject } from "../../../Types/JSON";
 
@@ -560,6 +562,41 @@ describe("OpenAPI specification", () => {
       }
 
       expect(optional).toEqual([]);
+    });
+  });
+
+  describe("telemetry queries", () => {
+    /*
+     * zod-to-openapi took the `type` the analytics schemas gave .openapi() for
+     * the whole schema, so every telemetry query and sort was documented as an
+     * object that allowed no field at all. They list their fields, the time
+     * column every telemetry query is bounded and sorted by among them
+     * (Tests/Utils/Schema/AnalyticsModelSchema holds the operators).
+     */
+    it("lists the fields of every telemetry table's query and sort, its time column among them", () => {
+      const problems: Array<string> = [];
+
+      for (const modelType of AnalyticsModels) {
+        const model: AnalyticsBaseModel = new modelType();
+
+        if (!model.crudApiPath) {
+          continue;
+        }
+
+        for (const kind of ["QuerySchema", "SortSchema"]) {
+          const properties: JSONObject = ((
+            schemas[`${model.tableName}${kind}`] as JSONObject | undefined
+          )?.["properties"] || {}) as JSONObject;
+
+          if (!(model.defaultSortColumn in properties)) {
+            problems.push(
+              `${model.tableName}${kind}: ${Object.keys(properties).length} fields, none of them ${model.defaultSortColumn}`,
+            );
+          }
+        }
+      }
+
+      expect(problems).toEqual([]);
     });
   });
 

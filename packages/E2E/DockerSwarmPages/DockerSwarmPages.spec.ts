@@ -1349,3 +1349,53 @@ test.describe("the Overview hero's description", () => {
     await screenshot(page, "docker-swarm-overview-rtl-768");
   });
 });
+
+/*
+ * ---------------------------------------------------------------------------
+ * The Swarm's side menu on a task's page
+ * ---------------------------------------------------------------------------
+ *
+ * A task's page is one of the rows Tasks lists, and the menu has an entry
+ * for the list only: nothing in it was lit there, and a phone's menu button
+ * read the trail's last crumb, "Task Detail". The shared side menu now
+ * lights the list a page is one row of (Common's SideMenuRowPage), as a
+ * Kubernetes cluster's menu did by hand.
+ */
+test.describe("the Swarm's side menu on a task's page", () => {
+  test("Tasks is lit: the one current entry, holding the page and leading to the list", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openTaskPage(page);
+
+    const current: Locator = page.locator(
+      "aside[role='navigation'] a[aria-current]",
+    );
+    await expect(current).toHaveCount(1);
+    await expect(current).toHaveAttribute("aria-current", "true");
+    await expect(current.getByTestId("side-menu-item-title")).toHaveText(
+      "Tasks",
+    );
+    await expect(current).toHaveAttribute("href", `${CLUSTER_PATH}/tasks`);
+  });
+
+  test("on a phone, the menu's button names Workloads / Tasks, in German too", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(PHONE);
+    await openTaskPage(page);
+
+    const toggle: Locator = page.getByTestId("mobile-sidemenu-toggle");
+    await expect(toggle).toContainText("Workloads / Tasks");
+    await expect(toggle).not.toContainText("Task Detail");
+
+    await openTaskPage(page, "lang=de");
+    await expect(toggle).toContainText(
+      `${GERMAN["Workloads"]!} / ${GERMAN["Tasks"]!}`,
+    );
+    await screenshot(page, "docker-swarm-task-phone-menu-button-de");
+  });
+});

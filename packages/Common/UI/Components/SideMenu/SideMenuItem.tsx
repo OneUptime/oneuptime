@@ -3,14 +3,20 @@ import Badge, { BadgeType } from "../Badge/Badge";
 import Icon from "../Icon/Icon";
 import UILink, { LinkAriaCurrent } from "../Link/Link";
 import IconProp from "../../../Types/Icon/IconProp";
+import Route from "../../../Types/API/Route";
 import Link from "../../../Types/Link";
-import React, { FunctionComponent } from "react";
+import React, { FunctionComponent, useContext } from "react";
 import {
   getDrawnLanguage,
   getMenuWordsBreakClassName,
   getSideMenuEntryCurrent,
+  SIDE_MENU_ITEM_BADGES_TEST_ID,
+  SIDE_MENU_ITEM_CONTENT_TEST_ID,
   SIDE_MENU_ITEM_TITLE_TEST_ID,
+  SIDE_MENU_LONG_WORDS,
 } from "./SideMenuEntryState";
+import HyphenatedWords from "../HyphenatedWords/HyphenatedWords";
+import SideMenuRowListContext, { isRowListLink } from "./SideMenuRowPage";
 
 export interface ComponentProps {
   link: Link;
@@ -42,27 +48,41 @@ export interface ComponentProps {
  * English "Import from another tool" too. A word that fits on a line moves
  * there whole; one longer than the whole line (a German compound) is
  * hyphenated where its language breaks it, the title saying which language
- * it is in (getDrawnLanguage, getMenuWordsBreakClassName), or else breaks
- * at the edge rather than running out of the menu. The icon, the rail and
- * the badge keep to the first line, so a row of one line is drawn exactly
- * as before.
+ * it is in (getDrawnLanguage, HyphenatedWords), or else breaks at the edge
+ * rather than running out of the menu. The icon and the rail keep to the
+ * first line, so a row of one line is drawn exactly as before.
+ *
+ * So does the badge, beside a title whose words can share a line with it.
+ * Beside a 224 pixel menu (a 768 to 1023 pixel window) a count leaves a
+ * title some 120 pixels, and "Recommendations" (131) broke there as
+ * "Recommendatio / ns", without a hyphen, in every browser: English is
+ * never hyphenated, and the word fits a line of its own. Now a title whose
+ * longest word cannot share its line with the badge keeps the whole line,
+ * and the badge moves under it, at the row's end: the row lays out its
+ * title at its narrowest (w-min) and wraps (flex-wrap) when even that and
+ * the badge do not fit. Every other row is drawn as before.
  *
  * The entry for the page the user is on is lit, and says so to a screen
  * reader too (aria-current): "page" when it links to that very page, "true"
  * when the page sits under it - a role's page under Roles, a run's under
- * its runbook's Executions - and the entry marks it by its activeRoute.
+ * its runbook's Executions - and the entry marks it by its activeRoute, or
+ * the menu finds the page is one of the rows of the list the entry leads to
+ * (SideMenuRowPage: a node's page under Nodes).
  */
 const SideMenuItem: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ) => {
   const { translateString, language } = useTranslateValue();
-  const mainCurrent: LinkAriaCurrent | undefined = getSideMenuEntryCurrent({
-    link: props.link,
-    activeRoute: props.activeRoute,
-  });
+  const rowList: Route | null = useContext(SideMenuRowListContext);
+  const mainCurrent: LinkAriaCurrent | undefined =
+    getSideMenuEntryCurrent({
+      link: props.link,
+      activeRoute: props.activeRoute,
+    }) || (isRowListLink(props.link, rowList) ? "true" : undefined);
   const isActive: boolean = mainCurrent !== undefined;
   const subItemCurrent: LinkAriaCurrent | undefined = props.subItemLink
-    ? getSideMenuEntryCurrent({ link: props.subItemLink })
+    ? getSideMenuEntryCurrent({ link: props.subItemLink }) ||
+      (isRowListLink(props.subItemLink, rowList) ? "true" : undefined)
     : undefined;
   const isSubItemActive: boolean = subItemCurrent !== undefined;
   const translatedTitle: string =
@@ -87,7 +107,7 @@ const SideMenuItem: FunctionComponent<ComponentProps> = (
       <UILink
         className={`
           ${props.className || ""}
-          group relative flex items-start justify-between
+          group relative flex flex-wrap items-start justify-between gap-x-2
           pl-3 pr-2 py-1.5 rounded-md
           text-sm
           transition-colors duration-150 ease-out
@@ -120,8 +140,15 @@ const SideMenuItem: FunctionComponent<ComponentProps> = (
           `}
         />
 
-        {/* Content Container */}
-        <div className="flex items-start min-w-0 gap-2.5">
+        {/*
+         * Content Container: at its narrowest (its longest word) when the row
+         * decides whether the badge shares the line, and as wide as the room
+         * left beside the badge (grow) once it does.
+         */}
+        <div
+          className="flex items-start w-min min-w-0 grow gap-2.5"
+          data-testid={SIDE_MENU_ITEM_CONTENT_TEST_ID}
+        >
           {props.icon && (
             <Icon
               icon={props.icon}
@@ -150,18 +177,27 @@ const SideMenuItem: FunctionComponent<ComponentProps> = (
             data-testid={SIDE_MENU_ITEM_TITLE_TEST_ID}
             lang={titleLanguage}
           >
-            {translatedTitle}
+            <HyphenatedWords
+              text={translatedTitle}
+              lang={titleLanguage}
+              rule={SIDE_MENU_LONG_WORDS}
+            />
           </span>
         </div>
 
         {/*
          * Badge / Alert / Warning Container. One line tall, so a badge and
-         * the indicators sit level with the title's first line.
+         * the indicators sit level with the title's first line - or, under a
+         * title whose longest word needs the whole line, at the row's end
+         * on the line below (ml-auto). Drawn only when it holds something:
+         * a count of none draws no badge, and an empty container would take
+         * the row's gap beside the title, or a line of its own below it.
          */}
-        {(props.badge !== undefined ||
-          props.showAlert ||
-          props.showWarning) && (
-          <div className="flex h-5 items-center gap-1.5 ml-2 flex-shrink-0">
+        {(Boolean(props.badge) || props.showAlert || props.showWarning) && (
+          <div
+            className="flex h-5 items-center gap-1.5 ml-auto flex-shrink-0"
+            data-testid={SIDE_MENU_ITEM_BADGES_TEST_ID}
+          >
             {props.badge !== undefined && (
               <Badge badgeCount={props.badge} badgeType={props.badgeType} />
             )}
@@ -217,7 +253,11 @@ const SideMenuItem: FunctionComponent<ComponentProps> = (
                 data-testid={SIDE_MENU_ITEM_TITLE_TEST_ID}
                 lang={subItemTitleLanguage}
               >
-                {translatedSubItemTitle}
+                <HyphenatedWords
+                  text={translatedSubItemTitle}
+                  lang={subItemTitleLanguage}
+                  rule={SIDE_MENU_LONG_WORDS}
+                />
               </span>
             </div>
           </UILink>

@@ -137,7 +137,7 @@ L'agent invia tutto ciò che esporta il modulo `prometheus` del mgr. Le pagine C
 | OSD | `ceph_osd_up`, `ceph_osd_in`, `ceph_osd_apply_latency_ms`, `ceph_osd_commit_latency_ms`, `ceph_osd_stat_bytes`, `ceph_osd_stat_bytes_used`, `ceph_osd_numpg`, `ceph_osd_metadata`, per OSD tramite l'etichetta `ceph_daemon` (come `osd.3`) |
 | Pool | `ceph_pool_stored`, `ceph_pool_max_avail`, `ceph_pool_objects`, `ceph_pool_rd`, `ceph_pool_wr`, `ceph_pool_rd_bytes`, `ceph_pool_wr_bytes`, `ceph_pool_metadata`. Le serie di dati hanno solo un'etichetta `pool_id`; il nome del pool è su `ceph_pool_metadata`. |
 | Placement group | `ceph_pg_total`, `ceph_pg_active`, `ceph_pg_clean`, `ceph_pg_degraded`, `ceph_pg_undersized` (tutte per pool, in base a `pool_id`), `ceph_num_objects_degraded`, `ceph_num_objects_misplaced` |
-| Daemon | `ceph_mgr_metadata`, `ceph_mds_metadata` e `ceph_rgw_metadata`, oltre ai metadati dei monitor e degli OSD qui sopra. Ognuna nomina un daemon e ne riporta la versione nell'etichetta `ceph_version`: la pagina **Daemons** li elenca. |
+| Daemon | `ceph_mgr_metadata`, `ceph_mds_metadata` e `ceph_rgw_metadata`, oltre ai metadati dei monitor e degli OSD qui sopra. Ognuna nomina un daemon e ne riporta la versione nell'etichetta `ceph_version`: la pagina **Demoni** li elenca. |
 
 ### Altre destinazioni di raccolta
 
@@ -150,7 +150,7 @@ Entrambi ricevono l'attributo di risorsa `ceph.cluster.name` dal processor `reso
 
 ## Facoltativo — Inviare il log del cluster Ceph
 
-L'agent può seguire `/var/log/ceph/ceph.log` e inviarlo a OneUptime, riempiendo la pagina **Cluster Log** del cluster. È disattivato per impostazione predefinita perché l'agent deve girare su un host che ha il log del cluster: per impostazione predefinita, un host monitor.
+L'agent può seguire `/var/log/ceph/ceph.log` e inviarlo a OneUptime, riempiendo la pagina **Registro del cluster** del cluster. È disattivato per impostazione predefinita perché l'agent deve girare su un host che ha il log del cluster: per impostazione predefinita, un host monitor.
 
 :::steps
 ### Attiva il receiver

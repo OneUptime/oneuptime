@@ -57,7 +57,7 @@ Meddelanden beskrivs på [Prenumeranter och meddelanden](/docs/status-pages/subs
 | **Översikt**  | **Alla händelser** och **Pågående händelser**, vars märke räknar de händelser som pågår just nu.                            |
 | **Kalender** | **Underhållskalender**: varje händelse på en månad, en vecka eller en dag, bredvid de kalendrar utanför projektet som du lägger till. |
 | **Arbetsyta** | **Slack** och **Microsoft Teams**, beroende på vad projektet har anslutit, eller **Anslut Slack eller Teams** när det inte har något av dem. |
-| **Regler**    | **Ägarregler**, **Runbook-regler**, **Etikettregler**, **Reminder Rules**.                                                  |
+| **Regler**    | **Ägarregler**, **Runbook-regler**, **Etikettregler**, **Påminnelseregler**.                                                  |
 | **Inställningar** | **Händelsestatus**, **Händelsemallar**, **Anteckningsmallar**, **Anpassade fält**, **Mätningar**, **Kalenderinställningar**, **Numrering**.      |
 
 **Översikt** och **Kalender** är öppna; **Arbetsyta**, **Regler**, **Inställningar** och **Utvecklare** börjar hopfällda, och ett avsnitt öppnas av sig självt när du är på en av dess sidor. **Utvecklare** rymmer **Terraform**, **API** och **AI-assistenter**, för att styra underhåll från kod. Allt om underhåll finns här, inte i **Projektinställningar**.

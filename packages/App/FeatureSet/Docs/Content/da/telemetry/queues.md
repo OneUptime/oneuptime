@@ -1,6 +1,6 @@
 # Køer
 
-**Queues** giver hver beskedkø, hvert topic og hvert abonnement, som dine applikationer bruger, sin egen side: hvilke tjenester der publicerer til den, og hvilke der forbruger fra den, hvor mange beskeder der går igennem, hvor mange der fejler, og hvor lang tid behandlingen tager, dens traces og metrikker og, så snart brokerens egne metrikker når OneUptime, dens efterslæb, consumer-lag, dead letters og begrænsning. Køer har labels, ejere, label- og ejerregler og arkivering, ligesom alle andre ressourcer. Åbn dem under **Produkter → Ressourcer → Køer**.
+**Køer** giver hver beskedkø, hvert topic og hvert abonnement, som dine applikationer bruger, sin egen side: hvilke tjenester der publicerer til den, og hvilke der forbruger fra den, hvor mange beskeder der går igennem, hvor mange der fejler, og hvor lang tid behandlingen tager, dens traces og metrikker og, så snart brokerens egne metrikker når OneUptime, dens efterslæb, consumer-lag, dead letters og begrænsning. Køer har labels, ejere, label- og ejerregler og arkivering, ligesom alle andre ressourcer. Åbn dem under **Produkter → Ressourcer → Køer**.
 
 :::cards
 - [Instrumentering af applikationer](#instrumentering-af-applikationer): De messaging-spans, som din OpenTelemetry-instrumentering allerede sender.
@@ -27,7 +27,7 @@ flowchart TB
 
 Traces fortæller OneUptime, at en kø findes, og hvordan applikationer bruger den, men ikke hvor fuld den er. Det kommer fra selve brokeren eller fra dens cloududbyders overvågnings-API eller, for [BullMQ](#bullmq), der gemmer sine jobs i Redis og ikke har en broker at spørge, fra en gauge, som applikationen rapporterer.
 
-Du kan også tilføje en kø manuelt: **Queues → Opret Queue**, med dens beskedsystem og navnet på dens destination og, for Azure Service Bus og Event Hubs, dens namespace. Formularen spørger om dem i sit første trin, **Beskedsystem**, og derefter om et valgfrit navn og en beskrivelse, med labels under **Flere felter** (**Køoplysninger**). Lad kun namespacet være tomt for en kø, som dine applikationer når via en emulator eller et brugerdefineret domænenavn: deres spans nævner intet namespace, og Azure Monitors metrikker når aldrig en sådan kø (se [Begrænsninger](#begrænsninger)).
+Du kan også tilføje en kø manuelt: **Køer → Opret Queue**, med dens beskedsystem og navnet på dens destination og, for Azure Service Bus og Event Hubs, dens namespace. Formularen spørger om dem i sit første trin, **Beskedsystem**, og derefter om et valgfrit navn og en beskrivelse, med labels under **Flere felter** (**Køoplysninger**). Lad kun namespacet være tomt for en kø, som dine applikationer når via en emulator eller et brugerdefineret domænenavn: deres spans nævner intet namespace, og Azure Monitors metrikker når aldrig en sådan kø (se [Begrænsninger](#begrænsninger)).
 
 ## Kom i gang
 
@@ -1037,7 +1037,7 @@ Selvhostede installationer kan justere registreringen med disse miljøvariabler 
 - Dens navn er et af dem, OneUptime ignorerer (se [Hvad der ignoreres](#hvad-der-ignoreres)), eller kun SERVER-spans nævner den.
 - Færre end 3 af dens spans ankom inden for de seneste 15 minutter, eller projektet har nået sit [budget for automatisk oprettelse](#budgettet-for-automatisk-oprettelse).
 
-Når dens spans faktisk nævner den, så opret den manuelt med samme system og destination (**Queues → Opret Queue**): dens fane **Spor** fyldes ud fra de spans, der allerede er gemt.
+Når dens spans faktisk nævner den, så opret den manuelt med samme system og destination (**Køer → Opret Queue**): dens fane **Spor** fyldes ud fra de spans, der allerede er gemt.
 
 ### Brokersundheden forbliver tom
 

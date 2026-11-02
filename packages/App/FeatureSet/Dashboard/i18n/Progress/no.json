@@ -1,7 +1,7 @@
 {
   "baseline": {
     "keys": 40054,
-    "untranslated": 12732
+    "untranslated": 12687
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -67,6 +67,7 @@
     "INP 190 ms",
     "INP 540 ms",
     "Info",
+    "IoT",
     "Israel (+972)",
     "Japan (+81)",
     "LXC 201 · pve3",
@@ -102,6 +103,7 @@
     "Persistent volume claims",
     "Persistent volumes",
     "Person",
+    "Pipelines",
     "Playbook",
     "Playbooks",
     "Pod",
@@ -129,6 +131,7 @@
     "Send",
     "Send (Enter)",
     "Server",
+    "Service Mesh",
     "Signal",
     "Singapore (+65)",
     "Slug",

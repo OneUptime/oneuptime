@@ -72,7 +72,7 @@ O painel de detalhes tem duas abas:
 | Aba | O que mostra |
 | --- | --- |
 | **Detalhes** | O **Corpo do registro**, o **ID do Traço**, o **ID do span** e a **Sessão** quando ele os tem, e os **Atributos** dele, como lista ou como JSON. |
-| **Context** | O registro entre os vizinhos. **Nearby (service + time)** mostra as cinco linhas antes e depois dele do mesmo serviço, e **This trace** mostra até 100 registros do traço dele. |
+| **Contexto** | O registro entre os vizinhos. **Nearby (service + time)** mostra as cinco linhas antes e depois dele do mesmo serviço, e **This trace** mostra até 100 registros do traço dele. |
 
 - Clique no ID do traço para abrir a requisição inteira no [Explorador de traços](/docs/telemetry/traces-explorer).
 - Aponte para um atributo e clique no ícone de filtro para pesquisar esse valor, ou copie-o. Você pode copiar todos os atributos de uma vez como JSON.

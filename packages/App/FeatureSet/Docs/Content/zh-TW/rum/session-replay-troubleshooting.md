@@ -441,7 +441,7 @@ OpenTelemetry 瀏覽器 SDK 的 OTLP/HTTP 匯出工具傳送 `application/json` 
 
 ## 清單中的每個工作階段都顯示 Anonymous 或 Visitor
 
-除非你的頁面告訴錄製器，否則它不知道你的使用者是誰。一旦知道就呼叫 `OneUptimeReplay.identify(userRef, traits)` ，或者在指令碼載入之前把它放進 `window.OneUptimeReplayQueue` 佇列 — 請參閱 [識別你的使用者](/docs/telemetry/session-replay#識別你的使用者) 。在此之前，清單會把同一個瀏覽器的工作階段歸到 _Visitor a1b2c3_ 名下，這是錄製器為每個瀏覽器建立的隨機 [訪客 ID](/docs/telemetry/session-replay#匿名訪客) ，它跟隨的是瀏覽器，而不會跨裝置跟隨某個人； **Replay Users** 頁面與播放器的其他工作階段選單可以使用它， `user:` 搜尋則不行。
+除非你的頁面告訴錄製器，否則它不知道你的使用者是誰。一旦知道就呼叫 `OneUptimeReplay.identify(userRef, traits)` ，或者在指令碼載入之前把它放進 `window.OneUptimeReplayQueue` 佇列 — 請參閱 [識別你的使用者](/docs/telemetry/session-replay#識別你的使用者) 。在此之前，清單會把同一個瀏覽器的工作階段歸到 _Visitor a1b2c3_ 名下，這是錄製器為每個瀏覽器建立的隨機 [訪客 ID](/docs/telemetry/session-replay#匿名訪客) ，它跟隨的是瀏覽器，而不會跨裝置跟隨某個人； **重播使用者** 頁面與播放器的其他工作階段選單可以使用它， `user:` 搜尋則不行。
 
 這些行能告訴你的五件事：
 

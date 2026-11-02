@@ -38,7 +38,7 @@ Lo stato di ogni sito deriva da tutti i dispositivi del suo sottoalbero, giudica
 
 ## La gerarchia
 
-I siti formano un albero. Ogni sito ha un **Site Type** e, facoltativamente, un sito padre. I tipi di sito sono l'elenco del progetto, in **Rete → Impostazioni → Site Types**, e un nuovo progetto parte con Account Type, Region, Franchisee, Market e Unit, in quest'ordine dall'alto, più Data Center e Other. I tipi formano una propria gerarchia (**Parent Site Type**), che decide quali siti possono essere padre di un sito. Un tipo contrassegnato come **Is Unit Level** è il livello foglia del tuo parco, il singolo negozio o la singola filiale: i suoi siti contengono dispositivi, non altri siti.
+I siti formano un albero. Ogni sito ha un **Site Type** e, facoltativamente, un sito padre. I tipi di sito sono l'elenco del progetto, in **Rete → Impostazioni → Tipi di sito**, e un nuovo progetto parte con Account Type, Region, Franchisee, Market e Unit, in quest'ordine dall'alto, più Data Center e Other. I tipi formano una propria gerarchia (**Parent Site Type**), che decide quali siti possono essere padre di un sito. Un tipo contrassegnato come **Is Unit Level** è il livello foglia del tuo parco, il singolo negozio o la singola filiale: i suoi siti contengono dispositivi, non altri siti.
 
 Il tipo, il nome, la descrizione, il padre e la posizione di un sito si modificano in un unico punto: la scheda **Site Settings** nella pagina **Impostazioni** del sito. La panoramica del sito li mostra con un link **Modifica nelle impostazioni**, e l'elenco **Siti** aggiunge siti ma non li modifica.
 
@@ -63,7 +63,7 @@ Nel passaggio **Hierarchy**, scegli il **Parent Site** se il sito si trova sotto
 Nel passaggio **Monitoring Defaults**, scegli la [sonda e il profilo di credenziali predefiniti](#valori-predefiniti-di-monitoraggio) per i dispositivi aggiunti al sito, e fai clic su **Aggiungi: Sito**.
 :::
 
-Nella pagina **Child Sites** di un sito, **Aggiungi: Sito figlio** chiede solo il tipo e il nome, in una sola pagina con la posizione chiusa, e colloca il nuovo sito sotto quello.
+Nella pagina **Siti figli** di un sito, **Aggiungi: Sito figlio** chiede solo il tipo e il nome, in una sola pagina con la posizione chiusa, e colloca il nuovo sito sotto quello.
 
 ### Importare i siti da un file CSV
 

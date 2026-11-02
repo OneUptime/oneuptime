@@ -37,7 +37,7 @@ Skyressurser er ett av flere steder skyen din dukker opp:
 | Containere på ECS, Cloud Run, Container Apps, App Service, … | **App-plattformer → Alle miljøer** | Arbeidsbelastningenes egen telemetri, etter `cloud.platform`. Se [Skymiljøer](/docs/telemetry/cloud-environments) |
 | Enhver IaaS- eller PaaS-ressurs leverandøren overvåker | **Sky → Alle ressurser** | Leverandørens overvåkings-API, lest av en collector: denne siden |
 | Virtuelle maskiner med en OpenTelemetry Collector på | **Verter** | Vertens egne metrikker og logger. Se [OpenTelemetry-collector på verten](/docs/telemetry/host-otel-collector) |
-| Køer og emner som applikasjonene dine bruker | **Queues** | Spenn, og de samme skymetrikkene. Se [Køer](/docs/telemetry/queues) |
+| Køer og emner som applikasjonene dine bruker | **Køer** | Spenn, og de samme skymetrikkene. Se [Køer](/docs/telemetry/queues) |
 
 En ressurs kan vises på mer enn ett sted. En virtuell maskin med collectoren på er en **Vert**, og plattformmetrikkene dens (CPU-kreditter, disk og nettverk slik hypervisoren ser dem) gjør den også til en **Skyressurs**. En SQS-kø er en **Queue** og en **Skyressurs**. Hver visning viser det kilden dens vet.
 

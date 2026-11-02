@@ -398,7 +398,7 @@ Den gamle adresse til siden **AI Access** åbner **Runbooks → Runbook-agenter*
 
 ### Aktivér AI er den eneste AI-kontakt
 
-**Projektindstillinger → AI → AI Features** havde tre kontakter. **Enable Auto-Remediation** og **Enable AI Command Execution (for Runners)** er væk: automatisk afhjælpning og AI-kommandoer på Runners kører, når **Aktivér AI** er slået til. At slå **Aktivér AI** fra stopper dem sammen med alle andre AI-funktioner, herunder regler for automatisk afhjælpning, der starter en runbook uden AI. Et projekt, der allerede har **Aktivér AI** slået fra, holder derfor op med at køre de regler efter opgraderingen; slå **Aktivér AI** til for at beholde dem.
+**Projektindstillinger → AI → AI-funktioner** havde tre kontakter. **Enable Auto-Remediation** og **Enable AI Command Execution (for Runners)** er væk: automatisk afhjælpning og AI-kommandoer på Runners kører, når **Aktivér AI** er slået til. At slå **Aktivér AI** fra stopper dem sammen med alle andre AI-funktioner, herunder regler for automatisk afhjælpning, der starter en runbook uden AI. Et projekt, der allerede har **Aktivér AI** slået fra, holder derfor op med at køre de regler efter opgraderingen; slå **Aktivér AI** til for at beholde dem.
 
 De to kontakter holdt nogle rettelser tilbage. For at intet skal begynde at ændre dine systemer uden et menneske, når de forsvinder, lader serveropgraderingen de rettelser spørge først:
 
@@ -436,7 +436,7 @@ AI-siderne har også ændret sig i sidemenuerne for Hændelser og Advarsler. Hve
 
 ### AI Logs får et indeks til de daglige AI-grænser
 
-Et projekts daglige AI-grænser (**Projektindstillinger → AI → AI Features → Yderligere indstillinger**) og de daglige tokengrænser for hændelser og advarsler lægger dagens AI Logs sammen før hvert AI-kald. Indtil nu læste det alle AI Logs, som projektet nogensinde havde skrevet, og en selvhostet installation beholder dem alle. Opgraderingen tilføjer et indeks på AI Logs (`LlmLog`), på projektet og tidspunktet for hvert kald, så hver kontrol kun læser dagens. Siden med AI Logs viser også et projekts logs hurtigere.
+Et projekts daglige AI-grænser (**Projektindstillinger → AI → AI-funktioner → Yderligere indstillinger**) og de daglige tokengrænser for hændelser og advarsler lægger dagens AI Logs sammen før hvert AI-kald. Indtil nu læste det alle AI Logs, som projektet nogensinde havde skrevet, og en selvhostet installation beholder dem alle. Opgraderingen tilføjer et indeks på AI Logs (`LlmLog`), på projektet og tidspunktet for hvert kald, så hver kontrol kun læser dagens. Siden med AI Logs viser også et projekts logs hurtigere.
 
 Intet at gøre: indekset bygges online under opgraderingen (`CREATE INDEX CONCURRENTLY`), og AI-kald fortsætter med at virke, mens det bygges. På en stor AI Logs-tabel tager det et par minutter. Opbygningen venter højst to minutter bag en enkelt langvarig transaktion, som en backup, og kører højst femten. Hvis den ikke kan blive færdig, fuldføres opgraderingen alligevel, grænserne fortsætter med at virke uden indekset, og loggen siger det og hvordan du bygger det. Kør dette på OneUptime-databasen, uden for en transaktion, når som helst:
 

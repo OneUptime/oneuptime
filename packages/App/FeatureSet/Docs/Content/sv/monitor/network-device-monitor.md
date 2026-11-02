@@ -62,14 +62,14 @@ Under den säger en rad om något skapar en incident när en enhet går ner: hur
 
 Innan något har lagts till leder översikten dig i stället genom tre steg. **Placera en sond i ditt nätverk**: en sond pingar och går igenom dina enheter inifrån deras nätverk, så **Lägg till en sond** namnger en, visar kommandot som startar den och följer när den ansluter. **Lägg till dina enheter**: **Upptäck enheter** skannar ett adressintervall så att du kan välja vad du vill lägga till, bäst för ett helt nätverk eller en ny plats, och **Lägg till en enda enhet** lägger till en via dess IP-adress eller värdnamn. **Få veta när en enhet går ner**: **Konfigurera larm** öppnar [larmpolicyerna](#larmpolicyer), där den rekommenderade policyn är ett klick bort. På OneUptime Cloud kräver det Growth-abonnemanget att [lägga till en sond](/docs/probe/custom-probe): under det säger steget det och länkar i stället till dina faktureringsinställningar, och OneUptimes egna sonder på internet kan fortfarande kontrollera enheter med en offentlig adress.
 
-Nätverk-menyn håller det du öppnar varje dag synligt: **Översikt**, **Enheter**, **Platser**, **Karta**, **Traffic**, **Händelser** och **Discovery**. Resten är hopfällt i avsnitt, och ett avsnitt fäller ut sig självt på var och en av sina sidor:
+Nätverk-menyn håller det du öppnar varje dag synligt: **Översikt**, **Enheter**, **Platser**, **Karta**, **Trafik**, **Händelser** och **Identifiering**. Resten är hopfällt i avsnitt, och ett avsnitt fäller ut sig självt på var och en av sina sidor:
 
 | Avsnitt | Sidor |
 | --- | --- |
-| **Topologi** | **Device Topology**, **Slutpunkter**, **Latency Matrix**, **Site Links**, **Device Links** |
-| **Regler** | **Auto Import Rules**, **Site Assignment Rules**, **Ägarregler**, **Etikettregler**, **Link Rules** |
-| **Inställningar** | **Alert Policies**, **SNMP-autentiseringsuppgifter**, **Device Roles**, **Site Types**, **Adressnamn**, **OID Collection Templates** |
-| **Avancerad** | **Archived Devices** |
+| **Topologi** | **Enhetstopologi**, **Slutpunkter**, **Latensmatris**, **Platslänkar**, **Enhetslänkar** |
+| **Regler** | **Regler för automatisk import**, **Regler för platstilldelning**, **Ägarregler**, **Etikettregler**, **Länkregler** |
+| **Inställningar** | **Larmpolicyer**, **SNMP-autentiseringsuppgifter**, **Enhetsroller**, **Platstyper**, **Adressnamn**, **Mallar för OID-insamling** |
+| **Avancerad** | **Arkiverade enheter** |
 
 ## Lägg till en nätverksenhet
 
@@ -144,17 +144,17 @@ En discovery-skanning av en kunds nätverk tar in dussintals enheter som hör ti
 
 | Åtgärd | Vad den gör |
 | --- | --- |
-| **Ange plats** / **Rensa plats** | Flyttar varje markerad enhet till den plats du väljer, där den räknas in i platsens hälsa; en enhet utan egen sond tar platsens standardsond. **Rensa plats** tar bort dem från deras platser. En enhet som en platstilldelningsregel matchar går tillbaka till regelns plats vid nästa avsökning, så för enheter som discovery fortsätter att hitta lägger du hellre till en regel under **Nätverk → Regler → Site Assignment Rules**; dialogrutan **Ange plats** länkar dit. |
-| **Ange enhetsroll** / **Rensa enhetsroll** | Ger varje markerad enhet samma roll, som de tjugo switchar som alla är "Access Switch". Rollerna är projektets egna, under **Nätverk → Inställningar → Device Roles**, som dialogrutan länkar till. **Rensa enhetsroll** härleder varje enhets roll från dess SNMP-identitet igen. |
+| **Ange plats** / **Rensa plats** | Flyttar varje markerad enhet till den plats du väljer, där den räknas in i platsens hälsa; en enhet utan egen sond tar platsens standardsond. **Rensa plats** tar bort dem från deras platser. En enhet som en platstilldelningsregel matchar går tillbaka till regelns plats vid nästa avsökning, så för enheter som discovery fortsätter att hitta lägger du hellre till en regel under **Nätverk → Regler → Regler för platstilldelning**; dialogrutan **Ange plats** länkar dit. |
+| **Ange enhetsroll** / **Rensa enhetsroll** | Ger varje markerad enhet samma roll, som de tjugo switchar som alla är "Access Switch". Rollerna är projektets egna, under **Nätverk → Inställningar → Enhetsroller**, som dialogrutan länkar till. **Rensa enhetsroll** härleder varje enhets roll från dess SNMP-identitet igen. |
 | **Tillämpa tillverkarmall** | Lägger till en [tillverkarmalls](#tillverkarnas-hälsomallar) hälso-OID:er och SNMP-tabeller på varje markerad enhet. **Matcha varje enhets tillverkare**, dialogrutans första val, väljer varje enhets egen mall utifrån vad dess SNMP-walk rapporterar, så att ett blandat urval får rätt mall överallt; eller välj en mall för alla. |
 
 Varje åtgärd är en dialogruta och en sparning för hela urvalet, och varje enhet går igenom samma kontroller som en redigering på dess egen sida Inställningar: behörigheter, din rolls etikett- och ägaromfattning och gränserna för vad en enhet får samla in.
 
-**Tillämpa tillverkarmall** visar vad den kommer att göra innan den gör något: hur många enheter som får vilken mall, och hur många den lämnar orörda och varför. Den lägger till det som varje enhet redan samlar in och tar inte bort något, och en enhet som redan har allt i mallen skrivs inte om. Den lämnar orörd en enhet med bunden monitor (inget avsöker den), en enhet som är kopplad till en [OID Collection Template](#oid-collection-templates) (mallen bestämmer vad den samlar in, så lägg till tillverkarens OID:er där) och, vid matchning, en enhet som ännu inte har walkats via SNMP eller vars tillverkare saknar mall.
+**Tillämpa tillverkarmall** visar vad den kommer att göra innan den gör något: hur många enheter som får vilken mall, och hur många den lämnar orörda och varför. Den lägger till det som varje enhet redan samlar in och tar inte bort något, och en enhet som redan har allt i mallen skrivs inte om. Den lämnar orörd en enhet med bunden monitor (inget avsöker den), en enhet som är kopplad till en [OID Collection Template](#mallar-för-oid-insamling) (mallen bestämmer vad den samlar in, så lägg till tillverkarens OID:er där) och, vid matchning, en enhet som ännu inte har walkats via SNMP eller vars tillverkare saknar mall.
 
 När en åtgärd är klar listar den hur många enheter som ändrades, vilka som misslyckades och varför — en enhet som din roll inte får redigera, en lista över sin gräns — och vilka den inte ändrade och varför: en enhet som redan fanns på den platsen eller hade den rollen, eller en som tillverkarmallen lämnar orörd.
 
-De övriga massåtgärderna beskrivs där de hör hemma: **Set OID Collection Template** under [OID Collection Templates](#oid-collection-templates), **Set SNMP Credential Profile**, **Switch to Probe Polling** och **Create Ping Monitors** under [I bulk](#i-bulk), och **Shorten Names to Hostname** under [Så namnges upptäckta enheter](#så-namnges-upptäckta-enheter).
+De övriga massåtgärderna beskrivs där de hör hemma: **Set OID Collection Template** under [OID Collection Templates](#mallar-för-oid-insamling), **Set SNMP Credential Profile**, **Switch to Probe Polling** och **Create Ping Monitors** under [I bulk](#i-bulk), och **Shorten Names to Hostname** under [Så namnges upptäckta enheter](#så-namnges-upptäckta-enheter).
 
 ## Vad en avsökning faktiskt gör
 
@@ -326,9 +326,9 @@ Enheter med **Auto-Apply Vendor Health Template** påslaget får mallens OID:er 
 
 Att tillämpa en tillverkarmall är en engångskopia, så inget sprids när mallen ändras. Använd hellre en **OID Collection Template** för allt utöver en enskild enhet; tillverkarmallarna erbjuds som utgångspunkt när du skapar en.
 
-### OID Collection Templates
+### Mallar för OID-insamling
 
-En **OID Collection Template** (**Nätverk → Inställningar → OID Collection Templates**) är en namngiven OID-lista, oftast namngiven efter en enhetstyp som "Cisco Catalyst 9300", som hur många enheter som helst kopplas till. Kopplingen är levande, inte en kopia: en enhets OID-lista sätts ihop vid varje avsökning, så att redigera en mall ändrar vad varje kopplad enhet samlar in vid sin nästa avsökning, utan något synkroniseringssteg.
+En **OID Collection Template** (**Nätverk → Inställningar → Mallar för OID-insamling**) är en namngiven OID-lista, oftast namngiven efter en enhetstyp som "Cisco Catalyst 9300", som hur många enheter som helst kopplas till. Kopplingen är levande, inte en kopia: en enhets OID-lista sätts ihop vid varje avsökning, så att redigera en mall ändrar vad varje kopplad enhet samlar in vid sin nästa avsökning, utan något synkroniseringssteg.
 
 Innan du bygger en, kontrollera att du behöver den. Bitar in och ut per port, driftstatus, utnyttjande och fel per sekund samlas in för varje port vid varje avsökning utan några OID:er alls (se [Walk av gränssnitt](#walk-av-gränssnitt)), och de kan redan ge larm per port. Mallar är till för det som inte är per port: CPU, minne, temperatur, fläktar, nätaggregat, BGP-peers.
 
@@ -414,7 +414,7 @@ Tal läses som tal, och text som börjar med ett tal läses som det talet (`"36"
 
 Vissa kolumner i tillverkarmallar **justerar** också talet de läser, för MIB:ar som håller ett värde i en egen enhet: ArubaOS rapporterar sändeffekten fördubblad (läses × 0.5), Aruba Instant brusgolvet utan tecken (× −1), Aerohive brusgolvet plus 256 (− 256) och Extremes kontroller kanalbredden i steg om 20 MHz (× 20). Det justerade talet är det som visas, ritas i diagram och jämförs, så **Noise Floor Större än -80** betyder samma sak hos varje tillverkare, och tabellredigeraren visar beräkningen under kolumnen.
 
-Tabeller kommer från en [OID Collection Template](#oid-collection-templates), delad av varje kopplad enhet (upp till 10 tabeller), eller från enheten själv under **Device-Specific SNMP Tables** (upp till 10 till). De slås ihop efter nyckel vid varje avsökning, mallen först, och en enhetstabell med samma nyckel ersätter mallens. Båda redigerarna erbjuder **Add a Vendor's Tables**.
+Tabeller kommer från en [OID Collection Template](#mallar-för-oid-insamling), delad av varje kopplad enhet (upp till 10 tabeller), eller från enheten själv under **Device-Specific SNMP Tables** (upp till 10 till). De slås ihop efter nyckel vid varje avsökning, mallen först, och en enhetstabell med samma nyckel ersätter mallens. Båda redigerarna erbjuder **Add a Vendor's Tables**.
 
 Sonden walkar varje kolumn som ett underträd, inom en budget på 30 sekunder som alla tabeller på enheten delar. En tabell som inte kan walkas säger varför och får aldrig avsökningen att misslyckas: enhetens sida **SNMP-tabeller** behåller sina senaste bra rader och säger att den senaste walken misslyckades, medan kriterier bara bedömer det som den här walken producerade, så en timeout läses aldrig som en tom tabell. Varje numerisk cell registreras som mätvärdet `oneuptime.monitor.snmp.table.value`, med attributen `snmpTableKey`, `snmpTableName`, `snmpTableColumn`, `snmpTableColumnOid`, `snmpTableRow` och `snmpTableRowIndex`, så en instrumentpanel kan visa varje tunnels status eller varje radios sändeffekt i ett diagram, och en mätvärdesmonitor kan gruppera efter `snmpTableRow`.
 
@@ -546,8 +546,8 @@ flowchart TB
 ```
 
 :::steps
-### Öppna Discovery
-Gå till **Nätverk → Discovery** och klicka på **Starta skanning**. **Discover Devices** på Nätverk-**Översikt** öppnar samma formulär.
+### Öppna Identifiering
+Gå till **Nätverk → Identifiering** och klicka på **Starta skanning**. **Discover Devices** på Nätverk-**Översikt** öppnar samma formulär.
 
 ### Ange vad som ska skannas
 Skriv intervallet i **Skanningsmål**, kontrollera **Sond** och välj **Skanningsmetod**: **ICMP (ping)**, som en ny skanning börjar på, eller **SNMP**.
@@ -681,7 +681,7 @@ Ett namn blir bara bättre: en enhet behåller sitt namn när dess DNS-post änd
 
 ### Importera automatiskt med regler för automatisk import
 
-Att granska varje skanning för hand skalar inte förbi de första subnäten. **Nätverk → Regler → Auto Import Rules** är där du skriver ner importen en gång: en regel anger vilka upptäckta värdar den gör anspråk på (ett IP-intervall och valfria mönster för systemnamn, beskrivning och `sysObjectID`) och, valfritt, vilken monitormall och vilken [OID Collection Template](#oid-collection-templates) de enheter den importerar får. En regel som är markerad som undantag gör inte anspråk på något och lägger in veto mot de andra: så skärs skrivare och telefoner ut ur en bred subnätsregel.
+Att granska varje skanning för hand skalar inte förbi de första subnäten. **Nätverk → Regler → Regler för automatisk import** är där du skriver ner importen en gång: en regel anger vilka upptäckta värdar den gör anspråk på (ett IP-intervall och valfria mönster för systemnamn, beskrivning och `sysObjectID`) och, valfritt, vilken monitormall och vilken [OID Collection Template](#mallar-för-oid-insamling) de enheter den importerar får. En regel som är markerad som undantag gör inte anspråk på något och lägger in veto mot de andra: så skärs skrivare och telefoner ut ur en bred subnätsregel.
 
 I en regel bestämmer **Kontrollera var** hur ofta skanningens sond avsöker varje enhet som regeln importerar, precis som **Kontrollera var** när du importerar från **Granska resultat**; tomt är det var 5:e minut. En regel med **Include Ping-Only Hosts** påslaget importerar också värdar som bara svarade på ping, bland dem varje värd som en [ICMP-skanning](#icmp-skanningar) hittar, och ger även dem sin monitormall: sonden pingar dem, så mallens kontroller av om en enhet är uppe och av de traps den skickar fungerar för dem direkt, och dess kontroller som läser en SNMP-walk så snart enheten har autentiseringsuppgifter.
 
@@ -722,7 +722,7 @@ Avsökning ger dig status, inventarium och diagram. Incidenter, larm och utkalln
 
 ### Larmpolicyer
 
-**Nätverk → Inställningar → Alert Policies** är där en flottas larm skrivs ner en gång. En policy anger vilka enheter (en omfattning av platser, enhetsroller och etiketter) och vad de varnar för (en monitormall för nätverksenheter), så "varje lagerswitch skapar en incident när den blir onåbar" är en rad i stället för tvåhundra monitorer.
+**Nätverk → Inställningar → Larmpolicyer** är där en flottas larm skrivs ner en gång. En policy anger vilka enheter (en omfattning av platser, enhetsroller och etiketter) och vad de varnar för (en monitormall för nätverksenheter), så "varje lagerswitch skapar en incident när den blir onåbar" är en rad i stället för tvåhundra monitorer.
 
 ```mermaid title="Vad en larmpolicy underhåller"
 flowchart TB
@@ -950,7 +950,7 @@ blir "Gi0/1 on core-switch-01 is down". [Mallar för incidenter och larm](/docs/
 
 ## Nätverkstopologi
 
-**Nätverk → Topologi → Device Topology** är en levande karta över ditt nätverk, byggd från de LLDP-grannar som gränssnittswalks samlar in, med CDP tillagt i Cisco-miljöer. Hanterade enheter är fyllda och ohanterade LLDP-peers är ihåliga; en nods färg är dess enhets status, och ett klick på en hanterad enhet öppnar den.
+**Nätverk → Topologi → Enhetstopologi** är en levande karta över ditt nätverk, byggd från de LLDP-grannar som gränssnittswalks samlar in, med CDP tillagt i Cisco-miljöer. Hanterade enheter är fyllda och ohanterade LLDP-peers är ihåliga; en nods färg är dess enhets status, och ett klick på en hanterad enhet öppnar den.
 
 För att kartan ska fyllas i:
 
@@ -963,7 +963,7 @@ Klicka på en ohanterad peer så registrerar **Add to Monitoring** den som en so
 
 ### Exportera kartan som PDF
 
-**Exportera PDF**, överst på kartan, laddar ner kartan som du tittar på som en PDF som du kan bifoga en bedömning, en ändringsbegäran eller en incidentgenomgång, eller läsa offline. Varje vy av enhetskartan har den: **Device Topology**, en plats på **Karta** och fliken **Nätverk** under **Topologi**.
+**Exportera PDF**, överst på kartan, laddar ner kartan som du tittar på som en PDF som du kan bifoga en bedömning, en ändringsbegäran eller en incidentgenomgång, eller läsa offline. Varje vy av enhetskartan har den: **Enhetstopologi**, en plats på **Karta** och fliken **Nätverk** under **Topologi**.
 
 PDF:en innehåller:
 
@@ -999,7 +999,7 @@ Switchen som enheten hänger på behöver också **Collect Connected Endpoints**
 
 En [Meraki-anslutning](/docs/monitor/network-traffic#cisco-meraki-utan-netflow) gör allt detta utan att något behöver slås på. Merakis klientlista visar vilken switch och port varje klient är på, så en enhet placeras så snart den switchen är en nätverksenhet här, på samma plats. Listan ger också enheten dess MAC-adress, och det Meraki kallar en klient visas i kolumnen **Värdnamn** under **Slutpunkter**. Den läses varannan timme, så en ny enhet kan ta så lång tid på sig att dyka upp. Så länge Meraki rapporterar en klient går dess port före en genomgången vidarebefordringstabell, eftersom Meraki kan skilja en accessport från en upplänk. En Wi-Fi-klient placeras på sin accesspunkt bara när den är en enhet här: telefonerna på ett gästnätverk hålls utanför kartan.
 
-Enhetens översikt har ett kort **Ansluten till** som namnger switchen, porten och VLAN:et. En switch, router eller brandvägg som rapporterar sina grannar via LLDP eller CDP visar dem där i stället: sin egen port, grannen (en länk när den är en enhet här) och porten i andra änden, med **Öppna kartan** bredvid. På kartan visar enhetens panel samma sak under **Ansluten till**, och länkens panel säger att den lärdes in från switchens vidarebefordringstabell. Parent-Child-vyn ritar enheten under dess switch. En länk som du har ritat för hand under **Device Links** för samma par slås ihop med den inlärda i stället för att dubbleras: den inlärda porten ersätter en felskriven, och en förälder som du har satt på den handritade länken behålls.
+Enhetens översikt har ett kort **Ansluten till** som namnger switchen, porten och VLAN:et. En switch, router eller brandvägg som rapporterar sina grannar via LLDP eller CDP visar dem där i stället: sin egen port, grannen (en länk när den är en enhet här) och porten i andra änden, med **Öppna kartan** bredvid. På kartan visar enhetens panel samma sak under **Ansluten till**, och länkens panel säger att den lärdes in från switchens vidarebefordringstabell. Parent-Child-vyn ritar enheten under dess switch. En länk som du har ritat för hand under **Enhetslänkar** för samma par slås ihop med den inlärda i stället för att dubbleras: den inlärda porten ersätter en felskriven, och en förälder som du har satt på den handritade länken behålls.
 
 ![Parent-Child-topologivy som ritar en kassa med bara ping under dess switch via en inlärd länk](/docs/static/images/NetworkTopologyLearnedLink.png)
 

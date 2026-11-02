@@ -1161,24 +1161,21 @@ describe("the route table over HTTP", () => {
       }
     });
 
-    test("serves the logos the guides show, and nothing else from their folder", async () => {
-      for (const name of ["react", "express", "nextjs", "koa"]) {
-        const logo: Answer = await home.request(
-          "GET",
-          `/img/provider-logos/${name}.svg`,
-        );
-
-        expect([name, logo.status]).toEqual([name, 200]);
-        expect(logo.contentType).toContain("image/svg+xml");
-        expect(logo.body).toContain("<svg");
-      }
-
+    /*
+     * The guides' marks are written into their pages as one-colour inline
+     * SVG (Utils/ProviderLogoMarkup): there is no logo file to serve, so the
+     * address that served the colour images answers as any unknown one.
+     */
+    test("serves no logo files: the guides draw their marks in the page", async () => {
       for (const url of [
+        "/img/provider-logos/react.svg",
+        "/img/provider-logos/express.svg",
         "/img/provider-logos/no-such-logo.svg",
         "/img/provider-logos/..%2F..%2Fpackage.json.svg",
       ]) {
         const answer: Answer = await home.request("GET", url);
         expect([url, answer.status]).toEqual([url, 404]);
+        expect(answer.contentType || "").not.toContain("image/svg+xml");
       }
     });
   });

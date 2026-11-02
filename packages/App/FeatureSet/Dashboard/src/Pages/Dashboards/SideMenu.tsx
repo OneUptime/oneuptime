@@ -5,17 +5,12 @@ import IconProp from "Common/Types/Icon/IconProp";
 import SideMenu, {
   SideMenuSectionProps,
 } from "Common/UI/Components/SideMenu/SideMenu";
-import Navigation from "Common/UI/Utils/Navigation";
 import React, { ReactElement } from "react";
 import Dashboard from "Common/Models/DatabaseModels/Dashboard";
 import { addDeveloperSideMenuSection } from "../../Components/DeveloperDocs/DeveloperDocsMenuSection";
 import { DeveloperDocsScope } from "../../Components/DeveloperDocs/DeveloperDocsPages";
 
 const DashboardsSideMenu: () => ReactElement = (): ReactElement => {
-  const playlistViewRoute: Route = RouteUtil.populateRouteParams(
-    RouteMap[PageMap.DASHBOARD_PLAYLIST_VIEW] as Route,
-  );
-
   const sections: SideMenuSectionProps[] = [
     {
       title: "Dashboards",
@@ -40,9 +35,6 @@ const DashboardsSideMenu: () => ReactElement = (): ReactElement => {
               RouteMap[PageMap.DASHBOARD_PLAYLISTS] as Route,
             ),
           },
-          activeRoute: Navigation.isOnThisPage(playlistViewRoute)
-            ? playlistViewRoute
-            : undefined,
           icon: IconProp.QueueList,
         },
       ],

@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom";
 import {
   afterEach,
+  beforeAll,
   beforeEach,
   describe,
   expect,
@@ -31,6 +32,10 @@ import API from "../../../UI/Utils/API/API";
 import TelemetryIngestionKey from "../../../Models/DatabaseModels/TelemetryIngestionKey";
 import TelemetryIngestionKeyType from "../../../Types/Telemetry/TelemetryIngestionKeyType";
 import ObjectID from "../../../Types/ObjectID";
+import {
+  getDrawnMark,
+  preloadProviderLogoMarks,
+} from "../../Helpers/ProviderLogoMarks";
 
 /*
  * The telemetry ingestion guides (logs, metrics, traces, exceptions,
@@ -89,6 +94,10 @@ const openTopic: (title: string) => void = (title: string): void => {
 };
 
 describe("TelemetryDocumentation", () => {
+  beforeAll(async (): Promise<void> => {
+    await preloadProviderLogoMarks();
+  });
+
   beforeEach(() => {
     jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
     jest.spyOn(ModelAPI, "getList").mockResolvedValue({
@@ -229,13 +238,20 @@ describe("TelemetryDocumentation", () => {
       // First on the line, where the other titles have their logos.
       expect(sdkTitle.firstElementChild).toContainElement(icon as HTMLElement);
 
-      // The logos beside the other two titles are 20px, as the icon is.
+      // The marks beside the other two titles fill 20px, as the icon does.
       for (const label of ["Grafana Alloy (eBPF)", "Kubernetes agent (eBPF)"]) {
-        const mark: Element | null = screen
+        const logo: HTMLElement = screen
           .getByText(label, { selector: "div" })
-          .querySelector("[data-provider-logo] > span");
+          .querySelector("[data-provider-logo]") as HTMLElement;
+        const mark: SVGElement | null = getDrawnMark(logo);
 
-        expect(mark).toHaveClass("h-5", "w-5");
+        expect(logo.style.minWidth).toBe("20px");
+        expect(
+          Math.max(
+            Number(mark?.getAttribute("width")),
+            Number(mark?.getAttribute("height")),
+          ),
+        ).toBe(20);
       }
 
       fireEvent.click(sdkTitle);

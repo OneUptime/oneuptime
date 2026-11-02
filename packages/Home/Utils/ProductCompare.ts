@@ -1,3 +1,4 @@
+import ProviderLogo from "Common/Types/ProviderLogo/ProviderLogo";
 import Dictionary from "Common/Types/Dictionary";
 
 export interface FAQ {
@@ -46,7 +47,12 @@ export interface UseCaseComparison {
 
 export interface Product {
   productName: string;
-  iconUrl: string;
+  /*
+   * The tool's official mark where the logo registry has one (drawn inline in
+   * the page's grey, Utils/ProviderLogoMarkup), else its initials on the same
+   * tile: never an image of the tool's logo, never in its colours.
+   */
+  logo?: ProviderLogo | undefined;
   price: string;
   oneuptimePrice: string;
   description: string;
@@ -71,7 +77,7 @@ export interface Product {
 const products: Dictionary<Product> = {
   pagerduty: {
     productName: "PagerDuty",
-    iconUrl: "/img/pagerduty.jpeg",
+    logo: ProviderLogo.PagerDuty,
     price: "",
     oneuptimePrice: "",
     tagline:
@@ -550,7 +556,7 @@ const products: Dictionary<Product> = {
   },
   "statuspage.io": {
     productName: "Atlassian Statuspage",
-    iconUrl: "/img/statuspagelogo.png",
+    logo: ProviderLogo.AtlassianStatuspage,
     price: "",
     oneuptimePrice: "",
     tagline: "Complete reliability platform vs dedicated status page tool",
@@ -1028,7 +1034,7 @@ const products: Dictionary<Product> = {
   },
   pingdom: {
     productName: "SolarWinds Pingdom",
-    iconUrl: "/img/pingdom.svg",
+    logo: ProviderLogo.Pingdom,
     price: "",
     oneuptimePrice: "",
     tagline: "Complete observability platform vs monitoring-only tool",
@@ -1534,7 +1540,7 @@ const products: Dictionary<Product> = {
   },
   datadog: {
     productName: "Datadog",
-    iconUrl: "/img/datadog.svg",
+    logo: ProviderLogo.Datadog,
     price: "",
     oneuptimePrice: "",
     tagline:
@@ -1997,7 +2003,7 @@ const products: Dictionary<Product> = {
   },
   newrelic: {
     productName: "New Relic",
-    iconUrl: "/img/newrelic.svg",
+    logo: ProviderLogo.NewRelic,
     price: "",
     oneuptimePrice: "",
     tagline:
@@ -2441,7 +2447,7 @@ const products: Dictionary<Product> = {
   },
   "better-uptime": {
     productName: "Better Stack (Better Uptime)",
-    iconUrl: "/img/betterstack.svg",
+    logo: ProviderLogo.BetterStack,
     price: "",
     oneuptimePrice: "",
     tagline:
@@ -2954,7 +2960,7 @@ const products: Dictionary<Product> = {
   },
   "uptime-robot": {
     productName: "Uptime Robot",
-    iconUrl: "/img/uptimerobot.svg",
+    logo: ProviderLogo.UptimeRobot,
     price: "",
     oneuptimePrice: "",
     tagline: "Complete observability platform vs simple monitoring tool",
@@ -3401,7 +3407,6 @@ const products: Dictionary<Product> = {
   },
   checkly: {
     productName: "Checkly",
-    iconUrl: "/img/checkly.svg",
     price: "",
     oneuptimePrice: "",
     tagline: "Complete observability vs developer-focused synthetic monitoring",
@@ -3848,7 +3853,7 @@ const products: Dictionary<Product> = {
   },
   "incident.io": {
     productName: "Incident.io",
-    iconUrl: "/img/incident-io.svg",
+    logo: ProviderLogo.IncidentIo,
     price: "",
     oneuptimePrice: "",
     tagline:
@@ -4332,7 +4337,6 @@ const products: Dictionary<Product> = {
   },
   signoz: {
     productName: "SigNoz",
-    iconUrl: "/img/signoz.svg",
     price: "",
     oneuptimePrice: "",
     tagline: "Complete reliability platform vs open-source APM",
@@ -4725,7 +4729,7 @@ const products: Dictionary<Product> = {
   },
   opsgenie: {
     productName: "Opsgenie",
-    iconUrl: "/img/opsgenie.svg",
+    logo: ProviderLogo.Opsgenie,
     price: "",
     oneuptimePrice: "",
     tagline: "One unified reliability platform vs a sunsetting alert router",
@@ -5233,7 +5237,6 @@ const products: Dictionary<Product> = {
   },
   squadcast: {
     productName: "Squadcast",
-    iconUrl: "/img/squadcast.svg",
     price: "",
     oneuptimePrice: "",
     tagline: "One unified reliability platform vs an on-call-only tool",
@@ -5730,7 +5733,6 @@ const products: Dictionary<Product> = {
   },
   firehydrant: {
     productName: "FireHydrant",
-    iconUrl: "/img/firehydrant.svg",
     price: "",
     oneuptimePrice: "",
     tagline:
@@ -6233,7 +6235,6 @@ const products: Dictionary<Product> = {
   },
   rootly: {
     productName: "Rootly",
-    iconUrl: "/img/rootly.svg",
     price: "",
     oneuptimePrice: "",
     tagline: "One unified reliability platform vs a Slack-native incident tool",
@@ -6769,7 +6770,6 @@ const products: Dictionary<Product> = {
   },
   xmatters: {
     productName: "xMatters",
-    iconUrl: "/img/xmatters.svg",
     price: "",
     oneuptimePrice: "",
     tagline:
@@ -7284,7 +7284,7 @@ const products: Dictionary<Product> = {
   },
   grafana: {
     productName: "Grafana Cloud",
-    iconUrl: "/img/grafana.svg",
+    logo: ProviderLogo.Grafana,
     price: "",
     oneuptimePrice: "",
     tagline: "One turnkey platform vs an assembly-heavy, usage-priced stack",
@@ -7795,7 +7795,7 @@ const products: Dictionary<Product> = {
   },
   dynatrace: {
     productName: "Dynatrace",
-    iconUrl: "/img/dynatrace.svg",
+    logo: ProviderLogo.Dynatrace,
     price: "",
     oneuptimePrice: "",
     tagline:
@@ -8330,7 +8330,7 @@ const products: Dictionary<Product> = {
   },
   splunk: {
     productName: "Splunk",
-    iconUrl: "/img/splunk.svg",
+    logo: ProviderLogo.Splunk,
     price: "",
     oneuptimePrice: "",
     tagline:
@@ -8853,7 +8853,7 @@ const products: Dictionary<Product> = {
   },
   sentry: {
     productName: "Sentry",
-    iconUrl: "/img/sentry.svg",
+    logo: ProviderLogo.Sentry,
     price: "",
     oneuptimePrice: "",
     tagline: "One unified reliability platform vs a code-only error tracker",
@@ -9381,7 +9381,6 @@ const products: Dictionary<Product> = {
   },
   appdynamics: {
     productName: "AppDynamics",
-    iconUrl: "/img/appdynamics.svg",
     price: "",
     oneuptimePrice: "",
     tagline:
@@ -9888,7 +9887,7 @@ const products: Dictionary<Product> = {
   },
   elastic: {
     productName: "Elastic Observability",
-    iconUrl: "/img/elastic-stack.svg",
+    logo: ProviderLogo.Elastic,
     price: "",
     oneuptimePrice: "",
     tagline:
@@ -10384,7 +10383,6 @@ const products: Dictionary<Product> = {
   },
   site24x7: {
     productName: "Site24x7",
-    iconUrl: "/img/site24x7.svg",
     price: "",
     oneuptimePrice: "",
     tagline:
@@ -10898,7 +10896,6 @@ const products: Dictionary<Product> = {
   },
   cronitor: {
     productName: "Cronitor",
-    iconUrl: "/img/cronitor.svg",
     price: "",
     oneuptimePrice: "",
     tagline:
@@ -11404,7 +11401,6 @@ const products: Dictionary<Product> = {
   },
   "healthchecks-io": {
     productName: "Healthchecks.io",
-    iconUrl: "/img/healthchecks.svg",
     price: "",
     oneuptimePrice: "",
     tagline:
@@ -11923,7 +11919,7 @@ const products: Dictionary<Product> = {
   },
   instatus: {
     productName: "Instatus",
-    iconUrl: "/img/instatus.svg",
+    logo: ProviderLogo.Instatus,
     price: "",
     oneuptimePrice: "",
     tagline:
@@ -12459,7 +12455,6 @@ const products: Dictionary<Product> = {
   },
   freshping: {
     productName: "Freshping",
-    iconUrl: "/img/freshping.svg",
     price: "",
     oneuptimePrice: "",
     tagline: "One unified reliability platform vs a discontinued uptime tool",
@@ -12955,7 +12950,7 @@ const products: Dictionary<Product> = {
   },
   prometheus: {
     productName: "Prometheus",
-    iconUrl: "/img/prometheus.svg",
+    logo: ProviderLogo.Prometheus,
     price: "",
     oneuptimePrice: "",
     tagline: "One integrated open-source platform vs a DIY metrics stack",
@@ -13454,7 +13449,6 @@ const products: Dictionary<Product> = {
   },
   zabbix: {
     productName: "Zabbix",
-    iconUrl: "/img/zabbix.svg",
     price: "",
     oneuptimePrice: "",
     tagline:
@@ -13983,7 +13977,6 @@ const products: Dictionary<Product> = {
   },
   nagios: {
     productName: "Nagios",
-    iconUrl: "/img/nagios.svg",
     price: "",
     oneuptimePrice: "",
     tagline:

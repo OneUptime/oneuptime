@@ -73,7 +73,7 @@ Imposta i valori nella pagina **Campi personalizzati** di un elemento. Qualsiasi
 
 ## Filtrare l'elenco
 
-Ogni campo personalizzato diventa un filtro sopra l'elenco **All Items**, e il filtro offre i confronti adatti al suo tipo:
+Ogni campo personalizzato diventa un filtro sopra l'elenco **Tutti gli elementi**, e il filtro offre i confronti adatti al suo tipo:
 
 | Tipo di campo | Confronti |
 | --- | --- |

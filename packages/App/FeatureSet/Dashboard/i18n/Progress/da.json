@@ -1,7 +1,7 @@
 {
   "baseline": {
     "keys": 40054,
-    "untranslated": 12746
+    "untranslated": 12697
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -45,6 +45,7 @@
     "Controller",
     "CrowdStrike",
     "DE",
+    "Dashboards",
     "Data",
     "Database",
     "Datacenter",
@@ -87,6 +88,7 @@
     "Information",
     "Interface",
     "Interfaces",
+    "IoT",
     "Israel (+972)",
     "Japan (+81)",
     "Job",
@@ -94,6 +96,7 @@
     "Link",
     "Links",
     "Live",
+    "Log",
     "Log4Shell",
     "MCP",
     "MITRE ATT&CK",
@@ -132,6 +135,7 @@
     "Peer",
     "Persistent volume claims",
     "Person",
+    "Pipelines",
     "Plan",
     "Platform",
     "Playbook",
@@ -145,6 +149,7 @@
     "Port",
     "Portugal (+351)",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
+    "Postmortem",
     "Problem",
     "Profiler",
     "Prompt",
@@ -170,6 +175,7 @@
     "Send",
     "Send (Enter)",
     "Server",
+    "Service Mesh",
     "Session",
     "Signal",
     "Singapore (+65)",

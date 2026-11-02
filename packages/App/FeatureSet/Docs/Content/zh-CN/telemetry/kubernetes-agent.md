@@ -591,7 +591,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 ### 启用成本可观测性
 
-在集群的 **Costs** 页面上查看每个命名空间、工作负载和 Pod 的成本，以及空闲容量和每个 request 的使用比例：
+在集群的 **成本** 页面上查看每个命名空间、工作负载和 Pod 的成本，以及空闲容量和每个 request 的使用比例：
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
