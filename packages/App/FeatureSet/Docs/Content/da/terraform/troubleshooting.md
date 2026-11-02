@@ -30,6 +30,7 @@ Slå den meddelelse, Terraform skrev, eller det, du så ske, op i tabellen neden
 | `has been renamed to` | Omdøb ressourcetypen med en `moved`-blok: se [En omdøbt ressourcetype](#en-omdøbt-ressourcetype) |
 | En overvågning, der er lavet med Terraform, viser aldrig sine tjek | Opgradér OneUptime: se [Overvågninger fra før trin-ID'er](#overvågninger-fra-før-trin-ider) |
 | `must contain at least 1 elements` | Udelad attributten i stedet for at lade den være tom: se [Tomme værdier](#tomme-værdier) |
+| `Not an ID` | Henvis til posten i stedet for at nævne den: se [Et navn, hvor et ID hører hjemme](#et-navn-hvor-et-id-hører-hjemme) |
 | JSON fra dashboardet i en `.tf`-fil | Skriv det som HCL: se [JSON fra dashboardet](#json-fra-dashboardet) |
 | `no available releases match the given constraints` | Brug et versionsinterval, ikke én præcis version: se [En version, der aldrig blev udgivet](#en-version-der-aldrig-blev-udgivet) |
 | `x509: certificate signed by unknown authority` | Stol på din certifikatudsteder: se [Certifikater](#certifikater) |
@@ -172,6 +173,16 @@ Attribute monitor_steps list must contain at least 1 elements, got: 0
 ```
 
 Udelad i stedet attributten: en attribut, der ikke er der, er ikke angivet. [Monitortrin](/docs/terraform/monitor-steps) viser, hvad hver del tager.
+
+### Et navn, hvor et ID hører hjemme
+
+En attribut, der rummer ID'et på en anden post, såsom `team_id` eller en monitors `labels`, tager den posts ID: et UUID. Et navn eller en slug der stopper planen:
+
+```text
+"sre" is not the ID of a oneuptime_team: OneUptime IDs are UUIDs, such as 550e8400-e29b-41d4-a716-446655440000. Refer to the resource instead (oneuptime_team.<name>.id), or read the ID with the oneuptime_team data source.
+```
+
+Henvis til postens ressource, som i `team_id = oneuptime_team.sre.id`, eller læs posten med en [datakilde](/docs/terraform/complete-guide#læs-det-der-allerede-findes). Nævner attributten en person, så angiv personens e-mailadresse i attributten ved siden af, såsom `user_email`.
 
 ### JSON fra dashboardet
 

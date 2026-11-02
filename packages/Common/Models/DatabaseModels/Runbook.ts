@@ -517,8 +517,7 @@ export default class Runbook extends BaseModel {
     type: TableColumnType.EntityArray,
     modelType: Label,
     title: "Labels",
-    description:
-      "Relation to Labels Array where this object is categorized in.",
+    description: "Labels to group and filter by.",
   })
   @ManyToMany(
     () => {
@@ -696,6 +695,7 @@ export default class Runbook extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(RunbookScheduleOverlapPolicy),
     title: "If a Run Is Still Going",
     description:
       'What a scheduled time does while a run of the runbook is still queued, running or waiting for someone: "Skip" (the default) starts nothing for that time, "RunAfter" starts one run as soon as the current run ends.',
@@ -736,6 +736,7 @@ export default class Runbook extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(RunbookScheduleMissedRunPolicy),
     title: "Missed Scheduled Runs",
     description:
       'What happens to scheduled times OneUptime could not start a run at, because it was down: "RunOnce" (the default) starts one run when it is back, "Skip" starts none.',
@@ -862,6 +863,7 @@ export default class Runbook extends BaseModel {
     update: [],
   })
   @TableColumn({
+    secret: true,
     type: TableColumnType.ShortText,
     title: "Webhook Secret Key",
     description:

@@ -403,8 +403,7 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
     type: TableColumnType.Entity,
     modelType: ScheduledMaintenanceState,
     title: "Scheduled Maintenance State",
-    description:
-      "Which state does this event belongs to?. Relation to Scheduled Maintenance State",
+    description: "The state the scheduled maintenance event changes to",
     example: "d0e1f2a3-b4c5-6789-01ab-cdef12345678",
   })
   @ManyToOne(
@@ -454,8 +453,7 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
     type: TableColumnType.ObjectID,
     required: true,
     title: "Scheduled Maintenance State ID",
-    description:
-      " Scheduled Maintenance State ID. Which state does this event belongs to?",
+    description: "ID of the state the scheduled maintenance event changes to",
     example: "d0e1f2a3-b4c5-6789-01ab-cdef12345678",
   })
   @Column({
@@ -498,11 +496,12 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
     computed: true,
     hideColumnInDocumentation: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(StatusPageSubscriberNotificationStatus),
     title: "Subscriber Notification Status",
     description:
       "Status of notification sent to subscribers about this scheduled maintenance state change",
     defaultValue: StatusPageSubscriberNotificationStatus.Pending,
-    example: "Sent",
+    example: "Success",
   })
   @Index()
   @Column({

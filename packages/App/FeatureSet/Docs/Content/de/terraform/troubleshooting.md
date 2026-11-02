@@ -30,6 +30,7 @@ Suchen Sie die Meldung, die Terraform ausgegeben hat, oder das, was Sie beobacht
 | `has been renamed to` | Benennen Sie den Ressourcentyp um, mit einem `moved`-Block: siehe [Ein umbenannter Ressourcentyp](#ein-umbenannter-ressourcentyp) |
 | Ein mit Terraform angelegter Monitor zeigt seine Prüfungen nie | Aktualisieren Sie OneUptime: siehe [Monitore aus der Zeit vor Schritt-IDs](#monitore-aus-der-zeit-vor-schritt-ids) |
 | `must contain at least 1 elements` | Lassen Sie das Attribut weg, statt es leer zu setzen: siehe [Leere Werte](#leere-werte) |
+| `Not an ID` | Verweisen Sie auf den Datensatz, statt ihn zu nennen: siehe [Ein Name, wo eine ID hingehört](#ein-name-wo-eine-id-hingehört) |
 | JSON aus dem Dashboard in einer `.tf`-Datei | Schreiben Sie es als HCL: siehe [JSON aus dem Dashboard](#json-aus-dem-dashboard) |
 | `no available releases match the given constraints` | Verwenden Sie einen Versionsbereich, nicht eine einzelne Version: siehe [Eine Version, die nie veröffentlicht wurde](#eine-version-die-nie-veröffentlicht-wurde) |
 | `x509: certificate signed by unknown authority` | Vertrauen Sie Ihrer Zertifizierungsstelle: siehe [Zertifikate](#zertifikate) |
@@ -172,6 +173,16 @@ Attribute monitor_steps list must contain at least 1 elements, got: 0
 ```
 
 Lassen Sie das Attribut stattdessen weg: Ein Attribut, das nicht da ist, ist nicht gesetzt. [Monitorschritte](/docs/terraform/monitor-steps) nennt, was jeder Teil annimmt.
+
+### Ein Name, wo eine ID hingehört
+
+Ein Attribut, das die ID eines anderen Datensatzes enthält, etwa `team_id` oder die `labels` eines Monitors, nimmt die ID dieses Datensatzes: eine UUID. Ein Name oder ein Slug dort hält den Plan an:
+
+```text
+"sre" is not the ID of a oneuptime_team: OneUptime IDs are UUIDs, such as 550e8400-e29b-41d4-a716-446655440000. Refer to the resource instead (oneuptime_team.<name>.id), or read the ID with the oneuptime_team data source.
+```
+
+Verweisen Sie auf die Ressource des Datensatzes, etwa `team_id = oneuptime_team.sre.id`, oder lesen Sie den Datensatz mit einer [Datenquelle](/docs/terraform/complete-guide#lesen-was-schon-existiert). Nennt das Attribut eine Person, geben Sie ihre E-Mail-Adresse im Attribut daneben an, etwa `user_email`.
 
 ### JSON aus dem Dashboard
 

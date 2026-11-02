@@ -138,6 +138,7 @@ export default class SecurityEntityRisk extends BaseModel {
   @ColumnAccessControl(serverWrittenColumnAccess)
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(SecurityEntityType),
     required: true,
     computed: true,
     canReadOnRelationQuery: true,
@@ -213,6 +214,7 @@ export default class SecurityEntityRisk extends BaseModel {
   @ColumnAccessControl(serverWrittenColumnAccess)
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(SecurityEntityCriticality),
     required: false,
     computed: true,
     canReadOnRelationQuery: true,

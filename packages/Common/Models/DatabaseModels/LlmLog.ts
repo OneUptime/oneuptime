@@ -228,6 +228,7 @@ export default class LlmLog extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(LlmType),
     title: "LLM Type",
     description:
       "Type of LLM (OpenAI, Azure OpenAI, Anthropic, Groq, Mistral, Ollama)",
@@ -482,6 +483,7 @@ export default class LlmLog extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(LlmLogStatus),
     title: "Status",
     description: "Status of the LLM API call",
     canReadOnRelationQuery: false,

@@ -30,6 +30,7 @@ Zoek in de tabel hieronder de melding op die Terraform toonde, of wat je zag geb
 | `has been renamed to` | Hernoem het resourcetype, met een `moved`-blok: zie [Een hernoemd resourcetype](#een-hernoemd-resourcetype) |
 | Een monitor die met Terraform is gemaakt, toont nooit zijn controles | Upgrade OneUptime: zie [Monitoren van vóór stap-ID's](#monitoren-van-vóór-stap-ids) |
 | `must contain at least 1 elements` | Laat het attribuut weg in plaats van het leeg te laten: zie [Lege waarden](#lege-waarden) |
+| `Not an ID` | Verwijs naar het record in plaats van het te noemen: zie [Een naam waar een ID hoort](#een-naam-waar-een-id-hoort) |
 | JSON uit het dashboard in een `.tf`-bestand | Schrijf het als HCL: zie [JSON uit het dashboard](#json-uit-het-dashboard) |
 | `no available releases match the given constraints` | Gebruik een versiebereik, niet één exacte versie: zie [Een versie die nooit is gepubliceerd](#een-versie-die-nooit-is-gepubliceerd) |
 | `x509: certificate signed by unknown authority` | Vertrouw je certificaatautoriteit: zie [Certificaten](#certificaten) |
@@ -172,6 +173,16 @@ Attribute monitor_steps list must contain at least 1 elements, got: 0
 ```
 
 Laat het attribuut in plaats daarvan weg: een attribuut dat er niet is, is niet ingesteld. [Monitorstappen](/docs/terraform/monitor-steps) somt op wat elk onderdeel aanneemt.
+
+### Een naam waar een ID hoort
+
+Een attribuut dat de ID van een ander record bevat, zoals `team_id` of de `labels` van een monitor, neemt de ID van dat record: een UUID. Een naam of een slug daar stopt het plan:
+
+```text
+"sre" is not the ID of a oneuptime_team: OneUptime IDs are UUIDs, such as 550e8400-e29b-41d4-a716-446655440000. Refer to the resource instead (oneuptime_team.<name>.id), or read the ID with the oneuptime_team data source.
+```
+
+Verwijs naar de resource van het record, zoals `team_id = oneuptime_team.sre.id`, of lees het record met een [data source](/docs/terraform/complete-guide#lezen-wat-al-bestaat). Noemt het attribuut een persoon, geef dan diens e-mailadres op in het attribuut ernaast, zoals `user_email`.
 
 ### JSON uit het dashboard
 

@@ -9,14 +9,16 @@ import {
 import { StringUtils } from "./StringUtils";
 import {
   describePersonEmail,
+  describePersonEmailLookup,
   getPersonEmailColumnName,
   isDecidedBySomeoneElse,
   isInvitedByEmail,
+  getMembershipImport,
   isPersonRelation,
-  MEMBERSHIP_IMPORTS,
   MembershipImport,
   PersonColumnKind,
 } from "Common/Utils/DeveloperDocs/PeopleByEmail";
+import { CLIENT_RESOURCE_NAMES } from "Common/Utils/DeveloperDocs/ClientResourceNames";
 
 /*
  * The data sources written by hand (StaticFiles/), each in place of the one
@@ -101,6 +103,7 @@ export class OpenAPIParser {
     try {
       const content: string = fs.readFileSync(filePath, "utf-8");
       this.spec = JSON.parse(content) as OpenAPISpec;
+      this.groupedOperations = undefined;
       return this.spec;
     } catch (error) {
       throw new Error(
@@ -111,6 +114,7 @@ export class OpenAPIParser {
 
   public setSpec(spec: OpenAPISpec): void {
     this.spec = spec;
+    this.groupedOperations = undefined;
   }
 
   public getResources(): TerraformResource[] {
@@ -119,6 +123,9 @@ export class OpenAPIParser {
     }
 
     const resources: TerraformResource[] = [];
+    const names: Set<string> = new Set<string>(
+      this.groupOperationsByResource().keys(),
+    );
 
     const telemetryNames: Set<string> = this.getTelemetryNames();
 
@@ -151,7 +158,10 @@ export class OpenAPIParser {
       };
       const legacyName: string | undefined =
         this.getLegacyNames().get(resourceName);
-      if (legacyName) {
+      if (legacyName && names.has(legacyName)) {
+        // Another resource has that name now: moved from, never an alias.
+        resource.movedFrom = legacyName;
+      } else if (legacyName) {
         resource.legacyName = legacyName;
       }
       const resourceDescription: string | undefined =
@@ -202,6 +212,9 @@ export class OpenAPIParser {
     }
 
     const dataSources: TerraformDataSource[] = [];
+    const dataSourceNames: Set<string> = new Set<string>(
+      this.groupOperationsByResource().keys(),
+    );
 
     for (const [resourceName, operations] of this.groupOperationsByResource()) {
       // A data source needs a way to read: a get-item and/or a list endpoint.
@@ -230,7 +243,8 @@ export class OpenAPIParser {
       };
       const legacyName: string | undefined =
         this.getLegacyNames().get(resourceName);
-      if (legacyName) {
+      // An alias only for a name nothing else has now.
+      if (legacyName && !dataSourceNames.has(legacyName)) {
         dataSource.legacyName = legacyName;
       }
       const dataSourceDescription: string | undefined =
@@ -254,6 +268,7 @@ export class OpenAPIParser {
 
       dataSource.schema = this.generateDataSourceSchema(dataSource.operations);
       this.resolveRelations(dataSource.schema);
+      this.addPersonEmailFilters(dataSource, operations);
       dataSources.push(dataSource);
     }
 
@@ -270,10 +285,17 @@ export class OpenAPIParser {
     string,
     TerraformResource["operations"]
   > {
+    if (this.groupedOperations) {
+      return this.groupedOperations;
+    }
+
     const resourceMap: Map<string, TerraformResource["operations"]> = new Map<
       string,
       TerraformResource["operations"]
     >();
+    // The model each resource name was made from.
+    const tablesByName: Map<string, string> = new Map<string, string>();
+    const tablesByBasePath: Map<string, string> = this.getTablesByBasePath();
 
     for (const [path, pathItem] of Object.entries(this.spec!.paths)) {
       for (const [method, operation] of Object.entries(pathItem)) {
@@ -288,7 +310,20 @@ export class OpenAPIParser {
           continue;
         }
 
-        const resourceName: string | null = this.extractResourceName(operation);
+        /*
+         * The model the operation is of: by the schema it reads or writes,
+         * or - a delete, a count - by the path its model's other endpoints
+         * are under.
+         */
+        const table: string | null =
+          this.getTableOfOperation(operation) ||
+          tablesByBasePath.get(OpenAPIParser.getBasePath(path)) ||
+          null;
+
+        const resourceName: string | null = this.extractResourceName(
+          operation,
+          table,
+        );
         if (!resourceName) {
           continue;
         }
@@ -306,6 +341,22 @@ export class OpenAPIParser {
           resourceMap.set(resourceName, {});
         }
 
+        /*
+         * Two models of one name would make one resource, the endpoints of
+         * whichever came last winning (it happened to the subscriber
+         * notification template and its link to a status page). Stop
+         * instead, and say how to fix it.
+         */
+        const seenTable: string | undefined = tablesByName.get(resourceName);
+        if (table && seenTable && seenTable !== table) {
+          throw new Error(
+            `Two models make the resource "${resourceName}": ${seenTable} and ${table}. Give one a name of its own in Common/Utils/DeveloperDocs/ClientResourceNames.ts.`,
+          );
+        }
+        if (table) {
+          tablesByName.set(resourceName, table);
+        }
+
         const operations: TerraformResource["operations"] =
           resourceMap.get(resourceName)!;
         operations[operationType] = {
@@ -316,7 +367,43 @@ export class OpenAPIParser {
       }
     }
 
+    this.groupedOperations = resourceMap;
     return resourceMap;
+  }
+
+  private groupedOperations:
+    | Map<string, TerraformResource["operations"]>
+    | undefined = undefined;
+
+  /*
+   * The path a model's endpoints are all under: /monitor for /monitor,
+   * /monitor/get-list, /monitor/count, /monitor/{id} and
+   * /monitor/{id}/get-item.
+   */
+  public static getBasePath(path: string): string {
+    const idSegment: number = path.indexOf("/{");
+    const withoutId: string =
+      idSegment === -1 ? path : path.slice(0, idSegment);
+    for (const suffix of ["/get-list", "/count"]) {
+      if (withoutId.endsWith(suffix)) {
+        return withoutId.slice(0, -suffix.length);
+      }
+    }
+    return withoutId;
+  }
+
+  // The model of each base path, from the operations whose schema says it.
+  private getTablesByBasePath(): Map<string, string> {
+    const tables: Map<string, string> = new Map<string, string>();
+    for (const [path, pathItem] of Object.entries(this.spec!.paths)) {
+      for (const operation of Object.values(pathItem)) {
+        const table: string | null = this.getTableOfOperation(operation);
+        if (table && !tables.has(OpenAPIParser.getBasePath(path))) {
+          tables.set(OpenAPIParser.getBasePath(path), table);
+        }
+      }
+    }
+    return tables;
   }
 
   /*
@@ -327,7 +414,7 @@ export class OpenAPIParser {
     const map: Map<string, string> = new Map<string, string>();
     for (const tag of this.spec?.tags || []) {
       if (tag.name && tag.description) {
-        map.set(StringUtils.toSnakeCase(tag.name), tag.description);
+        map.set(this.getNameOfTag(tag), tag.description);
       }
     }
     return map;
@@ -338,10 +425,36 @@ export class OpenAPIParser {
     const names: Set<string> = new Set<string>();
     for (const tag of this.spec?.tags || []) {
       if (tag.name && tag["x-oneuptime-telemetry"]) {
-        names.add(StringUtils.toSnakeCase(tag.name));
+        names.add(this.getNameOfTag(tag));
       }
     }
     return names;
+  }
+
+  /*
+   * The resource name of a tag: the name clients give its model where its
+   * own reads poorly as one (CLIENT_RESOURCE_NAMES, by the model's table,
+   * which the tag says: x-oneuptime-table), else its own.
+   */
+  public getNameOfTag(tag: {
+    name: string;
+    "x-oneuptime-table"?: string;
+  }): string {
+    const clientName: string | undefined = tag["x-oneuptime-table"]
+      ? CLIENT_RESOURCE_NAMES[tag["x-oneuptime-table"]]
+      : undefined;
+    return StringUtils.toSnakeCase(clientName || tag.name);
+  }
+
+  // The resource name of a relation: by the table it points at.
+  private getNameOfRelation(
+    tag: string,
+    tableName: string | undefined,
+  ): string {
+    const clientName: string | undefined = tableName
+      ? CLIENT_RESOURCE_NAMES[tableName]
+      : undefined;
+    return StringUtils.toSnakeCase(clientName || tag);
   }
 
   /*
@@ -358,7 +471,12 @@ export class OpenAPIParser {
       if (!tag.name) {
         continue;
       }
-      const name: string = StringUtils.toSnakeCase(tag.name);
+      const name: string = this.getNameOfTag(tag);
+      /*
+       * A model renamed in the product names its former name; one a client
+       * names otherwise (CLIENT_RESOURCE_NAMES, by its x-oneuptime-table)
+       * had the name of its tag.
+       */
       const formerName: string | undefined = (tag["x-former-names"] || [])[0];
       const legacyName: string = formerName
         ? StringUtils.toLegacySnakeCase(formerName)
@@ -410,7 +528,10 @@ export class OpenAPIParser {
         continue;
       }
 
-      const name: string = StringUtils.toSnakeCase(attribute.relationTag);
+      const name: string = this.getNameOfRelation(
+        attribute.relationTag,
+        attribute.relationTableName,
+      );
 
       if (!targets.all.has(name)) {
         continue;
@@ -419,7 +540,11 @@ export class OpenAPIParser {
       const isList: boolean =
         attribute.type === "list" || attribute.type === "set";
 
-      attribute.relation = { name, isList };
+      attribute.relation = {
+        name,
+        isList,
+        ...(targets.resources.has(name) ? {} : { dataSourceOnly: true }),
+      };
 
       const target: string = `\`oneuptime_${name}\``;
       const sentence: string = isList
@@ -430,6 +555,34 @@ export class OpenAPIParser {
         ? `${attribute.description} ${sentence}`
         : sentence;
     }
+  }
+
+  /*
+   * The model an operation is of, by the schema it reads or writes:
+   * MonitorCreateSchema, MonitorUpdateSchema, MonitorReadSchema or Monitor
+   * itself. Null for one that names none (count, delete).
+   */
+  private getTableOfOperation(operation: OpenAPIOperation): string | null {
+    const refs: Array<unknown> = [
+      (operation.requestBody as any)?.content?.["application/json"]?.schema
+        ?.properties?.["data"]?.$ref,
+    ];
+    for (const status of ["200", "201"]) {
+      const data: any = (operation.responses as any)?.[status]?.content?.[
+        "application/json"
+      ]?.schema?.properties?.["data"];
+      refs.push(data?.$ref, data?.items?.$ref);
+    }
+
+    const suffix: RegExp = new RegExp(
+      "(CreateSchema|UpdateSchema|ReadSchema)$",
+    );
+    for (const ref of refs) {
+      if (typeof ref === "string" && ref.startsWith("#/components/schemas/")) {
+        return ref.replace("#/components/schemas/", "").replace(suffix, "");
+      }
+    }
+    return null;
   }
 
   /*
@@ -581,13 +734,101 @@ export class OpenAPIParser {
   }
 
   /*
-   * A membership no screen shows the ID of is imported by what it joins and
-   * who: `<team_id>/alice@example.com` (MEMBERSHIP_IMPORTS). It needs the
+   * A data source looks a record up by the person it names the way the
+   * resource names them: by email address, beside the user ID
+   * (`user_email` beside `user_id`). The provider finds the person by the
+   * address and matches their ID. Only the people a configuration writes -
+   * the columns the resource takes an address for, never who created a
+   * record - and one person each: a set of people is no lookup argument.
+   */
+  private addPersonEmailFilters(
+    dataSource: TerraformDataSource,
+    operations: TerraformResource["operations"],
+  ): void {
+    const written: Set<string> = new Set<string>();
+
+    for (const operation of [operations.create, operations.update]) {
+      if (operation) {
+        for (const name of Object.keys(
+          this.extractRequestSchema(operation, `${dataSource.name}-lookup`),
+        )) {
+          written.add(name);
+        }
+      }
+    }
+
+    for (const [name, attr] of Object.entries(dataSource.schema)) {
+      if (
+        !attr.isLookupFilter ||
+        attr.type !== "string" ||
+        !isPersonRelation(attr.relationTableName) ||
+        !written.has(name)
+      ) {
+        continue;
+      }
+
+      const emailAttribute: string = StringUtils.toLegacySnakeCase(
+        getPersonEmailColumnName(
+          attr.apiFieldName || name,
+          PersonColumnKind.One,
+        ),
+      );
+
+      if (dataSource.schema[emailAttribute]) {
+        this.warnings.push(
+          `Data source "${dataSource.name}": ${name} names a person, but ${emailAttribute} is already an attribute, so it has no email lookup.`,
+        );
+        continue;
+      }
+
+      attr.person = {
+        emailAttribute: emailAttribute,
+        isList: false,
+        isRequired: false,
+        invitesByEmail: false,
+      };
+      attr.description = [
+        attr.description,
+        `Or look them up by email address, in \`${emailAttribute}\`.`,
+      ]
+        .filter(Boolean)
+        .join(" ");
+
+      dataSource.schema[emailAttribute] = {
+        type: "string",
+        description: describePersonEmailLookup({ idName: name }),
+        required: false,
+        optional: true,
+        computed: true,
+        isLookupFilter: true,
+        personEmailOf: name,
+      };
+    }
+  }
+
+  /*
+   * A row no screen shows the ID of is imported by what it joins and who or
+   * what joins it: a membership by `<team_id>/alice@example.com`, a
+   * monitor's owner by `<monitor_id>/alice@example.com`, an owner team by
+   * `<monitor_id>/<team_id>`, an escalation rule's team by
+   * `<rule_id>/<team_id>` (PeopleByEmail.getMembershipImport). It needs the
    * list endpoint to find it in, and both columns among its attributes.
    */
   private addMembershipImport(resource: TerraformResource): void {
-    const rule: MembershipImport | undefined =
-      MEMBERSHIP_IMPORTS[resource.tableName || ""];
+    // The relations a create of the row names: the parent and the member.
+    const relationColumns: Array<string> = Object.entries(
+      resource.operationSchemas?.create || {},
+    )
+      .filter(([, attr]: [string, TerraformAttribute]) => {
+        return Boolean(attr.relationTableName);
+      })
+      .map(([name, attr]: [string, TerraformAttribute]) => {
+        return attr.apiFieldName || name;
+      });
+    const rule: MembershipImport | undefined = getMembershipImport(
+      resource.tableName || "",
+      relationColumns,
+    );
     const listPath: string | undefined = resource.operations.list?.path;
 
     if (!rule || !listPath || !resource.operations.read) {
@@ -611,10 +852,16 @@ export class OpenAPIParser {
 
     resource.membershipImport = {
       parentAttribute: parent[0],
+      // What it is, as a person says it: the resource the parent's ID is of.
+      parentNoun: (
+        parent[1].relation?.name || parent[0].replace(/_id$/, "")
+      ).replace(/_/g, " "),
       parentApiField: rule.parentColumn,
+      personAttribute: person[0],
       personApiField: rule.personColumn,
       personEmailAttribute: person[1].person?.emailAttribute,
       listPath: listPath,
+      kind: rule.kind,
     };
   }
 
@@ -658,7 +905,20 @@ export class OpenAPIParser {
     return endsWithPunctuation.test(text) ? text : `${text}.`;
   }
 
-  private extractResourceName(operation: OpenAPIOperation): string | null {
+  /*
+   * The resource an operation belongs to: the name clients give its model
+   * (Common/Utils/DeveloperDocs/ClientResourceNames.ts), else its tag's.
+   */
+  private extractResourceName(
+    operation: OpenAPIOperation,
+    table: string | null,
+  ): string | null {
+    const clientName: string | undefined = table
+      ? CLIENT_RESOURCE_NAMES[table]
+      : undefined;
+    if (clientName) {
+      return StringUtils.toSnakeCase(clientName);
+    }
     if (operation.tags && operation.tags.length > 0 && operation.tags[0]) {
       return StringUtils.toSnakeCase(operation.tags[0]);
     }
@@ -1129,6 +1389,15 @@ export class OpenAPIParser {
 
     const relationTag: unknown = prop["x-oneuptime-relation"]?.tag;
     const relationTableName: unknown = prop["x-oneuptime-relation"]?.tableName;
+    /*
+     * A secret - a key, a token, a passphrase, a webhook address - whatever
+     * its type: the spec marks every one x-oneuptime-secret
+     * (Common/Utils/Schema/ModelSchema.isSecretColumn), and an encrypted
+     * string format: password too. Sensitive, so plans, logs and outputs
+     * print (sensitive value) instead of it.
+     */
+    const isSecret: boolean =
+      prop["x-oneuptime-secret"] === true || format === "password";
 
     const base: TerraformAttribute = {
       type: "string",
@@ -1145,6 +1414,7 @@ export class OpenAPIParser {
       ...(typeof relationTableName === "string" && relationTableName
         ? { relationTableName }
         : {}),
+      ...(isSecret ? { sensitive: true } : {}),
     };
 
     /*
@@ -1208,15 +1478,24 @@ export class OpenAPIParser {
           typeof example._type === "string" &&
           (typeof example.value === "string" ||
             typeof example.value === "number");
+        /*
+         * A value only the server writes is read, not written: a read-only
+         * attribute and every data source attribute decode it instead.
+         */
         const hint: string =
-          isWrappedScalar || description.includes("jsonencode")
+          isWrappedScalar ||
+          description.includes("jsonencode") ||
+          description.includes("jsondecode")
             ? ""
-            : "A JSON value: write it with `jsonencode()`.";
+            : computed
+              ? "A JSON value: read it with `jsondecode()`."
+              : "A JSON value: write it with `jsonencode()`.";
         return {
           attribute: {
             ...base,
             type: "string",
             isComplexObject: true,
+            ...(isWrappedScalar ? { isWrappedScalar: true } : {}),
             description: [description, hint].filter(Boolean).join(" "),
           },
           requiredInCreate: required,
@@ -1228,9 +1507,6 @@ export class OpenAPIParser {
           attribute.enumValues = prop.enum.map((value: any) => {
             return String(value);
           });
-        }
-        if (format === "password") {
-          attribute.sensitive = true;
         }
         return { attribute, requiredInCreate: required };
       }

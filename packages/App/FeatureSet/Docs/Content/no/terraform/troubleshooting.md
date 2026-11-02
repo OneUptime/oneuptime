@@ -30,6 +30,7 @@ Slå opp meldingen Terraform skrev ut, eller det du så skje, i tabellen nedenfo
 | `has been renamed to` | Gi ressurstypen nytt navn, med en `moved`-blokk: se [En ressurstype med nytt navn](#en-ressurstype-med-nytt-navn) |
 | En overvåker laget med Terraform viser aldri sjekkene sine | Oppgrader OneUptime: se [Overvåkere fra før trinn-ID-er](#overvåkere-fra-før-trinn-id-er) |
 | `must contain at least 1 elements` | Utelat attributtet i stedet for å la det stå tomt: se [Tomme verdier](#tomme-verdier) |
+| `Not an ID` | Vis til posten i stedet for å nevne den: se [Et navn der en ID skal stå](#et-navn-der-en-id-skal-stå) |
 | JSON fra dashbordet i en `.tf`-fil | Skriv det som HCL: se [JSON fra dashbordet](#json-fra-dashbordet) |
 | `no available releases match the given constraints` | Bruk et versjonsintervall, ikke én eksakt versjon: se [En versjon som aldri ble publisert](#en-versjon-som-aldri-ble-publisert) |
 | `x509: certificate signed by unknown authority` | Stol på sertifikatutstederen din: se [Sertifikater](#sertifikater) |
@@ -172,6 +173,16 @@ Attribute monitor_steps list must contain at least 1 elements, got: 0
 ```
 
 Utelat attributtet i stedet: et attributt som ikke er der, er ikke angitt. [Monitortrinn](/docs/terraform/monitor-steps) viser hva hver del tar.
+
+### Et navn der en ID skal stå
+
+Et attributt som holder ID-en til en annen post, som `team_id` eller `labels` på en monitor, tar ID-en til den posten: en UUID. Et navn eller en slug der stopper planen:
+
+```text
+"sre" is not the ID of a oneuptime_team: OneUptime IDs are UUIDs, such as 550e8400-e29b-41d4-a716-446655440000. Refer to the resource instead (oneuptime_team.<name>.id), or read the ID with the oneuptime_team data source.
+```
+
+Vis til ressursen til posten, som i `team_id = oneuptime_team.sre.id`, eller les posten med en [datakilde](/docs/terraform/complete-guide#les-det-som-allerede-finnes). Nevner attributtet en person, oppgir du e-postadressen deres i attributtet ved siden av, som `user_email`.
 
 ### JSON fra dashbordet
 

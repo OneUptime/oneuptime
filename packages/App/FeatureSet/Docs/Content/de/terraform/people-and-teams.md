@@ -107,6 +107,15 @@ output "alice_teams" {
 }
 ```
 
+Andere Datenquellen finden einen Datensatz über die Adresse der Person, die er nennt, neben ihrer ID. Diese hier liest die Mitgliedschaft von Alice im SRE-Team:
+
+```hcl
+data "oneuptime_team_member" "alice" {
+  team_id    = oneuptime_team.sre.id
+  user_email = "alice@example.com"
+}
+```
+
 ## Personen entfernen
 
 Entfernen Sie die Mitgliedschaften der Person aus Ihrer Konfiguration und wenden Sie sie an. Ist sie aus ihrem letzten Team des Projekts heraus, ist sie aus dem Projekt heraus, und OneUptime nimmt sie aus jedem Bereitschaftsplan, jeder Eskalationsregel und jeder Vertretung heraus und von dem, was ihr gehört: von allem, außer den Vorfällen, Alerts und Wartungsereignissen, die vorbei sind. Entfernen Sie in derselben Änderung die Blöcke, die sie nennen, sonst legt der nächste Plan sie wieder an, für jemanden, der nicht mehr im Projekt ist.
@@ -122,6 +131,13 @@ terraform import oneuptime_team_member.alice 6b1d1c2e-4f3a-4b5c-8d6e-7f8091a2b3c
 ```
 
 Die Adresse bleibt so, wie Sie sie geschrieben haben, schreiben Sie sie also wie in Ihrer Konfiguration. Auch die eigene ID der Mitgliedschaft importiert sie, und dann wird die Adresse aus OneUptime gelesen, in Kleinbuchstaben.
+
+Eigentümer und Bereitschaftszeilen werden genauso importiert, über das, wozu sie gehören. Den Eigentümer eines Monitors importieren Sie über die ID des Monitors und die Adresse der Person. Eine Zeile, die ein Team oder einen Plan nennt, etwa ein Eigentümerteam oder das Team, das eine Eskalationsregel alarmiert, importieren Sie über beide IDs:
+
+```bash
+terraform import oneuptime_monitor_user_owner.api 68a1b2c3-d4e5-4f6a-8b9c-0d1e2f3a4b01/bob@example.com
+terraform import oneuptime_escalation_rule_team.sre 68a1b2c3-d4e5-4f6a-8b9c-0d1e2f3a4b06/6b1d1c2e-4f3a-4b5c-8d6e-7f8091a2b3c4
+```
 
 ## Wenn jemand seine Adresse ändert
 

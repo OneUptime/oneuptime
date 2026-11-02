@@ -126,6 +126,7 @@ export default class OpenAPIUtil {
       name: string;
       description: string;
       "x-former-names"?: Array<string>;
+      "x-oneuptime-table": string;
       "x-oneuptime-telemetry"?: boolean;
     }> = [];
 
@@ -161,6 +162,13 @@ export default class OpenAPIUtil {
         ...(model.formerSingularName
           ? { "x-former-names": [model.formerSingularName] }
           : {}),
+        /*
+         * The model the tag is of. Two models can share a singular name - the
+         * subscriber notification template and its link to a status page do
+         * - and a client tells their endpoints apart, and names them
+         * (ClientResourceNames.ts), by it.
+         */
+        "x-oneuptime-table": modelName,
       });
 
       // register the model schema
@@ -212,6 +220,7 @@ export default class OpenAPIUtil {
       tags.push({
         name: singularModelName,
         description: `API endpoints for ${singularModelName}`,
+        "x-oneuptime-table": modelName,
         /*
          * Records the product keeps for a while (logs, spans, metrics...),
          * not configuration to manage: the Terraform provider reads them as

@@ -25,9 +25,12 @@ output "probe_id" {
   description = "ID of the created probe"
 }
 
+# A probe's key lets whoever has it report as the probe: the provider marks it
+# sensitive, and an output of it has to say so too.
 output "probe_key" {
   value       = oneuptime_probe.test.key
   description = "Key of the created probe"
+  sensitive   = true
 }
 
 output "probe_name" {

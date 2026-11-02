@@ -358,6 +358,7 @@ export default class TeamComplianceSetting extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.LongText,
+    allowedValues: Object.values(ComplianceRuleType),
     title: "Rule Type",
     description: "Type of compliance rule.",
   })
@@ -465,6 +466,7 @@ export default class TeamComplianceSetting extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(ComplianceNotificationChannel),
     title: "Notification Channel",
     description:
       "Deprecated: use notificationChannels. The first of the rule's notification channels, or empty when it accepts any channel. Sending this field without notificationChannels sets the rule to that one channel (Call, SMS, Push, Email, WhatsApp, Telegram, Slack, MicrosoftTeams, Webhook or CustomChannel).",

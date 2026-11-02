@@ -162,6 +162,7 @@ export default class NetworkDeviceDiscoveryImport extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(DiscoveryImportStatus),
     title: "Status",
     description:
       "Where the import is: Queued, Running, Completed, Stopped or Failed.",

@@ -201,7 +201,7 @@ export default class DashboardOwnerUser extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "User ID",
-    description: "ID of your OneUptime User in which this object belongs",
+    description: "ID of the user who owns the dashboard",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -269,7 +269,7 @@ export default class DashboardOwnerUser extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "Dashboard ID",
-    description: "ID of your OneUptime Dashboard in which this object belongs",
+    description: "ID of the dashboard the user owns",
   })
   @Column({
     type: ColumnType.ObjectID,

@@ -221,7 +221,10 @@ class User extends UserModel {
 
     update: [Permission.CurrentUser],
   })
-  @TableColumn({ type: TableColumnType.ShortText })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    allowedValues: Object.values(JobRole),
+  })
   @Column({
     type: ColumnType.ShortText,
     length: ColumnLength.ShortText,
@@ -236,7 +239,10 @@ class User extends UserModel {
 
     update: [Permission.CurrentUser],
   })
-  @TableColumn({ type: TableColumnType.ShortText })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    allowedValues: Object.values(CompanySize),
+  })
   @Column({
     type: ColumnType.ShortText,
     length: ColumnLength.ShortText,
@@ -361,7 +367,10 @@ class User extends UserModel {
 
     update: [],
   })
-  @TableColumn({ type: TableColumnType.ShortText })
+  @TableColumn({
+    secret: true,
+    type: TableColumnType.ShortText,
+  })
   @Column({
     type: ColumnType.ShortText,
     length: ColumnLength.ShortText,

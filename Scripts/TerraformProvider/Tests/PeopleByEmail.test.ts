@@ -7,6 +7,7 @@ import { DataSourceGenerator } from "../Core/DataSourceGenerator";
 import { DocumentationGenerator } from "../Core/DocumentationGenerator";
 import { ProviderGenerator } from "../Core/ProviderGenerator";
 import { GoCodeGenerator } from "../Core/GoCodeGenerator";
+import { MembershipKind } from "Common/Utils/DeveloperDocs/PeopleByEmail";
 import {
   TerraformAttribute,
   TerraformDataSource,
@@ -152,6 +153,41 @@ describe("the parser: a person, and the address beside them", () => {
   });
 });
 
+describe("the parser: a data source finds a record by the person's address", () => {
+  test("beside the person's ID, as the resource names them", () => {
+    for (const name of ["team_member", "monitor_owner_user"]) {
+      const schema: Record<string, TerraformAttribute> =
+        dataSources.get(name)!.schema;
+
+      expect([name, schema["user_email"]]).toEqual([
+        name,
+        expect.objectContaining({
+          type: "string",
+          optional: true,
+          computed: true,
+          isLookupFilter: true,
+          personEmailOf: "user_id",
+        }),
+      ]);
+      expect(schema["user_id"]?.person?.emailAttribute).toBe("user_email");
+      expect(schema["user_email"]?.description).toBe(
+        "Look it up by the email address of the person in `user_id`, instead of their ID: someone in this project, or invited to it. Give one of the two.",
+      );
+    }
+  });
+
+  test("never by who created a record, nor by a name that is taken", () => {
+    const note: TerraformDataSource = dataSources.get("incident_note")!;
+
+    expect(note.schema["created_by_user_id"]?.person).toBeUndefined();
+    expect(note.schema["created_by_user_email"]).toBeUndefined();
+    expect(note.schema["approver_user_id"]?.person).toBeUndefined();
+    expect(warnings).toContain(
+      'Data source "incident_note": approver_user_id names a person, but approver_user_email is already an attribute, so it has no email lookup.',
+    );
+  });
+});
+
 describe("the parser: what someone else decides is read-only", () => {
   test("whether a member accepted, and when, are the invitee's", () => {
     const resource: TerraformResource = resources.get("team_member")!;
@@ -193,21 +229,57 @@ describe("the parser: what someone else decides is read-only", () => {
   });
 });
 
-describe("the parser: a membership is imported by team and person", () => {
+describe("the parser: a row is imported by what it joins and who joins it", () => {
   test("team member", () => {
     expect(resources.get("team_member")!.membershipImport).toEqual({
       parentAttribute: "team_id",
+      parentNoun: "team",
       parentApiField: "teamId",
+      personAttribute: "user_id",
       personApiField: "userId",
       personEmailAttribute: "user_email",
       listPath: "/team-member/get-list",
+      kind: MembershipKind.Member,
     });
     expect(resources.get("team_member")!.tableName).toBe("TeamMember");
   });
 
+  test("a monitor's owner, by the monitor and the person", () => {
+    expect(resources.get("monitor_owner_user")!.membershipImport).toEqual({
+      parentAttribute: "monitor_id",
+      parentNoun: "monitor",
+      parentApiField: "monitorId",
+      personAttribute: "user_id",
+      personApiField: "userId",
+      personEmailAttribute: "user_email",
+      listPath: "/monitor-owner-user/get-list",
+      kind: MembershipKind.Owner,
+    });
+  });
+
+  test("an on-call layer's person, by the layer and the person", () => {
+    expect(
+      resources.get("on_call_duty_policy_schedule_layer_user")!
+        .membershipImport,
+    ).toEqual(
+      expect.objectContaining({
+        parentAttribute: "on_call_duty_policy_schedule_layer_id",
+        personAttribute: "user_id",
+        personEmailAttribute: "user_email",
+        kind: MembershipKind.OnCall,
+      }),
+    );
+  });
+
   test("nothing else", () => {
     for (const [name, resource] of resources) {
-      if (name !== "team_member") {
+      if (
+        ![
+          "team_member",
+          "monitor_owner_user",
+          "on_call_duty_policy_schedule_layer_user",
+        ].includes(name)
+      ) {
         expect({ name, membershipImport: resource.membershipImport }).toEqual({
           name,
           membershipImport: undefined,
@@ -273,6 +345,7 @@ describe("the Go the generator writes", () => {
   let ruleGo: string;
   let teamGo: string;
   let dataSourcesGo: string;
+  let memberSourceGo: string;
 
   beforeAll(async () => {
     outputDir = fs.mkdtempSync(path.join(os.tmpdir(), "tfgen-people-"));
@@ -308,6 +381,7 @@ describe("the Go the generator writes", () => {
     ruleGo = read("resource_monitor_owner_rule.go");
     teamGo = read("resource_team.go");
     dataSourcesGo = read("data_sources.go");
+    memberSourceGo = read("data_source_team_member.go");
   });
 
   afterAll(() => {
@@ -480,9 +554,21 @@ describe("the Go the generator writes", () => {
     expect(ruleGo).not.toContain("setplanmodifier");
   });
 
-  test("a resource that names nobody is as it was", () => {
-    expect(teamGo).not.toContain("ModifyPlan");
+  test("a resource that names nobody plans nobody", () => {
     expect(teamGo).not.toContain("person");
+    expect(teamGo).not.toContain("planPersonID");
+    expect(teamGo).not.toContain("planPeopleIDs");
+
+    /*
+     * Its ModifyPlan, which every resource has, only keeps the state when
+     * nothing a configuration sets changes (importsettle.go).
+     */
+    const modifyPlan: string = between(
+      teamGo,
+      "func (r *TeamResource) ModifyPlan",
+      "\n}\n",
+    );
+    expect(modifyPlan).toContain("keepStateWhenNothingChanges(ctx, req, resp)");
   });
 
   test("a membership is imported by its ID, or by team and person", () => {
@@ -498,9 +584,25 @@ describe("the Go the generator writes", () => {
     expect(importState).toContain(
       'resp.State.SetAttribute(ctx, path.Root("user_email"), email)',
     );
-    expect(ownerGo).toContain(
-      'resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)',
+    // An owner the same way, by the monitor it owns and the person.
+    const ownerImport: string = between(
+      ownerGo,
+      "func (r *MonitorOwnerUserResource) ImportState",
+      "\n}\n",
     );
+    expect(ownerImport).toContain('parentField:     "monitorId"');
+    expect(ownerImport).toContain('parentNoun:      "monitor"');
+    expect(ownerImport).toContain("byEmail:         true");
+    expect(ownerImport).toContain('kind:            "owner"');
+    expect(ownerImport).toContain(
+      'resp.State.SetAttribute(ctx, path.Root("user_email"), email)',
+    );
+    expect(ownerImport).not.toContain("ImportStatePassthroughID");
+  });
+
+  test("only a team member's create says how to import a membership it finds", () => {
+    expect(teamMemberGo).toContain("alreadyInvitedHint(err,");
+    expect(ownerGo).not.toContain("alreadyInvitedHint(err,");
   });
 
   test("the owner notification and the invitation's acceptance are never sent", () => {
@@ -511,14 +613,45 @@ describe("the Go the generator writes", () => {
     expect(teamMemberGo).not.toContain("booldefault");
   });
 
+  test("a data source finds the person by address, then matches their ID", () => {
+    const filter: string = between(
+      memberSourceGo,
+      "if !data.UserEmail.IsNull() && !data.UserEmail.IsUnknown() {",
+      "\n    }\n",
+    );
+
+    expect(filter).toContain(
+      'personID, ok := personIDForLookup(ctx, d.client, data.UserEmail.ValueString(), "user_email", &resp.Diagnostics)',
+    );
+    expect(filter).toContain('filters["userId"] = personID');
+    // Not a column of the API: never filtered, selected or read as one.
+    expect(memberSourceGo).not.toContain('filters["userEmail"]');
+    expect(memberSourceGo).not.toContain('"userEmail": true');
+    expect(memberSourceGo).not.toContain('item["userEmail"]');
+    // Kept as written, or the person's own when found another way.
+    expect(memberSourceGo).toContain(
+      "data.UserEmail = personEmailAfterLookup(ctx, d.client, data.UserId, data.UserEmail)",
+    );
+    expect(between(memberSourceGo, '"user_id": schema', "},\n")).toContain(
+      'Validators: personIDValidators("user_email", false)',
+    );
+    expect(between(memberSourceGo, '"user_email": schema', "},\n")).toContain(
+      "Validators: personEmailValidators()",
+    );
+  });
+
   test("every helper the generated Go calls is one people.go defines", () => {
     const peopleGo: string = fs.readFileSync(
       path.join(STATIC_FILES, "people.go"),
       "utf-8",
     );
-    const generated: string = [teamMemberGo, ownerGo, layerUserGo, ruleGo].join(
-      "\n",
-    );
+    const generated: string = [
+      teamMemberGo,
+      ownerGo,
+      layerUserGo,
+      ruleGo,
+      memberSourceGo,
+    ].join("\n");
     const called: Set<string> = new Set<string>();
     const helperCall: RegExp = new RegExp(
       "\\b(person[A-Za-z]+|planPersonID|planPeopleIDs|importIDOfMembership|alreadyInvitedHint|apiStringValue)\\(",
@@ -651,9 +784,24 @@ describe("the reference pages", () => {
       "terraform import oneuptime_team_member.example <team_id>/alice@example.com",
     );
     expect(importSection).toContain("Its own ID works too.");
-    // Every other page imports by ID, as before.
+
+    // An owner's page by the monitor and the person.
     expect(page("resources/monitor_owner_user")).toContain(
-      "terraform import oneuptime_monitor_owner_user.example <id>",
+      "terraform import oneuptime_monitor_owner_user.example <monitor_id>/alice@example.com",
+    );
+    expect(page("resources/monitor_owner_user")).toContain(
+      "by its monitor and the person's email address (or user ID)",
+    );
+    // Only the team member's page carries the guide to inviting people.
+    expect(page("resources/team_member")).toContain(
+      "## Invite people by email address",
+    );
+    expect(page("resources/monitor_owner_user")).not.toContain(
+      "## Invite people by email address",
+    );
+    // A page of a row without a parent imports by its ID, as before.
+    expect(page("resources/monitor_owner_rule")).toContain(
+      "terraform import oneuptime_monitor_owner_rule.example <id>",
     );
   });
 
@@ -696,6 +844,22 @@ describe("the reference pages", () => {
     expect(index).toContain("(./guides/people)");
     expect(index.indexOf("## People by email address")).toBeLessThan(
       index.indexOf("## OpenTofu"),
+    );
+  });
+
+  test("a membership's data source is looked up by its team and the person's address", () => {
+    const member: string = page("data-sources/team_member");
+
+    expect(member).toContain(
+      [
+        'data "oneuptime_team_member" "example" {',
+        "  team_id    = oneuptime_team.example.id",
+        '  user_email = "alice@example.com"',
+        "}",
+      ].join("\n"),
+    );
+    expect(member).toContain(
+      "- `user_email` (String) Look it up by the email address of the person in `user_id`",
     );
   });
 

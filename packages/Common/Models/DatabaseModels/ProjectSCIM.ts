@@ -216,6 +216,7 @@ export default class ProjectSCIM extends BaseModel {
     update: [Permission.ProjectOwner],
   })
   @TableColumn({
+    secret: true,
     required: true,
     type: TableColumnType.LongText,
     title: "Bearer Token",

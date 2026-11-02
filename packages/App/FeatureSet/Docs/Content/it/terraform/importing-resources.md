@@ -28,6 +28,8 @@ Scrivi il blocco `resource` in modo che dica ciò che il record è già. Dove di
 
 Ogni risorsa del provider si può importare tramite il suo ID, tranne `oneuptime_file`: l'API di OneUptime non può rileggere un file, quindi il provider risponde `Import Not Supported`. Le sorgenti dati non si importano mai. Per usare un record nella tua configurazione senza gestirlo, leggilo invece con una [sorgente dati](/docs/terraform/complete-guide#leggere-ciò-che-esiste-già).
 
+Le righe che collegano due record, come i membri di un team, i proprietari di un monitor e le persone di un livello di reperibilità, hanno ID che nessuna schermata mostra. Si importano anche tramite ciò che collegano: l'ID del record a cui appartengono, una barra e l'indirizzo email della persona o l'ID dell'altro record, come in `68a1b2c3-d4e5-4f6a-8b9c-0d1e2f3a4b01/bob@example.com`. Vedi [Importare i membri che hai già](/docs/terraform/people-and-teams#importare-i-membri-che-hai-già).
+
 ## Prima di iniziare
 
 - **Terraform 1.5 o successivo, oppure OpenTofu 1.6 o successivo.** I blocchi `import` di questa pagina richiedono queste versioni. Un Terraform più vecchio importa dalla [riga di comando](#importare-dalla-riga-di-comando).
@@ -181,6 +183,7 @@ Il piano dice che il team non sarà più gestito da Terraform, e non distrugge n
 ## Buono a sapersi
 
 - **Un'importazione non cambia nulla, ma il prossimo apply sì.** Applicare un piano che mostra una modifica accanto a un'importazione modifica il record in OneUptime. Prima fai in modo che il piano mostri solo l'importazione.
+- **Lo stesso valore scritto in un altro modo non è una modifica.** OneUptime conserva un timestamp in UTC con i millisecondi, un numero come float a 64 bit, e il JSON e i passi di un monitor con le chiavi che compila da sé. Subito dopo un import, il plan di una configurazione che dice la stessa cosa a modo suo non mostra alcuna modifica.
 - **I segreti non vengono riletti.** Un segreto che OneUptime non restituisce mai, come il `secret_value` di un segreto del monitor, non è nello stato dopo un'importazione. Se la tua configurazione lo imposta, il primo piano lo mostra come una modifica, e applicarlo scrive di nuovo il segreto.
 - **Una configurazione per ogni record.** Un record importato in due configurazioni viene riportato, a ogni apply, a ciò che dice ciascuna di esse.
 - **I record importati sono record gestiti.** `terraform destroy` li elimina da OneUptime, come i record che Terraform ha creato.

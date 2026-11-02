@@ -26,9 +26,11 @@ resource "random_id" "suffix" {
 }
 
 locals {
-  # Same fixed start as main.tf; the end of the window moves out one hour.
+  # Same fixed start as main.tf, written with the milliseconds OneUptime
+  # keeps: the same instant, so no change to it. The end of the window moves
+  # out one hour.
   starts_at = "2030-06-01T10:00:00.000Z"
-  ends_at   = "2030-06-01T12:00:00.000Z"
+  ends_at   = "2030-06-01T12:00:00Z"
 }
 
 # Test Case 1: Basic Scheduled Maintenance

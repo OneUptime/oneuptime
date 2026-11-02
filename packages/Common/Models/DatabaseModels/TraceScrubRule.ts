@@ -11,6 +11,8 @@ import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import TraceScrubAction from "../../Types/Trace/TraceScrubAction";
+import TraceScrubPatternType from "../../Types/Trace/TraceScrubPatternType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import ListOrderColumn from "../../Types/Database/ListOrderColumn";
@@ -239,6 +241,7 @@ export default class TraceScrubRule extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(TraceScrubPatternType),
     canReadOnRelationQuery: true,
     title: "Pattern Type",
     description:
@@ -313,6 +316,7 @@ export default class TraceScrubRule extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(TraceScrubAction),
     canReadOnRelationQuery: true,
     title: "Scrub Action",
     description:

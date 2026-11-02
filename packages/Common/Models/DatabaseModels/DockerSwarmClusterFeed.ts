@@ -463,6 +463,7 @@ export default class DockerSwarmClusterFeed extends BaseModel {
   })
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(DockerSwarmClusterFeedEventType),
     required: true,
     title: "Docker Swarm Cluster Feed Event",
     description: "Docker Swarm Cluster Feed Event",

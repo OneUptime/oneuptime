@@ -30,6 +30,7 @@ Busque en la tabla de abajo el mensaje que imprimió Terraform, o lo que vio que
 | `has been renamed to` | Cambie el nombre del tipo de recurso, con un bloque `moved`: consulte [Un tipo de recurso renombrado](#un-tipo-de-recurso-renombrado) |
 | Un monitor creado con Terraform nunca muestra sus comprobaciones | Actualice OneUptime: consulte [Monitores creados antes de los ID de pasos](#monitores-creados-antes-de-los-id-de-pasos) |
 | `must contain at least 1 elements` | Omita el atributo en lugar de dejarlo vacío: consulte [Valores vacíos](#valores-vacíos) |
+| `Not an ID` | Haga referencia al registro en lugar de nombrarlo: consulte [Un nombre donde va un ID](#un-nombre-donde-va-un-id) |
 | JSON del panel en un archivo `.tf` | Escríbalo como HCL: consulte [JSON del panel](#json-del-panel) |
 | `no available releases match the given constraints` | Use un rango de versiones, no una sola versión exacta: consulte [Una versión que nunca se publicó](#una-versión-que-nunca-se-publicó) |
 | `x509: certificate signed by unknown authority` | Confíe en su autoridad de certificación: consulte [Certificados](#certificados) |
@@ -172,6 +173,16 @@ Attribute monitor_steps list must contain at least 1 elements, got: 0
 ```
 
 Omita en su lugar el atributo: un atributo que no está es un atributo no definido. [Pasos del monitor](/docs/terraform/monitor-steps) indica qué acepta cada parte.
+
+### Un nombre donde va un ID
+
+Un atributo que contiene el ID de otro registro, como `team_id` o los `labels` de un monitor, toma el ID de ese registro: un UUID. Un nombre o un slug ahí detiene el plan:
+
+```text
+"sre" is not the ID of a oneuptime_team: OneUptime IDs are UUIDs, such as 550e8400-e29b-41d4-a716-446655440000. Refer to the resource instead (oneuptime_team.<name>.id), or read the ID with the oneuptime_team data source.
+```
+
+Haga referencia al recurso del registro, como en `team_id = oneuptime_team.sre.id`, o lea el registro con una [fuente de datos](/docs/terraform/complete-guide#leer-lo-que-ya-existe). Si el atributo nombra a una persona, indique su dirección de correo electrónico en el atributo de al lado, como `user_email`.
 
 ### JSON del panel
 

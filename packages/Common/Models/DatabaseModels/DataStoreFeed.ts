@@ -433,6 +433,7 @@ export default class DataStoreFeed extends BaseModel {
   })
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(DataStoreFeedEventType),
     required: true,
     title: "Data Store Feed Event",
     description: "Data Store Feed Event",

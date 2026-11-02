@@ -67,6 +67,7 @@ class UserTotpAuth extends BaseModel {
     update: [],
   })
   @TableColumn({
+    secret: true,
     type: TableColumnType.VeryLongText,
     canReadOnRelationQuery: false,
     title: "TOTP Auth Secret",

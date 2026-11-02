@@ -414,6 +414,7 @@ export default class MetricSavedView extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(TelemetrySavedViewType),
     canReadOnRelationQuery: true,
     title: "View Type",
     description:

@@ -236,7 +236,8 @@ export default class StatusPageCustomField extends BaseModel {
     required: false,
     type: TableColumnType.CustomFieldType,
     title: "Custom Field Type",
-    description: "Is this field Text, Number or Boolean?",
+    description:
+      "What kind of value the field holds, such as Text, Number or Dropdown.",
   })
   @Column({
     nullable: true,
@@ -306,6 +307,7 @@ export default class StatusPageCustomField extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(CustomFieldMappingSourceResource),
     title: "Map Value From",
     description:
       "Related resource this field copies its value from. Empty means values are entered by hand.",

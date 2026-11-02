@@ -230,7 +230,7 @@ export default class DatabaseServerOwnerUser extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "User ID",
-    description: "ID of your OneUptime User in which this object belongs",
+    description: "ID of the user who owns the database",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -308,7 +308,7 @@ export default class DatabaseServerOwnerUser extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "Database ID",
-    description: "ID of your OneUptime Database in which this object belongs",
+    description: "ID of the database the user owns",
   })
   @Column({
     type: ColumnType.ObjectID,

@@ -1703,6 +1703,7 @@ export default class NetworkDevice extends BaseModel {
     ],
   })
   @TableColumn({
+    secret: true,
     required: false,
     type: TableColumnType.ShortText,
     title: "SNMP Community String",
@@ -1787,6 +1788,7 @@ export default class NetworkDevice extends BaseModel {
     ],
   })
   @TableColumn({
+    secret: true,
     type: TableColumnType.JSON,
     required: false,
     title: "SNMP v3 Authentication",
@@ -1953,6 +1955,7 @@ export default class NetworkDevice extends BaseModel {
     ],
   })
   @TableColumn({
+    secret: true,
     required: false,
     type: TableColumnType.LongText,
     title: "SNMP v3 Authentication Key",
@@ -2033,6 +2036,7 @@ export default class NetworkDevice extends BaseModel {
     ],
   })
   @TableColumn({
+    secret: true,
     required: false,
     type: TableColumnType.LongText,
     title: "SNMP v3 Privacy Key",
@@ -3526,8 +3530,7 @@ export default class NetworkDevice extends BaseModel {
     type: TableColumnType.EntityArray,
     modelType: Label,
     title: "Labels",
-    description:
-      "Relation to Labels Array where this object is categorized in.",
+    description: "Labels to group and filter by.",
   })
   @ManyToMany(
     () => {

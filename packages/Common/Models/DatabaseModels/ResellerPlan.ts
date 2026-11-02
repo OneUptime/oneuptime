@@ -132,6 +132,7 @@ export default class ResellerPlan extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(PlanType),
     canReadOnRelationQuery: true,
     title: "Plan Type",
     description: "Name of the Base Plan that the project should created with.",

@@ -232,6 +232,7 @@ export default class UserNotificationEmailRollupItem extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.LongText,
+    allowedValues: Object.values(NotificationSettingEventType),
     title: "Event Type",
     description: "The notification setting event type this email was sent for",
     example:
@@ -258,6 +259,7 @@ export default class UserNotificationEmailRollupItem extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(RollupCategory),
     title: "Rollup Category",
     description: "Category this notification is counted and grouped under",
     example: "incidents",

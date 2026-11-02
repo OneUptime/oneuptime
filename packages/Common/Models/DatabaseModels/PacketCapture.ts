@@ -417,6 +417,7 @@ export default class PacketCapture extends BaseModel {
     required: true,
     computed: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(PacketCaptureStatus),
     canReadOnRelationQuery: true,
     title: "Status",
     description:
