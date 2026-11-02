@@ -551,7 +551,9 @@
         "runnerIdLabel": "Runner-ID:",
         "runnerKeyLabel": "Runner-Schlüssel:",
         "commandLabel": "Auf deinem Docker-Host ausführen",
-        "neverConnected": "Nie verbunden"
+        "neverConnected": "Nie verbunden",
+        "takesNoCodeFixesOlderRelease": "Übernimmt keine KI-Codekorrekturen: Aktualisieren Sie ihn auf die Version dieses Servers.",
+        "takesNoCodeFixesTurnedOff": "Übernimmt keine KI-Codekorrekturen: Auf seinem Host ist ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false gesetzt."
       },
       "dataRetention": {
         "logCardTitle": "Monitor-Log-Aufbewahrung",

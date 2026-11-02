@@ -551,7 +551,9 @@
         "runnerIdLabel": "Runner ID：",
         "runnerKeyLabel": "Runner キー：",
         "commandLabel": "Docker ホストで実行",
-        "neverConnected": "未接続"
+        "neverConnected": "未接続",
+        "takesNoCodeFixesOlderRelease": "AI のコード修正を受け付けません。このサーバーのバージョンに更新してください。",
+        "takesNoCodeFixesTurnedOff": "AI のコード修正を受け付けません。ホストで ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false が設定されています。"
       },
       "dataRetention": {
         "logCardTitle": "モニターログ保持",

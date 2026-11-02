@@ -35,10 +35,10 @@ export interface GlobalRunnerRow extends RunnerPickerRunner {
   /*
    * Whether it takes AI code fixes, as the server counts it
    * (Common/Types/Runner/RunnerCodeFixes): not one of a release from before
-   * global Runners took them, nor one whose host turned them off. A server
-   * that does not say counts every one.
+   * global Runners took them, nor one whose host turned them off. Left out
+   * (a server that does not say), it takes them.
    */
-  takesCodeFixes: boolean;
+  takesCodeFixes?: boolean | undefined;
 }
 
 export interface RunnerChoices {
@@ -124,7 +124,7 @@ export default class RunnerChoicesLoader {
 
     const codeFixRunners: Array<GlobalRunnerRow> = globalRunners.filter(
       (runner: GlobalRunnerRow): boolean => {
-        return runner.takesCodeFixes;
+        return runner.takesCodeFixes !== false;
       },
     );
 

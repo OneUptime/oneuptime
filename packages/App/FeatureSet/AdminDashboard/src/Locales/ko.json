@@ -551,7 +551,9 @@
         "runnerIdLabel": "Runner ID:",
         "runnerKeyLabel": "Runner 키:",
         "commandLabel": "Docker 호스트에서 실행",
-        "neverConnected": "연결된 적 없음"
+        "neverConnected": "연결된 적 없음",
+        "takesNoCodeFixesOlderRelease": "AI 코드 수정을 받지 않습니다. 이 서버의 버전으로 업데이트하세요.",
+        "takesNoCodeFixesTurnedOff": "AI 코드 수정을 받지 않습니다. 호스트에 ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false가 설정되어 있습니다."
       },
       "dataRetention": {
         "logCardTitle": "모니터 로그 보존",

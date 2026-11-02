@@ -551,7 +551,9 @@
         "runnerIdLabel": "ID Runner-а:",
         "runnerKeyLabel": "Ключ Runner-а:",
         "commandLabel": "Выполните на вашем Docker-хосте",
-        "neverConnected": "Никогда не подключался"
+        "neverConnected": "Никогда не подключался",
+        "takesNoCodeFixesOlderRelease": "Не берёт исправления кода от ИИ: обновите его до версии этого сервера.",
+        "takesNoCodeFixesTurnedOff": "Не берёт исправления кода от ИИ: на его хосте задано ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false."
       },
       "dataRetention": {
         "logCardTitle": "Хранение логов мониторинга",

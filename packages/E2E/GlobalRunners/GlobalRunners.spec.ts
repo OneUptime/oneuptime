@@ -292,8 +292,9 @@ test.describe("Runbooks → Runners on a server that runs global Runners", () =>
     await expect(globalCard.getByTestId("row-actions-more-button")).toHaveCount(
       0,
     );
+    // What they run: JavaScript steps, and AI code fixes too (#5302).
     await expect(globalCard).toContainText(
-      "JavaScript steps run on them by default, in a sandbox that reaches the internet only.",
+      "By default they run JavaScript steps, in an internet-only sandbox, and AI code fixes.",
     );
     // One line across the card, as Global Probes' is.
     const descriptionLines: number = await globalCard

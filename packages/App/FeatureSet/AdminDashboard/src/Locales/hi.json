@@ -551,7 +551,9 @@
         "runnerIdLabel": "Runner आईडी:",
         "runnerKeyLabel": "Runner कुंजी:",
         "commandLabel": "अपने Docker होस्ट पर चलाएँ",
-        "neverConnected": "कभी कनेक्ट नहीं हुआ"
+        "neverConnected": "कभी कनेक्ट नहीं हुआ",
+        "takesNoCodeFixesOlderRelease": "AI कोड सुधार नहीं लेता: इसे इस सर्वर के वर्शन पर अपडेट करें।",
+        "takesNoCodeFixesTurnedOff": "AI कोड सुधार नहीं लेता: इसके होस्ट पर ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false सेट है।"
       },
       "dataRetention": {
         "logCardTitle": "मॉनिटर लॉग प्रतिधारण",

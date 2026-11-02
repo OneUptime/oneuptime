@@ -551,7 +551,9 @@
         "runnerIdLabel": "Runner-ID:",
         "runnerKeyLabel": "Runner-nyckel:",
         "commandLabel": "Kör på din Docker-värd",
-        "neverConnected": "Aldrig ansluten"
+        "neverConnected": "Aldrig ansluten",
+        "takesNoCodeFixesOlderRelease": "Tar inga AI-kodkorrigeringar: uppdatera den till den här serverns version.",
+        "takesNoCodeFixesTurnedOff": "Tar inga AI-kodkorrigeringar: ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false är satt på dess värd."
       },
       "dataRetention": {
         "logCardTitle": "Monitor-logg-bevarande",

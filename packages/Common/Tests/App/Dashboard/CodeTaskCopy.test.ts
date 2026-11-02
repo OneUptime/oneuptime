@@ -22,6 +22,7 @@ import {
   CODE_TASK_BLOCKER_WHO_CAN_FIX,
   CODE_TASK_REPOSITORY_SETTINGS_FIXES,
   CODE_TASK_RUNNER_NOT_ONLINE_NAMED,
+  CODE_TASK_RUNNER_TAKES_NO_CODE_FIXES_NAMED,
   CODE_TURN_FAILED,
   CODE_TASK_CONTEXT_KINDS,
   CODE_TASK_CONTEXT_MENU_ORDER,
@@ -355,6 +356,9 @@ describe("Code's words are complete", () => {
       CodeTaskBlockerType.NoAgent,
       CodeTaskBlockerType.RunnerNotOnline,
       CodeTaskBlockerType.GlobalRunnersOff,
+      // Runners online that take no AI code fixes: pick one that does.
+      CodeTaskBlockerType.GlobalRunnersTakeNoCodeFixes,
+      CodeTaskBlockerType.RunnerTakesNoCodeFixes,
       // A Git server only the project's own Runner reaches.
       CodeTaskBlockerType.RepositoryNeedsOwnRunner,
       // Replacing a token takes what connecting repositories takes.
@@ -383,6 +387,8 @@ describe("Code's words are complete", () => {
       CodeTaskBlockerType.NoAgent,
       CodeTaskBlockerType.RunnerNotOnline,
       CodeTaskBlockerType.GlobalRunnersOff,
+      CodeTaskBlockerType.GlobalRunnersTakeNoCodeFixes,
+      CodeTaskBlockerType.RunnerTakesNoCodeFixes,
       CodeTaskBlockerType.RepositoryNeedsOwnRunner,
     ]) {
       expect(CODE_TASK_BLOCKER_WHO_CAN_FIX[type]).toBe(
@@ -415,6 +421,29 @@ describe("Code's words are complete", () => {
     expect(CODE_TASK_RUNNER_NOT_ONLINE_NAMED.replace(", {{runner}},", "")).toBe(
       CODE_TASK_BLOCKER_SENTENCES[CodeTaskBlockerType.RunnerNotOnline],
     );
+  });
+
+  test("a Runner that takes no AI code fixes is said as that, named in the same words, never as one that is offline", () => {
+    expect(
+      CODE_TASK_RUNNER_TAKES_NO_CODE_FIXES_NAMED.replace(", {{runner}},", ""),
+    ).toBe(
+      CODE_TASK_BLOCKER_SENTENCES[CodeTaskBlockerType.RunnerTakesNoCodeFixes],
+    );
+    expect(CODE_TASK_RUNNER_TAKES_NO_CODE_FIXES_NAMED).toContain(
+      "ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false",
+    );
+
+    for (const sentence of [
+      CODE_TASK_BLOCKER_SENTENCES[CodeTaskBlockerType.RunnerTakesNoCodeFixes],
+      CODE_TASK_BLOCKER_SENTENCES[
+        CodeTaskBlockerType.GlobalRunnersTakeNoCodeFixes
+      ],
+      CODE_TASK_RUNNER_TAKES_NO_CODE_FIXES_NAMED,
+    ]) {
+      expect(sentence).toContain("AI code fixes");
+      expect(sentence).not.toContain("is not online");
+      expect(sentence).not.toContain("is online to work");
+    }
   });
 
   test("a failed turn is said in plain words, and the dialog's refusals are sentences", () => {

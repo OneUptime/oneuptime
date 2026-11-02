@@ -40160,5 +40160,15 @@
   "Records are found by a host name, an address, a URL, a cloud resource ID or a user's email.": "記錄可透過主機名稱、位址、URL、雲端資源 ID 或使用者的電子郵件找到。",
   "Searching your logs and traces…": "正在搜尋你的日誌和追蹤…",
   "Where the values it names appear in your logs and traces from {{start}} to {{end}}.": "{{start}} 至 {{end}} 期間，它指向的值在你的日誌和追蹤中出現的位置。",
-  "excluded values": "已排除的值"
+  "excluded values": "已排除的值",
+  "No global Runner on this server takes AI code fixes: pick one of your Runners for this repository.": "此伺服器上的全域 Runner 都不接受 AI 程式碼修正：請為此儲存庫選擇您自己的一個 Runner。",
+  "No global Runner online takes AI code fixes, so none can work in this repository. Pick one of your Runners for it, or ask your OneUptime administrator to let a global Runner take them.": "在線的全域 Runner 都不接受 AI 程式碼修正，因此沒有 Runner 能在此儲存庫中工作。請為它選擇您的某個 Runner，或請您的 OneUptime 管理員讓全域 Runner 接受 AI 程式碼修正。",
+  "None: no global Runner takes AI code fixes": "無：沒有接受 AI 程式碼修正的全域 Runner",
+  "Runners OneUptime runs for every project. By default they run JavaScript steps, in an internet-only sandbox, and AI code fixes.": "OneUptime 為所有專案執行的 Runner。預設情況下，它們在只能連到網際網路的沙箱中執行 JavaScript 步驟，並負責 AI 程式碼修正。",
+  "Runners OneUptime runs for every project. JavaScript steps and AI code fixes run on them when you pick Global Runner.": "OneUptime 為所有專案執行的 Runner。選擇全域 Runner 時，JavaScript 步驟和 AI 程式碼修正會在其上執行。",
+  "Takes AI Code Fixes": "接受 AI 程式碼修正",
+  "Takes no AI code fixes: its host turned them off.": "不接受 AI 程式碼修正：它的主機已將其關閉。",
+  "The Runner this repository works on does not take AI code fixes: ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false is set on its host. Remove that setting and restart the Runner, or pick another Runner.": "此儲存庫所用的 Runner 不接受 AI 程式碼修正：它的主機上設定了 ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false。請移除該設定並重新啟動 Runner，或選擇其他 Runner。",
+  "The Runner this repository works on, {{runner}}, does not take AI code fixes: ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false is set on its host. Remove that setting and restart the Runner, or pick another Runner.": "此儲存庫所用的 Runner（{{runner}}）不接受 AI 程式碼修正：它的主機上設定了 ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false。請移除該設定並重新啟動 Runner，或選擇其他 Runner。",
+  "This Runner takes no AI code fixes: ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false is set on its host. Remove that setting and restart the Runner, or pick another Runner.": "此 Runner 不接受 AI 程式碼修正：它的主機上設定了 ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false。請移除該設定並重新啟動 Runner，或選擇其他 Runner。"
 }

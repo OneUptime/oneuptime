@@ -43,7 +43,7 @@ export const NO_GLOBAL_RUNNER_ONLINE_DETAIL: string =
  * change them.
  */
 export const GLOBAL_RUNNERS_TAKE_NO_CODE_FIXES_DETAIL: string =
-  "No global Runner online takes AI code fixes: each runs an older release or has code fixes turned off. Pick one of your Runners for this repository in its settings in Code, or ask your OneUptime administrator to let a global Runner take them.";
+  "No global Runner online takes AI code fixes, so none can work in this repository: each runs an older release or has code fixes turned off. Pick one of your Runners for it in the repository's settings in Code, or ask your OneUptime administrator to let a global Runner take them.";
 
 /*
  * The Runner a repository works on is online, but its host turned AI code

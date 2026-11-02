@@ -40160,5 +40160,15 @@
   "Records are found by a host name, an address, a URL, a cloud resource ID or a user's email.": "Poster hittas med ett värdnamn, en adress, en URL, ett molnresurs-ID eller en användares e-postadress.",
   "Searching your logs and traces…": "Söker i dina loggar och spår…",
   "Where the values it names appear in your logs and traces from {{start}} to {{end}}.": "Var värdena som den nämner förekommer i dina loggar och spår från {{start}} till {{end}}.",
-  "excluded values": "exkluderade värden"
+  "excluded values": "exkluderade värden",
+  "No global Runner on this server takes AI code fixes: pick one of your Runners for this repository.": "Ingen global Runner på den här servern tar AI-kodkorrigeringar: välj en av dina Runners för det här arkivet.",
+  "No global Runner online takes AI code fixes, so none can work in this repository. Pick one of your Runners for it, or ask your OneUptime administrator to let a global Runner take them.": "Ingen global Runner som är online tar AI-kodkorrigeringar, så ingen kan arbeta i det här arkivet. Välj en av dina Runners för det, eller be din OneUptime-administratör att låta en global Runner ta dem.",
+  "None: no global Runner takes AI code fixes": "Ingen: ingen global Runner tar AI-kodkorrigeringar",
+  "Runners OneUptime runs for every project. By default they run JavaScript steps, in an internet-only sandbox, and AI code fixes.": "Runners som OneUptime kör för alla projekt. Som standard kör de JavaScript-steg, i en sandlåda som bara når internet, och AI-kodkorrigeringar.",
+  "Runners OneUptime runs for every project. JavaScript steps and AI code fixes run on them when you pick Global Runner.": "Runners som OneUptime kör för alla projekt. JavaScript-steg och AI-kodkorrigeringar körs på dem när du väljer Global Runner.",
+  "Takes AI Code Fixes": "Tar AI-kodkorrigeringar",
+  "Takes no AI code fixes: its host turned them off.": "Tar inte AI-kodkorrigeringar: dess värd har stängt av dem.",
+  "The Runner this repository works on does not take AI code fixes: ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false is set on its host. Remove that setting and restart the Runner, or pick another Runner.": "Den Runner som det här arkivet arbetar på tar inte AI-kodkorrigeringar: ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false är satt på dess värd. Ta bort den inställningen och starta om Runnern, eller välj en annan Runner.",
+  "The Runner this repository works on, {{runner}}, does not take AI code fixes: ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false is set on its host. Remove that setting and restart the Runner, or pick another Runner.": "Den Runner som det här arkivet arbetar på, {{runner}}, tar inte AI-kodkorrigeringar: ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false är satt på dess värd. Ta bort den inställningen och starta om Runnern, eller välj en annan Runner.",
+  "This Runner takes no AI code fixes: ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false is set on its host. Remove that setting and restart the Runner, or pick another Runner.": "Den här Runnern tar inte AI-kodkorrigeringar: ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false är satt på dess värd. Ta bort den inställningen och starta om Runnern, eller välj en annan Runner."
 }

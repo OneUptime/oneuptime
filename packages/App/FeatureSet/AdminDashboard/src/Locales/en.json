@@ -551,7 +551,9 @@
         "runnerIdLabel": "Runner ID:",
         "runnerKeyLabel": "Runner Key:",
         "commandLabel": "Run on your Docker host",
-        "neverConnected": "Never connected"
+        "neverConnected": "Never connected",
+        "takesNoCodeFixesOlderRelease": "Takes no AI code fixes: update it to this server's version.",
+        "takesNoCodeFixesTurnedOff": "Takes no AI code fixes: ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false is set on its host."
       },
       "dataRetention": {
         "logCardTitle": "Monitor Log Retention",

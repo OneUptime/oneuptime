@@ -4,9 +4,11 @@ import CodeRepositoryService from "../../../../Server/Services/CodeRepositorySer
 import CodeRepositoryRunnerChoice from "../../../../Server/Utils/AI/CodeFix/CodeRepositoryRunnerChoice";
 import {
   GLOBAL_RUNNERS_OFF_FOR_REPOSITORY_DETAIL,
+  GLOBAL_RUNNERS_TAKE_NO_CODE_FIXES_DETAIL,
   NO_GLOBAL_RUNNER_ONLINE_DETAIL,
   NO_RUNNER_ONLINE_FOR_PROJECT_DETAIL,
   getRepositoryRunnerOfflineDetail,
+  getRepositoryRunnerTakesNoCodeFixesDetail,
 } from "../../../../Server/Utils/AI/CodeFix/CodeFixReadiness";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import CodeRepository from "../../../../Models/DatabaseModels/CodeRepository";
@@ -199,6 +201,59 @@ describe("CodeFixRunQueue.failOrphanedQueuedRuns", () => {
       CodeFixRunQueue.getOrphanedRunMessage(NO_GLOBAL_RUNNER_ONLINE_DETAIL),
       CodeFixRunQueue.getOrphanedRunMessage(
         GLOBAL_RUNNERS_OFF_FOR_REPOSITORY_DETAIL,
+      ),
+    ]);
+  });
+
+  /*
+   * Runners online that take no AI code fixes never take the run, so it is
+   * failed after the wait, saying so - before, it sat Queued forever, the
+   * Runner counted as online.
+   */
+  test("a run waiting on Runners that are online but take no AI code fixes fails, saying so - the global ones, or the repository's own", async () => {
+    const projectId: ObjectID = ObjectID.generate();
+    const onGlobal: ObjectID = ObjectID.generate();
+    const onOwn: ObjectID = ObjectID.generate();
+    const runnerId: ObjectID = ObjectID.generate();
+
+    jest.spyOn(AIRunService, "findBy").mockResolvedValue([
+      { id: ObjectID.generate(), projectId, codeRepositoryId: onGlobal },
+      { id: ObjectID.generate(), projectId, codeRepositoryId: onOwn },
+    ] as unknown as Array<AIRun>);
+    mockRepositories([{ id: onGlobal }, { id: onOwn, runnerId }]);
+    jest
+      .spyOn(CodeRepositoryRunnerChoice, "getStatusForRepository")
+      .mockResolvedValueOnce({
+        decision: { kind: CodeRepositoryRunnerChoiceKind.Global },
+        isOnline: false,
+        takesNoCodeFixes: true,
+      })
+      .mockResolvedValueOnce({
+        decision: {
+          kind: CodeRepositoryRunnerChoiceKind.Custom,
+          runnerId: runnerId.toString(),
+        },
+        isOnline: false,
+        takesNoCodeFixes: true,
+        runnerName: "office-runner",
+      });
+    const transition: jest.SpyInstance = jest
+      .spyOn(AIRunService, "attemptStatusTransition")
+      .mockResolvedValue(1);
+
+    await CodeFixRunQueue.failOrphanedQueuedRuns();
+
+    const messages: Array<string> = transition.mock.calls.map(
+      (call: Array<unknown>): string => {
+        return (call[0] as { set: { errorMessage: string } }).set.errorMessage;
+      },
+    );
+    expect(messages).toEqual([
+      CodeFixRunQueue.getOrphanedRunMessage(
+        GLOBAL_RUNNERS_TAKE_NO_CODE_FIXES_DETAIL,
+      ),
+      CodeFixRunQueue.getOrphanedRunMessage(
+        getRepositoryRunnerTakesNoCodeFixesDetail("office-runner"),
       ),
     ]);
   });

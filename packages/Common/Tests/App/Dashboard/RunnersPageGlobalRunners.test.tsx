@@ -18,6 +18,8 @@ import {
 } from "@testing-library/react";
 import React from "react";
 import { MemoryRouter } from "react-router-dom";
+import fs from "fs";
+import path from "path";
 
 jest.mock("react-i18next", () => {
   return {
@@ -462,6 +464,73 @@ describe("Runbooks -> Runners, on a server with global Runners", () => {
       GlobalRunnersCopy.globalCardDescription,
     );
   });
+
+  /*
+   * Global Runners take the AI code fixes of every code repository on the
+   * Global Runner too (#5302): the card says so beside the JavaScript
+   * steps, in the same one line - with the project's default Runner too,
+   * when both run on them only where Global Runner is picked.
+   */
+  test("the global card says global Runners also do the AI code fixes, with or without a default Runner", () => {
+    for (const description of [
+      GlobalRunnersCopy.globalCardDescription,
+      GlobalRunnersCopy.globalCardDescriptionWithDefault,
+    ]) {
+      expect(description).toContain("JavaScript steps");
+      expect(description).toContain("AI code fixes");
+      expect(description.length).toBeLessThanOrEqual(130);
+    }
+
+    expect(GlobalRunnersCopy.globalCardDescription).toContain("By default");
+    expect(GlobalRunnersCopy.globalCardDescriptionWithDefault).toContain(
+      "when you pick Global Runner",
+    );
+    // A project that does not use them is told where its code runs instead.
+    expect(GlobalRunnersCopy.globalCardDescriptionWhenOff).toContain(
+      "code repositories",
+    );
+  });
+
+  test.each([
+    "de",
+    "fr",
+    "es",
+    "it",
+    "pt",
+    "nl",
+    "da",
+    "no",
+    "sv",
+    "ru",
+    "ja",
+    "ko",
+    "zh-CN",
+    "zh-TW",
+    "hi",
+    "fa",
+  ])(
+    "%s words what the global card says about code fixes",
+    (language: string) => {
+      const words: Record<string, string> = JSON.parse(
+        fs.readFileSync(
+          path.resolve(
+            __dirname,
+            `../../../../App/FeatureSet/Dashboard/src/Locales/${language}.json`,
+          ),
+          "utf8",
+        ),
+      ) as Record<string, string>;
+
+      for (const description of [
+        GlobalRunnersCopy.globalCardDescription,
+        GlobalRunnersCopy.globalCardDescriptionWithDefault,
+      ]) {
+        expect(words[description]).toBeTruthy();
+        expect(words[description]).not.toBe(description);
+        expect(words[description]).toContain("JavaScript");
+      }
+    },
+  );
 
   test("turning it off asks first, with a red button, then saves and says so on the global card", async () => {
     openRunnersPage();

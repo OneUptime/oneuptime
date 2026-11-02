@@ -551,7 +551,9 @@
         "runnerIdLabel": "ID de l'agent Runbook :",
         "runnerKeyLabel": "Clé de l'agent Runbook :",
         "commandLabel": "À exécuter sur votre hôte Docker",
-        "neverConnected": "Jamais connecté"
+        "neverConnected": "Jamais connecté",
+        "takesNoCodeFixesOlderRelease": "Ne prend pas les corrections de code par IA : mettez-le à jour vers la version de ce serveur.",
+        "takesNoCodeFixesTurnedOff": "Ne prend pas les corrections de code par IA : ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false est défini sur son hôte."
       },
       "dataRetention": {
         "logCardTitle": "Rétention des journaux de surveillance",

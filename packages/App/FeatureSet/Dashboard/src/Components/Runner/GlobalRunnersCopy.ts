@@ -16,10 +16,16 @@ import { GLOBAL_RUNNER_MAX_EXECUTION_TIMEOUT_IN_MS } from "Common/Types/Runner/G
 
 export const GlobalRunnersCopy: {
   globalCardTitle: string;
+  /*
+   * What global Runners run for the project: its JavaScript steps, and the
+   * AI code fixes of its code repositories, that pick no Runner of the
+   * project's own (Common/Types/Runner/GlobalRunnerWork).
+   */
   globalCardDescription: string;
   /*
-   * When the project has a default Runner: steps that pick no Runner run on
-   * it, so a global Runner runs the ones that pick Global Runner.
+   * When the project has a default Runner: steps and code repositories that
+   * pick no Runner run on it, so a global Runner runs the ones that pick
+   * Global Runner.
    */
   globalCardDescriptionWithDefault: string;
   // When the project turned global Runners off.
@@ -73,10 +79,10 @@ export const GlobalRunnersCopy: {
   globalCardTitle: translationKey("Global Runners"),
   // One line across the card, as Global Probes' is.
   globalCardDescription: translationKey(
-    "Runners OneUptime runs for every project. JavaScript steps run on them by default, in a sandbox that reaches the internet only.",
+    "Runners OneUptime runs for every project. By default they run JavaScript steps, in an internet-only sandbox, and AI code fixes.",
   ),
   globalCardDescriptionWithDefault: translationKey(
-    "Runners OneUptime runs for every project. Steps that pick Global Runner run on them, in a sandbox that reaches the internet only.",
+    "Runners OneUptime runs for every project. JavaScript steps and AI code fixes run on them when you pick Global Runner.",
   ),
   globalCardDescriptionWhenOff: translationKey(
     "Runners OneUptime runs for every project. This project does not use them, so steps and code repositories run on yours.",

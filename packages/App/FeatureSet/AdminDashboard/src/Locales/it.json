@@ -551,7 +551,9 @@
         "runnerIdLabel": "ID del Runner:",
         "runnerKeyLabel": "Chiave del Runner:",
         "commandLabel": "Da eseguire sul tuo host Docker",
-        "neverConnected": "Mai connesso"
+        "neverConnected": "Mai connesso",
+        "takesNoCodeFixesOlderRelease": "Non accetta correzioni di codice con l'IA: aggiornalo alla versione di questo server.",
+        "takesNoCodeFixesTurnedOff": "Non accetta correzioni di codice con l'IA: sul suo host è impostato ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false."
       },
       "dataRetention": {
         "logCardTitle": "Conservazione dei log di monitoraggio",

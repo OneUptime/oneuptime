@@ -551,7 +551,9 @@
         "runnerIdLabel": "شناسه Runner:",
         "runnerKeyLabel": "کلید Runner:",
         "commandLabel": "روی میزبان Docker خود اجرا کنید",
-        "neverConnected": "هرگز متصل نشده"
+        "neverConnected": "هرگز متصل نشده",
+        "takesNoCodeFixesOlderRelease": "اصلاح‌های کد هوش مصنوعی را نمی‌پذیرد: آن را به نسخه این سرور به‌روز کنید.",
+        "takesNoCodeFixesTurnedOff": "اصلاح‌های کد هوش مصنوعی را نمی‌پذیرد: روی میزبان آن ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false تنظیم شده است."
       },
       "dataRetention": {
         "logCardTitle": "نگهداری لاگ مانیتور",

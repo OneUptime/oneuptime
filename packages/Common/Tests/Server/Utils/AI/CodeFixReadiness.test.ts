@@ -1,11 +1,15 @@
 import CodeFixReadiness, {
   CODE_FIX_AI_CREDITS_USED_UP_DETAIL,
   GLOBAL_RUNNERS_OFF_FOR_REPOSITORY_DETAIL,
+  GLOBAL_RUNNERS_TAKE_NO_CODE_FIXES_DETAIL,
   NO_GLOBAL_RUNNER_ONLINE_DETAIL,
   NO_RUNNER_ONLINE_FOR_PROJECT_DETAIL,
   describeRepositoryRunnerStatus,
+  getProjectDefaultRunnerOfflineDetail,
+  getProjectDefaultRunnerTakesNoCodeFixesDetail,
   getRepositoryRunnerBlocker,
   getRepositoryRunnerOfflineDetail,
+  getRepositoryRunnerTakesNoCodeFixesDetail,
 } from "../../../../Server/Utils/AI/CodeFix/CodeFixReadiness";
 import CodeRepositoryRunnerChoice from "../../../../Server/Utils/AI/CodeFix/CodeRepositoryRunnerChoice";
 import SubjectCodeFixRun from "../../../../Server/Utils/AI/SRE/SubjectCodeFixRun";
@@ -433,6 +437,28 @@ describe("CodeFixReadiness.getAgentCheck", () => {
       },
       GLOBAL_RUNNERS_OFF_FOR_REPOSITORY_DETAIL,
     ],
+    [
+      "global Runners online take no AI code fixes",
+      {
+        decision: { kind: CodeRepositoryRunnerChoiceKind.Global },
+        isOnline: false,
+        takesNoCodeFixes: true,
+      },
+      GLOBAL_RUNNERS_TAKE_NO_CODE_FIXES_DETAIL,
+    ],
+    [
+      "own Runner's host turned AI code fixes off",
+      {
+        decision: {
+          kind: CodeRepositoryRunnerChoiceKind.Custom,
+          runnerId: RUNNER_ID,
+        },
+        isOnline: false,
+        takesNoCodeFixes: true,
+        runnerName: "prod-runner",
+      },
+      getRepositoryRunnerTakesNoCodeFixesDetail("prod-runner"),
+    ],
   ])(
     "a repository whose %s: not ready, saying why",
     async (_why: string, status: unknown, detail: string) => {
@@ -448,8 +474,43 @@ describe("CodeFixReadiness.getAgentCheck", () => {
       expect(check.ok).toBe(false);
       expect(check.title).toBe("Runner online");
       expect(check.detail).toBe(detail);
+      // Code's own blocker rides along, in the same words.
+      expect(check.blocker).toEqual(
+        getRepositoryRunnerBlocker(status as never),
+      );
+      expect(check.blocker?.message).toBe(detail);
     },
   );
+
+  test("a check that passes, or one about no repository yet, carries no blocker", async () => {
+    jest
+      .spyOn(CodeRepositoryRunnerChoice, "getStatusForRepository")
+      .mockResolvedValue({
+        decision: { kind: CodeRepositoryRunnerChoiceKind.Global },
+        isOnline: true,
+      });
+
+    expect(
+      (
+        await CodeFixReadiness.getAgentCheck({
+          projectId,
+          repository: {
+            projectId,
+            runnerId: null,
+            isGlobalRunnerPicked: null,
+          },
+        })
+      ).blocker,
+    ).toBeUndefined();
+
+    jest
+      .spyOn(CodeRepositoryRunnerChoice, "isAnyRunnerOnlineForProject")
+      .mockResolvedValue(false);
+
+    expect(
+      (await CodeFixReadiness.getAgentCheck({ projectId })).blocker,
+    ).toBeUndefined();
+  });
 });
 
 describe("why nothing can do a repository's work, in words and as Code's blocker", () => {
@@ -463,11 +524,104 @@ describe("why nothing can do a repository's work, in words and as Code's blocker
     );
   });
 
+  test("a Runner that is online but whose host turned AI code fixes off is named, with the setting and what to do", () => {
+    expect(getRepositoryRunnerTakesNoCodeFixesDetail("prod-runner")).toBe(
+      'The Runner "prod-runner" this repository picks does not take AI code fixes: ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false is set on its host. Remove that setting and restart the Runner, or pick another Runner in the repository\'s settings in Code.',
+    );
+    expect(getRepositoryRunnerTakesNoCodeFixesDetail(undefined)).toBe(
+      "The Runner this repository picks does not take AI code fixes: ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false is set on its host. Remove that setting and restart the Runner, or pick another Runner in the repository's settings in Code.",
+    );
+    expect(getProjectDefaultRunnerTakesNoCodeFixesDetail("build-box")).toBe(
+      "The project's default Runner, \"build-box\", which this repository works on, does not take AI code fixes: ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false is set on its host. Remove that setting and restart the Runner, or pick another Runner in the repository's settings in Code.",
+    );
+    expect(getProjectDefaultRunnerTakesNoCodeFixesDetail(undefined)).toBe(
+      "The project's default Runner, which this repository works on, does not take AI code fixes: ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false is set on its host. Remove that setting and restart the Runner, or pick another Runner in the repository's settings in Code.",
+    );
+  });
+
+  /*
+   * Global Runners online that take no code fixes are online: the Runners
+   * page shows them connected. Saying none is online would send people to
+   * check containers that are running.
+   */
+  test("global Runners online that take no AI code fixes are not called offline, and the way out is named", () => {
+    expect(GLOBAL_RUNNERS_TAKE_NO_CODE_FIXES_DETAIL).toBe(
+      "No global Runner online takes AI code fixes, so none can work in this repository: each runs an older release or has code fixes turned off. Pick one of your Runners for it in the repository's settings in Code, or ask your OneUptime administrator to let a global Runner take them.",
+    );
+    expect(GLOBAL_RUNNERS_TAKE_NO_CODE_FIXES_DETAIL).not.toBe(
+      NO_GLOBAL_RUNNER_ONLINE_DETAIL,
+    );
+    expect(GLOBAL_RUNNERS_TAKE_NO_CODE_FIXES_DETAIL).not.toContain(
+      "is online to",
+    );
+  });
+
+  test("each kind of Runner that takes no code fixes is its own sentence, never the offline one", () => {
+    const runnerId: string = "0a1b2c3d-1111-4222-8333-944455556666";
+
+    expect(
+      describeRepositoryRunnerStatus({
+        decision: { kind: CodeRepositoryRunnerChoiceKind.Custom, runnerId },
+        isOnline: false,
+        takesNoCodeFixes: true,
+        runnerName: "prod-runner",
+      }),
+    ).toBe(getRepositoryRunnerTakesNoCodeFixesDetail("prod-runner"));
+    expect(
+      describeRepositoryRunnerStatus({
+        decision: {
+          kind: CodeRepositoryRunnerChoiceKind.ProjectDefault,
+          runnerId,
+        },
+        isOnline: false,
+        takesNoCodeFixes: true,
+        runnerName: "build-box",
+      }),
+    ).toBe(getProjectDefaultRunnerTakesNoCodeFixesDetail("build-box"));
+    expect(
+      describeRepositoryRunnerStatus({
+        decision: { kind: CodeRepositoryRunnerChoiceKind.Global },
+        isOnline: false,
+        takesNoCodeFixes: true,
+      }),
+    ).toBe(GLOBAL_RUNNERS_TAKE_NO_CODE_FIXES_DETAIL);
+
+    // Without it, each is the offline sentence it always was.
+    expect(
+      describeRepositoryRunnerStatus({
+        decision: {
+          kind: CodeRepositoryRunnerChoiceKind.ProjectDefault,
+          runnerId,
+        },
+        isOnline: false,
+        runnerName: "build-box",
+      }),
+    ).toBe(getProjectDefaultRunnerOfflineDetail("build-box"));
+    expect(
+      describeRepositoryRunnerStatus({
+        decision: { kind: CodeRepositoryRunnerChoiceKind.Global },
+        isOnline: false,
+      }),
+    ).toBe(NO_GLOBAL_RUNNER_ONLINE_DETAIL);
+
+    // Online wins: no reason at all.
+    expect(
+      describeRepositoryRunnerStatus({
+        decision: { kind: CodeRepositoryRunnerChoiceKind.Global },
+        isOnline: true,
+        takesNoCodeFixes: true,
+      }),
+    ).toBeNull();
+  });
+
   test("each says where the Runner is picked: the repository's settings in Code", () => {
     for (const detail of [
       NO_GLOBAL_RUNNER_ONLINE_DETAIL,
       GLOBAL_RUNNERS_OFF_FOR_REPOSITORY_DETAIL,
+      GLOBAL_RUNNERS_TAKE_NO_CODE_FIXES_DETAIL,
       getRepositoryRunnerOfflineDetail("x"),
+      getRepositoryRunnerTakesNoCodeFixesDetail("x"),
+      getProjectDefaultRunnerTakesNoCodeFixesDetail("x"),
     ]) {
       expect(detail).toContain("repository's settings in Code");
       // Never the switch Runners no longer have.
@@ -535,6 +689,63 @@ describe("why nothing can do a repository's work, in words and as Code's blocker
     ).toEqual({
       type: CodeTaskBlockerType.GlobalRunnersOff,
       message: GLOBAL_RUNNERS_OFF_FOR_REPOSITORY_DETAIL,
+    });
+  });
+
+  test("a Runner that is online but takes no AI code fixes is a blocker of its own: named for one of the project's, unnamed for the global ones", () => {
+    const runnerId: string = "0a1b2c3d-1111-4222-8333-944455556666";
+
+    expect(
+      getRepositoryRunnerBlocker({
+        decision: { kind: CodeRepositoryRunnerChoiceKind.Custom, runnerId },
+        isOnline: false,
+        takesNoCodeFixes: true,
+        runnerName: "prod-runner",
+      }),
+    ).toEqual({
+      type: CodeTaskBlockerType.RunnerTakesNoCodeFixes,
+      message: getRepositoryRunnerTakesNoCodeFixesDetail("prod-runner"),
+      runnerName: "prod-runner",
+    });
+    expect(
+      getRepositoryRunnerBlocker({
+        decision: {
+          kind: CodeRepositoryRunnerChoiceKind.ProjectDefault,
+          runnerId,
+        },
+        isOnline: false,
+        takesNoCodeFixes: true,
+        runnerName: "build-box",
+      }),
+    ).toEqual({
+      type: CodeTaskBlockerType.RunnerTakesNoCodeFixes,
+      message: getProjectDefaultRunnerTakesNoCodeFixesDetail("build-box"),
+      runnerName: "build-box",
+    });
+    expect(
+      getRepositoryRunnerBlocker({
+        decision: { kind: CodeRepositoryRunnerChoiceKind.Global },
+        isOnline: false,
+        takesNoCodeFixes: true,
+      }),
+    ).toEqual({
+      type: CodeTaskBlockerType.GlobalRunnersTakeNoCodeFixes,
+      message: GLOBAL_RUNNERS_TAKE_NO_CODE_FIXES_DETAIL,
+    });
+    // The default Runner a repository follows is named while offline too.
+    expect(
+      getRepositoryRunnerBlocker({
+        decision: {
+          kind: CodeRepositoryRunnerChoiceKind.ProjectDefault,
+          runnerId,
+        },
+        isOnline: false,
+        runnerName: "build-box",
+      }),
+    ).toEqual({
+      type: CodeTaskBlockerType.RunnerNotOnline,
+      message: getProjectDefaultRunnerOfflineDetail("build-box"),
+      runnerName: "build-box",
     });
   });
 });

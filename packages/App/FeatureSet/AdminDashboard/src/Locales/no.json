@@ -551,7 +551,9 @@
         "runnerIdLabel": "Runner-ID:",
         "runnerKeyLabel": "Runner-nøkkel:",
         "commandLabel": "Kjør på Docker-verten din",
-        "neverConnected": "Aldri tilkoblet"
+        "neverConnected": "Aldri tilkoblet",
+        "takesNoCodeFixesOlderRelease": "Tar ingen AI-koderettinger: oppdater den til versjonen til denne serveren.",
+        "takesNoCodeFixesTurnedOff": "Tar ingen AI-koderettinger: ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false er satt på verten dens."
       },
       "dataRetention": {
         "logCardTitle": "Monitor-logg-oppbevaring",

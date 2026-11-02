@@ -551,7 +551,9 @@
         "runnerIdLabel": "Runner ID:",
         "runnerKeyLabel": "Runner 金鑰:",
         "commandLabel": "在你的 Docker 主機上執行",
-        "neverConnected": "從未連線"
+        "neverConnected": "從未連線",
+        "takesNoCodeFixesOlderRelease": "不接受 AI 程式碼修正：請將其更新至此伺服器的版本。",
+        "takesNoCodeFixesTurnedOff": "不接受 AI 程式碼修正：它的主機上設定了 ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false。"
       },
       "dataRetention": {
         "logCardTitle": "監視器日誌保留",

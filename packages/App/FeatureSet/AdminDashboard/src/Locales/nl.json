@@ -551,7 +551,9 @@
         "runnerIdLabel": "Runner-ID:",
         "runnerKeyLabel": "Runner-sleutel:",
         "commandLabel": "Uitvoeren op je Docker-host",
-        "neverConnected": "Nooit verbonden"
+        "neverConnected": "Nooit verbonden",
+        "takesNoCodeFixesOlderRelease": "Neemt geen AI-codecorrecties aan: werk hem bij naar de versie van deze server.",
+        "takesNoCodeFixesTurnedOff": "Neemt geen AI-codecorrecties aan: op zijn host staat ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false."
       },
       "dataRetention": {
         "logCardTitle": "Monitor-log-bewaring",

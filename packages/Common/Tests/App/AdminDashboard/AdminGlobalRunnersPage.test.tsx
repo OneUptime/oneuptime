@@ -98,7 +98,9 @@ jest.mock("../../../UI/Utils/API/API", () => {
   };
 });
 
-import SettingsGlobalRunners from "../../../../App/FeatureSet/AdminDashboard/src/Pages/Settings/GlobalRunners/Index";
+import SettingsGlobalRunners, {
+  GLOBAL_RUNNER_TAKES_NO_CODE_FIXES_TEST_ID,
+} from "../../../../App/FeatureSet/AdminDashboard/src/Pages/Settings/GlobalRunners/Index";
 import PageMap from "../../../../App/FeatureSet/AdminDashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/AdminDashboard/src/Utils/RouteMap";
 import { ADMIN_GLOBAL_RUNNERS_ROUTE } from "../../../../App/FeatureSet/Dashboard/src/Components/Runner/GlobalRunnersCopy";
@@ -112,6 +114,7 @@ import {
   getGlobalRunnerDockerCommand,
 } from "../../../Types/Runner/RunnerContainer";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import Version from "../../../Types/Version";
 
 const RUNNER_ID: string = "99999999-0000-4000-8000-000000000001";
 const RUNNER_KEY: string = "global-runner-key";
@@ -119,6 +122,7 @@ const RUNNER_KEY: string = "global-runner-key";
 interface ListCall {
   modelType: unknown;
   query: Record<string, unknown>;
+  select: Record<string, unknown>;
 }
 
 let rows: Array<Runner> = [];
@@ -222,6 +226,113 @@ describe("Admin Dashboard -> Settings -> Global Runners", () => {
     expect(
       await screen.findByText(translate("common.connected")),
     ).toBeInTheDocument();
+  });
+
+  /*
+   * A project whose repositories are on the Global Runner is told when no
+   * global Runner online takes AI code fixes, and to ask its administrator:
+   * this is where the administrator sees which global Runner takes none,
+   * and why - an older release, or a host that turned them off.
+   */
+  describe("a global Runner that takes no AI code fixes says so under its status", () => {
+    function withCodeFixes(data: {
+      takesCodeFixes?: boolean | undefined;
+      agentVersion: string;
+      lastAlive?: Date | undefined;
+    }): Runner {
+      const runner: Runner = globalRunner(data.lastAlive);
+      runner.agentVersion = new Version(data.agentVersion);
+      if (data.takesCodeFixes !== undefined) {
+        runner.takesCodeFixes = data.takesCodeFixes;
+      }
+      return runner;
+    }
+
+    test("reads what each said, and its release", async () => {
+      await renderPage();
+
+      expect(listCalls[0]!.select).toEqual(
+        expect.objectContaining({ takesCodeFixes: true, agentVersion: true }),
+      );
+    });
+
+    test("one whose host turned them off: the setting that does it", async () => {
+      rows = [
+        withCodeFixes({
+          takesCodeFixes: false,
+          agentVersion: "14.0.102",
+          lastAlive: new Date(),
+        }),
+      ];
+
+      await renderPage();
+
+      const line: HTMLElement = await screen.findByTestId(
+        GLOBAL_RUNNER_TAKES_NO_CODE_FIXES_TEST_ID,
+      );
+
+      expect(line).toHaveTextContent(
+        translate("pages.settings.globalRunners.takesNoCodeFixesTurnedOff"),
+      );
+      expect(line).toHaveTextContent(
+        "ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false",
+      );
+      expect(line.className).toContain("text-amber-700");
+      // Still connected: it runs JavaScript steps.
+      expect(document.body).toHaveTextContent(translate("common.connected"));
+    });
+
+    test("one of a release from before global Runners took them: update it", async () => {
+      rows = [
+        withCodeFixes({ agentVersion: "14.0.93", lastAlive: new Date() }),
+      ];
+
+      await renderPage();
+
+      expect(
+        await screen.findByTestId(GLOBAL_RUNNER_TAKES_NO_CODE_FIXES_TEST_ID),
+      ).toHaveTextContent(
+        translate("pages.settings.globalRunners.takesNoCodeFixesOlderRelease"),
+      );
+    });
+
+    test("one that takes them, one of a release that does and says nothing, and one never started: nothing more", async () => {
+      rows = [
+        withCodeFixes({
+          takesCodeFixes: true,
+          agentVersion: "14.0.102",
+          lastAlive: new Date(),
+        }),
+      ];
+      await renderPage();
+      await screen.findByText(translate("common.connected"));
+      expect(
+        screen.queryByTestId(GLOBAL_RUNNER_TAKES_NO_CODE_FIXES_TEST_ID),
+      ).toBeNull();
+      cleanup();
+
+      rows = [
+        withCodeFixes({ agentVersion: "14.0.94", lastAlive: new Date() }),
+      ];
+      listCalls = [];
+      await renderPage();
+      await screen.findByText(translate("common.connected"));
+      expect(
+        screen.queryByTestId(GLOBAL_RUNNER_TAKES_NO_CODE_FIXES_TEST_ID),
+      ).toBeNull();
+      cleanup();
+
+      // Its 1.0.0 is the new row's placeholder, not a release.
+      rows = [withCodeFixes({ agentVersion: "1.0.0" })];
+      listCalls = [];
+      await renderPage();
+      await screen.findByText(
+        translate("pages.settings.globalRunners.neverConnected"),
+      );
+      expect(
+        screen.queryByTestId(GLOBAL_RUNNER_TAKES_NO_CODE_FIXES_TEST_ID),
+      ).toBeNull();
+    });
   });
 
   test("Show ID and Key is in the row's menu, and gives the ID, the key and the one command that starts it", async () => {

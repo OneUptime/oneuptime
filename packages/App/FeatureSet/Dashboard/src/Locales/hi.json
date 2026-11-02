@@ -40160,5 +40160,15 @@
   "Records are found by a host name, an address, a URL, a cloud resource ID or a user's email.": "रिकॉर्ड होस्ट नाम, पते, URL, क्लाउड संसाधन ID या उपयोगकर्ता के ईमेल से मिलते हैं।",
   "Searching your logs and traces…": "आपके लॉग और ट्रेस खोजे जा रहे हैं…",
   "Where the values it names appear in your logs and traces from {{start}} to {{end}}.": "यह जिन मानों का नाम लेता है, वे {{start}} से {{end}} तक आपके लॉग और ट्रेस में कहाँ दिखते हैं।",
-  "excluded values": "बाहर रखे गए मान"
+  "excluded values": "बाहर रखे गए मान",
+  "No global Runner on this server takes AI code fixes: pick one of your Runners for this repository.": "इस सर्वर का कोई भी ग्लोबल Runner AI कोड सुधार नहीं लेता: इस रिपॉजिटरी के लिए अपने Runner में से कोई एक चुनें।",
+  "No global Runner online takes AI code fixes, so none can work in this repository. Pick one of your Runners for it, or ask your OneUptime administrator to let a global Runner take them.": "ऑनलाइन कोई भी ग्लोबल Runner AI कोड सुधार नहीं लेता, इसलिए कोई भी इस रिपॉजिटरी में काम नहीं कर सकता। इसके लिए अपना कोई Runner चुनें, या अपने OneUptime व्यवस्थापक से कहें कि वे किसी ग्लोबल Runner को ये सुधार लेने दें।",
+  "None: no global Runner takes AI code fixes": "कोई नहीं: कोई भी ग्लोबल Runner AI कोड सुधार नहीं लेता",
+  "Runners OneUptime runs for every project. By default they run JavaScript steps, in an internet-only sandbox, and AI code fixes.": "ऐसे Runner जिन्हें OneUptime हर प्रोजेक्ट के लिए चलाता है। डिफ़ॉल्ट रूप से ये JavaScript चरण चलाते हैं, ऐसे सैंडबॉक्स में जो सिर्फ़ इंटरनेट तक पहुँचता है, और AI कोड सुधार भी।",
+  "Runners OneUptime runs for every project. JavaScript steps and AI code fixes run on them when you pick Global Runner.": "ऐसे Runner जिन्हें OneUptime हर प्रोजेक्ट के लिए चलाता है। जब आप ग्लोबल Runner चुनते हैं, तो JavaScript चरण और AI कोड सुधार इन्हीं पर चलते हैं।",
+  "Takes AI Code Fixes": "AI कोड सुधार लेता है",
+  "Takes no AI code fixes: its host turned them off.": "AI कोड सुधार नहीं लेता: इसके होस्ट ने इन्हें बंद कर दिया है।",
+  "The Runner this repository works on does not take AI code fixes: ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false is set on its host. Remove that setting and restart the Runner, or pick another Runner.": "यह रिपॉजिटरी जिस Runner पर काम करती है, वह AI कोड सुधार नहीं लेता: उसके होस्ट पर ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false सेट है। वह सेटिंग हटाएँ और Runner को फिर से शुरू करें, या कोई दूसरा Runner चुनें।",
+  "The Runner this repository works on, {{runner}}, does not take AI code fixes: ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false is set on its host. Remove that setting and restart the Runner, or pick another Runner.": "यह रिपॉजिटरी जिस Runner पर काम करती है, {{runner}}, वह AI कोड सुधार नहीं लेता: उसके होस्ट पर ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false सेट है। वह सेटिंग हटाएँ और Runner को फिर से शुरू करें, या कोई दूसरा Runner चुनें।",
+  "This Runner takes no AI code fixes: ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false is set on its host. Remove that setting and restart the Runner, or pick another Runner.": "यह Runner AI कोड सुधार नहीं लेता: इसके होस्ट पर ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false सेट है। वह सेटिंग हटाएँ और Runner को फिर से शुरू करें, या कोई दूसरा Runner चुनें।"
 }
