@@ -1,6 +1,6 @@
 import OneUptimeDate from "../../../Types/Date";
 import { JSONObject } from "../../../Types/JSON";
-import { NetworkTrafficUsageKind } from "../../../Types/NetFlow/NetworkTrafficUsage";
+import { isUplinkUsageKind } from "../../../Types/NetFlow/NetworkTrafficUsage";
 import ObjectID from "../../../Types/ObjectID";
 import { NetworkControllerDeviceMatches } from "./NetworkControllerDeviceMatcher";
 import {
@@ -10,13 +10,13 @@ import {
 
 /*
  * A read's records as the NetworkTrafficUsage rows ClickHouse stores, each
- * given the device its traffic belongs to: an uplink its appliance's
- * device, a network's applications and clients its first matched
+ * given the device its traffic belongs to: an uplink and its health their
+ * appliance's device, a network's applications and clients its first matched
  * appliance's - or the project's ID, the project's bucket.
  *
  * Rows are grouped by the window they total, and a batch never splits a
- * group: an uplink window, or a network's window of applications AND
- * clients (read together, under one cursor). An insert that fails part way
+ * group: an uplink window, a window of the uplinks' health, or a network's
+ * window of applications AND clients (read together, under one cursor). An insert that fails part way
  * leaves whole groups stored or not, in the order they were read, and the
  * next read stores exactly the ones that are not
  * (NetworkControllerReadRunner).
@@ -29,9 +29,7 @@ export const MAX_ROWS_PER_INSERT: number = 5000;
 export function getWindowKey(window: NetworkTrafficUsageWindowKey): string {
   return [
     window.kind,
-    window.kind === NetworkTrafficUsageKind.Uplink
-      ? ""
-      : window.controllerNetworkId,
+    isUplinkUsageKind(window.kind) ? "" : window.controllerNetworkId,
     String(window.windowStartAt.getTime()),
   ].join("|");
 }
@@ -45,14 +43,14 @@ export function getRecordWindowKey(record: NetworkTrafficUsageRecord): string {
 }
 
 /*
- * What one insert keeps whole: an uplink window, or a network's window of
- * applications and clients - both kinds of it stored, or neither, so the
- * network's stored end is its cursor.
+ * What one insert keeps whole: an uplink window, a window of the uplinks'
+ * health, or a network's window of applications and clients - both kinds of
+ * it stored, or neither, so the network's stored end is its cursor.
  */
 export function getRecordBatchGroupKey(
   record: NetworkTrafficUsageRecord,
 ): string {
-  if (record.kind === NetworkTrafficUsageKind.Uplink) {
+  if (isUplinkUsageKind(record.kind)) {
     return getRecordWindowKey(record);
   }
 
@@ -71,10 +69,9 @@ export function toUsageRow(data: {
   ingestedAt: Date;
 }): JSONObject {
   const record: NetworkTrafficUsageRecord = data.record;
-  const deviceId: ObjectID | undefined =
-    record.kind === NetworkTrafficUsageKind.Uplink
-      ? data.matches.bySerial.get(record.deviceSerial)
-      : data.matches.byNetwork.get(record.controllerNetworkId);
+  const deviceId: ObjectID | undefined = isUplinkUsageKind(record.kind)
+    ? data.matches.bySerial.get(record.deviceSerial)
+    : data.matches.byNetwork.get(record.controllerNetworkId);
 
   return {
     _id: ObjectID.generateTimeOrdered().toString(),
@@ -101,6 +98,8 @@ export function toUsageRow(data: {
     receivedOctets: record.receivedOctets,
     flows: record.flows,
     clients: record.clients,
+    lossPercent: record.lossPercent,
+    latencyMs: record.latencyMs,
     windowStartAt: OneUptimeDate.toClickhouseDateTime64(record.windowStartAt),
     windowEndAt: OneUptimeDate.toClickhouseDateTime64(record.windowEndAt),
     ingestedAt: OneUptimeDate.toClickhouseDateTime64(data.ingestedAt),

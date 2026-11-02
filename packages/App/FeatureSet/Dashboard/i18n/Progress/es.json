@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 40026,
+    "keys": 40054,
     "untranslated": 2978
   },
   "sameAsEnglish": [
@@ -366,6 +366,8 @@
     "Up + In",
     "Up + Out",
     "Up · In",
+    "Uplink",
+    "Uplink {{uplink}}",
     "Uplinks",
     "Uruguay",
     "V1",

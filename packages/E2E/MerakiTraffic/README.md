@@ -41,7 +41,12 @@ Picked with query parameters on the page's address:
 - `devices=counted|one`: the connection's last read listed the organization's 6 devices, 5 of them
   network devices in OneUptime (or 1), so its row counts them and says so in a grey note. Without
   it, the read predates device counts and the row says nothing of devices.
-- `source=flows|meraki`, `lang=de`, `theme=dark`.
+- `source=flows|meraki`, `lang=de`, `theme=dark`. `mnet`, `mdev` and `mup` narrow the Meraki side
+  as the page's own links do: to a network, an appliance and an uplink.
+
+Every read organization has a pair of WANs and a cellular line that carries nothing and is measured
+all the same, so the page's uplinks compare and a standby line shows; its traffic stops five minutes
+short of now, as the reads do.
 
 Every read and write is recorded on `window.__merakiTrafficFixture` (`usageRequests`,
 `flowRequests`, `tests`, `readNows`, `creates`, `updates`, `deletes`) with `unhandled` for anything

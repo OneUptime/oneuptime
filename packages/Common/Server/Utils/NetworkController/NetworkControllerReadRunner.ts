@@ -129,8 +129,9 @@ export const STORED_WINDOW_END_LOOKBACK_MS: number =
 
 /*
  * A connection's cursors moved up to where its stored windows end: the
- * uplinks to the newest stored uplink window, each network to its newest
- * stored application or client window. A cursor already past is kept.
+ * uplinks and their health to their newest stored windows, each network to
+ * its newest stored application or client window. A cursor already past is
+ * kept.
  * Returns a new state; the one given is not changed.
  */
 export function reconcilePullState(
@@ -170,6 +171,15 @@ export function reconcilePullState(
 
   if (uplinkCursor) {
     result.uplinkCursor = uplinkCursor;
+  }
+
+  const uplinkHealthCursor: string | undefined = later(
+    state.uplinkHealthCursor,
+    ends.uplinkHealthEnd,
+  );
+
+  if (uplinkHealthCursor) {
+    result.uplinkHealthCursor = uplinkHealthCursor;
   }
 
   for (const [networkId, end] of ends.analyticsEnds) {

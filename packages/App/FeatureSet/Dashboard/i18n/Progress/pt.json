@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40026,
-    "untranslated": 12713
+    "keys": 40054,
+    "untranslated": 12712
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -150,6 +150,8 @@
     "Total:",
     "URLs",
     "UTC",
+    "Uplink",
+    "Uplink {{uplink}}",
     "Uplinks",
     "VLAN",
     "VM",

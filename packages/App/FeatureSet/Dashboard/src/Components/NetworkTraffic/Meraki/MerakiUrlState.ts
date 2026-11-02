@@ -22,7 +22,12 @@ export enum TrafficSide {
   Meraki = "meraki",
 }
 
-export const MERAKI_URL_PARAMS: Array<string> = ["source", "mnet", "mdev"];
+export const MERAKI_URL_PARAMS: Array<string> = [
+  "source",
+  "mnet",
+  "mdev",
+  "mup",
+];
 
 /*
  * The id of the network's Meraki connections (MerakiConnectionsCard): a
@@ -55,6 +60,7 @@ export function readNetworkTrafficUsageFilters(
   for (const [field, param] of [
     ["controllerNetworkId", "mnet"],
     ["deviceSerial", "mdev"],
+    ["interfaceName", "mup"],
   ] as Array<[keyof NetworkTrafficUsageFilters, string]>) {
     const raw: string | null = read(param);
 
@@ -87,6 +93,7 @@ export function toMerakiUrlParams(data: {
     source: data.source,
     mnet: data.filters.controllerNetworkId || null,
     mdev: data.filters.deviceSerial || null,
+    mup: data.filters.interfaceName || null,
   };
 }
 
@@ -112,7 +119,7 @@ export function pickTrafficSide(data: {
   return data.hasFlows ? TrafficSide.Flows : TrafficSide.Meraki;
 }
 
-export type MerakiFilterKind = "network" | "appliance";
+export type MerakiFilterKind = "network" | "appliance" | "uplink";
 
 export const FILTER_NETWORK_LABEL: string = translationKey(
   "Network {{network}}",
@@ -120,6 +127,7 @@ export const FILTER_NETWORK_LABEL: string = translationKey(
 export const FILTER_APPLIANCE_LABEL: string = translationKey(
   "Appliance {{appliance}}",
 );
+export const FILTER_UPLINK_LABEL: string = translationKey("Uplink {{uplink}}");
 
 export interface MerakiFilterChip {
   kind: MerakiFilterKind;
@@ -152,10 +160,21 @@ export function getMerakiFilterChips(
     });
   }
 
+  if (filters.interfaceName) {
+    chips.push({
+      kind: "uplink",
+      template: FILTER_UPLINK_LABEL,
+      values: { uplink: filters.interfaceName },
+    });
+  }
+
   return chips;
 }
 
-// The filters without one kind (a chip's x). An appliance is of its network: both go.
+/*
+ * The filters without one kind (a chip's x). An appliance is of its network:
+ * both go. An uplink's name is no one network's: wan1 stays, of them all.
+ */
 export function withoutMerakiFilter(
   filters: NetworkTrafficUsageFilters,
   kind: MerakiFilterKind,
@@ -165,9 +184,83 @@ export function withoutMerakiFilter(
   if (kind === "network") {
     delete next.controllerNetworkId;
     delete next.deviceSerial;
-  } else {
+  } else if (kind === "appliance") {
     delete next.deviceSerial;
+  } else {
+    delete next.interfaceName;
   }
 
   return next;
+}
+
+// The filters narrowed to one network, whichever uplink they were held to.
+export function withMerakiNetwork(
+  filters: NetworkTrafficUsageFilters,
+  controllerNetworkId: string,
+): NetworkTrafficUsageFilters {
+  return {
+    controllerNetworkId,
+    ...(filters.interfaceName ? { interfaceName: filters.interfaceName } : {}),
+  };
+}
+
+/*
+ * A click on an uplink in the comparison: the page's uplink by that name
+ * across whatever else it is narrowed to, or back when it was narrowed to it.
+ */
+export function withMerakiUplinkToggled(
+  filters: NetworkTrafficUsageFilters,
+  interfaceName: string,
+): NetworkTrafficUsageFilters {
+  return filters.interfaceName === interfaceName
+    ? withoutMerakiFilter(filters, "uplink")
+    : { ...filters, interfaceName };
+}
+
+/*
+ * Whether an uplink in the Uplinks list is the one the page is narrowed to:
+ * that appliance's uplink of that name. A device's page is of one appliance,
+ * so the name alone says.
+ */
+export function isMerakiApplianceUplinkActive(
+  filters: NetworkTrafficUsageFilters,
+  uplink: { deviceSerial: string; interfaceName: string },
+  options: { isPageOfOneAppliance: boolean },
+): boolean {
+  return (
+    filters.interfaceName === uplink.interfaceName &&
+    (options.isPageOfOneAppliance ||
+      filters.deviceSerial === uplink.deviceSerial)
+  );
+}
+
+/*
+ * A click on a row of the Uplinks list: that one uplink of that one
+ * appliance, the row the reader meant - never the appliance with both of its
+ * uplinks, which is what made wan1 and wan2 inseparable. A click on the row
+ * the page is narrowed to widens it again.
+ */
+export function withMerakiApplianceUplinkToggled(
+  filters: NetworkTrafficUsageFilters,
+  uplink: {
+    deviceSerial: string;
+    interfaceName: string;
+    controllerNetworkId: string;
+  },
+  options: { isPageOfOneAppliance: boolean },
+): NetworkTrafficUsageFilters {
+  if (isMerakiApplianceUplinkActive(filters, uplink, options)) {
+    return withoutMerakiFilter(
+      withoutMerakiFilter(filters, "uplink"),
+      "appliance",
+    );
+  }
+
+  return options.isPageOfOneAppliance
+    ? { interfaceName: uplink.interfaceName }
+    : {
+        controllerNetworkId: uplink.controllerNetworkId,
+        deviceSerial: uplink.deviceSerial,
+        interfaceName: uplink.interfaceName,
+      };
 }
