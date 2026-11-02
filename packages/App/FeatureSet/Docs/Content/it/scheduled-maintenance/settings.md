@@ -18,7 +18,7 @@ Aprite **Manutenzione programmata** dal menu **Prodotti** nella barra superiore.
 | **Regole del proprietario** | Aggiunge proprietari agli eventi che corrispondono.        |
 | **Regole di runbook** | Avvia runbook per gli eventi che corrispondono.                  |
 | **Regole etichette** | Aggiunge etichette agli eventi che corrispondono.                 |
-| **Reminder Rules** | Ricorda l'evento ai proprietari a intervalli finché non è completato. |
+| **Regole dei promemoria** | Ricorda l'evento ai proprietari a intervalli finché non è completato. |
 
 La sezione **Impostazioni** contiene **Stato evento**, trattato in [Stati della manutenzione](/docs/scheduled-maintenance/states), **Modelli di eventi**, trattato in [Modelli ed eventi ricorrenti](/docs/scheduled-maintenance/templates), poi **Modelli di note**, **Campi personalizzati**, **Misurazioni**, **Impostazioni del calendario** e **Numerazione**. **Impostazioni del calendario** è trattato in [Calendario della manutenzione](/docs/scheduled-maintenance/calendar#calendari-esterni), il resto più sotto.
 
@@ -37,7 +37,7 @@ flowchart TB
 Le regole differiscono nel modo in cui si risolvono più corrispondenze:
 
 - **Regole del proprietario**, **Regole etichette** e **Regole di runbook** agiscono tutte quando corrispondono. Proprietari ed etichette aggiunti da più regole vengono aggiunti una volta sola.
-- **Reminder Rules** vengono controllate dall'alto verso il basso nel loro elenco, e vince la prima che corrisponde. Trascinate una regola per cambiarne la posizione; una nuova regola va in fondo.
+- **Regole dei promemoria** vengono controllate dall'alto verso il basso nel loro elenco, e vince la prima che corrisponde. Trascinate una regola per cambiarne la posizione; una nuova regola va in fondo.
 
 Una nuova regola parte abilitata; disattivate **Abilitato** nel suo modulo di modifica per metterla in pausa, e l'elenco mostra per ogni regola un **Abilitato** verde o un **Disabilitato** rosso. Le regole del proprietario, delle etichette e di runbook agiscono sugli eventi creati dopo averle salvate. Per applicare una regola del proprietario o delle etichette agli eventi che avete già, usate **Esegui ora**: vedere [Eseguire le regole sulle risorse esistenti](/docs/configuration/run-rules-now).
 
@@ -64,7 +64,7 @@ Le **Regole di runbook** avviano un runbook quando un nuovo evento corrisponde, 
 
 ## Regole di promemoria
 
-**Manutenzione programmata → Regole → Reminder Rules** ricorda l'evento ai suoi proprietari finché il lavoro non viene approvato. Ogni evento riceve la prima regola che gli corrisponde, dall'alto verso il basso nell'elenco.
+**Manutenzione programmata → Regole → Regole dei promemoria** ricorda l'evento ai suoi proprietari finché il lavoro non viene approvato. Ogni evento riceve la prima regola che gli corrisponde, dall'alto verso il basso nell'elenco.
 
 :::steps
 ### Scegliere su quali eventi ricordare

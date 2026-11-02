@@ -130,7 +130,7 @@ For å sette et lavere tak på denne sonden enn det alle sonder holder seg til, 
 :::steps
 ### Åpne sonden eller enheten
 
-Åpne **Monitorer → Innstillinger → Sonder** og klikk på sonden din: kortet **Pakkeopptak** viser opptakene dens. Eller åpne en nettverksenhet og gå til siden **Traffic**: opptak der kjører på enhetens egen sonde og starter filtrert på enhetens adresse.
+Åpne **Monitorer → Innstillinger → Sonder** og klikk på sonden din: kortet **Pakkeopptak** viser opptakene dens. Eller åpne en nettverksenhet og gå til siden **Trafikk**: opptak der kjører på enhetens egen sonde og starter filtrert på enhetens adresse.
 
 ### Klikk Start pakkeopptak
 

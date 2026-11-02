@@ -71,7 +71,7 @@ Clique em **Generate with AI**. O diálogo **Generate Postmortem with AI** ofere
 
 Clique em **Generate with AI** no final do diálogo. O OneUptime AI lê o incidente (a descrição, a causa raiz e a correção, a linha do tempo de estados, as notas públicas e privadas, as mensagens do canal do Slack ou do Microsoft Teams dele, e o que foi dito nas [chamadas dele](/docs/workspace-connections/video-calls#transcrições-de-chamadas)) e escreve o post-mortem no seu roteiro. Depois o editor abre com o resultado.
 
-Gerar exige que a IA esteja ligada para o projeto, em **Configurações do projeto → IA → AI Features**, e um provedor de LLM: veja [Provedores de LLM](/docs/ai/llm-provider). Também exige o papel Project Owner ou Project Admin, ou um papel personalizado com a permissão Edit Incident: outros papéis podem escrever o post-mortem, mas não gerá-lo.
+Gerar exige que a IA esteja ligada para o projeto, em **Configurações do projeto → IA → Recursos de IA**, e um provedor de LLM: veja [Provedores de LLM](/docs/ai/llm-provider). Também exige o papel Project Owner ou Project Admin, ou um papel personalizado com a permissão Edit Incident: outros papéis podem escrever o post-mortem, mas não gerá-lo.
 
 ### Deixar o OneUptime AI redigi-lo quando um incidente é resolvido
 
@@ -198,7 +198,7 @@ O projeto ainda não tem um modelo de post-mortem, ou o seu papel não pode lê-
 :::
 
 :::details Generate with AI diz que a IA está desligada, ou que falta permissão
-Ligue a IA em **Configurações do projeto → IA → AI Features**. Gerar exige o papel Project Owner ou Project Admin, ou um papel personalizado com a permissão Edit Incident, mesmo para quem pode editar o post-mortem.
+Ligue a IA em **Configurações do projeto → IA → Recursos de IA**. Gerar exige o papel Project Owner ou Project Admin, ou um papel personalizado com a permissão Edit Incident, mesmo para quem pode editar o post-mortem.
 :::
 
 :::details O post-mortem não está na página de status

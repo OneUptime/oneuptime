@@ -60,13 +60,13 @@ flowchart TB
 
 在裝置頁面上按一下**建立監測器**。建議警示包括 **IPsec Tunnels: row unhealthy**，也就是在 `ipsec_tunnels` 表格上 Row 為 `*` 的 **SNMP Table Row Is Unhealthy** 條件：它會為每條非 active 的通道開啟一個以通道命名的事件，並在通道恢復時逐一解決。
 
-Sophos 回報為 active 的通道只表示其安全關聯已建立。若要證明有流量通過，請從一個站點的探測器向每條通道另一端的主機新增 [Ping 監測器](/docs/monitor/ping-monitor)，並在**網路 → 拓撲 → Site Links** 下把通道繪製為兩個[站點](/docs/monitor/network-sites)之間的站點連結，綁定到該監測器：地圖上的連結隨後會顯示該監測器的顏色。
+Sophos 回報為 active 的通道只表示其安全關聯已建立。若要證明有流量通過，請從一個站點的探測器向每條通道另一端的主機新增 [Ping 監測器](/docs/monitor/ping-monitor)，並在**網路 → 拓撲 → 站點鏈路** 下把通道繪製為兩個[站點](/docs/monitor/network-sites)之間的站點連結，綁定到該監測器：地圖上的連結隨後會顯示該監測器的顏色。
 
 ### WAN 連結
 
 - **連接埠健康狀況。** 介面遍歷已經測量了每個 WAN 連接埠的狀態、輸入和輸出位元、使用率和錯誤。在防火牆的監測器上，將**介面**設為 WAN 連接埠名稱（或設為 `*` 表示每個連接埠）的 **SNMP Interface Is Down** 或 **SNMP Interface Utilization (in %)** 條件會依連結發出警示。
-- **路徑品質。** 每條連結的延遲、封包遺失率和抖動從防火牆外部測量：從 OneUptime 雲端探測器到每條 WAN 連結公用位址的 Ping 監測器，以及從站點的探測器到每個 ISP 閘道的 Ping 監測器。這些監測器上的封包遺失率和抖動條件會依連結發出警示，**網路 → 拓撲 → Latency Matrix** 則可以一眼看到每個探測器與每個監測器的對照。
-- **流量。** SFOS 會匯出 NetFlow v5。把它傳送到探測器的 UDP 2055（探測器的流收集器預設在此監聽），裝置的 **Traffic** 頁面就會顯示每條 WAN 連結上誰在跟誰通訊；詳情請見[網路流量](/docs/monitor/network-traffic)。
+- **路徑品質。** 每條連結的延遲、封包遺失率和抖動從防火牆外部測量：從 OneUptime 雲端探測器到每條 WAN 連結公用位址的 Ping 監測器，以及從站點的探測器到每個 ISP 閘道的 Ping 監測器。這些監測器上的封包遺失率和抖動條件會依連結發出警示，**網路 → 拓撲 → 延遲矩陣** 則可以一眼看到每個探測器與每個監測器的對照。
+- **流量。** SFOS 會匯出 NetFlow v5。把它傳送到探測器的 UDP 2055（探測器的流收集器預設在此監聽），裝置的 **流量** 頁面就會顯示每條 WAN 連結上誰在跟誰通訊；詳情請見[網路流量](/docs/monitor/network-traffic)。
 
 ### 從 syslog 取得閘道和 SD-WAN 資訊
 
@@ -111,7 +111,7 @@ Fabric Engine 交換器上的建議警示包括 **Fabric Adjacencies (IS-IS): ro
 
 ### 流和 Wi-Fi
 
-EXOS 和 Fabric Engine 會以 sFlow 和 IPFIX 匯出流。把 sFlow 傳送到探測器的 UDP 6343，或把 IPFIX 傳送到 UDP 4739，裝置的 **Traffic** 頁面就會顯示其流量；請參閱[網路流量](/docs/monitor/network-traffic)。
+EXOS 和 Fabric Engine 會以 sFlow 和 IPFIX 匯出流。把 sFlow 傳送到探測器的 UDP 6343，或把 IPFIX 傳送到 UDP 4739，裝置的 **流量** 頁面就會顯示其流量；請參閱[網路流量](/docs/monitor/network-traffic)。
 
 IQ Engine（HiveOS）存取點和 ExtremeCloud IQ Controller 有各自的廠商範本，會填入裝置的 **Wi-Fi** 頁面。[支援的 Wi-Fi 廠商](/docs/monitor/network-device-monitor#支援的-wi-fi-廠商)介紹了它們，以及 Ubiquiti UniFi、HPE Aruba、TP-Link Omada 和 Juniper Mist。
 

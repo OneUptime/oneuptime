@@ -42,7 +42,7 @@ Het zijmenu van een applicatie groepeert de pagina's zo; **Instellingen**, **Ont
 | --- | --- |
 | **Basis** | **Overzicht**, **Aanbevelingen**, **Documentatie** |
 | **Observability** | **Metrieken**, **Logboeken**, **Traces**, **Clients** |
-| **Sessieherhaling** | **Sessieherhaling**, **User Flows**, **Replay Users**, **Gezondheid**, **Replay Policy**, **Toegangslog van replays**, **Documentatie** |
+| **Sessieherhaling** | **Sessieherhaling**, **Gebruikersstromen**, **Gebruikers in herhalingen**, **Gezondheid**, **Replay Policy**, **Toegangslog van replays**, **Documentatie** |
 | **Instellingen** | **Instellingen** |
 | **Ontwikkelaars** | **Terraform**, **API**, **AI-assistenten** |
 | **Geavanceerd** | **Applicatie verwijderen** |

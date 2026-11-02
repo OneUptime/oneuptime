@@ -19,7 +19,11 @@ import {
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import AppLink from "../AppLink/AppLink";
 import EditInSettingsLink from "./EditInSettingsLink";
-import { getTileTitleWordsClassName } from "./TileTitleWords";
+import {
+  getTileTitleWordsClassName,
+  TILE_TITLE_LONG_WORDS,
+} from "./TileTitleWords";
+import HyphenatedWords from "Common/UI/Components/HyphenatedWords/HyphenatedWords";
 import ResourceHeroDescription from "./ResourceHeroDescription";
 import {
   RESOURCE_HERO_CONTROLS_CLASS_NAME,
@@ -320,7 +324,11 @@ const GoldenMetricTile: FunctionComponent<ResourceOverviewTile> = (
             )}`}
             lang={titleLanguage}
           >
-            {title}
+            <HyphenatedWords
+              text={title}
+              lang={titleLanguage}
+              rule={TILE_TITLE_LONG_WORDS}
+            />
           </span>
           <InfoTooltip
             label={props.title}

@@ -1,6 +1,6 @@
 # Observabilidade de custos do Kubernetes
 
-Veja quanto custa cada carga de trabalho do Kubernetes — gastos por namespace, carga de trabalho e pod, capacidade ociosa e quanto de cada request é usado — ao lado das métricas, dos logs e dos traces que o [agente Kubernetes](/docs/telemetry/kubernetes-agent) já coleta. Um único valor do Helm ativa isso, sem credenciais de nuvem, e a página **Costs** do cluster então diz quais requests reduzir.
+Veja quanto custa cada carga de trabalho do Kubernetes — gastos por namespace, carga de trabalho e pod, capacidade ociosa e quanto de cada request é usado — ao lado das métricas, dos logs e dos traces que o [agente Kubernetes](/docs/telemetry/kubernetes-agent) já coleta. Um único valor do Helm ativa isso, sem credenciais de nuvem, e a página **Custos** do cluster então diz quais requests reduzir.
 
 :::cards
 - [Ative](#ative-a-observabilidade-de-custos): Um único `helm upgrade`.
@@ -51,8 +51,8 @@ Os primeiros custos aparecem depois que a primeira hora completa fecha, e o Open
 
 ### Abra as páginas de custos
 
-- **Produtos → Infraestrutura → Kubernetes → Costs** mostra os gastos de todos os clusters do projeto.
-- Em um cluster, **Costs** mostra a tendência de gastos dele, **Spend by Namespace** com a divisão entre CPU, memória e armazenamento, **Spend by Workload**, os gastos ociosos, a eficiência e o cartão **Right-Sizing**.
+- **Produtos → Infraestrutura → Kubernetes → Custos** mostra os gastos de todos os clusters do projeto.
+- Em um cluster, **Custos** mostra a tendência de gastos dele, **Spend by Namespace** com a divisão entre CPU, memória e armazenamento, **Spend by Workload**, os gastos ociosos, a eficiência e o cartão **Right-Sizing**.
 :::
 
 As métricas de custo (`node_total_hourly_cost`, `pv_hourly_cost` e as demais) são métricas comuns: elas estão no explorador de métricas, em dashboards personalizados e em monitores de métricas. Para um dashboard pronto, vá até **Produtos → Painéis**, selecione **Criar painel** e escolha **Kubernetes Cost Dashboard**: tendências do custo por hora dos nós, custos unitários de CPU e memória, e gastos com volumes e load balancers.
@@ -113,7 +113,7 @@ cost:
 
 ## Right-sizing
 
-O cartão **Right-Sizing** na página **Costs** de um cluster recomenda um request de CPU e um de memória para cada contêiner do qual tem histórico suficiente, ordenados por quanto cada mudança economiza por mês.
+O cartão **Right-Sizing** na página **Custos** de um cluster recomenda um request de CPU e um de memória para cada contêiner do qual tem histórico suficiente, ordenados por quanto cada mudança economiza por mês.
 
 Uma recomendação é a demanda observada mais 25% de folga, arredondada para um valor que você pode colar em um manifesto (10m de CPU, 16Mi de memória):
 

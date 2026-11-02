@@ -5,7 +5,6 @@ import IconProp from "Common/Types/Icon/IconProp";
 import SideMenu, {
   SideMenuSectionProps,
 } from "Common/UI/Components/SideMenu/SideMenu";
-import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
@@ -19,11 +18,6 @@ import React, { FunctionComponent, ReactElement } from "react";
  * read as log lines.
  */
 const LogsAISideMenu: FunctionComponent = (): ReactElement => {
-  // A finding's own page keeps Insights marked: the finding is one of them.
-  const insightViewRoute: Route = RouteUtil.populateRouteParams(
-    RouteMap[PageMap.LOGS_AI_INSIGHT_VIEW] as Route,
-  );
-
   const sections: SideMenuSectionProps[] = [
     {
       title: "AI",
@@ -35,9 +29,6 @@ const LogsAISideMenu: FunctionComponent = (): ReactElement => {
               RouteMap[PageMap.LOGS_AI_INSIGHTS] as Route,
             ),
           },
-          activeRoute: Navigation.isOnThisPage(insightViewRoute)
-            ? insightViewRoute
-            : undefined,
           icon: IconProp.LightBulb,
         },
         {

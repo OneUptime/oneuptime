@@ -23,7 +23,7 @@ flowchart TB
 :::steps
 ### 連接服務供應商
 
-前往 **專案設定** > **工作區** > **Video Calls**，連接 Zoom、Google Meet 或 Microsoft Teams，或新增一個固定的會議連結。在 OneUptime Cloud 上，連接 Zoom、Google Meet 或 Microsoft Teams 只需一鍵：登入並允許 OneUptime 建立會議（請參閱 [一鍵連接](#一鍵連接) ）。Slack huddle 只需要專案的 Slack 連接，不需要其他任何東西。
+前往 **專案設定** > **工作區** > **視訊通話**，連接 Zoom、Google Meet 或 Microsoft Teams，或新增一個固定的會議連結。在 OneUptime Cloud 上，連接 Zoom、Google Meet 或 Microsoft Teams 只需一鍵：登入並允許 OneUptime 建立會議（請參閱 [一鍵連接](#一鍵連接) ）。Slack huddle 只需要專案的 Slack 連接，不需要其他任何東西。
 
 ### 在規則中開啟
 
@@ -44,7 +44,7 @@ flowchart TB
 
 宣告事件從不等待視訊通話服務供應商。通話在事件建立之後才開始，因此緩慢或出錯的服務供應商永遠不會延誤事件或其待命呼叫。
 
-如果服務供應商拒絕（密鑰過期、缺少權限、主持人已被刪除），事件的動態會說明規則的通話無法開始，並附上服務供應商提供的原因，讓應變人員知道需要從事件頁面開始一次通話。規則的執行會以 **開始視訊通話** 記錄在工作區通知日誌中，並且 **專案設定** > **工作區** > **Video Calls** 中該連線所在列會一直顯示錯誤，直到再次成功開始通話。
+如果服務供應商拒絕（密鑰過期、缺少權限、主持人已被刪除），事件的動態會說明規則的通話無法開始，並附上服務供應商提供的原因，讓應變人員知道需要從事件頁面開始一次通話。規則的執行會以 **開始視訊通話** 記錄在工作區通知日誌中，並且 **專案設定** > **工作區** > **視訊通話** 中該連線所在列會一直顯示錯誤，直到再次成功開始通話。
 
 ### 私人事件
 
@@ -55,7 +55,7 @@ flowchart TB
 在 OneUptime Cloud 上，連接 Zoom、Google Meet 或 Microsoft Teams 只需一鍵，不需要在服務供應商處進行任何設定：
 
 :::steps
-1. 前往 **專案設定** > **工作區** > **Video Calls**，在 Zoom、Google Meet 或 Microsoft Teams 上按一下 **連線**。
+1. 前往 **專案設定** > **工作區** > **視訊通話**，在 Zoom、Google Meet 或 Microsoft Teams 上按一下 **連線**。
 2. 按一下 **Continue to Zoom** （或 Google、Microsoft），登入並允許 OneUptime 建立會議。
 3. 您會回到視訊通話頁面，連線已建立。用 **Start a test meeting** 進行端對端檢查，然後在 Slack 或 Microsoft Teams 通知規則中選擇該連線。
 :::
@@ -124,7 +124,7 @@ OneUptime 會加密保存登入的重新整理權杖，並至少每週更新一�
 
 ### 錄製並轉錄每次通話
 
-為了讓任何人都不必記得錄製通話或取得逐字稿，請在 **專案設定** > **工作區** > **Video Calls** 中開啟 **錄製並轉錄事件通話**。開啟期間：
+為了讓任何人都不必記得錄製通話或取得逐字稿，請在 **專案設定** > **工作區** > **視訊通話** 中開啟 **錄製並轉錄事件通話**。開啟期間：
 
 - 對於 OneUptime 開始的每場事件會議，它都會要求 Zoom 將會議錄製到雲端，要求 Google Meet 進行轉錄，並要求 Microsoft Teams 自動錄製和轉錄。發布該通話的訊息會在任何人加入之前說明這一點。
 - 通話結束後，OneUptime 會像 **從 Zoom 取得** 那樣自行取得逐字稿，然後由 OneUptime AI 讀取。在此之前， **Video Call** 卡片會顯示正在等待。

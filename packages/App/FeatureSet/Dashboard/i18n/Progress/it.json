@@ -1,7 +1,7 @@
 {
   "baseline": {
     "keys": 40054,
-    "untranslated": 12738
+    "untranslated": 12694
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -78,6 +78,7 @@
     "INP 540 ms",
     "Info",
     "Insight",
+    "IoT",
     "Job",
     "Kernel",
     "LXC 201 · pve3",
@@ -147,6 +148,7 @@
     "SQL injection",
     "Script",
     "Server",
+    "Service Mesh",
     "Singapore (+65)",
     "Slug",
     "Span",

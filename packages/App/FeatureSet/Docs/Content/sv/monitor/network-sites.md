@@ -38,7 +38,7 @@ Varje plats status kommer från varje enhet i dess underträd, bedömda enligt p
 
 ## Hierarkin
 
-Platser bildar ett träd. Varje plats har en **Site Type** och eventuellt en överordnad plats. Platstyperna är projektets egen lista, under **Nätverk → Inställningar → Site Types**, och ett nytt projekt börjar med Account Type, Region, Franchisee, Market och Unit, i den ordningen uppifrån, plus Data Center och Other. Typerna bildar en egen hierarki (**Parent Site Type**), som avgör vilka platser som kan vara förälder till en plats. En typ som är markerad som **Is Unit Level** är den lägsta nivån i din miljö, den enskilda butiken eller filialen: dess platser innehåller enheter, inte andra platser.
+Platser bildar ett träd. Varje plats har en **Site Type** och eventuellt en överordnad plats. Platstyperna är projektets egen lista, under **Nätverk → Inställningar → Platstyper**, och ett nytt projekt börjar med Account Type, Region, Franchisee, Market och Unit, i den ordningen uppifrån, plus Data Center och Other. Typerna bildar en egen hierarki (**Parent Site Type**), som avgör vilka platser som kan vara förälder till en plats. En typ som är markerad som **Is Unit Level** är den lägsta nivån i din miljö, den enskilda butiken eller filialen: dess platser innehåller enheter, inte andra platser.
 
 En plats typ, namn, beskrivning, förälder och läge redigeras på ett ställe: kortet **Site Settings** på platsens sida **Inställningar**. Platsens översikt visar dem med en länk **Redigera i Inställningar**, och listan **Platser** lägger till platser men redigerar dem inte.
 
@@ -63,7 +63,7 @@ I steget **Hierarchy** väljer du **Parent Site** om platsen ligger under en ann
 I steget **Monitoring Defaults** väljer du [standardsonden och standardautentiseringsprofilen](#standardvärden-för-övervakning) för enheter som läggs till på platsen, och klickar på **Lägg till Plats**.
 :::
 
-På en plats egen sida **Child Sites** frågar **Lägg till Underordnad plats** bara efter typen och namnet, på en sida med läget hopfällt, och placerar den nya platsen under den.
+På en plats egen sida **Underordnade platser** frågar **Lägg till Underordnad plats** bara efter typen och namnet, på en sida med läget hopfällt, och placerar den nya platsen under den.
 
 ### Importera platser från en CSV-fil
 

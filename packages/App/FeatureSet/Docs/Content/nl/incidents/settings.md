@@ -32,7 +32,7 @@ Wat OneUptime AI zelf doet, stel je hier niet in: daarvoor is er een eigen secti
 
 **Status incident** en **Ernst van incident** worden uitgebreid behandeld in [Incidentstatussen en ernstniveaus](/docs/incidents/states-and-severities) — de rest van deze pagina gaat verder vanaf **Incident-sjablonen**. Formulieren waarmee mensen buiten je team incidenten melden, zijn een eigen product: zie [Formulieren](/docs/forms/index). Tools die zelf incidenten openen, zoals [Huntress](/docs/integrations/huntress), stel je in als workflows.
 
-Klap **Regels** uit en je krijgt nog acht pagina's: **Groeperingsregels**, **Bereikbaarheidsregels**, **Eigenaarsregels**, **Runbook-regels**, **Privacyregels**, **Labelregels**, **SLA-regels** en **Reminder Rules**. Die worden verderop behandeld.
+Klap **Regels** uit en je krijgt nog acht pagina's: **Groeperingsregels**, **Bereikbaarheidsregels**, **Eigenaarsregels**, **Runbook-regels**, **Privacyregels**, **Labelregels**, **SLA-regels** en **Herinneringsregels**. Die worden verderop behandeld.
 
 ## Incidentsjablonen
 
@@ -598,12 +598,12 @@ Groeperings-, SLA-, herinnerings- en AI-regels werken ook op het nieuwe incident
 - **Privacyregels** — bepalen of een overeenkomend incident privé is.
 - **Labelregels** — zetten automatisch labels.
 - **SLA-regels** — houden reactie- en oplostijden bij. Regels worden van boven naar beneden in de lijst geëvalueerd; sleep een regel om zijn plek te wijzigen.
-- **Reminder Rules** — herinneren de eigenaren van een incident regelmatig zolang het nog openstaat. Regels worden van boven naar beneden in de lijst geëvalueerd en de eerste overeenkomende regel wint; sleep een regel om zijn plek te wijzigen. De regel van een incident wordt opnieuw gezocht, en het wachten op de volgende herinnering begint opnieuw, als de ernst of de labels veranderen of als de schakelaar **Herinneringen sturen** wordt omgezet. De ernst en de labels opslaan die het al heeft — elke keer opslaan van de kaart **Incidentdetails** stuurt ze mee — laat de volgende herinnering waar ze was. Waarschuwingen werken op dezelfde manier.
+- **Herinneringsregels** — herinneren de eigenaren van een incident regelmatig zolang het nog openstaat. Regels worden van boven naar beneden in de lijst geëvalueerd en de eerste overeenkomende regel wint; sleep een regel om zijn plek te wijzigen. De regel van een incident wordt opnieuw gezocht, en het wachten op de volgende herinnering begint opnieuw, als de ernst of de labels veranderen of als de schakelaar **Herinneringen sturen** wordt omgezet. De ernst en de labels opslaan die het al heeft — elke keer opslaan van de kaart **Incidentdetails** stuurt ze mee — laat de volgende herinnering waar ze was. Waarschuwingen werken op dezelfde manier.
 
 > [!IMPORTANT]
 > **De betekenis van volgorde is niet overal gelijk.** Groeperingsregels, SLA-regels en Reminder Rules worden op volgorde geëvalueerd, en hun lijsten worden door slepen geordend: een nieuwe regel wordt aan het eind toegevoegd. Bereikbaarheidsregels niet — elke overeenkomende regel gaat af. Ga er niet van uit dat één model voor alle negen geldt.
 
-De pagina's **Bereikbaarheidsregels**, **Eigenaarsregels**, **Labelregels** en **Privacyregels** hebben tabbladen — een tabblad **Incident Rules** en een tabblad **Episode Rules**, elk met een eigen tabel. Stel het tabblad **Incident Rules** in, tenzij je specifiek episodes bedoelt. **Groeperingsregels**, **Runbook-regels**, **AI-regels**, **SLA-regels** en **Reminder Rules** zijn enkele tabellen.
+De pagina's **Bereikbaarheidsregels**, **Eigenaarsregels**, **Labelregels** en **Privacyregels** hebben tabbladen — een tabblad **Incident Rules** en een tabblad **Episode Rules**, elk met een eigen tabel. Stel het tabblad **Incident Rules** in, tenzij je specifiek episodes bedoelt. **Groeperingsregels**, **Runbook-regels**, **AI-regels**, **SLA-regels** en **Herinneringsregels** zijn enkele tabellen.
 
 Eigenaars-, label- en privacyregels werken alleen op incidenten en episodes die worden aangemaakt nadat de regel bestaat. Om er een toe te passen op incidenten die er al zijn, gebruik je **Nu uitvoeren** op de rij van de regel, op haar eigen pagina, of vanuit de bulkacties van de tabel — zie [Regels uitvoeren op bestaande resources](/docs/configuration/run-rules-now). Bereikbaarheids-, runbook-, AI-, groeperings-, SLA- en herinneringsregels kunnen niet op bestaande incidenten worden uitgevoerd.
 

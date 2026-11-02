@@ -26,8 +26,8 @@ Poiché le note vengono per prime e restano uguali da un'esecuzione all'altra, f
 ## Scrivere il contesto IA
 
 :::steps
-### Aprire AI Features
-Apri **Impostazioni del progetto → IA → AI Features**. La scheda **Contesto IA** si trova sotto **Abilita IA**.
+### Aprire Funzionalità IA
+Apri **Impostazioni del progetto → IA → Funzionalità IA**. La scheda **Contesto IA** si trova sotto **Abilita IA**.
 
 ### Scrivere le note
 Fai clic su **Aggiungi contesto IA**, oppure su **Modifica** quando le note ci sono già. Scrivi in Markdown, oppure fai clic su **Parti da uno schema** per avere un titolo per ogni tipo di nota.

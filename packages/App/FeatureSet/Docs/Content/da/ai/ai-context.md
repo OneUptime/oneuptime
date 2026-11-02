@@ -26,8 +26,8 @@ Fordi noterne kommer først og er de samme fra den ene kørsel til den næste, h
 ## Skriv AI-konteksten
 
 :::steps
-### Åbn AI Features
-Åbn **Projektindstillinger → AI → AI Features**. Kortet **AI-kontekst** ligger under **Aktivér AI**.
+### Åbn AI-funktioner
+Åbn **Projektindstillinger → AI → AI-funktioner**. Kortet **AI-kontekst** ligger under **Aktivér AI**.
 
 ### Skriv noterne
 Klik på **Tilføj AI-kontekst**, eller på **Rediger**, når der er noter. Skriv i Markdown, eller klik på **Start med en disposition** for at få en overskrift til hver slags note.

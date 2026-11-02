@@ -34,7 +34,7 @@ flowchart TB
 | **Oversikt** og **Målinger** | Receiveren `hostmetrics`: CPU, minne, disker, filsystemer, nettverk, last, paging. |
 | **Prosesser** | Scraperen `process` i `hostmetrics`: ett sett serier per prosess. |
 | **Logger** | Receiverne `filelog`, `journald` og `windowseventlog`. |
-| **Systemd Units** (Linux) | Receiveren `systemd`. |
+| **Systemd-enheter** (Linux) | Receiveren `systemd`. |
 | **Tjenester** (Windows) | Receiveren `windows_service`. |
 | Inventarelementet | Prosessoren `resourcedetection`, pluss [attributtene du stempler](#inventarattributter-ip-mac-serienummer-produsent-modell-fastvare). |
 | **Agentversjon** | `oneuptime.agent.version` i prosessoren `resource`. |
@@ -555,7 +555,7 @@ Receiveren kjører `journalctl`, som alle systemd-verter har, og collectorens br
 
 ### Linux-tjenester (systemd-enheter, metrikker)
 
-Vertens side **Systemd Units** viser hver enhet og tilstanden dens, fra [`systemdreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/systemdreceiver) (konfigurasjonstype `systemd`), Linux-motstykket til siden **Tjenester** på Windows. Linux-konfigurasjonen over slår den på:
+Vertens side **Systemd-enheter** viser hver enhet og tilstanden dens, fra [`systemdreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/systemdreceiver) (konfigurasjonstype `systemd`), Linux-motstykket til siden **Tjenester** på Windows. Linux-konfigurasjonen over slår den på:
 
 ```yaml
 receivers:
@@ -990,7 +990,7 @@ receivers:
         enabled: false
 ```
 
-Sammen tar disse en vert med 300 enheter fra omtrent 6 000 datapunkter i minuttet til godt under 100. Enheter som fjernes fra listen, forsvinner fra siden **Systemd Units** noen minutter senere, når de siste prøvene deres eldes ut av det rullerende vinduet.
+Sammen tar disse en vert med 300 enheter fra omtrent 6 000 datapunkter i minuttet til godt under 100. Enheter som fjernes fra listen, forsvinner fra siden **Systemd-enheter** noen minutter senere, når de siste prøvene deres eldes ut av det rullerende vinduet.
 
 ### Dropp poster med en filter-prosessor
 

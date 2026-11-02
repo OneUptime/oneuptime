@@ -145,7 +145,7 @@ Hvad der logges:
 
 Hvad blokken kræver, og hvad den koster:
 
-- **Aktivér AI** skal være slået til under **Projektindstillinger → AI → AI Features**. I OneUptime Cloud skal projektet også have Growth-planen eller højere og et betalt abonnement. Selvhostede installationer uden fakturering har ingen plankrav.
+- **Aktivér AI** skal være slået til under **Projektindstillinger → AI → AI-funktioner**. I OneUptime Cloud skal projektet også have Growth-planen eller højere og et betalt abonnement. Selvhostede installationer uden fakturering har ingen plankrav.
 - Kald gennem en global udbyder med omkostninger bruger projektets AI-kreditter.
 - Hvert kald tæller med i [projektets egne daglige AI-grænser](/docs/ai/ai-sre#projektets-egne-daglige-grænser), når en projektejer sætter dem. Når en grænse er nået, tager blokken **Error** uden at kontakte modellen, indtil midnat UTC.
 

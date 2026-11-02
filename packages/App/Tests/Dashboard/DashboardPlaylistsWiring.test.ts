@@ -187,15 +187,24 @@ describe("finding them", () => {
     );
     const playlists: number = indexOfOnce(
       menu,
-      'title: "Playlists", to: RouteUtil.populateRouteParams( RouteMap[PageMap.DASHBOARD_PLAYLISTS] as Route, ), }, activeRoute: Navigation.isOnThisPage(playlistViewRoute) ? playlistViewRoute : undefined, icon: IconProp.QueueList,',
+      'title: "Playlists", to: RouteUtil.populateRouteParams( RouteMap[PageMap.DASHBOARD_PLAYLISTS] as Route, ), }, icon: IconProp.QueueList,',
     );
     const settings: number = indexOfOnce(menu, 'title: "Settings",');
 
     expect(playlists).toBeGreaterThan(dashboards);
     expect(playlists).toBeLessThan(settings);
-    expect(menu).toContain(
-      "const playlistViewRoute: Route = RouteUtil.populateRouteParams( RouteMap[PageMap.DASHBOARD_PLAYLIST_VIEW] as Route, );",
+
+    /*
+     * A playlist's page is one row below the list, so the shared side menu
+     * lights Playlists there by itself (Common's SideMenuRowPage); the menu
+     * no longer marks it by hand.
+     */
+    const routes: string = readCode(`${DASHBOARD_SRC}/Utils/RouteMap.ts`);
+    expect(routes).toContain('[PageMap.DASHBOARD_PLAYLISTS]: "playlists",');
+    expect(routes).toContain(
+      "[PageMap.DASHBOARD_PLAYLIST_VIEW]: `playlists/${RouteParams.ModelID}`,",
     );
+    expect(menu).not.toContain("activeRoute");
   });
 
   test("the breadcrumbs name the list and a playlist's page", () => {

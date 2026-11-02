@@ -32,7 +32,7 @@ flowchart LR
 
 ## Aprire la topologia
 
-Andate in **Prodotti → Osservabilità → Topologia**. **Inventario → Topology Map** apre la stessa pagina. Si apre sulla **Service Map**, per il periodo **Ultimo giorno**.
+Andate in **Prodotti → Osservabilità → Topologia**. **Inventario → Mappa della topologia** apre la stessa pagina. Si apre sulla **Service Map**, per il periodo **Ultimo giorno**.
 
 | Vista | La domanda a cui risponde |
 | --- | --- |

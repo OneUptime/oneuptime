@@ -71,7 +71,7 @@ Fate clic su **Generate with AI**. Il dialogo **Generate Postmortem with AI** pr
 
 Fate clic su **Generate with AI** in fondo al dialogo. OneUptime AI legge l'incidente (la sua descrizione, la causa principale e la correzione, la cronologia degli stati, le note pubbliche e private, i messaggi del suo canale Slack o Microsoft Teams, e ciò che si è detto nelle [sue chiamate](/docs/workspace-connections/video-calls#trascrizioni-delle-chiamate)) e scrive il post-mortem secondo la vostra traccia. Poi l'editor si apre con il risultato.
 
-La generazione richiede che l'IA sia attiva per il progetto, in **Impostazioni del progetto → IA → AI Features**, e un provider LLM: vedere [Provider LLM](/docs/ai/llm-provider). Richiede anche il ruolo Project Owner o Project Admin, oppure un ruolo personalizzato con il permesso Edit Incident: gli altri ruoli possono scrivere il post-mortem, ma non generarlo.
+La generazione richiede che l'IA sia attiva per il progetto, in **Impostazioni del progetto → IA → Funzionalità IA**, e un provider LLM: vedere [Provider LLM](/docs/ai/llm-provider). Richiede anche il ruolo Project Owner o Project Admin, oppure un ruolo personalizzato con il permesso Edit Incident: gli altri ruoli possono scrivere il post-mortem, ma non generarlo.
 
 ### Lasciare che OneUptime AI lo scriva quando un incidente viene risolto
 
@@ -198,7 +198,7 @@ Il progetto non ha ancora un modello di post-mortem, oppure il vostro ruolo non 
 :::
 
 :::details Generate with AI dice che l'IA è disattivata, o che vi manca il permesso
-Attivate l'IA in **Impostazioni del progetto → IA → AI Features**. La generazione richiede il ruolo Project Owner o Project Admin, oppure un ruolo personalizzato con il permesso Edit Incident, anche per chi può modificare il post-mortem.
+Attivate l'IA in **Impostazioni del progetto → IA → Funzionalità IA**. La generazione richiede il ruolo Project Owner o Project Admin, oppure un ruolo personalizzato con il permesso Edit Incident, anche per chi può modificare il post-mortem.
 :::
 
 :::details Il post-mortem non è sulla pagina di stato

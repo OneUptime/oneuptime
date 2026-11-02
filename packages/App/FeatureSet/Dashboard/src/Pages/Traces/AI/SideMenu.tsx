@@ -5,7 +5,6 @@ import IconProp from "Common/Types/Icon/IconProp";
 import SideMenu, {
   SideMenuSectionProps,
 } from "Common/UI/Components/SideMenu/SideMenu";
-import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
@@ -17,11 +16,6 @@ import React, { FunctionComponent, ReactElement } from "react";
  * the AI tab of Traces' tabs.
  */
 const TracesAISideMenu: FunctionComponent = (): ReactElement => {
-  // A finding's own page keeps Insights marked: the finding is one of them.
-  const insightViewRoute: Route = RouteUtil.populateRouteParams(
-    RouteMap[PageMap.TRACES_AI_INSIGHT_VIEW] as Route,
-  );
-
   const sections: SideMenuSectionProps[] = [
     {
       title: "AI",
@@ -33,9 +27,6 @@ const TracesAISideMenu: FunctionComponent = (): ReactElement => {
               RouteMap[PageMap.TRACES_AI_INSIGHTS] as Route,
             ),
           },
-          activeRoute: Navigation.isOnThisPage(insightViewRoute)
-            ? insightViewRoute
-            : undefined,
           icon: IconProp.LightBulb,
         },
         {

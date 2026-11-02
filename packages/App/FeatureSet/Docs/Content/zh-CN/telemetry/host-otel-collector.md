@@ -34,7 +34,7 @@ flowchart TB
 | **概览** 和 **指标** | `hostmetrics` 接收器：CPU、内存、磁盘、文件系统、网络、负载、分页。 |
 | **进程** | `hostmetrics` 的 `process` 抓取器：每个进程一组序列。 |
 | **日志** | `filelog`、`journald` 和 `windowseventlog` 接收器。 |
-| **Systemd Units**（Linux） | `systemd` 接收器。 |
+| **Systemd 单元**（Linux） | `systemd` 接收器。 |
 | **服务**（Windows） | `windows_service` 接收器。 |
 | 清单项 | `resourcedetection` 处理器，以及 [你自行打上的属性](#清单属性ipmac序列号厂商型号固件)。 |
 | **代理版本** | `resource` 处理器中的 `oneuptime.agent.version`。 |
@@ -555,7 +555,7 @@ receivers:
 
 ### Linux 服务（systemd 单元，指标）
 
-主机的 **Systemd Units** 页面列出每个单元及其状态，数据来自 [`systemdreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/systemdreceiver)（配置类型 `systemd`），它是 Windows 上 **服务** 页面在 Linux 上的对应物。上面的 Linux 配置会启用它：
+主机的 **Systemd 单元** 页面列出每个单元及其状态，数据来自 [`systemdreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/systemdreceiver)（配置类型 `systemd`），它是 Windows 上 **服务** 页面在 Linux 上的对应物。上面的 Linux 配置会启用它：
 
 ```yaml
 receivers:
@@ -990,7 +990,7 @@ receivers:
         enabled: false
 ```
 
-两者结合后，一台有 300 个单元的主机每分钟的数据点会从约 6,000 个降到远低于 100 个。从列表中移除的单元会在几分钟后离开 **Systemd Units** 页面，即其最后的样本移出滚动窗口之后。
+两者结合后，一台有 300 个单元的主机每分钟的数据点会从约 6,000 个降到远低于 100 个。从列表中移除的单元会在几分钟后离开 **Systemd 单元** 页面，即其最后的样本移出滚动窗口之后。
 
 ### 使用 filter 处理器丢弃记录
 

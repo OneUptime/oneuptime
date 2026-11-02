@@ -60,13 +60,13 @@ flowchart TB
 
 在设备页面上点击**创建监视器**。推荐警报包括 **IPsec Tunnels: row unhealthy**，即在 `ipsec_tunnels` 表上 Row 为 `*` 的 **SNMP Table Row Is Unhealthy** 条件：它为每条非 active 的隧道打开一个以隧道命名的事件，并在隧道恢复时逐个解决。
 
-Sophos 报告为 active 的隧道只说明其安全关联已建立。要证明有流量通过，请从一个站点的探测器向每条隧道对端的主机添加 [Ping 监视器](/docs/monitor/ping-monitor)，并在**网络 → 拓扑 → Site Links** 下把隧道绘制为两个[站点](/docs/monitor/network-sites)之间的站点链路，绑定到该监视器：地图上的链路随后会显示该监视器的颜色。
+Sophos 报告为 active 的隧道只说明其安全关联已建立。要证明有流量通过，请从一个站点的探测器向每条隧道对端的主机添加 [Ping 监视器](/docs/monitor/ping-monitor)，并在**网络 → 拓扑 → 站点链路** 下把隧道绘制为两个[站点](/docs/monitor/network-sites)之间的站点链路，绑定到该监视器：地图上的链路随后会显示该监视器的颜色。
 
 ### WAN 链路
 
 - **端口健康状况。** 接口遍历已经测量了每个 WAN 端口的状态、入站和出站比特、利用率和错误。在防火墙的监视器上，将**接口**设为 WAN 端口名称（或设为 `*` 表示每个端口）的 **SNMP Interface Is Down** 或 **SNMP Interface Utilization (in %)** 条件会按链路发出警报。
-- **路径质量。** 每条链路的延迟、丢包率和抖动从防火墙外部测量：从 OneUptime 云探测器到每条 WAN 链路公网地址的 Ping 监视器，以及从站点的探测器到每个 ISP 网关的 Ping 监视器。这些监视器上的丢包率和抖动条件会按链路发出警报，**网络 → 拓扑 → Latency Matrix** 则可以一眼看到每个探测器与每个监视器的对比。
-- **流量。** SFOS 导出 NetFlow v5。把它发送到探测器的 UDP 2055（探测器的流收集器默认在此监听），设备的 **Traffic** 页面就会显示每条 WAN 链路上谁在和谁通信；详情见[网络流量](/docs/monitor/network-traffic)。
+- **路径质量。** 每条链路的延迟、丢包率和抖动从防火墙外部测量：从 OneUptime 云探测器到每条 WAN 链路公网地址的 Ping 监视器，以及从站点的探测器到每个 ISP 网关的 Ping 监视器。这些监视器上的丢包率和抖动条件会按链路发出警报，**网络 → 拓扑 → 延迟矩阵** 则可以一眼看到每个探测器与每个监视器的对比。
+- **流量。** SFOS 导出 NetFlow v5。把它发送到探测器的 UDP 2055（探测器的流收集器默认在此监听），设备的 **流量** 页面就会显示每条 WAN 链路上谁在和谁通信；详情见[网络流量](/docs/monitor/network-traffic)。
 
 ### 从 syslog 获取网关和 SD-WAN 信息
 
@@ -111,7 +111,7 @@ Fabric Engine 交换机上的推荐警报包括 **Fabric Adjacencies (IS-IS): ro
 
 ### 流和 Wi-Fi
 
-EXOS 和 Fabric Engine 以 sFlow 和 IPFIX 导出流。把 sFlow 发送到探测器的 UDP 6343，或把 IPFIX 发送到 UDP 4739，设备的 **Traffic** 页面就会显示其流量；参见[网络流量](/docs/monitor/network-traffic)。
+EXOS 和 Fabric Engine 以 sFlow 和 IPFIX 导出流。把 sFlow 发送到探测器的 UDP 6343，或把 IPFIX 发送到 UDP 4739，设备的 **流量** 页面就会显示其流量；参见[网络流量](/docs/monitor/network-traffic)。
 
 IQ Engine（HiveOS）接入点和 ExtremeCloud IQ Controller 有各自的厂商模板，会填充设备的 **Wi-Fi** 页面。[支持的 Wi-Fi 厂商](/docs/monitor/network-device-monitor#支持的-wi-fi-厂商)介绍了它们，以及 Ubiquiti UniFi、HPE Aruba、TP-Link Omada 和 Juniper Mist。
 

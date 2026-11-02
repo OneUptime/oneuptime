@@ -24,7 +24,6 @@ import React, {
   useState,
 } from "react";
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
-import { getDetailPageActiveRoute } from "../../../Utils/DetailPageActiveRoute";
 import { getDeveloperSideMenuSection } from "../../../Components/DeveloperDocs/DeveloperDocsMenuSection";
 import { DeveloperDocsScope } from "../../../Components/DeveloperDocs/DeveloperDocsPages";
 
@@ -119,10 +118,6 @@ const AppPlatformEnvironmentViewSideMenu: FunctionComponent<ComponentProps> = (
               { modelId: props.modelId },
             ),
           }}
-          activeRoute={getDetailPageActiveRoute({
-            detailPage: PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_APP_DETAIL,
-            modelId: props.modelId,
-          })}
           icon={IconProp.Squares}
         />
         <SideMenuItem

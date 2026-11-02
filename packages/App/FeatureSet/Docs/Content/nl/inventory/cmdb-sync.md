@@ -130,7 +130,7 @@ curl -X POST 'https://oneuptime.com/api/inventory-item/get-list?output-type=csv'
   -o inventory.csv
 ```
 
-De lijst **All Items** in het dashboard exporteert op dezelfde manier, met de kolommen van aangepaste velden die je hebt aangezet. Elk [assetgegeven](#assetgegevens) is daar ook een kolom: **Hostnaam**, **IP-adres**, **Serienummer**, **Model** en de rest staan eerst verborgen, dus zet ze aan via de kolomkiezer, en de export bevat één kolom per gegeven, of een rij nu een host of een netwerkapparaat is.
+De lijst **Alle items** in het dashboard exporteert op dezelfde manier, met de kolommen van aangepaste velden die je hebt aangezet. Elk [assetgegeven](#assetgegevens) is daar ook een kolom: **Hostnaam**, **IP-adres**, **Serienummer**, **Model** en de rest staan eerst verborgen, dus zet ze aan via de kolomkiezer, en de export bevat één kolom per gegeven, of een rij nu een host of een netwerkapparaat is.
 
 ## Assetgegevens
 
