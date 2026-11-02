@@ -13,7 +13,11 @@
  * - the review test cases: five positive and three negative, every tool a
  *   positive case expects being one this server lists;
  * - mcp.json: one streamable HTTP server, at the address server.json lists in
- *   the MCP Registry, signed in to with OAuth for scopes the server issues.
+ *   the MCP Registry, signed in to with OAuth for scopes the server issues;
+ * - the skills the ZIP carries for ChatGPT and Codex, which are the coding
+ *   agent plugin's (CodingAgentPlugin.test.ts holds them to the server), to
+ *   what OpenAI reads and asks of a skill, and to wording that holds in every
+ *   client that loads them.
  */
 
 import { describe, expect, jest, test } from "@jest/globals";
@@ -70,6 +74,60 @@ interface OpenAiServerAuth {
 const MCP_DIRECTORY: string = path.resolve(__dirname, "..");
 const PLUGIN_DIRECTORY: string = path.join(MCP_DIRECTORY, "ChatGPTPlugin");
 const SCHEMA_DIRECTORY: string = path.join(__dirname, "AgentPlugins");
+// Scripts/MCP/BuildChatGPTPlugin.sh puts these under skills/ in the ZIP.
+const SKILLS_DIRECTORY: string = path.join(
+  MCP_DIRECTORY,
+  "CodingAgentPlugin",
+  "skills",
+);
+
+const FRONTMATTER_PATTERN: RegExp = /^---\n([\s\S]*?)\n---\n/;
+
+// The clients that load these skills, and the ones like them.
+const CLIENT_NAME_PATTERN: RegExp =
+  /\b(?:Claude|Cursor|ChatGPT|Codex|Copilot|Windsurf|Gemini)\b/;
+
+/*
+ * js-yaml from Common/node_modules, as the Docs tests load it and for the same
+ * reason: Common declares js-yaml 4, App declares no YAML parser. A skill's
+ * front matter is YAML.
+ */
+interface JsYamlModule {
+  load: (text: string) => unknown;
+}
+
+/* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
+const YAML: JsYamlModule = require(
+  path.join(MCP_DIRECTORY, "../../../Common/node_modules/js-yaml"),
+);
+/* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
+
+interface Skill {
+  directory: string;
+  frontmatter: JSONObject;
+  text: string;
+}
+
+const SKILLS: Array<Skill> = fs
+  .readdirSync(SKILLS_DIRECTORY)
+  .sort()
+  .map((directory: string): Skill => {
+    const text: string = fs.readFileSync(
+      path.join(SKILLS_DIRECTORY, directory, "SKILL.md"),
+      "utf8",
+    );
+    const frontmatter: RegExpExecArray | null = FRONTMATTER_PATTERN.exec(text);
+
+    if (!frontmatter) {
+      throw new Error(`${directory}/SKILL.md opens with no front matter`);
+    }
+
+    return {
+      directory,
+      frontmatter: YAML.load(frontmatter[1]!) as JSONObject,
+      text,
+    };
+  });
 
 const PNG_SIGNATURE: Buffer = Buffer.from([
   0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
@@ -349,6 +407,51 @@ describe("the ChatGPT plugin package", () => {
       }
 
       expect(OPENAI.publication.release_notes.trim().length).toBeGreaterThan(0);
+    });
+  });
+
+  describe("its skills", () => {
+    test("are three to five, each with the name and description ChatGPT and Codex read", () => {
+      expect(SKILLS.length).toBeGreaterThanOrEqual(3);
+      expect(SKILLS.length).toBeLessThanOrEqual(5);
+
+      for (const skill of SKILLS) {
+        const name: unknown = skill.frontmatter["name"];
+        const description: unknown = skill.frontmatter["description"];
+
+        expect([
+          skill.directory,
+          name === skill.directory,
+          typeof name === "string" && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(name),
+          typeof description === "string" &&
+            description.trim().length > 0 &&
+            description.length <= 1024,
+        ]).toEqual([skill.directory, true, true, true]);
+      }
+    });
+
+    test("say that the person's own instructions come before their steps, as OpenAI's guidance for skills asks", () => {
+      for (const skill of SKILLS) {
+        expect([
+          skill.directory,
+          skill.text.includes(
+            "The person's own instructions come before these steps",
+          ),
+        ]).toEqual([skill.directory, true]);
+      }
+    });
+
+    test("name no client: Cursor, Claude, ChatGPT and Codex all load the same text", () => {
+      for (const skill of SKILLS) {
+        expect([
+          skill.directory,
+          skill.text.match(CLIENT_NAME_PATTERN)?.[0] || null,
+        ]).toEqual([skill.directory, null]);
+      }
+    });
+
+    test("leave plugin.json without a skills field: a portable package's skills are found in skills/", () => {
+      expect(MANIFEST["skills"]).toBeUndefined();
     });
   });
 
