@@ -40,6 +40,7 @@ const DOCS_DIR: string = path.join(
   "en",
   "cli",
 );
+// In this file's throwaway home (Tests/Setup/ThrowawayHome.ts).
 const CONFIG_FILE: string = path.join(
   os.homedir(),
   ".oneuptime",
@@ -463,22 +464,7 @@ describe("the CLI docs hold the real program", () => {
   });
 
   describe("what the commands print, as the pages quote it", () => {
-    let savedConfig: string | null = null;
     let printed: Array<string>;
-
-    beforeAll(() => {
-      savedConfig = fs.existsSync(CONFIG_FILE)
-        ? fs.readFileSync(CONFIG_FILE, "utf-8")
-        : null;
-    });
-
-    afterAll(() => {
-      if (savedConfig !== null) {
-        fs.writeFileSync(CONFIG_FILE, savedConfig, { mode: 0o600 });
-      } else if (fs.existsSync(CONFIG_FILE)) {
-        fs.unlinkSync(CONFIG_FILE);
-      }
-    });
 
     beforeEach(() => {
       if (fs.existsSync(CONFIG_FILE)) {
