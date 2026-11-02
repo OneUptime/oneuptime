@@ -27,6 +27,8 @@ const DASHBOARD_SRC: string = path.join(
   "src",
 );
 const CALL: string = "BuildBreadcrumbLinksByTitles(";
+// A title with a letter in it has words to translate.
+const LATIN_LETTER: RegExp = /[A-Za-z]/;
 
 // The Dashboard's sixteen languages besides English.
 const LANGUAGES: ReadonlyArray<string> = [
@@ -156,7 +158,7 @@ describe("every breadcrumb title in the Dashboard is a translation key", () => {
       ),
     ).filter((title: string): boolean => {
       // "{{count}}"-like titles have no words to translate.
-      return /[A-Za-z]/.test(title);
+      return LATIN_LETTER.test(title);
     });
 
     expect(LANGUAGES).toHaveLength(16);
