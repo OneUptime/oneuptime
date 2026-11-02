@@ -13,7 +13,7 @@
 
 どちらも OneUptime の API にアクセスし、認証情報で許されたことを行います。違いは、エージェントがそれにアクセスするために何が必要かです。
 
-```mermaid title="Which one an agent uses"
+```mermaid title="エージェントが使うもの"
 flowchart TB
     Q{"エージェントは<br/>シェルコマンドを<br/>実行できる？"} -->|"いいえ"| M["MCP サーバー"]
     Q -->|"はい"| S{"人が代わりに<br/>サインインする？"}
@@ -81,7 +81,7 @@ oneuptime incident acknowledge 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 -o json
 }
 ```
 
-終了コードは何が起きたかを示します。成功したときは `0`、API キーがないか拒否されたときは `2`、レコードがないときは `3` です。エラーの JSON では同じコードが `exitCode` に入り、次にすべきことが `hint` に入ります。[出力形式](/docs/cli/output-formats#json)と[終了コード](/docs/cli/scripting#終了コード)を参照してください。
+終了コードは何が起きたかを示します。成功したときは `0`、失敗したときは `1`、API キーがないか拒否されたときは `2`、レコードがないときは `3` です。エラーの JSON では同じコードが `exitCode` に入り、次にすべきことが `hint` に入ります。[出力形式](/docs/cli/output-formats#json)と[終了コード](/docs/cli/scripting#終了コード)を参照してください。
 
 ## 次のステップ
 

@@ -13,7 +13,7 @@ En AI-agent som kan kjøre skallkommandoer, for eksempel en kodeagent i editoren
 
 Begge når OneUptime-API-et og gjør det påloggingsinformasjonen deres tillater. De er ulike i hva agenten trenger for å nå dem:
 
-```mermaid title="Which one an agent uses"
+```mermaid title="Hvilken en agent bruker"
 flowchart TB
     Q{"Kan agenten<br/>kjøre skall-<br/>kommandoer?"} -->|"nei"| M["MCP-serveren"]
     Q -->|"ja"| S{"Logger en person<br/>inn for den?"}
@@ -81,7 +81,7 @@ oneuptime incident acknowledge 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 -o json
 }
 ```
 
-Avslutningskoden sier hva som skjedde: `0` når det lyktes, `2` når API-nøkkelen mangler eller avvises, og `3` når posten ikke finnes. JSON-en til en feil har den samme koden i `exitCode`, og i `hint` hva du gjør videre. Se [Utdataformater](/docs/cli/output-formats#json) og [Avslutningskoder](/docs/cli/scripting#avslutningskoder).
+Avslutningskoden sier hva som skjedde: `0` når det lyktes, `1` når det mislyktes, `2` når API-nøkkelen mangler eller avvises, og `3` når posten ikke finnes. JSON-en til en feil har den samme koden i `exitCode`, og i `hint` hva du gjør videre. Se [Utdataformater](/docs/cli/output-formats#json) og [Avslutningskoder](/docs/cli/scripting#avslutningskoder).
 
 ## Neste steg
 

@@ -13,7 +13,7 @@ Ein KI-Agent, der Shell-Befehle ausführen kann, etwa ein Coding-Agent in Ihrem 
 
 Beide erreichen die OneUptime-API und tun, was ihre Zugangsdaten erlauben. Sie unterscheiden sich darin, was der Agent braucht, um sie zu erreichen:
 
-```mermaid title="Which one an agent uses"
+```mermaid title="Welches ein Agent verwendet"
 flowchart TB
     Q{"Kann der Agent<br/>Shell-Befehle<br/>ausführen?"} -->|"nein"| M["Der MCP-Server"]
     Q -->|"ja"| S{"Meldet sich eine<br/>Person für ihn an?"}
@@ -81,7 +81,7 @@ oneuptime incident acknowledge 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 -o json
 }
 ```
 
-Der Exit-Code sagt, was passiert ist: `0`, wenn es geklappt hat, `2`, wenn der API-Schlüssel fehlt oder abgelehnt wird, und `3`, wenn der Datensatz nicht da ist. Das JSON eines Fehlers hat denselben Code in `exitCode` und in `hint`, was als Nächstes zu tun ist. Siehe [Ausgabeformate](/docs/cli/output-formats#json) und [Exit-Codes](/docs/cli/scripting#exit-codes).
+Der Exit-Code sagt, was passiert ist: `0`, wenn es geklappt hat, `1`, wenn es fehlgeschlagen ist, `2`, wenn der API-Schlüssel fehlt oder abgelehnt wird, und `3`, wenn der Datensatz nicht da ist. Das JSON eines Fehlers hat denselben Code in `exitCode` und in `hint`, was als Nächstes zu tun ist. Siehe [Ausgabeformate](/docs/cli/output-formats#json) und [Exit-Codes](/docs/cli/scripting#exit-codes).
 
 ## Nächste Schritte
 

@@ -81,7 +81,7 @@ oneuptime incident acknowledge 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 -o json
 }
 ```
 
-The exit code says what happened: `0` when it worked, `2` when the API key is missing or refused, and `3` when the record is not there. An error's JSON has the same code in `exitCode`, and in `hint` what to do next. See [Output Formats](/docs/cli/output-formats#json) and [Exit codes](/docs/cli/scripting#exit-codes).
+The exit code says what happened: `0` when it worked, `1` when it failed, `2` when the API key is missing or refused, and `3` when the record is not there. An error's JSON has the same code in `exitCode`, and in `hint` what to do next. See [Output Formats](/docs/cli/output-formats#json) and [Exit codes](/docs/cli/scripting#exit-codes).
 
 ## Next steps
 

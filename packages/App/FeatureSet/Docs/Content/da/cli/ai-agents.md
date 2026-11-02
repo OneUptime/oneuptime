@@ -13,7 +13,7 @@ En AI-agent, der kan køre shell-kommandoer, for eksempel en kodeagent i din edi
 
 Begge når OneUptime-API'et og gør det, deres legitimationsoplysninger tillader. De er forskellige i, hvad agenten skal bruge for at nå dem:
 
-```mermaid title="Which one an agent uses"
+```mermaid title="Hvilken en agent bruger"
 flowchart TB
     Q{"Kan agenten<br/>køre shell-<br/>kommandoer?"} -->|"nej"| M["MCP-serveren"]
     Q -->|"ja"| S{"Logger en person<br/>ind for den?"}
@@ -81,7 +81,7 @@ oneuptime incident acknowledge 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 -o json
 }
 ```
 
-Exitkoden fortæller, hvad der skete: `0`, når det lykkedes, `2`, når API-nøglen mangler eller afvises, og `3`, når posten ikke findes. En fejls JSON har den samme kode i `exitCode` og i `hint`, hvad der skal gøres som det næste. Se [Outputformater](/docs/cli/output-formats#json) og [Exitkoder](/docs/cli/scripting#exitkoder).
+Exitkoden fortæller, hvad der skete: `0`, når det lykkedes, `1`, når det mislykkedes, `2`, når API-nøglen mangler eller afvises, og `3`, når posten ikke findes. En fejls JSON har den samme kode i `exitCode` og i `hint`, hvad der skal gøres som det næste. Se [Outputformater](/docs/cli/output-formats#json) og [Exitkoder](/docs/cli/scripting#exitkoder).
 
 ## Næste skridt
 

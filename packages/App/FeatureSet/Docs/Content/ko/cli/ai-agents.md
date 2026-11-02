@@ -13,7 +13,7 @@
 
 둘 다 OneUptime API에 접근하며, 자격 증명이 허용하는 일을 합니다. 차이는 에이전트가 거기에 접근하는 데 무엇이 필요한지입니다.
 
-```mermaid title="Which one an agent uses"
+```mermaid title="에이전트가 사용하는 것"
 flowchart TB
     Q{"에이전트가<br/>셸 명령을<br/>실행할 수 있나요?"} -->|"아니요"| M["MCP 서버"]
     Q -->|"예"| S{"사람이 대신<br/>로그인하나요?"}
@@ -81,7 +81,7 @@ oneuptime incident acknowledge 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 -o json
 }
 ```
 
-종료 코드는 무슨 일이 있었는지 알려 줍니다. 성공하면 `0`, API 키가 없거나 거부되면 `2`, 레코드가 없으면 `3`입니다. 오류의 JSON에는 같은 코드가 `exitCode`에, 다음에 할 일이 `hint`에 들어 있습니다. [출력 형식](/docs/cli/output-formats#json)과 [종료 코드](/docs/cli/scripting#종료-코드)를 참조하세요.
+종료 코드는 무슨 일이 있었는지 알려 줍니다. 성공하면 `0`, 실패하면 `1`, API 키가 없거나 거부되면 `2`, 레코드가 없으면 `3`입니다. 오류의 JSON에는 같은 코드가 `exitCode`에, 다음에 할 일이 `hint`에 들어 있습니다. [출력 형식](/docs/cli/output-formats#json)과 [종료 코드](/docs/cli/scripting#종료-코드)를 참조하세요.
 
 ## 다음 단계
 

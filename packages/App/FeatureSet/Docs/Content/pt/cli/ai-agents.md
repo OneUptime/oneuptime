@@ -13,7 +13,7 @@ Um agente de IA que pode executar comandos de shell, como um agente de programa�
 
 Os dois chegam à API do OneUptime e fazem o que as credenciais deles permitem. Eles diferem no que o agente precisa para chegar a eles:
 
-```mermaid title="Which one an agent uses"
+```mermaid title="Qual um agente usa"
 flowchart TB
     Q{"O agente pode<br/>executar comandos<br/>de shell?"} -->|"não"| M["O servidor MCP"]
     Q -->|"sim"| S{"Uma pessoa faz<br/>login por ele?"}
@@ -81,7 +81,7 @@ oneuptime incident acknowledge 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 -o json
 }
 ```
 
-O código de saída diz o que aconteceu: `0` quando funcionou, `2` quando a chave de API falta ou é recusada, e `3` quando o registro não existe. O JSON de um erro tem o mesmo código em `exitCode` e, em `hint`, o que fazer em seguida. Veja [Formatos de saída](/docs/cli/output-formats#json) e [Códigos de saída](/docs/cli/scripting#códigos-de-saída).
+O código de saída diz o que aconteceu: `0` quando funcionou, `1` quando falhou, `2` quando a chave de API falta ou é recusada, e `3` quando o registro não existe. O JSON de um erro tem o mesmo código em `exitCode` e, em `hint`, o que fazer em seguida. Veja [Formatos de saída](/docs/cli/output-formats#json) e [Códigos de saída](/docs/cli/scripting#códigos-de-saída).
 
 ## Próximos passos
 

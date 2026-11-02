@@ -13,7 +13,7 @@
 
 两者都访问 OneUptime API，并执行其凭据允许的操作。区别在于代理访问它们需要什么：
 
-```mermaid title="Which one an agent uses"
+```mermaid title="代理使用哪一个"
 flowchart TB
     Q{"代理能否<br/>运行 shell<br/>命令？"} -->|"否"| M["MCP 服务器"]
     Q -->|"是"| S{"是否有人<br/>替它登录？"}
@@ -81,7 +81,7 @@ oneuptime incident acknowledge 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 -o json
 }
 ```
 
-退出码说明发生了什么：成功时为 `0`，API 密钥缺失或被拒绝时为 `2`，记录不存在时为 `3`。错误的 JSON 在 `exitCode` 中包含相同的退出码，在 `hint` 中给出下一步该做什么。参见 [输出格式](/docs/cli/output-formats#json) 和 [退出码](/docs/cli/scripting#退出码)。
+退出码说明发生了什么：成功时为 `0`，失败时为 `1`，API 密钥缺失或被拒绝时为 `2`，记录不存在时为 `3`。错误的 JSON 在 `exitCode` 中包含相同的退出码，在 `hint` 中给出下一步该做什么。参见 [输出格式](/docs/cli/output-formats#json) 和 [退出码](/docs/cli/scripting#退出码)。
 
 ## 后续步骤
 

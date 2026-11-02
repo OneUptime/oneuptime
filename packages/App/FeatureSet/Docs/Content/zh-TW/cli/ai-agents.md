@@ -13,7 +13,7 @@
 
 兩者都存取 OneUptime API，並執行其認證資料允許的動作。差別在於代理程式存取它們需要什麼：
 
-```mermaid title="Which one an agent uses"
+```mermaid title="代理程式使用哪一個"
 flowchart TB
     Q{"代理程式能否<br/>執行 shell<br/>命令？"} -->|"否"| M["MCP 伺服器"]
     Q -->|"是"| S{"是否有人<br/>替它登入？"}
@@ -81,7 +81,7 @@ oneuptime incident acknowledge 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 -o json
 }
 ```
 
-結束代碼說明發生了什麼：成功時為 `0`，API 金鑰缺少或被拒絕時為 `2`，記錄不存在時為 `3`。錯誤的 JSON 在 `exitCode` 中包含相同的代碼，在 `hint` 中給出下一步該做什麼。請參閱 [輸出格式](/docs/cli/output-formats#json) 和 [結束代碼](/docs/cli/scripting#結束代碼)。
+結束代碼說明發生了什麼：成功時為 `0`，失敗時為 `1`，API 金鑰缺少或被拒絕時為 `2`，記錄不存在時為 `3`。錯誤的 JSON 在 `exitCode` 中包含相同的代碼，在 `hint` 中給出下一步該做什麼。請參閱 [輸出格式](/docs/cli/output-formats#json) 和 [結束代碼](/docs/cli/scripting#結束代碼)。
 
 ## 後續步驟
 
