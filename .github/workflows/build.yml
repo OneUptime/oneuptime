@@ -235,7 +235,27 @@ jobs:
         with:
           timeout_minutes: 45
           max_attempts: 3
-          command: sudo docker build --no-cache -f ./packages/Runner/Dockerfile .
+          command: sudo docker build --no-cache -t oneuptime-runner:ci -f ./packages/Runner/Dockerfile .
+
+      # The image is pruned to the packages the Runner reaches
+      # (Scripts/Docker/PruneUnreachablePackages.js), so a package the walk
+      # missed would be gone from it and fail only when the code that loads
+      # it runs. Start the image as it ships, against a stand-in for the
+      # OneUptime server, and have it register and run a JavaScript step (its
+      # isolated-vm sandbox) and a Bash step (Tests/Ops/RunnerImageRuntime.test.js).
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: npm
+          cache-dependency-path: 'Tests/Ops/package-lock.json'
+
+      - name: Install Ops test dependencies
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: Tests/Ops
+
+      - name: start the image and have it run steps
+        run: cd Tests/Ops && RUN_RUNNER_IMAGE_RUNTIME_TESTS=1 RUNNER_IMAGE=oneuptime-runner:ci npx jest --config ./jest.config.json RunnerImageRuntime
 
   # The Kubernetes AI agent image (agents/KubernetesAIAgent), which the
   # kubernetes-agent chart installs by default. Built on every pull request

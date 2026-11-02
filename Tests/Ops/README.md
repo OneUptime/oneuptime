@@ -44,6 +44,11 @@ Test" workflow provides both:
   which does the same with its ClickHouse and Valkey (they publish no port).
   The workflow sets it on the jest step, and the first suite checks that it
   does.
+- **docker, and the Runner image.** `RUN_RUNNER_IMAGE_RUNTIME_TESTS=1` with
+  `RUNNER_IMAGE=<tag>` turns on `RunnerImageRuntime.test.js`, which starts
+  the built Runner image against a stand-in OneUptime server and has it run a
+  JavaScript and a Bash step. The Build workflow's Runner job builds the image
+  as `oneuptime-runner:ci` and runs it so, and the suite checks that it does.
 
 or from the repo root:
 
@@ -1137,8 +1142,40 @@ What keeps the images free of the rest of what scanners reported, for every
   package) in the layer that installs it;
 - the Nginx base and its node donor are pinned to the same Alpine release, and
   only the nginx modules `nginx.conf` never loads are removed;
+- the Nginx and Runner images install, type-check and prune in a build stage
+  that does not ship, and the image copies only `/usr/src` out of it: the
+  Runner's build toolchain is installed in that stage alone;
 - the collector version is the same everywhere the container agents run it or
   it is validated.
+
+### `PruneUnreachablePackages.test.js`
+
+`Scripts/Docker/PruneUnreachablePackages.js`, which the Nginx and Runner
+images' build stages run: it walks a program's imports with esbuild, from
+every `--entry`, refuses what it cannot follow in the program's own files (a
+`require()` of a computed name, a worker thread's `new Worker()`, a `fork()`)
+unless the file doing it is an `--entry-loader` whose code is another entry,
+and prunes the package to what the walk reached with `npm prune --omit=dev
+--offline`. With real esbuild, TypeScript and npm on fixture programs, and
+the real sidecar's, Runner's and App's walks where their packages are
+installed (a developer's checkout; the image build is the check elsewhere).
+
+### `RunnerImageRuntime.test.js`
+
+Opt-in (`RUN_RUNNER_IMAGE_RUNTIME_TESTS=1`, `RUNNER_IMAGE=<tag>`): starts the
+built Runner image with its own command, on the host's network, against a
+stand-in for the OneUptime server on a free port, and checks that it
+registers, runs a runbook's JavaScript step in its isolated-vm sandbox and a
+Bash step with the run's inputs, reports both, answers `/status/live` and logs
+no missing module. A package the prune took that the Runner needs fails it.
+
+### `HostPostgresPortScripts.test.js`
+
+`npm run ai-eval` and the Postgres schema drift check reach PostgreSQL at
+`DATABASE_PUBLISHED_PORT` (5400 by default) once `config.env` is loaded, and
+`DATABASE_MIGRATIONS_PORT` wins for the drift check: the package.json script
+line runs under every POSIX shell on the machine with a stand-in `node`, and
+the drift check's own lines under bash.
 
 ### `lint-app-dockerfile.sh`
 
