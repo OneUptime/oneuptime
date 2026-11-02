@@ -35,7 +35,7 @@ flowchart TB
 
 - **Få enhetene dine til å sende data.** [Veiledningen for IoT-enheter](/docs/telemetry/iot-devices) viser hvordan du sender metrikker med en OpenTelemetry-SDK eller -Collector, eller over MQTT.
 - **Sjekk at flåten er registrert.** Den vises under **Produkter → Infrastruktur → IoT → All Fleets**, oppkalt etter `iot.fleet.name` som enhetene sender.
-- **Registrer enhetene du forventer**, under flåtens **Device Registry**, for å få beskjed når en blir taus: se [Offline-deteksjon](#offline-deteksjon).
+- **Registrer enhetene du forventer**, under flåtens **Enhetsregister**, for å få beskjed når en blir taus: se [Offline-deteksjon](#offline-deteksjon).
 
 ## Opprett en IoT-enhetsmonitor
 
@@ -114,7 +114,7 @@ Et kriterium utløser bare når betingelsen gjelder for hvert minutt i vinduet -
 | --- | --- |
 | **Gatewayen rapporterer det** | Gatewayen eller collectoren sender `iot_device_up = 0` for en enhet den ikke lenger kan nå. |
 | **MQTT Last Will** | En enhet som er koblet til OneUptimes MQTT-endepunkt, registrerer en Last Will på emnet `status`. Når enheten dør, sender brokeren `iot_device_up = 0` for den i det øyeblikket økten faller: ingen avspørring, ingen venting på en manglende rapport. Se [Sende metrikker via MQTT](/docs/telemetry/iot-devices#sende-metrikker-via-mqtt). |
-| **Enheten er registrert** | En enhet i flåtens **Device Registry** forventes. Når den ikke sender noe i hele vinduet, behandler monitoren den som om den rapporterte `0`, så den får sin egen hendelse, som løser seg selv når enheten rapporterer igjen. |
+| **Enheten er registrert** | En enhet i flåtens **Enhetsregister** forventes. Når den ikke sender noe i hele vinduet, behandler monitoren den som om den rapporterte `0`, så den får sin egen hendelse, som løser seg selv når enheten rapporterer igjen. |
 
 En registrert enhet beholdes også som offline i flåtens inventar, mens en uregistrert fjernes etter 15 minutter med stillhet. Deteksjon av stillhet krever regelen **Treat As Zero** for manglende data på kriteriet for `iot_device_up`, som Device Offline-monitorer opprettet fra malen har. En Device Offline-monitor som ble opprettet før enhetsregistrering fantes, må få den satt manuelt eller opprettes på nytt fra malen.
 
@@ -209,7 +209,7 @@ Spørringen er ikke gruppert. Monitorer med **Custom Metric** vurderer flåten s
 :::
 
 :::details En enhet døde, men Device Offline utløste ikke
-Enheten sendte ingen Last Will, og ingen gateway rapporterte den, så den ble bare taus. Registrer den under flåtens **Device Registry**, og sjekk at **Hvis ingen data** på kriteriet for `iot_device_up` står på **Treat As Zero**. Se [Offline-deteksjon](#offline-deteksjon).
+Enheten sendte ingen Last Will, og ingen gateway rapporterte den, så den ble bare taus. Registrer den under flåtens **Enhetsregister**, og sjekk at **Hvis ingen data** på kriteriet for `iot_device_up` står på **Treat As Zero**. Se [Offline-deteksjon](#offline-deteksjon).
 :::
 
 :::details Device Offline utløser for enheter som er i orden

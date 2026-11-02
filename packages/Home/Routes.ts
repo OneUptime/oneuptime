@@ -7,6 +7,7 @@ import {
   ViewsPath,
 } from "./Utils/Config";
 import NotFoundUtil from "./Utils/NotFound";
+import { getCompareMark } from "./Utils/CompareMark";
 import ProductCompare, {
   Product,
   getProductCompareSlugs,
@@ -58,6 +59,7 @@ import {
   MicrosoftIdentityAssociationPaths,
 } from "./Utils/MicrosoftIdentityAssociation";
 import BlogPostUtil from "./Utils/BlogPost";
+import { INDEXNOW_KEY, INDEXNOW_KEY_PATH } from "./Utils/IndexNow";
 import { getSelfHostedContent } from "./Utils/SelfHosted";
 import {
   getAirGappedContent,
@@ -91,6 +93,7 @@ import { DefaultBookStore } from "./Utils/Books/BookStore";
 import { handleBookContent } from "./Utils/Books/BookContentRoute";
 import { getBookPageAssets } from "./Utils/StaticAssets";
 import {
+  GuideMark,
   GuidePageContent,
   getGuidePageContent,
 } from "./Utils/Integrations/OpenTelemetry/GuidePage";
@@ -110,10 +113,6 @@ import {
   OpenTelemetryGuideEntry,
   getOpenTelemetryGuide,
 } from "Common/Types/Telemetry/OpenTelemetryGuides";
-import {
-  PROVIDER_LOGO_ROUTE,
-  serveProviderLogo,
-} from "./Utils/ProviderLogoFiles";
 import {
   Claim,
   ClaimStatuses,
@@ -2369,7 +2368,7 @@ const HomeFeatureSet: FeatureSet = {
         slug: string;
         productName: string;
         tagline: string;
-        iconUrl: string;
+        mark: GuideMark;
       } | null = (slug: string) => {
         const product: Product = ProductCompare(slug);
         if (!product) {
@@ -2380,7 +2379,7 @@ const HomeFeatureSet: FeatureSet = {
           slug,
           productName: product.productName,
           tagline: product.tagline,
-          iconUrl: product.iconUrl,
+          mark: getCompareMark(product),
         };
       };
 
@@ -2390,7 +2389,7 @@ const HomeFeatureSet: FeatureSet = {
           slug: string;
           productName: string;
           tagline: string;
-          iconUrl: string;
+          mark: GuideMark;
         }>;
       }> = groupDefinitions
         .map((group: { title: string; slugs: Array<string> }) => {
@@ -2407,13 +2406,13 @@ const HomeFeatureSet: FeatureSet = {
                     slug: string;
                     productName: string;
                     tagline: string;
-                    iconUrl: string;
+                    mark: GuideMark;
                   } | null,
                 ): card is {
                   slug: string;
                   productName: string;
                   tagline: string;
-                  iconUrl: string;
+                  mark: GuideMark;
                 } => {
                   return card !== null;
                 },
@@ -2436,13 +2435,13 @@ const HomeFeatureSet: FeatureSet = {
                 slug: string;
                 productName: string;
                 tagline: string;
-                iconUrl: string;
+                mark: GuideMark;
               } | null,
             ): card is {
               slug: string;
               productName: string;
               tagline: string;
-              iconUrl: string;
+              mark: GuideMark;
             } => {
               return card !== null;
             },
@@ -2485,6 +2484,7 @@ const HomeFeatureSet: FeatureSet = {
           blackLogo: false,
           requestDemoCta: false,
           productConfig,
+          productMark: getCompareMark(productConfig),
           onlyShowCompareTable: false,
           seo,
         });
@@ -2495,10 +2495,9 @@ const HomeFeatureSet: FeatureSet = {
      * The integrations: one OpenTelemetry guide per framework, and their
      * index, grouped by language (Utils/Integrations/OpenTelemetry). Each
      * guide is data of one shape, drawn by one template; a slug the catalog
-     * does not know is the site's not-found page.
+     * does not know is the site's not-found page. The guides' marks are in
+     * their pages (Utils/ProviderLogoMarkup): there is no logo file to serve.
      */
-    app.get(PROVIDER_LOGO_ROUTE, serveProviderLogo);
-
     app.get("/integrations", (_req: ExpressRequest, res: ExpressResponse) => {
       const homeUrl: string = res.locals["homeUrl"] as string;
       res.render(`${ViewsPath}/integrations/index`, {
@@ -2661,6 +2660,17 @@ const HomeFeatureSet: FeatureSet = {
      * A tag's RSS feed, /blog/tag/:tagSlug/rss.xml, is served by API/BlogAPI.ts
      * with the tag's page, ahead of its route for the tags' old addresses.
      */
+
+    /*
+     * IndexNow's key, where the UpdateBlog job's notices say it is
+     * (Utils/IndexNow.ts): a search engine reads it to check a notice came
+     * from this site.
+     */
+    app.get(INDEXNOW_KEY_PATH, (_req: ExpressRequest, res: ExpressResponse) => {
+      res.setHeader("Content-Type", "text/plain; charset=utf-8");
+      res.setHeader("Cache-Control", "public, max-age=86400");
+      return res.status(200).send(INDEXNOW_KEY);
+    });
 
     // robots.txt (dynamic) - If domain is not oneuptime.com, disallow all.
     app.get("/robots.txt", (_req: ExpressRequest, res: ExpressResponse) => {

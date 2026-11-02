@@ -137,7 +137,7 @@ Everything is ready. Begin running and processing data.
 | OSD | `ceph_osd_up`, `ceph_osd_in`, `ceph_osd_apply_latency_ms`, `ceph_osd_commit_latency_ms`, `ceph_osd_stat_bytes`, `ceph_osd_stat_bytes_used`, `ceph_osd_numpg`, `ceph_osd_metadata`, по каждому OSD по метке `ceph_daemon` (например, `osd.3`) |
 | Пул | `ceph_pool_stored`, `ceph_pool_max_avail`, `ceph_pool_objects`, `ceph_pool_rd`, `ceph_pool_wr`, `ceph_pool_rd_bytes`, `ceph_pool_wr_bytes`, `ceph_pool_metadata`. Серии данных несут только метку `pool_id`; имя пула указано в `ceph_pool_metadata`. |
 | Группы размещения | `ceph_pg_total`, `ceph_pg_active`, `ceph_pg_clean`, `ceph_pg_degraded`, `ceph_pg_undersized` (все по пулам, по `pool_id`), `ceph_num_objects_degraded`, `ceph_num_objects_misplaced` |
-| Демоны | `ceph_mgr_metadata`, `ceph_mds_metadata` и `ceph_rgw_metadata` — в дополнение к метаданным мониторов и OSD выше. Каждая называет демона и несёт его версию в метке `ceph_version`: страница **Daemons** показывает их список. |
+| Демоны | `ceph_mgr_metadata`, `ceph_mds_metadata` и `ceph_rgw_metadata` — в дополнение к метаданным мониторов и OSD выше. Каждая называет демона и несёт его версию в метке `ceph_version`: страница **Демоны** показывает их список. |
 
 ### Другие цели опроса
 
@@ -150,7 +150,7 @@ Everything is ready. Begin running and processing data.
 
 ## Необязательно — отправка журнала кластера Ceph
 
-Агент может отслеживать `/var/log/ceph/ceph.log` и отправлять его в OneUptime, заполняя страницу **Cluster Log** кластера. По умолчанию это выключено, потому что для этого агент должен работать на хосте, где есть журнал кластера: по умолчанию на хосте монитора.
+Агент может отслеживать `/var/log/ceph/ceph.log` и отправлять его в OneUptime, заполняя страницу **Журнал кластера** кластера. По умолчанию это выключено, потому что для этого агент должен работать на хосте, где есть журнал кластера: по умолчанию на хосте монитора.
 
 :::steps
 ### Включите приёмник

@@ -25,7 +25,7 @@ Uma classificação só lê. Ela usa a IA do próprio projeto: **Habilitar IA**,
 
 ## Antes de começar
 
-- **Habilitar IA** ligado, em **Configurações do projeto → IA → AI Features**. Desligado, a segurança não mostra nada do OneUptime AI e nada é executado.
+- **Habilitar IA** ligado, em **Configurações do projeto → IA → Recursos de IA**. Desligado, a segurança não mostra nada do OneUptime AI e nada é executado.
 - Um provedor de LLM que o OneUptime AI possa usar, em **Configurações do projeto → IA → Provedores LLM**. O OneUptime Cloud oferece um.
 - Uma função que possa trabalhar os casos de segurança, para iniciar uma classificação: Project Owner, Project Admin, Security Admin ou Security Member. O Security Viewer lê todas as classificações, mas não pode iniciar nenhuma. Veja [Funções](/docs/permissions/reference#funções).
 
@@ -112,7 +112,7 @@ Quando um caso declara um incidente, a investigação com IA do incidente també
 
 ## Custos e limites
 
-Uma classificação é trabalho do OneUptime AI, como a investigação de um incidente. No OneUptime Cloud, ela é paga com os créditos de IA do projeto e conta para os limites diários de IA do próprio projeto (**Limites diários**, em **Configurações do projeto → IA → AI Features**). Os limites diários de incidentes e alertas não se aplicam. Um caso tem uma classificação por vez, e os registros de IA (**Configurações do projeto → IA → Registros de IA**) listam as chamadas dela.
+Uma classificação é trabalho do OneUptime AI, como a investigação de um incidente. No OneUptime Cloud, ela é paga com os créditos de IA do projeto e conta para os limites diários de IA do próprio projeto (**Limites diários**, em **Configurações do projeto → IA → Recursos de IA**). Os limites diários de incidentes e alertas não se aplicam. Um caso tem uma classificação por vez, e os registros de IA (**Configurações do projeto → IA → Registros de IA**) listam as chamadas dela.
 
 Quando o projeto fica sem créditos de IA ou atinge um limite diário de IA, os casos novos não são classificados: o cartão diz por quê, e **Classificar com IA** volta a funcionar assim que créditos forem adicionados ou o limite for redefinido.
 
@@ -123,7 +123,7 @@ Verifique se **Habilitar IA** está ligado, e também **Classificar novos casos*
 :::
 
 :::details O cartão diz que o projeto ficou sem créditos de IA, ou que atingiu o limite diário de IA
-Um proprietário do projeto ou alguém com Manage Billing pode adicionar créditos em **Configurações do projeto → IA → Créditos de IA**, ou aumentar ou remover o limite em **Configurações do projeto → IA → AI Features**. Depois, clique em **Classificar com IA** no caso.
+Um proprietário do projeto ou alguém com Manage Billing pode adicionar créditos em **Configurações do projeto → IA → Créditos de IA**, ou aumentar ou remover o limite em **Configurações do projeto → IA → Recursos de IA**. Depois, clique em **Classificar com IA** no caso.
 :::
 
 :::details O cartão diz que um texto do caso parece conter instruções para uma IA

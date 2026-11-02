@@ -30,7 +30,11 @@ import {
   summarizeCloudFleet,
 } from "../../Pages/AppPlatforms/Utils/CloudFleetSummary";
 import { CLOUD_INSTANCE_LIVE_WINDOW_MINUTES } from "../../Pages/AppPlatforms/Utils/CloudResourceTelemetryScope";
-import { getTileTitleWordsClassName } from "../TelemetryResource/TileTitleWords";
+import {
+  getTileTitleWordsClassName,
+  TILE_TITLE_LONG_WORDS,
+} from "../TelemetryResource/TileTitleWords";
+import HyphenatedWords from "Common/UI/Components/HyphenatedWords/HyphenatedWords";
 import { getDrawnLanguage } from "Common/UI/Components/SideMenu/SideMenuEntryState";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -338,7 +342,11 @@ const CloudFleetSummary: FunctionComponent<ComponentProps> = (
                       )}`}
                       lang={titleLanguage}
                     >
-                      {title}
+                      <HyphenatedWords
+                        text={title}
+                        lang={titleLanguage}
+                        rule={TILE_TITLE_LONG_WORDS}
+                      />
                     </span>
                     <InfoTooltip label={tile.title} text={tile.description} />
                   </div>

@@ -1,6 +1,6 @@
 # Wachtrijen
 
-**Queues** geeft elke berichtenwachtrij, elk topic en elk abonnement dat je applicaties gebruiken een eigen pagina: welke services erin publiceren en welke eruit consumeren, hoeveel berichten erdoorheen gaan, hoeveel er mislukken en hoe lang de verwerking duurt, de traces en metrics ervan en, zodra de eigen metrics van de broker OneUptime bereiken, de achterstand, de consumer-lag, dead letters en throttling. Wachtrijen hebben labels, eigenaren, label- en eigenaarregels en archivering, net als elke andere resource. Open ze via **Producten → Bronnen → Wachtrijen**.
+**Wachtrijen** geeft elke berichtenwachtrij, elk topic en elk abonnement dat je applicaties gebruiken een eigen pagina: welke services erin publiceren en welke eruit consumeren, hoeveel berichten erdoorheen gaan, hoeveel er mislukken en hoe lang de verwerking duurt, de traces en metrics ervan en, zodra de eigen metrics van de broker OneUptime bereiken, de achterstand, de consumer-lag, dead letters en throttling. Wachtrijen hebben labels, eigenaren, label- en eigenaarregels en archivering, net als elke andere resource. Open ze via **Producten → Bronnen → Wachtrijen**.
 
 :::cards
 - [Applicaties instrumenteren](#applicaties-instrumenteren): De messaging-spans die je OpenTelemetry-instrumentatie al verstuurt.
@@ -27,7 +27,7 @@ flowchart TB
 
 Traces vertellen OneUptime dat een wachtrij bestaat en hoe applicaties hem gebruiken, maar niet hoe vol hij is. Dat komt van de broker zelf of van de monitoring-API van zijn cloudprovider, of, voor [BullMQ](#bullmq), dat zijn jobs in Redis bewaart en geen broker heeft om te vragen, van een gauge die de applicatie rapporteert.
 
-Je kunt een wachtrij ook handmatig toevoegen: **Queues → Queue aanmaken**, met het berichtensysteem en de naam van de bestemming en, voor Azure Service Bus en Event Hubs, de namespace. Het formulier vraagt daarnaar in de eerste stap, **Berichtensysteem**, en daarna om een optionele naam en beschrijving, met labels onder **Meer velden** (**Wachtrijgegevens**). Laat de namespace alleen leeg voor een wachtrij die je applicaties via een emulator of een eigen domeinnaam bereiken: hun spans noemen geen namespace, en de metrics van Azure Monitor bereiken zo'n wachtrij nooit (zie [Beperkingen](#beperkingen)).
+Je kunt een wachtrij ook handmatig toevoegen: **Wachtrijen → Queue aanmaken**, met het berichtensysteem en de naam van de bestemming en, voor Azure Service Bus en Event Hubs, de namespace. Het formulier vraagt daarnaar in de eerste stap, **Berichtensysteem**, en daarna om een optionele naam en beschrijving, met labels onder **Meer velden** (**Wachtrijgegevens**). Laat de namespace alleen leeg voor een wachtrij die je applicaties via een emulator of een eigen domeinnaam bereiken: hun spans noemen geen namespace, en de metrics van Azure Monitor bereiken zo'n wachtrij nooit (zie [Beperkingen](#beperkingen)).
 
 ## Aan de slag
 
@@ -1037,7 +1037,7 @@ Self-hosted installaties kunnen de detectie afstemmen met deze omgevingsvariabel
 - Haar naam is er een die OneUptime negeert (zie [Wat wordt genegeerd](#wat-wordt-genegeerd)), of alleen SERVER-spans noemen haar.
 - Er zijn in de laatste 15 minuten minder dan 3 van haar spans binnengekomen, of het project heeft zijn [budget voor automatisch aanmaken](#het-budget-voor-automatisch-aanmaken) bereikt.
 
-Als haar spans haar wel noemen, maak haar dan handmatig aan met hetzelfde systeem en dezelfde bestemming (**Queues → Queue aanmaken**): haar tabblad **Traces** vult zich met de spans die al zijn opgeslagen.
+Als haar spans haar wel noemen, maak haar dan handmatig aan met hetzelfde systeem en dezelfde bestemming (**Wachtrijen → Queue aanmaken**): haar tabblad **Traces** vult zich met de spans die al zijn opgeslagen.
 
 ### De brokergezondheid blijft leeg
 

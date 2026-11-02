@@ -591,7 +591,7 @@ Nogle grafer viser metrikker, som agenten ikke har et scrape til: **kube-proxy**
 
 ### Slå omkostningsobservability til
 
-Se på klyngens side **Costs**, hvad hvert namespace, hver workload og hver pod koster, med tomgangskapacitet og hvor meget af hver request der bruges:
+Se på klyngens side **Omkostninger**, hvad hvert namespace, hver workload og hver pod koster, med tomgangskapacitet og hvor meget af hver request der bruges:
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \

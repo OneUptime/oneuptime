@@ -73,7 +73,7 @@ Preencha os valores na página **Campos personalizados** de um item. Qualquer it
 
 ## Filtrar a lista
 
-Cada campo personalizado vira um filtro acima da lista **All Items**, e o filtro oferece as comparações que combinam com o tipo dele:
+Cada campo personalizado vira um filtro acima da lista **Todos os itens**, e o filtro oferece as comparações que combinam com o tipo dele:
 
 | Tipo do campo | Comparações |
 | --- | --- |

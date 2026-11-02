@@ -1,7 +1,7 @@
 {
   "baseline": {
     "keys": 40054,
-    "untranslated": 12712
+    "untranslated": 12666
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -30,11 +30,13 @@
     "Chats",
     "Cluster",
     "Clusters",
+    "Configs",
     "Console",
     "Content Security Policy",
     "CrowdStrike",
     "Cursor",
     "DE",
+    "Daemons",
     "Datacenter",
     "Datacenters",
     "Datastore",
@@ -69,6 +71,7 @@
     "Interface",
     "Interface {{index}}",
     "Interfaces",
+    "IoT",
     "Israel (+972)",
     "Job",
     "Kernel",
@@ -102,6 +105,7 @@
     "PVC",
     "Passthrough",
     "Path traversal",
+    "Pipelines",
     "Playbook",
     "Playbooks",
     "Playlist",
@@ -132,7 +136,9 @@
     "SLI %",
     "SLOs",
     "Script",
+    "Service Mesh",
     "Site",
+    "Sites",
     "Slug",
     "Span",
     "Span: {{id}}",

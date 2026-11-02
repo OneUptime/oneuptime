@@ -42,7 +42,7 @@ Il menu laterale di un'applicazione raggruppa le sue pagine così; **Impostazion
 | --- | --- |
 | **Base** | **Panoramica**, **Raccomandazioni**, **Documentazione** |
 | **Osservabilità** | **Metriche**, **Registri**, **Tracce**, **Client** |
-| **Riproduzione delle sessioni** | **Riproduzione delle sessioni**, **User Flows**, **Replay Users**, **Integrità**, **Replay Policy**, **Registro degli accessi alle riproduzioni**, **Documentazione** |
+| **Riproduzione delle sessioni** | **Riproduzione delle sessioni**, **Flussi utente**, **Utenti delle riproduzioni**, **Integrità**, **Replay Policy**, **Registro degli accessi alle riproduzioni**, **Documentazione** |
 | **Impostazioni** | **Impostazioni** |
 | **Sviluppatori** | **Terraform**, **API**, **Assistenti IA** |
 | **Avanzato** | **Elimina applicazione** |

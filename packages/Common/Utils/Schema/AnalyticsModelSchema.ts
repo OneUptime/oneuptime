@@ -2,6 +2,8 @@ import z, { ZodSchema } from "./Zod";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 import AnalyticsTableColumn from "../../Types/AnalyticsDatabase/TableColumn";
 import AnalyticsBaseModel from "../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
+import { ColumnAccessControl } from "../../Types/BaseDatabase/AccessControl";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import { z as ZodTypes } from "zod";
 import { BaseSchema, SchemaExample, ShapeRecord } from "./BaseSchema";
 import {
@@ -12,6 +14,94 @@ import {
 } from "./TypeSchemas";
 
 export type AnalyticsModelSchemaType = ZodSchema;
+
+/*
+ * WHAT A TELEMETRY QUERY CAN DO WITH A COLUMN OF EACH TYPE, as
+ * StatementGenerator compiles it: Tests/Utils/Schema/AnalyticsModelSchema runs
+ * every operator listed here through it, on every column of every telemetry
+ * table. The OpenAPI spec and the MCP server's oneuptime_describe_resource
+ * both read these lists.
+ */
+const PRESENCE_OPERATORS: Array<string> = ["IsNull", "NotNull"];
+
+const EQUALITY_OPERATORS: Array<string> = [
+  "EqualTo",
+  "NotEqual",
+  ...PRESENCE_OPERATORS,
+];
+
+// IN (...) on a column of one value, hasAny on an Array(String).
+const ID_OPERATORS: Array<string> = [...EQUALITY_OPERATORS, "Includes"];
+
+const RANGE_OPERATORS: Array<string> = [
+  ...EQUALITY_OPERATORS,
+  "GreaterThan",
+  "GreaterThanOrEqual",
+  "LessThan",
+  "LessThanOrEqual",
+  "InBetween",
+];
+
+const OPERATORS_BY_COLUMN_TYPE: Record<TableColumnType, Array<string>> = {
+  [TableColumnType.Text]: [...ID_OPERATORS, "EqualToOrNull", "Search"],
+  [TableColumnType.ObjectID]: ID_OPERATORS,
+  [TableColumnType.IP]: ID_OPERATORS,
+  [TableColumnType.ArrayText]: [...ID_OPERATORS, "Search"],
+  [TableColumnType.Boolean]: EQUALITY_OPERATORS,
+  /*
+   * A telemetry table's time column (time, startTime, windowStart,
+   * validFrom) is a DateTime64. An ISO-8601 time binds as either type.
+   */
+  [TableColumnType.Date]: RANGE_OPERATORS,
+  [TableColumnType.DateTime64]: RANGE_OPERATORS,
+  [TableColumnType.Number]: RANGE_OPERATORS,
+  [TableColumnType.LongNumber]: RANGE_OPERATORS,
+  [TableColumnType.BigNumber]: RANGE_OPERATORS,
+  [TableColumnType.Decimal]: RANGE_OPERATORS,
+  [TableColumnType.UInt8]: RANGE_OPERATORS,
+  [TableColumnType.UInt64]: RANGE_OPERATORS,
+  [TableColumnType.Port]: RANGE_OPERATORS,
+  // On each key: {"attributes": {"<key>": <value or operator>}}.
+  [TableColumnType.MapStringString]: [...EQUALITY_OPERATORS, "Search"],
+  [TableColumnType.ArrayNumber]: PRESENCE_OPERATORS,
+  [TableColumnType.ArrayBigNumber]: PRESENCE_OPERATORS,
+  [TableColumnType.ArrayDecimal]: PRESENCE_OPERATORS,
+  [TableColumnType.JSON]: PRESENCE_OPERATORS,
+  [TableColumnType.JSONArray]: PRESENCE_OPERATORS,
+  // A pre-aggregate's state, which nothing compares with.
+  [TableColumnType.AggregateFunction]: [],
+};
+
+/*
+ * Columns a query may name though no permission reads them: the API lets
+ * these through before it looks at a column's readers
+ * (ModelPermission.getExcludedColumnNames). It refuses any other column
+ * nobody may read, such as a table's retentionDate.
+ */
+const ALWAYS_QUERYABLE_COLUMNS: Array<string> = [
+  "_id",
+  "createdAt",
+  "deletedAt",
+  "updatedAt",
+  "version",
+];
+
+const TIME_COLUMN_TYPES: Array<TableColumnType> = [
+  TableColumnType.Date,
+  TableColumnType.DateTime64,
+];
+
+/*
+ * 64 bits and wider: a JSON number past 2^53 loses digits, so a value can
+ * also be sent as a string of digits.
+ */
+const WIDE_INTEGER_COLUMN_TYPES: Array<TableColumnType> = [
+  TableColumnType.LongNumber,
+  TableColumnType.BigNumber,
+  TableColumnType.UInt64,
+];
+
+const EXAMPLE_TIME: string = "2026-01-01T00:00:00.000Z";
 
 export class AnalyticsModelSchema extends BaseSchema {
   // Helper function to add default value to openapi schema if it exists
@@ -405,39 +495,65 @@ export class AnalyticsModelSchema extends BaseSchema {
     );
   }
 
+  /*
+   * The columns a query may name, each with what it can be compared with.
+   *
+   * Neither this object's .openapi() nor a column's names a `type`:
+   * zod-to-openapi takes a `type` there for the whole schema and leaves out
+   * the properties and operators it would have generated, so the spec listed
+   * no field of a telemetry query at all.
+   */
   public static getQueryModelSchema(data: {
     modelType: new () => AnalyticsBaseModel;
     disableOpenApiSchema?: boolean;
   }): AnalyticsModelSchemaType {
-    const modelType: new () => AnalyticsBaseModel = data.modelType;
-    const model: AnalyticsBaseModel = new modelType();
+    const model: AnalyticsBaseModel = new data.modelType();
+    const disableOpenApiSchema: boolean = data.disableOpenApiSchema || false;
+    const shape: ShapeRecord = {};
 
-    return this.generateQuerySchema({
-      model,
-      tableName: model.tableName || "analytics_model",
-      getColumns: (model: AnalyticsBaseModel) => {
-        const columns: Array<AnalyticsTableColumn> = model.getTableColumns();
-        return columns.map((column: AnalyticsTableColumn) => {
-          return { key: column.key, type: column.type };
-        });
+    for (const column of this.getQueryableColumns(model)) {
+      const operators: Array<string> = this.getValidOperatorsForColumnType(
+        column.type,
+      );
+
+      shape[column.key] = this.applyOpenApi(
+        this.getColumnQuerySchema(column.type, operators).optional(),
+        {
+          description: this.getColumnQueryDescription(column, operators),
+          example: this.getColumnQueryExample(column.type),
+        },
+        disableOpenApiSchema,
+      );
+    }
+
+    // A telemetry table is sorted by its time, which every query should bound.
+    const sortColumn: AnalyticsTableColumn | null = model.getTableColumn(
+      model.defaultSortColumn,
+    );
+    const timeColumn: AnalyticsTableColumn | null =
+      sortColumn &&
+      shape[sortColumn.key] &&
+      TIME_COLUMN_TYPES.includes(sortColumn.type)
+        ? sortColumn
+        : null;
+
+    return this.applyOpenApi(
+      z.object(shape),
+      {
+        description: `Query schema for ${model.tableName || "analytics_model"}. A field takes a plain value, which it matches exactly, or an operator its type allows.${
+          timeColumn
+            ? ` Telemetry tables are large: bound every query by ${timeColumn.key}.`
+            : ""
+        }`,
+        example: timeColumn
+          ? {
+              [timeColumn.key]: this.getColumnQueryExample(timeColumn.type),
+            }
+          : {},
+        additionalProperties: false,
       },
-      getValidOperatorsForColumnType: (columnType: TableColumnType) => {
-        return this.getValidOperatorsForColumnType(columnType);
-      },
-      getOperatorSchema: (
-        operatorType: string,
-        columnType: TableColumnType,
-      ) => {
-        return this.getOperatorSchema(operatorType, columnType);
-      },
-      getQuerySchemaExample: () => {
-        return this.getQuerySchemaExample(modelType);
-      },
-      getExampleValueForColumn: (columnType: TableColumnType) => {
-        return this.getExampleValueForColumn(columnType);
-      },
-      disableOpenApiSchema: data.disableOpenApiSchema || false,
-    });
+      disableOpenApiSchema,
+    );
   }
 
   public static getSelectModelSchema(data: {
@@ -461,27 +577,42 @@ export class AnalyticsModelSchema extends BaseSchema {
     });
   }
 
+  // No `type` in .openapi() here either, so the spec lists the fields.
   public static getSortModelSchema(data: {
     modelType: new () => AnalyticsBaseModel;
     disableOpenApiSchema?: boolean;
   }): AnalyticsModelSchemaType {
-    const modelType: new () => AnalyticsBaseModel = data.modelType;
-    const model: AnalyticsBaseModel = new modelType();
+    const model: AnalyticsBaseModel = new data.modelType();
+    const disableOpenApiSchema: boolean = data.disableOpenApiSchema || false;
+    const sortableTypes: Array<TableColumnType> = this.getSortableTypes();
+    const shape: ShapeRecord = {};
 
-    return this.generateSortSchema({
-      model,
-      tableName: model.tableName || "analytics_model",
-      getSortableTypes: () => {
-        return this.getSortableTypes();
+    for (const column of model.getTableColumns()) {
+      if (!sortableTypes.includes(column.type)) {
+        continue;
+      }
+
+      shape[column.key] = this.applyOpenApi(
+        z.enum([SortOrder.Ascending, SortOrder.Descending]).optional(),
+        {
+          description: `Sort order for ${column.key} field`,
+          example: SortOrder.Descending,
+        },
+        disableOpenApiSchema,
+      );
+    }
+
+    return this.applyOpenApi(
+      z.object(shape),
+      {
+        description: `Sort schema for ${model.tableName || "analytics_model"}. Only sortable fields are included.`,
+        example: shape[model.defaultSortColumn]
+          ? { [model.defaultSortColumn]: SortOrder.Descending }
+          : {},
+        additionalProperties: false,
       },
-      getColumnsForSorting: (model: AnalyticsBaseModel) => {
-        const columns: Array<AnalyticsTableColumn> = model.getTableColumns();
-        return columns.map((column: AnalyticsTableColumn) => {
-          return { key: column.key, type: column.type };
-        });
-      },
-      disableOpenApiSchema: data.disableOpenApiSchema || false,
-    });
+      disableOpenApiSchema,
+    );
   }
 
   public static getGroupByModelSchema(data: {
@@ -516,12 +647,21 @@ export class AnalyticsModelSchema extends BaseSchema {
     });
   }
 
-  private static getSortableTypes(): Array<TableColumnType> {
+  /*
+   * The column types a telemetry query can be sorted on. StatementGenerator
+   * orders by any column; arrays, JSON, maps and aggregate states have no
+   * order worth asking for.
+   */
+  public static getSortableTypes(): Array<TableColumnType> {
     return [
       TableColumnType.Text,
       TableColumnType.Number,
       TableColumnType.LongNumber,
+      TableColumnType.BigNumber,
+      TableColumnType.UInt8,
+      TableColumnType.UInt64,
       TableColumnType.Date,
+      TableColumnType.DateTime64,
       TableColumnType.Boolean,
       TableColumnType.ObjectID,
       TableColumnType.Decimal,
@@ -530,61 +670,127 @@ export class AnalyticsModelSchema extends BaseSchema {
     ];
   }
 
-  private static getValidOperatorsForColumnType(
+  /*
+   * The operators a query can use on a column of this type - on a
+   * Map(String, String) column, on each of its keys. None: the column cannot
+   * be filtered.
+   */
+  public static getValidOperatorsForColumnType(
     columnType: TableColumnType,
   ): Array<string> {
+    return OPERATORS_BY_COLUMN_TYPE[columnType] || [];
+  }
+
+  // Those somebody may read, and those the API lets through all the same.
+  private static getQueryableColumns(
+    model: AnalyticsBaseModel,
+  ): Array<AnalyticsTableColumn> {
+    return model
+      .getTableColumns()
+      .filter((column: AnalyticsTableColumn): boolean => {
+        if (this.getValidOperatorsForColumnType(column.type).length === 0) {
+          return false;
+        }
+
+        const accessControl: ColumnAccessControl | null =
+          model.getColumnAccessControlFor(column.key);
+
+        return (
+          ALWAYS_QUERYABLE_COLUMNS.includes(column.key) ||
+          (accessControl?.read || []).length > 0
+        );
+      });
+  }
+
+  /*
+   * A plain value, or an object of one of the operators - on a map, under
+   * each key.
+   */
+  private static getColumnQuerySchema(
+    columnType: TableColumnType,
+    operators: Array<string>,
+  ): ZodTypes.ZodTypeAny {
+    const operatorSchemas: Array<ZodTypes.ZodTypeAny> = operators.map(
+      (operator: string): ZodTypes.ZodTypeAny => {
+        return this.getOperatorSchema(operator, columnType);
+      },
+    );
+
+    const valueOrOperator: ZodTypes.ZodTypeAny =
+      operatorSchemas.length === 1
+        ? operatorSchemas[0]!
+        : z.union(
+            operatorSchemas as [
+              ZodTypes.ZodTypeAny,
+              ZodTypes.ZodTypeAny,
+              ...ZodTypes.ZodTypeAny[],
+            ],
+          );
+
+    /*
+     * A map is filtered by key. A `_type` among the keys would be read as an
+     * operator on the whole map, which StatementGenerator compiles none of.
+     */
+    if (columnType === TableColumnType.MapStringString) {
+      return z
+        .object({})
+        .catchall(valueOrOperator)
+        .refine((keys: Record<string, unknown>): boolean => {
+          return !("_type" in keys);
+        }, 'A map is filtered by key: {"<key>": <value or operator>}.');
+    }
+
+    return valueOrOperator;
+  }
+
+  private static getColumnQueryDescription(
+    column: AnalyticsTableColumn,
+    operators: Array<string>,
+  ): string {
+    let description: string = `Query operators for ${column.key} field of type ${column.type}. Supported operators: ${operators.join(", ")}.`;
+
+    if (column.type === TableColumnType.MapStringString) {
+      description += ` Filtered by key, each key with these operators: {"${column.key}": {"<key>": <value or operator>}}.`;
+    } else if (column.type === TableColumnType.ArrayText) {
+      description += ` EqualTo, NotEqual and Search match one element; Includes matches any of several.`;
+    } else if (TIME_COLUMN_TYPES.includes(column.type)) {
+      description += ` Times are ISO-8601, such as ${EXAMPLE_TIME}.`;
+    } else if (WIDE_INTEGER_COLUMN_TYPES.includes(column.type)) {
+      description += ` A value past 2^53 is sent as a string of digits.`;
+    }
+
+    return description;
+  }
+
+  private static getColumnQueryExample(columnType: TableColumnType): unknown {
+    if (TIME_COLUMN_TYPES.includes(columnType)) {
+      return { _type: "GreaterThan", value: EXAMPLE_TIME };
+    }
+
+    if (WIDE_INTEGER_COLUMN_TYPES.includes(columnType)) {
+      return { _type: "GreaterThan", value: "1767225600000000000" };
+    }
+
     switch (columnType) {
-      case TableColumnType.Text:
-        return ["EqualTo", "NotEqual", "Search", "IsNull", "NotNull"];
       case TableColumnType.Number:
-      case TableColumnType.LongNumber:
       case TableColumnType.Decimal:
-        return [
-          "EqualTo",
-          "NotEqual",
-          "GreaterThan",
-          "LessThan",
-          "GreaterThanOrEqual",
-          "LessThanOrEqual",
-          "IsNull",
-          "NotNull",
-        ];
-      case TableColumnType.Date:
-        return [
-          "EqualTo",
-          "NotEqual",
-          "GreaterThan",
-          "LessThan",
-          "GreaterThanOrEqual",
-          "LessThanOrEqual",
-          "IsNull",
-          "NotNull",
-        ];
-      case TableColumnType.Boolean:
-        return ["EqualTo", "NotEqual", "IsNull", "NotNull"];
-      case TableColumnType.ObjectID:
-        return ["EqualTo", "NotEqual", "IsNull", "NotNull"];
-      case TableColumnType.JSON:
-      case TableColumnType.JSONArray:
-        return ["IsNull", "NotNull"];
-      case TableColumnType.ArrayText:
-      case TableColumnType.ArrayNumber:
-        return ["IsNull", "NotNull"];
-      case TableColumnType.IP:
-        return ["EqualTo", "NotEqual", "IsNull", "NotNull"];
+      case TableColumnType.UInt8:
       case TableColumnType.Port:
-        return [
-          "EqualTo",
-          "NotEqual",
-          "GreaterThan",
-          "LessThan",
-          "GreaterThanOrEqual",
-          "LessThanOrEqual",
-          "IsNull",
-          "NotNull",
-        ];
+        return { _type: "GreaterThan", value: 42 };
+      case TableColumnType.ObjectID:
+        return "123e4567-e89b-12d3-a456-426614174000";
+      case TableColumnType.IP:
+        return "192.168.1.1";
+      case TableColumnType.Boolean:
+        return true;
+      case TableColumnType.ArrayText:
+        return { _type: "EqualTo", value: "item1" };
+      case TableColumnType.MapStringString:
+        return { key: "value" };
+      case TableColumnType.Text:
+        return "example text";
       default:
-        return ["EqualTo", "NotEqual", "IsNull", "NotNull"];
+        return { _type: "NotNull" };
     }
   }
 
@@ -657,56 +863,6 @@ export class AnalyticsModelSchema extends BaseSchema {
 
       example[column.key] = this.getExampleValueForColumn(column.type);
       exampleCount++;
-    }
-
-    return example;
-  }
-
-  private static getQuerySchemaExample(
-    modelType: new () => AnalyticsBaseModel,
-  ): SchemaExample {
-    const model: AnalyticsBaseModel = new modelType();
-    const columns: Array<AnalyticsTableColumn> = model.getTableColumns();
-    const example: SchemaExample = {};
-
-    let exampleCount: number = 0;
-    const maxExamples: number = 2;
-
-    for (const column of columns) {
-      if (exampleCount >= maxExamples) {
-        break;
-      }
-
-      // Check read permissions for query operations
-      const accessControl: any = model.getColumnAccessControlFor(column.key);
-      if (
-        !accessControl ||
-        !accessControl.read ||
-        accessControl.read.length === 0
-      ) {
-        continue;
-      }
-
-      const validOperators: Array<string> = this.getValidOperatorsForColumnType(
-        column.type,
-      );
-      if (validOperators.length === 0) {
-        continue;
-      }
-
-      if (column.type === TableColumnType.Text) {
-        example[column.key] = {
-          _type: "EqualTo",
-          value: "example text",
-        };
-        exampleCount++;
-      } else if (column.type === TableColumnType.Date) {
-        example[column.key] = {
-          _type: "GreaterThan",
-          value: "2023-01-01T00:00:00.000Z",
-        };
-        exampleCount++;
-      }
     }
 
     return example;
@@ -817,81 +973,72 @@ export class AnalyticsModelSchema extends BaseSchema {
     return {};
   }
 
+  // An operator as JSONFunctions.deserialize reads it on the API.
   private static getOperatorSchema(
     operatorType: string,
     columnType: TableColumnType,
   ): ZodTypes.ZodTypeAny {
-    const baseValue: ZodTypes.ZodTypeAny =
-      this.getBaseValueSchemaForColumnType(columnType);
+    const value: ZodTypes.ZodTypeAny = this.getQueryValueSchema(columnType);
 
     switch (operatorType) {
+      /*
+       * A plain value matches exactly. An Array(String) column's plain value
+       * is the whole array, so one element is asked for with EqualTo itself.
+       */
       case "EqualTo":
-        return baseValue;
-      case "NotEqual":
-        return z.object({
-          _type: z.literal(operatorType),
-          value: baseValue,
-        });
-
-      case "GreaterThan":
-      case "LessThan":
-      case "GreaterThanOrEqual":
-      case "LessThanOrEqual":
-        return z.object({
-          _type: z.literal(operatorType),
-          value: baseValue,
-        });
-
-      case "Search":
-        return z.object({
-          _type: z.literal("Search"),
-          value: z.string(),
-        });
+        return columnType === TableColumnType.ArrayText
+          ? z.object({ _type: z.literal(operatorType), value: value })
+          : value;
 
       case "IsNull":
       case "NotNull":
+        return z.object({ _type: z.literal(operatorType) });
+
+      case "InBetween":
         return z.object({
           _type: z.literal(operatorType),
+          startValue: value,
+          endValue: value,
         });
 
-      default:
+      case "Includes":
         return z.object({
           _type: z.literal(operatorType),
-          value: baseValue.optional(),
+          value: z.array(value),
         });
+
+      case "Search":
+        return z.object({ _type: z.literal(operatorType), value: z.string() });
+
+      default:
+        return z.object({ _type: z.literal(operatorType), value: value });
     }
   }
 
-  private static getBaseValueSchemaForColumnType(
+  /*
+   * What a query compares a column of this type with, as JSON carries it: on
+   * an Array(String), one element; on a map, a key's value.
+   */
+  private static getQueryValueSchema(
     columnType: TableColumnType,
   ): ZodTypes.ZodTypeAny {
+    if (TIME_COLUMN_TYPES.includes(columnType)) {
+      return z.string().openapi({ format: "date-time" });
+    }
+
+    if (WIDE_INTEGER_COLUMN_TYPES.includes(columnType)) {
+      return z.union([z.number(), z.string()]);
+    }
+
     switch (columnType) {
-      case TableColumnType.ObjectID:
-      case TableColumnType.Text:
-        return z.string();
-
       case TableColumnType.Number:
-      case TableColumnType.LongNumber:
       case TableColumnType.Decimal:
+      case TableColumnType.UInt8:
+      case TableColumnType.Port:
         return z.number();
-
-      case TableColumnType.Date:
-        return z.date();
 
       case TableColumnType.Boolean:
         return z.boolean();
-
-      case TableColumnType.JSON:
-      case TableColumnType.JSONArray:
-      case TableColumnType.ArrayText:
-      case TableColumnType.ArrayNumber:
-        return z.any();
-
-      case TableColumnType.IP:
-        return getIPSchema();
-
-      case TableColumnType.Port:
-        return getPortSchema();
 
       default:
         return z.string();

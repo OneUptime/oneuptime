@@ -60,13 +60,13 @@ Sophos는 어떤 SFOS 버전에서도 게이트웨이나 SD-WAN 상태를 SNMP�
 
 디바이스 페이지에서 **모니터 생성**을 클릭합니다. 권장 알림에는 **IPsec Tunnels: row unhealthy**가 포함됩니다. `ipsec_tunnels` 테이블에 대해 Row `*`로 설정한 **SNMP Table Row Is Unhealthy** 기준으로, active가 아닌 터널마다 터널 이름을 딴 인시던트를 하나씩 열고, 터널이 돌아오면 각각 해결합니다.
 
-Sophos가 active로 보고하는 터널은 보안 연결(SA)이 올라와 있다는 뜻일 뿐입니다. 트래픽이 실제로 지나가는지 증명하려면 한 사이트의 프로브에서 각 터널 건너편의 호스트로 가는 [Ping 모니터](/docs/monitor/ping-monitor)를 추가하고, **네트워크 → 토폴로지 → Site Links**에서 두 [사이트](/docs/monitor/network-sites) 사이의 사이트 링크로 터널을 그려 그 모니터에 바인딩하세요. 그러면 맵의 링크가 모니터의 색을 띱니다.
+Sophos가 active로 보고하는 터널은 보안 연결(SA)이 올라와 있다는 뜻일 뿐입니다. 트래픽이 실제로 지나가는지 증명하려면 한 사이트의 프로브에서 각 터널 건너편의 호스트로 가는 [Ping 모니터](/docs/monitor/ping-monitor)를 추가하고, **네트워크 → 토폴로지 → 사이트 링크**에서 두 [사이트](/docs/monitor/network-sites) 사이의 사이트 링크로 터널을 그려 그 모니터에 바인딩하세요. 그러면 맵의 링크가 모니터의 색을 띱니다.
 
 ### WAN 링크
 
 - **포트 상태.** 인터페이스 워크가 이미 모든 WAN 포트의 상태, 들어오고 나가는 비트, 사용률, 오류를 측정합니다. 방화벽의 모니터에서 **인터페이스**를 WAN 포트의 이름으로, 또는 모든 포트를 위해 `*`로 설정한 **SNMP Interface Is Down** 또는 **SNMP Interface Utilization (in %)** 기준이 링크마다 알림을 보냅니다.
-- **경로 품질.** 각 링크의 지연 시간, 패킷 손실, 지터는 방화벽 밖에서 측정합니다. OneUptime 클라우드 프로브에서 각 WAN 링크의 공인 주소로 가는 Ping 모니터와, 사이트의 프로브에서 각 ISP 게이트웨이로 가는 Ping 모니터입니다. 이 모니터의 패킷 손실 및 지터 기준이 링크마다 알림을 보내며, **네트워크 → 토폴로지 → Latency Matrix**는 모든 프로브와 모든 모니터를 한눈에 보여 줍니다.
-- **트래픽.** SFOS는 NetFlow v5를 내보냅니다. 프로브의 플로 수집기가 기본으로 수신 대기하는 UDP 2055로 프로브에 보내면, 디바이스의 **Traffic** 페이지가 각 WAN 링크에서 누가 누구와 통신하는지 보여 줍니다. 자세한 내용은 [네트워크 트래픽](/docs/monitor/network-traffic)에 있습니다.
+- **경로 품질.** 각 링크의 지연 시간, 패킷 손실, 지터는 방화벽 밖에서 측정합니다. OneUptime 클라우드 프로브에서 각 WAN 링크의 공인 주소로 가는 Ping 모니터와, 사이트의 프로브에서 각 ISP 게이트웨이로 가는 Ping 모니터입니다. 이 모니터의 패킷 손실 및 지터 기준이 링크마다 알림을 보내며, **네트워크 → 토폴로지 → 지연 시간 매트릭스**는 모든 프로브와 모든 모니터를 한눈에 보여 줍니다.
+- **트래픽.** SFOS는 NetFlow v5를 내보냅니다. 프로브의 플로 수집기가 기본으로 수신 대기하는 UDP 2055로 프로브에 보내면, 디바이스의 **트래픽** 페이지가 각 WAN 링크에서 누가 누구와 통신하는지 보여 줍니다. 자세한 내용은 [네트워크 트래픽](/docs/monitor/network-traffic)에 있습니다.
 
 ### syslog로 보는 게이트웨이와 SD-WAN
 
@@ -111,7 +111,7 @@ Fabric Engine 스위치의 권장 알림에는 **Fabric Adjacencies (IS-IS): row
 
 ### 플로와 Wi-Fi
 
-EXOS와 Fabric Engine은 플로를 sFlow와 IPFIX로 내보냅니다. sFlow는 UDP 6343으로, IPFIX는 UDP 4739로 프로브에 보내면 디바이스의 **Traffic** 페이지에 트래픽이 표시됩니다. [네트워크 트래픽](/docs/monitor/network-traffic)을 참조하세요.
+EXOS와 Fabric Engine은 플로를 sFlow와 IPFIX로 내보냅니다. sFlow는 UDP 6343으로, IPFIX는 UDP 4739로 프로브에 보내면 디바이스의 **트래픽** 페이지에 트래픽이 표시됩니다. [네트워크 트래픽](/docs/monitor/network-traffic)을 참조하세요.
 
 IQ Engine(HiveOS) 액세스 포인트와 ExtremeCloud IQ Controller에는 자체 벤더 템플릿이 있으며, 디바이스의 **Wi-Fi** 페이지를 채웁니다. [지원되는 Wi-Fi 벤더](/docs/monitor/network-device-monitor#지원되는-wi-fi-벤더)에서 Ubiquiti UniFi, HPE Aruba, TP-Link Omada, Juniper Mist와 함께 다룹니다.
 

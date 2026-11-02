@@ -71,7 +71,7 @@ Klik op **Generate with AI**. Het dialoogvenster **Generate Postmortem with AI**
 
 Klik onderaan het dialoogvenster op **Generate with AI**. OneUptime AI leest het incident (de beschrijving, de oorzaak en de oplossing, de statustijdlijn, de openbare en privénotities, de berichten in het Slack- of Microsoft Teams-kanaal, en wat er in [de gesprekken](/docs/workspace-connections/video-calls#transcripties-van-gesprekken) is gezegd) en schrijft het postmortem in uw opzet. Daarna opent de editor met het resultaat.
 
-Genereren vereist dat AI voor het project is ingeschakeld, onder **Projectinstellingen → AI → AI Features**, en een LLM-provider: zie [LLM-providers](/docs/ai/llm-provider). Het vereist ook de rol Project Owner of Project Admin, of een aangepaste rol met de machtiging Edit Incident: andere rollen kunnen het postmortem schrijven, maar niet genereren.
+Genereren vereist dat AI voor het project is ingeschakeld, onder **Projectinstellingen → AI → AI-functies**, en een LLM-provider: zie [LLM-providers](/docs/ai/llm-provider). Het vereist ook de rol Project Owner of Project Admin, of een aangepaste rol met de machtiging Edit Incident: andere rollen kunnen het postmortem schrijven, maar niet genereren.
 
 ### OneUptime AI het laten opstellen wanneer een incident is opgelost
 
@@ -198,7 +198,7 @@ Het project heeft nog geen postmortem-sjabloon, of uw rol kan ze niet lezen. Maa
 :::
 
 :::details Generate with AI meldt dat AI uit staat, of dat u de machtiging mist
-Zet AI aan onder **Projectinstellingen → AI → AI Features**. Genereren vereist de rol Project Owner of Project Admin, of een aangepaste rol met de machtiging Edit Incident, ook voor iemand die het postmortem kan bewerken.
+Zet AI aan onder **Projectinstellingen → AI → AI-functies**. Genereren vereist de rol Project Owner of Project Admin, of een aangepaste rol met de machtiging Edit Incident, ook voor iemand die het postmortem kan bewerken.
 :::
 
 :::details Het postmortem staat niet op de statuspagina

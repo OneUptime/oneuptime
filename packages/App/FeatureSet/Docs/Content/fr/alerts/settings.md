@@ -21,7 +21,7 @@ Ouvrez **Alertes** depuis le menu **Produits** de la barre supérieure. Les sect
 | **Règles de runbook**           | Lance des runbooks pour les alertes qui correspondent.                                         |
 | **Règles de confidentialité**   | Rend privés les alertes et les épisodes qui correspondent.                                     |
 | **Règles d'étiquettes**         | Ajoute des étiquettes aux alertes et aux épisodes qui correspondent.                           |
-| **Reminder Rules**              | Rappelle aux propriétaires, à intervalle régulier, qu'une alerte est ouverte.                  |
+| **Règles de rappel**              | Rappelle aux propriétaires, à intervalle régulier, qu'une alerte est ouverte.                  |
 
 La section **Paramètres** contient **État de l'alerte** et **Gravité de l'alerte**, traités dans [États et sévérités des alertes](/docs/alerts/states-and-severities), puis **Modèles de notes**, **Champs personnalisés**, **Mesures**, **Appartenance aux épisodes** et **Numérotation**, traités ci-dessous.
 
@@ -54,7 +54,7 @@ flowchart TB
 
 Les règles diffèrent dans la façon dont plusieurs correspondances se résolvent :
 
-- **Règles de regroupement** et **Reminder Rules** sont vérifiées de haut en bas de leur liste, et la première correspondance l'emporte. Faites glisser une règle pour changer sa place ; une nouvelle règle va à la fin.
+- **Règles de regroupement** et **Règles de rappel** sont vérifiées de haut en bas de leur liste, et la première correspondance l'emporte. Faites glisser une règle pour changer sa place ; une nouvelle règle va à la fin.
 - **Règles d'astreinte**, **Règles de propriétaire**, **Règles d'étiquettes**, **Règles de confidentialité** et **Règles de runbook** agissent toutes quand elles correspondent. Les politiques d'astreinte, propriétaires et étiquettes qu'ajoutent plusieurs règles ne sont ajoutés qu'une fois.
 
 **Règles d'astreinte**, **Règles de propriétaire**, **Règles d'étiquettes** et **Règles de confidentialité** ont deux onglets : **Règles d'alerte**, pour les alertes, et **Règles d'épisode**, qui agissent de la même façon sur chaque nouvel épisode d'alerte. Une nouvelle règle commence activée ; désactivez **Activé** dans son formulaire de modification pour la mettre en pause, et la liste affiche un **Activé** vert ou un **Désactivé** rouge pour chaque règle.
@@ -108,7 +108,7 @@ Les **Règles de runbook** lancent un runbook quand une nouvelle alerte correspo
 
 ## Règles de rappel
 
-**Alertes → Règles → Reminder Rules** rappelle aux propriétaires d'une alerte qu'elle reste ouverte. Chaque nouvelle alerte reçoit la première règle qui lui correspond, de haut en bas de la liste.
+**Alertes → Règles → Règles de rappel** rappelle aux propriétaires d'une alerte qu'elle reste ouverte. Chaque nouvelle alerte reçoit la première règle qui lui correspond, de haut en bas de la liste.
 
 :::steps
 ### Choisir les alertes à rappeler

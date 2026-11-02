@@ -34,7 +34,7 @@ flowchart TB
 | **Oversigt** og **Metrikker** | Receiveren `hostmetrics`: CPU, hukommelse, diske, filsystemer, netværk, belastning, paging, oppetid. |
 | **Processer** | Scraperen `process` i `hostmetrics`: ét sæt serier pr. proces. |
 | **Protokoller** | Receiverne `filelog`, `journald` og `windowseventlog`. |
-| **Systemd Units** (Linux) | Receiveren `systemd`. |
+| **Systemd-enheder** (Linux) | Receiveren `systemd`. |
 | **Tjenester** (Windows) | Receiveren `windows_service`. |
 | Inventarelementet | Processoren `resourcedetection` plus de [attributter, du stempler](#inventarattributter-ip-mac-serienummer-fabrikat-model-firmware). |
 | **Agentversion** | `oneuptime.agent.version` i processoren `resource`. |
@@ -561,7 +561,7 @@ Receiveren kører `journalctl`, som enhver systemd-vært har, og collectorens br
 
 ### Linux-tjenester (systemd-enheder, metrikker)
 
-Værtens side **Systemd Units** viser hver enhed og dens tilstand, fra [`systemdreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/systemdreceiver) (konfigurationstype `systemd`), Linux-modstykket til siden **Tjenester** på Windows. Linux-konfigurationen ovenfor slår den til:
+Værtens side **Systemd-enheder** viser hver enhed og dens tilstand, fra [`systemdreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/systemdreceiver) (konfigurationstype `systemd`), Linux-modstykket til siden **Tjenester** på Windows. Linux-konfigurationen ovenfor slår den til:
 
 ```yaml
 receivers:
@@ -998,7 +998,7 @@ receivers:
         enabled: false
 ```
 
-Tilsammen bringer disse en vært med 300 enheder fra omkring 6.000 datapunkter i minuttet til et godt stykke under 100. Enheder, der fjernes fra listen, forsvinder fra siden **Systemd Units** nogle minutter senere, når deres sidste prøver ældes ud af dens rullende vindue.
+Tilsammen bringer disse en vært med 300 enheder fra omkring 6.000 datapunkter i minuttet til et godt stykke under 100. Enheder, der fjernes fra listen, forsvinder fra siden **Systemd-enheder** nogle minutter senere, når deres sidste prøver ældes ud af dens rullende vindue.
 
 ### Drop poster med en filter-processor
 

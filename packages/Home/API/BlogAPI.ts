@@ -73,6 +73,10 @@ const sendBlogPostMarkdown: (
     `- Published: ${blogPost.postDate}`,
   ];
 
+  if (blogPost.updatedDate) {
+    lines.push(`- Updated: ${blogPost.updatedDate}`);
+  }
+
   if (blogPost.author) {
     lines.push(
       `- Author: [${blogPost.author.name}](${blogPost.author.githubUrl})`,
@@ -90,6 +94,24 @@ const sendBlogPostMarkdown: (
   res.setHeader("Link", `<${encodeURI(blogPost.blogUrl)}>; rel="canonical"`);
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.send(lines.join("\n"));
+};
+
+/*
+ * The posts a post's page lists as related (Utils/BlogRelatedPosts.ts). They
+ * are a way on from the post, not the post: when they cannot be found, the
+ * page goes without them.
+ */
+const getRelatedPostsOf: (
+  fileName: string,
+) => Promise<Array<BlogPostHeader>> = async (
+  fileName: string,
+): Promise<Array<BlogPostHeader>> => {
+  try {
+    return await BlogPostUtil.getRelatedPosts(fileName);
+  } catch (err) {
+    logger.error(err);
+    return [];
+  }
 };
 
 /*
@@ -132,6 +154,7 @@ app.get(
         blackLogo: false,
         requestDemoCta: false,
         blogPost: blogPost,
+        relatedPosts: await getRelatedPostsOf(fileName),
         blogTagPath: BlogTag.getPagePathOfTag,
         enableGoogleTagManager: GoogleTagManagerEnabled,
         seo: {

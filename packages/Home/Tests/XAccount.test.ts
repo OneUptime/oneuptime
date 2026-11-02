@@ -209,6 +209,8 @@ describe("one X account", () => {
       },
       validationStatus: "validated",
       validationDate: "October 13, 2026",
+      updatedDate: null,
+      formattedUpdatedDate: null,
     };
 
     // The locals the post route (API/BlogAPI.ts) renders a post with.

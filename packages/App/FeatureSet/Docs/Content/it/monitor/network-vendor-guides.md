@@ -60,13 +60,13 @@ Dopo il polling successivo, la pagina **Tabelle SNMP** del dispositivo elenca og
 
 Nella pagina del dispositivo, fai clic su **Crea monitor**. Gli avvisi consigliati includono **IPsec Tunnels: row unhealthy**, un criterio **SNMP Table Row Is Unhealthy** sulla tabella `ipsec_tunnels` con Row `*`: apre un incidente per ogni tunnel non attivo, con il nome del tunnel, e risolve ciascuno quando il suo tunnel torna attivo.
 
-Un tunnel che Sophos riporta come attivo ha soltanto le sue associazioni di sicurezza attive. Per dimostrare che il traffico lo attraversa, aggiungi un [monitor Ping](/docs/monitor/ping-monitor) da una sonda in un sito verso un host dall'altra parte di ogni tunnel, e disegna il tunnel come collegamento tra siti in **Rete → Topologia → Site Links** tra i due [siti](/docs/monitor/network-sites), associato a quel monitor: il collegamento sulla mappa prende allora il colore del monitor.
+Un tunnel che Sophos riporta come attivo ha soltanto le sue associazioni di sicurezza attive. Per dimostrare che il traffico lo attraversa, aggiungi un [monitor Ping](/docs/monitor/ping-monitor) da una sonda in un sito verso un host dall'altra parte di ogni tunnel, e disegna il tunnel come collegamento tra siti in **Rete → Topologia → Collegamenti del sito** tra i due [siti](/docs/monitor/network-sites), associato a quel monitor: il collegamento sulla mappa prende allora il colore del monitor.
 
 ### Collegamenti WAN
 
 - **Salute delle porte.** Il walk delle interfacce misura già lo stato, i bit in entrata e in uscita, l'utilizzo e gli errori di ogni porta WAN. Sul monitor del firewall, un criterio **SNMP Interface Is Down** o **SNMP Interface Utilization (in %)** con **Interfaccia** impostata sul nome della porta WAN, o `*` per ogni porta, avvisa per collegamento.
-- **Qualità del percorso.** La latenza, la perdita di pacchetti e il jitter di ogni collegamento si misurano dall'esterno del firewall: un monitor Ping dalle sonde cloud di OneUptime verso l'indirizzo pubblico di ogni collegamento WAN, e un monitor Ping da una sonda del sito verso il gateway di ogni provider. I criteri di perdita di pacchetti e di jitter su quei monitor avvisano per collegamento, e **Rete → Topologia → Latency Matrix** mostra a colpo d'occhio ogni sonda rispetto a ogni monitor.
-- **Traffico.** SFOS esporta NetFlow v5. Invialo alla sonda su UDP 2055, dove il collettore di flussi della sonda ascolta per impostazione predefinita, e la pagina **Traffic** del dispositivo mostra chi parla con chi su ogni collegamento WAN; [Traffico di rete](/docs/monitor/network-traffic) contiene i dettagli.
+- **Qualità del percorso.** La latenza, la perdita di pacchetti e il jitter di ogni collegamento si misurano dall'esterno del firewall: un monitor Ping dalle sonde cloud di OneUptime verso l'indirizzo pubblico di ogni collegamento WAN, e un monitor Ping da una sonda del sito verso il gateway di ogni provider. I criteri di perdita di pacchetti e di jitter su quei monitor avvisano per collegamento, e **Rete → Topologia → Matrice di latenza** mostra a colpo d'occhio ogni sonda rispetto a ogni monitor.
+- **Traffico.** SFOS esporta NetFlow v5. Invialo alla sonda su UDP 2055, dove il collettore di flussi della sonda ascolta per impostazione predefinita, e la pagina **Traffico** del dispositivo mostra chi parla con chi su ogni collegamento WAN; [Traffico di rete](/docs/monitor/network-traffic) contiene i dettagli.
 
 ### Gateway e SD-WAN dal syslog
 
@@ -111,7 +111,7 @@ Alimentatori, ventole, sensori di temperatura e membri dello stack sono tabelle 
 
 ### Flussi e Wi-Fi
 
-EXOS e Fabric Engine esportano i flussi come sFlow e IPFIX. Invia sFlow alla sonda su UDP 6343, o IPFIX su UDP 4739, e la pagina **Traffic** del dispositivo mostra il suo traffico; vedi [Traffico di rete](/docs/monitor/network-traffic).
+EXOS e Fabric Engine esportano i flussi come sFlow e IPFIX. Invia sFlow alla sonda su UDP 6343, o IPFIX su UDP 4739, e la pagina **Traffico** del dispositivo mostra il suo traffico; vedi [Traffico di rete](/docs/monitor/network-traffic).
 
 Gli access point IQ Engine (HiveOS) e ExtremeCloud IQ Controller hanno modelli del produttore propri, che riempiono la pagina **Wi-Fi** del dispositivo. [Produttori Wi-Fi supportati](/docs/monitor/network-device-monitor#produttori-wi-fi-supportati) li tratta, insieme a Ubiquiti UniFi, HPE Aruba, TP-Link Omada e Juniper Mist.
 

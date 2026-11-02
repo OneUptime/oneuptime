@@ -759,6 +759,9 @@ describe("E2E", () => {
         return /^playwright\..*config\.ts$/.test(name);
       });
     expect(configs.length).toBeGreaterThan(5);
+    const inPlaywrightImageOnly = configsRunOnlyInPlaywrightImage(
+      packageJson.scripts,
+    );
     for (const name of configs) {
       // Commented-out projects (the Pixel/iPhone examples) launch nothing.
       const source = read(`packages/E2E/${name}`)
@@ -771,11 +774,12 @@ describe("E2E", () => {
       for (const match of source.matchAll(/devices\[\s*["'](.+?)["']\s*\]/g)) {
         // The engine is the descriptor's defaultBrowserType in Playwright's
         // deviceDescriptorsSource.json. A device missing here fails the test
-        // until someone looks it up: every iPhone/iPad and "Desktop Safari"
-        // is webkit, which this image does not install.
+        // until someone looks it up: every iPhone/iPad is webkit, as
+        // "Desktop Safari" is.
         const DEVICE_ENGINES = {
           "Desktop Chrome": "chromium",
           "Desktop Firefox": "firefox",
+          "Desktop Safari": "webkit",
           "Pixel 5": "chromium",
           "Pixel 7": "chromium",
         };
@@ -789,12 +793,112 @@ describe("E2E", () => {
       for (const engine of engines) {
         expect({ name, engine }).toEqual({
           name,
-          engine: expect.stringMatching(/^(chromium|firefox)$/),
+          engine: expect.stringMatching(
+            inPlaywrightImageOnly.has(name)
+              ? /^(chromium|firefox|webkit)$/
+              : /^(chromium|firefox)$/,
+          ),
         });
       }
     }
   });
+
+  test("lets WebKit in only where the Playwright image runs a suite, and never into the deployed suites", () => {
+    const inPlaywrightImageOnly = configsRunOnlyInPlaywrightImage(
+      packageJson.scripts,
+    );
+
+    // App Test's offline groups and the Enterprise Edition Test's browser
+    // suites run in it...
+    expect([...inPlaywrightImageOnly]).toEqual(
+      expect.arrayContaining([
+        "playwright.rules-menu-section-ui.config.ts",
+        "playwright.model-tables-ui.config.ts",
+        "playwright.bulk-actions-ui.config.ts",
+      ]),
+    );
+    // ...and the suites that run in this image do not: the default one (its
+    // CMD, npm test) and the release's licensed and lapsed Enterprise
+    // suites (`docker compose run e2e npm run ...`).
+    for (const config of [
+      "playwright.config.ts",
+      "playwright.enterprise-licensed.config.ts",
+      "playwright.enterprise-lapsed.config.ts",
+    ]) {
+      expect({ config, webkit: inPlaywrightImageOnly.has(config) }).toEqual({
+        config,
+        webkit: false,
+      });
+    }
+  });
 });
+
+/*
+ * The packages/E2E configs that only the Playwright image runs
+ * (mcr.microsoft.com/playwright, which has Chromium, Firefox and WebKit):
+ * every workflow job that runs one - with `npm run <script>` in a step, or
+ * as one of its matrix's `suites`, the way App Test's offline groups run
+ * theirs - has that image as its container. A config run anywhere else -
+ * in the E2E image, by its CMD or `docker compose run e2e npm run ...`, or
+ * in a job with its own install - has only the E2E image's two engines.
+ */
+function configsRunOnlyInPlaywrightImage(scripts) {
+  const placesByConfig = new Map();
+  const workflows = fs
+    .readdirSync(path.join(REPO_ROOT, ".github/workflows"))
+    .filter((name) => {
+      return /\.ya?ml$/.test(name);
+    });
+
+  for (const file of workflows) {
+    const workflow = yaml.load(read(`.github/workflows/${file}`)) || {};
+
+    for (const job of Object.values(workflow.jobs || {})) {
+      const container = job.container || "";
+      const image =
+        typeof container === "string" ? container : container.image || "";
+      const inPlaywrightImage = /^mcr\.microsoft\.com\/playwright:/.test(image);
+      const matrix = (job.strategy || {}).matrix || {};
+      const scriptsRun = [
+        ...(job.steps || []).flatMap((step) => {
+          return [
+            ...String(step.run || "").matchAll(/\bnpm run ([\w:-]+)/g),
+          ].map((match) => {
+            return match[1];
+          });
+        }),
+        ...(Array.isArray(matrix.include) ? matrix.include : []).flatMap(
+          (entry) => {
+            return String(entry.suites || "")
+              .split(/\s+/)
+              .filter(Boolean);
+          },
+        ),
+      ];
+
+      for (const script of scriptsRun) {
+        const config = /--config (\S+)/.exec(scripts[script] || "");
+
+        if (config) {
+          placesByConfig.set(config[1], [
+            ...(placesByConfig.get(config[1]) || []),
+            inPlaywrightImage,
+          ]);
+        }
+      }
+    }
+  }
+
+  return new Set(
+    [...placesByConfig]
+      .filter(([, places]) => {
+        return places.every(Boolean);
+      })
+      .map(([config]) => {
+        return config;
+      }),
+  );
+}
 
 describe("App", () => {
   const lines = stagesOf("packages/App/Dockerfile.tpl", "production").flatMap(

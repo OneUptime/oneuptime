@@ -137,7 +137,7 @@ AI 代理程式自己的設定請見 [AI 代理程式](#ai-代理程式)。
 | OSD | `ceph_osd_up`、`ceph_osd_in`、`ceph_osd_apply_latency_ms`、`ceph_osd_commit_latency_ms`、`ceph_osd_stat_bytes`、`ceph_osd_stat_bytes_used`、`ceph_osd_numpg`、`ceph_osd_metadata`，依 OSD 以 `ceph_daemon` 標籤區分（例如 `osd.3`） |
 | 儲存池 | `ceph_pool_stored`、`ceph_pool_max_avail`、`ceph_pool_objects`、`ceph_pool_rd`、`ceph_pool_wr`、`ceph_pool_rd_bytes`、`ceph_pool_wr_bytes`、`ceph_pool_metadata`。資料序列只帶有 `pool_id` 標籤；儲存池的名稱在 `ceph_pool_metadata` 上。 |
 | 放置群組 | `ceph_pg_total`、`ceph_pg_active`、`ceph_pg_clean`、`ceph_pg_degraded`、`ceph_pg_undersized`（皆依儲存池，以 `pool_id` 區分）、`ceph_num_objects_degraded`、`ceph_num_objects_misplaced` |
-| 常駐程式 | `ceph_mgr_metadata`、`ceph_mds_metadata` 和 `ceph_rgw_metadata`，加上上方的監視器和 OSD 中繼資料。每個都指出一個常駐程式，並在 `ceph_version` 標籤中帶有其版本：**Daemons** 頁面會列出它們。 |
+| 常駐程式 | `ceph_mgr_metadata`、`ceph_mds_metadata` 和 `ceph_rgw_metadata`，加上上方的監視器和 OSD 中繼資料。每個都指出一個常駐程式，並在 `ceph_version` 標籤中帶有其版本：**守護程式** 頁面會列出它們。 |
 
 ### 更多抓取目標
 
@@ -150,7 +150,7 @@ mgr 模組涵蓋叢集的健康狀態和容量。若要深入查看，請在 `ot
 
 ## 選用 — 傳送 Ceph 叢集日誌
 
-代理程式可以追蹤 `/var/log/ceph/ceph.log` 並將其傳送到 OneUptime，進而填入叢集的 **Cluster Log** 頁面。它預設為關閉，因為這時代理程式必須在擁有叢集日誌的主機上執行：預設是監視器主機。
+代理程式可以追蹤 `/var/log/ceph/ceph.log` 並將其傳送到 OneUptime，進而填入叢集的 **叢集日誌** 頁面。它預設為關閉，因為這時代理程式必須在擁有叢集日誌的主機上執行：預設是監視器主機。
 
 :::steps
 ### 開啟接收器

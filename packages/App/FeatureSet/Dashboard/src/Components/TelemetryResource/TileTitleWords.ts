@@ -1,3 +1,9 @@
+import {
+  getDrawnWords,
+  LongWordHyphenation,
+  WORDS_BREAK_CLASS_NAME,
+} from "Common/UI/Components/HyphenatedWords/LongWords";
+
 /*
  * How the title of a telemetry overview's metric tile or chart card breaks
  * when it does not fit on one line.
@@ -11,9 +17,9 @@
  * mid-syllable with nothing to say it goes on ("CARREGAME / NTOS").
  *
  * So, as a side menu's titles do (SideMenuEntryState), a title in the
- * reader's language that holds such a word says its language (`lang`) and
- * is hyphenated where that language breaks it, inside such words only
- * (hyphenate-limit-chars), at least four letters before the hyphen and
+ * reader's language says its language (`lang`), and its long words alone
+ * may be hyphenated where that language breaks them (Common's LongWords,
+ * drawn with HyphenatedWords), at least four letters before the hyphen and
  * three after it. A word that fits a line moves there whole; a word the
  * language cannot break still breaks at the edge rather than run under the
  * icon. English - the page's own words - is never hyphenated: its titles
@@ -22,45 +28,46 @@
  * The limit is lower than the side menu's fourteen letters because a tile's
  * line is shorter than a menu's (some sixteen letters there). Chrome
  * hyphenates only a word that does not fit a line of its own; Firefox and
- * Safari may also hyphenate such a word where it ends a line though it would
- * fit the next one, which a title of a few words rarely meets, and which
- * reads better than a word cut at the edge with no hyphen.
+ * Safari may also hyphenate a long word where it ends a line though it
+ * would fit the next one, which a title of a few words rarely meets, and
+ * which reads better than a word cut at the edge with no hyphen. The short
+ * words beside it are never hyphenated, in Safari too, which reads no
+ * hyphenate-limit-chars: they are not in the long word's span.
  */
 
 // The shortest word a tile's or chart card's title hyphenates.
 export const TILE_TITLE_HYPHENATED_WORD_LENGTH: number = 10;
 
 // A word longer than the line breaks at the line's edge rather than spill.
-export const TILE_TITLE_WORDS_CLASS_NAME: string = "break-words";
-
-// ...and one that may be hyphenated, in its language, inside long words only.
-export const TILE_TITLE_HYPHENATED_WORDS_CLASS_NAME: string =
-  "break-words hyphens-auto [hyphenate-limit-chars:10_4_3]";
-
-// Where a title's words end: spaces, and the hyphens inside a compound.
-const WORD_SEPARATOR: RegExp = /[\s\-\u{2010}]+/u;
+export const TILE_TITLE_WORDS_CLASS_NAME: string = WORDS_BREAK_CLASS_NAME;
 
 /*
- * The classes a title's words break with: between words always, and inside
- * a word only when the title is in the reader's language (`lang`, from
- * getDrawnLanguage) and holds a word TILE_TITLE_HYPHENATED_WORD_LENGTH
- * letters long or more.
+ * A long word's own classes: hyphenated in its language, four letters
+ * before the hyphen and three after - hyphenate-limit-chars for Chrome and
+ * Firefox, -webkit-hyphenate-limit-before and -after for Safari.
+ */
+export const TILE_TITLE_LONG_WORD_CLASS_NAME: string =
+  "hyphens-auto [hyphenate-limit-chars:10_4_3] [-webkit-hyphenate-limit-before:4] [-webkit-hyphenate-limit-after:3]";
+
+// A title whose every word is that long: the title itself may be hyphenated.
+export const TILE_TITLE_HYPHENATED_WORDS_CLASS_NAME: string = `${TILE_TITLE_WORDS_CLASS_NAME} ${TILE_TITLE_LONG_WORD_CLASS_NAME}`;
+
+export const TILE_TITLE_LONG_WORDS: LongWordHyphenation = {
+  minimumWordLength: TILE_TITLE_HYPHENATED_WORD_LENGTH,
+  longWordClassName: TILE_TITLE_LONG_WORD_CLASS_NAME,
+};
+
+/*
+ * The classes of the element that holds a title's words: between words
+ * always, and the title itself hyphenated only when it is in the reader's
+ * language (`lang`, from getDrawnLanguage) and every word in it is
+ * TILE_TITLE_HYPHENATED_WORD_LENGTH letters long or more. Its long words
+ * among shorter ones are hyphenated in spans of their own (HyphenatedWords
+ * with TILE_TITLE_LONG_WORDS).
  */
 export function getTileTitleWordsClassName(data: {
   text: string | undefined;
   lang: string | undefined;
 }): string {
-  if (!data.lang || !data.text) {
-    return TILE_TITLE_WORDS_CLASS_NAME;
-  }
-
-  const hasLongWord: boolean = data.text
-    .split(WORD_SEPARATOR)
-    .some((word: string): boolean => {
-      return Array.from(word).length >= TILE_TITLE_HYPHENATED_WORD_LENGTH;
-    });
-
-  return hasLongWord
-    ? TILE_TITLE_HYPHENATED_WORDS_CLASS_NAME
-    : TILE_TITLE_WORDS_CLASS_NAME;
+  return getDrawnWords({ ...data, rule: TILE_TITLE_LONG_WORDS }).className;
 }

@@ -150,7 +150,7 @@ Beide krijgen het resource-attribuut `ceph.cluster.name` van de meegeleverde pro
 
 ## Optioneel — Het Ceph-clusterlog versturen
 
-De agent kan `/var/log/ceph/ceph.log` volgen en naar OneUptime sturen, wat de pagina **Cluster Log** van het cluster vult. Dit staat standaard uit, omdat de agent dan moet draaien op een host die het clusterlog heeft: standaard een monitorhost.
+De agent kan `/var/log/ceph/ceph.log` volgen en naar OneUptime sturen, wat de pagina **Clusterlogboek** van het cluster vult. Dit staat standaard uit, omdat de agent dan moet draaien op een host die het clusterlog heeft: standaard een monitorhost.
 
 :::steps
 ### De receiver inschakelen

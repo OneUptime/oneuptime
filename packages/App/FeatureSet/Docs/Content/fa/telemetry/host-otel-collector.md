@@ -34,7 +34,7 @@ flowchart TB
 | **نمای کلی** و **متریک‌ها** | گیرنده `hostmetrics`: CPU، حافظه، دیسک‌ها، سامانه‌های فایل، شبکه، بار، صفحه‌بندی، مدت روشن بودن. |
 | **فرایندها** | خراشگر `process` در `hostmetrics`: یک دسته سری برای هر فرایند. |
 | **لاگ‌ها** | گیرنده‌های `filelog`، `journald` و `windowseventlog`. |
-| **Systemd Units** (Linux) | گیرنده `systemd`. |
+| **واحدهای systemd** (Linux) | گیرنده `systemd`. |
 | **سرویس‌ها** (Windows) | گیرنده `windows_service`. |
 | آیتم موجودی | پردازنده `resourcedetection`، به‌علاوه [ویژگی‌هایی که مُهر می‌زنید](#ویژگیهای-موجودی-ip-mac-شماره-سریال-سازنده-مدل-میانافزار). |
 | **نسخه عامل** | `oneuptime.agent.version` در پردازنده `resource`. |
@@ -561,7 +561,7 @@ receivers:
 
 ### سرویس‌های Linux (واحدهای systemd، متریک‌ها)
 
-صفحه **Systemd Units** میزبان هر واحد و وضعیتش را از [`systemdreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/systemdreceiver) (نوع پیکربندی `systemd`) فهرست می‌کند؛ این همتای Linux برای صفحه **سرویس‌ها** در Windows است. پیکربندی Linux بالا آن را روشن می‌کند:
+صفحه **واحدهای systemd** میزبان هر واحد و وضعیتش را از [`systemdreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/systemdreceiver) (نوع پیکربندی `systemd`) فهرست می‌کند؛ این همتای Linux برای صفحه **سرویس‌ها** در Windows است. پیکربندی Linux بالا آن را روشن می‌کند:
 
 ```yaml
 receivers:
@@ -998,7 +998,7 @@ receivers:
         enabled: false
 ```
 
-این دو با هم میزبانی با ۳۰۰ واحد را از حدود ۶۰۰۰ نقطه داده در دقیقه به خیلی کمتر از ۱۰۰ می‌رسانند. واحدهایی که از فهرست برداشته می‌شوند چند دقیقه بعد، وقتی واپسین نمونه‌هایشان از پنجره غلتان بیرون رفت، از صفحه **Systemd Units** کنار می‌روند.
+این دو با هم میزبانی با ۳۰۰ واحد را از حدود ۶۰۰۰ نقطه داده در دقیقه به خیلی کمتر از ۱۰۰ می‌رسانند. واحدهایی که از فهرست برداشته می‌شوند چند دقیقه بعد، وقتی واپسین نمونه‌هایشان از پنجره غلتان بیرون رفت، از صفحه **واحدهای systemd** کنار می‌روند.
 
 ### رکوردها را با پردازنده filter کنار بگذارید
 

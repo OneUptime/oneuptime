@@ -60,13 +60,13 @@ Efter næste polling viser enhedens side **SNMP-tabeller** hver IPsec-forbindels
 
 Klik på **Opret monitor** på enhedens side. De anbefalede advarsler omfatter **IPsec Tunnels: row unhealthy**, et kriterie **SNMP Table Row Is Unhealthy** på tabellen `ipsec_tunnels` med Row `*`: det opretter én hændelse pr. tunnel, der ikke er aktiv, opkaldt efter tunnelen, og løser hver af dem, når dens tunnel kommer tilbage.
 
-En tunnel, som Sophos rapporterer som aktiv, har kun sine security associations oppe. For at bevise, at trafik krydser den, tilføjer du en [Ping-monitor](/docs/monitor/ping-monitor) fra en sonde på én lokation til en vært på den anden side af hver tunnel og tegner tunnelen som en lokationsforbindelse under **Netværk → Topologi → Site Links** mellem de to [lokationer](/docs/monitor/network-sites), bundet til den monitor: forbindelsen på kortet får så monitorens farve.
+En tunnel, som Sophos rapporterer som aktiv, har kun sine security associations oppe. For at bevise, at trafik krydser den, tilføjer du en [Ping-monitor](/docs/monitor/ping-monitor) fra en sonde på én lokation til en vært på den anden side af hver tunnel og tegner tunnelen som en lokationsforbindelse under **Netværk → Topologi → Lokationslinks** mellem de to [lokationer](/docs/monitor/network-sites), bundet til den monitor: forbindelsen på kortet får så monitorens farve.
 
 ### WAN-forbindelser
 
 - **Porttilstand.** Interface-walket måler allerede hver WAN-ports status, bits ind og ud, udnyttelse og fejl. På firewallens monitor advarer et kriterie **SNMP Interface Is Down** eller **SNMP Interface Utilization (in %)** med **Interface** sat til WAN-portens navn, eller `*` for hver port, pr. forbindelse.
-- **Stiens kvalitet.** Hver forbindelses latens, pakketab og jitter måles uden for firewallen: en Ping-monitor fra OneUptimes cloud-sonder til hver WAN-forbindelses offentlige adresse, og en Ping-monitor fra en sonde på lokationen til hver udbyders gateway. Kriterier for pakketab og jitter på de monitorer advarer pr. forbindelse, og **Netværk → Topologi → Latency Matrix** viser hver sonde mod hver monitor med ét blik.
-- **Trafik.** SFOS eksporterer NetFlow v5. Send det til sonden på UDP 2055, hvor sondens flow-collector lytter som standard, så viser enhedens side **Traffic**, hvem der taler med hvem over hver WAN-forbindelse; [Netværkstrafik](/docs/monitor/network-traffic) har detaljerne.
+- **Stiens kvalitet.** Hver forbindelses latens, pakketab og jitter måles uden for firewallen: en Ping-monitor fra OneUptimes cloud-sonder til hver WAN-forbindelses offentlige adresse, og en Ping-monitor fra en sonde på lokationen til hver udbyders gateway. Kriterier for pakketab og jitter på de monitorer advarer pr. forbindelse, og **Netværk → Topologi → Latensmatrix** viser hver sonde mod hver monitor med ét blik.
+- **Trafik.** SFOS eksporterer NetFlow v5. Send det til sonden på UDP 2055, hvor sondens flow-collector lytter som standard, så viser enhedens side **Trafik**, hvem der taler med hvem over hver WAN-forbindelse; [Netværkstrafik](/docs/monitor/network-traffic) har detaljerne.
 
 ### Gateways og SD-WAN fra syslog
 
@@ -111,7 +111,7 @@ Strømforsyninger, blæsere, temperatursensorer og stakmedlemmer er tabeller, de
 
 ### Flows og Wi-Fi
 
-EXOS og Fabric Engine eksporterer flows som sFlow og IPFIX. Send sFlow til sonden på UDP 6343, eller IPFIX på UDP 4739, så viser enhedens side **Traffic** dens trafik; se [Netværkstrafik](/docs/monitor/network-traffic).
+EXOS og Fabric Engine eksporterer flows som sFlow og IPFIX. Send sFlow til sonden på UDP 6343, eller IPFIX på UDP 4739, så viser enhedens side **Trafik** dens trafik; se [Netværkstrafik](/docs/monitor/network-traffic).
 
 IQ Engine-access points (HiveOS) og ExtremeCloud IQ Controller har deres egne producentskabeloner, som udfylder enhedens side **Wi-Fi**. [Understøttede Wi-Fi-producenter](/docs/monitor/network-device-monitor#understøttede-wi-fi-producenter) dækker dem, sammen med Ubiquiti UniFi, HPE Aruba, TP-Link Omada og Juniper Mist.
 

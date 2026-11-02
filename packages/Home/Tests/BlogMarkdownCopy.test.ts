@@ -57,6 +57,7 @@ jest.mock("../Utils/BlogPost", () => {
     default: {
       getBlogPost: jest.fn(),
       getBlogPostList: jest.fn().mockResolvedValue([]),
+      getRelatedPosts: jest.fn().mockResolvedValue([]),
       getTags: jest.fn().mockResolvedValue([]),
       getTagBySlug: jest.fn().mockResolvedValue(null),
       getValidationSummaryHtml: jest.fn().mockResolvedValue(null),
@@ -98,6 +99,8 @@ const blogPost: BlogPost = {
   },
   validationStatus: null,
   validationDate: null,
+  updatedDate: null,
+  formattedUpdatedDate: null,
 };
 
 // The post as Markdown, exactly as both addresses send it.
@@ -287,6 +290,23 @@ describe("a post's Markdown copy", () => {
     expect(answer.status).toBe(200);
     expect(answer.headers["link"]).toBe(
       '<https://oneuptime.com/blog/post/2026-09-29-%E6%97%A5%E6%9C%AC%E8%AA%9E/view>; rel="canonical"',
+    );
+  });
+
+  test("says when a post was updated, after the day it was published", async () => {
+    jest.mocked(BlogPostUtil.getBlogPost).mockResolvedValueOnce({
+      ...blogPost,
+      updatedDate: "2026-10-05",
+      formattedUpdatedDate: "October 05, 2026",
+    });
+
+    const answer: Answer = await request(`/blog/post/${POST_FILE}/markdown`);
+
+    expect(answer.body).toBe(
+      POST_MARKDOWN.replace(
+        "- Published: 2026-09-29\n",
+        "- Published: 2026-09-29\n- Updated: 2026-10-05\n",
+      ),
     );
   });
 

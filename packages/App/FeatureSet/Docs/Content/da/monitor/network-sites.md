@@ -38,7 +38,7 @@ Hver lokations status kommer fra hver enhed i dens undertræ, vurderet efter lok
 
 ## Hierarkiet
 
-Lokationer danner et træ. Hver lokation har en **Site Type** og eventuelt en overordnet lokation. Lokationstyper er projektets egen liste, under **Netværk → Indstillinger → Site Types**, og et nyt projekt starter med Account Type, Region, Franchisee, Market og Unit, i den rækkefølge oppefra, plus Data Center og Other. Typerne danner deres eget hierarki (**Parent Site Type**), som afgør, hvilke lokationer der kan være forælder til en lokation. En type, der er markeret som **Is Unit Level**, er det nederste niveau i dit miljø, den enkelte butik eller filial: dens lokationer rummer enheder, ikke andre lokationer.
+Lokationer danner et træ. Hver lokation har en **Site Type** og eventuelt en overordnet lokation. Lokationstyper er projektets egen liste, under **Netværk → Indstillinger → Lokationstyper**, og et nyt projekt starter med Account Type, Region, Franchisee, Market og Unit, i den rækkefølge oppefra, plus Data Center og Other. Typerne danner deres eget hierarki (**Parent Site Type**), som afgør, hvilke lokationer der kan være forælder til en lokation. En type, der er markeret som **Is Unit Level**, er det nederste niveau i dit miljø, den enkelte butik eller filial: dens lokationer rummer enheder, ikke andre lokationer.
 
 En lokations type, navn, beskrivelse, forælder og placering redigeres ét sted: kortet **Site Settings** på lokationens side **Indstillinger**. Lokationens oversigt viser dem med et link **Rediger i Indstillinger**, og listen **Lokationer** tilføjer lokationer, men redigerer dem ikke.
 
@@ -63,7 +63,7 @@ I trinnet **Hierarchy** vælger du **Parent Site**, hvis lokationen ligger under
 I trinnet **Monitoring Defaults** vælger du [standardsonden og standardloginprofilen](#overvågningsstandarder) til enheder, der tilføjes til lokationen, og klikker på **Tilføj Lokation**.
 :::
 
-På en lokations egen side **Child Sites** spørger **Tilføj Underordnet lokation** kun om typen og navnet, på én side med placeringen foldet sammen, og placerer den nye lokation under den.
+På en lokations egen side **Underordnede lokationer** spørger **Tilføj Underordnet lokation** kun om typen og navnet, på én side med placeringen foldet sammen, og placerer den nye lokation under den.
 
 ### Importér lokationer fra en CSV-fil
 

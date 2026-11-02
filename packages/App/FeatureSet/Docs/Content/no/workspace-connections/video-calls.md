@@ -23,7 +23,7 @@ flowchart TB
 :::steps
 ### Koble til en leverandør
 
-Gå til **Prosjektinnstillinger** > **Arbeidsområde** > **Video Calls**, og koble til Zoom, Google Meet eller Microsoft Teams, eller legg til en fast møtelenke. På OneUptime Cloud er det ett klikk å koble til Zoom, Google Meet eller Microsoft Teams: logg på, og gi OneUptime tillatelse til å opprette møter (se [Koble til med ett klikk](#koble-til-med-ett-klikk)). Slack-huddles trenger ikke noe utover prosjektets Slack-tilkobling.
+Gå til **Prosjektinnstillinger** > **Arbeidsområde** > **Videosamtaler**, og koble til Zoom, Google Meet eller Microsoft Teams, eller legg til en fast møtelenke. På OneUptime Cloud er det ett klikk å koble til Zoom, Google Meet eller Microsoft Teams: logg på, og gi OneUptime tillatelse til å opprette møter (se [Koble til med ett klikk](#koble-til-med-ett-klikk)). Slack-huddles trenger ikke noe utover prosjektets Slack-tilkobling.
 
 ### Slå det på i en regel
 
@@ -44,7 +44,7 @@ En samtale startes én gang per hendelse for hvert sted en samtale holdes. Regle
 
 Å opprette en hendelse venter aldri på en leverandør av videosamtaler. Samtalen startes etter at hendelsen er opprettet, så en treg eller feilende leverandør forsinker aldri hendelsen eller vakttilkallingene.
 
-Hvis leverandøren avviser (en utløpt hemmelighet, en manglende tillatelse, en slettet vert), sier hendelsens feed at regelens samtale ikke kunne startes, med leverandørens begrunnelse, så responders vet at de skal starte en fra hendelsens side. Regelens kjøring vises i workspacets varsellogger som **Start videosamtale**, og tilkoblingens rad i **Prosjektinnstillinger** > **Arbeidsområde** > **Video Calls** viser feilen til en samtale starter igjen.
+Hvis leverandøren avviser (en utløpt hemmelighet, en manglende tillatelse, en slettet vert), sier hendelsens feed at regelens samtale ikke kunne startes, med leverandørens begrunnelse, så responders vet at de skal starte en fra hendelsens side. Regelens kjøring vises i workspacets varsellogger som **Start videosamtale**, og tilkoblingens rad i **Prosjektinnstillinger** > **Arbeidsområde** > **Videosamtaler** viser feilen til en samtale starter igjen.
 
 ### Private hendelser
 
@@ -55,7 +55,7 @@ Et møte får navn etter hendelsen det gjelder, med nummer og tittel, og beskriv
 På OneUptime Cloud tar det ett klikk å koble til Zoom, Google Meet eller Microsoft Teams, og ingenting må settes opp hos leverandøren:
 
 :::steps
-1. Gå til **Prosjektinnstillinger** > **Arbeidsområde** > **Video Calls**, og klikk på **Koble til** ved Zoom, Google Meet eller Microsoft Teams.
+1. Gå til **Prosjektinnstillinger** > **Arbeidsområde** > **Videosamtaler**, og klikk på **Koble til** ved Zoom, Google Meet eller Microsoft Teams.
 2. Klikk på **Continue to Zoom** (eller Google, eller Microsoft), logg på, og gi OneUptime tillatelse til å opprette møter.
 3. Du kommer tilbake til siden for videosamtaler med tilkoblingen opprettet. **Start a test meeting** sjekker den fra ende til ende; velg deretter tilkoblingen i en varslingsregel for Slack eller Microsoft Teams.
 :::
@@ -124,7 +124,7 @@ OneUptime AI foreslår bare en årsak når samtalen nevner en, med linjene som s
 
 ### Ta opp og transkribere hver samtale
 
-For at ingen skal måtte huske å ta opp en samtale eller hente transkripsjonen, slår du på **Ta opp og transkriber hendelsessamtaler** under **Prosjektinnstillinger** > **Arbeidsområde** > **Video Calls**. Så lenge den er slått på:
+For at ingen skal måtte huske å ta opp en samtale eller hente transkripsjonen, slår du på **Ta opp og transkriber hendelsessamtaler** under **Prosjektinnstillinger** > **Arbeidsområde** > **Videosamtaler**. Så lenge den er slått på:
 
 - OneUptime ber Zoom om å ta opp i skyen hvert hendelsesmøte den starter, Google Meet om å transkribere det og Microsoft Teams om å ta det opp og transkribere det automatisk. Meldingen som publiserer samtalen, sier fra om det før noen blir med.
 - Når samtalen er over, henter OneUptime transkripsjonen selv, slik **Hent fra Zoom** ville gjort, og OneUptime AI leser den. Inntil da sier kortet **Video Call** at det venter.

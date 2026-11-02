@@ -10,6 +10,7 @@ import {
   AirGappedTopicPage,
   AirGappedTopicPages,
 } from "../Utils/AirGappedPages";
+import { getCompareMark } from "../Utils/CompareMark";
 import ProductCompare, {
   FAQ,
   Product,
@@ -140,6 +141,7 @@ async function renderCompare(slug: string, product: Product): Promise<string> {
     blackLogo: false,
     requestDemoCta: false,
     productConfig: product,
+    productMark: getCompareMark(product),
     onlyShowCompareTable: false,
     seo: seoFor(`/compare/${slug}`),
     homeUrl: HOME_URL,
@@ -240,6 +242,8 @@ describe("the blog post's structured data", () => {
       },
       validationStatus: "validated",
       validationDate: "October 08, 2026",
+      updatedDate: null,
+      formattedUpdatedDate: null,
     };
   };
 

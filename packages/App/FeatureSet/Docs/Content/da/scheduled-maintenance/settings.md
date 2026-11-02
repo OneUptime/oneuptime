@@ -18,7 +18,7 @@ Konfigurationen af vedligeholdelse findes i **Planlagt vedligeholdelse**, ikke i
 | **Ejerregler**     | Tilføjer ejere til matchende begivenheder.                             |
 | **Runbook-regler** | Starter runbooks for matchende begivenheder.                           |
 | **Etiketregler**   | Tilføjer etiketter til matchende begivenheder.                         |
-| **Reminder Rules** | Minder ejerne om begivenheden med et interval, indtil den er fuldført. |
+| **Påmindelsesregler** | Minder ejerne om begivenheden med et interval, indtil den er fuldført. |
 
 Sektionen **Indstillinger** rummer **Begivenhedsstatus**, som er beskrevet på [Vedligeholdelsestilstande](/docs/scheduled-maintenance/states), **Begivenhedsskabeloner**, som er beskrevet på [Skabeloner og tilbagevendende begivenheder](/docs/scheduled-maintenance/templates), og derefter **Noteskabeloner**, **Brugerdefinerede felter**, **Målinger**, **Kalenderindstillinger** og **Nummerering**. **Kalenderindstillinger** er beskrevet på [Vedligeholdelseskalender](/docs/scheduled-maintenance/calendar#eksterne-kalendere), resten nedenfor.
 
@@ -37,7 +37,7 @@ flowchart TB
 Reglerne er forskellige i, hvordan flere match afgøres:
 
 - **Ejerregler**, **Etiketregler** og **Runbook-regler** handler alle, når de matcher. Ejere og etiketter, som flere regler tilføjer, tilføjes én gang.
-- **Reminder Rules** kontrolleres fra toppen af deres liste og nedad, og det første match vinder. Træk en regel for at ændre dens plads; en ny regel kommer sidst.
+- **Påmindelsesregler** kontrolleres fra toppen af deres liste og nedad, og det første match vinder. Træk en regel for at ændre dens plads; en ny regel kommer sidst.
 
 En ny regel starter aktiveret; slå **Aktiveret** fra i dens redigeringsformular for at sætte den på pause, og listen viser et grønt **Aktiveret** eller et rødt **Deaktiveret** for hver regel. Ejer-, etiket- og runbook-regler handler på begivenheder, der oprettes, efter du har gemt dem. For at anvende en ejer- eller etiketregel på de begivenheder, du allerede har, bruger du **Kør nu**: se [Kør regler på eksisterende ressourcer](/docs/configuration/run-rules-now).
 
@@ -64,7 +64,7 @@ En regel matcher kun, når hver betingelse, du udfylder, holder; en betingelse, 
 
 ## Påmindelsesregler
 
-**Planlagt vedligeholdelse → Regler → Reminder Rules** minder en begivenheds ejere om den, indtil arbejdet er godkendt. Hver begivenhed får den første regel, der matcher den, fra toppen af listen og nedad.
+**Planlagt vedligeholdelse → Regler → Påmindelsesregler** minder en begivenheds ejere om den, indtil arbejdet er godkendt. Hver begivenhed får den første regel, der matcher den, fra toppen af listen og nedad.
 
 :::steps
 ### Vælg, hvilke begivenheder der mindes om

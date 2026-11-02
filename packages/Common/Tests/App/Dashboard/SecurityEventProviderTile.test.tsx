@@ -30,7 +30,17 @@ import {
 import SecurityEventConnectorProvider from "../../../Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
 import { PROVIDER_LOGO_NAMES } from "../../../Types/ProviderLogo/ProviderLogo";
 import Icon from "../../../UI/Components/Icon/Icon";
-import { PROVIDER_LOGO_TILE_CLASS_NAME } from "../../../UI/Components/ProviderLogo/ProviderLogoImage";
+import {
+  PROVIDER_LOGO_COLOR_CLASS_NAME,
+  PROVIDER_LOGO_TILE_CLASS_NAME,
+} from "../../../UI/Components/ProviderLogo/ProviderLogoImage";
+import { getProviderLogoStandInIcon } from "../../../Types/ProviderLogo/ProviderLogoMarks";
+import {
+  getDrawnMark,
+  getDrawnPathData,
+  getMarkPathData,
+  preloadProviderLogoMarks,
+} from "../../Helpers/ProviderLogoMarks";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
@@ -58,6 +68,7 @@ const english: i18n = createInstance();
 const german: i18n = createInstance();
 
 beforeAll(async (): Promise<void> => {
+  await preloadProviderLogoMarks();
   await english.init({
     lng: "en",
     fallbackLng: "en",
@@ -332,15 +343,20 @@ describe("SecurityEventProviderTile", () => {
       );
     });
 
-    test("the product badge is its official logo, decorative: the name is the button's words", () => {
+    test("the product badge is its official mark, decorative: the name is the button's words", () => {
       const { tile } = renderTile();
 
       expect(badge(tile)).toHaveAttribute("aria-hidden", "true");
       expect(badge(tile)).toHaveAttribute("data-provider-logo", SENTINEL.logo);
       expect(badge(tile)).not.toHaveAttribute("role");
       expect(badge(tile).textContent).toBe("");
-      // No generic icon stands in for the product any more.
-      expect(badge(tile).querySelector("svg")).toBeNull();
+      // The mark itself, inline and in one colour: never an image.
+      expect(badge(tile).querySelector("img")).toBeNull();
+      expect(getDrawnPathData(getDrawnMark(badge(tile)))).toEqual(
+        getMarkPathData(SENTINEL.logo),
+      );
+      // Only the mark: no generic icon stands in for the product.
+      expect(badge(tile).querySelectorAll("svg")).toHaveLength(1);
     });
 
     /*
@@ -369,7 +385,7 @@ describe("SecurityEventProviderTile", () => {
       );
     });
 
-    test("hover styles are applied on the tile; the logo keeps its own colours", () => {
+    test("hover styles are applied on the tile; the mark keeps the tile's grey", () => {
       const { tile } = renderTile();
 
       expect(tile).toHaveClass(
@@ -377,13 +393,14 @@ describe("SecurityEventProviderTile", () => {
         "hover:border-indigo-300",
         "transition-colors",
       );
-      // A brand's logo is never recoloured, on hover or anywhere.
+      // The mark is drawn in the grey of a tile's icon, and stays it on hover.
       expect(
         classTokens(badge(tile)).some((token: string): boolean => {
           return token.startsWith("group-hover:");
         }),
       ).toBe(false);
       expect(badge(tile)).toHaveClass(
+        PROVIDER_LOGO_COLOR_CLASS_NAME,
         ...PROVIDER_LOGO_TILE_CLASS_NAME.split(" "),
       );
     });
@@ -414,6 +431,23 @@ describe("SecurityEventProviderTile", () => {
         "lg:self-center",
         "lg:justify-self-end",
       );
+    });
+
+    /*
+     * A row of upright tiles is as tall as its tallest (Splunk Enterprise
+     * Security's name takes two lines at 1280). Left to stretch, a tile with
+     * a one-line name shared its spare height between its two rows: its name
+     * sat lower than its neighbours' and its plus dropped below its mark.
+     * Upright, the rows keep their own heights at the tile's top.
+     */
+    test("upright, its rows keep their own heights at the top, so a row of tiles lines up", () => {
+      for (const canConnect of [true, false]) {
+        const { tile } = renderTile({ canConnect });
+
+        expect(tile).toHaveClass("lg:content-start");
+        expect(tile).not.toHaveClass("content-start");
+        cleanup();
+      }
     });
 
     test("children are badge, text and plus, in that DOM order", () => {
@@ -452,7 +486,7 @@ describe("SecurityEventProviderTile", () => {
      * A plus promises an action. Without the button there is nothing to
      * add, so the icon must go with it rather than sit there looking live.
      */
-    test("draws no plus anywhere: only the product's logo and the external-link marker", () => {
+    test("draws no plus anywhere: only the product's mark and the external-link marker", () => {
       const { tile } = renderTile({ canConnect: false });
 
       const add: string = iconMarkup(IconProp.Add);
@@ -461,7 +495,10 @@ describe("SecurityEventProviderTile", () => {
           return svg.innerHTML;
         },
       );
-      expect(drawn).toEqual([iconMarkup(IconProp.ExternalLink)]);
+      expect(drawn).toEqual([
+        getDrawnMark(badge(tile))?.innerHTML || "",
+        iconMarkup(IconProp.ExternalLink),
+      ]);
       expect(drawn).not.toContain(add);
       expect(badge(tile)).toHaveAttribute("data-provider-logo", SENTINEL.logo);
     });
@@ -804,7 +841,7 @@ describe("SecurityEventProviderTile", () => {
 
   describe("every catalog provider", () => {
     test.each(SecurityEventConnectorCatalog)(
-      "$title shows its own official logo in the badge",
+      "$title shows its own official mark in the badge, or the icon its brand's rules ask for",
       (definition: SecurityEventConnectorDefinition) => {
         expect(PROVIDER_LOGO_NAMES[definition.logo]).toBeTruthy();
 
@@ -814,6 +851,17 @@ describe("SecurityEventProviderTile", () => {
           "data-provider-logo",
           definition.logo,
         );
+        expect(badge(tile).querySelector("img")).toBeNull();
+
+        if (getProviderLogoStandInIcon(definition.logo)) {
+          // CrowdStrike and AWS allow no logo here: an icon of the product's own.
+          expect(getDrawnMark(badge(tile))).toBeNull();
+          expect(badge(tile).querySelectorAll("svg")).toHaveLength(1);
+        } else {
+          expect(getDrawnPathData(getDrawnMark(badge(tile)))).toEqual(
+            getMarkPathData(definition.logo),
+          );
+        }
       },
     );
 

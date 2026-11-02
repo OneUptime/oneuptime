@@ -398,7 +398,7 @@ O endereço antigo da página **AI Access** abre **Runbooks → Agentes de runbo
 
 ### Habilitar IA é o único interruptor de IA
 
-**Configurações do projeto → IA → AI Features** tinha três interruptores. **Enable Auto-Remediation** e **Enable AI Command Execution (for Runners)** saíram: a remediação automática e os comandos de IA nos Runners rodam sempre que **Habilitar IA** está ativado. Desativar **Habilitar IA** os para junto com todos os outros recursos de IA, incluindo as regras de remediação automática que iniciam um runbook sem IA. Um projeto que já tem **Habilitar IA** desativado para, portanto, de executar essas regras depois da atualização; ative **Habilitar IA** para mantê-las.
+**Configurações do projeto → IA → Recursos de IA** tinha três interruptores. **Enable Auto-Remediation** e **Enable AI Command Execution (for Runners)** saíram: a remediação automática e os comandos de IA nos Runners rodam sempre que **Habilitar IA** está ativado. Desativar **Habilitar IA** os para junto com todos os outros recursos de IA, incluindo as regras de remediação automática que iniciam um runbook sem IA. Um projeto que já tem **Habilitar IA** desativado para, portanto, de executar essas regras depois da atualização; ative **Habilitar IA** para mantê-las.
 
 Os dois interruptores seguravam algumas correções. Para que nada comece a mudar os seus sistemas sem uma pessoa quando eles desaparecem, a atualização do servidor passa essas correções a perguntar antes:
 
@@ -436,7 +436,7 @@ As páginas de IA também mudaram nos menus laterais de Incidentes e Alertas. A 
 
 ### Os AI Logs ganham um índice para os limites diários de IA
 
-Os limites diários de IA de um projeto (**Configurações do projeto → IA → AI Features → Mais configurações**) e os limites diários de tokens de incidentes e alertas somam os AI Logs do dia antes de cada chamada de IA. Até agora isso lia todo AI Log que o projeto já tinha escrito, e uma instalação auto-hospedada guarda todos. A atualização adiciona um índice nos AI Logs (`LlmLog`), sobre o projeto e o horário de cada chamada, então cada verificação lê só os do dia. A página dos AI Logs também lista os logs de um projeto mais rápido.
+Os limites diários de IA de um projeto (**Configurações do projeto → IA → Recursos de IA → Mais configurações**) e os limites diários de tokens de incidentes e alertas somam os AI Logs do dia antes de cada chamada de IA. Até agora isso lia todo AI Log que o projeto já tinha escrito, e uma instalação auto-hospedada guarda todos. A atualização adiciona um índice nos AI Logs (`LlmLog`), sobre o projeto e o horário de cada chamada, então cada verificação lê só os do dia. A página dos AI Logs também lista os logs de um projeto mais rápido.
 
 Nada a fazer: o índice é construído online durante a atualização (`CREATE INDEX CONCURRENTLY`), e as chamadas de IA continuam funcionando enquanto ele é construído. Numa tabela de AI Logs grande isso leva alguns minutos. A construção espera no máximo dois minutos atrás de uma mesma transação longa, como um backup, e dura no máximo quinze. Se ela não conseguir terminar, a atualização se conclui mesmo assim, os limites continuam funcionando sem o índice, e o log diz isso e como construí-lo. Execute isto no banco de dados do OneUptime, fora de uma transação, a qualquer momento:
 

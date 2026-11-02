@@ -5,6 +5,16 @@ import { JSONArray, JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import BlogTag from "./BlogTag";
+import {
+  getUpdatedDateAfterPublishing,
+  getUpdatedDatesOfPosts,
+} from "./BlogPostUpdatedDate";
+import {
+  RELATED_POSTS_LIMIT,
+  RelatedPostsIndex,
+  buildRelatedPostsIndex,
+  findRelatedPosts,
+} from "./BlogRelatedPosts";
 import { BlogRootPath } from "./Config";
 import LocalFile from "Common/Server/Utils/LocalFile";
 import DatabaseConfig from "Common/Server/DatabaseConfig";
@@ -73,6 +83,13 @@ export interface BlogPost extends BlogPostBaseProps {
   validationStatus: string | null;
   // Formatted validation date (from validation.json `validatedAt`), or null.
   validationDate: string | null;
+  /*
+   * The day (YYYY-MM-DD) the post's text last changed after it was published,
+   * from the blog's git history (Utils/BlogPostUpdatedDate.ts), or null.
+   */
+  updatedDate: string | null;
+  // updatedDate as the page shows it, or null.
+  formattedUpdatedDate: string | null;
 }
 
 export default class BlogPostUtil {
@@ -117,6 +134,15 @@ export default class BlogPostUtil {
     BlogPostContributor[]
   > | null = null;
   /*
+   * Each post's updated date (YYYY-MM-DD) by post folder name, from the same
+   * background git walk as the contributors and cached with them: null until
+   * that walk succeeds.
+   */
+  private static updatedDateByPostCache: Map<string, string> | null = null;
+  // The related-posts index, and the post list it was built from (in it).
+  private static relatedPostsIndexCache: RelatedPostsIndex<BlogPostHeader> | null =
+    null;
+  /*
    * In-flight promise of the background contributor warm, so concurrent triggers
    * share a single `git log` instead of spawning one per request (a cold-start
    * burst on /blog would otherwise launch many parallel git walks).
@@ -147,6 +173,8 @@ export default class BlogPostUtil {
     this.tagSlugCache.clear();
     this.blogPostCache.clear();
     this.contributorsByPostCache = null;
+    this.updatedDateByPostCache = null;
+    this.relatedPostsIndexCache = null;
     this.contributorsWarmInFlight = null;
     this.contributorsWarmAttempted = false;
   }
@@ -297,6 +325,48 @@ export default class BlogPostUtil {
       this.tagIndexCache.tagsBySlug.get(slug);
 
     return tag ? { ...tag } : null;
+  }
+
+  /*
+   * The posts a post's page lists as related (Utils/BlogRelatedPosts.ts), from
+   * an index of the post list built once per list.
+   */
+  public static async getRelatedPosts(
+    fileName: string,
+    limit: number = RELATED_POSTS_LIMIT,
+  ): Promise<Array<BlogPostHeader>> {
+    const posts: Array<BlogPostHeader> = await this.getBlogPostList();
+
+    if (
+      !this.relatedPostsIndexCache ||
+      this.relatedPostsIndexCache.posts !== posts
+    ) {
+      this.relatedPostsIndexCache = buildRelatedPostsIndex(
+        posts,
+        (tag: string): string => {
+          return this.getTagSlug(tag);
+        },
+      );
+    }
+
+    return findRelatedPosts(this.relatedPostsIndexCache, fileName, limit);
+  }
+
+  /*
+   * The day (YYYY-MM-DD) a post's text last changed after it was published,
+   * or null: also while the background git walk that finds it has not
+   * finished, which this starts if nothing has.
+   */
+  public static getUpdatedDate(
+    fileName: string,
+    postDate: string,
+  ): string | null {
+    this.ensureContributorsWarmStarted();
+
+    return getUpdatedDateAfterPublishing(
+      this.updatedDateByPostCache?.get(fileName),
+      postDate,
+    );
   }
 
   /*
@@ -490,6 +560,8 @@ export default class BlogPostUtil {
     const validation: { status: string; validatedAt: string | null } | null =
       await this.getValidation(fileName);
 
+    const updatedDate: string | null = this.getUpdatedDate(fileName, postDate);
+
     const blogPost: BlogPost = {
       title,
       description,
@@ -500,7 +572,11 @@ export default class BlogPostUtil {
       ),
       validationStatus: validation?.status ?? null,
       validationDate: validation?.validatedAt
-        ? this.getFormattedValidationDate(validation.validatedAt)
+        ? this.getFormattedDate(validation.validatedAt)
+        : null,
+      updatedDate: updatedDate,
+      formattedUpdatedDate: updatedDate
+        ? this.getFormattedDate(updatedDate)
         : null,
       htmlBody,
       markdownBody: markdownContent,
@@ -704,10 +780,12 @@ export default class BlogPostUtil {
   /*
    * One `git log` pass over the cloned blog repo, bucketed into a map of
    * post folder name -> contributors (ordered by commit count, most first).
-   * Bounded by `timeoutInMS` (the child is killed on timeout). Only invoked by
-   * the background warm. Returns an empty map WITHOUT caching when the walk
-   * fails (timeout / shallow clone / not a repo / git missing) so a later warm
-   * can retry; callers fall back to the declared author only.
+   * The same pass gives each post's updated date (Utils/BlogPostUpdatedDate.ts),
+   * cached with the contributors. Bounded by `timeoutInMS` (the child is
+   * killed on timeout). Only invoked by the background warm. Returns an empty
+   * map WITHOUT caching when the walk fails (timeout / shallow clone / not a
+   * repo / git missing) so a later warm can retry; callers fall back to the
+   * declared author only, and posts to their publish date.
    */
   private static async getContributorsByPost(
     timeoutInMS: number,
@@ -721,11 +799,13 @@ export default class BlogPostUtil {
       string,
       Map<string, { contributor: BlogPostContributor; count: number }>
     > = new Map();
+    let updatedDates: Map<string, string> = new Map();
 
     try {
       const commits: Array<{
         authorName: string;
         authorEmail: string;
+        committedAt: string;
         files: Array<string>;
       }> = await CodeRepositoryUtil.getCommitAuthorsWithFiles({
         repoPath: BlogRootPath,
@@ -777,6 +857,9 @@ export default class BlogPostUtil {
           }
         }
       }
+
+      // Every commit, bots' too: a change to a post is a change whoever made it.
+      updatedDates = getUpdatedDatesOfPosts(commits);
     } catch (err) {
       /*
        * Walk failed (timed out / shallow clone / not a repo / git missing). Do
@@ -806,6 +889,7 @@ export default class BlogPostUtil {
     }
 
     this.contributorsByPostCache = result;
+    this.updatedDateByPostCache = updatedDates;
     return result;
   }
 
@@ -900,13 +984,12 @@ export default class BlogPostUtil {
   }
 
   /*
-   * Formats validation.json `validatedAt` (YYYY-MM-DD) into a friendly date,
-   * matching how post dates are rendered. Returns null on malformed input.
+   * Formats a YYYY-MM-DD date - validation.json's `validatedAt`, a post's
+   * updated date - into a friendly date, matching how post dates are
+   * rendered. Returns null on malformed input.
    */
-  private static getFormattedValidationDate(
-    validatedAt: string,
-  ): string | null {
-    const [year, month, day] = validatedAt.split("-");
+  private static getFormattedDate(date: string): string | null {
+    const [year, month, day] = date.split("-");
     if (!year || !month || !day) {
       return null;
     }

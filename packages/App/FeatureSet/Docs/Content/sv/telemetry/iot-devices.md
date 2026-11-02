@@ -175,7 +175,7 @@ OneUptime har en egen MQTT-slutpunkt, så enheter som talar MQTT publicerar avl�
 ### Autentisering
 
 - **Med intagningsnyckeln**: skicka den som MQTT-lösenord. Användarnamnet ignoreras; om din klient bara har ett fält för användarnamn lägger du nyckeln där. Det passar en gateway som publicerar för många enheter.
-- **Med inloggningsuppgifter per enhet**: rekommenderas för enheter som ansluter direkt. Öppna flottans sida **Device Registry** och registrera enheten, med det **Device ID** som den använder som `device.id`. Enhetens **MQTT Username** är dess användarnamn och dess **MQTT Password (Secret)** dess lösenord.
+- **Med inloggningsuppgifter per enhet**: rekommenderas för enheter som ansluter direkt. Öppna flottans sida **Enhetsregister** och registrera enheten, med det **Device ID** som den använder som `device.id`. Enhetens **MQTT Username** är dess användarnamn och dess **MQTT Password (Secret)** dess lösenord.
 
 En enhets inloggningsuppgifter kan bara publicera under dess egna `oneuptime/<fleet>/<device>/`-ämnen. Du kan återkalla en enhet utan att röra resten av flottan: stäng av dess reglage **Aktiverad**, eller ta bort den, så kopplas en ansluten enhet bort inom ungefär en minut. En registrerad enhet som tystnar finns kvar i inventariet som offline, och larmmallen Device Offline utlöses för den, även om den dör utan en Last Will.
 

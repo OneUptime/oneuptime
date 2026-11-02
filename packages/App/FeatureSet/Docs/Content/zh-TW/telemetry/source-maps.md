@@ -83,7 +83,7 @@ curl --fail -X POST "https://oneuptime.com/source-maps/v1/upload" \
 
 ### 檢查上傳結果
 
-上傳成功後會回傳一個列出已儲存對應的 JSON 本文，CI 可以據此進行斷言。這些對應也會列在 OneUptime 中該服務的 **Source Maps** 頁面上。
+上傳成功後會回傳一個列出已儲存對應的 JSON 本文，CI 可以據此進行斷言。這些對應也會列在 OneUptime 中該服務的 **原始碼對應** 頁面上。
 :::
 
 典型的 CI 步驟會上傳建置輸出的每個對應：
@@ -127,7 +127,7 @@ done
 
 在儀表板的 **例外** 下開啟任何例外。透過原始碼對應解析的堆疊框架會顯示 **Source mapped** 徽章，並顯示原始函式名稱與檔案位置；展開堆疊框架會在壓縮位置旁顯示原始程式碼片段（當對應包含 `sourcesContent` 時）。
 
-某個服務已上傳的對應可以在 **產品 → 服務 → 你的服務 → Source Maps** 中檢視與刪除，那裡會列出每個對應的版本、bundle、大小與上傳時間。
+某個服務已上傳的對應可以在 **產品 → 服務 → 你的服務 → 原始碼對應** 中檢視與刪除，那裡會列出每個對應的版本、bundle、大小與上傳時間。
 
 ## 保留
 
@@ -142,7 +142,7 @@ done
 ## 疑難排解
 
 :::details 堆疊框架仍然是壓縮後的
-該例外的版本沒有符合的對應。請檢查：你的應用程式傳送的 `service.version` 是否與上傳時使用的 `serviceVersion` 完全相同，`serviceName` 是否與 `service.name` 相符，以及是否為該 bundle 檔案上傳了對應。服務的 **Source Maps** 頁面會列出每個對應的版本與 bundle。
+該例外的版本沒有符合的對應。請檢查：你的應用程式傳送的 `service.version` 是否與上傳時使用的 `serviceVersion` 完全相同，`serviceName` 是否與 `service.name` 相符，以及是否為該 bundle 檔案上傳了對應。服務的 **原始碼對應** 頁面會列出每個對應的版本與 bundle。
 :::
 
 :::details 上傳因對應太大而遭到拒絕

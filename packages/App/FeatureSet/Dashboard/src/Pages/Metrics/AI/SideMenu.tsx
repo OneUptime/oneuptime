@@ -5,7 +5,6 @@ import IconProp from "Common/Types/Icon/IconProp";
 import SideMenu, {
   SideMenuSectionProps,
 } from "Common/UI/Components/SideMenu/SideMenu";
-import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
@@ -17,11 +16,6 @@ import React, { FunctionComponent, ReactElement } from "react";
  * (Common/Types/AI/TelemetryAi), reached from the AI tab of Metrics' tabs.
  */
 const MetricsAISideMenu: FunctionComponent = (): ReactElement => {
-  // A finding's own page keeps Insights marked: the finding is one of them.
-  const insightViewRoute: Route = RouteUtil.populateRouteParams(
-    RouteMap[PageMap.METRICS_AI_INSIGHT_VIEW] as Route,
-  );
-
   const sections: SideMenuSectionProps[] = [
     {
       title: "AI",
@@ -33,9 +27,6 @@ const MetricsAISideMenu: FunctionComponent = (): ReactElement => {
               RouteMap[PageMap.METRICS_AI_INSIGHTS] as Route,
             ),
           },
-          activeRoute: Navigation.isOnThisPage(insightViewRoute)
-            ? insightViewRoute
-            : undefined,
           icon: IconProp.LightBulb,
         },
         {
