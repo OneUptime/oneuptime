@@ -6,6 +6,7 @@ import EnterpriseEdition from "../../../Server/Enterprise/EnterpriseEdition";
 import Email from "../../../Types/Email";
 import { MaxAttributionValueLength } from "../../../Types/Marketing/Attribution";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * A paid click whose landing address is longer than the column it is stored
@@ -113,7 +114,7 @@ describe("createByEmail, for a signup that posts no form", () => {
   });
 
   test("writes the attribution it is given onto the new user", async () => {
-    const create: jest.SpiedFunction<typeof UserService.create> = jest
+    const create: SpyInstance<typeof UserService.create> = jest
       .spyOn(UserService, "create")
       .mockImplementation(async (createBy: CreateBy<User>): Promise<User> => {
         return createBy.data;
@@ -139,7 +140,7 @@ describe("createByEmail, for a signup that posts no form", () => {
   });
 
   test("writes none where it is given none: an invitation is not an acquisition", async () => {
-    const create: jest.SpiedFunction<typeof UserService.create> = jest
+    const create: SpyInstance<typeof UserService.create> = jest
       .spyOn(UserService, "create")
       .mockImplementation(async (createBy: CreateBy<User>): Promise<User> => {
         return createBy.data;
