@@ -83,7 +83,7 @@ För installationer i egen drift ersätter du `oneuptime.com` med din OneUptime-
 
 ### Kontrollera uppladdningen
 
-En lyckad uppladdning returnerar en JSON-kropp som listar de lagrade mapparna, så att CI kan kontrollera den. Mapparna listas också på tjänstens sida **Source Maps** i OneUptime.
+En lyckad uppladdning returnerar en JSON-kropp som listar de lagrade mapparna, så att CI kan kontrollera den. Mapparna listas också på tjänstens sida **Source maps** i OneUptime.
 :::
 
 Ett typiskt CI-steg laddar upp varje map som bygget skapade:
@@ -127,7 +127,7 @@ Installationer i egen drift kan ändra dessa. Alla fem är vanliga miljövariabl
 
 Öppna vilket undantag som helst under **Undantag** i instrumentpanelen. Ramar som har lösts upp via en source map visar märket **Source mapped** och det ursprungliga funktionsnamnet och filplatsen; en expanderad ram visar det ursprungliga kodutdraget (när mappen innehåller `sourcesContent`) bredvid den minifierade platsen.
 
-Uppladdade maps för en tjänst kan granskas och tas bort under **Produkter → Tjänster → din tjänst → Source Maps**, som listar version, bundle, storlek och uppladdningstid för varje map.
+Uppladdade maps för en tjänst kan granskas och tas bort under **Produkter → Tjänster → din tjänst → Source maps**, som listar version, bundle, storlek och uppladdningstid för varje map.
 
 ## Lagring
 
@@ -142,7 +142,7 @@ Source maps sparas i 90 dagar efter uppladdning och raderas sedan automatiskt. E
 ## Felsökning
 
 :::details Ramarna är fortfarande minifierade
-Undantagets version har inga matchande maps. Kontrollera att den `service.version` som din app skickar är exakt den `serviceVersion` du laddade upp med, att `serviceName` matchar `service.name` och att en map har laddats upp för den bundlefilen: tjänstens sida **Source Maps** listar version och bundle för varje map.
+Undantagets version har inga matchande maps. Kontrollera att den `service.version` som din app skickar är exakt den `serviceVersion` du laddade upp med, att `serviceName` matchar `service.name` och att en map har laddats upp för den bundlefilen: tjänstens sida **Source maps** listar version och bundle för varje map.
 :::
 
 :::details Uppladdningen avvisas eftersom en map är för stor

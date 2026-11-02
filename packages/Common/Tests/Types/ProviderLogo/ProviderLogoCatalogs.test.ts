@@ -1,6 +1,4 @@
 import { describe, expect, test } from "@jest/globals";
-import fs from "fs";
-import path from "path";
 import {
   AuditLogExportDestinationCatalog,
   AuditLogExportDestinationDefinition,
@@ -43,49 +41,50 @@ import {
   LLM_PROVIDER_TYPES,
   LLM_PROVIDER_TYPE_COPY,
 } from "../../../UI/Components/AI/LlmProviderFormCopy";
+import ALL_PROVIDER_LOGO_MARKS from "../../../Types/ProviderLogo/AllProviderLogoMarks";
 import {
-  PROVIDER_LOGO_FILE_LOADERS,
-  getProviderLogoFileName,
-} from "../../../UI/Components/ProviderLogo/ProviderLogoAssets";
+  getProviderLogoMark,
+  getProviderLogoStandInIcon,
+} from "../../../Types/ProviderLogo/ProviderLogoMarks";
+import { PROVIDER_LOGO_MARK_LOADERS } from "../../../UI/Components/ProviderLogo/ProviderLogoMarkLoader";
 
 /*
  * Official logos audit: every catalog entry that names another company's
- * product carries that product's logo - registered, with its file in the
- * installation - and an entry that names a generic thing (any S3-compatible
- * storage, a webhook, syslog, a server that speaks OpenAI's API) carries
- * none, so it keeps its icon. The expected logo of every entry is written
- * out here: a new entry, or a changed one, has to say which it is.
+ * product carries that product's logo - registered, and drawn: by a
+ * one-colour mark the installation ships (its own or its maker's), or by
+ * the icon of OneUptime's its brand's rules ask for - and an entry that
+ * names a generic thing (any S3-compatible storage, a webhook, syslog, a
+ * server that speaks OpenAI's API) carries none, so it keeps its icon. The
+ * expected logo of every entry is written out here: a new entry, or a
+ * changed one, has to say which it is.
  */
 
-const LOGOS_DIRECTORY: string = path.join(
-  __dirname,
-  "..",
-  "..",
-  "..",
-  "UI",
-  "Images",
-  "ProviderLogos",
-);
-
-// The logo has a loader and its file is on disk.
+// The logo is registered and drawn: a mark with its loader and its shapes, or a stand-in icon.
 function expectLogoShipped(logo: ProviderLogo): void {
-  const fileName: string = getProviderLogoFileName(logo, false);
-
   expect({ logo, isLogo: isProviderLogo(logo) }).toEqual({
     logo,
     isLogo: true,
   });
+
+  const mark: ProviderLogo | undefined = getProviderLogoMark(logo);
+
+  if (!mark) {
+    expect({
+      logo,
+      hasStandInIcon: Boolean(getProviderLogoStandInIcon(logo)),
+    }).toEqual({ logo, hasStandInIcon: true });
+    return;
+  }
+
   expect({
     logo,
-    hasLoader: Boolean(PROVIDER_LOGO_FILE_LOADERS[fileName]),
+    hasLoader: Boolean(PROVIDER_LOGO_MARK_LOADERS[mark]),
+    hasShapes: Boolean(ALL_PROVIDER_LOGO_MARKS[mark]),
   }).toEqual({
     logo,
     hasLoader: true,
+    hasShapes: true,
   });
-  expect({
-    logo,
-    onDisk: fs.existsSync(path.join(LOGOS_DIRECTORY, fileName)),
-  }).toEqual({ logo, onDisk: true });
 }
 
 interface Entry {

@@ -62,13 +62,13 @@ En dessous, une ligne dit si quelque chose déclenche un incident quand un équi
 
 Tant que rien n'a été ajouté, la vue d'ensemble vous guide à la place en trois étapes. **Placez une sonde sur votre réseau** : une sonde pingue et parcourt vos équipements depuis l'intérieur de leur réseau, donc **Ajouter une sonde** en nomme une, montre la commande qui la lance et la regarde se connecter. **Intégrez vos équipements** : **Découvrir des équipements** analyse une plage d'adresses pour que vous choisissiez quoi ajouter, idéal pour tout un réseau ou un nouveau site, et **Ajouter un seul équipement** en ajoute un par son adresse IP ou son nom d'hôte. **Être prévenu quand un équipement tombe** : **Configurer des alertes** ouvre les [politiques d'alerte](#politiques-dalerte), où la politique recommandée est à un clic. Sur OneUptime Cloud, [ajouter une sonde](/docs/probe/custom-probe) demande le forfait Growth : en dessous, l'étape le dit et renvoie plutôt vers vos paramètres de facturation, et les sondes de OneUptime sur Internet peuvent toujours vérifier les équipements qui ont une adresse publique.
 
-Le menu Réseau garde en vue ce que vous ouvrez tous les jours : **Vue d'ensemble**, **Appareils**, **Sites**, **Carte**, **Traffic**, **Événements** et **Découverte**. Le reste est replié en sections, et une section s'ouvre d'elle-même sur chacune de ses pages :
+Le menu Réseau garde en vue ce que vous ouvrez tous les jours : **Vue d'ensemble**, **Appareils**, **Sites**, **Carte**, **Trafic**, **Événements** et **Découverte**. Le reste est replié en sections, et une section s'ouvre d'elle-même sur chacune de ses pages :
 
 | Section | Pages |
 | --- | --- |
-| **Topologie** | **Topologie de l'équipement**, **Points de terminaison**, **Matrice de latence**, **Site Links**, **Liens d'équipements** |
-| **Règles** | **Règles d'import automatique**, **Site Assignment Rules**, **Règles de propriétaire**, **Règles d'étiquettes**, **Règles de liens** |
-| **Paramètres** | **Politiques d'alerte**, **Identifiants SNMP**, **Rôles d'équipement**, **Site Types**, **Noms d'adresse**, **Modèles de collecte d'OID** |
+| **Topologie** | **Topologie de l'équipement**, **Points de terminaison**, **Matrice de latence**, **Liens du site**, **Liens d'équipements** |
+| **Règles** | **Règles d'import automatique**, **Règles d'attribution des sites**, **Règles de propriétaire**, **Règles d'étiquettes**, **Règles de liens** |
+| **Paramètres** | **Politiques d'alerte**, **Identifiants SNMP**, **Rôles d'équipement**, **Types de site**, **Noms d'adresse**, **Modèles de collecte d'OID** |
 | **Avancé** | **Appareils archivés** |
 
 ## Ajouter un équipement réseau
@@ -144,7 +144,7 @@ Une analyse de découverte du réseau d'un client fait entrer des dizaines d'éq
 
 | Action | Ce qu'elle fait |
 | --- | --- |
-| **Définir le site** / **Retirer du site** | Déplace chaque équipement sélectionné dans le site choisi, où il compte pour la santé du site ; un équipement sans sonde propre reprend la sonde par défaut du site. **Retirer du site** les sort de leurs sites. Un équipement qu'une règle d'affectation de site reconnaît revient au site de la règle à sa prochaine interrogation ; pour les équipements que la découverte retrouve sans cesse, ajoutez donc plutôt une règle sous **Réseau → Règles → Site Assignment Rules** ; la boîte de dialogue **Définir le site** y renvoie. |
+| **Définir le site** / **Retirer du site** | Déplace chaque équipement sélectionné dans le site choisi, où il compte pour la santé du site ; un équipement sans sonde propre reprend la sonde par défaut du site. **Retirer du site** les sort de leurs sites. Un équipement qu'une règle d'affectation de site reconnaît revient au site de la règle à sa prochaine interrogation ; pour les équipements que la découverte retrouve sans cesse, ajoutez donc plutôt une règle sous **Réseau → Règles → Règles d'attribution des sites** ; la boîte de dialogue **Définir le site** y renvoie. |
 | **Définir le rôle de l'appareil** / **Effacer le rôle de l'appareil** | Donne un même rôle à chaque équipement sélectionné, comme les vingt commutateurs qui sont tous « Access Switch ». Les rôles sont ceux du projet, sous **Réseau → Paramètres → Rôles d'équipement**, vers lesquels renvoie la boîte de dialogue. **Effacer le rôle de l'appareil** recalcule le rôle de chaque équipement à partir de son identité SNMP. |
 | **Appliquer le modèle constructeur** | Ajoute les OID de santé et les tables SNMP d'un [modèle constructeur](#modèles-de-santé-des-constructeurs) à chaque équipement sélectionné. **Selon le constructeur de chaque appareil**, le premier choix de la boîte de dialogue, choisit le modèle propre à chaque équipement d'après ce que rapporte son parcours SNMP, pour qu'une sélection mélangée obtienne le bon partout ; ou choisissez un modèle pour tous. |
 

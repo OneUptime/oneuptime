@@ -1,6 +1,5 @@
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
-import { getDetailPageActiveRoute } from "../../../Utils/DetailPageActiveRoute";
 import IncidentStateUtil from "../../../Utils/IncidentState";
 import AlertStateUtil from "../../../Utils/AlertState";
 import ScheduledMaintenanceStateUtil from "../../../Utils/ScheduledMaintenanceState";
@@ -129,8 +128,8 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
   /*
    * A namespace's, pod's, node's or autoscaler's own page is one of the rows
    * its list shows, so the list's entry stays lit there, and the phone's
-   * menu button names it ("Workloads / Pods"): each list entry below is
-   * active on its rows' pages too (getDetailPageActiveRoute).
+   * menu button names it ("Workloads / Pods"): the shared menu works that
+   * out for every list below (Common's SideMenuRowPage).
    */
   return (
     <SideMenu>
@@ -313,10 +312,6 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
               { modelId: props.modelId },
             ),
           }}
-          activeRoute={getDetailPageActiveRoute({
-            detailPage: PageMap.KUBERNETES_CLUSTER_VIEW_NAMESPACE_DETAIL,
-            modelId: props.modelId,
-          })}
           icon={IconProp.Folder}
           badge={counts.namespaces}
         />
@@ -328,10 +323,6 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
               { modelId: props.modelId },
             ),
           }}
-          activeRoute={getDetailPageActiveRoute({
-            detailPage: PageMap.KUBERNETES_CLUSTER_VIEW_POD_DETAIL,
-            modelId: props.modelId,
-          })}
           icon={IconProp.Circle}
           badge={counts.pods}
         />
@@ -343,10 +334,6 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
               { modelId: props.modelId },
             ),
           }}
-          activeRoute={getDetailPageActiveRoute({
-            detailPage: PageMap.KUBERNETES_CLUSTER_VIEW_DEPLOYMENT_DETAIL,
-            modelId: props.modelId,
-          })}
           icon={IconProp.Layers}
           badge={counts.deployments}
         />
@@ -365,11 +352,6 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
                 { modelId: props.modelId },
               ),
             }}
-            activeRoute={getDetailPageActiveRoute({
-              detailPage:
-                PageMap.KUBERNETES_CLUSTER_VIEW_DEPLOYMENTCONFIG_DETAIL,
-              modelId: props.modelId,
-            })}
             icon={IconProp.Layers}
             badge={counts.deploymentConfigs}
           />
@@ -384,10 +366,6 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
               { modelId: props.modelId },
             ),
           }}
-          activeRoute={getDetailPageActiveRoute({
-            detailPage: PageMap.KUBERNETES_CLUSTER_VIEW_STATEFULSET_DETAIL,
-            modelId: props.modelId,
-          })}
           icon={IconProp.Database}
           badge={counts.statefulSets}
         />
@@ -399,10 +377,6 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
               { modelId: props.modelId },
             ),
           }}
-          activeRoute={getDetailPageActiveRoute({
-            detailPage: PageMap.KUBERNETES_CLUSTER_VIEW_DAEMONSET_DETAIL,
-            modelId: props.modelId,
-          })}
           icon={IconProp.Settings}
           badge={counts.daemonSets}
         />
@@ -414,10 +388,6 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
               { modelId: props.modelId },
             ),
           }}
-          activeRoute={getDetailPageActiveRoute({
-            detailPage: PageMap.KUBERNETES_CLUSTER_VIEW_JOB_DETAIL,
-            modelId: props.modelId,
-          })}
           icon={IconProp.Play}
           badge={counts.jobs}
         />
@@ -429,10 +399,6 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
               { modelId: props.modelId },
             ),
           }}
-          activeRoute={getDetailPageActiveRoute({
-            detailPage: PageMap.KUBERNETES_CLUSTER_VIEW_CRONJOB_DETAIL,
-            modelId: props.modelId,
-          })}
           icon={IconProp.Clock}
           badge={counts.cronJobs}
         />
@@ -444,10 +410,6 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
               { modelId: props.modelId },
             ),
           }}
-          activeRoute={getDetailPageActiveRoute({
-            detailPage: PageMap.KUBERNETES_CLUSTER_VIEW_CONTAINER_DETAIL,
-            modelId: props.modelId,
-          })}
           icon={IconProp.Cube}
           badge={counts.containers}
         />
@@ -467,10 +429,6 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
                 { modelId: props.modelId },
               ),
             }}
-            activeRoute={getDetailPageActiveRoute({
-              detailPage: PageMap.KUBERNETES_CLUSTER_VIEW_ROUTE_DETAIL,
-              modelId: props.modelId,
-            })}
             icon={IconProp.Globe}
             badge={counts.routes}
           />
@@ -482,10 +440,6 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
                 { modelId: props.modelId },
               ),
             }}
-            activeRoute={getDetailPageActiveRoute({
-              detailPage: PageMap.KUBERNETES_CLUSTER_VIEW_SERVICE_DETAIL,
-              modelId: props.modelId,
-            })}
             icon={IconProp.Link}
             badge={counts.services}
           />
@@ -503,10 +457,6 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
               { modelId: props.modelId },
             ),
           }}
-          activeRoute={getDetailPageActiveRoute({
-            detailPage: PageMap.KUBERNETES_CLUSTER_VIEW_NODE_DETAIL,
-            modelId: props.modelId,
-          })}
           icon={IconProp.Server}
           badge={counts.nodes}
         />
@@ -518,10 +468,6 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
               { modelId: props.modelId },
             ),
           }}
-          activeRoute={getDetailPageActiveRoute({
-            detailPage: PageMap.KUBERNETES_CLUSTER_VIEW_PVC_DETAIL,
-            modelId: props.modelId,
-          })}
           icon={IconProp.Disc}
           badge={counts.pvcs}
         />
@@ -533,10 +479,6 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
               { modelId: props.modelId },
             ),
           }}
-          activeRoute={getDetailPageActiveRoute({
-            detailPage: PageMap.KUBERNETES_CLUSTER_VIEW_PV_DETAIL,
-            modelId: props.modelId,
-          })}
           icon={IconProp.Disc}
           badge={counts.pvs}
         />
@@ -559,10 +501,6 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
               { modelId: props.modelId },
             ),
           }}
-          activeRoute={getDetailPageActiveRoute({
-            detailPage: PageMap.KUBERNETES_CLUSTER_VIEW_HPA_DETAIL,
-            modelId: props.modelId,
-          })}
           icon={IconProp.ChartBar}
           badge={counts.hpas}
         />
@@ -574,10 +512,6 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
               { modelId: props.modelId },
             ),
           }}
-          activeRoute={getDetailPageActiveRoute({
-            detailPage: PageMap.KUBERNETES_CLUSTER_VIEW_VPA_DETAIL,
-            modelId: props.modelId,
-          })}
           icon={IconProp.AdjustmentVertical}
           badge={counts.vpas}
         />

@@ -60,13 +60,13 @@ Na de volgende poll somt de pagina **SNMP-tabellen** van het apparaat elke IPsec
 
 Klik op de pagina van het apparaat op **Monitor maken**. De aanbevolen waarschuwingen bevatten **IPsec Tunnels: row unhealthy**, een criterium **SNMP Table Row Is Unhealthy** op de tabel `ipsec_tunnels` met Row `*`: het opent één incident per tunnel die niet actief is, genoemd naar de tunnel, en lost elk op als zijn tunnel terugkomt.
 
-Bij een tunnel die Sophos als actief meldt, zijn alleen de security associations opgebouwd. Om te bewijzen dat er verkeer doorheen gaat, voeg je een [Ping-monitor](/docs/monitor/ping-monitor) toe vanaf een sonde op de ene locatie naar een host aan de andere kant van elke tunnel, en teken je de tunnel als locatieverbinding onder **Netwerk → Topologie → Site Links** tussen de twee [locaties](/docs/monitor/network-sites), gekoppeld aan die monitor: de verbinding op de kaart neemt dan de kleur van de monitor over.
+Bij een tunnel die Sophos als actief meldt, zijn alleen de security associations opgebouwd. Om te bewijzen dat er verkeer doorheen gaat, voeg je een [Ping-monitor](/docs/monitor/ping-monitor) toe vanaf een sonde op de ene locatie naar een host aan de andere kant van elke tunnel, en teken je de tunnel als locatieverbinding onder **Netwerk → Topologie → Locatiekoppelingen** tussen de twee [locaties](/docs/monitor/network-sites), gekoppeld aan die monitor: de verbinding op de kaart neemt dan de kleur van de monitor over.
 
 ### WAN-verbindingen
 
 - **Poortgezondheid.** De interfacewalk meet al de status, bits in en uit, benutting en fouten van elke WAN-poort. Op de monitor van de firewall waarschuwt een criterium **SNMP Interface Is Down** of **SNMP Interface Utilization (in %)** met **Interface** ingesteld op de naam van de WAN-poort, of `*` voor elke poort, per verbinding.
-- **Kwaliteit van het pad.** De latentie, het pakketverlies en de jitter van elke verbinding worden van buiten de firewall gemeten: een Ping-monitor vanaf de cloudsondes van OneUptime naar het openbare adres van elke WAN-verbinding, en een Ping-monitor vanaf een sonde op de locatie naar de gateway van elke provider. Criteria voor pakketverlies en jitter op die monitors waarschuwen per verbinding, en **Netwerk → Topologie → Latency Matrix** toont in één oogopslag elke sonde tegen elke monitor.
-- **Verkeer.** SFOS exporteert NetFlow v5. Stuur het naar de sonde op UDP 2055, waar de flowcollector van de sonde standaard luistert, en de pagina **Traffic** van het apparaat laat zien wie met wie praat over elke WAN-verbinding; [Netwerkverkeer](/docs/monitor/network-traffic) heeft de details.
+- **Kwaliteit van het pad.** De latentie, het pakketverlies en de jitter van elke verbinding worden van buiten de firewall gemeten: een Ping-monitor vanaf de cloudsondes van OneUptime naar het openbare adres van elke WAN-verbinding, en een Ping-monitor vanaf een sonde op de locatie naar de gateway van elke provider. Criteria voor pakketverlies en jitter op die monitors waarschuwen per verbinding, en **Netwerk → Topologie → Latentiematrix** toont in één oogopslag elke sonde tegen elke monitor.
+- **Verkeer.** SFOS exporteert NetFlow v5. Stuur het naar de sonde op UDP 2055, waar de flowcollector van de sonde standaard luistert, en de pagina **Verkeer** van het apparaat laat zien wie met wie praat over elke WAN-verbinding; [Netwerkverkeer](/docs/monitor/network-traffic) heeft de details.
 
 ### Gateways en SD-WAN uit syslog
 
@@ -111,7 +111,7 @@ Voedingen, ventilatoren, temperatuursensoren en stackleden zijn tabellen die hun
 
 ### Flows en wifi
 
-EXOS en Fabric Engine exporteren flows als sFlow en IPFIX. Stuur sFlow naar de sonde op UDP 6343, of IPFIX op UDP 4739, en de pagina **Traffic** van het apparaat toont het verkeer; zie [Netwerkverkeer](/docs/monitor/network-traffic).
+EXOS en Fabric Engine exporteren flows als sFlow en IPFIX. Stuur sFlow naar de sonde op UDP 6343, of IPFIX op UDP 4739, en de pagina **Verkeer** van het apparaat toont het verkeer; zie [Netwerkverkeer](/docs/monitor/network-traffic).
 
 IQ Engine-access points (HiveOS) en ExtremeCloud IQ Controller hebben eigen leverancierssjablonen, die de pagina **Wi-Fi** van het apparaat vullen. [Ondersteunde wifi-leveranciers](/docs/monitor/network-device-monitor#ondersteunde-wifi-leveranciers) behandelt ze, samen met Ubiquiti UniFi, HPE Aruba, TP-Link Omada en Juniper Mist.
 

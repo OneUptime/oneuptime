@@ -8,6 +8,8 @@ import React, {
   useState,
 } from "react";
 import { Translator } from "../../../Utils/TranslateTemplate";
+import Icon from "../../Icon/Icon";
+import IconProp from "../../../../Types/Icon/IconProp";
 import useTranslator from "../../../Utils/UseTranslator";
 import {
   BarChart,
@@ -704,26 +706,33 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
         <span className="mr-2 text-[11px] font-medium uppercase tracking-wider text-gray-400">
           {label}
         </span>
-        <select
-          className="appearance-none rounded-md border border-gray-200 bg-white px-2.5 py-1.5 pr-7 text-xs font-medium text-gray-700 shadow-sm transition-all hover:border-gray-300 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
-          value={value}
-          onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
-            onChange(e.target.value);
-          }}
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
-            backgroundRepeat: "no-repeat",
-            backgroundPosition: "right 6px center",
-          }}
-        >
-          {options.map((opt: { value: string | number; label: string }) => {
-            return (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            );
-          })}
-        </select>
+        <div className="relative flex items-center">
+          <select
+            className="appearance-none rounded-md border border-gray-200 bg-white px-2.5 py-1.5 pr-7 text-xs font-medium text-gray-700 shadow-sm transition-all hover:border-gray-300 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+            value={value}
+            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+              onChange(e.target.value);
+            }}
+          >
+            {options.map((opt: { value: string | number; label: string }) => {
+              return (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              );
+            })}
+          </select>
+          {/*
+          The select's chevron: the product's own icon, inline and in the grey
+          of a control's icons (the dark theme lightens it), at the end of
+          the line whichever way the page reads - not an image of a grey
+          chevron pinned to the right.
+        */}
+          <Icon
+            icon={IconProp.ChevronDown}
+            className="pointer-events-none absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-gray-400"
+          />
+        </div>
       </div>
     );
   };

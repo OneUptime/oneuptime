@@ -190,6 +190,8 @@ Query fields accept a direct value or an operator object:
 
 Operators: `EqualTo`, `NotEqual`, `IsNull`, `NotNull`, `EqualToOrNull`, `GreaterThan`, `LessThan`, `GreaterThanOrEqual`, `LessThanOrEqual`, `InBetween` (with `startValue` and `endValue`), `Search`, `Includes` (with an array). Which a field takes depends on its type. A telemetry map field such as `attributes` is filtered by its keys: `{"attributes": {"http.method": "GET"}}`.
 
+A filter written another way, such as MongoDB's `{"$regex": "..."}` or an operator OneUptime does not have, is refused before it reaches the API, with an error that names the field and says how an operator is written (`Tools/FilterCheck.ts`). The API would pass it on, and the database would compare a text column with the object's JSON and match nothing. A relation filtered by its own fields (`{"currentIncidentState": {"isResolvedState": false}}`) and a map filtered by its keys are filters, and pass.
+
 ### Sort
 
 ```json
@@ -327,6 +329,10 @@ To publish before the next release, run the script by hand from the repository r
 ## ChatGPT plugin directory
 
 [`ChatGPTPlugin/`](ChatGPTPlugin/README.md) is the package OneUptime uploads to the ChatGPT plugin directory, which ChatGPT and Codex share: the listing, five positive and three negative review test cases, and `mcp.json`, which points at `https://oneuptime.com/mcp` and signs in with OAuth for read and write access. `npm run build-chatgpt-plugin` builds the ZIP. Its README lists what else a submission needs: a verified developer identity, a domain-verification token served at `https://oneuptime.com/.well-known/openai-apps-challenge`, reviewer credentials for a demo project, and a demo video. `Tests/ChatGPTPlugin.test.ts` holds the package to the Agent Plugins schemas and OpenAI's limits, and checks that every tool a test case names is one this server has.
+
+## Coding agent plugin
+
+[`CodingAgentPlugin/`](CodingAgentPlugin/README.md) is the plugin OneUptime lists for coding agents in Cursor's Marketplace and the Claude directory. It holds the hosted server's address and four skills: adding OpenTelemetry, setting up monitors and a status page, investigating an incident, and using the CLI in scripts and CI. `npm run build-coding-agent-plugin` builds a folder with the Agent Plugins, Cursor and Claude manifests side by side, taking the listing's words, links and icon from `ChatGPTPlugin/`. Both directories read a plugin from a public Git repository of its own, which a maintainer creates and submits: its README lists those steps. `Tests/CodingAgentPlugin.test.ts` runs the build, checks the folder against the Agent Plugins schemas and each directory's rules, and checks every tool and JSON example a skill names against this server.
 
 ## Development
 

@@ -10,8 +10,8 @@ export interface ComponentProps {
   description: string | ReactElement;
   icon: IconProp | undefined;
   /*
-   * The official logo of the product the state is about ("Slack is not
-   * connected yet!"), drawn in the icon's place.
+   * The official mark of the product the state is about ("Slack is not
+   * connected yet!"), drawn in the icon's place and in its colour.
    */
   logo?: ProviderLogo | undefined;
   footer?: ReactElement | undefined;
@@ -46,12 +46,18 @@ const EmptyState: FunctionComponent<ComponentProps> = (
          */}
         <div className="m-auto w-full text-center">
           {props.logo ? (
+            /*
+             * The product's mark in the grey an empty state's icon has. A
+             * filled mark carries more ink than an outline icon, so it is
+             * drawn a size smaller to sit as lightly on the page.
+             */
             <ProviderLogoImage
               logo={props.logo}
-              size={48}
+              size={40}
               isBare={true}
               isDecorative={true}
-              className="mx-auto"
+              colorClassName="text-gray-400"
+              className="mx-auto h-12"
             />
           ) : (
             props.icon && (

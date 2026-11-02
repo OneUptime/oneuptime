@@ -1,5 +1,8 @@
 import Icon from "../../../UI/Components/Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
+import ProviderLogo from "../../../Types/ProviderLogo/ProviderLogo";
+import ALL_PROVIDER_LOGO_MARKS from "../../../Types/ProviderLogo/AllProviderLogoMarks";
+import { PROVIDER_LOGO_MARK_BOXES } from "../../../Types/ProviderLogo/ProviderLogoMarks";
 import { describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom";
 import { render } from "@testing-library/react";
@@ -261,54 +264,79 @@ describe("Icon draws every IconProp", () => {
 /*
  * Official logos audit: where the icon set stands for another company's
  * product - Slack in a side menu, Kubernetes on a resource, Terraform on a
- * Developer page - it draws that product's official one-colour mark
- * (Simple Icons, CC0), filled in the current colour as such marks are, not
- * an outline of the designers' own. Its shapes are the brand's, so they are
- * pinned here by their first strokes.
+ * Developer page - it draws that product's official one-colour mark, filled
+ * in the current colour as such marks are, not an outline of the designers'
+ * own. Since icons-svg-one-color the shapes are the logo registry's
+ * (Common/Types/ProviderLogo/Marks), the same every tile and list draws, so
+ * Slack is the same Slack in a side menu and on a card. Its shapes are the
+ * brand's, so they are pinned here by their first strokes too.
  */
+// A colour written into a drawing, as a brand's colour logo has.
+const HEX_COLOUR: RegExp = /#[0-9a-fA-F]{3,8}\b/;
+
 describe("Icon brand marks", () => {
-  type BrandMark = { icon: IconProp; pathStart: string; viewBox: string };
+  type BrandMark = { icon: IconProp; logo: ProviderLogo; pathStart: string };
 
   const BRAND_MARKS: Array<BrandMark> = [
     {
       icon: IconProp.Slack,
+      logo: ProviderLogo.Slack,
       pathStart: "M53.841 161.32",
-      viewBox: "0 0 256 256",
+    },
+    {
+      icon: IconProp.MicrosoftTeams,
+      logo: ProviderLogo.MicrosoftTeams,
+      pathStart: "M1760 704q-47 0-87-17",
     },
     {
       icon: IconProp.WhatsApp,
+      logo: ProviderLogo.WhatsApp,
       pathStart: "M17.472 14.382",
-      viewBox: "0 0 24 24",
     },
     {
       icon: IconProp.Telegram,
+      logo: ProviderLogo.Telegram,
       pathStart: "M11.944 0A12",
-      viewBox: "0 0 24 24",
     },
     {
       icon: IconProp.Kubernetes,
+      logo: ProviderLogo.Kubernetes,
       pathStart: "M10.204 14.35",
-      viewBox: "0 0 24 24",
     },
     {
       icon: IconProp.Docker,
+      logo: ProviderLogo.Docker,
       pathStart: "M13.983 11.078",
-      viewBox: "0 0 24 24",
     },
     {
       icon: IconProp.Discord,
+      logo: ProviderLogo.Discord,
       pathStart: "M20.317 4.3698",
-      viewBox: "0 0 24 24",
     },
     {
       icon: IconProp.Mattermost,
+      logo: ProviderLogo.Mattermost,
       pathStart: "M12.081 0C7.048",
-      viewBox: "0 0 24 24",
     },
     {
       icon: IconProp.Terraform,
+      logo: ProviderLogo.Terraform,
       pathStart: "M1.44 0v7.575",
-      viewBox: "0 0 24 24",
+    },
+    {
+      icon: IconProp.GitHub,
+      logo: ProviderLogo.GitHub,
+      pathStart: "M12 .297c-6.63",
+    },
+    {
+      icon: IconProp.Proxmox,
+      logo: ProviderLogo.Proxmox,
+      pathStart: "M4.928 1.825",
+    },
+    {
+      icon: IconProp.Ceph,
+      logo: ProviderLogo.Ceph,
+      pathStart: "M11.959.257",
     },
   ];
 
@@ -318,12 +346,25 @@ describe("Icon brand marks", () => {
   };
 
   it.each(BRAND_MARKS)(
-    "$icon is the brand's own mark, filled, with no outline",
+    "$icon is the registry's mark of the brand, filled, with no outline",
     (mark: BrandMark) => {
       const svg: SVGElement = draw(mark.icon);
       const paths: Array<Element> = Array.from(svg.querySelectorAll("path"));
 
-      expect(svg.getAttribute("viewBox")).toBe(mark.viewBox);
+      expect(svg.getAttribute("viewBox")).toBe(
+        PROVIDER_LOGO_MARK_BOXES[mark.logo],
+      );
+      expect(
+        paths.map((path: Element): string => {
+          return path.getAttribute("d") || "";
+        }),
+      ).toEqual(
+        (ALL_PROVIDER_LOGO_MARKS[mark.logo] || []).map(
+          (shape: { d: string }): string => {
+            return shape.d;
+          },
+        ),
+      );
       expect(paths.length).toBeGreaterThan(0);
       expect(paths[0]!.getAttribute("d")?.startsWith(mark.pathStart)).toBe(
         true,
@@ -360,4 +401,34 @@ describe("Icon brand marks", () => {
     expect(draw(IconProp.Discord).innerHTML).not.toBe(chat);
     expect(draw(IconProp.Mattermost).innerHTML).not.toBe(chat);
   });
+
+  /*
+   * Teams was an outline the icon set drew itself (SVGRepo's, its T and its
+   * people in strokes). It is now Microsoft's own one-colour Teams glyph,
+   * from Fluent UI's Fabric icons, which Microsoft licenses for showing an
+   * integration with its products - filled, as every other brand here is.
+   */
+  it("Microsoft Teams is Microsoft's own one-colour glyph, not a stroked outline", () => {
+    const svg: SVGElement = draw(IconProp.MicrosoftTeams);
+
+    expect(svg.querySelectorAll("circle, line, g")).toHaveLength(0);
+    expect(svg.innerHTML).not.toContain("SVGRepo");
+    expect(svg.getAttribute("viewBox")).toBe("0 85 2048 1899");
+  });
+
+  /*
+   * Brands the icon set draws by a glyph of its own, on purpose: VMware's
+   * only mark is its wordmark, which cannot be read at 16px; Podman's
+   * artwork (a seal and two pups in an octagon) turns to mush below 48px;
+   * Docker Swarm has no mark of its own. Each is one colour, as every icon.
+   */
+  it.each([IconProp.VMware, IconProp.Podman, IconProp.DockerSwarm])(
+    "%s keeps the icon set's own one-colour glyph",
+    (icon: IconProp) => {
+      const svg: SVGElement = draw(icon);
+
+      expect(svg.getAttribute("stroke")).toBe("currentColor");
+      expect(svg.innerHTML).not.toMatch(HEX_COLOUR);
+    },
+  );
 });

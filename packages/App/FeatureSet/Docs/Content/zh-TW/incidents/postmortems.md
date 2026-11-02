@@ -71,7 +71,7 @@ flowchart TB
 
 點選對話方塊底部的 **Generate with AI**。OneUptime AI 會讀取事件（它的描述、根本原因和修復、狀態時間軸、公開和私人備註、其 Slack 或 Microsoft Teams 頻道中的訊息，以及 [其通話](/docs/workspace-connections/video-calls#通話逐字稿) 中說過的內容），並依照您的大綱撰寫事後分析。接著編輯器會開啟並顯示結果。
 
-產生需要在 **專案設定 → 人工智慧 → AI Features** 之下為專案開啟 AI，並需要一個 LLM 提供者：請參閱 [LLM 提供者](/docs/ai/llm-provider)。它還需要 Project Owner 或 Project Admin 角色，或擁有 Edit Incident 權限的自訂角色：其他角色可以撰寫事後分析，但不能產生。
+產生需要在 **專案設定 → 人工智慧 → AI 功能** 之下為專案開啟 AI，並需要一個 LLM 提供者：請參閱 [LLM 提供者](/docs/ai/llm-provider)。它還需要 Project Owner 或 Project Admin 角色，或擁有 Edit Incident 權限的自訂角色：其他角色可以撰寫事後分析，但不能產生。
 
 ### 讓 OneUptime AI 在事件解決時起草
 
@@ -198,7 +198,7 @@ OneUptime 會在三個時刻自動移動事後分析：
 :::
 
 :::details Generate with AI 提示 AI 已關閉，或您沒有權限
-請在 **專案設定 → 人工智慧 → AI Features** 之下開啟 AI。產生需要 Project Owner 或 Project Admin 角色，或擁有 Edit Incident 權限的自訂角色，即使對能編輯事後分析的人也是如此。
+請在 **專案設定 → 人工智慧 → AI 功能** 之下開啟 AI。產生需要 Project Owner 或 Project Admin 角色，或擁有 Edit Incident 權限的自訂角色，即使對能編輯事後分析的人也是如此。
 :::
 
 :::details 事後分析沒有顯示在狀態頁面上

@@ -175,7 +175,7 @@ O OneUptime tem um endpoint MQTT próprio, então dispositivos que falam MQTT pu
 ### Autenticação
 
 - **Com a chave de ingestão**: envie-a como a senha do MQTT. O nome de usuário é ignorado; se o seu cliente só tem um campo de nome de usuário, coloque a chave nele. Isso serve para um gateway que publica por muitos dispositivos.
-- **Com uma credencial por dispositivo**: recomendado para dispositivos que se conectam diretamente. Abra a página **Device Registry** da frota e registre o dispositivo, com o **Device ID** que ele usa como `device.id`. O **MQTT Username** do dispositivo é o nome de usuário dele, e o **MQTT Password (Secret)** dele é a senha.
+- **Com uma credencial por dispositivo**: recomendado para dispositivos que se conectam diretamente. Abra a página **Registro de dispositivos** da frota e registre o dispositivo, com o **Device ID** que ele usa como `device.id`. O **MQTT Username** do dispositivo é o nome de usuário dele, e o **MQTT Password (Secret)** dele é a senha.
 
 A credencial de um dispositivo só pode publicar nos próprios tópicos `oneuptime/<fleet>/<device>/`. Você pode revogar um dispositivo sem mexer no resto da frota: desligue o interruptor **Habilitado** dele, ou exclua-o, e um dispositivo conectado é desconectado em cerca de um minuto. Um dispositivo registrado que fica em silêncio continua no inventário como offline, e o modelo de alerta Device Offline dispara para ele, mesmo que ele caia sem um Last Will.
 

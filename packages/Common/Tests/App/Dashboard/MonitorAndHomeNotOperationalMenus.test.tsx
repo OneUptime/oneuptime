@@ -110,6 +110,7 @@ import RouteMap, {
 import Project from "../../../Models/DatabaseModels/Project";
 import Route from "../../../Types/API/Route";
 import Link from "../../../Types/Link";
+import { SIDE_MENU_ITEM_TITLE_TEST_ID } from "../../../UI/Components/SideMenu/SideMenuEntryState";
 import {
   DESKTOP_WIDTH,
   MenuLink,
@@ -233,18 +234,29 @@ describe("in German", () => {
     // What "Inoperational" used to read as in German: the meaning did not move.
     expect(german).toBe("Nicht betriebsbereit");
 
+    /*
+     * Read by the entries' titles: "betriebsbereit" has fourteen letters, so
+     * it is drawn in a span of its own that may be hyphenated
+     * (HyphenatedWords), and the title's text is no longer one text node.
+     */
+    const titlesReading: (text: string) => Array<HTMLElement> = (
+      text: string,
+    ): Array<HTMLElement> => {
+      return screen
+        .getAllByTestId(SIDE_MENU_ITEM_TITLE_TEST_ID)
+        .filter((title: HTMLElement): boolean => {
+          return title.textContent === text;
+        });
+    };
+
     goTo(`/dashboard/${PROJECT_ID}/monitors`);
     await renderMonitorsMenu();
-    expect(screen.getAllByText(german as string).length).toBeGreaterThanOrEqual(
-      1,
-    );
+    expect(titlesReading(german as string).length).toBeGreaterThanOrEqual(1);
     cleanup();
 
     goTo(`/dashboard/${PROJECT_ID}/home`);
     await renderHomeMenu();
-    expect(screen.getAllByText(german as string).length).toBeGreaterThanOrEqual(
-      1,
-    );
+    expect(titlesReading(german as string).length).toBeGreaterThanOrEqual(1);
   });
 });
 

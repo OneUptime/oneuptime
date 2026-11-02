@@ -322,6 +322,96 @@ describe("accounts: email verification tokens", () => {
   });
 });
 
+describe("accounts: an email address or a token in the query string", () => {
+  const accounts: Origin = ORIGINS[0]!;
+
+  /*
+   * An invitation's sign-up link is
+   * /accounts/register?email=<address>&token=<claim token>
+   * (Common/Server/Utils/UserRegistrationToken). The token claims the invited
+   * account, and the address is personal data, which Google Analytics' terms
+   * forbid sending it - but the sign-up page reads both from the query, so
+   * they stay in the address bar and the page loads no Google tag at all.
+   */
+  const INVITED_EMAIL: string = "alice@company.com";
+  const ENCODED_EMAIL: string = encodeURIComponent(INVITED_EMAIL);
+  const INVITATION_URL: string = `https://oneuptime.com/accounts/register?email=${ENCODED_EMAIL}&token=${TOKEN}`;
+
+  const isPending: (page: JSDOM) => boolean = (page: JSDOM): boolean => {
+    return (page.window as any).__ONEUPTIME_SENSITIVE_URL_TOKEN_PENDING__;
+  };
+
+  it("loads no Google tag on an invitation's sign-up link", () => {
+    const page: JSDOM = loadPage(accounts, INVITATION_URL);
+
+    expect(isPending(page)).toBe(true);
+    expect(googleTagScripts(page)).toEqual([]);
+
+    page.window.close();
+  });
+
+  it("leaves the address and the token where the sign-up page reads them", () => {
+    const page: JSDOM = loadPage(accounts, INVITATION_URL);
+    const query: URLSearchParams = new URLSearchParams(
+      page.window.location.search,
+    );
+
+    expect(page.window.location.pathname).toBe("/accounts/register");
+    expect(query.get("email")).toBe(INVITED_EMAIL);
+    expect(query.get("token")).toBe(TOKEN);
+    // Nothing went into the stash a token in the path is moved to.
+    expect(page.window.sessionStorage.getItem(STORAGE_KEY)).toBeNull();
+
+    page.window.close();
+  });
+
+  it.each([
+    [
+      "an invitee who has already registered (?email= alone)",
+      `/accounts/register?email=${ENCODED_EMAIL}`,
+    ],
+    ["sign-in's ?email=", `/accounts/login?email=${ENCODED_EMAIL}`],
+    ["a claim token alone", `/accounts/register?token=${TOKEN}`],
+    [
+      "either name in another case",
+      `/accounts/register?Email=${ENCODED_EMAIL}&TOKEN=${TOKEN}`,
+    ],
+    [
+      "an address in any other parameter",
+      `/accounts/register?utm_content=${ENCODED_EMAIL}`,
+    ],
+    ["an address left unencoded", `/accounts/register?ref=${INVITED_EMAIL}`],
+    [
+      "an address in the query of a link whose path token was stripped",
+      `/accounts/reset-password/${TOKEN}?email=${ENCODED_EMAIL}`,
+    ],
+  ])("%s holds the Google tag back too", (_label: string, address: string) => {
+    const page: JSDOM = loadPage(accounts, `https://oneuptime.com${address}`);
+
+    expect(isPending(page)).toBe(true);
+    expect(googleTagScripts(page)).toEqual([]);
+
+    page.window.close();
+  });
+
+  it("measures a sign-up whose query holds neither", () => {
+    /*
+     * A campaign lands on sign-up with its UTM values, click ID and promo code
+     * in the query: the funnel a campaign is judged on. A value of "email"
+     * (utm_medium=email) names a channel, not an address.
+     */
+    const page: JSDOM = loadPage(
+      accounts,
+      "https://oneuptime.com/accounts/register?utm_source=google&utm_medium=email&utm_campaign=launch&gclid=abc123&promoCode=LAUNCH&partnerId=acme",
+    );
+
+    expect(isPending(page)).toBe(false);
+    expectGoogleTag(accounts, page);
+
+    page.window.close();
+  });
+});
+
 describe("status page: unsubscribe links", () => {
   const statusPage: Origin = ORIGINS[1]!;
 

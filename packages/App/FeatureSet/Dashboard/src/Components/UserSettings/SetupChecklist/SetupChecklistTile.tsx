@@ -47,7 +47,7 @@ interface StepPresentation {
   iconBackgroundClassName: string;
   icon: IconProp;
   iconClassName: string;
-  // A product's logo in the icon's place: a step to do that connects Slack.
+  // A product's mark in the icon's place: a step to do that connects Slack.
   logo?: ProviderLogo | undefined;
   containerClassName: string;
   titleClassName: string;
@@ -170,22 +170,29 @@ const SetupChecklistTile: FunctionComponent<ComponentProps> = (
       data-status={step.status}
       className={`group flex items-start gap-4 rounded-lg border p-4 transition ${presentation.containerClassName}`}
     >
-      {presentation.logo ? (
-        <ProviderLogoImage
-          logo={presentation.logo}
-          size={40}
-          isDecorative={true}
-        />
-      ) : (
-        <div
-          className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg ${presentation.iconBackgroundClassName}`}
-        >
+      {/*
+        The step's icon on its colour block - or, for a step that connects
+        a product (Slack, Microsoft Teams), that product's mark, drawn as the
+        icon is: in the icon's colour, on the same block.
+      */}
+      <div
+        className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg ${presentation.iconBackgroundClassName}`}
+      >
+        {presentation.logo ? (
+          <ProviderLogoImage
+            logo={presentation.logo}
+            size={20}
+            isBare={true}
+            isDecorative={true}
+            colorClassName={presentation.iconClassName}
+          />
+        ) : (
           <Icon
             icon={presentation.icon}
             className={`h-5 w-5 ${presentation.iconClassName}`}
           />
-        </div>
-      )}
+        )}
+      </div>
       <div className="min-w-0 flex-1">
         <div
           className={`flex items-center gap-2 text-sm font-medium ${presentation.titleClassName}`}

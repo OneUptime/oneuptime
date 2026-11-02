@@ -18,7 +18,7 @@ Konfigurasjonen av vedlikehold ligger i **Planlagt vedlikehold**, ikke i **Prosj
 | **Eierregler**     | Legger til eiere på matchende hendelser.                            |
 | **Runbook-regler** | Starter runbooks for matchende hendelser.                           |
 | **Etikettregler**  | Legger til etiketter på matchende hendelser.                        |
-| **Reminder Rules** | Påminner eierne med et intervall til en hendelse er fullført.       |
+| **Påminnelsesregler** | Påminner eierne med et intervall til en hendelse er fullført.       |
 
 Seksjonen **Innstillinger** rommer **Hendelsesstatus**, beskrevet på [Vedlikeholdstilstander](/docs/scheduled-maintenance/states), **Hendelsesmaler**, beskrevet på [Maler og gjentakende hendelser](/docs/scheduled-maintenance/templates), og deretter **Notatmaler**, **Egendefinerte felt**, **Målinger**, **Kalenderinnstillinger** og **Nummerering**. **Kalenderinnstillinger** er beskrevet på [Vedlikeholdskalender](/docs/scheduled-maintenance/calendar#eksterne-kalendere), resten nedenfor.
 
@@ -37,7 +37,7 @@ flowchart TB
 Reglene er forskjellige i hvordan flere treff avgjøres:
 
 - **Eierregler**, **Etikettregler** og **Runbook-regler** virker alle når de matcher. Eiere og etiketter som flere regler legger til, legges til én gang.
-- **Reminder Rules** sjekkes fra toppen av listen og nedover, og det første treffet vinner. Dra en regel for å endre plassen; en ny regel havner sist.
+- **Påminnelsesregler** sjekkes fra toppen av listen og nedover, og det første treffet vinner. Dra en regel for å endre plassen; en ny regel havner sist.
 
 En ny regel starter aktivert; slå av **Aktivert** i redigeringsskjemaet for å sette den på pause, og listen viser en grønn **Aktivert** eller en rød **Deaktivert** for hver regel. Eier-, etikett- og runbook-regler virker på hendelser som opprettes etter at du har lagret dem. For å bruke en eier- eller etikettregel på hendelsene du allerede har, bruker du **Kjør nå**: se [Kjøre regler på eksisterende ressurser](/docs/configuration/run-rules-now).
 
@@ -64,7 +64,7 @@ En regel matcher bare når hver betingelse du fyller ut, holder; en betingelse s
 
 ## Påminnelsesregler
 
-**Planlagt vedlikehold → Regler → Reminder Rules** påminner eierne av en hendelse til arbeidet er godkjent. Hver hendelse får den første regelen som matcher den, fra toppen av listen og nedover.
+**Planlagt vedlikehold → Regler → Påminnelsesregler** påminner eierne av en hendelse til arbeidet er godkjent. Hver hendelse får den første regelen som matcher den, fra toppen av listen og nedover.
 
 :::steps
 ### Velg hvilke hendelser det skal påminnes om

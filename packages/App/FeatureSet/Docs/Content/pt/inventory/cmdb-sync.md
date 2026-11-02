@@ -130,7 +130,7 @@ curl -X POST 'https://oneuptime.com/api/inventory-item/get-list?output-type=csv'
   -o inventory.csv
 ```
 
-A lista **All Items** do painel exporta da mesma forma, com as colunas de campos personalizados que você ativou. Cada [detalhe do ativo](#detalhes-do-ativo) também é uma coluna ali: **Nome do host**, **Endereço IP**, **Número de série**, **Modelo** e as demais começam ocultas, então ative-as no seletor de colunas, e a exportação traz uma coluna por dado, seja a linha um host ou um dispositivo de rede.
+A lista **Todos os itens** do painel exporta da mesma forma, com as colunas de campos personalizados que você ativou. Cada [detalhe do ativo](#detalhes-do-ativo) também é uma coluna ali: **Nome do host**, **Endereço IP**, **Número de série**, **Modelo** e as demais começam ocultas, então ative-as no seletor de colunas, e a exportação traz uma coluna por dado, seja a linha um host ou um dispositivo de rede.
 
 ## Detalhes do ativo
 

@@ -26,8 +26,8 @@ Omdat de notities als eerste komen en van de ene run tot de volgende gelijk blij
 ## De AI-context schrijven
 
 :::steps
-### AI Features openen
-Open **Projectinstellingen → AI → AI Features**. De kaart **AI-context** staat onder **AI inschakelen**.
+### AI-functies openen
+Open **Projectinstellingen → AI → AI-functies**. De kaart **AI-context** staat onder **AI inschakelen**.
 
 ### De notities schrijven
 Klik op **AI-context toevoegen**, of op **Bewerken** zodra er notities zijn. Schrijf in Markdown, of klik op **Beginnen met een opzet** voor een kop voor elk soort notitie.

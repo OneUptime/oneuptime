@@ -642,7 +642,7 @@ Hvis rollen din ikke kan lese sluttbrukerens identitet, dropper serveren et `use
 
 ### Siden Brukere
 
-Siden Brukere er en egen side ved siden av øktlisten: **Replay Users** i delen **Øktavspilling** i applikasjonens sidemeny, på `.../session-replay-users`, og den kan nås fra banneret om `identify()` over øktlisten. Den viser det samme tidsrommet gruppert per person. Der øktlisten svarer på «hva skjedde», svarer siden Brukere på «hvem hadde problemer, og hvor ofte»: én rad per identifisert bruker, én per [anonym besøkende](#anonyme-besøkende) og høyst én rad **Unlinked sessions** for opptak fra en opptaker som ikke sendte noen besøks-ID. Radene sorteres etter når personen sist ble sett. Siden har ingen søke-, sorterings- eller filterkontroller, fordi grupperingen ikke støtter noen; bare tidsrommet gjelder, og det er det eneste de to sidene deler — URL-en bærer det med de samme nøklene `range` eller `startTime`/`endTime`, så en lenke til den ene siden åpner den andre på det samme vinduet.
+Siden Brukere er en egen side ved siden av øktlisten: **Brukere i avspillinger** i delen **Øktavspilling** i applikasjonens sidemeny, på `.../session-replay-users`, og den kan nås fra banneret om `identify()` over øktlisten. Den viser det samme tidsrommet gruppert per person. Der øktlisten svarer på «hva skjedde», svarer siden Brukere på «hvem hadde problemer, og hvor ofte»: én rad per identifisert bruker, én per [anonym besøkende](#anonyme-besøkende) og høyst én rad **Unlinked sessions** for opptak fra en opptaker som ikke sendte noen besøks-ID. Radene sorteres etter når personen sist ble sett. Siden har ingen søke-, sorterings- eller filterkontroller, fordi grupperingen ikke støtter noen; bare tidsrommet gjelder, og det er det eneste de to sidene deler — URL-en bærer det med de samme nøklene `range` eller `startTime`/`endTime`, så en lenke til den ene siden åpner den andre på det samme vinduet.
 
 En rad for en besøkende teller bare øktene der ingen ble identifisert; å åpne øktene dens viser hver økt fra den nettleseren, også dem som ble tatt opp etter at personen logget på, så listen kan ha flere rader enn tallet.
 
@@ -661,7 +661,7 @@ Grupperingen beregnes på serveren (`POST /telemetry/rum/session-replay/users`, 
 
 ### Brukerflyter
 
-**User Flows** ligger i delen **Øktavspilling** i applikasjonens sidemeny, på `.../user-flows`. Den tegner hvordan folk beveger seg gjennom appen din fra side til side, ut fra opptakene i det valgte tidsrommet (som standard en uke): hvor de lander, hvilken side de går til etterpå, hvor de forlater den, og hvor de går i ring.
+**Brukerflyter** ligger i delen **Øktavspilling** i applikasjonens sidemeny, på `.../user-flows`. Den tegner hvordan folk beveger seg gjennom appen din fra side til side, ut fra opptakene i det valgte tidsrommet (som standard en uke): hvor de lander, hvilken side de går til etterpå, hvor de forlater den, og hvor de går i ring.
 
 Flytkartet har én kolonne per trinn. En side er en boks der høyden er antallet økter på det trinnet, og et bånd mellom to bokser er like tykt som antallet økter som gjorde den bevegelsen. En rød stump som går ut fra en boks, er øktene som forlot appen der; en grå uttoning betyr at banen fortsetter forbi den siste kolonnen. Et bånd tegnet i rav er et der de fleste øktene gikk tilbake til en side de allerede hadde sett. En rød prikk på en boks betyr at økter hadde en feil på den siden. Hold pekeren over en boks eller et bånd for å følge trafikken gjennom kartet; klikk for detaljpanelet.
 

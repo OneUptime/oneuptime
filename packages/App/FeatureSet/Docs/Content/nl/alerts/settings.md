@@ -21,7 +21,7 @@ Open **Waarschuwingen** via het menu **Producten** in de bovenste balk. De secti
 | **Runbook-regels**          | Start runbooks voor overeenkomende waarschuwingen.                                             |
 | **Privacyregels**           | Maakt overeenkomende waarschuwingen en episodes privé.                                         |
 | **Labelregels**             | Voegt labels toe aan overeenkomende waarschuwingen en episodes.                                |
-| **Reminder Rules**          | Herinnert eigenaren met een interval zolang een waarschuwing open is.                          |
+| **Herinneringsregels**          | Herinnert eigenaren met een interval zolang een waarschuwing open is.                          |
 
 De sectie **Instellingen** bevat **Status waarschuwing** en **Ernst van waarschuwing**, beschreven op [Waarschuwingsstatussen en ernstniveaus](/docs/alerts/states-and-severities), en daarna **Notitie-sjablonen**, **Aangepaste velden**, **Metingen**, **Lidmaatschap van episodes** en **Nummering**, hieronder beschreven.
 
@@ -54,7 +54,7 @@ flowchart TB
 
 De regels verschillen in hoe meerdere overeenkomsten worden afgehandeld:
 
-- **Groeperingsregels** en **Reminder Rules** worden van boven naar beneden in hun lijst gecontroleerd, en de eerste overeenkomst wint. Sleep een regel om haar plek te wijzigen; een nieuwe regel komt aan het einde.
+- **Groeperingsregels** en **Herinneringsregels** worden van boven naar beneden in hun lijst gecontroleerd, en de eerste overeenkomst wint. Sleep een regel om haar plek te wijzigen; een nieuwe regel komt aan het einde.
 - **Bereikbaarheidsregels**, **Eigenaarsregels**, **Labelregels**, **Privacyregels** en **Runbook-regels** werken allemaal wanneer ze overeenkomen. Bereikbaarheidsbeleid, eigenaren en labels die meerdere regels toevoegen, worden één keer toegevoegd.
 
 **Bereikbaarheidsregels**, **Eigenaarsregels**, **Labelregels** en **Privacyregels** hebben twee tabbladen: **Alert Rules**, voor waarschuwingen, en **Episode Rules**, die op dezelfde manier op elke nieuwe waarschuwingsepisode werken. Een nieuwe regel begint ingeschakeld; zet **Ingeschakeld** uit in haar bewerkformulier om haar te pauzeren, en de lijst toont per regel een groen **Ingeschakeld** of een rood **Uitgeschakeld**.
@@ -108,7 +108,7 @@ Een regel roept op zodra een waarschuwing erop past. Om de regel in plaats daarv
 
 ## Herinneringsregels
 
-**Waarschuwingen → Regels → Reminder Rules** herinnert de eigenaren van een waarschuwing zolang ze open blijft. Elke nieuwe waarschuwing krijgt de eerste regel die overeenkomt, van boven naar beneden in de lijst.
+**Waarschuwingen → Regels → Herinneringsregels** herinnert de eigenaren van een waarschuwing zolang ze open blijft. Elke nieuwe waarschuwing krijgt de eerste regel die overeenkomt, van boven naar beneden in de lijst.
 
 :::steps
 ### Kiezen voor welke waarschuwingen je herinnert
