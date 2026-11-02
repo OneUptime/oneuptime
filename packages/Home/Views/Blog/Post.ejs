@@ -15,7 +15,7 @@
         <meta property="og:url" content="<%= blogPost.blogUrl %>">
         <meta property="og:image" content="<%= blogPost.socialMediaImageUrl %>">
         <meta property="article:published_time" content="<%- blogPost.postDate -%>T00:00:00.000Z">
-        <meta property="article:modified_time" content="<%- blogPost.postDate -%>T00:00:00.000Z">
+        <meta property="article:modified_time" content="<%- blogPost.updatedDate || blogPost.postDate -%>T00:00:00.000Z">
         <meta property="article:publisher" content="https://www.facebook.com/OneUptime">
         <meta name="twitter:card" content="summary_large_image">
         <meta name="twitter:title" content="<%= blogPost.title %>">
@@ -51,7 +51,7 @@
     "headline": blogPost.title,
     "url": blogPost.blogUrl,
     "datePublished": blogPost.postDate + "T00:00:00.000Z",
-    "dateModified": blogPost.postDate + "T00:00:00.000Z",
+    "dateModified": (blogPost.updatedDate || blogPost.postDate) + "T00:00:00.000Z",
     "description": blogPost.description,
     "mainEntityOfPage": blogPost.blogUrl
 } }) -%>
@@ -778,6 +778,10 @@
                         <span class="max-sm:hidden sm:inline select-none">•</span>
                         <span><%- blogPost.formattedPostDate -%></span>
                         <span class="max-sm:hidden sm:inline select-none">•</span>
+                        <% if (blogPost.updatedDate && blogPost.formattedUpdatedDate) { %>
+                        <span>Updated <time datetime="<%= blogPost.updatedDate %>"><%= blogPost.formattedUpdatedDate %></time></span>
+                        <span class="max-sm:hidden sm:inline select-none">•</span>
+                        <% } %>
                         <% } %>
                         <span id="reading-time" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-100 text-blue-600">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
@@ -916,6 +920,8 @@
 
                             <!-- Technically validated shield + contribute (merged) -->
                             <%- include('./Partials/OpenSourceCommitment', { blogPost: blogPost }) -%>
+
+                            <%- include('./Partials/RelatedPosts', { relatedPosts: typeof relatedPosts !== 'undefined' ? relatedPosts : [] }) -%>
                         </article>
                     </div>
                 </div>

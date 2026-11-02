@@ -41,6 +41,7 @@ jest.mock("../Utils/BlogPost", () => {
     default: {
       getBlogPost: jest.fn(),
       getBlogPostList: jest.fn(),
+      getRelatedPosts: jest.fn().mockResolvedValue([]),
       getTagBySlug: jest.fn(),
       getTags: jest.fn(),
       getHomeUrl: jest.fn(),
@@ -103,6 +104,8 @@ const blogPost: BlogPost = {
   },
   validationStatus: null,
   validationDate: null,
+  updatedDate: null,
+  formattedUpdatedDate: null,
 };
 
 const postHeader: (index: number) => BlogPostHeader = (
