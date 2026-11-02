@@ -6,6 +6,11 @@ import { SecurityEntityChip } from "../SecurityCase/SecurityEntityChips";
 import { formatNameList } from "../AiAccess/AiAccessModes";
 import TelemetryMentions from "./TelemetryMentions";
 import {
+  CONNECTED_ENTRY_ICON_CLASS_NAME,
+  CONNECTED_FACT_ROW_CLASS_NAME,
+  CONNECTED_RECORD_TEXT_CLASS_NAME,
+} from "./SecurityConnectionsLayout";
+import {
   CONNECTED_ACTIVE_ALERTS,
   CONNECTED_ACTIVE_INCIDENTS,
   CONNECTED_CHANGES_TITLE,
@@ -140,17 +145,10 @@ const FACT_LINK_CLASS_NAME: string =
   "min-w-0 text-gray-900 hover:text-indigo-700 hover:underline [overflow-wrap:anywhere]";
 
 /*
- * A fact's row: its label above its items in a narrow record (a phone, a
- * case beside its side menu on a tablet), beside them from 32rem of the
- * record's own width (the event drawer, a laptop's page) - so the labels
- * line up down the record and the items read as a column. The record's
- * text column is the size container.
+ * A fact's row and a record's text column, as the values found in the logs
+ * and traces lay theirs out too (SecurityConnectionsLayout).
  */
-export const CONNECTED_FACT_ROW_CLASS_NAME: string =
-  "grid grid-cols-1 gap-x-4 gap-y-1 [@container(min-width:32rem)]:grid-cols-[11rem_minmax(0,1fr)]";
-
-export const CONNECTED_RECORD_TEXT_CLASS_NAME: string =
-  "min-w-0 flex-1 [container-type:inline-size]";
+export { CONNECTED_FACT_ROW_CLASS_NAME, CONNECTED_RECORD_TEXT_CLASS_NAME };
 
 /*
  * A change: its time, then what changed - beside the time while the title
@@ -387,7 +385,7 @@ const ConnectedRecord: FunctionComponent<{
       data-certainty={resource.certainty}
     >
       <div className="flex items-start gap-3">
-        <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-gray-50 ring-1 ring-inset ring-gray-200">
+        <span className={CONNECTED_ENTRY_ICON_CLASS_NAME}>
           <Icon
             icon={CONNECTION_KIND_ICONS[resource.kind]}
             className="h-4 w-4 text-gray-600"

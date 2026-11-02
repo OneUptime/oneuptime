@@ -488,6 +488,7 @@ export const SECURITY_CONNECTIONS_TEST_IDS: {
   incidentSecurityNaming: string;
   telemetry: string;
   telemetryValue: string;
+  telemetryValueName: string;
   telemetryLogs: string;
   telemetrySpans: string;
   telemetryPlace: string;
@@ -537,6 +538,7 @@ export const SECURITY_CONNECTIONS_TEST_IDS: {
   incidentSecurityNaming: "incident-security-naming",
   telemetry: "security-telemetry-mentions",
   telemetryValue: "security-telemetry-value",
+  telemetryValueName: "security-telemetry-value-name",
   telemetryLogs: "security-telemetry-logs",
   telemetrySpans: "security-telemetry-spans",
   telemetryPlace: "security-telemetry-place",

@@ -3,6 +3,11 @@ import SecurityCaseApi, {
   SecurityConnectionsRequest,
 } from "../SecurityCase/SecurityCaseApi";
 import { SecurityEntityChip } from "../SecurityCase/SecurityEntityChips";
+import {
+  CONNECTED_ENTRY_ICON_CLASS_NAME,
+  CONNECTED_FACT_ROW_CLASS_NAME,
+  CONNECTED_RECORD_TEXT_CLASS_NAME,
+} from "./SecurityConnectionsLayout";
 import { formatNameList } from "../AiAccess/AiAccessModes";
 import {
   CONNECTED_MORE,
@@ -45,6 +50,7 @@ import {
 import {
   SecurityEntity,
   SecurityEntityType,
+  getSecurityEntityIcon,
 } from "Common/Types/SecurityCase/SecurityEntity";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -99,12 +105,11 @@ export const TELEMETRY_PLACE_LINK_CLASS_NAME: string =
   "inline-flex max-w-full items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
 
 /*
- * A value's row of one signal, as a record's facts are: the label above
- * its items on a narrow page, beside them from 32rem of the section's own
- * width.
+ * A value's row of one signal is a record's fact row: its label above its
+ * places and records on a narrow entry, beside them from 32rem of the
+ * entry's own width, lined up with the records' facts above it.
  */
-export const TELEMETRY_ROW_CLASS_NAME: string =
-  "grid grid-cols-1 gap-x-4 gap-y-1.5 [@container(min-width:32rem)]:grid-cols-[11rem_minmax(0,1fr)]";
+export const TELEMETRY_ROW_CLASS_NAME: string = CONNECTED_FACT_ROW_CLASS_NAME;
 
 function readEntityType(type: string): SecurityEntityType {
   return (Object.values(SecurityEntityType) as Array<string>).includes(type)
@@ -407,37 +412,63 @@ const TelemetryMentions: FunctionComponent<ComponentProps> = (
                 return (
                   <li
                     key={`${value.entityValue}-${index}`}
-                    className="py-3 first:pt-0 last:pb-0"
+                    className="py-4 first:pt-0 last:pb-0"
                     data-testid={SECURITY_CONNECTIONS_TEST_IDS.telemetryValue}
                   >
-                    <div className="mb-2 flex min-w-0">
-                      <SecurityEntityChip
-                        entity={toEntity(value)}
-                        isLink={false}
-                        isValueWrapped={true}
-                      />
-                    </div>
-                    <dl className="space-y-2 text-sm text-gray-600">
-                      {SECURITY_TELEMETRY_SIGNALS.map(
-                        (signal: SecurityTelemetrySignal): ReactElement => {
-                          const hits: SecurityTelemetryHitsJson | null =
-                            getTelemetryHits(value, signal);
+                    {/*
+                     * As a record is drawn above it: the value's icon in its
+                     * square, the value and what it is beside it, its rows
+                     * under it - their labels in the records' column.
+                     */}
+                    <div className="flex items-start gap-3">
+                      <span className={CONNECTED_ENTRY_ICON_CLASS_NAME}>
+                        <Icon
+                          icon={getSecurityEntityIcon(value.entityType)}
+                          className="h-4 w-4 text-gray-600"
+                        />
+                      </span>
+                      <div className={CONNECTED_RECORD_TEXT_CLASS_NAME}>
+                        <div
+                          className="flex min-h-[2rem] flex-wrap items-center gap-x-2 gap-y-1"
+                          data-testid={
+                            SECURITY_CONNECTIONS_TEST_IDS.telemetryValueName
+                          }
+                        >
+                          {/* The value is someone's data, read the way it is written. */}
+                          <bdi className="min-w-0 font-mono text-sm font-semibold text-gray-900 [overflow-wrap:anywhere]">
+                            {value.entityValue}
+                          </bdi>
+                          <span className="text-xs font-medium text-gray-500">
+                            {translator.translateText(
+                              readEntityType(value.entityType),
+                            )}
+                          </span>
+                        </div>
+                        <dl className="mt-2 space-y-2 text-sm text-gray-600">
+                          {SECURITY_TELEMETRY_SIGNALS.map(
+                            (
+                              signal: SecurityTelemetrySignal,
+                            ): ReactElement => {
+                              const hits: SecurityTelemetryHitsJson | null =
+                                getTelemetryHits(value, signal);
 
-                          return hits ? (
-                            <SignalRow
-                              key={signal}
-                              signal={signal}
-                              value={value}
-                              hits={hits}
-                              windowStart={mentions.windowStart}
-                              windowEnd={mentions.windowEnd}
-                            />
-                          ) : (
-                            <React.Fragment key={signal}></React.Fragment>
-                          );
-                        },
-                      )}
-                    </dl>
+                              return hits ? (
+                                <SignalRow
+                                  key={signal}
+                                  signal={signal}
+                                  value={value}
+                                  hits={hits}
+                                  windowStart={mentions.windowStart}
+                                  windowEnd={mentions.windowEnd}
+                                />
+                              ) : (
+                                <React.Fragment key={signal}></React.Fragment>
+                              );
+                            },
+                          )}
+                        </dl>
+                      </div>
+                    </div>
                   </li>
                 );
               },
@@ -533,7 +564,7 @@ const TelemetryMentions: FunctionComponent<ComponentProps> = (
 
   return (
     <section
-      className={`[container-type:inline-size] ${props.className || ""}`}
+      className={props.className || ""}
       data-testid={SECURITY_CONNECTIONS_TEST_IDS.telemetry}
     >
       <h3 className={SECTION_HEADING_CLASS_NAME}>
