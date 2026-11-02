@@ -65,6 +65,15 @@ interface OpenOptions {
   height?: number;
   theme?: "dark" | undefined;
   lang?: "de" | "fa" | undefined;
+  // CaseSetupFixture.js's ?casesetup= scenarios.
+  caseSetup?: "none" | "fail" | undefined;
+}
+
+interface Box {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
 }
 
 test.use({ deviceScaleFactor: 2, actionTimeout: 15000 });
@@ -140,6 +149,9 @@ async function open(
   }
   if (options.lang) {
     url.searchParams.set("lang", options.lang);
+  }
+  if (options.caseSetup) {
+    url.searchParams.set("casesetup", options.caseSetup);
   }
   await page.goto(`${url.pathname}${url.search}`);
   // The first load parses a large bundle.
@@ -329,7 +341,74 @@ test.describe("Security Events > Settings", () => {
     expect(rows[0]).toContain("Dropdown");
     expect(rows[1]).toContain("External Ticket");
     expect(rows[1]).toContain("Text");
+    /*
+     * The card says what case fields are for, and names one as its title
+     * does - not by the model's longer name ("Create Security Case Custom
+     * Field"), and not what custom fields are, as every product's says.
+     */
+    await expect(
+      page.getByText(
+        "The fields your team fills in on every case, such as its business unit or its ticket in another tool.",
+      ),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Create Case Custom Field" }),
+    ).toBeVisible();
+    await expect(
+      page.getByText("Showing 1-2 of 2 case custom fields"),
+    ).toBeVisible();
     await screenshot(page, "case-custom-fields-settings-1280-light");
+
+    await page
+      .getByRole("button", { name: "Create Case Custom Field" })
+      .click();
+    await expect(dialog(page)).toContainText("Create New Case Custom Field");
+    await dialog(page).getByRole("button", { name: "Cancel" }).click();
+    await expect(dialog(page)).toHaveCount(0);
+  });
+
+  test("in German, its create button names a case field as briefly as the title, on one line beside the side menu", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, CUSTOM_FIELDS_PATH, { width: 1024, lang: "de" });
+    const create: Locator = page.getByRole("button", {
+      name: "Benutzerdefiniertes Fallfeld erstellen",
+    });
+    await expect(create).toBeVisible({ timeout: 30000 });
+    // Not "Benutzerdefiniertes Feld für Sicherheitsfälle erstellen".
+    await expect(page.getByText("für Sicherheitsfälle erstellen")).toHaveCount(
+      0,
+    );
+
+    // The lines its words take: the tops of their text, the icon left out.
+    const lines: number = await create.evaluate((element: Element): number => {
+      const tops: Set<number> = new Set<number>();
+      const walker: TreeWalker = document.createTreeWalker(
+        element,
+        NodeFilter.SHOW_TEXT,
+      );
+      let node: Node | null = walker.nextNode();
+
+      while (node) {
+        if ((node.textContent || "").trim()) {
+          const range: Range = document.createRange();
+          range.selectNodeContents(node);
+
+          for (const rect of Array.from(range.getClientRects())) {
+            tops.add(Math.round(rect.top));
+          }
+        }
+
+        node = walker.nextNode();
+      }
+
+      return tops.size;
+    });
+    expect(lines).toBe(1);
+    expect(await pageOverflow(page)).toBe(0);
+    await screenshot(page, "case-custom-fields-settings-de-1024");
   });
 });
 
@@ -512,15 +591,26 @@ test.describe("note templates", () => {
     await expect(
       page.getByRole("heading", { name: "Template Details" }),
     ).toBeVisible({ timeout: 30000 });
-    // Its list's entry stays lit, and the trail goes through it.
+    /*
+     * Its list's entry stays lit, and the trail goes through it to the
+     * template, named once it is read - as a hunt's, a watchlist's and a
+     * playbook's are - and so is the browser's tab.
+     */
     expect(await litEntries(page)).toEqual(["Note Templates"]);
-    expect(await breadcrumbs(page)).toEqual([
-      "Project",
-      "Security Events",
-      "Settings",
-      "Note Templates",
-      "Note Template",
-    ]);
+    await expect
+      .poll(async (): Promise<Array<string>> => {
+        return breadcrumbs(page);
+      })
+      .toEqual([
+        "Project",
+        "Security Events",
+        "Settings",
+        "Note Templates",
+        "Containment checklist",
+      ]);
+    await expect(page).toHaveTitle(
+      "OneUptime | Project - Security Events - Settings - Note Templates - Containment checklist",
+    );
     await expect(
       page.getByRole("heading", { name: "Note Template", exact: true }),
     ).toBeVisible();
@@ -529,6 +619,20 @@ test.describe("note templates", () => {
       page.getByRole("button", { name: "Delete Note Template" }),
     ).toBeVisible();
     await screenshot(page, "case-note-template-1280-light");
+
+    // Each card's Edit names the template as the list does.
+    for (const button of ["Edit Details", "Edit Note Template"]) {
+      await page.getByRole("button", { name: button }).click();
+      await expect(dialog(page)).toBeVisible();
+      await expect(
+        dialog(page).getByRole("heading", { name: "Edit Note Template" }),
+      ).toBeVisible();
+      await expect(dialog(page)).not.toContainText(
+        "Security Case Note Template",
+      );
+      await dialog(page).getByRole("button", { name: "Cancel" }).click();
+      await expect(dialog(page)).toHaveCount(0);
+    }
 
     await page.getByRole("button", { name: "Delete Note Template" }).click();
     await dialog(page).getByTestId("modal-footer-submit-button").click();
@@ -664,6 +768,258 @@ test.describe("numbering", () => {
       { securityCaseNumbersStartAt: 2001 },
       { securityCaseNumberPrefix: "SOC-" },
     ]);
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * A project with none yet, reads that fail, a phone and other languages
+ * ---------------------------------------------------------------------------
+ */
+
+// The case's Custom Fields card, its title and its fields' box, in one read.
+async function caseFieldsCardGeometry(page: Page): Promise<{
+  card: Box;
+  title: Box;
+  body: Box;
+  firstField: Box | null;
+}> {
+  return page.evaluate(() => {
+    const boxOf: (element: Element) => {
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+    } = (element: Element) => {
+      const rect: DOMRect = element.getBoundingClientRect();
+
+      return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+    };
+    const body: Element = document.querySelector(
+      '[data-testid="custom-fields-detail-body"]',
+    )!;
+    const card: Element = body.closest('[data-testid="card"]')!;
+    const title: Element = card.querySelector(
+      '[data-testid="card-details-heading"]',
+    )!;
+    const field: Element | null = body.querySelector(
+      '[data-testid="detail-field"]',
+    );
+
+    return {
+      card: boxOf(card),
+      title: boxOf(title),
+      body: boxOf(body),
+      firstField: field ? boxOf(field) : null,
+    };
+  });
+}
+
+test.describe("a project with no case fields or note templates yet", () => {
+  test("a case's Custom Fields page says so and leads to where fields are added; its Overview draws no card", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const width of [1280, 390]) {
+      await open(page, CASE_FIELDS_PATH, { width, caseSetup: "none" });
+      await expect(
+        page.getByText("This project has no custom fields for its cases yet."),
+      ).toBeVisible({ timeout: 30000 });
+      // Never the shared card's "You may add custom fields in Project Settings".
+      await expect(page.getByText(/Project Settings/)).toHaveCount(0);
+      await expect(
+        page.getByRole("button", { name: "Edit Fields" }),
+      ).toHaveCount(0);
+      expect(await pageOverflow(page), `at ${width}`).toBe(0);
+      await screenshot(page, `case-custom-fields-none-${width}-light`);
+    }
+
+    await page.getByTestId("custom-fields-add-fields").click();
+    await expect(page).toHaveURL(new RegExp(`${CUSTOM_FIELDS_PATH}$`));
+    await expect(
+      page.getByRole("heading", { name: "Case Custom Fields" }),
+    ).toBeVisible({ timeout: 30000 });
+
+    // The Overview leaves the card out while the project has no fields.
+    await open(page, SPRAY_CASE_PATH, { caseSetup: "none" });
+    await expect(
+      page.getByRole("heading", { name: "MITRE ATT&CK" }),
+    ).toBeVisible({ timeout: 30000 });
+    await page.waitForLoadState("networkidle");
+    expect(await cardTitles(page)).not.toContain("Custom Fields");
+  });
+
+  test("the composer's Templates menu offers to create one, and leads to the list", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, CASE_NOTES_PATH, { caseSetup: "none" });
+    await page
+      .getByTestId("note-composer-prompt")
+      .getByRole("button")
+      .first()
+      .click({ timeout: 30000 });
+    const composer: Locator = page.getByTestId("note-composer");
+    await composer.getByTestId("note-template-menu-button").click();
+    const empty: Locator = page.getByTestId("note-templates-empty");
+    await expect(empty).toContainText("No note templates yet");
+    await screenshot(page, "case-note-templates-menu-none-1280-light", {
+      fullPage: false,
+    });
+
+    await empty.getByRole("link", { name: "Create a template" }).click();
+    await expect(page).toHaveURL(new RegExp(`${NOTE_TEMPLATES_PATH}$`));
+    await expect(page.getByText("No note templates yet")).toBeVisible({
+      timeout: 30000,
+    });
+  });
+});
+
+test.describe("reads that fail", () => {
+  test("a case's Custom Fields page says why and reads again with Try again", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, CASE_FIELDS_PATH, { caseSetup: "fail" });
+    await expect(page.getByText("Server Error")).toBeVisible({
+      timeout: 30000,
+    });
+    await screenshot(page, "case-custom-fields-fail-1280-light");
+
+    await page.getByRole("button", { name: "Try again" }).click();
+    await expect(page.getByText("INC-48213")).toBeVisible();
+    await expect(page.getByText("Server Error")).toHaveCount(0);
+  });
+
+  test("the settings lists say why and read again; so does the Templates menu", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const [address, row] of [
+      [CUSTOM_FIELDS_PATH, "Business Unit"],
+      [NOTE_TEMPLATES_PATH, "Containment checklist"],
+    ] as Array<[string, string]>) {
+      await open(page, address, { caseSetup: "fail" });
+      await expect(page.getByText("Server Error")).toBeVisible({
+        timeout: 30000,
+      });
+      await page.getByRole("button", { name: "Try again" }).click();
+      await expect(
+        page.locator("tbody tr").filter({ hasText: row }),
+      ).toHaveCount(1);
+    }
+
+    await open(page, CASE_NOTES_PATH, { caseSetup: "fail" });
+    await page
+      .getByTestId("note-composer-prompt")
+      .getByRole("button")
+      .first()
+      .click({ timeout: 30000 });
+    await page
+      .getByTestId("note-composer")
+      .getByTestId("note-template-menu-button")
+      .click();
+    const menu: Locator = page.getByTestId("note-template-menu");
+    await expect(menu).toContainText("Server Error");
+    await menu.getByRole("button", { name: "Try again" }).click();
+    await expect(
+      menu.getByRole("button", { name: /^Containment checklist/ }),
+    ).toBeVisible();
+  });
+});
+
+test.describe("a case's Custom Fields card on a phone", () => {
+  /*
+   * The card's fields' box is a detail card's: the rule under its header
+   * meets the card's edges, no further, and the fields start where the
+   * title does. It pulled itself out 24px whatever the card's padding: on
+   * a phone the rule ran past the card and the fields sat 8px left of the
+   * title.
+   */
+  for (const theme of ["light", "dark"] as const) {
+    test(`its rule meets the card's edges and its fields start under the title (390, ${theme})`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      for (const address of [CASE_FIELDS_PATH, SPRAY_CASE_PATH]) {
+        await open(page, address, {
+          width: 390,
+          ...(theme === "dark" ? { theme: "dark" } : {}),
+        });
+        await expect(page.getByText("INC-48213").first()).toBeVisible({
+          timeout: 30000,
+        });
+        await page
+          .getByTestId("custom-fields-detail-body")
+          .scrollIntoViewIfNeeded();
+
+        const geometry: Awaited<ReturnType<typeof caseFieldsCardGeometry>> =
+          await caseFieldsCardGeometry(page);
+
+        // Inside the card's 1px border, exactly.
+        expect(
+          Math.abs(geometry.body.x - (geometry.card.x + 1)),
+        ).toBeLessThanOrEqual(1);
+        expect(
+          Math.abs(
+            geometry.body.x +
+              geometry.body.width -
+              (geometry.card.x + geometry.card.width - 1),
+          ),
+        ).toBeLessThanOrEqual(1);
+        expect(geometry.firstField).not.toBeNull();
+        expect(
+          Math.abs(geometry.firstField!.x - geometry.title.x),
+        ).toBeLessThanOrEqual(1);
+        expect(await pageOverflow(page)).toBe(0);
+      }
+      await screenshot(page, `case-overview-custom-fields-390-${theme}`, {
+        fullPage: false,
+      });
+    });
+  }
+});
+
+test.describe("in the reader's language", () => {
+  test("the Overview's card says what it holds in German; the Templates menu reads in Persian", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, SPRAY_CASE_PATH, { lang: "de" });
+    await expect(
+      page.getByText(
+        "Benutzerdefinierte Felder dieses Eintrags (Sicherheitsfall).",
+      ),
+    ).toBeVisible({ timeout: 30000 });
+    await expect(page.getByText("Custom fields for this")).toHaveCount(0);
+
+    await open(page, CASE_NOTES_PATH, { lang: "fa" });
+    await page
+      .getByTestId("note-composer-prompt")
+      .getByRole("button")
+      .first()
+      .click({ timeout: 30000 });
+    await page
+      .getByTestId("note-composer")
+      .getByTestId("note-template-menu-button")
+      .click();
+    const menu: Locator = page.getByTestId("note-template-menu");
+    await expect(menu).toContainText("درج قالب");
+    await expect(menu).not.toContainText("Insert a template");
+    await screenshot(page, "case-note-templates-menu-fa-1280", {
+      fullPage: false,
+    });
+
+    await open(page, CONTAINMENT_TEMPLATE_PATH, { lang: "fa" });
+    await expect(
+      page.getByRole("button", { name: "ویرایش قالب یادداشت" }),
+    ).toBeVisible({ timeout: 30000 });
   });
 });
 

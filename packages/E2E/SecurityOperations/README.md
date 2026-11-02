@@ -129,6 +129,7 @@ history is laid out from it with a seeded generator, so every run draws the same
 | `?triage=`    | the case AI card's other states: `failed` (CASE-141's only triage stopped with an error), `provider`, `credits` or `limit` (no LLM provider, no AI credits, the daily AI limit: nothing can be triaged), `injection` (CASE-137's data held text written to steer an AI; its benign read set aside for Inconclusive), `retry` (CASE-142's latest triage stopped; the read before it stays) and `auto-off` (Triage new cases is off) |
 | `?lang=`      | `de`, `es`, `fr`, `it`, `pt`, `nl`, `ru`, `ja` or `fa` (right to left): the Dashboard's words and its times ("vor 9 Minuten") in that language; the case lists are measured in the widest of them                                                                                                                                                                                                                                  |
 | `?team=`      | `long`: the SOC team is "Security Operations Center - Tier 2 Escalations (EMEA)", wherever a list or a picker names it                                                                                                                                                                                                                                                                                                             |
+| `?casesetup=` | `none`: the busy month with no case custom fields and no note templates yet; `fail`: the first read of the case fields, and the first of the note templates, fails (a 500), and the next answers (`Fixture/CaseSetupFixture.js`)                                                                                                                                                                                                   |
 
 ## What the fixture records
 
@@ -567,7 +568,9 @@ lays it out: two case custom fields - Business Unit, a dropdown of Corporate IT,
 Storefront, and External Ticket, text - the spray case (CASE-142) filled in as Corporate IT's,
 INC-48213; two note templates, Containment checklist and Shift hand-over; and numbering with
 `CASE-` in front, the next number one past the highest case's (`GET /project/:id/numbering`). A new
-project (`?empty=1`) has no fields and no templates. Turn on recommended turns on the project's
+project (`?empty=1`) has no fields and no templates. `?casesetup=none` is the busy month with no case
+fields and no templates yet, and `?casesetup=fail` fails the first read of the case fields, and the
+first of the note templates (a 500); the next read answers. Turn on recommended turns on the project's
 traces, network flows and session replays beside its logs, as SecuritySetup does in OneUptime
 Community (no audit log), so the pipeline counts 4 sources after it.
 
@@ -579,10 +582,19 @@ templates' list, Create on one page, a template's page with its two cards and De
 the list; the case composer's Templates menu offering the project's templates, a pick landing in
 the note and Manage templates opening the list; Numbering's prefix and next number, a start at or
 below the highest refused, a new start and prefix saved; and every page at 390, 768, 1024 and 1280
-in both themes, and in German and Persian at 1280 and 390, with nothing scrolling sideways. Its
+in both themes, and in German and Persian at 1280 and 390, with nothing scrolling sideways. Since
+its UI review: the fields' page says what case fields are for and names one as its title does
+(Create Case Custom Field, in German on one line beside the side menu at 1024); a template's trail
+and tab name it, and its Edit dialogs say Edit Note Template; with no case fields
+(`?casesetup=none`) a case's Custom Fields page says so with Add Custom Fields, its Overview draws no
+card, and the Templates menu offers Create a template; failed reads (`?casesetup=fail`) say why and
+read again with Try again, on the case's page, both settings lists and the Templates menu; on a phone
+the case's card rule meets its edges and its fields start under its title, in both themes; and the
+Overview card in German and the Templates menu in Persian read in that language. Its
 screenshots are named `case-custom-fields-*`, `case-custom-fields-settings-*`,
-`case-note-templates-*`, `case-note-template-*`, `case-numbering-*` and
-`cases-business-unit-column-1280-light`, beside the other screenshots (below).
+`case-note-templates-*`, `case-note-template-*`, `case-numbering-*`,
+`case-overview-custom-fields-390-*` and `cases-business-unit-column-1280-light`, beside the other
+screenshots (below).
 
 ## Run it
 
