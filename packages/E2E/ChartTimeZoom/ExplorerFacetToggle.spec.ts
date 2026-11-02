@@ -15,7 +15,10 @@ import { formatFacetCount } from "Common/UI/Components/TelemetryViewer/FacetCoun
  * clicked on Traces, Metrics and Exceptions: their handlers only ever added a
  * filter, so the value stayed checked and the only way out was the chip's x.
  * The Traces "Root spans" value could not be cleared from its row at all, and
- * the exclude button beside every value did nothing on any of the four.
+ * the exclude button beside every value did nothing on any of the four. It
+ * now leaves the value out for real on all four ("Status is not Error"): the
+ * list, the chart and the counts drop its rows, and a click on its row takes
+ * it off again.
  *
  * Here the production explorers run on the offline fixture
  * (Fixture/Fixture.js), which records every request in order, and a value is
@@ -34,7 +37,12 @@ const EXCEPTIONS_PATH: string = `/dashboard/${PROJECT_ID}/exceptions/unresolved`
 const METRICS_PATH: string = `/dashboard/${PROJECT_ID}/metrics`;
 
 const LOG_TABLE: string = "LogItemV3";
+const SPAN_TABLE: string = "SpanItemV3";
+const EXCEPTION_TABLE: string = "TelemetryException";
 const METRIC_TYPE_TABLE: string = "MetricType";
+
+// The chip a value left out makes: "Status is not: Error", in red.
+const EXCLUDED_CHIP_TEST_ID: string = "excluded-filter-chip";
 
 interface RecordedRequest {
   seq: number;
@@ -233,8 +241,33 @@ async function serviceId(page: Page, name: string): Promise<string> {
   return found!.id;
 }
 
-async function expectNoExcludeButtons(page: Page): Promise<void> {
-  await expect(page.getByRole("button", { name: /^Exclude / })).toHaveCount(0);
+// A value's whole row, by the value it filters on: what says its state.
+function rowOf(section: Locator, value: string): Locator {
+  return section.locator(
+    `[data-testid="facet-value-row"][data-value="${value}"]`,
+  );
+}
+
+/*
+ * Leave a value out with the minus beside it. The minus shows while its row
+ * is hovered, over the count, as a reader finds it.
+ */
+async function excludeValue(
+  section: Locator,
+  value: string,
+  name: string,
+): Promise<void> {
+  await rowOf(section, value).hover();
+  await section
+    .getByRole("button", { name: `Exclude ${name}`, exact: true })
+    .click();
+  await expect(rowOf(section, value)).toHaveAttribute("data-state", "excluded");
+}
+
+// The `filters` the explorer wrote to its address, parsed.
+function addressFilters(page: Page): Array<[string, unknown]> {
+  const raw: string | null = new URL(page.url()).searchParams.get("filters");
+  return raw ? (JSON.parse(raw) as Array<[string, unknown]>) : [];
 }
 
 // One facet value row as it lays out on the page.
@@ -490,19 +523,99 @@ test.describe("Traces explorer: a facet value clicks on and off", () => {
       .toBeUndefined();
   });
 
-  test("no value offers an exclude button: the chart and counts cannot leave one out", async ({
+  test("Status: the minus leaves Error out of the list, the chart and the counts, and its row takes it off again", async ({
     page,
   }: {
     page: Page;
   }) => {
     await open(page, TRACES_PATH);
-    await expect(valueRow(facetSection(page, "Status"), "Error")).toBeVisible({
-      timeout: 30000,
-    });
 
-    await valueRow(facetSection(page, "Status"), "Error").hover();
+    const status: Locator = facetSection(page, "Status");
+    await expect(valueRow(status, "Error")).toHaveAttribute(
+      "aria-checked",
+      "false",
+      { timeout: 30000 },
+    );
 
-    await expectNoExcludeButtons(page);
+    await excludeValue(status, "2", "Error");
+
+    // A red minus, read as the third state, and a chip that says it in words.
+    await expect(rowOf(status, "2").getByRole("checkbox")).toHaveAttribute(
+      "aria-checked",
+      "mixed",
+    );
+    await expect(page.getByTestId(EXCLUDED_CHIP_TEST_ID)).toContainText(
+      "Status is not",
+    );
+    await expect(page.getByTestId(EXCLUDED_CHIP_TEST_ID)).toContainText(
+      "Error",
+    );
+
+    // The list, the chart and every other facet leave the error spans out.
+    await expect
+      .poll(async () => {
+        return (await lastQueryOf(page, "analytics.getList", SPAN_TABLE))?.[
+          "statusCode"
+        ];
+      })
+      .toEqual({ _type: "NotEqual", value: 2 });
+    await expect
+      .poll(async () => {
+        return (await lastBodyTo(page, "/telemetry/traces/histogram"))?.[
+          "excludedStatusCodes"
+        ];
+      })
+      .toEqual([2]);
+    await expect
+      .poll(async () => {
+        return (await lastBodyTo(page, "/telemetry/traces/facets"))?.[
+          "excludedStatusCodes"
+        ];
+      })
+      .toEqual([2]);
+
+    // The Status facet itself is counted without it: Ok and Unset stay listed.
+    await expect
+      .poll(async () => {
+        const own: Record<string, unknown> | null = await lastOwnCountOf(
+          page,
+          "/telemetry/traces/facets",
+          "statusCode",
+        );
+        return own ? own["excludedStatusCodes"] ?? "none" : null;
+      })
+      .toBe("none");
+    await expect(valueRow(status, "Unset (no error)")).toBeVisible();
+
+    // The address carries it, so a refresh or a shared link keeps it.
+    await expect
+      .poll(() => {
+        return addressFilters(page);
+      })
+      .toContainEqual(["!statusCode", "2"]);
+
+    // A click on the row takes it off, from the list and the chart alike.
+    await rowOf(status, "2").getByRole("checkbox").click();
+
+    await expect(valueRow(status, "Error")).toHaveAttribute(
+      "aria-checked",
+      "false",
+    );
+    await expect(page.getByTestId(EXCLUDED_CHIP_TEST_ID)).toHaveCount(0);
+    await expect
+      .poll(async () => {
+        return (await lastQueryOf(page, "analytics.getList", SPAN_TABLE))?.[
+          "statusCode"
+        ];
+      })
+      .toBeUndefined();
+    await expect
+      .poll(async () => {
+        return (await lastBodyTo(page, "/telemetry/traces/histogram"))?.[
+          "excludedStatusCodes"
+        ];
+      })
+      .toBeUndefined();
   });
 });
 
@@ -552,18 +665,66 @@ test.describe("Logs explorer: a facet value clicks on and off", () => {
       .toBeNull();
   });
 
-  test("no value offers an exclude button: the old one was an empty placeholder", async ({
+  test("Severity: the minus leaves Error out of the list, the chart and the counts, and the link keeps it", async ({
     page,
   }: {
     page: Page;
   }) => {
     await open(page, LOGS_PATH);
-    const error: Locator = valueRow(facetSection(page, "Severity"), "Error");
-    await expect(error).toBeVisible({ timeout: 30000 });
 
-    await error.hover();
+    const severity: Locator = facetSection(page, "Severity");
+    await expect(valueRow(severity, "Error")).toHaveAttribute(
+      "aria-checked",
+      "false",
+      { timeout: 30000 },
+    );
 
-    await expectNoExcludeButtons(page);
+    await excludeValue(severity, "Error", "Error");
+
+    await expect(page.getByTestId(EXCLUDED_CHIP_TEST_ID)).toContainText(
+      "Severity is not",
+    );
+    await expect
+      .poll(async () => {
+        return (await lastQueryOf(page, "analytics.getList", LOG_TABLE))?.[
+          "severityText"
+        ];
+      })
+      .toEqual({ _type: "NotEqual", value: "Error" });
+    await expect
+      .poll(async () => {
+        return (await lastBodyTo(page, "/telemetry/logs/histogram"))?.[
+          "excludedSeverityTexts"
+        ];
+      })
+      .toEqual(["Error"]);
+    await expect
+      .poll(async () => {
+        return (await lastBodyTo(page, "/telemetry/logs/facets"))?.[
+          "excludedSeverityTexts"
+        ];
+      })
+      .toEqual(["Error"]);
+    await expect
+      .poll(() => {
+        return new URL(page.url()).searchParams.get("filters");
+      })
+      .toBe(JSON.stringify([["!severityText", ["Error"]]]));
+
+    await rowOf(severity, "Error").getByRole("checkbox").click();
+
+    await expect(valueRow(severity, "Error")).toHaveAttribute(
+      "aria-checked",
+      "false",
+    );
+    await expect(page.getByTestId(EXCLUDED_CHIP_TEST_ID)).toHaveCount(0);
+    await expect
+      .poll(async () => {
+        return (await lastQueryOf(page, "analytics.getList", LOG_TABLE))?.[
+          "severityText"
+        ];
+      })
+      .toBeUndefined();
   });
 });
 
@@ -605,8 +766,48 @@ test.describe("Exceptions explorer: a facet value clicks on and off", () => {
         ];
       })
       .toBeUndefined();
+  });
 
-    await expectNoExcludeButtons(page);
+  test("Exception Type: the minus leaves a type out of the list and the counts", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, EXCEPTIONS_PATH);
+
+    const types: Locator = facetSection(page, "Exception Type");
+    await expect(valueRow(types, "DeadlineExceededError")).toHaveAttribute(
+      "aria-checked",
+      "false",
+      { timeout: 30000 },
+    );
+
+    await excludeValue(types, "DeadlineExceededError", "DeadlineExceededError");
+
+    await expect(page.getByTestId(EXCLUDED_CHIP_TEST_ID)).toContainText(
+      "Exception Type is not",
+    );
+    await expect
+      .poll(async () => {
+        return (await lastQueryOf(page, "getList", EXCEPTION_TABLE))?.[
+          "exceptionType"
+        ];
+      })
+      .toEqual({ _type: "NotEqual", value: "DeadlineExceededError" });
+    await expect
+      .poll(async () => {
+        return (await lastBodyTo(page, "/telemetry/exceptions/facets"))?.[
+          "excludedExceptionTypes"
+        ];
+      })
+      .toEqual(["DeadlineExceededError"]);
+    await expect
+      .poll(async () => {
+        return (await lastBodyTo(page, "/telemetry/exceptions/histogram"))?.[
+          "excludedExceptionTypes"
+        ];
+      })
+      .toEqual(["DeadlineExceededError"]);
   });
 });
 
@@ -780,7 +981,46 @@ test.describe("Metrics explorer: a facet value clicks on and off", () => {
         );
       })
       .toBe(false);
+  });
 
-    await expectNoExcludeButtons(page);
+  test("Service: the minus hides the metrics the service reports, and its row takes it off", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, METRICS_PATH);
+
+    const services: Locator = facetSection(page, "Service");
+    await expect(valueRow(services, "checkout-api")).toHaveAttribute(
+      "aria-checked",
+      "false",
+      { timeout: 30000 },
+    );
+    const checkoutId: string = await serviceId(page, "checkout-api");
+
+    await excludeValue(services, checkoutId, "checkout-api");
+
+    await expect(page.getByTestId(EXCLUDED_CHIP_TEST_ID)).toContainText(
+      "Service is not",
+    );
+    await expect
+      .poll(async () => {
+        const services: unknown = (
+          await lastQueryOf(page, "getList", METRIC_TYPE_TABLE)
+        )?.["services"];
+        return (services as { _type?: string } | undefined)?._type;
+      })
+      .toBe("IncludesNone");
+
+    await rowOf(services, checkoutId).getByRole("checkbox").click();
+
+    await expect(page.getByTestId(EXCLUDED_CHIP_TEST_ID)).toHaveCount(0);
+    await expect
+      .poll(async () => {
+        return Boolean(
+          (await lastQueryOf(page, "getList", METRIC_TYPE_TABLE))?.["services"],
+        );
+      })
+      .toBe(false);
   });
 });
