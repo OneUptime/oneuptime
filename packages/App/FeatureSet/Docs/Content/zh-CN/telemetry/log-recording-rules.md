@@ -54,7 +54,7 @@ flowchart TB
 
 ### 拆分结果并保存
 
-可以选择添加 **分组依据** 属性和 **Unit**。检查编辑器底部的那一行，然后保存。几分钟内，规则列表就会显示 **Computed Until** 时间。
+可以选择添加 **分组依据** 属性和 **单位**。检查编辑器底部的那一行，然后保存。几分钟内，规则列表就会显示 **Computed Until** 时间。
 :::
 
 | 字段 | 作用 |
@@ -139,7 +139,7 @@ flowchart TB
 - **Which Logs：** 属性过滤器 `log_type` = `SD-WAN` 和 `log_component` = `SLA`
 - **聚合：** 平均值，**Numeric Attribute：** `latency`
 - **分组依据：** `gw_name` 和 `profile_name`
-- **Unit：** `ms`
+- **单位：** `ms`
 
 通过 API、MCP 或 Terraform 创建时，同一规则的 **定义** 为：
 

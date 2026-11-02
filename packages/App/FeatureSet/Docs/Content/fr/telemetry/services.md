@@ -47,7 +47,7 @@ flowchart TB
 
 ## Trouver un service
 
-Ouvrez **Produits → Ressources → Services**. **Tous les services** liste chaque service avec son **Nom**, sa **Description**, sa **Technology**, son **Dernière fois vu**, ses **Étiquettes** et ses **Propriétaires**.
+Ouvrez **Produits → Ressources → Services**. **Tous les services** liste chaque service avec son **Nom**, sa **Description**, sa **Technologie**, son **Dernière fois vu**, ses **Étiquettes** et ses **Propriétaires**.
 
 - Cherchez par nom ou par description, et filtrez par propriétaire ou par étiquette avec la barre au-dessus de la liste.
 - Sélectionnez plusieurs services pour leur ajouter à tous des étiquettes ou des propriétaires en une fois, ou pour les archiver.
