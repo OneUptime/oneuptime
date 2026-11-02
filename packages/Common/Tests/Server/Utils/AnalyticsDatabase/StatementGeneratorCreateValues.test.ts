@@ -680,6 +680,9 @@ describe("StatementGenerator.toCreateStatement values", () => {
     });
 
     expect(statement).toContain("VALUES");
-    expect(statement.split("VALUES")[1]!.trim()).toMatch(/^\(.*\), \(.*\)$/s);
+    // Both rows, across lines: [\s\S] rather than the s flag, which needs ES2018.
+    expect(statement.split("VALUES")[1]!.trim()).toMatch(
+      /^\([\s\S]*\), \([\s\S]*\)$/,
+    );
   });
 });
