@@ -64,6 +64,8 @@ const FRONTEND_ENV_ALLOW_LIST: Array<string> = [
   "GITHUB_APP_NAME",
   // Public client id: the sign-in page offers Sign in with Microsoft when it is set.
   "MICROSOFT_SIGN_IN_CLIENT_ID",
+  // Public client id: the sign-in and sign-up pages offer Continue with Google when it is set.
+  "GOOGLE_SIGN_IN_CLIENT_ID",
   "CAPTCHA_ENABLED",
   "CAPTCHA_SITE_KEY",
   "INBOUND_EMAIL_DOMAIN",
@@ -842,12 +844,26 @@ export const GoogleTagManagerEnabled: boolean =
   IsBillingEnabled && process.env["GOOGLE_TAG_MANAGER_ENABLED"] !== "false";
 
 /*
+ * The Google Analytics Measurement Protocol API secret, created in Google
+ * Analytics under Admin > Data streams > (the web stream) > Measurement
+ * Protocol API secrets. It lets the server send Google Analytics the one
+ * purchase no browser is present for: a free trial that converts into a
+ * payment (GoogleAnalyticsMeasurementProtocol). Nothing is sent while it is
+ * empty, which is every self-hosted install, and nothing on a deployment that
+ * keeps Google tags off (GoogleTagManagerEnabled). Server-only: it must never
+ * reach FRONTEND_ENV_ALLOW_LIST.
+ */
+export const GoogleAnalyticsMeasurementProtocolApiSecret: string =
+  process.env["GOOGLE_ANALYTICS_MEASUREMENT_PROTOCOL_API_SECRET"] || "";
+
+/*
  * Outbound marketing conversion webhooks.
  *
- * OneUptime does not store conversions. Signups and plan
- * upgrades/downgrades are POSTed to this endpoint as they happen and kept
- * nowhere afterwards, so an unset URL means those moments are simply not
- * measured — nothing accumulates waiting for one to be configured.
+ * OneUptime does not store conversions. Signups, plan changes, first
+ * payments, subscriptions ending and issued licences are POSTed to this
+ * endpoint as they happen and kept nowhere afterwards, so an unset URL means
+ * those moments are simply not measured — nothing accumulates waiting for
+ * one to be configured.
  *
  * Both are required. The payload carries email addresses and campaign data,
  * so a URL set without a secret is refused rather than sent unsigned. The
@@ -1863,6 +1879,19 @@ export const MicrosoftSignInClientId: string | null =
   process.env["MICROSOFT_SIGN_IN_CLIENT_ID"] || null;
 export const MicrosoftSignInClientSecret: string | null =
   process.env["MICROSOFT_SIGN_IN_CLIENT_SECRET"] || null;
+
+/*
+ * Continue with Google: a Google OAuth client (web application) that lets
+ * anyone sign up for or sign in to OneUptime with their Google account -
+ * Gmail and Google Workspace alike - without the sign-up form. Offered only
+ * where both are set, so a server without one offers nothing new. The client
+ * id is public (the sign-in and sign-up pages show the button when it is
+ * set); the secret is not.
+ */
+export const GoogleSignInClientId: string | null =
+  process.env["GOOGLE_SIGN_IN_CLIENT_ID"] || null;
+export const GoogleSignInClientSecret: string | null =
+  process.env["GOOGLE_SIGN_IN_CLIENT_SECRET"] || null;
 
 // VAPID Configuration for Web Push Notifications
 export const VapidPublicKey: string | undefined =

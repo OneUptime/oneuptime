@@ -426,13 +426,32 @@ describe("the coding agent plugin", () => {
   });
 
   describe("across its manifests", () => {
-    test("is the same plugin, at one semantic version", () => {
-      for (const field of ["name", "version", "description", "license"]) {
+    test("is the same plugin, at the release's version, from its own repository", () => {
+      for (const field of [
+        "name",
+        "version",
+        "description",
+        "license",
+        "repository",
+      ]) {
         expect(CURSOR_MANIFEST[field]).toBe(PLUGIN_MANIFEST[field]);
         expect(CLAUDE_MANIFEST[field]).toBe(PLUGIN_MANIFEST[field]);
       }
 
-      expect(PLUGIN_MANIFEST["version"]).toMatch(/^\d+\.\d+\.\d+$/);
+      expect(PLUGIN_MANIFEST["version"]).toBe(
+        readText(REPO_ROOT, "VERSION").trim(),
+      );
+
+      // Scripts/MCP/PublishCodingAgentPlugin.sh pushes to this repository.
+      expect(PLUGIN_MANIFEST["repository"]).toBe(
+        readJson(MCP_DIRECTORY, "CodingAgentPlugin/plugin.json")["repository"],
+      );
+      expect(PLUGIN_MANIFEST["repository"]).toMatch(
+        /^https:\/\/github\.com\/OneUptime\/[A-Za-z0-9_.-]+$/,
+      );
+      expect(PLUGIN_MANIFEST["repository"]).not.toBe(
+        CHATGPT_MANIFEST["repository"],
+      );
     });
   });
 

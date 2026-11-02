@@ -59,6 +59,7 @@ import {
   MicrosoftIdentityAssociationPaths,
 } from "./Utils/MicrosoftIdentityAssociation";
 import BlogPostUtil from "./Utils/BlogPost";
+import { INDEXNOW_KEY, INDEXNOW_KEY_PATH } from "./Utils/IndexNow";
 import { getSelfHostedContent } from "./Utils/SelfHosted";
 import {
   getAirGappedContent,
@@ -2659,6 +2660,17 @@ const HomeFeatureSet: FeatureSet = {
      * A tag's RSS feed, /blog/tag/:tagSlug/rss.xml, is served by API/BlogAPI.ts
      * with the tag's page, ahead of its route for the tags' old addresses.
      */
+
+    /*
+     * IndexNow's key, where the UpdateBlog job's notices say it is
+     * (Utils/IndexNow.ts): a search engine reads it to check a notice came
+     * from this site.
+     */
+    app.get(INDEXNOW_KEY_PATH, (_req: ExpressRequest, res: ExpressResponse) => {
+      res.setHeader("Content-Type", "text/plain; charset=utf-8");
+      res.setHeader("Cache-Control", "public, max-age=86400");
+      return res.status(200).send(INDEXNOW_KEY);
+    });
 
     // robots.txt (dynamic) - If domain is not oneuptime.com, disallow all.
     app.get("/robots.txt", (_req: ExpressRequest, res: ExpressResponse) => {

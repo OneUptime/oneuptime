@@ -2,6 +2,7 @@ import "@testing-library/jest-dom";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import * as React from "react";
+import GoogleSignInButton from "../../../../App/FeatureSet/Accounts/src/Components/GoogleSignInButton/GoogleSignInButton";
 import MicrosoftSignInButton from "../../../../App/FeatureSet/Accounts/src/Components/MicrosoftSignInButton/MicrosoftSignInButton";
 import {
   getSignInAttributionCookieValue,
@@ -10,12 +11,14 @@ import {
 import Attribution, {
   SignUpAttribution,
 } from "../../../Server/Utils/Attribution";
+import { SignInAttributionCookiePath } from "../../../Types/Marketing/Attribution";
 
 /*
- * Signing up with Microsoft posts no form, so what the visitor arrived with
- * has to leave the browser some other way: the button writes it into a cookie
- * only the sign-in's own requests are sent, and the callback reads it through
- * the same whitelists as a form body (Attribution.fromSignInCookie).
+ * Signing up with Google or Microsoft posts no form, so what the visitor
+ * arrived with has to leave the browser some other way: either button writes
+ * it into one cookie, on the path both sign-ins are under, and the callback
+ * reads it through the same whitelists as a form body
+ * (Attribution.fromSignInCookie).
  */
 
 const AD_URL: string = "https://oneuptime.com/compare/pagerduty?gclid=paid";
@@ -99,29 +102,57 @@ describe("the cookie the sign-in reads", () => {
   });
 });
 
-describe("pressing the button", () => {
+interface SignInButton {
+  name: string;
+  testId: string;
+  route: string;
+  render: (onPress?: () => void) => void;
+}
+
+const BUTTONS: Array<SignInButton> = [
+  {
+    name: "Continue with Google",
+    testId: "google-sign-in",
+    route: "/identity/google/sign-in",
+    render: (onPress?: () => void): void => {
+      render(
+        <GoogleSignInButton title="Continue with Google" onPress={onPress} />,
+      );
+    },
+  },
+  {
+    name: "Sign up with Microsoft",
+    testId: "microsoft-sign-in",
+    route: "/identity/microsoft/sign-in",
+    render: (onPress?: () => void): void => {
+      render(<MicrosoftSignInButton title="Sign up" onPress={onPress} />);
+    },
+  },
+];
+
+describe.each(BUTTONS)("pressing $name", (button: SignInButton) => {
   const press: (onPress?: () => void) => void = (
     onPress?: () => void,
   ): void => {
-    render(<MicrosoftSignInButton title="Sign up" onPress={onPress} />);
+    button.render(onPress);
 
-    const button: HTMLElement = screen.getByTestId("microsoft-sign-in");
+    const element: HTMLElement = screen.getByTestId(button.testId);
 
     // jsdom has no navigation to do; the link's address is pinned below.
-    button.addEventListener("click", (event: Event) => {
+    element.addEventListener("click", (event: Event) => {
       event.preventDefault();
     });
-    fireEvent.click(button);
+    fireEvent.click(element);
   };
 
-  test("leaves the attribution on the sign-in's own path, for ten minutes", () => {
+  test("leaves the attribution where every provider's sign-in reads it, for ten minutes", () => {
     storeTouch();
 
     press();
 
     expect(cookieWrites()).toHaveLength(1);
     expect(cookieWrites()[0]).toContain("oneuptime-sign-in-attribution=");
-    expect(cookieWrites()[0]).toContain("path=/identity/microsoft");
+    expect(cookieWrites()[0]).toContain("path=/identity;");
     expect(cookieWrites()[0]).toContain("max-age=600");
     expect(cookieWrites()[0]).toContain("samesite=lax");
   });
@@ -137,9 +168,9 @@ describe("pressing the button", () => {
 
     press(onPress);
 
-    expect(screen.getByTestId("microsoft-sign-in")).toHaveAttribute(
+    expect(screen.getByTestId(button.testId)).toHaveAttribute(
       "href",
-      "/identity/microsoft/sign-in",
+      button.route,
     );
     expect(onPress).toHaveBeenCalledTimes(1);
   });
@@ -158,5 +189,40 @@ describe("pressing the button", () => {
     press(onPress);
 
     expect(onPress).toHaveBeenCalledTimes(1);
+  });
+});
+
+/*
+ * The path both providers' routes sit under: the cookie a press writes is
+ * sent with either callback, and with nothing a page loads.
+ */
+describe("the cookie's path", () => {
+  test("covers each provider's callback, and no page", () => {
+    const covers: (path: string) => boolean = (path: string): boolean => {
+      return path === "/identity" || path.startsWith("/identity/");
+    };
+
+    expect(SignInAttributionCookiePath).toBe("/identity");
+
+    for (const callback of [
+      "/identity/google/callback",
+      "/identity/microsoft/callback",
+    ]) {
+      expect({ callback, covered: covers(callback) }).toEqual({
+        callback,
+        covered: true,
+      });
+    }
+
+    for (const page of [
+      "/accounts/register",
+      "/accounts/login",
+      "/dashboard",
+    ]) {
+      expect({ page, covered: covers(page) }).toEqual({
+        page,
+        covered: false,
+      });
+    }
   });
 });

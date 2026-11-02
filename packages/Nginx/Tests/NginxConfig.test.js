@@ -2719,6 +2719,7 @@ const SIGN_IN_COOKIE_ADDRESSES = {
     "/identity/logout",
     "/identity/passkey-login-options",
     "/identity/microsoft/callback",
+    "/identity/google/callback",
     "/identity/oidc-callback/project/provider",
     "/identity/global-sso/x",
     "/identity/status-page-oidc-callback/page/provider",

@@ -1087,7 +1087,7 @@ describe("the Global SSO guide", () => {
     expect(page).toContain(`:::details "${SSO_REQUIRED_SIGN_IN_MESSAGE}"`);
 
     expect(page).toContain(
-      "The sign-in page offers only SSO: a button for each global provider that is on, and no password, passkey, Microsoft sign-in or sign-up.",
+      "The sign-in page offers only SSO: a button for each global provider that is on, and no password, passkey, Google or Microsoft sign-in, or sign-up.",
     );
     expect(page).toContain(
       "They land on the project's single sign-on page, which offers the project's own providers and the global providers that sign people in to it.",

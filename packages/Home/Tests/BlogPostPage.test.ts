@@ -158,6 +158,8 @@ const blogPostWith: (htmlBody: string) => BlogPost = (
     },
     validationStatus: "validated",
     validationDate: "October 08, 2026",
+    updatedDate: null,
+    formattedUpdatedDate: null,
   };
 };
 
