@@ -81,6 +81,16 @@ class BaseAPI extends API {
   protected static override async onResponseSuccessHeaders(
     headers: Dictionary<string>,
   ): Promise<Dictionary<string>> {
+    try {
+      BaseAPI.keepPermissionsHeaders(headers);
+    } catch {
+      // Not kept: the server sends them again with the next answer.
+    }
+
+    return Promise.resolve(headers);
+  }
+
+  private static keepPermissionsHeaders(headers: Dictionary<string>): void {
     if (headers && headers["global-permissions"]) {
       const globalPermissions: UserGlobalAccessPermission | null =
         BaseAPI.readPermissionsHeader<UserGlobalAccessPermission>(
@@ -110,8 +120,6 @@ class BaseAPI extends API {
         });
       }
     }
-
-    return Promise.resolve(headers);
   }
 
   // A permission header's snapshot, or null when it is not one.
@@ -141,31 +149,47 @@ class BaseAPI extends API {
   protected static override getHeaders(requestHeaders?: Headers): Headers {
     let defaultHeaders: Headers = this.getDefaultHeaders();
 
-    const headers: Headers = {};
-
-    const globalPermissionsHash: string | null =
-      PermissionUtil.getGlobalPermissionsHash();
-
-    if (globalPermissionsHash) {
-      headers["global-permissions-hash"] = globalPermissionsHash;
-    }
-
-    const tenantId: string | null = BaseAPI.getTenantIdHeader(requestHeaders);
-
-    const projectPermissionsHash: string | null = tenantId
-      ? PermissionUtil.getProjectPermissionsHash(tenantId)
-      : null;
-
-    if (projectPermissionsHash) {
-      headers["project-permissions-hash"] = projectPermissionsHash;
-    }
-
     defaultHeaders = {
       ...defaultHeaders,
-      ...headers,
+      ...BaseAPI.getPermissionsHashHeaders(requestHeaders),
     };
 
     return defaultHeaders;
+  }
+
+  /*
+   * The hashes are only a saving - the server sends a snapshot it is not
+   * told the browser has - so a request goes out without them rather than
+   * not at all.
+   */
+  private static getPermissionsHashHeaders(
+    requestHeaders: Headers | undefined,
+  ): Headers {
+    const headers: Headers = {};
+
+    try {
+      const globalPermissionsHash: string | null =
+        PermissionUtil.getGlobalPermissionsHash();
+
+      if (globalPermissionsHash) {
+        headers["global-permissions-hash"] = globalPermissionsHash;
+      }
+
+      const tenantId: string | null =
+        BaseAPI.getTenantIdHeader(requestHeaders);
+
+      const projectPermissionsHash: string | null = tenantId
+        ? PermissionUtil.getProjectPermissionsHash(tenantId)
+        : null;
+
+      if (projectPermissionsHash) {
+        headers["project-permissions-hash"] = projectPermissionsHash;
+      }
+    } catch {
+      // Sent without them: the server answers with the snapshots instead.
+    }
+
+    return headers;
   }
 
   // The project a request names in its tenantid header, whatever its case.

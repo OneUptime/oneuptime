@@ -593,6 +593,42 @@ describe("the hash a request sends", () => {
     ]);
   });
 
+  test("a request goes out without its hashes when they cannot be read, rather than not at all", async () => {
+    jest
+      .spyOn(PermissionUtil, "getGlobalPermissionsHash")
+      .mockImplementation((): string | null => {
+        throw new Error("SecurityError");
+      });
+
+    server.on(HTTPMethod.GET, RESOURCE_URL, [{ status: 200, data: {} }]);
+
+    const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+      await getAbout(OWNED_PROJECT_ID);
+
+    expect(response.statusCode).toBe(200);
+    expect(server.sent[0]!.headers["global-permissions-hash"]).toBeUndefined();
+    expect(server.sent[0]!.headers["project-permissions-hash"]).toBeUndefined();
+    expect(server.sent[0]!.headers["tenantid"]).toBe(OWNED_PROJECT_ID);
+  });
+
+  test("an answer whose snapshot cannot be kept still reaches its caller", async () => {
+    jest
+      .spyOn(PermissionUtil, "setProjectPermissions")
+      .mockImplementation((): void => {
+        throw new Error("QuotaExceededError");
+      });
+
+    server.on(HTTPMethod.GET, RESOURCE_URL, [
+      { status: 200, data: { answered: true }, headers: OWNER_HEADERS },
+    ]);
+
+    const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+      await getAbout(OWNED_PROJECT_ID);
+
+    expect(response.statusCode).toBe(200);
+    expect(response.data).toEqual({ answered: true });
+  });
+
   test("a replay after a lapsed session sends the same project's hash", async () => {
     PermissionUtil.setProjectPermissions(
       {
