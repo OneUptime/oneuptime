@@ -34,7 +34,9 @@ import english from "../../../../App/FeatureSet/Accounts/src/Locales/en.json";
 import german from "../../../../App/FeatureSet/Accounts/src/Locales/de.json";
 import LoginPage from "../../../../App/FeatureSet/Accounts/src/Pages/Login";
 import LoginWithSSOPage, {
+  LOOKED_UP_EMAIL_TEST_ID,
   SSO_PROJECTS_TEST_ID,
+  SSO_SUBTITLE_TEST_ID,
   USE_DIFFERENT_EMAIL_TEST_ID,
 } from "../../../../App/FeatureSet/Accounts/src/Pages/LoginWithSSO";
 import SsoProviderType from "../../../Types/SSO/SsoProviderType";
@@ -183,13 +185,12 @@ const SSO_LOCALE_KEYS: Array<string> = [
   "common.or",
   "login.signInWithSso",
   "sso.title",
-  "sso.subtitle",
+  "sso.emailFormSubtitle",
   "sso.submitButton",
   "sso.signInWithPassword",
   "sso.noAccountPrompt",
   "sso.registerLink",
   "sso.selectProjectTitle",
-  "sso.selectProjectSubtitle",
   "sso.noConfigForEmail",
   "sso.emailRequired",
   "sso.defaultProjectName",
@@ -417,7 +418,6 @@ const projectProvider: (data: {
 // The SSO page as it is when nothing has been found yet: the email form.
 const expectEmailForm: () => void = (): void => {
   expect(screen.getByTestId("email")).toBeInTheDocument();
-  expect(screen.getByText(english.sso.subtitle)).toBeInTheDocument();
   expect(screen.getByRole("link", { name: PASSWORD_OPTION })).toHaveAttribute(
     "href",
     "/accounts/login",
@@ -428,6 +428,22 @@ const expectEmailForm: () => void = (): void => {
   expect(document.body.textContent || "").not.toMatch(
     EDITION_OR_LICENSE_WORDING,
   );
+};
+
+/*
+ * The line under the heading, with the email form the only way in: what the
+ * email is for - never the old "Sign in with your SSO provider to access
+ * your account.", which said the heading "Sign in with SSO" again.
+ */
+const expectEmailFormSubtitle: () => void = (): void => {
+  expect(screen.getByTestId(SSO_SUBTITLE_TEST_ID)).toHaveTextContent(
+    english.sso.emailFormSubtitle,
+  );
+  expect(
+    screen.queryByText(
+      "Sign in with your SSO provider to access your account.",
+    ),
+  ).not.toBeInTheDocument();
 };
 
 describe("Accounts single sign-on, in every edition", () => {
@@ -563,6 +579,7 @@ describe("Accounts single sign-on, in every edition", () => {
         await renderSso();
 
         expectEmailForm();
+        expectEmailFormSubtitle();
         /*
          * How the server signs people in - its instance-wide providers with
          * it - is read once as the page opens; the two listings it read
@@ -581,6 +598,7 @@ describe("Accounts single sign-on, in every edition", () => {
         await renderSso();
 
         expectEmailForm();
+        expectEmailFormSubtitle();
         expect(
           screen.queryByText(english.sso.globalProvidersTitle),
         ).not.toBeInTheDocument();
@@ -644,6 +662,16 @@ describe("Accounts single sign-on, in every edition", () => {
       ).toBeInTheDocument();
       // The email form stays below them.
       expectEmailForm();
+      /*
+       * The providers and their own heading come first, and the divider
+       * names the form under them: no line under the page's heading.
+       */
+      expect(
+        screen.queryByTestId(SSO_SUBTITLE_TEST_ID),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(english.sso.emailFormSubtitle),
+      ).not.toBeInTheDocument();
     });
 
     test("an instance-wide SAML provider starts its sign-in at /identity/global-sso", async () => {
@@ -710,9 +738,19 @@ describe("Accounts single sign-on, in every edition", () => {
        * and a screen reader go on from its heading.
        */
       expect(heading).toHaveFocus();
+      /*
+       * Under the heading, the address the projects were found for - not a
+       * line that said the heading again - in an isolate, as written.
+       */
+      const lookedUp: HTMLElement = screen.getByTestId(LOOKED_UP_EMAIL_TEST_ID);
+      expect(lookedUp).toHaveTextContent("ada@example.com");
+      expect(lookedUp.tagName).toBe("BDI");
+      expect(screen.getByTestId(SSO_SUBTITLE_TEST_ID)).toContainElement(
+        lookedUp,
+      );
       expect(
-        screen.getByText(english.sso.selectProjectSubtitle),
-      ).toBeInTheDocument();
+        screen.queryByText("Select the project you want to sign in to."),
+      ).not.toBeInTheDocument();
 
       const groups: Array<HTMLElement> = projectGroups();
 
@@ -824,7 +862,7 @@ describe("Accounts single sign-on, in every edition", () => {
       expect(field).toHaveValue("ada@example.com");
       expect(field).toHaveAttribute("readonly");
       expect(screen.getByTestId("Sign in with SSO")).toBeDisabled();
-      expect(screen.getByText(english.sso.subtitle)).toBeInTheDocument();
+      expectEmailFormSubtitle();
 
       await act(async () => {
         answer();
@@ -919,6 +957,10 @@ describe("Accounts single sign-on, in every edition", () => {
       ).not.toBeInTheDocument();
       expect(await screen.findByTestId("email")).toHaveValue("ada@example.com");
       expectEmailForm();
+      expectEmailFormSubtitle();
+      expect(
+        screen.queryByTestId(LOOKED_UP_EMAIL_TEST_ID),
+      ).not.toBeInTheDocument();
       // Nothing was started on the way back.
       expect(navigatedTo()).toEqual([]);
     });
@@ -955,6 +997,10 @@ describe("Accounts single sign-on, in every edition", () => {
           name: german.sso.selectProjectTitle,
         }),
       ).toBeInTheDocument();
+      // The address is shown as it was typed, in every language.
+      expect(screen.getByTestId(LOOKED_UP_EMAIL_TEST_ID)).toHaveTextContent(
+        "ada@example.com",
+      );
       expect(
         screen.getByRole("button", {
           name: german.sso.signInWithProvider.replace("{{name}}", "Okta"),
@@ -1113,6 +1159,38 @@ describe("Accounts single sign-on, in every edition", () => {
      * The explanation that SSO needs the Enterprise Edition with an active
      * license is no longer true anywhere, and no page renders it.
      */
+    /*
+     * The SSO page's line under its heading said the heading again in every
+     * language ("Sign in with your SSO provider to access your account."
+     * under "Sign in with SSO"), and so did the project list's ("Select the
+     * project you want to sign in to." under "Select Project"). The first now
+     * says what the email is for; the second is the address looked up.
+     */
+    test("the line under the SSO heading never repeats the heading, in any language", () => {
+      for (const { file, locale } of readLocales()) {
+        const title: string = String(localeValue(locale, "sso.title"));
+        const line: string = String(
+          localeValue(locale, "sso.emailFormSubtitle"),
+        );
+
+        expect({ file, repeats: line.includes(title) }).toEqual({
+          file,
+          repeats: false,
+        });
+        expect({
+          file,
+          retired: [
+            localeValue(locale, "sso.subtitle"),
+            localeValue(locale, "sso.selectProjectSubtitle"),
+          ],
+        }).toEqual({ file, retired: [undefined, undefined] });
+      }
+
+      expect(english.sso.emailFormSubtitle).toBe(
+        "Enter your email to find your organization’s sign-in.",
+      );
+    });
+
     test("no locale keeps the retired 'SSO needs the Enterprise Edition' explanation", () => {
       for (const { file, locale } of readLocales()) {
         expect({

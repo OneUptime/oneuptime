@@ -25,6 +25,7 @@ import React, {
   FunctionComponent,
   MutableRefObject,
   ReactElement,
+  ReactNode,
   useEffect,
   useMemo,
   useRef,
@@ -40,6 +41,7 @@ import Email from "Common/Types/Email";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import LabelledDivider from "Common/UI/Components/Divider/LabelledDivider";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import SignInOptionLink from "Common/UI/Components/SignInOption/SignInOptionLink";
 import SsoProviderOptions, {
   SsoProviderOption,
@@ -63,6 +65,8 @@ export interface ComponentProps {
  */
 export const SSO_PROJECTS_TEST_ID: string = "sso-projects";
 export const USE_DIFFERENT_EMAIL_TEST_ID: string = "sso-use-different-email";
+export const SSO_SUBTITLE_TEST_ID: string = "sso-subtitle";
+export const LOOKED_UP_EMAIL_TEST_ID: string = "sso-looked-up-email";
 
 /*
  * Signing in with single sign-on (/accounts/sso), and - while the whole
@@ -273,16 +277,17 @@ const LoginWithSsoPage: FunctionComponent<ComponentProps> = (
   const isSsoRequired: boolean = Boolean(signInMethods?.isSsoRequired);
 
   /*
-   * The logo, the edition where the sign-in page shows it, and the heading
-   * (which can take the focus, given a ref).
+   * The logo, the edition where the sign-in page shows it, the heading
+   * (which can take the focus, given a ref) and, when there is something
+   * the heading does not say already, a line under it.
    */
   const renderHeader: (
     title: string,
-    subtitle: string,
+    subtitle?: ReactNode | undefined,
     headingRef?: MutableRefObject<HTMLHeadingElement | null> | undefined,
   ) => ReactElement = (
     title: string,
-    subtitle: string,
+    subtitle?: ReactNode | undefined,
     headingRef?: MutableRefObject<HTMLHeadingElement | null> | undefined,
   ): ReactElement => {
     return (
@@ -304,9 +309,16 @@ const LoginWithSsoPage: FunctionComponent<ComponentProps> = (
         >
           {title}
         </h2>
-        <p className="mt-2 text-center text-sm text-gray-600 px-2 sm:px-0 text-balance">
-          {subtitle}
-        </p>
+        {subtitle ? (
+          <p
+            className="mt-2 text-center text-sm text-gray-600 px-2 sm:px-0 text-balance"
+            data-testid={SSO_SUBTITLE_TEST_ID}
+          >
+            {subtitle}
+          </p>
+        ) : (
+          <></>
+        )}
         {/*
          * Why they were signed out, when the server ended their session
          * and this page stands in for the sign-in page (SSO required).
@@ -378,9 +390,23 @@ const LoginWithSsoPage: FunctionComponent<ComponentProps> = (
 
     return (
       <div className="flex min-h-full flex-col justify-center py-8 px-4 sm:py-12 sm:px-6 lg:px-8">
+        {/*
+         * Under "Select Project", the address the projects were found for -
+         * not a line that said the title again ("Select the project you want
+         * to sign in to.") - so a typo shows before a provider is picked,
+         * with "Use a different email" under the list. An address someone
+         * typed, read the way it is written on a right-to-left page too.
+         */}
         {renderHeader(
           t("sso.selectProjectTitle"),
-          t("sso.selectProjectSubtitle"),
+          lookedUpEmail ? (
+            <IsolatedText
+              text={lookedUpEmail}
+              breaksLikeAName={true}
+              className="[overflow-wrap:anywhere]"
+              dataTestId={LOOKED_UP_EMAIL_TEST_ID}
+            />
+          ) : undefined,
           projectsHeadingRef,
         )}
 
@@ -465,11 +491,26 @@ const LoginWithSsoPage: FunctionComponent<ComponentProps> = (
     });
   });
 
+  /*
+   * The line under the heading says what the heading does not. While the
+   * server requires SSO, why only SSO is offered. Otherwise, with the email
+   * form the only way in, what the email is for. "Sign in with your SSO
+   * provider to access your account." under "Sign in with SSO" said the
+   * title again (#5324's follow-ups). With the server's own providers
+   * above the form, they and their own heading come first, and the
+   * divider names the form: no line at all.
+   */
+  const subtitle: string | undefined = isSsoRequired
+    ? t("sso.requiredSubtitle")
+    : providerOptions.length > 0
+      ? undefined
+      : t("sso.emailFormSubtitle");
+
   return (
     <div className="flex min-h-full flex-col justify-center py-8 px-4 sm:py-12 sm:px-6 lg:px-8">
       {renderHeader(
         isSsoRequired ? t("login.title") : t("sso.title"),
-        isSsoRequired ? t("sso.requiredSubtitle") : t("sso.subtitle"),
+        subtitle,
       )}
 
       <div className="mt-6 sm:mt-8 w-full max-w-md mx-auto">
