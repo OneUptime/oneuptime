@@ -70,7 +70,7 @@ const TABLE_SEPARATOR: RegExp = /^\|\s*-/;
 const MARKDOWN_LINK: RegExp =
   /\]\((https:\/\/oneuptime\.com\/docs\/[^)\s]+)\)/g;
 // "450 and more of them": the number the README claims.
-const RESOURCE_COUNT_CLAIM: RegExp = /(\d+) and more of them/;
+const RESOURCE_COUNT_CLAIM: RegExp = /(?<!\d)(\d+) and more of them/;
 
 // A section of the README: its heading line and everything up to the next heading of its level or higher.
 function section(heading: string): string {

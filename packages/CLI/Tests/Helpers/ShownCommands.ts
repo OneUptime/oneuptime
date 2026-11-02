@@ -14,11 +14,7 @@ export interface ShownCommand {
   words: Array<string>;
 }
 
-/*
- * A fenced code block: its language, anything after a space on its first
- * line (```json tool_name), then its body.
- */
-const FENCED_BLOCK: RegExp = /```([a-z]*)(?: [^\n]*)?\n([\s\S]*?)\n```/g;
+const FENCE: string = "```";
 // A line that goes on, in a shell, on the next one.
 const CONTINUED_LINE: RegExp = /\\\n/g;
 const CODE_SPAN: RegExp = /`([^`]+)`/g;
@@ -31,6 +27,53 @@ const CODE_SPAN: RegExp = /`([^`]+)`/g;
 const SHELL_WORD: RegExp = /'[^']*'|"[^"]*"|[^\s'"|;()]+|[|;)]/g;
 const COMMAND_ENDS: ReadonlyArray<string> = ["|", ";", ")"];
 const CLI: string = "oneuptime";
+
+export interface CodeBlock {
+  // What its opening fence names first: bash, yaml, json.
+  language: string;
+  body: string;
+}
+
+/*
+ * A page's fenced code blocks, and its lines outside them, read a line at a
+ * time: an opening fence names a language (```bash, or ```json tool_name),
+ * and a line of three backticks closes it.
+ */
+function readBlocks(markdown: string): {
+  blocks: Array<CodeBlock>;
+  prose: Array<string>;
+} {
+  const blocks: Array<CodeBlock> = [];
+  const prose: Array<string> = [];
+  let open: { language: string; lines: Array<string> } | null = null;
+
+  for (const line of markdown.split("\n")) {
+    if (open) {
+      if (line.trim() === FENCE) {
+        blocks.push({ language: open.language, body: open.lines.join("\n") });
+        open = null;
+      } else {
+        open.lines.push(line);
+      }
+      continue;
+    }
+
+    if (line.trimStart().startsWith(FENCE)) {
+      const info: string = line.trimStart().slice(FENCE.length);
+
+      open = { language: info.split(" ")[0] || "", lines: [] };
+      continue;
+    }
+
+    prose.push(line);
+  }
+
+  return { blocks, prose };
+}
+
+export function codeBlocksIn(markdown: string): Array<CodeBlock> {
+  return readBlocks(markdown).blocks;
+}
 
 // The words of a command line as a shell splits them, quotes taken off.
 export function shellWords(line: string): Array<string> {
@@ -76,12 +119,12 @@ export function shownCommandsIn(
 ): Array<ShownCommand> {
   const commands: Array<ShownCommand> = [];
 
-  for (const block of markdown.matchAll(FENCED_BLOCK)) {
-    if (!languages.includes(block[1] as string)) {
+  for (const block of codeBlocksIn(markdown)) {
+    if (!languages.includes(block.language)) {
       continue;
     }
 
-    const body: string = (block[2] as string).replace(CONTINUED_LINE, " ");
+    const body: string = block.body.replace(CONTINUED_LINE, " ");
 
     for (const line of body.split("\n")) {
       const command: ShownCommand | null = commandOf(line.trim());
@@ -101,7 +144,7 @@ export function shownCommandsIn(
  * `oneuptime <resource> --help`, stands for many commands and is left out.
  */
 export function spanCommandsIn(markdown: string): Array<ShownCommand> {
-  const prose: string = markdown.replace(FENCED_BLOCK, "");
+  const prose: string = readBlocks(markdown).prose.join("\n");
 
   return Array.from(prose.matchAll(CODE_SPAN))
     .map((match: RegExpMatchArray): string => {

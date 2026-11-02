@@ -14,7 +14,9 @@ import {
   useTestCredentials,
 } from "./Helpers/RunCli";
 import {
+  CodeBlock,
   ShownCommand,
+  codeBlocksIn,
   commandAt,
   commandPathOf,
   helpFlags,
@@ -65,7 +67,6 @@ const SKILL: string = fs.readFileSync(
   "utf-8",
 );
 
-const JSON_BLOCK: RegExp = /```json\n([\s\S]*?)\n```/;
 const CODE_SPAN: RegExp = /`([^`]+)`/g;
 
 // The commands the skill shows: in its shell and pipeline blocks, and in its text.
@@ -296,7 +297,13 @@ describe("the coding agent plugin's CLI skill", () => {
     // One line on standard error; the skill lays it out, as prettier formats a JSON block.
     expect(run.errors).toHaveLength(1);
     expect(JSON.parse(run.errors[0] as string)).toEqual(
-      JSON.parse((SKILL.match(JSON_BLOCK) as RegExpMatchArray)[1] as string),
+      JSON.parse(
+        (
+          codeBlocksIn(SKILL).find((block: CodeBlock): boolean => {
+            return block.language === "json";
+          }) as CodeBlock
+        ).body,
+      ),
     );
   });
 });
