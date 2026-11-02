@@ -1865,6 +1865,36 @@ html.dark [data-ou-logo-plate] {
 }
 
 /*
+ * Continue with Google on the sign-in and sign-up pages (Accounts'
+ * GoogleSignInButton). It is drawn like the other ways in, but in the colours
+ * Google's sign-in branding sets for each theme rather than in theirs: on a
+ * light page a white fill, a one-pixel #747775 stroke and #1f1f1f words; on a
+ * dark one #131314, #8e918f and #e3e3e3. Its "G" is the full-colour one on
+ * both. A hover lays a state layer over the fill at 8%, as Google's own
+ * button does.
+ * https://developers.google.com/identity/branding-guidelines
+ */
+.ou-google-sign-in {
+  border-color: #747775;
+  background-color: #ffffff;
+  color: #1f1f1f;
+}
+
+.ou-google-sign-in:hover {
+  background-color: color-mix(in srgb, #303030 8%, #ffffff);
+}
+
+html.dark .ou-google-sign-in {
+  border-color: #8e918f;
+  background-color: #131314;
+  color: #e3e3e3;
+}
+
+html.dark .ou-google-sign-in:hover {
+  background-color: color-mix(in srgb, #ffffff 8%, #131314);
+}
+
+/*
  * Chart focus rings. Both themes -- the black box this replaces was never a
  * dark-mode-only problem.
  *

@@ -195,8 +195,8 @@ A user account was created.
 `hasPassword` separates a direct signup (`true`) from a user created by a team
 invite (`false`). Both are real users; only one is an acquisition. This is
 reported rather than filtered so you decide which you care about. A signup with
-Microsoft is a direct signup: it is `true`, and it carries the attribution the
-visitor arrived with.
+Google or Microsoft is a direct signup: it is `true`, and it carries the
+attribution the visitor arrived with.
 
 ### `subscription_started`
 

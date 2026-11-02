@@ -33,8 +33,10 @@ import {
   DASHBOARD_URL,
   CAPTCHA_ENABLED,
   CAPTCHA_SITE_KEY,
+  GoogleSignInClientId,
   MicrosoftSignInClientId,
 } from "Common/UI/Config";
+import GoogleSignInButton from "../Components/GoogleSignInButton/GoogleSignInButton";
 import MicrosoftSignInButton from "../Components/MicrosoftSignInButton/MicrosoftSignInButton";
 import LabelledDivider from "Common/UI/Components/Divider/LabelledDivider";
 import ProductLogo from "Common/UI/Components/ProductLogo/ProductLogo";
@@ -93,6 +95,16 @@ const RegisterPage: () => JSX.Element = () => {
    */
   const hasCapturedSignupStart: React.MutableRefObject<boolean> =
     useRef<boolean>(false);
+
+  // signup_started, once: the form's first submit, or a press of Google or Microsoft.
+  const captureSignupStart: () => void = (): void => {
+    if (!hasCapturedSignupStart.current) {
+      UiAnalytics.captureRevenueEvent(RevenueEventName.SignupStarted, {
+        funnel_stage: RevenueFunnelStage.Signup,
+      });
+      hasCapturedSignupStart.current = true;
+    }
+  };
 
   const hasCapturedSignupComplete: React.MutableRefObject<boolean> =
     useRef<boolean>(false);
@@ -602,13 +614,7 @@ const RegisterPage: () => JSX.Element = () => {
               item: User,
               miscDataProps: JSONObject,
             ): Promise<User> => {
-              if (!hasCapturedSignupStart.current) {
-                UiAnalytics.captureRevenueEvent(
-                  RevenueEventName.SignupStarted,
-                  { funnel_stage: RevenueFunnelStage.Signup },
-                );
-                hasCapturedSignupStart.current = true;
-              }
+              captureSignupStart();
 
               submittedEmail.current = item.email || null;
 
@@ -821,28 +827,36 @@ const RegisterPage: () => JSX.Element = () => {
             }}
           />
           {/*
-           * The other way to sign up, where this server offers one: under
-           * "or", drawn as the sign-in page draws its other ways in.
+           * The other ways to sign up, where this server offers them -
+           * Google, then Microsoft: under "or", drawn as the sign-in page
+           * draws its other ways in. Pressing one starts a sign-up, as the
+           * form's first submit does; the account is made on the way back.
            */}
-          {MicrosoftSignInClientId ? (
+          {GoogleSignInClientId || MicrosoftSignInClientId ? (
             <div data-testid="sign-up-options">
               <LabelledDivider
                 label={t("common.or")}
                 className="my-5"
                 dataTestId="sign-up-options-divider"
               />
-              <MicrosoftSignInButton
-                title={t("register.signUpWithMicrosoft")}
-                onPress={() => {
-                  if (!hasCapturedSignupStart.current) {
-                    UiAnalytics.captureRevenueEvent(
-                      RevenueEventName.SignupStarted,
-                      { funnel_stage: RevenueFunnelStage.Signup },
-                    );
-                    hasCapturedSignupStart.current = true;
-                  }
-                }}
-              />
+              <div className="space-y-3">
+                {GoogleSignInClientId ? (
+                  <GoogleSignInButton
+                    title={t("common.continueWithGoogle")}
+                    onPress={captureSignupStart}
+                  />
+                ) : (
+                  <></>
+                )}
+                {MicrosoftSignInClientId ? (
+                  <MicrosoftSignInButton
+                    title={t("register.signUpWithMicrosoft")}
+                    onPress={captureSignupStart}
+                  />
+                ) : (
+                  <></>
+                )}
+              </div>
             </div>
           ) : (
             <></>

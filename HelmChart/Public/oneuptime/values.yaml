@@ -2812,6 +2812,21 @@ microsoftSignInApp:
   #   clientIdKey: clientId
   #   clientSecretKey: clientSecret
 
+# Continue with Google: a Google OAuth client (type "Web application") that
+# lets people sign up for and sign in to OneUptime with their Google account,
+# Gmail and Google Workspace alike. Authorized redirect URI:
+# https://<host>/identity/google/callback. Only an address Google has verified
+# and manages signs in. Leave empty to not offer it.
+# How to set it up: packages/Common/Server/Utils/GoogleSignIn/RELEASING.md in
+# the repository.
+googleSignInApp:
+  clientId:
+  clientSecret:
+  # existingSecret:
+  #   name: "google-sign-in-app-secret"
+  #   clientIdKey: clientId
+  #   clientSecretKey: clientSecret
+
 # Cloud marketplaces: sell OneUptime Cloud on AWS Marketplace, Microsoft
 # Marketplace (Azure), Google Cloud Marketplace and Vercel Marketplace. Used
 # only where billing is enabled; a marketplace is offered only when all of its

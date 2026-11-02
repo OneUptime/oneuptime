@@ -134,10 +134,11 @@ It leaves the browser through three doors:
    `window.oneUptimeCalAttributionMetadata(bookingKind)` and pass the result as
    the embed `config`. Cal returns it on `BOOKING_CREATED` to the CRM, which is
    what makes a booked demo attributable to the ad that produced it.
-3. **The Sign in with Microsoft button.** Signing up that way posts no form: the
-   button is a link, and the account is made on Microsoft's way back, by a
-   request that cannot read localStorage. So the button leaves the attribution
-   in a ten-minute cookie on `/identity/microsoft`
+3. **The Continue with Google and Sign in with Microsoft buttons.** Signing up
+   either way posts no form: the button is a link, and the account is made on
+   the provider's way back, by a request that cannot read localStorage. So the
+   button leaves the attribution in a ten-minute cookie on `/identity`, the
+   path both providers' sign-ins are under
    (`packages/App/FeatureSet/Accounts/src/Utils/SignInAttribution.ts`), and the
    callback puts it on the new user through the same whitelists as the form
    (`Attribution.fromSignInCookie`). A cookie that is missing or malformed costs
@@ -293,12 +294,14 @@ Sign-up and the dashboard load Google Analytics alone, so
 - **`user_id`.** Every signed-in dashboard page sets `user_id` to the internal
   user ID, never an email address, so one person's sessions join up across
   devices.
-- **`sign_up` from Microsoft.** A sign-in that made a new account never reaches
-  the sign-up page's reporting. The callback marks the address it sends them to
-  (`?signed_up_with=microsoft`), and the Dashboard reports `sign_up`, identifies
-  the person to product analytics and takes the mark off the address, so a
-  reload reports nothing
-  (`packages/App/FeatureSet/Dashboard/src/Utils/ReportSignUpFromSignIn.ts`).
+- **`sign_up` from Google and Microsoft.** A sign-in that made a new account
+  never reaches the sign-up page's reporting. The callback marks the address it
+  sends them to with the provider (`?signed_up_with=google`,
+  `?signed_up_with=microsoft`), and the Dashboard reports `sign_up` with that
+  `signup_method`, identifies the person to product analytics and takes the
+  mark off the address, so a reload reports nothing
+  (`packages/App/FeatureSet/Dashboard/src/Utils/ReportSignUpFromSignIn.ts`). A
+  mark naming any other provider is taken off and reports nothing.
 
 The browser's calls wait for consent like everything else: gtag holds them
 until Google Analytics loads, and on a self-hosted install there is no Google
