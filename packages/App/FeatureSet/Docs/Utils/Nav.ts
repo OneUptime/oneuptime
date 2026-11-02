@@ -1368,6 +1368,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/cli/scripting",
       },
       {
+        title: "CLI for AI Agents",
+        url: "/docs/cli/ai-agents",
+      },
+      {
         title: "Command Reference",
         url: "/docs/cli/command-reference",
       },

@@ -7,6 +7,10 @@ import {
   getRolePermissionCount,
   getScopeExemptRolesMarkdown,
 } from "./PermissionsTable";
+import {
+  CLI_RESOURCE_COMMANDS_PLACEHOLDER,
+  getCliResourceCommandsMarkdown,
+} from "./CliCommandsTable";
 import { DEFAULT_DOCS_LANGUAGE } from "./I18n";
 import { AppVersion, IpWhitelist } from "Common/Server/EnvironmentConfig";
 import fs from "fs";
@@ -16,8 +20,9 @@ import path from "path";
  * Server-side substitution of `{{TOKEN}}` placeholders in docs markdown.
  *
  * Some docs content cannot be written down: the IP allow-list depends on this
- * instance's configuration, and the permission tables are generated from
- * Common/Types/Permission.ts so they can never drift from the product. Pages
+ * instance's configuration, the permission tables are generated from
+ * Common/Types/Permission.ts so they can never drift from the product, and
+ * the CLI's resource commands from the models, as the CLI makes them. Pages
  * embed a placeholder and this module fills it in at render time.
  *
  * Substitution is allow-listed, not a blanket `{{...}}` sweep. Docs pages
@@ -274,6 +279,14 @@ export default class DocsPlaceholders {
         content,
         PermissionPlaceholder.TotalCount,
         getGranularPermissionCount().toString(),
+      );
+    }
+
+    if (content.includes(CLI_RESOURCE_COMMANDS_PLACEHOLDER)) {
+      content = replaceAll(
+        content,
+        CLI_RESOURCE_COMMANDS_PLACEHOLDER,
+        getCliResourceCommandsMarkdown(lang),
       );
     }
 

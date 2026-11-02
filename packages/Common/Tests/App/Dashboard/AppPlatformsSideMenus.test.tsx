@@ -73,6 +73,7 @@ describe("the App Platforms product menu", () => {
         href: `${APP_PLATFORMS}/environments/developer/terraform`,
       },
       { title: "API", href: `${APP_PLATFORMS}/environments/developer/api` },
+      { title: "CLI", href: `${APP_PLATFORMS}/environments/developer/cli` },
       {
         title: "AI Assistants",
         href: `${APP_PLATFORMS}/environments/developer/ai-assistants`,
@@ -163,6 +164,7 @@ describe("an environment's menu", () => {
     expect(linksIn("Developer")).toEqual([
       { title: "Terraform", href: `${ENVIRONMENT_PATH}/developer/terraform` },
       { title: "API", href: `${ENVIRONMENT_PATH}/developer/api` },
+      { title: "CLI", href: `${ENVIRONMENT_PATH}/developer/cli` },
       {
         title: "AI Assistants",
         href: `${ENVIRONMENT_PATH}/developer/ai-assistants`,

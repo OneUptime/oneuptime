@@ -20,6 +20,7 @@ export const AUTHENTICATION: string = "cli/authentication";
 export const RESOURCE_OPERATIONS: string = "cli/resource-operations";
 export const OUTPUT_FORMATS: string = "cli/output-formats";
 export const SCRIPTING: string = "cli/scripting";
+export const AI_AGENTS: string = "cli/ai-agents";
 export const COMMAND_REFERENCE: string = "cli/command-reference";
 
 // The CLI nav group, page for page.
@@ -29,6 +30,7 @@ export const CLI_PAGES: ReadonlyArray<CliDocsPageEntry> = [
   { page: RESOURCE_OPERATIONS, navTitle: "Resource Operations" },
   { page: OUTPUT_FORMATS, navTitle: "Output Formats" },
   { page: SCRIPTING, navTitle: "Scripting & CI/CD" },
+  { page: AI_AGENTS, navTitle: "CLI for AI Agents" },
   { page: COMMAND_REFERENCE, navTitle: "Command Reference" },
 ];
 
@@ -78,6 +80,7 @@ export const DIAGRAM_KINDS: Readonly<Record<string, string>> = {
   [RESOURCE_OPERATIONS]: "flowchart TB",
   [OUTPUT_FORMATS]: "flowchart TB",
   [SCRIPTING]: "flowchart TB",
+  [AI_AGENTS]: "flowchart TB",
   [COMMAND_REFERENCE]: "flowchart LR",
 };
 

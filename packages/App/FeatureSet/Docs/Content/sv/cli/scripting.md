@@ -63,7 +63,7 @@ case $? in
 esac
 ```
 
-Felmeddelanden går till standard fel, så `incident.json` innehåller bara svaret.
+Felmeddelanden går till standard fel, så `incident.json` innehåller bara svaret. Med `-o json` är även ett fel JSON, med slutkoden i: se [JSON](/docs/cli/output-formats#json).
 
 ## Läs svar med jq
 
@@ -74,13 +74,16 @@ Skriv `-o json` i skript. I en pipe skriver CLI:n ut JSON ändå, men flaggan h�
 oneuptime incident list -o json | jq -r '.[].title'
 
 # The ID of a new monitor
-MONITOR_ID=$(oneuptime monitor create --data '{"name":"Checkout API","monitorType":"Manual"}' -o json | jq -r '._id')
+MONITOR_ID=$(oneuptime monitor create --name "Checkout API" --monitor-type Manual -o json | jq -r '._id')
 
 # When each incident was created: dates come as objects
 oneuptime incident list -o json | jq -r '.[] | "\(.createdAt.value)  \(.title)"'
 
 # The newest 100 incidents as CSV
 oneuptime incident list --limit 100 -o json | jq -r '.[] | [._id, .title, .createdAt.value] | @csv'
+
+# Every incident, page after page, with only the two fields the script reads
+oneuptime incident list --all --fields title,createdAt -o json | jq -r '.[] | "\(.createdAt.value)  \(.title)"'
 ```
 
 En räkning skriver ut ett tal, redo att jämföra:

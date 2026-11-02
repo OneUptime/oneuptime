@@ -38,7 +38,7 @@ oneuptime login <api-key> https://oneuptime.com --context-name production
 它回答 `Logged in successfully. Context "production" is now active.`。地址末尾的斜杠会被去掉，用同一名称再次登录会替换该上下文。
 
 > [!NOTE]
-> `login` 保存密钥时不会向 OneUptime 询问它。运行一条命令，例如 `oneuptime incident count`，即可确认密钥可用。
+> `login` 保存密钥时不会向 OneUptime 询问它。运行 `oneuptime whoami --check` 即可确认 OneUptime 接受该密钥。
 
 ## 上下文
 
@@ -154,10 +154,16 @@ API Key: 4f1c****0a13
 Context: production
 ```
 
-只显示密钥的前四个和后四个字符。只有当 URL 和密钥是该上下文自己的值，而不是被标志或环境变量替换的值时，才会显示 `Context` 这一行。`whoami` 读取你的设置时不调用 OneUptime：它显示命令将发送什么，而不是 OneUptime 是否接受。如果什么都没有保存或设置，它回答：
+只显示密钥的前四个和后四个字符。只有当 URL 和密钥是该上下文自己的值，而不是被标志或环境变量替换的值时，才会显示 `Context` 这一行。单独运行时，`whoami` 读取你的设置而不调用 OneUptime：它显示命令将发送什么，而不是 OneUptime 是否接受。如果什么都没有保存或设置，它会回答：
 
 ```text
 Not authenticated. Run `oneuptime login` to authenticate.
+```
+
+`--check` 还会询问 OneUptime。它会补充显示密钥所属的项目、你的 OneUptime 的版本和 CLI 的版本；当两个版本不同时，还会给出安装与你的 OneUptime 版本相同的 CLI 的命令。OneUptime 拒绝的密钥会让它以退出码 `2` 停止：
+
+```bash
+oneuptime whoami --check
 ```
 
 ## 配置文件

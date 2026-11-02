@@ -1,11 +1,11 @@
 # 輸出格式
 
-當你在終端機中閱讀回應時，CLI 印出表格；當指令碼或其他程式讀取回應時，它印出 JSON。任何命令都可以用 `-o` 或 `--output` 選擇格式。
+當你在終端機中閱讀回應時，CLI 印出表格；當指令碼或其他程式讀取回應時，它印出 JSON。任何命令都可以用 `-o` 或 `--output` 選擇格式，或用 `--json` 要求 JSON。
 
 :::cards
 - [格式如何確定](#格式如何確定): 終端機得到表格，管道得到 JSON。
 - [表格](#表格): 六欄，每個值在 60 個字元處截斷。
-- [JSON](#json): 完整的每個欄位，供指令碼和 jq 使用。
+- [JSON](#json): 完整的每個欄位，供指令碼、jq 和 AI 代理程式使用。
 - [寬表格](#寬表格): 包含所有欄的表格。
 :::
 
@@ -25,7 +25,7 @@ flowchart TB
 | `json` | OneUptime 傳送的原樣回應，以兩個空格縮排 | 指令碼、`jq` 和檔案 |
 | `wide` | 每個欄位一欄的表格 | 一眼比較許多欄位 |
 
-`-o` 適用於每個印出記錄的命令：資源的 `list`、`get`、`create`、`update` 和 `count`，以及 `oneuptime resources` 和 `oneuptime context list`。它可以寫在命令列的任何位置。其他任何值都會在傳送請求之前被拒絕：
+`-o` 和 `--json` 適用於每個命令，可以寫在命令列的任何位置。印出記錄的命令依圖中所示選擇格式。回應是一句話的命令（例如 `delete` 或 `acknowledge`）無論在終端機還是管道中都印出這句話，除非 `-o json` 或 `--json` 要求 JSON。`-o` 的其他任何值都會在傳送請求之前被拒絕：
 
 ```text
 error: option '-o, --output <format>' argument 'yaml' is invalid. Allowed choices are json, table, wide.
@@ -39,26 +39,36 @@ error: option '-o, --output <format>' argument 'yaml' is invalid. Allowed choice
 ┌────────────────────────────┬────────────────────────────┬─────────────────────────────┬───────────┬─────────────────────────────┐
 │ Command                    │ Singular                   │ Plural                      │ Type      │ API Path                    │
 ├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
-│ log                        │ Log                        │ Logs                        │ analytics │ /logs                       │
+│ audit-log                  │ Audit Log                  │ Audit Logs                  │ analytics │ /audit-log                  │
 ├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
-│ span                       │ Span                       │ Spans                       │ analytics │ /span                       │
-├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
-│ metric                     │ Metric                     │ Metrics                     │ analytics │ /metrics                    │
+│ change-event               │ Change Event               │ Change Events               │ analytics │ /change-events              │
 ├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
 │ exception-instance         │ Exception Instance         │ Exception Instances         │ analytics │ /exceptions                 │
 ├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
+│ kubernetes-cost-allocation │ Kubernetes Cost Allocation │ Kubernetes Cost Allocations │ analytics │ /kubernetes-cost-allocation │
+├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
+│ log                        │ Log                        │ Logs                        │ analytics │ /logs                       │
+├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
+│ metric                     │ Metric                     │ Metrics                     │ analytics │ /metrics                    │
+├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
 │ monitor-log                │ Monitor Log                │ Monitor Logs                │ analytics │ /monitor-log                │
 ├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
-│ kubernetes-cost-allocation │ Kubernetes Cost Allocation │ Kubernetes Cost Allocations │ analytics │ /kubernetes-cost-allocation │
+│ network-flow               │ Network Flow               │ Network Flows               │ analytics │ /network-flow               │
+├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
+│ profile                    │ Profile                    │ Profiles                    │ analytics │ /profile                    │
+├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
+│ profile-sample             │ ProfileSample              │ ProfileSamples              │ analytics │ /profile-sample             │
 ├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
 │ security-event             │ Security Event             │ Security Events             │ analytics │ /security-events            │
 ├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
-│ change-event               │ Change Event               │ Change Events               │ analytics │ /change-events              │
+│ slo-history                │ SLO History                │ SLO History                 │ analytics │ /slo-history                │
+├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
+│ span                       │ Span                       │ Spans                       │ analytics │ /span                       │
 ├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
 │ threat-intel-indicator     │ Threat Intel Indicator     │ Threat Intel Indicators     │ analytics │ /threat-intel-indicators    │
 └────────────────────────────┴────────────────────────────┴─────────────────────────────┴───────────┴─────────────────────────────┘
 
-Total: 9 resources
+Total: 14 resources
 ```
 
 對於記錄清單，表格最多顯示六欄：先是 `_id`、`name`、`title`、`status`、`createdAt` 和 `updatedAt` 中記錄具有的那些，然後按順序是記錄的後續欄位。欄取自第一筆記錄。超過 60 個字元的值會截斷為前 57 個字元，後接 `...`。
@@ -100,6 +110,16 @@ oneuptime incident list -o json | jq -r '.[] | "\(.createdAt.value)  \(.title)"'
 
 當輸出不是終端機時，例如 `oneuptime incident list | jq '.[].title'`，即使沒有 `-o json`，CLI 也會印出 JSON。不過在指令碼中仍請寫上 `-o json`，讓指令碼不依賴這一點。
 
+`--json` 等同於 `-o json`。回應是一句話的命令會改為用一個物件回應：`delete` 回應記錄的 `_id` 和 `"deleted": true`，`acknowledge` 回應記錄所處的 `state`。要求 JSON 時，錯誤是標準錯誤中的一個物件，每次的鍵都相同，`exitCode` 是命令的結束代碼：
+
+```bash
+oneuptime incident get 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 --json
+```
+
+```json
+{"error":{"message":"API error (404): Incident not found.","status":404,"exitCode":3,"hint":"`oneuptime incident list` shows the ones this key may read."}}
+```
+
 ## 寬表格
 
 `-o wide` 是記錄的每個欄位各佔一欄的表格。每個值仍在 60 個字元處截斷，而記錄的欄位很多，所以寬表格非常寬：請用 `less -S` 翻閱。
@@ -110,7 +130,7 @@ oneuptime incident list -o wide | less -S
 
 ## 顏色
 
-表頭為青色；訊息在操作成功時為綠色，提示資訊為藍色，錯誤為紅色。使用 `--no-color`，或把 `NO_COLOR` 設為任意值，即可關閉顏色：
+表頭為青色；訊息在操作成功時為綠色，提示資訊為藍色，警告和錯誤的處理建議為黃色，錯誤為紅色。使用 `--no-color`，或把 `NO_COLOR` 設為任意值，即可關閉顏色：
 
 ```bash
 oneuptime incident list --no-color
@@ -119,7 +139,7 @@ NO_COLOR=1 oneuptime incident list
 
 ## 每個命令印出什麼
 
-記錄和計數輸出到標準輸出，錯誤輸出到標準錯誤，因此管道只讀取回應。
+記錄和計數輸出到標準輸出，錯誤和警告輸出到標準錯誤，因此管道只讀取回應。
 
 | 命令 | 表格中 | JSON 中 |
 | --- | --- | --- |
@@ -127,7 +147,9 @@ NO_COLOR=1 oneuptime incident list
 | `get` 或 `create` | 每個欄位一列 | 該記錄 |
 | `count` | 該數字 | 該數字 |
 | `update` | 一個空白行 | `{}` |
-| `delete` | `Monitor <id> deleted successfully.` | 同一行 |
+| `delete` | `Monitor <id> deleted successfully.` | 記錄的 `_id` 和 `"deleted": true` |
+| `acknowledge`、`resolve`、`start` 或 `end` | `Incident <id> acknowledged: it is in Acknowledged now.` | 記錄的 `_id`、`action`、表示是否更改的 `changed` 以及它的 `state` |
+| 錯誤 | 錯誤，然後是處理建議 | 標準錯誤中的 `{"error": {...}}` |
 
 ## 後續步驟
 

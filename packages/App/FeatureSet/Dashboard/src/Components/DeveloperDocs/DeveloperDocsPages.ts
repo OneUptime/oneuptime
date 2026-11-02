@@ -6,7 +6,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 
 /*
- * The Developer pages (Terraform, API, AI Assistants) as routes: which pages
+ * The Developer pages (Terraform, API, CLI, AI Assistants) as routes: which pages
  * have them, what they are called, where they live. RouteMap and the
  * breadcrumbs read this, so it imports no models: RouteMap is in the first
  * load of every dashboard page, and the resources' models are not: each
@@ -26,6 +26,7 @@ import { JSONObject } from "Common/Types/JSON";
 export enum DeveloperDocsPageType {
   Terraform = "terraform",
   Api = "api",
+  Cli = "cli",
   AiAssistants = "ai-assistants",
 }
 
@@ -55,6 +56,11 @@ export const DEVELOPER_DOCS_PAGES: ReadonlyArray<DeveloperDocsPageDefinition> =
       icon: IconProp.Terraform,
     },
     { type: DeveloperDocsPageType.Api, title: "API", icon: IconProp.Code },
+    /*
+     * The CLI after the API it is a command line for, and before the AI
+     * assistants that may run it.
+     */
+    { type: DeveloperDocsPageType.Cli, title: "CLI", icon: IconProp.Terminal },
     {
       type: DeveloperDocsPageType.AiAssistants,
       title: "AI Assistants",
@@ -589,7 +595,7 @@ export interface DeveloperDocsChildPage {
   scope: DeveloperDocsScope;
 }
 
-// The Developer pages under a page: three when it is a registered list or view page.
+// The Developer pages under a page: four when it is a registered list or view page.
 export function getDeveloperDocsChildPages(
   parentPageKey: string,
 ): Array<DeveloperDocsChildPage> {
