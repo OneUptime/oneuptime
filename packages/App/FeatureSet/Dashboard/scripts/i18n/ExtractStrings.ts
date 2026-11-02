@@ -251,6 +251,16 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * A host's status and what needs attention on it, by one set of rules:
+   * the Hosts list and its Needs attention card, a host's hero and page,
+   * and its Topology say them in the reader's language. Only the words the
+   * file marks are read: mount points and unit names are drawn as written.
+   */
+  {
+    directory: "packages/Common/Types/Host/HostHealth.ts",
+    kind: "keys",
+  },
+  /*
    * Where a database or a queue was found ("Application traces", "Added
    * manually") and what kind of cloud resource one is ("Databases and
    * caches"): a database's and a queue's Overview, their lists and a cloud

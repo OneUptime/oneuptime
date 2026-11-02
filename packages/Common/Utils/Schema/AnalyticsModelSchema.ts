@@ -11,12 +11,7 @@ import {
   SchemaExample,
   ShapeRecord,
 } from "./BaseSchema";
-import {
-  getDateSchema,
-  getIPSchema,
-  getObjectIDSchema,
-  getPortSchema,
-} from "./TypeSchemas";
+import { getIPSchema, getObjectIDSchema, getPortSchema } from "./TypeSchemas";
 
 export type AnalyticsModelSchemaType = ZodSchema;
 
@@ -93,6 +88,20 @@ const WIDE_INTEGER_COLUMN_TYPES: Array<TableColumnType> = [
 ];
 
 const EXAMPLE_TIME: string = "2026-01-01T00:00:00.000Z";
+
+// EXAMPLE_TIME in nanoseconds, as a 64-bit column takes it.
+const EXAMPLE_UNIX_NANO: string = "1767225600000000000";
+
+const EXAMPLE_ID: string = "123e4567-e89b-12d3-a456-426614174000";
+
+const DIGITS: RegExp = /^[0-9]+$/;
+
+/*
+ * The columns the API writes itself: a record's ID and creation time
+ * (AnalyticsDatabaseService.sanitizeCreate). An update leaves them out of
+ * what it changes (BaseAnalyticsAPI.updateItem).
+ */
+const API_WRITTEN_COLUMNS: Array<string> = ["_id", "createdAt", "updatedAt"];
 
 export class AnalyticsModelSchema extends BaseSchema {
   // Helper function to add default value to openapi schema if it exists
@@ -286,15 +295,41 @@ export class AnalyticsModelSchema extends BaseSchema {
     return schema;
   }
 
-  private static getZodTypeForColumn(
+  /*
+   * A column's value as a create or update sends it: what
+   * CommonModel.setColumnValue reads, and StatementGenerator writes into
+   * the INSERT. Plain JSON - the request body is not deserialized, so a
+   * {_type, value} wrapper is not read.
+   */
+  private static getWriteValueSchema(
     column: AnalyticsTableColumn,
     disableOpenApiSchema: boolean = false,
   ): ZodTypes.ZodTypeAny {
     switch (column.type) {
       case TableColumnType.ObjectID:
         return getObjectIDSchema();
+      // ISO-8601, which setColumnValue reads as a date.
       case TableColumnType.Date:
-        return getDateSchema();
+      case TableColumnType.DateTime64:
+        return this.applyOpenApi(
+          z.string(),
+          this.addDefaultToOpenApi(
+            { type: "string", format: "date-time", example: EXAMPLE_TIME },
+            column,
+          ),
+          disableOpenApiSchema,
+        );
+      /*
+       * A JSON number past 2^53 loses digits: a UInt64 (a time in
+       * nanoseconds, a byte count) is also taken as a string of digits,
+       * which the INSERT casts whole.
+       */
+      case TableColumnType.UInt64:
+        return this.applyOpenApi(
+          z.union([z.number(), z.string().regex(DIGITS)]),
+          this.addDefaultToOpenApi({ example: EXAMPLE_UNIX_NANO }, column),
+          disableOpenApiSchema,
+        );
       case TableColumnType.Text:
         return this.applyOpenApi(
           z.string(),
@@ -313,7 +348,9 @@ export class AnalyticsModelSchema extends BaseSchema {
           this.addDefaultToOpenApi({ type: "number", example: 42 }, column),
           disableOpenApiSchema,
         );
+      // Also read from a string, as a number: past 2^53 digits are lost.
       case TableColumnType.LongNumber:
+      case TableColumnType.BigNumber:
         return this.applyOpenApi(
           z.number(),
           this.addDefaultToOpenApi(
@@ -331,14 +368,19 @@ export class AnalyticsModelSchema extends BaseSchema {
           this.addDefaultToOpenApi({ type: "boolean", example: true }, column),
           disableOpenApiSchema,
         );
+      // Any JSON value: an object, or an array, as a span's links are.
       case TableColumnType.JSON:
         return this.applyOpenApi(
           z.any(),
+          this.addDefaultToOpenApi({ example: { key: "value" } }, column),
+          disableOpenApiSchema,
+        );
+      // Strings by key, as a log's or a span's attributes.
+      case TableColumnType.MapStringString:
+        return this.applyOpenApi(
+          z.object({}).catchall(z.string()),
           this.addDefaultToOpenApi(
-            {
-              type: "object",
-              example: { key: "value" },
-            },
+            { example: { "http.method": "GET" } },
             column,
           ),
           disableOpenApiSchema,
@@ -369,6 +411,8 @@ export class AnalyticsModelSchema extends BaseSchema {
           disableOpenApiSchema,
         );
       case TableColumnType.ArrayNumber:
+      case TableColumnType.ArrayDecimal:
+      case TableColumnType.ArrayBigNumber:
         return this.applyOpenApi(
           z.array(z.number()),
           this.addDefaultToOpenApi(
@@ -424,66 +468,121 @@ export class AnalyticsModelSchema extends BaseSchema {
     return zodType;
   }
 
+  /*
+   * The fields a create may send: the columns somebody may create. One with
+   * a default is optional - the API writes the default
+   * (AnalyticsDatabaseService.checkRequiredFields) - and so is the project,
+   * which the API takes from the request. Its example sends the fields it
+   * requires.
+   *
+   * Its .openapi() names no `type`: zod-to-openapi takes a `type` there for
+   * the whole schema and leaves out the properties it would have generated,
+   * so the spec listed no field of a telemetry create or update.
+   */
   public static getCreateModelSchema(data: {
     modelType: new () => AnalyticsBaseModel;
     disableOpenApiSchema?: boolean;
   }): AnalyticsModelSchemaType {
-    const modelType: new () => AnalyticsBaseModel = data.modelType;
-    const model: AnalyticsBaseModel = new modelType();
-
-    const columns: Array<AnalyticsTableColumn> = model.getTableColumns();
+    const model: AnalyticsBaseModel = new data.modelType();
+    const disableOpenApiSchema: boolean = data.disableOpenApiSchema || false;
+    // The API writes the request's project there - the API key's.
+    const tenantColumn: string | undefined = model.getTenantColumn()?.key;
     const shape: ShapeRecord = {};
+    const example: SchemaExample = {};
 
-    // Exclude system fields from create schema
-    const excludedFields: Array<string> = ["_id", "createdAt", "updatedAt"];
-
-    for (const column of columns) {
-      const key: string = column.key;
-
-      if (excludedFields.includes(key)) {
-        continue;
-      }
-
-      // Skip default value columns in create schema
-      if (column.isDefaultValueColumn) {
-        continue;
-      }
-
-      // Filter out columns with no create permissions
-      const accessControl: any = model.getColumnAccessControlFor(column.key);
-      if (!accessControl) {
-        continue;
-      }
-      const createPermissions: Array<string> = accessControl.create;
-      if (!createPermissions || createPermissions.length === 0) {
-        continue;
-      }
-
-      let zodType: ZodTypes.ZodTypeAny = this.getZodTypeForColumn(
+    for (const column of this.getWritableColumns(model, "create")) {
+      const value: ZodTypes.ZodTypeAny = this.getWriteValueSchema(
         column,
-        data.disableOpenApiSchema || false,
+        disableOpenApiSchema,
+      );
+      const isRequired: boolean =
+        column.required &&
+        !column.isDefaultValueColumn &&
+        column.key !== tenantColumn;
+
+      shape[column.key] = this.applyOpenApi(
+        isRequired ? value : value.optional(),
+        { description: column.description || column.title },
+        disableOpenApiSchema,
       );
 
-      // Apply default value if it exists
-      zodType = this.applyDefaultValue(zodType, column);
-
-      if (column.required) {
-        shape[key] = zodType;
-      } else {
-        shape[key] = zodType.optional();
+      if (isRequired) {
+        example[column.key] = this.getExampleValueForColumn(column.type);
       }
     }
 
     return this.applyOpenApi(
       z.object(shape),
       {
-        type: "object",
         description: `Create schema for ${model.tableName || "analytics model"}`,
-        example: this.getCreateSchemaExample(modelType),
+        example: example,
         additionalProperties: false,
       },
-      data.disableOpenApiSchema || false,
+      disableOpenApiSchema,
     );
+  }
+
+  /*
+   * The fields an update may change: the columns somebody may update - on
+   * a telemetry table today, none - each optional, as an update changes
+   * what it sends.
+   */
+  public static getUpdateModelSchema(data: {
+    modelType: new () => AnalyticsBaseModel;
+    disableOpenApiSchema?: boolean;
+  }): AnalyticsModelSchemaType {
+    const model: AnalyticsBaseModel = new data.modelType();
+    const disableOpenApiSchema: boolean = data.disableOpenApiSchema || false;
+    const tableName: string = model.tableName || "analytics model";
+    const shape: ShapeRecord = {};
+    const example: SchemaExample = {};
+
+    for (const column of this.getWritableColumns(model, "update")) {
+      shape[column.key] = this.applyOpenApi(
+        this.getWriteValueSchema(column, disableOpenApiSchema).optional(),
+        { description: column.description || column.title },
+        disableOpenApiSchema,
+      );
+
+      if (Object.keys(example).length === 0) {
+        example[column.key] = this.getExampleValueForColumn(column.type);
+      }
+    }
+
+    return this.applyOpenApi(
+      z.object(shape),
+      {
+        description:
+          Object.keys(shape).length > 0
+            ? `Update schema for ${tableName}. An update changes the fields it sends.`
+            : `Update schema for ${tableName}. No field can be updated: the API refuses an update of any field.`,
+        example: example,
+        additionalProperties: false,
+      },
+      disableOpenApiSchema,
+    );
+  }
+
+  /*
+   * The columns a create or update may name: those somebody may write (the
+   * API refuses the others: ModelPermission.checkCreatePermissions and
+   * checkUpdatePermissions), less those it writes itself.
+   */
+  private static getWritableColumns(
+    model: AnalyticsBaseModel,
+    operation: "create" | "update",
+  ): Array<AnalyticsTableColumn> {
+    return model
+      .getTableColumns()
+      .filter((column: AnalyticsTableColumn): boolean => {
+        const accessControl: ColumnAccessControl | null =
+          model.getColumnAccessControlFor(column.key);
+
+        return (
+          !API_WRITTEN_COLUMNS.includes(column.key) &&
+          (accessControl?.[operation] || []).length > 0
+        );
+      });
   }
 
   /*
@@ -798,21 +897,26 @@ export class AnalyticsModelSchema extends BaseSchema {
     }
   }
 
+  // A value of a column of this type, as a create or update sends it.
   private static getExampleValueForColumn(
     columnType: TableColumnType,
   ): unknown {
     switch (columnType) {
       case TableColumnType.ObjectID:
-        return "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx";
+        return EXAMPLE_ID;
       case TableColumnType.Text:
         return "example text";
       case TableColumnType.Number:
       case TableColumnType.LongNumber:
+      case TableColumnType.BigNumber:
         return 42;
+      case TableColumnType.UInt64:
+        return EXAMPLE_UNIX_NANO;
       case TableColumnType.Decimal:
         return 123.45;
       case TableColumnType.Date:
-        return "2023-01-15T12:30:00.000Z";
+      case TableColumnType.DateTime64:
+        return EXAMPLE_TIME;
       case TableColumnType.Boolean:
         return true;
       case TableColumnType.JSON:
@@ -830,46 +934,6 @@ export class AnalyticsModelSchema extends BaseSchema {
       default:
         return "example_value";
     }
-  }
-
-  private static getCreateSchemaExample(
-    modelType: new () => AnalyticsBaseModel,
-  ): SchemaExample {
-    const model: AnalyticsBaseModel = new modelType();
-    const columns: Array<AnalyticsTableColumn> = model.getTableColumns();
-    const example: SchemaExample = {};
-
-    let exampleCount: number = 0;
-    const maxExamples: number = 3;
-
-    for (const column of columns) {
-      if (exampleCount >= maxExamples) {
-        break;
-      }
-
-      // Skip system fields and default value columns
-      if (
-        ["_id", "createdAt", "updatedAt"].includes(column.key) ||
-        column.isDefaultValueColumn
-      ) {
-        continue;
-      }
-
-      // Skip columns with no create permissions
-      const accessControl: any = model.getColumnAccessControlFor(column.key);
-      if (!accessControl) {
-        continue;
-      }
-      const createPermissions: Array<string> = accessControl.create;
-      if (!createPermissions || createPermissions.length === 0) {
-        continue;
-      }
-
-      example[column.key] = this.getExampleValueForColumn(column.type);
-      exampleCount++;
-    }
-
-    return example;
   }
 
   private static getSelectSchemaExample(

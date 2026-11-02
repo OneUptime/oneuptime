@@ -4,6 +4,7 @@ Aggiungi una macchina Linux, Windows o macOS a OneUptime con un solo comando. Il
 
 :::cards
 - [Aggiungere un host](#aggiungere-un-host): Un comando su Linux, Windows o macOS.
+- [Vedere quali host richiedono attenzione](#vedere-quali-host-richiedono-attenzione): Prima ciò che è guasto, poi l'integrità, la CPU, la memoria e il disco di ogni host.
 - [Cambiare ciò che raccolgono gli host](#cambiare-ciò-che-raccolgono-gli-host): Configurazioni del collector per sistema ed etichetta, con ogni versione conservata.
 - [Controllare il collector di un host](#controllare-il-collector-di-un-host): La configurazione che esegue, la sua versione e perché una configurazione non si è avviata.
 - [Cosa può fare una configurazione](#cosa-può-fare-una-configurazione): Leggere l'host e inviare solo a questa istanza di OneUptime.
@@ -75,8 +76,29 @@ Ogni istanza di OneUptime serve i propri programmi di installazione, quindi un'i
 
 ### Attendi l'host
 
-L'ultimo passaggio della finestra di dialogo indica quando l'host si connette, con un link all'host. Nell'elenco appare come **In avvio** finché non arrivano le sue prime metriche, di solito entro un minuto, poi come connesso, con il collector **In esecuzione**. La pagina **Topologia** dell'host disegna su un'unica mappa ciò che gira su di esso, ciò che lo chiama e ciò che chiama: vedi [Topologia](/docs/telemetry/topology#aprire-la-mappa-di-una-risorsa).
+L'ultimo passaggio della finestra di dialogo indica quando l'host si connette, con un link all'host. Nell'elenco appare come **In avvio** finché non arrivano le sue prime metriche, di solito entro un minuto, poi con la sua integrità, **Integro** quando nulla va controllato, e il collector **In esecuzione**. La pagina **Topologia** dell'host disegna su un'unica mappa ciò che gira su di esso, ciò che lo chiama e ciò che chiama: vedi [Topologia](/docs/telemetry/topology#aprire-la-mappa-di-una-risorsa).
 :::
+
+## Vedere quali host richiedono attenzione
+
+L'elenco **Host** inizia con **Richiede attenzione**: ogni host guasto o da controllare, prima il più urgente, ognuno con il motivo e un passaggio verso la sua pagina. Un host che ha smesso di segnalare dice quando l'ha fatto l'ultima volta. Quando nulla richiede attenzione, la scheda non c'è.
+
+Sotto, lo **Stato** di ogni host dice in una parola come sta, con il motivo sotto, e **CPU**, **Memoria** e **Disco** mostrano l'ultimo valore che ha segnalato:
+
+| Stato | Quando |
+| --- | --- |
+| **Integro** | Segnala, e nulla va controllato. |
+| **Degradato** | Qualcosa va controllato: un filesystem o i suoi inode pieni oltre l'85%, la memoria usata oltre il 90%, lo swap usato oltre l'80%, un carico medio a 15 minuti oltre il doppio dei suoi core, un'unità systemd non riuscita o una configurazione del collector che non si è avviata. |
+| **Non integro** | Qualcosa è critico: un filesystem o i suoi inode pieni oltre il 95%, o la memoria usata oltre il 95%. |
+| **Non segnala** | Non arriva nulla da 15 minuti. Le sue ultime letture non sono più valide, quindi la sua riga non mostra numeri e dice quando ha segnalato l'ultima volta. |
+| **In avvio** | Il suo collector si è registrato negli ultimi dieci minuti e le prime metriche stanno arrivando. Un host che dopo non ha inviato nulla mostra **Ancora nessun dato**. |
+| **Segnala** | Segnala, ma non invia nessuna delle letture che queste regole valutano, come un host il cui collector è stato configurato senza `hostmetrics`. |
+
+Le letture sono l'ultimo rapporto dell'host, che OneUptime conserva sull'host circa una volta al minuto, quindi l'elenco non ha un periodo da scegliere. Una barra diventa ambra dove un host va controllato e rossa dove è critico. **CPU** è il tempo occupato su tutti i core e diventa ambra sopra il 90%, mai rossa: una CPU occupata è un host al lavoro, e il carico medio dice quando il lavoro si accumula. **Disco** è il filesystem più pieno, con il suo punto di montaggio sotto, come `df` stampa il suo `Use%`: lo spazio riservato a root non conta.
+
+La **Panoramica** di un host dice lo stesso: la sua integrità accanto allo stato del suo collector, da quanto tempo è attivo, e **Richiede attenzione** per i suoi filesystem, la memoria, lo swap e il carico, il suo collector e ogni unità systemd non riuscita, che apre la pagina di quell'unità. **Avvisi dell'host** elenca gli [avvisi che OneUptime consiglia](/docs/monitor/host-monitor#modelli-di-avviso-pronti) per un host e quali sorvegliano questo, e il suo pulsante apre **Raccomandazioni** con gli altri selezionati.
+
+Da quanto tempo un host è attivo viene da `system.uptime`, che lo scraper `system` della configurazione predefinita di OneUptime invia. Una configurazione vostra ha bisogno anche di questo scraper: vedi [Collector OpenTelemetry per host](/docs/telemetry/host-otel-collector).
 
 ## Etichettare gli host
 
@@ -224,6 +246,10 @@ La sua pagina **Collector** mostra perché la configurazione non si è avviata. 
 
 :::details L'host mostra «Non segnala»
 OneUptime non ha notizie dal supervisore dell'host da più di 15 minuti. Controlla che il servizio `oneuptime-collector` sia in esecuzione e che l'host raggiunga ancora OneUptime.
+:::
+
+:::details CPU, memoria o disco di un host mostrano un trattino
+OneUptime preferisce non mostrare alcun numero piuttosto che uno vecchio: l'host non segnala da 15 minuti, oppure il suo collector non invia `hostmetrics`. Un collector configurato da voi ha bisogno del receiver `hostmetrics` con i suoi scraper `cpu`, `memory` e `filesystem`, come in [Collector OpenTelemetry per host](/docs/telemetry/host-otel-collector).
 :::
 
 ## Passi successivi

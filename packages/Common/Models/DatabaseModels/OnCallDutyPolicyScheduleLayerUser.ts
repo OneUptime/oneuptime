@@ -584,7 +584,7 @@ export default class OnCallDutyPolicyScheduleLayerUser extends BaseModel {
     type: TableColumnType.ObjectID,
     required: true,
     title: "User ID",
-    description: "ID of User who belongs to this team",
+    description: "ID of the person who takes turns on call in this layer.",
   })
   @Column({
     type: ColumnType.ObjectID,

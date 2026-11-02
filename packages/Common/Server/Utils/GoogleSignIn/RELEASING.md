@@ -17,10 +17,28 @@ code turns nothing on**: a server offers the button only once both
 self-hosted installation, and OneUptime Cloud until a maintainer does the steps
 below, shows nothing new.
 
-Written on **2 November 2026**, together with the code, before any OAuth client
-existed. Nothing below had been done in Google Cloud yet. When you do something
-here, add it to [History](#history), and recheck the live console before acting:
-Google renames its pages and moves its settings.
+Written on **2 November 2026**, together with the code. The same day the
+project, its consent screen and both OAuth clients were set up (below); neither
+server has the client's settings yet, so Continue with Google is still off
+everywhere. When you do something here, add it to [History](#history), and
+recheck the live console before acting: Google renames its pages and moves its
+settings.
+
+## The project and clients
+
+All in the **hackerbay.io** Google Cloud organization, managed by
+`nawazdhandala@oneuptime.com`:
+
+| What               | Value                                                                                                                                                     |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Project            | **google-signin-oauth-oneuptime** (ID `eminent-scanner-513511-k7`), kept apart from the Google Meet and marketplace projects                              |
+| Consent screen     | Branding **OneUptime**, External, **In production**; scopes `openid`, `userinfo.email`, `userinfo.profile` only; no logo; branding verified and published |
+| oneuptime.com      | Client **OneUptime sign-in (oneuptime.com)**, ID `226507820311-3ljt9oehmc1ut8bfdjupuuqmgqnqbvpp.apps.googleusercontent.com`                               |
+| test.oneuptime.com | Client **OneUptime sign-in (test.oneuptime.com)**, ID `226507820311-lo7nhe8d0qbhs318u4otl3fhpr43k7sh.apps.googleusercontent.com`                          |
+
+The client IDs are public (they reach `env.js`). The secrets are not, and are
+not written here: Google showed each once, when the client was created. A lost
+secret is replaced by adding a new one to its client (Rotating the secret).
 
 ## What only a maintainer can do
 
@@ -30,10 +48,11 @@ needs an owner of `oneuptime.com` in Google Search Console. No agent can do
 these from the repository:
 
 1. Choose the Google Cloud project, and set up its consent screen (Google Auth
-   Platform).
-2. Create the OAuth client and copy its secret.
+   Platform). Done on 2 November 2026.
+2. Create the OAuth client and copy its secret. Done on 2 November 2026, for
+   both servers.
 3. Put the client ID and secret into the servers' configuration.
-4. Submit the branding for verification.
+4. Submit the branding for verification. Done on 2 November 2026.
 5. Test it end to end on test.oneuptime.com, then on oneuptime.com.
 
 ## 1. The project and its consent screen
@@ -105,11 +124,14 @@ people use.
 ## 4. Branding verification
 
 **Google Auth Platform > Branding > Verify branding**. Google checks that the
-app name, logo, home page and privacy policy belong to `oneuptime.com`; the
-domain must be verified in [Google Search Console](https://search.google.com/search-console)
-by one of its owners first. It takes a few business days. Until it is done,
-Google may show the consent screen without the logo, and with the domain where
-the app name would be; sign-in works either way.
+app name, home page, privacy policy and terms belong to `oneuptime.com`, a
+domain verified in [Google Search Console](https://search.google.com/search-console).
+Without a logo the check is automatic: on 2 November 2026 it took about a
+minute (the page says up to 5 minutes). Then press **Publish branding**: a
+verified result that is not published expires after 7 days. Until the branding
+is published, Google's sign-in screen does not show the app's name; sign-in
+works either way. A new logo, name or link sends the branding through
+verification again.
 
 ## 5. Testing end to end
 
@@ -194,8 +216,11 @@ secret. Sign-ins in flight when the server restarts are asked to start again.
 
 - **Not yet run against Google.** The flow is tested against Google's
   documented endpoints and token format with signed test tokens, not against a
-  live client: none existed when the code was written. Step 5 is the first
-  real run.
+  live client: the clients exist, but no server has their settings yet. Step 5
+  is the first real run.
+- **No logo on the consent screen.** Adding one sends the branding to Google
+  for verification (step 4); until then the consent screen shows the app name
+  without OneUptime's logo.
 - **An account is found by its email address**, as with Sign in with
   Microsoft: OneUptime keeps no link to the Google account's own ID (`sub`).
   An address that changes at Google signs in the OneUptime account with the
@@ -203,5 +228,18 @@ secret. Sign-ins in flight when the server restarts are asked to start again.
 
 ## History
 
-- **2 November 2026** - written with the code. No Google Cloud project, consent
-  screen or OAuth client exists yet; every server has Continue with Google off.
+- **2 November 2026** - written with the code. The same day, in the existing
+  empty project google-signin-oauth-oneuptime: Google Auth Platform set up
+  (the Google API Services User Data Policy accepted for hackerbay.io), with
+  the Google Meet app's branding - **OneUptime**, support and developer
+  contact `nawazdhandala@oneuptime.com`, home page, privacy policy and terms
+  on `oneuptime.com`, authorized domain `oneuptime.com` - and no logo;
+  audience External, published to **In production** (Google required no
+  verification: one domain, no logo, no sensitive scope); the three scopes;
+  and the two Web application clients in the table above, each with its one
+  redirect URI and no JavaScript origin. Their secrets were handed to the
+  maintainer from Google's creation dialogs. Neither server has the settings
+  yet; Continue with Google is off everywhere. Later the same day the branding
+  was submitted for verification, verified automatically within a minute, and
+  published: the Verification Center shows the branding verified and shown to
+  users, and data access needing no verification.

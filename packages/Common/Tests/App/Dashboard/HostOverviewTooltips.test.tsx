@@ -446,8 +446,8 @@ describe("Host overview, loaded", () => {
 
     // user 20% + system 5%, a 5-minute mean.
     expect(screen.getByText("25.0%")).toBeInTheDocument();
-    // used / (used + free + reserved) = 40 / 100.
-    expect(screen.getAllByText("40.0%").length).toBeGreaterThan(0);
+    // df's Use%: used / (used + free) = 40 / 95, reserved left out.
+    expect(screen.getAllByText("42.1%").length).toBeGreaterThan(0);
     // load 1.5 over 4 cores.
     expect(screen.getByText("38% of 4 cores")).toBeInTheDocument();
     // running, with the cached total on the line below, as the text says.
@@ -626,7 +626,7 @@ describe("the tiles read the windows their texts name", () => {
     expect(tileOf("Load avg (1m)")).toHaveTextContent("75% of 4 cores");
   });
 
-  test("the filesystem tile averages the whole range, reserved space included", async () => {
+  test("the filesystem tile averages the whole range, as df's Use% (reserved space left out)", async () => {
     expect(D.filesystem).toContain("whole selected range");
 
     withRows((call: AggregateCall) => {
@@ -661,12 +661,14 @@ describe("the tiles read the windows their texts name", () => {
     await settle();
 
     /*
-     * Mean used is 40 GiB of a 100 GiB total. The last 5 minutes alone would
-     * read 60%, and leaving reserved out of the total would read 44.4%.
+     * Mean used is 40 GiB of 90 GiB used plus free: 44.4%, as df prints it.
+     * The last 5 minutes alone would read 22.2%, and counting the reserved
+     * space in the total would read 40.0%.
      */
-    expect(tileOf("Filesystem")).toHaveTextContent("40.0%");
-    expect(tileOf("Filesystem")).not.toHaveTextContent("60.0%");
-    expect(tileOf("Filesystem")).not.toHaveTextContent("44.4%");
+    expect(D.filesystem).toContain("df's Use%");
+    expect(tileOf("Filesystem")).toHaveTextContent("44.4%");
+    expect(tileOf("Filesystem")).not.toHaveTextContent("22.2%");
+    expect(tileOf("Filesystem")).not.toHaveTextContent("40.0%");
   });
 
   test("without process states, Processes counts every process seen in the last 5 minutes", async () => {

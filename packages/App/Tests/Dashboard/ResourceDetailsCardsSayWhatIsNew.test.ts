@@ -701,6 +701,8 @@ describe("a host's Overview has one Host Details card", () => {
       "CPU Cores",
       "Total Memory",
       "Container Runtime",
+      // When it last started (#5535), the hero's "Up 12d 4h" as a date.
+      "Booted",
       "Process Count (cached)",
       "Agent Version",
       "IP Addresses",

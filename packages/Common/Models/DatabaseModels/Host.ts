@@ -2330,4 +2330,463 @@ export default class Host extends BaseModel {
     nullable: true,
   })
   public collectorHostFeatures?: string = undefined;
+
+  /*
+   * WHAT THE HOST LAST REPORTED, kept on its record so the Hosts list, its
+   * Needs attention card and a host's own page read them without a
+   * ClickHouse query (HostReadings, written by the metrics ingest with the
+   * host's heartbeat, at most about once a minute). Each reading is written
+   * only by a report that carried it: a host whose collector sends no swap,
+   * no inodes or no systemd units keeps them empty. What the readings mean
+   * for the host - Healthy, Degraded or Unhealthy, and why - is worked out
+   * from them where they are shown (Common/Types/Host/HostHealth).
+   */
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadHost,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    canReadOnRelationQuery: true,
+    title: "Latest CPU Percent",
+    description:
+      "CPU busy time (user and system) across all of the host's cores in its last report, as a percent. Set by the server.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Decimal,
+    transformer: {
+      to: (value: number | null | undefined): number | null => {
+        if (value === null || value === undefined) {
+          return null;
+        }
+        return value;
+      },
+      from: (value: string | number | null | undefined): number | null => {
+        if (value === null || value === undefined) {
+          return null;
+        }
+        if (typeof value === "number") {
+          return value;
+        }
+        const parsed: number = parseFloat(value);
+        return isNaN(parsed) ? null : parsed;
+      },
+    },
+  })
+  public latestCpuPercent?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadHost,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    canReadOnRelationQuery: true,
+    title: "Latest Memory Percent",
+    description:
+      "Memory in use in the host's last report, buffers and page cache not counted, as a percent. Set by the server.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Decimal,
+    transformer: {
+      to: (value: number | null | undefined): number | null => {
+        if (value === null || value === undefined) {
+          return null;
+        }
+        return value;
+      },
+      from: (value: string | number | null | undefined): number | null => {
+        if (value === null || value === undefined) {
+          return null;
+        }
+        if (typeof value === "number") {
+          return value;
+        }
+        const parsed: number = parseFloat(value);
+        return isNaN(parsed) ? null : parsed;
+      },
+    },
+  })
+  public latestMemoryPercent?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadHost,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    canReadOnRelationQuery: true,
+    title: "Latest Swap Percent",
+    description:
+      "Swap space in use in the host's last report, as a percent. Empty on a host without swap. Set by the server.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Decimal,
+    transformer: {
+      to: (value: number | null | undefined): number | null => {
+        if (value === null || value === undefined) {
+          return null;
+        }
+        return value;
+      },
+      from: (value: string | number | null | undefined): number | null => {
+        if (value === null || value === undefined) {
+          return null;
+        }
+        if (typeof value === "number") {
+          return value;
+        }
+        const parsed: number = parseFloat(value);
+        return isNaN(parsed) ? null : parsed;
+      },
+    },
+  })
+  public latestSwapPercent?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadHost,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    canReadOnRelationQuery: true,
+    title: "Latest Disk Percent",
+    description:
+      "How full the host's fullest filesystem was in its last report, as a percent. Set by the server.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Decimal,
+    transformer: {
+      to: (value: number | null | undefined): number | null => {
+        if (value === null || value === undefined) {
+          return null;
+        }
+        return value;
+      },
+      from: (value: string | number | null | undefined): number | null => {
+        if (value === null || value === undefined) {
+          return null;
+        }
+        if (typeof value === "number") {
+          return value;
+        }
+        const parsed: number = parseFloat(value);
+        return isNaN(parsed) ? null : parsed;
+      },
+    },
+  })
+  public latestDiskPercent?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadHost,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.LongText,
+    canReadOnRelationQuery: true,
+    title: "Latest Disk Mount Point",
+    description:
+      "The mount point of the host's fullest filesystem in its last report. Set by the server.",
+    example: "/var",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+  })
+  public latestDiskMountpoint?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadHost,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    canReadOnRelationQuery: true,
+    title: "Latest Inodes Percent",
+    description:
+      "The share of inodes in use on the filesystem that used the most of them in the host's last report. Set by the server.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Decimal,
+    transformer: {
+      to: (value: number | null | undefined): number | null => {
+        if (value === null || value === undefined) {
+          return null;
+        }
+        return value;
+      },
+      from: (value: string | number | null | undefined): number | null => {
+        if (value === null || value === undefined) {
+          return null;
+        }
+        if (typeof value === "number") {
+          return value;
+        }
+        const parsed: number = parseFloat(value);
+        return isNaN(parsed) ? null : parsed;
+      },
+    },
+  })
+  public latestInodesPercent?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadHost,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.LongText,
+    canReadOnRelationQuery: true,
+    title: "Latest Inodes Mount Point",
+    description:
+      "The mount point of the filesystem that used the most of its inodes in the host's last report. Set by the server.",
+    example: "/var",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+  })
+  public latestInodesMountpoint?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadHost,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    canReadOnRelationQuery: true,
+    title: "Latest Load Average (15m)",
+    description:
+      "The host's 15-minute load average in its last report. Set by the server.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Decimal,
+    transformer: {
+      to: (value: number | null | undefined): number | null => {
+        if (value === null || value === undefined) {
+          return null;
+        }
+        return value;
+      },
+      from: (value: string | number | null | undefined): number | null => {
+        if (value === null || value === undefined) {
+          return null;
+        }
+        if (typeof value === "number") {
+          return value;
+        }
+        const parsed: number = parseFloat(value);
+        return isNaN(parsed) ? null : parsed;
+      },
+    },
+  })
+  public latestLoadAverage15m?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadHost,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    canReadOnRelationQuery: true,
+    title: "Booted At",
+    description:
+      "When the host last started, from the system.uptime metric its collector reports. Set by the server.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public bootedAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadHost,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    canReadOnRelationQuery: true,
+    title: "Failed Systemd Units",
+    description:
+      "How many systemd units were in the failed state in the host's last report. Linux only. Set by the server.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Number,
+  })
+  public failedSystemdUnitCount?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadHost,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    canReadOnRelationQuery: true,
+    title: "Failed Systemd Unit Names",
+    description:
+      "The names of the first systemd units that were in the failed state in the host's last report. Set by the server.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.JSON,
+  })
+  public failedSystemdUnits?: Array<string> = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadHost,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    canReadOnRelationQuery: true,
+    title: "Readings Updated At",
+    description:
+      "When OneUptime last stored the readings the host reported. Set by the server.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public readingsUpdatedAt?: Date = undefined;
 }

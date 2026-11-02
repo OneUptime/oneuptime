@@ -505,14 +505,10 @@ resource "oneuptime_team" "sre" {
   description = "Site reliability engineering"
 }
 
-variable "alice_user_id" {
-  description = "Alice's user ID, the last part of the address of her page under Users"
-  type        = string
-}
-
+# Invited by email if she is not in the project yet.
 resource "oneuptime_team_member" "alice" {
-  team_id = oneuptime_team.sre.id
-  user_id = var.alice_user_id
+  team_id    = oneuptime_team.sre.id
+  user_email = "alice@example.com"
 }
 ```
 

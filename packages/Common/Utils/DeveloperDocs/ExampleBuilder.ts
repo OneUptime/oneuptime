@@ -25,6 +25,7 @@ import {
   DeveloperDocsLiveRecord,
   pickDeveloperDocsLiveRecord,
 } from "./LiveData";
+import { describePersonEmail } from "./PeopleByEmail";
 import {
   COMMON_FIELD_ABOUT,
   DeveloperDocsField,
@@ -946,6 +947,39 @@ export function getDeveloperDocsTerraformBlock(data: {
     }
 
     let item: HclBodyItem | null;
+    const viewerEmail: string | undefined = data.context.live.currentUserEmail;
+
+    if (
+      descriptor.personEmail &&
+      !descriptor.personEmail.isList &&
+      field.value?.kind === "me" &&
+      viewerEmail
+    ) {
+      /*
+       * You, named the way a configuration names a person: by email address
+       * (user_email beside user_id), never by an ID nobody knows.
+       */
+      body.push(
+        Hcl.attribute(
+          descriptor.personEmail.attributeName,
+          Hcl.string(viewerEmail),
+        ),
+      );
+      rows.push({
+        name: descriptor.personEmail.attributeName,
+        // The address's own line, not the ID column's ("ID of the person...").
+        about:
+          field.about ||
+          describePersonEmail({
+            idName: descriptor.attributeName,
+            isList: descriptor.personEmail.isList,
+            invitesByEmail: descriptor.personEmail.invitesByEmail,
+          }),
+        required: descriptor.isRequired,
+      });
+      usesProjectData = true;
+      continue;
+    }
 
     if (descriptor.secretKind) {
       item = Hcl.attribute(

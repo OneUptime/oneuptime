@@ -56,6 +56,23 @@ export class DataSourceGenerator {
   private async generateDataSource(
     dataSource: TerraformDataSource,
   ): Promise<void> {
+    /*
+     * A data source written by hand (OpenAPIParser.HANDWRITTEN_DATA_SOURCES)
+     * is copied in under the name the generated one would have had, so it
+     * replaces it rather than standing beside it.
+     */
+    if (dataSource.staticFile) {
+      const content: string = this.fileGenerator.readTemplateFile(
+        path.join(__dirname, "..", "StaticFiles", dataSource.staticFile),
+      );
+      await this.fileGenerator.writeFileInDir(
+        "internal/provider",
+        `data_source_${dataSource.name}.go`,
+        content,
+      );
+      return;
+    }
+
     const dataSourceGoContent: string =
       this.generateDataSourceGoFile(dataSource);
     const fileName: string = `data_source_${dataSource.name}.go`;

@@ -246,6 +246,10 @@ const MULTICOLOUR_KEPT: ReadonlyArray<KeptOnPurpose> = [
     why: "Sign in with Microsoft: Microsoft's sign-in branding asks for its four-colour logo on the button",
   },
   {
+    file: "packages/App/FeatureSet/Accounts/src/Components/GoogleSignInButton/GoogleSignInButton.tsx",
+    why: "Continue with Google: Google's sign-in branding asks for its standard full-colour G, unchanged, on the button",
+  },
+  {
     file: "packages/App/FeatureSet/Dashboard/src/Pages/Settings/MobileApps.tsx",
     why: "the Google Play store badge: Google's badge guidelines ask for its mark in its colours",
   },

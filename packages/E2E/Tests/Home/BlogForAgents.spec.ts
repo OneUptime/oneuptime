@@ -1,6 +1,7 @@
 import { BASE_URL, IS_BILLING_ENABLED } from "../../Config";
 import { APIResponse, Page, expect, test } from "@playwright/test";
 import URL from "Common/Types/API/URL";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 
 /*
  * The blog as AI agents and search engines read it, on the deployed site:
@@ -95,7 +96,7 @@ function varyOf(response: APIResponse): Array<string> {
 function expectCanonicalLinkTo(response: APIResponse, post: string): void {
   expect(response.headers()["link"] || "").toMatch(
     new RegExp(
-      `^<https?://[^>]+/blog/post/${post.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/view>; rel="canonical"$`,
+      `^<https?://[^>]+/blog/post/${escapeRegExp(post)}/view>; rel="canonical"$`,
     ),
   );
 }

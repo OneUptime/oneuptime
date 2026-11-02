@@ -516,7 +516,16 @@ describe("the shared collector config", () => {
         "paging",
         "process",
         "processes",
+        /*
+         * system.uptime: how long the host has been up (the Overview's Up
+         * chip, Details' Booted, Host Restarted), as OneUptime's default
+         * config sends it.
+         */
+        "system",
       ].sort(),
+    );
+    expect(getHostCollectorDefaultConfig(HostCollectorOsType.Linux)).toContain(
+      "      system:\n",
     );
   });
 

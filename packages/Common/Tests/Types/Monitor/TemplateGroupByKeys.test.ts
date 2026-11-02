@@ -129,10 +129,22 @@ const EXPECTED_PODMAN_GROUP_BY: Array<GroupByExpectation> = [
 const EXPECTED_HOST_GROUP_BY: Array<GroupByExpectation> = [
   // Host-scalar: one series per host, nothing to fan out over.
   { id: "host-stopped-reporting", groupByAttributeKeys: [] },
+  { id: "host-restarted", groupByAttributeKeys: [] },
   { id: "host-high-cpu", groupByAttributeKeys: [] },
   { id: "host-high-memory", groupByAttributeKeys: [] },
+  // Every swap device's used and free, added up: the host's swap.
+  { id: "host-high-swap", groupByAttributeKeys: [] },
   { id: "host-high-load-average", groupByAttributeKeys: [] },
   { id: "host-high-processes", groupByAttributeKeys: [] },
+  /*
+   * One alert per failed unit. The systemd receiver reports a resource per
+   * unit, so the unit's name is a resource attribute and carries the
+   * `resource.` prefix ingest stores resource attributes under.
+   */
+  {
+    id: "host-systemd-unit-failed",
+    groupByAttributeKeys: ["resource.systemd.unit.name"],
+  },
   /*
    * Per-entity within the host: one series (and one incident) per mount.
    * `device` rides along as identity the alert can NAME - it is constant
@@ -142,6 +154,11 @@ const EXPECTED_HOST_GROUP_BY: Array<GroupByExpectation> = [
    */
   {
     id: "host-high-filesystem",
+    groupByAttributeKeys: ["mountpoint", "device"],
+  },
+  // The same identity for the mount whose inodes run out.
+  {
+    id: "host-running-out-of-inodes",
     groupByAttributeKeys: ["mountpoint", "device"],
   },
 ];
