@@ -676,6 +676,7 @@ export default class UserOnCallLogTimeline extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(UserNotificationEventType),
     title: "Notification Event Type",
     description: "Notification Event Type of this execution",
     canReadOnRelationQuery: false,
@@ -778,6 +779,7 @@ export default class UserOnCallLogTimeline extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(UserNotificationStatus),
     title: "Status",
     description: "Status of this execution timeline event",
     canReadOnRelationQuery: false,
@@ -871,6 +873,7 @@ export default class UserOnCallLogTimeline extends BaseModel {
     isDefaultValueColumn: false,
     required: false,
     type: TableColumnType.Boolean,
+    description: "Whether the person acknowledged this notification.",
   })
   @Column({
     type: ColumnType.Boolean,
@@ -888,6 +891,8 @@ export default class UserOnCallLogTimeline extends BaseModel {
     isDefaultValueColumn: false,
     required: false,
     type: TableColumnType.Date,
+    description:
+      "When the person acknowledged this notification. Empty until they do.",
   })
   @Column({
     type: ColumnType.Date,

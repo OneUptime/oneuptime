@@ -31,6 +31,19 @@ export interface TableColumnMetadata {
    */
   hashSaltColumn?: string;
   encrypted?: boolean;
+  /*
+   * The value lets whoever has it in: a key, a token, a passphrase, a
+   * private key, a webhook address. Hashed and encrypted text columns are
+   * secrets already; this marks the ones stored as they are, which a
+   * caller with the right permission reads back - an API key's value, a
+   * probe's key, an incoming request monitor's secret key. The OpenAPI spec
+   * says so (x-oneuptime-secret: ModelSchema.isSecretColumn), and the
+   * clients published from it keep the value out of what they print:
+   * Terraform and OpenTofu mark the attribute Sensitive, so plans, logs
+   * and outputs show (sensitive value). Tests/Utils/Schema/SecretColumns
+   * holds every column named like a secret to this.
+   */
+  secret?: boolean;
   manyToOneRelationColumn?: string;
   type: TableColumnType;
   canReadOnRelationQuery?: boolean;
@@ -52,6 +65,18 @@ export interface TableColumnMetadata {
   defaultValue?: string | number | boolean | JSONObject; // default value for the column, can be a string, number, or boolean
   forceGetDefaultValueOnCreate?: () => string | number | boolean; // overwrites any value that is being passed and generates a new one. Useful for generating OTPs, etc.
   example?: string | number | boolean | JSONObject | Array<JSONObject>; // example value for API documentation
+  /*
+   * The values a text column takes when it takes one of a few - its string
+   * enum's: allowedValues: Object.values(CloudProvider). The OpenAPI spec
+   * says them as the field's enum (ModelSchema), so the API reference lists
+   * them, MCP's tool schemas offer them, and the Terraform and OpenTofu
+   * provider refuses any other value at plan time and lists them where the
+   * attribute is documented. An example with no value of its own shows the
+   * first of them. Saying them changes nothing the server accepts.
+   * Tests/Models/ColumnAllowedValues holds every text column typed with a
+   * string enum to saying them.
+   */
+  allowedValues?: ReadonlyArray<string>;
   ordered?: boolean;
 }
 

@@ -241,7 +241,7 @@ export default class MonitorOwnerUser extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "User ID",
-    description: "ID of your OneUptime User in which this object belongs",
+    description: "ID of the user who owns the monitor",
     example: "8c1d3e5f-a7b9-4c2e-9d6f-1a2b3c4d5e6f",
   })
   @Column({
@@ -321,7 +321,7 @@ export default class MonitorOwnerUser extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "Monitor ID",
-    description: "ID of your OneUptime Monitor in which this object belongs",
+    description: "ID of the monitor the user owns",
     example: "3c5e7f9a-d1b2-4e6a-8f9c-0d1e2f3a4b5c",
   })
   @Column({

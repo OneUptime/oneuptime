@@ -461,6 +461,7 @@ export default class ServiceFeed extends BaseModel {
   })
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(ServiceFeedEventType),
     required: true,
     title: "Service Feed Event",
     description: "Service Feed Event",

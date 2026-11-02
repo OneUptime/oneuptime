@@ -49,6 +49,7 @@ import User from "../../../UI/Utils/User";
 import { MemoryRouter, Route as RouterRoute, Routes } from "react-router-dom";
 import englishLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import GitHubMark from "../../../Types/ProviderLogo/Marks/github";
 import { goTo, PROJECT_ID } from "./SideMenuHarness";
 
 /*
@@ -1774,9 +1775,9 @@ describe("Code's Repositories", () => {
     const reconnect: HTMLElement = within(empty).getByTestId(
       "code-github-reconnect",
     );
-    expect(
-      reconnect.querySelector("path")?.getAttribute("d")?.startsWith("M12 0c"),
-    ).toBe(true);
+    expect(reconnect.querySelector("path")?.getAttribute("d")).toBe(
+      GitHubMark[0]?.d,
+    );
 
     fireEvent.click(within(empty).getByTestId("code-github-reconnect"));
 

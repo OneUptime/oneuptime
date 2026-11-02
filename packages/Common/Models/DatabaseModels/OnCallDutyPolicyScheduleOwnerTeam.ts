@@ -239,7 +239,7 @@ export default class OnCallDutyPolicyScheduleOwnerTeam extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "Team ID",
-    description: "ID of your OneUptime Team in which this object belongs",
+    description: "ID of the team that owns the on-call schedule",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -318,8 +318,7 @@ export default class OnCallDutyPolicyScheduleOwnerTeam extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "On-Call Schedule ID",
-    description:
-      "ID of your OneUptime On-Call Schedule in which this object belongs",
+    description: "ID of the on-call schedule the team owns",
   })
   @Column({
     type: ColumnType.ObjectID,

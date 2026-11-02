@@ -26,8 +26,8 @@ export const AdClickIdKeys: Array<string> = [
 ];
 
 /*
- * UTM parameters travel as snake_case on a URL and as camelCase once they are
- * columns on User/Project. Both spellings are accepted on the way in — hand
+ * Campaign parameters travel as snake_case on a URL and as camelCase once they
+ * are columns on User/Project. Both spellings are accepted on the way in — hand
  * written links produce either — and only the camelCase form is stored.
  */
 export const UtmWireKeyToPropertyKey: Record<string, string> = {
@@ -46,6 +46,19 @@ export const UtmWireKeyToPropertyKey: Record<string, string> = {
   utm_source_platform: "utmSourcePlatform",
   utm_creative_format: "utmCreativeFormat",
   utm_marketing_tactic: "utmMarketingTactic",
+  /*
+   * Google Ads' own campaign parameters. Not UTMs, but they travel the same
+   * way: Google Ads adds them to the landing URL of its ad clicks, gad_source
+   * even with auto-tagging off
+   * (https://support.google.com/google-ads/answer/16193746). gad_campaignid
+   * names the campaign on a click whose ad carries no UTMs at all;
+   * gad_source says which of Google's surfaces showed the ad, as a number
+   * Google does not document. Google appends them after the ad's own
+   * parameters, so a long landing URL loses them first when utmUrl is cut to
+   * its column - hence columns of their own.
+   */
+  gad_source: "gadSource",
+  gad_campaignid: "gadCampaignId",
 };
 
 export const UtmPropertyKeys: Array<string> = Object.values(
@@ -53,10 +66,8 @@ export const UtmPropertyKeys: Array<string> = Object.values(
 );
 
 /*
- * The landing URL of the attributed visit. Stored separately from the UTM
- * values because it is the only field that survives a campaign whose link
- * carried no UTMs at all (Google Ads auto-tagging sends gclid and nothing
- * else).
+ * The landing URL of the attributed visit. Stored beside the campaign values
+ * because it keeps whatever the link carried that no list here names.
  */
 export const UtmUrlPropertyKey: string = "utmUrl";
 

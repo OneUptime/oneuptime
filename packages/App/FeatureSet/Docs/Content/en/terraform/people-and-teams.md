@@ -107,6 +107,15 @@ output "alice_teams" {
 }
 ```
 
+Other data sources find a record by the address of the person it names, beside their ID. This one reads Alice's membership of the SRE team:
+
+```hcl
+data "oneuptime_team_member" "alice" {
+  team_id    = oneuptime_team.sre.id
+  user_email = "alice@example.com"
+}
+```
+
 ## Offboarding
 
 Remove the person's memberships from your configuration and apply. Out of their last team of the project, they are out of the project, and OneUptime takes them off every on-call schedule, escalation rule and override, and off what they own: everything, except the incidents, alerts and maintenance events that are over. Remove the blocks that name them in the same change, or the next plan creates them again for someone who is no longer in the project.
@@ -122,6 +131,13 @@ terraform import oneuptime_team_member.alice 6b1d1c2e-4f3a-4b5c-8d6e-7f8091a2b3c
 ```
 
 The address stays as you wrote it, so write it as your configuration does. The membership's own ID imports it too, and then the address is read from OneUptime, in lower case.
+
+Owners and on-call rows import the same way, by what they belong to. A monitor's owner takes the monitor's ID and the person's address. A row that names a team or a schedule, such as an owner team or the team an escalation rule pages, takes both IDs:
+
+```bash
+terraform import oneuptime_monitor_user_owner.api 68a1b2c3-d4e5-4f6a-8b9c-0d1e2f3a4b01/bob@example.com
+terraform import oneuptime_escalation_rule_team.sre 68a1b2c3-d4e5-4f6a-8b9c-0d1e2f3a4b06/6b1d1c2e-4f3a-4b5c-8d6e-7f8091a2b3c4
+```
 
 ## When someone changes their address
 

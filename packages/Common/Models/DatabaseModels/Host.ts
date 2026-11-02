@@ -1300,8 +1300,7 @@ export default class Host extends BaseModel {
     type: TableColumnType.EntityArray,
     modelType: Label,
     title: "Labels",
-    description:
-      "Relation to Labels Array where this object is categorized in.",
+    description: "Labels to group and filter by.",
   })
   @ManyToMany(
     () => {
@@ -1694,6 +1693,7 @@ export default class Host extends BaseModel {
     isDefaultValueColumn: true,
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(ResourceAiRemediationMode),
     title: "AI Remediation Mode",
     /*
      * The API and Terraform docs for the mode: the same semantics as the
@@ -2164,6 +2164,7 @@ export default class Host extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(HostCollectorConfigStatus),
     title: "Collector Config Status",
     description:
       "Where this host stands with the config OneUptime sends it: waiting, applying, applied or failed. Set by the server.",

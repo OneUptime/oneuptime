@@ -107,6 +107,7 @@ export default class WorkspaceLiveMessage extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(WorkspaceType),
     title: "Workspace Type",
     description: "The workspace the message is in: Slack or Microsoft Teams.",
   })
@@ -145,6 +146,7 @@ export default class WorkspaceLiveMessage extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(WorkspaceLiveMessageDestinationType),
     title: "Destination Type",
     description:
       "Whether the message is in a channel or in a Microsoft Teams chat.",

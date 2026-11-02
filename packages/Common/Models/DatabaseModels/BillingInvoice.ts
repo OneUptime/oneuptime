@@ -338,6 +338,7 @@ export default class BillingInvoice extends BaseModel {
   })
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(InvoiceStatus),
     example: "paid",
   })
   @Column({

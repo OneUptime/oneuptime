@@ -386,6 +386,7 @@ export default class VMwareVCenterConnectionTest extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(VMwareConnectionTestStatus),
     title: "Status",
     description:
       "Pending (waiting for the probe), Running, Succeeded or Failed. Written by the server and the probe.",
@@ -409,6 +410,7 @@ export default class VMwareVCenterConnectionTest extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(VMwareCollectionErrorCode),
     title: "Error Code",
     description:
       "Why the test failed, as a code (InvalidLogin, UntrustedCertificate, ...).",

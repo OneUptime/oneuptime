@@ -65,6 +65,7 @@ export default class PromoCode extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(PlanType),
     canReadOnRelationQuery: true,
     title: "Plan Type",
     description:

@@ -221,7 +221,7 @@ export default class ServiceLevelObjectiveOwnerTeam extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "Team ID",
-    description: "ID of your OneUptime Team in which this object belongs",
+    description: "ID of the team that owns the service level objective",
     example: "7a9d1e2f-b3c4-5d6e-9f0a-1b2c3d4e5f6a",
   })
   @Column({
@@ -292,8 +292,7 @@ export default class ServiceLevelObjectiveOwnerTeam extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "Service Level Objective ID",
-    description:
-      "ID of your OneUptime Service Level Objective in which this object belongs",
+    description: "ID of the service level objective the team owns",
     example: "3c5e7f9a-d1b2-4e6a-8f9c-0d1e2f3a4b5c",
   })
   @Column({

@@ -96,4 +96,4 @@ Each `monitors` entry takes:
 
 The provider is published to both the [OpenTofu Registry](https://search.opentofu.org/provider/oneuptime/oneuptime/latest) and the [Terraform Registry](https://registry.terraform.io/providers/oneuptime/oneuptime), so the bare `oneuptime/oneuptime` source address in `versions.tf` resolves under either engine with no change.
 
-Who gets paged is a separate step: the module creates the policy and its escalation rule, but the rule pages nobody until you add a team, a user or an on-call schedule to it, in the OneUptime dashboard or with `oneuptime_team_on_call_duty_escalation_rule` and the module's `on_call_policy_id` and `escalation_rule_id` outputs.
+Who gets paged is a separate step: the module creates the policy and its escalation rule, but the rule pages nobody until you add a team, a user or an on-call schedule to it, in the OneUptime dashboard or with `oneuptime_escalation_rule_team` and the module's `on_call_policy_id` and `escalation_rule_id` outputs.

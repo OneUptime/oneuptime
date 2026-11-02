@@ -173,6 +173,7 @@ export default class SecurityEventDestination extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(SecurityEventDestinationProvider),
     canReadOnRelationQuery: true,
     title: "Provider",
     description:
@@ -252,6 +253,7 @@ export default class SecurityEventDestination extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(SecurityEventDestinationScope),
     canReadOnRelationQuery: true,
     title: "What to Send",
     description:

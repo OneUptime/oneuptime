@@ -223,7 +223,7 @@ export default class WorkflowOwnerUser extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "User ID",
-    description: "ID of your OneUptime User in which this object belongs",
+    description: "ID of the user who owns the workflow",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -299,7 +299,7 @@ export default class WorkflowOwnerUser extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "Workflow ID",
-    description: "ID of your OneUptime Workflow in which this object belongs",
+    description: "ID of the workflow the user owns",
   })
   @Column({
     type: ColumnType.ObjectID,

@@ -41,13 +41,12 @@ import {
  */
 
 /*
- * Two models that share a singular name share a provider resource: the
- * generator groups operations by name, so one model's endpoints win. Those
- * are left out (and no Developer page documents them).
+ * No two models share a provider resource: the subscriber notification
+ * template and its link to a status page did (one singular name), until the
+ * link got a client name of its own (ClientResourceNames.ts). The generator
+ * now stops when two models make one resource, so every model with a
+ * resource is held to it here.
  */
-const SHARED_NAME_TYPES: ReadonlyArray<string> = [
-  "oneuptime_subscriber_notification_template",
-];
 
 const PROVIDER_TYPES_BY_KIND: Readonly<
   Record<TerraformValueKind, Array<string>>
@@ -117,11 +116,7 @@ function modelsWithResources(): Array<[string, DatabaseBaseModelType]> {
   return Models.filter((modelType: DatabaseBaseModelType): boolean => {
     const typeName: string | null = getTerraformTypeName(modelType);
 
-    return (
-      Boolean(typeName) &&
-      !SHARED_NAME_TYPES.includes(typeName as string) &&
-      getTerraformAttributes(modelType).length > 0
-    );
+    return Boolean(typeName) && getTerraformAttributes(modelType).length > 0;
   }).map(
     (modelType: DatabaseBaseModelType): [string, DatabaseBaseModelType] => {
       return [modelType.name, modelType];

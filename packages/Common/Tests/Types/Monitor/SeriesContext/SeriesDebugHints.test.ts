@@ -345,6 +345,29 @@ describe("SeriesDebugHints", () => {
       expect(commands[0]).toContain("'/mnt/my volume'");
     });
 
+    test("a failed systemd unit is looked at by its own name, read-only", () => {
+      // The Systemd Unit Failed template groups by the unit's resource attribute.
+      const commands: Array<string> = getCommandStrings({
+        monitorType: MonitorType.Host,
+        seriesLabels: { "resource.systemd.unit.name": "nginx.service" },
+      });
+
+      expect(commands).toEqual([
+        "systemctl status nginx.service --no-pager",
+        "journalctl -u nginx.service -n 50 --no-pager",
+      ]);
+    });
+
+    test("a unit name that is not a plain word stays one argument", () => {
+      const commands: Array<string> = getCommandStrings({
+        monitorType: MonitorType.Host,
+        seriesLabels: { "systemd.unit.name": "getty@tty 1.service" },
+      });
+
+      expect(commands[0]).toContain("'getty@tty 1.service'");
+      expect(commands[1]).toContain("-u 'getty@tty 1.service'");
+    });
+
     test("a Server monitor gets the same host commands", () => {
       expect(
         getCommandStrings({

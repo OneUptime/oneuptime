@@ -221,7 +221,10 @@ class User extends UserModel {
 
     update: [Permission.CurrentUser],
   })
-  @TableColumn({ type: TableColumnType.ShortText })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    allowedValues: Object.values(JobRole),
+  })
   @Column({
     type: ColumnType.ShortText,
     length: ColumnLength.ShortText,
@@ -236,7 +239,10 @@ class User extends UserModel {
 
     update: [Permission.CurrentUser],
   })
-  @TableColumn({ type: TableColumnType.ShortText })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    allowedValues: Object.values(CompanySize),
+  })
   @Column({
     type: ColumnType.ShortText,
     length: ColumnLength.ShortText,
@@ -361,7 +367,10 @@ class User extends UserModel {
 
     update: [],
   })
-  @TableColumn({ type: TableColumnType.ShortText })
+  @TableColumn({
+    secret: true,
+    type: TableColumnType.ShortText,
+  })
   @Column({
     type: ColumnType.ShortText,
     length: ColumnLength.ShortText,
@@ -750,6 +759,46 @@ class User extends UserModel {
     unique: false,
   })
   public utmMarketingTactic?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [Permission.Public],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.LongText,
+    hideColumnInDocumentation: true,
+    title: "Google Ads Source",
+    description:
+      "gad_source from the landing URL of the visit that led to signup: which of Google's surfaces showed the ad, as Google Ads adds it to its ad clicks.",
+  })
+  @Column({
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+    nullable: true,
+    unique: false,
+  })
+  public gadSource?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [Permission.Public],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.LongText,
+    hideColumnInDocumentation: true,
+    title: "Google Ads Campaign ID",
+    description:
+      "gad_campaignid from the landing URL of the visit that led to signup: the Google Ads campaign of the ad, which Google Ads adds to its ad clicks whether or not the ad carries UTM parameters.",
+  })
+  @Column({
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+    nullable: true,
+    unique: false,
+  })
+  public gadCampaignId?: string = undefined;
 
   @ColumnAccessControl({
     create: [Permission.Public],

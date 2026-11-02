@@ -213,6 +213,7 @@ export default class SecurityCaseFeed extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(SecurityCaseFeedEventType),
     title: "Event Type",
     description: "What kind of thing happened.",
   })

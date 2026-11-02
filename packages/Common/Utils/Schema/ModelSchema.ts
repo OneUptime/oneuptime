@@ -31,6 +31,7 @@ import {
 import { getMonitorStepsSchema } from "./MonitorSchemas";
 import MonitorType from "../../Types/Monitor/MonitorType";
 import WorkflowStatus from "../../Types/Workflow/WorkflowStatus";
+import CustomFieldType from "../../Types/CustomField/CustomFieldType";
 
 export type ModelSchemaType = ZodSchema;
 
@@ -172,6 +173,20 @@ const RELATION_SELECT_SCHEMAS: Map<string, ModelSchemaType> = new Map();
 
 const EXAMPLE_ID: string = "123e4567-e89b-12d3-a456-426614174000";
 
+/*
+ * What a text field's example is when its column gives none of its own
+ * (TableColumn.example, or the first of its allowedValues): placeholders,
+ * which a reader replaces.
+ */
+const SHORT_TEXT_EXAMPLE: string = "Example short text";
+const LONG_TEXT_EXAMPLE: string =
+  "This is an example of longer text content that might be stored in this field.";
+const VERY_LONG_TEXT_EXAMPLE: string =
+  "This is an example of very long text content that might be stored in this field. It can contain a lot of information, such as detailed descriptions, comments, or any other lengthy text data that needs to be stored in the database.";
+
+// What a column's description may already end its sentence with.
+const SENTENCE_END_PUNCTUATION: ReadonlyArray<string> = [".", "!", "?"];
+
 const EXAMPLE_TIME: string = "2026-01-01T00:00:00.000Z";
 
 // Type for schema method functions
@@ -218,6 +233,89 @@ export class ModelSchema extends BaseSchema {
     );
 
     return `Permissions - Create: [${createPermissions}], Read: [${readPermissions}], Update: [${updatePermissions}]`;
+  }
+
+  /*
+   * A column's description as the spec writes it: the column's own words as
+   * one sentence, then its permissions clause. A full stop is added only to
+   * words that end without one - most columns' descriptions end with their
+   * own ("Date and Time when the object was created."), and joining them
+   * with ". " wrote "created.. Permissions - ..." for more than half the
+   * spec's columns, which the API reference and every client reading the
+   * spec showed.
+   */
+  public static describeColumnWithPermissions(
+    description: string,
+    permissionsDescription: string,
+  ): string {
+    const words: string = description.trim();
+
+    if (!permissionsDescription) {
+      return words;
+    }
+
+    if (!words) {
+      return permissionsDescription;
+    }
+
+    const endsWithItsOwnPunctuation: boolean = SENTENCE_END_PUNCTUATION.some(
+      (mark: string) => {
+        return words.endsWith(mark);
+      },
+    );
+
+    return `${words}${endsWithItsOwnPunctuation ? "" : "."} ${permissionsDescription}`;
+  }
+
+  /*
+   * The values a text column takes, when it takes one of a few
+   * (TableColumn.allowedValues): the spec's enum for the field, each value
+   * once - an enum can give two names one value (MimeType's jpg and jpeg).
+   */
+  public static getAllowedValues(
+    column: TableColumnMetadata,
+  ): Array<string> | undefined {
+    if (!column.allowedValues || column.allowedValues.length === 0) {
+      return undefined;
+    }
+
+    return Array.from(new Set(column.allowedValues));
+  }
+
+  /*
+   * A text field's example: its column's own (TableColumn.example), else
+   * the first value it takes when it takes one of a few - "aws" for a cloud
+   * account's provider - else the placeholder for its type. Clients copy
+   * it: the Terraform provider's examples, the API reference, MCP's tool
+   * schemas, the Dashboard's Developer pages.
+   */
+  public static getTextExample(
+    column: TableColumnMetadata,
+    placeholder: string,
+  ): string {
+    if (typeof column.example === "string" && column.example.trim()) {
+      return column.example;
+    }
+
+    return ModelSchema.getAllowedValues(column)?.[0] || placeholder;
+  }
+
+  /*
+   * What the spec says about a text field's value: a string, its example,
+   * and the values it takes when it takes one of a few.
+   */
+  private static getTextOpenApi(
+    column: TableColumnMetadata,
+    placeholder: string,
+  ): { type: "string"; example: string; enum?: Array<string> } {
+    const allowedValues: Array<string> | undefined =
+      ModelSchema.getAllowedValues(column);
+
+    return {
+      type: "string",
+      example: ModelSchema.getTextExample(column, placeholder),
+      ...(allowedValues ? { enum: allowedValues } : {}),
+    };
   }
 
   public static getModelSchema(data: {
@@ -272,11 +370,9 @@ export class ModelSchema extends BaseSchema {
       } else if (column.type === TableColumnType.Date) {
         zodType = getDateSchema();
       } else if (column.type === TableColumnType.VeryLongText) {
-        zodType = z.string().openapi({
-          type: "string",
-          example:
-            "This is an example of very long text content that might be stored in this field. It can contain a lot of information, such as detailed descriptions, comments, or any other lengthy text data that needs to be stored in the database.",
-        });
+        zodType = z
+          .string()
+          .openapi(ModelSchema.getTextOpenApi(column, VERY_LONG_TEXT_EXAMPLE));
       } else if (
         column.type === TableColumnType.Number ||
         column.type === TableColumnType.PositiveNumber
@@ -303,20 +399,19 @@ export class ModelSchema extends BaseSchema {
           .string()
           .openapi({ type: "string", example: "example-slug-value" });
       } else if (column.type === TableColumnType.ShortText) {
-        const openapiConfig: any = {
-          type: "string",
-          example: "Example short text",
-        };
+        const openapiConfig: any = ModelSchema.getTextOpenApi(
+          column,
+          SHORT_TEXT_EXAMPLE,
+        );
         if (column.defaultValue !== undefined) {
           openapiConfig.default = column.defaultValue;
         }
         zodType = z.string().openapi(openapiConfig);
       } else if (column.type === TableColumnType.LongText) {
-        const openapiConfig: any = {
-          type: "string",
-          example:
-            "This is an example of longer text content that might be stored in this field.",
-        };
+        const openapiConfig: any = ModelSchema.getTextOpenApi(
+          column,
+          LONG_TEXT_EXAMPLE,
+        );
         if (column.defaultValue !== undefined) {
           openapiConfig.default = column.defaultValue;
         }
@@ -440,15 +535,17 @@ export class ModelSchema extends BaseSchema {
           example: { read: true, write: false, delete: false },
         });
       } else if (column.type === TableColumnType.CustomFieldType) {
-        zodType = z.any().openapi({
-          type: "object",
-          example: { type: "text", required: true },
+        // What a custom field holds: "Text", "Number", "Dropdown"...
+        zodType = z.string().openapi({
+          type: "string",
+          enum: Object.values(CustomFieldType),
+          example: CustomFieldType.Text,
         });
       } else if (column.type === TableColumnType.MonitorType) {
         zodType = z.string().openapi({
           type: "string",
           enum: Object.values(MonitorType),
-          example: "Manual",
+          example: MonitorType.Manual,
         });
       } else if (column.type === TableColumnType.WorkflowStatus) {
         zodType = z.string().openapi({
@@ -554,16 +651,11 @@ export class ModelSchema extends BaseSchema {
         finalDescription = column.title;
       }
 
-      // Add permissions description, prefixed to the column description
-      const permissionsDescription: string =
-        this.getColumnPermissionsDescription(model, key);
-      if (permissionsDescription) {
-        if (finalDescription) {
-          finalDescription = `${finalDescription}. ${permissionsDescription}`;
-        } else {
-          finalDescription = permissionsDescription;
-        }
-      }
+      // The column's description, then who may read and write it.
+      finalDescription = ModelSchema.describeColumnWithPermissions(
+        finalDescription,
+        this.getColumnPermissionsDescription(model, key),
+      );
 
       // Set the final combined description
       zodType = this.annotateColumn({
@@ -578,12 +670,7 @@ export class ModelSchema extends BaseSchema {
       }
 
       // A secret, as getZodTypeForColumn says too.
-      if (
-        column.encrypted &&
-        ENCRYPTED_SECRET_COLUMN_TYPES.includes(column.type)
-      ) {
-        zodType = zodType.openapi({ format: "password" });
-      }
+      zodType = ModelSchema.annotateSecret(zodType, column);
 
       shape[key] = zodType;
     }
@@ -1372,16 +1459,11 @@ export class ModelSchema extends BaseSchema {
         finalDescription = column.title;
       }
 
-      // Add permissions description, prefixed to the column description
-      const permissionsDescription: string =
-        this.getColumnPermissionsDescription(model, key);
-      if (permissionsDescription) {
-        if (finalDescription) {
-          finalDescription = `${finalDescription}. ${permissionsDescription}`;
-        } else {
-          finalDescription = permissionsDescription;
-        }
-      }
+      // The column's description, then who may read and write it.
+      finalDescription = ModelSchema.describeColumnWithPermissions(
+        finalDescription,
+        this.getColumnPermissionsDescription(model, key),
+      );
 
       // Set the final combined description
       zodType = this.annotateColumn({
@@ -1448,11 +1530,10 @@ export class ModelSchema extends BaseSchema {
     } else if (column.type === TableColumnType.Date) {
       zodType = getDateSchema();
     } else if (column.type === TableColumnType.VeryLongText) {
-      zodType = applyOpenApi(z.string(), {
-        type: "string",
-        example:
-          "This is an example of very long text content that might be stored in this field. It can contain a lot of information, such as detailed descriptions, comments, or any other lengthy text data that needs to be stored in the database.",
-      });
+      zodType = applyOpenApi(
+        z.string(),
+        ModelSchema.getTextOpenApi(column, VERY_LONG_TEXT_EXAMPLE),
+      );
     } else if (
       column.type === TableColumnType.Number ||
       column.type === TableColumnType.PositiveNumber
@@ -1476,16 +1557,15 @@ export class ModelSchema extends BaseSchema {
         example: "example-slug-value",
       });
     } else if (column.type === TableColumnType.ShortText) {
-      zodType = applyOpenApi(z.string(), {
-        type: "string",
-        example: "Example short text",
-      });
+      zodType = applyOpenApi(
+        z.string(),
+        ModelSchema.getTextOpenApi(column, SHORT_TEXT_EXAMPLE),
+      );
     } else if (column.type === TableColumnType.LongText) {
-      zodType = applyOpenApi(z.string(), {
-        type: "string",
-        example:
-          "This is an example of longer text content that might be stored in this field.",
-      });
+      zodType = applyOpenApi(
+        z.string(),
+        ModelSchema.getTextOpenApi(column, LONG_TEXT_EXAMPLE),
+      );
     } else if (column.type === TableColumnType.Phone) {
       zodType = getPhoneSchema();
     } else if (column.type === TableColumnType.Version) {
@@ -1604,15 +1684,18 @@ export class ModelSchema extends BaseSchema {
         example: { read: true, write: false, delete: false },
       });
     } else if (column.type === TableColumnType.CustomFieldType) {
-      zodType = applyOpenApi(z.any(), {
-        type: "object",
-        example: { type: "text", required: true },
+      // What a custom field holds: "Text", "Number", "Dropdown"...
+      zodType = applyOpenApi(z.string(), {
+        type: "string",
+        enum: Object.values(CustomFieldType),
+        example: CustomFieldType.Text,
       });
     } else if (column.type === TableColumnType.MonitorType) {
+      // A value the API takes ("HTTP" is none).
       zodType = applyOpenApi(z.string(), {
         type: "string",
         enum: Object.values(MonitorType),
-        example: "HTTP",
+        example: MonitorType.Manual,
       });
     } else if (column.type === TableColumnType.WorkflowStatus) {
       zodType = applyOpenApi(z.string(), {
@@ -1735,20 +1818,61 @@ export class ModelSchema extends BaseSchema {
     }
 
     /*
-     * An encrypted text column holds a secret - a password, a token, a key -
-     * so the spec says so (format: password), as it does for a hashed one:
-     * the Terraform provider marks the attribute Sensitive, and plans and
-     * outputs never print it.
+     * A secret - an encrypted or hashed column, or one its model marks
+     * secret: a password, a token, a key - so the spec says so
+     * (annotateSecret): the Terraform provider marks the attribute
+     * Sensitive, and plans and outputs never print it.
      */
-    if (
-      column.encrypted &&
-      ENCRYPTED_SECRET_COLUMN_TYPES.includes(column.type) &&
-      !disableOpenApiSchema
-    ) {
-      zodType = zodType.openapi({ format: "password" });
+    if (!disableOpenApiSchema) {
+      zodType = ModelSchema.annotateSecret(zodType, column);
     }
 
     return zodType;
+  }
+
+  /*
+   * Whether a column's value is a secret: a hashed or password column, an
+   * encrypted text column, or one its model marks `secret` - a key, a
+   * token or a webhook address stored as it is (TableColumnMetadata.secret).
+   */
+  public static isSecretColumn(column: TableColumnMetadata): boolean {
+    return (
+      Boolean(column.secret) ||
+      column.type === TableColumnType.HashedString ||
+      column.type === TableColumnType.Password ||
+      Boolean(
+        column.encrypted && ENCRYPTED_SECRET_COLUMN_TYPES.includes(column.type),
+      )
+    );
+  }
+
+  /*
+   * A secret, as the spec says it: x-oneuptime-secret on every one, which
+   * the clients published from the spec read (the Terraform provider marks
+   * the attribute Sensitive), and format: password on an encrypted text
+   * column, as OpenAPI writes a secret string. A secret of another type
+   * keeps its own format - an API key is still a uuid.
+   */
+  private static annotateSecret(
+    zodType: ZodTypes.ZodTypeAny,
+    column: TableColumnMetadata,
+  ): ZodTypes.ZodTypeAny {
+    if (!ModelSchema.isSecretColumn(column)) {
+      return zodType;
+    }
+
+    let annotated: ZodTypes.ZodTypeAny = zodType.openapi({
+      "x-oneuptime-secret": true,
+    } as any);
+
+    if (
+      column.encrypted &&
+      ENCRYPTED_SECRET_COLUMN_TYPES.includes(column.type)
+    ) {
+      annotated = annotated.openapi({ format: "password" });
+    }
+
+    return annotated;
   }
 
   public static getCreateModelSchema(data: {

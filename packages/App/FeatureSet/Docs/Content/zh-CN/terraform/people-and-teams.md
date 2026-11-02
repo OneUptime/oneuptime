@@ -107,6 +107,15 @@ output "alice_teams" {
 }
 ```
 
+其他数据源也可以按记录所指人员的地址查找记录，与其 ID 并列。下面这个读取 Alice 在 SRE 团队中的成员资格：
+
+```hcl
+data "oneuptime_team_member" "alice" {
+  team_id    = oneuptime_team.sre.id
+  user_email = "alice@example.com"
+}
+```
+
 ## 让人离开
 
 从配置中删除此人的成员资格并应用。离开项目中的最后一个团队后，此人就离开了项目，OneUptime 会把此人从每个值班排班、升级规则和替班中移除，也从此人拥有的东西中移除：除已结束的事件、告警和维护事件之外的一切。请在同一次变更中删除指定此人的块，否则下一次计划会为一个已不在项目中的人重新创建它们。
@@ -122,6 +131,13 @@ terraform import oneuptime_team_member.alice 6b1d1c2e-4f3a-4b5c-8d6e-7f8091a2b3c
 ```
 
 地址会保持你写的样子，所以请按配置中的写法来写。成员资格自身的 ID 也能导入它，此时地址从 OneUptime 读取，为小写。
+
+所有者和值班行也以同样方式导入，按它们所属的内容。监视器的所有者按监视器的 ID 和此人的地址导入。指向团队或排班的行，例如所有者团队，或升级规则呼叫的团队，按两个 ID 导入：
+
+```bash
+terraform import oneuptime_monitor_user_owner.api 68a1b2c3-d4e5-4f6a-8b9c-0d1e2f3a4b01/bob@example.com
+terraform import oneuptime_escalation_rule_team.sre 68a1b2c3-d4e5-4f6a-8b9c-0d1e2f3a4b06/6b1d1c2e-4f3a-4b5c-8d6e-7f8091a2b3c4
+```
 
 ## 有人更改了地址时
 

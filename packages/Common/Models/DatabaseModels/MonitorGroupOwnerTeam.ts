@@ -242,7 +242,7 @@ export default class MonitorGroupOwnerTeam extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "Team ID",
-    description: "ID of your OneUptime Team in which this object belongs",
+    description: "ID of the team that owns the monitor group",
     example: "c2d3e4f5-a6b7-8c9d-0e1f-2a3b4c5d6e7f",
   })
   @Column({
@@ -323,8 +323,7 @@ export default class MonitorGroupOwnerTeam extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "MonitorGroup ID",
-    description:
-      "ID of your OneUptime MonitorGroup in which this object belongs",
+    description: "ID of the monitor group the team owns",
     example: "b1c2d3e4-f5a6-7b8c-9d0e-1f2a3b4c5d6e",
   })
   @Column({

@@ -75,6 +75,24 @@ describe("the cookie the sign-in reads", () => {
     });
   });
 
+  /*
+   * The marketing site stores Google Ads' own parameters under names that do
+   * not start with utm, and they have to reach the new account all the same.
+   */
+  test("carries the campaign Google Ads names, though its keys are not named utm", () => {
+    storeTouch();
+    window.localStorage.setItem("gadSource", "1");
+    window.localStorage.setItem("gadCampaignId", "23145678901");
+
+    expect(readBack()?.utm).toEqual({
+      utmSource: "google",
+      utmCampaign: "brand",
+      gadSource: "1",
+      gadCampaignId: "23145678901",
+      utmUrl: AD_URL,
+    });
+  });
+
   test("is nothing at all for a visitor the browser holds nothing for", () => {
     expect(getSignInAttributionCookieValue()).toBeNull();
   });

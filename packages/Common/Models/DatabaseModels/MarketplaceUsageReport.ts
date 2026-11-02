@@ -95,6 +95,7 @@ export default class MarketplaceUsageReport extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(CloudMarketplace),
     title: "Marketplace",
     description: "The cloud marketplace the usage was reported to.",
     example: "AWS",
@@ -169,6 +170,7 @@ export default class MarketplaceUsageReport extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(MarketplaceUsageReportStatus),
     title: "Status",
     description:
       "Pending (written, not yet confirmed), Reported (accepted by the marketplace) or Failed.",

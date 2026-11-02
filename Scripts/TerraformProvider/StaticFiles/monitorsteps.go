@@ -1023,10 +1023,78 @@ func MonitorStepsSchemaAttribute(description string) schema.ListNestedAttribute 
 		Computed: true,
 		PlanModifiers: []planmodifier.List{
 			listplanmodifier.UseStateForUnknown(),
+			MonitorStepsKeepImported(),
 		},
 		NestedObject: monitorStepsStepSchema(),
 		Validators:   []validator.List{listvalidator.SizeAtLeast(1)},
 	}
+}
+
+// monitorStepsAfterImportModifier keeps, right after an import, the steps
+// OneUptime has when the configuration's say the same thing: an import reads
+// every criteria's defaults written out (is_enabled = true, create_incidents
+// = false...), a step's request_type as GET, and a bare origin with its
+// trailing slash, none of which a configuration writes. They are the same
+// steps when the configuration's, as the API takes them, are a subset of the
+// imported ones with bare origins compared without their slash - the rule
+// ListSemanticEquals applies after an apply. Only right after an import
+// (isImportedFromServer): once Terraform writes the monitor, its state is
+// what the configuration says, and taking a field out is a change again.
+type monitorStepsAfterImportModifier struct{}
+
+// MonitorStepsKeepImported is the monitor_steps plan modifier above.
+func MonitorStepsKeepImported() planmodifier.List {
+	return monitorStepsAfterImportModifier{}
+}
+
+func (m monitorStepsAfterImportModifier) Description(ctx context.Context) string {
+	return m.MarkdownDescription(ctx)
+}
+
+func (m monitorStepsAfterImportModifier) MarkdownDescription(_ context.Context) string {
+	return "Right after an import, steps the configuration writes as OneUptime keeps them are no change."
+}
+
+func (m monitorStepsAfterImportModifier) PlanModifyList(ctx context.Context, req planmodifier.ListRequest, resp *planmodifier.ListResponse) {
+	if req.StateValue.IsNull() || req.StateValue.IsUnknown() ||
+		req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() ||
+		req.PlanValue.IsNull() || req.PlanValue.IsUnknown() {
+		return
+	}
+
+	if req.PlanValue.Equal(req.StateValue) || !isImportedFromServer(ctx, req.Private, req.Path) {
+		return
+	}
+
+	// A value known only at apply (a status looked up by a data source not
+	// read yet) is no value to compare: the steps may well change.
+	configured, err := req.ConfigValue.ToTerraformValue(ctx)
+	if err != nil || !configured.IsFullyKnown() {
+		return
+	}
+
+	if monitorStepsSameAfterImport(ctx, req.PlanValue, req.StateValue) {
+		resp.PlanValue = req.StateValue
+	}
+}
+
+// monitorStepsSameAfterImport: the steps a configuration writes, as the API
+// takes them, are a subset of the steps an import read, bare origins
+// compared without their trailing slash.
+func monitorStepsSameAfterImport(ctx context.Context, planned types.List, imported types.List) bool {
+	plannedSteps, plannedDiags := MonitorStepsToAPI(ctx, planned)
+	importedSteps, importedDiags := MonitorStepsToAPI(ctx, imported)
+	if plannedDiags.HasError() || importedDiags.HasError() || plannedSteps == nil || importedSteps == nil {
+		return false
+	}
+
+	plannedPlain, plannedErr := toPlainJSON(plannedSteps)
+	importedPlain, importedErr := toPlainJSON(importedSteps)
+	if plannedErr != nil || importedErr != nil {
+		return false
+	}
+
+	return jsonIsSubset(normalizeURLWrapperLeaves(plannedPlain), normalizeURLWrapperLeaves(importedPlain))
 }
 
 // ---------------------------------------------------------------------------

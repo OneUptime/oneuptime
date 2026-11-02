@@ -390,6 +390,7 @@ export default class IncidentSla extends BaseModel {
   @Index()
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(IncidentSlaStatus),
     required: true,
     title: "Status",
     description: "Current SLA status (On Track, At Risk, Breached, Met)",

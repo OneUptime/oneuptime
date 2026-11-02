@@ -453,6 +453,7 @@ export default class LogSavedView extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(SortOrder),
     canReadOnRelationQuery: true,
     title: "Sort Order",
     description: "Sort order for this saved log view.",

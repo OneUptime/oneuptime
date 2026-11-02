@@ -16,11 +16,13 @@ import FeedMarkdown, {
   mdText,
 } from "../../Utils/Markdown/FeedMarkdown";
 
+const GOOGLE_ADS: string = "Google Ads";
+
 // Who a click ID came from (AdClickIdKeys, Types/Marketing/Attribution.ts).
 const AD_PLATFORM_BY_CLICK_ID: Record<string, string> = {
-  gclid: "Google Ads",
-  wbraid: "Google Ads",
-  gbraid: "Google Ads",
+  gclid: GOOGLE_ADS,
+  wbraid: GOOGLE_ADS,
+  gbraid: GOOGLE_ADS,
   msclkid: "Microsoft Ads",
   fbclid: "Meta",
   li_fat_id: "LinkedIn",
@@ -344,8 +346,9 @@ export default class OperatorSlackNotice {
   /*
    * The campaign a new user came from, for whoever picks the lead up, or null
    * for one who came from none: most people, and everyone invited to a
-   * project. Google Ads' auto-tagging sends a click ID and no UTM values, so a
-   * click with nothing else is named by the platform it came from.
+   * project. An ad click carries no UTM values unless its ad adds them, so a
+   * click with nothing else is named by the platform it came from - and a
+   * Google Ads one by the campaign Google names on it, to look it up by.
    */
   private static describeCampaign(user: User): string | null {
     const campaign: string = [user.utmSource, user.utmMedium, user.utmCampaign]
@@ -356,10 +359,26 @@ export default class OperatorSlackNotice {
       return campaign;
     }
 
+    const platform: string | null = this.getAdPlatform(user);
+
+    if (platform === GOOGLE_ADS && user.gadCampaignId) {
+      return `${GOOGLE_ADS}, campaign ${user.gadCampaignId}`;
+    }
+
+    return platform;
+  }
+
+  // The ad platform a click came from, by its click ID or Google Ads' gad_* parameters.
+  private static getAdPlatform(user: User): string | null {
     for (const [clickId, platform] of Object.entries(AD_PLATFORM_BY_CLICK_ID)) {
       if (user.clickIds?.[clickId]) {
         return platform;
       }
+    }
+
+    // Only Google Ads adds these.
+    if (user.gadSource || user.gadCampaignId) {
+      return GOOGLE_ADS;
     }
 
     return null;

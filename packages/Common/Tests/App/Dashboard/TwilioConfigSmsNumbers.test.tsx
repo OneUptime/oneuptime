@@ -581,13 +581,14 @@ describe("the Twilio step of a Twilio config's form", () => {
       await walkToTwilioStep();
       await fillAccount(SG_NATIONAL);
       await openMoreFields();
-      await type(field, `${UK}, +44 7700 900124`);
+      // Cut short: since 9f3019bf4b a number grouped with spaces is one.
+      await type(field, `${UK}, +44 7700`);
       await clickFooter();
 
       await waitFor(() => {
         expect(
           within(dialog()).getByText(
-            '"+44 7700 900124" is not a phone number. Write each number with its country code and separate them with commas, like +14155550123, +447700900123.',
+            '"+44 7700" is not a phone number. Write each number with its country code and separate them with commas, like +14155550123, +447700900123.',
           ),
         ).toBeVisible();
       });

@@ -289,6 +289,7 @@ export default class RunbookRule extends RuleBaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(RunbookRuleTriggerEntity),
     title: "Trigger Entity Type",
     description:
       "Entity type that triggers this rule on creation: Incident, Alert, or ScheduledMaintenance.",

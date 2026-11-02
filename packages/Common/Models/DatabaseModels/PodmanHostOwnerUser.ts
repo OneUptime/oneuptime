@@ -230,7 +230,7 @@ export default class PodmanHostOwnerUser extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "User ID",
-    description: "ID of your OneUptime User in which this object belongs",
+    description: "ID of the user who owns the Podman host",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -309,8 +309,7 @@ export default class PodmanHostOwnerUser extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "Podman Host ID",
-    description:
-      "ID of your OneUptime Podman Host in which this object belongs",
+    description: "ID of the Podman host the user owns",
   })
   @Column({
     type: ColumnType.ObjectID,

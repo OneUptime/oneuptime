@@ -91,6 +91,8 @@ const FriendlyLabelNames: Record<string, string> = {
   direction: "Direction",
   state: "State",
   process: "Process",
+  // A systemd unit, as the collector's systemd receiver names it.
+  "systemd.unit.name": "Unit",
 
   /*
    * --- Proxmox ---
@@ -325,6 +327,7 @@ const LabelPriority: Record<string, number> = {
   "pve.type": 55,
   "pve.scope": 90,
   mountpoint: 30,
+  "systemd.unit.name": 30,
   diskPath: 30,
   "disk.path": 30,
   interfaceName: 30,

@@ -1101,6 +1101,7 @@ export default class NetworkSite extends BaseModel {
     isDefaultValueColumn: true,
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(SiteHealthRollupPolicy),
     canReadOnRelationQuery: true,
     title: "Health Rollup Policy",
     description:
