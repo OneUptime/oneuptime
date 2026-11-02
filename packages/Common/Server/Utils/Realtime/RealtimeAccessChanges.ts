@@ -1,3 +1,4 @@
+import EnterpriseEdition from "../../Enterprise/EnterpriseEdition";
 import Redis, { ClientType } from "../../Infrastructure/Redis";
 import GracefulShutdown, { ShutdownPriority } from "../GracefulShutdown";
 import logger from "../Logger";
@@ -59,6 +60,12 @@ export enum RealtimeAccessChangeKind {
   SignInRulesChanged = "SignInRulesChanged",
   // A master admin blocked or unblocked a project.
   ProjectBlockChanged = "ProjectBlockChanged",
+  /*
+   * A master admin changed how long sign-ins last (Types/UserSession/
+   * SessionLength.ts): every server reads the session lengths again before
+   * the next request it checks.
+   */
+  SessionLengthsChanged = "SessionLengthsChanged",
 }
 
 export type RealtimeAccessChange =
@@ -87,6 +94,9 @@ export type RealtimeAccessChange =
   | {
       kind: RealtimeAccessChangeKind.ProjectBlockChanged;
       projectId: string;
+    }
+  | {
+      kind: RealtimeAccessChangeKind.SessionLengthsChanged;
     };
 
 /*
@@ -466,6 +476,18 @@ export default class RealtimeAccessChanges {
 
           return;
         }
+
+        case RealtimeAccessChangeKind.SessionLengthsChanged: {
+          /*
+           * The sessions they end were ended where the change was made
+           * (UserSessionService.endSessionsPastLengths), each one told
+           * here as SessionsEnded; this server only reads them again, so
+           * its next request is checked against them.
+           */
+          EnterpriseEdition.forgetUserSessionLengths();
+
+          return;
+        }
       }
     } catch (err) {
       logger.error("Realtime: an access change could not be applied here.");
@@ -613,6 +635,9 @@ export default class RealtimeAccessChanges {
           kind: RealtimeAccessChangeKind.ProjectBlockChanged,
           projectId,
         };
+
+      case RealtimeAccessChangeKind.SessionLengthsChanged:
+        return { kind: RealtimeAccessChangeKind.SessionLengthsChanged };
 
       default:
         return null;

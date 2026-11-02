@@ -81,8 +81,6 @@ const MESSAGE_VIEW: string =
 const STATE_COOKIE_NAME: string = "oneuptime-microsoft-sign-in";
 const STATE_COOKIE_PATH: string = "/identity/microsoft";
 const STATE_TTL_IN_SECONDS: number = 10 * 60;
-const ACCESS_TOKEN_EXPIRY_SECONDS: number = 15 * 60;
-
 /*
  * Who a sign-in is for, and whether it just made their account: that is a
  * sign-up, which the Dashboard reports (SignedUpWithQueryParam).
@@ -314,10 +312,7 @@ router.get(
         expressResponse: res,
         user: user,
         isGlobalLogin: true,
-        sessionId: sessionMetadata.session.id!,
-        refreshToken: sessionMetadata.refreshToken,
-        refreshTokenExpiresAt: sessionMetadata.refreshTokenExpiresAt,
-        accessTokenExpiresInSeconds: ACCESS_TOKEN_EXPIRY_SECONDS,
+        ...CookieUtil.getSessionCookieFields(sessionMetadata),
       });
 
       logger.info(

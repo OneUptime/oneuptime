@@ -1,3 +1,4 @@
+import EnterpriseEdition from "../Enterprise/EnterpriseEdition";
 import AccessTokenService from "../Services/AccessTokenService";
 import GlobalConfigService from "../Services/GlobalConfigService";
 import ProjectService from "../Services/ProjectService";
@@ -56,6 +57,20 @@ import CallerPermission, {
   PermissionListModel,
 } from "../Utils/Permission/CallerPermission";
 import { PermissionOperation } from "../../Types/HeldPermissions";
+import OneUptimeDate from "../../Types/Date";
+import {
+  getSessionEndReachedBy,
+  SessionEndReason,
+  SessionLengths,
+} from "../../Types/UserSession/SessionLength";
+
+/*
+ * Why readRequestSession calls a session "invalid" when the server's
+ * session lengths have ended it: an expired access token, as the API
+ * answers it (a 401 the client renews on, and the renewal says why).
+ */
+export const SESSION_LENGTH_ENDED_TOKEN_MESSAGE: string =
+  "The session this access token belongs to has reached the server's session length or idle timeout.";
 
 /*
  * What a request's session is, as every route reads it (readRequestSession):
@@ -166,6 +181,21 @@ export default class UserMiddleware {
     }
 
     /*
+     * How long a sign-in lasts (Types/UserSession/SessionLength.ts), asked on
+     * every request: an access token never outlives its session - it is
+     * signed to expire when the session ends - but the server's session
+     * lengths can be shortened while it lives, and then the session has
+     * ended at once. Such a token is an expired one: the client renews, and
+     * the renewal says why the session ended (POST /refresh-token).
+     */
+    if (await UserMiddleware.getSessionLengthEndReason(session)) {
+      return {
+        kind: "invalid",
+        error: new NotAuthenticatedException(SESSION_LENGTH_ENDED_TOKEN_MESSAGE),
+      };
+    }
+
+    /*
      * The access token is a stateless JWT that lives for 15 minutes, and
      * blocking a user revokes their sessions but cannot recall a token already
      * issued. Without this check a blocked user keeps full access until it
@@ -198,6 +228,42 @@ export default class UserMiddleware {
     }
 
     return { kind: "user", session: session };
+  }
+
+  /*
+   * Whether the server's session lengths, as they are now, have ended the
+   * session an access token belongs to, and why, or null: from what the
+   * token says of its session - when it signed in, when its person was last
+   * active, and whether it is an SSO sign-in. A token an earlier release
+   * signed says neither time: its own expiry, at most 15 minutes away, ends
+   * it, and its session's renewal is asked. Nothing is set (the Community
+   * Edition, or no lengths) is null at once. Throws when the lengths cannot
+   * be read (EnterpriseEdition.getUserSessionLengths): an error, never a
+   * pass.
+   */
+  public static async getSessionLengthEndReason(
+    session: JSONWebTokenData,
+  ): Promise<SessionEndReason | null> {
+    if (session.signedInAtMs === undefined) {
+      return null;
+    }
+
+    const lengths: SessionLengths | null =
+      await EnterpriseEdition.getUserSessionLengths();
+
+    if (!lengths) {
+      return null;
+    }
+
+    return getSessionEndReachedBy(
+      {
+        signedInAt: new Date(session.signedInAtMs),
+        lastActiveAt: new Date(session.lastActiveAtMs ?? session.signedInAtMs),
+        isSsoSignIn: !session.isGlobalLogin,
+      },
+      lengths,
+      OneUptimeDate.getCurrentDate(),
+    );
   }
 
   /**

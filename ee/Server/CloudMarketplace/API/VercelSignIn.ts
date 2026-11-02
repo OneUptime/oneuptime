@@ -60,8 +60,6 @@ const router: ExpressRouter = Express.getRouter();
 
 const MESSAGE_VIEW: string =
   "/usr/src/app/FeatureSet/Identity/Views/Message.ejs";
-const ACCESS_TOKEN_EXPIRY_SECONDS: number = 15 * 60;
-
 const renderMessage: (
   req: ExpressRequest,
   res: ExpressResponse,
@@ -188,10 +186,7 @@ router.get(
         expressResponse: res,
         user: user,
         isGlobalLogin: true,
-        sessionId: sessionMetadata.session.id!,
-        refreshToken: sessionMetadata.refreshToken,
-        refreshTokenExpiresAt: sessionMetadata.refreshTokenExpiresAt,
-        accessTokenExpiresInSeconds: ACCESS_TOKEN_EXPIRY_SECONDS,
+        ...CookieUtil.getSessionCookieFields(sessionMetadata),
       });
 
       logger.info(

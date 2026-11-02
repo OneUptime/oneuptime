@@ -130,6 +130,85 @@ export default class GlobalConfig extends GlobalConfigModel {
   public disableUserProjectCreation?: boolean = undefined;
 
   /*
+   * How long a sign-in lasts (Types/UserSession/SessionLength.ts), in whole
+   * minutes, for SSO sign-ins and for every other sign-in each: the session
+   * length ("Sign people out after", counted from the sign-in, however
+   * active the person is; empty for no limit) and the idle timeout ("Sign
+   * people out after inactivity"; empty for 30 days, the longest a session
+   * lasts without use anyway). Set on Admin Dashboard > Settings > Session
+   * Length. An Enterprise Edition setting (EnterpriseFeature.SessionLength):
+   * only the Enterprise module hands them to the server's session checks, so
+   * the Community Edition keeps every sign-in as it always was.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    title: "Session Length (Minutes)",
+    description:
+      "Sign people out this many minutes after a sign-in that is not SSO, however active they are. Empty for no limit.",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public sessionLengthInMinutes?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    title: "Session Idle Timeout (Minutes)",
+    description:
+      "Sign people out after this many minutes without using OneUptime, for sign-ins that are not SSO. Empty for 30 days.",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public sessionIdleTimeoutInMinutes?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    title: "SSO Session Length (Minutes)",
+    description:
+      "Sign people out this many minutes after an SSO sign-in, however active they are. Empty for no limit.",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public ssoSessionLengthInMinutes?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    title: "SSO Session Idle Timeout (Minutes)",
+    description:
+      "Sign people out after this many minutes without using OneUptime, for SSO sign-ins. Empty for 30 days.",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public ssoSessionIdleTimeoutInMinutes?: number = undefined;
+
+  /*
    * Push notifications for the whole server: when on, nothing is sent to a
    * phone or browser through OneUptime's apps - through Expo, the push
    * relay, or a browser's push service - and no device can be registered

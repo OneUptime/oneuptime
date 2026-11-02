@@ -74,8 +74,6 @@ import SsoProviderType from "Common/Types/SSO/SsoProviderType";
 
 const router: ExpressRouter = Express.getRouter();
 
-const ACCESS_TOKEN_EXPIRY_SECONDS: number = 15 * 60;
-
 /*
  * Project SAML sign-in, served by core in every edition. The ACS URL
  * (/identity/idp-login/:projectId/:projectSsoId) is pasted into customers'
@@ -842,8 +840,10 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
           isMasterAdmin: alreadySavedUser.isMasterAdmin!,
           isGlobalLogin: false,
           sessionId: sessionMetadata.session.id!,
+          signedInAt: sessionMetadata.signedInAt,
+          lastActiveAt: sessionMetadata.lastActiveAt,
         },
-        expiresInSeconds: ACCESS_TOKEN_EXPIRY_SECONDS,
+        expiresInSeconds: sessionMetadata.accessTokenExpiresInSeconds,
       });
 
       // Generate SSO token for per-project authentication (same as setSSOCookie)
@@ -852,6 +852,7 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
         projectId: projectId,
         ssoProviderId: new ObjectID(req.params["projectSsoId"] as string),
         ssoProviderType: SsoProviderType.ProjectSSO,
+        expiresInSeconds: sessionMetadata.ssoSignInExpiresInSeconds,
       });
 
       const params: URLSearchParams = new URLSearchParams();
@@ -887,16 +888,14 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
       expressResponse: res,
       ssoProviderId: new ObjectID(req.params["projectSsoId"] as string),
       ssoProviderType: SsoProviderType.ProjectSSO,
+      expiresInSeconds: sessionMetadata.ssoSignInExpiresInSeconds,
     });
 
     CookieUtil.setUserCookie({
       expressResponse: res,
       user: alreadySavedUser,
       isGlobalLogin: false,
-      sessionId: sessionMetadata.session.id!,
-      refreshToken: sessionMetadata.refreshToken,
-      refreshTokenExpiresAt: sessionMetadata.refreshTokenExpiresAt,
-      accessTokenExpiresInSeconds: ACCESS_TOKEN_EXPIRY_SECONDS,
+      ...CookieUtil.getSessionCookieFields(sessionMetadata),
     });
 
     const host: Hostname = await DatabaseConfig.getHost();

@@ -63,8 +63,6 @@ import Name from "Common/Types/Name";
 
 const router: ExpressRouter = Express.getRouter();
 
-const ACCESS_TOKEN_EXPIRY_SECONDS: number = 15 * 60;
-
 const MESSAGE_VIEW: string =
   "/usr/src/app/FeatureSet/Identity/Views/Message.ejs";
 
@@ -777,6 +775,7 @@ const loginUserWithGlobalSso: LoginUserWithGlobalSsoFunction = async (
       user: alreadySavedUser,
       ssoProviderId: globalSsoId,
       ssoProviderType: SsoProviderType.GlobalSSO,
+      expiresInSeconds: sessionMetadata.ssoSignInExpiresInSeconds,
     });
 
     if (isMobileRequest) {
@@ -789,8 +788,10 @@ const loginUserWithGlobalSso: LoginUserWithGlobalSsoFunction = async (
           isMasterAdmin: alreadySavedUser.isMasterAdmin!,
           isGlobalLogin: false,
           sessionId: sessionMetadata.session.id!,
+          signedInAt: sessionMetadata.signedInAt,
+          lastActiveAt: sessionMetadata.lastActiveAt,
         },
-        expiresInSeconds: ACCESS_TOKEN_EXPIRY_SECONDS,
+        expiresInSeconds: sessionMetadata.accessTokenExpiresInSeconds,
       });
 
       /*
@@ -824,16 +825,14 @@ const loginUserWithGlobalSso: LoginUserWithGlobalSsoFunction = async (
       expressResponse: res,
       ssoProviderId: globalSsoId,
       ssoProviderType: SsoProviderType.GlobalSSO,
+      expiresInSeconds: sessionMetadata.ssoSignInExpiresInSeconds,
     });
 
     CookieUtil.setUserCookie({
       expressResponse: res,
       user: alreadySavedUser,
       isGlobalLogin: false,
-      sessionId: sessionMetadata.session.id!,
-      refreshToken: sessionMetadata.refreshToken,
-      refreshTokenExpiresAt: sessionMetadata.refreshTokenExpiresAt,
-      accessTokenExpiresInSeconds: ACCESS_TOKEN_EXPIRY_SECONDS,
+      ...CookieUtil.getSessionCookieFields(sessionMetadata),
     });
 
     const host: Hostname = await DatabaseConfig.getHost();
