@@ -13,6 +13,8 @@ import Log from "../../../Models/AnalyticsModels/Log";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { ClickhouseAppInstance } from "../../../Server/Infrastructure/ClickhouseDatabase";
 import AnalyticsModelPermission from "../../../Server/Types/AnalyticsDatabase/ModelPermission";
+import DatabaseRequestType from "../../../Server/Types/BaseDatabase/DatabaseRequestType";
+import ColumnWriteRefusedException from "../../../Server/Types/Database/Permissions/ColumnWriteRefusedException";
 import { Statement } from "../../../Server/Utils/AnalyticsDatabase/Statement";
 import StatementGenerator from "../../../Server/Utils/AnalyticsDatabase/StatementGenerator";
 import "../../Server/TestingUtils/Init";
@@ -299,12 +301,17 @@ const checkQueryPermission: (
   ).checkQueryPermission(modelType, JSONFunctions.deserialize(query), OWNER);
 };
 
-// A table's query, sort, select and group by, as the OpenAPI spec writes them.
+/*
+ * A table's query, sort, select, group by, create and update, as the
+ * OpenAPI spec writes them.
+ */
 const renderedSchemas: (modelType: ModelCtor) => {
   query: JSONObject;
   sort: JSONObject;
   select: JSONObject;
   groupBy: JSONObject;
+  create: JSONObject;
+  update: JSONObject;
 } = (
   modelType: ModelCtor,
 ): {
@@ -312,6 +319,8 @@ const renderedSchemas: (modelType: ModelCtor) => {
   sort: JSONObject;
   select: JSONObject;
   groupBy: JSONObject;
+  create: JSONObject;
+  update: JSONObject;
 } => {
   const registry: OpenAPIRegistry = new OpenAPIRegistry();
 
@@ -331,6 +340,14 @@ const renderedSchemas: (modelType: ModelCtor) => {
     "GroupBy",
     AnalyticsModelSchema.getGroupByModelSchema({ modelType }),
   );
+  registry.register(
+    "Create",
+    AnalyticsModelSchema.getCreateModelSchema({ modelType }),
+  );
+  registry.register(
+    "Update",
+    AnalyticsModelSchema.getUpdateModelSchema({ modelType }),
+  );
 
   const schemas: JSONObject = (new OpenApiGeneratorV3(
     registry.definitions,
@@ -341,7 +358,99 @@ const renderedSchemas: (modelType: ModelCtor) => {
     sort: schemas["Sort"] as JSONObject,
     select: schemas["Select"] as JSONObject,
     groupBy: schemas["GroupBy"] as JSONObject,
+    create: schemas["Create"] as JSONObject,
+    update: schemas["Update"] as JSONObject,
   };
+};
+
+/*
+ * The tables a create can reach, and those an update can: the spec
+ * documents both.
+ */
+const CREATABLE_MODELS: Array<ModelCtor> = API_MODELS.filter(
+  (modelType: ModelCtor): boolean => {
+    return new modelType().getCreatePermissions().length > 0;
+  },
+);
+
+const UPDATABLE_MODELS: Array<ModelCtor> = API_MODELS.filter(
+  (modelType: ModelCtor): boolean => {
+    return new modelType().getUpdatePermissions().length > 0;
+  },
+);
+
+/*
+ * The values a rendered create or update field takes, one of each form it
+ * allows: a time, an ID, a string of digits, a number...
+ */
+const writeValuesFor: (field: JSONObject) => Array<JSONValue> = (
+  field: JSONObject,
+): Array<JSONValue> => {
+  const forms: Array<JSONObject> = (field["anyOf"] as
+    | Array<JSONObject>
+    | undefined) || [field];
+
+  return forms.map((form: JSONObject): JSONValue => {
+    if (form["format"] === "date-time") {
+      return A_TIME;
+    }
+
+    if (form["format"] === "uuid") {
+      return A_UUID;
+    }
+
+    if (form["pattern"]) {
+      return A_WIDE_INTEGER;
+    }
+
+    switch (form["type"]) {
+      case "number":
+        return 5;
+      case "boolean":
+        return true;
+      case "string":
+        return "sample";
+      default:
+        throw new Error(`No value for a field of ${JSON.stringify(form)}`);
+    }
+  });
+};
+
+// What a create's INSERT holds for each of the table's columns, in order.
+const insertedValuesOf: (
+  modelType: ModelCtor,
+  item: AnalyticsBaseModel,
+) => Array<unknown> = (
+  modelType: ModelCtor,
+  item: AnalyticsBaseModel,
+): Array<unknown> => {
+  return (
+    generatorFor(modelType) as unknown as {
+      getRecord: (item: AnalyticsBaseModel) => Array<unknown>;
+    }
+  ).getRecord(item);
+};
+
+// What the API checks of an update's fields before it writes them.
+const checkUpdatedColumns: (
+  modelType: ModelCtor,
+  item: AnalyticsBaseModel,
+) => void = (modelType: ModelCtor, item: AnalyticsBaseModel): void => {
+  (
+    AnalyticsModelPermission as unknown as {
+      checkDataColumnPermissions: (
+        modelType: ModelCtor,
+        data: AnalyticsBaseModel,
+        props: DatabaseCommonInteractionProps,
+        requestType: DatabaseRequestType,
+      ) => void;
+    }
+  ).checkDataColumnPermissions(
+    modelType,
+    item,
+    OWNER,
+    DatabaseRequestType.Update,
+  );
 };
 
 /*
@@ -549,7 +658,7 @@ describe("AnalyticsModelSchema", () => {
         });
 
       /*
-       * Log has required, create-permitted columns (e.g. projectId); an empty
+       * Log has required, create-permitted columns (e.g. time); an empty
        * payload must therefore fail validation.
        */
       expect(requiredColumns.length).toBeGreaterThan(0);
@@ -578,6 +687,17 @@ describe("AnalyticsModelSchema", () => {
       expect(shapeKeys(withoutOpenApi).sort()).toEqual(
         shapeKeys(withOpenApi).sort(),
       );
+    });
+  });
+
+  describe("getUpdateModelSchema", () => {
+    test("builds an update schema for every registered analytics model", () => {
+      for (const modelType of AnalyticsModels as Array<ModelCtor>) {
+        const schema: any = AnalyticsModelSchema.getUpdateModelSchema({
+          modelType,
+        });
+        expect(isZodObject(schema)).toBe(true);
+      }
     });
   });
 
@@ -1325,5 +1445,215 @@ describe("the OpenAPI spec lists a telemetry select's and group by's fields", ()
     }
 
     expect(grouped).toBeGreaterThan(30);
+  });
+});
+
+describe("the OpenAPI spec lists a telemetry create's and update's fields", () => {
+  /*
+   * zod-to-openapi took the `type` getCreateModelSchema gave .openapi() for
+   * the whole schema, so every telemetry create was published as an object
+   * that allowed no field at all - and every update with it, which was a
+   * copy of the create.
+   */
+  test("covers the tables a create and an update reach, so the checks below are not vacuous", () => {
+    expect(
+      CREATABLE_MODELS.map((modelType: ModelCtor): string => {
+        return new modelType().tableName;
+      }),
+    ).toEqual(
+      expect.arrayContaining(["LogItemV3", "SpanItemV3", "MetricItemV3"]),
+    );
+    expect(UPDATABLE_MODELS.length).toBeGreaterThan(5);
+  });
+
+  test("lists the fields a create may send: the columns somebody may create, less those with a default", () => {
+    for (const modelType of CREATABLE_MODELS) {
+      const model: AnalyticsBaseModel = new modelType();
+      const create: JSONObject = renderedSchemas(modelType).create;
+      const listed: Array<string> = Object.keys(
+        (create["properties"] || {}) as JSONObject,
+      );
+
+      expect([model.tableName, listed]).toEqual([
+        model.tableName,
+        model
+          .getTableColumns()
+          .filter((column: AnalyticsTableColumn): boolean => {
+            return (
+              !CREATE_EXCLUDED_FIELDS.includes(column.key) &&
+              !column.isDefaultValueColumn &&
+              (column.accessControl?.create || []).length > 0
+            );
+          })
+          .map((column: AnalyticsTableColumn): string => {
+            return column.key;
+          }),
+      ]);
+      expect(listed.length).toBeGreaterThan(0);
+      expect(create["additionalProperties"]).toBe(false);
+    }
+  });
+
+  /*
+   * What AnalyticsDatabaseService.checkRequiredFields asks of a create, but
+   * the project: the API writes the request's (the API key's) there.
+   */
+  test("requires the columns a create must send, and not the project", () => {
+    for (const modelType of CREATABLE_MODELS) {
+      const model: AnalyticsBaseModel = new modelType();
+      const create: JSONObject = renderedSchemas(modelType).create;
+      const listed: Array<string> = Object.keys(
+        create["properties"] as JSONObject,
+      );
+      const project: string = model.getTenantColumn()!.key;
+
+      expect(listed).toContain(project);
+      expect([model.tableName, create["required"] || []]).toEqual([
+        model.tableName,
+        listed.filter((key: string): boolean => {
+          return (
+            key !== project && Boolean(model.getTableColumn(key)?.required)
+          );
+        }),
+      ]);
+    }
+  });
+
+  test("the API takes every form of every field a create lists, and writes it into the INSERT", () => {
+    let written: number = 0;
+
+    for (const modelType of CREATABLE_MODELS) {
+      const columns: Array<AnalyticsTableColumn> =
+        new modelType().getTableColumns();
+      const fields: JSONObject = (renderedSchemas(modelType).create[
+        "properties"
+      ] || {}) as JSONObject;
+
+      for (const [key, field] of Object.entries(fields)) {
+        for (const value of writeValuesFor(field as JSONObject)) {
+          // fromJSON refuses a column the table does not have.
+          const item: AnalyticsBaseModel = AnalyticsBaseModel.fromJSON(
+            { [key]: value },
+            modelType,
+          ) as AnalyticsBaseModel;
+
+          // The column check sees the field, and lets a project owner create it.
+          expect([
+            key,
+            (item as unknown as JSONObject)[key] !== undefined,
+          ]).toEqual([key, true]);
+          AnalyticsModelPermission.checkCreatePermissions(
+            modelType,
+            item,
+            OWNER,
+          );
+
+          // A time as ClickHouse parses it, and every digit of a 64-bit value.
+          const inserted: string = String(
+            insertedValuesOf(modelType, item)[
+              columns.findIndex((column: AnalyticsTableColumn): boolean => {
+                return column.key === key;
+              })
+            ],
+          );
+
+          expect([key, inserted]).toEqual([
+            key,
+            expect.stringContaining(
+              value === A_TIME ? "2026-07-01 00:00:00" : String(value),
+            ),
+          ]);
+
+          written++;
+        }
+      }
+    }
+
+    expect(written).toBeGreaterThan(100);
+  });
+
+  test("its example sends what a create requires, which the API takes", () => {
+    for (const modelType of CREATABLE_MODELS) {
+      const create: JSONObject = renderedSchemas(modelType).create;
+      const example: JSONObject = create["example"] as JSONObject;
+
+      expect(Object.keys(example)).toEqual(create["required"] || []);
+      expect(
+        AnalyticsModelSchema.getCreateModelSchema({ modelType }).safeParse(
+          example,
+        ).success,
+      ).toBe(true);
+
+      const item: AnalyticsBaseModel = AnalyticsBaseModel.fromJSON(
+        example,
+        modelType,
+      ) as AnalyticsBaseModel;
+
+      AnalyticsModelPermission.checkCreatePermissions(modelType, item, OWNER);
+      expect(
+        generatorFor(modelType).toCreateStatement({ item: [item] }),
+      ).toContain(`INSERT INTO`);
+    }
+  });
+
+  test("lists the fields an update may change: the columns somebody may update", () => {
+    for (const modelType of UPDATABLE_MODELS) {
+      const model: AnalyticsBaseModel = new modelType();
+      const update: JSONObject = renderedSchemas(modelType).update;
+
+      expect([
+        model.tableName,
+        Object.keys((update["properties"] || {}) as JSONObject),
+      ]).toEqual([
+        model.tableName,
+        model
+          .getTableColumns()
+          .filter((column: AnalyticsTableColumn): boolean => {
+            return (
+              !CREATE_EXCLUDED_FIELDS.includes(column.key) &&
+              (column.accessControl?.update || []).length > 0
+            );
+          })
+          .map((column: AnalyticsTableColumn): string => {
+            return column.key;
+          }),
+      ]);
+      expect(update["additionalProperties"]).toBe(false);
+    }
+  });
+
+  /*
+   * No telemetry column names an update permission, and a column that names
+   * none is closed to everyone: checkUpdatePermissions refuses each field a
+   * create may send, so an update lists none.
+   */
+  test("the API refuses an update of each field a create may send", () => {
+    let refused: number = 0;
+
+    for (const modelType of UPDATABLE_MODELS) {
+      const rendered: { create: JSONObject; update: JSONObject } =
+        renderedSchemas(modelType);
+
+      expect(
+        Object.keys((rendered.update["properties"] || {}) as JSONObject),
+      ).toEqual([]);
+
+      for (const [key, field] of Object.entries(
+        (rendered.create["properties"] || {}) as JSONObject,
+      )) {
+        const item: AnalyticsBaseModel = AnalyticsBaseModel.fromJSON(
+          { [key]: writeValuesFor(field as JSONObject)[0] as JSONValue },
+          modelType,
+        ) as AnalyticsBaseModel;
+
+        expect(() => {
+          checkUpdatedColumns(modelType, item);
+        }).toThrow(ColumnWriteRefusedException);
+
+        refused++;
+      }
+    }
+
+    expect(refused).toBeGreaterThan(50);
   });
 });
