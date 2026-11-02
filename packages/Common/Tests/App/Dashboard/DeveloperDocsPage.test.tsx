@@ -136,12 +136,18 @@ jest.mock("../../../UI/Config", () => {
   };
 });
 
+/*
+ * The reader's language: English, unless a test gives a few words of
+ * another (mockTranslations, reset before each test).
+ */
+let mockTranslations: Record<string, string> = {};
+
 jest.mock("react-i18next", () => {
   return {
     useTranslation: () => {
       return {
         t: (key: string): string => {
-          return key;
+          return mockTranslations[key] ?? key;
         },
       };
     },
@@ -324,6 +330,7 @@ function guide(): HTMLElement {
 }
 
 beforeEach(() => {
+  mockTranslations = {};
   routeId = WORKFLOW_ID;
   // The project comes from the URL, as it does in the dashboard.
   goTo(`/dashboard/${PROJECT_ID}/workflows/${WORKFLOW_ID}/developer/terraform`);
@@ -625,6 +632,147 @@ describe("an incident's API page", () => {
   });
 });
 
+describe("an incident's CLI page", () => {
+  test("reads what the API page reads, and shows the command and its answer", async () => {
+    routeId = INCIDENT_ID;
+    getItemMock.mockResolvedValue(incident());
+
+    renderPage({
+      modelType: Incident,
+      scope: DeveloperDocsScope.View,
+      page: DeveloperDocsPageType.Cli,
+    });
+
+    await screen.findAllByText(/oneuptime incident get/);
+
+    // The fields the API page's read asks for, never more.
+    expect(lastSelect(getItemMock)).toEqual({
+      _id: true,
+      title: true,
+      description: true,
+      incidentSeverityId: true,
+      currentIncidentStateId: true,
+      declaredAt: true,
+      createdAt: true,
+    });
+
+    const text: string = guide().textContent || "";
+
+    expect(text).toContain(`oneuptime incident get ${INCIDENT_ID}`);
+    expect(text).toContain("It answers with:");
+    expect(text).toContain('"title": "Checkout requests are failing"');
+    expect(text).toContain("https://oneuptime.acme.com/install/cli");
+    expect(text).not.toContain("curl -X");
+  });
+
+  test("looks up the severities and the states its commands use, as the API page does", async () => {
+    routeId = INCIDENT_ID;
+    getItemMock.mockResolvedValue(incident());
+
+    renderPage({
+      modelType: Incident,
+      scope: DeveloperDocsScope.View,
+      page: DeveloperDocsPageType.Cli,
+    });
+
+    await screen.findAllByText(/oneuptime incident get/);
+
+    expect(listedTables()).toEqual(["IncidentSeverity", "IncidentState"]);
+  });
+
+  test("shows the dashboard's buttons as the CLI's own commands, one tab each", async () => {
+    routeId = INCIDENT_ID;
+    getItemMock.mockResolvedValue(incident());
+
+    renderPage({
+      modelType: Incident,
+      scope: DeveloperDocsScope.View,
+      page: DeveloperDocsPageType.Cli,
+    });
+
+    await screen.findAllByText(/oneuptime incident get/);
+
+    const sections: Array<HTMLElement> = screen.getAllByTestId(
+      "developer-docs-section",
+    );
+
+    expect(
+      sections.map((section: HTMLElement): string => {
+        return section.querySelector("h3")?.textContent || "";
+      }),
+    ).toEqual(["Common tasks", "Commands"]);
+
+    const tasks: HTMLElement = sections[0] as HTMLElement;
+
+    expect(tasks.textContent).toContain(
+      `oneuptime incident acknowledge ${INCIDENT_ID}`,
+    );
+
+    fireEvent.click(within(tasks).getByRole("tab", { name: "Internal note" }));
+
+    expect(tasks.textContent).toContain(`oneuptime incident add-note ${INCIDENT_ID}`);
+    expect(tasks.textContent).not.toContain("acknowledge");
+  });
+
+  test("installs with the script or with npm, a tab each", async () => {
+    routeId = INCIDENT_ID;
+    getItemMock.mockResolvedValue(incident());
+
+    renderPage({
+      modelType: Incident,
+      scope: DeveloperDocsScope.View,
+      page: DeveloperDocsPageType.Cli,
+    });
+
+    await screen.findAllByText(/oneuptime incident get/);
+
+    const install: HTMLElement = screen.getByTestId("setup-guide-step-1");
+
+    expect(
+      within(install)
+        .getAllByRole("tab")
+        .map((tab: HTMLElement): string => {
+          return tab.textContent || "";
+        }),
+    ).toEqual(["Install script", "npm"]);
+
+    fireEvent.click(within(install).getByRole("tab", { name: "npm" }));
+
+    expect(install.textContent).toContain("npm install -g @oneuptime/cli@14.0.11");
+  });
+
+  test("says its steps, tabs, sections and topics in the reader's language where it has them", async () => {
+    mockTranslations = {
+      "Install the CLI": "CLI installieren",
+      "Install script": "Installationsskript",
+      "Common tasks": "Häufige Aufgaben",
+      "Use it from an AI agent": "Aus einem KI-Agenten verwenden",
+      "Command reference": "Befehlsreferenz",
+    };
+    routeId = INCIDENT_ID;
+    getItemMock.mockResolvedValue(incident());
+
+    renderPage({
+      modelType: Incident,
+      scope: DeveloperDocsScope.View,
+      page: DeveloperDocsPageType.Cli,
+    });
+
+    await screen.findAllByText(/oneuptime incident get/);
+
+    const text: string = guide().textContent || "";
+
+    expect(text).toContain("CLI installieren");
+    expect(text).toContain("Installationsskript");
+    expect(text).toContain("Häufige Aufgaben");
+    expect(text).toContain("Aus einem KI-Agenten verwenden");
+    expect(text).toContain("Befehlsreferenz");
+    // The commands stay as the CLI takes them.
+    expect(text).toContain(`oneuptime incident get ${INCIDENT_ID}`);
+    expect(text).not.toContain("Install the CLI");
+  });
+});
+
 describe("the Workflows menu's pages", () => {
   test("Terraform lists the existing workflows to import, oldest first, and the labels a new one can carry", async () => {
     renderPage({
@@ -679,6 +827,36 @@ describe("the Workflows menu's pages", () => {
     });
     expect(guide().textContent).toContain('"count": 1');
     expect(guide().textContent).toContain('"name": "Send weekly report"');
+  });
+
+  test("CLI shows the first workflow as the CLI prints it: the records, without the API's envelope", async () => {
+    renderPage({
+      modelType: Workflow,
+      scope: DeveloperDocsScope.List,
+      page: DeveloperDocsPageType.Cli,
+    });
+
+    expect(
+      (await screen.findAllByText(/oneuptime workflow list/)).length,
+    ).toBeGreaterThan(0);
+    expect(getItemMock).not.toHaveBeenCalled();
+
+    const sample: ListCall | undefined = listCalls().find(
+      (call: ListCall): boolean => {
+        return call.modelType === Workflow;
+      },
+    );
+
+    expect(sample?.limit).toBe(1);
+    expect(sample?.select).toEqual({
+      _id: true,
+      name: true,
+      description: true,
+      isEnabled: true,
+      createdAt: true,
+    });
+    expect(guide().textContent).toContain('"name": "Send weekly report"');
+    expect(guide().textContent).not.toContain('"count": 1');
   });
 
   test("API still shows its commands when the first workflow cannot be read", async () => {

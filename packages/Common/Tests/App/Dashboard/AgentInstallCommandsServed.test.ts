@@ -73,6 +73,16 @@ import {
   getInstallScriptEntry,
 } from "../../../Types/InstallScripts/InstallScripts";
 import { escapeRegExp } from "../../../Utils/RegExpEscape";
+import {
+  DeveloperDocsGuide,
+  getDeveloperDocsGuide,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/DeveloperDocs/DeveloperDocsGuides";
+import {
+  DeveloperDocsPageType,
+  DeveloperDocsScope,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/DeveloperDocs/DeveloperDocsPages";
+import { getDeveloperDocsResource } from "../../../../App/FeatureSet/Dashboard/src/Components/DeveloperDocs/DeveloperDocsResources";
+import Incident from "../../../Models/DatabaseModels/Incident";
 
 /*
  * Every agent install command the Dashboard shows downloads from the
@@ -358,7 +368,55 @@ function everyCommand(oneuptimeUrl: string): Array<Commands> {
     text: hostAgent || "",
   });
 
+  // Developer > CLI, whose first step installs the CLI with /install/cli.
+  all.push(
+    developerCliCommands(
+      "Developer > CLI page (Incidents)",
+      oneuptimeUrl,
+      getDeveloperDocsGuide(DeveloperDocsPageType.Cli, {
+        resource: getDeveloperDocsResource(Incident),
+        scope: DeveloperDocsScope.List,
+        oneuptimeUrl,
+        platformVersion: "14.0.101",
+        apiKeysUrl: "/dashboard/settings/api-keys",
+      }),
+    ),
+  );
+
   return all;
+}
+
+const CODE_FENCE: string = "```";
+
+// A Developer page's code blocks, and everything it says.
+function developerCliCommands(
+  name: string,
+  oneuptimeUrl: string,
+  guide: DeveloperDocsGuide,
+): Commands {
+  const markdown: Array<string> = [];
+
+  for (const step of guide.steps) {
+    markdown.push(step.markdown || "");
+
+    for (const variant of step.variants || []) {
+      markdown.push(variant.markdown);
+    }
+  }
+
+  const blocks: Array<string> = [];
+
+  for (const text of markdown) {
+    const parts: Array<string> = text.split(CODE_FENCE);
+
+    for (let index: number = 1; index < parts.length; index += 2) {
+      const part: string = parts[index] || "";
+
+      blocks.push(part.slice(part.indexOf("\n") + 1).trimEnd());
+    }
+  }
+
+  return { name, oneuptimeUrl, blocks, text: markdown.join("\n") };
 }
 
 describe("the commands that download an agent's files", () => {
