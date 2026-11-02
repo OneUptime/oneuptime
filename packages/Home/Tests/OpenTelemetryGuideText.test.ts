@@ -24,7 +24,9 @@ import {
   guideSections,
   monogramOf,
 } from "../Utils/Integrations/OpenTelemetry/GuidePage";
-import { isWideLogoFile } from "../Utils/ProviderLogoFiles";
+import { isWideMarkBox } from "../Utils/ProviderLogoMarkup";
+import ALL_PROVIDER_LOGO_MARKS from "Common/Types/ProviderLogo/AllProviderLogoMarks";
+import { PROVIDER_LOGO_MARK_BOXES } from "Common/Types/ProviderLogo/ProviderLogoMarks";
 import {
   OPEN_TELEMETRY_GUIDES,
   OpenTelemetryGuideEntry,
@@ -431,13 +433,26 @@ describe("a guide's mark", () => {
     return guideMark(getOpenTelemetryGuide(slug)!);
   };
 
-  test("is the framework's official logo, served by this site at a versioned address", () => {
+  /*
+   * The framework's official mark, written into the page as an inline SVG in
+   * the page's grey (icons-svg-one-color): no image file, no colours of its
+   * own, the same shapes the product draws.
+   */
+  test("is the framework's official mark, written into the page in one colour", () => {
     const mark: GuideMark = markOf("express");
 
-    expect(mark.logo?.src).toMatch(
-      /^\/img\/provider-logos\/express\.svg\?v=[0-9a-f]{10}$/,
+    expect(mark.logo?.name).toBe("Express");
+    expect(mark.logo?.viewBox).toBe(
+      PROVIDER_LOGO_MARK_BOXES[ProviderLogo.Express],
     );
-    expect(mark.logo?.alt).toBe("Express");
+    expect(mark.logo?.shapesHtml).toBe(
+      (ALL_PROVIDER_LOGO_MARKS[ProviderLogo.Express] || [])
+        .map((shape: { d: string }): string => {
+          return `<path fill="currentColor" d="${shape.d}"/>`;
+        })
+        .join(""),
+    );
+    expect(mark.logo?.shapesHtml).not.toContain("#");
     expect(mark.icon).toBeUndefined();
   });
 
@@ -473,14 +488,21 @@ describe("a guide's mark", () => {
     });
 
     /*
-     * Go's and PHP's marks are wordmarks, drawn wide on their language
-     * guides; Sinatra's fedora and Phoenix's bird are wide symbols.
+     * Go's, PHP's and .NET's marks are wordmarks, drawn wide on their
+     * language guides; Express's "ex", Sinatra's fedora, Rails' rail and
+     * Phoenix's bird are wide symbols. Each one-colour mark's box is fitted
+     * to its drawing, so its own shape decides.
      */
     expect(wide).toEqual([
+      "express",
       "fastify",
       "koa",
       "hapi",
+      "dotnet",
+      "aspnet-core",
+      "dotnet-worker-service",
       "go",
+      "rails",
       "sinatra",
       "php",
       "phoenix",
@@ -503,21 +525,31 @@ describe("a guide's mark", () => {
   });
 });
 
-describe("a logo file's width", () => {
-  test("is wide when its viewBox is more than 1.3 times as wide as it is tall", () => {
-    expect(isWideLogoFile('<svg viewBox="0 0 512 275"></svg>')).toBe(true);
-    expect(isWideLogoFile('<svg viewBox="0 0 256 165"></svg>')).toBe(true);
+describe("a mark's width", () => {
+  const box: (
+    width: number,
+    height: number,
+  ) => {
+    viewBox: string;
+    width: number;
+    height: number;
+  } = (width: number, height: number) => {
+    return { viewBox: `0 0 ${width} ${height}`, width, height };
+  };
+
+  test("is wide when its box is more than 1.3 times as wide as it is tall", () => {
+    expect(isWideMarkBox(box(512, 275))).toBe(true);
+    expect(isWideMarkBox(box(256, 165))).toBe(true);
   });
 
-  test("is square for a square or nearly square viewBox", () => {
-    expect(isWideLogoFile('<svg viewBox="0 0 24 24"></svg>')).toBe(false);
-    expect(isWideLogoFile('<svg viewBox="0 0 256 225"></svg>')).toBe(false);
-    expect(isWideLogoFile('<svg viewBox="0 0 130 100"></svg>')).toBe(false);
+  test("is square for a square or nearly square box", () => {
+    expect(isWideMarkBox(box(24, 24))).toBe(false);
+    expect(isWideMarkBox(box(256, 225))).toBe(false);
+    expect(isWideMarkBox(box(130, 100))).toBe(false);
   });
 
-  test("is square when the file has no readable viewBox", () => {
-    expect(isWideLogoFile("<svg></svg>")).toBe(false);
-    expect(isWideLogoFile('<svg viewBox="0 0 0 0"></svg>')).toBe(false);
-    expect(isWideLogoFile('<svg viewBox="nonsense"></svg>')).toBe(false);
+  test("is square for a box with no size", () => {
+    expect(isWideMarkBox(box(0, 0))).toBe(false);
+    expect(isWideMarkBox(box(24, 0))).toBe(false);
   });
 });

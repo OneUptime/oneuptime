@@ -8,12 +8,19 @@ import { render, screen } from "@testing-library/react";
 import { createInstance, i18n } from "i18next";
 import IconProp from "../../../../Types/Icon/IconProp";
 import ProviderLogo from "../../../../Types/ProviderLogo/ProviderLogo";
+import {
+  getDrawnMark,
+  getDrawnPathData,
+  getMarkPathData,
+  preloadProviderLogoMarks,
+} from "../../../Helpers/ProviderLogoMarks";
 import React, { ReactElement } from "react";
 import { I18nextProvider } from "react-i18next";
 
 const german: i18n = createInstance();
 
 beforeAll(async () => {
+  await preloadProviderLogoMarks();
   await german.init({
     lng: "de",
     fallbackLng: "de",
@@ -328,9 +335,11 @@ describe("EmptyState", () => {
 
   /*
    * Official logos audit: a state about another company's product ("Slack
-   * is not connected") shows that product's official logo where the icon
-   * was - the mark alone, an icon's 48 pixels, centred above the title,
-   * which already says the product's name.
+   * is not connected") shows that product's official mark where the icon
+   * was - the mark alone, centred above the title, which already says the
+   * product's name. Since icons-svg-one-color it is drawn as the icon was:
+   * inline, in the icon's grey, on the icon's 48-pixel footprint, a size
+   * smaller (40) because a filled mark carries more ink than an outline.
    */
   describe("logo", () => {
     test("draws the product's logo instead of the icon", () => {
@@ -349,8 +358,12 @@ describe("EmptyState", () => {
       );
 
       expect(logo).not.toBeNull();
-      // No icon beside it: the logo takes the icon's place.
-      expect(container.querySelector("svg")).toBeNull();
+      // No icon beside it: the mark takes the icon's place, and is the only drawing.
+      expect(container.querySelectorAll("svg")).toHaveLength(1);
+      expect(getDrawnPathData(getDrawnMark(logo))).toEqual(
+        getMarkPathData(ProviderLogo.Slack),
+      );
+      expect(container.querySelector("img")).toBeNull();
     });
 
     test("the logo is the mark alone, an icon's size, centred", () => {
@@ -372,7 +385,17 @@ describe("EmptyState", () => {
       // Bare: no tile, no edge.
       expect(logo).not.toHaveClass("bg-white");
       expect(logo).not.toHaveClass("ring-1");
-      expect(logo.firstElementChild).toHaveClass("h-12", "w-12");
+      // The icon's footprint and grey, so the title sits where it did.
+      expect(logo).toHaveClass("h-12", "text-gray-400");
+
+      const mark: SVGElement | null = getDrawnMark(logo);
+
+      expect(
+        Math.max(
+          Number(mark?.getAttribute("width")),
+          Number(mark?.getAttribute("height")),
+        ),
+      ).toBe(40);
     });
 
     test("the logo is not read out: the title names the product", () => {

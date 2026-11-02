@@ -645,16 +645,11 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
       >
         {/*
           A step that talks to another product (Slack, Discord) shows that
-          product's logo on its own tile; any other step its icon.
+          product's official mark where any other step shows its icon: on
+          the same tile, in the header's icon colour, so the canvas reads as
+          one set of steps.
         */}
-        {props.data.metadata.logo ? (
-          <ProviderLogoImage
-            logo={props.data.metadata.logo}
-            size={28}
-            isDecorative={true}
-          />
-        ) : null}
-        {!props.data.metadata.logo && props.data.metadata.iconProp && (
+        {(props.data.metadata.logo || props.data.metadata.iconProp) && (
           <div
             style={{
               width: "1.75rem",
@@ -667,14 +662,29 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
               flexShrink: 0,
             }}
           >
-            <Icon
-              icon={props.data.metadata.iconProp}
-              style={{
-                color: colors.iconColor,
-                width: "0.875rem",
-                height: "0.875rem",
-              }}
-            />
+            {props.data.metadata.logo ? (
+              <span
+                data-testid="workflow-node-mark"
+                style={{ color: colors.iconColor, display: "inline-flex" }}
+              >
+                <ProviderLogoImage
+                  logo={props.data.metadata.logo}
+                  size={14}
+                  isBare={true}
+                  isDecorative={true}
+                  colorClassName="text-current"
+                />
+              </span>
+            ) : props.data.metadata.iconProp ? (
+              <Icon
+                icon={props.data.metadata.iconProp}
+                style={{
+                  color: colors.iconColor,
+                  width: "0.875rem",
+                  height: "0.875rem",
+                }}
+              />
+            ) : null}
           </div>
         )}
         {/*

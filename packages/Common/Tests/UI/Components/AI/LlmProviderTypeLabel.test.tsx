@@ -1,7 +1,7 @@
 import "@testing-library/jest-dom";
 import { render, screen } from "@testing-library/react";
 import React from "react";
-import { describe, expect, test } from "@jest/globals";
+import { beforeAll, describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import LlmType from "../../../../Types/LLM/LlmType";
@@ -12,6 +12,13 @@ import {
 } from "../../../../UI/Components/AI/LlmProviderFormCopy";
 import LlmProviderTypeLabel from "../../../../UI/Components/AI/LlmProviderTypeLabel";
 import { PROVIDER_ICON_TILE_TEST_ID } from "../../../../UI/Components/ProviderLogo/ProviderLogoOrIcon";
+import { getProviderLogoStandInIcon } from "../../../../Types/ProviderLogo/ProviderLogoMarks";
+import {
+  getDrawnMark,
+  getDrawnPathData,
+  getMarkPathData,
+  preloadProviderLogoMarks,
+} from "../../../Helpers/ProviderLogoMarks";
 
 /*
  * An LLM provider's kind in a list of providers (official logos audit): the
@@ -21,6 +28,10 @@ import { PROVIDER_ICON_TILE_TEST_ID } from "../../../../UI/Components/ProviderLo
  */
 
 describe("LlmProviderTypeLabel", () => {
+  beforeAll(async (): Promise<void> => {
+    await preloadProviderLogoMarks();
+  });
+
   test.each(LLM_PROVIDER_TYPES)(
     "%s reads as the form's card names it, beside its logo or icon",
     (type: LlmType) => {
@@ -39,6 +50,16 @@ describe("LlmProviderTypeLabel", () => {
         // Its name is the words beside it: not read out twice.
         expect(logo).toHaveAttribute("aria-hidden", "true");
         expect(getProviderLogoName(copy.logo).length).toBeGreaterThan(0);
+        // In one colour, inline; Groq, which licenses its logo to partners only, by an icon.
+        expect(logo!.querySelector("img")).toBeNull();
+        if (getProviderLogoStandInIcon(copy.logo)) {
+          expect(getDrawnMark(logo)).toBeNull();
+          expect(logo!.querySelectorAll("svg")).toHaveLength(1);
+        } else {
+          expect(getDrawnPathData(getDrawnMark(logo))).toEqual(
+            getMarkPathData(copy.logo),
+          );
+        }
       } else {
         expect(logo).toBeNull();
         expect(
@@ -50,18 +71,40 @@ describe("LlmProviderTypeLabel", () => {
     },
   );
 
-  test("OpenAI shows OpenAI's logo, bare, beside its name", () => {
+  test("OpenAI shows OpenAI's mark, bare and grey as the icon beside a name is", () => {
     const { container } = render(
       <LlmProviderTypeLabel llmType={LlmType.OpenAI} />,
     );
 
-    const logo: Element = container.querySelector(
+    const logo: HTMLElement = container.querySelector(
       "[data-provider-logo='openai']",
     )!;
+    const mark: SVGElement | null = getDrawnMark(logo);
 
     expect(logo).not.toHaveClass("bg-white");
-    expect(logo.firstElementChild).toHaveClass("h-4", "w-4");
+    expect(logo).toHaveClass("text-gray-500");
+    // An icon's 16px square, so the names after the marks start at one place.
+    expect(logo.style.minWidth).toBe("16px");
+    expect(mark).toHaveAttribute("height", "16");
     expect(screen.getByText("OpenAI")).toBeInTheDocument();
+  });
+
+  test("every provider's name starts at the same place, whatever its mark's shape", () => {
+    for (const type of LLM_PROVIDER_TYPES) {
+      const { container, unmount } = render(
+        <LlmProviderTypeLabel llmType={type} />,
+      );
+      const logo: HTMLElement | null = container.querySelector(
+        "[data-provider-logo]",
+      );
+
+      if (logo) {
+        // A narrow mark (Ollama's llama) is centred in an icon's square.
+        expect([type, logo.style.minWidth]).toEqual([type, "16px"]);
+      }
+
+      unmount();
+    }
   });
 
   test("an OpenAI-compatible server has no one brand: it keeps its icon", () => {

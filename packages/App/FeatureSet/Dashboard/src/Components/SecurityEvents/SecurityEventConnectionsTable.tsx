@@ -19,7 +19,9 @@ import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
-import ProviderLogoImage from "Common/UI/Components/ProviderLogo/ProviderLogoImage";
+import ProviderLogoImage, {
+  ProviderLogoSize,
+} from "Common/UI/Components/ProviderLogo/ProviderLogoImage";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import PermissionGate, {
   ModelAction,
@@ -52,12 +54,14 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import SecurityEventConnectorProvider from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
 
 /*
- * The logo slot at the start of a connection's name: as wide as a 16px
- * wordmark (Splunk's is 24px), the mark centred in it, level with the
- * name's first line - so the names after the marks line up down the column.
+ * The tile a connection's product mark sits on at the start of its name:
+ * the size Send to your SIEM's rows, and every other list of connections
+ * (Cloud, AI, audit log exports), draw a product's mark at, level with the
+ * name's first line. One size for every mark - a wordmark (Splunk's) or a
+ * narrow one (MinIO's) - so the names after the tiles line up down the
+ * column.
  */
-export const PROVIDER_COLUMN_LOGO_SLOT_CLASS_NAME: string =
-  "mt-0.5 inline-flex w-6 flex-shrink-0 justify-center";
+export const CONNECTION_ROW_MARK_SIZE: ProviderLogoSize = 32;
 
 interface FormModalState {
   connection: SecurityEventConnection | null;
@@ -394,10 +398,10 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
                 getSecurityEventConnectorDefinition(item.provider);
 
               /*
-               * The product's official mark leads the row, in a slot as
-               * wide as a wordmark's (Splunk's), centred and level with the
-               * name's first line - so every name in the column starts on
-               * one line however wide its mark is.
+               * The product's official mark leads the row on its tile, as
+               * each SIEM's does in Send to your SIEM under this table: the
+               * same size for every product, level with the name's first
+               * line, so every name in the column starts at one place.
                */
               return (
                 <SecurityListNameCell
@@ -409,16 +413,12 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
                   detailTestId="security-event-connection-provider"
                   mark={
                     definition ? (
-                      <span
-                        className={PROVIDER_COLUMN_LOGO_SLOT_CLASS_NAME}
-                        data-testid="security-event-connection-provider-logo-slot"
-                      >
-                        <ProviderLogoImage
-                          logo={definition.logo}
-                          isBare={true}
-                          isDecorative={true}
-                        />
-                      </span>
+                      <ProviderLogoImage
+                        logo={definition.logo}
+                        size={CONNECTION_ROW_MARK_SIZE}
+                        isDecorative={true}
+                        className="mt-0.5"
+                      />
                     ) : undefined
                   }
                 />
