@@ -273,6 +273,7 @@ export default class SecurityPlaybookRun extends BaseModel {
   @ColumnAccessControl(engineColumnAccess)
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(SecurityPlaybookTrigger),
     computed: true,
     canReadOnRelationQuery: true,
     title: "Trigger",
@@ -330,6 +331,7 @@ export default class SecurityPlaybookRun extends BaseModel {
   })
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(SecurityPlaybookRunStatus),
     computed: true,
     canReadOnRelationQuery: true,
     title: "Status",

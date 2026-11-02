@@ -107,6 +107,15 @@ output "alice_teams" {
 }
 ```
 
+Altre sorgenti dati trovano un record tramite l'indirizzo della persona che indica, accanto al suo ID. Questa legge l'appartenenza di Alice al team SRE:
+
+```hcl
+data "oneuptime_team_member" "alice" {
+  team_id    = oneuptime_team.sre.id
+  user_email = "alice@example.com"
+}
+```
+
 ## Far uscire qualcuno
 
 Rimuovi le appartenenze della persona dalla tua configurazione e applicala. Uscita dal suo ultimo team del progetto, è uscita dal progetto, e OneUptime la toglie da ogni calendario di reperibilità, regola di escalation e sostituzione, e da ciò di cui è proprietaria: da tutto, tranne gli incidenti, gli avvisi e gli eventi di manutenzione conclusi. Rimuovi nella stessa modifica i blocchi che la indicano, o il plan successivo li ricrea per qualcuno che non è più nel progetto.
@@ -122,6 +131,13 @@ terraform import oneuptime_team_member.alice 6b1d1c2e-4f3a-4b5c-8d6e-7f8091a2b3c
 ```
 
 L'indirizzo resta come lo hai scritto, quindi scrivilo come nella tua configurazione. Anche l'ID dell'appartenenza la importa, e allora l'indirizzo viene letto da OneUptime, in minuscolo.
+
+I proprietari e le righe di reperibilità si importano allo stesso modo, tramite ciò a cui appartengono. Il proprietario di un monitor prende l'ID del monitor e l'indirizzo della persona. Una riga che nomina un team o un calendario, come un team proprietario o il team che una regola di escalation avvisa, prende entrambi gli ID:
+
+```bash
+terraform import oneuptime_monitor_user_owner.api 68a1b2c3-d4e5-4f6a-8b9c-0d1e2f3a4b01/bob@example.com
+terraform import oneuptime_escalation_rule_team.sre 68a1b2c3-d4e5-4f6a-8b9c-0d1e2f3a4b06/6b1d1c2e-4f3a-4b5c-8d6e-7f8091a2b3c4
+```
 
 ## Quando qualcuno cambia indirizzo
 

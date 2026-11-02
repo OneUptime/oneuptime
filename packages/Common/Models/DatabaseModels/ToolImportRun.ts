@@ -109,6 +109,7 @@ export default class ToolImportRun extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(ToolImportSource),
     title: "Source",
     description: "The tool this import reads from (ToolImportSource).",
   })
@@ -147,6 +148,7 @@ export default class ToolImportRun extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(ToolImportRunStatus),
     title: "Status",
     description:
       "Where the import is: Reading, ReadyToReview, Importing, Completed, Failed, Cancelled or Expired.",

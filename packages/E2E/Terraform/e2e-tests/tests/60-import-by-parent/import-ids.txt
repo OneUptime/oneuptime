@@ -1,0 +1,11 @@
+# How the runner's import round trip imports each row: by what it joins, and
+# who or what joins it - a person by their email address, a team or a
+# schedule by its ID - the way someone who never saw the row's own ID would.
+# {attribute} is that attribute's value in state.
+oneuptime_team_member.me {team_id}/{user_email}
+oneuptime_monitor_user_owner.me {monitor_id}/{user_email}
+oneuptime_monitor_team_owner.sre {monitor_id}/{team_id}
+oneuptime_on_call_schedule_layer_user.me {on_call_duty_policy_schedule_layer_id}/{user_email}
+oneuptime_escalation_rule_user.me {on_call_duty_policy_escalation_rule_id}/{user_email}
+oneuptime_escalation_rule_team.sre {on_call_duty_policy_escalation_rule_id}/{team_id}
+oneuptime_escalation_rule_schedule.weekly {on_call_duty_policy_escalation_rule_id}/{on_call_duty_policy_schedule_id}

@@ -234,6 +234,7 @@ export default class SecurityCaseEvidence extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(SecurityCaseEvidenceKind),
     canReadOnRelationQuery: true,
     title: "Kind",
     description:

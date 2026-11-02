@@ -923,8 +923,7 @@ export default class DockerHost extends BaseModel {
     type: TableColumnType.EntityArray,
     modelType: Label,
     title: "Labels",
-    description:
-      "Relation to Labels Array where this object is categorized in.",
+    description: "Labels to group and filter by.",
   })
   @ManyToMany(
     () => {
@@ -1108,6 +1107,7 @@ export default class DockerHost extends BaseModel {
     isDefaultValueColumn: true,
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(ResourceAiRemediationMode),
     title: "AI Remediation Mode",
     /*
      * The API and Terraform docs for the mode: the same semantics as the

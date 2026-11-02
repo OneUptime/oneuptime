@@ -272,7 +272,7 @@ export default class CloudResourceOwnerUser extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "User ID",
-    description: "ID of your OneUptime User in which this object belongs",
+    description: "ID of the user who owns the cloud resource",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -308,8 +308,7 @@ export default class CloudResourceOwnerUser extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "Cloud Resource ID",
-    description:
-      "ID of your OneUptime Cloud Resource in which this object belongs",
+    description: "ID of the cloud resource the user owns",
   })
   @Column({
     type: ColumnType.ObjectID,

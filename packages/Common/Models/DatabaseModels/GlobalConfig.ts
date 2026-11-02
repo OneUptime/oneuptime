@@ -300,6 +300,7 @@ export default class GlobalConfig extends GlobalConfigModel {
     update: [],
   })
   @TableColumn({
+    secret: true,
     type: TableColumnType.ShortText,
     title: "SMTP Password",
     description: "Password for your SMTP Server",
@@ -400,6 +401,7 @@ export default class GlobalConfig extends GlobalConfigModel {
   })
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(MailTransportType),
     title: "SMTP Transport",
     description:
       "How OneUptime delivers mail using the global SMTP config. 'SMTP' uses the host/port. 'Microsoft Graph' sends via the Microsoft Graph REST API.",
@@ -422,6 +424,7 @@ export default class GlobalConfig extends GlobalConfigModel {
   })
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(SMTPAuthenticationType),
     title: "SMTP Authentication Type",
     description:
       "The type of authentication to use for this SMTP server. Options: Username and Password, OAuth, or None.",
@@ -459,6 +462,7 @@ export default class GlobalConfig extends GlobalConfigModel {
     update: [],
   })
   @TableColumn({
+    secret: true,
     type: TableColumnType.VeryLongText,
     title: "SMTP OAuth Client Secret",
     description:
@@ -512,6 +516,7 @@ export default class GlobalConfig extends GlobalConfigModel {
   })
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(OAuthProviderType),
     title: "SMTP OAuth Provider Type",
     description:
       "The OAuth grant type to use. 'Client Credentials' for Microsoft 365 and most providers. 'JWT Bearer' for Google Workspace service accounts.",
@@ -549,6 +554,7 @@ export default class GlobalConfig extends GlobalConfigModel {
     update: [],
   })
   @TableColumn({
+    secret: true,
     type: TableColumnType.ShortText,
     title: "Twilio Auth Token",
     description: "Auth Token for your Twilio Account",
@@ -644,6 +650,7 @@ export default class GlobalConfig extends GlobalConfigModel {
     isDefaultValueColumn: true,
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(TwilioConfigUse),
     title: "Twilio Used For",
     description:
       'What the server\'s Twilio account sends: "Calls and SMS", "SMS only" or "Calls only".',
@@ -675,6 +682,7 @@ export default class GlobalConfig extends GlobalConfigModel {
     isDefaultValueColumn: true,
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(CallAndSmsProvider),
     title: "Send SMS and Calls Through",
     description:
       'What carries the server\'s SMS and calls: "Twilio" (its Twilio account) or "Gateway" (your own gateway, at the Gateway URL).',
@@ -719,6 +727,7 @@ export default class GlobalConfig extends GlobalConfigModel {
     update: [],
   })
   @TableColumn({
+    secret: true,
     type: TableColumnType.ShortText,
     title: "Gateway Signing Secret",
     description:
@@ -738,6 +747,7 @@ export default class GlobalConfig extends GlobalConfigModel {
     update: [],
   })
   @TableColumn({
+    secret: true,
     type: TableColumnType.VeryLongText,
     title: "Meta WhatsApp Access Token",
     description:
@@ -811,6 +821,7 @@ export default class GlobalConfig extends GlobalConfigModel {
     update: [],
   })
   @TableColumn({
+    secret: true,
     type: TableColumnType.VeryLongText,
     title: "Meta WhatsApp App Secret",
     description: "Facebook App Secret for the WhatsApp Business Platform.",
@@ -828,6 +839,7 @@ export default class GlobalConfig extends GlobalConfigModel {
     update: [],
   })
   @TableColumn({
+    secret: true,
     type: TableColumnType.ShortText,
     title: "Meta WhatsApp Webhook Verify Token",
     description:
@@ -847,6 +859,7 @@ export default class GlobalConfig extends GlobalConfigModel {
     update: [],
   })
   @TableColumn({
+    secret: true,
     type: TableColumnType.VeryLongText,
     title: "Telegram Bot Token",
     description:
@@ -884,6 +897,7 @@ export default class GlobalConfig extends GlobalConfigModel {
     update: [],
   })
   @TableColumn({
+    secret: true,
     type: TableColumnType.ShortText,
     title: "Telegram Webhook Secret Token",
     description:
@@ -923,6 +937,7 @@ export default class GlobalConfig extends GlobalConfigModel {
   })
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(EmailServerType),
     title: "Email Server Type",
     description: "Email Server Type",
   })
@@ -939,6 +954,7 @@ export default class GlobalConfig extends GlobalConfigModel {
     update: [],
   })
   @TableColumn({
+    secret: true,
     type: TableColumnType.ShortText,
     title: "Sendgrid API Key",
     description: "Sendgrid API Key",
@@ -1009,6 +1025,7 @@ export default class GlobalConfig extends GlobalConfigModel {
     update: [],
   })
   @TableColumn({
+    secret: true,
     type: TableColumnType.ObjectID,
     computed: true,
     title: "Master API Key",
@@ -1068,6 +1085,7 @@ export default class GlobalConfig extends GlobalConfigModel {
     update: [],
   })
   @TableColumn({
+    secret: true,
     type: TableColumnType.ShortText,
     title: "Enterprise License Key",
     description: "Enterprise license key stored after successful validation.",
@@ -1103,6 +1121,7 @@ export default class GlobalConfig extends GlobalConfigModel {
     update: [],
   })
   @TableColumn({
+    secret: true,
     type: TableColumnType.VeryLongText,
     title: "Enterprise License Token",
     description: "Signed JWT returned from license validation.",

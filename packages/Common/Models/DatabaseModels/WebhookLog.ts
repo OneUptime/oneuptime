@@ -255,6 +255,7 @@ export default class WebhookLog extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(WebhookStatus),
     title: "Status",
     description: "Status of the Webhook request",
     canReadOnRelationQuery: false,

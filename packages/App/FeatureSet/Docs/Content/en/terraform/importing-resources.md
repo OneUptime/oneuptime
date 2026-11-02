@@ -28,6 +28,8 @@ Write the `resource` block so that it says what the record already is. Where the
 
 Every resource of the provider can be imported by its ID, except `oneuptime_file`: the OneUptime API cannot read a file back, so the provider answers `Import Not Supported`. Data sources are never imported. To use a record in your configuration without managing it, read it with a [data source](/docs/terraform/complete-guide#read-what-already-exists) instead.
 
+Rows that join two records, such as a team's members, a monitor's owners and the people on an on-call layer, have IDs no screen shows. They import by what they join too: the ID of the record they belong to, a slash, and the person's email address or the other record's ID, as in `68a1b2c3-d4e5-4f6a-8b9c-0d1e2f3a4b01/bob@example.com`. See [Import members you already have](/docs/terraform/people-and-teams#import-members-you-already-have).
+
 ## Before you begin
 
 - **Terraform 1.5 or later, or OpenTofu 1.6 or later.** The `import` blocks on this page need these versions. An older Terraform imports on the [command line](#import-on-the-command-line).
@@ -181,6 +183,7 @@ The plan says the team will no longer be managed by Terraform, and destroys noth
 ## Good to know
 
 - **An import changes nothing, but the next apply does.** Applying a plan that shows a change next to an import changes the record in OneUptime. Make the plan show only the import first.
+- **The same value written another way is no change.** OneUptime keeps a timestamp in UTC with milliseconds, a number as a 64-bit float, and JSON and monitor steps with the keys it fills in itself. Right after an import, a configuration that says the same thing its own way plans no change.
 - **Secrets are not read back.** A secret OneUptime never sends back, such as a monitor secret's `secret_value`, is not in the state after an import. If your configuration sets it, the first plan shows it as a change, and applying it writes the secret again.
 - **One configuration for each record.** A record imported into two configurations is changed back to what each one says, on every apply.
 - **Imported records are managed records.** `terraform destroy` deletes them from OneUptime, like the records Terraform created.

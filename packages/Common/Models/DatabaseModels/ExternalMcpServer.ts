@@ -229,6 +229,7 @@ export default class ExternalMcpServer extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(ExternalMcpServerAuthType),
     title: "Authentication",
     description:
       "How OneUptime signs in to the server: None, BearerToken (an API token), Headers (headers of the server's own, such as X-API-Key) or OAuthClientCredentials (a token from an OAuth token URL, with a client ID and secret).",
@@ -428,6 +429,7 @@ export default class ExternalMcpServer extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(ExternalMcpServerTransport),
     title: "Transport",
     description:
       "How the server talks, as OneUptime found out when it last connected: StreamableHttp or Sse.",

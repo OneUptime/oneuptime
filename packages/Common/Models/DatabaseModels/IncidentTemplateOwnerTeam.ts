@@ -72,7 +72,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   singularName: "Incident Template Team Owner",
   pluralName: "Incident Template Team Owners",
   icon: IconProp.Signal,
-  tableDescription: "Add teams as owners to your incidents.",
+  tableDescription: "Add teams as owners to your incident templates.",
 })
 @Entity({
   name: "IncidentTemplateOwnerTeam",
@@ -232,7 +232,7 @@ export default class IncidentTemplateOwnerTeam extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "Team ID",
-    description: "ID of your OneUptime Team in which this object belongs",
+    description: "ID of the team that owns the incident template",
     example: "f6a7b8c9-d0e1-4f2a-3b4c-5d6e7f8a9b0c",
   })
   @Column({
@@ -312,8 +312,7 @@ export default class IncidentTemplateOwnerTeam extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "IncidentTemplate ID",
-    description:
-      "ID of your OneUptime IncidentTemplate in which this object belongs",
+    description: "ID of the incident template the team owns",
     example: "a7b8c9d0-e1f2-4a3b-4c5d-6e7f8a9b0c1d",
   })
   @Column({

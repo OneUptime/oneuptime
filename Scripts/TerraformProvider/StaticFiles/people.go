@@ -632,18 +632,22 @@ func personEmailsPlanModifiers(idsAttribute string) []planmodifier.Set {
 
 // personIDValidators: a configuration names the person by ID or by address,
 // not both - and exactly one of the two when the resource needs a person.
+// An ID is a user ID (ids.go): an address or a name there is refused at
+// plan time, pointing at the address attribute.
 func personIDValidators(emailAttribute string, required bool) []validator.String {
+	userID := recordIDValidator{resourceType: personResourceType, emailAttribute: emailAttribute}
 	if required {
-		return []validator.String{stringvalidator.ExactlyOneOf(path.MatchRoot(emailAttribute))}
+		return []validator.String{userID, stringvalidator.ExactlyOneOf(path.MatchRoot(emailAttribute))}
 	}
-	return []validator.String{stringvalidator.ConflictsWith(path.MatchRoot(emailAttribute))}
+	return []validator.String{userID, stringvalidator.ConflictsWith(path.MatchRoot(emailAttribute))}
 }
 
 func personIDsValidators(emailsAttribute string, required bool) []validator.Set {
+	userIDs := setvalidator.ValueStringsAre(recordIDValidator{resourceType: personResourceType, emailAttribute: emailsAttribute})
 	if required {
-		return []validator.Set{setvalidator.ExactlyOneOf(path.MatchRoot(emailsAttribute))}
+		return []validator.Set{userIDs, setvalidator.ExactlyOneOf(path.MatchRoot(emailsAttribute))}
 	}
-	return []validator.Set{setvalidator.ConflictsWith(path.MatchRoot(emailsAttribute))}
+	return []validator.Set{userIDs, setvalidator.ConflictsWith(path.MatchRoot(emailsAttribute))}
 }
 
 func personEmailValidators() []validator.String {
@@ -756,6 +760,47 @@ func personIDsForWrite(ctx context.Context, client *Client, ids *types.Set, emai
 
 	*ids = planned
 	return true
+}
+
+// ---------------------------------------------------------------------------
+// Lookup: what the generated data sources do with an address.
+
+// personIDForLookup is the ID of the person a data source is asked to find
+// a record by (user_email), which the list endpoint then matches. False:
+// nobody in the project has the address, or the project's people cannot be
+// read, and the lookup stops with an error that says which.
+func personIDForLookup(ctx context.Context, client *Client, email string, emailAttribute string, diags *diag.Diagnostics) (string, bool) {
+	person, err := client.findPersonByEmail(ctx, email)
+	if err != nil {
+		diags.AddAttributeError(path.Root(emailAttribute), "Could not look up "+email, personLookupFailedDetail(email, err))
+		return "", false
+	}
+	if person == nil {
+		diags.AddAttributeError(
+			path.Root(emailAttribute),
+			email+" is not in this project",
+			fmt.Sprintf("No one in this project, or invited to it, has the email address %q, so nothing names them. Check the address: if they changed it in OneUptime, use the new one.", email),
+		)
+		return "", false
+	}
+
+	return person.ID, true
+}
+
+// personEmailAfterLookup is the address a data source's read leaves: the
+// one it was looked up by, or - found another way - the person's own, as far
+// as the project can say.
+func personEmailAfterLookup(ctx context.Context, client *Client, id types.String, email types.String) types.String {
+	if !email.IsNull() && !email.IsUnknown() {
+		return email
+	}
+	if id.IsNull() || id.IsUnknown() || id.ValueString() == "" {
+		return types.StringNull()
+	}
+	if address := client.emailOfPerson(ctx, id.ValueString()); address != "" {
+		return types.StringValue(address)
+	}
+	return types.StringNull()
 }
 
 // personEmailAfterWrite is the address a create or update leaves in state:
@@ -913,21 +958,61 @@ func sameIDSets(ctx context.Context, a types.Set, b types.Set) bool {
 }
 
 // ---------------------------------------------------------------------------
-// Import: a membership by its team and its person.
+// Import: a row by what it joins and who or what joins it.
 
-// membershipImport names the list a membership is found in, and the API
-// fields of its parent (the team) and its person.
+// The kinds of row imported so (Common/Utils/DeveloperDocs/PeopleByEmail.ts
+// MembershipKind).
+const (
+	membershipKindMember = "member"
+	membershipKindOwner  = "owner"
+	membershipKindOnCall = "on-call"
+)
+
+// membershipImport names the list a row is found in, and the API fields of
+// its parent (a team, a monitor, an escalation rule) and of who or what
+// joins it (a person, a team, a schedule).
 type membershipImport struct {
 	listPath        string
 	parentField     string
 	parentAttribute string
+	// What the parent is, in words: "team", "monitor".
+	parentNoun      string
 	personField     string
+	personAttribute string
+	// The member is a person, so an email address names them too.
+	byEmail bool
+	kind    string
 }
 
-// importIDOfMembership turns "<team id>/<email address or user id>" into the
-// membership's own ID, and the address it was given (to keep in state, in
-// its own case). An ID without a "/" is the membership's own, as it always
-// was.
+// importForm is how the import ID of a row of spec is written.
+func (spec membershipImport) importForm() string {
+	if spec.byEmail {
+		return fmt.Sprintf("<%s>/<email address or user id>", spec.parentAttribute)
+	}
+	return fmt.Sprintf("<%s>/<%s>", spec.parentAttribute, spec.personAttribute)
+}
+
+// notFound says that nothing joins what the import ID names, the way the
+// kind of row would say it.
+func (spec membershipImport) notFound(member string, parentID string) string {
+	parent := spec.parentNoun
+	if parent == "" {
+		parent = strings.ReplaceAll(strings.TrimSuffix(spec.parentAttribute, "_id"), "_", " ")
+	}
+	switch spec.kind {
+	case membershipKindOwner:
+		return fmt.Sprintf("%s is not an owner of the %s %q.", member, parent, parentID)
+	case membershipKindOnCall:
+		return fmt.Sprintf("%s is not on the %s %q.", member, parent, parentID)
+	default:
+		return fmt.Sprintf("%s is not a member of the %s %q, nor invited to it.", member, parent, parentID)
+	}
+}
+
+// importIDOfMembership turns "<team id>/<email address or user id>" - or
+// "<monitor id>/<team id>" for a row whose member is no person - into the
+// row's own ID, and the address it was given (to keep in state, in its own
+// case). An ID without a "/" is the row's own, as it always was.
 func importIDOfMembership(ctx context.Context, client *Client, importID string, spec membershipImport, diags *diag.Diagnostics) (string, string, bool) {
 	if !strings.Contains(importID, "/") {
 		return importID, "", true
@@ -938,18 +1023,22 @@ func importIDOfMembership(ctx context.Context, client *Client, importID string, 
 	person := strings.TrimSpace(parts[1])
 
 	if parentID == "" || person == "" {
-		diags.AddError("Invalid Import ID", fmt.Sprintf("Import a membership by its ID, or as <%s>/<email address or user id>; got %q.", spec.parentAttribute, importID))
+		diags.AddError("Invalid Import ID", fmt.Sprintf("Import it by its ID, or as %s; got %q.", spec.importForm(), importID))
 		return "", "", false
 	}
 
 	if client == nil {
-		diags.AddError("Provider Not Configured", "The provider must be configured to import by team and person.")
+		diags.AddError("Provider Not Configured", "The provider must be configured to import by what a row joins.")
 		return "", "", false
 	}
 
 	userID := person
 	email := ""
 	if strings.Contains(person, "@") {
+		if !spec.byEmail {
+			diags.AddError("Invalid Import ID", fmt.Sprintf("%q is an email address, and %s takes no person: import it as %s.", person, spec.personAttribute, spec.importForm()))
+			return "", "", false
+		}
 		found, err := client.findPersonByEmail(ctx, person)
 		if err != nil {
 			diags.AddError("Could not look up "+person, personLookupFailedDetail(person, err))
@@ -984,7 +1073,7 @@ func importIDOfMembership(ctx context.Context, client *Client, importID string, 
 
 	items, _ := parsed["data"].([]interface{})
 	if len(items) == 0 {
-		diags.AddError("Not Found", fmt.Sprintf("%s is not a member of the %s %q, nor invited to it.", person, strings.TrimSuffix(spec.parentAttribute, "_id"), parentID))
+		diags.AddError("Not Found", spec.notFound(person, parentID))
 		return "", "", false
 	}
 

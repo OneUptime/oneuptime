@@ -230,7 +230,7 @@ export default class IoTFleetOwnerUser extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "User ID",
-    description: "ID of your OneUptime User in which this object belongs",
+    description: "ID of the user who owns the IoT fleet",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -308,7 +308,7 @@ export default class IoTFleetOwnerUser extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "IoT Fleet ID",
-    description: "ID of your OneUptime IoT Fleet in which this object belongs",
+    description: "ID of the IoT fleet the user owns",
   })
   @Column({
     type: ColumnType.ObjectID,

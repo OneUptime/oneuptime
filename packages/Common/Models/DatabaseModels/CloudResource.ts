@@ -517,6 +517,7 @@ export default class CloudResource extends BaseModel {
     isDefaultValueColumn: true,
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(CloudResourceKind),
     canReadOnRelationQuery: true,
     title: "Cloud Resource Kind",
     description:
@@ -1055,8 +1056,7 @@ export default class CloudResource extends BaseModel {
     type: TableColumnType.EntityArray,
     modelType: Label,
     title: "Labels",
-    description:
-      "Relation to Labels Array where this object is categorized in.",
+    description: "Labels to group and filter by.",
   })
   @ManyToMany(
     () => {

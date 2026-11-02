@@ -273,6 +273,7 @@ export default class AutoRemediationSuggestion extends BaseModel {
   @Index()
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(AiResourceType),
     required: false,
     canReadOnRelationQuery: true,
     title: "Resource Type",
@@ -509,6 +510,7 @@ export default class AutoRemediationSuggestion extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(AutoRemediationSuggestionStatus),
     title: "Status",
     description:
       "Lifecycle status: Planning, Suggested, Approved, AutoExecuted, Dismissed or NoneApplicable.",
@@ -532,6 +534,7 @@ export default class AutoRemediationSuggestion extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(AutoRemediationExecutionMode),
     title: "Execution Mode",
     description:
       "The rule's execution mode when this suggestion was created (Suggest or FullAuto).",
@@ -556,6 +559,7 @@ export default class AutoRemediationSuggestion extends BaseModel {
     required: true,
     isDefaultValueColumn: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(AutoRemediationSuggestionType),
     title: "Suggestion Type",
     description:
       "Runbook suggestions propose starting a pre-authored runbook; CommandPlan suggestions carry an AI-composed command plan; McpToolCalls suggestions carry the tool calls OneUptime AI makes, or proposes, through the project's external MCP servers.",
@@ -856,6 +860,7 @@ export default class AutoRemediationSuggestion extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(AutoRemediationVerificationStatus),
     title: "Verification Status",
     description:
       "Outcome verification after execution: Pending, Verified, Failed or Skipped. Empty until a runbook is started.",

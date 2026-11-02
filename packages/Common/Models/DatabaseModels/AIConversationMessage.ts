@@ -260,6 +260,7 @@ export default class AIConversationMessage extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(AIChatMessageRole),
     title: "Role",
     description: "Who authored this message: User or Assistant.",
     canReadOnRelationQuery: true,
@@ -305,6 +306,7 @@ export default class AIConversationMessage extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(AIChatMessageStatus),
     title: "Status",
     description: "Current status of this message.",
     canReadOnRelationQuery: true,
@@ -446,6 +448,7 @@ export default class AIConversationMessage extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(AIConversationMessageFeedback),
     title: "User Feedback",
     description:
       "Thumbs feedback the user left on this assistant message: Up or Down.",

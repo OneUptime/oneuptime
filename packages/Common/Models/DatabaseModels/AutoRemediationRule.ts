@@ -286,6 +286,7 @@ export default class AutoRemediationRule extends RuleBaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(AutoRemediationTriggerEntity),
     title: "Trigger Entity Type",
     description:
       "Which kind of signal this rule decides about: Incident or Alert - or Profile, the slow code OneUptime finds in a service's profiles, or Trace, the slow and failing operations OneUptime finds in a service's traces, or Exception, the new and rising exceptions OneUptime finds in a service, or Log, the error, missing and noisy logs OneUptime finds in a service's logs, or Metric, the problems OneUptime finds in a service's metrics.",
@@ -449,6 +450,7 @@ export default class AutoRemediationRule extends RuleBaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(AutoRemediationExecutionMode),
     title: "Execution Mode",
     description:
       "How a rule that fixes asks. Suggest asks before fixing: every fix the rule starts waits for one-click human approval. FullAuto fixes without asking: OneUptime AI fixes on its own where the cluster's or resource's AI agent page allows, a runbook it picks from the ones the rule names starts right away (one it picks from all of the project's runbooks still waits for approval), a change through an MCP server the rule names is made right away (through any of the project's MCP servers, it still waits for approval), and a rule that runs its runbooks every time starts them immediately.",
@@ -496,6 +498,7 @@ export default class AutoRemediationRule extends RuleBaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(AutoRemediationAction),
     title: "Fix With",
     description:
       "OneUptimeAI (the default): OneUptime AI fixes the matched incident or alert - on the Kubernetes clusters and infrastructure it is linked to, the way each one's AI agent page allows, with the project's runbooks (only the rule's Runbooks when it names some) and with commands on the rule's Runner when it picks one. Runbooks: the rule starts every one of its Runbooks for every match, without OneUptime AI deciding. Whether a person approves first is the rule's Execution Mode.",

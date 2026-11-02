@@ -461,6 +461,7 @@ export default class CephClusterFeed extends BaseModel {
   })
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(CephClusterFeedEventType),
     required: true,
     title: "Ceph Cluster Feed Event",
     description: "Ceph Cluster Feed Event",

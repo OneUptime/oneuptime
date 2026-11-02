@@ -555,10 +555,11 @@ export default class UserOnCallLog extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(UserNotificationExecutionStatus),
     title: "Status",
     description: "Status of this execution",
     canReadOnRelationQuery: false,
-    example: "Success",
+    example: "Completed",
   })
   @Column({
     nullable: false,
@@ -575,6 +576,7 @@ export default class UserOnCallLog extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(UserNotificationEventType),
     title: "Notification Event Type",
     description: "Notification Event Type of this execution",
     canReadOnRelationQuery: false,
@@ -806,6 +808,7 @@ export default class UserOnCallLog extends BaseModel {
   @TableColumn({
     type: TableColumnType.Date,
     example: "2024-01-15T10:30:00Z",
+    description: "When the person acknowledged the page. Empty until they do.",
   })
   @Column({
     type: ColumnType.Date,

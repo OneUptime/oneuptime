@@ -393,6 +393,7 @@ export default class CloudAccountFeed extends BaseModel {
   })
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(CloudAccountFeedEventType),
     required: true,
     title: "Cloud Account Feed Event",
     description: "What kind of entry this is.",

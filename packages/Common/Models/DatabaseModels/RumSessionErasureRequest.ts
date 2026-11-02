@@ -217,6 +217,7 @@ export default class RumSessionErasureRequest extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(RumSessionErasureRequestType),
     canReadOnRelationQuery: true,
     title: "Request Type",
     description:
@@ -307,6 +308,7 @@ export default class RumSessionErasureRequest extends BaseModel {
     required: true,
     computed: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(RumSessionErasureRequestStatus),
     canReadOnRelationQuery: true,
     title: "Status",
     description:

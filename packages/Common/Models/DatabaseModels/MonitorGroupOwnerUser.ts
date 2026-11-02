@@ -79,7 +79,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   singularName: "Monitor Group User Owner",
   pluralName: "Monitor Group User Owners",
   icon: IconProp.Signal,
-  tableDescription: "Add users as owners to your monitor group.",
+  tableDescription: "Add users as owners to your monitor groups.",
 })
 @Entity({
   name: "MonitorGroupOwnerUser",
@@ -241,7 +241,7 @@ export default class MonitorGroupOwnerUser extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "User ID",
-    description: "ID of your OneUptime User in which this object belongs",
+    description: "ID of the user who owns the monitor group",
     example: "d3e4f5a6-b7c8-9d0e-1f2a-3b4c5d6e7f8a",
   })
   @Column({
@@ -322,8 +322,7 @@ export default class MonitorGroupOwnerUser extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "MonitorGroup ID",
-    description:
-      "ID of your OneUptime MonitorGroup in which this object belongs",
+    description: "ID of the monitor group the user owns",
     example: "b1c2d3e4-f5a6-7b8c-9d0e-1f2a3b4c5d6e",
   })
   @Column({

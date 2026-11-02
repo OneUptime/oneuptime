@@ -234,8 +234,7 @@ export default class OnCallDutyPolicyScheduleLayer extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "On-Call Policy Schedule ID",
-    description:
-      "ID of your On-Call Policy Schedule where this escalation rule belongs.",
+    description: "ID of the on-call schedule the layer is in",
   })
   @Column({
     type: ColumnType.ObjectID,

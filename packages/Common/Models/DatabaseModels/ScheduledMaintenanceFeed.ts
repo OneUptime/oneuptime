@@ -474,6 +474,7 @@ export default class ScheduledMaintenanceFeed extends BaseModel {
   })
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(ScheduledMaintenanceFeedEventType),
     required: true,
     title: "ScheduledMaintenance Log Event",
     description: "ScheduledMaintenance Log Event",

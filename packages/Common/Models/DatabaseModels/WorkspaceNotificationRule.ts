@@ -324,6 +324,7 @@ class WorkspaceNotificationRule extends BaseModel {
     required: true,
     unique: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(NotificationRuleEventType),
     canReadOnRelationQuery: true,
   })
   @Column({
@@ -367,6 +368,7 @@ class WorkspaceNotificationRule extends BaseModel {
     required: true,
     unique: false,
     type: TableColumnType.LongText,
+    allowedValues: Object.values(WorkspaceType),
     canReadOnRelationQuery: true,
   })
   @Column({

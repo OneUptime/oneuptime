@@ -264,6 +264,7 @@ export default class WhatsAppLog extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(WhatsAppStatus),
     title: "Status of the WhatsApp Message",
     description: "Status of the WhatsApp message sent",
     canReadOnRelationQuery: false,

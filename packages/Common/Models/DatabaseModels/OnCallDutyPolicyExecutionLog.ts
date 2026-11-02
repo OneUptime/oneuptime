@@ -618,6 +618,7 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(OnCallDutyPolicyStatus),
     title: "Status",
     description: "Status of this execution",
     canReadOnRelationQuery: false,
@@ -692,10 +693,11 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(UserNotificationEventType),
     title: "Notification Event Type",
     description: "Type of event that triggered this on-call duty policy.",
     canReadOnRelationQuery: false,
-    example: "IncidentCreated",
+    example: "Incident Created",
   })
   @Column({
     nullable: false,
@@ -1387,6 +1389,7 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
   })
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(OnCallPolicyAiHoldOutcome),
     required: false,
     title: "OneUptime AI Hold",
     description:

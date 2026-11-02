@@ -125,7 +125,7 @@ resource "oneuptime_team" "storefront" {
   name = "Storefront"
 }
 
-resource "oneuptime_team_on_call_duty_escalation_rule" "storefront" {
+resource "oneuptime_escalation_rule_team" "storefront" {
   on_call_duty_policy_id                 = module.storefront.on_call_policy_id
   on_call_duty_policy_escalation_rule_id = module.storefront.escalation_rule_id
   team_id                                = oneuptime_team.storefront.id

@@ -107,6 +107,15 @@ output "alice_teams" {
 }
 ```
 
+다른 데이터 소스도 레코드가 가리키는 사람의 주소로, 그 사람의 ID와 나란히 레코드를 찾습니다. 다음은 SRE 팀에서 Alice의 멤버십을 읽습니다.
+
+```hcl
+data "oneuptime_team_member" "alice" {
+  team_id    = oneuptime_team.sre.id
+  user_email = "alice@example.com"
+}
+```
+
 ## 사람 내보내기
 
 그 사람의 멤버십을 구성에서 지우고 적용하세요. 프로젝트의 마지막 팀에서 빠지면 프로젝트에서도 빠지고, OneUptime은 그 사람을 모든 온콜 일정, 에스컬레이션 규칙, 대리에서 빼며, 소유한 것에서도 뺍니다. 끝난 인시던트, 알림, 유지 관리 이벤트를 제외한 모든 것입니다. 그 사람을 지정하는 블록도 같은 변경에서 지우세요. 그러지 않으면 다음 플랜이 더 이상 프로젝트에 없는 사람을 위해 그것들을 다시 만듭니다.
@@ -122,6 +131,13 @@ terraform import oneuptime_team_member.alice 6b1d1c2e-4f3a-4b5c-8d6e-7f8091a2b3c
 ```
 
 주소는 쓴 그대로 남으니 구성과 똑같이 쓰세요. 멤버십 자체의 ID로도 가져올 수 있으며, 이때 주소는 OneUptime에서 소문자로 읽어 옵니다.
+
+소유자와 온콜 행도 같은 방식으로, 속한 대상으로 가져옵니다. 모니터의 소유자는 모니터의 ID와 그 사람의 주소로 가져옵니다. 소유자 팀이나 에스컬레이션 규칙이 호출하는 팀처럼 팀이나 일정을 가리키는 행은 두 ID로 가져옵니다.
+
+```bash
+terraform import oneuptime_monitor_user_owner.api 68a1b2c3-d4e5-4f6a-8b9c-0d1e2f3a4b01/bob@example.com
+terraform import oneuptime_escalation_rule_team.sre 68a1b2c3-d4e5-4f6a-8b9c-0d1e2f3a4b06/6b1d1c2e-4f3a-4b5c-8d6e-7f8091a2b3c4
+```
 
 ## 누군가 주소를 바꿀 때
 

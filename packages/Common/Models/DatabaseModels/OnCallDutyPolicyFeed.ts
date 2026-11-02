@@ -475,6 +475,7 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
   })
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(OnCallDutyPolicyFeedEventType),
     required: true,
     title: "On Call Duty Policy Feed Event",
     description: "On Call Duty Policy Feed Event",

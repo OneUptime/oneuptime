@@ -30,6 +30,7 @@ Procure na tabela abaixo a mensagem que o Terraform exibiu, ou o que você viu a
 | `has been renamed to` | Renomeie o tipo de recurso, com um bloco `moved`: veja [Um tipo de recurso renomeado](#um-tipo-de-recurso-renomeado) |
 | Um monitor criado com o Terraform nunca mostra as verificações dele | Atualize o OneUptime: veja [Monitores criados antes dos IDs de etapa](#monitores-criados-antes-dos-ids-de-etapa) |
 | `must contain at least 1 elements` | Omita o atributo em vez de deixá-lo vazio: veja [Valores vazios](#valores-vazios) |
+| `Not an ID` | Faça referência ao registro em vez de nomeá-lo: veja [Um nome onde vai um ID](#um-nome-onde-vai-um-id) |
 | JSON do painel em um arquivo `.tf` | Escreva-o em HCL: veja [JSON do painel](#json-do-painel) |
 | `no available releases match the given constraints` | Use um intervalo de versões, não uma única versão exata: veja [Uma versão que nunca foi publicada](#uma-versão-que-nunca-foi-publicada) |
 | `x509: certificate signed by unknown authority` | Confie na sua autoridade certificadora: veja [Certificados](#certificados) |
@@ -172,6 +173,16 @@ Attribute monitor_steps list must contain at least 1 elements, got: 0
 ```
 
 Omita o atributo em vez disso: um atributo que não está lá não está definido. [Etapas do monitor](/docs/terraform/monitor-steps) lista o que cada parte aceita.
+
+### Um nome onde vai um ID
+
+Um atributo que guarda o ID de outro registro, como `team_id` ou os `labels` de um monitor, recebe o ID desse registro: um UUID. Um nome ou um slug ali interrompe o plano:
+
+```text
+"sre" is not the ID of a oneuptime_team: OneUptime IDs are UUIDs, such as 550e8400-e29b-41d4-a716-446655440000. Refer to the resource instead (oneuptime_team.<name>.id), or read the ID with the oneuptime_team data source.
+```
+
+Faça referência ao recurso do registro, como em `team_id = oneuptime_team.sre.id`, ou leia o registro com uma [fonte de dados](/docs/terraform/complete-guide#ler-o-que-já-existe). Se o atributo indica uma pessoa, informe o endereço de e-mail dela no atributo ao lado, como `user_email`.
 
 ### JSON do painel
 

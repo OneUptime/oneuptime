@@ -334,7 +334,11 @@ describe("relations", () => {
     const attr: TerraformAttribute | undefined = getMonitor().schema["labels"];
 
     // Label has only a list endpoint in the fixture: a data source, no resource.
-    expect(attr?.relation).toEqual({ name: "label", isList: true });
+    expect(attr?.relation).toEqual({
+      name: "label",
+      isList: true,
+      dataSourceOnly: true,
+    });
     expect(attr?.description).toBe(
       "Attached labels. IDs of `oneuptime_label` records.",
     );
@@ -461,6 +465,33 @@ describe("JSON attributes", () => {
   test("say to write them with jsonencode()", () => {
     expect(getMonitor().schema["server_meta"]?.description).toBe(
       "Arbitrary nested metadata. A JSON value: write it with `jsonencode()`.",
+    );
+  });
+
+  /*
+   * One only the server writes is read, never written: telling a reader to
+   * jsonencode() a read-only attribute sent them to write it.
+   */
+  test("a read-only one says to read it with jsondecode()", () => {
+    const report: TerraformAttribute | undefined =
+      getMonitor().schema["probe_report"];
+
+    expect(report?.computed).toBe(true);
+    expect(report?.required).toBe(false);
+    expect(report?.description).toBe(
+      "What the probes last reported. A JSON value: read it with `jsondecode()`.",
+    );
+  });
+
+  test("a data source's says to read it with jsondecode()", () => {
+    const monitor: TerraformDataSource | undefined = getParser()
+      .getDataSources()
+      .find((d: TerraformDataSource) => {
+        return d.name === "monitor";
+      });
+
+    expect(monitor?.schema["probe_report"]?.description).toBe(
+      "What the probes last reported. A JSON value: read it with `jsondecode()`.",
     );
   });
 

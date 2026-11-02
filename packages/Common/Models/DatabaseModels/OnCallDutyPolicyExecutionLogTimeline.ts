@@ -646,6 +646,7 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(UserNotificationEventType),
     title: "Notification Event Type",
     description: "Type of event that triggered this on-call duty policy.",
     canReadOnRelationQuery: false,
@@ -892,6 +893,7 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(OnCallDutyExecutionLogTimelineStatus),
     title: "Status",
     description: "Status of this execution timeline event",
     canReadOnRelationQuery: false,

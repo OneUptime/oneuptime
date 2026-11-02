@@ -186,6 +186,7 @@ export default class AlertVideoCall extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(VideoCallProvider),
     canReadOnRelationQuery: true,
     title: "Provider",
     description:

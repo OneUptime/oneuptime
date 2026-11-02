@@ -107,6 +107,15 @@ output "alice_teams" {
 }
 ```
 
+Andra datakällor hittar en post via adressen till personen den anger, bredvid personens ID. Den här läser Alices medlemskap i SRE-teamet:
+
+```hcl
+data "oneuptime_team_member" "alice" {
+  team_id    = oneuptime_team.sre.id
+  user_email = "alice@example.com"
+}
+```
+
 ## Ta bort personer
 
 Ta bort personens medlemskap från din konfiguration och tillämpa den. Ute ur sitt sista team i projektet är de ute ur projektet, och OneUptime tar bort dem från varje jourschema, varje eskaleringsregel och varje ersättare, och från det de äger: allt, utom de incidenter, larm och underhållshändelser som är över. Ta bort blocken som anger dem i samma ändring, annars skapar nästa plan dem igen för någon som inte längre finns i projektet.
@@ -122,6 +131,13 @@ terraform import oneuptime_team_member.alice 6b1d1c2e-4f3a-4b5c-8d6e-7f8091a2b3c
 ```
 
 Adressen förblir som du skrev den, så skriv den som din konfiguration gör. Medlemskapets eget ID importerar det också, och då läses adressen från OneUptime, med gemener.
+
+Ägare och jourrader importeras på samma sätt, via det de hör till. En monitors ägare tar monitorns ID och personens adress. En rad som nämner ett team eller ett schema, som ett ägarteam eller teamet som en eskaleringsregel larmar, tar båda ID:na:
+
+```bash
+terraform import oneuptime_monitor_user_owner.api 68a1b2c3-d4e5-4f6a-8b9c-0d1e2f3a4b01/bob@example.com
+terraform import oneuptime_escalation_rule_team.sre 68a1b2c3-d4e5-4f6a-8b9c-0d1e2f3a4b06/6b1d1c2e-4f3a-4b5c-8d6e-7f8091a2b3c4
+```
 
 ## När någon ändrar sin adress
 

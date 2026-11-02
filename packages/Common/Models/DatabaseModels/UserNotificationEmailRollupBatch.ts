@@ -298,6 +298,7 @@ export default class UserNotificationEmailRollupBatch extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(RollupBatchStatus),
     title: "Status",
     description: "Claimed, Sent, Empty, Skipped or Failed",
     example: "Sent",

@@ -155,6 +155,7 @@ export default class AIInsight extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(AIInsightType),
     title: "Insight Type",
     description:
       "Which deterministic detector produced this insight: NewException, ExceptionSpike, ErrorLogSpike, TraceLatencyRegression or MetricDrift.",
@@ -179,6 +180,7 @@ export default class AIInsight extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(AIInsightStatus),
     title: "Status",
     description:
       "Lifecycle of the insight. Detected is the defensive initial state — the scanner routes to ActionRequired or FixOpened in the same tick; Resolved and Dismissed are human actions.",
@@ -203,6 +205,7 @@ export default class AIInsight extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(AIInsightSeverity),
     title: "Severity",
     description:
       "How urgent this insight is (High, Medium or Low), assigned deterministically by the detector.",
@@ -653,6 +656,7 @@ export default class AIInsight extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(AIInsightHumanVerdict),
     title: "Human Verdict",
     description:
       "The one-click human verdict on this insight (Confirmed or Dismissed). Null until a user weighs in.",

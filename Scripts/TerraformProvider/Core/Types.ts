@@ -1,3 +1,5 @@
+import { MembershipKind } from "Common/Utils/DeveloperDocs/PeopleByEmail";
+
 export interface TerraformProviderConfig {
   outputDir: string;
   providerName: string;
@@ -76,6 +78,8 @@ export interface OpenAPISpec {
      * formerSingularName): the first is kept as a deprecated alias.
      */
     "x-former-names"?: Array<string>;
+    // The model's table: two models can share a singular name, so a tag's.
+    "x-oneuptime-table"?: string;
     /*
      * A telemetry table's (logs, spans, metrics...): records the product
      * keeps for a while, which the provider reads but never manages.
@@ -92,6 +96,12 @@ export interface OpenAPISpec {
 export interface TerraformRelation {
   name: string;
   isList: boolean;
+  /*
+   * A type with a data source and no resource - a record OneUptime makes
+   * itself, such as an AI run or a scan: its ID is read with the data
+   * source, never referred to as a resource's.
+   */
+  dataSourceOnly?: boolean;
 }
 
 export interface TerraformResource {
@@ -107,6 +117,13 @@ export interface TerraformResource {
    * configurations that use it keep working.
    */
   legacyName?: string | undefined;
+  /*
+   * A name this resource had that another resource has now (the link of a
+   * status page and a subscriber notification template, whose name is the
+   * template's): no alias can keep it, so a moved block brings state across
+   * from it instead.
+   */
+  movedFrom?: string | undefined;
   goTypeName: string;
   description?: string; // Human description from the spec's tag (model tableDescription)
   operations: {
@@ -123,23 +140,33 @@ export interface TerraformResource {
     read?: Record<string, TerraformAttribute>;
   };
   /*
-   * A membership imported by what it joins and who - `<team_id>/<email
-   * address or user id>` - as well as by its own ID.
+   * A row imported by what it joins and who or what joins it -
+   * `<team_id>/<email address or user id>`, `<monitor_id>/<team_id>` - as
+   * well as by its own ID.
    */
   membershipImport?: TerraformMembershipImport | undefined;
 }
 
 export interface TerraformMembershipImport {
-  // The Terraform attribute of what the person is a member of: team_id.
+  // The Terraform attribute of what the row joins: team_id, monitor_id.
   parentAttribute: string;
+  // What that is, in words: "team", "on call schedule layer".
+  parentNoun: string;
   // Its API field: teamId.
   parentApiField: string;
-  // The API field of the person: userId.
+  // The Terraform attribute of who or what joins it: user_id, team_id.
+  personAttribute: string;
+  // Its API field: userId.
   personApiField: string;
-  // The attribute naming the person by email address: user_email.
+  /*
+   * The attribute naming the person by email address (user_email), when it
+   * is a person: then the import takes their address too.
+   */
   personEmailAttribute?: string | undefined;
   // The list endpoint the membership is found in.
   listPath: string;
+  // A team's member, an owner, or who an on-call layer or rule pages.
+  kind: MembershipKind;
 }
 
 export interface TerraformDataSource {
@@ -174,6 +201,11 @@ export interface TerraformAttribute {
   apiFieldName?: string; // Original OpenAPI field name for API requests
   example?: any; // Example value from OpenAPI spec
   isComplexObject?: boolean; // Flag to indicate this string field is actually a complex object
+  /*
+   * A complex object that is one value in a wrapper ({_type: "Color",
+   * value: "#ff0000"}): written, and kept in state, as the plain value.
+   */
+  isWrappedScalar?: boolean;
   format?: string; // OpenAPI format information (e.g., "binary", "date-time", etc.)
   isDateTime?: boolean; // RFC3339 timestamp (spec DateTime wrapper) — uses semantic instant equality
   isMonitorSteps?: boolean; // MonitorSteps wrapper — emitted as a typed nested attribute (monitorsteps.go)

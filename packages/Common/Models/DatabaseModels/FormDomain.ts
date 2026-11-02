@@ -511,6 +511,7 @@ export default class FormDomain extends BaseModel {
     update: [...UPDATE_PERMISSIONS],
   })
   @TableColumn({
+    secret: true,
     type: TableColumnType.VeryLongText,
     title: "Custom Certificate Key",
     description:

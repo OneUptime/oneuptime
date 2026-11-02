@@ -79,7 +79,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   singularName: "OnCallDutyPolicy User Owner",
   pluralName: "OnCallDutyPolicy User Owners",
   icon: IconProp.Signal,
-  tableDescription: "Add users as owners to your onCallDutyPolicys.",
+  tableDescription: "Add users as owners to your on-call policies.",
 })
 @Entity({
   name: "OnCallDutyPolicyOwnerUser",
@@ -238,7 +238,7 @@ export default class OnCallDutyPolicyOwnerUser extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "User ID",
-    description: "ID of your OneUptime User in which this object belongs",
+    description: "ID of the user who owns the on-call policy",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -317,8 +317,7 @@ export default class OnCallDutyPolicyOwnerUser extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "OnCallDutyPolicy ID",
-    description:
-      "ID of your OneUptime OnCallDutyPolicy in which this object belongs",
+    description: "ID of the on-call policy the user owns",
   })
   @Column({
     type: ColumnType.ObjectID,
