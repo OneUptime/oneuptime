@@ -1882,40 +1882,76 @@ describe("user overrides", () => {
   });
 
   /*
-   * The shortcuts that add a global override lock by the same rule for a
-   * team whose role covers only some policies: Skip until... on a layer and
-   * Get cover on an upcoming shift (GlobalUserOverrideLock), and the mobile
-   * app's cover sheet, which says why in place of its form.
+   * The shortcuts that add a global override - Skip until... on a layer,
+   * Get cover on an upcoming shift and the mobile app's cover sheet - ask
+   * the server, for a team whose role covers only some policies, which
+   * policies it may cover (POST .../add-access, getAddAccess running a
+   * create's checks), offer those with one override on each, and lock by
+   * the same rule only where it allows none.
    */
-  it("says Skip until…, Get cover and the mobile app's cover are locked for a narrower role, as their code locks them", () => {
-    const lock: string = readDashboardSource(
-      "Components/OnCallPolicy/UserOverrides/GlobalUserOverrideLock.ts",
+  it("says Skip until…, Get cover and the mobile app's cover offer the policies a narrower role may cover, as their code does", () => {
+    expect(
+      readCommonSource("Server/API/OnCallDutyPolicyUserOverrideAPI.ts"),
+    ).toContain("USER_OVERRIDE_ADD_ACCESS_ROUTE");
+    expect(
+      readCommonSource("Types/OnCallDutyPolicy/UserOverrideAddAccess.ts"),
+    ).toContain(
+      'export const USER_OVERRIDE_ADD_ACCESS_ROUTE: string = "/add-access";',
+    );
+    expect(
+      readCommonSource(
+        "Server/Services/OnCallDutyPolicyUserOverrideService.ts",
+      ),
+    ).toContain("await this.checkCallerMayCreate({");
+
+    const policies: string = readDashboardSource(
+      "Components/OnCallPolicy/UserOverrides/UserOverridePolicies.ts",
     );
 
-    expect(lock).toContain("export const getGlobalUserOverrideShortcutLock");
+    expect(policies).toContain(
+      '"/on-call-duty-policy-user-override/add-access"',
+    );
+    expect(policies).toContain("export const addUserOverrideOnPolicies");
+    expect(
+      readDashboardSource(
+        "Components/OnCallPolicy/UserOverrides/GlobalUserOverrideLock.ts",
+      ),
+    ).toContain("GlobalUserOverrideShortcutKind.SomePolicies");
     expect(
       readDashboardSource(
         "Components/OnCallPolicy/OnCallScheduleLayer/Layers.tsx",
       ),
     ).toContain(
-      "const skipLockedReason: string | null = getGlobalUserOverrideShortcutLock();",
+      "policies={isSkipOnSomePolicies ? skipPolicies || [] : undefined}",
     );
+    expect(
+      readDashboardSource(
+        "Components/OnCallPolicy/OnCallScheduleLayer/SkipLayerUserModal.tsx",
+      ),
+    ).toContain('title: "On-call policies",');
     expect(
       readDashboardSource(
         "Components/OnCallPolicy/CalendarFeed/UpcomingShiftRow.tsx",
       ),
-    ).toContain("getGlobalUserOverrideShortcutLock({ held: held })");
-    expect(
-      readPackageFile("MobileApp/src/screens/CreateOnCallOverrideScreen.tsx"),
-    ).toContain("useGlobalOverrideLock(projectId)");
+    ).toContain("coverPolicies = getPoliciesToOffer({");
+
+    const screen: string = readPackageFile(
+      "MobileApp/src/screens/CreateOnCallOverrideScreen.tsx",
+    );
+
+    expect(screen).toContain("useCoverPolicies({");
+    expect(screen).toContain("onCallDutyPolicyId: policy.policyId,");
+    expect(readPackageFile("MobileApp/src/api/onCallOverrides.ts")).toContain(
+      '"/api/on-call-duty-policy-user-override/add-access"',
+    );
 
     const page: string = english(USER_OVERRIDES);
 
     expect(page).toContain(
-      "So are **Skip until…** on a schedule's layers and **Get cover** on your upcoming shifts, which add global overrides, and the mobile app says why instead of arranging cover.",
+      "**Skip until…** on a schedule's layers and **Get cover** on your upcoming shifts, which add global overrides, offer instead the policies you may cover, one override on each, and so does the mobile app's cover; where you may cover none of them, they are locked and say why.",
     );
     expect(page).toContain(
-      "That is also why **Skip until…** and **Get cover** are locked for you, and why the mobile app cannot arrange cover.",
+      "**Skip until…**, **Get cover** and the mobile app then offer only the policies you may cover, and are locked where you may cover none of them.",
     );
   });
 
