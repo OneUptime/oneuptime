@@ -101,6 +101,7 @@ La lista muestra cada tipo de registro con el que puede trabajar, y su comando, 
 | `oneuptime context list`, `use`, `current`, `delete` | Lista, cambia, muestra y elimina contextos guardados | [Autenticación](/docs/cli/authentication#contextos) |
 | `oneuptime whoami` | Muestra la URL y la clave de API que usará el siguiente comando, y con `--check` si OneUptime acepta la clave | [Autenticación](/docs/cli/authentication#comprobar-qué-usará-la-cli) |
 | `oneuptime deploy` | Registra un despliegue, u otro cambio, para los gráficos y OneUptime AI | [Despliegues y cambios](/docs/telemetry/change-events) |
+| `oneuptime dbt upload` | Envía los artefactos de un proyecto de dbt después de una compilación a Observabilidad de datos | [Referencia de comandos](/docs/cli/command-reference#oneuptime-dbt-upload) |
 | `oneuptime <resource> list`, `get`, `create`, `update`, `delete`, `count` | Trabaja con un tipo de registro | [Operaciones de recursos](/docs/cli/resource-operations) |
 | `oneuptime <resource> fields` | Lista los campos de un recurso y las opciones que los definen | [Operaciones de recursos](/docs/cli/resource-operations#ver-los-campos-de-un-recurso) |
 | `oneuptime <resource> acknowledge`, `resolve`, `start`, `end`, `add-note` | Hace lo que hacen los botones del panel en incidentes, alertas y mantenimientos programados | [Operaciones de recursos](/docs/cli/resource-operations#reconocer-resolver-y-añadir-notas) |

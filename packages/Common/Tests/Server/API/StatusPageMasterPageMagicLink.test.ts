@@ -60,7 +60,7 @@ interface PageState {
   enableMasterPassword: boolean;
   hasMasterPassword: boolean;
   requireSsoForLogin: boolean;
-  enableMagicLinkLogin: boolean | undefined;
+  enableMagicLinkLogin: boolean;
 }
 
 const SIGN_IN_PAGE: PageState = {

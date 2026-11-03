@@ -43,6 +43,8 @@ error: option '-o, --output <format>' argument 'yaml' is invalid. Allowed choice
 ├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
 │ change-event               │ Change Event               │ Change Events               │ analytics │ /change-events              │
 ├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
+│ cloud-cost                 │ Cloud Cost                 │ Cloud Costs                 │ analytics │ /cloud-cost                 │
+├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
 │ exception-instance         │ Exception Instance         │ Exception Instances         │ analytics │ /exceptions                 │
 ├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
 │ kubernetes-cost-allocation │ Kubernetes Cost Allocation │ Kubernetes Cost Allocations │ analytics │ /kubernetes-cost-allocation │
@@ -68,7 +70,7 @@ error: option '-o, --output <format>' argument 'yaml' is invalid. Allowed choice
 │ threat-intel-indicator     │ Threat Intel Indicator     │ Threat Intel Indicators     │ analytics │ /threat-intel-indicators    │
 └────────────────────────────┴────────────────────────────┴─────────────────────────────┴───────────┴─────────────────────────────┘
 
-Total: 14 resources
+Total: 15 resources
 ```
 
 برای فهرستی از رکوردها، جدول حداکثر شش ستون نشان می‌دهد: اول از میان `_id`، `name`، `title`، `status`، `createdAt` و `updatedAt` آن‌هایی که رکوردها دارند، سپس فیلدهای بعدی رکوردها به ترتیب. ستون‌ها از نخستین رکورد گرفته می‌شوند. مقداری که بلندتر از ۶۰ نویسه باشد به ۵۷ نویسهٔ اولش کوتاه می‌شود و پس از آن `...` می‌آید.

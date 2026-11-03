@@ -15,6 +15,7 @@ import { Route as PageRoute, Routes } from "react-router-dom";
 import DataObservabilityOverviewPage from "../Pages/DataObservability/Overview";
 import DataObservabilityTablesPage from "../Pages/DataObservability/Tables";
 import DataObservabilityDroppedTablesPage from "../Pages/DataObservability/DroppedTables";
+import DataObservabilityUnusedTablesPage from "../Pages/DataObservability/UnusedTables";
 import DataObservabilityStoresPage from "../Pages/DataObservability/Stores";
 import StoreOverviewPage from "../Pages/DataObservability/View/Overview";
 import StoreTablesPage from "../Pages/DataObservability/View/Tables";
@@ -88,6 +89,14 @@ const DataObservabilityRoutes: FunctionComponent<ComponentProps> = (
         {page(PageMap.DATA_OBSERVABILITY_TABLES_DROPPED, (pageRoute: Route) => {
           return (
             <DataObservabilityDroppedTablesPage
+              {...props}
+              pageRoute={pageRoute}
+            />
+          );
+        })}
+        {page(PageMap.DATA_OBSERVABILITY_TABLES_UNUSED, (pageRoute: Route) => {
+          return (
+            <DataObservabilityUnusedTablesPage
               {...props}
               pageRoute={pageRoute}
             />

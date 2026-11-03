@@ -103,15 +103,8 @@ interface ModuleExpectation {
    * and RUM (everything but the budget alerts).
    */
   contextFreeTemplateCount: number;
-  identifierFieldName:
-    | "clusterIdentifier"
-    | "vcenterIdentifier"
-    | "hostIdentifier"
-    | "fleetIdentifier"
-    | "arrayIdentifier"
-    | "rumApplicationId"
-    | "serviceId"
-    | "databaseServerId";
+  // The catalog's own names, so a resource type added there is named here too.
+  identifierFieldName: MonitorRecommendationResourceTypeDefinition["identifierFieldName"];
 }
 
 const MODULE_EXPECTATIONS: Array<ModuleExpectation> = [
