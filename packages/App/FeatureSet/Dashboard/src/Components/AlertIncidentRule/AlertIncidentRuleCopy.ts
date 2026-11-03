@@ -110,7 +110,8 @@ export const getAlertIncidentRuleName: (
     ? sentence.translateTemplate(ALERT_INCIDENT_RULE_NAME_WITH_SEVERITY, {
         severity: severityName,
       })
-    : sentence.translateText(ALERT_INCIDENT_RULE_DEFAULT_NAME);
+    : sentence.translateText(ALERT_INCIDENT_RULE_DEFAULT_NAME) ||
+      ALERT_INCIDENT_RULE_DEFAULT_NAME;
 
   return name.slice(0, RULE_NAME_MAX_LENGTH);
 };
@@ -163,7 +164,10 @@ export const describeAlertIncidentRuleWhen: (
   );
 
   if (minutes === 0) {
-    return sentence.translateText(ALERT_INCIDENT_RULE_RIGHT_AWAY);
+    return (
+      sentence.translateText(ALERT_INCIDENT_RULE_RIGHT_AWAY) ||
+      ALERT_INCIDENT_RULE_RIGHT_AWAY
+    );
   }
 
   return sentence.translateTemplate(ALERT_INCIDENT_RULE_IF_STILL_UNRESOLVED, {
