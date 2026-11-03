@@ -354,6 +354,7 @@ import WebhookLog from "./WebhookLog";
 import PushNotificationLog from "./PushNotificationLog";
 import WorkspaceNotificationLog from "./WorkspaceNotificationLog";
 import WorkspaceLiveMessage from "./WorkspaceLiveMessage";
+import WorkspaceHomeChoice from "./WorkspaceHomeChoice";
 // Status Page
 import StatusPage from "./StatusPage";
 import StatusPageAnnouncement from "./StatusPageAnnouncement";
@@ -928,6 +929,7 @@ const AllModelTypes: Array<{
   PushNotificationLog,
   WorkspaceNotificationLog,
   WorkspaceLiveMessage,
+  WorkspaceHomeChoice,
   CallLog,
   EmailLog,
 

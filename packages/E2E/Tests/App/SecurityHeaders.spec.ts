@@ -64,9 +64,11 @@ const HARDENED_ROUTES: Array<string> = [
  * so DENY here is a product regression rather than a hardening win — and it is
  * the kind of regression a well-meaning "add the header everywhere" change
  * introduces. IngressRoutes.spec.ts already proves both serve a non-error
- * response in this environment.
+ * response in this environment. The status page app is /status-page/, with
+ * the slash: with billing enabled the bare /status-page is the marketing
+ * site's address for /product/status-page, served by Home.
  */
-const EMBEDDABLE_ROUTES: Array<string> = ["/status-page", "/public-dashboard"];
+const EMBEDDABLE_ROUTES: Array<string> = ["/status-page/", "/public-dashboard"];
 
 interface ExpectedHeader {
   name: string;

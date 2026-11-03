@@ -36,6 +36,12 @@ interface PushNotificationMessage {
    */
   criticalAlertSound?: string | undefined;
   criticalAlertVolume?: number | undefined;
+  /*
+   * The actions the On-Call app draws under the push (PushNotificationCategory):
+   * an on-call page's are Acknowledge and Escalate. Sent through Expo only; a
+   * web push has no categories.
+   */
+  categoryId?: string | undefined;
 }
 
 export default PushNotificationMessage;

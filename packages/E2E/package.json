@@ -14,6 +14,8 @@
     "test-accounts-theme-ui": "playwright test --config playwright.accounts-theme-ui.config.ts",
     "test-public-dashboard-theme-ui": "playwright test --config playwright.public-dashboard-theme-ui.config.ts",
     "test-navigation-search-ui": "playwright test --config playwright.navigation-search.config.ts",
+    "test-lighthouse": "playwright test --config playwright.lighthouse.config.ts",
+    "test-lighthouse-production": "playwright test --config playwright.lighthouse-production.config.ts",
     "preinstall": "npx playwright install-deps && npx playwright install",
     "test": "playwright test || (curl $E2E_TESTS_FAILED_WEBHOOK_URL && exit 1)",
     "dep-check": "npm install -g depcheck && depcheck ./ --skip-missing=true",
@@ -134,6 +136,7 @@
   "dependencies": {
     "@playwright/test": "^1.63.0",
     "Common": "file:../Common",
+    "lighthouse": "^13.5.0",
     "playwright": "^1.63.0",
     "typescript": "^5.9.2"
   }

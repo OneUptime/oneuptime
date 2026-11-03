@@ -5,6 +5,11 @@ import Constants from "expo-constants";
 import { Platform } from "react-native";
 import { PermissionStatus } from "expo-modules-core";
 import { NOTIFICATION_CHANNELS } from "./channels";
+import {
+  ON_CALL_PAGE_ACTIONS,
+  ON_CALL_PAGE_CATEGORY,
+  RETIRED_CATEGORIES,
+} from "./categories";
 import logger from "../utils/logger";
 
 // Show notifications when app is in foreground
@@ -44,32 +49,30 @@ export async function setupNotificationChannels(): Promise<void> {
   }
 }
 
+/*
+ * Acknowledge and Escalate under every page's push (categories.ts). Set on
+ * every launch, like the channels: a phone restored from a backup, or a
+ * reinstall, has none until the app says.
+ */
 export async function setupNotificationCategories(): Promise<void> {
-  await Notifications.setNotificationCategoryAsync("INCIDENT_ACTIONS", [
-    {
-      identifier: "ACKNOWLEDGE",
-      buttonTitle: "Acknowledge",
-      options: { opensAppToForeground: false },
-    },
-    {
-      identifier: "VIEW",
-      buttonTitle: "View",
-      options: { opensAppToForeground: true },
-    },
-  ]);
+  try {
+    await Notifications.setNotificationCategoryAsync(ON_CALL_PAGE_CATEGORY, [
+      ...ON_CALL_PAGE_ACTIONS,
+    ]);
+  } catch (error: unknown) {
+    logger.error(
+      `[PushNotifications] Failed to set notification category ${ON_CALL_PAGE_CATEGORY}:`,
+      error,
+    );
+  }
 
-  await Notifications.setNotificationCategoryAsync("ALERT_ACTIONS", [
-    {
-      identifier: "ACKNOWLEDGE",
-      buttonTitle: "Acknowledge",
-      options: { opensAppToForeground: false },
-    },
-    {
-      identifier: "VIEW",
-      buttonTitle: "View",
-      options: { opensAppToForeground: true },
-    },
-  ]);
+  for (const category of RETIRED_CATEGORIES) {
+    try {
+      await Notifications.deleteNotificationCategoryAsync(category);
+    } catch {
+      // Not there, or not removable here: no server names it either way.
+    }
+  }
 }
 
 export interface PushTokenRequestOptions {

@@ -57,6 +57,8 @@ import RootCauseCard from "../components/RootCauseCard";
 import MarkdownContent from "../components/MarkdownContent";
 import { useHaptics } from "../hooks/useHaptics";
 import { usePassOnAction, type PassOnControls } from "../hooks/usePassOnAction";
+import { usePushPageAction } from "../hooks/usePushPageAction";
+import { getPagedResponseActions, isPagedAgain } from "../oncall/pagedActions";
 
 type Props = NativeStackScreenProps<
   IncidentsStackParamList,
@@ -65,6 +67,7 @@ type Props = NativeStackScreenProps<
 
 export default function IncidentEpisodeDetailScreen({
   route,
+  navigation,
 }: Props): React.JSX.Element {
   const { episodeId, projectId } = route.params;
   const { theme } = useTheme();
@@ -197,6 +200,50 @@ export default function IncidentEpisodeDetailScreen({
     ],
   );
 
+  // Where Acknowledge and Resolve move it: the project's own two states.
+  const acknowledgeState: IncidentState | undefined =
+    getAcknowledgedState(states);
+  const resolveState: IncidentState | undefined = getResolvedState(states);
+
+  const currentStateId: string | undefined = episode?.currentIncidentState?._id;
+  /*
+   * Resolved: in the project's resolved state or in a state placed after
+   * it ("Closed"), so there is nothing left to acknowledge or resolve
+   * (utils/resolvedState).
+   */
+  const isResolved: boolean = isResolvedStateId(states, currentStateId);
+  /*
+   * Acknowledged: in the project's acknowledged state or in a state placed
+   * after it ("Investigating"), so Acknowledge - a move back up the list -
+   * is not offered (utils/acknowledgedState).
+   */
+  const isAcknowledged: boolean = isAcknowledgedById(states, currentStateId);
+
+  // Acknowledge or Escalate tapped under the page's push, done here once.
+  usePushPageAction({
+    request: route.params.pushAction,
+    clear: () => {
+      navigation?.setParams?.({ pushAction: undefined });
+    },
+    ready: Boolean(episode) && Boolean(states) && passOn.pagesSettled,
+    state: {
+      recordType: "incident-episode",
+      isResolved,
+      isAcknowledged,
+      canAcknowledge: Boolean(acknowledgeState),
+      hasOpenPages: passOn.hasOpenPages,
+      isPageAgain: passOn.isPageAgain,
+      pagesKnown: passOn.pagesKnown,
+    },
+    acknowledge: () => {
+      return acknowledgeState
+        ? handleStateChange(acknowledgeState._id, acknowledgeState.name)
+        : undefined;
+    },
+    acknowledgeAgain: passOn.acknowledgeAgain,
+    askToEscalate: passOn.askToPassOn,
+  });
+
   const handleAddNote: (noteText: string) => Promise<void> = useCallback(
     async (noteText: string): Promise<void> => {
       setSubmittingNote(true);
@@ -294,68 +341,65 @@ export default function IncidentEpisodeDetailScreen({
     ? rgbToHex(episode.currentIncidentState.color)
     : theme.colors.textTertiary;
 
-  // Where Acknowledge and Resolve move it: the project's own two states.
-  const acknowledgeState: IncidentState | undefined =
-    getAcknowledgedState(states);
-  const resolveState: IncidentState | undefined = getResolvedState(states);
-
-  const currentStateId: string | undefined = episode.currentIncidentState?._id;
-  /*
-   * Resolved: in the project's resolved state or in a state placed after
-   * it ("Closed"), so there is nothing left to acknowledge or resolve
-   * (utils/resolvedState).
-   */
-  const isResolved: boolean = isResolvedStateId(states, currentStateId);
-  /*
-   * Acknowledged: in the project's acknowledged state or in a state placed
-   * after it ("Investigating"), so Acknowledge - a move back up the list -
-   * is not offered (utils/acknowledgedState).
-   */
-  const isAcknowledged: boolean = isAcknowledgedById(states, currentStateId);
   const rootCauseTextRaw: string = toPlainText(episode.rootCause);
   const rootCauseText: string | undefined =
     rootCauseTextRaw.trim() || undefined;
   const descriptionText: string = toPlainText(episode.description);
 
-  const actions: ResponseAction[] = [];
-  if (!isResolved && !isAcknowledged && acknowledgeState) {
-    actions.push({
-      label: "Acknowledge",
-      accessibilityLabel: "Acknowledge incident episode",
-      icon: responseActionIcons.acknowledge,
-      busyAccessibilityLabel:
-        "Acknowledge incident episode, state change in progress",
-      primary: true,
-      onPress: () => {
-        return handleStateChange(acknowledgeState._id, acknowledgeState.name);
-      },
-    });
-  }
-  if (!isResolved && resolveState) {
-    actions.push({
-      label: "Resolve",
-      accessibilityLabel: "Resolve incident episode",
-      icon: responseActionIcons.resolve,
-      busyAccessibilityLabel:
-        "Resolve incident episode, state change in progress",
-      primary: isAcknowledged || !acknowledgeState,
-      onPress: () => {
-        return handleStateChange(resolveState._id, resolveState.name);
-      },
-    });
-  }
-  // Somebody being paged about it who cannot take it hands it on.
-  if (!isResolved && !isAcknowledged && passOn.action) {
-    actions.push(passOn.action);
-  }
+  /*
+   * Acknowledge again first while the reader is paged again, then the
+   * record's own Acknowledge and Resolve, then Escalate for somebody paged
+   * about it who cannot take it (oncall/pagedActions.ts).
+   */
+  const pagedActionsInput: Parameters<typeof getPagedResponseActions>[0] = {
+    isResolved,
+    isAcknowledged,
+    acknowledge: acknowledgeState
+      ? {
+          label: "Acknowledge",
+          accessibilityLabel: "Acknowledge incident episode",
+          icon: responseActionIcons.acknowledge,
+          busyAccessibilityLabel:
+            "Acknowledge incident episode, state change in progress",
+          primary: true,
+          onPress: () => {
+            return handleStateChange(
+              acknowledgeState._id,
+              acknowledgeState.name,
+            );
+          },
+        }
+      : null,
+    resolve: resolveState
+      ? {
+          label: "Resolve",
+          accessibilityLabel: "Resolve incident episode",
+          icon: responseActionIcons.resolve,
+          busyAccessibilityLabel:
+            "Resolve incident episode, state change in progress",
+          onPress: () => {
+            return handleStateChange(resolveState._id, resolveState.name);
+          },
+        }
+      : null,
+    escalate: passOn.action,
+    acknowledgeAgain: passOn.acknowledgeAgainAction,
+  };
+  const actions: ResponseAction[] = getPagedResponseActions(pagedActionsInput);
 
-  const stage: ResponseStage = getResponseStage(isResolved, isAcknowledged);
+  const stage: ResponseStage = getResponseStage(
+    isResolved,
+    isAcknowledged,
+    isPagedAgain(pagedActionsInput),
+  );
   const guidanceMessage: string =
     stage === "resolved"
       ? "This incident episode is resolved. Review the context and team notes below."
-      : stage === "acknowledged"
-        ? "A responder has acknowledged this incident episode. Resolve it once recovery is confirmed."
-        : "Actions on this episode apply to its grouped incidents. Acknowledge to take responsibility, or resolve when recovery is confirmed.";
+      : stage === "pagedAgain"
+        ? "This incident episode is still not resolved. Acknowledge again if you're still on it, or escalate it."
+        : stage === "acknowledged"
+          ? "A responder has acknowledged this incident episode. Resolve it once recovery is confirmed."
+          : "Actions on this episode apply to its grouped incidents. Acknowledge to take responsibility, or resolve when recovery is confirmed.";
 
   return (
     <ScrollView
@@ -409,7 +453,9 @@ export default function IncidentEpisodeDetailScreen({
         {actions.length > 0 ? (
           <ResponseActions
             actions={actions}
-            busy={changingState || passOn.passingOn}
+            busy={
+              changingState || passOn.passingOn || passOn.acknowledgingAgain
+            }
             style={{ marginBottom: 0 }}
           />
         ) : null}

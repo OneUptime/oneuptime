@@ -9,7 +9,20 @@ import {
   within,
 } from "@testing-library/react-native";
 import { afterEach, describe, expect, test, beforeEach } from "@jest/globals";
+import { SafeAreaInsetsContext } from "react-native-safe-area-context";
+import { HeaderHeightContext } from "@react-navigation/elements";
 import HomeScreen from "./HomeScreen";
+import { WindowLayoutProvider } from "../layout/WindowLayout";
+import { TABLETOP_FOLD_GAP } from "../layout/windowLayout";
+import { getScreenBottomPadding } from "../theme/layout";
+import {
+  createTestPostureSource,
+  bookReport,
+  flatReport,
+  tabletopReport,
+  type TestPostureSource,
+} from "../__tests__/postureTestSource";
+import type { FoldReport } from "../layout/windowPosture";
 import {
   TEST_WINDOWS,
   resetWindowSize,
@@ -98,6 +111,7 @@ const mockProjects: { current: ProjectItem[] } = { current: [] };
 const mockNavigate: jest.Mock = jest.fn();
 
 const mockProjectLoadError: { current: Error | null } = { current: null };
+const mockIsLoadingProjects: { current: boolean } = { current: false };
 const mockRefreshProjects: jest.Mock = jest.fn(async () => {
   return undefined;
 });
@@ -157,7 +171,7 @@ jest.mock("../hooks/useProject", () => {
     useActiveProject: () => {
       return {
         projectList: mockProjects.current,
-        isLoadingProjects: false,
+        isLoadingProjects: mockIsLoadingProjects.current,
         projectLoadError: mockProjectLoadError.current,
         refreshProjects: mockRefreshProjects,
       };
@@ -1381,5 +1395,336 @@ describe("Security cases on Home", () => {
     });
 
     expect(mockSecurityRefetch).toHaveBeenCalled();
+  });
+});
+describe("Home half open on a table", () => {
+  /*
+   * A foldable half closed on a table: the upper half stands up to be read,
+   * the lower half lies flat to be tapped. Home splits on the fold - what
+   * needs the reader above it, the rows that open lists below it - and each
+   * half scrolls on its own, so no card or row lies in the crease. In every
+   * other posture Home is the one scroll it always was.
+   */
+  const BAR: number = 64;
+  const INSETS: { top: number; right: number; bottom: number; left: number } = {
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+  };
+
+  beforeEach(() => {
+    mockProjects.current = [makeProject()];
+    mockProjectLoadError.current = null;
+    mockCounts.current = countsWith({ incidentCount: 2, alertCount: 1 });
+    mockOnCall.current = onCallOnDuty();
+  });
+
+  afterEach(() => {
+    resetWindowSize();
+  });
+
+  async function renderFolded(
+    size: { width: number; height: number },
+    source: TestPostureSource,
+  ): Promise<void> {
+    setWindowSize(size);
+    await render(
+      <SafeAreaInsetsContext.Provider value={INSETS}>
+        <WindowLayoutProvider postureSource={source}>
+          <HeaderHeightContext.Provider value={BAR}>
+            <HomeScreen />
+          </HeaderHeightContext.Provider>
+        </WindowLayoutProvider>
+      </SafeAreaInsetsContext.Provider>,
+    );
+  }
+
+  function styleOf(testID: string): Record<string, unknown> {
+    return (StyleSheet.flatten(screen.getByTestId(testID).props.style) ??
+      {}) as Record<string, unknown>;
+  }
+
+  test("the unfolded phone on its side: the counts and the on-call card above the fold, health and episodes below it", async () => {
+    const size: { width: number; height: number } =
+      TEST_WINDOWS.innerScreenOnItsSide;
+    await renderFolded(
+      size,
+      createTestPostureSource(tabletopReport(size, 442)),
+    );
+
+    expect(styleOf("home-fold-above").height).toBe(
+      442 - TABLETOP_FOLD_GAP / 2 - BAR,
+    );
+    expect(styleOf("home-fold-gap").height).toBe(TABLETOP_FOLD_GAP);
+    expect(screen.getByTestId("home-fold-fold-line")).toBeTruthy();
+
+    const above: ReturnType<typeof screen.getByTestId> =
+      screen.getByTestId("home-above-fold");
+    const below: ReturnType<typeof screen.getByTestId> =
+      screen.getByTestId("home-below-fold");
+    expect(within(above).getByTestId("home-tile-incidents")).toBeTruthy();
+    expect(within(above).getByTestId("home-tile-alerts")).toBeTruthy();
+    expect(within(above).getByTestId("home-oncall-card")).toBeTruthy();
+    expect(within(below).getByTestId("home-service-health")).toBeTruthy();
+    expect(within(below).getByTestId("home-grouped-events")).toBeTruthy();
+    expect(within(above).queryByTestId("home-service-health")).toBeNull();
+    expect(within(below).queryByTestId("home-oncall-card")).toBeNull();
+
+    // The one scroll is gone, and so is the greeting: half a screen has no room for it.
+    expect(screen.queryByTestId("home-scroll")).toBeNull();
+    expect(screen.queryByText("Overview")).toBeNull();
+  });
+
+  test("a wide half sets its two sections side by side, and the on-call card heads its column like the counts", async () => {
+    const size: { width: number; height: number } =
+      TEST_WINDOWS.innerScreenOnItsSide;
+    await renderFolded(
+      size,
+      createTestPostureSource(tabletopReport(size, 442)),
+    );
+
+    expect(styleOf("home-response")).toMatchObject({ flexDirection: "row" });
+    expect(styleOf("home-health")).toMatchObject({ flexDirection: "row" });
+    const onCall: ReturnType<typeof screen.getByTestId> = screen.getByTestId(
+      "home-oncall-section",
+    );
+    expect(within(onCall).getByText("On-Call")).toBeTruthy();
+    expect(within(onCall).getByTestId("home-oncall-card")).toBeTruthy();
+  });
+
+  test("a Galaxy Z Flip half open: one column in each half, and no extra heading", async () => {
+    const size: { width: number; height: number } = { width: 412, height: 914 };
+    await renderFolded(
+      size,
+      createTestPostureSource(tabletopReport(size, 457)),
+    );
+
+    expect(styleOf("home-response")).toMatchObject({
+      flexDirection: "column",
+    });
+    expect(styleOf("home-health")).toMatchObject({ flexDirection: "column" });
+    expect(screen.queryByTestId("home-oncall-section")).toBeNull();
+    expect(
+      within(screen.getByTestId("home-above-fold")).getByTestId(
+        "home-oncall-card",
+      ),
+    ).toBeTruthy();
+    // 20-point gutters, as on any phone.
+    expect(
+      StyleSheet.flatten(
+        screen.getByTestId("home-above-fold").props.contentContainerStyle,
+      ),
+    ).toMatchObject({ paddingLeft: 20, paddingRight: 20 });
+  });
+
+  test("only the half below the fold makes room for the tab bar floating over it", async () => {
+    const size: { width: number; height: number } =
+      TEST_WINDOWS.innerScreenOnItsSide;
+    await renderFolded(
+      size,
+      createTestPostureSource(tabletopReport(size, 442)),
+    );
+
+    expect(
+      StyleSheet.flatten(
+        screen.getByTestId("home-above-fold").props.contentContainerStyle,
+      ),
+    ).toMatchObject({ paddingBottom: getScreenBottomPadding(0, false) });
+    expect(
+      StyleSheet.flatten(
+        screen.getByTestId("home-below-fold").props.contentContainerStyle,
+      ),
+    ).toMatchObject({ paddingBottom: getScreenBottomPadding(0, true) });
+  });
+
+  test("an SSO prompt stands above the fold, first", async () => {
+    mockProjects.current = [makeProject({ requireSsoForLogin: true })];
+    const size: { width: number; height: number } =
+      TEST_WINDOWS.innerScreenOnItsSide;
+    await renderFolded(
+      size,
+      createTestPostureSource(tabletopReport(size, 442)),
+    );
+
+    expect(
+      await within(screen.getByTestId("home-above-fold")).findByTestId(
+        "home-sso-banner",
+      ),
+    ).toBeTruthy();
+  });
+
+  test("pulling either half refreshes all of Home, and only the half pulled shows its spinner", async () => {
+    const refetch: jest.Mock = jest.fn(async () => {
+      return undefined;
+    });
+    mockCounts.current = countsWith({
+      refetch: refetch as unknown as () => Promise<void>,
+    });
+    const size: { width: number; height: number } =
+      TEST_WINDOWS.innerScreenOnItsSide;
+    await renderFolded(
+      size,
+      createTestPostureSource(tabletopReport(size, 442)),
+    );
+
+    let finish: () => void = (): void => {
+      // Set below.
+    };
+    refetch.mockImplementationOnce(() => {
+      return new Promise<void>((resolve: () => void) => {
+        finish = resolve;
+      });
+    });
+
+    let pull: Promise<void> = Promise.resolve();
+    await act(async () => {
+      pull = screen
+        .getByTestId("home-below-fold")
+        .props.refreshControl.props.onRefresh();
+      await Promise.resolve();
+    });
+
+    expect(
+      screen.getByTestId("home-below-fold").props.refreshControl.props
+        .refreshing,
+    ).toBe(true);
+    expect(
+      screen.getByTestId("home-above-fold").props.refreshControl.props
+        .refreshing,
+    ).toBe(false);
+
+    await act(async () => {
+      finish();
+      await pull;
+    });
+
+    expect(refetch).toHaveBeenCalledTimes(1);
+    expect(mockRefreshProjects).toHaveBeenCalled();
+    expect(
+      screen.getByTestId("home-below-fold").props.refreshControl.props
+        .refreshing,
+    ).toBe(false);
+  });
+
+  /*
+   * Nothing to tap yet: the projects are loading, there are none, or they
+   * could not be loaded. What there is to read stands above the fold, off
+   * the crease, and the half below stays empty - with no line on the
+   * crease above an empty half.
+   */
+  function expectNothingBelowTheFold(): void {
+    expect(screen.getByTestId("home-fold-below").props.children).toBeNull();
+    expect(styleOf("home-fold-gap").height).toBe(TABLETOP_FOLD_GAP);
+    expect(screen.queryByTestId("home-fold-fold-line")).toBeNull();
+  }
+
+  test("no projects: the message stands above the fold, and nothing lies below it", async () => {
+    mockProjects.current = [];
+    const size: { width: number; height: number } =
+      TEST_WINDOWS.innerScreenOnItsSide;
+    await renderFolded(
+      size,
+      createTestPostureSource(tabletopReport(size, 442)),
+    );
+
+    expect(
+      within(screen.getByTestId("home-fold-above")).getByText(
+        "No Projects Found",
+      ),
+    ).toBeTruthy();
+    expectNothingBelowTheFold();
+  });
+
+  test("projects that could not be loaded: why, and Retry, above the fold", async () => {
+    mockProjects.current = [];
+    mockProjectLoadError.current = new Error("Network Error");
+    const size: { width: number; height: number } =
+      TEST_WINDOWS.innerScreenOnItsSide;
+    await renderFolded(
+      size,
+      createTestPostureSource(tabletopReport(size, 442)),
+    );
+
+    const above: ReturnType<typeof screen.getByTestId> =
+      screen.getByTestId("home-fold-above");
+    expect(within(above).getByText("Could Not Load Projects")).toBeTruthy();
+    expect(within(above).getByText("Retry")).toBeTruthy();
+    expectNothingBelowTheFold();
+  });
+
+  test("projects still loading: the spinner above the fold", async () => {
+    mockIsLoadingProjects.current = true;
+    try {
+      const size: { width: number; height: number } =
+        TEST_WINDOWS.innerScreenOnItsSide;
+      await renderFolded(
+        size,
+        createTestPostureSource(tabletopReport(size, 442)),
+      );
+
+      expect(
+        within(screen.getByTestId("home-fold-above")).getByLabelText(
+          "Loading your projects",
+        ),
+      ).toBeTruthy();
+      expectNothingBelowTheFold();
+    } finally {
+      mockIsLoadingProjects.current = false;
+    }
+  });
+
+  test.each([
+    ["lying flat", flatReport(TEST_WINDOWS.innerScreenOnItsSide)],
+    [
+      "half open like a book",
+      bookReport(TEST_WINDOWS.innerScreenOnItsSide, 552),
+    ],
+    ["with nothing reporting a posture", null],
+  ])(
+    "%s, Home is the one scroll it always was",
+    async (_name: string, report: FoldReport | null) => {
+      await renderFolded(
+        TEST_WINDOWS.innerScreenOnItsSide,
+        createTestPostureSource(report),
+      );
+
+      expect(screen.getByTestId("home-scroll")).toBeTruthy();
+      expect(screen.getByText("Overview")).toBeTruthy();
+      expect(screen.queryByTestId("home-fold")).toBeNull();
+      expect(screen.queryByTestId("home-oncall-section")).toBeNull();
+    },
+  );
+
+  test("half closing and opening flat again moves every card between the layouts, none lost", async () => {
+    const size: { width: number; height: number } =
+      TEST_WINDOWS.innerScreenOnItsSide;
+    const source: TestPostureSource = createTestPostureSource(flatReport(size));
+    await renderFolded(size, source);
+    expect(screen.getByTestId("home-scroll")).toBeTruthy();
+
+    await act(async () => {
+      source.emit(tabletopReport(size, 442));
+    });
+    for (const id of [
+      "home-tile-incidents",
+      "home-tile-alerts",
+      "home-oncall-card",
+      "home-service-health",
+      "home-grouped-events",
+    ]) {
+      expect(screen.getByTestId(id)).toBeTruthy();
+    }
+    expect(screen.getByTestId("home-tile-incidents-count")).toHaveTextContent(
+      "2",
+    );
+
+    await act(async () => {
+      source.emit(flatReport(size));
+    });
+    expect(screen.getByTestId("home-scroll")).toBeTruthy();
+    expect(screen.getByTestId("home-tile-incidents-count")).toHaveTextContent(
+      "2",
+    );
   });
 });

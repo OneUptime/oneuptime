@@ -40,6 +40,7 @@ import PushNotificationLog from "../../Models/DatabaseModels/PushNotificationLog
 import PushNotificationLogService from "./PushNotificationLogService";
 import PushStatus from "../../Types/PushNotification/PushStatus";
 import AndroidNotificationChannel from "../../Types/PushNotification/AndroidNotificationChannel";
+import { isPushNotificationCategory } from "../../Types/PushNotification/PushNotificationCategory";
 import {
   CriticalAlertSoundDefinition,
   getCriticalAlertSoundDefinition,
@@ -148,6 +149,12 @@ export interface ExpoDeliveryOptions {
   sound: ExpoPushSound;
   priority: "high";
   interruptionLevel?: ExpoInterruptionLevel;
+  /*
+   * The actions the On-Call app draws under the push: an on-call page's
+   * Acknowledge and Escalate (PushNotificationCategory). Only a category the
+   * server knows; absent, the push has no actions.
+   */
+  categoryId?: string;
 }
 
 /*
@@ -1276,15 +1283,24 @@ export default class PushNotificationService {
         : AndroidNotificationChannel.High
       : "default";
 
+    // An on-call page's actions, on both platforms (PushNotificationCategory).
+    const category: { categoryId?: string } = isPushNotificationCategory(
+      message.categoryId,
+    )
+      ? { categoryId: message.categoryId }
+      : {};
+
     if (!isCritical) {
       return {
         channelId: channelId,
         sound: "default",
         priority: "high",
+        ...category,
       };
     }
 
     return {
+      ...category,
       channelId: channelId,
       /*
        * Sent to Android too, and harmlessly ignored there. Expo forwards it to
@@ -1358,6 +1374,7 @@ export default class PushNotificationService {
         ...(delivery.interruptionLevel
           ? { interruptionLevel: delivery.interruptionLevel }
           : {}),
+        ...(delivery.categoryId ? { categoryId: delivery.categoryId } : {}),
       };
 
       const tickets: ExpoPushTicket[] =
@@ -1470,6 +1487,11 @@ export default class PushNotificationService {
             ...(delivery.interruptionLevel
               ? { interruptionLevel: delivery.interruptionLevel }
               : {}),
+            /*
+             * An on-call page's actions. A relay older than them leaves the
+             * field out, and the page arrives without its buttons.
+             */
+            ...(delivery.categoryId ? { categoryId: delivery.categoryId } : {}),
           },
         });
 
@@ -1580,6 +1602,8 @@ export default class PushNotificationService {
     priority?: string;
     channelId?: string;
     interruptionLevel?: ExpoInterruptionLevel;
+    // Only a category the server knows (PushNotificationCategory).
+    categoryId?: string;
   }): Promise<string | undefined> {
     if (!PushNotificationService.hasExpoAccessToken()) {
       throw new Error(
@@ -1614,6 +1638,9 @@ export default class PushNotificationService {
       channelId: data.channelId || "default",
       ...(data.interruptionLevel
         ? { interruptionLevel: data.interruptionLevel }
+        : {}),
+      ...(isPushNotificationCategory(data.categoryId)
+        ? { categoryId: data.categoryId }
         : {}),
     };
 

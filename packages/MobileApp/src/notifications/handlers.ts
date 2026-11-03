@@ -1,5 +1,19 @@
+import * as Notifications from "expo-notifications";
 import type { NotificationResponse } from "expo-notifications";
+import * as Linking from "expo-linking";
 import { buildInboxDetailNavigation } from "../navigation/inboxNavigation";
+import { getServerUrl } from "../storage/serverUrl";
+import logger from "../utils/logger";
+import {
+  getDashboardPageOnServer,
+  opensInBrowser,
+} from "./browserDestinations";
+import { getPushPageActionKind } from "./categories";
+import {
+  isPushPageActionRequest,
+  type PushPageActionKind,
+  type PushPageActionRequest,
+} from "../oncall/pushPageAction";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let navigationRef: any = null;
@@ -23,7 +37,21 @@ interface NotificationData {
   entityType?: string;
   entityId?: string;
   projectId?: string;
+  // Acknowledge or Escalate, tapped under a page's push (categories.ts).
+  pushAction?: PushPageActionRequest;
   [key: string]: any;
+}
+
+/*
+ * The action a page's push was answered with, for the record's screen to do
+ * (oncall/pushPageAction.ts); nothing for a tap on the notification itself.
+ */
+function pushActionParams(data: NotificationData): {
+  pushAction?: PushPageActionRequest;
+} {
+  return isPushPageActionRequest(data.pushAction)
+    ? { pushAction: data.pushAction }
+    : {};
 }
 
 /*
@@ -91,7 +119,11 @@ function executeNavigation(data: NotificationData): void {
         "Inbox",
         buildInboxDetailNavigation({
           name: "IncidentDetail",
-          params: { incidentId: entityId, projectId },
+          params: {
+            incidentId: entityId,
+            projectId,
+            ...pushActionParams(data),
+          },
         }),
       );
       break;
@@ -100,7 +132,7 @@ function executeNavigation(data: NotificationData): void {
         "Inbox",
         buildInboxDetailNavigation({
           name: "AlertDetail",
-          params: { alertId: entityId, projectId },
+          params: { alertId: entityId, projectId, ...pushActionParams(data) },
         }),
       );
       break;
@@ -109,7 +141,7 @@ function executeNavigation(data: NotificationData): void {
         "Inbox",
         buildInboxDetailNavigation({
           name: "IncidentEpisodeDetail",
-          params: { episodeId: entityId, projectId },
+          params: { episodeId: entityId, projectId, ...pushActionParams(data) },
         }),
       );
       break;
@@ -118,7 +150,7 @@ function executeNavigation(data: NotificationData): void {
         "Inbox",
         buildInboxDetailNavigation({
           name: "AlertEpisodeDetail",
-          params: { episodeId: entityId, projectId },
+          params: { episodeId: entityId, projectId, ...pushActionParams(data) },
         }),
       );
       break;
@@ -152,17 +184,38 @@ function executeNavigation(data: NotificationData): void {
       });
       break;
     case "scheduled-maintenance":
+    case "security-hunt":
       /*
-       * The server pages for scheduled maintenance too, but this app has no
-       * screen that can show one - there is no scheduled-maintenance tab and
-       * no detail route to navigate to. Opening the app where it already was
-       * is the honest outcome. This case is written out rather than left to
-       * the default so the next reader knows it was considered and is waiting
-       * on a screen, not overlooked; route it here when that screen lands.
+       * The server pushes about scheduled maintenance and about a scheduled
+       * hunt that found security events too, but this app has no screen for
+       * either: navigateToEntity opens their dashboard page in the browser
+       * instead (browserDestinations.ts), and nothing reaches here. Written
+       * out so the next reader knows they were considered; route them here
+       * when a screen for them lands.
        */
       break;
     default:
       break;
+  }
+}
+
+/*
+ * The record's dashboard page, in the browser, for a push about something
+ * this app has no screen for - when the page is on the OneUptime this app
+ * is signed in to. Anything else opens nothing.
+ */
+async function openDashboardPage(url: unknown): Promise<void> {
+  try {
+    const page: string | null = getDashboardPageOnServer(
+      url,
+      await getServerUrl(),
+    );
+
+    if (page) {
+      await Linking.openURL(page);
+    }
+  } catch (error: unknown) {
+    logger.warn("[PushNotifications] Could not open the push's page:", error);
   }
 }
 
@@ -177,8 +230,12 @@ function navigateToEntity(data: NotificationData): void {
     /*
      * Nothing in this app can show it. Parking it would hold a payload that
      * can never be spent, and the pending slot holds exactly one - so it would
-     * also displace the next page that CAN be shown.
+     * also displace the next page that CAN be shown. A hunt's push and a
+     * scheduled maintenance event's open their page in the browser instead.
      */
+    if (opensInBrowser(data.entityType)) {
+      void openDashboardPage(data["url"]);
+    }
     return;
   }
 
@@ -267,18 +324,57 @@ export function openSecurityCaseFromLink(
   return true;
 }
 
+/*
+ * Takes an answered page's notification away. Android keeps a notification
+ * in the shade when one of its actions is tapped - only a tap on the
+ * notification itself takes it away - so the page stayed there, Acknowledge
+ * and Escalate still under it, after the reader had answered it. iOS takes
+ * it away on its own; asking again there does nothing.
+ */
+async function dismissAnsweredPage(identifier: string): Promise<void> {
+  try {
+    await Notifications.dismissNotificationAsync(identifier);
+  } catch (error: unknown) {
+    logger.warn(
+      "[PushNotifications] Could not take the answered page's notification away:",
+      error,
+    );
+  }
+}
+
 export function handleNotificationResponse(
   response: NotificationResponse,
 ): void {
-  const data: NotificationData =
-    (response.notification.request.content.data as NotificationData) || {};
-  const actionId: string = response.actionIdentifier;
+  /*
+   * An action comes from the button tapped and nothing else: a push's own
+   * data never carries one onto the screen, so no payload can make a plain
+   * tap acknowledge or escalate anything.
+   */
+  const data: NotificationData = {
+    ...((response.notification.request.content.data as NotificationData) || {}),
+  };
+  delete data.pushAction;
+  const actionKind: PushPageActionKind | null = getPushPageActionKind(
+    response.actionIdentifier,
+  );
 
-  if (actionId === "ACKNOWLEDGE") {
-    // Background acknowledge — could call API here in the future
+  if (actionKind) {
+    /*
+     * Acknowledge or Escalate under a page's push: the record opens, and its
+     * screen does the action once, as its own button would. The id is the
+     * tap's, so a second tap on another push is a new action.
+     */
+    void dismissAnsweredPage(response.notification.request.identifier);
+    navigateToEntity({
+      ...data,
+      pushAction: {
+        kind: actionKind,
+        id: `${response.notification.request.identifier}:${response.actionIdentifier}`,
+      },
+    });
     return;
   }
 
-  // Default tap or VIEW action — navigate to entity
+  // A tap on the notification itself opens what it is about.
   navigateToEntity(data);
 }

@@ -24,6 +24,7 @@ import CriticalAlertSound, {
 } from "../../../Types/PushNotification/CriticalAlertSound";
 import { CRITICAL_ALERT_VOLUME_OPTIONS } from "../../../Types/PushNotification/CriticalAlertVolume";
 import PushDeviceType from "../../../Types/PushNotification/PushDeviceType";
+import { ON_CALL_PAGE_PUSH_CATEGORY } from "../../../Types/PushNotification/PushNotificationCategory";
 import PushNotificationRequest from "../../../Types/PushNotification/PushNotificationRequest";
 import UserNotificationEventType from "../../../Types/UserNotification/UserNotificationEventType";
 import {
@@ -401,6 +402,8 @@ describe("an on-call page carries the alarm and volume its device chose", () => 
         sound: { critical: true, name: "default", volume: 1 },
         priority: "high",
         interruptionLevel: "critical",
+        // Acknowledge and Escalate under it (OnCallPagePushCategory.test.ts).
+        categoryId: ON_CALL_PAGE_PUSH_CATEGORY,
       });
     },
   );
@@ -430,6 +433,7 @@ describe("an on-call page carries the alarm and volume its device chose", () => 
         channelId: AndroidNotificationChannel.High,
         sound: "default",
         priority: "high",
+        categoryId: ON_CALL_PAGE_PUSH_CATEGORY,
       });
     },
   );

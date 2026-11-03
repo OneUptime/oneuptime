@@ -50,14 +50,23 @@ export function describeResponseAge(
   return relative === UNKNOWN_TIME ? undefined : `${verb} ${relative}`;
 }
 
-export type ResponseStage = "open" | "acknowledged" | "resolved";
+/*
+ * Where a record stands for the reader. "pagedAgain": it is acknowledged and
+ * still not resolved, and its policy is paging the reader again about it
+ * (the acknowledgement timeout) - the reader has a page to answer.
+ */
+export type ResponseStage = "open" | "acknowledged" | "pagedAgain" | "resolved";
 
 export function getResponseStage(
   isResolved: boolean,
   isAcknowledged: boolean,
+  isPagedAgain: boolean = false,
 ): ResponseStage {
   if (isResolved) {
     return "resolved";
+  }
+  if (isAcknowledged && isPagedAgain) {
+    return "pagedAgain";
   }
   return isAcknowledged ? "acknowledged" : "open";
 }
@@ -80,6 +89,11 @@ const stageAppearance: Record<
     tone: "info",
     icon: "construct-outline",
     title: "Response in progress",
+  },
+  pagedAgain: {
+    tone: "warning",
+    icon: "alarm-outline",
+    title: "You're being paged again",
   },
   resolved: {
     tone: "success",
@@ -111,6 +125,18 @@ export function getResponseStageAppearance(stage: ResponseStage): {
  * own width, so the web suite cannot see this.)
  */
 export const RESPONSE_ACTION_MIN_WIDTH: number = 148;
+
+/*
+ * Paged again, the first action is "Acknowledge again": two words, which a
+ * row too narrow for them breaks across two lines - in a browser too. Its
+ * icon and words in bold take about 176 points, 208 with the button's
+ * padding, so that one action asks for 224 (ResponseAction.minWidth) while
+ * Resolve and Escalate keep RESPONSE_ACTION_MIN_WIDTH. On a phone it takes
+ * the card's first row, filled, and the two others share the row under it
+ * wherever two fit (a 308-point card, from a 382-point window), each on a
+ * row of its own below that; on a tablet all three sit in one row.
+ */
+export const PAGE_AGAIN_ACTION_MIN_WIDTH: number = 224;
 
 /** Icons for the two response actions, shared by every detail screen. */
 export const responseActionIcons: Readonly<{
@@ -401,6 +427,12 @@ export interface ResponseAction {
   onPress: () => void | Promise<void>;
   primary?: boolean;
   icon?: IconName;
+  /*
+   * The narrowest this one action may be before the row wraps, where its
+   * label needs more than the row's own minimum: "Acknowledge again"
+   * (PAGE_AGAIN_ACTION_MIN_WIDTH). The wider of the two applies.
+   */
+  minWidth?: number;
 }
 
 export function ResponseActions({
@@ -456,7 +488,7 @@ export function ResponseActions({
                 flex: 1,
                 flexDirection: "row",
                 gap: spacing.sm,
-                minWidth,
+                minWidth: Math.max(minWidth, action.minWidth ?? 0),
                 minHeight: 54,
                 paddingVertical: spacing.md,
                 paddingHorizontal: spacing.lg,

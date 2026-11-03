@@ -14,7 +14,7 @@
  */
 
 import LogSavedView from "../../Models/DatabaseModels/LogSavedView";
-import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
+import { ColumnAccessControl } from "../../Types/BaseDatabase/AccessControl";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import { TableColumnMetadata } from "../../Types/Database/TableColumn";

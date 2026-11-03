@@ -4,6 +4,7 @@ import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/Datab
 import LogSavedView from "../../../../Models/DatabaseModels/LogSavedView";
 import ObjectID from "../../../../Types/ObjectID";
 import { describe, expect, jest, test } from "@jest/globals";
+import type { Mock } from "jest-mock";
 import { FindOperator } from "typeorm";
 
 /*
@@ -34,19 +35,27 @@ const THIRD_VIEW_ID: ObjectID = new ObjectID(
   "5549a000-0000-4000-8000-0000000000a3",
 );
 
+// What a stand-in service's write and read are called with.
+type UpdateByStandIn = (updateBy: unknown) => Promise<number>;
+type FindByStandIn = (findBy: unknown) => Promise<Array<BaseModel>>;
+
 interface StandInService {
   service: DatabaseService<BaseModel>;
-  updateBy: jest.Mock;
-  findBy: jest.Mock;
+  updateBy: Mock<UpdateByStandIn>;
+  findBy: Mock<FindByStandIn>;
 }
 
 function standInService(rows: Array<BaseModel> = []): StandInService {
-  const updateBy: jest.Mock = jest.fn(async (): Promise<number> => {
-    return 0;
-  });
-  const findBy: jest.Mock = jest.fn(async (): Promise<Array<BaseModel>> => {
-    return rows;
-  });
+  const updateBy: Mock<UpdateByStandIn> = jest.fn<UpdateByStandIn>(
+    async (): Promise<number> => {
+      return 0;
+    },
+  );
+  const findBy: Mock<FindByStandIn> = jest.fn<FindByStandIn>(
+    async (): Promise<Array<BaseModel>> => {
+      return rows;
+    },
+  );
 
   return {
     service: { updateBy, findBy } as unknown as DatabaseService<BaseModel>,
@@ -80,7 +89,7 @@ function view(data: {
 }
 
 function sweepQuery(
-  updateBy: jest.Mock,
+  updateBy: Mock<UpdateByStandIn>,
   call: number = 0,
 ): Record<string, unknown> {
   return (updateBy.mock.calls[call]?.[0] as Record<string, unknown>)[

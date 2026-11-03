@@ -72,12 +72,14 @@ const RETRY_WAIT_SECONDS = 10;
  * real Chromium (BrowserRecorder's vitals, the Probe's synthetic monitors).
  */
 const BROWSER_JOBS = [
+  "lighthouse-production.yml scan",
   "test.app.yaml dashboard-offline-ui",
   "test.app.yaml session-replay-ui",
   "test.browser-recorder.yaml test",
   "test.ee.yaml enterprise-ui",
   "test.mobile-app.yaml expo-web-export",
   "test.probe.yaml test",
+  "test.yaml lighthouse",
 ];
 
 // The jobs that install their browsers, and why they do not use the image.

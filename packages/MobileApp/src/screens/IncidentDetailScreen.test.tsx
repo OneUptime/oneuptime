@@ -13,6 +13,10 @@ import * as passOnApi from "../api/onCallPassOn";
 import type { OnCallPassOnPage } from "../api/onCallPassOn";
 import type { QueryClient, UseQueryResult } from "@tanstack/react-query";
 import IncidentDetailScreen from "./IncidentDetailScreen";
+import {
+  PAGE_AGAIN_ACTION_MIN_WIDTH,
+  RESPONSE_ACTION_MIN_WIDTH,
+} from "../components/ResponseDetailLayout";
 import { ThemeProvider, darkColors, lightColors } from "../theme";
 import { radius } from "../theme/tokens";
 import * as incidentsApi from "../api/incidents";
@@ -161,6 +165,9 @@ jest.mock("../api/onCallPassOn", () => {
     }),
     passOnOnCallPages: jest.fn(async () => {
       return [];
+    }),
+    acknowledgeOnCallPagesAgain: jest.fn(async () => {
+      return 1;
     }),
   };
 });
@@ -1641,7 +1648,8 @@ describe("Escalating the page", () => {
 
     await renderScreen(createTestQueryClient());
 
-    fireEvent.press(
+    // Awaited: a press is an act() of its own, and one left open stops every render after it.
+    await fireEvent.press(
       await screen.findByRole("button", { name: "Escalate this incident" }),
     );
 
@@ -1684,5 +1692,317 @@ describe("Escalating the page", () => {
         screen.queryByRole("button", { name: "Escalate this incident" }),
       ).toBeNull();
     });
+  });
+});
+describe("Paged again, and answering a page from its push", () => {
+  /*
+   * A page again: the policy's acknowledgement timeout ran out with the
+   * incident still acknowledged and not resolved, and it pages the reader
+   * again. The incident's own Acknowledge is gone - it is acknowledged - so
+   * the reader gets Acknowledge again first, then Resolve and Escalate.
+   *
+   * And Acknowledge or Escalate tapped under the page's push: the incident
+   * opens with the action in its params, and the screen does it once it
+   * knows the incident, its states and the reader's pages - then takes it
+   * out of its params.
+   */
+  let alertSpy: jest.SpyInstance;
+  let setParams: jest.Mock;
+
+  const fetchPassOnMock: jest.Mock =
+    passOnApi.fetchOnCallPassOnPages as unknown as jest.Mock;
+  const acknowledgeAgainMock: jest.Mock =
+    passOnApi.acknowledgeOnCallPagesAgain as unknown as jest.Mock;
+
+  const PAGE: OnCallPassOnPage = {
+    executionLogId: "run-1",
+    policyName: "Payments",
+    sentence:
+      "This will immediately page Platform leads (Level 2 of 3), without waiting.",
+  };
+  const PAGE_AGAIN: OnCallPassOnPage = { ...PAGE, isPageAgain: true };
+
+  function acknowledgedIncident(): IncidentItem {
+    return makeLoadedIncident({
+      currentIncidentState: makeNamedEntityWithColor({
+        _id: ACKNOWLEDGED_STATE._id,
+        name: ACKNOWLEDGED_STATE.name,
+      }),
+    });
+  }
+
+  function renderWithPush(
+    pushAction: unknown,
+    client: QueryClient = createTestQueryClient(),
+  ): ReturnType<typeof render> {
+    const pushRoute: IncidentDetailProps["route"] = {
+      ...route,
+      params: {
+        incidentId: INCIDENT_ID,
+        projectId: PROJECT_ID,
+        pushAction,
+      },
+    } as IncidentDetailProps["route"];
+    const pushNavigation: IncidentDetailProps["navigation"] = {
+      setParams,
+    } as unknown as IncidentDetailProps["navigation"];
+
+    return render(
+      <IncidentDetailScreen route={pushRoute} navigation={pushNavigation} />,
+      { wrapper: createQueryWrapper(client) },
+    );
+  }
+
+  function buttonLabels(): Array<string> {
+    return within(screen.getByTestId("response-actions"))
+      .getAllByRole("button")
+      .map((button: { props: { accessibilityLabel?: string } }) => {
+        return button.props.accessibilityLabel ?? "";
+      });
+  }
+
+  beforeEach(() => {
+    alertSpy = jest.spyOn(Alert, "alert").mockImplementation(() => {
+      return undefined;
+    });
+    setParams = jest.fn();
+    fetchPassOnMock.mockClear();
+    acknowledgeAgainMock.mockClear();
+    changeIncidentStateMock.mockReset();
+    changeIncidentStateMock.mockResolvedValue(undefined);
+
+    mockIncidentDetail.current = queryState<IncidentItem | null>({
+      data: makeLoadedIncident(),
+    });
+    mockIncidentStates.current = queryState<IncidentState[]>({
+      data: [TRIAGE_STATE, ACKNOWLEDGED_STATE, RESOLVED_STATE],
+    });
+    mockIncidentTimeline.current = queryState<StateTimelineItem[]>();
+    mockIncidentFeed.current = queryState<FeedItem[]>({ data: [] });
+    mockIncidentNotes.current = queryState<NoteItem[]>({ data: [] });
+  });
+
+  afterEach(() => {
+    alertSpy.mockRestore();
+    mockPassOnPages.current = null;
+  });
+
+  test("paged again about an acknowledged incident: Acknowledge again, then Resolve, then Escalate", async () => {
+    mockPassOnPages.current = [PAGE_AGAIN];
+    mockIncidentDetail.current = queryState<IncidentItem | null>({
+      data: acknowledgedIncident(),
+    });
+
+    await renderScreen(createTestQueryClient());
+
+    await screen.findByRole("button", {
+      name: "Acknowledge this incident again",
+    });
+    expect(buttonLabels()).toEqual([
+      "Acknowledge this incident again",
+      "Resolve incident",
+      "Escalate this incident",
+    ]);
+    expect(screen.getByText("Acknowledge again")).toBeTruthy();
+    /*
+     * Wide enough that the two words never break: a row of its own on a
+     * phone, with Resolve and Escalate side by side under it.
+     */
+    expect(
+      screen.getByRole("button", { name: "Acknowledge this incident again" }),
+    ).toHaveStyle({ minWidth: PAGE_AGAIN_ACTION_MIN_WIDTH });
+    for (const name of ["Resolve incident", "Escalate this incident"]) {
+      expect(screen.getByRole("button", { name })).toHaveStyle({
+        minWidth: RESPONSE_ACTION_MIN_WIDTH,
+      });
+    }
+    // The record's own Acknowledge stays gone: it would move it back up the list.
+    expect(
+      screen.queryByRole("button", { name: "Acknowledge incident" }),
+    ).toBeNull();
+    expect(screen.getByText("You're being paged again")).toBeTruthy();
+    expect(
+      screen.getByText(
+        "This incident is still not resolved. Acknowledge again if you're still on it, or escalate it.",
+      ),
+    ).toBeTruthy();
+  });
+
+  test("Acknowledge again answers the page, and the screen goes back to the response in progress", async () => {
+    mockPassOnPages.current = [PAGE_AGAIN];
+    mockIncidentDetail.current = queryState<IncidentItem | null>({
+      data: acknowledgedIncident(),
+    });
+
+    await renderScreen(createTestQueryClient());
+
+    const again: unknown = await screen.findByRole("button", {
+      name: "Acknowledge this incident again",
+    });
+    mockPassOnPages.current = [];
+    await fireEvent.press(again as Parameters<typeof fireEvent.press>[0]);
+
+    expect(acknowledgeAgainMock).toHaveBeenCalledWith(
+      PROJECT_ID,
+      "incident",
+      INCIDENT_ID,
+    );
+    // No state change: the incident stays acknowledged.
+    expect(changeIncidentStateMock).not.toHaveBeenCalled();
+    await waitFor(() => {
+      return expect(
+        screen.queryByRole("button", {
+          name: "Acknowledge this incident again",
+        }),
+      ).toBeNull();
+    });
+    expect(screen.getByText("Response in progress")).toBeTruthy();
+    expect(buttonLabels()).toEqual(["Resolve incident"]);
+    // Answered: the actions take their usual width again.
+    expect(
+      screen.getByRole("button", { name: "Resolve incident" }),
+    ).toHaveStyle({ minWidth: RESPONSE_ACTION_MIN_WIDTH });
+  });
+
+  test("a first page on an incident nobody took: no Acknowledge again", async () => {
+    mockPassOnPages.current = [PAGE];
+
+    await renderScreen(createTestQueryClient());
+
+    await screen.findByRole("button", { name: "Escalate this incident" });
+    expect(buttonLabels()).toEqual([
+      "Acknowledge incident",
+      "Resolve incident",
+      "Escalate this incident",
+    ]);
+  });
+
+  test("the push's Acknowledge acknowledges the incident once everything is read, and leaves the params", async () => {
+    mockPassOnPages.current = [PAGE];
+
+    await renderWithPush({ kind: "acknowledge", id: "n-1:ACKNOWLEDGE_PAGE" });
+
+    await waitFor(() => {
+      return expect(changeIncidentStateMock).toHaveBeenCalledWith(
+        PROJECT_ID,
+        INCIDENT_ID,
+        ACKNOWLEDGED_STATE._id,
+      );
+    });
+    expect(changeIncidentStateMock).toHaveBeenCalledTimes(1);
+    expect(setParams).toHaveBeenCalledWith({ pushAction: undefined });
+    expect(alertSpy).not.toHaveBeenCalled();
+  });
+
+  test("the push's Acknowledge waits for the reader's pages before it decides", async () => {
+    // The pages are still on their way: nothing is done yet.
+    mockPassOnPages.current = null;
+
+    await renderWithPush({ kind: "acknowledge", id: "n-2:ACKNOWLEDGE_PAGE" });
+
+    await waitFor(() => {
+      return expect(fetchPassOnMock).toHaveBeenCalled();
+    });
+    expect(changeIncidentStateMock).not.toHaveBeenCalled();
+    expect(setParams).not.toHaveBeenCalled();
+  });
+
+  test("on a page again, the push's Acknowledge acknowledges it again - never a state change", async () => {
+    mockPassOnPages.current = [PAGE_AGAIN];
+    mockIncidentDetail.current = queryState<IncidentItem | null>({
+      data: acknowledgedIncident(),
+    });
+
+    await renderWithPush({ kind: "acknowledge", id: "n-3:ACKNOWLEDGE_PAGE" });
+
+    await waitFor(() => {
+      return expect(acknowledgeAgainMock).toHaveBeenCalledWith(
+        PROJECT_ID,
+        "incident",
+        INCIDENT_ID,
+      );
+    });
+    expect(changeIncidentStateMock).not.toHaveBeenCalled();
+  });
+
+  test("an incident acknowledged meanwhile: the push's Acknowledge says so, and does nothing", async () => {
+    mockPassOnPages.current = [];
+    mockIncidentDetail.current = queryState<IncidentItem | null>({
+      data: acknowledgedIncident(),
+    });
+
+    await renderWithPush({ kind: "acknowledge", id: "n-4:ACKNOWLEDGE_PAGE" });
+
+    await waitFor(() => {
+      return expect(alertSpy).toHaveBeenCalledWith(
+        "Already acknowledged",
+        "This incident was already acknowledged, and you are not being paged about it.",
+      );
+    });
+    expect(changeIncidentStateMock).not.toHaveBeenCalled();
+    expect(acknowledgeAgainMock).not.toHaveBeenCalled();
+  });
+
+  test("the push's Escalate asks first, exactly as the screen's Escalate does", async () => {
+    mockPassOnPages.current = [PAGE];
+
+    await renderWithPush({ kind: "escalate", id: "n-5:ESCALATE_PAGE" });
+
+    await waitFor(() => {
+      return expect(alertSpy).toHaveBeenCalledWith(
+        "Escalate Incident?",
+        `${PAGE.sentence}\n\nYou will not be paged again for this incident.`,
+        expect.any(Array),
+      );
+    });
+    // Nothing is escalated until the reader says so.
+    expect(passOnApi.passOnOnCallPages).not.toHaveBeenCalled();
+    expect(setParams).toHaveBeenCalledWith({ pushAction: undefined });
+  });
+
+  test("the push's Escalate, with nothing to escalate any more, says so", async () => {
+    mockPassOnPages.current = [];
+
+    await renderWithPush({ kind: "escalate", id: "n-6:ESCALATE_PAGE" });
+
+    await waitFor(() => {
+      return expect(alertSpy).toHaveBeenCalledWith(
+        "Nothing to escalate",
+        "You are not being paged about this right now.",
+      );
+    });
+  });
+
+  test("a re-render never does the push's action twice", async () => {
+    mockPassOnPages.current = [PAGE];
+    const client: QueryClient = createTestQueryClient();
+
+    const rendered: Awaited<ReturnType<typeof render>> = await renderWithPush(
+      { kind: "escalate", id: "n-7:ESCALATE_PAGE" },
+      client,
+    );
+
+    await waitFor(() => {
+      return expect(alertSpy).toHaveBeenCalledTimes(1);
+    });
+    await rendered.rerender(
+      <IncidentDetailScreen
+        route={
+          {
+            ...route,
+            params: {
+              incidentId: INCIDENT_ID,
+              projectId: PROJECT_ID,
+              pushAction: { kind: "escalate", id: "n-7:ESCALATE_PAGE" },
+            },
+          } as IncidentDetailProps["route"]
+        }
+        navigation={
+          { setParams } as unknown as IncidentDetailProps["navigation"]
+        }
+      />,
+    );
+
+    expect(alertSpy).toHaveBeenCalledTimes(1);
   });
 });

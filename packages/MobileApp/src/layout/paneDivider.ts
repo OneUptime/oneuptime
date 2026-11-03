@@ -54,6 +54,62 @@ export function stepListPaneWidth(
   return clampListPaneWidth(crossesDefault ? defaultWidth : next, range);
 }
 
+/*
+ * The divider from a keyboard - a Chromebook's, a tablet's, a laptop with the
+ * web build: once the handle has focus, the arrow keys move it a screen
+ * reader's step at a time (and stop on the layout's own position, as the
+ * steps do), Home and End take it to the narrowest and the widest the list
+ * may be, and Enter puts it back where the layout has it, as a double tap
+ * does. Left and down narrow the list, right and up widen it, as on any
+ * slider.
+ */
+export type DividerKeyMove =
+  | { kind: "step"; direction: 1 | -1 }
+  | { kind: "edge"; edge: "min" | "max" }
+  | { kind: "reset" };
+
+/** What a key does to the divider, or null for a key it leaves alone. */
+export function getDividerKeyMove(key: string): DividerKeyMove | null {
+  switch (key) {
+    case "ArrowRight":
+    case "ArrowUp":
+      return { kind: "step", direction: 1 };
+    case "ArrowLeft":
+    case "ArrowDown":
+      return { kind: "step", direction: -1 };
+    case "Home":
+      return { kind: "edge", edge: "min" };
+    case "End":
+      return { kind: "edge", edge: "max" };
+    case "Enter":
+      return { kind: "reset" };
+    default:
+      return null;
+  }
+}
+
+/**
+ * Where a key leaves the divider: the list's new width, or null to put it
+ * back where the layout has it.
+ */
+export function moveListPaneWidthByKey(
+  width: number,
+  move: DividerKeyMove,
+  range: ListPaneWidthRange,
+  defaultWidth: number,
+): number | null {
+  if (move.kind === "reset") {
+    return null;
+  }
+  if (move.kind === "edge") {
+    return clampListPaneWidth(
+      move.edge === "min" ? range.min : range.max,
+      range,
+    );
+  }
+  return stepListPaneWidth(width, move.direction, range, defaultWidth);
+}
+
 /**
  * What to remember for a divider at rest here: nothing when it is where the
  * layout puts it anyway, so the reader keeps following the layout's rule.

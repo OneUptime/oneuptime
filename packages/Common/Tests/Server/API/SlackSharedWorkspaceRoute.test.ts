@@ -78,6 +78,7 @@ import { setTestBillingEnabled } from "../Enterprise/TestBillingFlag";
 import AIService from "../../../Server/Services/AIService";
 import ObservabilityAssistant from "../../../Server/Utils/AI/Chat/ObservabilityAssistant";
 import SlackCommandActions from "../../../Server/Utils/Workspace/Slack/Actions/Command";
+import { useInMemoryWorkspaceHomeChoices } from "../../Helpers/InMemoryWorkspaceHomeChoices";
 
 jest.mock("../../../Server/Utils/Logger");
 
@@ -2876,6 +2877,9 @@ describe("one Slack workspace connected to two OneUptime projects", () => {
       homeEvents = 0;
       scheduleReads = [];
       incidentListReads = [];
+
+      // The projects people chose for their Homes (WorkspaceHomeChoice).
+      useInMemoryWorkspaceHomeChoices();
 
       // The open incidents, read through INC-12's own stand-in.
       const findIncidents: (...args: Array<unknown>) => Promise<unknown> = (

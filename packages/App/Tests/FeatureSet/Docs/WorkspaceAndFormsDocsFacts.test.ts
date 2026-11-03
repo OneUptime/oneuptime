@@ -43,6 +43,8 @@ import WorkspaceConnectPromptOnce from "Common/Server/Utils/Workspace/WorkspaceC
 import WorkspaceConnectRequest from "Common/Server/Utils/Workspace/WorkspaceConnectRequest";
 import WorkspaceActionAuthorization from "Common/Server/Utils/Workspace/WorkspaceActionAuthorization";
 import { JSONObject } from "Common/Types/JSON";
+import ObjectID from "Common/Types/ObjectID";
+import { WorkspacePayloadMenu } from "Common/Types/Workspace/WorkspaceMessagePayload";
 import Permission, { PermissionHelper } from "Common/Types/Permission";
 import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/EventType";
 import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
@@ -1540,10 +1542,66 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
     expect(paragraph).toContain(
       "whichever of your projects was connected to Slack first",
     );
+  });
 
-    // Only Slack draws the menu: the Teams page names none.
-    expect(englishPage(TEAMS)).not.toContain(
-      `**${SLACK_HOME_PROJECT_MENU.placeholder}**`,
+  /*
+   * Somebody in several of a Microsoft 365 organization's projects: the
+   * Teams Home shows one of theirs without asking which - the one they
+   * switched to last while still a member there, else the first connected
+   * - with the Switch project list and its Switch button under its name,
+   * or one button naming their one other project (MicrosoftTeamsHome,
+   * MicrosoftTeamsUtil.getMenuElements). The page names them as the bot
+   * draws them.
+   */
+  it("names the Teams Home's Switch project list and Switch button as the bot draws them, and what they do", () => {
+    const home: string = section(
+      englishPage(TEAMS),
+      2,
+      "Your Home in Microsoft Teams",
+    );
+    const paragraph: string = lineStarting(
+      home,
+      "In a Microsoft 365 organization connected to more than one project,",
+    );
+    const shown: ObjectID = new ObjectID(
+      "a1000000-0000-4000-8000-000000000001",
+    );
+    const menu: WorkspacePayloadMenu | null = MicrosoftTeamsHome.getProjectMenu(
+      {
+        shownProjectId: shown,
+        choices: [
+          { projectId: shown, name: "Production" },
+          {
+            projectId: new ObjectID("a1000000-0000-4000-8000-000000000002"),
+            name: "Staging",
+          },
+        ],
+      },
+    );
+
+    expect(menu?.placeholder).toBe(WORKSPACE_HOME_TEXT.switchProject);
+    expect(menu?.submitTitle).toBe(WORKSPACE_HOME_TEXT.switchButton);
+    expect(WORKSPACE_HOME_TEXT.switchProject).toBe("Switch project");
+    expect(WORKSPACE_HOME_TEXT.switchButton).toBe("Switch");
+    expect(boldSpans(paragraph)).toEqual([
+      WORKSPACE_HOME_TEXT.switchProject,
+      WORKSPACE_HOME_TEXT.switchButton,
+    ]);
+    expect(paragraph).toContain("the Home shows one project at a time");
+    expect(paragraph).toContain(
+      "`" +
+        MICROSOFT_TEAMS_HOME_COMMAND +
+        "` and the welcome show one without asking which",
+    );
+    expect(paragraph).toContain("as long as you're still a member there");
+    expect(paragraph).toContain(
+      "whichever of your projects was connected to Microsoft Teams first",
+    );
+    // With one other project, a button that names it, not a list.
+    expect(paragraph).toContain("press the button that names it");
+    // Both chats name the menu the same way.
+    expect(SLACK_HOME_PROJECT_MENU.placeholder).toBe(
+      WORKSPACE_HOME_TEXT.switchProject,
     );
   });
 
@@ -1571,10 +1629,31 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
       MicrosoftTeamsProjectChoice.CONVERSATION_REMEMBERED_FOR_SECONDS,
     ).toBe(60 * 60);
     expect(paragraph).toContain(
-      "In a conversation with OneUptime AI, their choice holds for its follow-ups until an hour goes by without one.",
+      "In a conversation with OneUptime AI, their choice holds for its follow-ups until an hour goes by without one, and its answers say which project they're from.",
     );
-    // The button the question offers is the project itself: no label to name.
-    expect(boldSpans(paragraph)).toEqual([]);
+    /*
+     * The button the question offers is the project itself: no label to
+     * name. The one label is what asks the last question again elsewhere,
+     * kept as long as the conversation's choice is.
+     */
+    expect(boldSpans(paragraph)).toEqual([
+      MicrosoftTeamsProjectChoice.ASK_IN_ANOTHER_PROJECT_TEXT,
+    ]);
+    expect(MicrosoftTeamsProjectChoice.ASK_IN_ANOTHER_PROJECT_TEXT).toBe(
+      "Ask in another project",
+    );
+    expect(paragraph).toContain(
+      "Within that hour, **Ask in another project** asks the sender's last question again in another of their projects: straight away when they have one other, or after asking which.",
+    );
+    expect(
+      MicrosoftTeamsProjectChoice.getAskInAnotherProjectAction(),
+    ).toMatchObject({
+      type: "imBack",
+      title: MicrosoftTeamsProjectChoice.ASK_IN_ANOTHER_PROJECT_TEXT,
+    });
+    expect(paragraph).toContain(
+      "In a personal chat, the bot offers it as a button by the compose box.",
+    );
   });
 
   it("quotes the chats' refusals as the server words them", () => {

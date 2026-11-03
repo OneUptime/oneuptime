@@ -1187,3 +1187,243 @@ describe("what a notification of the Home says", () => {
     expect(WorkspaceHome.getNotificationText(home)).toBe(expected);
   });
 });
+
+/*
+ * Switch project, for somebody in two or more of a workspace's projects -
+ * the same menu for both chats (getProjectMenu), the line a switch it could
+ * not follow says first (getSwitchRefusedNotice), and the greeting every
+ * Home has, refused or not (getGreeting).
+ */
+describe("the Home of somebody in several projects", () => {
+  const PRODUCTION: ObjectID = new ObjectID(
+    "a0000000-0000-4000-8000-0000000000f1",
+  );
+  const STAGING: ObjectID = new ObjectID(
+    "a0000000-0000-4000-8000-0000000000f2",
+  );
+  const SANDBOX: ObjectID = new ObjectID(
+    "a0000000-0000-4000-8000-0000000000f3",
+  );
+  const CHOICES: Array<{ projectId: ObjectID; name: string }> = [
+    { projectId: PRODUCTION, name: "Acme Production" },
+    { projectId: STAGING, name: "Acme Staging" },
+    { projectId: SANDBOX, name: "Acme Sandbox" },
+  ];
+  const BLOCKED: string =
+    "This project has been blocked. Please contact your administrator.";
+
+  test("the menu: the person's other projects, by name, in the order they were connected - with what a chat whose menus need a button says", () => {
+    const menu: WorkspacePayloadMenu | null = WorkspaceHome.getProjectMenu({
+      actionId: "home-switch-project",
+      shownProjectId: STAGING,
+      choices: CHOICES,
+    });
+
+    expect(menu).toEqual({
+      actionId: "home-switch-project",
+      placeholder: WORKSPACE_HOME_TEXT.switchProject,
+      options: [
+        { label: "Acme Production", value: PRODUCTION.toString() },
+        { label: "Acme Sandbox", value: SANDBOX.toString() },
+      ],
+      submitTitle: WORKSPACE_HOME_TEXT.switchButton,
+      requiredMessage: WORKSPACE_HOME_TEXT.switchNothingChosen,
+    });
+    expect(WORKSPACE_HOME_TEXT.switchProject).toBe("Switch project");
+    expect(WORKSPACE_HOME_TEXT.switchButton).toBe("Switch");
+    expect(WORKSPACE_HOME_TEXT.switchNothingChosen).toBe(
+      "Choose a project to switch to.",
+    );
+  });
+
+  test("the menu names the drawing it is given, and only then", () => {
+    expect(
+      WorkspaceHome.getProjectMenu({
+        actionId: "SwitchHomeProject",
+        shownProjectId: PRODUCTION,
+        choices: CHOICES,
+        blockId: "SwitchHomeProject:p:0a1b2c3d",
+      })!.blockId,
+    ).toBe("SwitchHomeProject:p:0a1b2c3d");
+    expect(
+      "blockId" in
+        WorkspaceHome.getProjectMenu({
+          actionId: "SwitchHomeProject",
+          shownProjectId: PRODUCTION,
+          choices: CHOICES,
+        })!,
+    ).toBe(false);
+  });
+
+  test("no menu with nothing to switch to, or for a project that is not one of theirs: ids compared in any case", () => {
+    expect(
+      WorkspaceHome.getProjectMenu({
+        actionId: "x",
+        shownProjectId: PRODUCTION,
+        choices: [CHOICES[0]!],
+      }),
+    ).toBeNull();
+    expect(
+      WorkspaceHome.getProjectMenu({
+        actionId: "x",
+        shownProjectId: ObjectID.generate(),
+        choices: CHOICES,
+      }),
+    ).toBeNull();
+    expect(
+      WorkspaceHome.getProjectMenu({
+        actionId: "x",
+        shownProjectId: PRODUCTION,
+        choices: [],
+      }),
+    ).toBeNull();
+    expect(
+      WorkspaceHome.getProjectMenu({
+        actionId: "x",
+        shownProjectId: new ObjectID(PRODUCTION.toString().toUpperCase()),
+        choices: CHOICES,
+      })!.options.map((option: { label: string }): string => {
+        return option.label;
+      }),
+    ).toEqual(["Acme Staging", "Acme Sandbox"]);
+  });
+
+  test("a hundred projects at most, as many as Slack's select lists", () => {
+    const many: Array<{ projectId: ObjectID; name: string }> = Array.from(
+      { length: 130 },
+      (_value: unknown, index: number) => {
+        return { projectId: ObjectID.generate(), name: `Project ${index}` };
+      },
+    );
+
+    const menu: WorkspacePayloadMenu = WorkspaceHome.getProjectMenu({
+      actionId: "x",
+      shownProjectId: many[0]!.projectId,
+      choices: many,
+    })!;
+
+    expect(menu.options).toHaveLength(100);
+    expect(menu.options[0]!.label).toBe("Project 1");
+    expect(menu.options[99]!.label).toBe("Project 100");
+  });
+
+  test("a switch it could not follow says why in each chat's own name, and names no project", () => {
+    expect(
+      WorkspaceHome.getSwitchRefusedNotice(WorkspaceType.Slack).toString(),
+    ).toBe(
+      "⚠️ You can't switch to that project: you're no longer a member of it, or your Slack account isn't connected there.",
+    );
+    expect(
+      WorkspaceHome.getSwitchRefusedNotice(
+        WorkspaceType.MicrosoftTeams,
+      ).toString(),
+    ).toBe(
+      "⚠️ You can't switch to that project: you're no longer a member of it, or your Microsoft Teams account isn't connected there.",
+    );
+  });
+
+  test("greeted by their first name, as every Home is - 'there' without one", () => {
+    expect(WorkspaceHome.getGreeting("Nitin")).toBe("👋 Hi Nitin");
+    expect(WorkspaceHome.getGreeting("  Nitin ")).toBe("👋 Hi Nitin");
+    expect(WorkspaceHome.getGreeting(null)).toBe("👋 Hi there");
+    expect(WorkspaceHome.getGreeting(undefined)).toBe("👋 Hi there");
+    expect(WorkspaceHome.getGreeting("   ")).toBe("👋 Hi there");
+    expect(
+      textOf(
+        WorkspaceHome.getBlocks({
+          workspaceType: WorkspaceType.Slack,
+          view: view({ firstName: null }),
+          actions: ACTIONS,
+        })[0]!,
+      ),
+    ).toBe("👋 Hi there");
+  });
+
+  test("a refused Home greets them by name too - in one project, and in several", () => {
+    expect(
+      WorkspaceHome.getRefusedBlocks({
+        message: BLOCKED,
+        firstName: "Nitin",
+      }).map(textOf),
+    ).toEqual(["👋 Hi Nitin", BLOCKED]);
+
+    const menu: WorkspacePayloadMenu = WorkspaceHome.getProjectMenu({
+      actionId: "SwitchHomeProject",
+      shownProjectId: STAGING,
+      choices: CHOICES,
+    })!;
+
+    expect(
+      WorkspaceHome.getRefusedBlocks({
+        message: BLOCKED,
+        firstName: "Nitin",
+        projectName: "Acme Staging",
+        projectMenu: menu,
+      }).map(textOf),
+    ).toEqual([
+      "👋 Hi Nitin",
+      "Here's what is happening in **Acme Staging**.",
+      BLOCKED,
+    ]);
+  });
+
+  test("Microsoft Teams draws a menu under its line: on a refused Home it goes with why, so the reason reads before the way out", () => {
+    const menu: WorkspacePayloadMenu = WorkspaceHome.getProjectMenu({
+      actionId: "home-switch-project",
+      shownProjectId: STAGING,
+      choices: CHOICES,
+    })!;
+
+    const teams: Array<WorkspaceMessageBlock> = WorkspaceHome.getRefusedBlocks({
+      message: BLOCKED,
+      firstName: "Nitin",
+      projectName: "Acme Staging",
+      projectMenu: menu,
+      workspaceType: WorkspaceType.MicrosoftTeams,
+    });
+
+    expect(teams.map(textOf)).toEqual([
+      "👋 Hi Nitin",
+      "Here's what is happening in **Acme Staging**.",
+      BLOCKED,
+    ]);
+    expect((teams[1] as WorkspacePayloadMarkdown).menu).toBeUndefined();
+    expect((teams[2] as WorkspacePayloadMarkdown).menu).toEqual(menu);
+
+    // Slack's, by default: beside the line that names the project.
+    const slack: Array<WorkspaceMessageBlock> = WorkspaceHome.getRefusedBlocks({
+      message: BLOCKED,
+      projectName: "Acme Staging",
+      projectMenu: menu,
+      workspaceType: WorkspaceType.Slack,
+    });
+
+    expect((slack[1] as WorkspacePayloadMarkdown).menu).toEqual(menu);
+    expect((slack[2] as WorkspacePayloadMarkdown).menu).toBeUndefined();
+    expect(
+      WorkspaceHome.getRefusedBlocks({
+        message: BLOCKED,
+        projectName: "Acme Staging",
+        projectMenu: menu,
+      }),
+    ).toEqual(slack);
+  });
+
+  test("the first name the Home reads: the first word of the member's name; none when it has none, or cannot be read", async () => {
+    expect(await WorkspaceHome.readFirstName(NITIN)).toBe("Nitin");
+
+    jest.spyOn(UserService, "findOneById").mockImplementation((async () => {
+      const user: User = new User();
+      user.name = new Name("   ");
+      return user;
+    }) as never);
+
+    expect(await WorkspaceHome.readFirstName(NITIN)).toBeNull();
+
+    jest
+      .spyOn(UserService, "findOneById")
+      .mockRejectedValue(new Error("connection refused"));
+
+    expect(await WorkspaceHome.readFirstName(NITIN)).toBeNull();
+  });
+});
