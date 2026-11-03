@@ -15,9 +15,18 @@ import { useTheme } from "../theme";
 import { elevation, radius, spacing, typography } from "../theme/tokens";
 import GradientButton from "./GradientButton";
 import IconBadge from "./IconBadge";
-import { useScreenPadding } from "../hooks/useScreenPadding";
 import { useWindowLayout } from "../layout/WindowLayout";
-import { SHEET_MAX_WIDTH, type WindowLayout } from "../layout/windowLayout";
+import {
+  MEDIUM_HEIGHT,
+  SHEET_MAX_WIDTH,
+  type WindowLayout,
+} from "../layout/windowLayout";
+import {
+  getSheetBackdropLayout,
+  getSheetCorners,
+  type SheetPlacement,
+} from "../layout/sheetPlacement";
+import { useSheetPlacement } from "../layout/useSheetPlacement";
 
 interface AddNoteModalProps {
   visible: boolean;
@@ -36,13 +45,18 @@ export default function AddNoteModal({
   footnote = "Internal notes are never shown on status pages.",
 }: AddNoteModalProps): React.JSX.Element {
   const { theme } = useTheme();
-  const paddingBottom: number = useScreenPadding({ tabBar: false });
   const windowLayout: WindowLayout = useWindowLayout();
+  // Clear of a tabletop fold: over the half on the table, or above the fold while typing.
+  const placement: SheetPlacement = useSheetPlacement();
+  const paddingBottom: number = placement.paddingBottom;
   /*
    * On a short window (a phone on its side) a 148-point box and the keyboard
-   * do not both fit; a smaller box keeps Submit in view above the keys.
+   * do not both fit; a smaller box keeps Submit in view above the keys. The
+   * same holds for a sheet kept to one half of a tabletop fold.
    */
-  const shortWindow: boolean = windowLayout.heightClass === "compact";
+  const shortWindow: boolean =
+    windowLayout.heightClass === "compact" ||
+    (placement.maxHeight !== undefined && placement.maxHeight < MEDIUM_HEIGHT);
   const [noteText, setNoteText] = useState("");
   const [focused, setFocused] = useState(false);
 
@@ -109,10 +123,11 @@ export default function AddNoteModal({
         testID="add-note-backdrop"
         style={{
           flex: 1,
-          justifyContent: "flex-end",
+          ...getSheetBackdropLayout(placement),
           backgroundColor: theme.colors.overlay,
         }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
+        enabled={placement.avoidsKeyboard}
       >
         <Pressable
           testID="add-note-dismiss-area"
@@ -132,12 +147,12 @@ export default function AddNoteModal({
             width: "100%",
             maxWidth: SHEET_MAX_WIDTH,
             alignSelf: "center",
-            maxHeight: "92%",
-            borderTopLeftRadius: radius.xl,
-            borderTopRightRadius: radius.xl,
+            maxHeight: placement.maxHeight ?? "92%",
+            ...getSheetCorners(placement, radius.xl),
             backgroundColor: theme.colors.backgroundSecondary,
             borderWidth: theme.dark ? 1 : 0,
-            borderBottomWidth: 0,
+            borderBottomWidth:
+              placement.anchor === "top" && theme.dark ? 1 : 0,
             borderColor: theme.colors.borderSubtle,
             ...elevation("overlay", theme.dark),
           }}
