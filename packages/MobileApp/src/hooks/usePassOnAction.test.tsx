@@ -506,7 +506,9 @@ describe("a page again: Acknowledge again", () => {
     const rendered: HookRender = await renderPassOn(client);
 
     await waitFor(() => {
-      return expect(rendered.result.current.acknowledgeAgainAction).not.toBeNull();
+      return expect(
+        rendered.result.current.acknowledgeAgainAction,
+      ).not.toBeNull();
     });
     expect(rendered.result.current.isPageAgain).toBe(true);
     expect(rendered.result.current.hasOpenPages).toBe(true);
@@ -551,7 +553,9 @@ describe("a page again: Acknowledge again", () => {
     const rendered: HookRender = await renderPassOn(client, { onPassedOn });
 
     await waitFor(() => {
-      return expect(rendered.result.current.acknowledgeAgainAction).not.toBeNull();
+      return expect(
+        rendered.result.current.acknowledgeAgainAction,
+      ).not.toBeNull();
     });
 
     await act(async () => {
@@ -585,7 +589,9 @@ describe("a page again: Acknowledge again", () => {
     const rendered: HookRender = await renderPassOn(client, { onPassedOn });
 
     await waitFor(() => {
-      return expect(rendered.result.current.acknowledgeAgainAction).not.toBeNull();
+      return expect(
+        rendered.result.current.acknowledgeAgainAction,
+      ).not.toBeNull();
     });
     await act(async () => {
       await rendered.result.current.acknowledgeAgain();
@@ -600,13 +606,17 @@ describe("a page again: Acknowledge again", () => {
 
   test("a failure says so under its own title, and the button stays: the page goes on", async () => {
     fetchMock.mockResolvedValue([PAGE_AGAIN]);
-    acknowledgeAgainMock.mockRejectedValue(new Error("Request failed with 503"));
+    acknowledgeAgainMock.mockRejectedValue(
+      new Error("Request failed with 503"),
+    );
     const client: QueryClient = createTestQueryClient();
 
     const rendered: HookRender = await renderPassOn(client);
 
     await waitFor(() => {
-      return expect(rendered.result.current.acknowledgeAgainAction).not.toBeNull();
+      return expect(
+        rendered.result.current.acknowledgeAgainAction,
+      ).not.toBeNull();
     });
     await act(async () => {
       await rendered.result.current.acknowledgeAgain();
@@ -637,7 +647,9 @@ describe("a page again: Acknowledge again", () => {
     const rendered: HookRender = await renderPassOn(client);
 
     await waitFor(() => {
-      return expect(rendered.result.current.acknowledgeAgainAction).not.toBeNull();
+      return expect(
+        rendered.result.current.acknowledgeAgainAction,
+      ).not.toBeNull();
     });
     let pending: Promise<void> = Promise.resolve();
     await act(async () => {

@@ -59,9 +59,7 @@ export function runPushPageAnswer(
 }
 
 export function usePushPageAction(options: PushPageActionOptions): void {
-  const handled: MutableRefObject<Set<string>> = useRef<Set<string>>(
-    new Set(),
-  );
+  const handled: MutableRefObject<Set<string>> = useRef<Set<string>>(new Set());
   // The latest of everything, read when the action runs.
   const latest: MutableRefObject<PushPageActionOptions> =
     useRef<PushPageActionOptions>(options);

@@ -103,8 +103,7 @@ export default function CaseSheet({
             ...getSheetCorners(placement, radius.xl),
             backgroundColor: theme.colors.backgroundSecondary,
             borderWidth: theme.dark ? 1 : 0,
-            borderBottomWidth:
-              placement.anchor === "top" && theme.dark ? 1 : 0,
+            borderBottomWidth: placement.anchor === "top" && theme.dark ? 1 : 0,
             borderColor: theme.colors.borderSubtle,
             ...elevation("overlay", theme.dark),
           }}

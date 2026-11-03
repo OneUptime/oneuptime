@@ -118,7 +118,11 @@ function executeNavigation(data: NotificationData): void {
         "Inbox",
         buildInboxDetailNavigation({
           name: "IncidentDetail",
-          params: { incidentId: entityId, projectId, ...pushActionParams(data) },
+          params: {
+            incidentId: entityId,
+            projectId,
+            ...pushActionParams(data),
+          },
         }),
       );
       break;
@@ -327,8 +331,10 @@ export function handleNotificationResponse(
    * data never carries one onto the screen, so no payload can make a plain
    * tap acknowledge or escalate anything.
    */
-  const { pushAction: _fromPayload, ...data }: NotificationData =
-    (response.notification.request.content.data as NotificationData) || {};
+  const data: NotificationData = {
+    ...((response.notification.request.content.data as NotificationData) || {}),
+  };
+  delete data.pushAction;
   const actionKind: PushPageActionKind | null = getPushPageActionKind(
     response.actionIdentifier,
   );

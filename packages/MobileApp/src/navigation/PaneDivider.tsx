@@ -212,7 +212,9 @@ export default function PaneDivider({
       range,
       defaultWidth,
     );
-    onCommit(next === null ? null : toPreferredListPaneWidth(next, defaultWidth));
+    onCommit(
+      next === null ? null : toPreferredListPaneWidth(next, defaultWidth),
+    );
   };
 
   const keyProps: ViewProps = {

@@ -30,10 +30,7 @@ function parseWebUrl(value: string): URL | null {
     const url: URL = new URL(value);
 
     // React Native's URL accepts any text; a page has an http(s) scheme and a host.
-    if (
-      (url.protocol !== "https:" && url.protocol !== "http:") ||
-      !url.host
-    ) {
+    if ((url.protocol !== "https:" && url.protocol !== "http:") || !url.host) {
       return null;
     }
 

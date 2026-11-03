@@ -279,8 +279,7 @@ function ProjectSheet({
             backgroundColor: theme.colors.backgroundSecondary,
             ...getSheetCorners(placement, radius.xl),
             borderWidth: theme.dark ? 1 : 0,
-            borderBottomWidth:
-              placement.anchor === "top" && theme.dark ? 1 : 0,
+            borderBottomWidth: placement.anchor === "top" && theme.dark ? 1 : 0,
             borderColor: theme.colors.borderSubtle,
             paddingTop: spacing.md,
             overflow: "hidden",

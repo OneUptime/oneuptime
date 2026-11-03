@@ -205,8 +205,7 @@ export default function IncidentEpisodeDetailScreen({
     getAcknowledgedState(states);
   const resolveState: IncidentState | undefined = getResolvedState(states);
 
-  const currentStateId: string | undefined =
-    episode?.currentIncidentState?._id;
+  const currentStateId: string | undefined = episode?.currentIncidentState?._id;
   /*
    * Resolved: in the project's resolved state or in a state placed after
    * it ("Closed"), so there is nothing left to acknowledge or resolve

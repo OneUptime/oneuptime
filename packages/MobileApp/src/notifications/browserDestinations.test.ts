@@ -156,9 +156,10 @@ describe("on React Native's own URL, which a handset runs", () => {
       "see the hunt",
       "javascript:alert(1)#x",
     ]) {
-      expect({ page, opened: getDashboardPageOnServer(page, SERVER) }).toEqual(
-        { page, opened: null },
-      );
+      expect({ page, opened: getDashboardPageOnServer(page, SERVER) }).toEqual({
+        page,
+        opened: null,
+      });
     }
   });
 });

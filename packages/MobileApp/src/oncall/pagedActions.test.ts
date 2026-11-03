@@ -65,7 +65,9 @@ describe("nobody has taken it yet", () => {
   test("a project with no acknowledged state: Resolve is the filled one", () => {
     expect(
       drawn(
-        getPagedResponseActions(input({ acknowledge: null, escalate: ESCALATE })),
+        getPagedResponseActions(
+          input({ acknowledge: null, escalate: ESCALATE }),
+        ),
       ),
     ).toEqual(["Resolve*", "Escalate"]);
   });

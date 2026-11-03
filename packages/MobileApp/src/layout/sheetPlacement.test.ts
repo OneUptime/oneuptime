@@ -56,11 +56,19 @@ const INNER_ON_ITS_SIDE: { width: number; height: number } = {
 describe("everywhere but a tabletop fold, nothing changes", () => {
   test.each([
     ["a phone", { width: 390, height: 844 }, UNKNOWN_POSTURE],
-    ["an unfolded foldable lying flat", { width: 884, height: 1104 }, { kind: "flat", fold: null }],
+    [
+      "an unfolded foldable lying flat",
+      { width: 884, height: 1104 },
+      { kind: "flat", fold: null },
+    ],
     ["a tablet on its side", { width: 1280, height: 800 }, UNKNOWN_POSTURE],
   ] as Array<[string, { width: number; height: number }, WindowPosture]>)(
     "%s: from the bottom edge, at the sheet's own height, above the keyboard",
-    (_name: string, size: { width: number; height: number }, posture: WindowPosture) => {
+    (
+      _name: string,
+      size: { width: number; height: number },
+      posture: WindowPosture,
+    ) => {
       for (const keyboardShown of [false, true]) {
         const placement: SheetPlacement = getSheetPlacement(
           layoutFor(size, posture),
@@ -81,7 +89,10 @@ describe("everywhere but a tabletop fold, nothing changes", () => {
 });
 
 describe("half open on a table", () => {
-  const layout: WindowLayout = layoutFor(INNER_ON_ITS_SIDE, tabletop(442, 1104));
+  const layout: WindowLayout = layoutFor(
+    INNER_ON_ITS_SIDE,
+    tabletop(442, 1104),
+  );
 
   test("a sheet rises over the half on the table and stops at the band around the fold", () => {
     const placement: SheetPlacement = getSheetPlacement(layout, false);
@@ -104,9 +115,7 @@ describe("half open on a table", () => {
     expect(placement.anchor).toBe("top");
     expect(placement.paddingTop).toBe(INSETS.top);
     // From under the status bar to the band's top edge, and no further.
-    expect(INSETS.top + placement.maxHeight!).toBe(
-      442 - TABLETOP_FOLD_GAP / 2,
-    );
+    expect(INSETS.top + placement.maxHeight!).toBe(442 - TABLETOP_FOLD_GAP / 2);
     expect(placement.avoidsKeyboard).toBe(false);
     // Its last button has room below it, not the window's bottom inset it no longer reaches.
     expect(placement.paddingBottom).toBe(spacing.xl);

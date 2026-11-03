@@ -135,7 +135,10 @@ describe("everywhere else the screen stays one scroll", () => {
       ),
     ).toBeNull();
     expect(
-      getFoldSplit(layoutFor({ width: 884, height: 1104 }, book(442, 1104)), BAR),
+      getFoldSplit(
+        layoutFor({ width: 884, height: 1104 }, book(442, 1104)),
+        BAR,
+      ),
     ).toBeNull();
   });
 

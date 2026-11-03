@@ -142,7 +142,10 @@ describe("the divider from a keyboard", () => {
       kind: "step",
       direction: 1,
     });
-    expect(getDividerKeyMove("ArrowUp")).toEqual({ kind: "step", direction: 1 });
+    expect(getDividerKeyMove("ArrowUp")).toEqual({
+      kind: "step",
+      direction: 1,
+    });
     expect(getDividerKeyMove("ArrowLeft")).toEqual({
       kind: "step",
       direction: -1,

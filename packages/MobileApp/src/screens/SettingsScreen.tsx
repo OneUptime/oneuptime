@@ -468,7 +468,11 @@ export default function SettingsScreen(): React.JSX.Element {
               {initials}
             </AppText>
           ) : (
-            <Ionicons name="person" size={26} color={theme.colors.textInverse} />
+            <Ionicons
+              name="person"
+              size={26}
+              color={theme.colors.textInverse}
+            />
           )}
         </View>
         <View style={{ flex: 1, minWidth: 0, gap: spacing.xxs }}>
