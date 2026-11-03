@@ -211,6 +211,17 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * Why Add or Delete is locked on the Global User Overrides page for a
+   * reader whose permission to add or delete overrides covers only some
+   * policies - the words the server refuses with. Only the sentences the
+   * file marks are read.
+   */
+  {
+    directory:
+      "packages/Common/Types/OnCallDutyPolicy/GlobalUserOverrideAccess.ts",
+    kind: "keys",
+  },
+  /*
    * What a dashboard template's chart says while it draws its fallback
    * query - why, and where the fix is. Stored in the dashboard as written
    * and looked up where the chart draws it; only the hints the file marks

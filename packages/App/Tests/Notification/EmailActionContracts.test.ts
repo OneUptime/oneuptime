@@ -482,6 +482,7 @@ const SINGLE_ACTION_CONTRACTS: Array<
     "Reset your password",
     "tokenVerifyUrl",
   ],
+  ["StatusPageMagicLink", "tokenVerifyUrl", "Log In", "tokenVerifyUrl"],
   [
     "StatusPageOwnerAdded",
     "statusPageViewLink",

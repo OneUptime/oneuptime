@@ -142,6 +142,7 @@ import SlackUtil from "../Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "../Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import { MASTER_PASSWORD_INVALID_MESSAGE } from "../../Types/StatusPage/MasterPassword";
 import { isStatusPageMasterPasswordRequired } from "../../Types/StatusPage/StatusPageAccess";
+import { isStatusPageMagicLinkAvailable } from "../../Types/StatusPage/StatusPageMagicLink";
 import StatusPageSubscriberNotificationEventType from "../../Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import StatusPageSubscriberNotificationMethod from "../../Types/StatusPage/StatusPageSubscriberNotificationMethod";
 import StatusPageSubscriberNotificationTemplate from "../../Models/DatabaseModels/StatusPageSubscriberNotificationTemplate";
@@ -1252,6 +1253,8 @@ export default class StatusPageAPI extends BaseAPI<
             // Whether a reader subscribes with the address they sign in with.
             limitSubscribersToPrivateUsers: true,
             requireSsoForLogin: true,
+            // Whether private users may ask for a sign-in link (see below).
+            enableMagicLinkLogin: true,
             coverImageFile: SERVED_IMAGE_SELECT,
             faviconFile: SERVED_IMAGE_SELECT,
             logoFile: SERVED_IMAGE_SELECT,
@@ -1326,6 +1329,21 @@ export default class StatusPageAPI extends BaseAPI<
            * that could never let anyone in, while the server treated the
            * page as a sign-in page.
            */
+          /*
+           * Whether the sign-in page offers a sign-in link, by the rule the
+           * server enforces when one is asked for and when one is used
+           * (Types/StatusPage/StatusPageMagicLink): a page visitors sign in
+           * to, that does not require SSO, with the switch on. Read before
+           * enableMasterPassword is replaced below.
+           */
+          item.enableMagicLinkLogin = isStatusPageMagicLinkAvailable({
+            isPublicStatusPage: item.isPublicStatusPage,
+            enableMasterPassword: item.enableMasterPassword,
+            hasMasterPassword: Boolean(item.masterPassword),
+            requireSsoForLogin: item.requireSsoForLogin,
+            enableMagicLinkLogin: item.enableMagicLinkLogin,
+          });
+
           item.enableMasterPassword = isStatusPageMasterPasswordRequired({
             isPublicStatusPage: Boolean(item.isPublicStatusPage),
             enableMasterPassword: item.enableMasterPassword,

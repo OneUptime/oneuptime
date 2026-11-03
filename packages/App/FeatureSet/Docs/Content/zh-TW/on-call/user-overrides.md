@@ -70,6 +70,8 @@ flowchart TB
 
 **專案擁有者** 、 **專案管理員** 、 **專案成員** 、 **待命管理員** 和 **待命成員** 可以新增和刪除覆寫； **檢視者** 和 **待命檢視者** 可以檢視。在自訂角色中，權限名稱為 **Create On-Call Duty Policy User Override** 、 **Delete On-Call Duty Policy User Override** 和 **Read On-Call Duty Policy User Override** 。在 **待命時間軸** 上，只有可以讀取覆寫的人才能看到誰的班次正在被代。
 
+策略上的覆寫遵循該策略的範圍。給團隊授予限定到它所擁有的策略或它的標籤的 **待命成員** ，它的成員就只能在這些策略上新增和刪除覆寫。全域覆寫適用於每個策略，包括其他團隊的策略，因此新增或刪除它需要對整個專案的覆寫權限。權限更窄時， **待命 → 進階 → 使用者覆寫** 上的 **新增使用者覆寫** 和 **刪除** 會被鎖定並說明原因，團隊則在每個策略自己的 **使用者覆寫** 頁面上新增覆寫。API 也是如此：對於限定到標籤或所擁有策略的權限，沒有 `onCallDutyPolicyId` 的覆寫會被拒絕。
+
 在 OneUptime Cloud 上，使用者覆寫需要 **Growth** 方案。
 
 ## API
@@ -111,7 +113,7 @@ curl -X POST https://oneuptime.com/api/on-call-duty-policy-user-override \
 :::
 
 :::details 我無法新增覆寫
-新增覆寫需要上述角色之一，在 OneUptime Cloud 上還需要 **Growth** 方案。
+新增覆寫需要上述角色之一，在 OneUptime Cloud 上還需要 **Growth** 方案。 全域覆寫需要對整個專案的角色：如果你團隊的角色限定為它自己的策略或某些標籤，請在該策略自己的 **使用者覆寫** 頁面上新增覆寫。
 :::
 
 ## 後續步驟

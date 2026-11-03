@@ -104,11 +104,25 @@ The base image's tag (`BASE_TAG`) moves on Repo1 through Renovate
 ## Onboarding, once
 
 1. Create a Platform One account (login.dso.mil).
-2. Submit Iron Bank's onboarding request. The form is linked from
-   [Onboarding Services](https://docs-ironbank.dso.mil/reference/cso/customer-services-and-onboarding/).
-   It names a point of contact and the primary engineers.
+2. Submit the "Platform One Iron Bank Onboarding Requests" form
+   ([forms.osi.apps.mil/r/s8rtWD1eCP](https://forms.osi.apps.mil/r/s8rtWD1eCP);
+   the older form linked from
+   [Onboarding Services](https://docs-ironbank.dso.mil/reference/cso/customer-services-and-onboarding/)
+   points there), choosing "Vendor & Contributor Onboarding". It asks for:
+   - a main point of contact and a technical one (the technical one by their
+     Platform One username);
+   - a **Government point of contact**: a DoD military or civilian user (not a
+     contractor) who will use or support OneUptime and can validate the mission
+     need. This person does not have to fund it.
+
+   It also asks for commitments: public images and scan results, updates on
+   the day of each release, timely justifications, and builds and runs without
+   internet access.
 3. Iron Bank's onboarding team creates the project on Repo1, emails the
-   contacts, and assigns an initial issue to the engineers.
+   contacts, and assigns an initial issue to the engineers. Its own
+   onboarding checklist (the dccscr "Onboarding" template) lists a quote that
+   is "completed and signed" before the project is created. Ask Iron Bank what
+   it covers.
 4. Replace the `FIXME` maintainers in `App/hardening_manifest.yaml` with those
    engineers' names and Repo1 usernames. Iron Bank's pipeline refuses the
    manifest until then, and `lint.sh` warns about it.
@@ -121,4 +135,5 @@ The base image's tag (`BASE_TAG`) moves on Repo1 through Renovate
 
 For questions, comment on the project's issue (add
 `/cc @ironbank-notifications/onboarding` if nobody answers). Iron Bank also
-runs an open session every Wednesday, 16:30 to 17:30 Eastern.
+runs a working session, "IB Weekly", every Wednesday from 16:00 to 17:00
+Eastern. Registration is linked from the project's initial issue.

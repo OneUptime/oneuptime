@@ -98,7 +98,7 @@ Hver grænse pr. netværk tæller også adresserne i ét IPv6 /64 sammen, med ti
 
 **Det, dit team sender, tæller også.** Intet begrænser, hvor hurtigt dit team tilføjer abonnenter, på dashboardet, i bulk, via API'et eller med en workflow. Men den besked, en tilføjet abonnent får, e-mailen, der beder om bekræftelse, eller beskeden om, at den er tilmeldt, tæller med i kontaktens 10 tilmeldinger på en time, og ud over dem afvises tilføjelsen med `429`. En abonnent, der tilføjes uden besked, tælles aldrig: **Abonner dem nu** for en e-mailadresse, eller **Send en velkomstbesked** slået fra for de andre kanaler. Hvis hastighedsbegrænseren ikke kan nås, fortsætter dit teams tilføjelser uden at blive talt.
 
-En privat bruger, der beder om et link til nulstilling af adgangskode på statussidens loginside, er begrænset på samme måde: 5 nulstillingsmails til én adresse på en time, på alle statussider tilsammen, og 30 fra ét netværk på 15 minutter. En invitation, til en privat statusside eller til et projekt, tælles også pr. adresse: 10 til én adresse på en time, begge slags tilsammen.
+En privat bruger, der beder om et link til nulstilling af adgangskode på statussidens loginside, er begrænset på samme måde: 5 nulstillingsmails til én adresse på en time, på alle statussider tilsammen, og 30 fra ét netværk på 15 minutter. En invitation, til en privat statusside eller til et projekt, tælles også pr. adresse: 10 til én adresse på en time, begge slags tilsammen. At bede om et login-link på loginsiden er også begrænset, og det tælles, uanset om adressen tilhører en privat bruger af siden: 10 mails til én adresse på en time, på alle statussider tilsammen, og 30 fra ét netværk på 15 minutter.
 
 På en selvhostet installation ændrer disse miljøvariabler i OneUptime-appen grænserne:
 
@@ -113,6 +113,8 @@ På en selvhostet installation ændrer disse miljøvariabler i OneUptime-appen g
 | `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_CONTACT` | `5` | Administrationslinks til én kontakt pr. tidsvindue. |
 | `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_IP` | `30` | Nulstillinger af adgangskode for private brugere, der bedes om fra én adresse pr. tidsvindue. |
 | `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_CONTACT` | `5` | Nulstillingsmails for private brugere til én adresse pr. tidsvindue. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MAGIC_LINKS_PER_IP` | `30` | Login-links for private brugere, der bedes om fra én adresse pr. tidsvindue. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MAGIC_LINKS_PER_CONTACT` | `10` | Login-link-mails for private brugere til én adresse pr. tidsvindue. |
 | `PUBLIC_MESSAGE_RATE_LIMIT_INVITATIONS_PER_CONTACT` | `10` | Invitationer til én adresse pr. vindue, til private statussider og projekter tilsammen. |
 
 Hverken `config.env` eller Helm-chartets værdier sender dem videre: tilføj dem selv til miljøet for containeren `app`, med `app.extraEnv`, eller chartets fælles `extraEnv`, i Helm-chartet, eller i en `docker-compose.override.yml` til Docker Compose. `TRUSTED_PROXY_HOPS` bestemmer, hvilken adresse grænserne pr. netværk tæller.

@@ -202,6 +202,7 @@ import PermissionScope from "../../../Types/Database/AccessControl/PermissionSco
 import ObjectID from "../../../Types/ObjectID";
 import Permission, {
   PermissionHelper,
+  PermissionProps,
   UserPermission,
 } from "../../../Types/Permission";
 import { FormType } from "../../../UI/Components/Forms/ModelForm";
@@ -1047,6 +1048,269 @@ describe("what the team's members can do", () => {
   });
 });
 
+/*
+ * Picks one permission in the one-permission picker: searched for, its group
+ * opened in the picker's sidebar (a search shows the open group's matches),
+ * then clicked.
+ */
+async function pickPermission(
+  modal: HTMLElement,
+  permission: Permission,
+): Promise<void> {
+  const props: PermissionProps = PermissionHelper.getAllPermissionProps().find(
+    (candidate: PermissionProps): boolean => {
+      return candidate.permission === permission;
+    },
+  )!;
+
+  fireEvent.change(
+    within(modal).getByPlaceholderText("Search permissions..."),
+    {
+      target: { value: props.title },
+    },
+  );
+
+  const groupButton: HTMLElement = await waitFor((): HTMLElement => {
+    const found: HTMLElement | undefined = within(modal)
+      .getAllByRole("button")
+      .find((candidate: HTMLElement): boolean => {
+        return candidate.querySelector("span")?.textContent === props.group;
+      });
+
+    if (!found) {
+      throw new Error(`No ${props.group} group yet`);
+    }
+
+    return found;
+  });
+
+  fireEvent.click(groupButton);
+
+  const option: HTMLElement = await waitFor((): HTMLElement => {
+    const found: HTMLElement | undefined = within(modal)
+      .getAllByRole("button")
+      .find((candidate: HTMLElement): boolean => {
+        // Title then description: "Create Incident" is not "Create Incident State".
+        return (candidate.textContent || "").startsWith(
+          `${props.title}${props.description}`,
+        );
+      });
+
+    if (!found) {
+      throw new Error(`No ${props.title} yet`);
+    }
+
+    return found;
+  });
+
+  await act(async (): Promise<void> => {
+    fireEvent.click(option);
+  });
+  await settleForm();
+}
+
+async function openMoreFields(modal: HTMLElement): Promise<void> {
+  await act(async (): Promise<void> => {
+    fireEvent.click(moreFields(modal));
+  });
+  await within(modal).findByRole("radio", {
+    name: "All resources in the project",
+  });
+}
+
+/*
+ * ONE PERMISSION IS SCOPED LIKE A ROLE (issue #5602): "when adding roles we
+ * can set the scope to either resources owned or with specific labels" -
+ * and now Add Permission can too, wherever a scope narrows the permission,
+ * with only the answers that narrow it (PermissionScopeChoice).
+ */
+describe("one permission's scope", () => {
+  test("Create Workflow, the permission the issue tried to scope, takes a Scope under More fields, and saves it", async () => {
+    await renderPage();
+
+    const modal: HTMLElement = await openModal(
+      await moreMenuItem(card("Permissions"), "Add Permission"),
+    );
+
+    // Nothing picked: nothing to scope yet.
+    expect(
+      within(modal).queryByRole("button", { name: /More fields/ }),
+    ).toBeNull();
+
+    await pickPermission(modal, Permission.CreateWorkflow);
+
+    expect(moreFields(modal)).toHaveTextContent("Scope");
+
+    await openMoreFields(modal);
+
+    expect(
+      within(modal).getByRole("radio", {
+        name: "All resources in the project",
+      }),
+    ).toBeChecked();
+    expect(
+      within(modal).getByRole("radio", { name: "Only resources they own" }),
+    ).toBeInTheDocument();
+    expect(
+      within(modal).getByRole("radio", {
+        name: "Only resources with certain labels",
+      }),
+    ).toBeInTheDocument();
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(
+        within(modal).getByRole("radio", { name: "Only resources they own" }),
+      );
+    });
+    await settleForm();
+
+    await submitModal(modal);
+
+    await waitFor(() => {
+      expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+    });
+
+    const request: any = createOrUpdateMock.mock.calls[0]![0];
+
+    expect(request.model.permission).toBe(Permission.CreateWorkflow);
+    expect(request.model.scope).toBe(PermissionScope.Owned);
+    expect(request.model.isBlockPermission).toBe(false);
+  });
+
+  test("a permission labels narrow and owners do not is offered All and labels, never Only resources they own", async () => {
+    await renderPage();
+
+    const modal: HTMLElement = await openModal(
+      await moreMenuItem(card("Permissions"), "Add Permission"),
+    );
+
+    await pickPermission(modal, Permission.ReadWorkflowOwnerTeam);
+    await openMoreFields(modal);
+
+    expect(within(modal).getAllByRole("radio")).toHaveLength(2);
+    expect(
+      within(modal).queryByRole("radio", { name: "Only resources they own" }),
+    ).toBeNull();
+
+    // The labels answer asks for labels, as a role's does.
+    await act(async (): Promise<void> => {
+      fireEvent.click(
+        within(modal).getByRole("radio", {
+          name: "Only resources with certain labels",
+        }),
+      );
+    });
+
+    expect(await within(modal).findByText("Labels")).toBeInTheDocument();
+  });
+
+  test("a permission no scope narrows - Create Team, the same for everyone - takes none: no More fields line", async () => {
+    await renderPage();
+
+    const modal: HTMLElement = await openModal(
+      await moreMenuItem(card("Permissions"), "Add Permission"),
+    );
+
+    await pickPermission(modal, Permission.CreateProjectTeam);
+
+    expect(
+      within(modal).queryByRole("button", { name: /More fields/ }),
+    ).toBeNull();
+    expect(within(modal).queryAllByRole("radio")).toEqual([]);
+
+    await submitModal(modal);
+
+    await waitFor(() => {
+      expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+    });
+
+    expect(createOrUpdateMock.mock.calls[0]![0].model.scope).toBe(
+      PermissionScope.All,
+    );
+  });
+
+  test("changing the permission puts an answer the new one does not offer back to All", async () => {
+    await renderPage();
+
+    const modal: HTMLElement = await openModal(
+      await moreMenuItem(card("Permissions"), "Add Permission"),
+    );
+
+    await pickPermission(modal, Permission.CreateWorkflow);
+    await openMoreFields(modal);
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(
+        within(modal).getByRole("radio", { name: "Only resources they own" }),
+      );
+    });
+    await settleForm();
+
+    await pickPermission(modal, Permission.ReadWorkflowOwnerTeam);
+
+    expect(
+      await within(modal).findByRole("radio", {
+        name: "All resources in the project",
+      }),
+    ).toBeChecked();
+    expect(
+      within(modal).queryByRole("radio", { name: "Only resources they own" }),
+    ).toBeNull();
+
+    await submitModal(modal);
+
+    await waitFor(() => {
+      expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+    });
+
+    const request: any = createOrUpdateMock.mock.calls[0]![0];
+
+    expect(request.model.permission).toBe(Permission.ReadWorkflowOwnerTeam);
+    expect(request.model.scope).toBe(PermissionScope.All);
+  });
+
+  test("Edit shows the answer a row holds where it is not offered, so the form never hides what the row says", async () => {
+    // An API or Terraform caller saved Owned on a permission owners do not narrow.
+    const row: TeamPermission = permissionRow(Permission.ReadWorkflowOwnerTeam);
+    row.scope = PermissionScope.Owned;
+    allowRows = [row];
+
+    await renderPage();
+
+    const permissions: HTMLElement = card("Permissions");
+
+    await within(permissions).findByText(
+      PermissionHelper.getTitle(Permission.ReadWorkflowOwnerTeam),
+    );
+
+    const editButton: HTMLElement = await waitFor((): HTMLElement => {
+      const found: HTMLElement | undefined = within(permissions)
+        .getAllByRole("button")
+        .find((candidate: HTMLElement): boolean => {
+          return (candidate.textContent || "").trim() === "Edit";
+        });
+
+      if (!found) {
+        throw new Error("No Edit button yet");
+      }
+
+      return found;
+    });
+
+    const modal: HTMLElement = await openModal(editButton);
+
+    await waitFor(() => {
+      expect(moreFields(modal)).toHaveTextContent("Only resources they own");
+    });
+
+    await openMoreFields(modal);
+
+    expect(
+      within(modal).getByRole("radio", { name: "Only resources they own" }),
+    ).toBeChecked();
+  });
+});
+
 describe("what the team's members can never do", () => {
   test("is added from More settings, as a block row", async () => {
     await renderPage();
@@ -1361,5 +1625,73 @@ describe("someone who may read a team but not change what it can do", () => {
         "You don't have permission to create these. Ask a project admin for access.",
       ),
     ).toBeInTheDocument();
+  });
+});
+
+/*
+ * A block takes a permission away everywhere, or on the records carrying
+ * its labels: the server reads no owners on a block, so a block saved as
+ * "Only resources they own" took the permission away everywhere.
+ */
+describe("a block's scope", () => {
+  async function openBlockAddPermission(): Promise<HTMLElement> {
+    fireEvent.click(advancedHeader());
+
+    const block: HTMLElement = card("Block Permissions");
+
+    const trigger: HTMLElement =
+      within(block)
+        .queryAllByTestId("card-button")
+        .find((candidate: HTMLElement): boolean => {
+          return (candidate.textContent || "").trim() === "Add Permission";
+        }) || (await moreMenuItem(block, "Add Permission"));
+
+    return await openModal(trigger);
+  }
+
+  test("one permission's block is offered All and labels, never Only resources they own", async () => {
+    await renderPage();
+
+    const modal: HTMLElement = await openBlockAddPermission();
+
+    await pickPermission(modal, Permission.CreateWorkflow);
+    await openMoreFields(modal);
+
+    expect(within(modal).getAllByRole("radio")).toHaveLength(2);
+    expect(
+      within(modal).queryByRole("radio", { name: "Only resources they own" }),
+    ).toBeNull();
+    expect(
+      within(modal).getByRole("radio", {
+        name: "Only resources with certain labels",
+      }),
+    ).toBeInTheDocument();
+  });
+
+  test("a role's block is offered All and labels, never Only resources they own", async () => {
+    await renderPage();
+
+    fireEvent.click(advancedHeader());
+
+    const modal: HTMLElement = await openModal(
+      cardButton(card("Block Permissions"), "Add Role"),
+    );
+
+    await pickAreaRole(modal, "Incidents", "Member");
+    await openMoreFields(modal);
+
+    expect(
+      within(modal).getByRole("radio", {
+        name: "All resources in the project",
+      }),
+    ).toBeChecked();
+    expect(
+      within(modal).getByRole("radio", {
+        name: "Only resources with certain labels",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      within(modal).queryByRole("radio", { name: "Only resources they own" }),
+    ).toBeNull();
   });
 });
