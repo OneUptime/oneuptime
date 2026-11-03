@@ -938,7 +938,7 @@ describe("the plan's sentence and the fix's failures", () => {
 
 describe("the fixes in the order OneUptime AI tried them", () => {
   test("oldest first; fixes of the same moment keep the server's order", () => {
-    const fixes: Array<{ id: string; createdAt?: Date | undefined }> = [
+    const fixes: Array<{ id: string; createdAt: Date }> = [
       { id: "round-2", createdAt: new Date("2026-09-14T18:15:02.000Z") },
       { id: "runbook", createdAt: new Date("2026-09-14T18:04:30.000Z") },
       { id: "first", createdAt: new Date(AT_PLANNED) },
