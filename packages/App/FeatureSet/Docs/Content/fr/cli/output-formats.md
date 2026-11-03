@@ -43,6 +43,8 @@ Un tableau est le format par défaut dans un terminal. `oneuptime resources --ty
 ├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
 │ change-event               │ Change Event               │ Change Events               │ analytics │ /change-events              │
 ├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
+│ cloud-cost                 │ Cloud Cost                 │ Cloud Costs                 │ analytics │ /cloud-cost                 │
+├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
 │ exception-instance         │ Exception Instance         │ Exception Instances         │ analytics │ /exceptions                 │
 ├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
 │ kubernetes-cost-allocation │ Kubernetes Cost Allocation │ Kubernetes Cost Allocations │ analytics │ /kubernetes-cost-allocation │
@@ -68,7 +70,7 @@ Un tableau est le format par défaut dans un terminal. `oneuptime resources --ty
 │ threat-intel-indicator     │ Threat Intel Indicator     │ Threat Intel Indicators     │ analytics │ /threat-intel-indicators    │
 └────────────────────────────┴────────────────────────────┴─────────────────────────────┴───────────┴─────────────────────────────┘
 
-Total: 14 resources
+Total: 15 resources
 ```
 
 Pour une liste d'enregistrements, un tableau affiche au plus six colonnes : d'abord `_id`, `name`, `title`, `status`, `createdAt` et `updatedAt`, celles que les enregistrements ont, puis les champs suivants des enregistrements dans l'ordre. Les colonnes sont prises dans le premier enregistrement. Une valeur de plus de 60 caractères est coupée à ses 57 premiers, suivis de `...`.

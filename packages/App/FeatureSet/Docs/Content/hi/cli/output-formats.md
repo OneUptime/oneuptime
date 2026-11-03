@@ -43,6 +43,8 @@ error: option '-o, --output <format>' argument 'yaml' is invalid. Allowed choice
 ├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
 │ change-event               │ Change Event               │ Change Events               │ analytics │ /change-events              │
 ├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
+│ cloud-cost                 │ Cloud Cost                 │ Cloud Costs                 │ analytics │ /cloud-cost                 │
+├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
 │ exception-instance         │ Exception Instance         │ Exception Instances         │ analytics │ /exceptions                 │
 ├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
 │ kubernetes-cost-allocation │ Kubernetes Cost Allocation │ Kubernetes Cost Allocations │ analytics │ /kubernetes-cost-allocation │
@@ -68,7 +70,7 @@ error: option '-o, --output <format>' argument 'yaml' is invalid. Allowed choice
 │ threat-intel-indicator     │ Threat Intel Indicator     │ Threat Intel Indicators     │ analytics │ /threat-intel-indicators    │
 └────────────────────────────┴────────────────────────────┴─────────────────────────────┴───────────┴─────────────────────────────┘
 
-Total: 14 resources
+Total: 15 resources
 ```
 
 रिकॉर्ड की सूची के लिए, टेबल अधिकतम छह कॉलम दिखाती है: पहले `_id`, `name`, `title`, `status`, `createdAt` और `updatedAt` में से वे जो रिकॉर्ड में हैं, फिर क्रम से रिकॉर्ड के अगले फ़ील्ड। कॉलम पहले रिकॉर्ड से लिए जाते हैं। 60 अक्षरों से लंबा मान उसके पहले 57 अक्षरों तक काटा जाता है, और उसके बाद `...` आता है।

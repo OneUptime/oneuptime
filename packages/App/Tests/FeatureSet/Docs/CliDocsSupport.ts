@@ -22,7 +22,12 @@ import ts from "typescript";
  *     .option("--context-name <name>", "...", "default")
  *
  * A command's parent is the receiver of its .command() call: `program`, or a
- * variable that holds a command (`contextCmd`).
+ * variable that holds a command (`contextCmd`, `dbt`). The program's own
+ * commands are read from Program.ts and the module of each register
+ * function buildProgram hands the program to (cliProgramSources), so a
+ * command a new register function adds is read without a change here. A
+ * default is the string an .option() call gives, or the string constant of
+ * its file it names (DEFAULT_DBT_TARGET_PATH).
  *
  * A resource's subcommands are made by a register function each
  * (Commands/ResourceCommands.ts, Commands/ActionCommands.ts): the
@@ -47,13 +52,11 @@ import ts from "typescript";
 
 export const CLI_DIR: string = path.resolve(__dirname, "../../../../CLI");
 
-// The sources that build the program's own commands, by their paths from packages/CLI.
-export const CLI_PROGRAM_SOURCES: ReadonlyArray<string> = [
-  "Program.ts",
-  "Commands/ConfigCommands.ts",
-  "Commands/UtilityCommands.ts",
-  "Commands/DeployCommands.ts",
-];
+// The source that builds the program, by its path from packages/CLI, and the function that does.
+export const CLI_PROGRAM_SOURCE: string = "Program.ts";
+const BUILD_PROGRAM: string = "buildProgram";
+// The modules, as Program.ts imports them, of the functions that add commands to the program.
+const COMMANDS_MODULE_PREFIX: string = "./Commands/";
 
 // The sources that build every resource's subcommands.
 export const CLI_RESOURCE_SOURCES: ReadonlyArray<string> = [
@@ -273,6 +276,50 @@ function addedOptionFlags(added: ts.Expression | undefined): string {
   );
 }
 
+/*
+ * The default an .option() call gives, as Commander holds it: a string
+ * ("10", "default"), or the string constant of the same file it names
+ * (DEFAULT_DBT_TARGET_PATH, "target"). Null when it gives none.
+ */
+function defaultOf(given: ts.Expression | undefined): string | null {
+  if (!given) {
+    return null;
+  }
+
+  const text: string | null = literal(given);
+
+  if (text !== null) {
+    return text;
+  }
+
+  if (ts.isIdentifier(given)) {
+    for (const statement of given.getSourceFile().statements) {
+      if (
+        !ts.isVariableStatement(statement) ||
+        (statement.declarationList.flags & ts.NodeFlags.Const) === 0
+      ) {
+        continue;
+      }
+
+      for (const declaration of statement.declarationList.declarations) {
+        const value: string | null = literal(declaration.initializer);
+
+        if (
+          ts.isIdentifier(declaration.name) &&
+          declaration.name.text === given.text &&
+          value !== null
+        ) {
+          return value;
+        }
+      }
+    }
+  }
+
+  throw new Error(
+    `An .option() gives a default this reading does not know: ${given.getText()}`,
+  );
+}
+
 // The option one .option(), .requiredOption() or .addOption() call declares.
 function optionOf(call: ChainedCall, onlySome: boolean): CliOption | null {
   if (call.method === "option" || call.method === "requiredOption") {
@@ -284,7 +331,7 @@ function optionOf(call: ChainedCall, onlySome: boolean): CliOption | null {
 
     return {
       flags: flags,
-      defaultValue: literal(call.args[2]),
+      defaultValue: defaultOf(call.args[2]),
       required: call.method === "requiredOption",
       onlySome,
     };
@@ -398,7 +445,7 @@ function globalOptionsOf(source: ts.SourceFile): Array<CliOption> {
   throw new Error("Program.ts declares no options on program");
 }
 
-// The program's own commands: login, the context commands, deploy and the rest.
+// The program's own commands: login, the context commands, deploy, dbt upload and the rest.
 function programCommands(sources: Array<ts.SourceFile>): Array<CliCommand> {
   const variables: Record<string, string> = commandVariables(sources);
   const commands: Array<CliCommand> = [];
@@ -683,12 +730,75 @@ function resourceCommands(): Array<CliCommand> {
 }
 
 /*
+ * The sources that build the program's own commands, by their paths from
+ * packages/CLI: Program.ts, then the module of each function of Commands/
+ * that buildProgram hands the program to, in the order it calls them -
+ * registerConfigCommands(program) is Commands/ConfigCommands.ts. The one of
+ * the resources' commands (CLI_RESOURCE_SOURCES) is read by
+ * resourceCommands: each resource names its own command.
+ */
+export function cliProgramSources(): Array<string> {
+  const program: ts.SourceFile = parse(CLI_PROGRAM_SOURCE);
+  // Each name Program.ts imports, by the module it imports it from.
+  const modules: Map<string, string> = new Map();
+
+  for (const statement of program.statements) {
+    if (
+      !ts.isImportDeclaration(statement) ||
+      !ts.isStringLiteral(statement.moduleSpecifier)
+    ) {
+      continue;
+    }
+
+    const bindings: ts.NamedImportBindings | undefined =
+      statement.importClause?.namedBindings;
+
+    if (!bindings || !ts.isNamedImports(bindings)) {
+      continue;
+    }
+
+    for (const element of bindings.elements) {
+      modules.set(element.name.text, statement.moduleSpecifier.text);
+    }
+  }
+
+  const sources: Array<string> = [CLI_PROGRAM_SOURCE];
+
+  for (const node of everyNode(functionNamed([program], BUILD_PROGRAM))) {
+    if (
+      !ts.isCallExpression(node) ||
+      !ts.isIdentifier(node.expression) ||
+      !node.arguments.some((argument: ts.Expression): boolean => {
+        return ts.isIdentifier(argument) && argument.text === "program";
+      })
+    ) {
+      continue;
+    }
+
+    const specifier: string | undefined = modules.get(node.expression.text);
+
+    if (!specifier || !specifier.startsWith(COMMANDS_MODULE_PREFIX)) {
+      continue;
+    }
+
+    const source: string = `${specifier.slice("./".length)}.ts`;
+
+    if (!CLI_RESOURCE_SOURCES.includes(source) && !sources.includes(source)) {
+      sources.push(source);
+    }
+  }
+
+  return sources;
+}
+
+/*
  * Every command the CLI's sources build, by the words a reader types after
  * "oneuptime", with its arguments and options. A command that only groups
- * others ("context", "<resource>") is not one of them: its subcommands are.
+ * others ("context", "dbt", "<resource>") is not one of them: its
+ * subcommands are.
  */
 export function readCliProgram(): CliProgram {
-  const sources: Array<ts.SourceFile> = CLI_PROGRAM_SOURCES.map(parse);
+  const sources: Array<ts.SourceFile> = cliProgramSources().map(parse);
 
   return {
     globalOptions: globalOptionsOf(sources[0] as ts.SourceFile),

@@ -6,7 +6,7 @@ Chaque commande de la CLI `oneuptime`, avec ses arguments, ses options et ses va
 - [Options globales](#options-globales): Les options que prend chaque commande.
 - [Connexion et contextes](#connexion-et-contextes): login et les commandes context.
 - [Commandes des ressources](#commandes-des-ressources): Les opérations, les champs et les actions de chaque ressource.
-- [Autres commandes](#autres-commandes): deploy, whoami, resources, version et help.
+- [Autres commandes](#autres-commandes): deploy, dbt upload, whoami, resources, version et help.
 :::
 
 ## Les commandes
@@ -19,6 +19,8 @@ flowchart LR
     O --> R["incident, monitor<br/>et chaque ressource"]
     R --> R1["list<br/>get<br/>create<br/>update<br/>delete<br/>count<br/>fields"]
     R --> R2["acknowledge<br/>resolve<br/>start<br/>end<br/>add-note"]
+    O --> D["dbt"]
+    D --> D1["upload"]
     O --> U["deploy<br/>whoami<br/>resources<br/>version<br/>help"]
 ```
 
@@ -303,6 +305,22 @@ oneuptime deploy [--service <name>] [--service-version <version>] [--previous-ve
 | `--type <type>` | Non | Le type de changement, comme `config-change` ou `rollback` | `deployment` |
 | `--time <time>` | Non | Quand il a eu lieu, comme `2026-10-19T10:00:00Z` | Maintenant |
 | `--attribute <key=value...>` | Non | D'autres attributs, sous la forme `key=value`, un ou plusieurs | |
+| `--ingestion-key <key>` | Non | Une clé d'ingestion de télémétrie du projet | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
+
+### `oneuptime dbt upload`
+
+Envoie les artefacts d'un projet dbt après un build, depuis la CI ou une tâche dbt Cloud, à l'Observabilité des données. Ses modèles apparaissent sur les tables qu'ils construisent, avec leur lignage, ses tests apparaissent à côté des vérifications de OneUptime et peuvent déclencher des alertes, et chaque build est une exécution du pipeline du projet. La commande lit `manifest.json` et `run_results.json` dans le dossier cible de dbt, n'envoie que ce que l'Observabilité des données en lit, et écrit avec une clé d'ingestion de télémétrie, pas avec une clé API. La page Documentation de l'Observabilité des données, dans votre tableau de bord, la montre dans une tâche de CI.
+
+```bash
+oneuptime dbt upload [--target-path <dir>] [--manifest <file>] [--run-results <file>] [--project <name>] [--ingestion-key <key>]
+```
+
+| Option | Obligatoire | Ce que c'est | Par défaut |
+| --- | --- | --- | --- |
+| `--target-path <dir>` | Non | Le dossier où dbt a écrit ses artefacts | `target` |
+| `--manifest <file>` | Non | Le manifeste à envoyer | `manifest.json` dans le dossier cible |
+| `--run-results <file>` | Non | Les résultats d'exécution à envoyer | `run_results.json` dans le dossier cible |
+| `--project <name>` | Non | Le nom du projet dbt, nécessaire seulement quand aucun manifeste n'est envoyé | Le projet du manifeste |
 | `--ingestion-key <key>` | Non | Une clé d'ingestion de télémétrie du projet | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
 
 ### `oneuptime whoami`

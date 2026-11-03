@@ -101,6 +101,7 @@ Listen viser hver type post du kan jobbe med, og kommandoen dens, for eksempel `
 | `oneuptime context list`, `use`, `current`, `delete` | Lister, bytter, viser og sletter lagrede kontekster | [Autentisering](/docs/cli/authentication#kontekster) |
 | `oneuptime whoami` | Viser URL-en og API-nøkkelen som neste kommando vil bruke, og med `--check` om OneUptime godtar nøkkelen | [Autentisering](/docs/cli/authentication#sjekk-hva-cli-en-vil-bruke) |
 | `oneuptime deploy` | Registrerer en utrulling, eller en annen endring, for diagrammer og OneUptime AI | [Utrullinger og endringer](/docs/telemetry/change-events) |
+| `oneuptime dbt upload` | Sender artefaktene til et dbt-prosjekt etter et bygg til Dataobserverbarhet | [Kommandoreferanse](/docs/cli/command-reference#oneuptime-dbt-upload) |
 | `oneuptime <resource> list`, `get`, `create`, `update`, `delete`, `count` | Jobber med én type post | [Ressursoperasjoner](/docs/cli/resource-operations) |
 | `oneuptime <resource> fields` | Lister feltene til en ressurs og flaggene som setter dem | [Ressursoperasjoner](/docs/cli/resource-operations#se-feltene-til-en-ressurs) |
 | `oneuptime <resource> acknowledge`, `resolve`, `start`, `end`, `add-note` | Gjør det knappene i dashbordet gjør på hendelser, varsler og planlagt vedlikehold | [Ressursoperasjoner](/docs/cli/resource-operations#bekreft-løs-og-legg-til-notater) |
