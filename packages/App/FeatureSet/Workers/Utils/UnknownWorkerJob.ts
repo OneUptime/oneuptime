@@ -71,8 +71,8 @@ export default class UnknownWorkerJob {
         `${QueueName.Worker}:${job.name}`,
         `Skipped a run of "${job.name}": this worker runs ${thisRelease}, which has no job by that name, ` +
           `and a server running ${UnknownQueueJob.describeRelease(retirement.claimedBy)} schedules it. ` +
-          `Run the same release of OneUptime on every server (app and worker). Until then a worker of that release runs the runs it takes, ` +
-          `and this worker skips the ones it takes.`,
+          `Run the same release of OneUptime on every server (app and worker). Until then, runs that reach a worker of that release run, ` +
+          `and runs that reach this worker are skipped.`,
       );
       return;
     }

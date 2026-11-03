@@ -71,7 +71,10 @@ jest.mock("Common/Server/Utils/Logger", () => {
 // This process; the "other" servers' releases are written into their claims.
 jest.mock("Common/Server/EnvironmentConfig", () => {
   return {
-    ...jest.requireActual("Common/Server/EnvironmentConfig"),
+    ...(jest.requireActual("Common/Server/EnvironmentConfig") as Record<
+      string,
+      unknown
+    >),
     AppVersion: "14.0.97",
   };
 });
