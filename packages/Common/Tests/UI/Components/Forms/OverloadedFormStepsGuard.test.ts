@@ -92,6 +92,13 @@ export const LONG_STEPS_ALLOWED: Array<ListedStep> = [
     reason:
       "Only the rule type and the one or two fields that type uses ever show: From and To to rename, Key and Value to add an attribute, a replacement to redact, a percentage to sample. The other fields are alternatives, never on screen together.",
   },
+  {
+    file: `${DASHBOARD}/Components/DataObservability/DataCheckTable.tsx`,
+    form: "ModelTable: Checks",
+    step: "reads",
+    reason:
+      "Only what the check picked on the step before reads ever shows: the column, with the accepted values of an Invalid Percent check, the pattern of a Format Mismatch Percent check, or the table and column an Orphan Count check refers to; a Custom SQL check's query in place of a column; then Segment By. Four rows at most (an Orphan Count check's); the others are alternatives, never on screen together.",
+  },
   /*
    * A Twilio config asks what the account is used for on its Basic step
    * (Dashboard Components/CallSMS/TwilioConfigUseCopy), and this step then

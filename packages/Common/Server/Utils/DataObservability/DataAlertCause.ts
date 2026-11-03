@@ -14,6 +14,7 @@ import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData"
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
 import ObjectID from "../../../Types/ObjectID";
+import { mdText } from "../../../Utils/Markdown/FeedMarkdown";
 import AlertFeedService from "../../Services/AlertFeedService";
 import AlertGroupingEngineService from "../../Services/AlertGroupingEngineService";
 import AlertService from "../../Services/AlertService";
@@ -112,7 +113,11 @@ export function getSeriesTableKey(
   return typeof key === "string" && key.trim() ? key.trim() : null;
 }
 
-// The feed line of an alert that started acknowledged, its cause open upstream.
+/*
+ * The feed line of an alert that started acknowledged, its cause open
+ * upstream. The cause's title is placed as text (mdText): a table or check
+ * name is the project's own words, and its Markdown stays words.
+ */
 export function describeConsequence(cause: {
   title: string;
   alertNumberWithPrefix: string | null;
@@ -121,7 +126,7 @@ export function describeConsequence(cause: {
     ? `${cause.alertNumberWithPrefix} ${cause.title}`
     : cause.title;
 
-  return `**Caused upstream.** Alert ${name} is open on what this alert's table or pipeline is built from, so this alert started acknowledged: nobody is paged twice for one problem. It recovers on its own once its data does.`;
+  return mdText`**Caused upstream.** Alert ${name} is open on what this alert's table or pipeline is built from, so this alert started acknowledged: nobody is paged twice for one problem. It recovers on its own once its data does.`.toString();
 }
 
 export default class DataAlertCause {

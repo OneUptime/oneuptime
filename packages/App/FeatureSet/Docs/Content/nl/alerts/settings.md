@@ -96,7 +96,7 @@ Een regel roept op zodra een waarschuwing erop past. Om de regel in plaats daarv
 **Waarschuwingen → Regels → Incidentregels** maakt vanzelf incidenten van waarschuwingen. De eerste regel die bij een nieuwe waarschuwing past, van boven naar beneden in de lijst, meldt er een incident uit, zoals **Incident melden** op de pagina van de waarschuwing zou doen, en koppelt de waarschuwing eraan.
 
 :::steps
-### De waarschuwingen selecteren
+### De waarschuwingen uitkiezen
 
 Onder **Overeenkomst** past **Alle waarschuwingen**, waarmee een nieuwe regel begint, op elke nieuwe waarschuwing. Om die te beperken kies je **Alleen waarschuwingen die aan de voorwaarden voldoen** en voeg je de voorwaarden toe waaraan een waarschuwing moet voldoen.
 

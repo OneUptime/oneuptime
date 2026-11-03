@@ -101,6 +101,7 @@ oneuptime resources
 | `oneuptime context list`, `use`, `current`, `delete` | सहेजे कॉन्टेक्स्ट सूचीबद्ध करती है, बदलती है, दिखाती है और हटाती है | [प्रमाणीकरण](/docs/cli/authentication#कॉन्टेक्स्ट) |
 | `oneuptime whoami` | वह URL और API कुंजी दिखाती है जिनका अगली कमांड उपयोग करेगी, और `--check` के साथ यह भी कि OneUptime कुंजी स्वीकार करता है या नहीं | [प्रमाणीकरण](/docs/cli/authentication#देखें-कि-cli-क्या-उपयोग-करेगा) |
 | `oneuptime deploy` | चार्ट और OneUptime AI के लिए एक डिप्लॉय, या कोई दूसरा बदलाव, रिकॉर्ड करती है | [डिप्लॉय और बदलाव](/docs/telemetry/change-events) |
+| `oneuptime dbt upload` | किसी बिल्ड के बाद किसी dbt प्रोजेक्ट के आर्टिफ़ैक्ट डेटा अवलोकनीयता को भेजती है | [कमांड संदर्भ](/docs/cli/command-reference#oneuptime-dbt-upload) |
 | `oneuptime <resource> list`, `get`, `create`, `update`, `delete`, `count` | एक तरह के रिकॉर्ड के साथ काम करती है | [संसाधन संचालन](/docs/cli/resource-operations) |
 | `oneuptime <resource> fields` | किसी संसाधन के फ़ील्ड और उन्हें सेट करने वाले फ़्लैग सूचीबद्ध करती है | [संसाधन संचालन](/docs/cli/resource-operations#किसी-संसाधन-के-फ़ील्ड-देखें) |
 | `oneuptime <resource> acknowledge`, `resolve`, `start`, `end`, `add-note` | घटनाओं, अलर्ट और अनुसूचित रखरखाव पर वही करती है जो डैशबोर्ड के बटन करते हैं | [संसाधन संचालन](/docs/cli/resource-operations#स्वीकार-करें-सुलझाएँ-और-नोट-जोड़ें) |

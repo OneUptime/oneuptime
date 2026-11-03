@@ -951,6 +951,7 @@ export const DataObservabilityRoutePath: Dictionary<string> = {
   [PageMap.DATA_OBSERVABILITY_OVERVIEW]: "overview",
   [PageMap.DATA_OBSERVABILITY_TABLES]: "tables",
   [PageMap.DATA_OBSERVABILITY_TABLES_DROPPED]: "tables/dropped",
+  [PageMap.DATA_OBSERVABILITY_TABLES_UNUSED]: "tables/unused",
   [PageMap.DATA_OBSERVABILITY_TABLE_VIEW]: `tables/${RouteParams.ModelID}`,
   [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_COLUMNS]: `tables/${RouteParams.ModelID}/columns`,
   [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_METRICS]: `tables/${RouteParams.ModelID}/metrics`,
@@ -7808,6 +7809,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.DATA_OBSERVABILITY_TABLES_DROPPED]: new Route(
     `/dashboard/${RouteParams.ProjectID}/data-observability/${
       DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_TABLES_DROPPED]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_TABLES_UNUSED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_TABLES_UNUSED]
     }`,
   ),
 
