@@ -2015,6 +2015,42 @@ test.describe("in German", () => {
 
       await expectNothingScrollsSideways(page);
       await screenshot(page, "approval-390-de");
+
+      /*
+       * What ran stays as a row, whole: cut at one line, a phone lost what
+       * it changed ("Warnung erstellen: High memory usage on te...").
+       */
+      await page
+        .getByRole("button", {
+          name: filled(words, "Run {{count}} actions_one", { count: "1" }),
+        })
+        .click();
+      const row: Locator = page.getByTestId("tool-approval-history-title");
+      await expect(row).toHaveText(
+        filled(words, "Create alert: {{title}}", {
+          title: "High memory usage on test01",
+        }),
+      );
+      await settle(page);
+      const drawn: { isCut: boolean; lines: number } = await row.evaluate(
+        (element: Element): { isCut: boolean; lines: number } => {
+          const lineHeight: number = parseFloat(
+            window.getComputedStyle(element).lineHeight,
+          );
+          return {
+            isCut:
+              element.scrollWidth > element.clientWidth + 1 ||
+              element.scrollHeight > element.clientHeight + 1,
+            lines: Math.round(
+              element.getBoundingClientRect().height / lineHeight,
+            ),
+          };
+        },
+      );
+      expect(drawn.isCut).toBe(false);
+      expect(drawn.lines).toBeGreaterThanOrEqual(2);
+      await expectNothingScrollsSideways(page);
+      await screenshot(page, "approval-done-390-de");
     });
   });
 });

@@ -19288,6 +19288,15 @@ test.describe("an action linking what a record is about waits for approval (issu
         }),
       );
       expect(said.direction).toBe(language === "fa" ? "rtl" : "ltr");
+      /*
+       * The question someone asked in English reads its own way on either
+       * page: left to right, its full stop at its end.
+       */
+      await expect(
+        conversation(page)
+          .getByTestId("investigation-conversation-question-text")
+          .first(),
+      ).toHaveCSS("direction", "ltr");
       await expect(line).toBeVisible();
       await expectNoSidewaysScroll(page, { tolerance: 1 });
       await screenshotElement(

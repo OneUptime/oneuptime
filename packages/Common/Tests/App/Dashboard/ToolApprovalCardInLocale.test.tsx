@@ -423,6 +423,83 @@ describe("in German", () => {
     expect(screen.getByText(DE["Denied"]!)).toBeInTheDocument();
   });
 
+  /*
+   * A row is the only record of what ran: cut at one line, a phone lost
+   * what it changed ("Schweregrad von Vorfall INC-42 auf C..."). It wraps
+   * as the card's titles do, its chip held at its width beside the first
+   * line.
+   */
+  test("a decided action's row is never cut to one line: it wraps, its chip beside its first line", () => {
+    renderCard(
+      [
+        stored(
+          {
+            title: aiActionSentence(AI_ACTION_TITLES.changeIncidentSeverity, {
+              incident: "INC-42",
+              severity: "Critical",
+            }),
+            namedArguments: ["incidentId"],
+          },
+          {
+            id: "call-severity",
+            toolName: "change_incident_severity",
+            arguments: { incidentId: INCIDENT_ID, severityName: "Critical" },
+            status: AIChatToolActionStatus.Executed,
+          },
+        ),
+      ],
+      false,
+    );
+
+    const title: HTMLElement = screen.getByTestId(
+      "tool-approval-history-title",
+    );
+    expect(title).toHaveTextContent(
+      fill(DE, "Change incident {{incident}} severity to {{severity}}", {
+        incident: "INC-42",
+        severity: "Critical",
+      }),
+    );
+    expect(title.className).not.toContain("truncate");
+    expect(title.className).toContain("line-clamp-3");
+    expect(title.className).toContain("break-words");
+
+    const row: HTMLElement = screen.getByTestId("tool-approval-history");
+    expect(row.className).toContain("items-start");
+    // The chip keeps its width however long the row's words are.
+    expect(row.firstElementChild!.className).toContain("flex-shrink-0");
+  });
+
+  test("a page says its policy in quotes and its incident by number: neither ID reaches the arguments", () => {
+    const POLICY_ID: string = "dddddddd-dddd-4ddd-8ddd-dddddddddddd";
+
+    renderCard([
+      stored(
+        {
+          // As the server's prepare names them (RecordNamesForPerson).
+          title: aiActionSentence(
+            AI_ACTION_TITLES.pageOnCallPolicyForIncident,
+            { policy: '"Checkout on-call"', incident: "INC-42" },
+          ),
+          namedArguments: ["onCallDutyPolicyId", "incidentId"],
+        },
+        {
+          id: "call-page",
+          toolName: "page_on_call_policy",
+          arguments: { onCallDutyPolicyId: POLICY_ID, incidentId: INCIDENT_ID },
+        },
+      ),
+    ]);
+
+    expect(screen.getByTestId("tool-approval-title")).toHaveTextContent(
+      'Bereitschaftsrichtlinie "Checkout on-call" zu Vorfall INC-42 alarmieren',
+    );
+    // Both are in the title: the card has no line of IDs.
+    expect(
+      screen.queryByTestId("tool-approval-arguments"),
+    ).not.toBeInTheDocument();
+  });
+
   test("an action saved before its words reads the English it stores, as it always did", () => {
     const saved: AIChatToolAction = stored(DECLARE_WORDS);
     delete saved.words;

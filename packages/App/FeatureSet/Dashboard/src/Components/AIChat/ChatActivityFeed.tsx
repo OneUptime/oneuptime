@@ -694,6 +694,52 @@ export function describeFollowUpCheck(
 }
 
 /*
+ * How long a step took, as its detail says it beside its rows: "0.6s" in
+ * English, and in the reader's language its own way ("0,6 Sek.", "۰٫۶s"),
+ * so "1.234 Zeilen · 0,6 Sek." writes its two figures alike. An engine
+ * without Intl's unit style writes the English.
+ */
+export function formatStepDuration(
+  durationInMs: number,
+  language: string | undefined,
+): string {
+  const seconds: number = durationInMs / 1000;
+  const english: string = `${seconds.toFixed(1)}s`;
+
+  if (!language || language === "en" || language.startsWith("en-")) {
+    return english;
+  }
+
+  try {
+    const said: string = new Intl.NumberFormat(language, {
+      style: "unit",
+      unit: "second",
+      unitDisplay: "narrow",
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1,
+    } as Intl.NumberFormatOptions).format(seconds);
+    const bare: string = seconds.toLocaleString(language, {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1,
+    });
+
+    // The unit style not known: the bare number alone would lose the unit.
+    return said === bare ? english : said;
+  } catch {
+    return english;
+  }
+}
+
+// An address an action's line carries, which makes the line its link.
+const ACTION_LINK: RegExp = /https?:\/\/\S+/;
+
+export function getActionStepLink(text: string): string | null {
+  const match: RegExpMatchArray | null = text.match(ACTION_LINK);
+
+  return match && match[0] ? match[0] : null;
+}
+
+/*
  * The steps the events draw, in the reader's language. A step is completed
  * by matching its text, which is always produced by the same translator.
  */
@@ -770,7 +816,7 @@ function buildSteps(
           );
         }
         if (durationInMs !== undefined) {
-          parts.push(`${(durationInMs / 1000).toFixed(1)}s`);
+          parts.push(formatStepDuration(durationInMs, translator.language));
         }
         completeLastRunning(
           friendlyToolName(event.toolName, translator),
@@ -1053,11 +1099,21 @@ const ChatActivityFeed: FunctionComponent<ComponentProps> = (
       );
     }
 
+    /*
+     * An action that ran: a line that carries an address opens it (a pull
+     * request), so it is drawn as a link; any other - "Declared an
+     * incident" - is a change that is done, never a link to nowhere.
+     */
     if (step.kind === "action") {
-      return (
+      return getActionStepLink(step.text) ? (
         <Icon
           icon={IconProp.ExternalLink}
           className="h-3 w-3 flex-shrink-0 text-indigo-500"
+        />
+      ) : (
+        <Icon
+          icon={IconProp.CheckCircle}
+          className="h-3 w-3 flex-shrink-0 text-emerald-500"
         />
       );
     }
@@ -1131,14 +1187,13 @@ const ChatActivityFeed: FunctionComponent<ComponentProps> = (
     step: ActivityStep,
   ): ReactElement => {
     if (step.kind === "action") {
-      // Link-ish: if the message carries a URL, make the whole line a link.
-      const urlMatch: RegExpMatchArray | null =
-        step.text.match(/https?:\/\/\S+/);
+      // A line that carries an address is its link (an opened pull request).
+      const link: string | null = getActionStepLink(step.text);
 
-      if (urlMatch && urlMatch[0]) {
+      if (link) {
         return (
           <a
-            href={urlMatch[0]}
+            href={link}
             target="_blank"
             rel="noreferrer"
             className="break-words font-medium text-indigo-600 hover:underline"
@@ -1148,8 +1203,15 @@ const ChatActivityFeed: FunctionComponent<ComponentProps> = (
         );
       }
 
+      /*
+       * What it changed, in the words of a step that is done - set apart
+       * from the reads around it by its weight, not by a link's colour.
+       */
       return (
-        <span className="break-words font-medium text-indigo-600">
+        <span
+          data-testid="activity-step-action"
+          className="break-words font-medium text-gray-700"
+        >
           {step.text}
         </span>
       );

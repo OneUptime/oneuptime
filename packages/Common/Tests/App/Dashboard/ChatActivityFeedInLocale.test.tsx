@@ -13,7 +13,9 @@ import { initReactI18next } from "react-i18next";
 import * as React from "react";
 import ChatActivityFeed, {
   describeLiveActivity,
+  formatStepDuration,
   friendlyToolNames,
+  getActionStepLink,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/ChatActivityFeed";
 import { getKnownEvidenceTool } from "../../../../App/FeatureSet/Dashboard/src/Utils/InvestigationEvidenceFormat";
 import AIRunEvent from "../../../Models/DatabaseModels/AIRunEvent";
@@ -210,5 +212,147 @@ describe.each<[string, Record<string, string>]>([
         "Opened pull request: Fix checkout — https://github.com/acme/shop/pull/7",
       ),
     ).toBeInTheDocument();
+  });
+});
+
+/*
+ * AN ACTION THAT RAN READS AS DONE, NOT AS A LINK.
+ *
+ * Once it said what it did ("Declared an incident") instead of the tool's
+ * name, an executed action kept the look of a link - indigo, with an
+ * external-link arrow - though it opened nothing. A line that carries an
+ * address (an opened pull request) is still its link; any other is a step
+ * that is done: a check, in the step's own colour.
+ */
+describe("an action that ran", () => {
+  beforeAll(async () => {
+    await inLanguage("de");
+  });
+
+  test("with no address, is a step that is done: a check beside it, no link and no link colour", () => {
+    const { container } = render(
+      <ChatActivityFeed
+        events={events([
+          {
+            eventType: AIRunEventType.ActionExecuted,
+            toolName: "create_incident",
+          },
+        ])}
+        hideChrome={true}
+      />,
+    );
+
+    const line: HTMLElement = screen.getByTestId("activity-step-action");
+    expect(line).toHaveTextContent(
+      word(DE, getKnownEvidenceTool("create_incident")!.description),
+    );
+    expect(container.querySelector("a")).toBeNull();
+    expect(line.className).not.toContain("indigo");
+
+    const mark: Element = container.querySelector(
+      '[data-testid="activity-step-mark"]',
+    )!;
+    expect(mark.querySelector('[class*="text-emerald-500"]')).not.toBeNull();
+    expect(mark.querySelector('[class*="text-indigo-500"]')).toBeNull();
+  });
+
+  test("with an address, is its link", () => {
+    const { container } = render(
+      <ChatActivityFeed
+        events={events([
+          {
+            eventType: AIRunEventType.ActionExecuted,
+            toolName: "open_pull_request",
+            message:
+              "Opened pull request: Fix checkout — https://github.com/acme/shop/pull/7",
+          },
+        ])}
+        hideChrome={true}
+      />,
+    );
+
+    const link: HTMLAnchorElement = container.querySelector("a")!;
+    expect(link).not.toBeNull();
+    expect(link.getAttribute("href")).toBe(
+      "https://github.com/acme/shop/pull/7",
+    );
+    expect(screen.queryByTestId("activity-step-action")).toBeNull();
+  });
+
+  test("getActionStepLink finds the line's address, or none", () => {
+    expect(
+      getActionStepLink(
+        "Opened pull request: Fix — https://github.com/acme/shop/pull/7",
+      ),
+    ).toBe("https://github.com/acme/shop/pull/7");
+    expect(getActionStepLink("Declared an incident")).toBeNull();
+  });
+});
+
+/*
+ * A STEP'S DURATION, WRITTEN THE READER'S WAY.
+ *
+ * Its detail says how many rows it read and how long it took. The rows were
+ * the reader's ("1.234 Zeilen") while the time stayed English ("0.6s"):
+ * the two figures of one line were written two ways.
+ */
+describe("a step's duration", () => {
+  test("is the English it always was in English", () => {
+    expect(formatStepDuration(640, "en")).toBe("0.6s");
+    expect(formatStepDuration(1500, "en-GB")).toBe("1.5s");
+    expect(formatStepDuration(2000, undefined)).toBe("2.0s");
+  });
+
+  test("in German, with its decimal comma", () => {
+    const said: string = formatStepDuration(640, "de");
+
+    expect(said).toContain("0,6");
+    expect(said).not.toContain("0.6");
+  });
+
+  test("in Persian, with Persian digits", () => {
+    expect(formatStepDuration(640, "fa")).toContain("۰٫۶");
+  });
+
+  test("an engine that cannot write the unit falls back to the English", () => {
+    const spy: jest.SpyInstance = jest
+      .spyOn(Intl, "NumberFormat")
+      .mockImplementation((): Intl.NumberFormat => {
+        throw new RangeError("no unit style");
+      });
+
+    try {
+      expect(formatStepDuration(640, "de")).toBe("0.6s");
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  test("the feed writes a step's rows and its time alike, in German", async () => {
+    await inLanguage("de");
+    const completed: AIRunEvent = new AIRunEvent(ObjectID.generate());
+    completed.eventType = AIRunEventType.ToolCallCompleted;
+    completed.toolName = "get_on_call_status";
+    completed.resultSummary = { rowCount: 1234, durationInMs: 640 };
+
+    const { container } = render(
+      <ChatActivityFeed
+        events={[
+          ...events([
+            {
+              eventType: AIRunEventType.ToolCallStarted,
+              toolName: "get_on_call_status",
+            },
+          ]),
+          completed,
+        ]}
+        hideChrome={true}
+      />,
+    );
+
+    const text: string = container.textContent || "";
+    expect(text).toContain("1.234");
+    expect(text).toContain(formatStepDuration(640, "de"));
+    expect(text).not.toContain("0.6s");
   });
 });

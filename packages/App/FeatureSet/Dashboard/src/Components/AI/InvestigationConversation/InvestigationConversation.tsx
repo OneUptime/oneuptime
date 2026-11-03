@@ -356,7 +356,16 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
           )}
         </div>
         <div className={MESSAGE_BODY_CLASS_NAME}>
-          <p className="mt-0.5 whitespace-pre-wrap break-words text-sm leading-6 text-gray-900">
+          {/*
+           * The question reads its own way, as Ask AI's does: one asked in
+           * English on a Persian page kept its full stop at its start
+           * (".Link it to that host").
+           */}
+          <p
+            dir="auto"
+            data-testid="investigation-conversation-question-text"
+            className="mt-0.5 whitespace-pre-wrap break-words text-start text-sm leading-6 text-gray-900"
+          >
             {message.content}
           </p>
         </div>

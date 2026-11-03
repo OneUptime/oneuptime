@@ -196,19 +196,27 @@ const ToolApprovalCard: FunctionComponent<ComponentProps> = (
             return (
               <div
                 key={action.id}
-                className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5"
+                data-testid="tool-approval-history"
+                className="flex items-start gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5"
               >
                 <span
-                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${statusChipTone[action.status]}`}
+                  className={`inline-flex flex-shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${statusChipTone[action.status]}`}
                 >
                   <Icon icon={statusIcon[action.status]} className="h-3 w-3" />
                   {translator.translateText(
                     statusLabel[action.status] || action.status,
                   )}
                 </span>
+                {/*
+                 * What ran, whole, wrapped as the card's titles are: cut
+                 * at one line, a phone lost what it changed ("Schweregrad
+                 * von Vorfall INC-42 auf C..."), and a Persian line the
+                 * start of an English title. Its first line sits level
+                 * with the chip.
+                 */}
                 <span
                   data-testid="tool-approval-history-title"
-                  className="min-w-0 flex-1 truncate text-xs text-gray-700"
+                  className="line-clamp-3 min-w-0 flex-1 break-words text-xs leading-5 text-gray-700"
                 >
                   <ToolActionSentence sentence={title} />
                 </span>

@@ -721,6 +721,15 @@ describe("InvestigationConversation — a shared thread", () => {
     );
     expect(within(questions[0]!).getByText("Priya Shah")).toBeVisible();
     expect(within(questions[1]!).getByText("You")).toBeVisible();
+    /*
+     * Each question reads its own way, as Ask AI's does: an English one on
+     * a Persian page keeps its question mark at its end.
+     */
+    for (const asked of questions) {
+      expect(
+        within(asked).getByTestId("investigation-conversation-question-text"),
+      ).toHaveAttribute("dir", "auto");
+    }
 
     const reply: HTMLElement = screen.getByTestId(
       "investigation-conversation-answer",
