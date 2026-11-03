@@ -73,6 +73,8 @@ Runner를 쓰면 이런 단계가 여러분이 관리하는 호스트에서 실�
 
 글로벌 Runner는 **글로벌 Runner**에서 작업하는 모든 코드 저장소에서 OneUptime AI의 코드 수정도 맡습니다. 각 수정을 작성하고 풀 리퀘스트를 열지만, 어떤 명령도 실행하지 않으며 저장소의 설정, 빌드, 테스트 명령도 실행하지 않으므로, 풀 리퀘스트에는 검증을 건너뛰었다고 표시됩니다. Git 서버는 HTTPS로 인터넷에 있는 것에만 접근합니다. 단, 자체 호스팅 OneUptime에서는 서버 자신이 접근할 수 있는 사설 Git 서버에도 접근할 수 있습니다. 자신이 맡은 수정을 위해서만 동작하며, 저장소의 토큰은 그곳에서 수정을 작업하는 동안에만 받습니다. GitHub 저장소의 토큰은 그 하나의 저장소에만 접근하며, 수정이 끝나면 취소됩니다.
 
+14.0.94보다 오래된 글로벌 Runner나 `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false`로 시작한 글로벌 Runner는 코드 수정을 받지 않으며, OneUptime도 코드 수정을 맡을 Runner로 세지 않습니다. 그러면 **글로벌 Runner**에서 작업하는 저장소에는 온라인 상태인 글로벌 Runner 중 AI 코드 수정을 받는 Runner가 없다고 표시되고, Admin Dashboard의 **글로벌 Runner** 페이지에는 그 Runner의 상태 아래에 이유가 표시됩니다.
+
 여러분의 네트워크에 접근해야 하는 단계나, 직접 관리하는 호스트에 두고 싶은 단계에는 내 Runner 중 하나를 고르세요. 모든 단계를 내 Runner에서 실행하려면 **런북 → Runbook 에이전트** 맨 아래의 **글로벌 Runner 사용**을 끕니다. 그러면 Runner를 고르지 않은 JavaScript 단계는 프로젝트 기본 Runner에서 실행되거나, 기본 Runner가 없으면 내 Runner 중 하나를 고를 때까지 그 이유를 알리며 실패합니다. 내 Runner를 고른 단계는 어느 경우든 그 Runner를 유지합니다. 코드의 설정에서 Runner를 선택하지 않은 코드 저장소도 프로젝트 기본 Runner에서 작업하고, 기본 Runner가 없으면 글로벌 Runner에서 작업하며, 이 스위치가 꺼져 있는 동안에는 내 Runner가 필요합니다. [코드](/docs/ai/ai-agent#저장소의-runner-선택하기)를 참조하세요.
 
 ### 글로벌 Runner의 출처
@@ -256,7 +258,7 @@ Runner는 시작할 때 다음을 읽습니다.
 | `ONEUPTIME_RUNNER_JOB_HEARTBEAT_INTERVAL_MS` | 아니요 | `10000` | Runner가 실행 중인 작업의 리스를 갱신하는 간격입니다. `1000` 미만의 값은 기본값으로 돌아갑니다. |
 | `ONEUPTIME_RUNNER_CONCURRENCY` | 아니요 | `1` | 이 Runner에서 동시에 실행할 수 있는 최대 작업 수입니다. |
 | `ONEUPTIME_RUNNER_ENABLE_RUNBOOKS` | 아니요 | — | `false`로 설정하면 대시보드 설정과 관계없이 이 Runner가 Runbook 단계를 가져가지 않습니다. 이 변수는 기능을 끄기만 할 수 있습니다. |
-| `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES` | 아니요 | — | `false`로 설정하면 이 Runner를 선택한 코드 저장소에 대해서도 이 Runner가 AI 코드 수정을 가져가지 않습니다. |
+| `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES` | 아니요 | — | `false`로 설정하면 이 Runner를 선택한 코드 저장소에 대해서도 이 Runner가 AI 코드 수정을 가져가지 않습니다.그러면 저장소에는 이 Runner가 코드 수정을 받지 않는다고 표시됩니다. |
 | `ONEUPTIME_RUNNER_ENABLE_AI_COMMANDS` | 아니요 | — | `false`로 설정하면 대시보드 설정과 관계없이 이 Runner가 AI 해결 명령을 실행하지 않습니다. |
 
 ## 에이전트 키 교체

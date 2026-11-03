@@ -1619,5 +1619,7 @@
   "No valid Enterprise license: session lengths become read-only when the trial or grace period ends.": "有効な Enterprise ライセンスがありません。試用期間または猶予期間が終わると、セッションの長さは読み取り専用になります。",
   "The lengths already set still sign people out, and you can still remove them. Activate or renew the Enterprise license in the Admin Dashboard to change this again.": "設定済みの長さによるサインアウトは引き続き行われ、削除することもできます。再び変更するには、管理ダッシュボードで Enterprise ライセンスを有効化または更新してください。",
   "The lengths already set still sign people out, and you can still remove them. Activate a license that includes it in the Admin Dashboard to change this again.": "設定済みの長さによるサインアウトは引き続き行われ、削除することもできます。再び変更するには、管理ダッシュボードでこの機能を含むライセンスを有効化してください。",
-  "Everything here can be changed during the 14-day trial of an installation with no license, or the 30-day grace period after a license expires. When it ends: The lengths already set still sign people out, and you can still remove them.": "ライセンスのないインストールの 14 日間の試用期間中、またはライセンス期限切れ後の 30 日間の猶予期間中は、ここですべてを変更できます。期間が終わると、設定済みの長さによるサインアウトは引き続き行われ、削除することもできます。"
+  "Everything here can be changed during the 14-day trial of an installation with no license, or the 30-day grace period after a license expires. When it ends: The lengths already set still sign people out, and you can still remove them.": "ライセンスのないインストールの 14 日間の試用期間中、またはライセンス期限切れ後の 30 日間の猶予期間中は、ここですべてを変更できます。期間が終わると、設定済みの長さによるサインアウトは引き続き行われ、削除することもできます。",
+  "Takes no AI code fixes: update it to this server's version.": "AI のコード修正を受け付けません。このサーバーのバージョンに更新してください。",
+  "Takes no AI code fixes: remove {{setting}} from its host and restart it.": "AI のコード修正を受け付けません。ホストから {{setting}} を外して再起動してください。"
 }

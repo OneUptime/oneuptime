@@ -698,6 +698,28 @@ describe("registering a project-scoped Runner", () => {
     expect(data["agentId"]).toBe(process.env["ONEUPTIME_RUNNER_ID"]);
     expect(data["agentKey"]).toBe(process.env["ONEUPTIME_RUNNER_KEY"]);
     expect(data["agentVersion"]).toBeDefined();
+    // Nothing on this host refuses code fixes, so it says it takes them.
+    expect(data["takesCodeFixes"]).toBe(true);
+  });
+
+  /*
+   * The server counts a Runner for a repository's fixes only while it says
+   * it takes them (Common/Types/Runner/RunnerCodeFixes), from the first
+   * heartbeat on - registration is that first heartbeat.
+   */
+  test("says on first contact whether it takes AI code fixes, as its host allows", async () => {
+    postMock.mockResolvedValue(response(200, { status: "ok" }) as never);
+    const takes: jest.SpyInstance = jest
+      .spyOn(RunnerCapabilities, "takesCodeFixes")
+      .mockReturnValue(false);
+
+    try {
+      await Register.registerRunner();
+    } finally {
+      takes.mockRestore();
+    }
+
+    expect(postedData(0)["takesCodeFixes"]).toBe(false);
   });
 
   test("caches the Runner id on success", async () => {

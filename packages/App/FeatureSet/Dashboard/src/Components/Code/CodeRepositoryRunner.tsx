@@ -1,4 +1,5 @@
 import RunnerPicker from "../Runner/RunnerPicker";
+import RunnerTakesNoCodeFixesText from "../Runner/RunnerTakesNoCodeFixesText";
 import RunnerChoicesLoader, { RunnerChoices } from "../Runner/RunnerChoices";
 import { RunnerLiveStatusBubble } from "../Runner/RunnerStatus";
 import {
@@ -12,6 +13,7 @@ import {
   RunnerPickerWork,
   buildRunnerPickerModel,
   getCodeRepositoryRunnerWords,
+  getRunnerTakingNoCodeFixes,
 } from "../Runner/RunnerPickerModel";
 import { getCodeRepositoryRunnerChoice } from "./CodeRepositoryRunnerChoice";
 import useRefreshRunnerChoicesOnFocus from "../Runner/useRefreshRunnerChoicesOnFocus";
@@ -76,6 +78,13 @@ export const CODE_REPOSITORY_RUNNER_SKIPS_TEST_ID: string =
 export const CODE_REPOSITORY_RUNNER_DEFAULT_TAG_TEST_ID: string =
   "code-repository-runner-default-tag";
 
+/*
+ * The line under one of the project's own Runners whose host turned AI code
+ * fixes off: the repository gets none of its work done there.
+ */
+export const CODE_REPOSITORY_RUNNER_TAKES_NO_CODE_FIXES_TEST_ID: string =
+  "code-repository-runner-takes-no-code-fixes";
+
 export const CodeRepositoryRunnerCopy: {
   fieldTitle: string;
   fieldDescription: string;
@@ -89,6 +98,11 @@ export const CodeRepositoryRunnerCopy: {
   noneGlobalRunnersOff: string;
   // The card's value for no pick, on a server that runs no global Runner.
   noneNoGlobalRunner: string;
+  /*
+   * The card's value for no pick, on a server whose global Runners all take
+   * no AI code fixes.
+   */
+  noneNoCodeFixGlobalRunner: string;
 } = {
   fieldTitle: translationKey("Runner"),
   fieldDescription: translationKey("Where AI works in this repository."),
@@ -97,6 +111,9 @@ export const CodeRepositoryRunnerCopy: {
     "None: this project does not use global Runners",
   ),
   noneNoGlobalRunner: translationKey("None: this server runs no global Runner"),
+  noneNoCodeFixGlobalRunner: translationKey(
+    "None: no global Runner takes AI code fixes",
+  ),
 };
 
 // The choices of a code repository's picker, read now and on focus.
@@ -293,6 +310,13 @@ export const CodeRepositoryRunnerValueView: FunctionComponent<
     projectUsesGlobalRunners: choices.projectUsesGlobalRunners,
   });
 
+  /*
+   * One of the project's own Runners - the pick, or the default it follows
+   * - whose host turned AI code fixes off: said under it, in amber, as
+   * Code's notice says it.
+   */
+  const takesNoCodeFixes: boolean = Boolean(getRunnerTakingNoCodeFixes(model));
+
   const withStatus: (
     name: ReactElement,
     note?: string | undefined,
@@ -319,6 +343,16 @@ export const CodeRepositoryRunnerValueView: FunctionComponent<
             data-testid={CODE_REPOSITORY_RUNNER_SKIPS_TEST_ID}
           >
             {translator.translateText(note)}
+          </p>
+        ) : (
+          <></>
+        )}
+        {takesNoCodeFixes ? (
+          <p
+            className="mt-1 break-words text-xs leading-5 text-amber-700"
+            data-testid={CODE_REPOSITORY_RUNNER_TAKES_NO_CODE_FIXES_TEST_ID}
+          >
+            <RunnerTakesNoCodeFixesText />
           </p>
         ) : (
           <></>
@@ -386,9 +420,10 @@ export const CodeRepositoryRunnerValueView: FunctionComponent<
   }
 
   /*
-   * No pick and no global Runner to run on: the project turned them off, or
-   * the server runs none. Said as it is, so nobody reads "Global Runner"
-   * for a repository AI cannot work in.
+   * No pick and no global Runner to run on: the project turned them off,
+   * the server runs none, or none of its global Runners takes AI code
+   * fixes. Said as it is, so nobody reads "Global Runner" for a repository
+   * AI cannot work in.
    */
   if (
     model.outcome === RunnerPickerOutcome.GlobalRunnersOff ||
@@ -402,7 +437,9 @@ export const CodeRepositoryRunnerValueView: FunctionComponent<
         {translator.translateText(
           model.outcome === RunnerPickerOutcome.GlobalRunnersOff
             ? CodeRepositoryRunnerCopy.noneGlobalRunnersOff
-            : CodeRepositoryRunnerCopy.noneNoGlobalRunner,
+            : choices.globalRunnersTakeNoCodeFixes
+              ? CodeRepositoryRunnerCopy.noneNoCodeFixGlobalRunner
+              : CodeRepositoryRunnerCopy.noneNoGlobalRunner,
         )}
       </span>
     );

@@ -73,6 +73,8 @@ Runner 只保存自己的 ID 和金鑰。其餘一切都隨它認領的工作一
 
 全域 Runner 也負責 OneUptime AI 的程式碼修復，涵蓋每個在 **全域 Runner** 上工作的程式碼儲存庫。它撰寫每個修復並開啟拉取請求，但不執行任何指令，連儲存庫的設定、建置與測試指令也不執行，因此拉取請求會說明其驗證已略過。它只透過 HTTPS 存取網際網路上的 Git 伺服器；但在自行託管的 OneUptime 上，它也可以存取伺服器本身可以存取的私有 Git 伺服器。它只為自己接手的修復工作，並且只在為某個儲存庫處理修復期間取得該儲存庫的權杖。GitHub 儲存庫的權杖只能存取那一個儲存庫，並會在修復結束時被撤銷。
 
+早於 14.0.94 的全域 Runner，或以 `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false` 啟動的全域 Runner，不接受程式碼修復，OneUptime 也不會將它計入。此時，在 **全域 Runner** 上工作的儲存庫會提示沒有在線的全域 Runner 接受 AI 程式碼修復，而 Admin Dashboard 的 **全域 Runner** 頁面會在該 Runner 的狀態下方說明原因。
+
 對於需要存取您網路的步驟，或要讓步驟留在您掌控的主機上，請為它選擇您自己的 Runner。若要讓每個步驟都在您自己的 Runner 上執行，請在 **運行手冊 → Runbook 代理程式** 底部關閉 **使用全域 Runner** 。之後，未選擇 Runner 的 JavaScript 步驟會在專案預設 Runner 上執行；如果沒有設定預設 Runner，它會失敗並說明原因，直到它選擇您的某個 Runner；選擇了您的某個 Runner 的步驟無論如何都會保留它。在程式碼的設定中沒有選擇 Runner 的程式碼儲存庫同樣在專案預設 Runner 上工作，沒有設定預設 Runner 時在全域 Runner 上工作，而在關閉該開關時需要您的某個 Runner；請參閱 [程式碼](/docs/ai/ai-agent#選擇儲存庫的-runner)。
 
 ### 全域 Runner 從哪裡來
@@ -256,7 +258,7 @@ Runner 在啟動時讀取以下變數：
 | `ONEUPTIME_RUNNER_JOB_HEARTBEAT_INTERVAL_MS` | 否 | `10000` | Runner 為執行中的工作續約的頻率。低於 `1000` 的值會改用預設值。 |
 | `ONEUPTIME_RUNNER_CONCURRENCY` | 否 | `1` | 此 Runner 上同時執行的工作數上限。 |
 | `ONEUPTIME_RUNNER_ENABLE_RUNBOOKS` | 否 | — | 設為 `false` 可讓此 Runner 停止認領 Runbook 步驟，無論儀表板如何設定。它只能關閉此功能。 |
-| `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES` | 否 | — | 設為 `false` 可讓此 Runner 停止認領 AI 程式碼修復，即使是選擇了它的程式碼儲存庫。 |
+| `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES` | 否 | — | 設為 `false` 可讓此 Runner 停止認領 AI 程式碼修復，即使是選擇了它的程式碼儲存庫。此時儲存庫會提示此 Runner 不接受任何程式碼修復。 |
 | `ONEUPTIME_RUNNER_ENABLE_AI_COMMANDS` | 否 | — | 設為 `false` 可讓此 Runner 停止執行 AI 修復指令，無論儀表板如何設定。 |
 
 ## 輪替代理程式金鑰

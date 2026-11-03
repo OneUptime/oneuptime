@@ -2,6 +2,7 @@ import { mockRouter } from "./Helpers";
 import RunnerAPI from "../../../Server/API/RunnerAPI";
 import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
 import RunnerService, {
+  GLOBAL_RUNNER_LIST_READ_SELECT,
   GLOBAL_RUNNER_PUBLIC_SELECT,
 } from "../../../Server/Services/RunnerService";
 import {
@@ -13,6 +14,9 @@ import Response from "../../../Server/Utils/Response";
 import Runner from "../../../Models/DatabaseModels/Runner";
 import { JSONObject } from "../../../Types/JSON";
 import PositiveNumber from "../../../Types/PositiveNumber";
+import OneUptimeDate from "../../../Types/Date";
+import Version from "../../../Types/Version";
+import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import {
   afterEach,
   beforeAll,
@@ -53,7 +57,9 @@ jest.mock("../../../Server/Utils/Logger");
  * through a route of their own, as OneUptime, as the global probes are read:
  * for anyone signed in, the global rows only, by the columns of
  * GLOBAL_RUNNER_PUBLIC_SELECT - never a key, a host or a version, whatever
- * the request asks for.
+ * the request asks for. Whether each takes AI code fixes is said as the
+ * server counts it: the release that judges a Runner that does not say is
+ * read on the server and left out of the answer.
  */
 
 const GLOBAL_RUNNERS_ROUTE: string = "/runner/global-runners";
@@ -76,7 +82,12 @@ describe("the global Runners list", () => {
     jest.clearAllMocks();
 
     const runner: Runner = new Runner();
+    runner._id = "6d7c1a3e-2f4b-4c5d-8e9f-0a1b2c3d4e5f";
     runner.name = "global-runner-eu";
+    runner.isGlobalRunner = true;
+    runner.lastAlive = OneUptimeDate.getCurrentDate();
+    // A release from before global Runners took code fixes, saying nothing.
+    runner.agentVersion = new Version("14.0.80");
 
     findBy = jest
       .spyOn(RunnerService, "findBy")
@@ -117,11 +128,42 @@ describe("the global Runners list", () => {
     const call: FindCall = findBy.mock.calls[0]![0] as FindCall;
 
     expect(call.query).toEqual({ isGlobalRunner: true });
-    expect(call.select).toBe(GLOBAL_RUNNER_PUBLIC_SELECT);
+    expect(call.select).toBe(GLOBAL_RUNNER_LIST_READ_SELECT);
+    // The public columns, and the release - read here, never answered.
+    expect(Object.keys(call.select).sort()).toEqual(
+      [...Object.keys(GLOBAL_RUNNER_PUBLIC_SELECT), "agentVersion"].sort(),
+    );
     expect(Object.keys(call.select)).not.toContain("key");
     expect(Object.keys(call.select)).not.toContain("hostInfo");
-    expect(Object.keys(call.select)).not.toContain("agentVersion");
     expect(call.props).toEqual({ isRoot: true });
+  });
+
+  test("answers whether each takes AI code fixes, never a key, a host or a version", async () => {
+    await mockRouter
+      .match("post", GLOBAL_RUNNERS_ROUTE)
+      .handlerFunction(
+        { body: {}, query: {}, headers: {} } as unknown as ExpressRequest,
+        {} as ExpressResponse,
+        jest.fn() as unknown as NextFunction,
+      );
+
+    const call: Array<unknown> = (
+      Response.sendEntityArrayResponse as unknown as jest.Mock
+    ).mock.calls[0] as Array<unknown>;
+
+    const answered: Array<JSONObject> = BaseModel.toJSONArray(
+      call[2] as Array<Runner>,
+      Runner,
+    ) as Array<JSONObject>;
+
+    expect(answered).toHaveLength(1);
+    expect(answered[0]!["name"]).toBe("global-runner-eu");
+    // 14.0.80 said nothing, and turns code fixes off itself.
+    expect(answered[0]!["takesCodeFixes"]).toBe(false);
+
+    for (const hidden of ["key", "hostInfo", "agentVersion"]) {
+      expect(answered[0]).not.toHaveProperty(hidden);
+    }
   });
 
   test("answers with the rows and how many there are", async () => {

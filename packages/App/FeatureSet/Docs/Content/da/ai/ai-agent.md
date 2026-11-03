@@ -327,7 +327,7 @@ En kørsel, hvis heartbeat har været tavs i mere end 12 minutter, afsluttes med
 :::
 
 :::details Ingen Runner tager opgaven
-En opgave, der venter mere end 30 minutter, mens den Runner, der skal tage den, ikke er forbundet - den, dens repositorie vælger, projektets standard-Runner for et repositorie, der ikke vælger nogen, eller en global Runner - mislykkes med en besked, der siger hvilken, så den aldrig vises som i gang for evigt. Når en Runner er online, men optaget, venter opgaver i kø på deres tur. En Runner, der er ældre end Kode, får aldrig en anmodning fra Kode: opdater en Runner, du selv kører, sammen med serveren.
+En opgave, der venter mere end 30 minutter, mens den Runner, der skal tage den, ikke er forbundet - den, dens repositorie vælger, projektets standard-Runner for et repositorie, der ikke vælger nogen, eller en global Runner - mislykkes med en besked, der siger hvilken, så den aldrig vises som i gang for evigt. En Runner, der ikke tager koderettelser, tæller som ikke forbundet: en, der er startet med `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false`, eller en global Runner, der er ældre end 14.0.94. Kode siger det, før du beder om en opgave. Når en Runner er online, men optaget, venter opgaver i kø på deres tur. En Runner, der er ældre end Kode, får aldrig en anmodning fra Kode: opdater en Runner, du selv kører, sammen med serveren.
 :::
 
 ## Privatliv
