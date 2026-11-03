@@ -208,6 +208,9 @@ import DataAsset from "./DataAsset";
 import DataAssetFeed from "./DataAssetFeed";
 import DataAssetUsage from "./DataAssetUsage";
 import DataCheck from "./DataCheck";
+import DataPipeline from "./DataPipeline";
+import DataPipelineRun from "./DataPipelineRun";
+import DataAssetLineage from "./DataAssetLineage";
 import SecurityProtectedEntity from "./SecurityProtectedEntity";
 import SecurityEntityRisk from "./SecurityEntityRisk";
 import SecurityEntityCriticality from "./SecurityEntityCriticality";
@@ -680,6 +683,9 @@ const AllModelTypes: Array<{
   DataAssetFeed,
   DataAssetUsage,
   DataCheck,
+  DataPipeline,
+  DataPipelineRun,
+  DataAssetLineage,
   SecurityProtectedEntity,
   SecurityEntityRisk,
   SecurityEntityCriticality,

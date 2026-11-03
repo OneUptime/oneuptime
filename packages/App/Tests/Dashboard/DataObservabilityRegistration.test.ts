@@ -195,6 +195,58 @@ describe("Data Observability registry wiring", () => {
     ).toContain("buildProbeCollectWork(store, plan.planned)");
   });
 
+  test("pipelines from OpenLineage - models, services, migration, CRUD APIs and the ingest route - are wired", () => {
+    const models: string = readSquashed(
+      "Common/Models/DatabaseModels/Index.ts",
+    );
+    const services: string = readSquashed("Common/Server/Services/Index.ts");
+    const baseApi: string = readSquashed("App/FeatureSet/BaseAPI/Index.ts");
+
+    for (const model of [
+      "DataPipeline",
+      "DataPipelineRun",
+      "DataAssetLineage",
+    ]) {
+      expect(models).toContain(`${model},`);
+      expect(services).toContain(`${model}Service,`);
+      expect(baseApi).toMatch(
+        new RegExp(
+          `new BaseAPI<\\s*${model},\\s*${model}ServiceType\\s*>\\(\\s*${model},\\s*${model}Service,?\\s*\\)`,
+        ),
+      );
+    }
+
+    const migrations: string = readSquashed(
+      "Common/Server/Infrastructure/Postgres/SchemaMigrations/Index.ts",
+    );
+
+    expect(migrations).toContain(
+      'import { AddDataPipelines1808991500000 } from "./1808991500000-AddDataPipelines";',
+    );
+    expect(migrations).toContain("AddDataPipelines1808991500000,");
+
+    const migration: string = readSquashed(
+      "Common/Server/Infrastructure/Postgres/SchemaMigrations/1808991500000-AddDataPipelines.ts",
+    );
+
+    for (const table of [
+      "DataPipeline",
+      "DataPipelineRun",
+      "DataAssetLineage",
+    ]) {
+      expect(migration).toContain(`CREATE TABLE "${table}"`);
+    }
+
+    const telemetry: string = readSquashed("App/FeatureSet/Telemetry/Index.ts");
+
+    expect(telemetry).toContain(
+      'import OpenLineageIngestAPI from "./API/OpenLineageIngest"',
+    );
+    expect(telemetry).toContain(
+      "app.use(TELEMETRY_PREFIXES, OpenLineageIngestAPI)",
+    );
+  });
+
   test("the Workers import its jobs, and the probe ingest mounts its routes", () => {
     expect(readSquashed("App/FeatureSet/Workers/Index.ts")).toContain(
       'import "./Jobs/DataObservability/DataObservabilityJobs"',

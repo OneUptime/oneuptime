@@ -122,6 +122,32 @@ Set **Alert When** to alert on a check:
 
 Saving the check makes a Metrics monitor for it, as you, with your permissions. Clearing the condition removes the monitor.
 
+## Pipelines and lineage, from OpenLineage
+
+Airflow, Dagster, Spark, dbt and Flink describe every run of a job with [OpenLineage](https://openlineage.io) events. Send them to OneUptime, unchanged, with a telemetry ingestion key (Project Settings > Telemetry Ingestion Keys):
+
+- **URL:** \`https://oneuptime.com/telemetry/openlineage\` (on a self-hosted OneUptime, your own address)
+- **Endpoint:** \`api/v1/lineage\`, OpenLineage's default
+- **API key:** the ingestion key. It is sent as \`Authorization: Bearer\`, or set \`x-oneuptime-token\`.
+
+For Airflow's OpenLineage provider:
+
+\`\`\`bash
+AIRFLOW__OPENLINEAGE__TRANSPORT='{"type": "http", "url": "https://oneuptime.com/telemetry/openlineage", "endpoint": "api/v1/lineage", "auth": {"type": "api_key", "apiKey": "YOUR_INGESTION_KEY"}}'
+\`\`\`
+
+For any OpenLineage client, set \`OPENLINEAGE_URL\` and \`OPENLINEAGE_API_KEY\`.
+
+Each job appears under **Pipelines**, with its latest run: when it started and ended, how long it took, and the error of a failed run. A run that reads and writes tables OneUptime watches becomes **lineage**: a table's **Lineage** tab shows the tables it is built from, the pipelines that write it with their latest run, and the tables built from it.
+
+Datasets are matched to tables by the OpenLineage naming spec: \`postgres://host:5432\` with \`database.schema.table\`, \`mysql://host:3306\` with \`database.table\`, and \`sqlserver://host:1433\` with \`database.schema.table\`.
+
+Every run that ends writes two metrics, tagged with \`oneuptime.data.pipeline.id\` and \`oneuptime.data.pipeline.name\`:
+- \`oneuptime.data.pipeline.run_failed\` (1 or 0)
+- \`oneuptime.data.pipeline.run_duration\` (seconds)
+
+A Metrics monitor grouped by pipeline alerts once per pipeline, on a failed run or one far slower than usual.
+
 ## Services that use each table
 
 A table's **Services** tab lists the services seen writing and reading it, with the statements each ran, its calls and failures in the last hour, and when it was last seen. It comes from the database spans your services already send with OpenTelemetry: a client span with \`db.system.name\`, \`db.namespace\` and \`db.collection.name\` (or \`db.sql.table\`, or a span named like \`INSERT orders\`). Nothing extra to install. It is updated every 15 minutes.

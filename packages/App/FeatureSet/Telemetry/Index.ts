@@ -6,6 +6,7 @@ import FluentAPI from "./API/Fluent";
 import VercelLogDrainAPI from "./API/VercelLogDrain";
 import SecurityEventsIngestAPI from "./API/SecurityEventsIngest";
 import ChangeEventsIngestAPI from "./API/ChangeEventsIngest";
+import OpenLineageIngestAPI from "./API/OpenLineageIngest";
 import PyroscopeAPI from "./API/Pyroscope";
 import SourceMapIngestAPI from "./API/SourceMapIngest";
 import SessionReplayIngestAPI from "./API/SessionReplayIngest";
@@ -88,6 +89,7 @@ const TelemetryFeatureSet: FeatureSet = {
       app.use(TELEMETRY_PREFIXES, VercelLogDrainAPI);
       app.use(TELEMETRY_PREFIXES, SecurityEventsIngestAPI);
       app.use(TELEMETRY_PREFIXES, ChangeEventsIngestAPI);
+      app.use(TELEMETRY_PREFIXES, OpenLineageIngestAPI);
       app.use(TELEMETRY_PREFIXES, PyroscopeAPI);
       app.use(TELEMETRY_PREFIXES, SourceMapIngestAPI);
       /*

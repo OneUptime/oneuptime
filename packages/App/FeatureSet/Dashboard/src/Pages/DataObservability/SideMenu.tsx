@@ -44,6 +44,13 @@ const DataObservabilitySideMenu: FunctionComponent = (): ReactElement => {
         />
         <SideMenuItem
           link={{
+            title: "Pipelines",
+            to: routeOf(PageMap.DATA_OBSERVABILITY_PIPELINES),
+          }}
+          icon={IconProp.Workflow}
+        />
+        <SideMenuItem
+          link={{
             title: "Schema Changes",
             to: routeOf(PageMap.DATA_OBSERVABILITY_SCHEMA_CHANGES),
           }}
