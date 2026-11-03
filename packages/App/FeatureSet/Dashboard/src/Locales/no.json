@@ -40384,5 +40384,14 @@
   "The Runner this repository works on does not take AI code fixes: {{setting}} is set on its host. Remove that setting and restart the Runner, or pick another Runner.": "Runner-en dette repositoryet jobber på, tar ikke AI-koderettinger: {{setting}} er satt på verten dens. Fjern den innstillingen og start Runner-en på nytt, eller velg en annen Runner.",
   "The Runner this repository works on, {{runner}}, does not take AI code fixes: {{setting}} is set on its host. Remove that setting and restart the Runner, or pick another Runner.": "Runner-en dette repositoryet jobber på, {{runner}}, tar ikke AI-koderettinger: {{setting}} er satt på verten dens. Fjern den innstillingen og start Runner-en på nytt, eller velg en annen Runner.",
   "This Runner takes no AI code fixes: {{setting}} is set on its host. Remove that setting and restart the Runner, or pick another Runner.": "Denne Runner-en tar ikke AI-koderettinger: {{setting}} er satt på verten dens. Fjern den innstillingen og start Runner-en på nytt, eller velg en annen Runner.",
-  "Takes no AI code fixes": "Tar ikke AI-koderettinger"
+  "Takes no AI code fixes": "Tar ikke AI-koderettinger",
+  "Link its monitor to what it watches, and every {{signal}} it raises from then on is linked for you.": "Knytt monitoren til det den overvåker, så blir hvert element ({{signal}}) den utløser fra da av, knyttet automatisk.",
+  "Review and approve": "Gå gjennom og godkjenn",
+  "Turn its Fixes on, and OneUptime AI tries again.": "Slå på rettelsene der, så prøver OneUptime AI igjen.",
+  "{{count}} change through {{servers}}.": "{{count}} endring via {{servers}}.",
+  "{{count}} changes through {{servers}}.": "{{count}} endringer via {{servers}}.",
+  "{{count}} changes through {{servers}}._one": "{{count}} endring via {{servers}}.",
+  "{{count}} command on {{targets}}.": "{{count}} kommando på {{targets}}.",
+  "{{count}} commands on {{targets}}.": "{{count}} kommandoer på {{targets}}.",
+  "{{count}} commands on {{targets}}._one": "{{count}} kommando på {{targets}}."
 }

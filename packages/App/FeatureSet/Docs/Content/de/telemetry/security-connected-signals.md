@@ -94,7 +94,7 @@ Unter den Datensätzen durchsucht Verbundene Signale Ihre Protokolle und Traces 
 
 ## Vorfälle, die ein Fall meldet
 
-**Vorfall melden** auf einem Fall oder ein Playbook-Schritt, der einen meldet, verknüpft den Vorfall mit den Hosts, Docker- und Podman-Hosts, Kubernetes-Clustern, Cloud-Ressourcen und Diensten, mit denen der Fall exakt verbunden ist. Der Vorfall erscheint auf ihren Seiten, die Regeln ihrer Besitzer gelten für ihn, und sein Feed nennt den Fall und das, womit er verknüpft wurde. Eine mögliche Übereinstimmung wird nie verknüpft, und ein Monitor auch nicht: Ein Vorfall auf einem Monitor kann seinen Status ändern und auf seinen Statusseiten erscheinen.
+**Vorfall melden** auf einem Fall oder ein Playbook-Schritt, der einen meldet, verknüpft den Vorfall mit den Hosts, Docker- und Podman-Hosts, Kubernetes-Clustern, Netzwerkgeräten, Cloud-Ressourcen und Diensten, mit denen der Fall exakt verbunden ist. Ein Playbook-Schritt, der die Bereitschaft alarmiert, verknüpft die Warnung, die er öffnet, auf dieselbe Weise; jede Warnung und jeder Vorfall, den eine Erkennungsregel oder ein Threat-Intelligence-Treffer öffnet, wird mit dem verknüpft, was der Treffer exakt nennt, und jeder, den Data Security öffnet, mit dem Datenspeicher, um den es geht. Der Vorfall erscheint auf ihren Seiten, die Regeln ihrer Besitzer gelten für ihn, und sein Feed nennt den Fall und das, womit er verknüpft wurde. Eine mögliche Übereinstimmung wird nie verknüpft, und ein Monitor auch nicht: Ein Vorfall auf einem Monitor kann seinen Status ändern und auf seinen Statusseiten erscheinen.
 
 ## OneUptime AI
 

@@ -40384,5 +40384,14 @@
   "The Runner this repository works on does not take AI code fixes: {{setting}} is set on its host. Remove that setting and restart the Runner, or pick another Runner.": "このリポジトリが使う Runner は AI のコード修正を受け付けません。ホストで {{setting}} が設定されています。この設定を外して Runner を再起動するか、別の Runner を選択してください。",
   "The Runner this repository works on, {{runner}}, does not take AI code fixes: {{setting}} is set on its host. Remove that setting and restart the Runner, or pick another Runner.": "このリポジトリが使う Runner（{{runner}}）は AI のコード修正を受け付けません。ホストで {{setting}} が設定されています。この設定を外して Runner を再起動するか、別の Runner を選択してください。",
   "This Runner takes no AI code fixes: {{setting}} is set on its host. Remove that setting and restart the Runner, or pick another Runner.": "この Runner は AI のコード修正を受け付けません。ホストで {{setting}} が設定されています。この設定を外して Runner を再起動するか、別の Runner を選択してください。",
-  "Takes no AI code fixes": "AI のコード修正を受け付けません"
+  "Takes no AI code fixes": "AI のコード修正を受け付けません",
+  "Link its monitor to what it watches, and every {{signal}} it raises from then on is linked for you.": "モニターを監視対象にリンクすると、それ以降そのモニターが発生させるすべての{{signal}}が自動的にリンクされます。",
+  "Review and approve": "確認して承認",
+  "Turn its Fixes on, and OneUptime AI tries again.": "そこで修正をオンにすると、OneUptime AI がもう一度試します。",
+  "{{count}} change through {{servers}}.": "{{servers}} 経由の変更 {{count}} 件。",
+  "{{count}} changes through {{servers}}.": "{{servers}} 経由の変更 {{count}} 件。",
+  "{{count}} changes through {{servers}}._one": "{{servers}} 経由の変更 {{count}} 件。",
+  "{{count}} command on {{targets}}.": "{{targets}} のコマンド {{count}} 件。",
+  "{{count}} commands on {{targets}}.": "{{targets}} のコマンド {{count}} 件。",
+  "{{count}} commands on {{targets}}._one": "{{targets}} のコマンド {{count}} 件。"
 }

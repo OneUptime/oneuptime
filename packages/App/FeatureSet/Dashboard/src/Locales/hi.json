@@ -40384,5 +40384,14 @@
   "The Runner this repository works on does not take AI code fixes: {{setting}} is set on its host. Remove that setting and restart the Runner, or pick another Runner.": "यह रिपॉजिटरी जिस Runner पर काम करती है, वह AI कोड सुधार नहीं लेता: उसके होस्ट पर {{setting}} सेट है। वह सेटिंग हटाएँ और Runner को फिर से शुरू करें, या कोई दूसरा Runner चुनें।",
   "The Runner this repository works on, {{runner}}, does not take AI code fixes: {{setting}} is set on its host. Remove that setting and restart the Runner, or pick another Runner.": "यह रिपॉजिटरी जिस Runner पर काम करती है, {{runner}}, वह AI कोड सुधार नहीं लेता: उसके होस्ट पर {{setting}} सेट है। वह सेटिंग हटाएँ और Runner को फिर से शुरू करें, या कोई दूसरा Runner चुनें।",
   "This Runner takes no AI code fixes: {{setting}} is set on its host. Remove that setting and restart the Runner, or pick another Runner.": "यह Runner AI कोड सुधार नहीं लेता: इसके होस्ट पर {{setting}} सेट है। वह सेटिंग हटाएँ और Runner को फिर से शुरू करें, या कोई दूसरा Runner चुनें।",
-  "Takes no AI code fixes": "AI कोड सुधार नहीं लेता"
+  "Takes no AI code fixes": "AI कोड सुधार नहीं लेता",
+  "Link its monitor to what it watches, and every {{signal}} it raises from then on is linked for you.": "इसके मॉनिटर को उससे जोड़ें जिस पर वह नज़र रखता है, तब से वह जो भी {{signal}} बनाएगा, वह अपने आप जुड़ जाएगा।",
+  "Review and approve": "समीक्षा करें और स्वीकृत करें",
+  "Turn its Fixes on, and OneUptime AI tries again.": "इसके सुधार चालू करें, और OneUptime AI फिर से कोशिश करेगा।",
+  "{{count}} change through {{servers}}.": "{{servers}} के ज़रिए {{count}} बदलाव।",
+  "{{count}} changes through {{servers}}.": "{{servers}} के ज़रिए {{count}} बदलाव।",
+  "{{count}} changes through {{servers}}._one": "{{servers}} के ज़रिए {{count}} बदलाव।",
+  "{{count}} command on {{targets}}.": "{{targets}} पर {{count}} कमांड।",
+  "{{count}} commands on {{targets}}.": "{{targets}} पर {{count}} कमांड।",
+  "{{count}} commands on {{targets}}._one": "{{targets}} पर {{count}} कमांड।"
 }

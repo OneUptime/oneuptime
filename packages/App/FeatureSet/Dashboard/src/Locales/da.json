@@ -40384,5 +40384,14 @@
   "The Runner this repository works on does not take AI code fixes: {{setting}} is set on its host. Remove that setting and restart the Runner, or pick another Runner.": "Den Runner, dette repositorium arbejder på, tager ikke AI-koderettelser: {{setting}} er sat på dens vært. Fjern den indstilling, og genstart Runneren, eller vælg en anden Runner.",
   "The Runner this repository works on, {{runner}}, does not take AI code fixes: {{setting}} is set on its host. Remove that setting and restart the Runner, or pick another Runner.": "Den Runner, dette repositorium arbejder på, {{runner}}, tager ikke AI-koderettelser: {{setting}} er sat på dens vært. Fjern den indstilling, og genstart Runneren, eller vælg en anden Runner.",
   "This Runner takes no AI code fixes: {{setting}} is set on its host. Remove that setting and restart the Runner, or pick another Runner.": "Denne Runner tager ikke AI-koderettelser: {{setting}} er sat på dens vært. Fjern den indstilling, og genstart Runneren, eller vælg en anden Runner.",
-  "Takes no AI code fixes": "Tager ikke AI-koderettelser"
+  "Takes no AI code fixes": "Tager ikke AI-koderettelser",
+  "Link its monitor to what it watches, and every {{signal}} it raises from then on is linked for you.": "Knyt dens monitor til det, den overvåger, så bliver hver {{signal}}, den udløser fra da af, knyttet automatisk.",
+  "Review and approve": "Gennemse og godkend",
+  "Turn its Fixes on, and OneUptime AI tries again.": "Slå dens rettelser til, så prøver OneUptime AI igen.",
+  "{{count}} change through {{servers}}.": "{{count}} ændring via {{servers}}.",
+  "{{count}} changes through {{servers}}.": "{{count}} ændringer via {{servers}}.",
+  "{{count}} changes through {{servers}}._one": "{{count}} ændring via {{servers}}.",
+  "{{count}} command on {{targets}}.": "{{count}} kommando på {{targets}}.",
+  "{{count}} commands on {{targets}}.": "{{count}} kommandoer på {{targets}}.",
+  "{{count}} commands on {{targets}}._one": "{{count}} kommando på {{targets}}."
 }

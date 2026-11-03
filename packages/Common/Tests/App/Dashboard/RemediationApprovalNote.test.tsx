@@ -33,6 +33,7 @@ import ObjectID from "../../../Types/ObjectID";
 import AiResourceType from "../../../Types/ResourceAiAgent/AiResourceType";
 import RunbookStepType from "../../../Types/Runbook/RunbookStepType";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import { openRemediationFixes } from "./RemediationFixHarness";
 
 /*
  * WHAT APPROVING A FIX DOES, OVER THE FIXES OF THE AI CARD'S REMEDIATION
@@ -254,6 +255,9 @@ describe("RemediationStep: what approving does", () => {
     expect(
       note.compareDocumentPosition(firstFix) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+    // Approve & Run is beside the commands it runs, one press away.
+    expect(within(fixes).queryByText("Approve & Run")).toBeNull();
+    await openRemediationFixes();
     expect(within(fixes).getByText("Approve & Run")).toBeInTheDocument();
   });
 

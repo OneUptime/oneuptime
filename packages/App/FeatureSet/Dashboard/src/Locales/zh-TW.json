@@ -40384,5 +40384,14 @@
   "The Runner this repository works on does not take AI code fixes: {{setting}} is set on its host. Remove that setting and restart the Runner, or pick another Runner.": "此儲存庫所用的 Runner 不接受 AI 程式碼修正：它的主機上設定了 {{setting}}。請移除該設定並重新啟動 Runner，或選擇其他 Runner。",
   "The Runner this repository works on, {{runner}}, does not take AI code fixes: {{setting}} is set on its host. Remove that setting and restart the Runner, or pick another Runner.": "此儲存庫所用的 Runner（{{runner}}）不接受 AI 程式碼修正：它的主機上設定了 {{setting}}。請移除該設定並重新啟動 Runner，或選擇其他 Runner。",
   "This Runner takes no AI code fixes: {{setting}} is set on its host. Remove that setting and restart the Runner, or pick another Runner.": "此 Runner 不接受 AI 程式碼修正：它的主機上設定了 {{setting}}。請移除該設定並重新啟動 Runner，或選擇其他 Runner。",
-  "Takes no AI code fixes": "不接受 AI 程式碼修正"
+  "Takes no AI code fixes": "不接受 AI 程式碼修正",
+  "Link its monitor to what it watches, and every {{signal}} it raises from then on is linked for you.": "將其監測器連結到它所監測的對象後，此後它產生的每個{{signal}}都會自動連結。",
+  "Review and approve": "審核並核准",
+  "Turn its Fixes on, and OneUptime AI tries again.": "為其開啟修正後，OneUptime AI 會再試一次。",
+  "{{count}} change through {{servers}}.": "透過 {{servers}} 進行的 {{count}} 個變更。",
+  "{{count}} changes through {{servers}}.": "透過 {{servers}} 進行的 {{count}} 個變更。",
+  "{{count}} changes through {{servers}}._one": "透過 {{servers}} 進行的 {{count}} 個變更。",
+  "{{count}} command on {{targets}}.": "{{targets}} 上的 {{count}} 個命令。",
+  "{{count}} commands on {{targets}}.": "{{targets}} 上的 {{count}} 個命令。",
+  "{{count}} commands on {{targets}}._one": "{{targets}} 上的 {{count}} 個命令。"
 }

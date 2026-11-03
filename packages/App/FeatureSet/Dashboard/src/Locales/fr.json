@@ -40384,5 +40384,14 @@
   "The Runner this repository works on does not take AI code fixes: {{setting}} is set on its host. Remove that setting and restart the Runner, or pick another Runner.": "L'agent Runbook de ce dépôt ne prend pas les corrections de code par IA : {{setting}} est défini sur son hôte. Retirez ce réglage et redémarrez l'agent Runbook, ou choisissez un autre agent Runbook.",
   "The Runner this repository works on, {{runner}}, does not take AI code fixes: {{setting}} is set on its host. Remove that setting and restart the Runner, or pick another Runner.": "L'agent Runbook de ce dépôt, {{runner}}, ne prend pas les corrections de code par IA : {{setting}} est défini sur son hôte. Retirez ce réglage et redémarrez l'agent Runbook, ou choisissez un autre agent Runbook.",
   "This Runner takes no AI code fixes: {{setting}} is set on its host. Remove that setting and restart the Runner, or pick another Runner.": "Cet agent Runbook ne prend pas les corrections de code par IA : {{setting}} est défini sur son hôte. Retirez ce réglage et redémarrez l'agent Runbook, ou choisissez un autre agent Runbook.",
-  "Takes no AI code fixes": "Ne prend pas les corrections de code par IA"
+  "Takes no AI code fixes": "Ne prend pas les corrections de code par IA",
+  "Link its monitor to what it watches, and every {{signal}} it raises from then on is linked for you.": "Liez son moniteur à ce qu'il surveille, et chaque élément ({{signal}}) qu'il déclenchera ensuite y sera lié automatiquement.",
+  "Review and approve": "Vérifier et approuver",
+  "Turn its Fixes on, and OneUptime AI tries again.": "Activez-y les correctifs, et OneUptime AI réessaiera.",
+  "{{count}} change through {{servers}}.": "{{count}} modification via {{servers}}.",
+  "{{count}} changes through {{servers}}.": "{{count}} modifications via {{servers}}.",
+  "{{count}} changes through {{servers}}._one": "{{count}} modification via {{servers}}.",
+  "{{count}} command on {{targets}}.": "{{count}} commande sur {{targets}}.",
+  "{{count}} commands on {{targets}}.": "{{count}} commandes sur {{targets}}.",
+  "{{count}} commands on {{targets}}._one": "{{count}} commande sur {{targets}}."
 }

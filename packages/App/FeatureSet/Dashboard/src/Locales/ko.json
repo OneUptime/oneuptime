@@ -40384,5 +40384,14 @@
   "The Runner this repository works on does not take AI code fixes: {{setting}} is set on its host. Remove that setting and restart the Runner, or pick another Runner.": "이 저장소가 사용하는 Runner는 AI 코드 수정을 받지 않습니다. 호스트에 {{setting}}가 설정되어 있습니다. 이 설정을 제거하고 Runner를 다시 시작하거나 다른 Runner를 선택하세요.",
   "The Runner this repository works on, {{runner}}, does not take AI code fixes: {{setting}} is set on its host. Remove that setting and restart the Runner, or pick another Runner.": "이 저장소가 사용하는 Runner({{runner}})는 AI 코드 수정을 받지 않습니다. 호스트에 {{setting}}가 설정되어 있습니다. 이 설정을 제거하고 Runner를 다시 시작하거나 다른 Runner를 선택하세요.",
   "This Runner takes no AI code fixes: {{setting}} is set on its host. Remove that setting and restart the Runner, or pick another Runner.": "이 Runner는 AI 코드 수정을 받지 않습니다. 호스트에 {{setting}}가 설정되어 있습니다. 이 설정을 제거하고 Runner를 다시 시작하거나 다른 Runner를 선택하세요.",
-  "Takes no AI code fixes": "AI 코드 수정을 받지 않습니다"
+  "Takes no AI code fixes": "AI 코드 수정을 받지 않습니다",
+  "Link its monitor to what it watches, and every {{signal}} it raises from then on is linked for you.": "모니터를 모니터링 대상에 연결하면 그 이후 해당 모니터가 발생시키는 모든 {{signal}}이(가) 자동으로 연결됩니다.",
+  "Review and approve": "검토 후 승인",
+  "Turn its Fixes on, and OneUptime AI tries again.": "그곳의 수정을 켜면 OneUptime AI가 다시 시도합니다.",
+  "{{count}} change through {{servers}}.": "{{servers}}을(를) 통한 변경 {{count}}건.",
+  "{{count}} changes through {{servers}}.": "{{servers}}을(를) 통한 변경 {{count}}건.",
+  "{{count}} changes through {{servers}}._one": "{{servers}}을(를) 통한 변경 {{count}}건.",
+  "{{count}} command on {{targets}}.": "{{targets}}의 명령 {{count}}개.",
+  "{{count}} commands on {{targets}}.": "{{targets}}의 명령 {{count}}개.",
+  "{{count}} commands on {{targets}}._one": "{{targets}}의 명령 {{count}}개."
 }

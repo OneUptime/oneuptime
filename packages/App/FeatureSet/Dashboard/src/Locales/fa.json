@@ -40384,5 +40384,14 @@
   "The Runner this repository works on does not take AI code fixes: {{setting}} is set on its host. Remove that setting and restart the Runner, or pick another Runner.": "Runnerی که این مخزن روی آن کار می‌کند اصلاح‌های کد هوش مصنوعی را نمی‌پذیرد: روی میزبان آن {{setting}} تنظیم شده است. این تنظیم را بردارید و Runner را دوباره راه‌اندازی کنید، یا Runner دیگری انتخاب کنید.",
   "The Runner this repository works on, {{runner}}, does not take AI code fixes: {{setting}} is set on its host. Remove that setting and restart the Runner, or pick another Runner.": "Runnerی که این مخزن روی آن کار می‌کند، {{runner}}، اصلاح‌های کد هوش مصنوعی را نمی‌پذیرد: روی میزبان آن {{setting}} تنظیم شده است. این تنظیم را بردارید و Runner را دوباره راه‌اندازی کنید، یا Runner دیگری انتخاب کنید.",
   "This Runner takes no AI code fixes: {{setting}} is set on its host. Remove that setting and restart the Runner, or pick another Runner.": "این Runner اصلاح‌های کد هوش مصنوعی را نمی‌پذیرد: روی میزبان آن {{setting}} تنظیم شده است. این تنظیم را بردارید و Runner را دوباره راه‌اندازی کنید، یا Runner دیگری انتخاب کنید.",
-  "Takes no AI code fixes": "اصلاح‌های کد هوش مصنوعی را نمی‌پذیرد"
+  "Takes no AI code fixes": "اصلاح‌های کد هوش مصنوعی را نمی‌پذیرد",
+  "Link its monitor to what it watches, and every {{signal}} it raises from then on is linked for you.": "مانیتور آن را به آنچه پایش می‌کند پیوند دهید تا هر {{signal}} که از آن پس ایجاد می‌کند خودکار به آن پیوند داده شود.",
+  "Review and approve": "بررسی و تأیید",
+  "Turn its Fixes on, and OneUptime AI tries again.": "اصلاحات آن را روشن کنید تا OneUptime AI دوباره تلاش کند.",
+  "{{count}} change through {{servers}}.": "{{count}} تغییر از طریق {{servers}}.",
+  "{{count}} changes through {{servers}}.": "{{count}} تغییر از طریق {{servers}}.",
+  "{{count}} changes through {{servers}}._one": "{{count}} تغییر از طریق {{servers}}.",
+  "{{count}} command on {{targets}}.": "{{count}} فرمان روی {{targets}}.",
+  "{{count}} commands on {{targets}}.": "{{count}} فرمان روی {{targets}}.",
+  "{{count}} commands on {{targets}}._one": "{{count}} فرمان روی {{targets}}."
 }

@@ -53,6 +53,7 @@ import ObjectID from "../../../Types/ObjectID";
 import RunbookStepType from "../../../Types/Runbook/RunbookStepType";
 import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import { openRemediationFixes } from "./RemediationFixHarness";
 
 /*
  * The per-command approval pill on the remediation card. The server stores
@@ -139,6 +140,8 @@ async function renderCard(
   render(
     <RemediationStep investigationStage="reported" incidentId={INCIDENT_ID} />,
   );
+  // Folded to its sentence: opened, as a reader does.
+  await openRemediationFixes();
   const command: HTMLElement = await screen.findByText(
     "kubectl rollout restart deployment/web -n web",
   );
@@ -776,6 +779,7 @@ describe("RemediationStep with an SSH command from before runbook credentials we
         incidentId={INCIDENT_ID}
       />,
     );
+    await openRemediationFixes();
     const ssh: HTMLElement | null = (
       await screen.findByText(SSH_COMMAND_TEXT)
     ).closest("li");
