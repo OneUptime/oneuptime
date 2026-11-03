@@ -93,13 +93,14 @@ function costSummary(
   };
 }
 
-function account(data: Partial<CloudAccount> & { _id: string }): CloudAccount {
+// An account as the API answers it: its stored columns, typed loosely.
+function account(data: Record<string, unknown>): CloudAccount {
   const model: CloudAccount = new CloudAccount();
   Object.assign(model, data);
   return model;
 }
 
-function webAccount(overrides: Partial<CloudAccount> = {}): CloudAccount {
+function webAccount(overrides: Record<string, unknown> = {}): CloudAccount {
   return account({
     _id: WEB_ROW,
     name: "web-prod",
@@ -124,7 +125,7 @@ function webAccount(overrides: Partial<CloudAccount> = {}): CloudAccount {
   });
 }
 
-function dataAccount(overrides: Partial<CloudAccount> = {}): CloudAccount {
+function dataAccount(overrides: Record<string, unknown> = {}): CloudAccount {
   return account({
     _id: DATA_ROW,
     name: "data-lake",

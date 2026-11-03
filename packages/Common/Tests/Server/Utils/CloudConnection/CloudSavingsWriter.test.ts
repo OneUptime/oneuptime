@@ -102,11 +102,12 @@ describe("keeping the ways to spend less in step", () => {
     jest
       .spyOn(CloudCostRecommendationService, "updateOneById")
       .mockImplementation(
-        async (input: { id: ObjectID; data: unknown }): Promise<void> => {
+        async (input: { id: ObjectID; data: unknown }): Promise<number> => {
           updated.push({
             id: input.id.toString(),
             data: input.data as Partial<CloudCostRecommendation>,
           });
+          return 1;
         },
       );
     jest

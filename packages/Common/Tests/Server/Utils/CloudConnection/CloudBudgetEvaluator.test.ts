@@ -362,8 +362,9 @@ describe("a budget's check", () => {
       });
     jest
       .spyOn(CloudBudgetService, "updateOneById")
-      .mockImplementation(async (input: { data: unknown }): Promise<void> => {
+      .mockImplementation(async (input: { data: unknown }): Promise<number> => {
         updates.push(input.data as JSONObject);
+        return 1;
       });
     jest
       .spyOn(CloudAccountService, "findBy")

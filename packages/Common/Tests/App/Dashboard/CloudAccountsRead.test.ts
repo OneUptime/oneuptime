@@ -36,7 +36,8 @@ const DATA: string = "10000000-0000-4000-8000-0000000000b2";
 const PROJECT: ObjectID = new ObjectID("10000000-0000-4000-8000-0000000000a1");
 const READ_AT: string = "2026-11-20T00:00:00.000Z";
 
-function account(data: Partial<CloudAccount> & { _id?: string }): CloudAccount {
+// An account as the API answers it: its stored columns, typed loosely.
+function account(data: Record<string, unknown>): CloudAccount {
   const model: CloudAccount = new CloudAccount();
   Object.assign(model, data);
   return model;

@@ -124,7 +124,7 @@ function summary(
 }
 
 function row(
-  overrides: Partial<CloudAccountRow> & { id: string },
+  overrides: Omit<Partial<CloudAccountRow>, "id"> & { id: string },
 ): CloudAccountRow {
   return {
     name: "",

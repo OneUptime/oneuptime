@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock, SpyInstance, UnknownFunction } from "jest-mock";
 import CloudAccount from "../../../../Models/DatabaseModels/CloudAccount";
 import CloudAccountService from "../../../../Server/Services/CloudAccountService";
 import CloudBudgetEvaluator from "../../../../Server/Utils/CloudConnection/CloudBudgetEvaluator";
@@ -167,11 +168,12 @@ beforeEach(() => {
   jest
     .spyOn(CloudAccountService, "updateOneById")
     .mockImplementation(
-      async (input: { id: ObjectID; data: unknown }): Promise<void> => {
+      async (input: { id: ObjectID; data: unknown }): Promise<number> => {
         accountUpdates.push({
           id: input.id.toString(),
           data: input.data as JSONObject,
         });
+        return 1;
       },
     );
   jest
@@ -188,7 +190,7 @@ afterEach(() => {
 
 describe("the costs lane", () => {
   test("not due, or a connector that reads no costs: nothing is asked", async () => {
-    const readCosts: jest.Mock = jest.fn();
+    const readCosts: Mock<UnknownFunction> = jest.fn<UnknownFunction>();
 
     expect(
       (
@@ -207,7 +209,7 @@ describe("the costs lane", () => {
 
   test("a first read goes back to the month before last; each account's summary is written, with why for one that could not be read", async () => {
     let asked: CloudCostsOptions | null = null;
-    const write: jest.SpiedFunction<typeof CloudCostWriter.write> = jest
+    const write: SpyInstance<typeof CloudCostWriter.write> = jest
       .spyOn(CloudCostWriter, "write")
       .mockImplementation(async () => {
         return { seriesCount: 1, rowsWritten: 1, recordsWithoutAccount: 0 };
@@ -360,7 +362,7 @@ describe("the costs lane", () => {
 
 describe("the savings lane", () => {
   test("keeps the recommendations in step and writes each account's savings summary", async () => {
-    const write: jest.SpiedFunction<typeof CloudSavingsWriter.write> = jest
+    const write: SpyInstance<typeof CloudSavingsWriter.write> = jest
       .spyOn(CloudSavingsWriter, "write")
       .mockImplementation(async () => {
         return {
@@ -449,7 +451,7 @@ describe("the savings lane", () => {
   });
 
   test("once a day: a read a minute after asks nothing", async () => {
-    const readSavings: jest.Mock = jest.fn();
+    const readSavings: Mock<UnknownFunction> = jest.fn<UnknownFunction>();
 
     expect(
       (

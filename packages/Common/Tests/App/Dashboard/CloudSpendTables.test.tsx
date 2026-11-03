@@ -69,10 +69,6 @@ interface CapturedColumn<T> {
   getElement?: (item: T) => React.ReactElement;
 }
 
-interface CapturedFilter {
-  title: string;
-}
-
 interface CapturedFormField {
   title: string;
   stepId?: string;
@@ -166,8 +162,9 @@ function drawn(element: React.ReactElement): HTMLElement {
   return render(<MemoryRouter>{element}</MemoryRouter>).container;
 }
 
+// A recommendation as the API answers it: its stored columns, typed loosely.
 function recommendation(
-  overrides: Partial<CloudCostRecommendation> = {},
+  overrides: Record<string, unknown> = {},
 ): CloudCostRecommendation {
   const model: CloudCostRecommendation = new CloudCostRecommendation();
   Object.assign(model, {
@@ -569,7 +566,7 @@ describe("Cloud > Budgets", () => {
     budget.isEnabled = true;
 
     // Not checked yet: nothing said of where it is heading.
-    budget.lastCheckedAt = undefined;
+    Object.assign(budget, { lastCheckedAt: undefined });
     expect(
       drawn(column<CloudBudget>("This Month").getElement!(budget)),
     ).not.toHaveTextContent("On course for");

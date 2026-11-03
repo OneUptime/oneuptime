@@ -213,13 +213,15 @@ integration("the cost writer and the cost reads against ClickHouse", () => {
     // The writer's reads and inserts go to this suite's database.
     jest
       .spyOn(CloudCostService, "executeQuery")
-      .mockImplementation(async (statement: Statement): Promise<never> => {
-        const data: Array<JSONObject> = await run(statement);
-        return {
-          json: async (): Promise<{ data: Array<JSONObject> }> => {
-            return { data };
-          },
-        } as never;
+      .mockImplementation(
+        async (query: string | Statement): Promise<never> => {
+          const statement: Statement = query as Statement;
+          const data: Array<JSONObject> = await run(statement);
+          return {
+            json: async (): Promise<{ data: Array<JSONObject> }> => {
+              return { data };
+            },
+          } as never;
       });
     jest
       .spyOn(CloudCostService, "insertJsonRows")

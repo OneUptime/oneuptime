@@ -266,14 +266,17 @@ describe("a write", () => {
 
     jest
       .spyOn(CloudCostService, "executeQuery")
-      .mockImplementation(async (statement: Statement): Promise<never> => {
-        statements.push(statement);
-        return {
-          json: async (): Promise<{ data: Array<JSONObject> }> => {
-            return { data: stored };
-          },
-        } as never;
-      });
+      .mockImplementation(
+        async (query: string | Statement): Promise<never> => {
+          const statement: Statement = query as Statement;
+          statements.push(statement);
+          return {
+            json: async (): Promise<{ data: Array<JSONObject> }> => {
+              return { data: stored };
+            },
+          } as never;
+        },
+      );
     jest
       .spyOn(CloudCostService, "insertJsonRows")
       .mockImplementation(async (rows: Array<JSONObject>): Promise<void> => {
