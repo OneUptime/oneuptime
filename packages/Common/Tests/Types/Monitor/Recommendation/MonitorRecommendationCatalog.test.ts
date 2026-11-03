@@ -46,6 +46,7 @@ import {
   getDatabaseEnginesWithAlertTemplates,
 } from "../../../../Types/Monitor/DatabaseAlertTemplates";
 import { getAllDataObservabilityAlertTemplates } from "../../../../Types/Monitor/DataObservabilityAlertTemplates";
+import { getAllDataPipelineAlertTemplates } from "../../../../Types/Monitor/DataPipelineAlertTemplates";
 
 /*
  * Resource types whose recommendation set is EMPTY without context, on
@@ -102,15 +103,8 @@ interface ModuleExpectation {
    * and RUM (everything but the budget alerts).
    */
   contextFreeTemplateCount: number;
-  identifierFieldName:
-    | "clusterIdentifier"
-    | "vcenterIdentifier"
-    | "hostIdentifier"
-    | "fleetIdentifier"
-    | "arrayIdentifier"
-    | "rumApplicationId"
-    | "serviceId"
-    | "databaseServerId";
+  // The catalog's own names, so a resource type added there is named here too.
+  identifierFieldName: MonitorRecommendationResourceTypeDefinition["identifierFieldName"];
 }
 
 const MODULE_EXPECTATIONS: Array<ModuleExpectation> = [
@@ -260,6 +254,14 @@ const MODULE_EXPECTATIONS: Array<ModuleExpectation> = [
     templateCount: getAllDataObservabilityAlertTemplates().length,
     contextFreeTemplateCount: getAllDataObservabilityAlertTemplates().length,
     identifierFieldName: "dataStoreId",
+  },
+  {
+    resourceType: MonitorRecommendationResourceType.DataPipeline,
+    monitorTypes: [MonitorType.Metrics],
+    // The same set for every pipeline, whatever sends its events.
+    templateCount: getAllDataPipelineAlertTemplates().length,
+    contextFreeTemplateCount: getAllDataPipelineAlertTemplates().length,
+    identifierFieldName: "dataPipelineId",
   },
 ];
 

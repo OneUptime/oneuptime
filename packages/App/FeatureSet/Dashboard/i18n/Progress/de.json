@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 41553,
-    "untranslated": 3593
+    "keys": 41838,
+    "untranslated": 3608
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -401,6 +401,7 @@
     "Peru",
     "Phase",
     "Ping",
+    "Pipeline",
     "Pipelines",
     "Placement Groups",
     "Playbook",

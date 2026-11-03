@@ -293,6 +293,7 @@ export function isPreventiveInsightAboutScope(data: {
     case AIInsightType.MetricHighCardinality:
     case AIInsightType.MetricHistogramBuckets:
     case AIInsightType.MetricMissingMetrics:
+    case AIInsightType.MetricMissingRequestMetrics:
       return isMetricInsightFingerprintOfService(fingerprint, scopeId);
     case AIInsightType.NewException:
     case AIInsightType.ExceptionSpike: {

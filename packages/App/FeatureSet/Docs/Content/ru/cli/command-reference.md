@@ -6,7 +6,7 @@
 - [Глобальные параметры](#глобальные-параметры): Параметры, которые принимает каждая команда.
 - [Вход и контексты](#вход-и-контексты): login и команды context.
 - [Команды ресурсов](#команды-ресурсов): Операции, поля и действия каждого ресурса.
-- [Другие команды](#другие-команды): deploy, whoami, resources, version и help.
+- [Другие команды](#другие-команды): deploy, dbt upload, whoami, resources, version и help.
 :::
 
 ## Команды
@@ -19,6 +19,8 @@ flowchart LR
     O --> R["incident, monitor<br/>и каждый ресурс"]
     R --> R1["list<br/>get<br/>create<br/>update<br/>delete<br/>count<br/>fields"]
     R --> R2["acknowledge<br/>resolve<br/>start<br/>end<br/>add-note"]
+    O --> D["dbt"]
+    D --> D1["upload"]
     O --> U["deploy<br/>whoami<br/>resources<br/>version<br/>help"]
 ```
 
@@ -303,6 +305,22 @@ oneuptime deploy [--service <name>] [--service-version <version>] [--previous-ve
 | `--type <type>` | Нет | Вид изменения, например `config-change` или `rollback` | `deployment` |
 | `--time <time>` | Нет | Когда оно произошло, например `2026-10-19T10:00:00Z` | Сейчас |
 | `--attribute <key=value...>` | Нет | Дополнительные атрибуты в виде `key=value`, один или несколько | |
+| `--ingestion-key <key>` | Нет | Ключ приёма телеметрии проекта | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
+
+### `oneuptime dbt upload`
+
+Отправляет артефакты проекта dbt после сборки, из CI или задания dbt Cloud, в «Наблюдаемость данных». Его модели отображаются на таблицах, которые они строят, вместе с их происхождением, его тесты отображаются рядом с проверками OneUptime и могут создавать оповещения, а каждая сборка становится запуском пайплайна проекта. Команда читает `manifest.json` и `run_results.json` из целевой папки dbt, отправляет только то, что из них читает «Наблюдаемость данных», и пишет с ключом приёма телеметрии, а не с API-ключом. Страница «Документация» раздела «Наблюдаемость данных» в вашей панели управления показывает её в задании CI.
+
+```bash
+oneuptime dbt upload [--target-path <dir>] [--manifest <file>] [--run-results <file>] [--project <name>] [--ingestion-key <key>]
+```
+
+| Параметр | Обязателен | Что это | По умолчанию |
+| --- | --- | --- | --- |
+| `--target-path <dir>` | Нет | Папка, в которую dbt записал свои артефакты | `target` |
+| `--manifest <file>` | Нет | Отправляемый манифест | `manifest.json` в целевой папке |
+| `--run-results <file>` | Нет | Отправляемые результаты запуска | `run_results.json` в целевой папке |
+| `--project <name>` | Нет | Имя проекта dbt, нужно, только когда манифест не отправляется | Проект из манифеста |
 | `--ingestion-key <key>` | Нет | Ключ приёма телеметрии проекта | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
 
 ### `oneuptime whoami`

@@ -124,7 +124,7 @@ Saving the check makes a Metrics monitor for it, as you, with your permissions. 
 
 ## Pipelines and lineage, from OpenLineage
 
-Airflow, Dagster, Spark, dbt and Flink describe every run of a job with [OpenLineage](https://openlineage.io) events. Send them to OneUptime, unchanged, with a telemetry ingestion key (Project Settings > Telemetry Ingestion Keys):
+Airflow, Dagster, Spark, dbt and Flink describe every run of a job with [OpenLineage](https://openlineage.io) events. Send them to OneUptime, unchanged, with a telemetry ingestion key (Project Settings > Telemetry & APM > Ingestion Keys):
 
 - **URL:** \`https://oneuptime.com/telemetry/openlineage\` (on a self-hosted OneUptime, your own address)
 - **Endpoint:** \`api/v1/lineage\`, OpenLineage's default
@@ -142,11 +142,58 @@ Each job appears under **Pipelines**, with its latest run: when it started and e
 
 Datasets are matched to tables by the OpenLineage naming spec: \`postgres://host:5432\` with \`database.schema.table\`, \`mysql://host:3306\` with \`database.table\`, and \`sqlserver://host:1433\` with \`database.schema.table\`.
 
-Every run that ends writes two metrics, tagged with \`oneuptime.data.pipeline.id\` and \`oneuptime.data.pipeline.name\`:
-- \`oneuptime.data.pipeline.run_failed\` (1 or 0)
-- \`oneuptime.data.pipeline.run_duration\` (seconds)
+Each pipeline learns from its own runs how long a run usually takes (the median of its last 20 completed runs) and how long it goes between runs on its schedule (the longest gap between its last 50 starts that is not a one-off). Both are known after five runs, and fit a job that runs every five minutes as well as one that runs nightly. When your scheduler sends OpenLineage's \`nominalTime\` facet, as Airflow does, a run's scheduled time stands for its start, so a backfill still reads as the schedule.
 
-A Metrics monitor grouped by pipeline alerts once per pipeline, on a failed run or one far slower than usual.
+A pipeline's page recommends three monitors, each created in one click:
+- **Pipeline Run Failed**: a run failed or was aborted.
+- **Pipeline Run Unusually Long**: a run has taken twice its typical time, or more. It is checked every five minutes while the run is going, so a run that hangs is seen before it ends.
+- **Pipeline Is Late**: no run has started for longer than the schedule allows, with a quarter of the interval and at least fifteen minutes of slack.
+
+They read these metrics, each tagged with \`oneuptime.data.pipeline.id\` and \`oneuptime.data.pipeline.name\`:
+- \`oneuptime.data.pipeline.run_failed\`: 1 or 0, as each run ends.
+- \`oneuptime.data.pipeline.run_duration\`: seconds, as each run ends.
+- \`oneuptime.data.pipeline.run_duration_ratio\`: the run's time over the typical run's (counted as at least a minute), as each run ends and every five minutes while it runs.
+- \`oneuptime.data.pipeline.overdue_seconds\`: how long past its schedule the next run is, every five minutes; 0 while on time.
+
+## dbt
+
+After \`dbt build\` (or run, test, seed or snapshot), send the project's artifacts with the CLI and a telemetry ingestion key. It reads \`target/manifest.json\` and \`target/run_results.json\` and sends only what Data Observability reads of them:
+
+\`\`\`bash
+npm install -g @oneuptime/cli
+export ONEUPTIME_URL=https://oneuptime.com
+export ONEUPTIME_TELEMETRY_INGESTION_KEY=<ingestion key>
+dbt build
+oneuptime dbt upload
+\`\`\`
+
+In CI, run \`oneuptime dbt upload\` as the step after the build, even when the build fails, so failed tests are recorded. For a dbt Cloud job, download its artifacts with dbt Cloud's API, then upload them with \`--manifest\` and \`--run-results\`. Or post them yourself: \`POST /telemetry/dbt/v1/artifacts\` with \`{ "manifest": ..., "run_results": ... }\` and the key in \`x-oneuptime-token\`.
+
+What each upload does:
+- **Tables:** each model, seed, snapshot and source that is a table OneUptime watches gets a **dbt** card on its Overview: the node, its materialization, owner, tags and last build. Its dbt description fills the table's description when that is empty. A table is matched by its database, schema and name, for PostgreSQL, MySQL and SQL Server. dbt does not know the host, so when two watched databases share a name, their tables are left unmatched.
+- **Lineage:** what each model is built from becomes lineage on the table's **Lineage** tab, through the project's pipeline.
+- **Tests:** each test of a watched table shows on its **Checks** tab, with its last result and the rows it found failing. Click **Alert on Failures** to have a failing test open an alert.
+- **Builds:** each build is a run of the project's pipeline under **Pipelines** (namespace \`dbt\`). A build with an error or a failed test is a failed run, so the pipeline alerts work on dbt builds too: failed, unusually long and late.
+
+## Unused tables
+
+Every engine counts the reads of each table in its own statistics:
+- PostgreSQL: its scans.
+- MySQL: performance_schema's reads.
+- SQL Server: its seeks, scans and lookups, with the time of the last.
+
+Each collection compares the counter with the last one kept, so a table's **Last Read** is known to the hour, and so is the time since which it has had none. A counter of 0 at a table's first collection means it has not been read since the engine's statistics started, so an unused table shows as unused from the start, not after months of watching. A read seen in a service's database spans counts too.
+
+**Unused Tables** lists the tables nobody has read for 90 days, biggest first, with when each was last written: a table still written but never read costs its writes and its storage. The Overview shows how many there are and what they hold. Views keep no counters of their own, so they are never listed. When the database login cannot read the counters, a table's last read is not known.
+
+## One issue per cause
+
+When a table goes stale, every table built from it goes stale too. Before a data alert opens, OneUptime looks up lineage for an alert already open on what its table or pipeline is built from: the tables upstream, the pipelines that write them, and the databases they live in, up to five steps up. When it finds one, the new alert is that alert's consequence:
+- It starts **acknowledged**, so nobody is paged twice for one problem. It recovers on its own once its data does.
+- Its feed says which alert caused it, and so does its **Data** card.
+- It joins the cause's episode, when the cause is in one.
+
+The cause's **Data** card lists its **Downstream Impact**: every alert it caused. A table alert's card also shows the services that write the table, with their failed writes, and their deploys and other changes in the day before the alert.
 
 ## Services that use each table
 

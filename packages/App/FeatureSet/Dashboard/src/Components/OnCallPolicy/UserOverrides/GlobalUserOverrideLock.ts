@@ -23,9 +23,11 @@ import User from "Common/UI/Utils/User";
  * locks Add, and each row's Delete, for them instead, saying why and where
  * their overrides go: on each policy's own User Overrides page.
  *
- * The shortcuts that add a global override lock the same way, with the same
- * words (getGlobalUserOverrideShortcutLock): "Skip until..." on a person in
- * a schedule layer, and "Get cover" on an upcoming shift.
+ * The shortcuts that would add a global override - "Skip until..." on a
+ * person in a schedule layer, and "Get cover" on an upcoming shift - ask
+ * the server instead which policies they may cover, and offer those
+ * (getGlobalUserOverrideShortcut, UserOverridePolicies). Where it allows
+ * none they lock the same way, with the same words.
  *
  * React-free, so its tests read the snapshot they hand it.
  */
@@ -81,23 +83,40 @@ export const getGlobalUserOverrideLock: (
 };
 
 /*
- * Why a shortcut that adds a global override is locked for the reader -
+ * What a shortcut that would add a global override does for the reader -
  * "Skip until..." on a person in a schedule layer, "Get cover" on an
- * upcoming shift - or null when it is not. Each opens a form that saves an
- * override naming no policy, so where the save would be refused the
- * shortcut is locked up front: for a reader who holds no permission to add
- * overrides at all, with the permission it takes (PermissionGate), and for
- * one whose permission covers only some policies, with the global page's
- * reason (getGlobalUserOverrideLock). There is no shortcut to the policies
- * they do cover: the server alone weighs which policies a permission
- * limited to labels or to owned policies reaches. Null as well while the
- * snapshot has not landed: the server decides then, as before.
+ * upcoming shift:
+ *
+ *   - Global: it adds a global override, as it always did - the reader may
+ *     add one (a master admin included), or the snapshot has not landed
+ *     and the server decides, as before;
+ *   - Locked: the reader holds no permission to add overrides at all, and
+ *     `reason` names the permission it takes (PermissionGate);
+ *   - SomePolicies: the reader's permission covers only some policies. The
+ *     shortcut asks the server which of the policies it would reach they
+ *     may cover (UserOverrideAddAccess) and offers those, one override on
+ *     each; where it allows none - or until it has answered - the shortcut
+ *     is locked with `reason`, the global page's (getGlobalUserOverrideLock).
+ *     Only the server weighs which policies a permission limited to labels
+ *     or to owned policies reaches, so the Dashboard never guesses.
  */
-export const getGlobalUserOverrideShortcutLock: (
+export enum GlobalUserOverrideShortcutKind {
+  Global = "Global",
+  Locked = "Locked",
+  SomePolicies = "SomePolicies",
+}
+
+export interface GlobalUserOverrideShortcut {
+  kind: GlobalUserOverrideShortcutKind;
+  // Why it is locked, in English for the shared components to translate; null for Global.
+  reason: string | null;
+}
+
+export const getGlobalUserOverrideShortcut: (
   options?: GlobalUserOverrideLockOptions,
-) => string | null = (
+) => GlobalUserOverrideShortcut = (
   options?: GlobalUserOverrideLockOptions,
-): string | null => {
+): GlobalUserOverrideShortcut => {
   const gate: PermissionGateResult = PermissionGate.check(
     new OnCallDutyPolicyUserOverride(),
     ModelAction.Create,
@@ -105,8 +124,32 @@ export const getGlobalUserOverrideShortcutLock: (
   );
 
   if (!gate.isAllowed) {
-    return gate.disabledReason || null;
+    return {
+      kind: GlobalUserOverrideShortcutKind.Locked,
+      reason: gate.disabledReason || null,
+    };
   }
 
-  return getGlobalUserOverrideLock(ModelAction.Create, options);
+  const reason: string | null = getGlobalUserOverrideLock(
+    ModelAction.Create,
+    options,
+  );
+
+  return reason
+    ? { kind: GlobalUserOverrideShortcutKind.SomePolicies, reason: reason }
+    : { kind: GlobalUserOverrideShortcutKind.Global, reason: null };
+};
+
+/*
+ * Why a shortcut that would add a global override cannot add one for the
+ * reader, or null when it can (getGlobalUserOverrideShortcut): the
+ * permission it takes, or - for a reader whose permission covers only some
+ * policies - the global page's reason.
+ */
+export const getGlobalUserOverrideShortcutLock: (
+  options?: GlobalUserOverrideLockOptions,
+) => string | null = (
+  options?: GlobalUserOverrideLockOptions,
+): string | null => {
+  return getGlobalUserOverrideShortcut(options).reason;
 };

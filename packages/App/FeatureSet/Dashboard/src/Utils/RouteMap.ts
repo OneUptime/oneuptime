@@ -951,6 +951,7 @@ export const DataObservabilityRoutePath: Dictionary<string> = {
   [PageMap.DATA_OBSERVABILITY_OVERVIEW]: "overview",
   [PageMap.DATA_OBSERVABILITY_TABLES]: "tables",
   [PageMap.DATA_OBSERVABILITY_TABLES_DROPPED]: "tables/dropped",
+  [PageMap.DATA_OBSERVABILITY_TABLES_UNUSED]: "tables/unused",
   [PageMap.DATA_OBSERVABILITY_TABLE_VIEW]: `tables/${RouteParams.ModelID}`,
   [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_COLUMNS]: `tables/${RouteParams.ModelID}/columns`,
   [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_METRICS]: `tables/${RouteParams.ModelID}/metrics`,
@@ -967,6 +968,8 @@ export const DataObservabilityRoutePath: Dictionary<string> = {
   [PageMap.DATA_OBSERVABILITY_SCHEMA_CHANGES]: "schema-changes",
   [PageMap.DATA_OBSERVABILITY_CHECKS]: "checks",
   [PageMap.DATA_OBSERVABILITY_PIPELINES]: "pipelines",
+  [PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW]: `pipelines/${RouteParams.ModelID}`,
+  [PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_RECOMMENDATIONS]: `pipelines/${RouteParams.ModelID}/recommendations`,
   [PageMap.DATA_OBSERVABILITY_DOCUMENTATION]: "documentation",
 };
 
@@ -7809,6 +7812,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.DATA_OBSERVABILITY_TABLES_UNUSED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_TABLES_UNUSED]
+    }`,
+  ),
+
   [PageMap.DATA_OBSERVABILITY_TABLE_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/data-observability/${
       DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_TABLE_VIEW]
@@ -7892,6 +7901,20 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.DATA_OBSERVABILITY_SCHEMA_CHANGES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/data-observability/${
       DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_SCHEMA_CHANGES]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_RECOMMENDATIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[
+        PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_RECOMMENDATIONS
+      ]
     }`,
   ),
 

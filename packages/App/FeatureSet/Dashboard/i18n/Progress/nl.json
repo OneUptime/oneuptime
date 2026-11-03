@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 41553,
-    "untranslated": 12182
+    "keys": 41838,
+    "untranslated": 12141
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -221,6 +221,7 @@
     "Persistent volume claims",
     "Persistent volumes",
     "Petabytes",
+    "Pipeline",
     "Pipelines",
     "Placement Groups",
     "Platform",

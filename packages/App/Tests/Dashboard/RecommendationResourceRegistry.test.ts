@@ -103,6 +103,7 @@ const EXPECTED_IDENTIFIER_FIELD: Record<
   [MonitorRecommendationResourceType.Service]: "_id",
   [MonitorRecommendationResourceType.DatabaseServer]: "_id",
   [MonitorRecommendationResourceType.DataStore]: "_id",
+  [MonitorRecommendationResourceType.DataPipeline]: "_id",
 };
 
 function getDefinitionOrFail(
@@ -346,10 +347,13 @@ describe("RecommendationResourceRegistry", () => {
       },
     );
 
-    test("every resource type names its monitors from the name column", () => {
+    test("every resource type names its monitors from its name column", () => {
       for (const resourceType of ALL_RESOURCE_TYPES) {
         expect(getDefinitionOrFail(resourceType).displayNameFieldName).toBe(
-          "name",
+          // A pipeline is named by its job: it has no name of its own.
+          resourceType === MonitorRecommendationResourceType.DataPipeline
+            ? "jobName"
+            : "name",
         );
       }
     });

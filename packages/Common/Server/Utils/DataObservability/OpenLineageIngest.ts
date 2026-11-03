@@ -6,6 +6,7 @@ import DataStore from "../../../Models/DatabaseModels/DataStore";
 import MetricType from "../../../Models/DatabaseModels/MetricType";
 import { MetricPointType } from "../../../Models/AnalyticsModels/Metric";
 import Includes from "../../../Types/BaseDatabase/Includes";
+import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../../Types/Date";
 import Dictionary from "../../../Types/Dictionary";
 import {
@@ -13,6 +14,13 @@ import {
   DataPipelineAttribute,
   DataPipelineMetricName,
 } from "../../../Types/DataObservability/DataPipelineMetric";
+import {
+  getDurationRatio,
+  getExpectedIntervalInSeconds,
+  getTypicalDurationInSeconds,
+  RUNS_FOR_EXPECTED_INTERVAL,
+  RUNS_FOR_TYPICAL_DURATION,
+} from "../../../Types/DataObservability/DataPipelineSchedule";
 import { DataStoreKind } from "../../../Types/DataSecurity/DataStoreKind";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
@@ -41,7 +49,10 @@ import { UsageAsset, UsageStore } from "./TableUsageMatching";
  *
  * Each event updates its pipeline (created at its first event) and its run:
  * a START opens the run, a COMPLETE, FAIL or ABORT ends it - its duration,
- * its error, and two metrics (run_failed, run_duration) that alerts read.
+ * its error, and the metrics alerts read (run_failed, run_duration, and
+ * run_duration_ratio against the pipeline's typical run). Each new run
+ * relearns how often the pipeline runs, and each completed one how long it
+ * usually takes (DataPipelineSchedule).
  * The datasets a run reads and writes are matched to the tables Data
  * Observability watches (DatasetMatching): each table written is noted on
  * the run, and each table read by a run that writes another is an edge of
@@ -86,6 +97,12 @@ export function mergeDatasetLabels(
 
 export function isFinalState(state: string | undefined | null): boolean {
   return FINAL_RUN_STATES.includes(state as OpenLineageRunState);
+}
+
+export function isRunningState(state: string | undefined | null): boolean {
+  return (
+    state === OpenLineageRunState.Start || state === OpenLineageRunState.Running
+  );
 }
 
 export function buildPipelineMetricRow(data: {
@@ -133,9 +150,11 @@ export function buildPipelineMetricRow(data: {
 }
 
 // The stores and tables of a project, read once per request and matched against.
-interface ProjectCatalog {
+export interface ProjectCatalog {
   stores: Array<UsageStore>;
   assets: Array<UsageAsset>;
+  // Each store's name, by its id.
+  storeNames: Map<string, string>;
 }
 
 export default class OpenLineageIngest {
@@ -236,7 +255,7 @@ export default class OpenLineageIngest {
     }
   }
 
-  private static async upsertPipeline(
+  public static async upsertPipeline(
     projectId: ObjectID,
     event: OpenLineageRunEvent,
   ): Promise<DataPipeline> {
@@ -252,6 +271,8 @@ export default class OpenLineageIngest {
         runCount: true,
         lastRunId: true,
         lastRunStartedAt: true,
+        typicalRunDurationInSeconds: true,
+        expectedRunIntervalInSeconds: true,
       },
       props: { isRoot: true },
     });
@@ -309,6 +330,7 @@ export default class OpenLineageIngest {
         _id: true,
         state: true,
         startedAt: true,
+        scheduledAt: true,
         endedAt: true,
         inputs: true,
         outputs: true,
@@ -355,6 +377,9 @@ export default class OpenLineageIngest {
           endedAt,
           durationInSeconds,
           ...(errorMessage ? { errorMessage } : {}),
+          ...(event.scheduledAt && !run.scheduledAt
+            ? { scheduledAt: event.scheduledAt }
+            : {}),
           inputs: mergeDatasetLabels(run.inputs, event.inputs),
           outputs: mergeDatasetLabels(run.outputs, event.outputs),
           outputDataAssetIds: outputIds,
@@ -367,6 +392,10 @@ export default class OpenLineageIngest {
       created.runId = runId;
       created.state = state;
       created.startedAt = startedAt;
+      if (event.scheduledAt) {
+        created.scheduledAt = event.scheduledAt;
+      }
+
       created.inputs = mergeDatasetLabels([], event.inputs);
       created.outputs = mergeDatasetLabels([], event.outputs);
       created.outputDataAssetIds = outputIds;
@@ -394,11 +423,27 @@ export default class OpenLineageIngest {
       !pipeline.lastRunStartedAt ||
       pipeline.lastRunId === runId ||
       startedAt >= pipeline.lastRunStartedAt;
+    const endsNow: boolean = isFinal && !wasFinal;
+    // A new run is a new start to learn the schedule from.
+    const expectedRunIntervalInSeconds: number | null = run?.id
+      ? null
+      : await this.learnExpectedInterval(pipeline.id!);
+    // A completed run is a new duration to learn the typical one from.
+    const typicalRunDurationInSeconds: number | null =
+      endsNow && event.eventType === OpenLineageRunState.Complete
+        ? await this.learnTypicalDuration(pipeline.id!)
+        : null;
 
     await DataPipelineService.updateColumnsByIdWithoutHooks({
       id: pipeline.id!,
       data: {
         ...(run?.id ? {} : { runCount: (pipeline.runCount || 0) + 1 }),
+        ...(expectedRunIntervalInSeconds !== null
+          ? { expectedRunIntervalInSeconds }
+          : {}),
+        ...(typicalRunDurationInSeconds !== null
+          ? { typicalRunDurationInSeconds }
+          : {}),
         ...(isLatest
           ? {
               lastRunId: runId,
@@ -425,7 +470,7 @@ export default class OpenLineageIngest {
     });
 
     // The metrics are written once, as the run ends.
-    if (isFinal && !wasFinal) {
+    if (endsNow) {
       data.metricRows.push(
         buildPipelineMetricRow({
           projectId: data.projectId,
@@ -448,11 +493,76 @@ export default class OpenLineageIngest {
             retentionDays: data.retentionDays,
           }),
         );
+
+        // Against the typical run before this one: a slow run does not excuse itself.
+        const ratio: number | null = getDurationRatio({
+          durationInSeconds,
+          typicalDurationInSeconds: pipeline.typicalRunDurationInSeconds,
+        });
+
+        if (ratio !== null) {
+          data.metricRows.push(
+            buildPipelineMetricRow({
+              projectId: data.projectId,
+              pipeline,
+              metricName: DataPipelineMetricName.RunDurationRatio,
+              value: ratio,
+              at: event.eventTime,
+              retentionDays: data.retentionDays,
+            }),
+          );
+        }
       }
     }
   }
 
-  private static async upsertLineage(data: {
+  private static async learnExpectedInterval(
+    dataPipelineId: ObjectID,
+  ): Promise<number | null> {
+    const runs: Array<DataPipelineRun> = await DataPipelineRunService.findBy({
+      query: { dataPipelineId },
+      select: { startedAt: true, scheduledAt: true },
+      sort: { startedAt: SortOrder.Descending },
+      limit: RUNS_FOR_EXPECTED_INTERVAL,
+      skip: 0,
+      props: { isRoot: true },
+    });
+
+    return getExpectedIntervalInSeconds(
+      runs
+        .map((run: DataPipelineRun): Date | undefined => {
+          return run.scheduledAt || run.startedAt;
+        })
+        .filter((start: Date | undefined): start is Date => {
+          return Boolean(start);
+        }),
+    );
+  }
+
+  private static async learnTypicalDuration(
+    dataPipelineId: ObjectID,
+  ): Promise<number | null> {
+    const runs: Array<DataPipelineRun> = await DataPipelineRunService.findBy({
+      query: { dataPipelineId, state: OpenLineageRunState.Complete },
+      select: { durationInSeconds: true },
+      sort: { startedAt: SortOrder.Descending },
+      limit: RUNS_FOR_TYPICAL_DURATION,
+      skip: 0,
+      props: { isRoot: true },
+    });
+
+    return getTypicalDurationInSeconds(
+      runs
+        .map((run: DataPipelineRun): number | undefined => {
+          return run.durationInSeconds;
+        })
+        .filter((duration: number | undefined): duration is number => {
+          return typeof duration === "number";
+        }),
+    );
+  }
+
+  public static async upsertLineage(data: {
     projectId: ObjectID;
     // Null for the pipeline-writes-table edge.
     upstreamDataAssetId: string | null;
@@ -515,7 +625,7 @@ export default class OpenLineageIngest {
     return Array.from(matched.values());
   }
 
-  private static async readCatalog(
+  public static async readCatalog(
     projectId: ObjectID,
   ): Promise<ProjectCatalog> {
     const stores: Array<DataStore> = await DataStoreService.findBy({
@@ -528,12 +638,13 @@ export default class OpenLineageIngest {
           DataStoreKind.SqlServer,
         ]),
       },
-      select: { _id: true, kind: true, tableHealthTarget: true },
+      select: { _id: true, name: true, kind: true, tableHealthTarget: true },
       limit: 1000,
       skip: 0,
       props: { isRoot: true },
     });
     const usageStores: Array<UsageStore> = [];
+    const storeNames: Map<string, string> = new Map();
 
     for (const store of stores) {
       const target: TableHealthTarget | null = readTableHealthTarget(
@@ -541,6 +652,7 @@ export default class OpenLineageIngest {
       );
 
       if (store.id && store.kind && target) {
+        storeNames.set(store.id.toString(), store.name || "");
         usageStores.push({
           dataStoreId: store.id.toString(),
           kind: store.kind,
@@ -551,7 +663,7 @@ export default class OpenLineageIngest {
     }
 
     if (usageStores.length === 0) {
-      return { stores: [], assets: [] };
+      return { stores: [], assets: [], storeNames };
     }
 
     const assets: Array<DataAsset> = await DataAssetService.findBy({
@@ -564,6 +676,7 @@ export default class OpenLineageIngest {
 
     return {
       stores: usageStores,
+      storeNames,
       assets: assets
         .filter((asset: DataAsset) => {
           return Boolean(asset.id && asset.dataStoreId && asset.name);
@@ -579,7 +692,7 @@ export default class OpenLineageIngest {
     };
   }
 
-  private static async writeMetricRows(
+  public static async writeMetricRows(
     projectId: ObjectID,
     rows: Array<JSONObject>,
   ): Promise<void> {

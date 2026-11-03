@@ -12,12 +12,23 @@ import {
   getShiftLength,
   isSameShiftDay,
 } from "./UpcomingShiftTime";
-import { getGlobalUserOverrideShortcutLock } from "../UserOverrides/GlobalUserOverrideLock";
+import {
+  GlobalUserOverrideShortcut,
+  GlobalUserOverrideShortcutKind,
+  getGlobalUserOverrideShortcut,
+} from "../UserOverrides/GlobalUserOverrideLock";
+import {
+  UserOverridePolicy,
+  getPoliciesToOffer,
+  getShiftPolicies,
+} from "../UserOverrides/UserOverridePolicies";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap from "../../../Utils/RouteMap";
 import RouteParams from "../../../Utils/RouteParams";
 import Route from "Common/Types/API/Route";
 import { HeldPermissions } from "Common/Types/HeldPermissions";
+import IconProp from "Common/Types/Icon/IconProp";
+import { UserOverrideAddAccess } from "Common/Types/OnCallDutyPolicy/UserOverrideAddAccess";
 import {
   UserOverrideCoverWindow,
   getUserOverrideCoverQueryParams,
@@ -27,9 +38,13 @@ import {
   getRestingClassName,
 } from "Common/UI/Components/Button/ButtonStates";
 import { FeedClock } from "Common/UI/Components/Feed/FeedTime";
+import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
+import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
+import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import Navigation from "Common/UI/Utils/Navigation";
 import PermissionGate from "Common/UI/Utils/PermissionGate";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -59,6 +74,14 @@ export interface ComponentProps {
   clock: FeedClock;
   showLayerName: boolean;
   showProjectName: boolean;
+  /*
+   * Where the reader may add an override in the span's project, as the
+   * server answered about the policies of the card's shifts there
+   * (UserOverridePolicies) - for a reader whose permission covers only
+   * some policies. Left out until it has answered, or when it was not
+   * asked.
+   */
+  coverAccess?: UserOverrideAddAccess | undefined;
 }
 
 export const UPCOMING_SHIFT_ROW_CLASS_NAME: string =
@@ -232,39 +255,75 @@ const UpcomingShiftRow: FunctionComponent<ComponentProps> = (
    * Cover for any other span is a global override, which takes a permission
    * to add overrides over the whole project, read from the snapshot of the
    * span's own project - the list holds every project's shifts. For a
-   * reader whose permission covers only some policies (or who may not add
-   * overrides at all), Get cover stays on the row, locked, and says why
+   * reader whose permission covers only some policies, Get cover offers the
+   * policies that page through the span that the server says they may
+   * cover (`coverAccess`, UserOverridePolicies): one goes straight to that
+   * policy's User Overrides page, several are a menu of them. Where it
+   * allows none - or has not answered - and for a reader who may not add
+   * overrides at all, Get cover stays on the row, locked, and says why
    * (GlobalUserOverrideLock) instead of opening a form they cannot save.
    * Before this browser has that project's snapshot, it links as before:
    * the page it opens says so too.
    */
   let coverLockedReason: string | null = null;
+  let coverPolicies: Array<UserOverridePolicy> = [];
 
   if (coverWindow && !policyId) {
     const held: HeldPermissions | null =
       PermissionGate.getHeldPermissionsInProject(span.projectId);
 
-    coverLockedReason = held
-      ? getGlobalUserOverrideShortcutLock({ held: held })
+    const shortcut: GlobalUserOverrideShortcut | null = held
+      ? getGlobalUserOverrideShortcut({ held: held })
       : null;
+
+    coverLockedReason = shortcut ? shortcut.reason : null;
+
+    if (
+      shortcut?.kind === GlobalUserOverrideShortcutKind.SomePolicies &&
+      props.coverAccess
+    ) {
+      coverPolicies = getPoliciesToOffer({
+        policies: getShiftPolicies(span.shifts),
+        access: props.coverAccess,
+      });
+
+      if (coverPolicies.length > 0) {
+        coverLockedReason = null;
+      }
+    }
   }
 
-  if (coverWindow) {
+  // Get cover on one policy: Add User Override on that policy's own page.
+  const getPolicyCoverRoute: (
+    window: UserOverrideCoverWindow,
+    coverPolicyId: string,
+  ) => Route = (
+    window: UserOverrideCoverWindow,
+    coverPolicyId: string,
+  ): Route => {
+    return new Route(
+      (
+        RouteMap[PageMap.ON_CALL_DUTY_POLICY_VIEW_USER_OVERRIDES] as Route
+      ).toString(),
+    )
+      .addRouteParam(RouteParams.ProjectID, span.projectId)
+      .addRouteParam(RouteParams.ModelID, coverPolicyId)
+      .addQueryParams(getUserOverrideCoverQueryParams(window));
+  };
+
+  // Several policies are a menu, each with its own page (below).
+  if (coverWindow && policyId) {
+    coverRoute = getPolicyCoverRoute(coverWindow, policyId);
+  } else if (coverWindow && coverPolicies.length === 1) {
+    coverRoute = getPolicyCoverRoute(coverWindow, coverPolicies[0]!.id);
+  } else if (coverWindow && coverPolicies.length === 0) {
     coverRoute = new Route(
       (
-        RouteMap[
-          policyId
-            ? PageMap.ON_CALL_DUTY_POLICY_VIEW_USER_OVERRIDES
-            : PageMap.ON_CALL_DUTY_POLICY_USER_OVERRIDES
-        ] as Route
+        RouteMap[PageMap.ON_CALL_DUTY_POLICY_USER_OVERRIDES] as Route
       ).toString(),
-    ).addRouteParam(RouteParams.ProjectID, span.projectId);
-
-    if (policyId) {
-      coverRoute.addRouteParam(RouteParams.ModelID, policyId);
-    }
-
-    coverRoute.addQueryParams(getUserOverrideCoverQueryParams(coverWindow));
+    )
+      .addRouteParam(RouteParams.ProjectID, span.projectId)
+      .addQueryParams(getUserOverrideCoverQueryParams(coverWindow));
   }
 
   const fullRange: string = `${formatShiftFullDateTime(
@@ -523,6 +582,52 @@ const UpcomingShiftRow: FunctionComponent<ComponentProps> = (
                 {` (${spokenWhen})`}
               </span>
             </Link>
+          )}
+          {coverWindow && coverPolicies.length > 1 && (
+            <MoreMenu
+              isMenuPortaled={true}
+              dataTestId="upcoming-shift-cover-policies-menu"
+              elementToBeShownInsteadOfButton={
+                <button
+                  type="button"
+                  className={`inline-flex items-center gap-1 ${UPCOMING_SHIFT_COVER_CLASS_NAME}`}
+                  data-testid="upcoming-shift-cover-policies"
+                >
+                  <span>{translator.translateText("Get cover")}</span>
+                  <span
+                    className="sr-only"
+                    data-testid="upcoming-shift-cover-context"
+                  >
+                    {` (${spokenWhen})`}
+                  </span>
+                  <Icon
+                    icon={IconProp.ChevronDown}
+                    className="h-4 w-4 flex-none"
+                  />
+                </button>
+              }
+            >
+              {/*
+               * Each policy the reader may cover, by its name: picking one
+               * opens Add User Override on its page, as the link does. Each
+               * wears the icon On-Call Policies has in the side menu.
+               */}
+              {coverPolicies.map((policy: UserOverridePolicy): ReactElement => {
+                return (
+                  <MoreMenuItem
+                    key={policy.id}
+                    icon={IconProp.Call}
+                    text={policy.name}
+                    dataTestId="upcoming-shift-cover-policy"
+                    onClick={() => {
+                      Navigation.navigate(
+                        getPolicyCoverRoute(coverWindow, policy.id),
+                      );
+                    }}
+                  />
+                );
+              })}
+            </MoreMenu>
           )}
           {coverRoute && coverLockedReason && (
             <>

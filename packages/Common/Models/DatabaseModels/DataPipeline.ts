@@ -325,6 +325,36 @@ export default class DataPipeline extends BaseModel {
 
   @ColumnAccessControl(serverWrittenColumnAccess)
   @TableColumn({
+    type: TableColumnType.Number,
+    required: false,
+    computed: true,
+    title: "Typical Run Duration",
+    description:
+      "How long a run usually takes, in seconds: the median of the last 20 completed runs, once there are five.",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public typicalRunDurationInSeconds?: number = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Number,
+    required: false,
+    computed: true,
+    title: "Expected Run Interval",
+    description:
+      "The longest the pipeline goes between runs on its schedule, in seconds: the longest gap between the starts of its last 50 runs, once there are five.",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public expectedRunIntervalInSeconds?: number = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
     type: TableColumnType.JSON,
     required: false,
     computed: true,

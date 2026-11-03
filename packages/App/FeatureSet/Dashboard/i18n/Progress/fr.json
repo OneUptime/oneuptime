@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 41553,
-    "untranslated": 6916
+    "keys": 41838,
+    "untranslated": 6911
   },
   "sameAsEnglish": [
     " incidents",
@@ -370,6 +370,7 @@
     "Passthrough",
     "Perf",
     "Phase",
+    "Pipeline",
     "Pipelines",
     "Placement",
     "Placement Groups",

@@ -42,6 +42,8 @@ export interface OpenLineageRunEvent {
   jobNamespace: string;
   jobName: string;
   errorMessage: string | null;
+  // When the run was scheduled for (its nominalTime facet), when the producer says.
+  scheduledAt: Date | null;
   inputs: Array<OpenLineageDataset>;
   outputs: Array<OpenLineageDataset>;
 }
@@ -153,6 +155,13 @@ export function readOpenLineageEvent(
     facets?.["errorMessage"] && typeof facets["errorMessage"] === "object"
       ? (facets["errorMessage"] as JSONObject)
       : null;
+  const nominalTimeFacet: JSONObject | null =
+    facets?.["nominalTime"] && typeof facets["nominalTime"] === "object"
+      ? (facets["nominalTime"] as JSONObject)
+      : null;
+  const parsedScheduledTime: number = Date.parse(
+    String(nominalTimeFacet?.["nominalStartTime"] || ""),
+  );
 
   return {
     eventType,
@@ -166,6 +175,12 @@ export function readOpenLineageEvent(
           MAX_ERROR_LENGTH,
         ) || null
       : null,
+    // A backfilled run is scheduled long before it runs, never after.
+    scheduledAt:
+      Number.isFinite(parsedScheduledTime) &&
+      parsedScheduledTime <= eventTime.getTime() + 5 * 60 * 1000
+        ? new Date(parsedScheduledTime)
+        : null,
     inputs: readDatasets(item["inputs"]),
     outputs: readDatasets(item["outputs"]),
   };

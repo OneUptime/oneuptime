@@ -78,6 +78,13 @@ const DataObservabilitySideMenu: FunctionComponent = (): ReactElement => {
       <SideMenuSection title="Advanced">
         <SideMenuItem
           link={{
+            title: "Unused Tables",
+            to: routeOf(PageMap.DATA_OBSERVABILITY_TABLES_UNUSED),
+          }}
+          icon={IconProp.Moon}
+        />
+        <SideMenuItem
+          link={{
             title: "Dropped Tables",
             to: routeOf(PageMap.DATA_OBSERVABILITY_TABLES_DROPPED),
           }}

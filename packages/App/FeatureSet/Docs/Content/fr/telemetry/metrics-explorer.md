@@ -112,15 +112,16 @@ L'onglet **Analyses** compte les métriques d'une plage de temps : **Métriques 
 
 ## Améliorer les métriques et ajouter celles qui manquent avec l'IA
 
-Chaque heure, OneUptime parcourt les métriques que vos services ont envoyées dans la dernière heure à la recherche de celles qui enregistrent trop de valeurs, des histogrammes dont les buckets ne conviennent pas et des services chargés qui n'envoient aucune métrique. Il enregistre ce qu'il trouve comme analyses IA, avec les preuves. OneUptime AI examine ensuite chacune d'elles et ouvre une pull request pour la corriger. Rien n'est jamais fusionné : votre équipe relit chaque pull request.
+Chaque heure, OneUptime parcourt les métriques que vos services ont envoyées dans la dernière heure à la recherche de celles qui enregistrent trop de valeurs, des histogrammes dont les buckets ne conviennent pas et des services chargés qui n'envoient aucune métrique pour leurs requêtes. Il enregistre ce qu'il trouve comme analyses IA, avec les preuves. OneUptime AI examine ensuite chacune d'elles et ouvre une pull request pour la corriger. Rien n'est jamais fusionné : votre équipe relit chaque pull request.
 
-OneUptime lit de près les 10 métriques pour lesquelles vos services ont envoyé le plus de points de données dans l'heure, chacune avec au moins 1 000 points, et enregistre trois sortes de constats :
+OneUptime lit de près les 10 métriques pour lesquelles vos services ont envoyé le plus de points de données dans l'heure, chacune avec au moins 1 000 points, et enregistre quatre sortes de constats :
 
 | Constat | Quand OneUptime l'enregistre | La pull request |
 | --- | --- | --- |
 | **Cardinalité élevée** | Un attribut que le code pose sur l'une de ces métriques a pris 1 000 valeurs ou plus dans l'heure, comme des identifiants d'utilisateur ou des URL complètes, si bien que chaque valeur est une série à part. Ou 50 noms de métriques ou plus d'un service sont un même nom avec un identifiant différent. | Cesse d'enregistrer la valeur sur la métrique, ou retire les identifiants de ses noms. |
 | **Buckets d'histogramme incorrects** | L'une de ces métriques est un histogramme qui a enregistré 1 000 valeurs ou plus, dont 90 % ou plus sont tombées dans son plus petit bucket ou au-dessus du plus grand, ou il n'a aucun bucket, si bien que ses percentiles ne peuvent pas être distingués. | Donne à l'histogramme des buckets adaptés à ses valeurs, ou corrige son unité. |
 | **Métriques manquantes** | Un service a envoyé 1 000 spans ou plus dans l'heure et n'a jamais envoyé de métrique. | Ajoute en métriques le nombre de requêtes, les erreurs et la durée de ses opérations les plus actives. |
+| **Métriques de requêtes manquantes** | Un service a envoyé 1 000 spans ou plus dans l'heure, et des métriques, mais n'a jamais envoyé de métrique de requêtes pour les requêtes HTTP, les appels RPC ou les messages qu'il traite, comme `http.server.request.duration`. | Ajoute ces métriques de requêtes, avec l'instrumentation OpenTelemetry de son framework. |
 
 Un constat ne stocke jamais les valeurs d'un attribut : seulement le nom de l'attribut, le nombre de valeurs qu'il a prises et leur forme.
 
@@ -144,9 +145,34 @@ Sous **Plus de champs**, une règle choisit les dépôts de code, les serveurs M
 
 ### Voir ce qu'il a fait
 
-- **Métriques → IA → Analyses** liste ce qu'OneUptime a trouvé, chaque constat avec ses preuves et **Ouvrir dans Métriques**, qui ouvre sa métrique pour son service, de l'heure où il a été trouvé. Un service sans métriques propose plutôt **Ouvrir dans Traces** : les spans que ses métriques mesureraient.
+- **Métriques → IA → Analyses** liste ce qu'OneUptime a trouvé, chaque constat avec ses preuves et **Ouvrir dans Métriques**, qui ouvre sa métrique pour son service, de l'heure où il a été trouvé. Un service sans métriques, ou sans métriques pour ses requêtes, propose plutôt **Ouvrir dans Traces** : les spans que ses métriques mesureraient.
 - **Métriques → IA → Journaux** liste chaque investigation et chaque pull request, de la plus récente à la plus ancienne, avec l'état de chacune et ce que chaque investigation a trouvé.
 - Dans Code, la tâche indique qu'OneUptime l'a lancée, avec un lien vers son constat, et la pull request explique pourquoi elle a été ouverte.
+
+### Enregistrer les métriques de requêtes sans modifier le code
+
+Un constat **Métriques manquantes** ou **Métriques de requêtes manquantes** propose **Sans modifier le code** à côté de **Corriger avec l'IA** : l'OpenTelemetry Collector par lequel passent vos traces en enregistre les métriques de requêtes. **Afficher l'étape du collecteur** donne les lignes à ajouter, `spanmetrics` comme exporter du pipeline des traces et comme receiver du pipeline des métriques :
+
+```yaml title="otel-collector-config.yaml"
+connectors:
+  spanmetrics:
+    histogram:
+      unit: s
+    aggregation_temporality: AGGREGATION_TEMPORALITY_DELTA
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlphttp, spanmetrics]
+    metrics:
+      receivers: [otlp, spanmetrics]
+      processors: [batch]
+      exporters: [otlphttp]
+```
+
+Redémarrez le collecteur. Chaque service dont les traces le traversent envoie alors `traces.span.metrics.calls` et `traces.span.metrics.duration` (en secondes) pour chaque opération, type de span et statut, et OneUptime ne trouve plus le problème : résolvez alors le constat. Le connecteur compte chaque span que le collecteur reçoit, même ceux qu'un échantillonneur écarte ensuite. Un service qui envoie directement à OneUptime a d'abord besoin d'un collecteur devant lui : voir [Envoyer via un OpenTelemetry Collector](/docs/telemetry/open-telemetry#envoyer-via-un-opentelemetry-collector).
 
 ## Ce qui arrive aux métriques à leur arrivée
 

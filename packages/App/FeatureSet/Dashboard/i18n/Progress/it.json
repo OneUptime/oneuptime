@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 41553,
-    "untranslated": 12137
+    "keys": 41838,
+    "untranslated": 12096
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -141,6 +141,7 @@
     "Pattern {{number}}: {{problem}}",
     "Peer",
     "Perf",
+    "Pipeline",
     "Placement Groups",
     "Playbook",
     "Playlist",

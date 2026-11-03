@@ -43,6 +43,8 @@ La tabella è il formato predefinito in un terminale. `oneuptime resources --typ
 ├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
 │ change-event               │ Change Event               │ Change Events               │ analytics │ /change-events              │
 ├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
+│ cloud-cost                 │ Cloud Cost                 │ Cloud Costs                 │ analytics │ /cloud-cost                 │
+├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
 │ exception-instance         │ Exception Instance         │ Exception Instances         │ analytics │ /exceptions                 │
 ├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
 │ kubernetes-cost-allocation │ Kubernetes Cost Allocation │ Kubernetes Cost Allocations │ analytics │ /kubernetes-cost-allocation │
@@ -68,7 +70,7 @@ La tabella è il formato predefinito in un terminale. `oneuptime resources --typ
 │ threat-intel-indicator     │ Threat Intel Indicator     │ Threat Intel Indicators     │ analytics │ /threat-intel-indicators    │
 └────────────────────────────┴────────────────────────────┴─────────────────────────────┴───────────┴─────────────────────────────┘
 
-Total: 14 resources
+Total: 15 resources
 ```
 
 Per un elenco di record, una tabella mostra al massimo sei colonne: prima `_id`, `name`, `title`, `status`, `createdAt` e `updatedAt`, quelle che i record hanno, poi i campi successivi dei record nell'ordine. Le colonne vengono prese dal primo record. Un valore più lungo di 60 caratteri viene tagliato ai suoi primi 57, seguiti da `...`.

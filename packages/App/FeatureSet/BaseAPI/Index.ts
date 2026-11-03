@@ -737,6 +737,9 @@ import DataPipelineRunService, {
 import DataAssetLineageService, {
   Service as DataAssetLineageServiceType,
 } from "Common/Server/Services/DataAssetLineageService";
+import DataAlertService, {
+  Service as DataAlertServiceType,
+} from "Common/Server/Services/DataAlertService";
 import SecurityEntityCriticalityService, {
   Service as SecurityEntityCriticalityServiceType,
 } from "Common/Server/Services/SecurityEntityCriticalityService";
@@ -1092,10 +1095,7 @@ import MonitorTimelineStatusService, {
   Service as MonitorTimelineStatusServiceType,
 } from "Common/Server/Services/MonitorStatusTimelineService";
 // user override
-import OnCallDutyPolicyUserOverrideService, {
-  Service as OnCallDutyPolicyUserOverrideServiceType,
-} from "Common/Server/Services/OnCallDutyPolicyUserOverrideService";
-import OnCallDutyPolicyUserOverride from "Common/Models/DatabaseModels/OnCallDutyPolicyUserOverride";
+import OnCallDutyPolicyUserOverrideAPI from "Common/Server/API/OnCallDutyPolicyUserOverrideAPI";
 import OnCallDutyPolicyCustomFieldService, {
   Service as OnCallDutyPolicyCustomFieldServiceType,
 } from "Common/Server/Services/OnCallDutyPolicyCustomFieldService";
@@ -1807,6 +1807,7 @@ import DataCheck from "Common/Models/DatabaseModels/DataCheck";
 import DataPipeline from "Common/Models/DatabaseModels/DataPipeline";
 import DataPipelineRun from "Common/Models/DatabaseModels/DataPipelineRun";
 import DataAssetLineage from "Common/Models/DatabaseModels/DataAssetLineage";
+import DataAlert from "Common/Models/DatabaseModels/DataAlert";
 import SecurityEntityCriticality from "Common/Models/DatabaseModels/SecurityEntityCriticality";
 import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePriority";
 import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus";
@@ -2677,16 +2678,10 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
-    // user override
+    // user override, and where the caller may add one (add-access)
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<
-        OnCallDutyPolicyUserOverride,
-        OnCallDutyPolicyUserOverrideServiceType
-      >(
-        OnCallDutyPolicyUserOverride,
-        OnCallDutyPolicyUserOverrideService,
-      ).getRouter(),
+      new OnCallDutyPolicyUserOverrideAPI().getRouter(),
     );
 
     app.use(
@@ -4596,6 +4591,15 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<DataAssetLineage, DataAssetLineageServiceType>(
         DataAssetLineage,
         DataAssetLineageService,
+      ).getRouter(),
+    );
+
+    // What each data alert is about, and the alert it is a consequence of.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DataAlert, DataAlertServiceType>(
+        DataAlert,
+        DataAlertService,
       ).getRouter(),
     );
 

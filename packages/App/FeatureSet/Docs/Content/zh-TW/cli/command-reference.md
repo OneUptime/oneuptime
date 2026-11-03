@@ -6,7 +6,7 @@
 - [全域選項](#全域選項): 每個命令都接受的選項。
 - [登入與情境](#登入與情境): login 和 context 命令。
 - [資源命令](#資源命令): 每個資源的操作、欄位和動作。
-- [其他命令](#其他命令): deploy、whoami、resources、version 和 help。
+- [其他命令](#其他命令): deploy、dbt upload、whoami、resources、version 和 help。
 :::
 
 ## 命令總覽
@@ -19,6 +19,8 @@ flowchart LR
     O --> R["incident、monitor<br/>等每種資源"]
     R --> R1["list<br/>get<br/>create<br/>update<br/>delete<br/>count<br/>fields"]
     R --> R2["acknowledge<br/>resolve<br/>start<br/>end<br/>add-note"]
+    O --> D["dbt"]
+    D --> D1["upload"]
     O --> U["deploy<br/>whoami<br/>resources<br/>version<br/>help"]
 ```
 
@@ -303,6 +305,22 @@ oneuptime deploy [--service <name>] [--service-version <version>] [--previous-ve
 | `--type <type>` | 否 | 變更的類型，例如 `config-change` 或 `rollback` | `deployment` |
 | `--time <time>` | 否 | 變更發生的時間，例如 `2026-10-19T10:00:00Z` | 現在 |
 | `--attribute <key=value...>` | 否 | 更多屬性，形式為 `key=value`，一個或多個 | |
+| `--ingestion-key <key>` | 否 | 專案的遙測擷取金鑰 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
+
+### `oneuptime dbt upload`
+
+在一次建置之後，從 CI 或 dbt Cloud 作業把 dbt 專案的產物傳送到資料可觀測性。它的模型顯示在它們建置的資料表上，並附有血緣；它的測試顯示在 OneUptime 的檢查旁邊，並且可以觸發警示；每次建置都是該專案管道的一次執行。它從 dbt 的目標資料夾讀取 `manifest.json` 和 `run_results.json`，只傳送資料可觀測性會讀取的內容，並使用遙測擷取金鑰寫入，而不是 API 金鑰。你的儀表板中資料可觀測性的文件頁面展示了如何在 CI 作業中使用它。
+
+```bash
+oneuptime dbt upload [--target-path <dir>] [--manifest <file>] [--run-results <file>] [--project <name>] [--ingestion-key <key>]
+```
+
+| 選項 | 必要 | 說明 | 預設值 |
+| --- | --- | --- | --- |
+| `--target-path <dir>` | 否 | dbt 寫入其產物的資料夾 | `target` |
+| `--manifest <file>` | 否 | 要傳送的清單 | 目標資料夾中的 `manifest.json` |
+| `--run-results <file>` | 否 | 要傳送的執行結果 | 目標資料夾中的 `run_results.json` |
+| `--project <name>` | 否 | dbt 專案的名稱，僅在不傳送清單時需要 | 清單中的專案 |
 | `--ingestion-key <key>` | 否 | 專案的遙測擷取金鑰 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
 
 ### `oneuptime whoami`

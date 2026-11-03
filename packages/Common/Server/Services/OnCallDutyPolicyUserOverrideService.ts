@@ -29,6 +29,10 @@ import GlobalUserOverrideAccess, {
 } from "../../Types/OnCallDutyPolicy/GlobalUserOverrideAccess";
 import CreateScopeException from "../Types/Database/Permissions/CreateScopeException";
 import CallerPermission from "../Utils/Permission/CallerPermission";
+import { UserOverrideAddAccess } from "../../Types/OnCallDutyPolicy/UserOverrideAddAccess";
+import ForbiddenException from "../../Types/Exception/ForbiddenException";
+import NotFoundException from "../../Types/Exception/NotFoundException";
+import PaymentRequiredException from "../../Types/Exception/PaymentRequiredException";
 
 /*
  * The (project, overridden user, substitute) triple an override names; the
@@ -216,6 +220,114 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
     }
 
     throw new NotAuthorizedException(GLOBAL_USER_OVERRIDE_DELETE_REFUSAL);
+  }
+
+  /*
+   * WHERE THE CALLER MAY ADD AN OVERRIDE, ASKED WITHOUT ADDING ONE
+   * (Types/OnCallDutyPolicy/UserOverrideAddAccess): on each of
+   * `onCallDutyPolicyIds`, and globally. Each is asked by running a
+   * create's own checks on an override the caller would add there
+   * (DatabaseService.checkCallerMayCreate): the table's create permission
+   * and the project's plan; the policy as one of the project's that the
+   * caller may read (@CanAccessIfCanReadOn); and what their create
+   * permission reaches - labels, the policies their team owns
+   * (@OwnedThrough), a team's blocks with labels (CreateScopePermission).
+   * Then the checks of its create hook: the policy held to the project
+   * (ProjectReferencesService), which a master admin is held to as well,
+   * and for a global override this service's own rule
+   * (checkGlobalOverrideAccess). An override the checks refuse is one the
+   * caller may not add; anything else that goes wrong is thrown, never read
+   * as a refusal. Who is away and who covers decide none of it, so the
+   * overrides asked about name nobody.
+   */
+  @CaptureSpan()
+  public async getAddAccess(data: {
+    onCallDutyPolicyIds: Array<ObjectID>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<UserOverrideAddAccess> {
+    const onCallDutyPolicyIds: Array<string> = [];
+
+    for (const onCallDutyPolicyId of data.onCallDutyPolicyIds) {
+      if (
+        await this.mayCallerAdd({
+          onCallDutyPolicyId: onCallDutyPolicyId,
+          props: data.props,
+        })
+      ) {
+        onCallDutyPolicyIds.push(onCallDutyPolicyId.toString());
+      }
+    }
+
+    return {
+      global: await this.mayCallerAdd({
+        onCallDutyPolicyId: null,
+        props: data.props,
+      }),
+      onCallDutyPolicyIds: onCallDutyPolicyIds,
+    };
+  }
+
+  // Whether the caller may add an override on the policy, or a global one. See getAddAccess.
+  private async mayCallerAdd(data: {
+    onCallDutyPolicyId: ObjectID | null;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<boolean> {
+    try {
+      await this.checkCallerMayCreate({
+        data: this.getOverrideToAsk(data),
+        props: data.props,
+      });
+
+      await super.onBeforeCreate({
+        data: this.getOverrideToAsk(data),
+        props: data.props,
+      });
+
+      if (!data.onCallDutyPolicyId) {
+        this.checkGlobalOverrideAccess(data.props, "create");
+      }
+
+      return true;
+    } catch (error) {
+      if (
+        error instanceof NotAuthorizedException ||
+        error instanceof BadDataException ||
+        error instanceof PaymentRequiredException ||
+        error instanceof ForbiddenException ||
+        error instanceof NotFoundException
+      ) {
+        return false;
+      }
+
+      throw error;
+    }
+  }
+
+  /*
+   * An override as the shortcuts add one, for mayCallerAdd to ask about: in
+   * the request's project, from now, on the policy or on none. A new one
+   * for each check, as a check changes what it is handed.
+   */
+  private getOverrideToAsk(data: {
+    onCallDutyPolicyId: ObjectID | null;
+    props: DatabaseCommonInteractionProps;
+  }): OnCallDutyPolicyUserOverride {
+    const override: OnCallDutyPolicyUserOverride =
+      new OnCallDutyPolicyUserOverride();
+    const now: Date = OneUptimeDate.getCurrentDate();
+
+    if (data.props.tenantId) {
+      override.projectId = data.props.tenantId;
+    }
+
+    if (data.onCallDutyPolicyId) {
+      override.onCallDutyPolicyId = data.onCallDutyPolicyId;
+    }
+
+    override.startsAt = now;
+    override.endsAt = OneUptimeDate.addRemoveHours(now, 1);
+
+    return override;
   }
 
   @CaptureSpan()

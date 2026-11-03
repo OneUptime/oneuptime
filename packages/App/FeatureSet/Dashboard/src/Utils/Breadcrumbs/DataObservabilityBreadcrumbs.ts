@@ -36,6 +36,12 @@ export function getDataObservabilityBreadcrumbs(
       "Tables",
       "Dropped Tables",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.DATA_OBSERVABILITY_TABLES_UNUSED, [
+      "Project",
+      "Data Observability",
+      "Tables",
+      "Unused Tables",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.DATA_OBSERVABILITY_TABLE_VIEW, [
       "Project",
       "Data Observability",
@@ -104,6 +110,22 @@ export function getDataObservabilityBreadcrumbs(
       "Data Observability",
       "Pipelines",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW, [
+      "Project",
+      "Data Observability",
+      "Pipelines",
+      "Pipeline",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_RECOMMENDATIONS,
+      [
+        "Project",
+        "Data Observability",
+        "Pipelines",
+        "Pipeline",
+        "Recommendations",
+      ],
+    ),
     ...BuildBreadcrumbLinksByTitles(PageMap.DATA_OBSERVABILITY_CHECKS, [
       "Project",
       "Data Observability",

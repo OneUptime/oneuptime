@@ -4,6 +4,7 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import DataCheck from "Common/Models/DatabaseModels/DataCheck";
 import Route from "Common/Types/API/Route";
+import NotEqual from "Common/Types/BaseDatabase/NotEqual";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { Gray500, Green500, Red500 } from "Common/Types/BrandColors";
 import { DataAssetColumn } from "Common/Types/DataObservability/DataAssetColumn";
@@ -48,20 +49,27 @@ const TYPE_OPTIONS: Array<DropdownOption> = DATA_CHECK_TYPES.map(
   },
 );
 
-const INTERVAL_OPTIONS: Array<DropdownOption> =
-  DATA_CHECK_INTERVALS_IN_MINUTES.map((minutes: number): DropdownOption => {
-    return {
-      value: minutes,
-      label:
-        minutes < 60
-          ? `Every ${minutes} minutes`
-          : minutes === 60
-            ? "Every hour"
-            : minutes === 1440
-              ? "Every day"
-              : `Every ${minutes / 60} hours`,
-    };
-  });
+function getIntervalOptions(translator: Translator): Array<DropdownOption> {
+  return DATA_CHECK_INTERVALS_IN_MINUTES.map(
+    (minutes: number): DropdownOption => {
+      return {
+        value: minutes,
+        label:
+          minutes < 60
+            ? translator.translateTemplate("Every {{count}} minutes", {
+                count: minutes,
+              })
+            : minutes === 60
+              ? "Every hour"
+              : minutes === 1440
+                ? "Every day"
+                : translator.translateTemplate("Every {{count}} hours", {
+                    count: minutes / 60,
+                  }),
+      };
+    },
+  );
+}
 
 const ALERT_OPTIONS: Array<DropdownOption> = DATA_CHECK_ALERT_CONDITIONS.map(
   (condition: DataCheckAlertCondition): DropdownOption => {
@@ -170,6 +178,8 @@ const DataCheckTable: FunctionComponent<ComponentProps> = (
         query={{
           ...(projectId ? { projectId: projectId } : {}),
           ...(props.dataAssetId ? { dataAssetId: props.dataAssetId } : {}),
+          // dbt's tests are listed on their own (DbtTestTable): dbt runs them.
+          checkType: new NotEqual<string>(DataCheckType.DbtTest),
         }}
         isDeleteable={true}
         isEditable={isForOneTable}
@@ -235,9 +245,15 @@ const DataCheckTable: FunctionComponent<ComponentProps> = (
             },
           },
         ]}
+        formSteps={[
+          { title: "Check", id: "check" },
+          { title: "What It Reads", id: "reads" },
+          { title: "When It Runs", id: "when" },
+        ]}
         formFields={[
           {
             field: { name: true },
+            stepId: "check",
             title: "Name",
             description: "Shown on the check's metric and alerts.",
             fieldType: FormFieldSchemaType.Text,
@@ -246,6 +262,7 @@ const DataCheckTable: FunctionComponent<ComponentProps> = (
           },
           {
             field: { checkType: true },
+            stepId: "check",
             title: "Check",
             description: "What the check measures.",
             fieldType: FormFieldSchemaType.Dropdown,
@@ -253,7 +270,18 @@ const DataCheckTable: FunctionComponent<ComponentProps> = (
             dropdownOptions: TYPE_OPTIONS,
           },
           {
+            field: { description: true },
+            stepId: "check",
+            title: "Description",
+            description:
+              "Shown with the check: why it matters, and what to do when it fails.",
+            fieldType: FormFieldSchemaType.LongText,
+            required: false,
+            placeholder: "Why it matters, and what to do when it fails.",
+          },
+          {
             field: { columnName: true },
+            stepId: "reads",
             title: "Column",
             description: "The column the check reads.",
             fieldType: FormFieldSchemaType.Dropdown,
@@ -268,6 +296,7 @@ const DataCheckTable: FunctionComponent<ComponentProps> = (
           },
           {
             field: { acceptedValues: true },
+            stepId: "reads",
             title: "Accepted Values",
             description: "One per line.",
             fieldType: FormFieldSchemaType.LongText,
@@ -279,6 +308,7 @@ const DataCheckTable: FunctionComponent<ComponentProps> = (
           },
           {
             field: { pattern: true },
+            stepId: "reads",
             title: "Pattern",
             description: "A regular expression every value must match.",
             fieldType: FormFieldSchemaType.Text,
@@ -290,6 +320,7 @@ const DataCheckTable: FunctionComponent<ComponentProps> = (
           },
           {
             field: { referenceTableKey: true },
+            stepId: "reads",
             title: "Referenced Table",
             description: "The table the column refers to, as schema.table.",
             fieldType: FormFieldSchemaType.Text,
@@ -301,6 +332,7 @@ const DataCheckTable: FunctionComponent<ComponentProps> = (
           },
           {
             field: { referenceColumnName: true },
+            stepId: "reads",
             title: "Referenced Column",
             description: "The column of that table it refers to.",
             fieldType: FormFieldSchemaType.Text,
@@ -312,6 +344,7 @@ const DataCheckTable: FunctionComponent<ComponentProps> = (
           },
           {
             field: { customSql: true },
+            stepId: "reads",
             title: "Query",
             description:
               "One SELECT returning a number. With Segment By, a segment and a number per row.",
@@ -324,6 +357,7 @@ const DataCheckTable: FunctionComponent<ComponentProps> = (
           },
           {
             field: { segmentColumn: true },
+            stepId: "reads",
             title: "Segment By",
             description:
               "Run the check once per value of a column - a tenant, a region - one series and one alert each.",
@@ -333,16 +367,18 @@ const DataCheckTable: FunctionComponent<ComponentProps> = (
           },
           {
             field: { intervalInMinutes: true },
+            stepId: "when",
             title: "Run",
             description:
               "How often the check runs, with its database's collection.",
             fieldType: FormFieldSchemaType.Dropdown,
             required: true,
             defaultValue: DEFAULT_DATA_CHECK_INTERVAL_IN_MINUTES,
-            dropdownOptions: INTERVAL_OPTIONS,
+            dropdownOptions: getIntervalOptions(translator),
           },
           {
             field: { alertCondition: true },
+            stepId: "when",
             title: "Alert When",
             description:
               "Unusually high or low compares each value with its own learned baseline for that hour of the week. Leave empty for no alert.",
@@ -352,6 +388,7 @@ const DataCheckTable: FunctionComponent<ComponentProps> = (
           },
           {
             field: { alertThreshold: true },
+            stepId: "when",
             title: "Threshold",
             description: "The value an Above or Below alert compares with.",
             fieldType: FormFieldSchemaType.Number,
@@ -366,16 +403,8 @@ const DataCheckTable: FunctionComponent<ComponentProps> = (
             },
           },
           {
-            field: { description: true },
-            title: "Description",
-            description:
-              "Shown with the check: why it matters, and what to do when it fails.",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "Why it matters, and what to do when it fails.",
-          },
-          {
             field: { isEnabled: true },
+            stepId: "when",
             title: "Enabled",
             description:
               "Turned off, the check stops running, and its alert goes quiet with it.",
