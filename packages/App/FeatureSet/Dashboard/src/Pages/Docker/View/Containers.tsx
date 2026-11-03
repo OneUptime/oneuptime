@@ -123,10 +123,11 @@ const formatReadingBytes: (value: number | null) => string = (
   return value === null ? "—" : formatBytes(value);
 };
 
+// "3.1%", as the container's own page and the Overview write it.
 const formatReadingPercent: (value: number | null) => string = (
   value: number | null,
 ): string => {
-  return value === null ? "—" : `${value.toFixed(2)}%`;
+  return value === null ? "—" : `${value.toFixed(1)}%`;
 };
 
 // A reading past its alert's line reads amber, as Needs attention says it.

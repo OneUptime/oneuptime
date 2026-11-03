@@ -157,10 +157,16 @@ const CephClusterOsds: FunctionComponent<
       resources={resources}
       tableIdPrefix="ceph"
       groupColumnTitle="Host"
+      /*
+       * No Age column, as the Pools and Daemons lists have none: Ceph sends
+       * no OSD's age, so it could only say when OneUptime first saw the OSD
+       * - and it pushed the list past its card at 1280 beside the side
+       * menu, the latency header cut under the View column.
+       */
+      showAge={false}
       showResourceMetrics={false}
       builtInColumnDescriptions={{
         status: CEPH_METRIC_DESCRIPTIONS.osdStatusColumn,
-        age: CEPH_METRIC_DESCRIPTIONS.osdAgeColumn,
       }}
       columns={[
         {

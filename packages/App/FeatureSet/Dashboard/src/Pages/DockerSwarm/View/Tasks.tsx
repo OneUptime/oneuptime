@@ -9,6 +9,7 @@ import ResourceTable, {
 } from "../../../Components/Infrastructure/ResourceTable";
 import {
   fetchDockerSwarmInventoryResources,
+  formatBytes,
   routeParamFromExternalId,
 } from "../Utils/DockerSwarmResourceUtils";
 import {
@@ -51,6 +52,8 @@ const TASK_COLUMNS: Array<ResourceColumn> = [
      * - what its state is judged by - out of view.
      */
     foldInto: "name",
+    // Whole, tag included: it breaks after its dots and slashes.
+    isName: true,
     getValue: (resource: InfrastructureResource): string => {
       return resource.additionalAttributes["image"] || "—";
     },
@@ -118,6 +121,8 @@ const DockerSwarmClusterTasks: FunctionComponent<
       showAge={false}
       tableIdPrefix="docker-swarm"
       metricThresholds={DOCKER_SWARM_TASK_METRIC_THRESHOLDS}
+      // "471 MiB", as Docker and the task's own page write it.
+      formatMemory={formatBytes}
       builtInColumnDescriptions={{
         status: DOCKER_SWARM_METRIC_DESCRIPTIONS.taskStatus,
         cpu: DOCKER_SWARM_METRIC_DESCRIPTIONS.taskCpuColumn,

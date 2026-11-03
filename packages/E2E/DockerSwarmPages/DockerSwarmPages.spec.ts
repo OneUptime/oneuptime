@@ -1465,6 +1465,22 @@ function listRow(page: Page, name: string): Locator {
 }
 
 /*
+ * Whether a value runs past the table cell it is drawn in: a cell clips
+ * what does not fit, so a long word cut there reads as another word.
+ */
+async function isOutsideItsCell(locator: Locator): Promise<boolean> {
+  return await locator.evaluate((element: Element): boolean => {
+    const cell: Element | null = element.closest("td");
+    if (!cell) {
+      return true;
+    }
+    const value: DOMRect = element.getBoundingClientRect();
+    const box: DOMRect = cell.getBoundingClientRect();
+    return value.left < box.left - 0.5 || value.right > box.right + 0.5;
+  });
+}
+
+/*
  * How far the page's table runs past the box it scrolls in, in pixels: 0
  * when every column fits its card. The table's own box, not the page's.
  */
@@ -1647,6 +1663,12 @@ test.describe("the lists say what the Overview says", () => {
     await expect(search.getByTestId("resource-status-reason")).toHaveText(
       "4 failed tasks in the last hour",
     );
+    // An image whole, its tag included: it breaks after its dots and slashes.
+    const webImage: Locator = web.getByTestId("resource-column-name");
+    await expect(webImage).toHaveText(
+      "registry.acme-swarm.example/shop/web:5.1.2",
+    );
+    expect(await isOutsideItsCell(webImage)).toBe(false);
 
     await page.goto(withQuery(`${CLUSTER_PATH}/tasks`, TROUBLE));
     const hot: Locator = listRow(page, "shop_checkout.2");
@@ -1656,7 +1678,20 @@ test.describe("the lists say what the Overview says", () => {
     await expect(hot.getByTestId("resource-memory-bar")).toHaveClass(
       /bg-amber|bg-yellow|bg-orange/,
     );
+    // In MiB, as Docker and the task's own page write it - never "471.0 MB".
+    await expect(hot).toContainText("471 MiB");
     await expect(listRow(page, "shop_web.2")).toContainText("Failed");
+    /*
+     * The image folded under a task's name reads whole: cut where the
+     * column ended, it read "shop/check".
+     */
+    const foldedImage: Locator = listRow(page, "shop_checkout.1").getByTestId(
+      "resource-column-name",
+    );
+    await expect(foldedImage).toHaveText(
+      "registry.acme-swarm.example/shop/checkout:2.7.0",
+    );
+    expect(await isOutsideItsCell(foldedImage)).toBe(false);
 
     /*
      * At a laptop's width the list fits its card, CPU and Memory in view:
@@ -1711,6 +1746,22 @@ test.describe("the lists say what the Overview says", () => {
     ).toBeVisible();
     await expectNoSidewaysScroll(page);
     await screenshot(page, "docker-swarm-services-trouble-phone-fa");
+
+    /*
+     * A task's memory reads as written on a right-to-left page: "471 MiB",
+     * never "MiB 471".
+     */
+    await page.goto(withQuery(`${CLUSTER_PATH}/tasks`, `${TROUBLE}&lang=fa`));
+    const memory: Locator = page
+      .locator("bdi")
+      .filter({ hasText: /^471 MiB$/ })
+      .first();
+    await expect(memory).toBeVisible();
+    expect(
+      await memory.evaluate((element: Element): string => {
+        return getComputedStyle(element).direction;
+      }),
+    ).toBe("ltr");
   });
 });
 

@@ -360,7 +360,11 @@ function toneOf(severity: ResourceAttentionSeverity | null): ResourcePartTone {
   return "positive";
 }
 
-// 61000 -> "1 min 1 s", 4200 -> "4.2 s".
+/*
+ * 61000 -> "1 min 1 s", 4200 -> "4.2 s", 7500000 -> "2 h 5 min". The
+ * Replication list's lag columns write it so too (formatDurationMs), so a
+ * pod's lag reads the same in its row and in the reason under its state.
+ */
 export function formatStorageArrayLag(milliseconds: number): string {
   if (milliseconds < 1000) {
     return `${Math.round(milliseconds)} ms`;
@@ -370,8 +374,15 @@ export function formatStorageArrayLag(milliseconds: number): string {
     const rounded: number = Math.round(seconds * 10) / 10;
     return `${rounded} s`;
   }
-  const minutes: number = Math.floor(seconds / 60);
-  const rest: number = Math.round(seconds - minutes * 60);
+  // Whole seconds first, so 119.6 s reads "2 min", never "1 min 60 s".
+  const wholeSeconds: number = Math.round(seconds);
+  if (wholeSeconds >= 3600) {
+    const hours: number = Math.floor(wholeSeconds / 3600);
+    const minutesPast: number = Math.floor((wholeSeconds % 3600) / 60);
+    return minutesPast > 0 ? `${hours} h ${minutesPast} min` : `${hours} h`;
+  }
+  const minutes: number = Math.floor(wholeSeconds / 60);
+  const rest: number = wholeSeconds % 60;
   return rest > 0 ? `${minutes} min ${rest} s` : `${minutes} min`;
 }
 

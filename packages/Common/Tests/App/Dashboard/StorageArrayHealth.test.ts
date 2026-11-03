@@ -685,6 +685,11 @@ describe("the figures in the reasons", () => {
     expect(formatStorageArrayLag(4200)).toBe("4.2 s");
     expect(formatStorageArrayLag(60000)).toBe("1 min");
     expect(formatStorageArrayLag(125000)).toBe("2 min 5 s");
+    // Whole seconds first: never "1 min 60 s".
+    expect(formatStorageArrayLag(119600)).toBe("2 min");
+    // An hour or more in hours and minutes, not "125 min 0 s".
+    expect(formatStorageArrayLag(3600000)).toBe("1 h");
+    expect(formatStorageArrayLag(7500000)).toBe("2 h 5 min");
     expect(formatStorageArrayLatency(850)).toBe("850 µs");
     expect(formatStorageArrayLatency(6140)).toBe("6.1 ms");
     expect(formatStorageArrayPercent(91)).toBe("91%");

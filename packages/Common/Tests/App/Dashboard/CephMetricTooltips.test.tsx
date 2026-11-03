@@ -806,7 +806,6 @@ const OSD_LIST_TITLES: Array<[string, CephMetric]> = [
   ["Used / Total", "osdUsedColumn"],
   ["PGs", "osdPgsColumn"],
   ["Apply / Commit Latency", "osdLatencyColumn"],
-  ["Age", "osdAgeColumn"],
 ];
 
 // An OSD's page: its tiles, then its Details card.
@@ -1485,45 +1484,34 @@ describe("OSD list", () => {
   });
 
   /*
-   * Ceph reports no creation time for an OSD, so Age is how long OneUptime
-   * has had the OSD's inventory row - which is what its text says.
+   * Ceph sends no OSD's age, so an Age column could only say when OneUptime
+   * first saw the OSD; like the Pools and Daemons lists, the list has none,
+   * and its columns end with the latency the View column used to cut.
    */
-  test("Age counts from when OneUptime first recorded the OSD, not from anything Ceph reports", async () => {
-    const rows: Array<Row> = OSD_ROWS.map((row: Row): Row => {
-      // osd.2 was first recorded 10 minutes ago; the rest 3 days ago.
-      return row["externalId"] === "osd.2"
-        ? { ...row, createdAt: minutesAgo(10) }
-        : row;
-    });
-    modelGetListMock.mockImplementation(async () => {
-      return { data: rows, count: rows.length, skip: 0, limit: 100 };
-    });
-
+  test("no Age column: Ceph sends no OSD's age", async () => {
     await renderAndSettle(<CephClusterOsds {...PAGE_PROPS} />);
     await screen.findByText("osd.0");
 
-    const ageHeader: HTMLElement = infoButton("Age").closest(
-      "th",
-    ) as HTMLElement;
-    const ageIndex: number = Array.from(
-      ageHeader.parentElement!.children,
-    ).indexOf(ageHeader);
-    expect(ageIndex).toBeGreaterThan(0);
-
-    const cellUnderAge: (name: string) => string = (name: string): string => {
-      const row: HTMLElement = screen
-        .getByText(name)
-        .closest("tr") as HTMLElement;
-      return (row.children[ageIndex]?.textContent || "").trim();
-    };
-
-    expect(cellUnderAge("osd.0")).toBe("3d");
-    expect(cellUnderAge("osd.2")).toBe("10m");
-    // Its 20-minute-old figures do not touch Age: that is the row's age.
-    expect(cellUnderAge("osd.3")).toBe("3d");
-    expect(CEPH_METRIC_DESCRIPTIONS.osdAgeColumn).toMatch(
-      /first saw this OSD in the data the Ceph agent sends, not how old the OSD or its disk is/,
-    );
+    const headers: Array<string> = Array.from(
+      document.querySelectorAll("thead th"),
+    ).map((header: Element): string => {
+      return (header.textContent || "").trim();
+    });
+    expect(headers).not.toContain("Age");
+    expect(
+      headers.filter((header: string): boolean => {
+        return header !== "";
+      }),
+    ).toEqual([
+      "Name",
+      "Host",
+      "Status",
+      "In / Out",
+      "Class",
+      "Used / Total",
+      "PGs",
+      "Apply / Commit Latency",
+    ]);
   });
 
   test("an OSD that has not reported in 15 minutes shows a dash, as the text says", async () => {

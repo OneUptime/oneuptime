@@ -10,7 +10,10 @@ import {
   DOCKER_SWARM_TASK_METRIC_THRESHOLDS,
   withDockerSwarmStatus,
 } from "../../../Pages/DockerSwarm/Utils/DockerSwarmPartFacts";
-import { toInfrastructureResource } from "../../../Pages/DockerSwarm/Utils/DockerSwarmResourceUtils";
+import {
+  formatBytes,
+  toInfrastructureResource,
+} from "../../../Pages/DockerSwarm/Utils/DockerSwarmResourceUtils";
 
 /*
  * The current tasks of a Docker Swarm node or service, each with its state
@@ -64,6 +67,8 @@ const DockerSwarmTasksTable: FunctionComponent<ComponentProps> = (
         showAge={false}
         tableIdPrefix="docker-swarm-part"
         metricThresholds={DOCKER_SWARM_TASK_METRIC_THRESHOLDS}
+        // "471 MiB", as Docker and the task's own page write it.
+        formatMemory={formatBytes}
         builtInColumnDescriptions={{
           status: DOCKER_SWARM_METRIC_DESCRIPTIONS.taskStatus,
           cpu: DOCKER_SWARM_METRIC_DESCRIPTIONS.taskCpuColumn,

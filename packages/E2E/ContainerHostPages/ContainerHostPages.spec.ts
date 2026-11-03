@@ -144,6 +144,22 @@ async function isCut(locator: Locator): Promise<boolean> {
   });
 }
 
+/*
+ * Whether a value runs past the table cell it is drawn in: a cell clips
+ * what does not fit, so a name cut there reads as another name.
+ */
+async function isOutsideItsCell(locator: Locator): Promise<boolean> {
+  return await locator.evaluate((element: Element): boolean => {
+    const cell: Element | null = element.closest("td");
+    if (!cell) {
+      return true;
+    }
+    const value: DOMRect = element.getBoundingClientRect();
+    const box: DOMRect = cell.getBoundingClientRect();
+    return value.left < box.left - 0.5 || value.right > box.right + 0.5;
+  });
+}
+
 function attentionCard(page: Page, testId: string): Locator {
   return page.getByTestId(testId);
 }
@@ -471,11 +487,15 @@ test.describe("the Containers list", () => {
      */
     await expect(row("shop-worker-1")).toContainText("shop");
 
-    // Every name whole: none cut short.
+    /*
+     * Every name whole: none runs past its cell. A link is inline, so its
+     * own scroll width never says it is cut: its box against the cell's.
+     */
     const names: Locator = page.locator("tbody tr td:first-child a");
     const count: number = await names.count();
+    expect(count).toBeGreaterThan(0);
     for (let index: number = 0; index < count; index++) {
-      expect(await isCut(names.nth(index))).toBe(false);
+      expect(await isOutsideItsCell(names.nth(index))).toBe(false);
     }
 
     await screenshot(page, "docker-containers-1280");

@@ -53,7 +53,6 @@ export type CephMetric =
   | "osdUsedColumn"
   | "osdPgsColumn"
   | "osdLatencyColumn"
-  | "osdAgeColumn"
   // An OSD's page (Components/Ceph/Part: its hero, tiles and details)
   | "osdStatus"
   | "osdPlacement"
@@ -153,9 +152,6 @@ export const CEPH_METRIC_DESCRIPTIONS: Record<CephMetric, string> = {
   ),
   osdLatencyColumn: translationKey(
     "The OSD's latest apply and commit latency in milliseconds, as reported by Ceph: how long writes take to reach its disk, where values that stay high point to a slow or failing disk. Shows a dash if it has not reported in the last 15 minutes.",
-  ),
-  osdAgeColumn: translationKey(
-    "How long ago OneUptime first saw this OSD in the data the Ceph agent sends, not how old the OSD or its disk is. It starts again from zero if the OSD was missing from that data for more than about 15 minutes.",
   ),
   osdStatus: translationKey(
     "This OSD by the cluster's rules: Up while its daemon runs, Down in red while it is down but still in the cluster, amber when down and out or out of the cluster. A running OSD turns amber past 85% used or 100 ms apply latency, and red past 95%, Ceph's full ratio.",

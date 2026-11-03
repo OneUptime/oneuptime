@@ -751,6 +751,7 @@ describe("Docker Swarm list pages", () => {
         latestCpuPercent: 12.5,
         latestMemoryBytes: 64 * 1024 * 1024,
         metricsUpdatedAt: FRESH,
+        image: "registry.acme-swarm.example/shop/web:5.1.2",
         attributes: { desiredState: "running" },
       }),
     ];
@@ -761,6 +762,22 @@ describe("Docker Swarm list pages", () => {
     await flush();
 
     expect(screen.getByText("shop_web.1")).toBeInTheDocument();
+
+    const task: HTMLElement = screen
+      .getByText("shop_web.1")
+      .closest("tr") as HTMLElement;
+    // Its memory in MiB, as Docker and the task's own page write it.
+    expect(within(task).getByText("64.0 MiB")).toBeInTheDocument();
+    expect(within(task).queryByText("64.0 MB")).not.toBeInTheDocument();
+    /*
+     * Its image whole, tag included: it breaks after its dots and slashes,
+     * never where the column ends ("shop/check").
+     */
+    const image: HTMLElement = within(task).getByTestId("resource-column-name");
+    expect(image).toHaveTextContent(
+      "registry.acme-swarm.example/shop/web:5.1.2",
+    );
+    expect(image.querySelectorAll("wbr").length).toBeGreaterThan(0);
 
     await expectTooltip("Status", T.taskStatus);
     await expectTooltip("CPU", T.taskCpuColumn);

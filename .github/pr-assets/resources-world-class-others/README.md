@@ -28,7 +28,11 @@ builder's page, `review-*-after.png` the reviewed one).
 | review-ceph-osd-hero | A down OSD still in the cluster: its placement badge grey, not green beside the red Down |
 | review-ceph-osd-out | An OSD up but out: "Out of cluster" once, in its pill, not again in a badge |
 | review-swarm-service | A Swarm service: no tasks chip under a pill that counts its replicas, no row of one tab |
-| review-swarm-tasks | The Swarm Tasks list fits its card: no Service column, the image folded, CPU and Memory in view |
+| review-swarm-tasks | The Swarm Tasks list fits its card: no Service column, the image folded whole (it breaks after its dots and slashes, never cut at "shop/check"), CPU and Memory in view, memory in MiB as the task's page writes it |
+| review-ceph-osds | The Ceph OSDs list fits its card at 1280: no Age column (Ceph sends no OSD's age), so the latency is no longer cut under the View column |
+| review-persian-osds | The OSDs list in Persian: each figure in its own direction ("3 / 4 ms", not "ms 4 / 3"; "1.5 TiB / 3.8 TiB", not "TiB / 3.8 TiB ... 1.5") |
+| review-persian-pools | The Pools list in Persian: a name as written (".mgr", not "mgr.") |
+| review-replication-lag | A FlashArray pod's lag reads the same in its column and under its state ("1 min 35 s", not "1.6 min" beside it) |
 | review-ceph-pools | The Ceph Pools list: Objects folds under Stored, so a long pool name is no longer broken mid-word |
 | review-docker-attention | Docker's Needs attention: no Container chip on every row, the shared description |
 | review-file-system-details | A FlashBlade file system's Details: only what it reported, no rows of dashes |

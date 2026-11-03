@@ -691,32 +691,29 @@ describe("Ceph OSD list", () => {
     },
   );
 
-  test("the built-in Status and Age columns are explained, and Class is not a metric", () => {
+  test("the built-in Status column is explained, and Class is not a metric", () => {
     expect(code).toContain(
-      "builtInColumnDescriptions={{ status: CEPH_METRIC_DESCRIPTIONS.osdStatusColumn, age: CEPH_METRIC_DESCRIPTIONS.osdAgeColumn, }}",
+      "builtInColumnDescriptions={{ status: CEPH_METRIC_DESCRIPTIONS.osdStatusColumn, }}",
     );
     expect(code).toContain('{ title: "Class", key: "deviceClass" }');
   });
 
   /*
-   * Ceph reports no creation time for an OSD. The Age column is the age of
-   * OneUptime's own inventory row, which is what the text has to say.
+   * Ceph reports no creation time for an OSD, so an Age column could only
+   * say when OneUptime first saw it. Like the Pools and Daemons lists, the
+   * OSDs list draws none: at 1280 beside the side menu it pushed the list
+   * past its card.
    */
-  test("Age is the inventory row's age, as its text says", () => {
-    expect(code).toContain("age: CephResourceUtils.formatAge(row.createdAt),");
-    expect(CEPH_METRIC_DESCRIPTIONS.osdAgeColumn).toContain(
-      "first saw this OSD",
-    );
-    expect(CEPH_METRIC_DESCRIPTIONS.osdAgeColumn).toContain(
-      "not how old the OSD or its disk is",
-    );
+  test("no Age column: Ceph sends no OSD's age", () => {
+    expect(code).toContain("showAge={false}");
+    expect(code).not.toContain("osdAgeColumn");
+    expect(Object.keys(CEPH_METRIC_DESCRIPTIONS)).not.toContain("osdAgeColumn");
   });
 
   /*
-   * "Starts again from zero after about 15 minutes missing": the snapshot
-   * upsert never rewrites createdAt, and the cleanup job deletes rows not
-   * seen for the stale threshold (15 minutes unless overridden), so the
-   * OSD's next appearance inserts a fresh row.
+   * The snapshot upsert never rewrites createdAt, and the cleanup job
+   * deletes rows not seen for the stale threshold (15 minutes unless
+   * overridden), so an OSD's next appearance inserts a fresh row.
    */
   test("the row's createdAt survives upserts and restarts only after the 15-minute prune", () => {
     const service: string = fs
@@ -762,9 +759,6 @@ describe("Ceph OSD list", () => {
     );
     expect(service).toContain("return 15; } }");
     expect(cleanup).toContain("CephResourceService.deleteStaleForCluster({");
-    expect(CEPH_METRIC_DESCRIPTIONS.osdAgeColumn).toContain(
-      "missing from that data for more than about 15 minutes",
-    );
   });
 
   /*

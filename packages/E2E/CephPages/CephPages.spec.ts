@@ -129,6 +129,36 @@ async function isCut(locator: Locator): Promise<boolean> {
   });
 }
 
+/*
+ * How far the page's table runs past the box it scrolls in, in pixels: 0
+ * when every column fits its card. The table's own box, not the page's.
+ */
+async function tableOverflowOf(page: Page): Promise<number> {
+  return await page
+    .locator("table")
+    .first()
+    .evaluate((table: Element): number => {
+      let box: HTMLElement | null = table.parentElement;
+      while (box && box !== document.body) {
+        const overflow: string = getComputedStyle(box).overflowX;
+        if (overflow === "auto" || overflow === "scroll") {
+          return box.scrollWidth - box.clientWidth;
+        }
+        box = box.parentElement;
+      }
+      return 0;
+    });
+}
+
+// A list row's name, in the box the table cuts it in (a link is inline).
+function nameBoxOf(page: Page, name: string): Locator {
+  return page
+    .locator("tr")
+    .filter({ hasText: name })
+    .first()
+    .locator("[data-table-name]");
+}
+
 function plainText(text: string | null): string {
   return (text || "").replace(ISOLATE_MARKS, "");
 }
@@ -458,6 +488,23 @@ test.describe("the OSDs list", () => {
     ).toBeVisible();
     await expect(rowNamed(page, "osd.0")).toContainText("Up");
 
+    /*
+     * The list fits its card beside the side menu: no Age column (Ceph
+     * sends no OSD's age), so the latency is no longer cut under the View
+     * column.
+     */
+    await expect(page.getByRole("columnheader", { name: /^Age/ })).toHaveCount(
+      0,
+    );
+    await expect
+      .poll(async (): Promise<number> => {
+        return await tableOverflowOf(page);
+      })
+      .toBeLessThanOrEqual(1);
+    await expect(
+      page.getByRole("columnheader", { name: /^Apply \/ Commit Latency/ }),
+    ).toBeInViewport();
+
     await screenshot(page, "ceph-osds-1280");
   });
 
@@ -482,6 +529,37 @@ test.describe("the OSDs list", () => {
     await expectNoSidewaysScroll(page);
     await screenshot(page, "ceph-osds-390");
   });
+
+  test("in Persian: a figure reads as written, never back to front", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(LAPTOP);
+    await openList(page, "osds", "osd.0", "lang=fa");
+    /*
+     * "3 / 4 ms" read "ms 4 / 3" on a right-to-left page, and "1.5 TiB /
+     * 3.8 TiB (38.0%)" lost its first number to the line's other end.
+     */
+    for (const figure of ["3 / 4 ms", "1.5 TiB / 3.8 TiB (38.0%)"]) {
+      const cell: Locator = rowNamed(page, "osd.0")
+        .locator('span[dir="auto"]')
+        .filter({ hasText: figure })
+        .first();
+      await expect(cell).toBeVisible();
+      expect(
+        await cell.evaluate((element: Element): string => {
+          return getComputedStyle(element).direction;
+        }),
+      ).toBe("ltr");
+    }
+    await expect
+      .poll(async (): Promise<number> => {
+        return await tableOverflowOf(page);
+      })
+      .toBeLessThanOrEqual(1);
+    await screenshot(page, "ceph-osds-fa-1280");
+  });
 });
 
 test.describe("the Pools list", () => {
@@ -505,12 +583,35 @@ test.describe("the Pools list", () => {
       degraded.locator('[data-tone="warning"]').first(),
     ).toBeVisible();
 
-    // A long pool name is drawn whole.
+    /*
+     * The list fits its card, and its names read: Max Avail and Objects
+     * fold under Stored, not under the name, so "cephfs_metadata" is whole
+     * (never "cephfs_metad" / "ata"), and a 43-letter name keeps to one
+     * line, cut at its end.
+     */
+    await expect
+      .poll(async (): Promise<number> => {
+        return await tableOverflowOf(page);
+      })
+      .toBeLessThanOrEqual(1);
+    expect(await isCut(nameBoxOf(page, "cephfs_metadata"))).toBe(false);
     const longName: Locator = page.getByRole("link", {
       name: "default.rgw.buckets.data.archive-eu-central",
     });
     await expect(longName).toBeVisible();
-    expect(await isCut(longName)).toBe(false);
+    const longNameBox: Locator = nameBoxOf(
+      page,
+      "default.rgw.buckets.data.archive-eu-central",
+    );
+    const lines: number = await longNameBox.evaluate(
+      (element: Element): number => {
+        const lineHeight: number = parseFloat(
+          getComputedStyle(element).lineHeight,
+        );
+        return Math.round(element.getBoundingClientRect().height / lineHeight);
+      },
+    );
+    expect(lines).toBe(1);
 
     await screenshot(page, "ceph-pools-1280");
   });
@@ -523,6 +624,14 @@ test.describe("the Pools list", () => {
     await page.setViewportSize(PHONE);
     await openList(page, "pools", "rbd", "lang=fa");
     await expect(page.getByText(PERSIAN["Available"]!).first()).toBeVisible();
+    // A name reads as written: ".mgr", never "mgr." at the line's other end.
+    const manager: Locator = page.getByRole("link", { name: ".mgr" });
+    await expect(manager).toBeVisible();
+    expect(
+      await manager.locator("bdi").evaluate((element: Element): string => {
+        return getComputedStyle(element).direction;
+      }),
+    ).toBe("ltr");
     await expectNoSidewaysScroll(page);
     await screenshot(page, "ceph-pools-fa-390");
   });

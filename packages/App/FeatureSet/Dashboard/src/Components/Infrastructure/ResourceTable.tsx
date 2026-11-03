@@ -26,6 +26,8 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { withSentenceDigits } from "../ResourcePart/SentenceDigits";
 import ResourceStatusCell from "./ResourceStatusCell";
+import BreakableName from "Common/UI/Components/BreakableName/BreakableName";
+import { isDashPlaceholder } from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * Product-neutral client-side view-model for infrastructure resource
@@ -150,6 +152,15 @@ export interface ResourceColumn {
   foldInto?: string | undefined;
   // Folded, the value says its column's name first ("CPU Capacity 76.80 GHz").
   showTitleWhenFolded?: boolean | undefined;
+  /*
+   * A name or a path - an image ("registry.example/shop/checkout:2.7.0"):
+   * drawn whole on as many lines as it needs, breaking after its own dots
+   * and slashes (BreakableName), and as written on a right-to-left page.
+   * Left to a line of its own, a registry path was cut short, and folded
+   * under a row's name it was cut mid-word ("shop/check"), the tag that
+   * tells two images apart out of sight.
+   */
+  isName?: boolean | undefined;
 }
 
 /*
@@ -558,18 +569,24 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
       type: FieldType.Element,
       key: "name",
       getElement: (resource: InfrastructureResource): ReactElement => {
+        /*
+         * As written on a right-to-left page, in an isolate of its own: a
+         * Ceph pool's ".mgr" read "mgr.".
+         */
         if (props.getViewRoute) {
           return (
             <Link
               to={props.getViewRoute(resource)}
               className="font-medium text-gray-900 hover:text-indigo-600 hover:underline"
             >
-              {resource.name}
+              <bdi>{resource.name}</bdi>
             </Link>
           );
         }
         return (
-          <span className="font-medium text-gray-900">{resource.name}</span>
+          <span className="font-medium text-gray-900">
+            <bdi>{resource.name}</bdi>
+          </span>
         );
       },
     },
@@ -645,6 +662,9 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
               showTitleWhenFolded: col.showTitleWhenFolded,
             }
           : {}),
+        ...(col.isName
+          ? { wrapContent: true, wrapMaxWidthClassName: "max-w-[16rem]" }
+          : {}),
         getElement: (resource: InfrastructureResource): ReactElement => {
           const value: string = col.getValue
             ? col.getValue(resource)
@@ -652,14 +672,42 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
           const tone: ResourceColumnTone | undefined = col.getTone
             ? col.getTone(resource)
             : undefined;
+          const isWritten: boolean =
+            Boolean(value) && !isDashPlaceholder(value);
+          const classNames: Array<string> = tone
+            ? [RESOURCE_COLUMN_TONE_CLASS_NAMES[tone]]
+            : [];
+          if (col.showTitleWhenFolded && !col.isName && isWritten) {
+            /*
+             * A reading folded with its column's name ("Max Avail 9.2 TiB")
+             * goes to the next line whole rather than leaving its unit
+             * there alone, where a longer title (Persian's) fills the line.
+             */
+            classNames.push("inline-block");
+          }
           return (
             <span
               className={
-                tone ? RESOURCE_COLUMN_TONE_CLASS_NAMES[tone] : undefined
+                classNames.length > 0 ? classNames.join(" ") : undefined
               }
               data-tone={tone}
+              /*
+               * In its own direction: on a Persian page "3 / 4 ms" read
+               * "ms 4 / 3", and "1.5 TiB / 3.8 TiB" lost its first number
+               * to the line's end.
+               */
+              dir="auto"
             >
-              {value}
+              {col.isName && isWritten ? (
+                <bdi
+                  className="[overflow-wrap:anywhere]"
+                  data-testid="resource-column-name"
+                >
+                  <BreakableName text={value} />
+                </bdi>
+              ) : (
+                value
+              )}
             </span>
           );
         },
@@ -767,7 +815,8 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
                   </span>
                 </div>
                 <div className="text-xs text-gray-500 mt-0.5">
-                  {formatMemory(resource.memoryUsageBytes)}
+                  {/* "471 MiB", not "MiB 471", on a right-to-left page. */}
+                  <bdi>{formatMemory(resource.memoryUsageBytes)}</bdi>
                 </div>
               </div>
             );
@@ -807,15 +856,17 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
                   </span>
                 </div>
                 <div className="text-xs text-gray-500 mt-0.5">
-                  {formatMemory(resource.memoryUsageBytes)} /{" "}
-                  {formatMemory(resource.memoryLimitBytes)}
+                  <bdi>
+                    {formatMemory(resource.memoryUsageBytes)} /{" "}
+                    {formatMemory(resource.memoryLimitBytes)}
+                  </bdi>
                 </div>
               </div>
             );
           }
 
           return (
-            <span className="text-sm text-gray-700">
+            <span className="text-sm text-gray-700" dir="auto">
               {formatMemory(resource.memoryUsageBytes)}
             </span>
           );

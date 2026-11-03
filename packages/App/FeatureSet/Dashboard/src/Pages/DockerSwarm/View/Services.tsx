@@ -124,6 +124,8 @@ const DockerSwarmClusterServices: FunctionComponent<
         {
           title: "Image",
           key: "image",
+          // Whole, tag included: it breaks after its dots and slashes.
+          isName: true,
           getValue: (resource: InfrastructureResource): string => {
             return resource.additionalAttributes["image"] || "—";
           },
