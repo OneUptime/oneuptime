@@ -467,7 +467,8 @@ test.describe("the Overview", () => {
     expect(new Set(tops).size, `the values' tops: ${tops.join(", ")}`).toBe(1);
     await expect(figures).toContainText("Exposed Stores");
     await expect(figures).toContainText("In Your Telemetry");
-    await expect(figures).toContainText("Not scrubbed, of 1 finding");
+    // The checkout service's logs: an email and an IP address, and a phone number already scrubbed.
+    await expect(figures).toContainText("Not scrubbed, of 3 findings");
   });
 
   test("Fix These First names each issue in the reader's language", async ({
