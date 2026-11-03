@@ -14,6 +14,10 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { keyForVMwareVCenter } from "Common/Utils/Telemetry/EntityKey";
 import DashboardLogsViewer from "../../Logs/LogsViewer";
 import {
+  buildSavedViewScope,
+  SavedViewScopeKind,
+} from "Common/Utils/Telemetry/SavedViewScope";
+import {
   VMWARE_HOST_HOSTNAME_COMMAND,
   VMWARE_PROBE_OR_AGENT_DOCS_PATH,
   VMWARE_SYSLOG_DOCS_PATH,
@@ -254,6 +258,11 @@ const VMwareHostLogsTab: FunctionComponent<ComponentProps> = (
   return (
     <DashboardLogsViewer
       id={`vmware-host-logs-${props.vcenterId.toString()}-${props.hostName}`}
+      savedViewScope={buildSavedViewScope(
+        SavedViewScopeKind.VMwareHost,
+        props.vcenterId,
+        props.hostName,
+      )}
       logQuery={logQuery}
       attributeFilterDisplayKeys={{
         [VMWARE_VCENTER_NAME_ATTRIBUTE]: "vCenter",

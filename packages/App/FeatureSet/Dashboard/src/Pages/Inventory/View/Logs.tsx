@@ -2,6 +2,10 @@ import InventorySignalPage, {
   InventorySignalRenderProps,
 } from "./InventorySignalPage";
 import LogsViewer from "../../../Components/Logs/LogsViewer";
+import {
+  buildSavedViewScope,
+  SavedViewScopeKind,
+} from "Common/Utils/Telemetry/SavedViewScope";
 import PageComponentProps from "../../PageComponentProps";
 import Log from "Common/Models/AnalyticsModels/Log";
 import Includes from "Common/Types/BaseDatabase/Includes";
@@ -17,6 +21,10 @@ const InventoryItemLogs: FunctionComponent<
         return (
           <LogsViewer
             id={`inventory-item-logs-${signal.modelId.toString()}`}
+            savedViewScope={buildSavedViewScope(
+              SavedViewScopeKind.InventoryItem,
+              signal.modelId,
+            )}
             logQuery={
               {
                 entityKeys: new Includes([signal.entityKey]),

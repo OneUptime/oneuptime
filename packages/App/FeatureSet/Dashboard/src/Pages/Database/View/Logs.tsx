@@ -10,6 +10,10 @@ import React, {
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import DashboardLogsViewer from "../../../Components/Logs/LogsViewer";
+import {
+  buildSavedViewScope,
+  SavedViewScopeKind,
+} from "Common/Utils/Telemetry/SavedViewScope";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import Query from "Common/Types/BaseDatabase/Query";
 import Log from "Common/Models/AnalyticsModels/Log";
@@ -88,6 +92,10 @@ const DatabaseServerLogs: FunctionComponent<
       )}
       <DashboardLogsViewer
         id={`database-server-logs-${modelId.toString()}`}
+        savedViewScope={buildSavedViewScope(
+          SavedViewScopeKind.DatabaseServer,
+          modelId,
+        )}
         logQuery={logQuery}
         entityKeyDisplays={entityKeyDisplays}
         showFilters={true}
