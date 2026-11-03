@@ -48,9 +48,9 @@ Abre **Ajustes de usuario**, a la derecha de la barra que está debajo de la bar
 | **Política de llamadas entrantes** | **Números de teléfono entrantes**: el número al que te llama una política de llamadas entrantes |
 | **Calendario** | **Feed de calendario**: tus turnos en tu aplicación de calendario, y recordatorios antes de que empiecen |
 | **Perfil** | **Campos personalizados**: datos que tu proyecto pide a sus miembros |
-| **Espacio de trabajo** | **Slack** y **Microsoft Teams**: tu propia cuenta, en cada espacio de trabajo que el proyecto ha conectado |
+| **Espacio de trabajo** | **Slack**, **Microsoft Teams** y **Mattermost**: tu propia cuenta, en cada espacio de trabajo que el proyecto ha conectado |
 
-**Primeros pasos** y **Alertas y notificaciones** están abiertas; las demás secciones empiezan plegadas, y una sección se abre sola cuando estás en una de sus páginas. **Espacio de trabajo** solo aparece si el proyecto ha conectado Slack o Microsoft Teams.
+**Primeros pasos** y **Alertas y notificaciones** están abiertas; las demás secciones empiezan plegadas, y una sección se abre sola cuando estás en una de sus páginas. **Espacio de trabajo** solo aparece si el proyecto ha conectado Slack, Microsoft Teams o Mattermost.
 
 Los propietarios y administradores del proyecto también pueden ver tu configuración: en **Usuarios**, abren tu fila y su sección **De guardia**, con **Preparación**, **Métodos de notificación** y **Reglas de guardia**. Pueden añadir un método por ti allí, pero el código va al propio método, así que solo tú puedes verificarlo.
 

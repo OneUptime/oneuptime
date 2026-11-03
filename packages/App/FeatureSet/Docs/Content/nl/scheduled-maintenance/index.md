@@ -56,7 +56,7 @@ Open **Geplande onderhoud** via het menu **Producten** in de bovenste balk. De l
 | ------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | **Overzicht** | **Alle gebeurtenissen** en **Lopende gebeurtenissen**, waarvan de badge de gebeurtenissen telt die nu lopen.                |
 | **Agenda** | **Onderhoudsagenda**: elke gebeurtenis op een maand, een week of een dag, naast de agenda's van buiten het project die je toevoegt. |
-| **Werkruimte** | **Slack** en **Microsoft Teams**, afhankelijk van wat het project heeft gekoppeld, of **Slack of Teams koppelen** als het geen van beide heeft. |
+| **Werkruimte** | **Slack**, **Microsoft Teams** en **Mattermost**, afhankelijk van wat het project heeft gekoppeld, of **Slack of Teams koppelen** als het er geen heeft. |
 | **Regels**    | **Eigenaarsregels**, **Runbook-regels**, **Labelregels**, **Herinneringsregels**.                                               |
 | **Instellingen** | **Status gebeurtenis**, **Gebeurtenis-sjablonen**, **Notitie-sjablonen**, **Aangepaste velden**, **Metingen**, **Agenda-instellingen**, **Nummering**. |
 
@@ -75,7 +75,7 @@ Zolang een gebeurtenis loopt, behandelt OneUptime de storing die ze plant als ve
 - **Netwerklocaties en SLO's houden zich in.** Een netwerklocatie die de gebeurtenis dekt, rekent haar geplande storing niet meer aan de locaties erboven toe, en de verbruikssnelheidsregels van een SLO activeren niets zolang een van zijn monitoren in onderhoud is. Zie [Netwerklocaties](/docs/monitor/network-sites#gepland-onderhoud-voor-netwerklocaties) en [Waarschuwingen en incidenten voor verbruikssnelheid](/docs/slo/burn-rate-alerts#gepland-onderhoud).
 - **Je statuspagina's tonen haar.** De gebeurtenis verschijnt op de statuspagina's die je hebt gekozen, eerst als binnenkort, dan als lopend, dan als voorbij, zolang **Zichtbaar op statuspagina** in haar **Instellingen** aanstaat, en vanaf haar **Publiceren op** als je er een hebt gekozen. Zodra ze is begonnen, toont op die pagina's de beschikbaarheidsgeschiedenis van elke resource waarop haar monitors staan haar op elke dag die haar venster raakt, en die resources tonen "In onderhoud" zolang ze loopt; de beschikbaarheidsgeschiedenis van de monitor in het dashboard toont haar op dezelfde manier. Zie [Uptimepercentages en geschiedenisgrafieken](/docs/status-pages/resources-and-groups#uptimepercentages-en-geschiedenisgrafieken).
 - **Abonnees horen ervan.** Standaard krijgen de abonnees van die pagina's bericht wanneer ze wordt gepland, wanneer ze begint en wanneer ze eindigt, en een herinnering vóór het begin als je herinneringen instelt. Zie [Geplande onderhoudsgebeurtenissen](/docs/status-pages/subscribers#geplande-onderhoudsgebeurtenissen).
-- **Je team hoort ervan.** Haar eigenaren krijgen bericht zoals hun [meldingsinstellingen](/docs/notifications/notification-settings) zeggen, en de Slack- en Microsoft Teams-regels onder **Werkruimte** plaatsen haar in je kanalen.
+- **Je team hoort ervan.** Haar eigenaren krijgen bericht zoals hun [meldingsinstellingen](/docs/notifications/notification-settings) zeggen, en de Slack-, Microsoft Teams- en Mattermost-regels onder **Werkruimte** plaatsen haar in je kanalen.
 
 ## De pagina's van een gebeurtenis
 

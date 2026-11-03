@@ -48,9 +48,9 @@ Abra **Configurações do usuário**, à direita da barra abaixo da barra superi
 | **Política de chamadas recebidas** | **Números de telefone recebidos**: o número em que uma política de chamadas recebidas liga para você |
 | **Calendário** | **Feed de calendário**: os seus turnos no seu app de calendário, e lembretes antes de começarem |
 | **Perfil** | **Campos personalizados**: dados que o seu projeto pede aos membros |
-| **Espaço de trabalho** | **Slack** e **Microsoft Teams**: a sua própria conta, em cada espaço de trabalho que o projeto conectou |
+| **Espaço de trabalho** | **Slack**, **Microsoft Teams** e **Mattermost**: a sua própria conta, em cada espaço de trabalho que o projeto conectou |
 
-**Primeiros passos** e **Alertas e notificações** ficam abertas; as outras seções começam recolhidas, e uma seção se abre sozinha quando você está em uma das páginas dela. **Espaço de trabalho** só aparece quando o projeto conectou o Slack ou o Microsoft Teams.
+**Primeiros passos** e **Alertas e notificações** ficam abertas; as outras seções começam recolhidas, e uma seção se abre sozinha quando você está em uma das páginas dela. **Espaço de trabalho** só aparece quando o projeto conectou o Slack, o Microsoft Teams ou o Mattermost.
 
 Proprietários e administradores do projeto também podem ver a sua configuração: em **Usuários**, eles abrem a sua linha e a seção **Plantão** dela, com **Prontidão**, **Métodos de notificação** e **Regras de Plantão**. Eles podem adicionar um método para você ali, mas o código vai para o próprio método, então só você pode verificá-lo.
 

@@ -58,7 +58,7 @@ Utløs et varsel når teamet ditt bør se på noe før noen utenfor merker det, 
 | **Varsler**       | **Alle varsler** og **Aktive varsler**, der det røde merket teller varslene som ikke er løst ennå.                          |
 | **Episoder** | **Alle episoder** og **Aktive episoder**: relaterte varsler samlet i ett problem å jobbe med. |
 | **KI**            | **Innsikt**, **Logger** og **Innstillinger**: hva OneUptime AI har lært av varslene dine, alt den har gjort, og hva den har lov til. |
-| **Arbeidsområde** | **Slack** og **Microsoft Teams**, avhengig av hva prosjektet har koblet til, eller **Koble til Slack eller Teams** når det ikke har noen av dem. |
+| **Arbeidsområde** | **Slack**, **Microsoft Teams** og **Mattermost**, avhengig av hva prosjektet har koblet til, eller **Koble til Slack eller Teams** når det ikke har noen av dem. |
 | **Regler**        | **Grupperingsregler**, **Vaktregler**, **Hendelsesregler**, **Eierregler**, **Runbook-regler**, **Personvernregler**, **Etikettregler**, **Påminnelsesregler**. |
 | **Innstillinger** | **Varselsstatus**, **Varselsalvor**, **Notatmaler**, **Egendefinerte felt**, **Målinger**, **Medlemskap i episoder**, **Nummerering**.               |
 

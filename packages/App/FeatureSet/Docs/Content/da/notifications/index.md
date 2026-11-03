@@ -48,9 +48,9 @@ De er adskilt med vilje. At slå alle kanaler til i **Notifikationsindstillinger
 | **Indgående opkaldspolitik** | **Indgående telefonnumre**: det nummer, en politik for indgående opkald ringer dig op på |
 | **Kalender** | **Kalenderfeed**: dine vagter i din kalenderapp, og påmindelser, før de starter |
 | **Profil** | **Brugerdefinerede felter**: oplysninger, dit projekt beder sine medlemmer om |
-| **Arbejdsområde** | **Slack** og **Microsoft Teams**: din egen konto, i hvert arbejdsområde, projektet har forbundet |
+| **Arbejdsområde** | **Slack**, **Microsoft Teams** og **Mattermost**: din egen konto, i hvert arbejdsområde, projektet har forbundet |
 
-**Kom godt i gang** og **Advarsler og notifikationer** er åbne; de andre sektioner starter foldet sammen, og en sektion åbner af sig selv, når du er på en af dens sider. **Arbejdsområde** vises kun, når projektet har forbundet Slack eller Microsoft Teams.
+**Kom godt i gang** og **Advarsler og notifikationer** er åbne; de andre sektioner starter foldet sammen, og en sektion åbner af sig selv, når du er på en af dens sider. **Arbejdsområde** vises kun, når projektet har forbundet Slack, Microsoft Teams eller Mattermost.
 
 Projektejere og administratorer kan også se din opsætning: Under **Brugere** åbner de din række og dens sektion **Vagt**, med **Parathed**, **Notifikationsmetoder** og **Vagtregler**. De kan tilføje en metode for dig der, men koden går til selve metoden, så kun du kan bekræfte den.
 
