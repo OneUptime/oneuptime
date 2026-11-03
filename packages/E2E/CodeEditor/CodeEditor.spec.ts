@@ -8,6 +8,7 @@ import {
 } from "@playwright/test";
 import fs from "fs";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * CodeEditor in real browsers. The editor is a transparent textarea over a
@@ -1008,10 +1009,7 @@ test.describe("layout", () => {
     await page.goto("/");
     await expect(editor(page, "long")).toBeVisible();
 
-    const overflow: number = await page.evaluate((): number => {
-      return document.documentElement.scrollWidth - window.innerWidth;
-    });
-    expect(overflow).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
 
     for (const id of ["json", "javascript", "sigma"]) {
       const root: { x: number; width: number } = (await editor(

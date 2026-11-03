@@ -8,6 +8,7 @@ import {
   test,
 } from "@playwright/test";
 import URL from "Common/Types/API/URL";
+import { expectNoSidewaysScroll } from "../../SuiteHelpers/PageFit";
 
 /*
  * The website's OpenTelemetry integrations, as a visitor uses them: the
@@ -37,15 +38,6 @@ async function shownCardLinks(page: Page): Promise<Array<string>> {
         return link.getAttribute("href") || "";
       });
     });
-}
-
-async function sidewaysScroll(page: Page): Promise<number> {
-  return await page.evaluate((): number => {
-    return (
-      document.documentElement.scrollWidth -
-      document.documentElement.clientWidth
-    );
-  });
 }
 
 test.describe("Home: OpenTelemetry integrations", () => {
@@ -210,7 +202,7 @@ test.describe("Home: OpenTelemetry integrations", () => {
 
     for (const route of ["/integrations", GUIDE_PATH]) {
       await page.goto(pageUrl(route));
-      expect([route, await sidewaysScroll(page)]).toEqual([route, 0]);
+      await expectNoSidewaysScroll(page, { message: route });
     }
   });
 

@@ -1,6 +1,7 @@
 import { expect, Locator, Page, test, TestInfo } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 interface Appearance {
   background: string;
@@ -100,11 +101,7 @@ const bounds: (locator: Locator) => Promise<Bounds> = async (
 const expectNoOverflow: (page: Page) => Promise<void> = async (
   page: Page,
 ): Promise<void> => {
-  expect(
-    await page.evaluate((): boolean => {
-      return document.documentElement.scrollWidth <= window.innerWidth;
-    }),
-  ).toBe(true);
+  await expectNoSidewaysScroll(page);
   const overflowingAlerts: Array<string | null> = await page
     .getByRole("alert")
     .evaluateAll((alerts: Array<HTMLElement>): Array<string | null> => {

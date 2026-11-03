@@ -7,6 +7,8 @@ import {
 } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 /*
  * The first run of the infrastructure lists, in a real browser: the real
@@ -222,20 +224,9 @@ async function screenshot(page: Page, name: string): Promise<void> {
   });
 }
 
-// Whether the page scrolls sideways: it must not, at any width.
-async function scrollsSideways(page: Page): Promise<boolean> {
-  return page.evaluate((): boolean => {
-    return (
-      document.documentElement.scrollWidth >
-      document.documentElement.clientWidth + 1
-    );
-  });
-}
-
 // Whether `lower` is drawn below `upper` on the page.
 async function isBelow(upper: Locator, lower: Locator): Promise<boolean> {
-  const top: { y: number; height: number } | null = await upper.boundingBox();
-  const bottom: { y: number } | null = await lower.boundingBox();
+  const [top, bottom] = await boxesInOneFrame([upper, lower]);
   return Boolean(top && bottom && bottom.y >= top.y + top.height - 1);
 }
 
@@ -692,7 +683,7 @@ test("All vCenters opens on Name, Status, Last Seen, Labels and Owners; Collecte
     tableCard(page).getByText("VMware Agent", { exact: true }),
   ).toHaveCount(0);
   await expect(page.getByTestId("agent-version-outdated")).toHaveCount(0);
-  expect(await scrollsSideways(page)).toBe(false);
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
   await screenshot(page, "vcenters-default-columns");
 
   // Both are offered, switched off, beside the columns that are on.
@@ -769,7 +760,7 @@ test("on a phone, a vCenter's card shows neither until Customize Columns switche
   await expect(agentCard).toBeVisible();
   expect(await cardFields(agentCard)).toEqual(["Name", "Status", "Last Seen"]);
   await expect(page.getByTestId("agent-version-outdated")).toHaveCount(0);
-  expect(await scrollsSideways(page)).toBe(false);
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
   await screenshot(page, "vcenters-default-columns-phone");
 
   // The phone's sheet lists all seven columns too.
@@ -803,7 +794,7 @@ test("on a phone, a vCenter's card shows neither until Customize Columns switche
     "Collected By",
     "Last Seen",
   ]);
-  expect(await scrollsSideways(page)).toBe(false);
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
   await screenshot(page, "vcenters-columns-switched-on-phone");
 });
 
@@ -911,7 +902,7 @@ test("on a phone the first run fits, with the showcase under the empty table", a
   await expect(emptyTableCreate(page)).toHaveCount(0);
   await expect(showcaseTitle(page)).toHaveText(HOSTS_SHOWCASE_TITLE);
   await expect(showcaseButton(page)).toBeVisible();
-  expect(await scrollsSideways(page)).toBe(false);
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
   await screenshot(page, "hosts-first-run-phone");
 
   await page.goto(VCENTERS);
@@ -920,7 +911,7 @@ test("on a phone the first run fits, with the showcase under the empty table", a
   });
   await expect(showcaseButton(page)).toHaveText("Connect vCenter");
   await expect(emptyTableCreate(page)).toHaveCount(0);
-  expect(await scrollsSideways(page)).toBe(false);
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
   await screenshot(page, "vcenters-first-run-phone");
 });
 

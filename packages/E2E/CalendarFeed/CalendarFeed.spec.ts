@@ -1,5 +1,6 @@
 import { expect, Locator, Page, test } from "@playwright/test";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * The on-call calendar feed cards, end to end in a browser, against the
@@ -107,12 +108,6 @@ async function box(locator: Locator): Promise<Box> {
   return found as Box;
 }
 
-async function horizontalOverflow(page: Page): Promise<number> {
-  return await page.evaluate(() => {
-    return document.documentElement.scrollWidth - window.innerWidth;
-  });
-}
-
 /*
  * The card that holds the personal link, found by what it holds rather than
  * by its title, so it is found in every language.
@@ -202,7 +197,7 @@ test.describe("User Settings > Calendar Feed on a laptop (1280px)", () => {
         .getByText("Apple Calendar / Outlook"),
     ).toBeVisible();
 
-    expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
 
     await linkCard(page).screenshot({
       path: path.join(SCREENSHOTS, "personal-google-1280.png"),
@@ -684,7 +679,7 @@ test.describe("the cards on a phone (390px)", () => {
       page.getByTestId("personal-calendar-feed-copy-button"),
     ).toBeInViewport();
 
-    expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
 
     await page.screenshot({
       path: path.join(SCREENSHOTS, "personal-google-390.png"),
@@ -708,7 +703,7 @@ test.describe("the cards on a phone (390px)", () => {
       );
 
       expect(status.y + status.height).toBeLessThanOrEqual(links.y);
-      expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
+      await expectNoSidewaysScroll(page);
     }
   });
 
@@ -720,10 +715,7 @@ test.describe("the cards on a phone (390px)", () => {
     for (const query of ["page=schedule", "page=project", "state=empty"]) {
       await open(page, query, 390);
 
-      expect({ query, overflow: await horizontalOverflow(page) }).toEqual({
-        query,
-        overflow: 0,
-      });
+      await expectNoSidewaysScroll(page, { message: query });
     }
   });
 });
@@ -864,7 +856,7 @@ test.describe("German", () => {
       await expect(
         page.getByTestId("personal-calendar-feed-link-mask-hint"),
       ).toHaveText(token.slice(-4));
-      expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
+      await expectNoSidewaysScroll(page);
     }
   });
 });
@@ -1001,7 +993,7 @@ test.describe("the empty state", () => {
     expect(Math.abs(generate.x - title.x)).toBeLessThanOrEqual(1);
     // One line of 14px text in a 38px button, not two.
     expect(generate.height).toBeLessThan(48);
-    expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
   });
 
   /*

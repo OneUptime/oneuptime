@@ -405,8 +405,12 @@ function FixtureRoutes() {
   );
 }
 
+/*
+ * Navigates as the Dashboard does (its src/Index.tsx): each navigation renders
+ * at once, not in a React transition (Tests/Ops/E2EFixtureRouters).
+ */
 createRoot(document.getElementById("root")).render(
-  <BrowserRouter>
+  <BrowserRouter useTransitions={false}>
     <header className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 bg-white px-6 py-4">
       <div className="flex items-center gap-5">
         <span className="text-lg font-semibold text-gray-900">OneUptime</span>

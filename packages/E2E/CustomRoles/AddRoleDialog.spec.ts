@@ -11,6 +11,7 @@ import {
 } from "../SuiteHelpers/Edition";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * The Add a Role dialog, in a browser, on the real Teams pages of the
@@ -193,15 +194,6 @@ function level(
   levelName: "Admin" | "Member" | "Viewer",
 ): Locator {
   return form.getByTestId(`role-picker-level-${levelName}`);
-}
-
-async function horizontalOverflow(page: Page): Promise<number> {
-  return await page.evaluate((): number => {
-    return (
-      document.documentElement.scrollWidth -
-      document.documentElement.clientWidth
-    );
-  });
 }
 
 async function activeTestId(page: Page): Promise<string | null> {
@@ -676,7 +668,7 @@ test.describe("Add a Role on a phone", () => {
       search.width - 12,
     );
     expect(search.y).toBeGreaterThan(wholeProject.y + wholeProject.height);
-    expect(await horizontalOverflow(page)).toBe(0);
+    await expectNoSidewaysScroll(page);
     await screenshot(page, "add-role-phone");
 
     await reach(form, "OneArea").click();
@@ -695,7 +687,7 @@ test.describe("Add a Role on a phone", () => {
     const levels: Box = await boxOf(form.getByTestId("role-picker-level"));
 
     expect(levels.y).toBeGreaterThan(title.y + title.height);
-    expect(await horizontalOverflow(page)).toBe(0);
+    await expectNoSidewaysScroll(page);
     await form.getByTestId("role-picker-picked").scrollIntoViewIfNeeded();
     await screenshot(page, "add-role-phone-area");
   });
@@ -744,7 +736,7 @@ test.describe("Add a Role in dark mode", () => {
 
     await reach(form, "OneArea").click();
     await areaTile(form, "OnCall").click();
-    expect(await horizontalOverflow(page)).toBe(0);
+    await expectNoSidewaysScroll(page);
     await screenshot(page, "add-role-dark-phone");
   });
 });

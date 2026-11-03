@@ -87,6 +87,10 @@ import {
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import {
+  bringPageAnchorIntoView,
+  givePageAnchorFocus,
+} from "Common/UI/Utils/PageAnchor";
+import {
   translatableTerm,
   TranslatableTerm,
   Translator,
@@ -786,9 +790,29 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
    * the list is first drawn, the first ticked card is brought into view.
    * Nothing can be ticked by hand before the list is drawn, so what is
    * ticked then is what the link ticked (none without one).
+   *
+   * It is kept in view while the page settles (bringPageAnchorIntoView):
+   * the list is drawn before it is laid out - the styles of the classes a
+   * page draws for the first time (the grid's two columns, the cards'
+   * padding) arrive a frame or more after it - and the cards above the
+   * ticked one grow as they do. Scrolled to once, at the moment the list
+   * was drawn, a card at the end of the list (a cluster's Warning Events,
+   * under Events) ended half a window under the bottom edge.
    */
   const hasShownLinkedSelection: React.MutableRefObject<boolean> =
     useRef<boolean>(false);
+
+  // What stops keeping the ticked card in view: the page going away.
+  const stopShowingLinkedSelection: React.MutableRefObject<
+    (() => void) | null
+  > = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    return () => {
+      stopShowingLinkedSelection.current?.();
+      stopShowingLinkedSelection.current = null;
+    };
+  }, []);
 
   useEffect(() => {
     if (isLoading || hasShownLinkedSelection.current) {
@@ -817,9 +841,24 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
       );
     });
 
-    if (firstCard && typeof firstCard.scrollIntoView === "function") {
-      firstCard.scrollIntoView({ block: "center" });
+    if (!firstCard) {
+      return;
     }
+
+    stopShowingLinkedSelection.current = bringPageAnchorIntoView(firstCard, {
+      block: "center",
+    });
+
+    /*
+     * And the keyboard's focus, when nothing holds it - the link that was
+     * followed went away with its page - as a link to a place on a page
+     * gives it: Tab goes on from the ticked card, to its own select button,
+     * not from the top of the page, scrolled back to; and a screen reader
+     * reads where the page went. The card takes it, not its select button,
+     * so a Space pressed to scroll the page never unticks it. Being ticked
+     * is its mark: it is not tinted as a landed setting is.
+     */
+    givePageAnchorFocus(firstCard);
   }, [isLoading]);
 
   if (isLoading) {

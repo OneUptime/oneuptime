@@ -1,6 +1,8 @@
 import { expect, Locator, Page, test } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 /*
  * A runbook's Triggers page in a browser, against the offline fixture
@@ -125,10 +127,10 @@ test.describe("setting up a schedule", () => {
     await expect(dialog(page)).toContainText("Europe/London");
 
     // The next runs are read on the zone's clock, so they come under it.
-    const zoneBox: { y: number; height: number } | null = await dialog(page)
-      .getByRole("combobox", { name: "Time zone" })
-      .boundingBox();
-    const previewBox: { y: number } | null = await preview(page).boundingBox();
+    const [zoneBox, previewBox] = await boxesInOneFrame([
+      dialog(page).getByRole("combobox", { name: "Time zone" }),
+      preview(page),
+    ]);
     expect(zoneBox).not.toBeNull();
     expect(previewBox).not.toBeNull();
     expect(previewBox!.y).toBeGreaterThan(zoneBox!.y + zoneBox!.height);
@@ -344,11 +346,10 @@ test.describe("the webhook", () => {
     const result: Locator = page.getByTestId("runbook-webhook-test-result");
     await expect(result).toContainText("The webhook started a run.");
     // Said by the button that sent it, not at the top of the card.
-    const resultBox: { y: number; height: number } | null =
-      await result.boundingBox();
-    const buttonBox: { y: number } | null = await page
-      .getByTestId("runbook-webhook-test")
-      .boundingBox();
+    const [resultBox, buttonBox] = await boxesInOneFrame([
+      result,
+      page.getByTestId("runbook-webhook-test"),
+    ]);
     expect(resultBox).not.toBeNull();
     expect(buttonBox).not.toBeNull();
     expect(buttonBox!.y - (resultBox!.y + resultBox!.height)).toBeLessThan(80);
@@ -499,10 +500,7 @@ test.describe("on every screen", () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await openTriggers(page, "webhook=on&schedule=weekdays");
 
-    const overflow: number = await page.evaluate((): number => {
-      return document.documentElement.scrollWidth - window.innerWidth;
-    });
-    expect(overflow).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     await screenshot(page, "phone");
 
     await page.getByRole("button", { name: "Edit Schedule" }).click();

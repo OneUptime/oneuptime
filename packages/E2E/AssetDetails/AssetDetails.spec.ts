@@ -1,5 +1,7 @@
 import { expect, Locator, Page, test } from "@playwright/test";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 /*
  * Where each asset detail came from, and when (OneUptime issue #5185), end
@@ -90,15 +92,6 @@ async function openOverview(page: Page, query: string = ""): Promise<void> {
   await expect(page.getByText("Device Details")).toBeVisible();
   await page.evaluate(async () => {
     await document.fonts.ready;
-  });
-}
-
-async function overflow(page: Page): Promise<number> {
-  return await page.evaluate(() => {
-    return (
-      document.documentElement.scrollWidth -
-      document.documentElement.clientWidth
-    );
   });
 }
 
@@ -228,10 +221,10 @@ test.describe("Inventory's Asset Details card, at a laptop's width", () => {
     ).toContainText(
       "neither this device's SNMP poll nor a discovery scan has found",
     );
-    const sourceBox: { y: number } | null = await saidOnce(page).boundingBox();
-    const unknownBox: { y: number } | null = await page
-      .getByTestId("inventory-asset-details-unknown")
-      .boundingBox();
+    const [sourceBox, unknownBox] = await boxesInOneFrame([
+      saidOnce(page),
+      page.getByTestId("inventory-asset-details-unknown"),
+    ]);
     expect(sourceBox!.y).toBeLessThan(unknownBox!.y);
 
     // The card read the device itself, with every column its facts need.
@@ -251,7 +244,7 @@ test.describe("Inventory's Asset Details card, at a laptop's width", () => {
       ]),
     );
 
-    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     await shoot(page, "item-pinged-1280-light");
   });
 
@@ -467,7 +460,7 @@ test.describe("the device's own Inventory card", () => {
     );
     await expect(page.getByTestId("device-inventory-found-by")).toHaveCount(0);
 
-    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     await shoot(page, "device-pinged-1280-light");
   });
 
@@ -525,7 +518,7 @@ test.describe("the device's Overview", () => {
       SCAN_LINE,
     );
 
-    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     await shoot(page, "overview-pinged-1280-light");
 
     await page.setViewportSize({ width: 390, height: 844 });
@@ -533,7 +526,7 @@ test.describe("the device's Overview", () => {
     await expect(
       page.getByTestId("network-device-details-dnsName-source"),
     ).toBeVisible();
-    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     await shoot(page, "overview-pinged-390-dark");
   });
 
@@ -624,7 +617,7 @@ test.describe("the device's Overview", () => {
     );
     expect(entity.searchParams.get("value")).toBe("edge-sw-07");
 
-    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     await card.scrollIntoViewIfNeeded();
     await card.screenshot({
       path: path.join(SCREENSHOTS, "overview-security-card-1280-light.png"),
@@ -637,12 +630,11 @@ test.describe("the device's Overview", () => {
     await expect(card.getByTestId("resource-security-case")).toBeVisible({
       timeout: 30000,
     });
-    expect(await overflow(page)).toBeLessThanOrEqual(0);
-    const cardBox: { x: number; width: number } | null =
-      await card.boundingBox();
-    const caseBox: { x: number; width: number } | null = await card
-      .getByTestId("resource-security-case")
-      .boundingBox();
+    await expectNoSidewaysScroll(page);
+    const [cardBox, caseBox] = await boxesInOneFrame([
+      card,
+      card.getByTestId("resource-security-case"),
+    ]);
     expect(caseBox!.x).toBeGreaterThanOrEqual(cardBox!.x);
     expect(caseBox!.x + caseBox!.width).toBeLessThanOrEqual(
       cardBox!.x + cardBox!.width + 1,
@@ -826,7 +818,7 @@ test.describe("an Inventory item's page: its Security card", () => {
     ).toHaveCount(0);
     expect(errors).toEqual([]);
 
-    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     await card.scrollIntoViewIfNeeded();
     await card.screenshot({
       path: path.join(SCREENSHOTS, "inventory-security-card-1280-light.png"),
@@ -874,7 +866,7 @@ test.describe("an Inventory item's page: its Security card", () => {
       await expect(card.getByTestId("resource-security-case")).toBeVisible({
         timeout: 30000,
       });
-      expect(await overflow(page)).toBeLessThanOrEqual(0);
+      await expectNoSidewaysScroll(page);
       expect(
         await staysInside(card.getByTestId("resource-security-case"), card),
       ).toBe(true);
@@ -914,10 +906,7 @@ test.describe("at a phone's width, in the dark and in other languages", () => {
       const card: Locator = await openItem(page, `?scenario=${scenario}`);
       await expect(value(page, "hostname")).toBeVisible();
 
-      expect({ scenario, overflow: await overflow(page) }).toEqual({
-        scenario,
-        overflow: 0,
-      });
+      await expectNoSidewaysScroll(page, { message: scenario });
       expect(
         await staysInside(
           page.locator(
@@ -931,7 +920,7 @@ test.describe("at a phone's width, in the dark and in other languages", () => {
 
     await open(page, "?page=device");
     await expect(page.getByTestId("device-inventory-source")).toBeVisible();
-    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     await shoot(page, "device-pinged-390-light");
   });
 
@@ -969,7 +958,7 @@ test.describe("at a phone's width, in the dark and in other languages", () => {
     await expect(
       page.getByTestId("inventory-asset-details-other-machine"),
     ).toBeVisible();
-    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     await shoot(page, "item-other-machine-390-dark");
 
     await open(page, "?page=device&theme=dark");
@@ -1004,14 +993,14 @@ test.describe("at a phone's width, in the dark and in other languages", () => {
     await expect(different(page, "macAddress")).toHaveText(
       "ARP-Tabelle von core-rtr-01 meldet 00-1B-54-C2-7A-44 · vor 15 Minuten",
     );
-    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     await shoot(page, "item-disagree-390-de");
 
     await open(page, "?page=device&lang=de");
     await expect(page.getByTestId("device-inventory-source")).toHaveText(
       "Von Erkennungsscan Store subnets über SNMP gelesen, vor 2 Stunden.",
     );
-    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     await shoot(page, "device-pinged-390-de");
   });
 });
@@ -1122,7 +1111,7 @@ test.describe("the Meraki dashboard as a source, and Refresh", () => {
       ]),
     );
 
-    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     await shoot(page, "item-meraki-1280-light");
   });
 
@@ -1168,7 +1157,7 @@ test.describe("the Meraki dashboard as a source, and Refresh", () => {
     // The page read its item again once, when the reading landed.
     expect(after.itemReloads).toBe(1);
 
-    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     await shoot(page, "item-meraki-refreshed-1280-light");
   });
 
@@ -1212,7 +1201,7 @@ test.describe("the Meraki dashboard as a source, and Refresh", () => {
       page.getByTestId("device-inventory-controller-source"),
     ).toHaveText("Read from the Meraki dashboard (Acme Retail), just now.");
 
-    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     await shoot(page, "device-meraki-unreachable-1280-light");
   });
 
@@ -1270,7 +1259,7 @@ test.describe("the Meraki dashboard as a source, and Refresh", () => {
       "Seine Sonde und das Meraki-Dashboard lesen es innerhalb einer Minute erneut.",
     );
     expect(await staysInside(status, card)).toBe(true);
-    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     await shoot(page, "item-meraki-refreshing-390-dark-de");
 
     await expect(status).toHaveText("Gerade eben erneut gelesen.");
@@ -1288,7 +1277,7 @@ test.describe("the Meraki dashboard as a source, and Refresh", () => {
     await expect(
       page.getByTestId("device-inventory-controller-source"),
     ).toBeVisible();
-    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     await shoot(page, "device-meraki-390-dark");
   });
 });
@@ -1404,7 +1393,7 @@ test.describe("Refresh, every way it can go", () => {
     await expect(status).toHaveAttribute("role", "alert");
     await expect(status).toHaveAttribute("data-tone", "error");
     await expect(button).toBeEnabled();
-    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     await shoot(page, "item-meraki-refused-1280-light");
   });
 
@@ -1474,7 +1463,7 @@ test.describe("Refresh, every way it can go", () => {
     );
     expect(boxes.icon).toBeGreaterThanOrEqual(boxes.text);
     expect(await staysInside(status, card)).toBe(true);
-    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     await shoot(page, "item-meraki-refreshing-1280-fa");
   });
 });
@@ -1516,7 +1505,7 @@ test.describe("why a detail is unknown (issue #5384)", () => {
       "/docs/monitor/network-traffic#cisco-meraki-without-netflow",
     );
 
-    expect(await overflow(page)).toBe(0);
+    await expectNoSidewaysScroll(page);
   });
 
   test("a device that answered its poll says it reports no more, in the reader's language", async ({

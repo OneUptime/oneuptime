@@ -9,6 +9,7 @@ import { parseColor } from "Common/Utils/ColorContrast";
 import Color, { RGB } from "Common/Types/Color";
 // The page's fixture state, as window.__statusPageSearchFixture.
 import "./FixtureState";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * A public status page's 90-day history shows the page's scheduled
@@ -155,11 +156,7 @@ test("the day dialog lists the maintenance and opens the event's page, from the 
   );
 
   // Nothing in the dialog runs off a phone's screen.
-  expect(
-    await page.evaluate((): boolean => {
-      return document.documentElement.scrollWidth <= window.innerWidth;
-    }),
-  ).toBe(true);
+  await expectNoSidewaysScroll(page);
 
   await page.screenshot({
     path: testInfo.outputPath("maintenance-day-dialog.png"),

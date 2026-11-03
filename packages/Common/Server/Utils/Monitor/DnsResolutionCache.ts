@@ -1,4 +1,5 @@
 import dns from "dns";
+import OldestKeyMap from "../../../Utils/OldestKeyMap";
 
 /*
  * Small positive/negative DNS cache for correlating datagram source IPs
@@ -64,7 +65,10 @@ const defaultResolver: ResolveHostnameFunction = async (
 };
 
 export class DnsResolutionCache {
-  private cache: Map<string, DnsCacheEntry> = new Map<string, DnsCacheEntry>();
+  private cache: OldestKeyMap<string, DnsCacheEntry> = new OldestKeyMap<
+    string,
+    DnsCacheEntry
+  >();
 
   private ttlInMs: number;
   private maxEntries: number;
@@ -107,7 +111,7 @@ export class DnsResolutionCache {
 
     if (this.cache.size >= this.maxEntries && !this.cache.has(key)) {
       // Bound memory: evict the oldest entry (Map preserves insert order).
-      const oldestKey: string | undefined = this.cache.keys().next().value;
+      const oldestKey: string | undefined = this.cache.oldestKey();
       if (oldestKey !== undefined) {
         this.cache.delete(oldestKey);
       }

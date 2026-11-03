@@ -1,6 +1,7 @@
 import { expect, Locator, Page, TestInfo, test } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * Create a dashboard, in a real browser, with the real template catalog,
@@ -769,14 +770,7 @@ test.describe("Create a dashboard", () => {
     const viewport: { width: number; height: number } = page.viewportSize()!;
     const dialogBox: Box = await boxOf(dialog);
 
-    expect(
-      await page.evaluate((): number => {
-        return (
-          document.documentElement.scrollWidth -
-          document.documentElement.clientWidth
-        );
-      }),
-    ).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     expect(dialogBox.x).toBeGreaterThanOrEqual(0);
     expect(dialogBox.x + dialogBox.width).toBeLessThanOrEqual(
       viewport.width + 1,
@@ -1011,17 +1005,7 @@ test.describe("in every language", () => {
             inside: select.x + select.width <= dialogBox.x + dialogBox.width,
           })
           .toEqual({ where, inside: true });
-        expect
-          .soft({
-            where,
-            sideways: await page.evaluate((): number => {
-              return (
-                document.documentElement.scrollWidth -
-                document.documentElement.clientWidth
-              );
-            }),
-          })
-          .toEqual({ where, sideways: 0 });
+        await expectNoSidewaysScroll(page, { message: where, soft: true });
 
         if ((page.viewportSize()?.width || 0) >= 1024) {
           // One row at a laptop's width, in every language.

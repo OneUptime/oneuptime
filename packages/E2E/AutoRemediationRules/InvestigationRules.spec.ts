@@ -1,6 +1,7 @@
 import { expect, Locator, Page, test } from "@playwright/test";
 import fs from "fs";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * AI rules can wait before they investigate (issue #5074): "only if the
@@ -570,14 +571,7 @@ test.describe("AI rules: when to investigate (issue #5074)", () => {
     await dialog.getByRole("radio", { name: AFTER_WAIT }).check();
     await expect(waitField(dialog)).toBeVisible();
 
-    expect(
-      await page.evaluate((): number => {
-        return (
-          document.documentElement.scrollWidth -
-          document.documentElement.clientWidth
-        );
-      }),
-    ).toBe(0);
+    await expectNoSidewaysScroll(page);
     await screenshotDialog(page, "ai-rule-investigate-step-phone");
   });
 

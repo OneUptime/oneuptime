@@ -295,11 +295,15 @@ function Shell(props) {
   return props.children;
 }
 
+/*
+ * Navigates as the Dashboard does (its src/Index.tsx): each navigation renders
+ * at once, not in a React transition (Tests/Ops/E2EFixtureRouters).
+ */
 export function BuilderPage() {
   const column = Number(params.get("column")) || 0;
 
   return (
-    <BrowserRouter>
+    <BrowserRouter useTransitions={false}>
       <Shell>
         <div style={{ padding: "16px" }}>
           <div

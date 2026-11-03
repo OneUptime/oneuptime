@@ -2,6 +2,8 @@ import { expect, Locator, Page, Route, test } from "@playwright/test";
 import fs from "fs";
 import fsPromises from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 /*
  * A Proxmox VE cluster's pages, in a browser, against the offline fixture
@@ -233,20 +235,6 @@ async function openTab(page: Page, name: string): Promise<void> {
   const tab: Locator = page.getByTestId(`tab-${name}`);
   await tab.click();
   await expect(tab).toHaveAttribute("aria-selected", "true");
-}
-
-// No part of the page is wider than the window.
-async function expectNoSidewaysScroll(page: Page): Promise<void> {
-  const widths: { page: number; window: number } = await page.evaluate(
-    (): { page: number; window: number } => {
-      return {
-        page: document.documentElement.scrollWidth,
-        window: window.innerWidth,
-      };
-    },
-  );
-
-  expect(widths.page).toBeLessThanOrEqual(widths.window);
 }
 
 // The colour a pill or a cell is drawn in, as the browser computed it.
@@ -1346,9 +1334,7 @@ test.describe("at a phone's width, in dark mode, in German and in Persian", () =
       .first()
       .locator(":scope > div")
       .last();
-    const titleBox: { x: number; width: number } | null =
-      await title.boundingBox();
-    const iconBox: { x: number } | null = await icon.boundingBox();
+    const [titleBox, iconBox] = await boxesInOneFrame([title, icon]);
     expect(titleBox && iconBox).toBeTruthy();
     expect(titleBox!.x + titleBox!.width).toBeLessThanOrEqual(iconBox!.x);
 

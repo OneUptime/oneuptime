@@ -1,6 +1,7 @@
 import { expect, Locator, Page, test } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * Renders the real trace detail page against the offline fixture
@@ -1550,10 +1551,7 @@ test.describe("phone", () => {
   }) => {
     await openLoaded(page);
 
-    const overflow: number = await page.evaluate(() => {
-      return document.documentElement.scrollWidth - window.innerWidth;
-    });
-    expect(overflow).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshot(page, "phone", false);
 
     const update: string = await spanId(page, "UPDATE stock");
@@ -1578,10 +1576,7 @@ test.describe("phone", () => {
 
     const strip: Locator = page.getByTestId("trace-performance-suggestion");
     await expect(strip).toBeVisible();
-    const overflow: number = await page.evaluate(() => {
-      return document.documentElement.scrollWidth - window.innerWidth;
-    });
-    expect(overflow).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
 
     const stripBox: { x: number; y: number; width: number; height: number } =
       (await strip.boundingBox())!;
@@ -1624,10 +1619,7 @@ test.describe("phone", () => {
 
       expect(Math.abs(action.x - finding.x)).toBeLessThanOrEqual(1);
       expect(action.y).toBeGreaterThan(finding.y + finding.height - 1);
-      const overflow: number = await page.evaluate(() => {
-        return document.documentElement.scrollWidth - window.innerWidth;
-      });
-      expect(overflow).toBeLessThanOrEqual(1);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
     }
     await page.getByTestId("trace-performance-suggestion").screenshot({
       path: path.join(
@@ -2012,7 +2004,6 @@ test.describe("a repository to pick before the fix starts (?repo=pick)", () => {
       await openLoaded(page, "report", "repo=pick");
 
       const boxes: {
-        pageScrolls: boolean;
         strip: { left: number; right: number };
         picker: { left: number; right: number; bottom: number };
         button: { left: number; right: number; top: number };
@@ -2026,9 +2017,6 @@ test.describe("a repository to pick before the fix starts (?repo=pick)", () => {
         const picker: DOMRect = box("trace-fix-performance-repository");
         const button: DOMRect = box("trace-fix-performance");
         return {
-          pageScrolls:
-            document.documentElement.scrollWidth >
-            document.documentElement.clientWidth,
           strip: { left: strip.left, right: strip.right },
           picker: {
             left: picker.left,
@@ -2039,7 +2027,7 @@ test.describe("a repository to pick before the fix starts (?repo=pick)", () => {
         };
       });
 
-      expect(boxes.pageScrolls).toBe(false);
+      await expectNoSidewaysScroll(page);
       expect(boxes.picker.left).toBeGreaterThanOrEqual(boxes.strip.left);
       expect(boxes.picker.right).toBeLessThanOrEqual(boxes.strip.right + 1);
       expect(boxes.button.right).toBeLessThanOrEqual(boxes.strip.right + 1);

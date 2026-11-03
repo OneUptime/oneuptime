@@ -437,6 +437,40 @@ describe("RecommendationCard", () => {
 
       expect(querySelectButton()).not.toBeInTheDocument();
     });
+
+    /*
+     * The button fills the card, and the card clips whatever reaches past
+     * its edge (overflow-hidden, for its rounded severity rail): a focus
+     * ring drawn outside the button - offset from it, as most buttons' are
+     * - showed nothing at all, so a keyboard reader could not see which card
+     * Tab had reached. It is drawn inside the edge, as a row's is. The
+     * browser suites read it drawn (VMwareHostPage).
+     */
+    test("its keyboard focus ring is drawn inside the card, which clips anything past its edge", () => {
+      const { container }: RenderResult = renderCard({
+        viewModel: buildViewModel({ status: RecommendationStatus.Available }),
+      });
+
+      const card: HTMLElement = screen.getByTestId(
+        `recommendation-card-${RECOMMENDATION_ID}`,
+      );
+      expect(card.className.split(" ")).toContain("overflow-hidden");
+      expect(card).toBe(container.firstElementChild);
+
+      const ringClasses: Array<string> = getSelectButton()
+        .className.split(" ")
+        .filter((name: string): boolean => {
+          return name.startsWith("focus-visible:ring");
+        });
+
+      expect(ringClasses.sort()).toEqual(
+        [
+          "focus-visible:ring-2",
+          "focus-visible:ring-inset",
+          "focus-visible:ring-indigo-500",
+        ].sort(),
+      );
+    });
   });
 
   /*

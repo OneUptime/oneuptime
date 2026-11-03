@@ -7,6 +7,8 @@ import {
 } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 /*
  * Adding a resource the way a host is added, in a real browser: the real
@@ -202,8 +204,7 @@ function showcaseButton(page: Page): Locator {
 
 // Whether `lower` is drawn below `upper` on the page.
 async function isBelow(upper: Locator, lower: Locator): Promise<boolean> {
-  const top: { y: number; height: number } | null = await upper.boundingBox();
-  const bottom: { y: number } | null = await lower.boundingBox();
+  const [top, bottom] = await boxesInOneFrame([upper, lower]);
   return Boolean(top && bottom && bottom.y >= top.y + top.height - 1);
 }
 
@@ -257,16 +258,6 @@ async function screenshot(page: Page, name: string): Promise<void> {
   await page.screenshot({
     path: path.join(SCREENSHOTS, `${name}.png`),
     fullPage: false,
-  });
-}
-
-// Whether the page scrolls sideways: it must not, at any width.
-async function scrollsSideways(page: Page): Promise<boolean> {
-  return page.evaluate((): boolean => {
-    return (
-      document.documentElement.scrollWidth >
-      document.documentElement.clientWidth + 1
-    );
   });
 }
 
@@ -448,7 +439,7 @@ test("the Add dialog on a phone, in the dark theme: one column, nothing to scrol
     input.scrollIntoView({ block: "center" });
   });
 
-  expect(await scrollsSideways(page)).toBe(false);
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
   await screenshot(page, "kubernetes-add-dialog-phone-dark");
 });
 

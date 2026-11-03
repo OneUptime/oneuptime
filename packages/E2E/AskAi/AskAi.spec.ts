@@ -7,6 +7,7 @@ import {
 } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * Ask AI on the main stage, in real Chromium, against the offline fixture
@@ -293,24 +294,25 @@ async function screenshot(page: Page, name: string): Promise<void> {
   await page.screenshot({ path: path.join(SCREENSHOTS, `${name}.png`) });
 }
 
-// Nothing is wider than the screen: no sideways scroll, in the dialog or the page.
-async function expectNoSidewaysScroll(page: Page): Promise<void> {
-  const widths: { page: number; dialog: number; viewport: number } =
-    await page.evaluate(
-      (): { page: number; dialog: number; viewport: number } => {
-        const root: HTMLElement | null = document.querySelector(
-          '[data-testid="ask-ai-dialog"]',
-        );
-        return {
-          page: document.documentElement.scrollWidth,
-          dialog: root ? root.scrollWidth - root.clientWidth : 0,
-          viewport: window.innerWidth,
-        };
+/*
+ * Nothing is wider than the screen: no sideways scroll, in the page or the
+ * dialog - each read until it has settled.
+ */
+async function expectNothingScrollsSideways(page: Page): Promise<void> {
+  await expectNoSidewaysScroll(page);
+  await expect
+    .poll(
+      (): Promise<number> => {
+        return page.evaluate((): number => {
+          const root: HTMLElement | null = document.querySelector(
+            '[data-testid="ask-ai-dialog"]',
+          );
+          return root ? root.scrollWidth - root.clientWidth : 0;
+        });
       },
-    );
-
-  expect(widths.page).toBeLessThanOrEqual(widths.viewport);
-  expect(widths.dialog).toBeLessThanOrEqual(0);
+      { message: "how many pixels the Ask AI dialog scrolls sideways" },
+    )
+    .toBeLessThanOrEqual(0);
 }
 
 /*
@@ -1596,7 +1598,7 @@ test.describe("on a tablet", () => {
     const box: Box = await boxOf(dialog(page));
     expect(Math.round(box.x)).toBe(24);
     expect(Math.round(box.width)).toBe(768 - 48);
-    await expectNoSidewaysScroll(page);
+    await expectNothingScrollsSideways(page);
     await screenshot(page, "answer-768");
   });
 });
@@ -1619,7 +1621,7 @@ test.describe("on a phone", () => {
         return window.getComputedStyle(element).borderTopLeftRadius;
       }),
     ).toBe("0px");
-    await expectNoSidewaysScroll(page);
+    await expectNothingScrollsSideways(page);
     await screenshot(page, "start-incident-390");
   });
 
@@ -1636,7 +1638,7 @@ test.describe("on a phone", () => {
     expect(844 - (box.y + box.height)).toBeLessThanOrEqual(16);
     // A phone has no pointer to point with: the newest answer's actions show.
     await expect(page.getByTestId("ai-chat-copy-answer")).toBeVisible();
-    await expectNoSidewaysScroll(page);
+    await expectNothingScrollsSideways(page);
     await screenshot(page, "answer-390");
   });
 
@@ -1837,12 +1839,12 @@ test.describe("in German", () => {
       await expect(dialog(page)).toBeVisible();
       await settle(page);
 
-      await expectNoSidewaysScroll(page);
+      await expectNothingScrollsSideways(page);
       await screenshot(page, "answer-390-de");
 
       await load(page, "lang=de");
       await openAskAi(page);
-      await expectNoSidewaysScroll(page);
+      await expectNothingScrollsSideways(page);
       await screenshot(page, "start-incident-390-de");
     });
   });
@@ -2036,7 +2038,7 @@ test.describe("in Persian", () => {
       await expect(dialog(page)).toBeVisible();
       await settle(page);
 
-      await expectNoSidewaysScroll(page);
+      await expectNothingScrollsSideways(page);
       await screenshot(page, "answer-390-fa");
     });
   });
@@ -2195,7 +2197,7 @@ test.describe("on a resolved incident", () => {
         await openAskAi(page);
 
         await expect(page.getByTestId("ai-chat-suggestion")).toHaveCount(4);
-        await expectNoSidewaysScroll(page);
+        await expectNothingScrollsSideways(page);
         await screenshot(page, `start-resolved-incident-390-${lang}`);
       }
     });

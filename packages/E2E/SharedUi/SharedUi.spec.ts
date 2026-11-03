@@ -7,6 +7,8 @@ import {
 } from "@playwright/test";
 import fs from "fs";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 /*
  * The shared buttons, dialogs and cards, drawn by the production components
@@ -150,15 +152,6 @@ async function styleOf(locator: Locator, property: string): Promise<string> {
   return await locator.evaluate((element: Element, name: string): string => {
     return window.getComputedStyle(element).getPropertyValue(name);
   }, property);
-}
-
-async function horizontalOverflow(page: Page): Promise<number> {
-  return await page.evaluate((): number => {
-    return (
-      document.documentElement.scrollWidth -
-      document.documentElement.clientWidth
-    );
-  });
 }
 
 /*
@@ -686,10 +679,7 @@ test.describe("a button that cannot be pressed looks it", () => {
       const spinner: Locator = busy.locator(".animate-spin").first();
       const words: Locator = busy.getByText("Ping", { exact: true });
 
-      const spinnerBox: { y: number; height: number } | null =
-        await spinner.boundingBox();
-      const wordsBox: { y: number; height: number } | null =
-        await words.boundingBox();
+      const [spinnerBox, wordsBox] = await boxesInOneFrame([spinner, words]);
 
       expect(spinnerBox).not.toBeNull();
       expect(wordsBox).not.toBeNull();
@@ -794,11 +784,10 @@ test.describe("a locked button or switch says why on a tap", () => {
     await open(page, "section=buttons");
 
     const help: Locator = page.getByTestId("locked-switch-toggle-help");
-    const box: { width: number; height: number; y: number } | null =
-      await help.boundingBox();
-    const title: { y: number; height: number } | null = await page
-      .getByText("Show on status page", { exact: true })
-      .boundingBox();
+    const [box, title] = await boxesInOneFrame([
+      help,
+      page.getByText("Show on status page", { exact: true }),
+    ]);
 
     expect(box).not.toBeNull();
     expect(title).not.toBeNull();
@@ -1093,13 +1082,10 @@ test.describe("a menu's own ⋯ is a bare icon button", () => {
     const trigger: Locator = page.getByTestId("worded-more-menu");
     await expect(trigger).toHaveText("1m");
 
-    const icon: { y: number; height: number } | null = await trigger
-      .locator("svg")
-      .first()
-      .boundingBox();
-    const words: { y: number; height: number } | null = await trigger
-      .getByText("1m", { exact: true })
-      .boundingBox();
+    const [icon, words] = await boxesInOneFrame([
+      trigger.locator("svg").first(),
+      trigger.getByText("1m", { exact: true }),
+    ]);
     const iconMiddle: number = icon!.y + icon!.height / 2;
 
     expect(iconMiddle).toBeGreaterThan(words!.y);
@@ -1244,7 +1230,7 @@ test.describe("a card with nothing under its title keeps its description on a ph
     await expect(
       card(page, "Probes").getByTestId("card-description"),
     ).toBeHidden();
-    expect(await horizontalOverflow(page)).toBe(0);
+    await expectNoSidewaysScroll(page);
     await screenshot(page, "cards-390");
   });
 
@@ -1269,7 +1255,7 @@ test.describe("a card with nothing under its title keeps its description on a ph
         ).toBeVisible();
       }
 
-      expect(await horizontalOverflow(page)).toBe(0);
+      await expectNoSidewaysScroll(page);
       await screenshot(page, `cards-side-menu-${width}`);
     }
   });
@@ -1290,7 +1276,7 @@ test.describe("a card with nothing under its title keeps its description on a ph
     await open(page, "section=dialogs&lang=fa");
     await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
     await expect(page.getByTestId("card-description").last()).toBeVisible();
-    expect(await horizontalOverflow(page)).toBe(0);
+    await expectNoSidewaysScroll(page);
     await screenshot(page, "cards-fa-390");
   });
 });
@@ -1481,7 +1467,7 @@ test.describe("one pill, plain stat tiles and whole chips", () => {
       }
     }
 
-    expect(await horizontalOverflow(page)).toBe(0);
+    await expectNoSidewaysScroll(page);
     await screenshot(page, "pills-390");
   });
 
@@ -1670,10 +1656,7 @@ test.describe("radios and checkboxes in the dark theme are the theme's own", () 
         .getByTestId("choice-light-row")
         .getByText("Light", { exact: true });
 
-      const radioBox: { y: number; height: number } | null =
-        await radio.boundingBox();
-      const titleBox: { y: number; height: number } | null =
-        await title.boundingBox();
+      const [radioBox, titleBox] = await boxesInOneFrame([radio, title]);
 
       offsets[theme] =
         radioBox!.y +
@@ -1809,7 +1792,7 @@ test.describe("radios and checkboxes in the dark theme are the theme's own", () 
       .boundingBox();
 
     expect([box?.width, box?.height]).toEqual([16, 16]);
-    expect(await horizontalOverflow(page)).toBe(0);
+    await expectNoSidewaysScroll(page);
     await screenshot(page, "choices-dark-390");
   });
 });
@@ -2026,7 +2009,7 @@ test.describe("a rule's conditions at every width", () => {
       }
     }
 
-    expect(await horizontalOverflow(page)).toBe(0);
+    await expectNoSidewaysScroll(page);
     await screenshot(page, "rule-conditions-390");
   });
 

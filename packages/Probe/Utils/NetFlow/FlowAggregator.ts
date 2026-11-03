@@ -1,4 +1,5 @@
 import NetworkFlowRecord from "Common/Types/NetFlow/NetworkFlowRecord";
+import OldestKeyMap from "Common/Utils/OldestKeyMap";
 
 /*
  * Sums the records of one conversation that arrive close together, so the
@@ -18,7 +19,7 @@ import NetworkFlowRecord from "Common/Types/NetFlow/NetworkFlowRecord";
  * grow without bound.
  */
 export default class FlowAggregator {
-  private entries: Map<string, NetworkFlowRecord> = new Map();
+  private entries: OldestKeyMap<string, NetworkFlowRecord> = new OldestKeyMap();
   private droppedEntries: number = 0;
 
   public constructor(private readonly maxEntries: number) {}
@@ -76,7 +77,7 @@ export default class FlowAggregator {
     });
 
     while (this.entries.size > this.maxEntries) {
-      const oldestKey: string | undefined = this.entries.keys().next().value;
+      const oldestKey: string | undefined = this.entries.oldestKey();
 
       if (oldestKey === undefined) {
         break;

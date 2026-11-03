@@ -16,6 +16,7 @@ import {
 import NetworkAddressBlockUtil from "Common/Utils/NetworkTraffic/NetworkAddressBlock";
 import dns from "dns";
 import net from "net";
+import OldestKeyMap from "Common/Utils/OldestKeyMap";
 
 /*
  * NAMES FOR THE ADDRESSES IN A PROBE'S FLOWS (issue #5340).
@@ -298,7 +299,7 @@ export function buildDefaultForwardLookup(
 export default class FlowAddressNamer {
   private readonly options: FlowAddressNamerOptions;
   private readonly now: () => number;
-  private cache: Map<string, CacheEntry> = new Map();
+  private cache: OldestKeyMap<string, CacheEntry> = new OldestKeyMap();
   private waiting: Map<string, number> = new Map();
   private inFlight: Set<string> = new Set();
   private lookupsThisMinute: number = 0;
@@ -572,7 +573,7 @@ export default class FlowAddressNamer {
     this.cache.set(address, entry);
 
     while (this.cache.size > this.options.maxCacheEntries) {
-      const oldest: string | undefined = this.cache.keys().next().value;
+      const oldest: string | undefined = this.cache.oldestKey();
 
       if (oldest === undefined) {
         break;

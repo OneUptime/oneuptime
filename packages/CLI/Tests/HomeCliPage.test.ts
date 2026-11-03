@@ -55,27 +55,6 @@ jest.mock("../Core/ApiClient", () => {
   };
 });
 
-/*
- * A home of the suite's own, so the page's login never touches the reader's
- * ~/.oneuptime/config.json, and no other suite's. (The factory runs before
- * the imports above, so it only names their types.)
- */
-jest.mock("os", () => {
-  const actualOs: typeof os = jest.requireActual("os");
-  const actualPath: typeof path = jest.requireActual("path");
-  const actualFs: typeof fs = jest.requireActual("fs");
-  const home: string = actualFs.mkdtempSync(
-    actualPath.join(actualOs.tmpdir(), "oneuptime-cli-home-page-"),
-  );
-
-  return {
-    ...actualOs,
-    homedir: (): string => {
-      return home;
-    },
-  };
-});
-
 const API_KEY: string = "4f1c3a2e-9b7d-4c1e-8a6f-2d5b7e9c0a13";
 const INSTANCE_URL: string = "https://oneuptime.com";
 const TRAILING_NEWLINE: RegExp = /\n$/;

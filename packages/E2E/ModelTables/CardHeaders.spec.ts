@@ -1,6 +1,7 @@
 import { expect, Locator, Page, test } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * Where a card's description sits under its title, measured in Chromium
@@ -239,17 +240,6 @@ function centreOf(found: Box): number {
 // The actions share the title's line (rather than a line of their own under it).
 function onTitleLine(boxes: HeaderBoxes): boolean {
   return Boolean(boxes.actions && boxes.actions.y < bottomOf(boxes.title) - 1);
-}
-
-async function expectNoSidewaysScroll(page: Page): Promise<void> {
-  expect(
-    await page.evaluate((): number => {
-      return (
-        document.documentElement.scrollWidth -
-        document.documentElement.clientWidth
-      );
-    }),
-  ).toBe(0);
 }
 
 /*

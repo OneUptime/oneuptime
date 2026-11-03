@@ -6,6 +6,7 @@ import {
   test,
   TestInfo,
 } from "@playwright/test";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * A public dashboard's theme, in a real browser, on the real public
@@ -1113,11 +1114,7 @@ test.describe("pages that show no dashboard follow the visitor", () => {
     await shoot(page, testInfo, "forbidden-dark");
 
     // No sideways scroll on a phone.
-    expect(
-      await page.evaluate((): number => {
-        return document.documentElement.scrollWidth - window.innerWidth;
-      }),
-    ).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
   });
 
   test("not found: the visitor's own pick, else their device", async ({
@@ -1356,7 +1353,6 @@ test.describe("the page at a phone's width", () => {
 
   interface PageBoxes {
     viewport: number;
-    pageScroll: number;
     header: { left: number; right: number };
     toolbar: Array<{ name: string; left: number; right: number }>;
     footer: { left: number; right: number };
@@ -1396,9 +1392,6 @@ test.describe("the page at a phone's width", () => {
 
       return {
         viewport: document.documentElement.clientWidth,
-        pageScroll:
-          document.documentElement.scrollWidth -
-          document.documentElement.clientWidth,
         header: span(byTestId("public-dashboard-header")),
         toolbar: Array.from(toolbar.querySelectorAll("button")).map(
           (button: HTMLButtonElement) => {
@@ -1449,7 +1442,7 @@ test.describe("the page at a phone's width", () => {
     const boxes: PageBoxes = await measure(page);
 
     // Nothing makes the page itself wider than the screen.
-    expect(boxes.pageScroll).toBe(0);
+    await expectNoSidewaysScroll(page);
     expect(boxes.header.left).toBeGreaterThanOrEqual(0);
     expect(boxes.header.right).toBeLessThanOrEqual(boxes.viewport + 0.5);
     expect(boxes.footer.right).toBeLessThanOrEqual(boxes.viewport + 0.5);
@@ -1669,7 +1662,7 @@ test.describe("the page at a phone's width", () => {
     const boxes: PageBoxes = await measure(page);
 
     expect(boxes.arrangement).toBe("grid");
-    expect(boxes.pageScroll).toBe(0);
+    await expectNoSidewaysScroll(page);
     expect(boxes.frame.scrollWidth).toBe(boxes.frame.clientWidth);
 
     for (const widget of boxes.widgets) {
@@ -1700,7 +1693,7 @@ test.describe("the page at a phone's width", () => {
 
     const boxes: PageBoxes = await measure(page);
 
-    expect(boxes.pageScroll).toBe(0);
+    await expectNoSidewaysScroll(page);
     // No scroll frame: a chart's tooltip is never cut.
     expect(boxes.frame.overflowX).toBe("visible");
     expect(boxes.frame.scrollWidth).toBe(boxes.frame.clientWidth);
@@ -1715,14 +1708,7 @@ test.describe("the page at a phone's width", () => {
 
     await openDashboard(page, "darkPassword", "", "prompt");
 
-    expect(
-      await page.evaluate((): number => {
-        return (
-          document.documentElement.scrollWidth -
-          document.documentElement.clientWidth
-        );
-      }),
-    ).toBe(0);
+    await expectNoSidewaysScroll(page);
     await expect(page.getByTestId("master-password-prompt")).toHaveText(
       "Enter the password to view this dashboard.",
     );

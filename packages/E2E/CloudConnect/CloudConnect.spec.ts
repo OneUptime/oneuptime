@@ -1,6 +1,7 @@
 import { expect, Locator, Page, test } from "@playwright/test";
 import fs from "fs";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * Cloud > Connect, end to end in a browser, on the real page
@@ -140,13 +141,6 @@ async function shoot(page: Page, name: string): Promise<void> {
   });
 }
 
-async function expectNoSidewaysScroll(page: Page): Promise<void> {
-  const overflow: number = await page.evaluate(() => {
-    return document.documentElement.scrollWidth - window.innerWidth;
-  });
-  expect(overflow).toBeLessThanOrEqual(1);
-}
-
 function pasteBox(page: Page): Locator {
   return dialog(page).getByPlaceholder("{ ... }");
 }
@@ -206,7 +200,7 @@ test.describe("the Connect page", () => {
       page.getByTestId("cloud-connect-collector-note").getByRole("link"),
     ).toHaveAttribute("href", /\/telemetry\/cloud-resources$/);
 
-    await expectNoSidewaysScroll(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await shoot(page, "connect-empty");
   });
 });
@@ -240,7 +234,7 @@ test.describe("connecting Azure", () => {
     await expect(
       dialog(page).getByRole("radio", { name: "This subscription" }),
     ).toBeChecked();
-    await expectNoSidewaysScroll(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await shoot(page, "azure-command");
 
     // Step 2: one paste fills in every value.
@@ -269,7 +263,7 @@ test.describe("connecting Azure", () => {
     await expect(
       dialog(page).getByTestId("cloud-connection-test-button"),
     ).toHaveText("Test again");
-    await expectNoSidewaysScroll(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await shoot(page, "azure-test-pass");
 
     let state: FixtureState = await fixture(page);
@@ -329,7 +323,7 @@ test.describe("connecting Azure", () => {
     await expect(
       dialog(page).getByTestId("cloud-connection-test-details"),
     ).toContainText("AADSTS7000215");
-    await expectNoSidewaysScroll(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await shoot(page, "azure-test-fail");
   });
 });
@@ -356,7 +350,7 @@ test.describe("one paste, whatever the cloud", () => {
     await expect(fold).toHaveAttribute("aria-expanded", "false");
     await expect(fold).toContainText("Service account key (JSON)");
     await expect(dialog(page)).not.toContainText("not valid JSON");
-    await expectNoSidewaysScroll(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await shoot(page, "gcp-paste");
 
     // gcloud's own lines do not stop the step, and it tests by itself.
@@ -445,7 +439,7 @@ test.describe("one paste, whatever the cloud", () => {
     await expect(
       dialog(page).getByText(PASTE_LABEL_MARKED_OPTIONAL),
     ).toHaveCount(0);
-    await expectNoSidewaysScroll(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await shoot(page, "azure-paste-missing");
   });
 });
@@ -474,7 +468,7 @@ test.describe("connecting AWS", () => {
     await expect(
       dialog(page).getByTestId("cloud-setup-open-shell"),
     ).toContainText("Open AWS CloudShell");
-    await expectNoSidewaysScroll(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await shoot(page, "aws-role-command");
 
     await key.check();
@@ -523,7 +517,7 @@ test.describe("connecting AWS", () => {
     await expect(code).toContainText(
       'aws iam get-role --role-name "$ROLE" --query Role.Arn --output text',
     );
-    await expectNoSidewaysScroll(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await shoot(page, "aws-organization-command");
 
     // An access key reads its own account: nothing to choose, one account's command.
@@ -605,7 +599,7 @@ test.describe("connecting AWS", () => {
       "gcloud organizations add-iam-policy-binding",
     );
     await expect(gcpCode).toContainText("roles/servicehealth.viewer");
-    await expectNoSidewaysScroll(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
   });
 
   test("a OneUptime that cannot sign in to a role offers an access key, with nothing to choose", async ({
@@ -670,7 +664,7 @@ test.describe("the connected accounts", () => {
       page.getByTestId("cloud-connection-tile-connected-aws"),
     ).toContainText("Connected");
 
-    await expectNoSidewaysScroll(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await shoot(page, "connect-connected");
   });
 
@@ -738,7 +732,7 @@ test.describe("the connected accounts", () => {
         expect(tile.x).toBe(list.x);
         expect(tile.width).toBe(list.width);
       }
-      await expectNoSidewaysScroll(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
       await page.screenshot({
         path: path.join(SCREENSHOTS, `connect-connected-${width}.png`),
         fullPage: true,
@@ -877,7 +871,7 @@ test.describe("a connection's own actions", () => {
       "Test again",
     );
     await expect(footer.getByRole("button", { name: "Close" })).toBeVisible();
-    await expectNoSidewaysScroll(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await shoot(page, "connect-row-test");
 
     await footer.getByTestId("cloud-connection-test-button").click();
@@ -954,7 +948,7 @@ test.describe("in the dark and in another language", () => {
       });
     expect(background).not.toBe("rgb(255, 255, 255)");
 
-    await expectNoSidewaysScroll(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await shoot(page, "connect-dark");
 
     await page.getByTestId("cloud-connection-tile-azure").click();
@@ -975,7 +969,7 @@ test.describe("in the dark and in another language", () => {
     await expect(page.getByTestId("cloud-connection-tile-aws")).toContainText(
       JAPANESE_SCRIPT,
     );
-    await expectNoSidewaysScroll(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await shoot(page, "connect-ja");
 
     await page.getByTestId("cloud-connection-tile-gcp").click();
@@ -985,7 +979,7 @@ test.describe("in the dark and in another language", () => {
     await expect(
       dialog(page).getByTestId("cloud-setup-command-code"),
     ).toContainText("gcloud iam service-accounts keys create");
-    await expectNoSidewaysScroll(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await shoot(page, "gcp-command-ja");
   });
 });
@@ -1076,7 +1070,7 @@ test.describe("cloud accounts", () => {
         sideMenu(page).getByRole("link", { name: "Accounts", exact: true }),
       ).toHaveAttribute("aria-current", "page");
     }
-    await expectNoSidewaysScroll(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await shoot(page, "accounts-list");
 
     await page.getByRole("link", { name: "Production", exact: true }).click();
@@ -1120,7 +1114,7 @@ test.describe("cloud accounts", () => {
         },
       );
       expect(table.scroll).toBeLessThanOrEqual(table.client + 1);
-      await expectNoSidewaysScroll(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
     }
 
     await shoot(page, "accounts-list-de");
@@ -1147,7 +1141,7 @@ test.describe("cloud accounts", () => {
       ).toBeEnabled();
     }
 
-    await expectNoSidewaysScroll(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await shoot(page, "accounts-empty");
   });
 
@@ -1210,7 +1204,7 @@ test.describe("cloud accounts", () => {
       }
     }
 
-    await expectNoSidewaysScroll(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await shoot(page, "account-overview");
   });
 
@@ -1290,7 +1284,7 @@ test.describe("cloud accounts", () => {
     await expect(bar.getByRole("button", { name: /^Owner/ })).toBeVisible();
     await expect(bar.getByRole("button", { name: /^Labels/ })).toBeVisible();
 
-    await expectNoSidewaysScroll(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await shoot(page, "account-resources");
   });
 
@@ -1307,7 +1301,7 @@ test.describe("cloud accounts", () => {
     await expect(page.getByTestId("resource-overview-status")).toBeVisible();
     await expect(page.locator("html")).toHaveClass(/dark/);
     // Nothing on the Overview is wider than the window.
-    await expectNoSidewaysScroll(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await shoot(page, "account-overview-dark-de");
   });
 });
@@ -1513,7 +1507,7 @@ test.describe("an account's pages", () => {
       expect(regionsBox.y).toBeGreaterThan(typesBox.y);
     }
 
-    await expectNoSidewaysScroll(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await shoot(page, "account-overview-tiles");
   });
 
@@ -1639,17 +1633,29 @@ test.describe("an account's pages", () => {
       rows.filter({ hasText: "ModifyDBInstance" }).getByText("eu-west-1"),
     ).toBeVisible();
 
-    // The time is never cut short, at 1280 or beside the side menu at 1024.
+    /*
+     * The time is never cut short, at 1280 or beside the side menu at 1024 -
+     * read again until the table has fitted its columns to the new width,
+     * which it does a frame after the window changes (useTableBoxWidth): one
+     * read right after the resize found the old frame, or no cells at all,
+     * one run in 97 under load (2026-11-02).
+     */
     for (const width of [1280, 1024]) {
       await page.setViewportSize({ width, height: 900 });
-      const cut: Array<boolean> = await page
-        .locator("tbody tr td:nth-child(2) > div")
-        .evaluateAll((cells: Array<Element>): Array<boolean> => {
-          return cells.map((cell: Element): boolean => {
-            return cell.scrollWidth > cell.clientWidth + 1;
-          });
-        });
-      expect(cut).toEqual([false, false, false, false, false, false]);
+      await expect
+        .poll(
+          (): Promise<Array<boolean>> => {
+            return page
+              .locator("tbody tr td:nth-child(2) > div")
+              .evaluateAll((cells: Array<Element>): Array<boolean> => {
+                return cells.map((cell: Element): boolean => {
+                  return cell.scrollWidth > cell.clientWidth + 1;
+                });
+              });
+          },
+          { message: `the change times cut short at ${width} pixels` },
+        )
+        .toEqual([false, false, false, false, false, false]);
     }
 
     await shoot(page, "account-changes");
@@ -1780,7 +1786,7 @@ test.describe("a cloud resource's pages", () => {
     // A load balancer reports metrics: its card is there.
     await expect(cardTitled(page, "Metrics")).toHaveCount(1);
 
-    await expectNoSidewaysScroll(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await shoot(page, "resource-overview");
   });
 
@@ -1857,7 +1863,7 @@ test.describe("a cloud resource's pages", () => {
     );
     expect(entity.searchParams.get("type")).toBe("Host");
 
-    await expectNoSidewaysScroll(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await card.scrollIntoViewIfNeeded();
     await card.screenshot({
       path: path.join(
@@ -2075,7 +2081,7 @@ test.describe("OneUptime AI on a cloud account", () => {
       ).toHaveAttribute("href", AI_LOGS_PATH);
     }
 
-    await expectNoSidewaysScroll(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await shoot(page, "account-ai-agent-card");
   });
 
@@ -2168,7 +2174,7 @@ test.describe("OneUptime AI on a cloud account", () => {
     );
 
     // A phone: the dialog fits its width, long lines scroll in their box.
-    await expectNoSidewaysScroll(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await shoot(page, "account-ai-setup");
   });
 
@@ -2251,7 +2257,7 @@ test.describe("OneUptime AI on a cloud account", () => {
     ).toBeVisible();
     await expect(summary).toContainText("Offline");
     await expect(summary).toContainText("last seen 3 hours ago");
-    await expectNoSidewaysScroll(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await shoot(page, "account-ai-agent-offline");
   });
 
@@ -2315,7 +2321,7 @@ test.describe("OneUptime AI on a cloud account", () => {
     await expect(page.getByTestId("ai-access-set-by")).toContainText(
       "Set by the Cloud AI agent's setup command. Change shows it again with other choices; this page follows.",
     );
-    await expectNoSidewaysScroll(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await shoot(page, "account-ai-agent-page");
 
     if (!isDesktop()) {
@@ -2384,7 +2390,7 @@ test.describe("OneUptime AI on a cloud account", () => {
       resourceId: AWS_ACCOUNT,
     });
 
-    await expectNoSidewaysScroll(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await shoot(page, "account-ai-logs");
   });
 
@@ -2419,7 +2425,7 @@ test.describe("OneUptime AI on a cloud account", () => {
     );
     expect(note.y).toBeGreaterThan(question.y + question.height - 1);
     expect(firstStep.y).toBeGreaterThan(note.y + note.height - 1);
-    await expectNoSidewaysScroll(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await shoot(page, "account-ai-setup-automatic-fixes-off");
 
     // The AI agent page says it under the fixes, as a cluster's does.
@@ -2435,7 +2441,7 @@ test.describe("OneUptime AI on a cloud account", () => {
         .getByTestId("ai-access-fixes")
         .getByTestId("ai-access-automatic-remediation"),
     ).toHaveCount(1);
-    await expectNoSidewaysScroll(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await shoot(page, "account-ai-agent-automatic-fixes-off");
 
     // With both on, the dialog has nothing to say, and the page nowhere to send you.
@@ -2487,7 +2493,7 @@ test.describe("OneUptime AI on a cloud account", () => {
         name: wordIn(GERMAN, "More fields"),
       }),
     ).toBeVisible();
-    await expectNoSidewaysScroll(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await shoot(page, "account-ai-setup-dark-de");
   });
 
@@ -2529,7 +2535,7 @@ test.describe("OneUptime AI on a cloud account", () => {
     await expect(firstStep).toContainText(
       wordIn(PERSIAN, "Choose an ingestion key"),
     );
-    await expectNoSidewaysScroll(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await shoot(page, "account-ai-setup-fa");
   });
 
@@ -2586,7 +2592,7 @@ test.describe("OneUptime AI on a cloud account", () => {
       ).toHaveAttribute("href", `${ACCOUNTS_PATH}/${AWS_ACCOUNT}/changes`);
     }
 
-    await expectNoSidewaysScroll(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await shoot(page, "account-feed");
   });
 
@@ -2605,7 +2611,7 @@ test.describe("OneUptime AI on a cloud account", () => {
     await expect(
       page.getByText("The Cloud AI agent was reset").first(),
     ).toBeVisible();
-    await expectNoSidewaysScroll(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await shoot(page, "account-feed-dark-de");
   });
 
@@ -2623,7 +2629,7 @@ test.describe("OneUptime AI on a cloud account", () => {
     expect(wordIn(PERSIAN, "Cloud Account Feed")).not.toBe(
       "Cloud Account Feed",
     );
-    await expectNoSidewaysScroll(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await shoot(page, "account-feed-fa");
   });
 
@@ -2687,7 +2693,7 @@ test.describe("OneUptime AI on a cloud account", () => {
     const lastStep: Box = await boxOf(steps.nth(2));
     expect(more.y).toBeGreaterThan(lastStep.y + lastStep.height - 1);
 
-    await expectNoSidewaysScroll(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await shoot(page, "account-ai-setup-steps");
   });
 

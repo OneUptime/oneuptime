@@ -13,6 +13,7 @@ import {
 } from "@playwright/test";
 import { mkdir, readFile } from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * The paused frame's screenshot dock, end to end: the production player, a
@@ -245,16 +246,6 @@ const settleDock: (page: Page) => Promise<void> = async (
       });
     })
     .toBe("1");
-};
-
-const noHorizontalOverflow: (page: Page) => Promise<void> = async (
-  page: Page,
-): Promise<void> => {
-  expect(
-    await page.evaluate((): number => {
-      return document.documentElement.scrollWidth - window.innerWidth;
-    }),
-  ).toBeLessThanOrEqual(1);
 };
 
 const boxOf: (locator: Locator) => Promise<ElementBox> = async (
@@ -2702,7 +2693,7 @@ test("a card closed from the keyboard hands the focus back to its dock button", 
     await page.setViewportSize({ width: width, height: 844 });
     await openPlayer(page);
     await pausePlayer(page);
-    await noHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
 
     const group: Locator = page.getByRole("group", {
       name: "Screenshot of this frame",
@@ -2776,7 +2767,7 @@ test("a card closed from the keyboard hands the focus back to its dock button", 
 
     expect(cardBox.x).toBeGreaterThanOrEqual(0);
     expect(cardBox.x + cardBox.width).toBeLessThanOrEqual(width);
-    await noHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
 
     await settleDock(page);
     await screenshot(page, `session-replay-screenshot-phone-${width}`);
@@ -2907,7 +2898,7 @@ test("a card closed from the keyboard hands the focus back to its dock button", 
 
     /* All of that was measured with the pill still up. */
     await expect(pill).toBeVisible();
-    await noHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await settleDock(page);
     await screenshot(page, `session-replay-screenshot-phone-${width}-compact`);
 

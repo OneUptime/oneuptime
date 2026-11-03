@@ -16,6 +16,51 @@ permissions:
   contents: read
 
 jobs:
+  # The ingress (Nginx) image ships only the packages of Common its
+  # certificate sidecar reaches: its build stage walks the sidecar's imports
+  # (Scripts/Docker/PruneUnreachablePackages.js) and refuses to build when
+  # the sidecar loads a package by a name it computes. The jest suite runs
+  # that walk over the real sidecar only where packages/Common's and
+  # packages/Nginx's packages are installed, which the test job below does
+  # not install, so there it skipped and only the image build checked it:
+  # #5358's require.resolve("typeorm") failed master's Push Test Images after
+  # it merged (2026-10-28, fixed in 552b5ee5e4) and would have failed the
+  # release that carried it. This job installs both and runs the suite with
+  # RUN_REAL_SIDECAR_PRUNE_TESTS=1, which fails the real sidecar's tests,
+  # rather than skipping them, when they are missing. A job of its own, so it
+  # runs beside the test job rather than adding to it.
+  ingress-prune:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: npm
+          cache-dependency-path: '**/package-lock.json'
+      - name: Install Ops test dependencies
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: Tests/Ops
+      - name: Install Common dependencies
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/Common
+      # Links ../Common, as the image's build stage does.
+      - name: Install Nginx dependencies
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/Nginx
+      - name: Walk the real sidecar's imports, as the ingress image's build does
+        working-directory: Tests/Ops
+        timeout-minutes: 10
+        env:
+          RUN_REAL_SIDECAR_PRUNE_TESTS: "1"
+        run: npx jest --config ./jest.config.json --runInBand PruneUnreachablePackages
+
   test:
     runs-on: ubuntu-latest
     env:
