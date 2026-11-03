@@ -32,6 +32,7 @@ import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import Phone from "../../Types/Phone";
 import PositiveNumber from "../../Types/PositiveNumber";
+import { NETWORK_TOPOLOGY_LAYOUTS } from "../../Types/NetworkDevice/NetworkTopologyLayout";
 import { SECURITY_CASE_NUMBER_PREFIX } from "../../Types/SecurityCase/SecurityCaseNumber";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
@@ -2644,6 +2645,7 @@ export default class Project extends TenantModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: NETWORK_TOPOLOGY_LAYOUTS,
     title: "Default Network Topology Layout",
     description:
       "The layout network topology maps open on: force, tiered, radial, star or parentChild. Empty: Automatic for all devices, By network layer for a site.",

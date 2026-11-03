@@ -552,7 +552,10 @@ const NetworkSiteMap: FunctionComponent<
     );
   }
 
-  // UNIT level: the site's live device topology, tiered like a rack diagram.
+  /*
+   * UNIT level: the site's live device topology, tiered like a rack diagram
+   * unless the project has a default layout of its own (issue #5378).
+   */
   if (currentSiteId && isUnitView) {
     return (
       <Fragment>

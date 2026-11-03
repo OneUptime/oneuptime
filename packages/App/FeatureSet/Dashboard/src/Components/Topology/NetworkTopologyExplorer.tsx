@@ -99,10 +99,11 @@ import React, {
 
 export interface ComponentProps {
   /*
-   * The layout the device topology opens on once the drill reaches it. A
-   * drilled site defaults to "tiered" — at one site the graph reads like a
-   * rack diagram — while the flat, project-wide map keeps the force layout
-   * it has always had.
+   * The layout the device topology opens on once the drill reaches it,
+   * when the project has no default layout of its own (issue #5378 - the
+   * live view reads it, and it wins). A drilled site defaults to "tiered" —
+   * at one site the graph reads like a rack diagram — while the flat,
+   * project-wide map keeps the force layout it has always had.
    */
   siteLayoutMode?: "force" | "tiered" | undefined;
 }
