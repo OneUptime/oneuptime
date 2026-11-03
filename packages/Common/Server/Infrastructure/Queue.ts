@@ -326,7 +326,7 @@ export default class Queue {
       return { claimedBy, removedCount: 0 };
     }
 
-    const removedCount: number = await this.removeRepeatableByName(
+    const removedCount: number = await this.removeSchedulesNamed(
       queueName,
       jobName,
     );
@@ -641,9 +641,21 @@ export default class Queue {
       return 0;
     }
 
-    const queue: BullQueue = this.getQueue(queueName);
-
     this.forgetRepeatable(queueName, jobName);
+
+    return await this.removeSchedulesNamed(queueName, jobName);
+  }
+
+  /*
+   * The removal in Redis alone. Retiring a schedule nobody claims uses only
+   * this: the worker that retires it does not hold it, and must not touch
+   * the registry of a process that does.
+   */
+  private static async removeSchedulesNamed(
+    queueName: QueueName,
+    jobName: string,
+  ): Promise<number> {
+    const queue: BullQueue = this.getQueue(queueName);
 
     const repeatableJobs: RepeatableJob[] = await queue.getRepeatableJobs();
 

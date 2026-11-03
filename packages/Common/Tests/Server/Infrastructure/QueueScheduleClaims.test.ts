@@ -584,6 +584,55 @@ describe("a schedule retired while its holder was registering it comes back", ()
 
     expect(bullQueue(QueueName.Worker).add).not.toHaveBeenCalled();
   });
+
+  test("retiring a schedule leaves alone what a process holds, so the holder can bring it back", async () => {
+    await registerCron("SecurityHunts:RunScheduledHunts", "* * * * *");
+    bullQueue(QueueName.Worker).getRepeatableJobs.mockResolvedValue([
+      repeatable(
+        "SecurityHunts:RunScheduledHunts",
+        "208750ac869e9af73fe7ea424f11d73c",
+        "* * * * *",
+      ),
+    ]);
+
+    // The race: the claim was not there yet when the retiring worker looked.
+    mockValues.delete(`${CLAIM_PREFIX}SecurityHunts:RunScheduledHunts`);
+    await expect(
+      Queue.retireUnclaimedSchedule(
+        QueueName.Worker,
+        "SecurityHunts:RunScheduledHunts",
+      ),
+    ).resolves.toEqual({ claimedBy: null, removedCount: 1 });
+
+    bullQueue(QueueName.Worker).add.mockClear();
+    await Queue.refreshScheduleClaims();
+
+    expect(bullQueue(QueueName.Worker).add).toHaveBeenCalledWith(
+      "SecurityHunts:RunScheduledHunts",
+      {},
+      expect.objectContaining({
+        repeat: expect.objectContaining({ pattern: "* * * * *" }),
+      }),
+    );
+  });
+
+  test("removing a schedule by name is still what makes this process let go of it", async () => {
+    await registerCron("SentinelInsight:ScanForInsights", "*/15 * * * *");
+    mockValues.set(`${RETIRED_PREFIX}SentinelInsight:ScanForInsights`, {
+      value: "14.0.97",
+      expiresAt: mockState.now + 10 * MINUTE,
+    });
+
+    await Queue.removeRepeatableByName(
+      QueueName.Worker,
+      "SentinelInsight:ScanForInsights",
+    );
+
+    bullQueue(QueueName.Worker).add.mockClear();
+    await Queue.refreshScheduleClaims();
+
+    expect(bullQueue(QueueName.Worker).add).not.toHaveBeenCalled();
+  });
 });
 
 describe("re-adding schedules when Redis comes back", () => {
