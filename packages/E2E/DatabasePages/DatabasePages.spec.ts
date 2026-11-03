@@ -789,6 +789,29 @@ test.describe("the Databases list", () => {
       worded(PERSIAN, "Unhealthy"),
     );
 
+    /*
+     * A host and port, and an engine and its version, read left to right:
+     * an endpoint too long for its cell is cut at its end, not its start,
+     * and the version keeps its gap after the engine's name.
+     */
+    const ordersRow: Locator = tableRow(page, "orders-db");
+    const endpoint: Locator = ordersRow.getByTestId("database-name-endpoint");
+    await expect(endpoint).toHaveAttribute("dir", "ltr");
+    expect(
+      await endpoint.evaluate((element: Element): string => {
+        return getComputedStyle(element).direction;
+      }),
+    ).toBe("ltr");
+    const engine: Locator = ordersRow.getByTestId("database-engine");
+    await expect(engine).toHaveText("PostgreSQL16.4");
+    const [engineName, engineVersion] = await boxesInOneFrame([
+      engine.locator("span").first(),
+      engine.locator("span").nth(1),
+    ]);
+    expect(
+      engineVersion!.x - (engineName!.x + engineName!.width),
+    ).toBeGreaterThanOrEqual(4);
+
     await expectNoSidewaysScroll(page);
     await screenshot(page, "databases-list-persian");
 

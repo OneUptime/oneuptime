@@ -557,6 +557,12 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
                       data-testid="database-name-endpoint"
                       className="truncate text-xs text-gray-500 font-mono"
                       title={subtitle}
+                      /*
+                       * A host and port read left to right on every page, so
+                       * a right-to-left one cuts it at its end too: it read
+                       * "...ders-db.prod.internal:5432" in Persian.
+                       */
+                      dir="ltr"
                     >
                       {subtitle}
                     </div>
@@ -611,12 +617,19 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
               const version: string = ((item.dbVersion as string) || "").trim();
               return (
                 <div className="text-sm text-gray-700">
-                  <span>{getDatabaseEngineLabel(item.dbSystem)}</span>
-                  {version && (
-                    <span className="ml-1.5 text-xs text-gray-500 font-mono">
-                      {version}
-                    </span>
-                  )}
+                  {/*
+                   * The engine and its version read left to right as one, so
+                   * the version's gap stays between them on a right-to-left
+                   * page: "PostgreSQL16.4" in Persian.
+                   */}
+                  <span dir="ltr" data-testid="database-engine">
+                    <span>{getDatabaseEngineLabel(item.dbSystem)}</span>
+                    {version && (
+                      <span className="ml-1.5 text-xs text-gray-500 font-mono">
+                        {version}
+                      </span>
+                    )}
+                  </span>
                 </div>
               );
             },
