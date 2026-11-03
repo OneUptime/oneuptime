@@ -37,6 +37,7 @@
     "categories": {
       "essentials": "필수",
       "observability": "관측 가능성",
+      "security": "보안",
       "ai": "AI",
       "code": "코드",
       "resources": "리소스",
@@ -40404,5 +40405,14 @@
   "Unarchive {{count}} {{itemsName}}": "{{itemsName}} {{count}}개 보관 취소",
   "Unarchive {{count}} {{itemsName}}_one": "{{itemName}} {{count}}개 보관 취소",
   "{{count}} of {{total}} selected": "{{total}}개 중 {{count}}개 선택됨",
-  "{{count}} of {{total}} selected_one": "{{total}}개 중 {{count}}개 선택됨"
+  "{{count}} of {{total}} selected_one": "{{total}}개 중 {{count}}개 선택됨",
+  "Link its monitor to what it watches, and every {{signal}} it raises from then on is linked for you.": "모니터를 모니터링 대상에 연결하면 그 이후 해당 모니터가 발생시키는 모든 {{signal}}이(가) 자동으로 연결됩니다.",
+  "Review and approve": "검토 후 승인",
+  "Turn its Fixes on, and OneUptime AI tries again.": "그곳의 수정을 켜면 OneUptime AI가 다시 시도합니다.",
+  "{{count}} change through {{servers}}.": "{{servers}}을(를) 통한 변경 {{count}}건.",
+  "{{count}} changes through {{servers}}.": "{{servers}}을(를) 통한 변경 {{count}}건.",
+  "{{count}} changes through {{servers}}._one": "{{servers}}을(를) 통한 변경 {{count}}건.",
+  "{{count}} command on {{targets}}.": "{{targets}}의 명령 {{count}}개.",
+  "{{count}} commands on {{targets}}.": "{{targets}}의 명령 {{count}}개.",
+  "{{count}} commands on {{targets}}._one": "{{targets}}의 명령 {{count}}개."
 }

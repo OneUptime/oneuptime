@@ -37,6 +37,7 @@
     "categories": {
       "essentials": "基本",
       "observability": "オブザーバビリティ",
+      "security": "セキュリティ",
       "ai": "AI",
       "code": "コード",
       "resources": "リソース",
@@ -40404,5 +40405,14 @@
   "Unarchive {{count}} {{itemsName}}": "{{itemsName}}を {{count}} 件アーカイブ解除する",
   "Unarchive {{count}} {{itemsName}}_one": "{{itemName}}を {{count}} 件アーカイブ解除する",
   "{{count}} of {{total}} selected": "{{total}} 件中 {{count}} 件選択",
-  "{{count}} of {{total}} selected_one": "{{total}} 件中 {{count}} 件選択"
+  "{{count}} of {{total}} selected_one": "{{total}} 件中 {{count}} 件選択",
+  "Link its monitor to what it watches, and every {{signal}} it raises from then on is linked for you.": "モニターを監視対象にリンクすると、それ以降そのモニターが発生させるすべての{{signal}}が自動的にリンクされます。",
+  "Review and approve": "確認して承認",
+  "Turn its Fixes on, and OneUptime AI tries again.": "そこで修正をオンにすると、OneUptime AI がもう一度試します。",
+  "{{count}} change through {{servers}}.": "{{servers}} 経由の変更 {{count}} 件。",
+  "{{count}} changes through {{servers}}.": "{{servers}} 経由の変更 {{count}} 件。",
+  "{{count}} changes through {{servers}}._one": "{{servers}} 経由の変更 {{count}} 件。",
+  "{{count}} command on {{targets}}.": "{{targets}} のコマンド {{count}} 件。",
+  "{{count}} commands on {{targets}}.": "{{targets}} のコマンド {{count}} 件。",
+  "{{count}} commands on {{targets}}._one": "{{targets}} のコマンド {{count}} 件。"
 }

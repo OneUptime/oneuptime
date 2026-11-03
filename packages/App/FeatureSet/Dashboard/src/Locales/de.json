@@ -37,6 +37,7 @@
     "categories": {
       "essentials": "Grundlagen",
       "observability": "Observability",
+      "security": "Sicherheit",
       "ai": "KI",
       "code": "Code",
       "resources": "Ressourcen",
@@ -40404,5 +40405,14 @@
   "Unarchive {{count}} {{itemsName}}": "{{count}} {{itemsName}} aus dem Archiv entfernen",
   "Unarchive {{count}} {{itemsName}}_one": "{{count}} {{itemName}} aus dem Archiv entfernen",
   "{{count}} of {{total}} selected": "{{count}} von {{total}} ausgewählt",
-  "{{count}} of {{total}} selected_one": "{{count}} von {{total}} ausgewählt"
+  "{{count}} of {{total}} selected_one": "{{count}} von {{total}} ausgewählt",
+  "Link its monitor to what it watches, and every {{signal}} it raises from then on is linked for you.": "Verknüpfen Sie seinen Monitor mit dem, was er überwacht. Dann wird jeder Eintrag ({{signal}}), den er ab dann auslöst, automatisch verknüpft.",
+  "Review and approve": "Prüfen und genehmigen",
+  "Turn its Fixes on, and OneUptime AI tries again.": "Schalten Sie dort die Korrekturen ein, dann versucht es OneUptime AI erneut.",
+  "{{count}} change through {{servers}}.": "{{count}} Änderung über {{servers}}.",
+  "{{count}} changes through {{servers}}.": "{{count}} Änderungen über {{servers}}.",
+  "{{count}} changes through {{servers}}._one": "{{count}} Änderung über {{servers}}.",
+  "{{count}} command on {{targets}}.": "{{count}} Befehl auf {{targets}}.",
+  "{{count}} commands on {{targets}}.": "{{count}} Befehle auf {{targets}}.",
+  "{{count}} commands on {{targets}}._one": "{{count}} Befehl auf {{targets}}."
 }

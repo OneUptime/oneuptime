@@ -37,6 +37,7 @@
     "categories": {
       "essentials": "Основные",
       "observability": "Наблюдаемость",
+      "security": "Безопасность",
       "ai": "ИИ",
       "code": "Код",
       "resources": "Ресурсы",
@@ -40404,5 +40405,14 @@
   "Unarchive {{count}} {{itemsName}}": "Извлечь из архива элементы ({{itemsName}}): {{count}}",
   "Unarchive {{count}} {{itemsName}}_one": "Извлечь из архива элемент ({{itemName}}): {{count}}",
   "{{count}} of {{total}} selected": "Выбрано: {{count}} из {{total}}",
-  "{{count}} of {{total}} selected_one": "Выбрано: {{count}} из {{total}}"
+  "{{count}} of {{total}} selected_one": "Выбрано: {{count}} из {{total}}",
+  "Link its monitor to what it watches, and every {{signal}} it raises from then on is linked for you.": "Свяжите его монитор с тем, за чем он следит, и каждое событие ({{signal}}), которое он создаст после этого, будет связано автоматически.",
+  "Review and approve": "Проверить и подтвердить",
+  "Turn its Fixes on, and OneUptime AI tries again.": "Включите для него исправления, и OneUptime AI попробует снова.",
+  "{{count}} change through {{servers}}.": "{{count}} изменение (через {{servers}}).",
+  "{{count}} changes through {{servers}}.": "Изменений: {{count}} (через {{servers}}).",
+  "{{count}} changes through {{servers}}._one": "{{count}} изменение (через {{servers}}).",
+  "{{count}} command on {{targets}}.": "{{count}} команда ({{targets}}).",
+  "{{count}} commands on {{targets}}.": "Команд: {{count}} ({{targets}}).",
+  "{{count}} commands on {{targets}}._one": "{{count}} команда ({{targets}})."
 }

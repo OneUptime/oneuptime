@@ -153,6 +153,32 @@ export function mayApplyInitialSavedView(
 }
 
 /**
+ * Whether the page around a Logs viewer owns what it shows, so that no saved
+ * view is applied over it unasked: a pinned moment (an incident's or an
+ * alert's window), a controlled window (the entity hub's cursor), or a panel
+ * that offers no saved views at all.
+ *
+ * A saved log view belongs to the page it was saved on (issue #5549), so
+ * the Logs page and each resource's Logs tab - a Kubernetes cluster's, a
+ * host's - own none of that: each opens on its own default view, which is
+ * one somebody saved on that very page. Before views had a page, a tab's
+ * default would have been the project's, made on the Logs page, and the tabs
+ * were kept from applying it.
+ */
+export function doesHostOwnLogsView(input: {
+  hasPinnedTimeRange: boolean;
+  hasTimeRangeOverride: boolean;
+  // The page's saved views (DashboardLogsViewer's savedViewScope).
+  savedViewScope?: string | null | undefined;
+}): boolean {
+  return (
+    input.hasPinnedTimeRange ||
+    input.hasTimeRangeOverride ||
+    !input.savedViewScope
+  );
+}
+
+/**
  * The URL's own scope, shaped as saved-view state, for layering over a view
  * that the same URL named.
  *

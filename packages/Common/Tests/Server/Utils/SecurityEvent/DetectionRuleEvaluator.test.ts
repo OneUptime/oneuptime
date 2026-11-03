@@ -76,7 +76,16 @@ import SecurityCaseIngest, {
 import SecurityEntityRiskRecorder from "../../../../Server/Utils/SecurityEvent/EntityRisk/SecurityEntityRiskRecorder";
 import { SecurityRiskFinding } from "../../../../Server/Utils/SecurityEvent/EntityRisk/SecurityEntityRiskFindings";
 import SecurityDetectionSource from "../../../../Types/SecurityCase/SecurityDetectionSource";
-import { SecurityEntityType } from "../../../../Types/SecurityCase/SecurityEntity";
+import {
+  SecurityEntity,
+  SecurityEntityType,
+} from "../../../../Types/SecurityCase/SecurityEntity";
+import SecurityConnections from "../../../../Server/Utils/SecurityEvent/Connections/SecurityConnections";
+import {
+  SecurityConnectionCertainty,
+  SecurityConnectionKind,
+  SecurityConnectionReason,
+} from "../../../../Types/SecurityCase/SecurityConnection";
 import {
   SQL,
   Statement,
@@ -399,10 +408,218 @@ describe("DetectionRuleEvaluator", () => {
     getJestSpyOn(DetectionRuleExceptionService, "findAllBy").mockResolvedValue(
       [] as never,
     );
+    /*
+     * What a match's entities name in OneUptime - the records its alert is
+     * linked to - has its own suites (SecurityConnections,
+     * SecurityEventAlertingLinks): here it names nothing unless a test says.
+     */
+    getJestSpyOn(SecurityConnections, "readEntityLinks").mockResolvedValue(
+      [] as never,
+    );
   });
 
   afterEach(() => {
     jest.restoreAllMocks();
+  });
+
+  /*
+   * #5303's follow-up: a rule's alert or incident is about what its group
+   * names - the user, host or address its case holds - and is linked to the
+   * records those name exactly, so OneUptime AI can investigate and fix
+   * them there.
+   */
+  describe("what a match's alert and incident are linked to", () => {
+    const HOST_ID: string = "88888888-8888-4888-8888-888888888888";
+
+    function linksToHost(): Spy {
+      return getJestSpyOn(
+        SecurityConnections,
+        "readEntityLinks",
+      ).mockResolvedValue([
+        {
+          kind: SecurityConnectionKind.Host,
+          id: HOST_ID,
+          name: "web-1",
+          certainty: SecurityConnectionCertainty.Exact,
+          matches: [
+            {
+              entity: { type: SecurityEntityType.Host, value: "web-1" },
+              certainty: SecurityConnectionCertainty.Exact,
+              reason: SecurityConnectionReason.HostName,
+              matchedValue: "web-1",
+            },
+          ],
+        },
+      ] as never);
+    }
+
+    test("getMatchGroupEntities: the group's value, typed by the rule's Group By Field, then its sample observables", () => {
+      const rule: DetectionRule = buildRule({ groupByField: "principalHost" });
+
+      expect(
+        DetectionRuleEvaluator.getMatchGroupEntities({
+          rule,
+          matchGroup: buildGroup("web-1", 3),
+        }),
+      ).toEqual([
+        { type: SecurityEntityType.Host, value: "web-1" },
+        { type: SecurityEntityType.IpAddress, value: "10.0.0.9" },
+      ]);
+    });
+
+    test("getMatchGroupEntities: a correlation's group-by values, each typed by its own field", () => {
+      const rule: DetectionRule = buildRule({ groupByField: "" });
+      const group: DetectionMatchGroup = {
+        ...buildGroup("alice|web-1", 2),
+        sampleObservables: [],
+        groupFields: [
+          { field: "principalUser", value: "alice" },
+          { field: "targetHost", value: "web-1" },
+        ],
+      };
+
+      expect(
+        DetectionRuleEvaluator.getMatchGroupEntities({
+          rule,
+          matchGroup: group,
+        }),
+      ).toEqual([
+        { type: SecurityEntityType.User, value: "alice" },
+        { type: SecurityEntityType.Host, value: "web-1" },
+      ]);
+    });
+
+    test("a rule with no Group By Field names its observables only", () => {
+      const rule: DetectionRule = buildRule({ groupByField: "" });
+
+      expect(
+        DetectionRuleEvaluator.getMatchGroupEntities({
+          rule,
+          matchGroup: { ...buildGroup("", 4), sampleObservables: ["10.0.0.9"] },
+        }),
+      ).toEqual([{ type: SecurityEntityType.IpAddress, value: "10.0.0.9" }]);
+    });
+
+    test("an alert is linked to the host its group names, read in the run's window", async () => {
+      const links: Spy = linksToHost();
+      const rule: DetectionRule = buildRule({
+        groupByField: "principalHost",
+        shouldWriteDetectionFinding: false,
+      });
+      const spies: EvaluationSpies = installSpies({
+        groups: [buildGroup("web-1", 3)],
+        severities: [buildSeverity("0001", "Default")],
+      });
+
+      const result: DetectionRuleEvaluationResult =
+        await DetectionRuleEvaluator.evaluateRule(rule);
+
+      expect(result.alertsCreated).toBe(1);
+
+      const alert: Alert = createdAlert(spies, 0);
+      expect(
+        (alert.hosts || []).map((host: { id?: ObjectID | null }) => {
+          return host.id?.toString();
+        }),
+      ).toEqual([HOST_ID]);
+
+      const asked: {
+        projectId: ObjectID;
+        entities: Array<SecurityEntity>;
+        window: { start: Date; end: Date };
+      } = links.mock.calls[0]![0] as never;
+
+      expect(asked.projectId.toString()).toBe(PROJECT_ID.toString());
+      expect(asked.entities).toEqual([
+        { type: SecurityEntityType.Host, value: "web-1" },
+        { type: SecurityEntityType.IpAddress, value: "10.0.0.9" },
+      ]);
+      // The window the matched events were read in.
+      expect(asked.window).toEqual({
+        start: findMatchesArg(spies).startTime,
+        end: findMatchesArg(spies).endTime,
+      });
+    });
+
+    test("an incident is linked the same way, and the alert and the incident of one group name the same host", async () => {
+      linksToHost();
+      const rule: DetectionRule = buildRule({
+        groupByField: "principalHost",
+        shouldCreateIncident: true,
+        shouldWriteDetectionFinding: false,
+      });
+      const spies: EvaluationSpies = installSpies({
+        groups: [buildGroup("web-1", 3)],
+        severities: [buildSeverity("0001", "Default")],
+        incidentSeverities: [buildIncidentSeverity("0001", "Default")],
+      });
+
+      await DetectionRuleEvaluator.evaluateRule(rule);
+
+      const incident: Incident = createdIncident(spies, 0);
+      expect(
+        (incident.hosts || []).map((host: { id?: ObjectID | null }) => {
+          return host.id?.toString();
+        }),
+      ).toEqual([HOST_ID]);
+      expect(
+        (createdAlert(spies, 0).hosts || []).map(
+          (host: { id?: ObjectID | null }) => {
+            return host.id?.toString();
+          },
+        ),
+      ).toEqual([HOST_ID]);
+      // Never a monitor: an incident on a monitor changes its status.
+      expect(incident.monitors).toBeUndefined();
+    });
+
+    test("a group whose alert is still open is not read for, and opens nothing", async () => {
+      const links: Spy = linksToHost();
+      const rule: DetectionRule = buildRule({
+        groupByField: "principalHost",
+        shouldWriteDetectionFinding: false,
+      });
+      const spies: EvaluationSpies = installSpies({
+        groups: [buildGroup("web-1", 3)],
+        severities: [buildSeverity("0001", "Default")],
+        openAlerts: [buildOpenAlert(expectedFingerprint("web-1"))],
+      });
+
+      await DetectionRuleEvaluator.evaluateRule(rule);
+
+      expect(spies.alertCreate).not.toHaveBeenCalled();
+      expect(links).not.toHaveBeenCalled();
+    });
+
+    test("the alert and the case are about the same entities", async () => {
+      const links: Spy = linksToHost();
+      const recorded: Spy = getJestSpyOn(
+        SecurityCaseIngest,
+        "recordDetections",
+      ).mockResolvedValue({
+        casesOpened: 1,
+        detectionsAdded: 1,
+        detectionsRepeated: 0,
+      } as never);
+      const rule: DetectionRule = buildRule({
+        groupByField: "principalHost",
+        shouldWriteDetectionFinding: false,
+      });
+      installSpies({
+        groups: [buildGroup("web-1", 3)],
+        severities: [buildSeverity("0001", "Default")],
+      });
+
+      await DetectionRuleEvaluator.evaluateRule(rule);
+
+      const signal: SecurityDetectionSignal = (
+        recorded.mock.calls[0]![0] as Array<SecurityDetectionSignal>
+      )[0]!;
+      expect(
+        (links.mock.calls[0]![0] as { entities: Array<SecurityEntity> })
+          .entities,
+      ).toEqual(signal.entities);
+    });
   });
 
   describe("a project's turn: scheduling", () => {

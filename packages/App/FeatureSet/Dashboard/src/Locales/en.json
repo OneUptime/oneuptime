@@ -37,6 +37,7 @@
     "categories": {
       "essentials": "Essentials",
       "observability": "Observability",
+      "security": "Security",
       "ai": "AI",
       "code": "Code",
       "resources": "Resources",
@@ -40404,5 +40405,14 @@
   "Unarchive {{count}} {{itemsName}}": "Unarchive {{count}} {{itemsName}}",
   "Unarchive {{count}} {{itemsName}}_one": "Unarchive {{count}} {{itemName}}",
   "{{count}} of {{total}} selected": "{{count}} of {{total}} selected",
-  "{{count}} of {{total}} selected_one": "{{count}} of {{total}} selected"
+  "{{count}} of {{total}} selected_one": "{{count}} of {{total}} selected",
+  "Link its monitor to what it watches, and every {{signal}} it raises from then on is linked for you.": "Link its monitor to what it watches, and every {{signal}} it raises from then on is linked for you.",
+  "Review and approve": "Review and approve",
+  "Turn its Fixes on, and OneUptime AI tries again.": "Turn its Fixes on, and OneUptime AI tries again.",
+  "{{count}} change through {{servers}}.": "{{count}} change through {{servers}}.",
+  "{{count}} changes through {{servers}}.": "{{count}} changes through {{servers}}.",
+  "{{count}} changes through {{servers}}._one": "{{count}} change through {{servers}}.",
+  "{{count}} command on {{targets}}.": "{{count}} command on {{targets}}.",
+  "{{count}} commands on {{targets}}.": "{{count}} commands on {{targets}}.",
+  "{{count}} commands on {{targets}}._one": "{{count}} command on {{targets}}."
 }

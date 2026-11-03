@@ -94,7 +94,7 @@ Under the records, Connected Signals searches your logs and traces, over the sam
 
 ## Incidents a case declares
 
-**Declare Incident** on a case, or a playbook's step that declares one, links the incident to the hosts, Docker and Podman hosts, Kubernetes clusters, cloud resources and services the case is exactly connected to. The incident shows on their pages and their owners' rules apply to it, and its feed names the case and what it was linked to. A possible match is never linked, and neither is a monitor: an incident on a monitor can change its status and show on its status pages.
+**Declare Incident** on a case, or a playbook's step that declares one, links the incident to the hosts, Docker and Podman hosts, Kubernetes clusters, network devices, cloud resources and services the case is exactly connected to. A playbook's step that pages on-call links the alert it opens the same way; each alert and incident a detection rule or a threat intel match opens is linked to what its match names exactly, and each one Data Security opens to the data store it is about. The incident shows on their pages and their owners' rules apply to it, and its feed names the case and what it was linked to. A possible match is never linked, and neither is a monitor: an incident on a monitor can change its status and show on its status pages.
 
 ## OneUptime AI
 

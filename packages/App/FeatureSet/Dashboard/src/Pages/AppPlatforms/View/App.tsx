@@ -7,6 +7,10 @@ import CloudAppRevisionsTab from "../../../Components/AppPlatforms/CloudAppRevis
 import AutoRefreshControl from "../../../Components/TelemetryResource/AutoRefreshControl";
 import useAutoRefresh from "../../../Components/TelemetryResource/useAutoRefresh";
 import DashboardLogsViewer from "../../../Components/Logs/LogsViewer";
+import {
+  buildSavedViewScope,
+  SavedViewScopeKind,
+} from "Common/Utils/Telemetry/SavedViewScope";
 import TracesViewer from "../../../Components/Traces/TracesViewer";
 import { CloudInstancesTable } from "./Instances";
 import {
@@ -386,6 +390,10 @@ const AppPlatformApp: FunctionComponent<
       children: isScoped ? (
         <DashboardLogsViewer
           id={`cloud-app-logs-${appId.toString()}`}
+          savedViewScope={buildSavedViewScope(
+            SavedViewScopeKind.CloudApp,
+            appId,
+          )}
           logQuery={logQuery}
           attributeFilterDisplayKeys={filterDisplayKeys}
           attributeFilterDisplayValues={filterDisplayValues}

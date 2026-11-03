@@ -186,6 +186,12 @@ import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import ObjectID from "../../../Types/ObjectID";
 import TimeRange from "../../../Types/Time/TimeRange";
 import { serializeSavedViewTimeRange } from "../../../Utils/Telemetry/SavedViewTimeRange";
+import IsNull from "../../../Types/BaseDatabase/IsNull";
+import {
+  EXPLORER_SAVED_VIEW_SCOPE,
+  SavedViewScopeKind,
+  buildSavedViewScope,
+} from "../../../Utils/Telemetry/SavedViewScope";
 
 const NOW: Date = new Date("2026-09-28T12:00:00.000Z");
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -405,6 +411,7 @@ function explorer(props: ViewerProps = {}): React.ReactElement {
       limit={100}
       enableRealtime={true}
       id="logs"
+      savedViewScope={EXPLORER_SAVED_VIEW_SCOPE}
       syncUrlState={true}
       {...props}
     />
@@ -760,6 +767,10 @@ describe("an embedded viewer reads once, and only on a real change of its scope"
     return (
       <DashboardLogsViewer
         id="service-logs"
+        savedViewScope={buildSavedViewScope(
+          SavedViewScopeKind.Service,
+          new ObjectID(serviceId),
+        )}
         serviceIds={[new ObjectID(serviceId)]}
         showFilters={true}
         enableRealtime={true}
@@ -781,7 +792,10 @@ describe("an embedded viewer reads once, and only on a real change of its scope"
     expect(histogramRequests()).toHaveLength(1);
     expect(facetRequests()).toHaveLength(1);
     expect(window.location.search).toBe("");
-    // An embed never waits for saved views: no view applies inside a page.
+    /*
+     * The tab reads its own saved views once, and its one list read waited
+     * for them: a default saved on this tab would apply (issue #5549).
+     */
     expect(savedViewReads()).toBe(1);
   });
 
@@ -1265,5 +1279,164 @@ describe("a saved view that applies on load is waited for", () => {
     expect(lastListCall().query["severityText"]).toEqual(
       new Includes([LogSeverity.Error]),
     );
+  });
+});
+
+/*
+ * SAVED VIEWS BELONG TO THE PAGE THEY WERE SAVED ON (issue #5549).
+ *
+ * Every Logs viewer used to read all of the project's saved views, so a view
+ * made on the Logs page was offered on every cluster's, host's and service's
+ * Logs tab, and one made for a cluster everywhere else. Each viewer now asks
+ * for its own page's views - the Logs page's have no scope, a cluster tab's
+ * name the cluster - opens on its own page's default, and a panel about one
+ * moment asks for none and offers none.
+ */
+describe("saved views belong to the page they were saved on", () => {
+  const CLUSTER_MODEL_ID: string = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee";
+  const CLUSTER_ATTRIBUTE: string = "resource.k8s.cluster.name";
+  const NAMESPACE_ATTRIBUTE: string = "resource.k8s.namespace.name";
+  const CLUSTER_SCOPE: string = buildSavedViewScope(
+    SavedViewScopeKind.KubernetesCluster,
+    new ObjectID(CLUSTER_MODEL_ID),
+  );
+
+  // A cluster's Logs tab, as Pages/Kubernetes/View/Logs renders it.
+  function clusterLogs(props: ViewerProps = {}): React.ReactElement {
+    return (
+      <DashboardLogsViewer
+        id={`kubernetes-cluster-logs-${CLUSTER_MODEL_ID}`}
+        savedViewScope={CLUSTER_SCOPE}
+        logQuery={{ attributes: { [CLUSTER_ATTRIBUTE]: "prod-eks-01" } } as any}
+        attributeFilterDisplayKeys={{ [CLUSTER_ATTRIBUTE]: "Cluster" }}
+        showFilters={true}
+        enableRealtime={true}
+        {...props}
+      />
+    );
+  }
+
+  // The cluster tab's own default: its errors in one namespace, over the past day.
+  function clusterDefaultView(): LogSavedView {
+    return makeSavedView({
+      id: DEFAULT_VIEW_ID,
+      name: "Payments namespace",
+      query: {
+        attributes: {
+          [CLUSTER_ATTRIBUTE]: "prod-eks-01",
+          [NAMESPACE_ATTRIBUTE]: "payments",
+        },
+        severityText: new Includes([LogSeverity.Error]),
+      },
+      range: TimeRange.PAST_ONE_DAY,
+      isDefault: true,
+    });
+  }
+
+  function savedViewQueries(): Array<Record<string, unknown>> {
+    return getListMock.mock.calls
+      .filter((call: Array<unknown>): boolean => {
+        return (call[0] as { modelType: unknown }).modelType === LogSavedView;
+      })
+      .map((call: Array<unknown>): Record<string, unknown> => {
+        return (call[0] as { query: Record<string, unknown> }).query;
+      });
+  }
+
+  test("the Logs page asks for its own views: the ones with no scope", async () => {
+    window.history.replaceState({}, "", "/dashboard/project/logs");
+
+    await mount(explorer());
+
+    expect(savedViewQueries()).toHaveLength(1);
+    expect(savedViewQueries()[0]!["scope"]).toBeInstanceOf(IsNull);
+    expect(String(savedViewQueries()[0]!["projectId"])).toBe(
+      PROJECT_ID.toString(),
+    );
+  });
+
+  test("a cluster's Logs tab asks for that cluster's views, and no one else's", async () => {
+    await mount(clusterLogs());
+
+    expect(savedViewQueries()).toHaveLength(1);
+    expect(savedViewQueries()[0]!["scope"]).toBe(CLUSTER_SCOPE);
+  });
+
+  test("a cluster's Logs tab opens on its own default, read once, its namespace chip kept under the page's cluster", async () => {
+    savedViews = [clusterDefaultView()];
+
+    await mount(clusterLogs());
+
+    // The list waited for the tab's views and read once, the view applied.
+    expect(listCalls()).toHaveLength(1);
+    expect(lastListCall().query["attributes"]).toEqual({
+      [CLUSTER_ATTRIBUTE]: "prod-eks-01",
+      [NAMESPACE_ATTRIBUTE]: "payments",
+    });
+    expect(lastListCall().query["severityText"]).toEqual(
+      new Includes([LogSeverity.Error]),
+    );
+    expect(windowOf(lastListCall().query)).toBe(PAST_DAY_WINDOW);
+    expect(histogramRequests()).toHaveLength(1);
+    expect(
+      within(toolbar()).getByText("Payments namespace"),
+    ).toBeInTheDocument();
+  });
+
+  test("a cluster's Logs tab with no default of its own opens as it always did", async () => {
+    savedViews = [];
+
+    await mount(clusterLogs());
+
+    expect(listCalls()).toHaveLength(1);
+    expect(lastListCall().query["attributes"]).toEqual({
+      [CLUSTER_ATTRIBUTE]: "prod-eks-01",
+    });
+    expect(lastListCall().query["severityText"]).toBeUndefined();
+    expect(windowOf(lastListCall().query)).toBe(PAST_HOUR_WINDOW);
+    expect(within(toolbar()).getByText("Saved Views")).toBeInTheDocument();
+  });
+
+  test("a cluster's Logs tab under a pinned moment keeps the moment, offering its views but applying none", async () => {
+    savedViews = [clusterDefaultView()];
+
+    await mount(
+      clusterLogs({
+        logQuery: {
+          attributes: { [CLUSTER_ATTRIBUTE]: "prod-eks-01" },
+          time: new InBetween<Date>(
+            new Date("2026-09-20T08:00:00.000Z"),
+            new Date("2026-09-20T09:30:00.000Z"),
+          ),
+        } as any,
+      }),
+    );
+
+    expect(savedViewReads()).toBe(1);
+    expect(listCalls()).toHaveLength(1);
+    expect(windowOf(lastListCall().query)).toBe(CUSTOM_WINDOW);
+    expect(lastListCall().query["severityText"]).toBeUndefined();
+    expect(within(toolbar()).getByText("Saved Views")).toBeInTheDocument();
+  });
+
+  test("a panel about one moment asks for no saved views, waits for none and offers none", async () => {
+    // A view the project's Logs page opens on, which the panel must not see.
+    savedViews = [errorsView({ isDefault: true })];
+
+    // An incident's logs, as Pages/Incidents/View renders its preview.
+    await mount(
+      <DashboardLogsViewer
+        id="logs-preview"
+        logQuery={{ attributes: { [CLUSTER_ATTRIBUTE]: "prod-eks-01" } } as any}
+        showFilters={true}
+        noLogsMessage="No logs for this incident."
+      />,
+    );
+
+    expect(savedViewReads()).toBe(0);
+    expect(listCalls()).toHaveLength(1);
+    expect(lastListCall().query["severityText"]).toBeUndefined();
+    expect(within(toolbar()).queryByText("Saved Views")).toBeNull();
+    expect(within(toolbar()).queryByText("Team default")).toBeNull();
   });
 });

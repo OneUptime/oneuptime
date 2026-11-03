@@ -1,14 +1,8 @@
 import Alert from "../../../../Models/DatabaseModels/Alert";
 import ChangeEvent from "../../../../Models/AnalyticsModels/ChangeEvent";
-import CloudResource from "../../../../Models/DatabaseModels/CloudResource";
-import DockerHost from "../../../../Models/DatabaseModels/DockerHost";
-import Host from "../../../../Models/DatabaseModels/Host";
 import Incident from "../../../../Models/DatabaseModels/Incident";
-import KubernetesCluster from "../../../../Models/DatabaseModels/KubernetesCluster";
 import OnCallDutyPolicySchedule from "../../../../Models/DatabaseModels/OnCallDutyPolicySchedule";
 import OnCallDutyPolicyScheduleLayerUser from "../../../../Models/DatabaseModels/OnCallDutyPolicyScheduleLayerUser";
-import PodmanHost from "../../../../Models/DatabaseModels/PodmanHost";
-import ServiceModel from "../../../../Models/DatabaseModels/Service";
 import InventoryItem from "../../../../Models/DatabaseModels/InventoryItem";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import SecurityEvent from "../../../../Models/AnalyticsModels/SecurityEvent";
@@ -20,6 +14,11 @@ import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../../../Types/Date";
 import Dictionary from "../../../../Types/Dictionary";
 import ObjectID from "../../../../Types/ObjectID";
+import {
+  AiAffectedResourceKind,
+  AiAffectedResourceRef,
+  getAiAffectedResourceKindInfo,
+} from "../../../../Types/AI/AiAffectedResources";
 import {
   SECURITY_CONNECTION_MAX_LISTED,
   SECURITY_CONNECTION_MAX_RESOURCES,
@@ -71,6 +70,10 @@ import QueryHelper from "../../../Types/Database/QueryHelper";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import TelemetryReadAccess from "../../Telemetry/TelemetryReadAccess";
+import {
+  getDistinctAffectedResources,
+  setAffectedResourcesOnNewRecord,
+} from "../../AffectedResources/AffectedResourceLists";
 import SecurityConnectedRecords, {
   SecurityConnectedRecord,
   SecurityConnectedRecordsResult,
@@ -96,11 +99,52 @@ import SecurityConnectedRecords, {
  */
 
 /*
- * The relation each kind of record has on incidents, alerts and monitors
- * (their Affected Resources): what the facts of a record are read through,
- * and what an incident a case declares is linked to.
+ * The kind of affected resource each kind of record is on an incident or an
+ * alert (Types/AI/AiAffectedResources): what an incident or alert a case, a
+ * playbook or a detection opens is linked to, through that kind's list. A
+ * monitor, a serverless function and a member are never one: an incident on
+ * a monitor can change its status and show on the status pages that list
+ * it, and an incident has no list of the others.
+ */
+export const CONNECTION_KIND_AFFECTED_RESOURCES: Readonly<
+  Partial<Record<SecurityConnectionKind, AiAffectedResourceKind>>
+> = {
+  [SecurityConnectionKind.Host]: AiAffectedResourceKind.Host,
+  [SecurityConnectionKind.DockerHost]: AiAffectedResourceKind.DockerHost,
+  [SecurityConnectionKind.PodmanHost]: AiAffectedResourceKind.PodmanHost,
+  [SecurityConnectionKind.KubernetesCluster]:
+    AiAffectedResourceKind.KubernetesCluster,
+  // Listed on incidents and alerts since #5341.
+  [SecurityConnectionKind.NetworkDevice]: AiAffectedResourceKind.NetworkDevice,
+  [SecurityConnectionKind.CloudResource]: AiAffectedResourceKind.CloudResource,
+  [SecurityConnectionKind.Service]: AiAffectedResourceKind.Service,
+};
+
+/*
+ * The relation each kind of record has on incidents and alerts (their
+ * Affected Resources): what a record's active incidents and alerts are read
+ * through, and the list an incident or alert linked to it holds it in.
  */
 export const RECORD_RELATION_COLUMNS: Partial<
+  Record<SecurityConnectionKind, string>
+> = Object.fromEntries(
+  Object.entries(CONNECTION_KIND_AFFECTED_RESOURCES).map(
+    ([kind, affectedKind]: [string, AiAffectedResourceKind]): [
+      string,
+      string,
+    ] => {
+      return [kind, getAiAffectedResourceKindInfo(affectedKind).relation];
+    },
+  ),
+) as Partial<Record<SecurityConnectionKind, string>>;
+
+/*
+ * The relation each kind of record has on monitors (the resources a monitor
+ * names): what the monitors that watch a record are read through. A monitor
+ * lists no network device - a Network Device monitor names its device in
+ * its step - so a device's monitors are not read this way.
+ */
+export const MONITOR_RELATION_COLUMNS: Partial<
   Record<SecurityConnectionKind, string>
 > = {
   [SecurityConnectionKind.Host]: "hosts",
@@ -153,7 +197,7 @@ export function alertRelation(
 export function monitorRelation(
   kind: SecurityConnectionKind,
 ): FactRelation | null {
-  const column: string | undefined = RECORD_RELATION_COLUMNS[kind];
+  const column: string | undefined = MONITOR_RELATION_COLUMNS[kind];
 
   return column ? { column, isList: true } : null;
 }
@@ -256,86 +300,57 @@ function addToList(
 }
 
 /*
- * Links an incident about to be created to these records - the exact
- * connections of the case declaring it (readIncidentLinks) - through the
- * relations its Affected Resources show. Records of other kinds are left
- * out: an incident does not name them.
+ * What these records are as an incident's or an alert's affected
+ * resources: the exact ones of a kind an incident or alert lists
+ * (CONNECTION_KIND_AFFECTED_RESOURCES), each once. A possible connection is
+ * never one - a name two machines share must never link the wrong one.
  */
-export function linkIncidentToConnectedRecords(
-  incident: Incident,
+export function getConnectedRecordAffectedResources(
   records: ReadonlyArray<SecurityConnectedRecord>,
-): void {
-  const idsOf: (kind: SecurityConnectionKind) => Array<ObjectID> = (
-    kind: SecurityConnectionKind,
-  ): Array<ObjectID> => {
-    return Array.from(
-      new Set(
-        records
-          .filter((record: SecurityConnectedRecord): boolean => {
-            return (
-              record.kind === kind &&
-              record.certainty === SecurityConnectionCertainty.Exact
-            );
-          })
-          .map((record: SecurityConnectedRecord): string => {
-            return record.id;
-          }),
-      ),
-    ).map((id: string): ObjectID => {
-      return new ObjectID(id);
-    });
-  };
+): Array<AiAffectedResourceRef> {
+  const refs: Array<AiAffectedResourceRef> = [];
 
-  const hosts: Array<ObjectID> = idsOf(SecurityConnectionKind.Host);
-  const dockerHosts: Array<ObjectID> = idsOf(SecurityConnectionKind.DockerHost);
-  const podmanHosts: Array<ObjectID> = idsOf(SecurityConnectionKind.PodmanHost);
-  const clusters: Array<ObjectID> = idsOf(
-    SecurityConnectionKind.KubernetesCluster,
+  for (const record of records) {
+    const kind: AiAffectedResourceKind | undefined =
+      CONNECTION_KIND_AFFECTED_RESOURCES[record.kind];
+
+    if (kind && record.certainty === SecurityConnectionCertainty.Exact) {
+      refs.push({ kind, id: record.id });
+    }
+  }
+
+  return getDistinctAffectedResources(refs);
+}
+
+/*
+ * Links an incident or alert about to be created to these records - the
+ * exact connections of the case declaring it (readIncidentLinks), or of the
+ * detection opening it (readEntityLinks) - through the lists its Affected
+ * Resources show. Records of other kinds are left out: it does not name
+ * them. Returns what it linked.
+ */
+export function linkRecordToConnectedRecords(
+  record: Incident | Alert,
+  records: ReadonlyArray<SecurityConnectedRecord>,
+): Array<AiAffectedResourceRef> {
+  return setAffectedResourcesOnNewRecord(
+    record,
+    getConnectedRecordAffectedResources(records),
   );
-  const cloudResources: Array<ObjectID> = idsOf(
-    SecurityConnectionKind.CloudResource,
-  );
-  const services: Array<ObjectID> = idsOf(SecurityConnectionKind.Service);
+}
 
-  if (hosts.length > 0) {
-    incident.hosts = hosts.map((id: ObjectID): Host => {
-      return new Host(id);
-    });
-  }
-
-  if (dockerHosts.length > 0) {
-    incident.dockerHosts = dockerHosts.map((id: ObjectID): DockerHost => {
-      return new DockerHost(id);
-    });
-  }
-
-  if (podmanHosts.length > 0) {
-    incident.podmanHosts = podmanHosts.map((id: ObjectID): PodmanHost => {
-      return new PodmanHost(id);
-    });
-  }
-
-  if (clusters.length > 0) {
-    incident.kubernetesClusters = clusters.map(
-      (id: ObjectID): KubernetesCluster => {
-        return new KubernetesCluster(id);
-      },
-    );
-  }
-
-  if (cloudResources.length > 0) {
-    incident.cloudResources = cloudResources.map(
-      (id: ObjectID): CloudResource => {
-        return new CloudResource(id);
-      },
-    );
-  }
-
-  if (services.length > 0) {
-    incident.services = services.map((id: ObjectID): ServiceModel => {
-      return new ServiceModel(id);
-    });
-  }
+// The records an incident or alert may be linked to, of those connected.
+function getLinkableRecords(
+  records: ReadonlyArray<SecurityConnectedRecord>,
+): Array<SecurityConnectedRecord> {
+  return records
+    .filter((record: SecurityConnectedRecord): boolean => {
+      return (
+        record.certainty === SecurityConnectionCertainty.Exact &&
+        Boolean(CONNECTION_KIND_AFFECTED_RESOURCES[record.kind])
+      );
+    })
+    .slice(0, SECURITY_CONNECTION_MAX_RESOURCES);
 }
 
 export function toConnectedResourceJson(
@@ -402,12 +417,13 @@ export default class SecurityConnections {
   }
 
   /*
-   * The records an incident a case declares is linked to: the case's
-   * exact connections among the kinds an incident names (hosts, Docker
-   * and Podman hosts, Kubernetes clusters, services), so the incident shows
-   * on their pages and its investigation reads them. Read as OneUptime: the
-   * server decides what the incident is about, from the case alone, and a
-   * possible connection is never linked.
+   * The records an incident a case declares - or the alert a playbook pages
+   * with - is linked to: the case's exact connections among the kinds an
+   * incident names (hosts, Docker and Podman hosts, Kubernetes clusters,
+   * network devices, cloud resources, services), so it shows on their pages
+   * and its investigation reads them. Read as OneUptime: the server decides
+   * what the incident is about, from the case alone, and a possible
+   * connection is never linked.
    */
   @CaptureSpan()
   public static async readIncidentLinks(data: {
@@ -433,14 +449,44 @@ export default class SecurityConnections {
         props,
       });
 
-    return resolved.records
-      .filter((record: SecurityConnectedRecord): boolean => {
-        return (
-          record.certainty === SecurityConnectionCertainty.Exact &&
-          Boolean(RECORD_RELATION_COLUMNS[record.kind])
-        );
-      })
-      .slice(0, SECURITY_CONNECTION_MAX_RESOURCES);
+    return getLinkableRecords(resolved.records);
+  }
+
+  /*
+   * The records the alert or incident a detection opens is linked to - a
+   * detection rule's match, a threat intel feed's - read as its case would
+   * read them: what its entities name exactly, and the records the logs
+   * behind its events were sent under, in its window ("Your logs" events
+   * carry the host, service or cluster that sent them), among the kinds an
+   * incident or alert names. Read as OneUptime, like readIncidentLinks: the
+   * server decides what the alert is about, from the detection alone.
+   */
+  @CaptureSpan()
+  public static async readEntityLinks(data: {
+    projectId: ObjectID;
+    entities: Array<SecurityEntity>;
+    window: SecurityConnectionWindow;
+  }): Promise<Array<SecurityConnectedRecord>> {
+    if (data.entities.length === 0) {
+      return [];
+    }
+
+    const props: DatabaseCommonInteractionProps = { isRoot: true };
+
+    const resolved: SecurityConnectedRecordsResult =
+      await SecurityConnectedRecords.resolve({
+        projectId: data.projectId,
+        entities: data.entities,
+        logResources: await this.readLogResources({
+          projectId: data.projectId,
+          entities: data.entities,
+          window: data.window,
+          props,
+        }),
+        props,
+      });
+
+    return getLinkableRecords(resolved.records);
   }
 
   /*

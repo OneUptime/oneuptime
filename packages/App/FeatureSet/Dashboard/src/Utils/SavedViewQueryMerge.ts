@@ -128,6 +128,52 @@ export function buildSavedViewQueryForOverrides(
   return merged;
 }
 
+// An `attributes` object, as a query holds one.
+const isAttributeMap: (value: unknown) => value is Record<string, unknown> = (
+  value: unknown,
+): value is Record<string, unknown> => {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+};
+
+/**
+ * A saved view's query under the page it is applied on, when no chip set
+ * comes with it: everything the view stored, with the page's own scope over
+ * it, so the view can never show more than the page is about.
+ *
+ * The page wins key by key, except inside `attributes`, the one object both
+ * of them write into. A page that pins attributes - a Kubernetes cluster's
+ * Logs tab pins `resource.k8s.cluster.name`, a host's `resource.host.name` -
+ * used to replace the view's whole object with its own, so a view saved on
+ * that page with an attribute chip (`resource.k8s.namespace.name: payments`)
+ * came back without it: the chip gone from the row and its filter gone from
+ * the list. Now that a view is listed only on the page it was saved on
+ * (issue #5549), those are exactly the pages views are saved on, so the two
+ * objects are merged instead, the page's own entries winning.
+ *
+ * Never mutates either input: `savedQuery` is the object held in the loaded
+ * saved views, and `baseQuery`'s attributes are the page's own.
+ */
+export function buildSavedViewQueryOverBase(
+  input: SavedViewQueryForOverridesInput,
+): JSONObject {
+  const savedQuery: JSONObject = input.savedQuery || {};
+  const baseQuery: JSONObject = input.baseQuery || {};
+
+  const merged: JSONObject = { ...savedQuery, ...baseQuery };
+
+  const savedAttributes: unknown = savedQuery[ATTRIBUTES_KEY];
+  const baseAttributes: unknown = baseQuery[ATTRIBUTES_KEY];
+
+  if (isAttributeMap(savedAttributes) && isAttributeMap(baseAttributes)) {
+    merged[ATTRIBUTES_KEY] = {
+      ...savedAttributes,
+      ...baseAttributes,
+    } as unknown as JSONObject[string];
+  }
+
+  return merged;
+}
+
 // Whether a stored column predicate leaves values out (a `!` chip's form).
 const isLeftOutQueryValue: (value: unknown) => boolean = (
   value: unknown,

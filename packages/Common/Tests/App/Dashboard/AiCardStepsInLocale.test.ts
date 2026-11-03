@@ -12,6 +12,12 @@ import {
 import {
   REMEDIATION_CODE_FIX_AUTOMATIC_REASONS,
   REMEDIATION_CODE_FIX_COPY,
+  REMEDIATION_FIX_CHANGES_SENTENCE,
+  REMEDIATION_FIX_COMMANDS_SENTENCE,
+  REMEDIATION_FIX_FAILED_COUNT,
+  REMEDIATION_FIX_HIDE_DETAILS,
+  REMEDIATION_FIX_REVIEW_AND_APPROVE,
+  REMEDIATION_FIX_SHOW_DETAILS,
   REMEDIATION_STEP_NOT_TRIED,
   REMEDIATION_STEP_STATUS_LABEL,
   REMEDIATION_STEP_TITLE,
@@ -23,7 +29,12 @@ import {
   REMEDIATION_TRY_AGAIN_SERVER_SENTENCES,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationStepCopy";
 import { REMEDIATION_STEP_STATUS_TEXT } from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationStepStatus";
-import { TURN_ON_FIXING_LINKS } from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationDecisionLines";
+import {
+  LINK_MONITOR_FOR_NEXT_TIME,
+  TURN_FIXES_ON_WHAT_TO_DO,
+  TURN_ON_FIXING_LINKS,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationDecisionLines";
+import { PluralTemplate } from "../../../Types/Translator";
 import {
   REMEDIATION_TRY_AGAIN_REFUSALS,
   RemediationTryAgainRefusal,
@@ -117,6 +128,19 @@ const WORDS: Array<string> = Array.from(
         ),
       ];
     }),
+    /*
+     * A fix folded to its sentence, and what opens it (#5413's UI review),
+     * and what to do under a cluster's or resource's Fixes off, and a
+     * resolved record's monitor line.
+     */
+    REMEDIATION_FIX_REVIEW_AND_APPROVE,
+    REMEDIATION_FIX_SHOW_DETAILS,
+    REMEDIATION_FIX_HIDE_DETAILS,
+    REMEDIATION_FIX_COMMANDS_SENTENCE.other,
+    REMEDIATION_FIX_CHANGES_SENTENCE.other,
+    REMEDIATION_FIX_FAILED_COUNT.other,
+    TURN_FIXES_ON_WHAT_TO_DO,
+    LINK_MONITOR_FOR_NEXT_TIME,
     // A switch that was off when OneUptime AI checked, and is on now.
     "Enable AI was off when OneUptime AI checked this incident. It is on now.",
     "Enable AI was off when OneUptime AI checked this alert. It is on now.",
@@ -221,4 +245,49 @@ describe.each(LANGUAGES)("the %s locale", (language: string) => {
       ],
     ).toContain(words["Fix new alerts automatically"]!);
   });
+});
+
+/*
+ * A folded fix's counted sentences: each language words the form for one
+ * too ("_one"), with the same placeholders. Japanese, Korean and Chinese
+ * have no form for one of their own, so theirs is never shown; it is
+ * there all the same, as en.json's keys are.
+ */
+const PLURALS: Array<PluralTemplate> = [
+  REMEDIATION_FIX_COMMANDS_SENTENCE,
+  REMEDIATION_FIX_CHANGES_SENTENCE,
+  REMEDIATION_FIX_FAILED_COUNT,
+];
+
+const NO_FORM_FOR_ONE: ReadonlyArray<string> = ["ja", "ko", "zh-CN", "zh-TW"];
+
+describe("a folded fix's counted sentences", () => {
+  test.each(PLURALS)(
+    "English holds $other and its form for one",
+    (plural: PluralTemplate) => {
+      expect(ENGLISH[plural.other]).toBe(plural.other);
+      expect(ENGLISH[`${plural.other}_one`]).toBe(plural.one);
+    },
+  );
+
+  test.each(
+    LANGUAGES.flatMap((language: string): Array<[string, PluralTemplate]> => {
+      return PLURALS.map((plural: PluralTemplate): [string, PluralTemplate] => {
+        return [language, plural];
+      });
+    }),
+  )(
+    "%s words the form for one of %o",
+    (language: string, plural: PluralTemplate) => {
+      const words: Record<string, string> = readLocale(language);
+      const one: string | undefined = words[`${plural.other}_one`];
+
+      expect(one).toBeDefined();
+      expect(placeholders(one!)).toEqual(placeholders(plural.one));
+
+      if (!NO_FORM_FOR_ONE.includes(language)) {
+        expect(one).not.toBe(plural.one);
+      }
+    },
+  );
 });

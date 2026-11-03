@@ -7,7 +7,8 @@ import {
 } from "../../../../../Server/Utils/SecurityEvent/Connections/ConnectionsLoader";
 import SecurityConnectedRecords from "../../../../../Server/Utils/SecurityEvent/Connections/SecurityConnectedRecords";
 import SecurityConnections, {
-  linkIncidentToConnectedRecords,
+  getConnectedRecordAffectedResources,
+  linkRecordToConnectedRecords,
 } from "../../../../../Server/Utils/SecurityEvent/Connections/SecurityConnections";
 import SecurityTelemetryMentions from "../../../../../Server/Utils/SecurityEvent/Connections/SecurityTelemetryMentions";
 import { describe, expect, test } from "@jest/globals";
@@ -276,8 +277,12 @@ describe("the connections' load order", () => {
     ).toEqual([]);
 
     expect(loadSecurityConnections().default).toBe(SecurityConnections);
-    expect(loadSecurityConnections().linkIncidentToConnectedRecords).toBe(
-      linkIncidentToConnectedRecords,
+    expect(loadSecurityConnections().linkRecordToConnectedRecords).toBe(
+      linkRecordToConnectedRecords,
+    );
+    // What a detection's alert is linked to is read through the loader too.
+    expect(loadSecurityConnections().getConnectedRecordAffectedResources).toBe(
+      getConnectedRecordAffectedResources,
     );
     expect(loadSecurityConnectedRecords()).toBe(SecurityConnectedRecords);
     expect(loadIncidentSecurity()).toBe(IncidentSecurity);

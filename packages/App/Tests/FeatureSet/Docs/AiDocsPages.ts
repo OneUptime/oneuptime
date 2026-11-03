@@ -132,7 +132,6 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
       "Suggested next steps",
       "Ruled out",
       "Checked again",
-      "Review and approve",
       "View in OneUptime",
     ],
     [INFRASTRUCTURE_AI_AGENTS]: ["⋯", "SafeWrite", "RiskyWrite"],
@@ -167,7 +166,18 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
  * Dashboard label too (REMEDIATION_CHAT_WORDS).
  */
 export const OTHER_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
-  [AI_SRE]: ["Summary", "Evidence", "Approve and run", "Dismiss"],
+  /*
+   * Review and approve is the AI card's own press too, since a fix on its
+   * Remediation step folds to its sentence: where the page means the card's,
+   * RemediationFixesFoldDocs holds each language to the drawn label.
+   */
+  [AI_SRE]: [
+    "Summary",
+    "Evidence",
+    "Review and approve",
+    "Approve and run",
+    "Dismiss",
+  ],
   [INFRASTRUCTURE_AI_AGENTS]: ["Read", "Denied", "Read-Only"],
   // The GitHub App's permission a production review's check needs.
   [CODE_PAGE]: ["Checks", "Read & write"],
