@@ -279,6 +279,7 @@ import { AddDbtArtifacts1808991700000 } from "./1808991700000-AddDbtArtifacts";
 import { AddDataAlerts1808991800000 } from "./1808991800000-AddDataAlerts";
 import { AddDataAssetReads1808991900000 } from "./1808991900000-AddDataAssetReads";
 import { AddDataAssetLineageSource1808992000000 } from "./1808992000000-AddDataAssetLineageSource";
+import { AddDataProducts1808992100000 } from "./1808992100000-AddDataProducts";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1760,4 +1761,5 @@ export default [
   AddDataAlerts1808991800000,
   AddDataAssetReads1808991900000,
   AddDataAssetLineageSource1808992000000,
+  AddDataProducts1808992100000,
 ];

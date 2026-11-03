@@ -43,6 +43,13 @@ import ProbeService from "../Services/ProbeService";
 import QueryHelper from "../Types/Database/QueryHelper";
 import { queueTableHealthCollection } from "../Utils/DataObservability/DataObservabilityJobs";
 import DataCheckAlerts from "../Utils/DataObservability/DataCheckAlerts";
+import DataProductSync from "../Utils/DataObservability/DataProductSync";
+import DataProduct from "../../Models/DatabaseModels/DataProduct";
+import DataProductService from "../Services/DataProductService";
+import { DataProductStatus } from "../../Types/DataObservability/DataProductFreshness";
+import { renderDataProductBadge } from "../../Types/DataObservability/DataProductBadge";
+import logger from "../Utils/Logger";
+import crypto from "crypto";
 import DataCheck from "../../Models/DatabaseModels/DataCheck";
 import DataCheckService from "../Services/DataCheckService";
 import { isValidProbeConnectionVariable } from "../Utils/DataSecurity/DataSecurityProbeScan";
@@ -65,6 +72,10 @@ import CommonAPI from "./CommonAPI";
  *  - a data check's alert monitor kept in step with it, and Run Now on a
  *    check, for the same people - the monitor made with their own
  *    permissions;
+ *  - a data product's monitor and SLO kept in step with it, and a new
+ *    secret for its badge, for the same people;
+ *  - a data product's "data as of" badge, for anyone with its secret, so it
+ *    can be embedded where nobody signs in to OneUptime;
  *  - Connect a database, for those who may create data assets.
  *
  * A data store is Data Security's record, readable by the Security tiers
@@ -191,6 +202,99 @@ export default class DataObservabilityAPI extends BaseAPI<
           checkId: DataObservabilityAPI.readId(req),
           props,
         })) as unknown as JSONObject;
+      },
+    );
+
+    this.post(
+      DATA_OBSERVABILITY_API_ROUTES.dataProductSync(":id"),
+      OPERATE_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        return (await DataProductSync.sync({
+          projectId,
+          dataProductId: DataObservabilityAPI.readId(req),
+          props,
+        })) as unknown as JSONObject;
+      },
+    );
+
+    this.post(
+      DATA_OBSERVABILITY_API_ROUTES.dataProductBadgeReset(":id"),
+      OPERATE_PERMISSIONS,
+      async (projectId: ObjectID, req: ExpressRequest) => {
+        const product: DataProduct | null = await DataProductService.findOneBy({
+          query: { _id: DataObservabilityAPI.readId(req), projectId },
+          select: { _id: true },
+          props: { isRoot: true },
+        });
+
+        if (!product?.id) {
+          throw new BadDataException("Data product not found.");
+        }
+
+        const badgeToken: string = ObjectID.generate().toString();
+
+        await DataProductService.updateColumnsByIdWithoutHooks({
+          id: product.id,
+          data: { badgeToken } as never,
+        });
+
+        return { badgeToken };
+      },
+    );
+
+    /*
+     * The badge needs no sign-in - it is embedded where nobody has one - so
+     * its secret is the token in its URL. An unknown product and a wrong
+     * token answer alike. It is only ever loaded through <img>, and the
+     * headers keep it inert when opened as a page.
+     */
+    this.router.get(
+      DATA_OBSERVABILITY_API_ROUTES.dataProductBadge(":id"),
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        try {
+          const id: string = String(req.params["id"] || "");
+          const token: string =
+            typeof req.query["token"] === "string" ? req.query["token"] : "";
+          const product: DataProduct | null =
+            ObjectID.isValidUUID(id) && token
+              ? await DataProductService.findOneBy({
+                  query: { _id: new ObjectID(id) },
+                  select: { badgeToken: true, status: true, dataAsOf: true },
+                  props: { isRoot: true },
+                })
+              : null;
+
+          if (
+            !product?.badgeToken ||
+            !DataObservabilityAPI.isSameSecret(product.badgeToken, token)
+          ) {
+            res.status(404).send("Not Found");
+            return;
+          }
+
+          res.setHeader("Content-Type", "image/svg+xml");
+          res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+          res.setHeader("X-Content-Type-Options", "nosniff");
+          res.setHeader(
+            "Content-Security-Policy",
+            "sandbox; script-src 'none'; object-src 'none'",
+          );
+          res.send(
+            renderDataProductBadge({
+              status:
+                (product.status as DataProductStatus) ||
+                DataProductStatus.Unknown,
+              dataAsOf: product.dataAsOf ? new Date(product.dataAsOf) : null,
+            }),
+          );
+        } catch (error) {
+          logger.error(error);
+          res.status(500).send("Internal Server Error");
+        }
       },
     );
 
@@ -606,6 +710,14 @@ export default class DataObservabilityAPI extends BaseAPI<
         }
       },
     );
+  }
+
+  // Whether a secret given matches the one kept, compared in constant time.
+  private static isSameSecret(kept: string, given: string): boolean {
+    const a: Buffer = Buffer.from(kept);
+    const b: Buffer = Buffer.from(given);
+
+    return a.length === b.length && crypto.timingSafeEqual(a, b);
   }
 
   private static readId(req: ExpressRequest): ObjectID {

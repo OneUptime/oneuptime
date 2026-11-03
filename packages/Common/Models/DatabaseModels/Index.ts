@@ -210,6 +210,7 @@ import DataAssetUsage from "./DataAssetUsage";
 import DataCheck from "./DataCheck";
 import DataPipeline from "./DataPipeline";
 import DataPipelineRun from "./DataPipelineRun";
+import DataProduct from "./DataProduct";
 import DataAssetLineage from "./DataAssetLineage";
 import DataAlert from "./DataAlert";
 import SecurityProtectedEntity from "./SecurityProtectedEntity";
@@ -686,6 +687,7 @@ const AllModelTypes: Array<{
   DataCheck,
   DataPipeline,
   DataPipelineRun,
+  DataProduct,
   DataAssetLineage,
   DataAlert,
   SecurityProtectedEntity,

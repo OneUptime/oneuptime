@@ -120,6 +120,21 @@ On **Databases**, choose **Recommended Alerts** for a database. Each recommendat
 
 Pick severities, on-call policies, owners and labels when you create them. They are ordinary monitors from then on: edit, mute or put them on a status page like any other.
 
+
+## Data products
+
+The people who use data (analysts, finance, executives, AI agents) think in what they use: "the revenue dashboard's tables", not databases. A data product names those tables, with its owner, its consumers and its freshness SLA. Create one under **Data Products**. Its SLA is either or both of:
+- **Fresh by a time of day (UTC):** each day's data lands that day, by then. From that time, every table must have changed that day; until then, yesterday's load stands. A load that is always half an hour late is late for that half hour every day.
+- **A maximum age:** no table's last change may be older than this.
+
+Every five minutes each product's tables are checked against its SLA. The product is **Late** when any table is, and its data is as of the oldest last change among them. It writes \`oneuptime.data.product.late_tables\` and \`oneuptime.data.product.data_age\`, so you can chart every product's freshness side by side.
+
+Saving a product also makes, as you and with your permissions:
+- **A monitor**, which is the product on a status page. It is Degraded while a table is late, and opens an incident and an alert at your project's least severe level, which resolve on their own. Add it to a status page, private or public, as a resource: consumers who subscribe hear when the product is late, and when it is fresh again.
+- **An SLO** over that monitor: the share of the time the data is on time, against the product's SLA target over 30 days, with the fast and slow burn-rate alerts every SLO starts with.
+
+Deleting the product deletes both. Each product also has a **badge** that says what its data is as of, green while on time and amber with "late" once not. Embed it in a BI dashboard, a wiki page or a README from the product's Overview. Its link needs no sign-in, so treat it like a shared link; **Reset Badge Link** makes a new one and retires the old.
+
 ## Checks on a table's values
 
 Table health says whether a table changes. A **check** says whether what it holds is right. Add one on a table's **Checks** tab:

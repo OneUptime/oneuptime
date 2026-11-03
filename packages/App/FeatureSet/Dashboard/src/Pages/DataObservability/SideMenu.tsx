@@ -30,6 +30,13 @@ const DataObservabilitySideMenu: FunctionComponent = (): ReactElement => {
         />
         <SideMenuItem
           link={{
+            title: "Data Products",
+            to: routeOf(PageMap.DATA_OBSERVABILITY_DATA_PRODUCTS),
+          }}
+          icon={IconProp.Layers}
+        />
+        <SideMenuItem
+          link={{
             title: "Tables",
             to: routeOf(PageMap.DATA_OBSERVABILITY_TABLES),
           }}

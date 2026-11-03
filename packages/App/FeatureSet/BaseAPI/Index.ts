@@ -734,6 +734,9 @@ import DataPipelineService, {
 import DataPipelineRunService, {
   Service as DataPipelineRunServiceType,
 } from "Common/Server/Services/DataPipelineRunService";
+import DataProductService, {
+  Service as DataProductServiceType,
+} from "Common/Server/Services/DataProductService";
 import DataAssetLineageService, {
   Service as DataAssetLineageServiceType,
 } from "Common/Server/Services/DataAssetLineageService";
@@ -1806,6 +1809,7 @@ import DataAssetUsage from "Common/Models/DatabaseModels/DataAssetUsage";
 import DataCheck from "Common/Models/DatabaseModels/DataCheck";
 import DataPipeline from "Common/Models/DatabaseModels/DataPipeline";
 import DataPipelineRun from "Common/Models/DatabaseModels/DataPipelineRun";
+import DataProduct from "Common/Models/DatabaseModels/DataProduct";
 import DataAssetLineage from "Common/Models/DatabaseModels/DataAssetLineage";
 import DataAlert from "Common/Models/DatabaseModels/DataAlert";
 import SecurityEntityCriticality from "Common/Models/DatabaseModels/SecurityEntityCriticality";
@@ -4583,6 +4587,14 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<DataPipelineRun, DataPipelineRunServiceType>(
         DataPipelineRun,
         DataPipelineRunService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DataProduct, DataProductServiceType>(
+        DataProduct,
+        DataProductService,
       ).getRouter(),
     );
 

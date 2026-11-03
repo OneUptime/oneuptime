@@ -110,6 +110,35 @@ export function getDataObservabilityBreadcrumbs(
       "Data Observability",
       "Pipelines",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.DATA_OBSERVABILITY_DATA_PRODUCTS, [
+      "Project",
+      "Data Observability",
+      "Data Products",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.DATA_OBSERVABILITY_DATA_PRODUCT_VIEW,
+      ["Project", "Data Observability", "Data Products", "Data Product"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.DATA_OBSERVABILITY_DATA_PRODUCT_VIEW_SETTINGS,
+      [
+        "Project",
+        "Data Observability",
+        "Data Products",
+        "Data Product",
+        "Settings",
+      ],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.DATA_OBSERVABILITY_DATA_PRODUCT_VIEW_DELETE,
+      [
+        "Project",
+        "Data Observability",
+        "Data Products",
+        "Data Product",
+        "Delete",
+      ],
+    ),
     ...BuildBreadcrumbLinksByTitles(PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW, [
       "Project",
       "Data Observability",
