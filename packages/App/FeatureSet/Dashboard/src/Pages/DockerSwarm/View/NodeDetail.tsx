@@ -1,38 +1,31 @@
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
-import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
-import DockerSwarmResourceModel from "Common/Models/DatabaseModels/DockerSwarmResource";
-import React, {
-  FunctionComponent,
-  ReactElement,
-  useEffect,
-  useState,
-} from "react";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import API from "Common/UI/Utils/API/API";
+import React, { FunctionComponent, ReactElement } from "react";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import { Tab } from "Common/UI/Components/Tabs/Tab";
-import ResourceOverviewTab, {
-  SummaryField,
-} from "../../../Components/Infrastructure/ResourceOverviewTab";
-import StatusBadge, {
-  StatusBadgeType,
-} from "Common/UI/Components/StatusBadge/StatusBadge";
+import ResourcePartReadError from "../../../Components/ResourcePart/ResourcePartReadError";
+import DockerSwarmPartHero from "../../../Components/DockerSwarm/Part/DockerSwarmPartHero";
+import DockerSwarmNodeOverview from "../../../Components/DockerSwarm/Part/DockerSwarmNodeOverview";
 import {
-  externalIdFromRouteParam,
-  fetchDockerSwarmInventoryRow,
-  formatBytes,
-  formatPercent,
-  displayNameForResource,
-  displayStatusForResource,
-  attributeString,
-} from "../Utils/DockerSwarmResourceUtils";
-import OneUptimeDate from "Common/Types/Date";
+  DockerSwarmPartRoutes,
+  getDockerSwarmPartRoutes,
+} from "../../../Components/DockerSwarm/Part/DockerSwarmPartRoutes";
+import useDockerSwarmPart, {
+  DockerSwarmPart,
+} from "../../../Components/DockerSwarm/Part/UseDockerSwarmPart";
+import { getDockerSwarmNodeRows } from "../Utils/DockerSwarmHealth";
+import { countDockerSwarmTasks } from "../Utils/DockerSwarmPartFacts";
+import { externalIdFromRouteParam } from "../Utils/DockerSwarmResourceUtils";
 
+/*
+ * A Docker Swarm node's page: its hero (its state by the swarm's rules, its
+ * role, its tasks running, CPUs and memory), then its Overview - what needs
+ * attention on it and the tasks it runs, those tasks, what is open on it,
+ * the node alerts and its details.
+ */
 const DockerSwarmClusterNodeDetail: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -45,153 +38,74 @@ const DockerSwarmClusterNodeDetail: FunctionComponent<
     Navigation.getLastParamAsString(),
   );
 
-  const [cluster, setCluster] = useState<DockerSwarmCluster | null>(null);
-  const [row, setRow] = useState<DockerSwarmResourceModel | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [isLoadingRow, setIsLoadingRow] = useState<boolean>(true);
-  const [error, setError] = useState<string>("");
+  const part: DockerSwarmPart = useDockerSwarmPart({
+    clusterId: modelId,
+    kind: "Node",
+    externalId: externalId,
+  });
 
-  const fetchData: PromiseVoidFunction = async (): Promise<void> => {
-    setIsLoading(true);
-    try {
-      const item: DockerSwarmCluster | null = await ModelAPI.getItem({
-        modelType: DockerSwarmCluster,
-        id: modelId,
-        select: {
-          name: true,
-        },
-      });
-      setCluster(item);
-    } catch (err) {
-      setError(API.getFriendlyMessage(err));
-    }
-    setIsLoading(false);
-
-    try {
-      const inventoryRow: DockerSwarmResourceModel | null =
-        await fetchDockerSwarmInventoryRow({
-          dockerSwarmClusterId: modelId,
-          kind: "Node",
-          externalId: externalId,
-        });
-      setRow(inventoryRow);
-    } catch {
-      // Graceful degradation — overview tab shows its empty state.
-    }
-    setIsLoadingRow(false);
-  };
-
-  useEffect(() => {
-    fetchData().catch((err: Error) => {
-      setError(API.getFriendlyMessage(err));
-    });
-  }, []);
-
-  if (isLoading) {
+  if (part.isLoading) {
     return <PageLoader isVisible={true} />;
   }
 
-  if (error) {
-    return <ErrorMessage message={error} />;
+  if (part.error) {
+    return <ErrorMessage message={part.error} />;
   }
 
-  if (!cluster?.name) {
+  if (!part.cluster?.name) {
     return <ErrorMessage message="Cluster not found." />;
   }
 
-  const clusterName: string = cluster.name;
-  const nodeName: string = row
-    ? displayNameForResource(row)
-    : externalId.replace(/^node\//, "");
-
-  // Build overview summary fields from the inventory row.
-  const summaryFields: Array<SummaryField> = [
-    { title: "Node Hostname", value: nodeName },
-    { title: "Cluster", value: clusterName },
-  ];
-
-  if (row) {
-    const status: string = displayStatusForResource(row);
-    if (status) {
-      summaryFields.push({
-        title: "State",
-        value: (
-          <StatusBadge
-            text={status}
-            type={
-              row.isReady === false
-                ? StatusBadgeType.Danger
-                : StatusBadgeType.Success
-            }
-          />
-        ),
-      });
-    }
-
-    if (row.role) {
-      summaryFields.push({ title: "Role", value: row.role });
-    }
-
-    const availability: string = attributeString(row, "availability");
-    if (availability) {
-      summaryFields.push({ title: "Availability", value: availability });
-    }
-
-    const managerStatus: string = attributeString(row, "managerStatus");
-    if (managerStatus) {
-      summaryFields.push({ title: "Manager Status", value: managerStatus });
-    }
-
-    const engineVersion: string = attributeString(row, "engineVersion");
-    if (engineVersion) {
-      summaryFields.push({ title: "Engine Version", value: engineVersion });
-    }
-
-    const addr: string = attributeString(row, "addr");
-    if (addr) {
-      summaryFields.push({ title: "Address", value: addr });
-    }
-
-    if (row.latestCpuPercent !== null && row.latestCpuPercent !== undefined) {
-      summaryFields.push({
-        title: "CPU",
-        value: formatPercent(Number(row.latestCpuPercent)),
-      });
-    }
-
-    if (row.latestMemoryBytes !== null && row.latestMemoryBytes !== undefined) {
-      summaryFields.push({
-        title: "Memory",
-        value: formatBytes(Number(row.latestMemoryBytes)),
-      });
-    }
-
-    summaryFields.push({ title: "External ID", value: externalId });
-
-    if (row.lastSeenAt) {
-      summaryFields.push({
-        title: "Last Seen",
-        value: OneUptimeDate.fromNow(new Date(row.lastSeenAt as Date)),
-      });
-    }
-  }
+  const clusterName: string = part.cluster.name;
+  const routes: DockerSwarmPartRoutes = getDockerSwarmPartRoutes(modelId);
 
   const tabs: Array<Tab> = [
     {
       name: "Overview",
-      children: (
-        <ResourceOverviewTab
-          summaryFields={row ? summaryFields : []}
-          labels={{}}
-          annotations={{}}
-          isLoading={isLoadingRow}
-          emptyMessage="Node details not reported yet. Make sure the Docker Swarm agent is sending metrics."
+      children: part.isLoadingRows ? (
+        <PageLoader isVisible={true} />
+      ) : part.rowError ? (
+        <ResourcePartReadError
+          testId="docker-swarm-node-read-error"
+          title="Couldn't load this node"
+          message={part.rowError}
+          onRetry={part.refresh}
+        />
+      ) : (
+        <DockerSwarmNodeOverview
+          clusterId={modelId}
+          clusterName={clusterName}
+          externalId={externalId}
+          row={part.row}
+          rows={part.rows}
+          routes={routes}
+          now={part.readAt}
         />
       ),
     },
   ];
 
-  return <Tabs tabs={tabs} onTabChange={() => {}} />;
+  return (
+    <div data-testid="docker-swarm-node-page">
+      <DockerSwarmPartHero
+        kind="Node"
+        row={part.row}
+        externalId={externalId}
+        clusterName={clusterName}
+        clusterRoute={routes.clusterRoute}
+        getPartRoute={routes.getPartRoute}
+        taskCount={
+          part.row
+            ? countDockerSwarmTasks(
+                getDockerSwarmNodeRows({ rows: part.rows, node: part.row }),
+              )
+            : undefined
+        }
+        now={part.readAt}
+      />
+      <Tabs tabs={tabs} wrap={true} onTabChange={() => {}} />
+    </div>
+  );
 };
 
 export default DockerSwarmClusterNodeDetail;

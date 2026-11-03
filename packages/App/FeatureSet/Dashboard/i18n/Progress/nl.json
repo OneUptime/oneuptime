@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40228,
-    "untranslated": 12679
+    "keys": 40315,
+    "untranslated": 12617
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -60,6 +60,7 @@
     "Console",
     "Container",
     "Container {{container}}: {{reason}}",
+    "Container {{id}}",
     "Container: {{name}}",
     "Containers",
     "Content Security Policy",
@@ -239,6 +240,7 @@
     "Service:",
     "Services",
     "Singapore (+65)",
+    "Slot {{slot}}",
     "Slug",
     "Span",
     "Span: {{id}}",
@@ -356,6 +358,7 @@
     "z",
     "{{capacity}} CPU",
     "{{count}} B",
+    "{{count}} CPU",
     "{{count}} KB",
     "{{count}} MB",
     "{{count}} VM",
@@ -382,6 +385,8 @@
     "{{count}} host",
     "{{count}} hosts",
     "{{count}} incident",
+    "{{count}} manager",
+    "{{count}} managers",
     "{{count}} node",
     "{{count}} nodes",
     "{{count}} open incident",
@@ -392,8 +397,12 @@
     "{{count}} repository",
     "{{count}} sample",
     "{{count}} samples",
+    "{{count}} service",
+    "{{count}} services",
     "{{count}} span",
     "{{count}} spans",
+    "{{count}} stack",
+    "{{count}} stacks",
     "{{count}} team",
     "{{count}} teams",
     "{{count}} trigger",

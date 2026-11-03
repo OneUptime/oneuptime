@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40228,
-    "untranslated": 12277
+    "keys": 40315,
+    "untranslated": 12219
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -62,6 +62,7 @@
     "SLOs",
     "Slug",
     "Splunk On-Call API ID",
+    "Swarm ID",
     "TLS",
     "Top P",
     "UTC",

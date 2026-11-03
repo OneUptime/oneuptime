@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40228,
-    "untranslated": 12274
+    "keys": 40315,
+    "untranslated": 12216
   },
   "sameAsEnglish": [
     "2xx",
@@ -57,6 +57,7 @@
     "SLOs",
     "SNMP trap",
     "Slug",
+    "Swarm ID",
     "TLS",
     "Top P",
     "UTC",

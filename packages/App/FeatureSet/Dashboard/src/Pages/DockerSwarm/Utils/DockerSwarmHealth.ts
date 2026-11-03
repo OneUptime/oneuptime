@@ -72,6 +72,12 @@ export const DOCKER_SWARM_ROLLBACK_RECENT_MS: number = 24 * 60 * 60 * 1000;
 // Latest readings older than this are no readings (the cleanup's cutoff).
 export const DOCKER_SWARM_READINGS_STALE_MS: number = 15 * 60 * 1000;
 
+/*
+ * How far apart the rows of one inventory snapshot can be read: the
+ * collector reads a snapshot in one go, in batches seconds apart.
+ */
+export const DOCKER_SWARM_SNAPSHOT_SPREAD_MS: number = 2 * 60 * 1000;
+
 export interface DockerSwarmAssessment {
   severity: ResourceAttentionSeverity | null;
   // The part's state in one word or sentence, coloured by how it is doing.
@@ -146,9 +152,7 @@ const REASON_MEMORY_LIMIT: string = translationKey(
   "Memory at {{percent}} of its limit",
 );
 const REASON_QUORUM_LOST: string = translationKey("Manager quorum lost");
-const REASON_NO_TOLERANCE: string = translationKey(
-  "Can lose no more managers",
-);
+const REASON_NO_TOLERANCE: string = translationKey("Can lose no more managers");
 const REASON_MANAGERS_REACHABLE: string = translationKey(
   "{{reachable}} of {{total}} managers reachable",
 );
@@ -248,6 +252,36 @@ export function isDockerSwarmJobService(
 ): boolean {
   const mode: string = (row.serviceMode || "").toLowerCase();
   return mode === "replicated-job" || mode === "global-job";
+}
+
+/*
+ * The rows of the swarm's newest inventory snapshot. Every snapshot writes
+ * every node, service and task again, so a row the newest one did not
+ * write is gone from the swarm: a task a rolling update replaced, a node
+ * that left. The cleanup removes such rows only 15 minutes after their last
+ * snapshot, and until then a replaced task still read "Running" beside its
+ * replacement. Rows a stopped poller left behind all age together, so they
+ * are kept: they are the swarm as it last was.
+ */
+export function keepLatestDockerSwarmSnapshot<
+  T extends Pick<DockerSwarmResource, "lastSeenAt">,
+>(rows: Array<T>): Array<T> {
+  let newest: number = 0;
+  for (const row of rows) {
+    const seenAt: Date | null = toDockerSwarmDate(row.lastSeenAt);
+    if (seenAt && seenAt.getTime() > newest) {
+      newest = seenAt.getTime();
+    }
+  }
+  if (newest === 0) {
+    return rows;
+  }
+  return rows.filter((row: T): boolean => {
+    const seenAt: Date | null = toDockerSwarmDate(row.lastSeenAt);
+    return (
+      !seenAt || newest - seenAt.getTime() <= DOCKER_SWARM_SNAPSHOT_SPREAD_MS
+    );
+  });
 }
 
 /* A task Swarm wants running now, rather than one a slot replaced. */
@@ -755,8 +789,9 @@ export function getDockerSwarmAttentionItems(data: {
   }
 
   if (scope === "cluster") {
-    const quorum: DockerSwarmManagerQuorum | null =
-      getDockerSwarmManagerQuorum(data.rows);
+    const quorum: DockerSwarmManagerQuorum | null = getDockerSwarmManagerQuorum(
+      data.rows,
+    );
     if (quorum && quorum.reachable < quorum.total) {
       const managers: ResourceAttentionText = {
         text: REASON_MANAGERS_REACHABLE,
@@ -898,6 +933,128 @@ export function getDockerSwarmStatusReasons(
       assessment.status.label === STATUS_UNREACHABLE
     );
   });
+}
+
+export interface DockerSwarmTaskCount {
+  running: number;
+  total: number;
+}
+
+// The current tasks among the rows, and how many of them run.
+export function countDockerSwarmTasks(
+  rows: Array<DockerSwarmResource>,
+): DockerSwarmTaskCount {
+  let running: number = 0;
+  let total: number = 0;
+  for (const row of rows) {
+    if (!isCurrentDockerSwarmTask(row)) {
+      continue;
+    }
+    total++;
+    if ((row.state || "").toLowerCase() === "running") {
+      running++;
+    }
+  }
+  return { running: running, total: total };
+}
+
+/*
+ * How much of a node its tasks use, from their latest readings: their CPU
+ * (each a percent of one core) against the node's CPUs, their memory
+ * against the node's memory. Null where the node's size is unknown (an
+ * agent older than files 0.161.3) or no task sent a fresh reading.
+ */
+export interface DockerSwarmNodeLoad {
+  tasks: DockerSwarmTaskCount;
+  cpuPercentOfNode: number | null;
+  memoryPercentOfNode: number | null;
+}
+
+export function getDockerSwarmNodeLoad(data: {
+  rows: Array<DockerSwarmResource>;
+  node: DockerSwarmResource;
+  now: Date;
+}): DockerSwarmNodeLoad {
+  const tasks: Array<DockerSwarmResource> = getDockerSwarmNodeRows({
+    rows: data.rows,
+    node: data.node,
+  }).slice(1);
+
+  let cpu: number | null = null;
+  let memory: number | null = null;
+  for (const task of tasks) {
+    const readings: {
+      cpuPercent: number | null;
+      memoryBytes: number | null;
+    } = getDockerSwarmTaskReadings(task, data.now);
+    if (readings.cpuPercent !== null) {
+      cpu = (cpu ?? 0) + readings.cpuPercent;
+    }
+    if (readings.memoryBytes !== null) {
+      memory = (memory ?? 0) + readings.memoryBytes;
+    }
+  }
+
+  const cpus: number | null = toDockerSwarmNumber(
+    getDockerSwarmAttribute(data.node, "cpus"),
+  );
+  const memoryBytes: number | null = toDockerSwarmNumber(
+    getDockerSwarmAttribute(data.node, "memoryBytes"),
+  );
+  const isReady: boolean = (data.node.state || "").toLowerCase() === "ready";
+
+  return {
+    tasks: countDockerSwarmTasks(tasks),
+    cpuPercentOfNode:
+      isReady && cpu !== null && cpus !== null && cpus > 0 ? cpu / cpus : null,
+    memoryPercentOfNode:
+      isReady && memory !== null && memoryBytes !== null && memoryBytes > 0
+        ? (memory / memoryBytes) * 100
+        : null,
+  };
+}
+
+/*
+ * The nodes in the order a glance reads them: the ones that need attention
+ * first (critical before warning), then the managers (the leader first),
+ * then the rest, each in name order as people number them (worker-2 before
+ * worker-10).
+ */
+export function sortDockerSwarmNodesForGlance(
+  rows: Array<DockerSwarmResource>,
+): Array<DockerSwarmResource> {
+  const rank: (row: DockerSwarmResource) => number = (
+    row: DockerSwarmResource,
+  ): number => {
+    const severity: ResourceAttentionSeverity | null =
+      assessDockerSwarmNode(row).severity;
+    if (severity === ResourceAttentionSeverity.Critical) {
+      return 0;
+    }
+    if (severity === ResourceAttentionSeverity.Warning) {
+      return 1;
+    }
+    if (isDockerSwarmLeader(row)) {
+      return 2;
+    }
+    return isDockerSwarmManager(row) ? 3 : 4;
+  };
+
+  return rows
+    .filter((row: DockerSwarmResource): boolean => {
+      return row.kind === "Node";
+    })
+    .sort((a: DockerSwarmResource, b: DockerSwarmResource): number => {
+      const byRank: number = rank(a) - rank(b);
+      if (byRank !== 0) {
+        return byRank;
+      }
+      return getDockerSwarmDisplayName(a).localeCompare(
+        getDockerSwarmDisplayName(b),
+        undefined,
+        { numeric: true, sensitivity: "base" },
+      );
+    });
 }
 
 export function getDockerSwarmHealth(

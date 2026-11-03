@@ -67,8 +67,8 @@ const AGENT_FILES: Array<AgentFilesPin> = [
       "otel-collector-config.yaml",
       "inventory-snapshot.sh",
     ],
-    version: "0.161.2",
-    digest: "1f389375b7e78a1cc1d5dd42de8ad03c068121c2d435917ae7304966f69c2c99",
+    version: "0.161.3",
+    digest: "7c334ae1bc9fc102a107b573694d5cec8f641dabe062bfd77e36a71060109289",
   },
   {
     kind: AgentKind.DatabaseAgent,
@@ -244,16 +244,21 @@ describe("a pinned-collector agent's files report the version they shipped as", 
  * service and node on its metrics, and the Docker API version negotiated
  * with the daemon instead of a pinned 1.44, changed them again (0.161.2):
  * a Swarm on 0.161.1 sends no service or node, so a Docker Swarm monitor
- * filtered by either finds nothing there, and it must show a sign.
+ * filtered by either finds nothing there, and it must show a sign. Then
+ * every inventory snapshot read again (a calm swarm's identical snapshot
+ * was read once), each manager's reachability, each service's rolling update
+ * and recent task failures, and the swarm's state as metrics (0.161.3): a
+ * Swarm on 0.161.2 sends no node or replica series, so its Node Not Ready
+ * and Service Replicas Mismatch alerts never fire, and it must show a sign.
  */
-describe("the Docker Swarm agent after #5076's config change and the task labels", () => {
-  test("its files report 0.161.2 and still run collector 0.161.0", () => {
+describe("the Docker Swarm agent after #5076's config change, the task labels and the swarm's state", () => {
+  test("its files report 0.161.3 and still run collector 0.161.0", () => {
     const compose: string = fs.readFileSync(
       path.join(REPO_ROOT, "agents", "DockerSwarmAgent", "docker-compose.yml"),
       "utf8",
     );
 
-    expect(DOCKER_SWARM_AGENT_VERSION).toBe("0.161.2");
+    expect(DOCKER_SWARM_AGENT_VERSION).toBe("0.161.3");
     expect(DOCKER_SWARM_AGENT_COLLECTOR_VERSION).toBe("0.161.0");
     expect(compose).toContain(
       `image: otel/opentelemetry-collector-contrib:${DOCKER_SWARM_AGENT_COLLECTOR_VERSION}`,
@@ -263,8 +268,8 @@ describe("the Docker Swarm agent after #5076's config change and the task labels
     );
   });
 
-  test("a Swarm on either older set of files - 0.161.0 or 0.161.1 - is told to upgrade", () => {
-    for (const agentVersion of ["0.161.0", "0.161.1"]) {
+  test("a Swarm on any older set of files - 0.161.0, 0.161.1 or 0.161.2 - is told to upgrade", () => {
+    for (const agentVersion of ["0.161.0", "0.161.1", "0.161.2"]) {
       expect(
         getAgentVersionState({
           kind: AgentKind.DockerSwarmAgent,
@@ -273,7 +278,7 @@ describe("the Docker Swarm agent after #5076's config change and the task labels
         }),
       ).toEqual({
         status: AgentVersionStatus.Outdated,
-        latestVersion: "0.161.2",
+        latestVersion: "0.161.3",
       });
     }
   });
@@ -283,7 +288,7 @@ describe("the Docker Swarm agent after #5076's config change and the task labels
       expect(
         getAgentVersionState({
           kind: AgentKind.DockerSwarmAgent,
-          agentVersion: "0.161.2",
+          agentVersion: "0.161.3",
           serverVersion: serverVersion,
         }).status,
       ).toBe(AgentVersionStatus.UpToDate);

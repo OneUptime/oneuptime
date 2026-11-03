@@ -1,6 +1,8 @@
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
+import DockerSwarmResource from "Common/Models/DatabaseModels/DockerSwarmResource";
 import Navigation from "Common/UI/Utils/Navigation";
+import OneUptimeDate from "Common/Types/Date";
 import ResourceTable, {
   InfrastructureResource,
 } from "../../../Components/Infrastructure/ResourceTable";
@@ -8,6 +10,10 @@ import {
   fetchDockerSwarmInventoryResources,
   routeParamFromExternalId,
 } from "../Utils/DockerSwarmResourceUtils";
+import {
+  DOCKER_SWARM_TASK_METRIC_THRESHOLDS,
+  withDockerSwarmStatus,
+} from "../Utils/DockerSwarmPartFacts";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -15,14 +21,18 @@ import React, {
   useState,
 } from "react";
 import API from "Common/UI/Utils/API/API";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
-import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import { DOCKER_SWARM_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/DockerSwarmMetricDescriptions";
 
+/*
+ * The tasks Swarm wants running, each with its state by the swarm's rules
+ * (DockerSwarmHealth: Running, Starting, Pending with Docker's error, Failed,
+ * Rejected, a task close to its memory limit) and why, its service and its
+ * node, and its CPU and memory coloured at its alerts' lines.
+ */
 const DockerSwarmClusterTasks: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -34,17 +44,25 @@ const DockerSwarmClusterTasks: FunctionComponent<
 
   const fetchData: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
+    setError("");
     try {
       /*
        * Postgres inventory read (DockerSwarmResource, kind=Task). Parent
        * service and image ride the inventory row; per-task CPU/memory
-       * come off the docker_stats mirror and render in the built-in
-       * resource-metric columns. The scheduled node groups the table.
+       * come off the docker_stats mirror. The scheduled node groups the
+       * table.
        */
+      const now: Date = OneUptimeDate.getCurrentDate();
       const taskList: Array<InfrastructureResource> =
         await fetchDockerSwarmInventoryResources({
           dockerSwarmClusterId: modelId,
           kind: "Task",
+          transform: (
+            resource: InfrastructureResource,
+            row: DockerSwarmResource,
+          ): void => {
+            Object.assign(resource, withDockerSwarmStatus(resource, row, now));
+          },
         });
 
       setResources(taskList);
@@ -60,26 +78,24 @@ const DockerSwarmClusterTasks: FunctionComponent<
     });
   }, []);
 
-  if (isLoading) {
-    return <PageLoader isVisible={true} />;
-  }
-
-  if (error) {
-    return <ErrorMessage message={error} />;
-  }
-
   return (
     <ResourceTable
       onRefreshClick={() => {
         fetchData().catch(() => {});
       }}
       title="Tasks"
-      description="Individual tasks (container instances) of services in this swarm with their current resource usage."
+      description="The tasks (containers) of this swarm's services, with their state and what each one uses."
       resources={resources}
+      isLoading={isLoading}
+      error={error}
       showGroupColumn={true}
       groupColumnTitle="Node"
+      groupFallbackLabel="—"
+      showAge={false}
       tableIdPrefix="docker-swarm"
+      metricThresholds={DOCKER_SWARM_TASK_METRIC_THRESHOLDS}
       builtInColumnDescriptions={{
+        status: DOCKER_SWARM_METRIC_DESCRIPTIONS.taskStatus,
         cpu: DOCKER_SWARM_METRIC_DESCRIPTIONS.taskCpuColumn,
         memory: DOCKER_SWARM_METRIC_DESCRIPTIONS.taskMemoryColumn,
       }}
@@ -89,14 +105,14 @@ const DockerSwarmClusterTasks: FunctionComponent<
           title: "Service",
           key: "serviceName",
           getValue: (resource: InfrastructureResource): string => {
-            return resource.additionalAttributes["serviceName"] || "-";
+            return resource.additionalAttributes["serviceName"] || "—";
           },
         },
         {
           title: "Image",
           key: "image",
           getValue: (resource: InfrastructureResource): string => {
-            return resource.additionalAttributes["image"] || "-";
+            return resource.additionalAttributes["image"] || "—";
           },
         },
       ]}

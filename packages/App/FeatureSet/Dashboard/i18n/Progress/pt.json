@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40228,
-    "untranslated": 12604
+    "keys": 40315,
+    "untranslated": 12541
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -26,6 +26,7 @@
     "Bytes",
     "CPU Ready",
     "CPU Ready {{percent}}",
+    "CPUs",
     "Chat",
     "Chats",
     "Cluster",
@@ -54,6 +55,7 @@
     "Failover",
     "Feed",
     "Gateway",
+    "Global",
     "Google SecOps",
     "Goroutines",
     "HA: {{state}}",
@@ -145,6 +147,7 @@
     "Service Mesh",
     "Site",
     "Sites",
+    "Slot {{slot}}",
     "Slug",
     "Span",
     "Span: {{id}}",
@@ -226,6 +229,8 @@
     "vSphere Client",
     "z",
     "{{count}} B",
+    "{{count}} CPU",
+    "{{count}} CPUs",
     "{{count}} KB",
     "{{count}} MB",
     "{{count}} VM",
@@ -240,12 +245,16 @@
     "{{count}} datastores",
     "{{count}} host",
     "{{count}} hosts",
+    "{{count}} manager",
+    "{{count}} managers",
     "{{count}} namespace",
     "{{count}} namespaces",
     "{{count}} pod",
     "{{count}} pods",
     "{{count}} span",
     "{{count}} spans",
+    "{{count}} stack",
+    "{{count}} stacks",
     "{{minutes}} min",
     "{{tokens}} tokens"
   ]

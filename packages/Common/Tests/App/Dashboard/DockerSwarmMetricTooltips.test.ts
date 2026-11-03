@@ -2,6 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import {
+  MAX_DESCRIPTION_LENGTH,
   expectReadableDescriptionRecord,
   expectTitleExplained,
 } from "./MetricDescriptionRules";
@@ -16,6 +17,13 @@ import {
   METRIC_STALE_MS,
   toInfrastructureResource,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/DockerSwarm/Utils/DockerSwarmResourceUtils";
+import {
+  DOCKER_SWARM_READINGS_STALE_MS,
+  DOCKER_SWARM_TASK_CPU_WARNING_PERCENT,
+  DOCKER_SWARM_TASK_MEMORY_WARNING_PERCENT,
+  assessDockerSwarmNode,
+  assessDockerSwarmService,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/DockerSwarm/Utils/DockerSwarmHealth";
 import DockerSwarmResourceModel from "../../../Models/DatabaseModels/DockerSwarmResource";
 import {
   getStatusBadgeClass,
@@ -32,10 +40,12 @@ import {
  * that produces the number, so the words cannot drift from the fetch:
  *
  *  - counts come from the agent's inventory snapshot (inventory-snapshot.sh
- *    and DockerSwarmInventoryExtractor), not from a time range;
+ *    and DockerSwarmInventoryExtractor), not from a time range, and the pages
+ *    read only the newest snapshot's rows;
+ *  - states and colours are the swarm's rules (DockerSwarmHealth);
  *  - only Task rows are given CPU/memory at ingest, so the Nodes and
- *    Services columns are always N/A;
- *  - the lists hide readings older than METRIC_STALE_MS, the task page not;
+ *    Services lists have no usage columns;
+ *  - every page hides readings older than 15 minutes, a task's page too;
  *  - the Insights charts read docker_stats' own scale (100% = one core).
  */
 
@@ -43,6 +53,17 @@ const REPO_ROOT: string = path.join(__dirname, "..", "..", "..", "..", "..");
 
 function readRepoFile(...segments: Array<string>): string {
   return fs.readFileSync(path.join(REPO_ROOT, ...segments), "utf8");
+}
+
+function readDashboardFile(...segments: Array<string>): string {
+  return readRepoFile(
+    "packages",
+    "App",
+    "FeatureSet",
+    "Dashboard",
+    "src",
+    ...segments,
+  );
 }
 
 const AGENT_SNAPSHOT_SCRIPT: string = readRepoFile(
@@ -63,12 +84,7 @@ const METRICS_INGEST: string = readRepoFile(
   "Services",
   "OtelMetricsIngestService.ts",
 );
-const INSIGHTS_PAGE: string = readRepoFile(
-  "packages",
-  "App",
-  "FeatureSet",
-  "Dashboard",
-  "src",
+const INSIGHTS_PAGE: string = readDashboardFile(
   "Pages",
   "DockerSwarm",
   "View",
@@ -92,26 +108,6 @@ function between(source: string, from: string, to: string): string {
   return source.slice(start, end);
 }
 
-function serviceReadiness(replicas: string): boolean | null {
-  const parsed: ReturnType<typeof extractDockerSwarmInventoryResource> =
-    extractDockerSwarmInventoryResource({
-      kind: "Service",
-      logBody: JSON.stringify({
-        data: {
-          ID: "svc1",
-          Name: "web",
-          Mode: "replicated",
-          Replicas: replicas,
-        },
-      }),
-      lastSeenAt: new Date(),
-    });
-
-  expect(parsed).not.toBeNull();
-
-  return parsed!.resource.isReady;
-}
-
 function taskRow(minutesSinceReading: number): DockerSwarmResourceModel {
   const row: DockerSwarmResourceModel = new DockerSwarmResourceModel();
   row.kind = "Task";
@@ -124,28 +120,42 @@ function taskRow(minutesSinceReading: number): DockerSwarmResourceModel {
   return row;
 }
 
+function serviceRow(
+  running: number,
+  desired: number,
+  attributes: Record<string, string> = {},
+): DockerSwarmResourceModel {
+  const row: DockerSwarmResourceModel = new DockerSwarmResourceModel();
+  row.kind = "Service";
+  row.externalId = "service/web";
+  row.name = "shop_web";
+  row.serviceMode = "replicated";
+  row.runningReplicas = running;
+  row.desiredReplicas = desired;
+  row.attributes = attributes;
+  return row;
+}
+
 // Title shown on the page -> the description it is paired with.
 const TITLED: Array<[string, string]> = [
-  ["Nodes", T.nodes],
-  ["Nodes ready", T.nodes],
-  ["Managers", T.managers],
-  ["Services", T.services],
-  ["Tasks", T.tasks],
-  ["Tasks running", T.tasks],
-  ["Stacks", T.stacks],
-  ["Networks", T.networks],
-  ["Volumes", T.volumes],
+  ["Swarm health", T.clusterHealth],
+  ["Swarm inventory counts", T.inventoryCounts],
+  ["Role", T.managers],
+  ["Status", T.nodeStatus],
+  ["Manager Status", T.managerStatus],
+  ["Availability", T.availability],
   ["Status", T.serviceStatus],
   ["Status", T.serviceStatusColumn],
+  ["Last Update", T.serviceUpdate],
+  ["Failed Tasks (Last Hour)", T.recentFailedTasks],
+  ["Last Task Error", T.lastTaskError],
   ["Replicas", T.replicas],
+  ["Status", T.taskStatus],
+  ["Desired State", T.taskDesiredState],
   ["CPU", T.taskCpu],
   ["Memory", T.taskMemory],
   ["CPU", T.taskCpuColumn],
   ["Memory", T.taskMemoryColumn],
-  ["CPU", T.nodeUsageColumns],
-  ["Memory", T.nodeUsageColumns],
-  ["CPU", T.serviceUsageColumns],
-  ["Memory", T.serviceUsageColumns],
   ["Services", T.stackServices],
   ["Status", T.stackStatusColumn],
   ["Nodes", T.clusterListNodes],
@@ -161,11 +171,12 @@ const TITLED: Array<[string, string]> = [
 
 const RAW_METRIC_NAME: RegExp = /\bcontainer\.[a-z_.]+/;
 const WHITESPACE: RegExp = /\s+/g;
-const CUTOFF_ANCHORED_TO_CLUSTER: RegExp =
-  /getStaleThresholdDate\(\s*cluster\.lastSeenAt/;
 const EVERY_CONTAINER_CLAIM: RegExp = /every container is drawn/i;
 const RANKED_BY_MAX: RegExp = /rankBy: "max" as const/;
 const TASKS_WANTED_FIRST: RegExp = /^Tasks Swarm wants running/;
+const CLAIMS_A_RANGE: RegExp = /selected range|time range|past hour/i;
+const NODES_WITHOUT_THE_AGENT: RegExp = /nodes without the agent/;
+const LINGERS: RegExp = /25 minutes|until it is pruned|lingers?/i;
 
 describe("Docker Swarm metric descriptions read well", () => {
   test("every tooltip text passes the shared rules and none repeats another", () => {
@@ -186,9 +197,20 @@ describe("Docker Swarm metric descriptions read well", () => {
     "%s is explained by its text",
     (title: string, text: string) => {
       expectTitleExplained(title, text);
-      expect(text.length).toBeLessThanOrEqual(260);
+      expect(text.length).toBeLessThanOrEqual(MAX_DESCRIPTION_LENGTH);
     },
   );
+
+  test("every text is paired with a title on a page", () => {
+    const paired: Set<string> = new Set(
+      TITLED.map((entry: [string, string]): string => {
+        return entry[1];
+      }),
+    );
+    for (const text of [...Object.values(T), ...Object.values(CHART)]) {
+      expect(paired.has(text)).toBe(true);
+    }
+  });
 
   test("no text leans on a raw metric name - the chart's own (i) already shows that", () => {
     for (const text of [...Object.values(T), ...Object.values(CHART)]) {
@@ -203,15 +225,13 @@ describe("Docker Swarm metric descriptions read well", () => {
   });
 });
 
-describe("overview counts describe the inventory snapshot, not a time range", () => {
-  const INVENTORY_COUNTS: Array<DockerSwarmMetric> = [
-    "nodes",
+describe("states and counts describe the inventory snapshot, not a time range", () => {
+  const SNAPSHOT_TEXTS: Array<DockerSwarmMetric> = [
     "managers",
-    "services",
-    "tasks",
-    "stacks",
-    "networks",
-    "volumes",
+    "inventoryCounts",
+    "nodeStatus",
+    "managerStatus",
+    "availability",
     "serviceStatus",
     "serviceStatusColumn",
     "replicas",
@@ -222,10 +242,10 @@ describe("overview counts describe the inventory snapshot, not a time range", ()
     "clusterListTasks",
   ];
 
-  test.each(INVENTORY_COUNTS)(
+  test.each(SNAPSHOT_TEXTS)(
     "%s never claims a selected range",
     (key: DockerSwarmMetric) => {
-      expect(T[key]).not.toMatch(/selected range|time range|past hour/i);
+      expect(T[key]).not.toMatch(CLAIMS_A_RANGE);
     },
   );
 
@@ -233,12 +253,33 @@ describe("overview counts describe the inventory snapshot, not a time range", ()
     expect(AGENT_SNAPSHOT_SCRIPT).toContain(
       'INTERVAL="${DOCKER_INVENTORY_INTERVAL_SECONDS:-300}"',
     );
-    expect(T.nodes).toContain("latest inventory snapshot");
-    expect(T.nodes).toContain("every 5 minutes by default");
+    expect(T.inventoryCounts).toContain("latest inventory snapshot");
+    expect(T.inventoryCounts).toContain("every 5 minutes by default");
+    expect(T.inventoryCounts).toContain("Each count opens its list");
   });
 
-  test("Nodes explains Ready as the node state the managers report", () => {
-    const ready: ReturnType<typeof extractDockerSwarmInventoryResource> =
+  test("a replaced task is gone at the next snapshot: the pages read only the newest one", () => {
+    const fetchRows: string = between(
+      readDashboardFile(
+        "Pages",
+        "DockerSwarm",
+        "Utils",
+        "DockerSwarmResourceUtils.ts",
+      ),
+      "export async function fetchDockerSwarmInventoryRows(",
+      "\n}\n",
+    );
+    expect(fetchRows).toContain(
+      "return keepLatestDockerSwarmSnapshot(result.data);",
+    );
+    for (const text of Object.values(T)) {
+      expect(text).not.toMatch(LINGERS);
+    }
+  });
+
+  test("the node's state is the managers' (Status.State), and drained or paused is no problem", () => {
+    expect(AGENT_SNAPSHOT_SCRIPT).toContain("Status: .Status.State,");
+    const down: ReturnType<typeof extractDockerSwarmInventoryResource> =
       extractDockerSwarmInventoryResource({
         kind: "Node",
         logBody: JSON.stringify({
@@ -246,10 +287,26 @@ describe("overview counts describe the inventory snapshot, not a time range", ()
         }),
         lastSeenAt: new Date(),
       });
+    expect(down!.resource.isReady).toBe(false);
 
-    expect(ready!.resource.isReady).toBe(false);
-    expect(T.nodes).toMatch(/Ready counts/);
-    expect(T.nodes).toMatch(/Down cannot run tasks/);
+    expect(T.nodeStatus).toContain("Ready, Down or Disconnected");
+    expect(T.nodeStatus).toContain("Unreachable for a manager");
+    expect(T.nodeStatus).toContain("Drained or Paused");
+    expect(T.nodeStatus).toContain("not a problem by itself");
+
+    const drained: DockerSwarmResourceModel = new DockerSwarmResourceModel();
+    drained.kind = "Node";
+    drained.state = "ready";
+    drained.attributes = { availability: "drain" };
+    expect(assessDockerSwarmNode(drained).severity).toBeNull();
+  });
+
+  test("a manager's standing is docker node ls's MANAGER STATUS, an unreachable one included", () => {
+    expect(AGENT_SNAPSHOT_SCRIPT).toContain(
+      'elif . == "unreachable" then "Unreachable"',
+    );
+    expect(T.managerStatus).toContain("as docker node ls shows it");
+    expect(T.managerStatus).toContain("more than half of its managers");
   });
 
   test("Managers are the nodes with a manager status, and the text does not say they never run tasks", () => {
@@ -272,55 +329,31 @@ describe("overview counts describe the inventory snapshot, not a time range", ()
     expect(T.managers).toContain("worker");
   });
 
-  test("Services: converged means running >= desired AND desired > 0, so a scaled-to-zero service is not converged", () => {
-    expect(serviceReadiness("3/3")).toBe(true);
-    expect(serviceReadiness("4/3")).toBe(true);
-    expect(serviceReadiness("2/3")).toBe(false);
-    expect(serviceReadiness("0/0")).toBe(false);
-
-    expect(T.services).toMatch(/Converged counts/);
-    expect(T.services).toContain("scaled to 0 never counts as converged");
-    expect(T.serviceStatus).toContain("scaled to 0");
-  });
-
-  test("Service status names its colours the way ServiceDetail picks them", () => {
-    const serviceDetail: string = readRepoFile(
-      "packages",
-      "App",
-      "FeatureSet",
-      "Dashboard",
-      "src",
-      "Pages",
-      "DockerSwarm",
-      "View",
-      "ServiceDetail.tsx",
-    ).replace(WHITESPACE, " ");
-    const badge: string = readRepoFile(
-      "packages",
-      "Common",
-      "UI",
-      "Components",
-      "StatusBadge",
-      "StatusBadge.tsx",
+  test("a service's status names its colours the way the rules pick them", () => {
+    const now: Date = new Date();
+    expect(T.serviceStatus).toContain("2 of 3 running");
+    expect(T.serviceStatus).toContain("Red when none run");
+    expect(assessDockerSwarmService(serviceRow(0, 3), now).status.tone).toBe(
+      "danger",
     );
-
-    // Not converged (isReady false, which includes 0/0) is the amber badge.
-    expect(serviceDetail).toContain(
-      "row.isReady === false ? StatusBadgeType.Warning : StatusBadgeType.Success",
+    expect(T.serviceStatus).toContain(
+      "amber when some are missing and no rolling update explains it",
     );
-    expect(between(badge, "[StatusBadgeType.Warning]:", ",")).toContain(
-      "amber",
+    expect(assessDockerSwarmService(serviceRow(2, 3), now).status.tone).toBe(
+      "warning",
     );
-    expect(between(badge, "[StatusBadgeType.Success]:", ",")).toContain(
-      "emerald",
+    expect(
+      assessDockerSwarmService(
+        serviceRow(2, 3, { updateState: "updating" }),
+        now,
+      ).status.tone,
+    ).toBe("neutral");
+    expect(T.serviceStatus).toContain(
+      "grey when it is scaled to zero or a job that ran to completion",
     );
-
-    expect(T.serviceStatus).toContain("2/3");
-    expect(T.serviceStatus).toMatch(/Green when every wanted task is running/);
-    expect(T.serviceStatus).toMatch(/amber when some are missing/);
-    // On the list the badge is plain - no colours are promised there.
-    expect(T.serviceStatusColumn).not.toMatch(/green|amber|red/i);
-    expect(T.serviceStatusColumn).toContain("same figure as Replicas");
+    expect(assessDockerSwarmService(serviceRow(0, 0), now).status.tone).toBe(
+      "neutral",
+    );
   });
 
   test("Replicas: the agent always sends running/desired, and a global service wants a copy per eligible node", () => {
@@ -331,100 +364,24 @@ describe("overview counts describe the inventory snapshot, not a time range", ()
     expect(T.replicas).toContain("global service wants one copy on every");
   });
 
-  test("Tasks: only the tasks Swarm wants running are inventoried", () => {
+  test("a rolling update's words are Docker's UpdateStatus, and failed tasks count the agent's hour", () => {
     expect(AGENT_SNAPSHOT_SCRIPT).toContain(
-      'select(.DesiredState == "running")',
+      'UpdateState: (.UpdateStatus.State // ""),',
     );
-    expect(T.tasks).toMatch(/^Tasks Swarm wants running/);
-    expect(T.tasks).toMatch(/one task is one container of a service/);
-    // The page counts only state "running"; everything else is the rest.
-    expect(T.tasks).toContain("running counts those actually running");
-    expect(T.tasks).toContain("the rest are starting, stopped or failed");
+    expect(AGENT_SNAPSHOT_SCRIPT).toContain(
+      'FAILED_TASK_WINDOW_SECONDS="${DOCKER_INVENTORY_FAILED_TASK_WINDOW_SECONDS:-3600}"',
+    );
+    expect(T.serviceUpdate).toContain("as Docker reports it");
+    expect(T.recentFailedTasks).toContain("in the last hour");
+    expect(T.recentFailedTasks).toContain("three or more needs a look");
+    expect(T.lastTaskError).toContain("ERROR column");
   });
 
-  test("Tasks: a replaced task lingers until the stale-row cleanup, which the text owns up to", () => {
-    /*
-     * A row is pruned once it is 15 minutes older than the CLUSTER's
-     * lastSeenAt (not wall-clock now), and that lastSeenAt is itself only
-     * refreshed through a 5-minute ingest fence; the sweep runs every 5
-     * minutes. Worst case 15 + 5 + 5 = about 25 minutes, so "about 20"
-     * would understate it.
-     */
-    const ingestBase: string = readRepoFile(
-      "packages",
-      "App",
-      "FeatureSet",
-      "Telemetry",
-      "Services",
-      "OtelIngestBaseService.ts",
+  test("a task's state: amber past its memory limit's line, where the alert fires", () => {
+    expect(T.taskStatus).toContain(
+      `more than ${DOCKER_SWARM_TASK_MEMORY_WARNING_PERCENT}% of its memory limit`,
     );
-    const service: string = readRepoFile(
-      "packages",
-      "Common",
-      "Server",
-      "Services",
-      "DockerSwarmResourceService.ts",
-    );
-    const cleanup: string = readRepoFile(
-      "packages",
-      "App",
-      "FeatureSet",
-      "Workers",
-      "Jobs",
-      "DockerSwarm",
-      "CleanupStaleResources.ts",
-    );
-
-    expect(service).toContain("return 15;");
-    expect(cleanup).toContain("schedule: EVERY_FIVE_MINUTE");
-    expect(cleanup).toMatch(CUTOFF_ANCHORED_TO_CLUSTER);
-    expect(ingestBase).toContain(
-      "MAINTENANCE_FENCE_TTL_SECONDS: number = 5 * 60;",
-    );
-    expect(T.tasks).toContain("up to about 25 minutes");
-    expect(T.tasks).not.toContain("20 minutes");
-  });
-
-  test("Stacks are grouped from the stack label on services", () => {
-    expect(AGENT_SNAPSHOT_SCRIPT).toContain('"com.docker.stack.namespace"');
-    expect(AGENT_SNAPSHOT_SCRIPT).toContain("group_by(.)");
-    expect(T.stacks).toContain("stack name Docker puts on each service");
-  });
-
-  test("Networks: only swarm-scoped networks are counted", () => {
-    expect(AGENT_SNAPSHOT_SCRIPT).toContain('select(.Scope == "swarm")');
-    expect(T.networks).toMatch(/single node only.*are not counted/);
-  });
-
-  test("Volumes: listed on the poller's own node only, and the overview has no other source", () => {
-    expect(AGENT_SNAPSHOT_SCRIPT).toContain('fetch "/volumes"');
-    expect(AGENT_SNAPSHOT_SCRIPT).toContain("Node: $node");
-    expect(T.volumes).toContain(
-      "the node where the OneUptime inventory poller",
-    );
-    expect(T.volumes).toContain(
-      "volumes on nodes without the poller are not counted",
-    );
-  });
-
-  test("Volumes: the text does not promise a single node - the poller ships in the same compose file as the collector", () => {
-    /*
-     * The collector config invites running the agent on every node, and
-     * docker-compose.yml starts the inventory poller alongside it. /volumes
-     * answers on a worker too (only the swarm endpoints are manager-only),
-     * so each node that runs the compose file adds its own volumes.
-     */
-    const compose: string = readRepoFile(
-      "agents",
-      "DockerSwarmAgent",
-      "docker-compose.yml",
-    );
-
-    expect(compose).toContain("oneuptime-docker-swarm-agent:");
-    expect(compose).toContain("oneuptime-docker-swarm-inventory:");
-    expect(AGENT_COLLECTOR_CONFIG).toContain("run the agent on every node");
-    expect(T.volumes).not.toMatch(/\bthe one manager\b/);
-    expect(T.volumes).toContain("normally one manager");
+    expect(T.taskDesiredState).toContain("as docker service ps shows it");
   });
 });
 
@@ -567,11 +524,11 @@ describe("the Clusters list reads the counts cached on the cluster row", () => {
     );
   });
 
-  test("Services: every service in the snapshot, converged or not", () => {
+  test("Services: every service in the snapshot, short of replicas or not", () => {
     expect(T.clusterListServices).toContain("whatever their state");
     expect(T.clusterListServices).toContain("including ones scaled to 0");
-    // Converged is on the overview, not on this list.
-    expect(T.clusterListServices).toContain("overview");
+    // Which ones run short is on the Overview, not on this list.
+    expect(T.clusterListServices).toContain("Overview");
   });
 
   test("Tasks: running out of the tasks Swarm wants running", () => {
@@ -595,21 +552,23 @@ describe("CPU and memory texts match what the rows actually carry", () => {
     "private static bufferDockerSnapshotMetric",
   );
 
-  test("ingest mirrors CPU/memory onto Task rows only, so Nodes and Services always read N/A", () => {
+  test("ingest mirrors CPU/memory onto Task rows only, so the Nodes and Services lists have no usage columns", () => {
     expect(flush).toContain('kind: "Task"');
     expect(flush).not.toMatch(/kind: "(Node|Service)"/);
 
-    for (const text of [T.nodeUsageColumns, T.serviceUsageColumns]) {
-      expect(text).toContain("collected per task container");
-      expect(text).toContain("show N/A");
-      expect(text).toContain("Tasks list");
+    for (const page of ["Nodes.tsx", "Services.tsx"]) {
+      expect(readDashboardFile("Pages", "DockerSwarm", "View", page)).toContain(
+        "showResourceMetrics={false}",
+      );
     }
-    expect(T.nodeUsageColumns).toContain("not per node");
-    expect(T.serviceUsageColumns).toContain("not per service");
+    expect(
+      readDashboardFile("Pages", "DockerSwarm", "View", "Tasks.tsx"),
+    ).not.toContain("showResourceMetrics={false}");
   });
 
-  test("the Tasks list hides readings older than 15 minutes, and its texts say so", () => {
+  test("every page hides readings older than 15 minutes, a task's own page too, and its texts say so", () => {
     expect(METRIC_STALE_MS).toBe(15 * 60 * 1000);
+    expect(DOCKER_SWARM_READINGS_STALE_MS).toBe(METRIC_STALE_MS);
 
     const fresh: InfrastructureResource = toInfrastructureResource(taskRow(1));
     const stale: InfrastructureResource = toInfrastructureResource(taskRow(16));
@@ -619,27 +578,39 @@ describe("CPU and memory texts match what the rows actually carry", () => {
     expect(stale.cpuUtilization).toBeNull();
     expect(stale.memoryUsageBytes).toBeNull();
 
-    expect(T.taskCpuColumn).toContain("only when that reading is under 15");
-    expect(T.taskMemoryColumn).toContain("only when that reading is under 15");
-  });
-
-  test("the task page applies no such cutoff, and its texts say that instead", () => {
-    const taskDetail: string = readRepoFile(
-      "packages",
-      "App",
-      "FeatureSet",
-      "Dashboard",
-      "src",
-      "Pages",
+    const taskOverview: string = readDashboardFile(
+      "Components",
       "DockerSwarm",
-      "View",
-      "TaskDetail.tsx",
+      "Part",
+      "DockerSwarmTaskOverview.tsx",
+    );
+    expect(taskOverview).toContain(
+      "getDockerSwarmTaskReadings(row, props.now)",
     );
 
-    expect(taskDetail).not.toContain("METRIC_STALE_MS");
-    expect(taskDetail).not.toContain("metricsUpdatedAt");
-    expect(T.taskCpu).toContain("more than 15 minutes old");
-    expect(T.taskMemory).toContain("more than 15 minutes old");
+    expect(T.taskCpuColumn).toContain(
+      "Shown only when the reading is under 15 minutes old",
+    );
+    expect(T.taskMemoryColumn).toContain(
+      "Shown only when the reading is under 15 minutes old",
+    );
+    expect(T.taskCpu).toContain("more than 15 minutes old is not shown");
+    expect(T.taskMemory).toContain("more than 15 minutes old is not shown");
+  });
+
+  test("the bars turn amber at the alerts' lines, and the texts name both", () => {
+    expect(T.taskCpu).toContain(
+      `Amber past ${DOCKER_SWARM_TASK_CPU_WARNING_PERCENT}%, where the High Task CPU Usage alert fires`,
+    );
+    expect(T.taskCpuColumn).toContain(
+      `amber past ${DOCKER_SWARM_TASK_CPU_WARNING_PERCENT}%, where the High Task CPU Usage alert fires`,
+    );
+    expect(T.taskMemory).toContain(
+      `Amber past ${DOCKER_SWARM_TASK_MEMORY_WARNING_PERCENT}%, where the High Task Memory Usage alert fires`,
+    );
+    expect(T.taskMemoryColumn).toContain(
+      `amber past ${DOCKER_SWARM_TASK_MEMORY_WARNING_PERCENT}%, where the High Task Memory Usage alert fires`,
+    );
   });
 
   test("docker_stats reads only the local daemon, so tasks on nodes without the agent have no reading", () => {
@@ -647,23 +618,26 @@ describe("CPU and memory texts match what the rows actually carry", () => {
       "endpoint: unix:///var/run/docker.sock",
     );
     expect(AGENT_COLLECTOR_CONFIG).toContain("collection_interval: 30s");
-    expect(T.taskCpuColumn).toMatch(/nodes where the agent does not run/);
-    expect(T.taskMemoryColumn).toMatch(/nodes without the agent/);
+    expect(T.taskCpuColumn).toMatch(NODES_WITHOUT_THE_AGENT);
+    expect(T.taskMemoryColumn).toMatch(NODES_WITHOUT_THE_AGENT);
     expect(T.taskCpu).toContain("every 30 seconds");
   });
 
-  test("memory texts say file cache is left out (docker_stats usage.total excludes it)", () => {
-    for (const text of [T.taskMemory, T.taskMemoryColumn, CHART.taskMemory]) {
-      expect(text).toMatch(/file cache/);
-      /*
-       * docker_stats subtracts only INACTIVE file cache (inactive_file), the
-       * way docker stats does - the same metric and the same words as the
-       * Docker and Podman host pages. Recently used cache is still counted,
-       * so "cache the system can reclaim" would overstate what is left out.
-       */
-      expect(text).toContain("file cache the system has not used recently");
-      expect(text).not.toContain("reclaim");
+  test("memory reads against the limit, or the node's memory when the service sets none (docker stats' MEM %)", () => {
+    for (const text of [T.taskMemory, T.taskMemoryColumn]) {
+      expect(text).toContain("percent of its memory limit");
+      expect(text).toContain("node's memory when the service sets none");
     }
+    /*
+     * docker_stats subtracts only INACTIVE file cache (inactive_file), the
+     * way docker stats does - the same metric and the same words as the
+     * Docker and Podman host pages. Recently used cache is still counted,
+     * so "cache the system can reclaim" would overstate what is left out.
+     */
+    expect(CHART.taskMemory).toContain(
+      "file cache the system has not used recently",
+    );
+    expect(CHART.taskMemory).not.toContain("reclaim");
   });
 
   /*

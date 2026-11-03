@@ -162,7 +162,16 @@ function buildSwarmApi(nowMs) {
     },
   ];
 
-  const task = (id, serviceId, slot, nodeId, desired, state, minutesAgo, extra) => {
+  const task = (
+    id,
+    serviceId,
+    slot,
+    nodeId,
+    desired,
+    state,
+    minutesAgo,
+    extra,
+  ) => {
     return {
       ID: id,
       ServiceID: serviceId,
@@ -186,38 +195,137 @@ function buildSwarmApi(nowMs) {
   };
 
   const tasks = [
-    task("t1running0000000000000000", SERVICE_IDS.checkout, 1, NODE_IDS.leader, "running", "running", 40, {
-      ContainerStatus: { ContainerID: "c".repeat(64), ExitCode: 0 },
-    }),
-    task("t2running0000000000000000", SERVICE_IDS.checkout, 2, NODE_IDS.reachable, "running", "running", 40, {
-      ContainerStatus: { ContainerID: "d".repeat(64), ExitCode: 0 },
-    }),
+    task(
+      "t1running0000000000000000",
+      SERVICE_IDS.checkout,
+      1,
+      NODE_IDS.leader,
+      "running",
+      "running",
+      40,
+      {
+        ContainerStatus: { ContainerID: "c".repeat(64), ExitCode: 0 },
+      },
+    ),
+    task(
+      "t2running0000000000000000",
+      SERVICE_IDS.checkout,
+      2,
+      NODE_IDS.reachable,
+      "running",
+      "running",
+      40,
+      {
+        ContainerStatus: { ContainerID: "d".repeat(64), ExitCode: 0 },
+      },
+    ),
     // Slot 3 cannot be placed: no node has the memory it reserves.
-    task("t3pending0000000000000000", SERVICE_IDS.checkout, 3, "", "running", "pending", 12, {
-      Err: "no suitable node (insufficient resources on 3 nodes)",
-    }),
+    task(
+      "t3pending0000000000000000",
+      SERVICE_IDS.checkout,
+      3,
+      "",
+      "running",
+      "pending",
+      12,
+      {
+        Err: "no suitable node (insufficient resources on 3 nodes)",
+      },
+    ),
     // What slot 3 was before: rejected, then failed twice, in the last hour.
-    task("t4rejected000000000000000", SERVICE_IDS.checkout, 3, NODE_IDS.reachable, "shutdown", "rejected", 20, {
-      Err: "no suitable node (insufficient resources on 3 nodes)",
-    }),
-    task("t5failed00000000000000000", SERVICE_IDS.checkout, 3, NODE_IDS.leader, "shutdown", "failed", 30, {
-      Err: "task: non-zero exit (1)",
-      ContainerStatus: { ContainerID: "e".repeat(64), ExitCode: 1 },
-    }),
-    task("t6failed00000000000000000", SERVICE_IDS.checkout, 3, NODE_IDS.leader, "shutdown", "failed", 35, {
-      Err: "task: non-zero exit (137)",
-      ContainerStatus: { ContainerID: "f".repeat(64), ExitCode: 137 },
-    }),
+    task(
+      "t4rejected000000000000000",
+      SERVICE_IDS.checkout,
+      3,
+      NODE_IDS.reachable,
+      "shutdown",
+      "rejected",
+      20,
+      {
+        Err: "no suitable node (insufficient resources on 3 nodes)",
+      },
+    ),
+    task(
+      "t5failed00000000000000000",
+      SERVICE_IDS.checkout,
+      3,
+      NODE_IDS.leader,
+      "shutdown",
+      "failed",
+      30,
+      {
+        Err: "task: non-zero exit (1)",
+        ContainerStatus: { ContainerID: "e".repeat(64), ExitCode: 1 },
+      },
+    ),
+    task(
+      "t6failed00000000000000000",
+      SERVICE_IDS.checkout,
+      3,
+      NODE_IDS.leader,
+      "shutdown",
+      "failed",
+      35,
+      {
+        Err: "task: non-zero exit (137)",
+        ContainerStatus: { ContainerID: "f".repeat(64), ExitCode: 137 },
+      },
+    ),
     // Older than the hour: history, not a crash loop.
-    task("t7oldfail0000000000000000", SERVICE_IDS.checkout, 2, NODE_IDS.leader, "shutdown", "failed", 180, {
-      Err: "task: non-zero exit (2)",
-    }),
+    task(
+      "t7oldfail0000000000000000",
+      SERVICE_IDS.checkout,
+      2,
+      NODE_IDS.leader,
+      "shutdown",
+      "failed",
+      180,
+      {
+        Err: "task: non-zero exit (2)",
+      },
+    ),
     // The global service on each node but the drained one... and the down one.
-    task("t8global00000000000000000", SERVICE_IDS.agent, null, NODE_IDS.leader, "running", "running", 600, {}),
-    task("t9global00000000000000000", SERVICE_IDS.agent, null, NODE_IDS.reachable, "running", "running", 600, {}),
-    task("t10global0000000000000000", SERVICE_IDS.agent, null, NODE_IDS.worker, "running", "running", 600, {}),
+    task(
+      "t8global00000000000000000",
+      SERVICE_IDS.agent,
+      null,
+      NODE_IDS.leader,
+      "running",
+      "running",
+      600,
+      {},
+    ),
+    task(
+      "t9global00000000000000000",
+      SERVICE_IDS.agent,
+      null,
+      NODE_IDS.reachable,
+      "running",
+      "running",
+      600,
+      {},
+    ),
+    task(
+      "t10global0000000000000000",
+      SERVICE_IDS.agent,
+      null,
+      NODE_IDS.worker,
+      "running",
+      "running",
+      600,
+      {},
+    ),
     // The job's task, done.
-    task("t11job00000000000000000000", SERVICE_IDS.migrate, 1, NODE_IDS.leader, "complete", "complete", 90, {}),
+    task(
+      "t11job00000000000000000000",
+      SERVICE_IDS.migrate,
+      1,
+      NODE_IDS.leader,
+      "complete",
+      "complete",
+      90,
+      {},
+    ),
   ];
 
   return {
@@ -238,7 +346,16 @@ function buildSwarmApi(nowMs) {
       },
     ],
     configs: [],
-    volumes: { Volumes: [{ Name: "shop_data", Driver: "local", Scope: "local", Mountpoint: "/var/lib/docker/volumes/shop_data/_data" }] },
+    volumes: {
+      Volumes: [
+        {
+          Name: "shop_data",
+          Driver: "local",
+          Scope: "local",
+          Mountpoint: "/var/lib/docker/volumes/shop_data/_data",
+        },
+      ],
+    },
   };
 }
 

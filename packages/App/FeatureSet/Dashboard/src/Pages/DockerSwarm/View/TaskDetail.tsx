@@ -1,38 +1,56 @@
 import PageComponentProps from "../../PageComponentProps";
+import DockerSwarmResource from "Common/Models/DatabaseModels/DockerSwarmResource";
+import Log from "Common/Models/AnalyticsModels/Log";
+import Query from "Common/Types/BaseDatabase/Query";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
-import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
-import DockerSwarmResourceModel from "Common/Models/DatabaseModels/DockerSwarmResource";
-import React, {
-  FunctionComponent,
-  ReactElement,
-  useEffect,
-  useState,
-} from "react";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import API from "Common/UI/Utils/API/API";
+import ProjectUtil from "Common/UI/Utils/Project";
+import React, { FunctionComponent, ReactElement, useMemo } from "react";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import { Tab } from "Common/UI/Components/Tabs/Tab";
-import ResourceOverviewTab, {
-  SummaryField,
-} from "../../../Components/Infrastructure/ResourceOverviewTab";
-import StatusBadge, {
-  StatusBadgeType,
-} from "Common/UI/Components/StatusBadge/StatusBadge";
+import DashboardLogsViewer from "../../../Components/Logs/LogsViewer";
+import ResourcePartReadError from "../../../Components/ResourcePart/ResourcePartReadError";
+import DockerSwarmPartHero from "../../../Components/DockerSwarm/Part/DockerSwarmPartHero";
+import DockerSwarmTaskOverview from "../../../Components/DockerSwarm/Part/DockerSwarmTaskOverview";
+import {
+  DockerSwarmPartRoutes,
+  getDockerSwarmPartRoutes,
+} from "../../../Components/DockerSwarm/Part/DockerSwarmPartRoutes";
+import useDockerSwarmPart, {
+  DockerSwarmPart,
+} from "../../../Components/DockerSwarm/Part/UseDockerSwarmPart";
+import { getDockerSwarmAttribute } from "../Utils/DockerSwarmHealth";
 import {
   externalIdFromRouteParam,
-  fetchDockerSwarmInventoryRow,
-  formatBytes,
-  formatPercent,
-  displayNameForResource,
-  displayStatusForResource,
-  attributeString,
+  keyForDockerSwarmCluster,
 } from "../Utils/DockerSwarmResourceUtils";
-import OneUptimeDate from "Common/Types/Date";
-import { DOCKER_SWARM_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/DockerSwarmMetricDescriptions";
+
+/*
+ * A Docker Swarm task's page: its hero (its state by the swarm's rules,
+ * its service and node - each a link -, its slot and container), its
+ * Overview - what needs attention on it with Docker's own error, what it
+ * uses, what is open on it, the task alerts and its details - and its
+ * container's logs.
+ */
+
+// The part of the inventory a task sits in, by name: its service, its node.
+function findExternalId(
+  rows: Array<DockerSwarmResource>,
+  kind: "Service" | "Node",
+  name: string | undefined,
+): string | undefined {
+  if (!name) {
+    return undefined;
+  }
+  const wanted: string = name.toLowerCase();
+  return (
+    rows.find((row: DockerSwarmResource): boolean => {
+      return row.kind === kind && (row.name || "").toLowerCase() === wanted;
+    })?.externalId || undefined
+  );
+}
 
 const DockerSwarmClusterTaskDetail: FunctionComponent<
   PageComponentProps
@@ -46,166 +64,129 @@ const DockerSwarmClusterTaskDetail: FunctionComponent<
     Navigation.getLastParamAsString(),
   );
 
-  const [cluster, setCluster] = useState<DockerSwarmCluster | null>(null);
-  const [row, setRow] = useState<DockerSwarmResourceModel | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [isLoadingRow, setIsLoadingRow] = useState<boolean>(true);
-  const [error, setError] = useState<string>("");
+  const part: DockerSwarmPart = useDockerSwarmPart({
+    clusterId: modelId,
+    kind: "Task",
+    externalId: externalId,
+  });
 
-  const fetchData: PromiseVoidFunction = async (): Promise<void> => {
-    setIsLoading(true);
-    try {
-      const item: DockerSwarmCluster | null = await ModelAPI.getItem({
-        modelType: DockerSwarmCluster,
-        id: modelId,
-        select: {
-          name: true,
-        },
-      });
-      setCluster(item);
-    } catch (err) {
-      setError(API.getFriendlyMessage(err));
-    }
-    setIsLoading(false);
+  const containerId: string = part.row
+    ? getDockerSwarmAttribute(part.row, "containerId")
+    : "";
+  const clusterName: string = part.cluster?.name || "";
 
-    try {
-      const inventoryRow: DockerSwarmResourceModel | null =
-        await fetchDockerSwarmInventoryRow({
-          dockerSwarmClusterId: modelId,
-          kind: "Task",
-          externalId: externalId,
-        });
-      setRow(inventoryRow);
-    } catch {
-      // Graceful degradation — overview tab shows its empty state.
-    }
-    setIsLoadingRow(false);
-  };
+  /*
+   * The container's own logs: the agent files each container's lines under
+   * its id (container.id), which the poller now reports for each task.
+   */
+  const logQuery: Query<Log> = useMemo(() => {
+    // `any` sidesteps a TS2589 deep instantiation, as the cluster's Logs page.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const query: any = {
+      attributes: {
+        "resource.docker.swarm.cluster.name": clusterName,
+        "resource.container.id": containerId,
+      },
+    };
+    return query as Query<Log>;
+  }, [clusterName, containerId]);
 
-  useEffect(() => {
-    fetchData().catch((err: Error) => {
-      setError(API.getFriendlyMessage(err));
-    });
-  }, []);
-
-  if (isLoading) {
+  if (part.isLoading) {
     return <PageLoader isVisible={true} />;
   }
 
-  if (error) {
-    return <ErrorMessage message={error} />;
+  if (part.error) {
+    return <ErrorMessage message={part.error} />;
   }
 
-  if (!cluster?.name) {
+  if (!part.cluster?.name) {
     return <ErrorMessage message="Cluster not found." />;
   }
 
-  const clusterName: string = cluster.name;
-  const taskName: string = row
-    ? displayNameForResource(row)
-    : externalId.replace(/^task\//, "");
-
-  const summaryFields: Array<SummaryField> = [
-    { title: "Task", value: taskName },
-    { title: "Cluster", value: clusterName },
-  ];
-
-  if (row) {
-    const status: string = displayStatusForResource(row);
-    if (status) {
-      summaryFields.push({
-        title: "State",
-        value: (
-          <StatusBadge
-            text={status}
-            type={
-              row.isReady === false
-                ? StatusBadgeType.Danger
-                : StatusBadgeType.Success
-            }
-          />
-        ),
-      });
-    }
-
-    if (row.serviceName) {
-      summaryFields.push({ title: "Service", value: row.serviceName });
-    }
-
-    if (row.nodeHostname) {
-      summaryFields.push({ title: "Node", value: row.nodeHostname });
-    }
-
-    const slot: string = attributeString(row, "slot");
-    if (slot) {
-      summaryFields.push({ title: "Slot", value: slot });
-    }
-
-    if (row.image) {
-      summaryFields.push({ title: "Image", value: row.image });
-    }
-
-    if (row.stackName) {
-      summaryFields.push({ title: "Stack", value: row.stackName });
-    }
-
-    const containerId: string = attributeString(row, "containerId");
-    if (containerId) {
-      summaryFields.push({ title: "Container ID", value: containerId });
-    }
-
-    const message: string = attributeString(row, "message");
-    if (message) {
-      summaryFields.push({ title: "Message", value: message });
-    }
-
-    if (row.latestCpuPercent !== null && row.latestCpuPercent !== undefined) {
-      summaryFields.push({
-        title: "CPU",
-        value: formatPercent(Number(row.latestCpuPercent)),
-        description: DOCKER_SWARM_METRIC_DESCRIPTIONS.taskCpu,
-      });
-    }
-
-    if (row.latestMemoryBytes !== null && row.latestMemoryBytes !== undefined) {
-      const used: string = formatBytes(Number(row.latestMemoryBytes));
-      const limit: string =
-        row.maxMemoryBytes !== null && row.maxMemoryBytes !== undefined
-          ? ` / ${formatBytes(Number(row.maxMemoryBytes))}`
-          : "";
-      summaryFields.push({
-        title: "Memory",
-        value: `${used}${limit}`,
-        description: DOCKER_SWARM_METRIC_DESCRIPTIONS.taskMemory,
-      });
-    }
-
-    summaryFields.push({ title: "External ID", value: externalId });
-
-    if (row.lastSeenAt) {
-      summaryFields.push({
-        title: "Last Seen",
-        value: OneUptimeDate.fromNow(new Date(row.lastSeenAt as Date)),
-      });
-    }
-  }
+  const routes: DockerSwarmPartRoutes = getDockerSwarmPartRoutes(modelId);
+  const serviceExternalId: string | undefined = findExternalId(
+    part.rows,
+    "Service",
+    part.row?.serviceName,
+  );
+  const nodeExternalId: string | undefined = findExternalId(
+    part.rows,
+    "Node",
+    part.row?.nodeHostname,
+  );
 
   const tabs: Array<Tab> = [
     {
       name: "Overview",
-      children: (
-        <ResourceOverviewTab
-          summaryFields={row ? summaryFields : []}
-          labels={{}}
-          annotations={{}}
-          isLoading={isLoadingRow}
-          emptyMessage="Task details not reported yet. Make sure the Docker Swarm agent is sending metrics."
+      children: part.isLoadingRows ? (
+        <PageLoader isVisible={true} />
+      ) : part.rowError ? (
+        <ResourcePartReadError
+          testId="docker-swarm-task-read-error"
+          title="Couldn't load this task"
+          message={part.rowError}
+          onRetry={part.refresh}
+        />
+      ) : (
+        <DockerSwarmTaskOverview
+          clusterId={modelId}
+          clusterName={clusterName}
+          externalId={externalId}
+          row={part.row}
+          routes={routes}
+          serviceExternalId={serviceExternalId}
+          nodeExternalId={nodeExternalId}
+          now={part.readAt}
         />
       ),
     },
   ];
 
-  return <Tabs tabs={tabs} onTabChange={() => {}} />;
+  if (containerId) {
+    tabs.push({
+      name: "Logs",
+      children: (
+        <DashboardLogsViewer
+          id={`docker-swarm-task-logs-${externalId}`}
+          logQuery={logQuery}
+          attributeFilterDisplayKeys={{
+            "resource.docker.swarm.cluster.name": "Cluster",
+            "resource.container.id": "Container",
+          }}
+          entityScope={{
+            entityKeys: [
+              keyForDockerSwarmCluster(
+                ProjectUtil.getCurrentProjectId()!.toString(),
+                clusterName,
+              ),
+            ],
+            attributeKey: "resource.docker.swarm.cluster.name",
+            attributeValue: clusterName,
+          }}
+          showFilters={true}
+          enableRealtime={true}
+          noLogsMessage="No logs from this task's container in this range. The agent sends the logs of containers that use Docker's json-file log driver, on each node it runs on."
+        />
+      ),
+    });
+  }
+
+  return (
+    <div data-testid="docker-swarm-task-page">
+      <DockerSwarmPartHero
+        kind="Task"
+        row={part.row}
+        externalId={externalId}
+        clusterName={clusterName}
+        clusterRoute={routes.clusterRoute}
+        getPartRoute={routes.getPartRoute}
+        serviceExternalId={serviceExternalId}
+        nodeExternalId={nodeExternalId}
+        now={part.readAt}
+      />
+      <Tabs tabs={tabs} wrap={true} onTabChange={() => {}} />
+    </div>
+  );
 };
 
 export default DockerSwarmClusterTaskDetail;

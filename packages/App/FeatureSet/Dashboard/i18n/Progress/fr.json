@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40228,
-    "untranslated": 7238
+    "keys": 40315,
+    "untranslated": 7195
   },
   "sameAsEnglish": [
     " incidents",
@@ -267,6 +267,7 @@
     "LXC 201 · pve3",
     "Largest Contentful Paint",
     "Latitude",
+    "Leader",
     "Lesotho",
     "Liberia",
     "Liechtenstein",
@@ -501,6 +502,7 @@
     "vCenters",
     "vSphere Client",
     "z",
+    "{{count}} CPU",
     "{{count}} VM",
     "{{count}} action",
     "{{count}} actions",
@@ -520,6 +522,8 @@
     "{{count}} incidents",
     "{{count}} instance",
     "{{count}} instances",
+    "{{count}} manager",
+    "{{count}} managers",
     "{{count}} minute",
     "{{count}} minutes",
     "{{count}} option",
@@ -528,10 +532,14 @@
     "{{count}} pods",
     "{{count}} rotation",
     "{{count}} rotations",
+    "{{count}} service",
+    "{{count}} services",
     "{{count}} source",
     "{{count}} sources",
     "{{count}} span",
     "{{count}} spans",
+    "{{count}} stack",
+    "{{count}} stacks",
     "{{minutes}} min",
     "{{protocol}} port {{port}}"
   ]

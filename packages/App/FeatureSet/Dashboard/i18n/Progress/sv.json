@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40228,
-    "untranslated": 12621
+    "keys": 40315,
+    "untranslated": 12558
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -29,6 +29,7 @@
     "CloudWatch Metric Streams",
     "Container",
     "Container {{container}}: {{reason}}",
+    "Container {{id}}",
     "Content Security Policy",
     "CrowdStrike",
     "DE",
@@ -52,6 +53,7 @@
     "Finland (+358)",
     "Frustration",
     "Gateway",
+    "Global",
     "Google SecOps",
     "Goroutines",
     "HA: {{state}}",
@@ -223,6 +225,7 @@
     "z",
     "{{capacity}} CPU",
     "{{count}} B",
+    "{{count}} CPU",
     "{{count}} KB",
     "{{count}} MB",
     "{{count}} VM",
@@ -231,11 +234,14 @@
     "{{count}} filter",
     "{{count}} filter ({{condition}})",
     "{{count}} incident",
+    "{{count}} manager",
+    "{{count}} managers",
     "{{count}} person",
     "{{count}} process",
     "{{count}} rotation",
     "{{count}} sample",
     "{{count}} samples",
+    "{{count}} stack",
     "{{count}} team",
     "{{minutes}} min",
     "{{percent}} full",

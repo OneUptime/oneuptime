@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40228,
-    "untranslated": 12627
+    "keys": 40315,
+    "untranslated": 12564
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -31,6 +31,7 @@
     "CloudWatch Metric Streams",
     "Container",
     "Container {{container}}: {{reason}}",
+    "Container {{id}}",
     "Container: {{name}}",
     "Content Security Policy",
     "CrowdStrike",
@@ -56,6 +57,7 @@
     "Flat",
     "Gateway",
     "Gemini for Google Workspace",
+    "Global",
     "Google SecOps",
     "Goroutines",
     "HA: {{state}}",
@@ -214,6 +216,7 @@
     "z",
     "{{capacity}} CPU",
     "{{count}} B",
+    "{{count}} CPU",
     "{{count}} KB",
     "{{count}} MB",
     "{{count}} VM",
@@ -224,6 +227,7 @@
     "{{count}} filter ({{condition}})",
     "{{count}} flow",
     "{{count}} flows",
+    "{{count}} manager",
     "{{count}} node",
     "{{count}} person",
     "{{count}} pod",
@@ -231,6 +235,7 @@
     "{{count}} repository",
     "{{count}} sample",
     "{{count}} samples",
+    "{{count}} stack",
     "{{count}} team",
     "{{minutes}} min",
     "{{percent}} full",

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40228,
-    "untranslated": 12633
+    "keys": 40315,
+    "untranslated": 12570
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -40,6 +40,7 @@
     "Collector",
     "Container",
     "Container {{container}}: {{reason}}",
+    "Container {{id}}",
     "Container: {{name}}",
     "Content Security Policy",
     "Controller",
@@ -73,6 +74,7 @@
     "Finland (+358)",
     "Frustration",
     "Gateway",
+    "Global",
     "Google SecOps",
     "Goroutines",
     "HA: {{state}}",
@@ -279,6 +281,7 @@
     "z",
     "{{capacity}} CPU",
     "{{count}} B",
+    "{{count}} CPU",
     "{{count}} KB",
     "{{count}} MB",
     "{{count}} VM",
@@ -295,6 +298,7 @@
     "{{count}} filter ({{condition}})",
     "{{count}} flow",
     "{{count}} flows",
+    "{{count}} manager",
     "{{count}} match",
     "{{count}} node",
     "{{count}} person",
@@ -305,6 +309,8 @@
     "{{count}} samples",
     "{{count}} span",
     "{{count}} spans",
+    "{{count}} stack",
+    "{{count}} stacks",
     "{{count}} team",
     "{{count}} teams",
     "{{online}}/{{count}} node online",

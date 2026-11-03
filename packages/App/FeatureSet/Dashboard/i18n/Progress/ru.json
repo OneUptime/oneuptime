@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40228,
-    "untranslated": 12579
+    "keys": 40315,
+    "untranslated": 12517
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -92,6 +92,7 @@
     "vApp {{name}}",
     "vCenter",
     "vSphere Client",
-    "z"
+    "z",
+    "{{count}} CPU"
   ]
 }

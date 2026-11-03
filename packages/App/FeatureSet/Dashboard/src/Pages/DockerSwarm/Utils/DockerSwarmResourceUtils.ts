@@ -6,6 +6,7 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import EntityType from "Common/Types/Telemetry/EntityType";
 import { computeEntityKey } from "Common/Utils/Telemetry/EntityKey";
 import { InfrastructureResource } from "../../../Components/Infrastructure/ResourceTable";
+import { keepLatestDockerSwarmSnapshot } from "./DockerSwarmHealth";
 
 /*
  * Shared helpers for the Docker Swarm list/detail pages. The pages read
@@ -207,8 +208,9 @@ const INVENTORY_SELECT: Record<string, boolean> = {
  * Fetch all DockerSwarmResource inventory rows for a cluster, optionally
  * filtered to one kind. This is the authoritative "what exists in the
  * cluster right now" source — the same rows the sidebar badge counts and
- * the overview cards are computed from, so the pages can never drift from
- * the badges.
+ * the overview cards are computed from. Only the newest snapshot's rows
+ * (keepLatestDockerSwarmSnapshot): a replaced task or a node that left is
+ * gone at the next snapshot, not 15 minutes later.
  */
 export async function fetchDockerSwarmInventoryRows(options: {
   dockerSwarmClusterId: ObjectID;
@@ -233,7 +235,7 @@ export async function fetchDockerSwarmInventoryRows(options: {
       },
     });
 
-  return result.data;
+  return keepLatestDockerSwarmSnapshot(result.data);
 }
 
 /**

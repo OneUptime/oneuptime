@@ -120,7 +120,7 @@ const DockerSwarmClusterLogs: FunctionComponent<
         }}
         showFilters={true}
         enableRealtime={true}
-        noLogsMessage="The Docker Swarm agent sends metrics only. Logs appear here when you send OpenTelemetry logs with this cluster's docker.swarm.cluster.name resource attribute."
+        noLogsMessage="No logs in this range. The Docker Swarm agent sends the logs of the containers that use Docker's json-file log driver, on each node it runs on."
       />
     </Fragment>
   );

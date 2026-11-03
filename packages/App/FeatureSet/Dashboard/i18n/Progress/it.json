@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40228,
-    "untranslated": 12634
+    "keys": 40315,
+    "untranslated": 12572
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -38,6 +38,7 @@
     "Console",
     "Container",
     "Container {{container}}: {{reason}}",
+    "Container {{id}}",
     "Content Security Policy",
     "Controller",
     "CrowdStrike",
@@ -84,6 +85,7 @@
     "Job",
     "Kernel",
     "LXC 201 · pve3",
+    "Leader",
     "Link-local",
     "Log4Shell",
     "Loopback",
@@ -157,6 +159,7 @@
     "Serverless",
     "Service Mesh",
     "Singapore (+65)",
+    "Slot {{slot}}",
     "Slug",
     "Span",
     "Span: {{id}}",
@@ -239,6 +242,7 @@
     "vSphere Client",
     "z",
     "{{count}} B",
+    "{{count}} CPU",
     "{{count}} KB",
     "{{count}} MB",
     "{{count}} VM",
@@ -251,9 +255,11 @@
     "{{count}} datastore",
     "{{count}} guest",
     "{{count}} host",
+    "{{count}} manager",
     "{{count}} pod",
     "{{count}} repository",
     "{{count}} span",
+    "{{count}} stack",
     "{{count}} team",
     "{{count}} trigger",
     "{{minutes}} min",

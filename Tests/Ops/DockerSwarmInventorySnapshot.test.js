@@ -146,9 +146,7 @@ describeWithJq("inventory-snapshot.sh --once, against a manager's API", () => {
       expect(nodes.get(NODE_IDS.leader).ManagerStatus).toBe("Leader");
       expect(nodes.get(NODE_IDS.reachable).ManagerStatus).toBe("Reachable");
       // It used to read Reachable for every manager but the leader.
-      expect(nodes.get(NODE_IDS.unreachable).ManagerStatus).toBe(
-        "Unreachable",
-      );
+      expect(nodes.get(NODE_IDS.unreachable).ManagerStatus).toBe("Unreachable");
       expect(nodes.get(NODE_IDS.worker).ManagerStatus).toBe("");
     });
 

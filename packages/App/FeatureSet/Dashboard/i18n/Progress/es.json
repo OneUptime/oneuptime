@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40228,
-    "untranslated": 2964
+    "keys": 40315,
+    "untranslated": 2938
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -524,6 +524,7 @@
     "z",
     "{\"version\": \"...\", \"records\": [...]}",
     "{{count}} B",
+    "{{count}} CPU",
     "{{count}} Docker",
     "{{count}} KB",
     "{{count}} Kubernetes",
@@ -549,6 +550,8 @@
     "{{count}} pools",
     "{{count}} span",
     "{{count}} spans",
+    "{{count}} stack",
+    "{{count}} stacks",
     "{{count}} token",
     "{{count}} tokens",
     "{{in}} in",

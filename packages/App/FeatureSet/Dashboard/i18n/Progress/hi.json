@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40228,
-    "untranslated": 12584
+    "keys": 40315,
+    "untranslated": 12522
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -58,6 +58,7 @@
     "SLOs",
     "Serverless",
     "Slug",
+    "Swarm ID",
     "TLS",
     "Top P",
     "UTC",
@@ -107,6 +108,7 @@
     "vSphere Client",
     "z",
     "{{count}} B",
+    "{{count}} CPU",
     "{{count}} KB",
     "{{count}} MB",
     "{{count}} VM",

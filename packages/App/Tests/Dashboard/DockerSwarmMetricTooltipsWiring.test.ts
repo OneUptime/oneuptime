@@ -7,45 +7,62 @@ import {
 } from "../../FeatureSet/Dashboard/src/Components/MetricDescriptions/DockerSwarmMetricDescriptions";
 
 /*
- * Every number on the Docker Swarm cluster pages carries a plain-English
- * (i): the overview's count tiles and hero chips, the service and task
- * detail fields, and the CPU / Memory / Replicas / Status headers of the
- * lists. The Insights charts take their subtitle from the same module.
+ * Every number and state on the Docker Swarm cluster pages carries a
+ * plain-English (i): the Overview's health pill and count chips, a node's,
+ * a service's and a task's facts and tiles, and the Status, CPU, Memory,
+ * Replicas, Role, Availability and Manager Status headers of the lists. The
+ * Insights charts take their subtitle from the same module.
  *
  * The App suite runs in plain Node with no renderer, so the JSX wiring is
  * pinned by reading the sources (the rendered behaviour is covered by
- * Common/Tests/App/Dashboard/DockerSwarmOverviewTooltips.test.tsx).
- * Whitespace is squashed and comments stripped, so a Prettier reflow or a
- * rationale comment cannot make a test pass or fail.
+ * Common/Tests/App/Dashboard/DockerSwarmOverviewTooltips.test.tsx and
+ * DockerSwarmPartPages.test.tsx). Whitespace is squashed and comments
+ * stripped, so a Prettier reflow or a rationale comment cannot make a test
+ * pass or fail.
  */
 
-const VIEW_DIR: string = path.join(
+const DASHBOARD_DIR: string = path.join(
   __dirname,
   "..",
   "..",
   "FeatureSet",
   "Dashboard",
   "src",
+);
+
+const VIEW_DIR: string = path.join(
+  DASHBOARD_DIR,
   "Pages",
   "DockerSwarm",
   "View",
+);
+const PART_DIR: string = path.join(
+  DASHBOARD_DIR,
+  "Components",
+  "DockerSwarm",
+  "Part",
 );
 
 const BLOCK_COMMENT: RegExp = /\/\*[\s\S]*?\*\//g;
 const LINE_COMMENT: RegExp = /(^|[^:])\/\/[^\n]*/g;
 const WHITESPACE: RegExp = /\s+/g;
-const RENDER_COUNT_TILE_CALL: RegExp =
-  /renderCountTile\( translationKey\("(\w+)"\),/g;
 const DESCRIPTION_REFERENCE: RegExp =
   /DOCKER_SWARM_METRIC_DESCRIPTIONS\.(\w+)/g;
-const NODE_OR_SERVICE_KIND: RegExp = /kind: "(Node|Service)"/;
 
-function readCode(file: string): string {
+function readFrom(directory: string, file: string): string {
   return fs
-    .readFileSync(path.join(VIEW_DIR, file), "utf8")
+    .readFileSync(path.join(directory, file), "utf8")
     .replace(BLOCK_COMMENT, " ")
     .replace(LINE_COMMENT, "$1")
     .replace(WHITESPACE, " ");
+}
+
+function readCode(file: string): string {
+  return readFrom(VIEW_DIR, file);
+}
+
+function readPart(file: string): string {
+  return readFrom(PART_DIR, file);
 }
 
 function between(source: string, from: string, to: string): string {
@@ -82,15 +99,6 @@ const IMPORT_LINE: string =
 describe("Docker Swarm overview (Index.tsx)", () => {
   const code: string = readCode("Index.tsx");
 
-  const TILES: Array<[string, string]> = [
-    ["Nodes", "nodes"],
-    ["Services", "services"],
-    ["Tasks", "tasks"],
-    ["Stacks", "stacks"],
-    ["Networks", "networks"],
-    ["Volumes", "volumes"],
-  ];
-
   test("imports the Docker Swarm descriptions and the (i)", () => {
     expect(code).toContain(IMPORT_LINE);
     expect(code).toContain(
@@ -98,356 +106,220 @@ describe("Docker Swarm overview (Index.tsx)", () => {
     );
   });
 
-  test.each(TILES)(
-    "the %s tile passes its own description",
-    (title: string, key: string) => {
-      const call: string = between(
+  test("the health pill's (i) is named Swarm health and explained by .clusterHealth", () => {
+    const pill: string = between(
+      code,
+      'data-testid="docker-swarm-hero-health"',
+      "</span> )}",
+    );
+    expect(pill).toContain(
+      '<InfoTooltip label="Swarm health" text={DOCKER_SWARM_METRIC_DESCRIPTIONS.clusterHealth} />',
+    );
+  });
+
+  test("the count chips share one (i), named for what they count, shown only when there are counts", () => {
+    expect(code).toContain(
+      '{hasCountChips && ( <InfoTooltip label="Swarm inventory counts" text={DOCKER_SWARM_METRIC_DESCRIPTIONS.inventoryCounts} /> )}',
+    );
+    expect(countOf(code, "<InfoTooltip")).toBe(2);
+  });
+
+  test("each count chip opens its list, and the version chips open none", () => {
+    for (const [testId, route] of [
+      ["docker-swarm-hero-nodes", "routes.nodesRoute"],
+      ["docker-swarm-hero-managers", "routes.nodesRoute"],
+      ["docker-swarm-hero-services", "routes.servicesRoute"],
+      ["docker-swarm-hero-tasks", "routes.tasksRoute"],
+    ]) {
+      const chip: string = between(
         code,
-        `renderCountTile( translationKey("${title}"),`,
-        ")}",
+        `route: ${route}, testId: "${testId}"`,
+        "});",
       );
-
-      expect(call).toContain(`DOCKER_SWARM_METRIC_DESCRIPTIONS.${key},`);
-      expect(
-        DOCKER_SWARM_METRIC_DESCRIPTIONS[
-          key as keyof typeof DOCKER_SWARM_METRIC_DESCRIPTIONS
-        ],
-      ).toBeTruthy();
-    },
-  );
-
-  test("every count tile on the page is one of the six above, each with a description", () => {
-    const calls: Array<string> = Array.from(
-      code.matchAll(RENDER_COUNT_TILE_CALL),
-    ).map((match: RegExpMatchArray): string => {
-      return match[1]!;
-    });
-
-    expect(calls).toEqual(
-      TILES.map((tile: [string, string]): string => {
-        return tile[0];
-      }),
+      expect(chip).toContain("label: translator.translatePlural(");
+    }
+    expect(code).toContain(
+      'RouteMap[PageMap.DOCKER_SWARM_CLUSTER_VIEW_STACKS] as Route, { modelId: modelId }, ), testId: "docker-swarm-hero-stacks"',
     );
-
-    const strip: string = between(
+    const versionChip: string = between(
       code,
-      'renderCountTile( translationKey("Nodes"),',
-      '<Card title="Cluster Health"',
+      "if (cluster.dockerVersion) { specChips.push({",
+      "}); }",
     );
-
-    expect(countOf(strip, "DOCKER_SWARM_METRIC_DESCRIPTIONS.")).toBe(
-      calls.length,
-    );
+    expect(versionChip).not.toContain("route:");
   });
 
-  test("renderCountTile forwards the description to the tile", () => {
-    const helper: string = between(
-      code,
-      "const renderCountTile:",
-      "return ( <div> {renderHero()}",
+  test("Needs attention is the swarm's rules, read while the agent reports, and its failed read says so", () => {
+    expect(code).toContain(
+      "getDockerSwarmAttentionItems({ rows: inventory.rows,",
     );
-
-    expect(helper).toContain("description?: string,");
-    expect(helper).toContain("<SwarmCountTile");
-    expect(helper).toContain("description={description}");
-    expect(helper).toContain("Navigation.navigate(");
-  });
-
-  test("the tile's open control is an overlay, so the (i) is never nested in a button", () => {
-    const tile: string = between(
-      code,
-      "export const SwarmCountTile:",
-      "interface DegradedItem",
+    expect(code).toContain(
+      "const clusterHealth: ResourceHealth = getDockerSwarmHealth(attentionItems);",
     );
-    const overlay: string = between(tile, "<button", "</button>");
-
-    expect(overlay).toContain("absolute inset-0");
-    expect(overlay).toContain('className="sr-only"');
-    expect(overlay).toContain(
-      'translator.translateTemplate("View {{label}}", { label: translatableTerm(props.label), })',
+    expect(code).toContain(
+      ') : isConnected && !isInventoryLoading ? ( <NeedsAttentionCard testId="docker-swarm-needs-attention" items={attentionItems} />',
     );
-    expect(overlay).not.toContain("<InfoTooltip");
-
-    // Exactly one button of its own, closed before the (i) is drawn.
-    expect(countOf(tile, "<button")).toBe(1);
-    expect(tile.indexOf("</button>")).toBeLessThan(
-      tile.indexOf("<InfoTooltip"),
+    expect(code).toContain(
+      '<NeedsAttentionCard testId="docker-swarm-needs-attention" items={[]} error={inventoryError}',
     );
-    expect(tile).toContain("relative rounded-lg");
-  });
-
-  test("the tile's (i) is named after the label and lifted above the overlay", () => {
-    const tooltip: string = between(
-      between(code, "export const SwarmCountTile:", "interface DegradedItem"),
-      "<InfoTooltip",
-      "/>",
-    );
-
-    expect(tooltip).toContain("label={props.label}");
-    expect(tooltip).toContain("text={props.description}");
-    expect(tooltip).toContain('className="relative z-10"');
   });
 
   test("no <button> element is opened inside another anywhere on the page", () => {
-    let depth: number = 0;
-    const TAG: RegExp = /<button\b|<\/button>/g;
-
-    for (const match of code.matchAll(TAG)) {
-      depth += match[0] === "</button>" ? -1 : 1;
-      expect(depth).toBeLessThanOrEqual(1);
-    }
-
-    expect(depth).toBe(0);
+    expect(code).not.toContain("<button");
   });
 
-  const CHIPS: Array<[string, string, string]> = [
-    ['other: "{{ready}}/{{count}} nodes ready"', "Nodes ready", "nodes"],
-    ['other: "{{count}} managers"', "Managers", "managers"],
-    ['other: "{{count}} services"', "Services", "services"],
-    ['other: "{{running}}/{{count}} tasks running"', "Tasks running", "tasks"],
-  ];
-
-  test.each(CHIPS)(
-    "the hero chip %s is named %s and explained by .%s",
-    (labelFragment: string, name: string, key: string) => {
-      const chip: string = between(code, labelFragment, "});");
-
-      expect(chip).toContain(`name: translationKey("${name}"),`);
-      expect(chip).toContain(
-        `description: DOCKER_SWARM_METRIC_DESCRIPTIONS.${key},`,
-      );
-    },
-  );
-
-  test("version chips stay plain - they are metadata, not metrics", () => {
-    const docker: string = between(
-      code,
-      'label: translator.translateTemplate("Docker {{version}}"',
-      "});",
-    );
-
-    expect(docker).not.toContain("description:");
-
-    /*
-     * The agent's chip is AgentVersion's own - gray, or amber with a sign
-     * when the agent is behind the collector this release pins - drawn after
-     * the spec chips rather than among them, so it never gets an (i).
-     */
-    const row: string = between(
-      code,
-      "{(specChips.length > 0 || Boolean(cluster.agentVersion)) && (",
-      "</div> )}",
-    );
-
-    expect(row.indexOf("specChips.map((chip: SpecChip")).toBeGreaterThan(-1);
-    expect(
-      row.indexOf(
-        '<AgentVersion kind={AgentKind.DockerSwarmAgent} version={cluster.agentVersion} variant="chip" />',
-      ),
-    ).toBeGreaterThan(row.indexOf("specChips.map((chip: SpecChip"));
-    expect(code).not.toContain(
-      'label: translator.translateTemplate("Agent {{version}}"',
-    );
-  });
-
-  test("each chip renders its (i) with the static name, never the numbers", () => {
-    const render: string = between(
-      code,
-      "specChips.map((chip: SpecChip",
-      "})}",
-    );
-
-    expect(render).toContain("<InfoTooltip");
-    expect(render).toContain("label={chip.name || chip.label}");
-    expect(render).toContain("text={chip.description}");
-  });
-
-  test("the page references every overview key and no other", () => {
-    expect([...new Set(referencedKeys(code))].sort()).toEqual([
-      "managers",
-      "networks",
-      "nodes",
-      "services",
-      "stacks",
-      "tasks",
-      "volumes",
+  test("the page references its two overview keys and no other", () => {
+    expect(Array.from(new Set(referencedKeys(code))).sort()).toEqual([
+      "clusterHealth",
+      "inventoryCounts",
     ]);
   });
 });
 
-describe("Docker Swarm detail pages", () => {
-  test("ServiceDetail explains Status and Replicas", () => {
-    const code: string = readCode("ServiceDetail.tsx");
-
-    expect(code).toContain(IMPORT_LINE);
-
-    const status: string = between(code, 'title: "Status",', "});");
-    expect(status).toContain(
-      "description: DOCKER_SWARM_METRIC_DESCRIPTIONS.serviceStatus,",
+describe("Docker Swarm part pages (Components/DockerSwarm/Part)", () => {
+  test("the hero's status says what it means for each kind", () => {
+    const hero: string = readPart("DockerSwarmPartHero.tsx");
+    expect(hero).toContain(
+      "Node: DOCKER_SWARM_METRIC_DESCRIPTIONS.nodeStatus,",
     );
-
-    const replicas: string = between(code, 'title: "Replicas",', "});");
-    expect(replicas).toContain("value: formatReplicas(row),");
-    expect(replicas).toContain(
-      "description: DOCKER_SWARM_METRIC_DESCRIPTIONS.replicas,",
+    expect(hero).toContain(
+      "Service: DOCKER_SWARM_METRIC_DESCRIPTIONS.serviceStatus,",
+    );
+    expect(hero).toContain(
+      "Task: DOCKER_SWARM_METRIC_DESCRIPTIONS.taskStatus,",
     );
   });
 
-  test("TaskDetail explains CPU and Memory", () => {
-    const code: string = readCode("TaskDetail.tsx");
-
-    expect(code).toContain(IMPORT_LINE);
-
-    const cpu: string = between(code, 'title: "CPU",', "});");
-    expect(cpu).toContain("formatPercent(Number(row.latestCpuPercent))");
-    expect(cpu).toContain(
-      "description: DOCKER_SWARM_METRIC_DESCRIPTIONS.taskCpu,",
-    );
-
-    const memory: string = between(code, 'title: "Memory",', "});");
-    expect(memory).toContain(
-      "description: DOCKER_SWARM_METRIC_DESCRIPTIONS.taskMemory,",
-    );
-  });
-
-  test("every summary field titled CPU or Memory on the task page has a description", () => {
-    const code: string = readCode("TaskDetail.tsx");
-
-    for (const title of ['title: "CPU",', 'title: "Memory",']) {
-      expect(countOf(code, title)).toBe(1);
+  test("a node's facts explain its role, its standing and its availability", () => {
+    const node: string = readPart("DockerSwarmNodeOverview.tsx");
+    for (const [label, key] of [
+      ["Role", "managers"],
+      ["Manager Status", "managerStatus"],
+      ["Availability", "availability"],
+    ]) {
+      expect(between(node, `label: "${label}",`, "});")).toContain(
+        `description: DOCKER_SWARM_METRIC_DESCRIPTIONS.${key},`,
+      );
     }
-    expect(referencedKeys(code).sort()).toEqual(["taskCpu", "taskMemory"]);
+    expect(Array.from(new Set(referencedKeys(node))).sort()).toEqual([
+      "availability",
+      "managerStatus",
+      "managers",
+    ]);
   });
 
-  test("Node and Service CPU / Memory fields have no (i) only because ingest never fills them", () => {
-    /*
-     * NodeDetail and ServiceDetail still carry CPU / Memory summary fields,
-     * but they render only when the row has latestCpuPercent /
-     * latestMemoryBytes, and the docker_stats mirror writes Task rows only.
-     * The day the ingest starts writing Node or Service rows, these fields
-     * appear on screen and need their own (i) and wording; this test is the
-     * reminder.
-     */
-    const ingest: string = fs
-      .readFileSync(
-        path.join(
-          __dirname,
-          "..",
-          "..",
-          "FeatureSet",
-          "Telemetry",
-          "Services",
-          "OtelMetricsIngestService.ts",
-        ),
-        "utf8",
-      )
-      .replace(WHITESPACE, " ");
-    const flush: string = between(
-      ingest,
-      "private static async flushDockerSwarmTaskMetrics",
-      "private static bufferDockerSnapshotMetric",
-    );
-
-    expect(flush).toContain('kind: "Task",');
-    expect(flush).not.toMatch(NODE_OR_SERVICE_KIND);
-    expect(
-      countOf(ingest, "DockerSwarmResourceService.bulkUpdateLatestMetrics("),
-    ).toBe(1);
-
-    for (const file of ["NodeDetail.tsx", "ServiceDetail.tsx"]) {
-      const code: string = readCode(file);
-
-      for (const title of ['title: "CPU",', 'title: "Memory",']) {
-        expect(countOf(code, title)).toBe(1);
-        expect(between(code, title, "});")).not.toContain("description:");
-      }
-      expect(code).toContain(
-        "if (row.latestCpuPercent !== null && row.latestCpuPercent !== undefined)",
+  test("a service's facts explain its replicas, its update, its failures and Docker's last error", () => {
+    const service: string = readPart("DockerSwarmServiceOverview.tsx");
+    for (const [label, key] of [
+      ["Replicas", "replicas"],
+      ["Last Update", "serviceUpdate"],
+      ["Failed Tasks (Last Hour)", "recentFailedTasks"],
+      ["Last Task Error", "lastTaskError"],
+    ]) {
+      expect(between(service, `label: "${label}",`, "});")).toContain(
+        `description: DOCKER_SWARM_METRIC_DESCRIPTIONS.${key},`,
       );
     }
   });
 
-  test("status words, names and IDs stay plain on the detail pages", () => {
-    const task: string = readCode("TaskDetail.tsx");
-    const stateField: string = between(task, 'title: "State",', "});");
+  test("a task's tiles explain CPU and Memory, and its desired state is explained", () => {
+    const task: string = readPart("DockerSwarmTaskOverview.tsx");
+    expect(task).toContain(
+      "description={DOCKER_SWARM_METRIC_DESCRIPTIONS.taskCpu}",
+    );
+    expect(task).toContain(
+      "description={DOCKER_SWARM_METRIC_DESCRIPTIONS.taskMemory}",
+    );
+    expect(between(task, 'label: "Desired State",', "});")).toContain(
+      "description: DOCKER_SWARM_METRIC_DESCRIPTIONS.taskDesiredState,",
+    );
+  });
 
-    expect(stateField).not.toContain("description:");
+  test("a part's tasks table explains Status, CPU and Memory as the Tasks list does", () => {
+    const table: string = readPart("DockerSwarmTasksTable.tsx");
+    expect(table).toContain(
+      "builtInColumnDescriptions={{ status: DOCKER_SWARM_METRIC_DESCRIPTIONS.taskStatus, cpu: DOCKER_SWARM_METRIC_DESCRIPTIONS.taskCpuColumn, memory: DOCKER_SWARM_METRIC_DESCRIPTIONS.taskMemoryColumn, }}",
+    );
+  });
 
-    for (const title of ["Task", "Cluster", "Image", "External ID"]) {
-      const field: string = between(task, `title: "${title}",`, "}");
-
-      expect(field).not.toContain("description:");
+  test("names, ids and images stay plain on the part pages", () => {
+    for (const file of [
+      "DockerSwarmNodeOverview.tsx",
+      "DockerSwarmServiceOverview.tsx",
+      "DockerSwarmTaskOverview.tsx",
+    ]) {
+      const code: string = readPart(file);
+      for (const label of ["Name", "Hostname", "Image", "Node ID", "Task ID"]) {
+        if (!code.includes(`label: "${label}",`)) {
+          continue;
+        }
+        expect(between(code, `label: "${label}",`, "}")).not.toContain(
+          "description:",
+        );
+      }
     }
   });
 });
 
 describe("Docker Swarm list pages", () => {
-  test("Tasks: CPU and Memory headers explain the latest reading and its 15-minute cutoff", () => {
+  test("Tasks: Status, CPU and Memory headers explain the rules and the latest reading", () => {
     const code: string = readCode("Tasks.tsx");
-    const props: string = between(code, "builtInColumnDescriptions={{", "}}");
-
     expect(code).toContain(IMPORT_LINE);
-    expect(props).toContain(
-      "cpu: DOCKER_SWARM_METRIC_DESCRIPTIONS.taskCpuColumn,",
+    expect(code).toContain(
+      "builtInColumnDescriptions={{ status: DOCKER_SWARM_METRIC_DESCRIPTIONS.taskStatus, cpu: DOCKER_SWARM_METRIC_DESCRIPTIONS.taskCpuColumn, memory: DOCKER_SWARM_METRIC_DESCRIPTIONS.taskMemoryColumn, }}",
     );
-    expect(props).toContain(
-      "memory: DOCKER_SWARM_METRIC_DESCRIPTIONS.taskMemoryColumn,",
+    expect(code).toContain(
+      "metricThresholds={DOCKER_SWARM_TASK_METRIC_THRESHOLDS}",
     );
-    expect(props).not.toContain("status:");
   });
 
-  test("Nodes: CPU and Memory headers say why they read N/A", () => {
+  test("Nodes: Status, Role, Availability and Manager Status are explained; no usage columns", () => {
     const code: string = readCode("Nodes.tsx");
-    const props: string = between(code, "builtInColumnDescriptions={{", "}}");
-
-    expect(code).toContain(IMPORT_LINE);
-    // Node status is a state word (ready / down), not a number.
-    expect(props).not.toContain("status:");
-    expect(props).toContain(
-      "cpu: DOCKER_SWARM_METRIC_DESCRIPTIONS.nodeUsageColumns,",
+    expect(code).toContain(
+      "builtInColumnDescriptions={{ status: DOCKER_SWARM_METRIC_DESCRIPTIONS.nodeStatus, }}",
     );
-    expect(props).toContain(
-      "memory: DOCKER_SWARM_METRIC_DESCRIPTIONS.nodeUsageColumns,",
-    );
+    for (const [title, key] of [
+      ["Role", "managers"],
+      ["Availability", "availability"],
+      ["Manager Status", "managerStatus"],
+    ]) {
+      expect(between(code, `title: "${title}",`, "getValue")).toContain(
+        `description: DOCKER_SWARM_METRIC_DESCRIPTIONS.${key},`,
+      );
+    }
+    expect(code).toContain("showResourceMetrics={false}");
   });
 
-  test("Services: Status, CPU, Memory and Replicas headers are explained", () => {
+  test("Services: Status and Replicas are explained; no usage columns", () => {
     const code: string = readCode("Services.tsx");
-    const props: string = between(code, "builtInColumnDescriptions={{", "}}");
-
-    expect(code).toContain(IMPORT_LINE);
-    expect(props).toContain(
-      "status: DOCKER_SWARM_METRIC_DESCRIPTIONS.serviceStatusColumn,",
+    expect(code).toContain(
+      "builtInColumnDescriptions={{ status: DOCKER_SWARM_METRIC_DESCRIPTIONS.serviceStatusColumn, }}",
     );
-    expect(props).toContain(
-      "cpu: DOCKER_SWARM_METRIC_DESCRIPTIONS.serviceUsageColumns,",
-    );
-    expect(props).toContain(
-      "memory: DOCKER_SWARM_METRIC_DESCRIPTIONS.serviceUsageColumns,",
-    );
-
-    const replicas: string = between(code, 'title: "Replicas",', "},");
-    expect(replicas).toContain(
+    expect(between(code, 'title: "Replicas",', "getValue")).toContain(
       "description: DOCKER_SWARM_METRIC_DESCRIPTIONS.replicas,",
     );
+    expect(code).toContain("showResourceMetrics={false}");
   });
 
-  test("metadata columns (Mode, Image, Role, Engine Version, Service) carry no tooltip", () => {
-    const services: string = readCode("Services.tsx");
-    const nodes: string = readCode("Nodes.tsx");
-    const tasks: string = readCode("Tasks.tsx");
+  test("each list's status is the swarm's rules, as the Overview's", () => {
+    for (const file of ["Nodes.tsx", "Services.tsx", "Tasks.tsx"]) {
+      expect(readCode(file)).toContain(
+        "Object.assign(resource, withDockerSwarmStatus(resource, row, now));",
+      );
+    }
+  });
 
-    for (const [code, title] of [
-      [services, "Mode"],
-      [services, "Image"],
-      [nodes, "Role"],
-      [nodes, "Engine Version"],
-      [tasks, "Service"],
-      [tasks, "Image"],
-    ] as Array<[string, string]>) {
-      const column: string = between(code, `title: "${title}",`, "},");
-
-      expect(column).not.toContain("description:");
+  test("metadata columns (Mode, Image, Engine Version, Service) carry no tooltip", () => {
+    for (const [file, title] of [
+      ["Services.tsx", "Mode"],
+      ["Services.tsx", "Image"],
+      ["Nodes.tsx", "Engine Version"],
+      ["Tasks.tsx", "Service"],
+      ["Tasks.tsx", "Image"],
+    ]) {
+      expect(
+        between(readCode(file!), `title: "${title}",`, "getValue"),
+      ).not.toContain("description:");
     }
   });
 });
@@ -568,17 +440,20 @@ describe("the Docker Swarm tooltip record", () => {
   test("every key is shown by one of the Swarm pages", () => {
     const shown: Set<string> = new Set<string>();
 
-    for (const file of [
-      "Index.tsx",
-      "ServiceDetail.tsx",
-      "TaskDetail.tsx",
-      "Services.tsx",
-      "Tasks.tsx",
-      "Nodes.tsx",
-      "Stacks.tsx",
-      path.join("..", "Clusters.tsx"),
+    for (const code of [
+      readCode("Index.tsx"),
+      readCode("Services.tsx"),
+      readCode("Tasks.tsx"),
+      readCode("Nodes.tsx"),
+      readCode("Stacks.tsx"),
+      readCode(path.join("..", "Clusters.tsx")),
+      readPart("DockerSwarmPartHero.tsx"),
+      readPart("DockerSwarmNodeOverview.tsx"),
+      readPart("DockerSwarmServiceOverview.tsx"),
+      readPart("DockerSwarmTaskOverview.tsx"),
+      readPart("DockerSwarmTasksTable.tsx"),
     ]) {
-      for (const key of referencedKeys(readCode(file))) {
+      for (const key of referencedKeys(code)) {
         shown.add(key);
       }
     }

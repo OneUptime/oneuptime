@@ -15,10 +15,15 @@ import path from "path";
  * phone's width, beside the side menu at a 768px window and at a laptop's;
  * a task's page with its long Container ID; the Overview's agent chip with
  * the files before the fix (0.161.0), the files this release ships
- * (0.161.2) and no version at all, the sign's dialog with both ways to
+ * (0.161.3) and no version at all, the sign's dialog with both ways to
  * upgrade; the Overview's own name on a phone; dark and German. The fixture
  * records every read, so the tests check that nothing it does not model was
  * asked for.
+ *
+ * And what the swarm's rules say (DockerSwarmHealth), on a swarm in trouble
+ * (?swarm=trouble): the Overview's health and Needs attention, the Nodes,
+ * Services and Tasks lists, and a node's, a service's and a task's own page
+ * - at a phone's width and a laptop's, dark, German and Persian.
  */
 
 const PROJECT_ID: string = "10000000-0000-4000-8000-000000000001";
@@ -44,7 +49,7 @@ const METRIC_NAMES: Array<string> = [
 ];
 
 // The agent files this release ships, and the ones before the CPU fix.
-const AGENT_FILES_VERSION: string = "0.161.2";
+const AGENT_FILES_VERSION: string = "0.161.3";
 const OLD_AGENT_VERSION: string = "0.161.0";
 const OUTDATED_NAME: string = `Agent ${OLD_AGENT_VERSION} is outdated. A newer agent is available: ${AGENT_FILES_VERSION}. Show how to upgrade.`;
 
@@ -63,6 +68,17 @@ const GERMAN: Record<string, string> = JSON.parse(
     path.resolve(
       __dirname,
       "../../App/FeatureSet/Dashboard/src/Locales/de.json",
+    ),
+    "utf8",
+  ),
+) as Record<string, string>;
+
+// And the Persian ones, as the fixture draws them with ?lang=fa.
+const PERSIAN: Record<string, string> = JSON.parse(
+  fs.readFileSync(
+    path.resolve(
+      __dirname,
+      "../../App/FeatureSet/Dashboard/src/Locales/fa.json",
     ),
     "utf8",
   ),
@@ -373,27 +389,36 @@ test.describe("the Swarm's Metrics tab, every metric's name in full", () => {
  * A task's page
  * ---------------------------------------------------------------------------
  */
-async function openTaskPage(page: Page, query: string = ""): Promise<void> {
-  await page.goto(withQuery(TASK_PAGE, query));
-  await expect(
-    page.getByTestId("info-card-value").filter({ hasText: CONTAINER_ID }),
-  ).toBeVisible();
+// A row of the task's Details card, and the value under its name.
+function taskDetail(page: Page, key: string): Locator {
+  return page.getByTestId(`docker-swarm-task-details-${key}`);
 }
 
-// Every summary card, and its value, inside the window and its card.
+function taskDetailValue(page: Page, key: string): Locator {
+  return taskDetail(page, key).locator("dd > div").first();
+}
+
+async function openTaskPage(page: Page, query: string = ""): Promise<void> {
+  await page.goto(withQuery(TASK_PAGE, query));
+  await expect(taskDetailValue(page, "container-id")).toHaveText(CONTAINER_ID);
+}
+
+// Every Details row, and its value, inside the window and the card.
 async function expectCardsInside(page: Page, width: number): Promise<void> {
-  const values: Locator = page.getByTestId("info-card-value");
+  const card: Locator = page.getByTestId("docker-swarm-task-details");
+  const cardBox: Box = await boxOf(card);
+  expect(cardBox.x).toBeGreaterThanOrEqual(0);
+  expect(cardBox.x + cardBox.width).toBeLessThanOrEqual(width + 0.5);
+
+  const values: Locator = card.locator("dd > div");
   const count: number = await values.count();
-  expect(count).toBeGreaterThan(10);
+  expect(count).toBeGreaterThan(6);
 
   for (let index: number = 0; index < count; index++) {
     const value: Locator = values.nth(index);
-    const card: Locator = value.locator("xpath=..");
     const valueBox: Box = await boxOf(value);
-    const cardBox: Box = await boxOf(card);
 
-    expect(cardBox.x).toBeGreaterThanOrEqual(0);
-    expect(cardBox.x + cardBox.width).toBeLessThanOrEqual(width + 0.5);
+    expect(valueBox.x).toBeGreaterThanOrEqual(cardBox.x - 0.5);
     expect(valueBox.x + valueBox.width).toBeLessThanOrEqual(
       cardBox.x + cardBox.width + 0.5,
     );
@@ -410,9 +435,7 @@ test.describe("a task's 64-character Container ID", () => {
     await page.setViewportSize(PHONE);
     await openTaskPage(page);
 
-    const value: Locator = page
-      .getByTestId("info-card-value")
-      .filter({ hasText: CONTAINER_ID });
+    const value: Locator = taskDetailValue(page, "container-id");
     await expect(value).toHaveText(CONTAINER_ID);
 
     // Two lines at least: it breaks inside the card rather than running out.
@@ -452,9 +475,8 @@ test.describe("a task's 64-character Container ID", () => {
     await page.setViewportSize(PHONE);
     await openTaskPage(page);
 
-    const service: Locator = page
-      .getByTestId("info-card-value")
-      .filter({ hasText: /^shop_checkout$/ });
+    const service: Locator = taskDetailValue(page, "service");
+    await expect(service).toHaveText("shop_checkout");
     const lineHeight: number = await service.evaluate(
       (element: Element): number => {
         return parseFloat(getComputedStyle(element).lineHeight);
@@ -471,10 +493,7 @@ test.describe("a task's 64-character Container ID", () => {
     await page.setViewportSize(PHONE);
     await openTaskPage(page, "theme=dark&lang=de");
 
-    const value: Locator = page
-      .getByTestId("info-card-value")
-      .filter({ hasText: CONTAINER_ID });
-    await expect(value.locator("xpath=..")).toContainText(
+    await expect(taskDetail(page, "container-id").locator("dt")).toContainText(
       GERMAN["Container ID"]!,
     );
 
@@ -489,16 +508,21 @@ test.describe("a task's 64-character Container ID", () => {
  * The Overview's agent version
  * ---------------------------------------------------------------------------
  */
+/*
+ * The hero's chips: the agent's version is there, and again in the Cluster
+ * Details card under Agent Version, as on every resource's Overview.
+ */
+function heroChips(page: Page): Locator {
+  return page.getByTestId("docker-swarm-hero-chips");
+}
+
 async function openOverview(page: Page, query: string = ""): Promise<void> {
   await page.goto(withQuery(CLUSTER_PATH, query));
   await expect(page.getByTestId("resource-hero-top-row")).toBeVisible();
 
-  // The Overview has drawn its counts from the inventory.
-  const healthy: string =
-    "Everything looks healthy — all reported nodes, services and tasks are in a steady state.";
-  await expect(
-    page.getByText(query.includes("lang=de") ? GERMAN[healthy]! : healthy),
-  ).toBeVisible();
+  // The Overview has drawn its counts and its nodes from the inventory.
+  await expect(page.getByTestId("docker-swarm-hero-nodes")).toBeVisible();
+  await expect(page.getByTestId("docker-swarm-nodes-card")).toBeVisible();
 }
 
 test.describe("the Swarm agent's version on the Overview", () => {
@@ -509,12 +533,16 @@ test.describe("the Swarm agent's version on the Overview", () => {
   }) => {
     await openOverview(page);
 
-    const sign: Locator = page.getByRole("button", { name: OUTDATED_NAME });
+    const sign: Locator = heroChips(page).getByRole("button", {
+      name: OUTDATED_NAME,
+    });
     await expect(sign).toBeVisible();
     await expect(sign).toHaveText(`Agent ${OLD_AGENT_VERSION}`);
     await expect(sign).toHaveAttribute("data-agent-kind", "docker-swarm-agent");
     await expect(sign).toHaveAttribute("aria-haspopup", "dialog");
-    await expect(page.getByTestId("agent-version-chip")).toHaveCount(0);
+    await expect(heroChips(page).getByTestId("agent-version-chip")).toHaveCount(
+      0,
+    );
 
     await sign.hover();
     await expect(
@@ -531,7 +559,9 @@ test.describe("the Swarm agent's version on the Overview", () => {
   }) => {
     await openOverview(page);
 
-    const sign: Locator = page.getByRole("button", { name: OUTDATED_NAME });
+    const sign: Locator = heroChips(page).getByRole("button", {
+      name: OUTDATED_NAME,
+    });
     await sign.click();
 
     const dialog: Locator = page.getByRole("dialog");
@@ -569,17 +599,19 @@ test.describe("the Swarm agent's version on the Overview", () => {
     await expect(sign).toBeFocused();
   });
 
-  test("the files this release ships (0.161.2): the plain chip, no sign", async ({
+  test("the files this release ships (0.161.3): the plain chip, no sign", async ({
     page,
   }: {
     page: Page;
   }) => {
     await openOverview(page, "agent=current");
 
-    await expect(page.getByTestId("agent-version-chip")).toHaveText(
+    await expect(heroChips(page).getByTestId("agent-version-chip")).toHaveText(
       `Agent ${AGENT_FILES_VERSION}`,
     );
-    await expect(page.getByTestId("agent-version-outdated")).toHaveCount(0);
+    await expect(
+      heroChips(page).getByTestId("agent-version-outdated"),
+    ).toHaveCount(0);
   });
 
   test("an agent that reports no version: no chip and no sign", async ({
@@ -590,8 +622,12 @@ test.describe("the Swarm agent's version on the Overview", () => {
     await openOverview(page, "agent=none");
 
     await expect(page.getByText("Docker 28.5.1")).toBeVisible();
-    await expect(page.getByTestId("agent-version-chip")).toHaveCount(0);
-    await expect(page.getByTestId("agent-version-outdated")).toHaveCount(0);
+    await expect(heroChips(page).getByTestId("agent-version-chip")).toHaveCount(
+      0,
+    );
+    await expect(
+      heroChips(page).getByTestId("agent-version-outdated"),
+    ).toHaveCount(0);
   });
 
   test("on a phone: the dialog fits the screen", async ({
@@ -602,7 +638,7 @@ test.describe("the Swarm agent's version on the Overview", () => {
     await page.setViewportSize(PHONE);
     await openOverview(page);
 
-    await page.getByRole("button", { name: OUTDATED_NAME }).click();
+    await heroChips(page).getByRole("button", { name: OUTDATED_NAME }).click();
     const dialog: Locator = page.getByRole("dialog");
     await expect(dialog).toBeVisible();
 
@@ -627,7 +663,7 @@ test.describe("the Swarm agent's version on the Overview", () => {
     await page.setViewportSize(PHONE);
     await openOverview(page);
 
-    await page.getByRole("button", { name: OUTDATED_NAME }).click();
+    await heroChips(page).getByRole("button", { name: OUTDATED_NAME }).click();
     const dialog: Locator = page.getByRole("dialog");
     const code: Locator = dialog.locator("pre code");
     await expect(code).toHaveCount(1);
@@ -704,7 +740,9 @@ test.describe("the Swarm agent's version on the Overview", () => {
       "{{latest}}",
       AGENT_FILES_VERSION,
     );
-    const sign: Locator = page.getByRole("button", { name: germanName });
+    const sign: Locator = heroChips(page).getByRole("button", {
+      name: germanName,
+    });
     await expect(sign).toBeVisible();
     await sign.click();
 
@@ -885,7 +923,9 @@ test.describe("the Overview's name on a phone", () => {
     await page.setViewportSize(PHONE);
     await openOverview(page, "theme=dark");
 
-    const sign: Locator = page.getByRole("button", { name: OUTDATED_NAME });
+    const sign: Locator = heroChips(page).getByRole("button", {
+      name: OUTDATED_NAME,
+    });
     const signBox: Box = await boxOf(sign);
     expect(signBox.x + signBox.width).toBeLessThanOrEqual(PHONE.width);
     await expectNoSidewaysScroll(page);
@@ -1166,9 +1206,8 @@ test.describe("a task's image breaks after its own dots and slashes", () => {
     await page.setViewportSize(PHONE);
     await openTaskPage(page);
 
-    const image: Locator = page.getByTestId("info-card-value").filter({
-      hasText: TASK_IMAGE,
-    });
+    const image: Locator = taskDetailValue(page, "image");
+    await expect(image).toContainText(TASK_IMAGE);
     await expect(image).toHaveText(
       "registry.acme-swarm.example/shop/checkout:2.7.0",
     );
@@ -1185,13 +1224,11 @@ test.describe("a task's image breaks after its own dots and slashes", () => {
     // The version whole, on the last line.
     expect(lines[lines.length - 1]).toContain("checkout:2.7.0");
 
-    // The task's id after its kind.
-    const externalId: Locator = page
-      .getByTestId("info-card-value")
-      .filter({ hasText: "task/x7k2m9p4q1r8s5t3v6w0y2z4a" });
-    for (const line of (await linesOf(externalId)).slice(0, -1)) {
-      expect(line.endsWith("/")).toBe(true);
-    }
+    // The task's id, whole: Docker's 25 letters fit a phone's line.
+    await expect(taskDetailValue(page, "id")).toHaveText(
+      "x7k2m9p4q1r8s5t3v6w0y2z4a",
+    );
+    expect(await linesOf(taskDetailValue(page, "id"))).toHaveLength(1);
 
     await screenshot(page, "docker-swarm-task-image-phone");
   });
@@ -1397,5 +1434,406 @@ test.describe("the Swarm's side menu on a task's page", () => {
       `${GERMAN["Workloads"]!} / ${GERMAN["Tasks"]!}`,
     );
     await screenshot(page, "docker-swarm-task-phone-menu-button-de");
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * What a swarm in trouble needs, by the swarm's rules (?swarm=trouble)
+ * ---------------------------------------------------------------------------
+ *
+ * A worker the managers lost (swarm-worker-02, Down, with Swarm's message),
+ * shop_web short of the replica that ran there (1 of 2), shop_search
+ * crash-looping while it reads full (four failed tasks in the hour), and
+ * shop_checkout.2 at 92% of its memory limit. The Overview, the lists and
+ * each part's page say the same, in Docker's words.
+ */
+const TROUBLE: string = "swarm=trouble";
+
+const NODE_PAGE: string = `${CLUSTER_PATH}/nodes/${encodeURIComponent("node/n3")}`;
+const SERVICE_PAGE: string = `${CLUSTER_PATH}/services/${encodeURIComponent(
+  "service/s2",
+)}`;
+const HOT_TASK_PAGE: string = `${CLUSTER_PATH}/tasks/${encodeURIComponent(
+  "task/b3c4d5e6f7a8b9c0d1e2f3a4b",
+)}`;
+
+async function attentionKeys(
+  page: Page,
+  testId: string,
+): Promise<Array<string | null>> {
+  return await page
+    .getByTestId(`${testId}-item`)
+    .evaluateAll((items: Array<Element>): Array<string | null> => {
+      return items.map((item: Element): string | null => {
+        return item.getAttribute("data-key");
+      });
+    });
+}
+
+// The row of a list whose name is `name`.
+function listRow(page: Page, name: string): Locator {
+  return page.locator("tr").filter({ hasText: name }).first();
+}
+
+test.describe("the Overview of a swarm in trouble", () => {
+  test("at a laptop's width: Unhealthy, and Needs attention says what and why, critical first, each one step from its page", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openOverview(page, TROUBLE);
+
+    const health: Locator = page.getByTestId("docker-swarm-hero-health");
+    await expect(health).toHaveAttribute("data-health", "Unhealthy");
+    await expect(health).toHaveText("Unhealthy");
+
+    const card: Locator = page.getByTestId("docker-swarm-needs-attention");
+    await expect(card).toBeVisible();
+    expect(await attentionKeys(page, "docker-swarm-needs-attention")).toEqual([
+      "Node:node/n3",
+      "Service:service/s3",
+      "Service:service/s2",
+    ]);
+    await expect(
+      page.getByTestId("docker-swarm-needs-attention-summary"),
+    ).toHaveText(/1 critical\s*2 to look at/);
+
+    const items: Locator = page.getByTestId(
+      "docker-swarm-needs-attention-item",
+    );
+    await expect(items.nth(0)).toHaveAttribute("data-severity", "critical");
+    await expect(items.nth(0)).toContainText("swarm-worker-02");
+    await expect(items.nth(0)).toContainText("Down");
+    await expect(items.nth(0)).toContainText(
+      'heartbeat failure for node in "unknown" state',
+    );
+    await expect(items.nth(1)).toContainText("shop_search");
+    await expect(items.nth(1)).toContainText("4 failed tasks in the last hour");
+    await expect(items.nth(1)).toContainText("task: non-zero exit (137)");
+    await expect(items.nth(2)).toContainText("shop_web");
+    await expect(items.nth(2)).toContainText("1 of 2 replicas run");
+
+    // Each row opens its part's page.
+    await expect(items.nth(0).locator("a").first()).toHaveAttribute(
+      "href",
+      NODE_PAGE,
+    );
+    await expect(items.nth(2).locator("a").first()).toHaveAttribute(
+      "href",
+      SERVICE_PAGE,
+    );
+
+    // Each node at a glance: the one in trouble first, in red.
+    const nodes: Locator = page.getByTestId("docker-swarm-nodes-card-name");
+    await expect(nodes.first()).toHaveText("swarm-worker-02");
+    await expect(
+      page.getByTestId("docker-swarm-nodes-card-status").first(),
+    ).toHaveText("Down");
+
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "docker-swarm-overview-trouble-laptop");
+  });
+
+  test("on a phone: every reason inside the page, the card under the hero", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(PHONE);
+    await openOverview(page, TROUBLE);
+
+    const card: Locator = page.getByTestId("docker-swarm-needs-attention");
+    const cardBox: Box = await boxOf(card);
+    expect(cardBox.x + cardBox.width).toBeLessThanOrEqual(PHONE.width + 0.5);
+    for (const reason of await page
+      .getByTestId("docker-swarm-needs-attention-reason")
+      .all()) {
+      const box: Box = await boxOf(reason);
+      expect(box.x + box.width).toBeLessThanOrEqual(
+        cardBox.x + cardBox.width + 0.5,
+      );
+    }
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "docker-swarm-overview-trouble-phone");
+  });
+
+  test("dark and German, on a phone: the card and its reasons read in German", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(PHONE);
+    await openOverview(page, `${TROUBLE}&theme=dark&lang=de`);
+
+    const card: Locator = page.getByTestId("docker-swarm-needs-attention");
+    await expect(card).toContainText(GERMAN["Needs attention"]!);
+    await expect(card).toContainText(GERMAN["Down"]!);
+    await expect(card).toContainText(
+      GERMAN["{{running}} of {{desired}} replicas run"]!.replace(
+        "{{running}}",
+        "1",
+      ).replace("{{desired}}", "2"),
+    );
+    await expect(card).not.toContainText("replicas run");
+    await expect(page.getByTestId("docker-swarm-hero-health")).toHaveText(
+      GERMAN["Unhealthy"]!,
+    );
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "docker-swarm-overview-trouble-phone-dark-de");
+  });
+
+  test("in Persian, right to left: the card reads in Persian and stays inside the page, at a phone's width and a laptop's", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const size of [PHONE, LAPTOP]) {
+      await page.setViewportSize(size);
+      await openOverview(page, `${TROUBLE}&lang=fa`);
+
+      expect(
+        await page.evaluate((): string => {
+          return document.documentElement.dir;
+        }),
+      ).toBe("rtl");
+      const card: Locator = page.getByTestId("docker-swarm-needs-attention");
+      await expect(card).toContainText(PERSIAN["Needs attention"]!);
+      await expect(card).toContainText(PERSIAN["Down"]!);
+      // Docker's own words stay as Docker wrote them.
+      await expect(card).toContainText("task: non-zero exit (137)");
+      await expectNoSidewaysScroll(page);
+    }
+    await screenshot(page, "docker-swarm-overview-trouble-laptop-fa");
+  });
+});
+
+test.describe("the lists say what the Overview says", () => {
+  test("Nodes, Services and Tasks: each row's state by the swarm's rules, with why", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(withQuery(`${CLUSTER_PATH}/nodes`, TROUBLE));
+    const down: Locator = listRow(page, "swarm-worker-02");
+    await expect(down.locator("[data-tone]").first()).toHaveAttribute(
+      "data-tone",
+      "danger",
+    );
+    await expect(down).toContainText("Down");
+    await expect(listRow(page, "swarm-manager-01")).toContainText("Leader");
+
+    await page.goto(withQuery(`${CLUSTER_PATH}/services`, TROUBLE));
+    const web: Locator = listRow(page, "shop_web");
+    await expect(web).toContainText("1 of 2 running");
+    await expect(web.locator("[data-tone]").first()).toHaveAttribute(
+      "data-tone",
+      "warning",
+    );
+    const search: Locator = listRow(page, "shop_search");
+    await expect(search).toContainText("1 of 1 running");
+    await expect(search.getByTestId("resource-status-reason")).toHaveText(
+      "4 failed tasks in the last hour",
+    );
+
+    await page.goto(withQuery(`${CLUSTER_PATH}/tasks`, TROUBLE));
+    const hot: Locator = listRow(page, "shop_checkout.2");
+    await expect(hot.getByTestId("resource-status-reason")).toHaveText(
+      "Memory at 92% of its limit",
+    );
+    await expect(hot.getByTestId("resource-memory-bar")).toHaveClass(
+      /bg-amber|bg-yellow|bg-orange/,
+    );
+    await expect(listRow(page, "shop_web.2")).toContainText("Failed");
+    await screenshot(page, "docker-swarm-tasks-trouble-laptop");
+  });
+
+  test("on a phone, and in Persian: the lists stay inside the page", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(PHONE);
+    for (const [list, name] of [
+      ["nodes", "swarm-worker-02"],
+      ["services", "shop_search"],
+      ["tasks", "shop_checkout.2"],
+    ]) {
+      await page.goto(withQuery(`${CLUSTER_PATH}/${list}`, TROUBLE));
+      await expect(
+        page.getByText(name!, { exact: true }).first(),
+      ).toBeVisible();
+      await expectNoSidewaysScroll(page);
+    }
+    await page.goto(
+      withQuery(`${CLUSTER_PATH}/services`, `${TROUBLE}&lang=fa`),
+    );
+    // On a phone each row is a card: shop_web's reads 1 of 2, in Persian digits.
+    await expect(
+      page
+        .getByText(
+          PERSIAN["{{running}} of {{desired}} running"]!.replace(
+            "{{running}}",
+            "۱",
+          ).replace("{{desired}}", "۲"),
+          { exact: true },
+        )
+        .first(),
+    ).toBeVisible();
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "docker-swarm-services-trouble-phone-fa");
+  });
+});
+
+test.describe("a service's page", () => {
+  test("short of a replica: its state in amber, the task that failed with Docker's error, what is open on it and its alerts", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(withQuery(SERVICE_PAGE, TROUBLE));
+    await expect(
+      page.getByTestId("docker-swarm-service-overview"),
+    ).toBeVisible();
+
+    const status: Locator = page.getByTestId(
+      "docker-swarm-service-hero-status",
+    );
+    await expect(status).toHaveText(/^1 of 2 running/);
+    await expect(status).toHaveAttribute("data-tone", "warning");
+    await expect(
+      page.getByTestId("docker-swarm-service-hero-location"),
+    ).toHaveText(
+      "Service of stack shop in swarm prod".replace("prod", CLUSTER_NAME),
+    );
+
+    expect(await attentionKeys(page, "docker-swarm-service-attention")).toEqual(
+      ["Service:service/s2", "Task:task/e6f7a8b9c0d1e2f3a4b5c6d7e"],
+    );
+    await expect(
+      page.getByTestId("docker-swarm-service-attention"),
+    ).toContainText("This service");
+
+    // Its tasks, each with the node it runs on.
+    const overview: Locator = page.getByTestId("docker-swarm-service-overview");
+    await expect(listRow(page, "shop_web.2")).toContainText("swarm-worker-02");
+    await expect(listRow(page, "shop_web.1")).toContainText("swarm-worker-01");
+
+    // The replicas alert that is open on it.
+    await expect(page.getByTestId("docker-swarm-service-open")).toContainText(
+      "[Docker Swarm] Service Replicas Mismatch - swarm-prod",
+    );
+
+    // Its alerts, none on yet: one step turns them on, all five ticked.
+    const turnOn: Locator = page.getByTestId(
+      "docker-swarm-service-alerts-turn-on",
+    );
+    await expect(turnOn).toHaveText(/Turn on 5 alerts/);
+    const href: string = (await turnOn.getAttribute("href")) || "";
+    const url: URL = new URL(href, "http://127.0.0.1");
+    expect(url.pathname).toBe(`${CLUSTER_PATH}/recommendations`);
+    expect((url.searchParams.get("select") || "").split(",")).toEqual([
+      "DockerSwarm:docker-swarm-service-replicas-mismatch",
+      "DockerSwarm:docker-swarm-task-down",
+      "DockerSwarm:docker-swarm-high-memory",
+      "DockerSwarm:docker-swarm-high-cpu",
+      "DockerSwarm:docker-swarm-high-pids",
+    ]);
+    await expect(overview).toBeVisible();
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "docker-swarm-service-trouble-laptop");
+  });
+
+  test("dark, on a phone, and in German: inside the page", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(PHONE);
+    await page.goto(withQuery(SERVICE_PAGE, `${TROUBLE}&theme=dark&lang=de`));
+    await expect(
+      page.getByTestId("docker-swarm-service-overview"),
+    ).toBeVisible();
+    await expect(
+      page.getByTestId("docker-swarm-service-attention"),
+    ).toContainText(GERMAN["This service"]!);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "docker-swarm-service-trouble-phone-dark-de");
+  });
+});
+
+test.describe("a node's page", () => {
+  test("a worker the managers lost: Down in red, Swarm's message, its tasks, and the node alert to turn on", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(withQuery(NODE_PAGE, TROUBLE));
+    await expect(page.getByTestId("docker-swarm-node-overview")).toBeVisible();
+
+    const status: Locator = page.getByTestId("docker-swarm-node-hero-status");
+    await expect(status).toHaveText(/^Down/);
+    await expect(status).toHaveAttribute("data-tone", "danger");
+    await expect(
+      page.getByTestId("docker-swarm-node-hero-chips"),
+    ).toContainText("4 CPUs");
+    expect(await attentionKeys(page, "docker-swarm-node-attention")).toEqual([
+      "Node:node/n3",
+      "Task:task/e6f7a8b9c0d1e2f3a4b5c6d7e",
+    ]);
+    await expect(page.getByTestId("docker-swarm-node-attention")).toContainText(
+      'heartbeat failure for node in "unknown" state',
+    );
+    await expect(listRow(page, "shop_web.2")).toContainText("Failed");
+    await expect(
+      page.getByTestId("docker-swarm-node-alerts-turn-on"),
+    ).toHaveText(/Turn on 1 alert/);
+    await expect(page.getByTestId("docker-swarm-node-alerts")).toContainText(
+      "Node Not Ready",
+    );
+    await screenshot(page, "docker-swarm-node-trouble-laptop");
+  });
+
+  test("in Persian, on a phone: right to left and inside the page", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(PHONE);
+    await page.goto(withQuery(NODE_PAGE, `${TROUBLE}&lang=fa`));
+    await expect(page.getByTestId("docker-swarm-node-overview")).toBeVisible();
+    await expect(page.getByTestId("docker-swarm-node-hero-status")).toHaveText(
+      new RegExp(`^${PERSIAN["Down"]!}`),
+    );
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "docker-swarm-node-trouble-phone-fa");
+  });
+});
+
+test.describe("a task near its memory limit", () => {
+  test("amber, with how close, on its page and its tile", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(withQuery(HOT_TASK_PAGE, TROUBLE));
+    await expect(page.getByTestId("docker-swarm-task-overview")).toBeVisible();
+
+    const status: Locator = page.getByTestId("docker-swarm-task-hero-status");
+    await expect(status).toHaveText(/^Running/);
+    await expect(status).toHaveAttribute("data-tone", "warning");
+    await expect(page.getByTestId("docker-swarm-task-attention")).toContainText(
+      "Memory at 92% of its limit",
+    );
+    await expect(page.getByTestId("docker-swarm-task-tiles")).toContainText(
+      "92.0%",
+    );
+    await expect(
+      page.getByTestId("docker-swarm-task-hero-location"),
+    ).toHaveText("Task of service shop_checkout on node swarm-manager-01");
+
+    await page.setViewportSize(PHONE);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "docker-swarm-task-trouble-phone");
   });
 });

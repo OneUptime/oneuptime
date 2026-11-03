@@ -779,12 +779,28 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
             resource.memoryUtilization !== undefined
           ) {
             const pct: number = Math.min(resource.memoryUtilization, 100);
+            /*
+             * A product's own lines when it has them, as the limit's bar
+             * below: a Swarm task's memory is a percent of its limit, amber
+             * past its alert's 85%.
+             */
+            const utilizationThresholds: ResourceMetricThresholds | undefined =
+              props.metricThresholds?.memory;
             return (
               <div className="min-w-[140px]">
                 <div className="flex items-center gap-2">
                   <div className="flex-1 bg-gray-200 rounded-full h-2">
                     <div
-                      className={`h-2 rounded-full ${getMemoryBarColor(pct)}`}
+                      data-testid="resource-memory-bar"
+                      className={`h-2 rounded-full ${
+                        utilizationThresholds
+                          ? getThresholdBarColor(
+                              pct,
+                              utilizationThresholds,
+                              "bg-blue-500",
+                            )
+                          : getMemoryBarColor(pct)
+                      }`}
                       style={{ width: `${pct}%` }}
                     />
                   </div>
