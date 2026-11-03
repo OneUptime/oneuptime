@@ -18,6 +18,10 @@ import URL from "Common/Types/API/URL";
  * blocks on before E2E runs, so every route here is expected to be serving by
  * the time this suite executes; the value is catching a regression that makes
  * one of them start returning a 4xx/5xx.
+ *
+ * The Status Page app is asked for at /status-page/, with the slash: the bare
+ * /status-page is the marketing site's address for /product/status-page when
+ * billing is enabled, so it would prove Home reachable rather than the app.
  */
 
 const INGRESS_ROUTES: Array<string> = [
@@ -26,7 +30,7 @@ const INGRESS_ROUTES: Array<string> = [
   "/status/ready", // App readiness probe
   "/dashboard", // Dashboard SPA
   "/accounts", // Accounts / auth SPA
-  "/status-page", // Status Page app
+  "/status-page/", // Status Page app
   "/public-dashboard", // Public Dashboard app
   "/admin/env.js", // Admin Dashboard runtime config
 ];
