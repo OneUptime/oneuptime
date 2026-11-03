@@ -277,6 +277,7 @@ export default class DataAssetLineage extends BaseModel {
   @ColumnAccessControl(serverWrittenColumnAccess)
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(DataAssetLineageSource),
     required: false,
     title: "Source",
     description:
