@@ -25,8 +25,9 @@ import React, { FunctionComponent, ReactElement } from "react";
  * maintainer)
  *
  * A product's Workspace page, listed in its side menu while the project has
- * no chat workspace connected: Slack and Microsoft Teams side by side, which
- * of them is connected, what each would do, and one step to take for each:
+ * no chat workspace connected: Slack, Microsoft Teams and Mattermost side by
+ * side, which of them is connected, what each would do, and one step to take
+ * for each:
  * connect it (in Project Settings, where a workspace is connected once for
  * the whole project) or, once connected, set up this product's notifications
  * for it.

@@ -606,7 +606,8 @@ describe("Security Events side menu", () => {
 });
 
 /*
- * "Products → Security Events → Workspace → Slack (or Microsoft Teams)": the
+ * "Products → Security Events → Workspace → Slack (or Microsoft Teams, or
+ * Mattermost)": the
  * security cases' notification rules, as the Security Cases docs send
  * people to them. The section is every product's (useWorkspaceSideMenuSection),
  * so it lists only what the project has connected.
@@ -632,6 +633,7 @@ describe("Security Events side menu: the Workspace section", () => {
       [],
       [WorkspaceType.Slack],
       [WorkspaceType.MicrosoftTeams],
+      [WorkspaceType.Mattermost],
       [WorkspaceType.Slack, WorkspaceType.MicrosoftTeams],
     ]) {
       ConnectedWorkspaces.setConnected(PROJECT_ID, connected);
@@ -682,6 +684,18 @@ describe("Security Events side menu: the Workspace section", () => {
     ]);
   });
 
+  test("lists only the connected workspace: Mattermost", async () => {
+    ConnectedWorkspaces.setConnected(PROJECT_ID, [WorkspaceType.Mattermost]);
+    await renderSecurityMenu();
+
+    expect(linksIn("Workspace")).toEqual([
+      {
+        title: "Mattermost",
+        href: routeFor(PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_MATTERMOST),
+      },
+    ]);
+  });
+
   test("with nothing connected, holds one entry, to its own page that connects them", async () => {
     ConnectedWorkspaces.setConnected(PROJECT_ID, []);
     await renderSecurityMenu();
@@ -700,12 +714,14 @@ describe("Security Events side menu: the Workspace section", () => {
       "Microsoft Teams",
       PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
     ],
+    ["Mattermost", PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_MATTERMOST],
   ])(
     "opens by itself on the %s page, and marks it",
     async (title: string, page: string) => {
       ConnectedWorkspaces.setConnected(PROJECT_ID, [
         WorkspaceType.Slack,
         WorkspaceType.MicrosoftTeams,
+        WorkspaceType.Mattermost,
       ]);
       goTo(routeFor(page));
       await renderSecurityMenu();
@@ -745,6 +761,7 @@ describe("Security Events side menu: the Workspace section", () => {
       slack: PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_SLACK,
       microsoftTeams:
         PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
+      mattermost: PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_MATTERMOST,
       connect: PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTIONS,
     });
     expect(
@@ -762,6 +779,13 @@ describe("Security Events side menu: the Workspace section", () => {
       "Security Events",
       WORKSPACE_SECTION_TITLE,
       WORKSPACE_MENU_ENTRY_TITLES[WorkspaceMenuEntry.MicrosoftTeams],
+    ]);
+    expect(
+      getSecurityEventsPageTrail(SECURITY_EVENTS_WORKSPACE_PAGES.mattermost),
+    ).toEqual([
+      "Security Events",
+      WORKSPACE_SECTION_TITLE,
+      WORKSPACE_MENU_ENTRY_TITLES[WorkspaceMenuEntry.Mattermost],
     ]);
   });
 });

@@ -446,11 +446,40 @@ describe("Project Settings > Mattermost, not connected yet", () => {
     await click("Connect");
 
     expect(await screen.findByText("Choose a team")).toBeInTheDocument();
+    // Nothing is connected until a team is picked.
     expect(
       mockPosts.map((post: { route: string }) => {
         return post.route;
       }),
     ).toEqual(["/mattermost/teams"]);
+
+    const teamPicker: HTMLElement = screen.getByRole("combobox");
+
+    await act(async () => {
+      fireEvent.keyDown(teamPicker, { key: "ArrowDown" });
+    });
+
+    expect(screen.getByText("Engineering")).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Support"));
+    });
+
+    await click("Connect");
+
+    await waitFor(() => {
+      expect(
+        mockPosts.map((post: { route: string }) => {
+          return post.route;
+        }),
+      ).toEqual(["/mattermost/teams", "/mattermost/connect"]);
+    });
+
+    expect(mockPosts[1]!.data).toEqual({
+      serverUrl: "https://chat.example.com",
+      accessToken: "abcdefghijklmnopqrstuvwxyz",
+      teamId: "o".repeat(26),
+    });
   });
 
   test("what the server refuses is said in the form, which stays open", async () => {

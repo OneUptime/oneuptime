@@ -384,15 +384,17 @@ describe("the Security Events menu", () => {
  * every project has.
  */
 describe("the Workspace section", () => {
-  test("is the security cases' Slack and Microsoft Teams pages, and the page that connects either", () => {
+  test("is the security cases' Slack, Microsoft Teams and Mattermost pages, and the page that connects one", () => {
     expect(SECURITY_EVENTS_WORKSPACE_PAGES).toEqual({
       slack: "SECURITY_EVENTS_WORKSPACE_CONNECTION_SLACK",
       microsoftTeams: "SECURITY_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS",
+      mattermost: "SECURITY_EVENTS_WORKSPACE_CONNECTION_MATTERMOST",
       connect: "SECURITY_EVENTS_WORKSPACE_CONNECTIONS",
     });
     expect(getSecurityEventsWorkspacePages()).toEqual([
       "SECURITY_EVENTS_WORKSPACE_CONNECTION_SLACK",
       "SECURITY_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS",
+      "SECURITY_EVENTS_WORKSPACE_CONNECTION_MATTERMOST",
       "SECURITY_EVENTS_WORKSPACE_CONNECTIONS",
     ]);
   });
@@ -434,16 +436,19 @@ describe("the Workspace section", () => {
     ).toEqual([
       "workspace-connection-slack",
       "workspace-connection-microsoft-teams",
+      "workspace-connection-mattermost",
       "workspace-connections",
     ]);
     // Monitors' are the same words, one level under its own root.
     expect([
       MonitorsRoutePath["MONITORS_WORKSPACE_CONNECTION_SLACK"],
       MonitorsRoutePath["MONITORS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS"],
+      MonitorsRoutePath["MONITORS_WORKSPACE_CONNECTION_MATTERMOST"],
       MonitorsRoutePath["MONITORS_WORKSPACE_CONNECTIONS"],
     ]).toEqual([
       "workspace-connection-slack",
       "workspace-connection-microsoft-teams",
+      "workspace-connection-mattermost",
       "workspace-connections",
     ]);
     expect(routeFor("SECURITY_EVENTS_WORKSPACE_CONNECTION_SLACK")).toBe(
@@ -454,12 +459,15 @@ describe("the Workspace section", () => {
     ).toBe(
       `/dashboard/${PROJECT_ID}/security-events/workspace-connection-microsoft-teams`,
     );
+    expect(routeFor("SECURITY_EVENTS_WORKSPACE_CONNECTION_MATTERMOST")).toBe(
+      `/dashboard/${PROJECT_ID}/security-events/workspace-connection-mattermost`,
+    );
     expect(routeFor("SECURITY_EVENTS_WORKSPACE_CONNECTIONS")).toBe(
       `/dashboard/${PROJECT_ID}/security-events/workspace-connections`,
     );
   });
 
-  test("its pages say where they are: Slack and Microsoft Teams under Workspace, and the connect page as Workspace itself", () => {
+  test("its pages say where they are: Slack, Microsoft Teams and Mattermost under Workspace, and the connect page as Workspace itself", () => {
     expect(
       getSecurityEventsWorkspacePages().map(
         (page: string): Array<string> | undefined => {
@@ -469,6 +477,7 @@ describe("the Workspace section", () => {
     ).toEqual([
       ["Security Events", "Workspace", "Slack"],
       ["Security Events", "Workspace", "Microsoft Teams"],
+      ["Security Events", "Workspace", "Mattermost"],
       ["Security Events", "Workspace"],
     ]);
   });

@@ -2,6 +2,7 @@ import PageMap from "../../Utils/PageMap";
 import IconProp from "Common/Types/Icon/IconProp";
 import ProviderLogo from "Common/Types/ProviderLogo/ProviderLogo";
 import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * What the product says about each chat workspace, in one place: the
@@ -58,10 +59,11 @@ export const WORKSPACE_CONNECTION_COPY: Readonly<
     description:
       "Post notifications to your Mattermost channels and act on them from Mattermost.",
     settingsPage: PageMap.SETTINGS_MATTERMOST_INTEGRATION,
-    connectTitle: "Connect Mattermost",
-    notConnectedTitle: "Mattermost is not connected yet!",
-    notConnectedDescription:
+    connectTitle: translationKey("Connect Mattermost"),
+    notConnectedTitle: translationKey("Mattermost is not connected yet!"),
+    notConnectedDescription: translationKey(
       "Connect your Mattermost server to this project, then choose here which notifications are posted to which channels.",
+    ),
   },
 };
 
