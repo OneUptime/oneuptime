@@ -61,30 +61,22 @@ export const AIR_GAPPED_SHORT_PATHS: ReadonlyArray<string> = [
  * The values.yaml the page shows. HelmChart/Tests/air-gapped-values.yaml
  * holds the same values (its comment lines aside), and the chart's
  * air-gapped suite (HelmChart/Tests/suites/air-gapped.sh) renders the chart
- * with that file: every image from the registry named here, the pull secret
- * on every pod, the update check off, no public nameserver for a probe, and
- * the probes' monitors and the webhooks allowed to reach private addresses -
- * on a network with no route out, every address a monitor checks or a
- * webhook posts to is one, and both are refused by default
- * (docs: self-hosted/private-network-access). Change one and change the
- * other; Tests/AirGappedFacts.test.ts compares them.
+ * with that file: every image from the registry named here (global.imageRegistry
+ * moves OneUptime's images and the PostgreSQL, ClickHouse and Valkey images
+ * alike), the pull secret on every pod, the update check off, no public
+ * nameserver for a probe, and the probes' monitors and the webhooks allowed
+ * to reach private addresses - on a network with no route out, every address
+ * a monitor checks or a webhook posts to is one, and both are refused by
+ * default (docs: self-hosted/private-network-access). Change one and change
+ * the other; Tests/AirGappedFacts.test.ts compares them.
  */
 export const AIR_GAPPED_REGISTRY: string = "registry.example.com";
 
 export const AIR_GAPPED_VALUES_YAML: string = [
-  "image:",
-  `  registry: ${AIR_GAPPED_REGISTRY}`,
+  "global:",
+  `  imageRegistry: ${AIR_GAPPED_REGISTRY}`,
   "imagePullSecrets:",
   "  - name: internal-registry",
-  "postgresql:",
-  "  image:",
-  `    repository: ${AIR_GAPPED_REGISTRY}/postgres`,
-  "clickhouse:",
-  "  image:",
-  `    repository: ${AIR_GAPPED_REGISTRY}/clickhouse/clickhouse-server`,
-  "valkey:",
-  "  image:",
-  `    repository: ${AIR_GAPPED_REGISTRY}/valkey/valkey`,
   "updateCheck:",
   "  disabled: true",
   "instanceCheckIn:",
@@ -193,6 +185,18 @@ export interface AirGappedCompliancePoint {
   description: string;
 }
 
+/*
+ * What a security reviewer can check, each with the docs page that shows how
+ * (Tests/AirGappedFacts.test.ts holds each to the workflow, script or page
+ * that makes it true).
+ */
+export interface AirGappedEvidence {
+  key: string;
+  title: string;
+  description: string;
+  link: AirGappedLink;
+}
+
 export interface AirGappedFaq {
   question: string;
   answer: string;
@@ -259,7 +263,7 @@ export const AirGappedNetwork: AirGappedNetworkPicture = {
 
 // The four lines under the hero's buttons, each a fact the sections below show.
 export const AirGappedProofPoints: Array<string> = [
-  "No special build",
+  "Signed images and chart",
   "Enterprise licenses activate offline",
   "AI on a model you run",
   "Nothing loaded from a CDN",
@@ -341,8 +345,12 @@ export const AirGappedSteps: Array<AirGappedStep> = [
     key: "mirror-images",
     title: "Mirror the images",
     description:
-      "Copy OneUptime's images, from Docker Hub or the GitHub Container Registry, into your own registry, with the PostgreSQL, ClickHouse and Valkey images the chart runs. Keep their names and tags, and pin `image.tag` to the release you mirrored. Anything you turn on later, such as PgBouncer or a database operator, needs its images mirrored too.",
-    settings: ["image.registry", "image.tag", "imagePullSecrets"],
+      "Copy OneUptime's images, from Docker Hub or the GitHub Container Registry, into your own registry, with the PostgreSQL, ClickHouse and Valkey images the chart runs. On a connected machine, `air-gap.sh save` writes every image a release's chart runs and the signed chart into one folder, with checksums; carry it across, and `air-gap.sh push` loads it into your registry under the same names and tags. Pin `image.tag` to the release you mirrored. Anything you turn on later, such as PgBouncer or a database operator, needs its images mirrored too.",
+    settings: ["global.imageRegistry", "image.tag", "imagePullSecrets"],
+    link: {
+      label: "Air-gapped installation",
+      href: "/docs/installation/air-gapped",
+    },
   },
   {
     key: "bring-in-chart",
@@ -420,7 +428,7 @@ export const AirGappedConnections: Array<AirGappedConnection> = [
     destination: "`oneuptime.com`",
     when: "Each sign-up with “Notify me about security patches and new releases” ticked (it starts ticked): their name and email, any company and phone they gave, and the install's address and version.",
     inside:
-      "Untick it when you sign up. With no route out, the request fails and the sign-up still goes through.",
+      "Set `instanceCheckIn.disabled: true`, and the form no longer offers it and nothing is sent. Or untick it when you sign up. With no route out, the request fails and the sign-up still goes through.",
     onByDefault: true,
   },
   {
@@ -528,9 +536,85 @@ export const AirGappedCompliance: Array<AirGappedCompliancePoint> = [
     key: "supply-chain",
     title: "Know what crosses the gap",
     description:
-      "Every release publishes a CycloneDX SBOM for each image, the images carry SPDX SBOM and provenance attestations, and the Helm chart is signed.",
+      "Every release signs its images and its Helm chart, publishes a CycloneDX SBOM and a vulnerability report for each image, and the images carry SPDX SBOM and provenance attestations.",
   },
 ];
+
+/*
+ * The evidence section: what a reviewer checks before anything crosses, and
+ * the documents an assessor asks for.
+ */
+export const AirGappedEvidenceItems: Array<AirGappedEvidence> = [
+  {
+    key: "signed-images",
+    title: "Signed images",
+    description:
+      "Every release signs each image, community and Enterprise Edition, on Docker Hub and the GitHub Container Registry, with Sigstore cosign. The certificate names OneUptime's release workflow, so there is no key to trust or download.",
+    link: {
+      label: "Verify an image",
+      href: "/docs/self-hosted/supply-chain-security#verify-an-images-signature",
+    },
+  },
+  {
+    key: "signed-chart",
+    title: "A signed Helm chart",
+    description:
+      "Every release signs the chart with OneUptime's key, and `helm verify` checks it against the fingerprint above.",
+    link: {
+      label: "Verify the chart",
+      href: "/docs/self-hosted/supply-chain-security#verify-the-charts-signature",
+    },
+  },
+  {
+    key: "sbom",
+    title: "SBOMs and provenance",
+    description:
+      "Each image carries an SPDX SBOM and SLSA provenance, and each release attaches a CycloneDX SBOM for every image and architecture.",
+    link: {
+      label: "Read an SBOM",
+      href: "/docs/self-hosted/supply-chain-security#read-an-images-sbom-and-provenance",
+    },
+  },
+  {
+    key: "vulnerabilities",
+    title: "Vulnerability reports",
+    description:
+      "Each release attaches a Grype report for every image's SBOM, and a summary of the findings by severity.",
+    link: {
+      label: "Vulnerability reports",
+      href: "/docs/self-hosted/supply-chain-security#vulnerability-reports",
+    },
+  },
+  {
+    key: "hardening",
+    title: "A hardening guide",
+    description:
+      "Least-privilege security contexts, network policies, single sign-on required of everyone, audit export to your SIEM, and where a FIPS 140-validated module goes.",
+    link: { label: "Hardening Guide", href: "/docs/self-hosted/hardening" },
+  },
+  {
+    key: "nist",
+    title: "A NIST SP 800-53 control mapping",
+    description:
+      "Each control family, what OneUptime provides and what stays yours, ready for your system security plan.",
+    link: {
+      label: "NIST SP 800-53 mapping",
+      href: "/docs/self-hosted/nist-800-53",
+    },
+  },
+];
+
+/*
+ * The command the evidence section shows: cosign verify, against the
+ * certificate identity of the release workflow that signs every image
+ * (Scripts/GHA/sign_docker_images.sh, docs: self-hosted/supply-chain-security).
+ */
+export const AIR_GAPPED_VERIFY_COMMAND: string = [
+  "cosign verify docker.io/oneuptime/app:$VERSION \\",
+  "  --certificate-identity \\",
+  "    https://github.com/OneUptime/oneuptime/.github/workflows/release.yml@refs/heads/release \\",
+  "  --certificate-oidc-issuer https://token.actions.githubusercontent.com",
+].join("\n");
 
 export const AirGappedFaqs: Array<AirGappedFaq> = [
   {
@@ -541,7 +625,7 @@ export const AirGappedFaqs: Array<AirGappedFaq> = [
   {
     question: "Does OneUptime phone home?",
     answer:
-      "A Community Edition install makes two calls on its own: a daily update check against GitHub's API, which `updateCheck.disabled` turns off, and a daily check-in that tells oneuptime.com the install's address and version, which `instanceCheckIn.disabled` turns off. Signing up with release emails ticked also tells oneuptime.com, so untick that box. An Enterprise Edition install activated with a license key syncs its license with oneuptime.com once a day; one activated with an offline license token never does. Everything else, from SMS to Slack to a hosted AI model, reaches out only once you set it up.",
+      "A Community Edition install makes two calls on its own: a daily update check against GitHub's API, which `updateCheck.disabled` turns off, and a daily check-in that tells oneuptime.com the install's address and version, which `instanceCheckIn.disabled` turns off. Signing up with release emails ticked also tells oneuptime.com; with the check-in off, the sign-up form no longer offers them. An Enterprise Edition install activated with a license key syncs its license with oneuptime.com once a day; one activated with an offline license token never does. Everything else, from SMS to Slack to a hosted AI model, reaches out only once you set it up.",
   },
   {
     question: "How do we license the Enterprise Edition with no internet?",
@@ -571,7 +655,17 @@ export const AirGappedFaqs: Array<AirGappedFaq> = [
   {
     question: "How do we check what we bring across the gap?",
     answer:
-      "Every release attaches a CycloneDX SBOM for each image to its GitHub release, the images carry SPDX SBOM and provenance attestations, and the Helm chart is signed with OneUptime's key, so `helm verify` checks it before you install.",
+      "Every release signs each image with Sigstore cosign, so `cosign verify` checks it against OneUptime's release workflow, and signs the Helm chart with OneUptime's key, so `helm verify` checks it. Each release also attaches a CycloneDX SBOM and a Grype vulnerability report for each image, and the images carry SPDX SBOM and provenance attestations. `air-gap.sh push` checks every file of the bundle against its checksums before it pushes anything.",
+  },
+  {
+    question: "Is OneUptime FIPS 140 validated?",
+    answer:
+      "No. OneUptime's images are not FIPS 140-validated builds: its services run on Node.js, which uses a validated module only when it is built against one and started in FIPS mode. Where your boundary requires FIPS 140, terminate TLS at a load balancer or ingress that uses a validated module and encrypt the databases' volumes with your storage platform's, as the hardening guide shows.",
+  },
+  {
+    question: "Is there a STIG for OneUptime?",
+    answer:
+      "There is no DISA STIG for OneUptime. We publish a hardening guide that follows what STIG and SRG reviews ask of an application on Kubernetes, and a NIST SP 800-53 control mapping that says what OneUptime provides and what stays yours.",
   },
   {
     question: "Do OneUptime's certifications cover our install?",
@@ -598,15 +692,20 @@ export const AirGappedPlanCall: AirGappedPlanCall = {
  * every docs address the website writes).
  */
 export interface AirGappedDocsLinks {
+  installation: string;
   architecture: string;
   connectionsOut: string;
   offlineActivation: string;
   llmProviders: string;
   privateNetworkAccess: string;
   upgrading: string;
+  supplyChain: string;
+  hardening: string;
+  nist80053: string;
 }
 
 export const AirGappedDocs: AirGappedDocsLinks = {
+  installation: "/docs/installation/air-gapped",
   architecture: "/docs/self-hosted/architecture",
   connectionsOut:
     "/docs/self-hosted/architecture#connections-out-of-your-network",
@@ -616,6 +715,9 @@ export const AirGappedDocs: AirGappedDocsLinks = {
     "/docs/ai/llm-provider#self-hosted-zero-config-via-environment-variables",
   privateNetworkAccess: "/docs/self-hosted/private-network-access",
   upgrading: "/docs/installation/upgrading",
+  supplyChain: "/docs/self-hosted/supply-chain-security",
+  hardening: "/docs/self-hosted/hardening",
+  nist80053: "/docs/self-hosted/nist-800-53",
 };
 
 export interface AirGappedPageContent {
@@ -643,6 +745,10 @@ export interface AirGappedPageContent {
     envExample: string;
   };
   compliance: Array<AirGappedCompliancePoint>;
+  evidence: {
+    items: Array<AirGappedEvidence>;
+    verifyCommand: string;
+  };
   faqs: Array<AirGappedFaq>;
   planCall: AirGappedPlanCall;
   docs: AirGappedDocsLinks;
@@ -677,6 +783,10 @@ export const getAirGappedContent: () => AirGappedPageContent =
         envExample: AIR_GAPPED_LLM_PROVIDER_ENV,
       },
       compliance: AirGappedCompliance,
+      evidence: {
+        items: AirGappedEvidenceItems,
+        verifyCommand: AIR_GAPPED_VERIFY_COMMAND,
+      },
       faqs: AirGappedFaqs,
       planCall: AirGappedPlanCall,
       docs: AirGappedDocs,

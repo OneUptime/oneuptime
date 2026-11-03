@@ -6,6 +6,7 @@ import {
   AirGappedCapability,
   AirGappedCompliancePoint,
   AirGappedConnection,
+  AirGappedEvidence,
   AirGappedFaq,
   AirGappedNetworkItem,
   AirGappedPageContent,
@@ -432,6 +433,7 @@ describe("the air-gapped page", () => {
       ["Connections out", "#connections-out"],
       ["AI", "#ai"],
       ["Compliance", "#compliance"],
+      ["Evidence", "#evidence"],
       ["FAQ", "#faq"],
     ]);
 
@@ -456,6 +458,7 @@ describe("the air-gapped page", () => {
       "connections-out",
       "ai",
       "compliance",
+      "evidence",
       "faq",
       "plan-your-install",
     ]);
@@ -496,6 +499,7 @@ describe("the air-gapped page", () => {
       "What reaches out, and what to use instead",
       "OneUptime AI, on a model you run",
       "Your data, inside your boundary",
+      "Everything your security review asks for",
       "Questions buyers ask",
       "Bring us your network. Leave with an install plan.",
     ]);
@@ -615,7 +619,7 @@ describe("the air-gapped page", () => {
         return step.settings;
       }),
     ).toEqual([
-      ["image.registry", "image.tag", "imagePullSecrets"],
+      ["global.imageRegistry", "image.tag", "imagePullSecrets"],
       ["helm verify"],
       [
         "updateCheck.disabled",
@@ -925,6 +929,44 @@ describe("the air-gapped page", () => {
     expect(
       section.querySelector('a[href="/enterprise/self-hosted"]'),
     ).not.toBeNull();
+  });
+
+  test("hands a security review its evidence: each card with its docs page, beside the command that verifies an image", () => {
+    const section: Element = page.getElementById("evidence")!;
+    const cards: Array<Element> = all(
+      section,
+      '[data-testid="air-gapped-evidence"]',
+    );
+
+    expect(cards).toHaveLength(6);
+    expect(
+      cards.map((card: Element): [string, string, string] => {
+        const link: Element = card.querySelector("a[href]")!;
+
+        return [
+          textOf(card.querySelector("h3")),
+          textOf(card.querySelector("p")),
+          link.getAttribute("href")!,
+        ];
+      }),
+    ).toEqual(
+      content.evidence.items.map(
+        (item: AirGappedEvidence): [string, string, string] => {
+          return [item.title, plainText(item.description), item.link.href];
+        },
+      ),
+    );
+    // Every card points at a docs page that shows how to check it.
+    for (const item of content.evidence.items) {
+      expect(item.link.href.startsWith("/docs/self-hosted/")).toBe(true);
+    }
+
+    const verify: Element = section.querySelector(
+      '[data-testid="air-gapped-verify"] pre',
+    )!;
+
+    expect(verify.textContent).toBe(content.evidence.verifyCommand);
+    expect(content.evidence.verifyCommand).toContain("--certificate-identity");
   });
 
   test("answers the questions buyers ask, folded, and the same answers for search engines", () => {
