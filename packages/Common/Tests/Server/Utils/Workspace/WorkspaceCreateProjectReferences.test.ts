@@ -764,7 +764,9 @@ describe("Slack: SubmitNewScheduledMaintenance", (): void => {
         }
       ).text,
     );
-    expect(markdown).toContain("**Scheduled Event SM-3** created successfully.");
+    expect(markdown).toContain(
+      "**Scheduled Event SM-3** created successfully.",
+    );
     expect(markdown).toContain("[View Event](");
     expect(markdown).toContain(
       `/scheduled-maintenance-events/${CREATED_ID.toString()}`,

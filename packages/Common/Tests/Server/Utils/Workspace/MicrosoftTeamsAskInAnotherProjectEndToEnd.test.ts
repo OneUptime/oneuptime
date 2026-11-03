@@ -114,7 +114,10 @@ import {
   submitsOf,
   textOfCard,
 } from "../../../Helpers/FakeBotConnector";
-import { CloudAdapter, ConfigurationBotFrameworkAuthentication } from "botbuilder";
+import {
+  CloudAdapter,
+  ConfigurationBotFrameworkAuthentication,
+} from "botbuilder";
 
 type CachedAdapterSlot = { cachedAdapter: CloudAdapter | null };
 
@@ -471,17 +474,15 @@ beforeEach(() => {
     }) as never);
 
   // What the operator is told of feedback.
-  jest
-    .spyOn(OperatorSlackNotice, "post")
-    .mockImplementation((async (data: {
-      text: string;
-      projectId?: ObjectID | null;
-    }) => {
-      notices.push({
-        projectId: data.projectId ? data.projectId.toString() : null,
-        text: data.text,
-      });
-    }) as never);
+  jest.spyOn(OperatorSlackNotice, "post").mockImplementation((async (data: {
+    text: string;
+    projectId?: ObjectID | null;
+  }) => {
+    notices.push({
+      projectId: data.projectId ? data.projectId.toString() : null,
+      text: data.text,
+    });
+  }) as never);
 
   loggedErrors = [];
   jest.spyOn(logger, "error").mockImplementation((line: unknown) => {
@@ -783,9 +784,7 @@ describe("👍 or 👎 on an answer reaches the operator with the project it was
   });
 
   test("on such an answer, by somebody who chose no project there: reported without one, as before", async () => {
-    await deliver(
-      feedback("1762160000000", { from: PRIYA, where: "group" }),
-    );
+    await deliver(feedback("1762160000000", { from: PRIYA, where: "group" }));
 
     expect(notices).toHaveLength(1);
     expect(notices[0]!.projectId).toBeNull();

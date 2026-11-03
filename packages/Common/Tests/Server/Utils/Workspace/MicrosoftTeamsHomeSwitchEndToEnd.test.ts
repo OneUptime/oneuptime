@@ -612,7 +612,9 @@ describe("Deane, in two of the organization's projects, types 'home'", () => {
     homesRead = [];
 
     const switched: ConnectorCall = onlyCardOf(
-      await deliver(press(menuOf(home).button!["data"] as JSONObject, home.messageId!)),
+      await deliver(
+        press(menuOf(home).button!["data"] as JSONObject, home.messageId!),
+      ),
     );
 
     expect([switched.method, switched.activityId]).toEqual([
@@ -646,7 +648,9 @@ describe("Deane, in two of the organization's projects, types 'home'", () => {
   test("his next 'home', and Refresh, open on the project he chose - and switching back is kept too", async () => {
     const home: ConnectorCall = await typedHome();
 
-    await deliver(press(menuOf(home).button!["data"] as JSONObject, home.messageId!));
+    await deliver(
+      press(menuOf(home).button!["data"] as JSONObject, home.messageId!),
+    );
 
     const next: ConnectorCall = await typedHome();
 
@@ -725,9 +729,7 @@ describe("in more than two projects: a dropdown, and a Switch button", () => {
       },
     });
     // The button sends what the dropdown holds: it carries no value of its own.
-    expect(
-      (menu.submit!["data"] as JSONObject)["actionValue"],
-    ).toBeUndefined();
+    expect((menu.submit!["data"] as JSONObject)["actionValue"]).toBeUndefined();
 
     // The dropdown and its button side by side, under the project's line.
     const columnSets: Array<JSONObject> = elementsOf(cardOf(home), "ColumnSet");
@@ -772,7 +774,8 @@ describe("in more than two projects: a dropdown, and a Switch button", () => {
   });
 
   test("long names: cut to what a button shows, with '…', and named in full on the Home they switch to", async () => {
-    const longName: string = `IRM Sandbox ${"for the payments platform ".repeat(4)}`.trim();
+    const longName: string =
+      `IRM Sandbox ${"for the payments platform ".repeat(4)}`.trim();
     names[SANDBOX.toString()] = longName;
 
     const home: ConnectorCall = await typedHome();
@@ -803,7 +806,9 @@ describe("a switch that cannot be made draws nothing of the project it names", (
     homesRead = [];
 
     const refused: ConnectorCall = onlyCardOf(
-      await deliver(press(menuOf(home).button!["data"] as JSONObject, home.messageId!)),
+      await deliver(
+        press(menuOf(home).button!["data"] as JSONObject, home.messageId!),
+      ),
     );
 
     expect(refused.method).toBe("PUT");
@@ -905,7 +910,9 @@ describe("a switch that cannot be made draws nothing of the project it names", (
         return call.method;
       }),
     ).toEqual(["POST"]);
-    expect(textOfCard(pressed.calls[0])).toBe(`<at>Nitin</at> ${REFUSED_SWITCH}`);
+    expect(textOfCard(pressed.calls[0])).toBe(
+      `<at>Nitin</at> ${REFUSED_SWITCH}`,
+    );
     expect(pressed.calls[0]!.conversationId).toBe(GROUP_CHAT_ID);
     expect(membersRead).toEqual([]);
     expect(homesRead).toEqual([]);
@@ -917,7 +924,9 @@ describe("a project that refuses him still names itself, with the menu, so he ca
   test("IRM Non-Prod, the project he chose, blocked by an administrator: 'home' greets him, names it, says why - nothing it holds read, no buttons - and he switches to IRM Platform", async () => {
     const home: ConnectorCall = await typedHome();
 
-    await deliver(press(menuOf(home).button!["data"] as JSONObject, home.messageId!));
+    await deliver(
+      press(menuOf(home).button!["data"] as JSONObject, home.messageId!),
+    );
 
     blocked = [NONPRD];
     homesRead = [];
@@ -935,7 +944,10 @@ describe("a project that refuses him still names itself, with the menu, so he ca
 
     const away: ConnectorCall = onlyCardOf(
       await deliver(
-        press(menuOf(refused).button!["data"] as JSONObject, refused.messageId!),
+        press(
+          menuOf(refused).button!["data"] as JSONObject,
+          refused.messageId!,
+        ),
       ),
     );
 
@@ -993,7 +1005,9 @@ describe("the welcome of somebody who adds the app for themselves", () => {
     }
 
     // Having chosen IRM Non-Prod, a welcome after reinstalling opens there.
-    await deliver(press(menuOf(home).button!["data"] as JSONObject, home.messageId!));
+    await deliver(
+      press(menuOf(home).button!["data"] as JSONObject, home.messageId!),
+    );
 
     expect(projectLineOf(postsOf(await deliver(added()))[0]!)).toBe(
       "Here's what is happening in **IRM Non-Prod**.",
@@ -1078,7 +1092,9 @@ describe("what does not change", () => {
     );
 
     const switched: ConnectorCall = onlyCardOf(
-      await deliver(press(menuOf(home).button!["data"] as JSONObject, home.messageId!)),
+      await deliver(
+        press(menuOf(home).button!["data"] as JSONObject, home.messageId!),
+      ),
     );
 
     expect(projectLineOf(switched)).toBe(

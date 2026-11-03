@@ -865,9 +865,7 @@ export default class MicrosoftTeamsHome {
         blocks: WorkspaceHome.getRefusedBlocks({
           message: err.message,
           firstName: await WorkspaceHome.readFirstName(userId),
-          projectName: await MicrosoftTeamsHome.readProjectName(
-            data.projectId,
-          ),
+          projectName: await MicrosoftTeamsHome.readProjectName(data.projectId),
           projectMenu: projectMenu,
           notice: data.notice,
           workspaceType: WorkspaceType.MicrosoftTeams,

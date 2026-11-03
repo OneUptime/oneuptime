@@ -56,7 +56,10 @@ beforeEach(() => {
     .spyOn(IncidentService, "getIncidentLinkInDashboard")
     .mockResolvedValue(URL.fromString(INCIDENT_LINK));
   jest
-    .spyOn(ScheduledMaintenanceService, "getScheduledMaintenanceLinkInDashboard")
+    .spyOn(
+      ScheduledMaintenanceService,
+      "getScheduledMaintenanceLinkInDashboard",
+    )
     .mockResolvedValue(URL.fromString(EVENT_LINK));
 });
 

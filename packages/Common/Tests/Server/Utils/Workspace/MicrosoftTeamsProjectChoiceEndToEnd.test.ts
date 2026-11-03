@@ -1061,7 +1061,9 @@ describe("the Home of somebody in both projects: never asked which - it switches
     expect(posts(typed)).toHaveLength(1);
     // His Home, not the question which project.
     expect(textOf(home)).not.toContain("Which project is this for?");
-    expect(textOf(home)).toContain("Here's what is happening in **IRM Platform**.");
+    expect(textOf(home)).toContain(
+      "Here's what is happening in **IRM Platform**.",
+    );
 
     const switchButton: JSONObject = submitsOf(cardOf(home)).find(
       (submit: JSONObject): boolean => {

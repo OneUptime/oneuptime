@@ -56,6 +56,7 @@ import UserService from "../../../Services/UserService";
 
 // Import database utilities
 import LIMIT_MAX from "../../../../Types/Database/LimitMax";
+import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import { truncateToLength } from "../../Database/TruncateColumnValue";
 import { removeHtmlMarkup } from "../../../../Types/HtmlMarkup";
 
@@ -4237,7 +4238,10 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
          * first of theirs, with Switch project on it - never a question
          * which project, which the Home answers itself (MicrosoftTeamsHome).
          */
-        if (MicrosoftTeamsHome.isHomeCommand(cleanText) && !data.chosenProjectId) {
+        if (
+          MicrosoftTeamsHome.isHomeCommand(cleanText) &&
+          !data.chosenProjectId
+        ) {
           projectAuth = await MicrosoftTeamsHome.findPersonHomeProject({
             aadObjectId: MicrosoftTeamsProjectChoice.getAadObjectId(
               data.activity,
@@ -6032,6 +6036,15 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           authToken: true,
           workspaceProjectId: true,
           miscData: true,
+        },
+        /*
+         * In the order the projects were connected, as Slack's are
+         * (WorkspaceProjectResolver.findConnections): the question which
+         * project lists them so, and a Home nobody has switched yet shows
+         * the first of the person's (MicrosoftTeamsHome).
+         */
+        sort: {
+          createdAt: SortOrder.Ascending,
         },
         limit: LIMIT_MAX,
         skip: 0,

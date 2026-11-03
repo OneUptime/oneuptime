@@ -87,9 +87,12 @@ export default class WorkspaceHomeProject {
         workspaceUserId: data.workspaceUserId,
       });
     } catch (err) {
-      logger.error("Could not record the project a chat Home was switched to.", {
-        projectId: data.projectId.toString(),
-      });
+      logger.error(
+        "Could not record the project a chat Home was switched to.",
+        {
+          projectId: data.projectId.toString(),
+        },
+      );
       logger.error(err, { projectId: data.projectId.toString() });
     }
   }

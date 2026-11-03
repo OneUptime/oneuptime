@@ -1612,9 +1612,7 @@ describe("a person in several of the workspace's projects: Switch project", () =
   }
 
   function projectOfView(view: JSONObject): string {
-    return String(
-      JSON.parse(view["private_metadata"] as string)["projectId"],
-    );
+    return String(JSON.parse(view["private_metadata"] as string)["projectId"]);
   }
 
   /*
@@ -1946,9 +1944,9 @@ describe("a person in several of the workspace's projects: Switch project", () =
   test("an opening Slack sends no view with - nothing published for her yet - names none", async () => {
     const count: number = calls("views.publish").length;
 
-    expect(
-      (await deliverEvent(openHomeIn(TEAM_ID, ALICE, true))).status,
-    ).toBe(200);
+    expect((await deliverEvent(openHomeIn(TEAM_ID, ALICE, true))).status).toBe(
+      200,
+    );
     await until((): boolean => {
       return calls("views.publish").length === count + 1;
     }, "the Home drawn");

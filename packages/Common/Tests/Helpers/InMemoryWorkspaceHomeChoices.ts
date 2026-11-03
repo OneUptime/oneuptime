@@ -76,7 +76,10 @@ function matches(row: InMemoryHomeChoiceRow, query: JSONObject): boolean {
   );
 }
 
-function toModel(row: InMemoryHomeChoiceRow, index: number): WorkspaceHomeChoice {
+function toModel(
+  row: InMemoryHomeChoiceRow,
+  index: number,
+): WorkspaceHomeChoice {
   const model: WorkspaceHomeChoice = new WorkspaceHomeChoice();
   model.id = new ObjectID(
     `e0000000-0000-4000-8000-${String(index + 1).padStart(12, "0")}`,

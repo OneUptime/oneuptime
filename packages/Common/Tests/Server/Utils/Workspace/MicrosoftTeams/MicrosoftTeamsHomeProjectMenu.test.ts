@@ -354,7 +354,9 @@ describe("what a card's menu lists", () => {
       "body"
     ] as Array<JSONObject>;
     const dropdown: JSONObject = (
-      (body[1]!["columns"] as Array<JSONObject>)[0]!["items"] as Array<JSONObject>
+      (body[1]!["columns"] as Array<JSONObject>)[0]![
+        "items"
+      ] as Array<JSONObject>
     )[0]!;
 
     return dropdown["choices"] as Array<JSONObject>;
@@ -380,9 +382,11 @@ describe("what a card's menu lists", () => {
     expect(titles[1]).toBe(`${"x".repeat(73)}…`);
 
     const button: JSONObject = (
-      (cardOf([line(menuOf([{ label: longName, value: NONPRD.toString() }]))])[
-        "body"
-      ] as Array<JSONObject>)[1]!["actions"] as Array<JSONObject>
+      (
+        cardOf([line(menuOf([{ label: longName, value: NONPRD.toString() }]))])[
+          "body"
+        ] as Array<JSONObject>
+      )[1]!["actions"] as Array<JSONObject>
     )[0]!;
 
     expect(button["title"]).toBe(`Switch to ${titles[0]}`);
@@ -438,7 +442,10 @@ describe("what a card's menu lists", () => {
     const options: Array<WorkspacePayloadMenuOption> = Array.from(
       { length: 120 },
       (_value: unknown, index: number): WorkspacePayloadMenuOption => {
-        return { label: `Project ${index}`, value: ObjectID.generate().toString() };
+        return {
+          label: `Project ${index}`,
+          value: ObjectID.generate().toString(),
+        };
       },
     );
 
@@ -474,7 +481,9 @@ describe("the Home cards the menu goes on", () => {
     )["body"] as Array<JSONObject>;
 
     const lineAt: number = body.findIndex((element: JSONObject): boolean => {
-      return element["text"] === "Here's what is happening in **IRM Platform**.";
+      return (
+        element["text"] === "Here's what is happening in **IRM Platform**."
+      );
     });
 
     expect(lineAt).toBe(1);
@@ -498,7 +507,9 @@ describe("the Home cards the menu goes on", () => {
 
     expect(
       body.map((element: JSONObject): unknown => {
-        return element["type"] === "TextBlock" ? element["text"] : element["type"];
+        return element["type"] === "TextBlock"
+          ? element["text"]
+          : element["type"];
       }),
     ).toEqual([
       "👋 Hi Deane",

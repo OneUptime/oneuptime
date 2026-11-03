@@ -281,14 +281,18 @@ export default class SlackHome {
    * Slack sends the view once the app has published one for the person.
    * Undefined for none, or anything that is not text Slack takes back.
    */
-  public static readViewHash(event: JSONObject | undefined): string | undefined {
+  public static readViewHash(
+    event: JSONObject | undefined,
+  ): string | undefined {
     const view: unknown = event?.["view"];
     const hash: unknown =
       view && typeof view === "object" && !Array.isArray(view)
         ? (view as JSONObject)["hash"]
         : undefined;
 
-    return typeof hash === "string" && hash && hash.length <= VIEW_HASH_MAX_LENGTH
+    return typeof hash === "string" &&
+      hash &&
+      hash.length <= VIEW_HASH_MAX_LENGTH
       ? hash
       : undefined;
   }

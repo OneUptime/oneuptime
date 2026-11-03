@@ -94,12 +94,13 @@ describe("the table: server-only, one row a project and chat account, gone with 
       "workspaceUserId",
       "chosenAt",
     ]) {
-      expect({ column, access: model.getColumnAccessControlFor(column) }).toEqual(
-        {
-          column,
-          access: { create: [], read: [], update: [] },
-        },
-      );
+      expect({
+        column,
+        access: model.getColumnAccessControlFor(column),
+      }).toEqual({
+        column,
+        access: { create: [], read: [], update: [] },
+      });
     }
   });
 
@@ -110,7 +111,9 @@ describe("the table: server-only, one row a project and chat account, gone with 
 
     const relation: { onDelete?: string } | undefined = getMetadataArgsStorage()
       .relations.filter((args: { target: unknown; propertyName: string }) => {
-        return args.target === WorkspaceHomeChoice && args.propertyName === "project";
+        return (
+          args.target === WorkspaceHomeChoice && args.propertyName === "project"
+        );
       })
       .map((args: { options: { onDelete?: string } }) => {
         return args.options;
@@ -120,10 +123,12 @@ describe("the table: server-only, one row a project and chat account, gone with 
   });
 
   test("one row a project, chat and chat account: a unique index and the create's own check", () => {
-    const unique: IndexMetadataArgs | undefined = getMetadataArgsStorage()
-      .indices.filter((index: IndexMetadataArgs): boolean => {
-        return index.target === WorkspaceHomeChoice && Boolean(index.unique);
-      })[0];
+    const unique: IndexMetadataArgs | undefined =
+      getMetadataArgsStorage().indices.filter(
+        (index: IndexMetadataArgs): boolean => {
+          return index.target === WorkspaceHomeChoice && Boolean(index.unique);
+        },
+      )[0];
 
     expect(unique?.columns).toEqual([
       "projectId",

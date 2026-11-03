@@ -1198,8 +1198,12 @@ describe("the Home of somebody in several projects", () => {
   const PRODUCTION: ObjectID = new ObjectID(
     "a0000000-0000-4000-8000-0000000000f1",
   );
-  const STAGING: ObjectID = new ObjectID("a0000000-0000-4000-8000-0000000000f2");
-  const SANDBOX: ObjectID = new ObjectID("a0000000-0000-4000-8000-0000000000f3");
+  const STAGING: ObjectID = new ObjectID(
+    "a0000000-0000-4000-8000-0000000000f2",
+  );
+  const SANDBOX: ObjectID = new ObjectID(
+    "a0000000-0000-4000-8000-0000000000f3",
+  );
   const CHOICES: Array<{ projectId: ObjectID; name: string }> = [
     { projectId: PRODUCTION, name: "Acme Production" },
     { projectId: STAGING, name: "Acme Staging" },
@@ -1370,15 +1374,13 @@ describe("the Home of somebody in several projects", () => {
       choices: CHOICES,
     })!;
 
-    const teams: Array<WorkspaceMessageBlock> = WorkspaceHome.getRefusedBlocks(
-      {
-        message: BLOCKED,
-        firstName: "Nitin",
-        projectName: "Acme Staging",
-        projectMenu: menu,
-        workspaceType: WorkspaceType.MicrosoftTeams,
-      },
-    );
+    const teams: Array<WorkspaceMessageBlock> = WorkspaceHome.getRefusedBlocks({
+      message: BLOCKED,
+      firstName: "Nitin",
+      projectName: "Acme Staging",
+      projectMenu: menu,
+      workspaceType: WorkspaceType.MicrosoftTeams,
+    });
 
     expect(teams.map(textOf)).toEqual([
       "👋 Hi Nitin",
@@ -1389,14 +1391,12 @@ describe("the Home of somebody in several projects", () => {
     expect((teams[2] as WorkspacePayloadMarkdown).menu).toEqual(menu);
 
     // Slack's, by default: beside the line that names the project.
-    const slack: Array<WorkspaceMessageBlock> = WorkspaceHome.getRefusedBlocks(
-      {
-        message: BLOCKED,
-        projectName: "Acme Staging",
-        projectMenu: menu,
-        workspaceType: WorkspaceType.Slack,
-      },
-    );
+    const slack: Array<WorkspaceMessageBlock> = WorkspaceHome.getRefusedBlocks({
+      message: BLOCKED,
+      projectName: "Acme Staging",
+      projectMenu: menu,
+      workspaceType: WorkspaceType.Slack,
+    });
 
     expect((slack[1] as WorkspacePayloadMarkdown).menu).toEqual(menu);
     expect((slack[2] as WorkspacePayloadMarkdown).menu).toBeUndefined();

@@ -809,7 +809,9 @@ export default class MicrosoftTeamsProjectChoice {
        * again for whoever asked it, where they asked it.
        */
       const keptConversation: MicrosoftTeamsConversationOfPerson | null =
-        question ? MicrosoftTeamsProjectChoice.getConversationOf(question) : null;
+        question
+          ? MicrosoftTeamsProjectChoice.getConversationOf(question)
+          : null;
 
       if (
         !question ||
