@@ -60,7 +60,7 @@ export const SPAN_METRICS_STEP_COPY: {
 } = {
   panelTitle: translationKey("Without changing code"),
   panelDescription: translationKey(
-    "Your OpenTelemetry Collector can record its request metrics from the traces it already sends.",
+    "An OpenTelemetry Collector can record this service's request metrics from its traces.",
   ),
   showStep: translationKey("Show the collector step"),
   modalTitle: translationKey("Record request metrics from traces"),
@@ -72,8 +72,12 @@ export const SPAN_METRICS_STEP_COPY: {
     "Add spanmetrics to the collector's config: as an exporter of the traces pipeline, and as a receiver of the metrics pipeline. Keep your own receivers, processors and OneUptime exporter, named otlphttp here.",
   ),
   restartTitle: translationKey("Restart the collector"),
+  /*
+   * A finding stays open until someone resolves it: once the metrics
+   * arrive, OneUptime stops filing it, and resolving it is the last step.
+   */
   restartDescription: translationKey(
-    "Within a few minutes each service sends traces.span.metrics.calls and traces.span.metrics.duration, and OneUptime no longer finds this problem.",
+    "Within a few minutes each service sends traces.span.metrics.calls and traces.span.metrics.duration. Then resolve this finding.",
   ),
   noCollector: translationKey(
     "Do your services send straight to OneUptime? Put a collector in front of them first.",

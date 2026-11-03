@@ -21,6 +21,7 @@ import logger from "../../../../Logger";
 import CaptureSpan from "../../../../Telemetry/CaptureSpan";
 import { MarkdownText } from "../../../../../../Utils/Markdown/FeedMarkdown";
 import {
+  METRIC_INSIGHT_MAX_CATALOG_READS,
   METRIC_INSIGHT_MAX_FINDINGS_PER_SERVICE,
   METRIC_INSIGHT_MAX_MISSING_METRICS_SERVICES,
   METRIC_INSIGHT_MAX_MISSING_REQUEST_METRICS_SERVICES,
@@ -102,6 +103,10 @@ import {
  *      new scan of the hour: a catalog read and a small sample a service,
  *      for a few services a look.
  *
+ * The catalog is asked about 20 services a look at most for each of the
+ * two (METRIC_INSIGHT_MAX_CATALOG_READS), the busiest first: a read of the
+ * hour cut at its limit can leave many busy services looking quiet.
+ *
  * Each part is read on its own: one that fails finds nothing, says why in
  * the log, and leaves the others to find what they find. Missing metrics
  * and missing request metrics are only looked for when the hour's metrics
@@ -146,7 +151,7 @@ function toKey(metric: MetricSeriesKey): string {
 }
 
 export default class MetricProblemDetector {
-  // One look per scan context: the three detectors share it.
+  // One look per scan context: the four detectors share it.
   private static looks: WeakMap<
     InsightScanContext,
     Promise<Array<InsightCandidate>>
@@ -908,11 +913,17 @@ export default class MetricProblemDetector {
   }): Promise<Array<MetricInsightEvidence>> {
     const projectId: ObjectID = data.context.projectId;
     const found: Array<MetricInsightEvidence> = [];
+    let catalogReads: number = 0;
 
     for (const traffic of data.traffic) {
-      if (found.length >= METRIC_INSIGHT_MAX_MISSING_METRICS_SERVICES) {
+      if (
+        found.length >= METRIC_INSIGHT_MAX_MISSING_METRICS_SERVICES ||
+        catalogReads >= METRIC_INSIGHT_MAX_CATALOG_READS
+      ) {
         break;
       }
+
+      catalogReads++;
 
       // Unknown is not "never": only a catalog that answers "none" files it.
       if (
@@ -1008,15 +1019,19 @@ export default class MetricProblemDetector {
   }): Promise<Array<MetricInsightEvidence>> {
     const projectId: ObjectID = data.context.projectId;
     const found: Array<MetricInsightEvidence> = [];
+    let catalogReads: number = 0;
     let spanReads: number = 0;
 
     for (const candidate of data.candidates) {
       if (
         found.length >= METRIC_INSIGHT_MAX_MISSING_REQUEST_METRICS_SERVICES ||
-        spanReads >= METRIC_INSIGHT_MAX_SERVED_SPAN_READS
+        spanReads >= METRIC_INSIGHT_MAX_SERVED_SPAN_READS ||
+        catalogReads >= METRIC_INSIGHT_MAX_CATALOG_READS
       ) {
         break;
       }
+
+      catalogReads++;
 
       // Unknown is not "never": only a catalog that answers "none" files it.
       if (

@@ -172,7 +172,7 @@ service:
       exporters: [otlphttp]
 ```
 
-Each service whose traces pass through the collector then sends `traces.span.metrics.calls` and `traces.span.metrics.duration` (in seconds) for each operation, span kind and status, and OneUptime no longer finds the problem. It counts every span the collector receives, even ones a sampler drops later. A service that sends straight to OneUptime puts a collector in front first: see [Send through an OpenTelemetry Collector](/docs/telemetry/open-telemetry#send-through-an-opentelemetry-collector).
+Restart the collector. Each service whose traces pass through it then sends `traces.span.metrics.calls` and `traces.span.metrics.duration` (in seconds) for each operation, span kind and status, and OneUptime no longer finds the problem, so resolve the finding. The connector counts every span the collector receives, even ones a sampler drops later. A service that sends straight to OneUptime needs a collector in front of it first: see [Send through an OpenTelemetry Collector](/docs/telemetry/open-telemetry#send-through-an-opentelemetry-collector).
 
 ## What happens to metrics as they arrive
 

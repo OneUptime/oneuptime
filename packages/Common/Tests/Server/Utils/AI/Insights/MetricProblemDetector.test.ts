@@ -47,6 +47,7 @@ import IncludesAnyOfGroups from "../../../../../Types/BaseDatabase/IncludesAnyOf
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
 import {
+  METRIC_INSIGHT_MAX_CATALOG_READS,
   METRIC_INSIGHT_REQUEST_METRIC_PREFIXES,
   MetricBucketProblem,
   MetricCardinalityShape,
@@ -1205,6 +1206,88 @@ describe("MetricProblemDetector", () => {
     ]);
     expect(readServed).toHaveBeenCalledTimes(6);
     expect(requestCatalogAsked).toEqual(ids.slice(0, 6));
+  });
+
+  /*
+   * A project whose read of the hour was cut at its limit: busy services
+   * whose metrics fell past it look as if they sent none, and the catalog
+   * says each sent them before. The look asks about the busiest 20 and
+   * stops, for each kind, rather than once for every busy service.
+   */
+  function busyServices(count: number): Array<string> {
+    const ids: Array<string> = Array.from(
+      { length: count },
+      (_value: unknown, index: number): string => {
+        return `5231aaaa-0000-4000-8000-0000000002${index.toString().padStart(2, "0")}`;
+      },
+    );
+
+    services = ids.map((id: string, index: number): Service => {
+      return service(id, `busy-${index}`);
+    });
+    healthRows = ids.map((id: string, index: number): ServiceSpanHealthRow => {
+      return healthRow(id, 90000 - index * 100);
+    });
+
+    return ids;
+  }
+
+  test("the catalog is asked about the 20 busiest services missing their metrics at most a look", async () => {
+    const ids: Array<string> = busyServices(METRIC_INSIGHT_MAX_CATALOG_READS + 5);
+
+    volumes = [volume("http.server.duration", HOST, 900)];
+
+    for (const id of ids) {
+      catalogServices.add(id);
+    }
+
+    expect(await MetricProblemDetector.look(context())).toEqual([]);
+    expect(METRIC_INSIGHT_MAX_CATALOG_READS).toBe(20);
+    expect(catalogAsked).toEqual(ids.slice(0, 20));
+    expect(readTable).not.toHaveBeenCalled();
+
+    // One that never sent one, past the 20th, is left for another hour.
+    catalogAsked = [];
+    catalogServices.delete(ids[22]!);
+
+    expect(await MetricProblemDetector.look(context())).toEqual([]);
+    expect(catalogAsked).toHaveLength(20);
+
+    // Within them, it is found.
+    catalogAsked = [];
+    catalogServices.delete(ids[19]!);
+
+    expect(types(await MetricProblemDetector.look(context()))).toEqual([
+      `${AIInsightType.MetricMissingMetrics} busy-19`,
+    ]);
+    expect(catalogAsked).toEqual(ids.slice(0, 20));
+  });
+
+  test("the catalog is asked about the 20 busiest services missing their request metrics at most a look", async () => {
+    const ids: Array<string> = busyServices(METRIC_INSIGHT_MAX_CATALOG_READS + 5);
+
+    volumes = ids.map((id: string): MetricVolumeReading => {
+      return volume("jvm.memory.used", id, 60);
+    });
+
+    for (const id of ids) {
+      requestCatalogServices.add(id);
+      servedSamples.set(id, servedRow({ httpServerSpanCount: 800 }));
+    }
+
+    expect(await MetricProblemDetector.look(context())).toEqual([]);
+    expect(requestCatalogAsked).toEqual(ids.slice(0, 20));
+    expect(readServed).not.toHaveBeenCalled();
+
+    // Within them, one that never sent one is found.
+    requestCatalogAsked = [];
+    requestCatalogServices.delete(ids[19]!);
+
+    expect(types(await MetricProblemDetector.look(context()))).toEqual([
+      `${AIInsightType.MetricMissingRequestMetrics} busy-19`,
+    ]);
+    expect(requestCatalogAsked).toEqual(ids.slice(0, 20));
+    expect(readServed).toHaveBeenCalledTimes(1);
   });
 
   test("the lane's four detectors share one look per scan, each with its own kind", async () => {

@@ -125,6 +125,16 @@ export const METRIC_INSIGHT_SERVED_SPAN_SAMPLE_SIZE: number = 1000;
 export const METRIC_INSIGHT_MIN_SERVED_SPANS: number = 100;
 export const METRIC_INSIGHT_MAX_SERVED_SPAN_READS: number = 6;
 
+/*
+ * The busy services the metric catalog is asked about on each look - for
+ * missing metrics, and again for missing request metrics - whether one
+ * ever sent a metric (or a request metric) before. The busiest are asked
+ * first. A read of the hour's metrics cut at its limit can leave many busy
+ * services looking as if they sent none, each one more read: past these,
+ * the look stops asking until the next hour.
+ */
+export const METRIC_INSIGHT_MAX_CATALOG_READS: number = 20;
+
 // The metrics a missing-request-metrics finding names of the ones it sent.
 export const METRIC_INSIGHT_SENT_METRIC_NAMES: number = 3;
 
