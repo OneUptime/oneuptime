@@ -9,7 +9,7 @@ import {
 } from "Common/Types/AI/AIActionWords";
 import { AIChatToolAction } from "Common/Types/AI/AIChatTypes";
 import { ReadingDirection } from "Common/Types/ReadingDirection";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator } from "Common/Types/Translator";
 
 /*
  * WHAT AN AI ACTION'S CARD SAYS, IN THE READER'S LANGUAGE.

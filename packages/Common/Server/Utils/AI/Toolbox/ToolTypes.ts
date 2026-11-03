@@ -134,7 +134,7 @@ export interface ObservabilityTool {
    * arguments - "Create incident: Checkout down" - as a sentence of
    * Types/AI/AIActionWords: the card says it in the reader's language, and
    * the action keeps its English for the model and the exports. Every
-   * mutation has one (AIActionTitlesGuard); the card would otherwise name
+   * mutation has one (AIActionCardsGuard); the card would otherwise name
    * the tool.
    */
   buildActionTitle?: ((args: JSONObject) => AIActionSentence) | undefined;
