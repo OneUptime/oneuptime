@@ -14,16 +14,27 @@ import net from "net";
  * the Playwright image carries, so a scan in CI and one on a laptop judge
  * with the same browser. Lighthouse drives it over the DevTools port, in a
  * tab of its own, with its own mobile or desktop emulation.
- *
- * Requests to other sites are blocked: the pages are served over http from
+ */
+export interface ScanOptions {
+  categories: ReadonlyArray<string>;
+  // URL patterns the browser is told not to fetch.
+  blockedUrlPatterns: ReadonlyArray<string>;
+}
+
+/*
+ * The pull request check's scan (Lighthouse.spec.ts): its three categories,
+ * with requests to other sites blocked. The pages are served over http from
  * 127.0.0.1, so every https request is a third party's (Google Fonts, GitHub
  * avatars, the demo page's cal.com booking widget). What they do - the
  * cookies they set, the issues Chrome logs about them - changes without a
- * pull request changing anything, and the scan judges what this repository
+ * pull request changing anything, and the check judges what this repository
  * serves. Lighthouse leaves the blocked requests out of the console errors
  * it reports.
  */
-const ThirdPartyRequests: Array<string> = ["https://*"];
+export const PullRequestScan: ScanOptions = {
+  categories: ScannedCategories,
+  blockedUrlPatterns: ["https://*"],
+};
 
 // A port nothing is listening on, for the browser's DevTools.
 async function freePort(): Promise<number> {
@@ -47,6 +58,7 @@ async function freePort(): Promise<number> {
 export async function scanPage(
   url: string,
   formFactor: FormFactor,
+  options: ScanOptions = PullRequestScan,
 ): Promise<RunnerResult> {
   const port: number = await freePort();
 
@@ -61,8 +73,8 @@ export async function scanPage(
       port: port,
       output: "html",
       logLevel: "error",
-      onlyCategories: [...ScannedCategories],
-      blockedUrlPatterns: ThirdPartyRequests,
+      onlyCategories: [...options.categories],
+      blockedUrlPatterns: [...options.blockedUrlPatterns],
     };
     // Lighthouse's defaults are a phone's; its desktop config is a laptop's.
     const config: Config | undefined =
