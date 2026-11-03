@@ -14,10 +14,12 @@ const { installFixtures } = require("./fixtures");
  * flat, and each posture is checked as the reader would see it:
  *
  *   tabletop  the incident stands above the fold, the inbox lies below it,
- *             the bar along the bottom, nothing on the crease
+ *             the bar along the bottom, nothing on the crease; Home and
+ *             Settings split on the fold, and sheets rise over the half on
+ *             the table
  *   book      the panes meet on the fold, and the divider stays there
  *   flat      a handle on the divider: drag it, it stays; reload, it is
- *             remembered; double tap, it goes back
+ *             remembered; double tap, it goes back; the keys move it too
  *   unknown   a window nothing reports a fold for - the iPhone Duo today, a
  *             browser without viewport segments - keeps today's layout
  *
@@ -147,6 +149,40 @@ async function expectPanesClearOfFold(page, foldY) {
   const line = await box(page.getByTestId("pane-fold-line"));
   expect(Math.abs(line.y + line.height / 2 - foldY)).toBeLessThanOrEqual(1);
   expect(line.width).toBeGreaterThanOrEqual(detail.width - 1);
+}
+
+/*
+ * A one-pane screen split by the fold (Home, Settings): the half above ends
+ * at the band, the half below starts after it, and the line runs on the
+ * crease. Each of the given cards lies whole in its half.
+ */
+async function expectSplitOnFold(
+  page,
+  prefix,
+  foldY,
+  { above = [], below = [] },
+) {
+  await expect
+    .poll(async () => {
+      const top = await page.getByTestId(`${prefix}-fold-above`).boundingBox();
+      return top ? Math.round(top.y + top.height) : null;
+    })
+    .toBeLessThanOrEqual(foldY - TABLETOP_FOLD_GAP / 2 + 1);
+  const bottom = await box(page.getByTestId(`${prefix}-fold-below`));
+  expect(bottom.y).toBeGreaterThanOrEqual(foldY + TABLETOP_FOLD_GAP / 2 - 1);
+  const line = await box(page.getByTestId(`${prefix}-fold-fold-line`));
+  expect(Math.abs(line.y + line.height / 2 - foldY)).toBeLessThanOrEqual(1);
+
+  for (const testId of above) {
+    const card = await box(page.getByTestId(testId));
+    expect(card.y + card.height).toBeLessThanOrEqual(
+      foldY - TABLETOP_FOLD_GAP / 2 + 1,
+    );
+  }
+  for (const testId of below) {
+    const card = await box(page.getByTestId(testId));
+    expect(card.y).toBeGreaterThanOrEqual(foldY + TABLETOP_FOLD_GAP / 2 - 1);
+  }
 }
 
 test.describe("half open on a table", () => {
@@ -379,6 +415,148 @@ test.describe("half open on a table", () => {
   });
 });
 
+test.describe("Home, Settings and sheets half open on a table", () => {
+  test("Home: what needs the reader above the fold, the rows to tap below it", async ({
+    page,
+  }, testInfo) => {
+    await openApp(page, WINDOWS.innerLandscape, {
+      orientation: "horizontal",
+      offset: 442,
+    });
+
+    await expect(page.getByTestId("home-above-fold")).toBeVisible();
+    // The one scroll across the crease is gone, and so is the greeting.
+    await expect(page.getByTestId("home-scroll")).toHaveCount(0);
+    await expectSplitOnFold(page, "home", 442, {
+      above: ["home-tile-incidents", "home-tile-alerts", "home-oncall-card"],
+      below: ["home-service-health"],
+    });
+    // Side by side in each half of the wide inner screen.
+    const incidents = await box(page.getByTestId("home-tile-incidents"));
+    const onCall = await box(page.getByTestId("home-oncall-card"));
+    expect(onCall.x).toBeGreaterThan(incidents.x + incidents.width);
+    await capture(page, "tabletop-home", testInfo);
+
+    // A row below the fold still opens what it says.
+    await page.getByRole("button", { name: /Monitor issues/ }).click();
+    await expect(
+      page.getByTestId("list-pane").getByText("Checkout API", { exact: true }),
+    ).toBeVisible();
+  });
+
+  test("Home on a Flip: one column in each half", async ({
+    page,
+  }, testInfo) => {
+    await openApp(page, WINDOWS.flip, {
+      orientation: "horizontal",
+      offset: 457,
+    });
+
+    await expect(page.getByTestId("home-above-fold")).toBeVisible();
+    await expectSplitOnFold(page, "home", 457, {
+      above: ["home-tile-incidents", "home-oncall-card"],
+      below: ["home-service-health"],
+    });
+    await capture(page, "tabletop-flip-home", testInfo);
+  });
+
+  test("Settings: the account above the fold, the settings to change below it", async ({
+    page,
+  }, testInfo) => {
+    await openApp(page, WINDOWS.innerLandscape, {
+      orientation: "horizontal",
+      offset: 442,
+    });
+    await page.getByRole("tab", { name: "Settings", exact: true }).click();
+
+    await expect(page.getByTestId("settings-above-fold")).toBeVisible();
+    await expectSplitOnFold(page, "settings", 442, {
+      above: ["settings-account-identity", "settings-workspace-section"],
+      below: ["settings-section-appearance"],
+    });
+    await capture(page, "tabletop-settings", testInfo);
+
+    // The appearance picker below the fold still works.
+    await page.getByRole("radio", { name: "Dark" }).click();
+    await expect(page.getByRole("radio", { name: "Dark" })).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+  });
+
+  test("the note sheet rises over the half on the table, its incident still in sight above the fold", async ({
+    page,
+  }, testInfo) => {
+    await openApp(page, WINDOWS.innerLandscape, {
+      orientation: "horizontal",
+      offset: 442,
+    });
+    await page.getByRole("tab", { name: "Inbox", exact: true }).click();
+    const listPane = page.getByTestId("list-pane");
+    await waitForFirstRow(listPane);
+    await listPane.getByText(INCIDENT_TITLE, { exact: true }).click();
+    await page.getByTestId("add-note-button").click();
+
+    const sheet = page.getByTestId("add-note-sheet");
+    await expect(sheet).toBeVisible();
+    // Once it has slid all the way up: its bottom on the window's bottom edge.
+    await expect
+      .poll(async () => {
+        const frame = await sheet.boundingBox();
+        return frame ? Math.round(frame.y + frame.height) : null;
+      })
+      .toBeLessThanOrEqual(WINDOWS.innerLandscape.height + 1);
+    const frame = await box(sheet);
+    expect(frame.y).toBeGreaterThanOrEqual(442 + TABLETOP_FOLD_GAP / 2 - 1);
+    // Submit is in the half under the hand, in view.
+    await expect(page.getByTestId("add-note-submit")).toBeInViewport();
+    await capture(page, "tabletop-note-sheet", testInfo);
+  });
+
+  test("the project switcher takes the half on the table, never the whole window", async ({
+    page,
+  }) => {
+    await openApp(page, WINDOWS.innerLandscape, {
+      orientation: "horizontal",
+      offset: 442,
+    });
+    await page
+      .getByRole("button", { name: /^Switch project, current project/ })
+      .filter({ visible: true })
+      .first()
+      .click();
+
+    const sheet = page.getByTestId("project-switcher-sheet");
+    await expect(sheet).toBeVisible();
+    await expect
+      .poll(async () => {
+        const frame = await sheet.boundingBox();
+        return frame ? Math.round(frame.y + frame.height) : null;
+      })
+      .toBeLessThanOrEqual(WINDOWS.innerLandscape.height + 1);
+    const frame = await box(sheet);
+    expect(frame.y).toBeGreaterThanOrEqual(442 + TABLETOP_FOLD_GAP / 2 - 1);
+    await expect(
+      page.getByRole("radio", { name: "Atlas Staging" }),
+    ).toBeInViewport();
+  });
+
+  test("opened flat again, Home is the one scroll it always was", async ({
+    page,
+  }) => {
+    await openApp(page, WINDOWS.innerLandscape, {
+      orientation: "horizontal",
+      offset: 442,
+    });
+    await expect(page.getByTestId("home-above-fold")).toBeVisible();
+
+    await emulate(page, WINDOWS.innerLandscape, null);
+    await expect(page.getByTestId("home-scroll")).toBeVisible();
+    await expect(page.getByTestId("home-fold")).toHaveCount(0);
+    await expect(page.getByText("Overview", { exact: true })).toBeVisible();
+  });
+});
+
 test.describe("half open like a book", () => {
   test("the panes meet on the fold, and there is no handle to drag the divider off it", async ({
     page,
@@ -453,6 +631,77 @@ test.describe("lying flat", () => {
       .toBe(442);
   });
 
+  test("the keys move it: a step at a time, to either end, and back onto the fold's line", async ({
+    page,
+  }, testInfo) => {
+    await openApp(page, WINDOWS.inner, null);
+    await page.getByRole("tab", { name: "Inbox", exact: true }).click();
+    const listPane = page.getByTestId("list-pane");
+    await listPane.getByText(INCIDENT_TITLE, { exact: true }).click();
+    const handle = page.getByTestId("pane-divider");
+    await expect(handle).toBeVisible();
+
+    // A tab stop: focus reaches it from the keyboard.
+    await expect(handle).toHaveAttribute("tabindex", "0");
+    await handle.focus();
+
+    const widthOf = async () => {
+      const pane = await box(page.getByTestId("list-pane"));
+      return Math.round(pane.width);
+    };
+    const start = await widthOf();
+
+    await page.keyboard.press("ArrowRight");
+    await expect.poll(widthOf).toBe(start + 40);
+    // While the keys move it, the line and a ring show what they move.
+    await expect(page.getByTestId("pane-divider-line")).toBeVisible();
+    const ringElement = page.getByTestId("pane-divider-ring");
+    const ring = await ringElement.evaluate((element) => {
+      return getComputedStyle(element).borderTopColor;
+    });
+    expect(ring).not.toBe("rgba(0, 0, 0, 0)");
+    /*
+     * The ring hugs the pill, a slim capsule on the divider's line, clear of
+     * the cards on either side of it.
+     */
+    const ringBox = await box(ringElement);
+    const pillBox = await box(page.getByTestId("pane-divider-pill"));
+    expect(ringBox.width).toBeLessThanOrEqual(16);
+    expect(ringBox.height).toBeLessThanOrEqual(pillBox.height + 12);
+    expect(
+      Math.abs(ringBox.x + ringBox.width / 2 - (pillBox.x + pillBox.width / 2)),
+    ).toBeLessThanOrEqual(1);
+    const listPaneBox = await box(page.getByTestId("list-pane"));
+    expect(
+      Math.abs(
+        ringBox.x + ringBox.width / 2 - (listPaneBox.x + listPaneBox.width),
+      ),
+    ).toBeLessThanOrEqual(2);
+    await capture(page, "flat-divider-keyboard", testInfo);
+
+    await page.keyboard.press("End");
+    const widest = await widthOf();
+    expect(widest).toBeGreaterThan(start + 40);
+    await page.keyboard.press("Home");
+    await expect.poll(widthOf).toBe(320);
+
+    // Enter puts it back where the layout has it: on the fold's line.
+    await page.keyboard.press("Enter");
+    await expect
+      .poll(async () => {
+        const pane = await box(page.getByTestId("list-pane"));
+        return Math.round(pane.x + pane.width);
+      })
+      .toBe(442);
+
+    // An arrow never scrolls the page while the handle has focus.
+    expect(
+      await page.evaluate(() => {
+        return document.scrollingElement?.scrollTop ?? 0;
+      }),
+    ).toBe(0);
+  });
+
   test("let go near the fold's line, the divider settles exactly on it", async ({
     page,
   }) => {
@@ -523,5 +772,20 @@ test.describe("in dark mode", () => {
     await emulate(page, WINDOWS.inner, null);
     await expect(page.getByTestId("pane-divider")).toBeVisible();
     await capture(page, "flat-divider-dark", testInfo);
+  });
+
+  test("Home split on the fold reads from the dark palette", async ({
+    page,
+  }, testInfo) => {
+    await openApp(page, WINDOWS.innerLandscape, {
+      orientation: "horizontal",
+      offset: 442,
+    });
+    await expect(page.getByTestId("home-above-fold")).toBeVisible();
+    const canvas = await page.getByTestId("home-fold").evaluate((element) => {
+      return getComputedStyle(element).backgroundColor;
+    });
+    expect(canvas).not.toBe("rgb(243, 244, 247)");
+    await capture(page, "tabletop-home-dark", testInfo);
   });
 });

@@ -10,6 +10,7 @@ import Dropdown, {
   DropdownValue,
 } from "Common/UI/Components/Dropdown/Dropdown";
 import Input from "Common/UI/Components/Input/Input";
+import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import React, { FunctionComponent, ReactElement, useId, useState } from "react";
 
@@ -163,7 +164,12 @@ const NetworkTopologyToolbar: FunctionComponent<ComponentProps> = (
               "Every network map in this project will open on this layout. People can still switch while they look."
             }
             disabled={controls.isSaving}
-            className="rounded-lg border border-indigo-200 bg-white px-2.5 py-1.5 text-xs font-medium text-indigo-700 transition hover:bg-indigo-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
+            className={`rounded-lg border border-indigo-200 bg-white px-2.5 py-1.5 text-xs font-medium text-indigo-700 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-500 ${getHandDrawnButtonStateClassName(
+              {
+                isBusy: controls.isSaving,
+                hoverClassName: "hover:bg-indigo-50",
+              },
+            )}`}
             onClick={controls.onMakeDefault}
           >
             {controls.isSaving
@@ -201,7 +207,12 @@ const NetworkTopologyToolbar: FunctionComponent<ComponentProps> = (
             "Each map opens on its own default again: Automatic for all devices, By network layer for a site."
           }
           disabled={controls.isSaving}
-          className="rounded font-medium text-indigo-600 hover:text-indigo-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
+          className={`rounded font-medium text-indigo-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-500 ${getHandDrawnButtonStateClassName(
+            {
+              isBusy: controls.isSaving,
+              hoverClassName: "hover:text-indigo-800",
+            },
+          )}`}
           onClick={controls.onClear}
         >
           {controls.isSaving

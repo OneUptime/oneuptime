@@ -187,16 +187,28 @@ without the module - the layout above is used unchanged.
 - **Half open on a table:** the detail stands above the fold and the list lies
   below it, with the bar along the bottom under the reader's hand. The list
   opens at its first row, its search and filters a short scroll up, and
-  nothing sits on the crease.
+  nothing sits on the crease. Home and Settings split on the fold too: what
+  needs the reader above it (the counts and whether you are on call; who is
+  signed in, and to which OneUptime), the rows to tap below it, each half
+  scrolling on its own. Sheets rise over the half lying on the table and stop
+  at the fold; with the keyboard up they move above the fold, the keys below
+  it, as on a laptop.
 - **Lying flat, or a window that does not fold:** a handle in the middle of the
   divider moves it, within the widths both panes need. The width is
   remembered; let go near the fold's line and the divider settles on it; a
   double tap puts it back. With a screen reader the handle is an adjustable
-  control.
+  control. From a keyboard it is a tab stop - the arrow keys move it a step at
+  a time, Home and End take it to either end, and Enter puts it back - in the
+  web build today, and in the app once React Native's key events
+  (`enableKeyEvents`, still experimental and off in 0.86) are turned on.
 
-The posture rules are in `src/layout/windowLayout.ts` and
-`src/layout/windowPosture.ts`; the module, its checks and what to try on a
-device are in [its README](modules/window-posture/README.md).
+The posture rules are in `src/layout/windowLayout.ts`,
+`src/layout/windowPosture.ts`, `src/layout/foldSplit.ts` (one-pane screens) and
+`src/layout/sheetPlacement.ts` (sheets); the module, its checks and what to try
+on a device are in [its README](modules/window-posture/README.md). The module's
+iOS side - the iPhone Duo's division regions and hinge, from the iOS 27.1 SDK -
+is written but not linked until it is built on Xcode 27.1 and checked in the
+iPhone Duo simulator.
 
 The rules are in `src/layout/windowLayout.ts`; how to build a screen that
 follows them is in the [design system](docs/DESIGN_SYSTEM.md).

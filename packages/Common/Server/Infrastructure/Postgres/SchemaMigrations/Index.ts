@@ -258,6 +258,7 @@ import { AddVMwareDatacenterHostStates1808870000000 } from "./1808870000000-AddV
 import { AddRunnerTakesCodeFixes1808872000000 } from "./1808872000000-AddRunnerTakesCodeFixes";
 import { AddScopeToLogSavedView1808880000000 } from "./1808880000000-AddScopeToLogSavedView";
 import { AddProjectDefaultNetworkTopologyLayout1808890000000 } from "./1808890000000-AddProjectDefaultNetworkTopologyLayout";
+import { AddWorkspaceHomeChoice1808891613000 } from "./1808891613000-AddWorkspaceHomeChoice";
 import { AddSecurityWatchlistExpiryAndUrlReads1808905000000 } from "./1808905000000-AddSecurityWatchlistExpiryAndUrlReads";
 import { AddSecurityWatchlistExpiryAndUrlReadIndexes1808906000000 } from "./1808906000000-AddSecurityWatchlistExpiryAndUrlReadIndexes";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
@@ -1720,6 +1721,7 @@ export default [
   AddRunnerTakesCodeFixes1808872000000,
   AddScopeToLogSavedView1808880000000,
   AddProjectDefaultNetworkTopologyLayout1808890000000,
+  AddWorkspaceHomeChoice1808891613000,
   AddSecurityWatchlistExpiryAndUrlReads1808905000000,
   AddSecurityWatchlistExpiryAndUrlReadIndexes1808906000000,
 ];

@@ -158,10 +158,18 @@ function securityFeedFor(caseId) {
 }
 
 const DECISION_PATH = /^\/api\/security-playbook-run\/([^/]+)\/(approve|reject)$/;
+// The on-call page routes: GET/POST pass-on (Escalate), POST acknowledge (Acknowledge again).
+const ON_CALL_PAGE_PATH = /^\/api\/on-call-page\/(pass-on|acknowledge)\/([a-z-]+)\/([^/]+)$/;
 
-async function installFixtures(page, { signedIn = true, loginMode = "normal", requireProjectSso = false, security = false } = {}) {
+async function installFixtures(page, { signedIn = true, loginMode = "normal", requireProjectSso = false, security = false, pagedAgain = false } = {}) {
   const requests = [];
   const mutations = [];
+  /*
+   * pagedAgain: the policy's acknowledgement timeout ran out on the
+   * acknowledged incident and alert (INC-1041, ALT-209), so the reader is
+   * paged again about each until they acknowledge again or escalate.
+   */
+  const pagesAgain = new Set(pagedAgain ? ["incident/incident-2", "alert/alert-2"] : []);
   // Per page, so a decision or a change made in one test never leaks into the next.
   const securityState = { cases: securityCasesFor(user), runs: securityRunsFor(), notes: [{ _id: "0e7e0000-0001-4000-8000-000000000001", note: "Called Alice: she is at home and did not sign in.", createdAt: "2026-09-10T09:55:00Z", createdByUser: priya }] };
   const overrides = new Map();
@@ -246,6 +254,22 @@ async function installFixtures(page, { signedIn = true, loginMode = "normal", re
         return reply({ runId: run._id, decision: decision[2] === "approve" ? "Approved" : "Rejected" });
       }
       return reply({ data: [], count: 0 });
+    }
+    const onCallPage = ON_CALL_PAGE_PATH.exec(url.pathname);
+    if (onCallPage) {
+      const key = onCallPage[2] + "/" + decodeURIComponent(onCallPage[3]);
+      const open = pagesAgain.has(key);
+      if (onCallPage[1] === "acknowledge") {
+        mutations.push({ path: url.pathname, projectId, body, method: request.method() });
+        pagesAgain.delete(key);
+        return reply({ acknowledged: open ? 1 : 0 });
+      }
+      if (request.method() === "POST") {
+        mutations.push({ path: url.pathname, projectId, body, method: "POST" });
+        pagesAgain.delete(key);
+        return reply({ answers: open ? [{ passedOn: true, policyName: "Primary response", sentence: "The policy is now paging level 2: Priya Shah." }] : [] });
+      }
+      return reply({ pages: open ? [{ executionLogId: "page-again-" + onCallPage[2], preview: { policyName: "Primary response" }, sentence: "This will immediately page level 2, without waiting.", isPageAgain: true }] : [] });
     }
     if (url.pathname === "/api/status") { return reply({ status: "ok" }); }
     if (url.pathname === "/identity/login") {

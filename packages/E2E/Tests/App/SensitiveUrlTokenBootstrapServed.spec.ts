@@ -55,7 +55,14 @@ const PAGES: Array<ServedPage> = [
     firstExternalScript: '<script src="/accounts/env.js">',
   },
   {
-    route: "/status-page",
+    /*
+     * With the slash: the bare /status-page is the marketing site's address
+     * for /product/status-page when billing is enabled (nginx's
+     * `location = /status-page`), and only /status-page/... reaches the
+     * status page app whatever the mode. The app answers the bare address
+     * with a redirect to this one.
+     */
+    route: "/status-page/",
     firstExternalScript: '<script src="/status-page/env.js">',
   },
 ];

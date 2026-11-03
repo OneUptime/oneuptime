@@ -406,13 +406,13 @@ describe("MicrosoftTeamsReplies.sendBestEffort", () => {
 
     const sent: boolean = await MicrosoftTeamsReplies.sendBestEffort(
       fake.turnContext,
-      "✅ Incident created successfully!",
+      "✅ Incident created successfully.",
     );
 
     expect(sent).toBe(true);
     expect(fake.sendActivity).toHaveBeenCalledTimes(1);
     expect(fake.sendActivity).toHaveBeenCalledWith(
-      "✅ Incident created successfully!",
+      "✅ Incident created successfully.",
     );
     expect(errorLogSpy).not.toHaveBeenCalled();
   });
@@ -518,7 +518,7 @@ describe("MicrosoftTeamsReplies.sendBestEffort", () => {
 
     const sending: Promise<boolean> = MicrosoftTeamsReplies.sendBestEffort(
       fake.turnContext,
-      "✅ Incident created successfully!",
+      "✅ Incident created successfully.",
     ).then((sent: boolean): boolean => {
       settled = true;
       return sent;

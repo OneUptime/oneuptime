@@ -65,6 +65,9 @@ jest.mock("expo-notifications", () => {
     setNotificationCategoryAsync: jest.fn(async () => {
       return null;
     }),
+    deleteNotificationCategoryAsync: jest.fn(async () => {
+      return true;
+    }),
     getPermissionsAsync: jest.fn(async () => {
       return { status: "granted", ios: {} };
     }),

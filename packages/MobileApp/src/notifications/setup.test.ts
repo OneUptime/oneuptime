@@ -2,9 +2,15 @@ import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 import {
   requestPermissionsAndGetToken,
+  setupNotificationCategories,
   setupNotificationChannels,
 } from "./setup";
 import { CRITICAL_CHANNEL } from "./channels";
+import {
+  ACKNOWLEDGE_PAGE_ACTION,
+  ESCALATE_PAGE_ACTION,
+  ON_CALL_PAGE_CATEGORY,
+} from "./categories";
 import logger from "../utils/logger";
 import { describe, expect, test, beforeEach, afterEach } from "@jest/globals";
 
@@ -149,6 +155,83 @@ describe("setupNotificationChannels", () => {
  * function runs on every launch, so a token printed here is printed
  * constantly.
  */
+describe("setupNotificationCategories", () => {
+  /*
+   * The server names ON_CALL_PAGE on every page's push; without it on the
+   * phone the push arrives with no actions, as before. The two categories
+   * earlier builds registered - which no server ever named, and whose
+   * Acknowledge did nothing - are taken off.
+   */
+  let categorySpy: jest.SpyInstance;
+  let deleteSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    categorySpy = jest
+      .spyOn(Notifications, "setNotificationCategoryAsync")
+      .mockResolvedValue(null as never);
+    deleteSpy = jest
+      .spyOn(Notifications, "deleteNotificationCategoryAsync")
+      .mockResolvedValue(true as never);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test.each(["ios", "android"] as Array<"ios" | "android">)(
+    "on %s, registers the page's category with Acknowledge and Escalate",
+    async (os: "ios" | "android") => {
+      setPlatform(os);
+
+      await setupNotificationCategories();
+
+      expect(categorySpy).toHaveBeenCalledTimes(1);
+      const [identifier, actions] = categorySpy.mock.calls[0]! as [
+        string,
+        Array<{ identifier: string; buttonTitle: string; options: unknown }>,
+      ];
+      expect(identifier).toBe(ON_CALL_PAGE_CATEGORY);
+      expect(
+        actions.map((action: { identifier: string }) => {
+          return action.identifier;
+        }),
+      ).toEqual([ACKNOWLEDGE_PAGE_ACTION, ESCALATE_PAGE_ACTION]);
+    },
+  );
+
+  test("takes the categories no server ever named off the phone", async () => {
+    await setupNotificationCategories();
+
+    expect(
+      deleteSpy.mock.calls.map((call: Array<unknown>) => {
+        return call[0];
+      }),
+    ).toEqual(["INCIDENT_ACTIONS", "ALERT_ACTIONS"]);
+    expect(categorySpy).not.toHaveBeenCalledWith(
+      "INCIDENT_ACTIONS",
+      expect.anything(),
+    );
+  });
+
+  test("a category the phone refuses is logged, and never stops the app starting", async () => {
+    const errorSpy: jest.SpyInstance = jest
+      .spyOn(logger, "error")
+      .mockImplementation(() => {
+        return undefined;
+      });
+    categorySpy.mockRejectedValueOnce(new Error("not allowed"));
+    deleteSpy.mockRejectedValue(new Error("not there"));
+
+    await expect(setupNotificationCategories()).resolves.toBeUndefined();
+    expect(errorSpy).toHaveBeenCalledWith(
+      `[PushNotifications] Failed to set notification category ${ON_CALL_PAGE_CATEGORY}:`,
+      expect.any(Error),
+    );
+    // Both retired categories were still asked to go.
+    expect(deleteSpy).toHaveBeenCalledTimes(2);
+  });
+});
+
 describe("requestPermissionsAndGetToken", () => {
   /*
    * Deliberately not the token from the shared setup mock, and deliberately

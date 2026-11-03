@@ -112,6 +112,7 @@ import Project from "../../../../Models/DatabaseModels/Project";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
 import ObjectID from "../../../../Types/ObjectID";
 import LIMIT_MAX from "../../../../Types/Database/LimitMax";
+import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import DatabaseConfig from "../../../../Server/DatabaseConfig";
 import URL from "../../../../Types/API/URL";
 import { JSONObject } from "../../../../Types/JSON";
@@ -141,6 +142,7 @@ const HELP_FRAGMENT: string = "Here's what I can do.";
 interface CapturedFindByCall {
   query: JSONObject;
   select: JSONObject;
+  sort?: JSONObject;
   limit: number;
   skip: number;
   props: JSONObject;
@@ -701,6 +703,25 @@ describe("MicrosoftTeamsUtil.resolveProjectByTenantId - the query it issues", ()
       .calls[0]?.[0] as CapturedFindByCall;
     expect(call.limit).toBe(LIMIT_MAX);
     expect(call.skip).toBe(0);
+  });
+
+  /*
+   * The projects in the order they were connected, as Slack's are read
+   * (WorkspaceProjectResolver.findConnections): the question which project
+   * lists them so, and a Home nobody has switched yet shows the first of
+   * the person's. Without a sort, the read came newest first - the Home of
+   * the project connected last.
+   */
+  test("reads the projects in the order they were connected: oldest connection first, as Slack's", async () => {
+    const findBySpy: jest.SpyInstance = mockFindBy([]);
+
+    await MicrosoftTeamsUtil.resolveProjectByTenantId({
+      tenantId: TENANT_ID,
+    });
+
+    const call: CapturedFindByCall = findBySpy.mock
+      .calls[0]?.[0] as CapturedFindByCall;
+    expect(call.sort).toEqual({ createdAt: SortOrder.Ascending });
   });
 
   test("selects projectId so the caller can scope every downstream read", async () => {

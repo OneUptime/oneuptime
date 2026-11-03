@@ -1,5 +1,5 @@
 import App from "./App";
-import "./Utils/i18n";
+import { i18nReady } from "./Utils/i18n";
 import AccountsTheme from "./Utils/AccountsTheme";
 import "Common/UI/Styles/Theme.css";
 import Telemetry from "Common/UI/Utils/Telemetry/Telemetry";
@@ -45,15 +45,30 @@ const root: any = ReactDOM.createRoot(
 );
 
 /*
- * Last-resort boundary. Anything that throws above the route-level boundary
- * (or before routing is even mounted) would otherwise unmount the entire tree
- * and paint a blank white page with no way back.
+ * Locale bundles other than English are lazy chunks (Utils/i18n.ts), so a
+ * detected non-English language arrives asynchronously. Waiting for
+ * i18nReady before the first render means no frame is ever painted with raw
+ * translation keys; for English (the statically-bundled fallback) the
+ * promise settles in a microtask. i18nReady never hangs - a failed locale
+ * fetch resolves it after i18next's retries - and the catch below renders
+ * the page with English strings even if initialization itself blew up.
+ *
+ * The ErrorBoundary is the last-resort boundary: anything that throws above
+ * the route-level boundary (or before routing is even mounted) would
+ * otherwise unmount the entire tree and paint a blank white page with no way
+ * back.
  */
-root.render(
-  <ErrorBoundary>
-    <BrowserRouter>
-      <NewVersionNavigation />
-      <App />
-    </BrowserRouter>
-  </ErrorBoundary>,
-);
+i18nReady
+  .catch((): void => {
+    // Render anyway - the bundled English strings are always available.
+  })
+  .then((): void => {
+    root.render(
+      <ErrorBoundary>
+        <BrowserRouter>
+          <NewVersionNavigation />
+          <App />
+        </BrowserRouter>
+      </ErrorBoundary>,
+    );
+  });

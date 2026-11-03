@@ -1,8 +1,11 @@
 import apiClient from "./client";
 import {
+  acknowledgeOnCallPagesAgain,
   fetchOnCallPassOnPages,
+  getOnCallPageAgainAcknowledgePath,
   getOnCallPassOnPath,
   passOnOnCallPages,
+  toAcknowledgedCount,
   toOnCallPassOnAnswers,
   toOnCallPassOnPages,
 } from "./onCallPassOn";
@@ -88,6 +91,7 @@ describe("the requests", () => {
         policyName: "Payments",
         sentence:
           "This will immediately page Platform leads (Level 2 of 3), without waiting.",
+        isPageAgain: false,
       },
     ]);
 
@@ -138,6 +142,46 @@ describe("the requests", () => {
     expect(config.headers).toEqual({ tenantid: "project-1" });
   });
 
+  test("a page again's route names the record's kind and id, as the Dashboard's does", () => {
+    expect(getOnCallPageAgainAcknowledgePath("incident", "incident-1")).toBe(
+      "/api/on-call-page/acknowledge/incident/incident-1",
+    );
+    expect(getOnCallPageAgainAcknowledgePath("incident-episode", "a/b")).toBe(
+      "/api/on-call-page/acknowledge/incident-episode/a%2Fb",
+    );
+  });
+
+  test("acknowledging again is a POST with an empty JSON body, in the record's project, answering how many", async () => {
+    postSpy().mockResolvedValueOnce({ data: { acknowledged: 1 } } as never);
+
+    const acknowledged: number = await acknowledgeOnCallPagesAgain(
+      "project-1",
+      "alert",
+      "alert-1",
+    );
+
+    expect(acknowledged).toBe(1);
+
+    const [url, body, config] = postSpy().mock.calls[0]! as [
+      string,
+      unknown,
+      { headers: Record<string, string> },
+    ];
+
+    expect(url).toBe("/api/on-call-page/acknowledge/alert/alert-1");
+    // Nothing but the record: the session is who acknowledges.
+    expect(body).toEqual({});
+    expect(config.headers).toEqual({ tenantid: "project-1" });
+  });
+
+  test("acknowledging again throws when the request fails, so the screen can say the page goes on", async () => {
+    postSpy().mockRejectedValueOnce(new Error("Request failed with 503"));
+
+    await expect(
+      acknowledgeOnCallPagesAgain("project-1", "incident", "incident-1"),
+    ).rejects.toThrow("503");
+  });
+
   test("a failed request is an error, never 'not paged'", async () => {
     getSpy().mockRejectedValueOnce(new Error("Request failed with 500"));
 
@@ -169,8 +213,45 @@ describe("reading the answers", () => {
         policyName: "",
         sentence:
           "Nobody else is being paged: paging stops, and somebody needs to take it.",
+        isPageAgain: false,
       },
     ]);
+  });
+
+  test("pages: a page again is marked as one, and only by a true isPageAgain", () => {
+    const pages: ReturnType<typeof toOnCallPassOnPages> = toOnCallPassOnPages({
+      pages: [
+        { executionLogId: "again", preview: PREVIEW, isPageAgain: true },
+        { executionLogId: "first", preview: PREVIEW },
+        { executionLogId: "text", preview: PREVIEW, isPageAgain: "true" },
+        { executionLogId: "one", preview: PREVIEW, isPageAgain: 1 },
+      ],
+    });
+
+    expect(
+      pages.map((page: { executionLogId: string; isPageAgain?: boolean }) => {
+        return [page.executionLogId, page.isPageAgain];
+      }),
+    ).toEqual([
+      ["again", true],
+      ["first", false],
+      ["text", false],
+      ["one", false],
+    ]);
+  });
+
+  test("acknowledged: a count of pages again, and anything else is none", () => {
+    expect(toAcknowledgedCount({ acknowledged: 2 })).toBe(2);
+    expect(toAcknowledgedCount({ acknowledged: 1.7 })).toBe(1);
+    expect(toAcknowledgedCount({ acknowledged: 0 })).toBe(0);
+    expect(toAcknowledgedCount({ acknowledged: -3 })).toBe(0);
+    expect(toAcknowledgedCount({ acknowledged: "2" })).toBe(0);
+    expect(toAcknowledgedCount({ acknowledged: Number.NaN })).toBe(0);
+    expect(
+      toAcknowledgedCount({ acknowledged: Number.POSITIVE_INFINITY }),
+    ).toBe(0);
+    expect(toAcknowledgedCount(undefined)).toBe(0);
+    expect(toAcknowledgedCount([2])).toBe(0);
   });
 
   test("pages: no list is no page", () => {
