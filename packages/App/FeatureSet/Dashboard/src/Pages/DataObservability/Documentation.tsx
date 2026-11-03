@@ -175,6 +175,15 @@ What each upload does:
 - **Tests:** each test of a watched table shows on its **Checks** tab, with its last result and the rows it found failing. Click **Alert on Failures** to have a failing test open an alert.
 - **Builds:** each build is a run of the project's pipeline under **Pipelines** (namespace \`dbt\`). A build with an error or a failed test is a failed run, so the pipeline alerts work on dbt builds too: failed, unusually long and late.
 
+## One issue per cause
+
+When a table goes stale, every table built from it goes stale too. Before a data alert opens, OneUptime looks up lineage for an alert already open on what its table or pipeline is built from: the tables upstream, the pipelines that write them, and the databases they live in, up to five steps up. When it finds one, the new alert is that alert's consequence:
+- It starts **acknowledged**, so nobody is paged twice for one problem. It recovers on its own once its data does.
+- Its feed says which alert caused it, and so does its **Data** card.
+- It joins the cause's episode, when the cause is in one.
+
+The cause's **Data** card lists its **Downstream Impact**: every alert it caused. A table alert's card also shows the services that write the table, with their failed writes, and their deploys and other changes in the day before the alert.
+
 ## Services that use each table
 
 A table's **Services** tab lists the services seen writing and reading it, with the statements each ran, its calls and failures in the last hour, and when it was last seen. It comes from the database spans your services already send with OpenTelemetry: a client span with \`db.system.name\`, \`db.namespace\` and \`db.collection.name\` (or \`db.sql.table\`, or a span named like \`INSERT orders\`). Nothing extra to install. It is updated every 15 minutes.
