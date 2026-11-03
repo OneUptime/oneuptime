@@ -148,7 +148,59 @@ describe("learnUpdateInterval", () => {
   });
 });
 
+describe("detectChangeTime without a write counter", () => {
+  test("Redshift and Snowflake keep no write counter: bytes that moved say it changed", () => {
+    expect(
+      detectChangeTime(
+        previous({ writeCount: null }),
+        table({ writeCount: null, sizeInBytes: 70000 }),
+        COLLECTED_AT,
+      ),
+    ).toEqual(COLLECTED_AT);
+  });
+
+  test("with a write counter, bytes alone (a vacuum) say nothing", () => {
+    expect(
+      detectChangeTime(previous(), table({ sizeInBytes: 70000 }), COLLECTED_AT),
+    ).toBe(null);
+  });
+});
+
 describe("planAssetUpdate", () => {
+  test("a read counter of 0 at first sight marks the table unread since the statistics started", () => {
+    const plan: AssetPlan = planAssetUpdate(
+      null,
+      table({ readCount: 0 }),
+      COLLECTED_AT,
+      100 * 24 * 60 * 60,
+    );
+
+    expect(plan.reads).toEqual({
+      readCount: 0,
+      lastReadAt: null,
+      unreadSince: new Date(COLLECTED_AT.getTime() - 100 * 24 * 60 * 60 * 1000),
+    });
+    expect(plan.collectionState["readCount"]).toBe(0);
+  });
+
+  test("a read counter that moved writes the read, even when nothing else moved", () => {
+    const plan: AssetPlan = planAssetUpdate(
+      previous({
+        reads: {
+          readCount: 10,
+          lastReadAt: new Date("2026-11-01T00:00:00.000Z"),
+          unreadSince: new Date("2026-11-01T00:00:00.000Z"),
+        },
+      }),
+      table({ readCount: 12 }),
+      COLLECTED_AT,
+    );
+
+    expect(plan.needsWrite).toBe(true);
+    expect(plan.reads.lastReadAt).toEqual(COLLECTED_AT);
+    expect(plan.collectionState["readCount"]).toBe(12);
+  });
+
   test("a table whose numbers did not move is not written again", () => {
     const plan: AssetPlan = planAssetUpdate(previous(), table(), COLLECTED_AT);
 

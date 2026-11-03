@@ -6,7 +6,7 @@
 - [전역 옵션](#전역-옵션): 모든 명령이 받는 옵션.
 - [로그인과 컨텍스트](#로그인과-컨텍스트): login과 context 명령.
 - [리소스 명령](#리소스-명령): 모든 리소스의 작업, 필드, 동작.
-- [기타 명령](#기타-명령): deploy, whoami, resources, version, help.
+- [기타 명령](#기타-명령): deploy, dbt upload, whoami, resources, version, help.
 :::
 
 ## 명령 구성
@@ -19,6 +19,8 @@ flowchart LR
     O --> R["incident, monitor<br/>등 모든 리소스"]
     R --> R1["list<br/>get<br/>create<br/>update<br/>delete<br/>count<br/>fields"]
     R --> R2["acknowledge<br/>resolve<br/>start<br/>end<br/>add-note"]
+    O --> D["dbt"]
+    D --> D1["upload"]
     O --> U["deploy<br/>whoami<br/>resources<br/>version<br/>help"]
 ```
 
@@ -303,6 +305,22 @@ oneuptime deploy [--service <name>] [--service-version <version>] [--previous-ve
 | `--type <type>` | 아니요 | 변경의 종류(예: `config-change`, `rollback`) | `deployment` |
 | `--time <time>` | 아니요 | 발생한 시각(예: `2026-10-19T10:00:00Z`) | 지금 |
 | `--attribute <key=value...>` | 아니요 | 추가 속성. `key=value` 형식으로 하나 이상 | |
+| `--ingestion-key <key>` | 아니요 | 프로젝트의 텔레메트리 수집 키 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
+
+### `oneuptime dbt upload`
+
+빌드 후 CI나 dbt Cloud 작업에서 dbt 프로젝트의 아티팩트를 데이터 관측 가능성으로 보냅니다. 프로젝트의 모델은 그 모델이 만드는 테이블에 계보와 함께 표시되고, 테스트는 OneUptime의 점검 옆에 표시되며 알림을 발생시킬 수 있고, 각 빌드는 프로젝트 파이프라인의 실행이 됩니다. dbt의 대상 폴더에서 `manifest.json`과 `run_results.json`을 읽고, 데이터 관측 가능성이 읽는 부분만 보냅니다. 쓰기에는 API 키가 아니라 텔레메트리 수집 키를 사용합니다. 대시보드의 데이터 관측 가능성 문서 페이지에 CI 작업에서 사용하는 예가 있습니다.
+
+```bash
+oneuptime dbt upload [--target-path <dir>] [--manifest <file>] [--run-results <file>] [--project <name>] [--ingestion-key <key>]
+```
+
+| 옵션 | 필수 | 설명 | 기본값 |
+| --- | --- | --- | --- |
+| `--target-path <dir>` | 아니요 | dbt가 아티팩트를 쓴 폴더 | `target` |
+| `--manifest <file>` | 아니요 | 보낼 매니페스트 | 대상 폴더의 `manifest.json` |
+| `--run-results <file>` | 아니요 | 보낼 실행 결과 | 대상 폴더의 `run_results.json` |
+| `--project <name>` | 아니요 | dbt 프로젝트 이름. 매니페스트를 보내지 않을 때만 필요합니다 | 매니페스트의 프로젝트 |
 | `--ingestion-key <key>` | 아니요 | 프로젝트의 텔레메트리 수집 키 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
 
 ### `oneuptime whoami`

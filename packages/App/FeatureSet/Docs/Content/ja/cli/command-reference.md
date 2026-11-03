@@ -6,7 +6,7 @@
 - [グローバルオプション](#グローバルオプション): すべてのコマンドが受け付けるオプション。
 - [ログインとコンテキスト](#ログインとコンテキスト): login と context のコマンド。
 - [リソースのコマンド](#リソースのコマンド): すべてのリソースの操作、フィールド、アクション。
-- [その他のコマンド](#その他のコマンド): deploy、whoami、resources、version、help。
+- [その他のコマンド](#その他のコマンド): deploy、dbt upload、whoami、resources、version、help。
 :::
 
 ## コマンドの全体像
@@ -19,6 +19,8 @@ flowchart LR
     O --> R["incident、monitor<br/>など各リソース"]
     R --> R1["list<br/>get<br/>create<br/>update<br/>delete<br/>count<br/>fields"]
     R --> R2["acknowledge<br/>resolve<br/>start<br/>end<br/>add-note"]
+    O --> D["dbt"]
+    D --> D1["upload"]
     O --> U["deploy<br/>whoami<br/>resources<br/>version<br/>help"]
 ```
 
@@ -303,6 +305,22 @@ oneuptime deploy [--service <name>] [--service-version <version>] [--previous-ve
 | `--type <type>` | いいえ | 変更の種類(`config-change` や `rollback` など) | `deployment` |
 | `--time <time>` | いいえ | 発生した日時(`2026-10-19T10:00:00Z` など) | 現在 |
 | `--attribute <key=value...>` | いいえ | 追加の属性。`key=value` の形式で一つ以上 | |
+| `--ingestion-key <key>` | いいえ | プロジェクトのテレメトリ取り込みキー | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
+
+### `oneuptime dbt upload`
+
+ビルドの後に、CI や dbt Cloud のジョブから、dbt プロジェクトのアーティファクトをデータオブザーバビリティに送ります。プロジェクトのモデルは、それが構築するテーブルにリネージとともに表示され、テストは OneUptime のチェックと並んで表示されてアラートを発生させることができ、各ビルドはプロジェクトのパイプラインの実行になります。dbt のターゲット フォルダーから `manifest.json` と `run_results.json` を読み取り、データオブザーバビリティが読み取る部分だけを送信します。書き込みには、API キーではなくテレメトリ取り込みキーを使います。ダッシュボードのデータオブザーバビリティにある「ドキュメント」ページに、CI ジョブでの使用例があります。
+
+```bash
+oneuptime dbt upload [--target-path <dir>] [--manifest <file>] [--run-results <file>] [--project <name>] [--ingestion-key <key>]
+```
+
+| オプション | 必須 | 内容 | 既定値 |
+| --- | --- | --- | --- |
+| `--target-path <dir>` | いいえ | dbt がアーティファクトを書き出したフォルダー | `target` |
+| `--manifest <file>` | いいえ | 送信するマニフェスト | ターゲット フォルダー内の `manifest.json` |
+| `--run-results <file>` | いいえ | 送信する実行結果 | ターゲット フォルダー内の `run_results.json` |
+| `--project <name>` | いいえ | dbt プロジェクトの名前。マニフェストを送らないときにだけ必要です | マニフェストのプロジェクト |
 | `--ingestion-key <key>` | いいえ | プロジェクトのテレメトリ取り込みキー | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
 
 ### `oneuptime whoami`

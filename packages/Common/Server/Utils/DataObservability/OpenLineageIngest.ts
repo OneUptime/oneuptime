@@ -21,7 +21,6 @@ import {
   RUNS_FOR_EXPECTED_INTERVAL,
   RUNS_FOR_TYPICAL_DURATION,
 } from "../../../Types/DataObservability/DataPipelineSchedule";
-import { DataStoreKind } from "../../../Types/DataSecurity/DataStoreKind";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import ServiceType from "../../../Types/Telemetry/ServiceType";
@@ -43,6 +42,7 @@ import {
 } from "./OpenLineageEvent";
 import { readTableHealthTarget, TableHealthTarget } from "./TableHealthTarget";
 import { UsageAsset, UsageStore } from "./TableUsageMatching";
+import { DATA_OBSERVABILITY_KINDS } from "./DataObservabilityEngines";
 
 /*
  * WHAT OPENLINEAGE EVENTS SAY, KEPT.
@@ -150,9 +150,11 @@ export function buildPipelineMetricRow(data: {
 }
 
 // The stores and tables of a project, read once per request and matched against.
-interface ProjectCatalog {
+export interface ProjectCatalog {
   stores: Array<UsageStore>;
   assets: Array<UsageAsset>;
+  // Each store's name, by its id.
+  storeNames: Map<string, string>;
 }
 
 export default class OpenLineageIngest {
@@ -253,7 +255,7 @@ export default class OpenLineageIngest {
     }
   }
 
-  private static async upsertPipeline(
+  public static async upsertPipeline(
     projectId: ObjectID,
     event: OpenLineageRunEvent,
   ): Promise<DataPipeline> {
@@ -560,7 +562,7 @@ export default class OpenLineageIngest {
     );
   }
 
-  private static async upsertLineage(data: {
+  public static async upsertLineage(data: {
     projectId: ObjectID;
     // Null for the pipeline-writes-table edge.
     upstreamDataAssetId: string | null;
@@ -623,25 +625,22 @@ export default class OpenLineageIngest {
     return Array.from(matched.values());
   }
 
-  private static async readCatalog(
+  public static async readCatalog(
     projectId: ObjectID,
   ): Promise<ProjectCatalog> {
     const stores: Array<DataStore> = await DataStoreService.findBy({
       query: {
         projectId,
         isArchived: false,
-        kind: new Includes([
-          DataStoreKind.PostgreSql,
-          DataStoreKind.MySql,
-          DataStoreKind.SqlServer,
-        ]),
+        kind: new Includes([...DATA_OBSERVABILITY_KINDS]),
       },
-      select: { _id: true, kind: true, tableHealthTarget: true },
+      select: { _id: true, name: true, kind: true, tableHealthTarget: true },
       limit: 1000,
       skip: 0,
       props: { isRoot: true },
     });
     const usageStores: Array<UsageStore> = [];
+    const storeNames: Map<string, string> = new Map();
 
     for (const store of stores) {
       const target: TableHealthTarget | null = readTableHealthTarget(
@@ -649,6 +648,7 @@ export default class OpenLineageIngest {
       );
 
       if (store.id && store.kind && target) {
+        storeNames.set(store.id.toString(), store.name || "");
         usageStores.push({
           dataStoreId: store.id.toString(),
           kind: store.kind,
@@ -659,7 +659,7 @@ export default class OpenLineageIngest {
     }
 
     if (usageStores.length === 0) {
-      return { stores: [], assets: [] };
+      return { stores: [], assets: [], storeNames };
     }
 
     const assets: Array<DataAsset> = await DataAssetService.findBy({
@@ -672,6 +672,7 @@ export default class OpenLineageIngest {
 
     return {
       stores: usageStores,
+      storeNames,
       assets: assets
         .filter((asset: DataAsset) => {
           return Boolean(asset.id && asset.dataStoreId && asset.name);

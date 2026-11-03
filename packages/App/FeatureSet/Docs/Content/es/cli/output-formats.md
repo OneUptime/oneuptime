@@ -43,6 +43,8 @@ Una tabla es el formato predeterminado en una terminal. `oneuptime resources --t
 ├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
 │ change-event               │ Change Event               │ Change Events               │ analytics │ /change-events              │
 ├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
+│ cloud-cost                 │ Cloud Cost                 │ Cloud Costs                 │ analytics │ /cloud-cost                 │
+├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
 │ exception-instance         │ Exception Instance         │ Exception Instances         │ analytics │ /exceptions                 │
 ├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
 │ kubernetes-cost-allocation │ Kubernetes Cost Allocation │ Kubernetes Cost Allocations │ analytics │ /kubernetes-cost-allocation │
@@ -68,7 +70,7 @@ Una tabla es el formato predeterminado en una terminal. `oneuptime resources --t
 │ threat-intel-indicator     │ Threat Intel Indicator     │ Threat Intel Indicators     │ analytics │ /threat-intel-indicators    │
 └────────────────────────────┴────────────────────────────┴─────────────────────────────┴───────────┴─────────────────────────────┘
 
-Total: 14 resources
+Total: 15 resources
 ```
 
 Para una lista de registros, una tabla muestra hasta seis columnas: primero `_id`, `name`, `title`, `status`, `createdAt` y `updatedAt`, las que tengan los registros, y después los siguientes campos de los registros por orden. Las columnas se toman del primer registro. Un valor de más de 60 caracteres se corta a sus 57 primeros, seguidos de `...`.

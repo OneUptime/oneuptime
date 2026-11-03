@@ -6,9 +6,9 @@ import DataStoreService from "../../Services/DataStoreService";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import logger from "../Logger";
 import {
-  getDatabaseEngineOfKind,
-  PROBE_SCANNABLE_KINDS,
-} from "../DataSecurity/DataSecurityProbeScan";
+  DATA_OBSERVABILITY_KINDS,
+  getCollectorEngineOfKind,
+} from "./DataObservabilityEngines";
 import { TABLE_HEALTH_CLAIM_IN_MINUTES } from "./DataObservabilityProbeCollect";
 import DataCheckIngest from "./DataCheckIngest";
 import DataCheckPlanner, { DataCheckPlan } from "./DataCheckPlanner";
@@ -43,7 +43,7 @@ export default class DataObservabilityRunner {
       query: {
         isArchived: false,
         isTableHealthEnabled: true,
-        kind: new Includes([...PROBE_SCANNABLE_KINDS]),
+        kind: new Includes([...DATA_OBSERVABILITY_KINDS]),
         connectionString: QueryHelper.notNull(),
         scanProbeId: QueryHelper.isNull(),
         nextTableHealthCollectionAt: QueryHelper.lessThanEqualToOrNull(now),
@@ -110,8 +110,8 @@ export default class DataObservabilityRunner {
       return null;
     }
 
-    const engine: ReturnType<typeof getDatabaseEngineOfKind> =
-      getDatabaseEngineOfKind(store.kind);
+    const engine: ReturnType<typeof getCollectorEngineOfKind> =
+      getCollectorEngineOfKind(store.kind);
 
     if (!engine) {
       return null;

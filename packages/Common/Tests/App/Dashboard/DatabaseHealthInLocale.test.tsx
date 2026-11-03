@@ -83,9 +83,18 @@ function sentence(
   return text;
 }
 
+/*
+ * Fields to set on the row over the defaults below. A field may be set to
+ * undefined, as a database that never sent readings has none: Partial alone
+ * refuses that under exactOptionalPropertyTypes.
+ */
+type DatabaseServerFields = {
+  [Field in keyof DatabaseServer]?: DatabaseServer[Field] | undefined;
+};
+
 function database(
   values: Record<string, number>,
-  extra: Partial<DatabaseServer> = {},
+  extra: DatabaseServerFields = {},
 ): DatabaseServer {
   const row: DatabaseServer = new DatabaseServer();
   row._id = "42b6aaae-7558-42fe-999b-395bbfc79d63";

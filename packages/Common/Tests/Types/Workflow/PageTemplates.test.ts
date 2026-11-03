@@ -249,11 +249,14 @@ describe("the paging templates", () => {
   });
 
   /*
-   * Besides them, only the Huntress template and the two Zabbix sends its
-   * problems to page: for the incident or alert each opens
-   * (HuntressTemplateSimulation and ZabbixTemplateSimulation run them).
+   * Besides them, only the templates other tools send their problems to
+   * page: the Huntress one, the two Zabbix sends its problems to, and the
+   * two each for Datadog's monitors and New Relic's issues - for the
+   * incident or alert each opens (HuntressTemplateSimulation,
+   * ZabbixTemplateSimulation, DatadogTemplateSimulation and
+   * NewRelicTemplateSimulation run them).
    */
-  test("are every template that pages: no other has a Page step but Huntress's and Zabbix's", () => {
+  test("are every template that pages: no other has a Page step but Huntress's, Zabbix's, Datadog's and New Relic's", () => {
     expect(
       getWorkflowTemplates()
         .filter((template: WorkflowTemplate): boolean => {
@@ -267,6 +270,10 @@ describe("the paging templates", () => {
       HUNTRESS_INCIDENT_TEMPLATE_ID,
       "zabbix-declare-incident-from-problem",
       "zabbix-create-alert-from-problem",
+      "datadog-declare-incident-from-monitor",
+      "datadog-create-alert-from-monitor",
+      "new-relic-declare-incident-from-issue",
+      "new-relic-create-alert-from-issue",
     ]);
   });
 

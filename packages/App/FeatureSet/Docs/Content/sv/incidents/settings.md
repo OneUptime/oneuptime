@@ -603,7 +603,7 @@ Grupperings-, SLA-, påminnelse- och AI-regler verkar också på den nya inciden
 > [!IMPORTANT]
 > **Ordningens betydelse är inte enhetlig.** Grupperingsregler, SLA-regler och Reminder Rules utvärderas i ordning, och deras listor ordnas genom att dra: en ny regel läggs till sist. Jourregler gör inte det — varje matchande regel utlöses. Anta inte att en modell gäller för alla nio.
 
-Sidorna **Jourregler**, **Ägarregler**, **Etikettregler** och **Sekretessregler** har flikar — en flik **Incident Rules** och en flik **Episode Rules**, var och en med sin egen tabell. Konfigurera fliken **Incident Rules** om du inte specifikt menar episoder. **Grupperingsregler**, **Runbook-regler**, **AI-regler**, **SLA-regler** och **Påminnelseregler** är enkla tabeller.
+Sidorna **Jourregler**, **Ägarregler**, **Etikettregler** och **Sekretessregler** har flikar — en flik **Incidentregler** och en flik **Episode Rules**, var och en med sin egen tabell. Konfigurera fliken **Incidentregler** om du inte specifikt menar episoder. **Grupperingsregler**, **Runbook-regler**, **AI-regler**, **SLA-regler** och **Påminnelseregler** är enkla tabeller.
 
 Ägar-, etikett- och sekretessregler verkar bara på incidenter och episoder som skapas efter att regeln finns. För att tillämpa en av dem på incidenter som redan finns använder du **Kör nu** på regelns rad, på dess egen sida eller från tabellens massåtgärder — se [Köra regler på befintliga resurser](/docs/configuration/run-rules-now). Jour-, runbook-, AI-, grupperings-, SLA- och påminnelseregler kan inte köras mot befintliga incidenter.
 
@@ -649,7 +649,7 @@ Regler som sparades innan formuläret frågade efter ägare kan fortfarande ha e
 
 ## Jourregler för incidenter
 
-**Incidenter → Regler → Jourregler** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) är där du gör larmning automatisk. Kortet, **Incidentjourregler**, säger vad de gör: larmar automatiskt via jourpolicyer för nya incidenter som matchar. Sidan har två flikar: **Incident Rules** och **Episode Rules**.
+**Incidenter → Regler → Jourregler** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) är där du gör larmning automatisk. Kortet, **Incidentjourregler**, säger vad de gör: larmar automatiskt via jourpolicyer för nya incidenter som matchar. Sidan har två flikar: **Incidentregler** och **Episode Rules**.
 
 Skapandeformuläret har två steg:
 

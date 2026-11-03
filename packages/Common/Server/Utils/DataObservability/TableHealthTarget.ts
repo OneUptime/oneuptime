@@ -3,6 +3,11 @@ import {
   DatabaseConnection,
   parseSqlServerConnectionString,
 } from "../DataSecurity/Content/DatabaseSampler";
+import {
+  getSnowflakeHost,
+  readSnowflakeConnection,
+  SnowflakeConnection,
+} from "./SnowflakeSqlApi";
 
 /*
  * WHICH DATABASE A COLLECTION READ: ITS NAME, HOST AND PORT.
@@ -97,6 +102,21 @@ export function readConnectionTarget(
 
   if (!value) {
     return null;
+  }
+
+  // Snowflake's connection is its account and database: never its key.
+  if (connection.engine === "snowflake") {
+    try {
+      const snowflake: SnowflakeConnection = readSnowflakeConnection(value);
+
+      return {
+        databaseName: readName(snowflake.database),
+        host: readName(getSnowflakeHost(snowflake.account)),
+        port: 443,
+      };
+    } catch {
+      return null;
+    }
   }
 
   if (connection.engine === "sqlserver") {

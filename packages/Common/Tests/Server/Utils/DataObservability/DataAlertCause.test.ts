@@ -1,0 +1,160 @@
+import { describe, expect, test } from "@jest/globals";
+import {
+  describeConsequence,
+  getDataAlertScope,
+  getSeriesTableKey,
+} from "../../../../Server/Utils/DataObservability/DataAlertCause";
+import { getAllDataObservabilityAlertTemplates } from "../../../../Types/Monitor/DataObservabilityAlertTemplates";
+import { getAllDataPipelineAlertTemplates } from "../../../../Types/Monitor/DataPipelineAlertTemplates";
+import { buildDataCheckMonitorStep } from "../../../../Types/Monitor/DataCheckMonitorStep";
+import { DataCheckAlertCondition } from "../../../../Types/DataObservability/DataCheckType";
+import MonitorStep from "../../../../Types/Monitor/MonitorStep";
+import MonitorSteps from "../../../../Types/Monitor/MonitorSteps";
+import MonitorType from "../../../../Types/Monitor/MonitorType";
+import ObjectID from "../../../../Types/ObjectID";
+import { htmlAsText } from "../../../Helpers/HtmlText";
+import {
+  hrefsOf,
+  renderAsDashboard,
+} from "../../../Utils/Markdown/DashboardMarkdownRenderer";
+
+/*
+ * A data alert is about what its monitor is scoped to: a store's tables
+ * (and the table its series names), a check, or a pipeline. Any other
+ * monitor's alert is not a data alert, and is never held back.
+ */
+
+const STORE_ID: string = ObjectID.generate().toString();
+const PIPELINE_ID: string = ObjectID.generate().toString();
+const CHECK_ID: string = ObjectID.generate().toString();
+
+function stepsOf(step: MonitorStep): MonitorSteps {
+  const steps: MonitorSteps = new MonitorSteps();
+  steps.data = {
+    monitorStepsInstanceArray: [step],
+    defaultMonitorStatusId: ObjectID.generate(),
+  };
+  return steps;
+}
+
+function seed(): {
+  onlineMonitorStatusId: ObjectID;
+  offlineMonitorStatusId: ObjectID;
+  defaultIncidentSeverityId: ObjectID;
+  defaultAlertSeverityId: ObjectID;
+  monitorName: string;
+} {
+  return {
+    onlineMonitorStatusId: ObjectID.generate(),
+    offlineMonitorStatusId: ObjectID.generate(),
+    defaultIncidentSeverityId: ObjectID.generate(),
+    defaultAlertSeverityId: ObjectID.generate(),
+    monitorName: "a data monitor",
+  };
+}
+
+describe("getDataAlertScope", () => {
+  test("a store's table monitors are scoped to the store", () => {
+    for (const template of getAllDataObservabilityAlertTemplates()) {
+      expect(
+        getDataAlertScope(
+          stepsOf(
+            template.getMonitorStep({ ...seed(), dataStoreId: STORE_ID }),
+          ),
+        ),
+      ).toEqual({
+        dataStoreId: STORE_ID,
+        dataPipelineId: null,
+        dataCheckId: null,
+      });
+    }
+  });
+
+  test("a pipeline's monitors are scoped to the pipeline", () => {
+    for (const template of getAllDataPipelineAlertTemplates()) {
+      expect(
+        getDataAlertScope(
+          stepsOf(
+            template.getMonitorStep({ ...seed(), dataPipelineId: PIPELINE_ID }),
+          ),
+        ),
+      ).toEqual({
+        dataStoreId: null,
+        dataPipelineId: PIPELINE_ID,
+        dataCheckId: null,
+      });
+    }
+  });
+
+  test("a check's monitor is scoped to the check", () => {
+    expect(
+      getDataAlertScope(
+        stepsOf(
+          buildDataCheckMonitorStep({
+            ...seed(),
+            checkId: CHECK_ID,
+            checkName: "not_null: order_id",
+            tableKey: "public.orders",
+            condition: DataCheckAlertCondition.Above,
+            threshold: 0,
+            intervalInMinutes: 1440,
+          }),
+        ),
+      ),
+    ).toEqual({
+      dataStoreId: null,
+      dataPipelineId: null,
+      dataCheckId: CHECK_ID,
+    });
+  });
+
+  test("any other monitor is not a data monitor", () => {
+    expect(
+      getDataAlertScope(
+        stepsOf(
+          MonitorStep.getDefaultMonitorStep({
+            ...seed(),
+            monitorType: MonitorType.Website,
+          }),
+        ),
+      ),
+    ).toBe(null);
+    expect(getDataAlertScope(undefined)).toBe(null);
+  });
+});
+
+describe("getSeriesTableKey", () => {
+  test("the table a store monitor's series names", () => {
+    expect(
+      getSeriesTableKey({ "oneuptime.data.table.key": " public.orders " }),
+    ).toBe("public.orders");
+    expect(getSeriesTableKey({})).toBe(null);
+    expect(getSeriesTableKey(null)).toBe(null);
+  });
+});
+
+describe("describeConsequence", () => {
+  test("names the cause, and why nobody was paged", () => {
+    expect(
+      describeConsequence({
+        title: "Table Is Late - public.raw_orders",
+        alertNumberWithPrefix: "#41",
+      }),
+    ).toBe(
+      "**Caused upstream.** Alert #41 Table Is Late - public.raw_orders is open on what this alert's table or pipeline is built from, so this alert started acknowledged: nobody is paged twice for one problem. It recovers on its own once its data does.",
+    );
+  });
+
+  test("shows the cause's title as it was written: its Markdown makes no link and no bold", () => {
+    const title: string = "Table Is Late - [Pay here](/billing) **now**";
+
+    const html: string = renderAsDashboard([
+      describeConsequence({ title: title, alertNumberWithPrefix: "#41" }),
+    ])[0]!;
+
+    expect(hrefsOf(html)).toEqual([]);
+    // Only the line's own "Caused upstream." is bold.
+    expect(html.split("<strong>").length - 1).toBe(1);
+    expect(htmlAsText(html)).toContain(`Alert #41 ${title} is open`);
+  });
+});

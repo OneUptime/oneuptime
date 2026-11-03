@@ -19,6 +19,7 @@ import TenantColumn from "../../Types/Database/TenantColumn";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import DataAssetKind from "../../Types/DataObservability/DataAssetKind";
 import { DataAssetColumn } from "../../Types/DataObservability/DataAssetColumn";
+import { DataAssetDbtNode } from "../../Types/DataObservability/DbtArtifact";
 import IconProp from "../../Types/Icon/IconProp";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
@@ -392,6 +393,21 @@ export default class DataAsset extends BaseModel {
 
   @ColumnAccessControl(serverWrittenColumnAccess)
   @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    computed: true,
+    title: "dbt Node",
+    description:
+      "The dbt model, seed, snapshot or source that is this table, from the project's last uploaded artifacts: its id, materialization, tags, owner, and how its last build went.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public dbtNode?: DataAssetDbtNode = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
     type: TableColumnType.Number,
     required: false,
     computed: true,
@@ -453,6 +469,38 @@ export default class DataAsset extends BaseModel {
     nullable: true,
   })
   public lastChangedAt?: Date = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Date,
+    required: false,
+    computed: true,
+    canReadOnRelationQuery: true,
+    title: "Last Read At",
+    description:
+      "When the table was last seen read, to the hour: by the engine's read counters, or by a service's database spans.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public lastReadAt?: Date = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Date,
+    required: false,
+    computed: true,
+    canReadOnRelationQuery: true,
+    title: "Unread Since",
+    description:
+      "The time from which the table is known to have had no read: its last read, or when the engine's read counters started when it has had none since. Empty when that cannot be said.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public unreadSince?: Date = undefined;
 
   @ColumnAccessControl(serverWrittenColumnAccess)
   @TableColumn({
