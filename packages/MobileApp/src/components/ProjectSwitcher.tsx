@@ -18,12 +18,17 @@ import {
   type EdgeInsets,
 } from "react-native-safe-area-context";
 import { useProject } from "../hooks/useProject";
-import { useScreenPadding } from "../hooks/useScreenPadding";
 import { useTheme } from "../theme";
 import type { ProjectItem } from "../api/types";
 import { elevation, radius, spacing } from "../theme/tokens";
 import { useWindowLayout } from "../layout/WindowLayout";
 import { SHEET_MAX_WIDTH, type WindowLayout } from "../layout/windowLayout";
+import {
+  getSheetBackdropLayout,
+  getSheetCorners,
+  type SheetPlacement,
+} from "../layout/sheetPlacement";
+import { useSheetPlacement } from "../layout/useSheetPlacement";
 import AppText from "./AppText";
 import Banner from "./Banner";
 import GradientButton from "./GradientButton";
@@ -221,7 +226,9 @@ function ProjectSheet({
   const { visible, search, setSearch, close } = sheet;
   const insets: EdgeInsets | null = useContext(SafeAreaInsetsContext);
   const { height } = useWindowDimensions();
-  const paddingBottom: number = useScreenPadding({ tabBar: false });
+  // Clear of a tabletop fold: over the half on the table, or above the fold while typing.
+  const placement: SheetPlacement = useSheetPlacement();
+  const paddingBottom: number = placement.paddingBottom;
   const filtered: ProjectItem[] = projectList.filter(
     (project: ProjectItem): boolean => {
       return project.name.toLowerCase().includes(search.trim().toLowerCase());
@@ -238,9 +245,10 @@ function ProjectSheet({
     >
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
+        enabled={placement.avoidsKeyboard}
         style={{
           flex: 1,
-          justifyContent: "flex-end",
+          ...getSheetBackdropLayout(placement),
           backgroundColor: theme.colors.overlay,
         }}
       >
@@ -260,16 +268,18 @@ function ProjectSheet({
           testID="project-switcher-sheet"
           accessibilityViewIsModal
           style={{
-            height: Math.min(660, height - (insets?.top ?? 0) - 32),
+            height: Math.min(
+              660,
+              placement.maxHeight ?? height - (insets?.top ?? 0) - 32,
+            ),
             flexShrink: 1,
             width: "100%",
             maxWidth: SHEET_MAX_WIDTH,
             alignSelf: "center",
             backgroundColor: theme.colors.backgroundSecondary,
-            borderTopLeftRadius: radius.xl,
-            borderTopRightRadius: radius.xl,
+            ...getSheetCorners(placement, radius.xl),
             borderWidth: theme.dark ? 1 : 0,
-            borderBottomWidth: 0,
+            borderBottomWidth: placement.anchor === "top" && theme.dark ? 1 : 0,
             borderColor: theme.colors.borderSubtle,
             paddingTop: spacing.md,
             overflow: "hidden",
