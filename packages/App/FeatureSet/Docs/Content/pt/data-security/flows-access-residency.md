@@ -80,6 +80,12 @@ Na AWS, a leitura lista uma vez os usuários e funções da conta e decide, como
 
 A pontuação é no máximo 100. Uma função de uma conta de fora que pode alterar um repositório de números de cartão soma 50 + 15 + 15 + 1 = 81.
 
+## Ver os caminhos de um repositório em um só mapa
+
+A **Visão geral** de um repositório desenha em um só mapa quem pode acessá-lo e para onde seus dados podem ir, de modo que um caminho com várias etapas se lê num relance. À esquerda fica quem pode acessar o repositório: um cartão para cada identidade, não importa quantas concessões ela tenha, com uma seta para o repositório que diz o máximo que ela pode fazer: vermelha a partir de qualquer pessoa na internet, laranja a partir de fora das suas contas. Em seguida vêm os serviços que usam o repositório e, à direita, para onde seus dados podem ir a partir deles: os provedores de IA e os hosts externos que esses serviços chamam, e os repositórios que guardam cópias deles.
+
+Uma seta que leva dados é colorida conforme a sensibilidade desses dados e fica tracejada até que uma varredura encontre os dados na outra ponta. As chamadas de IA e externas de um serviço dizem para onde os dados do repositório podem ir, não que foram, por isso suas setas ficam tracejadas até que uma varredura as confirme. Cada coluna mostra primeiro seus cartões de maior risco e reúne o restante em um cartão que abre **Quem pode acessar** ou **Fluxos de dados**, onde todos estão listados. Clique em um cartão para abrir a identidade, o serviço ou o repositório dele.
+
 ## Regras de residência
 
 Uma regra de residência diz onde um tipo de dado pode ficar. Adicione uma em **Segurança de dados → Configurações → Regras de residência**:
