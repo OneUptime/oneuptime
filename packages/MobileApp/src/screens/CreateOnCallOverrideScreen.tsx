@@ -317,7 +317,6 @@ export default function CreateOnCallOverrideScreen(): React.JSX.Element {
       >
         <ScreenIntro
           title={prefilledWindow ? "Cover this shift" : "Arrange coverage"}
-          description="A clear handoff, for exactly as long as you need."
         />
         {prefilledShiftCard}
         <Banner

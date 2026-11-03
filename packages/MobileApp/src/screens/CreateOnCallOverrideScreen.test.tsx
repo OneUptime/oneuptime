@@ -950,6 +950,10 @@ describe("CreateOnCallOverrideScreen for someone limited to some policies", () =
     expect(
       within(locked).getByText("Cover can't be arranged here"),
     ).toBeTruthy();
+    // No promise of a handoff the sheet cannot make.
+    expect(
+      screen.queryByText("A clear handoff, for exactly as long as you need."),
+    ).toBeNull();
     expectNoForm();
     expect(mockCreateOverride).not.toHaveBeenCalled();
   });
