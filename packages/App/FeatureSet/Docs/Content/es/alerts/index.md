@@ -99,7 +99,7 @@ En cuanto se crea una alerta, OneUptime recorre estos pasos, en este orden:
 3. **El feed y tus herramientas de chat se enteran.** Se escribe una entrada **Alerta creada** en el **Feed de la alerta**, y se avisa a los canales que nombran tus reglas de Slack y Microsoft Teams; una regla puede crear un canal para la alerta.
 4. **Se añaden propietarios y etiquetas**: los que nombran los criterios del monitor o la solicitud, y después los de las reglas de propietario y de etiquetas que coinciden.
 5. **Las reglas de guardia añaden sus políticas**, y después las reglas de runbook ponen en marcha los runbooks que coinciden.
-6. **Se ejecutan las políticas de guardia.** Cada política de la alerta avisa a sus personas en paralelo; si una falla, no detiene a las demás.
+6. **Se ejecutan las políticas de guardia.** Cada política de la alerta avisa a sus personas en paralelo; si una falla, no detiene a las demás. Después, la primera regla de incidentes que coincide declara un incidente a partir de la alerta, en el acto o cuando termina su espera.
 7. **Las reglas de agrupación la meten en un episodio**, cuando alguna coincide. Consulta [Episodios de alertas y reglas de agrupación](/docs/alerts/episodes).
 8. **Se programan los recordatorios**, cuando coincide una regla de recordatorio, y **OneUptime AI** investiga la alerta cuando **Investigar las alertas nuevas** está activado en **Alertas → IA → Ajustes**, y la corrige cuando **Corregir automáticamente las alertas nuevas** está activado. Consulta [AI SRE](/docs/ai/ai-sre).
 
@@ -110,7 +110,7 @@ Un trabajo en segundo plano avisa a los propietarios de la alerta en menos de un
 Una alerta que empieza en un estado posterior registra un problema del que alguien ya se ocupa, así que no se trata como una nueva emergencia:
 
 - **En tu estado reconocido o después**, no se ejecuta ninguna política de guardia. La alerta conserva sus políticas, y su feed explica en una línea por qué no se avisó a nadie. Puede unirse a un episodio abierto, pero nunca abre uno, porque avisaría a través de las políticas del episodio.
-- **En tu estado resuelto o después**, la alerta ha terminado: no se agrupa en un episodio, ningún runbook ni remediación automática actúa sobre ella, OneUptime AI no la investiga y no se crea ningún canal de Slack ni de Microsoft Teams para ella.
+- **En tu estado resuelto o después**, la alerta ha terminado: no se agrupa en un episodio, ningún runbook, remediación automática ni regla de incidentes actúa sobre ella, OneUptime AI no la investiga y no se crea ningún canal de Slack ni de Microsoft Teams para ella.
 
 Sus reglas, sus propietarios, su feed y su primer estado siguen ocurriendo en ambos casos. Los incidentes siguen la misma regla: consulta [Declarado ya reconocido o resuelto](/docs/incidents/declaring-incidents#declarado-ya-reconocido-o-resuelto).
 

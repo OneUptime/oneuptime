@@ -99,7 +99,7 @@ Dès qu'une alerte est créée, OneUptime franchit ces étapes, dans cet ordre :
 3. **Le fil d'activité et vos outils de chat en sont informés.** Une entrée **Alerte créée** est écrite dans le **Fil d'activité de l'alerte**, et les canaux que nomment vos règles Slack et Microsoft Teams sont prévenus ; une règle peut créer un canal pour l'alerte.
 4. **Les propriétaires et les étiquettes sont ajoutés** : ceux que nomment les critères du moniteur ou la requête, puis ceux des règles de propriétaire et d'étiquettes qui correspondent.
 5. **Les règles d'astreinte ajoutent leurs politiques**, puis les règles de runbook lancent les runbooks qui correspondent.
-6. **Les politiques d'astreinte s'exécutent.** Chaque politique de l'alerte alerte ses personnes en parallèle ; l'échec de l'une n'arrête pas les autres.
+6. **Les politiques d'astreinte s'exécutent.** Chaque politique de l'alerte alerte ses personnes en parallèle ; l'échec de l'une n'arrête pas les autres. Ensuite, la première règle d'incident qui correspond déclare un incident à partir de l'alerte, tout de suite ou une fois son attente écoulée.
 7. **Les règles de regroupement la placent dans un épisode**, quand l'une d'elles correspond. Voir [Épisodes d'alertes et règles de regroupement](/docs/alerts/episodes).
 8. **Les rappels sont planifiés**, quand une règle de rappel correspond, et **OneUptime AI** investigue l'alerte quand **Investiguer les nouvelles alertes** est activé dans **Alertes → IA → Paramètres**, et la corrige quand **Corriger automatiquement les nouvelles alertes** est activé. Voir [AI SRE](/docs/ai/ai-sre).
 
@@ -110,7 +110,7 @@ Une tâche en arrière-plan prévient les propriétaires de l'alerte en moins d'
 Une alerte qui commence dans un état ultérieur enregistre un problème dont quelqu'un s'occupe déjà ; elle n'est donc pas traitée comme une nouvelle urgence :
 
 - **Dans votre état de prise en compte ou au-delà**, aucune politique d'astreinte ne s'exécute. L'alerte garde ses politiques, et son fil d'activité indique en une ligne pourquoi personne n'a été alerté. Elle peut rejoindre un épisode ouvert, mais n'en ouvre jamais, car cela alerterait via les politiques de l'épisode.
-- **Dans votre état résolu ou au-delà**, l'alerte est terminée : elle n'est regroupée dans aucun épisode, aucun runbook ni aucune remédiation automatique n'agit sur elle, OneUptime AI ne l'investigue pas, et aucun canal Slack ou Microsoft Teams n'est créé pour elle.
+- **Dans votre état résolu ou au-delà**, l'alerte est terminée : elle n'est regroupée dans aucun épisode, aucun runbook, aucune remédiation automatique ni aucune règle d'incident n'agit sur elle, OneUptime AI ne l'investigue pas, et aucun canal Slack ou Microsoft Teams n'est créé pour elle.
 
 Ses règles, ses propriétaires, son fil d'activité et son premier état s'appliquent tout de même dans les deux cas. Les incidents suivent la même règle : voir [Déclaré déjà pris en compte ou résolu](/docs/incidents/declaring-incidents#déclaré-déjà-pris-en-compte-ou-résolu).
 

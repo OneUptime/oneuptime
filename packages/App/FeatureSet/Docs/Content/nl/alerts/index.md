@@ -99,7 +99,7 @@ Zodra een waarschuwing wordt aangemaakt, doorloopt OneUptime deze stappen, in de
 3. **De feed en je chattools horen ervan.** Een vermelding **Waarschuwing aangemaakt** wordt in **Waarschuwing Feed** geschreven, en de kanalen die je Slack- en Microsoft Teams-regels noemen, worden ingelicht; een regel kan een kanaal voor de waarschuwing aanmaken.
 4. **Eigenaren en labels worden toegevoegd**: die welke de criteria van de monitor of het verzoek noemen, daarna die van overeenkomende eigenaars- en labelregels.
 5. **Bereikbaarheidsregels voegen hun beleid toe**, daarna starten runbook-regels de runbooks die overeenkomen.
-6. **Bereikbaarheidsbeleid draait.** Elk beleid op de waarschuwing roept zijn mensen tegelijk op; als er één faalt, stopt dat de andere niet.
+6. **Bereikbaarheidsbeleid draait.** Elk beleid op de waarschuwing roept zijn mensen tegelijk op; als er één faalt, stopt dat de andere niet. Daarna meldt de eerste passende incidentregel een incident uit de waarschuwing, meteen of zodra de wachttijd om is.
 7. **Groeperingsregels plaatsen haar in een episode**, wanneer er een overeenkomt. Zie [Waarschuwingsepisoden en groeperingsregels](/docs/alerts/episodes).
 8. **Herinneringen worden ingepland**, wanneer een herinneringsregel overeenkomt, en **OneUptime AI** onderzoekt de waarschuwing wanneer **Nieuwe waarschuwingen onderzoeken** aan staat onder **Waarschuwingen → AI → Instellingen**, en herstelt haar wanneer **Nieuwe waarschuwingen automatisch herstellen** aan staat. Zie [AI SRE](/docs/ai/ai-sre).
 
@@ -110,7 +110,7 @@ Een achtergrondtaak licht de eigenaren van de waarschuwing binnen een minuut in,
 Een waarschuwing die in een latere status begint, legt een probleem vast dat al wordt afgehandeld, dus wordt ze niet als nieuwe noodsituatie behandeld:
 
 - **In of na je bevestigde status** draait geen bereikbaarheidsbeleid. De waarschuwing houdt haar beleid, en haar feed zegt in één regel waarom niemand is opgeroepen. Ze kan zich bij een open episode voegen, maar opent er nooit een, want dat zou via het beleid van de episode oproepen.
-- **In of na je opgeloste status** is de waarschuwing voorbij: ze wordt in geen episode gegroepeerd, geen runbook of automatisch herstel werkt erop, OneUptime AI onderzoekt haar niet, en er wordt geen Slack- of Microsoft Teams-kanaal voor haar aangemaakt.
+- **In of na je opgeloste status** is de waarschuwing voorbij: ze wordt in geen episode gegroepeerd, geen runbook, automatisch herstel of incidentregel werkt erop, OneUptime AI onderzoekt haar niet, en er wordt geen Slack- of Microsoft Teams-kanaal voor haar aangemaakt.
 
 Haar regels, haar eigenaren, haar feed en haar eerste status gebeuren in beide gevallen toch. Incidenten volgen dezelfde regel: zie [Al bevestigd of opgelost gemeld](/docs/incidents/declaring-incidents#al-bevestigd-of-opgelost-gemeld).
 

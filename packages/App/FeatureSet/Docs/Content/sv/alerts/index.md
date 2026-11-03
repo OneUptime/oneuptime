@@ -99,7 +99,7 @@ I samma ögonblick som ett larm skapas går OneUptime igenom de här stegen, i d
 3. **Flödet och dina chattverktyg får veta.** En post **Larm skapat** skrivs i **Larm Flöde**, och kanalerna som dina Slack- och Microsoft Teams-regler anger meddelas; en regel kan skapa en kanal för larmet.
 4. **Ägare och etiketter läggs till**: de som monitorns kriterier eller begäran anger, sedan de från matchande ägar- och etikettregler.
 5. **Jourregler lägger till sina policyer**, sedan startar runbook-regler de runbooks som matchar.
-6. **Jourpolicyer körs.** Varje policy på larmet larmar sina personer parallellt; att en misslyckas stoppar inte de andra.
+6. **Jourpolicyer körs.** Varje policy på larmet larmar sina personer parallellt; att en misslyckas stoppar inte de andra. Sedan deklarerar den första matchande incidentregeln en incident från larmet, direkt eller när dess väntetid är slut.
 7. **Grupperingsregler lägger det i en episod**, när en av dem matchar. Se [Larmepisoder och grupperingsregler](/docs/alerts/episodes).
 8. **Påminnelser schemaläggs**, när en påminnelseregel matchar, och **OneUptime AI** utreder larmet när **Utred nya larm** är påslaget under **Larm → AI → Inställningar**, och åtgärdar det när **Åtgärda nya larm automatiskt** är påslaget. Se [AI SRE](/docs/ai/ai-sre).
 
@@ -110,7 +110,7 @@ Ett bakgrundsjobb meddelar larmets ägare inom en minut, och arbetsflödesutlös
 Ett larm som börjar i ett senare tillstånd registrerar ett problem som någon redan tar hand om, så det behandlas inte som en ny nödsituation:
 
 - **I eller efter ditt bekräftade tillstånd** körs ingen jourpolicy. Larmet behåller sina policyer, och dess flöde säger på en rad varför ingen larmades. Det kan gå med i en öppen episod, men öppnar aldrig en, eftersom det skulle larma via episodens policyer.
-- **I eller efter ditt lösta tillstånd** är larmet över: Det grupperas inte i någon episod, ingen runbook eller automatisk åtgärd verkar på det, OneUptime AI utreder det inte, och ingen Slack- eller Microsoft Teams-kanal skapas för det.
+- **I eller efter ditt lösta tillstånd** är larmet över: Det grupperas inte i någon episod, ingen runbook, automatisk åtgärd eller incidentregel verkar på det, OneUptime AI utreder det inte, och ingen Slack- eller Microsoft Teams-kanal skapas för det.
 
 Dess regler, ägare, flöde och första tillstånd sker ändå i båda fallen. Incidenter följer samma regel: se [Deklarerad redan bekräftad eller löst](/docs/incidents/declaring-incidents#deklarerad-redan-bekräftad-eller-löst).
 

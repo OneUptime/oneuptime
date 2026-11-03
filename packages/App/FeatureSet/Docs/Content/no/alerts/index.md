@@ -99,7 +99,7 @@ I det øyeblikket et varsel opprettes, går OneUptime gjennom disse trinnene, i 
 3. **Feeden og chatverktøyene dine får vite om det.** En oppføring **Varsel opprettet** skrives i **Varsel Feed**, og kanalene som Slack- og Microsoft Teams-reglene dine nevner, får beskjed; en regel kan opprette en kanal for varselet.
 4. **Eiere og etiketter legges til**: de som monitorens kriterier eller forespørselen nevner, deretter de fra samsvarende eier- og etikettregler.
 5. **Vaktregler legger til policyene sine**, deretter starter runbook-regler de samsvarende runbookene.
-6. **Vaktpolicyer kjører.** Hver policy på varselet tilkaller personene sine parallelt; at én feiler, stopper ikke de andre.
+6. **Vaktpolicyer kjører.** Hver policy på varselet tilkaller personene sine parallelt; at én feiler, stopper ikke de andre. Deretter erklærer den første samsvarende hendelsesregelen en hendelse ut fra varselet, med en gang eller når ventetiden er over.
 7. **Grupperingsregler legger det i en episode**, når en av dem samsvarer. Se [Varselepisoder og grupperingsregler](/docs/alerts/episodes).
 8. **Påminnelser planlegges**, når en påminnelsesregel samsvarer, og **OneUptime AI** undersøker varselet når **Undersøk nye varsler** er slått på under **Varsler → KI → Innstillinger**, og retter det når **Rett nye varsler automatisk** er slått på. Se [AI SRE](/docs/ai/ai-sre).
 
@@ -110,7 +110,7 @@ En bakgrunnsjobb gir varselets eiere beskjed innen ett minutt, og arbeidsflytutl
 Et varsel som starter i en senere tilstand, registrerer et problem som noen allerede tar seg av, så det behandles ikke som en ny nødsituasjon:
 
 - **I eller etter bekreftet-tilstanden din** kjører ingen vaktpolicy. Varselet beholder policyene sine, og feeden sier på én linje hvorfor ingen ble tilkalt. Det kan bli med i en åpen episode, men åpner aldri en, for det ville tilkalle via episodens policyer.
-- **I eller etter løst-tilstanden din** er varselet over: Det grupperes ikke i en episode, ingen runbook eller automatisk utbedring virker på det, OneUptime AI undersøker det ikke, og ingen Slack- eller Microsoft Teams-kanal opprettes for det.
+- **I eller etter løst-tilstanden din** er varselet over: Det grupperes ikke i en episode, ingen runbook, automatisk utbedring eller hendelsesregel virker på det, OneUptime AI undersøker det ikke, og ingen Slack- eller Microsoft Teams-kanal opprettes for det.
 
 Reglene, eierne, feeden og den første tilstanden skjer likevel i begge tilfeller. Hendelser følger samme regel: se [Erklært allerede bekreftet eller løst](/docs/incidents/declaring-incidents#erklært-allerede-bekreftet-eller-løst).
 
