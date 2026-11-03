@@ -374,6 +374,42 @@ describe("NewFindings.js", () => {
     expect(markdown).toContain("**2 new finding(s) at high or above.**");
   });
 
+  test("keeps a backslash, a | and a line ending in a finding inside its cell", () => {
+    const odd = NewFindings.fromGrype({
+      matches: [
+        grypeMatch("CVE-2026-0005", "a|b\\", "1.0\\|x", "Critical", {
+          path: "C:\\|dir\nnext",
+        }),
+      ],
+    });
+    const markdown = NewFindings.summary(
+      NewFindings.classify({ image: odd, base: [], justifications: [] }),
+      { failOn: "critical" },
+    );
+    const row = markdown.split("\n").find((line) => {
+      return line.includes("CVE-2026-0005");
+    });
+
+    expect(row).toBe(
+      "| Critical | CVE-2026-0005 | a\\|b\\\\ | 1.0\\\\\\|x | no fix yet | Grype | /C:\\\\\\|dir next |",
+    );
+    // Split where a table reader ends a cell: at a "|" after an even number of backslashes.
+    const cells = [];
+    let current = "";
+    let backslashes = 0;
+    for (const character of row.slice(1, -1)) {
+      if (character === "|" && backslashes % 2 === 0) {
+        cells.push(current.trim());
+        current = "";
+      } else {
+        current += character;
+      }
+      backslashes = character === "\\" ? backslashes + 1 : 0;
+    }
+    cells.push(current.trim());
+    expect(cells).toHaveLength(7);
+  });
+
   test.each([
     [{ id: "CVE-1" }, "has no package"],
     [
