@@ -27,6 +27,15 @@ import path from "path";
  */
 
 const REPOSITORY_ROOT: string = path.resolve(__dirname, "../../../..");
+
+/*
+ * The Custom Channels page is the Enterprise Edition's (ee/). The App's
+ * test job runs without ee/ in the checkout, and ee/'s own jobs run with
+ * it, so the page's words are read where it is there.
+ */
+const ENTERPRISE_PRESENT: boolean = fs.existsSync(
+  path.join(REPOSITORY_ROOT, "ee"),
+);
 const FEATURE_SET: string = path.join(
   REPOSITORY_ROOT,
   "packages/App/FeatureSet",
@@ -232,62 +241,67 @@ describe("the Admin Dashboard's shared strings", () => {
   });
 });
 
-describe("the Custom Channels page's words", () => {
-  const pageStrings: Array<string> = stringsOf(
-    CUSTOM_CHANNELS_FILES.map((file: string): string => {
-      return path.join(REPOSITORY_ROOT, file);
-    }),
-  ).filter((text: string): boolean => {
-    return !CUSTOM_CHANNELS_AS_WRITTEN.includes(text);
-  });
+(ENTERPRISE_PRESENT ? describe : describe.skip)(
+  "the Custom Channels page's words",
+  () => {
+    const pageStrings: Array<string> = ENTERPRISE_PRESENT
+      ? stringsOf(
+          CUSTOM_CHANNELS_FILES.map((file: string): string => {
+            return path.join(REPOSITORY_ROOT, file);
+          }),
+        ).filter((text: string): boolean => {
+          return !CUSTOM_CHANNELS_AS_WRITTEN.includes(text);
+        })
+      : [];
 
-  test("are what the page says, its test dialog's title one sentence", () => {
-    const page: string = fs.readFileSync(
-      path.join(REPOSITORY_ROOT, CUSTOM_CHANNELS_FILES[0] as string),
-      "utf8",
-    );
-
-    expect(page).toContain('t("Send test: {{name}}", {');
-    expect(page).not.toContain("`Send test: ${");
-    expect(pageStrings).toEqual(
-      expect.arrayContaining([
-        "Custom Channels",
-        "Send test",
-        "What your service receives",
-        "Webhook URL",
-        "Pages Everyone",
-        "Page everyone through this channel",
-        "Send test: {{name}}",
-        "Custom channel",
-      ]),
-    );
-  });
-
-  test.each(["en", ...LANGUAGES])(
-    "%s has an entry for each, and words it",
-    (language: string) => {
-      const admin: Locale = readLocale(ADMIN_LOCALES, language);
-      const missing: Array<string> = pageStrings.filter(
-        (text: string): boolean => {
-          return typeof admin[text] !== "string";
-        },
-      );
-      const english: Array<string> = pageStrings.filter(
-        (text: string): boolean => {
-          return (
-            language !== "en" &&
-            admin[text] === text &&
-            // A word some languages write as English does ("Webhook URL").
-            readLocale(DASHBOARD_LOCALES, language)[text] !== text
-          );
-        },
+    test("are what the page says, its test dialog's title one sentence", () => {
+      const page: string = fs.readFileSync(
+        path.join(REPOSITORY_ROOT, CUSTOM_CHANNELS_FILES[0] as string),
+        "utf8",
       );
 
-      expect({ language, missing, english }).toEqual({
-        language,
-        missing: [],
-        english: [],
-      });
-    },
-  );
-});
+      expect(page).toContain('t("Send test: {{name}}", {');
+      expect(page).not.toContain("`Send test: ${");
+      expect(pageStrings).toEqual(
+        expect.arrayContaining([
+          "Custom Channels",
+          "Send test",
+          "What your service receives",
+          "Webhook URL",
+          "Pages Everyone",
+          "Page everyone through this channel",
+          "Send test: {{name}}",
+          "Custom channel",
+        ]),
+      );
+    });
+
+    test.each(["en", ...LANGUAGES])(
+      "%s has an entry for each, and words it",
+      (language: string) => {
+        const admin: Locale = readLocale(ADMIN_LOCALES, language);
+        const missing: Array<string> = pageStrings.filter(
+          (text: string): boolean => {
+            return typeof admin[text] !== "string";
+          },
+        );
+        const english: Array<string> = pageStrings.filter(
+          (text: string): boolean => {
+            return (
+              language !== "en" &&
+              admin[text] === text &&
+              // A word some languages write as English does ("Webhook URL").
+              readLocale(DASHBOARD_LOCALES, language)[text] !== text
+            );
+          },
+        );
+
+        expect({ language, missing, english }).toEqual({
+          language,
+          missing: [],
+          english: [],
+        });
+      },
+    );
+  },
+);

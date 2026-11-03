@@ -205,15 +205,23 @@ export function describeReplayCardFailure(
   return translator.translateText(failure.message) || failure.message;
 }
 
+/*
+ * A fixed line in the reader's language. translateText keeps undefined as
+ * undefined, so its type is a string or undefined; a line is a string.
+ */
+function translateLine(text: string, translator: Translator): string {
+  return translator.translateText(text) || text;
+}
+
 function formatSessionStart(startTime: string, translator: Translator): string {
   if (!startTime) {
-    return translator.translateText("unknown start");
+    return translateLine("unknown start", translator);
   }
 
   const date: Date = OneUptimeDate.fromString(startTime);
 
   if (Number.isNaN(date.getTime())) {
-    return translator.translateText("unknown start");
+    return translateLine("unknown start", translator);
   }
 
   return OneUptimeDate.getDateAsUserFriendlyFormattedString(date);
@@ -237,7 +245,7 @@ export function describeReplayDevice(
   return (
     summary.browserName ||
     summary.osName ||
-    translator.translateText("Unknown device")
+    translateLine("Unknown device", translator)
   );
 }
 
@@ -274,7 +282,7 @@ export function describeReplayMasking(
   translator: Translator,
 ): string {
   if (!maskingMode) {
-    return translator.translateText("not reported");
+    return translateLine("not reported", translator);
   }
 
   const title: string | undefined = MASKING_MODE_TITLES[maskingMode];
@@ -560,15 +568,18 @@ const ReplayCard: FunctionComponent<ReplayCardProps> = (
   if (!moment && errorTimeUnixMs && sessionId) {
     momentNote =
       primary.sessionId === sessionId
-        ? translator.translateText(
+        ? translateLine(
             "The occurrence's timestamp falls outside this recording, so playback starts at the beginning.",
+            translator,
           )
-        : translator.translateText(
+        : translateLine(
             "The latest occurrence was in a session that was not recorded; this is the newest recording that hit the same error, from the beginning.",
+            translator,
           );
   } else if (!moment && errorTimeUnixMs && !sessionId) {
-    momentNote = translator.translateText(
+    momentNote = translateLine(
       "The latest occurrence carries no session id; this is the newest recording that hit the same error, from the beginning.",
+      translator,
     );
   }
 
@@ -724,7 +735,7 @@ const ReplayCard: FunctionComponent<ReplayCardProps> = (
                               to={route}
                               className="shrink-0 font-medium text-indigo-600 hover:text-indigo-800 hover:underline"
                             >
-                              {translator.translateText("Watch")}
+                              {translateLine("Watch", translator)}
                             </AppLink>
                           )}
                         </li>
