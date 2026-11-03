@@ -868,25 +868,24 @@ describe("one permission's Scope in every permission table", () => {
     );
   });
 
-  // The Enterprise Edition's table: checked where ee/ is present.
-  const customRoleTest: typeof test = fs.existsSync(
-    path.join(REPOSITORY_ROOT, "ee"),
-  )
-    ? test
-    : test.skip;
+  /*
+   * The Enterprise Edition's table. Common Test removes ee/ before it runs;
+   * the Enterprise Edition workflow runs this suite with ee/ present, so the
+   * table is checked there.
+   */
+  test("a custom role's Add Permission asks the same, and a role keeps its three answers", () => {
+    if (!fs.existsSync(path.join(REPOSITORY_ROOT, "ee"))) {
+      return;
+    }
 
-  customRoleTest(
-    "a custom role's Add Permission asks the same, and a role keeps its three answers",
-    () => {
-      const source: string = read(CUSTOM_ROLE_TABLE);
+    const source: string = read(CUSTOM_ROLE_TABLE);
 
-      expect(source).toContain(
-        'return isScopeShownForPermission(values["permission"]);',
-      );
-      expect(source).toContain(
-        'return getPermissionScopes(values["permission"]);',
-      );
-      expect(source).toContain("return getRoleScopes();");
-    },
-  );
+    expect(source).toContain(
+      'return isScopeShownForPermission(values["permission"]);',
+    );
+    expect(source).toContain(
+      'return getPermissionScopes(values["permission"]);',
+    );
+    expect(source).toContain("return getRoleScopes();");
+  });
 });
