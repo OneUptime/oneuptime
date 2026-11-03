@@ -94,6 +94,7 @@ const CloudSavings: FunctionComponent<
         rows={gaps}
         kind="savings"
         currency={read.totals.savings.currency}
+        isNothingRead={!isAnyRead}
       />
     </Fragment>
   );

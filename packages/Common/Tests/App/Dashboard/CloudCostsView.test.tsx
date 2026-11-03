@@ -38,6 +38,13 @@ import CloudCostsView, {
   BREAKDOWN_SHOWN,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudCostsView";
 import { CloudAccountRow } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/UseCloudAccounts";
+import {
+  COST_GAPS_DESCRIPTION,
+  COST_GAPS_NONE_READ_DESCRIPTION,
+  SAVINGS_GAPS_DESCRIPTION,
+  SAVINGS_GAPS_NONE_READ_DESCRIPTION,
+  getCloudCostGapsDescription,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudCostGapsCard";
 
 /*
  * WHAT THE CLOUD COSTS - Cloud > Costs over every account and an account's
@@ -459,6 +466,8 @@ describe("the accounts left out", () => {
     expect(screen.getByTestId("cloud-costs-gaps")).toHaveTextContent(
       "The figures above are in USD",
     );
+    // Left out of the figures above, which there are.
+    expect(screen.getByText(COST_GAPS_DESCRIPTION)).toBeInTheDocument();
 
     expect(gaps[1]).toHaveTextContent(
       "Permission bigquery.jobs.create denied.",
@@ -524,5 +533,27 @@ describe("before any cost is read", () => {
         "cloud-cost-gap",
       ),
     ).toHaveLength(2);
+    // No figures above to be left out of: the card says what it holds.
+    expect(
+      screen.getByText(COST_GAPS_NONE_READ_DESCRIPTION),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(COST_GAPS_DESCRIPTION)).toBeNull();
+  });
+});
+
+describe("the left-out accounts card's words", () => {
+  test("say the figures above only when there are some", () => {
+    expect(
+      getCloudCostGapsDescription({ kind: "costs", isNothingRead: false }),
+    ).toBe(COST_GAPS_DESCRIPTION);
+    expect(
+      getCloudCostGapsDescription({ kind: "costs", isNothingRead: true }),
+    ).toBe(COST_GAPS_NONE_READ_DESCRIPTION);
+    expect(
+      getCloudCostGapsDescription({ kind: "savings", isNothingRead: false }),
+    ).toBe(SAVINGS_GAPS_DESCRIPTION);
+    expect(
+      getCloudCostGapsDescription({ kind: "savings", isNothingRead: true }),
+    ).toBe(SAVINGS_GAPS_NONE_READ_DESCRIPTION);
   });
 });

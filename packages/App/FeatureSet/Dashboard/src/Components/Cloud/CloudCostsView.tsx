@@ -250,8 +250,13 @@ const CloudCostBreakdownCard: FunctionComponent<{
     <Card title={BREAKDOWN_TITLE} description={BREAKDOWN_DESCRIPTION}>
       <div data-testid="cloud-cost-breakdown" data-dimension={dimension}>
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          {/*
+           * Each group wraps inside the card: four choices are wider than a
+           * phone, and wider still in German.
+           */}
           <FilterButtons
             ariaLabel="Break down by"
+            className="flex-wrap"
             dataTestId="cloud-cost-breakdown-dimension"
             options={CLOUD_COST_DIMENSION_OPTIONS.filter(
               (option: { value: CloudCostDimension }): boolean => {
@@ -265,6 +270,7 @@ const CloudCostBreakdownCard: FunctionComponent<{
           />
           <FilterButtons
             ariaLabel="Period"
+            className="flex-wrap"
             dataTestId="cloud-cost-breakdown-period"
             options={CLOUD_COST_PERIOD_OPTIONS}
             selectedValue={period}
@@ -399,7 +405,12 @@ const CloudCostsView: FunctionComponent<ComponentProps> = (
             />
           </div>
         </Card>
-        <CloudCostGapsCard rows={gaps} kind="costs" currency={currency} />
+        <CloudCostGapsCard
+          rows={gaps}
+          kind="costs"
+          currency={currency}
+          isNothingRead={true}
+        />
       </Fragment>
     );
   }

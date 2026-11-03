@@ -157,14 +157,19 @@ const CloudBudgets: FunctionComponent<
           isNotCustomizable: true,
           wrapContent: true,
           getElement: (item: CloudBudget): ReactElement => {
+            /*
+             * The team's own words, each in its own direction (bdi): an
+             * English description on a Persian page keeps its full stop at
+             * its end, where the page's words start.
+             */
             return (
               <div className="min-w-0">
                 <div className="break-words text-sm font-medium text-gray-900">
-                  {item.name}
+                  <bdi>{item.name}</bdi>
                 </div>
                 {item.description ? (
                   <div className="mt-0.5 line-clamp-2 text-xs text-gray-500">
-                    {item.description}
+                    <bdi>{item.description}</bdi>
                   </div>
                 ) : (
                   <></>

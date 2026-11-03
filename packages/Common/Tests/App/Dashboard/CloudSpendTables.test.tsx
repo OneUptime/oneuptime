@@ -60,6 +60,7 @@ import CloudBudgets, {
   ALL_ACCOUNTS,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/Budgets";
 import CloudSavings from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/Savings";
+import { SAVINGS_GAPS_NONE_READ_DESCRIPTION } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudCostGapsCard";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 
 interface CapturedColumn<T> {
@@ -375,6 +376,10 @@ describe("Cloud > Savings", () => {
     ).getAllByTestId("cloud-cost-gap");
     expect(gaps).toHaveLength(1);
     expect(gaps[0]).toHaveAttribute("data-reason", "waiting");
+    // Nothing read yet: no figures to be left out of.
+    expect(
+      screen.getByText(SAVINGS_GAPS_NONE_READ_DESCRIPTION),
+    ).toBeInTheDocument();
   });
 
   test("one not allowed to read them says so, with what to do", async () => {
@@ -524,6 +529,21 @@ describe("Cloud > Budgets", () => {
     expect(
       drawn(column<CloudBudget>("Applies To").getElement!(budget)),
     ).toHaveTextContent(ALL_ACCOUNTS);
+
+    /*
+     * Its name and description are the team's own words, each set apart
+     * in its own direction: on a Persian page an English description keeps
+     * its full stop at its end.
+     */
+    budget.description = "Every account, before credits.";
+    const isolated: Array<string> = Array.from(
+      drawn(column<CloudBudget>("Name").getElement!(budget)).querySelectorAll(
+        "bdi",
+      ),
+    ).map((element: Element): string => {
+      return element.textContent || "";
+    });
+    expect(isolated).toEqual(["Production", "Every account, before credits."]);
 
     budget.cloudAccountId = new ObjectID(ACCOUNT_ROW);
     budget.cloudAccount = { name: "web-prod" } as CloudAccount;

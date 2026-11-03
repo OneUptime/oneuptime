@@ -280,7 +280,7 @@ const CloudResourceCostCard: FunctionComponent<ComponentProps> = (
                           )}
                       </div>
                       {change ? (
-                        <bdi className="mt-0.5 block break-words font-mono text-xs text-gray-500">
+                        <bdi className="mt-0.5 block break-words text-xs text-gray-500">
                           {change}
                         </bdi>
                       ) : (

@@ -40658,5 +40658,7 @@
   "Internal record of the project a person last chose for their Slack or Microsoft Teams Home, in a workspace connected to several projects.": "Internal record of the project a person last chose for their Slack or Microsoft Teams Home, in a workspace connected to several projects.",
   "Workspace Home Choice": "Workspace Home Choice",
   "Workspace Home Choices": "Workspace Home Choices",
-  "Workspace User ID": "Workspace User ID"
+  "Workspace User ID": "Workspace User ID",
+  "Why each account's costs are not read yet, and what to do.": "각 계정의 비용을 아직 읽지 못하는 이유와 해야 할 일입니다.",
+  "Why each account's recommendations are not read yet, and what to do.": "각 계정의 권장 사항을 아직 읽지 못하는 이유와 해야 할 일입니다."
 }

@@ -1359,6 +1359,10 @@ jobs:
           # (2.1 and 2.7) from group 9, AI Context (1.7 and 1.8) from group 11,
           # LLM Provider Test (2.6 and 2.7) from group 14 and Status Timeline
           # (2.3) from group 15: about 17.5, with room for the next suites.
+          # Cloud Spend (21 tests: Cloud's Overview, Costs, Savings, Budgets
+          # and an account's Costs at 1280 and 390, dark, German and Persian;
+          # 3.0 minutes locally with CI=1, its bundle built) joined it on
+          # 2026-11-03, the group with the most room: about 19.5.
           - group: 17
             suites: >-
               test-snmp-walk-ui
@@ -1369,6 +1373,7 @@ jobs:
               test-ai-context-ui
               test-llm-provider-test-ui
               test-status-timeline-ui
+              test-cloud-spend-ui
           # Added on 2026-11-03. Timed over App Test's six finished runs of
           # 11-02 (each suite's median minutes in its group's job,
           # Tests/Ops/DashboardOfflineUiMinutes.json), the seventeen groups
@@ -1618,6 +1623,8 @@ jobs:
             output/playwright/cloud-connect-ui/test-results
             output/playwright/app-platforms-ui/*.png
             output/playwright/app-platforms-ui/test-results
+            output/playwright/cloud-spend-ui/*.png
+            output/playwright/cloud-spend-ui/test-results
             output/playwright/host-collectors-ui/*.png
             output/playwright/host-collectors-ui/test-results
             output/playwright/resource-onboarding-ui/*.png

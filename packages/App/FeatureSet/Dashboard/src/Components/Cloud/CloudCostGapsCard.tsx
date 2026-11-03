@@ -43,6 +43,13 @@ export const SAVINGS_GAPS_TITLE: string = translationKey(
 export const SAVINGS_GAPS_DESCRIPTION: string = translationKey(
   "Their ways to spend less are left out until they are.",
 );
+// Before any account's are read there are no figures to be left out of.
+export const COST_GAPS_NONE_READ_DESCRIPTION: string = translationKey(
+  "Why each account's costs are not read yet, and what to do.",
+);
+export const SAVINGS_GAPS_NONE_READ_DESCRIPTION: string = translationKey(
+  "Why each account's recommendations are not read yet, and what to do.",
+);
 export const WAITING_FOR_FIRST_READ: string = translationKey(
   "Waiting for the first read",
 );
@@ -126,6 +133,23 @@ export interface ComponentProps {
   rows: Array<CloudCostGapRow>;
   kind: CloudCostGapKind;
   currency: string;
+  // No account's are read: there are no figures above to be left out of.
+  isNothingRead?: boolean | undefined;
+}
+
+export function getCloudCostGapsDescription(data: {
+  kind: CloudCostGapKind;
+  isNothingRead: boolean;
+}): string {
+  if (data.isNothingRead) {
+    return data.kind === "costs"
+      ? COST_GAPS_NONE_READ_DESCRIPTION
+      : SAVINGS_GAPS_NONE_READ_DESCRIPTION;
+  }
+
+  return data.kind === "costs"
+    ? COST_GAPS_DESCRIPTION
+    : SAVINGS_GAPS_DESCRIPTION;
 }
 
 const CloudCostGapsCard: FunctionComponent<ComponentProps> = (
@@ -150,11 +174,10 @@ const CloudCostGapsCard: FunctionComponent<ComponentProps> = (
   return (
     <Card
       title={props.kind === "costs" ? COST_GAPS_TITLE : SAVINGS_GAPS_TITLE}
-      description={
-        props.kind === "costs"
-          ? COST_GAPS_DESCRIPTION
-          : SAVINGS_GAPS_DESCRIPTION
-      }
+      description={getCloudCostGapsDescription({
+        kind: props.kind,
+        isNothingRead: Boolean(props.isNothingRead),
+      })}
     >
       <div data-testid={`cloud-${props.kind}-gaps`}>
         {hasOtherCurrency ? (
