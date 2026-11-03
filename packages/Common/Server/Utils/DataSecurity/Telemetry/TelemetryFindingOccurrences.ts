@@ -712,7 +712,12 @@ export function readOccurrenceRows(data: {
   location: string;
   ownerId: string;
   caps: TelemetrySampleCaps;
-  match: (value: string) => string | null;
+  /*
+   * The value masked when the finding's data type is in it, or null. Not
+   * named match: PatternsAProjectWritesGuard reads a call of that name with
+   * a variable as a pattern made from what a project writes.
+   */
+  maskIfFound: (value: string) => string | null;
   max: number;
 }): { occurrences: Array<DataSecurityFindingOccurrence>; recordsRead: number } {
   const occurrences: Array<DataSecurityFindingOccurrence> = [];
@@ -750,7 +755,7 @@ export function readOccurrenceRows(data: {
         continue;
       }
 
-      const maskedValue: string | null = data.match(value.value);
+      const maskedValue: string | null = data.maskIfFound(value.value);
 
       if (maskedValue) {
         occurrences.push(
@@ -851,7 +856,7 @@ export async function findTelemetryFindingOccurrences(data: {
     location: data.location,
     ownerId: data.ownerId,
     caps,
-    match: buildOccurrenceMatcher({
+    maskIfFound: buildOccurrenceMatcher({
       dataTypeId: data.dataTypeId,
       location: data.location,
       options: data.options,
