@@ -195,6 +195,21 @@ export default class DataPipelineRun extends BaseModel {
     type: TableColumnType.Date,
     required: false,
     computed: true,
+    title: "Scheduled For",
+    description:
+      "When the run was scheduled for, when its producer says (OpenLineage's nominalTime facet): a backfilled run's scheduled time, not when it ran.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public scheduledAt?: Date = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Date,
+    required: false,
+    computed: true,
     title: "Ended At",
     description: "When the run ended.",
   })

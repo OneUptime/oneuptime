@@ -48,20 +48,27 @@ const TYPE_OPTIONS: Array<DropdownOption> = DATA_CHECK_TYPES.map(
   },
 );
 
-const INTERVAL_OPTIONS: Array<DropdownOption> =
-  DATA_CHECK_INTERVALS_IN_MINUTES.map((minutes: number): DropdownOption => {
-    return {
-      value: minutes,
-      label:
-        minutes < 60
-          ? `Every ${minutes} minutes`
-          : minutes === 60
-            ? "Every hour"
-            : minutes === 1440
-              ? "Every day"
-              : `Every ${minutes / 60} hours`,
-    };
-  });
+function getIntervalOptions(translator: Translator): Array<DropdownOption> {
+  return DATA_CHECK_INTERVALS_IN_MINUTES.map(
+    (minutes: number): DropdownOption => {
+      return {
+        value: minutes,
+        label:
+          minutes < 60
+            ? translator.translateTemplate("Every {{count}} minutes", {
+                count: minutes,
+              })
+            : minutes === 60
+              ? "Every hour"
+              : minutes === 1440
+                ? "Every day"
+                : translator.translateTemplate("Every {{count}} hours", {
+                    count: minutes / 60,
+                  }),
+      };
+    },
+  );
+}
 
 const ALERT_OPTIONS: Array<DropdownOption> = DATA_CHECK_ALERT_CONDITIONS.map(
   (condition: DataCheckAlertCondition): DropdownOption => {
@@ -339,7 +346,7 @@ const DataCheckTable: FunctionComponent<ComponentProps> = (
             fieldType: FormFieldSchemaType.Dropdown,
             required: true,
             defaultValue: DEFAULT_DATA_CHECK_INTERVAL_IN_MINUTES,
-            dropdownOptions: INTERVAL_OPTIONS,
+            dropdownOptions: getIntervalOptions(translator),
           },
           {
             field: { alertCondition: true },

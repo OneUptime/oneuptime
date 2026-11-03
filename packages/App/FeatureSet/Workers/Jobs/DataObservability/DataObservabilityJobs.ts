@@ -2,6 +2,7 @@ import RunCron from "../../Utils/Cron";
 import JobDictionary from "../../Utils/JobDictionary";
 import { QueueJob } from "Common/Server/Infrastructure/Queue";
 import DataObservabilityRunner from "Common/Server/Utils/DataObservability/DataObservabilityRunner";
+import DataPipelineScheduleCheck from "Common/Server/Utils/DataObservability/DataPipelineScheduleCheck";
 import {
   DATA_OBSERVABILITY_COLLECT_STORE_JOB,
   DATA_OBSERVABILITY_DISCOVER_TABLE_USAGE_JOB,
@@ -24,6 +25,9 @@ import ObjectID from "Common/Types/ObjectID";
  * Every fifteen minutes, queue one table usage discovery per project whose
  * databases are read: which services read and write each table, from the
  * last hour of their database spans (TableUsageDiscovery).
+ *
+ * Every five minutes, check every pipeline's schedule: how late its next
+ * run is, and how long its running run has taken (DataPipelineScheduleCheck).
  */
 
 // The most stores claimed for collection per run.
@@ -106,4 +110,16 @@ JobDictionary.setJobFunction(
 JobDictionary.setTimeoutInMs(
   DATA_OBSERVABILITY_DISCOVER_TABLE_USAGE_JOB,
   DISCOVER_TABLE_USAGE_TIMEOUT_IN_MS,
+);
+
+RunCron(
+  "DataObservability:CheckPipelineSchedules",
+  {
+    schedule: EVERY_FIVE_MINUTE,
+    runOnStartup: false,
+    timeoutInMS: 4 * 60 * 1000,
+  },
+  async () => {
+    await DataPipelineScheduleCheck.checkAll(OneUptimeDate.getCurrentDate());
+  },
 );

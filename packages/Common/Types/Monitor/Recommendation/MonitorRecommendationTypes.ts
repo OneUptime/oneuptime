@@ -63,6 +63,12 @@ export enum MonitorRecommendationResourceType {
    * table; the set is a constant.
    */
   DataStore = "DataStore",
+  /*
+   * A data pipeline (the DataPipeline model): a job that sends OpenLineage
+   * events. Its recommendations are Metrics monitors over its runs'
+   * oneuptime.data.pipeline.* metrics; the set is a constant.
+   */
+  DataPipeline = "DataPipeline",
 }
 
 /*

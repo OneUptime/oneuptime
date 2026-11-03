@@ -85,6 +85,10 @@ import {
   DataObservabilityAlertTemplate,
   getAllDataObservabilityAlertTemplates,
 } from "../DataObservabilityAlertTemplates";
+import {
+  DataPipelineAlertTemplate,
+  getAllDataPipelineAlertTemplates,
+} from "../DataPipelineAlertTemplates";
 
 /*
  * A resource type's entry in the registry.
@@ -114,7 +118,8 @@ export interface MonitorRecommendationResourceTypeDefinition {
     | "rumApplicationId"
     | "serviceId"
     | "databaseServerId"
-    | "dataStoreId";
+    | "dataStoreId"
+    | "dataPipelineId";
   icon: IconProp;
   /*
    * What to recommend for ONE resource of this type.
@@ -735,6 +740,29 @@ function getDataStoreRecommendations(): Array<MonitorRecommendation> {
   );
 }
 
+// A data pipeline's runs: the same set for every pipeline, whatever sends its events.
+function getDataPipelineRecommendations(): Array<MonitorRecommendation> {
+  return getAllDataPipelineAlertTemplates().map(
+    (template: DataPipelineAlertTemplate) => {
+      return normalize({
+        resourceType: MonitorRecommendationResourceType.DataPipeline,
+        monitorType: template.monitorType,
+        template: template,
+        getMonitorStep: (args: MonitorRecommendationArgs) => {
+          return template.getMonitorStep({
+            dataPipelineId: args.resourceIdentifier,
+            onlineMonitorStatusId: args.onlineMonitorStatusId,
+            offlineMonitorStatusId: args.offlineMonitorStatusId,
+            defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+            defaultAlertSeverityId: args.defaultAlertSeverityId,
+            monitorName: args.monitorName,
+          });
+        },
+      });
+    },
+  );
+}
+
 const RESOURCE_TYPE_DEFINITIONS: Array<MonitorRecommendationResourceTypeDefinition> =
   [
     {
@@ -863,6 +891,14 @@ const RESOURCE_TYPE_DEFINITIONS: Array<MonitorRecommendationResourceTypeDefiniti
       identifierFieldName: "dataStoreId",
       icon: IconProp.TableCells,
       getRecommendations: getDataStoreRecommendations,
+    },
+    {
+      resourceType: MonitorRecommendationResourceType.DataPipeline,
+      monitorTypes: [MonitorType.Metrics],
+      resourceLabel: "Data Pipeline",
+      identifierFieldName: "dataPipelineId",
+      icon: IconProp.Workflow,
+      getRecommendations: getDataPipelineRecommendations,
     },
   ];
 

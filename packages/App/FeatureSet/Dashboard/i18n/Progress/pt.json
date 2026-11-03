@@ -119,6 +119,7 @@
     "PVC",
     "Passthrough",
     "Path traversal",
+    "Pipeline",
     "Pipelines",
     "Placement Groups",
     "Playbook",
