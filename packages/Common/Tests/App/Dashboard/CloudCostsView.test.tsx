@@ -482,6 +482,10 @@ describe("the accounts left out", () => {
     expect(gaps[1]).toHaveTextContent(
       "Permission bigquery.jobs.create denied.",
     );
+    // The cloud's own words in their own direction: cut at their end on any page.
+    expect(
+      within(gaps[1]!).getByTestId("cloud-cost-gap-message"),
+    ).toHaveAttribute("dir", "auto");
     expect(gaps[1]).toHaveTextContent("BigQuery");
     expect(
       within(gaps[1]!).getByRole("link", { name: "Read the guide" }),

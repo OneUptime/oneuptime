@@ -216,9 +216,16 @@ const CloudSavingsCard: FunctionComponent<ComponentProps> = (
                         label
                       )}
                       {resourceLine ? (
-                        <bdi className="mt-0.5 block truncate text-xs text-gray-500">
-                          {resourceLine}
-                        </bdi>
+                        /*
+                         * In its own direction, as wide as it is: it starts
+                         * where the line above does on a page read either
+                         * way, and a long one is cut at its own end.
+                         */
+                        <div>
+                          <bdi className="mt-0.5 inline-block max-w-full truncate align-top text-xs text-gray-500">
+                            {resourceLine}
+                          </bdi>
+                        </div>
                       ) : (
                         <></>
                       )}

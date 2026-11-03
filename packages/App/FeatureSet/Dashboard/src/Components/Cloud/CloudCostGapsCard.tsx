@@ -253,7 +253,14 @@ const CloudCostGapsCard: FunctionComponent<ComponentProps> = (
                     <Pill text={label} color={GAP_COLORS[row.reason]} />
                   </div>
                   {row.message ? (
+                    /*
+                     * The cloud's own words, nearly always English: in their
+                     * own direction (dir="auto"), so on a page read right to
+                     * left the third line's ellipsis cuts their end, not
+                     * their start.
+                     */
                     <p
+                      dir="auto"
                       className="mt-1 line-clamp-3 break-words text-xs text-gray-600"
                       data-testid="cloud-cost-gap-message"
                     >

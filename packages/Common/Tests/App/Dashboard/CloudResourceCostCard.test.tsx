@@ -7,7 +7,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { act, cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, render, screen, within } from "@testing-library/react";
 import * as React from "react";
 import CloudCost from "../../../Models/AnalyticsModels/CloudCost";
 import CloudCostRecommendation from "../../../Models/DatabaseModels/CloudCostRecommendation";
@@ -218,6 +218,18 @@ describe("the card", () => {
     expect(savings).toHaveTextContent("Resize");
     expect(savings).toHaveTextContent("Standard_D8s_v5 → Standard_D4s_v5");
     expect(savings).toHaveTextContent("€140.00");
+    /*
+     * What it changes sits under what to do in the card's direction; only
+     * the configuration's own words are set apart (an inline bdi), so a
+     * page read right to left does not push the line to the far side.
+     */
+    const change: HTMLElement = within(savings).getByTestId(
+      "cloud-resource-saving-change",
+    );
+    expect(change.tagName).toBe("DIV");
+    expect(change.querySelector("bdi")).toHaveTextContent(
+      "Standard_D8s_v5 → Standard_D4s_v5",
+    );
 
     // Called what it shows: what it costs, and how it could cost less.
     expect(screen.getByTestId("cloud-resource-cost")).toHaveAttribute(

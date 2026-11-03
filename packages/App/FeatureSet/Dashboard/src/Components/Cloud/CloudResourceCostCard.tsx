@@ -310,9 +310,17 @@ const CloudResourceCostCard: FunctionComponent<ComponentProps> = (
                           )}
                       </div>
                       {change ? (
-                        <bdi className="mt-0.5 block break-words text-xs text-gray-500">
-                          {change}
-                        </bdi>
+                        /*
+                         * The line takes the card's direction, so it sits
+                         * under what to do on a page read right to left;
+                         * the configuration's own words keep theirs (bdi).
+                         */
+                        <div
+                          className="mt-0.5 break-words text-xs text-gray-500"
+                          data-testid="cloud-resource-saving-change"
+                        >
+                          <bdi>{change}</bdi>
+                        </div>
                       ) : (
                         <></>
                       )}

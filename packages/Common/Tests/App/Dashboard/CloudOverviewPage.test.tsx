@@ -394,6 +394,16 @@ describe("with accounts connected", () => {
     const row: HTMLElement = await screen.findByTestId("cloud-savings-top-row");
     expect(row).toHaveTextContent("Rightsize");
     expect(row).toHaveTextContent("web-1 · web-prod");
+    /*
+     * The resource's line keeps its own direction as wide as it is - an
+     * inline block, not a block - so on a page read right to left it
+     * starts under what to do, where a block isolate sat at the far side.
+     */
+    const resourceLine: HTMLElement = within(row).getByText("web-1 · web-prod");
+    expect(resourceLine.tagName).toBe("BDI");
+    expect(resourceLine.className).toContain("inline-block");
+    expect(resourceLine.className).toContain("truncate");
+    expect(resourceLine.className.split(" ")).not.toContain("block");
     expect(row).toHaveTextContent("$150.00");
     expect(within(row).getByRole("link")).toHaveAttribute(
       "href",
