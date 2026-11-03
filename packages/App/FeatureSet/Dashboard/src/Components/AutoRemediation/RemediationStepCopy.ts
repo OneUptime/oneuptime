@@ -240,37 +240,151 @@ export const REMEDIATION_CODE_FIX_REASONS_WITH_SETTINGS_LINK: ReadonlyArray<Auto
     AutomaticCodeFixBlocker.PullRequestOff,
   ];
 
-/*
- * A FIX OF COMMANDS OR CHANGES, FOLDED TO ITS SENTENCE (#5413's UI review:
- * a lighter fixes block). Every command of a fix drew its program, its
- * facts, its command, why, what it should do and its undo, and every change
- * its arguments and the server's answer, so three fixes were a page of
- * their own on a phone, with Approve & Run under all of it. Folded, a fix
- * says where it stands and its sentence - how many commands it runs, and
- * where; how many changes it makes, and through which servers - and its
- * commands, its reasoning and Approve & Run are one press away: Review and
- * approve, as its message in Slack and Microsoft Teams says it.
- */
-export const REMEDIATION_FIX_COMMANDS_SENTENCE: PluralTemplate = {
-  one: translationKey("{{count}} command on {{targets}}."),
-  other: translationKey("{{count}} commands on {{targets}}."),
-};
-
-export const REMEDIATION_FIX_CHANGES_SENTENCE: PluralTemplate = {
-  one: translationKey("{{count}} change through {{servers}}."),
-  other: translationKey("{{count}} changes through {{servers}}."),
-};
-
 // How many of a fix's commands or changes failed, beside where it stands.
 export const REMEDIATION_FIX_FAILED_COUNT: PluralTemplate = {
   one: translationKey("{{count}} failed"),
   other: translationKey("{{count}} failed"),
 };
 
-// What opens a folded fix, and folds it again.
+/*
+ * What opens the plan of a fix that waits for approval - its reasoning and
+ * each command, with Approve & Run under it - and closes it again: the
+ * press its message in Slack and Microsoft Teams names too.
+ */
 export const REMEDIATION_FIX_REVIEW_AND_APPROVE: string =
   translationKey("Review and approve");
-export const REMEDIATION_FIX_SHOW_DETAILS: string =
-  translationKey("Show details");
 export const REMEDIATION_FIX_HIDE_DETAILS: string =
   translationKey("Hide details");
+
+/*
+ * A FIX, STEP BY STEP (issue #5598): "Ideally it should be in steps where
+ * you have step by step sections on what AI did and why, and when I expand
+ * the step - it shows me more context into why, commands ran, outputs."
+ * Each fix reads as the steps it went through (RemediationFixSteps) -
+ * planned, approved, ran, recovered or not, rolled back - and these are
+ * their words: what OneUptime AI did, in a few words each.
+ *
+ * None says what the fact beside the fix's name already says in the same
+ * words ("Waiting for approval", "Auto-executed", "Verified fixed"): a step
+ * says what happened, the fact where the fix stands.
+ */
+export const REMEDIATION_FIX_STEP_COPY: {
+  // plan: what OneUptime AI worked out, or that it found nothing.
+  planCommands: PluralTemplate;
+  planChanges: PluralTemplate;
+  planRunbook: string;
+  planUnreadable: string;
+  composing: string;
+  pickingRunbook: string;
+  noSafeFix: string;
+  noRunbook: string;
+  // approval: the reader's, a person's, or not needed.
+  waitingForApproval: string;
+  cannotBeApproved: string;
+  approved: string;
+  approvedBy: string;
+  approvedAutomatically: string;
+  dismissed: string;
+  dismissedBy: string;
+  // run: what ran, and how it went.
+  runningCommands: PluralTemplate;
+  ranCommands: PluralTemplate;
+  commandFailed: string;
+  commandsFailed: PluralTemplate;
+  makingChanges: PluralTemplate;
+  madeChanges: PluralTemplate;
+  changeFailed: string;
+  changesFailed: PluralTemplate;
+  runbookStarted: string;
+  // verify: whether the incident or alert recovered.
+  watching: string;
+  watchingFor: PluralTemplate;
+  verified: string;
+  notRecovered: string;
+  verificationSkipped: string;
+  // rollback: what ran, undone because it did not work.
+  rollingBack: string;
+  rolledBack: string;
+  rolledBackCommands: PluralTemplate;
+  rollbackFailed: string;
+  rollbackFailedSummary: string;
+  notRolledBack: string;
+  notRolledBackSummary: string;
+  alreadyPutBackSummary: string;
+} = {
+  planCommands: {
+    one: translationKey("Planned {{count}} command on {{targets}}"),
+    other: translationKey("Planned {{count}} commands on {{targets}}"),
+  },
+  planChanges: {
+    one: translationKey("Planned {{count}} change through {{servers}}"),
+    other: translationKey("Planned {{count}} changes through {{servers}}"),
+  },
+  planRunbook: translationKey("Picked this runbook"),
+  planUnreadable: translationKey("Planned a fix"),
+  composing: translationKey("Working out a fix…"),
+  pickingRunbook: translationKey("Picking a runbook…"),
+  noSafeFix: translationKey("Found no safe fix"),
+  noRunbook: translationKey("Found no runbook that applies"),
+  waitingForApproval: translationKey("Needs your approval"),
+  cannotBeApproved: translationKey("Approval blocked"),
+  approved: translationKey("Approved"),
+  approvedBy: translationKey("Approved by {{name}}"),
+  approvedAutomatically: translationKey("Approved automatically"),
+  dismissed: translationKey("Dismissed, so nothing ran"),
+  dismissedBy: translationKey("Dismissed by {{name}}"),
+  runningCommands: {
+    one: translationKey("Running {{count}} command…"),
+    other: translationKey("Running {{count}} commands…"),
+  },
+  ranCommands: {
+    one: translationKey("Ran {{count}} command"),
+    other: translationKey("Ran {{count}} commands"),
+  },
+  commandFailed: translationKey("The command failed"),
+  commandsFailed: {
+    one: translationKey("{{failed}} of {{count}} command failed"),
+    other: translationKey("{{failed}} of {{count}} commands failed"),
+  },
+  makingChanges: {
+    one: translationKey("Making {{count}} change…"),
+    other: translationKey("Making {{count}} changes…"),
+  },
+  madeChanges: {
+    one: translationKey("Made {{count}} change"),
+    other: translationKey("Made {{count}} changes"),
+  },
+  changeFailed: translationKey("The change failed"),
+  changesFailed: {
+    one: translationKey("{{failed}} of {{count}} change failed"),
+    other: translationKey("{{failed}} of {{count}} changes failed"),
+  },
+  runbookStarted: translationKey("Started the runbook"),
+  watching: translationKey("Watching for recovery…"),
+  watchingFor: {
+    one: translationKey(
+      "OneUptime checks for up to {{count}} minute whether it recovers.",
+    ),
+    other: translationKey(
+      "OneUptime checks for up to {{count}} minutes whether it recovers.",
+    ),
+  },
+  verified: translationKey("Recovered"),
+  notRecovered: translationKey("Did not recover"),
+  verificationSkipped: translationKey("Recovery not checked"),
+  rollingBack: translationKey("Rolling back…"),
+  rolledBack: translationKey("Rolled back"),
+  rolledBackCommands: {
+    one: translationKey("Rolled back {{count}} command"),
+    other: translationKey("Rolled back {{count}} commands"),
+  },
+  rollbackFailed: translationKey("Rollback failed"),
+  rollbackFailedSummary: translationKey(
+    "Undo the change by hand if it is still needed.",
+  ),
+  notRolledBack: translationKey("Not rolled back"),
+  notRolledBackSummary: translationKey("None of its commands has an undo."),
+  alreadyPutBackSummary: translationKey(
+    "The cluster had already put back what it changed.",
+  ),
+};
