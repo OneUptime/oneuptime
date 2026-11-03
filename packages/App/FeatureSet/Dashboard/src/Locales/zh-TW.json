@@ -40275,8 +40275,6 @@
   "Manager quorum lost": "管理節點失去仲裁",
   "Manager unreachable": "管理節點無法連線",
   "Memory at {{percent}} of its limit": "記憶體達到限制的 {{percent}}",
-  "Memory used by this task's container at the agent's last reading, as a percent of its memory limit, or of the node's memory when the service sets none. Amber past 85%, where the High Task Memory Usage alert fires. A reading more than 15 minutes old is not shown.": "代理程式最新讀數中此任務容器使用的記憶體，以其記憶體限制的百分比表示；服務未設定限制時，以節點記憶體的百分比表示。超過 85% 時為琥珀色，此時會觸發 High Task Memory Usage 警示。超過 15 分鐘的讀數不會顯示。",
-  "No logs from this task's container in this range. The agent sends the logs of containers that use Docker's json-file log driver, on each node it runs on.": "此範圍內沒有此任務容器的日誌。代理程式會在其執行的每個節點上，傳送使用 Docker json-file 日誌驅動程式的容器的日誌。",
   "No tasks": "沒有任務",
   "Node ID": "節點 ID",
   "Node lost": "節點遺失",
@@ -40348,10 +40346,12 @@
   "{{running}} of {{desired}} replicas run": "{{desired}} 個複本中有 {{running}} 個在執行",
   "{{used}} in use": "已使用 {{used}}",
   "State Since": "進入此狀態的時間",
-  "No logs in this range. The Docker Swarm agent sends the logs of the containers that use Docker's json-file log driver, on each node it runs on.": "此範圍內沒有日誌。Docker Swarm 代理程式會在其執行的每個節點上，傳送使用 Docker json-file 日誌驅動程式的容器的日誌。",
   "Manager node": "管理節點",
   "Worker node": "工作節點",
   "CPU used by each task's container at the OneUptime agent's latest reading (100% is one full CPU core), amber past 80%, where the High Task CPU Usage alert fires. Shown only when the reading is under 15 minutes old; tasks on nodes without the agent show N/A.": "OneUptime 代理程式最新讀數中每個任務容器使用的 CPU（100% 為一個完整的 CPU 核心），超過 80% 時為琥珀色，此時會觸發 High Task CPU Usage 警示。僅在讀數不超過 15 分鐘時顯示；沒有代理程式的節點上的任務顯示不適用。",
-  "Memory used by each task's container at the agent's latest reading, as a percent of its memory limit (or of the node's memory when the service sets none) over the amount, amber past 85%, where the High Task Memory Usage alert fires. Shown only when the reading is under 15 minutes old; tasks on nodes without the agent show N/A.": "代理程式最新讀數中每個任務容器使用的記憶體，在用量上方以其記憶體限制（服務未設定限制時為節點記憶體）的百分比表示，超過 85% 時為琥珀色，此時會觸發 High Task Memory Usage 警示。僅在讀數不超過 15 分鐘時顯示；沒有代理程式的節點上的任務顯示不適用。",
-  "Services defined in the swarm at the agent's latest inventory snapshot, whatever their state, including ones scaled to 0. The cluster's Services list shows each one's replicas, and its Overview the ones that run short.": "代理程式最新清單快照中 swarm 定義的服務，不論狀態，包括縮減到 0 的服務。叢集的服務清單顯示每個服務的複本，其概覽顯示複本不足的服務。"
+  "Services defined in the swarm at the agent's latest inventory snapshot, whatever their state, including ones scaled to 0. The cluster's Services list shows each one's replicas, and its Overview the ones that run short.": "代理程式最新清單快照中 swarm 定義的服務，不論狀態，包括縮減到 0 的服務。叢集的服務清單顯示每個服務的複本，其概覽顯示複本不足的服務。",
+  "The Docker Swarm agent sends the logs of the containers that use Docker's json-file log driver, on each node it runs on.": "Docker Swarm 代理程式會在其執行的每個節點上，傳送使用 Docker json-file 日誌驅動程式的容器的日誌。",
+  "The agent sends this task's container logs when the container uses Docker's json-file log driver and the agent runs on its node.": "當容器使用 Docker 的 json-file 日誌驅動程式且代理程式在其節點上執行時，代理程式會傳送此任務容器的日誌。",
+  "Memory each task's container used, not counting file cache the system has not used recently, as a percent of its memory limit (or of the node's memory when the service sets none) over the amount; amber past 85%, where the High Task Memory Usage alert fires. Only a reading under 15 minutes old is shown; nodes without the agent show N/A.": "每個任務容器使用的記憶體，不包括系統最近未使用的檔案快取，在用量上方以其記憶體限制（服務未設定限制時為節點記憶體）的百分比表示，超過 85% 時為琥珀色，此時會觸發 High Task Memory Usage 警示。只顯示不超過 15 分鐘的讀數；沒有代理程式的節點顯示不適用。",
+  "Memory used by this task's container at the agent's last reading, not counting file cache the system has not used recently, as a percent of its memory limit, or of the node's memory when the service sets none. Amber past 85%, where the High Task Memory Usage alert fires. A reading more than 15 minutes old is not shown.": "代理程式最新讀數中此任務容器使用的記憶體，不包括系統最近未使用的檔案快取，以其記憶體限制的百分比表示；服務未設定限制時，以節點記憶體的百分比表示。超過 85% 時為琥珀色，此時會觸發 High Task Memory Usage 警示。超過 15 分鐘的讀數不會顯示。"
 }

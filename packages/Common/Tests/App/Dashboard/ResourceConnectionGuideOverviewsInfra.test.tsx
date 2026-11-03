@@ -424,19 +424,21 @@ const OVERVIEWS: Array<[string, OverviewCase]> = [
       setupCode: "DOCKER_SWARM_CLUSTER_NAME=prod-swarm",
       identifierMention:
         'When it asks for the cluster name, enter "prod-swarm"',
-      // The count tiles: Nodes first, opened through an overlay button.
+      /*
+       * A swarm that has reported no inventory has no Needs attention and no
+       * nodes at a glance: the section after the guide is what is open on it.
+       */
       nextSection: (): HTMLElement => {
-        const label: HTMLElement | null = Array.from(
-          document.querySelectorAll<HTMLElement>("button span.sr-only"),
-        ).find((span: HTMLElement): boolean => {
-          return span.textContent === "View Nodes";
-        }) as HTMLElement | null;
+        const activity: HTMLElement | null =
+          document.querySelector<HTMLElement>(
+            '[data-testid="stub-activity-cards"]',
+          );
 
-        if (!label) {
-          throw new Error('No "View Nodes" tile on the page.');
+        if (!activity) {
+          throw new Error("No activity cards on the page.");
         }
 
-        return label.closest("button") as HTMLElement;
+        return activity;
       },
     },
   ],

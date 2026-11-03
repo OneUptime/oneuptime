@@ -250,6 +250,7 @@ describe("a Docker Swarm cluster", () => {
         kind: "Service",
         externalId: "s2",
         name: "monitoring",
+        desiredReplicas: 3,
         runningReplicas: 3,
       }),
       swarmRow({
@@ -324,14 +325,21 @@ describe("a Docker Swarm cluster", () => {
     expect(nodes.nodes.has("service:s1")).toBe(false);
   });
 
-  test("health: replicas short, a failed task, a draining node", () => {
+  /*
+   * By the swarm's rules (DockerSwarmHealth), as its Overview and lists
+   * say them: a failed task is a warning - Swarm replaces it, and its
+   * service's shortfall is what is down - with Docker's own error after
+   * the word; a drained node is routine, grey.
+   */
+  test("health by the swarm's rules: replicas short, a failed task, a drained node", () => {
     expect(node(topology.services, "service:s1").health).toBe("warning");
     expect(node(topology.services, "service:s2").health).toBe("healthy");
-    expect(node(topology.services, "task:t2").health).toBe("critical");
+    expect(node(topology.services, "task:t2").health).toBe("warning");
     expect(node(topology.services, "task:t2").reasons).toEqual([
+      { text: "Failed" },
       { text: "no suitable node" },
     ]);
-    expect(node(topology.nodes, "node:n2").health).toBe("warning");
+    expect(node(topology.nodes, "node:n2").health).toBe("off");
   });
 
   test("open issues land on the service or node their labels name", () => {

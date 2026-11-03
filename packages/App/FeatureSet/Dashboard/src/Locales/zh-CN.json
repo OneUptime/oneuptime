@@ -40275,8 +40275,6 @@
   "Manager quorum lost": "管理节点失去仲裁",
   "Manager unreachable": "管理节点不可达",
   "Memory at {{percent}} of its limit": "内存达到限制的 {{percent}}",
-  "Memory used by this task's container at the agent's last reading, as a percent of its memory limit, or of the node's memory when the service sets none. Amber past 85%, where the High Task Memory Usage alert fires. A reading more than 15 minutes old is not shown.": "代理最新读数中此任务容器使用的内存，以其内存限制的百分比表示；服务未设置限制时，以节点内存的百分比表示。超过 85% 时为琥珀色，此时会触发 High Task Memory Usage 警报。超过 15 分钟的读数不会显示。",
-  "No logs from this task's container in this range. The agent sends the logs of containers that use Docker's json-file log driver, on each node it runs on.": "此范围内没有此任务容器的日志。代理会在其运行的每个节点上，发送使用 Docker json-file 日志驱动的容器的日志。",
   "No tasks": "没有任务",
   "Node ID": "节点 ID",
   "Node lost": "节点丢失",
@@ -40348,10 +40346,12 @@
   "{{running}} of {{desired}} replicas run": "{{desired}} 个副本中有 {{running}} 个在运行",
   "{{used}} in use": "已用 {{used}}",
   "State Since": "进入此状态的时间",
-  "No logs in this range. The Docker Swarm agent sends the logs of the containers that use Docker's json-file log driver, on each node it runs on.": "此范围内没有日志。Docker Swarm 代理会在其运行的每个节点上，发送使用 Docker json-file 日志驱动的容器的日志。",
   "Manager node": "管理节点",
   "Worker node": "工作节点",
   "CPU used by each task's container at the OneUptime agent's latest reading (100% is one full CPU core), amber past 80%, where the High Task CPU Usage alert fires. Shown only when the reading is under 15 minutes old; tasks on nodes without the agent show N/A.": "OneUptime 代理最新读数中每个任务容器使用的 CPU（100% 为一个完整的 CPU 核心），超过 80% 时为琥珀色，此时会触发 High Task CPU Usage 警报。仅在读数不超过 15 分钟时显示；没有代理的节点上的任务显示不适用。",
-  "Memory used by each task's container at the agent's latest reading, as a percent of its memory limit (or of the node's memory when the service sets none) over the amount, amber past 85%, where the High Task Memory Usage alert fires. Shown only when the reading is under 15 minutes old; tasks on nodes without the agent show N/A.": "代理最新读数中每个任务容器使用的内存，在用量上方以其内存限制（服务未设置限制时为节点内存）的百分比表示，超过 85% 时为琥珀色，此时会触发 High Task Memory Usage 警报。仅在读数不超过 15 分钟时显示；没有代理的节点上的任务显示不适用。",
-  "Services defined in the swarm at the agent's latest inventory snapshot, whatever their state, including ones scaled to 0. The cluster's Services list shows each one's replicas, and its Overview the ones that run short.": "代理最新清单快照中 swarm 定义的服务，无论状态如何，包括缩容到 0 的服务。集群的服务列表显示每个服务的副本，其概览显示副本不足的服务。"
+  "Services defined in the swarm at the agent's latest inventory snapshot, whatever their state, including ones scaled to 0. The cluster's Services list shows each one's replicas, and its Overview the ones that run short.": "代理最新清单快照中 swarm 定义的服务，无论状态如何，包括缩容到 0 的服务。集群的服务列表显示每个服务的副本，其概览显示副本不足的服务。",
+  "The Docker Swarm agent sends the logs of the containers that use Docker's json-file log driver, on each node it runs on.": "Docker Swarm 代理会在其运行的每个节点上，发送使用 Docker json-file 日志驱动的容器的日志。",
+  "The agent sends this task's container logs when the container uses Docker's json-file log driver and the agent runs on its node.": "当容器使用 Docker 的 json-file 日志驱动并且代理运行在其节点上时，代理会发送此任务容器的日志。",
+  "Memory each task's container used, not counting file cache the system has not used recently, as a percent of its memory limit (or of the node's memory when the service sets none) over the amount; amber past 85%, where the High Task Memory Usage alert fires. Only a reading under 15 minutes old is shown; nodes without the agent show N/A.": "每个任务容器使用的内存，不包括系统最近未使用的文件缓存，在用量上方以其内存限制（服务未设置限制时为节点内存）的百分比表示，超过 85% 时为琥珀色，此时会触发 High Task Memory Usage 警报。只显示不超过 15 分钟的读数；没有代理的节点显示不适用。",
+  "Memory used by this task's container at the agent's last reading, not counting file cache the system has not used recently, as a percent of its memory limit, or of the node's memory when the service sets none. Amber past 85%, where the High Task Memory Usage alert fires. A reading more than 15 minutes old is not shown.": "代理最新读数中此任务容器使用的内存，不包括系统最近未使用的文件缓存，以其内存限制的百分比表示；服务未设置限制时，以节点内存的百分比表示。超过 85% 时为琥珀色，此时会触发 High Task Memory Usage 警报。超过 15 分钟的读数不会显示。"
 }

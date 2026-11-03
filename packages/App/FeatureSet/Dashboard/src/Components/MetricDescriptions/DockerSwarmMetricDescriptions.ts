@@ -121,13 +121,13 @@ export const DOCKER_SWARM_METRIC_DESCRIPTIONS: Record<
     "CPU used by this task's container at the last reading the OneUptime agent sent (it reads every 30 seconds); 100% is one full CPU core. Amber past 80%, where the High Task CPU Usage alert fires. A reading more than 15 minutes old is not shown.",
   ),
   taskMemory: translationKey(
-    "Memory used by this task's container at the agent's last reading, as a percent of its memory limit, or of the node's memory when the service sets none. Amber past 85%, where the High Task Memory Usage alert fires. A reading more than 15 minutes old is not shown.",
+    "Memory used by this task's container at the agent's last reading, not counting file cache the system has not used recently, as a percent of its memory limit, or of the node's memory when the service sets none. Amber past 85%, where the High Task Memory Usage alert fires. A reading more than 15 minutes old is not shown.",
   ),
   taskCpuColumn: translationKey(
     "CPU used by each task's container at the OneUptime agent's latest reading (100% is one full CPU core), amber past 80%, where the High Task CPU Usage alert fires. Shown only when the reading is under 15 minutes old; tasks on nodes without the agent show N/A.",
   ),
   taskMemoryColumn: translationKey(
-    "Memory used by each task's container at the agent's latest reading, as a percent of its memory limit (or of the node's memory when the service sets none) over the amount, amber past 85%, where the High Task Memory Usage alert fires. Shown only when the reading is under 15 minutes old; tasks on nodes without the agent show N/A.",
+    "Memory each task's container used, not counting file cache the system has not used recently, as a percent of its memory limit (or of the node's memory when the service sets none) over the amount; amber past 85%, where the High Task Memory Usage alert fires. Only a reading under 15 minutes old is shown; nodes without the agent show N/A.",
   ),
   stackServices: translationKey(
     "How many services carry this stack's name, which Docker adds to every service a stack deploys. They count whatever their state, including ones scaled to 0; from the agent's latest inventory snapshot, taken every 5 minutes by default.",

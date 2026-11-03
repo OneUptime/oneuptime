@@ -40275,8 +40275,6 @@
   "Manager quorum lost": "매니저 쿼럼 상실",
   "Manager unreachable": "매니저 연결 불가",
   "Memory at {{percent}} of its limit": "메모리가 한도의 {{percent}}",
-  "Memory used by this task's container at the agent's last reading, as a percent of its memory limit, or of the node's memory when the service sets none. Amber past 85%, where the High Task Memory Usage alert fires. A reading more than 15 minutes old is not shown.": "에이전트의 마지막 측정값에서 이 작업의 컨테이너가 사용한 메모리로, 메모리 한도 대비 비율이며 서비스에 한도가 없으면 노드 메모리 대비 비율입니다. 85%를 넘으면 주황색이며, 이때 High Task Memory Usage 알림이 발생합니다. 15분보다 오래된 측정값은 표시되지 않습니다.",
-  "No logs from this task's container in this range. The agent sends the logs of containers that use Docker's json-file log driver, on each node it runs on.": "이 범위에는 이 작업 컨테이너의 로그가 없습니다. 에이전트는 실행 중인 각 노드에서 Docker의 json-file 로그 드라이버를 사용하는 컨테이너의 로그를 보냅니다.",
   "No tasks": "작업 없음",
   "Node ID": "노드 ID",
   "Node lost": "노드 유실",
@@ -40348,10 +40346,12 @@
   "{{running}} of {{desired}} replicas run": "레플리카 {{desired}}개 중 {{running}}개 실행 중",
   "{{used}} in use": "{{used}} 사용 중",
   "State Since": "상태 시작 시각",
-  "No logs in this range. The Docker Swarm agent sends the logs of the containers that use Docker's json-file log driver, on each node it runs on.": "이 범위에는 로그가 없습니다. Docker Swarm 에이전트는 실행 중인 각 노드에서 Docker의 json-file 로그 드라이버를 사용하는 컨테이너의 로그를 보냅니다.",
   "Manager node": "매니저 노드",
   "Worker node": "워커 노드",
   "CPU used by each task's container at the OneUptime agent's latest reading (100% is one full CPU core), amber past 80%, where the High Task CPU Usage alert fires. Shown only when the reading is under 15 minutes old; tasks on nodes without the agent show N/A.": "OneUptime 에이전트의 최신 측정값에서 각 작업의 컨테이너가 사용한 CPU입니다(100%는 CPU 코어 1개 전체). 80%를 넘으면 주황색이며, 이때 High Task CPU Usage 알림이 발생합니다. 측정값이 15분 이내일 때만 표시되며, 에이전트가 없는 노드의 작업은 해당 없음으로 표시됩니다.",
-  "Memory used by each task's container at the agent's latest reading, as a percent of its memory limit (or of the node's memory when the service sets none) over the amount, amber past 85%, where the High Task Memory Usage alert fires. Shown only when the reading is under 15 minutes old; tasks on nodes without the agent show N/A.": "에이전트의 최신 측정값에서 각 작업의 컨테이너가 사용한 메모리로, 사용량 위에 메모리 한도(서비스에 한도가 없으면 노드 메모리) 대비 비율을 표시합니다. 85%를 넘으면 주황색이며, 이때 High Task Memory Usage 알림이 발생합니다. 측정값이 15분 이내일 때만 표시되며, 에이전트가 없는 노드의 작업은 해당 없음으로 표시됩니다.",
-  "Services defined in the swarm at the agent's latest inventory snapshot, whatever their state, including ones scaled to 0. The cluster's Services list shows each one's replicas, and its Overview the ones that run short.": "에이전트의 최신 인벤토리 스냅샷 시점에 Swarm에 정의된 서비스로, 0으로 스케일된 것을 포함해 상태와 관계없이 셉니다. 클러스터의 서비스 목록에는 각 서비스의 레플리카가, 개요에는 부족한 서비스가 표시됩니다."
+  "Services defined in the swarm at the agent's latest inventory snapshot, whatever their state, including ones scaled to 0. The cluster's Services list shows each one's replicas, and its Overview the ones that run short.": "에이전트의 최신 인벤토리 스냅샷 시점에 Swarm에 정의된 서비스로, 0으로 스케일된 것을 포함해 상태와 관계없이 셉니다. 클러스터의 서비스 목록에는 각 서비스의 레플리카가, 개요에는 부족한 서비스가 표시됩니다.",
+  "The Docker Swarm agent sends the logs of the containers that use Docker's json-file log driver, on each node it runs on.": "Docker Swarm 에이전트는 실행 중인 각 노드에서 Docker의 json-file 로그 드라이버를 사용하는 컨테이너의 로그를 보냅니다.",
+  "The agent sends this task's container logs when the container uses Docker's json-file log driver and the agent runs on its node.": "컨테이너가 Docker의 json-file 로그 드라이버를 사용하고 에이전트가 해당 노드에서 실행되면, 에이전트가 이 작업 컨테이너의 로그를 보냅니다.",
+  "Memory each task's container used, not counting file cache the system has not used recently, as a percent of its memory limit (or of the node's memory when the service sets none) over the amount; amber past 85%, where the High Task Memory Usage alert fires. Only a reading under 15 minutes old is shown; nodes without the agent show N/A.": "각 작업의 컨테이너가 사용한 메모리로, 시스템이 최근에 사용하지 않은 파일 캐시는 포함하지 않으며, 사용량 위에 메모리 한도(서비스에 한도가 없으면 노드 메모리) 대비 비율을 표시합니다. 85%를 넘으면 주황색이며, 이때 High Task Memory Usage 알림이 발생합니다. 15분 이내의 측정값만 표시되며, 에이전트가 없는 노드는 해당 없음으로 표시됩니다.",
+  "Memory used by this task's container at the agent's last reading, not counting file cache the system has not used recently, as a percent of its memory limit, or of the node's memory when the service sets none. Amber past 85%, where the High Task Memory Usage alert fires. A reading more than 15 minutes old is not shown.": "에이전트의 마지막 측정값에서 이 작업의 컨테이너가 사용한 메모리로, 시스템이 최근에 사용하지 않은 파일 캐시는 포함하지 않으며, 메모리 한도 대비 비율이고 서비스에 한도가 없으면 노드 메모리 대비 비율입니다. 85%를 넘으면 주황색이며, 이때 High Task Memory Usage 알림이 발생합니다. 15분보다 오래된 측정값은 표시되지 않습니다."
 }

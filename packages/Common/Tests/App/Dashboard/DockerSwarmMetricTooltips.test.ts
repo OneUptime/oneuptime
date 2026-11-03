@@ -592,7 +592,7 @@ describe("CPU and memory texts match what the rows actually carry", () => {
       "Shown only when the reading is under 15 minutes old",
     );
     expect(T.taskMemoryColumn).toContain(
-      "Shown only when the reading is under 15 minutes old",
+      "Only a reading under 15 minutes old is shown",
     );
     expect(T.taskCpu).toContain("more than 15 minutes old is not shown");
     expect(T.taskMemory).toContain("more than 15 minutes old is not shown");
@@ -623,7 +623,7 @@ describe("CPU and memory texts match what the rows actually carry", () => {
     expect(T.taskCpu).toContain("every 30 seconds");
   });
 
-  test("memory reads against the limit, or the node's memory when the service sets none (docker stats' MEM %)", () => {
+  test("memory reads against the limit, or the node's memory when the service sets none (docker stats' MEM %), cache left out", () => {
     for (const text of [T.taskMemory, T.taskMemoryColumn]) {
       expect(text).toContain("percent of its memory limit");
       expect(text).toContain("node's memory when the service sets none");
@@ -634,10 +634,10 @@ describe("CPU and memory texts match what the rows actually carry", () => {
      * Docker and Podman host pages. Recently used cache is still counted,
      * so "cache the system can reclaim" would overstate what is left out.
      */
-    expect(CHART.taskMemory).toContain(
-      "file cache the system has not used recently",
-    );
-    expect(CHART.taskMemory).not.toContain("reclaim");
+    for (const text of [T.taskMemory, T.taskMemoryColumn, CHART.taskMemory]) {
+      expect(text).toContain("file cache the system has not used recently");
+      expect(text).not.toContain("reclaim");
+    }
   });
 
   /*

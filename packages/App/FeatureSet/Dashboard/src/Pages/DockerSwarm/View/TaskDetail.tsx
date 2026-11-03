@@ -165,7 +165,7 @@ const DockerSwarmClusterTaskDetail: FunctionComponent<
           }}
           showFilters={true}
           enableRealtime={true}
-          noLogsMessage="No logs from this task's container in this range. The agent sends the logs of containers that use Docker's json-file log driver, on each node it runs on."
+          noLogsMessage="The agent sends this task's container logs when the container uses Docker's json-file log driver and the agent runs on its node."
         />
       ),
     });
