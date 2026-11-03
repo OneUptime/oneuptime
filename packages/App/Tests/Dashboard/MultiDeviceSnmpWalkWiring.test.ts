@@ -267,6 +267,13 @@ describe("what the page reads and writes", () => {
     expect(CARD).not.toContain("diagnostic.hostname");
   });
 
+  test("a read that finds every walk still on its way leaves the comparison as it is", () => {
+    expect(CARD).toContain(
+      "const hasChanged: boolean = next.some( (walk: DeviceWalk, index: number): boolean => { return walk !== walksRef.current[index]; }, );",
+    );
+    expect(CARD).toContain("if (hasChanged) { setWalks(next); }");
+  });
+
   test("reads every walk still on its way in one request, never one request a device", () => {
     expect(CARD).toContain(
       "_id: new Includes( waiting.map((walk: DeviceWalk): string => { return walk.diagnosticId!; }), ),",

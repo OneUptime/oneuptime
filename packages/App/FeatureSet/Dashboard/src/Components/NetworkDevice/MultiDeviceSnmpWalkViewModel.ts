@@ -19,6 +19,7 @@ import {
   describeSnmpWalkFailure,
   formatSnmpTimeTicks,
   getCollectedOids,
+  getSnmpWalkTypeLabel,
   isNumericSnmpWalkRow,
   isWalkableStart,
   toSnmpWalkRowView,
@@ -722,10 +723,8 @@ export function toComparisonRowView(
   const values: Array<string> = [];
 
   for (const answer of row.answers) {
-    const typeLabel: string = toSnmpWalkRowView(
-      answer.row,
-      translator,
-    ).typeLabel;
+    // The type alone: naming each device's copy of the OID again is wasted.
+    const typeLabel: string = getSnmpWalkTypeLabel(answer.row);
 
     if (!typeLabels.includes(typeLabel)) {
       typeLabels.push(typeLabel);

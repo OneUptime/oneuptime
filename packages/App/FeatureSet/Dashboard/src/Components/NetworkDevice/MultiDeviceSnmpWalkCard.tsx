@@ -81,7 +81,6 @@ import Card from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import { DropdownValue } from "Common/UI/Components/Dropdown/Dropdown";
 import EntityDropdown from "Common/UI/Components/EntityDropdown/EntityDropdown";
-import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Input from "Common/UI/Components/Input/Input";
 import Link from "Common/UI/Components/Link/Link";
@@ -493,7 +492,20 @@ const MultiDeviceSnmpWalkCard: FunctionComponent<ComponentProps> = (
       },
     );
 
-    setWalks(next);
+    /*
+     * Only a walk that landed changes the page: a read that found every
+     * walk still on its way keeps the comparison as it is, rather than
+     * working out fifty thousand OIDs again every few seconds.
+     */
+    const hasChanged: boolean = next.some(
+      (walk: DeviceWalk, index: number): boolean => {
+        return walk !== walksRef.current[index];
+      },
+    );
+
+    if (hasChanged) {
+      setWalks(next);
+    }
 
     const isStillWaiting: boolean = next.some((walk: DeviceWalk): boolean => {
       return !isDeviceWalkSettled(walk);
@@ -1235,10 +1247,21 @@ const MultiDeviceSnmpWalkCard: FunctionComponent<ComponentProps> = (
     return (
       <div className="space-y-5" data-testid="multi-snmp-walk-form">
         <div>
-          <FieldLabelElement
-            title="Devices"
-            htmlFor="multi-snmp-walk-devices"
-            description={translator.translateTemplate(
+          {/*
+           * Labelled as Start at OID below it is: a walk needs both, so
+           * neither is a form field marked optional.
+           */}
+          <p
+            id="multi-snmp-walk-devices-label"
+            className="block text-sm font-medium text-gray-700"
+          >
+            {translator.translateText("Devices")}
+          </p>
+          <p
+            id="multi-snmp-walk-devices-help"
+            className="mb-1 mt-0.5 text-sm text-gray-500"
+          >
+            {translator.translateTemplate(
               "Up to {{count}} at a time. Pick devices one by one, or every device with a label.",
               {
                 count: translator.formatNumber(
@@ -1246,10 +1269,11 @@ const MultiDeviceSnmpWalkCard: FunctionComponent<ComponentProps> = (
                 ),
               },
             )}
-            required={false}
-          />
+          </p>
           <EntityDropdown
             id="multi-snmp-walk-devices"
+            ariaLabelledby="multi-snmp-walk-devices-label"
+            ariaDescribedby="multi-snmp-walk-devices-help"
             modelType={NetworkDevice}
             modelAPI={modelAPI}
             labelField="name"

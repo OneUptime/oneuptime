@@ -1399,9 +1399,15 @@ jobs:
           # File Systems and a host's, a file system's and a volume's page),
           # each at 1280, 1024, 768 and 390 pixels, dark, German and Persian,
           # joined it on 2026-11-03, the lightest group (16.5): 19.9.
+          # Multi-Device SNMP Walk (13 tests, 1.7 minutes locally with its
+          # bundle, Chromium only: the Network's SNMP Walk page walking seven
+          # routers at once, the OIDs compared, Collect on every device that
+          # answers, the CSV, the walk read back, at 1280 and 390 pixels, dark
+          # and German) joined it beside SNMP Walk on 2026-11-03: 21.6.
           - group: 17
             suites: >-
               test-snmp-walk-ui
+              test-multi-device-snmp-walk-ui
               test-rules-menu-section-ui
               test-slo-burn-rate-ui
               test-dashboard-value-widget-ui
@@ -1684,6 +1690,8 @@ jobs:
             output/playwright/openshift-pages-ui/test-results
             output/playwright/snmp-walk-ui/*.png
             output/playwright/snmp-walk-ui/test-results
+            output/playwright/multi-device-snmp-walk-ui/*.png
+            output/playwright/multi-device-snmp-walk-ui/test-results
             output/playwright/asset-details-ui/*.png
             output/playwright/asset-details-ui/test-results
             output/playwright/docker-swarm-pages-ui/*.png
