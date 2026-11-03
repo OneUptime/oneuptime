@@ -608,6 +608,10 @@ test.describe("an OSD's page", () => {
     await expect(page.getByTestId("ceph-osd-hero-location")).toContainText(
       "OSD of cluster ceph-prod on host ceph-a",
     );
+    // Still in is what makes a down OSD critical: a fact in grey, not green.
+    const badge: Locator = page.getByTestId("ceph-osd-hero-badge");
+    await expect(badge).toHaveText("In cluster");
+    await expect(badge).toHaveAttribute("data-tone", "neutral");
     await expect(page.getByTestId("ceph-osd-attention")).toContainText(
       "This OSD",
     );
@@ -628,6 +632,20 @@ test.describe("an OSD's page", () => {
     );
 
     await screenshot(page, "ceph-osd-down-1280");
+  });
+
+  test("one up but out: Out of cluster in its pill, once - no badge says it again", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(LAPTOP);
+    await openOsd(page, "osd.7");
+
+    const status: Locator = page.getByTestId("ceph-osd-hero-status");
+    await expect(status).toContainText("Out of cluster");
+    await expect(status).toHaveAttribute("data-tone", "warning");
+    await expect(page.getByTestId("ceph-osd-hero-badge")).toHaveCount(0);
   });
 
   test("one past the full ratio, on a phone: Up in red, its tiles and details fit", async ({

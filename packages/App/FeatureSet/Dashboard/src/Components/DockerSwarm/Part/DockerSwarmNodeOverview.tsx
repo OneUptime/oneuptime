@@ -147,7 +147,8 @@ const DockerSwarmNodeOverview: FunctionComponent<ComponentProps> = (
   if (message) {
     detailRows.push({
       key: "message",
-      label: "Swarm's message",
+      // Docker's Status.Message, named as the labels beside it are.
+      label: "Status Message",
       value: <bdi>{message}</bdi>,
     });
   }

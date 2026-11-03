@@ -505,6 +505,14 @@ test.describe("a part's own page answers the same questions in the same places",
     await expect(page.getByTestId("storage-array-part-alerts")).toContainText(
       "File System Near Full",
     );
+    /*
+     * Its Details say what the FlashBlade sent, and nothing else: no rows of
+     * dashes for the latency, IOPS and data reduction it did not send.
+     */
+    const details: Locator = page.getByTestId("storage-array-part-details");
+    await expect(details).toContainText("NFS, SMB");
+    await expect(details).not.toContainText("—");
+    await expect(details).not.toContainText("Read Latency");
     await screenshot(page, "file-system-page-1280");
   });
 

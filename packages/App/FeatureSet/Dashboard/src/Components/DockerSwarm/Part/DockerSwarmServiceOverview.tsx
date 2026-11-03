@@ -326,7 +326,7 @@ const DockerSwarmServiceOverview: FunctionComponent<ComponentProps> = (
       <ResourcePartAlertsCard
         testId="docker-swarm-service-alerts"
         title="Service alerts"
-        description="The swarm's alerts that watch every service and its tasks, this one's included: each is one monitor that fires for any service or task that crosses it."
+        description="The swarm's alerts that watch every service and its tasks, this one included: each is one monitor that fires for any service or task that crosses it."
         resourceType={MonitorRecommendationResourceType.DockerSwarm}
         templateIds={DOCKER_SWARM_SERVICE_ALERT_TEMPLATE_IDS}
         resourceId={props.clusterId}

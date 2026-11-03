@@ -222,6 +222,10 @@ test.describe("a host in trouble: the Overview says what needs attention", () =>
       await expect(items.nth(1)).toContainText("Last reported");
       await expect(items.nth(2)).toContainText("1 restart in 15 minutes");
       await expect(items.nth(3)).toContainText("Memory 91.4% used");
+      // Every row is a container: no Container chip on each.
+      await expect(
+        card.getByTestId("container-host-needs-attention-kind"),
+      ).toHaveCount(0);
 
       // The count opens the Containers list: every container it has.
       const chip: Locator = page.getByTestId("container-host-hero-containers");
@@ -561,8 +565,17 @@ test.describe("a container's page", () => {
       await expect(attention).toContainText("This container");
       await expect(attention).toContainText("6 restarts in 15 minutes");
 
+      // The count's window: the hero and Needs attention say it is a loop.
       const tiles: Locator = page.getByTestId("container-host-container-tiles");
-      await expect(tiles).toContainText("A restart loop");
+      await expect(tiles).toContainText("in the last 15 minutes");
+      await expect(tiles).not.toContainText("A restart loop");
+
+      // The cards under the tabs line up with the hero above them.
+      const heroBox: { x: number } | null = await hero.boundingBox();
+      const attentionBox: { x: number } | null = await attention.boundingBox();
+      expect(
+        Math.abs((heroBox?.x || 0) - (attentionBox?.x || -9)),
+      ).toBeLessThan(1);
 
       // The alert the loop raised, about this container.
       await expect(

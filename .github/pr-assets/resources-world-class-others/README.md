@@ -17,3 +17,20 @@ records for "Acme" workspaces). Nothing here is a real customer's data.
 | storage-array-overview-trouble-1280 | FlashArray Overview: alerts, 92% full, slow reads, a failed drive, a host short of a path, a pod behind | 1280 |
 | storage-array-host-page-1280 | A FlashArray host's page | 1280 |
 | storage-array-overview-trouble-persian-1280 | FlashArray Overview in Persian, right to left | 1280 |
+
+## UI review
+
+Before and after pairs from the review, cropped from the same fixtures at 1280 (`review-*-before.png` is the
+builder's page, `review-*-after.png` the reviewed one).
+
+| Pair | What changed |
+| --- | --- |
+| review-ceph-osd-hero | A down OSD still in the cluster: its placement badge grey, not green beside the red Down |
+| review-ceph-osd-out | An OSD up but out: "Out of cluster" once, in its pill, not again in a badge |
+| review-swarm-service | A Swarm service: no tasks chip under a pill that counts its replicas, no row of one tab |
+| review-swarm-tasks | The Swarm Tasks list fits its card: no Service column, the image folded, CPU and Memory in view |
+| review-ceph-pools | The Ceph Pools list: Objects folds under Stored, so a long pool name is no longer broken mid-word |
+| review-docker-attention | Docker's Needs attention: no Container chip on every row, the shared description |
+| review-file-system-details | A FlashBlade file system's Details: only what it reported, no rows of dashes |
+| review-persian-container | A container's tiles in Persian: "96.0 MB" set apart in its sentence |
+| review-persian-details | A container's Details in Persian: each value in its own direction ("8.0 MB", not "MB 8.0"); the fixture now draws dates as production does, in Persian |

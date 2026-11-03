@@ -1464,6 +1464,27 @@ function listRow(page: Page, name: string): Locator {
   return page.locator("tr").filter({ hasText: name }).first();
 }
 
+/*
+ * How far the page's table runs past the box it scrolls in, in pixels: 0
+ * when every column fits its card. The table's own box, not the page's.
+ */
+async function tableOverflowOf(page: Page): Promise<number> {
+  return await page
+    .locator("table")
+    .first()
+    .evaluate((table: Element): number => {
+      let box: HTMLElement | null = table.parentElement;
+      while (box && box !== document.body) {
+        const overflow: string = getComputedStyle(box).overflowX;
+        if (overflow === "auto" || overflow === "scroll") {
+          return box.scrollWidth - box.clientWidth;
+        }
+        box = box.parentElement;
+      }
+      return 0;
+    });
+}
+
 test.describe("the Overview of a swarm in trouble", () => {
   test("at a laptop's width: Unhealthy, and Needs attention says what and why, critical first, each one step from its page", async ({
     page,
@@ -1609,7 +1630,10 @@ test.describe("the lists say what the Overview says", () => {
       "danger",
     );
     await expect(down).toContainText("Down");
-    await expect(listRow(page, "swarm-manager-01")).toContainText("Leader");
+    // The leader's role is Docker's, a manager; Leader is its Manager Status.
+    const leader: Locator = listRow(page, "swarm-manager-01");
+    await expect(leader).toContainText("Manager node");
+    await expect(leader).toContainText("Leader");
 
     await page.goto(withQuery(`${CLUSTER_PATH}/services`, TROUBLE));
     const web: Locator = listRow(page, "shop_web");
@@ -1633,6 +1657,23 @@ test.describe("the lists say what the Overview says", () => {
       /bg-amber|bg-yellow|bg-orange/,
     );
     await expect(listRow(page, "shop_web.2")).toContainText("Failed");
+
+    /*
+     * At a laptop's width the list fits its card, CPU and Memory in view:
+     * no Service column (a task's name says its service), and the image
+     * folds under the name when there is no room for it.
+     */
+    await expect(
+      page.getByRole("columnheader", { name: /^Service/ }),
+    ).toHaveCount(0);
+    await expect
+      .poll(async (): Promise<number> => {
+        return await tableOverflowOf(page);
+      })
+      .toBeLessThanOrEqual(1);
+    await expect(
+      page.getByRole("columnheader", { name: /^Memory/ }),
+    ).toBeInViewport();
     await screenshot(page, "docker-swarm-tasks-trouble-laptop");
   });
 
@@ -1694,6 +1735,14 @@ test.describe("a service's page", () => {
     ).toHaveText(
       "Service of stack shop in swarm prod".replace("prod", CLUSTER_NAME),
     );
+    /*
+     * Its replicas counted once, in the pill: no "1/2 tasks running" chip
+     * under it. And its Overview, its only tab, without a row of one tab.
+     */
+    await expect(
+      page.getByTestId("docker-swarm-service-hero-chips"),
+    ).toHaveCount(0);
+    await expect(page.getByRole("tablist")).toHaveCount(0);
 
     expect(await attentionKeys(page, "docker-swarm-service-attention")).toEqual(
       ["Service:service/s2", "Task:task/e6f7a8b9c0d1e2f3a4b5c6d7e"],

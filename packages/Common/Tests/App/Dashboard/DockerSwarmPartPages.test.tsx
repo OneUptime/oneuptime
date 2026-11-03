@@ -375,6 +375,12 @@ describe("a node's page", () => {
     expect(screen.getByTestId("docker-swarm-node-attention")).toHaveTextContent(
       "This node",
     );
+    // Swarm's message in its details, named as Docker names the field.
+    const details: HTMLElement = screen.getByTestId(
+      "docker-swarm-node-details",
+    );
+    expect(details).toHaveTextContent("Status Message");
+    expect(details).toHaveTextContent("heartbeat failure");
 
     // Its own tasks only, each named after its service.
     const overview: HTMLElement = screen.getByTestId(
