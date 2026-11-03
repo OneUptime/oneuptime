@@ -188,7 +188,8 @@ Zolang **Nieuwe incidenten automatisch herstellen** aan staat en er geen AI-rege
 - de monitor ervan een Kubernetes-monitor van het cluster is;
 - de monitor ervan aan het cluster is gekoppeld onder **Monitor → Overzicht → Gekoppelde resources**, de manier om een website-, API- of synthetische monitor te koppelen aan het cluster dat levert wat hij controleert;
 - AI vragen het op de pagina van het cluster heeft gemeld, of het op verzoek aan het cluster heeft gekoppeld;
-- iemand het cluster bij het melden heeft gekozen onder **Andere getroffen resources** (een gekoppelde monitor kiezen voegt het daar voor je toe).
+- iemand het cluster bij het melden heeft gekozen onder **Andere getroffen resources** (een gekoppelde monitor kiezen voegt het daar voor je toe);
+- iemand het cluster heeft gekozen bij het melden vanuit [Slack](/docs/workspace-connections/slack) of [Microsoft Teams](/docs/workspace-connections/microsoft-teams).
 
 Elk incident en elke waarschuwing zegt in de stap **Herstel** van zijn kaart **OneUptime AI** of het aan een cluster was gekoppeld en wat de fixes van het cluster deden; zie [Wat het automatische herstel deed](#wat-het-automatische-herstel-deed). Hetzelfde geldt voor een infrastructuurresource en zijn AI-agent.
 
