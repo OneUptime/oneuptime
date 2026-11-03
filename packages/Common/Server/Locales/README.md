@@ -43,9 +43,9 @@ reads exactly as written.
   `Common/UI/Utils/TranslateTemplate.ts` re-exports) - for a language:
   `getServerTranslator(language)`. Server code imports the translator from
   `Common/Types/Translator`, never from `UI/`: that would load i18next for
-  nothing. `writeInLanguage(language,
-  (translator) => ...)` also writes OneUptime's dates in that language while
-  it runs. It is synchronous: never wait on anything inside it.
+  nothing. `writeInLanguage(language, (translator) => ...)` also writes
+  OneUptime's dates in that language while it runs. It is synchronous: never
+  wait on anything inside it.
 - **A sentence is translated whole, or not at all.** Values go in through
   `{{placeholders}}`; a sentence a language has not worded reads wholly in
   English, values and all.
