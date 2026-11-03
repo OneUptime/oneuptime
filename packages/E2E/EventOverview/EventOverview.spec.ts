@@ -20302,13 +20302,18 @@ test.describe("the AI card in two steps: Investigation, then Remediation (block 
     );
 
     await expect(remediation).toHaveAttribute("data-indicator", "attention");
-    // What approving does, over the fix that waits for it.
-    await expect(
-      remediation.getByTestId("remediation-approval-note"),
-    ).toHaveText("Approving runs exactly what is shown, under your name.");
-    // Folded to its sentence, Approve & Run one press away.
+    /*
+     * Folded to its sentence: Review and approve is the one press, and
+     * nothing says what approving runs while nothing is shown.
+     */
     await expect(
       remediation.getByTestId("remediation-approve-button"),
+    ).toHaveCount(0);
+    await expect(
+      remediation.getByTestId("remediation-approval-note"),
+    ).toHaveCount(0);
+    await expect(
+      remediation.getByRole("button", { name: "Dismiss" }),
     ).toHaveCount(0);
     await remediation
       .getByRole("button", { name: "Review and approve" })
@@ -20316,6 +20321,10 @@ test.describe("the AI card in two steps: Investigation, then Remediation (block 
     await expect(
       remediation.getByTestId("remediation-approve-button"),
     ).toBeVisible();
+    // What approving does, right over Approve & Run.
+    await expect(
+      remediation.getByTestId("remediation-approval-note"),
+    ).toHaveText("Approving runs exactly what is shown, under your name.");
     // Nothing to try again beside a fix.
     await expect(remediation.getByTestId("remediation-try-again")).toHaveCount(
       0,
@@ -20592,8 +20601,9 @@ test.describe("the AI card in two steps: Investigation, then Remediation (block 
  * project's MCP servers on its own (one change failed) and a runbook
  * someone approved, verified fixed. Each fix, and each of its commands,
  * says where it stands in words with a dot: the step's status is the
- * card's one pill. One note says what approving does, a refused press says
- * why under the buttons that were pressed, and nothing scrolls sideways.
+ * card's one pill. The fix that waits says what approving does right over
+ * its Approve & Run, a refused press says why under the buttons that were
+ * pressed, and nothing scrolls sideways.
  * ---------------------------------------------------------------------------
  */
 
@@ -20672,7 +20682,7 @@ async function openManyFixes(
 }
 
 test.describe("a busy incident's fixes on the Remediation step read as lines (?fixes=many)", () => {
-  test("each fix says where it stands in words with a dot, under one note on approving, and the step's status is the one pill", async ({
+  test("each fix says where it stands in words with a dot, the waiting one what approving does over its Approve & Run, and the step's status is the one pill", async ({
     page,
   }: {
     page: Page;
@@ -20694,6 +20704,10 @@ test.describe("a busy incident's fixes on the Remediation step read as lines (?f
     const kubectl: Locator = fixOnStep(page, "AI kubectl fix");
     await expect(kubectl.getByTestId("remediation-fix-status")).toHaveText(
       "Waiting for approval",
+    );
+    // The note is the waiting fix's own, right over its Approve & Run.
+    await expect(kubectl.getByTestId("remediation-approval-note")).toHaveText(
+      APPROVAL_NOTE,
     );
     await expect(kubectl.getByTestId("remediation-command-tier")).toHaveText([
       "safe change",
@@ -20923,7 +20937,7 @@ test.describe("a busy incident's fixes on the Remediation step read as lines (?f
  */
 const KUBECTL_FIX_SENTENCE: string = "2 commands on cluster prod-eu-west-1.";
 const MCP_FIX_SENTENCE: string =
-  "2 changes through Feature flags, Status page.";
+  "2 changes through Feature flags and Status page.";
 
 test.describe("a busy incident's fixes, each folded to its sentence (?fixes=many)", () => {
   test("where each stands and its sentence, a failure in red, and one press from its commands and Approve & Run", async ({
@@ -20947,10 +20961,17 @@ test.describe("a busy incident's fixes, each folded to its sentence (?fixes=many
     await expect(kubectl.getByTestId("remediation-approve-button")).toHaveCount(
       0,
     );
-    // Dismissing runs nothing: it stays one press away, folded or not.
+    /*
+     * It is decided with its commands in sight: folded, Review and approve
+     * is its one press, and Dismiss waits beside Approve & Run inside.
+     */
+    await expect(kubectl.getByRole("button")).toHaveCount(1);
     await expect(
       kubectl.getByRole("button", { name: "Dismiss" }),
-    ).toBeVisible();
+    ).toHaveCount(0);
+    await expect(
+      kubectl.getByTestId("remediation-approval-note"),
+    ).toHaveCount(0);
 
     await expect(mcp.getByTestId("remediation-fix-sentence")).toHaveText(
       MCP_FIX_SENTENCE,
@@ -20990,13 +21011,28 @@ test.describe("a busy incident's fixes, each folded to its sentence (?fixes=many
     await expect(toggle).toHaveAttribute("aria-expanded", "true");
     await expect(toggle).toHaveText("Hide details");
     await expect(kubectl.getByTestId("remediation-command")).toHaveCount(2);
+    // Why, shown first: never one more press inside the opened fix.
+    await expect(kubectl.getByTestId("remediation-fix-reasoning")).toHaveText(
+      "The pool exhaustion follows the 17:52 restart. Restarting the deployment brings the configured pool back.",
+    );
+    await expect(kubectl.getByText("Show reasoning")).toHaveCount(0);
     const details: Box = await documentBox(
       kubectl.getByTestId("remediation-fix-details"),
+    );
+    const note: Box = await documentBox(
+      kubectl.getByTestId("remediation-approval-note"),
     );
     const approve: Box = await documentBox(
       kubectl.getByTestId("remediation-approve-button"),
     );
-    expect(approve.y).toBeGreaterThan(details.y + details.height - 1);
+    const dismiss: Box = await documentBox(
+      kubectl.getByRole("button", { name: "Dismiss" }),
+    );
+    // Under the commands: what approving does, then Approve & Run and Dismiss.
+    expect(note.y).toBeGreaterThan(details.y + details.height - 1);
+    expect(approve.y).toBeGreaterThan(note.y + note.height - 1);
+    expect(Math.abs(dismiss.y - approve.y)).toBeLessThan(2);
+    expect(dismiss.x).toBeGreaterThan(approve.x + approve.width);
 
     await mcp.getByTestId("remediation-fix-details-toggle").click();
     const opened: Box = await documentBox(
@@ -21049,7 +21085,7 @@ test.describe("a busy incident's fixes, each folded to its sentence (?fixes=many
     });
   }
 
-  test("by keyboard: Review and approve opens the fix and keeps the keyboard, and Approve & Run is the next stops on", async ({
+  test("by keyboard: Review and approve opens the fix and keeps the keyboard, and Tab walks what it opened to Approve & Run, then Dismiss", async ({
     page,
   }: {
     page: Page;
@@ -21074,6 +21110,39 @@ test.describe("a busy incident's fixes, each folded to its sentence (?fixes=many
       kubectl.getByTestId("remediation-approve-button"),
     ).toBeVisible();
 
+    /*
+     * From the press, Tab stays inside the opened fix - its commands - until
+     * Approve & Run, and Dismiss is the stop after it.
+     */
+    const stops: Array<{ isInFix: boolean; name: string }> = [];
+    for (let stop: number = 0; stop < 12; stop++) {
+      await page.keyboard.press("Tab");
+      const focused: { isInFix: boolean; name: string } = await kubectl.evaluate(
+        (fix: Element): { isInFix: boolean; name: string } => {
+          const active: Element | null = document.activeElement;
+          return {
+            isInFix: Boolean(active && fix.contains(active)),
+            name:
+              active?.getAttribute("data-testid") ||
+              (active?.textContent || "").trim(),
+          };
+        },
+      );
+      stops.push(focused);
+      if (focused.name === "remediation-approve-button") {
+        break;
+      }
+    }
+    expect(stops[stops.length - 1]?.name).toBe("remediation-approve-button");
+    expect(
+      stops.every((stop: { isInFix: boolean }): boolean => {
+        return stop.isInFix;
+      }),
+    ).toBe(true);
+    await page.keyboard.press("Tab");
+    await expect(kubectl.getByRole("button", { name: "Dismiss" })).toBeFocused();
+
+    await toggle.focus();
     await page.keyboard.press("Enter");
     await expect(toggle).toHaveAttribute("aria-expanded", "false");
     await expect(toggle).toBeFocused();
