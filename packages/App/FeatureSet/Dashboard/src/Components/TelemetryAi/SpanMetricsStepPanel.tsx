@@ -84,9 +84,10 @@ const SpanMetricsStepPanel: FunctionComponent = (): ReactElement => {
           >
             {/*
              * What a service that sends straight to OneUptime needs first,
-             * before the steps it is the prerequisite of.
+             * before the steps it is the prerequisite of. A div, not a p:
+             * the Icon draws a div of its own.
              */}
-            <p
+            <div
               className="flex items-start gap-2 rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-600"
               data-testid={SPAN_METRICS_STEP_TEST_IDS.noCollector}
             >
@@ -109,7 +110,7 @@ const SpanMetricsStepPanel: FunctionComponent = (): ReactElement => {
                   )}
                 </Link>
               </span>
-            </p>
+            </div>
 
             <SetupGuideSteps
               steps={[
@@ -143,7 +144,7 @@ const SpanMetricsStepPanel: FunctionComponent = (): ReactElement => {
             />
 
             <div className="border-t border-gray-100 pt-4 text-sm">
-              <p>
+              <div>
                 <Link
                   className={LINK_CLASS_NAME}
                   openInNewTab={true}
@@ -161,7 +162,7 @@ const SpanMetricsStepPanel: FunctionComponent = (): ReactElement => {
                     </span>
                   </>
                 </Link>
-              </p>
+              </div>
             </div>
           </div>
         </Modal>

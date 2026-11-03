@@ -394,8 +394,29 @@ describe("pickServicesMissingRequestMetrics", () => {
           "db.client.connections.usage",
           "process.cpu.time",
         ],
+        metricCount: 3,
       },
     ]);
+  });
+
+  test("a metric name with an id in it is named by its pattern, never the id, and counted as the metrics it is", () => {
+    const [candidate] = pick({
+      traffic: [traffic(CHECKOUT, 12400)],
+      readings: [
+        volume("job.8812.duration", CHECKOUT, 900),
+        volume("job.8813.duration", CHECKOUT, 800),
+        volume("Runtime.Uptime", CHECKOUT, 60),
+        volume("job.6f1c2d3e-4a5b-4c6d-8e7f-001122334455.duration", CHECKOUT, 10),
+      ],
+    });
+
+    expect(candidate!.metricNames).toEqual([
+      "job.{id}.duration",
+      // A name with no id keeps its own spelling.
+      "Runtime.Uptime",
+    ]);
+    expect(candidate!.metricCount).toBe(4);
+    expect(JSON.stringify(candidate)).not.toContain("8812");
   });
 
   test("a service that sent a request metric in the hour is not, whatever else it sent", () => {
@@ -497,6 +518,7 @@ describe("pickServicesMissingRequestMetrics", () => {
     });
 
     expect(candidate!.metricNames).toEqual(["jvm.memory.used"]);
+    expect(candidate!.metricCount).toBe(1);
   });
 
   test("at most three services a look, from at most six samples of entry spans", () => {

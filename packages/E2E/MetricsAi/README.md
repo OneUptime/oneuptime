@@ -11,12 +11,13 @@ components with esbuild, replaces only the `API` / `ModelAPI` /
 `127.0.0.1:4463`. No Docker, no database, no sign-in.
 
 Behind the data boundary, `Fixture/MetricFindings.js` answers the pages'
-reads the way the server does: OneUptime has found four problems in the
+reads the way the server does: OneUptime has found five problems in the
 project's metrics - checkout's request counter records 12,000 different
 user.id values an hour (no fix yet), checkout's request duration histogram
 puts 95% of its values in its smallest bucket (a pull request OneUptime
 opened on its own), worker sends 1,234 metrics named like job.{id}.duration,
-and payments sends traces but no metrics. Each title and each finding's
+payments sends traces but no metrics, and search sends its runtime's metrics
+but none for the HTTP requests and messages it handles. Each title and each finding's
 evidence are drawn with Common's `getMetricInsightTitle` and
 `buildMetricInsightDetail`, as the detector writes them. Fix with AI is
 offered by Common's `getTelemetryAiFixOffer`, as
@@ -30,14 +31,21 @@ The suite covers, on a laptop and on a phone, light and dark:
   switch saved when flipped, the AI rules under More settings and a new
   rule's Match, Investigate and Fix in the words of metric problems, no
   repository connected, and Enable AI off;
-- Insights: the three kinds of finding, the empty state and the one shown
+- Insights: the four kinds of finding, the empty state and the one shown
   while the switch is off;
 - a finding: its evidence as the detector writes it, with no attribute's
   values; Open in Metrics (the metric for the service, from the hour it was
   found in, or the service's metric list searched for names with ids); Open
-  in Traces for a service with no metrics; Fix with AI saying what the pull
-  request does, a repository picked when none was found to hold the code,
-  and every reason it is not offered; and no Create Monitor on any of them;
+  in Traces for a service with no metrics, or none for its requests; Fix
+  with AI saying what the pull request does, a repository picked when none
+  was found to hold the code, and every reason it is not offered; and no
+  Create Monitor on any of them;
+- the way past a missing metric that changes no code: Without changing code
+  under Fix with AI on a Missing Metrics or Missing Request Metrics finding
+  (and on no other), its dialog with the collector's span metrics step - the
+  lines to add exactly as Common's SpanMetricsCollectorStep has them, left
+  to right, the docs it links, what a service that sends straight to
+  OneUptime does first - fitting a phone, and Close;
 - Logs: every investigation and pull request, newest first, a page at a
   time, nothing yet and a read that failed;
 - the names a large estate has (`?names=long`): titles and names in code

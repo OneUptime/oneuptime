@@ -403,8 +403,8 @@ export default class MetricProblemDetector {
       evidence.sentMetricNames = sentMetricNames;
     }
 
-    if (data.isMetricsReadWhole && data.candidate.metricNames.length > 0) {
-      evidence.sentMetricCount = data.candidate.metricNames.length;
+    if (data.isMetricsReadWhole && data.candidate.metricCount > 0) {
+      evidence.sentMetricCount = data.candidate.metricCount;
     }
 
     const topOperations: Array<{ name: string; spanCount: number }> =

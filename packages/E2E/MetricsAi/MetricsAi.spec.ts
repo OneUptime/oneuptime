@@ -1,18 +1,26 @@
 import { expect, Locator, Page, test, TestInfo } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import {
+  SEND_THROUGH_COLLECTOR_DOCS_PATH,
+  SPAN_METRICS_COLLECTOR_STEP,
+  SPAN_METRICS_DOCS_PATH,
+} from "Common/Utils/Metrics/SpanMetricsCollectorStep";
+import { FrameBox, boxesInOneFrame } from "../SuiteHelpers/Frames";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * Metrics' AI tab - Metrics → AI → Insights, a finding's page with Fix with
  * AI, Logs and Settings - against the offline fixture (Fixture/Fixture.js
  * and Fixture/MetricFindings.js): the pages are production components; only
- * the data boundary is synthetic. OneUptime has found four problems in the
+ * the data boundary is synthetic. OneUptime has found five problems in the
  * project's metrics: checkout's request counter records its users' ids (no
  * fix yet), checkout's request duration histogram puts nearly all its
  * values in its smallest bucket (a pull request OneUptime opened on its
- * own), worker's metric names carry job ids, and payments sends traces but
- * no metrics.
+ * own), worker's metric names carry job ids, payments sends traces but no
+ * metrics, and search sends its runtime's metrics but none for the HTTP
+ * requests and messages it handles. The last two offer, beside Fix with
+ * AI, the collector's span metrics step that changes no code.
  *
  * Each test asserts what the page drew - on a laptop (1280) and on a phone
  * (390), in light and dark - with no sideways scroll on the phone.
@@ -29,9 +37,11 @@ const CARDINALITY_INSIGHT: string = "52310000-0000-4000-8000-0000000000e1";
 const BUCKETS_INSIGHT: string = "52310000-0000-4000-8000-0000000000e2";
 const NAMES_INSIGHT: string = "52310000-0000-4000-8000-0000000000e3";
 const MISSING_INSIGHT: string = "52310000-0000-4000-8000-0000000000e4";
+const REQUESTS_INSIGHT: string = "52310000-0000-4000-8000-0000000000e5";
 const CHECKOUT_SERVICE: string = "52310000-0000-4000-8000-0000000000a1";
 const WORKER_SERVICE: string = "52310000-0000-4000-8000-0000000000a2";
 const PAYMENTS_SERVICE: string = "52310000-0000-4000-8000-0000000000a3";
+const SEARCH_SERVICE: string = "52310000-0000-4000-8000-0000000000a4";
 const PLATFORM_REPOSITORY: string = "52310000-0000-4000-8000-0000000000b2";
 const STARTED_TASK: string = "52310000-0000-4000-8000-0000000000f3";
 const RUNNING_TASK: string = "52310000-0000-4000-8000-0000000000f4";
@@ -43,6 +53,8 @@ const BUCKETS_TITLE: string =
 const NAMES_TITLE: string =
   "worker sends 1,234 metrics named like job.{id}.duration";
 const MISSING_TITLE: string = "payments sends traces but no metrics";
+const REQUESTS_TITLE: string =
+  "search sends no metrics for the HTTP requests and messages it handles";
 
 const SWITCH_TITLE: string = "Improve metrics and add missing ones";
 
@@ -56,6 +68,10 @@ const LONG_METRIC: string =
 const LONG_ATTRIBUTE: string = "app.storefront.customer.account.identifier";
 const LONG_OPERATION: string =
   "POST /api/v2/storefront/payments/{paymentId}/authorizations/{authorizationId}/capture";
+const LONG_SEARCH_SERVICE: string =
+  "storefront-catalog-search-api-eu-west-1-production";
+const LONG_REQUEST: string =
+  "GET /api/v2/storefront/catalog/search/{tenantId}/products/suggestions";
 
 const SCREENSHOTS: string = path.resolve(
   __dirname,
@@ -484,24 +500,29 @@ test.describe("Metrics → AI → Insights", () => {
           BUCKETS_TITLE,
           NAMES_TITLE,
           MISSING_TITLE,
+          REQUESTS_TITLE,
         ]) {
           await expect(page.getByText(title)).toBeVisible({ timeout: 60000 });
         }
 
-        // The three kinds side by side, then where they go and who acts.
+        /*
+         * The kinds side by side, then where they go and who acts: a busy
+         * service with no metrics, or none for its requests, is one clause.
+         */
         await expect(
           page.getByText(
-            "Every hour OneUptime looks for metrics that record too many values, histograms whose buckets do not fit, and busy services that send no metrics. It files what it finds here with the evidence.",
+            "Every hour OneUptime looks for metrics that record too many values, histograms whose buckets do not fit, and busy services that send no metrics for their requests. It files what it finds here with the evidence.",
             { exact: false },
           ),
         ).toBeVisible();
 
-        // Three kinds: each row says its own, and the type filter offers them.
+        // Four kinds: each row says its own, and the type filter offers them.
         const kinds: Array<{ title: string; kind: string }> = [
           { title: CARDINALITY_TITLE, kind: "High Cardinality" },
           { title: BUCKETS_TITLE, kind: "Wrong Histogram Buckets" },
           { title: NAMES_TITLE, kind: "High Cardinality" },
           { title: MISSING_TITLE, kind: "Missing Metrics" },
+          { title: REQUESTS_TITLE, kind: "Missing Request Metrics" },
         ];
 
         for (const row of kinds) {
@@ -519,6 +540,7 @@ test.describe("Metrics → AI → Insights", () => {
           "High Cardinality",
           "Wrong Histogram Buckets",
           "Missing Metrics",
+          "Missing Request Metrics",
         ]);
 
         await expectAiSection(page, testInfo, "Insights");
@@ -549,7 +571,7 @@ test.describe("Metrics → AI → Insights", () => {
     });
     await expect(
       page.getByText(
-        "Every hour OneUptime files a finding when a metric records too many values, a histogram's buckets do not fit, or a busy service sends no metrics.",
+        "Every hour OneUptime files a finding when a metric records too many values, a histogram's buckets do not fit, or a service's requests have no metrics.",
       ),
     ).toBeVisible();
 
@@ -706,6 +728,50 @@ test.describe("Metrics → AI → a finding", () => {
     if (isPhone(testInfo)) {
       await expectNoSidewaysScroll(page);
     }
+
+    /*
+     * A service with metrics, none for its requests: what it handles, what
+     * it sent, the request metrics it never did, and its busiest requests.
+     */
+    await page.goto(`${AI}/insights/${REQUESTS_INSIGHT}`);
+
+    for (const line of [
+      "Missing request metrics in search",
+      "In the last hour: 12,400 spans, 310 failed",
+      "It handles: HTTP requests and messages",
+      "Telemetry SDK: Java",
+      "Without request metrics, nothing charts or alerts on its request rate, errors or latency over time",
+    ]) {
+      await expect(page.getByText(line, { exact: true })).toBeVisible({
+        timeout: 60000,
+      });
+    }
+
+    for (const [lead, names] of [
+      [
+        "Metrics it sent in the last hour: 14, such as",
+        ["jvm.memory.used", "process.cpu.time", "db.client.connections.usage"],
+      ],
+      [
+        "Request metrics it has never sent:",
+        ["http.server.request.duration", "messaging.process.duration"],
+      ],
+      ["Busiest requests:", ["GET /search", "GET /suggest"]],
+    ] as Array<[string, Array<string>]>) {
+      const item: Locator = page.locator("li").filter({ hasText: lead });
+
+      await expect(item).toHaveCount(1);
+
+      for (const name of names) {
+        await expect(item.locator("code").filter({ hasText: name })).toHaveCount(
+          1,
+        );
+      }
+    }
+
+    if (isPhone(testInfo)) {
+      await expectNoSidewaysScroll(page);
+    }
   });
 
   test("Open in Metrics opens the metric for the service, from the hour it was found in", async ({
@@ -830,6 +896,223 @@ test.describe("Metrics → AI → a finding", () => {
     expect(address.searchParams.get("end")).toBe(WINDOW_END);
   });
 
+  test("a service that sends metrics but none for its requests: Fix with AI adds them, and Open in Traces opens its spans", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await inBothThemes(
+      page,
+      `${AI}/insights/${REQUESTS_INSIGHT}`,
+      async (theme: "light" | "dark"): Promise<void> => {
+        await expect(page.getByTestId("ai-insight-title")).toHaveText(
+          REQUESTS_TITLE,
+          { timeout: 60000 },
+        );
+        await expect(page.getByTestId("telemetry-ai-fix-lead")).toHaveText(
+          "OneUptime AI opens a pull request that adds request metrics to this service, for you to review.",
+        );
+        // Not a metric to open: the spans of its requests are.
+        await expect(
+          page.getByRole("button", { name: "Open in Metrics" }),
+        ).toHaveCount(0);
+        await expect(
+          page.getByRole("button", { name: "Create Monitor" }),
+        ).toHaveCount(0);
+
+        if (isPhone(testInfo)) {
+          await expectNoSidewaysScroll(page);
+        }
+
+        await screenshot(page, testInfo, `insight-requests-${theme}`);
+      },
+    );
+
+    await page.getByRole("button", { name: "Open in Traces" }).click();
+    await expect(page.getByTestId("traces-viewer-page")).toBeVisible();
+
+    const address: URL = openedAddress(page);
+
+    expect(address.pathname).toBe(`/dashboard/${PROJECT_ID}/traces`);
+    expect(JSON.parse(address.searchParams.get("filters") || "[]")).toEqual([
+      ["primaryEntityId", SEARCH_SERVICE],
+    ]);
+    expect(address.searchParams.get("start")).toBe(WINDOW_START);
+    expect(address.searchParams.get("end")).toBe(WINDOW_END);
+  });
+
+  test("the way that changes no code: the collector step beside Fix with AI, its lines, the docs, and Close", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await inBothThemes(
+      page,
+      `${AI}/insights/${REQUESTS_INSIGHT}`,
+      async (theme: "light" | "dark"): Promise<void> => {
+        const strip: Locator = page.getByTestId("telemetry-ai-fix");
+        const panel: Locator = page.getByTestId("span-metrics-step");
+
+        await expect(panel).toBeVisible({ timeout: 60000 });
+        await expect(panel).toContainText("Without changing code");
+        await expect(panel).toContainText(
+          "An OpenTelemetry Collector can record this service's request metrics from its traces.",
+        );
+
+        // Right under Fix with AI, the code fix it is the other way to.
+        const [fixBox, panelBox] = (await boxesInOneFrame([
+          strip,
+          panel,
+        ])) as [FrameBox, FrameBox];
+
+        expect(panelBox.y).toBeGreaterThanOrEqual(fixBox.y + fixBox.height);
+        expect(Math.abs(panelBox.x - fixBox.x)).toBeLessThanOrEqual(0.5);
+        expect(Math.abs(panelBox.width - fixBox.width)).toBeLessThanOrEqual(
+          0.5,
+        );
+
+        const show: Locator = page.getByTestId("span-metrics-step-show");
+
+        await expect(show).toHaveText("Show the collector step");
+
+        // On a phone the panel's one button is as wide as the panel's text.
+        if (isPhone(testInfo)) {
+          const [showBox, textBox] = (await boxesInOneFrame([
+            show,
+            panel.locator("p").first(),
+          ])) as [FrameBox, FrameBox];
+
+          expect(Math.abs(showBox.width - textBox.width)).toBeLessThanOrEqual(
+            1,
+          );
+          await expectNoSidewaysScroll(page);
+        }
+
+        await show.click();
+
+        const dialog: Locator = page.getByRole("dialog");
+
+        await expect(dialog.getByTestId("modal-title")).toHaveText(
+          "Record request metrics from traces",
+        );
+        await expect(dialog.getByTestId("modal-description")).toHaveText(
+          "Your OpenTelemetry Collector records them from the spans passing through it, for every service at once. No code changes.",
+        );
+
+        // What a service that sends straight to OneUptime does first.
+        const first: Locator = dialog.getByTestId(
+          "span-metrics-step-no-collector",
+        );
+
+        await expect(first).toContainText(
+          "Do your services send straight to OneUptime? Put a collector in front of them first.",
+        );
+
+        const collectorDocs: Locator = dialog.getByTestId(
+          "span-metrics-step-collector-docs",
+        );
+
+        await expect(collectorDocs).toHaveText(
+          "Send through an OpenTelemetry Collector",
+        );
+        await expect(collectorDocs).toHaveAttribute("target", "_blank");
+        expect(
+          new URL(
+            (await collectorDocs.getAttribute("href")) || "",
+            page.url(),
+          ).pathname.endsWith(SEND_THROUGH_COLLECTOR_DOCS_PATH.split("#")[0]!),
+        ).toBe(true);
+        expect(
+          new URL((await collectorDocs.getAttribute("href")) || "", page.url())
+            .hash,
+        ).toBe(`#${SEND_THROUGH_COLLECTOR_DOCS_PATH.split("#")[1]}`);
+
+        // The two steps, in order, and the lines to add exactly as written.
+        await expect(dialog.getByTestId("setup-guide-step-1")).toContainText(
+          "Add the span metrics step",
+        );
+        await expect(dialog.getByTestId("setup-guide-step-2")).toContainText(
+          "Restart the collector",
+        );
+        await expect(dialog.getByTestId("setup-guide-step-2")).toContainText(
+          "Then resolve this finding.",
+        );
+
+        const code: Locator = dialog.getByTestId("span-metrics-step-code");
+
+        await expect(code).toHaveAttribute("dir", "ltr");
+        expect(await code.locator("code").textContent()).toBe(
+          SPAN_METRICS_COLLECTOR_STEP,
+        );
+
+        const docs: Locator = dialog.getByTestId("span-metrics-step-docs");
+
+        await expect(docs).toHaveText("How the span metrics step works");
+        await expect(docs).toHaveAttribute("target", "_blank");
+        expect(
+          new URL((await docs.getAttribute("href")) || "", page.url()).hash,
+        ).toBe(`#${SPAN_METRICS_DOCS_PATH.split("#")[1]}`);
+
+        /*
+         * The dialog fits the viewport: a line too long for a phone scrolls
+         * inside the code, never the dialog or the page.
+         */
+        const [dialogBox] = (await boxesInOneFrame([dialog])) as [FrameBox];
+        const viewport: { width: number; height: number } | null =
+          page.viewportSize();
+
+        expect(dialogBox.x).toBeGreaterThanOrEqual(0);
+        expect(dialogBox.x + dialogBox.width).toBeLessThanOrEqual(
+          (viewport?.width || 0) + 0.5,
+        );
+        await expectNoSidewaysScroll(page);
+
+        await page.screenshot({
+          path: path.join(
+            SCREENSHOTS,
+            `ai-collector-step-${theme}-${testInfo.project.name}-synthetic.png`,
+          ),
+          animations: "disabled",
+        });
+
+        await dialog
+          .getByTestId("modal-footer")
+          .getByRole("button", { name: "Close" })
+          .click();
+        await expect(page.getByRole("dialog")).toHaveCount(0);
+        await expect(panel).toBeVisible();
+      },
+    );
+  });
+
+  test("only a missing metrics finding offers the collector step, and only while it is open and not being fixed", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    // A service with no metrics at all: the same step records them.
+    await page.goto(`${AI}/insights/${MISSING_INSIGHT}`);
+    await expect(page.getByTestId("span-metrics-step")).toBeVisible({
+      timeout: 60000,
+    });
+
+    // A metric's own problems are not a missing metric.
+    for (const insight of [CARDINALITY_INSIGHT, NAMES_INSIGHT]) {
+      await page.goto(`${AI}/insights/${insight}`);
+      await expect(page.getByTestId("telemetry-ai-fix")).toBeVisible({
+        timeout: 60000,
+      });
+      await expect(page.getByTestId("span-metrics-step")).toHaveCount(0);
+    }
+
+    // A finding with its pull request on its way offers no second way.
+    await page.goto(`${AI}/insights/${BUCKETS_INSIGHT}`);
+    await expect(
+      page.getByText("View the fix task and pull request"),
+    ).toBeVisible({ timeout: 60000 });
+    await expect(page.getByTestId("span-metrics-step")).toHaveCount(0);
+  });
+
   test("long names wrap or end in an ellipsis, and never run off the page or lose their start", async ({
     page,
   }: {
@@ -845,6 +1128,11 @@ test.describe("Metrics → AI → a finding", () => {
         id: MISSING_INSIGHT,
         service: LONG_PAYMENTS_SERVICE,
         code: LONG_OPERATION,
+      },
+      {
+        id: REQUESTS_INSIGHT,
+        service: LONG_SEARCH_SERVICE,
+        code: LONG_REQUEST,
       },
     ];
 

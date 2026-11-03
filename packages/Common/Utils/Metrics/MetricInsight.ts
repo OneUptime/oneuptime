@@ -1017,8 +1017,14 @@ export function pickServicesMissingMetrics(data: {
  * rollup) and its spans by service (their per-minute aggregate).
  */
 export interface MetricRequestMetricsCandidate extends MetricServiceTraffic {
-  // The metrics it sent in the hour, its busiest first.
+  /*
+   * The metrics it sent in the hour, its busiest first - a name with an id
+   * in it by the pattern its names share (job.{id}.duration), so no id is
+   * ever kept, as High Cardinality keeps none.
+   */
   metricNames: Array<string>;
+  // How many different metrics it sent in the hour.
+  metricCount: number;
 }
 
 /*
@@ -1083,12 +1089,19 @@ export function pickServicesMissingRequestMetrics(data: {
             );
           })
           .map((reading: MetricVolumeReading): string => {
-            return reading.metricName;
+            const pattern: string = getMetricNamePattern(reading.metricName);
+
+            return hasMetricNameId(pattern) ? pattern : reading.metricName;
           }),
       ),
     );
+    const metricCount: number = new Set(
+      metrics.map((reading: MetricVolumeReading): string => {
+        return reading.metricName;
+      }),
+    ).size;
 
-    candidates.push({ ...traffic, serviceId, metricNames });
+    candidates.push({ ...traffic, serviceId, metricNames, metricCount });
   }
 
   return candidates.sort(

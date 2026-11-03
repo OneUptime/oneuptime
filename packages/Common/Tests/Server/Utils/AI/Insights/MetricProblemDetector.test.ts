@@ -1025,6 +1025,36 @@ describe("MetricProblemDetector", () => {
     ]);
   });
 
+  test("metric names with an id in them are named by their pattern, and counted as the metrics they are", async () => {
+    runtimeMetricsOnSearch();
+    volumes = [
+      ...Array.from(
+        { length: 40 },
+        (_value: unknown, index: number): MetricVolumeReading => {
+          return volume(`job.${8000 + index}.duration`, SEARCH, 2000 - index);
+        },
+      ),
+      ...volumes,
+    ];
+
+    const [candidate] = await MetricProblemDetector.look(context());
+
+    expect(candidate!.insightType).toBe(
+      AIInsightType.MetricMissingRequestMetrics,
+    );
+    expect(candidate!.evidence.metric?.sentMetricNames).toEqual([
+      "job.{id}.duration",
+      "jvm.memory.used",
+      "db.client.connections.usage",
+    ]);
+    expect(candidate!.evidence.metric?.sentMetricCount).toBe(43);
+    expect(candidate!.detailMarkdown).toContain(
+      "- Metrics it sent in the last hour: 43, such as `job.{id}.duration`",
+    );
+    // No job's id is kept anywhere in the finding.
+    expect(JSON.stringify(candidate)).not.toMatch(/job\.80\d\d/u);
+  });
+
   test("a service that sent a request metric once is not missing them: that is no pull request's to add", async () => {
     runtimeMetricsOnSearch();
     requestCatalogServices.add(SEARCH);
@@ -1419,11 +1449,14 @@ describe("MetricProblemDetector - the evidence it writes", () => {
       spanCount: number;
       failedSpanCount: number;
       metricNames: Array<string>;
+      metricCount: number;
     } = {
       serviceId: SEARCH.toUpperCase(),
       spanCount: 9000,
       failedSpanCount: 12,
-      metricNames: ["a.metric", "b.metric", "c.metric", "d.metric"],
+      metricNames: ["a.metric", "b.metric", "c.metric", "job.{id}.duration"],
+      // job.{id}.duration is 60 metrics of its own.
+      metricCount: 63,
     };
     const operations: Array<TraceAnalyticsTableRow> = [
       operationRow("", 9),
@@ -1452,7 +1485,7 @@ describe("MetricProblemDetector - the evidence it writes", () => {
       failedSpanCount: 12,
       servedProtocols: [MetricServedProtocol.Rpc],
       sentMetricNames: ["a.metric", "b.metric", "c.metric"],
-      sentMetricCount: 4,
+      sentMetricCount: 63,
       topOperations: [
         { name: "GET /a", spanCount: 1000 },
         { name: "GET /b", spanCount: 999 },
@@ -1464,7 +1497,7 @@ describe("MetricProblemDetector - the evidence it writes", () => {
 
     const cut: MetricInsightEvidence =
       MetricProblemDetector.toMissingRequestMetricsEvidence({
-        candidate: { ...candidate, metricNames: [] },
+        candidate: { ...candidate, metricNames: [], metricCount: 0 },
         window,
         protocols: [MetricServedProtocol.Http],
         operations: [],
