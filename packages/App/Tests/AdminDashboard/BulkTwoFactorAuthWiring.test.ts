@@ -167,24 +167,6 @@ function countOccurrences(source: string, needle: string): number {
   return source.split(needle).length - 1;
 }
 
-/*
- * The index one past the end of the balanced block that follows `marker`, so a
- * caller can assert that some other statement sits after the whole of it.
- * `indexOf(block)` is searched from the marker rather than from zero because
- * the loop body's `try`/`catch` shapes repeat verbatim in the sibling actions.
- */
-function endIndexOfBlockAfter(source: string, marker: string): number {
-  const markerIndex: number = source.indexOf(marker);
-
-  if (markerIndex === -1) {
-    throw new Error(`Marker not found in source: ${marker}`);
-  }
-
-  const block: string = blockAfter(source, marker);
-
-  return source.indexOf(block, markerIndex) + block.length;
-}
-
 /* The declaration, not either of the two call sites in the bulkActions array. */
 const ACTION_MARKER: string = "const getBulkSetTwoFactorAuthRequiredAction";
 
