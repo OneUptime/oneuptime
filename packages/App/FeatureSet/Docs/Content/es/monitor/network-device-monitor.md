@@ -961,6 +961,12 @@ Para que el mapa se rellene:
 
 Haz clic en un par no gestionado y **Añadir al monitoreo** lo registra como dispositivo sondeado por sonda. Toma la sonda en la que coinciden sus vecinos, así que recibe ping desde su primer sondeo, y puedes añadir credenciales más tarde si resulta que tiene SNMP.
 
+### Elegir el diseño con el que se abre el mapa
+
+**Opciones del mapa → Organizar el mapa** organiza el mapa como **Automático**, **Por capa de red**, **Concéntrico**, **Radial (hub and spoke)** o **Padre e hijo**. El mapa se abre con el diseño marcado como **Predeterminado**: **Automático** para todos los dispositivos y **Por capa de red** para un sitio, salvo que tu proyecto haya elegido un diseño para todos. Cualquiera puede cambiar de diseño mientras consulta el mapa; la próxima vez se abre de nuevo con el predeterminado.
+
+Los propietarios y administradores del proyecto eligen el predeterminado: cambia a un diseño y selecciona **Establecer como predeterminado para todos**. A partir de entonces, todas las vistas del mapa de dispositivos se abren con él: **Topología del dispositivo**, un sitio en el **Mapa**, y la pestaña **Red** de **Topología**. En el diseño predeterminado, **Quitar predeterminado** devuelve cada mapa a su propio predeterminado. Las posiciones arrastradas se guardan para cada diseño en tu navegador, así que el mapa se abre con la disposición que hiciste en ese diseño.
+
 ### Exportar el mapa como PDF
 
 **Exportar PDF**, en la parte superior del mapa, descarga el mapa que estás viendo como un PDF que puedes adjuntar a una evaluación, una solicitud de cambio o una revisión de incidente, o leer sin conexión. Todas las vistas del mapa de dispositivos lo tienen: **Topología del dispositivo**, un sitio en el **Mapa**, y la pestaña **Red** de **Topología**.

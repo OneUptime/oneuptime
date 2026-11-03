@@ -30,6 +30,35 @@ export interface ComponentProps {
   healthFilterMatchCount: number;
   onHealthChange: (mode: TopologyHealthFilterMode) => void;
   onResetFilters: () => void;
+  /*
+   * Issue #5378: which layout the map opens on, and - for a Project Owner
+   * or Admin - the controls that make the layout on screen everyone's
+   * default or clear it. Left out, the layouts are offered with no default.
+   */
+  defaultLayout?: DefaultLayoutControls | undefined;
+}
+
+export interface DefaultLayoutControls {
+  /*
+   * The layout this map opens on: the project's default when it has one,
+   * the map's own otherwise. Its button is tagged "Default".
+   */
+  layoutMode: TopologyLayoutMode;
+  // Whether the project chose it - only then is there a default to clear.
+  isSetByProject: boolean;
+  /*
+   * Whether this reader may change the project's default (Project Owners
+   * and Admins). Everyone else sees which layout is the default, and no
+   * controls.
+   */
+  canChange: boolean;
+  isSaving: boolean;
+  // Why the last change did not save; empty when it did.
+  error: string;
+  // Make the layout on screen the default for everyone in the project.
+  onMakeDefault: () => void;
+  // Clear the project's default, so each map opens on its own again.
+  onClear: () => void;
 }
 
 interface LayoutOption {
@@ -93,6 +122,96 @@ const NetworkTopologyToolbar: FunctionComponent<ComponentProps> = (
     LAYOUTS.find((option: LayoutOption) => {
       return option.mode === props.layoutMode;
     })?.description || "";
+
+  /*
+   * Issue #5378: what a Project Owner or Admin may do about the default,
+   * under the layouts. On another layout than the default, make it the
+   * default for everyone; on a default the project chose, clear it. On the
+   * map's own default there is nothing to do, and nothing is shown. The
+   * layout on screen never moves: the default is where the map OPENS.
+   */
+  const renderDefaultLayoutControls: () => ReactElement = (): ReactElement => {
+    const controls: DefaultLayoutControls | undefined = props.defaultLayout;
+
+    if (!controls || !controls.canChange) {
+      return <></>;
+    }
+
+    const savingText: string = translateString("Saving…") || "Saving…";
+    const error: ReactElement = controls.error ? (
+      <p
+        role="alert"
+        data-testid="network-topology-default-error"
+        className="w-full text-xs text-red-600"
+      >
+        {controls.error}
+      </p>
+    ) : (
+      <></>
+    );
+
+    if (props.layoutMode !== controls.layoutMode) {
+      return (
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            data-testid="network-topology-make-default"
+            title={
+              translateString(
+                "Every network map in this project will open on this layout. People can still switch while they look.",
+              ) ||
+              "Every network map in this project will open on this layout. People can still switch while they look."
+            }
+            disabled={controls.isSaving}
+            className="rounded-lg border border-indigo-200 bg-white px-2.5 py-1.5 text-xs font-medium text-indigo-700 transition hover:bg-indigo-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
+            onClick={controls.onMakeDefault}
+          >
+            {controls.isSaving
+              ? savingText
+              : translateString("Make default for everyone") ||
+                "Make default for everyone"}
+          </button>
+          {error}
+        </div>
+      );
+    }
+
+    if (!controls.isSetByProject) {
+      return <></>;
+    }
+
+    return (
+      <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs leading-5 text-gray-500">
+        <span
+          role="status"
+          aria-live="polite"
+          data-testid="network-topology-default-status"
+        >
+          {translateString(
+            "Everyone in this project opens network maps on this layout.",
+          ) || "Everyone in this project opens network maps on this layout."}
+        </span>
+        <button
+          type="button"
+          data-testid="network-topology-clear-default"
+          title={
+            translateString(
+              "Each map opens on its own default again: Automatic for all devices, By network layer for a site.",
+            ) ||
+            "Each map opens on its own default again: Automatic for all devices, By network layer for a site."
+          }
+          disabled={controls.isSaving}
+          className="rounded font-medium text-indigo-600 hover:text-indigo-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
+          onClick={controls.onClear}
+        >
+          {controls.isSaving
+            ? savingText
+            : translateString("Clear default") || "Clear default"}
+        </button>
+        {error}
+      </div>
+    );
+  };
 
   return (
     <div className="mb-4 space-y-3">
@@ -160,6 +279,8 @@ const NetworkTopologyToolbar: FunctionComponent<ComponentProps> = (
             >
               {LAYOUTS.map((option: LayoutOption): ReactElement => {
                 const isActive: boolean = props.layoutMode === option.mode;
+                const isDefault: boolean =
+                  props.defaultLayout?.layoutMode === option.mode;
                 return (
                   <button
                     key={option.mode}
@@ -173,6 +294,16 @@ const NetworkTopologyToolbar: FunctionComponent<ComponentProps> = (
                     }}
                   >
                     {translateString(option.label) || option.label}
+                    {isDefault ? (
+                      <span
+                        data-testid="network-topology-layout-default-tag"
+                        className={`ml-1.5 rounded px-1 py-px text-[10px] font-semibold uppercase tracking-wide ${isActive ? "bg-indigo-100 text-indigo-700" : "bg-gray-100 text-gray-500"}`}
+                      >
+                        {translateString("Default") || "Default"}
+                      </span>
+                    ) : (
+                      <></>
+                    )}
                   </button>
                 );
               })}
@@ -184,6 +315,7 @@ const NetworkTopologyToolbar: FunctionComponent<ComponentProps> = (
               ) ||
                 "Dragged positions are saved for each layout on this browser."}
             </p>
+            {renderDefaultLayoutControls()}
           </div>
           <div>
             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">

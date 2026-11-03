@@ -961,6 +961,12 @@ Perché la mappa si riempia:
 
 Fai clic su un peer non gestito e **Add to Monitoring** lo registra come dispositivo interrogato dalla sonda. Prende la sonda su cui concordano i suoi vicini, quindi riceve il ping fin dal suo primo polling, e puoi aggiungere le credenziali più tardi se risulta che ha SNMP.
 
+### Scegliere il layout con cui si apre la mappa
+
+**Map options → Arrange the map** dispone la mappa come **Automatico**, **By network layer**, **Concentric**, **Hub and spoke** o **Parent and child**. La mappa si apre sul layout contrassegnato come **Predefinito**: **Automatico** per tutti i dispositivi e **By network layer** per un sito, a meno che il progetto non abbia scelto un layout per tutti. Chiunque può cambiare layout mentre guarda; la volta successiva la mappa si apre di nuovo su quello predefinito.
+
+I proprietari e gli amministratori del progetto scelgono il layout predefinito: passate a un layout e selezionate **Make default for everyone**. Da quel momento ogni vista della mappa dei dispositivi si apre su di esso: **Topologia del dispositivo**, un sito nella **Mappa** e la scheda **Rete** di **Topologia**. Sul layout predefinito, **Clear default** riporta ogni mappa al proprio layout predefinito. Le posizioni trascinate vengono salvate per ogni layout nel vostro browser, quindi la mappa si apre con la disposizione che avete fatto in quel layout.
+
 ### Esportare la mappa in PDF
 
 **Esporta PDF**, in cima alla mappa, scarica la mappa che stai guardando come PDF da allegare a una valutazione, a una richiesta di modifica o a una revisione di un incidente, o da leggere offline. Ogni vista della mappa dei dispositivi lo ha: **Topologia del dispositivo**, un sito nella **Mappa** e la scheda **Rete** di **Topologia**.
