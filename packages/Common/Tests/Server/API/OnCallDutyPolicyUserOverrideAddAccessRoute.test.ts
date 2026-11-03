@@ -84,7 +84,7 @@ const callRoute: (data: {
     .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
     .mockResolvedValue(data.props);
 
-  const next: jest.Mock = jest.fn();
+  const next: ReturnType<typeof jest.fn> = jest.fn();
 
   await mockRouter.match("post", ROUTE).handlerFunction(
     {
