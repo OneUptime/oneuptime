@@ -20,6 +20,15 @@ import DeleteBy from "../Types/Database/DeleteBy";
 import logger from "../Utils/Logger";
 import { OnCallShiftChangeReason } from "../Utils/OnCall/OnCallShiftChangeListeners";
 import { mdText, MarkdownText } from "../../Utils/Markdown/FeedMarkdown";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
+import Permission from "../../Types/Permission";
+import GlobalUserOverrideAccess, {
+  GLOBAL_USER_OVERRIDE_ADD_REFUSAL,
+  GLOBAL_USER_OVERRIDE_DELETE_REFUSAL,
+} from "../../Types/OnCallDutyPolicy/GlobalUserOverrideAccess";
+import CreateScopeException from "../Types/Database/Permissions/CreateScopeException";
+import CallerPermission from "../Utils/Permission/CallerPermission";
 
 /*
  * The (project, overridden user, substitute) triple an override names; the
@@ -169,11 +178,62 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
     }
   }
 
+  /*
+   * A GLOBAL OVERRIDE TAKES A PERMISSION OVER THE WHOLE PROJECT
+   * (GlobalUserOverrideAccess). An override that names no policy applies to
+   * every on-call policy, another team's as much as the caller's own, so
+   * adding or deleting one takes the table's permission for it held over
+   * the whole project - not limited to labels or to owned policies, and not
+   * blocked for some labels (issue #5617). OneUptime itself and a master
+   * admin add and delete any: removing a member who leaves deletes theirs.
+   */
+  private checkGlobalOverrideAccess(
+    props: DatabaseCommonInteractionProps,
+    action: "create" | "delete",
+  ): void {
+    if (props.isRoot || props.isMasterAdmin) {
+      return;
+    }
+
+    const model: OnCallDutyPolicyUserOverride =
+      new OnCallDutyPolicyUserOverride();
+    const permissions: Array<Permission> =
+      (action === "create"
+        ? model.getCreatePermissions()
+        : model.getDeletePermissions()) || [];
+
+    if (
+      GlobalUserOverrideAccess.mayChange(
+        CallerPermission.getHeld(props),
+        permissions,
+      )
+    ) {
+      return;
+    }
+
+    if (action === "create") {
+      throw new CreateScopeException(GLOBAL_USER_OVERRIDE_ADD_REFUSAL);
+    }
+
+    throw new NotAuthorizedException(GLOBAL_USER_OVERRIDE_DELETE_REFUSAL);
+  }
+
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<OnCallDutyPolicyUserOverride>,
   ): Promise<OnCreate<OnCallDutyPolicyUserOverride>> {
     await super.onBeforeCreate(createBy);
+
+    // One that names no policy is global: it applies to every policy.
+    const onCallDutyPolicyId: ObjectID | null = RelationIdUtil.readConsistent(
+      createBy.data as unknown as Record<string, unknown>,
+      ["onCallDutyPolicyId", "onCallDutyPolicy"],
+      "On-Call Policy",
+    );
+
+    if (!onCallDutyPolicyId) {
+      this.checkGlobalOverrideAccess(createBy.props, "create");
+    }
 
     if (!createBy.data.startsAt || !createBy.data.endsAt) {
       throw new BadDataException("Start time and end time are required");
@@ -526,6 +586,15 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
         endsAt: true,
         createdByUserId: true,
       });
+
+    // A global override among them: the delete takes a project-wide grant.
+    if (
+      itemsToDelete.some((item: OnCallDutyPolicyUserOverride): boolean => {
+        return !(item.onCallDutyPolicyId || item.onCallDutyPolicy?.id);
+      })
+    ) {
+      this.checkGlobalOverrideAccess(deleteBy.props, "delete");
+    }
 
     /*
      * Capture the project + override-user of each row being deleted so

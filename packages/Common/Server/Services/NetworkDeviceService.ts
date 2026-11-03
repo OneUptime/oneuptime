@@ -3465,6 +3465,99 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
+   * The devices of a project that already hold one of a network controller's
+   * identities (NetworkControllerDeviceAdd): every device - archived ones
+   * too - whose serial number, MAC (typed, or learned from an ARP table) or
+   * polled address is one the controller's list holds. What Add devices
+   * reads before it adds a device, so it never adds a second device at an
+   * address, a box someone archived, or a box another device already is.
+   *
+   * One statement, scoped to the project, never a deleted device. Serial
+   * numbers are compared without case or padding, as a person may have typed
+   * one; MACs are stored normalised. The columns the rules read, nothing
+   * else.
+   */
+  @CaptureSpan()
+  public async findControllerIdentityHolders(data: {
+    projectId: ObjectID;
+    serials: Array<string>;
+    macs: Array<string>;
+    addresses: Array<string>;
+    limit: number;
+  }): Promise<
+    Array<{
+      serialNumber: string | null;
+      macAddress: string | null;
+      learnedMacAddress: string | null;
+      hostname: string | null;
+      isArchived: boolean | null;
+    }>
+  > {
+    if (
+      data.serials.length === 0 &&
+      data.macs.length === 0 &&
+      data.addresses.length === 0
+    ) {
+      return [];
+    }
+
+    const rows: Array<{
+      serialNumber: string | null;
+      macAddress: string | null;
+      learnedMacAddress: string | null;
+      hostname: string | null;
+      isArchived: boolean | null;
+    }> = await this.getRepository().manager.query(
+      `
+      SELECT nd."serialNumber", nd."macAddress",
+        (nd."discoveredDetails" -> 'macAddress' ->> 'value') AS "learnedMacAddress",
+        nd."hostname", nd."isArchived"
+      FROM "NetworkDevice" AS nd
+      WHERE nd."projectId" = $1
+        AND nd."deletedAt" IS NULL
+        AND (
+          upper(btrim(nd."serialNumber")) = ANY($2::text[])
+          OR lower(nd."macAddress") = ANY($3::text[])
+          OR (nd."discoveredDetails" -> 'macAddress' ->> 'value') = ANY($3::text[])
+          OR nd."hostname" = ANY($4::text[])
+        )
+      LIMIT $5
+    `,
+      [
+        data.projectId.toString(),
+        data.serials,
+        data.macs,
+        data.addresses,
+        Math.max(1, Math.floor(data.limit)),
+      ],
+    );
+
+    return rows.map(
+      (row: {
+        serialNumber: string | null;
+        macAddress: string | null;
+        learnedMacAddress: string | null;
+        hostname: string | null;
+        isArchived: boolean | null;
+      }): {
+        serialNumber: string | null;
+        macAddress: string | null;
+        learnedMacAddress: string | null;
+        hostname: string | null;
+        isArchived: boolean | null;
+      } => {
+        return {
+          serialNumber: row.serialNumber,
+          macAddress: row.macAddress,
+          learnedMacAddress: row.learnedMacAddress,
+          hostname: row.hostname,
+          isArchived: row.isArchived,
+        };
+      },
+    );
+  }
+
+  /*
    * A network controller connection was deleted: what it said about the
    * project's devices goes with it (their discovered details' `controller`
    * reading and the links it read, when that connection read them).

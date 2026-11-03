@@ -486,6 +486,8 @@ describe("Data Security's permission matrix", () => {
       "contentScanState",
       "fieldSuggestionState",
       "fingerprints",
+      // Data Observability's schedule: when the store's tables are next collected.
+      "nextTableHealthCollectionAt",
     ]);
   });
 

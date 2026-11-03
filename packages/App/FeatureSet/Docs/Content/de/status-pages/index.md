@@ -118,7 +118,7 @@ Die öffentliche Seite ist eine eigene App mit wenigen Routen:
 - `/subscribe/email`, `/subscribe/sms`, `/subscribe/slack`, `/subscribe/microsoft-teams`, `/subscribe/webhooks`.
 - `/confirm-subscription/:id`, `/update-subscription/:token` und `/unsubscribe/:token` – die Links in den Nachrichten, die Abonnenten bekommen.
 - `/rss` – der Feed.
-- `/login`, `/sso` und `/master-password` – nur auf einer privaten Seite relevant.
+- `/login`, `/sso`, `/magic-link`, `/magic-link-login/:token` und `/master-password` – nur auf einer privaten Seite relevant.
 
 Die obere Navigationsleiste zeigt immer **Übersicht**; der Rest erscheint nur, wenn er aktiviert ist. **Vorfälle**, **Ankündigungen** und **Geplante Ereignisse** brauchen jeweils ihren Schalter; **Abonnieren** braucht sowohl **Abonnentenseite anzeigen** als auch mindestens einen aktivierten Abonnentenkanal. Eine private Seite bekommt zusätzlich einen Eintrag **Abmelden**.
 
@@ -194,6 +194,8 @@ Eine Wahl zu treffen fragt nach einer Bestätigung, sagt, was sich für Besucher
 Fügen Sie die Personen, die sich anmelden dürfen, auf **Statusseiten → Ihre Seite → Sicherheit → Private Benutzer** hinzu. Es gibt eine Aktion **In großen Mengen hinzufügen** – fügen Sie eine Liste von E-Mail-Adressen ein, und jede bekommt eine Einladungs-E-Mail. Private Benutzer haben ihren eigenen Ablauf für „Passwort vergessen“ und „Passwort zurücksetzen“, getrennt von den Konten Ihres OneUptime-Projekts.
 
 **Private Benutzer und das Passwort lassen sich nicht kombinieren.** Solange **Alle mit dem Passwort** die Wahl ist, können sich private Benutzer nicht anmelden – sie geben ebenfalls das Passwort ein –, und der Bildschirm **Private Benutzer** sagt das, mit einem Link zurück zu **Zugriff**.
+
+**Anmeldelinks.** Auf einer Seite, bei der sich Besucher anmelden, bietet die Anmeldeseite auch **Anmeldelink per E-Mail senden** an: Ein privater Benutzer gibt seine E-Mail-Adresse ein und bekommt einen Link, der ihn ohne Passwort anmeldet. Der Link funktioniert einmal, 15 Minuten lang, und ein neu angeforderter ersetzt ihn. Er öffnet eine Seite, auf der man **Anmelden** drückt, damit Mailfilter, die jeden Link zum Prüfen öffnen, ihn nicht vorher verbrauchen. Die Seite antwortet gleich, ob die Adresse zu einem ihrer privaten Benutzer gehört oder nicht, sodass eine Anfrage niemandem verrät, wer sich anmelden kann. Links sind auf jeder Seite eingeschaltet; um private Benutzer bei ihren Passwörtern zu halten, schalten Sie **Anmeldelinks** unter **Weitere Einstellungen** auf **Private Benutzer** aus (wer schon mit einem Link angemeldet ist, bleibt angemeldet). Sie werden nie angeboten, solange **SSO für die Anmeldung erzwingen** an ist oder **Alle mit dem Passwort** die Wahl ist.
 
 ### SSO und OIDC
 

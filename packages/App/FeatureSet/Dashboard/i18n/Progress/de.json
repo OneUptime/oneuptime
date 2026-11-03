@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40610,
-    "untranslated": 3478
+    "keys": 40836,
+    "untranslated": 3399
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -163,6 +163,7 @@
     "Daemons",
     "Dashboard",
     "Dashboards",
+    "Data Observability",
     "Debug",
     "Definition",
     "DeploymentConfigs",
@@ -494,6 +495,7 @@
     "Sudan",
     "Suriname",
     "Switch",
+    "Switches",
     "System",
     "TLS",
     "TTL",

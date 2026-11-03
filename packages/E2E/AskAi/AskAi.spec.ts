@@ -5,8 +5,10 @@ import {
   Route as PlaywrightRoute,
   test,
 } from "@playwright/test";
+import { readFileSync } from "fs";
 import fs from "fs/promises";
 import path from "path";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
@@ -292,6 +294,69 @@ async function screenshot(page: Page, name: string): Promise<void> {
   await fs.mkdir(SCREENSHOTS, { recursive: true });
   await settle(page);
   await page.screenshot({ path: path.join(SCREENSHOTS, `${name}.png`) });
+}
+
+/*
+ * The Dashboard's words in a language, from the locale file the fixture
+ * draws them from: a test about what a card says reads its words there, so
+ * a translator rewording one breaks nothing - a word the card never looks
+ * up does.
+ */
+function dashboardWords(language: string): Record<string, string> {
+  return JSON.parse(
+    readFileSync(
+      path.resolve(
+        __dirname,
+        "../../App/FeatureSet/Dashboard/src/Locales",
+        `${language}.json`,
+      ),
+      "utf8",
+    ),
+  ) as Record<string, string>;
+}
+
+// A sentence of the language with its values in, as the card fills it.
+function filled(
+  words: Record<string, string>,
+  key: string,
+  values: Record<string, string> = {},
+): string {
+  let text: string | undefined = words[key];
+  expect(text, `the locale words "${key}"`).toBeTruthy();
+
+  for (const name of Object.keys(values)) {
+    text = text!.split(`{{${name}}}`).join(values[name]!);
+  }
+
+  return text!;
+}
+
+// LRI, RLI, FSI and PDI: the marks a sentence sets its values apart with.
+const ISOLATE_MARKS: RegExp = /[\u2066-\u2069]/g;
+
+// What an element says, without the marks that set its values apart.
+async function wordsOf(locator: Locator): Promise<string> {
+  const text: string = await locator.evaluate((element: Element): string => {
+    return element.textContent || "";
+  });
+  return text.replace(ISOLATE_MARKS, "");
+}
+
+// The approval card's one action: its title, its line and its Allow / Skip.
+interface ApprovalAction {
+  box: Box;
+  title: Box;
+  choice: Box;
+}
+
+async function approvalActionBoxes(page: Page): Promise<ApprovalAction> {
+  const action: Locator = page.getByTestId("tool-approval-action");
+  const [box, title, choice] = await boxesInOneFrame([
+    action,
+    action.getByTestId("tool-approval-title"),
+    action.getByTestId("tool-approval-choice"),
+  ]);
+  return { box: box!, title: title!, choice: choice! };
 }
 
 /*
@@ -1831,6 +1896,75 @@ test.describe("in German", () => {
     await expect(mode).toHaveText("Nur Lesezugriff");
   });
 
+  /*
+   * The approval card said what the AI would do in the server's English -
+   * "Create alert: High memory usage on test01", 'Severity: High. Linked
+   * to host "test01".' - in the middle of a German page. The server now
+   * stores it as sentences, and the card says them in German, the alert's
+   * title, its severity and the host's name as written.
+   */
+  test("an approval card says what the AI will do in German, and the row it leaves too", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const words: Record<string, string> = dashboardWords("de");
+    const title: string = filled(words, "Create alert: {{title}}", {
+      title: "High memory usage on test01",
+    });
+
+    await load(page, "lang=de&thread=approval");
+    await expect(dialog(page)).toBeVisible();
+    await settle(page);
+
+    const action: Locator = page.getByTestId("tool-approval-action");
+    await expect(action.getByTestId("tool-approval-title")).toHaveText(title);
+    await expect(action.getByTestId("tool-approval-description")).toHaveText(
+      `${filled(words, "Severity: {{severity}}.", { severity: "High" })} ${filled(
+        words,
+        "Linked to {{resources}}.",
+        { resources: `${words["host"]} "test01"` },
+      )}`,
+    );
+    await expect(
+      dialog(page).getByText(
+        filled(words, "The AI wants to perform {{count}} actions_one", {
+          count: "1",
+        }),
+      ),
+    ).toBeVisible();
+
+    const choice: Locator = page.getByRole("group", { name: title });
+    await expect(
+      choice.getByRole("button", { name: words["Allow"]! }),
+    ).toHaveAttribute("aria-pressed", "true");
+    await expect(
+      choice.getByRole("button", { name: words["Skip"]! }),
+    ).toHaveAttribute("aria-pressed", "false");
+    await expect(
+      page.getByRole("button", { name: words["Deny all"]! }),
+    ).toBeVisible();
+
+    // Beside the title on a laptop: the pair on the title's row, at its end.
+    const boxes: ApprovalAction = await approvalActionBoxes(page);
+    expect(boxes.choice.x).toBeGreaterThan(boxes.title.x + boxes.title.width);
+    expect(Math.abs(boxes.choice.y - boxes.title.y)).toBeLessThanOrEqual(4);
+    await screenshot(page, "approval-1280-de");
+
+    await page
+      .getByRole("button", {
+        name: filled(words, "Run {{count}} actions_one", { count: "1" }),
+      })
+      .click();
+
+    // What ran stays as a German row: its status, and what it was.
+    await expect(page.getByTestId("tool-approval-history-title")).toHaveText(
+      title,
+    );
+    await expect(dialog(page).getByText(words["Executed"]!)).toBeVisible();
+    await screenshot(page, "approval-done-1280-de");
+  });
+
   test.describe("on a phone", () => {
     test.use({ viewport: { width: 390, height: 844 } });
 
@@ -1846,6 +1980,77 @@ test.describe("in German", () => {
       await openAskAi(page);
       await expectNothingScrollsSideways(page);
       await screenshot(page, "start-incident-390-de");
+    });
+
+    test("an approval card in German fits: Allow and Skip under its whole title", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      const words: Record<string, string> = dashboardWords("de");
+
+      await load(page, "lang=de&thread=approval");
+      await expect(dialog(page)).toBeVisible();
+      await settle(page);
+
+      await expect(page.getByTestId("tool-approval-title")).toHaveText(
+        filled(words, "Create alert: {{title}}", {
+          title: "High memory usage on test01",
+        }),
+      );
+
+      // Under the title, never squeezing it: the box is under 28rem wide.
+      const boxes: ApprovalAction = await approvalActionBoxes(page);
+      expect(boxes.choice.y).toBeGreaterThanOrEqual(
+        boxes.title.y + boxes.title.height - 1,
+      );
+      // The title is whole, not cut at its three lines.
+      expect(
+        await page
+          .getByTestId("tool-approval-title")
+          .evaluate((element: Element): boolean => {
+            return element.scrollHeight <= element.clientHeight + 1;
+          }),
+      ).toBe(true);
+
+      await expectNothingScrollsSideways(page);
+      await screenshot(page, "approval-390-de");
+
+      /*
+       * What ran stays as a row, whole: cut at one line, a phone lost what
+       * it changed ("Warnung erstellen: High memory usage on te...").
+       */
+      await page
+        .getByRole("button", {
+          name: filled(words, "Run {{count}} actions_one", { count: "1" }),
+        })
+        .click();
+      const row: Locator = page.getByTestId("tool-approval-history-title");
+      await expect(row).toHaveText(
+        filled(words, "Create alert: {{title}}", {
+          title: "High memory usage on test01",
+        }),
+      );
+      await settle(page);
+      const drawn: { isCut: boolean; lines: number } = await row.evaluate(
+        (element: Element): { isCut: boolean; lines: number } => {
+          const lineHeight: number = parseFloat(
+            window.getComputedStyle(element).lineHeight,
+          );
+          return {
+            isCut:
+              element.scrollWidth > element.clientWidth + 1 ||
+              element.scrollHeight > element.clientHeight + 1,
+            lines: Math.round(
+              element.getBoundingClientRect().height / lineHeight,
+            ),
+          };
+        },
+      );
+      expect(drawn.isCut).toBe(false);
+      expect(drawn.lines).toBeGreaterThanOrEqual(2);
+      await expectNothingScrollsSideways(page);
+      await screenshot(page, "approval-done-390-de");
     });
   });
 });
@@ -1946,12 +2151,102 @@ test.describe("in Persian", () => {
     }
   });
 
-  test("an approval's English lines keep their punctuation at their end", async ({
+  /*
+   * The card says what the AI will do in Persian, read right to left: the
+   * alert's English title and the host's English name set apart inside
+   * the Persian sentences, so each keeps its place and its punctuation.
+   */
+  test("an approval card says what the AI will do in Persian, right to left, its English names set apart", async ({
     page,
   }: {
     page: Page;
   }) => {
+    const words: Record<string, string> = dashboardWords("fa");
+    const title: string = filled(words, "Create alert: {{title}}", {
+      title: "High memory usage on test01",
+    });
+
     await load(page, "lang=fa&thread=approval");
+    await expect(dialog(page)).toBeVisible();
+    await settle(page);
+
+    const action: Locator = page.getByTestId("tool-approval-action");
+    const titleLine: Locator = action.getByTestId("tool-approval-title");
+    const line: Locator = action.getByTestId("tool-approval-description");
+
+    expect(await wordsOf(titleLine)).toBe(title);
+    expect(await wordsOf(line)).toBe(
+      `${filled(words, "Severity: {{severity}}.", { severity: "High" })} ${filled(
+        words,
+        "Linked to {{resources}}.",
+        { resources: `${words["host"]} "test01"` },
+      )}`,
+    );
+
+    // Each sentence reads right to left, and starts where the card does.
+    const read: {
+      directions: Array<string>;
+      titleRight: number;
+      lineRight: number;
+    } = await action.evaluate(
+      (
+        element: Element,
+      ): {
+        directions: Array<string>;
+        titleRight: number;
+        lineRight: number;
+      } => {
+        const title: HTMLElement = element.querySelector(
+          '[data-testid="tool-approval-title"] bdi',
+        ) as HTMLElement;
+        const sentences: Array<HTMLElement> = Array.from(
+          element.querySelectorAll(
+            '[data-testid="tool-approval-description"] bdi',
+          ),
+        );
+        const titleRange: Range = document.createRange();
+        titleRange.selectNodeContents(title);
+        const lineRange: Range = document.createRange();
+        lineRange.selectNodeContents(sentences[0]!);
+        return {
+          directions: [title, ...sentences].map(
+            (sentence: HTMLElement): string => {
+              return window.getComputedStyle(sentence).direction;
+            },
+          ),
+          titleRight: titleRange.getBoundingClientRect().right,
+          lineRight: lineRange.getBoundingClientRect().right,
+        };
+      },
+    );
+    expect(read.directions).toEqual(["rtl", "rtl", "rtl"]);
+    expect(Math.abs(read.titleRight - read.lineRight)).toBeLessThanOrEqual(2);
+
+    await expect(
+      dialog(page).getByText(
+        filled(words, "The AI wants to perform {{count}} actions_one", {
+          count: "۱",
+        }),
+      ),
+    ).toBeVisible();
+    // The pair is named by the title's words, with no marks in its name.
+    await expect(page.getByRole("group", { name: title })).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: words["Deny all"]! }),
+    ).toBeVisible();
+
+    // On a laptop the pair sits beside the title, on the side it ends on.
+    const boxes: ApprovalAction = await approvalActionBoxes(page);
+    expect(boxes.choice.x + boxes.choice.width).toBeLessThan(boxes.title.x);
+    await screenshot(page, "approval-1280-fa");
+  });
+
+  test("an approval saved before actions stored their words keeps its English lines' punctuation at their end", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await load(page, "lang=fa&thread=approval&words=none");
     await expect(dialog(page)).toBeVisible();
     await settle(page);
 
@@ -2040,6 +2335,32 @@ test.describe("in Persian", () => {
 
       await expectNothingScrollsSideways(page);
       await screenshot(page, "answer-390-fa");
+    });
+
+    test("an approval card in Persian fits, its pair under the title", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await load(page, "lang=fa&thread=approval");
+      await expect(dialog(page)).toBeVisible();
+      await settle(page);
+
+      const boxes: ApprovalAction = await approvalActionBoxes(page);
+      expect(boxes.choice.y).toBeGreaterThanOrEqual(
+        boxes.title.y + boxes.title.height - 1,
+      );
+      // Under the title, at the side the page reads from: the right.
+      expect(
+        Math.abs(
+          boxes.choice.x +
+            boxes.choice.width -
+            (boxes.title.x + boxes.title.width),
+        ),
+      ).toBeLessThanOrEqual(2);
+
+      await expectNothingScrollsSideways(page);
+      await screenshot(page, "approval-390-fa");
     });
   });
 });

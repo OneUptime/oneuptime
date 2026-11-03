@@ -2,7 +2,11 @@ import { RoleReach } from "@oneuptime/dashboard/Components/Permission/RoleCatalo
 import { getRolePickerFormField } from "@oneuptime/dashboard/Components/Permission/RolePickerFormField";
 import {
   getPermissionScopeFields,
+  getPermissionScopes,
+  getRoleScopes,
+  getScopeKeptOnPermissionChange,
   isScopeShownFor,
+  isScopeShownForPermission,
 } from "@oneuptime/dashboard/Components/Permission/PermissionScopeChoice";
 import PermissionScopeCell from "@oneuptime/dashboard/Components/Permission/PermissionScopeCell";
 import {
@@ -56,9 +60,11 @@ import React, {
  * with a scope folded under More fields - every resource in the
  * project, the resources the person acting (or one of their teams) owns, or
  * the resources carrying some labels, the three plain answers of
- * Components/Permission/PermissionScopeChoice. What a custom role cannot hold is not
- * offered: Project Owner (the Owners team gives it), block permissions (they
- * stay on the team), and the scope Labels without a label.
+ * Components/Permission/PermissionScopeChoice. One permission is offered
+ * only the answers that narrow it, and none where no scope does (Create
+ * Team). What a custom role cannot hold is not offered: Project Owner (the
+ * Owners team gives it), block permissions (they stay on the team), and the
+ * scope Labels without a label.
  *
  * Every change here reaches every team with the role at once, which the
  * card's description says (the role's page hands it in), with how many
@@ -165,8 +171,8 @@ const CustomRolePermissionTable: FunctionComponent<ComponentProps> = (
       })
     : translator.translateText(dialogWords.title) || dialogWords.title;
 
-  // What a change of permission does to the scope and labels already picked.
-  const onPermissionPicked: (value: unknown) => Promise<void> = async (
+  // What a change of role does to the scope and labels already picked.
+  const onRolePicked: (value: unknown) => Promise<void> = async (
     value: unknown,
   ): Promise<void> => {
     await formRef.current.setFieldValue("labels", [], true);
@@ -175,20 +181,58 @@ const CustomRolePermissionTable: FunctionComponent<ComponentProps> = (
     }
   };
 
-  const isScopeShown: (values: FormValues<CustomRolePermission>) => boolean = (
-    values: FormValues<CustomRolePermission>,
-  ): boolean => {
-    return isScopeShownFor(values["permission"]);
+  /*
+   * What a change of the one permission does to them: the labels go, and an
+   * answer the new permission does not offer goes back to All.
+   */
+  const onPermissionPicked: (
+    value: unknown,
+    currentValues: FormValues<CustomRolePermission>,
+  ) => Promise<void> = async (
+    value: unknown,
+    currentValues: FormValues<CustomRolePermission>,
+  ): Promise<void> => {
+    await formRef.current.setFieldValue("labels", [], true);
+    await formRef.current.setFieldValue(
+      "scope",
+      getScopeKeptOnPermissionChange({
+        permission: value,
+        heldScope: currentValues?.["scope"],
+      }),
+      true,
+    );
   };
 
   /*
-   * Scope: the three plain answers a team's permission offers, All first,
-   * and the labels the third one asks for (PermissionScopeChoice).
+   * Scope: the three plain answers a team's role offers, All first, and the
+   * labels the third one asks for (PermissionScopeChoice).
    */
-  const scopeAndLabelsFields: Array<ModelField<CustomRolePermission>> =
+  const roleScopeAndLabelsFields: Array<ModelField<CustomRolePermission>> =
     getPermissionScopeFields<CustomRolePermission>({
-      isScopeShown: isScopeShown,
+      isScopeShown: (values: FormValues<CustomRolePermission>): boolean => {
+        return isScopeShownFor(values["permission"]);
+      },
+      getScopes: (): Array<PermissionScope> => {
+        return getRoleScopes();
+      },
     });
+
+  /*
+   * One permission's Scope: only for a permission a scope narrows, with the
+   * answers that narrow it (issue #5602).
+   */
+  const permissionScopeAndLabelsFields: Array<
+    ModelField<CustomRolePermission>
+  > = getPermissionScopeFields<CustomRolePermission>({
+    isScopeShown: (values: FormValues<CustomRolePermission>): boolean => {
+      return isScopeShownForPermission(values["permission"]);
+    },
+    getScopes: (
+      values: FormValues<CustomRolePermission>,
+    ): Array<PermissionScope> => {
+      return getPermissionScopes(values["permission"]);
+    },
+  });
 
   return (
     <ModelTable<CustomRolePermission>
@@ -265,11 +309,11 @@ const CustomRolePermissionTable: FunctionComponent<ComponentProps> = (
               getRolePickerFormField<CustomRolePermission>({
                 excludeRoles: PERMISSIONS_NEVER_IN_A_CUSTOM_ROLE,
                 startOn: RoleReach.OneArea,
-                onChange: onPermissionPicked,
+                onChange: onRolePicked,
                 // The Scope below shows for a role that takes one.
                 isMoreFieldsShownFor: isScopeShownFor,
               }),
-              ...scopeAndLabelsFields,
+              ...roleScopeAndLabelsFields,
             ]
           : [
               {
@@ -305,7 +349,7 @@ const CustomRolePermissionTable: FunctionComponent<ComponentProps> = (
                   );
                 },
               },
-              ...scopeAndLabelsFields,
+              ...permissionScopeAndLabelsFields,
             ]
       }
       showRefreshButton={true}

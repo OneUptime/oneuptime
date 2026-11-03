@@ -19,8 +19,45 @@ import {
   ToolContext,
   ToolExecutionResult,
 } from "./ToolTypes";
+import {
+  AI_ACTION_TITLES,
+  AIActionSentence,
+  aiActionSentence,
+} from "../../../../Types/AI/AIActionWords";
+import {
+  getRecordTitleName,
+  prepareRecordNamesInTitle,
+  RecordNames,
+} from "./RecordNamesForPerson";
 
 import FeedMarkdown from "../../../../Utils/Markdown/FeedMarkdown";
+
+// The cards' titles: the record by its number once read, else by its ID.
+function buildIncidentNoteTitle(
+  args: JSONObject,
+  names: RecordNames,
+): AIActionSentence {
+  const incident: string | undefined = getRecordTitleName(
+    args,
+    names,
+    "incidentId",
+  );
+
+  return incident
+    ? aiActionSentence(AI_ACTION_TITLES.addIncidentNote, { incident })
+    : aiActionSentence(AI_ACTION_TITLES.addIncidentNoteUnnamed);
+}
+
+function buildAlertNoteTitle(
+  args: JSONObject,
+  names: RecordNames,
+): AIActionSentence {
+  const alert: string | undefined = getRecordTitleName(args, names, "alertId");
+
+  return alert
+    ? aiActionSentence(AI_ACTION_TITLES.addAlertNote, { alert })
+    : aiActionSentence(AI_ACTION_TITLES.addAlertNoteUnnamed);
+}
 /*
  * Private (internal) note tools — the team-only counterpart of
  * post_incident_status_update. Internal notes live in the dashboard's private
@@ -91,9 +128,14 @@ export const CreateIncidentNoteTool: ObservabilityTool = {
     return resolveIncidentNoteCreatePermissions();
   },
   isMutation: true,
-  buildActionTitle: (args: JSONObject): string => {
-    return `Add private internal note to incident ${ToolArgs.getString(args, "incidentId") || ""}`.trim();
+  buildActionTitle: (args: JSONObject): AIActionSentence => {
+    return buildIncidentNoteTitle(args, {});
   },
+  // The incident by its number, as the person knows it.
+  prepareMutation: prepareRecordNamesInTitle({
+    keys: ["incidentId"],
+    buildTitle: buildIncidentNoteTitle,
+  }),
   execute: async (
     args: JSONObject,
     ctx: ToolContext,
@@ -214,9 +256,14 @@ export const CreateAlertNoteTool: ObservabilityTool = {
     return resolveAlertNoteCreatePermissions();
   },
   isMutation: true,
-  buildActionTitle: (args: JSONObject): string => {
-    return `Add private internal note to alert ${ToolArgs.getString(args, "alertId") || ""}`.trim();
+  buildActionTitle: (args: JSONObject): AIActionSentence => {
+    return buildAlertNoteTitle(args, {});
   },
+  // The alert by its number, as the person knows it.
+  prepareMutation: prepareRecordNamesInTitle({
+    keys: ["alertId"],
+    buildTitle: buildAlertNoteTitle,
+  }),
   execute: async (
     args: JSONObject,
     ctx: ToolContext,

@@ -1,0 +1,77 @@
+import PageMap from "../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import Route from "Common/Types/API/Route";
+import IconProp from "Common/Types/Icon/IconProp";
+import SideMenu from "Common/UI/Components/SideMenu/SideMenu";
+import SideMenuItem from "Common/UI/Components/SideMenu/SideMenuItem";
+import SideMenuSection from "Common/UI/Components/SideMenu/SideMenuSection";
+import React, { FunctionComponent, ReactElement } from "react";
+
+/*
+ * The Data Observability side menu. What most people need sits at the top -
+ * the Overview, every table, what changed in their schemas, and the
+ * databases being watched - with the docs under Help and the tables gone
+ * from their databases under Advanced.
+ */
+const DataObservabilitySideMenu: FunctionComponent = (): ReactElement => {
+  const routeOf: (page: PageMap) => Route = (page: PageMap): Route => {
+    return RouteUtil.populateRouteParams(RouteMap[page] as Route);
+  };
+
+  return (
+    <SideMenu>
+      <SideMenuSection title="Data Observability">
+        <SideMenuItem
+          link={{
+            title: "Overview",
+            to: routeOf(PageMap.DATA_OBSERVABILITY_OVERVIEW),
+          }}
+          icon={IconProp.Home}
+        />
+        <SideMenuItem
+          link={{
+            title: "Tables",
+            to: routeOf(PageMap.DATA_OBSERVABILITY_TABLES),
+          }}
+          icon={IconProp.TableCells}
+        />
+        <SideMenuItem
+          link={{
+            title: "Schema Changes",
+            to: routeOf(PageMap.DATA_OBSERVABILITY_SCHEMA_CHANGES),
+          }}
+          icon={IconProp.List}
+        />
+        <SideMenuItem
+          link={{
+            title: "Databases",
+            to: routeOf(PageMap.DATA_OBSERVABILITY_STORES),
+          }}
+          icon={IconProp.Database}
+        />
+      </SideMenuSection>
+
+      <SideMenuSection title="Help">
+        <SideMenuItem
+          link={{
+            title: "Documentation",
+            to: routeOf(PageMap.DATA_OBSERVABILITY_DOCUMENTATION),
+          }}
+          icon={IconProp.Book}
+        />
+      </SideMenuSection>
+
+      <SideMenuSection title="Advanced">
+        <SideMenuItem
+          link={{
+            title: "Dropped Tables",
+            to: routeOf(PageMap.DATA_OBSERVABILITY_TABLES_DROPPED),
+          }}
+          icon={IconProp.Archive}
+        />
+      </SideMenuSection>
+    </SideMenu>
+  );
+};
+
+export default DataObservabilitySideMenu;

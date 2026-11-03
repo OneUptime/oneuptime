@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40610,
-    "untranslated": 12147
+    "keys": 40836,
+    "untranslated": 11975
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -80,8 +80,10 @@
     "checkout-.*",
     "customer facing|tier-1",
     "db-primary",
+    "deployment",
     "failed password",
     "govc",
+    "horizontal pod autoscaler",
     "ip",
     "kubectl set image deployment/web * -n web",
     "main",
@@ -93,6 +95,7 @@
     "p95 (ms)",
     "p95 {{latency}}",
     "p99 (ms)",
+    "persistent volume claim",
     "prod, staging",
     "prod-.*",
     "prod-vcenter",
@@ -105,6 +108,7 @@
     "vApp {{name}}",
     "vCenter",
     "vSphere Client",
+    "vertical pod autoscaler",
     "z",
     "{{count}} CPU",
     "{{in}} in"

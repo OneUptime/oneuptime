@@ -35,6 +35,14 @@ import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission from "../../../../Types/Permission";
 import { afterEach, describe, expect, test } from "@jest/globals";
+import { actionTitleText, actionLineText } from "../../../Helpers/AIActionText";
+import {
+  AI_ACTION_LINES,
+  AIActionSentence,
+  aiActionList,
+  aiActionResourceByName,
+  aiActionSentence,
+} from "../../../../Types/AI/AIActionWords";
 
 /*
  * ISSUE #5301: ASK AI RAISES ALERTS, AS IT DECLARES INCIDENTS.
@@ -643,11 +651,11 @@ describe("create_alert, prepared for approval", () => {
      * The severity first, in words: the argument line under it is cut at
      * two lines, and on a phone it never showed the severity.
      */
-    expect(prepared.description).toBe(
+    expect(actionLineText(prepared.description)).toBe(
       'Severity: High. Linked to host "test01".',
     );
     // buildActionTitle's title stands: it names the alert by its title.
-    expect(prepared.title).toBeUndefined();
+    expect(actionTitleText(prepared.title)).toBeUndefined();
   });
 
   test("a severity named in another case is written out as the project names it", async () => {
@@ -662,7 +670,7 @@ describe("create_alert, prepared for approval", () => {
       title: "High memory usage",
       severityName: "Low",
     });
-    expect(prepared.description).toBe("Severity: Low.");
+    expect(actionLineText(prepared.description)).toBe("Severity: Low.");
   });
 
   test("a severity the project does not have is written out as the one it will take", async () => {
@@ -675,7 +683,7 @@ describe("create_alert, prepared for approval", () => {
 
     expect(prepared.arguments["severityName"]).toBe("High");
     // The card says the one it will take, not the one the model named.
-    expect(prepared.description).toBe("Severity: High.");
+    expect(actionLineText(prepared.description)).toBe("Severity: High.");
   });
 
   test("a call's own list is kept as named, and named on the card", async () => {
@@ -700,7 +708,7 @@ describe("create_alert, prepared for approval", () => {
     );
 
     expect(prepared.arguments).toEqual(args);
-    expect(prepared.description).toBe(
+    expect(actionLineText(prepared.description)).toBe(
       'Severity: Low. Linked to Kubernetes cluster "prod-east".',
     );
   });
@@ -717,7 +725,7 @@ describe("create_alert, prepared for approval", () => {
       title: "Checkout slow",
       severityName: "High",
     });
-    expect(prepared.description).toBe("Severity: High.");
+    expect(actionLineText(prepared.description)).toBe("Severity: High.");
   });
 
   test("a resource the person may not view is flagged on the card before they approve", async () => {
@@ -729,7 +737,7 @@ describe("create_alert, prepared for approval", () => {
       context(HOST_PAGE),
     );
 
-    expect(prepared.description).toBe(
+    expect(actionLineText(prepared.description)).toBe(
       "Severity: High. The resources named will not be linked.",
     );
   });
@@ -756,7 +764,7 @@ describe("create_alert, prepared for approval", () => {
      * Which severity it takes is not known before it runs, so the card
      * says none: the argument line still shows the model's.
      */
-    expect(prepared.description).toBeUndefined();
+    expect(actionLineText(prepared.description)).toBeUndefined();
   });
 
   test("a project with no severities writes none out: running the action says why", async () => {
@@ -768,7 +776,7 @@ describe("create_alert, prepared for approval", () => {
     );
 
     expect(prepared.arguments).toEqual({ title: "High memory usage" });
-    expect(prepared.description).toBeUndefined();
+    expect(actionLineText(prepared.description)).toBeUndefined();
   });
 
   test("it only reads: nothing is created before the person approves", async () => {
@@ -821,45 +829,75 @@ describe("create_alert, prepared for approval", () => {
  * severity - written last there - was never seen before approving.
  */
 describe("the approval card's line for create_alert", () => {
+  // What linking says, as AffectedResourceLinks words it for the card.
+  const linkedToTest01: Array<AIActionSentence> = [
+    aiActionSentence(AI_ACTION_LINES.linkedTo, {
+      resources: aiActionList([
+        aiActionResourceByName({ noun: "host", name: "test01" }),
+      ]),
+    }),
+  ];
+
   test("says the severity first, then what the alert is linked to", () => {
     expect(
-      describeAlertForPerson({
-        severityName: "High",
-        linked: 'Linked to host "test01".',
-      }),
+      actionLineText(
+        describeAlertForPerson({
+          severityName: "High",
+          linked: linkedToTest01,
+        }),
+      ),
     ).toBe('Severity: High. Linked to host "test01".');
+  });
+
+  test("says the severity as a sentence of its own, its name as data", () => {
+    const line: Array<AIActionSentence> = describeAlertForPerson({
+      severityName: "High",
+      linked: linkedToTest01,
+    });
+
+    expect(line[0]).toEqual({
+      template: AI_ACTION_LINES.severity,
+      values: { severity: "High" },
+    });
+    expect(line.slice(1)).toEqual(linkedToTest01);
   });
 
   test("says the severity alone when nothing is linked", () => {
     expect(
-      describeAlertForPerson({ severityName: "Low", linked: undefined }),
+      actionLineText(
+        describeAlertForPerson({ severityName: "Low", linked: [] }),
+      ),
     ).toBe("Severity: Low.");
   });
 
   test("says what is linked alone when the severity is not known yet", () => {
     expect(
-      describeAlertForPerson({
-        severityName: null,
-        linked: "The resources named will not be linked.",
-      }),
+      actionLineText(
+        describeAlertForPerson({
+          severityName: null,
+          linked: [aiActionSentence(AI_ACTION_LINES.noneLinked)],
+        }),
+      ),
     ).toBe("The resources named will not be linked.");
   });
 
   test("says nothing when there is nothing to say, so the card draws no empty line", () => {
-    expect(
-      describeAlertForPerson({ severityName: null, linked: undefined }),
-    ).toBeUndefined();
-    expect(describeAlertForPerson({ severityName: "", linked: "" })).toBe(
-      undefined,
+    expect(describeAlertForPerson({ severityName: null, linked: [] })).toEqual(
+      [],
+    );
+    expect(describeAlertForPerson({ severityName: "", linked: [] })).toEqual(
+      [],
     );
   });
 
   test("keeps a project's own severity name as it is written", () => {
     expect(
-      describeAlertForPerson({
-        severityName: "P2 - Needs a look",
-        linked: undefined,
-      }),
+      actionLineText(
+        describeAlertForPerson({
+          severityName: "P2 - Needs a look",
+          linked: [],
+        }),
+      ),
     ).toBe("Severity: P2 - Needs a look.");
   });
 });
@@ -941,11 +979,13 @@ describe("create_alert as a tool", () => {
 
   test("buildActionTitle names the alert by its title, or says Untitled", () => {
     expect(
-      CreateAlertTool.buildActionTitle!({
-        title: "High memory usage on test01",
-      }),
+      actionTitleText(
+        CreateAlertTool.buildActionTitle!({
+          title: "High memory usage on test01",
+        }),
+      ),
     ).toBe("Create alert: High memory usage on test01");
-    expect(CreateAlertTool.buildActionTitle!({})).toBe(
+    expect(actionTitleText(CreateAlertTool.buildActionTitle!({}))).toBe(
       "Create alert: Untitled",
     );
   });

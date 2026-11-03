@@ -452,8 +452,8 @@ export const AirGapSteps: Array<AirGapStep> = [
   {
     title: "Mirror the images",
     description:
-      "Pull the OneUptime images into your internal registry and point the chart at it. Nothing needs to reach Docker Hub at runtime.",
-    setting: "image.registry / image.repository",
+      "Mirror the OneUptime images, and the PostgreSQL, ClickHouse and Valkey images the chart runs, into your internal registry, and point the chart at it with one value. Nothing needs to reach Docker Hub at runtime.",
+    setting: "global.imageRegistry",
   },
   {
     title: "Turn off the update check",

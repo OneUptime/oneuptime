@@ -2,6 +2,7 @@ import { AddDataSecurity1808500000000 } from "../../../../Server/Infrastructure/
 import { AddSecurityHunts1808450000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808450000000-AddSecurityHunts";
 import { AddDataSecurityIdentities1808791000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808791000000-AddDataSecurityIdentities";
 import { AddDataSecurityFieldSuggestions1808792000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808792000000-AddDataSecurityFieldSuggestions";
+import { AddDataObservability1808910000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808910000000-AddDataObservability";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DataSecurityCheckSetting from "../../../../Models/DatabaseModels/DataSecurityCheckSetting";
@@ -125,6 +126,17 @@ const ADDED_LATER: ReadonlyArray<[string, string, MigrationClass]> = [
     "DataStoreFinding",
     "aiReason",
     AddDataSecurityFieldSuggestions1808792000000,
+  ],
+  // Data Observability's table-health schedule and status, on the same store.
+  ["DataStore", "isTableHealthEnabled", AddDataObservability1808910000000],
+  ["DataStore", "tableHealthCollectedAt", AddDataObservability1808910000000],
+  ["DataStore", "tableHealthStatus", AddDataObservability1808910000000],
+  ["DataStore", "tableHealthMessage", AddDataObservability1808910000000],
+  ["DataStore", "tableHealthAssetCount", AddDataObservability1808910000000],
+  [
+    "DataStore",
+    "nextTableHealthCollectionAt",
+    AddDataObservability1808910000000,
   ],
 ];
 
