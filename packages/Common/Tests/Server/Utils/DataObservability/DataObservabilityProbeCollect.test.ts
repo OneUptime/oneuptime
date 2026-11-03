@@ -226,6 +226,30 @@ describe("readTableHealthSnapshot", () => {
         ?.isComplete,
     ).toBe(false);
   });
+
+  test("the database a probe read is kept as name, host and port, and nothing else", () => {
+    expect(
+      readTableHealthSnapshot(
+        snapshotOf([], {
+          target: {
+            databaseName: "orders",
+            host: "orders-db.internal",
+            port: 5432,
+            password: "never kept",
+          },
+        }),
+        NOW,
+      )?.target,
+    ).toEqual({
+      databaseName: "orders",
+      host: "orders-db.internal",
+      port: 5432,
+    });
+  });
+
+  test("an older probe's snapshot, with no target, has none", () => {
+    expect(readTableHealthSnapshot(snapshotOf([]), NOW)?.target).toBe(null);
+  });
 });
 
 describe("readProbeCollectError", () => {

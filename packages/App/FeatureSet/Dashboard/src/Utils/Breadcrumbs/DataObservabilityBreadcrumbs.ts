@@ -55,6 +55,10 @@ export function getDataObservabilityBreadcrumbs(
       ["Project", "Data Observability", "Tables", "View Table", "Timeline"],
     ),
     ...BuildBreadcrumbLinksByTitles(
+      PageMap.DATA_OBSERVABILITY_TABLE_VIEW_SERVICES,
+      ["Project", "Data Observability", "Tables", "View Table", "Services"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
       PageMap.DATA_OBSERVABILITY_TABLE_VIEW_SETTINGS,
       ["Project", "Data Observability", "Tables", "View Table", "Settings"],
     ),

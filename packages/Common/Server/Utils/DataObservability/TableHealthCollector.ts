@@ -22,6 +22,7 @@ import {
   sanitizeErrorMessage,
   STATEMENT_TIMEOUT_IN_MS,
 } from "../DataSecurity/Content/DatabaseSampler";
+import { readConnectionTarget, TableHealthTarget } from "./TableHealthTarget";
 
 /*
  * EVERY TABLE OF A DATABASE, FROM ITS CATALOG, WITHOUT READING A ROW.
@@ -98,6 +99,8 @@ export interface TableHealthSnapshot {
   // False when the table list was cut at its limit, so absence proves nothing.
   isComplete: boolean;
   warnings: Array<string>;
+  // The database read: its name, host and port, from the connection string. Never a credential.
+  target?: TableHealthTarget | null | undefined;
 }
 
 export interface TableHealthCollectOptions {
@@ -962,17 +965,20 @@ export async function collectTableHealth(
     const collectedAt: Date = new Date();
     const read: CatalogRead = await catalog.read(options);
 
-    return assembleSnapshot({
-      engine: connection.engine,
-      read: {
-        ...read,
-        warnings: read.warnings.map((warning: string) => {
-          return sanitizeErrorMessage(new Error(warning), secrets);
-        }),
-      },
-      options,
-      collectedAt,
-    });
+    return {
+      ...assembleSnapshot({
+        engine: connection.engine,
+        read: {
+          ...read,
+          warnings: read.warnings.map((warning: string) => {
+            return sanitizeErrorMessage(new Error(warning), secrets);
+          }),
+        },
+        options,
+        collectedAt,
+      }),
+      target: readConnectionTarget(connection),
+    };
   } catch (error) {
     throw new Error(sanitizeErrorMessage(error, secrets));
   } finally {

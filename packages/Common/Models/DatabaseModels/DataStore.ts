@@ -1184,6 +1184,21 @@ export default class DataStore extends BaseModel {
   public tableHealthAssetCount?: number = undefined;
 
   @ColumnAccessControl(hiddenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    computed: true,
+    title: "Table Health Target",
+    description:
+      "The database the last collection read - its name, host and port, never a credential - so the spans of the services using it can be tied to its tables.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public tableHealthTarget?: JSONObject = undefined;
+
+  @ColumnAccessControl(hiddenColumnAccess)
   @Index()
   @TableColumn({
     type: TableColumnType.Date,

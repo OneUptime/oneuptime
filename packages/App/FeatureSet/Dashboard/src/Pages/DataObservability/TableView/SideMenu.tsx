@@ -12,7 +12,7 @@ export interface ComponentProps {
   modelId: ObjectID;
 }
 
-// One table's pages: what it holds and how it changes, its settings, and Delete.
+// One table's pages: what it holds, how it changes and who uses it, its settings, and Delete.
 const TableViewSideMenu: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -52,6 +52,13 @@ const TableViewSideMenu: FunctionComponent<ComponentProps> = (
             to: routeOf(PageMap.DATA_OBSERVABILITY_TABLE_VIEW_TIMELINE),
           }}
           icon={IconProp.List}
+        />
+        <SideMenuItem
+          link={{
+            title: "Services",
+            to: routeOf(PageMap.DATA_OBSERVABILITY_TABLE_VIEW_SERVICES),
+          }}
+          icon={IconProp.Code}
         />
       </SideMenuSection>
 
