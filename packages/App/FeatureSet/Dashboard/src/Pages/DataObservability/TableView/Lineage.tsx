@@ -5,6 +5,7 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import { getRunStatePill } from "../Pipelines";
 import { useTableViewContext } from "./TableViewContext";
 import DataAssetLineage from "Common/Models/DatabaseModels/DataAssetLineage";
+import DataAssetLineageSource from "Common/Types/DataObservability/DataAssetLineageSource";
 import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "Common/Types/Date";
@@ -38,11 +39,13 @@ function tableLink(
 }
 
 /*
- * Where the table's data comes from and where it goes, from the pipelines
- * that read and write it (OpenLineage): the tables it is built from - or
- * the pipeline that writes it from data OneUptime does not watch - each
- * with how that pipeline's latest run went, so a stale table points at the
- * run that should have written it; and the tables built from it.
+ * Where the table's data comes from and where it goes: the tables it is
+ * built from - or the pipeline that writes it from data OneUptime does not
+ * watch - and the tables built from it. Each edge says where it was seen:
+ * a pipeline's run (OpenLineage, dbt), with how its latest run went, so a
+ * stale table points at the run that should have written it; the
+ * database's query history, with a login whose queries moved the data; or
+ * a view's definition.
  */
 const TableLineagePage: FunctionComponent<
   PageComponentProps
@@ -50,7 +53,7 @@ const TableLineagePage: FunctionComponent<
   const translator: Translator = useTranslator();
   const { dataAssetId } = useTableViewContext();
 
-  const pipelineColumn: Column<DataAssetLineage> = {
+  const seenInColumn: Column<DataAssetLineage> = {
     field: {
       dataPipeline: {
         jobName: true,
@@ -59,10 +62,35 @@ const TableLineagePage: FunctionComponent<
         lastErrorMessage: true,
       },
     },
-    title: "Pipeline",
+    title: "Seen In",
     type: FieldType.Element,
     disableSort: true,
     getElement: (edge: DataAssetLineage): ReactElement => {
+      if (edge.source === DataAssetLineageSource.QueryHistory) {
+        return (
+          <div className="min-w-0 space-y-1">
+            <span className="block text-sm text-gray-900">
+              {translator.translateText("Query history")}
+            </span>
+            {edge.seenBy ? (
+              <span className="block max-w-md truncate text-xs text-gray-500">
+                {edge.seenBy}
+              </span>
+            ) : (
+              <></>
+            )}
+          </div>
+        );
+      }
+
+      if (edge.source === DataAssetLineageSource.ViewDefinition) {
+        return (
+          <span className="text-sm text-gray-900">
+            {translator.translateText("View definition")}
+          </span>
+        );
+      }
+
       if (!edge.dataPipeline) {
         return <span className="text-sm text-gray-500">-</span>;
       }
@@ -130,10 +158,14 @@ const TableLineagePage: FunctionComponent<
         cardProps={{
           title: "Built From",
           description:
-            "The tables this table is built from, and the pipelines that write it, with how each pipeline's latest run went.",
+            "The tables this table is built from, and the pipelines that write it: seen in a pipeline's run, with how its latest run went, in the database's query history, or in a view's definition.",
         }}
-        noItemsMessage="No pipeline has been seen writing this table. Pipelines that send OpenLineage events show here once a run writes it."
-        selectMoreFields={{ upstreamDataAssetId: true }}
+        noItemsMessage="Nothing has been seen feeding this table yet. Lineage shows here from pipelines that send OpenLineage events or dbt artifacts, from BigQuery's and Redshift's query history, and from views' definitions."
+        selectMoreFields={{
+          upstreamDataAssetId: true,
+          source: true,
+          seenBy: true,
+        }}
         filters={[]}
         columns={[
           {
@@ -154,7 +186,7 @@ const TableLineagePage: FunctionComponent<
               );
             },
           },
-          pipelineColumn,
+          seenInColumn,
           lastSeenColumn,
         ]}
       />
@@ -177,7 +209,11 @@ const TableLineagePage: FunctionComponent<
             "The tables built from this one: what goes stale or wrong when it does.",
         }}
         noItemsMessage="No table has been seen built from this one."
-        selectMoreFields={{ downstreamDataAssetId: true }}
+        selectMoreFields={{
+          downstreamDataAssetId: true,
+          source: true,
+          seenBy: true,
+        }}
         filters={[]}
         columns={[
           {
@@ -192,7 +228,7 @@ const TableLineagePage: FunctionComponent<
               );
             },
           },
-          pipelineColumn,
+          seenInColumn,
           lastSeenColumn,
         ]}
       />
