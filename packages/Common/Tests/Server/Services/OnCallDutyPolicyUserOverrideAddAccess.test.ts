@@ -493,7 +493,7 @@ const askRoute: (
     Response.sendJsonObjectResponse as unknown as jest.Mock;
   sent.mockClear();
 
-  const next: jest.Mock = jest.fn();
+  const next: ReturnType<typeof jest.fn> = jest.fn();
 
   await mockRouter.match("post", ROUTE).handlerFunction(
     {
@@ -878,7 +878,7 @@ describe("asking", () => {
       .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
       .mockResolvedValue(LIMITED_TO_TEAM_A);
 
-    const next: jest.Mock = jest.fn();
+    const next: ReturnType<typeof jest.fn> = jest.fn();
 
     await mockRouter.match("post", ROUTE).handlerFunction(
       {

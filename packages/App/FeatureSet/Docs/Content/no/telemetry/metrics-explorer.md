@@ -112,15 +112,16 @@ Fanen **Innsikt** teller metrikkene i et tidsintervall: **Aktive målinger**, **
 
 ## Forbedre målinger og legg til de som mangler med KI
 
-Hver time går OneUptime gjennom målingene tjenestene dine sendte i siste time etter dem som registrerer for mange verdier, histogrammer der bøttene ikke passer, og travle tjenester som ikke sender noen målinger. Det den finner, registrerer den som KI-innsikt, med bevisene. Deretter undersøker OneUptime AI hvert funn og åpner en pull-forespørsel som retter det. Ingenting flettes noen gang: teamet ditt gjennomgår hver pull-forespørsel.
+Hver time går OneUptime gjennom målingene tjenestene dine sendte i siste time etter dem som registrerer for mange verdier, histogrammer der bøttene ikke passer, og travle tjenester som ikke sender noen målinger for forespørslene sine. Det den finner, registrerer den som KI-innsikt, med bevisene. Deretter undersøker OneUptime AI hvert funn og åpner en pull-forespørsel som retter det. Ingenting flettes noen gang: teamet ditt gjennomgår hver pull-forespørsel.
 
-OneUptime leser nøye de 10 målingene tjenestene dine sendte flest datapunkter for i timen, hver med minst 1 000 av dem, og registrerer tre typer funn:
+OneUptime leser nøye de 10 målingene tjenestene dine sendte flest datapunkter for i timen, hver med minst 1 000 av dem, og registrerer fire typer funn:
 
 | Funn | Når OneUptime registrerer det | Pull-forespørselen |
 | --- | --- | --- |
 | **Høy kardinalitet** | Et attributt koden setter på en av disse målingene, fikk 1 000 eller flere verdier i timen, for eksempel bruker-ID-er eller fullstendige URL-er, så hver verdi blir sin egen serie. Eller 50 eller flere av en tjenestes målingsnavn er ett navn med en annen ID i. | Slutter å registrere verdien på målingen, eller tar ID-ene ut av navnene. |
 | **Feil histogrambøtter** | En av disse målingene er et histogram som registrerte 1 000 eller flere verdier, og 90 % eller flere av dem havnet i den minste bøtten eller over den største, eller det har ingen bøtter, så persentilene ikke kan skilles fra hverandre. | Gir histogrammet bøtter som passer til verdiene, eller retter enheten. |
 | **Manglende målinger** | En tjeneste sendte 1 000 eller flere spans i timen og har aldri sendt en måling. | Legger til antall forespørsler, feilene og varigheten for de travleste operasjonene som målinger. |
+| **Manglende forespørselsmålinger** | En tjeneste sendte 1 000 eller flere spans i timen, og også målinger, men har aldri sendt en forespørselsmåling for HTTP-forespørslene, RPC-kallene eller meldingene den håndterer, for eksempel `http.server.request.duration`. | Legger til disse forespørselsmålingene med OpenTelemetry-instrumenteringen for rammeverket den bruker. |
 
 Et funn lagrer aldri verdiene til et attributt: bare attributtets navn, hvor mange verdier det fikk og hvordan de ser ut.
 
@@ -144,9 +145,34 @@ Under **Flere felt** velger en regel kodelagrene, MCP-serverne og LLM-leverandø
 
 ### Se hva den gjorde
 
-- **Målinger → KI → Innsikt** viser hva OneUptime fant, hvert funn med bevisene og **Åpne i Målinger**, som åpner målingen for tjenesten fra timen det ble funnet i. En tjeneste uten målinger tilbyr i stedet **Åpne i Spor**: spansene målingene ville målt.
+- **Målinger → KI → Innsikt** viser hva OneUptime fant, hvert funn med bevisene og **Åpne i Målinger**, som åpner målingen for tjenesten fra timen det ble funnet i. En tjeneste uten målinger, eller uten målinger for forespørslene sine, tilbyr i stedet **Åpne i Spor**: spansene målingene ville målt.
 - **Målinger → KI → Logger** viser hver undersøkelse og hver pull-forespørsel, nyeste først, med status for hver og hva hver undersøkelse fant.
 - I Kode sier oppgaven at OneUptime startet den, med en lenke til funnet, og pull-forespørselen sier hvorfor den ble åpnet.
+
+### Registrer forespørselsmålinger uten å endre kode
+
+Et funn av typen **Manglende målinger** eller **Manglende forespørselsmålinger** tilbyr **Uten å endre kode** ved siden av **Fiks med AI**: OpenTelemetry Collector-en som sporene dine går gjennom, registrerer forespørselsmålingene fra dem. **Vis collector-trinnet** gir linjene du legger til, `spanmetrics` som exporter i traces-pipelinen og som receiver i metrics-pipelinen:
+
+```yaml title="otel-collector-config.yaml"
+connectors:
+  spanmetrics:
+    histogram:
+      unit: s
+    aggregation_temporality: AGGREGATION_TEMPORALITY_DELTA
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlphttp, spanmetrics]
+    metrics:
+      receivers: [otlp, spanmetrics]
+      processors: [batch]
+      exporters: [otlphttp]
+```
+
+Start collectoren på nytt. Hver tjeneste med spor som går gjennom den, sender da `traces.span.metrics.calls` og `traces.span.metrics.duration` (i sekunder) for hver operasjon, span-type og status, og OneUptime finner ikke lenger problemet, så løs funnet. Connectoren teller hvert span collectoren mottar, også dem en sampler senere forkaster. En tjeneste som sender rett til OneUptime, trenger først en collector foran seg: se [Send gjennom en OpenTelemetry Collector](/docs/telemetry/open-telemetry#send-gjennom-en-opentelemetry-collector).
 
 ## Hva som skjer med metrikker når de kommer inn
 

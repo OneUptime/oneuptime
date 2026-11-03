@@ -112,15 +112,16 @@ Fanen **Indsigter** tæller metrikkerne i et tidsinterval: **Aktive målinger**,
 
 ## Forbedr metrikker og tilføj de manglende med AI
 
-Hver time gennemgår OneUptime de metrikker, dine tjenester har sendt i den seneste time, for dem, der registrerer for mange værdier, histogrammer, hvis buckets ikke passer, og travle tjenester, der ikke sender nogen metrikker. Det, den finder, gemmer den som AI-indsigter med beviserne. Derefter undersøger OneUptime AI hver enkelt og åbner en pull request, der retter det. Intet bliver nogensinde flettet: dit team gennemgår hver pull request.
+Hver time gennemgår OneUptime de metrikker, dine tjenester har sendt i den seneste time, for dem, der registrerer for mange værdier, histogrammer, hvis buckets ikke passer, og travle tjenester, der ikke sender nogen metrikker for deres anmodninger. Det, den finder, gemmer den som AI-indsigter med beviserne. Derefter undersøger OneUptime AI hver enkelt og åbner en pull request, der retter det. Intet bliver nogensinde flettet: dit team gennemgår hver pull request.
 
-OneUptime læser nøje de 10 metrikker, dine tjenester sendte flest datapunkter for i den seneste time, hver med mindst 1.000 af dem, og opretter tre slags fund:
+OneUptime læser nøje de 10 metrikker, dine tjenester sendte flest datapunkter for i den seneste time, hver med mindst 1.000 af dem, og opretter fire slags fund:
 
 | Fund | Hvornår OneUptime opretter det | Pull requesten |
 | --- | --- | --- |
 | **Høj kardinalitet** | En attribut, som koden sætter på en af disse metrikker, fik 1.000 eller flere værdier i timen, såsom bruger-id'er eller fulde URL'er, så hver værdi bliver sin egen serie. Eller 50 eller flere af en tjenestes metriknavne er ét navn med et forskelligt id i. | Holder op med at registrere værdien på metrikken, eller tager id'erne ud af dens navne. |
 | **Forkerte histogram-buckets** | En af disse metrikker er et histogram, der registrerede 1.000 eller flere værdier, og 90 % eller flere af dem faldt i dets mindste bucket eller over dets største, eller det har ingen buckets, så dets percentiler ikke kan skelnes fra hinanden. | Giver histogrammet buckets, der passer til dets værdier, eller retter dets enhed. |
 | **Manglende metrikker** | En tjeneste sendte 1.000 eller flere spans i timen og har aldrig sendt en metrik. | Tilføjer antallet af forespørgsler, fejlene og varigheden af dens travleste operationer som metrikker. |
+| **Manglende anmodningsmetrikker** | En tjeneste sendte 1.000 eller flere spans i timen, og også metrikker, men har aldrig sendt en anmodningsmetrik for de HTTP-anmodninger, RPC-kald eller beskeder, den håndterer, som `http.server.request.duration`. | Tilføjer disse anmodningsmetrikker med OpenTelemetry-instrumenteringen til dens framework. |
 
 Et fund gemmer aldrig en attributs værdier: kun attributtens navn, hvor mange værdier den fik, og hvordan de ser ud.
 
@@ -144,9 +145,34 @@ Under **Flere felter** vælger en regel de koderepositorier, MCP-servere og den 
 
 ### Se, hvad den gjorde
 
-- **Målinger → AI → Indsigter** viser, hvad OneUptime fandt, hvert fund med sine beviser og **Åbn i Målinger**, som åbner dets metrik for dets tjeneste fra den time, det blev fundet i. En tjeneste uden metrikker tilbyder i stedet **Åbn i Spor**: de spans, dens metrikker ville måle.
+- **Målinger → AI → Indsigter** viser, hvad OneUptime fandt, hvert fund med sine beviser og **Åbn i Målinger**, som åbner dets metrik for dets tjeneste fra den time, det blev fundet i. En tjeneste uden metrikker, eller uden metrikker for sine anmodninger, tilbyder i stedet **Åbn i Spor**: de spans, dens metrikker ville måle.
 - **Målinger → AI → Protokoller** viser hver undersøgelse og hver pull request, nyeste først, med status for hver og det, hver undersøgelse fandt.
 - I Kode siger opgaven, at OneUptime startede den, med et link til dens fund, og pull requesten siger, hvorfor den blev åbnet.
+
+### Registrer anmodningsmetrikker uden at ændre kode
+
+Et fund af typen **Manglende metrikker** eller **Manglende anmodningsmetrikker** tilbyder **Uden at ændre kode** ved siden af **Ret med AI**: den OpenTelemetry Collector, dine traces går igennem, registrerer anmodningsmetrikkerne ud fra dem. **Vis collector-trinnet** giver de linjer, du skal tilføje, `spanmetrics` som exporter i traces-pipelinen og som receiver i metrics-pipelinen:
+
+```yaml title="otel-collector-config.yaml"
+connectors:
+  spanmetrics:
+    histogram:
+      unit: s
+    aggregation_temporality: AGGREGATION_TEMPORALITY_DELTA
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlphttp, spanmetrics]
+    metrics:
+      receivers: [otlp, spanmetrics]
+      processors: [batch]
+      exporters: [otlphttp]
+```
+
+Genstart collectoren. Hver tjeneste, hvis traces går gennem den, sender derefter `traces.span.metrics.calls` og `traces.span.metrics.duration` (i sekunder) for hver operation, span-type og status, og OneUptime finder ikke længere problemet, så løs fundet. Connectoren tæller hvert span, collectoren modtager, også dem, en sampler senere smider væk. En tjeneste, der sender direkte til OneUptime, skal først have en collector foran sig: se [Send via en OpenTelemetry Collector](/docs/telemetry/open-telemetry#send-via-en-opentelemetry-collector).
 
 ## Hvad der sker med metrikker, når de ankommer
 

@@ -1,5 +1,6 @@
 import { Command } from "commander";
 import { registerConfigCommands } from "./Commands/ConfigCommands";
+import { registerDbtCommands } from "./Commands/DbtCommands";
 import { registerDeployCommands } from "./Commands/DeployCommands";
 import { registerResourceCommands } from "./Commands/ResourceCommands";
 import {
@@ -39,6 +40,7 @@ export function buildProgram(): Command {
   registerConfigCommands(program);
   registerUtilityCommands(program);
   registerDeployCommands(program);
+  registerDbtCommands(program);
   registerResourceCommands(program);
 
   return program;

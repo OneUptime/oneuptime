@@ -93,7 +93,7 @@ function mockRow(): void {
       if (storedRow) {
         storedRow.engineReadings = (input.data as Record<string, unknown>)[
           "engineReadings"
-        ] as DatabaseServer["engineReadings"];
+        ] as NonNullable<DatabaseServer["engineReadings"]>;
       }
       return true;
     });
@@ -154,8 +154,9 @@ describe("recordEngineReadings: what is written", () => {
       "engineReadings",
       "engineReadingsAt",
     ]);
-    const readings: DatabaseEngineReadings =
-      data["engineReadings"] as unknown as DatabaseEngineReadings;
+    const readings: DatabaseEngineReadings = data[
+      "engineReadings"
+    ] as unknown as DatabaseEngineReadings;
     expect(Object.keys(readings.instances)).toEqual([PRIMARY]);
     expect(readings.instances[PRIMARY]!.values).toEqual(BUSY_PRIMARY);
     expect(data["engineReadingsAt"]).toBeInstanceOf(Date);
@@ -184,12 +185,10 @@ describe("recordEngineReadings: what is written", () => {
       string,
       unknown
     >;
-    const readings: DatabaseEngineReadings =
-      second["engineReadings"] as unknown as DatabaseEngineReadings;
-    expect(Object.keys(readings.instances).sort()).toEqual([
-      PRIMARY,
-      REPLICA,
-    ]);
+    const readings: DatabaseEngineReadings = second[
+      "engineReadings"
+    ] as unknown as DatabaseEngineReadings;
+    expect(Object.keys(readings.instances).sort()).toEqual([PRIMARY, REPLICA]);
     // 100 of 200 across both members: the template's own sum, so healthy.
     expect(second["engineHealth"]).toBe("healthy");
   });
