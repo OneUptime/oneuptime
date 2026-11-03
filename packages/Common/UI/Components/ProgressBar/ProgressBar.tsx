@@ -5,7 +5,11 @@ import React, {
   useState,
 } from "react";
 import { Logger } from "../../Utils/Logger";
-import { translatableTerm, Translator } from "../../Utils/TranslateTemplate";
+import {
+  formatWholePercent,
+  translatableTerm,
+  Translator,
+} from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 
 export enum ProgressBarSize {
@@ -76,7 +80,16 @@ const ProgressBar: FunctionComponent<ComponentProps> = (
             suffix: translatableTerm(props.suffix),
           })}
         </div>
-        <div className="text-sm font-medium text-indigo-600">{percent}%</div>
+        {/*
+         * The percent in the reader's digits and sign, as the count beside
+         * it is: "۴۵٪" on a Persian page, "45 %" on a German one.
+         */}
+        <div
+          data-testid="progress-bar-percent"
+          className="text-sm font-medium text-indigo-600"
+        >
+          {formatWholePercent(percent, translator.language)}
+        </div>
       </div>
       <div
         className={`w-full ${progressBarSize} bg-gray-200 rounded-full overflow-hidden`}
@@ -90,7 +103,7 @@ const ProgressBar: FunctionComponent<ComponentProps> = (
             count: translator.formatNumber(props.count),
             total: translator.formatNumber(props.totalCount),
             suffix: translatableTerm(props.suffix),
-            percent: percent,
+            percent: translator.formatNumber(percent),
           },
         )}
       >
