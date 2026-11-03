@@ -423,10 +423,12 @@ with an on-call policy:
    the notification: Acknowledge and Escalate are under it.
 2. Tap Acknowledge: the phone asks to be unlocked, the app opens on the
    incident, and the incident is acknowledged once - Back, a fold or a
-   second render never does it again.
+   second render never does it again. The notification leaves the shade
+   (Android keeps it there unless the app takes it away).
 3. Page yourself again on an incident still not resolved: the screen says
-   you are paged again and offers Acknowledge again; the action under the
-   push acknowledges again.
+   "You're being paged again" and offers Acknowledge again, filled across
+   the card, with Resolve and Escalate under it; the action under the push
+   acknowledges again.
 4. Tap Escalate: the app opens on the record and asks before passing it on.
 5. A push that is not a page (a note, a state change, a security hunt) has no
    actions. A security hunt's push and a scheduled maintenance event's open
