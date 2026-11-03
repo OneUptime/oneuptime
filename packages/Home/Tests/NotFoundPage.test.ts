@@ -88,16 +88,18 @@ describe("the 404 page", () => {
   });
 
   describe("on OneUptime Cloud", () => {
-    test("loads the Google tag through the consent gate", async () => {
+    test("loads the Google tag under the visitor's consent, like every other page", async () => {
       const html: string = await renderPage(true);
       const loader: number = html.indexOf("function loadGoogleTag()");
 
       expect(html).toContain("window.oneUptimeConsent = (function");
       expect(loader).toBeGreaterThan(-1);
       expect(html.indexOf(CONTAINER_URL)).toBeGreaterThan(loader);
-      expect(html).toContain(
-        "window.oneUptimeConsent.whenAllowed(loadGoogleTag)",
-      );
+      // Consent Mode's advanced mode: the default goes out before the tag boots.
+      expect(
+        html.indexOf("pushConsentSignal('default', isAllowed())"),
+      ).toBeLessThan(loader);
+      expect(html).toContain("window.gtag('set', 'url_passthrough', true);");
     });
 
     /*

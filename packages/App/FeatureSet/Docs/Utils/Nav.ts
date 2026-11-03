@@ -1579,6 +1579,11 @@ const DocsNav: NavGroup[] = [
         title: "Kubernetes and Helm",
         url: "https://artifacthub.io/packages/helm/oneuptime/oneuptime",
       },
+      // A cluster with no route to the internet: a release's images and signed chart, carried across.
+      {
+        title: "Air-Gapped Installation",
+        url: "/docs/installation/air-gapped",
+      },
       {
         title: "Cloud Marketplaces",
         url: "/docs/installation/cloud-marketplaces",
@@ -1654,6 +1659,20 @@ const DocsNav: NavGroup[] = [
       {
         title: "Enterprise Edition",
         url: "/docs/self-hosted/enterprise",
+      },
+      // Verifying the images and the chart: signatures, SBOMs, provenance and vulnerability reports.
+      {
+        title: "Supply Chain Security",
+        url: "/docs/self-hosted/supply-chain-security",
+      },
+      // Least privilege, network, identity, audit and FIPS 140, for regulated networks.
+      {
+        title: "Hardening Guide",
+        url: "/docs/self-hosted/hardening",
+      },
+      {
+        title: "NIST SP 800-53 Mapping",
+        url: "/docs/self-hosted/nist-800-53",
       },
     ],
   },

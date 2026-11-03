@@ -1,4 +1,5 @@
 import {
+  AIR_GAPPED_VERIFY_COMMAND,
   AIR_GAPPED_LLM_PROVIDER_ENV,
   AIR_GAPPED_REGISTRY,
   AIR_GAPPED_VALUES_YAML,
@@ -12,6 +13,8 @@ import {
   AirGappedConnection,
   AirGappedConnections,
   AirGappedDocs,
+  AirGappedEvidence,
+  AirGappedEvidenceItems,
   AirGappedFaq,
   AirGappedFaqs,
   AirGappedSteps,
@@ -228,6 +231,12 @@ describe("the values the page shows are the values the chart is tested with", ()
   });
 
   test("the values the snippet changes are the chart's own keys and defaults", () => {
+    /*
+     * global.imageRegistry starts empty, under global:, beside the chart's
+     * own Docker Hub registry for OneUptime's images.
+     */
+    expectFileToSay(CHART_VALUES, "global:\n  storageClass:\n");
+    expectFileToSay(CHART_VALUES, '  imageRegistry: ""\n');
     expectFileToSay(
       CHART_VALUES,
       "image:\n  registry: docker.io\n  repository: oneuptime",
@@ -301,10 +310,27 @@ describe("step 1: mirror the images", () => {
     );
   });
 
-  test("image.registry and image.repository build every OneUptime image's reference", () => {
+  test("global.imageRegistry, or else image.registry, and image.repository build every OneUptime image's reference", () => {
     expectFileToSay(
       CHART_HELPERS,
-      'printf "%s/%s/%s:%s" $values.image.registry $values.image.repository $imageName',
+      '$registry := include "oneuptime.globalImageRegistry" (dict "Values" $values) | default $values.image.registry',
+    );
+    expectFileToSay(
+      CHART_HELPERS,
+      'printf "%s/%s/%s:%s" $registry $values.image.repository $imageName',
+    );
+  });
+
+  test("global.imageRegistry goes in front of every other image the chart builds, unless it already names a registry", () => {
+    expectFileToSay(CHART_HELPERS, 'printf "%s/%s" $registry .Default');
+    expectFileToSay(
+      CHART_HELPERS,
+      '(or (contains "." $first) (contains ":" $first) (eq $first "localhost"))',
+    );
+    // The chart's own tests: the registry in front of PostgreSQL, ClickHouse and Valkey.
+    expectFileToSay(
+      `${CHART}/tests/global-image-registry_test.yaml`,
+      "value: registry.example.com/postgres:15",
     );
   });
 
@@ -329,7 +355,7 @@ describe("step 1: mirror the images", () => {
       "Docker image tag. Pin this in production",
     );
     expect(AirGappedSteps[0]!.settings).toEqual([
-      "image.registry",
+      "global.imageRegistry",
       "image.tag",
       "imagePullSecrets",
     ]);
@@ -786,7 +812,7 @@ describe("what reaches out, and how it is stopped", () => {
     );
     expectFileToSay(
       CHART_VALUES,
-      "# Set disabled to true to make no call at all.\ninstanceCheckIn:",
+      "# Set disabled to true to make no call at all. The sign-up form then no longer\n# offers release emails from oneuptime.com either, so nothing reports to it.\ninstanceCheckIn:",
     );
   });
 
@@ -842,6 +868,34 @@ describe("what reaches out, and how it is stopped", () => {
     ).register.notifySelfHosted;
 
     expect(connection("release-emails").when).toContain(`“${label}” ticked`);
+  });
+
+  test("the daily check-in's switch stops the release emails too: no box on the form, nothing sent", () => {
+    const signUp: string = repoFile(SIGN_UP_API);
+    const condition: string = signUp.slice(
+      signUp.lastIndexOf(
+        "if (",
+        signUp.indexOf(
+          '"https://oneuptime.com/api/open-source-deployment/register"',
+        ),
+      ),
+      signUp.indexOf('miscDataProps["notifySelfHosted"] === true'),
+    );
+
+    expectTextToSay(
+      "the sign-up's call",
+      condition,
+      "!DisableInstanceCheckIn &&",
+    );
+    expectFileToSay(
+      REGISTER_PAGE,
+      "if (!IsBillingEnabled && !DisableInstanceCheckIn) {",
+    );
+    // The form reads it in the browser, so the server hands it to the frontends.
+    expectFileToSay(ENVIRONMENT_CONFIG, '  "DISABLE_INSTANCE_CHECK_IN",\n];');
+    expect(connection("release-emails").inside).toContain(
+      "Set `instanceCheckIn.disabled: true`, and the form no longer offers it and nothing is sent.",
+    );
   });
 
   test("the Enterprise license server is oneuptime.com, and an offline token never needs it", () => {
@@ -1164,6 +1218,152 @@ describe("compliance and data residency", () => {
     expect(text).not.toMatch(/\d\s*%/);
     expect(text).not.toMatch(/\bcustomers\b/i);
     expect(text).not.toMatch(/FedRAMP/i);
+  });
+});
+
+describe("step 1 carries a release across with the bundle script", () => {
+  const SCRIPT: string = "HelmChart/AirGap/install.sh";
+
+  test("every OneUptime serves air-gap.sh at /install/air-gapped, from HelmChart/AirGap", () => {
+    expectFileToSay(
+      "packages/Common/Types/InstallScripts/InstallScripts.ts",
+      'AirGapped = "air-gapped",',
+    );
+    expectFileToSay(
+      "packages/Common/Types/InstallScripts/InstallScripts.ts",
+      'sourceDirectory: "HelmChart/AirGap",',
+    );
+    expectFileToSay(
+      "packages/App/Dockerfile.tpl",
+      "COPY ./HelmChart/AirGap/install.sh /usr/src/HelmChart/AirGap/install.sh",
+    );
+    expectFileToSay(
+      docsPagePath("installation/air-gapped"),
+      "curl -fsSL https://oneuptime.com/install/air-gapped -o air-gap.sh",
+    );
+  });
+
+  test("save writes every image and the signed chart with checksums, and push checks them first and keeps names and tags", () => {
+    expect(AirGappedSteps[0]!.description).toContain("`air-gap.sh save`");
+    expect(AirGappedSteps[0]!.description).toContain("`air-gap.sh push`");
+    expectFileToSay(SCRIPT, '--destination "$folder" --prov');
+    expectFileToSay(SCRIPT, "done >SHA256SUMS");
+    expectFileToSay(SCRIPT, "sha256_check SHA256SUMS) ||");
+    expectFileToSay(
+      SCRIPT,
+      'destination="${REGISTRY}/$(without_registry "$reference")"',
+    );
+    // The script's own end-to-end tests, which the Ops job runs.
+    expect(repoPathExists("Tests/Ops/AirGapBundleScript.test.js")).toBe(true);
+    expect(AirGappedSteps[0]!.link!.href).toBe(AirGappedDocs.installation);
+  });
+});
+
+describe("the evidence a security review gets", () => {
+  function item(key: string): AirGappedEvidence {
+    return AirGappedEvidenceItems.find((entry: AirGappedEvidence): boolean => {
+      return entry.key === key;
+    })!;
+  }
+
+  test("every image is signed with cosign, keyless, by the release workflow the verify command names", () => {
+    expectFileToSay(RELEASE_WORKFLOW, "  sign-images:\n");
+    expectFileToSay(RELEASE_WORKFLOW, "uses: sigstore/cosign-installer@v4");
+    expectFileToSay(RELEASE_WORKFLOW, "id-token: write");
+    expectFileToSay(
+      "Scripts/GHA/sign_docker_images.sh",
+      'cosign sign --yes --recursive "${registry}/${image}@${digest}"',
+    );
+    expectFileToSay(
+      "Scripts/GHA/sign_docker_images.sh",
+      'TAG_PREFIXES=("" "enterprise-")',
+    );
+    expectFileToSay(
+      "Scripts/GHA/sign_docker_images.sh",
+      'REGISTRIES="docker.io/oneuptime ghcr.io/oneuptime"',
+    );
+    // The identity is release.yml on the release branch, the only branch it publishes from.
+    expect(AIR_GAPPED_VERIFY_COMMAND).toContain(
+      `https://github.com/OneUptime/oneuptime/${RELEASE_WORKFLOW}@refs/heads/release`,
+    );
+    expect(AIR_GAPPED_VERIFY_COMMAND).toContain(
+      "--certificate-oidc-issuer https://token.actions.githubusercontent.com",
+    );
+    expectFileToSay(
+      docsPagePath("self-hosted/supply-chain-security"),
+      "--certificate-identity https://github.com/OneUptime/oneuptime/.github/workflows/release.yml@refs/heads/release",
+    );
+    expect(item("signed-images").description).toContain("Sigstore cosign");
+  });
+
+  test("the chart is signed with the key whose fingerprint the page prints", () => {
+    expectFileToSay(
+      RELEASE_WORKFLOW,
+      "helm package --sign --key 'key@oneuptime.com'",
+    );
+    expectFileToSay(
+      docsPagePath("self-hosted/supply-chain-security"),
+      "`83F2 C1DD F58A 0524 64C4 A172 9D87 E494 AC01 6697`",
+    );
+    expect(item("signed-chart").description).toContain("`helm verify`");
+  });
+
+  test("each release attaches a Grype report for every image's SBOM, and a summary by severity", () => {
+    expectFileToSay(RELEASE_WORKFLOW, "  scan-sbom-vulnerabilities:\n");
+    expectFileToSay(
+      RELEASE_WORKFLOW,
+      "uses: anchore/scan-action/download-grype@v7",
+    );
+    expectFileToSay(
+      RELEASE_WORKFLOW,
+      "- name: Attach vulnerability reports to release",
+    );
+    expectFileToSay(
+      "Scripts/GHA/scan_sbom_vulnerabilities.sh",
+      'grype "sbom:${sbom}" --output json --quiet',
+    );
+    expectFileToSay(
+      "Scripts/GHA/scan_sbom_vulnerabilities.sh",
+      "vulnerability-summary.md",
+    );
+    expect(item("vulnerabilities").description).toContain("Grype");
+  });
+
+  test("the compliance card says what the release workflow does: signs, and attaches SBOMs and vulnerability reports", () => {
+    const supplyChain: string = AirGappedCompliance.find(
+      (point: AirGappedCompliancePoint): boolean => {
+        return point.key === "supply-chain";
+      },
+    )!.description;
+
+    expect(supplyChain).toContain("signs its images and its Helm chart");
+    expect(supplyChain).toContain("a vulnerability report for each image");
+  });
+
+  test("the hardening guide and the NIST SP 800-53 mapping are docs pages that say what the page says", () => {
+    expect(item("hardening").link.href).toBe(AirGappedDocs.hardening);
+    expect(item("nist").link.href).toBe(AirGappedDocs.nist80053);
+    expectFileToSay(
+      docsPagePath("self-hosted/hardening"),
+      "There is no DISA STIG for OneUptime.",
+    );
+    expectFileToSay(
+      docsPagePath("self-hosted/hardening"),
+      "OneUptime's images are not FIPS 140-validated builds.",
+    );
+    expectFileToSay(
+      docsPagePath("self-hosted/nist-800-53"),
+      "makes no claim of compliance or authorization",
+    );
+  });
+
+  test("the FIPS and STIG answers say no plainly, as the docs do", () => {
+    expect(faqAnswer("Is OneUptime FIPS 140 validated?")).toContain(
+      "OneUptime's images are not FIPS 140-validated builds",
+    );
+    expect(faqAnswer("Is there a STIG for OneUptime?")).toContain(
+      "There is no DISA STIG for OneUptime.",
+    );
   });
 });
 

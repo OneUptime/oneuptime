@@ -80,6 +80,12 @@ Su AWS, la lettura elenca una volta gli utenti e i ruoli dell'account, e decide 
 
 Il punteggio è al massimo 100. Un ruolo di un account esterno che può modificare un archivio di numeri di carta ottiene 50 + 15 + 15 + 1 = 81.
 
+## Vedere i percorsi di un archivio su una sola mappa
+
+La **Panoramica** di un archivio disegna su una sola mappa chi può raggiungerlo e dove possono andare i suoi dati, così un percorso che passa per più passaggi si legge a colpo d'occhio. A sinistra c'è chi può raggiungere l'archivio: una scheda per ogni identità, per quante concessioni abbia, con una freccia verso l'archivio che indica il massimo che può fare: rossa da chiunque su Internet, arancione dall'esterno dei tuoi account. Seguono i servizi che usano l'archivio, e a destra c'è dove i suoi dati possono andare da questi: i fornitori di IA e gli host esterni che quei servizi chiamano, e gli archivi che ne conservano copie.
+
+Una freccia che trasporta dati è colorata in base a quanto sono sensibili quei dati, ed è tratteggiata finché una scansione non ha trovato i dati all'altro capo. Le chiamate di un servizio all'IA e all'esterno dicono dove possono andare i dati dell'archivio, non che ci siano andati, quindi le loro frecce restano tratteggiate finché una scansione non le conferma. Ogni colonna mostra prima le schede più rischiose e raccoglie le altre in una scheda che apre **Chi può accedervi** o **Flussi di dati**, dove sono elencate tutte. Fai clic su una scheda per aprirne l'identità, il servizio o l'archivio.
+
 ## Regole di residenza
 
 Una regola di residenza dice dove può risiedere un tipo di dati. Aggiungine una in **Sicurezza dei dati → Impostazioni → Regole di residenza**:

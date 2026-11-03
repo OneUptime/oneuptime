@@ -262,8 +262,18 @@ function classify(input) {
   return result;
 }
 
+/*
+ * Text placed in one cell of the summary's Markdown tables. A "|" ends a cell
+ * and a line ending ends the row, so each backslash and each "|" is escaped in
+ * one pass: a backslash already in the text cannot turn the "|" escape into
+ * the end of the cell ("C:\|" reads "C:\|"). Each line ending becomes a space.
+ */
 function cell(text) {
-  return String(text).replace(/\|/g, "\\|").replace(/\n/g, " ");
+  return String(text)
+    .replace(/[\\|]/g, (character) => {
+      return `\\${character}`;
+    })
+    .replace(/\r\n|\r|\n/g, " ");
 }
 
 function capitalized(word) {

@@ -2409,7 +2409,7 @@ describe("Architecture, against the compose file and the chart", () => {
     expect(
       textBetween(
         register,
-        "if (!IsBillingEnabled) {",
+        "if (!IsBillingEnabled && !DisableInstanceCheckIn) {",
         'overrideFieldKey: "notifySelfHosted"',
       ),
     ).toContain("notifySelfHosted: true");
@@ -2422,9 +2422,21 @@ describe("Architecture, against the compose file and the chart", () => {
     ).toContain("defaultValue: true");
     expect(items[2]).toContain(`“${label}” ticked, as it is at first`);
 
+    // With the daily check-in off, the form offers no box and nothing is sent.
+    expect(
+      textBetween(
+        readSource("signUpApi"),
+        "if (\n          !IsBillingEnabled &&",
+        'miscDataProps["notifySelfHosted"] === true',
+      ),
+    ).toContain("!DisableInstanceCheckIn &&");
+    expect(items[2]).toContain(
+      "With the daily call above turned off, the form no longer offers it, and nothing is sent.",
+    );
+
     const call: string = textBetween(
       readSource("signUpApi"),
-      'if (!IsBillingEnabled && miscDataProps["notifySelfHosted"] === true) {',
+      'miscDataProps["notifySelfHosted"] === true\n        ) {',
       "});",
     );
 

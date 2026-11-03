@@ -80,6 +80,12 @@ En AWS, la lectura lista una vez los usuarios y roles de la cuenta, y decide com
 
 La puntuación es como máximo 100. Un rol de una cuenta ajena que puede cambiar un almacén de números de tarjeta obtiene 50 + 15 + 15 + 1 = 81.
 
+## Ver las rutas de un almacén en un solo mapa
+
+La **Vista general** de un almacén dibuja en un solo mapa quién puede acceder a él y adónde pueden ir sus datos, de modo que una ruta de varios pasos se lee de un vistazo. A la izquierda está quién puede acceder al almacén: una tarjeta por identidad, tenga las concesiones que tenga, con una flecha hacia el almacén que indica lo máximo que puede hacer: roja desde cualquiera en internet, naranja desde fuera de tus cuentas. Después vienen los servicios que usan el almacén, y a la derecha, adónde pueden ir sus datos desde ellos: los proveedores de IA y los hosts externos a los que llaman esos servicios, y los almacenes que guardan copias de ellos.
+
+Una flecha que lleva datos se colorea según lo sensibles que sean esos datos, y es discontinua hasta que un escaneo encuentra los datos en el otro extremo. Las llamadas de un servicio a la IA y al exterior dicen adónde pueden ir los datos del almacén, no que hayan ido, así que sus flechas siguen discontinuas hasta que un escaneo las confirma. Cada columna muestra primero sus tarjetas de mayor riesgo y agrupa el resto en una tarjeta que abre **Quién puede acceder** o **Flujos de datos**, donde aparecen todas. Haz clic en una tarjeta para abrir su identidad, servicio o almacén.
+
 ## Reglas de residencia
 
 Una regla de residencia dice dónde puede estar una clase de datos. Añade una en **Seguridad de datos → Ajustes → Reglas de residencia**:

@@ -28,6 +28,7 @@
 export const INSTALL_SCRIPTS_ROUTE: string = "/install";
 
 export enum InstallScriptName {
+  AirGapped = "air-gapped",
   CephAgent = "ceph-agent",
   Cli = "cli",
   DatabaseAgent = "database-agent",
@@ -71,6 +72,22 @@ export const INSTALL_SCRIPT_FILE: string = "install.sh";
 export const TROUBLESHOOT_SCRIPT_FILE: string = "troubleshoot.sh";
 
 export const INSTALL_SCRIPTS: ReadonlyArray<InstallScriptEntry> = [
+  /*
+   * Not an agent: the script that carries a release into a network with no
+   * route to the internet (docs: installation/air-gapped). It saves every
+   * image the release's Helm chart runs, and the signed chart, on a machine
+   * that reaches the internet, and pushes them into the reader's own
+   * registry inside the gap. It downloads nothing from here: the chart comes
+   * from the Helm repository and the images from their registries, so a
+   * reader with no OneUptime yet fetches it from OneUptime Cloud.
+   */
+  {
+    name: InstallScriptName.AirGapped,
+    title: "Air-gapped image bundle",
+    sourceDirectory: "HelmChart/AirGap",
+    script: INSTALL_SCRIPT_FILE,
+    files: [INSTALL_SCRIPT_FILE],
+  },
   {
     name: InstallScriptName.CephAgent,
     title: "Ceph agent",

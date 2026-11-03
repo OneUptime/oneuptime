@@ -41,6 +41,7 @@ import GlobalCache from "Common/Server/Infrastructure/GlobalCache";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import {
   AppVersion,
+  DisableInstanceCheckIn,
   EncryptionSecret,
   Host,
   HttpProtocol,
@@ -989,7 +990,18 @@ router.post(
           getLogAttributesFromRequest(req as RequestLike),
         );
 
-        if (!IsBillingEnabled && miscDataProps["notifySelfHosted"] === true) {
+        /*
+         * Release emails tell oneuptime.com about this install and the person
+         * signing up. An operator who turned off the daily check-in has said
+         * this install does not report to oneuptime.com, so the form no longer
+         * offers the box (Register.tsx) and nothing is sent, whatever a
+         * request carries.
+         */
+        if (
+          !IsBillingEnabled &&
+          !DisableInstanceCheckIn &&
+          miscDataProps["notifySelfHosted"] === true
+        ) {
           const instanceUrl: string = new URL(httpProtocol, host).toString();
 
           API.post({

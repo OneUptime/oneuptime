@@ -80,6 +80,12 @@ Sur AWS, la lecture liste une fois les utilisateurs et les rôles du compte, et 
 
 Le score vaut au plus 100. Un rôle d'un compte extérieur qui peut modifier un magasin de données de numéros de carte obtient 50 + 15 + 15 + 1 = 81.
 
+## Voir les chemins d'un magasin de données sur une seule carte
+
+La **Vue d'ensemble** d'un magasin de données dessine sur une seule carte qui peut y accéder et où ses données peuvent aller, de sorte qu'un chemin en plusieurs étapes se lit d'un coup d'œil. À gauche, qui peut accéder au magasin de données : une carte par identité, quel que soit le nombre d'autorisations qu'elle détient, avec une flèche vers le magasin qui indique le plus qu'elle peut faire : rouge depuis n'importe qui sur Internet, orange depuis l'extérieur de vos comptes. Viennent ensuite les services qui utilisent le magasin de données, et à droite, où ses données peuvent aller depuis eux : les fournisseurs d'IA et les hôtes externes que ces services appellent, et les magasins de données qui en conservent des copies.
+
+Une flèche qui transporte des données est colorée selon leur sensibilité, et en pointillés tant qu'une analyse n'a pas trouvé les données à l'autre bout. Les appels d'un service vers l'IA et vers l'extérieur disent où les données du magasin peuvent aller, non qu'elles y sont allées : leurs flèches restent donc en pointillés jusqu'à ce qu'une analyse les confirme. Chaque colonne montre d'abord ses cartes les plus risquées et regroupe le reste dans une carte qui ouvre **Qui peut y accéder** ou **Flux de données**, où chacune est listée. Cliquez sur une carte pour ouvrir son identité, son service ou son magasin de données.
+
 ## Règles de résidence
 
 Une règle de résidence indique où une sorte de données peut résider. Ajoutez-en une dans **Sécurité des données → Paramètres → Règles de résidence** :
