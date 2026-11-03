@@ -60,7 +60,7 @@ states are listed, as the API answers them.
 
 ## What the spec holds
 
-`AskAi.spec.ts` (54 tests, Chromium) pins the browser clock, fences the network to the fixture
+`AskAi.spec.ts` (61 tests, Chromium) pins the browser clock, fences the network to the fixture
 server, and fails on any uncaught page error:
 
 - every way in: the header's Ask AI, `Ctrl` / `Cmd` + `I` (and the keys left to another text
