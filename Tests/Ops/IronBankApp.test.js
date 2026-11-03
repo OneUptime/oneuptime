@@ -27,7 +27,9 @@
  *     no ADD, a user that is not root, an absolute WORKDIR;
  *   - the manifest's labels within what Iron Bank's schema allows, the LICENSE
  *     the repository's, Renovate's patterns matching the base tag in both files,
- *     and IronBank/Justifications/App.yaml readable by NewFindings.js.
+ *     and IronBank/Justifications/App.yaml readable by NewFindings.js;
+ *   - every file Repo1 gets tracked by git and not ignored: the repository's
+ *     rule that ignores rendered Dockerfiles once kept this one out.
  *
  * Iron Bank's schema, its FIXME check and its semgrep rules run in the Iron
  * Bank Preflight workflow (Scripts/IronBank/lint.sh), as Repo1 serves them
@@ -37,6 +39,7 @@
 const fs = require("fs");
 const path = require("path");
 const yaml = require("js-yaml");
+const { spawnSync } = require("child_process");
 
 const {
   render,
@@ -51,6 +54,30 @@ const PROJECT = "IronBank/App";
 
 function read(relativePath) {
   return fs.readFileSync(path.join(REPO_ROOT, relativePath), "utf8");
+}
+
+/*
+ * git, which says what a clone of the repository holds; failing loudly when it
+ * cannot run, rather than passing on nothing.
+ */
+function git(args) {
+  const result = spawnSync("git", args, { cwd: REPO_ROOT, encoding: "utf8" });
+  if (result.error) {
+    throw new Error(`Could not run git ${args.join(" ")}: ${result.error}`);
+  }
+  return result;
+}
+
+/*
+ * `git check-ignore` exits 0 for an ignored path and 1 for one that is not,
+ * including one a later negation rescues.
+ */
+function isGitIgnored(relativePath) {
+  const result = git(["check-ignore", "--quiet", "--no-index", relativePath]);
+  if (result.status !== 0 && result.status !== 1) {
+    throw new Error(`git check-ignore failed for ${relativePath}`);
+  }
+  return result.status === 0;
 }
 
 const dockerfileText = read(`${PROJECT}/Dockerfile`);
@@ -404,6 +431,29 @@ describe("IronBank/App's other files", () => {
 
   test("LICENSE is the repository's", () => {
     expect(read(`${PROJECT}/LICENSE`)).toBe(read("LICENSE"));
+  });
+
+  test("every file Repo1 gets is in git: none is ignored, and each is tracked", () => {
+    // The repo-wide **/Dockerfile rule, for the Dockerfiles configure.sh
+    // renders, swallowed this project's: it merged without its Dockerfile.
+    const files = [
+      "Dockerfile",
+      "hardening_manifest.yaml",
+      "LICENSE",
+      "README.md",
+      "renovate.json",
+    ];
+    const tracked = git(["ls-files", "--", PROJECT]).stdout.split("\n");
+
+    for (const file of files) {
+      expect({
+        file,
+        ignored: isGitIgnored(`${PROJECT}/${file}`),
+        tracked: tracked.includes(`${PROJECT}/${file}`),
+      }).toEqual({ file, ignored: false, tracked: true });
+    }
+    // The negation that rescues it must not have widened to those.
+    expect(isGitIgnored("packages/App/Dockerfile")).toBe(true);
   });
 
   test("README.md says what the image is", () => {
