@@ -171,7 +171,7 @@
     "globalProvidersTitle": "Entre com sua organização",
     "globalProvidersDivider": "Ou continue com e-mail",
     "signInWithProvider": "Entrar com {{name}}",
-    "requiredSubtitle": "Entre com o login único (SSO) da sua organização.",
+    "requiredSubtitle": "Este servidor exige login único (SSO).",
     "requiredNotSetUp": "O login único ainda não está configurado neste servidor. Peça ao administrador do servidor para configurá-lo.",
     "useDifferentEmail": "Usar outro e-mail"
   },

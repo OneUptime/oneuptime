@@ -493,12 +493,15 @@ const LoginWithSsoPage: FunctionComponent<ComponentProps> = (
 
   /*
    * The line under the heading says what the heading does not. While the
-   * server requires SSO, why only SSO is offered. Otherwise, with the email
-   * form the only way in, what the email is for. "Sign in with your SSO
-   * provider to access your account." under "Sign in with SSO" said the
-   * title again (#5324's follow-ups). With the server's own providers
-   * above the form, they and their own heading come first, and the
-   * divider names the form: no line at all.
+   * server requires SSO, why only SSO is offered: "This server requires
+   * single sign-on (SSO).", the first sentence of the master admins' page's
+   * own line. It said "Sign in with your organization's single sign-on
+   * (SSO).", right over the providers' own heading, "Sign in with your
+   * organization". Otherwise, with the email form the only way in, what the
+   * email is for. "Sign in with your SSO provider to access your account."
+   * under "Sign in with SSO" said the title again (#5324's follow-ups).
+   * With the server's own providers above the form, they and their own
+   * heading come first, and the divider names the form: no line at all.
    */
   const subtitle: string | undefined = isSsoRequired
     ? t("sso.requiredSubtitle")

@@ -171,7 +171,7 @@
     "globalProvidersTitle": "با سازمان خود وارد شوید",
     "globalProvidersDivider": "یا با ایمیل ادامه دهید",
     "signInWithProvider": "ورود با {{name}}",
-    "requiredSubtitle": "با ورود یکپارچه (SSO) سازمان خود وارد شوید.",
+    "requiredSubtitle": "این سرور ورود یکپارچه (SSO) را الزامی می‌کند.",
     "requiredNotSetUp": "ورود یکپارچه هنوز روی این سرور راه‌اندازی نشده است. از مدیر سرور بخواهید آن را راه‌اندازی کند.",
     "useDifferentEmail": "استفاده از ایمیل دیگر"
   },

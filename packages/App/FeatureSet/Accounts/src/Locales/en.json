@@ -171,7 +171,7 @@
     "globalProvidersTitle": "Sign in with your organization",
     "globalProvidersDivider": "Or continue with email",
     "signInWithProvider": "Sign in with {{name}}",
-    "requiredSubtitle": "Sign in with your organization’s single sign-on (SSO).",
+    "requiredSubtitle": "This server requires single sign-on (SSO).",
     "requiredNotSetUp": "Single sign-on is not set up on this server yet. Ask your server admin to set it up.",
     "useDifferentEmail": "Use a different email"
   },

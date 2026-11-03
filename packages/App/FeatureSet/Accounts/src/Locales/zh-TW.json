@@ -171,7 +171,7 @@
     "globalProvidersTitle": "使用您的組織登入",
     "globalProvidersDivider": "或使用電子郵件繼續",
     "signInWithProvider": "使用 {{name}} 登入",
-    "requiredSubtitle": "使用您組織的單一登入（SSO）登入。",
+    "requiredSubtitle": "此伺服器要求使用單一登入（SSO）。",
     "requiredNotSetUp": "此伺服器尚未設定單一登入。請聯絡伺服器管理員進行設定。",
     "useDifferentEmail": "使用其他電子郵件"
   },

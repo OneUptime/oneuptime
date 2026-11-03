@@ -171,7 +171,7 @@
     "globalProvidersTitle": "अपने संगठन से साइन इन करें",
     "globalProvidersDivider": "या ईमेल से जारी रखें",
     "signInWithProvider": "{{name}} से साइन इन करें",
-    "requiredSubtitle": "अपने संगठन के सिंगल साइन-ऑन (SSO) से साइन इन करें।",
+    "requiredSubtitle": "इस सर्वर पर सिंगल साइन-ऑन (SSO) ज़रूरी है।",
     "requiredNotSetUp": "इस सर्वर पर सिंगल साइन-ऑन अभी सेट अप नहीं है। अपने सर्वर एडमिन से इसे सेट अप करने के लिए कहें।",
     "useDifferentEmail": "दूसरा ईमेल इस्तेमाल करें"
   },

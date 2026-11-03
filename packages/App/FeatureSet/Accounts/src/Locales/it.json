@@ -171,7 +171,7 @@
     "globalProvidersTitle": "Accedi con la tua organizzazione",
     "globalProvidersDivider": "Oppure continua con l'email",
     "signInWithProvider": "Accedi con {{name}}",
-    "requiredSubtitle": "Accedi con il single sign-on (SSO) della tua organizzazione.",
+    "requiredSubtitle": "Questo server richiede il single sign-on (SSO).",
     "requiredNotSetUp": "Il single sign-on non è ancora configurato su questo server. Chiedi all’amministratore del server di configurarlo.",
     "useDifferentEmail": "Usa un'altra email"
   },

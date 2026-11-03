@@ -171,7 +171,7 @@
     "globalProvidersTitle": "Mit Ihrer Organisation anmelden",
     "globalProvidersDivider": "Oder mit E-Mail fortfahren",
     "signInWithProvider": "Mit {{name}} anmelden",
-    "requiredSubtitle": "Melden Sie sich mit dem Single Sign-On (SSO) Ihrer Organisation an.",
+    "requiredSubtitle": "Dieser Server erfordert Single Sign-On (SSO).",
     "requiredNotSetUp": "Single Sign-On ist auf diesem Server noch nicht eingerichtet. Bitten Sie Ihren Server-Administrator, es einzurichten.",
     "useDifferentEmail": "Andere E-Mail verwenden"
   },

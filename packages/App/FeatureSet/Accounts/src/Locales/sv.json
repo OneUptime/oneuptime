@@ -171,7 +171,7 @@
     "globalProvidersTitle": "Logga in med din organisation",
     "globalProvidersDivider": "Eller fortsätt med e-post",
     "signInWithProvider": "Logga in med {{name}}",
-    "requiredSubtitle": "Logga in med organisationens enkel inloggning (SSO).",
+    "requiredSubtitle": "Den här servern kräver enkel inloggning (SSO).",
     "requiredNotSetUp": "Enkel inloggning är inte konfigurerad på den här servern ännu. Be serveradministratören att konfigurera den.",
     "useDifferentEmail": "Använd en annan e-postadress"
   },

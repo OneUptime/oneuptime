@@ -127,6 +127,9 @@ const PROJECT_B: string = "22222222-2222-4222-8222-222222222222";
 const PROVIDER_1: string = "33333333-3333-4333-8333-333333333333";
 const PROVIDER_2: string = "44444444-4444-4444-8444-444444444444";
 
+// Where a sentence ends, in the scripts the Accounts locales are written in.
+const SENTENCE_END: RegExp = /[.。।]$/u;
+
 // What neither page may say about single sign-on any more.
 const EDITION_OR_LICENSE_WORDING: RegExp =
   /Enterprise|Community Edition|licen[cs]e|not available on this server/i;
@@ -1188,6 +1191,45 @@ describe("Accounts single sign-on, in every edition", () => {
 
       expect(english.sso.emailFormSubtitle).toBe(
         "Enter your email to find your organization’s sign-in.",
+      );
+    });
+
+    /*
+     * While the server requires SSO, the line under "Sign in to your
+     * account" says why only SSO is offered, in the master admins' page's
+     * own words: the first sentence of its line, in every language. It was
+     * "Sign in with your organization's single sign-on (SSO).", right over
+     * the providers' own heading, "Sign in with your organization" - the
+     * same line twice (fu-platform-next's review).
+     */
+    test("the line while SSO is required says why, in the master admins' page's words, in every language", () => {
+      for (const { file, locale } of readLocales()) {
+        const line: string = String(localeValue(locale, "sso.requiredSubtitle"));
+        const adminLine: string = String(
+          localeValue(locale, "adminLogin.subtitle"),
+        );
+        const providersHeading: string = String(
+          localeValue(locale, "sso.globalProvidersTitle"),
+        );
+
+        expect({
+          file,
+          isAdminLinesFirstSentence:
+            SENTENCE_END.test(line) &&
+            adminLine.startsWith(line) &&
+            adminLine.length > line.length,
+          namesSso: line.includes("SSO"),
+          saysProvidersHeading: line.includes(providersHeading),
+        }).toEqual({
+          file,
+          isAdminLinesFirstSentence: true,
+          namesSso: true,
+          saysProvidersHeading: false,
+        });
+      }
+
+      expect(english.sso.requiredSubtitle).toBe(
+        "This server requires single sign-on (SSO).",
       );
     });
 

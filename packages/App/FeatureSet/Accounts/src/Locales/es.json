@@ -171,7 +171,7 @@
     "globalProvidersTitle": "Inicie sesión con su organización",
     "globalProvidersDivider": "O continúe con su correo electrónico",
     "signInWithProvider": "Iniciar sesión con {{name}}",
-    "requiredSubtitle": "Inicia sesión con el inicio de sesión único (SSO) de tu organización.",
+    "requiredSubtitle": "Este servidor requiere el inicio de sesión único (SSO).",
     "requiredNotSetUp": "El inicio de sesión único aún no está configurado en este servidor. Pide a tu administrador del servidor que lo configure.",
     "useDifferentEmail": "Usar otro correo electrónico"
   },
