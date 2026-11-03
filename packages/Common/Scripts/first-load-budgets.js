@@ -55,21 +55,24 @@ const PAGES = [
     page: "sign-in (/accounts/login)",
     route: "src/Pages/Login.tsx",
     // 2026-11-03: 1,264,535 bytes.
-    ceiling: 1260 * KIB,
+    // 2026-11-03: 1,119,050 bytes, loading the reader's language only (#5614).
+    ceiling: 1120 * KIB,
   },
   {
     frontend: "Accounts",
     page: "sign-up (/accounts/register)",
     route: "src/Pages/Register.tsx",
     // 2026-11-03: 1,260,250 bytes.
-    ceiling: 1260 * KIB,
+    // 2026-11-03: 1,114,772 bytes, loading the reader's language only (#5614).
+    ceiling: 1120 * KIB,
   },
   {
     frontend: "StatusPage",
     page: "a status page",
     route: "src/Pages/AllPages.tsx",
     // 2026-11-03: 1,362,136 bytes.
-    ceiling: 1360 * KIB,
+    // 2026-11-03: 1,271,934 bytes, loading the reader's language only (#5614).
+    ceiling: 1270 * KIB,
   },
   {
     frontend: "PublicDashboard",
