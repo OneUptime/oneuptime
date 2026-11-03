@@ -674,6 +674,8 @@ describe("Try it", () => {
     expect(notAdded.parentElement).toHaveClass(
       ...HUNT_LIBRARY_ACTIONS_CLASS_NAME.split(" "),
     );
+    // As tall as the button, so over it the link keeps the name's line.
+    expect(notAdded).toHaveClass("inline-flex", "h-[30px]", "items-center");
 
     const open: HTMLElement = screen.getByTestId(
       `${HUNTS_TEST_IDS.libraryOpen}-${ENCODED_POWERSHELL.id}`,

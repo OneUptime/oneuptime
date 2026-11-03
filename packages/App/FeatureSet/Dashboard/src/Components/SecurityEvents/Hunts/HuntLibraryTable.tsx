@@ -87,9 +87,14 @@ export const HUNT_LIBRARY_ACTIONS_CLASS_NAME: string =
 export const HUNT_LIBRARY_CARD_ACTIONS_CLASS_NAME: string =
   "inline-flex flex-wrap items-center gap-x-4 gap-y-1.5";
 
-// Try it and Open: links, for they go somewhere and change nothing.
+/*
+ * Try it and Open: links, for they go somewhere and change nothing. As tall
+ * as the Add button beside them (30px, as Added is), so over the button in a
+ * narrow column the link still sits on the starter's name's line, not 5px
+ * above it.
+ */
 export const HUNT_LIBRARY_LINK_CLASS_NAME: string =
-  "whitespace-nowrap text-sm font-medium text-indigo-600 hover:text-indigo-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
+  "inline-flex h-[30px] items-center whitespace-nowrap text-sm font-medium text-indigo-600 hover:text-indigo-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
 
 export interface ComponentProps {
   views: Array<HuntLibraryView>;
