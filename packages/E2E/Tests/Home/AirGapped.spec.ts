@@ -39,6 +39,7 @@ const SECTION_HEADINGS: Array<string> = [
   "What reaches out, and what to use instead",
   "OneUptime AI, on a model you run",
   "Your data, inside your boundary",
+  "Everything your security review asks for",
   "Questions buyers ask",
   "Bring us your network. Leave with an install plan.",
 ];

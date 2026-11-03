@@ -1527,7 +1527,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
   "/enterprise/air-gapped": {
     title: "Air-Gapped Monitoring & Observability | OneUptime",
     description:
-      "Run OneUptime on a network with no internet: mirror the images, bring in the signed Helm chart, license offline, and use AI on a model you run.",
+      "Run OneUptime on a network with no internet: carry signed images and the signed Helm chart across in one bundle, license offline, and run AI locally.",
     canonicalPath: "/enterprise/air-gapped",
     twitterCard: "summary_large_image",
     pageType: "enterprise",
