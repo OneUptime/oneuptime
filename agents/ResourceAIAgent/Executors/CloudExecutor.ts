@@ -1144,6 +1144,8 @@ export default class CloudExecutor implements ResourceExecutor {
       details["azureSubscriptionName"] = probe.subscriptionName;
       details["azureSubscriptionState"] = probe.subscriptionState;
       details["azureIdentity"] = this.azure.describeIdentity();
+      // The Activity Log's caller of the agent's changes (CloudAiChangeAttribution).
+      details["azurePrincipalId"] = this.azure.principalId();
       reachable = probe.reachable;
       reachError = probe.reachError;
     } else if (this.gcp) {

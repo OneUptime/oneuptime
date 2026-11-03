@@ -29,6 +29,37 @@ export const RESOURCE_AI_LOGS_PAGE_TITLE: string = translationKey("AI Logs");
 export const RESOURCE_AI_LOGS_EMPTY_TITLE: string =
   translationKey("Nothing yet");
 
+/*
+ * A fix's entry on the page has an anchor of its own, #fix-<its id>: a
+ * link to it (a cloud change OneUptime AI made, on the account's Changes)
+ * opens the page on that entry, marked.
+ */
+export const RESOURCE_AI_LOGS_FIX_ANCHOR_PREFIX: string = "fix-";
+
+export function getResourceAiLogsFixAnchor(fixId: string): string {
+  return `${RESOURCE_AI_LOGS_FIX_ANCHOR_PREFIX}${fixId.trim().toLowerCase()}`;
+}
+
+/*
+ * The fix an address's hash points at (#fix-<id>), lowercased, or null
+ * for any other hash.
+ */
+export function readResourceAiLogsFixAnchor(hash: string): string | null {
+  const anchor: string = (hash || "").startsWith("#")
+    ? hash.slice(1)
+    : hash || "";
+
+  if (!anchor.startsWith(RESOURCE_AI_LOGS_FIX_ANCHOR_PREFIX)) {
+    return null;
+  }
+
+  const id: string = anchor
+    .slice(RESOURCE_AI_LOGS_FIX_ANCHOR_PREFIX.length)
+    .toLowerCase();
+
+  return id ? id : null;
+}
+
 export function getResourceAiLogsPageSubtitle(
   descriptor: ResourceAiAgentDescriptor,
 ): string {

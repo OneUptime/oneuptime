@@ -14,6 +14,8 @@ import {
   RESOURCE_AI_LOGS_EMPTY_TITLE,
   RESOURCE_AI_LOGS_PAGE_TITLE,
   RESOURCE_COMMAND_JOB_ORIGIN_LABELS,
+  getResourceAiLogsFixAnchor,
+  readResourceAiLogsFixAnchor,
   ResourceAiLogs,
   ResourceAiLogsFix,
   ResourceAiLogsInvestigation,
@@ -74,7 +76,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { useParams } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 import {
   translatableTerm,
   translateTemplate,
@@ -202,7 +204,11 @@ function InvestigationRow(props: {
   );
 }
 
-function FixRow(props: { fix: ResourceAiLogsFix }): ReactElement {
+function FixRow(props: {
+  fix: ResourceAiLogsFix;
+  // The entry a link opened the page on (#fix-<id>): marked.
+  isLinkedTo: boolean;
+}): ReactElement {
   const translator: Translator = useTranslator();
   const look: ResourceAiStatusLook | null = props.fix.status
     ? getResourceFixStatusLook(props.fix.status)
@@ -215,7 +221,16 @@ function FixRow(props: { fix: ResourceAiLogsFix }): ReactElement {
       : null;
 
   return (
-    <li className="py-3" data-testid="ai-logs-fix">
+    <li
+      id={getResourceAiLogsFixAnchor(props.fix.id)}
+      className={`py-3 ${
+        props.isLinkedTo
+          ? "-mx-2 rounded-md bg-indigo-50 px-2 ring-1 ring-indigo-200"
+          : ""
+      }`}
+      data-testid="ai-logs-fix"
+      data-linked={props.isLinkedTo ? "true" : undefined}
+    >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
           {look ? <Pill text={look.label} color={look.color} /> : null}
@@ -264,6 +279,10 @@ const ResourceAiLogsPage: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const descriptor: ResourceAiAgentDescriptor = props.descriptor;
   const { id } = useParams();
+  // The fix a link opened the page on (a change OneUptime AI made, on Changes).
+  const linkedFixId: string | null = readResourceAiLogsFixAnchor(
+    useLocation().hash,
+  );
   /*
    * Memoized on the string it was read from: a fresh ObjectID every render
    * would recreate the loaders (which depend on it) and re-run the load
@@ -379,6 +398,25 @@ const ResourceAiLogsPage: FunctionComponent<ComponentProps> = (
     });
   }, [fetchLogs, fetchStatus, refresher]);
 
+  /*
+   * Opened on one fix's entry: brought into view once the fixes are in.
+   * One the page does not list (older than its newest fixes) leaves the
+   * page where it opens.
+   */
+  useEffect(() => {
+    if (!linkedFixId || isLoading || !logs) {
+      return;
+    }
+
+    const entry: HTMLElement | null = document.getElementById(
+      getResourceAiLogsFixAnchor(linkedFixId),
+    );
+
+    if (entry && typeof entry.scrollIntoView === "function") {
+      entry.scrollIntoView({ block: "center" });
+    }
+  }, [linkedFixId, isLoading, logs]);
+
   const hint: string | null = getResourceAiAgentPageHint(status, descriptor);
   const isEmpty: boolean = Boolean(
     logs && logs.investigations.length === 0 && logs.fixes.length === 0,
@@ -484,7 +522,13 @@ const ResourceAiLogsPage: FunctionComponent<ComponentProps> = (
           {logs.fixes.length > 0 ? (
             <ul className="divide-y divide-gray-100">
               {logs.fixes.map((fix: ResourceAiLogsFix): ReactElement => {
-                return <FixRow key={fix.id} fix={fix} />;
+                return (
+                  <FixRow
+                    key={fix.id}
+                    fix={fix}
+                    isLinkedTo={fix.id.toLowerCase() === linkedFixId}
+                  />
+                );
               })}
             </ul>
           ) : (
