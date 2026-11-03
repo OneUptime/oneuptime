@@ -10,6 +10,7 @@ import HTTPResponse from "../../../Types/API/HTTPResponse";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import API from "../API/API";
 import ModelAPI from "../ModelAPI/ModelAPI";
+import OldestKeyMap from "../../../Utils/OldestKeyMap";
 import { APP_API_URL } from "../../Config";
 import TelemetryLoadErrorUtil, {
   TelemetryLoadError,
@@ -257,7 +258,7 @@ export type AttributeValueAnswer =
   | { kind: "loaded"; values: Array<string>; at: number }
   | { kind: "failed"; error: TelemetryLoadError; at: number };
 
-const answers: Map<string, AttributeValueAnswer> = new Map();
+const answers: OldestKeyMap<string, AttributeValueAnswer> = new OldestKeyMap();
 const listeners: Set<() => void> = new Set();
 
 export function toAnswerKey(scope: string, key: string): string {
@@ -356,9 +357,7 @@ function store(answerKey: string, answer: AttributeValueAnswer): void {
   answers.delete(answerKey);
 
   while (answers.size >= MAX_CACHED_ANSWERS) {
-    const oldest: string | undefined = answers.keys().next().value as
-      | string
-      | undefined;
+    const oldest: string | undefined = answers.oldestKey();
 
     if (oldest === undefined) {
       break;

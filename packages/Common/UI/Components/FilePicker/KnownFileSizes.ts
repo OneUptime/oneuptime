@@ -1,4 +1,5 @@
 import ObjectID from "../../../Types/ObjectID";
+import OldestKeyMap from "../../../Utils/OldestKeyMap";
 
 /*
  * THE SIZES OF STORED FILES THIS PAGE HAS BEEN TOLD, BY FILE ID.
@@ -22,7 +23,7 @@ import ObjectID from "../../../Types/ObjectID";
 // More files than any page shows; the oldest are let go first.
 export const KNOWN_FILE_SIZES_MAX_ENTRIES: number = 2000;
 
-const sizes: Map<string, number> = new Map<string, number>();
+const sizes: OldestKeyMap<string, number> = new OldestKeyMap<string, number>();
 
 type ReadIdFunction = (fileId: unknown) => string | null;
 
@@ -63,7 +64,7 @@ export const rememberFileSize: RememberFileSizeFunction = (
   sizes.set(id, Math.floor(bytes));
 
   while (sizes.size > KNOWN_FILE_SIZES_MAX_ENTRIES) {
-    const oldest: string | undefined = sizes.keys().next().value;
+    const oldest: string | undefined = sizes.oldestKey();
 
     if (oldest === undefined) {
       break;

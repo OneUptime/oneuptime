@@ -9,6 +9,7 @@ import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import Hostname from "../../../Types/API/Hostname";
 import Protocol from "../../../Types/API/Protocol";
 import ObjectID from "../../../Types/ObjectID";
+import OldestKeyMap from "../../../Utils/OldestKeyMap";
 
 /*
  * A STATUS PAGE'S LOGO, AS THE EMAILS THAT SHOW IT CARRY IT.
@@ -49,7 +50,10 @@ interface CachedLogo {
 }
 
 export default class StatusPageCarriedLogo {
-  private static cache: Map<string, CachedLogo> = new Map<string, CachedLogo>();
+  private static cache: OldestKeyMap<string, CachedLogo> = new OldestKeyMap<
+    string,
+    CachedLogo
+  >();
 
   /**
    * The logo `address` shows, as an email carries it, when the address is a
@@ -108,9 +112,8 @@ export default class StatusPageCarriedLogo {
     StatusPageCarriedLogo.cache.set(key, entry);
 
     while (StatusPageCarriedLogo.cache.size > MAX_CACHED_CARRIED_LOGOS) {
-      const oldest: string | undefined = StatusPageCarriedLogo.cache
-        .keys()
-        .next().value;
+      const oldest: string | undefined =
+        StatusPageCarriedLogo.cache.oldestKey();
 
       if (oldest === undefined) {
         break;
