@@ -19,6 +19,7 @@ import MicrosoftTeamsCommands from "./MicrosoftTeamsCommands";
 import MicrosoftTeamsTimezone from "./MicrosoftTeamsTimezone";
 import { mdText } from "../../../../Utils/Markdown/FeedMarkdown";
 import WorkspaceAffectedResources from "../WorkspaceAffectedResources";
+import AIService from "../../../Services/AIService";
 import WorkspaceIncidentFromAlert, {
   WorkspaceDeclaringAlert,
 } from "../WorkspaceIncidentFromAlert";
@@ -105,6 +106,7 @@ export default class MicrosoftTeamsCreateCommands {
     let choices: MicrosoftTeamsNewIncidentFormChoices;
     let declaringAlert: WorkspaceDeclaringAlert | null = null;
     let isAffectedResourcesOffered: boolean = false;
+    let isAiEnabled: boolean = false;
 
     try {
       /*
@@ -112,8 +114,8 @@ export default class MicrosoftTeamsCreateCommands {
        * Affected Resources, and - in an alert's own channel - the alert it
        * is declared from (WorkspaceIncidentFromAlert), read at once.
        */
-      [choices, declaringAlert, isAffectedResourcesOffered] = await Promise.all(
-        [
+      [choices, declaringAlert, isAffectedResourcesOffered, isAiEnabled] =
+        await Promise.all([
           MicrosoftTeamsIncidentActions.getNewIncidentFormChoices(
             projectId,
             props,
@@ -127,8 +129,9 @@ export default class MicrosoftTeamsCreateCommands {
             projectId: projectId,
             props: props,
           }),
-        ],
-      );
+          // Whether Affected Resources' hint may speak of OneUptime AI.
+          AIService.isProjectAIEnabled(projectId),
+        ]);
     } catch (error) {
       await this.replyFormCouldNotLoad({
         turnContext: turnContext,
@@ -180,7 +183,12 @@ export default class MicrosoftTeamsCreateCommands {
            * resources are picked already.
            */
           ...(isAffectedResourcesOffered || declaringAlert?.resources.length
-            ? { affectedResources: { projectId: projectId } }
+            ? {
+                affectedResources: {
+                  projectId: projectId,
+                  isAiEnabled: isAiEnabled,
+                },
+              }
             : {}),
           declaringAlert: declaringAlert,
         });

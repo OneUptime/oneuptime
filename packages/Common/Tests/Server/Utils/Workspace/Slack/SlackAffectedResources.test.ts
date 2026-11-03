@@ -188,7 +188,10 @@ async function answerOptions(body: unknown): Promise<JSONObject> {
 describe("the field, as Slack takes it", () => {
   test("a multi external select, searched as soon as it is opened, optional, under its label and hint", () => {
     const block: JSONObject = SlackUtil.getDropdownBlock({
-      payloadDropdownBlock: SlackAffectedResources.getField({ initial: [] }),
+      payloadDropdownBlock: SlackAffectedResources.getField({
+        initial: [],
+        isAiEnabled: true,
+      }),
     });
 
     expect(block).toEqual({
@@ -209,14 +212,35 @@ describe("the field, as Slack takes it", () => {
       label: { type: "plain_text", text: "Affected Resources" },
       hint: {
         type: "plain_text",
-        text: "OneUptime AI investigates what an incident is linked to, and can fix it.",
+        text: "OneUptime AI investigates what you pick here, and can fix it.",
       },
     });
   });
 
+  test("a project with AI off: no hint - AI does nothing with the picks there - and the field all the same", () => {
+    const block: JSONObject = SlackUtil.getDropdownBlock({
+      payloadDropdownBlock: SlackAffectedResources.getField({
+        initial: [],
+        isAiEnabled: false,
+      }),
+    });
+
+    expect(block["hint"]).toBeUndefined();
+    expect(block["label"]).toEqual({
+      type: "plain_text",
+      text: "Affected Resources",
+    });
+    expect((block["element"] as JSONObject)["type"]).toBe(
+      "multi_external_select",
+    );
+  });
+
   test("lists nothing it was sent with: no options, no option groups", () => {
     const element: JSONObject = SlackUtil.getDropdownBlock({
-      payloadDropdownBlock: SlackAffectedResources.getField({ initial: [] }),
+      payloadDropdownBlock: SlackAffectedResources.getField({
+        initial: [],
+        isAiEnabled: true,
+      }),
     })["element"] as JSONObject;
 
     expect(element["options"]).toBeUndefined();
@@ -235,6 +259,7 @@ describe("the field, as Slack takes it", () => {
             name: "checkout",
           },
         ],
+        isAiEnabled: true,
       }),
     })["element"] as JSONObject;
 
@@ -260,6 +285,7 @@ describe("the field, as Slack takes it", () => {
           name: "h".repeat(120),
         },
       ],
+      isAiEnabled: true,
     });
 
     expect(field.options[0]!.label).toHaveLength(SLACK_OPTION_TEXT_MAX_LENGTH);
@@ -282,7 +308,8 @@ describe("the field, as Slack takes it", () => {
     }
 
     expect(
-      SlackAffectedResources.getField({ initial: initial }).initialValues,
+      SlackAffectedResources.getField({ initial: initial, isAiEnabled: true })
+        .initialValues,
     ).toHaveLength(WORKSPACE_MAX_AFFECTED_RESOURCES);
   });
 

@@ -8,11 +8,16 @@ import {
 } from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
 import Alert from "../../../../Models/DatabaseModels/Alert";
-import IncidentAlertService from "../../../../Server/Services/IncidentAlertService";
+import Incident from "../../../../Models/DatabaseModels/Incident";
+import AlertService from "../../../../Server/Services/AlertService";
+import IncidentAlertService, {
+  PRIVATE_ALERTS_TO_LINK_MESSAGE,
+} from "../../../../Server/Services/IncidentAlertService";
 import { OnCallPageRecordType } from "../../../../Server/Services/OnCallPageService";
 import { LinkedAffectedResource } from "../../../../Server/Utils/AI/Toolbox/AffectedResourceLinks";
 import logger from "../../../../Server/Utils/Logger";
 import WorkspaceActionAnswers, {
+  WorkspaceAnswer,
   WorkspaceRecordName,
 } from "../../../../Server/Utils/Workspace/WorkspaceActionAnswers";
 import WorkspaceAffectedResources from "../../../../Server/Utils/Workspace/WorkspaceAffectedResources";
@@ -56,7 +61,13 @@ import ObjectID from "../../../../Types/ObjectID";
  *     submits it, and linked only when they may link it, the way the
  *     Dashboard declares an incident from an alert
  *     (INCIDENT_ALERT_IDS_TO_LINK_KEY); otherwise the incident is declared
- *     without it, and why is said.
+ *     without it, and why is said;
+ *   - the form promises only what the member may do: a member who may not
+ *     link the alert is told so on the form, with the reason;
+ *   - a private alert's incident is private whether or not it is linked, so
+ *     the alert's title and resources never land in a public incident;
+ *   - what was not linked is said to the person, naming the incident, each
+ *     reason in a sentence of its own (getNotLinkedAnswer).
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -92,6 +103,7 @@ type GetStanding = typeof WorkspaceMemberActions.getStanding;
 type ReadAlertResources = typeof WorkspaceAffectedResources.readAlertResources;
 type ValidateAlertIds =
   typeof IncidentAlertService.validateAlertIdsForNewIncident;
+type GetRecordName = typeof WorkspaceActionAnswers.getRecordName;
 
 let channelOwner: { type: OnCallPageRecordType; id: ObjectID } | null;
 let alertRead: Alert | Error;
@@ -100,6 +112,7 @@ let findChannelRecordSpy: SpyInstance<FindChannelRecord>;
 let readEventSpy: SpyInstance<ReadEventForMember>;
 let readAlertResourcesSpy: SpyInstance<ReadAlertResources>;
 let validateSpy: SpyInstance<ValidateAlertIds>;
+let getRecordNameSpy: SpyInstance<GetRecordName>;
 
 function alertOf(data: { title?: string; isPrivate?: boolean }): Alert {
   const alert: Alert = new Alert();
@@ -154,7 +167,7 @@ beforeEach(() => {
         isComplete: false,
       };
     }) as GetStanding);
-  jest
+  getRecordNameSpy = jest
     .spyOn(WorkspaceActionAnswers, "getRecordName")
     .mockResolvedValue(ALERT_NAME);
   readAlertResourcesSpy = jest
@@ -184,14 +197,27 @@ async function readChannelAlert(
 }
 
 describe("the alert a form is declared from: the open alert of its own channel, as the member reads it", () => {
-  test("an open alert's own channel: the alert, its name, title and privacy, and the resources the member may view", async () => {
+  test("an open alert's own channel: the alert, its name, title and privacy, the resources the member may view, and that they may link it", async () => {
     await expect(readChannelAlert()).resolves.toEqual({
       alertId: ALERT_ID,
       name: ALERT_NAME,
       title: "Disk almost full",
       isPrivate: false,
       resources: [API_HOST],
+      linkRefusal: null,
     });
+
+    // Whether they may link it: asked as the submission asks it, with a copy of their props.
+    expect(validateSpy).toHaveBeenCalledTimes(1);
+    const check: {
+      projectId: ObjectID;
+      alertIds: Array<string>;
+      props: DatabaseCommonInteractionProps;
+    } = validateSpy.mock.calls[0]![0] as never;
+    expect(check.projectId).toBe(PROJECT_ID);
+    expect(check.alertIds).toEqual([ALERT_ID.toString()]);
+    expect(check.props).toEqual(PROPS);
+    expect(check.props).not.toBe(PROPS);
 
     // Which channel is the alert's own: the pages' one rule, in the project.
     expect(findChannelRecordSpy).toHaveBeenCalledWith({
@@ -228,6 +254,50 @@ describe("the alert a form is declared from: the open alert of its own channel, 
     );
   });
 
+  test("a member who may not link alerts: the form still starts from the alert, and says why it will not be linked", async () => {
+    validateSpy.mockRejectedValue(
+      new BadDataException(
+        "You do not have permission to link alerts to incidents in this project.",
+      ),
+    );
+
+    await expect(readChannelAlert()).resolves.toEqual({
+      alertId: ALERT_ID,
+      name: ALERT_NAME,
+      title: "Disk almost full",
+      isPrivate: false,
+      resources: [API_HOST],
+      linkRefusal:
+        "You do not have permission to link alerts to incidents in this project.",
+    });
+  });
+
+  test("a private alert none of their teams may link: said of that one alert, not of 'some of the alerts'", async () => {
+    alertRead = alertOf({ isPrivate: true });
+    validateSpy.mockRejectedValue(
+      new NotAuthorizedException(PRIVATE_ALERTS_TO_LINK_MESSAGE),
+    );
+
+    await expect(readChannelAlert()).resolves.toEqual(
+      expect.objectContaining({
+        isPrivate: true,
+        linkRefusal:
+          "It is private, and none of your teams that own it may link it to an incident.",
+      }),
+    );
+  });
+
+  test("a link check that fails is a reason too, and the form still opens", async () => {
+    validateSpy.mockRejectedValue(new Error("connection reset"));
+
+    await expect(readChannelAlert()).resolves.toEqual(
+      expect.objectContaining({
+        alertId: ALERT_ID,
+        linkRefusal: "It could not be read just now.",
+      }),
+    );
+  });
+
   test("no channel - a direct message, the app's Home - is no alert's, and nothing is read", async () => {
     await expect(
       WorkspaceIncidentFromAlert.readChannelAlert({
@@ -260,6 +330,7 @@ describe("the alert a form is declared from: the open alert of its own channel, 
 
     await expect(readChannelAlert()).resolves.toBeNull();
     expect(readAlertResourcesSpy).not.toHaveBeenCalled();
+    expect(validateSpy).not.toHaveBeenCalled();
   });
 
   test("an alert the member may not read is not theirs to declare from: the plain form", async () => {
@@ -296,45 +367,76 @@ describe("what the form says", () => {
       title: "Disk almost full",
       isPrivate: false,
       resources: [],
+      linkRefusal: null,
       ...data,
     };
   }
 
-  test("the alert it is declared from, linked, and its title", () => {
+  test("the alert it is declared from, by its number and linked", () => {
     expect(
       WorkspaceIncidentFromAlert.getFormLine(declaringAlert()).toString(),
-    ).toBe(
-      `This incident will be linked to **[Alert ALT-3](${ALERT_LINK})**, Disk almost full.`,
-    );
+    ).toBe(`This incident will be linked to **[Alert ALT-3](${ALERT_LINK})**.`);
   });
 
-  test("a private alert: and that the incident will be private like it", () => {
+  test("never the alert's title: it is the form's own title, right below", () => {
+    const line: string = WorkspaceIncidentFromAlert.getFormLine(
+      declaringAlert({ title: "**disk** [click](https://evil.example)" }),
+    ).toString();
+
+    expect(line).toBe(
+      `This incident will be linked to **[Alert ALT-3](${ALERT_LINK})**.`,
+    );
+    expect(line).not.toContain("disk");
+  });
+
+  test("a private alert: and that the incident will be private too, in a sentence of its own", () => {
     expect(
       WorkspaceIncidentFromAlert.getFormLine(
         declaringAlert({ isPrivate: true }),
       ).toString(),
     ).toBe(
-      `This incident will be linked to **[Alert ALT-3](${ALERT_LINK})**, Disk almost full, and private like it.`,
+      `This incident will be linked to **[Alert ALT-3](${ALERT_LINK})**. It will be private, as the alert is.`,
     );
   });
 
-  test("with no title, or no link that could be built", () => {
+  test("no link that could be built: the alert in bold", () => {
     expect(
       WorkspaceIncidentFromAlert.getFormLine(
-        declaringAlert({
-          title: "  ",
-          name: { label: "Alert ALT-3", link: null },
-        }),
+        declaringAlert({ name: { label: "Alert ALT-3", link: null } }),
       ).toString(),
     ).toBe("This incident will be linked to **Alert ALT-3**.");
   });
 
-  test("the title is text: Markdown in it is never read as Markdown", () => {
+  test("a member who may not link it: the form says it will not be linked, and why - never a link it cannot make", () => {
+    expect(
+      WorkspaceIncidentFromAlert.getFormLine(
+        declaringAlert({
+          linkRefusal:
+            "You do not have permission to link alerts to incidents in this project.",
+        }),
+      ).toString(),
+    ).toBe(
+      `This incident will not be linked to **[Alert ALT-3](${ALERT_LINK})**. You do not have permission to link alerts to incidents in this project.`,
+    );
+    expect(
+      WorkspaceIncidentFromAlert.getFormLine(
+        declaringAlert({
+          isPrivate: true,
+          linkRefusal:
+            "It is private, and none of your teams that own it may link it to an incident.",
+        }),
+      ).toString(),
+    ).toBe(
+      `This incident will not be linked to **[Alert ALT-3](${ALERT_LINK})**. It is private, and none of your teams that own it may link it to an incident. It will be private, as the alert is.`,
+    );
+  });
+
+  test("a refusal is text: Markdown in it is never read as Markdown", () => {
     const line: string = WorkspaceIncidentFromAlert.getFormLine(
-      declaringAlert({ title: "**disk** [click](https://evil.example)" }),
+      declaringAlert({ linkRefusal: "**no** [click](https://evil.example)" }),
     ).toString();
 
-    expect(line).not.toContain("**disk**");
+    expect(line).not.toContain("**no**");
     expect(line).not.toContain("[click](");
   });
 });
@@ -414,6 +516,9 @@ describe("linking the alert a submission names, as whoever submits it", () => {
     alertRead = new NotAuthorizedException(
       "This alert is private, so only its owners may see it.",
     );
+    const rootRead: SpyInstance<typeof AlertService.findOneBy> = jest
+      .spyOn(AlertService, "findOneBy")
+      .mockResolvedValue(alertOf({ isPrivate: false }));
 
     const result: WorkspaceAlertToLink | WorkspaceAlertNotLinked =
       await checkLink();
@@ -422,8 +527,53 @@ describe("linking the alert a submission names, as whoever submits it", () => {
     expect(result).toEqual({
       name: null,
       reason: "This alert is private, so only its owners may see it.",
+      isPrivate: false,
     });
     expect(validateSpy).not.toHaveBeenCalled();
+
+    // Its privacy alone is read as OneUptime, held to the project.
+    expect(rootRead).toHaveBeenCalledWith({
+      query: { _id: ALERT_ID, projectId: PROJECT_ID },
+      select: { isPrivate: true },
+      props: { isRoot: true },
+    });
+  });
+
+  test.each([
+    ["private, as OneUptime reads it", true, true],
+    ["public", false, false],
+  ])(
+    "an alert the member may no longer read that is %s: the incident's privacy follows it",
+    async (_what: string, isAlertPrivate: boolean, isPrivate: boolean) => {
+      alertRead = new NotAuthorizedException("You may not read this alert.");
+      jest
+        .spyOn(AlertService, "findOneBy")
+        .mockResolvedValue(alertOf({ isPrivate: isAlertPrivate }));
+
+      await expect(checkLink()).resolves.toEqual(
+        expect.objectContaining({ name: null, isPrivate: isPrivate }),
+      );
+    },
+  );
+
+  test("an alert that is gone: nothing left to keep private", async () => {
+    alertRead = new BadDataException("This alert no longer exists.");
+    jest.spyOn(AlertService, "findOneBy").mockResolvedValue(null);
+
+    await expect(checkLink()).resolves.toEqual(
+      expect.objectContaining({ name: null, isPrivate: false }),
+    );
+  });
+
+  test("an alert the member may no longer read, whose privacy cannot be read either: private, to be safe", async () => {
+    alertRead = new NotAuthorizedException("You may not read this alert.");
+    jest
+      .spyOn(AlertService, "findOneBy")
+      .mockRejectedValue(new Error("connection reset"));
+
+    await expect(checkLink()).resolves.toEqual(
+      expect.objectContaining({ name: null, isPrivate: true }),
+    );
   });
 
   test("a member who may not link alerts to incidents: not linked, and why", async () => {
@@ -437,20 +587,21 @@ describe("linking the alert a submission names, as whoever submits it", () => {
       name: ALERT_NAME,
       reason:
         "You do not have permission to link alerts to incidents in this project.",
+      isPrivate: false,
     });
   });
 
-  test("a private alert none of their teams may link: not linked, and why", async () => {
+  test("a private alert none of their teams may link: not linked, why - of that one alert - and the incident private all the same", async () => {
+    alertRead = alertOf({ isPrivate: true });
     validateSpy.mockRejectedValue(
-      new NotAuthorizedException(
-        "Some of the alerts are private, and none of the teams of yours that own them may link them to an incident.",
-      ),
+      new NotAuthorizedException(PRIVATE_ALERTS_TO_LINK_MESSAGE),
     );
 
     await expect(checkLink()).resolves.toEqual({
       name: ALERT_NAME,
       reason:
-        "Some of the alerts are private, and none of the teams of yours that own them may link them to an incident.",
+        "It is private, and none of your teams that own it may link it to an incident.",
+      isPrivate: true,
     });
   });
 
@@ -460,39 +611,154 @@ describe("linking the alert a submission names, as whoever submits it", () => {
     await expect(checkLink()).resolves.toEqual({
       name: ALERT_NAME,
       reason: "It could not be read just now.",
+      isPrivate: false,
+    });
+  });
+});
+
+describe("what the person who declared it is told was not linked", () => {
+  const INCIDENT_LINK: string = `https://oneuptime.test/dashboard/${PROJECT_ID.toString()}/incidents/${INCIDENT_ID.toString()}`;
+  const INCIDENT_NAME: WorkspaceRecordName = {
+    label: "Incident INC-43",
+    link: INCIDENT_LINK,
+  };
+  const MAY_NOT_LINK: string =
+    "You do not have permission to link alerts to incidents in this project.";
+
+  function answer(data: {
+    notLinkedCount?: number;
+    alertNotLinked?: WorkspaceAlertNotLinked | null;
+  }): WorkspaceAnswer | null {
+    return WorkspaceIncidentFromAlert.getNotLinkedAnswer({
+      incident: INCIDENT_NAME,
+      notLinkedCount: data.notLinkedCount || 0,
+      alertNotLinked: data.alertNotLinked || null,
+    });
+  }
+
+  test("everything linked: nothing to say", () => {
+    expect(answer({})).toBeNull();
+  });
+
+  test("picks not linked, of the incident it names - never a sentence that opens with a number, which a Teams mention would run into", () => {
+    expect(answer({ notLinkedCount: 1 })).toEqual({
+      markdown: `**[Incident INC-43](${INCIDENT_LINK})** is not linked to 1 resource you picked: it was deleted or archived, or you may no longer view it.`,
+      text: "Incident INC-43 is not linked to 1 resource you picked: it was deleted or archived, or you may no longer view it.",
+    });
+    expect(answer({ notLinkedCount: 2 })?.markdown).toBe(
+      `**[Incident INC-43](${INCIDENT_LINK})** is not linked to 2 resources you picked: they were deleted or archived, or you may no longer view them.`,
+    );
+  });
+
+  test("the channel's alert not linked: the alert, then the reason in a sentence of its own", () => {
+    expect(
+      answer({
+        alertNotLinked: {
+          name: ALERT_NAME,
+          reason: MAY_NOT_LINK,
+          isPrivate: false,
+        },
+      }),
+    ).toEqual({
+      markdown: `**[Incident INC-43](${INCIDENT_LINK})** is not linked to **[Alert ALT-3](${ALERT_LINK})**. ${MAY_NOT_LINK}`,
+      text: `Incident INC-43 is not linked to Alert ALT-3. ${MAY_NOT_LINK}`,
     });
   });
 
-  test("the line that says why, to the person who declared it", () => {
+  test("an alert they may no longer read is not named", () => {
     expect(
-      WorkspaceIncidentFromAlert.getNotLinkedLine({
+      answer({
+        alertNotLinked: {
+          name: null,
+          reason: "You may not read this alert.",
+          isPrivate: false,
+        },
+      })?.markdown,
+    ).toBe(
+      `**[Incident INC-43](${INCIDENT_LINK})** is not linked to this channel's alert. You may not read this alert.`,
+    );
+  });
+
+  test("a private alert's incident is private, linked or not - and the person is told so", () => {
+    expect(
+      answer({
+        alertNotLinked: {
+          name: ALERT_NAME,
+          reason: MAY_NOT_LINK,
+          isPrivate: true,
+        },
+      })?.markdown,
+    ).toBe(
+      `**[Incident INC-43](${INCIDENT_LINK})** is not linked to **[Alert ALT-3](${ALERT_LINK})**. ${MAY_NOT_LINK} It is private, as the alert is.`,
+    );
+  });
+
+  test("both: the incident named once, the alert 'either', each in a paragraph of its own", () => {
+    const both: WorkspaceAnswer | null = answer({
+      notLinkedCount: 2,
+      alertNotLinked: {
         name: ALERT_NAME,
-        reason: "You may not link it.",
-      }).toString(),
-    ).toBe(
-      `The incident was not linked to **[Alert ALT-3](${ALERT_LINK})**: You may not link it.`,
+        reason: MAY_NOT_LINK,
+        isPrivate: false,
+      },
+    });
+
+    expect(both?.markdown).toBe(
+      `**[Incident INC-43](${INCIDENT_LINK})** is not linked to 2 resources you picked: they were deleted or archived, or you may no longer view them.\n\nIt is not linked to **[Alert ALT-3](${ALERT_LINK})** either. ${MAY_NOT_LINK}`,
     );
-    expect(
-      WorkspaceIncidentFromAlert.getNotLinkedText({
-        name: ALERT_NAME,
-        reason: "You may not link it.",
+    // A notification says the first of them.
+    expect(both?.text).toBe(
+      "Incident INC-43 is not linked to 2 resources you picked: they were deleted or archived, or you may no longer view them.",
+    );
+  });
+
+  test("a reason is text: Markdown in it is never read as Markdown", () => {
+    const markdown: string =
+      answer({
+        alertNotLinked: {
+          name: ALERT_NAME,
+          reason: "**no** [click](https://evil.example)",
+          isPrivate: false,
+        },
+      })?.markdown || "";
+
+    expect(markdown).not.toContain("**no**");
+    expect(markdown).not.toContain("[click](");
+  });
+
+  test("for an incident just declared: named and linked as the chats' answers name records - and nothing read when everything was linked", async () => {
+    getRecordNameSpy.mockResolvedValue(INCIDENT_NAME);
+
+    const incident: Incident = new Incident();
+    incident.id = INCIDENT_ID;
+    incident.incidentNumber = 43;
+    incident.incidentNumberWithPrefix = "INC-43";
+
+    await expect(
+      WorkspaceIncidentFromAlert.readNotLinkedAnswer({
+        projectId: PROJECT_ID,
+        incident: incident,
+        notLinkedCount: 0,
+        alertNotLinked: null,
       }),
-    ).toBe("The incident was not linked to Alert ALT-3: You may not link it.");
-    expect(
-      WorkspaceIncidentFromAlert.getNotLinkedLine({
-        name: null,
-        reason: "You may not see it.",
-      }).toString(),
-    ).toBe(
-      "The incident was not linked to this channel's alert: You may not see it.",
-    );
-    expect(
-      WorkspaceIncidentFromAlert.getNotLinkedText({
-        name: null,
-        reason: "You may not see it.",
+    ).resolves.toBeNull();
+    expect(getRecordNameSpy).not.toHaveBeenCalled();
+
+    await expect(
+      WorkspaceIncidentFromAlert.readNotLinkedAnswer({
+        projectId: PROJECT_ID,
+        incident: incident,
+        notLinkedCount: 1,
+        alertNotLinked: null,
       }),
-    ).toBe(
-      "The incident was not linked to this channel's alert: You may not see it.",
-    );
+    ).resolves.toEqual(answer({ notLinkedCount: 1 }));
+    expect(getRecordNameSpy).toHaveBeenCalledWith({
+      type: WorkspaceEventType.Incident,
+      id: INCIDENT_ID,
+      projectId: PROJECT_ID,
+      currentStateId: undefined,
+      number: 43,
+      numberWithPrefix: "INC-43",
+    });
   });
 });

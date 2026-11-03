@@ -36,7 +36,10 @@ import MicrosoftTeamsCardChoices, {
 } from "../MicrosoftTeamsCardChoices";
 import MicrosoftTeamsReplies from "../MicrosoftTeamsReplies";
 import MicrosoftTeamsActionAnswer from "../MicrosoftTeamsActionAnswer";
-import { WorkspaceLatePress } from "../../WorkspaceActionAnswers";
+import {
+  WorkspaceAnswer,
+  WorkspaceLatePress,
+} from "../../WorkspaceActionAnswers";
 import WorkspaceNoteForm, {
   WORKSPACE_NOTE_FORM_TEXT,
   WorkspaceNoteFormType,
@@ -65,9 +68,14 @@ import MicrosoftTeamsAffectedResources from "../MicrosoftTeamsAffectedResources"
 // Incident.title is a LongText column.
 const MICROSOFT_TEAMS_INCIDENT_TITLE_MAX_LENGTH: number = ColumnLength.LongText;
 
-// The "Create New Incident" card's Affected Resources input: the project it searches.
+/*
+ * The "Create New Incident" card's Affected Resources input: the project it
+ * searches, and whether that project's AI is on - its hint says what
+ * OneUptime AI does with the picks.
+ */
 export interface MicrosoftTeamsNewIncidentAffectedResources {
   projectId: ObjectID;
+  isAiEnabled: boolean;
 }
 
 // The lists the "Create New Incident" card offers.
@@ -735,6 +743,8 @@ export default class MicrosoftTeamsIncidentActions {
           onCallPolicyIds,
           affectedResources: toLink.linked,
           alert: linkedAlert,
+          // Private like its alert, linked or not (WorkspaceIncidentFromAlert).
+          isPrivate: alertLink?.isPrivate === true,
         });
       } catch (error) {
         MicrosoftTeamsReplies.logFailure(
@@ -779,6 +789,8 @@ export default class MicrosoftTeamsIncidentActions {
       // What was picked and not linked: a reply to whoever submitted it.
       await this.answerNotLinked({
         turnContext: turnContext,
+        projectId: projectId,
+        incident: createdIncident,
         notLinkedCount: toLink.notLinkedCount,
         alertNotLinked:
           alertLink && !WorkspaceIncidentFromAlert.isLinked(alertLink)
@@ -861,43 +873,31 @@ export default class MicrosoftTeamsIncidentActions {
    * resource deleted or archived since they picked it, or no longer one
    * they may view, and the alert of the channel when they may not link it -
    * in a reply that mentions them (Microsoft Teams has no message only one
-   * person sees). The incident is declared all the same. Nothing when
-   * everything was linked.
+   * person sees; WorkspaceIncidentFromAlert.getNotLinkedAnswer). The
+   * incident is declared all the same. Nothing when everything was linked.
    */
   private static async answerNotLinked(data: {
     turnContext: TurnContext;
+    projectId: ObjectID;
+    incident: Incident;
     notLinkedCount: number;
     alertNotLinked: WorkspaceAlertNotLinked | null;
   }): Promise<void> {
-    const lines: Array<MarkdownText> = [];
-    const texts: Array<string> = [];
-    const notLinkedLine: string | null =
-      WorkspaceAffectedResources.getNotLinkedLine(data.notLinkedCount);
+    const answer: WorkspaceAnswer | null =
+      await WorkspaceIncidentFromAlert.readNotLinkedAnswer({
+        projectId: data.projectId,
+        incident: data.incident,
+        notLinkedCount: data.notLinkedCount,
+        alertNotLinked: data.alertNotLinked,
+      });
 
-    if (notLinkedLine) {
-      lines.push(mdText`${notLinkedLine}`);
-      texts.push(notLinkedLine);
-    }
-
-    if (data.alertNotLinked) {
-      lines.push(
-        WorkspaceIncidentFromAlert.getNotLinkedLine(data.alertNotLinked),
-      );
-      texts.push(
-        WorkspaceIncidentFromAlert.getNotLinkedText(data.alertNotLinked),
-      );
-    }
-
-    if (lines.length === 0) {
+    if (!answer) {
       return;
     }
 
     await MicrosoftTeamsActionAnswer.reply({
       turnContext: data.turnContext,
-      answer: {
-        markdown: FeedMarkdown.join(lines, "\n\n").toString(),
-        text: texts.join(" "),
-      },
+      answer: answer,
     });
   }
 
@@ -925,6 +925,8 @@ export default class MicrosoftTeamsIncidentActions {
     affectedResources?: Array<LinkedAffectedResource> | undefined;
     // The alert it is declared from, when the member may link it.
     alert?: WorkspaceAlertToLink | null | undefined;
+    // Declared from a private alert, linked or not.
+    isPrivate?: boolean | undefined;
   }): Promise<Incident> {
     const { projectId } = data;
 
@@ -996,7 +998,7 @@ export default class MicrosoftTeamsIncidentActions {
     );
 
     // A private alert's incident is private, as the Dashboard declares it.
-    if (data.alert?.isPrivate) {
+    if (data.alert?.isPrivate || data.isPrivate) {
       incident.isPrivate = true;
     }
 
@@ -1414,6 +1416,7 @@ export default class MicrosoftTeamsIncidentActions {
         ...MicrosoftTeamsAffectedResources.getInputElements({
           projectId: data.affectedResources.projectId,
           initial: data.declaringAlert?.resources || [],
+          isAiEnabled: data.affectedResources.isAiEnabled,
         }),
       );
     }

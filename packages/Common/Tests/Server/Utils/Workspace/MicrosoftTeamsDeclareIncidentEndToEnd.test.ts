@@ -78,6 +78,7 @@ import WorkspaceAffectedResources from "../../../../Server/Utils/Workspace/Works
 import { getAffectedResourceKindService } from "../../../../Server/Utils/AffectedResources/AffectedResourceSearch";
 import DatabaseConfig from "../../../../Server/DatabaseConfig";
 import GlobalCache from "../../../../Server/Infrastructure/GlobalCache";
+import AIService from "../../../../Server/Services/AIService";
 import AlertService from "../../../../Server/Services/AlertService";
 import IncidentService from "../../../../Server/Services/IncidentService";
 import IncidentSeverityService from "../../../../Server/Services/IncidentSeverityService";
@@ -546,6 +547,8 @@ beforeEach(() => {
   jest
     .spyOn(DatabaseConfig, "getDashboardUrl")
     .mockResolvedValue(URL.fromString(DASHBOARD_URL));
+  // The project's AI is on: Affected Resources says what AI does with picks.
+  jest.spyOn(AIService, "isProjectAIEnabled").mockResolvedValue(true);
 
   // The card's lists: one severity, none of the rest.
   jest
@@ -609,6 +612,8 @@ beforeEach(() => {
     created.push({ data: create.data, props: create.props });
     const incident: Incident = new Incident();
     incident.id = CREATED_ID;
+    incident.incidentNumber = 43;
+    incident.incidentNumberWithPrefix = "INC-43";
     return incident;
   }) as never);
 
@@ -656,6 +661,18 @@ describe("Teams' Create New Incident card and its typeahead, as Teams sees them"
     });
     expect(input["choices"]).toEqual([]);
     expect(JSON.stringify(card)).not.toContain("api-1");
+
+    // Right under it, in the card's small print: what OneUptime AI does with the picks.
+    const body: Array<JSONObject> = card["body"] as Array<JSONObject>;
+    const hint: JSONObject = body[body.indexOf(input) + 1]!;
+    expect(hint).toEqual(
+      expect.objectContaining({
+        type: "TextBlock",
+        text: "OneUptime AI investigates what you pick here, and can fix it.",
+        isSubtle: true,
+        size: "Small",
+      }),
+    );
   });
 
   test("a search is answered 200 with what matches, read as whoever typed - and nothing is said in the conversation", async () => {
@@ -767,6 +784,52 @@ describe("Teams' Create New Incident card and its typeahead, as Teams sees them"
 
     expect(confirmation?.activity?.["text"]).toBe(
       `✅ Incident created successfully!\n\nView incident: ${DASHBOARD_URL}/${projectId.toString()}/incidents/${CREATED_ID.toString()}\n\nLinked to **api-1** (Host) and **prod** (Kubernetes Cluster).`,
+    );
+  });
+
+  test("a pick that can no longer be linked: declared all the same, and a reply that mentions whoever submitted it names the incident first", async () => {
+    const delivery: Delivery = await deliver(
+      submitActivity({
+        replyToId: "msg-card",
+        value: {
+          action: MicrosoftTeamsIncidentActionType.SubmitNewIncident,
+          incidentTitle: "Checkout is slow",
+          incidentDescription: "Requests time out.",
+          incidentSeverity: SEVERITY_ID.toString(),
+          // The second host is another project's: never linked here.
+          affectedResources: `Host:${API_1},Host:${ObjectID.generate().toString()}`,
+        },
+      }),
+    );
+
+    expect(delivery.httpStatus).toBe(200);
+    expect(created).toHaveLength(1);
+
+    const posts: Array<ConnectorRequest> = delivery.sent.filter(
+      (request: ConnectorRequest): boolean => {
+        return request.method === "POST";
+      },
+    );
+    const incidentUrl: string = `${DASHBOARD_URL}/${projectId.toString()}/incidents/${CREATED_ID.toString()}`;
+
+    expect(posts[0]?.activity?.["text"]).toBe(
+      `✅ Incident created successfully!\n\nView incident: ${incidentUrl}\n\nLinked to **api-1** (Host).`,
+    );
+
+    const reply: JSONObject = cardOf(posts[1]);
+    expect((reply["body"] as Array<JSONObject>)[0]!["text"]).toBe(
+      `<at>Jane Doe</at> **[Incident INC-43](${incidentUrl})** is not linked to 1 resource you picked: it was deleted or archived, or you may no longer view it.`,
+    );
+    expect(
+      ((reply["msteams"] as JSONObject)["entities"] as Array<JSONObject>)[0],
+    ).toEqual({
+      type: "mention",
+      text: "<at>Jane Doe</at>",
+      mentioned: { id: "29:1jane", name: "Jane Doe" },
+    });
+    // A notification of it says the same, as text.
+    expect(posts[1]?.activity?.["summary"]).toBe(
+      "Incident INC-43 is not linked to 1 resource you picked: it was deleted or archived, or you may no longer view it.",
     );
   });
 });

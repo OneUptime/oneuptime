@@ -75,12 +75,14 @@ export interface MicrosoftTeamsInvokeResponse {
 export default class MicrosoftTeamsAffectedResources {
   /*
    * The card's Affected Resources input, opening with `initial` picked - the
-   * resources of the alert a card is declared from - and the line under it
-   * that says why it is there. Optional, as every input after the severity.
+   * resources of the alert a card is declared from - and, in a project
+   * whose AI is on, the line under it that says what OneUptime AI does
+   * with the picks. Optional, as every input after the severity.
    */
   public static getInputElements(data: {
     projectId: ObjectID;
     initial: Array<LinkedAffectedResource>;
+    isAiEnabled: boolean;
   }): Array<JSONObject> {
     const initial: Array<MicrosoftTeamsSearchResult> = data.initial
       .slice(0, WORKSPACE_MAX_AFFECTED_RESOURCES)
@@ -108,6 +110,10 @@ export default class MicrosoftTeamsAffectedResources {
           return choice.value;
         })
         .join(",");
+    }
+
+    if (!data.isAiEnabled) {
+      return [input];
     }
 
     // Why the field is there, in the card's small print.

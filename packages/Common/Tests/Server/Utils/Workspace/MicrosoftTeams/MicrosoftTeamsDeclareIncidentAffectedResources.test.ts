@@ -11,6 +11,7 @@ import type { SpyInstance } from "jest-mock";
 import DatabaseBaseModel from "../../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Incident from "../../../../../Models/DatabaseModels/Incident";
 import DatabaseConfig from "../../../../../Server/DatabaseConfig";
+import AIService from "../../../../../Server/Services/AIService";
 import IncidentService from "../../../../../Server/Services/IncidentService";
 import { LinkedAffectedResource } from "../../../../../Server/Utils/AI/Toolbox/AffectedResourceLinks";
 import logger from "../../../../../Server/Utils/Logger";
@@ -100,6 +101,7 @@ const DECLARING_ALERT: WorkspaceDeclaringAlert = {
   title: "Disk almost full",
   isPrivate: false,
   resources: [API_HOST],
+  linkRefusal: null,
 };
 
 function listOf(
@@ -170,7 +172,7 @@ describe("the card", () => {
       MicrosoftTeamsIncidentActions.buildNewIncidentCardForBudget({
         choices: choices(),
         budgetInBytes: MICROSOFT_TEAMS_CARD_SIZE_BUDGETS_IN_BYTES[0]!,
-        affectedResources: { projectId: PROJECT_ID },
+        affectedResources: { projectId: PROJECT_ID, isAiEnabled: true },
       });
 
     expect(outlineOf(card)).toEqual([
@@ -179,7 +181,7 @@ describe("the card", () => {
       "incidentDescription",
       "incidentSeverity",
       "affectedResources",
-      "TextBlock: OneUptime AI investigates what an incident is linked to, and can fix it.",
+      "TextBlock: OneUptime AI investigates what you pick here, and can fix it.",
       "incidentMonitors",
       "TextBlock: A monitor you pick here pauses its checks until the incident is resolved.",
     ]);
@@ -222,7 +224,7 @@ describe("the card", () => {
       MicrosoftTeamsIncidentActions.buildNewIncidentCardForBudget({
         choices: choices(0),
         budgetInBytes: MICROSOFT_TEAMS_CARD_SIZE_BUDGETS_IN_BYTES[0]!,
-        affectedResources: { projectId: PROJECT_ID },
+        affectedResources: { projectId: PROJECT_ID, isAiEnabled: true },
       });
 
     expect(outlineOf(card)).not.toContain("incidentMonitors");
@@ -234,13 +236,14 @@ describe("the card", () => {
       MicrosoftTeamsIncidentActions.buildNewIncidentCardForBudget({
         choices: choices(),
         budgetInBytes: MICROSOFT_TEAMS_CARD_SIZE_BUDGETS_IN_BYTES[0]!,
-        affectedResources: { projectId: PROJECT_ID },
+        affectedResources: { projectId: PROJECT_ID, isAiEnabled: true },
         declaringAlert: DECLARING_ALERT,
       });
 
+    // The alert by its number: its title is the card's title already.
     expect(bodyOf(card)[1]).toEqual({
       type: "TextBlock",
-      text: `This incident will be linked to **[Alert ALT-3](${ALERT_LINK})**, Disk almost full.`,
+      text: `This incident will be linked to **[Alert ALT-3](${ALERT_LINK})**.`,
       wrap: true,
     });
     expect(bodyOf(card)[2]!["value"]).toBe("Disk almost full");
@@ -265,6 +268,47 @@ describe("the card", () => {
     });
   });
 
+  test("an alert the asker may not link: the card says it will not be linked, and why - and its button still names the alert, for whoever submits it to be asked again", () => {
+    const card: JSONObject =
+      MicrosoftTeamsIncidentActions.buildNewIncidentCardForBudget({
+        choices: choices(),
+        budgetInBytes: MICROSOFT_TEAMS_CARD_SIZE_BUDGETS_IN_BYTES[0]!,
+        affectedResources: { projectId: PROJECT_ID, isAiEnabled: true },
+        declaringAlert: {
+          ...DECLARING_ALERT,
+          isPrivate: true,
+          linkRefusal:
+            "You do not have permission to link alerts to incidents in this project.",
+        },
+      });
+
+    expect(bodyOf(card)[1]!["text"]).toBe(
+      `This incident will not be linked to **[Alert ALT-3](${ALERT_LINK})**. You do not have permission to link alerts to incidents in this project. It will be private, as the alert is.`,
+    );
+    expect(submitDataOf(card)["declaredFrom"]).toBe(
+      `alert:${ALERT_ID.toString()}`,
+    );
+  });
+
+  test("a project with AI off: Affected Resources with no line about AI", () => {
+    const card: JSONObject =
+      MicrosoftTeamsIncidentActions.buildNewIncidentCardForBudget({
+        choices: choices(),
+        budgetInBytes: MICROSOFT_TEAMS_CARD_SIZE_BUDGETS_IN_BYTES[0]!,
+        affectedResources: { projectId: PROJECT_ID, isAiEnabled: false },
+      });
+
+    expect(outlineOf(card)).toEqual([
+      "TextBlock: Create New Incident",
+      "incidentTitle",
+      "incidentDescription",
+      "incidentSeverity",
+      "affectedResources",
+      "incidentMonitors",
+      "TextBlock: A monitor you pick here pauses its checks until the incident is resolved.",
+    ]);
+  });
+
   test("a title typed with the command is the title", () => {
     const card: JSONObject =
       MicrosoftTeamsIncidentActions.buildNewIncidentCardForBudget({
@@ -287,7 +331,7 @@ describe("the card", () => {
         MicrosoftTeamsIncidentActions.buildNewIncidentCardForBudget({
           choices: choices(monitorCount),
           budgetInBytes: MICROSOFT_TEAMS_CARD_SIZE_BUDGETS_IN_BYTES[0]!,
-          affectedResources: { projectId: PROJECT_ID },
+          affectedResources: { projectId: PROJECT_ID, isAiEnabled: true },
           declaringAlert: {
             ...DECLARING_ALERT,
             resources: Array.from(
@@ -317,10 +361,12 @@ describe("the card", () => {
 describe("the command draws the card as the sender, in the channel it was typed in", () => {
   type ReadChannelAlert = typeof WorkspaceIncidentFromAlert.readChannelAlert;
   type IsOffered = typeof WorkspaceAffectedResources.isOffered;
+  type IsProjectAIEnabled = typeof AIService.isProjectAIEnabled;
 
   let sentCards: Array<JSONObject>;
   let readChannelAlertSpy: SpyInstance<ReadChannelAlert>;
   let isOfferedSpy: SpyInstance<IsOffered>;
+  let isAiEnabledSpy: SpyInstance<IsProjectAIEnabled>;
 
   beforeEach(() => {
     sentCards = [];
@@ -339,6 +385,9 @@ describe("the command draws the card as the sender, in the channel it was typed 
       .mockResolvedValue(null);
     isOfferedSpy = jest
       .spyOn(WorkspaceAffectedResources, "isOffered")
+      .mockResolvedValue(true);
+    isAiEnabledSpy = jest
+      .spyOn(AIService, "isProjectAIEnabled")
       .mockResolvedValue(true);
     jest
       .spyOn(MicrosoftTeamsReplies, "sendCardWithinSizeLimit")
@@ -388,7 +437,20 @@ describe("the command draws the card as the sender, in the channel it was typed 
       channelId: CHANNEL_ID,
       props: MEMBER_PROPS,
     });
+    expect(isAiEnabledSpy).toHaveBeenCalledWith(PROJECT_ID);
     expect(outlineOf(card)).toContain("affectedResources");
+    expect(outlineOf(card)).toContain(
+      "TextBlock: OneUptime AI investigates what you pick here, and can fix it.",
+    );
+  });
+
+  test("the project's AI is off: the field, with no line about AI", async () => {
+    isAiEnabledSpy.mockResolvedValue(false);
+
+    const outline: Array<string> = outlineOf(await run(CHANNEL_ID));
+
+    expect(outline).toContain("affectedResources");
+    expect(outline.join("\n")).not.toContain("OneUptime AI");
   });
 
   test("in a chat, no channel is asked about", async () => {
@@ -502,6 +564,8 @@ describe("the submit", () => {
 
       const incident: Incident = new Incident();
       incident.id = CREATED_ID;
+      incident.incidentNumber = 43;
+      incident.incidentNumberWithPrefix = "INC-43";
       return incident;
     }) as never);
   });
@@ -626,7 +690,8 @@ describe("the submit", () => {
       },
       {
         kind: "answer",
-        text: "<at>Jane Doe</at> 1 resource you picked was not linked: it was deleted or archived, or you may no longer view it.",
+        // The incident named first: a mention never runs into a number.
+        text: `<at>Jane Doe</at> **[Incident INC-43](${INCIDENT_LINK})** is not linked to 1 resource you picked: it was deleted or archived, or you may no longer view it.`,
       },
     ]);
   });
@@ -646,8 +711,9 @@ describe("the submit", () => {
       [INCIDENT_ALERT_IDS_TO_LINK_KEY]: [ALERT_ID.toString()],
     });
     expect(created[0]!.data.isPrivate).toBeUndefined();
+    // The alert first, then the resources.
     expect(sent[0]!.text).toBe(
-      `✅ Incident created successfully!\n\nView incident: ${INCIDENT_LINK}\n\nLinked to **api-1** (Host), **checkout** (Service) and **[Alert ALT-3](${ALERT_LINK})**.`,
+      `✅ Incident created successfully!\n\nView incident: ${INCIDENT_LINK}\n\nLinked to **[Alert ALT-3](${ALERT_LINK})**, **api-1** (Host) and **checkout** (Service).`,
     );
   });
 
@@ -665,11 +731,13 @@ describe("the submit", () => {
       name: { label: "Alert ALT-3", link: ALERT_LINK },
       reason:
         "You do not have permission to link alerts to incidents in this project.",
+      isPrivate: false,
     };
 
     await submit({ declaredFrom: `alert:${ALERT_ID.toString()}` });
 
     expect(created[0]!.miscDataProps).toBeUndefined();
+    expect(created[0]!.data.isPrivate).toBeUndefined();
     expect(sent).toEqual([
       {
         kind: "reply",
@@ -677,9 +745,28 @@ describe("the submit", () => {
       },
       {
         kind: "answer",
-        text: `<at>Jane Doe</at> The incident was not linked to **[Alert ALT-3](${ALERT_LINK})**: You do not have permission to link alerts to incidents in this project.`,
+        text: `<at>Jane Doe</at> **[Incident INC-43](${INCIDENT_LINK})** is not linked to **[Alert ALT-3](${ALERT_LINK})**. You do not have permission to link alerts to incidents in this project.`,
       },
     ]);
+  });
+
+  test("a private alert they may not link: declared without the link, private all the same - its title and resources never land in a public incident - and they are told", async () => {
+    toLink = { linked: [], notLinkedCount: 0 };
+    alertLink = {
+      name: { label: "Alert ALT-3", link: ALERT_LINK },
+      reason:
+        "It is private, and none of your teams that own it may link it to an incident.",
+      isPrivate: true,
+    };
+
+    await submit({ declaredFrom: `alert:${ALERT_ID.toString()}` });
+
+    expect(created[0]!.miscDataProps).toBeUndefined();
+    expect(created[0]!.data.isPrivate).toBe(true);
+    expect(sent[1]).toEqual({
+      kind: "answer",
+      text: `<at>Jane Doe</at> **[Incident INC-43](${INCIDENT_LINK})** is not linked to **[Alert ALT-3](${ALERT_LINK})**. It is private, and none of your teams that own it may link it to an incident. It is private, as the alert is.`,
+    });
   });
 
   test("a value that names no alert is no alert: nothing is asked about one", async () => {

@@ -34,6 +34,7 @@ import Monitor from "../../../Models/DatabaseModels/Monitor";
 import WorkspaceProjectAuthToken from "../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import WorkspaceUserAuthToken from "../../../Models/DatabaseModels/WorkspaceUserAuthToken";
 import DatabaseConfig from "../../../Server/DatabaseConfig";
+import AIService from "../../../Server/Services/AIService";
 import AlertService from "../../../Server/Services/AlertService";
 import IncidentAlertService from "../../../Server/Services/IncidentAlertService";
 import IncidentService from "../../../Server/Services/IncidentService";
@@ -613,6 +614,7 @@ describe("declaring an incident from Slack, linked to what it is about", () => {
   let isAlertOpen: boolean;
   let isAlertPrivate: boolean;
   let mayLinkAlert: boolean;
+  let isAiOn: boolean;
 
   beforeAll(async () => {
     app = await startSlackApp();
@@ -632,8 +634,15 @@ describe("declaring an incident from Slack, linked to what it is about", () => {
     isAlertOpen = true;
     isAlertPrivate = false;
     mayLinkAlert = true;
+    isAiOn = true;
 
     jest.spyOn(logger, "debug").mockImplementation((): void => {});
+    // The project's AI switch, which Affected Resources' hint follows.
+    jest
+      .spyOn(AIService, "isProjectAIEnabled")
+      .mockImplementation(async (): Promise<boolean> => {
+        return isAiOn;
+      });
 
     (
       jest.requireMock("../../../Server/Infrastructure/GlobalCache") as {
@@ -1054,7 +1063,7 @@ describe("declaring an incident from Slack, linked to what it is about", () => {
       });
       expect(field["hint"]).toEqual({
         type: "plain_text",
-        text: "OneUptime AI investigates what an incident is linked to, and can fix it.",
+        text: "OneUptime AI investigates what you pick here, and can fix it.",
       });
 
       const element: JSONObject = field["element"] as JSONObject;
@@ -1089,6 +1098,23 @@ describe("declaring an incident from Slack, linked to what it is about", () => {
         value: OPS_CHANNEL_ID,
         channelId: OPS_CHANNEL_ID,
         projectId: PROJECT_ID.toString(),
+      });
+    });
+
+    test("a project whose AI is off: the field all the same, with no hint about AI", async () => {
+      isAiOn = false;
+
+      await command("incident");
+
+      const view: JSONObject = await openedForm();
+      const field: JSONObject = inputOf(view, "affectedResources");
+
+      expect(field["hint"]).toBeUndefined();
+      expect(JSON.stringify(view)).not.toContain("OneUptime AI");
+      // The Monitors field still says what a pick there does.
+      expect(inputOf(view, "incidentMonitors")["hint"]).toEqual({
+        type: "plain_text",
+        text: "A monitor you pick here pauses its checks until the incident is resolved.",
       });
     });
 
@@ -1403,11 +1429,12 @@ describe("declaring an incident from Slack, linked to what it is about", () => {
       expect(postedTo("https://slack.com/api/chat.postMessage")[0]!.text).toBe(
         `*Incident INC-43* created successfully. <${INCIDENT_URL}|View Incident>\nLinked to *api-2* (Host).\n`,
       );
+      // The incident it names first: it may be read away from the confirmation.
       expect(postedTo("https://slack.com/api/chat.postEphemeral")).toEqual([
         {
           channel: OPS_CHANNEL_ID,
           user: SLACK_USER_ID,
-          text: "2 resources you picked were not linked: they were deleted or archived, or you may no longer view them.\n",
+          text: `*<${INCIDENT_URL}|Incident INC-43>* is not linked to 2 resources you picked: they were deleted or archived, or you may no longer view them.\n`,
         },
       ]);
     });
@@ -1420,8 +1447,9 @@ describe("declaring an incident from Slack, linked to what it is about", () => {
       const view: JSONObject = await openedForm();
       const blocks: Array<JSONObject> = view["blocks"] as Array<JSONObject>;
 
+      // The alert by its number: its title is the form's title, right below.
       expect(textOf([blocks[0]])).toBe(
-        `This incident will be linked to *<${ALERT_URL}|Alert ALT-3>*, Disk almost full.\n`,
+        `This incident will be linked to *<${ALERT_URL}|Alert ALT-3>*.\n`,
       );
       expect(
         (inputOf(view, "incidentTitle")["element"] as JSONObject)[
@@ -1488,7 +1516,7 @@ describe("declaring an incident from Slack, linked to what it is about", () => {
       expect(postedTo("https://slack.com/api/chat.postMessage")).toEqual([
         {
           channel: ALERT_CHANNEL_ID,
-          text: `*Incident INC-43* created successfully. <${INCIDENT_URL}|View Incident>\nLinked to *api-1* (Host) and *<${ALERT_URL}|Alert ALT-3>*.\n`,
+          text: `*Incident INC-43* created successfully. <${INCIDENT_URL}|View Incident>\nLinked to *<${ALERT_URL}|Alert ALT-3>* and *api-1* (Host).\n`,
         },
       ]);
     });
@@ -1501,7 +1529,7 @@ describe("declaring an incident from Slack, linked to what it is about", () => {
       slackCalls = [];
 
       expect(textOf([(view["blocks"] as Array<JSONObject>)[0]])).toBe(
-        `This incident will be linked to *<${ALERT_URL}|Alert ALT-3>*, Disk almost full, and private like it.\n`,
+        `This incident will be linked to *<${ALERT_URL}|Alert ALT-3>*. It will be private, as the alert is.\n`,
       );
 
       await submit({
@@ -1540,7 +1568,68 @@ describe("declaring an incident from Slack, linked to what it is about", () => {
         {
           channel: ALERT_CHANNEL_ID,
           user: SLACK_USER_ID,
-          text: `The incident was not linked to *<${ALERT_URL}|Alert ALT-3>*: You do not have permission to link alerts to incidents in this project.\n`,
+          text: `*<${INCIDENT_URL}|Incident INC-43>* is not linked to *<${ALERT_URL}|Alert ALT-3>*. You do not have permission to link alerts to incidents in this project.\n`,
+        },
+      ]);
+    });
+
+    test("Simon may not link alerts, as the form opens: the form says it will not be linked, and why - never a promise it cannot keep", async () => {
+      mayLinkAlert = false;
+
+      await command("incident", ALERT_CHANNEL_ID);
+      const view: JSONObject = await openedForm();
+
+      expect(textOf([(view["blocks"] as Array<JSONObject>)[0]])).toBe(
+        `This incident will not be linked to *<${ALERT_URL}|Alert ALT-3>*. You do not have permission to link alerts to incidents in this project.\n`,
+      );
+      // It still starts from the alert: its title, and what Simon may view of it.
+      expect(
+        (inputOf(view, "incidentTitle")["element"] as JSONObject)[
+          "initial_value"
+        ],
+      ).toBe("Disk almost full");
+      expect(
+        (inputOf(view, "affectedResources")["element"] as JSONObject)[
+          "initial_options"
+        ],
+      ).toEqual([
+        {
+          text: { type: "plain_text", text: "api-1" },
+          value: `Host:${API_1}`,
+        },
+      ]);
+    });
+
+    test("a private alert Simon may not link: declared without the link, private all the same, and he is told so", async () => {
+      isAlertPrivate = true;
+      mayLinkAlert = false;
+
+      await command("incident", ALERT_CHANNEL_ID);
+      const view: JSONObject = await openedForm();
+      slackCalls = [];
+
+      expect(textOf([(view["blocks"] as Array<JSONObject>)[0]])).toBe(
+        `This incident will not be linked to *<${ALERT_URL}|Alert ALT-3>*. You do not have permission to link alerts to incidents in this project. It will be private, as the alert is.\n`,
+      );
+
+      await submit({
+        privateMetadata: view["private_metadata"] as string,
+        title: "Disk almost full",
+        picks: [],
+      });
+
+      await slackCallsAfter(2);
+      await settle();
+
+      expect(created).toHaveLength(1);
+      expect(created[0]!.miscDataProps).toBeUndefined();
+      // Its title came from a private alert: never a public incident.
+      expect(created[0]!.data.isPrivate).toBe(true);
+      expect(postedTo("https://slack.com/api/chat.postEphemeral")).toEqual([
+        {
+          channel: ALERT_CHANNEL_ID,
+          user: SLACK_USER_ID,
+          text: `*<${INCIDENT_URL}|Incident INC-43>* is not linked to *<${ALERT_URL}|Alert ALT-3>*. You do not have permission to link alerts to incidents in this project. It is private, as the alert is.\n`,
         },
       ]);
     });

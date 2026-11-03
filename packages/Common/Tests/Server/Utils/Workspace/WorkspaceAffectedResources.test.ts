@@ -30,6 +30,7 @@ import WorkspaceAffectedResources, {
   WORKSPACE_AFFECTED_RESOURCE_SEARCH_LIMIT_PER_KIND,
   WORKSPACE_AFFECTED_RESOURCES_FIELD,
   WORKSPACE_AFFECTED_RESOURCES_TEXT,
+  WORKSPACE_LINKED_RESOURCES_NAMED,
   WORKSPACE_MAX_AFFECTED_RESOURCES,
   WorkspaceAffectedResourceKindMatches,
   WorkspaceAffectedResourceMatch,
@@ -52,6 +53,7 @@ import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/Datab
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission from "../../../../Types/Permission";
+import { MarkdownText, mdText } from "../../../../Utils/Markdown/FeedMarkdown";
 import { customDomainCaller } from "../../API/CustomDomainCallers";
 import { useInMemoryTable } from "../../TestingUtils/InMemoryRepository";
 import { ON_HIGHEST_PLAN } from "../../TestingUtils/RequestPlan";
@@ -245,8 +247,9 @@ describe("the form's words", () => {
     expect(WORKSPACE_AFFECTED_RESOURCES_TEXT.placeholder).toBe(
       "Search hosts, clusters, databases…",
     );
+    // Said of what is picked there, as the Monitors field's hint is.
     expect(WorkspaceAffectedResources.getHint()).toBe(
-      "OneUptime AI investigates what an incident is linked to, and can fix it.",
+      "OneUptime AI investigates what you pick here, and can fix it.",
     );
   });
 
@@ -254,7 +257,7 @@ describe("the form's words", () => {
     jest.spyOn(ProductBrandingText, "getProductName").mockReturnValue("Acme");
 
     expect(WorkspaceAffectedResources.getHint()).toBe(
-      "Acme AI investigates what an incident is linked to, and can fix it.",
+      "Acme AI investigates what you pick here, and can fix it.",
     );
   });
 
@@ -1341,7 +1344,7 @@ describe("the confirmation's words", () => {
     );
   });
 
-  test("the alert it was declared from comes last, linked to itself", () => {
+  test("the alert it was declared from comes first, linked to itself", () => {
     expect(
       WorkspaceAffectedResources.getLinkedLine({
         linked: [API_HOST],
@@ -1351,7 +1354,7 @@ describe("the confirmation's words", () => {
         },
       })?.toString(),
     ).toBe(
-      "Linked to **api-1** (Host) and **[Alert ALT-3](https://oneuptime.test/dashboard/p/alerts/a)**.",
+      "Linked to **[Alert ALT-3](https://oneuptime.test/dashboard/p/alerts/a)** and **api-1** (Host).",
     );
     expect(
       WorkspaceAffectedResources.getLinkedLine({
@@ -1359,6 +1362,60 @@ describe("the confirmation's words", () => {
         alert: { label: "Alert ALT-3", link: null },
       })?.toString(),
     ).toBe("Linked to **Alert ALT-3**.");
+  });
+
+  test("a whole rack: the first five by name and how many more - one more is named, never 'and 1 more' - and the alert always", () => {
+    const hosts: Array<LinkedAffectedResource> = [];
+
+    for (let index: number = 1; index <= 8; index++) {
+      hosts.push({
+        kind: AiAffectedResourceKind.Host,
+        id: ObjectID.generate().toString(),
+        name: `rack-4-${index}`,
+      });
+    }
+
+    expect(WORKSPACE_LINKED_RESOURCES_NAMED).toBe(5);
+
+    expect(
+      WorkspaceAffectedResources.getLinkedLine({
+        linked: hosts.slice(0, 6),
+      })?.toString(),
+    ).toBe(
+      "Linked to **rack-4-1** (Host), **rack-4-2** (Host), **rack-4-3** (Host), **rack-4-4** (Host), **rack-4-5** (Host) and **rack-4-6** (Host).",
+    );
+
+    expect(
+      WorkspaceAffectedResources.getLinkedLine({
+        linked: hosts,
+        alert: { label: "Alert ALT-3", link: null },
+      })?.toString(),
+    ).toBe(
+      "Linked to **Alert ALT-3**, **rack-4-1** (Host), **rack-4-2** (Host), **rack-4-3** (Host), **rack-4-4** (Host), **rack-4-5** (Host) and 3 more.",
+    );
+
+    // The most a form links: still one line of five names.
+    const fifty: Array<LinkedAffectedResource> = [];
+
+    for (
+      let index: number = 0;
+      index < WORKSPACE_MAX_AFFECTED_RESOURCES;
+      index++
+    ) {
+      fifty.push({
+        kind: AiAffectedResourceKind.Service,
+        id: ObjectID.generate().toString(),
+        name: `service-${index}`,
+      });
+    }
+
+    const line: string =
+      WorkspaceAffectedResources.getLinkedLine({
+        linked: fifty,
+      })?.toString() || "";
+
+    expect(line.endsWith(" and 45 more.")).toBe(true);
+    expect(line.split("(Service)")).toHaveLength(6);
   });
 
   test("a name is text: Markdown in it, or a link, is never read as Markdown", () => {
@@ -1380,13 +1437,27 @@ describe("the confirmation's words", () => {
     expect(line).not.toContain("[click](");
   });
 
-  test("what was picked and not linked: one, many, none", () => {
-    expect(WorkspaceAffectedResources.getNotLinkedLine(0)).toBeNull();
-    expect(WorkspaceAffectedResources.getNotLinkedLine(1)).toBe(
-      "1 resource you picked was not linked: it was deleted or archived, or you may no longer view it.",
+  test("what was picked and not linked, of the incident: one, many, none", () => {
+    const subject: MarkdownText = mdText`**Incident INC-43**`;
+
+    expect(
+      WorkspaceAffectedResources.getNotLinkedLine({ subject, count: 0 }),
+    ).toBeNull();
+    expect(
+      WorkspaceAffectedResources.getNotLinkedLine({
+        subject,
+        count: 1,
+      })?.toString(),
+    ).toBe(
+      "**Incident INC-43** is not linked to 1 resource you picked: it was deleted or archived, or you may no longer view it.",
     );
-    expect(WorkspaceAffectedResources.getNotLinkedLine(3)).toBe(
-      "3 resources you picked were not linked: they were deleted or archived, or you may no longer view them.",
+    expect(
+      WorkspaceAffectedResources.getNotLinkedLine({
+        subject,
+        count: 3,
+      })?.toString(),
+    ).toBe(
+      "**Incident INC-43** is not linked to 3 resources you picked: they were deleted or archived, or you may no longer view them.",
     );
   });
 });

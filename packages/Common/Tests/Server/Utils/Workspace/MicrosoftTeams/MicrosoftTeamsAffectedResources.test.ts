@@ -197,6 +197,7 @@ describe("the input, as the card carries it", () => {
       MicrosoftTeamsAffectedResources.getInputElements({
         projectId: PROJECT_ID,
         initial: [],
+        isAiEnabled: true,
       }),
     ).toEqual([
       {
@@ -214,13 +215,26 @@ describe("the input, as the card carries it", () => {
       },
       {
         type: "TextBlock",
-        text: "OneUptime AI investigates what an incident is linked to, and can fix it.",
+        text: "OneUptime AI investigates what you pick here, and can fix it.",
         isSubtle: true,
         size: "Small",
         wrap: true,
         spacing: "Small",
       },
     ]);
+  });
+
+  test("a project with AI off: the input alone, with no line about AI", () => {
+    const elements: Array<JSONObject> =
+      MicrosoftTeamsAffectedResources.getInputElements({
+        projectId: PROJECT_ID,
+        initial: [],
+        isAiEnabled: false,
+      });
+
+    expect(elements).toHaveLength(1);
+    expect(elements[0]!["id"]).toBe("affectedResources");
+    expect(JSON.stringify(elements)).not.toContain("AI");
   });
 
   test("declared from an alert's channel, the alert's resources are picked already, each with its kind", () => {
@@ -234,6 +248,7 @@ describe("the input, as the card carries it", () => {
           name: "core-sw-01",
         },
       ],
+      isAiEnabled: true,
     })[0]!;
 
     expect(input["choices"]).toEqual([
@@ -251,6 +266,7 @@ describe("the input, as the card carries it", () => {
       MicrosoftTeamsAffectedResources.getInputElements({
         projectId: PROJECT_ID,
         initial: [],
+        isAiEnabled: true,
       })[0]!["value"],
     ).toBeUndefined();
   });

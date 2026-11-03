@@ -76,10 +76,12 @@ export default class SlackAffectedResources {
    * The form's Affected Resources field, opening with `initial` picked - the
    * resources of the alert a form is declared from. Optional, and searched
    * from the first moment it is opened: a project of a few resources sees
-   * them all at once, a big one types.
+   * them all at once, a big one types. Its hint says what OneUptime AI does
+   * with the picks, in a project whose AI is on.
    */
   public static getField(data: {
     initial: Array<LinkedAffectedResource>;
+    isAiEnabled: boolean;
   }): WorkspaceDropdownBlock {
     const initial: Array<DropdownOption> = data.initial
       .slice(0, WORKSPACE_MAX_AFFECTED_RESOURCES)
@@ -101,7 +103,9 @@ export default class SlackAffectedResources {
       }),
       multiSelect: true,
       optional: true,
-      description: WorkspaceAffectedResources.getHint(),
+      description: data.isAiEnabled
+        ? WorkspaceAffectedResources.getHint()
+        : undefined,
       optionsLoad: {
         minQueryLength: 0,
         maxSelectedItems: WORKSPACE_MAX_AFFECTED_RESOURCES,

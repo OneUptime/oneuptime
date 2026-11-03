@@ -91,6 +91,13 @@ export const WORKSPACE_MAX_AFFECTED_RESOURCES: number = 50;
  */
 export const WORKSPACE_AFFECTED_RESOURCE_SEARCH_LIMIT_PER_KIND: number = 15;
 
+/*
+ * How many resources a confirmation names: it is posted for the whole
+ * channel, so a declaration of a whole rack says the first few and how
+ * many more - the incident lists them all.
+ */
+export const WORKSPACE_LINKED_RESOURCES_NAMED: number = 5;
+
 // The separator of a pick's value: "<kind>:<id>".
 const VALUE_SEPARATOR: string = ":";
 
@@ -254,12 +261,15 @@ export default class WorkspaceAffectedResources {
   }
 
   /*
-   * Under the Affected Resources field: why it is there. OneUptime AI
-   * looks into what an incident is linked to, and fixes it where fixes are
-   * on - which is not every project's, so it says "can".
+   * Under the Affected Resources field, in a project whose AI is on: why
+   * it is there. OneUptime AI looks into what an incident is linked to,
+   * and fixes it where fixes are on - which is not every project's, so it
+   * says "can". Said like the Monitors field's hint, of what is picked
+   * there. A project with AI off gets no hint: the field's name says what
+   * it is, and AI does nothing with it there.
    */
   public static getHint(): string {
-    return `${ProductBrandingText.getProductName()} AI investigates what an incident is linked to, and can fix it.`;
+    return `${ProductBrandingText.getProductName()} AI investigates what you pick here, and can fix it.`;
   }
 
   /*
@@ -653,19 +663,18 @@ export default class WorkspaceAffectedResources {
   }
 
   /*
-   * The confirmation's line: what the new incident is linked to - "Linked
-   * to **api-1** (Host), **prod** (Kubernetes Cluster) and **[Alert
-   * ALT-3](link)**." - or null when it is linked to nothing.
+   * The confirmation's line: what the new incident is linked to - the
+   * alert it was declared from first, then the resources, the first
+   * WORKSPACE_LINKED_RESOURCES_NAMED of them by name: "Linked to
+   * **[Alert ALT-3](link)**, **api-1** (Host) and **prod** (Kubernetes
+   * Cluster).", "... **db-2** (Database) and 7 more." - or null when it is
+   * linked to nothing.
    */
   public static getLinkedLine(data: {
     linked: Array<LinkedAffectedResource>;
     alert?: WorkspaceRecordName | null | undefined;
   }): MarkdownText | null {
-    const items: Array<MarkdownText> = data.linked.map(
-      (resource: LinkedAffectedResource): MarkdownText => {
-        return this.describe(resource);
-      },
-    );
+    const items: Array<MarkdownText> = [];
 
     if (data.alert) {
       items.push(
@@ -673,6 +682,22 @@ export default class WorkspaceAffectedResources {
           ? mdText`**[${data.alert.label}](${data.alert.link})**`
           : mdText`**${data.alert.label}**`,
       );
+    }
+
+    // One past the cap is named too: "and 1 more" would hide just that name.
+    const named: Array<LinkedAffectedResource> =
+      data.linked.length > WORKSPACE_LINKED_RESOURCES_NAMED + 1
+        ? data.linked.slice(0, WORKSPACE_LINKED_RESOURCES_NAMED)
+        : data.linked;
+
+    for (const resource of named) {
+      items.push(this.describe(resource));
+    }
+
+    const moreCount: number = data.linked.length - named.length;
+
+    if (moreCount > 0) {
+      items.push(mdText`${String(moreCount)} more`);
     }
 
     if (items.length === 0) {
@@ -683,17 +708,23 @@ export default class WorkspaceAffectedResources {
   }
 
   /*
-   * The confirmation's line for picks that were not linked, or null when
-   * every pick was. Text: nothing is known of a pick that cannot be read.
+   * The sentence for picks that were not linked, of `subject` - the
+   * incident: "**[Incident INC-43](link)** is not linked to 2 resources
+   * you picked: they were deleted or archived, or you may no longer view
+   * them." - or null when every pick was. Nothing is known of a pick that
+   * cannot be read, so it names none.
    */
-  public static getNotLinkedLine(count: number): string | null {
-    if (count <= 0) {
+  public static getNotLinkedLine(data: {
+    subject: MarkdownText;
+    count: number;
+  }): MarkdownText | null {
+    if (data.count <= 0) {
       return null;
     }
 
-    return count === 1
-      ? "1 resource you picked was not linked: it was deleted or archived, or you may no longer view it."
-      : `${count} resources you picked were not linked: they were deleted or archived, or you may no longer view them.`;
+    return data.count === 1
+      ? mdText`${data.subject} is not linked to 1 resource you picked: it was deleted or archived, or you may no longer view it.`
+      : mdText`${data.subject} is not linked to ${String(data.count)} resources you picked: they were deleted or archived, or you may no longer view them.`;
   }
 
   private static toMatches(

@@ -3,6 +3,7 @@ import { WorkspaceNoteResourceType } from "../../WorkspaceReactionNote";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
 import ObjectID from "../../../../../Types/ObjectID";
 import IncidentService from "../../../../Services/IncidentService";
+import AIService from "../../../../Services/AIService";
 import { ExpressRequest, ExpressResponse } from "../../../Express";
 import SlackUtil from "../Slack";
 import SlackActionType from "./ActionTypes";
@@ -46,6 +47,7 @@ import WorkspaceMemberActions, {
 import OnCallPersonPageAnswer from "../../../OnCall/OnCallPersonPageAnswer";
 import SlackActionAnswer, { SlackAnswerPlace } from "./Answer";
 import WorkspaceActionAnswers, {
+  WorkspaceAnswer,
   WorkspaceLatePress,
 } from "../../WorkspaceActionAnswers";
 import IncidentStateTimeline from "../../../../../Models/DatabaseModels/IncidentStateTimeline";
@@ -314,8 +316,11 @@ export default class SlackIncidentActions {
           ? alertLink
           : null;
 
-      // A private alert's incident is private, as the Dashboard declares it.
-      if (linkedAlert?.isPrivate) {
+      /*
+       * A private alert's incident is private, as the Dashboard declares it
+       * - linked or not: it starts from the alert's title and resources.
+       */
+      if (alertLink?.isPrivate) {
         incident.isPrivate = true;
       }
 
@@ -394,6 +399,7 @@ export default class SlackIncidentActions {
       // What was picked and not linked: for the person who picked it only.
       await SlackIncidentActions.answerNotLinked({
         slackRequest: slackRequest,
+        incident: createdIncident,
         notLinkedCount: toLink.notLinkedCount,
         alertNotLinked:
           alertLink && !WorkspaceIncidentFromAlert.isLinked(alertLink)
@@ -407,34 +413,25 @@ export default class SlackIncidentActions {
    * Tells the person who declared the incident what they picked and is not
    * linked - a resource deleted or archived since they picked it, or no
    * longer one they may view, and the alert of the channel when they may
-   * not link it - where they declared it, in a message only they see. The
-   * incident is declared all the same. Nothing when everything was linked.
+   * not link it - where they declared it, in a message only they see
+   * (WorkspaceIncidentFromAlert.getNotLinkedAnswer). The incident is
+   * declared all the same. Nothing when everything was linked.
    */
   private static async answerNotLinked(data: {
     slackRequest: SlackRequest;
+    incident: Incident;
     notLinkedCount: number;
     alertNotLinked: WorkspaceAlertNotLinked | null;
   }): Promise<void> {
-    const lines: Array<MarkdownText> = [];
-    const texts: Array<string> = [];
-    const notLinkedLine: string | null =
-      WorkspaceAffectedResources.getNotLinkedLine(data.notLinkedCount);
+    const answer: WorkspaceAnswer | null =
+      await WorkspaceIncidentFromAlert.readNotLinkedAnswer({
+        projectId: data.slackRequest.projectId!,
+        incident: data.incident,
+        notLinkedCount: data.notLinkedCount,
+        alertNotLinked: data.alertNotLinked,
+      });
 
-    if (notLinkedLine) {
-      lines.push(mdText`${notLinkedLine}`);
-      texts.push(notLinkedLine);
-    }
-
-    if (data.alertNotLinked) {
-      lines.push(
-        WorkspaceIncidentFromAlert.getNotLinkedLine(data.alertNotLinked),
-      );
-      texts.push(
-        WorkspaceIncidentFromAlert.getNotLinkedText(data.alertNotLinked),
-      );
-    }
-
-    if (lines.length === 0) {
+    if (!answer) {
       return;
     }
 
@@ -446,13 +443,7 @@ export default class SlackIncidentActions {
       return;
     }
 
-    await SlackActionAnswer.answer({
-      place: place,
-      answer: {
-        markdown: FeedMarkdown.join(lines, "\n").toString(),
-        text: texts.join(" "),
-      },
-    });
+    await SlackActionAnswer.answer({ place: place, answer: answer });
   }
 
   // Declaring an incident, as a refusal names it: "... to declare an incident".
@@ -543,6 +534,7 @@ export default class SlackIncidentActions {
       labelsForProject,
       declaringAlert,
       isAffectedResourcesOffered,
+      isAiEnabled,
     ]: [
       Array<IncidentSeverity>,
       Array<Monitor>,
@@ -550,6 +542,7 @@ export default class SlackIncidentActions {
       Array<OnCallDutyPolicy>,
       Array<Label>,
       WorkspaceDeclaringAlert | null,
+      boolean,
       boolean,
     ] = await Promise.all([
       WorkspaceActionAuthorization.findReadable({
@@ -630,6 +623,8 @@ export default class SlackIncidentActions {
         projectId: projectId,
         props: props,
       }),
+      // Whether Affected Resources' hint may speak of OneUptime AI.
+      AIService.isProjectAIEnabled(projectId),
     ]);
 
     // The alert it is declared from, said first.
@@ -692,6 +687,7 @@ export default class SlackIncidentActions {
       blocks.push(
         SlackAffectedResources.getField({
           initial: declaringAlert?.resources || [],
+          isAiEnabled: isAiEnabled,
         }),
       );
     }
