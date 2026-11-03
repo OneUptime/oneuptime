@@ -19,5 +19,9 @@ read right to left for Persian. Every record in them is synthetic.
 | `before-missing-finding-1280.png`, `after-missing-finding-1280.png` | A Missing Metrics finding: Without changing code now sits under Fix with AI. |
 | `requests-finding-1280.png`, `requests-finding-1280-dark.png` | The new finding, light and dark. |
 | `requests-finding-390-fa.png` | The new finding on a phone, in Persian. |
-| `collector-step-1280.png`, `collector-step-1280-de.png` | The collector step's dialog, in English and German. |
-| `collector-step-390-fa-dark.png` | The dialog on a phone, in Persian, dark. |
+| `collector-step-1280.png`, `collector-step-1280-de.png` | The collector step's dialog, in English and German, before the UI review. |
+| `collector-step-390-fa-dark.png` | The dialog on a phone, in Persian, dark, before the UI review. |
+| `review-collector-step-1280.png` | The dialog after the UI review: a connector to add, the collector's names in its sentences drawn as code. Taken in a tall window, so the whole dialog shows. |
+| `review-collector-step-1280-de-dark.png` | The same, in German, dark. |
+| `review-collector-step-390-fa.png` | The same on a phone, in Persian: the names set apart from the Persian words. |
+| `review-panel-1280.png` | The finding's rail after the UI review: Fix with AI, then Without changing code with its document icon. |
