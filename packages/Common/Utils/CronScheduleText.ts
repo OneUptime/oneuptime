@@ -9,7 +9,7 @@ import {
   ComposedValue,
   translationKey,
   Translator,
-} from "../UI/Utils/TranslateTemplate";
+} from "../Types/Translator";
 
 /*
  * A cron schedule in words, in a reader's language: "Alle 5 Minuten", "Jede
@@ -18,7 +18,7 @@ import {
  * CronTab says what shape a schedule has (getScheduleShape) and words it in
  * English (getHumanReadableDescription). Here each shape's sentence is looked
  * up whole in the reader's locale, the way every other sentence is
- * (Common/UI/Utils/TranslateTemplate), and the names in it - weekdays, the
+ * (Common/Types/Translator), and the names in it - weekdays, the
  * days of a month - are written the way the sentence's language writes them,
  * from the browser's Intl data, as dates are (Common/Types/DateLanguage). A
  * sentence the reader's language has not worded yet reads in English, names

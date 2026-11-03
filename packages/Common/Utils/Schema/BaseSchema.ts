@@ -1,7 +1,6 @@
 import { z as ZodTypes } from "zod";
 import z, { ZodSchema } from "./Zod";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
-import logger from "../../Server/Utils/Logger";
 
 export type BaseSchemaType = ZodSchema;
 
@@ -364,19 +363,6 @@ export abstract class BaseSchema {
 
     // Fallback
     return { createdAt: true };
-  }
-
-  /**
-   * Log schema generation debug information
-   */
-  protected static logSchemaGeneration(
-    schemaType: string,
-    tableName: string,
-    shape: ShapeRecord,
-  ): void {
-    logger.debug(
-      `${schemaType} schema for ${tableName} created with shape keys: ${Object.keys(shape).join(", ")}`,
-    );
   }
 
   /**

@@ -60,7 +60,7 @@ Kunngjøringer beskrives på [Abonnenter og kunngjøringer](/docs/status-pages/s
 | **Regler**    | **Eierregler**, **Runbook-regler**, **Etikettregler**, **Påminnelsesregler**.                                                  |
 | **Innstillinger** | **Hendelsesstatus**, **Hendelsesmaler**, **Notatmaler**, **Egendefinerte felt**, **Målinger**, **Kalenderinnstillinger**, **Nummerering**.       |
 
-**Oversikt** og **Kalender** er åpne; **Arbeidsområde**, **Regler**, **Innstillinger** og **Utvikler** starter sammenslått, og en seksjon åpner seg av seg selv når du er på en av sidene dens. **Utvikler** rommer **Terraform**, **API** og **AI-assistenter**, for å styre vedlikehold fra kode. Alt om vedlikehold ligger her, ikke i **Prosjektinnstillinger**.
+**Oversikt** og **Kalender** er åpne; **Arbeidsområde**, **Regler**, **Innstillinger** og **Utvikler** starter sammenslått, og en seksjon åpner seg av seg selv når du er på en av sidene dens. **Utvikler** rommer **Terraform**, **API**, **CLI** og **AI-assistenter**, for å styre vedlikehold fra kode. Alt om vedlikehold ligger her, ikke i **Prosjektinnstillinger**.
 
 Listen viser **Nummer for planlagt vedlikehold**, **Tittel**, **Nåværende tilstand**, **Berørte ressurser**, **Vist på statussiden**, **Begynner den**, **Varighet**, **Slutter den**, **Etiketter** og **Eiere**. Velg hendelser for å handle på flere samtidig: **Merk som {{state}}**, **Endre tilstand**, **Tildel til meg**, **Legg til eier**, **Fjern eier**, **Legg til etiketter**, **Fjern etiketter** eller **Slett**. Menyen **⋯** på slutten av raden til hver hendelse gjør det samme for bare den hendelsen: stegene **Merk som {{state}}** så lenge hendelsen kan ta dem, **Endre tilstand**, **Tildel til meg** til du eier den, og **Legg til eier**.
 
@@ -87,7 +87,7 @@ Mens en hendelse pågår, behandler OneUptime avbruddet den planlegger, som forv
 | **Team** | **Eiere** |
 | **Varsler**        | **Varsellogger** og **AI-logger**: hver melding som er sendt om hendelsen, og hva AI har gjort for den |
 | **Notater**       | **Private notater** og **Offentlige notater**                                                  |
-| **Utvikler**      | **Terraform**, **API** og **AI-assistenter**: hendelsen styrt fra kode                         |
+| **Utvikler**      | **Terraform**, **API**, **CLI** og **AI-assistenter**: hendelsen styrt fra kode                |
 | **Avansert**      | **Egendefinerte felt**, **Innstillinger**, **Revisjonslogger**, **Slett hendelse**             |
 
 **Oversikt**, **Team** og **Notater** er åpne; de andre seksjonene forblir sammenslått til du klikker på dem.

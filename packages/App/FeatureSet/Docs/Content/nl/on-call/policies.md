@@ -46,7 +46,7 @@ Open een beleid vanuit de lijst. Het zijmenu ervan bevat alles over het beleid:
 | --- | --- |
 | **Basis** | **Overzicht**, **Escalatieregels** en **Eigenaren** |
 | **Logboeken** | **Uitvoeringslogboeken** en **Meldingslogboeken** |
-| **Ontwikkelaars** | **Terraform**, **API** en **AI-assistenten** |
+| **Ontwikkelaars** | **Terraform**, **API**, **CLI** en **AI-assistenten** |
 | **Geavanceerd** | **Gebruikersoverschrijvingen**, **Aangepaste velden**, **Instellingen**, **Auditlogboeken** en **Beleid verwijderen** |
 
 **Basis** staat open; de andere secties beginnen ingeklapt tot je erop klikt.

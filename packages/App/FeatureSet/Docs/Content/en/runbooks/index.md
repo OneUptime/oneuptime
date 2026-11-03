@@ -108,7 +108,7 @@ A runbook's own side menu groups its pages like this. Only **Basic** starts open
 | **Logs** | **Executions** |
 | **Owners** | **Owners** |
 | **Settings** | **Triggers**, **Variables**, **Settings** |
-| **Developer** | **Terraform**, **API**, **AI Assistants** |
+| **Developer** | **Terraform**, **API**, **CLI**, **AI Assistants** |
 | **Advanced** | **Audit Logs**, **Delete Runbook** |
 
 ## A worked example

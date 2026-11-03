@@ -46,7 +46,7 @@ Abra uma política a partir da lista. O menu lateral dela reúne tudo sobre ela:
 | --- | --- |
 | **Básico** | **Visão geral**, **Regras de escalonamento** e **Proprietários** |
 | **Registros** | **Registros de execução** e **Logs de notificação** |
-| **Desenvolvedores** | **Terraform**, **API** e **Assistentes de IA** |
+| **Desenvolvedores** | **Terraform**, **API**, **CLI** e **Assistentes de IA** |
 | **Avançado** | **Substituições de usuário**, **Campos personalizados**, **Configurações**, **Registros de auditoria** e **Excluir política** |
 
 **Básico** fica aberta; as outras seções começam recolhidas até você clicar nelas.

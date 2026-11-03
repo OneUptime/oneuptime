@@ -60,7 +60,7 @@ Aprite **Manutenzione programmata** dal menu **Prodotti** nella barra superiore.
 | **Regole**    | **Regole del proprietario**, **Regole di runbook**, **Regole etichette**, **Regole dei promemoria**.                               |
 | **Impostazioni** | **Stato evento**, **Modelli di eventi**, **Modelli di note**, **Campi personalizzati**, **Misurazioni**, **Impostazioni del calendario**, **Numerazione**. |
 
-**Panoramica** e **Calendario** sono aperte; **Area di lavoro**, **Regole**, **Impostazioni** e **Sviluppatori** partono chiuse, e una sezione si apre da sola quando siete su una delle sue pagine. **Sviluppatori** contiene **Terraform**, **API** e **Assistenti IA**, per gestire la manutenzione dal codice. Tutto ciò che riguarda la manutenzione si trova qui, non nelle **Impostazioni del progetto**.
+**Panoramica** e **Calendario** sono aperte; **Area di lavoro**, **Regole**, **Impostazioni** e **Sviluppatori** partono chiuse, e una sezione si apre da sola quando siete su una delle sue pagine. **Sviluppatori** contiene **Terraform**, **API**, **CLI** e **Assistenti IA**, per gestire la manutenzione dal codice. Tutto ciò che riguarda la manutenzione si trova qui, non nelle **Impostazioni del progetto**.
 
 L'elenco mostra **Numero della manutenzione programmata**, **Titolo**, **Stato attuale**, **Risorse interessate**, **Mostrato sulla pagina di stato**, **Inizia il**, **Durata**, **Termina il**, **Etichette** e **Proprietari**. Selezionate degli eventi per agire su più eventi alla volta: **Segna come {{state}}**, **Cambia stato**, **Assegna a me**, **Aggiungi proprietario**, **Rimuovi proprietario**, **Aggiungi etichette**, **Rimuovi etichette** o **Elimina**. Il menu **⋯** in fondo alla riga di ogni evento fa lo stesso per quel solo evento: i passi **Segna come {{state}}** finché l'evento può farli, **Cambia stato**, **Assegna a me** finché non ne siete proprietari e **Aggiungi proprietario**.
 
@@ -87,7 +87,7 @@ Aprite un evento dall'elenco per vedere le sue pagine. Il suo menu laterale cont
 | **Team** | **Proprietari** |
 | **Notifiche**      | **Registri di notifica** e **Registri IA**: ogni messaggio inviato sull'evento, e ciò che l'IA ha fatto per lui |
 | **Note**          | **Note private** e **Note pubbliche**                                                          |
-| **Sviluppatori**  | **Terraform**, **API** e **Assistenti IA**: l'evento gestito dal codice                        |
+| **Sviluppatori**  | **Terraform**, **API**, **CLI** e **Assistenti IA**: l'evento gestito dal codice               |
 | **Avanzato**      | **Campi personalizzati**, **Impostazioni**, **Registri di audit**, **Elimina evento**          |
 
 **Panoramica**, **Team** e **Note** sono aperte; le altre sezioni restano chiuse finché non ci fate clic.

@@ -60,7 +60,7 @@ Meddelanden beskrivs på [Prenumeranter och meddelanden](/docs/status-pages/subs
 | **Regler**    | **Ägarregler**, **Runbook-regler**, **Etikettregler**, **Påminnelseregler**.                                                  |
 | **Inställningar** | **Händelsestatus**, **Händelsemallar**, **Anteckningsmallar**, **Anpassade fält**, **Mätningar**, **Kalenderinställningar**, **Numrering**.      |
 
-**Översikt** och **Kalender** är öppna; **Arbetsyta**, **Regler**, **Inställningar** och **Utvecklare** börjar hopfällda, och ett avsnitt öppnas av sig självt när du är på en av dess sidor. **Utvecklare** rymmer **Terraform**, **API** och **AI-assistenter**, för att styra underhåll från kod. Allt om underhåll finns här, inte i **Projektinställningar**.
+**Översikt** och **Kalender** är öppna; **Arbetsyta**, **Regler**, **Inställningar** och **Utvecklare** börjar hopfällda, och ett avsnitt öppnas av sig självt när du är på en av dess sidor. **Utvecklare** rymmer **Terraform**, **API**, **CLI** och **AI-assistenter**, för att styra underhåll från kod. Allt om underhåll finns här, inte i **Projektinställningar**.
 
 Listan visar **Nummer för schemalagt underhåll**, **Titel**, **Nuvarande tillstånd**, **Berörda resurser**, **Visas på statussida**, **Börjar den**, **Varaktighet**, **Slutar den**, **Etiketter** och **Ägare**. Markera händelser för att hantera flera samtidigt: **Markera som {{state}}**, **Ändra tillstånd**, **Tilldela mig**, **Lägg till ägare**, **Ta bort ägare**, **Lägg till etiketter**, **Ta bort etiketter** eller **Ta bort**. Menyn **⋯** i slutet av varje händelses rad gör samma sak för just den händelsen: stegen **Markera som {{state}}** så länge händelsen kan ta dem, **Ändra tillstånd**, **Tilldela mig** tills du äger den, och **Lägg till ägare**.
 
@@ -87,7 +87,7 @@ Medan en händelse pågår behandlar OneUptime avbrottet den planerar som vänta
 | **Team** | **Ägare** |
 | **Aviseringar**        | **Aviseringsloggar** och **AI-loggar**: varje meddelande som skickats om händelsen, och vad AI har gjort för den |
 | **Anteckningar**  | **Privata anteckningar** och **Offentliga anteckningar**                                       |
-| **Utvecklare**    | **Terraform**, **API** och **AI-assistenter**: händelsen styrd från kod                        |
+| **Utvecklare**    | **Terraform**, **API**, **CLI** och **AI-assistenter**: händelsen styrd från kod               |
 | **Avancerad**     | **Anpassade fält**, **Inställningar**, **Granskningsloggar**, **Ta bort händelse**             |
 
 **Översikt**, **Team** och **Anteckningar** är öppna; de andra avsnitten förblir hopfällda tills du klickar på dem.

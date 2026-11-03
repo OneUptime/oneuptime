@@ -88,7 +88,7 @@ Open **On-Call Duty** from the **Products** menu in the top bar. It opens on **O
 | **Reports** | **User On Call Time**: how long each person was on call |
 | **Workspace** | **Slack** and **Microsoft Teams**: rules that post on-call events to a channel |
 | **Settings** | **Custom Fields**, **Label Rules** and **Owner Rules** |
-| **Developer** | **Terraform**, **API** and **AI Assistants**: on-call set up from code |
+| **Developer** | **Terraform**, **API**, **CLI** and **AI Assistants**: on-call set up from code |
 
 **Policies**, **Schedules** and **Incoming Calls** are open; the other sections start folded, and a section opens by itself when you are on one of its pages. **Workspace** lists the chat tools the project has connected, or **Connect Slack or Teams** when it has none.
 

@@ -2,6 +2,23 @@
 #
 # OneUptime Runner Dockerfile
 #
+# Stage graph (production):
+#
+#   base   Node.js, the tools runbook steps reach for, kubectl
+#     -> build  installs, type-checks and prunes the Runner and Common
+#     \-> (last) copies only /usr/src out of build
+#
+# The Runner imports a part of Common, but Common's package.json lists every
+# package any part of OneUptime needs: installed in the image that ships, that
+# was 810 MB of packages (the Dashboard's diagrams and charts, React,
+# Playwright, Twilio, ...) and Common's 181 MB of tests, for a Runner that
+# loads a fraction of them, and the build toolchain stayed in the layer that
+# installed it even after it was purged. Now the build stage installs,
+# type-checks and prunes Common to the packages the Runner reaches
+# (Scripts/Docker/PruneUnreachablePackages.js), the Runner's own development
+# packages go, and the image copies /usr/src out of it. The development image
+# (ENVIRONMENT=development) is the base stage with everything installed, as
+# before. Tests/Ops/ContainerImageHardening.test.js holds the stages to this.
 
 # Floating on the 26 major so each rebuild picks up the latest Node security
 # patches without manual bumps. Lockfiles still keep JS deps reproducible.
@@ -14,7 +31,7 @@
 # trixie is the Debian release node:26 is built on, so package names are the
 # same; the command-line tools runbook steps commonly reach for are installed
 # explicitly below.
-FROM public.ecr.aws/docker/library/node:26-trixie-slim
+FROM public.ecr.aws/docker/library/node:26-trixie-slim AS base
 RUN mkdir /tmp/npm &&  chmod 2777 /tmp/npm && chown 1000:1000 /tmp/npm && npm config set cache /tmp/npm --global
 
 RUN npm config set fetch-retries 5
@@ -59,17 +76,14 @@ COPY ./SslCertificates /usr/local/share/ca-certificates
 #   - The command-line tools the full node image used to provide and that
 #     Bash runbook steps and remediation commands commonly use: curl, wget,
 #     openssh-client, procps (ps, top, kill), unzip, xz-utils, bzip2.
-#   - python3/make/g++ as a node-gyp safety net for native npm modules,
-#     purged again after the npm installs below. `isolated-vm` (the sandbox
-#     used to run JavaScript runbook steps) ships Node 26 prebuilds, so the
-#     toolchain normally goes unused; it only kicks in if a prebuild is
-#     missing.
+# The build toolchain for native npm modules is not here: the build stage
+# (and the development image) install it for the npm installs, and the image
+# that ships never has it.
 RUN apt-get update \
   && apt-get upgrade -y \
   && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     bash ca-certificates curl git tini \
     wget openssh-client procps unzip xz-utils bzip2 \
-    python3 make g++ \
   && update-ca-certificates \
   && rm -rf /var/lib/apt/lists/*
 
@@ -120,12 +134,27 @@ RUN set -euo pipefail \
 
 RUN mkdir -p /usr/src
 
+ENV PRODUCTION=true
+
+# Reap zombie children (e.g. `bash -c` processes the agent spawns).
+ENTRYPOINT ["/usr/bin/tini", "--"]
+
+{{ if eq .Env.ENVIRONMENT "development" }}
+# The development image installs everything where it runs, as it always has:
+# python3/make/g++ as a node-gyp safety net for native npm modules, purged
+# again in the layer that installs the Runner's own packages. `isolated-vm`
+# (the sandbox used to run JavaScript runbook steps) ships Node 26 prebuilds,
+# so the toolchain normally goes unused; it only kicks in if a prebuild is
+# missing.
+RUN apt-get update \
+  && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    python3 make g++ \
+  && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /usr/src/Common
 COPY ./packages/Common/package*.json /usr/src/Common/
 RUN --mount=type=cache,target=/tmp/npm npm ci --prefer-offline
 COPY ./packages/Common /usr/src/Common
-
-ENV PRODUCTION=true
 
 WORKDIR /usr/src/app
 COPY ./packages/Runner/package*.json /usr/src/app/
@@ -134,21 +163,62 @@ RUN --mount=type=cache,target=/tmp/npm npm ci --prefer-offline \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
-# Reap zombie children (e.g. `bash -c` processes the agent spawns).
-ENTRYPOINT ["/usr/bin/tini", "--"]
-
-{{ if eq .Env.ENVIRONMENT "development" }}
 #Run the app
 CMD [ "npm", "run", "dev" ]
 {{ else }}
+# ---------------------------------------------------------------------------
+# build: installs the Runner's packages and Common's, type-checks the Runner
+# and prunes both. None of this stage's layers ship: the last stage copies
+# /usr/src out of it.
+# ---------------------------------------------------------------------------
+FROM base AS build
+
+# python3/make/g++ as a node-gyp safety net for native npm modules.
+# `isolated-vm` (the sandbox used to run JavaScript runbook steps) and ssh2
+# ship Node 26 prebuilds, so the toolchain normally goes unused; it only kicks
+# in if a prebuild is missing. It stays in this stage.
+RUN apt-get update \
+  && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    python3 make g++ \
+  && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /usr/src/Common
+COPY ./packages/Common/package*.json /usr/src/Common/
+RUN --mount=type=cache,target=/tmp/npm npm ci --prefer-offline
+COPY ./packages/Common /usr/src/Common
+
+WORKDIR /usr/src/app
+COPY ./packages/Runner/package*.json /usr/src/app/
+RUN --mount=type=cache,target=/tmp/npm npm ci --prefer-offline
+
 # Copy app source. --chown sets node (UID 1000) ownership at copy time so we
 # avoid a slow recursive `chown -R` over node_modules; deps stay root-owned and
-# world-readable.
+# world-readable. The last stage's copy keeps both owners.
 COPY --chown=1000:1000 ./packages/Runner /usr/src/app
 # Bundle app source. This type-checks the package at build time, which is the
 # precondition for TS_NODE_TRANSPILE_ONLY below: without it, disabling the
 # boot-time check would leave this service's types verified nowhere at all.
 RUN npm run compile
+
+# Leave in /usr/src only what the Runner runs: Common pruned to the packages
+# its imports reach (see the script's header), the Runner without its own
+# development packages (ts-node keeps TypeScript, which it runs on), and
+# neither package's tests nor the type-check's output (ts-node runs
+# Index.ts). npm's download cache stays behind in this stage.
+COPY ./Scripts/Docker/PruneUnreachablePackages.js /tmp/PruneUnreachablePackages.js
+RUN node /tmp/PruneUnreachablePackages.js --entry /usr/src/app/Index.ts --package /usr/src/Common \
+    && npm prune --omit=dev --offline --no-audit --no-fund \
+    && node -e "require('ts-node'); require('typescript')" \
+    && rm -rf /tmp/PruneUnreachablePackages.js /usr/src/Common/Tests /usr/src/app/build /usr/src/app/Tests
+
+# ---------------------------------------------------------------------------
+# The image that ships: the base, and the Runner as the build stage left it.
+# ---------------------------------------------------------------------------
+FROM base
+
+COPY --from=build /usr/src /usr/src
+
+WORKDIR /usr/src/app
 USER node
 # Per-build metadata last so the npm ci layers above stay cacheable across commits.
 ARG GIT_SHA

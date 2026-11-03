@@ -19,7 +19,7 @@ import {
   createTranslator,
   translationKey,
   Translator,
-} from "../../UI/Utils/TranslateTemplate";
+} from "../../Types/Translator";
 import UptimeUtil from "../Uptime/UptimeUtil";
 
 /*

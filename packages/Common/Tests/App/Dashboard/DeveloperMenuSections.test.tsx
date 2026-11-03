@@ -328,7 +328,7 @@ describe("every resource's view menu has a Developer section", () => {
       },
     ),
   )(
-    "%s: collapsed, with its own resource's Terraform, API and AI Assistants pages",
+    "%s: collapsed, with its own resource's Terraform, API, CLI and AI Assistants pages",
     async (_name: string, menu: MenuModule) => {
       await renderMenuModuleAt(menu, PROJECT_HOME);
 

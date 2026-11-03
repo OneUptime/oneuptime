@@ -93,7 +93,7 @@ Når du har åpnet en statusside, er den egne venstremenyen delt inn i ti seksjo
 | **Merkevare** | **Merkevare** (logo, tittel, favicon, lenker, bunntekst, farger og språk, på én side), **Egendefinerte domener**, **HTML, CSS og JavaScript**. |
 | **Sikkerhet** | **Tilgang** (hvem som kan se siden), **Private brukere**, **SSO**, **OIDC**, **SCIM**. |
 | **KI** | **MCP**. |
-| **Utvikler** | **Terraform**, **API**, **AI-assistenter**: siden som kode. |
+| **Utvikler** | **Terraform**, **API**, **CLI**, **AI-assistenter**: siden som kode. |
 | **Avansert** | **Innebygd status**, **Rapporter**, **Egendefinerte felt**, **Avanserte innstillinger**, **Revisjonslogger**, **Slett statusside**. |
 
 Bare **Grunnleggende** og **Ressurser**, det siden viser, starter åpne. Alle andre seksjoner starter sammenslått, slik som de lite brukte seksjonene i alle OneUptimes menyer: klikk på tittelen til en seksjon for å vise sidene i den. En seksjon åpner seg selv når du er på en av sidene i den, for eksempel **Avanserte innstillinger** eller **E-postabonnenter**.

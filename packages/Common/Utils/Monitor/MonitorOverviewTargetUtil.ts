@@ -4,7 +4,7 @@ import MonitorSteps from "../../Types/Monitor/MonitorSteps";
 import MonitorType from "../../Types/Monitor/MonitorType";
 import { DEFAULT_NTP_PORT } from "../../Types/Monitor/NtpMonitor/NtpMonitorUtil";
 import HostAddressUtil from "../HostAddressUtil";
-import { Translator } from "../../UI/Utils/TranslateTemplate";
+import { Translator } from "../../Types/Translator";
 
 /*
  * The one-line "what does this monitor watch" under the hero headline:

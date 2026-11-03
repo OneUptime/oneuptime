@@ -88,7 +88,7 @@ Den første retningslinjen i et prosjekt kan gjøre dette allerede når den oppr
 | **Rapporter** | **Brukerens vakttid**: hvor lenge hver person hadde vakt |
 | **Arbeidsområde** | **Slack** og **Microsoft Teams**: regler som legger ut vakthendelser i en kanal |
 | **Innstillinger** | **Egendefinerte felt**, **Etikettregler** og **Eierregler** |
-| **Utvikler** | **Terraform**, **API** og **AI-assistenter**: vakt satt opp fra kode |
+| **Utvikler** | **Terraform**, **API**, **CLI** og **AI-assistenter**: vakt satt opp fra kode |
 
 **Retningslinjer**, **Tidsplaner** og **Innkommende anrop** er åpne; de andre seksjonene starter sammenslått, og en seksjon åpner seg selv når du er på en av sidene i den. **Arbeidsområde** viser chatverktøyene prosjektet har koblet til, eller **Koble til Slack eller Teams** når det ikke har noen.
 
