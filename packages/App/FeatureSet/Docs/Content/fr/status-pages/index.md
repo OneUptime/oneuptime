@@ -118,7 +118,7 @@ La page publique est une application à part, avec un petit ensemble de routes :
 - `/subscribe/email`, `/subscribe/sms`, `/subscribe/slack`, `/subscribe/microsoft-teams`, `/subscribe/webhooks`.
 - `/confirm-subscription/:id`, `/update-subscription/:token` et `/unsubscribe/:token` — les liens des messages que reçoivent les abonnés.
 - `/rss` — le flux.
-- `/login`, `/sso` et `/master-password` — utiles uniquement sur une page privée.
+- `/login`, `/sso`, `/magic-link`, `/magic-link-login/:token` et `/master-password` — utiles uniquement sur une page privée.
 
 La barre de navigation du haut affiche toujours **Aperçu** ; le reste n'apparaît que s'il est activé. **Incidents**, **Annonces** et **Événements planifiés** ont chacun besoin de leur interrupteur ; **S'abonner** a besoin à la fois de **Afficher la page des abonnés** et d'au moins un canal d'abonnement activé. Une page privée reçoit aussi un élément **Se déconnecter**.
 
@@ -194,6 +194,8 @@ Faire un choix demande une confirmation, indique ce qui change pour les visiteur
 Ajoutez les personnes autorisées à se connecter sur **Pages de statut → votre page → Sécurité → Utilisateurs privés**. Il existe une action **Ajouter en masse** — collez une liste d'adresses e-mail et chacune reçoit un e-mail d'invitation. Les utilisateurs privés ont leur propre parcours « mot de passe oublié » et « réinitialisation », distinct des comptes de votre projet OneUptime.
 
 **Utilisateurs privés et mot de passe ne se cumulent pas.** Tant que **Toute personne disposant du mot de passe** est le choix, les utilisateurs privés ne peuvent pas se connecter — ils saisissent eux aussi le mot de passe — et l'écran **Utilisateurs privés** le signale, avec un lien vers **Accès**.
+
+**Liens de connexion.** Sur une page où les visiteurs se connectent, la page de connexion propose aussi **Recevoir un lien de connexion par e-mail** : un utilisateur privé saisit son adresse e-mail et reçoit un lien qui le connecte sans son mot de passe. Le lien ne fonctionne qu'une fois, pendant 15 minutes, et en demander un autre le remplace. Il ouvre une page où l'utilisateur appuie sur **Se connecter**, pour que les filtres de messagerie qui ouvrent chaque lien afin de l'analyser ne puissent pas l'épuiser avant lui. La page répond de la même façon que l'adresse soit ou non celle d'un de ses utilisateurs privés : demander un lien ne révèle à personne qui peut se connecter. Les liens sont activés sur chaque page ; pour que les utilisateurs privés gardent leur mot de passe, désactivez **Liens de connexion** dans **Plus de paramètres** sur **Utilisateurs privés** (les personnes déjà connectées avec un lien le restent). Ils ne sont jamais proposés tant que **Exiger le SSO pour la connexion** est activé ou que **Toute personne disposant du mot de passe** est le choix.
 
 ### SSO et OIDC
 
