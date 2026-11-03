@@ -35,7 +35,8 @@
  *              address for, a switch at an address a device here has and an
  *              access point archived here | none: only the appliances, which
  *              cannot be added | absent (default): a read from before reads
- *              counted them
+ *              counted them. A failing read keeps them, as the read runner
+ *              does
  *   ?adding=   how the last Add devices went (lastDeviceAdd): progress (7 of
  *              20 added so far) | done (18 added, 2 sites, 2 could not be) |
  *              failed (Meraki refused the key) | stopped (its worker went
@@ -487,6 +488,10 @@ function initialConnections() {
           failureKind: "authentication",
           warnings: [],
           requestCount: 0,
+          // A read that fails keeps the last good read's counts.
+          ...(unaddedDevices
+            ? { unaddedDevices: serialize(unaddedDevices) }
+            : {}),
         },
       }),
     ];

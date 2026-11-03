@@ -273,6 +273,31 @@ describe("which devices", () => {
     expect(rows[2]).toHaveTextContent("CamerasMV");
   });
 
+  test("a press anywhere on a kind's row ticks it, and a screen reader hears its count with its name", async () => {
+    await renderModal();
+
+    const cameras: HTMLElement = screen.getAllByTestId(
+      "meraki-add-devices-kind",
+    )[2]!;
+    // The whole row is the box's label: its name and its count say what it is.
+    expect(
+      within(cameras).getByRole("checkbox", { name: "Cameras MV 12" }),
+    ).not.toBeChecked();
+
+    // The count, at the far end of the row, ticks it as the box does.
+    fireEvent.click(
+      within(cameras).getByTestId("meraki-add-devices-kind-count"),
+    );
+    expect(screen.getByTestId("meraki-add-devices-kind-camera")).toBeChecked();
+    expect(submit()).toHaveTextContent("Add 122 devices");
+
+    fireEvent.click(within(cameras).getByText("Cameras"));
+    expect(
+      screen.getByTestId("meraki-add-devices-kind-camera"),
+    ).not.toBeChecked();
+    expect(submit()).toHaveTextContent("Add 110 devices");
+  });
+
   test("ticking and unticking moves the count on the button; nothing ticked, nothing to add", async () => {
     await renderModal();
 
@@ -315,13 +340,13 @@ describe("which devices", () => {
     ).toEqual([
       [
         "without-address",
-        "8 have no address in Meraki (a security appliance lists none). Add one by hand at the address your probe reaches it at, and Meraki fills in the rest.",
+        "8 devices have no address in Meraki (security appliances list none). Add them by hand at addresses your probe can reach, and Meraki fills in the rest.",
       ],
       [
         "taken",
-        "2 have an address, MAC address or serial number another network device here already has.",
+        "2 devices share their address, MAC address or serial number with network devices already here.",
       ],
-      ["archived", "1 is archived here, so it is not added again."],
+      ["archived", "1 device is archived here, so it is not added again."],
     ]);
 
     // Unticking the switches drops their two from what is said.
@@ -368,7 +393,60 @@ describe("which devices", () => {
     expect(submit()).toBeEnabled();
   });
 
-  test("nothing left to add: it says so, and there is nothing to press", async () => {
+  test("counts from before an ask that added devices are not offered: it says the next read counts them", async () => {
+    const added: NetworkControllerDeviceAddState = {
+      ...buildQueuedNetworkControllerDeviceAddState({
+        request: { productTypes: ["switch"], groupBySite: true },
+        requestedByUserId: USER_ID,
+        now: new Date("2026-11-03T10:00:00.000Z"),
+      }),
+      status: NetworkControllerDeviceAddStatus.Done,
+      updatedAt: "2026-11-03T10:02:00.000Z",
+      finishedAt: "2026-11-03T10:02:00.000Z",
+      toAddCount: 40,
+      addedCount: 40,
+    };
+
+    // Read at 10:00, the 40 switches added at 10:02: the read counted them.
+    await renderModal(
+      connection({
+        lastPulledAt: new Date("2026-11-03T10:00:00.000Z"),
+        lastDeviceAdd: toNetworkControllerDeviceAddStateJson(added),
+      }),
+    );
+
+    expect(
+      screen.getByTestId("meraki-add-devices-uncounted"),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId("meraki-add-devices-kind-count")).toBeNull();
+    expect(
+      screen.queryByTestId("meraki-add-devices-not-added-line"),
+    ).toBeNull();
+    // The kinds the last ask picked, as ever; no count on the button.
+    expect(
+      kinds()
+        .filter((kind: { checked: boolean }) => {
+          return kind.checked;
+        })
+        .map((kind: { kind: string }) => {
+          return kind.kind;
+        }),
+    ).toEqual(["switch"]);
+    expect(submit()).toHaveTextContent(/^Add devices$/);
+
+    // Once a read after the ask counted again, its counts are what is shown.
+    cleanup();
+    await renderModal(
+      connection({
+        lastPulledAt: new Date("2026-11-03T10:03:00.000Z"),
+        lastDeviceAdd: toNetworkControllerDeviceAddStateJson(added),
+      }),
+    );
+    expect(screen.queryByTestId("meraki-add-devices-uncounted")).toBeNull();
+    expect(submit()).toHaveTextContent("Add 40 devices");
+  });
+
+  test("nothing left to add: it says so, and Close is the one thing to press", async () => {
     await renderModal(
       connection({
         lastPullResult: {
@@ -389,7 +467,14 @@ describe("which devices", () => {
     expect(
       screen.getByTestId("meraki-add-devices-not-added-line"),
     ).toHaveAttribute("data-reason", "without-address");
-    expect(submit()).toBeDisabled();
+    // Not a button that cannot be pressed: Close, alone.
+    expect(screen.queryByTestId("modal-footer-submit-button")).toBeNull();
+    expect(screen.getByTestId("modal-footer-close-button")).toHaveTextContent(
+      /^Close$/,
+    );
+    fireEvent.click(screen.getByTestId("modal-footer-close-button"));
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(apiPostMock).not.toHaveBeenCalled();
   });
 });
 

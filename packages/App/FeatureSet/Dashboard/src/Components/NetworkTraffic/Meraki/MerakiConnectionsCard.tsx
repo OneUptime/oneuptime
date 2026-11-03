@@ -8,6 +8,7 @@ import {
   ADD_DEVICES_ACTION,
   ADD_FAILED_NOTE,
   ADD_STOPPED_NOTE,
+  ADD_THE_REST_ACTION,
   DEVICE_ADD_FAILURES_SHOWN,
   DeviceAddStanding,
   FAILED_DEVICES_NOTE,
@@ -60,6 +61,10 @@ import {
 } from "Common/Types/NetworkController/NetworkControllerDeviceAdd";
 import ObjectID from "Common/Types/ObjectID";
 import ProviderLogo from "Common/Types/ProviderLogo/ProviderLogo";
+import {
+  ReadingDirection,
+  getTextReadingDirectionByMostLetters,
+} from "Common/Types/ReadingDirection";
 import Button, {
   ButtonSize,
   ButtonStyleType,
@@ -171,11 +176,41 @@ interface DeviceAddLine {
   key: string;
   tone: DeviceAddTone;
   text: string;
-  // Drawn after the text: Add devices, for who may.
+  // Drawn after the text: Add devices (or Add the rest), for who may.
   after?: ReactElement | undefined;
   // A line each under it: the devices that could not be added, with why.
-  details?: Array<string> | undefined;
+  details?: Array<NetworkControllerDeviceAddFailure> | undefined;
 }
+
+/*
+ * A device an ask could not add: its name, then why - the server's words,
+ * in their own language. Read the way most of its letters are (an isolate),
+ * so on a Persian page an English reason keeps its full stop at its end,
+ * and the name stands out to scan the list by.
+ */
+const DeviceAddFailureLine: FunctionComponent<{
+  failure: NetworkControllerDeviceAddFailure;
+}> = (props: { failure: NetworkControllerDeviceAddFailure }): ReactElement => {
+  const direction: ReadingDirection | null =
+    getTextReadingDirectionByMostLetters(
+      props.failure.name
+        ? `${props.failure.name}: ${props.failure.reason}`
+        : props.failure.reason,
+    );
+
+  return (
+    <bdi dir={direction || undefined}>
+      {props.failure.name ? (
+        <>
+          <span className="font-medium">{props.failure.name}</span>:{" "}
+        </>
+      ) : (
+        <></>
+      )}
+      {props.failure.reason}
+    </bdi>
+  );
+};
 
 /*
  * A line's values - a count, a time, a reason - set apart in a sentence
@@ -659,16 +694,20 @@ const MerakiConnectionsCard: FunctionComponent<ComponentProps> = (
   /*
    * The line about the organization's devices that are no network device
    * here - see the header. Nothing for a connection that is off, or one
-   * nothing is to be said about.
+   * nothing is to be said about. While Meraki refuses the connection's key,
+   * the count is said but Add devices is not offered: every ask would fail
+   * on that key, and the row's one button is Update API key.
    */
   const drawDeviceAddLines: (data: {
     connectionModel: NetworkControllerConnection;
     isOff: boolean;
+    isKeyRefused: boolean;
     summary: MerakiConnectionRowFacts["summary"];
     now: Date;
   }) => ReactElement = (data: {
     connectionModel: NetworkControllerConnection;
     isOff: boolean;
+    isKeyRefused: boolean;
     summary: MerakiConnectionRowFacts["summary"];
     now: Date;
   }): ReactElement => {
@@ -692,8 +731,15 @@ const MerakiConnectionsCard: FunctionComponent<ComponentProps> = (
     });
     const lines: Array<ReactElement> = [];
 
-    const action: ReactElement =
-      canAddDevices && !data.isOff ? (
+    /*
+     * The way on, after a line's sentence: Add devices - or Add the rest,
+     * after an ask that added some and ended with more to add. Both open
+     * the dialog, for who may add devices.
+     */
+    const drawAction: (title: string) => ReactElement = (
+      title: string,
+    ): ReactElement => {
+      return canAddDevices && !data.isOff && !data.isKeyRefused ? (
         <button
           type="button"
           className="ml-1 font-medium text-indigo-600 hover:text-indigo-700 focus:outline-none focus-visible:underline"
@@ -703,11 +749,13 @@ const MerakiConnectionsCard: FunctionComponent<ComponentProps> = (
           }}
           data-testid="meraki-connection-add-devices"
         >
-          {translator.translateText(ADD_DEVICES_ACTION)}
+          {translator.translateText(title) || title}
         </button>
       ) : (
         <></>
       );
+    };
+    const action: ReactElement = drawAction(ADD_DEVICES_ACTION);
 
     const addLine: (lineData: DeviceAddLine) => void = (
       lineData: DeviceAddLine,
@@ -735,10 +783,13 @@ const MerakiConnectionsCard: FunctionComponent<ComponentProps> = (
                 data-testid="meraki-connection-device-add-failures"
               >
                 {lineData.details.map(
-                  (detail: string, index: number): ReactElement => {
+                  (
+                    failure: NetworkControllerDeviceAddFailure,
+                    index: number,
+                  ): ReactElement => {
                     return (
                       <li key={index} className="break-words">
-                        {detail}
+                        <DeviceAddFailureLine failure={failure} />
                       </li>
                     );
                   },
@@ -841,13 +892,7 @@ const MerakiConnectionsCard: FunctionComponent<ComponentProps> = (
             {},
             IN_SENTENCE,
           ),
-          details: state.failures
-            .slice(0, DEVICE_ADD_FAILURES_SHOWN)
-            .map((failure: NetworkControllerDeviceAddFailure): string => {
-              return failure.name
-                ? `${failure.name}: ${failure.reason}`
-                : failure.reason;
-            }),
+          details: state.failures.slice(0, DEVICE_ADD_FAILURES_SHOWN),
         });
       }
 
@@ -861,7 +906,7 @@ const MerakiConnectionsCard: FunctionComponent<ComponentProps> = (
             {},
             IN_SENTENCE,
           ),
-          after: action,
+          after: drawAction(ADD_THE_REST_ACTION),
         });
       }
     }
@@ -891,7 +936,11 @@ const MerakiConnectionsCard: FunctionComponent<ComponentProps> = (
         key: "add-stopped",
         tone: "act",
         text: translator.translateText(ADD_STOPPED_NOTE) || ADD_STOPPED_NOTE,
-        after: action,
+        // The rest, after what it added; else what it set out to add.
+        after:
+          state.addedCount > 0
+            ? drawAction(ADD_THE_REST_ACTION)
+            : drawAction(ADD_DEVICES_ACTION),
       });
     }
 
@@ -1158,9 +1207,14 @@ const MerakiConnectionsCard: FunctionComponent<ComponentProps> = (
                   });
                 }
 
+                // Meraki refuses its key: nothing can be read or added.
+                const isKeyRefused: boolean =
+                  action === MerakiConnectionAction.UpdateKey;
+
                 const deviceAdd: ReactElement = drawDeviceAddLines({
                   connectionModel,
                   isOff,
+                  isKeyRefused,
                   summary,
                   now,
                 });
@@ -1241,11 +1295,13 @@ const MerakiConnectionsCard: FunctionComponent<ComponentProps> = (
 
                 /*
                  * Add devices, whenever it can be asked for: the dialog
-                 * says when there is nothing left to add.
+                 * says when there is nothing left to add. Not while Meraki
+                 * refuses the key - Update API key comes first.
                  */
                 if (
                   canAddDevices &&
                   !isOff &&
+                  !isKeyRefused &&
                   !addingIds.includes(facts.connection.id)
                 ) {
                   menuItems.push(

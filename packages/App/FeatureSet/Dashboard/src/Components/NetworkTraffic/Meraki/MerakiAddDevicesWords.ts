@@ -71,22 +71,26 @@ export const NOTHING_LEFT_TO_ADD: string = translationKey(
   "Every Meraki device that can be added is a network device here already.",
 );
 
-// Why some devices of the kinds picked are not added.
+/*
+ * Why some devices of the kinds picked are not added. Each says "devices":
+ * the kinds listed above them are not what they count (the security
+ * appliances Meraki lists no address for are never listed).
+ */
 export const WITHOUT_ADDRESS_NOTE: PluralTemplate = {
-  one: "{{count}} has no address in Meraki (a security appliance lists none). Add it by hand at the address your probe reaches it at, and Meraki fills in the rest.",
+  one: "{{count}} device has no address in Meraki (security appliances list none). Add it by hand at an address your probe can reach, and Meraki fills in the rest.",
   other:
-    "{{count}} have no address in Meraki (a security appliance lists none). Add one by hand at the address your probe reaches it at, and Meraki fills in the rest.",
+    "{{count}} devices have no address in Meraki (security appliances list none). Add them by hand at addresses your probe can reach, and Meraki fills in the rest.",
 };
 
 export const TAKEN_NOTE: PluralTemplate = {
-  one: "{{count}} has an address, MAC address or serial number another network device here already has.",
+  one: "{{count}} device shares its address, MAC address or serial number with a network device already here.",
   other:
-    "{{count}} have an address, MAC address or serial number another network device here already has.",
+    "{{count}} devices share their address, MAC address or serial number with network devices already here.",
 };
 
 export const ARCHIVED_NOTE: PluralTemplate = {
-  one: "{{count}} is archived here, so it is not added again.",
-  other: "{{count}} are archived here, so they are not added again.",
+  one: "{{count}} device is archived here, so it is not added again.",
+  other: "{{count}} devices are archived here, so they are not added again.",
 };
 
 // The fold's choices.
@@ -130,23 +134,28 @@ export const ADDED_SITES_NOTE: PluralTemplate = {
   other: "Added {{count}} sites for their Meraki networks.",
 };
 export const NOTHING_ADDED_NOTE: string = translationKey(
-  "Nothing to add {{time}}: every device of the kinds picked is a network device here already.",
+  "Nothing was added {{time}}: every device of the kinds picked is a network device here already.",
 );
 export const FAILED_DEVICES_NOTE: PluralTemplate = {
   one: "{{count}} device could not be added:",
   other: "{{count}} devices could not be added:",
 };
 export const REMAINING_DEVICES_NOTE: PluralTemplate = {
-  one: "{{count}} more device is left to add. Add devices again to add it.",
-  other:
-    "{{count}} more devices are left to add. Add devices again to add them.",
+  one: "{{count}} more device is left to add.",
+  other: "{{count}} more devices are left to add.",
 };
 export const ADD_FAILED_NOTE: string = translationKey(
   "Devices could not be added from Meraki: {{reason}}",
 );
 export const ADD_STOPPED_NOTE: string = translationKey(
-  "Adding devices from Meraki stopped before it finished. Add devices again to carry on.",
+  "Adding devices from Meraki stopped before it finished.",
 );
+/*
+ * The way on after an ask that ended with devices still to add - it stopped
+ * half way, or reached its limit: a next ask adds what is not here yet, and
+ * never a device twice.
+ */
+export const ADD_THE_REST_ACTION: string = translationKey("Add the rest");
 
 // How long an ask's outcome stays on the connection's row.
 export const DEVICE_ADD_OUTCOME_SHOWN_FOR_MS: number = 24 * 60 * 60 * 1000;
@@ -212,6 +221,41 @@ export function getOfferedDeviceCount(data: {
     data.counts,
     getControllerProductTypesToOffer(data.last),
   );
+}
+
+/*
+ * What the connection's last read counted, while that is still what is not
+ * here: an ask that added devices after the read made its counts old - the
+ * devices it added are among them - until the next read counts again (an
+ * ask that added any queues one as it ends). Undefined then, as for a read
+ * that counted nothing, so the dialog says they are counted at the next
+ * read rather than offer to add devices that are here already.
+ */
+export function getCurrentUnaddedCounts(data: {
+  counts: Array<NetworkControllerUnaddedDeviceCount> | undefined;
+  lastPulledAt: Date | undefined;
+  last: NetworkControllerDeviceAddState | undefined;
+}): Array<NetworkControllerUnaddedDeviceCount> | undefined {
+  if (!data.counts) {
+    return undefined;
+  }
+
+  if (!data.last || data.last.addedCount <= 0) {
+    return data.counts;
+  }
+
+  const endedAt: number = Date.parse(
+    data.last.finishedAt || data.last.updatedAt,
+  );
+  const readAt: number = data.lastPulledAt
+    ? new Date(data.lastPulledAt).getTime()
+    : 0;
+
+  if (Number.isFinite(endedAt) && endedAt > readAt) {
+    return undefined;
+  }
+
+  return data.counts;
 }
 
 /*

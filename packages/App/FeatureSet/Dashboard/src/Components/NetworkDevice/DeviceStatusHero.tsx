@@ -25,7 +25,6 @@ import Route from "Common/Types/API/Route";
 import { Gray500, Green, Red500, Yellow500 } from "Common/Types/BrandColors";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
@@ -93,7 +92,14 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
 
-  const fetchDevice: PromiseVoidFunction = async (): Promise<void> => {
+  type FetchDeviceFunction = (options?: {
+    // A read again: one that fails leaves the hero as it is.
+    keepsShownOnError?: boolean | undefined;
+  }) => Promise<void>;
+
+  const fetchDevice: FetchDeviceFunction = async (options?: {
+    keepsShownOnError?: boolean | undefined;
+  }): Promise<void> => {
     try {
       const item: NetworkDevice | null = await ModelAPI.getItem<NetworkDevice>({
         modelType: NetworkDevice,
@@ -122,7 +128,9 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
       setDevice(item);
       setError("");
     } catch (err) {
-      setError(API.getFriendlyMessage(err));
+      if (!options?.keepsShownOnError) {
+        setError(API.getFriendlyMessage(err));
+      }
     }
 
     setIsLoading(false);
@@ -137,15 +145,16 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
 
   /*
    * Read again after a refresh. A read that fails keeps what the hero
-   * shows: the page's details are still the last good ones.
+   * shows: the page's details are still the last good ones, and a hero
+   * that vanished would say the device had none.
    */
   useEffect(() => {
     if (!props.refreshKey) {
       return;
     }
 
-    fetchDevice().catch(() => {
-      // fetchDevice says why itself.
+    fetchDevice({ keepsShownOnError: true }).catch(() => {
+      // Kept as it was: see above.
     });
   }, [props.refreshKey]);
 

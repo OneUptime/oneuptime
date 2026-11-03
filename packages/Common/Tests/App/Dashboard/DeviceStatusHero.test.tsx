@@ -8,6 +8,7 @@ import {
   test,
 } from "@jest/globals";
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -46,6 +47,8 @@ import { MemoryRouter } from "react-router-dom";
  */
 
 let deviceRow: NetworkDevice | null = null;
+// The next reads fail, as a dropped connection's would.
+let isReadFailing: boolean = false;
 let getItemRequests: Array<{
   modelType: unknown;
   id: ObjectID;
@@ -62,6 +65,11 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
         select?: Record<string, unknown> | undefined;
       }): Promise<unknown> => {
         getItemRequests.push(request);
+
+        if (isReadFailing) {
+          return Promise.reject(new Error("The network went away."));
+        }
+
         return Promise.resolve(deviceRow);
       },
     },
@@ -290,6 +298,7 @@ const MONITOR_CREATE_HREF: string = RouteUtil.populateRouteParams(
 describe("the device Overview status hero", () => {
   beforeEach(() => {
     deviceRow = null;
+    isReadFailing = false;
     getItemRequests = [];
   });
 
@@ -581,14 +590,6 @@ describe("the device Overview status hero", () => {
     });
   });
 
-  /*
-   * "No monitor" is decided from `monitorId`, "No probe" from `probeId` and
-   * `isPollingEnabled`, and the verdict from `monitoringMethod` and the nested
-   * status. A hero that stopped selecting any of them would not fail to
-   * render — an unselected column arrives undefined, which reads as "not set",
-   * so it would hang "No monitor" on every monitor-backed device and "No
-   * probe" on every probe-polled one however well they are configured.
-   */
   test("a refresh answered elsewhere on the page reads the device again, in place - no skeleton - and shows the new reading", async () => {
     deviceRow = unpolledProbeDevice();
 
@@ -619,6 +620,54 @@ describe("the device Overview status hero", () => {
     expect(getItemRequests).toHaveLength(2);
   });
 
+  /*
+   * The bug a review found: the read again shared the first read's error
+   * path, and a hero with an error draws nothing - a dropped connection
+   * after Refresh took the device's health off its page.
+   */
+  test("a read again that fails keeps the hero as it was, never an empty space", async () => {
+    deviceRow = unpolledProbeDevice();
+
+    const { rerender } = render(
+      <MemoryRouter>
+        <DeviceStatusHero modelId={DEVICE_ID} refreshKey={0} />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("device-status-hero-skeleton")).toBeNull();
+    });
+    const shown: Array<string> = pillTexts();
+    expect(shown).toContain(NO_PROBE_QUALIFIER.text);
+
+    isReadFailing = true;
+    rerender(
+      <MemoryRouter>
+        <DeviceStatusHero modelId={DEVICE_ID} refreshKey={1} />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(getItemRequests).toHaveLength(2);
+    });
+    // Let the failed read settle, then the hero must still be the same.
+    await act(async () => {
+      await new Promise<void>((resolve: () => void) => {
+        setTimeout(resolve, 20);
+      });
+    });
+    expect(screen.queryByTestId("device-status-hero-skeleton")).toBeNull();
+    expect(pillTexts()).toEqual(shown);
+  });
+
+  /*
+   * "No monitor" is decided from `monitorId`, "No probe" from `probeId` and
+   * `isPollingEnabled`, and the verdict from `monitoringMethod` and the nested
+   * status. A hero that stopped selecting any of them would not fail to
+   * render — an unselected column arrives undefined, which reads as "not set",
+   * so it would hang "No monitor" on every monitor-backed device and "No
+   * probe" on every probe-polled one however well they are configured.
+   */
   test("selects the columns the qualifiers and the verdict are decided from", async () => {
     await renderHero(boundReportingMonitorBackedDevice());
 

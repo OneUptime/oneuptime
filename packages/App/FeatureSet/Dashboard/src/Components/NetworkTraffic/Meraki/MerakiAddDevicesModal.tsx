@@ -27,6 +27,7 @@ import {
   SITES_ON_VALUE,
   TAKEN_NOTE,
   WITHOUT_ADDRESS_NOTE,
+  getCurrentUnaddedCounts,
   getDialogDeviceKinds,
   getNotAddedCounts,
 } from "./MerakiAddDevicesWords";
@@ -77,9 +78,13 @@ import React, {
  *
  * One question, answered for most people by its defaults: which kinds of
  * device - each with how many of it the connection's last read counted, the
- * network gear ticked and cameras not. Under it, in grey, the devices of
- * those kinds it will not add and why (no address in Meraki, an address
- * another device here has, archived here), so nothing is left out silently.
+ * network gear ticked and cameras not. Each kind is one row, ticked or not
+ * by a press anywhere on it, its count part of what a screen reader says.
+ * Under it, in grey, the devices of those kinds it will not add and why (no
+ * address in Meraki, an address another device here has, archived here), so
+ * nothing is left out silently. When an ask added devices since the last
+ * read, its counts are old: the dialog says the next read counts them.
+ * With nothing left to add it only says so, and Close is its one button.
  *
  * Folded under More fields, with what they are set to on the fold's line:
  * the sites (on: each device in the site named after its Meraki network)
@@ -110,10 +115,15 @@ const MerakiAddDevicesModal: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const summary: NetworkControllerReadSummary | undefined =
     readNetworkControllerReadSummary(props.connection.lastPullResult);
-  const counts: Array<NetworkControllerUnaddedDeviceCount> | undefined =
-    summary?.unaddedDevices;
   const last: NetworkControllerDeviceAddState | undefined =
     readNetworkControllerDeviceAddState(props.connection.lastDeviceAdd);
+  // What the last read counted - unless an ask has added devices since.
+  const counts: Array<NetworkControllerUnaddedDeviceCount> | undefined =
+    getCurrentUnaddedCounts({
+      counts: summary?.unaddedDevices,
+      lastPulledAt: props.connection.lastPulledAt,
+      last,
+    });
   const organization: string =
     summary?.organizationName ||
     readNetworkControllerConfig(props.connection.config).organizationName ||
@@ -249,6 +259,26 @@ const MerakiAddDevicesModal: FunctionComponent<ComponentProps> = (
     },
   ];
 
+  // Ticks or unticks a kind, keeping the kinds in the order they are listed.
+  const pickKind: (kind: string, isPicked: boolean) => void = (
+    kind: string,
+    isPicked: boolean,
+  ): void => {
+    setProductTypes((current: Array<string>): Array<string> => {
+      const others: Array<string> = current.filter(
+        (picked: string): boolean => {
+          return picked !== kind;
+        },
+      );
+
+      return isPicked
+        ? kinds.filter((listed: string): boolean => {
+            return listed === kind || others.includes(listed);
+          })
+        : others;
+    });
+  };
+
   const ask: () => Promise<void> = async (): Promise<void> => {
     if (!props.connection.id || productTypes.length === 0) {
       return;
@@ -321,6 +351,8 @@ const MerakiAddDevicesModal: FunctionComponent<ComponentProps> = (
         IN_SENTENCE,
       )}
       onClose={props.onClose}
+      // Nothing left to add: nothing to press but Close.
+      closeButtonText={nothingToAdd ? "Close" : undefined}
       submitButtonText={
         addCount > 0
           ? translator.translatePlural(
@@ -331,15 +363,17 @@ const MerakiAddDevicesModal: FunctionComponent<ComponentProps> = (
             )
           : ADD_DEVICES_ACTION
       }
-      onSubmit={() => {
-        ask().catch(() => {
-          setIsAsking(false);
-        });
-      }}
+      onSubmit={
+        nothingToAdd
+          ? undefined
+          : () => {
+              ask().catch(() => {
+                setIsAsking(false);
+              });
+            }
+      }
       disableSubmitButton={
-        productTypes.length === 0 ||
-        nothingToAdd ||
-        (countsKnown && addCount === 0)
+        productTypes.length === 0 || (countsKnown && addCount === 0)
       }
       isLoading={isAsking}
       error={error || undefined}
@@ -359,7 +393,7 @@ const MerakiAddDevicesModal: FunctionComponent<ComponentProps> = (
               {translator.translateText(DEVICE_KINDS_LABEL)}
             </legend>
             <ul
-              className="mt-2 divide-y divide-gray-100 rounded-md border border-gray-200"
+              className="mt-2 divide-y divide-gray-100 overflow-hidden rounded-md border border-gray-200"
               data-testid="meraki-add-devices-kinds"
             >
               {kinds.map((kind: string): ReactElement => {
@@ -373,54 +407,49 @@ const MerakiAddDevicesModal: FunctionComponent<ComponentProps> = (
                 const productLine: string =
                   DEVICE_KIND_PRODUCT_LINES[kind] || "";
 
+                /*
+                 * The whole row is the box's label: a press anywhere on it
+                 * ticks the kind, and its count is part of its name.
+                 */
                 return (
                   <li
                     key={kind}
-                    className="flex items-center justify-between gap-3 px-3 py-2"
                     data-testid="meraki-add-devices-kind"
                     data-kind={kind}
                   >
-                    <CheckboxElement
-                      title={
-                        <span>
-                          {translator.translateText(name) || name}
-                          {productLine ? (
-                            <span className="ml-1.5 font-normal text-gray-400">
-                              {productLine}
-                            </span>
-                          ) : (
-                            <></>
-                          )}
-                        </span>
-                      }
-                      value={productTypes.includes(kind)}
-                      onChange={(isChecked: boolean) => {
-                        setProductTypes((current: Array<string>) => {
-                          const next: Array<string> = current.filter(
-                            (picked: string): boolean => {
-                              return picked !== kind;
-                            },
-                          );
-
-                          return isChecked
-                            ? kinds.filter((listed: string): boolean => {
-                                return listed === kind || next.includes(listed);
-                              })
-                            : next;
-                        });
-                      }}
-                      dataTestId={`meraki-add-devices-kind-${kind}`}
-                    />
-                    {count ? (
-                      <span
-                        className="flex-none text-sm tabular-nums text-gray-500"
-                        data-testid="meraki-add-devices-kind-count"
-                      >
-                        {translator.formatNumber(count.addable)}
+                    <label className="flex cursor-pointer items-center gap-3 px-3 py-2 transition-colors hover:bg-gray-50">
+                      <input
+                        type="checkbox"
+                        checked={productTypes.includes(kind)}
+                        onChange={(
+                          event: React.ChangeEvent<HTMLInputElement>,
+                        ) => {
+                          pickKind(kind, event.target.checked);
+                        }}
+                        data-testid={`meraki-add-devices-kind-${kind}`}
+                        className="accent-indigo-600 h-4 w-4 flex-none rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
+                      />
+                      <span className="min-w-0 flex-1 text-sm font-medium leading-6 text-gray-900">
+                        {translator.translateText(name) || name}
+                        {productLine ? (
+                          <span className="ml-1.5 font-normal text-gray-400">
+                            {productLine}
+                          </span>
+                        ) : (
+                          <></>
+                        )}
                       </span>
-                    ) : (
-                      <></>
-                    )}
+                      {count ? (
+                        <span
+                          className="flex-none text-sm tabular-nums text-gray-500"
+                          data-testid="meraki-add-devices-kind-count"
+                        >
+                          {translator.formatNumber(count.addable)}
+                        </span>
+                      ) : (
+                        <></>
+                      )}
+                    </label>
                   </li>
                 );
               })}

@@ -1229,6 +1229,47 @@ describe("the organization's devices that are not network devices here", () => {
     expect(screen.queryByText("Add devices")).toBeNull();
   });
 
+  test("while Meraki refuses its key, the row says how many but offers only Update API key - an ask would fail on that key", async () => {
+    connections = [
+      counted(FIRST_ID, COUNTS, {
+        lastSuccessfulPullAt: new Date("2026-10-24T10:00:00.000Z"),
+        lastError:
+          "Meraki answered the organization with HTTP 401: Invalid API key",
+        lastPullResult: {
+          status: "failed",
+          organizationName: "Acme Retail",
+          networkCount: 312,
+          applianceCount: 287,
+          requestCount: 0,
+          failureKind: "authentication",
+          warnings: [],
+          // The last good read's counts, kept by the read that failed.
+          unaddedDevices: COUNTS,
+        },
+      }),
+    ];
+    await renderCard();
+
+    const row: HTMLElement = rows()[0]!;
+    expect(
+      within(row).getByTestId("meraki-connection-update-key"),
+    ).toBeInTheDocument();
+    expect(lines(row)).toEqual([
+      {
+        state: "not-added",
+        text: "110 Meraki devices are not network devices here yet.",
+      },
+    ]);
+    expect(
+      within(row).queryByTestId("meraki-connection-add-devices"),
+    ).toBeNull();
+
+    fireEvent.click(within(row).getByTestId("meraki-connection-more"));
+    await flush();
+    expect(screen.getByText("Edit")).toBeInTheDocument();
+    expect(screen.queryByText("Add devices")).toBeNull();
+  });
+
   test("who may not change the connection, or not create network devices, reads how many - and is offered nothing", async () => {
     gates[ModelAction.Create] = { isAllowed: false };
     connections = [counted(FIRST_ID)];
@@ -1357,6 +1398,24 @@ describe("the organization's devices that are not network devices here", () => {
         .getAllByTestId("meraki-connection-device-add")[0]!
         .getAttribute("data-tone"),
     ).toBe("done");
+
+    /*
+     * Each one read as it is written - the server's English, on a Persian
+     * page too, keeps its full stop at its end - with its name to scan by.
+     */
+    const failures: Array<HTMLElement> = within(
+      within(rows()[0]!).getByTestId("meraki-connection-device-add-failures"),
+    ).getAllByRole("listitem");
+    expect(failures).toHaveLength(3);
+    const isolate: Element | null = failures[0]!.querySelector("bdi");
+    expect(isolate).not.toBeNull();
+    expect(isolate!.getAttribute("dir")).toBe("ltr");
+    expect(isolate!.textContent).toBe(
+      "Core: Another network device has this name.",
+    );
+    expect(isolate!.querySelector("span.font-medium")?.textContent).toBe(
+      "Core",
+    );
   });
 
   test("devices left past an ask's limit are said, with Add devices, until a read counts them", async () => {
@@ -1381,7 +1440,7 @@ describe("the organization's devices that are not network devices here", () => {
       }),
     ).toEqual([
       "added: Added 5,000 network devices from Meraki 2 minutes ago.",
-      "remaining: 700 more devices are left to add. Add devices again to add them.Add devices",
+      "remaining: 700 more devices are left to add.Add the rest",
     ]);
   });
 
@@ -1400,7 +1459,7 @@ describe("the organization's devices that are not network devices here", () => {
     expect(lines(rows()[0]!)).toEqual([
       {
         state: "nothing-added",
-        text: "Nothing to add 2 minutes ago: every device of the kinds picked is a network device here already.",
+        text: "Nothing was added 2 minutes ago: every device of the kinds picked is a network device here already.",
       },
     ]);
   });
@@ -1494,7 +1553,7 @@ describe("the organization's devices that are not network devices here", () => {
       },
       {
         state: "add-stopped",
-        text: "Adding devices from Meraki stopped before it finished. Add devices again to carry on.Add devices",
+        text: "Adding devices from Meraki stopped before it finished.Add the rest",
       },
     ]);
   });
@@ -1524,6 +1583,10 @@ describe("the organization's devices that are not network devices here", () => {
         return each.state;
       }),
     ).toEqual(["add-stopped"]);
+    // Nothing added, so there is no rest: what it set out to do, again.
+    expect(
+      within(rows()[0]!).getByTestId("meraki-connection-add-devices"),
+    ).toHaveTextContent(/^Add devices$/);
   });
 
   test("an ask more than a day old is not said any more", async () => {

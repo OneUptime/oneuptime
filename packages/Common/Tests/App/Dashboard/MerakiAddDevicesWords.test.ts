@@ -12,6 +12,7 @@ import {
   ADD_DEVICES_TITLE,
   ADD_FAILED_NOTE,
   ADD_STOPPED_NOTE,
+  ADD_THE_REST_ACTION,
   ARCHIVED_NOTE,
   COUNTED_AT_NEXT_READ,
   DEVICE_ADD_OUTCOME_SHOWN_FOR_MS,
@@ -33,6 +34,7 @@ import {
   SITES_ON_VALUE,
   TAKEN_NOTE,
   WITHOUT_ADDRESS_NOTE,
+  getCurrentUnaddedCounts,
   getDeviceAddStanding,
   getDialogDeviceKinds,
   getNotAddedCounts,
@@ -261,6 +263,83 @@ describe("what the row offers, and what the dialog lists", () => {
     );
   });
 
+  test("a read's counts stand until an ask adds devices after it; then the next read counts again", () => {
+    const readAt: Date = new Date("2026-11-03T11:00:00.000Z");
+    const endedAfter: string = "2026-11-03T11:05:00.000Z";
+    const endedBefore: string = "2026-11-03T10:55:00.000Z";
+
+    // Never asked, or an ask that added nothing: the counts stand.
+    expect(
+      getCurrentUnaddedCounts({
+        counts: COUNTS,
+        lastPulledAt: readAt,
+        last: undefined,
+      }),
+    ).toBe(COUNTS);
+    expect(
+      getCurrentUnaddedCounts({
+        counts: COUNTS,
+        lastPulledAt: readAt,
+        last: state({
+          status: NetworkControllerDeviceAddStatus.Failed,
+          updatedAt: endedAfter,
+          finishedAt: endedAfter,
+        }),
+      }),
+    ).toBe(COUNTS);
+
+    // Devices added after the read - done, failed half way or stopped.
+    for (const ended of [
+      state({
+        status: NetworkControllerDeviceAddStatus.Done,
+        updatedAt: endedAfter,
+        finishedAt: endedAfter,
+        addedCount: 40,
+      }),
+      state({
+        status: NetworkControllerDeviceAddStatus.Failed,
+        updatedAt: endedAfter,
+        finishedAt: endedAfter,
+        addedCount: 3,
+      }),
+      state({
+        status: NetworkControllerDeviceAddStatus.Adding,
+        updatedAt: endedAfter,
+        addedCount: 9,
+      }),
+    ]) {
+      expect(
+        getCurrentUnaddedCounts({
+          counts: COUNTS,
+          lastPulledAt: readAt,
+          last: ended,
+        }),
+      ).toBeUndefined();
+    }
+
+    // A read after the ask counted what is left: its counts stand again.
+    expect(
+      getCurrentUnaddedCounts({
+        counts: COUNTS,
+        lastPulledAt: readAt,
+        last: state({
+          status: NetworkControllerDeviceAddStatus.Done,
+          updatedAt: endedBefore,
+          finishedAt: endedBefore,
+          addedCount: 40,
+        }),
+      }),
+    ).toBe(COUNTS);
+    // A read that counted nothing has nothing to stand.
+    expect(
+      getCurrentUnaddedCounts({
+        counts: undefined,
+        lastPulledAt: readAt,
+        last: undefined,
+      }),
+    ).toBeUndefined();
+  });
+
   test("the dialog lists the kinds with something to add; every kind when nothing was counted", () => {
     expect(getDialogDeviceKinds(COUNTS)).toEqual([
       "switch",
@@ -323,6 +402,7 @@ const TEMPLATES: Array<string> = [
   NOTHING_ADDED_NOTE,
   ADD_FAILED_NOTE,
   ADD_STOPPED_NOTE,
+  ADD_THE_REST_ACTION,
 ];
 
 const PLURALS: Array<PluralTemplate> = [

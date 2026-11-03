@@ -1176,13 +1176,13 @@ test("the devices Meraki knows that are not here: offered on the row, added in o
     "without-address",
   );
   await expect(notAdded.nth(0)).toHaveText(
-    "4 have no address in Meraki (a security appliance lists none). Add one by hand at the address your probe reaches it at, and Meraki fills in the rest.",
+    "4 devices have no address in Meraki (security appliances list none). Add them by hand at addresses your probe can reach, and Meraki fills in the rest.",
   );
   await expect(notAdded.nth(1)).toHaveText(
-    "1 has an address, MAC address or serial number another network device here already has.",
+    "1 device shares its address, MAC address or serial number with a network device already here.",
   );
   await expect(notAdded.nth(2)).toHaveText(
-    "1 is archived here, so it is not added again.",
+    "1 device is archived here, so it is not added again.",
   );
 
   // The sites and the probe, folded, with what they are set to.
@@ -1198,6 +1198,20 @@ test("the devices Meraki knows that are not here: offered on the row, added in o
   await page.getByTestId("meraki-add-devices-kind-camera").check();
   await expect(submit).toHaveText("Add 23 devices");
   await page.getByTestId("meraki-add-devices-kind-camera").uncheck();
+  await expect(submit).toHaveText("Add 20 devices");
+
+  // A press anywhere on a kind's row ticks it - its count at the far end too.
+  const cameraRow: Locator = kinds.nth(2);
+  await cameraRow.getByTestId("meraki-add-devices-kind-count").click();
+  await expect(
+    page.getByTestId("meraki-add-devices-kind-camera"),
+  ).toBeChecked();
+  await expect(submit).toHaveText("Add 23 devices");
+  // And the middle of the row, between its name and its count.
+  await cameraRow.locator("label").click();
+  await expect(
+    page.getByTestId("meraki-add-devices-kind-camera"),
+  ).not.toBeChecked();
   await expect(submit).toHaveText("Add 20 devices");
 
   await submit.click();
@@ -1299,6 +1313,23 @@ test("an Add devices that went wrong says so on the row: devices it could not ad
     page.getByTestId("meraki-connections"),
   );
 
+  /*
+   * Nor in the dialog: the read counted the 18 just added, so the next read
+   * counts what is left, and the dialog says so instead of offering them.
+   */
+  await page.getByTestId("meraki-connection-more").click();
+  await page.getByRole("menuitem", { name: "Add devices" }).click();
+  await settledDialog(page);
+  await expect(page.getByTestId("meraki-add-devices-uncounted")).toBeVisible();
+  await expect(page.getByTestId("meraki-add-devices-kind-count")).toHaveCount(
+    0,
+  );
+  await expect(page.getByTestId("modal-footer-submit-button")).toHaveText(
+    "Add devices",
+  );
+  await page.getByTestId("modal-footer-close-button").click();
+  await expect(page.getByTestId("meraki-add-devices")).toHaveCount(0);
+
   // Meraki refused the key: the reason, in red.
   await open(page, "state=meraki&adding=failed");
   const refused: Locator = deviceAddLine(page, "add-failed");
@@ -1307,15 +1338,15 @@ test("an Add devices that went wrong says so on the row: devices it could not ad
   );
   await expect(refused).toHaveAttribute("data-tone", "error");
 
-  // Its worker went quiet: the row says so, and offers Add devices again.
+  // Its worker went quiet: the row says so, and offers to add the rest.
   await open(page, "state=meraki&unadded=many&adding=stopped");
   const stopped: Locator = deviceAddLine(page, "add-stopped");
-  await expect(stopped).toContainText(
-    "Adding devices from Meraki stopped before it finished. Add devices again to carry on.",
+  await expect(stopped).toHaveText(
+    "Adding devices from Meraki stopped before it finished.Add the rest",
   );
-  await expect(
-    stopped.getByTestId("meraki-connection-add-devices"),
-  ).toBeVisible();
+  await expect(stopped.getByTestId("meraki-connection-add-devices")).toHaveText(
+    "Add the rest",
+  );
   // What it added before its worker went quiet is said above it.
   await expect(deviceAddLine(page, "added")).toHaveText(
     /^Added 9 network devices from Meraki \d+ minutes ago\.$/,
@@ -1341,11 +1372,17 @@ test("Add devices from the row's menu: nothing left to add, and a read from befo
   await expect(
     page.getByTestId("meraki-add-devices-not-added-line"),
   ).toHaveText([
-    "4 have no address in Meraki (a security appliance lists none). Add one by hand at the address your probe reaches it at, and Meraki fills in the rest.",
+    "4 devices have no address in Meraki (security appliances list none). Add them by hand at addresses your probe can reach, and Meraki fills in the rest.",
   ]);
   await expect(page.getByTestId("meraki-add-devices-more")).toHaveCount(0);
-  await expect(page.getByTestId("modal-footer-submit-button")).toBeDisabled();
+  // Nothing to press but Close: no button that cannot be pressed.
+  await expect(page.getByTestId("modal-footer-submit-button")).toHaveCount(0);
+  await expect(page.getByTestId("modal-footer-close-button")).toHaveText(
+    "Close",
+  );
   await screenshot(page, testInfo, "add-devices-nothing", dialog(page));
+  await page.getByTestId("modal-footer-close-button").click();
+  await expect(page.getByTestId("meraki-add-devices")).toHaveCount(0);
 
   /*
    * A read from before reads counted the devices: every kind, the network
@@ -1411,7 +1448,7 @@ test("Add devices from the row's menu: nothing left to add, and a read from befo
   );
 });
 
-test("a member is told how many devices are not here, without the button; a connection that is off offers nothing", async ({
+test("a member is told how many devices are not here, without the button; so is anyone while Meraki refuses the key; a connection that is off offers nothing", async ({
   page,
 }: {
   page: Page;
@@ -1423,6 +1460,26 @@ test("a member is told how many devices are not here, without the button; a conn
   await expect(page.getByTestId("meraki-connection-add-devices")).toHaveCount(
     0,
   );
+
+  /*
+   * Meraki refuses its key: the count stands, but every ask would fail on
+   * that key, so Update API key is the one way on - on the row and in its
+   * menu.
+   */
+  await open(page, "state=failing&unadded=many");
+  await expect(page.getByTestId("meraki-connection-update-key")).toBeVisible();
+  await expect(deviceAddLine(page, "not-added")).toHaveText(
+    "20 Meraki devices are not network devices here yet.",
+  );
+  await expect(page.getByTestId("meraki-connection-add-devices")).toHaveCount(
+    0,
+  );
+  await page.getByTestId("meraki-connection-more").click();
+  await expect(page.getByRole("menuitem", { name: "Edit" })).toBeVisible();
+  await expect(page.getByRole("menuitem", { name: "Add devices" })).toHaveCount(
+    0,
+  );
+  await page.keyboard.press("Escape");
 
   // Turned off, it adds nothing: nothing is offered, on the row or its menu.
   await open(page, "state=off&unadded=many");

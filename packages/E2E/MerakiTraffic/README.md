@@ -45,7 +45,8 @@ Picked with query parameters on the page's address:
   network device here, for Add devices: 8 switches and 12 access points to add, 3 cameras, 4
   security appliances Meraki lists no address for, a switch at an address a device here has and
   an access point archived here (`many`); or only the appliances, which cannot be added (`none`).
-  Without it, the read predates these counts.
+  Without it, the read predates these counts. A failing read (`state=failing`) keeps them, as the
+  read runner does.
 - `adding=progress|done|failed|stopped`: how the last Add devices went - 7 of 20 added so far; 18
   added with 2 sites, 2 that could not be; Meraki refused the key; or its worker went quiet.
 - `probes=two`: the project has two probes of its own, so no probe is picked for the devices (one,
