@@ -50,14 +50,23 @@ export function describeResponseAge(
   return relative === UNKNOWN_TIME ? undefined : `${verb} ${relative}`;
 }
 
-export type ResponseStage = "open" | "acknowledged" | "resolved";
+/*
+ * Where a record stands for the reader. "pagedAgain": it is acknowledged and
+ * still not resolved, and its policy is paging the reader again about it
+ * (the acknowledgement timeout) - the reader has a page to answer.
+ */
+export type ResponseStage = "open" | "acknowledged" | "pagedAgain" | "resolved";
 
 export function getResponseStage(
   isResolved: boolean,
   isAcknowledged: boolean,
+  isPagedAgain: boolean = false,
 ): ResponseStage {
   if (isResolved) {
     return "resolved";
+  }
+  if (isAcknowledged && isPagedAgain) {
+    return "pagedAgain";
   }
   return isAcknowledged ? "acknowledged" : "open";
 }
@@ -80,6 +89,11 @@ const stageAppearance: Record<
     tone: "info",
     icon: "construct-outline",
     title: "Response in progress",
+  },
+  pagedAgain: {
+    tone: "warning",
+    icon: "alarm-outline",
+    title: "You are paged again",
   },
   resolved: {
     tone: "success",

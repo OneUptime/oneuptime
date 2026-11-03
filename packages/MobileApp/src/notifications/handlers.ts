@@ -7,6 +7,12 @@ import {
   getDashboardPageOnServer,
   opensInBrowser,
 } from "./browserDestinations";
+import { getPushPageActionKind } from "./categories";
+import {
+  isPushPageActionRequest,
+  type PushPageActionKind,
+  type PushPageActionRequest,
+} from "../oncall/pushPageAction";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let navigationRef: any = null;
@@ -30,7 +36,21 @@ interface NotificationData {
   entityType?: string;
   entityId?: string;
   projectId?: string;
+  // Acknowledge or Escalate, tapped under a page's push (categories.ts).
+  pushAction?: PushPageActionRequest;
   [key: string]: any;
+}
+
+/*
+ * The action a page's push was answered with, for the record's screen to do
+ * (oncall/pushPageAction.ts); nothing for a tap on the notification itself.
+ */
+function pushActionParams(data: NotificationData): {
+  pushAction?: PushPageActionRequest;
+} {
+  return isPushPageActionRequest(data.pushAction)
+    ? { pushAction: data.pushAction }
+    : {};
 }
 
 /*
@@ -98,7 +118,7 @@ function executeNavigation(data: NotificationData): void {
         "Inbox",
         buildInboxDetailNavigation({
           name: "IncidentDetail",
-          params: { incidentId: entityId, projectId },
+          params: { incidentId: entityId, projectId, ...pushActionParams(data) },
         }),
       );
       break;
@@ -107,7 +127,7 @@ function executeNavigation(data: NotificationData): void {
         "Inbox",
         buildInboxDetailNavigation({
           name: "AlertDetail",
-          params: { alertId: entityId, projectId },
+          params: { alertId: entityId, projectId, ...pushActionParams(data) },
         }),
       );
       break;
@@ -116,7 +136,7 @@ function executeNavigation(data: NotificationData): void {
         "Inbox",
         buildInboxDetailNavigation({
           name: "IncidentEpisodeDetail",
-          params: { episodeId: entityId, projectId },
+          params: { episodeId: entityId, projectId, ...pushActionParams(data) },
         }),
       );
       break;
@@ -125,7 +145,7 @@ function executeNavigation(data: NotificationData): void {
         "Inbox",
         buildInboxDetailNavigation({
           name: "AlertEpisodeDetail",
-          params: { episodeId: entityId, projectId },
+          params: { episodeId: entityId, projectId, ...pushActionParams(data) },
         }),
       );
       break;
@@ -304,13 +324,26 @@ export function handleNotificationResponse(
 ): void {
   const data: NotificationData =
     (response.notification.request.content.data as NotificationData) || {};
-  const actionId: string = response.actionIdentifier;
+  const actionKind: PushPageActionKind | null = getPushPageActionKind(
+    response.actionIdentifier,
+  );
 
-  if (actionId === "ACKNOWLEDGE") {
-    // Background acknowledge — could call API here in the future
+  if (actionKind) {
+    /*
+     * Acknowledge or Escalate under a page's push: the record opens, and its
+     * screen does the action once, as its own button would. The id is the
+     * tap's, so a second tap on another push is a new action.
+     */
+    navigateToEntity({
+      ...data,
+      pushAction: {
+        kind: actionKind,
+        id: `${response.notification.request.identifier}:${response.actionIdentifier}`,
+      },
+    });
     return;
   }
 
-  // Default tap or VIEW action — navigate to entity
+  // A tap on the notification itself opens what it is about.
   navigateToEntity(data);
 }

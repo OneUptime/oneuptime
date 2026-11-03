@@ -469,9 +469,10 @@ describe("routing each entityType the server sends", () => {
   test("a scheduled-maintenance page navigates nowhere, because there is no screen for it", () => {
     /*
      * The server sends this one, and the app has no scheduled-maintenance
-     * screen to send it to. Pinned so that adding that screen is a deliberate
-     * act with a failing test attached, rather than something a reader has to
-     * infer from a switch that happens not to mention it.
+     * screen to send it to: its dashboard page opens in the browser instead
+     * (handlersPageActions.test.ts). Pinned so that adding that screen is a
+     * deliberate act with a failing test attached, rather than something a
+     * reader has to infer from a switch that happens not to mention it.
      */
     handlers.handleNotificationResponse(
       tap({
@@ -522,11 +523,14 @@ describe("routing each entityType the server sends", () => {
     expect(container.navigations).toEqual([]);
   });
 
-  test("acknowledging from the notification shade does not open anything", () => {
+  test("an action this build does not know - the retired ACKNOWLEDGE among them - opens the record, and asks for nothing", () => {
     /*
-     * ACKNOWLEDGE is declared with opensAppToForeground: false. Navigating on
-     * it would drag a responder who deliberately acknowledged without looking
-     * into the app.
+     * Earlier builds registered an ACKNOWLEDGE action that did nothing at all
+     * (no server ever named its category, and setup now takes it off the
+     * phone). A tap on an action the app cannot do opens what the push is
+     * about, where the reader can act, rather than silently nothing. The
+     * page's own actions are ACKNOWLEDGE_PAGE and ESCALATE_PAGE
+     * (handlersPageActions.test.ts).
      */
     handlers.handleNotificationResponse(
       tap(
@@ -535,7 +539,13 @@ describe("routing each entityType the server sends", () => {
       ),
     );
 
-    expect(container.navigations).toEqual([]);
+    expect(container.navigations).toEqual([
+      {
+        routeName: "Inbox",
+        screen: "IncidentDetail",
+        params: { incidentId: "inc-1", projectId: "proj-1" },
+      },
+    ]);
   });
 });
 
