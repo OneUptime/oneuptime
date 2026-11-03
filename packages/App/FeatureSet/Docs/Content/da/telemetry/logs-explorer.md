@@ -108,7 +108,7 @@ Søg, filtrér, og vælg de kolonner, du vil beholde.
 Vælg visningen i **Gemte visninger** for at anvende den, og **Ryd visning** for at gå tilbage til den seneste time uden filtre. Peg på en visning i listen for at **Rediger** eller **Slet** den, eller, mens den er anvendt, for at **Opdater** den med dine ændringer.
 :::
 
-Gemte visninger hører til projektet, så alle i det ser den samme liste. Et rullende interval som den seneste time bliver ved med at rulle: visningen viser timen, før du åbner den, ikke den time, hvor du gemte den. Så længe projektet ikke har en standardvisning, bliver den næste gemte visning standard, og et projekt har én standard ad gangen.
+Gemte visninger hører til projektet, så alle i det ser de samme visninger, og hver visning bliver på den side, den blev gemt på: en visning, der er gemt på siden Protokoller, vises på siden Protokoller, og en visning, der er gemt på en ressources fane Protokoller, f.eks. en Kubernetes-klynges eller en værts, vises kun på den fane. Et rullende interval som den seneste time bliver ved med at rulle: visningen viser timen, før du åbner den, ikke den time, hvor du gemte den. Så længe en side ikke har en standardvisning, bliver den næste visning, der gemmes på den, dens standard, og hver side har én standard ad gangen.
 
 ## Vis dine protokoller i diagrammer
 

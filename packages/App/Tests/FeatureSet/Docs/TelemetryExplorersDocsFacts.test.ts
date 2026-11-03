@@ -908,7 +908,7 @@ describe("Logs Explorer (telemetry/logs-explorer)", () => {
     );
   });
 
-  it("saves a view's search, chips, range, columns, sort and page size, and makes a project's first view its default", () => {
+  it("saves a view's search, chips, range, columns, sort and page size, and makes a page's first view its default", () => {
     const save: string = between(
       dashboardViewer,
       'submitButtonText="Save View"',
@@ -953,7 +953,44 @@ describe("Logs Explorer (telemetry/logs-explorer)", () => {
       "A saved view keeps a search, its filter chips, the time range, the columns, the sort and the page size, under a name.",
     );
     expect(page).toContain(
-      "While the project has no default view, the next view saved becomes the default, and a project has one default at a time.",
+      "While a page has no default view, the next view saved on it becomes its default, and each page has one default at a time.",
+    );
+  });
+
+  /*
+   * Issue #5549: a view is listed on the page it was saved on - the Logs
+   * page, or one resource's Logs tab - and each page has its own default.
+   */
+  it("keeps each saved view on the page it was saved on, with a default per page", () => {
+    const service: string = readCommonSource(
+      "Server/Services/LogSavedViewService.ts",
+    );
+
+    // The viewer asks for, and saves to, its own page.
+    expect(dashboardViewer).toContain(
+      "scope: getSavedViewScopeQueryValue(props.savedViewScope),",
+    );
+    expect(dashboardViewer).toContain("savedView.scope = scope;");
+    // The Logs page has its views; a cluster's and a host's tab have theirs.
+    expect(readDashboardSource("Pages/Logs/Index.tsx")).toContain(
+      "savedViewScope={EXPLORER_SAVED_VIEW_SCOPE}",
+    );
+    expect(readDashboardSource("Pages/Kubernetes/View/Logs.tsx")).toContain(
+      "SavedViewScopeKind.KubernetesCluster,",
+    );
+    expect(readDashboardSource("Pages/Host/View/Logs.tsx")).toContain(
+      "SavedViewScopeKind.Host,",
+    );
+    // A page's default is taken only from that page's views.
+    expect(service).toContain(
+      'const DEFAULT_GROUP_COLUMNS: Array<string> = ["scope"];',
+    );
+    expect(service).toContain(
+      "scope: scope === null ? QueryHelper.isNull() : scope,",
+    );
+
+    expect(page).toContain(
+      "Saved views belong to the project, so everyone in it sees the same views, and each view stays on the page it was saved on: a view saved on the Logs page is listed on the Logs page, and a view saved on a resource's Logs tab, such as a Kubernetes cluster's or a host's, is listed on that tab alone.",
     );
   });
 

@@ -108,7 +108,7 @@ Abra **Visualizações salvas** e clique em **+ Salvar visualização atual**. I
 Escolha a visualização em **Visualizações salvas** para aplicá-la, e **Limpar visualização** para voltar à última hora sem filtros. Aponte para uma visualização da lista para **Editar** ou **Excluir**, ou, enquanto ela estiver aplicada, para **Atualizar** com suas mudanças.
 :::
 
-As visualizações salvas pertencem ao projeto, então todos nele veem a mesma lista. Um intervalo móvel, como a última hora, continua móvel: a visualização mostra a hora anterior à abertura, não a hora em que você a salvou. Enquanto o projeto não tiver visualização padrão, a próxima visualização salva passa a ser a padrão, e um projeto tem uma única padrão por vez.
+As visualizações salvas pertencem ao projeto, então todos nele veem as mesmas visualizações, e cada visualização fica na página em que foi salva: uma visualização salva na página Registros aparece na página Registros, e uma visualização salva na aba Registros de um recurso, como a de um cluster Kubernetes ou a de um host, aparece só nessa aba. Um intervalo móvel, como a última hora, continua móvel: a visualização mostra a hora anterior à abertura, não a hora em que você a salvou. Enquanto uma página não tiver visualização padrão, a próxima visualização salva nela passa a ser a padrão dela, e cada página tem uma única padrão por vez.
 
 ## Transformar seus registros em gráficos
 
