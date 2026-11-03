@@ -5,12 +5,12 @@ array's health beside its connection, and **Needs attention** by the array's
 rules - `Pages/StorageArray/Utils/StorageArrayHealth`: the array's own row
 with its open alerts, how full and how slow it is, then each hardware part,
 host, pod and file system with why), the **Hosts**, **Replication**,
-**Hardware** and **File Systems** lists (each part's state with why, its
-cells coloured at its alerts' lines) and a volume's, a host's and a file
-system's own page (its state, where it sits, what about it needs attention,
-what is open on it, the alerts that watch it with Turn on N and its details),
-each inside the production array layout and side menu
-(`packages/App/FeatureSet/Dashboard/src/Pages/StorageArray/View/{Layout,Index,Volumes,VolumeDetail,Hosts,HostDetail,Replication,Hardware,FileSystems,FileSystemDetail}.tsx`).
+**Hardware**, **File Systems** and **Buckets** lists (each part's state with
+why, its cells coloured at its alerts' lines) and a volume's, a host's, a
+file system's and a bucket's own page (its state, where it sits, what about
+it needs attention, what is open on it, the alerts that watch it with Turn on
+N and its details), each inside the production array layout and side menu
+(`packages/App/FeatureSet/Dashboard/src/Pages/StorageArray/View/{Layout,Index,Volumes,VolumeDetail,Hosts,HostDetail,Replication,Hardware,FileSystems,FileSystemDetail,Buckets,BucketDetail}.tsx`).
 It bundles the production pages with esbuild, replaces only the `ModelAPI` /
 `AnalyticsModelAPI` / `API` / `Realtime` data boundary, and serves them on
 `127.0.0.1:4693` (`STORAGE_ARRAY_PAGES_FIXTURE_PORT`). No array, no
@@ -30,7 +30,8 @@ An "Acme Storage" workspace with two arrays:
   to remote arrays, two controllers, chassis parts, three drives and two
   network interfaces.
 - `fb-prod-01`, a Pure Storage FlashBlade: three file systems (`scratch`,
-  `home`, `projects`), a bucket and four blades and modules.
+  `home`, `projects`), a bucket (`logs-archive`, in the `analytics`
+  account) and four blades and modules.
 
 Any route not listed above renders a "Not modelled" stub
 (`data-testid="stub-page"`).

@@ -53,6 +53,8 @@ import StorageArrayReplication from "../../../App/FeatureSet/Dashboard/src/Pages
 import StorageArrayHardware from "../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/View/Hardware";
 import StorageArrayFileSystems from "../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/View/FileSystems";
 import StorageArrayFileSystemDetail from "../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/View/FileSystemDetail";
+import StorageArrayBuckets from "../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/View/Buckets";
+import StorageArrayBucketDetail from "../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/View/BucketDetail";
 import RouteMap from "../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import PageMap from "../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import Metric from "Common/Models/AnalyticsModels/Metric";
@@ -339,8 +341,10 @@ part(FLASHBLADE_ID, {
   kind: "Bucket",
   externalId: "logs-archive",
   name: "logs-archive",
+  // Its account, where the ingest writes it (StorageArraySnapshotScan).
+  groupName: "analytics",
   usedBytes: Math.round(3.1 * TIB),
-  details: { objectCount: 1820044, account: "analytics" },
+  details: { objectCount: 1820044 },
 });
 for (const blade of ["CH1.FB1", "CH1.FB2", "CH1.FM1", "CH1.PWR1"]) {
   part(FLASHBLADE_ID, {
@@ -988,6 +992,8 @@ const PAGES = [
   [PageMap.STORAGE_ARRAY_VIEW_HARDWARE, StorageArrayHardware],
   [PageMap.STORAGE_ARRAY_VIEW_FILE_SYSTEMS, StorageArrayFileSystems],
   [PageMap.STORAGE_ARRAY_VIEW_FILE_SYSTEM_DETAIL, StorageArrayFileSystemDetail],
+  [PageMap.STORAGE_ARRAY_VIEW_BUCKETS, StorageArrayBuckets],
+  [PageMap.STORAGE_ARRAY_VIEW_BUCKET_DETAIL, StorageArrayBucketDetail],
 ].map(([pageKey, Component]) => {
   return {
     path: RouteMap[pageKey].toString(),

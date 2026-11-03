@@ -536,6 +536,30 @@ test.describe("a part's own page answers the same questions in the same places",
     await expect(page.getByTestId("storage-array-part-alerts")).toHaveCount(0);
     await screenshot(page, "volume-page-1280");
   });
+
+  test("a bucket: Available, its account, what it holds and its objects, and no alerts card - no alert watches one", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(LAPTOP);
+    await openPart(page, `${FLASHBLADE_PATH}/buckets/logs-archive`);
+
+    await expect(
+      page.getByTestId("storage-array-part-hero-status"),
+    ).toContainText("Available");
+    await expect(page.getByTestId("storage-array-part-hero")).toContainText(
+      "Bucket of array fb-prod-01",
+    );
+    // What the FlashBlade sent - its account, size and objects - and no dashes.
+    const details: Locator = page.getByTestId("storage-array-part-details");
+    await expect(details).toContainText("analytics");
+    await expect(details).toContainText("3.1 TiB");
+    await expect(details).toContainText("1.8M");
+    await expect(details).not.toContainText("—");
+    await expect(page.getByTestId("storage-array-part-alerts")).toHaveCount(0);
+    await screenshot(page, "bucket-page-1280");
+  });
 });
 
 /*
