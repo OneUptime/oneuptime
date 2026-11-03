@@ -19029,6 +19029,12 @@ test("an open incident AI did not investigate, whose fixing switch is on now, is
   await expect(remediation.getByTestId("remediation-decision-text")).toHaveText(
     FIXING_ON_NOW_LINE,
   );
+  await expectWhatHappenedSettled(page);
+  await page.mouse.move(0, 0);
+  await screenshotElement(
+    investigationCard(page),
+    "ai-card-off-switch-whole-open",
+  );
 
   await remediation.getByRole("button", { name: "Try again" }).click();
 
