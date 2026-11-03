@@ -334,6 +334,15 @@ jobs:
           timeout_minutes: 30
           max_attempts: 3
           command: cd packages/App/FeatureSet/Accounts && npm run compile && npm run dep-check
+      # What a visitor downloads before a public page can draw - the sign-in
+      # and sign-up pages, a status page and a public dashboard - held to a
+      # ceiling per page (packages/Common/Scripts/first-load-budgets.js,
+      # issue #5608). It builds the three frontends for production, a few
+      # seconds each, and needs every one installed above.
+      - name: Check the public pages' first-load budgets
+        if: ${{ !cancelled() }}
+        timeout-minutes: 10
+        run: node packages/Common/Scripts/first-load-budgets.js
 
   # The two recorder SDKs published to npm, with neither Common nor App
   # installed - the one condition a job of their own is for.
