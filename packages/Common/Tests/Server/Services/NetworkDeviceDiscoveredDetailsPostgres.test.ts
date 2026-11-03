@@ -53,7 +53,11 @@ import { DataSource } from "typeorm";
  *     never a deleted or archived device, and reads refreshRequestedAt, the
  *     column AddNetworkDeviceRefreshRequestedAt1808300000000 added;
  *   - forgetControllerReadings drops that connection's reading only, and
- *     leaves updatedAt alone.
+ *     leaves updatedAt alone;
+ *   - findControllerIdentityHolders finds every device - archived ones too,
+ *     never a deleted one or another project's - that holds one of a device
+ *     list's serial numbers (without case or padding), MACs (typed or
+ *     learned) or addresses: what Add devices never adds twice.
  *
  * Opt in with RUN_POSTGRES_NETWORK_DEVICE_DISCOVERED_DETAILS_TESTS=true
  * against a Postgres migrated to the current head - the Postgres Schema Drift
@@ -734,6 +738,93 @@ describePostgres("a device's discovered details merged on Postgres", () => {
         return row.id;
       }),
     ).toEqual([describedBefore]);
+  });
+
+  test("the devices that hold a device list's identities: live and archived, never deleted or another project's", async () => {
+    await insertCandidate({
+      hostname: "10.20.40.1",
+      serialNumber: " q2hp-swch-0001 ",
+    });
+    await insertCandidate({
+      hostname: "10.20.40.2",
+      macAddress: "e0:55:3d:aa:00:01",
+      isArchived: true,
+    });
+    await insertCandidate({
+      hostname: "10.20.40.3",
+      discoveredDetails: {
+        macAddress: arpReading("34:56:fe:00:00:01", "2026-10-23T06:00:00.000Z"),
+      },
+    });
+    await insertCandidate({
+      hostname: "10.66.0.40",
+      serialNumber: "FOC1840X0AB",
+    });
+
+    // None of these.
+    await insertCandidate({
+      projectId: OTHER_PROJECT_ID,
+      hostname: "10.66.0.40",
+      serialNumber: "Q2HP-SWCH-0001",
+    });
+    await insertCandidate({
+      hostname: "10.66.0.40",
+      deletedAt: new Date("2026-10-22T00:00:00.000Z"),
+    });
+    await insertCandidate({
+      hostname: "10.20.40.9",
+      serialNumber: "Q2HP-ELSE-0001",
+      macAddress: "aa:bb:cc:00:00:09",
+    });
+
+    const held: Awaited<
+      ReturnType<typeof NetworkDeviceService.findControllerIdentityHolders>
+    > = await NetworkDeviceService.findControllerIdentityHolders({
+      projectId: PROJECT_ID,
+      serials: ["Q2HP-SWCH-0001"],
+      macs: ["e0:55:3d:aa:00:01", "34:56:fe:00:00:01"],
+      addresses: ["10.66.0.40"],
+      limit: 100,
+    });
+
+    expect(
+      held
+        .map((row: { hostname: string | null }): string => {
+          return row.hostname || "";
+        })
+        .sort(),
+    ).toEqual(["10.20.40.1", "10.20.40.2", "10.20.40.3", "10.66.0.40"]);
+
+    const archived: (typeof held)[number] | undefined = held.find(
+      (row: { hostname: string | null }) => {
+        return row.hostname === "10.20.40.2";
+      },
+    );
+    expect(archived).toEqual({
+      serialNumber: null,
+      macAddress: "e0:55:3d:aa:00:01",
+      learnedMacAddress: null,
+      hostname: "10.20.40.2",
+      isArchived: true,
+    });
+    expect(
+      held.find((row: { hostname: string | null }) => {
+        return row.hostname === "10.20.40.3";
+      })?.learnedMacAddress,
+    ).toBe("34:56:fe:00:00:01");
+
+    // At most `limit` rows.
+    expect(
+      (
+        await NetworkDeviceService.findControllerIdentityHolders({
+          projectId: PROJECT_ID,
+          serials: ["Q2HP-SWCH-0001"],
+          macs: ["e0:55:3d:aa:00:01", "34:56:fe:00:00:01"],
+          addresses: ["10.66.0.40"],
+          limit: 2,
+        })
+      ).length,
+    ).toBe(2);
   });
 
   test("forgetting a deleted connection drops its readings only, in its project, and leaves updatedAt alone", async () => {

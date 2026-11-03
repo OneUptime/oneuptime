@@ -21,9 +21,23 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import CephResourceModel from "Common/Models/DatabaseModels/CephResource";
+import OneUptimeDate from "Common/Types/Date";
 import CephResourceUtils, {
   CephResourceKind,
+  getCephShortVersion,
 } from "../Utils/CephResourceUtils";
+import {
+  CEPH_KIND_MDS,
+  CEPH_KIND_MGR,
+  CEPH_KIND_MON,
+  CEPH_KIND_RGW,
+  CephAssessment,
+  assessCephResource,
+  getCephNewestSeenAt,
+} from "../Utils/CephHealth";
+import { ResourcePartTone } from "../../../Components/ResourcePart/ResourcePartTypes";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import {
   ClientSort,
   ClientSortColumns,
@@ -34,11 +48,14 @@ import {
 import { CEPH_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/CephMetricDescriptions";
 
 /*
- * Mon / Mgr / Mds / Rgw status table — the honest ControlPlane analog
- * for Ceph (K8s ControlPlane.tsx precedent): a status table, not six
- * metric tabs. Mons get an in-quorum pill (ceph_mon_quorum_status);
- * mgr/mds/rgw daemons only report identity metadata (hostname, version)
- * plus last-seen freshness, so their status is "Reporting" / "Stale".
+ * Mon / Mgr / Mds / Rgw status table - the honest ControlPlane analog for
+ * Ceph (K8s ControlPlane.tsx precedent): a status table, not six metric
+ * tabs. Each status is the cluster's rules' (CephHealth): a monitor In
+ * quorum, or Out of quorum in red (ceph_mon_quorum_status); a manager,
+ * metadata server or gateway reports only its identity (hostname, version),
+ * so it is Reporting while Ceph lists it. One the reports since its last
+ * have left out reads Stopped reporting, in grey: it was removed, or failed
+ * - Ceph raises a check for one that fails, which the Overview lists.
  */
 
 interface CephDaemonRow {
@@ -47,9 +64,10 @@ interface CephDaemonRow {
   // Null when the daemon never reported one; the cell shows "—".
   hostname: string | null;
   version: string | null;
+  // The status's English words, which the sort and its colour read.
   status: string;
-  isHealthy: boolean;
-  isWarning: boolean;
+  tone: ResourcePartTone;
+  severity: number;
 }
 
 type CephDaemonSortKey = "daemon" | "kind" | "status" | "hostname" | "version";
@@ -57,10 +75,10 @@ type CephDaemonSortKey = "daemon" | "kind" | "status" | "hostname" | "version";
 type CephDaemonSort = ClientSort<CephDaemonSortKey>;
 
 const KIND_LABELS: Record<string, string> = {
-  Mon: "Monitor",
-  Mgr: "Manager",
-  Mds: "Metadata Server",
-  Rgw: "RADOS Gateway",
+  Mon: CEPH_KIND_MON,
+  Mgr: CEPH_KIND_MGR,
+  Mds: CEPH_KIND_MDS,
+  Rgw: CEPH_KIND_RGW,
 };
 
 const DAEMON_KINDS: Array<CephResourceKind> = ["Mon", "Mgr", "Mds", "Rgw"];
@@ -68,17 +86,29 @@ const DAEMON_KINDS: Array<CephResourceKind> = ["Mon", "Mgr", "Mds", "Rgw"];
 const PAGE_SIZE: number = 25;
 
 /*
- * How bad a daemon's status is: out of quorum (red) above stale (yellow)
- * above in quorum or reporting (green). Sorted by its label, "In Quorum"
- * would lead and "Out of Quorum" would sit between two healthy states.
+ * How bad a daemon's status is: out of quorum (red) above one that stopped
+ * reporting or has no word yet (grey) above in quorum or reporting (green).
+ * Sorted by its label, "In quorum" would lead and "Out of quorum" would sit
+ * between two healthy states.
  */
 const statusSeverityOf: (row: CephDaemonRow) => number = (
   row: CephDaemonRow,
 ): number => {
-  if (row.isHealthy) {
-    return 0;
-  }
-  return row.isWarning ? 1 : 2;
+  return row.severity;
+};
+
+const TONE_SEVERITY: Record<ResourcePartTone, number> = {
+  positive: 0,
+  neutral: 1,
+  warning: 2,
+  danger: 3,
+};
+
+const TONE_CLASS_NAMES: Record<ResourcePartTone, string> = {
+  positive: "bg-green-50 text-green-700",
+  neutral: "bg-gray-50 text-gray-700",
+  warning: "bg-yellow-50 text-yellow-700",
+  danger: "bg-red-50 text-red-700",
 };
 
 /*
@@ -113,6 +143,7 @@ const CephClusterDaemons: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+  const translator: Translator = useTranslator();
 
   const [daemons, setDaemons] = useState<Array<CephDaemonRow>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -131,47 +162,29 @@ const CephClusterDaemons: FunctionComponent<
           kinds: DAEMON_KINDS,
         });
 
+      const now: Date = OneUptimeDate.getCurrentDate();
+      const newestSeenAt: Date | null = getCephNewestSeenAt(rows);
+
       const list: Array<CephDaemonRow> = rows.map(
         (row: CephResourceModel): CephDaemonRow => {
           const kind: string = row.kind || "";
-          const lastSeenMs: number = row.lastSeenAt
-            ? Date.now() - new Date(row.lastSeenAt).getTime()
-            : Number.POSITIVE_INFINITY;
-          const isFresh: boolean =
-            lastSeenMs <= CephResourceUtils.METRIC_STALE_MS;
-
-          let status: string;
-          let isHealthy: boolean;
-          let isWarning: boolean = false;
-          if (kind === "Mon") {
-            if (!isFresh) {
-              status = "Stale";
-              isHealthy = false;
-              isWarning = true;
-            } else if (row.inQuorum) {
-              status = "In Quorum";
-              isHealthy = true;
-            } else {
-              status = "Out of Quorum";
-              isHealthy = false;
-            }
-          } else if (isFresh) {
-            status = "Reporting";
-            isHealthy = true;
-          } else {
-            status = "Stale";
-            isHealthy = false;
-            isWarning = true;
-          }
+          const assessment: CephAssessment | null = assessCephResource(row, {
+            now: now,
+            newestSeenAt: newestSeenAt,
+          });
+          const tone: ResourcePartTone = assessment?.status.tone || "neutral";
 
           return {
             daemon: row.externalId || "",
             kind: KIND_LABELS[kind] || kind,
             hostname: row.hostname || null,
-            version: row.daemonVersion || null,
-            status: status,
-            isHealthy: isHealthy,
-            isWarning: isWarning,
+            // The release, not the build's hash, so versions line up.
+            version: row.daemonVersion
+              ? getCephShortVersion(row.daemonVersion)
+              : null,
+            status: assessment?.status.label || "",
+            tone: tone,
+            severity: TONE_SEVERITY[tone],
           };
         },
       );
@@ -231,7 +244,7 @@ const CephClusterDaemons: FunctionComponent<
         getElement: (row: CephDaemonRow): ReactElement => {
           return (
             <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded bg-blue-50 text-blue-700">
-              {row.kind}
+              {translator.translateText(row.kind) || row.kind}
             </span>
           );
         },
@@ -242,16 +255,12 @@ const CephClusterDaemons: FunctionComponent<
         key: "status",
         headerTooltip: CEPH_METRIC_DESCRIPTIONS.daemonStatus,
         getElement: (row: CephDaemonRow): ReactElement => {
-          const badgeClass: string = row.isHealthy
-            ? "bg-green-50 text-green-700"
-            : row.isWarning
-              ? "bg-yellow-50 text-yellow-700"
-              : "bg-red-50 text-red-700";
           return (
             <span
-              className={`inline-flex px-2 py-0.5 text-xs font-medium rounded ${badgeClass}`}
+              data-tone={row.tone}
+              className={`inline-flex whitespace-nowrap px-2 py-0.5 text-xs font-medium rounded ${TONE_CLASS_NAMES[row.tone]}`}
             >
-              {row.status}
+              {translator.translateText(row.status) || row.status}
             </span>
           );
         },
@@ -269,7 +278,7 @@ const CephClusterDaemons: FunctionComponent<
         noValueMessage: "—",
       },
     ];
-  }, []);
+  }, [translator]);
 
   /*
    * Refresh lives in the ⋯ at the end of the card's header, where every

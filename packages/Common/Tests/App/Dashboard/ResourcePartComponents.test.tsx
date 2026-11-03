@@ -128,6 +128,7 @@ import ResourcePartOpenEventsCard, {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourcePart/ResourcePartOpenEventsCard";
 import ResourcePartAlertsCard from "../../../../App/FeatureSet/Dashboard/src/Components/ResourcePart/ResourcePartAlertsCard";
 import ResourcePartRow from "../../../../App/FeatureSet/Dashboard/src/Components/ResourcePart/ResourcePartRow";
+import ResourcePartTabs from "../../../../App/FeatureSet/Dashboard/src/Components/ResourcePart/ResourcePartTabs";
 import { RecommendationStatus } from "../../../../App/FeatureSet/Dashboard/src/Components/Recommendations/RecommendationViewModel";
 import { OpenIssueRecord } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceTopology/ResourceTopologyIssues";
 
@@ -698,6 +699,73 @@ describe("a part's details", () => {
       />,
     );
     expect(container).toBeEmptyDOMElement();
+  });
+
+  /*
+   * A value reads in its own direction: on a Persian page "8.0 MB" kept its
+   * number before its unit only when its box is told to read it by its own
+   * first letter. A value drawn as an element (a link) says its own.
+   */
+  test("a written value reads in its own direction; an element value is left as drawn", () => {
+    render(
+      <ResourcePartDetailsCard
+        testId="details"
+        description="What the agent reports about this container."
+        rows={[
+          { key: "rx", label: "Network RX (total)", value: "8.0 MB" },
+          {
+            key: "host",
+            label: "Host",
+            value: <a href="/hosts/web-01">web-01</a>,
+          },
+        ]}
+      />,
+    );
+
+    expect(
+      within(screen.getByTestId("details-rx")).getByText("8.0 MB"),
+    ).toHaveAttribute("dir", "auto");
+    expect(
+      within(screen.getByTestId("details-host"))
+        .getByRole("link", { name: "web-01" })
+        .parentElement?.getAttribute("dir"),
+    ).toBeNull();
+  });
+});
+
+/*
+ * A part page's tabs (ResourcePartTabs): a page with one tab draws its
+ * cards without a row of one tab, a control that does nothing; with more,
+ * the row wraps and its cards line up with the hero above them.
+ */
+describe("a part page's tabs", () => {
+  test("one tab: its cards, and no tab row", () => {
+    render(
+      <ResourcePartTabs
+        tabs={[{ name: "Overview", children: <p>Cards of the node</p> }]}
+      />,
+    );
+
+    expect(screen.getByText("Cards of the node")).toBeInTheDocument();
+    expect(screen.queryByRole("tablist")).toBeNull();
+    expect(screen.queryByRole("tab")).toBeNull();
+  });
+
+  test("more than one: a row that wraps, the first tab open, its cards in line with the hero", () => {
+    render(
+      <ResourcePartTabs
+        tabs={[
+          { name: "Overview", children: <p>Cards of the task</p> },
+          { name: "Logs", children: <p>Logs of the task</p> },
+        ]}
+      />,
+    );
+
+    expect(screen.getByRole("tablist")).toHaveClass("flex-wrap");
+    expect(screen.getAllByRole("tab")).toHaveLength(2);
+    expect(screen.getByText("Cards of the task")).toBeInTheDocument();
+    expect(screen.queryByText("Logs of the task")).toBeNull();
+    expect(screen.getByRole("tabpanel")).not.toHaveClass("ml-1");
   });
 });
 

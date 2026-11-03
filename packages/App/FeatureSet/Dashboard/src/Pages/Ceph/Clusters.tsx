@@ -42,23 +42,41 @@ import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
 import { CEPH_METRIC_DESCRIPTIONS } from "../../Components/MetricDescriptions/CephMetricDescriptions";
+import {
+  CEPH_CLUSTER_FULL_PERCENT,
+  CEPH_CLUSTER_NEARFULL_PERCENT,
+} from "./Utils/CephHealth";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Health pill rendered from the CephCluster.healthStatus snapshot column
  * (0 = HEALTH_OK, 1 = HEALTH_WARN, 2 = HEALTH_ERR, null = no batch with
- * ceph_health_status seen yet). The column is written by the metrics
- * ingest scan, so the list page never hits ClickHouse — same pattern as
- * Pages/Kubernetes/Clusters.tsx snapshot columns.
+ * ceph_health_status seen yet), in Ceph's own words. The column is written
+ * by the metrics ingest scan, so the list page never hits ClickHouse - same
+ * pattern as Pages/Kubernetes/Clusters.tsx snapshot columns. A cluster
+ * whose agent stopped reporting keeps its last verdict in the column, which
+ * is no longer the truth: its pill reads Unknown, in grey, as its
+ * Overview's hero says Health Unknown.
  */
-const renderHealthPill: (healthStatus: number | undefined) => ReactElement = (
-  healthStatus: number | undefined,
-): ReactElement => {
+const renderHealthPill: (data: {
+  healthStatus: number | undefined;
+  isConnected: boolean;
+  translator: Translator;
+}) => ReactElement = (data: {
+  healthStatus: number | undefined;
+  isConnected: boolean;
+  translator: Translator;
+}): ReactElement => {
+  const healthStatus: number | undefined = data.healthStatus;
   const pill: { label: string; badge: string; dot: string } = (() => {
-    if (healthStatus === null || healthStatus === undefined) {
+    if (
+      healthStatus === null ||
+      healthStatus === undefined ||
+      !data.isConnected
+    ) {
       return {
-        label: "Unknown",
+        label: data.translator.translateText("Unknown") || "Unknown",
         badge: "bg-gray-50 text-gray-600 ring-gray-200",
         dot: "bg-gray-400",
       };
@@ -107,8 +125,13 @@ const renderCapacityBar: (
 
   const pct: number = Number(capacityUsedPercent);
   const clamped: number = Math.min(100, Math.max(0, pct));
+  // The Cluster Near Full and Cluster Full alerts' lines.
   const barColor: string =
-    pct >= 90 ? "bg-red-500" : pct >= 75 ? "bg-amber-500" : "bg-emerald-500";
+    pct > CEPH_CLUSTER_FULL_PERCENT
+      ? "bg-red-500"
+      : pct > CEPH_CLUSTER_NEARFULL_PERCENT
+        ? "bg-amber-500"
+        : "bg-emerald-500";
 
   return (
     <div className="flex items-center gap-2 min-w-[120px]">
@@ -217,6 +240,8 @@ const CephClusters: FunctionComponent<
         refreshToggle={`${firstRecordWatch.refreshToken}-${connectedCount}`}
         id="ceph-clusters-table"
         userPreferencesKey="ceph-clusters-table"
+        // The Health column reads the connection too, shown or not.
+        selectMoreFields={{ otelCollectorStatus: true }}
         topContent={getFirstRunTopContent({
           topContent: filterBar,
           count: firstRecordWatch.count,
@@ -293,10 +318,14 @@ const CephClusters: FunctionComponent<
               healthStatus: true,
             },
             title: "Health",
-            headerTooltip: CEPH_METRIC_DESCRIPTIONS.health,
+            headerTooltip: CEPH_METRIC_DESCRIPTIONS.clusterHealth,
             type: FieldType.Element,
             getElement: (item: CephCluster): ReactElement => {
-              return renderHealthPill(item.healthStatus);
+              return renderHealthPill({
+                healthStatus: item.healthStatus,
+                isConnected: item.otelCollectorStatus === "connected",
+                translator: translator,
+              });
             },
           },
           {

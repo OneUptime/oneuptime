@@ -154,6 +154,16 @@ Hver containers metrikker og logs arkiveres under en tjeneste opkaldt efter cont
 
 [Docker-monitor](/docs/monitor/docker-monitor#indsamlede-metrikker) viser hver metrik, og hvad den betyder.
 
+## Hvad værtens sider viser
+
+Værtens sider vurderer hver container efter de samme regler, så oversigten, containerlisten og en containers egen side altid er enige:
+
+- **Oversigt**: værtens tilstand ved siden af dens forbindelse, og **Kræver opmærksomhed**: de containere, der er i stykker eller kræver et kig, de mest presserende først, hver med grunden. En container, som dens genstartspolitik har genstartet mere end 3 gange på 15 minutter, er i en genstartsløkke; en, der er genstartet, bruger mere end 85 % af sin hukommelse eller kørte i 10 minutter eller mere og så holdt op med at rapportere, kræver et kig.
+- **Containere**: hver containers tilstand med de samme ord og farver, med grunden, dens genstarter de seneste 15 minutter og hvornår den sidst blev startet. En container, der er stoppet, står i listen i 15 minutter efter sin seneste måling: **Rapporterer ikke længere** for en, der kørte i 10 minutter eller mere, **Rapporterer ikke** i gråt for et job eller en enkeltkørsel, der er færdig.
+- En containers egen side: hvad ved den der kræver et kig, dens CPU, hukommelse og genstarter, hvad der er åbent på den, containeradvarslerne med ét trin til at slå dem til, og hvad agenten rapporterer om den.
+
+Agenten læser kun kørende containere, så en container, der allerede var stoppet, da agenten startede, en exitkode og en sundhedstjeks dom vises ikke.
+
 ## Containerlogs kræver logdriveren json-file
 
 Agenten følger `/var/lib/docker/containers/*/*-json.log`, de filer, Dockers logdriver `json-file` skriver. En container, der bruger en anden driver, efterlader ingen fil at læse: `local` skriver binære filer, og `journald`, `syslog`, `fluentd` og `gelf` sender logs andre steder hen. Dens metrikker ankommer stadig; dens logs gør ikke.

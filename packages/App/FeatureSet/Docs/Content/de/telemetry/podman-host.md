@@ -154,6 +154,16 @@ Die Metriken und Logs jedes Containers werden unter einem Dienst abgelegt, der n
 
 [Podman-Überwachung](/docs/monitor/podman-monitor#erfasste-metriken) listet jede Metrik und ihre Bedeutung auf.
 
+## Was die Seiten des Hosts zeigen
+
+Die Seiten des Hosts beurteilen jeden Container nach denselben Regeln, sodass die Übersicht, die Containerliste und die eigene Seite eines Containers immer übereinstimmen:
+
+- **Übersicht**: der Zustand des Hosts neben seiner Verbindung, und **Erfordert Aufmerksamkeit**: die Container, die kaputt sind oder einen Blick brauchen, die dringendsten zuerst, jeweils mit dem Grund. Ein Container, den seine Neustartrichtlinie in 15 Minuten mehr als 3-mal neu gestartet hat, steckt in einer Neustartschleife; einer, der neu gestartet ist, mehr als 85 % seines Speichers belegt oder 10 Minuten oder länger lief und dann nicht mehr meldet, braucht einen Blick.
+- **Container**: der Zustand jedes Containers in denselben Worten und Farben, mit dem Grund, seine Neustarts der letzten 15 Minuten und wann er zuletzt gestartet ist. Ein gestoppter Container bleibt nach seinem letzten Messwert 15 Minuten in der Liste: **Meldet nicht mehr** für einen, der 10 Minuten oder länger lief, **Meldet nicht** in Grau für einen Job oder einen einmaligen Lauf, der fertig ist.
+- Die eigene Seite eines Containers: was daran einen Blick braucht, seine CPU, sein Speicher und seine Neustarts, was daran offen ist, die Container-Warnungen mit einem Schritt, sie einzuschalten, und was der Agent darüber meldet.
+
+Der Agent liest nur laufende Container, daher erscheinen ein Container, der beim Start des Agents schon gestoppt war, ein Exit-Code und das Urteil eines Health-Checks nicht.
+
 ## Container-Logs brauchen den Log-Treiber k8s-file
 
 Der Agent verfolgt `/var/lib/containers/storage/overlay-containers/*/userdata/ctr.log`, die Dateien, die der Log-Treiber `k8s-file` von Podman schreibt (`json-file` ist in Podman derselbe Treiber). Der Standardtreiber von Rootful Podman ist `journald`, der keine Datei zum Lesen hinterlässt, und ebenso ein entfernter Treiber wie `syslog`. Die Metriken eines solchen Containers kommen weiterhin an, seine Logs nicht.

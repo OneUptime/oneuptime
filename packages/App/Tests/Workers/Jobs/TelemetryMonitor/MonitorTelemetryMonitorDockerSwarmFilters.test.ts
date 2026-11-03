@@ -515,11 +515,21 @@ describe("monitorDockerSwarm: Swarm tasks only", () => {
     expect(taskMatches(attributes, AGENT_ATTRIBUTES)).toBe(true);
   });
 
-  test("every template but Cluster Stopped Reporting watches tasks only", () => {
+  /*
+   * The heartbeat counts every container's samples, and the swarm-state
+   * templates read the poller's node and service series, which are no
+   * container's: tasks only would leave each of them nothing to read.
+   */
+  test("every template that reads task containers watches tasks only, and only those", () => {
     const templates: Array<DockerSwarmAlertTemplate> =
       getAllDockerSwarmAlertTemplates();
+    const notTasks: Array<string> = [
+      "docker-swarm-cluster-stopped-reporting",
+      "docker-swarm-node-not-ready",
+      "docker-swarm-service-replicas-mismatch",
+    ];
 
-    expect(templates.length).toBeGreaterThan(1);
+    expect(templates.length).toBeGreaterThan(notTasks.length);
 
     for (const template of templates) {
       const step: MonitorStep = template.getMonitorStep({
@@ -538,7 +548,7 @@ describe("monitorDockerSwarm: Swarm tasks only", () => {
         ),
       }).toEqual({
         id: template.id,
-        tasksOnly: template.id !== "docker-swarm-cluster-stopped-reporting",
+        tasksOnly: !notTasks.includes(template.id),
       });
     }
   });

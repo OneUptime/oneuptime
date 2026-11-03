@@ -330,10 +330,13 @@ jobs:
           # seconds locally, the suite 1.6 minutes with its bundle): about 21.
           # SNMP Walk (1.9 minutes on both of the last two runs) moved to the
           # new group 17 on 2026-11-03: about 22.5.
+          # Trace Detail (2.5) joined it from group 3 the same day, when
+          # Meraki Traffic grew there: about 20.2.
           - group: 1
             event_overview_shard: 1/2
             suites: >-
               test-event-overview-ui
+              test-trace-detail-ui
           # The Alerts suite also runs in Firefox, and so do Code Editor (the
           # editor's text layers must line up in both) and Diagrams. Diagrams
           # and Navigation Search (about 8 minutes together) moved here from
@@ -467,12 +470,18 @@ jobs:
           # on 2026-11-03, when the last two runs (master's of 2026-11-02
           # 23:47 and 14.0.102's first gate run) took this group 23.9 and
           # 24.8: about 21.5.
+          # Meraki Traffic grew to about 4.8 the same day with #5392's Add
+          # Meraki devices tests (the row's offer, the dialog and its ask, the
+          # row following the worker job, what went wrong, a refused key, a
+          # member, German, dark: about 1.4 minutes locally), which would have
+          # taken this group to 22.7; group 17, where it was going, took Ceph
+          # Pages and Storage Array Pages (19.9) first, so Trace Detail (2.5)
+          # moved to group 1 instead: about 20.2.
           - group: 3
             monitor_overview_shard: 1/2
             suites: >-
               test-monitor-overview-ui
               test-event-notes-ui
-              test-trace-detail-ui
               test-label-rule-transfer-ui
               test-meraki-traffic-ui
               test-security-events-empty-states-ui
@@ -907,6 +916,12 @@ jobs:
           # group's suites sum to 22.0 minutes on a runner of median speed (22.8
           # on its slowest run before Value Picker joined it). Value Picker
           # (3.5) moved on to the new group 18: about 18.5.
+          # Container Host Pages (25 tests, 1.6 minutes locally with its
+          # bundle, Chromium only: a Docker and a Podman host's Overview - its
+          # health and what needs attention by the containers' rules - its
+          # Containers list and a container's page, at 1280, 1024, 768 and 390
+          # pixels, dark, German and Persian) joined it on 2026-11-03, beside
+          # Docker Swarm Pages: 20.1.
           - group: 8
             suites: >-
               test-dashboard-time-range-ui
@@ -918,6 +933,7 @@ jobs:
               test-public-addresses-ui
               test-docker-swarm-pages-ui
               test-permissions-per-tab-ui
+              test-container-host-pages-ui
           # Added on 2026-10-21, when every group took 20 to 26 minutes on one
           # run (groups 1 and 5 near 25) and Resource Topology would have
           # taken group 7 past 22: Code (6.4 minutes on that run, a laptop
@@ -1359,6 +1375,15 @@ jobs:
           # (2.1 and 2.7) from group 9, AI Context (1.7 and 1.8) from group 11,
           # LLM Provider Test (2.6 and 2.7) from group 14 and Status Timeline
           # (2.3) from group 15: about 17.5, with room for the next suites.
+          # Ceph Pages (23 tests, 2.0 minutes locally with its bundle,
+          # Chromium only: a Ceph cluster's Overview - its health and what
+          # needs attention by the cluster's rules - its OSDs, Pools and
+          # Daemons lists and an OSD's and a pool's page) and Storage Array
+          # Pages (18 tests, 1.4: a FlashArray's Overview by the array's
+          # rules, its Hosts, Replication and Hardware lists, a FlashBlade's
+          # File Systems and a host's, a file system's and a volume's page),
+          # each at 1280, 1024, 768 and 390 pixels, dark, German and Persian,
+          # joined it on 2026-11-03, the lightest group (16.5): 19.9.
           - group: 17
             suites: >-
               test-snmp-walk-ui
@@ -1369,6 +1394,8 @@ jobs:
               test-ai-context-ui
               test-llm-provider-test-ui
               test-status-timeline-ui
+              test-ceph-pages-ui
+              test-storage-array-pages-ui
           # Added on 2026-11-03. Timed over App Test's six finished runs of
           # 11-02 (each suite's median minutes in its group's job,
           # Tests/Ops/DashboardOfflineUiMinutes.json), the seventeen groups
@@ -1656,4 +1683,10 @@ jobs:
             output/playwright/kubernetes-pages-ui/test-results
             output/playwright/host-pages-ui/*.png
             output/playwright/host-pages-ui/test-results
+            output/playwright/container-host-pages-ui/*.png
+            output/playwright/container-host-pages-ui/test-results
+            output/playwright/ceph-pages-ui/*.png
+            output/playwright/ceph-pages-ui/test-results
+            output/playwright/storage-array-pages-ui/*.png
+            output/playwright/storage-array-pages-ui/test-results
           retention-days: 7

@@ -5,10 +5,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * table's timeline (DataAssetFeed), and the columns on DataStore that
  * schedule and report its table-health collections. The index on
  * DataStore's new "nextTableHealthCollectionAt" is built online, in
- * AddDataObservabilityStoreIndex1808900100000.
+ * AddDataObservabilityStoreIndex1808910100000.
  */
-export class AddDataObservability1808900000000 implements MigrationInterface {
-  public name = "AddDataObservability1808900000000";
+export class AddDataObservability1808910000000 implements MigrationInterface {
+  public name = "AddDataObservability1808910000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

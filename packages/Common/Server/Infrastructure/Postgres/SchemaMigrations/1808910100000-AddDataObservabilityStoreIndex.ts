@@ -3,7 +3,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 
 /*
  * Generated with npm run generate-postgres-migration alongside
- * AddDataObservability1808900000000, and moved into a migration of its own:
+ * AddDataObservability1808910000000, and moved into a migration of its own:
  * "DataStore" already exists and Data Security writes it all the time, so
  * the index on its new "nextTableHealthCollectionAt" column - which the
  * table-health schedule reads every five minutes to find the stores that
@@ -11,10 +11,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * again after a stop part way: an index that is already there is left as it
  * is.
  */
-export class AddDataObservabilityStoreIndex1808900100000
+export class AddDataObservabilityStoreIndex1808910100000
   implements MigrationInterface
 {
-  public name: string = "AddDataObservabilityStoreIndex1808900100000";
+  public name: string = "AddDataObservabilityStoreIndex1808910100000";
 
   // CREATE INDEX CONCURRENTLY runs outside a transaction.
   public transaction: boolean = false;

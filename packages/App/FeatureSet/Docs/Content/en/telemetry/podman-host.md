@@ -154,6 +154,16 @@ Each container's metrics and logs are filed under a service named after the cont
 
 [Podman Monitor](/docs/monitor/podman-monitor#collected-metrics) lists every metric and what it means.
 
+## What the host's pages show
+
+The host's pages judge each container by one set of rules, so the Overview, the Containers list and a container's own page always agree:
+
+- **Overview**: the host's health beside its connection, and **Needs attention**: the containers that are broken or need a look, the most urgent first, each with why. A container its restart policy restarted more than 3 times in 15 minutes is in a restart loop; one that restarted, uses more than 85% of its memory, or ran for 10 minutes or more and then stopped reporting needs a look.
+- **Containers**: each container's state in the same words and colours, with why, its restarts in the last 15 minutes and when it last started. A container that stopped stays listed for 15 minutes after its last reading: **Stopped reporting** for one that ran for 10 minutes or more, **Not reporting** in grey for a job or a one-off run that finished.
+- A container's own page: what on it needs attention, its CPU, memory and restarts, what is open on it, the container alerts with one step to turn them on, and what the agent reports about it.
+
+The agent reads running containers only, so a container that was already stopped when the agent started, an exit code and a health check's verdict do not show.
+
 ## Container logs need the k8s-file log driver
 
 The agent tails `/var/lib/containers/storage/overlay-containers/*/userdata/ctr.log`, the files Podman's `k8s-file` log driver writes (`json-file` is the same driver in Podman). Rootful Podman's default driver is `journald`, which leaves no file to read, and so does a remote driver such as `syslog`. Such a container's metrics still arrive; its logs do not.

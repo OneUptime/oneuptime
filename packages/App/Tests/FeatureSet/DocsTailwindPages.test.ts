@@ -2,6 +2,7 @@ import APIReferenceFeatureSet from "../../FeatureSet/APIReference/Index";
 import DocsFeatureSet from "../../FeatureSet/Docs/Index";
 import { getTailwindStylesheetFileName } from "../../Utils/TailwindStylesheet";
 import Express, { ExpressApplication } from "Common/Server/Utils/Express";
+import { replaceHtmlMarkup } from "Common/Types/HtmlMarkup";
 import { afterAll, beforeAll, describe, expect, it, jest } from "@jest/globals";
 import { AddressInfo } from "net";
 import { createServer, Server } from "http";
@@ -128,8 +129,13 @@ afterAll(async () => {
 // The last element of a page's head, with its comments and spaces left out.
 function lastInHead(html: string): string {
   const head: string = html.slice(0, html.indexOf("</head>"));
-  const tags: Array<string> = head
-    .replace(/<!--[\s\S]*?-->/g, "")
+  const tags: Array<string> = replaceHtmlMarkup(
+    head,
+    (markup: string): string => {
+      // A comment left out, every tag as it is written.
+      return markup.startsWith("<!--") ? "" : markup;
+    },
+  )
     .trim()
     .split(/(?=<)/)
     .map((tag: string): string => {

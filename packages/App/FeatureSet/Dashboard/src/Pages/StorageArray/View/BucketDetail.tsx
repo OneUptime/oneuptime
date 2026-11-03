@@ -1,6 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
 import React, { FunctionComponent, ReactElement } from "react";
-import StorageArray from "Common/Models/DatabaseModels/StorageArray";
 import StorageArrayResource from "Common/Models/DatabaseModels/StorageArrayResource";
 import StorageArrayResourceKind from "Common/Types/StorageArray/StorageArrayResourceKind";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
@@ -14,12 +13,8 @@ import { STORAGE_ARRAY_METRIC_DESCRIPTIONS } from "../../../Components/MetricDes
  * One FlashBlade S3 bucket. Its series carry the bucket's name in the
  * `name` label (purefb_buckets_*), which scopes the Metrics tab.
  */
-const getSummaryFields: (
+const getSummaryFields: (row: StorageArrayResource) => Array<SummaryField> = (
   row: StorageArrayResource,
-  storageArray: StorageArray,
-) => Array<SummaryField> = (
-  row: StorageArrayResource,
-  storageArray: StorageArray,
 ): Array<SummaryField> => {
   const objects: number | null = StorageArrayResourceUtils.getDetailNumber(
     row,
@@ -31,7 +26,6 @@ const getSummaryFields: (
       title: "Bucket",
       value: StorageArrayResourceUtils.displayNameForResource(row),
     },
-    { title: "Storage Array", value: storageArray.name || "—" },
     {
       title: "Account",
       description: STORAGE_ARRAY_METRIC_DESCRIPTIONS.bucketAccountColumn,
@@ -90,10 +84,6 @@ const getSummaryFields: (
       value: StorageArrayResourceUtils.formatIops(
         StorageArrayResourceUtils.freshMetricValue(row, row.writeIops),
       ),
-    },
-    {
-      title: "Last Seen",
-      value: StorageArrayResourceUtils.formatLastSeen(row.lastSeenAt),
     },
   ];
 };

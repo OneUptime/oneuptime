@@ -14,7 +14,7 @@ OneUptimes Docker Swarm-agent övervakar ett Docker Swarm-kluster: dess noder, t
 Agenten är tre containrar, alla definierade i en enda `docker-compose.yml`:
 
 1. **Collector**: en OpenTelemetry Collector som läser `docker_stats` för varje containers mätvärden, följer containrarnas loggfiler och följer filen med inventarieögonblicksbilden. Den stämplar allt med ditt klusters namn (`docker.swarm.cluster.name`), och varje uppgifts mätvärden med dess tjänst och nod, och skickar det till OneUptime över OTLP.
-2. **Inventariepoller**: en liten sidecar med `curl` och `jq` som var 5:e minut går igenom swarm-managerns API (`/nodes`, `/services`, `/tasks`, `/networks`, `/secrets`, `/configs`, `/volumes`) och härleder stackarna från tjänsteetiketten `com.docker.stack.namespace`. Den skriver en JSON-rad per objekt som collectorn vidarebefordrar.
+2. **Inventariepoller**: en liten sidecar med `curl` och `jq` som var 5:e minut går igenom swarm-managerns API (`/nodes`, `/services`, `/tasks`, `/networks`, `/secrets`, `/configs`, `/volumes`) och härleder stackarna från tjänsteetiketten `com.docker.stack.namespace`. Den skriver en JSON-rad per objekt som collectorn vidarebefordrar. Varje minut läser den också om varje nod är redo och hur många repliker varje tjänst vill ha och kör, och skriver det som mätvärden (från version 0.161.3 av agentens filer).
 3. **AI-agent**: `oneuptime-docker-swarm-ai-agent`, som kör de `docker`-kommandon som OneUptime AI ber om medan den undersöker en incident eller ett larm på det här klustret. Den är skrivskyddad om du inte tillåter åtgärder (se [AI-agent](#ai-agent)).
 
 ```mermaid title="Tre containrar på en managernod"
@@ -124,7 +124,8 @@ AI-agentens egna inställningar finns under [AI-agent](#ai-agent).
 | Signal | Källa | Var den visas |
 | --- | --- | --- |
 | Noderna, tjänsterna, uppgifterna, stackarna, nätverken, secrets, configs och volymerna | Inventariepollern, från swarm-managerns API | Klustrets listor och detaljsidor |
-| Klusterräknare (redo noder, körande uppgifter, tjänster, stackar, …) | Samma ögonblicksbild | Översiktens kort och sidomenyns brickor |
+| Klusterräknare (redo noder, körande uppgifter, tjänster, stackar, …) | Samma ögonblicksbild | Översiktens räknebrickor och sidomenyns brickor |
+| Om varje nod är redo och varje tjänsts repliker, varje minut | Inventariepollern, som mätvärdena `docker.swarm.node.ready`, `docker.swarm.service.replicas.desired` och `docker.swarm.service.replicas.running` | Larmen Node Not Ready och Service Replicas Mismatch, och sidan **Mätvärden** |
 | Containerns CPU, minne, antal processer och drifttid | Mottagaren `docker_stats` | Sidan **Mätvärden** |
 | Containerns stdout- och stderr-loggar | Mottagaren `filelog` | Sidan **Loggar** |
 
@@ -133,6 +134,14 @@ Varje uppgifts mätvärden bär dess containers identitet, som mottagaren `docke
 ### Så skiljer den sig från Docker-agenten
 
 [Docker-agenten](/docs/telemetry/docker-host) modellerar en värd och stämplar `host.name` på allt. Docker Swarm-agenten stämplar med avsikt `docker.swarm.cluster.name` och aldrig `host.name`: OneUptime arkiverar då data under swarm-klustret i stället för att registrera varje nod som en egen värd.
+
+## Vad klustrets sidor visar
+
+Klustrets sidor läser samma inventarie och bedömer den efter Dockers egna regler, så som `docker node ls` och `docker service ls` gör, så att översikten, listorna och en nods, en tjänsts eller en uppgifts egen sida alltid är överens:
+
+- **Översikt**: swarmens hälsa, och **Kräver uppmärksamhet**: det som är trasigt eller behöver ses över, det mest brådskande först, var och en med orsaken och Dockers eget fel. En nod som är nere, en manager som de andra inte når, en swarm som är på väg att förlora majoriteten av sina managers, en tjänst där ingen replik körs eller som saknar repliker, en rullande uppdatering som pausats eller återställts, uppgifter som fortsätter att misslyckas. Därunder varje nod med en blick.
+- **Noder**, **Tjänster** och **Uppgifter**: varje rads tillstånd med samma ord och färger, med orsaken.
+- En nods, en tjänsts eller en uppgifts egen sida: vad i den som behöver ses över, dess uppgifter, vad som är öppet för den, larmen som bevakar den med ett steg för att slå på dem, och vad Docker rapporterar om den.
 
 ## Tagga klustret med projektetiketter
 
@@ -253,6 +262,10 @@ Klustrets namn kommer från `DOCKER_SWARM_CLUSTER_NAME`. Ändra det i `.env` och
 
 :::details Uppgifternas CPU är en platt linje
 En äldre `otel-collector-config.yaml` skickar mottagaren `docker_stats` egen CPU-siffra. Sedan collector 0.150.0 räknar mottagaren ut den från en enda statistikmätning: all CPU som en container har använt sedan den startade, delat med all CPU som noden har använt sedan den senast startades. Linjen rör sig knappt och följer inte belastningen, medan `container.cpu.usage.total` gör det. En sådan agent rapporterar version 0.161.0 eller äldre, så en varningssymbol visas bredvid dess version: ladda ned agentens filer igen så som [Uppgradera agenten](#uppgradera-agenten) visar. Från sin andra mätning skickar collectorn sedan den CPU som varje container använde under varje intervall på 30 sekunder. Mätningar som redan har sparats förblir som de var.
+:::
+
+:::details Inventariet slutar ändras
+Agentfiler äldre än version 0.161.3 började varje ögonblicksbild med samma byte, så att collectorn tog en lugn swarms nya ögonblicksbild för en som den redan hade läst: klustrets listor slutade ändras och tömdes 15 minuter efter att agenten startade. [Uppgradera agenten](#uppgradera-agenten) på den manager som kör inventariepollern.
 :::
 
 ## Nästa steg

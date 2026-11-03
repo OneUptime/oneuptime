@@ -51,19 +51,19 @@ describe("Data Observability registry wiring", () => {
     );
 
     expect(migrations).toContain(
-      'import { AddDataObservability1808900000000 } from "./1808900000000-AddDataObservability";',
+      'import { AddDataObservability1808910000000 } from "./1808910000000-AddDataObservability";',
     );
     expect(migrations).toContain(
-      'import { AddDataObservabilityStoreIndex1808900100000 } from "./1808900100000-AddDataObservabilityStoreIndex";',
+      'import { AddDataObservabilityStoreIndex1808910100000 } from "./1808910100000-AddDataObservabilityStoreIndex";',
     );
     expect(
-      migrations.indexOf("AddDataObservability1808900000000,"),
+      migrations.indexOf("AddDataObservability1808910000000,"),
     ).toBeLessThan(
-      migrations.indexOf("AddDataObservabilityStoreIndex1808900100000,"),
+      migrations.indexOf("AddDataObservabilityStoreIndex1808910100000,"),
     );
 
     const migration: string = readSquashed(
-      "Common/Server/Infrastructure/Postgres/SchemaMigrations/1808900000000-AddDataObservability.ts",
+      "Common/Server/Infrastructure/Postgres/SchemaMigrations/1808910000000-AddDataObservability.ts",
     );
 
     for (const model of DATA_OBSERVABILITY_MODELS) {
@@ -74,7 +74,7 @@ describe("Data Observability registry wiring", () => {
     expect(migration).not.toContain('ON "DataStore"');
     expect(
       readSquashed(
-        "Common/Server/Infrastructure/Postgres/SchemaMigrations/1808900100000-AddDataObservabilityStoreIndex.ts",
+        "Common/Server/Infrastructure/Postgres/SchemaMigrations/1808910100000-AddDataObservabilityStoreIndex.ts",
       ),
     ).toContain("OnlineDdl.createIndex");
   });

@@ -26,6 +26,7 @@ import {
 import {
   MERAKI_CONNECTIONS_ANCHOR,
   MerakiFilterChip,
+  getMerakiConnectionsRoute,
   getMerakiFilterChips,
   isMerakiApplianceUplinkActive,
   withMerakiApplianceUplinkToggled,
@@ -249,8 +250,10 @@ const ConnectionLines: FunctionComponent<{
                     </a>
                   ) : (
                     <AppLink
-                      to={RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.NETWORK_TRAFFIC] as Route,
+                      to={getMerakiConnectionsRoute(
+                        RouteUtil.populateRouteParams(
+                          RouteMap[PageMap.NETWORK_TRAFFIC] as Route,
+                        ),
                       )}
                       className={reviewClassName}
                     >

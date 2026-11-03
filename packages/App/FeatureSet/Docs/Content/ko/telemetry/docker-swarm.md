@@ -14,7 +14,7 @@ OneUptime Docker Swarm 에이전트는 Docker Swarm 클러스터의 노드, 서�
 에이전트는 컨테이너 세 개이며, 모두 하나의 `docker-compose.yml`에 정의되어 있습니다:
 
 1. **Collector**: OpenTelemetry Collector로, 각 컨테이너의 메트릭을 위해 `docker_stats`를 읽고, 컨테이너의 로그 파일을 따라가며, 인벤토리 스냅샷 파일도 따라갑니다. 모든 것에 클러스터 이름(`docker.swarm.cluster.name`)을 붙이고, 각 태스크의 메트릭에는 그 태스크의 서비스와 노드를 붙여 OTLP로 OneUptime에 보냅니다.
-2. **인벤토리 폴러**: `curl`과 `jq`로 된 작은 사이드카로, 5분마다 Swarm 매니저의 API(`/nodes`, `/services`, `/tasks`, `/networks`, `/secrets`, `/configs`, `/volumes`)를 순회하고 서비스 레이블 `com.docker.stack.namespace`에서 스택을 알아냅니다. 객체마다 JSON 한 줄을 쓰고, Collector가 이를 전달합니다.
+2. **인벤토리 폴러**: `curl`과 `jq`로 된 작은 사이드카로, 5분마다 Swarm 매니저의 API(`/nodes`, `/services`, `/tasks`, `/networks`, `/secrets`, `/configs`, `/volumes`)를 순회하고 서비스 레이블 `com.docker.stack.namespace`에서 스택을 알아냅니다. 객체마다 JSON 한 줄을 쓰고, Collector가 이를 전달합니다. 또한 매분 각 노드가 준비되었는지와 각 서비스가 원하는 레플리카 수와 실행 중인 레플리카 수를 읽어 메트릭으로 씁니다(에이전트 파일 버전 0.161.3부터).
 3. **AI 에이전트**: `oneuptime-docker-swarm-ai-agent`로, OneUptime AI가 이 클러스터의 인시던트나 알림을 조사하는 동안 요청하는 `docker` 명령을 실행합니다. 수정을 허용하지 않는 한 읽기 전용입니다([AI 에이전트](#ai-에이전트) 참고).
 
 ```mermaid title="매니저 노드의 컨테이너 세 개"
@@ -124,7 +124,8 @@ AI 에이전트 자체의 설정은 [AI 에이전트](#ai-에이전트)에 있�
 | 신호 | 소스 | 표시되는 곳 |
 | --- | --- | --- |
 | 노드, 서비스, 태스크, 스택, 네트워크, 시크릿, 컨피그, 볼륨 | 인벤토리 폴러, Swarm 매니저의 API에서 | 클러스터의 목록과 세부 정보 페이지 |
-| 클러스터 집계(준비된 노드, 실행 중인 태스크, 서비스, 스택 등) | 같은 스냅샷 | 개요의 카드와 사이드 메뉴의 배지 |
+| 클러스터 집계(준비된 노드, 실행 중인 태스크, 서비스, 스택 등) | 같은 스냅샷 | 개요의 개수 칩과 사이드 메뉴의 배지 |
+| 각 노드의 준비 상태와 각 서비스의 레플리카, 매분 | 인벤토리 폴러, 메트릭 `docker.swarm.node.ready`, `docker.swarm.service.replicas.desired`, `docker.swarm.service.replicas.running` 으로 | Node Not Ready 및 Service Replicas Mismatch 알림, 그리고 **메트릭** 페이지 |
 | 컨테이너 CPU, 메모리, 프로세스 수, 가동 시간 | `docker_stats` 리시버 | **메트릭** 페이지 |
 | 컨테이너 stdout 및 stderr 로그 | `filelog` 리시버 | **로그** 페이지 |
 
@@ -133,6 +134,14 @@ AI 에이전트 자체의 설정은 [AI 에이전트](#ai-에이전트)에 있�
 ### Docker 에이전트와의 차이
 
 [Docker 에이전트](/docs/telemetry/docker-host)는 호스트 하나를 모델링하며 모든 것에 `host.name`을 붙입니다. Docker Swarm 에이전트는 의도적으로 `docker.swarm.cluster.name`을 붙이고 `host.name`은 절대 붙이지 않습니다. 그러면 OneUptime은 각 노드를 별도의 호스트로 등록하는 대신 데이터를 Swarm 클러스터 아래에 정리합니다.
+
+## 클러스터 페이지에 표시되는 내용
+
+클러스터 페이지는 같은 인벤토리를 읽고 `docker node ls` 와 `docker service ls` 처럼 Docker 자체의 규칙으로 판단하므로, 개요, 목록, 노드·서비스·작업 자체의 페이지가 항상 일치합니다.
+
+- **개요**: Swarm의 상태와 **확인 필요**: 고장 났거나 확인이 필요한 것을 가장 급한 것부터, 각각 이유와 Docker 자체의 오류와 함께 보여 줍니다. 다운된 노드, 다른 매니저가 연결할 수 없는 매니저, 매니저 과반수를 잃기 직전인 Swarm, 레플리카가 하나도 실행되지 않거나 레플리카가 부족한 서비스, 일시 중지되거나 롤백된 롤링 업데이트, 계속 실패하는 작업입니다. 그 아래에서 각 노드를 한눈에 볼 수 있습니다.
+- **노드**, **서비스**, **작업**: 각 행의 상태를 같은 말과 색으로, 이유와 함께 보여 줍니다.
+- 노드, 서비스 또는 작업 자체의 페이지: 확인이 필요한 점, 그 작업, 열려 있는 항목, 감시하는 알림(한 번에 켤 수 있음), Docker가 보고하는 내용입니다.
 
 ## 프로젝트 레이블로 클러스터에 태그 붙이기
 
@@ -253,6 +262,10 @@ docker version --format '{{ .Server.APIVersion }}'
 
 :::details 작업 CPU가 평평한 선으로 나타남
 오래된 `otel-collector-config.yaml`은 `docker_stats` 리시버가 직접 계산한 CPU 값을 보냅니다. Collector 0.150.0부터 리시버는 이 값을 통계 측정 한 번으로 계산합니다. 컨테이너가 시작된 뒤 사용한 전체 CPU를 노드가 부팅된 뒤 사용한 전체 CPU로 나눈 값입니다. 이 선은 거의 움직이지 않고 부하를 따라가지 않지만 `container.cpu.usage.total`은 따라갑니다. 이런 에이전트는 0.161.0 이하 버전을 보고하므로 버전 옆에 경고 표시가 나타납니다. [에이전트 업그레이드](#에이전트-업그레이드)에 나온 대로 에이전트 파일을 다시 내려받으세요. 두 번째 측정부터 Collector는 각 컨테이너가 30초 간격마다 사용한 CPU를 보냅니다. 이미 저장된 측정값은 그대로 남습니다.
+:::
+
+:::details 인벤토리가 더 이상 바뀌지 않음
+버전 0.161.3보다 오래된 에이전트 파일은 각 스냅샷을 같은 바이트로 시작했기 때문에, Collector는 조용한 Swarm의 새 스냅샷을 이미 읽은 것으로 여겼습니다. 그래서 클러스터 목록이 더 이상 바뀌지 않았고, 에이전트가 시작된 지 15분 뒤에 비워졌습니다. 인벤토리 폴러를 실행하는 매니저에서 [에이전트를 업그레이드하세요](#에이전트-업그레이드).
 :::
 
 ## 다음 단계
