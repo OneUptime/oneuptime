@@ -30,7 +30,8 @@ import {
  * the service's request metrics from the traces it already sends - the way
  * past the finding that changes no code, beside Fix with AI, which adds them
  * in the code. A calm panel in the finding's rail, one sentence and one
- * button; the collector's lines open in a dialog, in the numbered steps
+ * button - as wide as a phone, as Fix with AI's is; the collector's lines
+ * open in a dialog, in the numbered steps
  * every "get this connected" guide in the product uses, with what a service
  * that sends straight to OneUptime does first. Nothing is read or saved:
  * the step is the same for every service (Common/Utils/Metrics/
@@ -51,18 +52,15 @@ const SpanMetricsStepPanel: FunctionComponent = (): ReactElement => {
         description={SPAN_METRICS_STEP_COPY.panelDescription}
         icon={IconProp.AdjustmentHorizontal}
       >
-        <div className="space-y-3">
-          <p className="text-sm leading-relaxed text-gray-700">
-            {translator.translateText(SPAN_METRICS_STEP_COPY.panelBody)}
-          </p>
+        <div className="flex flex-col items-stretch md:items-start">
           <Button
             title={SPAN_METRICS_STEP_COPY.showStep}
             icon={IconProp.Code}
             buttonStyle={ButtonStyleType.OUTLINE}
             buttonSize={ButtonSize.Small}
             dataTestId={SPAN_METRICS_STEP_TEST_IDS.show}
-            // Its words on one line, never squeezed beside nothing.
-            className="whitespace-nowrap md:!ml-0"
+            // The panel's own edge, not the shared Button's row margin.
+            className="md:!ml-0"
             onClick={() => {
               setIsShown(true);
             }}
@@ -84,6 +82,35 @@ const SpanMetricsStepPanel: FunctionComponent = (): ReactElement => {
             className="space-y-6"
             data-testid={SPAN_METRICS_STEP_TEST_IDS.modal}
           >
+            {/*
+             * What a service that sends straight to OneUptime needs first,
+             * before the steps it is the prerequisite of.
+             */}
+            <p
+              className="flex items-start gap-2 rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-600"
+              data-testid={SPAN_METRICS_STEP_TEST_IDS.noCollector}
+            >
+              <Icon
+                icon={IconProp.Info}
+                className="mt-0.5 h-4 w-4 flex-none text-gray-400"
+              />
+              <span>
+                {translator.translateText(SPAN_METRICS_STEP_COPY.noCollector)}{" "}
+                <Link
+                  className={LINK_CLASS_NAME}
+                  openInNewTab={true}
+                  to={URL.fromString(
+                    `${DOCS_URL.toString()}${SEND_THROUGH_COLLECTOR_DOCS_PATH}`,
+                  )}
+                  dataTestId={SPAN_METRICS_STEP_TEST_IDS.collectorDocs}
+                >
+                  {translator.translateText(
+                    SPAN_METRICS_STEP_COPY.noCollectorLink,
+                  )}
+                </Link>
+              </span>
+            </p>
+
             <SetupGuideSteps
               steps={[
                 {
@@ -115,22 +142,7 @@ const SpanMetricsStepPanel: FunctionComponent = (): ReactElement => {
               ]}
             />
 
-            <div className="space-y-2 border-t border-gray-100 pt-4 text-sm text-gray-600">
-              <p>
-                {translator.translateText(SPAN_METRICS_STEP_COPY.noCollector)}{" "}
-                <Link
-                  className={LINK_CLASS_NAME}
-                  openInNewTab={true}
-                  to={URL.fromString(
-                    `${DOCS_URL.toString()}${SEND_THROUGH_COLLECTOR_DOCS_PATH}`,
-                  )}
-                  dataTestId={SPAN_METRICS_STEP_TEST_IDS.collectorDocs}
-                >
-                  {translator.translateText(
-                    SPAN_METRICS_STEP_COPY.noCollectorLink,
-                  )}
-                </Link>
-              </p>
+            <div className="border-t border-gray-100 pt-4 text-sm">
               <p>
                 <Link
                   className={LINK_CLASS_NAME}

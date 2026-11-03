@@ -46,7 +46,6 @@ export function doesInsightOfferSpanMetricsStep(insight: {
 export const SPAN_METRICS_STEP_COPY: {
   panelTitle: string;
   panelDescription: string;
-  panelBody: string;
   showStep: string;
   modalTitle: string;
   modalDescription: string;
@@ -61,23 +60,20 @@ export const SPAN_METRICS_STEP_COPY: {
 } = {
   panelTitle: translationKey("Without changing code"),
   panelDescription: translationKey(
-    "Record these metrics from the traces the service already sends.",
-  ),
-  panelBody: translationKey(
-    "Add a span metrics step to the OpenTelemetry Collector its traces go through. It records the requests, errors and duration of every operation as metrics, for every service at once.",
+    "Your OpenTelemetry Collector can record its request metrics from the traces it already sends.",
   ),
   showStep: translationKey("Show the collector step"),
   modalTitle: translationKey("Record request metrics from traces"),
   modalDescription: translationKey(
-    "No code changes: the OpenTelemetry Collector records them from the spans passing through it.",
+    "Your OpenTelemetry Collector records them from the spans passing through it, for every service at once. No code changes.",
   ),
   addStepTitle: translationKey("Add the span metrics step"),
   addStepDescription: translationKey(
-    "In the collector's config, add spanmetrics as an exporter of the traces pipeline and as a receiver of the metrics pipeline. Keep your own receivers, processors and the exporter that sends to OneUptime, named otlphttp here.",
+    "Add spanmetrics to the collector's config: as an exporter of the traces pipeline, and as a receiver of the metrics pipeline. Keep your own receivers, processors and OneUptime exporter, named otlphttp here.",
   ),
   restartTitle: translationKey("Restart the collector"),
   restartDescription: translationKey(
-    "Within a few minutes, each service whose traces pass through it sends traces.span.metrics.calls and traces.span.metrics.duration, and OneUptime no longer finds this problem.",
+    "Within a few minutes each service sends traces.span.metrics.calls and traces.span.metrics.duration, and OneUptime no longer finds this problem.",
   ),
   noCollector: translationKey(
     "Do your services send straight to OneUptime? Put a collector in front of them first.",
@@ -93,6 +89,7 @@ export const SPAN_METRICS_STEP_TEST_IDS: {
   show: string;
   modal: string;
   code: string;
+  noCollector: string;
   collectorDocs: string;
   docs: string;
 } = {
@@ -100,6 +97,7 @@ export const SPAN_METRICS_STEP_TEST_IDS: {
   show: "span-metrics-step-show",
   modal: "span-metrics-step-modal",
   code: "span-metrics-step-code",
+  noCollector: "span-metrics-step-no-collector",
   collectorDocs: "span-metrics-step-collector-docs",
   docs: "span-metrics-step-docs",
 };

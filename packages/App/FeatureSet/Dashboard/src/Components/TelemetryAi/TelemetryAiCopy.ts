@@ -671,7 +671,7 @@ export const TELEMETRY_AI_LANE_COPY: Readonly<
     ),
     insightsEmptyTitle: translationKey("No metric problems found"),
     insightsEmptyDescription: translationKey(
-      "Every hour OneUptime files a finding when a metric records too many values, a histogram's buckets do not fit, or a busy service sends no metrics for its requests.",
+      "Every hour OneUptime files a finding when a metric records too many values, a histogram's buckets do not fit, or a service's requests have no metrics.",
     ),
     insightsOffEmptyTitle: translationKey(
       "OneUptime is not looking for metric problems",
