@@ -85,6 +85,13 @@ jest.mock("Common/Server/Infrastructure/Redis", () => {
 jest.mock("Common/Server/Services/UserService", () => {
   return { __esModule: true, default: { findOneById: jest.fn() } };
 });
+// Read by the sign-in link routes beside these (Types/Accounts/MagicLink).
+jest.mock("Common/Server/Services/GlobalConfigService", () => {
+  return {
+    __esModule: true,
+    default: { getMagicLinkLoginTurnedOff: jest.fn() },
+  };
+});
 jest.mock("Common/Server/Services/UserSessionService", () => {
   return { __esModule: true, default: { createSession: jest.fn() } };
 });

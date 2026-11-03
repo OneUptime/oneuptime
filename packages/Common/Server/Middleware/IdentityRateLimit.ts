@@ -19,7 +19,9 @@ import TooManyRequestsException from "../../Types/Exception/TooManyRequestsExcep
  * and POST /verify-totp-enrolment
  * (App/FeatureSet/Identity/API/Authentication.ts), and the status page
  * private user POST /login
- * (App/FeatureSet/Identity/API/StatusPageAuthentication.ts).
+ * (App/FeatureSet/Identity/API/StatusPageAuthentication.ts). And POST
+ * /login-with-magic-link, whose credential is a sign-in link's token: not
+ * guessable, but bounded all the same (MAGIC_LINK_BUCKET).
  *
  * WHY THESE ROUTES NEED IT
  *
@@ -189,6 +191,14 @@ export enum IdentityRateLimitBucket {
    * that sign-in noise cannot refuse the resend.
    */
   VerificationEmailResend = "verification-email-resend",
+
+  /*
+   * POST /login-with-magic-link -- the first step of a sign-in begun with a
+   * link emailed to the account (Types/Accounts/MagicLink). Not a guessing
+   * oracle -- its credential is a server-minted random token -- but
+   * anonymous, and every request looks its token up. See MAGIC_LINK_BUCKET.
+   */
+  MagicLink = "magic-link",
 }
 
 export enum IdentityRateLimitScope {
@@ -501,6 +511,38 @@ const VERIFICATION_EMAIL_RESEND_BUCKET: BucketConfig = {
 };
 
 /*
+ * Sign-in link budget (POST /login-with-magic-link).
+ *
+ * Shaped like the passkey bucket, and for the same reason: the request
+ * carries no email address -- it carries the link's token -- so the account
+ * counter is keyed on the client address alone and both counters are the
+ * same per-address budget.
+ *
+ * Nothing is guessed here: a link's token is a random UUID the server
+ * minted, which works once and for fifteen minutes. What this bounds is
+ * work. Every request hashes its token and looks it up, and an anonymous
+ * route that reads the user table on every request needs a ceiling in front
+ * of it. An honest reader presses Sign In once or twice; a hundred and fifty
+ * a quarter hour is the per-address ceiling of /login, sized for an office
+ * behind one NAT signing in together in the morning.
+ *
+ * The second steps that finish such a sign-in are limited on their own
+ * buckets, as they are for a password.
+ */
+const MAGIC_LINK_RATE_LIMIT: number = parsePositiveIntFromEnv(
+  "IDENTITY_MAGIC_LINK_RATE_LIMIT_PER_IP_PER_WINDOW",
+  150,
+);
+const MAGIC_LINK_BUCKET: BucketConfig = {
+  windowSeconds: parsePositiveIntFromEnv(
+    "IDENTITY_MAGIC_LINK_RATE_LIMIT_WINDOW_SECONDS",
+    15 * 60,
+  ),
+  perAccountLimit: MAGIC_LINK_RATE_LIMIT,
+  perIpLimit: MAGIC_LINK_RATE_LIMIT,
+};
+
+/*
  * What a refused caller is told. See getRefusalMessages for why the sign-in
  * routes all share one pair and the resend route has its own.
  */
@@ -676,6 +718,10 @@ export default class IdentityRateLimit {
 
     if (bucket === IdentityRateLimitBucket.VerificationEmailResend) {
       return VERIFICATION_EMAIL_RESEND_BUCKET;
+    }
+
+    if (bucket === IdentityRateLimitBucket.MagicLink) {
+      return MAGIC_LINK_BUCKET;
     }
 
     return LOGIN_BUCKET;

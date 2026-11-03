@@ -641,9 +641,7 @@ const LoginPage: (props: ComponentProps) => JSX.Element = (
        * Absent means "the server could not count them", which is
        * not the same as zero -- see `isKnownToHaveNoBackupCodes`.
        */
-      const reportedBackupCodeCount: unknown = (miscData as JSONObject)[
-        "backupCodeCount"
-      ];
+      const reportedBackupCodeCount: unknown = miscData["backupCodeCount"];
 
       setBackupCodeCount(
         typeof reportedBackupCodeCount === "number"

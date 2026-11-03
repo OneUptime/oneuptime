@@ -1198,10 +1198,40 @@ describe("codes the server mints are shown once, before anything redirects", () 
      */
     const passwordForm: string = guardedBlockFor(PASSWORD_FORM).block;
 
-    expect(passwordForm).toContain(
+    /*
+     * The form hands what /login answered to continueSignIn, which the page
+     * a sign-in link opens shares (Common/Types/Accounts/MagicLink): a
+     * forced enrolment, the two factor challenge, or - for an account with
+     * neither - straight in.
+     */
+    expect(passwordForm).toContain("continueSignIn(value, miscData)");
+    expect(passwordForm).not.toContain("completeTwoFactorLogin");
+
+    const marker: string = "const continueSignIn: ContinueSignInFunction";
+    const markerIndex: number = loginSource.indexOf(marker);
+
+    expect(markerIndex).toBeGreaterThan(-1);
+
+    const continueSignIn: string | null = balancedBlockOrNull({
+      source: loginSource,
+      startIndex: loginSource.indexOf("=> {", markerIndex) + 3,
+      open: "{",
+      close: "}",
+    });
+
+    expect(continueSignIn).toContain(
       "login(value as User, miscData as JSONObject)",
     );
-    expect(passwordForm).not.toContain("completeTwoFactorLogin");
+    expect(continueSignIn).not.toContain("completeTwoFactorLogin");
+
+    // A sign-in begun with a link is taken on the same way.
+    const signInWithMagicLink: string = loginSource.slice(
+      loginSource.indexOf("const signInWithMagicLink"),
+    );
+
+    expect(signInWithMagicLink).toContain(
+      "continueSignIn(user, getMiscData(response))",
+    );
   });
 
   test("continue is disabled until the user says they have saved the codes", () => {

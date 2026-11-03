@@ -746,9 +746,8 @@ function signedIn(): boolean {
 }
 
 function sentMisc(): JSONObject {
-  const call: Array<unknown> = sendEntityResponse.mock.calls[0] as Array<
-    unknown
-  >;
+  const call: Array<unknown> = sendEntityResponse.mock
+    .calls[0] as Array<unknown>;
 
   return ((call[4] as { miscData?: JSONObject } | undefined)?.miscData ||
     {}) as JSONObject;
@@ -1055,7 +1054,9 @@ describe("POST /login-with-magic-link - an account without two factor authentica
     expect(answer.error).toBeNull();
     expect(signedIn()).toBe(true);
     expect(setUserCookie).toHaveBeenCalledTimes(1);
-    expect(refreshUserAllPermissions).toHaveBeenCalledWith(new ObjectID(USER_ID));
+    expect(refreshUserAllPermissions).toHaveBeenCalledWith(
+      new ObjectID(USER_ID),
+    );
     expect(row!["magicLinkToken"]).toBeNull();
     expect(row!["magicLinkExpires"]).toBeNull();
     expect(sentMisc()["accessToken"]).toBe("signed-user-token");
@@ -1208,7 +1209,9 @@ describe("POST /login-with-magic-link - an account without two factor authentica
 
     await signInWithLink(TOKEN);
 
-    expect(sequence).not.toContain("UserService.updateOneById(isEmailVerified)");
+    expect(sequence).not.toContain(
+      "UserService.updateOneById(isEmailVerified)",
+    );
   });
 
   it("asks for no captcha: the request for the link carried one", async () => {
@@ -1563,8 +1566,7 @@ describe("POST /login-with-magic-link - an account with two factor authenticatio
     }
 
     it("shows the QR code to enrol, and neither spends the link nor makes a session", async () => {
-      const enrolment: ReturnType<typeof pendingEnrolment> =
-        pendingEnrolment();
+      const enrolment: ReturnType<typeof pendingEnrolment> = pendingEnrolment();
       totpFindOneBy.mockResolvedValue(enrolment.row);
       await storeLink(TOKEN);
 
@@ -1577,8 +1579,7 @@ describe("POST /login-with-magic-link - an account with two factor authenticatio
     });
 
     it("enrols with the first code, spending the link before anything is saved, and hands over the recovery codes", async () => {
-      const enrolment: ReturnType<typeof pendingEnrolment> =
-        pendingEnrolment();
+      const enrolment: ReturnType<typeof pendingEnrolment> = pendingEnrolment();
       totpFindOneBy.mockResolvedValue(enrolment.row);
       await storeLink(TOKEN);
 
@@ -1592,8 +1593,7 @@ describe("POST /login-with-magic-link - an account with two factor authenticatio
     });
 
     it("keeps the link through a wrong first code", async () => {
-      const enrolment: ReturnType<typeof pendingEnrolment> =
-        pendingEnrolment();
+      const enrolment: ReturnType<typeof pendingEnrolment> = pendingEnrolment();
       totpFindOneBy.mockResolvedValue(enrolment.row);
       await storeLink(TOKEN);
 
@@ -1605,8 +1605,7 @@ describe("POST /login-with-magic-link - an account with two factor authenticatio
     });
 
     it("saves nothing for a link another request spent first", async () => {
-      const enrolment: ReturnType<typeof pendingEnrolment> =
-        pendingEnrolment();
+      const enrolment: ReturnType<typeof pendingEnrolment> = pendingEnrolment();
       totpFindOneBy.mockResolvedValue(enrolment.row);
       await storeLink(TOKEN);
       spendingWriteLosesTheRace = true;
@@ -1618,6 +1617,51 @@ describe("POST /login-with-magic-link - an account with two factor authenticatio
       expect(generateForUserIfNone).not.toHaveBeenCalled();
       expect(createSession).not.toHaveBeenCalled();
     });
+  });
+});
+
+describe("the limits in front of the sign-in link routes", () => {
+  // The limiter registered ahead of the handler, answering for one caller.
+  async function throughLimiter(from: string): Promise<boolean> {
+    const handlers: Array<RouteHandler> = mockRouter.matchAll(
+      "post",
+      "/login-with-magic-link",
+    );
+    const req: ExpressRequest = buildRequest(
+      { data: { magicLinkToken: TOKEN } },
+      { headers: { "x-forwarded-for": from }, socketAddress: "10.0.0.2" },
+    );
+    let passed: boolean = false;
+
+    await handlers[0]!(req, buildResponse(), ((): void => {
+      passed = true;
+    }) as unknown as NextFunction);
+
+    return passed;
+  }
+
+  it("POST /login-with-magic-link runs a limiter before its handler", () => {
+    expect(mockRouter.matchAll("post", "/login-with-magic-link")).toHaveLength(
+      2,
+    );
+  });
+
+  it("lets one address through a hundred and fifty times a quarter hour, then refuses it", async () => {
+    for (let index: number = 0; index < 150; index++) {
+      expect(await throughLimiter(CALLER)).toBe(true);
+    }
+
+    expect(await throughLimiter(CALLER)).toBe(false);
+    expect(errorMessage()).toBe(
+      "Too many sign-in attempts. Please try again later.",
+    );
+
+    // Another address has an allowance of its own.
+    expect(await throughLimiter("198.51.100.77")).toBe(true);
+  });
+
+  it("POST /send-magic-link needs no attempt limiter: it takes no credential, and its mail is counted per caller and per address", () => {
+    expect(mockRouter.matchAll("post", "/send-magic-link")).toHaveLength(1);
   });
 });
 

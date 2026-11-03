@@ -2505,14 +2505,24 @@ router.post(
  * again, as a password sign-in's carries the password - before the link is
  * spent and a session made.
  *
- * No attempt limit in front of it, as with /reset-password and a status
- * page's sign-in link: the token is a server-minted random UUID - 122 bits
- * - that works once and for minutes, so there is nothing to guess. Nor a
- * captcha: the request for the link carried one, where it is on. The second
- * steps keep their own limiters.
+ * The token is a server-minted random UUID - 122 bits - that works once and
+ * for minutes, so there is nothing to guess. The limiter in front of it, on
+ * a bucket of its own, bounds work instead: every request hashes its token
+ * and looks it up (IdentityRateLimit's MAGIC_LINK_BUCKET). No captcha: the
+ * request for the link carried one, where it is on. The second steps keep
+ * their own limiters.
  */
+const magicLinkRateLimit: (
+  req: ExpressRequest,
+  res: ExpressResponse,
+  next: NextFunction,
+) => Promise<void> = IdentityRateLimit.getMiddleware(
+  IdentityRateLimitBucket.MagicLink,
+);
+
 router.post(
   "/login-with-magic-link",
+  magicLinkRateLimit,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
