@@ -58,9 +58,12 @@ COPY --from=release /usr/lib/oneuptime-probe /usr/lib/oneuptime-probe
 # ODBC driver, and whatever else this Playwright needs for its Chromium and
 # Firefox, as the release's `playwright install --with-deps` installs it, less
 # the video decoder the release removes again. Then npm's links and settings
-# as the release's base image and Dockerfile make them.
+# as the release's base image and Dockerfile make them. libatomic1: node does
+# not start without libatomic.so.1, which the release's base image (Node's)
+# installs and Debian's does not.
 RUN apt-get update \
     && apt-get upgrade -y \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends libatomic1 \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends bash curl iputils-ping net-tools dnsutils traceroute tcpdump tini ca-certificates krb5-user libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 libgtk-3-0 libpango-1.0-0 libcairo2 libgdk-pixbuf2.0-0 libasound2 libatspi2.0-0 \
     && ACCEPT_EULA=Y DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends /tmp/msodbcsql18.deb \
     && node /usr/src/app/node_modules/playwright/cli.js install-deps chromium firefox \

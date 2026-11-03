@@ -44,10 +44,14 @@ USER root
 # set per PostgreSQL major a server may run, as the release's enterprise stage
 # installs them. Iron Bank's pipeline reaches Alpine's package repositories
 # through its proxy and nothing else, so everything that is not an Alpine
-# package comes from the release. /tmp/npm is npm's cache, writable by the node
-# user, as in the release: the Helm chart's migrate job runs `npm run migrate`.
+# package comes from the release. libatomic: Iron Bank's Node.js image copies
+# node out of Node's official image without it, and node does not start
+# without libatomic.so.1 (the release's base image is Node's, which has it).
+# /tmp/npm is npm's cache, writable by the node user, as in the release: the
+# Helm chart's migrate job runs `npm run migrate`.
 RUN apk upgrade --no-cache \
     && apk add --no-cache bash curl \
+    && apk add --no-cache libatomic \
     && apk add --no-cache postgresql16-client postgresql17-client postgresql18-client \
     && mkdir /tmp/npm \
     && chmod 2777 /tmp/npm \
