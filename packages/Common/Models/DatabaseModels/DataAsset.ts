@@ -19,6 +19,7 @@ import TenantColumn from "../../Types/Database/TenantColumn";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import DataAssetKind from "../../Types/DataObservability/DataAssetKind";
 import { DataAssetColumn } from "../../Types/DataObservability/DataAssetColumn";
+import { DataAssetDbtNode } from "../../Types/DataObservability/DbtArtifact";
 import IconProp from "../../Types/Icon/IconProp";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
@@ -389,6 +390,21 @@ export default class DataAsset extends BaseModel {
     nullable: true,
   })
   public columns?: Array<DataAssetColumn> = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    computed: true,
+    title: "dbt Node",
+    description:
+      "The dbt model, seed, snapshot or source that is this table, from the project's last uploaded artifacts: its id, materialization, tags, owner, and how its last build went.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public dbtNode?: DataAssetDbtNode = undefined;
 
   @ColumnAccessControl(serverWrittenColumnAccess)
   @TableColumn({

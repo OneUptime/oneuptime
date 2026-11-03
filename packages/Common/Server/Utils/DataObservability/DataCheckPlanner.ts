@@ -49,6 +49,8 @@ export default class DataCheckPlanner {
         dataStoreId: data.dataStoreId,
         isEnabled: true,
         nextRunAt: QueryHelper.lessThanEqualToOrNull(data.now),
+        // dbt runs its own tests: OneUptime only reads their results (DbtIngest).
+        checkType: QueryHelper.notEquals(DataCheckType.DbtTest),
       },
       select: {
         _id: true,

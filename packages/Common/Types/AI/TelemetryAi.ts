@@ -52,7 +52,8 @@ import {
  *     (Utils/Exceptions/ExceptionInsight). For Logs: error logs, missing
  *     logging and noisy logs (Utils/Logs/LogInsight). For Metrics: metrics
  *     with too many series, histograms whose buckets do not fit, and busy
- *     services that send no metrics (Utils/Metrics/MetricInsight);
+ *     services that send no metrics, or none for the requests they handle
+ *     (Utils/Metrics/MetricInsight);
  *   - one project switch (switchColumn), on for new projects: while it is on
  *     OneUptime looks for those problems and OneUptime AI works on them;
  *   - AI rules of its own: the one AI rule (AutoRemediationRule) with the
@@ -258,10 +259,12 @@ export const TELEMETRY_AI_LANES: Readonly<
   },
   /*
    * Metrics: attributes that take too many values and metric names with ids
-   * in them, histograms whose buckets do not fit their values, and busy
-   * services that send no metrics at all (Utils/Metrics/MetricInsight). Each
-   * is a fact about the code read straight off the data - nothing a
-   * dependency or a caller could cause - so no fix waits for a verdict.
+   * in them, histograms whose buckets do not fit their values, busy
+   * services that send no metrics at all, and busy services that send
+   * metrics but none for the requests they handle (Utils/Metrics/
+   * MetricInsight). Each is a fact about the code read straight off the
+   * data - nothing a dependency or a caller could cause - so no fix waits
+   * for a verdict.
    */
   [TelemetryAiLane.Metric]: {
     lane: TelemetryAiLane.Metric,
@@ -270,6 +273,7 @@ export const TELEMETRY_AI_LANES: Readonly<
       AIInsightType.MetricHighCardinality,
       AIInsightType.MetricHistogramBuckets,
       AIInsightType.MetricMissingMetrics,
+      AIInsightType.MetricMissingRequestMetrics,
     ],
     switchColumn: "enableAutomaticMetricRemediation",
     scanEveryMinutes: 60,

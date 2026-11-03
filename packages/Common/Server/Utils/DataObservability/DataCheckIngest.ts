@@ -228,28 +228,38 @@ export default class DataCheckIngest {
       }
     }
 
+    await this.writeCheckMetricRows(data.store.projectId, rows);
+
+    return rows.length;
+  }
+
+  // The values checks read - or dbt's tests found (DbtIngest) - as metric rows.
+  public static async writeCheckMetricRows(
+    projectId: ObjectID,
+    rows: Array<JSONObject>,
+  ): Promise<void> {
     for (let start: number = 0; start < rows.length; start += 5_000) {
       await MetricService.insertJsonRows(rows.slice(start, start + 5_000));
     }
 
-    if (rows.length > 0) {
-      const metricType: MetricType = new MetricType();
-      metricType.name = DATA_CHECK_METRIC_NAME;
-      metricType.description = DATA_CHECK_METRIC_DESCRIPTION;
-      metricType.unit = "";
-
-      const metricTypes: Dictionary<MetricType> = {
-        [DATA_CHECK_METRIC_NAME]: metricType,
-      };
-
-      TelemetryUtil.indexMetricNameServiceNameMap({
-        projectId: data.store.projectId,
-        metricNameServiceNameMap: metricTypes,
-      }).catch((error: Error) => {
-        logger.error(error);
-      });
+    if (rows.length === 0) {
+      return;
     }
 
-    return rows.length;
+    const metricType: MetricType = new MetricType();
+    metricType.name = DATA_CHECK_METRIC_NAME;
+    metricType.description = DATA_CHECK_METRIC_DESCRIPTION;
+    metricType.unit = "";
+
+    const metricTypes: Dictionary<MetricType> = {
+      [DATA_CHECK_METRIC_NAME]: metricType,
+    };
+
+    TelemetryUtil.indexMetricNameServiceNameMap({
+      projectId,
+      metricNameServiceNameMap: metricTypes,
+    }).catch((error: Error) => {
+      logger.error(error);
+    });
   }
 }

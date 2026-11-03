@@ -6,12 +6,13 @@
  * with Fix with AI, Logs and Settings) are the production components from
  * this branch. Only the ModelAPI / AnalyticsModelAPI / API data boundary and
  * the synthetic user are replaced - by MetricFindings.js, which answers the
- * pages' reads the way the server does: OneUptime has found four problems
+ * pages' reads the way the server does: OneUptime has found five problems
  * in the project's metrics - checkout's request counter records its users'
  * ids (no fix yet), checkout's request duration histogram puts nearly all
  * its values in its smallest bucket (a pull request OneUptime opened on its
- * own), worker's metric names carry job ids, and payments sends traces but
- * no metrics.
+ * own), worker's metric names carry job ids, payments sends traces but no
+ * metrics, and search sends its runtime's metrics but none for the HTTP
+ * requests and messages it handles.
  *
  * The Insights tab (Pages/Metrics/List: the services reporting metrics, a
  * card each) reads services, metric types and metric points, answered by

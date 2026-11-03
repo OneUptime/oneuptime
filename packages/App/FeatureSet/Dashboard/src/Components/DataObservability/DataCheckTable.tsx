@@ -4,6 +4,7 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import DataCheck from "Common/Models/DatabaseModels/DataCheck";
 import Route from "Common/Types/API/Route";
+import NotEqual from "Common/Types/BaseDatabase/NotEqual";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { Gray500, Green500, Red500 } from "Common/Types/BrandColors";
 import { DataAssetColumn } from "Common/Types/DataObservability/DataAssetColumn";
@@ -177,6 +178,8 @@ const DataCheckTable: FunctionComponent<ComponentProps> = (
         query={{
           ...(projectId ? { projectId: projectId } : {}),
           ...(props.dataAssetId ? { dataAssetId: props.dataAssetId } : {}),
+          // dbt's tests are listed on their own (DbtTestTable): dbt runs them.
+          checkType: new NotEqual<string>(DataCheckType.DbtTest),
         }}
         isDeleteable={true}
         isEditable={isForOneTable}
