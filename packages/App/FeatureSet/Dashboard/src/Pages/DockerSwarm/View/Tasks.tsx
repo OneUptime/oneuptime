@@ -5,6 +5,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import OneUptimeDate from "Common/Types/Date";
 import ResourceTable, {
   InfrastructureResource,
+  ResourceColumn,
 } from "../../../Components/Infrastructure/ResourceTable";
 import {
   fetchDockerSwarmInventoryResources,
@@ -30,9 +31,32 @@ import { DOCKER_SWARM_METRIC_DESCRIPTIONS } from "../../../Components/MetricDesc
 /*
  * The tasks Swarm wants running, each with its state by the swarm's rules
  * (DockerSwarmHealth: Running, Starting, Pending with Docker's error, Failed,
- * Rejected, a task close to its memory limit) and why, its service and its
- * node, and its CPU and memory coloured at its alerts' lines.
+ * Rejected, a task close to its memory limit) and why, its node, and its CPU
+ * and memory coloured at its alerts' lines.
  */
+
+/*
+ * The list's own column beside ResourceTable's: each task's image. No
+ * Service column: a task's name is its service's and its slot ("shop_web.2"),
+ * as docker service ps names it, and a column that said it again pushed each
+ * task's CPU and memory out of view at 1280.
+ */
+const TASK_COLUMNS: Array<ResourceColumn> = [
+  {
+    title: "Image",
+    key: "image",
+    /*
+     * Under the task's name when the table is short of room: a registry
+     * path as wide as a column of its own pushed each task's CPU and memory
+     * - what its state is judged by - out of view.
+     */
+    foldInto: "name",
+    getValue: (resource: InfrastructureResource): string => {
+      return resource.additionalAttributes["image"] || "—";
+    },
+  },
+];
+
 const DockerSwarmClusterTasks: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -100,26 +124,7 @@ const DockerSwarmClusterTasks: FunctionComponent<
         memory: DOCKER_SWARM_METRIC_DESCRIPTIONS.taskMemoryColumn,
       }}
       emptyMessage="No tasks reported yet. Make sure the Docker Swarm agent is sending metrics."
-      /*
-       * No Service column: a task's name is its service's and its slot
-       * ("shop_web.2"), as docker service ps names it, and a column that
-       * said it again pushed each task's CPU and memory out of view.
-       */
-      columns={[
-        {
-          title: "Image",
-          key: "image",
-          /*
-           * Under the task's name when the table is short of room: a
-           * registry path as wide as a column of its own pushed each task's
-           * CPU and memory - what its state is judged by - out of view.
-           */
-          foldInto: "name",
-          getValue: (resource: InfrastructureResource): string => {
-            return resource.additionalAttributes["image"] || "—";
-          },
-        },
-      ]}
+      columns={TASK_COLUMNS}
       getViewRoute={(resource: InfrastructureResource) => {
         return RouteUtil.populateRouteParams(
           RouteMap[PageMap.DOCKER_SWARM_CLUSTER_VIEW_TASK_DETAIL] as Route,

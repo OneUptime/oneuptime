@@ -3,6 +3,7 @@ import fs from "fs";
 import fsPromises from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { FrameBox, boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 /*
  * A Docker and a Podman host's pages, in a browser, against the offline
@@ -571,11 +572,11 @@ test.describe("a container's page", () => {
       await expect(tiles).not.toContainText("A restart loop");
 
       // The cards under the tabs line up with the hero above them.
-      const heroBox: { x: number } | null = await hero.boundingBox();
-      const attentionBox: { x: number } | null = await attention.boundingBox();
-      expect(
-        Math.abs((heroBox?.x || 0) - (attentionBox?.x || -9)),
-      ).toBeLessThan(1);
+      const [heroBox, attentionBox]: Array<FrameBox> = await boxesInOneFrame([
+        hero,
+        attention,
+      ]);
+      expect(Math.abs(heroBox!.x - attentionBox!.x)).toBeLessThan(1);
 
       // The alert the loop raised, about this container.
       await expect(
