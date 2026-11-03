@@ -180,11 +180,15 @@ interface LegacyEntryOutcome {
  */
 function describeLegacyEntryOutcome(
   entry: InvestigationEvidenceCheckedEntry,
+  translator: Translator,
 ): LegacyEntryOutcome {
   const outcome: string = (entry.outcome || "").trim();
 
   if (!outcome) {
-    return { label: formatRowCount(entry.rowCount), isError: false };
+    return {
+      label: formatRowCount(entry.rowCount, translator),
+      isError: false,
+    };
   }
 
   return {
@@ -656,7 +660,7 @@ const InvestigationEvidenceList: FunctionComponent<ComponentProps> = (
                   >
                     {clusterOutcome
                       ? clusterOutcome.label
-                      : formatRowCount(item.rowCount)}
+                      : formatRowCount(item.rowCount, translator)}
                   </span>
                   <Icon
                     icon={IconProp.ChevronDown}
@@ -697,7 +701,7 @@ const InvestigationEvidenceList: FunctionComponent<ComponentProps> = (
         : props.legacyEntries.map(
             (entry: InvestigationEvidenceCheckedEntry): ReactElement => {
               const legacyOutcome: LegacyEntryOutcome =
-                describeLegacyEntryOutcome(entry);
+                describeLegacyEntryOutcome(entry, translator);
 
               return (
                 <li
@@ -963,6 +967,7 @@ const LoadedEvidenceRows: FunctionComponent<LoadedEvidenceRowsProps> = (
     notice = translator.translateTemplate(
       "Shows current data with your permissions — it may differ from what the AI saw at {{time}}.",
       { time: investigatedAt },
+      { setsValuesApart: true },
     );
   }
   let content: ReactElement;

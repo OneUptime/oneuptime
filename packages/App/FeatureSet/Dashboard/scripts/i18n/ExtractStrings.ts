@@ -291,6 +291,29 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     directory: "packages/Common/Server/Utils/AI/Toolbox",
     kind: "keys",
   },
+  /*
+   * What an AI action's approval card says - its title and the line under
+   * it - and the kinds of resource it names: the server stores each as a
+   * sentence of AIActionWords and the card says it in the reader's
+   * language (ToolActionWords). Only the words the files mark are read.
+   */
+  {
+    directory: "packages/Common/Types/AI/AIActionWords.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/AI/AiAffectedResources.ts",
+    kind: "keys",
+  },
+  /*
+   * How an AI remediation round reads on the Remediation step - 'AI
+   * remediation for cluster "prod"' - in the reader's language, and the
+   * kinds of resource a round runs on.
+   */
+  {
+    directory: "packages/Common/Types/AutoRemediation/RemediationRoundName.ts",
+    kind: "keys",
+  },
 ];
 
 /*

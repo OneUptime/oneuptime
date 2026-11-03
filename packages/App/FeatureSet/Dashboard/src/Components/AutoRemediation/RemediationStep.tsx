@@ -10,6 +10,7 @@ import AutoRemediationSuggestionStatus from "Common/Types/AutoRemediation/AutoRe
 import AutoRemediationVerificationStatus from "Common/Types/AutoRemediation/AutoRemediationVerificationStatus";
 import AutoRemediationSuggestionType from "Common/Types/AutoRemediation/AutoRemediationSuggestionType";
 import { isProjectRunbookPick } from "Common/Types/AutoRemediation/AutoRemediationFix";
+import { describeRemediationRoundName } from "Common/Types/AutoRemediation/RemediationRoundName";
 import {
   AutoRemediationDecisionEntry,
   AutoRemediationDecisionReason,
@@ -1884,11 +1885,31 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
        */
       sourceLabel = translator.translateText("OneUptime AI") as string;
     } else if (suggestion.kubernetesClusterId) {
+      /*
+       * A round OneUptime AI ran on the cluster, in the reader's words
+       * with the cluster's name as data (RemediationRoundName) - its
+       * stored name is the server's English.
+       */
       sourceLabel =
+        describeRemediationRoundName(
+          {
+            ruleNameSnapshot: suggestion.ruleNameSnapshot,
+            isClusterRound: true,
+          },
+          translator,
+        ) ||
         suggestion.ruleNameSnapshot ||
         (translator.translateText("AI remediation for cluster") as string);
     } else if (suggestion.resourceId) {
       sourceLabel =
+        describeRemediationRoundName(
+          {
+            ruleNameSnapshot: suggestion.ruleNameSnapshot,
+            isClusterRound: false,
+            resourceType: suggestion.resourceType,
+          },
+          translator,
+        ) ||
         suggestion.ruleNameSnapshot ||
         (translator.translateText("AI remediation") as string);
     }

@@ -19,8 +19,10 @@ import {
   LIST_MCP_TOOLS_TOOL_NAME,
 } from "Common/Types/AI/ExternalMcpServer/ExternalMcpToolNames";
 import {
+  getGlobalTranslator,
   translateTemplate,
   translationKey,
+  Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -277,6 +279,65 @@ const TOOL_DESCRIPTIONS: Map<string, EvidenceToolDescription> = new Map<
       category: "Security",
     },
   ],
+  // A case's writes, made as the person once allowed.
+  [
+    "add_security_case_note",
+    {
+      description: "Added a note to a security case",
+      icon: IconProp.DocumentText,
+      category: "Security",
+    },
+  ],
+  [
+    "run_security_playbook",
+    {
+      description: "Started a playbook on a security case",
+      icon: IconProp.Bolt,
+      category: "Security",
+    },
+  ],
+  // Data Security: which stores hold what, what to fix first, who can reach what.
+  [
+    "query_data_stores",
+    {
+      description: "Checked data stores",
+      icon: IconProp.Database,
+      category: "Data security",
+    },
+  ],
+  [
+    "query_data_security_issues",
+    {
+      description: "Checked data security issues",
+      icon: IconProp.ShieldExclamation,
+      category: "Data security",
+    },
+  ],
+  [
+    "query_data_store_access",
+    {
+      description: "Checked who can reach a data store",
+      icon: IconProp.Lock,
+      category: "Data security",
+    },
+  ],
+  // Real user monitoring: the applications, and their web vitals.
+  [
+    "query_rum_applications",
+    {
+      description: "Checked RUM applications",
+      icon: IconProp.Globe,
+      category: "RUM",
+    },
+  ],
+  [
+    "query_rum_web_vitals",
+    {
+      description: "Checked web vitals",
+      icon: IconProp.Globe,
+      category: "RUM",
+    },
+  ],
   [
     "query_metrics",
     {
@@ -320,6 +381,14 @@ const TOOL_DESCRIPTIONS: Map<string, EvidenceToolDescription> = new Map<
     {
       description: "Checked a host's containers",
       icon: IconProp.SquareStack3D,
+      category: "Infrastructure",
+    },
+  ],
+  [
+    "query_network_transceivers",
+    {
+      description: "Read a network device's optics",
+      icon: IconProp.Signal,
       category: "Infrastructure",
     },
   ],
@@ -524,6 +593,23 @@ const TOOL_DESCRIPTIONS: Map<string, EvidenceToolDescription> = new Map<
       category: "Remediation",
     },
   ],
+  [
+    "roll_back_change",
+    {
+      description: "Rolled back a change",
+      icon: IconProp.ArrowUturnLeft,
+      category: "Remediation",
+    },
+  ],
+  // The rest of a long output a command printed (ToolOutputPager).
+  [
+    "read_tool_output",
+    {
+      description: "Read the rest of an output",
+      icon: IconProp.DocumentText,
+      category: "Context",
+    },
+  ],
   /*
    * Mutation tools are never offered to an investigation, but the same
    * formatter is cheap to keep honest for any run that recorded one.
@@ -692,6 +778,22 @@ function capitalize(value: string): string {
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
+/*
+ * What a tool the list knows did - "Declared an incident" - or null for a
+ * tool it does not: an action's step in the chat says the same words once
+ * it ran, and never a tool's own name.
+ */
+export function getKnownEvidenceTool(
+  toolName: string | null | undefined,
+): EvidenceToolDescription | null {
+  const name: string = typeof toolName === "string" ? toolName.trim() : "";
+  const known: EvidenceToolDescription | undefined = TOOL_DESCRIPTIONS.get(
+    name.toLowerCase(),
+  );
+
+  return known ? { ...known } : null;
+}
+
 export function describeEvidenceTool(
   toolName: string | null | undefined,
 ): EvidenceToolDescription {
@@ -778,23 +880,31 @@ export function describeCitationTargetPage(
   return "Dashboard";
 }
 
-export function formatRowCount(rowCount: number | null | undefined): string {
+/*
+ * How many rows a query returned, as its evidence row's pill says it: in
+ * the reader's language, the count written their way ("1.234 Zeilen").
+ */
+export function formatRowCount(
+  rowCount: number | null | undefined,
+  translator: Translator = getGlobalTranslator(),
+): string {
   if (
     typeof rowCount !== "number" ||
     !Number.isFinite(rowCount) ||
     rowCount <= 0
   ) {
-    return "No rows";
+    return translator.translateText(NO_ROWS) || NO_ROWS;
   }
 
-  const rounded: number = Math.floor(rowCount);
-
-  if (rounded === 1) {
-    return "1 row";
-  }
-
-  return `${formatInteger(rounded)} rows`;
+  return translator.translatePlural(ROW_COUNT, Math.floor(rowCount));
 }
+
+const NO_ROWS: string = translationKey("No rows");
+
+const ROW_COUNT: { one: string; other: string } = {
+  one: "{{count}} row",
+  other: "{{count}} rows",
+};
 
 /*
  * What the server serializes for a result that simply has no rows. These say
