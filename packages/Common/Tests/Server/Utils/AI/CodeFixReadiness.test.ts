@@ -4,6 +4,8 @@ import CodeFixReadiness, {
   GLOBAL_RUNNERS_TAKE_NO_CODE_FIXES_DETAIL,
   NO_GLOBAL_RUNNER_ONLINE_DETAIL,
   NO_RUNNER_ONLINE_FOR_PROJECT_DETAIL,
+  RUNNER_ONLINE_CHECK_TITLE,
+  RUNNER_TAKES_CODE_FIXES_CHECK_TITLE,
   describeRepositoryRunnerStatus,
   getProjectDefaultRunnerOfflineDetail,
   getProjectDefaultRunnerTakesNoCodeFixesDetail,
@@ -420,6 +422,7 @@ describe("CodeFixReadiness.getAgentCheck", () => {
         runnerName: "prod-runner",
       },
       getRepositoryRunnerOfflineDetail("prod-runner"),
+      RUNNER_ONLINE_CHECK_TITLE,
     ],
     [
       "no global Runner is online",
@@ -428,6 +431,7 @@ describe("CodeFixReadiness.getAgentCheck", () => {
         isOnline: false,
       },
       NO_GLOBAL_RUNNER_ONLINE_DETAIL,
+      RUNNER_ONLINE_CHECK_TITLE,
     ],
     [
       "its project turned global Runners off",
@@ -436,6 +440,7 @@ describe("CodeFixReadiness.getAgentCheck", () => {
         isOnline: false,
       },
       GLOBAL_RUNNERS_OFF_FOR_REPOSITORY_DETAIL,
+      RUNNER_ONLINE_CHECK_TITLE,
     ],
     [
       "global Runners online take no AI code fixes",
@@ -445,6 +450,7 @@ describe("CodeFixReadiness.getAgentCheck", () => {
         takesNoCodeFixes: true,
       },
       GLOBAL_RUNNERS_TAKE_NO_CODE_FIXES_DETAIL,
+      RUNNER_TAKES_CODE_FIXES_CHECK_TITLE,
     ],
     [
       "own Runner's host turned AI code fixes off",
@@ -458,10 +464,25 @@ describe("CodeFixReadiness.getAgentCheck", () => {
         runnerName: "prod-runner",
       },
       getRepositoryRunnerTakesNoCodeFixesDetail("prod-runner"),
+      RUNNER_TAKES_CODE_FIXES_CHECK_TITLE,
+    ],
+    [
+      "default Runner's host turned AI code fixes off",
+      {
+        decision: {
+          kind: CodeRepositoryRunnerChoiceKind.ProjectDefault,
+          runnerId: RUNNER_ID,
+        },
+        isOnline: false,
+        takesNoCodeFixes: true,
+        runnerName: "build-box",
+      },
+      getProjectDefaultRunnerTakesNoCodeFixesDetail("build-box"),
+      RUNNER_TAKES_CODE_FIXES_CHECK_TITLE,
     ],
   ])(
     "a repository whose %s: not ready, saying why",
-    async (_why: string, status: unknown, detail: string) => {
+    async (_why: string, status: unknown, detail: string, title: string) => {
       jest
         .spyOn(CodeRepositoryRunnerChoice, "getStatusForRepository")
         .mockResolvedValue(status as never);
@@ -472,7 +493,12 @@ describe("CodeFixReadiness.getAgentCheck", () => {
       });
 
       expect(check.ok).toBe(false);
-      expect(check.title).toBe("Runner online");
+      /*
+       * Named for what is missing: a Runner that is online but takes no AI
+       * code fixes is never called not online - the Runners page shows it
+       * connected.
+       */
+      expect(check.title).toBe(title);
       expect(check.detail).toBe(detail);
       // Code's own blocker rides along, in the same words.
       expect(check.blocker).toEqual(
@@ -481,6 +507,13 @@ describe("CodeFixReadiness.getAgentCheck", () => {
       expect(check.blocker?.message).toBe(detail);
     },
   );
+
+  test("the two names of the Runner check, as a person reads them", () => {
+    expect(RUNNER_ONLINE_CHECK_TITLE).toBe("Runner online");
+    expect(RUNNER_TAKES_CODE_FIXES_CHECK_TITLE).toBe(
+      "Runner takes AI code fixes",
+    );
+  });
 
   test("a check that passes, or one about no repository yet, carries no blocker", async () => {
     jest

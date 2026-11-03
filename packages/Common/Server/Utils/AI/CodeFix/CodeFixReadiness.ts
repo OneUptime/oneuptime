@@ -53,6 +53,17 @@ export const GLOBAL_RUNNERS_TAKE_NO_CODE_FIXES_DETAIL: string =
 const CODE_FIXES_TURNED_OFF_ON_HOST: string =
   "does not take AI code fixes: ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false is set on its host. Remove that setting and restart the Runner, or pick another Runner in the repository's settings in Code.";
 
+/*
+ * The name of the Runner check (agentAvailable) while what the repository
+ * works on is online but takes no AI code fixes. "Runner online" next to a
+ * cross would say it is not - the Runners page shows it connected - and a
+ * start refused for it lists the check by this name among what is missing.
+ */
+export const RUNNER_ONLINE_CHECK_TITLE: string = "Runner online";
+
+export const RUNNER_TAKES_CODE_FIXES_CHECK_TITLE: string =
+  "Runner takes AI code fixes";
+
 export const GLOBAL_RUNNERS_OFF_FOR_REPOSITORY_DETAIL: string =
   "This project does not use global Runners, and this repository picks no Runner of its own. Pick one of your Runners for it in the repository's settings in Code, or turn global Runners on under Runbooks → Runners.";
 
@@ -339,7 +350,7 @@ export default class CodeFixReadiness {
       return {
         id: "agentAvailable",
         ok: isOnline,
-        title: "Runner online",
+        title: RUNNER_ONLINE_CHECK_TITLE,
         detail: isOnline
           ? "Connected and polling for tasks."
           : NO_RUNNER_ONLINE_FOR_PROJECT_DETAIL,
@@ -364,7 +375,9 @@ export default class CodeFixReadiness {
       return {
         id: "agentAvailable",
         ok: false,
-        title: "Runner online",
+        title: status.takesNoCodeFixes
+          ? RUNNER_TAKES_CODE_FIXES_CHECK_TITLE
+          : RUNNER_ONLINE_CHECK_TITLE,
         detail: blocker.message,
         blocker,
       };

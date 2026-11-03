@@ -367,6 +367,8 @@ describe("TelemetryExceptionService.getAIFixReadiness", () => {
       expect(readiness.ready).toBe(false);
       const check: AIFixReadinessCheck = getCheck(readiness, "agentAvailable");
       expect(check.ok).toBe(false);
+      // Never "Runner online" beside a cross: the Runners page shows it connected.
+      expect(check.title).toBe("Runner takes AI code fixes");
       expect(check.detail).toBe(GLOBAL_RUNNERS_TAKE_NO_CODE_FIXES_DETAIL);
       expect(check.blocker).toEqual({
         type: CodeTaskBlockerType.GlobalRunnersTakeNoCodeFixes,
@@ -413,6 +415,7 @@ describe("TelemetryExceptionService.getAIFixReadiness", () => {
     expect(readiness.ready).toBe(false);
     const check: AIFixReadinessCheck = getCheck(readiness, "agentAvailable");
     expect(check.ok).toBe(false);
+    expect(check.title).toBe("Runner takes AI code fixes");
     expect(check.detail).toContain('The Runner "prod-eu-runner"');
     expect(check.detail).toContain("does not take AI code fixes");
     expect(check.detail).toContain("ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false");
@@ -699,6 +702,39 @@ describe("TelemetryExceptionService.createCodeFixRunForException fail-early", ()
     expect(refusal).toBeInstanceOf(BadDataException);
     expect(refusal?.message).toContain("LLM provider");
     expect(refusal?.message).toContain("Runner online");
+  });
+
+  /*
+   * The global Runners are online but take no AI code fixes: the refusal
+   * names what is missing as the checklist does, never a Runner that is
+   * not online.
+   */
+  test("a start refused for global Runners that take no code fixes names that, not a Runner offline", async () => {
+    mockReadiness({
+      globalRunner: fakeGlobalRunner({
+        lastAlive: OneUptimeDate.getCurrentDate(),
+        takesCodeFixes: false,
+      }),
+    });
+    jest.spyOn(FixRunBudget, "assertWithinBudget").mockResolvedValue();
+
+    const refusal: Error | null =
+      await TelemetryExceptionService.createCodeFixRunForException({
+        telemetryExceptionId: exceptionId,
+        props: { isRoot: true },
+      }).then(
+        (): null => {
+          return null;
+        },
+        (error: Error): Error => {
+          return error;
+        },
+      );
+
+    expect(refusal).toBeInstanceOf(BadDataException);
+    expect(refusal?.message).toBe(
+      "Cannot start the AI fix — missing prerequisites: Runner takes AI code fixes.",
+    );
   });
 });
 
