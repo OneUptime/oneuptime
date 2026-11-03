@@ -10,7 +10,9 @@ import AIRunEvent from "Common/Models/DatabaseModels/AIRunEvent";
 import AIRunEventType from "Common/Types/AI/AIRunEventType";
 import {
   AIPromptOmissions,
+  AIToolRefusal,
   FollowUpCheckActivity,
+  isAIToolRefusal,
   LinkedInfrastructureActivity,
   RecentChangesActivity,
 } from "Common/Types/AI/AIChatTypes";
@@ -413,15 +415,47 @@ function friendlyToolName(
 }
 
 /*
- * The detail for a failed call. A failed kubectl call produced nothing to
- * read: either it never reached the cluster, or a Runner took it and never
- * reported back, in which case it may have run. Say which rather than
- * implying it ran and will be retried.
+ * Why a refused call was not done, by what the server recorded
+ * (AIToolRefusal): a refused call is never tried again, so its step never
+ * says it is being retried.
  */
-function describeFailedToolCall(
+export const REFUSED_TOOL_CALL_DETAILS: { [key in AIToolRefusal]: string } = {
+  [AIToolRefusal.Permission]: translationKey(
+    "not done — your role does not allow it",
+  ),
+  [AIToolRefusal.TeamBlock]: translationKey(
+    "not done — a team you belong to blocks it",
+  ),
+  [AIToolRefusal.Plan]: translationKey(
+    "not done — the project's plan does not include it",
+  ),
+  [AIToolRefusal.NotAllowed]: translationKey(
+    "not done — you are not allowed to do this",
+  ),
+};
+
+/*
+ * The detail for a failed call. A refused call - the person may not make
+ * it, a team blocks it, the plan does not include it - is never tried
+ * again: it was not done, and the step says why. A failed action (a tool
+ * that changes the project) was not done either, and the answer says why;
+ * the model may well not try it again, so the step never promises it. A
+ * failed kubectl call produced nothing to read: either it never reached the
+ * cluster, or a Runner took it and never reported back, in which case it
+ * may have run. Say which rather than implying it ran and will be retried.
+ */
+export function describeFailedToolCall(
   event: AIRunEvent,
   translator: Translator,
 ): string {
+  const refusal: unknown = event.resultSummary?.refusal;
+
+  if (isAIToolRefusal(refusal)) {
+    return translator.translateText(
+      REFUSED_TOOL_CALL_DETAILS[refusal],
+    ) as string;
+  }
+
   // The same three outcomes for a command on an infrastructure resource.
   if (event.toolName === RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME) {
     return translator.translateText(
@@ -429,6 +463,14 @@ function describeFailedToolCall(
         ? "no result came back — it may have run"
         : "did not run on the infrastructure",
     ) as string;
+  }
+
+  // An action that failed: not done, whatever the model does next.
+  if (
+    event.toolName !== RUN_KUBECTL_TOOL_NAME &&
+    event.resultSummary?.isAction === true
+  ) {
+    return translator.translateText("not done") as string;
   }
 
   if (event.toolName !== RUN_KUBECTL_TOOL_NAME) {

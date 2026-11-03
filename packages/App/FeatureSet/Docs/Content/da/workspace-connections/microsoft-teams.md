@@ -173,7 +173,7 @@ Skriv til botten i en personlig chat, eller nævn OneUptime med @ i en kanal ell
 | `maintenance [title]` | Åbner formularen til planlagt vedligeholdelse med titlen udfyldt. |
 | `oncall` | Viser, hvem der har vagt lige nu i hver vagtplan, du kan se, til hvornår, og hvem der er den næste. |
 | `page [who] [message]` | Tilkalder de personer, du nævner med @, om din besked, eller sender et kort, hvor du vælger, hvem der skal tilkaldes. Se [Tilkald nogen fra Microsoft Teams](#tilkald-nogen-fra-microsoft-teams). |
-| `ask [question]`, eller ethvert spørgsmål på almindeligt sprog | OneUptime AI svarer om dine logs, traces, metrikker, hændelser og monitorer, for eksempel "hvilke monitorer er nede lige nu?". Svar læser kun. |
+| `ask [question]`, eller ethvert spørgsmål på almindeligt sprog | OneUptime AI svarer om dine logs, traces, metrikker, hændelser og monitorer, for eksempel "hvilke monitorer er nede lige nu?". Svar læser kun: bedt om en ændring siger den, hvordan du laver den her, fx med `incident` eller knapperne på OneUptimes kort, eller linker til Spørg AI for alt andet. I en hændelses eller en advarsels egen kanal svarer den om den hændelse eller advarsel. |
 | `show active incidents`, `show active alerts` | Viser, hvad der er åbent nu. |
 | `show scheduled maintenance`, `show ongoing maintenance` | Viser kommende, eller igangværende, vedligeholdelsesbegivenheder. |
 

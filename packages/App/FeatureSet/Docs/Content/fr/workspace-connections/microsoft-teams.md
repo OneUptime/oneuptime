@@ -173,7 +173,7 @@ La note est enregistrée en votre nom, avec vos autorisations, et l'application 
 | `maintenance [title]` | Ouvre le formulaire de maintenance planifiée, avec le titre rempli. |
 | `oncall` | Liste qui est d'astreinte en ce moment dans chaque planning d'astreinte que vous pouvez voir, jusqu'à quand, et qui est le suivant. |
 | `page [who] [message]` | Alerte les personnes que vous mentionnez avec @ au sujet de votre message, ou envoie une carte pour choisir qui alerter. Voir [Alerter quelqu'un depuis Microsoft Teams](#alerter-quelquun-depuis-microsoft-teams). |
-| `ask [question]`, ou toute question en langage courant | OneUptime AI répond sur vos journaux, traces, métriques, incidents et moniteurs, par exemple "Quels moniteurs sont en panne en ce moment ?". Les réponses ne font que lire. |
+| `ask [question]`, ou toute question en langage courant | OneUptime AI répond sur vos journaux, traces, métriques, incidents et moniteurs, par exemple "Quels moniteurs sont en panne en ce moment ?". Les réponses ne font que lire : si vous lui demandez un changement, il dit comment le faire ici, par exemple avec `incident` ou les boutons des cartes de OneUptime, ou renvoie vers Demander à l'IA pour tout le reste. Dans le canal propre d'un incident ou d'une alerte, il répond sur cet incident ou cette alerte. |
 | `show active incidents`, `show active alerts` | Liste ce qui est ouvert maintenant. |
 | `show scheduled maintenance`, `show ongoing maintenance` | Liste les événements de maintenance à venir, ou en cours. |
 

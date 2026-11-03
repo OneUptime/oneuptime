@@ -173,7 +173,7 @@ Scrivi al bot in una chat personale, oppure menziona OneUptime con @ in un canal
 | `maintenance [title]` | Apre il modulo della manutenzione programmata, con il titolo compilato. |
 | `oncall` | Elenca chi è reperibile in questo momento in ogni pianificazione di reperibilità che puoi vedere, fino a quando, e chi è il prossimo. |
 | `page [who] [message]` | Chiama le persone che menzioni con @ per il tuo messaggio, oppure invia una scheda per scegliere chi chiamare. Vedi [Chiamare qualcuno da Microsoft Teams](#chiamare-qualcuno-da-microsoft-teams). |
-| `ask [question]`, o qualsiasi domanda in linguaggio naturale | OneUptime AI risponde su log, trace, metriche, incidenti e monitor, per esempio "quali monitor sono giù in questo momento?". Le risposte si limitano a leggere. |
+| `ask [question]`, o qualsiasi domanda in linguaggio naturale | OneUptime AI risponde su log, trace, metriche, incidenti e monitor, per esempio "quali monitor sono giù in questo momento?". Le risposte si limitano a leggere: se gli chiedi una modifica, dice come farla qui, per esempio con `incident` o con i pulsanti delle schede di OneUptime, oppure rimanda a Chiedi all'IA per tutto il resto. Nel canale di un incidente o di un avviso, risponde su quell'incidente o quell'avviso. |
 | `show active incidents`, `show active alerts` | Elenca ciò che è aperto adesso. |
 | `show scheduled maintenance`, `show ongoing maintenance` | Elenca gli eventi di manutenzione in arrivo, o in corso. |
 

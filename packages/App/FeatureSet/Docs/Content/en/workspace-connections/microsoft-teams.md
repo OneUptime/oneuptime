@@ -173,7 +173,7 @@ Message the bot in a personal chat, or @mention OneUptime in a channel or a grou
 | `maintenance [title]` | Opens the scheduled maintenance form, with the title filled in. |
 | `oncall` | Lists who is on call right now in each on-call schedule you can see, until when, and who is next. |
 | `page [who] [message]` | Pages the people you @mention about your message, or sends a card to pick who to page. See [Paging someone from Microsoft Teams](#paging-someone-from-microsoft-teams). |
-| `ask [question]`, or any question in plain language | OneUptime AI answers about your logs, traces, metrics, incidents and monitors, for example "which monitors are down right now?". Answers only read. |
+| `ask [question]`, or any question in plain language | OneUptime AI answers about your logs, traces, metrics, incidents and monitors, for example "which monitors are down right now?". Answers only read: asked for a change, it says how to make it here, such as with `incident` or the buttons on OneUptime's cards, or links to Ask AI for anything else. In an incident's or an alert's own channel, it answers about that incident or alert. |
 | `show active incidents`, `show active alerts` | Lists what is open now. |
 | `show scheduled maintenance`, `show ongoing maintenance` | Lists upcoming, or ongoing, maintenance events. |
 

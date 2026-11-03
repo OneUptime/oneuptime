@@ -284,7 +284,7 @@ A partir de ahí el incidente está activo: cuenta para la insignia **Incidentes
 
 ### Declarado ya reconocido o resuelto
 
-Elegir un **Estado inicial** posterior —en el formulario, mediante el **Estado inicial del incidente** de una plantilla, o con `currentIncidentStateId` desde la API, Terraform o un flujo de trabajo— registra un incidente del que alguien ya se está ocupando, o que ya ha terminado. No se trata como una nueva emergencia:
+Elegir un **Estado inicial** posterior —en el formulario, mediante el **Estado inicial del incidente** de una plantilla, con `currentIncidentStateId` desde la API, Terraform o un flujo de trabajo, o pidiendo a [Preguntar a la IA](/docs/ai/ask-ai) un incidente ya reconocido o resuelto— registra un incidente del que alguien ya se está ocupando, o que ya ha terminado. No se trata como una nueva emergencia:
 
 ```mermaid title="Lo que desencadena un incidente nuevo, según el estado en el que empieza"
 flowchart TB

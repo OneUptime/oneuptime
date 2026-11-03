@@ -4,14 +4,14 @@ Ett larm gör ditt team uppmärksamt på ett problem som bör undersökas innan 
 
 :::cards
 - [Larm och incidenter](#larm-och-incidenter): Vad ett problem bör vara, och hur de två hänger ihop.
-- [Var larm kommer ifrån](#var-larm-kommer-ifrån): Monitorer, SLO:er, chatt, API:et eller manuellt.
+- [Var larm kommer ifrån](#var-larm-kommer-ifrån): Monitorer, SLO:er, chatt, Fråga AI, API:et eller manuellt.
 - [Skapa ett larm manuellt](#skapa-ett-larm-manuellt): Två steg i instrumentpanelen.
 - [Svara på ett larm](#svara-på-ett-larm): Bekräfta det, lös det eller deklarera en incident.
 :::
 
 ## Så fungerar det
 
-De flesta larm utlöses av en monitor vars kriterier matchar. Vissa kommer från en SLO som förbrukar sin felbudget, en säkerhetsregel, ett larmanrop från Slack eller Microsoft Teams, eller en person. Oavsett hur det kommer in är ett larm alltid samma post, och samma regler körs på det.
+De flesta larm utlöses av en monitor vars kriterier matchar. Vissa kommer från en SLO som förbrukar sin felbudget, en säkerhetsregel, ett larmanrop från Slack eller Microsoft Teams, Fråga AI, eller en person. Oavsett hur det kommer in är ett larm alltid samma post, och samma regler körs på det.
 
 ```mermaid title="Från en signal till människorna som hanterar den"
 flowchart TB
@@ -44,6 +44,7 @@ Utlös ett larm när ditt team bör titta innan någon utanför märker något, 
 
 - **En monitors kriterier.** Under **Åtgärder** för ett kriterium slår du på **När filter matchar, skapa ett larm.** och fyller i larmet det skapar: **Larmtitel** och **Allvarlighetsgrad**, sedan, var för sig hopfällda, **Beskrivning**, **Ägarskap och etiketter**, **Jour** och **Fler fält**, som innehåller **Lös larm automatiskt**, **Privat larm** och **Åtgärdsanteckningar**. Ett kriterium håller ett öppet larm åt gången, ett per serie på en monitor som grupperar efter ett fält, och **Lös larm automatiskt** löser det när kriteriet slutar matcha. Se [Skapa en monitor](/docs/monitor/create-monitor) och [Incident- och larmmallar](/docs/monitor/incident-alert-templating).
 - **Manuellt.** Klicka på **Skapa larm** i larmlistan, eller på fliken **Larm** för en monitor, en värd, en nätverksenhet eller en annan resurs, som väljer den resursen åt dig. Se [Skapa ett larm manuellt](#skapa-ett-larm-manuellt).
+- **Fråga AI.** Be om ett larm i [Fråga AI](/docs/ai/ask-ai): den skapar det som du, kopplat till resursen vars sida du frågade på, till exempel en värds. För att registrera ett problem som någon redan hanterar, eller som redan är över, ber du om det redan bekräftat eller löst: det börjar i det tillståndet och larmar ingen. Se [Skapat redan bekräftat eller löst](#skapat-redan-bekräftat-eller-löst).
 - **En SLO:s förbrukningstakt.** En regel för förbrukningstakt kan skapa ett larm när en SLO förbrukar sin felbudget för snabbt. Se [Larm och incidenter för förbrukningstakt](/docs/slo/burn-rate-alerts).
 - **Nätverksplatser och säkerhetshändelser.** En nätverksplats som är inställd på att larma när den är ohälsosam öppnar ett larm när dess sammanfattning inte längre är i drift, och dina detekteringsregler för säkerhetshändelser öppnar också larm. Se [Nätverksplatser (hälsosammanfattning och upptid)](/docs/monitor/network-sites) och [Säkerhetshändelser (SIEM)](/docs/telemetry/security-events).
 - **Ett larmanrop.** `/oneuptime page` i Slack eller Microsoft Teams, överallt utom i en incidents eller ett larms egen kanal, öppnar ett larm med ditt meddelande som titel och larmar personerna du nämner. Larmblocken i ett arbetsflöde gör samma sak med titeln och meddelandet du ger dem. Se [Larma någon från Slack](/docs/workspace-connections/slack#larma-någon-från-slack) och [Paging](/docs/workflows/components#paging).
@@ -94,7 +95,7 @@ Lämnar du **Inledande tillstånd** tomt börjar larmet där alla nya larm börj
 
 I samma ögonblick som ett larm skapas går OneUptime igenom de här stegen, i den här ordningen:
 
-1. **Det får ett nummer och ett tillstånd.** Larmnumret kommer från en räknare per projekt och visas med ditt prefix (`ALT-42`). Larmet börjar i ditt skapandetillstånd, om inte formuläret, API:et eller ett arbetsflöde valde ett annat.
+1. **Det får ett nummer och ett tillstånd.** Larmnumret kommer från en räknare per projekt och visas med ditt prefix (`ALT-42`). Larmet börjar i ditt skapandetillstånd, om inte formuläret, API:et, ett arbetsflöde eller Fråga AI valde ett annat.
 2. **Sekretessregler körs först**, så att allt efter dem vet om larmet är privat.
 3. **Flödet och dina chattverktyg får veta.** En post **Larm skapat** skrivs i **Larm Flöde**, och kanalerna som dina Slack- och Microsoft Teams-regler anger meddelas; en regel kan skapa en kanal för larmet.
 4. **Ägare och etiketter läggs till**: de som monitorns kriterier eller begäran anger, sedan de från matchande ägar- och etikettregler.

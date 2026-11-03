@@ -13127,6 +13127,38 @@ test.describe("the feed, as a timeline", () => {
     ).toHaveAttribute("datetime", "2026-09-14T18:09:00.000Z");
   });
 
+  /*
+   * #5623's follow-up: the fixture wrote its dates in English on German
+   * and Persian pages ("11 min. ago") - the Dashboard itself hands its
+   * i18next to followLanguageForDates, and now the fixture does too, so a
+   * page's relative times are its language's, as the reader sees them.
+   */
+  for (const language of [
+    { code: "de", feed: "Vorfalls-Feed", ago: "vor 11 Min." },
+    { code: "fa", feed: "فید حادثه", ago: "پیش" },
+  ]) {
+    test(`how long ago is said in the page's language (?lang=${language.code})`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await open(page, INCIDENT_PATH, `lang=${language.code}`);
+
+      const feed: Locator = card(page, language.feed);
+      const rolledBack: Locator = feedEntry(
+        feed,
+        "Rolling checkout-api back",
+      ).getByTestId("feed-entry-time");
+      await expect(rolledBack).toBeVisible({ timeout: 30000 });
+
+      expect(await plainText(rolledBack)).toContain(language.ago);
+
+      for (const time of await feed.getByTestId("feed-entry-time").all()) {
+        expect(await plainText(time)).not.toContain("ago");
+      }
+    });
+  }
+
   test("an entry reads as a sentence that starts with who did it", async ({
     page,
   }: {
@@ -20026,13 +20058,23 @@ test.describe("a fix's changes in plain words, and how each went before", () => 
  * next steps. ?ruledout=on is such a report on Incident #1042.
  */
 test.describe("what the investigation ruled out", () => {
-  async function openRuledOut(page: Page, query: string): Promise<Locator> {
+  /*
+   * The report is the region its page's language names: "Investigation
+   * report" in English, the locale's words on a Persian page (the region is
+   * translated, so the English name found nothing there).
+   */
+  async function openRuledOut(
+    page: Page,
+    query: string,
+    reportName?: string,
+  ): Promise<Locator> {
     await open(page, INCIDENT_PATH, query);
     await showFullReport(page);
 
-    const list: Locator = reportSection(page).getByTestId(
-      "investigation-ruled-out",
-    );
+    const report: Locator = reportName
+      ? page.getByRole("region", { name: reportName, exact: true })
+      : reportSection(page);
+    const list: Locator = report.getByTestId("investigation-ruled-out");
     await expect(list).toBeVisible({ timeout: 30000 });
     return list;
   }
@@ -20098,9 +20140,20 @@ test.describe("what the investigation ruled out", () => {
     page: Page;
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
+    const persian: Record<string, string> = JSON.parse(
+      await fs.readFile(
+        path.resolve(
+          __dirname,
+          "../../App/FeatureSet/Dashboard/src/Locales",
+          "fa.json",
+        ),
+        "utf8",
+      ),
+    ) as Record<string, string>;
     const list: Locator = await openRuledOut(
       page,
       "ruledout=on&lang=fa&dir=auto",
+      persian["Investigation report"],
     );
 
     const cause: Locator = list

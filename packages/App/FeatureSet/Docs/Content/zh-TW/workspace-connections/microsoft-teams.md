@@ -173,7 +173,7 @@ flowchart TB
 | `maintenance [title]` | 開啟已填好標題的排定維護表單。 |
 | `oncall` | 列出您看得到的每個待命排程中目前由誰待命、待命到何時，以及下一位是誰。 |
 | `page [who] [message]` | 就您的訊息呼叫您 @提及的人，或傳送一張卡片來選擇要呼叫的人。請參閱 [從 Microsoft Teams 呼叫他人](#從-microsoft-teams-呼叫他人)。 |
-| `ask [question]`，或任何日常語言的問題 | OneUptime AI 回答有關記錄、追蹤、指標、事件和監測器的問題，例如「現在有哪些監測器停擺了？」。回答只讀取資料。 |
+| `ask [question]`，或任何日常語言的問題 | OneUptime AI 回答有關記錄、追蹤、指標、事件和監測器的問題，例如「現在有哪些監測器停擺了？」。回答只讀取資料：要求變更時，它會告訴你如何在這裡完成，例如使用 `incident` 或 OneUptime 卡片上的按鈕，其他變更則提供詢問 AI 的連結。在事件或警示自己的頻道中，它會回答關於該事件或警示的問題。 |
 | `show active incidents`、 `show active alerts` | 列出目前尚未結束的項目。 |
 | `show scheduled maintenance`、 `show ongoing maintenance` | 列出即將進行或正在進行的維護活動。 |
 

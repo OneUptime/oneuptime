@@ -173,7 +173,7 @@ Schreiben Sie dem Bot in einem persönlichen Chat, oder erwähnen Sie OneUptime 
 | `maintenance [title]` | Öffnet das Formular für geplante Wartung, mit ausgefülltem Titel. |
 | `oncall` | Listet, wer gerade in jedem Bereitschaftsplan, den Sie sehen können, Bereitschaft hat, bis wann und wer als Nächstes dran ist. |
 | `page [who] [message]` | Alarmiert die Personen, die Sie mit @ erwähnen, wegen Ihrer Nachricht, oder sendet eine Karte, auf der Sie wählen, wer alarmiert wird. Siehe [Jemanden aus Microsoft Teams alarmieren](#jemanden-aus-microsoft-teams-alarmieren). |
-| `ask [question]`, oder jede Frage in natürlicher Sprache | OneUptime AI antwortet zu Ihren Logs, Traces, Metriken, Vorfällen und Monitoren, zum Beispiel "Welche Monitore sind gerade ausgefallen?". Antworten lesen nur. |
+| `ask [question]`, oder jede Frage in natürlicher Sprache | OneUptime AI antwortet zu Ihren Logs, Traces, Metriken, Vorfällen und Monitoren, zum Beispiel "Welche Monitore sind gerade ausgefallen?". Antworten lesen nur: Um eine Änderung gebeten, sagt es, wie Sie sie hier vornehmen, etwa mit `incident` oder den Schaltflächen auf den Karten von OneUptime, oder verlinkt für alles andere auf KI fragen. Im eigenen Kanal eines Vorfalls oder einer Warnung antwortet es zu diesem Vorfall oder dieser Warnung. |
 | `show active incidents`, `show active alerts` | Listet, was gerade offen ist. |
 | `show scheduled maintenance`, `show ongoing maintenance` | Listet anstehende oder laufende Wartungsereignisse. |
 

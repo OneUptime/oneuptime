@@ -310,7 +310,9 @@ describe("in German", () => {
     );
     expect(argumentsLine).not.toHaveTextContent(INCIDENT_ID);
     expect(argumentsLine).not.toHaveTextContent("incidentId");
-    expect(argumentsLine).toHaveTextContent("note: Looking into it");
+    // The note, named in German; the note itself as the model wrote it.
+    expect(argumentsLine).toHaveTextContent(`${DE["Note"]}: Looking into it`);
+    expect(argumentsLine).not.toHaveTextContent("note:");
   });
 
   test("an incident the prepare could not read is named by its ID in the title, not again in the arguments", () => {
@@ -332,7 +334,7 @@ describe("in German", () => {
       "tool-approval-arguments",
     );
     expect(argumentsLine).not.toHaveTextContent("incidentId");
-    expect(argumentsLine).toHaveTextContent("note: Looking into it");
+    expect(argumentsLine).toHaveTextContent(`${DE["Note"]}: Looking into it`);
   });
 
   test("the argument line leaves out the title the incident takes, and the lists the line names", () => {
@@ -341,8 +343,10 @@ describe("in German", () => {
     const argumentsLine: HTMLElement = screen.getByTestId(
       "tool-approval-arguments",
     );
-    expect(argumentsLine).toHaveTextContent("severityName: SEV2");
-    expect(argumentsLine).not.toHaveTextContent("title: Checkout down");
+    // The severity, named in German, with the name the project gave it.
+    expect(argumentsLine).toHaveTextContent(`${DE["Severity"]}: SEV2`);
+    expect(argumentsLine).not.toHaveTextContent("severityName");
+    expect(argumentsLine).not.toHaveTextContent("Checkout down");
     expect(argumentsLine).not.toHaveTextContent(HOST_ID);
   });
 

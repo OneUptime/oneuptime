@@ -19,6 +19,7 @@ import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import { afterEach, describe, expect, test } from "@jest/globals";
 import { actionTitleText } from "../../../Helpers/AIActionText";
+import { actionCardText } from "../../../Helpers/AIActionCardText";
 
 /*
  * create_incident_note / create_alert_note file PRIVATE internal notes — the
@@ -90,6 +91,18 @@ describe("create_incident_note", () => {
       params: { incidentId: INCIDENT_ID.toString() },
     });
     expect(result.widget).toBeDefined();
+    // The card it leaves, in words the Dashboard says in the reader's language.
+    expect(actionCardText(result.widget)).toEqual({
+      heading: expect.stringContaining("#42 · "),
+      kind: "Incident",
+      line: "Private note added, for your team only",
+      facts: [
+        {
+          label: "Note",
+          value: "DB failover completed; watching error rates.",
+        },
+      ],
+    });
 
     // The write runs under the user's props with tenancy pinned from ctx.
     const callArgs: JSONObject = createSpy.mock.calls[0]?.[0] as JSONObject;
@@ -218,6 +231,12 @@ describe("create_alert_note", () => {
       params: { alertId: ALERT_ID.toString() },
     });
     expect(result.widget).toBeDefined();
+    expect(actionCardText(result.widget)).toEqual({
+      heading: expect.stringContaining("#9 · "),
+      kind: "Alert",
+      line: "Private note added, for your team only",
+      facts: [{ label: "Note", value: "CPU normalized after rollout pause." }],
+    });
 
     const callArgs: JSONObject = createSpy.mock.calls[0]?.[0] as JSONObject;
     const data: AlertInternalNote = callArgs["data"] as AlertInternalNote;

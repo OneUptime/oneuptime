@@ -198,7 +198,7 @@ Als iemand OneUptime aan een kanaal toevoegt, plaatst het daar een begroeting: h
 
 ## OneUptime AI vragen vanuit Slack
 
-Stel in gewone taal vragen over je logs, traces, metrieken, incidenten en monitoren. Noem OneUptime met @ in een kanaal, of stuur het een direct bericht, en het antwoordt in de thread. `/oneuptime ask which monitors are down?` plaatst het antwoord in het kanaal. Beide vereisen dat je eigen Slack-account gekoppeld is en dat AI voor het project aanstaat. Antwoorden in Slack lezen alleen: gebruik de knoppen om iets te wijzigen. Zie [AI vragen](/docs/ai/ask-ai).
+Stel in gewone taal vragen over je logs, traces, metrieken, incidenten en monitoren. Noem OneUptime met @ in een kanaal, of stuur het een direct bericht, en het antwoordt in de thread. `/oneuptime ask which monitors are down?` plaatst het antwoord in het kanaal. Beide vereisen dat je eigen Slack-account gekoppeld is en dat AI voor het project aanstaat. Antwoorden in Slack lezen alleen: vraag je om een wijziging, dan zegt OneUptime AI hoe je die vanuit Slack maakt, bijvoorbeeld met `/oneuptime incident` of de knoppen bij de berichten van OneUptime, of linkt het voor al het andere naar AI vragen. Gevraagd in het eigen kanaal van een incident of waarschuwing, antwoordt het over dat incident of die waarschuwing. Zie [AI vragen](/docs/ai/ask-ai).
 
 OneUptime antwoordt alleen op wat aan OneUptime gericht is.
 

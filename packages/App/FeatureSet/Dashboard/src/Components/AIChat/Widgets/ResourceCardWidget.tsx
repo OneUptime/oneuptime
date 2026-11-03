@@ -2,16 +2,18 @@ import {
   AIChatCitationTarget,
   AIChatWidget,
 } from "Common/Types/AI/AIChatTypes";
-import {
-  getFactsNotInHeading,
-  ResourceCardFact,
-} from "Common/Types/AI/ResourceCardFacts";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 import { navigateToCitationTarget } from "../CitationTargetNav";
+import {
+  DrawnResourceCard,
+  DrawnResourceCardFact,
+  getDrawnResourceCard,
+} from "../ResourceCardWords";
+import ToolActionSentence, { ToolActionSentences } from "../ToolActionSentence";
 
 export interface ComponentProps {
   widget: AIChatWidget;
@@ -22,31 +24,34 @@ export interface ComponentProps {
  * ("ALT-12 · High memory usage on test01"), with an Open to it, as the
  * other widgets have. Its heading and values wrap rather than being cut
  * at one line: on a phone the alert's own title was lost after a few
- * words.
+ * words. Its kind, its line and its facts are in the reader's language
+ * when the card has words (ResourceCardWords), each sentence read its
+ * language's way with its values set apart; a card saved before them
+ * reads as its stored English.
  */
 const ResourceCardWidget: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
   /*
-   * Each fact once: a fact the heading or the line under it already says
-   * ("#42", "Severity: High") is left out - for a card saved in an older
-   * conversation too (Types/AI/ResourceCardFacts).
+   * In the reader's language when the card has words; else its stored
+   * English, each fact once: a fact the heading or the line under it
+   * already says ("#42", "Severity: High") is left out - for a card saved
+   * in an older conversation too (Types/AI/ResourceCardFacts).
    */
-  const fields: Array<ResourceCardFact> = getFactsNotInHeading({
-    heading: props.widget.data.heading,
-    subheading: props.widget.data.subheading,
-    fields: props.widget.data.fields,
-  });
+  const card: DrawnResourceCard = getDrawnResourceCard(
+    props.widget,
+    translator,
+  );
   const link: AIChatCitationTarget | undefined = props.widget.data.link;
   /*
    * Open says what it opens to a screen reader and on hover: under an
    * answer that created an incident and an alert, two bare "Open"s did not
    * say which was which.
    */
-  const openName: string = props.widget.data.heading
+  const openName: string = card.heading
     ? translator.translateTemplate("Open {{name}}", {
-        name: props.widget.data.heading,
+        name: card.heading,
       })
     : translator.translateText("Open") || "Open";
 
@@ -59,16 +64,23 @@ const ResourceCardWidget: FunctionComponent<ComponentProps> = (
         <div className="mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-lg bg-emerald-500">
           <Icon icon={IconProp.CheckCircle} className="h-4 w-4 text-white" />
         </div>
-        <div className="min-w-0 flex-1">
+        {/*
+         * A size container: its facts sit beside their names where the
+         * card has room, and under them on a phone (below).
+         */}
+        <div className="min-w-0 flex-1 [container-type:inline-size]">
           {/*
            * Open sits on the kind's line, so the heading and the facts
            * under it keep the card's whole width: beside them, on a
            * phone, it squeezed every value onto two lines.
            */}
-          {(props.widget.data.resourceType || link) && (
+          {(card.kind || link) && (
             <div className="flex items-center justify-between gap-2">
-              <div className="min-w-0 truncate text-[10px] font-semibold uppercase tracking-wide text-emerald-600">
-                {props.widget.data.resourceType}
+              <div
+                data-testid="ai-chat-resource-card-kind"
+                className="min-w-0 truncate text-[10px] font-semibold uppercase tracking-wide text-emerald-600"
+              >
+                {card.kind}
               </div>
               {link && (
                 <button
@@ -87,33 +99,65 @@ const ResourceCardWidget: FunctionComponent<ComponentProps> = (
               )}
             </div>
           )}
+          {/*
+           * The record by its number and title: data, read the way most of
+           * its letters are, so a Persian page keeps an English title's
+           * punctuation at its end.
+           */}
           <div
             data-testid="ai-chat-resource-card-heading"
             className="line-clamp-3 break-words text-sm font-semibold text-gray-900"
           >
-            {props.widget.data.heading}
+            <ToolActionSentence
+              sentence={{
+                text: card.heading,
+                direction: null,
+                separatorBefore: "",
+              }}
+            />
           </div>
-          {props.widget.data.subheading && (
-            <div className="mt-0.5 break-words text-xs text-gray-500">
-              {props.widget.data.subheading}
+          {card.line.length > 0 && (
+            <div
+              data-testid="ai-chat-resource-card-line"
+              className="mt-0.5 break-words text-xs text-gray-500"
+            >
+              <ToolActionSentences sentences={card.line} />
             </div>
           )}
-          {fields.length > 0 && (
-            <dl className="mt-2.5 grid grid-cols-[auto,1fr] gap-x-3 gap-y-1">
-              {fields.map(
-                (field: { label: string; value: string }, index: number) => {
-                  return (
-                    <React.Fragment key={index}>
-                      <dt className="text-[11px] font-medium text-gray-400">
-                        {field.label}
-                      </dt>
-                      <dd className="line-clamp-2 min-w-0 break-words text-[11px] text-gray-700">
-                        {field.value}
-                      </dd>
-                    </React.Fragment>
-                  );
-                },
-              )}
+          {/*
+           * The facts: each name beside its value where the card has room
+           * (22rem), and over it on a phone - beside it there, a German
+           * name ("Betroffene Ressourcen") left the value a third of the
+           * card, and a description was cut after a few words. The names
+           * are gray-500: gray-400 on the card's green read at about 2.5:1.
+           */}
+          {card.facts.length > 0 && (
+            <dl
+              data-testid="ai-chat-resource-card-facts"
+              className="mt-2.5 space-y-1.5 [@container(min-width:22rem)]:grid [@container(min-width:22rem)]:grid-cols-[auto,1fr] [@container(min-width:22rem)]:gap-x-3 [@container(min-width:22rem)]:gap-y-1"
+            >
+              {card.facts.map((fact: DrawnResourceCardFact, index: number) => {
+                return (
+                  <div
+                    key={index}
+                    data-testid="ai-chat-resource-card-fact"
+                    className="[@container(min-width:22rem)]:contents"
+                  >
+                    <dt
+                      data-testid="ai-chat-resource-card-fact-label"
+                      className="text-[11px] font-medium text-gray-500"
+                    >
+                      {fact.label}
+                    </dt>
+                    <dd
+                      data-testid="ai-chat-resource-card-fact-value"
+                      className="line-clamp-2 min-w-0 break-words text-[11px] text-gray-700"
+                    >
+                      <ToolActionSentence sentence={fact.value} />
+                    </dd>
+                  </div>
+                );
+              })}
             </dl>
           )}
         </div>

@@ -198,7 +198,7 @@ Slack 사이드바의 **Apps** 에서 OneUptime 을 열면 **Home** 탭에 내�
 
 ## Slack 에서 OneUptime AI 에게 질문하기
 
-로그, 트레이스, 메트릭, 인시던트, 모니터에 대해 일상적인 말로 질문하세요. 채널에서 OneUptime 을 @멘션하거나 다이렉트 메시지를 보내면 스레드에서 답변합니다. `/oneuptime ask which monitors are down?` 은 답변을 채널에 게시합니다. 두 방법 모두 자신의 Slack 계정이 연결되어 있고 프로젝트에서 AI 가 켜져 있어야 합니다. Slack 의 답변은 읽기만 합니다. 무언가를 변경하려면 버튼을 사용하세요. [AI에게 질문](/docs/ai/ask-ai) 을 참조하세요.
+로그, 트레이스, 메트릭, 인시던트, 모니터에 대해 일상적인 말로 질문하세요. 채널에서 OneUptime 을 @멘션하거나 다이렉트 메시지를 보내면 스레드에서 답변합니다. `/oneuptime ask which monitors are down?` 은 답변을 채널에 게시합니다. 두 방법 모두 자신의 Slack 계정이 연결되어 있고 프로젝트에서 AI 가 켜져 있어야 합니다. Slack 의 답변은 읽기만 합니다. 변경을 요청하면 OneUptime AI 가 `/oneuptime incident` 나 OneUptime 메시지의 버튼처럼 Slack 에서 변경하는 방법을 알려 주고, 그 밖의 것은 AI에게 질문 링크를 알려 줍니다. 인시던트나 알림 전용 채널에서 질문하면 그 인시던트나 알림에 대해 답변합니다. [AI에게 질문](/docs/ai/ask-ai) 을 참조하세요.
 
 OneUptime 은 자신에게 향한 것에만 답변합니다.
 

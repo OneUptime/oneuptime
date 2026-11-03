@@ -27,7 +27,7 @@ Met labels en eigenaren filtert en groepeert u resources, ze bepalen wie OneUpti
 
 Elk product met labels en eigenaren heeft beide regels onder zijn **Instellingen** (bij incidenten, waarschuwingen, gepland onderhoud en Gegevensbeveiliging onder **Regels**): monitoren, incidenten en incidentepisodes, waarschuwingen en waarschuwingsepisodes, geplande onderhoudsgebeurtenissen, statuspagina's, services, hosts, Kubernetes-clusters, Docker-hosts, Docker Swarm-clusters, Podman-hosts, Proxmox-clusters, VMware vCenters, Ceph-clusters, storage-arrays, databases, gegevensopslagen, wachtrijen, IoT-vloten, serverless functies, cloudresources, RUM-applicaties, dashboards, dienstbeleid, dienstroosters, beleid voor inkomende oproepen, workflows, runbooks, netwerkapparaten en SLO's.
 
-Labelregels voor monitoren staan bijvoorbeeld onder **Monitoren → Instellingen → Labelregels**, die voor incidenten onder **Incidenten → Regels → Labelregels**. **Instellingen** en **Regels** zijn in het zijmenu eerst ingeklapt: klik op de titel van de sectie om die te openen. De pagina's voor incidenten en waarschuwingen hebben een tabblad **Incident Rules** (of **Alert Rules**) en een tabblad **Episode Rules**.
+Labelregels voor monitoren staan bijvoorbeeld onder **Monitoren → Instellingen → Labelregels**, die voor incidenten onder **Incidenten → Regels → Labelregels**. **Instellingen** en **Regels** zijn in het zijmenu eerst ingeklapt: klik op de titel van de sectie om die te openen. De pagina's voor incidenten en waarschuwingen hebben een tabblad **Incidentregels** (of **Alert Rules**) en een tabblad **Episode Rules**.
 
 ## Een regel maken
 

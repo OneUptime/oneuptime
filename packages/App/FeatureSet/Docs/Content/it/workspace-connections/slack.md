@@ -198,7 +198,7 @@ Quando qualcuno aggiunge OneUptime a un canale, vi pubblica un saluto: come farg
 
 ## Chiedere a OneUptime AI da Slack
 
-Fai domande su log, trace, metriche, incidenti e monitor in linguaggio naturale. Menziona OneUptime con @ in un canale, o mandagli un messaggio diretto, e risponde nel thread. `/oneuptime ask which monitors are down?` pubblica la sua risposta nel canale. Entrambi richiedono il tuo account Slack collegato e l'IA attivata per il progetto. Le risposte in Slack si limitano a leggere: per cambiare qualcosa, usa i pulsanti. Vedi [Chiedi all'IA](/docs/ai/ask-ai).
+Fai domande su log, trace, metriche, incidenti e monitor in linguaggio naturale. Menziona OneUptime con @ in un canale, o mandagli un messaggio diretto, e risponde nel thread. `/oneuptime ask which monitors are down?` pubblica la sua risposta nel canale. Entrambi richiedono il tuo account Slack collegato e l'IA attivata per il progetto. Le risposte in Slack si limitano a leggere: se gli chiedi una modifica, OneUptime AI ti dice come farla da Slack, per esempio con `/oneuptime incident` o con i pulsanti dei messaggi di OneUptime, oppure rimanda a Chiedi all'IA per tutto il resto. Se chiedi nel canale di un incidente o di un avviso, risponde su quell'incidente o quell'avviso. Vedi [Chiedi all'IA](/docs/ai/ask-ai).
 
 OneUptime risponde solo a ciò che è rivolto a lui.
 

@@ -61,7 +61,18 @@ import {
  * record; anything after it - a table that cannot be read - is a warning.
  */
 
-export type DatabaseEngine = "postgresql" | "mysql" | "sqlserver";
+/*
+ * The engines a connection names. Data Security samples the first three
+ * (DATABASE_ENGINES); Data Observability also collects Amazon Redshift,
+ * Snowflake and Google BigQuery (DataObservabilityEngines).
+ */
+export type DatabaseEngine =
+  | "postgresql"
+  | "mysql"
+  | "sqlserver"
+  | "redshift"
+  | "snowflake"
+  | "bigquery";
 
 export const DATABASE_ENGINES: ReadonlyArray<DatabaseEngine> = [
   "postgresql",

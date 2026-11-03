@@ -284,7 +284,7 @@ A partir daí o incidente está ativo: ele conta para o selo **Incidentes ativos
 
 ### Declarado já confirmado ou resolvido
 
-Escolher um **Estado Inicial** posterior — no formulário, pelo **Estado Inicial do Incidente** de um modelo, ou com `currentIncidentStateId` pela API, pelo Terraform ou por um workflow — registra um incidente de que alguém já está cuidando, ou que já acabou. Ele não é tratado como uma nova emergência:
+Escolher um **Estado Inicial** posterior — no formulário, pelo **Estado Inicial do Incidente** de um modelo, com `currentIncidentStateId` pela API, pelo Terraform ou por um workflow, ou pedindo ao [Pergunte à IA](/docs/ai/ask-ai) um incidente já confirmado ou resolvido — registra um incidente de que alguém já está cuidando, ou que já acabou. Ele não é tratado como uma nova emergência:
 
 ```mermaid title="O que um novo incidente desencadeia, pelo estado em que começa"
 flowchart TB

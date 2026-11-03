@@ -876,10 +876,11 @@ describe("the server acknowledging the alerts an incident is declared from", () 
     );
     /*
      * Carried forward beside where the incident starts (StartingStage),
-     * which every create hands its success hook.
+     * which every create hands its success hook, and the alert incident rule
+     * that declared it, if one did (read off the validated alert ids).
      */
     const carryForwardAt: number = onBeforeCreate.indexOf(
-      "constcarryForward:IncidentCreateCarryForward={startingStage:startingStage,alertIdsToLink:validatedAlertIds,acknowledgedAlertStateId:alertsToAcknowledge?.acknowledgedAlertStateId||null,alertIdsToAcknowledge:alertsToAcknowledge?.alertIdsToAcknowledge||[],};",
+      "constcarryForward:IncidentCreateCarryForward={startingStage:startingStage,alertIdsToLink:validatedAlertIds,acknowledgedAlertStateId:alertsToAcknowledge?.acknowledgedAlertStateId||null,alertIdsToAcknowledge:alertsToAcknowledge?.alertIdsToAcknowledge||[],declaredByAlertIncidentRuleName:this.getDeclaringAlertIncidentRuleName({createBy:createBy,alertIdsToLink:validatedAlertIds,}),};",
     );
     const counterAt: number = onBeforeCreate.indexOf(
       "awaitProjectService.incrementAndGetIncidentCounter(projectId);",
@@ -898,13 +899,14 @@ describe("the server acknowledging the alerts an incident is declared from", () 
   /*
    * The alerts to acknowledge travel next to - never instead of - the alerts
    * to link: every validated alert is linked, only the checked subset is
-   * acknowledged.
+   * acknowledged. The name of the alert incident rule that declared the
+   * incident, if one did, travels after them.
    */
   test("carries the checked alerts to acknowledge forward beside the alerts to link", () => {
     const code: string = denseCommon(INCIDENT_SERVICE);
 
     expect(code).toContain(
-      "typeIncidentCreateCarryForward=|(StartingStageCarryForward&{alertIdsToLink:Array<ObjectID>;acknowledgedAlertStateId:ObjectID|null;alertIdsToAcknowledge:Array<ObjectID>;})|null;",
+      "typeIncidentCreateCarryForward=|(StartingStageCarryForward&{alertIdsToLink:Array<ObjectID>;acknowledgedAlertStateId:ObjectID|null;alertIdsToAcknowledge:Array<ObjectID>;declaredByAlertIncidentRuleName:string|null;})|null;",
     );
     expect(code).toContain(
       'importIncidentAlertService,{AcknowledgeDeclaredAlertsResult,AlertsToAcknowledgeOnDeclare,LinkAlertsToIncidentResult,}from"./IncidentAlertService";',
