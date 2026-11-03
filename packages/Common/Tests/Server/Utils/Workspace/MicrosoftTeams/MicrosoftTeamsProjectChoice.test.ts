@@ -1281,13 +1281,43 @@ describe("an answer given in a project chosen for its conversation says which", 
     );
   });
 
-  test("a project's name is text in it, never Markdown", () => {
-    const note: string = MicrosoftTeamsProjectChoice.getAnsweredInNote(
-      "*Prod* [click](https://evil.test)",
+  test("in a group chat or a channel, which show no suggested action, it also says how to ask it elsewhere - with the very words that do", () => {
+    const elsewhere: string = MicrosoftTeamsProjectChoice.getAnsweredInNote(
+      "IRM Non-Prod",
+      { isPersonal: false },
     ).toString();
 
-    expect(note).not.toContain("[click](");
-    expect(note).toContain("\\*Prod\\*");
+    expect(elsewhere).toBe(
+      "_Answered in **IRM Non-Prod**, the project you chose for this conversation. @mention me with **Ask in another project** to ask it elsewhere._",
+    );
+
+    const named: string = elsewhere.substring(
+      elsewhere.indexOf("@mention me with **") + "@mention me with **".length,
+      elsewhere.lastIndexOf("**"),
+    );
+
+    expect(MicrosoftTeamsProjectChoice.isAskInAnotherProject(named)).toBe(true);
+
+    // A personal chat offers the words by the compose box instead.
+    expect(
+      MicrosoftTeamsProjectChoice.getAnsweredInNote("IRM Non-Prod", {
+        isPersonal: true,
+      }).toString(),
+    ).toBe(
+      "_Answered in **IRM Non-Prod**, the project you chose for this conversation._",
+    );
+  });
+
+  test("a project's name is text in it, never Markdown", () => {
+    for (const isPersonal of [true, false]) {
+      const note: string = MicrosoftTeamsProjectChoice.getAnsweredInNote(
+        "*Prod* [click](https://evil.test)",
+        { isPersonal: isPersonal },
+      ).toString();
+
+      expect(note).not.toContain("[click](");
+      expect(note).toContain("\\*Prod\\*");
+    }
   });
 
   test("the project's name, as the projects' own read gives it - or none when it cannot be read", async () => {
@@ -1355,6 +1385,38 @@ describe("Ask in another project", () => {
         String(action["value"]),
       ),
     ).toBe(true);
+  });
+
+  test("the suggested actions are shown to the person who asked (to), as Microsoft's own sample names its person - to nobody named when the question names no sender", () => {
+    expect(
+      MicrosoftTeamsProjectChoice.getAskInAnotherProjectSuggestions({
+        type: "message",
+        from: { id: "29:1deane", name: "Deane Barker" },
+      }),
+    ).toEqual({
+      actions: [
+        {
+          type: "imBack",
+          title: "Ask in another project",
+          value: "Ask in another project",
+        },
+      ],
+      to: ["29:1deane"],
+    });
+
+    for (const from of [undefined, {}, { id: "" }, { id: 42 }]) {
+      const question: JSONObject = { type: "message" };
+
+      if (from) {
+        question["from"] = from as JSONObject;
+      }
+
+      expect(
+        MicrosoftTeamsProjectChoice.getAskInAnotherProjectSuggestions(question),
+      ).toEqual({
+        actions: [MicrosoftTeamsProjectChoice.getAskInAnotherProjectAction()],
+      });
+    }
   });
 
   test("what it is told with nothing to ask again, or nowhere else to ask it", () => {

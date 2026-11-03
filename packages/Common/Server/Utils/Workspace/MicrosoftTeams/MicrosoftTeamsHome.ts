@@ -127,6 +127,8 @@ export interface MicrosoftTeamsPersonHome {
   choices: Array<WorkspaceProjectChoice>;
   // It shows the project they chose for it last (WorkspaceHomeProject).
   isRememberedProject: boolean;
+  // What the organization's projects and the person's told apart.
+  resolution: WorkspaceProjectResolution;
 }
 
 export default class MicrosoftTeamsHome {
@@ -295,7 +297,24 @@ export default class MicrosoftTeamsHome {
             })
           : null;
 
-      if (!home || home.isConnectedInNone) {
+      /*
+       * Connected in none of the organization's projects - somebody else's
+       * Home, pressed in a group chat or a channel: told how to connect, as
+       * anything they say to the bot tells them (WorkspaceProjectResolver),
+       * in a reply that leaves the card as it is.
+       */
+      if (home?.isConnectedInNone) {
+        await MicrosoftTeamsActionAnswer.reply({
+          turnContext: data.turnContext,
+          answer: await WorkspaceProjectResolver.getAmbiguousAnswer({
+            workspaceType: WorkspaceType.MicrosoftTeams,
+            resolution: home.resolution,
+          }),
+        });
+        return;
+      }
+
+      if (!home) {
         await MicrosoftTeamsActionAnswer.reply({
           turnContext: data.turnContext,
           answer: MicrosoftTeamsHome.getSwitchRefusedAnswer(),
@@ -355,8 +374,9 @@ export default class MicrosoftTeamsHome {
   }
 
   /*
-   * What a switch press from somebody connected in none of the
-   * organization's projects is told, under the card it was pressed on.
+   * What a switch press is told, under the card it was pressed on, when no
+   * Home can be read for its presser: an organization connected to no
+   * project, or a press that names nobody.
    */
   public static getSwitchRefusedAnswer(): { markdown: string; text: string } {
     const notice: MarkdownText = WorkspaceHome.getSwitchRefusedNotice(
@@ -413,6 +433,7 @@ export default class MicrosoftTeamsHome {
         isSharedOrganization: resolution.connections.length > 1,
         choices: [],
         isRememberedProject: false,
+        resolution: resolution,
       };
     }
 
@@ -474,6 +495,7 @@ export default class MicrosoftTeamsHome {
       isSharedOrganization: true,
       choices: choices || [],
       isRememberedProject: isRememberedProject,
+      resolution: resolution,
     };
   }
 

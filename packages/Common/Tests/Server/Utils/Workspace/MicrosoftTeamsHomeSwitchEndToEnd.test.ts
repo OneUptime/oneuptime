@@ -139,6 +139,10 @@ const PERSONAL_CONVERSATION_ID: string = "a:7b2e-deane-personal-chat";
 const GROUP_CHAT_ID: string = "19:7b2e-ops-chat@thread.v2";
 const DASHBOARD_URL: string = "https://oneuptime.example.com/dashboard";
 
+// What somebody connected in none of the projects is told.
+const CONNECT_FIRST: string =
+  "This Microsoft 365 organization is connected to more than one OneUptime project, and your Microsoft Teams account isn't connected in any of them yet. In OneUptime, open the project you use and connect your account under **User Settings → Workspace → Microsoft Teams**, then try again.";
+
 const REFUSED_SWITCH: string =
   "⚠️ You can't switch to that project: you're no longer a member of it, or your Microsoft Teams account isn't connected there.";
 
@@ -889,7 +893,7 @@ describe("a switch that cannot be made draws nothing of the project it names", (
     expect(textOfCard(refused)).toContain(REFUSED_SWITCH);
   });
 
-  test("Nitin, connected in no project, pressing Deane's Switch in a group chat: told so in a reply that mentions him - Deane's card is left as it is, nothing read or kept", async () => {
+  test("Nitin, connected in no project, pressing Deane's Switch in a group chat: told how to connect, as anything he says to the bot tells him, in a reply that mentions him - Deane's card is left as it is, nothing read or kept", async () => {
     const delivery: Delivery = await deliver(
       message("home", { where: "group" }),
     );
@@ -910,10 +914,18 @@ describe("a switch that cannot be made draws nothing of the project it names", (
         return call.method;
       }),
     ).toEqual(["POST"]);
+    // Never "no longer a member": he never was one.
     expect(textOfCard(pressed.calls[0])).toBe(
-      `<at>Nitin</at> ${REFUSED_SWITCH}`,
+      `<at>Nitin</at> ${CONNECT_FIRST}`,
     );
     expect(pressed.calls[0]!.conversationId).toBe(GROUP_CHAT_ID);
+
+    // The words his own 'home' gets in that chat: one answer for him, wherever he asks.
+    const typed: Delivery = await deliver(
+      message("home", { from: NITIN, where: "group" }),
+    );
+
+    expect(textOfCard(postsOf(typed)[0])).toBe(`<at>Nitin</at> ${CONNECT_FIRST}`);
     expect(membersRead).toEqual([]);
     expect(homesRead).toEqual([]);
     expect(homeChoices.rows).toEqual([]);

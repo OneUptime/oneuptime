@@ -19,7 +19,9 @@ import {
  * A chat has no threads, so a question asked later may have meant another
  * project: in his chat with the bot, such an answer offers "Ask in another
  * project" by the compose box - a Teams suggested action, which says those
- * words for him - and anywhere he can say them. The question is asked again
+ * words for him; in a group chat or a channel, which show no suggested
+ * action, its note says to mention the bot with them - and anywhere he can
+ * say them. The question is asked again
  * in his other project at once, or, with more than one other, he is asked
  * which. 👍 or 👎 on such an answer reaches the operator with the project it
  * was answered in, whoever gives it.
@@ -128,6 +130,9 @@ const SANDBOX: ObjectID = new ObjectID("f6000000-0000-4000-8000-000000000003");
 const DEANES_MEMBER: ObjectID = new ObjectID(
   "f6000000-0000-4000-8000-0000000000d1",
 );
+const PRIYAS_MEMBER: ObjectID = new ObjectID(
+  "f6000000-0000-4000-8000-0000000000b3",
+);
 const NAMES: Record<string, string> = {
   [PLATFORM.toString()]: "IRM Platform",
   [NONPRD.toString()]: "IRM Non-Prod",
@@ -159,11 +164,21 @@ const ASK_IN_ANOTHER_PROJECT: JSONObject = {
   title: "Ask in another project",
   value: "Ask in another project",
 };
+// What an answer to Deane offers by the compose box: for him (`to`).
+const SUGGESTED_TO_DEANE: JSONObject = {
+  actions: [ASK_IN_ANOTHER_PROJECT],
+  to: [DEANE["id"] as string],
+};
+// What Priya is told to do, connected in none of the projects.
+const CONNECT_FIRST: string =
+  "This Microsoft 365 organization is connected to more than one OneUptime project, and your Microsoft Teams account isn't connected in any of them yet. In OneUptime, open the project you use and connect your account under **User Settings → Workspace → Microsoft Teams**, then try again.";
 
 let connector: FakeBotConnector;
 let activityNumber: number = 0;
 let connected: Array<ObjectID>;
 let memberOf: Array<ObjectID>;
+// Where Priya's Teams account is connected (a member wherever memberOf says).
+let priyaLinkedIn: Array<ObjectID>;
 let asked: Array<{ projectId: string; question: string }>;
 let notices: Array<{ projectId: string | null; text: string }>;
 let loggedErrors: Array<string>;
@@ -303,6 +318,14 @@ function answeredIn(name: string): string {
   return `_Answered in **${name}**, the project you chose for this conversation._`;
 }
 
+/*
+ * The same line in a group chat or a channel, which show no suggested
+ * action: it says how to ask it elsewhere.
+ */
+function answeredInElsewhere(name: string): string {
+  return `_Answered in **${name}**, the project you chose for this conversation. @mention me with **Ask in another project** to ask it elsewhere._`;
+}
+
 // Asks, and chooses `projectName` when asked which: the answer's delivery.
 async function askAndChoose(
   question: string,
@@ -337,6 +360,7 @@ beforeEach(() => {
   (GlobalCache as unknown as { store: Map<string, unknown> }).store.clear();
   connected = [PLATFORM, NONPRD];
   memberOf = [PLATFORM, NONPRD];
+  priyaLinkedIn = [];
   asked = [];
   notices = [];
 
@@ -367,17 +391,23 @@ beforeEach(() => {
       });
     }) as never);
 
-  // Deane's Teams account is connected in every project; Priya's in none.
+  /*
+   * Deane's Teams account is connected in every project; Priya's where
+   * priyaLinkedIn says - in none, unless a test connects her.
+   */
   const linksMatching: (query: JSONObject) => Array<WorkspaceUserAuthToken> = (
     query: JSONObject,
   ): Array<WorkspaceUserAuthToken> => {
-    if (query["workspaceUserId"] !== DEANE["aadObjectId"]) {
+    const isDeane: boolean = query["workspaceUserId"] === DEANE["aadObjectId"];
+    const isPriya: boolean = query["workspaceUserId"] === PRIYA["aadObjectId"];
+
+    if (!isDeane && !isPriya) {
       return [];
     }
 
     const projectIds: Array<string> = idsOf(query["projectId"]);
 
-    return connected
+    return (isDeane ? connected : priyaLinkedIn)
       .filter((projectId: ObjectID): boolean => {
         return (
           projectIds.length === 0 || projectIds.includes(projectId.toString())
@@ -386,7 +416,7 @@ beforeEach(() => {
       .map((projectId: ObjectID): WorkspaceUserAuthToken => {
         const link: WorkspaceUserAuthToken = new WorkspaceUserAuthToken();
         link.projectId = projectId;
-        link.userId = DEANES_MEMBER;
+        link.userId = isDeane ? DEANES_MEMBER : PRIYAS_MEMBER;
         return link;
       });
   };
@@ -517,9 +547,10 @@ describe("an answer given in the project Deane chose offers to ask it in another
     expect(
       (answer.activity["channelData"] as JSONObject)["feedbackLoop"],
     ).toEqual({ type: "default" });
-    expect(answer.activity["suggestedActions"]).toEqual({
-      actions: [ASK_IN_ANOTHER_PROJECT],
-    });
+    // Shown to Deane, who asked - as Microsoft's own sample names its person.
+    expect(answer.activity["suggestedActions"]).toEqual(SUGGESTED_TO_DEANE);
+    // In his chat, the pill is the way: the note says nothing of it.
+    expect(String(answer.activity["text"])).not.toContain("mention me");
     expect(answer.activity["attachments"]).toBeUndefined();
     expect(loggedErrors).toEqual([]);
   });
@@ -534,9 +565,7 @@ describe("an answer given in the project Deane chose offers to ask it in another
     expect(String(followUp.activity["text"])).toContain(
       answeredIn("IRM Non-Prod"),
     );
-    expect(followUp.activity["suggestedActions"]).toEqual({
-      actions: [ASK_IN_ANOTHER_PROJECT],
-    });
+    expect(followUp.activity["suggestedActions"]).toEqual(SUGGESTED_TO_DEANE);
   });
 
   test("an answer nobody chose a project for - Deane in one of the projects - offers nothing, and names none", async () => {
@@ -551,7 +580,7 @@ describe("an answer given in the project Deane chose offers to ask it in another
     expect(answer.activity["entities"]).toEqual([AI_LABEL]);
   });
 
-  test("in a group chat, where only who mentions the bot is answered: no suggested action - the answer still says where it was answered", async () => {
+  test("in a group chat, where only who mentions the bot is answered: no suggested action - the answer says where it was answered, and to mention the bot with 'Ask in another project' to ask it elsewhere", async () => {
     const chosen: Delivery = await askAndChoose(
       "which monitors are down?",
       "IRM Non-Prod",
@@ -560,9 +589,30 @@ describe("an answer given in the project Deane chose offers to ask it in another
     const answer: ConnectorCall = answerOf(chosen);
 
     expect(String(answer.activity["text"])).toContain(
-      answeredIn("IRM Non-Prod"),
+      answeredInElsewhere("IRM Non-Prod"),
+    );
+    // Above the AI notice, as the line always is.
+    expect(String(answer.activity["text"])).toBe(
+      `Two monitors are down in IRM Non-Prod.\n\n${answeredInElsewhere("IRM Non-Prod")}\n\n${MicrosoftTeamsAiAnswer.getNotice().toString()}`,
     );
     expect(answer.activity["suggestedActions"]).toBeUndefined();
+
+    // The words it names, said as it says - mentioning the bot: asked there.
+    const again: ConnectorCall = answerOf(
+      await deliver(
+        message("Ask in another project", {
+          where: "group",
+        }),
+      ),
+    );
+
+    expect(String(again.activity["text"])).toContain(
+      answeredInElsewhere("IRM Platform"),
+    );
+    expect(asked).toEqual([
+      { projectId: NONPRD.toString(), question: "which monitors are down?" },
+      { projectId: PLATFORM.toString(), question: "which monitors are down?" },
+    ]);
   });
 });
 
@@ -586,9 +636,7 @@ describe("'Ask in another project'", () => {
         return Boolean(call.activity["attachments"]);
       }),
     ).toEqual([]);
-    expect(answer.activity["suggestedActions"]).toEqual({
-      actions: [ASK_IN_ANOTHER_PROJECT],
-    });
+    expect(answer.activity["suggestedActions"]).toEqual(SUGGESTED_TO_DEANE);
 
     const followUp: ConnectorCall = answerOf(
       await deliver(message("any open incidents?")),
@@ -615,7 +663,7 @@ describe("'Ask in another project'", () => {
     );
 
     expect(String(again.activity["text"])).toContain(
-      answeredIn("IRM Platform"),
+      answeredInElsewhere("IRM Platform"),
     );
     expect(again.conversationId).toBe(GROUP_CHAT_ID);
   });
@@ -697,7 +745,9 @@ describe("'Ask in another project'", () => {
     expect(asked).toHaveLength(1);
   });
 
-  test("somebody else's question is never theirs to ask again: Priya, in the same group chat, has none kept", async () => {
+  test("somebody else's question is never theirs to ask again: Priya, in the same group chat and in both projects, has none kept", async () => {
+    priyaLinkedIn = [PLATFORM, NONPRD];
+
     await askAndChoose("which monitors are down?", "IRM Non-Prod", {
       where: "group",
     });
@@ -710,6 +760,35 @@ describe("'Ask in another project'", () => {
       `<at>Priya</at> ${MicrosoftTeamsProjectChoice.NO_QUESTION_TO_ASK_AGAIN_TEXT}`,
     );
     expect(asked).toHaveLength(1);
+  });
+
+  /*
+   * "I'll ask which project it's for" is only true of somebody in two or
+   * more projects: somebody in one is never asked, and somebody in none
+   * cannot ask anything until they connect.
+   */
+  test("Priya, in one of the projects: told there is nowhere else to ask it - never that she will be asked which project", async () => {
+    priyaLinkedIn = [PLATFORM];
+
+    const said: Delivery = await deliver(
+      message("Ask in another project", { from: PRIYA, where: "group" }),
+    );
+
+    expect(postsOf(said)).toHaveLength(1);
+    expect(textOfCard(postsOf(said)[0])).toBe(
+      `<at>Priya</at> ${MicrosoftTeamsProjectChoice.NO_OTHER_PROJECT_TEXT}`,
+    );
+    expect(asked).toEqual([]);
+  });
+
+  test("Priya, connected in none of the projects: told how to connect, as anything she says to the bot tells her - nothing asked", async () => {
+    const said: Delivery = await deliver(
+      message("Ask in another project", { from: PRIYA, where: "group" }),
+    );
+
+    expect(postsOf(said)).toHaveLength(1);
+    expect(textOfCard(postsOf(said)[0])).toBe(`<at>Priya</at> ${CONNECT_FIRST}`);
+    expect(asked).toEqual([]);
   });
 
   test("in an organization connected to one project, the words are a question like any other", async () => {

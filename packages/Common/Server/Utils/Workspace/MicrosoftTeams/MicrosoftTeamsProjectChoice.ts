@@ -66,7 +66,9 @@ import MicrosoftTeamsReplies, {
  * Somebody whose answer came from the wrong project asks it in another,
  * with one tap: in their chat with the bot, the answer offers "Ask in
  * another project" as a Teams suggested action (getAskInAnotherProjectAction),
- * which says those words for them - and anywhere, they can say them. The
+ * which says those words for them. In a group chat or a channel, which show
+ * no suggested action, the answer's note says to mention the bot with them
+ * (getAnsweredInNote) - and anywhere, they can say them. The
  * question the conversation keeps (rememberConversationQuestion) is asked
  * again in their other project - asked which, with a button for each, when
  * they have more than one - and the conversation's follow-ups go there.
@@ -268,6 +270,29 @@ export default class MicrosoftTeamsProjectChoice {
     };
   }
 
+  /*
+   * The suggested actions of such an answer, for the person who asked the
+   * question (`question`, the activity it was asked in): the action, shown
+   * to them (`to`, their Teams id), as Microsoft's own suggested-actions
+   * sample names the person they are for.
+   */
+  public static getAskInAnotherProjectSuggestions(
+    question: JSONObject,
+  ): JSONObject {
+    const suggestions: JSONObject = {
+      actions: [MicrosoftTeamsProjectChoice.getAskInAnotherProjectAction()],
+    };
+    const askerId: unknown = (question["from"] as JSONObject | undefined)?.[
+      "id"
+    ];
+
+    if (typeof askerId === "string" && askerId) {
+      suggestions["to"] = [askerId];
+    }
+
+    return suggestions;
+  }
+
   // What "Ask in another project" is told with no question to ask again.
   public static getNoQuestionAnswer(): WorkspaceAnswer {
     const text: string =
@@ -313,8 +338,21 @@ export default class MicrosoftTeamsProjectChoice {
    * keep without asking (CONVERSATION_REMEMBERED_FOR_SECONDS). A chat with
    * the bot has no threads: without it, a question asked later in the chat
    * was answered in the project chosen before, and nothing said which.
+   *
+   * In a personal chat, the answer offers "Ask in another project" by the
+   * compose box (getAskInAnotherProjectSuggestions). A group chat or a
+   * channel shows no suggested action, and the conversation's choice holds
+   * for its hour: there (`isPersonal` false) the line says how to ask it
+   * in another project, or nothing would.
    */
-  public static getAnsweredInNote(projectName: string): MarkdownText {
+  public static getAnsweredInNote(
+    projectName: string,
+    options?: { isPersonal?: boolean | undefined } | undefined,
+  ): MarkdownText {
+    if (options?.isPersonal === false) {
+      return mdText`_Answered in **${projectName}**, the project you chose for this conversation. @mention me with **${MicrosoftTeamsProjectChoice.ASK_IN_ANOTHER_PROJECT_TEXT}** to ask it elsewhere._`;
+    }
+
     return mdText`_Answered in **${projectName}**, the project you chose for this conversation._`;
   }
 

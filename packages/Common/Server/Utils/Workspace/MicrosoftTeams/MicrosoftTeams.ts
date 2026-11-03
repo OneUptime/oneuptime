@@ -5087,11 +5087,25 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       }
 
       /*
+       * In a personal chat, an answer given in a project its asker chose
+       * offers to ask it in another, by the compose box. A group chat or a
+       * channel shows no suggested action - only who @mentions the bot is
+       * answered there - so its note says how (MicrosoftTeamsProjectChoice).
+       */
+      const isPersonal: boolean =
+        (activity["conversation"] as JSONObject | undefined)?.[
+          "conversationType"
+        ] === "personal";
+
+      /*
        * Which project answered, when its asker chose it for this
        * conversation (MicrosoftTeamsProjectChoice.getAnsweredInNote).
        */
       if (data.chosenProjectName) {
-        replyText = mdText`${replyText}\n\n${MicrosoftTeamsProjectChoice.getAnsweredInNote(data.chosenProjectName)}`;
+        replyText = mdText`${replyText}\n\n${MicrosoftTeamsProjectChoice.getAnsweredInNote(
+          data.chosenProjectName,
+          { isPersonal: isPersonal },
+        )}`;
       }
 
       /*
@@ -5101,17 +5115,6 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
        */
       replyText = mdText`${replyText}\n\n${MicrosoftTeamsAiAnswer.getNotice()}`;
 
-      /*
-       * In a personal chat, an answer given in a project its asker chose
-       * offers to ask it in another, by the compose box (a group chat or a
-       * channel answers only who @mentions the bot, so the person says it
-       * there: MicrosoftTeamsProjectChoice).
-       */
-      const isPersonal: boolean =
-        (activity["conversation"] as JSONObject | undefined)?.[
-          "conversationType"
-        ] === "personal";
-
       const answerId: string | undefined = await this.sendAnswerInPlaceOf({
         turnContext: turnContext,
         placeholderId: placeholderId,
@@ -5119,7 +5122,9 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         isAiAnswer: true,
         suggestedActions:
           data.isInChosenProject && isPersonal
-            ? [MicrosoftTeamsProjectChoice.getAskInAnotherProjectAction()]
+            ? MicrosoftTeamsProjectChoice.getAskInAnotherProjectSuggestions(
+                activity,
+              )
             : undefined,
       });
 
@@ -5216,16 +5221,17 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     placeholderId: string | undefined;
     text: string;
     isAiAnswer?: boolean | undefined;
-    suggestedActions?: Array<JSONObject> | undefined;
+    // Its suggested actions: their actions and who they are for (`to`).
+    suggestedActions?: JSONObject | undefined;
   }): Promise<string | undefined> {
     const answer: Partial<Activity> = data.isAiAnswer
       ? MicrosoftTeamsAiAnswer.toActivity(data.text)
       : { type: "message", text: data.text };
 
-    if (data.suggestedActions && data.suggestedActions.length > 0) {
-      answer.suggestedActions = {
-        actions: data.suggestedActions,
-      } as unknown as NonNullable<Activity["suggestedActions"]>;
+    if (data.suggestedActions) {
+      answer.suggestedActions = data.suggestedActions as unknown as NonNullable<
+        Activity["suggestedActions"]
+      >;
     }
 
     if (data.placeholderId) {
@@ -5278,6 +5284,22 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         return false;
       }
 
+      const memberProjectIds: Array<ObjectID> =
+        resolution.resolution?.memberProjectIds ||
+        (resolution.projectAuth?.projectId
+          ? [resolution.projectAuth.projectId]
+          : []);
+
+      /*
+       * A member of none of the organization's projects - connected in none
+       * of them, or no longer a member where they are: the words are read
+       * as anything they say is, which tells them how to connect, or that
+       * they are not a member there.
+       */
+      if (memberProjectIds.length === 0) {
+        return false;
+      }
+
       const [question, answeredIn]: [JSONObject | null, ObjectID | null] =
         await Promise.all([
           MicrosoftTeamsProjectChoice.getConversationQuestion(data.activity),
@@ -5287,16 +5309,17 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       if (!question || !answeredIn) {
         await MicrosoftTeamsActionAnswer.reply({
           turnContext: data.turnContext,
-          answer: MicrosoftTeamsProjectChoice.getNoQuestionAnswer(),
+          /*
+           * In one project there is nowhere else to ask anything, and no
+           * question of theirs is ever asked which project it is for.
+           */
+          answer:
+            memberProjectIds.length < 2
+              ? MicrosoftTeamsProjectChoice.getNoOtherProjectAnswer()
+              : MicrosoftTeamsProjectChoice.getNoQuestionAnswer(),
         });
         return true;
       }
-
-      const memberProjectIds: Array<ObjectID> =
-        resolution.resolution?.memberProjectIds ||
-        (resolution.projectAuth?.projectId
-          ? [resolution.projectAuth.projectId]
-          : []);
 
       const others: Array<ObjectID> = memberProjectIds.filter(
         (projectId: ObjectID): boolean => {
