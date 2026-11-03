@@ -373,16 +373,17 @@ describe("a database's Overview: its health beside its liveness", () => {
     );
     expect(
       items.map((item: HTMLElement): [string | null, string | null] => {
-        return [item.getAttribute("data-key"), item.getAttribute("data-severity")];
+        return [
+          item.getAttribute("data-key"),
+          item.getAttribute("data-severity"),
+        ];
       }),
     ).toEqual([
       ["connections", "critical"],
       ["replication", "warning"],
     ]);
     expect(items[0]).toHaveTextContent("Connections");
-    expect(items[0]).toHaveTextContent(
-      "Connections at 96% of max_connections",
-    );
+    expect(items[0]).toHaveTextContent("Connections at 96% of max_connections");
     expect(items[1]).toHaveTextContent("A replica 42 s behind");
     // Each row opens where its numbers are; no kind chip on a list of one database.
     expect(within(items[0]!).getByRole("link")).toHaveAttribute(
@@ -478,9 +479,7 @@ describe("a database's Overview: its health beside its liveness", () => {
         readings: CALM_POSTGRESQL,
       }),
     );
-    expect(DATABASE_HEALTH_DESCRIPTION).toContain(
-      "recommended alerts fire at",
-    );
+    expect(DATABASE_HEALTH_DESCRIPTION).toContain("recommended alerts fire at");
     expect(
       screen.getByRole("button", { name: /Database Health/ }),
     ).toBeInTheDocument();
@@ -503,7 +502,10 @@ describe("a database's Overview: which of its engine's alerts watch it", () => {
       resourceType: string;
       templateIds: Array<string>;
       resourceIdentifier: string;
-      context: { databaseEngine: string; databaseEngineMetricsReported: boolean };
+      context: {
+        databaseEngine: string;
+        databaseEngineMetricsReported: boolean;
+      };
       getRecommendationsRoute: (ids: Array<string>) => Route;
     } = alertsCardMock.mock.calls[0]![0] as never;
     expect(props.resourceType).toBe(
@@ -512,19 +514,25 @@ describe("a database's Overview: which of its engine's alerts watch it", () => {
     expect(props.resourceIdentifier).toBe(DATABASE_ID_STRING);
     expect(props.templateIds).toEqual([
       "database-postgresql-engine-metrics-stopped",
+      // PostgreSQL's own SQL checks, from the Database Agent's sqlquery receiver.
+      "database-postgresql-restarted",
+      "database-postgresql-xid-wraparound-near",
+      "database-postgresql-xid-age-high",
       "database-postgresql-connections-exhausted",
       "database-postgresql-connections-high",
       "database-postgresql-replica-replay-lag",
       "database-postgresql-replication-byte-lag",
+      "database-postgresql-long-running-transaction",
+      "database-postgresql-sessions-waiting-on-locks",
       "database-postgresql-database-size",
     ]);
     expect(props.context).toEqual({
       databaseEngine: "postgresql",
       databaseEngineMetricsReported: true,
     });
-    expect(
-      props.getRecommendationsRoute(["a", "b"]).toString(),
-    ).toContain(`/databases/${DATABASE_ID_STRING}/recommendations`);
+    expect(props.getRecommendationsRoute(["a", "b"]).toString()).toContain(
+      `/databases/${DATABASE_ID_STRING}/recommendations`,
+    );
   });
 
   test("a database whose engine metrics never arrived is offered none yet", async () => {
@@ -568,9 +576,9 @@ describe("the Databases list's Status cell", () => {
       "data-tone",
       "danger",
     );
-    expect(within(cell).getByTestId("resource-status-reason")).toHaveTextContent(
-      "Connections at 97% of max_connections +1 more",
-    );
+    expect(
+      within(cell).getByTestId("resource-status-reason"),
+    ).toHaveTextContent("Connections at 97% of max_connections +1 more");
   });
 
   test("Degraded in amber", () => {
@@ -588,9 +596,9 @@ describe("the Databases list's Status cell", () => {
       "data-tone",
       "warning",
     );
-    expect(within(cell).getByTestId("resource-status-reason")).toHaveTextContent(
-      "A replica 1 min behind",
-    );
+    expect(
+      within(cell).getByTestId("resource-status-reason"),
+    ).toHaveTextContent("A replica 1 min behind");
   });
 
   test("Healthy in green, nothing under it", () => {
@@ -622,9 +630,9 @@ describe("the Databases list's Status cell", () => {
       "data-tone",
       "danger",
     );
-    expect(within(cell).getByTestId("resource-status-reason")).toHaveTextContent(
-      "Last reported 3 hours ago",
-    );
+    expect(
+      within(cell).getByTestId("resource-status-reason"),
+    ).toHaveTextContent("Last reported 3 hours ago");
   });
 
   test("No engine metrics, and Reporting, in grey", () => {
