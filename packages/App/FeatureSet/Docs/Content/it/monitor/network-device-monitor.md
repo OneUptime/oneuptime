@@ -195,7 +195,7 @@ Ogni punto che mostra un dispositivo — l'elenco Dispositivi, la pagina Disposi
 | Qualificatore | Compare quando | Cosa fare |
 | --- | --- | --- |
 | **Non aggiornato** | Nessun polling è stato tentato da ben più dell'intervallo del dispositivo. | Controlla che la sonda del dispositivo sia online e stia al passo con la sua flotta. |
-| **No probe** | Il dispositivo è interrogato dalla sonda ma non ne ha una, o il suo polling è disattivato. | Assegna una sonda in grado di raggiungerlo; fino ad allora nulla lo interroga. |
+| **Nessuna sonda** | Il dispositivo è interrogato dalla sonda ma non ne ha una, o il suo polling è disattivato. | Assegna una sonda in grado di raggiungerlo; fino ad allora nulla lo interroga. |
 | **Nessun monitor** | Il dispositivo usa l'[override con monitor associato](#loverride-con-monitor-associato) e nulla è associato. | Associa un monitor, o riportalo al polling tramite sonda. |
 | **SNMP failing** | Attivo al ping, ma l'ultimo walk SNMP è fallito. | Controlla le credenziali, l'agente SNMP o un'ACL. |
 
@@ -1029,7 +1029,7 @@ La panoramica del dispositivo ha una scheda **Connesso a** che indica lo switch,
 :::details Un dispositivo resta In sospeso
 Un dispositivo mostra **In sospeso** finché nulla ha ancora riferito su di esso. Leggi il qualificatore accanto allo stato:
 
-- **No probe**: assegna una sonda, o riattiva **Polling Enabled**. Nulla interroga il dispositivo finché non lo fai.
+- **Nessuna sonda**: assegna una sonda, o riattiva **Polling Enabled**. Nulla interroga il dispositivo finché non lo fai.
 - **Nessun monitor**: il dispositivo è sull'[override con monitor associato](#loverride-con-monitor-associato) senza nulla di associato. Associa un monitor, o usa **Switch to Probe Polling** perché la sua sonda gli invii il ping.
 - Nessun qualificatore: il dispositivo ha una sonda e attende il suo primo polling. Su una flotta grande una sonda distribuisce un numero limitato di dispositivi per ciclo, quindi il primo polling può richiedere più tempo dell'intervallo del dispositivo.
 

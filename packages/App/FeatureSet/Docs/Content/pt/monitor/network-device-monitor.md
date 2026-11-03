@@ -195,7 +195,7 @@ Todo lugar que mostra um dispositivo — a lista Dispositivos, a página Disposi
 | Qualificador | Aparece quando | O que fazer |
 | --- | --- | --- |
 | **Desatualizado** | Nenhuma sondagem foi tentada há bem mais tempo que o intervalo do dispositivo. | Confira se a sonda do dispositivo está online e dando conta da sua frota. |
-| **No probe** | O dispositivo é consultado pela sonda, mas não tem uma, ou a sondagem dele está desativada. | Atribua uma sonda que consiga alcançá-lo; até lá nada o consulta. |
+| **Nenhuma sonda** | O dispositivo é consultado pela sonda, mas não tem uma, ou a sondagem dele está desativada. | Atribua uma sonda que consiga alcançá-lo; até lá nada o consulta. |
 | **Sem monitor** | O dispositivo usa a [substituição por monitor vinculado](#a-substituição-por-monitor-vinculado) e nada está vinculado. | Vincule um monitor, ou volte a sondagem pela sonda. |
 | **SNMP failing** | Ativo no ping, mas o último walk SNMP falhou. | Confira as credenciais, o agente SNMP ou uma ACL. |
 
@@ -1029,7 +1029,7 @@ A visão geral do dispositivo tem um cartão **Conectado a** que indica o switch
 :::details Um dispositivo fica Pendente
 Um dispositivo mostra **Pendente** enquanto nada informou nada sobre ele ainda. Leia o qualificador ao lado do status:
 
-- **No probe**: atribua uma sonda, ou ative de novo **Polling Enabled**. Nada consulta o dispositivo até você fazer isso.
+- **Nenhuma sonda**: atribua uma sonda, ou ative de novo **Polling Enabled**. Nada consulta o dispositivo até você fazer isso.
 - **Sem monitor**: o dispositivo está com a [substituição por monitor vinculado](#a-substituição-por-monitor-vinculado) sem nada vinculado. Vincule um monitor, ou use **Switch to Probe Polling** para que a sonda dele envie ping a ele.
 - Nenhum qualificador: o dispositivo tem uma sonda e aguarda a primeira sondagem. Em uma frota grande, uma sonda distribui um número limitado de dispositivos por ciclo, então a primeira sondagem pode demorar mais que o intervalo do dispositivo.
 

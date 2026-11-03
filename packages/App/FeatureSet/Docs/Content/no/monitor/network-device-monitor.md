@@ -195,7 +195,7 @@ Hvert sted som viser en enhet — listen Enheter, en lokasjons Enheter-side, ove
 | Tillegg | Vises når | Hva du gjør |
 | --- | --- | --- |
 | **Foreldet** | Ingen polling er forsøkt på godt over enhetens intervall. | Kontroller at enhetens sonde er online og henger med flåten sin. |
-| **No probe** | Enheten polles av en sonde, men har ingen, eller pollingen er slått av. | Tildel en sonde som kan nå den; ingenting poller den før det. |
+| **Ingen sonde** | Enheten polles av en sonde, men har ingen, eller pollingen er slått av. | Tildel en sonde som kan nå den; ingenting poller den før det. |
 | **Ingen overvåking** | Enheten bruker [overstyringen med bundet monitor](#overstyringen-med-bundet-monitor), og ingenting er bundet. | Bind en monitor, eller bytt den tilbake til polling med sonde. |
 | **SNMP failing** | Oppe på ping, men det siste SNMP-walket feilet. | Kontroller påloggingsinformasjonen, SNMP-agenten eller en ACL. |
 
@@ -1029,7 +1029,7 @@ Enhetens oversikt har et kort **Koblet til** som navngir svitsjen, porten og VLA
 :::details En enhet blir stående som Venter
 En enhet viser **Venter** så lenge ingenting har rapportert om den ennå. Les tillegget ved siden av statusen:
 
-- **No probe**: tildel en sonde, eller slå **Polling Enabled** på igjen. Ingenting poller enheten før du gjør det.
+- **Ingen sonde**: tildel en sonde, eller slå **Polling Enabled** på igjen. Ingenting poller enheten før du gjør det.
 - **Ingen overvåking**: enheten har [overstyringen med bundet monitor](#overstyringen-med-bundet-monitor) uten noe bundet. Bind en monitor, eller bruk **Switch to Probe Polling** slik at sonden pinger den.
 - Ingen tillegg i det hele tatt: enheten har en sonde og venter på første polling. I en stor flåte deler en sonde ut et begrenset antall enheter per syklus, så den første pollingen kan ta lengre tid enn enhetens intervall.
 

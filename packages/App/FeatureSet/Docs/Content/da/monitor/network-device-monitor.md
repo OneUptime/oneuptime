@@ -195,7 +195,7 @@ Hvert sted, der viser en enhed — listen Enheder, en lokations Enheder-side, ov
 | Tilføjelse | Vises når | Hvad du gør |
 | --- | --- | --- |
 | **Forældet** | Der er ikke forsøgt nogen polling i et godt stykke længere end enhedens interval. | Kontrollér, at enhedens sonde er online og følger med sin flåde. |
-| **No probe** | Enheden polles af en sonde, men har ingen, eller dens polling er slået fra. | Tildel en sonde, der kan nå den; indtil da poller intet den. |
+| **Ingen sonde** | Enheden polles af en sonde, men har ingen, eller dens polling er slået fra. | Tildel en sonde, der kan nå den; indtil da poller intet den. |
 | **Ingen overvågning** | Enheden bruger [tilsidesættelsen med bundet monitor](#tilsidesættelsen-med-bundet-monitor), og intet er bundet. | Bind en monitor, eller skift den tilbage til polling med sonde. |
 | **SNMP failing** | Oppe på ping, men det seneste SNMP-walk fejlede. | Kontrollér loginoplysningerne, SNMP-agenten eller en ACL. |
 
@@ -1029,7 +1029,7 @@ Enhedens oversigt har et kort **Forbundet til**, der nævner switchen, porten og
 :::details En enhed bliver ved med at stå som Afventer
 En enhed viser **Afventer**, så længe intet har rapporteret om den endnu. Læs tilføjelsen ved siden af statussen:
 
-- **No probe**: tildel en sonde, eller slå **Polling Enabled** til igen. Intet poller enheden, før du gør det.
+- **Ingen sonde**: tildel en sonde, eller slå **Polling Enabled** til igen. Intet poller enheden, før du gør det.
 - **Ingen overvågning**: enheden er på [tilsidesættelsen med bundet monitor](#tilsidesættelsen-med-bundet-monitor) uden noget bundet. Bind en monitor, eller brug **Switch to Probe Polling** for at få dens sonde til at pinge den.
 - Ingen tilføjelse overhovedet: enheden har en sonde og venter på sin første polling. På en stor flåde deler en sonde et begrænset antal enheder ud pr. cyklus, så den første polling kan tage længere tid end enhedens interval.
 

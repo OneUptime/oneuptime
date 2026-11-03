@@ -195,7 +195,7 @@ Varje ställe som visar en enhet — listan Enheter, en plats Enheter-sida, öve
 | Tillägg | Visas när | Vad du gör |
 | --- | --- | --- |
 | **Inaktuell** | Ingen avsökning har försökts på betydligt längre tid än enhetens intervall. | Kontrollera att enhetens sond är online och hinner med sin flotta. |
-| **No probe** | Enheten avsöks av en sond men har ingen, eller dess avsökning är avstängd. | Tilldela en sond som kan nå den; inget avsöker den förrän dess. |
+| **Ingen sond** | Enheten avsöks av en sond men har ingen, eller dess avsökning är avstängd. | Tilldela en sond som kan nå den; inget avsöker den förrän dess. |
 | **Ingen övervakning** | Enheten använder [åsidosättningen med bunden monitor](#åsidosättningen-med-bunden-monitor) och inget är bundet. | Bind en monitor, eller byt tillbaka den till avsökning via sond. |
 | **SNMP failing** | Uppe på ping, men den senaste SNMP-walken misslyckades. | Kontrollera autentiseringsuppgifterna, SNMP-agenten eller en ACL. |
 
@@ -1029,7 +1029,7 @@ Enhetens översikt har ett kort **Ansluten till** som namnger switchen, porten o
 :::details En enhet står kvar som Väntar
 En enhet visar **Väntar** så länge inget har rapporterat om den ännu. Läs tillägget bredvid statusen:
 
-- **No probe**: tilldela en sond, eller slå på **Polling Enabled** igen. Inget avsöker enheten förrän du gör det.
+- **Ingen sond**: tilldela en sond, eller slå på **Polling Enabled** igen. Inget avsöker enheten förrän du gör det.
 - **Ingen övervakning**: enheten har [åsidosättningen med bunden monitor](#åsidosättningen-med-bunden-monitor) utan något bundet. Bind en monitor, eller använd **Switch to Probe Polling** så att dess sond pingar den.
 - Inget tillägg alls: enheten har en sond och väntar på sin första avsökning. I en stor flotta delar en sond ut ett begränsat antal enheter per cykel, så den första avsökningen kan ta längre tid än enhetens intervall.
 
