@@ -38,6 +38,7 @@ import {
 } from "react-router-dom";
 import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
+import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
 import en from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import de from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
 import fa from "../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
@@ -897,6 +898,8 @@ await i18next.use(initReactI18next).init({
   },
   interpolation: { escapeValue: false },
 });
+// Dates in the page's language, as the Dashboard's i18n start-up has them.
+followLanguageForDates(i18next);
 
 /*
  * ---------------------------------------------------------------------------

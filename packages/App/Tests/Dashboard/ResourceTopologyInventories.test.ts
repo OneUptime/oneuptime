@@ -427,6 +427,40 @@ describe("a Docker Swarm cluster", () => {
     expect(node(topology.nodes, "node:n2").health).toBe("off");
   });
 
+  /*
+   * A service's card counts its replicas once: its status already says
+   * "2 of 3 running", so no Replicas fact says 2/3 again beside it. In a
+   * rolling update its status reads Updating, and the fact still counts
+   * them.
+   */
+  test("a service's card counts its replicas once: in its status, or as a fact while it updates", () => {
+    const short: ResourceTopologyNode = node(topology.services, "service:s1");
+    expect(short.status).toEqual({
+      text: "{{running}} of {{desired}} running",
+      values: { running: "2", desired: "3" },
+    });
+    expect(short.facts || []).toEqual([]);
+
+    const updating: ResourceTopologyGraph = buildDockerSwarmTopology({
+      cluster: { id: "swarm-row", name: "swarm-prod", lastSeenAt: FRESH },
+      rows: [
+        swarmRow({
+          kind: "Service",
+          externalId: "s9",
+          name: "shop_api",
+          desiredReplicas: 3,
+          runningReplicas: 2,
+          attributes: { updateState: "updating" },
+        }),
+      ],
+      now: NOW,
+    }).services;
+    expect(node(updating, "service:s9").status).toEqual({ text: "Updating" });
+    expect(node(updating, "service:s9").facts).toEqual([
+      { label: "Replicas", value: "2/3", tone: "warning" },
+    ]);
+  });
+
   test("open issues land on the service or node their labels name", () => {
     expect(issueIds(topology.services, "service:s1")).toEqual(["svc"]);
     expect(issueIds(topology.nodes, "node:n2")).toEqual(["node"]);

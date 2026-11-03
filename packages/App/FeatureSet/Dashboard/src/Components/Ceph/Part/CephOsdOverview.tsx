@@ -179,10 +179,15 @@ const CephOsdOverview: FunctionComponent<ComponentProps> = (
             value={formatShare(readings.usedPercent)}
             sublabel={
               readings.usedBytes !== null && readings.totalBytes !== null
-                ? translator.translateTemplate("{{used}} of {{total}}", {
-                    used: formatBytes(readings.usedBytes),
-                    total: formatBytes(readings.totalBytes),
-                  })
+                ? translator.translateTemplate(
+                    "{{used}} of {{total}}",
+                    {
+                      used: formatBytes(readings.usedBytes),
+                      total: formatBytes(readings.totalBytes),
+                    },
+                    // Each size reads as written in a Persian sentence.
+                    { setsValuesApart: true },
+                  )
                 : undefined
             }
             percent={readings.usedPercent}
@@ -205,9 +210,11 @@ const CephOsdOverview: FunctionComponent<ComponentProps> = (
             sublabel={
               readings.commitLatencyMs === null
                 ? undefined
-                : translator.translateTemplate("Commit latency {{latency}}", {
-                    latency: formatCephLatency(readings.commitLatencyMs),
-                  })
+                : translator.translateTemplate(
+                    "Commit latency {{latency}}",
+                    { latency: formatCephLatency(readings.commitLatencyMs) },
+                    { setsValuesApart: true },
+                  )
             }
             tone={
               readings.applyLatencyMs === null

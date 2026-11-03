@@ -1239,7 +1239,7 @@ const StorageArrayOverview: FunctionComponent<
               description={STORAGE_ARRAY_METRIC_DESCRIPTIONS.activeAlerts}
             />
           }
-          description="Alerts the array raised itself and still reports as open — the reason behind its health."
+          description="Alerts the array raised itself and still reports as open."
         >
           {activeAlerts.length > 0 ? (
             <div className="divide-y divide-gray-200">

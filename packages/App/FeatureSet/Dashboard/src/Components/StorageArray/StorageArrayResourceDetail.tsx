@@ -394,8 +394,16 @@ const StorageArrayResourceDetail: FunctionComponent<ComponentProps> = (
         },
       });
 
+    /*
+     * A fact only once the array reported it, as on every resource's
+     * Details: a FlashBlade file system that sends no latency or IOPS had
+     * five rows of dashes. The first row is the part's own name, always.
+     */
     const detailRows: Array<ResourcePartDetailRow> = props
       .getSummaryFields(row)
+      .filter((field: SummaryField, index: number): boolean => {
+        return index === 0 || !isUnreportedSummaryValue(field.value);
+      })
       .map((field: SummaryField, index: number): ResourcePartDetailRow => {
         return {
           key: getSummaryFieldKey(field.title),
@@ -498,6 +506,13 @@ const StorageArrayResourceDetail: FunctionComponent<ComponentProps> = (
   );
 };
 
+// A Details value the array never sent: the dash its formatters write for one.
+export function isUnreportedSummaryValue(
+  value: SummaryField["value"],
+): boolean {
+  return typeof value === "string" && (value.trim() === "" || value === "—");
+}
+
 /*
  * The facts a part's hero shows beside its state, in the reader's
  * language: a volume's size and the hosts it is connected to, a host's
@@ -521,9 +536,12 @@ function getHeroChips(
       chips.push({
         key: "provisioned",
         icon: IconProp.Disc,
-        label: translator.translateTemplate("{{size}} provisioned", {
-          size: StorageArrayResourceUtils.formatBytes(provisioned),
-        }),
+        label: translator.translateTemplate(
+          "{{size}} provisioned",
+          { size: StorageArrayResourceUtils.formatBytes(provisioned) },
+          // "68.0 TiB" reads as written in a Persian chip.
+          { setsValuesApart: true },
+        ),
       });
     }
     if (count !== null) {
@@ -561,9 +579,12 @@ function getHeroChips(
       chips.push({
         key: "provisioned",
         icon: IconProp.Disc,
-        label: translator.translateTemplate("{{size}} provisioned", {
-          size: StorageArrayResourceUtils.formatBytes(provisioned),
-        }),
+        label: translator.translateTemplate(
+          "{{size}} provisioned",
+          { size: StorageArrayResourceUtils.formatBytes(provisioned) },
+          // "68.0 TiB" reads as written in a Persian chip.
+          { setsValuesApart: true },
+        ),
       });
     }
   } else if (kind === StorageArrayResourceKind.Bucket) {
@@ -575,9 +596,11 @@ function getHeroChips(
       chips.push({
         key: "quota",
         icon: IconProp.Disc,
-        label: translator.translateTemplate("{{size}} quota", {
-          size: StorageArrayResourceUtils.formatBytes(quota),
-        }),
+        label: translator.translateTemplate(
+          "{{size}} quota",
+          { size: StorageArrayResourceUtils.formatBytes(quota) },
+          { setsValuesApart: true },
+        ),
       });
     }
   }

@@ -220,7 +220,12 @@ const DockerSwarmNodesCard: FunctionComponent<ComponentProps> = (
                       </div>
                     </div>
                   </div>
-                  <div className="flex min-w-0 flex-1 gap-4 pl-10 md:pl-0">
+                  {/*
+                   * One meter under the other on a phone: side by side,
+                   * "Tasks' memory" and its value no longer fit a line and
+                   * the two bars sat at different heights.
+                   */}
+                  <div className="flex min-w-0 flex-1 flex-col gap-2 pl-10 sm:flex-row sm:gap-4 md:pl-0">
                     {renderBar({
                       key: "cpu",
                       label: "Tasks' CPU",

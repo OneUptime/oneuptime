@@ -1732,7 +1732,8 @@ const PodmanHostOverview: FunctionComponent<
         <NeedsAttentionCard
           testId="container-host-needs-attention"
           items={attentionItems}
-          description="Containers that keep restarting, restarted, use most of their memory or stopped, the most urgent first."
+          // Every row is a container: a Container chip on each would say nothing.
+          showKind={false}
         />
       ) : (
         <></>

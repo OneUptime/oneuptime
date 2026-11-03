@@ -698,6 +698,28 @@ describe("a part's own page", () => {
         "File System Near Full",
       );
     });
+
+    /*
+     * A fact only once the FlashBlade sent it, as on every resource's
+     * Details: a file system that sends no latency, IOPS or data reduction
+     * had a row of dashes for each.
+     */
+    const details: HTMLElement = screen.getByTestId(
+      "storage-array-part-details",
+    );
+    expect(details).toHaveTextContent("scratch");
+    expect(details).toHaveTextContent("10.0 TiB");
+    expect(details).toHaveTextContent("2.0 TiB");
+    expect(details).not.toHaveTextContent("—");
+    for (const unsent of [
+      "Data Reduction",
+      "Read Latency",
+      "Write Latency",
+      "Read IOPS",
+      "Write IOPS",
+    ]) {
+      expect(details).not.toHaveTextContent(unsent);
+    }
   });
 
   test("a volume: Available, its size and hosts, and no alerts card - no alert watches one", async () => {

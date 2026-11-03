@@ -50,6 +50,9 @@ export interface ComponentProps {
 const LINK_CLASS_NAME: string =
   "font-medium text-gray-700 hover:text-indigo-600 hover:underline";
 
+// A name with no page of its own, as strong as the linked one beside it.
+const NAME_CLASS_NAME: string = "font-medium text-gray-700";
+
 const CephPartHero: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -89,7 +92,7 @@ const CephPartHero: FunctionComponent<ComponentProps> = (
         template="OSD of cluster {{cluster}} on host {{host}}"
         slots={{
           cluster: clusterLink,
-          host: <bdi>{row.hostname}</bdi>,
+          host: <bdi className={NAME_CLASS_NAME}>{row.hostname}</bdi>,
         }}
       />
     ) : (
@@ -100,7 +103,10 @@ const CephPartHero: FunctionComponent<ComponentProps> = (
     );
 
     if (row) {
-      const placement: ResourcePartBadge | null = getCephOsdPlacementBadge(row);
+      const placement: ResourcePartBadge | null = getCephOsdPlacementBadge(
+        row,
+        props.assessment?.status.label,
+      );
       if (placement) {
         badges.push(placement);
       }
@@ -117,9 +123,12 @@ const CephPartHero: FunctionComponent<ComponentProps> = (
         chips.push({
           key: "capacity",
           icon: IconProp.Disc,
-          label: translator.translateTemplate("{{size}} capacity", {
-            size: formatBytes(readings.totalBytes),
-          }),
+          label: translator.translateTemplate(
+            "{{size}} capacity",
+            { size: formatBytes(readings.totalBytes) },
+            // "8.0 TiB" reads as written in a Persian chip.
+            { setsValuesApart: true },
+          ),
         });
       }
       if (readings.pgCount !== null) {
@@ -158,9 +167,11 @@ const CephPartHero: FunctionComponent<ComponentProps> = (
         chips.push({
           key: "stored",
           icon: IconProp.Database,
-          label: translator.translateTemplate("{{size}} stored", {
-            size: formatBytes(readings.storedBytes),
-          }),
+          label: translator.translateTemplate(
+            "{{size}} stored",
+            { size: formatBytes(readings.storedBytes) },
+            { setsValuesApart: true },
+          ),
         });
       }
       if (readings.objects !== null) {

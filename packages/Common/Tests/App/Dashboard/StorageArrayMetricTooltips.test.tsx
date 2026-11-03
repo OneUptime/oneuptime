@@ -488,7 +488,8 @@ const DETAIL_ROWS: Array<Row> = [
     writeIops: 200,
     metricsUpdatedAt: minutesAgo(1),
     lastSeenAt: minutesAgo(1),
-    details: { protocols: ["nfs", "smb"] },
+    // As the agent writes them: a part's Details draw only what it sent.
+    details: { nfs: "true", smb: "true" },
   },
   {
     kind: "Bucket",
@@ -497,7 +498,7 @@ const DETAIL_ROWS: Array<Row> = [
     groupName: "backup-account",
     capacityBytes: 20 * TIB,
     usedBytes: 6 * TIB,
-    objectCount: 120000,
+    details: { objectCount: 120000 },
     dataReductionRatio: 1.4,
     readLatencyUsec: 2000,
     writeLatencyUsec: 3000,

@@ -19,7 +19,6 @@ import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import Tabs from "Common/UI/Components/Tabs/Tabs";
 import { Tab } from "Common/UI/Components/Tabs/Tab";
 import DashboardLogsViewer from "../../../Components/Logs/LogsViewer";
 import {
@@ -34,6 +33,7 @@ import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType"
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import ResourcePartReadError from "../../../Components/ResourcePart/ResourcePartReadError";
+import ResourcePartTabs from "../../../Components/ResourcePart/ResourcePartTabs";
 import ContainerHostContainerHero from "../../../Components/ContainerHost/ContainerHostContainerHero";
 import ContainerHostContainerOverview from "../../../Components/ContainerHost/ContainerHostContainerOverview";
 import { ContainerHostContainer } from "../../../Components/ContainerHost/ContainerHostHealth";
@@ -349,7 +349,7 @@ const PodmanHostContainerDetail: FunctionComponent<
         resourceLabel="container"
         target={databaseTarget}
       />
-      <Tabs tabs={tabs} onTabChange={() => {}} />
+      <ResourcePartTabs tabs={tabs} />
     </Fragment>
   );
 };

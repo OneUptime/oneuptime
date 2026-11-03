@@ -17,7 +17,6 @@ import { OpenIssueRecord } from "../ResourceTopology/ResourceTopologyIssues";
 import { formatRelativeTime } from "../Home/HomeRelativeTime";
 import ObjectID from "Common/Types/ObjectID";
 import {
-  CONTAINER_RESTART_LOOP_RESTARTS,
   ContainerHostAssessment,
   ContainerHostContainer,
   THIS_CONTAINER_LABEL,
@@ -269,9 +268,12 @@ const ContainerHostContainerOverview: FunctionComponent<ComponentProps> = (
             value={formatPercent(memoryPercent)}
             sublabel={
               container.memoryBytes !== null
-                ? translator.translateTemplate("{{used}} in use", {
-                    used: formatBytes(container.memoryBytes),
-                  })
+                ? translator.translateTemplate(
+                    "{{used}} in use",
+                    { used: formatBytes(container.memoryBytes) },
+                    // "96.0 MB" reads as written in a Persian sentence.
+                    { setsValuesApart: true },
+                  )
                 : undefined
             }
             percent={memoryPercent}
@@ -287,10 +289,12 @@ const ContainerHostContainerOverview: FunctionComponent<ComponentProps> = (
             icon={IconProp.Refresh}
             iconColor="amber"
             value={restarts === null ? "—" : translator.formatNumber(restarts)}
+            /*
+             * The window the count is of, whatever the count: the hero and
+             * Needs attention already say when it is a restart loop.
+             */
             sublabel={
-              restarts !== null && restarts > CONTAINER_RESTART_LOOP_RESTARTS
-                ? tx("A restart loop")
-                : tx("in the last 15 minutes")
+              restarts === null ? undefined : tx("in the last 15 minutes")
             }
             description={
               CONTAINER_HOST_METRIC_DESCRIPTIONS.containerRestartsTile

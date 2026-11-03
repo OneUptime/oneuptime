@@ -29,6 +29,7 @@ import {
   isCurrentDockerSwarmTask,
   isDockerSwarmLeader,
   isDockerSwarmManager,
+  isDockerSwarmReplicasStatus,
   keepLatestDockerSwarmSnapshot,
 } from "../../../Pages/DockerSwarm/Utils/DockerSwarmHealth";
 
@@ -150,7 +151,16 @@ function assessService(row: DockerSwarmResource, now: Date): Assessment {
   const assessment: DockerSwarmAssessment = assessDockerSwarmService(row, now);
   const facts: Array<ResourceTopologyFact> = [];
 
-  if (desired !== null && desired > 0) {
+  /*
+   * Its replicas, unless its status already counts them ("2 of 3
+   * running"): a card that said "Replicas 2/3" beside it said it twice.
+   * An updating service's card still counts them.
+   */
+  if (
+    desired !== null &&
+    desired > 0 &&
+    !isDockerSwarmReplicasStatus(assessment.status.label)
+  ) {
     const have: number = running ?? 0;
     facts.push({
       label: translationKey("Replicas"),

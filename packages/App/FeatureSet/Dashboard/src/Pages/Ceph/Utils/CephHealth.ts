@@ -160,6 +160,15 @@ const STATUS_AVAILABLE: string = translationKey("Available");
 const STATUS_NO_DATA: string = translationKey("No data yet");
 const STATUS_STOPPED_REPORTING: string = translationKey("Stopped reporting");
 
+/*
+ * Whether an OSD's state already says it is out of the cluster ("Out of
+ * cluster", "Down and out"): its hero then has no placement badge to say
+ * it a second time.
+ */
+export function isCephOsdOutStatus(label: string | undefined): boolean {
+  return label === STATUS_OUT || label === STATUS_DOWN_AND_OUT;
+}
+
 const REASON_OSD_DOWN_IN: string = translationKey("Down, still in the cluster");
 const REASON_OSD_DOWN_OUT: string = translationKey(
   "Down and out of the cluster",

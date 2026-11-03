@@ -4,9 +4,9 @@ import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import Tabs from "Common/UI/Components/Tabs/Tabs";
 import { Tab } from "Common/UI/Components/Tabs/Tab";
 import ResourcePartReadError from "../../../Components/ResourcePart/ResourcePartReadError";
+import ResourcePartTabs from "../../../Components/ResourcePart/ResourcePartTabs";
 import DockerSwarmPartHero from "../../../Components/DockerSwarm/Part/DockerSwarmPartHero";
 import DockerSwarmNodeOverview from "../../../Components/DockerSwarm/Part/DockerSwarmNodeOverview";
 import {
@@ -103,7 +103,7 @@ const DockerSwarmClusterNodeDetail: FunctionComponent<
         }
         now={part.readAt}
       />
-      <Tabs tabs={tabs} wrap={true} onTabChange={() => {}} />
+      <ResourcePartTabs tabs={tabs} />
     </div>
   );
 };

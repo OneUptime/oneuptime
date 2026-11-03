@@ -100,17 +100,21 @@ const DockerSwarmClusterTasks: FunctionComponent<
         memory: DOCKER_SWARM_METRIC_DESCRIPTIONS.taskMemoryColumn,
       }}
       emptyMessage="No tasks reported yet. Make sure the Docker Swarm agent is sending metrics."
+      /*
+       * No Service column: a task's name is its service's and its slot
+       * ("shop_web.2"), as docker service ps names it, and a column that
+       * said it again pushed each task's CPU and memory out of view.
+       */
       columns={[
-        {
-          title: "Service",
-          key: "serviceName",
-          getValue: (resource: InfrastructureResource): string => {
-            return resource.additionalAttributes["serviceName"] || "—";
-          },
-        },
         {
           title: "Image",
           key: "image",
+          /*
+           * Under the task's name when the table is short of room: a
+           * registry path as wide as a column of its own pushed each task's
+           * CPU and memory - what its state is judged by - out of view.
+           */
+          foldInto: "name",
           getValue: (resource: InfrastructureResource): string => {
             return resource.additionalAttributes["image"] || "—";
           },

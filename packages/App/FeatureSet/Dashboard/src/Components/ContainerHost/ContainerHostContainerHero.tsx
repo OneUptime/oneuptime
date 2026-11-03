@@ -27,8 +27,9 @@ import {
 export const CONTAINER_HOST_CONTAINER_HERO_TEST_ID: string =
   "container-host-container-hero";
 
+// A name in the hero's sentence reads as every part hero's does.
 const LINK_CLASS_NAME: string =
-  "text-indigo-600 hover:text-indigo-700 hover:underline";
+  "font-medium text-gray-700 hover:text-indigo-600 hover:underline";
 
 export interface ComponentProps {
   containerName: string;

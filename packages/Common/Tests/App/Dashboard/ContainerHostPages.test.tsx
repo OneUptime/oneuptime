@@ -452,6 +452,12 @@ describe.each(RUNTIMES)(
       expect(rows[1]!.severity).toBe("warning");
       expect(rows[1]!.text).toContain("Stopped reporting");
       expect(rows[1]!.text).toContain("acme/billing:4");
+      // Every row is a container: no Container chip on each.
+      expect(
+        within(
+          screen.getByTestId("container-host-needs-attention"),
+        ).queryAllByTestId("container-host-needs-attention-kind"),
+      ).toHaveLength(0);
 
       // Each row opens the container's page.
       const workerLink: HTMLElement | null = within(
@@ -632,7 +638,19 @@ describe.each(RUNTIMES)(
       expect(tiles).toHaveTextContent("3.0%");
       expect(tiles).toHaveTextContent("20.0%");
       expect(tiles).toHaveTextContent("6");
-      expect(tiles).toHaveTextContent("A restart loop");
+      /*
+       * The count's window, as for any count: the hero and Needs attention
+       * already say it is a restart loop.
+       */
+      expect(tiles).toHaveTextContent("in the last 15 minutes");
+      expect(tiles).not.toHaveTextContent("A restart loop");
+
+      /*
+       * Its tabs wrap rather than scroll, and the cards under them line up
+       * with the hero: an unwrapped row set them 4px in.
+       */
+      expect(screen.getByRole("tablist")).toHaveClass("flex-wrap");
+      expect(screen.getByRole("tabpanel")).not.toHaveClass("ml-1");
     });
 
     test("a running container's details: image, id, Compose project and service, and its host", async () => {
@@ -764,6 +782,8 @@ describe.each(RUNTIMES)(
       expect(
         (restarts.querySelector("div.text-2xl")?.textContent || "").trim(),
       ).toBe("—");
+      // A count nobody sent has no window to name.
+      expect(restarts).not.toHaveTextContent("in the last 15 minutes");
     });
 
     test("a container nothing reported: it says so, and where every container is", async () => {

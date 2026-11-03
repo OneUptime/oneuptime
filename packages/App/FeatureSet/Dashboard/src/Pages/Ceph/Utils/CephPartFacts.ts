@@ -16,6 +16,7 @@ import {
   CephAssessment,
   CephPoolPgStates,
   getCephStatusReasons,
+  isCephOsdOutStatus,
   toCephNumber,
 } from "./CephHealth";
 import { OSD_IN_CLUSTER, OSD_OUT_OF_CLUSTER } from "./CephResourceUtils";
@@ -114,12 +115,27 @@ export function toCephTileTone(
 
 // Whether Ceph places data on the OSD, as `ceph osd tree` says in or out.
 export function getCephOsdPlacementBadge(
-  row: Pick<CephResource, "isIn">,
+  row: Pick<CephResource, "isIn" | "isUp">,
+  // The OSD's state in a word, as its hero's status pill says it.
+  statusLabel?: string | undefined,
 ): ResourcePartBadge | null {
   if (row.isIn === true) {
-    return { key: "placement", label: OSD_IN_CLUSTER, tone: "positive" };
+    /*
+     * Green only beside an OSD that is up: a down OSD still in the cluster
+     * is what makes it critical (Ceph still maps data to it), so there its
+     * placement is a fact, never good news beside a red Down.
+     */
+    return {
+      key: "placement",
+      label: OSD_IN_CLUSTER,
+      tone: row.isUp === true ? "positive" : "neutral",
+    };
   }
   if (row.isIn === false) {
+    // "Out of cluster" beside an "Out of cluster" state says it twice.
+    if (isCephOsdOutStatus(statusLabel)) {
+      return null;
+    }
     return { key: "placement", label: OSD_OUT_OF_CLUSTER, tone: "warning" };
   }
   return null;

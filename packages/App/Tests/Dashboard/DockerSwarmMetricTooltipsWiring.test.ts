@@ -273,6 +273,19 @@ describe("Docker Swarm list pages", () => {
     );
   });
 
+  /*
+   * A task's name is its service's and its slot ("shop_web.2"): a Service
+   * column said it again, and with the Image beside it pushed each task's
+   * CPU and memory - what its state is judged by - out of view at 1280.
+   */
+  test("Tasks: no Service column, and the Image folds under the name when the table is short of room", () => {
+    const code: string = readCode("Tasks.tsx");
+    expect(code).not.toContain('title: "Service",');
+    expect(between(code, 'title: "Image",', "getValue")).toContain(
+      'foldInto: "name",',
+    );
+  });
+
   test("Nodes: Status, Role, Availability and Manager Status are explained; no usage columns", () => {
     const code: string = readCode("Nodes.tsx");
     expect(code).toContain(
@@ -288,6 +301,8 @@ describe("Docker Swarm list pages", () => {
       );
     }
     expect(code).toContain("showResourceMetrics={false}");
+    // A role is Docker's, manager or worker; which one leads is its Manager Status.
+    expect(between(code, "const ROLE_WORDS", "};")).not.toContain("leader");
   });
 
   test("Services: Status and Replicas are explained; no usage columns", () => {
@@ -314,7 +329,6 @@ describe("Docker Swarm list pages", () => {
       ["Services.tsx", "Mode"],
       ["Services.tsx", "Image"],
       ["Nodes.tsx", "Engine Version"],
-      ["Tasks.tsx", "Service"],
       ["Tasks.tsx", "Image"],
     ]) {
       expect(

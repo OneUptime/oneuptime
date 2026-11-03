@@ -595,6 +595,33 @@ describe("a host's page in German", () => {
   });
 });
 
+describe("a host's page in Persian", () => {
+  test("its details read each value in its own direction, and say only what the array sent", async () => {
+    await i18next.changeLanguage("fa");
+    mockLastParam = "esx-07";
+    render(<StorageArrayHostDetail {...PAGE_PROPS} />);
+    await screen.findByTestId("storage-array-part-page");
+    await waitFor(() => {
+      expect(
+        screen.queryByTestId("storage-array-part-overview"),
+      ).not.toBeNull();
+    });
+    await settle();
+
+    const details: HTMLElement = screen.getByTestId(
+      "storage-array-part-details",
+    );
+    // "vsphere-prod" keeps its own direction on a right-to-left page.
+    expect(within(details).getByText("vsphere-prod")).toHaveAttribute(
+      "dir",
+      "auto",
+    );
+    // A host that sent no sizes, latency or IOPS has no rows of dashes.
+    expect(details).not.toHaveTextContent("—");
+    expect(details).not.toHaveTextContent(worded(FA, "Read Latency"));
+  });
+});
+
 describe("a storage array's Overview in Persian", () => {
   test("the pill and the reasons are Persian, a count in Persian digits", async () => {
     await i18next.changeLanguage("fa");

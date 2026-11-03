@@ -12,10 +12,7 @@ import {
   routeParamFromExternalId,
 } from "../Utils/DockerSwarmResourceUtils";
 import { withDockerSwarmStatus } from "../Utils/DockerSwarmPartFacts";
-import {
-  isDockerSwarmLeader,
-  isDockerSwarmManager,
-} from "../Utils/DockerSwarmHealth";
+import { isDockerSwarmManager } from "../Utils/DockerSwarmHealth";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -40,8 +37,12 @@ import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
  * Tasks list have them.
  */
 
+/*
+ * A node's role as Docker gives it, manager or worker: which manager leads
+ * is its Manager Status, in the column beside it ("Leader" in both read
+ * as one fact said twice).
+ */
 const ROLE_WORDS: Record<string, string> = {
-  leader: translationKey("Leader"),
   manager: translationKey("Manager node"),
   worker: translationKey("Worker node"),
 };
@@ -97,9 +98,7 @@ const DockerSwarmClusterNodes: FunctionComponent<
           ): void => {
             Object.assign(resource, withDockerSwarmStatus(resource, row, now));
             resource.additionalAttributes["role"] = isDockerSwarmManager(row)
-              ? isDockerSwarmLeader(row)
-                ? "leader"
-                : "manager"
+              ? "manager"
               : "worker";
           },
         });

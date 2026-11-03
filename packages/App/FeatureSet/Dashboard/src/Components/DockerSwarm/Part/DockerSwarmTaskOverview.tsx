@@ -274,9 +274,12 @@ const DockerSwarmTaskOverview: FunctionComponent<ComponentProps> = (
             value={formatPercent(readings.memoryPercent)}
             sublabel={
               readings.memoryBytes !== null
-                ? translator.translateTemplate("{{used}} in use", {
-                    used: formatBytes(readings.memoryBytes),
-                  })
+                ? translator.translateTemplate(
+                    "{{used}} in use",
+                    { used: formatBytes(readings.memoryBytes) },
+                    // "471 MiB" reads as written in a Persian sentence.
+                    { setsValuesApart: true },
+                  )
                 : undefined
             }
             percent={readings.memoryPercent}

@@ -110,6 +110,16 @@ const STATUS_NO_DATA: string = translationKey("No data yet");
 const STATUS_REPLICAS: string = translationKey(
   "{{running}} of {{desired}} running",
 );
+
+/*
+ * Whether a service's state is its replicas counted ("1 of 2 running"):
+ * its hero then needs no tasks chip that says it again.
+ */
+export function isDockerSwarmReplicasStatus(
+  label: string | undefined,
+): boolean {
+  return label === STATUS_REPLICAS;
+}
 const STATUS_SCALED_TO_ZERO: string = translationKey("Scaled to zero");
 const STATUS_UPDATING: string = translationKey("Updating");
 const STATUS_JOB_COMPLETED: string = translationKey("Completed");

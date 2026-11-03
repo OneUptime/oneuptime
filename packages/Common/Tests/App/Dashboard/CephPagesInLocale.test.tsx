@@ -282,6 +282,11 @@ jest.mock(
 
 import CephClusterOverview from "../../../../App/FeatureSet/Dashboard/src/Pages/Ceph/View/Index";
 import CephClusterPoolDetail from "../../../../App/FeatureSet/Dashboard/src/Pages/Ceph/View/PoolDetail";
+import CephClusterOsdDetail from "../../../../App/FeatureSet/Dashboard/src/Pages/Ceph/View/OsdDetail";
+import {
+  FIRST_STRONG_ISOLATE,
+  POP_DIRECTIONAL_ISOLATE,
+} from "../../../Types/ReadingDirection";
 import CephRateChart from "../../../../App/FeatureSet/Dashboard/src/Components/Ceph/CephRateChart";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import Route from "../../../Types/API/Route";
@@ -667,6 +672,50 @@ describe("a Ceph cluster's Overview in Persian", () => {
       screen.getByText(worded(FA, "Placement Group States")),
     ).toBeInTheDocument();
     expect(screen.queryByText("Capacity Used")).not.toBeInTheDocument();
+  });
+});
+
+/*
+ * Sizes and latencies in a Persian sentence read as Ceph wrote them: each
+ * value set apart from the words around it, so "1000 GiB" keeps its number
+ * before its unit instead of "GiB 1000"; and a Details value reads in its
+ * own direction.
+ */
+describe("an OSD's page in Persian", () => {
+  // A value as a Persian sentence holds it: set apart in an isolate.
+  function setApart(value: string): string {
+    return `${FIRST_STRONG_ISOLATE}${value}${POP_DIRECTIONAL_ISOLATE}`;
+  }
+
+  test("its capacity chip, its tiles' lines and its details read each value as written", async () => {
+    await i18next.changeLanguage("fa");
+    window.history.pushState({}, "", `${BASE}/osds/osd.0`);
+    render(<CephClusterOsdDetail {...PAGE_PROPS} />);
+    await screen.findByTestId("ceph-osd-page");
+    await waitFor(() => {
+      expect(screen.queryByTestId("ceph-osd-overview")).not.toBeNull();
+    });
+    await settle();
+
+    expect(screen.getByTestId("ceph-osd-hero-chips")).toHaveTextContent(
+      worded(FA, "{{size}} capacity").replace("{{size}}", setApart("1000 GiB")),
+    );
+
+    const tiles: HTMLElement = screen.getByTestId("ceph-osd-tiles");
+    expect(tiles).toHaveTextContent(
+      worded(FA, "{{used}} of {{total}}")
+        .replace("{{used}}", setApart("400 GiB"))
+        .replace("{{total}}", setApart("1000 GiB")),
+    );
+    expect(tiles).toHaveTextContent(
+      worded(FA, "Commit latency {{latency}}").replace(
+        "{{latency}}",
+        setApart("5 ms"),
+      ),
+    );
+
+    const details: HTMLElement = screen.getByTestId("ceph-osd-details");
+    expect(within(details).getByText("ssd")).toHaveAttribute("dir", "auto");
   });
 });
 

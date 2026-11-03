@@ -75,7 +75,7 @@ const IOPS_WINDOW_MINUTES: number = 15;
 /*
  * The list's own columns beside ResourceTable's Name and Status: how full
  * each pool is, what it stores, its placement groups and its I/O. Max Avail
- * and Objects fold into Stored and the name below a large screen.
+ * and Objects fold into Stored when the table is short of room.
  */
 const POOL_COLUMNS: Array<ResourceColumn> = [
   {
@@ -111,7 +111,11 @@ const POOL_COLUMNS: Array<ResourceColumn> = [
     title: "Objects",
     key: "objects",
     description: CEPH_METRIC_DESCRIPTIONS.poolObjectsColumn,
-    foldInto: "name",
+    /*
+     * Under what the pool stores, not under its name: folded under the
+     * name, it left a long pool name a column too narrow to read whole.
+     */
+    foldInto: "stored",
     showTitleWhenFolded: true,
   },
   {
@@ -315,7 +319,7 @@ const CephClusterPools: FunctionComponent<
       }}
       title="Pools"
       description={translator.translateTemplate(
-        "Storage pools in this cluster: how full each is and whether its placement groups are clean, by the cluster's rules. Read / write IOPS are averaged over the last {{minutes}} minutes.",
+        "Storage pools in this cluster: how full each is and whether its placement groups are clean. Read / write IOPS are averaged over the last {{minutes}} minutes.",
         { minutes: translator.formatNumber(IOPS_WINDOW_MINUTES) },
       )}
       resources={resources}

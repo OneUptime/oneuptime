@@ -20,6 +20,7 @@ import {
   assessDockerSwarmResource,
   getDockerSwarmAttribute,
   getDockerSwarmDisplayName,
+  isDockerSwarmReplicasStatus,
   toDockerSwarmDate,
   toDockerSwarmNumber,
 } from "../../../Pages/DockerSwarm/Utils/DockerSwarmHealth";
@@ -80,6 +81,9 @@ const ACCENTS: Record<DockerSwarmPartKind, ResourcePartAccent> = {
 const LINK_CLASS_NAME: string =
   "font-medium text-gray-700 hover:text-indigo-600 hover:underline";
 
+// A name with no page of its own, as strong as the linked one beside it.
+const NAME_CLASS_NAME: string = "font-medium text-gray-700";
+
 const DockerSwarmPartHero: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -105,7 +109,7 @@ const DockerSwarmPartHero: FunctionComponent<ComponentProps> = (
 
   const clusterLink: ReactElement = (
     <Link to={props.clusterRoute} className={LINK_CLASS_NAME}>
-      {props.clusterName}
+      <bdi>{props.clusterName}</bdi>
     </Link>
   );
 
@@ -160,9 +164,12 @@ const DockerSwarmPartHero: FunctionComponent<ComponentProps> = (
       chips.push({
         key: "memory",
         icon: IconProp.SquareStack,
-        label: translator.translateTemplate("{{size}} memory", {
-          size: formatBytes(memory),
-        }),
+        label: translator.translateTemplate(
+          "{{size}} memory",
+          { size: formatBytes(memory) },
+          // "8.0 GiB" reads as written in a Persian chip.
+          { setsValuesApart: true },
+        ),
       });
     }
     const engineVersion: string = row
@@ -182,7 +189,7 @@ const DockerSwarmPartHero: FunctionComponent<ComponentProps> = (
       <TranslatedSentence
         template="Service of stack {{stack}} in swarm {{cluster}}"
         slots={{
-          stack: <bdi>{row.stackName}</bdi>,
+          stack: <bdi className={NAME_CLASS_NAME}>{row.stackName}</bdi>,
           cluster: clusterLink,
         }}
       />
@@ -203,7 +210,13 @@ const DockerSwarmPartHero: FunctionComponent<ComponentProps> = (
         badges.push(rollback);
       }
     }
-    pushTasks();
+    /*
+     * Its tasks running, unless its status pill already counts them ("1 of
+     * 2 running"): the chip under it said the same numbers again.
+     */
+    if (!isDockerSwarmReplicasStatus(status?.label)) {
+      pushTasks();
+    }
   } else {
     const serviceName: string = row?.serviceName || "";
     const nodeName: string = row?.nodeHostname || "";
@@ -216,7 +229,7 @@ const DockerSwarmPartHero: FunctionComponent<ComponentProps> = (
           <bdi>{serviceName}</bdi>
         </Link>
       ) : (
-        <bdi>{serviceName}</bdi>
+        <bdi className={NAME_CLASS_NAME}>{serviceName}</bdi>
       )
     ) : null;
     const nodeLink: ReactElement | null = nodeName ? (
@@ -228,7 +241,7 @@ const DockerSwarmPartHero: FunctionComponent<ComponentProps> = (
           <bdi>{nodeName}</bdi>
         </Link>
       ) : (
-        <bdi>{nodeName}</bdi>
+        <bdi className={NAME_CLASS_NAME}>{nodeName}</bdi>
       )
     ) : null;
 

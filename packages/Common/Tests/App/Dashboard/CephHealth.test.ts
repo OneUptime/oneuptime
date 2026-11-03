@@ -36,9 +36,12 @@ import {
   getCephStatusReasons,
   getCephTopologyHealth,
   isCephIssueAbout,
+  isCephOsdOutStatus,
   isCephStoppedReporting,
   sortCephHealthChecks,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Ceph/Utils/CephHealth";
+import { getCephOsdPlacementBadge } from "../../../../App/FeatureSet/Dashboard/src/Pages/Ceph/Utils/CephPartFacts";
+import { ResourcePartBadge } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourcePart/ResourcePartTypes";
 import { CEPH_METRIC_DESCRIPTIONS } from "../../../../App/FeatureSet/Dashboard/src/Components/MetricDescriptions/CephMetricDescriptions";
 import {
   getAllCephAlertTemplates,
@@ -419,6 +422,61 @@ describe("an OSD", () => {
       900 * GIB,
     );
     expect(getCephOsdReadings(fromJson, NOW).usedPercent).toBe(90);
+  });
+});
+
+/*
+ * An OSD's hero puts its placement beside its state. Up and in is good
+ * news; still in beside a red Down is what makes it critical, so there it
+ * is a fact in grey; and a state that already says it is out ("Out of
+ * cluster", "Down and out") takes no badge saying it a second time.
+ */
+describe("an OSD's placement beside its state", () => {
+  function badgeOf(fields: RowInit): ResourcePartBadge | null {
+    const row: CephResource = osd(3, fields);
+    return getCephOsdPlacementBadge(
+      row,
+      assessCephOsd(row, FRESH).status.label,
+    );
+  }
+
+  test("up and in: In cluster, in green", () => {
+    expect(badgeOf({ isUp: true, isIn: true })).toEqual({
+      key: "placement",
+      label: "In cluster",
+      tone: "positive",
+    });
+  });
+
+  test("down but still in: In cluster in grey, never green beside a red Down", () => {
+    expect(badgeOf({ isUp: false, isIn: true })).toEqual({
+      key: "placement",
+      label: "In cluster",
+      tone: "neutral",
+    });
+  });
+
+  test("up but out, and down and out: the state says it, so no badge does", () => {
+    expect(badgeOf({ isUp: true, isIn: false })).toBeNull();
+    expect(badgeOf({ isUp: false, isIn: false })).toBeNull();
+  });
+
+  test("out while its state says something else - it stopped reporting - still says it is out", () => {
+    expect(
+      getCephOsdPlacementBadge(osd(3, { isIn: false }), "Stopped reporting"),
+    ).toEqual({ key: "placement", label: "Out of cluster", tone: "warning" });
+  });
+
+  test("no word on its placement: no badge", () => {
+    expect(badgeOf({ isIn: undefined })).toBeNull();
+  });
+
+  test("which states already name the placement", () => {
+    expect(isCephOsdOutStatus("Out of cluster")).toBe(true);
+    expect(isCephOsdOutStatus("Down and out")).toBe(true);
+    expect(isCephOsdOutStatus("Down")).toBe(false);
+    expect(isCephOsdOutStatus("Up")).toBe(false);
+    expect(isCephOsdOutStatus(undefined)).toBe(false);
   });
 });
 

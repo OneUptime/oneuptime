@@ -826,6 +826,21 @@ describe("Ceph pool list", () => {
     expect(code).toContain("showAge={false}");
   });
 
+  /*
+   * Short of room, Max Avail and Objects fold under what the pool stores.
+   * Folded under the name, Objects left a long pool name a column too
+   * narrow to read ("cephfs_metad" / "ata") and cut its own count.
+   */
+  test("Max Avail and Objects fold under Stored, and nothing folds under the name", () => {
+    expect(segment(code, 'title: "Max Avail",', "},")).toContain(
+      'foldInto: "stored",',
+    );
+    expect(segment(code, 'title: "Objects",', "},")).toContain(
+      'foldInto: "stored",',
+    );
+    expect(code).not.toContain('foldInto: "name"');
+  });
+
   test("the IOPS window its text names is the one the page uses", () => {
     expect(code).toContain("const IOPS_WINDOW_MINUTES: number = 15;");
     expect(CEPH_METRIC_DESCRIPTIONS.poolReadIopsColumn).toContain(

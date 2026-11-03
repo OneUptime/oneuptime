@@ -101,7 +101,7 @@ describe("telemetry/ceph: what the cluster's pages show", () => {
     const text: string = readPage("en", PAGE);
     expect(text).not.toContain("Active Health Checks");
     expect(text).toContain(
-      "and of the checks the Overview's **Needs attention** shows)",
+      "behind the health-check alert templates and the checks the Overview's **Needs attention** shows)",
     );
   });
 });

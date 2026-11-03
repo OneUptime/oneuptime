@@ -746,9 +746,13 @@ describe("an OSD's page", () => {
     const status: HTMLElement = screen.getByTestId("ceph-osd-hero-status");
     expect(status).toHaveTextContent(/^Down/);
     expect(status).toHaveAttribute("data-tone", "danger");
-    expect(screen.getByTestId("ceph-osd-hero-badge")).toHaveTextContent(
-      "In cluster",
-    );
+    /*
+     * Still in is what makes a down OSD critical: its placement is a fact
+     * beside the red Down, never a green all-clear.
+     */
+    const badge: HTMLElement = screen.getByTestId("ceph-osd-hero-badge");
+    expect(badge).toHaveTextContent("In cluster");
+    expect(badge).toHaveAttribute("data-tone", "neutral");
     expect(screen.getByTestId("ceph-osd-hero-location")).toHaveTextContent(
       "OSD of cluster ceph-prod on host ceph-b",
     );
@@ -779,6 +783,11 @@ describe("an OSD's page", () => {
       "data-tone",
       "danger",
     );
+    // Up and in: its placement is good news, beside a state that is not.
+    expect(screen.getByTestId("ceph-osd-hero-badge")).toHaveAttribute(
+      "data-tone",
+      "positive",
+    );
     const chips: HTMLElement = screen.getByTestId("ceph-osd-hero-chips");
     expect(chips).toHaveTextContent("ssd");
     expect(chips).toHaveTextContent("1000 GiB capacity");
@@ -794,6 +803,19 @@ describe("an OSD's page", () => {
     expect(details).toHaveTextContent("osd.5");
     expect(details).toHaveTextContent("In cluster");
     expect(details).toHaveTextContent("18.2.4");
+  });
+
+  test("one that is up but out: Out of cluster in its pill, and no badge that says it again", async () => {
+    await openOsd("osd.2");
+
+    const status: HTMLElement = screen.getByTestId("ceph-osd-hero-status");
+    expect(status).toHaveTextContent(/^Out of cluster/);
+    expect(status).toHaveAttribute("data-tone", "warning");
+    expect(screen.queryAllByTestId("ceph-osd-hero-badge")).toHaveLength(0);
+    // Said once in the hero, where a badge beside the pill said it twice.
+    const heroText: string =
+      screen.getByTestId("ceph-osd-hero").textContent || "";
+    expect(heroText.split("Out of cluster")).toHaveLength(2);
   });
 
   test("the OSD alerts: each that watches its OSDs, and one step to turn them on", async () => {

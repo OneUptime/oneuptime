@@ -8,10 +8,10 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import Tabs from "Common/UI/Components/Tabs/Tabs";
 import { Tab } from "Common/UI/Components/Tabs/Tab";
 import DashboardLogsViewer from "../../../Components/Logs/LogsViewer";
 import ResourcePartReadError from "../../../Components/ResourcePart/ResourcePartReadError";
+import ResourcePartTabs from "../../../Components/ResourcePart/ResourcePartTabs";
 import DockerSwarmPartHero from "../../../Components/DockerSwarm/Part/DockerSwarmPartHero";
 import DockerSwarmTaskOverview from "../../../Components/DockerSwarm/Part/DockerSwarmTaskOverview";
 import {
@@ -184,7 +184,7 @@ const DockerSwarmClusterTaskDetail: FunctionComponent<
         nodeExternalId={nodeExternalId}
         now={part.readAt}
       />
-      <Tabs tabs={tabs} wrap={true} onTabChange={() => {}} />
+      <ResourcePartTabs tabs={tabs} />
     </div>
   );
 };

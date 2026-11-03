@@ -243,12 +243,17 @@ const CephPoolOverview: FunctionComponent<ComponentProps> = (
             value={formatShare(readings.usedPercent)}
             sublabel={
               readings.storedBytes !== null && readings.maxAvailBytes !== null
-                ? translator.translateTemplate("{{used}} of {{total}}", {
-                    used: formatBytes(readings.storedBytes),
-                    total: formatBytes(
-                      readings.storedBytes + readings.maxAvailBytes,
-                    ),
-                  })
+                ? translator.translateTemplate(
+                    "{{used}} of {{total}}",
+                    {
+                      used: formatBytes(readings.storedBytes),
+                      total: formatBytes(
+                        readings.storedBytes + readings.maxAvailBytes,
+                      ),
+                    },
+                    // Each size reads as written in a Persian sentence.
+                    { setsValuesApart: true },
+                  )
                 : undefined
             }
             percent={readings.usedPercent}

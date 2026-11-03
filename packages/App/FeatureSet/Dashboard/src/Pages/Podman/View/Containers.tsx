@@ -363,7 +363,8 @@ const PodmanHostContainers: FunctionComponent<
               )}
               {row.memoryUsage !== null ? (
                 <span className="text-xs text-gray-500">
-                  {formatReadingBytes(row.memoryUsage)}
+                  {/* "24.0 MB" reads as written on a page read right to left. */}
+                  <bdi>{formatReadingBytes(row.memoryUsage)}</bdi>
                 </span>
               ) : (
                 <></>
@@ -465,7 +466,7 @@ const PodmanHostContainers: FunctionComponent<
   return (
     <Card
       title="Podman Containers"
-      description="Every container on this host, with its state by the host's rules, its restarts and what it uses now. One that stopped stays listed for 15 minutes after its last reading."
+      description="Every container on this host: its state, its restarts and what it uses now. One that stops stays listed for 15 minutes after its last reading."
       headerLayout="toolbar"
       buttons={getTableHeaderButtons(cardButtons)}
     >

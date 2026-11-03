@@ -767,9 +767,19 @@ describe("Docker Swarm list pages", () => {
     await expectTooltip("Memory", T.taskMemoryColumn);
 
     // Metadata columns stay plain.
-    for (const plain of ["Service", "Image", "Node"]) {
+    for (const plain of ["Image", "Node"]) {
       expect(infoNames()).not.toContain(plain);
     }
+    /*
+     * No Service column: a task's name is its service's and its slot, and
+     * a column that said it again pushed CPU and Memory out of view.
+     */
+    expect(
+      screen.queryByRole("columnheader", { name: /^Service/ }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("columnheader", { name: /^Memory/ }),
+    ).toBeInTheDocument();
     expectNoNestedControls(result.container);
   });
 
@@ -792,6 +802,15 @@ describe("Docker Swarm list pages", () => {
     await flush();
 
     expect(screen.getByText("manager-1")).toBeInTheDocument();
+    /*
+     * The leader's role is Docker's, a manager; that it leads is its
+     * Manager Status, beside it - "Leader" in both said one fact twice.
+     */
+    const leader: HTMLElement = screen
+      .getByText("manager-1")
+      .closest("tr") as HTMLElement;
+    expect(within(leader).getByText("Manager node")).toBeInTheDocument();
+    expect(within(leader).getAllByText("Leader")).toHaveLength(1);
     await expectTooltip("Status", T.nodeStatus);
     await expectTooltip("Role", T.managers);
     await expectTooltip("Availability", T.availability);

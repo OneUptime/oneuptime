@@ -383,6 +383,13 @@ describe("a node's page", () => {
     expect(within(overview).getByText("shop_web.2")).toBeInTheDocument();
     expect(within(overview).getByText("shop_api.1")).toBeInTheDocument();
     expect(within(overview).queryByText("shop_web.1")).toBeNull();
+
+    /*
+     * Its Overview is its only tab, so no row of one tab sits between the
+     * hero and its cards (ResourcePartTabs).
+     */
+    expect(screen.queryByRole("tablist")).toBeNull();
+    expect(screen.queryByRole("tab")).toBeNull();
   });
 
   test("the leader: its badge, its standing and its size in its details", async () => {
@@ -543,9 +550,16 @@ describe("a service's page", () => {
     expect(screen.getByTestId("docker-swarm-service-hero")).toHaveTextContent(
       "Replicated",
     );
+    /*
+     * Its replicas are counted once, in its pill: a chip under it saying
+     * "2/3 tasks running" said the same numbers again.
+     */
     expect(
-      screen.getByTestId("docker-swarm-service-hero-chips"),
-    ).toHaveTextContent("2/3 tasks running");
+      screen.getByTestId("docker-swarm-service-hero"),
+    ).not.toHaveTextContent("tasks running");
+    expect(screen.queryByTestId("docker-swarm-service-hero-chips")).toBeNull();
+    // Its Overview is its only tab: no row of one tab.
+    expect(screen.queryByRole("tablist")).toBeNull();
 
     expect(attentionRows("docker-swarm-service-attention")).toEqual([
       {
@@ -569,6 +583,23 @@ describe("a service's page", () => {
     }
     expect(within(overview).queryAllByText("shop_api.1")).toHaveLength(0);
     expect(within(overview).getAllByText("worker-3").length).toBeGreaterThan(0);
+  });
+
+  test("a rolling update: Updating in its pill, and its tasks running in a chip, the count the pill does not give", async () => {
+    mockRows = [
+      service("shop_web", { runningReplicas: 2 }, { updateState: "updating" }),
+      task("shop_web.1"),
+      task("shop_web.2"),
+      task("shop_web.3", { state: "starting" }),
+    ];
+    await openService("shop_web");
+
+    expect(
+      screen.getByTestId("docker-swarm-service-hero-status"),
+    ).toHaveTextContent(/^Updating/);
+    expect(
+      screen.getByTestId("docker-swarm-service-hero-chips"),
+    ).toHaveTextContent("2/3 tasks running");
   });
 
   test("a crash loop that reads full: its failures and Docker's last error in Needs attention and its details", async () => {
@@ -868,5 +899,7 @@ describe("a task's page", () => {
       screen.getByTestId("docker-swarm-task-not-reported"),
     ).toBeInTheDocument();
     expect(screen.queryByRole("tab", { name: /Logs/ })).toBeNull();
+    // Nor a row with its Overview alone in it.
+    expect(screen.queryByRole("tablist")).toBeNull();
   });
 });

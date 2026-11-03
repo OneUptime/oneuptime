@@ -153,7 +153,7 @@ const CephClusterOsds: FunctionComponent<
         fetchData().catch(() => {});
       }}
       title="OSDs"
-      description="Object storage daemons in this cluster: whether each runs and holds data, how full it is and how fast it writes, by the cluster's rules."
+      description="Object storage daemons in this cluster: whether each is up and in, how full it is and how fast it writes."
       resources={resources}
       tableIdPrefix="ceph"
       groupColumnTitle="Host"
