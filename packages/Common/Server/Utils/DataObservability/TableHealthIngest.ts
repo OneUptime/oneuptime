@@ -640,6 +640,10 @@ export default class TableHealthIngest {
             ? snapshot.warnings.join("\n").slice(0, MAX_MESSAGE_LENGTH)
             : null,
         tableHealthAssetCount: seenKeys.size,
+        // Kept when a collection could not say, as an older probe's cannot.
+        ...(snapshot.target
+          ? { tableHealthTarget: snapshot.target as unknown as JSONObject }
+          : {}),
         nextTableHealthCollectionAt: OneUptimeDate.addRemoveMinutes(
           OneUptimeDate.getCurrentDate(),
           TABLE_HEALTH_COLLECTION_INTERVAL_IN_MINUTES,

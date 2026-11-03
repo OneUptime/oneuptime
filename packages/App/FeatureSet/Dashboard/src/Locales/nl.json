@@ -41435,5 +41435,16 @@
   "Show Incident on Status Pages": "Show Incident on Status Pages",
   "Show the incident on the status pages that list its monitor, and notify their subscribers.": "Show the incident on the status pages that list its monitor, and notify their subscribers.",
   "Which alerts become incidents, and when.": "Which alerts become incidents, and when.",
-  "e.g. Declare SEV1 incidents": "e.g. Declare SEV1 incidents"
+  "e.g. Declare SEV1 incidents": "e.g. Declare SEV1 incidents",
+  "A service seen reading or writing a data asset in its database spans, with the operations it ran and when it last ran them.": "A service seen reading or writing a data asset in its database spans, with the operations it ran and when it last ran them.",
+  "Calls (last hour)": "Calls (last hour)",
+  "Data Asset Usage": "Data Asset Usage",
+  "Data Asset Usages": "Data Asset Usages",
+  "No service has been seen using this table yet. A service sending OpenTelemetry traces shows here once its database spans name this table.": "No service has been seen using this table yet. A service sending OpenTelemetry traces shows here once its database spans name this table.",
+  "Reads": "Reads",
+  "Statements": "Statements",
+  "Table Health Target": "Table Health Target",
+  "The services seen writing and reading this table, from their database spans. Updated every 15 minutes.": "The services seen writing and reading this table, from their database spans. Updated every 15 minutes.",
+  "Usage Key": "Usage Key",
+  "Writes": "Writes"
 }

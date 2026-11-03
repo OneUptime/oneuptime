@@ -21,6 +21,7 @@ import {
   TableHealthCollectOptions,
   TableHealthSnapshot,
 } from "./TableHealthCollector";
+import { readTableHealthTarget } from "./TableHealthTarget";
 
 /*
  * A DATABASE ONLY A CUSTOMER'S PROBE CAN REACH, COLLECTED FROM THAT PROBE.
@@ -255,6 +256,7 @@ export function readTableHealthSnapshot(
       : now.toISOString(),
     tables,
     isComplete: item["isComplete"] === true,
+    target: readTableHealthTarget(item["target"]),
     warnings: Array.isArray(item["warnings"])
       ? (item["warnings"] as Array<unknown>)
           .filter((warning: unknown): warning is string => {
