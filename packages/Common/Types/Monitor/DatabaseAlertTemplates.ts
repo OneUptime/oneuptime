@@ -193,7 +193,28 @@ export interface DatabaseAlertTemplate {
   receiver: string;
   // Every metric name the template's queries read, in query order.
   metricNames: Array<string>;
+  /*
+   * The template's lines as data - its queries (without the database scope,
+   * which getMonitorStep adds), its formula and what its criteria compare,
+   * over which window. getMonitorStep builds the monitor from exactly these,
+   * and a database's health (DatabaseHealth) judges its latest readings
+   * against them, so the page and the alert can never draw different lines.
+   */
+  queries: ReadonlyArray<DatabaseAlertQuery>;
+  formula?: DatabaseAlertFormula | undefined;
+  criteria: DatabaseAlertCriteria;
+  rollingTime: RollingTime;
   getMonitorStep: (args: DatabaseAlertTemplateArgs) => MonitorStep;
+}
+
+/*
+ * A formula over a template's query aliases ("(a / b) * 100"); the criteria
+ * then compares its alias.
+ */
+export interface DatabaseAlertFormula {
+  alias: string;
+  expression: string;
+  legendUnit?: string | undefined;
 }
 
 /*
@@ -641,7 +662,15 @@ export function getDatabaseAlertMetric(
 
 // --- builders ---
 
-interface DatabaseQuerySpec {
+/*
+ * One query of a template, as data: the metric, the datapoint attributes it
+ * pins and how a bucket's samples fold into one number. The monitor step is
+ * built from it (buildDatabaseQuery adds the database scope), and the
+ * database's own pages read the same object to judge its latest readings
+ * (Common/Types/DatabaseServer/DatabaseHealth), so a line changed here
+ * changes the alert and the page together.
+ */
+export interface DatabaseAlertQuery {
   alias: string;
   metricName: string;
   aggregationType: MetricsAggregationType;
@@ -656,7 +685,12 @@ interface DatabaseQuerySpec {
   legendUnit?: string | undefined;
 }
 
-interface DatabaseCriteriaSpec {
+/*
+ * What the template compares, as data: the alias, the comparison and its
+ * line - the same object the monitor's criteria are built from and the
+ * database's pages judge against.
+ */
+export interface DatabaseAlertCriteria {
   // The query or formula alias the criteria compares.
   metricAlias: string;
   filterType: FilterType;
@@ -697,7 +731,7 @@ interface DatabaseCriteriaSpec {
  * names it. The database scope is left out: every query carries it, and it
  * is an id nobody reads.
  */
-function describeQuery(query: DatabaseQuerySpec): string {
+function describeQuery(query: DatabaseAlertQuery): string {
   const filters: Array<string> = Object.keys(query.attributes || {}).map(
     (key: string): string => {
       return `${key} = ${(query.attributes || {})[key]}`;
@@ -711,7 +745,7 @@ function describeQuery(query: DatabaseQuerySpec): string {
 
 function describeCriteria(data: {
   subject: string;
-  criteria: DatabaseCriteriaSpec;
+  criteria: DatabaseAlertCriteria;
 }): string {
   if (data.criteria.triggerOnNoData) {
     return `Triggers when ${data.subject} reports no data for the whole evaluation window.`;
@@ -734,7 +768,7 @@ function describeCriteria(data: {
  * watch the whole project and attach its alerts to nothing.
  */
 function buildDatabaseQuery(data: {
-  spec: DatabaseQuerySpec;
+  spec: DatabaseAlertQuery;
   databaseServerId: string;
   title: string;
 }): MetricQueryConfigData {
@@ -764,9 +798,9 @@ function buildDatabaseCriteria(data: {
   args: DatabaseAlertTemplateArgs;
   templateName: string;
   subject: string;
-  criteria: DatabaseCriteriaSpec;
+  criteria: DatabaseAlertCriteria;
 }): MonitorCriteria {
-  const criteria: DatabaseCriteriaSpec = data.criteria;
+  const criteria: DatabaseAlertCriteria = data.criteria;
 
   const incidentTitle: string = `[Database] ${data.templateName} - ${data.args.monitorName}`;
 
@@ -843,7 +877,7 @@ interface DatabaseTemplateSpec {
   category: DatabaseAlertTemplateCategory;
   severity: DatabaseAlertTemplateSeverity;
   engine: DatabaseTemplateEngine;
-  queries: Array<DatabaseQuerySpec>;
+  queries: Array<DatabaseAlertQuery>;
   /*
    * Optional formula over the query aliases; when present the criteria
    * compares `formulaAlias`. Every alias — query and formula — must differ:
@@ -851,16 +885,16 @@ interface DatabaseTemplateSpec {
    * formulas second, and an alias matching nothing silently falls back to
    * the first query's result.
    */
-  formula?:
-    | { alias: string; expression: string; legendUnit?: string | undefined }
-    | undefined;
+  formula?: DatabaseAlertFormula | undefined;
   rollingTime?: RollingTime | undefined;
-  criteria: DatabaseCriteriaSpec;
+  criteria: DatabaseAlertCriteria;
 }
 
 function buildDatabaseTemplate(
   spec: DatabaseTemplateSpec,
 ): DatabaseAlertTemplate {
+  const rollingTime: RollingTime = spec.rollingTime || RollingTime.Past5Minutes;
+
   return {
     id: spec.id,
     name: spec.name,
@@ -870,9 +904,13 @@ function buildDatabaseTemplate(
     monitorType: MonitorType.Metrics,
     engine: spec.engine.engine,
     receiver: spec.engine.receiver,
-    metricNames: spec.queries.map((query: DatabaseQuerySpec): string => {
+    metricNames: spec.queries.map((query: DatabaseAlertQuery): string => {
       return query.metricName;
     }),
+    queries: spec.queries,
+    formula: spec.formula,
+    criteria: spec.criteria,
+    rollingTime: rollingTime,
     getMonitorStep: (args: DatabaseAlertTemplateArgs): MonitorStep => {
       const step: MonitorStep = MonitorStep.getDefaultMonitorStep({
         monitorName: args.monitorName,
@@ -901,10 +939,10 @@ function buildDatabaseTemplate(
         : [];
 
       step.setMetricMonitor({
-        rollingTime: spec.rollingTime || RollingTime.Past5Minutes,
+        rollingTime: rollingTime,
         metricViewConfig: {
           queryConfigs: spec.queries.map(
-            (query: DatabaseQuerySpec): MetricQueryConfigData => {
+            (query: DatabaseAlertQuery): MetricQueryConfigData => {
               return buildDatabaseQuery({
                 spec: query,
                 databaseServerId: args.databaseServerId,
@@ -942,8 +980,8 @@ function getCriteriaSubject(spec: DatabaseTemplateSpec): string {
     return spec.criteria.subject;
   }
 
-  const query: DatabaseQuerySpec | undefined = spec.queries.find(
-    (candidate: DatabaseQuerySpec): boolean => {
+  const query: DatabaseAlertQuery | undefined = spec.queries.find(
+    (candidate: DatabaseAlertQuery): boolean => {
       return candidate.alias === spec.criteria.metricAlias;
     },
   );
@@ -963,8 +1001,8 @@ function buildPercentOfLimitTemplate(data: {
   category: DatabaseAlertTemplateCategory;
   severity: DatabaseAlertTemplateSeverity;
   engine: DatabaseTemplateEngine;
-  numerator: DatabaseQuerySpec;
-  denominator: DatabaseQuerySpec;
+  numerator: DatabaseAlertQuery;
+  denominator: DatabaseAlertQuery;
   resultAlias: string;
   thresholdPercent: number;
   rollingTime?: RollingTime | undefined;
