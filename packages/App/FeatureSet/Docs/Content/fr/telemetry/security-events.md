@@ -38,6 +38,7 @@ Ouvrez **Produits → Événements de sécurité**, sous **Sécurité**. Son men
 | **Tous les dossiers** | Dossiers de sécurité | Chaque dossier, ouvert ou fermé |
 | **Événements** | Événements | Rechercher et filtrer tous les événements, et en ouvrir un pour voir tous ses champs |
 | **Chasses** | Événements | Des recherches enregistrées depuis Événements, rouvertes en un clic ou exécutées selon une planification qui prévient des personnes quand elles trouvent quelque chose |
+| **Bibliothèque de chasses** | Événements | Des chasses prêtes à l'emploi à essayer sur Événements ou à ajouter à vos chasses, chacune avec les événements qu'elle lit et s'ils arrivent |
 | **Campagnes** | Événements | Chaque adresse qui a envoyé des requêtes d'attaque, et si l'une de ses requêtes est passée |
 | **Risque des entités** | Événements | Chaque utilisateur, hôte et adresse, noté selon ce qui a été trouvé à son sujet cette semaine, les plus à risque d'abord |
 | **Corréler** | Événements | Un graphe des événements qui partagent un hôte, un utilisateur ou une adresse IP |
@@ -286,6 +287,14 @@ Sur **Événements**, recherchez et filtrez jusqu'à ce que la liste montre ce q
 
 La page d'une chasse est sa recherche, ouverte dans l'explorateur des événements. Modifiez-y la recherche ou les filtres, et l'en-tête de la chasse propose **Enregistrer les modifications** et **Annuler les modifications**. **Modifier** change son nom, sa recherche, jusqu'où elle remonte, sa planification et qui elle prévient, et **Supprimer la chasse** se trouve dans son menu. À partir de Security Member, on peut enregistrer, modifier et supprimer des chasses, et un Security Viewer peut les ouvrir.
 
+Une chasse enregistrée avec des filtres de la barre latérale d'Événements les affiche dans **Modifier** sous **Filtres**, comme Événements les dessine, chacun avec un x pour le retirer. Ajoutez des filtres sur la page de la chasse, depuis la barre latérale.
+
+### Partir de la bibliothèque de chasses
+
+**Événements → Bibliothèque de chasses** liste des chasses prêtes à l'emploi pour ce que les équipes de sécurité cherchent le plus, comme les connexions échouées, PowerShell encodé, le compte root AWS et les shells ouverts dans des pods Kubernetes. Chacune montre ce qu'elle trouve, sa recherche telle que vous la taperiez sur **Événements**, et si les événements qu'elle lit arrivent, comme le fait la **Bibliothèque de règles** pour ses règles. Filtrez-les par **Catégorie de chasse**, **Données** et **Statut**, ou recherchez-les.
+
+**Essayer** ouvre la recherche sur **Événements**, sur la fenêtre de la chasse, et n'enregistre rien. **Ajouter** l'enregistre aussitôt comme l'une des chasses du projet, nommée et décrite dans votre langue et non planifiée, comme toute nouvelle chasse. Elle indique ensuite **Ajouté**, et **Ouvrir** l'ouvre, où vous pouvez lui donner une planification.
+
 ### Exécuter une chasse selon une planification
 
 | Planification | S'exécute |
@@ -303,9 +312,15 @@ Une exécution n'ouvre aucun dossier et ne déclenche aucune alerte : écrivez c
 
 Une chasse planifiée s'exécute sous la personne qui a défini sa planification, modifié sa recherche ou l'a enregistrée avec **Modifier** en dernier. Une clé d'API ne peut pas définir de planification. Quand cette personne quitte le projet ou ne peut plus lire les événements de sécurité, la chasse le signale : ouvrez **Modifier** et enregistrez-la pour qu'elle s'exécute sous votre nom.
 
+### Historique des exécutions
+
+Chaque exécution planifiée est conservée 90 jours. **Historique des exécutions**, au bout de la ligne qui dit ce que les exécutions d'une chasse ont trouvé, les liste de la plus récente à la plus ancienne : quand chacune s'est exécutée et les événements qu'elle a parcourus, puis combien elle en a trouvé, avec **Les afficher** pour ouvrir ces événements sur la page de la chasse ; qu'elle n'a rien trouvé ; ou pourquoi elle n'a pas pu s'exécuter. Quiconque peut ouvrir une chasse peut lire ses exécutions.
+
 ### Qui est prévenu
 
 La notification **Une chasse a trouvé des événements de sécurité** nomme la chasse et sa recherche, le nombre d'événements trouvés par son exécution et la fenêtre qu'elle a lue, et renvoie vers la page de la chasse sur ces événements ; aucun mot d'un événement n'y figure. Tout le monde la reçoit par e-mail et push, et choisit ses canaux sous **Paramètres utilisateur → Paramètres de notification**. Comme les autres e-mails de routine, elle peut être retenue dans un [récapitulatif d'e-mails](/docs/emails/notification-rollup).
+
+Pour publier dans Slack ou Microsoft Teams ce que trouvent les chasses, ajoutez une règle à **Règles des chasses** sous **Produits → Événements de sécurité → Espace de travail → Slack** (ou **Microsoft Teams**), sous les règles qui publient les [dossiers de sécurité](/docs/telemetry/security-cases#publier-dans-des-canaux-slack-et-microsoft-teams). Une règle nomme les canaux où publier (et, dans Microsoft Teams, les conversations) et, si vous le souhaitez, les chasses auxquelles elle s'applique, par **Nom de la chasse** : un nom qui est votre texte, le contient, commence par lui ou se termine par lui. Chaque fois qu'une exécution planifiée trouve des événements, elle publie la chasse, sa recherche, combien d'événements et quand, avec un lien vers eux, et aucun des mots propres à un événement. Une règle de chasse est mise en place par un rôle qui peut configurer des playbooks de sécurité, comme Project Owner, Project Admin ou Security Admin.
 
 ### Conserver des événements sur un dossier
 
@@ -313,7 +328,7 @@ Sélectionnez des événements sur **Événements** ou sur la page d'une chasse 
 
 OneUptime relit chaque événement en votre nom et le conserve tel qu'il était sur la page **Preuves** du dossier, si bien que le dossier le montre encore une fois la durée de conservation de l'événement dépassée. Un événement que vous ne pouvez pas lire n'est pas conservé, et un événement que le dossier conserve déjà est laissé tel quel. Un événement trouvé par une chasse nomme la chasse, et **Voir l'événement** l'ouvre tel qu'il a été conservé.
 
-Les chasses ont la même API REST que le reste de OneUptime, sous `/security-hunt`, et `POST /security-case-evidence/add-events` conserve des événements sur un dossier. Voir la [référence de l'API](/docs/api-reference/api-reference).
+Les chasses ont la même API REST que le reste de OneUptime, sous `/security-hunt`, et `POST /security-case-evidence/add-events` conserve des événements sur un dossier. Les exécutions d'une chasse se lisent sous `/security-hunt-run`. Voir la [référence de l'API](/docs/api-reference/api-reference).
 
 ## Règles de détection
 

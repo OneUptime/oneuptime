@@ -192,7 +192,8 @@ const FoundCell: FunctionComponent<{
 
 /*
  * A HUNT'S RUN HISTORY, beside its page: every scheduled run of the last 90
- * days, newest first, ten at a time - when it ran and the events it
+ * days, newest first, ten at a time (or as many as the reader picks under
+ * the list) - when it ran and the events it
  * searched, then what it found, with Show them, which closes the panel and
  * opens the explorer under it on that run's window, as a notification's
  * link does; or that it found nothing; or, in red, why it could not run.
@@ -205,6 +206,8 @@ const HuntRunHistory: FunctionComponent<ComponentProps> = (
   const [runs, setRuns] = useState<Array<SecurityHuntRun>>([]);
   const [count, setCount] = useState<number>(0);
   const [page, setPage] = useState<number>(1);
+  // Ten at a time, or as many as the reader picks under the list.
+  const [pageSize, setPageSize] = useState<number>(HUNT_RUN_HISTORY_PAGE_SIZE);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [readCount, setReadCount] = useState<number>(0);
@@ -234,8 +237,8 @@ const HuntRunHistory: FunctionComponent<ComponentProps> = (
             sort: {
               createdAt: SortOrder.Descending,
             },
-            skip: (page - 1) * HUNT_RUN_HISTORY_PAGE_SIZE,
-            limit: HUNT_RUN_HISTORY_PAGE_SIZE,
+            skip: (page - 1) * pageSize,
+            limit: pageSize,
           });
 
         if (isCurrent) {
@@ -259,7 +262,7 @@ const HuntRunHistory: FunctionComponent<ComponentProps> = (
     return () => {
       isCurrent = false;
     };
-  }, [props.huntId.toString(), page, readCount]);
+  }, [props.huntId.toString(), page, pageSize, readCount]);
 
   const columns: Columns<SecurityHuntRun> = [
     {
@@ -312,9 +315,10 @@ const HuntRunHistory: FunctionComponent<ComponentProps> = (
           noItemsMessage={RUN_HISTORY_EMPTY}
           currentPageNumber={page}
           totalItemsCount={count}
-          itemsOnPage={HUNT_RUN_HISTORY_PAGE_SIZE}
-          onNavigateToPage={(pageNumber: number) => {
+          itemsOnPage={pageSize}
+          onNavigateToPage={(pageNumber: number, itemsOnPage: number) => {
             setPage(pageNumber);
+            setPageSize(itemsOnPage);
           }}
           // Newest first, always: a history is read from its latest run.
           sortBy={null}

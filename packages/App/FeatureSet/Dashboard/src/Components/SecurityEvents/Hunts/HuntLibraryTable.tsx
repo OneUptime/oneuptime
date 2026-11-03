@@ -62,6 +62,14 @@ import React, { FunctionComponent, ReactElement } from "react";
  * Below lg, and on a phone's card, the Data column folds under the name.
  */
 
+/*
+ * A starter's search, on its own line under what it finds: read left to
+ * right, and on a right-to-left page lined up under the starter's name, at
+ * the start of the line, as the rest of the row is.
+ */
+export const HUNT_LIBRARY_SEARCH_LINE_CLASS_NAME: string =
+  "block font-normal [text-align:left] rtl:[text-align:right]";
+
 export interface ComponentProps {
   views: Array<HuntLibraryView>;
   isLoading: boolean;
@@ -146,7 +154,7 @@ const HuntCell: FunctionComponent<{
       </span>
       {/* The search, as written: never looked up as words. */}
       <code
-        className={`${HUNT_SEARCH_ONE_LINE_CLASS_NAME} block font-normal`}
+        className={`${HUNT_SEARCH_ONE_LINE_CLASS_NAME} ${HUNT_LIBRARY_SEARCH_LINE_CLASS_NAME}`}
         dir="ltr"
         title={entry.searchQuery}
         data-testid={`${HUNTS_TEST_IDS.libraryEntry}-search-${entry.id}`}
@@ -247,10 +255,14 @@ const ActionsCell: FunctionComponent<ActionsCellProps> = (
   return (
     <span className="inline-flex flex-wrap items-center justify-end gap-2">
       {tryButton}
+      {/*
+       * Sized to its words, as Try it is: the two sit side by side on a
+       * phone's card too, where a NORMAL button fills its own line.
+       */}
       <Button
         title={ADD}
         icon={IconProp.Add}
-        buttonStyle={ButtonStyleType.NORMAL}
+        buttonStyle={ButtonStyleType.OUTLINE}
         buttonSize={ButtonSize.Small}
         isLoading={props.isAdding}
         disabled={isUnavailable}

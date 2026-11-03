@@ -415,19 +415,24 @@ on a case, with their own spec, `Hunts.spec.ts`, which runs as a suite of its ow
 `npm run test-security-hunts-ui` (`playwright.security-hunts-ui.config.ts`, App Test's group 6);
 `test-security-operations-ui` leaves it out:
 
-| Page   | Route (from `RouteMap`)                                     | Production components                                                           |
-| ------ | ----------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| Hunts  | `SECURITY_EVENTS_HUNTS` `.../security-events/hunts`         | `Pages/SecurityEvents/Hunts`, `SecurityEvents/Hunts/{HuntCells,HuntFormFields}` |
-| A hunt | `SECURITY_EVENTS_HUNT_VIEW` `.../security-events/hunts/:id` | `Pages/SecurityEvents/HuntView`, `HuntHeader`, the Events explorer under it     |
-| Events | `SECURITY_EVENTS` `/dashboard/:projectId/security-events`   | `SecurityEventsViewer`, its toolbar's `HuntsMenu`, `useAddEventsToCase`         |
+| Page         | Route (from `RouteMap`)                                           | Production components                                                                              |
+| ------------ | ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| Hunts        | `SECURITY_EVENTS_HUNTS` `.../security-events/hunts`               | `Pages/SecurityEvents/Hunts`, `SecurityEvents/Hunts/{HuntCells,HuntFormFields,HuntFormFilters}`    |
+| A hunt       | `SECURITY_EVENTS_HUNT_VIEW` `.../security-events/hunts/:id`       | `Pages/SecurityEvents/HuntView`, `HuntHeader`, `HuntRunHistory`, the Events explorer under it      |
+| Hunt Library | `SECURITY_EVENTS_HUNT_LIBRARY` `.../security-events/hunt-library` | `Pages/SecurityEvents/HuntLibrary`, `SecurityEvents/Hunts/{HuntLibraryFilterBar,HuntLibraryTable}` |
+| Events       | `SECURITY_EVENTS` `/dashboard/:projectId/security-events`         | `SecurityEventsViewer`, its toolbar's `HuntsMenu`, `useAddEventsToCase`                            |
 
 `Fixture/HuntsFixture.js` lays out four hunts - Encoded PowerShell (every day, tells Maya Chen and
 SOC Tier 2; its last run found the three encoded PowerShell starts on web-03 of the past day; its
 description runs past two lines on a phone),
 Admin sign-ins outside the office (every hour, tells Diego; nothing found yet), Threat intel
 matches (not scheduled; a chip alone) and Sudo by service accounts (every 6 hours; its last run
-could not be made, as the person who set its schedule can no longer read security events) - and
-the events the Events explorer reads, matched as ClickHouse matches the search the page compiles.
+could not be made, as the person who set its schedule can no longer read security events) - the
+runs each scheduled hunt's Run History lists (`SecurityHuntRun`: Encoded PowerShell's four - 3
+events, nothing, 1 event in a window read again after a run that took too long, and that run -
+three hours of Admin sign-ins finding nothing, and Sudo's failed run), Encoded PowerShell kept as
+added from the Hunt Library (`libraryHuntId`), and the events the Events explorer reads, matched as
+ClickHouse matches the search the page compiles.
 `POST /security-case-evidence/add-events` answers as the server does: each event read again and
 kept as it was, one the case keeps already left alone. CASE-138 keeps one of the PowerShell events,
 found by the first hunt.
@@ -448,8 +453,15 @@ own search; on a phone, that notice's saved search wrapped whole and its two but
 failed run said on its page, and Delete Hunt going back to the list; a hunt's page on a phone, its
 description in two lines with Show more, and in Persian, right to left, with the list's English
 descriptions reading their own way; Add to Case from a hunt's page onto CASE-138's Evidence, the
-kept event naming the hunt and View Event opening it as it was kept; and Add to Case from an
-event's panel onto CASE-141, said under the button with a check and a link to the case's Evidence.
+kept event naming the hunt and View Event opening it as it was kept; Add to Case from an
+event's panel onto CASE-141, said under the button with a check and a link to the case's Evidence;
+a hunt's Run History, opened from beside what its runs found (and from beside a failed run), each
+run newest first with what it found, Show them closing it on that run's window, at 390 and in
+Persian; Edit drawing a hunt's chips as Events does and a chip taken off saved as gone; and the
+Hunt Library, opened from the Hunts list's menu and the side menu, every starter with its search
+and whether its events arrive, Added and Open for the one the project has, narrowed by category,
+search and status in the page's address, Try it opening Events on the starter's search and
+window, Add saving it as a hunt opened by hand, and the page at 390, in German and in Persian.
 Its screenshots are named `hunts-*`.
 
 ## Rule exceptions and Run on Past Events

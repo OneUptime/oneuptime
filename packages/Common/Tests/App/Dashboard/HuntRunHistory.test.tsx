@@ -63,9 +63,15 @@ function run(
   item.windowStartAt = new Date(
     item.windowEndAt.getTime() - 24 * HOUR + 2 * 60000,
   );
-  item.eventCount =
-    values.eventCount === null ? undefined : values.eventCount || 0;
-  item.error = values.error || undefined;
+  // A run that could not be made found no count: it says why instead.
+  if (values.eventCount !== null) {
+    item.eventCount = values.eventCount || 0;
+  }
+
+  if (values.error) {
+    item.error = values.error;
+  }
+
   return item;
 }
 
@@ -323,6 +329,27 @@ describe("a hunt's Run History", () => {
     });
     expect(reads[1]!["skip"]).toBe(10);
     expect(reads[1]!["limit"]).toBe(10);
+  });
+
+  test("Rows per page reads that many runs, from the newest", async () => {
+    count = 25;
+    await renderPanel();
+
+    const sizes: Array<HTMLElement> = screen.getAllByTestId(
+      "pagination-items-on-page-select",
+    );
+
+    expect(sizes.length).toBeGreaterThan(0);
+
+    await act(async () => {
+      fireEvent.change(sizes[0]!, { target: { value: "25" } });
+    });
+
+    await waitFor(() => {
+      expect(reads).toHaveLength(2);
+    });
+    expect(reads[1]!["skip"]).toBe(0);
+    expect(reads[1]!["limit"]).toBe(25);
   });
 
   test("runs that could not be read say why, and are read again on Try again", async () => {

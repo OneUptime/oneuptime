@@ -14,8 +14,9 @@ import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
  * (Fixture/HuntsFixture.js lays out four hunts over the month's security
  * events and keeps one of them on CASE-138): Security Events > Events >
  * Hunts, the Events toolbar's Hunts list and Save as Hunt, a hunt's page
- * with its header over the Events explorer, Add to Case from a hunt, and
- * the events kept on a case's Evidence page. What the unit tests cannot
+ * with its header over the Events explorer, its Run History and its chips
+ * in Edit, the Hunt Library, Add to Case from a hunt, and the events kept
+ * on a case's Evidence page. What the unit tests cannot
  * see: that the pages are reached from the side menu, the toolbar and the
  * rows, that the dialogs send what they say, that each answer reads on the
  * page, and that each page fits a laptop's width and a phone's.
@@ -35,9 +36,14 @@ const HUNTS_PATH: string = `${PRODUCT}/hunts`;
 
 // The fixture's hunts (HuntsFixture.js).
 const ENCODED_POWERSHELL_ID: string = "3b000000-0000-4000-8000-000000000001";
+const ADMIN_SIGN_INS_ID: string = "3b000000-0000-4000-8000-000000000002";
 const SUDO_ID: string = "3b000000-0000-4000-8000-000000000004";
 const HUNT_PATH: string = `${HUNTS_PATH}/${ENCODED_POWERSHELL_ID}`;
+const ADMIN_SIGN_INS_PATH: string = `${HUNTS_PATH}/${ADMIN_SIGN_INS_ID}`;
 const FAILING_HUNT_PATH: string = `${HUNTS_PATH}/${SUDO_ID}`;
+const HUNT_LIBRARY_PATH: string = `${PRODUCT}/hunt-library`;
+const MINUTE: number = 60 * 1000;
+const HOUR: number = 60 * MINUTE;
 const CASE_138_ID: string = "20000000-0000-4000-8000-000000000138";
 const CASE_138_EVIDENCE_PATH: string = `${PRODUCT}/cases/${CASE_138_ID}/evidence`;
 const CASE_141_ID: string = "20000000-0000-4000-8000-000000000141";
@@ -360,7 +366,7 @@ test.describe("Security Events > Events > Hunts", () => {
     await screenshot(page, "hunts-list-390");
   });
 
-  test("with no hunts yet, sends the team to Events, where they are saved from", async ({
+  test("with no hunts yet, sends the team to the Hunt Library, or to Events, where they are saved from", async ({
     page,
   }: {
     page: Page;
@@ -368,6 +374,7 @@ test.describe("Security Events > Events > Hunts", () => {
     await open(page, HUNTS_PATH, { hunts: "empty" });
 
     await expect(page.getByText("No hunts yet", { exact: true })).toBeVisible();
+    await expect(page.getByTestId("security-hunts-library")).toBeVisible();
     await page.getByTestId("security-hunts-search-events").click();
     await expectPath(page, PRODUCT);
     await expect(huntsMenu(page)).toBeVisible();
@@ -897,6 +904,417 @@ test.describe("a hunt's page", () => {
       );
 
     expect(reading).toEqual({ direction: "ltr", textAlign: "right" });
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * A hunt's Run History, and its chips in Edit
+ * ---------------------------------------------------------------------------
+ */
+
+// A run of the fixture's (HuntsFixture.js), by its number: its row in the Run History.
+function runRow(page: Page, number: number): Locator {
+  return page.getByTestId(
+    `security-hunt-run-3f000000-0000-4000-8000-${String(number).padStart(12, "0")}`,
+  );
+}
+
+function runHistory(page: Page): Locator {
+  return page.getByTestId("security-hunt-run-history");
+}
+
+async function runStates(page: Page): Promise<Array<string | null>> {
+  return runHistory(page)
+    .locator('[data-testid^="security-hunt-run-3f000000"]')
+    .evaluateAll((rows: Array<Element>): Array<string | null> => {
+      return rows.map((row: Element): string | null => {
+        return row.getAttribute("data-state");
+      });
+    });
+}
+
+test.describe("a hunt's Run History", () => {
+  test("opens beside the hunt's page: each run, newest first, and what it found - and Show them opens the explorer on that run's window", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, HUNT_PATH);
+
+    const line: Locator = page.getByTestId("security-hunt-last-found-line");
+
+    await expect(line).toContainText("Last found 3 events");
+    await line.getByTestId("security-hunt-run-history-link").click();
+
+    const panel: Locator = page.getByRole("dialog", { name: "Run History" });
+
+    // The dialog's root is the layer its panel slides in on: the panel shows.
+    await expect(runHistory(page)).toBeVisible();
+    await expect(panel).toContainText(
+      "Each scheduled run, newest first: the events it searched and what it found. Runs are kept for 90 days.",
+    );
+    expect(await runStates(page)).toEqual([
+      "found",
+      "nothing-found",
+      "found",
+      "failed",
+    ]);
+    await expect(runRow(page, 1)).toContainText("3 events");
+    await expect(runRow(page, 1)).toContainText("2 hours ago");
+    await expect(runRow(page, 2)).toContainText("Nothing found");
+    await expect(runRow(page, 3)).toContainText("1 event");
+    // Under when it ran, the events it searched.
+    await expect(runRow(page, 3)).toContainText("Searched");
+    await expect(runRow(page, 4)).toContainText("Couldn't run");
+    await expect(runRow(page, 4)).toContainText(
+      "Its search took too long and was stopped.",
+    );
+    await expect(
+      runRow(page, 2).getByTestId("security-hunt-run-show-them"),
+    ).toHaveCount(0);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "hunts-run-history-1440", { window: true });
+
+    // The run two days ago found the scheduled-task start on web-01.
+    await runRow(page, 3).getByTestId("security-hunt-run-show-them").click();
+
+    await expect(runHistory(page)).toHaveCount(0);
+    await expect(page).toHaveURL(/range=Custom/);
+
+    const address: URL = new URL(page.url());
+
+    expect(address.searchParams.get("start")).toBe(
+      new Date(NOW.getTime() - 98 * HOUR - 2 * MINUTE).toISOString(),
+    );
+    expect(address.searchParams.get("end")).toBe(
+      new Date(NOW.getTime() - 50 * HOUR - 2 * MINUTE).toISOString(),
+    );
+    await expect(eventRows(page)).toHaveCount(1);
+    await expect(eventRows(page)).toHaveAttribute(
+      "aria-label",
+      "Select Encoded PowerShell started from a scheduled task on web-01",
+    );
+  });
+
+  test("a hunt whose last run failed opens it from beside the failure, its newest run in red", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, FAILING_HUNT_PATH);
+
+    const line: Locator = page.getByTestId("security-hunt-last-found-line");
+
+    // The failure is the alert; the way to the history sits beside it.
+    await expect(line.getByRole("alert")).not.toContainText("Run history");
+    await line.getByTestId("security-hunt-run-history-link").click();
+
+    await expect(runHistory(page)).toBeVisible();
+    expect(await runStates(page)).toEqual(["failed", "nothing-found"]);
+    await expect(runRow(page, 8)).toContainText(
+      "The person it runs as can no longer read security events in this project.",
+    );
+
+    await page
+      .getByRole("dialog", { name: "Run History" })
+      .getByTestId("close-button")
+      .click();
+    await expect(runHistory(page)).toHaveCount(0);
+  });
+
+  test("fits a phone, and reads in Persian, right to left", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, HUNT_PATH, { width: 390, height: 900 });
+    await page.getByTestId("security-hunt-run-history-link").click();
+    await expect(runHistory(page)).toBeVisible();
+    await expect(runRow(page, 4)).toContainText("Couldn't run");
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "hunts-run-history-390", { window: true });
+
+    await open(page, HUNT_PATH, { lang: "fa" });
+    await page.getByTestId("security-hunt-run-history-link").click();
+
+    // Named in Persian: the panel's title is its dialog's name.
+    await expect(runHistory(page)).toBeVisible();
+    await expect(
+      page.getByRole("dialog", { name: "سابقه اجراها" }),
+    ).toHaveCount(1);
+    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+    await expect(runRow(page, 2)).toContainText("چیزی یافت نشد");
+    await expect(runRow(page, 4)).toContainText("اجرا نشد");
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "hunts-run-history-fa-1440", { window: true });
+  });
+
+  test("Edit draws the hunt's chips as Events does, and a chip taken off is taken off the hunt", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, ADMIN_SIGN_INS_PATH);
+    await page.getByTestId("security-hunt-edit").click();
+
+    const chips: Locator = dialog(page).getByTestId(
+      "security-hunt-form-filters",
+    );
+
+    // Failures left out, in words and in the sidebar's red.
+    await expect(chips).toContainText("Status is not:");
+    await expect(chips).toContainText("Failure");
+    await screenshot(page, "hunts-edit-chips-1440", { window: true });
+
+    await chips.getByTitle("Remove Status is not: Failure").click();
+    // The last chip gone, the field goes with it: the search is the hunt's now.
+    await expect(
+      dialog(page).getByTestId("security-hunt-form-filters"),
+    ).toHaveCount(0);
+
+    await dialog(page).getByRole("button", { name: "Next" }).click();
+    await dialog(page).getByRole("button", { name: "Save Changes" }).click();
+    await expect(dialog(page)).toHaveCount(0);
+
+    const [update] = (await fixture(page)).updates.filter(
+      (write: { modelName: string }): boolean => {
+        return write.modelName === "SecurityHunt";
+      },
+    );
+
+    expect(update!.id).toBe(ADMIN_SIGN_INS_ID);
+    expect(update!.data["filters"]).toEqual({});
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * The Hunt Library
+ * ---------------------------------------------------------------------------
+ */
+
+// A starter's row in the Hunt Library, by its id (Common/Types/SecurityEvent/SecurityHuntLibrary).
+function starterRow(page: Page, id: string): Locator {
+  return page.getByTestId(`security-hunt-library-entry-${id}`);
+}
+
+// The rows alone: a row says whether the project has its starter, its cells do not.
+function starterRows(page: Page): Locator {
+  return page.locator(
+    '[data-testid^="security-hunt-library-entry-"][data-added]',
+  );
+}
+
+async function pickChip(
+  page: Page,
+  testId: string,
+  optionName: string,
+): Promise<void> {
+  await page.getByTestId(testId).getByRole("button").first().click();
+  await page.getByRole("option", { name: optionName, exact: true }).click();
+}
+
+test.describe("the Hunt Library", () => {
+  test("is opened from the Hunts list and the side menu, and lists every starter: what it finds, its search, and whether its events arrive", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, HUNTS_PATH);
+    // The list's card keeps Create Hunt in sight, and the rest in its ⋯.
+    await page.getByRole("button", { name: "More options" }).first().click();
+    await page.getByRole("menuitem", { name: "Hunt Library" }).click();
+    await expectPath(page, HUNT_LIBRARY_PATH);
+
+    expect(await litEntries(page)).toEqual(["Hunt Library"]);
+    expect(await breadcrumbs(page)).toEqual([
+      "Project",
+      "Security Events",
+      "Events",
+      "Hunt Library",
+    ]);
+    await expect(page.getByTestId("security-hunt-library-count")).toHaveText(
+      "18 hunts",
+    );
+    await expect(starterRows(page)).toHaveCount(18);
+
+    const powershell: Locator = starterRow(page, "encoded-powershell");
+
+    await expect(powershell).toContainText("Encoded PowerShell");
+    await expect(
+      powershell.getByTestId(
+        "security-hunt-library-entry-search-encoded-powershell",
+      ),
+    ).toHaveText("processname:powershell.exe commandline:-enc");
+    // The project's Defender XDR sends process events.
+    await expect(
+      powershell.getByTestId(
+        "security-hunt-library-entry-data-status-encoded-powershell",
+      ),
+    ).toHaveText("Receiving");
+    // The project has it: added from the library, and opened from here.
+    await expect(powershell).toHaveAttribute("data-added", "true");
+    await expect(
+      powershell.getByTestId("security-hunt-library-open-encoded-powershell"),
+    ).toHaveAttribute("href", HUNT_PATH);
+    // No CloudTrail arrives.
+    await expect(
+      starterRow(page, "aws-root-account-activity").getByTestId(
+        "security-hunt-library-entry-data-status-aws-root-account-activity",
+      ),
+    ).toHaveText("Not receiving");
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "hunts-library-1440");
+
+    await open(page, PRODUCT);
+    await sideMenu(page).getByRole("link", { name: "Hunt Library" }).click();
+    await expectPath(page, HUNT_LIBRARY_PATH);
+  });
+
+  test("narrows by category and a search, kept in the page's address", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, HUNT_LIBRARY_PATH);
+    await expect(starterRows(page)).toHaveCount(18);
+
+    await pickChip(page, "security-hunt-library-category", "Cloud");
+    await expect(starterRows(page)).toHaveCount(3);
+    await expect(page.getByTestId("security-hunt-library-count")).toHaveText(
+      "3 hunts",
+    );
+    await expect(page).toHaveURL(/category=Cloud/);
+
+    await page.getByTestId("security-hunt-library-search-slot").click();
+    await page.getByTestId("security-hunt-library-search").fill("mfa");
+    await expect(starterRows(page)).toHaveCount(1);
+    await expect(
+      starterRow(page, "aws-console-sign-ins-without-mfa"),
+    ).toBeVisible();
+    await expect(page).toHaveURL(/search=mfa/);
+
+    await pickChip(page, "security-hunt-library-status", "Added");
+    await expect(
+      page.getByTestId("security-hunt-library-no-match"),
+    ).toContainText("No hunt matches your search or filters");
+  });
+
+  test("Try it opens the starter's search on Events, over its window, and saves nothing", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, HUNT_LIBRARY_PATH);
+    await page.getByTestId("security-hunt-library-try-failed-sign-ins").click();
+
+    await expectPath(page, PRODUCT);
+
+    const address: URL = new URL(page.url());
+
+    expect(address.searchParams.get("search")).toBe(
+      "class:Authentication status:Failure",
+    );
+    expect(address.searchParams.get("range")).toBe("Past 1 Day");
+    // The one failed Okta sign-in of the past day.
+    await expect(eventRows(page)).toHaveCount(1);
+    await expect(eventRows(page)).toHaveAttribute(
+      "aria-label",
+      "Select admin.finance failed to sign in: wrong password",
+    );
+    expect(
+      (await fixture(page)).creates.filter((write: { modelName: string }) => {
+        return write.modelName === "SecurityHunt";
+      }),
+    ).toEqual([]);
+  });
+
+  test("Add saves the starter as a hunt of the project's, opened by hand, and Open goes to it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, HUNT_LIBRARY_PATH);
+
+    const shells: Locator = starterRow(page, "kubernetes-pod-shells");
+
+    await shells
+      .getByTestId("security-hunt-library-add-kubernetes-pod-shells")
+      .click();
+    await expect(shells).toHaveAttribute("data-added", "true");
+
+    const [create] = (await fixture(page)).creates.filter(
+      (write: { modelName: string }): boolean => {
+        return write.modelName === "SecurityHunt";
+      },
+    );
+
+    expect(create!.data).toMatchObject({
+      name: "Shells opened in pods",
+      searchQuery: "@objectRef.resource:pods @objectRef.subresource:exec",
+      timeRange: "Past 1 Week",
+      schedule: "Not Scheduled",
+      libraryHuntId: "kubernetes-pod-shells",
+    });
+
+    await shells
+      .getByTestId("security-hunt-library-open-kubernetes-pod-shells")
+      .click();
+    await expect(page.getByTestId("security-hunt-title")).toHaveText(
+      "Shells opened in pods",
+    );
+    expect(new URL(page.url()).pathname.startsWith(`${HUNTS_PATH}/`)).toBe(
+      true,
+    );
+  });
+
+  test("fits a phone, and reads in German and in Persian", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, HUNT_LIBRARY_PATH, { width: 390, height: 900 });
+    await expect(
+      page.getByTestId("security-hunt-library-entry-hunt-failed-sign-ins"),
+    ).toBeVisible();
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "hunts-library-390", { window: true });
+    // The starter the project has, Added and Open on its card.
+    await starterRow(page, "encoded-powershell").scrollIntoViewIfNeeded();
+    await screenshot(page, "hunts-library-390-added", { window: true });
+
+    await open(page, HUNT_LIBRARY_PATH, { lang: "de" });
+    await expect(starterRow(page, "encoded-powershell")).toContainText(
+      "Codiertes PowerShell",
+    );
+    await expect(
+      page.getByRole("heading", { name: "Suchbibliothek" }),
+    ).toBeVisible();
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "hunts-library-de-1440");
+
+    await open(page, HUNT_LIBRARY_PATH, { lang: "fa" });
+    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+    await expect(
+      page.getByRole("heading", { name: "کتابخانه شکار" }),
+    ).toBeVisible();
+    /*
+     * A search reads left to right on a right-to-left page, lined up under
+     * the starter's name at the start of a Persian line.
+     */
+    const search: Locator = page.getByTestId(
+      "security-hunt-library-entry-search-encoded-powershell",
+    );
+
+    await expect(search).toHaveAttribute("dir", "ltr");
+    expect(
+      await search.evaluate((element: Element): string => {
+        return window.getComputedStyle(element).textAlign;
+      }),
+    ).toBe("right");
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "hunts-library-fa-1440");
   });
 });
 

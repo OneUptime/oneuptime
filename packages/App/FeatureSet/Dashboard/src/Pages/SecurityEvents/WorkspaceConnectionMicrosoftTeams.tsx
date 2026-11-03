@@ -20,7 +20,10 @@ const SecurityEventsWorkspaceConnectionMicrosoftTeams: FunctionComponent<
   return (
     <WorkspacePlanLeftoverGate
       workspaceType={WorkspaceType.MicrosoftTeams}
-      eventTypes={[...SECURITY_EVENTS_WORKSPACE_EVENT_TYPES]}
+      eventTypes={[
+        NotificationRuleEventType.SecurityCase,
+        NotificationRuleEventType.SecurityHunt,
+      ]}
     >
       <WorkspaceConnectionGate workspaceType={WorkspaceType.MicrosoftTeams}>
         <div className="space-y-6">

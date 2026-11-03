@@ -89,8 +89,10 @@
  *   ?hunts=  empty: the project has saved no hunt yet. Otherwise four hunts
  *            - one that found events, one that found nothing, one opened
  *            by hand and one whose last run failed - over the month's
- *            security events, which the Events page and a hunt's page list
- *            (HuntsFixture.js lays them out, and keeps events on a case).
+ *            security events, which the Events page and a hunt's page list,
+ *            with the runs each hunt's Run History lists; the first was
+ *            added from the Hunt Library (HuntsFixture.js lays them out,
+ *            and keeps events on a case).
  *   The project's case setup is laid out by CaseSetupFixture.js: two case
  *            custom fields (Business Unit and External Ticket, filled in on
  *            CASE-142), two note templates, and CASE- numbering.
@@ -182,6 +184,7 @@ import { HUNT_SCENARIOS, createHuntsFixture } from "./HuntsFixture";
 import SecurityEventsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Index";
 import SecurityHuntsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Hunts";
 import SecurityHuntViewPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/HuntView";
+import SecurityHuntLibraryPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/HuntLibrary";
 import SecurityCaseEvidence from "Common/Models/DatabaseModels/SecurityCaseEvidence";
 import SecurityCaseTask from "Common/Models/DatabaseModels/SecurityCaseTask";
 import {
@@ -605,6 +608,7 @@ const ID = {
   watchlistValue: (n) => uuid("3a000000", n),
   monitor: (n) => uuid("3e000000", n),
   hunt: (n) => uuid("3b000000", n),
+  huntRun: (n) => uuid("3f000000", n),
   event: (n) => uuid("3c000000", n),
   source: (n) => uuid("3d000000", n),
   caseField: (n) => uuid("4a000000", n),
@@ -4421,6 +4425,7 @@ const PAGES = [
   [PageMap.SECURITY_EVENTS, SecurityEventsPage],
   [PageMap.SECURITY_EVENTS_HUNTS, SecurityHuntsPage],
   [PageMap.SECURITY_EVENTS_HUNT_VIEW, SecurityHuntViewPage],
+  [PageMap.SECURITY_EVENTS_HUNT_LIBRARY, SecurityHuntLibraryPage],
   ...SECURITY_CASE_QUEUE_VIEWS.map((view) => {
     return [view.page, SecurityCasesPage, view.key];
   }),

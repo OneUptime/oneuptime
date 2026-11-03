@@ -530,7 +530,8 @@ describe("Security Events > Hunts", () => {
     expect(navigated[1]!.endsWith("/security-events")).toBe(true);
   });
 
-  test("the list's card offers the Hunt Library beside Create Hunt, whatever the list holds", async () => {
+  // A card shows Create Hunt as its button and keeps the rest in its menu (splitTableHeaderButtons).
+  test("the list's card offers the Hunt Library in its menu, whatever the list holds", async () => {
     await renderList();
 
     const buttons: Array<{

@@ -57,8 +57,9 @@ import React, { FunctionComponent, ReactElement } from "react";
  * A row opens the hunt's page - its search, opened on the Events explorer.
  * Create Hunt asks what it searches for, then whether it runs on a
  * schedule; most hunts are saved from Events instead (Save as Hunt), with
- * the search on screen, or added from the Hunt Library - its button beside
- * Create Hunt - and the empty list says so.
+ * the search on screen, or added from the Hunt Library - in the list's
+ * menu, under Hunts in the side menu, and first in the empty list - and
+ * the empty list says so.
  */
 const SecurityHuntsPage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -113,7 +114,7 @@ const SecurityHuntsPage: FunctionComponent<PageComponentProps> = (
       cardProps={{
         title: HUNTS_TABLE_TITLE,
         description: HUNTS_TABLE_DESCRIPTION,
-        // The ready-made ones, beside Create Hunt.
+        // The ready-made ones: in the card's menu, Create Hunt its one button.
         buttons: [
           {
             title: HUNT_LIBRARY_TITLE,

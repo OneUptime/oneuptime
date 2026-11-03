@@ -27,7 +27,10 @@ const SecurityEventsWorkspaceConnectionSlack: FunctionComponent<
   return (
     <WorkspacePlanLeftoverGate
       workspaceType={WorkspaceType.Slack}
-      eventTypes={[...SECURITY_EVENTS_WORKSPACE_EVENT_TYPES]}
+      eventTypes={[
+        NotificationRuleEventType.SecurityCase,
+        NotificationRuleEventType.SecurityHunt,
+      ]}
     >
       <WorkspaceConnectionGate workspaceType={WorkspaceType.Slack}>
         <div className="space-y-6">
