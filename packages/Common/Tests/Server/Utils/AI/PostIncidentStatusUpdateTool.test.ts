@@ -13,6 +13,7 @@ import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import { afterEach, describe, expect, test } from "@jest/globals";
 import { actionTitleText } from "../../../Helpers/AIActionText";
+import { actionCardText } from "../../../Helpers/AIActionCardText";
 
 /*
  * post_incident_status_update posts a customer-facing public note. When the
@@ -113,6 +114,18 @@ describe("post_incident_status_update - default subscriber notification", () => 
     expect(widgetSubheading(run.result)).toBe(
       "Status update posted, subscribers not notified",
     );
+    // The card's words: the update itself is data, named in the reader's words.
+    expect(actionCardText(run.result.widget)).toEqual({
+      heading: expect.stringContaining("#"),
+      kind: "Incident",
+      line: "Status update posted, subscribers not notified",
+      facts: [
+        {
+          label: "Status update",
+          value: expect.any(String),
+        },
+      ],
+    });
   });
 
   test("notifies when notifySubscribers is omitted and the incident notified subscribers when declared", async () => {

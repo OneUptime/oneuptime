@@ -6,17 +6,23 @@ import {
   AIActionCardFact,
   aiActionCardFact,
   AIActionCardWords,
+  AIActionList,
+  aiActionList,
+  aiActionResourceByName,
   AIActionSentence,
   aiActionSentence,
   aiActionTerm,
 } from "../../../../Types/AI/AIActionWords";
+import { getAiAffectedResourceKindInfo } from "../../../../Types/AI/AiAffectedResources";
 import AcknowledgedStateUtil from "../../../../Utils/AcknowledgedState";
 import ResolvedStateUtil, {
   ResolvedStateList,
 } from "../../../../Utils/ResolvedState";
-import AffectedResourceLinks, {
-  LinkedAffectedResource,
-} from "./AffectedResourceLinks";
+/*
+ * Types only: this module reads no service, so the tools that use it at
+ * load time (their inputSchema) never wait on the toolbox's import cycle.
+ */
+import type { LinkedAffectedResource } from "./AffectedResourceLinks";
 
 // How much of a description the card a new record leaves shows.
 const CARD_DESCRIPTION_LENGTH: number = 200;
@@ -276,6 +282,23 @@ export function describeNewRecordForPerson(data: {
 }
 
 /*
+ * Resources, for a card's words: 'host "test01"', the kind in the reader's
+ * words, listed the way the reader's language lists them.
+ */
+export function describeResourcesForCard(
+  linked: Array<LinkedAffectedResource>,
+): AIActionList {
+  return aiActionList(
+    linked.map((resource: LinkedAffectedResource): AIActionSentence => {
+      return aiActionResourceByName({
+        noun: getAiAffectedResourceKindInfo(resource.kind).noun,
+        name: resource.name,
+      });
+    }),
+  );
+}
+
+/*
  * The card a new incident or alert leaves under the answer
  * (WidgetBuilder.actionCard): its kind, the severity it took and where it
  * started, then what it is linked to and the start of its description -
@@ -306,7 +329,7 @@ export function describeNewRecordCard(data: {
       ? [
           aiActionCardFact(
             AI_ACTION_CARD_FACTS.affectedResources,
-            AffectedResourceLinks.describeForCard(data.linked),
+            describeResourcesForCard(data.linked),
           ),
         ]
       : []),
@@ -344,15 +367,13 @@ export function describeLinkingCard(data: {
     data.added.length > 0
       ? [
           aiActionSentence(AI_ACTION_CARD_LINES.linkedTo, {
-            resources: AffectedResourceLinks.describeForCard(data.added),
+            resources: describeResourcesForCard(data.added),
           }),
         ]
       : data.alreadyLinked.length > 0
         ? [
             aiActionSentence(AI_ACTION_CARD_LINES.alreadyLinkedTo, {
-              resources: AffectedResourceLinks.describeForCard(
-                data.alreadyLinked,
-              ),
+              resources: describeResourcesForCard(data.alreadyLinked),
             }),
           ]
         : [];
@@ -361,7 +382,7 @@ export function describeLinkingCard(data: {
       ? [
           aiActionCardFact(
             AI_ACTION_CARD_FACTS.alreadyLinked,
-            AffectedResourceLinks.describeForCard(data.alreadyLinked),
+            describeResourcesForCard(data.alreadyLinked),
           ),
         ]
       : [];

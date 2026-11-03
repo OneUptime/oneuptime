@@ -60,6 +60,7 @@ import {
 import { stubSecurityCaseValues } from "../../../../Helpers/SecurityCaseValuesStub";
 import { SecurityPlaybookActionType } from "../../../../../Types/SecurityPlaybook/SecurityPlaybookAction";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import { actionCardText } from "../../../../Helpers/AIActionCardText";
 
 /*
  * The security case tools: how OneUptime AI reads a case and what is
@@ -633,6 +634,18 @@ describe("add_security_case_note (a write)", () => {
       type: AIChatCitationTargetType.SecurityCaseView,
       params: { securityCaseId: caseId.toString() },
     });
+    // The card it leaves, in words the Dashboard says in the reader's language.
+    expect(actionCardText(result.widget)).toEqual({
+      heading: "CASE-42 Brute force",
+      kind: "Security case",
+      line: "Note added",
+      facts: [
+        {
+          label: "Note",
+          value: "Checked: <img src=x onerror=alert(1)> the address is known-bad.",
+        },
+      ],
+    });
   });
 
   test("never on a case the person cannot read, and never without a person", async () => {
@@ -701,6 +714,17 @@ describe("run_security_playbook (a write)", () => {
       },
       ctx,
     );
+
+    /*
+     * The case, the playbook by its name in quotes, how many steps it runs,
+     * and that the step needing approval waits on the case.
+     */
+    expect(actionCardText(result.widget)).toEqual({
+      heading: "CASE-42 Brute force",
+      kind: "Security case",
+      line: 'Started playbook "Contain Host" · Steps that need approval wait on the case',
+      facts: [{ label: "Steps", value: "1 step" }],
+    });
 
     expect(callArg(findPlaybook)["query"]).toEqual({
       _id: playbookId,

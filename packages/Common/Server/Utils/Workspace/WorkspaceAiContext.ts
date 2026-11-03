@@ -115,6 +115,11 @@ export default class WorkspaceAiContext {
     channelId: string | undefined;
     props: DatabaseCommonInteractionProps;
   }): Promise<AIChatPageContext | undefined> {
+    // A direct message or a chat is no record's channel: nothing to look up.
+    if (!(data.channelId || "").trim()) {
+      return undefined;
+    }
+
     try {
       const owner: { type: OnCallPageRecordType; id: ObjectID } | null =
         await WorkspacePageAbout.findChannelRecord({
