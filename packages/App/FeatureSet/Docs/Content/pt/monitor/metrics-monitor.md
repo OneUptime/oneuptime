@@ -116,7 +116,7 @@ Quanto maior a janela, mais largo é cada intervalo de agrupamento, então um po
 
 ## Critérios
 
-Estes monitores sempre avaliam o **Metric Value**: o valor agregado da consulta de métricas ou da fórmula configurada. **Quando alertar** configura um critério a partir de **Medido como**, **Janela de tempo**, **Condição** e **Valor**. Quando a métrica tem uma unidade, escolha a unidade do valor ao lado dele. A **Condição** dele é **Acima de**, **Igual ou acima de**, **Abaixo de**, **Igual ou abaixo de**, **Exatamente**, **Incomumente alto**, **Incomumente baixo** ou **Incomumente alto ou baixo**. Para vários critérios, como faixas de severidade, clique em **Editar como critérios personalizados** em **Mais campos** de **O que acontece**: cada critério ali tem uma **Métrica**, uma **Agregação**, uma **Condição** e um **Limite**.
+Estes monitores sempre avaliam o **Metric Value**: o valor agregado da consulta de métricas ou da fórmula configurada. **Quando alertar** configura um critério a partir de **Medido como**, **Janela de tempo**, **Condição** e **Valor**. Quando a métrica tem uma unidade, escolha a unidade do valor ao lado dele. A **Condição** dele é **Acima de**, **Igual ou acima de**, **Abaixo de**, **Igual ou abaixo de**, **Exatamente**, **Incomumente alto**, **Incomumente baixo**, **Incomumente alto ou baixo**, **Previsão acima de** ou **Previsão abaixo de**. Para vários critérios, como faixas de severidade, clique em **Editar como critérios personalizados** em **Mais campos** de **O que acontece**: cada critério ali tem uma **Métrica**, uma **Agregação**, uma **Condição** e um **Limite**.
 
 | Condição | Corresponde quando o valor está… |
 | --- | --- |
@@ -128,10 +128,14 @@ Estes monitores sempre avaliam o **Metric Value**: o valor agregado da consulta 
 | **Anomalously High** | acima da faixa esperada para esta hora da semana |
 | **Anomalously Low** | abaixo dessa faixa |
 | **Anomalous** | fora dessa faixa, em qualquer direção |
+| **Previsão acima de** | está a caminho de passar do limite: sua tendência o ultrapassa até o fim de **Horizonte** |
+| **Previsão abaixo de** | está a caminho de ficar abaixo do limite, até o fim de **Horizonte** |
 | **Sem dados** | ausente: a consulta não enviou nada na janela |
 | **Com dados** | presente: a consulta enviou algo na janela |
 
 As condições de anomalia não têm limite. Em vez dele, **Quando alertar** mostra **Sensibilidade** (Baixo, Médio, a padrão, ou Alto), e os critérios personalizados também uma **Janela de linha de base** (14 dias, a padrão, 28, 60 ou 90), e cada ponto de dados é comparado com a mesma hora da semana em dias anteriores, até onde alcança essa janela. O que está acontecendo agora nunca entra nessa comparação, então uma mudança que persiste continua alertando até que, uma semana depois, tenha entrado nesses dias anteriores. Até que essa hora da semana tenha duas semanas de histórico, o critério ainda está aprendendo e não gera alertas.
+
+As condições de previsão comparam para onde a métrica está indo com o limite, então um disco que enche um pouco a cada dia alerta dias antes de ficar cheio. Cada verificação traça uma linha reta pelos pontos de dados de cada série na **Janela de tempo** e a prolonga até onde **Horizonte** indica, de 1 hora a 30 dias: uma semana, a menos que você mude. O critério corresponde quando essa linha passou do limite ao fim desse tempo, e o incidente diz para onde a métrica está indo e quando ela cruza o limite. Escolha uma janela longa, como **Últimos 7 dias**, para que a linha acompanhe como a métrica cresce e não seus altos e baixos diários. Uma série é prevista quando seus dados cobrem metade da janela, e deixa de ser quando seus dados param de chegar. Para ser avisado antes de um sistema de arquivos encher, observe `system.filesystem.utilization` com Max, agrupado por host e ponto de montagem, e alerte quando a previsão passar de 90% em até 7 dias.
 
 Com o que um ponto de dados é comparado depende da consulta:
 

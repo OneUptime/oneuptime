@@ -333,6 +333,7 @@ criteria = [
 | सर्वर प्रोसेस | `Is Executing`, `Is Not Executing` |
 | स्क्रिप्ट | `Evaluates To True` |
 | विसंगतियाँ, मेट्रिक्स, लॉग और ट्रेस के लिए | `Anomalously High`, `Anomalously Low`, `Anomalous` |
+| पूर्वानुमान, मेट्रिक्स के लिए | `Forecast Above`, `Forecast Below` (कितना आगे, यह `forecast.horizonInHours` है, जो `metric_monitor_options` में जाता है: न देने पर एक सप्ताह) |
 
 एक फ़िल्टर जो तब मेल खाता है जब कोई SSL प्रमाणपत्र 14 दिन या उससे कम में समाप्त होने वाला हो:
 

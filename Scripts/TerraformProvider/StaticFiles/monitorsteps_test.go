@@ -1140,8 +1140,8 @@ func TestMonitorStepsFilterTypeValidatorAcceptsAllValues(t *testing.T) {
 			t.Fatalf("FilterType value %q should be accepted", v)
 		}
 	}
-	if len(monitorStepsFilterTypeValues) != 22 {
-		t.Fatalf("FilterType enum has %d values, want 22", len(monitorStepsFilterTypeValues))
+	if len(monitorStepsFilterTypeValues) != 24 {
+		t.Fatalf("FilterType enum has %d values, want 24", len(monitorStepsFilterTypeValues))
 	}
 }
 

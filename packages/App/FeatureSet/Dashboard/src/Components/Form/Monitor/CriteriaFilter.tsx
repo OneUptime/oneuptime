@@ -48,7 +48,11 @@ import CheckboxElement from "Common/UI/Components/Checkbox/Checkbox";
 import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
 import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
 import { getNoDataPolicyMoreFieldsItems } from "./MonitorMoreFields";
-import { TelemetryRuleCopy } from "../../../Utils/Form/Monitor/TelemetryRule/TelemetryRuleText";
+import {
+  getForecastHorizonChoices,
+  TelemetryRuleChoice,
+  TelemetryRuleCopy,
+} from "../../../Utils/Form/Monitor/TelemetryRule/TelemetryRuleText";
 import FieldLabelElement from "Common/UI/Components/Detail/FieldLabel";
 import Dropdown, {
   ComponentProps as DropdownProps,
@@ -1128,8 +1132,12 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
             </div>
           )}
 
+        {/* A forecast reads every value of the window into one trend. */}
         {criteriaFilter?.checkOn &&
-          criteriaFilter?.checkOn === CheckOn.MetricValue && (
+          criteriaFilter?.checkOn === CheckOn.MetricValue &&
+          !CriteriaFilterUtil.isForecastFilterType(
+            criteriaFilter?.filterType,
+          ) && (
             <div className="mt-1">
               <FieldLabelElement
                 title={isMetricOnly ? "Aggregation" : "Select Aggregation"}
@@ -1564,6 +1572,70 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                     ? TelemetryRuleCopy.exceptionAnomalyHint
                     : 'Anomaly detection requires at least the chosen window of telemetry history before firing — until then the rule sits in "Learning" state and produces no alerts.',
                 )}
+              </p>
+            </div>
+          )}
+
+        {criteriaFilter?.checkOn === CheckOn.MetricValue &&
+          CriteriaFilterUtil.isForecastFilterType(
+            criteriaFilter?.filterType,
+          ) && (
+            <div className="mt-1">
+              <FieldLabelElement
+                title={TelemetryRuleCopy.forecastHorizonTitle}
+                description="How far ahead to follow the trend before comparing it with the threshold."
+              />
+              <FilterDropdown
+                ariaLabel={TelemetryRuleCopy.forecastHorizonTitle}
+                isClearable={false}
+                value={(() => {
+                  const hours: number =
+                    CriteriaFilterUtil.getForecastHorizonInHours(
+                      criteriaFilter,
+                    );
+                  const choice: TelemetryRuleChoice<number> | undefined =
+                    getForecastHorizonChoices({
+                      current: hours,
+                      translator,
+                    }).find((item: TelemetryRuleChoice<number>) => {
+                      return item.value === hours;
+                    });
+                  return choice
+                    ? { value: choice.value, label: choice.label }
+                    : undefined;
+                })()}
+                options={getForecastHorizonChoices({
+                  current:
+                    CriteriaFilterUtil.getForecastHorizonInHours(
+                      criteriaFilter,
+                    ),
+                  translator,
+                }).map((choice: TelemetryRuleChoice<number>) => {
+                  return { value: choice.value, label: choice.label };
+                })}
+                onChange={(
+                  value: DropdownValue | Array<DropdownValue> | null,
+                ) => {
+                  const hours: number = Number(value?.toString());
+
+                  if (!Number.isFinite(hours) || hours <= 0) {
+                    return;
+                  }
+
+                  props.onChange?.({
+                    ...criteriaFilter,
+                    metricMonitorOptions: {
+                      ...criteriaFilter?.metricMonitorOptions,
+                      forecast: {
+                        ...criteriaFilter?.metricMonitorOptions?.forecast,
+                        horizonInHours: hours,
+                      },
+                    },
+                  });
+                }}
+              />
+              <p className="mt-2 text-xs text-gray-500">
+                {translator.translateText(TelemetryRuleCopy.forecastHint)}
               </p>
             </div>
           )}

@@ -333,6 +333,7 @@ criteria = [
 | فرایندهای سرور | `Is Executing`، `Is Not Executing` |
 | اسکریپت‌ها | `Evaluates To True` |
 | ناهنجاری‌ها، برای متریک‌ها، لاگ‌ها و تریس‌ها | `Anomalously High`، `Anomalously Low`، `Anomalous` |
+| پیش‌بینی‌ها، برای متریک‌ها | `Forecast Above`، `Forecast Below` (بازهٔ پیش‌بینی `forecast.horizonInHours` در `metric_monitor_options` است: اگر داده نشود، یک هفته) |
 
 فیلتری که وقتی یک گواهی SSL ظرف ۱۴ روز یا کمتر منقضی شود مطابقت دارد:
 

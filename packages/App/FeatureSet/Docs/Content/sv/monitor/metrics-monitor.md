@@ -116,7 +116,7 @@ Ju längre fönstret är, desto bredare är varje tidsintervall, så en datapunk
 
 ## Kriterier
 
-Dessa monitorer utvärderar alltid **Metric Value**: det aggregerade värdet av den konfigurerade metrikfrågan eller formeln. **När det ska larmas** ställer in ett kriterium utifrån **Mätt som**, **Tidsfönster**, **Villkor** och **Värde**. När mätvärdet har en enhet väljer du värdets enhet bredvid det. Dess **Villkor** är **Över**, **På eller över**, **Under**, **På eller under**, **Exakt**, **Ovanligt hög**, **Ovanligt låg** eller **Ovanligt hög eller låg**. För flera kriterier, till exempel allvarlighetsband, klickar du på **Redigera som egna kriterier** under **Fler fält** i **Vad som händer**: varje kriterium där har ett **Mätvärde**, en **Aggregering**, ett **Villkor** och en **Tröskel**.
+Dessa monitorer utvärderar alltid **Metric Value**: det aggregerade värdet av den konfigurerade metrikfrågan eller formeln. **När det ska larmas** ställer in ett kriterium utifrån **Mätt som**, **Tidsfönster**, **Villkor** och **Värde**. När mätvärdet har en enhet väljer du värdets enhet bredvid det. Dess **Villkor** är **Över**, **På eller över**, **Under**, **På eller under**, **Exakt**, **Ovanligt hög**, **Ovanligt låg**, **Ovanligt hög eller låg**, **Väntas stiga över** eller **Väntas sjunka under**. För flera kriterier, till exempel allvarlighetsband, klickar du på **Redigera som egna kriterier** under **Fler fält** i **Vad som händer**: varje kriterium där har ett **Mätvärde**, en **Aggregering**, ett **Villkor** och en **Tröskel**.
 
 | Villkor | Matchar när värdet är… |
 | --- | --- |
@@ -128,10 +128,14 @@ Dessa monitorer utvärderar alltid **Metric Value**: det aggregerade värdet av 
 | **Anomalously High** | över det förväntade intervallet för den här timmen i veckan |
 | **Anomalously Low** | under det intervallet |
 | **Anomalous** | utanför det intervallet, åt vilket håll som helst |
+| **Väntas stiga över** | är på väg över tröskeln: trenden ligger över den vid slutet av **Tidshorisont** |
+| **Väntas sjunka under** | är på väg under tröskeln, vid slutet av **Tidshorisont** |
 | **Inga data** | frånvarande: frågan skickade ingenting i fönstret |
 | **Har data** | närvarande: frågan skickade något i fönstret |
 
 Avvikelsevillkoren har inget tröskelvärde. **När det ska larmas** visar i stället **Känslighet** (Låg, Medel, som är standard, eller Hög), och de egna kriterierna även ett **Baslinjefönster** (14 dagar, som är standard, 28, 60 eller 90), och varje datapunkt jämförs med samma timme i veckan på tidigare dagar, så långt tillbaka som det fönstret räcker. Det som händer nu ingår aldrig i jämförelsen, så en förändring som består fortsätter att larma tills den en vecka senare har kommit in i de tidigare dagarna. Tills den timmen i veckan har två veckors historik lär sig kriteriet fortfarande och ger inga larm.
+
+Prognosvillkoren jämför vart mätvärdet är på väg med tröskeln, så en disk som fylls lite varje dag larmar dagar innan den är full. Varje kontroll drar en rät linje genom varje series datapunkter i **Tidsfönster** och följer den så långt fram som **Tidshorisont** anger, från 1 timme till 30 dagar: en vecka om du inte ändrar det. Kriteriet matchar när linjen har passerat tröskeln vid slutet av den tiden, och dess incident säger vart mätvärdet är på väg och när det passerar tröskeln. Välj ett långt fönster, till exempel **Senaste 7 dagarna**, så att linjen följer hur mätvärdet växer och inte dess dagliga svängningar. En serie får en prognos när dess data täcker halva fönstret, och inte längre när dess data slutar komma. För att få en varning innan ett filsystem blir fullt, bevaka `system.filesystem.utilization` med Max, grupperat per värd och monteringspunkt, och larma när det väntas stiga över 90 % inom 7 dagar.
 
 Vad en datapunkt jämförs med beror på frågan:
 
