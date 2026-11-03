@@ -1633,17 +1633,29 @@ test.describe("an account's pages", () => {
       rows.filter({ hasText: "ModifyDBInstance" }).getByText("eu-west-1"),
     ).toBeVisible();
 
-    // The time is never cut short, at 1280 or beside the side menu at 1024.
+    /*
+     * The time is never cut short, at 1280 or beside the side menu at 1024 -
+     * read again until the table has fitted its columns to the new width,
+     * which it does a frame after the window changes (useTableBoxWidth): one
+     * read right after the resize found the old frame, or no cells at all,
+     * one run in 97 under load (2026-11-02).
+     */
     for (const width of [1280, 1024]) {
       await page.setViewportSize({ width, height: 900 });
-      const cut: Array<boolean> = await page
-        .locator("tbody tr td:nth-child(2) > div")
-        .evaluateAll((cells: Array<Element>): Array<boolean> => {
-          return cells.map((cell: Element): boolean => {
-            return cell.scrollWidth > cell.clientWidth + 1;
-          });
-        });
-      expect(cut).toEqual([false, false, false, false, false, false]);
+      await expect
+        .poll(
+          (): Promise<Array<boolean>> => {
+            return page
+              .locator("tbody tr td:nth-child(2) > div")
+              .evaluateAll((cells: Array<Element>): Array<boolean> => {
+                return cells.map((cell: Element): boolean => {
+                  return cell.scrollWidth > cell.clientWidth + 1;
+                });
+              });
+          },
+          { message: `the change times cut short at ${width} pixels` },
+        )
+        .toEqual([false, false, false, false, false, false]);
     }
 
     await shoot(page, "account-changes");
