@@ -195,8 +195,12 @@ describe("the AI card draws the line inside its one card", () => {
     expect(PANEL).toContain(
       "isAiOffInvestigationReason(notInvestigatedReason)",
     );
+    /*
+     * #5413's follow-up: an open record whose fixing switch is on now can be
+     * decided again, so the card is whole (isFixingDecidableAgainNow).
+     */
     expect(PANEL).toContain(
-      "const cardFold: AiCardFold = getAiCardFold({ isInvestigationLoaded, offReason, remediation: remediationState, areSwitchesRead: laneSwitches.isRead, });",
+      "const cardFold: AiCardFold = getAiCardFold({ isInvestigationLoaded, offReason, remediation: remediationState, areSwitchesRead: laneSwitches.isRead, isFixingDecidableAgain: isFixingDecidableAgainNow({ remediation: remediationState, isAiOn: isAiOffered, switches: laneSwitches.states, isRecordResolved: Boolean(props.isRecordResolved), }), });",
     );
     // Until the Remediation step has read, the card checks.
     expect(PANEL).toContain(
