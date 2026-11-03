@@ -2,6 +2,8 @@ import NetworkControllerDeviceAddRunner, {
   DEVICE_ADD_CONNECTION_GONE,
   DEVICE_ADD_CONNECTION_OFF,
   DEVICE_ADD_FLUSH_INTERVAL_MS,
+  DEVICE_ADD_LOCK_NAMESPACE,
+  DEVICE_ADD_LOCK_TIMEOUT_MS,
   DEVICE_ADD_MAY_NOT_CREATE_DEVICES,
   DEVICE_ADD_MAY_NOT_CREATE_SITES,
   DEVICE_ADD_NAME_TAKEN_REASON,
@@ -14,6 +16,10 @@ import NetworkControllerDeviceAddRunner, {
 import { ControllerIdentityHolder } from "../../../../Server/Utils/NetworkController/NetworkControllerDeviceAdd";
 import { ControllerInventoryCandidate } from "../../../../Server/Utils/NetworkController/NetworkControllerInventory";
 import Queue from "../../../../Server/Infrastructure/Queue";
+import Semaphore, {
+  SemaphoreMutex,
+} from "../../../../Server/Infrastructure/Semaphore";
+import logger from "../../../../Server/Utils/Logger";
 import NetworkControllerConnectionService from "../../../../Server/Services/NetworkControllerConnectionService";
 import NetworkControllerConnection from "../../../../Models/DatabaseModels/NetworkControllerConnection";
 import NetworkDevice from "../../../../Models/DatabaseModels/NetworkDevice";
@@ -336,6 +342,104 @@ beforeEach(() => {
 
 afterEach(() => {
   jest.restoreAllMocks();
+});
+
+describe("the connection's lock", () => {
+  // What the job asked the lock for, and what it gave back.
+  let taken: Array<Parameters<typeof Semaphore.lock>[0]>;
+  let released: Array<SemaphoreMutex>;
+  const MUTEX: SemaphoreMutex = { key: "device-add" } as never;
+
+  beforeEach(() => {
+    taken = [];
+    released = [];
+    jest
+      .spyOn(Semaphore, "lock")
+      .mockImplementation(
+        async (
+          data: Parameters<typeof Semaphore.lock>[0],
+        ): Promise<SemaphoreMutex> => {
+          taken.push(data);
+          return MUTEX;
+        },
+      );
+    jest
+      .spyOn(Semaphore, "release")
+      .mockImplementation(async (mutex: SemaphoreMutex): Promise<void> => {
+        released.push(mutex);
+      });
+  });
+
+  test("the job holds the connection's lock for two minutes at a time, kept while it runs, and gives it back", async () => {
+    const outcome: NetworkControllerDeviceAddOutcome = await run({
+      skipLock: false,
+    });
+
+    expect(outcome.status).toBe(NetworkControllerDeviceAddStatus.Done);
+    expect(taken).toHaveLength(1);
+    expect(taken[0]).toMatchObject({
+      namespace: DEVICE_ADD_LOCK_NAMESPACE,
+      key: CONNECTION.toString(),
+      lockTimeout: 2 * 60 * 1000,
+      acquireAttemptsLimit: 1,
+    });
+    // Re-asserted on Semaphore's own timer, at 80% of the two minutes.
+    expect(taken[0]!.refreshInterval).toBeUndefined();
+    expect(released).toEqual([MUTEX]);
+  });
+
+  test("a lock a lost worker held runs out long before its ask shows as stopped and is asked again", () => {
+    expect(DEVICE_ADD_LOCK_TIMEOUT_MS).toBe(2 * 60 * 1000);
+    expect(DEVICE_ADD_LOCK_TIMEOUT_MS).toBeLessThan(
+      NETWORK_CONTROLLER_DEVICE_ADD_STALE_MS / 2,
+    );
+  });
+
+  test("a lock lost while the job runs is said in the log, never thrown", async () => {
+    const errors: Array<string> = [];
+    jest.spyOn(logger, "error").mockImplementation((message: unknown) => {
+      errors.push(String(message));
+    });
+
+    await run({ skipLock: false });
+
+    const onLockLost: ((error: Error) => void) | undefined =
+      taken[0]!.onLockLost;
+    expect(onLockLost).toBeDefined();
+    expect(() => {
+      onLockLost!(new Error("Lost lock for key device-add"));
+    }).not.toThrow();
+    expect(errors).toEqual([
+      `Network controller connection ${CONNECTION.toString()}: the lock of its device add was lost while it ran: Lost lock for key device-add`,
+    ]);
+  });
+
+  test("a job that cannot take the lock leaves the ask to the job that holds it", async () => {
+    jest.spyOn(Semaphore, "lock").mockRejectedValue(new Error("locked"));
+
+    expect((await run({ skipLock: false })).status).toBe("skipped");
+    // Nothing was written, listed or added: the ask is still queued.
+    expect(states).toEqual([]);
+    expect(api.requests).toEqual([]);
+    expect(created).toEqual([]);
+    expect(
+      readNetworkControllerDeviceAddState(connection.lastDeviceAdd)!.status,
+    ).toBe(NetworkControllerDeviceAddStatus.Queued);
+  });
+
+  test("a lock that cannot be given back is left to run out: the ask's outcome stands", async () => {
+    jest.spyOn(Semaphore, "release").mockRejectedValue(new Error("no Valkey"));
+    jest.spyOn(logger, "error").mockImplementation(() => {
+      return undefined as never;
+    });
+
+    const outcome: NetworkControllerDeviceAddOutcome = await run({
+      skipLock: false,
+    });
+
+    expect(outcome.status).toBe(NetworkControllerDeviceAddStatus.Done);
+    expect(lastState().addedCount).toBe(3);
+  });
 });
 
 describe("what the worker does not answer", () => {

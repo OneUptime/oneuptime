@@ -128,8 +128,18 @@ export const DEVICE_ADD_PERMISSION_REFRESH_MS: number = 60 * 1000;
 // Names and sites one lookup asks about.
 const LOOKUP_CHUNK_SIZE: number = 500;
 
-const LOCK_NAMESPACE: string = "NetworkControllerDeviceAdd";
-const LOCK_TIMEOUT_MS: number = NETWORK_CONTROLLER_DEVICE_ADD_JOB_TIMEOUT_MS;
+export const DEVICE_ADD_LOCK_NAMESPACE: string = "NetworkControllerDeviceAdd";
+
+/*
+ * The connection's lock lasts two minutes, and is kept for as long as the
+ * job runs (Semaphore re-asserts it at 80% of that). A worker that a deploy
+ * or a crash takes away mid-ask stops keeping it, so it runs out within two
+ * minutes - long before the ask shows as stopped
+ * (NETWORK_CONTROLLER_DEVICE_ADD_STALE_MS) and is asked again. A lock that
+ * lasted as long as the job may (an hour) would turn that next ask away
+ * until it ran out, and the row would say it stopped again.
+ */
+export const DEVICE_ADD_LOCK_TIMEOUT_MS: number = 2 * 60 * 1000;
 
 export const DEVICE_ADD_UNDER_WAY: string =
   "Devices are being added from this connection already. Wait for them to be added, then add more.";
@@ -369,11 +379,21 @@ export default class NetworkControllerDeviceAddRunner {
 
     try {
       lock = await Semaphore.lock({
-        namespace: LOCK_NAMESPACE,
+        namespace: DEVICE_ADD_LOCK_NAMESPACE,
         key: connectionId.toString(),
-        lockTimeout: LOCK_TIMEOUT_MS,
+        lockTimeout: DEVICE_ADD_LOCK_TIMEOUT_MS,
         acquireTimeout: 1000,
         acquireAttemptsLimit: 1,
+        /*
+         * Lost while the job runs (a Valkey restart): the job carries on.
+         * A second job cannot start the same ask meanwhile - it answers only
+         * an ask still queued, and this one is adding.
+         */
+        onLockLost: (lost: Error): void => {
+          logger.error(
+            `Network controller connection ${connectionId.toString()}: the lock of its device add was lost while it ran: ${toReason(lost)}`,
+          );
+        },
       });
     } catch (error) {
       // Another job holds the connection: it answers the ask.
