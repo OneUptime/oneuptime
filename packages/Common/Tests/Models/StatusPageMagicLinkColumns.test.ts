@@ -35,7 +35,7 @@ const MIGRATION_PATH: string = path.join(
   "Infrastructure",
   "Postgres",
   "SchemaMigrations",
-  "1808910000000-AddStatusPageMagicLinkLogin.ts",
+  "1808920000000-AddStatusPageMagicLinkLogin.ts",
 );
 
 const MIGRATIONS_INDEX_PATH: string = path.join(
@@ -174,9 +174,9 @@ describe("StatusPagePrivateUser's sign-in link columns", () => {
     const index: string = fs.readFileSync(MIGRATIONS_INDEX_PATH, "utf8");
 
     expect(index).toContain(
-      'import { AddStatusPageMagicLinkLogin1808910000000 } from "./1808910000000-AddStatusPageMagicLinkLogin";',
+      'import { AddStatusPageMagicLinkLogin1808920000000 } from "./1808920000000-AddStatusPageMagicLinkLogin";',
     );
-    expect(index).toMatch(/\n {2}AddStatusPageMagicLinkLogin1808910000000,\n/);
+    expect(index).toMatch(/\n {2}AddStatusPageMagicLinkLogin1808920000000,\n/);
   });
 });
 
