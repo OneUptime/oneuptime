@@ -7,7 +7,7 @@ Anslut ett AWS-konto, en Azure-prenumeration eller ett Google Cloud-projekt frå
 - [Microsoft Azure](#microsoft-azure): En app med rollerna Monitoring Reader och Cost Management Reader.
 - [Google Cloud](#google-cloud): Ett tjänstkonto med sex skrivskyddade roller.
 - [Vad OneUptime läser](#vad-oneuptime-läser): Resurser, mätvärden, ändringar, hälsohändelser och kostnader, hur ofta och vad det kostar att läsa dem.
-- [Molnkostnader och besparingar](/docs/telemetry/cloud-costs): Vad varje konto kostar, sätten att spendera mindre och budgetar som varnar.
+- [Molnkostnader och besparingar](/docs/telemetry/cloud-costs): Vad varje konto kostar, sätten att spendera mindre och budgetar som larmar.
 - [Datasäkerhet](#datasäkerhet): Vad anslutningen låter Datasäkerhet läsa, och vad varje nivå lägger till i kommandot.
 - [Låt AI åtgärda problem](#låt-ai-åtgärda-problem): Ett kommando till, så kan OneUptime AI åtgärda det den hittar.
 :::
@@ -286,7 +286,7 @@ Anropen som OneUptime gör faktureras ditt molnkonto, till molnets priser. Att l
 - **En resurs ändringar.** En ändring sparas som en ändringshändelse knuten till resursen den ändrade och till dess konto, och ritas som en markör i resursens mätvärdesdiagram tillsammans med dess incidenter och larm. Diagram som inte är filtrerade till någon resurs utelämnar ett molnkontos aktivitetslogg, så att ett livligt konto inte tränger undan dina driftsättningar; leverantörens hälsohändelser finns kvar i dem.
 - **Incidenter och larm.** Länka en molnresurs till en övervakning, en incident eller ett larm under dess länkade resurser, så listas dess incidenter och larm på resursens sida. En övervakning av en webbplats, ett API, SSL, ping eller en port vars värd leder till en slutpunkt för en resurs, direkt eller via dess DNS, listar resursen under **Föreslagna molnresurser** på sitt kort **Länkade resurser**: välj **Länka resurs** för att länka den.
 - **En resurs hälsa.** Varje läsning sparar det senaste värdet av en resurs viktigaste mätvärden och bedömer dem: en resurs visar **Felfri**, **Försämrad** eller **Ej felfri**, med orsaken, till exempel statuskontroller som misslyckas eller lagring som nästan är full, och **Ingen rapportering** när dess mätvärden slutar komma. **Moln → Översikt** och ett kontos översikt listar det som behöver uppmärksamhet, det mest brådskande först.
-- **Vad kontona kostar.** **Moln → Utgifter → Kostnader** ritar varje dags utgifter och vart de går, **Moln → Utgifter → Besparingar** listar sätten att spendera mindre, och **Moln → Utgifter → Budgetar** varnar innan en månad kostar mer än den borde: [Molnkostnader och besparingar](/docs/telemetry/cloud-costs).
+- **Vad kontona kostar.** **Moln → Utgifter → Kostnader** ritar varje dags utgifter och vart de går, **Moln → Utgifter → Besparingar** listar sätten att spendera mindre, och **Moln → Utgifter → Budgetar** larmar innan en månad kostar mer än den borde: [Molnkostnader och besparingar](/docs/telemetry/cloud-costs).
 
 ## Låt AI åtgärda problem
 

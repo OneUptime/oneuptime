@@ -285,7 +285,7 @@ describe("finding the product", () => {
     }
   });
 
-  test("Cloud opens on its accounts, and is found by a cloud's words, not a platform's", () => {
+  test("Cloud opens on its Overview, and is found by a cloud's words and its spend's, not a platform's", () => {
     const cloud: string = navigation.slice(
       navigation.indexOf('title: t("navbar.items.cloudTitle")'),
       navigation.indexOf(
@@ -294,9 +294,13 @@ describe("finding the product", () => {
     );
 
     expect(cloud).toContain(
-      "route: RouteUtil.populateRouteParams(RouteMap[PageMap.CLOUD_ACCOUNTS] as Route)",
+      "route: RouteUtil.populateRouteParams(RouteMap[PageMap.CLOUD_OVERVIEW] as Route)",
     );
     expect(cloud).toContain("activeRoute: RouteMap[PageMap.CLOUD_ROOT]");
+    // What it costs finds it too.
+    for (const keyword of ["cloud costs", "cloud budgets", "rightsizing"]) {
+      expect(cloud).toContain(`"${keyword}"`);
+    }
     expect(cloud).toContain("category: cloudCategory");
     expect(cloud).not.toContain('"paas"');
   });

@@ -1,6 +1,6 @@
 # Molnkostnader och besparingar
 
-Ett anslutet molnkonto säger också vad det kostar och hur det kunde kosta mindre. OneUptime läser varje dags kostnader från molnets egen fakturering och rekommendationerna från molnets egen rekommendationstjänst, visar dem under **Moln → Utgifter → Kostnader** och **Moln → Utgifter → Besparingar**, och varnar innan en månad kostar mer än sin budget under **Moln → Utgifter → Budgetar**.
+Ett anslutet molnkonto säger också vad det kostar och hur det kunde kosta mindre. OneUptime läser varje dags kostnader från molnets egen fakturering och rekommendationerna från molnets egen rekommendationstjänst, visar dem under **Moln → Utgifter → Kostnader** och **Moln → Utgifter → Besparingar**, och larmar innan en månad kostar mer än sin budget under **Moln → Utgifter → Budgetar**.
 
 :::cards
 - [Amazon Web Services](#amazon-web-services): Cost Explorer och Cost Optimization Hub, var och en påslagen en gång.
@@ -15,7 +15,7 @@ Ett anslutet molnkonto säger också vad det kostar och hur det kunde kosta mind
 flowchart TB
     bill["Molnets fakturering,<br/>läses två gånger om dagen"] --> costs["Kostnader"]
     rec["Molnets rekommendationer,<br/>läses en gång om dagen"] --> savings["Besparingar"]
-    costs --> budgets["Budgetar som varnar"]
+    costs --> budgets["Budgetar som larmar"]
     costs --> overview["Molns översikt"]
     savings --> overview
 ```
@@ -86,9 +86,9 @@ Den detaljerade exporten anger den resurs varje kostnad gäller; standardexporte
 
 Under **Moln → Utgifter → Budgetar** skapar du en budget: dess **Månadsbelopp** och det **Konto** den gäller, eller inget för alla konton.
 
-### Välj när den varnar
+### Välj när den larmar
 
-**Varna vid** tar de andelar av budgeten som det ska varnas vid, i procent: 80 och 100 till att börja med. **Varna när en överskridning är på väg** varnar också, en gång per månad, när takten under den senaste veckan skulle ta månaden över budgeten. **Larmallvar** och **Jourpolicyer** anger hur allvarliga larmen är och vem som larmas.
+**Larma vid** tar de andelar av budgeten som det ska larmas vid, i procent: 80 och 100 till att börja med. **Larma när en överskridning är på väg** larmar också, en gång per månad, när takten under den senaste veckan skulle ta månaden över budgeten. **Larmallvar** och **Jourpolicyer** anger hur allvarliga larmen är och vem som larmas.
 :::
 
 En budget kontrolleras efter varje läsning av kostnaderna och varje timme. När månadens utgifter passerar ett tröskelvärde skapas ett larm för det, det högsta när en läsning passerar flera på en gång, och en ny månad löser förra månadens larm. En budget räknar bara de konton som faktureras i dess valuta.
