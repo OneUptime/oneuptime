@@ -103,6 +103,19 @@ keyboard, the divider's handle shows a ring while the arrow keys move it.
 | ---------------------------------------------- | ------------------------------------------------------- | --------------------------------------------------------------- |
 | ![Flip Home](foldables-tabletop-flip-home.png) | ![Dark tabletop Home](foldables-tabletop-home-dark.png) | ![Divider from a keyboard](foldables-flat-divider-keyboard.png) |
 
+## Paged again
+
+The `-paged-again` images come from `tests/ui/paged-again.spec.js`: an
+acknowledged incident or alert still not resolved when its on-call policy's
+acknowledgement timeout ran out, so the policy pages the reader again.
+Acknowledge again comes first, then Resolve and Escalate; on a phone each
+takes a row of its own, so the two words never break across lines. Every
+viewport has an incident and an alert; the iPhone size also a dark one.
+
+| Paged again about an incident                                 | Paged again about an alert                              | Dark: paged again                                                       |
+| ------------------------------------------------------------- | ------------------------------------------------------- | ----------------------------------------------------------------------- |
+| ![Incident paged again](iphone-size-incident-paged-again.png) | ![Alert paged again](iphone-size-alert-paged-again.png) | ![Dark incident paged again](iphone-size-incident-paged-again-dark.png) |
+
 Regenerate every set from a fresh export with
 `UPDATE_SCREENSHOTS=1 npm run test-ui`, or one of them with
 `-- --project=foldables`, `-- --project=tablets` or `-- --project=iphone-size`.
