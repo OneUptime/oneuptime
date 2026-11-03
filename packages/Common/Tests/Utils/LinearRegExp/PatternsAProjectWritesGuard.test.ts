@@ -88,6 +88,12 @@ const LISTED: ReadonlyArray<ListedFile> = [
     builtFrom: "a count of spaces",
   },
   {
+    file: "packages/Common/Server/Utils/DataObservability/DataCheckValidation.ts",
+    count: 1,
+    builtFrom:
+      "a Format Mismatch check's pattern, whose syntax JavaScript checks; it is never run here, but in the project's own database (DataCheckSql: !~ or NOT REGEXP)",
+  },
+  {
     file: "packages/Common/Server/Utils/DataSource/SqlQueryGuard.ts",
     count: 1,
     builtFrom: "the keywords FORBIDDEN_KEYWORDS lists",

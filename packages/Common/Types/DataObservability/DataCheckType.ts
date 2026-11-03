@@ -26,10 +26,19 @@ export enum DataCheckType {
   RowCount = "Row Count",
   // The number a read-only query returns.
   CustomSql = "Custom SQL",
+  /*
+   * A test of the project's dbt models, run by dbt and read from its
+   * artifacts (DbtIngest): the rows it found failing. OneUptime never runs it.
+   */
+  DbtTest = "dbt Test",
 }
 
-export const DATA_CHECK_TYPES: ReadonlyArray<DataCheckType> =
-  Object.values(DataCheckType);
+// The checks a person adds, and OneUptime runs: every type but dbt's.
+export const DATA_CHECK_TYPES: ReadonlyArray<DataCheckType> = Object.values(
+  DataCheckType,
+).filter((type: DataCheckType) => {
+  return type !== DataCheckType.DbtTest;
+});
 
 // The checks that read one column, and so need one named.
 export const COLUMN_CHECK_TYPES: ReadonlyArray<DataCheckType> = [

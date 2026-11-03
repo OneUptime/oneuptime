@@ -46,7 +46,12 @@ function storedUser(expires: Date | undefined): StatusPagePrivateUser {
   user.email = new Email("reader@example.com");
   user.statusPageId = STATUS_PAGE_ID;
   user.projectId = PROJECT_ID;
-  user.magicLinkExpires = expires;
+
+  // Without a date, the reader has no link waiting: the column stays unset.
+  if (expires) {
+    user.magicLinkExpires = expires;
+  }
+
   return user;
 }
 

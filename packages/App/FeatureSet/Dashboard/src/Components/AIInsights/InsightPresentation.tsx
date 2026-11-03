@@ -40,6 +40,9 @@ export const INSIGHT_TYPE_LABELS: Record<AIInsightType, string> = {
     "Wrong Histogram Buckets",
   ),
   [AIInsightType.MetricMissingMetrics]: translationKey("Missing Metrics"),
+  [AIInsightType.MetricMissingRequestMetrics]: translationKey(
+    "Missing Request Metrics",
+  ),
 };
 
 // Human labels for the wire-contract status values (e.g. "ActionRequired").
@@ -150,6 +153,7 @@ const INSIGHT_TYPE_ICONS: Record<AIInsightType, IconProp> = {
   [AIInsightType.MetricHighCardinality]: IconProp.Squares,
   [AIInsightType.MetricHistogramBuckets]: IconProp.ChartBar,
   [AIInsightType.MetricMissingMetrics]: IconProp.EyeSlash,
+  [AIInsightType.MetricMissingRequestMetrics]: IconProp.SignalSlash,
 };
 
 export function getInsightTypeLabel(
