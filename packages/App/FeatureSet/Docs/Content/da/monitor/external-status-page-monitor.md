@@ -66,7 +66,7 @@ Tjekket af, om siden kan nås, er også udvejen, når en udbyder, du udtrykkelig
 :::steps
 ### Start en ny monitor
 
-Gå til **Monitorer**, og klik på **Opret monitor**. Under **Monitortype** skal du klikke på **Flere monitortyper** og vælge **External Status Page** under **Basic Monitoring** eller skrive `statuspage` i søgefeltet. Angiv et **Navn**, og klik derefter på **Næste**.
+Gå til **Monitorer**, og klik på **Opret monitor**. Under **Monitortype** skal du klikke på **Flere monitortyper** og vælge **External Status Page** under **Grundlæggende overvågning** eller skrive `statuspage` i søgefeltet. Angiv et **Navn**, og klik derefter på **Næste**.
 
 ### Angiv statussidens URL
 

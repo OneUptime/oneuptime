@@ -160,7 +160,7 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 :::steps
 ### 開始新的監測器
 
-前往**監測器**，按一下**建立監測器**。在**監測器類型**下按一下**更多監測器類型**，然後在 **Database Monitoring** 下選擇 **Database Health**，或在搜尋方塊中輸入 `health`。輸入**名稱**，然後按一下**下一步**。
+前往**監測器**，按一下**建立監測器**。在**監測器類型**下按一下**更多監測器類型**，然後在 **資料庫監控** 下選擇 **Database Health**，或在搜尋方塊中輸入 `health`。輸入**名稱**，然後按一下**下一步**。
 
 ### 輸入連線資訊
 

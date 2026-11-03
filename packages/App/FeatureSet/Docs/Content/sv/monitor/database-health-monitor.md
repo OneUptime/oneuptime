@@ -160,7 +160,7 @@ Proben känner igen Azure SQL Database på `SERVERPROPERTY('EngineEdition')` och
 :::steps
 ### Starta en ny monitor
 
-Gå till **Monitorer** och klicka på **Skapa monitor**. Under **Monitortyp** klickar du på **Fler monitortyper** och väljer **Database Health** under **Database Monitoring**, eller skriver `health` i sökrutan. Ange ett **Namn** och klicka sedan på **Nästa**.
+Gå till **Monitorer** och klicka på **Skapa monitor**. Under **Monitortyp** klickar du på **Fler monitortyper** och väljer **Database Health** under **Databasövervakning**, eller skriver `health` i sökrutan. Ange ett **Namn** och klicka sedan på **Nästa**.
 
 ### Ange anslutningsuppgifterna
 

@@ -36,7 +36,7 @@ En sonde, der har mistet sin egen netværksforbindelse, rapporterer intet result
 :::steps
 ### Start en ny monitor
 
-Gå til **Monitorer**, og klik på **Opret monitor**. Klik på **Flere monitortyper** under **Monitortype**, og vælg **DNS** under **DNS Monitoring**.
+Gå til **Monitorer**, og klik på **Opret monitor**. Klik på **Flere monitortyper** under **Monitortype**, og vælg **DNS** under **DNS-overvågning**.
 
 ### Navngiv den
 

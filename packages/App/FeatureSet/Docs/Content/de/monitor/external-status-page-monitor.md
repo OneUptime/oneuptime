@@ -66,7 +66,7 @@ Die Erreichbarkeitsprüfung ist auch die Rückfallebene, wenn ein ausdrücklich 
 :::steps
 ### Einen neuen Monitor beginnen
 
-Gehen Sie zu **Monitore** und klicken Sie auf **Monitor erstellen**. Klicken Sie unter **Monitortyp** auf **Weitere Monitortypen** und wählen Sie **Externe Statusseite** unter **Basic Monitoring**, oder tippen Sie `statuspage` in das Suchfeld. Geben Sie einen **Name** ein und klicken Sie dann auf **Weiter**.
+Gehen Sie zu **Monitore** und klicken Sie auf **Monitor erstellen**. Klicken Sie unter **Monitortyp** auf **Weitere Monitortypen** und wählen Sie **Externe Statusseite** unter **Grundlegende Überwachung**, oder tippen Sie `statuspage` in das Suchfeld. Geben Sie einen **Name** ein und klicken Sie dann auf **Weiter**.
 
 ### Die Statusseiten-URL eingeben
 

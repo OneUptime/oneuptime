@@ -160,7 +160,7 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 :::steps
 ### 新建监视器
 
-前往**监视器**，点击**创建监视器**。在**监视器类型**下点击**更多监视器类型**，然后在 **Database Monitoring** 下选择 **Database Health**，或在搜索框中输入 `health`。输入**名称**，然后点击**下一步**。
+前往**监视器**，点击**创建监视器**。在**监视器类型**下点击**更多监视器类型**，然后在 **数据库监控** 下选择 **Database Health**，或在搜索框中输入 `health`。输入**名称**，然后点击**下一步**。
 
 ### 输入连接信息
 

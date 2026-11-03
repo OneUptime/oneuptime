@@ -66,7 +66,7 @@ Kontrollen av om sidan kan nås är också utvägen när en leverantör som du u
 :::steps
 ### Starta en ny monitor
 
-Gå till **Monitorer** och klicka på **Skapa monitor**. Under **Monitortyp** klickar du på **Fler monitortyper** och väljer **External Status Page** under **Basic Monitoring**, eller skriver `statuspage` i sökrutan. Ange ett **Namn** och klicka sedan på **Nästa**.
+Gå till **Monitorer** och klicka på **Skapa monitor**. Under **Monitortyp** klickar du på **Fler monitortyper** och väljer **External Status Page** under **Grundläggande övervakning**, eller skriver `statuspage` i sökrutan. Ange ett **Namn** och klicka sedan på **Nästa**.
 
 ### Ange statussidans URL
 

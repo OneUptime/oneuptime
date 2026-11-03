@@ -66,7 +66,7 @@ La vérification d'accessibilité est aussi le recours quand un fournisseur choi
 :::steps
 ### Commencer un nouveau moniteur
 
-Allez dans **Moniteurs** et cliquez sur **Créer un moniteur**. Sous **Type de moniteur**, cliquez sur **Plus de types de moniteurs** et choisissez **Page de statut externe** sous **Basic Monitoring**, ou tapez `statuspage` dans le champ de recherche. Saisissez un **Nom**, puis cliquez sur **Suivant**.
+Allez dans **Moniteurs** et cliquez sur **Créer un moniteur**. Sous **Type de moniteur**, cliquez sur **Plus de types de moniteurs** et choisissez **Page de statut externe** sous **Surveillance de base**, ou tapez `statuspage` dans le champ de recherche. Saisissez un **Nom**, puis cliquez sur **Suivant**.
 
 ### Saisir l'URL de la page de statut
 

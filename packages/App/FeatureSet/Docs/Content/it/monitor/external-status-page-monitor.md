@@ -66,7 +66,7 @@ Il controllo di raggiungibilità è anche l'ultima risorsa quando un provider sc
 :::steps
 ### Iniziare un nuovo monitor
 
-Andate in **Monitor** e fate clic su **Crea monitor**. In **Tipo di monitor**, fate clic su **Altri tipi di monitor** e scegliete **External Status Page** sotto **Basic Monitoring**, oppure digitate `statuspage` nella casella di ricerca. Inserite un **Nome**, poi fate clic su **Avanti**.
+Andate in **Monitor** e fate clic su **Crea monitor**. In **Tipo di monitor**, fate clic su **Altri tipi di monitor** e scegliete **External Status Page** sotto **Monitoraggio di base**, oppure digitate `statuspage` nella casella di ricerca. Inserite un **Nome**, poi fate clic su **Avanti**.
 
 ### Inserire l'URL della pagina di stato
 

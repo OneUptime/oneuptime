@@ -66,7 +66,7 @@ De controle op bereikbaarheid is ook de terugvaloptie als een provider die u uit
 :::steps
 ### Een nieuwe monitor beginnen
 
-Ga naar **Monitoren** en klik op **Monitor maken**. Klik onder **Monitortype** op **Meer monitortypen** en kies **External Status Page** onder **Basic Monitoring**, of typ `statuspage` in het zoekvak. Voer een **Naam** in en klik daarna op **Volgende**.
+Ga naar **Monitoren** en klik op **Monitor maken**. Klik onder **Monitortype** op **Meer monitortypen** en kies **External Status Page** onder **Basisbewaking**, of typ `statuspage` in het zoekvak. Voer een **Naam** in en klik daarna op **Volgende**.
 
 ### De URL van de statuspagina invoeren
 

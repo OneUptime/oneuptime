@@ -66,7 +66,7 @@ La comprobación de accesibilidad también es el último recurso cuando falla un
 :::steps
 ### Empezar un monitor nuevo
 
-Vaya a **Monitores** y haga clic en **Crear monitor**. En **Tipo de monitor**, haga clic en **Más tipos de monitor** y elija **Página de estado externa** en **Basic Monitoring**, o escriba `statuspage` en el cuadro de búsqueda. Introduzca un **Nombre** y haga clic en **Siguiente**.
+Vaya a **Monitores** y haga clic en **Crear monitor**. En **Tipo de monitor**, haga clic en **Más tipos de monitor** y elija **Página de estado externa** en **Monitoreo básico**, o escriba `statuspage` en el cuadro de búsqueda. Introduzca un **Nombre** y haga clic en **Siguiente**.
 
 ### Introducir la URL de la página de estado
 

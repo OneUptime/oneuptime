@@ -66,7 +66,7 @@ A verificação de acessibilidade também é o último recurso quando um provedo
 :::steps
 ### Começar um novo monitor
 
-Vá para **Monitores** e clique em **Criar monitor**. Em **Tipo de monitor**, clique em **Mais tipos de monitor** e escolha **External Status Page** em **Basic Monitoring**, ou digite `statuspage` na caixa de pesquisa. Digite um **Nome** e clique em **Próximo**.
+Vá para **Monitores** e clique em **Criar monitor**. Em **Tipo de monitor**, clique em **Mais tipos de monitor** e escolha **External Status Page** em **Monitoramento básico**, ou digite `statuspage` na caixa de pesquisa. Digite um **Nome** e clique em **Próximo**.
 
 ### Informar a URL da página de status
 
