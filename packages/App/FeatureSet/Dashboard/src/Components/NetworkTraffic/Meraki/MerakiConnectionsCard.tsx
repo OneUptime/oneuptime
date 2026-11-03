@@ -772,6 +772,32 @@ const MerakiConnectionsCard: FunctionComponent<ComponentProps> = (
       return <>{lines}</>;
     }
 
+    /*
+     * What an ask that ended added, when it added any: said whether it
+     * finished, failed half way (the person lost the right to add devices)
+     * or stopped (its worker went quiet) - the devices are here either way.
+     * When: when it ended, or when its worker last wrote.
+     */
+    const addAddedLine: (ended: NetworkControllerDeviceAddState) => void = (
+      ended: NetworkControllerDeviceAddState,
+    ): void => {
+      addLine({
+        key: "added",
+        tone: "done",
+        text: translator.translatePlural(
+          ADDED_DEVICES_NOTE,
+          ended.addedCount,
+          {
+            time: getMerakiReadTime(ended.finishedAt || ended.updatedAt, {
+              language: translator.language,
+              now: data.now,
+            }),
+          },
+          IN_SENTENCE,
+        ),
+      });
+    };
+
     if (standing === DeviceAddStanding.Done && state) {
       const when: string = getMerakiReadTime(state.finishedAt, {
         language: translator.language,
@@ -779,16 +805,7 @@ const MerakiConnectionsCard: FunctionComponent<ComponentProps> = (
       });
 
       if (state.addedCount > 0) {
-        addLine({
-          key: "added",
-          tone: "done",
-          text: translator.translatePlural(
-            ADDED_DEVICES_NOTE,
-            state.addedCount,
-            { time: when },
-            IN_SENTENCE,
-          ),
-        });
+        addAddedLine(state);
       } else if (state.failedCount === 0) {
         addLine({
           key: "nothing-added",
@@ -850,6 +867,10 @@ const MerakiConnectionsCard: FunctionComponent<ComponentProps> = (
     }
 
     if (standing === DeviceAddStanding.Failed && state) {
+      if (state.addedCount > 0) {
+        addAddedLine(state);
+      }
+
       addLine({
         key: "add-failed",
         tone: "error",
@@ -861,7 +882,11 @@ const MerakiConnectionsCard: FunctionComponent<ComponentProps> = (
       });
     }
 
-    if (standing === DeviceAddStanding.Stopped) {
+    if (standing === DeviceAddStanding.Stopped && state) {
+      if (state.addedCount > 0) {
+        addAddedLine(state);
+      }
+
       addLine({
         key: "add-stopped",
         tone: "act",

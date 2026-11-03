@@ -1316,6 +1316,10 @@ test("an Add devices that went wrong says so on the row: devices it could not ad
   await expect(
     stopped.getByTestId("meraki-connection-add-devices"),
   ).toBeVisible();
+  // What it added before its worker went quiet is said above it.
+  await expect(deviceAddLine(page, "added")).toHaveText(
+    /^Added 9 network devices from Meraki \d+ minutes ago\.$/,
+  );
   await expect(deviceAddLine(page, "not-added")).toHaveCount(0);
   await expect(deviceAddLine(page, "adding")).toHaveCount(0);
 });

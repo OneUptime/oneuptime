@@ -127,6 +127,7 @@ import { JSONObject } from "../../../Types/JSON";
 import {
   NetworkControllerDeviceAddState,
   NetworkControllerDeviceAddStatus,
+  NETWORK_CONTROLLER_DEVICE_ADD_QUEUED_STALE_MS,
   NETWORK_CONTROLLER_DEVICE_ADD_STALE_MS,
   buildQueuedNetworkControllerDeviceAddState,
   toNetworkControllerDeviceAddStateJson,
@@ -1426,6 +1427,48 @@ describe("the organization's devices that are not network devices here", () => {
     expect(line).toHaveTextContent(
       "Devices could not be added from Meraki: You may not create network devices in this project, so you cannot add Meraki's devices. Ask a project owner or admin.",
     );
+    // It added nothing before it failed: nothing is said to be added.
+    expect(
+      lines(rows()[0]!).map((each: { state: string }) => {
+        return each.state;
+      }),
+    ).toEqual(["add-failed"]);
+  });
+
+  test("an ask that failed half way says what it added first, then why it stopped", async () => {
+    connections = [
+      counted(FIRST_ID, COUNTS, {
+        lastPulledAt: new Date("2026-10-24T11:00:00.000Z"),
+        lastDeviceAdd: state({
+          status: NetworkControllerDeviceAddStatus.Failed,
+          updatedAt: "2026-10-24T11:58:00.000Z",
+          finishedAt: "2026-10-24T11:58:00.000Z",
+          toAddCount: 110,
+          addedCount: 40,
+          message:
+            "You may not create network devices in this project, so you cannot add Meraki's devices. Ask a project owner or admin.",
+        }),
+      }),
+    ];
+    await renderCard();
+
+    expect(lines(rows()[0]!)).toEqual([
+      {
+        state: "added",
+        text: "Added 40 network devices from Meraki 2 minutes ago.",
+      },
+      {
+        state: "add-failed",
+        text: "Devices could not be added from Meraki: You may not create network devices in this project, so you cannot add Meraki's devices. Ask a project owner or admin.",
+      },
+    ]);
+    expect(
+      within(rows()[0]!)
+        .getAllByTestId("meraki-connection-device-add")
+        .map((each: HTMLElement) => {
+          return each.getAttribute("data-tone");
+        }),
+    ).toEqual(["done", "error"]);
   });
 
   test("an ask whose worker was lost says it stopped, with the way to carry on", async () => {
@@ -1443,12 +1486,44 @@ describe("the organization's devices that are not network devices here", () => {
     ];
     await renderCard();
 
+    // What it added before its worker went quiet, as of its last word.
     expect(lines(rows()[0]!)).toEqual([
+      {
+        state: "added",
+        text: "Added 4 network devices from Meraki 5 minutes ago.",
+      },
       {
         state: "add-stopped",
         text: "Adding devices from Meraki stopped before it finished. Add devices again to carry on.Add devices",
       },
     ]);
+  });
+
+  test("an ask that stopped before it added anything says only that it stopped", async () => {
+    connections = [
+      counted(FIRST_ID, COUNTS, {
+        lastDeviceAdd: state({
+          status: NetworkControllerDeviceAddStatus.Queued,
+          requestedAt: new Date(
+            NOW.getTime() -
+              NETWORK_CONTROLLER_DEVICE_ADD_QUEUED_STALE_MS -
+              1000,
+          ).toISOString(),
+          updatedAt: new Date(
+            NOW.getTime() -
+              NETWORK_CONTROLLER_DEVICE_ADD_QUEUED_STALE_MS -
+              1000,
+          ).toISOString(),
+        }),
+      }),
+    ];
+    await renderCard();
+
+    expect(
+      lines(rows()[0]!).map((each: { state: string }) => {
+        return each.state;
+      }),
+    ).toEqual(["add-stopped"]);
   });
 
   test("an ask more than a day old is not said any more", async () => {
