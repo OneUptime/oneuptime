@@ -73,6 +73,8 @@ A global Runner runs the steps of many projects, so each step is kept apart from
 
 A global Runner also takes OneUptime AI's code fixes, in every code repository that works on **Global Runner**. It writes each fix and opens the pull request, but runs no command, not even the repository's setup, build and test commands, so the pull request says its verification was skipped. It reaches Git servers on the internet only, over HTTPS, except on a self-hosted OneUptime, where it may also reach the private Git servers the server itself may reach. It acts only for the fixes it takes, and gets a repository's token only while it works on a fix there. A GitHub repository's token reaches that one repository and is revoked when the fix ends.
 
+A global Runner older than 14.0.94, or one started with `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false`, takes no code fixes, and OneUptime does not count it for them. A repository on **Global Runner** then says that no global Runner online takes AI code fixes, and the Admin Dashboard's **Global Runners** page says why under that Runner's status.
+
 Pick one of your own Runners for a step that must reach your network, or to keep the step on hosts you control. To keep every step on your own Runners, turn **Use global Runners** off at the bottom of **Runbooks → Runners**. A JavaScript step that picks no Runner then runs on the project's default Runner or, with none set, fails, saying so, until it picks one of yours; a step that picks one of your Runners keeps it either way. A code repository that picks no Runner in its settings in Code works on the project's default Runner too or, with none set, on a global Runner, and needs one of yours while the switch is off; see [Code](/docs/ai/ai-agent#pick-the-repositorys-runner).
 
 ### Where global Runners come from
@@ -256,7 +258,7 @@ The Runner reads these on startup:
 | `ONEUPTIME_RUNNER_JOB_HEARTBEAT_INTERVAL_MS` | no | `10000` | How often the Runner renews a running job's lease. A value under `1000` falls back to the default. |
 | `ONEUPTIME_RUNNER_CONCURRENCY` | no | `1` | Maximum simultaneous jobs on this Runner. |
 | `ONEUPTIME_RUNNER_ENABLE_RUNBOOKS` | no | — | Set to `false` to stop this Runner taking runbook steps, whatever the dashboard says. It can only turn the capability off. |
-| `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES` | no | — | Set to `false` to stop this Runner taking AI code-fix runs, even for a code repository that picks it. |
+| `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES` | no | — | Set to `false` to stop this Runner taking AI code-fix runs, even for a code repository that picks it. The repository then says this Runner takes none. |
 | `ONEUPTIME_RUNNER_ENABLE_AI_COMMANDS` | no | — | Set to `false` to stop this Runner running AI remediation commands, whatever the dashboard says. |
 
 ## Rotating an agent key

@@ -249,12 +249,15 @@ describe("UtilityCommands", () => {
 
   describe("resources output format through the CLI entry point", () => {
     const originalIsTTY: boolean | undefined = process.stdout.isTTY;
-    const logResource: Record<string, string> = {
+    // Its operations are the API's for logs, and telemetry has no actions.
+    const logResource: Record<string, unknown> = {
       name: "log",
       singularName: "Log",
       pluralName: "Logs",
       modelType: "analytics",
       apiPath: "/logs",
+      operations: ["list", "get", "create", "update", "delete", "count"],
+      actions: [],
     };
 
     function setStdoutIsTTY(value: boolean | undefined): void {
@@ -284,7 +287,7 @@ describe("UtilityCommands", () => {
         await buildProgram().parseAsync(["node", "test", ...argv]);
 
         expect(consoleLogSpy).toHaveBeenCalledTimes(1);
-        const rows: Array<Record<string, string>> = JSON.parse(
+        const rows: Array<Record<string, unknown>> = JSON.parse(
           consoleLogSpy.mock.calls[0][0],
         );
         expect(rows).toContainEqual(logResource);

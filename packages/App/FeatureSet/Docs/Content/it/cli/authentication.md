@@ -38,7 +38,7 @@ oneuptime login <api-key> https://oneuptime.com --context-name production
 Risponde `Logged in successfully. Context "production" is now active.` Una barra alla fine dell'indirizzo viene rimossa, e un nuovo accesso con lo stesso nome sostituisce quel contesto.
 
 > [!NOTE]
-> `login` salva la chiave senza chiedere nulla a OneUptime. Esegui un comando, come `oneuptime incident count`, per vedere che la chiave funziona.
+> `login` salva la chiave senza chiedere nulla a OneUptime. Esegui `oneuptime whoami --check` per vedere che OneUptime la accetta.
 
 ## Contesti
 
@@ -154,10 +154,16 @@ API Key: 4f1c****0a13
 Context: production
 ```
 
-Della chiave vengono mostrati solo i primi quattro e gli ultimi quattro caratteri. La riga `Context` compare solo quando l'URL e la chiave sono quelli del contesto stesso, non valori sostituiti da un flag o da una variabile d'ambiente. `whoami` legge le tue impostazioni senza chiamare OneUptime: mostra che cosa invierà un comando, non se OneUptime lo accetta. Senza nulla di salvato o impostato, risponde:
+Della chiave vengono mostrati solo i primi quattro e gli ultimi quattro caratteri. La riga `Context` compare solo quando l'URL e la chiave sono quelli del contesto stesso, non valori sostituiti da un flag o da una variabile d'ambiente. Da solo, `whoami` legge le tue impostazioni senza chiamare OneUptime: mostra che cosa invierà un comando, non se OneUptime lo accetta. Senza nulla di salvato o impostato, risponde:
 
 ```text
 Not authenticated. Run `oneuptime login` to authenticate.
+```
+
+`--check` chiede anche a OneUptime. Aggiunge il progetto della chiave, la versione del tuo OneUptime e quella della CLI, e, quando le due versioni differiscono, il comando che installa la CLI della versione del tuo OneUptime. Una chiave che OneUptime rifiuta lo ferma con il codice di uscita `2`:
+
+```bash
+oneuptime whoami --check
 ```
 
 ## Il file di configurazione

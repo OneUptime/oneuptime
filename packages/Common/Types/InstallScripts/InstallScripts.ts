@@ -29,6 +29,7 @@ export const INSTALL_SCRIPTS_ROUTE: string = "/install";
 
 export enum InstallScriptName {
   CephAgent = "ceph-agent",
+  Cli = "cli",
   DatabaseAgent = "database-agent",
   DockerAgent = "docker-agent",
   DockerSwarmAgent = "docker-swarm-agent",
@@ -79,6 +80,18 @@ export const INSTALL_SCRIPTS: ReadonlyArray<InstallScriptEntry> = [
       "systemd/oneuptime-ceph-agent.service",
       TROUBLESHOOT_SCRIPT_FILE,
     ],
+  },
+  /*
+   * The CLI's installer: it asks the OneUptime it came from for its version
+   * and installs the npm package of the same one, so the CLI's commands
+   * match the server's resources. It downloads nothing else from here.
+   */
+  {
+    name: InstallScriptName.Cli,
+    title: "OneUptime CLI",
+    sourceDirectory: "packages/CLI/Install",
+    script: INSTALL_SCRIPT_FILE,
+    files: [INSTALL_SCRIPT_FILE],
   },
   {
     name: InstallScriptName.DatabaseAgent,

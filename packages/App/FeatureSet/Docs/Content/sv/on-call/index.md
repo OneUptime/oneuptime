@@ -88,7 +88,7 @@ Ett projekts första policy kan göra det redan när den skapas: låt **Utlös d
 | **Rapporter** | **Användarens jourtid**: hur länge varje person hade jour |
 | **Arbetsyta** | **Slack** och **Microsoft Teams**: regler som publicerar jourhändelser i en kanal |
 | **Inställningar** | **Anpassade fält**, **Etikettregler** och **Ägarregler** |
-| **Utvecklare** | **Terraform**, **API** och **AI-assistenter**: jour konfigurerad från kod |
+| **Utvecklare** | **Terraform**, **API**, **CLI** och **AI-assistenter**: jour konfigurerad från kod |
 
 **Policyer**, **Scheman** och **Inkommande samtal** är öppna; de andra avsnitten börjar ihopfällda, och ett avsnitt öppnas av sig självt när du är på någon av dess sidor. **Arbetsyta** visar chattverktygen som projektet har anslutit, eller **Anslut Slack eller Teams** när det inte har några.
 

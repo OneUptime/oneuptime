@@ -136,7 +136,7 @@ Pendant que vous la traitez, consignez ce que vous apprenez dans les **Notes pri
 | **Équipe** | **Exécutions d'astreinte** et **Propriétaires** : qui a été alerté pour l'alerte, et qui en est propriétaire |
 | **Notifications**            | **Journaux de notification** et **Journaux IA** : chaque message envoyé au sujet de l'alerte, et tout ce que l'IA a fait pour elle |
 | **Notes**      | **Notes privées**                                                                                            |
-| **Développeurs**        | **Terraform**, **API** et **Assistants IA** : l'alerte gérée depuis du code                                  |
+| **Développeurs**        | **Terraform**, **API**, **CLI** et **Assistants IA** : l'alerte gérée depuis du code                         |
 | **Avancé** | **Champs personnalisés**, **Paramètres**, **Journaux d'audit**, **Supprimer l'alerte** |
 
 **Vue d'ensemble**, **Investigation**, **Équipe** et **Notes** sont ouvertes ; les autres sections restent repliées jusqu'à ce que vous cliquiez dessus.

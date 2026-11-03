@@ -164,17 +164,18 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
 
     /*
      * A local override that contradicts what the server granted is worth
-     * saying out loud: the server counts this Runner as able to take code-fix
-     * work, so runs will be queued for it and nothing here will claim them.
+     * saying out loud: the Runner tells the server it takes no code fixes
+     * (takesCodeFixes, on every heartbeat), so the repositories it was to
+     * work in say so - and only removing the override here changes that.
      */
     if (
       ENABLE_CODE_FIXES_OVERRIDE === false &&
       RunnerCapabilities.wasGrantedCodeFixesByServer()
     ) {
       logger.warn(
-        GlobalRunnerMode.isActive()
-          ? "This is a global Runner, so it is to take the AI code-fix work of every repository on the Global Runner, but ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false on this host refuses it. Code-fix runs will sit queued while no other global Runner takes them. Remove the override."
-          : "A code repository of this project picks this Runner, so it is to take AI code-fix work, but ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false on this host refuses it. Code-fix runs will sit queued. Remove the override, or pick another Runner in the repository's settings in Code.",
+        RunnerCapabilities.getCodeFixesTurnedOffWarning(
+          GlobalRunnerMode.isActive(),
+        ),
         { serviceName: APP_NAME } as LogAttributes,
       );
     }

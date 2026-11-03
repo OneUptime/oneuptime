@@ -46,7 +46,7 @@ En politik, som flere regler tilføjer, kører én gang. En alvorlighed kører a
 | --- | --- |
 | **Grundlæggende** | **Oversigt**, **Eskaleringsregler** og **Ejere** |
 | **Protokoller** | **Udførelseslogs** og **Notifikationslogs** |
-| **Udvikler** | **Terraform**, **API** og **AI-assistenter** |
+| **Udvikler** | **Terraform**, **API**, **CLI** og **AI-assistenter** |
 | **Avanceret** | **Brugertilsidesættelser**, **Brugerdefinerede felter**, **Indstillinger**, **Auditlogs** og **Slet politik** |
 
 **Grundlæggende** er åben; de andre sektioner starter foldet sammen, indtil du klikker på dem.

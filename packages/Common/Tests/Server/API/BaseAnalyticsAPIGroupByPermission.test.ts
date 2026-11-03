@@ -1,6 +1,9 @@
 import "../TestingUtils/Init";
 import BaseAnalyticsAPI from "../../../Server/API/BaseAnalyticsAPI";
 import AnalyticsDatabaseService from "../../../Server/Services/AnalyticsDatabaseService";
+import ProjectService from "../../../Server/Services/ProjectService";
+import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
+import { getJestSpyOn } from "../../Spy";
 import ColumnRefusalMessage from "../../../Server/Types/Database/Permissions/ColumnRefusalMessage";
 import { Statement } from "../../../Server/Utils/AnalyticsDatabase/Statement";
 import {
@@ -143,6 +146,21 @@ describe("BaseAnalyticsAPI list group by permissions", () => {
     jest.restoreAllMocks();
     jest.clearAllMocks();
     mockRouter.routes = [];
+    /*
+     * CI runs these with billing on (packages/Common/test-setup.sh), and a read
+     * then first asks the project's plan (CallerPlan, through
+     * ProjectService.getCurrentPlan) from Postgres, which these suites never
+     * start: every read failed "Database not connected" before it reached a
+     * column check. The project is on the plan that gates nothing, so only the
+     * permissions these suites are about decide, with billing on or off.
+     */
+    getJestSpyOn(ProjectService, "getCurrentPlan").mockResolvedValue({
+      plan: PlanType.Enterprise,
+      isSubscriptionUnpaid: false,
+    });
+    getJestSpyOn(ProjectService, "updateLastActive").mockResolvedValue(
+      undefined,
+    );
 
     const logService: AnalyticsDatabaseService<Log> =
       new AnalyticsDatabaseService<Log>({ modelType: Log });

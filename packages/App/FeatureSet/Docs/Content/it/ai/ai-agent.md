@@ -327,7 +327,7 @@ Un'esecuzione il cui heartbeat tace da più di 12 minuti viene chiusa con un err
 :::
 
 :::details Nessun Runner prende l'attività
-Un'attività che aspetta più di 30 minuti mentre il Runner che deve prenderla non è collegato - quello scelto dal suo repository, il Runner predefinito del progetto per un repository che non ne sceglie nessuno, o un Runner globale - fallisce, con un messaggio che dice quale, così non risulta mai in corso per sempre. Quando un Runner è online ma occupato, le attività in coda aspettano il loro turno. Un Runner precedente a Codice non riceve mai una richiesta da Codice: aggiorna un Runner che esegui tu insieme al server.
+Un'attività che aspetta più di 30 minuti mentre il Runner che deve prenderla non è collegato - quello scelto dal suo repository, il Runner predefinito del progetto per un repository che non ne sceglie nessuno, o un Runner globale - fallisce, con un messaggio che dice quale, così non risulta mai in corso per sempre. Un Runner che non prende correzioni di codice conta come non collegato: uno avviato con `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false`, o un Runner globale precedente a 14.0.94. Codice lo dice prima che tu chieda un'attività. Quando un Runner è online ma occupato, le attività in coda aspettano il loro turno. Un Runner precedente a Codice non riceve mai una richiesta da Codice: aggiorna un Runner che esegui tu insieme al server.
 :::
 
 ## Privacy

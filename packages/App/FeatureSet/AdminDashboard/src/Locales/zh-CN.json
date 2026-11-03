@@ -1519,7 +1519,9 @@
   "People reach this server over HTTPS.": "大家通过 HTTPS 访问此服务器。",
   "Not set up yet: passwords and sessions cross the network unencrypted, and passkeys need HTTPS.": "尚未设置：密码和会话以未加密的方式经过网络，而且通行密钥需要 HTTPS。",
   "Almost: this page came over HTTPS, but OneUptime is still set to HTTP, so the links it sends start with http://. Set HTTP_PROTOCOL=https.": "差一步：此页面通过 HTTPS 打开，但 OneUptime 仍设置为 HTTP，因此它发送的链接以 http:// 开头。请设置 HTTP_PROTOCOL=https。",
+  "Almost: OneUptime is set to HTTPS, but this page came over HTTP, so this visit is not encrypted.": "差一步：OneUptime 已设置为 HTTPS，但此页面通过 HTTP 打开，因此这次访问未加密。",
   "How to set up HTTPS": "如何设置 HTTPS",
+  "Open over HTTPS": "通过 HTTPS 打开",
   "Sign-ups": "注册",
   "Only people you invite can create an account.": "只有您邀请的人才能创建账户。",
   "Anyone who can open this server can create an account. Turn this off once your team has its accounts.": "任何能打开此服务器的人都能创建账户。等您的团队都有账户后，请将其关闭。",
@@ -1617,5 +1619,7 @@
   "No valid Enterprise license: session lengths become read-only when the trial or grace period ends.": "没有有效的 Enterprise 许可证：试用期或宽限期结束后，会话时长将变为只读。",
   "The lengths already set still sign people out, and you can still remove them. Activate or renew the Enterprise license in the Admin Dashboard to change this again.": "已设置的时长仍会让用户退出登录，您仍可以将其移除。要再次更改，请在管理仪表板中激活或续订 Enterprise 许可证。",
   "The lengths already set still sign people out, and you can still remove them. Activate a license that includes it in the Admin Dashboard to change this again.": "已设置的时长仍会让用户退出登录，您仍可以将其移除。要再次更改，请在管理仪表板中激活包含此功能的许可证。",
-  "Everything here can be changed during the 14-day trial of an installation with no license, or the 30-day grace period after a license expires. When it ends: The lengths already set still sign people out, and you can still remove them.": "在没有许可证的安装的 14 天试用期内，或许可证过期后的 30 天宽限期内，这里的所有设置都可以更改。结束后：已设置的时长仍会让用户退出登录，您仍可以将其移除。"
+  "Everything here can be changed during the 14-day trial of an installation with no license, or the 30-day grace period after a license expires. When it ends: The lengths already set still sign people out, and you can still remove them.": "在没有许可证的安装的 14 天试用期内，或许可证过期后的 30 天宽限期内，这里的所有设置都可以更改。结束后：已设置的时长仍会让用户退出登录，您仍可以将其移除。",
+  "Takes no AI code fixes: update it to this server's version.": "不接受 AI 代码修复：请将其更新到此服务器的版本。",
+  "Takes no AI code fixes: remove {{setting}} from its host and restart it.": "不接受 AI 代码修复：请从它的主机上移除 {{setting}} 并重启它。"
 }

@@ -45,6 +45,7 @@ const {
   render,
   parseStages,
   ancestry,
+  buildOrder,
   instructions,
   findTemplates,
 } = require("./Utils/DockerfileTemplate");
@@ -109,16 +110,31 @@ function ancestryInstructions(name) {
   });
 }
 
+/*
+ * Everything a target is made of: the stages it is built FROM and the build
+ * stages it copies /usr/src out of (buildOrder).
+ */
+function builtFromInstructions(name) {
+  return buildOrder(productionStages, name).flatMap((candidate) => {
+    return instructions(candidate.body);
+  });
+}
+
 const COPIES_EE = /^(?:COPY|ADD)\s+(?:--\S+\s+)*(?:\.\/)?ee(?:\/\S*)?\s/i;
 
 /*
- * Every Dockerfile.tpl configure.sh renders, and the one stage pair that may
- * hold ee/: the App's enterprise-build and the enterprise target built FROM
- * it (production render only; the development image mounts ee/ instead).
+ * Every Dockerfile.tpl configure.sh renders, and the stages that may hold
+ * ee/: the App's enterprise-build, enterprise-pruned built FROM it, and the
+ * enterprise target that copies /usr/src out of that (production render only;
+ * the development image mounts ee/ instead).
  */
 const ALL_TEMPLATES = findTemplates(REPO_ROOT);
 const APP_TEMPLATE = "packages/App/Dockerfile.tpl";
-const APP_ENTERPRISE_STAGES = ["enterprise-build", "enterprise"];
+const APP_ENTERPRISE_STAGES = [
+  "enterprise-build",
+  "enterprise-pruned",
+  "enterprise",
+];
 
 /*
  * gomplate's file.Exists, answered for rendering: true includes every
@@ -369,8 +385,11 @@ describe("packages/App/Dockerfile.tpl: the production build", () => {
       "base <- public.ecr.aws/docker/library/node:26-alpine3.24",
       "community-build <- base",
       "enterprise-build <- community-build",
-      "enterprise <- enterprise-build",
-      "community <- community-build",
+      "runtime <- public.ecr.aws/docker/library/node:26-alpine3.24",
+      "enterprise-pruned <- enterprise-build",
+      "enterprise <- runtime",
+      "community-pruned <- community-build",
+      "community <- runtime",
     ]);
   });
 
@@ -380,10 +399,49 @@ describe("packages/App/Dockerfile.tpl: the production build", () => {
     expect(shared).toContain("RUN npm run build-frontends:prod");
     expect(shared).toContain("RUN npm run compile");
     expect(
-      ancestry(productionStages, "enterprise").map((s) => {
+      ancestry(productionStages, "enterprise-pruned").map((s) => {
         return s.name;
       }),
-    ).toEqual(["enterprise", "enterprise-build", "community-build", "base"]);
+    ).toEqual([
+      "enterprise-pruned",
+      "enterprise-build",
+      "community-build",
+      "base",
+    ]);
+    expect(
+      buildOrder(productionStages, "enterprise").map((s) => {
+        return s.name;
+      }),
+    ).toEqual([
+      "runtime",
+      "base",
+      "community-build",
+      "enterprise-build",
+      "enterprise-pruned",
+      "enterprise",
+    ]);
+    expect(
+      buildOrder(productionStages, "community").map((s) => {
+        return s.name;
+      }),
+    ).toEqual([
+      "runtime",
+      "base",
+      "community-build",
+      "community-pruned",
+      "community",
+    ]);
+  });
+
+  test("each edition's image starts from the runtime stage and takes only /usr/src out of its pruned build", () => {
+    for (const edition of ["community", "enterprise"]) {
+      expect(stage(edition).from).toBe("runtime");
+      expect(
+        stageInstructions(edition).filter((line) => {
+          return /^COPY\b/.test(line);
+        }),
+      ).toEqual([`COPY --from=${edition}-pruned /usr/src /usr/src`]);
+    }
   });
 
   test("GIT_SHA and APP_VERSION reach the build before the frontends bake them into the service worker", () => {
@@ -408,7 +466,14 @@ describe("packages/App/Dockerfile.tpl: the production build", () => {
   });
 
   test("no shared stage switches to USER node (enterprise-build still runs as root)", () => {
-    for (const name of ["base", "community-build", "enterprise-build"]) {
+    for (const name of [
+      "base",
+      "community-build",
+      "enterprise-build",
+      "runtime",
+      "community-pruned",
+      "enterprise-pruned",
+    ]) {
       expect({
         name,
         user: stageInstructions(name).filter((line) => {
@@ -421,7 +486,7 @@ describe("packages/App/Dockerfile.tpl: the production build", () => {
   describe("the community target", () => {
     test("nothing it is built from copies ee/", () => {
       expect(
-        ancestryInstructions("community").filter((line) => {
+        builtFromInstructions("community").filter((line) => {
           return COPIES_EE.test(`${line} `);
         }),
       ).toEqual([]);
@@ -429,7 +494,7 @@ describe("packages/App/Dockerfile.tpl: the production build", () => {
 
     test("nothing it is built from mentions /usr/src/ee at all", () => {
       expect(
-        ancestryInstructions("community").filter((line) => {
+        builtFromInstructions("community").filter((line) => {
           return line.includes("/usr/src/ee");
         }),
       ).toEqual([]);
@@ -461,6 +526,11 @@ describe("packages/App/Dockerfile.tpl: the production build", () => {
     test("leaves ONEUPTIME_EDITION unset (auto)", () => {
       expect(
         ancestryInstructions("community").filter((line) => {
+          return /ONEUPTIME_EDITION/.test(line);
+        }),
+      ).toEqual([]);
+      expect(
+        builtFromInstructions("community").filter((line) => {
           return /ONEUPTIME_EDITION/.test(line);
         }),
       ).toEqual([]);

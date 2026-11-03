@@ -178,7 +178,7 @@ Abra um incidente e o menu lateral dele agrupa suas páginas assim:
 | **Equipe**            | **Funções**, **Execuções de plantão**, **Proprietários**                                  |
 | **Notificações**      | **Logs de notificação**, **Registros de IA** — recolhida até você clicar em **Notificações** |
 | **Notas**             | **Notas privadas**, **Notas públicas**                                                    |
-| **Desenvolvedores**   | **Terraform**, **API**, **Assistentes de IA** — recolhida até você clicar em **Desenvolvedores** |
+| **Desenvolvedores**   | **Terraform**, **API**, **CLI**, **Assistentes de IA** — recolhida até você clicar em **Desenvolvedores** |
 | **Avançado**          | **Campos personalizados**, **Configurações**, **Registros de auditoria**, **Excluir incidente** — recolhida até você clicar em **Avançado** |
 
 O que cada uma contém:

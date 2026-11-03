@@ -1,5 +1,6 @@
 import { getRepositorySettingsRoute } from "../Code/CodePaths";
 import { CodeRepositorySetting } from "../Code/CodeRepositorySettingsCopy";
+import RunnerTakesNoCodeFixesText from "./RunnerTakesNoCodeFixesText";
 import CodeRepository from "Common/Models/DatabaseModels/CodeRepository";
 import IsNull from "Common/Types/BaseDatabase/IsNull";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -26,10 +27,18 @@ import React, { FunctionComponent, ReactElement } from "react";
  * only when it could: not for someone who may not read code repositories,
  * nor on a plan without Code - the row would be about repositories they
  * cannot see.
+ *
+ * A Runner whose host turned AI code fixes off (it says so on every
+ * heartbeat, Common/Types/Runner/RunnerCodeFixes) gets none of those
+ * repositories' work done: the row says so under them, in amber, in the
+ * words their own Runner settings use - the setting, and the two ways on.
  */
 
 export const RUNNER_CODE_REPOSITORIES_TEST_ID: string =
   "runner-code-repositories";
+
+export const RUNNER_CODE_REPOSITORIES_TAKES_NO_CODE_FIXES_TEST_ID: string =
+  "runner-code-repositories-takes-no-code-fixes";
 
 // The most repositories the row lists; a Runner rarely has this many.
 export const MAX_LISTED_CODE_REPOSITORIES: number = 50;
@@ -119,6 +128,11 @@ export async function loadRunnerCodeRepositories(
 
 export interface ComponentProps {
   repositories: Array<RunnerCodeRepositoryRow>;
+  /*
+   * The Runner said on its last heartbeat that its host turned AI code
+   * fixes off: said under the repositories that work on it.
+   */
+  takesNoCodeFixes?: boolean | undefined;
 }
 
 /*
@@ -141,7 +155,7 @@ const RunnerCodeRepositoryList: FunctionComponent<ComponentProps> = (
     );
   }
 
-  return (
+  const list: ReactElement = (
     <ul
       className="flex flex-wrap gap-x-4 gap-y-1"
       data-testid={RUNNER_CODE_REPOSITORIES_TEST_ID}
@@ -163,6 +177,22 @@ const RunnerCodeRepositoryList: FunctionComponent<ComponentProps> = (
         );
       })}
     </ul>
+  );
+
+  if (!props.takesNoCodeFixes) {
+    return list;
+  }
+
+  return (
+    <div>
+      {list}
+      <p
+        className="mt-1.5 break-words text-sm leading-6 text-amber-700"
+        data-testid={RUNNER_CODE_REPOSITORIES_TAKES_NO_CODE_FIXES_TEST_ID}
+      >
+        <RunnerTakesNoCodeFixesText />
+      </p>
+    </div>
   );
 };
 

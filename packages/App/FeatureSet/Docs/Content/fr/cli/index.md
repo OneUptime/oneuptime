@@ -3,15 +3,15 @@
 La CLI de OneUptime, `oneuptime`, gère votre projet OneUptime depuis un terminal ou un script. Elle liste, lit, crée, modifie, supprime et compte les moniteurs, incidents, alertes, pages de statut et les autres enregistrements que l'API de OneUptime propose, avec une clé API de votre projet.
 
 :::cards
-- [Comment fonctionne la CLI](#comment-fonctionne-la-cli): Une commande, une requête à l'API, une réponse.
-- [Installer la CLI](#installer-la-cli): Une commande npm, et la version à choisir.
-- [Lancer vos premières commandes](#lancer-vos-premières-commandes): Enregistrez votre clé API, puis listez vos incidents.
+- [Comment fonctionne la CLI](#comment-fonctionne-la-cli): Une commande, les requêtes à l'API qu'elle envoie, et sa réponse.
+- [Installer la CLI](#installer-la-cli): Le script d'installation que sert votre OneUptime, ou npm.
+- [Lancer vos premières commandes](#lancer-vos-premières-commandes): Enregistrez votre clé API, vérifiez-la, puis listez vos incidents.
 - [Les commandes en un coup d'œil](#les-commandes-en-un-coup-dœil): Chaque commande, et la page qui l'explique.
 :::
 
 ## Comment fonctionne la CLI
 
-Chaque commande envoie une requête à l'API REST de OneUptime et affiche la réponse. La CLI prend la clé API et l'adresse de votre OneUptime dans des options, des variables d'environnement ou un contexte enregistré par `oneuptime login`. La clé décide de ce qu'une commande peut lire et modifier, exactement comme pour l'API.
+La plupart des commandes envoient une requête à l'API REST de OneUptime et affichent la réponse ; une action, comme `acknowledge`, envoie les quelques requêtes qu'envoie le bouton du tableau de bord. La CLI prend la clé API et l'adresse de votre OneUptime dans des options, des variables d'environnement ou un contexte enregistré par `oneuptime login`. La clé décide de ce qu'une commande peut lire et modifier, exactement comme pour l'API.
 
 ```mermaid title="Une commande, une requête"
 flowchart TB
@@ -22,7 +22,7 @@ flowchart TB
     C -->|"un tableau dans<br/>un terminal,<br/>du JSON dans un pipe"| T
 ```
 
-Les commandes des enregistrements sont livrées avec la CLI : chaque type d'enregistrement que l'API de OneUptime ouvre aux outils en a une, les mêmes enregistrements pour lesquels le [serveur MCP](/docs/ai/mcp-server) a des outils. Lancez `oneuptime resources` pour les lister.
+Chaque ressource de l'API de OneUptime est une commande, 450 et plus, de `incident` et `monitor` à `status-page-subscriber` et `telemetry-ingestion-key`, chacune avec les opérations que l'API accepte pour elle. La CLI sort en même temps que OneUptime : la CLI de la version de votre OneUptime a donc une commande pour chaque ressource de votre serveur. Lancez `oneuptime resources` pour les lister.
 
 ## Avant de commencer
 
@@ -32,7 +32,14 @@ Les commandes des enregistrements sont livrées avec la CLI : chaque type d'enre
 
 ## Installer la CLI
 
-Installez le paquet `@oneuptime/cli` depuis npm. Il ajoute la commande `oneuptime`, et `--version` affiche la version installée :
+Chaque OneUptime sert le script d'installation de la CLI de sa propre version : les commandes ci-dessous le téléchargent depuis `https://oneuptime.com`, remplacez donc cette adresse par votre URL sur un OneUptime auto-hébergé. Le script est d'abord enregistré dans `install.sh`, pour que vous puissiez le lire avant de le lancer. Il demande sa version à votre OneUptime, et installe la CLI de la même version avec npm :
+
+```bash
+curl -fsSL https://oneuptime.com/install/cli -o install.sh
+ONEUPTIME_URL=https://oneuptime.com bash install.sh
+```
+
+Ou installez vous-même le paquet `@oneuptime/cli` depuis npm. Il ajoute la commande `oneuptime`, et `--version` affiche la version installée :
 
 ```bash
 npm install -g @oneuptime/cli
@@ -61,13 +68,21 @@ oneuptime login <your-api-key> https://oneuptime.com
 
 Elle répond `Logged in successfully. Context "default" is now active.` Sur un OneUptime auto-hébergé, utilisez son adresse à la place de `https://oneuptime.com`.
 
+### Vérifier la clé
+
+```bash
+oneuptime whoami --check
+```
+
+`login` enregistre la clé sans interroger OneUptime à son sujet. `--check` l'interroge : il affiche le projet de la clé, la version de votre OneUptime et celle de la CLI, et ce qu'il faut installer quand les deux diffèrent. Si OneUptime refuse la clé, voir [Dépannage](/docs/cli/authentication#dépannage).
+
 ### Lister vos incidents
 
 ```bash
 oneuptime incident list
 ```
 
-Les dix incidents les plus récents s'affichent sous forme de tableau. `login` enregistre la clé sans la vérifier : c'est donc cette commande qui montre la première que la clé fonctionne. Si elle est refusée, voir [Dépannage](/docs/cli/authentication#dépannage).
+Les dix incidents les plus récents s'affichent sous forme de tableau.
 
 ### Voir ce que vous pouvez gérer d'autre
 
@@ -75,7 +90,7 @@ Les dix incidents les plus récents s'affichent sous forme de tableau. `login` e
 oneuptime resources
 ```
 
-La liste montre chaque type d'enregistrement avec lequel vous pouvez travailler, et sa commande, comme `monitor`, `status-page` ou `on-call-policy`.
+La liste montre chaque type d'enregistrement avec lequel vous pouvez travailler, et sa commande, comme `monitor`, `status-page` ou `on-call-policy`. `oneuptime monitor fields` liste les champs d'un moniteur, et les options qui les définissent.
 :::
 
 ## Les commandes en un coup d'œil
@@ -84,9 +99,11 @@ La liste montre chaque type d'enregistrement avec lequel vous pouvez travailler,
 | --- | --- | --- |
 | `oneuptime login <api-key> <instance-url>` | Enregistre une clé API et une adresse comme contexte | [Authentification](/docs/cli/authentication#se-connecter) |
 | `oneuptime context list`, `use`, `current`, `delete` | Liste, change, affiche et supprime les contextes enregistrés | [Authentification](/docs/cli/authentication#contextes) |
-| `oneuptime whoami` | Affiche l'URL et la clé API que la prochaine commande utilisera | [Authentification](/docs/cli/authentication#vérifier-ce-que-la-cli-va-utiliser) |
+| `oneuptime whoami` | Affiche l'URL et la clé API que la prochaine commande utilisera, et avec `--check` si OneUptime accepte la clé | [Authentification](/docs/cli/authentication#vérifier-ce-que-la-cli-va-utiliser) |
 | `oneuptime deploy` | Enregistre un déploiement, ou un autre changement, pour les graphiques et OneUptime AI | [Déploiements et changements](/docs/telemetry/change-events) |
 | `oneuptime <resource> list`, `get`, `create`, `update`, `delete`, `count` | Travaille avec un type d'enregistrement | [Opérations sur les ressources](/docs/cli/resource-operations) |
+| `oneuptime <resource> fields` | Liste les champs d'une ressource, et les options qui les définissent | [Opérations sur les ressources](/docs/cli/resource-operations#voir-les-champs-dune-ressource) |
+| `oneuptime <resource> acknowledge`, `resolve`, `start`, `end`, `add-note` | Fait ce que font les boutons du tableau de bord sur les incidents, les alertes et les maintenances planifiées | [Opérations sur les ressources](/docs/cli/resource-operations#prendre-en-compte-résoudre-et-ajouter-des-notes) |
 | `oneuptime resources` | Liste les types d'enregistrements, avec leurs commandes | [Référence des commandes](/docs/cli/command-reference#oneuptime-resources) |
 | `oneuptime version` | Affiche la version de la CLI | [Référence des commandes](/docs/cli/command-reference#oneuptime-version) |
 | `oneuptime help [command]` | Affiche l'aide d'une commande | [Obtenir de l'aide](#obtenir-de-laide) |
@@ -101,6 +118,7 @@ Ces options fonctionnent avec chaque commande, avant ou après elle :
 | `--url <url>` | L'adresse de votre OneUptime pour cette commande |
 | `--context <name>` | Un contexte enregistré pour cette commande, à la place du contexte actuel |
 | `-o, --output <format>` | `table`, `json` ou `wide` : voir [Formats de sortie](/docs/cli/output-formats) |
+| `--json` | Équivaut à `-o json` |
 | `--no-color` | Affiche sans couleurs |
 | `-V, --version` | Affiche la version de la CLI |
 | `-h, --help` | Affiche l'aide de la commande |
@@ -122,5 +140,6 @@ oneuptime incident list --help
 - [Opérations sur les ressources](/docs/cli/resource-operations): Lister, lire, créer, modifier, supprimer et compter des enregistrements.
 - [Formats de sortie](/docs/cli/output-formats): Des tableaux pour les humains, du JSON pour les scripts.
 - [Scripts et CI/CD](/docs/cli/scripting): Codes de sortie, jq et pipelines.
+- [CLI pour les agents IA](/docs/cli/ai-agents): Quand un agent lance la CLI, et quand il utilise le serveur MCP.
 - [Référence des commandes](/docs/cli/command-reference): Chaque commande, option et valeur par défaut.
 :::

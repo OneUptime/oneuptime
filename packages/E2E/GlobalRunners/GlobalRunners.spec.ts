@@ -288,8 +288,9 @@ test.describe("Runbooks → Runners on a server that runs global Runners", () =>
     await expect(globalCard.getByTestId("row-actions-more-button")).toHaveCount(
       0,
     );
+    // What they run: JavaScript steps, and AI code fixes too (#5302).
     await expect(globalCard).toContainText(
-      "JavaScript steps run on them by default, in a sandbox that reaches the internet only.",
+      "By default they run JavaScript steps, in an internet-only sandbox, and AI code fixes.",
     );
     // One line across the card, as Global Probes' is.
     const descriptionLines: number = await globalCard
@@ -425,6 +426,58 @@ test.describe("Runbooks → Runners on a server that runs global Runners", () =>
 
     await openRunners(page, "gstatus=never");
     await expect(card(page, "Global Runners")).toContainText("Never connected");
+  });
+
+  /*
+   * The card says global Runners run AI code fixes, so a global Runner
+   * that takes none - one of an older release, or one whose host turned
+   * them off; the server works it out, and only a master admin is told
+   * which - says so under its status, in amber. Connected, it still runs
+   * JavaScript steps.
+   */
+  test("a global Runner that takes no AI code fixes says so under its status, in amber, in the reader's language", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRunners(page, "global=2&gfix=0");
+
+    const globalCard: Locator = card(page, "Global Runners");
+    const lines: Locator = globalCard.getByTestId(
+      "global-runner-row-takes-no-code-fixes",
+    );
+    await expect(lines).toHaveCount(2);
+    await expect(lines.first()).toHaveText("Takes no AI code fixes");
+    await expect(lines.first()).toHaveCSS("color", "rgb(180, 83, 9)");
+
+    // Under its status, in the same cell: connected, it runs steps.
+    const statusCell: Locator = lines.first().locator("xpath=ancestor::td[1]");
+    await expect(statusCell).toContainText("Connected");
+    const [status, line] = await boxesInOneFrame([
+      statusCell.getByText("Connected", { exact: true }),
+      lines.first(),
+    ]);
+    expect(status).not.toBeNull();
+    expect(line).not.toBeNull();
+    expect(line!.y).toBeGreaterThan(status!.y);
+
+    // Only the global Runners: never the project's own.
+    await expect(card(page, "Custom Runners")).not.toContainText(
+      "Takes no AI code fixes",
+    );
+    await screenshot(page, "global-runners-take-no-code-fixes");
+
+    // In German, as the Dashboard words it.
+    await openRunners(page, "global=1&gfix=0&lang=de");
+    await expect(
+      page.getByTestId("global-runner-row-takes-no-code-fixes"),
+    ).toHaveText(GERMAN["Takes no AI code fixes"]!);
+
+    // Global Runners that take them: nothing more under their status.
+    await openRunners(page, "global=2");
+    await expect(
+      page.getByTestId("global-runner-row-takes-no-code-fixes"),
+    ).toHaveCount(0);
   });
 
   test("someone who may only read sees the switch, locked", async ({
@@ -1505,6 +1558,81 @@ test.describe("a Runner and AI code fixes", () => {
     await expect(details.getByTestId("runner-code-repositories")).toHaveCount(
       0,
     );
+  });
+
+  /*
+   * A Runner whose host turned AI code fixes off (it says so on every
+   * heartbeat) gets none of the work of the repositories that pick it: its
+   * page says so under them, in amber, in the words their own Runner
+   * settings use - the setting drawn as code that breaks only after its
+   * underscores, so a phone never splits a word of it.
+   */
+  test("a Runner whose host turned AI code fixes off says so under the code repositories that pick it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(`${RUNNER_PAGE}?page=runner&custom=1&fix=0`);
+
+    const details: Locator = card(page, "Runner Details");
+    const repositories: Locator = details.getByTestId(
+      "runner-code-repositories",
+    );
+    const line: Locator = details.getByTestId(
+      "runner-code-repositories-takes-no-code-fixes",
+    );
+    await expect(line).toHaveText(
+      "This Runner takes no AI code fixes: ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false is set on its host. Remove that setting and restart the Runner, or pick another Runner.",
+    );
+    await expect(line).toHaveCSS("color", "rgb(180, 83, 9)");
+    const setting: Locator = line.getByTestId("runner-code-fixes-off-setting");
+    await expect(setting).toHaveText(
+      "ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false",
+    );
+
+    // Under the repositories it is about, which stay linked.
+    await expect(
+      repositories.getByRole("link", { name: "checkout-service" }),
+    ).toBeVisible();
+    const [listBox, lineBox] = await boxesInOneFrame([repositories, line]);
+    expect(listBox).not.toBeNull();
+    expect(lineBox).not.toBeNull();
+    expect(lineBox!.y).toBeGreaterThan(listBox!.y);
+    await screenshot(page, "runner-takes-no-code-fixes");
+
+    // On a phone: inside the card, each part of the setting whole.
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(line).toBeVisible();
+    const linesPerPart: Array<number> = await setting
+      .locator("span")
+      .evaluateAll((parts: Array<Element>): Array<number> => {
+        return parts.map((part: Element): number => {
+          return part.getClientRects().length;
+        });
+      });
+    expect(linesPerPart).toEqual([1, 1, 1, 1, 1]);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "runner-takes-no-code-fixes-phone");
+
+    // No repository on it: nothing waits on it, so nothing more is said.
+    await page.goto(`${RUNNER_PAGE}?page=runner&custom=1&fix=0&picks=0`);
+    await expect(
+      card(page, "Runner Details").getByTestId(
+        "runner-code-repositories-empty",
+      ),
+    ).toBeVisible();
+    await expect(
+      page.getByTestId("runner-code-repositories-takes-no-code-fixes"),
+    ).toHaveCount(0);
+
+    // A Runner that takes them: nothing more either.
+    await page.goto(`${RUNNER_PAGE}?page=runner&custom=1`);
+    await expect(
+      card(page, "Runner Details").getByTestId("runner-code-repositories"),
+    ).toBeVisible();
+    await expect(
+      page.getByTestId("runner-code-repositories-takes-no-code-fixes"),
+    ).toHaveCount(0);
   });
 
   /*

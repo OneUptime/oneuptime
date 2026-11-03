@@ -2,6 +2,8 @@ import { BaseSchema } from "../../../Utils/Schema/BaseSchema";
 import Zod from "../../../Utils/Schema/Zod";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { JSONObject } from "../../../Types/JSON";
+import fs from "fs";
+import path from "path";
 import {
   OpenAPIRegistry,
   OpenApiGeneratorV3,
@@ -15,7 +17,7 @@ import {
  * (generateSortSchema / generateSelectSchema / generateGroupBySchema and
  * applyOpenApi), so the example generators and the
  * create-schema builder — getCommonExampleValue, generateSelectSchemaExample,
- * generateGroupBySchemaExample, generateCreateSchema, logSchemaGeneration — are
+ * generateGroupBySchemaExample, generateCreateSchema — are
  * not exercised anywhere else in the codebase. These tests pin down that pure
  * logic branch-by-branch without a database connection.
  *
@@ -148,14 +150,6 @@ class TestSchema extends BaseSchema {
 
   public static openApi(base: any, config: any, disable?: boolean): any {
     return this.applyOpenApi(base, config, disable);
-  }
-
-  public static logGeneration(
-    schemaType: string,
-    tableName: string,
-    shape: any,
-  ): void {
-    return this.logSchemaGeneration(schemaType, tableName, shape);
   }
 }
 
@@ -618,13 +612,29 @@ describe("BaseSchema.applyOpenApi", () => {
   });
 });
 
-describe("BaseSchema.logSchemaGeneration", () => {
-  test("does not throw while logging shape keys", () => {
-    expect(() => {
-      TestSchema.logGeneration("Select", "Monitor", {
-        name: Zod.boolean(),
-        email: Zod.boolean(),
+/*
+ * The schemas build the API reference and the npm package's users' own
+ * schemas, so BaseSchema loads nothing of the server: it logged through the
+ * server's logger once (a debug line nothing called), which kept it, and
+ * ModelSchema and AnalyticsModelSchema with it, out of @oneuptime/common.
+ */
+describe("BaseSchema loads nothing of the server", () => {
+  test("no import of Server/ or UI/ code", () => {
+    const source: string = fs.readFileSync(
+      path.join(__dirname, "../../../Utils/Schema/BaseSchema.ts"),
+      "utf8",
+    );
+    const imports: Array<string> = source.split("\n").filter((line: string) => {
+      return line.startsWith("import ");
+    });
+
+    expect(imports.length).toBeGreaterThan(0);
+    for (const line of imports) {
+      expect({ line, server: line.includes("/Server/") }).toEqual({
+        line,
+        server: false,
       });
-    }).not.toThrow();
+      expect({ line, ui: line.includes("/UI/") }).toEqual({ line, ui: false });
+    }
   });
 });

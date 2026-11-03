@@ -15,8 +15,10 @@
 #
 # Stage graph:
 #
-#   base -> community-build -> enterprise-build -> enterprise
-#                           \-> community
+#   base -> community-build -> enterprise-build -> enterprise-pruned
+#                           \-> community-pruned
+#   runtime -> enterprise   (copies /usr/src out of enterprise-pruned)
+#           \-> community   (copies /usr/src out of community-pruned)
 #
 # BuildKit builds only the stages the chosen target needs, so the community
 # target never evaluates `COPY ./ee` and builds from a context without ee/, and
@@ -24,6 +26,21 @@
 # Scripts/GHA/build_docker_images.sh publishes both targets, and the Build
 # workflow (.github/workflows/build.yml) builds both on every pull request and
 # checks what each image contains.
+#
+# The images that ship start from `runtime` (Node.js, npm, bash and curl) and
+# copy /usr/src out of a pruned build: everything the build needed and the App
+# does not run stays behind. That was most of the image: the six frontends'
+# own installs (500 MB, there only to bundle them), Common's packages that no
+# server code reaches (the Dashboard's diagrams and charts, React, Playwright,
+# esbuild, ...), Common's and the App's tests and the type-check's output (the
+# App runs Index.ts with ts-node), and the build toolchain, which stayed in the
+# layers that installed it after `apk del`. The pruned stages walk the App's
+# imports (Scripts/Docker/PruneUnreachablePackages.js) from its entry, from
+# the external calendar's worker thread (which alone requires ical.js) and,
+# for the Enterprise Edition, from ee/'s entry, which the Enterprise loader
+# requires, and from Migrate.ts, which the Helm chart's migrate job runs
+# (npm run migrate). Tests/Ops/ContainerImageHardening.test.js holds the
+# stages to this.
 
 # Pull base image nodejs image.
 # Floating on the 26.x patch + alpine3.24 so each rebuild picks up the latest
@@ -222,6 +239,9 @@ COPY ./agents/StorageArrayAgent /usr/src/agents/StorageArrayAgent
 COPY ./agents/VMwareAgent /usr/src/agents/VMwareAgent
 # .dockerignore leaves HelmChart/ out of the context except this one file.
 COPY ./HelmChart/Public/kubernetes-agent/troubleshoot.sh /usr/src/HelmChart/Public/kubernetes-agent/troubleshoot.sh
+# The CLI's installer, served at /install/cli: it installs the npm package of
+# this release's version.
+COPY ./packages/CLI/Install /usr/src/packages/CLI/Install
 
 # ---------------------------------------------------------------------------
 # enterprise-build: community-build plus ee/.
@@ -266,9 +286,79 @@ RUN grep -rqF ONEUPTIME_EE_ADMIN_DASHBOARD_PLUGIN_v1 FeatureSet/AdminDashboard/p
 RUN npm --prefix /usr/src/ee prune --omit=dev --ignore-scripts
 
 # ---------------------------------------------------------------------------
+# runtime: what both editions' images start from. Node.js, the updated npm,
+# bash and curl - no build toolchain and no npm install: each edition copies
+# /usr/src out of its pruned build stage below.
+# ---------------------------------------------------------------------------
+FROM public.ecr.aws/docker/library/node:26-alpine3.24 AS runtime
+RUN mkdir /tmp/npm &&  chmod 2777 /tmp/npm && chown 1000:1000 /tmp/npm && npm config set cache /tmp/npm --global
+
+# Update npm to npm@latest with every dependency it bundles, as the base stage
+# does: this is the npm the images ship (Scripts/Docker/UpdateNpmCli.js).
+COPY ./Scripts/Docker/UpdateNpmCli.js /tmp/UpdateNpmCli.js
+RUN node /tmp/UpdateNpmCli.js && rm /tmp/UpdateNpmCli.js
+
+LABEL org.opencontainers.image.title="OneUptime App"
+LABEL org.opencontainers.image.description="OneUptime core application server — dashboard API, workers, and telemetry ingestion."
+LABEL org.opencontainers.image.source="https://github.com/OneUptime/oneuptime"
+LABEL org.opencontainers.image.url="https://oneuptime.com"
+LABEL org.opencontainers.image.documentation="https://oneuptime.com/docs"
+LABEL org.opencontainers.image.vendor="OneUptime"
+
+# Alpine security fixes published since the base image was built, and the
+# runtime tools the base stage installs.
+RUN apk upgrade --no-cache \
+    && apk add --no-cache bash curl
+
+SHELL ["/bin/bash", "-c"]
+
+ENV PRODUCTION=true
+
+WORKDIR /usr/src/app
+
+# Expose ports.
+#   - 3002: OneUptime-backend
+EXPOSE 3002
+
+# ---------------------------------------------------------------------------
+# enterprise-pruned: enterprise-build with only what the Enterprise Edition
+# runs. Common is pruned to the packages the App, the external calendar's
+# worker and ee/ reach; the App loses its development packages (ts-node keeps
+# the TypeScript it runs on), the frontends their installs (their bundles are
+# built), and Common and the App their tests and the type-check's output.
+# ---------------------------------------------------------------------------
+FROM enterprise-build AS enterprise-pruned
+COPY ./Scripts/Docker/PruneUnreachablePackages.js /tmp/PruneUnreachablePackages.js
+RUN node /tmp/PruneUnreachablePackages.js \
+        --entry /usr/src/app/Index.ts \
+        --entry /usr/src/app/Migrate.ts \
+        --entry /usr/src/Common/Server/Utils/ScheduledMaintenance/ExternalCalendar/ExternalCalendarExpansionWorker.cjs \
+        --entry /usr/src/ee/Server/Index.ts \
+        --entry-loader /usr/src/app/Utils/EnterpriseLoader.ts \
+        --entry-loader /usr/src/Common/Server/Utils/ScheduledMaintenance/ExternalCalendar/ExternalCalendarExpansion.ts \
+        --package /usr/src/Common \
+    && npm prune --omit=dev --offline --no-audit --no-fund \
+    && node -e "require('ts-node'); require('typescript')" \
+    && rm -rf /tmp/PruneUnreachablePackages.js /usr/src/Common/Tests /usr/src/app/build /usr/src/app/Tests /usr/src/app/FeatureSet/*/node_modules
+
+# ---------------------------------------------------------------------------
 # enterprise: the Enterprise Edition image (--target enterprise).
 # ---------------------------------------------------------------------------
-FROM enterprise-build AS enterprise
+FROM runtime AS enterprise
+# pg_dump and pg_restore for Admin Dashboard > Settings > Backups
+# (ee/Server/Backup/Postgres/PostgresTools.ts finds them in
+# /usr/libexec/postgresql<N>). pg_dump must be at least as new as the server it
+# dumps, so one set per PostgreSQL major a server may run. Enterprise only: the
+# Community Edition has no backups, and this stage is the only one that installs
+# them.
+RUN apk add --no-cache postgresql16-client postgresql17-client postgresql18-client
+COPY --from=enterprise-pruned /usr/src /usr/src
+ARG GIT_SHA
+ARG APP_VERSION
+ENV GIT_SHA=${GIT_SHA}
+ENV APP_VERSION=${APP_VERSION}
+LABEL org.opencontainers.image.revision="${GIT_SHA}"
+LABEL org.opencontainers.image.version="${APP_VERSION}"
 LABEL org.opencontainers.image.licenses="Apache-2.0 AND LicenseRef-OneUptime-Enterprise"
 LABEL com.oneuptime.edition="enterprise"
 # The Enterprise loader's image marker (packages/App/Utils/EnterpriseLoader.ts):
@@ -279,13 +369,6 @@ ENV ONEUPTIME_EDITION=enterprise
 # here to agree with the image; the boot guard only acts on true without ee/.
 # What the App actually loaded is the edition, and that is what env.js reports.
 ENV IS_ENTERPRISE_EDITION=true
-# pg_dump and pg_restore for Admin Dashboard > Settings > Backups
-# (ee/Server/Backup/Postgres/PostgresTools.ts finds them in
-# /usr/libexec/postgresql<N>). pg_dump must be at least as new as the server it
-# dumps, so one set per PostgreSQL major a server may run. Enterprise only: the
-# Community Edition has no backups, and this stage is the only one that installs
-# them.
-RUN apk add --no-cache postgresql16-client postgresql17-client postgresql18-client
 USER node
 # The full TypeScript type-check already ran at build time (`npm run compile`
 # and the ee tsc above). Without this, ts-node/register redoes that entire check
@@ -308,15 +391,40 @@ ENV TS_NODE_TRANSPILE_ONLY=1
 CMD [ "sh", "-c", "export NODE_OPTIONS=\"--max-old-space-size=8096${NODE_OPTIONS:+ $NODE_OPTIONS}\" && exec node --no-node-snapshot --require ts-node/register Index.ts" ]
 
 # ---------------------------------------------------------------------------
+# community-pruned: community-build with only what the Community Edition runs,
+# pruned as enterprise-pruned is, from the App's entry and the external
+# calendar's worker.
+# ---------------------------------------------------------------------------
+FROM community-build AS community-pruned
+COPY ./Scripts/Docker/PruneUnreachablePackages.js /tmp/PruneUnreachablePackages.js
+RUN node /tmp/PruneUnreachablePackages.js \
+        --entry /usr/src/app/Index.ts \
+        --entry /usr/src/app/Migrate.ts \
+        --entry /usr/src/Common/Server/Utils/ScheduledMaintenance/ExternalCalendar/ExternalCalendarExpansionWorker.cjs \
+        --entry-loader /usr/src/app/Utils/EnterpriseLoader.ts \
+        --entry-loader /usr/src/Common/Server/Utils/ScheduledMaintenance/ExternalCalendar/ExternalCalendarExpansion.ts \
+        --package /usr/src/Common \
+    && npm prune --omit=dev --offline --no-audit --no-fund \
+    && node -e "require('ts-node'); require('typescript')" \
+    && rm -rf /tmp/PruneUnreachablePackages.js /usr/src/Common/Tests /usr/src/app/build /usr/src/app/Tests /usr/src/app/FeatureSet/*/node_modules
+
+# ---------------------------------------------------------------------------
 # community: the Community Edition image (--target community, and the default
 # target). Keep this stage LAST, and never copy ee/ into it.
 # ---------------------------------------------------------------------------
-FROM community-build AS community
+FROM runtime AS community
+COPY --from=community-pruned /usr/src /usr/src
 # The Community bundles must not contain the Enterprise UI.
 RUN if grep -rlF -e ONEUPTIME_EE_DASHBOARD_PLUGIN_v1 -e ONEUPTIME_EE_ADMIN_DASHBOARD_PLUGIN_v1 FeatureSet/Dashboard/public/dist FeatureSet/AdminDashboard/public/dist; then \
         echo "The Community Edition bundles listed above contain the Enterprise UI." >&2; \
         exit 1; \
     fi
+ARG GIT_SHA
+ARG APP_VERSION
+ENV GIT_SHA=${GIT_SHA}
+ENV APP_VERSION=${APP_VERSION}
+LABEL org.opencontainers.image.revision="${GIT_SHA}"
+LABEL org.opencontainers.image.version="${APP_VERSION}"
 LABEL org.opencontainers.image.licenses="Apache-2.0"
 LABEL com.oneuptime.edition="community"
 # ONEUPTIME_EDITION is deliberately NOT set here. It stays "auto", which finds

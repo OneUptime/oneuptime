@@ -65,10 +65,15 @@ const API_PREFIX: string = "app.use(`/${APP_NAME.toLocaleLowerCase()}`,";
 const RESOURCE_AI_ACCESS_MOUNT: string = `${API_PREFIX}ResourceAiAccessAPI);`;
 const KUBERNETES_AI_ACCESS_MOUNT: string = `${API_PREFIX}KubernetesClusterAiAccessAPI);`;
 
-// The CRUD router of each resource the API serves: `new BaseAPI<Model, ServiceType>(Model, Service).getRouter()`.
+/*
+ * The CRUD router of each resource the API serves: `new BaseAPI<Model,
+ * ServiceType>(Model, Service).getRouter()`, or the model's own API class,
+ * which extends BaseAPI and so carries the same CRUD routes
+ * (`new HostAPI().getRouter()` since #5535).
+ */
 function crudMount(model: string): RegExp {
   return new RegExp(
-    `app\\.use\\(\`\\/\\$\\{APP_NAME\\.toLocaleLowerCase\\(\\)\\}\`,newBaseAPI<${model},${model}ServiceType>\\(${model},${model}Service,?\\)\\.getRouter\\(\\),?\\);`,
+    `app\\.use\\(\`\\/\\$\\{APP_NAME\\.toLocaleLowerCase\\(\\)\\}\`,(?:newBaseAPI<${model},${model}ServiceType>\\(${model},${model}Service,?\\)|new${model}API\\(\\))\\.getRouter\\(\\),?\\);`,
   );
 }
 

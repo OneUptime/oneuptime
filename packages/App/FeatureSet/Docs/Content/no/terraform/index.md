@@ -85,7 +85,7 @@ Listesidene (for eksempel **Hendelser** eller **Monitorer**) har den samme seksj
 
 Hemmeligheter vises aldri på disse sidene. Når konfigurasjonen trenger en (for eksempel `Authorization`-headeren til en monitor), leser den den fra en Terraform-variabel som er merket `sensitive`. Hemmeligheter den ikke trenger, utelates, og Terraform lar dem være som de er i OneUptime.
 
-Den samme seksjonen har en side **API** med `curl`-kommandoer for ressursen, og en side **AI-assistenter**, som kobler Claude, GitHub Copilot eller Cursor til [MCP-serveren](/docs/ai/mcp-server).
+Den samme seksjonen har en side **API** med `curl`-kommandoer for ressursen, en side **CLI** med de samme forespørslene som `oneuptime`-kommandoer, og en side **AI-assistenter**, som kobler Claude, GitHub Copilot eller Cursor til [MCP-serveren](/docs/ai/mcp-server).
 
 ## Hva du kan administrere
 

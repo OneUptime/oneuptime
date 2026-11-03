@@ -5,7 +5,7 @@
 :::cards
 - [ग्लोबल विकल्प](#ग्लोबल-विकल्प): वे विकल्प जो हर कमांड लेती है।
 - [लॉगिन और कॉन्टेक्स्ट](#लॉगिन-और-कॉन्टेक्स्ट): login और context कमांड।
-- [संसाधन कमांड](#संसाधन-कमांड): list, get, create, update, delete और count।
+- [संसाधन कमांड](#संसाधन-कमांड): हर संसाधन के संचालन, फ़ील्ड और कार्रवाइयाँ।
 - [अन्य कमांड](#अन्य-कमांड): deploy, whoami, resources, version और help।
 :::
 
@@ -17,7 +17,8 @@ flowchart LR
     O --> C["context"]
     C --> C1["list<br/>use<br/>current<br/>delete"]
     O --> R["incident, monitor<br/>और हर संसाधन"]
-    R --> R1["list<br/>get<br/>create<br/>update<br/>delete<br/>count"]
+    R --> R1["list<br/>get<br/>create<br/>update<br/>delete<br/>count<br/>fields"]
+    R --> R2["acknowledge<br/>resolve<br/>start<br/>end<br/>add-note"]
     O --> U["deploy<br/>whoami<br/>resources<br/>version<br/>help"]
 ```
 
@@ -29,11 +30,14 @@ flowchart LR
 | `--url <url>` | इस कमांड के लिए आपके OneUptime का पता | `ONEUPTIME_URL`, फिर कॉन्टेक्स्ट का URL |
 | `--context <name>` | इस कमांड के लिए उपयोग होने वाला सहेजा कॉन्टेक्स्ट | मौजूदा कॉन्टेक्स्ट |
 | `-o, --output <format>` | `json`, `table` या `wide` | टर्मिनल में `table`, पाइप में `json` |
+| `--json` | `-o json` के समान | |
 | `--no-color` | बिना रंगों के प्रिंट करता है | रंगों के साथ, जब तक `NO_COLOR` सेट न हो |
 | `-V, --version` | CLI का संस्करण प्रिंट करता है | |
 | `-h, --help` | किसी कमांड की सहायता दिखाता है | |
 
 विकल्प कमांड से पहले या बाद में आते हैं: `oneuptime --context staging incident list` और `oneuptime incident list --context staging` एक ही काम करते हैं।
+
+हर कमांड `-o` और `--json` लेती है, इसलिए नीचे की टेबल उन्हें छोड़ देती हैं। जिस कमांड का जवाब एक वाक्य है, जैसे `delete`, वह वाक्य प्रिंट करती है, जब तक `-o json` या `--json` JSON न माँगे: [आउटपुट प्रारूप](/docs/cli/output-formats#json) देखें।
 
 ## लॉगिन और कॉन्टेक्स्ट
 
@@ -53,15 +57,11 @@ oneuptime login <api-key> <instance-url> [--context-name <name>]
 
 ### `oneuptime context list`
 
-सहेजे कॉन्टेक्स्ट सूचीबद्ध करती है; `*` मौजूदा को चिह्नित करता है। API कुंजियाँ कभी सूचीबद्ध नहीं होतीं।
+सहेजे गए कॉन्टेक्स्ट सूचीबद्ध करती है; `*` मौजूदा कॉन्टेक्स्ट को चिह्नित करता है। API कुंजियाँ कभी सूचीबद्ध नहीं होतीं: JSON हर कॉन्टेक्स्ट का `name`, `apiUrl` और `isCurrent` देता है।
 
 ```bash
-oneuptime context list [-o <format>]
+oneuptime context list
 ```
-
-| विकल्प | ज़रूरी | यह क्या है |
-| --- | --- | --- |
-| `-o, --output <format>` | नहीं | `json`, `table` या `wide`। JSON हर कॉन्टेक्स्ट का `name`, `apiUrl` और `isCurrent` देता है |
 
 ### `oneuptime context use`
 
@@ -97,14 +97,14 @@ oneuptime context delete <name>
 
 ## संसाधन कमांड
 
-`<resource>` किसी तरह के रिकॉर्ड की कमांड है, [संसाधन](#संसाधन) टेबलों से, जैसे `incident` या `monitor`। उदाहरणों के लिए [संसाधन संचालन](/docs/cli/resource-operations) देखें।
+`<resource>` किसी तरह के रिकॉर्ड की कमांड है, [संसाधन](#संसाधन) टेबल से, जैसे `incident` या `monitor`। किसी संसाधन के पास वे संचालन होते हैं जो API उसके लिए लेता है, ज़्यादातर के पास सभी छह, और `oneuptime <resource> --help` उसके अपने संचालन सूचीबद्ध करती है। उदाहरणों के लिए [संसाधन संचालन](/docs/cli/resource-operations) देखें।
 
 ### `oneuptime <resource> list`
 
 रिकॉर्ड सूचीबद्ध करती है, सबसे नए पहले। लेबल इसके बजाय नाम के क्रम में सूचीबद्ध होते हैं, संख्या वाले लेबल पहले (`2. Team` पहले, `10. Owner` बाद में)।
 
 ```bash
-oneuptime <resource> list [--query <json>] [--limit <n>] [--skip <n>] [--sort <json>] [-o <format>]
+oneuptime <resource> list [--query <json>] [--limit <n>] [--skip <n>] [--sort <json>] [--fields <names>] [--all]
 ```
 
 | विकल्प | यह क्या करता है | डिफ़ॉल्ट |
@@ -113,52 +113,56 @@ oneuptime <resource> list [--query <json>] [--limit <n>] [--skip <n>] [--sort <j
 | `--limit <n>` | लौटाए जाने वाले अधिकतम रिकॉर्ड, 10,000 तक | `10` |
 | `--skip <n>` | पहले कितने रिकॉर्ड छोड़ने हैं | `0` |
 | `--sort <json>` | क्रम, JSON के रूप में: `{"<field>":"ASC"}` या `{"<field>":"DESC"}` | सबसे नए पहले |
-| `-o, --output <format>` | `json`, `table` या `wide` | टर्मिनल में `table`, पाइप में `json` |
+| `--fields <names>` | लौटाए जाने वाले फ़ील्ड, कॉमा से अलग किए हुए; किसी जुड़े हुए रिकॉर्ड का फ़ील्ड बिंदु के बाद, जैसे `currentIncidentState.name` में | हर वह फ़ील्ड जिसे कुंजी पढ़ सकती है |
+| `--all` | हर मेल खाने वाला रिकॉर्ड, एक बार में 100, 100,000 तक, `--limit` और `--skip` की जगह। केवल रिकॉर्ड के लिए: टेलीमेट्री में `--all` नहीं है | |
 
 ### `oneuptime <resource> get`
 
-एक रिकॉर्ड पढ़ती है। केवल रिकॉर्ड के लिए: टेलीमेट्री में `get` नहीं है।
+एक रिकॉर्ड पढ़ती है।
 
 ```bash
-oneuptime <resource> get <id> [-o <format>]
+oneuptime <resource> get <id> [--fields <names>]
 ```
 
 | आर्ग्युमेंट या विकल्प | ज़रूरी | यह क्या है |
 | --- | --- | --- |
 | `<id>` | हाँ | रिकॉर्ड की ID, एक UUID |
-| `-o, --output <format>` | नहीं | `json`, `table` या `wide` |
+| `--fields <names>` | नहीं | लौटाए जाने वाले फ़ील्ड, कॉमा से अलग किए हुए। डिफ़ॉल्ट: हर वह फ़ील्ड जिसे कुंजी पढ़ सकती है |
 
 ### `oneuptime <resource> create`
 
 एक रिकॉर्ड बनाती है और उसे प्रिंट करती है।
 
 ```bash
-oneuptime <resource> create (--data <json> | --file <path>) [-o <format>]
+oneuptime <resource> create [--<field> <value>]... [--data <json>] [--file <path>]
 ```
 
 | विकल्प | ज़रूरी | यह क्या है |
 | --- | --- | --- |
-| `--data <json>` | दोनों में से एक | रिकॉर्ड, JSON के रूप में |
-| `--file <path>` | दोनों में से एक | रिकॉर्ड वाली JSON फ़ाइल। `--data` के साथ दी जाए, तो फ़ाइल उपयोग होती है |
-| `-o, --output <format>` | नहीं | `json`, `table` या `wide` |
+| `--<field> <value>` | वे फ़ील्ड जिन्हें बनाते समय देना ज़रूरी है | किसी फ़ील्ड का मान: `--title <text>`, `--incident-severity-id <id>`, `--labels <ids>`। `oneuptime <resource> create --help` इन्हें सूचीबद्ध करती है। केवल रिकॉर्ड के लिए |
+| `--data <json>` | नहीं | रिकॉर्ड, JSON के रूप में |
+| `--file <path>` | नहीं | रिकॉर्ड वाली JSON फ़ाइल। `--data` के साथ दी जाए, तो फ़ाइल उपयोग होती है |
+
+फ़्लैग `--data` या `--file` के ऊपर लागू होते हैं। जो फ़ील्ड किसी व्यक्ति को यूज़र ID से बताता है, उसका एक फ़्लैग ऐसा भी है जो उसे ईमेल पते से बताता है: `--user-email`, `--user-id` के बगल में।
 
 ### `oneuptime <resource> update`
 
-आपके दिए फ़ील्ड बदलती है। केवल रिकॉर्ड के लिए: टेलीमेट्री में `update` नहीं है।
+आपके दिए फ़ील्ड बदलती है।
 
 ```bash
-oneuptime <resource> update <id> --data <json> [-o <format>]
+oneuptime <resource> update <id> [--<field> <value>]... [--data <json>] [--file <path>]
 ```
 
 | आर्ग्युमेंट या विकल्प | ज़रूरी | यह क्या है |
 | --- | --- | --- |
 | `<id>` | हाँ | रिकॉर्ड की ID |
-| `--data <json>` | हाँ | बदलने वाले फ़ील्ड, JSON के रूप में |
-| `-o, --output <format>` | नहीं | `json`, `table` या `wide` |
+| `--<field> <value>` | नहीं | बदलने वाला फ़ील्ड: `oneuptime <resource> update --help` इन्हें सूचीबद्ध करती है। केवल रिकॉर्ड के लिए |
+| `--data <json>` | नहीं | बदलने वाले फ़ील्ड, JSON के रूप में |
+| `--file <path>` | नहीं | बदलने वाले फ़ील्ड वाली JSON फ़ाइल। `--data` के साथ दी जाए, तो फ़ाइल उपयोग होती है |
 
 ### `oneuptime <resource> delete`
 
-बिना पूछे, तुरंत एक रिकॉर्ड हटाती है। केवल रिकॉर्ड के लिए: टेलीमेट्री में `delete` नहीं है।
+रिकॉर्ड को तुरंत हटाती है, बिना पूछे।
 
 ```bash
 oneuptime <resource> delete <id> [--force]
@@ -174,37 +178,88 @@ oneuptime <resource> delete <id> [--force]
 रिकॉर्ड गिनती है, और संख्या प्रिंट करती है।
 
 ```bash
-oneuptime <resource> count [--query <json>] [-o <format>]
+oneuptime <resource> count [--query <json>]
 ```
 
 | विकल्प | ज़रूरी | यह क्या है |
 | --- | --- | --- |
 | `--query <json>` | नहीं | एक फ़िल्टर, JSON के रूप में। इसके बिना, हर वह रिकॉर्ड जिसे कुंजी पढ़ सकती है |
-| `-o, --output <format>` | नहीं | `json`, `table` या `wide` |
+
+### `oneuptime <resource> fields`
+
+संसाधन के फ़ील्ड सूचीबद्ध करती है: हर एक किस काम का है, उसका प्रकार, क्या बनाते समय उसे देना ज़रूरी है, और वह फ़्लैग जो उसे सेट करता है। यह उन्हें खुद CLI से पढ़ती है, बिना API कुंजी और बिना अनुरोध के।
+
+```bash
+oneuptime <resource> fields
+```
+
+### `oneuptime <resource> acknowledge`
+
+किसी घटना, अलर्ट या उनमें से किसी के एपिसोड को आपके प्रोजेक्ट की स्वीकार की गई स्थिति में ले जाती है, जैसे डैशबोर्ड का बटन करता है। जो रिकॉर्ड पहले से स्वीकार किया जा चुका है, या उससे आगे है, उसे वैसा ही छोड़ दिया जाता है।
+
+```bash
+oneuptime <resource> acknowledge <id>
+```
+
+| आर्ग्युमेंट | ज़रूरी | यह क्या है |
+| --- | --- | --- |
+| `<id>` | हाँ | रिकॉर्ड की ID |
+
+### `oneuptime <resource> resolve`
+
+किसी घटना, अलर्ट या उनमें से किसी के एपिसोड को आपके प्रोजेक्ट की हल हो चुकी स्थिति में ले जाती है।
+
+```bash
+oneuptime <resource> resolve <id>
+```
+
+| आर्ग्युमेंट | ज़रूरी | यह क्या है |
+| --- | --- | --- |
+| `<id>` | हाँ | रिकॉर्ड की ID |
+
+### `oneuptime <resource> start`
+
+किसी अनुसूचित रखरखाव इवेंट को आपके प्रोजेक्ट की जारी स्थिति में ले जाती है।
+
+```bash
+oneuptime <resource> start <id>
+```
+
+| आर्ग्युमेंट | ज़रूरी | यह क्या है |
+| --- | --- | --- |
+| `<id>` | हाँ | इवेंट की ID |
+
+### `oneuptime <resource> end`
+
+किसी अनुसूचित रखरखाव इवेंट को आपके प्रोजेक्ट की समाप्त स्थिति में ले जाती है।
+
+```bash
+oneuptime <resource> end <id>
+```
+
+| आर्ग्युमेंट | ज़रूरी | यह क्या है |
+| --- | --- | --- |
+| `<id>` | हाँ | इवेंट की ID |
+
+### `oneuptime <resource> add-note`
+
+किसी घटना, अलर्ट, उनमें से किसी के एपिसोड या किसी अनुसूचित रखरखाव इवेंट में नोट जोड़ती है।
+
+```bash
+oneuptime <resource> add-note <id> --note <markdown> [--public]
+```
+
+| आर्ग्युमेंट या विकल्प | ज़रूरी | यह क्या है |
+| --- | --- | --- |
+| `<id>` | हाँ | रिकॉर्ड की ID |
+| `--note <markdown>` | हाँ | नोट, Markdown में |
+| `--public` | नहीं | इसे रिकॉर्ड के स्थिति पृष्ठों पर पोस्ट करता है, जहाँ उसके सब्सक्राइबर को बताया जाता है। केवल घटनाएँ, उनके एपिसोड और अनुसूचित रखरखाव |
 
 ### संसाधन
 
-रिकॉर्ड `list`, `get`, `create`, `update`, `delete` और `count` लेते हैं:
+OneUptime API का हर संसाधन एक कमांड है, उन संचालनों के साथ जो API उसके लिए लेता है, `fields` के साथ, और जिन रिकॉर्ड के पास कार्रवाइयाँ हैं, उनकी कार्रवाइयों के साथ:
 
-| क्षेत्र | कमांड |
-| --- | --- |
-| मॉनिटरिंग | `monitor`, `monitor-status`, `monitor-status-event` |
-| घटनाएँ | `incident`, `incident-state`, `incident-severity`, `incident-state-timeline`, `incident-public-note`, `incident-internal-note`, `incident-alert`, `postmortem-status` |
-| अलर्ट | `alert`, `alert-state`, `alert-severity`, `alert-state-timeline`, `alert-internal-note` |
-| स्थिति पृष्ठ | `status-page`, `status-page-announcement` |
-| अनुसूचित रखरखाव | `scheduled-maintenance-event`, `scheduled-maintenance-state`, `scheduled-maintenance-state-timeline` |
-| टीमें और ऑन-कॉल | `team`, `on-call-policy` |
-| सुरक्षा | `security-case`, `security-case-evidence`, `security-case-note`, `security-case-priority`, `security-case-status`, `security-case-task`, `security-detection`, `security-playbook` |
-| डेटा सुरक्षा | `data-store`, `data-store-finding`, `data-store-access-entry`, `data-security-identity`, `data-flow`, `data-security-issue`, `data-security-scan`, `custom-data-type`, `check-setting`, `residency-rule`, `data-security-setting` |
-| लेबल | `label` |
-
-टेलीमेट्री `list`, `create` और `count` लेती है:
-
-| क्षेत्र | कमांड |
-| --- | --- |
-| ऑब्ज़र्वेबिलिटी | `log`, `metric`, `span`, `exception-instance`, `monitor-log` |
-| सुरक्षा | `security-event`, `threat-intel-indicator` |
-| बदलाव और लागत | `change-event`, `kubernetes-cost-allocation` |
+{{CLI_RESOURCE_COMMANDS}}
 
 CLI, OneUptime के साथ रिलीज़ होता है, इसलिए `oneuptime resources` आपके इंस्टॉल किए संस्करण की कमांड सूचीबद्ध करता है।
 
@@ -220,6 +275,8 @@ CLI, OneUptime के साथ रिलीज़ होता है, इस�
 | `update` | `PUT /api/<path>/<id>/` | `{"data": ...}` |
 | `delete` | `DELETE /api/<path>/<id>/` | कोई नहीं |
 | `count` | `POST /api/<path>/count` | `query` |
+
+कोई कार्रवाई आपके प्रोजेक्ट की स्थितियाँ और रिकॉर्ड पढ़ती है, फिर रिकॉर्ड की स्थिति टाइमलाइन में एक पंक्ति बनाती है, जैसे डैशबोर्ड का बटन करता है: किसी घटना पर `acknowledge` एक `incident-state-timeline` बनाता है। `add-note` एक `incident-internal-note` बनाता है, या `--public` के साथ एक `incident-public-note`। ईमेल फ़्लैग पहले उस पते वाले प्रोजेक्ट के टीम सदस्यों को सूचीबद्ध करता है। जब OneUptime कोई ऐसा फ़ील्ड अस्वीकार करता है जिसे कुंजी पढ़ नहीं सकती, तो list या get उसके बिना फिर से माँगता है।
 
 ## अन्य कमांड
 
@@ -250,24 +307,27 @@ oneuptime deploy [--service <name>] [--service-version <version>] [--previous-ve
 
 ### `oneuptime whoami`
 
-वह URL और API कुंजी दिखाती है जिनका अगली कमांड उपयोग करेगी, कुंजी छिपाकर, और वह कॉन्टेक्स्ट जिससे वे आती हैं। यह OneUptime को कॉल नहीं करती। [देखें कि CLI क्या उपयोग करेगा](/docs/cli/authentication#देखें-कि-cli-क्या-उपयोग-करेगा) देखें।
+वह URL और API कुंजी दिखाती है जिनका अगली कमांड उपयोग करेगी, कुंजी छिपी हुई, और वह कॉन्टेक्स्ट जिससे वे आते हैं। `--check` के बिना यह OneUptime को कॉल नहीं करती। [देखें कि CLI क्या उपयोग करेगा](/docs/cli/authentication#देखें-कि-cli-क्या-उपयोग-करेगा) देखें।
 
 ```bash
-oneuptime whoami
+oneuptime whoami [--check]
 ```
+
+| विकल्प | ज़रूरी | यह क्या है |
+| --- | --- | --- |
+| `--check` | नहीं | OneUptime से पूछता है कि वह कुंजी स्वीकार करता है या नहीं, और कुंजी का प्रोजेक्ट, आपके OneUptime का संस्करण और CLI का संस्करण दिखाता है |
 
 ### `oneuptime resources`
 
-हर तरह का वह रिकॉर्ड सूचीबद्ध करती है जिसकी CLI में कमांड है: उसकी कमांड, एकवचन और बहुवचन नाम, प्रकार और API पाथ, और कुल संख्या।
+हर उस तरह के रिकॉर्ड को सूचीबद्ध करती है जिसके लिए CLI के पास कमांड है: उसकी कमांड, एकवचन और बहुवचन नाम, प्रकार और API पथ, और कुल संख्या। JSON हर एक का `name`, `singularName`, `pluralName`, `modelType`, `apiPath`, `operations` और `actions` देता है।
 
 ```bash
-oneuptime resources [--type <type>] [-o <format>]
+oneuptime resources [--type <type>]
 ```
 
 | विकल्प | ज़रूरी | यह क्या है | डिफ़ॉल्ट |
 | --- | --- | --- | --- |
 | `--type <type>` | नहीं | रिकॉर्ड के लिए `database`, टेलीमेट्री के लिए `analytics` | दोनों |
-| `-o, --output <format>` | नहीं | `json`, `table` या `wide`। JSON हर एक का `name`, `singularName`, `pluralName`, `modelType` और `apiPath` देता है | टर्मिनल में `table`, पाइप में `json` |
 
 ### `oneuptime version`
 

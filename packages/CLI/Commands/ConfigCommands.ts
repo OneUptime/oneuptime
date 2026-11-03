@@ -2,13 +2,16 @@ import { Command } from "commander";
 import * as ConfigManager from "../Core/ConfigManager";
 import { CLIContext, OutputFormat } from "../Types/CLITypes";
 import {
+  createJsonOption,
   createOutputOption,
   formatOutput,
+  isJsonOutputRequested,
   printSuccess,
   printError,
   printInfo,
   resolveOutputFormat,
 } from "../Core/OutputFormatter";
+import { maskApiKey } from "./UtilityCommands";
 import { JSONObject } from "Common/Types/JSON";
 import Table from "cli-table3";
 import chalk from "chalk";
@@ -24,11 +27,14 @@ export function registerConfigCommands(program: Command): void {
       "OneUptime instance URL (e.g. https://oneuptime.com)",
     )
     .option("--context-name <name>", "Name for this context", "default")
+    .addOption(createOutputOption())
+    .addOption(createJsonOption())
     .action(
       (
         apiKey: string,
         instanceUrl: string,
         options: { contextName: string },
+        cmd: Command,
       ) => {
         try {
           const context: CLIContext = {
@@ -39,6 +45,17 @@ export function registerConfigCommands(program: Command): void {
 
           ConfigManager.addContext(context);
           ConfigManager.setCurrentContext(context.name);
+
+          if (isJsonOutputRequested(cmd)) {
+            // eslint-disable-next-line no-console
+            console.log(
+              formatOutput(
+                { name: context.name, apiUrl: context.apiUrl, isCurrent: true },
+                resolveOutputFormat(cmd),
+              ),
+            );
+            return;
+          }
 
           printSuccess(
             `Logged in successfully. Context "${context.name}" is now active.`,
@@ -64,6 +81,7 @@ export function registerConfigCommands(program: Command): void {
     .command("list")
     .description("List all configured contexts")
     .addOption(createOutputOption())
+    .addOption(createJsonOption())
     .action((_options: unknown, cmd: Command) => {
       const contexts: Array<CLIContext & { isCurrent: boolean }> =
         ConfigManager.listContexts();
@@ -115,9 +133,20 @@ export function registerConfigCommands(program: Command): void {
   contextCmd
     .command("use <name>")
     .description("Switch to a different context")
-    .action((name: string) => {
+    .addOption(createOutputOption())
+    .addOption(createJsonOption())
+    .action((name: string, _options: unknown, cmd: Command) => {
       try {
         ConfigManager.setCurrentContext(name);
+
+        if (isJsonOutputRequested(cmd)) {
+          // eslint-disable-next-line no-console
+          console.log(
+            formatOutput({ name, isCurrent: true }, resolveOutputFormat(cmd)),
+          );
+          return;
+        }
+
         printSuccess(`Switched to context "${name}".`);
       } catch (error) {
         printError(error instanceof Error ? error.message : String(error));
@@ -128,21 +157,37 @@ export function registerConfigCommands(program: Command): void {
   contextCmd
     .command("current")
     .description("Show the current active context")
-    .action(() => {
+    .addOption(createOutputOption())
+    .addOption(createJsonOption())
+    .action((_options: unknown, cmd: Command) => {
       const ctx: CLIContext | null = ConfigManager.getCurrentContext();
+      const asJson: boolean = isJsonOutputRequested(cmd);
+
       if (!ctx) {
+        if (asJson) {
+          // eslint-disable-next-line no-console
+          console.log(formatOutput(null, resolveOutputFormat(cmd)));
+          return;
+        }
+
         printInfo(
           "No current context set. Run `oneuptime login` to create one.",
         );
         return;
       }
 
-      const maskedKey: string =
-        ctx.apiKey.length > 8
-          ? ctx.apiKey.substring(0, 4) +
-            "****" +
-            ctx.apiKey.substring(ctx.apiKey.length - 4)
-          : "****";
+      const maskedKey: string = maskApiKey(ctx.apiKey);
+
+      if (asJson) {
+        // eslint-disable-next-line no-console
+        console.log(
+          formatOutput(
+            { name: ctx.name, apiUrl: ctx.apiUrl, apiKey: maskedKey },
+            resolveOutputFormat(cmd),
+          ),
+        );
+        return;
+      }
 
       // eslint-disable-next-line no-console
       console.log(`Context: ${ctx.name}`);
@@ -155,9 +200,20 @@ export function registerConfigCommands(program: Command): void {
   contextCmd
     .command("delete <name>")
     .description("Delete a context")
-    .action((name: string) => {
+    .addOption(createOutputOption())
+    .addOption(createJsonOption())
+    .action((name: string, _options: unknown, cmd: Command) => {
       try {
         ConfigManager.removeContext(name);
+
+        if (isJsonOutputRequested(cmd)) {
+          // eslint-disable-next-line no-console
+          console.log(
+            formatOutput({ name, deleted: true }, resolveOutputFormat(cmd)),
+          );
+          return;
+        }
+
         printSuccess(`Context "${name}" deleted.`);
       } catch (error) {
         printError(error instanceof Error ? error.message : String(error));

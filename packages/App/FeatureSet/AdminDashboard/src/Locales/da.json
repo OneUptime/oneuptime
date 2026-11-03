@@ -1519,7 +1519,9 @@
   "People reach this server over HTTPS.": "Folk når denne server via HTTPS.",
   "Not set up yet: passwords and sessions cross the network unencrypted, and passkeys need HTTPS.": "Ikke sat op endnu: adgangskoder og sessioner sendes ukrypteret over netværket, og adgangsnøgler kræver HTTPS.",
   "Almost: this page came over HTTPS, but OneUptime is still set to HTTP, so the links it sends start with http://. Set HTTP_PROTOCOL=https.": "Næsten: denne side kom via HTTPS, men OneUptime er stadig sat til HTTP, så de links, den sender, starter med http://. Sæt HTTP_PROTOCOL=https.",
+  "Almost: OneUptime is set to HTTPS, but this page came over HTTP, so this visit is not encrypted.": "Næsten: OneUptime er sat til HTTPS, men denne side kom via HTTP, så dette besøg er ikke krypteret.",
   "How to set up HTTPS": "Sådan opsætter du HTTPS",
+  "Open over HTTPS": "Åbn via HTTPS",
   "Sign-ups": "Tilmeldinger",
   "Only people you invite can create an account.": "Kun personer, du inviterer, kan oprette en konto.",
   "Anyone who can open this server can create an account. Turn this off once your team has its accounts.": "Alle, der kan åbne denne server, kan oprette en konto. Slå det fra, når dit team har sine konti.",
@@ -1617,5 +1619,7 @@
   "No valid Enterprise license: session lengths become read-only when the trial or grace period ends.": "Ingen gyldig Enterprise-licens: Sessionslængder bliver skrivebeskyttede, når prøveperioden eller henstandsperioden udløber.",
   "The lengths already set still sign people out, and you can still remove them. Activate or renew the Enterprise license in the Admin Dashboard to change this again.": "De længder, der allerede er angivet, logger stadig folk ud, og du kan stadig fjerne dem. Aktivér eller forny Enterprise-licensen i administrationsdashboardet for at ændre dette igen.",
   "The lengths already set still sign people out, and you can still remove them. Activate a license that includes it in the Admin Dashboard to change this again.": "De længder, der allerede er angivet, logger stadig folk ud, og du kan stadig fjerne dem. Aktivér en licens, der omfatter dem, i administrationsdashboardet for at ændre dette igen.",
-  "Everything here can be changed during the 14-day trial of an installation with no license, or the 30-day grace period after a license expires. When it ends: The lengths already set still sign people out, and you can still remove them.": "Alt her kan ændres i prøveperioden på 14 dage for en installation uden licens eller i henstandsperioden på 30 dage, efter at en licens er udløbet. Når den slutter: De længder, der allerede er angivet, logger stadig folk ud, og du kan stadig fjerne dem."
+  "Everything here can be changed during the 14-day trial of an installation with no license, or the 30-day grace period after a license expires. When it ends: The lengths already set still sign people out, and you can still remove them.": "Alt her kan ændres i prøveperioden på 14 dage for en installation uden licens eller i henstandsperioden på 30 dage, efter at en licens er udløbet. Når den slutter: De længder, der allerede er angivet, logger stadig folk ud, og du kan stadig fjerne dem.",
+  "Takes no AI code fixes: update it to this server's version.": "Tager ingen AI-koderettelser: opdater den til denne servers version.",
+  "Takes no AI code fixes: remove {{setting}} from its host and restart it.": "Tager ingen AI-koderettelser: fjern {{setting}} fra dens vært, og genstart den."
 }

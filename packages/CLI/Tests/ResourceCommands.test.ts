@@ -19,6 +19,7 @@ jest.mock("../Core/ApiClient", () => {
 
 // Import after mock setup
 import {
+  addAllResourceSubcommands,
   discoverResources,
   registerResourceCommands,
 } from "../Commands/ResourceCommands";
@@ -129,6 +130,7 @@ describe("ResourceCommands", () => {
       const program: Command = new Command();
       program.exitOverride();
       registerResourceCommands(program);
+      addAllResourceSubcommands(program);
 
       const incidentCmd: Command | undefined = program.commands.find(
         (c: Command) => {

@@ -285,6 +285,11 @@ const WORKFLOWS_MENU: ReadonlyArray<MenuPage> = [
     path: `${WORKFLOWS_PATH}/developer/api`,
   },
   {
+    title: "CLI",
+    section: "Developer",
+    path: `${WORKFLOWS_PATH}/developer/cli`,
+  },
+  {
     title: "AI Assistants",
     section: "Developer",
     path: `${WORKFLOWS_PATH}/developer/ai-assistants`,
@@ -310,6 +315,11 @@ const WORKFLOW_MENU: ReadonlyArray<MenuPage> = [
     title: "API",
     section: "Developer",
     path: `${WORKFLOW_PATH}/developer/api`,
+  },
+  {
+    title: "CLI",
+    section: "Developer",
+    path: `${WORKFLOW_PATH}/developer/cli`,
   },
   {
     title: "AI Assistants",
@@ -540,13 +550,13 @@ describe("a workflow's own menu", () => {
     expect(linksIn("Owners")).toEqual(linksOf(WORKFLOW_MENU, "Owners"));
   });
 
-  test("lists all eleven pages once, in order", async () => {
+  test("lists all twelve pages once, in order", async () => {
     await renderWorkflowMenu();
 
     const hrefs: Array<string> = hrefsInMenu();
 
-    expect(hrefs).toHaveLength(11);
-    expect(new Set(hrefs).size).toBe(11);
+    expect(hrefs).toHaveLength(12);
+    expect(new Set(hrefs).size).toBe(12);
     expect(hrefs).toEqual(
       WORKFLOW_MENU.map((page: MenuPage): string => {
         return page.path;

@@ -5,7 +5,7 @@
 :::cards
 - [グローバルオプション](#グローバルオプション): すべてのコマンドが受け付けるオプション。
 - [ログインとコンテキスト](#ログインとコンテキスト): login と context のコマンド。
-- [リソースのコマンド](#リソースのコマンド): list、get、create、update、delete、count。
+- [リソースのコマンド](#リソースのコマンド): すべてのリソースの操作、フィールド、アクション。
 - [その他のコマンド](#その他のコマンド): deploy、whoami、resources、version、help。
 :::
 
@@ -17,7 +17,8 @@ flowchart LR
     O --> C["context"]
     C --> C1["list<br/>use<br/>current<br/>delete"]
     O --> R["incident、monitor<br/>など各リソース"]
-    R --> R1["list<br/>get<br/>create<br/>update<br/>delete<br/>count"]
+    R --> R1["list<br/>get<br/>create<br/>update<br/>delete<br/>count<br/>fields"]
+    R --> R2["acknowledge<br/>resolve<br/>start<br/>end<br/>add-note"]
     O --> U["deploy<br/>whoami<br/>resources<br/>version<br/>help"]
 ```
 
@@ -29,11 +30,14 @@ flowchart LR
 | `--url <url>` | このコマンドで使う OneUptime のアドレス | `ONEUPTIME_URL`、次にコンテキストの URL |
 | `--context <name>` | このコマンドで使う保存済みコンテキスト | 現在のコンテキスト |
 | `-o, --output <format>` | `json`、`table`、`wide` | ターミナルでは `table`、パイプでは `json` |
+| `--json` | `-o json` と同じです | |
 | `--no-color` | 色なしで出力します | 色あり(`NO_COLOR` が設定されていない場合) |
 | `-V, --version` | CLI のバージョンを表示します | |
 | `-h, --help` | コマンドのヘルプを表示します | |
 
 オプションはコマンドの前後どちらにも書けます。`oneuptime --context staging incident list` と `oneuptime incident list --context staging` は同じ動作をします。
+
+すべてのコマンドが `-o` と `--json` を受け付けるため、以下の表では省略しています。`delete` のように応答が文になるコマンドは、`-o json` または `--json` で JSON を求めない限り文を出力します。[出力形式](/docs/cli/output-formats#json)を参照してください。
 
 ## ログインとコンテキスト
 
@@ -53,15 +57,11 @@ oneuptime login <api-key> <instance-url> [--context-name <name>]
 
 ### `oneuptime context list`
 
-保存したコンテキストを一覧表示します。`*` が現在のものを示します。API キーが一覧に表示されることはありません。
+保存したコンテキストを一覧表示します。`*` は現在のコンテキストを示します。API キーは表示されず、JSON では各コンテキストの `name`、`apiUrl`、`isCurrent` が得られます。
 
 ```bash
-oneuptime context list [-o <format>]
+oneuptime context list
 ```
-
-| オプション | 必須 | 内容 |
-| --- | --- | --- |
-| `-o, --output <format>` | いいえ | `json`、`table`、`wide`。JSON では各コンテキストの `name`、`apiUrl`、`isCurrent` を出力します |
 
 ### `oneuptime context use`
 
@@ -97,14 +97,14 @@ oneuptime context delete <name>
 
 ## リソースのコマンド
 
-`<resource>` は、[リソース](#リソース)の表にあるレコードの種類のコマンド(`incident` や `monitor` など)です。例は[リソース操作](/docs/cli/resource-operations)を参照してください。
+`<resource>` は、[リソース](#リソース)の表にあるレコードの種類のコマンド(`incident` や `monitor` など)です。リソースには API が受け付ける操作があり、ほとんどは 6 つすべてです。そのリソースの操作は `oneuptime <resource> --help` で一覧表示できます。例は[リソース操作](/docs/cli/resource-operations)を参照してください。
 
 ### `oneuptime <resource> list`
 
 レコードを新しい順に一覧表示します。ラベルは代わりに名前順で、番号付きのラベルが先に並びます（`2. Team` は `10. Owner` の前）。
 
 ```bash
-oneuptime <resource> list [--query <json>] [--limit <n>] [--skip <n>] [--sort <json>] [-o <format>]
+oneuptime <resource> list [--query <json>] [--limit <n>] [--skip <n>] [--sort <json>] [--fields <names>] [--all]
 ```
 
 | オプション | 内容 | 既定値 |
@@ -113,52 +113,56 @@ oneuptime <resource> list [--query <json>] [--limit <n>] [--skip <n>] [--sort <j
 | `--limit <n>` | 返すレコードの最大件数(最大 10,000) | `10` |
 | `--skip <n>` | 最初に飛ばすレコードの件数 | `0` |
 | `--sort <json>` | JSON で書いた順序: `{"<field>":"ASC"}` または `{"<field>":"DESC"}` | 新しい順 |
-| `-o, --output <format>` | `json`、`table`、`wide` | ターミナルでは `table`、パイプでは `json` |
+| `--fields <names>` | 返すフィールド。カンマで区切り、関連レコードのフィールドは `currentIncidentState.name` のようにドットの後に書きます | キーが読み取れるすべてのフィールド |
+| `--all` | 一致するすべてのレコードを、`--limit` と `--skip` の代わりに一度に 100 件ずつ、最大 100,000 件まで取得します。レコードのみ: テレメトリには `--all` がありません | |
 
 ### `oneuptime <resource> get`
 
-レコードを一件読み取ります。レコードのみ: テレメトリには `get` がありません。
+レコードを一件読み取ります。
 
 ```bash
-oneuptime <resource> get <id> [-o <format>]
+oneuptime <resource> get <id> [--fields <names>]
 ```
 
 | 引数またはオプション | 必須 | 内容 |
 | --- | --- | --- |
 | `<id>` | はい | レコードの ID(UUID) |
-| `-o, --output <format>` | いいえ | `json`、`table`、`wide` |
+| `--fields <names>` | いいえ | 返すフィールド。カンマで区切ります。既定: キーが読み取れるすべてのフィールド |
 
 ### `oneuptime <resource> create`
 
 レコードを作成して表示します。
 
 ```bash
-oneuptime <resource> create (--data <json> | --file <path>) [-o <format>]
+oneuptime <resource> create [--<field> <value>]... [--data <json>] [--file <path>]
 ```
 
 | オプション | 必須 | 内容 |
 | --- | --- | --- |
-| `--data <json>` | 二つのうち一つ | JSON で書いたレコード |
-| `--file <path>` | 二つのうち一つ | レコードを含む JSON ファイル。`--data` と一緒に指定するとファイルが使われます |
-| `-o, --output <format>` | いいえ | `json`、`table`、`wide` |
+| `--<field> <value>` | 作成時に必須のフィールド | フィールドの値: `--title <text>`、`--incident-severity-id <id>`、`--labels <ids>`。`oneuptime <resource> create --help` で一覧表示できます。レコードのみ |
+| `--data <json>` | いいえ | JSON のレコード |
+| `--file <path>` | いいえ | レコードを含む JSON ファイル。`--data` と一緒に指定するとファイルが使われます |
+
+フラグは `--data` や `--file` の上に適用されます。ユーザー ID で人を指定するフィールドには、メールアドレスで指定するフラグもあります。`--user-email` が `--user-id` と対になります。
 
 ### `oneuptime <resource> update`
 
-指定したフィールドを変更します。レコードのみ: テレメトリには `update` がありません。
+指定したフィールドを変更します。
 
 ```bash
-oneuptime <resource> update <id> --data <json> [-o <format>]
+oneuptime <resource> update <id> [--<field> <value>]... [--data <json>] [--file <path>]
 ```
 
 | 引数またはオプション | 必須 | 内容 |
 | --- | --- | --- |
 | `<id>` | はい | レコードの ID |
-| `--data <json>` | はい | JSON で書いた、変更するフィールド |
-| `-o, --output <format>` | いいえ | `json`、`table`、`wide` |
+| `--<field> <value>` | いいえ | 変更するフィールド: `oneuptime <resource> update --help` で一覧表示できます。レコードのみ |
+| `--data <json>` | いいえ | 変更するフィールドの JSON |
+| `--file <path>` | いいえ | 変更するフィールドを含む JSON ファイル。`--data` と一緒に指定するとファイルが使われます |
 
 ### `oneuptime <resource> delete`
 
-確認せずにすぐレコードを削除します。レコードのみ: テレメトリには `delete` がありません。
+確認せずに、レコードをすぐに削除します。
 
 ```bash
 oneuptime <resource> delete <id> [--force]
@@ -174,37 +178,88 @@ oneuptime <resource> delete <id> [--force]
 レコードの件数を数えて表示します。
 
 ```bash
-oneuptime <resource> count [--query <json>] [-o <format>]
+oneuptime <resource> count [--query <json>]
 ```
 
 | オプション | 必須 | 内容 |
 | --- | --- | --- |
 | `--query <json>` | いいえ | JSON で書いたフィルター。指定しなければ、キーが読み取れるすべてのレコード |
-| `-o, --output <format>` | いいえ | `json`、`table`、`wide` |
+
+### `oneuptime <resource> fields`
+
+リソースのフィールドを一覧表示します。用途、型、作成時に必須かどうか、それを設定するフラグがわかります。API キーもリクエストも使わずに、CLI 自身から読み取ります。
+
+```bash
+oneuptime <resource> fields
+```
+
+### `oneuptime <resource> acknowledge`
+
+インシデント、アラート、またはそれらのエピソードを、ダッシュボードのボタンと同じようにプロジェクトの確認済み状態に移します。すでに確認済みか、それより先の状態にあるレコードはそのままです。
+
+```bash
+oneuptime <resource> acknowledge <id>
+```
+
+| 引数 | 必須 | 内容 |
+| --- | --- | --- |
+| `<id>` | はい | レコードの ID |
+
+### `oneuptime <resource> resolve`
+
+インシデント、アラート、またはそれらのエピソードをプロジェクトの解決済み状態に移します。
+
+```bash
+oneuptime <resource> resolve <id>
+```
+
+| 引数 | 必須 | 内容 |
+| --- | --- | --- |
+| `<id>` | はい | レコードの ID |
+
+### `oneuptime <resource> start`
+
+定期メンテナンスのイベントをプロジェクトの進行中の状態に移します。
+
+```bash
+oneuptime <resource> start <id>
+```
+
+| 引数 | 必須 | 内容 |
+| --- | --- | --- |
+| `<id>` | はい | イベントの ID |
+
+### `oneuptime <resource> end`
+
+定期メンテナンスのイベントをプロジェクトの終了状態に移します。
+
+```bash
+oneuptime <resource> end <id>
+```
+
+| 引数 | 必須 | 内容 |
+| --- | --- | --- |
+| `<id>` | はい | イベントの ID |
+
+### `oneuptime <resource> add-note`
+
+インシデント、アラート、それらのエピソード、または定期メンテナンスのイベントにメモを追加します。
+
+```bash
+oneuptime <resource> add-note <id> --note <markdown> [--public]
+```
+
+| 引数またはオプション | 必須 | 内容 |
+| --- | --- | --- |
+| `<id>` | はい | レコードの ID |
+| `--note <markdown>` | はい | Markdown のメモ |
+| `--public` | いいえ | レコードのステータスページにメモを載せ、購読者に知らせます。インシデント、そのエピソード、定期メンテナンスのみ |
 
 ### リソース
 
-レコードは `list`、`get`、`create`、`update`、`delete`、`count` を受け付けます。
+OneUptime の API のリソースはすべてコマンドになっており、API が受け付ける操作、`fields`、そしてアクションを持つレコードではそのアクションがあります。
 
-| 分野 | コマンド |
-| --- | --- |
-| 監視 | `monitor`, `monitor-status`, `monitor-status-event` |
-| インシデント | `incident`, `incident-state`, `incident-severity`, `incident-state-timeline`, `incident-public-note`, `incident-internal-note`, `incident-alert`, `postmortem-status` |
-| アラート | `alert`, `alert-state`, `alert-severity`, `alert-state-timeline`, `alert-internal-note` |
-| ステータスページ | `status-page`, `status-page-announcement` |
-| 計画メンテナンス | `scheduled-maintenance-event`, `scheduled-maintenance-state`, `scheduled-maintenance-state-timeline` |
-| チームとオンコール | `team`, `on-call-policy` |
-| セキュリティ | `security-case`, `security-case-evidence`, `security-case-note`, `security-case-priority`, `security-case-status`, `security-case-task`, `security-detection`, `security-playbook` |
-| データセキュリティ | `data-store`, `data-store-finding`, `data-store-access-entry`, `data-security-identity`, `data-flow`, `data-security-issue`, `data-security-scan`, `custom-data-type`, `check-setting`, `residency-rule`, `data-security-setting` |
-| ラベル | `label` |
-
-テレメトリは `list`、`create`、`count` を受け付けます。
-
-| 分野 | コマンド |
-| --- | --- |
-| オブザーバビリティ | `log`, `metric`, `span`, `exception-instance`, `monitor-log` |
-| セキュリティ | `security-event`, `threat-intel-indicator` |
-| 変更とコスト | `change-event`, `kubernetes-cost-allocation` |
+{{CLI_RESOURCE_COMMANDS}}
 
 CLI は OneUptime と一緒にリリースされるため、`oneuptime resources` はインストールしたバージョンのコマンドを一覧表示します。
 
@@ -220,6 +275,8 @@ CLI は OneUptime と一緒にリリースされるため、`oneuptime resources
 | `update` | `PUT /api/<path>/<id>/` | `{"data": ...}` |
 | `delete` | `DELETE /api/<path>/<id>/` | なし |
 | `count` | `POST /api/<path>/count` | `query` |
+
+アクションは、プロジェクトの状態とレコードを読み取ってから、ダッシュボードのボタンと同じようにレコードの状態タイムラインに行を作成します。インシデントに対する `acknowledge` は `incident-state-timeline` を作成します。`add-note` は `incident-internal-note` を作成し、`--public` を付けると `incident-public-note` を作成します。メールのフラグは、まずそのアドレスを持つプロジェクトのチームメンバーを一覧表示します。キーが読み取れないフィールドを OneUptime が拒否した場合、一覧や読み取りはそのフィールドを除いて要求し直します。
 
 ## その他のコマンド
 
@@ -250,24 +307,27 @@ oneuptime deploy [--service <name>] [--service-version <version>] [--previous-ve
 
 ### `oneuptime whoami`
 
-次のコマンドが使う URL と API キー(キーは伏せた形)と、それらの取得元のコンテキストを表示します。OneUptime は呼び出しません。[CLI が使う値を確認する](/docs/cli/authentication#cli-が使う値を確認する)を参照してください。
+次のコマンドが使う URL と API キー(キーはマスクされます)と、それらの取得元のコンテキストを表示します。`--check` を付けない限り、OneUptime は呼び出しません。[CLI が使う値を確認する](/docs/cli/authentication#cli-が使う値を確認する)を参照してください。
 
 ```bash
-oneuptime whoami
+oneuptime whoami [--check]
 ```
+
+| オプション | 必須 | 内容 |
+| --- | --- | --- |
+| `--check` | いいえ | OneUptime にキーを受け付けるか問い合わせ、キーのプロジェクト、お使いの OneUptime のバージョンと CLI のバージョンを表示します |
 
 ### `oneuptime resources`
 
-CLI にコマンドがあるレコードの種類をすべて一覧表示します。コマンド、単数形と複数形の名前、タイプ、API パス、そして合計数を表示します。
+CLI にコマンドがあるすべてのレコードの種類を、コマンド、単数形と複数形の名前、種類、API パス、そして合計とともに一覧表示します。JSON では、それぞれの `name`、`singularName`、`pluralName`、`modelType`、`apiPath`、`operations`、`actions` が得られます。
 
 ```bash
-oneuptime resources [--type <type>] [-o <format>]
+oneuptime resources [--type <type>]
 ```
 
 | オプション | 必須 | 内容 | 既定値 |
 | --- | --- | --- | --- |
 | `--type <type>` | いいえ | レコードなら `database`、テレメトリなら `analytics` | 両方 |
-| `-o, --output <format>` | いいえ | `json`、`table`、`wide`。JSON ではそれぞれの `name`、`singularName`、`pluralName`、`modelType`、`apiPath` を出力します | ターミナルでは `table`、パイプでは `json` |
 
 ### `oneuptime version`
 

@@ -1519,7 +1519,9 @@
   "People reach this server over HTTPS.": "On accède à ce serveur en HTTPS.",
   "Not set up yet: passwords and sessions cross the network unencrypted, and passkeys need HTTPS.": "Pas encore configuré : les mots de passe et les sessions traversent le réseau sans chiffrement, et les passkeys exigent HTTPS.",
   "Almost: this page came over HTTPS, but OneUptime is still set to HTTP, so the links it sends start with http://. Set HTTP_PROTOCOL=https.": "Presque : cette page est arrivée en HTTPS, mais OneUptime est encore réglé sur HTTP, donc les liens qu'il envoie commencent par http://. Définissez HTTP_PROTOCOL=https.",
+  "Almost: OneUptime is set to HTTPS, but this page came over HTTP, so this visit is not encrypted.": "Presque : OneUptime est réglé sur HTTPS, mais cette page est arrivée en HTTP, donc cette visite n'est pas chiffrée.",
   "How to set up HTTPS": "Comment configurer HTTPS",
+  "Open over HTTPS": "Ouvrir en HTTPS",
   "Sign-ups": "Inscriptions",
   "Only people you invite can create an account.": "Seules les personnes que vous invitez peuvent créer un compte.",
   "Anyone who can open this server can create an account. Turn this off once your team has its accounts.": "Toute personne qui peut ouvrir ce serveur peut créer un compte. Désactivez-le une fois que votre équipe a ses comptes.",
@@ -1617,5 +1619,7 @@
   "No valid Enterprise license: session lengths become read-only when the trial or grace period ends.": "Aucune licence Enterprise valide : les durées de session passent en lecture seule à la fin de la période d’essai ou de grâce.",
   "The lengths already set still sign people out, and you can still remove them. Activate or renew the Enterprise license in the Admin Dashboard to change this again.": "Les durées déjà définies continuent de déconnecter les personnes, et vous pouvez toujours les supprimer. Activez ou renouvelez la licence Enterprise dans le tableau de bord d’administration pour pouvoir les modifier à nouveau.",
   "The lengths already set still sign people out, and you can still remove them. Activate a license that includes it in the Admin Dashboard to change this again.": "Les durées déjà définies continuent de déconnecter les personnes, et vous pouvez toujours les supprimer. Activez une licence qui les inclut dans le tableau de bord d’administration pour pouvoir les modifier à nouveau.",
-  "Everything here can be changed during the 14-day trial of an installation with no license, or the 30-day grace period after a license expires. When it ends: The lengths already set still sign people out, and you can still remove them.": "Tout ici peut être modifié pendant l’essai de 14 jours d’une installation sans licence, ou pendant la période de grâce de 30 jours après l’expiration d’une licence. Ensuite : les durées déjà définies continuent de déconnecter les personnes, et vous pouvez toujours les supprimer."
+  "Everything here can be changed during the 14-day trial of an installation with no license, or the 30-day grace period after a license expires. When it ends: The lengths already set still sign people out, and you can still remove them.": "Tout ici peut être modifié pendant l’essai de 14 jours d’une installation sans licence, ou pendant la période de grâce de 30 jours après l’expiration d’une licence. Ensuite : les durées déjà définies continuent de déconnecter les personnes, et vous pouvez toujours les supprimer.",
+  "Takes no AI code fixes: update it to this server's version.": "Ne prend pas les corrections de code par IA : mettez-le à jour vers la version de ce serveur.",
+  "Takes no AI code fixes: remove {{setting}} from its host and restart it.": "Ne prend pas les corrections de code par IA : retirez {{setting}} de son hôte et redémarrez-le."
 }

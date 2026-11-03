@@ -178,7 +178,7 @@ Open an incident and its own side menu groups its pages like this:
 | **Team**          | **Roles**, **On-Call Executions**, **Owners**                                             |
 | **Notifications** | **Notification Logs**, **AI Logs** — collapsed until you click **Notifications**          |
 | **Notes**         | **Private Notes**, **Public Notes**                                                       |
-| **Developer**     | **Terraform**, **API**, **AI Assistants** — collapsed until you click **Developer**       |
+| **Developer**     | **Terraform**, **API**, **CLI**, **AI Assistants** — collapsed until you click **Developer** |
 | **Advanced**      | **Custom Fields**, **Settings**, **Audit Logs**, **Delete Incident** — collapsed until you click **Advanced** |
 
 What each one holds:

@@ -73,6 +73,8 @@ Een globale Runner voert de stappen van veel projecten uit, dus elke stap wordt 
 
 Een globale Runner neemt ook de codecorrecties van OneUptime AI op zich, in elke coderepository die op **Globale Runner** werkt. Hij schrijft elke correctie en opent de pull request, maar voert geen enkele opdracht uit, ook niet de setup-, build- en testopdrachten van de repository, dus de pull request meldt dat de controle is overgeslagen. Hij bereikt alleen Git-servers op het internet, via HTTPS, behalve bij een zelf gehoste OneUptime, waar hij ook de private Git-servers mag bereiken die de server zelf mag bereiken. Hij handelt alleen voor de correcties die hij oppakt, en krijgt het token van een repository alleen terwijl hij daar aan een correctie werkt. Het token van een GitHub-repository bereikt alleen die ene repository en wordt ingetrokken wanneer de correctie eindigt.
 
+Een globale Runner die ouder is dan 14.0.94, of die is gestart met `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false`, pakt geen codecorrecties op, en OneUptime telt hem daarvoor niet mee. Een repository op **Globale Runner** meldt dan dat geen enkele globale Runner die online is AI-codecorrecties oppakt, en de pagina **Globale Runners** in het beheerdashboard meldt onder de status van die Runner waarom.
+
 Kies een van uw eigen Runners voor een stap die uw netwerk moet bereiken, of om de stap op hosts te houden die u beheert. Om elke stap op uw eigen Runners te houden, zet u **Globale Runners gebruiken** uit onderaan **Runbooks → Runbook-agenten**. Een JavaScript-stap die geen Runner kiest, loopt dan op de standaard-Runner van het project of mislukt, als er geen is ingesteld, met een melding, totdat hij een van uw Runners kiest; een stap die een van uw Runners kiest, houdt die in elk geval. Een code-repository die in zijn instellingen in Code geen Runner kiest, werkt ook op de standaard-Runner van het project of, als er geen is ingesteld, op een globale Runner, en heeft een van uw Runners nodig zolang de schakelaar uit staat; zie [Code](/docs/ai/ai-agent#de-runner-van-de-repository-kiezen).
 
 ### Waar globale Runners vandaan komen
@@ -256,7 +258,7 @@ De Runner leest deze variabelen bij het starten:
 | `ONEUPTIME_RUNNER_JOB_HEARTBEAT_INTERVAL_MS` | nee | `10000` | Hoe vaak de Runner de lease van een lopende taak verlengt. Een waarde onder `1000` valt terug op de standaard. |
 | `ONEUPTIME_RUNNER_CONCURRENCY` | nee | `1` | Maximaal aantal gelijktijdige taken op deze Runner. |
 | `ONEUPTIME_RUNNER_ENABLE_RUNBOOKS` | nee | — | Zet op `false` zodat deze Runner geen runbook-stappen meer oppakt, wat het dashboard ook zegt. Kan de mogelijkheid alleen uitzetten. |
-| `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES` | nee | — | Zet op `false` zodat deze Runner geen AI-codecorrecties meer oppakt, ook niet voor een code-repository die hem kiest. |
+| `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES` | nee | — | Zet op `false` zodat deze Runner geen AI-codecorrecties meer oppakt, ook niet voor een code-repository die hem kiest. De repository meldt dan dat deze Runner er geen oppakt. |
 | `ONEUPTIME_RUNNER_ENABLE_AI_COMMANDS` | nee | — | Zet op `false` zodat deze Runner geen AI-herstelopdrachten meer uitvoert, wat het dashboard ook zegt. |
 
 ## Een agentsleutel vervangen

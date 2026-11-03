@@ -184,7 +184,7 @@ import {
   DEFAULT_READER_LANGUAGE,
   getReaderLanguageFromAcceptLanguage,
 } from "../../Types/ReaderLanguage";
-import { Translator } from "../../UI/Utils/TranslateTemplate";
+import { Translator } from "../../Types/Translator";
 
 /*
  * A manage-subscription request is unauthenticated, and one Slack or Microsoft

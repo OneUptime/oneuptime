@@ -1519,7 +1519,9 @@
   "People reach this server over HTTPS.": "Menschen erreichen diesen Server über HTTPS.",
   "Not set up yet: passwords and sessions cross the network unencrypted, and passkeys need HTTPS.": "Noch nicht eingerichtet: Kennwörter und Sitzungen gehen unverschlüsselt durchs Netz, und Passkeys brauchen HTTPS.",
   "Almost: this page came over HTTPS, but OneUptime is still set to HTTP, so the links it sends start with http://. Set HTTP_PROTOCOL=https.": "Fast: Diese Seite kam über HTTPS, aber OneUptime ist noch auf HTTP eingestellt, daher beginnen die Links, die es verschickt, mit http://. Setzen Sie HTTP_PROTOCOL=https.",
+  "Almost: OneUptime is set to HTTPS, but this page came over HTTP, so this visit is not encrypted.": "Fast: OneUptime ist auf HTTPS eingestellt, aber diese Seite kam über HTTP, daher ist dieser Besuch nicht verschlüsselt.",
   "How to set up HTTPS": "So richten Sie HTTPS ein",
+  "Open over HTTPS": "Über HTTPS öffnen",
   "Sign-ups": "Registrierungen",
   "Only people you invite can create an account.": "Nur Personen, die Sie einladen, können ein Konto erstellen.",
   "Anyone who can open this server can create an account. Turn this off once your team has its accounts.": "Jeder, der diesen Server öffnen kann, kann ein Konto erstellen. Schalten Sie das aus, sobald Ihr Team seine Konten hat.",
@@ -1617,5 +1619,7 @@
   "No valid Enterprise license: session lengths become read-only when the trial or grace period ends.": "Keine gültige Enterprise-Lizenz: Sitzungsdauern werden schreibgeschützt, wenn der Testzeitraum oder die Kulanzfrist endet.",
   "The lengths already set still sign people out, and you can still remove them. Activate or renew the Enterprise license in the Admin Dashboard to change this again.": "Die bereits festgelegten Dauern melden Personen weiterhin ab, und Sie können sie weiterhin entfernen. Aktivieren oder verlängern Sie die Enterprise-Lizenz im Admin-Dashboard, um dies wieder zu ändern.",
   "The lengths already set still sign people out, and you can still remove them. Activate a license that includes it in the Admin Dashboard to change this again.": "Die bereits festgelegten Dauern melden Personen weiterhin ab, und Sie können sie weiterhin entfernen. Aktivieren Sie im Admin-Dashboard eine Lizenz, die sie umfasst, um dies wieder zu ändern.",
-  "Everything here can be changed during the 14-day trial of an installation with no license, or the 30-day grace period after a license expires. When it ends: The lengths already set still sign people out, and you can still remove them.": "Hier lässt sich alles während des 14-tägigen Testzeitraums einer Installation ohne Lizenz oder während der 30-tägigen Kulanzfrist nach Ablauf einer Lizenz ändern. Danach gilt: Die bereits festgelegten Dauern melden Personen weiterhin ab, und Sie können sie weiterhin entfernen."
+  "Everything here can be changed during the 14-day trial of an installation with no license, or the 30-day grace period after a license expires. When it ends: The lengths already set still sign people out, and you can still remove them.": "Hier lässt sich alles während des 14-tägigen Testzeitraums einer Installation ohne Lizenz oder während der 30-tägigen Kulanzfrist nach Ablauf einer Lizenz ändern. Danach gilt: Die bereits festgelegten Dauern melden Personen weiterhin ab, und Sie können sie weiterhin entfernen.",
+  "Takes no AI code fixes: update it to this server's version.": "Übernimmt keine KI-Codekorrekturen: Aktualisieren Sie ihn auf die Version dieses Servers.",
+  "Takes no AI code fixes: remove {{setting}} from its host and restart it.": "Übernimmt keine KI-Codekorrekturen: Entfernen Sie {{setting}} von seinem Host und starten Sie ihn neu."
 }

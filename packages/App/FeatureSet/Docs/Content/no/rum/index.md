@@ -44,7 +44,7 @@ Sidemenyen til en applikasjon grupperer sidene slik; **Innstillinger**, **Utvikl
 | **Observerbarhet** | **Målinger**, **Logger**, **Spor**, **Klienter** |
 | **Øktavspilling** | **Øktavspilling**, **Brukerflyter**, **Brukere i avspillinger**, **Helse**, **Replay Policy**, **Tilgangslogg for avspillinger**, **Dokumentasjon** |
 | **Innstillinger** | **Innstillinger** |
-| **Utvikler** | **Terraform**, **API**, **AI-assistenter** |
+| **Utvikler** | **Terraform**, **API**, **CLI**, **AI-assistenter** |
 | **Avansert** | **Slett applikasjon** |
 
 ## Slik gjenkjenner OneUptime RUM

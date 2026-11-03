@@ -1,9 +1,13 @@
 import { Argument, Command, CommanderError, Help, Option } from "commander";
 import { buildProgram } from "../Program";
 import * as ConfigManager from "../Core/ConfigManager";
-import { createOutputOption } from "../Core/OutputFormatter";
-import { discoverResources } from "../Commands/ResourceCommands";
+import { createJsonOption, createOutputOption } from "../Core/OutputFormatter";
+import {
+  addAllResourceSubcommands,
+  discoverResources,
+} from "../Commands/ResourceCommands";
 import { ResourceInfo } from "../Types/CLITypes";
+import { getResourceSubcommands } from "../Utils/ResourceFields";
 import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
@@ -16,6 +20,11 @@ import * as path from "path";
  * say the new thing - and App's CliDocsFacts holds the same pages to the
  * CLI's sources from the docs suite. The 16 translations keep every command,
  * flag and output block as English writes them (App's CliDocsTranslations).
+ *
+ * A resource's subcommands are made as the program dispatches to it, so
+ * these read the program with every resource's subcommands made
+ * (addAllResourceSubcommands). -o and --json are on every command, and the
+ * reference documents them once, with the global options.
  */
 
 const mockExecuteApiRequest: jest.Mock = jest.fn();
@@ -53,6 +62,9 @@ const STAGING_KEY: string = "7d2e8b14-5c3a-4f6e-9d1b-8a4c2e6f0b57";
 const PRODUCTION_URL: string = "https://oneuptime.com";
 const STAGING_URL: string = "https://oneuptime.example.com";
 const EXAMPLE_ID: string = "6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11";
+// The state the pages' examples move an incident to, and the one it was in.
+const ACKNOWLEDGED_STATE_ID: string = "0b7d5e2c-8f4a-4d1b-9c3e-5a6f7b8c9d0e";
+const CREATED_STATE_ID: string = "1c8e6f3d-9a5b-4e2c-8d4f-6b7a8c9d0e1f";
 
 const HEADING: RegExp = /^(#{1,6})\s+(.*)$/;
 const FENCE: RegExp = /^\s*```(\S*)/;
@@ -212,34 +224,60 @@ function subcommand(command: Command, name: string): Command {
   return found;
 }
 
+// The options every command takes, which the reference documents once.
+const EVERY_COMMANDS_FLAGS: ReadonlyArray<string> = [
+  createOutputOption().flags,
+  createJsonOption().flags,
+];
+
 /*
  * Every command a reader types, by the words after "oneuptime": the root's
  * own commands and their subcommands, the implicit help command, and each
- * resource's operations as "<resource> <operation>".
+ * resource's subcommands as "<resource> <subcommand>" - every resource's
+ * that has it, since some have options others lack (--all, --public).
  */
-function documentedCommandPaths(program: Command): Map<string, Command> {
-  const paths: Map<string, Command> = new Map();
+function documentedCommandPaths(program: Command): Map<string, Array<Command>> {
+  const paths: Map<string, Array<Command>> = new Map();
   const help: Help = program.createHelp();
+  const add: (key: string, command: Command) => void = (
+    key: string,
+    command: Command,
+  ): void => {
+    paths.set(key, [...(paths.get(key) || []), command]);
+  };
 
   for (const command of help.visibleCommands(program)) {
     if (isResourceCommand(command.name())) {
-      for (const operation of command.commands) {
-        paths.set(`<resource> ${operation.name()}`, operation);
+      for (const subcommand of command.commands) {
+        add(`<resource> ${subcommand.name()}`, subcommand);
       }
       continue;
     }
 
     if (command.commands.length > 0) {
       for (const child of command.commands) {
-        paths.set(`${command.name()} ${child.name()}`, child);
+        add(`${command.name()} ${child.name()}`, child);
       }
       continue;
     }
 
-    paths.set(command.name(), command);
+    add(command.name(), command);
   }
 
   return paths;
+}
+
+// The options of every command at a path, each once, by its flags.
+function optionsAt(commands: Array<Command>): Array<Option> {
+  const byFlags: Map<string, Option> = new Map();
+
+  for (const command of commands) {
+    for (const option of command.options) {
+      byFlags.set(option.flags, option);
+    }
+  }
+
+  return [...byFlags.values()];
 }
 
 // How a reader writes an argument: <name> when required, [name] otherwise.
@@ -262,7 +300,7 @@ describe("the CLI docs hold the real program", () => {
   let program: Command;
 
   beforeAll(() => {
-    program = buildProgram();
+    program = addAllResourceSubcommands(buildProgram());
   });
 
   describe("the command reference", () => {
@@ -278,13 +316,17 @@ describe("the CLI docs hold the real program", () => {
           "help",
           "<resource> list",
           "<resource> count",
+          "<resource> fields",
+          "<resource> acknowledge",
+          "<resource> add-note",
         ]),
       );
       expect([...referenceHeadings()].sort()).toEqual(commands);
     });
 
     it("writes each command's usage with every argument it takes", () => {
-      for (const [commandPath, command] of documentedCommandPaths(program)) {
+      for (const [commandPath, commands] of documentedCommandPaths(program)) {
+        const command: Command = commands[0] as Command;
         const usage: string = (
           codeBlocks(
             section(
@@ -306,14 +348,19 @@ describe("the CLI docs hold the real program", () => {
     });
 
     it("names every option of a command in its usage and in a row of its table, with its default, its choices and whether it is required", () => {
-      for (const [commandPath, command] of documentedCommandPaths(program)) {
+      for (const [commandPath, commands] of documentedCommandPaths(program)) {
         const text: string = section(
           docsPage("command-reference"),
           `### \`oneuptime ${commandPath}\``,
         );
         const usage: string = (codeBlocks(text)[0] as CodeBlock).code;
+        const own: Array<Option> = optionsAt(commands).filter(
+          (option: Option): boolean => {
+            return !EVERY_COMMANDS_FLAGS.includes(option.flags);
+          },
+        );
 
-        for (const option of command.options) {
+        for (const option of own) {
           const short: string | undefined = option.short;
           const named: string = short || (option.long as string);
 
@@ -342,6 +389,33 @@ describe("the CLI docs hold the real program", () => {
       }
     });
 
+    it("documents once the options every command takes, -o and --json, which every command has", () => {
+      for (const [commandPath, commands] of documentedCommandPaths(program)) {
+        if (commandPath === "help") {
+          continue;
+        }
+
+        for (const command of commands) {
+          expect({
+            commandPath,
+            flags: command.options
+              .map((option: Option): string => {
+                return option.flags;
+              })
+              .filter((flags: string): boolean => {
+                return EVERY_COMMANDS_FLAGS.includes(flags);
+              }),
+          }).toEqual({ commandPath, flags: [...EVERY_COMMANDS_FLAGS] });
+        }
+      }
+
+      expect(
+        section(docsPage("command-reference"), "## Global options"),
+      ).toContain(
+        "Every command takes `-o` and `--json`, so the tables below leave them out.",
+      );
+    });
+
     it("lists the global options, Commander's version and help flags among them, and no other", () => {
       const flags: Array<string> = program
         .createHelp()
@@ -358,6 +432,7 @@ describe("the CLI docs hold the real program", () => {
           "--url <url>",
           "--context <name>",
           "-o, --output <format>",
+          "--json",
           "--no-color",
         ]),
       );
@@ -378,60 +453,46 @@ describe("the CLI docs hold the real program", () => {
       }
     });
 
-    it("says which operations telemetry lacks, and sorts every resource into the table of what it takes", () => {
+    it("lists every resource from the CLI's own list, whose subcommands are the program's", () => {
       const reference: string = docsPage("command-reference");
       const resourcesSection: string = section(reference, "### Resources");
-      const [records, telemetry] = resourcesSection
-        .split("\n\n")
-        .filter((block: string): boolean => {
-          return block.startsWith("|");
-        })
-        .map((table: string): Array<string> => {
-          return tableRows(table)
-            .slice(1)
-            .flatMap((cells: Array<string>): Array<string> => {
-              return codeSpans(cells[1] as string);
-            });
-        }) as [Array<string>, Array<string>];
 
-      const operationsOf: (name: string) => Array<string> = (
-        name: string,
-      ): Array<string> => {
-        return subcommand(program, name)
-          .commands.map((operation: Command): string => {
-            return operation.name();
-          })
-          .sort();
-      };
-
-      const all: Array<string> = resources().map(
-        (resource: ResourceInfo): string => {
-          return resource.name;
-        },
+      // The docs render the table from the list the program builds its commands from.
+      expect(resourcesSection.split("\n")).toContain(
+        "{{CLI_RESOURCE_COMMANDS}}",
       );
 
-      expect([...records, ...telemetry].sort()).toEqual([...all].sort());
-      expect(new Set([...records, ...telemetry]).size).toBe(all.length);
-
-      for (const name of records) {
-        expect({ name, operations: operationsOf(name) }).toEqual({
-          name,
-          operations: ["count", "create", "delete", "get", "list", "update"],
+      for (const resource of resources()) {
+        expect({
+          name: resource.name,
+          subcommands: subcommand(program, resource.name).commands.map(
+            (child: Command): string => {
+              return child.name();
+            },
+          ),
+        }).toEqual({
+          name: resource.name,
+          subcommands: getResourceSubcommands(resource),
         });
       }
 
-      for (const name of telemetry) {
-        expect({ name, operations: operationsOf(name) }).toEqual({
-          name,
-          operations: ["count", "create", "list"],
-        });
-      }
-
+      // Telemetry takes the operations the API takes for it, as records do.
       for (const operation of ["get", "update", "delete"]) {
         expect(
           section(reference, `### \`oneuptime <resource> ${operation}\``),
-        ).toContain(`Records only: telemetry has no \`${operation}\`.`);
+        ).not.toContain("Records only: telemetry has no");
       }
+
+      expect(
+        resources().some((resource: ResourceInfo): boolean => {
+          return (
+            resource.modelType === "analytics" &&
+            resource.operations.some((operation: string): boolean => {
+              return operation === "get";
+            })
+          );
+        }),
+      ).toBe(true);
     });
 
     it("gives the output option's choices as the program does", () => {
@@ -709,6 +770,7 @@ describe("the CLI docs hold the real program", () => {
           ],
           {},
         ],
+        [["monitor", "delete", EXAMPLE_ID, "-o", "table"], {}],
         [["monitor", "delete", EXAMPLE_ID, "-o", "json"], {}],
       ] as Array<[Array<string>, unknown]>) {
         mockExecuteApiRequest.mockResolvedValueOnce(answer);
@@ -729,6 +791,7 @@ describe("the CLI docs hold the real program", () => {
         [""],
         ["{}"],
         [`Monitor ${EXAMPLE_ID} deleted successfully.`],
+        [JSON.stringify({ _id: EXAMPLE_ID, deleted: true }, null, 2)],
       ]);
 
       const table: string = section(
@@ -741,7 +804,7 @@ describe("the CLI docs hold the real program", () => {
       );
       expect(table).toContain("| An `update` | An empty line | `{}` |");
       expect(table).toContain(
-        "| A `delete` | `Monitor <id> deleted successfully.` | The same line |",
+        '| A `delete` | `Monitor <id> deleted successfully.` | The record\'s `_id` and `"deleted": true` |',
       );
       expect(docsPage("resource-operations")).toContain(
         `It answers \`Monitor ${EXAMPLE_ID} deleted successfully.\``,
@@ -782,6 +845,93 @@ describe("the CLI docs hold the real program", () => {
         expect(rowFor(text, "--limit <n>")).toContain("`10`");
         expect(rowFor(text, "--skip <n>")).toContain("`0`");
       }
+    });
+
+    // What OneUptime answers an acknowledge with: the state, the incident, the timeline row.
+    function answerAcknowledge(): void {
+      mockExecuteApiRequest
+        .mockResolvedValueOnce({
+          data: [
+            {
+              _id: ACKNOWLEDGED_STATE_ID,
+              name: "Acknowledged",
+              order: 2,
+              isAcknowledgedState: true,
+              isResolvedState: false,
+            },
+          ],
+        })
+        .mockResolvedValueOnce({
+          _id: EXAMPLE_ID,
+          currentIncidentState: {
+            _id: CREATED_STATE_ID,
+            name: "Created",
+            order: 1,
+            isAcknowledgedState: false,
+            isResolvedState: false,
+          },
+        })
+        .mockResolvedValueOnce({ _id: "a-timeline-row" });
+    }
+
+    it("acknowledges as the pages quote it, in a sentence and in JSON", async () => {
+      await loginToBoth();
+
+      answerAcknowledge();
+      expect(await run(["incident", "acknowledge", EXAMPLE_ID])).toEqual([
+        `Incident ${EXAMPLE_ID} acknowledged: it is in Acknowledged now.`,
+      ]);
+      expect(docsPage("resource-operations")).toContain(
+        `\`acknowledge\` answers \`Incident ${EXAMPLE_ID} acknowledged: it is in Acknowledged now.\``,
+      );
+
+      answerAcknowledge();
+
+      const json: string = (
+        await run(["incident", "acknowledge", EXAMPLE_ID, "-o", "json"])
+      ).join("\n");
+      const shown: CodeBlock = codeBlocks(
+        section(docsPage("ai-agents"), "## Read the answers"),
+      ).find((block: CodeBlock): boolean => {
+        return block.lang === "json";
+      }) as CodeBlock;
+
+      expect(json).toBe(shown.code);
+      expect(
+        codeBlocks(section(docsPage("ai-agents"), "## Read the answers"))[0]
+          ?.code,
+      ).toBe(`oneuptime incident acknowledge ${EXAMPLE_ID} -o json`);
+    });
+
+    it("writes an error asked for JSON as the output formats page shows it", async () => {
+      const argv: Array<string> = process.argv;
+      const args: Array<string> = ["incident", "get", EXAMPLE_ID, "--json"];
+
+      await loginToBoth();
+      mockExecuteApiRequest.mockRejectedValueOnce(
+        new Error("API error (404): Incident not found."),
+      );
+
+      let answer: Array<string> = [];
+
+      try {
+        // The error handler reads the command line as the CLI is given it.
+        process.argv = ["node", "oneuptime", ...args];
+        answer = await run(args);
+      } finally {
+        process.argv = argv;
+      }
+
+      const blocks: Array<CodeBlock> = codeBlocks(
+        section(docsPage("output-formats"), "## JSON"),
+      );
+      const command: number = blocks.findIndex((block: CodeBlock): boolean => {
+        return block.code === `oneuptime ${args.join(" ")}`;
+      });
+
+      expect(command).toBeGreaterThan(-1);
+      expect(answer.join("\n")).toBe((blocks[command + 1] as CodeBlock).code);
+      expect(process.exit).toHaveBeenCalledWith(3);
     });
 
     it("uses a flag before an environment variable, and an environment variable before a context", async () => {

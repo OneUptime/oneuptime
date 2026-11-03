@@ -4,6 +4,10 @@
  * Removes from a package's node_modules every dependency that one program
  * never reaches.
  *
+ * Used by the images whose programs import part of Common: the ingress's
+ * certificate sidecar (packages/Nginx), the Runner (packages/Runner) and the
+ * App (packages/App, both editions).
+ *
  * The ingress image (packages/Nginx/Dockerfile.tpl) runs one small Node.js
  * program beside nginx, the certificate sidecar (packages/Nginx/Index.ts). It
  * imports a part of Common, but Common's package.json lists every package
@@ -32,7 +36,17 @@
  *      code computes, a require.resolve() with options (their paths move
  *      where it looks, and esbuild does not record it), or a createRequire():
  *      what they load cannot be known from the code, so it could be a
- *      package this script would remove;
+ *      package this script would remove. The same goes for code the program
+ *      starts beside itself - a worker thread (new Worker() of
+ *      worker_threads), a forked process (child_process's fork()), a node
+ *      started from process.execPath: esbuild never reads the file such a
+ *      call runs, so the packages that file loads would go (ical.js, which
+ *      only the App's external calendar worker requires). A program that
+ *      does either knowingly says so: the file it loads or starts is one more
+ *      --entry, walked like the first, and the file of its own that loads or
+ *      starts it is an --entry-loader, whose computed loads and starts the
+ *      check then lets through (the App's Enterprise loader, which requires
+ *      ee/Server/Index.ts, the Enterprise image's other entry);
  *   3. takes every dependency the walk never reached out of the package's
  *      package.json and runs `npm prune --omit=dev --offline`. npm then
  *      removes those packages, the packages only they needed, and the
@@ -59,11 +73,17 @@
  *   RUN node /tmp/PruneUnreachablePackages.js --entry /usr/src/app/Index.ts --package /usr/src/Common
  *
  * Options:
- *   --entry <file>      the program's entry point
- *   --package <dir>     the package whose dependencies are pruned; esbuild and
- *                       TypeScript are loaded from beside the entry point or
- *                       from this package's node_modules
- *   --dry-run           say what would be removed, and change nothing
+ *   --entry <file>         the program's entry point; given again, every
+ *                          other file the program runs that its imports do
+ *                          not reach (a worker thread's file, a module it
+ *                          loads by a computed name). The first is the one
+ *                          esbuild and TypeScript are found beside
+ *   --entry-loader <file>  a file of the program's own whose computed loads
+ *                          and starts are of other entries (repeatable)
+ *   --package <dir>        the package whose dependencies are pruned; esbuild
+ *                          and TypeScript are loaded from beside the entry
+ *                          point or from this package's node_modules
+ *   --dry-run              say what would be removed, and change nothing
  */
 
 const childProcess = require("child_process");
@@ -85,21 +105,44 @@ const RESOLVING = "prune-unreachable-packages:resolving";
 
 /**
  * @param {Array<string>} argv
- * @returns {{entry: string, packageDirectory: string, dryRun: boolean}}
+ * @returns {{
+ *   entry: string,
+ *   entries: Array<string>,
+ *   entryLoaders: Array<string>,
+ *   packageDirectory: string,
+ *   dryRun: boolean
+ * }} entry: the first entry
  */
 function parseArguments(argv) {
-  const options = { entry: "", packageDirectory: "", dryRun: false };
+  const options = {
+    entry: "",
+    entries: [],
+    entryLoaders: [],
+    packageDirectory: "",
+    dryRun: false,
+  };
   for (let index = 0; index < argv.length; index++) {
     const argument = argv[index];
-    if (argument === "--entry" || argument === "--package") {
+    if (
+      argument === "--entry" ||
+      argument === "--entry-loader" ||
+      argument === "--package"
+    ) {
       const value = argv[index + 1];
       if (!value || value.startsWith("--")) {
         throw new Error(`${argument} needs a value`);
       }
+      const resolved = path.resolve(value);
       if (argument === "--entry") {
-        options.entry = path.resolve(value);
+        if (!options.entries.includes(resolved)) {
+          options.entries.push(resolved);
+        }
+      } else if (argument === "--entry-loader") {
+        if (!options.entryLoaders.includes(resolved)) {
+          options.entryLoaders.push(resolved);
+        }
       } else {
-        options.packageDirectory = path.resolve(value);
+        options.packageDirectory = resolved;
       }
       index++;
     } else if (argument === "--dry-run") {
@@ -108,12 +151,13 @@ function parseArguments(argv) {
       throw new Error(`Unknown option: ${argument}`);
     }
   }
-  if (!options.entry) {
+  if (options.entries.length === 0) {
     throw new Error("--entry is required");
   }
   if (!options.packageDirectory) {
     throw new Error("--package is required");
   }
+  options.entry = options.entries[0];
   return options;
 }
 
@@ -217,10 +261,12 @@ function walkPlugin(missing, resolvedFiles) {
 }
 
 /**
- * Follows every import from the entry point, and from every file a
+ * Follows every import from the entry points, and from every file a
  * require.resolve() finds, until no file found is left unread.
  *
- * @param {{entry: string, esbuild: object}} options esbuild: the esbuild module
+ * @param {{entry?: string, entries?: Array<string>, esbuild: object}} options
+ *   entries: every entry point (entry: the one, when there is one);
+ *   esbuild: the esbuild module
  * @returns {Promise<{
  *   reached: Set<string>,
  *   ownFiles: Array<string>,
@@ -229,20 +275,30 @@ function walkPlugin(missing, resolvedFiles) {
  *   (real paths); ownFiles: the program's own files it read (real paths)
  */
 async function walkImports(options) {
-  const workingDirectory = path.dirname(options.entry);
+  const entries =
+    options.entries && options.entries.length > 0
+      ? options.entries
+      : [options.entry];
+  const workingDirectory = path.dirname(entries[0]);
   const reached = new Set();
   const ownFiles = new Set();
   const missing = [];
   const noted = new Set();
   // Every file read, or waiting to be (real paths): each is walked once.
   const seen = new Set();
-  const pending = [options.entry];
+  const pending = [...entries];
 
+  /*
+   * Each entry is walked, and each file a require.resolve() finds once
+   * (pending holds it only the first time it is seen). An entry an earlier
+   * walk already read is walked again, which finds nothing new.
+   */
   while (pending.length > 0) {
+    const next = pending.shift();
     const found = [];
     const resolvedFiles = [];
     const result = await options.esbuild.build({
-      entryPoints: [pending.shift()],
+      entryPoints: [next],
       absWorkingDir: workingDirectory,
       bundle: true,
       write: false,
@@ -301,6 +357,141 @@ async function walkImports(options) {
   return { reached, ownFiles: [...ownFiles].sort(), missing };
 }
 
+// The modules whose calls start code beside the program.
+const WORKER_THREADS_MODULES = ["worker_threads", "node:worker_threads"];
+const CHILD_PROCESS_MODULES = ["child_process", "node:child_process"];
+// child_process's calls that run a program: given process.execPath, node.
+const PROCESS_STARTS = [
+  "spawn",
+  "spawnSync",
+  "execFile",
+  "execFileSync",
+  "fork",
+];
+
+/**
+ * The names a file binds to two modules' exports - worker_threads' Worker
+ * and child_process's fork, as the file imports them (`import { Worker }
+ * from "worker_threads"`, `const { fork } = require("child_process")`) -
+ * and the names it binds each module to whole (`import * as childProcess`,
+ * `import childProcess from`, `const childProcess = require(...)`).
+ *
+ * @param {object} sourceFile a TypeScript SourceFile
+ * @param {object} ts the typescript module
+ * @returns {{
+ *   workerClasses: Set<string>,
+ *   forkFunctions: Set<string>,
+ *   processStartNames: Map<string, string>,
+ *   workerModules: Set<string>,
+ *   childProcessModules: Set<string>
+ * }} processStartNames: each local name of one of child_process's
+ *   PROCESS_STARTS, to that export's name
+ */
+function startBindingsIn(sourceFile, ts) {
+  const bindings = {
+    workerClasses: new Set(),
+    forkFunctions: new Set(),
+    processStartNames: new Map(),
+    workerModules: new Set(),
+    childProcessModules: new Set(),
+  };
+
+  const note = (moduleName, whole, named) => {
+    const isWorkerThreads = WORKER_THREADS_MODULES.includes(moduleName);
+    const isChildProcess = CHILD_PROCESS_MODULES.includes(moduleName);
+    if (!isWorkerThreads && !isChildProcess) {
+      return;
+    }
+    if (whole) {
+      (isWorkerThreads
+        ? bindings.workerModules
+        : bindings.childProcessModules
+      ).add(whole);
+    }
+    for (const [exported, local] of named) {
+      if (isWorkerThreads && exported === "Worker") {
+        bindings.workerClasses.add(local);
+      }
+      if (isChildProcess && exported === "fork") {
+        bindings.forkFunctions.add(local);
+      }
+      if (isChildProcess && PROCESS_STARTS.includes(exported)) {
+        bindings.processStartNames.set(local, exported);
+      }
+    }
+  };
+
+  // `require("child_process")`'s module name, or null.
+  const requiredModule = (expression) => {
+    if (
+      expression &&
+      ts.isCallExpression(expression) &&
+      ts.isIdentifier(expression.expression) &&
+      expression.expression.text === "require" &&
+      expression.arguments.length === 1 &&
+      ts.isStringLiteralLike(expression.arguments[0])
+    ) {
+      return expression.arguments[0].text;
+    }
+    return null;
+  };
+
+  const visit = (node) => {
+    if (
+      ts.isImportDeclaration(node) &&
+      ts.isStringLiteral(node.moduleSpecifier) &&
+      node.importClause
+    ) {
+      const clause = node.importClause;
+      const named = [];
+      let whole = clause.name ? clause.name.text : null;
+      if (clause.namedBindings) {
+        if (ts.isNamespaceImport(clause.namedBindings)) {
+          whole = clause.namedBindings.name.text;
+        } else {
+          for (const element of clause.namedBindings.elements) {
+            named.push([
+              (element.propertyName || element.name).text,
+              element.name.text,
+            ]);
+          }
+        }
+      }
+      note(node.moduleSpecifier.text, whole, named);
+    } else if (ts.isImportEqualsDeclaration(node)) {
+      const reference = node.moduleReference;
+      if (
+        ts.isExternalModuleReference(reference) &&
+        ts.isStringLiteral(reference.expression)
+      ) {
+        note(reference.expression.text, node.name.text, []);
+      }
+    } else if (ts.isVariableDeclaration(node)) {
+      const moduleName = requiredModule(node.initializer);
+      if (moduleName) {
+        if (ts.isIdentifier(node.name)) {
+          note(moduleName, node.name.text, []);
+        } else if (ts.isObjectBindingPattern(node.name)) {
+          const named = [];
+          for (const element of node.name.elements) {
+            if (ts.isIdentifier(element.name)) {
+              const exported =
+                element.propertyName && ts.isIdentifier(element.propertyName)
+                  ? element.propertyName.text
+                  : element.name.text;
+              named.push([exported, element.name.text]);
+            }
+          }
+          note(moduleName, null, named);
+        }
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sourceFile);
+  return bindings;
+}
+
 /**
  * The calls in one file that load what the walk cannot see: a require(),
  * import() or require.resolve() of a name the code computes, a
@@ -308,6 +499,13 @@ async function walkImports(options) {
  * does not record one either), and a createRequire(). A string literal, or a
  * template literal without substitutions, is a name the walk reads, and
  * require.resolve() of one alone counts as a require() of it.
+ *
+ * And the calls that start code beside the program, whose file esbuild never
+ * reads: a new Worker() of worker_threads' Worker, a fork() of
+ * child_process's, and any of child_process's ways to run a program given
+ * process.execPath. Whatever their arguments: even a file named in full is
+ * one the walk does not follow. A class or function of the same name from
+ * anywhere else (BullMQ's Worker) is not one.
  *
  * @param {{file: string, source: string, typescript: object}} options
  *   typescript: the typescript module
@@ -322,12 +520,104 @@ function computedImportsIn(options) {
     true,
   );
   const found = [];
+  const starts = startBindingsIn(sourceFile, ts);
 
   const isNamed = (expression, name) => {
     return ts.isIdentifier(expression) && expression.text === name;
   };
 
+  // `<module>.<name>` for a name bound to the whole module, or `require("<module>").<name>`.
+  const isMemberOf = (expression, modules, moduleNames, name) => {
+    if (!ts.isPropertyAccessExpression(expression)) {
+      return false;
+    }
+    if (expression.name.text !== name) {
+      return false;
+    }
+    const target = expression.expression;
+    if (ts.isIdentifier(target) && modules.has(target.text)) {
+      return true;
+    }
+    return (
+      ts.isCallExpression(target) &&
+      isNamed(target.expression, "require") &&
+      target.arguments.length === 1 &&
+      ts.isStringLiteralLike(target.arguments[0]) &&
+      moduleNames.includes(target.arguments[0].text)
+    );
+  };
+
+  const isProcessExecPath = (expression) => {
+    return (
+      expression !== undefined &&
+      ts.isPropertyAccessExpression(expression) &&
+      isNamed(expression.expression, "process") &&
+      expression.name.text === "execPath"
+    );
+  };
+
+  // An expression without the parentheses around it.
+  const unwrapped = (expression) => {
+    let inner = expression;
+    while (inner && ts.isParenthesizedExpression(inner)) {
+      inner = inner.expression;
+    }
+    return inner;
+  };
+
+  // A call or `new` that starts code beside the program.
+  const startsCode = (node) => {
+    if (ts.isNewExpression(node)) {
+      const callee = unwrapped(node.expression);
+      return (
+        (ts.isIdentifier(callee) && starts.workerClasses.has(callee.text)) ||
+        isMemberOf(
+          callee,
+          starts.workerModules,
+          WORKER_THREADS_MODULES,
+          "Worker",
+        )
+      );
+    }
+    if (!ts.isCallExpression(node)) {
+      return false;
+    }
+    const callee = unwrapped(node.expression);
+    if (
+      (ts.isIdentifier(callee) && starts.forkFunctions.has(callee.text)) ||
+      isMemberOf(
+        callee,
+        starts.childProcessModules,
+        CHILD_PROCESS_MODULES,
+        "fork",
+      )
+    ) {
+      return true;
+    }
+    // A name child_process's export goes by here, or the name called.
+    const calleeName = ts.isIdentifier(callee)
+      ? starts.processStartNames.get(callee.text) || callee.text
+      : ts.isPropertyAccessExpression(callee)
+        ? callee.name.text
+        : null;
+    return (
+      calleeName !== null &&
+      PROCESS_STARTS.includes(calleeName) &&
+      isProcessExecPath(node.arguments[0])
+    );
+  };
+
   const visit = (node) => {
+    if (startsCode(node)) {
+      const start = node.getStart(sourceFile);
+      const { line } = sourceFile.getLineAndCharacterOfPosition(start);
+      found.push({
+        line: line + 1,
+        text: node.getText(sourceFile).split("\n")[0].trim(),
+      });
+      ts.forEachChild(node, visit);
+      return;
+    }
     if (ts.isCallExpression(node)) {
       const callee = node.expression;
       const literalFirstArgument =
@@ -679,10 +969,12 @@ function loadFrom(name, directories) {
 }
 
 /**
- * Walks the entry point and prunes the package to what it reaches.
+ * Walks the entry points and prunes the package to what they reach.
  *
  * @param {{
- *   entry: string,
+ *   entry?: string,
+ *   entries?: Array<string>,
+ *   entryLoaders?: Array<string>,
  *   packageDirectory: string,
  *   dryRun?: boolean,
  *   esbuild?: object,
@@ -704,33 +996,75 @@ async function pruneUnreachablePackages(options) {
   const log = options.log || console.log;
   const run = options.run || runCommand;
   const packageDirectory = options.packageDirectory;
-  const lookIn = [path.dirname(options.entry), packageDirectory];
+  const entries =
+    options.entries && options.entries.length > 0
+      ? options.entries
+      : [options.entry];
+  const entryLoaders = options.entryLoaders || [];
+  const lookIn = [path.dirname(entries[0]), packageDirectory];
 
-  if (!fs.existsSync(options.entry)) {
-    throw new Error(`The entry point ${options.entry} does not exist`);
+  for (const entry of entries) {
+    if (!fs.existsSync(entry)) {
+      throw new Error(`The entry point ${entry} does not exist`);
+    }
   }
   const esbuild = options.esbuild || loadFrom("esbuild", lookIn);
   const typescript = options.typescript || loadFrom("typescript", lookIn);
   const manifestPath = path.join(packageDirectory, "package.json");
   const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
 
-  const walk = await walkImports({ entry: options.entry, esbuild });
+  const walk = await walkImports({ entries, esbuild });
   if (walk.ownFiles.length === 0 || walk.reached.size === 0) {
     // A walk that read nothing would prune everything.
     throw new Error(
-      `The walk from ${options.entry} read ${walk.ownFiles.length} of the program's files and reached ${walk.reached.size} packages`,
+      `The walk from ${entries.join(", ")} read ${walk.ownFiles.length} of the program's files and reached ${walk.reached.size} packages`,
     );
   }
 
-  const computed = findComputedImports({ files: walk.ownFiles, typescript });
+  /*
+   * An entry loader names a file of the program's own whose computed loads
+   * and starts are of the other entries. It has to be one the walk read,
+   * and still load or start something by a computed name: a name left in
+   * the list after its code went would let the next one through unseen.
+   */
+  const realEntryLoaders = entryLoaders.map((file) => {
+    if (!fs.existsSync(file)) {
+      throw new Error(`The entry loader ${file} does not exist`);
+    }
+    return fs.realpathSync(file);
+  });
+  const allComputed = findComputedImports({
+    files: walk.ownFiles,
+    typescript,
+  });
+  for (const loader of realEntryLoaders) {
+    if (!walk.ownFiles.includes(loader)) {
+      throw new Error(
+        `The entry loader ${loader} is not a file the walk read: the program never imports it.`,
+      );
+    }
+    if (
+      !allComputed.some((item) => {
+        return item.file === loader;
+      })
+    ) {
+      throw new Error(
+        `The entry loader ${loader} loads and starts nothing by a computed name any more: take it out of the --entry-loader list.`,
+      );
+    }
+  }
+
+  const computed = allComputed.filter((item) => {
+    return !realEntryLoaders.includes(item.file);
+  });
   if (computed.length > 0) {
     throw new Error(
       [
-        "These load what the code computes at run time, so the walk cannot tell which package they need:",
+        "These load what the code computes at run time, or start code beside the program, so the walk cannot tell which package they need:",
         ...computed.map((item) => {
           return `  ${item.file}:${item.line}: ${item.text}`;
         }),
-        'Name the package in the code - require("name"), import("name") or require.resolve("name") without options - or stop pruning this image.',
+        'Name the package in the code - require("name"), import("name") or require.resolve("name") without options. Code started in a worker thread or a process of its own, or loaded by a name the code computes, has to be walked too: give its file as another --entry, and the file that starts or loads it as an --entry-loader. Or stop pruning this image.',
       ].join("\n"),
     );
   }
@@ -750,8 +1084,13 @@ async function pruneUnreachablePackages(options) {
   const before = directorySize(nodeModules);
 
   log(
-    `PruneUnreachablePackages: ${options.entry} reaches ${walk.reached.size} installed packages through ${walk.ownFiles.length} of its own files.`,
+    `PruneUnreachablePackages: ${entries.join(", ")} reach${entries.length === 1 ? "es" : ""} ${walk.reached.size} installed packages through ${walk.ownFiles.length} of the program's own files.`,
   );
+  if (realEntryLoaders.length > 0) {
+    log(
+      `PruneUnreachablePackages: what ${realEntryLoaders.join(", ")} load${realEntryLoaders.length === 1 ? "s" : ""} or start${realEntryLoaders.length === 1 ? "s" : ""} by a computed name is among the entries.`,
+    );
+  }
   log(
     `PruneUnreachablePackages: ${removed.length} of the ${Object.keys(manifest.dependencies || {}).length} dependencies of ${manifestPath} are never reached: ${removed.join(", ") || "none"}.`,
   );
@@ -809,6 +1148,7 @@ if (require.main === module) {
 
 module.exports = {
   NOT_CODE,
+  PROCESS_STARTS,
   computedImportsIn,
   directorySize,
   findComputedImports,

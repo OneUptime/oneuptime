@@ -178,7 +178,7 @@ Die Vorfallliste selbst zeigt **Vorfallnummer**, **Titel**, **Status**, **Schwer
 | **Team** | **Rollen**, **Bereitschaftsausführungen**, **Eigentümer** |
 | **Benachrichtigungen** | **Benachrichtigungsprotokolle**, **KI-Protokolle** – eingeklappt, bis Sie auf **Benachrichtigungen** klicken |
 | **Notizen** | **Private Notizen**, **Öffentliche Notizen** |
-| **Entwickler** | **Terraform**, **API**, **KI-Assistenten** – eingeklappt, bis Sie auf **Entwickler** klicken |
+| **Entwickler** | **Terraform**, **API**, **CLI**, **KI-Assistenten** – eingeklappt, bis Sie auf **Entwickler** klicken |
 | **Erweitert** | **Benutzerdefinierte Felder**, **Einstellungen**, **Audit-Protokolle**, **Vorfall löschen** – eingeklappt, bis Sie auf **Erweitert** klicken |
 
 Was jede davon enthält:
