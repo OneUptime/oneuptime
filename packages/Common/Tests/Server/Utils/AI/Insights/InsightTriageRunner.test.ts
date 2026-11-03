@@ -1499,11 +1499,33 @@ describe("InsightTriageRunner.executeTriage - Metrics' findings", () => {
     );
   });
 
+  test("missing request metrics is observability triage: which instrumentation records them, and where", async () => {
+    const summary: string = await contextSummaryFor(
+      AIInsightType.MetricMissingRequestMetrics,
+    );
+
+    expect(summary).toContain("this is OBSERVABILITY TRIAGE");
+    expect(summary).toContain(
+      "sends metrics, and many spans of the requests it handles, but has never sent one of the request metrics",
+    );
+    expect(summary).toContain("such as http.server.request.duration");
+    expect(summary).toContain("it exports metrics already");
+    expect(summary).toContain(
+      "the OpenTelemetry instrumentation package for the framework that handles its requests",
+    );
+    expect(summary).toContain(
+      "a collector's span metrics, an agent, a sidecar, a proxy in front of it",
+    );
+    // Not the framing of a service that sends no metric at all.
+    expect(summary).not.toContain("has never sent a single metric");
+  });
+
   test("each says the verdicts a person or a policy cannot be", async () => {
     for (const insightType of [
       AIInsightType.MetricHighCardinality,
       AIInsightType.MetricHistogramBuckets,
       AIInsightType.MetricMissingMetrics,
+      AIInsightType.MetricMissingRequestMetrics,
     ]) {
       jest.restoreAllMocks();
 

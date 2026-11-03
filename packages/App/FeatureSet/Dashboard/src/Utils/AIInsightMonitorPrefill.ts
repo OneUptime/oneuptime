@@ -93,12 +93,14 @@ import RouteMap, { RouteUtil } from "./RouteMap";
  *   LogMissingLogging / LogNoisyPattern -> no Create Monitor at all: a log
  *                     line that is not written cannot be counted, and a
  *                     noisy line is fixed, not paged on.
- *   MetricHighCardinality / MetricHistogramBuckets / MetricMissingMetrics ->
+ *   MetricHighCardinality / MetricHistogramBuckets / MetricMissingMetrics /
+ *   MetricMissingRequestMetrics ->
  *                     no Create Monitor either: how many values a metric
  *                     records, whether a histogram's buckets fit its values
- *                     and the metrics a service does not send are facts
- *                     about its code, not numbers a monitor watches - the
- *                     pull request is their fix.
+ *                     and the metrics a service does not send - none at
+ *                     all, or none for its requests - are facts about its
+ *                     code, not numbers a monitor watches - the pull
+ *                     request is their fix.
  *
  * Pure (no network, no React) for the same reason as AIInsightExplorerLinks
  * and SecurityEventsMonitorPrefill: what it builds is a contract with the step
@@ -507,6 +509,7 @@ export const AI_INSIGHT_TYPES_NOT_MONITORED: ReadonlyArray<AIInsightType> = [
   AIInsightType.MetricHighCardinality,
   AIInsightType.MetricHistogramBuckets,
   AIInsightType.MetricMissingMetrics,
+  AIInsightType.MetricMissingRequestMetrics,
 ];
 
 /*
