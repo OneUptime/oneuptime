@@ -41350,5 +41350,15 @@
   "Enter a whole address, with https and the host name.": "Skriv inn en hel adresse med https og vertsnavnet.",
   "Enter the https address of the file to read.": "Skriv inn https-adressen til filen som skal leses.",
   "The address starts with https.": "Adressen begynner med https.",
-  "The field is on a watchlist": "Feltet står på en overvåkingsliste"
+  "The field is on a watchlist": "Feltet står på en overvåkingsliste",
+  "Recommended Alerts": "Recommended Alerts",
+  "This database was not found.": "This database was not found.",
+  "Database health": "Database health",
+  "Each is one monitor for the whole database that alerts once per table, so tables created later are watched too.": "Each is one monitor for the whole database that alerts once per table, so tables created later are watched too.",
+  "Last Collected": "Last Collected",
+  "Monitors recommended for this database: late tables, sharp drops in rows, schema changes, and a collection that stopped.": "Monitors recommended for this database: late tables, sharp drops in rows, schema changes, and a collection that stopped.",
+  "Tables and views in this database.": "Tables and views in this database.",
+  "The catalog is read every few minutes.": "The catalog is read every few minutes.",
+  "View Recommendations": "View Recommendations",
+  "Who reads this database's catalog, and how the last read went.": "Who reads this database's catalog, and how the last read went."
 }

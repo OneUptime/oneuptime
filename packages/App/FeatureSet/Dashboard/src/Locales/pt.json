@@ -41350,5 +41350,15 @@
   "Enter a whole address, with https and the host name.": "Informe um endereço completo, com https e o nome do host.",
   "Enter the https address of the file to read.": "Informe o endereço https do arquivo a ler.",
   "The address starts with https.": "O endereço começa com https.",
-  "The field is on a watchlist": "O campo está em uma lista de observação"
+  "The field is on a watchlist": "O campo está em uma lista de observação",
+  "Recommended Alerts": "Recommended Alerts",
+  "This database was not found.": "This database was not found.",
+  "Database health": "Database health",
+  "Each is one monitor for the whole database that alerts once per table, so tables created later are watched too.": "Each is one monitor for the whole database that alerts once per table, so tables created later are watched too.",
+  "Last Collected": "Last Collected",
+  "Monitors recommended for this database: late tables, sharp drops in rows, schema changes, and a collection that stopped.": "Monitors recommended for this database: late tables, sharp drops in rows, schema changes, and a collection that stopped.",
+  "Tables and views in this database.": "Tables and views in this database.",
+  "The catalog is read every few minutes.": "The catalog is read every few minutes.",
+  "View Recommendations": "View Recommendations",
+  "Who reads this database's catalog, and how the last read went.": "Who reads this database's catalog, and how the last read went."
 }

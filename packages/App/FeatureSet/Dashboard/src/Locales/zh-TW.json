@@ -41350,5 +41350,15 @@
   "Enter a whole address, with https and the host name.": "請輸入完整的位址，包含 https 和主機名稱。",
   "Enter the https address of the file to read.": "請輸入要讀取的檔案的 https 位址。",
   "The address starts with https.": "位址以 https 開頭。",
-  "The field is on a watchlist": "該欄位在某份監看清單中"
+  "The field is on a watchlist": "該欄位在某份監看清單中",
+  "Recommended Alerts": "Recommended Alerts",
+  "This database was not found.": "This database was not found.",
+  "Database health": "Database health",
+  "Each is one monitor for the whole database that alerts once per table, so tables created later are watched too.": "Each is one monitor for the whole database that alerts once per table, so tables created later are watched too.",
+  "Last Collected": "Last Collected",
+  "Monitors recommended for this database: late tables, sharp drops in rows, schema changes, and a collection that stopped.": "Monitors recommended for this database: late tables, sharp drops in rows, schema changes, and a collection that stopped.",
+  "Tables and views in this database.": "Tables and views in this database.",
+  "The catalog is read every few minutes.": "The catalog is read every few minutes.",
+  "View Recommendations": "View Recommendations",
+  "Who reads this database's catalog, and how the last read went.": "Who reads this database's catalog, and how the last read went."
 }

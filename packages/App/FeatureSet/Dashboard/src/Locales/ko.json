@@ -41350,5 +41350,15 @@
   "Enter a whole address, with https and the host name.": "https와 호스트 이름이 포함된 전체 주소를 입력하세요.",
   "Enter the https address of the file to read.": "읽을 파일의 https 주소를 입력하세요.",
   "The address starts with https.": "주소는 https로 시작합니다.",
-  "The field is on a watchlist": "필드가 관심 목록에 있음"
+  "The field is on a watchlist": "필드가 관심 목록에 있음",
+  "Recommended Alerts": "Recommended Alerts",
+  "This database was not found.": "This database was not found.",
+  "Database health": "Database health",
+  "Each is one monitor for the whole database that alerts once per table, so tables created later are watched too.": "Each is one monitor for the whole database that alerts once per table, so tables created later are watched too.",
+  "Last Collected": "Last Collected",
+  "Monitors recommended for this database: late tables, sharp drops in rows, schema changes, and a collection that stopped.": "Monitors recommended for this database: late tables, sharp drops in rows, schema changes, and a collection that stopped.",
+  "Tables and views in this database.": "Tables and views in this database.",
+  "The catalog is read every few minutes.": "The catalog is read every few minutes.",
+  "View Recommendations": "View Recommendations",
+  "Who reads this database's catalog, and how the last read went.": "Who reads this database's catalog, and how the last read went."
 }

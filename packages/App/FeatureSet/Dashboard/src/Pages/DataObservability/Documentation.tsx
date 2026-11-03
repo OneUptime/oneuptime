@@ -67,9 +67,25 @@ Each collection writes these for every table, so you can chart them, put them on
 | \`oneuptime.data.table.row_count\` | Rows in the table |
 | \`oneuptime.data.table.size\` | Bytes the table and its indexes take |
 | \`oneuptime.data.table.seconds_since_change\` | Seconds since a row was last inserted, updated or deleted |
+| \`oneuptime.data.table.overdue_seconds\` | Seconds the table is past the time it usually changes by; 0 while it is on time. Written once its rhythm is learned |
+| \`oneuptime.data.table.row_count_change_percent\` | How much the row count moved since the collection before, in percent (-50 is half the rows gone). Tables under 1,000 rows are left out |
 | \`oneuptime.data.table.schema_changes\` | Columns changed since the collection before |
 
-Every row carries \`oneuptime.data.store.id\`, \`oneuptime.data.store.name\`, \`oneuptime.data.table.id\`, \`oneuptime.data.table.schema\`, \`oneuptime.data.table.name\` and \`oneuptime.data.table.key\` (\`schema.table\`). A Metrics monitor grouped by \`oneuptime.data.table.key\` alerts once per table, and its **Anomalously High** filter compares each table with its own usual value for that hour of the week, so no threshold has to be set.
+Every row carries \`oneuptime.data.store.id\`, \`oneuptime.data.store.name\`, \`oneuptime.data.table.id\`, \`oneuptime.data.table.schema\`, \`oneuptime.data.table.name\` and \`oneuptime.data.table.key\` (\`schema.table\`). A Metrics monitor grouped by \`oneuptime.data.table.key\` alerts once per table, and its **Anomalously High** and **Anomalously Low** filters compare each table with its own usual value for that hour of the week, so no threshold has to be set.
+
+## Alerts
+
+On **Databases**, choose **Recommended Alerts** for a database. Each recommendation is one Metrics monitor for the whole database that alerts once per table, so a table created later is watched too:
+
+| Alert | Fires when |
+| --- | --- |
+| **Table Is Late** | A table stays past the time it usually changes by for fifteen minutes - the same rule as the **Late** pill |
+| **Row Count Fell Sharply** | A table loses half its rows or more between two collections |
+| **Row Count Unusually Low** | A table holds far fewer rows than usual for that hour of the week (learns over two weeks) |
+| **Schema Changed** | A table's columns are added, removed, renamed or retyped |
+| **Table Health Stopped Reporting** | No table of the database has been read for fifteen minutes |
+
+Pick severities, on-call policies, owners and labels when you create them. They are ordinary monitors from then on: edit, mute or put them on a status page like any other.
 
 These metrics are OneUptime's own operational data and are not billed as telemetry.
 `;

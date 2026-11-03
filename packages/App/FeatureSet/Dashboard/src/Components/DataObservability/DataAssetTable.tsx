@@ -21,6 +21,8 @@ import React, { FunctionComponent, ReactElement } from "react";
 export interface ComponentProps {
   // The dropped tables, kept with their history; or the tables still there.
   isDropped: boolean;
+  // One database's tables only, on that database's own page.
+  dataStoreId?: ObjectID | undefined;
 }
 
 const KIND_OPTIONS: Array<DropdownOption> = DATA_ASSET_KINDS.map(
@@ -39,15 +41,16 @@ const DataAssetTable: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+  const listKey: string = props.isDropped
+    ? "data-observability-dropped"
+    : props.dataStoreId
+      ? "data-observability-store-tables"
+      : "data-observability-tables";
 
   return (
     <ModelTable<DataAsset>
       modelType={DataAsset}
-      id={
-        props.isDropped
-          ? "data-observability-dropped"
-          : "data-observability-tables"
-      }
+      id={listKey}
       name={
         props.isDropped
           ? "Data Observability > Dropped Tables"
@@ -56,10 +59,13 @@ const DataAssetTable: FunctionComponent<ComponentProps> = (
       userPreferencesKey={
         props.isDropped
           ? "data-observability-dropped-tables"
-          : "data-observability-tables"
+          : props.dataStoreId
+            ? "data-observability-store-tables"
+            : "data-observability-tables"
       }
       query={{
         ...(projectId ? { projectId: projectId } : {}),
+        ...(props.dataStoreId ? { dataStoreId: props.dataStoreId } : {}),
         isDropped: props.isDropped,
       }}
       isDeleteable={false}
