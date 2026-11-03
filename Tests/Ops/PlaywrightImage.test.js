@@ -72,6 +72,7 @@ const RETRY_WAIT_SECONDS = 10;
  * real Chromium (BrowserRecorder's vitals, the Probe's synthetic monitors).
  */
 const BROWSER_JOBS = [
+  "lighthouse-production.yml scan",
   "test.app.yaml dashboard-offline-ui",
   "test.app.yaml session-replay-ui",
   "test.browser-recorder.yaml test",

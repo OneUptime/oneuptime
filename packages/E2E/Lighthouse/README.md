@@ -99,3 +99,46 @@ cd packages/E2E && LIGHTHOUSE_RECORD=1 npx playwright test --config playwright.l
 
 Recording a failure the baseline did not have accepts it: fix the page
 instead, unless the audit is wrong about it.
+
+## The nightly scan of oneuptime.com
+
+The pull request check judges what this repository serves. How fast the live
+site loads for a visitor is a different question, with the real CDN, network,
+web fonts and Google Tag Manager in it, so it has a scan of its own: the
+"Lighthouse Production Scan" workflow
+(`.github/workflows/lighthouse-production.yml`), every night and by hand.
+
+- **Pages:** home, pricing, a docs page, the API reference, sign-in, sign-up
+  and OneUptime's own status page (`ProductionPages` in `Production.ts`), on a
+  phone and on a laptop.
+- **Categories:** all four, performance among them, with every third party
+  the page loads. Each page is scanned three times and the median run by
+  performance score is reported.
+- **Tracking only:** no score fails the run. A page fails it only when no run
+  of it could be scanned.
+- **Results:** a table on the run's summary page (performance, LCP, CLS, TBT
+  and the other three scores) and every report in its `lighthouse-production`
+  artifact.
+
+To send the numbers to a OneUptime project as OpenTelemetry metrics
+(`lighthouse.performance.score`, `lighthouse.largest_contentful_paint` and
+the rest, a point per page and form factor), so a dashboard can chart them
+and a monitor can alert on the trend:
+
+1. In the OneUptime project, create a telemetry ingestion key.
+2. Add it to this repository's Actions secrets as
+   `ONEUPTIME_LIGHTHOUSE_OTLP_TOKEN`.
+3. To send to an installation other than oneuptime.com, set the Actions
+   variable `ONEUPTIME_LIGHTHOUSE_OTLP_ENDPOINT` to its `/otlp` address.
+
+Without the secret the scan still runs and says it sent nothing. A failed
+send is a warning on the run, not a failure.
+
+To run it from your machine (it scans the live site):
+
+```bash
+cd packages/E2E && npm run test-lighthouse-production
+```
+
+`--grep "pricing"` scans one page, and `LIGHTHOUSE_ORIGIN` scans another
+installation's pages instead of oneuptime.com's.
