@@ -114,6 +114,11 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  FILTER_SERIES_TEMPLATE,
+  MORE_SERIES_TEMPLATE,
+  SERIES_COUNT_TEMPLATE,
+} from "./SeriesCounts";
 
 export interface ComponentProps {
   metricViewData: MetricViewData;
@@ -1174,9 +1179,7 @@ function renderSeriesControls(input: {
           </span>
         ) : null}
         <span className="text-xs text-gray-500">
-          {translator.translateTemplate("{{count}} series", {
-            count: translator.formatNumber(totalSeries),
-          })}
+          {translator.translatePlural(SERIES_COUNT_TEMPLATE, totalSeries)}
         </span>
         {serverHasMoreSeries ? (
           <span className="text-xs text-gray-500">
@@ -1255,9 +1258,9 @@ function renderSeriesControls(input: {
               onChange={(e: React.ChangeEvent<HTMLInputElement>): void => {
                 updateControls(chartId, { searchQuery: e.target.value });
               }}
-              placeholder={translator.translateTemplate(
-                "Filter {{count}} series",
-                { count: translator.formatNumber(totalSeries) },
+              placeholder={translator.translatePlural(
+                FILTER_SERIES_TEMPLATE,
+                totalSeries,
               )}
               className="w-full rounded-md border border-gray-200 bg-white pl-8 pr-3 py-1.5 text-xs text-gray-700 placeholder-gray-400 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
             />
@@ -3841,11 +3844,10 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
                 )}
                 {bucketInspector.hiddenCount > 0 ? (
                   <p className="pt-1 text-[11px] text-gray-400">
-                    {translator.translateTemplate("+{{count}} more series", {
-                      count: translator.formatNumber(
-                        bucketInspector.hiddenCount,
-                      ),
-                    })}
+                    {translator.translatePlural(
+                      MORE_SERIES_TEMPLATE,
+                      bucketInspector.hiddenCount,
+                    )}
                   </p>
                 ) : null}
               </div>

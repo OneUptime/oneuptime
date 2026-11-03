@@ -809,13 +809,6 @@ export default class ValueFormatter {
   }
 
   /*
-   * Convert a UCUM / OpenTelemetry unit code into a human-readable name.
-   * e.g. "By" → "Bytes", "s" → "Seconds", "By/s" → "Bytes per Second",
-   * "1" → "" (dimensionless). Falls back to the original string when unknown.
-   * When `metricName` ends in `.utilization` and the unit is "1", returns
-   * "Percent" so axis legends and badges match the formatted values.
-   */
-  /*
    * Every name getReadableUnit gives a unit it knows ("Bytes",
    * "Milliseconds", "Percent"), once each: the charts draw them in the
    * reader's language (Common/UI/Components/Charts/Utils/UnitNames), and a
@@ -831,6 +824,13 @@ export default class ValueFormatter {
     );
   }
 
+  /*
+   * Convert a UCUM / OpenTelemetry unit code into a human-readable name.
+   * e.g. "By" → "Bytes", "s" → "Seconds", "By/s" → "Bytes per Second",
+   * "1" → "" (dimensionless). Falls back to the original string when unknown.
+   * When `metricName` ends in `.utilization` and the unit is "1", returns
+   * "Percent" so axis legends and badges match the formatted values.
+   */
   public static getReadableUnit(
     unit: string,
     options?: { metricName?: string },

@@ -41907,5 +41907,8 @@
   "{{count}} tables nobody has read for 90 days hold {{size}}._one": "{{count}} table nobody has read for 90 days holds {{size}}.",
   "Amazon Redshift": "Amazon Redshift",
   "Snowflake": "Snowflake",
-  "Google BigQuery": "Google BigQuery"
+  "Google BigQuery": "Google BigQuery",
+  "+{{count}} more series_one": "另外 +{{count}} 个序列",
+  "Filter {{count}} series_one": "筛选 {{count}} 个序列",
+  "{{count}} series_one": "{{count}} 个序列"
 }
