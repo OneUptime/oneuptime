@@ -322,7 +322,12 @@ export function openSecurityCaseFromLink(
 export function handleNotificationResponse(
   response: NotificationResponse,
 ): void {
-  const data: NotificationData =
+  /*
+   * An action comes from the button tapped and nothing else: a push's own
+   * data never carries one onto the screen, so no payload can make a plain
+   * tap acknowledge or escalate anything.
+   */
+  const { pushAction: _fromPayload, ...data }: NotificationData =
     (response.notification.request.content.data as NotificationData) || {};
   const actionKind: PushPageActionKind | null = getPushPageActionKind(
     response.actionIdentifier,

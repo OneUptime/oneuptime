@@ -69,7 +69,7 @@ export function getPagedResponseActions(
   }
 
   if (input.escalate && (!input.isAcknowledged || pagedAgain)) {
-    actions.push(input.escalate);
+    actions.push({ ...input.escalate, primary: false });
   }
 
   return actions;

@@ -4,9 +4,12 @@ import {
   DIVIDER_STEP,
   clampListPaneWidth,
   describeListPaneShare,
+  getDividerKeyMove,
+  moveListPaneWidthByKey,
   snapListPaneWidth,
   stepListPaneWidth,
   toPreferredListPaneWidth,
+  type DividerKeyMove,
 } from "./paneDivider";
 import type { ListPaneWidthRange } from "./windowLayout";
 
@@ -126,5 +129,99 @@ describe("describeListPaneShare: what a screen reader says", () => {
   test("nothing, without a width to share", () => {
     expect(describeListPaneShare(362, 0)).toBe("");
     expect(describeListPaneShare(362, NaN)).toBe("");
+  });
+});
+
+describe("the divider from a keyboard", () => {
+  /*
+   * A Chromebook's keyboard, a tablet's, the web build's: once the handle has
+   * focus, the keys do what a screen reader's swipes and a double tap do.
+   */
+  test("right and up widen the list, left and down narrow it, a step at a time", () => {
+    expect(getDividerKeyMove("ArrowRight")).toEqual({
+      kind: "step",
+      direction: 1,
+    });
+    expect(getDividerKeyMove("ArrowUp")).toEqual({ kind: "step", direction: 1 });
+    expect(getDividerKeyMove("ArrowLeft")).toEqual({
+      kind: "step",
+      direction: -1,
+    });
+    expect(getDividerKeyMove("ArrowDown")).toEqual({
+      kind: "step",
+      direction: -1,
+    });
+  });
+
+  test("Home and End go to the narrowest and the widest list, Enter puts it back", () => {
+    expect(getDividerKeyMove("Home")).toEqual({ kind: "edge", edge: "min" });
+    expect(getDividerKeyMove("End")).toEqual({ kind: "edge", edge: "max" });
+    expect(getDividerKeyMove("Enter")).toEqual({ kind: "reset" });
+  });
+
+  test("every other key is left alone - Tab moves focus on, letters type", () => {
+    for (const key of ["Tab", "a", " ", "Escape", "PageUp", "", "arrowright"]) {
+      expect(getDividerKeyMove(key)).toBeNull();
+    }
+  });
+
+  test("an arrow moves the divider one screen reader step, and stops on the fold's line on the way", () => {
+    const right: DividerKeyMove = { kind: "step", direction: 1 };
+    const left: DividerKeyMove = { kind: "step", direction: -1 };
+
+    expect(moveListPaneWidthByKey(380, right, RANGE, ON_THE_FOLD)).toBe(
+      380 + DIVIDER_STEP,
+    );
+    expect(moveListPaneWidthByKey(400, left, RANGE, ON_THE_FOLD)).toBe(
+      ON_THE_FOLD,
+    );
+    expect(moveListPaneWidthByKey(340, right, RANGE, ON_THE_FOLD)).toBe(
+      ON_THE_FOLD,
+    );
+    // The same step a screen reader's swipe takes.
+    expect(moveListPaneWidthByKey(400, right, RANGE, ON_THE_FOLD)).toBe(
+      stepListPaneWidth(400, 1, RANGE, ON_THE_FOLD),
+    );
+  });
+
+  test("an arrow never takes the divider out of its range", () => {
+    expect(
+      moveListPaneWidthByKey(
+        440,
+        { kind: "step", direction: 1 },
+        RANGE,
+        ON_THE_FOLD,
+      ),
+    ).toBe(RANGE.max);
+    expect(
+      moveListPaneWidthByKey(
+        325,
+        { kind: "step", direction: -1 },
+        RANGE,
+        ON_THE_FOLD,
+      ),
+    ).toBe(RANGE.min);
+  });
+
+  test("Home and End reach the ends of the range, and Enter is no width at all: the layout's own again", () => {
+    expect(
+      moveListPaneWidthByKey(
+        400,
+        { kind: "edge", edge: "min" },
+        RANGE,
+        ON_THE_FOLD,
+      ),
+    ).toBe(RANGE.min);
+    expect(
+      moveListPaneWidthByKey(
+        400,
+        { kind: "edge", edge: "max" },
+        RANGE,
+        ON_THE_FOLD,
+      ),
+    ).toBe(RANGE.max);
+    expect(
+      moveListPaneWidthByKey(400, { kind: "reset" }, RANGE, ON_THE_FOLD),
+    ).toBeNull();
   });
 });
