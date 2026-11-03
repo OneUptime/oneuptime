@@ -8,6 +8,7 @@ import {
 } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * Where visitors find a status page or a public dashboard, in real Chromium,
@@ -159,12 +160,9 @@ async function box(locator: Locator): Promise<Box> {
 }
 
 async function expectNothingRunsOff(page: Page, where: string): Promise<void> {
-  expect(
-    await page.evaluate((): boolean => {
-      return document.documentElement.scrollWidth <= window.innerWidth;
-    }),
-    `${where}: the page does not scroll sideways`,
-  ).toBe(true);
+  await expectNoSidewaysScroll(page, {
+    message: `${where}: the page does not scroll sideways`,
+  });
 }
 
 // Every row inside the list's frame, and the list inside its card.

@@ -2,6 +2,7 @@ import { expect, Locator, Page, Route, test } from "@playwright/test";
 import fs from "fs";
 import fsPromises from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 import { sideMenuAtRest } from "../SuiteHelpers/SideMenuAtRest";
 
 /*
@@ -238,27 +239,6 @@ async function boxOf(locator: Locator): Promise<Box> {
   const box: Box | null = await locator.boundingBox();
   expect(box).not.toBeNull();
   return box!;
-}
-
-/*
- * Nothing on the page scrolls sideways, once it has settled. A test that
- * narrows the window to a phone's reads it right after: the page lays out
- * again over the next frames, as each table refits its columns to its card
- * when the new width is read on the next frame (useTableBoxWidth). Read on
- * the first frame, a slow runner saw the laptop's columns still in place,
- * 461 to 837 pixels in a 390-pixel window, on pages that settle to fit.
- */
-async function expectNoSidewaysScroll(page: Page): Promise<void> {
-  await expect
-    .poll(
-      (): Promise<number> => {
-        return page.evaluate((): number => {
-          return document.documentElement.scrollWidth - window.innerWidth;
-        });
-      },
-      { message: "how far the page scrolls sideways, in pixels" },
-    )
-    .toBeLessThanOrEqual(0);
 }
 
 /*

@@ -22,6 +22,7 @@ import LlmProviderEndpoint, {
 } from "../../../Utils/LLM/LlmProviderEndpoint";
 import { withoutTrailingSlashes } from "../../../Utils/TrailingRuns";
 import crypto from "crypto";
+import OldestKeyMap from "../../../Utils/OldestKeyMap";
 
 export interface LLMToolDefinition {
   name: string;
@@ -486,10 +487,10 @@ export default class LLMService {
    * it is "none"). Without expiry we would keep dropping a parameter the model
    * has since started accepting.
    */
-  private static readonly requestAdaptationCache: Map<
+  private static readonly requestAdaptationCache: OldestKeyMap<
     string,
     { adaptation: RequestAdaptation; learnedAt: number }
-  > = new Map();
+  > = new OldestKeyMap();
 
   private static readonly MAX_ADAPTATION_CACHE_ENTRIES: number = 500;
 
@@ -565,9 +566,8 @@ export default class LLMService {
       !this.requestAdaptationCache.has(key) &&
       this.requestAdaptationCache.size >= this.MAX_ADAPTATION_CACHE_ENTRIES
     ) {
-      const oldestKey: string | undefined = this.requestAdaptationCache
-        .keys()
-        .next().value;
+      const oldestKey: string | undefined =
+        this.requestAdaptationCache.oldestKey();
 
       if (oldestKey !== undefined) {
         this.requestAdaptationCache.delete(oldestKey);
@@ -1819,10 +1819,10 @@ export default class LLMService {
 
   private static readonly MAX_SERVED_MODEL_CACHE_ENTRIES: number = 500;
 
-  private static readonly servedModelCache: Map<
+  private static readonly servedModelCache: OldestKeyMap<
     string,
     { modelName: string; learnedAt: number }
-  > = new Map();
+  > = new OldestKeyMap();
 
   /*
    * The most of a models list read: a gateway that serves hundreds of
@@ -1931,9 +1931,7 @@ export default class LLMService {
       !this.servedModelCache.has(key) &&
       this.servedModelCache.size >= this.MAX_SERVED_MODEL_CACHE_ENTRIES
     ) {
-      const oldestKey: string | undefined = this.servedModelCache
-        .keys()
-        .next().value;
+      const oldestKey: string | undefined = this.servedModelCache.oldestKey();
 
       if (oldestKey !== undefined) {
         this.servedModelCache.delete(oldestKey);

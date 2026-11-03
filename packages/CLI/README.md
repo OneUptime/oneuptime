@@ -282,6 +282,8 @@ npm run build           # Bundle into build/dist/Index.js, the file npm publishe
 npm run smoke-test      # Pack, install as a customer does, and run it
 ```
 
+The tests never touch your own `~/.oneuptime`: each test file runs in a throwaway home of its own (`Tests/Setup`), and a run fails if your `~/.oneuptime` changed while it ran.
+
 ## License
 
 Apache-2.0

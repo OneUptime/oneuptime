@@ -1,6 +1,7 @@
 import { expect, Locator, Page, test, TestInfo } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * Metrics' Insights tab: the services reporting metrics, a card each
@@ -231,16 +232,6 @@ function rowsOf(cards: Array<CardMeasure>): Array<Array<CardMeasure>> {
   }
 
   return rows;
-}
-
-async function expectNoSidewaysScroll(page: Page): Promise<void> {
-  const overflow: number = await page.evaluate((): number => {
-    return (
-      document.documentElement.scrollWidth -
-      document.documentElement.clientWidth
-    );
-  });
-  expect(overflow).toBeLessThanOrEqual(0);
 }
 
 async function screenshot(

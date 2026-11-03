@@ -2,6 +2,7 @@ import { expect, Locator, Page, test } from "@playwright/test";
 import fs from "fs";
 import fsPromises from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * Every resource's Topology page, in a browser, against the offline fixture
@@ -1349,10 +1350,7 @@ test.describe("on a phone, in dark mode and in German", () => {
     await expect(byTestId(page, "resource-topology-outline")).toBeVisible();
     await expect(byTestId(page, "resource-topology-row-vcenter")).toBeVisible();
     // No sideways scrolling.
-    const overflow: number = await page.evaluate((): number => {
-      return document.documentElement.scrollWidth - window.innerWidth;
-    });
-    expect(overflow).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
 
     await screenshot(page, "vmware-390-light");
     await openTopology(page, "vmware", "theme=dark");

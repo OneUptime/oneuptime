@@ -1,4 +1,5 @@
 import { expect, Locator, Page, Route, test } from "@playwright/test";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * The Dashboard's Search (Cmd/Ctrl+K) in a real browser: the production
@@ -260,11 +261,5 @@ test("a breadcrumb stays inside the panel, without a sideways scroll", async ({
     );
   }
 
-  const overflows: boolean = await page.evaluate((): boolean => {
-    return (
-      document.documentElement.scrollWidth >
-      document.documentElement.clientWidth
-    );
-  });
-  expect(overflows).toBe(false);
+  await expectNoSidewaysScroll(page);
 });

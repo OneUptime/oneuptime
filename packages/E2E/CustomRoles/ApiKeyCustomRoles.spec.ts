@@ -11,6 +11,7 @@ import {
 } from "../SuiteHelpers/Edition";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * Custom roles on API keys, in a browser, against the offline fixture
@@ -286,15 +287,6 @@ async function submitDialog(page: Page): Promise<void> {
   await dialog(page).getByTestId("modal-footer-submit-button").click();
 }
 
-async function horizontalOverflow(page: Page): Promise<number> {
-  return await page.evaluate((): number => {
-    return (
-      document.documentElement.scrollWidth -
-      document.documentElement.clientWidth
-    );
-  });
-}
-
 async function boxOf(locator: Locator): Promise<Box> {
   const box: Box | null = await locator.boundingBox();
   expect(box).not.toBeNull();
@@ -378,7 +370,7 @@ test.describe("an API key's page", () => {
       );
     }
 
-    expect(await horizontalOverflow(page)).toBe(0);
+    await expectNoSidewaysScroll(page);
     await screenshot(page, "api-key-custom-roles");
 
     // Each role opens its own page.
@@ -882,7 +874,7 @@ test.describe("on a phone and in dark mode", () => {
     const roles: Locator = customRolesCard(page);
     const name: Locator = roles.getByText(LONG_WORD_NAME, { exact: true });
     await expect(name).toBeVisible();
-    expect(await horizontalOverflow(page)).toBe(0);
+    await expectNoSidewaysScroll(page);
 
     // The name breaks inside the card, not past its edge.
     const cardBox: Box = await boxOf(roles);
@@ -907,7 +899,7 @@ test.describe("on a phone and in dark mode", () => {
     await expect(
       dialog(page).getByTestId(`card-select-option-${ROLE_IDS["responder"]}`),
     ).toBeVisible();
-    expect(await horizontalOverflow(page)).toBe(0);
+    await expectNoSidewaysScroll(page);
     await screenshot(page, "phone-api-key-add-custom-role", {
       screenOnly: true,
     });

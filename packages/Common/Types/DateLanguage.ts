@@ -30,6 +30,7 @@
  */
 
 import moment from "moment-timezone";
+import OldestKeyMap from "../Utils/OldestKeyMap";
 
 export const ENGLISH_DATE_LANGUAGE: string = "en";
 
@@ -150,7 +151,7 @@ export const getDateLocale: (language: string | null | undefined) => string = (
  */
 export const MAX_REMEMBERED_DATE_TEXTS: number = 5000;
 
-const englishOfText: Map<string, () => string> = new Map<
+const englishOfText: OldestKeyMap<string, () => string> = new OldestKeyMap<
   string,
   () => string
 >();
@@ -168,7 +169,7 @@ export const rememberEnglishOf: (
   englishOfText.set(localized, english);
 
   if (englishOfText.size > MAX_REMEMBERED_DATE_TEXTS) {
-    const oldest: string | undefined = englishOfText.keys().next().value;
+    const oldest: string | undefined = englishOfText.oldestKey();
 
     if (oldest !== undefined) {
       englishOfText.delete(oldest);

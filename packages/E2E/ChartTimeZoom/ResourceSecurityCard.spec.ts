@@ -7,6 +7,7 @@ import {
 } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * The way back from Security Events: a host's, a Kubernetes cluster's, a
@@ -174,15 +175,6 @@ async function figureRows(
     });
 }
 
-async function pageOverflow(page: Page): Promise<number> {
-  return page.evaluate((): number => {
-    return (
-      document.documentElement.scrollWidth -
-      document.documentElement.clientWidth
-    );
-  });
-}
-
 // The parts of the card that run past its edges: none may.
 async function partsOutsideTheCard(page: Page): Promise<Array<string>> {
   return card(page).evaluate((root: Element): Array<string> => {
@@ -334,7 +326,7 @@ test.describe("a host's Security card", () => {
         card(page).getByTestId("resource-security-case").first(),
       ).toBeVisible({ timeout: 30000 });
 
-      expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
       expect(await partsOutsideTheCard(page)).toEqual([]);
       /*
        * Four short figures, by the card's own width: one row from 36rem,
@@ -367,7 +359,7 @@ test.describe("a cluster's Security card", () => {
     await expect(
       card(page).getByTestId("resource-security-cases"),
     ).toContainText("Privileged pod created in kube-system");
-    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshot(page, "cluster-security-card-1280");
   });
 
@@ -508,7 +500,7 @@ test.describe("a Docker host's Security card", () => {
         card(page).getByTestId("resource-security-case").first(),
       ).toBeVisible({ timeout: 30000 });
 
-      expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
       expect(await partsOutsideTheCard(page)).toEqual([]);
       const figures: { width: number; rows: number } = await figureRows(page);
       const rowsByWidth: number =
@@ -552,7 +544,7 @@ test.describe("a Podman host's Security card", () => {
     expect(decodeURIComponent(search.searchParams.get("search") || "")).toBe(
       "observable:podman-build-02",
     );
-    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     expect(await partsOutsideTheCard(page)).toEqual([]);
     await screenshot(page, "podman-host-security-card-1280");
   });

@@ -17,7 +17,11 @@ import {
   event,
 } from "./ExternalCalendarFixtures";
 import { describe, expect, test } from "@jest/globals";
-import { FastestRun, fastestRun } from "../../../../Helpers/FastestRun";
+import {
+  FastestRun,
+  fastestRun,
+  fastestRunAsync,
+} from "../../../../Helpers/FastestRun";
 
 /*
  * A calendar's text cut down to what OneUptime reads, before ical.js sees
@@ -297,13 +301,17 @@ describe("time in line with the text", () => {
   test.each(shapes)(
     "the whole read of %s ends well within its time limit",
     async (_name: string, text: string) => {
-      const startedAt: number = Date.now();
-
-      const result: ExternalCalendarExpansionResult =
-        await ExternalCalendarExpansion.expand(text, { now: NOW });
+      const timed: FastestRun<ExternalCalendarExpansionResult> =
+        await fastestRunAsync({
+          run: (): Promise<ExternalCalendarExpansionResult> => {
+            return ExternalCalendarExpansion.expand(text, { now: NOW });
+          },
+          limitInMs: 5000,
+        });
+      const result: ExternalCalendarExpansionResult = timed.result;
 
       expect(result.ok === true || result.ok === false).toBe(true);
-      expect(Date.now() - startedAt).toBeLessThan(5000);
+      expect(timed.inMs).toBeLessThan(5000);
     },
   );
 });

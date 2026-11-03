@@ -251,6 +251,7 @@ import {
 import { SessionReplayRefusalCount } from "../../Types/Rum/SessionReplayHealth";
 import zlib from "zlib";
 import { promisify } from "util";
+import OldestKeyMap from "../../Utils/OldestKeyMap";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -5372,23 +5373,19 @@ interface CachedSessionHeader {
   expiresAt: number;
 }
 
-const rumApplicationCache: Map<string, CachedRumApplication> = new Map<
-  string,
-  CachedRumApplication
->();
-const sessionHeaderCache: Map<string, CachedSessionHeader> = new Map<
-  string,
-  CachedSessionHeader
->();
+const rumApplicationCache: OldestKeyMap<string, CachedRumApplication> =
+  new OldestKeyMap<string, CachedRumApplication>();
+const sessionHeaderCache: OldestKeyMap<string, CachedSessionHeader> =
+  new OldestKeyMap<string, CachedSessionHeader>();
 
 type BoundedCacheSetFunction = <TValue>(
-  map: Map<string, TValue>,
+  map: OldestKeyMap<string, TValue>,
   key: string,
   value: TValue,
 ) => void;
 
 const boundedCacheSet: BoundedCacheSetFunction = <TValue>(
-  map: Map<string, TValue>,
+  map: OldestKeyMap<string, TValue>,
   key: string,
   value: TValue,
 ): void => {
@@ -5396,7 +5393,7 @@ const boundedCacheSet: BoundedCacheSetFunction = <TValue>(
     map.size >= MAX_SESSION_REPLAY_AUTHORIZATION_CACHE_ENTRIES &&
     !map.has(key)
   ) {
-    const oldest: string | undefined = map.keys().next().value;
+    const oldest: string | undefined = map.oldestKey();
 
     if (oldest !== undefined) {
       map.delete(oldest);

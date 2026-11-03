@@ -12,6 +12,7 @@ import {
 import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * Custom roles on the real Teams pages, in a browser, against the offline
@@ -315,15 +316,6 @@ async function pickRecord(
     .getByRole("listbox")
     .getByRole("option", { name: name, exact: true })
     .click();
-}
-
-async function horizontalOverflow(page: Page): Promise<number> {
-  return await page.evaluate((): number => {
-    return (
-      document.documentElement.scrollWidth -
-      document.documentElement.clientWidth
-    );
-  });
 }
 
 /*
@@ -866,7 +858,7 @@ test.describe("the Teams menu", () => {
 
     await expectPath(page, ROLES_ROUTE);
     await expect(menuButton).toContainText("Settings / Roles");
-    expect(await horizontalOverflow(page)).toBe(0);
+    await expectNoSidewaysScroll(page);
     await screenshot(page, "phone-teams-menu-roles");
   });
 });
@@ -1634,19 +1626,19 @@ test.describe("on a phone and in dark mode", () => {
     await page.setViewportSize({ width: 390, height: 844 });
 
     await openRoles(page, "?long=1");
-    expect(await horizontalOverflow(page)).toBe(0);
+    await expectNoSidewaysScroll(page);
     await expect(page.getByText(LONG_WORD_NAME)).toBeVisible();
     await screenshot(page, "phone-roles");
 
     await openRole(page, ROLE_IDS["longWord"]!, "?long=1");
-    expect(await horizontalOverflow(page)).toBe(0);
+    await expectNoSidewaysScroll(page);
     await screenshot(page, "phone-role-page");
 
     await openTeamPermissions(page, TEAM_IDS["platform"]!);
-    expect(await horizontalOverflow(page)).toBe(0);
+    await expectNoSidewaysScroll(page);
     await openTeamMoreSettings(page);
     await expect(page.getByTestId("team-custom-roles")).toBeVisible();
-    expect(await horizontalOverflow(page)).toBe(0);
+    await expectNoSidewaysScroll(page);
     await screenshot(page, "phone-team-permissions");
   });
 
@@ -1659,11 +1651,10 @@ test.describe("on a phone and in dark mode", () => {
     await openRoles(page, "?long=1");
 
     const table: Locator = card(page, "Custom Roles");
-    const tableBox: { x: number; width: number } | null =
-      await table.boundingBox();
-    const header: { x: number; width: number } | null = await table
-      .getByRole("columnheader", { name: "Permissions" })
-      .boundingBox();
+    const [tableBox, header] = await boxesInOneFrame([
+      table,
+      table.getByRole("columnheader", { name: "Permissions" }),
+    ]);
 
     expect(tableBox).not.toBeNull();
     expect(header).not.toBeNull();

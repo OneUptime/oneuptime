@@ -146,6 +146,11 @@ const RecommendationCard: FunctionComponent<ComponentProps> = (
      * checkbox inside it is presentational there (aria-hidden, not tabbable)
      * because two controls for one action means two tab stops that report the
      * same thing.
+     *
+     * Its focus ring is drawn inside its edge (ring-inset): the button fills
+     * the card, which clips whatever reaches past its edge (overflow-hidden,
+     * for the rounded severity rail), and a ring drawn outside it - offset
+     * from it, as most buttons' are - showed nothing at all.
      */
     <div
       className={`group relative flex h-full flex-col overflow-hidden rounded-lg border p-4 pl-5 transition-all ${getContainerClass()}`}
@@ -159,7 +164,7 @@ const RecommendationCard: FunctionComponent<ComponentProps> = (
       {isSelectable ? (
         <button
           type="button"
-          className="absolute inset-0 z-0 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+          className="absolute inset-0 z-0 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500"
           aria-pressed={props.isSelected}
           aria-label={translator.translateTemplate("Select {{name}}", {
             name: props.viewModel.recommendation.name,

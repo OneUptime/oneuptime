@@ -1,6 +1,7 @@
 import { expect, Locator, Page, test, TestInfo } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * The Huntress Incident Report trigger in the real workflow builder.
@@ -176,15 +177,6 @@ async function isWithinViewport(
   const width: number = page.viewportSize()?.width || 0;
 
   return box.x >= -0.5 && box.x + box.width <= width + 0.5;
-}
-
-async function hasNoSidewaysScroll(page: Page): Promise<boolean> {
-  return page.evaluate((): boolean => {
-    return (
-      document.documentElement.scrollWidth <=
-      document.documentElement.clientWidth
-    );
-  });
 }
 
 /*
@@ -858,7 +850,7 @@ test.describe("Workflow builder: the Huntress trigger", () => {
     await openBuilder(page);
     const dialog: Locator = await openTrigger(page);
 
-    expect(await hasNoSidewaysScroll(page)).toBe(true);
+    await expectNoSidewaysScroll(page);
 
     for (const part of [
       panel(dialog).getByTestId("huntress-trigger-url"),
@@ -874,7 +866,7 @@ test.describe("Workflow builder: the Huntress trigger", () => {
     expect(
       await isWithinViewport(page, secret.getByPlaceholder("whsec_…")),
     ).toBe(true);
-    expect(await hasNoSidewaysScroll(page)).toBe(true);
+    await expectNoSidewaysScroll(page);
   });
 
   test("in the dark theme the panel, the URL and a refusal are dark like the dialog", async ({

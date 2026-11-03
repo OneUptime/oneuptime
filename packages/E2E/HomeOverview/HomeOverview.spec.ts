@@ -7,6 +7,7 @@ import {
 } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * Renders the real dashboard Home (Pages/Home/Layout and Home, with every
@@ -147,18 +148,6 @@ async function screenshot(
     fullPage: options.fullPage !== false,
     animations: "disabled",
   });
-}
-
-async function hasNoSidewaysScroll(page: Page): Promise<void> {
-  const widths: { scroll: number; client: number } = await page.evaluate(
-    (): { scroll: number; client: number } => {
-      return {
-        scroll: document.documentElement.scrollWidth,
-        client: document.documentElement.clientWidth,
-      };
-    },
-  );
-  expect(widths.scroll).toBeLessThanOrEqual(widths.client);
 }
 
 function stat(page: Page, key: string): Locator {
@@ -430,7 +419,7 @@ test.describe("a busy project", () => {
     expect(Math.abs(resources.y - attention.y)).toBeLessThan(2);
     // Two thirds and one third.
     expect(attention.width).toBeGreaterThan(resources.width * 1.7);
-    await hasNoSidewaysScroll(page);
+    await expectNoSidewaysScroll(page);
   });
 
   test("Explore opens on Essentials and walks the categories", async ({
@@ -722,7 +711,7 @@ test.describe("a newcomer's first steps", () => {
       );
       expect(clipped).toBe(false);
 
-      await hasNoSidewaysScroll(page);
+      await expectNoSidewaysScroll(page);
 
       if (width === 390) {
         // One column: every step's tile starts at the same left edge.
@@ -973,7 +962,7 @@ test.describe("screens and themes", () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await openReady(page);
 
-    await hasNoSidewaysScroll(page);
+    await expectNoSidewaysScroll(page);
     await expect(page.getByTestId("home-search")).toBeVisible();
 
     const search: { width: number } = (await page
@@ -993,7 +982,7 @@ test.describe("screens and themes", () => {
     await page.setViewportSize({ width: 768, height: 1024 });
     await openReady(page);
 
-    await hasNoSidewaysScroll(page);
+    await expectNoSidewaysScroll(page);
 
     const first: { y: number } = (await stat(
       page,
@@ -1063,7 +1052,7 @@ test.describe("screens and themes", () => {
     for (const width of [1440, 768, 390]) {
       await page.setViewportSize({ width, height: 1000 });
       await openReady(page, "lang=de");
-      await hasNoSidewaysScroll(page);
+      await expectNoSidewaysScroll(page);
 
       const cells: Array<StripCell> = await stripCells(page);
       expect(cells).toHaveLength(5);
@@ -1122,7 +1111,7 @@ test.describe("screens and themes", () => {
       });
 
     expect(clipped).toEqual([]);
-    await hasNoSidewaysScroll(page);
+    await expectNoSidewaysScroll(page);
   });
 
   test("dark: every card on a dark surface", async ({
@@ -1339,7 +1328,7 @@ test.describe("the row under the health card", () => {
         }
         // The next card follows the row at the page's own gap.
         expect(boxes.explore.top - boxes.attention.bottom).toBe(20);
-        await hasNoSidewaysScroll(page);
+        await expectNoSidewaysScroll(page);
       });
     }
   }
@@ -1547,7 +1536,7 @@ test.describe("the row under the health card", () => {
         shorter: boxes.attention.height < resources.height,
       }).toEqual({ width, shorter: true });
       expect(boxes.explore.top - resources.bottom).toBe(20);
-      await hasNoSidewaysScroll(page);
+      await expectNoSidewaysScroll(page);
     }
 
     await screenshot(page, "home-quiet-mobile");

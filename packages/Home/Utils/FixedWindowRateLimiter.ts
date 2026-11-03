@@ -1,3 +1,5 @@
+import OldestKeyMap from "Common/Utils/OldestKeyMap";
+
 /*
  * A COUNTER PER KEY, PER FIXED WINDOW, IN THIS PROCESS'S MEMORY.
  *
@@ -48,7 +50,10 @@ export default class FixedWindowRateLimiter {
   private readonly windowInMs: number;
   private readonly maxKeys: number;
   private readonly now: () => number;
-  private readonly windows: Map<string, Window> = new Map<string, Window>();
+  private readonly windows: OldestKeyMap<string, Window> = new OldestKeyMap<
+    string,
+    Window
+  >();
 
   public constructor(options: FixedWindowRateLimiterOptions) {
     if (!(options.limit >= 1) || !(options.windowInMs >= 1)) {
@@ -128,13 +133,13 @@ export default class FixedWindowRateLimiter {
    */
   private makeRoom(): void {
     while (this.windows.size >= this.maxKeys) {
-      const oldest: IteratorResult<string> = this.windows.keys().next();
+      const oldest: string | undefined = this.windows.oldestKey();
 
-      if (oldest.done) {
+      if (oldest === undefined) {
         return;
       }
 
-      this.windows.delete(oldest.value);
+      this.windows.delete(oldest);
     }
   }
 }

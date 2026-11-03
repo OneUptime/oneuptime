@@ -11,6 +11,7 @@ import {
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
 import UserType from "../../../Types/UserType";
+import OldestKeyMap from "../../../Utils/OldestKeyMap";
 
 /*
  * THE PEOPLE BEHIND THE SOCKETS, as their reads see them.
@@ -62,7 +63,7 @@ export default class RealtimeReaders {
    */
   public static readonly MAX_ENTRIES: number = 10_000;
 
-  private static entries: Map<string, ReaderEntry> = new Map<
+  private static entries: OldestKeyMap<string, ReaderEntry> = new OldestKeyMap<
     string,
     ReaderEntry
   >();
@@ -123,9 +124,7 @@ export default class RealtimeReaders {
       })();
 
     if (RealtimeReaders.entries.size >= RealtimeReaders.MAX_ENTRIES) {
-      const oldestKey: string | undefined = RealtimeReaders.entries
-        .keys()
-        .next().value;
+      const oldestKey: string | undefined = RealtimeReaders.entries.oldestKey();
 
       if (oldestKey !== undefined) {
         RealtimeReaders.deleteEntry(oldestKey);

@@ -1,4 +1,5 @@
 import { expect, Locator, Page, test } from "@playwright/test";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * Switch / Case in the real workflow builder.
@@ -736,14 +737,7 @@ test.describe("Workflow builder: Switch / Case", () => {
       expect(remove.x + remove.width).toBeLessThanOrEqual(row.x + row.width);
     }
 
-    expect(
-      await page.evaluate((): boolean => {
-        return (
-          document.documentElement.scrollWidth <=
-          document.documentElement.clientWidth
-        );
-      }),
-    ).toBe(true);
+    await expectNoSidewaysScroll(page);
   });
 
   test("in the dark theme the cases, Default and the note are dark like the dialog", async ({

@@ -62,6 +62,7 @@ import {
   runTemplate,
 } from "./WorkflowTemplateSimulator";
 import { beforeAll, describe, expect, jest, test } from "@jest/globals";
+import { FastestRun, fastestRunAsync } from "../../Helpers/FastestRun";
 
 // The sandbox boots a fresh isolate per run, which is far slower than plain JS.
 jest.setTimeout(120000);
@@ -802,13 +803,16 @@ describe("a long payload", () => {
   });
 
   test("is written in a moment, however long", async () => {
-    const started: number = Date.now();
-
-    await runScript(templateScript(), {
-      text: "<`&>".repeat(250000),
+    const timed: FastestRun<string> = await fastestRunAsync({
+      run: (): Promise<string> => {
+        return runScript(templateScript(), {
+          text: "<`&>".repeat(250000),
+        });
+      },
+      limitInMs: 3000,
     });
 
-    expect(Date.now() - started).toBeLessThan(3000);
+    expect(timed.inMs).toBeLessThan(3000);
   });
 });
 

@@ -1,4 +1,5 @@
 import { expect, Locator, Page, test } from "@playwright/test";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * A record trigger's two field lists in the real workflow builder.
@@ -1384,14 +1385,7 @@ test.describe("Workflow builder: a record trigger's field lists", () => {
 
     expect(Math.abs(row.height - plain.height)).toBeLessThan(1.5);
 
-    expect(
-      await page.evaluate((): boolean => {
-        return (
-          document.documentElement.scrollWidth <=
-          document.documentElement.clientWidth
-        );
-      }),
-    ).toBe(true);
+    await expectNoSidewaysScroll(page);
     expect(
       await dialog
         .getByTestId("modal-content")

@@ -1,4 +1,5 @@
 import { Locator, Page, TestInfo, expect, test } from "@playwright/test";
+import { settledSidewaysScrollOf } from "../SuiteHelpers/PageFit";
 import { SUPPORTED_ACCOUNTS_LANGUAGE_CODES } from "Common/Types/Accounts/AccountsLanguage";
 import { SUPPORTED_STATUS_PAGE_LANGUAGE_CODES } from "Common/Types/StatusPage/StatusPageLanguage";
 
@@ -105,7 +106,6 @@ interface PageGeometry {
   submit: Rect | null;
   dividers: Array<DividerGeometry>;
   options: Array<OptionGeometry>;
-  scrollsSideways: boolean;
 }
 
 /*
@@ -256,8 +256,6 @@ const measure: (
         submit: submit ? rectOf(submit) : null,
         dividers,
         options,
-        scrollsSideways:
-          document.documentElement.scrollWidth > window.innerWidth,
       };
     },
     { options: OPTIONS, dividers: dividers, submit: SUBMIT },
@@ -468,7 +466,7 @@ const survey: (
       const geometry: PageGeometry = await measure(page, dividers);
       const where: string = `${language} at ${width}px`;
 
-      if (geometry.scrollsSideways) {
+      if ((await settledSidewaysScrollOf(page)) > 0) {
         result.problems.push(`${where}: the page scrolls sideways`);
       }
       if (dividers && geometry.dividers.length === 0) {
@@ -826,26 +824,28 @@ test.describe("The other ways to sign in, as the browser draws them", () => {
           ).__setLanguage(code);
         }, language);
 
+        const scrollsSideways: boolean =
+          (await settledSidewaysScrollOf(page)) > 0;
         const fits: {
           scrollsSideways: boolean;
           lineOverflows: boolean;
           lineIsEmpty: boolean;
-        } = await line.evaluate(
-          (
-            element: Element,
-          ): {
-            scrollsSideways: boolean;
-            lineOverflows: boolean;
-            lineIsEmpty: boolean;
-          } => {
-            return {
-              scrollsSideways:
-                document.documentElement.scrollWidth > window.innerWidth,
-              lineOverflows: element.scrollWidth > element.clientWidth + 1,
-              lineIsEmpty: (element.textContent || "").trim().length === 0,
-            };
-          },
-        );
+        } = {
+          scrollsSideways,
+          ...(await line.evaluate(
+            (
+              element: Element,
+            ): {
+              lineOverflows: boolean;
+              lineIsEmpty: boolean;
+            } => {
+              return {
+                lineOverflows: element.scrollWidth > element.clientWidth + 1,
+                lineIsEmpty: (element.textContent || "").trim().length === 0,
+              };
+            },
+          )),
+        };
 
         if (fits.scrollsSideways || fits.lineOverflows || fits.lineIsEmpty) {
           problems.push(`${language} at ${width}px: ${JSON.stringify(fits)}`);
