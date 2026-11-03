@@ -41639,5 +41639,21 @@
   "Windows event logs cleared": "지워진 Windows 이벤트 로그",
   "Windows shadow copies deleted with vssadmin, as ransomware does before it encrypts a machine.": "vssadmin으로 삭제된 Windows 섀도 복사본입니다. 랜섬웨어가 컴퓨터를 암호화하기 전에 하는 일입니다.",
   "{{count}} hunts": "헌트 {{count}}개",
-  "{{count}} hunts_one": "헌트 {{count}}개"
+  "{{count}} hunts_one": "헌트 {{count}}개",
+  "Alert on Failures": "Alert on Failures",
+  "Alerts on failures": "Alerts on failures",
+  "Every test your dbt projects run on your tables, from their uploaded artifacts, failing first.": "Every test your dbt projects run on your tables, from their uploaded artifacts, failing first.",
+  "Failing Rows": "Failing Rows",
+  "Last Result": "Last Result",
+  "No dbt test on this table. Upload your dbt project's artifacts after a build, as Documentation shows, and its tests appear here.": "No dbt test on this table. Upload your dbt project's artifacts after a build, as Documentation shows, and its tests appear here.",
+  "No dbt test yet. Upload your dbt project's artifacts after a build, as Documentation shows.": "No dbt test yet. Upload your dbt project's artifacts after a build, as Documentation shows.",
+  "Stop Alerting": "Stop Alerting",
+  "The tests your dbt project runs on this table, from its uploaded artifacts: how each last ran, and the rows it found failing.": "The tests your dbt project runs on this table, from its uploaded artifacts: how each last ran, and the rows it found failing.",
+  "Warned": "Warned",
+  "What your dbt project says of this table, from the last artifacts it uploaded.": "What your dbt project says of this table, from the last artifacts it uploaded.",
+  "dbt": "dbt",
+  "dbt Node": "dbt Node",
+  "dbt Tests": "dbt Tests",
+  "Incident Rule Executed": "인시던트 규칙 실행됨",
+  "What It Reads": "읽는 대상"
 }

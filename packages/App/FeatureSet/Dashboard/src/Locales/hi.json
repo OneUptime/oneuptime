@@ -41639,5 +41639,21 @@
   "Windows event logs cleared": "साफ़ किए गए Windows इवेंट लॉग",
   "Windows shadow copies deleted with vssadmin, as ransomware does before it encrypts a machine.": "vssadmin से हटाई गई Windows शैडो कॉपी, जैसा रैनसमवेयर किसी मशीन को एन्क्रिप्ट करने से पहले करता है।",
   "{{count}} hunts": "{{count}} हंट",
-  "{{count}} hunts_one": "{{count}} हंट"
+  "{{count}} hunts_one": "{{count}} हंट",
+  "Alert on Failures": "Alert on Failures",
+  "Alerts on failures": "Alerts on failures",
+  "Every test your dbt projects run on your tables, from their uploaded artifacts, failing first.": "Every test your dbt projects run on your tables, from their uploaded artifacts, failing first.",
+  "Failing Rows": "Failing Rows",
+  "Last Result": "Last Result",
+  "No dbt test on this table. Upload your dbt project's artifacts after a build, as Documentation shows, and its tests appear here.": "No dbt test on this table. Upload your dbt project's artifacts after a build, as Documentation shows, and its tests appear here.",
+  "No dbt test yet. Upload your dbt project's artifacts after a build, as Documentation shows.": "No dbt test yet. Upload your dbt project's artifacts after a build, as Documentation shows.",
+  "Stop Alerting": "Stop Alerting",
+  "The tests your dbt project runs on this table, from its uploaded artifacts: how each last ran, and the rows it found failing.": "The tests your dbt project runs on this table, from its uploaded artifacts: how each last ran, and the rows it found failing.",
+  "Warned": "Warned",
+  "What your dbt project says of this table, from the last artifacts it uploaded.": "What your dbt project says of this table, from the last artifacts it uploaded.",
+  "dbt": "dbt",
+  "dbt Node": "dbt Node",
+  "dbt Tests": "dbt Tests",
+  "Incident Rule Executed": "घटना नियम निष्पादित किया गया",
+  "What It Reads": "यह क्या पढ़ता है"
 }

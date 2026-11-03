@@ -18,10 +18,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  *
  * The new table is empty, so its indexes and foreign keys are built here.
  */
-export class AddSecurityHuntRunHistory1808991640000
+export class AddSecurityHuntRunHistory1808991800000
   implements MigrationInterface
 {
-  public name: string = "AddSecurityHuntRunHistory1808991640000";
+  public name: string = "AddSecurityHuntRunHistory1808991800000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

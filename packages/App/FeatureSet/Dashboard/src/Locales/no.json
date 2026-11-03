@@ -41639,5 +41639,21 @@
   "Windows event logs cleared": "Windows-hendelseslogger tømt",
   "Windows shadow copies deleted with vssadmin, as ransomware does before it encrypts a machine.": "Windows-skyggekopier slettet med vssadmin, slik løsepengevirus gjør før det krypterer en maskin.",
   "{{count}} hunts": "{{count}} hunts",
-  "{{count}} hunts_one": "{{count}} hunt"
+  "{{count}} hunts_one": "{{count}} hunt",
+  "Alert on Failures": "Alert on Failures",
+  "Alerts on failures": "Alerts on failures",
+  "Every test your dbt projects run on your tables, from their uploaded artifacts, failing first.": "Every test your dbt projects run on your tables, from their uploaded artifacts, failing first.",
+  "Failing Rows": "Failing Rows",
+  "Last Result": "Last Result",
+  "No dbt test on this table. Upload your dbt project's artifacts after a build, as Documentation shows, and its tests appear here.": "No dbt test on this table. Upload your dbt project's artifacts after a build, as Documentation shows, and its tests appear here.",
+  "No dbt test yet. Upload your dbt project's artifacts after a build, as Documentation shows.": "No dbt test yet. Upload your dbt project's artifacts after a build, as Documentation shows.",
+  "Stop Alerting": "Stop Alerting",
+  "The tests your dbt project runs on this table, from its uploaded artifacts: how each last ran, and the rows it found failing.": "The tests your dbt project runs on this table, from its uploaded artifacts: how each last ran, and the rows it found failing.",
+  "Warned": "Warned",
+  "What your dbt project says of this table, from the last artifacts it uploaded.": "What your dbt project says of this table, from the last artifacts it uploaded.",
+  "dbt": "dbt",
+  "dbt Node": "dbt Node",
+  "dbt Tests": "dbt Tests",
+  "Incident Rule Executed": "Hendelsesregel utført",
+  "What It Reads": "Hva den leser"
 }
