@@ -188,7 +188,8 @@ Så lenge **Rett nye hendelser automatisk** er på og ingen AI-regel er satt opp
 - monitoren er en Kubernetes-monitor for klyngen;
 - monitoren er knyttet til klyngen under **Overvåking → Oversikt → Tilkoblede ressurser**, som er måten å knytte en nettsted-, API- eller syntetisk monitor til klyngen som leverer det den sjekker;
 - Spør AI erklærte den på klyngens side, eller knyttet den til klyngen da den ble bedt om det;
-- noen valgte klyngen under **Andre berørte ressurser** da den ble erklært (å velge en tilknyttet monitor legger den til der for deg).
+- noen valgte klyngen under **Andre berørte ressurser** da den ble erklært (å velge en tilknyttet monitor legger den til der for deg);
+- noen valgte klyngen da den ble erklært fra [Slack](/docs/workspace-connections/slack) eller [Microsoft Teams](/docs/workspace-connections/microsoft-teams).
 
 Hver hendelse og hvert varsel sier i trinnet **Utbedring** på kortet **OneUptime AI** om den var knyttet til en klynge og hva klyngens rettelser gjorde; se [Hva den automatiske utbedringen gjorde](#hva-den-automatiske-utbedringen-gjorde). Det samme gjelder en infrastrukturressurs og AI-agenten dens.
 

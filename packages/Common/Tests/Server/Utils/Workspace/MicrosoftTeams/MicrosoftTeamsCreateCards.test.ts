@@ -74,6 +74,7 @@ import MicrosoftTeamsMessageSize, {
 import MicrosoftTeamsTimezone, {
   MicrosoftTeamsUserTimezone,
 } from "../../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsTimezone";
+import { WORKSPACE_AFFECTED_RESOURCES_TEXT } from "../../../../../Server/Utils/Workspace/WorkspaceAffectedResources";
 import SortOrder from "../../../../../Types/BaseDatabase/SortOrder";
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
@@ -95,6 +96,14 @@ const CREATE_MAINTENANCE_URL: string = `https://oneuptime.example.com/dashboard/
 
 const INCIDENT_ADD_LATER_HINT: string =
   "You can add them to the incident in OneUptime after it is created.";
+
+/*
+ * The incident form's monitors list says what a pick there does - a monitor
+ * on an incident a person declares pauses its checks - in small print right
+ * under it (WorkspaceAffectedResources). It is about the field, not about
+ * what a list left off, so it is no note.
+ */
+const MONITORS_HINT: string = WORKSPACE_AFFECTED_RESOURCES_TEXT.monitorsHint;
 const MAINTENANCE_ADD_LATER_HINT: string =
   "You can add them to the event in OneUptime after it is created.";
 const GENERIC_TIMEZONE_NOTE: string =
@@ -451,6 +460,10 @@ function layoutOf(card: JSONObject): Array<string> {
       return `${element["type"] as string} ${element["id"] as string}`;
     }
 
+    if (isFieldHint(element)) {
+      return `hint: ${element["text"] as string}`;
+    }
+
     if (element["type"] === "TextBlock") {
       const kind: string = element["isSubtle"] === true ? "note" : "heading";
 
@@ -470,11 +483,31 @@ function getChoices(
   return input ? (input["choices"] as Array<MicrosoftTeamsCardChoice>) : [];
 }
 
-// The small print on the card: notes about lists, and the time zone.
+// A field's own line about what a pick there does: small print, no note.
+function isFieldHint(element: JSONObject): boolean {
+  return element["type"] === "TextBlock" && element["text"] === MONITORS_HINT;
+}
+
+function getFieldHints(card: JSONObject): Array<string> {
+  return bodyOf(card)
+    .filter(isFieldHint)
+    .map((element: JSONObject) => {
+      return element["text"] as string;
+    });
+}
+
+/*
+ * The small print on the card: notes about lists, and the time zone - not a
+ * field's own hint.
+ */
 function getNotes(card: JSONObject): Array<string> {
   return bodyOf(card)
     .filter((element: JSONObject) => {
-      return element["type"] === "TextBlock" && element["isSubtle"] === true;
+      return (
+        element["type"] === "TextBlock" &&
+        element["isSubtle"] === true &&
+        !isFieldHint(element)
+      );
     })
     .map((element: JSONObject) => {
       return element["text"] as string;
@@ -684,13 +717,17 @@ function expectHugeIncidentCard(data: {
       ],
     });
 
-  // Each note right under the list it is about.
+  /*
+   * Each note right under the list it is about - the monitors list's hint
+   * first, as it is about the field.
+   */
   expect(layoutOf(card)).toEqual([
     "heading: Create New Incident",
     "Input.Text incidentTitle",
     "Input.Text incidentDescription",
     "Input.ChoiceSet incidentSeverity",
     "Input.ChoiceSet incidentMonitors",
+    `hint: ${MONITORS_HINT}`,
     `note: ${monitorsNote}`,
     "Input.ChoiceSet monitorStatus",
     "Input.ChoiceSet onCallDutyPolicies",
@@ -1037,6 +1074,8 @@ describe("MicrosoftTeamsIncidentActions.buildNewIncidentCardForBudget, small pro
       expect(getChoices(card, "labels")).toEqual(choices.labels.choices);
 
       expect(getNotes(card)).toEqual([]);
+      // The monitors list says what a pick there does.
+      expect(getFieldHints(card)).toEqual([MONITORS_HINT]);
       expect(getOpenUrlActions(card)).toEqual([]);
       expect(getActionTypes(card)).toEqual(["Action.Submit"]);
     },
@@ -2310,7 +2349,11 @@ describe("the notes and the dashboard button are the ones MicrosoftTeamsCardChoi
 
     const smallPrint: Array<JSONObject> = bodyOf(data.card).filter(
       (element: JSONObject) => {
-        return element["type"] === "TextBlock" && element["isSubtle"] === true;
+        return (
+          element["type"] === "TextBlock" &&
+          element["isSubtle"] === true &&
+          !isFieldHint(element)
+        );
       },
     );
 
@@ -2332,12 +2375,25 @@ describe("the notes and the dashboard button are the ones MicrosoftTeamsCardChoi
       wholeHugeIncidentChoices();
 
     for (const budget of MICROSOFT_TEAMS_CARD_SIZE_BUDGETS_IN_BYTES) {
-      expectSharedElements({
-        card: MicrosoftTeamsIncidentActions.buildNewIncidentCardForBudget({
+      const card: JSONObject =
+        MicrosoftTeamsIncidentActions.buildNewIncidentCardForBudget({
           choices: choices,
           budgetInBytes: budget,
           createInOneUptimeUrl: CREATE_INCIDENT_URL,
-        }),
+        });
+
+      /*
+       * The monitors list's hint is small print the same helper builds,
+       * there whenever the list is - and gone with it at the last budget.
+       */
+      expect(bodyOf(card).filter(isFieldHint)).toStrictEqual(
+        getInput(card, "incidentMonitors")
+          ? [MicrosoftTeamsCardChoices.buildNoteElement(MONITORS_HINT)]
+          : [],
+      );
+
+      expectSharedElements({
+        card: card,
         otherNotes: [],
         lists: [
           {

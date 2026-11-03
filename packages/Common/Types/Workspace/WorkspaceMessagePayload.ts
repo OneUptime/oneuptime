@@ -142,6 +142,22 @@ export interface WorkspaceDropdownBlock extends WorkspaceMessageBlock {
   optionGroups?: Array<WorkspaceDropdownOptionGroup> | undefined;
   // A multi-select's picks as the form opens: values of its options.
   initialValues?: Array<string> | undefined;
+  /*
+   * Options the chat asks OneUptime for as the person types, never a list
+   * sent with the form: Slack's external select, which posts what is typed
+   * to the app's Options Load URL (SlackAffectedResources). `options` then
+   * holds only the picks it opens with - the options `initialValues`, or
+   * `initialValue`, name - each with the text it is shown with.
+   */
+  optionsLoad?: WorkspaceDropdownOptionsLoad | undefined;
+}
+
+// How a dropdown whose options load as the person types asks for them.
+export interface WorkspaceDropdownOptionsLoad {
+  // What must be typed before the first request: 0 asks as soon as it opens.
+  minQueryLength: number;
+  // The most picks a multi-select takes.
+  maxSelectedItems?: number | undefined;
 }
 
 export interface WorkspaceDropdownOptionGroup {

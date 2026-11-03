@@ -419,9 +419,10 @@ const NOT_VISIBLE_ALERTS_MESSAGE: string =
 
 /*
  * A private alert the caller sees, that none of the teams of theirs that
- * own it may link to an incident (PrivateRecordPermission).
+ * own it may link to an incident (PrivateRecordPermission). A chat form,
+ * which links one alert, says it of that one (WorkspaceIncidentFromAlert).
  */
-const PRIVATE_ALERTS_TO_LINK_MESSAGE: string =
+export const PRIVATE_ALERTS_TO_LINK_MESSAGE: string =
   "Some of the alerts are private, and none of the teams of yours that own them may link them to an incident.";
 
 export class Service extends ProjectReferencesService<Model> {
