@@ -9,6 +9,7 @@ import {
 import fsSync from "fs";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * The network's Traffic page with its Meraki side (issue #5140), in a real
@@ -192,16 +193,6 @@ async function screenshot(
   await page.screenshot({ path: file, fullPage: true });
 }
 
-// Whether the page scrolls sideways: it must not, at any width.
-async function scrollsSideways(page: Page): Promise<boolean> {
-  return page.evaluate((): boolean => {
-    return (
-      document.documentElement.scrollWidth >
-      document.documentElement.clientWidth + 1
-    );
-  });
-}
-
 function rowsOf(page: Page, list: string): Locator {
   return page.getByTestId(list).getByTestId(`${list}-row`);
 }
@@ -321,7 +312,7 @@ test("nothing sends traffic yet: connect Meraki from the page, and the first rea
   await screenshot(page, testInfo, "first-read");
 
   expect(await page.locator("body").innerText()).not.toContain(API_KEY);
-  expect(await scrollsSideways(page)).toBe(false);
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
 });
 
 test("a key that reads several organizations: the one picked is counted, then connected", async ({
@@ -478,7 +469,7 @@ test("an organization's traffic: the numbers, the chart, the lists and how the c
     expect(heights[0]).toBe(heights[1]);
   }
 
-  expect(await scrollsSideways(page)).toBe(false);
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
   await screenshot(page, testInfo, "organization");
 });
 
@@ -491,7 +482,7 @@ test("the dark theme", async ({ page }: { page: Page }, testInfo: TestInfo) => {
       return document.documentElement.classList.contains("dark");
     }),
   ).toBe(true);
-  expect(await scrollsSideways(page)).toBe(false);
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
   await screenshot(page, testInfo, "organization-dark");
 });
 
@@ -560,7 +551,7 @@ test("the page's uplinks side by side: what each carried, and how each line held
   );
   await expect(page.getByTestId("meraki-uplink-chart")).toBeVisible();
 
-  expect(await scrollsSideways(page)).toBe(false);
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
   await screenshot(
     page,
     testInfo,
@@ -735,7 +726,7 @@ test("who talks to whom: what each network reached, how, and how much - and what
     });
 
   expect(height).toBeLessThan(rowsHeight + 200);
-  expect(await scrollsSideways(page)).toBe(false);
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
   await screenshot(page, testInfo, "who-talks-to-whom", card);
 });
 
@@ -1093,7 +1084,7 @@ test("in German", async ({ page }: { page: Page }, testInfo: TestInfo) => {
     "vor 2 Minuten",
   );
   await expect(page.getByText(/minutes? ago/)).toHaveCount(0);
-  expect(await scrollsSideways(page)).toBe(false);
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
   await screenshot(page, testInfo, "organization-de");
 });
 
@@ -1200,7 +1191,7 @@ test("a device's page: its MX's uplinks, applications and clients - nothing said
       "networkDeviceId"
     ],
   ).toBe("40000000-0000-4000-8000-000000000001");
-  expect(await scrollsSideways(page)).toBe(false);
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
   await screenshot(page, testInfo, "device");
 });
 
@@ -1266,7 +1257,7 @@ test("a site's page: its networks, one click from narrowing to one", async ({
   await expect(networks).toHaveCount(2);
   await expect(networks.first()).toContainText("Branch 012 · Leeds");
   await expect(networks.nth(1)).toContainText("Branch 047 · Bristol");
-  expect(await scrollsSideways(page)).toBe(false);
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
   await screenshot(page, testInfo, "site");
 
   await networks.nth(1).click();

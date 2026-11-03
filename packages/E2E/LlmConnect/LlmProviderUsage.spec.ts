@@ -1,5 +1,6 @@
 import { expect, Locator, Page, test } from "@playwright/test";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * Usage > Provider accounts, in a browser on the real page
@@ -161,10 +162,7 @@ test.describe("Usage, from the provider accounts", () => {
     await open(page, "state=connected&source=providers&theme=dark");
 
     await expect(rows(page)).toHaveCount(3);
-    const overflow: number = await page.evaluate(() => {
-      return document.documentElement.scrollWidth - window.innerWidth;
-    });
-    expect(overflow).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await shoot(page, "usage-providers-dark");
   });
 });

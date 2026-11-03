@@ -9,6 +9,7 @@ import API from "../../../../Utils/API";
 import { InlineImageDataUri } from "../../../../Utils/Markdown/InlineImageDataUri";
 import logger from "../../Logger";
 import SSRFProtection from "../../SSRFProtection";
+import OldestKeyMap from "../../../../Utils/OldestKeyMap";
 
 /*
  * SCREENSHOTS IN A SLACK MESSAGE.
@@ -83,10 +84,8 @@ export default class SlackInlineImages {
   public static readonly MAX_IMAGES_PER_MESSAGE: number = 10;
   public static readonly MAX_IMAGE_BYTES_PER_MESSAGE: number = 10 * 1024 * 1024;
 
-  private static readonly remembered: Map<string, RememberedUpload> = new Map<
-    string,
-    RememberedUpload
-  >();
+  private static readonly remembered: OldestKeyMap<string, RememberedUpload> =
+    new OldestKeyMap<string, RememberedUpload>();
 
   // Whether Slack shows an image of this type from an uploaded file.
   public static isShownBySlack(image: InlineImageDataUri): boolean {
@@ -372,9 +371,8 @@ export default class SlackInlineImages {
 
     // The oldest goes first: a Map keeps the order things were set in.
     while (SlackInlineImages.remembered.size > MAX_REMEMBERED_UPLOADS) {
-      const oldest: string | undefined = SlackInlineImages.remembered
-        .keys()
-        .next().value;
+      const oldest: string | undefined =
+        SlackInlineImages.remembered.oldestKey();
 
       if (oldest === undefined) {
         break;

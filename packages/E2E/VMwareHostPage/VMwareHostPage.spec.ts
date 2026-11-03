@@ -2,6 +2,7 @@ import { expect, Locator, Page, Route, test } from "@playwright/test";
 import fs from "fs";
 import fsPromises from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * An ESXi host's page inside its vCenter, in a browser, against the offline
@@ -182,20 +183,6 @@ async function openTab(page: Page, name: string): Promise<Locator> {
   await tab.click();
   await expect(tab).toHaveAttribute("aria-selected", "true");
   return page.getByRole("tabpanel");
-}
-
-// No part of the page is wider than the window.
-async function expectNoSidewaysScroll(page: Page): Promise<void> {
-  const widths: { page: number; window: number } = await page.evaluate(
-    (): { page: number; window: number } => {
-      return {
-        page: document.documentElement.scrollWidth,
-        window: window.innerWidth,
-      };
-    },
-  );
-
-  expect(widths.page).toBeLessThanOrEqual(widths.window);
 }
 
 function tile(page: Page, title: string): Locator {
@@ -713,6 +700,116 @@ test.describe("from the host to what it needs", () => {
     // Its label on one line.
     expect(createBox.height).toBeLessThanOrEqual(48);
     await expectNoSidewaysScroll(page);
+  });
+
+  /*
+   * Followed with the keyboard, the link hands the focus on to the first
+   * ticked card, as a link to a place on a page does (PageAnchor's
+   * givePageAnchorFocus): Tab goes on from it - to its own select button -
+   * not from the top of the page, scrolled back to (Firefox did), and a
+   * screen reader reads where the page went. Each focus is drawn inside
+   * the card's edge: the card clips anything past it, and the select
+   * button's ring, drawn outside it, showed nothing at all.
+   */
+  test("followed with the keyboard, Turn on 4 alerts hands the focus to the first ticked card, and Tab goes on from it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openHost(page, "alerts=some");
+
+    await page.getByTestId("vmware-host-alerts-turn-on").focus();
+    await page.keyboard.press("Enter");
+
+    const card: Locator = page.getByTestId(
+      "recommendation-card-VMware:vmware-host-not-responding",
+    );
+    await expect(card).toBeFocused();
+    await expect(card).toBeInViewport();
+    /*
+     * Ringed inside its edge, and not tinted: being ticked is its mark.
+     * Read until it settles: the card eases its outline in (transition-all).
+     */
+    await expect
+      .poll(async (): Promise<Record<string, unknown>> => {
+        return await card.evaluate(
+          (element: Element): Record<string, unknown> => {
+            const style: CSSStyleDeclaration = getComputedStyle(element);
+            return {
+              isFocusVisible: element.matches(":focus-visible"),
+              outlineStyle: style.outlineStyle,
+              outlineOffset: style.outlineOffset,
+              isTinted: element.hasAttribute("data-page-anchor-landed"),
+            };
+          },
+        );
+      })
+      .toEqual({
+        isFocusVisible: true,
+        outlineStyle: "solid",
+        outlineOffset: "-2px",
+        isTinted: false,
+      });
+
+    await page.keyboard.press("Tab");
+
+    const select: Locator = page.getByTestId(
+      "recommendation-card-select-VMware:vmware-host-not-responding",
+    );
+    await expect(select).toBeFocused();
+    await expect(select).toHaveAttribute("aria-pressed", "true");
+    await expect
+      .poll(async (): Promise<string> => {
+        return await select.evaluate((element: Element): string => {
+          return getComputedStyle(element).boxShadow;
+        });
+      })
+      .toContain("inset");
+    // The card left the tab order again, and the page stayed on it.
+    await expect(card).not.toHaveAttribute("tabindex");
+    await expect(card).toBeInViewport();
+
+    await screenshot(page, "turn-on-alerts-keyboard");
+  });
+
+  test("clicked, Turn on 4 alerts leaves the first ticked card focused without a ring, and Space scrolls the page without unticking it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openHost(page, "alerts=some");
+
+    await page.getByTestId("vmware-host-alerts-turn-on").click();
+
+    const card: Locator = page.getByTestId(
+      "recommendation-card-VMware:vmware-host-not-responding",
+    );
+    await expect(card).toBeFocused();
+    await expect(card).toBeInViewport();
+    expect(
+      await card.evaluate((element: Element): boolean => {
+        return element.matches(":focus-visible");
+      }),
+    ).toBe(false);
+
+    const landedAt: number = await page.evaluate((): number => {
+      return window.scrollY;
+    });
+    await page.keyboard.press("Space");
+
+    await expect
+      .poll(async (): Promise<number> => {
+        return await page.evaluate((): number => {
+          return window.scrollY;
+        });
+      })
+      .toBeGreaterThan(landedAt);
+    await expect(
+      page.getByTestId(
+        "recommendation-card-select-VMware:vmware-host-not-responding",
+      ),
+    ).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByText("4 monitors selected")).toBeVisible();
   });
 
   test("View all 7 virtual machines opens the host's own list of them", async ({

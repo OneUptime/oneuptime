@@ -1,6 +1,7 @@
 import { expect, Locator, Page, test } from "@playwright/test";
 import path from "path";
 import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * Adding an LLM provider, end to end in a browser, on the real pages
@@ -484,11 +485,10 @@ test.describe("Project Settings > AI > LLM Providers: adding a provider", () => 
     );
 
     // It starts where the fields start, as part of the form.
-    const name: { x: number; width: number } | null =
-      await nameInput(page).boundingBox();
-    const chevron: { x: number } | null = await dialog(page)
-      .getByTestId("folded-section-chevron")
-      .boundingBox();
+    const [name, chevron] = await boxesInOneFrame([
+      nameInput(page),
+      dialog(page).getByTestId("folded-section-chevron"),
+    ]);
     expect(Math.abs(chevron!.x - name!.x)).toBeLessThanOrEqual(2);
 
     await more.click();
@@ -528,11 +528,7 @@ test.describe("Project Settings > AI > LLM Providers: adding a provider", () => 
     expect(box!.x + box!.width).toBeLessThanOrEqual(390);
     // A few short lines of text at most, never the card it was.
     expect(box!.height).toBeLessThanOrEqual(80);
-    expect(
-      await page.evaluate(() => {
-        return document.documentElement.scrollWidth;
-      }),
-    ).toBeLessThanOrEqual(390);
+    await expectNoSidewaysScroll(page);
     await shoot(page, "form-connection-more-fields-line-phone");
   });
 
@@ -607,11 +603,7 @@ test.describe("Project Settings > AI > LLM Providers: adding a provider", () => 
 
     const box: { x: number; width: number } | null = await more.boundingBox();
     expect(box!.x + box!.width).toBeLessThanOrEqual(320);
-    expect(
-      await page.evaluate(() => {
-        return document.documentElement.scrollWidth;
-      }),
-    ).toBeLessThanOrEqual(320);
+    await expectNoSidewaysScroll(page);
 
     await shoot(page, "form-connection-more-fields-line-ja-phone");
   });
@@ -632,11 +624,7 @@ test.describe("Project Settings > AI > LLM Providers: adding a provider", () => 
 
     expect(Math.abs(first.x - second.x)).toBeLessThan(2);
     expect(first.x + first.width).toBeLessThanOrEqual(390);
-    expect(
-      await page.evaluate(() => {
-        return document.documentElement.scrollWidth;
-      }),
-    ).toBeLessThanOrEqual(390);
+    await expectNoSidewaysScroll(page);
     await shoot(page, "form-provider-step-phone");
   });
 

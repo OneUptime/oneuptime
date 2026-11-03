@@ -1,5 +1,6 @@
 import { expect, Locator, Page, test } from "@playwright/test";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * AI / LLM > Connect, end to end in a browser, on the real page
@@ -100,13 +101,6 @@ async function shoot(page: Page, name: string): Promise<void> {
   });
 }
 
-async function expectNoSidewaysScroll(page: Page): Promise<void> {
-  const overflow: number = await page.evaluate(() => {
-    return document.documentElement.scrollWidth - window.innerWidth;
-  });
-  expect(overflow).toBeLessThanOrEqual(1);
-}
-
 test.describe("the Connect page", () => {
   test("shows the three ways in, side by side, and opens on your apps", async ({
     page,
@@ -144,7 +138,7 @@ test.describe("the Connect page", () => {
     // Nothing works yet, so no budget is suggested.
     await expect(page.getByTestId("llm-connect-budget-hint")).toHaveCount(0);
 
-    await expectNoSidewaysScroll(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await shoot(page, "connect-empty");
   });
 
@@ -171,7 +165,7 @@ test.describe("the Connect page", () => {
 
     // The way picked is in the address, so a link opens it.
     expect(new URL(page.url()).searchParams.get("way")).toBe("providers");
-    await expectNoSidewaysScroll(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await shoot(page, "connect-providers");
   });
 
@@ -209,7 +203,7 @@ test.describe("the Connect page", () => {
       await expect(page.getByTestId(`llm-other-ai-tool-${tool}`)).toBeVisible();
     }
 
-    await expectNoSidewaysScroll(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await shoot(page, "connect-tools");
   });
 
@@ -702,7 +696,7 @@ test.describe("the Connect page in the dark theme and in Japanese", () => {
       },
     );
     expect(picked).not.toBe(background);
-    await expectNoSidewaysScroll(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await shoot(page, "connect-dark");
   });
 

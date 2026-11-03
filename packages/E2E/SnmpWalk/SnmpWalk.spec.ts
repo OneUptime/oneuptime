@@ -8,6 +8,7 @@ import {
 } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * A device's SNMP Walk page (issue #5184), end to end in a browser, against
@@ -83,15 +84,6 @@ function rowOf(page: Page, oid: string): Locator {
 
 function rows(page: Page): Locator {
   return page.getByTestId("snmp-walk-row");
-}
-
-async function overflow(page: Page): Promise<number> {
-  return await page.evaluate(() => {
-    return (
-      document.documentElement.scrollWidth -
-      document.documentElement.clientWidth
-    );
-  });
 }
 
 async function backgroundBrightness(locator: Locator): Promise<number> {
@@ -275,7 +267,7 @@ test.describe("a walk's results, at a laptop's width", () => {
       description.getByTestId("snmp-walk-row-value-toggle"),
     ).toHaveText("Show all");
 
-    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     await shoot(page, "walk-1280-light");
   });
 
@@ -1068,7 +1060,7 @@ test.describe("saving a walk", () => {
       expect(box.x).toBeGreaterThanOrEqual(0);
       expect(box.x + box.width).toBeLessThanOrEqual(390);
     }
-    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     await shoot(page, "download-menu-390");
     await page.keyboard.press("Escape");
   });
@@ -1160,7 +1152,7 @@ test.describe("saving a walk", () => {
       boxes.download.x + boxes.download.width,
     );
     expect(boxes.download.width).toBeLessThan(boxes.header.width / 2);
-    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     await shoot(page, "download-768-side-menu");
 
     // With room, at the summary's end, on its first line.
@@ -1225,7 +1217,7 @@ test.describe("at a phone's width, in the dark and in other languages", () => {
     await open(page);
     await expect(rows(page)).toHaveCount(26);
 
-    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
 
     // The table's header is the laptop's; a phone reads each row alone.
     await expect(page.getByTestId("snmp-walk-results-header")).toBeHidden();
@@ -1315,7 +1307,7 @@ test.describe("at a phone's width, in the dark and in other languages", () => {
       (await description.getByTestId("snmp-walk-row-value").boundingBox())!
         .width,
     ).toBeGreaterThan(250);
-    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     await shoot(page, "walk-768-side-menu");
 
     // A 1100-pixel window: 710 pixels of results, and the table.
@@ -1339,7 +1331,7 @@ test.describe("at a phone's width, in the dark and in other languages", () => {
         .getByTestId("snmp-walk-row-value")
         .boundingBox())!.width,
     ).toBeGreaterThan(150);
-    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
   });
 
   test("the form stacks at a phone's width, with its starting points wrapping", async ({
@@ -1351,7 +1343,7 @@ test.describe("at a phone's width, in the dark and in other languages", () => {
     await open(page, "?scenario=empty");
     await expect(page.getByTestId("snmp-walk-form")).toBeVisible();
 
-    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
 
     const input: { y: number; height: number } = (await page
       .getByTestId("snmp-walk-start-oid")
@@ -1392,7 +1384,7 @@ test.describe("at a phone's width, in the dark and in other languages", () => {
     await shoot(page, "walk-1280-dark");
 
     await page.setViewportSize({ width: 390, height: 844 });
-    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     await shoot(page, "walk-390-dark");
 
     await page.setViewportSize({ width: 1280, height: 900 });
@@ -1426,7 +1418,7 @@ test.describe("at a phone's width, in the dark and in other languages", () => {
     );
 
     await page.setViewportSize({ width: 390, height: 844 });
-    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     await shoot(page, "walk-390-ja");
 
     await open(page, "?lang=de&scenario=more");
@@ -1436,7 +1428,7 @@ test.describe("at a phone's width, in the dark and in other languages", () => {
     await expect(page.getByTestId("snmp-walk-continue")).toContainText(
       "Walk fortsetzen",
     );
-    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     await shoot(page, "more-390-de");
   });
 });

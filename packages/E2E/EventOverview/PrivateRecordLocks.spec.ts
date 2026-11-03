@@ -7,6 +7,7 @@ import {
 } from "@playwright/test";
 import fs from "fs";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * A PRIVATE INCIDENT OWNED BY A VIEW-ONLY TEAM (block 33), on the real
@@ -217,13 +218,6 @@ async function tooltipOf(page: Page, target: Locator): Promise<string> {
   await page.mouse.move(0, 0);
   await expect(page.getByRole("tooltip")).toHaveCount(0);
   return text;
-}
-
-async function expectNoHorizontalOverflow(page: Page): Promise<void> {
-  const overflow: number = await page.evaluate((): number => {
-    return document.documentElement.scrollWidth - window.innerWidth;
-  });
-  expect(overflow, "page scrolls sideways").toBeLessThanOrEqual(1);
 }
 
 async function screenshot(locator: Locator, name: string): Promise<void> {
@@ -502,7 +496,7 @@ for (const look of LOOKS) {
         look.language === "en" ? "" : why("en"),
       );
       await expectStateButtonsLocked(page, stateReason(look.language));
-      await expectNoHorizontalOverflow(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
 
       const name: string = `private-incident-locked-header-${look.width}-${look.theme}-${look.language}`;
       await screenshot(hero(page), name);

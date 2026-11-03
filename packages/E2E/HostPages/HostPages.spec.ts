@@ -2,6 +2,8 @@ import { expect, Locator, Page, Route, test } from "@playwright/test";
 import fs from "fs";
 import fsPromises from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 /*
  * The Hosts product's pages, in a browser, against the offline fixture
@@ -232,20 +234,6 @@ function tableRow(page: Page, name: string): Locator {
     .filter({ has: page.getByRole("link", { name: name, exact: true }) });
 }
 
-// No part of the page is wider than the window.
-async function expectNoSidewaysScroll(page: Page): Promise<void> {
-  const widths: { page: number; window: number } = await page.evaluate(
-    (): { page: number; window: number } => {
-      return {
-        page: document.documentElement.scrollWidth,
-        window: window.innerWidth,
-      };
-    },
-  );
-
-  expect(widths.page).toBeLessThanOrEqual(widths.window);
-}
-
 // The Hosts table is no wider than the card it is drawn in.
 async function expectTableFitsItsCard(page: Page): Promise<void> {
   const widths: { table: number; box: number } = await page
@@ -272,8 +260,7 @@ async function drawnDirection(locator: Locator): Promise<string> {
 
 // Whether `later` is drawn below `earlier` on the page.
 async function isBelow(earlier: Locator, later: Locator): Promise<boolean> {
-  const first: { y: number } | null = await earlier.boundingBox();
-  const second: { y: number } | null = await later.boundingBox();
+  const [first, second] = await boxesInOneFrame([earlier, later]);
   return Boolean(first && second && second.y > first.y);
 }
 

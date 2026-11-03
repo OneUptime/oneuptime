@@ -54,12 +54,14 @@
  *    development packages, a reached package keeps a dependency of its own
  *    the walk never saw used, and nothing is downloaded.
  *  - The real programs, where their packages are installed (a developer's
- *    checkout; the image build itself is the check everywhere else): the
- *    sidecar's and the Runner's walks read their files without a computed
- *    import, the App's finds computed loads and starts only in its two entry
- *    loaders, each reaches what it runs on and none of the Dashboard's
- *    packages, and every package any of them finds missing is one of the
- *    optional ones below.
+ *    checkout, and for the sidecar Ops Config Test's ingress-prune job, which
+ *    installs them and sets RUN_REAL_SIDECAR_PRUNE_TESTS=1 so its walk fails
+ *    rather than skips without them; the image build itself is the check
+ *    everywhere else): the sidecar's and the Runner's walks read their files
+ *    without a computed import, the App's finds computed loads and starts
+ *    only in its two entry loaders, each reaches what it runs on and none of
+ *    the Dashboard's packages, and every package any of them finds missing
+ *    is one of the optional ones below.
  *
  * ContainerImageHardening.test.js holds the Nginx, Runner and App Dockerfiles'
  * stages to the script (where it runs, and that only what it leaves ships),
@@ -2031,9 +2033,13 @@ describe("with real npm", () => {
 
 /*
  * The real sidecar, where its packages are installed: a developer's checkout
- * after `npm ci` in packages/Common and packages/Nginx. Elsewhere (CI's Ops
- * job installs neither) the image build is the check: it runs this walk and
- * fails on what these tests would.
+ * after `npm ci` in packages/Common and packages/Nginx, and Ops Config Test's
+ * ingress-prune job, which installs both and sets
+ * RUN_REAL_SIDECAR_PRUNE_TESTS=1: there these fail, rather than skip, when the
+ * packages are missing. The job's main test step installs neither, and until
+ * 2026-11-02 the image build was the only check of the real sidecar: #5358's
+ * require.resolve("typeorm") failed master's Push Test Images after it merged
+ * (fixed in 552b5ee5e4), and would have failed the release that carried it.
  */
 const SIDECAR_ENTRY = path.join(REPO_ROOT, "packages", "Nginx", "Index.ts");
 const SIDECAR_INSTALLED =
@@ -2043,6 +2049,80 @@ const SIDECAR_INSTALLED =
   fs.existsSync(
     path.join(REPO_ROOT, "packages", "Common", "node_modules", "typeorm"),
   );
+const REAL_SIDECAR_REQUIRED = process.env.RUN_REAL_SIDECAR_PRUNE_TESTS === "1";
+const OPS_WORKFLOW = path.join(
+  REPO_ROOT,
+  ".github",
+  "workflows",
+  "test.ops.yaml",
+);
+
+describe("the real certificate sidecar's walk runs in CI", () => {
+  test("where RUN_REAL_SIDECAR_PRUNE_TESTS asks for it, packages/Common's and packages/Nginx's packages are installed", () => {
+    if (!REAL_SIDECAR_REQUIRED) {
+      return;
+    }
+
+    expect({
+      required: REAL_SIDECAR_REQUIRED,
+      nginxLinksCommon: fs.existsSync(
+        path.join(REPO_ROOT, "packages", "Nginx", "node_modules", "Common"),
+      ),
+      commonHasTypeorm: fs.existsSync(
+        path.join(REPO_ROOT, "packages", "Common", "node_modules", "typeorm"),
+      ),
+    }).toEqual({
+      required: true,
+      nginxLinksCommon: true,
+      commonHasTypeorm: true,
+    });
+  });
+
+  test("Ops Config Test's ingress-prune job installs both and runs this suite with RUN_REAL_SIDECAR_PRUNE_TESTS=1", () => {
+    const yaml = require("js-yaml");
+    const {
+      stepCommand,
+      stepWorkingDirectory,
+    } = require("./Utils/WorkflowStep");
+    const job = yaml.load(fs.readFileSync(OPS_WORKFLOW, "utf8")).jobs[
+      "ingress-prune"
+    ];
+
+    expect(job).toBeDefined();
+
+    const steps = job.steps;
+    const installs = steps
+      .filter((step) => {
+        return stepCommand(step).startsWith("npm ");
+      })
+      .map((step) => {
+        return stepWorkingDirectory(step);
+      });
+
+    expect(installs).toEqual([
+      "Tests/Ops",
+      "packages/Common",
+      "packages/Nginx",
+    ]);
+
+    const runs = steps.filter((step) => {
+      return stepCommand(step).includes("PruneUnreachablePackages");
+    });
+
+    expect(runs).toHaveLength(1);
+    expect(stepWorkingDirectory(runs[0])).toBe("Tests/Ops");
+    expect(runs[0].env).toEqual(
+      expect.objectContaining({ RUN_REAL_SIDECAR_PRUNE_TESTS: "1" }),
+    );
+    // After the installs it needs, under a limit of its own.
+    expect(steps.indexOf(runs[0])).toBeGreaterThan(
+      steps.findIndex((step) => {
+        return stepWorkingDirectory(step) === "packages/Nginx";
+      }),
+    );
+    expect(Number(job["timeout-minutes"])).toBeGreaterThan(0);
+  });
+});
 
 // Packages a reached package requires inside a try or for a database
 // OneUptime does not use. None is installed, and none has to be (ssh2's
@@ -2069,7 +2149,7 @@ const OPTIONAL_MISSING = new Set([
   "utf-8-validate",
 ]);
 
-(SIDECAR_INSTALLED ? describe : describe.skip)(
+(SIDECAR_INSTALLED || REAL_SIDECAR_REQUIRED ? describe : describe.skip)(
   "the real certificate sidecar",
   () => {
     let walk;

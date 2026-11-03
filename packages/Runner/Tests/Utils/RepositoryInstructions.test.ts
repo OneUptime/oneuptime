@@ -23,7 +23,11 @@ import RepositoryInstructions, {
 import fs from "fs";
 import os from "os";
 import path from "path";
-import { FastestRun, fastestRun } from "Common/Tests/Helpers/FastestRun";
+import {
+  FastestRun,
+  fastestRun,
+  fastestRunAsync,
+} from "Common/Tests/Helpers/FastestRun";
 
 const temporaryPaths: Array<string> = [];
 
@@ -209,9 +213,14 @@ describe("reading it from the working tree", () => {
     );
     const repository: string = makeRepository({ "AGENTS.md": long });
 
-    const startedAt: number = Date.now();
-    const read: RepositoryInstructionsFile | null =
-      await RepositoryInstructions.read(repository);
+    const timed: FastestRun<RepositoryInstructionsFile | null> =
+      await fastestRunAsync({
+        run: (): Promise<RepositoryInstructionsFile | null> => {
+          return RepositoryInstructions.read(repository);
+        },
+        limitInMs: 2000,
+      });
+    const read: RepositoryInstructionsFile | null = timed.result;
 
     expect(read?.isCut).toBe(true);
     expect(read?.content.length).toBeLessThanOrEqual(
@@ -219,7 +228,7 @@ describe("reading it from the working tree", () => {
     );
     expect(long.startsWith(read?.content || "-")).toBe(true);
     // Five megabytes on disk, read in a moment: never the whole file.
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 
   test("a file of exactly the limit is not cut; one character more is", () => {

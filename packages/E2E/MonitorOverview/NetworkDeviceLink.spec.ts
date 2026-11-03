@@ -7,6 +7,7 @@ import {
 } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * CREATE MONITOR FROM A NETWORK DEVICE'S LINK, IN A REAL BROWSER (#5281).
@@ -157,15 +158,6 @@ async function createsRecorded(page: Page): Promise<Array<RecordedCreate>> {
   });
 }
 
-async function sidewaysOverflow(page: Page): Promise<number> {
-  return page.evaluate((): number => {
-    return (
-      document.documentElement.scrollWidth -
-      document.documentElement.clientWidth
-    );
-  });
-}
-
 test.describe("Monitor web UI, from a network device", () => {
   test("opens a Website monitor of the device's web UI, checked from its probe, and creates it", async ({
     page,
@@ -273,11 +265,7 @@ test.describe("Monitor web UI, from a network device", () => {
       form.getByPlaceholder("https://example.com", { exact: true }),
     ).toHaveValue("https://10.20.0.1/", { timeout: 60000 });
 
-    await expect
-      .poll(() => {
-        return sidewaysOverflow(page);
-      })
-      .toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
 
     await screenshot(page, "device-web-ui-criteria-phone");
   });
@@ -386,7 +374,7 @@ test.describe("the device's alert pack on a phone", () => {
       }),
     ).toBe(true);
 
-    expect(await sidewaysOverflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
 
     await screenshot(page, "device-alert-pack-filters-phone");
   });

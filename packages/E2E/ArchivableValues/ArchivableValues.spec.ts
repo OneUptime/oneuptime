@@ -1,6 +1,7 @@
 import { expect, Locator, Page, test } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * Archive and Unarchive for the values records pick from, in a browser,
@@ -564,14 +565,7 @@ test.describe("at a phone's width, and in the dark", () => {
     await open(page, "?page=severities");
     await expandArchived(page);
 
-    const overflow: number = await page.evaluate((): number => {
-      return (
-        document.documentElement.scrollWidth -
-        document.documentElement.clientWidth
-      );
-    });
-
-    expect(overflow).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
 
     await screenshot(page, "severities-390-light");
 
@@ -1074,14 +1068,7 @@ for (const language of LANGUAGES) {
             }),
           ).toBe(language.lang === "fa" ? "rtl" : "ltr");
 
-          const overflow: number = await page.evaluate((): number => {
-            return (
-              document.documentElement.scrollWidth -
-              document.documentElement.clientWidth
-            );
-          });
-
-          expect(overflow).toBeLessThanOrEqual(0);
+          await expectNoSidewaysScroll(page);
 
           // Critical's row is the first: at a phone's width the rows are cards.
           await page.getByTestId("row-actions-more-button").first().click();
@@ -1186,14 +1173,7 @@ for (const language of LANGUAGES) {
             ).toContainText(language.archivedCard);
           }
 
-          const overflow: number = await page.evaluate((): number => {
-            return (
-              document.documentElement.scrollWidth -
-              document.documentElement.clientWidth
-            );
-          });
-
-          expect(overflow).toBeLessThanOrEqual(0);
+          await expectNoSidewaysScroll(page);
 
           await screenshot(
             page,

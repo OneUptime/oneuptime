@@ -8,7 +8,11 @@ import DataSourceType from "../../../Types/DataSource/DataSourceType";
 import { withoutTrailingStatementTerminators } from "../../../Utils/DataSource/SqlStatementTerminators";
 import { generatedTexts } from "../../Helpers/GeneratedTexts";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
-import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
+import {
+  FastestRun,
+  fastestRun,
+  fastestRunAsync,
+} from "../../Helpers/FastestRun";
 
 /*
  * ---------------------------------------------------------------------------
@@ -91,14 +95,17 @@ describe("trailing terminators come off in time in line with the query's length"
       password: "pw-not-real",
     };
 
-    const startedAt: number = Date.now();
-
-    await new PostgresConnector(factory).queryTable(settings, query, {
-      startDate: new Date(Date.UTC(2026, 0, 1)),
-      endDate: new Date(Date.UTC(2026, 0, 2)),
+    const timed: FastestRun<void> = await fastestRunAsync({
+      run: async (): Promise<void> => {
+        await new PostgresConnector(factory).queryTable(settings, query, {
+          startDate: new Date(Date.UTC(2026, 0, 1)),
+          endDate: new Date(Date.UTC(2026, 0, 2)),
+        });
+      },
+      limitInMs: 2000,
     });
 
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
 
     const declared: string | undefined = statements.find(
       (statement: string): boolean => {

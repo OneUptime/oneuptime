@@ -1,5 +1,6 @@
 import DecodedFlowRecord from "./DecodedFlowRecord";
 import FlowBytes from "./FlowBytes";
+import OldestKeyMap from "Common/Utils/OldestKeyMap";
 
 /*
  * The decoder shared by the two template-based flow formats: NetFlow v9
@@ -240,10 +241,11 @@ export interface TemplateFlowDecoderOptions {
 }
 
 export default class TemplateFlowDecoder {
-  private templates: Map<string, CachedTemplate> = new Map();
+  private templates: OldestKeyMap<string, CachedTemplate> = new OldestKeyMap();
   private pending: Map<string, Array<PendingDataSet>> = new Map();
   private pendingBytes: number = 0;
-  private exporterStates: Map<string, ExporterState> = new Map();
+  private exporterStates: OldestKeyMap<string, ExporterState> =
+    new OldestKeyMap();
   private now: () => number;
 
   public constructor(options?: TemplateFlowDecoderOptions) {
@@ -749,7 +751,7 @@ export default class TemplateFlowDecoder {
     });
 
     while (this.templates.size > MAX_CACHED_TEMPLATES) {
-      const oldestKey: string | undefined = this.templates.keys().next().value;
+      const oldestKey: string | undefined = this.templates.oldestKey();
 
       if (oldestKey === undefined) {
         break;
@@ -1149,9 +1151,7 @@ export default class TemplateFlowDecoder {
       this.exporterStates.set(exporterKey, state);
 
       while (this.exporterStates.size > MAX_EXPORTER_STATES) {
-        const oldestKey: string | undefined = this.exporterStates
-          .keys()
-          .next().value;
+        const oldestKey: string | undefined = this.exporterStates.oldestKey();
 
         if (oldestKey === undefined) {
           break;

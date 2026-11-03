@@ -7,6 +7,7 @@ import {
 } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * Adding a host in one command, and the collectors OneUptime manages on
@@ -277,15 +278,6 @@ async function dialogScreenshot(
   }
   await dialog(page).screenshot({
     path: path.join(SCREENSHOTS, `${name}.png`),
-  });
-}
-
-async function scrollsSideways(page: Page): Promise<boolean> {
-  return page.evaluate((): boolean => {
-    return (
-      document.documentElement.scrollWidth >
-      document.documentElement.clientWidth + 1
-    );
   });
 }
 
@@ -1162,12 +1154,12 @@ test("on a phone the pages fit", async ({ page }: { page: Page }) => {
 
   await open(page, collectorPage(DB_01_ID));
   await expect(page.getByTestId("host-collector-error")).toBeVisible();
-  expect(await scrollsSideways(page)).toBe(false);
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
   await screenshot(page, "host-collector-failed-phone");
 
   await open(page, configPage(WEB_SERVERS_ID));
   await expect(page.getByTestId("host-collector-config-yaml")).toBeVisible();
-  expect(await scrollsSideways(page)).toBe(false);
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
   await screenshot(page, "collector-config-phone");
 
   // OneUptime's defaults: each View config under its name, not beside it.
@@ -1182,7 +1174,7 @@ test("on a phone the pages fit", async ({ page }: { page: Page }) => {
     .getByTestId("host-collector-default-linux")
     .boundingBox())!;
   expect(viewBox.y).toBeGreaterThanOrEqual(nameBox.y + nameBox.height - 1);
-  expect(await scrollsSideways(page)).toBe(false);
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
 
   await open(page, HOSTS);
   // A failed config is the one thing in a row that asks for action: its Status says so on a phone too.
@@ -1195,7 +1187,7 @@ test("on a phone the pages fit", async ({ page }: { page: Page }) => {
   await expect(
     dialog(page).getByText("Run this command on the host"),
   ).toBeVisible();
-  expect(await scrollsSideways(page)).toBe(false);
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
   await dialogScreenshot(page, "add-host-phone");
 
   /*

@@ -7,6 +7,7 @@ import {
 } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * EVERY MONITOR TYPE'S SUMMARY, LAID OUT BY ITS OWN WIDTH, IN A REAL BROWSER.
@@ -282,16 +283,6 @@ async function expectNoRowEndsInAHole(scope: Locator): Promise<void> {
   expect(holes, "rows of facts that end in a hole").toEqual([]);
 }
 
-async function noSidewaysScroll(page: Page): Promise<void> {
-  const overflow: number = await page.evaluate((): number => {
-    return (
-      document.documentElement.scrollWidth -
-      document.documentElement.clientWidth
-    );
-  });
-  expect(overflow, "the page does not scroll sideways").toBeLessThanOrEqual(0);
-}
-
 test.describe("the Monitor Summary card, for every monitor type the overview shows", () => {
   for (const type of TYPES) {
     test(`${type}: two facts to a row at 1280, nothing past the card`, async ({
@@ -326,7 +317,7 @@ test.describe("the Monitor Summary card, for every monitor type the overview sho
 
       const body: Locator = await openSummary(page, type);
 
-      await noSidewaysScroll(page);
+      await expectNoSidewaysScroll(page);
       await expectEverythingFits(body);
       await expectNoRowEndsInAHole(body);
       expect(await mostFactsInARow(body)).toBe(1);
@@ -349,7 +340,7 @@ test.describe("the Monitor Summary card, for every monitor type the overview sho
 
     const body: Locator = await openSummary(page, "api");
 
-    await noSidewaysScroll(page);
+    await expectNoSidewaysScroll(page);
     await expectEverythingFits(body);
     await expectNoRowEndsInAHole(body);
     expect(await mostFactsInARow(body)).toBe(2);
@@ -453,7 +444,7 @@ test.describe("the Monitor Summary card, for every monitor type the overview sho
     await body.getByRole("button", { name: "Show More Details" }).click();
     await expect(body.getByText("CPU Cores")).toBeVisible();
 
-    await noSidewaysScroll(page);
+    await expectNoSidewaysScroll(page);
     await expectEverythingFits(body);
 
     await screenshot(page, "monitor-summary-facts-server-details-390");

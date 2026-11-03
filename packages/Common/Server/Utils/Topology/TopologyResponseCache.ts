@@ -1,3 +1,5 @@
+import OldestKeyMap from "../../../Utils/OldestKeyMap";
+
 /*
  * In-process cache for the Topology maps' serialized responses.
  *
@@ -49,7 +51,10 @@ interface CacheEntry {
 }
 
 export class TopologyResponseCache {
-  private store: Map<string, CacheEntry> = new Map<string, CacheEntry>();
+  private store: OldestKeyMap<string, CacheEntry> = new OldestKeyMap<
+    string,
+    CacheEntry
+  >();
   private bytes: number = 0;
   private inFlight: Map<string, Promise<string>> = new Map<
     string,
@@ -128,7 +133,7 @@ export class TopologyResponseCache {
     this.sweepExpired();
 
     while (this.store.size > 0 && this.bytes + bytes > this.maxBytes) {
-      const oldest: string | undefined = this.store.keys().next().value;
+      const oldest: string | undefined = this.store.oldestKey();
       if (oldest === undefined) {
         break;
       }

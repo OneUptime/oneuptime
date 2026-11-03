@@ -9,6 +9,7 @@ import {
 import fsSync from "fs";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * Names instead of bare addresses on Network > Traffic (issue #5340), in a
@@ -193,16 +194,6 @@ async function screenshot(
   await page.screenshot({ path: file, fullPage: true });
 }
 
-// Whether the page scrolls sideways: it must not, at any width.
-async function scrollsSideways(page: Page): Promise<boolean> {
-  return page.evaluate((): boolean => {
-    return (
-      document.documentElement.scrollWidth >
-      document.documentElement.clientWidth + 1
-    );
-  });
-}
-
 function rowsOf(page: Page, list: string): Locator {
   return page.getByTestId(list).getByTestId(`${list}-row`);
 }
@@ -363,7 +354,7 @@ test("names first and the address under them, in the top lists and both views of
   await screenshot(page, testInfo, "conversations-list", conversations);
 
   await screenshot(page, testInfo, "names");
-  expect(await scrollsSideways(page)).toBe(false);
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
 });
 
 test("a project that knows no names: every address as it was", async ({
@@ -411,7 +402,7 @@ test("long names are cut to their line, whole under the pointer, and nothing scr
 
   await page.getByTestId("traffic-top-conversations").scrollIntoViewIfNeeded();
   await screenshot(page, testInfo, "long-names");
-  expect(await scrollsSideways(page)).toBe(false);
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
 });
 
 test("a chip with a long name keeps its words and its address in view; the name gives way", async ({
@@ -449,7 +440,7 @@ test("a chip with a long name keeps its words and its address in view; the name 
     "long-chip",
     page.getByTestId("traffic-filters"),
   );
-  expect(await scrollsSideways(page)).toBe(false);
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
 });
 
 test("a chip names the address the page is narrowed to, and a click on a named row narrows by its address", async ({
@@ -708,7 +699,7 @@ test("devices that send flows and are no device yet go by their names, with thei
     "senders",
     page.getByTestId("traffic-sources"),
   );
-  expect(await scrollsSideways(page)).toBe(false);
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
 });
 
 /*
@@ -910,7 +901,7 @@ test("in German", async ({ page }: { page: Page }, testInfo: TestInfo) => {
   ).toBeVisible();
   expect(GERMAN["Name this address"]).not.toBe("Name this address");
   await screenshot(page, testInfo, "german");
-  expect(await scrollsSideways(page)).toBe(false);
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
 });
 
 test("in Persian: the page reads right to left, the addresses and the diagram's flow left to right", async ({
@@ -944,7 +935,7 @@ test("in Persian: the page reads right to left, the addresses and the diagram's 
   }
 
   await screenshot(page, testInfo, "persian");
-  expect(await scrollsSideways(page)).toBe(false);
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
 });
 
 test("in Persian, a long English name is cut from its own end, and the conversation list reads right to left", async ({
@@ -989,7 +980,7 @@ test("in Persian, a long English name is cut from its own end, and the conversat
     "persian-conversations",
     page.getByTestId("traffic-top-conversations"),
   );
-  expect(await scrollsSideways(page)).toBe(false);
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
 });
 
 /*
@@ -1012,7 +1003,7 @@ test("beside the side menu, at 1024 and 768 pixels: the find box stays in its ca
     const body: Box = await boxOf(page.getByTestId("traffic-body"));
     const find: Box = await boxOf(page.getByTestId("traffic-find-address"));
     expect(find.x + find.width).toBeLessThanOrEqual(body.x + body.width + 1);
-    expect(await scrollsSideways(page)).toBe(false);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
 
     await page.getByTestId("traffic-filters-clear").click();
     await page.getByTestId("traffic-conversations-list").click();

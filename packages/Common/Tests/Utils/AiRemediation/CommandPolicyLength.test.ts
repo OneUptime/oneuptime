@@ -7,7 +7,11 @@ import CommandPolicy, {
   CommandPolicyResult,
 } from "../../../Utils/AiRemediation/CommandPolicy";
 import { describe, expect, test } from "@jest/globals";
-import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
+import {
+  FastestRun,
+  fastestRun,
+  fastestRunAsync,
+} from "../../Helpers/FastestRun";
 
 /*
  * ---------------------------------------------------------------------------
@@ -115,27 +119,31 @@ describe("a command longer than a command may be is refused before it is read", 
   });
 
   test("the server's enqueue refuses an over-long AI command before anything is stored", async () => {
-    const startedAt: number = Date.now();
+    const timed: FastestRun<void> = await fastestRunAsync({
+      run: async (): Promise<void> => {
+        await expect(
+          RunnerJobService.enqueueAiCommand({
+            projectId: new ObjectID("22222222-2222-4222-8222-222222222222"),
+            aiRunId: new ObjectID("88888888-8888-4888-8888-888888888888"),
+            autoRemediationSuggestionId: new ObjectID(
+              "77777777-7777-4777-8777-777777777777",
+            ),
+            stepId: "step-1",
+            stepType: RunbookStepType.Bash,
+            targetAgentId: new ObjectID("44444444-4444-4444-8444-444444444444"),
+            command: slowShapes(LONG)[5]![1],
+            timeoutInMs: 30000,
+          }),
+        ).rejects.toThrow(
+          new BadDataException(
+            `Denied by the remediation command policy: ${LENGTH_REASON}.`,
+          ),
+        );
+      },
+      limitInMs: 2000,
+    });
 
-    await expect(
-      RunnerJobService.enqueueAiCommand({
-        projectId: new ObjectID("22222222-2222-4222-8222-222222222222"),
-        aiRunId: new ObjectID("88888888-8888-4888-8888-888888888888"),
-        autoRemediationSuggestionId: new ObjectID(
-          "77777777-7777-4777-8777-777777777777",
-        ),
-        stepId: "step-1",
-        stepType: RunbookStepType.Bash,
-        targetAgentId: new ObjectID("44444444-4444-4444-8444-444444444444"),
-        command: slowShapes(LONG)[5]![1],
-        timeoutInMs: 30000,
-      }),
-    ).rejects.toThrow(
-      new BadDataException(
-        `Denied by the remediation command policy: ${LENGTH_REASON}.`,
-      ),
-    );
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });
 

@@ -10,15 +10,18 @@
  * builds its images again, pushes them, and only its e2e jobs ever pull them
  * back. So each e2e job checks the App tag it is about to boot:
  *
- *   release.yml        test-e2e-release-saas         enterprise-<version>       enterprise
- *                      test-e2e-release-self-hosted  <version>                  community
- *                      test-e2e-release-enterprise   enterprise-<version>       enterprise
- *   test-release.yaml  test-e2e-test-saas            enterprise-<version>-test  enterprise
- *                      test-e2e-test-self-hosted     <version>-test             community
- *                      test-e2e-test-enterprise      enterprise-<version>-test  enterprise
+ *   release.yml        test-e2e-release-saas         enterprise-<version>-amd64       enterprise
+ *                      test-e2e-release-self-hosted  <version>-amd64                  community
+ *                      test-e2e-release-enterprise   enterprise-<version>-amd64       enterprise
+ *   test-release.yaml  test-e2e-test-saas            enterprise-<version>-test-amd64  enterprise
+ *                      test-e2e-test-self-hosted     <version>-test-amd64             community
+ *                      test-e2e-test-enterprise      enterprise-<version>-test-amd64  enterprise
  *
- * In release.yml, push-release-tags waits for all three e2e jobs, so a failed
- * check stops release / enterprise-release from moving onto a wrong image.
+ * Each boots the tags its builds' amd64 legs push (Tests/Ops/ReleaseE2eImages,
+ * TestReleaseE2eImages). In release.yml, push-release-tags waits for all three
+ * e2e jobs, and moves release / enterprise-release only once each merged
+ * tag's amd64 image is the one they ran (Scripts/GHA/check_tested_digests.sh),
+ * so a failed check stops the tags from moving onto a wrong image.
  *
  * The two enterprise jobs are the only ones that boot a self-hosted Enterprise
  * stack - the enterprise image with billing OFF, where the license rather than
@@ -64,13 +67,13 @@ const E2E_JOBS = [
   {
     workflow: ".github/workflows/release.yml",
     job: "test-e2e-release-saas",
-    tag: `enterprise-${VERSION}`,
+    tag: `enterprise-${VERSION}-amd64`,
     edition: "enterprise",
   },
   {
     workflow: ".github/workflows/release.yml",
     job: "test-e2e-release-self-hosted",
-    tag: VERSION,
+    tag: `${VERSION}-amd64`,
     edition: "community",
   },
   {
@@ -88,7 +91,7 @@ const E2E_JOBS = [
   {
     workflow: ".github/workflows/release.yml",
     job: "test-e2e-release-enterprise",
-    tag: `enterprise-${VERSION}`,
+    tag: `enterprise-${VERSION}-amd64`,
     edition: "enterprise",
   },
   {

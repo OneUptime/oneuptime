@@ -11,6 +11,8 @@ import {
 } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 /*
  * Register Device (User Settings > Notification Methods > Push
@@ -1643,10 +1645,7 @@ test.describe("critical alerts in the device list", () => {
         .join("Critical On-Call Alerts"),
     );
 
-    const box: { x: number; width: number } | null =
-      await dialog(page).boundingBox();
-    const hintBox: { x: number; width: number } | null =
-      await hint.boundingBox();
+    const [box, hintBox] = await boxesInOneFrame([dialog(page), hint]);
 
     expect(box).not.toBeNull();
     expect(hintBox).not.toBeNull();
@@ -1654,11 +1653,7 @@ test.describe("critical alerts in the device list", () => {
     expect(hintBox!.x + hintBox!.width).toBeLessThanOrEqual(
       box!.x + box!.width,
     );
-    expect(
-      await page.evaluate((): boolean => {
-        return document.documentElement.scrollWidth <= window.innerWidth;
-      }),
-    ).toBe(true);
+    await expectNoSidewaysScroll(page);
 
     await screenshot(
       page,
@@ -1737,16 +1732,7 @@ test.describe("critical alerts in the device list", () => {
 
     await expect(onStatus).toBeVisible();
 
-    const fits: () => Promise<boolean> = async (): Promise<boolean> => {
-      return await page.evaluate((): boolean => {
-        return (
-          document.documentElement.scrollWidth <= window.innerWidth &&
-          document.body.scrollWidth <= window.innerWidth
-        );
-      });
-    };
-
-    expect(await fits()).toBe(true);
+    await expectNoSidewaysScroll(page);
 
     // The On badge is a dark-theme wash with light text, not a pale patch.
     const dark: { background: string; text: string } = await badgeColours(
@@ -1771,7 +1757,7 @@ test.describe("critical alerts in the device list", () => {
     expect(box).not.toBeNull();
     expect(box!.x).toBeGreaterThanOrEqual(0);
     expect(box!.x + box!.width).toBeLessThanOrEqual(390);
-    expect(await fits()).toBe(true);
+    await expectNoSidewaysScroll(page);
 
     await screenshot(page, "critical-alerts-phone-dark-steps-synthetic");
   });
@@ -1859,11 +1845,7 @@ test.describe("critical alerts in the device list", () => {
       "OneUptime On-Call",
     ]);
 
-    expect(
-      await page.evaluate((): boolean => {
-        return document.documentElement.scrollWidth <= window.innerWidth;
-      }),
-    ).toBe(true);
+    await expectNoSidewaysScroll(page);
 
     await screenshot(page, "critical-alerts-german-phone-steps-synthetic");
   });

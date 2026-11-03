@@ -7,6 +7,7 @@ import {
 } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * THE EXTERNAL STATUS PAGE MONITOR'S PROVIDERS, IN A REAL BROWSER.
@@ -228,16 +229,6 @@ async function screenshot(page: Page, name: string): Promise<void> {
     fullPage: true,
     animations: "disabled",
   });
-}
-
-async function noSidewaysScroll(page: Page): Promise<void> {
-  const overflow: number = await page.evaluate((): number => {
-    return (
-      document.documentElement.scrollWidth -
-      document.documentElement.clientWidth
-    );
-  });
-  expect(overflow, "the page does not scroll sideways").toBeLessThanOrEqual(0);
 }
 
 async function boxOf(locator: Locator): Promise<Box> {
@@ -537,7 +528,7 @@ test.describe("Create Monitor: an External Status Page monitor's provider", () =
     await page.setViewportSize({ width: 390, height: 844 });
 
     const form: Locator = await openStatusPageStep(page);
-    await noSidewaysScroll(page);
+    await expectNoSidewaysScroll(page);
 
     const description: Box = await boxOf(
       form.getByText(PROVIDER_DESCRIPTION, { exact: true }),
@@ -580,7 +571,7 @@ test.describe("Create Monitor: an External Status Page monitor's provider", () =
     );
     expect(groupFilter.x).toBeGreaterThanOrEqual(0);
     expect(groupFilter.x + groupFilter.width).toBeLessThanOrEqual(390);
-    await noSidewaysScroll(page);
+    await expectNoSidewaysScroll(page);
 
     await screenshot(page, "external-status-page-oneuptime-390");
   });
@@ -930,7 +921,7 @@ test.describe("Create Monitor: the components an External Status Page monitor wa
     await page.keyboard.press("Escape");
 
     // On a phone, the sentence and Try again stay inside the screen.
-    await noSidewaysScroll(page);
+    await expectNoSidewaysScroll(page);
     const retry: Locator = form.getByTestId(COMPONENTS_RETRY_TEST_ID);
     const retryBox: Box = await boxOf(retry);
     expect(retryBox.x).toBeGreaterThanOrEqual(0);
@@ -1104,7 +1095,7 @@ test.describe("an External Status Page monitor's Summary", () => {
     await page.setViewportSize({ width: 390, height: 844 });
 
     const summary: Locator = await openStatusPageMonitor(page);
-    await noSidewaysScroll(page);
+    await expectNoSidewaysScroll(page);
     await expectFactsFit(summary);
 
     // One fact a row on a phone, every value whole (SummaryFacts).
@@ -1256,7 +1247,7 @@ test.describe("an External Status Page monitor's Summary", () => {
     await screenshot(page, "external-status-page-summary-chosen-1280");
 
     await page.setViewportSize({ width: 390, height: 844 });
-    await noSidewaysScroll(page);
+    await expectNoSidewaysScroll(page);
     const note: Box = await boxOf(unmatched);
     expect(note.x).toBeGreaterThanOrEqual(0);
     expect(note.x + note.width).toBeLessThanOrEqual(390);

@@ -7,6 +7,7 @@ import {
 } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * THE MONITOR CRITERIA EDITOR ON A PHONE, IN A REAL BROWSER.
@@ -123,15 +124,6 @@ async function atRest(page: Page): Promise<void> {
         animation.effect?.getTiming().iterations === Infinity
       );
     });
-  });
-}
-
-async function sidewaysOverflow(page: Page): Promise<number> {
-  return page.evaluate((): number => {
-    return (
-      document.documentElement.scrollWidth -
-      document.documentElement.clientWidth
-    );
   });
 }
 
@@ -475,11 +467,7 @@ test.describe("The criteria editor on a phone", () => {
     test.setTimeout(180000);
     await openCriteria(page);
 
-    await expect
-      .poll(() => {
-        return sidewaysOverflow(page);
-      })
-      .toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
 
     const testButton: DrawnBox = await drawn(
       page.getByTestId("test-monitor-button"),
@@ -540,11 +528,7 @@ test.describe("The criteria editor on a phone", () => {
       expect(Math.abs(drawnBand.right - inside.right)).toBeLessThanOrEqual(1);
     }
 
-    await expect
-      .poll(() => {
-        return sidewaysOverflow(page);
-      })
-      .toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
 
     await screenshot(page, "criteria-editor-phone-fa");
   });
@@ -604,11 +588,7 @@ test.describe("The criteria editor on a phone", () => {
       expect(frame.right).toBeLessThan(content.right);
     }
 
-    await expect
-      .poll(() => {
-        return sidewaysOverflow(page);
-      })
-      .toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
   });
 });
 

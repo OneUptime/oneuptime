@@ -9,6 +9,7 @@ import {
   test,
 } from "@playwright/test";
 import URL from "Common/Types/API/URL";
+import { expectNoSidewaysScroll } from "../../SuiteHelpers/PageFit";
 
 const registrationUrl: string = URL.fromString(BASE_URL.toString())
   .addRoute("/accounts/register")
@@ -244,11 +245,7 @@ test.describe("Signup password feedback", () => {
         await expect(
           page.getByText("Special characters are optional. Try !, @, # or $."),
         ).toBeVisible();
-        expect(
-          await page.evaluate(() => {
-            return document.documentElement.scrollWidth <= window.innerWidth;
-          }),
-        ).toBe(true);
+        await expectNoSidewaysScroll(page);
       }
     });
   }

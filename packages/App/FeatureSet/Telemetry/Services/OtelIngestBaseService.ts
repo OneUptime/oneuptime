@@ -113,6 +113,7 @@ import DiscoveredResourceIdCache, {
   DiscoveredResourceKinds,
 } from "Common/Server/Utils/Telemetry/DiscoveredResourceIdCache";
 import { ResourceHeartbeatResult } from "Common/Server/Utils/Telemetry/ResourceHeartbeat";
+import OldestKeyMap from "Common/Utils/OldestKeyMap";
 
 /*
  * A maintenance fence that one autoDiscover* attempt armed, recorded so
@@ -2288,10 +2289,10 @@ export default abstract class OtelIngestBaseService {
    * discovered-resource ids stay in the in-process cache - so a fleet costs
    * one read a minute per worker, and a rename shows within a minute.
    */
-  private static storedIoTFleetNames: Map<
+  private static storedIoTFleetNames: OldestKeyMap<
     string,
     { name: string; expiresAtMs: number }
-  > = new Map();
+  > = new OldestKeyMap();
 
   private static readonly STORED_IOT_FLEET_NAME_TTL_MS: number = 60 * 1000;
   private static readonly STORED_IOT_FLEET_NAME_CACHE_SIZE: number = 10000;
@@ -2323,9 +2324,7 @@ export default abstract class OtelIngestBaseService {
       !this.storedIoTFleetNames.has(key) &&
       this.storedIoTFleetNames.size >= this.STORED_IOT_FLEET_NAME_CACHE_SIZE
     ) {
-      const oldest: string | undefined = this.storedIoTFleetNames
-        .keys()
-        .next().value;
+      const oldest: string | undefined = this.storedIoTFleetNames.oldestKey();
 
       if (oldest !== undefined) {
         this.storedIoTFleetNames.delete(oldest);

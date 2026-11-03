@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import { STATUS_PAGE_PLAIN_HTTP_HOST } from "./StatusPageOrigins";
 import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * A status page's calendar buttons, end to end in a browser, on the real
@@ -62,12 +63,6 @@ async function fixtureState(page: Page): Promise<FixtureState> {
           .__statusPageCalendarFixture,
       ),
     );
-  });
-}
-
-async function horizontalOverflow(page: Page): Promise<number> {
-  return await page.evaluate(() => {
-    return document.documentElement.scrollWidth - window.innerWidth;
   });
 }
 
@@ -276,7 +271,7 @@ test.describe("the status page's calendar dialogs", () => {
       page.getByTestId("maintenance-calendar-subscribe-dialog"),
     ).toBeVisible();
 
-    expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
 
     // In one frame: the dialog grows in as it opens (Modal, from 95%).
     const [google, device] = (await boxesInOneFrame([
@@ -310,7 +305,7 @@ test.describe("the status page's calendar dialogs", () => {
       page.getByTestId("maintenance-calendar-event-dialog"),
     ).toBeVisible();
 
-    expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     await shot(
       page,
       "status-page-persian-add-event",
@@ -453,7 +448,7 @@ test.describe("Copy link copies, or says it could not (issue #5132)", () => {
       ).toHaveCount(0);
       // The browser's copy command took the focus for a moment and gave it back.
       await expect(copy).toBeFocused();
-      expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
+      await expectNoSidewaysScroll(page);
 
       await shot(
         page,
@@ -553,7 +548,7 @@ test.describe("Copy link copies, or says it could not (issue #5132)", () => {
           return [input.selectionStart, input.selectionEnd, input.value.length];
         }),
       ).toEqual([0, link.length, link.length]);
-      expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
+      await expectNoSidewaysScroll(page);
       /*
        * The line is markup React accepts: drawn in a <p>, its icon's <div>
        * made React warn "validateDOMNesting" in the console of every page.

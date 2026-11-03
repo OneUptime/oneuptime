@@ -9,6 +9,7 @@ import { escapeRegExp } from "Common/Utils/RegExpEscape";
 import fs from "fs";
 import path from "path";
 import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * "I can't filter by Owner/team on /on-call-duty/schedules." - the
@@ -333,15 +334,6 @@ async function headerButtons(
   };
 }
 
-async function horizontalOverflow(page: Page): Promise<number> {
-  return await page.evaluate((): number => {
-    return (
-      document.documentElement.scrollWidth -
-      document.documentElement.clientWidth
-    );
-  });
-}
-
 test.describe("On-Call Schedules, filtered by its owners", () => {
   test("the Owner and Labels chips sit over the list, and the Owners column shows who owns each schedule", async ({
     page,
@@ -643,7 +635,7 @@ test.describe("On-Call Schedules, filtered by its owners", () => {
     await openPage(page, { width: 390 });
 
     await expect(chip(page, "Owner")).toBeVisible();
-    expect(await horizontalOverflow(page)).toBe(0);
+    await expectNoSidewaysScroll(page);
 
     const popover: Locator = await openChip(page, "Owner");
     const popoverBox: { x: number; width: number } | null =
@@ -662,7 +654,7 @@ test.describe("On-Call Schedules, filtered by its owners", () => {
     await closePopover(page);
 
     await expectListed(page, ["SRE Weekdays", "SRE Weekends"]);
-    expect(await horizontalOverflow(page)).toBe(0);
+    await expectNoSidewaysScroll(page);
 
     // The chip with its pick stays inside the bar (one frame: it just changed).
     const [chipBox, barBox] = (await boxesInOneFrame([
@@ -723,7 +715,7 @@ test.describe("On-Call Schedules, filtered by its owners", () => {
     await closePopover(page);
 
     await expectListed(page, ["SRE Weekdays", "SRE Weekends"]);
-    expect(await horizontalOverflow(page)).toBe(0);
+    await expectNoSidewaysScroll(page);
 
     await screenshot(page, "filtered-by-team-390-de");
   });
@@ -778,7 +770,7 @@ test.describe("On-Call Schedules, filtered by its owners", () => {
         boxes.create.y,
       );
       expect(Math.abs(boxes.create.y - boxes.more.y)).toBeLessThanOrEqual(2);
-      expect(await horizontalOverflow(page)).toBe(0);
+      await expectNoSidewaysScroll(page);
 
       await screenshot(page, `phone-header-with-chip-390-${language}`);
     });
@@ -924,7 +916,7 @@ test.describe("On-Call Schedules, filtered by its owners", () => {
 
       expect(box.x).toBeGreaterThanOrEqual(16 - 1);
       expect(box.x + box.width).toBeLessThanOrEqual(390 - 16 + 1);
-      expect(await horizontalOverflow(page)).toBe(0);
+      await expectNoSidewaysScroll(page);
       expect(
         await page.evaluate((): number => {
           return window.scrollX;
@@ -947,7 +939,7 @@ test.describe("On-Call Schedules, filtered by its owners", () => {
     await pick(page, "Labels", "night-shift");
     await closePopover(page);
     await expectListed(page, ["SRE Weekends", "Nights"]);
-    expect(await horizontalOverflow(page)).toBe(0);
+    await expectNoSidewaysScroll(page);
   });
 
   test("when the people and teams cannot be read, the chip says so, and Try again reads them", async ({

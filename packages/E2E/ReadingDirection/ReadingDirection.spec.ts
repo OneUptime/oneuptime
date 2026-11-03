@@ -1,6 +1,7 @@
 import { expect, Locator, Page, test } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * The reading direction, in real Chromium. A Persian page sets <html
@@ -1717,11 +1718,7 @@ test.describe("a phone", () => {
     // A phone draws a table's rows as cards: no cells to wait for.
     await open(page, "lang=fa&width=340", false);
 
-    const overflow: number = await page.evaluate((): number => {
-      return document.documentElement.scrollWidth - window.innerWidth;
-    });
-
-    expect(overflow).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
 
     // The switch's knob stays in its track at this width too.
     const track: Box = await boxOf(page.getByTestId("toggle-on"));

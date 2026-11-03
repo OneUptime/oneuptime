@@ -1,6 +1,7 @@
 import { expect, Locator, Page, test, TestInfo } from "@playwright/test";
 // The page's fixture state, as window.__statusPageSearchFixture.
 import "./FixtureState";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 test.beforeEach(async ({ page }: { page: Page }) => {
   await page.goto("/");
@@ -137,11 +138,7 @@ test("handles a replacement query, no results and Escape without losing focus", 
   await expect(
     page.getByRole("button", { name: "Clear search", exact: true }),
   ).toHaveCount(0);
-  expect(
-    await page.evaluate((): boolean => {
-      return document.documentElement.scrollWidth <= window.innerWidth;
-    }),
-  ).toBe(true);
+  await expectNoSidewaysScroll(page);
 });
 
 test("finds descriptions and complete group subtrees while preserving collapsed groups", async ({

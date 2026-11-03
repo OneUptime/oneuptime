@@ -25,26 +25,12 @@ import {
 } from "../Commands/ResourceCommands";
 import { ApiRequestOptions } from "../Core/ApiClient";
 
+// In this file's throwaway home (Tests/Setup/ThrowawayHome.ts).
 const CONFIG_DIR: string = path.join(os.homedir(), ".oneuptime");
 const CONFIG_FILE: string = path.join(CONFIG_DIR, "config.json");
 
 describe("ResourceCommands", () => {
-  let originalConfigContent: string | null = null;
   let consoleLogSpy: jest.SpyInstance;
-
-  beforeAll(() => {
-    if (fs.existsSync(CONFIG_FILE)) {
-      originalConfigContent = fs.readFileSync(CONFIG_FILE, "utf-8");
-    }
-  });
-
-  afterAll(() => {
-    if (originalConfigContent) {
-      fs.writeFileSync(CONFIG_FILE, originalConfigContent, { mode: 0o600 });
-    } else if (fs.existsSync(CONFIG_FILE)) {
-      fs.unlinkSync(CONFIG_FILE);
-    }
-  });
 
   beforeEach(() => {
     if (fs.existsSync(CONFIG_FILE)) {

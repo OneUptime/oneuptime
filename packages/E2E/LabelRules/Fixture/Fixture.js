@@ -131,14 +131,12 @@ window.__labelRuleFixture = {
   projectId,
   labelIds: labels.map((label) => label._id),
 };
-await i18next
-  .use(initReactI18next)
-  .init({
-    lng: "en",
-    fallbackLng: "en",
-    resources: { en: { translation: {} } },
-    interpolation: { escapeValue: false },
-  });
+await i18next.use(initReactI18next).init({
+  lng: "en",
+  fallbackLng: "en",
+  resources: { en: { translation: {} } },
+  interpolation: { escapeValue: false },
+});
 function Fixture() {
   Navigation.setNavigateHook(useNavigate());
   Navigation.setLocation(useLocation());
@@ -172,8 +170,12 @@ function Fixture() {
     </>
   );
 }
+/*
+ * Navigates as the Dashboard does (its src/Index.tsx): each navigation renders
+ * at once, not in a React transition (Tests/Ops/E2EFixtureRouters).
+ */
 createRoot(document.getElementById("root")).render(
-  <BrowserRouter>
+  <BrowserRouter useTransitions={false}>
     <Fixture />
   </BrowserRouter>,
 );
