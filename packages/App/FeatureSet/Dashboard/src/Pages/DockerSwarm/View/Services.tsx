@@ -1,6 +1,8 @@
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
+import DockerSwarmResource from "Common/Models/DatabaseModels/DockerSwarmResource";
 import Navigation from "Common/UI/Utils/Navigation";
+import OneUptimeDate from "Common/Types/Date";
 import ResourceTable, {
   InfrastructureResource,
 } from "../../../Components/Infrastructure/ResourceTable";
@@ -8,6 +10,7 @@ import {
   fetchDockerSwarmInventoryResources,
   routeParamFromExternalId,
 } from "../Utils/DockerSwarmResourceUtils";
+import { withDockerSwarmStatus } from "../Utils/DockerSwarmPartFacts";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -15,18 +18,34 @@ import React, {
   useState,
 } from "react";
 import API from "Common/UI/Utils/API/API";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
-import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import { DOCKER_SWARM_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/DockerSwarmMetricDescriptions";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+
+/*
+ * The swarm's services, each with its replicas by the swarm's rules
+ * (DockerSwarmHealth: "2 of 3 running" in amber, none running in red, a
+ * paused or rolled-back update, tasks that keep failing) and why, its mode,
+ * its stack and its image. Swarm reports no CPU or memory per service (the
+ * agent reads each task's container): its tasks have them.
+ */
+
+const MODE_WORDS: Record<string, string> = {
+  replicated: translationKey("Replicated"),
+  global: translationKey("Global"),
+  "replicated-job": translationKey("Replicated job"),
+  "global-job": translationKey("Global job"),
+};
 
 const DockerSwarmClusterServices: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+  const translator: Translator = useTranslator();
 
   const [resources, setResources] = useState<Array<InfrastructureResource>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -34,16 +53,19 @@ const DockerSwarmClusterServices: FunctionComponent<
 
   const fetchData: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
+    setError("");
     try {
-      /*
-       * Postgres inventory read (DockerSwarmResource, kind=Service).
-       * Service mode, replica counts and image ride the inventory row;
-       * the stack name groups the table.
-       */
+      const now: Date = OneUptimeDate.getCurrentDate();
       const serviceList: Array<InfrastructureResource> =
         await fetchDockerSwarmInventoryResources({
           dockerSwarmClusterId: modelId,
           kind: "Service",
+          transform: (
+            resource: InfrastructureResource,
+            row: DockerSwarmResource,
+          ): void => {
+            Object.assign(resource, withDockerSwarmStatus(resource, row, now));
+          },
         });
 
       setResources(serviceList);
@@ -59,36 +81,37 @@ const DockerSwarmClusterServices: FunctionComponent<
     });
   }, []);
 
-  if (isLoading) {
-    return <PageLoader isVisible={true} />;
-  }
-
-  if (error) {
-    return <ErrorMessage message={error} />;
-  }
-
   return (
     <ResourceTable
       onRefreshClick={() => {
         fetchData().catch(() => {});
       }}
       title="Services"
-      description="Replicated and global services in this swarm with their current replica health and resource usage."
+      description="Replicated and global services in this swarm, with their replicas and what needs a look."
       resources={resources}
+      isLoading={isLoading}
+      error={error}
       showGroupColumn={true}
       groupColumnTitle="Stack"
       groupFallbackLabel="(no stack)"
+      showResourceMetrics={false}
+      showAge={false}
       tableIdPrefix="docker-swarm"
       builtInColumnDescriptions={{
         status: DOCKER_SWARM_METRIC_DESCRIPTIONS.serviceStatusColumn,
-        cpu: DOCKER_SWARM_METRIC_DESCRIPTIONS.serviceUsageColumns,
-        memory: DOCKER_SWARM_METRIC_DESCRIPTIONS.serviceUsageColumns,
       }}
       emptyMessage="No services reported yet. Make sure the Docker Swarm agent is sending metrics."
       columns={[
         {
           title: "Mode",
           key: "serviceMode",
+          getValue: (resource: InfrastructureResource): string => {
+            const mode: string = (
+              resource.additionalAttributes["serviceMode"] || ""
+            ).toLowerCase();
+            const word: string | undefined = MODE_WORDS[mode];
+            return word ? translator.translateText(word) || word : mode || "—";
+          },
         },
         {
           title: "Replicas",
@@ -101,8 +124,10 @@ const DockerSwarmClusterServices: FunctionComponent<
         {
           title: "Image",
           key: "image",
+          // Whole, tag included: it breaks after its dots and slashes.
+          isName: true,
           getValue: (resource: InfrastructureResource): string => {
-            return resource.additionalAttributes["image"] || "-";
+            return resource.additionalAttributes["image"] || "—";
           },
         },
       ]}

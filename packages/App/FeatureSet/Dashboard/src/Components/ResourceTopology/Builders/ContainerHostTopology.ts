@@ -27,6 +27,16 @@ import {
   formatStatusWord,
   healthOfStatusWord,
 } from "../ResourceTopologyStatusWords";
+import {
+  ContainerHostAssessment,
+  ContainerHostContainer,
+  assessContainer as assessContainerByRules,
+  getContainerHostLatestReadingAt,
+} from "../../ContainerHost/ContainerHostHealth";
+import {
+  ResourceAttentionSeverity,
+  ResourceAttentionText,
+} from "../../ResourcePart/ResourceAttention";
 
 /*
  * A Docker or Podman host's topology: the host, its Compose projects (read
@@ -37,10 +47,13 @@ import {
  * image shows every container built from it — and an image no container
  * uses reads as off, a candidate for cleaning up rather than a problem.
  *
- * A container's health is its state, as the host's own pages read it:
- * running is healthy, restarting needs attention, dead is critical, exited
- * or paused is off. A container whose state was never reported (seen only
- * through its metrics) is healthy while its metrics keep arriving.
+ * A container's health is the host's own rules (ContainerHostHealth), as
+ * its Overview, Containers list and page read it: a container that ran for
+ * 10 minutes or more and stopped reporting while the host's other
+ * containers report needs attention, and a job that finished is off. A
+ * state the agent reported other than running (restarting, dead, exited,
+ * paused) reads as that state: restarting needs attention, dead is
+ * critical, exited or paused is off.
  */
 
 export const CONTAINER_HOST_ROOT_ID: string = "host";
@@ -73,6 +86,8 @@ export interface ContainerHostResourceRow {
   latestMemoryBytes?: number | undefined;
   metricsUpdatedAt?: Date | undefined;
   lastSeenAt?: Date | undefined;
+  // When the container's current run started.
+  resourceCreationTimestamp?: Date | undefined;
 }
 
 export interface ContainerHostTopologyInput {
@@ -131,18 +146,94 @@ export function normalizeImageName(name: string | undefined): string {
 interface Assessment {
   health: ResourceTopologyHealth;
   status?: ResourceTopologyText | undefined;
+  reasons?: Array<ResourceTopologyText> | undefined;
   facts: Array<ResourceTopologyFact>;
 }
 
-function assessContainer(row: ContainerHostResourceRow, now: Date): Assessment {
+function toDate(value: Date | string | null | undefined): Date | null {
+  if (!value) {
+    return null;
+  }
+  const date: Date = value instanceof Date ? value : new Date(value);
+  return Number.isFinite(date.getTime()) ? date : null;
+}
+
+// A container's inventory row as the host's rules read it.
+export function toContainerHostContainer(
+  row: ContainerHostResourceRow,
+): ContainerHostContainer {
+  return {
+    name: row.name || "",
+    containerId: row.containerId || null,
+    image: row.imageName || null,
+    cpuPercent: null,
+    memoryBytes: null,
+    memoryPercent: null,
+    networkRxBytes: null,
+    networkTxBytes: null,
+    restarts: null,
+    startedAt: toDate(row.resourceCreationTimestamp),
+    lastReadingAt: toDate(row.metricsUpdatedAt) || toDate(row.lastSeenAt),
+    labels: row.labels || null,
+  };
+}
+
+function fromRules(assessment: ContainerHostAssessment): {
+  health: ResourceTopologyHealth;
+  status: ResourceTopologyText;
+  reasons: Array<ResourceTopologyText>;
+} {
+  return {
+    health:
+      assessment.severity === ResourceAttentionSeverity.Critical
+        ? "critical"
+        : assessment.severity === ResourceAttentionSeverity.Warning
+          ? "warning"
+          : assessment.state === "not-reporting"
+            ? "off"
+            : "healthy",
+    status: text(assessment.status.label),
+    // A count-dependent reason reads its general form, with its count.
+    reasons: assessment.reasons.map(
+      (reason: ResourceAttentionText): ResourceTopologyText => {
+        if (reason.plural) {
+          return {
+            text: reason.text,
+            values: {
+              ...(reason.values || {}),
+              count: String(reason.plural.count),
+            },
+          };
+        }
+        return reason.values
+          ? { text: reason.text, values: reason.values }
+          : text(reason.text);
+      },
+    ),
+  };
+}
+
+function assessContainer(
+  row: ContainerHostResourceRow,
+  now: Date,
+  hostLatestReadingAt: Date | null,
+): Assessment {
   const fresh: boolean = isRecent(
     row.metricsUpdatedAt,
     now,
     CONTAINER_HOST_METRIC_STALE_MS,
   );
   const facts: Array<ResourceTopologyFact> = [];
+  const reported: string = (row.state || "").trim().toLowerCase();
+  const isRunningOrUnknown: boolean = !reported || reported === "running";
+  const rules: ContainerHostAssessment | null = isRunningOrUnknown
+    ? assessContainerByRules(toContainerHostContainer(row), hostLatestReadingAt)
+    : null;
+  const isReporting: boolean =
+    fresh &&
+    (!rules || rules.state === "running" || rules.state === "restart-loop");
 
-  if (fresh) {
+  if (isReporting) {
     const cpu: number | null = toFiniteNumber(row.latestCpuPercent);
     const memory: number | null = toFiniteNumber(row.latestMemoryBytes);
 
@@ -161,24 +252,23 @@ function assessContainer(row: ContainerHostResourceRow, now: Date): Assessment {
     }
   }
 
-  const fromState: ResourceTopologyHealth | null = healthOfStatusWord(
-    row.state,
-  );
+  // A state the agent reported other than running: that state.
+  if (!isRunningOrUnknown) {
+    const fromState: ResourceTopologyHealth | null = healthOfStatusWord(
+      row.state,
+    );
 
-  if (fromState) {
-    return {
-      health: fromState,
-      status: { text: formatStatusWord(row.state) },
-      facts: facts,
-    };
+    if (fromState) {
+      return {
+        health: fromState,
+        status: { text: formatStatusWord(row.state) },
+        facts: facts,
+      };
+    }
   }
 
-  if (fresh) {
-    return {
-      health: "healthy",
-      status: text(translationKey("Running")),
-      facts: facts,
-    };
+  if (rules && (fresh || rules.state !== "running")) {
+    return { ...fromRules(rules), facts: facts };
   }
 
   return {
@@ -272,6 +362,22 @@ export function buildContainerHostTopology(
     return id;
   };
 
+  /*
+   * What a container that stopped is measured against: the host's newest
+   * reading of any container, not the clock.
+   */
+  const hostLatestReadingAt: Date | null = getContainerHostLatestReadingAt(
+    input.rows
+      .filter((row: ContainerHostResourceRow): boolean => {
+        return row.kind === "Container";
+      })
+      .map((row: ContainerHostResourceRow): { lastReadingAt: Date | null } => {
+        return {
+          lastReadingAt: toDate(row.metricsUpdatedAt) || toDate(row.lastSeenAt),
+        };
+      }),
+  );
+
   const containerIds: Map<string, string> = new Map<string, string>();
   const containerByName: Map<string, string> = new Map<string, string>();
   const imageUse: Map<string, Array<string>> = new Map<string, Array<string>>();
@@ -288,7 +394,11 @@ export function buildContainerHostTopology(
       continue;
     }
 
-    const assessment: Assessment = assessContainer(row, input.now);
+    const assessment: Assessment = assessContainer(
+      row,
+      input.now,
+      hostLatestReadingAt,
+    );
     const service: string = readLabel(row.labels, COMPOSE_SERVICE_LABELS);
     containerByName.set(row.name, id);
 
@@ -313,6 +423,7 @@ export function buildContainerHostTopology(
       name: row.name,
       health: assessment.health,
       status: assessment.status,
+      reasons: assessment.reasons,
       facts: assessment.facts,
       context: service || undefined,
       keywords: [row.imageName || "", row.containerId || "", service].filter(

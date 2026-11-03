@@ -133,7 +133,7 @@ AI 代理程式自己的設定請見 [AI 代理程式](#ai-代理程式)。
 
 | 類別 | 指標 |
 | --- | --- |
-| 叢集健康 | `ceph_health_status`（0 = OK，1 = WARN，2 = ERR）、`ceph_health_detail`（每個健康檢查一個序列（作用期間為 1，清除後為 0），帶有 `name` 和 `severity` 標籤，從 Quincy 開始；健康檢查警示範本和概覽中 **Active Health Checks** 的資料來源）、`ceph_healthcheck_slow_ops`、`ceph_daemon_health_metrics`（依常駐程式，以 `type` 為鍵）、`ceph_mon_quorum_status`、`ceph_mon_metadata`、`ceph_cluster_total_bytes`、`ceph_cluster_total_used_bytes` |
+| 叢集健康 | `ceph_health_status`（0 = OK，1 = WARN，2 = ERR）、`ceph_health_detail`（每個健康檢查一個序列（作用期間為 1，清除後為 0），帶有 `name` 和 `severity` 標籤，從 Quincy 開始；健康檢查警示範本和概覽中 **需要注意** 所示檢查的資料來源）、`ceph_healthcheck_slow_ops`、`ceph_daemon_health_metrics`（依常駐程式，以 `type` 為鍵）、`ceph_mon_quorum_status`、`ceph_mon_metadata`、`ceph_cluster_total_bytes`、`ceph_cluster_total_used_bytes` |
 | OSD | `ceph_osd_up`、`ceph_osd_in`、`ceph_osd_apply_latency_ms`、`ceph_osd_commit_latency_ms`、`ceph_osd_stat_bytes`、`ceph_osd_stat_bytes_used`、`ceph_osd_numpg`、`ceph_osd_metadata`，依 OSD 以 `ceph_daemon` 標籤區分（例如 `osd.3`） |
 | 儲存池 | `ceph_pool_stored`、`ceph_pool_max_avail`、`ceph_pool_objects`、`ceph_pool_rd`、`ceph_pool_wr`、`ceph_pool_rd_bytes`、`ceph_pool_wr_bytes`、`ceph_pool_metadata`。資料序列只帶有 `pool_id` 標籤；儲存池的名稱在 `ceph_pool_metadata` 上。 |
 | 放置群組 | `ceph_pg_total`、`ceph_pg_active`、`ceph_pg_clean`、`ceph_pg_degraded`、`ceph_pg_undersized`（皆依儲存池，以 `pool_id` 區分）、`ceph_num_objects_degraded`、`ceph_num_objects_misplaced` |
@@ -147,6 +147,19 @@ mgr 模組涵蓋叢集的健康狀態和容量。若要深入查看，請在 `ot
 - **`node_exporter`。** 每台 Ceph 主機的 CPU、記憶體、磁碟和網路指標的常用搭檔，預設連接埠為 `9100`。
 
 兩者都會從隨附的 `resource` 處理器取得 `ceph.cluster.name` 資源屬性，因此會落到 OneUptime 中的同一個叢集上。
+
+## 叢集頁面顯示的內容
+
+叢集的 **概覽** 依需要注意的內容顯示其健康狀態：**健康**、**效能下降** 或 **不健康**，並在 **需要注意** 中依緊急程度依序列出：
+
+- **叢集本身。** Ceph 自身的 `HEALTH_WARN` 或 `HEALTH_ERR`，以及它發出的檢查（沿用 Ceph 的名稱，例如 `OSD_DOWN` 或 `PG_DEGRADED`），還有超過 85% 的原始容量（超過 95% 為嚴重），此時會觸發 Cluster Near Full 和 Cluster Full 警示。
+- **OSD。** 已當機但仍在叢集中的 OSD 為嚴重：它的 Placement Group 少了一個副本。已當機並移出、或正常運作但已移出的 OSD 需要查看，超過 Ceph 的 nearfull 比率（85%）或 backfillfull 比率（90%）、或套用延遲超過 100 ms 的 OSD 也一樣。超過 full 比率（95%）時它會拒絕寫入，這是嚴重問題。
+- **監測器。** 不在仲裁中的監測器為嚴重。
+- **儲存池。** 超過其可寫入空間 85% 的儲存池（stored ÷ (stored + max avail)）需要查看，超過 95% 為嚴重。降級或副本不足的 Placement Group 需要查看；I/O 會卡住的非作用中 Placement Group 為嚴重。
+
+**OSD**、**儲存池** 和 **守護程式** 清單依同樣的規則顯示每個部分的狀態，並在下方說明原因。OSD 和儲存池各自的頁面會說明其中需要注意的內容、其上未解決的項目以及監看它的叢集警示，只需一步即可開啟其餘警示。Ceph 不再列出的管理員、中繼資料伺服器或物件閘道顯示為灰色的 **已停止回報**：對於發生故障的常駐程式，Ceph 會發出檢查，例如 `RECENT_CRASH` 或 `MDS_ALL_DOWN`，叢集所在列會顯示它。代理程式中斷連線期間，健康狀態顯示為 **健康狀態不明**：叢集的最後一次回報已不再正確。
+
+OSD 比率是 Ceph 的預設值。設定了其他值的叢集會在自己的門檻上發出 `OSD_NEARFULL`、`OSD_BACKFILLFULL` 和 `OSD_FULL` 檢查，叢集所在列會顯示它們。
 
 ## 選用 — 傳送 Ceph 叢集日誌
 

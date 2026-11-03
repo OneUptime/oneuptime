@@ -14,7 +14,7 @@ OneUptimes Docker Swarm-agent overvåger en Docker Swarm-klynge: dens noder, ser
 Agenten består af tre containere, alle defineret i én `docker-compose.yml`:
 
 1. **Collector**: en OpenTelemetry Collector, der læser `docker_stats` for hver containers metrikker, følger containernes logfiler og følger filen med inventar-snapshottet. Den stempler alt med din klynges navn (`docker.swarm.cluster.name`) og hver opgaves metrikker med dens service og node, og sender det til OneUptime over OTLP.
-2. **Inventar-poller**: en lille sidecar med `curl` og `jq`, der hvert 5. minut gennemgår swarm-managerens API (`/nodes`, `/services`, `/tasks`, `/networks`, `/secrets`, `/configs`, `/volumes`) og udleder stackene fra service-labelet `com.docker.stack.namespace`. Den skriver én JSON-linje pr. objekt, som collectoren videresender.
+2. **Inventar-poller**: en lille sidecar med `curl` og `jq`, der hvert 5. minut gennemgår swarm-managerens API (`/nodes`, `/services`, `/tasks`, `/networks`, `/secrets`, `/configs`, `/volumes`) og udleder stackene fra service-labelet `com.docker.stack.namespace`. Den skriver én JSON-linje pr. objekt, som collectoren videresender. Hvert minut læser den også, om hver node er klar, og hvor mange replikaer hver tjeneste vil have og kører, og skriver det som metrikker (fra version 0.161.3 af agentens filer).
 3. **AI-agent**: `oneuptime-docker-swarm-ai-agent`, der kører de `docker`-kommandoer, som OneUptime AI beder om, mens den undersøger en hændelse eller advarsel på denne klynge. Den er skrivebeskyttet, medmindre du tillader rettelser (se [AI-agent](#ai-agent)).
 
 ```mermaid title="Tre containere på en manager-node"
@@ -124,7 +124,8 @@ AI-agentens egne indstillinger findes under [AI-agent](#ai-agent).
 | Signal | Kilde | Hvor det vises |
 | --- | --- | --- |
 | Noder, services, opgaver, stacks, netværk, secrets, configs og volumes | Inventar-polleren, fra swarm-managerens API | Klyngens lister og detaljesider |
-| Klyngetællinger (klare noder, kørende opgaver, services, stacks, …) | Det samme snapshot | Oversigtens kort og sidemenuens badges |
+| Klyngetællinger (klare noder, kørende opgaver, services, stacks, …) | Det samme snapshot | Oversigtens tællechips og sidemenuens badges |
+| Om hver node er klar, og hver tjenestes replikaer, hvert minut | Inventar-polleren, som metrikkerne `docker.swarm.node.ready`, `docker.swarm.service.replicas.desired` og `docker.swarm.service.replicas.running` | Advarslerne Node Not Ready og Service Replicas Mismatch, og siden **Metrikker** |
 | Containerens CPU, hukommelse, antal processer og oppetid | Receiveren `docker_stats` | Siden **Metrikker** |
 | Containerens stdout- og stderr-logs | Receiveren `filelog` | Siden **Protokoller** |
 
@@ -133,6 +134,14 @@ Hver opgaves metrikker bærer dens containers identitet, som receiveren `docker_
 ### Sådan adskiller den sig fra Docker-agenten
 
 [Docker-agenten](/docs/telemetry/docker-host) modellerer én vært og stempler `host.name` på alt. Docker Swarm-agenten stempler med vilje `docker.swarm.cluster.name` og aldrig `host.name`: OneUptime arkiverer så dataene under swarm-klyngen i stedet for at registrere hver node som sin egen vært.
+
+## Hvad klyngens sider viser
+
+Klyngens sider læser det samme inventar og bedømmer det efter Dockers egne regler, som `docker node ls` og `docker service ls` gør, så oversigten, listerne og en nodes, en tjenestes eller en opgaves egen side altid er enige:
+
+- **Oversigt**: swarmens tilstand, og **Kræver opmærksomhed**: hvad der er i stykker eller kræver et kig, det mest presserende først, hver med årsagen og Dockers egen fejl. En node, der er nede, en manager, de andre ikke kan nå, en swarm, der er ved at miste flertallet af sine managere, en tjeneste, hvor ingen replikaer kører, eller som mangler replikaer, en rullende opdatering, der er sat på pause eller rullet tilbage, opgaver, der bliver ved med at mislykkes. Nedenunder hver node med ét blik.
+- **Noder**, **Tjenester** og **Opgaver**: hver rækkes tilstand med de samme ord og farver, med årsagen.
+- En nodes, en tjenestes eller en opgaves egen side: hvad på den der kræver et kig, dens opgaver, hvad der er åbent på den, de advarsler, der overvåger den, med ét trin til at slå dem til, og hvad Docker rapporterer om den.
 
 ## Mærk klyngen med projektetiketter
 
@@ -253,6 +262,10 @@ Klyngens navn kommer fra `DOCKER_SWARM_CLUSTER_NAME`. Ændr det i `.env`, og kø
 
 :::details Opgavernes CPU er en flad linje
 En ældre `otel-collector-config.yaml` sender receiveren `docker_stats`' eget CPU-tal. Siden collector 0.150.0 beregner receiveren det ud fra en enkelt statistikmåling: al den CPU, en container har brugt, siden den startede, divideret med al den CPU, noden har brugt, siden den bootede. Linjen bevæger sig knap og følger ikke belastningen, mens `container.cpu.usage.total` gør. En sådan agent rapporterer version 0.161.0 eller ældre, så der vises et advarselstegn ved siden af dens version: Download agentens filer igen, som [Opgradering af agenten](#opgradering-af-agenten) viser. Fra sin anden måling sender collectoren derefter den CPU, hver container brugte i hvert interval på 30 sekunder. Målinger, der allerede er gemt, forbliver som de var.
+:::
+
+:::details Inventaret holder op med at ændre sig
+Agentfiler ældre end version 0.161.3 startede hvert snapshot med de samme bytes, så collectoren tog en rolig swarms nye snapshot for et, den allerede havde læst: klyngens lister holdt op med at ændre sig og blev tømt 15 minutter efter, at agenten startede. [Opgradér agenten](#opgradering-af-agenten) på den manager, der kører inventar-polleren.
 :::
 
 ## Næste trin

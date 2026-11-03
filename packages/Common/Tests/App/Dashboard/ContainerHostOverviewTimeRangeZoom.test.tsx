@@ -253,11 +253,37 @@ function rowsFor(request: AggregateRequest): Array<AggregatedModel> {
   );
 }
 
+/*
+ * The containers' latest readings and restarts (ContainerHostReadings),
+ * which the health pill and Needs attention read with each refresh: always
+ * the last 5 and 15 minutes before now, whatever the chart's range, so they
+ * answer at once and stay out of this suite's count of the range's reads.
+ */
+const RESTARTS_METRIC: string = "container.restarts.increase";
+let restartsRequests: Array<AggregateRequest> = [];
+
 function serveAnalytics(): void {
+  jest
+    .spyOn(AnalyticsModelAPI, "getList")
+    .mockImplementation((): Promise<never> => {
+      return Promise.resolve({
+        data: [],
+        count: 0,
+        skip: 0,
+        limit: 500,
+      } as never);
+    });
+  jest.spyOn(ModelAPI, "getList").mockImplementation((): Promise<never> => {
+    return Promise.resolve({ data: [], count: 0, skip: 0, limit: 0 } as never);
+  });
   jest
     .spyOn(AnalyticsModelAPI, "aggregate")
     .mockImplementation((...args: Array<unknown>): Promise<never> => {
       const request: AggregateRequest = args[0] as AggregateRequest;
+      if (request.aggregateBy.query.name === RESTARTS_METRIC) {
+        restartsRequests.push(request);
+        return Promise.resolve({ data: [] } as never);
+      }
       aggregateRequests.push(request);
 
       return new Promise<never>((resolve: (value: never) => void): void => {
@@ -470,6 +496,7 @@ beforeEach(() => {
   jest.useFakeTimers();
   jest.setSystemTime(NOW);
   aggregateRequests = [];
+  restartsRequests = [];
   pendingAggregates = [];
   answerAtOnce = true;
   resetChartStandIns();
@@ -567,9 +594,12 @@ describe.each(RUNTIME_CASES)(
       }
 
       expect(tileValue("Avg CPU")).toBe("20.0%");
-      expect(tileValue("Containers")).toBe("1");
       expect(consumerRows("Top CPU Consumers")).toEqual(["api 20.0%"]);
-      expect(screen.queryByText("1 container")).toBeInTheDocument();
+      /*
+       * The hero counts the host's containers now, from their latest
+       * readings (none are served here), never the chart range's.
+       */
+      expect(screen.queryByText("1 container")).not.toBeInTheDocument();
       // The two missed heartbeat minutes are in this range.
       expect(screen.queryByText("100.0% uptime")).not.toBeInTheDocument();
     });
@@ -606,8 +636,14 @@ describe.each(RUNTIME_CASES)(
       expect(tileValue("Avg CPU")).toBe("70.0%");
       expect(tileValue("Peak CPU")).toBe("80.0%");
       expect(tileValue("Avg Memory")).toBe("40.0%");
-      expect(tileValue("Containers")).toBe("2");
-      expect(screen.getByText("2 containers")).toBeInTheDocument();
+      // The hero's count does not follow the zoom: it is the host's now.
+      expect(screen.queryByText("2 containers")).not.toBeInTheDocument();
+      expect(restartsRequests.length).toBeGreaterThan(0);
+      for (const request of restartsRequests) {
+        expect(request.aggregateBy.query.time.endValue.toISOString()).toBe(
+          NOW.toISOString(),
+        );
+      }
       expect(consumerRows("Top CPU Consumers")).toEqual([
         "api 80.0%",
         "batch 50.0%",

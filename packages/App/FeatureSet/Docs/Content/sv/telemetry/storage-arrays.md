@@ -136,7 +136,7 @@ Everything is ready. Begin running and processing data.
 
 ### Hitta arrayen i OneUptime
 
-Öppna **Produkter → Infrastruktur → Lagringsarrayer → All Storage Arrays**. Efter den första skrapningen (ungefär en minut) finns arrayen där med kapacitet, prestanda, öppna larm och maskinvara. Volymer, värdar och poddar följer inom 2 minuter, en FlashBlades filsystem och buckets inom 5 och FlashArray-kataloger inom 30. Arrayens sida **Topologi** ritar dess värdar, volymer, filsystem och hårdvara på en karta: se [Topologi](/docs/telemetry/topology#öppna-en-resurs-egen-karta).
+Öppna **Produkter → Infrastruktur → Lagringsarrayer → Alla lagringsarrayer**. Efter den första skrapningen (ungefär en minut) finns arrayen där med kapacitet, prestanda, öppna larm och maskinvara. Volymer, värdar och poddar följer inom 2 minuter, en FlashBlades filsystem och buckets inom 5 och FlashArray-kataloger inom 30. Arrayens sida **Topologi** ritar dess värdar, volymer, filsystem och hårdvara på en karta: se [Topologi](/docs/telemetry/topology#öppna-en-resurs-egen-karta).
 :::
 
 ## Miljövariabler
@@ -180,7 +180,19 @@ Pures semantiska konventioner delas av den inbyggda FlashArray-slutpunkten och b
 | FlashBlade `/metrics/filesystems` | `purefb_file_systems_space_*`, `purefb_file_systems_performance_*` | Sidan **Filsystem**: tilldelat och använt utrymme, datareduktion, latens, IOPS och bandbredd per filsystem |
 | FlashBlade `/metrics/objectstore` | `purefb_buckets_space_*`, `purefb_buckets_quota_space_bytes`, `purefb_buckets_object_count`, `purefb_buckets_performance_*`, `purefb_object_store_accounts_*` | Sidan **Buckets**: utrymme, kvot, antal objekt och prestanda per bucket, grupperat efter konto |
 
-Arrayens hälsa på dess sida **Översikt** är **Kritisk** så länge den rapporterar ett öppet kritiskt larm, eller en maskinvarukomponent, enhet eller styrenhet som är kritisk, trasig, saknas eller är ohälsosam; **Varning** så länge den rapporterar ett öppet varningslarm, eller en försämrad eller okänd komponent; och annars **OK**. I övervakarkriterier får arrayens attribut prefixet `resource.` (`resource.storage.array.name`, `resource.storage.system`), medan datapunktsetiketterna står utan prefix (`name`, `host`, `dimension`, `space`).
+Kolumnen **Hälsa** under **Alla lagringsarrayer** läser arrayens egna larm och maskinvara i dess senaste data: **Kritisk** så länge den rapporterar ett öppet kritiskt larm, eller en maskinvarukomponent, enhet eller styrenhet som är kritisk, trasig, saknas eller är ohälsosam; **Varning** så länge den rapporterar ett öppet varningslarm, eller en försämrad eller okänd komponent; annars **OK**; och **Okänd** medan agenten är frånkopplad. Arrayens **Översikt** bedömer mer, som nästa avsnitt säger. I övervakarkriterier får arrayens attribut prefixet `resource.` (`resource.storage.array.name`, `resource.storage.system`), medan datapunktsetiketterna står utan prefix (`name`, `host`, `dimension`, `space`).
+
+## Vad arrayens sidor visar
+
+Arrayens **Översikt** anger dess hälsa, **Felfri**, **Försämrad** eller **Ej felfri**, utifrån vad som behöver uppmärksamhet, och listar det under **Kräver uppmärksamhet**, det mest brådskande först, vart och ett ett steg från där man ska titta:
+
+- **Själva arrayen.** Ett öppet larm som arrayen utlöste med kritisk allvarlighetsgrad är kritiskt, och ett med varningsgrad behöver en titt. Över 80 % av den användbara kapaciteten behöver den en titt, och över 90 % är den kritisk, där larmen Capacity Above 80% och Capacity Above 90% utlöses. En FlashArray med en genomsnittlig läs- eller skrivlatens över 5 ms, eller en FlashBlade vars läsningar tar längre än 10 ms, behöver en titt.
+- **Maskinvara.** En komponent, disk, styrenhet eller ett nätverksgränssnitt som arrayen rapporterar som kritisk, trasig, saknad eller ohälsosam är kritisk: redundansen är borta tills delen är utbytt. En som den rapporterar som försämrad, okänd, ej igenkänd eller inte klar behöver en titt. Delar som inte är installerade, är avstängda eller oanvända listas aldrig.
+- **Värdar.** En värd som inte längre når arrayen genom båda styrenheterna behöver en titt, med orsaken: genom bara en styrenhet, över ojämna sökvägar eller helt utan sökväg.
+- **Poddar.** En podd vars replikalänk arrayen rapporterar som ohälsosam är kritisk, och en som ligger mer än en minut efter behöver en titt.
+- **Filsystem.** Ett FlashBlade-filsystem med mindre än 10 % av sin tilldelade storlek kvar behöver en titt.
+
+Listorna **Värdar**, **Replikering** och **Filsystem** anger varje dels tillstånd enligt samma regler, med orsaken under. En värds och ett filsystems egen sida säger vad i den som behöver uppmärksamhet och vilka av arrayens larm som bevakar den, med ett steg för att slå på resten, och varje dels sida, även en volyms och en buckets, säger vad som är öppet för den. Medan agenten är frånkopplad visar hälsan **Hälsa okänd**: arrayens senaste rapport är inte längre sanningen. Varje gräns ovan är den där dess larmmall utlöses, så som [lagringsarray-övervakaren](/docs/monitor/storage-array-monitor) listar dem.
 
 ## Valfritt — Skicka arrayens syslog
 

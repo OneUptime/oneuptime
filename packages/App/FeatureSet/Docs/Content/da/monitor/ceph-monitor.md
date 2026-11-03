@@ -64,7 +64,7 @@ Vælg klyngen i **Ceph-klynge** under **Ceph Monitor Configuration**. Alle klyng
 En ny monitor starter med **Cluster Stopped Reporting** under **Hvad der skal advares om**. Sådan overvåger du noget andet:
 
 - **Skift** — vælg en anden [skabelon](#færdige-alarmskabeloner). Den indstiller metrikker, filtre, aggregering, tidsinterval og tærskler og erstatter kriterierne nedenfor med sine egne. Du kan stadig ændre **Tidsinterval**.
-- **Custom Metric** (under **Flere felter**) — vælg én metrik i **Ceph Metric**, og indstil derefter **Aggregering** og **Tidsinterval**. **OSD** og **Pool ID** indsnævrer den til én dæmon eller pool. En metrik, der føres pr. pool eller pr. daemon, bedømmes pool for pool eller daemon for daemon med én hændelse hver.
+- **Custom Metric** (under **Flere felter**) — vælg én metrik i **Ceph Metric**, og indstil derefter **Aggregering** og **Tidsinterval**. **OSD** og **Pool-ID** indsnævrer den til én dæmon eller pool. En metrik, der føres pr. pool eller pr. daemon, bedømmes pool for pool eller daemon for daemon med én hændelse hver.
 - **Avanceret** (under **Flere felter**) — byg selv forespørgsler og formler under **Vælg målinger**, for eksempel et forhold for brugt kapacitet ud fra `ceph_cluster_total_used_bytes / ceph_cluster_total_bytes`. Brug **Gruppér efter** `ceph_daemon` eller `pool_id` for at vurdere hver dæmon eller pool for sig.
 
 ### Tjek kriterierne
@@ -85,7 +85,7 @@ Klik på **Opret monitor**. OneUptime åbner monitorens side og evaluerer den hv
 | --- | --- | --- |
 | **Ceph-klynge** | Alle | Påkrævet. Begrænser hver forespørgsel til `resource.ceph.cluster.name`. |
 | **OSD** | Custom Metric, Avanceret | Valgfri. Eksakt match på labelen `ceph_daemon`, for eksempel `osd.3`. |
-| **Pool ID** | Custom Metric, Avanceret | Valgfri. Eksakt match på labelen `pool_id`, for eksempel `2`. |
+| **Pool-ID** | Custom Metric, Avanceret | Valgfri. Eksakt match på labelen `pool_id`, for eksempel `2`. |
 | **Ceph Metric** | Custom Metric | Én metrik fra [kataloget](#indsamlede-metrikker). |
 | **Aggregering** | Custom Metric | Hvordan målinger kombineres: **Gennemsnit**, **Maksimum** eller **Minimum**. Starter med metrikkens sædvanlige aggregering. En sum eller en optælling ville lægge alle skrab i et minut sammen, så de er overladt til **Avanceret**. |
 | **Tidsinterval** | Alle | Det glidende vindue, forespørgslen læser, fra **Past 1 Minute** til **Past 365 Days**. En ny monitor starter på **Past 1 Minute**; skabeloner sætter deres eget. |

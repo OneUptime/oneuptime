@@ -275,6 +275,28 @@ export default class SeriesDebugHints {
       });
     }
 
+    /*
+     * A node's own alert (Node Not Ready): its state and Swarm's message
+     * about it, and what Swarm runs there. A task's alert names the node it
+     * runs on too, and its container's commands come first above.
+     */
+    const node: string = SeriesLabelDisplay.findLabelValue(seriesLabels, [
+      "docker.swarm.node.name",
+    ]);
+
+    if (node) {
+      const quoted: string = SeriesDebugHints.quoteForShell(node);
+
+      commands.push({
+        purpose: "The node's state, availability and Swarm's message about it",
+        command: `docker node inspect ${quoted} --pretty`,
+      });
+      commands.push({
+        purpose: "The tasks Swarm placed on the node",
+        command: `docker node ps ${quoted} --no-trunc`,
+      });
+    }
+
     return commands;
   }
 

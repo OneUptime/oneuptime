@@ -13,14 +13,35 @@ import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import PageMap from "../../../Utils/PageMap";
-import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import ResourceTable, {
   InfrastructureResource,
+  ResourceColumn,
+  ResourceColumnTone,
 } from "../../../Components/Infrastructure/ResourceTable";
 import CephResourceModel from "Common/Models/DatabaseModels/CephResource";
 import CephResourceUtils from "../Utils/CephResourceUtils";
+import {
+  CephPoolPgStates,
+  CephPoolReadings,
+  assessCephPool,
+  getCephNewestSeenAt,
+  getCephPoolReadings,
+} from "../Utils/CephHealth";
+import {
+  CEPH_USED_PERCENT_ATTRIBUTE,
+  CephPoolPgSummary,
+  formatCephReadingNumber,
+  getCephPoolPgSummary,
+  getCephPoolUsedTone,
+  readCephRowNumber,
+  withCephStatus,
+} from "../Utils/CephPartFacts";
+import { CephPgStateReadings, loadCephPgStates } from "../Utils/CephReadings";
+import {
+  CephPartRoutes,
+  getCephPartRoutes,
+} from "../../../Components/Ceph/Part/CephPartRoutes";
 import { CEPH_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/CephMetricDescriptions";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import Metric from "Common/Models/AnalyticsModels/Metric";
@@ -35,21 +56,86 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
- * Pool list page reading the CephResource Postgres inventory (kind=Pool).
- * The inventory deliberately stores ceph_pool_rd / ceph_pool_wr as raw
- * cumulative counters (readOpsCounter / writeOpsCounter), so the IOPS
- * columns come from ClickHouse rate math over a short recent window —
- * never from the counter columns. The detail route param is the
- * resource externalId (the `pool_id` label).
+ * The Pools list reads the CephResource Postgres inventory (kind=Pool).
+ * Each row's status is the cluster's rules' (CephHealth): a pool in amber
+ * past the Pool Near Full alert's 85% of its writable space or with
+ * degraded or undersized placement groups, in red past 95% or with
+ * inactive ones - with why under it, as the Overview's Needs attention
+ * says it. The placement groups come from the pools' latest ceph_pg_*
+ * readings, and the inventory deliberately stores ceph_pool_rd / _wr as
+ * raw cumulative counters (readOpsCounter / writeOpsCounter), so the IOPS
+ * columns come from ClickHouse rate math over a short recent window -
+ * never from the counter columns. Both are supplementary: a ClickHouse
+ * hiccup leaves their columns at a dash, never the list blank. The detail
+ * route param is the pool's externalId (its `pool_id`).
  */
 
 const IOPS_WINDOW_MINUTES: number = 15;
+
+/*
+ * The list's own columns beside ResourceTable's Name and Status: how full
+ * each pool is, what it stores, its placement groups and its I/O. Max Avail
+ * and Objects fold into Stored when the table is short of room.
+ */
+const POOL_COLUMNS: Array<ResourceColumn> = [
+  {
+    title: "Used",
+    key: "usedPercent",
+    description: CEPH_METRIC_DESCRIPTIONS.poolUsedColumn,
+    getTone: (
+      resource: InfrastructureResource,
+    ): ResourceColumnTone | undefined => {
+      return getCephPoolUsedTone(
+        readCephRowNumber(resource, CEPH_USED_PERCENT_ATTRIBUTE),
+      );
+    },
+  },
+  {
+    title: "Stored",
+    key: "stored",
+    description: CEPH_METRIC_DESCRIPTIONS.poolStoredColumn,
+  },
+  {
+    title: "Max Avail",
+    key: "maxAvail",
+    description: CEPH_METRIC_DESCRIPTIONS.poolMaxAvailColumn,
+    foldInto: "stored",
+    showTitleWhenFolded: true,
+  },
+  {
+    title: "PGs",
+    key: "pgs",
+    description: CEPH_METRIC_DESCRIPTIONS.poolPgsColumn,
+  },
+  {
+    title: "Objects",
+    key: "objects",
+    description: CEPH_METRIC_DESCRIPTIONS.poolObjectsColumn,
+    /*
+     * Under what the pool stores, not under its name: folded under the
+     * name, it left a long pool name a column too narrow to read whole.
+     */
+    foldInto: "stored",
+    showTitleWhenFolded: true,
+  },
+  {
+    title: "Read IOPS",
+    key: "readIops",
+    description: CEPH_METRIC_DESCRIPTIONS.poolReadIopsColumn,
+  },
+  {
+    title: "Write IOPS",
+    key: "writeIops",
+    description: CEPH_METRIC_DESCRIPTIONS.poolWriteIopsColumn,
+  },
+];
 
 const CephClusterPools: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+  const routes: CephPartRoutes = getCephPartRoutes(modelId);
 
   const [resources, setResources] = useState<Array<InfrastructureResource>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -104,14 +190,12 @@ const CephClusterPools: FunctionComponent<
           cephClusterId: modelId,
           kinds: ["Pool"],
         });
+      const now: Date = OneUptimeDate.getCurrentDate();
+      const newestSeenAt: Date | null = getCephNewestSeenAt(rows);
 
-      /*
-       * IOPS rates are supplementary — a ClickHouse hiccup must not
-       * blank the Postgres-served inventory list, so failures degrade
-       * the two columns to "—".
-       */
       let readRates: Map<string, number> = new Map();
       let writeRates: Map<string, number> = new Map();
+      let pgStatesByPool: Map<string, CephPoolPgStates> = new Map();
       try {
         const cluster: CephCluster | null = await ModelAPI.getItem({
           modelType: CephCluster,
@@ -121,13 +205,28 @@ const CephClusterPools: FunctionComponent<
           },
         });
         if (cluster?.name) {
-          [readRates, writeRates] = await Promise.all([
-            fetchPoolRates(cluster.name, "ceph_pool_rd"),
-            fetchPoolRates(cluster.name, "ceph_pool_wr"),
+          const clusterName: string = cluster.name;
+          const [reads, writes, pgStates]: [
+            Map<string, number>,
+            Map<string, number>,
+            CephPgStateReadings | null,
+          ] = await Promise.all([
+            fetchPoolRates(clusterName, "ceph_pool_rd").catch(() => {
+              return new Map<string, number>();
+            }),
+            fetchPoolRates(clusterName, "ceph_pool_wr").catch(() => {
+              return new Map<string, number>();
+            }),
+            loadCephPgStates(clusterName).catch(() => {
+              return null;
+            }),
           ]);
+          readRates = reads;
+          writeRates = writes;
+          pgStatesByPool = pgStates?.byPool || new Map();
         }
       } catch {
-        // Rate columns render "—" when ClickHouse is unavailable.
+        // Rate and placement-group columns render "—" when unread.
       }
 
       rows.sort((a: CephResourceModel, b: CephResourceModel) => {
@@ -138,51 +237,61 @@ const CephClusterPools: FunctionComponent<
 
       const list: Array<InfrastructureResource> = rows.map(
         (row: CephResourceModel): InfrastructureResource => {
-          const storedBytes: number | null = CephResourceUtils.freshMetricValue(
-            row,
-            row.storedBytes,
-          );
-          const maxAvailBytes: number | null =
-            CephResourceUtils.freshMetricValue(row, row.maxAvailBytes);
-          const objects: number | null = CephResourceUtils.freshMetricValue(
-            row,
-            row.objects,
-          );
-          const usedPercent: number | null =
-            storedBytes !== null &&
-            maxAvailBytes !== null &&
-            storedBytes + maxAvailBytes > 0
-              ? (storedBytes / (storedBytes + maxAvailBytes)) * 100
-              : null;
-
+          const readings: CephPoolReadings = getCephPoolReadings(row, now);
           const poolId: string = row.externalId || "";
           const readRate: number | undefined = readRates.get(poolId);
           const writeRate: number | undefined = writeRates.get(poolId);
+          const pgStates: CephPoolPgStates | null =
+            pgStatesByPool.get(poolId) || null;
+          const pgSummary: CephPoolPgSummary | null =
+            getCephPoolPgSummary(pgStates);
 
-          return {
-            name: row.name || `pool ${poolId}`,
-            namespace: "",
-            cpuUtilization: null,
-            memoryUsageBytes: null,
-            memoryLimitBytes: null,
-            status: "",
-            age: CephResourceUtils.formatAge(row.createdAt),
-            additionalAttributes: {
-              externalId: poolId,
-              stored: CephResourceUtils.formatBytes(storedBytes),
-              maxAvail: CephResourceUtils.formatBytes(maxAvailBytes),
-              usedPercent: CephResourceUtils.formatPercent(usedPercent),
-              objects: CephResourceUtils.formatCount(objects),
-              readIops:
-                readRate !== undefined ? `${readRate.toFixed(1)}/s` : "—",
-              writeIops:
-                writeRate !== undefined ? `${writeRate.toFixed(1)}/s` : "—",
+          return withCephStatus(
+            {
+              name: row.name || `pool ${poolId}`,
+              namespace: "",
+              cpuUtilization: null,
+              memoryUsageBytes: null,
+              memoryLimitBytes: null,
+              status: "",
+              age: CephResourceUtils.formatAge(row.createdAt),
+              additionalAttributes: {
+                externalId: poolId,
+                stored: CephResourceUtils.formatBytes(readings.storedBytes),
+                maxAvail: CephResourceUtils.formatBytes(readings.maxAvailBytes),
+                usedPercent: CephResourceUtils.formatPercent(
+                  readings.usedPercent,
+                ),
+                pgs: pgSummary
+                  ? translator.translateTemplate(
+                      "{{clean}} of {{total}} clean",
+                      {
+                        clean: translator.formatNumber(pgSummary.clean),
+                        total: translator.formatNumber(pgSummary.total),
+                      },
+                    )
+                  : "—",
+                objects: CephResourceUtils.formatCount(readings.objects),
+                readIops:
+                  readRate !== undefined ? `${readRate.toFixed(1)}/s` : "—",
+                writeIops:
+                  writeRate !== undefined ? `${writeRate.toFixed(1)}/s` : "—",
+                [CEPH_USED_PERCENT_ATTRIBUTE]: formatCephReadingNumber(
+                  readings.usedPercent,
+                ),
+              },
             },
-          };
+            assessCephPool(row, {
+              now: now,
+              newestSeenAt: newestSeenAt,
+              pgStates: pgStates,
+            }),
+          );
         },
       );
 
       setResources(list);
+      setError("");
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     }
@@ -210,56 +319,23 @@ const CephClusterPools: FunctionComponent<
       }}
       title="Pools"
       description={translator.translateTemplate(
-        "Storage pools in this cluster. Read / write IOPS are averaged over the last {{minutes}} minutes.",
-        { minutes: IOPS_WINDOW_MINUTES },
+        "Storage pools in this cluster: how full each is and whether its placement groups are clean. Read / write IOPS are averaged over the last {{minutes}} minutes.",
+        { minutes: translator.formatNumber(IOPS_WINDOW_MINUTES) },
       )}
       resources={resources}
       tableIdPrefix="ceph"
       showGroupColumn={false}
-      showStatus={false}
+      showAge={false}
       showResourceMetrics={false}
-      columns={[
-        {
-          title: "Stored",
-          key: "stored",
-          description: CEPH_METRIC_DESCRIPTIONS.poolStoredColumn,
-        },
-        {
-          title: "Max Avail",
-          key: "maxAvail",
-          description: CEPH_METRIC_DESCRIPTIONS.poolMaxAvailColumn,
-        },
-        {
-          title: "Used",
-          key: "usedPercent",
-          description: CEPH_METRIC_DESCRIPTIONS.poolUsedColumn,
-        },
-        {
-          title: "Objects",
-          key: "objects",
-          description: CEPH_METRIC_DESCRIPTIONS.poolObjectsColumn,
-        },
-        {
-          title: "Read IOPS",
-          key: "readIops",
-          description: CEPH_METRIC_DESCRIPTIONS.poolReadIopsColumn,
-        },
-        {
-          title: "Write IOPS",
-          key: "writeIops",
-          description: CEPH_METRIC_DESCRIPTIONS.poolWriteIopsColumn,
-        },
-      ]}
+      builtInColumnDescriptions={{
+        status: CEPH_METRIC_DESCRIPTIONS.poolStatusColumn,
+      }}
+      columns={POOL_COLUMNS}
       emptyMessage="No pools found in the inventory yet. Pools appear here a few minutes after the Ceph agent starts sending metrics."
-      getViewRoute={(resource: InfrastructureResource) => {
-        return RouteUtil.populateRouteParams(
-          RouteMap[PageMap.CEPH_CLUSTER_VIEW_POOL_DETAIL] as Route,
-          {
-            modelId: modelId,
-            subModelId: new ObjectID(
-              resource.additionalAttributes["externalId"] || "",
-            ),
-          },
+      getViewRoute={(resource: InfrastructureResource): Route => {
+        return routes.getPartRoute(
+          "Pool",
+          resource.additionalAttributes["externalId"] || "",
         );
       }}
     />

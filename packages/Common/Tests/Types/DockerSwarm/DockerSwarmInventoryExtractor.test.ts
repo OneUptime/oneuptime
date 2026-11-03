@@ -4,6 +4,7 @@ import {
   INVENTORY_KIND_ATTRIBUTE,
   canonicalDockerSwarmKind,
   extractDockerSwarmInventoryResource,
+  isDockerSwarmJobMode,
   isInventoriedDockerSwarmKind,
 } from "../../../Types/DockerSwarm/DockerSwarmInventoryExtractor";
 import { ParsedDockerSwarmResource } from "../../../Server/Services/DockerSwarmResourceService";
@@ -663,5 +664,214 @@ describe("DockerSwarmInventoryExtractor - kind/payload routing", () => {
     );
     expect(r.kind).toBe("Stack");
     expect(r.externalId).toBe("stack/api");
+  });
+});
+
+/*
+ * The agent's own snapshot (inventory-snapshot.sh, files 0.161.3 on) sends
+ * more than `docker ... ls` does: a node's size, address and Swarm's
+ * message about it, a manager that is unreachable, a service's last rolling
+ * update and the tasks that failed in the last hour, a task's slot,
+ * container and exit code. Older files sent none of these, and the rows
+ * must read as before for them.
+ */
+describe("DockerSwarmInventoryExtractor - the agent's snapshot fields (files 0.161.3)", () => {
+  test("the Snapshot line that opens each snapshot is no resource", () => {
+    expect(
+      extract(
+        "Snapshot",
+        envelope("Snapshot", { TakenAt: "2026-11-02T12:00:00Z", Id: "x" }),
+      ),
+    ).toBeNull();
+    expect(isInventoriedDockerSwarmKind("Snapshot")).toBe(false);
+  });
+
+  test("a node's size, address and Swarm's message", () => {
+    const r: ParsedDockerSwarmResource = resourceOf(
+      extract(
+        "Node",
+        envelope("Node", {
+          ID: "n1",
+          Hostname: "worker-2",
+          Status: "down",
+          Message: "heartbeat failure",
+          Addr: "10.0.0.12",
+          Availability: "active",
+          ManagerStatus: "",
+          NanoCPUs: "4000000000",
+          MemoryBytes: "17179869184",
+        }),
+      ),
+    );
+    expect(r.isReady).toBe(false);
+    expect(r.attributes?.["message"]).toBe("heartbeat failure");
+    expect(r.attributes?.["addr"]).toBe("10.0.0.12");
+    expect(r.attributes?.["cpus"]).toBe(4);
+    expect(r.attributes?.["memoryBytes"]).toBe(17179869184);
+  });
+
+  test("half a CPU stays half a CPU; a size the agent does not know is none", () => {
+    const half: ParsedDockerSwarmResource = resourceOf(
+      extract(
+        "Node",
+        envelope("Node", {
+          ID: "n2",
+          Hostname: "edge-1",
+          Status: "ready",
+          NanoCPUs: "500000000",
+          MemoryBytes: "0",
+        }),
+      ),
+    );
+    expect(half.attributes?.["cpus"]).toBe(0.5);
+    expect(half.attributes?.["memoryBytes"]).toBeNull();
+
+    const old: ParsedDockerSwarmResource = resourceOf(
+      extract("Node", envelope("Node", { ID: "n3", Hostname: "w" })),
+    );
+    expect(old.attributes?.["cpus"]).toBeNull();
+    expect(old.attributes?.["message"]).toBeNull();
+  });
+
+  test("a manager the others cannot reach is a manager, and says so", () => {
+    const r: ParsedDockerSwarmResource = resourceOf(
+      extract(
+        "Node",
+        envelope("Node", {
+          ID: "m3",
+          Hostname: "manager-3",
+          Status: "ready",
+          ManagerStatus: "Unreachable",
+        }),
+      ),
+    );
+    expect(r.role).toBe("manager");
+    expect(r.attributes?.["managerStatus"]).toBe("Unreachable");
+    expect(r.attributes?.["isLeader"]).toBe(false);
+  });
+
+  test("a service's last rolling update and its recent failures", () => {
+    const r: ParsedDockerSwarmResource = resourceOf(
+      extract(
+        "Service",
+        envelope("Service", {
+          ID: "s1",
+          Name: "shop_web",
+          Mode: "replicated",
+          Replicas: "3/3",
+          StackNamespace: "shop",
+          CreatedAt: "2026-10-01T08:00:00Z",
+          UpdatedAt: "2026-11-02T11:00:00Z",
+          UpdateState: "paused",
+          UpdateMessage: "update paused due to failure or early termination",
+          UpdateStartedAt: "2026-11-02T10:58:00Z",
+          UpdateCompletedAt: "",
+          RecentFailedTasks: "4",
+          LastTaskError: "task: non-zero exit (137)",
+          LastTaskState: "failed",
+          LastTaskErrorAt: "2026-11-02T10:59:30Z",
+          LastTaskExitCode: "137",
+        }),
+      ),
+    );
+    expect(r.stackName).toBe("shop");
+    expect(r.isReady).toBe(true);
+    expect(r.attributes).toMatchObject({
+      createdAt: "2026-10-01T08:00:00Z",
+      updatedAt: "2026-11-02T11:00:00Z",
+      updateState: "paused",
+      updateMessage: "update paused due to failure or early termination",
+      updateStartedAt: "2026-11-02T10:58:00Z",
+      recentFailedTasks: 4,
+      lastTaskError: "task: non-zero exit (137)",
+      lastTaskState: "failed",
+      lastTaskErrorAt: "2026-11-02T10:59:30Z",
+      lastTaskExitCode: "137",
+    });
+  });
+
+  test("the stack label wins over the name's prefix: a service named a_b in stack c is c's", () => {
+    const r: ParsedDockerSwarmResource = resourceOf(
+      extract(
+        "Service",
+        envelope("Service", {
+          ID: "s2",
+          Name: "billing_api",
+          Replicas: "1/1",
+          StackNamespace: "payments",
+        }),
+      ),
+    );
+    expect(r.stackName).toBe("payments");
+  });
+
+  test("a job runs to completion: no readiness to judge, and its completed tasks", () => {
+    for (const mode of ["replicated-job", "global-job"]) {
+      expect(isDockerSwarmJobMode(mode)).toBe(true);
+      const r: ParsedDockerSwarmResource = resourceOf(
+        extract(
+          "Service",
+          envelope("Service", {
+            ID: "j1",
+            Name: "db_migrate",
+            Mode: mode,
+            Replicas: "0/1",
+            CompletedTasks: "1",
+          }),
+        ),
+      );
+      expect(r.serviceMode).toBe(mode);
+      expect(r.isReady).toBeNull();
+      expect(r.attributes?.["completedTasks"]).toBe(1);
+    }
+    expect(isDockerSwarmJobMode("replicated")).toBe(false);
+    expect(isDockerSwarmJobMode(undefined)).toBe(false);
+  });
+
+  test("a task's service, slot, container, exit code and when it entered its state", () => {
+    const r: ParsedDockerSwarmResource = resourceOf(
+      extract(
+        "Task",
+        envelope("Task", {
+          ID: "t9",
+          Name: "shop_web.2",
+          Service: "shop_web",
+          Image: "registry.example.com/shop/web:1.4.2",
+          Node: "worker-2",
+          CurrentState: "failed",
+          DesiredState: "shutdown",
+          Error: "task: non-zero exit (137)",
+          Since: "2026-11-02T10:59:30Z",
+          Slot: "2",
+          ContainerID: "4f1c2d3e5a6b",
+          ExitCode: "137",
+        }),
+      ),
+    );
+    expect(r.serviceName).toBe("shop_web");
+    expect(r.stackName).toBe("shop");
+    expect(r.state).toBe("failed");
+    expect(r.attributes).toMatchObject({
+      desiredState: "shutdown",
+      since: "2026-11-02T10:59:30Z",
+      slot: "2",
+      containerId: "4f1c2d3e5a6b",
+      exitCode: "137",
+    });
+  });
+
+  test("a dotted service name survives: the agent's Service, not the name's first part", () => {
+    const r: ParsedDockerSwarmResource = resourceOf(
+      extract(
+        "Task",
+        envelope("Task", {
+          ID: "t10",
+          Name: "api.v2.1",
+          Service: "api.v2",
+          CurrentState: "running",
+        }),
+      ),
+    );
+    expect(r.serviceName).toBe("api.v2");
   });
 });

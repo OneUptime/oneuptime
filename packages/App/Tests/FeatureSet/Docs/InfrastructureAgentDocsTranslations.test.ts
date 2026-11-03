@@ -384,6 +384,11 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "`node_exporter`.",
     "AI investigations are on by default.",
     "Its own Ceph client is the hard limit.",
+    // What the cluster's pages show, part by part.
+    "The cluster itself.",
+    "OSDs.",
+    "Monitors.",
+    "Pools.",
   ],
   [DOCKER_SWARM]: [
     "Inventory poller",
@@ -411,6 +416,12 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "The API token is a Bearer token.",
     "No `send_batch_max_size`.",
     "datapoint labels",
+    // What the array's pages show, part by part.
+    "The array itself.",
+    "Hardware.",
+    "Hosts.",
+    "Pods.",
+    "File systems.",
   ],
   [SERVERLESS]: [
     "yes",

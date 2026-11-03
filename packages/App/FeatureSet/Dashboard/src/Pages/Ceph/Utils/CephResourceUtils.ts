@@ -7,6 +7,7 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "Common/Types/Date";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
+import { CEPH_READINGS_STALE_MS } from "./CephHealth";
 
 /*
  * Shared helpers for the Ceph list/detail pages. The pages read the
@@ -20,9 +21,10 @@ import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
  * Latest metric values older than this are treated as "no data" by the
  * list views so bars don't lie about a resource that's fallen off the
  * metric stream. Matches the cleanup worker's stale-resource cutoff
- * (CEPH_INVENTORY_STALE_MINUTES default).
+ * (CEPH_INVENTORY_STALE_MINUTES default); the rules read it
+ * (CephHealth: getCephOsdReadings, getCephPoolReadings).
  */
-export const METRIC_STALE_MS: number = 15 * 60 * 1000;
+export const METRIC_STALE_MS: number = CEPH_READINGS_STALE_MS;
 
 /*
  * Whether Ceph places data on an OSD, in Ceph's own words: an OSD is "in"
@@ -41,6 +43,25 @@ export function getOsdPlacementText(isIn: boolean | undefined): string {
 }
 
 export type CephResourceKind = "Osd" | "Pool" | "Mon" | "Mgr" | "Mds" | "Rgw";
+
+/*
+ * A daemon's version as Ceph's metadata writes it: "ceph version 18.2.4
+ * (e7ad5345525c7aa95470c26863873b581076945d) reef (stable)". The build's
+ * hash is noise beside a release number, and on a phone the whole string
+ * ran past the hero's edge.
+ */
+const CEPH_VERSION_PATTERN: RegExp =
+  /^ceph version (\S+)(?: \([0-9a-f]+\))?(?: ([a-z]+))?/i;
+
+// "18.2.4 (reef)" from Ceph's full version string; any other text as it is.
+export function getCephShortVersion(version: string): string {
+  const trimmed: string = version.trim();
+  const match: RegExpExecArray | null = CEPH_VERSION_PATTERN.exec(trimmed);
+  if (!match) {
+    return trimmed;
+  }
+  return match[2] ? `${match[1]} (${match[2]})` : (match[1] as string);
+}
 
 export function formatBytes(bytes: number | null | undefined): string {
   if (bytes === null || bytes === undefined || !Number.isFinite(bytes)) {
@@ -166,28 +187,6 @@ export async function fetchCephResources(options: {
     rows.push(...result.data);
   }
   return rows;
-}
-
-/**
- * Stale-cutoff numeric read: returns null (render "N/A") when the
- * row's metric mirror hasn't been refreshed within METRIC_STALE_MS.
- */
-export function freshMetricValue(
-  row: CephResourceModel,
-  value: number | null | undefined,
-): number | null {
-  if (value === null || value === undefined) {
-    return null;
-  }
-  if (!row.metricsUpdatedAt) {
-    return null;
-  }
-  const ageMs: number =
-    Date.now() - new Date(row.metricsUpdatedAt as Date).getTime();
-  if (ageMs > METRIC_STALE_MS) {
-    return null;
-  }
-  return Number(value);
 }
 
 /**
@@ -331,7 +330,6 @@ export default {
   formatAge,
   compareDaemonNames,
   fetchCephResources,
-  freshMetricValue,
   computeRatePerSeriesKey,
   formatLastSeen,
   linearGrowthDaysToTarget,
