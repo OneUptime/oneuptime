@@ -658,6 +658,62 @@ describe("IncidentService.onUpdateSuccess after its monitors or status pages cha
 });
 
 /*
+ * AN EDIT THAT CHANGES EVERYTHING AT ONCE: the incident is read once, and
+ * every follow-on runs, once - the skip never takes one of them away.
+ */
+describe("IncidentService.onUpdateSuccess after a full edit", () => {
+  test("a state, title, severity, monitor, postmortem note, custom field and status page change run every follow-on, once", async () => {
+    await runUpdateSuccess({
+      payload: {
+        currentIncidentStateId: RESOLVED_STATE_ID,
+        title: "Checkout down in eu-west",
+        incidentSeverityId: SEV1_ID,
+        monitors: [{ _id: MONITOR_ID }],
+        postmortemNote: "The checkout pods ran out of memory.",
+        customFields: { region: "eu-west" },
+        statusPages: [],
+      },
+      props: { tenantId: PROJECT_ID, userId: USER_ID },
+      carryForward: {
+        [INCIDENT_ID]: monitorsCarried({
+          monitorsAdded: [new Monitor(new ObjectID(MONITOR_ID))],
+          severityIdBeforeUpdate: SEV3_ID,
+          valuesBeforeUpdate: { title: "Checkout down" },
+          statusPageScopeChange: {
+            isScoped: true,
+            notificationQueued: false,
+          },
+        }),
+      },
+    });
+
+    // The state change itself, and the incident read once for the rest.
+    expect(changeIncidentState).toHaveBeenCalledTimes(1);
+    expect(findOneById).toHaveBeenCalledTimes(1);
+
+    // One feed entry, with a line for each change.
+    expect(createFeedItem).toHaveBeenCalledTimes(1);
+    expect(feedMarkdown()).toContain("Checkout down in eu-west");
+    expect(feedMarkdown()).toContain("SEV1");
+    expect(feedMarkdown()).toContain("Monitors Added");
+    expect(feedMarkdown()).toContain("Custom Fields");
+
+    // And every other follow-on, once.
+    expect(recalculateSla).toHaveBeenCalledTimes(1);
+    expect(refreshReminders).toHaveBeenCalledTimes(1);
+    expect(investigationWait).toHaveBeenCalledTimes(1);
+    expect(startWaitingRuns).toHaveBeenCalledTimes(1);
+    expect(tryFixAgain).toHaveBeenCalledTimes(1);
+    expect(applyPostmortemUpdate).toHaveBeenCalledTimes(1);
+    expect(movePostmortemStatus).toHaveBeenCalledTimes(1);
+    expect(customFieldsFeed).toHaveBeenCalledTimes(1);
+    expect(statusPageScopeFeed).toHaveBeenCalledTimes(1);
+    expect(requeueCreatedNotification).toHaveBeenCalledTimes(1);
+    expect(updateMonitors).toHaveBeenCalledTimes(1);
+  });
+});
+
+/*
  * A BULK UPDATE: one payload for every incident, a carry forward each. Only
  * the incidents something follows for are read.
  */
