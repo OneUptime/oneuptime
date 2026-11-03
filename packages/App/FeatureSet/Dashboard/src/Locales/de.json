@@ -41251,7 +41251,7 @@
   "View Table": "Tabelle anzeigen",
   "Waiting for first collection": "Waiting for first collection",
   "Watch your data, not just your services": "Watch your data, not just your services",
-  "What the asset holds and who relies on it, in your own words.": "What the asset holds and who relies on it, in your own words.",
+  "What the asset holds and who relies on it, in your own words.": "Was das Asset enthält und wer sich darauf verlässt, in Ihren eigenen Worten.",
   "What this table holds and who relies on it, in your team's words. It shows on the table's Overview.": "What this table holds and who relies on it, in your team's words. It shows on the table's Overview.",
   "What this table holds and who relies on it. Edit it on Settings.": "What this table holds and who relies on it. Edit it on Settings.",
   "What your team calls this database.": "What your team calls this database.",
@@ -41267,5 +41267,14 @@
   "Reads the database's catalog every few minutes: tables, columns, row counts, sizes and last changes. Never a row. Use a read-only login.": "Reads the database's catalog every few minutes: tables, columns, row counts, sizes and last changes. Never a row. Use a read-only login.",
   "{{matches}} of {{sampled}} sampled values matched": "{{matches}} von {{sampled}} Stichprobenwerten stimmten überein",
   "None of the newest records with a value here carries it ({{count}} read).": "Keiner der neuesten Einträge mit einem Wert an dieser Stelle enthält sie ({{count}} gelesen).",
-  "The newest records from the last 7 days that carry it, up to 10. Values are masked: open a record to see it in full.": "Die neuesten Einträge der letzten 7 Tage, die sie enthalten, höchstens 10. Die Werte sind maskiert: Öffnen Sie einen Eintrag, um ihn vollständig zu sehen."
+  "The newest records from the last 7 days that carry it, up to 10. Values are masked: open a record to see it in full.": "Die neuesten Einträge der letzten 7 Tage, die sie enthalten, höchstens 10. Die Werte sind maskiert: Öffnen Sie einen Eintrag, um ihn vollständig zu sehen.",
+  "Asset Discovered": "Asset erkannt",
+  "Asset Dropped": "Asset gelöscht",
+  "Asset Restored": "Asset wiederhergestellt",
+  "Column Added": "Spalte hinzugefügt",
+  "Column Nullability Changed": "NULL-Zulässigkeit der Spalte geändert",
+  "Column Removed": "Spalte entfernt",
+  "Column Renamed": "Spalte umbenannt",
+  "Column Type Changed": "Spaltentyp geändert",
+  "Description Updated": "Beschreibung aktualisiert"
 }

@@ -41251,7 +41251,7 @@
   "View Table": "Voir la table",
   "Waiting for first collection": "Waiting for first collection",
   "Watch your data, not just your services": "Watch your data, not just your services",
-  "What the asset holds and who relies on it, in your own words.": "What the asset holds and who relies on it, in your own words.",
+  "What the asset holds and who relies on it, in your own words.": "Ce que contient l'asset et qui en dépend, avec vos propres mots.",
   "What this table holds and who relies on it, in your team's words. It shows on the table's Overview.": "What this table holds and who relies on it, in your team's words. It shows on the table's Overview.",
   "What this table holds and who relies on it. Edit it on Settings.": "What this table holds and who relies on it. Edit it on Settings.",
   "What your team calls this database.": "What your team calls this database.",
@@ -41267,5 +41267,14 @@
   "Reads the database's catalog every few minutes: tables, columns, row counts, sizes and last changes. Never a row. Use a read-only login.": "Reads the database's catalog every few minutes: tables, columns, row counts, sizes and last changes. Never a row. Use a read-only login.",
   "{{matches}} of {{sampled}} sampled values matched": "{{matches}} valeurs échantillonnées sur {{sampled}} correspondaient",
   "None of the newest records with a value here carries it ({{count}} read).": "Aucun des enregistrements les plus récents ayant une valeur ici ne les contient (enregistrements lus : {{count}}).",
-  "The newest records from the last 7 days that carry it, up to 10. Values are masked: open a record to see it in full.": "Les enregistrements les plus récents des 7 derniers jours qui les contiennent, 10 au plus. Les valeurs sont masquées : ouvrez un enregistrement pour le voir en entier."
+  "The newest records from the last 7 days that carry it, up to 10. Values are masked: open a record to see it in full.": "Les enregistrements les plus récents des 7 derniers jours qui les contiennent, 10 au plus. Les valeurs sont masquées : ouvrez un enregistrement pour le voir en entier.",
+  "Asset Discovered": "Asset découvert",
+  "Asset Dropped": "Asset supprimé",
+  "Asset Restored": "Asset restauré",
+  "Column Added": "Colonne ajoutée",
+  "Column Nullability Changed": "Nullabilité de la colonne modifiée",
+  "Column Removed": "Colonne supprimée",
+  "Column Renamed": "Colonne renommée",
+  "Column Type Changed": "Type de colonne modifié",
+  "Description Updated": "Description mise à jour"
 }

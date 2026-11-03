@@ -41251,7 +41251,7 @@
   "View Table": "テーブルを表示",
   "Waiting for first collection": "Waiting for first collection",
   "Watch your data, not just your services": "Watch your data, not just your services",
-  "What the asset holds and who relies on it, in your own words.": "What the asset holds and who relies on it, in your own words.",
+  "What the asset holds and who relies on it, in your own words.": "この Asset が保持する内容と、それに依存している人を、ご自身の言葉で。",
   "What this table holds and who relies on it, in your team's words. It shows on the table's Overview.": "What this table holds and who relies on it, in your team's words. It shows on the table's Overview.",
   "What this table holds and who relies on it. Edit it on Settings.": "What this table holds and who relies on it. Edit it on Settings.",
   "What your team calls this database.": "What your team calls this database.",
@@ -41267,5 +41267,14 @@
   "Reads the database's catalog every few minutes: tables, columns, row counts, sizes and last changes. Never a row. Use a read-only login.": "Reads the database's catalog every few minutes: tables, columns, row counts, sizes and last changes. Never a row. Use a read-only login.",
   "{{matches}} of {{sampled}} sampled values matched": "サンプル値 {{sampled}} 件中 {{matches}} 件が一致",
   "None of the newest records with a value here carries it ({{count}} read).": "ここに値がある最新のレコードに、このデータを含むものはありません（{{count}} 件を読み込み）。",
-  "The newest records from the last 7 days that carry it, up to 10. Values are masked: open a record to see it in full.": "このデータを含む過去 7 日間の最新のレコード（最大 10 件）です。値はマスクされています。全体を見るにはレコードを開いてください。"
+  "The newest records from the last 7 days that carry it, up to 10. Values are masked: open a record to see it in full.": "このデータを含む過去 7 日間の最新のレコード（最大 10 件）です。値はマスクされています。全体を見るにはレコードを開いてください。",
+  "Asset Discovered": "Asset を検出",
+  "Asset Dropped": "Asset を削除",
+  "Asset Restored": "Asset を復元",
+  "Column Added": "列を追加",
+  "Column Nullability Changed": "列の NULL 許容を変更",
+  "Column Removed": "列を削除",
+  "Column Renamed": "列の名前を変更",
+  "Column Type Changed": "列の型を変更",
+  "Description Updated": "説明を更新"
 }

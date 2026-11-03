@@ -41251,7 +41251,7 @@
   "View Table": "Vis tabell",
   "Waiting for first collection": "Waiting for first collection",
   "Watch your data, not just your services": "Watch your data, not just your services",
-  "What the asset holds and who relies on it, in your own words.": "What the asset holds and who relies on it, in your own words.",
+  "What the asset holds and who relies on it, in your own words.": "Hva assetet inneholder og hvem som er avhengige av det, med dine egne ord.",
   "What this table holds and who relies on it, in your team's words. It shows on the table's Overview.": "What this table holds and who relies on it, in your team's words. It shows on the table's Overview.",
   "What this table holds and who relies on it. Edit it on Settings.": "What this table holds and who relies on it. Edit it on Settings.",
   "What your team calls this database.": "What your team calls this database.",
@@ -41267,5 +41267,14 @@
   "Reads the database's catalog every few minutes: tables, columns, row counts, sizes and last changes. Never a row. Use a read-only login.": "Reads the database's catalog every few minutes: tables, columns, row counts, sizes and last changes. Never a row. Use a read-only login.",
   "{{matches}} of {{sampled}} sampled values matched": "{{matches}} av {{sampled}} prøveverdier samsvarte",
   "None of the newest records with a value here carries it ({{count}} read).": "Ingen av de nyeste postene med en verdi her inneholder dem ({{count}} lest).",
-  "The newest records from the last 7 days that carry it, up to 10. Values are masked: open a record to see it in full.": "De nyeste postene fra de siste 7 dagene som inneholder dem, opptil 10. Verdiene er maskert: åpne en post for å se den i sin helhet."
+  "The newest records from the last 7 days that carry it, up to 10. Values are masked: open a record to see it in full.": "De nyeste postene fra de siste 7 dagene som inneholder dem, opptil 10. Verdiene er maskert: åpne en post for å se den i sin helhet.",
+  "Asset Discovered": "Asset oppdaget",
+  "Asset Dropped": "Asset slettet",
+  "Asset Restored": "Asset gjenopprettet",
+  "Column Added": "Kolonne lagt til",
+  "Column Nullability Changed": "Kolonnens NULL-tillatelse endret",
+  "Column Removed": "Kolonne fjernet",
+  "Column Renamed": "Kolonne omdøpt",
+  "Column Type Changed": "Kolonnetype endret",
+  "Description Updated": "Beskrivelse oppdatert"
 }

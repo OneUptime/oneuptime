@@ -41251,7 +41251,7 @@
   "View Table": "Visualizza tabella",
   "Waiting for first collection": "Waiting for first collection",
   "Watch your data, not just your services": "Watch your data, not just your services",
-  "What the asset holds and who relies on it, in your own words.": "What the asset holds and who relies on it, in your own words.",
+  "What the asset holds and who relies on it, in your own words.": "Cosa contiene l'asset e chi ne dipende, con parole vostre.",
   "What this table holds and who relies on it, in your team's words. It shows on the table's Overview.": "What this table holds and who relies on it, in your team's words. It shows on the table's Overview.",
   "What this table holds and who relies on it. Edit it on Settings.": "What this table holds and who relies on it. Edit it on Settings.",
   "What your team calls this database.": "What your team calls this database.",
@@ -41267,5 +41267,14 @@
   "Reads the database's catalog every few minutes: tables, columns, row counts, sizes and last changes. Never a row. Use a read-only login.": "Reads the database's catalog every few minutes: tables, columns, row counts, sizes and last changes. Never a row. Use a read-only login.",
   "{{matches}} of {{sampled}} sampled values matched": "{{matches}} valori campionati su {{sampled}} corrispondevano",
   "None of the newest records with a value here carries it ({{count}} read).": "Nessuno dei record più recenti con un valore qui li contiene (record letti: {{count}}).",
-  "The newest records from the last 7 days that carry it, up to 10. Values are masked: open a record to see it in full.": "I record più recenti degli ultimi 7 giorni che li contengono, fino a 10. I valori sono mascherati: apri un record per vederlo per intero."
+  "The newest records from the last 7 days that carry it, up to 10. Values are masked: open a record to see it in full.": "I record più recenti degli ultimi 7 giorni che li contengono, fino a 10. I valori sono mascherati: apri un record per vederlo per intero.",
+  "Asset Discovered": "Asset rilevato",
+  "Asset Dropped": "Asset eliminato",
+  "Asset Restored": "Asset ripristinato",
+  "Column Added": "Colonna aggiunta",
+  "Column Nullability Changed": "Nullabilità della colonna modificata",
+  "Column Removed": "Colonna rimossa",
+  "Column Renamed": "Colonna rinominata",
+  "Column Type Changed": "Tipo di colonna modificato",
+  "Description Updated": "Descrizione aggiornata"
 }

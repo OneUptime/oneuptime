@@ -41251,7 +41251,7 @@
   "View Table": "Tabel bekijken",
   "Waiting for first collection": "Waiting for first collection",
   "Watch your data, not just your services": "Watch your data, not just your services",
-  "What the asset holds and who relies on it, in your own words.": "What the asset holds and who relies on it, in your own words.",
+  "What the asset holds and who relies on it, in your own words.": "Wat het asset bevat en wie ervan afhankelijk is, in je eigen woorden.",
   "What this table holds and who relies on it, in your team's words. It shows on the table's Overview.": "What this table holds and who relies on it, in your team's words. It shows on the table's Overview.",
   "What this table holds and who relies on it. Edit it on Settings.": "What this table holds and who relies on it. Edit it on Settings.",
   "What your team calls this database.": "What your team calls this database.",
@@ -41267,5 +41267,14 @@
   "Reads the database's catalog every few minutes: tables, columns, row counts, sizes and last changes. Never a row. Use a read-only login.": "Reads the database's catalog every few minutes: tables, columns, row counts, sizes and last changes. Never a row. Use a read-only login.",
   "{{matches}} of {{sampled}} sampled values matched": "{{matches}} van {{sampled}} bemonsterde waarden kwamen overeen",
   "None of the newest records with a value here carries it ({{count}} read).": "Geen van de nieuwste records met een waarde hier bevat ze ({{count}} gelezen).",
-  "The newest records from the last 7 days that carry it, up to 10. Values are masked: open a record to see it in full.": "De nieuwste records van de afgelopen 7 dagen die ze bevatten, maximaal 10. Waarden zijn gemaskeerd: open een record om het volledig te zien."
+  "The newest records from the last 7 days that carry it, up to 10. Values are masked: open a record to see it in full.": "De nieuwste records van de afgelopen 7 dagen die ze bevatten, maximaal 10. Waarden zijn gemaskeerd: open een record om het volledig te zien.",
+  "Asset Discovered": "Asset ontdekt",
+  "Asset Dropped": "Asset verwijderd",
+  "Asset Restored": "Asset hersteld",
+  "Column Added": "Kolom toegevoegd",
+  "Column Nullability Changed": "Nullbaarheid van kolom gewijzigd",
+  "Column Removed": "Kolom verwijderd",
+  "Column Renamed": "Kolom hernoemd",
+  "Column Type Changed": "Kolomtype gewijzigd",
+  "Description Updated": "Beschrijving bijgewerkt"
 }

@@ -41251,7 +41251,7 @@
   "View Table": "查看表",
   "Waiting for first collection": "Waiting for first collection",
   "Watch your data, not just your services": "Watch your data, not just your services",
-  "What the asset holds and who relies on it, in your own words.": "What the asset holds and who relies on it, in your own words.",
+  "What the asset holds and who relies on it, in your own words.": "用你自己的话说明该 Asset 存放什么、谁依赖它。",
   "What this table holds and who relies on it, in your team's words. It shows on the table's Overview.": "What this table holds and who relies on it, in your team's words. It shows on the table's Overview.",
   "What this table holds and who relies on it. Edit it on Settings.": "What this table holds and who relies on it. Edit it on Settings.",
   "What your team calls this database.": "What your team calls this database.",
@@ -41267,5 +41267,14 @@
   "Reads the database's catalog every few minutes: tables, columns, row counts, sizes and last changes. Never a row. Use a read-only login.": "Reads the database's catalog every few minutes: tables, columns, row counts, sizes and last changes. Never a row. Use a read-only login.",
   "{{matches}} of {{sampled}} sampled values matched": "{{sampled}} 个采样值中有 {{matches}} 个匹配",
   "None of the newest records with a value here carries it ({{count}} read).": "此处有值的最新记录都不包含它（已读取 {{count}} 条）。",
-  "The newest records from the last 7 days that carry it, up to 10. Values are masked: open a record to see it in full.": "过去 7 天中包含它的最新记录，最多 10 条。值已脱敏：打开记录即可查看完整内容。"
+  "The newest records from the last 7 days that carry it, up to 10. Values are masked: open a record to see it in full.": "过去 7 天中包含它的最新记录，最多 10 条。值已脱敏：打开记录即可查看完整内容。",
+  "Asset Discovered": "已发现 Asset",
+  "Asset Dropped": "已删除 Asset",
+  "Asset Restored": "已恢复 Asset",
+  "Column Added": "已添加列",
+  "Column Nullability Changed": "已更改列可空性",
+  "Column Removed": "已移除列",
+  "Column Renamed": "已重命名列",
+  "Column Type Changed": "已更改列类型",
+  "Description Updated": "已更新描述"
 }

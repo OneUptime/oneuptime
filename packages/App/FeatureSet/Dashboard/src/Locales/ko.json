@@ -41251,7 +41251,7 @@
   "View Table": "테이블 보기",
   "Waiting for first collection": "Waiting for first collection",
   "Watch your data, not just your services": "Watch your data, not just your services",
-  "What the asset holds and who relies on it, in your own words.": "What the asset holds and who relies on it, in your own words.",
+  "What the asset holds and who relies on it, in your own words.": "이 Asset에 무엇이 담겨 있고 누가 이에 의존하는지, 직접 작성하세요.",
   "What this table holds and who relies on it, in your team's words. It shows on the table's Overview.": "What this table holds and who relies on it, in your team's words. It shows on the table's Overview.",
   "What this table holds and who relies on it. Edit it on Settings.": "What this table holds and who relies on it. Edit it on Settings.",
   "What your team calls this database.": "What your team calls this database.",
@@ -41267,5 +41267,14 @@
   "Reads the database's catalog every few minutes: tables, columns, row counts, sizes and last changes. Never a row. Use a read-only login.": "Reads the database's catalog every few minutes: tables, columns, row counts, sizes and last changes. Never a row. Use a read-only login.",
   "{{matches}} of {{sampled}} sampled values matched": "샘플 값 {{sampled}}개 중 {{matches}}개 일치",
   "None of the newest records with a value here carries it ({{count}} read).": "여기에 값이 있는 최신 레코드 중 이 데이터를 담은 레코드가 없습니다({{count}}개 읽음).",
-  "The newest records from the last 7 days that carry it, up to 10. Values are masked: open a record to see it in full.": "이 데이터를 담은 최근 7일 동안의 최신 레코드(최대 10개)입니다. 값은 마스킹되어 있습니다. 전체를 보려면 레코드를 여세요."
+  "The newest records from the last 7 days that carry it, up to 10. Values are masked: open a record to see it in full.": "이 데이터를 담은 최근 7일 동안의 최신 레코드(최대 10개)입니다. 값은 마스킹되어 있습니다. 전체를 보려면 레코드를 여세요.",
+  "Asset Discovered": "Asset 발견됨",
+  "Asset Dropped": "Asset 삭제됨",
+  "Asset Restored": "Asset 복원됨",
+  "Column Added": "열 추가됨",
+  "Column Nullability Changed": "열 NULL 허용 여부 변경됨",
+  "Column Removed": "열 제거됨",
+  "Column Renamed": "열 이름 변경됨",
+  "Column Type Changed": "열 유형 변경됨",
+  "Description Updated": "설명 업데이트됨"
 }

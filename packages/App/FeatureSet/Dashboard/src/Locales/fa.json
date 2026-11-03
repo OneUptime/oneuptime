@@ -41251,7 +41251,7 @@
   "View Table": "مشاهده جدول",
   "Waiting for first collection": "Waiting for first collection",
   "Watch your data, not just your services": "Watch your data, not just your services",
-  "What the asset holds and who relies on it, in your own words.": "What the asset holds and who relies on it, in your own words.",
+  "What the asset holds and who relies on it, in your own words.": "این Asset چه چیزی را نگه می‌دارد و چه کسانی به آن وابسته‌اند، به زبان خودتان.",
   "What this table holds and who relies on it, in your team's words. It shows on the table's Overview.": "What this table holds and who relies on it, in your team's words. It shows on the table's Overview.",
   "What this table holds and who relies on it. Edit it on Settings.": "What this table holds and who relies on it. Edit it on Settings.",
   "What your team calls this database.": "What your team calls this database.",
@@ -41267,5 +41267,14 @@
   "Reads the database's catalog every few minutes: tables, columns, row counts, sizes and last changes. Never a row. Use a read-only login.": "Reads the database's catalog every few minutes: tables, columns, row counts, sizes and last changes. Never a row. Use a read-only login.",
   "{{matches}} of {{sampled}} sampled values matched": "{{matches}} از {{sampled}} مقدار نمونه‌برداری‌شده مطابقت داشت",
   "None of the newest records with a value here carries it ({{count}} read).": "هیچ‌یک از تازه‌ترین رکوردهایی که اینجا مقدار دارند این داده را ندارد ({{count}} رکورد خوانده شد).",
-  "The newest records from the last 7 days that carry it, up to 10. Values are masked: open a record to see it in full.": "تازه‌ترین رکوردهای 7 روز گذشته که این داده را دارند، حداکثر 10 مورد. مقدارها پوشانده شده‌اند: برای دیدن کامل، یک رکورد را باز کنید."
+  "The newest records from the last 7 days that carry it, up to 10. Values are masked: open a record to see it in full.": "تازه‌ترین رکوردهای 7 روز گذشته که این داده را دارند، حداکثر 10 مورد. مقدارها پوشانده شده‌اند: برای دیدن کامل، یک رکورد را باز کنید.",
+  "Asset Discovered": "Asset کشف شد",
+  "Asset Dropped": "Asset حذف شد",
+  "Asset Restored": "Asset بازیابی شد",
+  "Column Added": "ستون افزوده شد",
+  "Column Nullability Changed": "امکان NULL ستون تغییر کرد",
+  "Column Removed": "ستون حذف شد",
+  "Column Renamed": "نام ستون تغییر کرد",
+  "Column Type Changed": "نوع ستون تغییر کرد",
+  "Description Updated": "توضیحات به‌روز شد"
 }

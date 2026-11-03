@@ -41251,7 +41251,7 @@
   "View Table": "Ver tabla",
   "Waiting for first collection": "Waiting for first collection",
   "Watch your data, not just your services": "Watch your data, not just your services",
-  "What the asset holds and who relies on it, in your own words.": "What the asset holds and who relies on it, in your own words.",
+  "What the asset holds and who relies on it, in your own words.": "Qué contiene el asset y quién depende de él, con tus propias palabras.",
   "What this table holds and who relies on it, in your team's words. It shows on the table's Overview.": "What this table holds and who relies on it, in your team's words. It shows on the table's Overview.",
   "What this table holds and who relies on it. Edit it on Settings.": "What this table holds and who relies on it. Edit it on Settings.",
   "What your team calls this database.": "What your team calls this database.",
@@ -41267,5 +41267,14 @@
   "Reads the database's catalog every few minutes: tables, columns, row counts, sizes and last changes. Never a row. Use a read-only login.": "Reads the database's catalog every few minutes: tables, columns, row counts, sizes and last changes. Never a row. Use a read-only login.",
   "{{matches}} of {{sampled}} sampled values matched": "{{matches}} de {{sampled}} valores muestreados coincidieron",
   "None of the newest records with a value here carries it ({{count}} read).": "Ninguna de las entradas más recientes con un valor aquí los contiene (entradas leídas: {{count}}).",
-  "The newest records from the last 7 days that carry it, up to 10. Values are masked: open a record to see it in full.": "Las entradas más recientes de los últimos 7 días que los contienen, hasta 10. Los valores están enmascarados: abre una entrada para verla completa."
+  "The newest records from the last 7 days that carry it, up to 10. Values are masked: open a record to see it in full.": "Las entradas más recientes de los últimos 7 días que los contienen, hasta 10. Los valores están enmascarados: abre una entrada para verla completa.",
+  "Asset Discovered": "Asset descubierto",
+  "Asset Dropped": "Asset eliminado",
+  "Asset Restored": "Asset restaurado",
+  "Column Added": "Columna añadida",
+  "Column Nullability Changed": "Nulabilidad de la columna cambiada",
+  "Column Removed": "Columna eliminada",
+  "Column Renamed": "Columna renombrada",
+  "Column Type Changed": "Tipo de columna cambiado",
+  "Description Updated": "Descripción actualizada"
 }

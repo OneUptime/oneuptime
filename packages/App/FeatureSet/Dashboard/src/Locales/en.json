@@ -41267,5 +41267,14 @@
   "Reads the database's catalog every few minutes: tables, columns, row counts, sizes and last changes. Never a row. Use a read-only login.": "Reads the database's catalog every few minutes: tables, columns, row counts, sizes and last changes. Never a row. Use a read-only login.",
   "{{matches}} of {{sampled}} sampled values matched": "{{matches}} of {{sampled}} sampled values matched",
   "None of the newest records with a value here carries it ({{count}} read).": "None of the newest records with a value here carries it ({{count}} read).",
-  "The newest records from the last 7 days that carry it, up to 10. Values are masked: open a record to see it in full.": "The newest records from the last 7 days that carry it, up to 10. Values are masked: open a record to see it in full."
+  "The newest records from the last 7 days that carry it, up to 10. Values are masked: open a record to see it in full.": "The newest records from the last 7 days that carry it, up to 10. Values are masked: open a record to see it in full.",
+  "Asset Discovered": "Asset Discovered",
+  "Asset Dropped": "Asset Dropped",
+  "Asset Restored": "Asset Restored",
+  "Column Added": "Column Added",
+  "Column Nullability Changed": "Column Nullability Changed",
+  "Column Removed": "Column Removed",
+  "Column Renamed": "Column Renamed",
+  "Column Type Changed": "Column Type Changed",
+  "Description Updated": "Description Updated"
 }

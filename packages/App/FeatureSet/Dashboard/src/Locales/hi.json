@@ -41251,7 +41251,7 @@
   "View Table": "टेबल देखें",
   "Waiting for first collection": "Waiting for first collection",
   "Watch your data, not just your services": "Watch your data, not just your services",
-  "What the asset holds and who relies on it, in your own words.": "What the asset holds and who relies on it, in your own words.",
+  "What the asset holds and who relies on it, in your own words.": "यह Asset क्या रखता है और कौन इस पर निर्भर है, अपने शब्दों में।",
   "What this table holds and who relies on it, in your team's words. It shows on the table's Overview.": "What this table holds and who relies on it, in your team's words. It shows on the table's Overview.",
   "What this table holds and who relies on it. Edit it on Settings.": "What this table holds and who relies on it. Edit it on Settings.",
   "What your team calls this database.": "What your team calls this database.",
@@ -41267,5 +41267,14 @@
   "Reads the database's catalog every few minutes: tables, columns, row counts, sizes and last changes. Never a row. Use a read-only login.": "Reads the database's catalog every few minutes: tables, columns, row counts, sizes and last changes. Never a row. Use a read-only login.",
   "{{matches}} of {{sampled}} sampled values matched": "{{sampled}} में से {{matches}} नमूना मान मेल खाए",
   "None of the newest records with a value here carries it ({{count}} read).": "यहां मान वाले सबसे नए रिकॉर्ड में से किसी में भी यह डेटा नहीं है ({{count}} पढ़े गए)।",
-  "The newest records from the last 7 days that carry it, up to 10. Values are masked: open a record to see it in full.": "पिछले 7 दिनों के सबसे नए रिकॉर्ड जिनमें यह डेटा है, अधिकतम 10। मान मास्क किए गए हैं: पूरा देखने के लिए कोई रिकॉर्ड खोलें।"
+  "The newest records from the last 7 days that carry it, up to 10. Values are masked: open a record to see it in full.": "पिछले 7 दिनों के सबसे नए रिकॉर्ड जिनमें यह डेटा है, अधिकतम 10। मान मास्क किए गए हैं: पूरा देखने के लिए कोई रिकॉर्ड खोलें।",
+  "Asset Discovered": "Asset खोजा गया",
+  "Asset Dropped": "Asset हटाया गया",
+  "Asset Restored": "Asset बहाल किया गया",
+  "Column Added": "कॉलम जोड़ा गया",
+  "Column Nullability Changed": "कॉलम की NULL अनुमति बदली गई",
+  "Column Removed": "कॉलम हटाया गया",
+  "Column Renamed": "कॉलम का नाम बदला गया",
+  "Column Type Changed": "कॉलम का प्रकार बदला गया",
+  "Description Updated": "विवरण अपडेट किया गया"
 }
