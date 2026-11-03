@@ -219,7 +219,9 @@ export function canRequestCover(shift: MyOnCallShift, now: number): boolean {
  * The params handed to the override sheet so it opens already knowing which
  * project, which schedule and which window to cover. A policy-variant shift
  * carries its policy: it only exists inside that policy, so the cover for it
- * has to be scoped the same way or it would not apply.
+ * has to be scoped the same way or it would not apply. Any other shift
+ * carries the policies that page through it, which the sheet offers to
+ * someone whose permission covers only some policies.
  */
 export function buildCoverParams(
   shift: MyOnCallShift,
@@ -234,6 +236,12 @@ export function buildCoverParams(
 
   if (shift.policyVariantOf) {
     params.policyId = shift.policyVariantOf.policyId;
+  } else if (shift.policies.length > 0) {
+    params.policies = shift.policies.map(
+      (policy: { policyId: string; policyName: string }) => {
+        return { policyId: policy.policyId, policyName: policy.policyName };
+      },
+    );
   }
 
   return params;

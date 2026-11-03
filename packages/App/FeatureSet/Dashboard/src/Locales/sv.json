@@ -41550,5 +41550,9 @@
   "Usually Takes": "Usually Takes",
   "Usually {{duration}}": "Usually {{duration}}",
   "Wrote": "Wrote",
-  "{{days}}d {{hours}}h": "{{days}}d {{hours}}h"
+  "{{days}}d {{hours}}h": "{{days}}d {{hours}}h",
+  "The ones you may add user overrides on. Untick any it should leave alone.": "De du får lägga till användaråsidosättningar på. Avmarkera dem som det ska låta vara.",
+  "This applies to the on-call policies you tick. To end it early, delete it on each policy's User Overrides page, under Advanced.": "Detta gäller de jourpolicyer du markerar. Ta bort det på varje policys sida Användaråsidosättningar, under Avancerad, för att avsluta det tidigare.",
+  "This applies to the on-call policy {{policy}}. To end it early, delete it on that policy's User Overrides page, under Advanced.": "Detta gäller jourpolicyn {{policy}}. Ta bort det på den policyns sida Användaråsidosättningar, under Avancerad, för att avsluta det tidigare.",
+  "Tick at least one on-call policy.": "Markera minst en jourpolicy."
 }
