@@ -1,7 +1,7 @@
 {
   "baseline": {
     "keys": 40603,
-    "untranslated": 3502
+    "untranslated": 3478
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -542,7 +542,6 @@
     "UTC",
     "Uganda",
     "Ukraine",
-    "Undersized",
     "Undersized PGs",
     "Undersized Placement Groups",
     "Up",

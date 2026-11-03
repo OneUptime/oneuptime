@@ -1,7 +1,7 @@
 {
   "baseline": {
     "keys": 40603,
-    "untranslated": 12201
+    "untranslated": 12163
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -214,6 +214,7 @@
     "goroutines",
     "govc",
     "host",
+    "incl. threads",
     "info",
     "ip",
     "item",

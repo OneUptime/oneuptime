@@ -118,6 +118,7 @@ import React, {
   useState,
 } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { formatRelativeTime } from "../../../Components/Home/HomeRelativeTime";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 
 interface TopContainerRow {
@@ -991,7 +992,12 @@ const PodmanHostOverview: FunctionComponent<
      */
     const lastSeenText: string = lastSeenAt
       ? translator.translateTemplate("Last seen {{time}}", {
-          time: OneUptimeDate.fromNow(lastSeenAt),
+          // In the reader's language, as a part's page says it.
+          time: formatRelativeTime({
+            date: OneUptimeDate.fromString(lastSeenAt),
+            now: new Date(),
+            language: translator.language,
+          }),
         })
       : translator.translateText("Never seen") || "Never seen";
 
@@ -1203,20 +1209,20 @@ const PodmanHostOverview: FunctionComponent<
     return (
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <GoldenMetricTile
-          title="Avg CPU"
+          title={translator.translateText("Avg CPU") as string}
           icon={IconProp.ChartBar}
           iconColor="blue"
           value={formatPercent(s.avgCpu)}
-          sublabel="across containers"
+          sublabel={translator.translateText("across containers") as string}
           percent={s.avgCpu}
           description={CONTAINER_HOST_METRIC_DESCRIPTIONS.avgCpu}
         />
         <GoldenMetricTile
-          title="Peak CPU"
+          title={translator.translateText("Peak CPU") as string}
           icon={IconProp.Activity}
           iconColor="amber"
           value={formatPercent(s.maxCpu)}
-          sublabel="busiest container"
+          sublabel={translator.translateText("busiest container") as string}
           percent={s.maxCpu}
           tone={
             s.maxCpu === null
@@ -1232,20 +1238,22 @@ const PodmanHostOverview: FunctionComponent<
          * is of the host's memory - so the sublabel names both.
          */}
         <GoldenMetricTile
-          title="Avg Memory"
+          title={translator.translateText("Avg Memory") as string}
           icon={IconProp.SquareStack}
           iconColor="violet"
           value={formatPercent(s.avgMemory)}
-          sublabel="of limit or host memory"
+          sublabel={
+            translator.translateText("of limit or host memory") as string
+          }
           percent={s.avgMemory}
           description={CONTAINER_HOST_METRIC_DESCRIPTIONS.avgMemory}
         />
         <GoldenMetricTile
-          title="Peak Memory"
+          title={translator.translateText("Peak Memory") as string}
           icon={IconProp.Database}
           iconColor="emerald"
           value={formatPercent(s.maxMemory)}
-          sublabel="hottest container"
+          sublabel={translator.translateText("hottest container") as string}
           percent={s.maxMemory}
           tone={
             s.maxMemory === null
@@ -1261,11 +1269,11 @@ const PodmanHostOverview: FunctionComponent<
          * counted along with processes (the PIDS column of podman stats).
          */}
         <GoldenMetricTile
-          title="Processes"
+          title={translator.translateText("Processes") as string}
           icon={IconProp.QueueList}
           iconColor="slate"
           value={formatInt(s.totalPids)}
-          sublabel="incl. threads"
+          sublabel={translator.translateText("incl. threads") as string}
           description={CONTAINER_HOST_METRIC_DESCRIPTIONS.processes}
         />
       </div>

@@ -39,7 +39,12 @@ const LINE_COMMENT_PATTERN: RegExp = /(^|[^:])\/\/[^\n]*/g;
 const JSX_EMPTY_EXPRESSION_PATTERN: RegExp = /\{\s*\}/g;
 const TILE_PATTERN: RegExp = /<GoldenMetricTile\b[\s\S]*?\/>/g;
 const CHART_CALL_PATTERN: RegExp = /renderChartCard\(\{[\s\S]*?\}\)/g;
-const TITLE_ATTRIBUTE_PATTERN: RegExp = /title="([^"]+)"/;
+/*
+ * A tile draws its title and line as given (GoldenMetricTile), so the page
+ * looks each up in the reader's language where it hands it over.
+ */
+const TILE_TITLE_PATTERN: RegExp =
+  /title=\{translator\.translateText\("([^"]+)"\) as string\}/;
 const TITLE_PROPERTY_PATTERN: RegExp = /title: "([^"]+)"/;
 const RECORD_KEY_PATTERN: RegExp =
   /CONTAINER_HOST_METRIC_DESCRIPTIONS\.([A-Za-z]+)/;
@@ -184,7 +189,7 @@ describe.each(RUNTIMES)("%s host overview", (runtime: string) => {
     const tiles: Array<string> = code.match(TILE_PATTERN) || [];
     const pairs: Array<[string, string | null]> = tiles.map(
       (tile: string): [string, string | null] => {
-        return [tile.match(TITLE_ATTRIBUTE_PATTERN)![1]!, keyIn(tile)];
+        return [tile.match(TILE_TITLE_PATTERN)![1]!, keyIn(tile)];
       },
     );
 
@@ -198,12 +203,16 @@ describe.each(RUNTIMES)("%s host overview", (runtime: string) => {
   test("the Processes tile shows the process total the page already computed", () => {
     const tiles: Array<string> = code.match(TILE_PATTERN) || [];
     const processes: string = tiles.find((tile: string): boolean => {
-      return tile.includes('title="Processes"');
+      return tile.includes(
+        'title={translator.translateText("Processes") as string}',
+      );
     })!;
 
     expect(processes).toContain("value={formatInt(s.totalPids)}");
     // The pid count includes threads; the tile says so, not just the (i).
-    expect(processes).toContain('sublabel="incl. threads"');
+    expect(processes).toContain(
+      'sublabel={translator.translateText("incl. threads") as string}',
+    );
     expect(code).toContain('"container.pids.count"');
     expect(code).toContain("totalPids: totalPids");
   });
@@ -222,8 +231,10 @@ describe.each(RUNTIMES)("%s host overview", (runtime: string) => {
      * Containers run without a memory limit by default, and then
      * container.memory.percent is of the host's memory.
      */
-    expect(code).not.toContain('sublabel="of container limit"');
-    expect(code).toContain('sublabel="of limit or host memory"');
+    expect(code).not.toContain("of container limit");
+    expect(code).toContain(
+      'translator.translateText("of limit or host memory")',
+    );
   });
 
   test("every chart card is called with the description written for it", () => {

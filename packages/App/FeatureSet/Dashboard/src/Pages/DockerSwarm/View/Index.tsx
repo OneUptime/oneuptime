@@ -69,6 +69,7 @@ import {
 } from "../../../Components/TelemetryResource/ResourceHeroStatus";
 import { DOCKER_SWARM_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/DockerSwarmMetricDescriptions";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { formatRelativeTime } from "../../../Components/Home/HomeRelativeTime";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -319,7 +320,12 @@ const DockerSwarmClusterOverview: FunctionComponent<
      */
     const lastSeenText: string = lastSeenAt
       ? translator.translateTemplate("Last seen {{time}}", {
-          time: OneUptimeDate.fromNow(lastSeenAt),
+          // In the reader's language, as a part's page says it.
+          time: formatRelativeTime({
+            date: OneUptimeDate.fromString(lastSeenAt),
+            now: new Date(),
+            language: translator.language,
+          }),
         })
       : translator.translateText("Never seen") || "Never seen";
 
