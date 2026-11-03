@@ -99,7 +99,7 @@ I pulsanti in cima alla pagina dell'eccezione, la sua pagina **Impostazioni** e 
 
 **Impostazioni** mostra chi ha risolto o archiviato l'eccezione per ultimo, e quando. I suoi pulsanti dicono **Segna come risolto** o **Segna come non risolto**, e **Archivia** o **Annulla archiviazione**.
 
-Per cambiarne diverse insieme, spuntate le loro righe nell'elenco, o la casella sopra le righe per tutte le eccezioni della pagina, e usate le stesse azioni in **Azioni di massa**. Il risultato dice quali eccezioni sono cambiate, quali sono rimaste com'erano e perché.
+Per cambiarne diverse insieme, spuntate le loro righe nell'elenco, o la casella sopra le righe per tutte le eccezioni della pagina, e usate le stesse azioni in **Azioni di massa**. Quando tutte le eccezioni della pagina sono spuntate, la barra sopra le righe offre di selezionare tutte le eccezioni che corrispondono alla ricerca e ai filtri dell'elenco, su tutte le pagine, fino a 10.000 alla volta; un'azione chiede allora conferma prima di cambiarle. Il risultato dice quali eccezioni sono cambiate, quali sono rimaste com'erano e perché.
 
 **Assegna** nell'intestazione dell'eccezione la affida a una persona o a un team, e togliere la scelta rimuove l'assegnazione. Ogni riga mostra a chi appartiene, il suo menu ⋯ offre **Assegna a me**, e **Assegna a…** in **Azioni di massa** ne assegna diverse insieme. La persona a cui è assegnata, o ciascun membro del team, riceve una notifica come indica la riga **Eccezione assegnata a me** delle sue [Impostazioni notifiche](/docs/notifications/notification-settings); chi l'ha assegnata non la riceve.
 

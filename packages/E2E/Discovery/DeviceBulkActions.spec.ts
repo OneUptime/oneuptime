@@ -107,8 +107,10 @@ async function pickOption(page: Page, label: string): Promise<void> {
 }
 
 /*
- * On a phone the table is a list of cards with no header checkbox: every
- * row's own checkbox is ticked instead.
+ * On a phone the table is a list of cards: every card's own checkbox is
+ * ticked, and the band over the cards says how many (BulkUpdateForm's Row:
+ * "6 selected", where a bar of its own over the band said "6 Devices
+ * Selected").
  */
 async function selectEveryRow(page: Page): Promise<void> {
   const boxes: Locator = page.getByRole("checkbox", {
@@ -120,7 +122,11 @@ async function selectEveryRow(page: Page): Promise<void> {
     await boxes.nth(index).check();
   }
 
-  await expect(page.getByText("6 Devices Selected")).toBeVisible();
+  await expect(
+    page
+      .getByTestId("table-cards-header")
+      .getByTestId("bulk-update-selected-count"),
+  ).toHaveText("6 selected");
 }
 
 test("the bulk menu offers site, role and vendor template, and Clear Site only where there is a site to clear", async ({

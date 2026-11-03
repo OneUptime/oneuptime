@@ -2017,6 +2017,106 @@ test.describe("connections: your logs and your SIEM", () => {
   });
 
   /*
+   * "Your security tools at 1280 cuts its Health pills to 8rem by the shared
+   * table give-way rule; they are whole at 1440" - the maintainer's
+   * follow-up to #5344. The table found the room it lacked at 1280 by
+   * cutting the one word each row is read for ("Last poll succ...",
+   * "Schedule pau..."), while the column of names beside them held on to a
+   * product's name that never broke ("Microsoft Defender XDR"). A product's
+   * name breaks between its words when it alone is wider than its column
+   * now, and the pills are whole.
+   */
+  test("1280: every Health pill is whole, the name column wrapping a line more instead", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, CONNECTIONS_PATH, { tools: "rows", width: 1280 });
+    const card: Locator = toolsCard(page);
+    await expect(card.locator("tbody tr")).toHaveCount(3, { timeout: 30000 });
+
+    interface HealthCell {
+      text: string;
+      give: string | null;
+      isCut: boolean;
+    }
+
+    // Read in one frame, once the table has fitted itself to its card.
+    const read: () => Promise<Array<HealthCell>> = async (): Promise<
+      Array<HealthCell>
+    > => {
+      return await card.evaluate((element: Element): Array<HealthCell> => {
+        const headers: Array<string> = Array.from(
+          element.querySelectorAll("thead th"),
+        ).map((th: Element): string => {
+          return (th.textContent || "").trim();
+        });
+        const column: number = headers.indexOf("Health");
+
+        return Array.from(element.querySelectorAll("tbody tr")).map(
+          (row: Element): HealthCell => {
+            const cell: Element = row.querySelectorAll("td")[column] as Element;
+            const value: Element | null =
+              cell.querySelector("[data-table-value]");
+
+            return {
+              text: ((cell as HTMLElement).innerText || "").trim(),
+              give: value ? value.getAttribute("data-give") : null,
+              // Anything in the cell narrower than its own words.
+              isCut: Array.from(cell.querySelectorAll("*")).some(
+                (part: Element): boolean => {
+                  return part.scrollWidth > part.clientWidth + 1;
+                },
+              ),
+            };
+          },
+        );
+      });
+    };
+
+    await expect
+      .poll(async (): Promise<Array<string | null>> => {
+        return (await read()).map((cell: HealthCell): string | null => {
+          return cell.give;
+        });
+      })
+      .toEqual([null, null, null]);
+
+    const health: Array<HealthCell> = await read();
+
+    expect(
+      health.map((cell: HealthCell): string => {
+        return cell.text;
+      }),
+    ).toEqual(["Last poll succeeded", "Last poll failed", "Schedule paused"]);
+    for (const cell of health) {
+      expect(cell.isCut, `${cell.text} is cut short`).toBe(false);
+    }
+
+    // The product's name is all there, on as many lines as its column needs.
+    await expect(
+      card
+        .locator("tbody tr")
+        .filter({ hasText: "Defender XDR - EU tenant" })
+        .getByTestId("security-event-connection-provider"),
+    ).toHaveText("Microsoft Defender XDR");
+
+    // And the table still fits its card: nothing scrolls sideways.
+    const overflow: number = await card
+      .getByTestId("table-scroll")
+      .evaluate((element: Element): number => {
+        return element.scrollWidth - element.clientWidth;
+      });
+    expect(overflow).toBeLessThanOrEqual(1);
+    await expectNoHorizontalOverflow(page);
+
+    await toolsCard(page).scrollIntoViewIfNeeded();
+    await screenshot(page, "connections-tools-health-whole-1280", {
+      clip: toolsCard(page),
+    });
+  });
+
+  /*
    * The two tables of products on this page draw a product the same way: its
    * one-colour mark on a tile of one size, the name as far from the tile,
    * the tile level with the name's first line. Your security tools drew its
