@@ -68,10 +68,10 @@ import MicrosoftTeamsReplies, {
  * another project" as a Teams suggested action (getAskInAnotherProjectAction),
  * which says those words for them. In a group chat or a channel, which show
  * no suggested action, the answer's note says to mention the bot with them
- * (getAnsweredInNote) - and anywhere, they can say them. The
- * question the conversation keeps (rememberConversationQuestion) is asked
- * again in their other project - asked which, with a button for each, when
- * they have more than one - and the conversation's follow-ups go there.
+ * (getAnsweredInNote) - and anywhere, they can say them. The question the
+ * conversation keeps (rememberConversationQuestion) is asked again in their
+ * other project - asked which, with a button for each, when they have more
+ * than one - and the conversation's follow-ups go there.
  *
  * When the card cannot be offered - the person is in fewer than two of the
  * projects or more than a card lists, a project cannot be named, the
