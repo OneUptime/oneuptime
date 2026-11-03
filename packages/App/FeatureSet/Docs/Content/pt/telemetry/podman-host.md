@@ -154,6 +154,16 @@ As métricas e os logs de cada contêiner são arquivados em um serviço com o n
 
 [Monitor de Podman](/docs/monitor/podman-monitor#métricas-coletadas) lista cada métrica e o que ela significa.
 
+## O que as páginas do host mostram
+
+As páginas do host julgam cada contêiner pelas mesmas regras, então a visão geral, a lista de contêineres e a página de um contêiner sempre concordam:
+
+- **Visão geral**: a integridade do host ao lado da sua conexão, e **Requer atenção**: os contêineres quebrados ou que precisam de atenção, os mais urgentes primeiro, cada um com o motivo. Um contêiner que a política de reinicialização reiniciou mais de 3 vezes em 15 minutos está em um ciclo de reinicializações; um que reiniciou, usa mais de 85% da memória ou ficou em execução por 10 minutos ou mais e depois parou de reportar precisa de atenção.
+- **Contêineres**: o estado de cada contêiner com as mesmas palavras e cores, com o motivo, as reinicializações dos últimos 15 minutos e quando foi iniciado pela última vez. Um contêiner que parou continua na lista por 15 minutos após a última leitura: **Parou de reportar** para um que ficou em execução por 10 minutos ou mais, **Não reportando** em cinza para um job ou uma execução avulsa que terminou.
+- A página de um contêiner: o que nele precisa de atenção, a CPU, a memória e as reinicializações, o que está aberto nele, os alertas do contêiner com um passo para ativá-los e o que o agente reporta sobre ele.
+
+O agente lê apenas contêineres em execução, então um contêiner que já estava parado quando o agente iniciou, um código de saída e o veredito de uma verificação de saúde não aparecem.
+
 ## Logs de contêineres precisam do driver de log k8s-file
 
 O agente acompanha `/var/lib/containers/storage/overlay-containers/*/userdata/ctr.log`, os arquivos que o driver de log `k8s-file` do Podman grava (`json-file` é o mesmo driver no Podman). O driver padrão do Podman rootful é `journald`, que não deixa arquivo para ler, e o mesmo vale para um driver remoto como `syslog`. As métricas de um contêiner assim continuam chegando; os logs, não.

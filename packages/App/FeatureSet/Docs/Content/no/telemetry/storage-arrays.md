@@ -136,7 +136,7 @@ Everything is ready. Begin running and processing data.
 
 ### Finn arrayet i OneUptime
 
-Åpne **Produkter → Infrastruktur → Lagringsarrayer → All Storage Arrays**. Etter den første scrapen (omtrent ett minutt) er arrayet der med kapasitet, ytelse, åpne varsler og maskinvare. Volumer, verter og pods følger innen 2 minutter, en FlashBlades filsystemer og buckets innen 5, og FlashArray-kataloger innen 30. Arrayets side **Topologi** tegner vertene, volumene, filsystemene og maskinvaren på ett kart: se [Topologi](/docs/telemetry/topology#åpne-en-ressurs-sitt-eget-kart).
+Åpne **Produkter → Infrastruktur → Lagringsarrayer → Alle lagringsarrayer**. Etter den første scrapen (omtrent ett minutt) er arrayet der med kapasitet, ytelse, åpne varsler og maskinvare. Volumer, verter og pods følger innen 2 minutter, en FlashBlades filsystemer og buckets innen 5, og FlashArray-kataloger innen 30. Arrayets side **Topologi** tegner vertene, volumene, filsystemene og maskinvaren på ett kart: se [Topologi](/docs/telemetry/topology#åpne-en-ressurs-sitt-eget-kart).
 :::
 
 ## Miljøvariabler
@@ -180,7 +180,19 @@ Pures semantiske konvensjoner deles av det native FlashArray-endepunktet og begg
 | FlashBlade `/metrics/filesystems` | `purefb_file_systems_space_*`, `purefb_file_systems_performance_*` | Siden **Filsystemer**: tildelt og brukt plass, datareduksjon, latens, IOPS og båndbredde per filsystem |
 | FlashBlade `/metrics/objectstore` | `purefb_buckets_space_*`, `purefb_buckets_quota_space_bytes`, `purefb_buckets_object_count`, `purefb_buckets_performance_*`, `purefb_object_store_accounts_*` | Siden **Buckets**: plass, kvote, antall objekter og ytelse per bucket, gruppert etter konto |
 
-Arrayets tilstand på siden **Oversikt** er **Kritisk** så lenge det rapporterer et åpent kritisk varsel, eller en maskinvarekomponent, disk eller kontroller som er kritisk, har feilet, mangler eller er usunn; **Advarsel** så lenge det rapporterer et åpent advarselsvarsel, eller en degradert eller ukjent komponent; og ellers **OK**. I overvåkingskriterier får arrayets attributter prefikset `resource.` (`resource.storage.array.name`, `resource.storage.system`), mens datapunktetikettene står uten prefiks (`name`, `host`, `dimension`, `space`).
+Kolonnen **Helse** under **Alle lagringsarrayer** leser arrayets egne varsler og maskinvare i de nyeste dataene: **Kritisk** så lenge det rapporterer et åpent kritisk varsel, eller en maskinvarekomponent, disk eller kontroller som er kritisk, har feilet, mangler eller er usunn; **Advarsel** så lenge det rapporterer et åpent advarselsvarsel, eller en degradert eller ukjent komponent; ellers **OK**; og **Ukjent** mens agenten er frakoblet. Arrayets **Oversikt** vurderer mer, som neste avsnitt sier. I overvåkingskriterier får arrayets attributter prefikset `resource.` (`resource.storage.array.name`, `resource.storage.system`), mens datapunktetikettene står uten prefiks (`name`, `host`, `dimension`, `space`).
+
+## Hva arrayets sider viser
+
+Arrayets **Oversikt** sier tilstanden, **Feilfri**, **Redusert** eller **Ikke feilfri**, ut fra det som trenger oppmerksomhet, og viser det under **Krever oppmerksomhet**, det mest presserende først, hvert ett steg fra der du skal se:
+
+- **Selve arrayet.** Et åpent varsel som arrayet utløste med kritisk alvorlighet, er kritisk, og et med advarselsnivå trenger en titt. Over 80 % av den brukbare kapasiteten trenger det en titt, og over 90 % er det kritisk, der varslene Capacity Above 80% og Capacity Above 90% utløses. En FlashArray med gjennomsnittlig lese- eller skrivelatens over 5 ms, eller en FlashBlade der lesinger tar lengre tid enn 10 ms, trenger en titt.
+- **Maskinvare.** En komponent, disk, kontroller eller et nettverksgrensesnitt som arrayet rapporterer som kritisk, feilet, manglende eller usunn, er kritisk: redundansen er borte til delen er byttet. En som rapporteres som degradert, ukjent, ikke gjenkjent eller ikke klar, trenger en titt. Deler som ikke er installert, er slått av eller er ubrukt, vises aldri.
+- **Verter.** En vert som ikke lenger når arrayet gjennom begge kontrollerne, trenger en titt, med årsaken: gjennom bare én kontroller, over ujevne baner eller helt uten bane.
+- **Poder.** En pod som arrayet rapporterer replikakoblingen til som usunn, er kritisk, og en som ligger mer enn ett minutt etter, trenger en titt.
+- **Filsystemer.** Et FlashBlade-filsystem med under 10 % av sin tildelte størrelse igjen trenger en titt.
+
+Listene **Verter**, **Replikering** og **Filsystemer** sier tilstanden til hver del etter de samme reglene, med årsaken under. Den egne siden til en vert og et filsystem sier hva ved den som trenger oppmerksomhet og hvilke av arrayets varsler som overvåker den, med ett steg for å slå på resten, og siden til hver del, også et volums og en buckets, sier hva som er åpent på den. Mens agenten er frakoblet, viser tilstanden **Tilstand ukjent**: arrayets siste rapport er ikke lenger sannheten. Hver grense ovenfor er den varselmalen utløses ved, slik [lagringsarray-monitoren](/docs/monitor/storage-array-monitor) lister dem.
 
 ## Valgfritt — Send arrayets syslog
 

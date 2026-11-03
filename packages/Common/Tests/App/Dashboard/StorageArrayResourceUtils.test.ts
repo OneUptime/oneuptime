@@ -25,6 +25,7 @@ import StorageArrayResourceUtils, {
   getFileSystemProtocols,
   getFileSystemProvisionedBytes,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/Utils/StorageArrayResourceUtils";
+import { formatStorageArrayLag } from "../../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/Utils/StorageArrayHealth";
 import {
   getAlertMetricNames,
   getGoldenChartQueries,
@@ -248,12 +249,23 @@ describe("values are written the way storage admins read them", () => {
 
   test("replication lag from milliseconds up to hours", () => {
     expect(StorageArrayResourceUtils.formatDurationMs(450)).toBe("450 ms");
-    expect(StorageArrayResourceUtils.formatDurationMs(12000)).toBe("12.0 s");
+    expect(StorageArrayResourceUtils.formatDurationMs(12000)).toBe("12 s");
     expect(StorageArrayResourceUtils.formatDurationMs(90 * 1000)).toBe(
-      "1.5 min",
+      "1 min 30 s",
     );
     expect(StorageArrayResourceUtils.formatDurationMs(2 * 3600 * 1000)).toBe(
-      "2.0 h",
+      "2 h",
+    );
+    expect(StorageArrayResourceUtils.formatDurationMs(null)).toBe("—");
+  });
+
+  test("a pod's lag reads the same in its column as in the reason under its state", () => {
+    // The fixture's dr-pod: 95 s behind, "1.6 min" in its column before.
+    expect(StorageArrayResourceUtils.formatDurationMs(95000)).toBe(
+      formatStorageArrayLag(95000),
+    );
+    expect(StorageArrayResourceUtils.formatDurationMs(95000)).toBe(
+      "1 min 35 s",
     );
   });
 

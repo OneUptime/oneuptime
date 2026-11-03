@@ -136,7 +136,7 @@ Everything is ready. Begin running and processing data.
 
 ### Het array in OneUptime vinden
 
-Open **Producten → Infrastructuur → Opslagarrays → All Storage Arrays**. Na de eerste scrape (ongeveer een minuut) staat het array er met zijn capaciteit, prestaties, open waarschuwingen en hardware. Volumes, hosts en pods volgen binnen 2 minuten, de bestandssystemen en buckets van een FlashBlade binnen 5, en FlashArray-directory's binnen 30. De pagina **Topologie** van de array tekent haar hosts, volumes, bestandssystemen en hardware op één kaart: zie [Topologie](/docs/telemetry/topology#de-eigen-kaart-van-een-resource-openen).
+Open **Producten → Infrastructuur → Opslagarrays → Alle opslagarrays**. Na de eerste scrape (ongeveer een minuut) staat het array er met zijn capaciteit, prestaties, open waarschuwingen en hardware. Volumes, hosts en pods volgen binnen 2 minuten, de bestandssystemen en buckets van een FlashBlade binnen 5, en FlashArray-directory's binnen 30. De pagina **Topologie** van de array tekent haar hosts, volumes, bestandssystemen en hardware op één kaart: zie [Topologie](/docs/telemetry/topology#de-eigen-kaart-van-een-resource-openen).
 :::
 
 ## Omgevingsvariabelen
@@ -180,7 +180,19 @@ De semantische conventies van Pure gelden zowel voor het native FlashArray-endpo
 | FlashBlade `/metrics/filesystems` | `purefb_file_systems_space_*`, `purefb_file_systems_performance_*` | De pagina **Bestandssystemen**: toegewezen en gebruikte ruimte, datareductie, latentie, IOPS en bandbreedte per bestandssysteem |
 | FlashBlade `/metrics/objectstore` | `purefb_buckets_space_*`, `purefb_buckets_quota_space_bytes`, `purefb_buckets_object_count`, `purefb_buckets_performance_*`, `purefb_object_store_accounts_*` | De pagina **Buckets**: ruimte, quotum, aantal objecten en prestaties per bucket, gegroepeerd per account |
 
-De gezondheid van het array op zijn pagina **Overzicht** is **Kritiek** zolang het een open kritieke waarschuwing meldt, of een hardwarecomponent, schijf of controller die kritiek, defect, ontbrekend of ongezond is; **Waarschuwing** zolang het een open waarschuwing van niveau warning meldt, of een gedegradeerde of onbekende component; en anders **OK**. In monitorcriteria krijgen de attributen van het array een prefix `resource.` (`resource.storage.array.name`, `resource.storage.system`), terwijl de datapuntlabels kaal blijven (`name`, `host`, `dimension`, `space`).
+De kolom **Gezondheid** van **Alle opslagarrays** leest de eigen waarschuwingen en de hardware van het array in zijn nieuwste gegevens: **Kritiek** zolang het een open kritieke waarschuwing meldt, of een hardwarecomponent, schijf of controller die kritiek, defect, ontbrekend of ongezond is; **Waarschuwing** zolang het een open waarschuwing van niveau warning meldt, of een gedegradeerde of onbekende component; anders **OK**; en **Onbekend** zolang de agent niet verbonden is. Het **Overzicht** van het array beoordeelt meer, zoals de volgende sectie zegt. In monitorcriteria krijgen de attributen van het array een prefix `resource.` (`resource.storage.array.name`, `resource.storage.system`), terwijl de datapuntlabels kaal blijven (`name`, `host`, `dimension`, `space`).
+
+## Wat de pagina's van het array tonen
+
+Het **Overzicht** van het array noemt zijn gezondheid, **Gezond**, **Verminderd** of **Ongezond**, naar wat aandacht nodig heeft, en somt dat op onder **Vraagt aandacht**, het dringendste eerst, elk één stap van waar je moet kijken:
+
+- **Het array zelf.** Een open waarschuwing die het array zelf met ernst critical gaf, is kritiek, en een met ernst warning vraagt een blik. Boven 80% van zijn bruikbare capaciteit vraagt het een blik, en boven 90% is het kritiek, waar de waarschuwingen Capacity Above 80% en Capacity Above 90% afgaan. Een FlashArray met een gemiddelde lees- of schrijflatentie boven 5 ms, of een FlashBlade waarvan leesbewerkingen langer dan 10 ms duren, vraagt een blik.
+- **Hardware.** Een component, schijf, controller of netwerkinterface die het array als kritiek, defect, ontbrekend of ongezond meldt, is kritiek: de redundantie is weg tot het onderdeel is vervangen. Een die het als gedegradeerd, onbekend, niet herkend of niet gereed meldt, vraagt een blik. Onderdelen die niet geïnstalleerd, uitgeschakeld of ongebruikt zijn, worden nooit vermeld.
+- **Hosts.** Een host die het array niet meer via beide controllers bereikt, vraagt een blik, met de reden: via maar één controller, over ongelijke paden of zonder enig pad.
+- **Pods.** Een pod waarvan het array de replicaverbinding als ongezond meldt, is kritiek, en een die meer dan een minuut achterloopt, vraagt een blik.
+- **Bestandssystemen.** Een FlashBlade-bestandssysteem met minder dan 10% van zijn toegewezen grootte vrij, vraagt een blik.
+
+De lijsten **Hosts**, **Replicatie** en **Bestandssystemen** noemen de staat van elk onderdeel volgens dezelfde regels, met de reden eronder. De eigen pagina van een host en van een bestandssysteem zegt wat er aandacht nodig heeft en welke waarschuwingen van het array hem bewaken, met één stap om de rest aan te zetten, en de pagina van elk onderdeel, ook die van een volume en een bucket, zegt wat erop open staat. Zolang de agent niet verbonden is, toont de gezondheid **Gezondheid onbekend**: het laatste rapport van het array is niet meer de waarheid. Elke grens hierboven is die waarop zijn waarschuwingssjabloon afgaat, zoals de [opslagarray-monitor](/docs/monitor/storage-array-monitor) ze opsomt.
 
 ## Optioneel — De syslog van het array versturen
 

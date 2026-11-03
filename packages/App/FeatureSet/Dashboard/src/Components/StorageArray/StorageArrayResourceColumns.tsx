@@ -6,6 +6,13 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import StorageArrayResourceUtils from "../../Pages/StorageArray/Utils/StorageArrayResourceUtils";
 import { STORAGE_ARRAY_METRIC_DESCRIPTIONS } from "../MetricDescriptions/StorageArrayMetricDescriptions";
 import StorageArrayResourceStatusBadge from "./StorageArrayResourceStatusBadge";
+import ResourceStatusCell from "../Infrastructure/ResourceStatusCell";
+import { InfrastructureResource } from "../Infrastructure/ResourceTable";
+import {
+  StorageArrayAssessment,
+  StorageArrayPartReadings,
+  assessStorageArrayPart,
+} from "../../Pages/StorageArray/Utils/StorageArrayHealth";
 
 /*
  * The columns the Storage Array inventory tables share. Every value is the
@@ -204,6 +211,60 @@ export function getPerformanceColumns(): Columns<StorageArrayResource> {
   ];
 }
 
+/*
+ * A part's state by the rules (StorageArrayHealth): its word coloured at
+ * its alert's line, and why under it - what the Overview's Needs attention
+ * and the part's own page say about the same part. readingsFor gives what
+ * the inventory has no column for (a file system's available share).
+ */
+export function toStorageArrayStatusCell(
+  assessment: StorageArrayAssessment,
+): Pick<
+  InfrastructureResource,
+  "status" | "statusTone" | "statusText" | "statusReasons"
+> {
+  return {
+    status: assessment.status.label,
+    statusTone: assessment.status.tone,
+    statusText: assessment.status.values
+      ? { text: assessment.status.label, values: assessment.status.values }
+      : { text: assessment.status.label },
+    statusReasons: assessment.reasons,
+  };
+}
+
+export function getRulesStatusColumn(data: {
+  title: string;
+  description: string;
+  // The column the rules read first; sorting by it groups the problems.
+  field: keyof StorageArrayResource;
+  readingsFor?:
+    | ((item: StorageArrayResource) => StorageArrayPartReadings)
+    | undefined;
+  // A state worked out from a reading the table cannot sort by.
+  disableSort?: boolean | undefined;
+}): Column<StorageArrayResource> {
+  return {
+    field: { [data.field]: true },
+    title: data.title,
+    headerTooltip: data.description,
+    type: FieldType.Element,
+    ...(data.disableSort ? { disableSort: true } : {}),
+    getElement: (item: StorageArrayResource): ReactElement => {
+      return (
+        <ResourceStatusCell
+          resource={toStorageArrayStatusCell(
+            assessStorageArrayPart(
+              item,
+              data.readingsFor ? data.readingsFor(item) : {},
+            ),
+          )}
+        />
+      );
+    },
+  };
+}
+
 export function getStatusColumn(data: {
   title: string;
   description: string;
@@ -264,6 +325,7 @@ export default {
   getBandwidthColumns,
   getPerformanceColumns,
   getStatusColumn,
+  getRulesStatusColumn,
   getTextColumn,
   getLastSeenColumn,
 };

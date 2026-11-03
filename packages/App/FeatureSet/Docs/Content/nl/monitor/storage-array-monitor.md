@@ -32,7 +32,7 @@ flowchart TB
 ## Voordat je begint
 
 - **Installeer de Storage Array Agent** waar hij de array via HTTPS kan bereiken, met het API-token van een gebruiker die de rol **readonly** van de array heeft. De [handleiding van de Storage Array Agent](/docs/telemetry/storage-arrays) behandelt de gebruiker, het token en de installatie, via `ONEUPTIME_URL`, `ONEUPTIME_TELEMETRY_INGESTION_KEY`, `STORAGE_ARRAY_NAME`, en het adres en het token van de array (`PURE_FA_ENDPOINT` en `PURE_FA_API_TOKEN`, of `PURE_FB_ENDPOINT` en `PURE_FB_API_TOKEN`).
-- **Controleer of de array geregistreerd is.** Hij verschijnt onder **Producten → Infrastructuur → Opslagarrays → All Storage Arrays**, genoemd naar de `STORAGE_ARRAY_NAME` van de agent, ongeveer een minuut na de eerste uitlezing.
+- **Controleer of de array geregistreerd is.** Hij verschijnt onder **Producten → Infrastructuur → Opslagarrays → Alle opslagarrays**, genoemd naar de `STORAGE_ARRAY_NAME` van de agent, ongeveer een minuut na de eerste uitlezing.
 
 ## Een opslagarray-monitor maken
 
@@ -77,7 +77,7 @@ Klik op **Monitor maken**. OneUptime opent de pagina van de monitor en evalueert
 | **Volume** | Custom Metric, Geavanceerd | Alleen FlashArray. Eén volume, via het label `name`, zoals `vol-db-01`. Een volume in een pod of een volumegroep heet `pod::volume` of `group/volume`. |
 | **Host** | Custom Metric, Geavanceerd | Alleen FlashArray. Eén host zoals de array hem kent, via het label `host`, zoals `esxi-01`. |
 | **Pod** | Custom Metric, Geavanceerd | Alleen FlashArray. Eén ActiveCluster- of ActiveDR-pod, via het label `name`, of `local_pod` op reeksen van replicakoppelingen. |
-| **Hardware Component** | Custom Metric, Geavanceerd | Eén hardwarecomponent, zoals `CH0.BAY1` of `CT0`: het label `component_name` op een FlashArray, `name` op een FlashBlade. |
+| **Hardwarecomponent** | Custom Metric, Geavanceerd | Eén hardwarecomponent, zoals `CH0.BAY1` of `CT0`: het label `component_name` op een FlashArray, `name` op een FlashBlade. |
 | **Bestandssysteem** | Custom Metric, Geavanceerd | Alleen FlashBlade. Eén bestandssysteem, via het label `name`. |
 | **Bucket** | Custom Metric, Geavanceerd | Alleen FlashBlade. Eén objectopslagbucket, via het label `name`. |
 | **Storage Array Metric** | Custom Metric | Eén metriek uit de [catalogus](#verzamelde-metrieken). Het formulier voegt het labelfilter toe dat haar betekenis geeft, en groepeert haar op het object dat ze beschrijft, zodat elk volume, elke host of elk component afzonderlijk wordt beoordeeld. |

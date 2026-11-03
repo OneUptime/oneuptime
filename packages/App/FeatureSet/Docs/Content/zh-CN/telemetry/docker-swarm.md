@@ -14,7 +14,7 @@ OneUptime Docker Swarm 代理监控 Docker Swarm 集群：它的节点、服务�
 代理是三个容器，全部定义在一个 `docker-compose.yml` 中：
 
 1. **Collector**：一个 OpenTelemetry Collector，读取 `docker_stats` 获取每个容器的指标，跟踪容器的日志文件，并跟踪清单快照文件。它为所有数据打上你的集群名称（`docker.swarm.cluster.name`），为每个任务的指标打上其服务和节点，并通过 OTLP 发送到 OneUptime。
-2. **清单轮询器**：一个基于 `curl` 和 `jq` 的小型边车容器，每 5 分钟遍历一次 swarm 管理节点的 API（`/nodes`、`/services`、`/tasks`、`/networks`、`/secrets`、`/configs`、`/volumes`），并根据服务标签 `com.docker.stack.namespace` 推断出栈。它为每个对象写入一行 JSON，由 Collector 转发。
+2. **清单轮询器**：一个基于 `curl` 和 `jq` 的小型边车容器，每 5 分钟遍历一次 swarm 管理节点的 API（`/nodes`、`/services`、`/tasks`、`/networks`、`/secrets`、`/configs`、`/volumes`），并根据服务标签 `com.docker.stack.namespace` 推断出栈。它为每个对象写入一行 JSON，由 Collector 转发。 它还会每分钟读取每个节点是否就绪，以及每个服务需要和正在运行的副本数，并将其写为指标（从代理文件版本 0.161.3 起）。
 3. **AI 代理**：`oneuptime-docker-swarm-ai-agent`，在 OneUptime AI 调查此集群上的事件或警报时运行它请求的 `docker` 命令。除非你允许修复，否则它是只读的（参见 [AI 代理](#ai-代理)）。
 
 ```mermaid title="管理节点上的三个容器"
@@ -124,7 +124,8 @@ AI 代理自己的设置见 [AI 代理](#ai-代理)。
 | 信号 | 来源 | 显示位置 |
 | --- | --- | --- |
 | 节点、服务、任务、栈、网络、密钥、配置和卷 | 清单轮询器，来自 swarm 管理节点的 API | 集群的列表页和详情页 |
-| 集群计数（就绪的节点、运行中的任务、服务、栈等） | 同一个快照 | 概览中的卡片和侧边菜单上的徽标 |
+| 集群计数（就绪的节点、运行中的任务、服务、栈等） | 同一个快照 | 概览中的计数标签和侧边菜单上的徽标 |
+| 每个节点是否就绪和每个服务的副本，每分钟 | 清单轮询器，作为指标 `docker.swarm.node.ready`、`docker.swarm.service.replicas.desired` 和 `docker.swarm.service.replicas.running` | Node Not Ready 和 Service Replicas Mismatch 警报，以及 **指标** 页面 |
 | 容器的 CPU、内存、进程数和运行时长 | `docker_stats` 接收器 | **指标** 页面 |
 | 容器的 stdout 和 stderr 日志 | `filelog` 接收器 | **日志** 页面 |
 
@@ -133,6 +134,14 @@ AI 代理自己的设置见 [AI 代理](#ai-代理)。
 ### 它与 Docker 代理有何不同
 
 [Docker 代理](/docs/telemetry/docker-host) 对单台主机建模，并为所有数据打上 `host.name`。Docker Swarm 代理有意打上 `docker.swarm.cluster.name`，而从不打上 `host.name`：这样 OneUptime 会把数据归到 swarm 集群下，而不是把每个节点注册为独立的主机。
+
+## 集群页面显示的内容
+
+集群页面读取同一份清单，并像 `docker node ls` 和 `docker service ls` 那样按 Docker 自身的规则来判断，因此概览、列表以及节点、服务或任务自己的页面始终一致：
+
+- **概览**：swarm 的健康状况，以及 **需要关注**：哪些东西已损坏或需要查看，最紧急的在前，每项都附有原因和 Docker 自己的错误。宕机的节点、其他管理节点无法访问的管理节点、即将失去管理节点多数的 swarm、没有任何副本在运行或副本不足的服务、已暂停或已回滚的滚动更新、反复失败的任务。下方可以一眼看到每个节点。
+- **节点**、**服务** 和 **任务**：每一行的状态使用相同的措辞和颜色，并附有原因。
+- 节点、服务或任务自己的页面：其中需要查看的问题、它的任务、它上面未解决的事项、监视它的警报（一步即可开启），以及 Docker 报告的有关它的信息。
 
 ## 用项目标签标记集群
 
@@ -253,6 +262,10 @@ docker version --format '{{ .Server.APIVersion }}'
 
 :::details 任务 CPU 是一条平线
 旧版 `otel-collector-config.yaml` 发送的是 `docker_stats` 接收器自己算出的 CPU 值。从 Collector 0.150.0 起，接收器只根据一次统计读数来计算它：容器自启动以来用掉的全部 CPU，除以节点自开机以来用掉的全部 CPU。这条线几乎不动，也不随负载变化，而 `container.cpu.usage.total` 会随负载变化。这样的代理报告的版本为 0.161.0 或更早，所以版本旁会出现警告标志：请按照 [升级代理](#升级代理) 重新下载代理的文件。从第二次读数起，Collector 就会发送每个容器在每个 30 秒间隔内用掉的 CPU。已存储的读数保持不变。
+:::
+
+:::details 清单不再变化
+早于版本 0.161.3 的代理文件会以相同的字节开始每个快照，因此 Collector 会把平静的 swarm 的新快照当作已经读过的快照：集群的列表不再变化，并在代理启动 15 分钟后清空。请在运行清单轮询器的管理节点上 [升级代理](#升级代理)。
 :::
 
 ## 后续步骤

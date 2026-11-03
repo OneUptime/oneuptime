@@ -133,7 +133,7 @@ Everything is ready. Begin running and processing data.
 
 | Категория | Метрики |
 | --- | --- |
-| Состояние кластера | `ceph_health_status` (0 = OK, 1 = WARN, 2 = ERR), `ceph_health_detail` (одна серия на каждую проверку состояния: 1, пока она активна, и 0 после её снятия, с метками `name` и `severity`, начиная с Quincy; на ней построены шаблоны оповещений о проверках состояния и раздел **Active Health Checks** в обзоре), `ceph_healthcheck_slow_ops`, `ceph_daemon_health_metrics` (по демонам, по ключу `type`), `ceph_mon_quorum_status`, `ceph_mon_metadata`, `ceph_cluster_total_bytes`, `ceph_cluster_total_used_bytes` |
+| Состояние кластера | `ceph_health_status` (0 = OK, 1 = WARN, 2 = ERR), `ceph_health_detail` (одна серия на каждую проверку состояния: 1, пока она активна, и 0 после её снятия, с метками `name` и `severity`, начиная с Quincy; на ней построены шаблоны оповещений о проверках состояния и проверки, которые показывает **Требует внимания** в обзоре), `ceph_healthcheck_slow_ops`, `ceph_daemon_health_metrics` (по демонам, по ключу `type`), `ceph_mon_quorum_status`, `ceph_mon_metadata`, `ceph_cluster_total_bytes`, `ceph_cluster_total_used_bytes` |
 | OSD | `ceph_osd_up`, `ceph_osd_in`, `ceph_osd_apply_latency_ms`, `ceph_osd_commit_latency_ms`, `ceph_osd_stat_bytes`, `ceph_osd_stat_bytes_used`, `ceph_osd_numpg`, `ceph_osd_metadata`, по каждому OSD по метке `ceph_daemon` (например, `osd.3`) |
 | Пул | `ceph_pool_stored`, `ceph_pool_max_avail`, `ceph_pool_objects`, `ceph_pool_rd`, `ceph_pool_wr`, `ceph_pool_rd_bytes`, `ceph_pool_wr_bytes`, `ceph_pool_metadata`. Серии данных несут только метку `pool_id`; имя пула указано в `ceph_pool_metadata`. |
 | Группы размещения | `ceph_pg_total`, `ceph_pg_active`, `ceph_pg_clean`, `ceph_pg_degraded`, `ceph_pg_undersized` (все по пулам, по `pool_id`), `ceph_num_objects_degraded`, `ceph_num_objects_misplaced` |
@@ -147,6 +147,19 @@ Everything is ready. Begin running and processing data.
 - **`node_exporter`.** Обычный спутник для метрик ЦП, памяти, дисков и сети каждого хоста Ceph, по умолчанию на порту `9100`.
 
 Оба получают атрибут ресурса `ceph.cluster.name` от поставляемого процессора `resource`, поэтому попадают в тот же кластер в OneUptime.
+
+## Что показывают страницы кластера
+
+**Обзор** кластера показывает его состояние, **Исправно**, **Деградация** или **Неисправно**, по тому, что требует внимания, и перечисляет это в **Требует внимания**, самое срочное первым:
+
+- **Сам кластер.** Собственный `HEALTH_WARN` или `HEALTH_ERR` от Ceph с проверками, которые он поднял, так, как их называет Ceph, например `OSD_DOWN` или `PG_DEGRADED`, и сырая ёмкость выше 85% (критично выше 95%), где срабатывают оповещения Cluster Near Full и Cluster Full.
+- **OSD.** OSD, который отключён, но ещё в кластере, критичен: его Placement Groups не хватает копии. OSD, который отключён и выведен или доступен, но выведен, требует внимания, как и OSD выше порога nearfull в Ceph (85%) или порога backfillfull (90%) или с задержкой применения выше 100 мс. Выше порога full (95%) он отказывает в записи, что критично.
+- **Мониторы.** Монитор вне кворума критичен.
+- **Пулы.** Пул, занявший больше 85% места для записи, stored ÷ (stored + max avail), требует внимания, а выше 95% он критичен. Деградировавшие или неполные Placement Groups требуют внимания; неактивные, ввод-вывод которых зависает, критичны.
+
+Списки **OSD**, **Пулы** и **Демоны** показывают состояние каждой части по тем же правилам, с причиной под ним. Собственная страница OSD и пула говорит, что в нём требует внимания, что по нему открыто и какие оповещения кластера за ним следят, с одним шагом, чтобы включить остальные. Менеджер, сервер метаданных или объектный шлюз, которого Ceph больше не показывает, отображается как **Перестал передавать данные**, серым: для отказавшего Ceph поднимает проверку, например `RECENT_CRASH` или `MDS_ALL_DOWN`, которую показывает строка кластера. Пока агент отключён, состояние показывает **Состояние неизвестно**: последний отчёт кластера уже не верен.
+
+Пороги OSD — значения Ceph по умолчанию. Кластер с другими порогами поднимает собственные проверки `OSD_NEARFULL`, `OSD_BACKFILLFULL` и `OSD_FULL` на своих порогах, которые показывает строка кластера.
 
 ## Необязательно — отправка журнала кластера Ceph
 

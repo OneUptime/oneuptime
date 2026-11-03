@@ -1,6 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
 import React, { FunctionComponent, ReactElement } from "react";
-import StorageArray from "Common/Models/DatabaseModels/StorageArray";
 import StorageArrayResource from "Common/Models/DatabaseModels/StorageArrayResource";
 import StorageArrayResourceKind from "Common/Types/StorageArray/StorageArrayResourceKind";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
@@ -14,19 +13,14 @@ import { STORAGE_ARRAY_METRIC_DESCRIPTIONS } from "../../../Components/MetricDes
  * One FlashArray volume. Its series carry the volume's name in the `name`
  * label (purefa_volume_*), which scopes the Metrics tab.
  */
-const getSummaryFields: (
+const getSummaryFields: (row: StorageArrayResource) => Array<SummaryField> = (
   row: StorageArrayResource,
-  storageArray: StorageArray,
-) => Array<SummaryField> = (
-  row: StorageArrayResource,
-  storageArray: StorageArray,
 ): Array<SummaryField> => {
   const fields: Array<SummaryField> = [
     {
       title: "Volume",
       value: StorageArrayResourceUtils.displayNameForResource(row),
     },
-    { title: "Storage Array", value: storageArray.name || "—" },
     {
       title: "Pod / Group",
       description: STORAGE_ARRAY_METRIC_DESCRIPTIONS.volumeGroupColumn,
@@ -132,11 +126,6 @@ const getSummaryFields: (
       value: StorageArrayResourceUtils.formatBytesPerSec(qosBandwidthLimit),
     });
   }
-
-  fields.push({
-    title: "Last Seen",
-    value: StorageArrayResourceUtils.formatLastSeen(row.lastSeenAt),
-  });
 
   return fields;
 };

@@ -1,7 +1,15 @@
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useState,
+} from "react";
+import StorageArray from "Common/Models/DatabaseModels/StorageArray";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import { loadFileSystemAvailableRatios } from "../Utils/StorageArrayReadings";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -24,6 +32,38 @@ const StorageArrayFileSystems: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+
+  /*
+   * Each file system's latest available share of its provisioned size (the
+   * File System Near Full alert's series), which the inventory has no
+   * column for: best-effort, a file system reads Available without it.
+   */
+  const [availableRatios, setAvailableRatios] = useState<Map<string, number>>(
+    new Map(),
+  );
+
+  useEffect(() => {
+    let ignore: boolean = false;
+    ModelAPI.getItem<StorageArray>({
+      modelType: StorageArray,
+      id: modelId,
+      select: { name: true },
+    })
+      .then((item: StorageArray | null): Promise<Map<string, number>> => {
+        return item?.name
+          ? loadFileSystemAvailableRatios(item.name)
+          : Promise.resolve(new Map<string, number>());
+      })
+      .then((ratios: Map<string, number>): void => {
+        if (!ignore) {
+          setAvailableRatios(ratios);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      ignore = true;
+    };
+  }, [modelId.toString()]);
 
   return (
     <StorageArrayResourceTable
@@ -48,6 +88,18 @@ const StorageArrayFileSystems: FunctionComponent<
         );
       }}
       columns={[
+        // By the rules: Near full in amber past 90% used, with why.
+        StorageArrayResourceColumns.getRulesStatusColumn({
+          title: "Status",
+          description: STORAGE_ARRAY_METRIC_DESCRIPTIONS.fileSystemStatusColumn,
+          field: "usedBytes",
+          disableSort: true,
+          readingsFor: (item: StorageArrayResource) => {
+            return {
+              availableRatio: availableRatios.get(item.name || "") ?? null,
+            };
+          },
+        }),
         {
           field: {
             details: true,

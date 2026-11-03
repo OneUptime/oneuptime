@@ -4,7 +4,8 @@ export type DockerSwarmMetricCategory =
   | "CPU"
   | "Memory"
   | "Network"
-  | "Container";
+  | "Container"
+  | "Swarm";
 
 export interface DockerSwarmMetricDefinition {
   id: string;
@@ -19,16 +20,21 @@ export interface DockerSwarmMetricDefinition {
 /*
  * Metric names follow the OpenTelemetry docker_stats receiver naming
  * scheme. The OneUptime Docker Swarm Agent runs the docker_stats receiver
- * against the Swarm manager node, so the series that actually arrive are
- * the standard `container.*` container-runtime metrics — there are NO
- * `docker_swarm_*` or `pve_*` metrics. The receiver emits one
- * ResourceMetrics per container and carries the container's identity
- * (`container.name`, `container.image.name`) as RESOURCE attributes, which
- * ClickHouse stores `resource.`-prefixed: group and filter by
- * `resource.container.name`, never the bare key, which matches nothing.
- * For a Swarm service task the container name is
- * `<service>.<slot>.<taskid>`. The whole batch is scoped by the
- * `docker.swarm.cluster.name` resource attribute the agent stamps.
+ * on every node, so most series are the standard `container.*`
+ * container-runtime metrics — there are NO `docker_swarm_*` or `pve_*`
+ * metrics. The receiver emits one ResourceMetrics per container and
+ * carries the container's identity (`container.name`,
+ * `container.image.name`) as RESOURCE attributes, which ClickHouse stores
+ * `resource.`-prefixed: group and filter by `resource.container.name`,
+ * never the bare key, which matches nothing. For a Swarm service task the
+ * container name is `<service>.<slot>.<taskid>`. The whole batch is scoped
+ * by the `docker.swarm.cluster.name` resource attribute the agent stamps.
+ *
+ * The "Swarm" ones are the swarm's own state, which the agent's poller
+ * reads from a manager every minute (files 0.161.3 on): one resource per
+ * node, `resource.docker.swarm.node.name`, and one per replicated or global
+ * service, `resource.docker.swarm.service.name` - named as the node's and
+ * the service's task containers are.
  */
 const dockerSwarmMetricCatalog: Array<DockerSwarmMetricDefinition> = [
   // CPU Metrics
@@ -107,6 +113,37 @@ const dockerSwarmMetricCatalog: Array<DockerSwarmMetricDefinition> = [
     defaultAggregation: MetricsAggregationType.Max,
     unit: "seconds",
   },
+
+  // The swarm's own state, from the agent's poller on a manager.
+  {
+    id: "swarm-node-ready",
+    friendlyName: "Node Ready",
+    description:
+      "Whether a Swarm node is ready, as the managers see it: 1 while it is, 0 while it is down, disconnected or unknown. One series per node.",
+    metricName: "docker.swarm.node.ready",
+    category: "Swarm",
+    defaultAggregation: MetricsAggregationType.Min,
+  },
+  {
+    id: "swarm-service-replicas-desired",
+    friendlyName: "Service Desired Replicas",
+    description:
+      "The tasks a replicated or global Swarm service wants running: its replica count, or for a global service the nodes it should run on. One series per service.",
+    metricName: "docker.swarm.service.replicas.desired",
+    category: "Swarm",
+    defaultAggregation: MetricsAggregationType.Avg,
+    unit: "count",
+  },
+  {
+    id: "swarm-service-replicas-running",
+    friendlyName: "Service Running Replicas",
+    description:
+      "The tasks of a replicated or global Swarm service that are running. Below Service Desired Replicas, the service runs short. One series per service.",
+    metricName: "docker.swarm.service.replicas.running",
+    category: "Swarm",
+    defaultAggregation: MetricsAggregationType.Avg,
+    unit: "count",
+  },
 ];
 
 export function getAllDockerSwarmMetrics(): Array<DockerSwarmMetricDefinition> {
@@ -138,5 +175,5 @@ export function getDockerSwarmMetricByMetricName(
 }
 
 export function getAllDockerSwarmMetricCategories(): Array<DockerSwarmMetricCategory> {
-  return ["CPU", "Memory", "Network", "Container"];
+  return ["CPU", "Memory", "Network", "Container", "Swarm"];
 }

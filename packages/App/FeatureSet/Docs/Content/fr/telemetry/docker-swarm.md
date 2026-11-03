@@ -14,7 +14,7 @@ L'agent Docker Swarm de OneUptime surveille un cluster Docker Swarm : ses nœuds
 L'agent se compose de trois conteneurs, tous définis dans un seul `docker-compose.yml` :
 
 1. **Collecteur** : un OpenTelemetry Collector qui lit `docker_stats` pour les métriques de chaque conteneur, suit les fichiers journaux des conteneurs et suit le fichier d'instantané de l'inventaire. Il appose le nom de votre cluster sur tout (`docker.swarm.cluster.name`), et le service et le nœud de chaque tâche sur ses métriques, puis envoie le tout à OneUptime via OTLP.
-2. **Poller d'inventaire** : un petit sidecar `curl` et `jq` qui, toutes les 5 minutes, parcourt l'API du manager du swarm (`/nodes`, `/services`, `/tasks`, `/networks`, `/secrets`, `/configs`, `/volumes`) et déduit les stacks du label de service `com.docker.stack.namespace`. Il écrit une ligne JSON par objet, que le collecteur transmet.
+2. **Poller d'inventaire** : un petit sidecar `curl` et `jq` qui, toutes les 5 minutes, parcourt l'API du manager du swarm (`/nodes`, `/services`, `/tasks`, `/networks`, `/secrets`, `/configs`, `/volumes`) et déduit les stacks du label de service `com.docker.stack.namespace`. Il écrit une ligne JSON par objet, que le collecteur transmet. Chaque minute, il lit aussi si chaque nœud est prêt et combien de réplicas chaque service veut et exécute, et les écrit sous forme de métriques (à partir de la version 0.161.3 des fichiers de l'agent).
 3. **Agent IA** : `oneuptime-docker-swarm-ai-agent`, qui exécute les commandes `docker` que demande OneUptime AI pendant qu'elle enquête sur un incident ou une alerte sur ce cluster. Il est en lecture seule, sauf si vous autorisez les corrections (voir [Agent IA](#agent-ia)).
 
 ```mermaid title="Trois conteneurs sur un nœud manager"
@@ -124,7 +124,8 @@ Les réglages propres à l'agent IA se trouvent sous [Agent IA](#agent-ia).
 | Signal | Source | Où il apparaît |
 | --- | --- | --- |
 | Les nœuds, services, tâches, stacks, réseaux, secrets, configs et volumes | Le poller d'inventaire, depuis l'API du manager du swarm | Les listes et pages de détail du cluster |
-| Compteurs du cluster (nœuds prêts, tâches en cours, services, stacks, …) | Le même instantané | Les cartes de la vue d'ensemble et les badges du menu latéral |
+| Compteurs du cluster (nœuds prêts, tâches en cours, services, stacks, …) | Le même instantané | Les pastilles de comptage de la vue d'ensemble et les badges du menu latéral |
+| L'état prêt de chaque nœud et les réplicas de chaque service, chaque minute | Le poller d'inventaire, sous forme des métriques `docker.swarm.node.ready`, `docker.swarm.service.replicas.desired` et `docker.swarm.service.replicas.running` | Les alertes Node Not Ready et Service Replicas Mismatch, et la page **Métriques** |
 | CPU, mémoire, nombre de processus et durée de fonctionnement des conteneurs | Le récepteur `docker_stats` | La page **Métriques** |
 | Journaux stdout et stderr des conteneurs | Le récepteur `filelog` | La page **Journaux** |
 
@@ -133,6 +134,14 @@ Les métriques de chaque tâche portent l'identité de son conteneur, qu'ajoute 
 ### En quoi il diffère de l'agent Docker
 
 L'[agent Docker](/docs/telemetry/docker-host) modélise un seul hôte, et appose `host.name` sur tout. L'agent Docker Swarm appose `docker.swarm.cluster.name` et jamais `host.name`, à dessein : OneUptime range alors les données sous le cluster swarm, au lieu d'enregistrer chaque nœud comme un hôte à part entière.
+
+## Ce que montrent les pages du cluster
+
+Les pages du cluster lisent le même inventaire et le jugent selon les règles de Docker lui-même, comme le font `docker node ls` et `docker service ls`, si bien que la vue d'ensemble, les listes et la page propre d'un nœud, d'un service ou d'une tâche sont toujours d'accord :
+
+- **Vue d'ensemble** : la santé du swarm, et **Attention requise** : ce qui est cassé ou mérite un coup d'œil, le plus urgent d'abord, chacun avec la raison et l'erreur de Docker lui-même. Un nœud arrêté, un manager que les autres ne joignent pas, un swarm sur le point de perdre la majorité de ses managers, un service dont aucun réplica ne tourne ou à qui il en manque, une mise à jour progressive en pause ou annulée, des tâches qui échouent sans cesse. En dessous, chaque nœud en un coup d'œil.
+- **Nœuds**, **Services** et **Tâches** : l'état de chaque ligne avec les mêmes mots et les mêmes couleurs, avec la raison.
+- La page propre d'un nœud, d'un service ou d'une tâche : ce qui y mérite un coup d'œil, ses tâches, ce qui est ouvert à son sujet, les alertes qui le surveillent avec une étape pour les activer, et ce que Docker en rapporte.
 
 ## Étiqueter le cluster avec des étiquettes de projet
 
@@ -253,6 +262,10 @@ Le nom du cluster vient de `DOCKER_SWARM_CLUSTER_NAME`. Modifiez-le dans `.env` 
 
 :::details Le CPU des tâches est une ligne plate
 Un ancien `otel-collector-config.yaml` envoie le chiffre de CPU calculé par le récepteur `docker_stats` lui-même. Depuis le collecteur 0.150.0, le récepteur le calcule à partir d'une seule lecture des statistiques : tout le CPU qu'un conteneur a utilisé depuis son démarrage, divisé par tout le CPU que le nœud a utilisé depuis son amorçage. La ligne bouge à peine et ne suit pas la charge, contrairement à `container.cpu.usage.total`. Un tel agent rapporte la version 0.161.0 ou antérieure, donc un signe d'avertissement apparaît à côté de sa version : téléchargez de nouveau les fichiers de l'agent, comme le montre [Mettre à jour l'agent](#mettre-à-jour-lagent). À partir de sa deuxième lecture, le collecteur envoie alors le CPU que chaque conteneur a utilisé sur chaque intervalle de 30 secondes. Les lectures déjà enregistrées restent telles quelles.
+:::
+
+:::details L'inventaire ne change plus
+Les fichiers de l'agent antérieurs à la version 0.161.3 commençaient chaque instantané par les mêmes octets, si bien que le collecteur prenait le nouvel instantané d'un swarm calme pour un instantané déjà lu : les listes du cluster ne changeaient plus et se vidaient 15 minutes après le démarrage de l'agent. [Mettez à jour l'agent](#mettre-à-jour-lagent) sur le manager où tourne le poller d'inventaire.
 :::
 
 ## Étapes suivantes

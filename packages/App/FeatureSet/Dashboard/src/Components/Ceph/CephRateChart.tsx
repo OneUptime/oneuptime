@@ -271,7 +271,16 @@ const CephRateChart: FunctionComponent<ComponentProps> = (
     return <ChartLoadingSkeleton heightInPx={heightInPx} />;
   }
 
-  const series: Array<SeriesPoint> = shown.series;
+  // The legend names each series in the reader's words: Read, Write.
+  const series: Array<SeriesPoint> = shown.series.map(
+    (item: SeriesPoint): SeriesPoint => {
+      return {
+        ...item,
+        seriesName:
+          translator.translateText(item.seriesName) || item.seriesName,
+      };
+    },
+  );
 
   if (series.length === 0) {
     /*

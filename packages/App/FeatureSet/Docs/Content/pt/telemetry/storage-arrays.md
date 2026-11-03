@@ -136,7 +136,7 @@ Everything is ready. Begin running and processing data.
 
 ### Encontrar o array no OneUptime
 
-Abra **Produtos → Infraestrutura → Arrays de armazenamento → All Storage Arrays**. Depois da primeira coleta (cerca de um minuto), o array está lá com a capacidade, o desempenho, os alertas abertos e o hardware dele. Volumes, hosts e pods vêm em até 2 minutos, os sistemas de arquivos e buckets de um FlashBlade em até 5, e os diretórios do FlashArray em até 30. A página **Topologia** do array desenha os seus hosts, volumes, sistemas de arquivos e hardware em um único mapa: veja [Topologia](/docs/telemetry/topology#abrir-o-mapa-próprio-de-um-recurso).
+Abra **Produtos → Infraestrutura → Arrays de armazenamento → Todos os arrays de armazenamento**. Depois da primeira coleta (cerca de um minuto), o array está lá com a capacidade, o desempenho, os alertas abertos e o hardware dele. Volumes, hosts e pods vêm em até 2 minutos, os sistemas de arquivos e buckets de um FlashBlade em até 5, e os diretórios do FlashArray em até 30. A página **Topologia** do array desenha os seus hosts, volumes, sistemas de arquivos e hardware em um único mapa: veja [Topologia](/docs/telemetry/topology#abrir-o-mapa-próprio-de-um-recurso).
 :::
 
 ## Variáveis de ambiente
@@ -180,7 +180,19 @@ As convenções semânticas da Pure são comuns ao endpoint nativo do FlashArray
 | FlashBlade `/metrics/filesystems` | `purefb_file_systems_space_*`, `purefb_file_systems_performance_*` | A página **Sistemas de arquivos**: espaço provisionado e usado, redução de dados, latência, IOPS e largura de banda por sistema de arquivos |
 | FlashBlade `/metrics/objectstore` | `purefb_buckets_space_*`, `purefb_buckets_quota_space_bytes`, `purefb_buckets_object_count`, `purefb_buckets_performance_*`, `purefb_object_store_accounts_*` | A página **Buckets**: espaço, cota, contagem de objetos e desempenho por bucket, agrupados por conta |
 
-A saúde do array na página **Visão geral** dele é **Crítico** enquanto ele informa um alerta crítico aberto, ou um componente de hardware, unidade ou controladora crítico, com falha, ausente ou não íntegro; **Aviso** enquanto informa um alerta de aviso aberto, ou um componente degradado ou desconhecido; e **OK** nos demais casos. Nos critérios de monitor, os atributos do array levam um prefixo `resource.` (`resource.storage.array.name`, `resource.storage.system`), enquanto os rótulos de ponto de dados ficam sem prefixo (`name`, `host`, `dimension`, `space`).
+A coluna **Integridade** de **Todos os arrays de armazenamento** lê os alertas e o hardware do próprio array em seus dados mais recentes: **Crítico** enquanto ele informa um alerta crítico aberto, ou um componente de hardware, unidade ou controladora crítico, com falha, ausente ou não íntegro; **Aviso** enquanto informa um alerta de aviso aberto, ou um componente degradado ou desconhecido; **OK** nos demais casos; e **Desconhecido** enquanto o agente está desconectado. A **Visão geral** do array julga mais, como diz a próxima seção. Nos critérios de monitor, os atributos do array levam um prefixo `resource.` (`resource.storage.array.name`, `resource.storage.system`), enquanto os rótulos de ponto de dados ficam sem prefixo (`name`, `host`, `dimension`, `space`).
+
+## O que as páginas do array mostram
+
+A **Visão geral** do array diz sua integridade, **Íntegro**, **Degradado** ou **Não íntegro**, pelo que precisa de atenção, e lista isso em **Requer atenção**, o mais urgente primeiro, cada item a um passo de onde olhar:
+
+- **O próprio array.** Um alerta aberto que o array gerou com severidade crítica é crítico, e um com severidade de aviso precisa de uma olhada. Acima de 80% da capacidade utilizável ele precisa de uma olhada, e acima de 90% é crítico, onde disparam os alertas Capacity Above 80% e Capacity Above 90%. Um FlashArray cuja latência média de leitura ou gravação passa de 5 ms, ou um FlashBlade cujas leituras levam mais de 10 ms, precisa de uma olhada.
+- **Hardware.** Um componente, unidade, controladora ou interface de rede que o array informa como crítico, com falha, ausente ou não íntegro é crítico: a redundância acabou até que a peça seja trocada. Um que ele informa como degradado, desconhecido, não reconhecido ou não pronto precisa de uma olhada. Peças não instaladas, desligadas ou sem uso nunca são listadas.
+- **Hosts.** Um host que não alcança mais o array pelas duas controladoras precisa de uma olhada, com o motivo: por uma só controladora, por caminhos desiguais ou sem nenhum caminho.
+- **Pods.** Um pod cujo link de réplica o array informa como não íntegro é crítico, e um com mais de um minuto de atraso precisa de uma olhada.
+- **Sistemas de arquivos.** Um sistema de arquivos do FlashBlade com menos de 10% do tamanho provisionado livre precisa de uma olhada.
+
+As listas **Hosts**, **Replicação** e **Sistemas de arquivos** dizem o estado de cada parte pelas mesmas regras, com o motivo abaixo. A página de um host e a de um sistema de arquivos dizem o que precisa de atenção e quais alertas do array o vigiam, com um passo para ativar os demais, e a página de cada parte, também a de um volume e a de um bucket, diz o que está aberto nela. Enquanto o agente está desconectado, a integridade mostra **Integridade desconhecida**: o último relatório do array não é mais a verdade. Cada limite acima é aquele em que dispara seu modelo de alerta, como lista o [monitor de arrays de armazenamento](/docs/monitor/storage-array-monitor).
 
 ## Opcional — Enviar o syslog do array
 

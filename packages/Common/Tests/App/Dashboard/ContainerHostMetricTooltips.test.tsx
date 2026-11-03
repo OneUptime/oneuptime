@@ -133,7 +133,8 @@ const D: Record<ContainerHostMetric, string> =
 
 const SENTENCE_END_PATTERN: RegExp = /[.!?](?:\s|$)/;
 const PAST_100_PATTERN: RegExp = /above 100%|more than 100%/;
-const HOST_MEMORY_PATTERN: RegExp = /host's total memory|host memory/;
+const HOST_MEMORY_PATTERN: RegExp =
+  /host's total memory|host's memory|host memory/;
 const RUNTIME_NAME_PATTERN: RegExp = /docker|podman/i;
 const SLOT_WORD_PATTERN: RegExp = /\bslots?\b/;
 
@@ -145,10 +146,11 @@ const SLOT_WORD_PATTERN: RegExp = /\bslots?\b/;
 
 /*
  * Every title a customer sees, and the text its (i) shows. Tiles and charts
- * share titles; a tile is one number, the chart is the whole range.
+ * share titles; a tile is one number, the chart is the whole range. How many
+ * containers the host has is the hero's chip, which opens the Containers
+ * list, and how they are doing its health pill.
  */
 const TILE_TITLES: Array<[string, ContainerHostMetric]> = [
-  ["Containers", "containers"],
   ["Avg CPU", "avgCpu"],
   ["Peak CPU", "peakCpu"],
   ["Avg Memory", "avgMemory"],
@@ -171,9 +173,30 @@ const LIST_TITLES: Array<[string, ContainerHostMetric]> = [
 ];
 
 const COLUMN_TITLES: Array<[string, ContainerHostMetric]> = [
+  ["Status", "containerStatus"],
   ["CPU", "containerCpu"],
   ["Memory", "containerMemory"],
-  ["Memory %", "containerMemoryPercent"],
+  ["Restarts (15 min)", "containerRestarts"],
+  ["Last Started", "containerUptime"],
+];
+
+// Drawn only on a host whose containers Compose created.
+const COMPOSE_COLUMN_TITLES: Array<[string, ContainerHostMetric]> = [
+  ["Compose Project", "containerComposeProject"],
+];
+
+// The hero: its container count and its health.
+const HERO_TITLES: Array<[string, ContainerHostMetric]> = [
+  ["{{count}} containers", "containers"],
+  ["Host health", "hostHealth"],
+];
+
+// A container's own page: its tiles, and its network totals in its details.
+const CONTAINER_PAGE_TITLES: Array<[string, ContainerHostMetric]> = [
+  ["CPU", "containerCpuTile"],
+  ["Memory", "containerMemoryTile"],
+  ["Restarts", "containerRestartsTile"],
+  ["Last Started", "containerUptimeTile"],
   ["Network RX (total)", "containerNetworkRx"],
   ["Network TX (total)", "containerNetworkTx"],
 ];
@@ -183,6 +206,9 @@ const ALL_TITLES: Array<[string, ContainerHostMetric]> = [
   ...CHART_TITLES,
   ...LIST_TITLES,
   ...COLUMN_TITLES,
+  ...COMPOSE_COLUMN_TITLES,
+  ...HERO_TITLES,
+  ...CONTAINER_PAGE_TITLES,
 ];
 
 const TILE_KEYS: Array<ContainerHostMetric> = [
@@ -208,7 +234,8 @@ const MEMORY_PERCENT_KEYS: Array<ContainerHostMetric> = [
   "avgMemoryChart",
   "peakMemoryChart",
   "topMemoryConsumers",
-  "containerMemoryPercent",
+  "containerMemory",
+  "containerMemoryTile",
 ];
 
 describe("container host metric descriptions", () => {
@@ -265,13 +292,41 @@ describe("container host metric descriptions", () => {
       },
     );
 
-    test("the container count says when it counts, and that the fallback keeps stopped containers", () => {
-      expect(D.containers).toContain("last 5 minutes of the selected range");
+    test("the container count says what it counts, that a stopped one stays 15 minutes, and where it leads", () => {
+      expect(D.containers).toContain("in the last 15 minutes");
+      expect(D.containers).toContain("each one that runs now");
       expect(D.containers).toContain(
-        "every container seen anywhere in the range is counted",
+        "one that stopped until OneUptime forgets it, 15 minutes after its last reading",
       );
-      expect(D.containers).toContain("including ones that have since stopped");
-      expect(D.containers).toContain("CPU or memory");
+      expect(D.containers).toContain("opens the Containers list");
+      expect(D.containers).not.toContain("selected range");
+    });
+
+    test("the health and status texts give each state's line, as the rules draw them", () => {
+      expect(D.hostHealth).toContain("more than 3 times in 15 minutes");
+      expect(D.hostHealth).toContain("more than 85% of its memory");
+      expect(D.hostHealth).toContain("after running for 10 minutes or more");
+      expect(D.containerStatus).toContain("Restart loop past 3 restarts");
+      expect(D.containerStatus).toContain("past 85% of its memory");
+      expect(D.containerStatus).toContain("ran 10 minutes or more");
+      expect(D.containerStatus).toContain("Not reporting, in grey");
+      expect(D.containerRestarts).toContain("A restart by hand is not counted");
+      expect(D.containerRestarts).toContain("more than 3 is a restart loop");
+    });
+
+    test("a container page's tiles name the line their alert fires at", () => {
+      expect(D.containerCpuTile).toContain(
+        "Amber past 80%, where the High Container CPU Usage alert fires",
+      );
+      expect(D.containerMemoryTile).toContain(
+        "Amber past 85%, where the High Container Memory Usage alert fires",
+      );
+      expect(D.containerRestartsTile).toContain(
+        "where the Container Restart Loop alert fires",
+      );
+      expect(D.containerUptimeTile).toContain(
+        "The Container Restarted (Low Uptime) alert fires while it is under 2 minutes",
+      );
     });
 
     test.each(CPU_KEYS)(
@@ -370,7 +425,7 @@ describe("container host metric descriptions", () => {
     });
 
     test("the table's texts speak of the last 5 minutes before now - that page has no time picker", () => {
-      for (const [, key] of COLUMN_TITLES) {
+      for (const [, key] of [...COLUMN_TITLES, ...CONTAINER_PAGE_TITLES]) {
         expect(D[key]).not.toContain("selected range");
       }
 
@@ -602,6 +657,30 @@ function serveHost(runtimeCase: RuntimeCase): void {
   getItemSpy.mockImplementation((): Promise<unknown> => {
     return Promise.resolve(runtimeCase.buildHost());
   });
+
+  // The host's container inventory: none beyond what the readings say.
+  const inventorySpy: jest.SpyInstance = jest.spyOn(ModelAPI, "getList");
+  inventorySpy.mockImplementation((): Promise<unknown> => {
+    return Promise.resolve({ data: [], count: 0, skip: 0, limit: 0 });
+  });
+
+  // No latest readings unless a test serves them (serveLists).
+  const readingsSpy: jest.SpyInstance = jest.spyOn(
+    AnalyticsModelAPI,
+    "getList",
+  );
+  readingsSpy.mockImplementation((): Promise<unknown> => {
+    return Promise.resolve({ data: [], count: 0, skip: 0, limit: 500 });
+  });
+
+  // No restart counts unless a test serves them (serveAggregates).
+  const restartsSpy: jest.SpyInstance = jest.spyOn(
+    AnalyticsModelAPI,
+    "aggregate",
+  );
+  restartsSpy.mockImplementation((): Promise<unknown> => {
+    return Promise.resolve({ data: [] });
+  });
 }
 
 function serveAggregates(fixture: Fixture | "never"): void {
@@ -781,6 +860,7 @@ describe.each(RUNTIME_CASES)(
     test("asks only for its own runtime's containers", async () => {
       serveHost(runtimeCase);
       serveAggregates(RECENT_FIXTURE);
+      serveLists();
 
       await renderPage(runtimeCase.Overview);
 
@@ -789,12 +869,36 @@ describe.each(RUNTIME_CASES)(
           return request.aggregateBy.query.name.startsWith("container.");
         });
 
-      expect(containerQueries.length).toBe(5);
+      // The five charts' and tiles' reads, and the containers' restarts.
+      expect(
+        containerQueries
+          .map((request: AggregateRequest): string => {
+            return request.aggregateBy.query.name;
+          })
+          .sort(),
+      ).toEqual(
+        [
+          "container.cpu.utilization",
+          "container.memory.percent",
+          "container.network.io.usage.rx_bytes",
+          "container.network.io.usage.tx_bytes",
+          "container.pids.count",
+          "container.restarts.increase",
+        ].sort(),
+      );
 
       for (const request of containerQueries) {
         expect(
           request.aggregateBy.query.attributes["resource.container.runtime"],
         ).toBe(runtimeCase.runtime);
+      }
+
+      // Every reading the health is read from, too.
+      expect(listRequests.length).toBe(5);
+      for (const request of listRequests) {
+        expect(request.query.attributes["resource.container.runtime"]).toBe(
+          runtimeCase.runtime,
+        );
       }
     });
 
@@ -865,12 +969,22 @@ describe.each(RUNTIME_CASES)(
     test("the hero's container count explains itself; the OS chip is a plain fact", async () => {
       serveHost(runtimeCase);
       serveAggregates(RECENT_FIXTURE);
+      serveLists();
 
       await renderPage(runtimeCase.Overview);
 
       const chip: HTMLElement = aboutButtons("2 containers")[0]!;
 
       expect(await tooltipTextOf(chip)).toBe(D.containers);
+      // The count opens the Containers list.
+      expect(
+        screen.getByTestId("container-host-hero-containers"),
+      ).toHaveTextContent("2 containers");
+
+      // Its health beside the connection, with the rules in its (i).
+      expect(await tooltipTextOf(aboutButtons("Host health")[0]!)).toBe(
+        D.hostHealth,
+      );
 
       const osChip: HTMLElement = screen
         .getByText("linux")
@@ -882,13 +996,14 @@ describe.each(RUNTIME_CASES)(
     test("every number on the page has exactly one (i), and every overview text is shown", async () => {
       serveHost(runtimeCase);
       serveAggregates(RECENT_FIXTURE);
+      serveLists();
 
       await renderPage(runtimeCase.Overview);
 
       const buttons: Array<HTMLElement> = allAboutButtons();
       const texts: Array<string> = [];
 
-      // 6 tiles + 6 charts + 2 lists + the hero count.
+      // 5 tiles + 6 charts + 2 lists + the hero's count and health.
       expect(buttons).toHaveLength(15);
 
       for (const button of buttons) {
@@ -899,6 +1014,7 @@ describe.each(RUNTIME_CASES)(
         ...TILE_TITLES,
         ...CHART_TITLES,
         ...LIST_TITLES,
+        ...HERO_TITLES,
       ].map((pair: [string, ContainerHostMetric]): string => {
         return D[pair[1]];
       });
@@ -961,13 +1077,15 @@ describe.each(RUNTIME_CASES)(
         );
       });
 
-      test("Containers counts only containers that reported in the window - the stopped one is gone", async () => {
+      test("the hero counts the containers the Containers list has, not the chart range's", async () => {
         serveHost(runtimeCase);
         serveAggregates(RECENT_FIXTURE);
+        serveLists();
 
         await renderPage(runtimeCase.Overview);
 
-        expect(tileValue("Containers")).toBe("2");
+        // batch reported early in the range only: it is not on the host now.
+        expect(aboutButtons("Containers")).toHaveLength(0);
         expect(screen.getByText("2 containers")).toBeInTheDocument();
       });
 
@@ -1042,7 +1160,6 @@ describe.each(RUNTIME_CASES)(
           "c 30.0%",
         ]);
         expect(consumerRows("Top Memory Consumers")).toHaveLength(5);
-        expect(tileValue("Containers")).toBe("7");
       });
 
       test("the Peak CPU chart keeps values above 100% rather than capping them", async () => {
@@ -1115,8 +1232,6 @@ describe.each(RUNTIME_CASES)(
         expect(tileValue("Peak CPU")).toBe("25.0%");
         // (5 + 7) and (9 + 11), averaged.
         expect(tileValue("Processes")).toBe("16");
-        // Everyone seen anywhere in the range, the stopped container too.
-        expect(tileValue("Containers")).toBe("3");
         expect(consumerRows("Top CPU Consumers")).toEqual([
           "worker 40.0%",
           "api 20.0%",
@@ -1194,12 +1309,16 @@ function serveLists(): void {
   });
 }
 
+// Each cell's text; a missing value is the table's quiet dash, read as "—".
 function cellsOf(containerName: string): Array<string> {
   const row: HTMLElement = screen
     .getByText(containerName)
     .closest("tr") as HTMLElement;
 
   return Array.from(row.querySelectorAll("td")).map((cell: Element): string => {
+    if (cell.querySelector('[data-testid="table-empty-value"]')) {
+      return "—";
+    }
     return (cell.textContent || "").trim();
   });
 }
@@ -1293,36 +1412,31 @@ describe.each(RUNTIME_CASES)(
 
       const api: Array<string> = cellsOf("api");
 
-      // Name, image, CPU, memory, memory %, RX, TX, actions.
-      expect(api.slice(1, 5)).toEqual([
+      /*
+       * Name, status, image, CPU, memory (its share, the amount under it),
+       * restarts, last started, actions. No restart counts and no inventory
+       * are served: both read as missing, never as 0.
+       */
+      expect(api.slice(1, 7)).toEqual([
+        "Running",
         "api:latest",
-        "250.00%",
-        "1.5 GB",
-        "37.50%",
+        "250.0%",
+        "37.5%1.5 GB",
+        "—",
+        "—",
       ]);
-      expect(cellsOf("worker").slice(2, 5)).toEqual([
-        "12.35%",
-        "50.0 MB",
-        "2.25%",
-      ]);
+      expect(cellsOf("worker").slice(3, 5)).toEqual(["12.3%", "2.3%50.0 MB"]);
     });
 
-    test("the network columns are one interface's running total, as their text warns", async () => {
+    test("the network totals are a container's page's, not the list's", async () => {
       serveHost(runtimeCase);
       serveLists();
 
       await renderPage(runtimeCase.Containers);
 
-      const api: Array<string> = cellsOf("api");
-
-      /*
-       * api has eth0 (1000 B) and eth1 (5000 B). The cell is eth0's counter
-       * alone - not the 5.9 KB the two add up to, and not a per-second rate.
-       */
-      expect(api[5]).toBe("1000 B");
-      expect(api[5]).not.toBe("5.9 KB");
-      expect(api[6]).toBe("3.0 KB");
-      expect(cellsOf("worker")[5]).toBe("2.0 KB");
+      const header: HTMLElement = screen.getAllByRole("rowgroup")[0]!;
+      expect(within(header).queryByText("Network RX (total)")).toBeNull();
+      expect(within(header).queryByText("Network TX (total)")).toBeNull();
     });
   },
 );
