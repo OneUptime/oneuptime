@@ -2155,10 +2155,11 @@ describe("Jira templates in the picker", () => {
 
   /*
    * The two-way integrations sit together, Jira first, then the other tools
-   * with a category of their own (Huntress), ahead of the webhook-glue
-   * templates under Integrations.
+   * with a category of their own (Huntress, then the monitoring tools:
+   * Zabbix, Datadog, New Relic), ahead of the webhook-glue templates under
+   * Integrations.
    */
-  test("Jira sits immediately before Dynamics 365, then Huntress, then Zabbix, then Integrations", () => {
+  test("Jira sits immediately before Dynamics 365, then Huntress, Zabbix, Datadog and New Relic, then Integrations", () => {
     const jiraIndex: number = WorkflowTemplateCategories.indexOf(
       WorkflowTemplateCategory.Jira,
     );
@@ -2174,8 +2175,14 @@ describe("Jira templates in the picker", () => {
       WorkflowTemplateCategories.indexOf(WorkflowTemplateCategory.Zabbix),
     ).toBe(jiraIndex + 3);
     expect(
-      WorkflowTemplateCategories.indexOf(WorkflowTemplateCategory.Integrations),
+      WorkflowTemplateCategories.indexOf(WorkflowTemplateCategory.Datadog),
     ).toBe(jiraIndex + 4);
+    expect(
+      WorkflowTemplateCategories.indexOf(WorkflowTemplateCategory.NewRelic),
+    ).toBe(jiraIndex + 5);
+    expect(
+      WorkflowTemplateCategories.indexOf(WorkflowTemplateCategory.Integrations),
+    ).toBe(jiraIndex + 6);
   });
 
   /*

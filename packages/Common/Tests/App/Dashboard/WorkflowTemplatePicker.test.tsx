@@ -1140,10 +1140,11 @@ describe("a picked template's details", () => {
     // Huntress's signing secret, added on its trigger.
     expect(pickedInBuilder).toBe(1);
     /*
-     * The three that page people, Huntress's, and the two Zabbix sends its
-     * problems to.
+     * The three that page people, Huntress's, the two Zabbix sends its
+     * problems to, and the two each Datadog's monitors and New Relic's
+     * issues reach.
      */
-    expect(asksWhoToPage).toBe(6);
+    expect(asksWhoToPage).toBe(10);
   });
 
   test("every template's details open, with its trigger and every setting it asks for", () => {
