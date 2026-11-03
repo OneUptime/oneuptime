@@ -25,7 +25,8 @@ import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
  * open, and commands an operator set - read-only members, the
  * old Tasks and Code Repositories addresses, a repository's pull requests
  * reviewed against production (their page, a review's page, Review again
- * and the setting), a phone, dark mode and German.
+ * and the setting), each step of AI's reaching the page as it is announced
+ * on the live connection (live=1), a phone, dark mode and German.
  *
  * The maintainer's ask: "overhaul the entire 'Tasks' product and call it
  * 'Code' ... it should show Code repos first and tasks in them ... it should
@@ -109,7 +110,72 @@ interface Recorded {
   reviewAgains: Array<string>;
   // Each Review a pull request, by its repository and the number sent.
   reviewAsks: Array<{ repositoryId: string; number: unknown }>;
-  reads: { task: number; list: number; repositories: number };
+  reads: { task: number; list: number; repositories: number; progress: number };
+  // Each read of a working turn's progress: its task, turn and last step.
+  progressReads: Array<{
+    taskId: string;
+    runId: string;
+    afterSequence: number;
+  }>;
+}
+
+// What a page listens to on the live connection (live=1).
+interface LiveSubscription {
+  modelName: string;
+  eventType: string;
+  modelId: string | null;
+  isStopped: boolean;
+}
+
+async function liveSubscriptions(page: Page): Promise<Array<LiveSubscription>> {
+  return await page.evaluate((): Array<LiveSubscription> => {
+    return (
+      window as unknown as {
+        __fixture: { liveSubscriptions: Array<LiveSubscription> };
+      }
+    ).__fixture.liveSubscriptions
+      .filter((subscription: LiveSubscription): boolean => {
+        return !subscription.isStopped;
+      })
+      .map((subscription: LiveSubscription): LiveSubscription => {
+        return {
+          modelName: subscription.modelName,
+          eventType: subscription.eventType,
+          modelId: subscription.modelId,
+          isStopped: subscription.isStopped,
+        };
+      });
+  });
+}
+
+/*
+ * live=1: the fixture's AI takes one stage of the task's working turn (one
+ * more step, on a turn that keeps working), and the change is announced as
+ * the server announces each line a Runner reports.
+ */
+async function work(page: Page, taskId: string): Promise<void> {
+  await page.evaluate((id: string): void => {
+    (
+      window as unknown as { __fixture: { work: (id: string) => number } }
+    ).__fixture.work(id);
+  }, taskId);
+}
+
+/*
+ * Where the window is scrolled, and how far it could go, read together:
+ * whether the reader sees the end of the page.
+ */
+async function scrollPosition(
+  page: Page,
+): Promise<{ scrollY: number; maxScrollY: number }> {
+  return await page.evaluate((): { scrollY: number; maxScrollY: number } => {
+    const scroller: Element =
+      document.scrollingElement || document.documentElement;
+    return {
+      scrollY: Math.round(scroller.scrollTop),
+      maxScrollY: Math.round(scroller.scrollHeight - scroller.clientHeight),
+    };
+  });
 }
 
 const pageErrors: Map<Page, Array<string>> = new Map();
@@ -4572,6 +4638,217 @@ test.describe("a task's conversation", () => {
     await expect(trail).toContainText("Task #12");
     await trail.getByRole("link", { name: "checkout-api" }).click();
     await expect(page).toHaveURL(repositoryPath(REPOSITORY.checkout));
+  });
+});
+
+/*
+ * The maintainer's ask (2026-10-30): "Live streaming of AI steps: a turn's
+ * steps reach the page as they happen; today it polls." The server now
+ * announces every change of a task's turns on the live connection
+ * (CodeTaskLive); the fixture's live=1 stands in for it, and moves its AI
+ * only when the test says, so what the page shows is what it heard.
+ */
+test.describe("a turn's steps reach the page as AI takes them", () => {
+  test("an announced step shows at once - read as its turn's new steps, never the whole task again", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await openTask(page, TASK.working, "live=1");
+    await expect(page.getByTestId("code-task-step")).toHaveCount(5);
+    await expect(page.getByTestId("code-task-steps-working")).toHaveText(
+      "Working on it…",
+    );
+
+    // The page listens to its task's own room, which hears every turn.
+    expect(await liveSubscriptions(page)).toEqual([
+      {
+        modelName: "AIRun",
+        eventType: "Update",
+        modelId: TASK.working,
+        isStopped: false,
+      },
+    ]);
+    const before: Recorded = await recorded(page);
+    expect(before.reads.task).toBe(1);
+
+    await work(page, TASK.working);
+
+    // Well inside the three seconds the page would wait to read on its own.
+    await expect(page.getByTestId("code-task-step").last()).toContainText(
+      "Read test/coupons/case-6.test.ts",
+      { timeout: 1500 },
+    );
+    await expect(page.getByTestId("code-task-step")).toHaveCount(6);
+
+    const after: Recorded = await recorded(page);
+    // Its turn's new steps, from the last one the page had...
+    expect(after.progressReads).toEqual([
+      { taskId: TASK.working, runId: TASK.working, afterSequence: 5 },
+    ]);
+    // ...and never the whole task again while AI works.
+    expect(after.reads.task).toBe(1);
+
+    // The next step, the same way: from the one just shown.
+    await work(page, TASK.working);
+    await expect(page.getByTestId("code-task-step").last()).toContainText(
+      "Read test/coupons/case-7.test.ts",
+      { timeout: 1500 },
+    );
+    const reads: Recorded["progressReads"] = (await recorded(page))
+      .progressReads;
+    expect(reads[reads.length - 1]).toEqual({
+      taskId: TASK.working,
+      runId: TASK.working,
+      afterSequence: 6,
+    });
+    // The latest six show while AI works; the rest one click away.
+    await expect(page.getByTestId("code-task-step")).toHaveCount(6);
+    await expect(
+      page.getByRole("button", { name: "Show 1 earlier step" }),
+    ).toBeVisible();
+    await screenshot(page, testInfo, "code-task-live-step");
+  });
+
+  test("a turn is seen from queued to done as each stage is announced, and read whole once it ends", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRepository(page, REPOSITORY.checkout, "live=1");
+    await composerInput(page).fill(
+      "Time out the payment gateway after 5 seconds",
+    );
+    await sendButton(page).click();
+    await expect(page).toHaveURL(/\/code\/tasks\//);
+
+    const taskId: string = page.url().split("/code/tasks/")[1]!.split("?")[0]!;
+
+    // Nothing announced yet: a Runner has not picked it up.
+    await expect(page.getByTestId("code-turn-working")).toContainText(
+      "Waiting for a Runner to pick this up…",
+    );
+    const readsBefore: number = (await recorded(page)).reads.task;
+
+    // Picked up: working, with its first steps.
+    await work(page, taskId);
+    await expect(page.getByTestId("code-task-step")).toHaveCount(2, {
+      timeout: 1500,
+    });
+    await expect(page.getByTestId("code-turn-working")).toHaveCount(0);
+
+    await work(page, taskId);
+    await expect(page.getByTestId("code-task-step")).toHaveCount(5, {
+      timeout: 1500,
+    });
+    expect((await recorded(page)).reads.task).toBe(readsBefore);
+
+    // Done: the whole task is read once, for its reply, files and pull request.
+    await work(page, taskId);
+    await expect(turnReplies(page).first()).toHaveAttribute(
+      "data-turn-state",
+      "Done",
+      { timeout: 1500 },
+    );
+    await expect(page.getByTestId("code-turn-summary")).toContainText(
+      "times out after 5 seconds",
+    );
+    await expect(page.getByTestId("code-task-pull-request")).toBeVisible();
+    expect((await recorded(page)).reads.task).toBe(readsBefore + 1);
+  });
+
+  test("the newest step stays in view for a reader at the end of the page; one who scrolled up is left where they are", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    // A short window, so the conversation runs past it.
+    await page.setViewportSize({
+      width: page.viewportSize()!.width,
+      height: 520,
+    });
+    await openTask(page, TASK.working, "live=1");
+
+    // Every step shown, so each new one makes the page longer.
+    await work(page, TASK.working);
+    await work(page, TASK.working);
+    await page.getByRole("button", { name: "Show 1 earlier step" }).click();
+    await expect(page.getByTestId("code-task-step")).toHaveCount(7);
+
+    // At the end of the page, watching:
+    await page.evaluate((): void => {
+      window.scrollTo(0, document.documentElement.scrollHeight);
+    });
+    await expect
+      .poll(async () => {
+        const position: { scrollY: number; maxScrollY: number } =
+          await scrollPosition(page);
+        return position.maxScrollY - position.scrollY;
+      })
+      .toBeLessThanOrEqual(1);
+
+    await work(page, TASK.working);
+    await expect(page.getByTestId("code-task-step")).toHaveCount(8, {
+      timeout: 1500,
+    });
+    await expect(page.getByTestId("code-task-step").last()).toBeInViewport();
+    await expect
+      .poll(async () => {
+        const position: { scrollY: number; maxScrollY: number } =
+          await scrollPosition(page);
+        return position.maxScrollY - position.scrollY;
+      })
+      .toBeLessThanOrEqual(1);
+
+    // Scrolled up to read: the next step does not pull the page down.
+    await page.evaluate((): void => {
+      window.scrollTo(0, 0);
+    });
+    await expect
+      .poll(async () => {
+        return (await scrollPosition(page)).scrollY;
+      })
+      .toBe(0);
+
+    await work(page, TASK.working);
+    await expect(page.getByTestId("code-task-step")).toHaveCount(9, {
+      timeout: 1500,
+    });
+    expect((await scrollPosition(page)).scrollY).toBe(0);
+    await expect(page.getByTestId("code-task-header")).toBeInViewport();
+  });
+
+  test("a turn's Log reads its record again as each step is announced, and says so", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await page.goto(`${taskPath(TASK.working)}/log?live=1`);
+    await expect(page.getByText("Session Log")).toBeVisible();
+    // A card's description, which a phone leaves out for room.
+    const saying: Locator = page.getByText(
+      "Every step this task has taken so far. New steps show as they happen.",
+    );
+    await expect(saying).toHaveCount(1);
+    if (!isPhone(testInfo)) {
+      await expect(saying).toBeVisible();
+    }
+    await expect(page.getByText("test/coupons/case-6.test.ts")).toHaveCount(0);
+
+    // Its own turn's room.
+    expect(
+      (await liveSubscriptions(page)).filter(
+        (subscription: LiveSubscription): boolean => {
+          return subscription.modelId === TASK.working;
+        },
+      ).length,
+    ).toBeGreaterThanOrEqual(1);
+
+    await work(page, TASK.working);
+
+    await expect(
+      page.getByText("test/coupons/case-6.test.ts").first(),
+    ).toBeVisible({ timeout: 2500 });
   });
 });
 

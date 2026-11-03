@@ -1197,8 +1197,7 @@ describe("reading a working turn's new steps", () => {
       });
 
       expect(
-        (progress.mock.calls[0]![0] as { afterSequence: number })
-          .afterSequence,
+        (progress.mock.calls[0]![0] as { afterSequence: number }).afterSequence,
       ).toBe(read);
     },
   );

@@ -24,7 +24,9 @@ export default class RealtimeUtil {
    * created, changed or deleted - rather than about every record of its
    * model in the project. The server sends each event of a record to it
    * (Realtime.deliver), to the listeners who may read the record; the name
-   * has always carried Create, whatever the kind of change.
+   * has always carried Create, whatever the kind of change. The id is read
+   * in lower case, as records' ids are written, so a page that asked in
+   * capitals still hears its record.
    */
   public static getRecordRoomId(
     tenantId: string | ObjectID,
@@ -35,7 +37,7 @@ export default class RealtimeUtil {
       tenantId,
       modelName,
       ModelEventType.Create,
-      modelId,
+      modelId.toString().toLowerCase(),
     );
   }
 }

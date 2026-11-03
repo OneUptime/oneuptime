@@ -60,7 +60,7 @@ export default class CodeTaskLive {
     codeTaskId?: ObjectID | null | undefined;
   }): Promise<void> {
     try {
-      // Nobody listens in a process that holds no socket server (a worker).
+      // A process that holds no socket server has nobody listening to it.
       if (!Realtime.isInitialized()) {
         return;
       }
@@ -99,10 +99,7 @@ export default class CodeTaskLive {
   }): Array<string> {
     const ids: Array<string> = [data.runId];
 
-    if (
-      data.taskId &&
-      data.taskId.toLowerCase() !== data.runId.toLowerCase()
-    ) {
+    if (data.taskId && data.taskId.toLowerCase() !== data.runId.toLowerCase()) {
       ids.push(data.taskId);
     }
 

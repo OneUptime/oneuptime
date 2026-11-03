@@ -169,12 +169,16 @@ describe("CodeTaskPresenter.getTurnProgress", () => {
 
   test("a turn that ended says so: the page then reads the whole task", async () => {
     findRun.mockResolvedValue(
-      turn({ id: TASK_ID, status: AIRunStatus.Completed, needsUserInput: true }),
+      turn({
+        id: TASK_ID,
+        status: AIRunStatus.Completed,
+        needsUserInput: true,
+      }),
     );
 
-    expect((await progressOf({ runId: TASK_ID, afterSequence: 3 }))?.state).toBe(
-      CodeTaskState.WaitingForYou,
-    );
+    expect(
+      (await progressOf({ runId: TASK_ID, afterSequence: 3 }))?.state,
+    ).toBe(CodeTaskState.WaitingForYou);
   });
 
   test("the task's first turn is read as the task itself, pinned to the project and to code-fix runs, as root", async () => {

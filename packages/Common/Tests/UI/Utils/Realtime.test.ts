@@ -383,6 +383,37 @@ describe("Realtime (UI) subscriptions", () => {
       expect(received).toEqual([MODEL_ID]);
     });
 
+    test("a record named in capitals is heard in its room, which names it as records are written", () => {
+      Realtime.init();
+      mockSocket.acceptConnection();
+
+      let heard: number = 0;
+
+      Realtime.listenToModelEvent(
+        {
+          modelType: Incident,
+          eventType: ModelEventType.Update,
+          tenantId: TENANT_ID,
+          modelId: new ObjectID(MODEL_ID.toUpperCase()),
+        },
+        () => {
+          heard++;
+        },
+      );
+
+      mockSocket.deliver(
+        RealtimeUtil.getRoomId(
+          TENANT_ID,
+          "Incident",
+          ModelEventType.Create,
+          MODEL_ID,
+        ),
+        { modelId: MODEL_ID },
+      );
+
+      expect(heard).toBe(1);
+    });
+
     test("is asked for again on every reconnect, record and all, beside the model-wide subscriptions", () => {
       Realtime.init();
       mockSocket.acceptConnection();
@@ -491,11 +522,7 @@ describe("Realtime (UI) subscriptions", () => {
       ).toBe(1);
       expect(
         mockSocket.listenerCount(
-          RealtimeUtil.getRoomId(
-            TENANT_ID,
-            "Log",
-            ModelEventType.Create,
-          ),
+          RealtimeUtil.getRoomId(TENANT_ID, "Log", ModelEventType.Create),
         ),
       ).toBe(0);
     });

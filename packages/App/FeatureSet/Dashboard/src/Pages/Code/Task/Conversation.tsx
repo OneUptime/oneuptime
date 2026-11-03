@@ -226,8 +226,11 @@ const CodeTaskConversation: FunctionComponent<
 
   useCodeTaskLive({
     projectId: ProjectUtil.getCurrentProjectId(),
-    // Every turn of the task is announced in the task's own room.
-    recordId: taskId,
+    /*
+     * Every turn of the task is announced in the task's own room - the
+     * task's id as read, which an old link to one of its replies leads to.
+     */
+    recordId: data?.task.id || taskId,
     isWorking,
     refresh: refreshLive,
   });

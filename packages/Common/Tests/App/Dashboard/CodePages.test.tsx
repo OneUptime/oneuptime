@@ -2608,7 +2608,9 @@ describe("a task's conversation", () => {
         "code-task-state",
       ),
     ).toHaveAttribute("data-state", CodeTaskState.Working);
-    expect(screen.queryByText("Waiting for a Runner to pick this up…")).toBeNull();
+    expect(
+      screen.queryByText("Waiting for a Runner to pick this up…"),
+    ).toBeNull();
 
     // Done: the whole task is read once, for its reply and pull request...
     await act(async () => {

@@ -39,7 +39,7 @@ import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import ModelEventType from "../../../Types/Realtime/ModelEventType";
 import API from "../../../UI/Utils/API/API";
-import type { SpyInstance } from "jest-mock";
+import type { Mock, SpyInstance } from "jest-mock";
 import { MemoryRouter, Route as RouterRoute, Routes } from "react-router-dom";
 import englishLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import getJestMockFunction, { MockFunction } from "../../MockType";
@@ -584,6 +584,19 @@ describe("a task's conversation while AI works", () => {
     expect(request.modelId?.toString()).toBe(TASK_ID);
   });
 
+  test("an old link to one of its replies listens to the task's room, which hears every turn", async () => {
+    goTo(`/dashboard/${PROJECT_ID}/code/tasks/${REPLY_ID}`);
+    getTaskMock.mockResolvedValue(working() as never);
+
+    draw(<CodeTaskConversation {...PAGE_PROPS} />);
+    await screen.findByTestId("code-task-header");
+
+    await waitFor(() => {
+      expect(heldSubscriptions()).toHaveLength(1);
+      expect(heldSubscriptions()[0]!.request.modelId?.toString()).toBe(TASK_ID);
+    });
+  });
+
   test("an announced step shows at once - read as the turn's new steps, never the whole task again", async () => {
     getTaskMock.mockResolvedValue(working() as never);
     getTurnProgressMock.mockResolvedValue(
@@ -777,7 +790,9 @@ describe("a task's conversation while AI works", () => {
   });
 
   test("a read of steps that arrives after the task was read again is dropped: a stopped turn stays stopped", async () => {
-    let answerProgress: (value: CodeTaskTurnProgressJSON) => void = (): void => {};
+    let answerProgress: (
+      value: CodeTaskTurnProgressJSON,
+    ) => void = (): void => {};
 
     getTaskMock.mockResolvedValueOnce(working() as never).mockResolvedValue(
       working({
@@ -852,14 +867,12 @@ describe("a task's conversation while AI works", () => {
   });
 
   test("a done task still hears its room: a turn someone else starts is read whole", async () => {
-    getTaskMock
-      .mockResolvedValueOnce(done() as never)
-      .mockResolvedValue(
-        working({
-          task: summary({ turnCount: 2 }),
-          turns: [...done().turns, turn({ runId: REPLY_ID, steps: [] })],
-        }) as never,
-      );
+    getTaskMock.mockResolvedValueOnce(done() as never).mockResolvedValue(
+      working({
+        task: summary({ turnCount: 2 }),
+        turns: [...done().turns, turn({ runId: REPLY_ID, steps: [] })],
+      }) as never,
+    );
 
     draw(<CodeTaskConversation {...PAGE_PROPS} />);
     await screen.findByTestId("code-task-header");
@@ -985,7 +998,7 @@ describe("a turn's Log while AI works", () => {
       .mockResolvedValueOnce(logAnswer("read src/checkout.ts") as never)
       .mockResolvedValue(
         logAnswer("read src/checkout.ts", "ran npm test") as never,
-      );
+      ) as unknown as SpyInstance<typeof API.post>;
 
     drawLog(`?turn=${REPLY_ID}`);
 
@@ -1031,7 +1044,9 @@ describe("a turn's Log while AI works", () => {
     jest.useFakeTimers();
     const postSpy: SpyInstance<typeof API.post> = jest
       .spyOn(API, "post")
-      .mockResolvedValue(logAnswer("read src/checkout.ts") as never);
+      .mockResolvedValue(
+        logAnswer("read src/checkout.ts") as never,
+      ) as unknown as SpyInstance<typeof API.post>;
 
     drawLog(`?turn=${REPLY_ID}`);
 
@@ -1061,7 +1076,7 @@ describe("a turn's Log while AI works", () => {
 });
 
 describe("useCodeTaskLive: the reader behind a Code page", () => {
-  type RefreshMock = jest.Mock<() => Promise<void>>;
+  type RefreshMock = Mock<() => Promise<void>>;
 
   function hear(options: Partial<UseCodeTaskLiveOptions> = {}): {
     refresh: RefreshMock;
@@ -1251,13 +1266,25 @@ describe("useFollowLatest: the newest step stays in view for a reader at the end
   test("the end, near enough: within the slack", () => {
     expect(FOLLOW_LATEST_SLACK_PX).toBe(96);
     expect(
-      isScrolledToEnd({ scrollTop: 200, scrollHeight: 1000, clientHeight: 800 }),
+      isScrolledToEnd({
+        scrollTop: 200,
+        scrollHeight: 1000,
+        clientHeight: 800,
+      }),
     ).toBe(true);
     expect(
-      isScrolledToEnd({ scrollTop: 104, scrollHeight: 1000, clientHeight: 800 }),
+      isScrolledToEnd({
+        scrollTop: 104,
+        scrollHeight: 1000,
+        clientHeight: 800,
+      }),
     ).toBe(true);
     expect(
-      isScrolledToEnd({ scrollTop: 103, scrollHeight: 1000, clientHeight: 800 }),
+      isScrolledToEnd({
+        scrollTop: 103,
+        scrollHeight: 1000,
+        clientHeight: 800,
+      }),
     ).toBe(false);
   });
 

@@ -58,9 +58,9 @@ const useCodeTaskLive: (options: UseCodeTaskLiveOptions) => void = (
   refreshRef.current = options.refresh;
 
   // When the run was last announced, as Date.now() counts.
-  const lastHeardAtRef: MutableRefObject<number | null> = useRef<
-    number | null
-  >(null);
+  const lastHeardAtRef: MutableRefObject<number | null> = useRef<number | null>(
+    null,
+  );
 
   const readerRef: MutableRefObject<CoalescedRefresh | null> =
     useRef<CoalescedRefresh | null>(null);

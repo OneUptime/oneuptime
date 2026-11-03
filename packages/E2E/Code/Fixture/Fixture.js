@@ -15,8 +15,9 @@
  * real one keeps (Common/Server/API/CodeTaskAPI): repositories with their
  * tasks, every task a conversation of turns, and an AI that takes each new
  * turn through Queued, Running (its steps as it takes them) and Completed -
- * one stage each time the page reads the task, so the page's own polling
- * drives it.
+ * one stage each time the page reads the task or its working turn's
+ * progress (/code-task/progress, what the conversation reads while AI
+ * works), so the page's own reads drive it.
  *
  * Steered by the query string:
  *   - repos=none        no repository yet: Code's first page teaches what it
@@ -75,6 +76,14 @@
  *   - pace=<ms>         how long a new turn stays in each stage before the
  *                       next read moves it on (default 1000, so a task is
  *                       seen queued first and then moves one stage a poll)
+ *   - live=1            the Dashboard's live connection is open
+ *                       (Common/UI/Utils/Realtime): the pages listen on it,
+ *                       and the AI moves only when the spec says -
+ *                       window.__fixture.work(taskId) takes one stage (or,
+ *                       on a turn that keeps working, one more step) and
+ *                       announces it, as the server announces every line a
+ *                       Runner reports (CodeTaskLive); __fixture.announce(id)
+ *                       announces a run without a change
  *   - refuse=create|reply  the server refuses that send (its sentence)
  *   - fail=repositories|repository|list|task|branches|log  that read fails
  *                       (log: a turn's Log, the page's record of it;
@@ -210,6 +219,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import Realtime from "Common/UI/Utils/Realtime";
 import Navigation from "Common/UI/Utils/Navigation";
 import PermissionUtil from "Common/UI/Utils/Permission";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -290,6 +300,7 @@ const refuseParam = params.get("refuse");
 const failParam = params.get("fail");
 const delay = Math.max(0, Number(params.get("delay") || 0));
 const pace = Math.max(0, Number(params.get("pace") || 1000));
+const isLive = params.get("live") === "1";
 const language = ["de", "ja"].includes(params.get("lang"))
   ? params.get("lang")
   : "en";
@@ -318,7 +329,52 @@ window.__fixture = {
   connects: [],
   gitConnects: [],
   tokenReplacements: [],
-  reads: { task: 0, list: 0, repositories: 0, repository: 0, log: 0 },
+  reads: {
+    task: 0,
+    list: 0,
+    repositories: 0,
+    repository: 0,
+    log: 0,
+    progress: 0,
+  },
+  // Each read of a working turn's progress: its task, turn and last step.
+  progressReads: [],
+  // live=1: what the pages listen to on the live connection.
+  liveSubscriptions: [],
+};
+
+/*
+ * live=1: the Dashboard's live connection, as the pages join it - each
+ * subscription kept with the record it is for, so the fixture can announce
+ * a run's change to the pages listening for it.
+ */
+if (isLive) {
+  Realtime.isStarted = () => {
+    return true;
+  };
+  Realtime.listenToModelEvent = (request, onEvent) => {
+    const subscription = {
+      modelName: request.modelType.name,
+      eventType: request.eventType,
+      tenantId: request.tenantId.toString(),
+      modelId: request.modelId ? request.modelId.toString() : null,
+      onEvent,
+      isStopped: false,
+    };
+    window.__fixture.liveSubscriptions.push(subscription);
+    return () => {
+      subscription.isStopped = true;
+    };
+  };
+}
+
+// What the server does after each line a Runner reports: announce the run.
+window.__fixture.announce = (recordId) => {
+  for (const subscription of window.__fixture.liveSubscriptions) {
+    if (!subscription.isStopped && subscription.modelId === recordId) {
+      subscription.onEvent(new ObjectID(recordId));
+    }
+  }
 };
 
 const now = Date.now();
@@ -2270,6 +2326,37 @@ Navigation.navigate = (to, options) => {
 
 // ---- the AI: a new turn takes a stage each time the task is read ------------
 
+/*
+ * live=1: the AI takes one stage of the task's working turn now - or, on a
+ * turn that keeps working while it is watched, one more step - and the
+ * change is announced, in the turn's room and in its task's, as the server
+ * announces each line a Runner reports (CodeTaskLive).
+ */
+window.__fixture.work = (taskId) => {
+  const task = findTask(taskId);
+  if (!task) {
+    throw new Error(`The fixture has no task ${taskId}.`);
+  }
+  const current = task.turns[task.turns.length - 1];
+  if (current.stage === "live") {
+    const next =
+      current.steps.reduce((last, entry) => {
+        return Math.max(last, entry.sequence);
+      }, 0) + 1;
+    current.steps = [
+      ...current.steps,
+      step(next, CodeTaskStepKind.Read, `test/coupons/case-${next}.test.ts`),
+    ];
+  } else {
+    advance(task, current, true);
+  }
+  window.__fixture.announce(current.runId);
+  if (current.runId !== task.id) {
+    window.__fixture.announce(task.id);
+  }
+  return current.steps.length;
+};
+
 const BLOCKER_MESSAGES = {
   [CodeTaskBlockerType.NoPermission]:
     "You can read this repository's tasks. Asking AI to work in it takes permission to edit the repository - ask a project admin for it.",
@@ -2377,7 +2464,11 @@ function workingPullRequestOf(task) {
 }
 
 // One stage of a turn the fixture's AI is working on.
-function advance(task, current) {
+function advance(task, current, isAskedBySpec) {
+  // live=1: the AI moves only when the spec says (work), as announced.
+  if (isLive && !isAskedBySpec) {
+    return;
+  }
   if (isReview(task)) {
     advanceReview(task, current);
     return;
@@ -2385,7 +2476,7 @@ function advance(task, current) {
   if (!current.stage || current.stage === "live") {
     return;
   }
-  if (Date.now() - (current.stageAt || 0) < pace) {
+  if (!isAskedBySpec && Date.now() - (current.stageAt || 0) < pace) {
     return;
   }
   current.stageAt = Date.now();
@@ -2899,6 +2990,46 @@ async function answer(path, body) {
       },
       {},
     );
+  }
+
+  /*
+   * How a working turn stands, and its steps after the last one the page
+   * has - as the server answers it (CodeTaskPresenter.getTurnProgress).
+   */
+  if (path.startsWith("/progress/")) {
+    window.__fixture.reads.progress++;
+    window.__fixture.progressReads.push({
+      taskId: path.substring("/progress/".length),
+      runId: body.runId,
+      afterSequence: body.afterSequence,
+    });
+    const task = findTask(path.substring("/progress/".length));
+    const index = task
+      ? task.turns.findIndex((item) => {
+          return item.runId === body.runId;
+        })
+      : -1;
+    if (!task || index < 0 || failParam === "task") {
+      return refused(404, "Task not found, or you do not have access to it.");
+    }
+    advance(task, task.turns[task.turns.length - 1]);
+    const item = task.turns[index];
+    const afterSequence =
+      typeof body.afterSequence === "number" ? body.afterSequence : -1;
+    const progress = {
+      runId: item.runId,
+      status: item.status,
+      state: stateOf(item),
+      isQueued: item.status === AIRunStatus.Queued,
+      steps: item.steps.filter((entry) => {
+        return entry.sequence > afterSequence;
+      }),
+      hasMore: false,
+    };
+    if (item.startedAt) {
+      progress.startedAt = item.startedAt;
+    }
+    return new HTTPResponse(200, progress, {});
   }
 
   if (path.startsWith("/get/")) {

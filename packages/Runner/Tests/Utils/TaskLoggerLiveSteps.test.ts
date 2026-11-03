@@ -16,9 +16,7 @@
  * ---------------------------------------------------------------------------
  */
 
-import TaskLogger, {
-  DEFAULT_LOG_SEND_DELAY_MS,
-} from "../../Utils/TaskLogger";
+import TaskLogger, { DEFAULT_LOG_SEND_DELAY_MS } from "../../Utils/TaskLogger";
 import { JSONObject } from "Common/Types/JSON";
 
 const postMock: jest.Mock = jest.fn();
@@ -139,7 +137,10 @@ describe("a step is sent as it happens", () => {
     try {
       await logger.toolCall({ toolName: "write_file", message: "wrote a.ts" });
       await logger.info("Edited a.ts");
-      await logger.toolCall({ toolName: "run_command", message: "ran npm test" });
+      await logger.toolCall({
+        toolName: "run_command",
+        message: "ran npm test",
+      });
 
       await sleep(250);
 

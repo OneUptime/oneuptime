@@ -136,7 +136,7 @@ describe("CodeTaskLive.announce", () => {
     ]);
   });
 
-  test("a process without the socket server (a worker) announces nothing and reads nothing", async () => {
+  test("a process that holds no socket server announces nothing and reads nothing", async () => {
     (Realtime.isInitialized as unknown as jest.Mock).mockReturnValue(false);
 
     await CodeTaskLive.announce({ projectId: PROJECT_ID, runId: REPLY_ID });
