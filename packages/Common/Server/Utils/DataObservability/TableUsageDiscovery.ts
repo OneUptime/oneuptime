@@ -11,6 +11,10 @@ import {
   DataAssetAccessKind,
   MAX_OPERATIONS_PER_USAGE,
 } from "../../../Types/DataObservability/DataAssetUsage";
+import {
+  DataAssetReadTracking,
+  noteObservedRead,
+} from "../../../Types/DataObservability/DataAssetReads";
 import { DataStoreKind } from "../../../Types/DataSecurity/DataStoreKind";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
@@ -471,6 +475,8 @@ export default class TableUsageDiscovery {
       }
     }
 
+    await this.noteReads(data.projectId, data.drafts);
+
     await DataAssetUsageService.deleteBy({
       query: {
         projectId: data.projectId,
@@ -482,5 +488,68 @@ export default class TableUsageDiscovery {
       skip: 0,
       props: { isRoot: true },
     });
+  }
+
+  /*
+   * A table a service was seen reading was read then: its last read moves
+   * up, so a table only spans read is never called unused (DataAssetReads).
+   */
+  private static async noteReads(
+    projectId: ObjectID,
+    drafts: Array<UsageDraft>,
+  ): Promise<void> {
+    const lastReads: Map<string, Date> = new Map();
+
+    for (const draft of drafts) {
+      if (draft.accessKind !== DataAssetAccessKind.Read) {
+        continue;
+      }
+
+      const known: Date | undefined = lastReads.get(draft.dataAssetId);
+
+      if (!known || draft.lastSeenAt > known) {
+        lastReads.set(draft.dataAssetId, draft.lastSeenAt);
+      }
+    }
+
+    const ids: Array<string> = Array.from(lastReads.keys());
+
+    for (let start: number = 0; start < ids.length; start += 500) {
+      const assets: Array<DataAsset> = await DataAssetService.findBy({
+        query: {
+          projectId,
+          _id: QueryHelper.any(ids.slice(start, start + 500)),
+        },
+        select: { _id: true, lastReadAt: true, unreadSince: true },
+        limit: 500,
+        skip: 0,
+        props: { isRoot: true },
+      });
+
+      for (const asset of assets) {
+        const tracking: DataAssetReadTracking = noteObservedRead(
+          {
+            readCount: null,
+            lastReadAt: asset.lastReadAt
+              ? OneUptimeDate.fromString(asset.lastReadAt)
+              : null,
+            unreadSince: asset.unreadSince
+              ? OneUptimeDate.fromString(asset.unreadSince)
+              : null,
+          },
+          lastReads.get(asset.id!.toString())!,
+        );
+
+        if (tracking.isChanged) {
+          await DataAssetService.updateColumnsByIdWithoutHooks({
+            id: asset.id!,
+            data: {
+              lastReadAt: tracking.state.lastReadAt,
+              unreadSince: tracking.state.unreadSince,
+            } as never,
+          });
+        }
+      }
+    }
   }
 }

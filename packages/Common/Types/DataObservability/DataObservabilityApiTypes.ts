@@ -81,6 +81,9 @@ export interface DataObservabilityOverview {
   assetCount: number;
   lateAssetCount: number;
   droppedAssetCount: number;
+  // Tables nobody has read for 90 days (DataAssetReads), and what they hold.
+  unusedAssetCount: number;
+  unusedSizeInBytes: number;
   schemaChangeCount: number;
   failingStoreCount: number;
   // The tables most overdue, worst first.

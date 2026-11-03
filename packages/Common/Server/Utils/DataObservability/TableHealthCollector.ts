@@ -40,19 +40,23 @@ import {
  * thousands of tables is a handful of statements:
  *
  *  - PostgreSQL: pg_class and pg_stat_user_tables give each relation's kind,
- *    live rows, total size and its insert, update and delete counters; the
- *    counters say a table changed when they move between collections.
+ *    live rows, total size, its insert, update and delete counters and its
+ *    scan counters; the counters say a table changed, or was read, when they
+ *    move between collections, and pg_stat_database how long they have
+ *    counted for.
  *    pg_attribute gives the columns. Partitions are folded into their
  *    partitioned table.
  *  - MySQL and MariaDB: information_schema.TABLES gives rows, size and
  *    UPDATE_TIME (MySQL 8 caches those for a day unless the session says
  *    otherwise, so it does); performance_schema's table I/O counters, where
- *    the login may read them, back UPDATE_TIME up.
+ *    the login may read them, back UPDATE_TIME up and count reads, since the
+ *    server started (its Uptime).
  *    information_schema.COLUMNS gives the columns.
  *  - SQL Server: sys.objects and sys.partitions give tables, views and rows;
  *    sys.dm_db_partition_stats and sys.dm_db_index_usage_stats give size,
- *    last update and an update counter where the login has VIEW DATABASE
- *    STATE. INFORMATION_SCHEMA.COLUMNS gives the columns.
+ *    last update and last read, with their counters, where the login has VIEW
+ *    DATABASE STATE, since the server started (sys.dm_os_sys_info).
+ *    INFORMATION_SCHEMA.COLUMNS gives the columns.
  *
  * Times are taken as "seconds ago" by the database's own clock, so neither
  * its time zone nor its clock's drift from OneUptime's matters.
@@ -94,6 +98,13 @@ export interface CollectedTable {
   writeCount: number | null;
   // How long ago the engine says the table last changed; null when it does not say.
   secondsSinceChange: number | null;
+  /*
+   * A counter that grows with every scan or index read since the engine's
+   * statistics were last reset; null when the login cannot read one.
+   */
+  readCount?: number | null | undefined;
+  // How long ago the engine says the table was last read; null when it does not say.
+  secondsSinceRead?: number | null | undefined;
   // Null when the collection could not read all of them (the column list was cut).
   columns: Array<DataAssetColumn> | null;
 }
@@ -109,6 +120,11 @@ export interface TableHealthSnapshot {
   target?: TableHealthTarget | null | undefined;
   // What each due data check read, or why it could not run.
   checkResults?: Array<DataCheckRunResult> | undefined;
+  /*
+   * How long the engine's read and write counters have counted for: since
+   * its statistics were reset or the server started. Null when unknown.
+   */
+  secondsSinceStatsReset?: number | null | undefined;
 }
 
 export interface TableHealthCollectOptions {
@@ -134,6 +150,8 @@ interface RawTable {
   sizeInBytes: number | null;
   writeCount: number | null;
   secondsSinceChange: number | null;
+  readCount: number | null;
+  secondsSinceRead: number | null;
 }
 
 interface RawColumn {
@@ -146,6 +164,7 @@ interface CatalogRead {
   tables: Array<RawTable>;
   columns: Array<RawColumn>;
   warnings: Array<string>;
+  secondsSinceStatsReset: number | null;
 }
 
 interface CatalogSession {
@@ -363,7 +382,17 @@ class PostgresCatalog implements CatalogSession {
           WHEN c.relkind IN ('r', 'm') AND s.relid IS NOT NULL
             THEN COALESCE(s.n_tup_ins, 0) + COALESCE(s.n_tup_upd, 0) + COALESCE(s.n_tup_del, 0)
           ELSE NULL
-        END::bigint AS write_count
+        END::bigint AS write_count,
+        CASE
+          WHEN c.relkind = 'p' THEN (
+            SELECT SUM(COALESCE(cs.seq_scan, 0) + COALESCE(cs.idx_scan, 0))
+            FROM pg_catalog.pg_inherits i
+            JOIN pg_catalog.pg_stat_user_tables cs ON cs.relid = i.inhrelid
+            WHERE i.inhparent = c.oid)
+          WHEN c.relkind IN ('r', 'm') AND s.relid IS NOT NULL
+            THEN COALESCE(s.seq_scan, 0) + COALESCE(s.idx_scan, 0)
+          ELSE NULL
+        END::bigint AS read_count
       FROM pg_catalog.pg_class c
       JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
       LEFT JOIN pg_catalog.pg_stat_user_tables s ON s.relid = c.oid
@@ -404,7 +433,28 @@ class PostgresCatalog implements CatalogSession {
         sizeInBytes: readCount(row["size_bytes"]),
         writeCount: readCount(row["write_count"]),
         secondsSinceChange: null,
+        readCount: readCount(row["read_count"]),
+        secondsSinceRead: null,
       });
+    }
+
+    let secondsSinceStatsReset: number | null = null;
+
+    try {
+      /*
+       * The counters count since the database's statistics were reset; a
+       * restart before PostgreSQL 15 lost them too, so the later of the two.
+       */
+      const [epoch] = await this.rows(
+        `SELECT EXTRACT(EPOCH FROM (now() - GREATEST(COALESCE(d.stats_reset, pg_catalog.pg_postmaster_start_time()), pg_catalog.pg_postmaster_start_time())))::bigint AS seconds
+          FROM pg_catalog.pg_stat_database d WHERE d.datname = pg_catalog.current_database()`,
+        [],
+      );
+      secondsSinceStatsReset = readCount(epoch?.["seconds"]);
+    } catch (error) {
+      warnings.push(
+        `How long the read counters have counted for was left out: ${describeError(error).slice(0, 200)}`,
+      );
     }
 
     const columnRows: Array<Record<string, unknown>> = await this.rows(
@@ -429,6 +479,7 @@ class PostgresCatalog implements CatalogSession {
           return column !== null;
         }),
       warnings,
+      secondsSinceStatsReset,
     };
   }
 
@@ -566,12 +617,15 @@ class MySqlCatalog implements CatalogSession {
       );
 
     const writeCounts: Map<string, number> = new Map();
+    const readCounts: Map<string, number> = new Map();
+    let secondsSinceStatsReset: number | null = null;
 
     try {
       const counterRows: Array<Record<string, unknown>> =
         await this.inReadOnlyTransaction(
           `SELECT OBJECT_SCHEMA AS table_schema, OBJECT_NAME AS table_name,
-            COUNT_INSERT + COUNT_UPDATE + COUNT_DELETE AS write_count
+            COUNT_INSERT + COUNT_UPDATE + COUNT_DELETE AS write_count,
+            COUNT_READ AS read_count
           FROM performance_schema.table_io_waits_summary_by_table
           WHERE OBJECT_TYPE = 'TABLE'
             AND OBJECT_SCHEMA ${MySqlCatalog.SCHEMA_FILTER}
@@ -580,18 +634,28 @@ class MySqlCatalog implements CatalogSession {
         );
 
       for (const row of counterRows) {
+        const key: string = keyOf(
+          String(row["table_schema"] ?? ""),
+          String(row["table_name"] ?? ""),
+        );
         const count: number | null = readCount(row["write_count"]);
+        const reads: number | null = readCount(row["read_count"]);
 
         if (count !== null) {
-          writeCounts.set(
-            keyOf(
-              String(row["table_schema"] ?? ""),
-              String(row["table_name"] ?? ""),
-            ),
-            count,
-          );
+          writeCounts.set(key, count);
+        }
+
+        if (reads !== null) {
+          readCounts.set(key, reads);
         }
       }
+
+      // performance_schema counts since the server started.
+      const [uptime] = await this.inReadOnlyTransaction(
+        `SELECT VARIABLE_VALUE AS seconds FROM performance_schema.global_status WHERE VARIABLE_NAME = 'Uptime'`,
+        [],
+      );
+      secondsSinceStatsReset = readCount(uptime?.["seconds"]);
     } catch (error) {
       warnings.push(
         `Write counters were left out (performance_schema could not be read): ${describeError(error).slice(0, 200)}`,
@@ -624,6 +688,8 @@ class MySqlCatalog implements CatalogSession {
         secondsSinceChange: isTable
           ? readCount(row["seconds_since_change"])
           : null,
+        readCount: readCounts.get(keyOf(schema, name)) ?? null,
+        secondsSinceRead: null,
       });
     }
 
@@ -647,6 +713,7 @@ class MySqlCatalog implements CatalogSession {
           return column !== null;
         }),
       warnings,
+      secondsSinceStatsReset,
     };
   }
 
@@ -759,8 +826,11 @@ class SqlServerCatalog implements CatalogSession {
         sizeInBytes: number | null;
         secondsSinceChange: number | null;
         writeCount: number | null;
+        readCount: number | null;
+        secondsSinceRead: number | null;
       }
     > = new Map();
+    let secondsSinceStatsReset: number | null = null;
 
     try {
       const statisticRows: Array<Record<string, unknown>> = await this.run(
@@ -770,7 +840,13 @@ class SqlServerCatalog implements CatalogSession {
           (SELECT DATEDIFF(SECOND, MAX(u.last_user_update), GETDATE()) FROM sys.dm_db_index_usage_stats u
             WHERE u.database_id = DB_ID() AND u.object_id = o.object_id) AS seconds_since_change,
           (SELECT SUM(u.user_updates) FROM sys.dm_db_index_usage_stats u
-            WHERE u.database_id = DB_ID() AND u.object_id = o.object_id) AS write_count
+            WHERE u.database_id = DB_ID() AND u.object_id = o.object_id) AS write_count,
+          (SELECT SUM(u.user_seeks + u.user_scans + u.user_lookups) FROM sys.dm_db_index_usage_stats u
+            WHERE u.database_id = DB_ID() AND u.object_id = o.object_id) AS read_count,
+          (SELECT DATEDIFF(SECOND, MAX(r.last_read), GETDATE())
+            FROM sys.dm_db_index_usage_stats u
+            CROSS APPLY (VALUES (u.last_user_seek), (u.last_user_scan), (u.last_user_lookup)) AS r(last_read)
+            WHERE u.database_id = DB_ID() AND u.object_id = o.object_id) AS seconds_since_read
         FROM sys.objects o
         JOIN sys.schemas s ON s.schema_id = o.schema_id
         WHERE o.type = 'U' AND o.is_ms_shipped = 0
@@ -788,6 +864,8 @@ class SqlServerCatalog implements CatalogSession {
             sizeInBytes: readCount(row["size_bytes"]),
             secondsSinceChange: readCount(row["seconds_since_change"]),
             writeCount: readCount(row["write_count"]),
+            readCount: readCount(row["read_count"]),
+            secondsSinceRead: readCount(row["seconds_since_read"]),
           },
         );
       }
@@ -817,6 +895,8 @@ class SqlServerCatalog implements CatalogSession {
             sizeInBytes: number | null;
             secondsSinceChange: number | null;
             writeCount: number | null;
+            readCount: number | null;
+            secondsSinceRead: number | null;
           }
         | undefined = statistics.get(keyOf(schema, name));
 
@@ -828,7 +908,20 @@ class SqlServerCatalog implements CatalogSession {
         sizeInBytes: statistic?.sizeInBytes ?? null,
         writeCount: statistic?.writeCount ?? null,
         secondsSinceChange: statistic?.secondsSinceChange ?? null,
+        readCount: statistic?.readCount ?? null,
+        secondsSinceRead: statistic?.secondsSinceRead ?? null,
       });
+    }
+
+    try {
+      // The usage statistics count since the server started.
+      const [started] = await this.run(
+        `SELECT DATEDIFF(SECOND, sqlserver_start_time, GETDATE()) AS seconds FROM sys.dm_os_sys_info`,
+        [],
+      );
+      secondsSinceStatsReset = readCount(started?.["seconds"]);
+    } catch {
+      // Needs VIEW SERVER STATE: last reads are still known, only "never read since" is not.
     }
 
     const columnRows: Array<Record<string, unknown>> = await this.run(
@@ -853,6 +946,7 @@ class SqlServerCatalog implements CatalogSession {
           return column !== null;
         }),
       warnings,
+      secondsSinceStatsReset,
     };
   }
 
@@ -983,6 +1077,7 @@ export function assembleSnapshot(data: {
     tables,
     isComplete: data.read.tables.length < data.options.maxTables,
     warnings: warnings.slice(0, MAX_COLLECTION_WARNINGS),
+    secondsSinceStatsReset: data.read.secondsSinceStatsReset,
   };
 }
 

@@ -372,6 +372,30 @@ describe("Data Observability registry wiring", () => {
     ).toContain("<DataAlertLineage alertId={modelId} />");
   });
 
+  test("a table's reads - its migration - are wired", () => {
+    const migrations: string = readSquashed(
+      "Common/Server/Infrastructure/Postgres/SchemaMigrations/Index.ts",
+    );
+
+    expect(migrations).toContain(
+      'import { AddDataAssetReads1808991900000 } from "./1808991900000-AddDataAssetReads";',
+    );
+    expect(
+      migrations.indexOf("AddDataAssetReads1808991900000,"),
+    ).toBeGreaterThan(migrations.indexOf("AddDataAlerts1808991800000,"));
+
+    const migration: string = readSquashed(
+      "Common/Server/Infrastructure/Postgres/SchemaMigrations/1808991900000-AddDataAssetReads.ts",
+    );
+
+    expect(migration).toContain(
+      'ALTER TABLE "DataAsset" ADD "lastReadAt" TIMESTAMP WITH TIME ZONE',
+    );
+    expect(migration).toContain(
+      'ALTER TABLE "DataAsset" ADD "unreadSince" TIMESTAMP WITH TIME ZONE',
+    );
+  });
+
   test("the Workers import its jobs, and the probe ingest mounts its routes", () => {
     expect(readSquashed("App/FeatureSet/Workers/Index.ts")).toContain(
       'import "./Jobs/DataObservability/DataObservabilityJobs"',

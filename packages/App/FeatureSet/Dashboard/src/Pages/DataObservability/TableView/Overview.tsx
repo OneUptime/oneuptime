@@ -1,5 +1,6 @@
 import PageComponentProps from "../../PageComponentProps";
 import {
+  formatLastRead,
   formatRowCount,
   formatSize,
   formatUpdateInterval,
@@ -120,6 +121,14 @@ const TableOverviewPage: FunctionComponent<
                   OneUptimeDate.fromString(dataAsset.firstSeenAt),
                 )
               : "",
+          )}
+          {fact(
+            "Last Read",
+            formatLastRead(
+              translator,
+              dataAsset.lastReadAt,
+              dataAsset.unreadSince,
+            ),
           )}
           {fact(
             "Last Collected",

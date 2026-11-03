@@ -36,6 +36,12 @@ export function getDataObservabilityBreadcrumbs(
       "Tables",
       "Dropped Tables",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.DATA_OBSERVABILITY_TABLES_UNUSED, [
+      "Project",
+      "Data Observability",
+      "Tables",
+      "Unused Tables",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.DATA_OBSERVABILITY_TABLE_VIEW, [
       "Project",
       "Data Observability",
