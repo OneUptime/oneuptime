@@ -457,14 +457,18 @@ describe("install.sh", () => {
     const first = runInstall(dir, env);
     expect(first.status).toBe(0);
 
-    // A newer upstream: the pin bump touches the compose file and the config.
+    /*
+     * A newer upstream: the pin bump touches the compose file's collector
+     * and the version the config stamps (the collector's release, its last
+     * number raised when the files changed on it).
+     */
     const upstream = path.join(scratch(), "upstream");
     fs.cpSync(AGENT_DIR, upstream, { recursive: true });
     const bump = (relative) => {
       const file = path.join(upstream, relative);
       fs.writeFileSync(
         file,
-        fs.readFileSync(file, "utf8").split("0.161.0").join("0.999.0"),
+        fs.readFileSync(file, "utf8").split("0.161.").join("0.999."),
       );
     };
     bump("docker-compose.yml");
@@ -1485,5 +1489,95 @@ describe("troubleshoot.sh", () => {
     expect(run.output).toContain(
       "Engine: opensearch (configs/elasticsearch.yaml)",
     );
+  });
+});
+
+/*
+ * PostgreSQL's SQL checks (the config's sqlquery receiver) connect with
+ * libpq's sslmode rather than the receiver's TLS block, so install.sh works
+ * one out from the two TLS switches every run: no TLS, TLS without
+ * verifying the certificate, or TLS verified - the same three choices the
+ * postgresql receiver makes. That receiver also reads a space in the
+ * password as a "+", so a login with one gets a warning (the rest of the
+ * engine metrics still arrive).
+ */
+describe("install.sh, PostgreSQL's SQL checks", () => {
+  const POSTGRES = {
+    ...BASE,
+    DATABASE_SYSTEM: "postgresql",
+    DATABASE_ENDPOINT: "db.example.com:5432",
+    DATABASE_USERNAME: "oneuptime_monitor",
+    DATABASE_PASSWORD: "secret",
+  };
+
+  test.each([
+    ["true", "false", "disable"],
+    ["true", "true", "disable"],
+    ["false", "true", "require"],
+    ["false", "false", "verify-full"],
+  ])(
+    "TLS insecure %s, skip verify %s: sslmode %s",
+    (insecure, skipVerify, sslmode) => {
+      const run = runInstall(scratch(), {
+        ...POSTGRES,
+        DATABASE_TLS_INSECURE: insecure,
+        DATABASE_TLS_INSECURE_SKIP_VERIFY: skipVerify,
+      });
+
+      expect(run.status).toBe(0);
+      expect(run.envLine("DATABASE_TLS_SSLMODE")).toBe(sslmode);
+    },
+  );
+
+  test("a re-run works the mode out again from the switches in .env, never keeping an old one", () => {
+    const dir = scratch();
+    const first = runInstall(dir, POSTGRES);
+    expect(first.envLine("DATABASE_TLS_SSLMODE")).toBe("disable");
+
+    // A person turned TLS on in .env, and left the old mode beside it.
+    const envPath = path.join(first.installDir, ".env");
+    fs.writeFileSync(
+      envPath,
+      fs
+        .readFileSync(envPath, "utf8")
+        .replace("DATABASE_TLS_INSECURE=true", "DATABASE_TLS_INSECURE=false")
+        .replace(
+          "DATABASE_TLS_INSECURE_SKIP_VERIFY=false",
+          "DATABASE_TLS_INSECURE_SKIP_VERIFY=true",
+        ),
+    );
+    const withoutSwitch = { ...POSTGRES };
+    delete withoutSwitch.DATABASE_TLS_INSECURE;
+    const again = runInstall(dir, withoutSwitch);
+
+    expect(again.status).toBe(0);
+    expect(again.envLine("DATABASE_TLS_INSECURE")).toBe("false");
+    expect(again.envLine("DATABASE_TLS_SSLMODE")).toBe("require");
+  });
+
+  test("a password with a space is warned about, and the install goes on", () => {
+    const run = runInstall(scratch(), {
+      ...POSTGRES,
+      DATABASE_PASSWORD: "correct horse battery",
+    });
+
+    expect(run.status).toBe(0);
+    expect(run.output).toContain("Warning: the password contains a space.");
+    expect(run.output).toContain("SQL checks");
+  });
+
+  test("a password without one, or another engine's, gets no warning", () => {
+    const plain = runInstall(scratch(), POSTGRES);
+    expect(plain.output).not.toContain("the password contains a space");
+
+    const redis = runInstall(scratch(), {
+      ...BASE,
+      DATABASE_SYSTEM: "redis",
+      DATABASE_ENDPOINT: "cache.example.com:6379",
+      DATABASE_USERNAME: "",
+      DATABASE_PASSWORD: "with a space",
+    });
+    expect(redis.status).toBe(0);
+    expect(redis.output).not.toContain("the password contains a space");
   });
 });

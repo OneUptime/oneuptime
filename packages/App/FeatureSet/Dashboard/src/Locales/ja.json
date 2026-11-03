@@ -40697,5 +40697,12 @@
   "{{count}} thread running": "実行中のスレッド {{count}} 個",
   "{{count}} threads running": "実行中のスレッド {{count}} 個",
   "{{count}} threads running_one": "実行中のスレッド {{count}} 個",
-  "{{percent}} of the buffer pool dirty": "バッファプールの {{percent}} がダーティページ"
+  "{{percent}} of the buffer pool dirty": "バッファプールの {{percent}} がダーティページ",
+  "A transaction open for {{hours}} h": "トランザクションが {{hours}} 時間開いたまま",
+  "A transaction open for {{minutes}} min": "トランザクションが {{minutes}} 分開いたまま",
+  "A transaction open for {{seconds}} s": "トランザクションが {{seconds}} 秒開いたまま",
+  "Transaction IDs at {{percent}} of wraparound": "トランザクション ID が周回限界の {{percent}}",
+  "{{count}} session waiting on a lock": "ロック待ちのセッション {{count}} 件",
+  "{{count}} sessions waiting on locks": "ロック待ちのセッション {{count}} 件",
+  "{{count}} sessions waiting on locks_one": "ロック待ちのセッション {{count}} 件"
 }

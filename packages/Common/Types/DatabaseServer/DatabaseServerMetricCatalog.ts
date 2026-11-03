@@ -98,6 +98,13 @@ export interface DatabaseServerMetricDefinition {
    * instead of charting a tile that stays empty.
    */
   notEmittedFor?: ReadonlyArray<string> | undefined;
+  /*
+   * "agent-query" for a metric the receiver does not report and the
+   * Database Agent reads with SQL of its own (the PostgreSQL config's
+   * sqlquery/oneuptime receiver, DatabaseAlertTemplates' agent-query
+   * metrics). Absent means the receiver reports it.
+   */
+  source?: "agent-query" | undefined;
 }
 
 /*
@@ -117,6 +124,14 @@ export const DATABASE_SERVER_INSTANCE_ATTRIBUTE_KEYS: ReadonlyArray<string> = [
  */
 const AGENT_ENABLED_NOTE: string =
   " Off by default in the collector's receiver; the Database Agent switches it on, and your own collector has to enable it too.";
+
+/*
+ * Appended to the description of every `source: "agent-query"` entry: the
+ * receiver has no such metric, so a team with its own collector adds the
+ * agent's query.
+ */
+const AGENT_QUERY_NOTE: string =
+  " The receiver does not report it: the Database Agent reads it with SQL, and your own collector has to enable the same sqlquery receiver.";
 
 // postgresqlreceiver reports per-database metrics under either spelling.
 const POSTGRESQL_DATABASE_KEYS: ReadonlyArray<string> = [
@@ -217,6 +232,56 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
       aggregation: AggregationType.Max,
       kind: "gauge",
       seriesCombine: "max",
+    },
+    // PostgreSQL - the Database Agent's own SQL checks (sqlquery/oneuptime).
+    {
+      system: "postgresql",
+      metricName: "postgresql.uptime",
+      title: "Uptime",
+      description: `How long the server has been up since it last started; it drops to nothing on a restart.${AGENT_QUERY_NOTE}`,
+      unit: "s",
+      aggregation: AggregationType.Min,
+      kind: "gauge",
+      // A replica that restarted is the one to see.
+      seriesCombine: "min",
+      enabledByDefault: false,
+      source: "agent-query",
+    },
+    {
+      system: "postgresql",
+      metricName: "postgresql.xid.oldest_age",
+      title: "Oldest transaction ID age",
+      description: `How many transactions old the oldest transaction ID of any database is. PostgreSQL stops accepting writes near 2.1 billion.${AGENT_QUERY_NOTE}`,
+      unit: "transactions",
+      aggregation: AggregationType.Max,
+      kind: "gauge",
+      seriesCombine: "max",
+      enabledByDefault: false,
+      source: "agent-query",
+    },
+    {
+      system: "postgresql",
+      metricName: "postgresql.transaction.longest_duration",
+      title: "Longest open transaction",
+      description: `How long the oldest open transaction of a client session has been open (0 when none is).${AGENT_QUERY_NOTE}`,
+      unit: "s",
+      aggregation: AggregationType.Max,
+      kind: "gauge",
+      seriesCombine: "max",
+      enabledByDefault: false,
+      source: "agent-query",
+    },
+    {
+      system: "postgresql",
+      metricName: "postgresql.sessions.waiting_on_lock",
+      title: "Sessions waiting on locks",
+      description: `Sessions waiting for a lock another session holds.${AGENT_QUERY_NOTE}`,
+      unit: "sessions",
+      aggregation: AggregationType.Max,
+      kind: "gauge",
+      seriesCombine: "max",
+      enabledByDefault: false,
+      source: "agent-query",
     },
 
     // MySQL / MariaDB — mysqlreceiver (default-on subset).

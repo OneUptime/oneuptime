@@ -257,6 +257,18 @@ const REASON_RESTARTED_JUST_NOW: string = translationKey(
 const REASON_PG_CONNECTIONS: string = translationKey(
   "Connections at {{percent}} of max_connections",
 );
+const REASON_PG_XID_WRAPAROUND: string = translationKey(
+  "Transaction IDs at {{percent}} of wraparound",
+);
+const TRANSACTION_OPEN: DurationWords = {
+  seconds: translationKey("A transaction open for {{seconds}} s"),
+  minutes: translationKey("A transaction open for {{minutes}} min"),
+  hours: translationKey("A transaction open for {{hours}} h"),
+};
+const REASON_PG_SESSIONS_WAITING_ON_LOCKS: { one: string; other: string } = {
+  one: translationKey("{{count}} session waiting on a lock"),
+  other: translationKey("{{count}} sessions waiting on locks"),
+};
 const REASON_PG_WAL_BEHIND: string = translationKey(
   "A replica {{size}} of WAL behind",
 );
@@ -316,6 +328,12 @@ const REASON_MEMCACHED_CONNECTIONS: string = translationKey(
 const REASON_COUCHDB_REQUEST: string = translationKey(
   "Requests averaging {{seconds}} s",
 );
+
+/*
+ * Where PostgreSQL stops assigning transaction IDs (2^31, about 2.1
+ * billion): an age is said as its share of the way there.
+ */
+export const DATABASE_POSTGRESQL_XID_WRAPAROUND_LIMIT: number = 2147483648;
 
 /*
  * ---------------------------------------------------------------------------
@@ -469,6 +487,41 @@ export const DATABASE_HEALTH_REASONS: Readonly<Record<string, ReasonBuilder>> =
     "database-postgresql-connections-high": percentReason(
       REASON_PG_CONNECTIONS,
     ),
+    "database-postgresql-restarted": restartReason,
+    "database-postgresql-xid-wraparound-near": (
+      context: ReasonContext,
+    ): DatabaseHealthText => {
+      return {
+        text: REASON_PG_XID_WRAPAROUND,
+        values: {
+          percent: formatDatabaseHealthPercent(
+            (context.value / DATABASE_POSTGRESQL_XID_WRAPAROUND_LIMIT) * 100,
+          ),
+        },
+      };
+    },
+    "database-postgresql-xid-age-high": (
+      context: ReasonContext,
+    ): DatabaseHealthText => {
+      return {
+        text: REASON_PG_XID_WRAPAROUND,
+        values: {
+          percent: formatDatabaseHealthPercent(
+            (context.value / DATABASE_POSTGRESQL_XID_WRAPAROUND_LIMIT) * 100,
+          ),
+        },
+      };
+    },
+    "database-postgresql-long-running-transaction": (
+      context: ReasonContext,
+    ): DatabaseHealthText => {
+      return durationReason(TRANSACTION_OPEN, context.value);
+    },
+    "database-postgresql-sessions-waiting-on-locks": (
+      context: ReasonContext,
+    ): DatabaseHealthText => {
+      return countReason(REASON_PG_SESSIONS_WAITING_ON_LOCKS, context.value);
+    },
     "database-postgresql-replica-replay-lag": (
       context: ReasonContext,
     ): DatabaseHealthText => {

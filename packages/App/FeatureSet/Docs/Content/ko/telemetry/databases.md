@@ -5,6 +5,7 @@
 :::cards
 - [Database Agent](#database-agent): PostgreSQL, MySQL, SQL Server, Oracle, Redis, MongoDB, Elasticsearch, Memcached의 엔진 메트릭.
 - [데이터베이스 감지 방식](#데이터베이스-감지-방식): 트레이스, Kubernetes, Docker, Podman, Collector에서 감지합니다.
+- [확인이 필요한 데이터베이스 보기](#확인이-필요한-데이터베이스-보기): 엔진마다 권장 알림의 임계값으로 판단하는 상태.
 - [데이터베이스의 알림](#데이터베이스의-알림): 권장 모니터와 직접 만드는 모니터.
 - [문제 해결](#문제-해결): 진단 스크립트와 일반적인 문제.
 :::
@@ -28,7 +29,7 @@ flowchart LR
     agent["Database Agent<br/>또는 Collector"] -->|"엔진 메트릭,<br/>쿼리 이벤트"| db
 ```
 
-엔진 메트릭은 데이터베이스 자체와 통신하는 Collector(관리형 클라우드 데이터베이스라면 공급자의 모니터링 API와 통신하는 Collector)에서만 옵니다. 트레이스와 컨테이너 인벤토리는 데이터베이스가 존재한다는 사실과 사용 방식을 OneUptime에 알려 주지만, 내부 상태는 알려 주지 않습니다. 각 데이터베이스의 **Engine metrics** 상태가 그 부분이 연결되어 있는지 보여 줍니다.
+엔진 메트릭은 데이터베이스 자체와 통신하는 Collector(관리형 클라우드 데이터베이스라면 공급자의 모니터링 API와 통신하는 Collector)에서만 옵니다. 트레이스와 컨테이너 인벤토리는 데이터베이스가 존재한다는 사실과 사용 방식을 OneUptime에 알려 주지만, 내부 상태는 알려 주지 않습니다. 각 데이터베이스의 **엔진 메트릭** 상태가 그 부분이 연결되어 있는지 보여 줍니다.
 
 데이터베이스를 직접 추가할 수도 있습니다. **데이터베이스 → 데이터베이스 만들기**에서 엔진, 주소, 포트를 지정하세요. 에이전트가 전혀 필요 없는 프로브 기반 상태 검사는 [데이터베이스 상태 모니터](/docs/monitor/database-health-monitor)를 참조하세요.
 
@@ -136,7 +137,7 @@ OneUptime은 아래 엔진을 이름으로 알고 있습니다. 계측이 `db.sy
 
 ## 데이터베이스 감지 방식
 
-각 데이터베이스는 자신을 만든 소스를 기억하며(**Discovered from** 열), **피드**의 첫 항목은 무엇이 그것을 찾았는지 알려 줍니다. Kubernetes 워크로드와 그 클러스터, Docker 또는 Podman 컨테이너(또는 Compose나 Swarm 서비스)와 그 호스트, 애플리케이션이 호출한 엔드포인트, 또는 이를 보고한 Database Agent(버전 포함)나 Collector입니다. 나중에 들어온 소스는 같은 엔드포인트를 설명하는 한 새 데이터베이스를 만들지 않고 같은 데이터베이스에 내용을 더합니다([엔드포인트](#엔드포인트와-단일-소유자-규칙) 참조).
+각 데이터베이스는 자신을 만든 소스를 기억하며(**검색 출처** 열), **피드**의 첫 항목은 무엇이 그것을 찾았는지 알려 줍니다. Kubernetes 워크로드와 그 클러스터, Docker 또는 Podman 컨테이너(또는 Compose나 Swarm 서비스)와 그 호스트, 애플리케이션이 호출한 엔드포인트, 또는 이를 보고한 Database Agent(버전 포함)나 Collector입니다. 나중에 들어온 소스는 같은 엔드포인트를 설명하는 한 새 데이터베이스를 만들지 않고 같은 데이터베이스에 내용을 더합니다([엔드포인트](#엔드포인트와-단일-소유자-규칙) 참조).
 
 ### 애플리케이션 트레이스에서
 
@@ -341,6 +342,7 @@ DATABASE_USERNAME=oneuptime_monitor
 DATABASE_PASSWORD='a-strong-password'
 DATABASE_TLS_INSECURE=true
 DATABASE_TLS_INSECURE_SKIP_VERIFY=false
+DATABASE_TLS_SSLMODE=disable
 DATABASE_COLLECTION_INTERVAL=30s
 DATABASE_QUERY_EVENTS=false
 DATABASE_SERVER_ID=
@@ -355,7 +357,7 @@ docker compose up -d
 
 ### OneUptime에서 데이터베이스 찾기
 
-첫 수집 후 데이터베이스가 **데이터베이스** 아래에 나타납니다. OneUptime이 같은 주소의 트레이스나 컨테이너에서 이미 감지했다면 그 **Engine metrics** 상태가 연결됨으로 바뀝니다. 사설 IP나 네트워크 안에서만 확인되는 이름(`db.prod.internal`, 클러스터 로컬 이름)이라면 먼저 데이터베이스를 만들거나 `DATABASE_SERVER_ID`를 설정하세요([Database Agent 또는 직접 운영하는 Collector에서](#database-agent-또는-직접-운영하는-collector에서) 참조).
+첫 수집 후 데이터베이스가 **데이터베이스** 아래에 나타납니다. OneUptime이 같은 주소의 트레이스나 컨테이너에서 이미 감지했다면 그 **엔진 메트릭** 상태가 연결됨으로 바뀝니다. 사설 IP나 네트워크 안에서만 확인되는 이름(`db.prod.internal`, 클러스터 로컬 이름)이라면 먼저 데이터베이스를 만들거나 `DATABASE_SERVER_ID`를 설정하세요([Database Agent 또는 직접 운영하는 Collector에서](#database-agent-또는-직접-운영하는-collector에서) 참조).
 :::
 
 ### 환경 변수
@@ -375,6 +377,7 @@ docker compose up -d
 | `DATABASE_PASSWORD` | PostgreSQL, SQL Server, Oracle | 그 비밀번호. `.env`에서는 작은따옴표로 감싸고 모든 `$`를 `$$`로 씁니다(`install.sh`가 둘 다 해 줍니다) |
 | `DATABASE_TLS_INSECURE` | 아니요 | `true`(기본값)는 TLS 없이 연결하고, `false`는 TLS를 켭니다 |
 | `DATABASE_TLS_INSECURE_SKIP_VERIFY` | 아니요 | `true`는 Collector 이미지가 신뢰하지 않는 인증서(자체 서명, 사설 CA)를 받아들입니다. 기본값은 `false` |
+| `DATABASE_TLS_SSLMODE` | 아니요 | PostgreSQL: 위의 두 설정을 libpq의 `sslmode`로 나타낸 값으로, 구성 파일 자체의 SQL 검사에 쓰입니다. `DATABASE_TLS_INSECURE`가 `true`인 동안은 `disable`, `DATABASE_TLS_INSECURE_SKIP_VERIFY`가 `true`이면 `require`, 그 밖에는 `verify-full`입니다. `install.sh`가 기록합니다. 기본값은 `disable` |
 | `DATABASE_COLLECTION_INTERVAL` | 아니요 | 엔진 통계를 읽는 주기. 기본값은 `30s` |
 | `DATABASE_QUERY_EVENTS` | 아니요 | `true`는 쿼리 샘플과 상위 쿼리를 로그로 보냅니다(PostgreSQL, MySQL, MongoDB, SQL Server, Oracle). 쿼리 텍스트가 들어 있습니다. 기본값은 `false` |
 | `DATABASE_SERVER_ID` | 아니요 | OneUptime이 이미 표시하는 데이터베이스의 ID(**문서** 탭에 미리 채워져 있음). 그러면 데이터가 그 데이터베이스에 직접 들어가며, 보고하는 주소가 무엇이든(또는 없더라도) 그 페이지에 표시됩니다. Kubernetes와 사설 IP에서는 이 방법을 쓰세요. 수집 키가 속한 프로젝트의 데이터베이스여야 합니다 |
@@ -393,6 +396,8 @@ docker compose up -d
 | Memcached | `memcached`: 연결, 명령, 적중과 미스, 축출, 항목, 바이트, 네트워크, 스레드, CPU(모두 기본으로 켜져 있음) | — | — |
 
 PostgreSQL 리시버의 `postgresqlreceiver.preciselagmetrics` 기능 게이트는 기본으로 켜져 있으며, 복제 시간 지연을 `postgresql.wal.lag` 대신 `postgresql.wal.delay`로 기록합니다. 이 메트릭은 업스트림에서 꺼져 있으므로 에이전트가 켭니다. 각 구성에는 그 밖의 선택적 메트릭이 주석으로 나열되어 있으며, 어느 것이든 같은 방식으로 켤 수 있습니다. 데이터베이스 개요의 **Engine metrics** 섹션은 이 표의 엔진마다 엄선한 세트를 차트로 보여 줍니다(Elasticsearch / OpenSearch는 클러스터 상태, 노드, 할당되지 않은 샤드, 대기 중인 작업, JVM 힙, 여유 디스크, 검색과 인덱싱. Memcached는 연결, 메모리, 항목, get 적중과 미스, 명령, 축출). **메트릭** 탭에는 모든 것이 있습니다. 그곳에서 개요가 차트로 보여 주는 메트릭은 개요와 같은 값(시리즈를 같은 방식으로 결합하고, 카운터는 초당 비율)을 보여 주며, 방법을 알려 주는 캡션(_total of series_, _per second, all series_)이 붙습니다. 다른 모든 행은 시리즈의 평균을 보여 주며, 속성으로 목록을 필터링하는 동안에는 모든 행이 평균을 보여 줍니다. MariaDB는 `mysql.buffer_pool.limit`을 리시버가 선언하는 바이트가 아니라 버퍼 풀의 페이지 수로 보고하므로, MariaDB 데이터베이스에서는 그 행과 차트를 페이지 단위로 읽어야 합니다. MariaDB에는 `Innodb_rows_*` 상태 카운터가 없으므로 리시버는 MariaDB에 대해 `mysql.row_operations`를 보내지 않으며, MariaDB 개요에는 **Row operations** 차트가 없습니다. 행 읽기와 쓰기는 **Handler operations**에 표시됩니다.
+
+PostgreSQL 구성 파일은 Collector의 `sqlquery` 리시버로 같은 간격에 서버에 네 가지를 직접 묻기도 합니다. 가동 시간(`postgresql.uptime`, `pg_postmaster_start_time()`에서), 가장 오래된 트랜잭션 ID의 나이(`postgresql.xid.oldest_age`, `pg_database`에서 가장 큰 `age(datfrozenxid)`), 가장 오래 열려 있는 트랜잭션이 열려 있던 시간(`postgresql.transaction.longest_duration`), 잠금을 기다리는 세션 수(`postgresql.sessions.waiting_on_lock`)이며, 마지막 두 가지는 `pg_stat_activity`에서 읽습니다. `postgresql` 리시버는 이 중 어느 것도 보고하지 않지만, 재시작, 열린 채 방치된 트랜잭션, 잠금 대기열, 다가오는 트랜잭션 ID 랩어라운드를 보여 주는 것은 바로 이 값들입니다. PostgreSQL은 나이가 21억 가까이 되면 쓰기를 받지 않으므로, 상태는 10억부터 확인이 필요하고 15억부터 위험합니다. `pg_monitor`로 충분합니다. 이 쿼리는 `DATABASE_TLS_SSLMODE`로 연결하며, 공백이 들어간 비밀번호로는 로그인할 수 없습니다(공백을 `+`로 보내기 때문). `install.sh`가 이를 경고합니다. 직접 운영하는 Collector에서는 `configs/postgresql.yaml`의 `sqlquery/oneuptime` 리시버를 그 `metrics` 파이프라인에 복사하세요.
 
 데이터베이스의 **버전**은 리시버가 보고하는 경우 리시버에서 가져옵니다: `db.system.version`(MySQL / MariaDB, MongoDB), `redis.version`(Redis, KeyDB), `oracle.db.version`(Oracle), `elasticsearch.node.version`(Elasticsearch / OpenSearch). PostgreSQL, SQL Server, Memcached 리시버는 보고하지 않으므로, 에이전트만 있으면 이 데이터베이스들은 버전을 표시하지 않습니다. Kubernetes, Docker, Podman에서도 실행되는 데이터베이스는 컨테이너 이미지의 버전을 표시합니다.
 
@@ -418,7 +423,7 @@ sudo systemctl enable --now oneuptime-database-agent
 
 `install.sh`를 다시 실행하세요. 기존 `.env`의 모든 값을 재사용하고, `docker-compose.yml`, `otel-collector-config.yaml`, systemd 유닛을 현재 버전으로 바꾸며, 새 구성이 적용되도록 에이전트의 컨테이너를 다시 만듭니다. 편집했던 파일(`network_mode: host`, `filelog` 리시버와 그 마운트, 추가 메트릭)은 새 파일 옆에 `<file>.bak.<timestamp>`로 보존되며, 스크립트가 마지막에 이를 나열하므로 편집 내용을 다시 적용할 수 있습니다. `.env`나 `otel-collector-config.yaml`의 편집은 `docker compose up -d --force-recreate`로 적용하세요. Collector는 시작할 때만 구성을 읽으며, 구성 파일만 바뀐 경우 일반 `docker compose up -d`는 실행 중인 컨테이너를 그대로 둡니다. 스크립트는 설치한 내용을 `.agent-files.sha256`에 기록하므로, 아무도 편집하지 않은 파일은 새 버전이 얼마나 바뀌었든 사본 없이 교체됩니다. 그 기록이 없는 디렉터리(직접 구성한 디렉터리)에서는 편집 내용이 있을 수 있으므로 새 버전과 다른 파일을 모두 보존합니다. 에이전트를 제거하려면 `cd /opt/oneuptime-database-agent && docker compose down`을 실행한 다음 모니터링 사용자(와 만들었다면 AI 에이전트 전용 로그인)를 삭제하세요.
 
-에이전트는 파일에 고정된 Collector 버전을 **에이전트 버전**으로 보고합니다. 그 버전이 이 OneUptime 릴리스가 고정한 버전보다 오래되면 데이터베이스의 **개요**에서 그 옆에 경고 표시가 나타납니다. 선택하면 업그레이드 방법이 표시됩니다. 설치 스크립트, Docker Compose, 또는 Kubernetes의 데이터베이스라면 설정 가이드의 Deployment를 사용합니다.
+에이전트는 파일의 버전을 **에이전트 버전**으로 보고합니다. 이는 파일이 고정한 Collector 버전으로, 그 Collector에서 파일이 바뀔 때마다 마지막 숫자가 올라갑니다. 그 버전이 이 OneUptime 릴리스가 고정한 버전보다 오래되면 데이터베이스의 **개요**에서 그 옆에 경고 표시가 나타납니다. 선택하면 업그레이드 방법이 표시됩니다. 설치 스크립트, Docker Compose, 또는 Kubernetes의 데이터베이스라면 설정 가이드의 Deployment를 사용합니다.
 
 ## AI 에이전트
 
@@ -521,6 +526,8 @@ spec:
               value: "true"
             - name: DATABASE_TLS_INSECURE_SKIP_VERIFY
               value: "false"
+            - name: DATABASE_TLS_SSLMODE
+              value: "disable"
             - name: DATABASE_COLLECTION_INTERVAL
               value: "30s"
             - name: DATABASE_QUERY_EVENTS
@@ -594,13 +601,44 @@ processors:
 
 데이터베이스 이름의 기본값은 엔진과 엔드포인트(`PostgreSQL db.example.com:5432`)이며, 컨테이너에서 감지된 데이터베이스라면 엔진과 워크로드입니다. Kubernetes에서는 `<namespace>/<workload>`(`PostgreSQL data/postgres`), Docker나 Podman에서는 컨테이너 이름, Compose 서비스(`<project>-<service>`), 또는 Swarm 서비스입니다. 이름은 자유롭게 바꿀 수 있으며, 이름은 ID가 아닙니다. 이 기본값 덕분에 이름 기반 레이블 및 소유자 규칙을 쉽게 만들 수 있습니다. 이름 패턴 `^PostgreSQL`은 모든 PostgreSQL 데이터베이스와, `^MariaDB`는 모든 MariaDB 데이터베이스와 일치합니다.
 
+## 확인이 필요한 데이터베이스 보기
+
+**데이터베이스** 목록은 **확인 필요**으로 시작합니다. 엔진의 권장 알림 임계값을 넘은 데이터베이스와 엔진 메트릭이 멈춘 데이터베이스를 모두 가장 급한 것부터 보여 주며, 각각에 이유와 그 페이지로 가는 한 단계를 표시합니다. 확인이 필요한 것이 없으면 카드가 없습니다.
+
+그 아래에서 각 데이터베이스의 **상태**가 엔진의 상태를 알려 주고, 그 아래에 이유가 표시됩니다.
+
+| 상태 | 조건 |
+| --- | --- |
+| **정상** | 엔진 메트릭이 들어오고 있으며, 어느 것도 엔진의 권장 알림 임계값을 넘지 않았습니다. |
+| **저하됨** | 아래 표의 경고 임계값을 넘었습니다. |
+| **비정상** | 아래 표의 위험 임계값을 넘었습니다. |
+| **엔진 메트릭 중단됨** | **엔진 메트릭**가 _연결 끊김_ 상태입니다. 에이전트나 Collector가 보고하다가 멈췄습니다([수명 주기](#수명-주기-보관-보존) 참조). 마지막으로 보고한 값은 더 이상 사실이 아니므로, 행에는 대신 마지막으로 보고한 시각이 표시됩니다. |
+| **엔진 메트릭 없음** | 아직 이 데이터베이스에 대해 보고한 Database Agent나 Collector가 없습니다([Database Agent](#database-agent) 참조). |
+| **보고 중** | 엔진 메트릭은 들어오지만, 엔진의 임계값이 판단하는 값 중 어느 것도 지난 15분 안에 들어오지 않았거나, OneUptime이 그 엔진에 권장하는 알림이 없습니다. |
+
+임계값은 [권장 모니터](#권장-모니터) 자체의 것(각각의 메트릭, 수식, 임계값)이며, 엔진이 마지막으로 보고한 값에 대해 판단합니다. OneUptime은 이 값을 약 1분마다 데이터베이스에 저장합니다. 페이지는 값이 임계값을 넘는 즉시 알려 주고, 모니터는 알림을 열기 전에 자기 기간이 지나기를 기다립니다. 만든 뒤 변경한 모니터는 자기 임계값을 유지하고, 상태는 권장 임계값을 씁니다. 여러 에이전트가 보고하는 데이터베이스(예를 들어 레플리카 세트 구성원마다 하나)는 모니터가 판단하는 방식대로 판단합니다. 연결 수는 합산하고, 지연은 가장 뒤처진 레플리카의 값을 씁니다.
+
+| 엔진 | 비정상 | 저하됨 |
+| --- | --- | --- |
+| PostgreSQL | 연결 수가 `max_connections`의 95%; 트랜잭션 ID가 랩어라운드에 가까움 | 연결 수가 `max_connections`의 80%; 트랜잭션 ID가 랩어라운드 쪽으로 오래됨; 재생이 30초 뒤처진 레플리카; WAL이 1 GB 뒤처진 레플리카; 재시작; 한 시간째 열려 있는 트랜잭션; 잠금을 기다리는 세션; 500 GB 이상인 데이터베이스 |
+| MySQL / MariaDB | — | 연결 136개; 실행 중인 스레드 50개; 버퍼 풀의 75%가 더티; 30초 뒤처진 레플리카; 재시작 |
+| SQL Server | — | 90% 미만인 버퍼 캐시 적중률; 300초 미만인 페이지 예상 수명; 차단된 세션; 메모리를 기다리는 쿼리 |
+| Oracle | 90% 찬 테이블스페이스 | — |
+| Redis / Valkey / KeyDB / Dragonfly | — | 메모리가 `maxmemory`의 90%; 256 MB 사용 시 1.5인 조각화 비율; 클라이언트 9,000개; 재시작 |
+| MongoDB | 연결 수가 한도의 90% | 재시작 |
+| Elasticsearch / OpenSearch | 클러스터 상태 빨강 | 클러스터 상태 노랑; 대기 중인 클러스터 작업 10개; 85% 찬 JVM 힙 |
+| Memcached | — | 연결 900개 |
+| CouchDB | — | 평균 1,000 ms인 요청 |
+
+데이터베이스의 **개요**도 같은 내용을 보여 줍니다. 헤더에 상태가 표시되고(엔진 메트릭이 멈춘 동안은 _상태: 알 수 없음_, 아직 아무것도 들어오지 않았으면 표시 없음), 이어서 **확인 필요**에 넘은 임계값 종류마다 한 행(**연결**, **복제**, **메모리** 등)이 나옵니다. 각 행은 **메트릭** 탭을 열고, 엔진 메트릭이 멈췄다면 설정 가이드와 진단 스크립트가 있는 **문서** 탭을 엽니다. **데이터베이스 알림**에는 엔진의 권장 알림 중 이 데이터베이스를 감시하는 것이 표시되며, 그 버튼을 누르면 나머지가 선택된 상태로 **권장 사항**가 열립니다.
+
 ## 데이터베이스의 알림
 
 데이터베이스의 **알림** 탭과 **인시던트** 탭은 그 데이터베이스를 지정하는 모니터가 연 항목을 보여 줍니다. 데이터베이스가 진행 중인 예정된 유지 관리 기간에 있는 동안, 그 모니터는 기간 밖의 리소스도 함께 지정하지 않는 한 새 인시던트나 알림을 열지 않습니다. 상태는 계속 갱신되며, 기간 전에 연 항목은 계속 해결됩니다. 데이터베이스는 다른 리소스처럼 인시던트, 알림, 예정된 유지 관리에 직접 연결할 수도 있습니다. 데이터베이스 자체의 **인시던트**, **알림**, **예정된 유지 관리** 탭에서 만들면 데이터베이스가 이미 선택된 상태로 시작합니다.
 
 ### 권장 모니터
 
-데이터베이스의 **권장 사항** 탭은 해당 엔진용 기성 메트릭 모니터(한도에 가까운 연결, 복제 지연, 메모리와 캐시 압박, 차단된 세션, 가득 찬 테이블스페이스, 클러스터 상태, 재시작, 그리고 엔진 메트릭이 더 이상 들어오지 않을 때 발생하는 **Engine Metrics Stopped** 검사)를 다음 엔진에 대해 제안합니다: PostgreSQL, MySQL, MariaDB, SQL Server, Oracle, Redis, Valkey, KeyDB, Dragonfly, Memcached, MongoDB, CouchDB, Elasticsearch, OpenSearch. 이 모니터는 엔진의 Collector 리시버가 보고하는 메트릭을 읽으므로, 그 메트릭 중 하나가 지난 30일 동안 데이터베이스의 `oneuptime.database.server.id`가 붙은 채로 들어온 뒤에 제안됩니다(로그, 다른 리시버(예: MongoDB Atlas 클러스터의 `mongodbatlas` 리시버), 익스포터는 해당하지 않으며, 그 전까지 탭은 비어 있는 이유를 알려 줍니다). 모든 모니터는 데이터베이스의 `oneuptime.database.server.id`로 필터링합니다. 탭 옆의 배지는 아직 만들지 않은 모니터의 수를 셉니다.
+데이터베이스의 **권장 사항** 탭은 해당 엔진용 기성 메트릭 모니터(한도에 가까운 연결, 복제 지연, 메모리와 캐시 압박, 차단된 세션, 가득 찬 테이블스페이스, 클러스터 상태, 재시작, 그리고 엔진 메트릭이 더 이상 들어오지 않을 때 발생하는 **Engine Metrics Stopped** 검사)를 다음 엔진에 대해 제안합니다: PostgreSQL, MySQL, MariaDB, SQL Server, Oracle, Redis, Valkey, KeyDB, Dragonfly, Memcached, MongoDB, CouchDB, Elasticsearch, OpenSearch. 이 모니터는 엔진의 Collector 리시버가 보고하는 메트릭을 읽으므로, 그 메트릭 중 하나가 지난 30일 동안 데이터베이스의 `oneuptime.database.server.id`가 붙은 채로 들어온 뒤에 제안됩니다(로그, 다른 리시버(예: MongoDB Atlas 클러스터의 `mongodbatlas` 리시버), 익스포터는 해당하지 않으며, 그 전까지 탭은 비어 있는 이유를 알려 줍니다). 모든 모니터는 데이터베이스의 `oneuptime.database.server.id`로 필터링합니다. 탭 옆의 배지는 아직 만들지 않은 모니터의 수를 셉니다. PostgreSQL의 재시작, 트랜잭션 ID, 열린 트랜잭션, 잠금 대기 모니터는 Database Agent 자체의 SQL 검사를 읽습니다([수집되는 항목](#수집되는-항목) 참조). 그래서 직접 운영하는 Collector에서는 같은 `sqlquery` 리시버를 실행하기 전까지 이 모니터들이 조용합니다.
 
 리시버의 문서는 보고할 수 있는 항목을 나열할 뿐, 모든 환경에서 실제로 들어오는 항목을 나열하지는 않습니다. 그래서 SQL Server와 Oracle 모니터는 Database Agent 자체 구성에서 들어오는 것이 확인된 메트릭만 읽습니다. 이 때문에 SQL Server에는 트랜잭션 로그나 잠금 대기 시간 모니터가 없고(이를 보고하는 것은 Windows 성능 카운터뿐이며, 에이전트는 직접 연결합니다), Oracle에는 세션이나 프로세스 한도 모니터가 없습니다(플러그형 데이터베이스에 연결하면 이를 보고하지 않습니다).
 
@@ -643,7 +681,7 @@ SQL Server의 `sqlserver.*.rate` 메트릭(일괄 처리 요청, 컴파일, 잠�
 ## 수명 주기, 보관, 보존
 
 - **마지막 확인**은 모든 소스가 갱신하며, 데이터베이스 헤더의 배지가 이를 읽습니다. 어떤 소스가 지난 30분 안에 데이터베이스를 확인했다면 _최근 확인됨_ 상태, 그 후에는 _최근 확인되지 않음_ 상태, 어떤 소스도 확인하기 전에는 _확인된 적 없음_ 상태로 표시됩니다. 이는 엔진 메트릭에 대해서는 아무것도 알려 주지 않으며, 엔진 메트릭에는 별도의 상태가 있습니다.
-- **Engine metrics**는 Collector 데이터가 계속 들어오는 동안 _연결됨_ 상태, 보고하던 Collector가 15분 동안 멈추면 _연결 끊김_ 상태, Database Agent나 Collector가 한 번도 보고한 적이 없으면 _연결 안 됨_ 상태로 표시됩니다. 15분은 최솟값입니다. OneUptime은 데이터가 흐르는 동안 Collector의 하트비트를 약 5분마다만 기록하므로, 마지막으로 기록된 하트비트부터 세어 7분을 더 기다리고 5분마다 확인합니다. 멈춘 Collector는 마지막 데이터 포인트로부터 15분에서 약 27분 사이에 _연결 끊김_ 상태가 됩니다. 목록의 **Engine metrics** 필터에서 세 가지 모두를 고를 수 있습니다.
+- **엔진 메트릭**는 Collector 데이터가 계속 들어오는 동안 _연결됨_ 상태, 보고하던 Collector가 15분 동안 멈추면 _연결 끊김_ 상태, Database Agent나 Collector가 한 번도 보고한 적이 없으면 _연결 안 됨_ 상태로 표시됩니다. 15분은 최솟값입니다. OneUptime은 데이터가 흐르는 동안 Collector의 하트비트를 약 5분마다만 기록하므로, 마지막으로 기록된 하트비트부터 세어 7분을 더 기다리고 5분마다 확인합니다. 멈춘 Collector는 마지막 데이터 포인트로부터 15분에서 약 27분 사이에 _연결 끊김_ 상태가 됩니다. 목록의 **엔진 메트릭** 필터에서 세 가지 모두를 고를 수 있습니다.
 - **정리하려면 보관하세요.** 감지된 데이터베이스를 삭제해도 소스가 다시 확인할 때까지만 사라집니다. 다음 스팬이나 Pod가 그것을 새 데이터베이스로 되살립니다. 완전히 정리하려면 **보관**하세요. 보관된 데이터베이스는 엔드포인트를 유지하므로, 그 엔드포인트와 일치하는 모든 것이 새 데이터베이스를 만드는 대신 보관된 데이터베이스에 계속 연결됩니다.
 - **클라이언트 포트에 대해 생성된 데이터베이스.** 애플리케이션 트레이스가 32768 이상의 포트(엔진의 기본 포트 제외)에 대해 만든 데이터베이스는, 아무도 손대지 않았고 이름 변경, 설명 작성, 보관, 복원도 하지 않았다면 보관되지 않고 삭제됩니다. 감지는 더 이상 이런 데이터베이스를 만들지 않으며([연결마다 데이터베이스 하나](#연결마다-데이터베이스-하나-각각-다른-높은-포트) 참조), 삭제된 데이터베이스는 돌아오지 않습니다.
 - **자동 보관.** 어떤 소스도 7일 동안 확인하지 않은 감지된 데이터베이스는 누군가 손대지 않았다면 자동으로 보관됩니다. 손댄 것으로 보는 항목은 사람이 추가한 레이블이나 소유자, 인시던트, 알림, 예정된 유지 관리, 사람이 추가한 엔드포인트, 보존 기간 설정입니다. 레이블 또는 소유자 규칙이나 `oneuptime.label.*` 속성이 스스로 붙인 레이블과 소유자는 사람이 데이터베이스에서 저장하기 전까지 치지 않습니다(그렇지 않으면 포괄 규칙 때문에 모든 데이터베이스가 영원히 남습니다). Kubernetes 클러스터나 Docker 또는 Podman 호스트 자체가 조용해진 경우, 그 데이터베이스는 조용한 동안 보관되지 않습니다. 데이터베이스는 클러스터나 호스트보다 훨씬 전에 보이지 않게 되었을 때만 확인되지 않은 것으로 칩니다.
@@ -692,7 +730,7 @@ bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-d
 - `ORA-12514` 또는 `ORA-12505`: Oracle 리스너는 응답하지만(그래서 연결 검사는 통과합니다) `DATABASE_ORACLE_SERVICE`가 지정한 서비스를 알지 못합니다. 데이터베이스 호스트에서 `lsnrctl services`를 실행하면 리스너가 아는 서비스가 나열됩니다.
 - `ORA-28000` 또는 `ORA-28001`: Oracle 모니터링 사용자가 잠겼거나 비밀번호가 만료되었습니다.
 - PostgreSQL 상위 쿼리의 `failed to explain`은 권한 누락이 아닙니다. 실행 계획에는 테이블에 대한 `SELECT`가 필요한데, `pg_monitor`는 의도적으로 이를 주지 않습니다. 메트릭과 상위 쿼리에는 영향이 없으며, 실행 계획만 비어 있습니다.
-- `SSL is not enabled on the server`: `DATABASE_TLS_INSECURE=true`를 설정하세요. TLS가 필요한 서버에서는 `DATABASE_TLS_INSECURE=false`를 설정하고, 이미지가 신뢰하지 않는 인증서라면 `DATABASE_TLS_INSECURE_SKIP_VERIFY=true`도 설정하세요. Elasticsearch / OpenSearch에서는 `DATABASE_ENDPOINT`의 `http://` 또는 `https://`가 이를 결정합니다.
+- `SSL is not enabled on the server`: `DATABASE_TLS_INSECURE=true`를 설정하세요. TLS가 필요한 서버에서는 `DATABASE_TLS_INSECURE=false`를 설정하고, 이미지가 신뢰하지 않는 인증서라면 `DATABASE_TLS_INSECURE_SKIP_VERIFY=true`도 설정하세요. Elasticsearch / OpenSearch에서는 `DATABASE_ENDPOINT`의 `http://` 또는 `https://`가 이를 결정합니다. PostgreSQL에서는 `DATABASE_TLS_SSLMODE`도 그에 맞게 설정하세요(`install.sh`처럼 `disable`, `require`, `verify-full` 중 하나). 그렇지 않으면 구성 파일 자체의 SQL 검사가 연결할 수 없습니다.
 - `pg_stat_statements` 오류: 확장을 만들거나 `DATABASE_QUERY_EVENTS=false`를 설정하세요.
 - 그 밖의 리시버 오류는 진단 스크립트가 가장 자주 나온 오류를 데이터베이스 드라이버의 표현 그대로(비밀번호는 가린 채) 출력합니다.
 
@@ -728,6 +766,10 @@ OneUptime은 배치가 데이터베이스의 서버를 지정하거나 그 `oneu
 ### Engine metrics가 연결 끊김 또는 연결 안 됨으로 표시됨
 
 _연결 안 됨_: 이 데이터베이스에 대해 Database Agent나 Collector가 한 번도 보고한 적이 없습니다. **문서** 탭에서 에이전트를 설치하세요. _연결 끊김_: 보고하던 에이전트나 Collector가 15분 이상 아무것도 보내지 않았습니다([수명 주기](#수명-주기-보관-보존) 참조). 그것이 실행되는 곳에서 [진단 스크립트](#먼저-진단-스크립트를-실행하세요)를 실행하세요. 권장 모니터는 엔진 리시버 자체의 메트릭이 들어온 뒤 **권장 사항** 탭에 나타납니다.
+
+### 상태가 정상이 아니라 보고 중으로 표시됨
+
+**보고 중**은 엔진 메트릭은 들어오지만 엔진의 임계값이 판단하는 값은 하나도 들어오지 않는다는 뜻입니다. 그 메트릭을 빼고 보내는 직접 운영하는 Collector, 다른 데이터는 계속 들어오는데 멈춘 값, 또는 OneUptime이 권장하는 알림이 없는 엔진이 원인입니다. **메트릭** 탭에서 실제로 들어오는 것을 확인하고 [수집되는 항목](#수집되는-항목)과 비교하세요.
 
 ### 모니터의 알림이 데이터베이스에 표시되지 않음
 

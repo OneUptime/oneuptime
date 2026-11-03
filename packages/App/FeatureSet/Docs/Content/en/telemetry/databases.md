@@ -5,6 +5,7 @@
 :::cards
 - [The Database Agent](#the-database-agent): Engine metrics for PostgreSQL, MySQL, SQL Server, Oracle, Redis, MongoDB, Elasticsearch and Memcached.
 - [How databases are detected](#how-databases-are-detected): From traces, Kubernetes, Docker, Podman and collectors.
+- [See which databases need attention](#see-which-databases-need-attention): Health judged by the lines of each engine's recommended alerts.
 - [Alerts on a database](#alerts-on-a-database): Recommended monitors, and monitors you build.
 - [Troubleshooting](#troubleshooting): A diagnostic script, and the usual problems.
 :::
@@ -28,7 +29,7 @@ flowchart LR
     agent["Database Agent<br/>or a collector"] -->|"engine metrics,<br/>query events"| db
 ```
 
-Engine metrics only ever come from a collector talking to the database itself (or, for a managed cloud database, to its provider's monitoring API). Traces and container inventories tell OneUptime that a database exists and how it is used, but not how it is doing inside — the **Engine metrics** status on each database says whether that part is connected.
+Engine metrics only ever come from a collector talking to the database itself (or, for a managed cloud database, to its provider's monitoring API). Traces and container inventories tell OneUptime that a database exists and how it is used, but not how it is doing inside — the **Engine Metrics** status on each database says whether that part is connected.
 
 You can also add a database by hand: **Databases → Create Database** with its engine, address and port. For a probe-based health check that needs no agent at all, see the [Database Health Monitor](/docs/monitor/database-health-monitor).
 
@@ -136,7 +137,7 @@ The usual other spellings are accepted too: `postgres` and `pg`, `mssql` and `sq
 
 ## How databases are detected
 
-Each database remembers the source that created it (the **Discovered from** column), and the first item on its **Feed** says what found it: the Kubernetes workload and its cluster, the Docker or Podman container — or Compose or Swarm service — and its host, the endpoint applications called, or the Database Agent (with its version) or collector that reported it. Later sources add to the same database rather than creating another one, as long as they describe the same endpoint (see [Endpoints](#endpoints-and-the-one-owner-rule)).
+Each database remembers the source that created it (the **Discovered From** column), and the first item on its **Feed** says what found it: the Kubernetes workload and its cluster, the Docker or Podman container — or Compose or Swarm service — and its host, the endpoint applications called, or the Database Agent (with its version) or collector that reported it. Later sources add to the same database rather than creating another one, as long as they describe the same endpoint (see [Endpoints](#endpoints-and-the-one-owner-rule)).
 
 ### From application traces
 
@@ -341,6 +342,7 @@ DATABASE_USERNAME=oneuptime_monitor
 DATABASE_PASSWORD='a-strong-password'
 DATABASE_TLS_INSECURE=true
 DATABASE_TLS_INSECURE_SKIP_VERIFY=false
+DATABASE_TLS_SSLMODE=disable
 DATABASE_COLLECTION_INTERVAL=30s
 DATABASE_QUERY_EVENTS=false
 DATABASE_SERVER_ID=
@@ -355,7 +357,7 @@ docker compose up -d
 
 ### Find the database in OneUptime
 
-After the first collection the database appears under **Databases** — or, if OneUptime had already detected it from traces or containers at the same address, its **Engine metrics** status turns to Connected. For a private IP or a name that only resolves inside your network (`db.prod.internal`, a cluster-local name), create the database first or set `DATABASE_SERVER_ID` (see [From the Database Agent or your own collector](#from-the-database-agent-or-your-own-collector)).
+After the first collection the database appears under **Databases** — or, if OneUptime had already detected it from traces or containers at the same address, its **Engine Metrics** status turns to Connected. For a private IP or a name that only resolves inside your network (`db.prod.internal`, a cluster-local name), create the database first or set `DATABASE_SERVER_ID` (see [From the Database Agent or your own collector](#from-the-database-agent-or-your-own-collector)).
 :::
 
 ### Environment variables
@@ -375,6 +377,7 @@ After the first collection the database appears under **Databases** — or, if O
 | `DATABASE_PASSWORD` | PostgreSQL, SQL Server, Oracle | Its password. In `.env`, single-quote it and write every `$` as `$$` (`install.sh` does both for you) |
 | `DATABASE_TLS_INSECURE` | No | `true` (default) connects without TLS; `false` turns TLS on |
 | `DATABASE_TLS_INSECURE_SKIP_VERIFY` | No | `true` accepts a certificate the collector image does not trust (self-signed, private CA). Defaults to `false` |
+| `DATABASE_TLS_SSLMODE` | No | PostgreSQL: the two settings above as libpq's `sslmode`, for the config's own SQL checks — `disable` while `DATABASE_TLS_INSECURE` is `true`, `require` when `DATABASE_TLS_INSECURE_SKIP_VERIFY` is `true`, `verify-full` otherwise. `install.sh` writes it. Defaults to `disable` |
 | `DATABASE_COLLECTION_INTERVAL` | No | How often the engine's statistics are read. Defaults to `30s` |
 | `DATABASE_QUERY_EVENTS` | No | `true` ships query samples and top queries as logs (PostgreSQL, MySQL, MongoDB, SQL Server and Oracle). They contain query text. Defaults to `false` |
 | `DATABASE_SERVER_ID` | No | The id of a database OneUptime already shows (its **Documentation** tab has it, prefilled). The data then joins that database directly and shows on its pages, whatever address it reports (or none) — the way to go in Kubernetes and for private IPs. It must be a database in the project the ingestion key belongs to |
@@ -393,6 +396,8 @@ After the first collection the database appears under **Databases** — or, if O
 | Memcached | `memcached` — connections, commands, hits and misses, evictions, items, bytes, network, threads, CPU (all on by default) | — | — |
 
 The PostgreSQL receiver's `postgresqlreceiver.preciselagmetrics` feature gate, on by default, records the replication time lag as `postgresql.wal.delay` instead of `postgresql.wal.lag`, and that metric is off upstream — which is why the agent switches it on. Each config lists further optional metrics in a comment; enable any of them the same way. The **Engine metrics** section of a database's Overview charts a curated set for every engine in this table — for Elasticsearch / OpenSearch cluster health, nodes, unassigned shards, pending tasks, JVM heap, free disk, searches and indexing; for Memcached connections, memory, items, get hits and misses, commands and evictions — and the **Metrics** tab has everything. There, a metric the Overview charts shows the Overview's value — its series combined the same way, a counter as a per-second rate — with a caption saying how (_total of series_, _per second, all series_); every other row shows the average of its series, and so does every row while you filter the list by an attribute. MariaDB reports `mysql.buffer_pool.limit` as the buffer pool's page count rather than the bytes the receiver declares, so on a MariaDB database that row and its chart read in pages. MariaDB has no `Innodb_rows_*` status counters, so the receiver sends no `mysql.row_operations` for it and a MariaDB Overview has no **Row operations** chart; **Handler operations** shows its row reads and writes.
+
+The PostgreSQL config also asks the server four things of its own, with the collector's `sqlquery` receiver at the same interval: how long it has been up (`postgresql.uptime`, from `pg_postmaster_start_time()`), the age of its oldest transaction ID (`postgresql.xid.oldest_age`, the largest `age(datfrozenxid)` in `pg_database`), how long its oldest open transaction has been open (`postgresql.transaction.longest_duration`) and how many sessions wait on a lock (`postgresql.sessions.waiting_on_lock`), the last two from `pg_stat_activity`. The `postgresql` receiver reports none of them, and they are what shows a restart, a transaction left open, a queue of lock waits and transaction ID wraparound coming: PostgreSQL stops accepting writes near an age of 2.1 billion, so its health needs a look from 1 billion and is critical from 1.5 billion. `pg_monitor` covers them. The query connects with `DATABASE_TLS_SSLMODE`, and cannot log in with a password that contains a space (it sends it as `+`), which `install.sh` warns about. With a collector of your own, copy the `sqlquery/oneuptime` receiver from `configs/postgresql.yaml` into its `metrics` pipeline.
 
 The database's **Version** comes from the receiver where it reports one: `db.system.version` (MySQL / MariaDB, MongoDB), `redis.version` (Redis, KeyDB), `oracle.db.version` (Oracle) and `elasticsearch.node.version` (Elasticsearch / OpenSearch). The PostgreSQL, SQL Server and Memcached receivers report none, so under the agent alone those databases show no version; one that also runs in Kubernetes, Docker or Podman shows its container image's.
 
@@ -418,7 +423,7 @@ The unit assumes `/opt/oneuptime-database-agent` (the install script default). F
 
 Re-run `install.sh`: it reuses every value in your existing `.env`, replaces `docker-compose.yml`, `otel-collector-config.yaml` and the systemd unit with the current versions, and recreates the agent's container so the new config takes effect. A file you had edited — `network_mode: host`, a `filelog` receiver and its mount, extra metrics — is kept next to the new one as `<file>.bak.<timestamp>`, and the script lists it at the end so you can re-apply the edit. Apply any edit to `.env` or `otel-collector-config.yaml` with `docker compose up -d --force-recreate`: the collector reads its config only when it starts, and a plain `docker compose up -d` leaves the running container alone when only the config file changed. The script records what it installed in `.agent-files.sha256`, so a file nobody edited is replaced without a copy, however much the new version changed; in a directory without that record (one you set up by hand) every file that differs from the new version is kept, since it may hold edits. To remove the agent, `cd /opt/oneuptime-database-agent && docker compose down`, then drop the monitoring user (and the AI agent's own login, if you created one).
 
-The agent reports the collector version its files pin as its **Agent Version**. When that is older than the version this OneUptime release pins, a warning sign appears beside it on the database's **Overview**. Select it to see how to upgrade: by the install script, with Docker Compose, or, for a database in Kubernetes, with the Deployment from the setup guide.
+The agent reports the version of its files as its **Agent Version**: the collector version they pin, with the last number raised each time the files change on that collector. When that is older than the version this OneUptime release pins, a warning sign appears beside it on the database's **Overview**. Select it to see how to upgrade: by the install script, with Docker Compose, or, for a database in Kubernetes, with the Deployment from the setup guide.
 
 ## AI agent
 
@@ -521,6 +526,8 @@ spec:
               value: "true"
             - name: DATABASE_TLS_INSECURE_SKIP_VERIFY
               value: "false"
+            - name: DATABASE_TLS_SSLMODE
+              value: "disable"
             - name: DATABASE_COLLECTION_INTERVAL
               value: "30s"
             - name: DATABASE_QUERY_EVENTS
@@ -594,13 +601,44 @@ An endpoint is a `host:port` a database answers on. A database's **Endpoints** t
 
 A database's name defaults to the engine and its endpoint — `PostgreSQL db.example.com:5432` — or, for a database detected from its containers, the engine and its workload: `<namespace>/<workload>` in Kubernetes (`PostgreSQL data/postgres`), and on Docker or Podman the container's name, its Compose service (`<project>-<service>`) or its Swarm service. It can be renamed freely; the name is not the identity. That default makes label and owner rules by name easy: a name pattern of `^PostgreSQL` matches every PostgreSQL database, and `^MariaDB` every MariaDB one.
 
+## See which databases need attention
+
+The **Databases** list starts with **Needs attention**: every database past a line of its engine's recommended alerts, and every one whose engine metrics stopped, the most urgent first, each with why and one step to its page. When nothing needs attention, there is no card.
+
+Under it, each database's **Status** says how its engine is doing, with the reason under it:
+
+| Status | When |
+| --- | --- |
+| **Healthy** | Its engine metrics arrive, and none is past a line of its engine's recommended alerts. |
+| **Degraded** | A warning line is crossed, from the table below. |
+| **Unhealthy** | A critical line is crossed, from the table below. |
+| **Engine metrics stopped** | Its **Engine Metrics** reads _Disconnected_: an agent or collector reported, then stopped (see [Lifecycle](#lifecycle-archiving-and-retention)). What it reported last is no longer the truth, so the row says when it last reported instead. |
+| **No engine metrics** | No Database Agent or collector has reported for it yet (see [The Database Agent](#the-database-agent)). |
+| **Reporting** | Its engine metrics arrive, but none of the readings its engine's lines judge has arrived in the last 15 minutes, or OneUptime recommends no alerts for its engine. |
+
+The lines are the [recommended monitors](#recommended-monitors)' own — each one's metrics, formula and threshold — judged against what the engine last reported, which OneUptime keeps on the database about once a minute. The page says so as soon as a reading crosses a line; the monitor waits out its window before it opens an alert. A monitor you changed after creating it keeps its own line, and the health the recommended one. A database several agents report for — one per replica-set member, say — is judged as the monitor judges it: connections added up, the worst replica's lag.
+
+| Engine | Unhealthy | Degraded |
+| --- | --- | --- |
+| PostgreSQL | Connections at 95% of `max_connections`; transaction IDs close to wraparound | Connections at 80% of `max_connections`; transaction IDs aging toward wraparound; a replica 30 seconds behind on replay; a replica 1 GB of WAL behind; a restart; a transaction open for an hour; a session waiting on a lock; a database of 500 GB or more |
+| MySQL / MariaDB | — | 136 connections; 50 threads running; 75% of the buffer pool dirty; a replica 30 seconds behind; a restart |
+| SQL Server | — | A buffer cache hit ratio under 90%; a page life expectancy under 300 seconds; a blocked session; a query waiting for memory |
+| Oracle | A tablespace 90% full | — |
+| Redis / Valkey / KeyDB / Dragonfly | — | Memory at 90% of `maxmemory`; a fragmentation ratio of 1.5 with 256 MB used; 9,000 clients; a restart |
+| MongoDB | Connections at 90% of the limit | A restart |
+| Elasticsearch / OpenSearch | Cluster health red | Cluster health yellow; 10 cluster tasks pending; a JVM heap 85% full |
+| Memcached | — | 900 connections |
+| CouchDB | — | Requests averaging 1,000 ms |
+
+A database's **Overview** says the same: its health in its header (_Health Unknown_ while its engine metrics have stopped, none before any have arrived), then **Needs attention**, one row for each kind of line crossed — **Connections**, **Replication**, **Memory** and the rest — each opening the **Metrics** tab, or, when its engine metrics stopped, the **Documentation** tab with the setup guide and the diagnostic script. **Database alerts** lists which of its engine's recommended alerts watch it, and its button opens **Recommendations** with the rest selected.
+
 ## Alerts on a database
 
 A database's **Alerts** and **Incidents** tabs show what the monitors that name it opened. While the database is in an ongoing scheduled maintenance window, those monitors open no new incidents or alerts, unless they also name a resource that is outside the window. Their status still updates, and what they opened before the window still resolves. Databases can also be attached to incidents, alerts and scheduled maintenance by hand, like any other resource: creating one from the database's own **Incidents**, **Alerts** or **Scheduled Maintenance** tab starts with the database already picked.
 
 ### Recommended monitors
 
-The database's **Recommendations** tab offers ready-made Metrics monitors for its engine — connections near their limit, replication lag, memory and cache pressure, blocked sessions, full tablespaces, cluster health, restarts, and an **Engine Metrics Stopped** check that fires when the engine's metrics stop arriving — for these engines: PostgreSQL, MySQL, MariaDB, SQL Server, Oracle, Redis, Valkey, KeyDB, Dragonfly, Memcached, MongoDB, CouchDB, Elasticsearch and OpenSearch. They read the metrics the engine's collector receiver reports, so they are offered once one of those metrics has arrived stamped with the database's `oneuptime.database.server.id` in the last 30 days — its logs, another receiver (a MongoDB Atlas cluster's `mongodbatlas` receiver, say) or an exporter do not count, and until then the tab says why it is empty — and every one filters on the database's `oneuptime.database.server.id`. The badge next to the tab counts the ones not created yet.
+The database's **Recommendations** tab offers ready-made Metrics monitors for its engine — connections near their limit, replication lag, memory and cache pressure, blocked sessions, full tablespaces, cluster health, restarts, and an **Engine Metrics Stopped** check that fires when the engine's metrics stop arriving — for these engines: PostgreSQL, MySQL, MariaDB, SQL Server, Oracle, Redis, Valkey, KeyDB, Dragonfly, Memcached, MongoDB, CouchDB, Elasticsearch and OpenSearch. They read the metrics the engine's collector receiver reports, so they are offered once one of those metrics has arrived stamped with the database's `oneuptime.database.server.id` in the last 30 days — its logs, another receiver (a MongoDB Atlas cluster's `mongodbatlas` receiver, say) or an exporter do not count, and until then the tab says why it is empty — and every one filters on the database's `oneuptime.database.server.id`. The badge next to the tab counts the ones not created yet. PostgreSQL's restart, transaction ID, open-transaction and lock-wait monitors read the Database Agent's own SQL checks (see [What gets collected](#what-gets-collected)), so with a collector of your own they stay quiet until it runs the same `sqlquery` receiver.
 
 A receiver's documentation lists what it can report, not what arrives from every setup, so the SQL Server and Oracle monitors read only metrics seen arriving from the Database Agent's own configs. That is why SQL Server has no transaction-log or lock-wait-time monitor (only Windows performance counters report them, and the agent connects directly) and Oracle none on its session or process limit (a connection to a pluggable database does not report them).
 
@@ -643,7 +681,7 @@ For a probe that checks a database without any agent, see the [Database Health M
 ## Lifecycle, archiving and retention
 
 - **Last seen** is updated by every source, and the pill in a database's header reads it: _Seen recently_ while some source saw the database in the last 30 minutes, _Not seen recently_ after that, and _Never seen_ before any source has. It says nothing about engine metrics, which have a status of their own.
-- **Engine metrics** reads _Connected_ while collector data keeps arriving, _Disconnected_ once a collector that reported stops for 15 minutes, and _Not connected_ when no Database Agent or collector has ever reported. The 15 minutes are a floor: OneUptime records a collector's heartbeat only every 5 minutes or so while data flows, so it waits 7 minutes on top of them, counted from the last recorded heartbeat, and it checks every 5 minutes — a collector that stops reads _Disconnected_ between 15 and about 27 minutes after its last data point. The list's **Engine metrics** filter offers all three.
+- **Engine Metrics** reads _Connected_ while collector data keeps arriving, _Disconnected_ once a collector that reported stops for 15 minutes, and _Not connected_ when no Database Agent or collector has ever reported. The 15 minutes are a floor: OneUptime records a collector's heartbeat only every 5 minutes or so while data flows, so it waits 7 minutes on top of them, counted from the last recorded heartbeat, and it checks every 5 minutes — a collector that stops reads _Disconnected_ between 15 and about 27 minutes after its last data point. The list's **Engine Metrics** filter offers all three.
 - **Archive to dismiss.** Deleting a discovered database removes it only until a source sees it again — the next span or pod brings it back as a new database. To dismiss one for good, **archive** it: an archived database keeps its endpoints, so everything that matches them stays attached to the archived database instead of creating a new one.
 - **Databases created for a client's port.** A database application traces created for a port from 32768 up (other than its engine's default) is deleted, not archived, if nobody invested in it, renamed it, described it, or archived or restored it. Discovery no longer creates these (see [One database per connection](#one-database-per-connection-each-on-a-different-high-port)), and a deleted one does not come back.
 - **Automatic archiving.** A discovered database that no source has seen for 7 days is archived automatically, unless somebody invested in it: labels or owners a person added, an incident, alert or scheduled maintenance, an endpoint a person added, or a retention setting. Labels and owners that label or owner rules, or `oneuptime.label.*` attributes, attached on their own do not count — a catch-all rule would otherwise keep every database forever — until a person saves them on the database. Databases of a Kubernetes cluster or a Docker or Podman host that has gone quiet itself are not archived while it is dark: a database only counts as unseen when it went unseen well before its cluster or host did.
@@ -692,7 +730,7 @@ Inside the agent's container, `localhost` is the container itself. Use `host.doc
 - `ORA-12514` or `ORA-12505`: the Oracle listener answers — so the connection check passes — but does not know the service `DATABASE_ORACLE_SERVICE` names; `lsnrctl services` on the database host lists the ones it does.
 - `ORA-28000` or `ORA-28001`: the Oracle monitoring user is locked or its password expired.
 - `failed to explain` on PostgreSQL top queries is not a missing grant: explain plans need `SELECT` on your tables, which `pg_monitor` deliberately does not give. Metrics and top queries are unaffected; only the plans stay empty.
-- `SSL is not enabled on the server`: set `DATABASE_TLS_INSECURE=true`. A server that requires TLS: `DATABASE_TLS_INSECURE=false`, plus `DATABASE_TLS_INSECURE_SKIP_VERIFY=true` for a certificate the image does not trust. For Elasticsearch / OpenSearch the `http://` or `https://` of `DATABASE_ENDPOINT` decides it.
+- `SSL is not enabled on the server`: set `DATABASE_TLS_INSECURE=true`. A server that requires TLS: `DATABASE_TLS_INSECURE=false`, plus `DATABASE_TLS_INSECURE_SKIP_VERIFY=true` for a certificate the image does not trust. For Elasticsearch / OpenSearch the `http://` or `https://` of `DATABASE_ENDPOINT` decides it. For PostgreSQL, set `DATABASE_TLS_SSLMODE` to match — `disable`, `require` or `verify-full`, as `install.sh` does — or the config's own SQL checks cannot connect.
 - `pg_stat_statements` errors: create the extension, or set `DATABASE_QUERY_EVENTS=false`.
 - For any other receiver error the diagnostic script prints the most frequent one, as the database driver worded it (with the password redacted).
 
@@ -728,6 +766,10 @@ The spans are missing `db.system.name` / `db.system` or `server.address`, or the
 ### Engine metrics reads Disconnected or Not connected
 
 _Not connected_: no Database Agent or collector has ever reported for this database — install the agent from its **Documentation** tab. _Disconnected_: one did and has sent nothing for at least 15 minutes (see [Lifecycle](#lifecycle-archiving-and-retention)) — run the [diagnostic script](#run-the-diagnostic-script-first) where it runs. Recommended monitors appear on the **Recommendations** tab once the engine receiver's own metrics have arrived.
+
+### Status reads Reporting instead of Healthy
+
+**Reporting** means engine metrics arrive, but none of the readings its engine's lines judge: a collector of your own that leaves those metrics out, readings that stopped while other data still flows, or an engine OneUptime recommends no alerts for. The **Metrics** tab shows what does arrive; compare it with [What gets collected](#what-gets-collected).
 
 ### A monitor's alerts do not show on the database
 

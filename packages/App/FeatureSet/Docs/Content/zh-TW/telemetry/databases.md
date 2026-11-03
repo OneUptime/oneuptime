@@ -5,6 +5,7 @@
 :::cards
 - [Database Agent](#database-agent): PostgreSQL、MySQL、SQL Server、Oracle、Redis、MongoDB、Elasticsearch 和 Memcached 的引擎指標。
 - [如何偵測資料庫](#如何偵測資料庫): 來自追蹤、Kubernetes、Docker、Podman 和 Collector。
+- [查看哪些資料庫需要注意](#查看哪些資料庫需要注意): 依每種引擎建議警示的閾值判斷的健康狀態。
 - [資料庫的警示](#資料庫的警示): 建議的監控器，以及你自己建立的監控器。
 - [疑難排解](#疑難排解): 一個診斷指令碼，以及常見問題。
 :::
@@ -28,7 +29,7 @@ flowchart LR
     agent["Database Agent<br/>或 Collector"] -->|"引擎指標、<br/>查詢事件"| db
 ```
 
-引擎指標只來自與資料庫本身通訊的 Collector（對於受控雲端資料庫，則是與其供應商的監控 API 通訊的 Collector）。追蹤和容器清單會告訴 OneUptime 資料庫存在以及它的使用方式，但不會告訴它資料庫內部的運作狀況；每個資料庫上的 **Engine metrics** 狀態會顯示這部分是否已連線。
+引擎指標只來自與資料庫本身通訊的 Collector（對於受控雲端資料庫，則是與其供應商的監控 API 通訊的 Collector）。追蹤和容器清單會告訴 OneUptime 資料庫存在以及它的使用方式，但不會告訴它資料庫內部的運作狀況；每個資料庫上的 **引擎指標** 狀態會顯示這部分是否已連線。
 
 你也可以手動新增資料庫：在 **資料庫 → 建立資料庫** 中填入引擎、位址和連接埠。如需完全不需要代理程式、以探測器為基礎的健康檢查，請參閱 [資料庫健康狀態監控](/docs/monitor/database-health-monitor)。
 
@@ -136,7 +137,7 @@ OneUptime 依名稱識別下列引擎：它會把檢測寫入 `db.system.name`�
 
 ## 如何偵測資料庫
 
-每個資料庫都會記住建立它的來源（**Discovered from** 欄），它的 **動態** 中的第一筆會說明是什麼找到了它：Kubernetes 工作負載及其叢集、Docker 或 Podman 容器（或 Compose、Swarm 服務）及其主機、應用程式呼叫的端點，或回報它的 Database Agent（含版本）或 Collector。只要描述的是同一個端點，後來的來源就會補充到同一個資料庫，而不是再建立一個（請參閱 [端點](#端點和唯一擁有者規則)）。
+每個資料庫都會記住建立它的來源（**探索來源** 欄），它的 **動態** 中的第一筆會說明是什麼找到了它：Kubernetes 工作負載及其叢集、Docker 或 Podman 容器（或 Compose、Swarm 服務）及其主機、應用程式呼叫的端點，或回報它的 Database Agent（含版本）或 Collector。只要描述的是同一個端點，後來的來源就會補充到同一個資料庫，而不是再建立一個（請參閱 [端點](#端點和唯一擁有者規則)）。
 
 ### 從應用程式追蹤
 
@@ -341,6 +342,7 @@ DATABASE_USERNAME=oneuptime_monitor
 DATABASE_PASSWORD='a-strong-password'
 DATABASE_TLS_INSECURE=true
 DATABASE_TLS_INSECURE_SKIP_VERIFY=false
+DATABASE_TLS_SSLMODE=disable
 DATABASE_COLLECTION_INTERVAL=30s
 DATABASE_QUERY_EVENTS=false
 DATABASE_SERVER_ID=
@@ -355,7 +357,7 @@ docker compose up -d
 
 ### 在 OneUptime 中找到資料庫
 
-第一次收集後，資料庫會出現在 **資料庫** 下；如果 OneUptime 已經從相同位址的追蹤或容器中偵測到它，它的 **Engine metrics** 狀態會變成已連線。對於私人 IP 或只在你的網路內解析的名稱（`db.prod.internal`、叢集本機名稱），請先建立資料庫或設定 `DATABASE_SERVER_ID`（請參閱 [從 Database Agent 或你自己的 Collector](#從-database-agent-或你自己的-collector)）。
+第一次收集後，資料庫會出現在 **資料庫** 下；如果 OneUptime 已經從相同位址的追蹤或容器中偵測到它，它的 **引擎指標** 狀態會變成已連線。對於私人 IP 或只在你的網路內解析的名稱（`db.prod.internal`、叢集本機名稱），請先建立資料庫或設定 `DATABASE_SERVER_ID`（請參閱 [從 Database Agent 或你自己的 Collector](#從-database-agent-或你自己的-collector)）。
 :::
 
 ### 環境變數
@@ -375,6 +377,7 @@ docker compose up -d
 | `DATABASE_PASSWORD` | PostgreSQL、SQL Server、Oracle | 它的密碼。在 `.env` 中以單引號括住，並把每個 `$` 寫成 `$$`（`install.sh` 會替你完成這兩件事） |
 | `DATABASE_TLS_INSECURE` | 否 | `true`（預設）不使用 TLS 連線；`false` 開啟 TLS |
 | `DATABASE_TLS_INSECURE_SKIP_VERIFY` | 否 | `true` 接受 Collector 映像檔不信任的憑證（自我簽署、私人 CA）。預設為 `false` |
+| `DATABASE_TLS_SSLMODE` | 否 | PostgreSQL：把上面兩項設定表示為 libpq 的 `sslmode`，供設定檔本身的 SQL 檢查使用：`DATABASE_TLS_INSECURE` 為 `true` 時是 `disable`，`DATABASE_TLS_INSECURE_SKIP_VERIFY` 為 `true` 時是 `require`，否則是 `verify-full`。由 `install.sh` 寫入。預設為 `disable` |
 | `DATABASE_COLLECTION_INTERVAL` | 否 | 讀取引擎統計資料的頻率。預設為 `30s` |
 | `DATABASE_QUERY_EVENTS` | 否 | `true` 會把查詢樣本和熱門查詢作為日誌傳送（PostgreSQL、MySQL、MongoDB、SQL Server 和 Oracle）。其中包含查詢文字。預設為 `false` |
 | `DATABASE_SERVER_ID` | 否 | OneUptime 已顯示的資料庫的 id（它的 **文件** 分頁上已預先填好）。這樣資料會直接進入該資料庫並顯示在其頁面上，無論它回報什麼位址（或沒有位址）；這是在 Kubernetes 中和私人 IP 的建議做法。它必須是擷取金鑰所屬專案中的資料庫 |
@@ -393,6 +396,8 @@ docker compose up -d
 | Memcached | `memcached`：連線、命令、命中和未命中、收回、項目、位元組、網路、執行緒、CPU（預設全部開啟） | — | — |
 
 PostgreSQL 接收器的 `postgresqlreceiver.preciselagmetrics` 功能閘道預設開啟，它把複寫時間延遲記錄為 `postgresql.wal.delay` 而不是 `postgresql.wal.lag`，而該指標在上游預設關閉，所以代理程式開啟了它。每份設定都在註解中列出了更多選用指標；可以用同樣的方式開啟其中任何一個。資料庫概覽中的 **Engine metrics** 區段會為本表中的每個引擎繪製一組精選指標（對於 Elasticsearch / OpenSearch：叢集健康狀態、節點、未指派的分片、待處理工作、JVM 堆積、可用磁碟、搜尋和索引；對於 Memcached：連線、記憶體、項目、get 命中和未命中、命令和收回），**指標** 分頁則包含所有指標。在那裡，概覽中繪製的指標會顯示概覽的值（其序列以同樣的方式合併，計數器以每秒速率顯示），並附有說明方式的標題（_total of series_、_per second, all series_）；其他每一列顯示其序列的平均值，在你依屬性篩選清單時，每一列也都顯示平均值。MariaDB 把 `mysql.buffer_pool.limit` 回報為緩衝集區的頁數，而不是接收器宣告的位元組數，因此在 MariaDB 資料庫上，該列及其圖表的單位是頁。MariaDB 沒有 `Innodb_rows_*` 狀態計數器，因此接收器不會為它傳送 `mysql.row_operations`，MariaDB 的概覽中也沒有 **Row operations** 圖表；它的資料列讀寫會顯示在 **Handler operations** 中。
+
+PostgreSQL 設定檔還會用 Collector 的 `sqlquery` 接收器，以相同的間隔自行向伺服器詢問四件事：它已執行多久（`postgresql.uptime`，來自 `pg_postmaster_start_time()`）、最舊交易 ID 的年齡（`postgresql.xid.oldest_age`，即 `pg_database` 中最大的 `age(datfrozenxid)`）、最舊的未結束交易已開啟多久（`postgresql.transaction.longest_duration`），以及有多少工作階段在等待鎖定（`postgresql.sessions.waiting_on_lock`），後兩項來自 `pg_stat_activity`。`postgresql` 接收器不回報其中任何一項，而正是它們能看出重新啟動、被遺留未提交的交易、排隊等待鎖定的工作階段，以及即將到來的交易 ID 回繞：PostgreSQL 在年齡接近 21 億時會停止接受寫入，因此從 10 億起其健康狀態就需要查看，從 15 億起即為嚴重。`pg_monitor` 已涵蓋這些查詢。該查詢使用 `DATABASE_TLS_SSLMODE` 連線，且無法用含空格的密碼登入（它會把空格當作 `+` 傳送），`install.sh` 會對此發出警告。使用自己的 Collector 時，請把 `configs/postgresql.yaml` 中的 `sqlquery/oneuptime` 接收器複製到它的 `metrics` 管線中。
 
 資料庫的 **版本** 來自接收器（如果接收器回報了版本）：`db.system.version`（MySQL / MariaDB、MongoDB）、`redis.version`（Redis、KeyDB）、`oracle.db.version`（Oracle）和 `elasticsearch.node.version`（Elasticsearch / OpenSearch）。PostgreSQL、SQL Server 和 Memcached 接收器不回報版本，因此僅有代理程式時，這些資料庫不顯示版本；同時在 Kubernetes、Docker 或 Podman 中執行的資料庫會顯示其容器映像檔的版本。
 
@@ -418,7 +423,7 @@ sudo systemctl enable --now oneuptime-database-agent
 
 重新執行 `install.sh`：它會重複使用現有 `.env` 中的所有值，以目前版本取代 `docker-compose.yml`、`otel-collector-config.yaml` 和 systemd 單元，並重新建立代理程式的容器，讓新設定生效。你編輯過的檔案（`network_mode: host`、`filelog` 接收器及其掛接、額外的指標）會以 `<file>.bak.<timestamp>` 的形式保留在新檔案旁邊，指令碼會在最後列出它，方便你重新套用修改。對 `.env` 或 `otel-collector-config.yaml` 的任何修改都要用 `docker compose up -d --force-recreate` 套用：Collector 只在啟動時讀取設定，而當只有設定檔變更時，一般的 `docker compose up -d` 不會動到正在執行的容器。指令碼會在 `.agent-files.sha256` 中記錄它安裝的內容，因此沒有人編輯過的檔案會直接被取代而不保留副本，無論新版本改動多大；在沒有該記錄的目錄（你手動設定的目錄）中，每個與新版本不同的檔案都會被保留，因為它可能包含修改。若要移除代理程式，請執行 `cd /opt/oneuptime-database-agent && docker compose down`，然後刪除監控使用者（以及 AI 代理程式專用的登入帳戶，如果你建立過）。
 
-代理程式會把其檔案所固定的 Collector 版本回報為它的 **代理程式版本**。當該版本低於此 OneUptime 版本所固定的版本時，資料庫的 **概覽** 上會在它旁邊顯示一個警告標誌。選取它即可查看升級方法：透過安裝指令碼、使用 Docker Compose，或者對於 Kubernetes 中的資料庫，使用設定指南中的 Deployment。
+代理程式會把其檔案的版本回報為它的 **代理程式版本**：即這些檔案所固定的 Collector 版本，每當檔案在該 Collector 上變更，最後一位數字就會增加。當該版本低於此 OneUptime 版本所固定的版本時，資料庫的 **概覽** 上會在它旁邊顯示一個警告標誌。選取它即可查看升級方法：透過安裝指令碼、使用 Docker Compose，或者對於 Kubernetes 中的資料庫，使用設定指南中的 Deployment。
 
 ## AI 代理程式
 
@@ -521,6 +526,8 @@ spec:
               value: "true"
             - name: DATABASE_TLS_INSECURE_SKIP_VERIFY
               value: "false"
+            - name: DATABASE_TLS_SSLMODE
+              value: "disable"
             - name: DATABASE_COLLECTION_INTERVAL
               value: "30s"
             - name: DATABASE_QUERY_EVENTS
@@ -594,13 +601,44 @@ processors:
 
 資料庫名稱預設為引擎加端點（`PostgreSQL db.example.com:5432`）；對於從容器中偵測到的資料庫，則為引擎加其工作負載：在 Kubernetes 中是 `<namespace>/<workload>`（`PostgreSQL data/postgres`），在 Docker 或 Podman 上是容器名稱、其 Compose 服務（`<project>-<service>`）或其 Swarm 服務。名稱可以隨意修改；名稱不是身分識別。這個預設值讓依名稱的標籤和擁有者規則變得簡單：名稱模式 `^PostgreSQL` 符合所有 PostgreSQL 資料庫，`^MariaDB` 符合所有 MariaDB 資料庫。
 
+## 查看哪些資料庫需要注意
+
+**資料庫** 清單以 **需要注意** 開頭：超過其引擎建議警示閾值的每個資料庫，以及引擎指標已停止的每個資料庫，依緊急程度排列，每個都附有原因和一步直達其頁面的連結。沒有需要注意的項目時，不顯示該卡片。
+
+在它下方，每個資料庫的 **狀態** 說明其引擎的狀況，原因顯示在下面：
+
+| 狀態 | 條件 |
+| --- | --- |
+| **健康** | 其引擎指標持續送達，而且沒有任何一項超過其引擎建議警示的閾值。 |
+| **效能下降** | 超過了下表中的警告閾值。 |
+| **不健康** | 超過了下表中的嚴重閾值。 |
+| **引擎指標已停止** | 其 **引擎指標** 顯示 _已中斷_：某個代理程式或 Collector 回報過，之後停止了（見 [生命週期](#生命週期封存和保留)）。它最後回報的內容已不再真實，因此該列改為顯示它最後一次回報的時間。 |
+| **無引擎指標** | 還沒有 Database Agent 或 Collector 為它回報過（見 [Database Agent](#database-agent)）。 |
+| **回報中** | 其引擎指標持續送達，但其引擎閾值所判斷的讀數在過去 15 分鐘內都沒有送達，或者 OneUptime 不為其引擎建議任何警示。 |
+
+這些閾值就是 [建議的監控器](#建議的監控器) 自己的閾值（每個監控器的指標、公式和閾值），依據引擎最後回報的內容判斷，OneUptime 大約每分鐘把它儲存到資料庫上一次。讀數一超過閾值，頁面就會顯示出來；監控器則會等過它的時間範圍後才開啟警示。建立後被你修改過的監控器保留自己的閾值，而健康狀態使用建議的閾值。由多個代理程式回報的資料庫（例如複本集的每個成員各一個）按監控器的方式判斷：連線數相加，延遲取落後最多的複本。
+
+| 引擎 | 不健康 | 效能下降 |
+| --- | --- | --- |
+| PostgreSQL | 連線數達到 `max_connections` 的 95%；交易 ID 接近回繞 | 連線數達到 `max_connections` 的 80%；交易 ID 正在老化並趨向回繞；重播落後 30 秒的複本；WAL 落後 1 GB 的複本；一次重新啟動；已開啟一小時的交易；等待鎖定的工作階段；500 GB 或更大的資料庫 |
+| MySQL / MariaDB | — | 136 個連線；50 個執行中的執行緒；緩衝集區 75% 為髒頁；落後 30 秒的複本；一次重新啟動 |
+| SQL Server | — | 低於 90% 的緩衝區快取命中率；低於 300 秒的頁面預期壽命；被封鎖的工作階段；等待記憶體的查詢 |
+| Oracle | 已用 90% 的資料表空間 | — |
+| Redis / Valkey / KeyDB / Dragonfly | — | 記憶體達到 `maxmemory` 的 90%；已用 256 MB 時碎片率為 1.5；9,000 個用戶端；一次重新啟動 |
+| MongoDB | 連線數達到上限的 90% | 一次重新啟動 |
+| Elasticsearch / OpenSearch | 叢集健康狀態為紅色 | 叢集健康狀態為黃色；10 個待處理的叢集工作；已用 85% 的 JVM 堆積 |
+| Memcached | — | 900 個連線 |
+| CouchDB | — | 平均耗時 1,000 ms 的請求 |
+
+資料庫的 **概覽** 也顯示同樣的內容：頁首中的健康狀態（引擎指標停止期間為 _健康狀態不明_，尚無任何指標送達時不顯示），接著是 **需要注意**，每種被超過的閾值一列（**連線**、**複寫**、**記憶體** 等），每列開啟 **指標** 索引標籤；若引擎指標已停止，則開啟含有設定指南和診斷指令碼的 **文件** 索引標籤。**資料庫警示** 列出其引擎建議警示中有哪些在監控它，其按鈕會開啟 **建議** 並選取其餘警示。
+
 ## 資料庫的警示
 
 資料庫的 **警示** 和 **事件** 分頁顯示指明它的監控器所開啟的內容。當資料庫處於進行中的排定維護時段內時，這些監控器不會開啟新的事件或警示，除非它們還指明了時段之外的資源。它們的狀態仍會更新，它們在時段之前開啟的內容也仍會解決。與其他資源一樣，資料庫也可以手動關聯到事件、警示和排定維護：從資料庫自己的 **事件**、**警示** 或 **排定維護** 分頁建立時，會預先選好該資料庫。
 
 ### 建議的監控器
 
-資料庫的 **建議** 分頁會為下列引擎提供針對其引擎的現成指標監控器（連線數接近上限、複寫延遲、記憶體和快取壓力、被封鎖的工作階段、資料表空間已滿、叢集健康狀態、重新啟動，以及在引擎指標停止到達時觸發的 **Engine Metrics Stopped** 檢查）：PostgreSQL、MySQL、MariaDB、SQL Server、Oracle、Redis、Valkey、KeyDB、Dragonfly、Memcached、MongoDB、CouchDB、Elasticsearch 和 OpenSearch。它們讀取引擎的 Collector 接收器回報的指標，因此一旦其中某個指標在過去 30 天內帶著資料庫的 `oneuptime.database.server.id` 到達，就會提供這些監控器（資料庫的日誌、另一個接收器（例如 MongoDB Atlas 叢集的 `mongodbatlas` 接收器）或匯出工具都不算，在此之前，該分頁會說明它為什麼是空的），而且每一個都依資料庫的 `oneuptime.database.server.id` 篩選。分頁旁邊的徽章會計算尚未建立的監控器數量。
+資料庫的 **建議** 分頁會為下列引擎提供針對其引擎的現成指標監控器（連線數接近上限、複寫延遲、記憶體和快取壓力、被封鎖的工作階段、資料表空間已滿、叢集健康狀態、重新啟動，以及在引擎指標停止到達時觸發的 **Engine Metrics Stopped** 檢查）：PostgreSQL、MySQL、MariaDB、SQL Server、Oracle、Redis、Valkey、KeyDB、Dragonfly、Memcached、MongoDB、CouchDB、Elasticsearch 和 OpenSearch。它們讀取引擎的 Collector 接收器回報的指標，因此一旦其中某個指標在過去 30 天內帶著資料庫的 `oneuptime.database.server.id` 到達，就會提供這些監控器（資料庫的日誌、另一個接收器（例如 MongoDB Atlas 叢集的 `mongodbatlas` 接收器）或匯出工具都不算，在此之前，該分頁會說明它為什麼是空的），而且每一個都依資料庫的 `oneuptime.database.server.id` 篩選。分頁旁邊的徽章會計算尚未建立的監控器數量。 PostgreSQL 的重新啟動、交易 ID、未結束交易和鎖定等待監控器讀取的是 Database Agent 自己的 SQL 檢查（見 [收集的內容](#收集的內容)），因此使用自己的 Collector 時，在它執行同樣的 `sqlquery` 接收器之前，這些監控器不會有任何動靜。
 
 接收器的文件列出的是它能夠回報的內容，而不是每種部署實際會到達的內容，因此 SQL Server 和 Oracle 的監控器只讀取已觀察到從 Database Agent 本身設定到達的指標。這就是為什麼 SQL Server 沒有交易記錄或鎖定等候時間監控器（只有 Windows 效能計數器會回報它們，而代理程式是直接連線的），Oracle 也沒有工作階段或處理程序上限的監控器（連線到可插式資料庫時不會回報它們）。
 
@@ -643,7 +681,7 @@ SQL Server 的 `sqlserver.*.rate` 指標（批次要求、編譯、鎖定等候�
 ## 生命週期、封存和保留
 
 - **最近出現** 由每個來源更新，資料庫標題列中的狀態標記會讀取它：只要有來源在過去 30 分鐘內看到過該資料庫，就顯示 _最近出現過_，之後顯示 _近期未出現_，在任何來源看到它之前顯示 _從未出現_。它不反映引擎指標的情況，引擎指標有自己的狀態。
-- **Engine metrics** 在 Collector 資料持續到達時顯示 _已連線_，當曾經回報過的 Collector 停止 15 分鐘後顯示 _已中斷_，當從未有 Database Agent 或 Collector 回報過時顯示 _未連線_。這 15 分鐘是下限：在資料流動期間，OneUptime 大約每 5 分鐘才記錄一次 Collector 的心跳，因此它會從最後一次記錄的心跳起再額外等待 7 分鐘，並且每 5 分鐘檢查一次；停止的 Collector 會在其最後一個資料點之後 15 到大約 27 分鐘之間顯示 _已中斷_。清單的 **Engine metrics** 篩選器提供全部三種狀態。
+- **引擎指標** 在 Collector 資料持續到達時顯示 _已連線_，當曾經回報過的 Collector 停止 15 分鐘後顯示 _已中斷_，當從未有 Database Agent 或 Collector 回報過時顯示 _未連線_。這 15 分鐘是下限：在資料流動期間，OneUptime 大約每 5 分鐘才記錄一次 Collector 的心跳，因此它會從最後一次記錄的心跳起再額外等待 7 分鐘，並且每 5 分鐘檢查一次；停止的 Collector 會在其最後一個資料點之後 15 到大約 27 分鐘之間顯示 _已中斷_。清單的 **引擎指標** 篩選器提供全部三種狀態。
 - **封存以移除。** 刪除已偵測的資料庫只能讓它消失到某個來源再次看到它為止：下一個 span 或 Pod 會把它當作新資料庫帶回來。若要永久移除，請 **封存** 它：已封存的資料庫會保留其端點，因此所有與這些端點相符的東西都會繼續關聯到已封存的資料庫，而不會建立新的資料庫。
 - **為用戶端連接埠建立的資料庫。** 應用程式追蹤為 32768 以上連接埠（引擎的預設連接埠除外）建立的資料庫，如果沒有人對它進行過投入、重新命名、新增描述、封存或還原，就會被刪除而不是封存。偵測過程不再建立這類資料庫（請參閱 [每個連線一個資料庫](#每個連線一個資料庫各自位於不同的高位連接埠)），被刪除的資料庫也不會再回來。
 - **自動封存。** 已偵測的資料庫如果 7 天內沒有任何來源看到，就會被自動封存，除非有人對它進行過投入：人員新增的標籤或擁有者、事件、警示或排定維護、人員新增的端點，或保留期設定。由標籤或擁有者規則或 `oneuptime.label.*` 屬性自動附加的標籤和擁有者不算數（否則一條萬用規則會讓每個資料庫永遠保留），直到有人在資料庫上儲存它們。如果 Kubernetes 叢集或 Docker、Podman 主機本身已經沉寂，那麼在它沉寂期間，其資料庫不會被封存：只有當資料庫在其叢集或主機沉寂之前很久就已不再出現時，才會被視為未被看到。
@@ -692,7 +730,7 @@ bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-d
 - `ORA-12514` 或 `ORA-12505`：Oracle 接聽程式有回應（因此連線檢查會通過），但不認識 `DATABASE_ORACLE_SERVICE` 指定的服務；在資料庫主機上執行 `lsnrctl services` 可以列出它認識的服務。
 - `ORA-28000` 或 `ORA-28001`：Oracle 監控使用者已被鎖定，或其密碼已過期。
 - PostgreSQL 熱門查詢上的 `failed to explain` 並不是缺少授權：執行計畫需要對你的資料表有 `SELECT` 權限，而 `pg_monitor` 刻意不授予該權限。指標和熱門查詢不受影響，只是執行計畫為空。
-- `SSL is not enabled on the server`：請設定 `DATABASE_TLS_INSECURE=true`。對於要求 TLS 的伺服器：設定 `DATABASE_TLS_INSECURE=false`，如果映像檔不信任其憑證，再加上 `DATABASE_TLS_INSECURE_SKIP_VERIFY=true`。對於 Elasticsearch / OpenSearch，由 `DATABASE_ENDPOINT` 中的 `http://` 或 `https://` 決定。
+- `SSL is not enabled on the server`：請設定 `DATABASE_TLS_INSECURE=true`。對於要求 TLS 的伺服器：設定 `DATABASE_TLS_INSECURE=false`，如果映像檔不信任其憑證，再加上 `DATABASE_TLS_INSECURE_SKIP_VERIFY=true`。對於 Elasticsearch / OpenSearch，由 `DATABASE_ENDPOINT` 中的 `http://` 或 `https://` 決定。 對於 PostgreSQL，請相應地設定 `DATABASE_TLS_SSLMODE`（與 `install.sh` 一樣，取 `disable`、`require` 或 `verify-full`），否則設定檔本身的 SQL 檢查無法連線。
 - `pg_stat_statements` 錯誤：建立該擴充功能，或設定 `DATABASE_QUERY_EVENTS=false`。
 - 對於其他任何接收器錯誤，診斷指令碼會依資料庫驅動程式的原始措辭印出出現最頻繁的那一個（密碼已遮蔽）。
 
@@ -728,6 +766,10 @@ span 缺少 `db.system.name` / `db.system` 或 `server.address`，或使用的�
 ### Engine metrics 顯示已中斷或未連線
 
 _未連線_：從未有 Database Agent 或 Collector 為該資料庫回報過資料，請從它的 **文件** 分頁安裝代理程式。_已中斷_：曾經有過回報，但至少 15 分鐘沒有傳送任何資料（請參閱 [生命週期](#生命週期封存和保留)），請在它執行的地方執行 [診斷指令碼](#先執行診斷指令碼)。一旦引擎接收器本身的指標到達，建議的監控器就會出現在 **建議** 分頁上。
+
+### 狀態顯示回報中而不是健康
+
+**回報中** 表示引擎指標持續送達，但其引擎閾值所判斷的讀數一個也沒有：可能是你自己的 Collector 漏掉了這些指標，可能是這些讀數已停止而其他資料仍在送達，也可能是 OneUptime 不為該引擎建議任何警示。**指標** 索引標籤顯示實際送達的內容；請將其與 [收集的內容](#收集的內容) 對照。
 
 ### 監控器的警示沒有顯示在資料庫上
 

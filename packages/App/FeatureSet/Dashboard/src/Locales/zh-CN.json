@@ -40697,5 +40697,12 @@
   "{{count}} thread running": "{{count}} 个正在运行的线程",
   "{{count}} threads running": "{{count}} 个正在运行的线程",
   "{{count}} threads running_one": "{{count}} 个正在运行的线程",
-  "{{percent}} of the buffer pool dirty": "缓冲池中 {{percent}} 为脏页"
+  "{{percent}} of the buffer pool dirty": "缓冲池中 {{percent}} 为脏页",
+  "A transaction open for {{hours}} h": "一个事务已打开 {{hours}} 小时",
+  "A transaction open for {{minutes}} min": "一个事务已打开 {{minutes}} 分钟",
+  "A transaction open for {{seconds}} s": "一个事务已打开 {{seconds}} 秒",
+  "Transaction IDs at {{percent}} of wraparound": "事务 ID 已达回卷上限的 {{percent}}",
+  "{{count}} session waiting on a lock": "{{count}} 个会话正在等待锁",
+  "{{count}} sessions waiting on locks": "{{count}} 个会话正在等待锁",
+  "{{count}} sessions waiting on locks_one": "{{count}} 个会话正在等待锁"
 }

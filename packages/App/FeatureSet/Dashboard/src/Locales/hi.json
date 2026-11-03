@@ -40697,5 +40697,12 @@
   "{{count}} thread running": "{{count}} चल रहा थ्रेड",
   "{{count}} threads running": "{{count}} चल रहे थ्रेड",
   "{{count}} threads running_one": "{{count}} चल रहा थ्रेड",
-  "{{percent}} of the buffer pool dirty": "बफ़र पूल का {{percent}} डर्टी पेज"
+  "{{percent}} of the buffer pool dirty": "बफ़र पूल का {{percent}} डर्टी पेज",
+  "A transaction open for {{hours}} h": "एक ट्रांज़ैक्शन {{hours}} घंटे से खुला",
+  "A transaction open for {{minutes}} min": "एक ट्रांज़ैक्शन {{minutes}} मिनट से खुला",
+  "A transaction open for {{seconds}} s": "एक ट्रांज़ैक्शन {{seconds}} सेकंड से खुला",
+  "Transaction IDs at {{percent}} of wraparound": "ट्रांज़ैक्शन ID रैपअराउंड सीमा के {{percent}} पर",
+  "{{count}} session waiting on a lock": "{{count}} सेशन लॉक की प्रतीक्षा में",
+  "{{count}} sessions waiting on locks": "{{count}} सेशन लॉक की प्रतीक्षा में",
+  "{{count}} sessions waiting on locks_one": "{{count}} सेशन लॉक की प्रतीक्षा में"
 }

@@ -40697,5 +40697,12 @@
   "{{count}} thread running": "{{count}} actieve thread",
   "{{count}} threads running": "{{count}} actieve threads",
   "{{count}} threads running_one": "{{count}} actieve thread",
-  "{{percent}} of the buffer pool dirty": "{{percent}} van de bufferpool bestaat uit dirty pages"
+  "{{percent}} of the buffer pool dirty": "{{percent}} van de bufferpool bestaat uit dirty pages",
+  "A transaction open for {{hours}} h": "Een transactie al {{hours}} u open",
+  "A transaction open for {{minutes}} min": "Een transactie al {{minutes}} min open",
+  "A transaction open for {{seconds}} s": "Een transactie al {{seconds}} s open",
+  "Transaction IDs at {{percent}} of wraparound": "Transactie-ID's op {{percent}} van de wraparound",
+  "{{count}} session waiting on a lock": "{{count}} sessie wacht op een vergrendeling",
+  "{{count}} sessions waiting on locks": "{{count}} sessies wachten op vergrendelingen",
+  "{{count}} sessions waiting on locks_one": "{{count}} sessie wacht op een vergrendeling"
 }

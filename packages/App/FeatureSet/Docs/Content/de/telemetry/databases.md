@@ -5,6 +5,7 @@
 :::cards
 - [Der Database Agent](#der-database-agent): Engine-Metriken für PostgreSQL, MySQL, SQL Server, Oracle, Redis, MongoDB, Elasticsearch und Memcached.
 - [Wie Datenbanken erkannt werden](#wie-datenbanken-erkannt-werden): Aus Traces, Kubernetes, Docker, Podman und Collectors.
+- [Sehen, welche Datenbanken Aufmerksamkeit erfordern](#sehen-welche-datenbanken-aufmerksamkeit-erfordern): Integrität, beurteilt nach den Schwellenwerten der empfohlenen Warnungen jeder Engine.
 - [Warnungen zu einer Datenbank](#warnungen-zu-einer-datenbank): Empfohlene Monitore und Monitore, die Sie selbst bauen.
 - [Fehlerbehebung](#fehlerbehebung): Ein Diagnoseskript und die üblichen Probleme.
 :::
@@ -341,6 +342,7 @@ DATABASE_USERNAME=oneuptime_monitor
 DATABASE_PASSWORD='a-strong-password'
 DATABASE_TLS_INSECURE=true
 DATABASE_TLS_INSECURE_SKIP_VERIFY=false
+DATABASE_TLS_SSLMODE=disable
 DATABASE_COLLECTION_INTERVAL=30s
 DATABASE_QUERY_EVENTS=false
 DATABASE_SERVER_ID=
@@ -375,6 +377,7 @@ Nach der ersten Erfassung erscheint die Datenbank unter **Datenbanken** – oder
 | `DATABASE_PASSWORD` | PostgreSQL, SQL Server, Oracle | Sein Passwort. Setzen Sie es in der `.env` in einfache Anführungszeichen und schreiben Sie jedes `$` als `$$` (`install.sh` erledigt beides für Sie) |
 | `DATABASE_TLS_INSECURE` | Nein | `true` (Standard) verbindet ohne TLS; `false` schaltet TLS ein |
 | `DATABASE_TLS_INSECURE_SKIP_VERIFY` | Nein | `true` akzeptiert ein Zertifikat, dem das Collector-Image nicht vertraut (selbstsigniert, private CA). Standard ist `false` |
+| `DATABASE_TLS_SSLMODE` | Nein | PostgreSQL: die beiden Einstellungen oben als `sslmode` von libpq, für die eigenen SQL-Prüfungen der Konfiguration – `disable`, solange `DATABASE_TLS_INSECURE` `true` ist, `require`, wenn `DATABASE_TLS_INSECURE_SKIP_VERIFY` `true` ist, sonst `verify-full`. `install.sh` schreibt sie. Standard ist `disable` |
 | `DATABASE_COLLECTION_INTERVAL` | Nein | Wie oft die Statistiken der Engine gelesen werden. Standard ist `30s` |
 | `DATABASE_QUERY_EVENTS` | Nein | `true` sendet Abfrage-Stichproben und Top-Abfragen als Logs (PostgreSQL, MySQL, MongoDB, SQL Server und Oracle). Sie enthalten Abfragetext. Standard ist `false` |
 | `DATABASE_SERVER_ID` | Nein | Die ID einer Datenbank, die OneUptime bereits anzeigt (ihr Tab **Dokumentation** enthält sie, vorausgefüllt). Die Daten werden dann direkt dieser Datenbank zugeordnet und auf ihren Seiten gezeigt, welche Adresse sie auch melden (oder keine) – der Weg für Kubernetes und private IPs. Es muss eine Datenbank in dem Projekt sein, zu dem der Ingestion-Schlüssel gehört |
@@ -393,6 +396,8 @@ Nach der ersten Erfassung erscheint die Datenbank unter **Datenbanken** – oder
 | Memcached | `memcached` – Verbindungen, Befehle, Treffer und Fehlschläge, Verdrängungen, Items, Bytes, Netzwerk, Threads, CPU (alle standardmäßig aktiv) | — | — |
 
 Das Feature-Gate `postgresqlreceiver.preciselagmetrics` des PostgreSQL-Receivers, standardmäßig aktiv, erfasst die zeitliche Replikationsverzögerung als `postgresql.wal.delay` statt als `postgresql.wal.lag`, und diese Metrik ist upstream aus – deshalb schaltet der Agent sie ein. Jede Konfiguration führt in einem Kommentar weitere optionale Metriken auf; aktivieren Sie sie auf dieselbe Weise. Der Abschnitt **Engine-Metriken** der Übersicht einer Datenbank stellt für jede Engine in dieser Tabelle eine kuratierte Auswahl dar – für Elasticsearch / OpenSearch Clusterzustand, Knoten, nicht zugewiesene Shards, ausstehende Tasks, JVM-Heap, freien Festplattenplatz, Suchen und Indizierung; für Memcached Verbindungen, Speicher, Items, Get-Treffer und -Fehlschläge, Befehle und Verdrängungen –, und der Tab **Metriken** hat alles. Dort zeigt eine Metrik, die die Übersicht darstellt, den Wert der Übersicht – ihre Serien auf dieselbe Weise kombiniert, ein Zähler als Rate pro Sekunde – mit einer Beschriftung, die sagt, wie (_total of series_, _per second, all series_); jede andere Zeile zeigt den Durchschnitt ihrer Serien, und das tut auch jede Zeile, während Sie die Liste nach einem Attribut filtern. MariaDB meldet `mysql.buffer_pool.limit` als Seitenzahl des Buffer Pools statt in den Bytes, die der Receiver deklariert, daher lesen sich diese Zeile und ihr Diagramm bei einer MariaDB-Datenbank in Seiten. MariaDB hat keine `Innodb_rows_*`-Statuszähler, daher sendet der Receiver für sie kein `mysql.row_operations`, und eine MariaDB-Übersicht hat kein Diagramm **Row operations**; **Handler operations** zeigt ihre Zeilenlese- und -schreibvorgänge.
+
+Die PostgreSQL-Konfiguration fragt den Server außerdem selbst vier Dinge, mit dem `sqlquery`-Receiver des Collectors im selben Intervall: wie lange er schon läuft (`postgresql.uptime`, aus `pg_postmaster_start_time()`), wie alt seine älteste Transaktions-ID ist (`postgresql.xid.oldest_age`, das größte `age(datfrozenxid)` in `pg_database`), wie lange seine älteste offene Transaktion schon offen ist (`postgresql.transaction.longest_duration`) und wie viele Sitzungen auf eine Sperre warten (`postgresql.sessions.waiting_on_lock`), die letzten beiden aus `pg_stat_activity`. Der `postgresql`-Receiver meldet keines davon, und gerade sie zeigen einen Neustart, eine offen gelassene Transaktion, eine Schlange von Sperrwartenden und einen nahenden Transaktions-ID-Wraparound: PostgreSQL nimmt nahe einem Alter von 2,1 Milliarden keine Schreibvorgänge mehr an, daher sollte seine Integrität ab 1 Milliarde geprüft werden und ist ab 1,5 Milliarden kritisch. `pg_monitor` deckt sie ab. Die Abfrage verbindet sich mit `DATABASE_TLS_SSLMODE` und kann sich nicht mit einem Passwort anmelden, das ein Leerzeichen enthält (sie sendet es als `+`), wovor `install.sh` warnt. Mit einem eigenen Collector kopieren Sie den Receiver `sqlquery/oneuptime` aus `configs/postgresql.yaml` in seine `metrics`-Pipeline.
 
 Die **Version** der Datenbank kommt vom Receiver, wo er eine meldet: `db.system.version` (MySQL / MariaDB, MongoDB), `redis.version` (Redis, KeyDB), `oracle.db.version` (Oracle) und `elasticsearch.node.version` (Elasticsearch / OpenSearch). Die Receiver für PostgreSQL, SQL Server und Memcached melden keine, daher zeigen diese Datenbanken unter dem Agent allein keine Version; eine, die zusätzlich in Kubernetes, Docker oder Podman läuft, zeigt die ihres Container-Images.
 
@@ -418,7 +423,7 @@ Die Unit setzt `/opt/oneuptime-database-agent` voraus (den Standard des Installa
 
 Führen Sie `install.sh` erneut aus: Es verwendet jeden Wert aus Ihrer vorhandenen `.env` wieder, ersetzt `docker-compose.yml`, `otel-collector-config.yaml` und die systemd-Unit durch die aktuellen Versionen und erstellt den Container des Agents neu, damit die neue Konfiguration wirkt. Eine Datei, die Sie bearbeitet hatten – `network_mode: host`, ein `filelog`-Receiver und sein Mount, zusätzliche Metriken –, wird neben der neuen als `<file>.bak.<timestamp>` aufbewahrt, und das Skript listet sie am Ende auf, damit Sie die Änderung erneut anwenden können. Wenden Sie jede Änderung an `.env` oder `otel-collector-config.yaml` mit `docker compose up -d --force-recreate` an: Der Collector liest seine Konfiguration nur beim Start, und ein einfaches `docker compose up -d` lässt den laufenden Container in Ruhe, wenn sich nur die Konfigurationsdatei geändert hat. Das Skript hält in `.agent-files.sha256` fest, was es installiert hat, sodass eine Datei, die niemand bearbeitet hat, ohne Kopie ersetzt wird, wie sehr sich die neue Version auch geändert hat; in einem Verzeichnis ohne diesen Eintrag (einem, das Sie von Hand eingerichtet haben) wird jede Datei, die sich von der neuen Version unterscheidet, aufbewahrt, da sie Änderungen enthalten kann. Um den Agent zu entfernen: `cd /opt/oneuptime-database-agent && docker compose down`, dann löschen Sie den Überwachungsbenutzer (und das eigene Login des KI-Agents, falls Sie eines angelegt haben).
 
-Der Agent meldet die Collector-Version, die seine Dateien festlegen, als seine **Agent-Version**. Ist sie älter als die Version, die dieses OneUptime-Release festlegt, erscheint daneben auf der **Übersicht** der Datenbank ein Warnzeichen. Wählen Sie es aus, um zu sehen, wie Sie aktualisieren: über das Installationsskript, mit Docker Compose oder, für eine Datenbank in Kubernetes, mit dem Deployment aus der Einrichtungsanleitung.
+Der Agent meldet die Version seiner Dateien als seine **Agent-Version**: die Collector-Version, die sie festlegen, deren letzte Zahl jedes Mal erhöht wird, wenn sich die Dateien auf diesem Collector ändern. Ist sie älter als die Version, die dieses OneUptime-Release festlegt, erscheint daneben auf der **Übersicht** der Datenbank ein Warnzeichen. Wählen Sie es aus, um zu sehen, wie Sie aktualisieren: über das Installationsskript, mit Docker Compose oder, für eine Datenbank in Kubernetes, mit dem Deployment aus der Einrichtungsanleitung.
 
 ## KI-Agent
 
@@ -521,6 +526,8 @@ spec:
               value: "true"
             - name: DATABASE_TLS_INSECURE_SKIP_VERIFY
               value: "false"
+            - name: DATABASE_TLS_SSLMODE
+              value: "disable"
             - name: DATABASE_COLLECTION_INTERVAL
               value: "30s"
             - name: DATABASE_QUERY_EVENTS
@@ -594,13 +601,44 @@ Ein Endpunkt ist ein `host:port`, auf dem eine Datenbank antwortet. Der Tab **En
 
 Der Name einer Datenbank ist standardmäßig die Engine und ihr Endpunkt – `PostgreSQL db.example.com:5432` – oder, bei einer aus ihren Containern erkannten Datenbank, die Engine und ihr Workload: `<namespace>/<workload>` in Kubernetes (`PostgreSQL data/postgres`) und auf Docker oder Podman der Name des Containers, sein Compose-Dienst (`<project>-<service>`) oder sein Swarm-Dienst. Er lässt sich frei umbenennen; der Name ist nicht die Identität. Dieser Standard macht Label- und Eigentümerregeln nach Namen einfach: Ein Namensmuster `^PostgreSQL` trifft jede PostgreSQL-Datenbank und `^MariaDB` jede MariaDB-Datenbank.
 
+## Sehen, welche Datenbanken Aufmerksamkeit erfordern
+
+Die Liste **Datenbanken** beginnt mit **Erfordert Aufmerksamkeit**: jede Datenbank jenseits eines Schwellenwerts der empfohlenen Warnungen ihrer Engine und jede, deren Engine-Metriken ausgeblieben sind, das Dringendste zuerst, jede mit dem Grund und einem Schritt zu ihrer Seite. Erfordert nichts Aufmerksamkeit, gibt es keine Karte.
+
+Darunter sagt der **Status** jeder Datenbank, wie es ihrer Engine geht, mit dem Grund darunter:
+
+| Status | Wann |
+| --- | --- |
+| **Fehlerfrei** | Ihre Engine-Metriken treffen ein, und keine liegt jenseits eines Schwellenwerts der empfohlenen Warnungen ihrer Engine. |
+| **Beeinträchtigt** | Ein Warnschwellenwert ist überschritten, aus der Tabelle unten. |
+| **Fehlerhaft** | Ein kritischer Schwellenwert ist überschritten, aus der Tabelle unten. |
+| **Engine-Metriken gestoppt** | Ihr Feld **Engine-Metriken** zeigt _Getrennt_: Ein Agent oder Collector hat gemeldet und dann aufgehört (siehe [Lebenszyklus](#lebenszyklus-archivierung-und-aufbewahrung)). Was er zuletzt gemeldet hat, stimmt nicht mehr, daher sagt die Zeile stattdessen, wann er zuletzt gemeldet hat. |
+| **Keine Engine-Metriken** | Noch hat kein Database Agent und kein Collector für sie gemeldet (siehe [Der Database Agent](#der-database-agent)). |
+| **Meldet** | Ihre Engine-Metriken treffen ein, aber keiner der Werte, die die Schwellenwerte ihrer Engine beurteilen, ist in den letzten 15 Minuten eingetroffen, oder OneUptime empfiehlt für ihre Engine keine Warnungen. |
+
+Die Schwellenwerte sind die der [empfohlenen Monitore](#empfohlene-monitore) selbst – Metriken, Formel und Schwellenwert jedes einzelnen –, beurteilt anhand dessen, was die Engine zuletzt gemeldet hat und was OneUptime etwa einmal pro Minute an der Datenbank speichert. Die Seite sagt es, sobald ein Wert einen Schwellenwert überschreitet; der Monitor wartet sein Zeitfenster ab, bevor er eine Warnung öffnet. Ein Monitor, den Sie nach dem Anlegen geändert haben, behält seinen eigenen Schwellenwert, die Integrität den empfohlenen. Eine Datenbank, für die mehrere Agents melden – etwa einer pro Mitglied eines Replica-Sets –, wird so beurteilt, wie der Monitor sie beurteilt: Verbindungen zusammengezählt, die Verzögerung des am weitesten zurückliegenden Replikats.
+
+| Engine | Fehlerhaft | Beeinträchtigt |
+| --- | --- | --- |
+| PostgreSQL | Verbindungen bei 95 % von `max_connections`; Transaktions-IDs nahe am Wraparound | Verbindungen bei 80 % von `max_connections`; Transaktions-IDs auf dem Weg zum Wraparound; ein Replikat beim Replay 30 Sekunden im Rückstand; ein Replikat 1 GB WAL im Rückstand; ein Neustart; eine seit einer Stunde offene Transaktion; eine Sitzung, die auf eine Sperre wartet; eine Datenbank ab 500 GB |
+| MySQL / MariaDB | — | 136 Verbindungen; 50 laufende Threads; 75 % des Buffer-Pools schmutzig; ein Replikat 30 Sekunden im Rückstand; ein Neustart |
+| SQL Server | — | Eine Buffer-Cache-Trefferquote unter 90 %; eine Page Life Expectancy unter 300 Sekunden; eine blockierte Sitzung; eine Abfrage, die auf Speicher wartet |
+| Oracle | Ein Tablespace zu 90 % voll | — |
+| Redis / Valkey / KeyDB / Dragonfly | — | Speicher bei 90 % von `maxmemory`; ein Fragmentierungsverhältnis von 1,5 bei 256 MB belegt; 9.000 Clients; ein Neustart |
+| MongoDB | Verbindungen bei 90 % des Limits | Ein Neustart |
+| Elasticsearch / OpenSearch | Clusterzustand rot | Clusterzustand gelb; 10 ausstehende Cluster-Tasks; ein JVM-Heap zu 85 % voll |
+| Memcached | — | 900 Verbindungen |
+| CouchDB | — | Anfragen mit durchschnittlich 1.000 ms |
+
+Die **Übersicht** einer Datenbank sagt dasselbe: ihre Integrität im Kopfbereich (_Integrität unbekannt_, solange ihre Engine-Metriken ausbleiben, keine, bevor welche eingetroffen sind), dann **Erfordert Aufmerksamkeit**, eine Zeile für jede Art überschrittener Schwellenwerte – **Verbindungen**, **Replikation**, **Arbeitsspeicher** und die übrigen –, die jeweils den Tab **Metriken** öffnet oder, wenn ihre Engine-Metriken ausgeblieben sind, den Tab **Dokumentation** mit der Einrichtungsanleitung und dem Diagnoseskript. **Datenbank-Warnungen** listet, welche der empfohlenen Warnungen ihrer Engine sie überwachen, und ihre Schaltfläche öffnet **Empfehlungen** mit den übrigen ausgewählt.
+
 ## Warnungen zu einer Datenbank
 
 Die Tabs **Warnungen** und **Vorfälle** einer Datenbank zeigen, was die Monitore geöffnet haben, die sie nennen. Solange sich die Datenbank in einem laufenden Fenster einer geplanten Wartung befindet, öffnen diese Monitore keine neuen Vorfälle oder Warnungen, es sei denn, sie nennen auch eine Ressource außerhalb des Fensters. Ihr Status wird trotzdem aktualisiert, und was sie vor dem Fenster geöffnet haben, wird weiterhin aufgelöst. Datenbanken lassen sich wie jede andere Ressource auch von Hand mit Vorfällen, Warnungen und geplanten Wartungen verknüpfen: Wenn Sie eine solche im eigenen Tab **Vorfälle**, **Warnungen** oder **Geplante Wartung** der Datenbank anlegen, ist die Datenbank bereits ausgewählt.
 
 ### Empfohlene Monitore
 
-Der Tab **Empfehlungen** der Datenbank bietet fertige Metrik-Monitore für ihre Engine an – Verbindungen nahe am Limit, Replikationsverzögerung, Speicher- und Cache-Druck, blockierte Sitzungen, volle Tablespaces, Clusterzustand, Neustarts und eine Prüfung **Engine Metrics Stopped**, die auslöst, wenn die Metriken der Engine ausbleiben – für diese Engines: PostgreSQL, MySQL, MariaDB, SQL Server, Oracle, Redis, Valkey, KeyDB, Dragonfly, Memcached, MongoDB, CouchDB, Elasticsearch und OpenSearch. Sie lesen die Metriken, die der Collector-Receiver der Engine meldet, und werden daher angeboten, sobald eine dieser Metriken in den letzten 30 Tagen mit der `oneuptime.database.server.id` der Datenbank angekommen ist – ihre Logs, ein anderer Receiver (etwa der `mongodbatlas`-Receiver eines MongoDB-Atlas-Clusters) oder ein Exporter zählen nicht, und bis dahin sagt der Tab, warum er leer ist –, und jeder filtert auf die `oneuptime.database.server.id` der Datenbank. Das Abzeichen neben dem Tab zählt die noch nicht angelegten.
+Der Tab **Empfehlungen** der Datenbank bietet fertige Metrik-Monitore für ihre Engine an – Verbindungen nahe am Limit, Replikationsverzögerung, Speicher- und Cache-Druck, blockierte Sitzungen, volle Tablespaces, Clusterzustand, Neustarts und eine Prüfung **Engine Metrics Stopped**, die auslöst, wenn die Metriken der Engine ausbleiben – für diese Engines: PostgreSQL, MySQL, MariaDB, SQL Server, Oracle, Redis, Valkey, KeyDB, Dragonfly, Memcached, MongoDB, CouchDB, Elasticsearch und OpenSearch. Sie lesen die Metriken, die der Collector-Receiver der Engine meldet, und werden daher angeboten, sobald eine dieser Metriken in den letzten 30 Tagen mit der `oneuptime.database.server.id` der Datenbank angekommen ist – ihre Logs, ein anderer Receiver (etwa der `mongodbatlas`-Receiver eines MongoDB-Atlas-Clusters) oder ein Exporter zählen nicht, und bis dahin sagt der Tab, warum er leer ist –, und jeder filtert auf die `oneuptime.database.server.id` der Datenbank. Das Abzeichen neben dem Tab zählt die noch nicht angelegten. Die PostgreSQL-Monitore für Neustarts, Transaktions-IDs, offene Transaktionen und Sperrwartezeiten lesen die eigenen SQL-Prüfungen des Database Agent (siehe [Was erfasst wird](#was-erfasst-wird)), daher bleiben sie mit einem eigenen Collector still, bis er denselben `sqlquery`-Receiver ausführt.
 
 Die Dokumentation eines Receivers listet auf, was er melden kann, nicht was aus jeder Umgebung ankommt; daher lesen die Monitore für SQL Server und Oracle nur Metriken, deren Eintreffen aus den eigenen Konfigurationen des Database Agent beobachtet wurde. Deshalb hat SQL Server keinen Monitor für Transaktionslog oder Sperrwartezeit (nur Windows-Leistungsindikatoren melden sie, und der Agent verbindet sich direkt) und Oracle keinen für sein Sitzungs- oder Prozesslimit (eine Verbindung zu einer Pluggable Database meldet sie nicht).
 
@@ -692,7 +730,7 @@ Im Container des Agents ist `localhost` der Container selbst. Verwenden Sie `hos
 - `ORA-12514` oder `ORA-12505`: Der Oracle-Listener antwortet – daher besteht die Verbindungsprüfung –, kennt aber den Dienst nicht, den `DATABASE_ORACLE_SERVICE` nennt; `lsnrctl services` auf dem Datenbank-Host listet die auf, die er kennt.
 - `ORA-28000` oder `ORA-28001`: Der Oracle-Überwachungsbenutzer ist gesperrt oder sein Passwort abgelaufen.
 - `failed to explain` bei PostgreSQL-Top-Abfragen ist keine fehlende Berechtigung: Ausführungspläne brauchen `SELECT` auf Ihren Tabellen, was `pg_monitor` bewusst nicht gewährt. Metriken und Top-Abfragen sind nicht betroffen; nur die Pläne bleiben leer.
-- `SSL is not enabled on the server`: Setzen Sie `DATABASE_TLS_INSECURE=true`. Ein Server, der TLS verlangt: `DATABASE_TLS_INSECURE=false`, dazu `DATABASE_TLS_INSECURE_SKIP_VERIFY=true` für ein Zertifikat, dem das Image nicht vertraut. Bei Elasticsearch / OpenSearch entscheidet das `http://` oder `https://` von `DATABASE_ENDPOINT`.
+- `SSL is not enabled on the server`: Setzen Sie `DATABASE_TLS_INSECURE=true`. Ein Server, der TLS verlangt: `DATABASE_TLS_INSECURE=false`, dazu `DATABASE_TLS_INSECURE_SKIP_VERIFY=true` für ein Zertifikat, dem das Image nicht vertraut. Bei Elasticsearch / OpenSearch entscheidet das `http://` oder `https://` von `DATABASE_ENDPOINT`. Setzen Sie für PostgreSQL `DATABASE_TLS_SSLMODE` passend – `disable`, `require` oder `verify-full`, wie `install.sh` es tut –, sonst können sich die eigenen SQL-Prüfungen der Konfiguration nicht verbinden.
 - Fehler mit `pg_stat_statements`: Legen Sie die Erweiterung an oder setzen Sie `DATABASE_QUERY_EVENTS=false`.
 - Bei jedem anderen Receiver-Fehler gibt das Diagnoseskript den häufigsten aus, so wie der Datenbanktreiber ihn formuliert hat (mit geschwärztem Passwort).
 
@@ -728,6 +766,10 @@ Den Spans fehlt `db.system.name` / `db.system` oder `server.address`, oder sie v
 ### Engine-Metriken zeigt Getrennt oder Nicht verbunden
 
 _Nicht verbunden_: Für diese Datenbank hat noch nie ein Database Agent oder Collector gemeldet – installieren Sie den Agent über ihren Tab **Dokumentation**. _Getrennt_: Einer hat gemeldet und seit mindestens 15 Minuten nichts gesendet (siehe [Lebenszyklus](#lebenszyklus-archivierung-und-aufbewahrung)) – führen Sie das [Diagnoseskript](#zuerst-das-diagnoseskript-ausführen) dort aus, wo er läuft. Empfohlene Monitore erscheinen im Tab **Empfehlungen**, sobald die eigenen Metriken des Engine-Receivers angekommen sind.
+
+### Status zeigt Meldet statt Fehlerfrei
+
+**Meldet** heißt: Engine-Metriken treffen ein, aber keiner der Werte, die die Schwellenwerte ihrer Engine beurteilen – ein eigener Collector, der diese Metriken weglässt, Werte, die ausgeblieben sind, während andere Daten weiter fließen, oder eine Engine, für die OneUptime keine Warnungen empfiehlt. Der Tab **Metriken** zeigt, was tatsächlich eintrifft; vergleichen Sie es mit [Was erfasst wird](#was-erfasst-wird).
 
 ### Die Warnungen eines Monitors erscheinen nicht bei der Datenbank
 

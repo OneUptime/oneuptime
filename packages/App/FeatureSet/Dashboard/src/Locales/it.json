@@ -40697,5 +40697,12 @@
   "{{count}} thread running": "{{count}} thread in esecuzione",
   "{{count}} threads running": "{{count}} thread in esecuzione",
   "{{count}} threads running_one": "{{count}} thread in esecuzione",
-  "{{percent}} of the buffer pool dirty": "{{percent}} del buffer pool con pagine sporche"
+  "{{percent}} of the buffer pool dirty": "{{percent}} del buffer pool con pagine sporche",
+  "A transaction open for {{hours}} h": "Una transazione aperta da {{hours}} h",
+  "A transaction open for {{minutes}} min": "Una transazione aperta da {{minutes}} min",
+  "A transaction open for {{seconds}} s": "Una transazione aperta da {{seconds}} s",
+  "Transaction IDs at {{percent}} of wraparound": "ID di transazione al {{percent}} del wraparound",
+  "{{count}} session waiting on a lock": "{{count}} sessione in attesa di un lock",
+  "{{count}} sessions waiting on locks": "{{count}} sessioni in attesa di lock",
+  "{{count}} sessions waiting on locks_one": "{{count}} sessione in attesa di un lock"
 }

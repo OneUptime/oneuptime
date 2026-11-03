@@ -40697,5 +40697,12 @@
   "{{count}} thread running": "{{count}} kjørende tråd",
   "{{count}} threads running": "{{count}} kjørende tråder",
   "{{count}} threads running_one": "{{count}} kjørende tråd",
-  "{{percent}} of the buffer pool dirty": "{{percent}} av bufferpoolen er dirty pages"
+  "{{percent}} of the buffer pool dirty": "{{percent}} av bufferpoolen er dirty pages",
+  "A transaction open for {{hours}} h": "En transaksjon åpen i {{hours}} t",
+  "A transaction open for {{minutes}} min": "En transaksjon åpen i {{minutes}} min",
+  "A transaction open for {{seconds}} s": "En transaksjon åpen i {{seconds}} s",
+  "Transaction IDs at {{percent}} of wraparound": "Transaksjons-ID-er på {{percent}} av veien til wraparound",
+  "{{count}} session waiting on a lock": "{{count}} økt venter på en lås",
+  "{{count}} sessions waiting on locks": "{{count}} økter venter på låser",
+  "{{count}} sessions waiting on locks_one": "{{count}} økt venter på en lås"
 }

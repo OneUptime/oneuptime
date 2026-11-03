@@ -151,12 +151,20 @@ export const DOCKER_SWARM_AGENT_COLLECTOR_VERSION: string = "0.161.0";
 export const DOCKER_SWARM_AGENT_VERSION: string = "0.161.3";
 
 /*
- * The collector version the Database agent reports: the
- * oneuptime.agent.version every agents/DatabaseAgent/configs/*.yaml stamps,
- * kept equal to the collector image docker-compose.yml pins.
- * AgentKind.test.ts fails when the agent's files move on without this.
+ * The version the Database agent reports: the oneuptime.agent.version every
+ * agents/DatabaseAgent/configs/*.yaml stamps - the collector release its
+ * docker-compose.yml pins (DATABASE_AGENT_COLLECTOR_VERSION), its last
+ * number raised when the files change on the same collector: 0.161.1, the
+ * PostgreSQL config's own SQL checks (a restart, transaction ID wraparound,
+ * long transactions, lock waits), so an agent still running the old files
+ * reports 0.161.0 and is told to upgrade. AgentKind.test.ts and
+ * AgentFilesVersion.test.ts fail when the agent's files move on without
+ * this.
  */
-export const DATABASE_AGENT_VERSION: string = "0.161.0";
+export const DATABASE_AGENT_VERSION: string = "0.161.1";
+
+// The collector the Database agent runs: the image its docker-compose.yml pins.
+export const DATABASE_AGENT_COLLECTOR_VERSION: string = "0.161.0";
 
 /*
  * The collector versions the Proxmox, Ceph, VMware and Storage Array agents
@@ -214,7 +222,7 @@ export const AGENT_KINDS: Record<AgentKind, AgentKindDefinition> = {
     name: "OneUptime Database Agent",
     latestVersionSource: AgentLatestVersionSource.PinnedCollector,
     pinnedVersion: DATABASE_AGENT_VERSION,
-    collectorVersion: DATABASE_AGENT_VERSION,
+    collectorVersion: DATABASE_AGENT_COLLECTOR_VERSION,
   },
   [AgentKind.Runner]: {
     name: "Runner",

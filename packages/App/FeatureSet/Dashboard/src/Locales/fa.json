@@ -40697,5 +40697,12 @@
   "{{count}} thread running": "{{count}} رشتهٔ در حال اجرا",
   "{{count}} threads running": "{{count}} رشتهٔ در حال اجرا",
   "{{count}} threads running_one": "{{count}} رشتهٔ در حال اجرا",
-  "{{percent}} of the buffer pool dirty": "{{percent}} از بافر پول صفحه‌های کثیف"
+  "{{percent}} of the buffer pool dirty": "{{percent}} از بافر پول صفحه‌های کثیف",
+  "A transaction open for {{hours}} h": "یک تراکنش {{hours}} ساعت است باز است",
+  "A transaction open for {{minutes}} min": "یک تراکنش {{minutes}} دقیقه است باز است",
+  "A transaction open for {{seconds}} s": "یک تراکنش {{seconds}} ثانیه است باز است",
+  "Transaction IDs at {{percent}} of wraparound": "شناسه‌های تراکنش در {{percent}} مسیر تا wraparound",
+  "{{count}} session waiting on a lock": "{{count}} نشست در انتظار قفل",
+  "{{count}} sessions waiting on locks": "{{count}} نشست در انتظار قفل",
+  "{{count}} sessions waiting on locks_one": "{{count}} نشست در انتظار قفل"
 }

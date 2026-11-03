@@ -40697,5 +40697,12 @@
   "{{count}} thread running": "{{count}} выполняющийся поток",
   "{{count}} threads running": "Выполняющихся потоков: {{count}}",
   "{{count}} threads running_one": "{{count}} выполняющийся поток",
-  "{{percent}} of the buffer pool dirty": "{{percent}} буферного пула — грязные страницы"
+  "{{percent}} of the buffer pool dirty": "{{percent}} буферного пула — грязные страницы",
+  "A transaction open for {{hours}} h": "Транзакция открыта уже {{hours}} ч",
+  "A transaction open for {{minutes}} min": "Транзакция открыта уже {{minutes}} мин",
+  "A transaction open for {{seconds}} s": "Транзакция открыта уже {{seconds}} с",
+  "Transaction IDs at {{percent}} of wraparound": "Идентификаторы транзакций: {{percent}} до переполнения",
+  "{{count}} session waiting on a lock": "{{count}} сеанс ждёт блокировки",
+  "{{count}} sessions waiting on locks": "Сеансов в ожидании блокировок: {{count}}",
+  "{{count}} sessions waiting on locks_one": "{{count}} сеанс ждёт блокировки"
 }

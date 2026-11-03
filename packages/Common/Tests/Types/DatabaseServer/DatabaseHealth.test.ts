@@ -37,7 +37,10 @@ import FilterCondition from "../../../Types/Filter/FilterCondition";
 import MetricFormulaConfigData from "../../../Types/Metrics/MetricFormulaConfigData";
 import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData";
 import MetricsViewConfig from "../../../Types/Metrics/MetricsViewConfig";
-import { CriteriaFilter, FilterType } from "../../../Types/Monitor/CriteriaFilter";
+import {
+  CriteriaFilter,
+  FilterType,
+} from "../../../Types/Monitor/CriteriaFilter";
 import {
   DATABASE_ALERT_METRICS,
   DatabaseAlertQuery,
@@ -86,6 +89,11 @@ const CALM_VALUES: Record<string, number> = {
   "Max|postgresql.wal.delay|operation=replay": 0.4,
   "Max|postgresql.replication.data_delay|": 2048,
   "Max|postgresql.db_size|": 12_000_000_000,
+  // PostgreSQL: the Database Agent's own SQL checks.
+  "Min|postgresql.uptime|": 86_400,
+  "Max|postgresql.xid.oldest_age|": 120_000_000,
+  "Max|postgresql.transaction.longest_duration|": 4,
+  "Max|postgresql.sessions.waiting_on_lock|": 0,
   // MySQL / MariaDB
   "Count|mysql.uptime|": 1,
   "Min|mysql.uptime|": 86_400,
@@ -235,9 +243,7 @@ describe("DatabaseHealth - the rules are the alert templates", () => {
       const viewConfig: MetricsViewConfig =
         step.data!.metricMonitor!.metricViewConfig;
 
-      expect(step.data!.metricMonitor!.rollingTime).toBe(
-        candidate.rollingTime,
-      );
+      expect(step.data!.metricMonitor!.rollingTime).toBe(candidate.rollingTime);
       expect(
         viewConfig.queryConfigs.map(
           (
@@ -890,6 +896,121 @@ describe("DatabaseHealth - PostgreSQL", () => {
   });
 });
 
+describe("DatabaseHealth - PostgreSQL's own SQL checks", () => {
+  test("a restart, read from the uptime the agent's query reports", () => {
+    expect(
+      reasonsOf(
+        assess(connectedRow("postgresql", { "Min|postgresql.uptime|": 150 })),
+      ),
+    ).toEqual([
+      // 150 s of uptime read a minute ago: three minutes ago.
+      { text: "Restarted {{minutes}} min ago", values: { minutes: "3" } },
+    ]);
+  });
+
+  test("transaction ID age: a billion is a warning, 1.5 billion critical, said once as a share of wraparound", () => {
+    const warning: DatabaseHealthAssessment = assess(
+      connectedRow("postgresql", {
+        "Max|postgresql.xid.oldest_age|": 1_100_000_000,
+      }),
+    );
+    expect(warning.state).toBe("degraded");
+    expect(warning.findings).toEqual([
+      {
+        key: "availability",
+        category: "Availability",
+        severity: DatabaseHealthSeverity.Warning,
+        reasons: [
+          {
+            text: "Transaction IDs at {{percent}} of wraparound",
+            values: { percent: "51%" },
+          },
+        ],
+        templateIds: ["database-postgresql-xid-age-high"],
+      },
+    ]);
+
+    const critical: DatabaseHealthAssessment = assess(
+      connectedRow("postgresql", {
+        "Max|postgresql.xid.oldest_age|": 1_600_000_000,
+      }),
+    );
+    expect(critical.state).toBe("unhealthy");
+    expect(critical.findings[0]!.severity).toBe(
+      DatabaseHealthSeverity.Critical,
+    );
+    expect(critical.findings[0]!.templateIds).toEqual([
+      "database-postgresql-xid-wraparound-near",
+      "database-postgresql-xid-age-high",
+    ]);
+    expect(reasonsOf(critical)).toEqual([
+      {
+        text: "Transaction IDs at {{percent}} of wraparound",
+        values: { percent: "74%" },
+      },
+    ]);
+  });
+
+  test("a transaction open for two hours, and sessions waiting on its locks", () => {
+    expect(
+      reasonsOf(
+        assess(
+          connectedRow("postgresql", {
+            "Max|postgresql.transaction.longest_duration|": 7300,
+            "Max|postgresql.sessions.waiting_on_lock|": 3,
+          }),
+        ),
+      ),
+    ).toEqual([
+      { text: "A transaction open for {{hours}} h", values: { hours: "2" } },
+      {
+        text: "{{count}} sessions waiting on locks",
+        values: { count: "3" },
+        plural: { one: "{{count}} session waiting on a lock", count: 3 },
+      },
+    ]);
+  });
+
+  test("an open transaction of minutes, and a moment's lock wait, are no problem by themselves", () => {
+    expect(
+      assess(
+        connectedRow("postgresql", {
+          "Max|postgresql.transaction.longest_duration|": 1200,
+        }),
+      ).state,
+    ).toBe("healthy");
+  });
+
+  test("a collector without the agent's SQL checks is still judged by the receiver's lines", () => {
+    const values: Record<string, number> = { ...CALM_VALUES };
+    for (const name of [
+      "Min|postgresql.uptime|",
+      "Max|postgresql.xid.oldest_age|",
+      "Max|postgresql.transaction.longest_duration|",
+      "Max|postgresql.sessions.waiting_on_lock|",
+    ]) {
+      delete values[name];
+    }
+    values["Sum|postgresql.backends|"] = 97;
+    const assessment: DatabaseHealthAssessment = assess({
+      dbSystem: "postgresql",
+      otelCollectorStatus: "connected",
+      collectorLastSeenAt: minutesAgo(1),
+      engineReadings: {
+        instances: { [INSTANCE]: { at: minutesAgo(1), values: values } },
+      },
+    });
+    expect(assessment.state).toBe("unhealthy");
+    expect(
+      assessment.judgements.map(
+        (judgement: { template: DatabaseAlertTemplate }): string => {
+          return judgement.template.id;
+        },
+      ),
+    ).not.toContain("database-postgresql-long-running-transaction");
+  });
+});
+
 describe("DatabaseHealth - MySQL and MariaDB", () => {
   test.each(["mysql", "mariadb"])(
     "%s: every line, each in its category, the most urgent order",
@@ -908,12 +1029,7 @@ describe("DatabaseHealth - MySQL and MariaDB", () => {
         assessment.findings.map((finding: DatabaseHealthFinding): string => {
           return finding.key;
         }),
-      ).toEqual([
-        "availability",
-        "connections",
-        "replication",
-        "performance",
-      ]);
+      ).toEqual(["availability", "connections", "replication", "performance"]);
       expect(reasonsOf(assessment)).toEqual([
         // Read a minute ago at 120 s of uptime: three minutes ago.
         { text: "Restarted {{minutes}} min ago", values: { minutes: "3" } },
@@ -1004,7 +1120,9 @@ describe("DatabaseHealth - Redis and Valkey", () => {
     expect(
       assessment.judgements.some(
         (judgement: { template: DatabaseAlertTemplate }): boolean => {
-          return judgement.template.id === "database-redis-memory-near-maxmemory";
+          return (
+            judgement.template.id === "database-redis-memory-near-maxmemory"
+          );
         },
       ),
     ).toBe(false);
@@ -1075,13 +1193,19 @@ describe("DatabaseHealth - SQL Server", () => {
       }),
     ).toEqual(["Memory", "Performance"]);
     expect(reasonsOf(assessment)).toEqual([
-      { text: "Page life expectancy {{seconds}} s", values: { seconds: "120" } },
+      {
+        text: "Page life expectancy {{seconds}} s",
+        values: { seconds: "120" },
+      },
       {
         text: "{{count}} queries waiting for memory",
         values: { count: "1" },
         plural: { one: "{{count}} query waiting for memory", count: 1 },
       },
-      { text: "Buffer cache hit ratio {{percent}}", values: { percent: "85%" } },
+      {
+        text: "Buffer cache hit ratio {{percent}}",
+        values: { percent: "85%" },
+      },
       {
         text: "{{count}} blocked sessions",
         values: { count: "3" },
@@ -1194,7 +1318,9 @@ describe("DatabaseHealth - Memcached and CouchDB", () => {
     expect(
       reasonsOf(
         assess(
-          connectedRow("couchdb", { "Max|couchdb.average_request_time|": 1580 }),
+          connectedRow("couchdb", {
+            "Max|couchdb.average_request_time|": 1580,
+          }),
         ),
       ),
     ).toEqual([

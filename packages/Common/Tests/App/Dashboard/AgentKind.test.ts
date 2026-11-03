@@ -8,6 +8,7 @@ import {
   AgentLatestVersionSource,
   AgentVersionState,
   CEPH_AGENT_VERSION,
+  DATABASE_AGENT_COLLECTOR_VERSION,
   DATABASE_AGENT_VERSION,
   DOCKER_SWARM_AGENT_COLLECTOR_VERSION,
   DOCKER_SWARM_AGENT_VERSION,
@@ -367,11 +368,14 @@ describe("pinned-collector agents report exactly the pin this release ships", ()
     );
   });
 
-  test("the Database agent reports its compose file's collector pin, stamped in every engine's config", () => {
+  test("the Database agent reports its files' version, on the collector its compose file pins, stamped in every engine's config", () => {
     expect(
       readRepoFile("agents", "DatabaseAgent", "docker-compose.yml"),
     ).toContain(
-      `image: otel/opentelemetry-collector-contrib:${DATABASE_AGENT_VERSION}`,
+      `image: otel/opentelemetry-collector-contrib:${DATABASE_AGENT_COLLECTOR_VERSION}`,
+    );
+    expect(AGENT_KINDS[AgentKind.DatabaseAgent].collectorVersion).toBe(
+      DATABASE_AGENT_COLLECTOR_VERSION,
     );
 
     const configDir: string = path.join(
@@ -407,7 +411,7 @@ describe("pinned-collector agents report exactly the pin this release ships", ()
 
   test("the Dashboard's embedded copy of the Database agent ships the same pin", () => {
     expect(DATABASE_AGENT_COLLECTOR_IMAGE).toBe(
-      `otel/opentelemetry-collector-contrib:${DATABASE_AGENT_VERSION}`,
+      `otel/opentelemetry-collector-contrib:${DATABASE_AGENT_COLLECTOR_VERSION}`,
     );
     for (const engine of DATABASE_AGENT_ENGINES) {
       expect({

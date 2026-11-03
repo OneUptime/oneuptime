@@ -40697,5 +40697,12 @@
   "{{count}} thread running": "실행 중인 스레드 {{count}}개",
   "{{count}} threads running": "실행 중인 스레드 {{count}}개",
   "{{count}} threads running_one": "실행 중인 스레드 {{count}}개",
-  "{{percent}} of the buffer pool dirty": "버퍼 풀의 {{percent}}가 더티 페이지"
+  "{{percent}} of the buffer pool dirty": "버퍼 풀의 {{percent}}가 더티 페이지",
+  "A transaction open for {{hours}} h": "트랜잭션이 {{hours}}시간째 열려 있음",
+  "A transaction open for {{minutes}} min": "트랜잭션이 {{minutes}}분째 열려 있음",
+  "A transaction open for {{seconds}} s": "트랜잭션이 {{seconds}}초째 열려 있음",
+  "Transaction IDs at {{percent}} of wraparound": "트랜잭션 ID가 랩어라운드 한계의 {{percent}}",
+  "{{count}} session waiting on a lock": "잠금을 기다리는 세션 {{count}}개",
+  "{{count}} sessions waiting on locks": "잠금을 기다리는 세션 {{count}}개",
+  "{{count}} sessions waiting on locks_one": "잠금을 기다리는 세션 {{count}}개"
 }

@@ -40697,5 +40697,12 @@
   "{{count}} thread running": "{{count}} 個執行中的執行緒",
   "{{count}} threads running": "{{count}} 個執行中的執行緒",
   "{{count}} threads running_one": "{{count}} 個執行中的執行緒",
-  "{{percent}} of the buffer pool dirty": "緩衝池中 {{percent}} 為髒頁"
+  "{{percent}} of the buffer pool dirty": "緩衝池中 {{percent}} 為髒頁",
+  "A transaction open for {{hours}} h": "一個交易已開啟 {{hours}} 小時",
+  "A transaction open for {{minutes}} min": "一個交易已開啟 {{minutes}} 分鐘",
+  "A transaction open for {{seconds}} s": "一個交易已開啟 {{seconds}} 秒",
+  "Transaction IDs at {{percent}} of wraparound": "交易 ID 已達回繞上限的 {{percent}}",
+  "{{count}} session waiting on a lock": "{{count}} 個工作階段正在等待鎖定",
+  "{{count}} sessions waiting on locks": "{{count}} 個工作階段正在等待鎖定",
+  "{{count}} sessions waiting on locks_one": "{{count}} 個工作階段正在等待鎖定"
 }

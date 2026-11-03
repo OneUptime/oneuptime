@@ -282,6 +282,31 @@ describe("in German", () => {
       sentence(DE, "A replica {{minutes}} min behind", { minutes: "1" }),
     );
   });
+
+  test("PostgreSQL's own SQL checks: wraparound coming and a transaction left open", () => {
+    render(
+      <MemoryRouter>
+        <OwnAttention
+          row={database({
+            "Max|postgresql.xid.oldest_age|": 1_600_000_000,
+            "Max|postgresql.transaction.longest_duration|": 7300,
+          })}
+        />
+      </MemoryRouter>,
+    );
+    const rows: Array<string> = itemsText("database-needs-attention");
+    expect(rows).toHaveLength(2);
+    expect(rows[0]).toContain(worded(DE, "Availability"));
+    expect(rows[0]).toContain(
+      sentence(DE, "Transaction IDs at {{percent}} of wraparound", {
+        percent: "74%",
+      }),
+    );
+    expect(rows[1]).toContain(worded(DE, "Performance"));
+    expect(rows[1]).toContain(
+      sentence(DE, "A transaction open for {{hours}} h", { hours: "2" }),
+    );
+  });
 });
 
 describe("in Persian", () => {
@@ -312,6 +337,27 @@ describe("in Persian", () => {
         screen.getByTestId("resource-status-reason").textContent || "",
       ),
     ).toBe(sentence(FA, "{{count}} blocked sessions", { count: "۳" }));
+  });
+
+  test("sessions waiting on locks, counted in Persian digits", async () => {
+    await i18next.changeLanguage("fa");
+    render(
+      <ResourceStatusCell
+        resource={getDatabaseStatusCell({
+          assessment: assess(
+            database({ "Max|postgresql.sessions.waiting_on_lock|": 3 }),
+          ),
+          language: "fa",
+          now: NOW,
+        })}
+      />,
+    );
+    expect(screen.getByText(worded(FA, "Degraded"))).toBeInTheDocument();
+    expect(
+      withoutIsolateMarks(
+        screen.getByTestId("resource-status-reason").textContent || "",
+      ),
+    ).toBe(sentence(FA, "{{count}} sessions waiting on locks", { count: "۳" }));
   });
 
   test("the fleet's Needs attention: Persian reasons, the engine's name as written", async () => {
