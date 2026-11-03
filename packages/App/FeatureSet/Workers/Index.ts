@@ -609,12 +609,12 @@ const WorkersFeatureSet: FeatureSet = {
       } else {
         QueueWorker.getWorker(
           QueueName.Worker,
-          async (job: QueueJob) => {
+          async (job: QueueJob, token?: string) => {
             const name: string = job.name;
 
             logger.debug("Running Job: " + name, { service: "workers" });
 
-            await runWorkerJob(job);
+            await runWorkerJob(job, token);
           },
           { concurrency: WORKER_CONCURRENCY },
         );
