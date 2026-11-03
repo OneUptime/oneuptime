@@ -65,12 +65,9 @@ import {
   AI_ACTION_CARD_FACTS,
   AI_ACTION_CARD_KINDS,
   AI_ACTION_CARD_LINES,
-  AI_ACTION_CARD_PLURAL_LINES,
   AI_ACTION_TITLES,
   aiActionCardFact,
-  AIActionCardFact,
   AIActionCardWords,
-  aiActionPluralSentence,
   AIActionSentence,
   aiActionSentence,
   aiActionTerm,
@@ -834,45 +831,29 @@ export const SecurityEntityActivityTool: ObservabilityTool = {
  */
 
 /*
- * One playbook's steps in a line: "Check threat intel, then Contain
- * CrowdStrike host (only if step 1 found a known-bad entity; needs
- * approval)". Steps that cannot be read say so, rather than keep every
- * other playbook from being listed.
- */
-/*
  * The card starting a playbook leaves (WidgetBuilder.actionCard): the
- * playbook started on the case, how many steps it runs, and - when some
- * wait for a person to approve them - that they wait on the case, in the
- * reader's language. The steps themselves are the answer's to list.
+ * playbook started on the case and - when some of its steps wait for a
+ * person to approve them - that they wait on the case, in the reader's
+ * language. The steps themselves are the answer's to list: a count of
+ * them under its line read "Steps: 4 steps" and said nothing to act on.
  */
 export function describePlaybookCard(data: {
   playbookName: string;
   steps: unknown;
 }): AIActionCardWords {
-  let parsed: Array<SecurityPlaybookStep> | null = null;
+  let parsed: Array<SecurityPlaybookStep> = [];
 
   try {
     parsed = parseSecurityPlaybookSteps(data.steps);
   } catch {
-    parsed = null;
+    parsed = [];
   }
 
-  const waitsForApproval: boolean = (parsed || []).some(
+  const waitsForApproval: boolean = parsed.some(
     (step: SecurityPlaybookStep): boolean => {
       return doesStepNeedApproval(step);
     },
   );
-  const facts: Array<AIActionCardFact> = parsed
-    ? [
-        aiActionCardFact(
-          AI_ACTION_CARD_FACTS.steps,
-          aiActionPluralSentence(
-            AI_ACTION_CARD_PLURAL_LINES.stepCount,
-            parsed.length,
-          ),
-        ),
-      ]
-    : [];
 
   return {
     kind: aiActionTerm(AI_ACTION_CARD_KINDS.securityCase),
@@ -884,10 +865,15 @@ export function describePlaybookCard(data: {
         ? [aiActionSentence(AI_ACTION_CARD_LINES.playbookStepsWaitForApproval)]
         : []),
     ],
-    ...(facts.length > 0 ? { facts } : {}),
   };
 }
 
+/*
+ * One playbook's steps in a line: "Check threat intel, then Contain
+ * CrowdStrike host (only if step 1 found a known-bad entity; needs
+ * approval)". Steps that cannot be read say so, rather than keep every
+ * other playbook from being listed.
+ */
 export function describePlaybookSteps(steps: unknown): string {
   let parsed: Array<SecurityPlaybookStep>;
 

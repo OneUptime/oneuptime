@@ -484,7 +484,12 @@ describe("the approval card's lines read the way they are written", () => {
     ).toHaveAttribute("dir", "rtl");
   });
 
-  test("each argument's value the model wrote is in monospace, on the isolate itself, under its name in the reader's words", () => {
+  /*
+   * A note or a description is prose: in monospace, beside the card's own
+   * words, it read as code and fitted fewer words a line. Each value is in
+   * the card's own face, an isolate under its name in the reader's words.
+   */
+  test("each argument's value is an isolate in the card's own face, under its name in the reader's words", () => {
     render(
       <ToolApprovalCard
         toolActions={[action({ description: undefined })]}
@@ -502,14 +507,13 @@ describe("the approval card's lines read the way they are written", () => {
       });
     expect(labels).toEqual(["Severity:", "Affected resources:"]);
 
-    // The severity the model wrote: monospace, set on the isolate itself.
-    const severity: HTMLElement = within(line).getByText("SEV2");
-    expect(severity.tagName).toBe("BDI");
-    expect(severity).toHaveClass("font-mono");
+    // The severity the model wrote, and a count in the reader's words.
+    for (const value of ["SEV2", "1"]) {
+      const isolate: HTMLElement = within(line).getByText(value);
+      expect(isolate.tagName).toBe("BDI");
+      expect(isolate).not.toHaveClass("font-mono");
+    }
 
-    // A count is the reader's own words: not the model's monospace.
-    const count: HTMLElement = within(line).getByText("1");
-    expect(count.tagName).toBe("BDI");
-    expect(count).not.toHaveClass("font-mono");
+    expect(line.querySelector(".font-mono")).toBeNull();
   });
 });

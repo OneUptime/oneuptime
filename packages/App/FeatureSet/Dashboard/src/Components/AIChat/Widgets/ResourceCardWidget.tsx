@@ -64,7 +64,11 @@ const ResourceCardWidget: FunctionComponent<ComponentProps> = (
         <div className="mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-lg bg-emerald-500">
           <Icon icon={IconProp.CheckCircle} className="h-4 w-4 text-white" />
         </div>
-        <div className="min-w-0 flex-1">
+        {/*
+         * A size container: its facts sit beside their names where the
+         * card has room, and under them on a phone (below).
+         */}
+        <div className="min-w-0 flex-1 [container-type:inline-size]">
           {/*
            * Open sits on the kind's line, so the heading and the facts
            * under it keep the card's whole width: beside them, on a
@@ -120,14 +124,28 @@ const ResourceCardWidget: FunctionComponent<ComponentProps> = (
               <ToolActionSentences sentences={card.line} />
             </div>
           )}
+          {/*
+           * The facts: each name beside its value where the card has room
+           * (22rem), and over it on a phone - beside it there, a German
+           * name ("Betroffene Ressourcen") left the value a third of the
+           * card, and a description was cut after a few words. The names
+           * are gray-500: gray-400 on the card's green read at about 2.5:1.
+           */}
           {card.facts.length > 0 && (
-            <dl className="mt-2.5 grid grid-cols-[auto,1fr] gap-x-3 gap-y-1">
+            <dl
+              data-testid="ai-chat-resource-card-facts"
+              className="mt-2.5 space-y-1.5 [@container(min-width:22rem)]:grid [@container(min-width:22rem)]:grid-cols-[auto,1fr] [@container(min-width:22rem)]:gap-x-3 [@container(min-width:22rem)]:gap-y-1"
+            >
               {card.facts.map((fact: DrawnResourceCardFact, index: number) => {
                 return (
-                  <React.Fragment key={index}>
+                  <div
+                    key={index}
+                    data-testid="ai-chat-resource-card-fact"
+                    className="[@container(min-width:22rem)]:contents"
+                  >
                     <dt
                       data-testid="ai-chat-resource-card-fact-label"
-                      className="text-[11px] font-medium text-gray-400"
+                      className="text-[11px] font-medium text-gray-500"
                     >
                       {fact.label}
                     </dt>
@@ -137,7 +155,7 @@ const ResourceCardWidget: FunctionComponent<ComponentProps> = (
                     >
                       <ToolActionSentence sentence={fact.value} />
                     </dd>
-                  </React.Fragment>
+                  </div>
                 );
               })}
             </dl>

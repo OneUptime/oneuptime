@@ -43,13 +43,14 @@ export interface ComponentProps {
   onRespond: (decisions: Array<ToolDecision>) => void;
 }
 
-// What goes between two arguments on the card's line.
+// What goes between two arguments when they are written on one line.
 const ARGUMENT_SEPARATOR: string = "  ·  ";
 
 /*
  * The action's arguments in one line, as text (ToolActionWords
  * getActionArgumentParts): each named in the reader's words - English by
- * default - a list by how many it holds, yes or no in words.
+ * default - a list by how many it holds, yes or no in words. The card
+ * draws the same arguments a line each.
  */
 export function argsPreview(
   args: JSONObject,
@@ -283,44 +284,44 @@ const ToolApprovalCard: FunctionComponent<ComponentProps> = (
                         </div>
                       )}
                       {/*
-                       * What else it runs with, each argument named in the
-                       * reader's words ("Note", "Files") and its value
-                       * the model's own text, an isolate read the way most
-                       * of its letters are, in the line's monospace.
+                       * What else it runs with, an argument a line: its
+                       * name in the reader's words ("Note", "Files") and
+                       * its value, the model's own text an isolate read the
+                       * way most of its letters are, in the card's own
+                       * face - a note is prose, not code. Each wraps to
+                       * four lines of its own: run together on one line
+                       * cut at two, a status update's "Notify subscribers:
+                       * Yes" fell off the end on a phone, and its note was
+                       * cut mid-sentence, before anyone approved it.
                        */}
                       {argumentParts.length > 0 && (
-                        <div
+                        <dl
                           data-testid="tool-approval-arguments"
-                          className="mt-1 line-clamp-2 text-[10.5px] leading-relaxed text-gray-600"
+                          className="mt-1.5 space-y-0.5 text-[11px] leading-[1.125rem]"
                         >
-                          {argumentParts.map(
-                            (part: ActionArgumentPart, index: number) => {
-                              return (
-                                <React.Fragment key={part.key}>
-                                  {index > 0 ? ARGUMENT_SEPARATOR : ""}
-                                  <span
-                                    data-testid="tool-approval-argument-label"
-                                    className="font-medium text-gray-500"
-                                  >
-                                    {part.label}:
-                                  </span>{" "}
-                                  {/*
-                                   * The model's text in monospace, set on
-                                   * the isolate itself: every page's
-                                   * `* { font-family: Inter }` would reach
-                                   * it from its line.
-                                   */}
-                                  <IsolatedText
-                                    text={part.value}
-                                    className={
-                                      part.isWritten ? "font-mono" : undefined
-                                    }
-                                  />
-                                </React.Fragment>
-                              );
-                            },
-                          )}
-                        </div>
+                          {argumentParts.map((part: ActionArgumentPart) => {
+                            return (
+                              <div
+                                key={part.key}
+                                data-testid="tool-approval-argument"
+                                className="line-clamp-4 break-words"
+                              >
+                                <dt
+                                  data-testid="tool-approval-argument-label"
+                                  className="inline font-medium text-gray-500"
+                                >
+                                  {part.label}:
+                                </dt>{" "}
+                                <dd
+                                  data-testid="tool-approval-argument-value"
+                                  className="inline text-gray-700"
+                                >
+                                  <IsolatedText text={part.value} />
+                                </dd>
+                              </div>
+                            );
+                          })}
+                        </dl>
                       )}
                     </div>
                     {props.interactive && (

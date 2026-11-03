@@ -170,7 +170,7 @@ export function getToolActionDescribedArguments(
 
 /*
  * ---------------------------------------------------------------------------
- * The card's line of arguments, in the reader's words.
+ * The card's arguments, in the reader's words.
  *
  * Under an action's title and line, the card lists the arguments it runs
  * with that neither says: the description an alert will carry, a note's
@@ -179,7 +179,10 @@ export function getToolActionDescribedArguments(
  * middle of a translated card. Each argument a write tool takes is named
  * here in the reader's words ("Note", "Files", "Notify subscribers"), a
  * list says how many it holds, and yes or no is said in words; what the
- * model wrote stays as it wrote it.
+ * model wrote stays as it wrote it. The card draws each on a line of its
+ * own (ToolApprovalCard): run together on one line cut at two, a public
+ * status update's "Notify subscribers: Yes" fell off the end on a phone,
+ * never seen before it was approved.
  * ---------------------------------------------------------------------------
  */
 
@@ -204,20 +207,21 @@ export const ACTION_ARGUMENT_LABELS: { [key: string]: string } = {
   repositoryId: translationKey("Repository"),
 };
 
-// How long a value may be on the line before it is cut.
-const MAX_ARGUMENT_VALUE_LENGTH: number = 80;
+/*
+ * How long a value may be before it is cut. The card shows each argument
+ * on a few lines of its own (ToolApprovalCard); this only bounds what a
+ * screen reader reads of a very long one - the description of a pull
+ * request - while a status update's note is read whole. Cut at 80, the
+ * note a person approves for the status page was cut mid-sentence.
+ */
+export const MAX_ARGUMENT_VALUE_LENGTH: number = 400;
 
-// One argument on the card's line: its name, and its value.
+// One argument on the card: its name, and its value.
 export interface ActionArgumentPart {
   key: string;
   // In the reader's words; an argument no label names keeps its key.
   label: string;
   value: string;
-  /*
-   * Whether the value is the model's own text, read the way most of its
-   * letters are; false for words of the reader's language ("Yes", a count).
-   */
-  isWritten: boolean;
 }
 
 export interface ActionArgumentOptions {
@@ -254,15 +258,15 @@ function cut(text: string): string {
 }
 
 /*
- * The action's arguments for its line. An action whose description names
+ * The action's arguments for the card. An action whose description names
  * what its lists stand for (the resources it links, by name) leaves those
  * lists out: their IDs would only repeat the description, unreadably. An
- * argument the action's title shows is left out too: the line is cut at
- * two lines, and repeating the title there pushed what only this line says
- * - the description an alert will carry - out of sight. So is one the
- * title names by name, or the description says in words. The title's own
- * values say which (shownValues), in every language; for an action saved
- * before its title had values, the title ending with the argument does.
+ * argument the action's title shows is left out too: repeating the title
+ * there pushed what only the arguments say - the description an alert
+ * will carry - out of sight. So is one the title names by name, or the
+ * description says in words. The title's own values say which
+ * (shownValues), in every language; for an action saved before its title
+ * had values, the title ending with the argument does.
  */
 export function getActionArgumentParts(
   args: JSONObject,
@@ -308,7 +312,6 @@ export function getActionArgumentParts(
         key,
         label,
         value: translator.formatNumber(value.length),
-        isWritten: false,
       });
       continue;
     }
@@ -318,7 +321,6 @@ export function getActionArgumentParts(
         key,
         label,
         value: translator.translateText(value ? "Yes" : "No") || "",
-        isWritten: false,
       });
       continue;
     }
@@ -328,7 +330,6 @@ export function getActionArgumentParts(
         key,
         label,
         value: translator.formatNumber(value),
-        isWritten: false,
       });
       continue;
     }
@@ -339,7 +340,6 @@ export function getActionArgumentParts(
       value: cut(
         typeof value === "object" ? JSON.stringify(value) : String(value),
       ),
-      isWritten: true,
     });
   }
 

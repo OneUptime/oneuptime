@@ -391,8 +391,10 @@ describe("the card under the answer, once the alert is raised", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("Severity: Low")).toBeInTheDocument();
 
-    const facts: HTMLElement = screen.getByText("Affected resources")
-      .parentElement as HTMLElement;
+    const facts: HTMLElement = screen.getByTestId(
+      "ai-chat-resource-card-facts",
+    );
+    expect(within(facts).getByText("Affected resources")).toBeInTheDocument();
     expect(within(facts).getByText('host "test01"')).toBeInTheDocument();
     expect(within(facts).getByText("Description")).toBeInTheDocument();
     // The heading says the number and the line under it the severity.

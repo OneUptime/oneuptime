@@ -383,24 +383,12 @@ export const AI_ACTION_CARD_FACTS: {
   description: string;
   note: string;
   statusUpdate: string;
-  steps: string;
 } = {
   affectedResources: translationKey("Affected resources"),
   alreadyLinked: translationKey("Already linked"),
   description: translationKey("Description"),
   note: translationKey("Note"),
   statusUpdate: translationKey("Status update"),
-  steps: translationKey("Steps"),
-};
-
-export const AI_ACTION_CARD_PLURAL_LINES: {
-  stepCount: PluralTemplate;
-} = {
-  // How many steps a playbook started with.
-  stepCount: {
-    one: translationKey("{{count}} step"),
-    other: translationKey("{{count}} steps"),
-  },
 };
 
 /*
@@ -441,7 +429,6 @@ export const AI_ACTION_SENTENCES: ReadonlyArray<string> = [
 
 export const AI_ACTION_PLURAL_SENTENCES: ReadonlyArray<PluralTemplate> = [
   ...Object.values(AI_ACTION_PLURAL_TITLES),
-  ...Object.values(AI_ACTION_CARD_PLURAL_LINES),
 ];
 
 // The kinds of resource, by the nouns the server names them by.

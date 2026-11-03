@@ -6499,6 +6499,16 @@ function acknowledgeWords(kind, number) {
   });
 }
 
+/*
+ * What acknowledge_incident and acknowledge_alert take: the record's ID,
+ * which the title names by its number (namedArguments).
+ */
+function acknowledgeArguments(kind, number) {
+  return {
+    [`${kind}Id`]: kind === "alert" ? ID.alert(number) : ID.incident(number),
+  };
+}
+
 // Linking it to host checkout-api-7f9c, as its prepare names both.
 function linkWords(kind, number) {
   return storedActionWords({
@@ -6599,7 +6609,8 @@ function seedThread(kind, number) {
             toolName: `acknowledge_${kind}`,
             // "Acknowledge incident #1042", and its sentence.
             ...acknowledgeWords(kind, number),
-            arguments: { [`${kind}Number`]: number },
+            // The record by its ID, as acknowledge_<kind> takes it.
+            arguments: acknowledgeArguments(kind, number),
             isMutation: true,
             requiresApproval: false,
             status: AIChatToolActionStatus.Executed,
@@ -6721,7 +6732,11 @@ function seedThread(kind, number) {
           toolName: `acknowledge_${kind}`,
           // "Acknowledge incident #1042", and its sentence.
           ...acknowledgeWords(kind, number),
-          arguments: { [`${kind}Number`]: number },
+          /*
+           * The record by its ID, as acknowledge_<kind> takes it: the title
+           * names it by its number, so the card shows no argument at all.
+           */
+          arguments: acknowledgeArguments(kind, number),
           isMutation: true,
           requiresApproval: true,
           status: AIChatToolActionStatus.Pending,

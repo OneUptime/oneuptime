@@ -261,13 +261,13 @@ describe("the approval card's line of arguments, in the reader's words", () => {
     );
 
     expect(
-      parts.map((part: ActionArgumentPart): [string, string, boolean] => {
-        return [part.label, part.value, part.isWritten];
+      parts.map((part: ActionArgumentPart): [string, string] => {
+        return [part.label, part.value];
       }),
     ).toEqual([
-      [DE["Note"], "Rolled back the deploy.", true],
-      [DE["Notify subscribers"], DE["Yes"], false],
-      [DE["Files"], "3", false],
+      [DE["Note"], "Rolled back the deploy."],
+      [DE["Notify subscribers"], DE["Yes"]],
+      [DE["Files"], "3"],
     ]);
   });
 

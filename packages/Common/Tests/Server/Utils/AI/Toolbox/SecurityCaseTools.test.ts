@@ -717,14 +717,14 @@ describe("run_security_playbook (a write)", () => {
     );
 
     /*
-     * The case, the playbook by its name in quotes, how many steps it runs,
-     * and that the step needing approval waits on the case.
+     * The case, the playbook by its name in quotes, and that the step
+     * needing approval waits on the case - no "Steps: 1 step" under it.
      */
     expect(actionCardText(result.widget)).toEqual({
       heading: "CASE-42 Brute force",
       kind: "Security case",
       line: 'Started playbook "Contain Host" · Steps that need approval wait on the case',
-      facts: [{ label: "Steps", value: "1 step" }],
+      facts: [],
     });
 
     expect(callArg(findPlaybook)["query"]).toEqual({
