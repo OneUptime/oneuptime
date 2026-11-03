@@ -40404,5 +40404,14 @@
   "Unarchive {{count}} {{itemsName}}": "取消封存 {{count}} 個{{itemsName}}",
   "Unarchive {{count}} {{itemsName}}_one": "取消封存 {{count}} 個{{itemName}}",
   "{{count}} of {{total}} selected": "已選取 {{count}} 項（共 {{total}} 項）",
-  "{{count}} of {{total}} selected_one": "已選取 {{count}} 項（共 {{total}} 項）"
+  "{{count}} of {{total}} selected_one": "已選取 {{count}} 項（共 {{total}} 項）",
+  "Link its monitor to what it watches, and every {{signal}} it raises from then on is linked for you.": "將其監測器連結到它所監測的對象後，此後它產生的每個{{signal}}都會自動連結。",
+  "Review and approve": "審核並核准",
+  "Turn its Fixes on, and OneUptime AI tries again.": "為其開啟修正後，OneUptime AI 會再試一次。",
+  "{{count}} change through {{servers}}.": "透過 {{servers}} 進行的 {{count}} 個變更。",
+  "{{count}} changes through {{servers}}.": "透過 {{servers}} 進行的 {{count}} 個變更。",
+  "{{count}} changes through {{servers}}._one": "透過 {{servers}} 進行的 {{count}} 個變更。",
+  "{{count}} command on {{targets}}.": "{{targets}} 上的 {{count}} 個命令。",
+  "{{count}} commands on {{targets}}.": "{{targets}} 上的 {{count}} 個命令。",
+  "{{count}} commands on {{targets}}._one": "{{targets}} 上的 {{count}} 個命令。"
 }

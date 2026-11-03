@@ -40404,5 +40404,14 @@
   "Unarchive {{count}} {{itemsName}}": "Annulla l'archiviazione di {{count}} elementi ({{itemsName}})",
   "Unarchive {{count}} {{itemsName}}_one": "Annulla l'archiviazione di {{count}} elemento ({{itemName}})",
   "{{count}} of {{total}} selected": "{{count}} di {{total}} selezionati",
-  "{{count}} of {{total}} selected_one": "{{count}} di {{total}} selezionato"
+  "{{count}} of {{total}} selected_one": "{{count}} di {{total}} selezionato",
+  "Link its monitor to what it watches, and every {{signal}} it raises from then on is linked for you.": "Collega il suo monitor a ciò che controlla: ogni {{signal}} che genererà da quel momento sarà collegato automaticamente.",
+  "Review and approve": "Rivedi e approva",
+  "Turn its Fixes on, and OneUptime AI tries again.": "Attiva lì le correzioni e OneUptime AI riproverà.",
+  "{{count}} change through {{servers}}.": "{{count}} modifica tramite {{servers}}.",
+  "{{count}} changes through {{servers}}.": "{{count}} modifiche tramite {{servers}}.",
+  "{{count}} changes through {{servers}}._one": "{{count}} modifica tramite {{servers}}.",
+  "{{count}} command on {{targets}}.": "{{count}} comando su {{targets}}.",
+  "{{count}} commands on {{targets}}.": "{{count}} comandi su {{targets}}.",
+  "{{count}} commands on {{targets}}._one": "{{count}} comando su {{targets}}."
 }

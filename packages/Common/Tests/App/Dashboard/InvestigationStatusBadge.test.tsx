@@ -24,8 +24,9 @@ const INDICATORS: Array<InvestigationStatusIndicator> = [
   "failed",
 ];
 
+// The pill: what holds the name a screen reader hears before its words.
 function badge(): HTMLElement {
-  return screen.getByLabelText("Investigation status");
+  return screen.getByTestId("status-badge-label").parentElement as HTMLElement;
 }
 
 function markClass(): string {
@@ -117,14 +118,59 @@ describe("InvestigationStatusBadge", () => {
     }
   });
 
-  test("keeps the mark in front of the words", () => {
+  test("keeps the mark in front of the words, its name for screen readers between them", () => {
     render(
       <InvestigationStatusBadge text="Did not finish" indicator="failed" />,
     );
 
     const children: Array<Element> = Array.from(badge().children);
-    expect(children).toHaveLength(2);
+    expect(children).toHaveLength(3);
     expect(children[0]!.querySelector("svg")).not.toBeNull();
-    expect(children[1]).toHaveTextContent("Did not finish");
+    expect(children[1]).toHaveAttribute("data-testid", "status-badge-label");
+    expect(children[2]).toHaveTextContent("Did not finish");
+  });
+
+  /*
+   * #5413's follow-up: an aria-label on a plain div is a name no screen
+   * reader says - a div has no role to name - so the status was heard with
+   * nothing to say what it was the status of. Its name is words now, heard
+   * first and hidden on screen, apart from the status by its script's own
+   * separator.
+   */
+  test("names itself in words a screen reader hears first, hidden on screen - never an aria-label on a div", () => {
+    render(
+      <InvestigationStatusBadge
+        text="Fixing…"
+        indicator="live"
+        ariaLabel="Remediation status"
+        testId="ai-card-step-remediation-pill"
+      />,
+    );
+
+    const pill: HTMLElement = screen.getByTestId(
+      "ai-card-step-remediation-pill",
+    );
+    const label: HTMLElement = screen.getByTestId("status-badge-label");
+
+    expect(pill).not.toHaveAttribute("aria-label");
+    expect(pill).not.toHaveAttribute("aria-labelledby");
+    expect(label).toHaveClass("sr-only");
+    expect(label.textContent).toBe("Remediation status, ");
+    // Heard as one: the name, then the status.
+    expect(pill).toHaveTextContent("Remediation status, Fixing…");
+    // On screen, only the status.
+    expect(screen.getByTestId("status-badge-words")).toHaveTextContent(
+      /^Fixing…$/,
+    );
+  });
+
+  test("without a name of its own it is the investigation's", () => {
+    render(<InvestigationStatusBadge text="Reported" indicator="done" />);
+
+    expect(screen.getByTestId("status-badge-label").textContent).toBe(
+      "Investigation status, ",
+    );
+    // No test id unless one is given.
+    expect(badge()).not.toHaveAttribute("data-testid");
   });
 });

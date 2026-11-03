@@ -40404,5 +40404,14 @@
   "Unarchive {{count}} {{itemsName}}": "取消归档 {{count}} 个{{itemsName}}",
   "Unarchive {{count}} {{itemsName}}_one": "取消归档 {{count}} 个{{itemName}}",
   "{{count}} of {{total}} selected": "已选择 {{count}} 项（共 {{total}} 项）",
-  "{{count}} of {{total}} selected_one": "已选择 {{count}} 项（共 {{total}} 项）"
+  "{{count}} of {{total}} selected_one": "已选择 {{count}} 项（共 {{total}} 项）",
+  "Link its monitor to what it watches, and every {{signal}} it raises from then on is linked for you.": "将其监视器关联到它所监视的对象后，此后它产生的每个{{signal}}都会自动关联。",
+  "Review and approve": "审核并批准",
+  "Turn its Fixes on, and OneUptime AI tries again.": "为其开启修复后，OneUptime AI 会再试一次。",
+  "{{count}} change through {{servers}}.": "通过 {{servers}} 进行的 {{count}} 个变更。",
+  "{{count}} changes through {{servers}}.": "通过 {{servers}} 进行的 {{count}} 个变更。",
+  "{{count}} changes through {{servers}}._one": "通过 {{servers}} 进行的 {{count}} 个变更。",
+  "{{count}} command on {{targets}}.": "{{targets}} 上的 {{count}} 个命令。",
+  "{{count}} commands on {{targets}}.": "{{targets}} 上的 {{count}} 个命令。",
+  "{{count}} commands on {{targets}}._one": "{{targets}} 上的 {{count}} 个命令。"
 }

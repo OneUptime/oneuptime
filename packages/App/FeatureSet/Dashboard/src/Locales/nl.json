@@ -40404,5 +40404,14 @@
   "Unarchive {{count}} {{itemsName}}": "{{count}} {{itemsName}} uit archief halen",
   "Unarchive {{count}} {{itemsName}}_one": "{{count}} {{itemName}} uit archief halen",
   "{{count}} of {{total}} selected": "{{count}} van {{total}} geselecteerd",
-  "{{count}} of {{total}} selected_one": "{{count}} van {{total}} geselecteerd"
+  "{{count}} of {{total}} selected_one": "{{count}} van {{total}} geselecteerd",
+  "Link its monitor to what it watches, and every {{signal}} it raises from then on is linked for you.": "Koppel de monitor ervan aan wat hij bewaakt; elk item ({{signal}}) dat hij daarna genereert, wordt dan automatisch gekoppeld.",
+  "Review and approve": "Bekijken en goedkeuren",
+  "Turn its Fixes on, and OneUptime AI tries again.": "Zet de oplossingen daarvoor aan, en OneUptime AI probeert het opnieuw.",
+  "{{count}} change through {{servers}}.": "{{count}} wijziging via {{servers}}.",
+  "{{count}} changes through {{servers}}.": "{{count}} wijzigingen via {{servers}}.",
+  "{{count}} changes through {{servers}}._one": "{{count}} wijziging via {{servers}}.",
+  "{{count}} command on {{targets}}.": "{{count}} opdracht op {{targets}}.",
+  "{{count}} commands on {{targets}}.": "{{count}} opdrachten op {{targets}}.",
+  "{{count}} commands on {{targets}}._one": "{{count}} opdracht op {{targets}}."
 }

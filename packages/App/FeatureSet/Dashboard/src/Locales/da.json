@@ -40404,5 +40404,14 @@
   "Unarchive {{count}} {{itemsName}}": "Fjern {{count}} {{itemsName}} fra arkiv",
   "Unarchive {{count}} {{itemsName}}_one": "Fjern {{count}} {{itemName}} fra arkiv",
   "{{count}} of {{total}} selected": "{{count}} af {{total}} valgt",
-  "{{count}} of {{total}} selected_one": "{{count}} af {{total}} valgt"
+  "{{count}} of {{total}} selected_one": "{{count}} af {{total}} valgt",
+  "Link its monitor to what it watches, and every {{signal}} it raises from then on is linked for you.": "Knyt dens monitor til det, den overvåger, så bliver hver {{signal}}, den udløser fra da af, knyttet automatisk.",
+  "Review and approve": "Gennemse og godkend",
+  "Turn its Fixes on, and OneUptime AI tries again.": "Slå dens rettelser til, så prøver OneUptime AI igen.",
+  "{{count}} change through {{servers}}.": "{{count}} ændring via {{servers}}.",
+  "{{count}} changes through {{servers}}.": "{{count}} ændringer via {{servers}}.",
+  "{{count}} changes through {{servers}}._one": "{{count}} ændring via {{servers}}.",
+  "{{count}} command on {{targets}}.": "{{count}} kommando på {{targets}}.",
+  "{{count}} commands on {{targets}}.": "{{count}} kommandoer på {{targets}}.",
+  "{{count}} commands on {{targets}}._one": "{{count}} kommando på {{targets}}."
 }

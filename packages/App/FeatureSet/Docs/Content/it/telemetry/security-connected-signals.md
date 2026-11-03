@@ -94,7 +94,7 @@ Sotto i record, Segnali collegati cerca nei tuoi registri e nelle tue tracce, su
 
 ## Incidenti che un caso dichiara
 
-**Dichiara incidente** su un caso, o il passaggio di un playbook che ne dichiara uno, collega l'incidente agli host, agli host Docker e Podman, ai cluster Kubernetes, alle risorse cloud e ai servizi a cui il caso è collegato in modo esatto. L'incidente compare nelle loro pagine e vi si applicano le regole dei loro proprietari, e il suo feed nomina il caso e ciò a cui è stato collegato. Una possibile corrispondenza non viene mai collegata, e nemmeno un monitor: un incidente su un monitor può cambiarne lo stato e comparire nelle sue pagine di stato.
+**Dichiara incidente** su un caso, o il passaggio di un playbook che ne dichiara uno, collega l'incidente agli host, agli host Docker e Podman, ai cluster Kubernetes, ai dispositivi di rete, alle risorse cloud e ai servizi a cui il caso è collegato in modo esatto. Il passaggio di un playbook che allerta la reperibilità collega allo stesso modo l'avviso che apre; ogni avviso e incidente che una regola di rilevamento o una corrispondenza di threat intelligence apre è collegato a ciò che la sua corrispondenza nomina in modo esatto, e ognuno di quelli che apre Data Security all'archivio di dati a cui si riferisce. L'incidente compare nelle loro pagine e vi si applicano le regole dei loro proprietari, e il suo feed nomina il caso e ciò a cui è stato collegato. Una possibile corrispondenza non viene mai collegata, e nemmeno un monitor: un incidente su un monitor può cambiarne lo stato e comparire nelle sue pagine di stato.
 
 ## OneUptime AI
 

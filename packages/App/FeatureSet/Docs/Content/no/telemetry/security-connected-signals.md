@@ -94,7 +94,7 @@ Under oppføringene søker Tilkoblede signaler i loggene og sporene dine, i det 
 
 ## Hendelser en sak erklærer
 
-**Erklær hendelse** på en sak, eller et playbook-trinn som erklærer en, knytter hendelsen til vertene, Docker- og Podman-vertene, Kubernetes-klyngene, skyressursene og tjenestene saken er nøyaktig koblet til. Hendelsen vises på sidene deres, og eiernes regler gjelder for den, og feeden nevner saken og hva den ble knyttet til. Et mulig treff knyttes aldri, og det gjør heller ikke en monitor: en hendelse på en monitor kan endre statusen dens og vises på statussidene dens.
+**Erklær hendelse** på en sak, eller et playbook-trinn som erklærer en, knytter hendelsen til vertene, Docker- og Podman-vertene, Kubernetes-klyngene, nettverksenhetene, skyressursene og tjenestene saken er nøyaktig koblet til. Et playbook-trinn som varsler vakten, knytter varselet det åpner, på samme måte; hvert varsel og hver hendelse som en deteksjonsregel eller et threat intelligence-treff åpner, knyttes til det treffet nøyaktig nevner, og hver som Data Security åpner, til datalageret den gjelder. Hendelsen vises på sidene deres, og eiernes regler gjelder for den, og feeden nevner saken og hva den ble knyttet til. Et mulig treff knyttes aldri, og det gjør heller ikke en monitor: en hendelse på en monitor kan endre statusen dens og vises på statussidene dens.
 
 ## OneUptime AI
 

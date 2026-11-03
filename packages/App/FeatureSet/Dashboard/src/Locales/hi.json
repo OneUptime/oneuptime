@@ -40404,5 +40404,14 @@
   "Unarchive {{count}} {{itemsName}}": "{{count}} {{itemsName}} अनसंग्रहीत करें",
   "Unarchive {{count}} {{itemsName}}_one": "{{count}} {{itemName}} अनसंग्रहीत करें",
   "{{count}} of {{total}} selected": "{{total}} में से {{count}} चयनित",
-  "{{count}} of {{total}} selected_one": "{{total}} में से {{count}} चयनित"
+  "{{count}} of {{total}} selected_one": "{{total}} में से {{count}} चयनित",
+  "Link its monitor to what it watches, and every {{signal}} it raises from then on is linked for you.": "इसके मॉनिटर को उससे जोड़ें जिस पर वह नज़र रखता है, तब से वह जो भी {{signal}} बनाएगा, वह अपने आप जुड़ जाएगा।",
+  "Review and approve": "समीक्षा करें और स्वीकृत करें",
+  "Turn its Fixes on, and OneUptime AI tries again.": "इसके सुधार चालू करें, और OneUptime AI फिर से कोशिश करेगा।",
+  "{{count}} change through {{servers}}.": "{{servers}} के ज़रिए {{count}} बदलाव।",
+  "{{count}} changes through {{servers}}.": "{{servers}} के ज़रिए {{count}} बदलाव।",
+  "{{count}} changes through {{servers}}._one": "{{servers}} के ज़रिए {{count}} बदलाव।",
+  "{{count}} command on {{targets}}.": "{{targets}} पर {{count}} कमांड।",
+  "{{count}} commands on {{targets}}.": "{{targets}} पर {{count}} कमांड।",
+  "{{count}} commands on {{targets}}._one": "{{targets}} पर {{count}} कमांड।"
 }

@@ -29,6 +29,11 @@ export interface ComponentProps {
   isStarting: boolean;
   // Why the last "Investigate now" did not start it, as the server said.
   startError: string | null;
+  /*
+   * The button's id: the card puts the keyboard back on it once it has its
+   * answer (InvestigationPanel), or on the step's title once it is gone.
+   */
+  startNowButtonId?: string | undefined;
 }
 
 /*
@@ -100,6 +105,9 @@ const InvestigationWaiting: FunctionComponent<ComponentProps> = (
            */}
           <div className="flex-shrink-0 [&>button]:ml-0 [&>button]:text-sm [&>button]:md:ml-0">
             <Button
+              {...(props.startNowButtonId
+                ? { id: props.startNowButtonId }
+                : {})}
               title={INVESTIGATE_NOW}
               icon={IconProp.Play}
               buttonSize={ButtonSize.Normal}

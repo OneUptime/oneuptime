@@ -141,6 +141,7 @@ const AiCardStep: FunctionComponent<ComponentProps> = (
             text={props.status.text}
             indicator={indicator}
             ariaLabel={props.statusLabel}
+            testId={`${props.testId}-pill`}
           />
         </div>
       </div>
