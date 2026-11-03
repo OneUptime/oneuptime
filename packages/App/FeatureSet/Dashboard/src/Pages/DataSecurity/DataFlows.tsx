@@ -1,13 +1,14 @@
 import PageComponentProps from "../PageComponentProps";
 import { SensitivityPill } from "../../Components/DataSecurity/DataSecurityPills";
-import FlowChain, {
+import FlowChain from "../../Components/DataSecurity/FlowChain";
+import {
   FLOW_KINDS,
   FLOW_KIND_AI_PROVIDER,
   FLOW_KIND_COPY,
   FLOW_KIND_EXTERNAL_HOST,
   FLOW_KIND_USES,
   rankFlowsByRisk,
-} from "../../Components/DataSecurity/FlowChain";
+} from "../../Components/DataSecurity/FlowKinds";
 import {
   DataTypeNamer,
   IssueDataTypeChips,

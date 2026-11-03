@@ -80,6 +80,12 @@ On AWS, the read lists the account's users and roles once, and decides as IAM do
 
 The score is at most 100. A role of an account outside that can change one store of card numbers scores 50 + 15 + 15 + 1 = 81.
 
+## See a store's paths on one map
+
+A store's **Overview** draws who can reach it and where its data can go on one map, so a path that runs through several steps reads at a glance. Who can reach the store is on the left, one card for each identity however many grants it holds, with an arrow into the store worded with the most it may do: red from anyone on the internet, orange from outside your accounts. The services that use the store come next, and on the right is where its data can go from them: the AI providers and outside hosts those services call, and the stores that hold copies of it.
+
+An arrow that carries data is coloured by how sensitive that data is, and dashed until a scan found the data at the other end. A service's AI and outside calls say where the store's data can go, not that it went, so their arrows stay dashed until a scan confirms them. Each column shows its riskiest cards first and folds the rest into one card that opens **Who Can Reach It** or **Data Flows**, where every one of them is listed. Click a card to open its identity, service or store.
+
 ## Residency rules
 
 A residency rule says where a kind of data may live. Add one in **Data Security → Settings → Residency Rules**:
