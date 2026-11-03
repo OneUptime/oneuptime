@@ -109,6 +109,7 @@ import ProjectAiDailyLimits, {
   ProjectAiDailyLimitReachedAtColumn,
 } from "../../Types/AI/ProjectAiDailyLimits";
 import { AiContextOwner, getAiContextProblem } from "../../Types/AI/AiContext";
+import { NetworkTopologyLayoutUtil } from "../../Types/NetworkDevice/NetworkTopologyLayout";
 import { coerceNumericColumnValue } from "../../Types/Database/NumericColumnValue";
 import { getRiskCaseThresholdError } from "../../Utils/SecurityCase/SecurityEntityRiskScore";
 import NumberPrefixUtil, {
@@ -679,6 +680,34 @@ export class ProjectService extends ProjectReferencesService<Model> {
     }
   }
 
+  /*
+   * The layout the project's network topology maps open on (issue #5378):
+   * one of the layouts' ids (Types/NetworkDevice/NetworkTopologyLayout),
+   * stored trimmed, or nothing - null or blank text, stored as null - which
+   * hands each map back its own default. Anything else is refused with the
+   * ids it may be, never stored for the map to ignore later. A write that
+   * leaves it out is not judged on it.
+   */
+  public applyDefaultNetworkTopologyLayoutRules(data: {
+    defaultNetworkTopologyLayout?: unknown;
+  }): void {
+    if (data.defaultNetworkTopologyLayout === undefined) {
+      return;
+    }
+
+    const problem: string | null = NetworkTopologyLayoutUtil.getProblem(
+      data.defaultNetworkTopologyLayout,
+    );
+
+    if (problem) {
+      throw new BadDataException(problem);
+    }
+
+    data.defaultNetworkTopologyLayout = NetworkTopologyLayoutUtil.parse(
+      data.defaultNetworkTopologyLayout,
+    );
+  }
+
   @CaptureSpan()
   protected override async onBeforeCreate(
     data: CreateBy<Model>,
@@ -696,6 +725,9 @@ export class ProjectService extends ProjectReferencesService<Model> {
     this.applyAiContextRules(data.data as { aiContext?: unknown });
     this.applySecurityRiskRules(
       data.data as { securityRiskCaseThreshold?: unknown },
+    );
+    this.applyDefaultNetworkTopologyLayoutRules(
+      data.data as { defaultNetworkTopologyLayout?: unknown },
     );
 
     if (data.props.userId) {
@@ -1363,6 +1395,9 @@ export class ProjectService extends ProjectReferencesService<Model> {
     this.applyAiContextRules(updateBy.data as { aiContext?: unknown });
     this.applySecurityRiskRules(
       updateBy.data as { securityRiskCaseThreshold?: unknown },
+    );
+    this.applyDefaultNetworkTopologyLayoutRules(
+      updateBy.data as { defaultNetworkTopologyLayout?: unknown },
     );
 
     await this.assertAuditLogSettingsChangeIsLicensed({
