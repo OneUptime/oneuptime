@@ -201,9 +201,9 @@ describe("the Zabbix category", () => {
     expect(order.indexOf(WorkflowTemplateCategory.Datadog)).toBe(
       order.indexOf(WorkflowTemplateCategory.Zabbix) + 1,
     );
-    expect(order.indexOf(WorkflowTemplateCategory.Integrations)).toBeGreaterThan(
-      order.indexOf(WorkflowTemplateCategory.Zabbix),
-    );
+    expect(
+      order.indexOf(WorkflowTemplateCategory.Integrations),
+    ).toBeGreaterThan(order.indexOf(WorkflowTemplateCategory.Zabbix));
   });
 
   test("is labelled with the product's name, says what it is for in one line, and has the icon of the servers Zabbix watches", () => {

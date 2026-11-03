@@ -167,10 +167,15 @@ export function newRelicPostedBody(
   props: NewRelicNotificationProps = {},
 ): JSONObject {
   // A list given as null is posted as null: only a list left out takes the default.
-  const listOr: (given: JSONValue | undefined, list: Array<string>) => JSONValue =
-    (given: JSONValue | undefined, list: Array<string>): JSONValue => {
-      return given === undefined ? list : given;
-    };
+  const listOr: (
+    given: JSONValue | undefined,
+    list: Array<string>,
+  ) => JSONValue = (
+    given: JSONValue | undefined,
+    list: Array<string>,
+  ): JSONValue => {
+    return given === undefined ? list : given;
+  };
 
   return {
     id: props.issueId ?? ISSUE_ID,

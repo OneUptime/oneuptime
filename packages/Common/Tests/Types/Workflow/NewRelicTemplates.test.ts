@@ -389,9 +389,13 @@ describe.each(KINDS)("$newRelicTemplateId", (kind: AlertingToolKind) => {
       return `new-relic-${generated}`;
     };
     const policy: string = "7b1c2d3e-0000-4000-8000-000000000001";
-    const withPolicy: JSONObject = buildGraphForTemplate(templateId, generateId, {
-      "page-on-call-policy-1": [policy],
-    }) as JSONObject;
+    const withPolicy: JSONObject = buildGraphForTemplate(
+      templateId,
+      generateId,
+      {
+        "page-on-call-policy-1": [policy],
+      },
+    ) as JSONObject;
     const withNobody: JSONObject = buildGraphForTemplate(
       templateId,
       generateId,
@@ -450,7 +454,9 @@ describe("the incident template's searchable words", () => {
 /* ----------------------------- Setting New Relic up ----------------------------- */
 
 // The read step's first lines, without their slashes: from its heading to the shared helpers.
-const setUpOf: (templateId: string) => string = (templateId: string): string => {
+const setUpOf: (templateId: string) => string = (
+  templateId: string,
+): string => {
   const code: string = scriptOf(templateId);
   const start: string = "// ---- Set up in New Relic ----\n";
   const end: string = "\n// ---- Shared by the New Relic templates ----";
@@ -606,459 +612,471 @@ describe("the New Relic scripts", () => {
 
 /* --------------------------------- The read step --------------------------------- */
 
-describe.each(KINDS)("$newRelicTemplateId's read step", (kind: AlertingToolKind) => {
-  const r: string = kind.noun;
+describe.each(KINDS)(
+  "$newRelicTemplateId's read step",
+  (kind: AlertingToolKind) => {
+    const r: string = kind.noun;
 
-  /* -------------------------------- A new issue -------------------------------- */
+    /* -------------------------------- A new issue -------------------------------- */
 
-  test(`an activated issue opens the ${r}: titled after the issue, at the severity its priority maps to, linked to New Relic`, async () => {
-    expect(await read(kind, newRelicPostedBody())).toEqual({
-      proceed: true,
-      whatHappened: "open",
-      issueId: ISSUE_ID,
-      title: "New Relic: High CPU on checkout-service",
-      description: [
-        `${kind.Created} from a New Relic issue${IN_NEW_RELIC}.`,
-        "",
-        "- Priority in New Relic: CRITICAL",
-        "- Entities: checkout-service, checkout-db",
-        "- Policies: Production",
-        "- Conditions: CPU above 90%",
-      ].join("\n"),
-      severity: "most severe",
-      priority: "CRITICAL",
-      reason: "",
+    test(`an activated issue opens the ${r}: titled after the issue, at the severity its priority maps to, linked to New Relic`, async () => {
+      expect(await read(kind, newRelicPostedBody())).toEqual({
+        proceed: true,
+        whatHappened: "open",
+        issueId: ISSUE_ID,
+        title: "New Relic: High CPU on checkout-service",
+        description: [
+          `${kind.Created} from a New Relic issue${IN_NEW_RELIC}.`,
+          "",
+          "- Priority in New Relic: CRITICAL",
+          "- Entities: checkout-service, checkout-db",
+          "- Policies: Production",
+          "- Conditions: CPU above 90%",
+        ].join("\n"),
+        severity: "most severe",
+        priority: "CRITICAL",
+        reason: "",
+      });
     });
-  });
 
-  test.each([
-    ["CRITICAL", "most severe", "CRITICAL"],
-    ["HIGH", "middle", "HIGH"],
-    ["MEDIUM", "least severe", "MEDIUM"],
-    ["LOW", "least severe", "LOW"],
-    ["critical", "most severe", "CRITICAL"],
-    [" High ", "middle", "HIGH"],
-    ["", "most severe", ""],
-    ["P1", "most severe", ""],
-  ])(
-    "an issue of priority %p opens at the project's %s place, read as %p",
-    async (priority: string, place: string, readAs: string) => {
-      const result: JSONObject = await read(
-        kind,
-        newRelicPostedBody({ priority: priority }),
-      );
+    test.each([
+      ["CRITICAL", "most severe", "CRITICAL"],
+      ["HIGH", "middle", "HIGH"],
+      ["MEDIUM", "least severe", "MEDIUM"],
+      ["LOW", "least severe", "LOW"],
+      ["critical", "most severe", "CRITICAL"],
+      [" High ", "middle", "HIGH"],
+      ["", "most severe", ""],
+      ["P1", "most severe", ""],
+    ])(
+      "an issue of priority %p opens at the project's %s place, read as %p",
+      async (priority: string, place: string, readAs: string) => {
+        const result: JSONObject = await read(
+          kind,
+          newRelicPostedBody({ priority: priority }),
+        );
 
-      expect(result["severity"]).toBe(place);
-      expect(result["priority"]).toBe(readAs);
-      expect(SEVERITY_POSITIONS as ReadonlyArray<string>).toContain(place);
-      expect(String(result["description"]).split("\n")[2]).toBe(
-        `- Priority in New Relic: ${readAs || "not sent"}`,
-      );
-    },
-  );
-
-  test(`a CREATED issue opens the ${r} as an activated one does: the record step opens one per issue, once`, async () => {
-    expect(
-      await read(kind, newRelicPostedBody({ state: NewRelicIssueState.Created })),
-    ).toEqual(await read(kind, newRelicPostedBody()));
-  });
-
-  test("a state is read in any letter case", async () => {
-    const result: JSONObject = await read(
-      kind,
-      newRelicPostedBody({ state: "activated" }),
-    );
-
-    expect(result["whatHappened"]).toBe("open");
-    expect(
-      (await read(kind, newRelicPostedBody({ state: "Closed" })))[
-        "whatHappened"
-      ],
-    ).toBe("resolve");
-  });
-
-  test(`an issue with no title names the ${r} by its ID`, async () => {
-    const result: JSONObject = await read(
-      kind,
-      newRelicPostedBody({ title: "" }),
-    );
-
-    expect(result["title"]).toBe(`New Relic: Issue ${ISSUE_ID}`);
-  });
-
-  test("an issue with no entities, policies or conditions leaves those lines out", async () => {
-    const result: JSONObject = await read(
-      kind,
-      newRelicPostedBody({ entities: [], policies: [], conditions: [] }),
-    );
-
-    expect(result["description"]).toBe(
-      [
-        `${kind.Created} from a New Relic issue${IN_NEW_RELIC}.`,
-        "",
-        "- Priority in New Relic: CRITICAL",
-      ].join("\n"),
-    );
-  });
-
-  test("lists are read as lists: names that are empty are left out, and anything that is not a list is none", async () => {
-    const result: JSONObject = await read(
-      kind,
-      newRelicPostedBody({
-        entities: ["web-1", "", "  ", "web-2", 42],
-        policies: "Production",
-        conditions: null,
-      }),
-    );
-
-    expect(result["description"]).toBe(
-      [
-        `${kind.Created} from a New Relic issue${IN_NEW_RELIC}.`,
-        "",
-        "- Priority in New Relic: CRITICAL",
-        "- Entities: web-1, web-2, 42",
-      ].join("\n"),
-    );
-  });
-
-  test("a long list is cut to its first 50 names", async () => {
-    const entities: Array<string> = Array.from(
-      { length: 80 },
-      (_value: unknown, index: number): string => {
-        return `host-${index + 1}`;
+        expect(result["severity"]).toBe(place);
+        expect(result["priority"]).toBe(readAs);
+        expect(SEVERITY_POSITIONS as ReadonlyArray<string>).toContain(place);
+        expect(String(result["description"]).split("\n")[2]).toBe(
+          `- Priority in New Relic: ${readAs || "not sent"}`,
+        );
       },
     );
-    const result: JSONObject = await read(
-      kind,
-      newRelicPostedBody({ entities: entities }),
-    );
-    const line: string = String(result["description"])
-      .split("\n")
-      .find((candidate: string): boolean => {
-        return candidate.startsWith("- Entities: ");
-      }) as string;
 
-    expect(line).toBe(`- Entities: ${entities.slice(0, 50).join(", ")}`);
-  });
-
-  /* ------------------------------ Acknowledged ------------------------------ */
-
-  test.each([true, "true", "TRUE"])(
-    `an activated issue someone acknowledged (isAcknowledged %p) acknowledges the ${r}, saying why`,
-    async (isAcknowledged: JSONValue) => {
+    test(`a CREATED issue opens the ${r} as an activated one does: the record step opens one per issue, once`, async () => {
       expect(
         await read(
           kind,
-          newRelicPostedBody({ isAcknowledged: isAcknowledged }),
+          newRelicPostedBody({ state: NewRelicIssueState.Created }),
+        ),
+      ).toEqual(await read(kind, newRelicPostedBody()));
+    });
+
+    test("a state is read in any letter case", async () => {
+      const result: JSONObject = await read(
+        kind,
+        newRelicPostedBody({ state: "activated" }),
+      );
+
+      expect(result["whatHappened"]).toBe("open");
+      expect(
+        (await read(kind, newRelicPostedBody({ state: "Closed" })))[
+          "whatHappened"
+        ],
+      ).toBe("resolve");
+    });
+
+    test(`an issue with no title names the ${r} by its ID`, async () => {
+      const result: JSONObject = await read(
+        kind,
+        newRelicPostedBody({ title: "" }),
+      );
+
+      expect(result["title"]).toBe(`New Relic: Issue ${ISSUE_ID}`);
+    });
+
+    test("an issue with no entities, policies or conditions leaves those lines out", async () => {
+      const result: JSONObject = await read(
+        kind,
+        newRelicPostedBody({ entities: [], policies: [], conditions: [] }),
+      );
+
+      expect(result["description"]).toBe(
+        [
+          `${kind.Created} from a New Relic issue${IN_NEW_RELIC}.`,
+          "",
+          "- Priority in New Relic: CRITICAL",
+        ].join("\n"),
+      );
+    });
+
+    test("lists are read as lists: names that are empty are left out, and anything that is not a list is none", async () => {
+      const result: JSONObject = await read(
+        kind,
+        newRelicPostedBody({
+          entities: ["web-1", "", "  ", "web-2", 42],
+          policies: "Production",
+          conditions: null,
+        }),
+      );
+
+      expect(result["description"]).toBe(
+        [
+          `${kind.Created} from a New Relic issue${IN_NEW_RELIC}.`,
+          "",
+          "- Priority in New Relic: CRITICAL",
+          "- Entities: web-1, web-2, 42",
+        ].join("\n"),
+      );
+    });
+
+    test("a long list is cut to its first 50 names", async () => {
+      const entities: Array<string> = Array.from(
+        { length: 80 },
+        (_value: unknown, index: number): string => {
+          return `host-${index + 1}`;
+        },
+      );
+      const result: JSONObject = await read(
+        kind,
+        newRelicPostedBody({ entities: entities }),
+      );
+      const line: string = String(result["description"])
+        .split("\n")
+        .find((candidate: string): boolean => {
+          return candidate.startsWith("- Entities: ");
+        }) as string;
+
+      expect(line).toBe(`- Entities: ${entities.slice(0, 50).join(", ")}`);
+    });
+
+    /* ------------------------------ Acknowledged ------------------------------ */
+
+    test.each([true, "true", "TRUE"])(
+      `an activated issue someone acknowledged (isAcknowledged %p) acknowledges the ${r}, saying why`,
+      async (isAcknowledged: JSONValue) => {
+        expect(
+          await read(
+            kind,
+            newRelicPostedBody({ isAcknowledged: isAcknowledged }),
+          ),
+        ).toEqual({
+          proceed: true,
+          whatHappened: "acknowledge",
+          issueId: ISSUE_ID,
+          title: "",
+          description: "",
+          severity: "",
+          priority: "",
+          reason: `${FROM_NEW_RELIC}: the issue was acknowledged${IN_NEW_RELIC}.`,
+        });
+      },
+    );
+
+    test.each([false, "false", null, 1, "yes"])(
+      "an issue whose isAcknowledged is %p is not acknowledged: it opens, as a new one does",
+      async (isAcknowledged: JSONValue) => {
+        expect(
+          (await read(kind, newRelicPostedBody({ isAcknowledged })))[
+            "whatHappened"
+          ],
+        ).toBe("open");
+      },
+    );
+
+    test("with New Relic's default payload, which has no isAcknowledged, an acknowledged issue still reads as open: the record step leaves an open record as it is", async () => {
+      const body: JSONObject = newRelicPostedBody();
+
+      expect(body["isAcknowledged"]).toBeUndefined();
+      expect((await read(kind, body))["whatHappened"]).toBe("open");
+    });
+
+    /* --------------------------------- Closed --------------------------------- */
+
+    test(`a closed issue resolves the ${r}, saying why on its timeline, with a link to the issue`, async () => {
+      expect(
+        await read(
+          kind,
+          newRelicPostedBody({ state: NewRelicIssueState.Closed }),
         ),
       ).toEqual({
         proceed: true,
-        whatHappened: "acknowledge",
+        whatHappened: "resolve",
         issueId: ISSUE_ID,
         title: "",
         description: "",
         severity: "",
         priority: "",
-        reason: `${FROM_NEW_RELIC}: the issue was acknowledged${IN_NEW_RELIC}.`,
+        reason: `${FROM_NEW_RELIC}: the issue was closed${IN_NEW_RELIC}.`,
       });
-    },
-  );
+    });
 
-  test.each([false, "false", null, 1, "yes"])(
-    "an issue whose isAcknowledged is %p is not acknowledged: it opens, as a new one does",
-    async (isAcknowledged: JSONValue) => {
+    test("a closed issue that was acknowledged is resolved: closed wins", async () => {
       expect(
-        (await read(kind, newRelicPostedBody({ isAcknowledged })))[
-          "whatHappened"
-        ],
-      ).toBe("open");
-    },
-  );
-
-  test("with New Relic's default payload, which has no isAcknowledged, an acknowledged issue still reads as open: the record step leaves an open record as it is", async () => {
-    const body: JSONObject = newRelicPostedBody();
-
-    expect(body["isAcknowledged"]).toBeUndefined();
-    expect((await read(kind, body))["whatHappened"]).toBe("open");
-  });
-
-  /* --------------------------------- Closed --------------------------------- */
-
-  test(`a closed issue resolves the ${r}, saying why on its timeline, with a link to the issue`, async () => {
-    expect(
-      await read(kind, newRelicPostedBody({ state: NewRelicIssueState.Closed })),
-    ).toEqual({
-      proceed: true,
-      whatHappened: "resolve",
-      issueId: ISSUE_ID,
-      title: "",
-      description: "",
-      severity: "",
-      priority: "",
-      reason: `${FROM_NEW_RELIC}: the issue was closed${IN_NEW_RELIC}.`,
+        (
+          await read(
+            kind,
+            newRelicPostedBody({
+              state: NewRelicIssueState.Closed,
+              isAcknowledged: true,
+            }),
+          )
+        )["whatHappened"],
+      ).toBe("resolve");
     });
-  });
 
-  test("a closed issue that was acknowledged is resolved: closed wins", async () => {
-    expect(
-      (
-        await read(
-          kind,
-          newRelicPostedBody({
-            state: NewRelicIssueState.Closed,
-            isAcknowledged: true,
-          }),
-        )
-      )["whatHappened"],
-    ).toBe("resolve");
-  });
-
-  test("a close with no link to a New Relic site still says why, without a link", async () => {
-    const result: JSONObject = await read(
-      kind,
-      newRelicPostedBody({
-        state: NewRelicIssueState.Closed,
-        issueUrl: "https://example.com/issues/1",
-      }),
-    );
-
-    expect(result["reason"]).toBe(`${FROM_NEW_RELIC}: the issue was closed.`);
-  });
-
-  /* -------------------------------- Nothing to do -------------------------------- */
-
-  test.each(["DEACTIVATED", "UPDATED", "something new"])(
-    `an issue in a state the step does not know, %p, changes nothing, and says so`,
-    async (state: string) => {
-      expect(await read(kind, newRelicPostedBody({ state: state }))).toEqual({
-        proceed: false,
-        reason: `New Relic issue ${ISSUE_ID} is ${state.toUpperCase()}: only an activated, acknowledged or closed issue changes the ${r}, so nothing changed.`,
-      });
-    },
-  );
-
-  test("an issue with no state changes nothing, and says so", async () => {
-    expect(await read(kind, newRelicPostedBody({ state: "" }))).toEqual({
-      proceed: false,
-      reason: `New Relic issue ${ISSUE_ID} is in no state: only an activated, acknowledged or closed issue changes the ${r}, so nothing changed.`,
-    });
-  });
-
-  test.each([
-    ["no issue ID", undefined],
-    ["an empty one", ""],
-    ["one with a space in it", "7d4a2e1c 3b5f"],
-    ["one with braces in it", "{{local.variables.secret}}"],
-    ["one longer than an ID is", "a".repeat(201)],
-    ["a list", [ISSUE_ID]],
-  ])("a request with %s is ignored, and says what to check", async (
-    _case: string,
-    issueId: JSONValue | undefined,
-  ) => {
-    const body: JSONObject = newRelicPostedBody();
-
-    if (issueId === undefined) {
-      delete body["id"];
-    } else {
-      body["id"] = issueId;
-    }
-
-    expect(await read(kind, body)).toEqual({
-      proceed: false,
-      reason:
-        "New Relic named no issue ID, so the request was ignored. Check that the payload of the webhook in New Relic keeps its id field.",
-    });
-  });
-
-  test.each([
-    ["an empty body", {}],
-    ["a body that is not an object", "not json"],
-    ["nothing at all", null],
-  ])("%s is ignored", async (_case: string, payload: JSONValue) => {
-    const result: JSONObject = await read(kind, payload);
-
-    expect(result["proceed"]).toBe(false);
-    expect(String(result["reason"])).toContain("New Relic named no issue ID");
-  });
-
-  test("the payload is read the same whether it is the object itself or its JSON text", async () => {
-    expect(
-      await read(kind, newRelicPostedBody(), { asObject: true }),
-    ).toEqual(await read(kind, newRelicPostedBody()));
-  });
-
-  /* -------------------------------- Links -------------------------------- */
-
-  test.each([
-    [
-      NEW_RELIC_LINK,
-      NEW_RELIC_LINK,
-    ],
-    [
-      `https://radar-api.service.eu.newrelic.com/accounts/1234567/issues/${ISSUE_ID}?notifier=WEBHOOK`,
-      `https://radar-api.service.eu.newrelic.com/accounts/1234567/issues/${ISSUE_ID}?notifier=WEBHOOK`,
-    ],
-    [
-      "https://one.newrelic.com/alerts-ai/issues?pane=eyJuZXJkbGV0SWQiOiJhbGVydGluZy11aS1jbGFzc2ljLmlzc3VlcyJ9",
-      "https://one.newrelic.com/alerts-ai/issues?pane=eyJuZXJkbGV0SWQiOiJhbGVydGluZy11aS1jbGFzc2ljLmlzc3VlcyJ9",
-    ],
-    [
-      "https://one.eu.newrelic.com/alerts-ai/issues?filters=a%3Db&state=open",
-      "https://one.eu.newrelic.com/alerts-ai/issues?filters=a%3Db&state=open",
-    ],
-    ["HTTPS://ONE.NEWRELIC.COM/alerts", "https://one.newrelic.com/alerts"],
-  ])(
-    "a link to a New Relic site, %p, is linked as %p",
-    async (issueUrl: string, linked: string) => {
+    test("a close with no link to a New Relic site still says why, without a link", async () => {
       const result: JSONObject = await read(
         kind,
-        newRelicPostedBody({ issueUrl: issueUrl }),
+        newRelicPostedBody({
+          state: NewRelicIssueState.Closed,
+          issueUrl: "https://example.com/issues/1",
+        }),
       );
 
-      expect(String(result["description"]).split("\n")[0]).toBe(
-        `${kind.Created} from a New Relic issue ([open it in New Relic](${linked})).`,
-      );
-    },
-  );
+      expect(result["reason"]).toBe(`${FROM_NEW_RELIC}: the issue was closed.`);
+    });
 
-  test.each([
-    ["an http address", "http://one.newrelic.com/alerts"],
-    ["another site", "https://example.com/issues/1"],
-    ["a site that only starts like New Relic's", "https://newrelic.com.example.com/x"],
-    ["a site that only ends like New Relic's", "https://notnewrelic.com/x"],
-    ["a user name before the host", "https://me@one.newrelic.com/x"],
-    ["a parenthesis, which would end the link", "https://one.newrelic.com/x)(y"],
-    ["a space", "https://one.newrelic.com/a b"],
-    ["a script", "javascript:alert(1)"],
-    ["no address at all", ""],
-    ["an address that is not text", 12345],
-  ])("%s is not linked, and the description says the rest", async (
-    _case: string,
-    issueUrl: JSONValue,
-  ) => {
-    const body: JSONObject = newRelicPostedBody();
+    /* -------------------------------- Nothing to do -------------------------------- */
 
-    body["issueUrl"] = issueUrl;
-
-    const result: JSONObject = await read(kind, body);
-
-    expect(String(result["description"]).split("\n")[0]).toBe(
-      `${kind.Created} from a New Relic issue.`,
-    );
-    expect(String(result["description"])).not.toContain("](");
-  });
-
-  /* -------------------------- New Relic's text, inert -------------------------- */
-
-  test("markup in the issue's title, entities, policies and conditions is written as text: nothing in it acts", async () => {
-    const markup: string =
-      "<!channel> ![x](https://example.com/x.png) [click](https://example.com) <img src=x>";
-    const result: JSONObject = await read(
-      kind,
-      newRelicPostedBody({
-        title: markup,
-        entities: [markup],
-        policies: [markup],
-        conditions: [markup],
-      }),
-    );
-    const title: string = textOf(result, "title");
-    const description: string = textOf(result, "description");
-
-    expect(withoutJoiners(title)).toBe(`New Relic: ${markup}`);
-    expect(withoutJoiners(description)).toContain(`- Entities: ${markup}`);
-    expect(withoutJoiners(description)).toContain(`- Policies: ${markup}`);
-    expect(withoutJoiners(description)).toContain(`- Conditions: ${markup}`);
-
-    for (const text of [title, description.split("\n").slice(1).join("\n")]) {
-      expect(text).not.toMatch(/<[^\s⁠]/);
-      expect(text).not.toContain("![");
-      expect(text).not.toContain("](");
-    }
-  });
-
-  test("double braces New Relic sent are broken up, so no later step reads them as a reference", async () => {
-    const result: JSONObject = await read(
-      kind,
-      newRelicPostedBody({
-        title: "{{local.variables.secret}}",
-        entities: ["{{global.variables.token}}"],
-      }),
-    );
-
-    for (const key of ["title", "description"]) {
-      expect(textOf(result, key)).not.toContain("{{");
-      expect(textOf(result, key)).not.toContain("}}");
-    }
-
-    expect(result["title"]).toBe("New Relic: { {local.variables.secret} }");
-  });
-
-  /* -------------------------------- Editing it -------------------------------- */
-
-  test("SEVERITY_BY_NAME opens a priority at a severity named, over the places", async () => {
-    const result: JSONObject = await read(
-      kind,
-      newRelicPostedBody({ priority: "HIGH" }),
-      {
-        editCode: (code: string): string => {
-          return code.replace(
-            "const SEVERITY_BY_NAME = {};",
-            "const SEVERITY_BY_NAME = { HIGH: 'Major Incident' };",
-          );
-        },
+    test.each(["DEACTIVATED", "UPDATED", "something new"])(
+      `an issue in a state the step does not know, %p, changes nothing, and says so`,
+      async (state: string) => {
+        expect(await read(kind, newRelicPostedBody({ state: state }))).toEqual({
+          proceed: false,
+          reason: `New Relic issue ${ISSUE_ID} is ${state.toUpperCase()}: only an activated, acknowledged or closed issue changes the ${r}, so nothing changed.`,
+        });
       },
     );
 
-    expect(result["severity"]).toBe("Major Incident");
-  });
+    test("an issue with no state changes nothing, and says so", async () => {
+      expect(await read(kind, newRelicPostedBody({ state: "" }))).toEqual({
+        proceed: false,
+        reason: `New Relic issue ${ISSUE_ID} is in no state: only an activated, acknowledged or closed issue changes the ${r}, so nothing changed.`,
+      });
+    });
 
-  /* ------------------------------- Every value read ------------------------------- */
+    test.each([
+      ["no issue ID", undefined],
+      ["an empty one", ""],
+      ["one with a space in it", "7d4a2e1c 3b5f"],
+      ["one with braces in it", "{{local.variables.secret}}"],
+      ["one longer than an ID is", "a".repeat(201)],
+      ["a list", [ISSUE_ID]],
+    ])(
+      "a request with %s is ignored, and says what to check",
+      async (_case: string, issueId: JSONValue | undefined) => {
+        const body: JSONObject = newRelicPostedBody();
 
-  test("every value the next steps read is there, whatever happened, so none reaches them as a reference", async () => {
-    const keys: Array<string> = [
-      "whatHappened",
-      "issueId",
-      "title",
-      "description",
-      "severity",
-      "priority",
-      "reason",
-      "proceed",
-    ];
+        if (issueId === undefined) {
+          delete body["id"];
+        } else {
+          body["id"] = issueId;
+        }
 
-    for (const props of [
-      {},
-      { isAcknowledged: true },
-      { state: NewRelicIssueState.Closed },
-    ]) {
-      const result: JSONObject = await read(kind, newRelicPostedBody(props));
+        expect(await read(kind, body)).toEqual({
+          proceed: false,
+          reason:
+            "New Relic named no issue ID, so the request was ignored. Check that the payload of the webhook in New Relic keeps its id field.",
+        });
+      },
+    );
 
-      expect(Object.keys(result).sort()).toEqual([...keys].sort());
-    }
-  });
+    test.each([
+      ["an empty body", {}],
+      ["a body that is not an object", "not json"],
+      ["nothing at all", null],
+    ])("%s is ignored", async (_case: string, payload: JSONValue) => {
+      const result: JSONObject = await read(kind, payload);
 
-  test("what happened is always one of the record step's own words", async () => {
-    for (const props of [
-      {},
-      { isAcknowledged: true },
-      { state: NewRelicIssueState.Closed },
-    ]) {
-      const word: string = String(
-        (await read(kind, newRelicPostedBody(props)))["whatHappened"],
+      expect(result["proceed"]).toBe(false);
+      expect(String(result["reason"])).toContain("New Relic named no issue ID");
+    });
+
+    test("the payload is read the same whether it is the object itself or its JSON text", async () => {
+      expect(
+        await read(kind, newRelicPostedBody(), { asObject: true }),
+      ).toEqual(await read(kind, newRelicPostedBody()));
+    });
+
+    /* -------------------------------- Links -------------------------------- */
+
+    test.each([
+      [NEW_RELIC_LINK, NEW_RELIC_LINK],
+      [
+        `https://radar-api.service.eu.newrelic.com/accounts/1234567/issues/${ISSUE_ID}?notifier=WEBHOOK`,
+        `https://radar-api.service.eu.newrelic.com/accounts/1234567/issues/${ISSUE_ID}?notifier=WEBHOOK`,
+      ],
+      [
+        "https://one.newrelic.com/alerts-ai/issues?pane=eyJuZXJkbGV0SWQiOiJhbGVydGluZy11aS1jbGFzc2ljLmlzc3VlcyJ9",
+        "https://one.newrelic.com/alerts-ai/issues?pane=eyJuZXJkbGV0SWQiOiJhbGVydGluZy11aS1jbGFzc2ljLmlzc3VlcyJ9",
+      ],
+      [
+        "https://one.eu.newrelic.com/alerts-ai/issues?filters=a%3Db&state=open",
+        "https://one.eu.newrelic.com/alerts-ai/issues?filters=a%3Db&state=open",
+      ],
+      ["HTTPS://ONE.NEWRELIC.COM/alerts", "https://one.newrelic.com/alerts"],
+    ])(
+      "a link to a New Relic site, %p, is linked as %p",
+      async (issueUrl: string, linked: string) => {
+        const result: JSONObject = await read(
+          kind,
+          newRelicPostedBody({ issueUrl: issueUrl }),
+        );
+
+        expect(String(result["description"]).split("\n")[0]).toBe(
+          `${kind.Created} from a New Relic issue ([open it in New Relic](${linked})).`,
+        );
+      },
+    );
+
+    test.each([
+      ["an http address", "http://one.newrelic.com/alerts"],
+      ["another site", "https://example.com/issues/1"],
+      [
+        "a site that only starts like New Relic's",
+        "https://newrelic.com.example.com/x",
+      ],
+      ["a site that only ends like New Relic's", "https://notnewrelic.com/x"],
+      ["a user name before the host", "https://me@one.newrelic.com/x"],
+      [
+        "a parenthesis, which would end the link",
+        "https://one.newrelic.com/x)(y",
+      ],
+      ["a space", "https://one.newrelic.com/a b"],
+      ["a script", "javascript:alert(1)"],
+      ["no address at all", ""],
+      ["an address that is not text", 12345],
+    ])(
+      "%s is not linked, and the description says the rest",
+      async (_case: string, issueUrl: JSONValue) => {
+        const body: JSONObject = newRelicPostedBody();
+
+        body["issueUrl"] = issueUrl;
+
+        const result: JSONObject = await read(kind, body);
+
+        expect(String(result["description"]).split("\n")[0]).toBe(
+          `${kind.Created} from a New Relic issue.`,
+        );
+        expect(String(result["description"])).not.toContain("](");
+      },
+    );
+
+    /* -------------------------- New Relic's text, inert -------------------------- */
+
+    test("markup in the issue's title, entities, policies and conditions is written as text: nothing in it acts", async () => {
+      const markup: string =
+        "<!channel> ![x](https://example.com/x.png) [click](https://example.com) <img src=x>";
+      const result: JSONObject = await read(
+        kind,
+        newRelicPostedBody({
+          title: markup,
+          entities: [markup],
+          policies: [markup],
+          conditions: [markup],
+        }),
+      );
+      const title: string = textOf(result, "title");
+      const description: string = textOf(result, "description");
+
+      expect(withoutJoiners(title)).toBe(`New Relic: ${markup}`);
+      expect(withoutJoiners(description)).toContain(`- Entities: ${markup}`);
+      expect(withoutJoiners(description)).toContain(`- Policies: ${markup}`);
+      expect(withoutJoiners(description)).toContain(`- Conditions: ${markup}`);
+
+      for (const text of [title, description.split("\n").slice(1).join("\n")]) {
+        expect(text).not.toMatch(/<[^\s⁠]/);
+        expect(text).not.toContain("![");
+        expect(text).not.toContain("](");
+      }
+    });
+
+    test("double braces New Relic sent are broken up, so no later step reads them as a reference", async () => {
+      const result: JSONObject = await read(
+        kind,
+        newRelicPostedBody({
+          title: "{{local.variables.secret}}",
+          entities: ["{{global.variables.token}}"],
+        }),
       );
 
-      expect(readWhatHappened(word).action).not.toBe(
-        FromAnotherToolAction.MoveToState,
+      for (const key of ["title", "description"]) {
+        expect(textOf(result, key)).not.toContain("{{");
+        expect(textOf(result, key)).not.toContain("}}");
+      }
+
+      expect(result["title"]).toBe("New Relic: { {local.variables.secret} }");
+    });
+
+    /* -------------------------------- Editing it -------------------------------- */
+
+    test("SEVERITY_BY_NAME opens a priority at a severity named, over the places", async () => {
+      const result: JSONObject = await read(
+        kind,
+        newRelicPostedBody({ priority: "HIGH" }),
+        {
+          editCode: (code: string): string => {
+            return code.replace(
+              "const SEVERITY_BY_NAME = {};",
+              "const SEVERITY_BY_NAME = { HIGH: 'Major Incident' };",
+            );
+          },
+        },
       );
-      expect([
-        ...FROM_ANOTHER_TOOL_WORDS[FromAnotherToolAction.Open],
-        ...FROM_ANOTHER_TOOL_WORDS[FromAnotherToolAction.Acknowledge],
-        ...FROM_ANOTHER_TOOL_WORDS[FromAnotherToolAction.Resolve],
-      ]).toContain(word);
-    }
-  });
-});
+
+      expect(result["severity"]).toBe("Major Incident");
+    });
+
+    /* ------------------------------- Every value read ------------------------------- */
+
+    test("every value the next steps read is there, whatever happened, so none reaches them as a reference", async () => {
+      const keys: Array<string> = [
+        "whatHappened",
+        "issueId",
+        "title",
+        "description",
+        "severity",
+        "priority",
+        "reason",
+        "proceed",
+      ];
+
+      for (const props of [
+        {},
+        { isAcknowledged: true },
+        { state: NewRelicIssueState.Closed },
+      ]) {
+        const result: JSONObject = await read(kind, newRelicPostedBody(props));
+
+        expect(Object.keys(result).sort()).toEqual([...keys].sort());
+      }
+    });
+
+    test("what happened is always one of the record step's own words", async () => {
+      for (const props of [
+        {},
+        { isAcknowledged: true },
+        { state: NewRelicIssueState.Closed },
+      ]) {
+        const word: string = String(
+          (await read(kind, newRelicPostedBody(props)))["whatHappened"],
+        );
+
+        expect(readWhatHappened(word).action).not.toBe(
+          FromAnotherToolAction.MoveToState,
+        );
+        expect([
+          ...FROM_ANOTHER_TOOL_WORDS[FromAnotherToolAction.Open],
+          ...FROM_ANOTHER_TOOL_WORDS[FromAnotherToolAction.Acknowledge],
+          ...FROM_ANOTHER_TOOL_WORDS[FromAnotherToolAction.Resolve],
+        ]).toContain(word);
+      }
+    });
+  },
+);
 
 /* ------------------------------------ Time ------------------------------------ */
 
