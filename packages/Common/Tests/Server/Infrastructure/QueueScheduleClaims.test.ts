@@ -532,6 +532,20 @@ describe("Queue.retireUnclaimedSchedule", () => {
       bullQueue(QueueName.Workflow).removeRepeatableByKey,
     ).not.toHaveBeenCalled();
   });
+
+  test("does nothing for a job with no name", async () => {
+    bullQueue(QueueName.Worker).getRepeatableJobs.mockResolvedValue([
+      repeatable("", "dddd", "* * * * *"),
+    ]);
+
+    await expect(
+      Queue.retireUnclaimedSchedule(QueueName.Worker, ""),
+    ).resolves.toEqual({ claimedBy: null, removedCount: 0 });
+
+    expect(
+      bullQueue(QueueName.Worker).removeRepeatableByKey,
+    ).not.toHaveBeenCalled();
+  });
 });
 
 describe("a schedule retired while its holder was registering it comes back", () => {
@@ -657,6 +671,41 @@ describe("re-adding schedules when Redis comes back", () => {
       `set ${CLAIM_PREFIX}SecurityHunts:RunScheduledHunts`,
       "add Worker SecurityHunts:RunScheduledHunts",
     ]);
+  });
+
+  test("a schedule the queue's guard no longer wants is neither claimed nor added", async () => {
+    await registerCron("SecurityHunts:RunScheduledHunts", "* * * * *");
+    await registerCron("Retired:ByItsOwner", "*/5 * * * *");
+
+    await new Promise<void>((resolve: () => void) => {
+      setTimeout(resolve, 0);
+    });
+
+    Queue.setReconnectGuard(QueueName.Worker, async (jobName: string) => {
+      return jobName !== "Retired:ByItsOwner";
+    });
+
+    try {
+      mockValues.clear();
+      mockLog.length = 0;
+      await mockReadyHandlers.get(QueueName.Worker)!();
+
+      expect(mockLog).toEqual([
+        `set ${CLAIM_PREFIX}SecurityHunts:RunScheduledHunts`,
+        "add Worker SecurityHunts:RunScheduledHunts",
+      ]);
+
+      // Let go of for good: the next refresh does not claim it either.
+      mockLog.length = 0;
+      await Queue.refreshScheduleClaims();
+      expect(mockLog).toEqual([
+        `set ${CLAIM_PREFIX}SecurityHunts:RunScheduledHunts`,
+      ]);
+    } finally {
+      // The Worker queue has no guard in production.
+      delete (Queue as unknown as { reconnectGuards: Record<string, unknown> })
+        .reconnectGuards[QueueName.Worker];
+    }
   });
 });
 

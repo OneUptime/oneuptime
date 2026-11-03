@@ -412,6 +412,83 @@ describe("a worker that has no job by a name, on a real Valkey", () => {
     ).toEqual([]);
   }, 30000);
 
+  test("a project's turn handed back keeps holding its place: turns queued meanwhile do not pile up, and it runs once", async () => {
+    handBackSettings.FIRST_HAND_BACK_DELAY_MS = 300;
+    handBackSettings.LONGEST_HAND_BACK_DELAY_MS = 300;
+
+    // As SecurityProjectWork queues a project's turn, once a minute.
+    const queueTurn: (minute: number) => Promise<void> = async (
+      minute: number,
+    ): Promise<void> => {
+      await Queue.addJob(
+        QueueName.Worker,
+        `watchlists-project-1-${minute}`,
+        "SecurityWatchlists:RunProjectTurnDeduplicated",
+        { projectId: "5f0d8d1e-2222-4222-8222-222222222222" },
+        {
+          attempts: 1,
+          deduplication: { id: "watchlists-project-1" },
+        },
+      );
+    };
+
+    await queueTurn(1);
+    startWorker();
+
+    await waitFor("the turn to be handed back", async () => {
+      const job: QueueJob | undefined = await queue.getJob(
+        "watchlists-project-1-1",
+      );
+      return Boolean(
+        job && (job.attemptsStarted || 0) >= 1 && (await job.isDelayed()),
+      );
+    });
+
+    // The next minutes' turns for the same project, while it waits.
+    await queueTurn(2);
+    await queueTurn(3);
+
+    expect(
+      await jobsNamed("SecurityWatchlists:RunProjectTurnDeduplicated", [
+        "delayed",
+        "wait",
+        "active",
+        "completed",
+        "failed",
+      ]),
+    ).toHaveLength(1);
+
+    JobDictionary.setJobFunction(
+      "SecurityWatchlists:RunProjectTurnDeduplicated",
+      async (job?: QueueJob) => {
+        ran.set("SecurityWatchlists:RunProjectTurnDeduplicated", [
+          ...(ran.get("SecurityWatchlists:RunProjectTurnDeduplicated") || []),
+          job as QueueJob,
+        ]);
+      },
+    );
+
+    await waitFor("the turn to run", async () => {
+      const job: QueueJob | undefined = await queue.getJob(
+        "watchlists-project-1-1",
+      );
+      return Boolean(job && (await job.isCompleted()));
+    });
+
+    expect(
+      ran.get("SecurityWatchlists:RunProjectTurnDeduplicated"),
+    ).toHaveLength(1);
+
+    // Done, the project's next turn can be queued again.
+    await queueTurn(4);
+    await waitFor("the next turn to run", () => {
+      return (
+        (ran.get("SecurityWatchlists:RunProjectTurnDeduplicated") || [])
+          .length === 2
+      );
+    });
+  }, 30000);
+
   test("fails a job queued once that nobody runs in time - once, and saying why", async () => {
     handBackSettings.HAND_BACK_FOR_MS = 1500;
     handBackSettings.FIRST_HAND_BACK_DELAY_MS = 200;
