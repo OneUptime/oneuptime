@@ -1676,6 +1676,12 @@ describe("every sentence on the screen comes from the locale", () => {
   };
 
   beforeEach(async () => {
+    /*
+     * Since #5616 a language other than English is fetched the first time it
+     * is used (I18nLocaleLoader), so its bundle is loaded before it is read.
+     */
+    await i18n.loadLanguages(LANGUAGE);
+
     originalBundle = JSON.parse(
       JSON.stringify(i18n.getResourceBundle(LANGUAGE, "translation")),
     ) as JSONObject;

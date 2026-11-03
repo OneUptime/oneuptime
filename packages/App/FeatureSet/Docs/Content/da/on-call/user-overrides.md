@@ -70,7 +70,7 @@ Når nogen forlader projektet, slettes hver tilsidesættelse, der nævner dem og
 
 **Projektejer**, **Projektadministrator**, **Projektmedlem**, **Vagtadministrator** og **Vagtmedlem** må tilføje og slette tilsidesættelser; **Seer** og **Vagtseer** må se dem. I en brugerdefineret rolle hedder tilladelserne **Create On-Call Duty Policy User Override**, **Delete On-Call Duty Policy User Override** og **Read On-Call Duty Policy User Override**. På **Tidslinje for vagtplaner** ser kun folk, der må læse tilsidesættelser, hvis vagt der dækkes.
 
-En tilsidesættelse i en politik følger politikkens omfang. Giv et team **Vagtmedlem** begrænset til de politikker, det ejer, eller til dets label, så tilføjer og sletter dets medlemmer kun tilsidesættelser i de politikker. En global tilsidesættelse gælder for alle politikker, også et andet teams, så det at tilføje eller slette en kræver tilladelsen til tilsidesættelser over hele projektet. Med en snævrere tilladelse er **Tilføj Brugertilsidesættelse** og **Slet** under **Vagtordning → Avanceret → Brugertilsidesættelser** låst og siger hvorfor, og teamet tilføjer sine tilsidesættelser på hver politiks egen side **Brugertilsidesættelser**. Det samme gælder for API'et: en tilsidesættelse uden `onCallDutyPolicyId` afvises for en tilladelse begrænset til labels eller til ejede politikker.
+En tilsidesættelse i en politik følger politikkens omfang. Giv et team **Vagtmedlem** begrænset til de politikker, det ejer, eller til dets label, så tilføjer og sletter dets medlemmer kun tilsidesættelser i de politikker. En global tilsidesættelse gælder for alle politikker, også et andet teams, så det at tilføje eller slette en kræver tilladelsen til tilsidesættelser over hele projektet. Med en snævrere tilladelse er **Tilføj Brugertilsidesættelse** og **Slet** under **Vagtordning → Avanceret → Brugertilsidesættelser** låst og siger hvorfor. Det gælder også **Spring over indtil…** i en vagtplans lag og **Find afløser** på dine kommende vagter, som begge tilføjer globale tilsidesættelser, og mobilappen siger hvorfor i stedet for at arrangere afløsning. Teamet tilføjer sine tilsidesættelser på hver politiks egen side **Brugertilsidesættelser**. Det samme gælder for API'et: en tilsidesættelse uden `onCallDutyPolicyId` afvises for en tilladelse begrænset til labels eller til ejede politikker.
 
 I OneUptime Cloud kræver brugertilsidesættelser abonnementet **Growth**.
 
@@ -113,7 +113,7 @@ De nås via deres egne personlige vagtregler og bekræftede metoder. Slå dem op
 :::
 
 :::details Jeg kan ikke tilføje en tilsidesættelse
-Det kræver en af rollerne ovenfor og, i OneUptime Cloud, abonnementet **Growth**. En global tilsidesættelse kræver rollen over hele projektet: er dit teams rolle begrænset til dets egne politikker eller til nogle labels, så tilføj tilsidesættelsen på politikkens egen side **Brugertilsidesættelser**.
+Det kræver en af rollerne ovenfor og, i OneUptime Cloud, abonnementet **Growth**. En global tilsidesættelse kræver rollen over hele projektet: er dit teams rolle begrænset til dets egne politikker eller til nogle labels, så tilføj tilsidesættelsen på politikkens egen side **Brugertilsidesættelser**. Det er også derfor, at **Spring over indtil…** og **Find afløser** er låst for dig, og at mobilappen ikke kan arrangere afløsning.
 :::
 
 ## Næste trin

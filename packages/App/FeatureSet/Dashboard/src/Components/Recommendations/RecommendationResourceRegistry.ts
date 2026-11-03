@@ -12,6 +12,7 @@ import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
 import RumApplication from "Common/Models/DatabaseModels/RumApplication";
 import Service from "Common/Models/DatabaseModels/Service";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
+import DataStore from "Common/Models/DatabaseModels/DataStore";
 import { getDatabaseAlertTemplates } from "Common/Types/Monitor/DatabaseAlertTemplates";
 import { getDatabaseSystemDisplayName } from "Common/Types/DatabaseServer/DatabaseSystem";
 import { OPENSHIFT_KUBERNETES_PROVIDER } from "Common/Types/Kubernetes/KubernetesClusterProvider";
@@ -31,6 +32,8 @@ import {
   MonitorRecommendationResourceType,
 } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
 import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
+import ObjectID from "Common/Types/ObjectID";
+import { DataObservabilityStoreSummary } from "Common/Types/DataObservability/DataObservabilityApiTypes";
 
 /*
  * The App-side half of the recommendation registry.
@@ -107,6 +110,17 @@ export interface RecommendationResourceDefinition {
   describeContext?:
     | ((context: MonitorRecommendationContext) => string | undefined)
     | undefined;
+  /*
+   * How to read ONE resource when its model cannot be read with the
+   * person's own permissions. A data store is Data Security's record,
+   * readable by the Security tiers only, while anyone who may read Data
+   * Observability may see its recommendations - so it is read from Data
+   * Observability's own route, which hands back what they need: its id and
+   * its name. Absent for every resource type its own model's read serves.
+   */
+  loadResource?:
+    | ((resourceId: ObjectID) => Promise<BaseModel | null>)
+    | undefined;
 }
 
 /*
@@ -153,6 +167,9 @@ function readSessionReplayMonthlyBudgetInGB(value: unknown): number | null {
  *   Database    _id                the `oneuptime.database.server.id` stamp
  *                                  every template query filters on is the
  *                                  DatabaseServer row id
+ *   DataStore   _id                the `oneuptime.data.store.id` stamp table
+ *                                  health writes on every row is the
+ *                                  DataStore row id
  *
  * The six `name` rows mean renaming one of those resources orphans its
  * existing monitors from the diff — they will show as available again. That is
@@ -585,6 +602,39 @@ const RESOURCE_DEFINITIONS: Array<RecommendationResourceDefinition> = [
         "Recommended for {{engine}}, from the metrics its collector receiver reports. Each monitor is scoped to this database by oneuptime.database.server.id, so its alerts and incidents appear on this database's tabs.",
         { engine: engineName },
       );
+    },
+  },
+  /*
+   * A data store whose tables Data Observability watches. The same set for
+   * every store: every template reads the oneuptime.data.table.* metrics
+   * table health writes for any engine it collects. Read through
+   * `loadResource`, as a DataStore row is readable by the Security tiers
+   * only.
+   */
+  {
+    resourceType: MonitorRecommendationResourceType.DataStore,
+    modelType: DataStore,
+    identifierFieldName: "_id",
+    displayNameFieldName: "name",
+    loadResource: async (resourceId: ObjectID): Promise<BaseModel | null> => {
+      // Imported here: its client reads the browser's config as it loads.
+      const api: typeof import("../DataObservability/DataObservabilityApi") =
+        await import("../DataObservability/DataObservabilityApi");
+      const summary: DataObservabilityStoreSummary | undefined = (
+        await api.default.getStores()
+      ).find((candidate: DataObservabilityStoreSummary) => {
+        return candidate.dataStoreId === resourceId.toString();
+      });
+
+      if (!summary) {
+        return null;
+      }
+
+      const store: DataStore = new DataStore();
+      store._id = summary.dataStoreId;
+      store.name = summary.name;
+
+      return store;
     },
   },
 ];

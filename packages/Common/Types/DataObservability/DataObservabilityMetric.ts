@@ -18,6 +18,19 @@ export enum DataObservabilityMetricName {
   Size = "oneuptime.data.table.size",
   SecondsSinceChange = "oneuptime.data.table.seconds_since_change",
   SchemaChanges = "oneuptime.data.table.schema_changes",
+  /*
+   * How far past its usual time the table is, by the rule the catalog's
+   * Late pill uses (DataAssetFreshness); 0 while it is on time. Written once
+   * the table's rhythm is learned, so a monitor can alert on "late" from a
+   * table's first few changes, with no baseline to wait for.
+   */
+  OverdueSeconds = "oneuptime.data.table.overdue_seconds",
+  /*
+   * How much the row count moved since the collection before, in percent:
+   * -50 is half the rows gone, 100 is twice as many. The monitor path has
+   * no rate or delta, so the change is worked out here, at collection.
+   */
+  RowCountChangePercent = "oneuptime.data.table.row_count_change_percent",
 }
 
 // The attributes every row carries, so a query can be scoped to a store or a table.
@@ -76,7 +89,27 @@ export const DATA_OBSERVABILITY_METRICS: ReadonlyArray<DataObservabilityMetricDe
         "How many columns were added, removed, renamed or changed since the collection before.",
       unit: "",
     },
+    {
+      name: DataObservabilityMetricName.OverdueSeconds,
+      title: "Time Overdue",
+      description:
+        "How long the table is past the time it usually changes by. 0 while it is on time.",
+      unit: "s",
+    },
+    {
+      name: DataObservabilityMetricName.RowCountChangePercent,
+      title: "Row Count Change",
+      description:
+        "How much the row count moved since the collection before, in percent.",
+      unit: "%",
+    },
   ];
+
+/*
+ * The least rows a table held at the collection before for its change in
+ * rows to be written. Below it a percentage is noise - 2 rows to 1 is -50%.
+ */
+export const ROW_COUNT_CHANGE_MIN_ROWS: number = 1000;
 
 export function getDataObservabilityMetric(
   name: string,

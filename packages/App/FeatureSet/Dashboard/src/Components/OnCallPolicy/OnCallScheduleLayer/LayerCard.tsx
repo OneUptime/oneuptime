@@ -74,6 +74,11 @@ export interface ComponentProps {
    * the page). Left out, the people list does not offer it.
    */
   onSkipUser?: ((person: { userId: string; name: string }) => void) | undefined;
+  /*
+   * Why "Skip until..." is locked for the reader (LayerUser), or null when
+   * it is not.
+   */
+  skipLockedReason?: string | null | undefined;
 }
 
 interface SummaryChipProps {
@@ -651,6 +656,7 @@ const LayerCard: FunctionComponent<ComponentProps> = (
               coverNameById={coverNameById}
               timezone={props.timezone}
               onSkipUser={props.onSkipUser}
+              skipLockedReason={props.skipLockedReason}
             />
           </div>
 

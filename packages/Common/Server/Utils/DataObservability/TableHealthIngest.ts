@@ -24,7 +24,13 @@ import {
   DataObservabilityAttribute,
   DataObservabilityMetricName,
   getDataTableKey,
+  ROW_COUNT_CHANGE_MIN_ROWS,
 } from "../../../Types/DataObservability/DataObservabilityMetric";
+import {
+  DataAssetFreshness,
+  DataAssetFreshnessResult,
+  getDataAssetFreshness,
+} from "../../../Types/DataObservability/DataAssetFreshness";
 import { JSONObject } from "../../../Types/JSON";
 import { MetricPointType } from "../../../Models/AnalyticsModels/Metric";
 import ObjectID from "../../../Types/ObjectID";
@@ -393,6 +399,8 @@ export function getTableMetricValues(data: {
   table: CollectedTable;
   plan: AssetPlan;
   collectedAt: Date;
+  // The row count the collection before saw; null for a table seen for the first time.
+  previousRowCount?: number | null | undefined;
 }): Array<{ name: DataObservabilityMetricName; value: number }> {
   const values: Array<{ name: DataObservabilityMetricName; value: number }> =
     [];
@@ -429,6 +437,44 @@ export function getTableMetricValues(data: {
     name: DataObservabilityMetricName.SchemaChanges,
     value: data.plan.columnChanges.length,
   });
+
+  if (holdsRows) {
+    const freshness: DataAssetFreshnessResult = getDataAssetFreshness({
+      kind: data.table.kind,
+      lastChangedAt: data.plan.lastChangedAt,
+      updateIntervalInSeconds: data.plan.updateIntervalInSeconds,
+      now: data.collectedAt,
+    });
+
+    // Only once the table's rhythm is learned: before that, late is unknown, not 0.
+    if (
+      freshness.freshness === DataAssetFreshness.Fresh ||
+      freshness.freshness === DataAssetFreshness.Late
+    ) {
+      values.push({
+        name: DataObservabilityMetricName.OverdueSeconds,
+        value: freshness.overdueBySeconds,
+      });
+    }
+  }
+
+  const previousRowCount: number | null = data.previousRowCount ?? null;
+
+  if (
+    holdsRows &&
+    data.table.estimatedRows !== null &&
+    previousRowCount !== null &&
+    previousRowCount >= ROW_COUNT_CHANGE_MIN_ROWS
+  ) {
+    values.push({
+      name: DataObservabilityMetricName.RowCountChangePercent,
+      value:
+        Math.round(
+          ((data.table.estimatedRows - previousRowCount) / previousRowCount) *
+            10000,
+        ) / 100,
+    });
+  }
 
   return values;
 }
@@ -533,6 +579,7 @@ export default class TableHealthIngest {
           table,
           plan,
           collectedAt,
+          previousRowCount: previous?.rowCount ?? null,
         })) {
           metricRows.push(
             buildMetricRow({

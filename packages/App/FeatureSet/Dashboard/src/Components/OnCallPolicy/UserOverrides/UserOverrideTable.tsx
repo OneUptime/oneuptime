@@ -64,9 +64,10 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
  * A global override applies to every policy, so adding or deleting one
  * takes a permission over the whole project (issue #5617). For someone
  * whose permission covers only some policies, the global page locks Add
- * and each row's Delete, saying why - and a "Get cover" link that brings
- * them here says so instead of opening a form they cannot save
- * (GlobalUserOverrideLock).
+ * and each row's Delete, saying why (GlobalUserOverrideLock). "Get cover"
+ * is locked on the shift itself for them; a link that still brings them
+ * here - followed before the browser had that project's permissions -
+ * says so instead of opening a form they cannot save.
  */
 
 export interface ComponentProps {

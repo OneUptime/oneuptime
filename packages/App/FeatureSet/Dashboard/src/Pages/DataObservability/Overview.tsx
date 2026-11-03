@@ -321,6 +321,7 @@ const DataObservabilityOverviewPage: FunctionComponent<
         buttons={[
           {
             title: "Connect a Database",
+            phoneTitle: "Connect",
             buttonStyle: ButtonStyleType.NORMAL,
             icon: IconProp.Add,
             onClick: () => {
@@ -338,9 +339,17 @@ const DataObservabilityOverviewPage: FunctionComponent<
                   className="flex items-center justify-between gap-3 py-2"
                 >
                   <div className="min-w-0">
-                    <span className="block truncate font-medium text-gray-900">
-                      {store.name}
-                    </span>
+                    <AppLink
+                      to={RouteUtil.populateRouteParams(
+                        RouteMap[
+                          PageMap.DATA_OBSERVABILITY_STORE_VIEW
+                        ] as Route,
+                        { modelId: new ObjectID(store.dataStoreId) },
+                      )}
+                      className="block truncate font-medium text-gray-900 hover:underline"
+                    >
+                      <span>{store.name}</span>
+                    </AppLink>
                     <span className="block truncate text-xs text-gray-500">
                       {store.kind}
                     </span>

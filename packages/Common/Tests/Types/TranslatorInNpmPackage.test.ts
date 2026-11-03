@@ -179,11 +179,17 @@ describe("what the server words a status page's messages with is in the npm pack
 
     expect(loaded.packages).not.toContain("i18next");
     expect(loaded.packages).not.toContain("react-i18next");
+    /*
+     * Besides Types/, only the bounded cache every module evicts its oldest
+     * entry through (OldestKeyEvictionGuard): Types/DateLanguage keeps its
+     * English texts in one since #5586. Two classes that load nothing but each
+     * other, so anything else outside Types/ still fails here.
+     */
     expect(
       loaded.modules.filter((module: string): boolean => {
         return !module.startsWith("Types/");
       }),
-    ).toEqual([]);
+    ).toEqual(["Utils/OldestKeyCursor", "Utils/OldestKeyMap"]);
   });
 });
 

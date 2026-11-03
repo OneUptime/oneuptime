@@ -113,6 +113,8 @@ beforeAll(async () => {
       PageMap.SERVICE_VIEW_RECOMMENDATIONS,
     [MonitorRecommendationResourceType.DatabaseServer]:
       PageMap.DATABASE_SERVER_VIEW_RECOMMENDATIONS,
+    [MonitorRecommendationResourceType.DataStore]:
+      PageMap.DATA_OBSERVABILITY_STORE_VIEW_RECOMMENDATIONS,
   };
 });
 
