@@ -32,6 +32,8 @@ export interface ReportAudit {
   scoreDisplayMode: string;
   // Why it fails, for an audit that names no elements (doctype, canonical).
   explanation?: string | undefined;
+  // A metric's measure, such as Largest Contentful Paint in milliseconds.
+  numericValue?: number | undefined;
   errorMessage?: string | undefined;
   details?: { type: string; items?: unknown } | undefined;
 }
