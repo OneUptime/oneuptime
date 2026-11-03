@@ -1,5 +1,12 @@
 import type { NotificationResponse } from "expo-notifications";
+import * as Linking from "expo-linking";
 import { buildInboxDetailNavigation } from "../navigation/inboxNavigation";
+import { getServerUrl } from "../storage/serverUrl";
+import logger from "../utils/logger";
+import {
+  getDashboardPageOnServer,
+  opensInBrowser,
+} from "./browserDestinations";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let navigationRef: any = null;
@@ -152,17 +159,38 @@ function executeNavigation(data: NotificationData): void {
       });
       break;
     case "scheduled-maintenance":
+    case "security-hunt":
       /*
-       * The server pages for scheduled maintenance too, but this app has no
-       * screen that can show one - there is no scheduled-maintenance tab and
-       * no detail route to navigate to. Opening the app where it already was
-       * is the honest outcome. This case is written out rather than left to
-       * the default so the next reader knows it was considered and is waiting
-       * on a screen, not overlooked; route it here when that screen lands.
+       * The server pushes about scheduled maintenance and about a scheduled
+       * hunt that found security events too, but this app has no screen for
+       * either: navigateToEntity opens their dashboard page in the browser
+       * instead (browserDestinations.ts), and nothing reaches here. Written
+       * out so the next reader knows they were considered; route them here
+       * when a screen for them lands.
        */
       break;
     default:
       break;
+  }
+}
+
+/*
+ * The record's dashboard page, in the browser, for a push about something
+ * this app has no screen for - when the page is on the OneUptime this app
+ * is signed in to. Anything else opens nothing.
+ */
+async function openDashboardPage(url: unknown): Promise<void> {
+  try {
+    const page: string | null = getDashboardPageOnServer(
+      url,
+      await getServerUrl(),
+    );
+
+    if (page) {
+      await Linking.openURL(page);
+    }
+  } catch (error: unknown) {
+    logger.warn("[PushNotifications] Could not open the push's page:", error);
   }
 }
 
@@ -177,8 +205,12 @@ function navigateToEntity(data: NotificationData): void {
     /*
      * Nothing in this app can show it. Parking it would hold a payload that
      * can never be spent, and the pending slot holds exactly one - so it would
-     * also displace the next page that CAN be shown.
+     * also displace the next page that CAN be shown. A hunt's push and a
+     * scheduled maintenance event's open their page in the browser instead.
      */
+    if (opensInBrowser(data.entityType)) {
+      void openDashboardPage(data["url"]);
+    }
     return;
   }
 
