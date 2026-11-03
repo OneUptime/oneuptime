@@ -62,11 +62,11 @@ import React, { ReactElement, useState } from "react";
 import useIsBelowWidth, {
   PHONE_BELOW_WIDTH_IN_PX,
 } from "../../Utils/UseIsBelowWidth";
-import {
-  Draggable,
+import type {
   DraggableProvided,
   DraggableStateSnapshot,
 } from "react-beautiful-dnd";
+import { DragAndDropLibrary } from "../DragAndDrop/DragAndDropLoader";
 import LongTextViewer from "../LongText/LongTextViewer";
 import IsolatedText from "../IsolatedText/IsolatedText";
 import InfoTooltip from "../Tooltip/InfoTooltip";
@@ -93,6 +93,12 @@ export interface ComponentProps<T extends GenericObject> {
   columns: Columns<T>;
   actionButtons?: Array<ActionButtonSchema<T>> | undefined;
   enableDragAndDrop?: boolean | undefined;
+  /*
+   * The drag-and-drop library, once Table has loaded it (DragAndDropLoader):
+   * until then the row is drawn as it will look, its grip included, and
+   * does not drag.
+   */
+  dragAndDrop?: DragAndDropLibrary | null | undefined;
   dragAndDropScope?: string | undefined;
   dragDropIdField?: keyof T | undefined;
   dragDropIndexField?: keyof T | undefined;
@@ -950,7 +956,12 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
     );
   };
 
-  if (props.enableDragAndDrop && props.dragDropIdField) {
+  const Draggable: DragAndDropLibrary["Draggable"] | undefined =
+    props.enableDragAndDrop && props.dragDropIdField
+      ? props.dragAndDrop?.Draggable
+      : undefined;
+
+  if (Draggable && props.dragDropIdField) {
     return (
       <Draggable
         draggableId={props.item[props.dragDropIdField]?.toString() || ""}
