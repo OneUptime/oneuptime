@@ -69,7 +69,7 @@ Das Netzwerkmenü zeigt, was Sie täglich öffnen: **Übersicht**, **Geräte**, 
 | **Topologie** | **Gerätetopologie**, **Endpunkte**, **Latenzmatrix**, **Standortverbindungen**, **Geräteverbindungen** |
 | **Regeln** | **Regeln für automatischen Import**, **Standortzuweisungsregeln**, **Eigentümerregeln**, **Beschriftungsregeln**, **Verbindungsregeln** |
 | **Einstellungen** | **Warnungsrichtlinien**, **SNMP-Anmeldedaten**, **Geräterollen**, **Standorttypen**, **Adressnamen**, **OID-Erfassungsvorlagen** |
-| **Erweitert** | **Archivierte Geräte** |
+| **Erweitert** | **SNMP-Walk**, **Archivierte Geräte** |
 
 ## Ein Netzwerkgerät hinzufügen
 

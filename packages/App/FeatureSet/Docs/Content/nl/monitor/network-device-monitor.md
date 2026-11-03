@@ -69,7 +69,7 @@ Het menu Netwerk houdt in beeld wat je elke dag opent: **Overzicht**, **Apparate
 | **Topologie** | **Apparaattopologie**, **Endpoints**, **Latentiematrix**, **Locatiekoppelingen**, **Apparaatkoppelingen** |
 | **Regels** | **Regels voor automatisch importeren**, **Regels voor locatietoewijzing**, **Eigenaarsregels**, **Labelregels**, **Koppelingsregels** |
 | **Instellingen** | **Waarschuwingsbeleid**, **SNMP-inloggegevens**, **Apparaatrollen**, **Locatietypen**, **Adresnamen**, **Sjablonen voor OID-verzameling** |
-| **Geavanceerd** | **Gearchiveerde apparaten** |
+| **Geavanceerd** | **SNMP-walk**, **Gearchiveerde apparaten** |
 
 ## Een netwerkapparaat toevoegen
 

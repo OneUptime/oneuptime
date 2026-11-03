@@ -195,6 +195,11 @@ export const NetworkDeviceRoutePath: Dictionary<string> = {
   [PageMap.NETWORK_DEVICE_LATENCY_MATRIX]: `latency-matrix`,
   [PageMap.NETWORK_DEVICE_ENDPOINTS]: `endpoints`,
   [PageMap.NETWORK_DEVICE_LINKS]: `device-links`,
+  /*
+   * Many devices' SNMP walk (issue #5548). A static segment, which React
+   * Router ranks above a device's dynamic id, as `discovery` is.
+   */
+  [PageMap.NETWORK_SNMP_WALK]: `snmp-walk`,
 };
 
 export const SloRoutePath: Dictionary<string> = {
@@ -3742,6 +3747,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.NETWORK_DEVICE_LINKS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/network-devices/${
       NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_LINKS]
+    }`,
+  ),
+
+  [PageMap.NETWORK_SNMP_WALK]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-devices/${
+      NetworkDeviceRoutePath[PageMap.NETWORK_SNMP_WALK]
     }`,
   ),
 

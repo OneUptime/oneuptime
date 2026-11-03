@@ -69,7 +69,7 @@ Nätverk-menyn håller det du öppnar varje dag synligt: **Översikt**, **Enhete
 | **Topologi** | **Enhetstopologi**, **Slutpunkter**, **Latensmatris**, **Platslänkar**, **Enhetslänkar** |
 | **Regler** | **Regler för automatisk import**, **Regler för platstilldelning**, **Ägarregler**, **Etikettregler**, **Länkregler** |
 | **Inställningar** | **Larmpolicyer**, **SNMP-autentiseringsuppgifter**, **Enhetsroller**, **Platstyper**, **Adressnamn**, **Mallar för OID-insamling** |
-| **Avancerad** | **Arkiverade enheter** |
+| **Avancerad** | **SNMP-walk**, **Arkiverade enheter** |
 
 ## Lägg till en nätverksenhet
 

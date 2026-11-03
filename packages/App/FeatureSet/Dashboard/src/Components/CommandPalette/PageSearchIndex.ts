@@ -3398,6 +3398,18 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
         title: "Advanced",
         pages: [
           {
+            page: PageMap.NETWORK_SNMP_WALK,
+            title: "SNMP Walk",
+            icon: IconProp.Search,
+            keywords: [
+              "snmpwalk",
+              "walk many devices",
+              "oid",
+              "compare devices",
+              "collect oid",
+            ],
+          },
+          {
             page: PageMap.NETWORK_DEVICE_ARCHIVED,
             title: "Archived Devices",
             icon: IconProp.Archive,

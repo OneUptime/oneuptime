@@ -69,7 +69,7 @@ Netværk-menuen holder det, du åbner hver dag, synligt: **Oversigt**, **Enheder
 | **Topologi** | **Enhedstopologi**, **Endepunkter**, **Latensmatrix**, **Lokationslinks**, **Enhedslinks** |
 | **Regler** | **Regler for automatisk import**, **Regler for lokationstildeling**, **Ejerregler**, **Etiketregler**, **Linkregler** |
 | **Indstillinger** | **Advarselspolitikker**, **SNMP-loginoplysninger**, **Enhedsroller**, **Lokationstyper**, **Adressenavne**, **Skabeloner til OID-indsamling** |
-| **Avanceret** | **Arkiverede enheder** |
+| **Avanceret** | **SNMP-walk**, **Arkiverede enheder** |
 
 ## Tilføj en netværksenhed
 
