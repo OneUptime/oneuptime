@@ -5,6 +5,7 @@
 :::cards
 - [Le Database Agent](#le-database-agent): Métriques du moteur pour PostgreSQL, MySQL, SQL Server, Oracle, Redis, MongoDB, Elasticsearch et Memcached.
 - [Comment les bases de données sont détectées](#comment-les-bases-de-données-sont-détectées): À partir des traces, de Kubernetes, de Docker, de Podman et des collecteurs.
+- [Voir quelles bases de données requièrent attention](#voir-quelles-bases-de-données-requièrent-attention): La santé jugée selon les seuils des alertes recommandées pour chaque moteur.
 - [Alertes sur une base de données](#alertes-sur-une-base-de-données): Moniteurs recommandés, et moniteurs que vous construisez.
 - [Dépannage](#dépannage): Un script de diagnostic, et les problèmes habituels.
 :::
@@ -341,6 +342,7 @@ DATABASE_USERNAME=oneuptime_monitor
 DATABASE_PASSWORD='a-strong-password'
 DATABASE_TLS_INSECURE=true
 DATABASE_TLS_INSECURE_SKIP_VERIFY=false
+DATABASE_TLS_SSLMODE=disable
 DATABASE_COLLECTION_INTERVAL=30s
 DATABASE_QUERY_EVENTS=false
 DATABASE_SERVER_ID=
@@ -375,6 +377,7 @@ Après la première collecte, la base de données apparaît sous **Bases de donn
 | `DATABASE_PASSWORD` | PostgreSQL, SQL Server, Oracle | Son mot de passe. Dans `.env`, mettez-le entre guillemets simples et écrivez chaque `$` sous la forme `$$` (`install.sh` fait les deux pour vous) |
 | `DATABASE_TLS_INSECURE` | Non | `true` (par défaut) se connecte sans TLS ; `false` active TLS |
 | `DATABASE_TLS_INSECURE_SKIP_VERIFY` | Non | `true` accepte un certificat auquel l'image du collecteur ne fait pas confiance (auto-signé, AC privée). Vaut `false` par défaut |
+| `DATABASE_TLS_SSLMODE` | Non | PostgreSQL : les deux réglages ci-dessus traduits en `sslmode` de libpq, pour les vérifications SQL propres à la configuration — `disable` tant que `DATABASE_TLS_INSECURE` vaut `true`, `require` quand `DATABASE_TLS_INSECURE_SKIP_VERIFY` vaut `true`, `verify-full` sinon. `install.sh` l'écrit. Vaut `disable` par défaut |
 | `DATABASE_COLLECTION_INTERVAL` | Non | La fréquence de lecture des statistiques du moteur. Vaut `30s` par défaut |
 | `DATABASE_QUERY_EVENTS` | Non | `true` envoie les échantillons de requêtes et les requêtes principales sous forme de journaux (PostgreSQL, MySQL, MongoDB, SQL Server et Oracle). Ils contiennent le texte des requêtes. Vaut `false` par défaut |
 | `DATABASE_SERVER_ID` | Non | L'identifiant d'une base de données que OneUptime affiche déjà (son onglet **Documentation** le fournit, prérempli). Les données rejoignent alors directement cette base et s'affichent sur ses pages, quelle que soit l'adresse qu'elles indiquent (ou aucune) — la solution dans Kubernetes et pour les IP privées. Ce doit être une base de données du projet auquel appartient la clé d'ingestion |
@@ -393,6 +396,8 @@ Après la première collecte, la base de données apparaît sous **Bases de donn
 | Memcached | `memcached` — connexions, commandes, succès et échecs, évictions, éléments, octets, réseau, threads, CPU (tous activés par défaut) | — | — |
 
 La feature gate `postgresqlreceiver.preciselagmetrics` du récepteur PostgreSQL, activée par défaut, enregistre le retard de réplication en temps sous `postgresql.wal.delay` plutôt que `postgresql.wal.lag`, et cette métrique est désactivée en amont — c'est pourquoi l'agent l'active. Chaque configuration liste d'autres métriques facultatives dans un commentaire ; activez-les de la même façon. La section **Métriques du moteur** de la vue d'ensemble d'une base de données trace une sélection choisie pour chaque moteur de ce tableau — pour Elasticsearch / OpenSearch la santé du cluster, les nœuds, les shards non attribués, les tâches en attente, le tas JVM, le disque libre, les recherches et l'indexation ; pour Memcached les connexions, la mémoire, les éléments, les succès et échecs de get, les commandes et les évictions —, et l'onglet **Métriques** a tout. Là, une métrique que trace la vue d'ensemble affiche la valeur de la vue d'ensemble — ses séries combinées de la même façon, un compteur sous forme de taux par seconde — avec une légende qui dit comment (_total of series_, _per second, all series_) ; toute autre ligne affiche la moyenne de ses séries, comme le fait chaque ligne pendant que vous filtrez la liste par un attribut. MariaDB indique `mysql.buffer_pool.limit` comme le nombre de pages du buffer pool plutôt que les octets que déclare le récepteur ; sur une base MariaDB, cette ligne et son graphique se lisent donc en pages. MariaDB n'a pas de compteurs d'état `Innodb_rows_*` ; le récepteur n'envoie donc pas de `mysql.row_operations` pour elle, et la vue d'ensemble d'une base MariaDB n'a pas de graphique **Row operations** ; **Handler operations** montre ses lectures et écritures de lignes.
+
+La configuration PostgreSQL pose aussi elle-même quatre questions au serveur, avec le récepteur `sqlquery` du collecteur au même intervalle : depuis combien de temps il tourne (`postgresql.uptime`, d'après `pg_postmaster_start_time()`), l'âge de son plus ancien identifiant de transaction (`postgresql.xid.oldest_age`, le plus grand `age(datfrozenxid)` de `pg_database`), depuis combien de temps sa plus ancienne transaction est ouverte (`postgresql.transaction.longest_duration`) et combien de sessions attendent un verrou (`postgresql.sessions.waiting_on_lock`), ces deux dernières d'après `pg_stat_activity`. Le récepteur `postgresql` ne remonte aucune de ces valeurs, et ce sont elles qui révèlent un redémarrage, une transaction laissée ouverte, une file d'attente de verrous et l'approche du bouclage des identifiants de transaction : PostgreSQL cesse d'accepter les écritures vers un âge de 2,1 milliards, sa santé mérite donc un coup d'œil dès 1 milliard et devient critique dès 1,5 milliard. `pg_monitor` les couvre. La requête se connecte avec `DATABASE_TLS_SSLMODE` et ne peut pas se connecter avec un mot de passe qui contient une espace (elle l'envoie comme `+`), ce dont `install.sh` avertit. Avec votre propre collecteur, copiez le récepteur `sqlquery/oneuptime` de `configs/postgresql.yaml` dans son pipeline `metrics`.
 
 La **Version** de la base de données vient du récepteur quand il en indique une : `db.system.version` (MySQL / MariaDB, MongoDB), `redis.version` (Redis, KeyDB), `oracle.db.version` (Oracle) et `elasticsearch.node.version` (Elasticsearch / OpenSearch). Les récepteurs PostgreSQL, SQL Server et Memcached n'en indiquent aucune ; sous l'agent seul, ces bases n'affichent donc pas de version, et une base qui s'exécute aussi dans Kubernetes, Docker ou Podman affiche celle de son image de conteneur.
 
@@ -418,7 +423,7 @@ L'unité suppose `/opt/oneuptime-database-agent` (la valeur par défaut du scrip
 
 Relancez `install.sh` : il réutilise chaque valeur de votre `.env` existant, remplace `docker-compose.yml`, `otel-collector-config.yaml` et l'unité systemd par les versions actuelles, et recrée le conteneur de l'agent pour que la nouvelle configuration prenne effet. Un fichier que vous aviez modifié — `network_mode: host`, un récepteur `filelog` et son montage, des métriques supplémentaires — est conservé à côté du nouveau sous `<file>.bak.<timestamp>`, et le script le liste à la fin pour que vous puissiez réappliquer la modification. Appliquez toute modification de `.env` ou de `otel-collector-config.yaml` avec `docker compose up -d --force-recreate` : le collecteur ne lit sa configuration qu'au démarrage, et un simple `docker compose up -d` laisse le conteneur en cours d'exécution tel quel quand seul le fichier de configuration a changé. Le script enregistre ce qu'il a installé dans `.agent-files.sha256`, de sorte qu'un fichier que personne n'a modifié est remplacé sans copie, quelle que soit l'ampleur des changements de la nouvelle version ; dans un répertoire sans cet enregistrement (un répertoire que vous avez préparé à la main), chaque fichier qui diffère de la nouvelle version est conservé, car il peut contenir des modifications. Pour supprimer l'agent : `cd /opt/oneuptime-database-agent && docker compose down`, puis supprimez l'utilisateur de supervision (et le login propre de l'agent IA, si vous en avez créé un).
 
-L'agent indique comme **Version de l'agent** la version du collecteur que fixent ses fichiers. Quand elle est plus ancienne que la version que fixe cette version de OneUptime, un signe d'avertissement apparaît à côté sur la **Vue d'ensemble** de la base de données. Sélectionnez-le pour voir comment mettre à jour : par le script d'installation, avec Docker Compose ou, pour une base de données dans Kubernetes, avec le Deployment du guide de configuration.
+L'agent indique comme **Version de l'agent** la version de ses fichiers : la version du collecteur qu'ils fixent, dont le dernier nombre augmente chaque fois que les fichiers changent sur ce collecteur. Quand elle est plus ancienne que la version que fixe cette version de OneUptime, un signe d'avertissement apparaît à côté sur la **Vue d'ensemble** de la base de données. Sélectionnez-le pour voir comment mettre à jour : par le script d'installation, avec Docker Compose ou, pour une base de données dans Kubernetes, avec le Deployment du guide de configuration.
 
 ## Agent IA
 
@@ -521,6 +526,8 @@ spec:
               value: "true"
             - name: DATABASE_TLS_INSECURE_SKIP_VERIFY
               value: "false"
+            - name: DATABASE_TLS_SSLMODE
+              value: "disable"
             - name: DATABASE_COLLECTION_INTERVAL
               value: "30s"
             - name: DATABASE_QUERY_EVENTS
@@ -594,13 +601,44 @@ Un point de terminaison est un `host:port` sur lequel une base de données répo
 
 Le nom d'une base de données est par défaut le moteur et son point de terminaison — `PostgreSQL db.example.com:5432` — ou, pour une base détectée à partir de ses conteneurs, le moteur et sa charge de travail : `<namespace>/<workload>` dans Kubernetes (`PostgreSQL data/postgres`), et sur Docker ou Podman le nom du conteneur, son service Compose (`<project>-<service>`) ou son service Swarm. On peut le renommer librement ; le nom n'est pas l'identité. Ce défaut facilite les règles d'étiquettes et de propriétaires par nom : un motif de nom `^PostgreSQL` correspond à toutes les bases PostgreSQL, et `^MariaDB` à toutes les bases MariaDB.
 
+## Voir quelles bases de données requièrent attention
+
+La liste **Bases de données** commence par **Attention requise** : chaque base de données au-delà d'un seuil des alertes recommandées pour son moteur, et chacune dont les métriques du moteur se sont arrêtées, la plus urgente d'abord, chacune avec la raison et une étape vers sa page. Quand rien ne requiert attention, il n'y a pas de carte.
+
+En dessous, le **Statut** de chaque base de données dit comment va son moteur, avec la raison en dessous :
+
+| Statut | Quand |
+| --- | --- |
+| **Sain** | Ses métriques du moteur arrivent, et aucune ne dépasse un seuil des alertes recommandées pour son moteur. |
+| **Dégradé** | Un seuil d'avertissement est franchi, d'après le tableau ci-dessous. |
+| **Défaillant** | Un seuil critique est franchi, d'après le tableau ci-dessous. |
+| **Métriques du moteur interrompues** | Son champ **Métriques du moteur** indique _Déconnecté_ : un agent ou un collecteur a remonté des données, puis s'est arrêté (voir [Cycle de vie](#cycle-de-vie-archivage-et-rétention)). Ce qu'il a remonté en dernier n'est plus vrai : la ligne indique donc plutôt quand il l'a fait pour la dernière fois. |
+| **Aucune métrique du moteur** | Aucun Database Agent ni collecteur n'a encore remonté de données pour elle (voir [Le Database Agent](#le-database-agent)). |
+| **Remonte des données** | Ses métriques du moteur arrivent, mais aucune des mesures que jugent les seuils de son moteur n'est arrivée dans les 15 dernières minutes, ou OneUptime ne recommande aucune alerte pour son moteur. |
+
+Les seuils sont ceux des [moniteurs recommandés](#moniteurs-recommandés) eux-mêmes — les métriques, la formule et le seuil de chacun — jugés d'après ce que le moteur a remonté en dernier, que OneUptime conserve sur la base de données environ une fois par minute. La page le dit dès qu'une mesure franchit un seuil ; le moniteur attend la fin de sa fenêtre avant d'ouvrir une alerte. Un moniteur que vous avez modifié après l'avoir créé garde son propre seuil, et la santé le seuil recommandé. Une base de données pour laquelle plusieurs agents remontent des données — un par membre d'un replica set, par exemple — est jugée comme le moniteur la juge : les connexions additionnées, le retard du réplica le plus en retard.
+
+| Moteur | Défaillant | Dégradé |
+| --- | --- | --- |
+| PostgreSQL | Connexions à 95 % de `max_connections` ; identifiants de transaction proches du bouclage | Connexions à 80 % de `max_connections` ; identifiants de transaction qui vieillissent vers le bouclage ; un réplica en retard de 30 secondes sur le rejeu ; un réplica en retard de 1 Go de WAL ; un redémarrage ; une transaction ouverte depuis une heure ; une session qui attend un verrou ; une base de données de 500 Go ou plus |
+| MySQL / MariaDB | — | 136 connexions ; 50 threads en cours d'exécution ; 75 % du buffer pool modifié ; un réplica en retard de 30 secondes ; un redémarrage |
+| SQL Server | — | Un taux de réussite du cache de tampons inférieur à 90 % ; une espérance de vie des pages inférieure à 300 secondes ; une session bloquée ; une requête qui attend de la mémoire |
+| Oracle | Un tablespace plein à 90 % | — |
+| Redis / Valkey / KeyDB / Dragonfly | — | Mémoire à 90 % de `maxmemory` ; un ratio de fragmentation de 1,5 avec 256 Mo utilisés ; 9 000 clients ; un redémarrage |
+| MongoDB | Connexions à 90 % de la limite | Un redémarrage |
+| Elasticsearch / OpenSearch | Santé du cluster rouge | Santé du cluster jaune ; 10 tâches de cluster en attente ; un tas JVM plein à 85 % |
+| Memcached | — | 900 connexions |
+| CouchDB | — | Des requêtes de 1 000 ms en moyenne |
+
+La **Vue d'ensemble** d'une base de données dit la même chose : sa santé dans son en-tête (_Santé inconnue_ tant que ses métriques du moteur sont arrêtées, aucune avant qu'il en soit arrivé), puis **Attention requise**, une ligne par type de seuil franchi — **Connexions**, **Réplication**, **Mémoire** et les autres —, chacune ouvrant l'onglet **Métriques** ou, quand ses métriques du moteur se sont arrêtées, l'onglet **Documentation** avec le guide de configuration et le script de diagnostic. **Alertes de la base de données** liste celles des alertes recommandées pour son moteur qui la surveillent, et son bouton ouvre **Recommandations** avec les autres sélectionnées.
+
 ## Alertes sur une base de données
 
 Les onglets **Alertes** et **Incidents** d'une base de données montrent ce qu'ont ouvert les moniteurs qui la nomment. Tant que la base est dans une fenêtre de maintenance planifiée en cours, ces moniteurs n'ouvrent aucun nouvel incident ni aucune nouvelle alerte, sauf s'ils nomment aussi une ressource située hors de la fenêtre. Leur état continue d'être mis à jour, et ce qu'ils ont ouvert avant la fenêtre se résout toujours. Les bases de données peuvent aussi être rattachées à la main à des incidents, alertes et maintenances planifiées, comme toute autre ressource : en créer un depuis l'onglet **Incidents**, **Alertes** ou **Maintenance planifiée** de la base de données elle-même démarre avec la base déjà sélectionnée.
 
 ### Moniteurs recommandés
 
-L'onglet **Recommandations** de la base de données propose des moniteurs de métriques prêts à l'emploi pour son moteur — connexions proches de leur limite, retard de réplication, pression sur la mémoire et le cache, sessions bloquées, tablespaces pleins, santé du cluster, redémarrages, et une vérification **Engine Metrics Stopped** qui se déclenche quand les métriques du moteur cessent d'arriver — pour ces moteurs : PostgreSQL, MySQL, MariaDB, SQL Server, Oracle, Redis, Valkey, KeyDB, Dragonfly, Memcached, MongoDB, CouchDB, Elasticsearch et OpenSearch. Ils lisent les métriques que signale le récepteur du moteur dans le collecteur ; ils sont donc proposés dès que l'une de ces métriques est arrivée marquée du `oneuptime.database.server.id` de la base au cours des 30 derniers jours — ses journaux, un autre récepteur (le récepteur `mongodbatlas` d'un cluster MongoDB Atlas, par exemple) ou un exporteur ne comptent pas, et d'ici là l'onglet explique pourquoi il est vide —, et chacun filtre sur le `oneuptime.database.server.id` de la base. Le badge à côté de l'onglet compte ceux qui ne sont pas encore créés.
+L'onglet **Recommandations** de la base de données propose des moniteurs de métriques prêts à l'emploi pour son moteur — connexions proches de leur limite, retard de réplication, pression sur la mémoire et le cache, sessions bloquées, tablespaces pleins, santé du cluster, redémarrages, et une vérification **Engine Metrics Stopped** qui se déclenche quand les métriques du moteur cessent d'arriver — pour ces moteurs : PostgreSQL, MySQL, MariaDB, SQL Server, Oracle, Redis, Valkey, KeyDB, Dragonfly, Memcached, MongoDB, CouchDB, Elasticsearch et OpenSearch. Ils lisent les métriques que signale le récepteur du moteur dans le collecteur ; ils sont donc proposés dès que l'une de ces métriques est arrivée marquée du `oneuptime.database.server.id` de la base au cours des 30 derniers jours — ses journaux, un autre récepteur (le récepteur `mongodbatlas` d'un cluster MongoDB Atlas, par exemple) ou un exporteur ne comptent pas, et d'ici là l'onglet explique pourquoi il est vide —, et chacun filtre sur le `oneuptime.database.server.id` de la base. Le badge à côté de l'onglet compte ceux qui ne sont pas encore créés. Les moniteurs PostgreSQL de redémarrage, d'identifiants de transaction, de transactions ouvertes et d'attente de verrous lisent les vérifications SQL propres au Database Agent (voir [Ce qui est collecté](#ce-qui-est-collecté)) : avec votre propre collecteur, ils restent donc muets jusqu'à ce qu'il exécute le même récepteur `sqlquery`.
 
 La documentation d'un récepteur liste ce qu'il peut signaler, pas ce qui arrive de chaque configuration ; les moniteurs SQL Server et Oracle ne lisent donc que des métriques dont l'arrivée a été observée depuis les configurations du Database Agent lui-même. C'est pourquoi SQL Server n'a pas de moniteur de journal des transactions ni de temps d'attente des verrous (seuls les compteurs de performances Windows les signalent, et l'agent se connecte directement) et Oracle aucun sur sa limite de sessions ou de processus (une connexion à une base enfichable ne les signale pas).
 
@@ -692,7 +730,7 @@ Dans le conteneur de l'agent, `localhost` est le conteneur lui-même. Utilisez `
 - `ORA-12514` ou `ORA-12505` : le listener Oracle répond — la vérification de connexion réussit donc — mais ne connaît pas le service que nomme `DATABASE_ORACLE_SERVICE` ; `lsnrctl services` sur l'hôte de la base de données liste ceux qu'il connaît.
 - `ORA-28000` ou `ORA-28001` : l'utilisateur de supervision Oracle est verrouillé ou son mot de passe a expiré.
 - `failed to explain` sur les requêtes principales PostgreSQL n'est pas un droit manquant : les plans d'exécution demandent `SELECT` sur vos tables, ce que `pg_monitor` n'accorde délibérément pas. Les métriques et les requêtes principales ne sont pas affectées ; seuls les plans restent vides.
-- `SSL is not enabled on the server` : définissez `DATABASE_TLS_INSECURE=true`. Un serveur qui exige TLS : `DATABASE_TLS_INSECURE=false`, plus `DATABASE_TLS_INSECURE_SKIP_VERIFY=true` pour un certificat auquel l'image ne fait pas confiance. Pour Elasticsearch / OpenSearch, c'est le `http://` ou le `https://` de `DATABASE_ENDPOINT` qui en décide.
+- `SSL is not enabled on the server` : définissez `DATABASE_TLS_INSECURE=true`. Un serveur qui exige TLS : `DATABASE_TLS_INSECURE=false`, plus `DATABASE_TLS_INSECURE_SKIP_VERIFY=true` pour un certificat auquel l'image ne fait pas confiance. Pour Elasticsearch / OpenSearch, c'est le `http://` ou le `https://` de `DATABASE_ENDPOINT` qui en décide. Pour PostgreSQL, réglez `DATABASE_TLS_SSLMODE` en conséquence — `disable`, `require` ou `verify-full`, comme le fait `install.sh` —, sinon les vérifications SQL propres à la configuration ne peuvent pas se connecter.
 - Erreurs `pg_stat_statements` : créez l'extension, ou définissez `DATABASE_QUERY_EVENTS=false`.
 - Pour toute autre erreur de récepteur, le script de diagnostic affiche la plus fréquente, telle que le pilote de base de données l'a formulée (avec le mot de passe masqué).
 
@@ -728,6 +766,10 @@ Il manque aux spans `db.system.name` / `db.system` ou `server.address`, ou ils u
 ### Les métriques du moteur indiquent Déconnecté ou Non connecté
 
 _Non connecté_ : aucun Database Agent ni collecteur n'a jamais rien signalé pour cette base de données — installez l'agent depuis son onglet **Documentation**. _Déconnecté_ : l'un d'eux l'a fait et n'a rien envoyé depuis au moins 15 minutes (voir [Cycle de vie](#cycle-de-vie-archivage-et-rétention)) — exécutez le [script de diagnostic](#exécuter-dabord-le-script-de-diagnostic) là où il s'exécute. Les moniteurs recommandés apparaissent dans l'onglet **Recommandations** dès que les métriques propres au récepteur du moteur sont arrivées.
+
+### Le statut indique Remonte des données au lieu de Sain
+
+**Remonte des données** signifie que des métriques du moteur arrivent, mais aucune des mesures que jugent les seuils de son moteur : un collecteur à vous qui omet ces métriques, des mesures qui se sont arrêtées alors que d'autres données arrivent encore, ou un moteur pour lequel OneUptime ne recommande aucune alerte. L'onglet **Métriques** montre ce qui arrive réellement ; comparez-le avec [Ce qui est collecté](#ce-qui-est-collecté).
 
 ### Les alertes d'un moniteur n'apparaissent pas sur la base de données
 

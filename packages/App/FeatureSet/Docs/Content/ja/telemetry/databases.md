@@ -5,6 +5,7 @@
 :::cards
 - [Database Agent](#database-agent): PostgreSQL、MySQL、SQL Server、Oracle、Redis、MongoDB、Elasticsearch、Memcached のエンジンのメトリクス。
 - [データベースの検出方法](#データベースの検出方法): トレース、Kubernetes、Docker、Podman、Collector から検出します。
+- [対応が必要なデータベースを見る](#対応が必要なデータベースを見る): 各エンジンの推奨アラートのしきい値で判定するヘルス。
 - [データベースのアラート](#データベースのアラート): 推奨モニターと、自分で作るモニター。
 - [トラブルシューティング](#トラブルシューティング): 診断スクリプトと、よくある問題。
 :::
@@ -341,6 +342,7 @@ DATABASE_USERNAME=oneuptime_monitor
 DATABASE_PASSWORD='a-strong-password'
 DATABASE_TLS_INSECURE=true
 DATABASE_TLS_INSECURE_SKIP_VERIFY=false
+DATABASE_TLS_SSLMODE=disable
 DATABASE_COLLECTION_INTERVAL=30s
 DATABASE_QUERY_EVENTS=false
 DATABASE_SERVER_ID=
@@ -375,6 +377,7 @@ docker compose up -d
 | `DATABASE_PASSWORD` | PostgreSQL、SQL Server、Oracle | そのパスワード。`.env` では単一引用符で囲み、すべての `$` を `$$` と書きます (`install.sh` が両方とも行います) |
 | `DATABASE_TLS_INSECURE` | いいえ | `true` (デフォルト) は TLS なしで接続し、`false` は TLS を有効にします |
 | `DATABASE_TLS_INSECURE_SKIP_VERIFY` | いいえ | `true` は Collector のイメージが信頼しない証明書 (自己署名、プライベート CA) を受け入れます。デフォルトは `false` |
+| `DATABASE_TLS_SSLMODE` | いいえ | PostgreSQL: 上の二つの設定を libpq の `sslmode` で表したもので、設定ファイル自身の SQL チェックに使います。`DATABASE_TLS_INSECURE` が `true` の間は `disable`、`DATABASE_TLS_INSECURE_SKIP_VERIFY` が `true` のときは `require`、それ以外は `verify-full` です。`install.sh` が書き込みます。デフォルトは `disable` |
 | `DATABASE_COLLECTION_INTERVAL` | いいえ | エンジンの統計情報を読み取る間隔。デフォルトは `30s` |
 | `DATABASE_QUERY_EVENTS` | いいえ | `true` にすると、クエリサンプルとトップクエリをログとして送信します (PostgreSQL、MySQL、MongoDB、SQL Server、Oracle)。クエリのテキストを含みます。デフォルトは `false` |
 | `DATABASE_SERVER_ID` | いいえ | OneUptime がすでに表示しているデータベースの ID (その **ドキュメント** タブにあらかじめ入力されています)。データはそのデータベースに直接入り、報告するアドレスが何であっても (またはアドレスがなくても) そのページに表示されます。Kubernetes やプライベート IP ではこの方法を使います。取り込みキーが属するプロジェクトのデータベースである必要があります |
@@ -393,6 +396,8 @@ docker compose up -d
 | Memcached | `memcached`: 接続、コマンド、ヒットとミス、エビクション、アイテム、バイト、ネットワーク、スレッド、CPU (すべてデフォルトで有効) | — | — |
 
 PostgreSQL レシーバーの `postgresqlreceiver.preciselagmetrics` フィーチャーゲートはデフォルトで有効で、レプリケーションの時間遅延を `postgresql.wal.lag` ではなく `postgresql.wal.delay` として記録しますが、このメトリクスはアップストリームでは無効です。そのためエージェントはこれを有効にしています。各設定には、ほかの任意のメトリクスがコメントで列挙されています。どれも同じ方法で有効にできます。データベースの概要にある **エンジンのメトリクス** セクションには、この表のエンジンごとに厳選したセットが表示されます (Elasticsearch / OpenSearch ではクラスターの正常性、ノード、未割り当てのシャード、保留中のタスク、JVM ヒープ、ディスクの空き容量、検索とインデックス作成。Memcached では接続、メモリ、アイテム、get のヒットとミス、コマンド、エビクション)。**メトリクス** タブにはすべてがあります。そこでは、概要に表示されるメトリクスは概要と同じ値 (系列は同じ方法で結合され、カウンターは毎秒のレート) を示し、その方法を説明するキャプション (_系列の合計_、_毎秒、全系列_) が付きます。それ以外の行は系列の平均を示し、属性でリストを絞り込んでいる間はすべての行が平均を示します。MariaDB は `mysql.buffer_pool.limit` を、レシーバーが宣言するバイト数ではなくバッファプールのページ数として報告するため、MariaDB のデータベースではその行とグラフはページ単位で読みます。MariaDB には `Innodb_rows_*` ステータスカウンターがないため、レシーバーは MariaDB について `mysql.row_operations` を送らず、MariaDB の概要には **Row operations** グラフがありません。行の読み取りと書き込みは **Handler operations** に表示されます。
+
+PostgreSQL の設定ファイルは、Collector の `sqlquery` レシーバーを使い、同じ間隔でサーバーに独自の 4 つの問い合わせも行います。稼働時間 (`postgresql.uptime`、`pg_postmaster_start_time()` から)、最も古いトランザクション ID の経過 (`postgresql.xid.oldest_age`、`pg_database` の中で最大の `age(datfrozenxid)`)、最も古い開いたままのトランザクションが開いている時間 (`postgresql.transaction.longest_duration`)、ロックを待っているセッションの数 (`postgresql.sessions.waiting_on_lock`) で、最後の 2 つは `pg_stat_activity` から読みます。`postgresql` レシーバーはこのどれも報告しませんが、再起動、開いたまま放置されたトランザクション、ロック待ちの列、そして迫りつつあるトランザクション ID の周回 (wraparound) を示すのはこれらです。PostgreSQL は経過が 21 億付近になると書き込みを受け付けなくなるため、10 億から確認が必要になり、15 億から重大になります。`pg_monitor` でこれらをまかなえます。このクエリは `DATABASE_TLS_SSLMODE` で接続し、空白を含むパスワードではログインできません (空白を `+` として送るため)。`install.sh` はこれを警告します。独自の Collector では、`configs/postgresql.yaml` の `sqlquery/oneuptime` レシーバーをその `metrics` パイプラインにコピーしてください。
 
 データベースの **バージョン** は、レシーバーが報告する場合はレシーバーから取得します: `db.system.version` (MySQL / MariaDB、MongoDB)、`redis.version` (Redis、KeyDB)、`oracle.db.version` (Oracle)、`elasticsearch.node.version` (Elasticsearch / OpenSearch)。PostgreSQL、SQL Server、Memcached のレシーバーは報告しないため、エージェントだけの場合、これらのデータベースにはバージョンが表示されません。Kubernetes、Docker、Podman でも動いているデータベースは、コンテナーイメージのバージョンを表示します。
 
@@ -418,7 +423,7 @@ sudo systemctl enable --now oneuptime-database-agent
 
 `install.sh` を再実行します。既存の `.env` のすべての値を再利用し、`docker-compose.yml`、`otel-collector-config.yaml`、systemd ユニットを最新のものに置き換え、新しい設定が反映されるようにエージェントのコンテナーを作り直します。編集していたファイル (`network_mode: host`、`filelog` レシーバーとそのマウント、追加のメトリクス) は新しいファイルの横に `<file>.bak.<timestamp>` として残され、スクリプトは最後にそれを一覧表示するので、編集を適用し直せます。`.env` や `otel-collector-config.yaml` の編集は `docker compose up -d --force-recreate` で適用してください。Collector は起動時にしか設定を読み取らず、設定ファイルだけが変わった場合、通常の `docker compose up -d` は実行中のコンテナーをそのままにします。スクリプトはインストールしたものを `.agent-files.sha256` に記録するため、誰も編集していないファイルは、新しいバージョンがどれだけ変わっていてもコピーを残さずに置き換えられます。その記録がないディレクトリ (手動で用意したもの) では、編集が含まれている可能性があるため、新しいバージョンと異なるファイルはすべて残されます。エージェントを削除するには、`cd /opt/oneuptime-database-agent && docker compose down` を実行し、監視用ユーザー (作成した場合は AI エージェント専用のログインも) を削除します。
 
-エージェントは、ファイルで固定された Collector のバージョンを **エージェントバージョン** として報告します。それがこの OneUptime リリースで固定されたバージョンより古い場合、データベースの **概要** でその横に警告マークが表示されます。選択すると、アップグレード方法が表示されます。インストールスクリプト、Docker Compose、または Kubernetes 上のデータベースではセットアップガイドの Deployment を使います。
+エージェントは、ファイルのバージョンを **エージェントバージョン** として報告します。これはファイルが固定する Collector のバージョンで、その Collector 上でファイルが変わるたびに最後の数字が上がります。それがこの OneUptime リリースで固定されたバージョンより古い場合、データベースの **概要** でその横に警告マークが表示されます。選択すると、アップグレード方法が表示されます。インストールスクリプト、Docker Compose、または Kubernetes 上のデータベースではセットアップガイドの Deployment を使います。
 
 ## AI エージェント
 
@@ -521,6 +526,8 @@ spec:
               value: "true"
             - name: DATABASE_TLS_INSECURE_SKIP_VERIFY
               value: "false"
+            - name: DATABASE_TLS_SSLMODE
+              value: "disable"
             - name: DATABASE_COLLECTION_INTERVAL
               value: "30s"
             - name: DATABASE_QUERY_EVENTS
@@ -594,13 +601,44 @@ processors:
 
 データベースの名前のデフォルトは、エンジンとそのエンドポイント (`PostgreSQL db.example.com:5432`) です。コンテナーから検出されたデータベースでは、エンジンとそのワークロードになります。Kubernetes では `<namespace>/<workload>` (`PostgreSQL data/postgres`)、Docker や Podman ではコンテナーの名前、その Compose サービス (`<project>-<service>`)、またはその Swarm サービスです。名前は自由に変更できます。名前は ID ではありません。このデフォルトにより、名前によるラベルルールや所有者ルールを簡単に作れます。名前パターン `^PostgreSQL` はすべての PostgreSQL データベースに、`^MariaDB` はすべての MariaDB データベースに一致します。
 
+## 対応が必要なデータベースを見る
+
+**データベース** 一覧は **対応が必要** から始まります。エンジンの推奨アラートのしきい値を超えたデータベースと、エンジンのメトリクスが止まったデータベースのすべてを緊急度の高い順に並べ、それぞれに理由と、そのページへ 1 ステップで移る方法を示します。対応が必要なものがなければカードは表示されません。
+
+その下で、各データベースの **ステータス** がエンジンの状態を示し、その下に理由が表示されます。
+
+| ステータス | 条件 |
+| --- | --- |
+| **正常** | エンジンのメトリクスが届いており、どれもエンジンの推奨アラートのしきい値を超えていません。 |
+| **機能低下** | 下の表にある警告のしきい値を超えています。 |
+| **異常** | 下の表にある重大のしきい値を超えています。 |
+| **エンジンのメトリクスが停止** | **エンジンのメトリクス** が _切断済み_ になっています。エージェントまたは Collector が報告した後に止まりました ([ライフサイクル](#ライフサイクルアーカイブ保持期間) を参照)。最後に報告された値はもう実態を表さないため、行には代わりに最後に報告した時刻が表示されます。 |
+| **エンジンのメトリクスなし** | Database Agent も Collector もまだこのデータベースについて報告していません ([Database Agent](#database-agent) を参照)。 |
+| **報告中** | エンジンのメトリクスは届いていますが、エンジンのしきい値が判定する値のどれも直近 15 分以内に届いていないか、OneUptime がそのエンジンに推奨するアラートがありません。 |
+
+しきい値は [推奨モニター](#推奨モニター) そのもの (それぞれのメトリクス、数式、しきい値) で、エンジンが最後に報告した値に対して判定されます。OneUptime はこの値を約 1 分ごとにデータベースに保存します。ページは値がしきい値を超えた時点でそう示し、モニターはアラートを開く前に自分の期間が過ぎるのを待ちます。作成後に変更したモニターは自分のしきい値を保ち、ヘルスは推奨のしきい値を使います。複数のエージェントが報告するデータベース (たとえばレプリカセットのメンバーごとに 1 つ) は、モニターと同じように判定されます。接続数は合計し、レプリカの遅れは最も遅れているものを使います。
+
+| エンジン | 異常 | 機能低下 |
+| --- | --- | --- |
+| PostgreSQL | 接続数が `max_connections` の 95%、トランザクション ID が周回の限界に近い | 接続数が `max_connections` の 80%、トランザクション ID が周回に向けて古くなっている、リプレイで 30 秒遅れているレプリカ、WAL で 1 GB 遅れているレプリカ、再起動、一時間開いたままのトランザクション、ロックを待つセッション、500 GB 以上のデータベース |
+| MySQL / MariaDB | — | 136 接続、実行中の 50 スレッド、バッファプールの 75% がダーティ、30 秒遅れているレプリカ、再起動 |
+| SQL Server | — | 90% 未満のバッファキャッシュヒット率、300 秒未満のページの予測保持期間、ブロックされたセッション、メモリを待っているクエリ |
+| Oracle | 90% 使用済みの表領域 | — |
+| Redis / Valkey / KeyDB / Dragonfly | — | メモリが `maxmemory` の 90%、256 MB 使用時に 1.5 の断片化率、9,000 クライアント、再起動 |
+| MongoDB | 接続数が上限の 90% | 再起動 |
+| Elasticsearch / OpenSearch | クラスターのヘルスが赤 | クラスターのヘルスが黄、保留中の 10 件のクラスタータスク、85% 使用済みの JVM ヒープ |
+| Memcached | — | 900 接続 |
+| CouchDB | — | 平均 1,000 ms のリクエスト |
+
+データベースの **概要** も同じことを示します。ヘッダーにヘルス (エンジンのメトリクスが止まっている間は _ヘルス: 不明_、まだ何も届いていなければ表示なし)、続いて **対応が必要** で、超えたしきい値の種類ごとに 1 行 (**接続**、**レプリケーション**、**メモリ** など) を示します。各行は **メトリクス** タブを開き、エンジンのメトリクスが止まった場合はセットアップガイドと診断スクリプトのある **ドキュメント** タブを開きます。 **データベースのアラート** には、エンジンの推奨アラートのうちこのデータベースを監視しているものが表示され、そのボタンを選ぶと、残りを選択した状態で **推奨事項** が開きます。
+
 ## データベースのアラート
 
 データベースの **アラート** タブと **インシデント** タブには、そのデータベースを示すモニターが開いたものが表示されます。データベースが進行中の定期メンテナンスの時間帯にある間、それらのモニターは、時間帯の外にあるリソースも示している場合を除き、新しいインシデントやアラートを開きません。状態は引き続き更新され、時間帯の前に開いたものは引き続き解決されます。データベースは、ほかのリソースと同じように、インシデント、アラート、定期メンテナンスに手動で紐付けることもできます。データベース自身の **インシデント**、**アラート**、**定期メンテナンス** タブから作成すると、データベースが選択された状態で始まります。
 
 ### 推奨モニター
 
-データベースの **推奨事項** タブでは、エンジン向けのすぐに使えるメトリクスモニター (上限に近い接続数、レプリケーションの遅延、メモリとキャッシュの逼迫、ブロックされたセッション、満杯の表領域、クラスターの正常性、再起動、そしてエンジンのメトリクスが届かなくなったときに発火する **Engine Metrics Stopped** チェック) を、次のエンジンについて提案します: PostgreSQL、MySQL、MariaDB、SQL Server、Oracle、Redis、Valkey、KeyDB、Dragonfly、Memcached、MongoDB、CouchDB、Elasticsearch、OpenSearch。これらはエンジンの Collector レシーバーが報告するメトリクスを読み取るため、それらのメトリクスのいずれかが過去 30 日間にデータベースの `oneuptime.database.server.id` 付きで届いた時点で提案されます (ログ、別のレシーバー (たとえば MongoDB Atlas クラスターの `mongodbatlas` レシーバー)、エクスポーターは数えません。それまでは、タブが空である理由を表示します)。いずれのモニターも、データベースの `oneuptime.database.server.id` で絞り込みます。タブの横のバッジは、まだ作成していないものの数を示します。
+データベースの **推奨事項** タブでは、エンジン向けのすぐに使えるメトリクスモニター (上限に近い接続数、レプリケーションの遅延、メモリとキャッシュの逼迫、ブロックされたセッション、満杯の表領域、クラスターの正常性、再起動、そしてエンジンのメトリクスが届かなくなったときに発火する **Engine Metrics Stopped** チェック) を、次のエンジンについて提案します: PostgreSQL、MySQL、MariaDB、SQL Server、Oracle、Redis、Valkey、KeyDB、Dragonfly、Memcached、MongoDB、CouchDB、Elasticsearch、OpenSearch。これらはエンジンの Collector レシーバーが報告するメトリクスを読み取るため、それらのメトリクスのいずれかが過去 30 日間にデータベースの `oneuptime.database.server.id` 付きで届いた時点で提案されます (ログ、別のレシーバー (たとえば MongoDB Atlas クラスターの `mongodbatlas` レシーバー)、エクスポーターは数えません。それまでは、タブが空である理由を表示します)。いずれのモニターも、データベースの `oneuptime.database.server.id` で絞り込みます。タブの横のバッジは、まだ作成していないものの数を示します。 PostgreSQL の再起動、トランザクション ID、開いたままのトランザクション、ロック待ちのモニターは Database Agent 独自の SQL チェックを読みます ([収集される内容](#収集される内容) を参照)。そのため、独自の Collector では、同じ `sqlquery` レシーバーを実行するまでこれらのモニターは何も検知しません。
 
 レシーバーのドキュメントは、報告できる内容を列挙したものであり、あらゆる構成から届く内容ではありません。そのため、SQL Server と Oracle のモニターは、Database Agent 自身の設定から届くことが確認されたメトリクスだけを読み取ります。このため SQL Server には、トランザクションログやロック待機時間のモニターがありません (これらを報告するのは Windows のパフォーマンスカウンターだけで、エージェントは直接接続します)。Oracle には、セッションやプロセスの上限のモニターがありません (プラガブルデータベースへの接続はこれらを報告しません)。
 
@@ -692,7 +730,7 @@ bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-d
 - `ORA-12514` または `ORA-12505`: Oracle のリスナーは応答します (そのため接続チェックは成功します) が、`DATABASE_ORACLE_SERVICE` が示すサービスを知りません。データベースのホストで `lsnrctl services` を実行すると、リスナーが知っているサービスが一覧表示されます。
 - `ORA-28000` または `ORA-28001`: Oracle の監視用ユーザーがロックされているか、パスワードの期限が切れています。
 - PostgreSQL のトップクエリでの `failed to explain` は権限不足ではありません。実行計画にはテーブルに対する `SELECT` が必要ですが、`pg_monitor` は意図的にこれを付与しません。メトリクスとトップクエリには影響せず、実行計画が空になるだけです。
-- `SSL is not enabled on the server`: `DATABASE_TLS_INSECURE=true` を設定してください。TLS が必要なサーバーでは `DATABASE_TLS_INSECURE=false` を設定し、イメージが信頼しない証明書の場合はさらに `DATABASE_TLS_INSECURE_SKIP_VERIFY=true` を設定します。Elasticsearch / OpenSearch では、`DATABASE_ENDPOINT` の `http://` か `https://` で決まります。
+- `SSL is not enabled on the server`: `DATABASE_TLS_INSECURE=true` を設定してください。TLS が必要なサーバーでは `DATABASE_TLS_INSECURE=false` を設定し、イメージが信頼しない証明書の場合はさらに `DATABASE_TLS_INSECURE_SKIP_VERIFY=true` を設定します。Elasticsearch / OpenSearch では、`DATABASE_ENDPOINT` の `http://` か `https://` で決まります。 PostgreSQL では、`DATABASE_TLS_SSLMODE` もこれに合わせて設定してください (`install.sh` と同じく `disable`、`require`、`verify-full` のいずれか)。そうしないと、設定ファイル自身の SQL チェックが接続できません。
 - `pg_stat_statements` のエラー: 拡張機能を作成するか、`DATABASE_QUERY_EVENTS=false` を設定してください。
 - そのほかのレシーバーのエラーについては、診断スクリプトが最も頻繁なものを、データベースドライバーの表現のまま (パスワードは伏せて) 表示します。
 
@@ -728,6 +766,10 @@ OneUptime がバッチをデータベースに帰属させるのは、バッチ�
 ### エンジンのメトリクスが「切断済み」または「未接続」になっている
 
 _未接続_: このデータベースについて、Database Agent も Collector も一度も報告していません。その **ドキュメント** タブからエージェントをインストールしてください。_切断済み_: 報告していたものが 15 分以上何も送っていません ([ライフサイクル](#ライフサイクルアーカイブ保持期間) を参照)。それが動いている場所で [診断スクリプト](#まず診断スクリプトを実行する) を実行してください。推奨モニターは、エンジンのレシーバー自身のメトリクスが届いた時点で **推奨事項** タブに表示されます。
+
+### ステータスが正常ではなく報告中になっている
+
+**報告中** は、エンジンのメトリクスは届いているものの、エンジンのしきい値が判定する値がどれも届いていないことを示します。これらのメトリクスを含めない独自の Collector、ほかのデータは届いているのに止まった値、または OneUptime が推奨するアラートのないエンジンが原因です。 **メトリクス** タブで実際に届いているものを確認し、[収集される内容](#収集される内容) と比べてください。
 
 ### モニターのアラートがデータベースに表示されない
 

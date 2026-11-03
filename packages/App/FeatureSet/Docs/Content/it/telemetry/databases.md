@@ -5,6 +5,7 @@
 :::cards
 - [Il Database Agent](#il-database-agent): Metriche del motore per PostgreSQL, MySQL, SQL Server, Oracle, Redis, MongoDB, Elasticsearch e Memcached.
 - [Come vengono rilevati i database](#come-vengono-rilevati-i-database): Da tracce, Kubernetes, Docker, Podman e collector.
+- [Vedere quali database richiedono attenzione](#vedere-quali-database-richiedono-attenzione): L'integrità giudicata in base alle soglie degli avvisi consigliati per ogni motore.
 - [Avvisi su un database](#avvisi-su-un-database): Monitor consigliati e monitor che costruisci tu.
 - [Risoluzione dei problemi](#risoluzione-dei-problemi): Uno script di diagnostica, e i problemi più comuni.
 :::
@@ -28,7 +29,7 @@ flowchart LR
     agent["Database Agent<br/>o un collector"] -->|"metriche del<br/>motore, eventi<br/>di query"| db
 ```
 
-Le metriche del motore arrivano solo da un collector che parla con il database stesso (o, per un database cloud gestito, con l'API di monitoraggio del suo provider). Le tracce e gli inventari dei container dicono a OneUptime che un database esiste e come viene usato, ma non come sta all'interno: lo stato **Engine metrics** di ogni database indica se quella parte è collegata.
+Le metriche del motore arrivano solo da un collector che parla con il database stesso (o, per un database cloud gestito, con l'API di monitoraggio del suo provider). Le tracce e gli inventari dei container dicono a OneUptime che un database esiste e come viene usato, ma non come sta all'interno: lo stato **Metriche del motore** di ogni database indica se quella parte è collegata.
 
 Puoi anche aggiungere un database a mano: **Database → Crea: Database** con motore, indirizzo e porta. Per un controllo di salute da una sonda che non richiede alcun agent, vedi il [Monitor stato database](/docs/monitor/database-health-monitor).
 
@@ -136,7 +137,7 @@ Sono accettate anche le altre grafie comuni: `postgres` e `pg`, `mssql` e `sqlse
 
 ## Come vengono rilevati i database
 
-Ogni database ricorda la fonte che l'ha creato (la colonna **Discovered from**), e il primo elemento del suo **Feed** dice che cosa l'ha trovato: il workload Kubernetes e il suo cluster, il container Docker o Podman (o il servizio Compose o Swarm) e il suo host, l'endpoint chiamato dalle applicazioni, oppure il Database Agent (con la sua versione) o il collector che l'ha segnalato. Le fonti successive si aggiungono allo stesso database invece di crearne un altro, purché descrivano lo stesso endpoint (vedi [Endpoint](#endpoint-e-la-regola-del-proprietario-unico)).
+Ogni database ricorda la fonte che l'ha creato (la colonna **Rilevato da**), e il primo elemento del suo **Feed** dice che cosa l'ha trovato: il workload Kubernetes e il suo cluster, il container Docker o Podman (o il servizio Compose o Swarm) e il suo host, l'endpoint chiamato dalle applicazioni, oppure il Database Agent (con la sua versione) o il collector che l'ha segnalato. Le fonti successive si aggiungono allo stesso database invece di crearne un altro, purché descrivano lo stesso endpoint (vedi [Endpoint](#endpoint-e-la-regola-del-proprietario-unico)).
 
 ### Dalle tracce delle applicazioni
 
@@ -341,6 +342,7 @@ DATABASE_USERNAME=oneuptime_monitor
 DATABASE_PASSWORD='a-strong-password'
 DATABASE_TLS_INSECURE=true
 DATABASE_TLS_INSECURE_SKIP_VERIFY=false
+DATABASE_TLS_SSLMODE=disable
 DATABASE_COLLECTION_INTERVAL=30s
 DATABASE_QUERY_EVENTS=false
 DATABASE_SERVER_ID=
@@ -355,7 +357,7 @@ docker compose up -d
 
 ### Trova il database in OneUptime
 
-Dopo la prima raccolta il database compare in **Database** oppure, se OneUptime lo aveva già rilevato da tracce o container allo stesso indirizzo, il suo stato **Engine metrics** passa a Connesso. Per un IP privato o un nome che si risolve solo all'interno della tua rete (`db.prod.internal`, un nome locale al cluster), crea prima il database o imposta `DATABASE_SERVER_ID` (vedi [Dal Database Agent o dal tuo collector](#dal-database-agent-o-dal-tuo-collector)).
+Dopo la prima raccolta il database compare in **Database** oppure, se OneUptime lo aveva già rilevato da tracce o container allo stesso indirizzo, il suo stato **Metriche del motore** passa a Connesso. Per un IP privato o un nome che si risolve solo all'interno della tua rete (`db.prod.internal`, un nome locale al cluster), crea prima il database o imposta `DATABASE_SERVER_ID` (vedi [Dal Database Agent o dal tuo collector](#dal-database-agent-o-dal-tuo-collector)).
 :::
 
 ### Variabili d'ambiente
@@ -375,6 +377,7 @@ Dopo la prima raccolta il database compare in **Database** oppure, se OneUptime 
 | `DATABASE_PASSWORD` | PostgreSQL, SQL Server, Oracle | La sua password. Nel `.env`, mettila tra virgolette singole e scrivi ogni `$` come `$$` (`install.sh` fa entrambe le cose per te) |
 | `DATABASE_TLS_INSECURE` | No | `true` (predefinito) si connette senza TLS; `false` attiva TLS |
 | `DATABASE_TLS_INSECURE_SKIP_VERIFY` | No | `true` accetta un certificato di cui l'immagine del collector non si fida (autofirmato, CA privata). Il valore predefinito è `false` |
+| `DATABASE_TLS_SSLMODE` | No | PostgreSQL: le due impostazioni sopra espresse come `sslmode` di libpq, per i controlli SQL propri della configurazione: `disable` finché `DATABASE_TLS_INSECURE` è `true`, `require` quando `DATABASE_TLS_INSECURE_SKIP_VERIFY` è `true`, altrimenti `verify-full`. `install.sh` la scrive. Il valore predefinito è `disable` |
 | `DATABASE_COLLECTION_INTERVAL` | No | Ogni quanto vengono lette le statistiche del motore. Il valore predefinito è `30s` |
 | `DATABASE_QUERY_EVENTS` | No | `true` invia i campioni di query e le top query come log (PostgreSQL, MySQL, MongoDB, SQL Server e Oracle). Contengono il testo delle query. Il valore predefinito è `false` |
 | `DATABASE_SERVER_ID` | No | L'id di un database che OneUptime mostra già (la sua scheda **Documentazione** lo riporta, già compilato). I dati confluiscono allora direttamente in quel database e compaiono nelle sue pagine, qualunque indirizzo riportino (o nessuno): è la strada per Kubernetes e per gli IP privati. Deve essere un database del progetto a cui appartiene la chiave di acquisizione |
@@ -393,6 +396,8 @@ Dopo la prima raccolta il database compare in **Database** oppure, se OneUptime 
 | Memcached | `memcached`: connessioni, comandi, hit e miss, eviction, elementi, byte, rete, thread, CPU (tutte attive per impostazione predefinita) | — | — |
 
 Il feature gate `postgresqlreceiver.preciselagmetrics` del receiver PostgreSQL, attivo per impostazione predefinita, registra il ritardo di replica nel tempo come `postgresql.wal.delay` anziché `postgresql.wal.lag`, e quella metrica è disattivata upstream: ecco perché l'agent la attiva. Ogni configurazione elenca altre metriche facoltative in un commento; attivale allo stesso modo. La sezione **Engine metrics** della panoramica di un database traccia un insieme selezionato per ogni motore di questa tabella (per Elasticsearch / OpenSearch salute del cluster, nodi, shard non assegnati, task in sospeso, heap della JVM, disco libero, ricerche e indicizzazione; per Memcached connessioni, memoria, elementi, hit e miss dei get, comandi ed eviction), e la scheda **Metriche** ha tutto. Lì una metrica tracciata dalla panoramica mostra il valore della panoramica (le sue serie combinate allo stesso modo, un contatore come frequenza al secondo) con una didascalia che dice come (_total of series_, _per second, all series_); ogni altra riga mostra la media delle sue serie, e così fa ogni riga mentre filtri l'elenco per un attributo. MariaDB riporta `mysql.buffer_pool.limit` come numero di pagine del buffer pool invece dei byte dichiarati dal receiver, quindi su un database MariaDB quella riga e il suo grafico si leggono in pagine. MariaDB non ha contatori di stato `Innodb_rows_*`, quindi il receiver non invia `mysql.row_operations` per esso e la panoramica di MariaDB non ha il grafico **Row operations**; **Handler operations** mostra le sue letture e scritture di righe.
+
+La configurazione di PostgreSQL pone inoltre al server quattro domande proprie, con il receiver `sqlquery` del collector allo stesso intervallo: da quanto tempo è in funzione (`postgresql.uptime`, da `pg_postmaster_start_time()`), l'età del suo ID di transazione più vecchio (`postgresql.xid.oldest_age`, il più grande `age(datfrozenxid)` in `pg_database`), da quanto tempo è aperta la sua transazione aperta più vecchia (`postgresql.transaction.longest_duration`) e quante sessioni attendono un lock (`postgresql.sessions.waiting_on_lock`), queste ultime due da `pg_stat_activity`. Il receiver `postgresql` non riporta nessuno di questi valori, ed è proprio da loro che si vedono un riavvio, una transazione lasciata aperta, una coda di attese di lock e l'avvicinarsi del wraparound degli ID di transazione: PostgreSQL smette di accettare scritture vicino a un'età di 2,1 miliardi, quindi la sua integrità richiede un'occhiata da 1 miliardo ed è critica da 1,5 miliardi. `pg_monitor` li copre. La query si connette con `DATABASE_TLS_SSLMODE` e non può accedere con una password che contiene uno spazio (la invia come `+`), cosa di cui `install.sh` avvisa. Con un collector tuo, copia il receiver `sqlquery/oneuptime` da `configs/postgresql.yaml` nella sua pipeline `metrics`.
 
 La **Versione** del database viene dal receiver, quando ne riporta una: `db.system.version` (MySQL / MariaDB, MongoDB), `redis.version` (Redis, KeyDB), `oracle.db.version` (Oracle) ed `elasticsearch.node.version` (Elasticsearch / OpenSearch). I receiver PostgreSQL, SQL Server e Memcached non ne riportano, quindi con il solo agent quei database non mostrano alcuna versione; uno che gira anche in Kubernetes, Docker o Podman mostra quella della sua immagine di container.
 
@@ -418,7 +423,7 @@ La unit presuppone `/opt/oneuptime-database-agent` (il valore predefinito dello 
 
 Riesegui `install.sh`: riutilizza ogni valore del tuo `.env` esistente, sostituisce `docker-compose.yml`, `otel-collector-config.yaml` e la unit systemd con le versioni attuali e ricrea il container dell'agent perché la nuova configurazione abbia effetto. Un file che avevi modificato (`network_mode: host`, un receiver `filelog` e il suo mount, metriche aggiuntive) viene conservato accanto a quello nuovo come `<file>.bak.<timestamp>`, e lo script lo elenca alla fine perché tu possa riapplicare la modifica. Applica ogni modifica a `.env` o a `otel-collector-config.yaml` con `docker compose up -d --force-recreate`: il collector legge la sua configurazione solo all'avvio, e un semplice `docker compose up -d` lascia invariato il container in esecuzione quando è cambiato solo il file di configurazione. Lo script registra ciò che ha installato in `.agent-files.sha256`, così un file che nessuno ha modificato viene sostituito senza copia, per quanto sia cambiata la nuova versione; in una directory senza quel registro (una che hai preparato a mano) viene conservato ogni file che differisce dalla nuova versione, perché potrebbe contenere modifiche. Per rimuovere l'agent: `cd /opt/oneuptime-database-agent && docker compose down`, poi elimina l'utente di monitoraggio (e il login proprio dell'agente IA, se ne hai creato uno).
 
-L'agent riporta come sua **Versione dell'agente** la versione del collector fissata dai suoi file. Quando è più vecchia della versione fissata da questa release di OneUptime, accanto a essa compare un segnale di avviso nella **Panoramica** del database. Selezionalo per vedere come aggiornare: con lo script di installazione, con Docker Compose o, per un database in Kubernetes, con il Deployment della guida di configurazione.
+L'agent riporta come sua **Versione dell'agente** la versione dei suoi file: la versione del collector che fissano, con l'ultimo numero aumentato ogni volta che i file cambiano su quel collector. Quando è più vecchia della versione fissata da questa release di OneUptime, accanto a essa compare un segnale di avviso nella **Panoramica** del database. Selezionalo per vedere come aggiornare: con lo script di installazione, con Docker Compose o, per un database in Kubernetes, con il Deployment della guida di configurazione.
 
 ## Agente IA
 
@@ -521,6 +526,8 @@ spec:
               value: "true"
             - name: DATABASE_TLS_INSECURE_SKIP_VERIFY
               value: "false"
+            - name: DATABASE_TLS_SSLMODE
+              value: "disable"
             - name: DATABASE_COLLECTION_INTERVAL
               value: "30s"
             - name: DATABASE_QUERY_EVENTS
@@ -594,13 +601,44 @@ Un endpoint è un `host:port` su cui risponde un database. La scheda **Endpoint*
 
 Il nome predefinito di un database è il motore e il suo endpoint (`PostgreSQL db.example.com:5432`) oppure, per un database rilevato dai suoi container, il motore e il suo workload: `<namespace>/<workload>` in Kubernetes (`PostgreSQL data/postgres`), e su Docker o Podman il nome del container, il suo servizio Compose (`<project>-<service>`) o il suo servizio Swarm. Può essere rinominato liberamente; il nome non è l'identità. Questo valore predefinito semplifica le regole per etichette e proprietari basate sul nome: un pattern di nome `^PostgreSQL` corrisponde a ogni database PostgreSQL, e `^MariaDB` a ogni database MariaDB.
 
+## Vedere quali database richiedono attenzione
+
+L'elenco **Database** inizia con **Richiede attenzione**: ogni database oltre una soglia degli avvisi consigliati per il suo motore e ognuno le cui metriche del motore si sono interrotte, il più urgente per primo, ognuno con il motivo e un passo verso la sua pagina. Quando nulla richiede attenzione, non c'è nessuna scheda.
+
+Sotto, lo **Stato** di ogni database dice come sta il suo motore, con il motivo sotto:
+
+| Stato | Quando |
+| --- | --- |
+| **Integro** | Le sue metriche del motore arrivano e nessuna supera una soglia degli avvisi consigliati per il suo motore. |
+| **Degradato** | È superata una soglia di avvertimento, dalla tabella qui sotto. |
+| **Non integro** | È superata una soglia critica, dalla tabella qui sotto. |
+| **Metriche del motore interrotte** | Il suo campo **Metriche del motore** indica _Disconnesso_: un agent o un collector ha inviato dati e poi si è fermato (vedi [Ciclo di vita](#ciclo-di-vita-archiviazione-e-conservazione)). Ciò che ha riportato per ultimo non è più vero, quindi la riga dice invece quando ha riportato l'ultima volta. |
+| **Nessuna metrica del motore** | Nessun Database Agent o collector ha ancora inviato dati per esso (vedi [Il Database Agent](#il-database-agent)). |
+| **Segnala** | Le sue metriche del motore arrivano, ma nessuna delle letture giudicate dalle soglie del suo motore è arrivata negli ultimi 15 minuti, oppure OneUptime non consiglia avvisi per il suo motore. |
+
+Le soglie sono quelle degli stessi [monitor consigliati](#monitor-consigliati) (le metriche, la formula e la soglia di ciascuno), giudicate in base a ciò che il motore ha riportato per ultimo, che OneUptime conserva sul database circa una volta al minuto. La pagina lo dice non appena una lettura supera una soglia; il monitor attende la fine della sua finestra prima di aprire un avviso. Un monitor che hai modificato dopo averlo creato mantiene la propria soglia, e l'integrità quella consigliata. Un database per cui inviano dati più agent (uno per membro di un replica set, per esempio) viene giudicato come lo giudica il monitor: connessioni sommate, il ritardo della replica più indietro.
+
+| Motore | Non integro | Degradato |
+| --- | --- | --- |
+| PostgreSQL | Connessioni al 95% di `max_connections`; ID di transazione vicini al wraparound | Connessioni all'80% di `max_connections`; ID di transazione che invecchiano verso il wraparound; una replica indietro di 30 secondi nel replay; una replica indietro di 1 GB di WAL; un riavvio; una transazione aperta da un'ora; una sessione in attesa di un lock; un database da 500 GB in su |
+| MySQL / MariaDB | — | 136 connessioni; 50 thread in esecuzione; 75% del buffer pool sporco; una replica indietro di 30 secondi; un riavvio |
+| SQL Server | — | Un buffer cache hit ratio sotto il 90%; una page life expectancy sotto i 300 secondi; una sessione bloccata; una query in attesa di memoria |
+| Oracle | Un tablespace pieno al 90% | — |
+| Redis / Valkey / KeyDB / Dragonfly | — | Memoria al 90% di `maxmemory`; un rapporto di frammentazione di 1,5 con 256 MB usati; 9.000 client; un riavvio |
+| MongoDB | Connessioni al 90% del limite | Un riavvio |
+| Elasticsearch / OpenSearch | Integrità del cluster rossa | Integrità del cluster gialla; 10 task del cluster in sospeso; un heap JVM pieno all'85% |
+| Memcached | — | 900 connessioni |
+| CouchDB | — | Richieste che impiegano in media 1.000 ms |
+
+La **Panoramica** di un database dice lo stesso: la sua integrità nell'intestazione (_Integrità sconosciuta_ mentre le sue metriche del motore sono interrotte, nessuna prima che ne sia arrivata qualcuna), poi **Richiede attenzione**, una riga per ogni tipo di soglia superata (**Connessioni**, **Replica**, **Memoria** e le altre), ognuna apre la scheda **Metriche** oppure, quando le sue metriche del motore si sono interrotte, la scheda **Documentazione** con la guida di configurazione e lo script di diagnostica. **Avvisi del database** elenca quali degli avvisi consigliati per il suo motore lo sorvegliano, e il suo pulsante apre **Raccomandazioni** con gli altri selezionati.
+
 ## Avvisi su un database
 
 Le schede **Avvisi** e **Incidenti** di un database mostrano ciò che hanno aperto i monitor che lo nominano. Mentre il database si trova in una finestra di manutenzione programmata in corso, quei monitor non aprono nuovi incidenti né nuovi avvisi, a meno che non nominino anche una risorsa che è fuori dalla finestra. Il loro stato continua ad aggiornarsi, e ciò che hanno aperto prima della finestra si risolve comunque. I database possono anche essere collegati a mano a incidenti, avvisi e manutenzioni programmate, come qualsiasi altra risorsa: crearne uno dalla scheda **Incidenti**, **Avvisi** o **Manutenzione programmata** del database stesso parte con il database già selezionato.
 
 ### Monitor consigliati
 
-La scheda **Raccomandazioni** del database offre monitor di metriche pronti per il suo motore (connessioni vicine al limite, ritardo di replica, pressione su memoria e cache, sessioni bloccate, tablespace pieni, salute del cluster, riavvii e un controllo **Engine Metrics Stopped** che scatta quando le metriche del motore smettono di arrivare) per questi motori: PostgreSQL, MySQL, MariaDB, SQL Server, Oracle, Redis, Valkey, KeyDB, Dragonfly, Memcached, MongoDB, CouchDB, Elasticsearch e OpenSearch. Leggono le metriche riportate dal receiver del motore nel collector, quindi vengono offerti non appena una di quelle metriche è arrivata marcata con l'`oneuptime.database.server.id` del database negli ultimi 30 giorni (i suoi log, un altro receiver, come il receiver `mongodbatlas` di un cluster MongoDB Atlas, o un exporter non contano, e fino ad allora la scheda spiega perché è vuota), e ognuno filtra sull'`oneuptime.database.server.id` del database. Il badge accanto alla scheda conta quelli non ancora creati.
+La scheda **Raccomandazioni** del database offre monitor di metriche pronti per il suo motore (connessioni vicine al limite, ritardo di replica, pressione su memoria e cache, sessioni bloccate, tablespace pieni, salute del cluster, riavvii e un controllo **Engine Metrics Stopped** che scatta quando le metriche del motore smettono di arrivare) per questi motori: PostgreSQL, MySQL, MariaDB, SQL Server, Oracle, Redis, Valkey, KeyDB, Dragonfly, Memcached, MongoDB, CouchDB, Elasticsearch e OpenSearch. Leggono le metriche riportate dal receiver del motore nel collector, quindi vengono offerti non appena una di quelle metriche è arrivata marcata con l'`oneuptime.database.server.id` del database negli ultimi 30 giorni (i suoi log, un altro receiver, come il receiver `mongodbatlas` di un cluster MongoDB Atlas, o un exporter non contano, e fino ad allora la scheda spiega perché è vuota), e ognuno filtra sull'`oneuptime.database.server.id` del database. Il badge accanto alla scheda conta quelli non ancora creati. I monitor di PostgreSQL per riavvii, ID di transazione, transazioni aperte e attese di lock leggono i controlli SQL propri del Database Agent (vedi [Che cosa viene raccolto](#che-cosa-viene-raccolto)), quindi con un collector tuo restano silenziosi finché non esegue lo stesso receiver `sqlquery`.
 
 La documentazione di un receiver elenca ciò che può riportare, non ciò che arriva da ogni configurazione, quindi i monitor di SQL Server e Oracle leggono solo metriche viste arrivare dalle configurazioni del Database Agent stesso. Per questo SQL Server non ha un monitor per il log delle transazioni né per il tempo di attesa dei lock (li riportano solo i contatori delle prestazioni di Windows, e l'agent si connette direttamente) e Oracle nessuno sul limite di sessioni o processi (una connessione a un pluggable database non li riporta).
 
@@ -643,7 +681,7 @@ Per una sonda che controlla un database senza alcun agent, vedi il [Monitor stat
 ## Ciclo di vita, archiviazione e conservazione
 
 - **Ultima volta visto** viene aggiornato da ogni fonte, e la pillola nell'intestazione di un database lo legge: _Visto di recente_ finché qualche fonte ha visto il database negli ultimi 30 minuti, _Non visto di recente_ dopo, e _Mai visto_ prima che una qualsiasi fonte lo abbia visto. Non dice nulla delle metriche del motore, che hanno un loro stato.
-- **Engine metrics** indica _Connesso_ finché continuano ad arrivare dati del collector, _Disconnesso_ quando un collector che inviava dati si ferma per 15 minuti, e _Non connesso_ quando nessun Database Agent o collector ha mai inviato dati. I 15 minuti sono un minimo: OneUptime registra l'heartbeat di un collector solo ogni 5 minuti circa mentre i dati scorrono, quindi attende altri 7 minuti, contati dall'ultimo heartbeat registrato, e controlla ogni 5 minuti; un collector che si ferma indica _Disconnesso_ tra 15 e circa 27 minuti dopo il suo ultimo punto dati. Il filtro **Engine metrics** dell'elenco offre tutti e tre gli stati.
+- **Metriche del motore** indica _Connesso_ finché continuano ad arrivare dati del collector, _Disconnesso_ quando un collector che inviava dati si ferma per 15 minuti, e _Non connesso_ quando nessun Database Agent o collector ha mai inviato dati. I 15 minuti sono un minimo: OneUptime registra l'heartbeat di un collector solo ogni 5 minuti circa mentre i dati scorrono, quindi attende altri 7 minuti, contati dall'ultimo heartbeat registrato, e controlla ogni 5 minuti; un collector che si ferma indica _Disconnesso_ tra 15 e circa 27 minuti dopo il suo ultimo punto dati. Il filtro **Metriche del motore** dell'elenco offre tutti e tre gli stati.
 - **Archiviare per scartare.** Eliminare un database rilevato lo rimuove solo finché una fonte non lo vede di nuovo: lo span o il pod successivo lo riporta come nuovo database. Per scartarne uno definitivamente, **archivialo**: un database archiviato mantiene i suoi endpoint, quindi tutto ciò che corrisponde a essi resta collegato al database archiviato invece di crearne uno nuovo.
 - **Database creati per la porta di un client.** Un database che le tracce delle applicazioni hanno creato per una porta da 32768 in su (diversa da quella predefinita del suo motore) viene eliminato, non archiviato, se nessuno ci ha investito, lo ha rinominato, descritto, archiviato o ripristinato. Il rilevamento non ne crea più (vedi [Un database per connessione](#un-database-per-connessione-ciascuno-su-una-porta-alta-diversa)), e uno eliminato non ritorna.
 - **Archiviazione automatica.** Un database rilevato che nessuna fonte ha visto per 7 giorni viene archiviato automaticamente, a meno che qualcuno non ci abbia investito: etichette o proprietari aggiunti da una persona, un incidente, un avviso o una manutenzione programmata, un endpoint aggiunto da una persona o un'impostazione di conservazione. Le etichette e i proprietari aggiunti da sé da regole per etichette o proprietari, o da attributi `oneuptime.label.*`, non contano (altrimenti una regola generica terrebbe ogni database per sempre) finché una persona non li salva sul database. I database di un cluster Kubernetes o di un host Docker o Podman che si è zittito a sua volta non vengono archiviati finché resta muto: un database conta come non visto solo se ha smesso di essere visto ben prima del suo cluster o host.
@@ -692,7 +730,7 @@ Nel container dell'agent, `localhost` è il container stesso. Usa `host.docker.i
 - `ORA-12514` o `ORA-12505`: il listener Oracle risponde (quindi il controllo della connessione passa), ma non conosce il servizio nominato da `DATABASE_ORACLE_SERVICE`; `lsnrctl services` sull'host del database elenca quelli che conosce.
 - `ORA-28000` o `ORA-28001`: l'utente di monitoraggio Oracle è bloccato o la sua password è scaduta.
 - `failed to explain` sulle top query di PostgreSQL non è un permesso mancante: i piani di esecuzione richiedono `SELECT` sulle tue tabelle, che `pg_monitor` di proposito non concede. Metriche e top query non ne risentono; restano vuoti solo i piani.
-- `SSL is not enabled on the server`: imposta `DATABASE_TLS_INSECURE=true`. Un server che richiede TLS: `DATABASE_TLS_INSECURE=false`, più `DATABASE_TLS_INSECURE_SKIP_VERIFY=true` per un certificato di cui l'immagine non si fida. Per Elasticsearch / OpenSearch decide l'`http://` o l'`https://` di `DATABASE_ENDPOINT`.
+- `SSL is not enabled on the server`: imposta `DATABASE_TLS_INSECURE=true`. Un server che richiede TLS: `DATABASE_TLS_INSECURE=false`, più `DATABASE_TLS_INSECURE_SKIP_VERIFY=true` per un certificato di cui l'immagine non si fida. Per Elasticsearch / OpenSearch decide l'`http://` o l'`https://` di `DATABASE_ENDPOINT`. Per PostgreSQL, imposta `DATABASE_TLS_SSLMODE` di conseguenza (`disable`, `require` o `verify-full`, come fa `install.sh`), altrimenti i controlli SQL propri della configurazione non riescono a connettersi.
 - Errori di `pg_stat_statements`: crea l'estensione oppure imposta `DATABASE_QUERY_EVENTS=false`.
 - Per qualsiasi altro errore del receiver, lo script di diagnostica mostra quello più frequente, così come lo ha formulato il driver del database (con la password oscurata).
 
@@ -728,6 +766,10 @@ Agli span manca `db.system.name` / `db.system` o `server.address`, oppure usano 
 ### Engine metrics indica Disconnesso o Non connesso
 
 _Non connesso_: nessun Database Agent o collector ha mai inviato dati per questo database; installa l'agent dalla sua scheda **Documentazione**. _Disconnesso_: uno lo ha fatto e non ha inviato nulla da almeno 15 minuti (vedi [Ciclo di vita](#ciclo-di-vita-archiviazione-e-conservazione)); esegui lo [script di diagnostica](#esegui-prima-lo-script-di-diagnostica) dove gira. I monitor consigliati compaiono nella scheda **Raccomandazioni** non appena sono arrivate le metriche proprie del receiver del motore.
+
+### Lo stato indica Segnala invece di Integro
+
+**Segnala** significa che le metriche del motore arrivano, ma nessuna delle letture giudicate dalle soglie del suo motore: un collector tuo che tralascia quelle metriche, letture che si sono interrotte mentre altri dati continuano ad arrivare, o un motore per cui OneUptime non consiglia avvisi. La scheda **Metriche** mostra ciò che arriva davvero; confrontalo con [Che cosa viene raccolto](#che-cosa-viene-raccolto).
 
 ### Gli avvisi di un monitor non compaiono sul database
 

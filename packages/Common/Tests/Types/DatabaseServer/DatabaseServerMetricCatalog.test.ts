@@ -350,10 +350,50 @@ function entriesNamed(name: string): Array<DatabaseServerMetricDefinition> {
 }
 
 describe("DATABASE_SERVER_METRICS", () => {
-  test.each(CURATED_SYSTEMS)("%s has 5-8 curated metrics", (system: string) => {
-    const count: number = getDatabaseServerMetrics(system).length;
-    expect(count).toBeGreaterThanOrEqual(5);
-    expect(count).toBeLessThanOrEqual(8);
+  test.each(CURATED_SYSTEMS)(
+    "%s has 5-8 curated metrics from its receiver",
+    (system: string) => {
+      const count: number = getDatabaseServerMetrics(system).filter(
+        (metric: DatabaseServerMetricDefinition): boolean => {
+          return metric.source !== "agent-query";
+        },
+      ).length;
+      expect(count).toBeGreaterThanOrEqual(5);
+      expect(count).toBeLessThanOrEqual(8);
+    },
+  );
+
+  /*
+   * What a receiver does not report and the Database Agent reads with SQL
+   * of its own: only PostgreSQL's config runs such a query (its four
+   * checks), and each of those tiles is a metric the alert library reads.
+   */
+  test("the agent's own SQL checks add PostgreSQL's four tiles, and no other engine's", () => {
+    const agentQuery: Array<DatabaseServerMetricDefinition> =
+      DATABASE_SERVER_METRICS.filter(
+        (metric: DatabaseServerMetricDefinition): boolean => {
+          return metric.source === "agent-query";
+        },
+      );
+    expect(
+      agentQuery.map((metric: DatabaseServerMetricDefinition): string => {
+        return `${metric.system} ${metric.metricName}`;
+      }),
+    ).toEqual([
+      "postgresql postgresql.uptime",
+      "postgresql postgresql.xid.oldest_age",
+      "postgresql postgresql.transaction.longest_duration",
+      "postgresql postgresql.sessions.waiting_on_lock",
+    ]);
+    const config: string = readAgentConfig("postgresql");
+    for (const metric of agentQuery) {
+      expect(metric.enabledByDefault).toBe(false);
+      expect(config).toContain(`- metric_name: ${metric.metricName}`);
+      expect(metric.description).toContain(
+        "the Database Agent reads it with SQL",
+      );
+      expect(metric.description).not.toContain("Off by default");
+    }
   });
 
   test("only the curated engines have entries", () => {
@@ -540,7 +580,9 @@ describe("DATABASE_SERVER_METRICS", () => {
     const optional: Array<DatabaseServerMetricDefinition> =
       DATABASE_SERVER_METRICS.filter(
         (metric: DatabaseServerMetricDefinition): boolean => {
-          return metric.enabledByDefault === false;
+          return (
+            metric.enabledByDefault === false && metric.source !== "agent-query"
+          );
         },
       );
     expect(

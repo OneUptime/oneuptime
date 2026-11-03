@@ -77,6 +77,9 @@ import { escapeRegExp } from "../../../Utils/RegExpEscape";
 
 const DATABASE_SERVER_ID: string = "d0000000-0000-4000-8000-000000000042";
 
+// A metric a sqlquery receiver emits, as an agent config lists it.
+const METRIC_NAME_LINE: RegExp = /- metric_name: ([a-z0-9_.]+)\n/g;
+
 const REPO_ROOT: string = path.join(__dirname, "..", "..", "..", "..", "..");
 
 function buildArgs(
@@ -571,9 +574,63 @@ describe("DatabaseAlertTemplates — every metric is one the receiver emits and 
       const configPath: string = agentConfigPath(metric.receiver);
 
       expect(fs.existsSync(configPath)).toBe(true);
-      expect(fs.readFileSync(configPath, "utf8")).toMatch(
-        metricSwitchPattern(metric.metricName, true),
-      );
+      const config: string = fs.readFileSync(configPath, "utf8");
+      if (metric.source === "agent-query") {
+        // Read by the agent's own SQL check, not switched on in the receiver.
+        expect(config).toContain(`- metric_name: ${metric.metricName}\n`);
+      } else {
+        expect(config).toMatch(metricSwitchPattern(metric.metricName, true));
+      }
+    }
+  });
+
+  /*
+   * What the receivers do not report, the Database Agent reads with SQL of
+   * its own: PostgreSQL's config runs one catalog query (sqlquery/oneuptime)
+   * for a restart, transaction ID wraparound, long transactions and lock
+   * waits. Tests/Ops pins the query; this pins that each metric it emits is
+   * one a template reads, and that nothing else claims to be read that way.
+   */
+  test("the agent's own SQL checks are PostgreSQL's four, each read by a template and run by its config", () => {
+    const agentQuery: Array<DatabaseAlertMetric> =
+      DATABASE_ALERT_METRICS.filter((metric: DatabaseAlertMetric): boolean => {
+        return metric.source === "agent-query";
+      });
+
+    expect(
+      agentQuery.map((metric: DatabaseAlertMetric): string => {
+        return metric.metricName;
+      }),
+    ).toEqual([
+      "postgresql.uptime",
+      "postgresql.xid.oldest_age",
+      "postgresql.transaction.longest_duration",
+      "postgresql.sessions.waiting_on_lock",
+    ]);
+
+    const config: string = fs.readFileSync(
+      agentConfigPath("postgresql"),
+      "utf8",
+    );
+    const emitted: Array<string> = [...config.matchAll(METRIC_NAME_LINE)].map(
+      (match: RegExpMatchArray): string => {
+        return match[1]!;
+      },
+    );
+    expect(emitted).toEqual(
+      agentQuery.map((metric: DatabaseAlertMetric): string => {
+        return metric.metricName;
+      }),
+    );
+
+    for (const metric of agentQuery) {
+      expect(metric.engine).toBe("postgresql");
+      expect(metric.enabledByDefault).toBe(false);
+      expect(
+        ALL_TEMPLATES.some((template: DatabaseAlertTemplate): boolean => {
+          return template.metricNames.includes(metric.metricName);
+        }),
+      ).toBe(true);
     }
   });
 

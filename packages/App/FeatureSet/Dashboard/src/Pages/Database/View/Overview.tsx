@@ -109,6 +109,24 @@ import {
   translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
+import {
+  DatabaseHealthAssessment,
+  assessDatabase,
+} from "Common/Types/DatabaseServer/DatabaseHealth";
+import {
+  DatabaseAlertTemplate,
+  getDatabaseAlertTemplates,
+} from "Common/Types/Monitor/DatabaseAlertTemplates";
+import { MonitorRecommendationResourceType } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
+import NeedsAttentionCard from "../../../Components/ResourcePart/NeedsAttentionCard";
+import ResourcePartAlertsCard from "../../../Components/ResourcePart/ResourcePartAlertsCard";
+import RecommendationFilterUtil, {
+  RECOMMENDATION_SELECTION_QUERY_PARAM,
+} from "../../../Components/Recommendations/RecommendationFilterUtil";
+import {
+  getDatabaseHealthPill,
+  getDatabaseOwnAttentionItems,
+} from "../Utils/DatabaseHealthPresentation";
 
 const DEFAULT_RANGE: RangeStartAndEndDateTime = {
   range: TimeRange.PAST_ONE_HOUR,
@@ -215,6 +233,9 @@ const DatabaseServerOverview: FunctionComponent<
             discoverySource: true,
             otelCollectorStatus: true,
             collectorLastSeenAt: true,
+            // What its engine last reported, judged by its alerts' lines.
+            engineReadings: true,
+            engineReadingsAt: true,
             agentVersion: true,
             lastSeenAt: true,
             memberEntityKeys: true,
@@ -575,6 +596,20 @@ const DatabaseServerOverview: FunctionComponent<
     return RouteUtil.populateRouteParams(RouteMap[page] as Route, { modelId });
   };
 
+  /*
+   * Its health, by the lines of its engine's recommended alerts against
+   * what its engine last reported (DatabaseHealth) - the rules the
+   * Databases list's Status follows, so the two never disagree.
+   */
+  const assessment: DatabaseHealthAssessment = assessDatabase(r, {
+    now: OneUptimeDate.getCurrentDate(),
+  });
+  const alertTemplateIds: Array<string> = getDatabaseAlertTemplates(
+    r.dbSystem,
+  ).map((template: DatabaseAlertTemplate): string => {
+    return template.id;
+  });
+
   const chips: Array<ResourceOverviewChip> = [
     {
       icon: IconProp.Database,
@@ -780,6 +815,26 @@ const DatabaseServerOverview: FunctionComponent<
         statusLabel={getDatabaseLivenessLabel(liveness)}
         statusTone={getDatabaseLivenessTone(liveness)}
         statusDescription={DATABASE_LIVENESS_DESCRIPTION}
+        health={getDatabaseHealthPill(assessment)}
+        needsAttention={
+          /*
+           * What on it needs someone, the most urgent first, before any
+           * number: each category of line crossed, or its engine metrics
+           * stopping. Nothing to look at draws no card.
+           */
+          <NeedsAttentionCard
+            testId="database-needs-attention"
+            items={getDatabaseOwnAttentionItems({
+              assessment: assessment,
+              translator: translator,
+              metricsRoute: populate(PageMap.DATABASE_SERVER_VIEW_METRICS),
+              documentationRoute: populate(
+                PageMap.DATABASE_SERVER_VIEW_DOCUMENTATION,
+              ),
+            })}
+            showKind={false}
+          />
+        }
         lastSeenAt={r.lastSeenAt}
         description={r.description as string}
         chips={chips}
@@ -825,6 +880,50 @@ const DatabaseServerOverview: FunctionComponent<
           )}
         />
       </div>
+
+      {/*
+       * Will anyone hear about it? Which of its engine's recommended alerts
+       * watch it, and one step to turn on the rest - the lines its health
+       * above is judged by. Offered once its engine metrics have arrived.
+       */}
+      {alertTemplateIds.length > 0 ? (
+        <div className="mt-6">
+          <ResourcePartAlertsCard
+            testId="database-alerts"
+            title="Database alerts"
+            description="The alerts OneUptime recommends for this database's engine: which watch it, and one step to turn on the rest."
+            resourceType={MonitorRecommendationResourceType.DatabaseServer}
+            templateIds={alertTemplateIds}
+            resourceId={modelId}
+            resourceIdentifier={modelId.toString()}
+            context={{
+              databaseEngine: r.dbSystem || null,
+              databaseEngineMetricsReported: Boolean(r.collectorLastSeenAt),
+            }}
+            refreshToken={
+              lastRefreshedAt ? lastRefreshedAt.getTime() : undefined
+            }
+            getRecommendationsRoute={(
+              recommendationIds: Array<string>,
+            ): Route => {
+              return populate(
+                PageMap.DATABASE_SERVER_VIEW_RECOMMENDATIONS,
+              ).addQueryParams({
+                [RECOMMENDATION_SELECTION_QUERY_PARAM]:
+                  RecommendationFilterUtil.toSelectionQuery(recommendationIds),
+              });
+            }}
+            getMonitorRoute={(monitorId: ObjectID): Route => {
+              return RouteUtil.populateRouteParams(
+                RouteMap[PageMap.MONITOR_VIEW] as Route,
+                { modelId: monitorId },
+              );
+            }}
+          />
+        </div>
+      ) : (
+        <></>
+      )}
 
       <div className="mt-6">
         <DatabaseCallingServicesCard

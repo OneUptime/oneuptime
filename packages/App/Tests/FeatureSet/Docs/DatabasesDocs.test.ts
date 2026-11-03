@@ -36,9 +36,21 @@ import {
   reduceContainerCommand,
 } from "Common/Types/DatabaseServer/DatabaseContainerCommand";
 import {
+  DATABASE_ALERT_METRICS,
+  DatabaseAlertMetric,
   DatabaseAlertTemplate,
+  getAllDatabaseAlertTemplates,
   getDatabaseAlertTemplates,
 } from "Common/Types/Monitor/DatabaseAlertTemplates";
+import {
+  DATABASE_STATUS_DEGRADED,
+  DATABASE_STATUS_HEALTHY,
+  DATABASE_STATUS_NO_ENGINE_METRICS,
+  DATABASE_STATUS_REPORTING,
+  DATABASE_STATUS_STOPPED,
+  DATABASE_STATUS_UNHEALTHY,
+} from "Common/Types/DatabaseServer/DatabaseHealth";
+import { DATABASE_ENGINE_READINGS_STALE_MS } from "Common/Types/DatabaseServer/DatabaseEngineReadings";
 import { resolveDatabaseFromResourceAttributes } from "Common/Types/DatabaseServer/DatabaseTelemetryResolver";
 import {
   DATABASE_LIVENESS_DESCRIPTION,
@@ -48,6 +60,10 @@ import {
   getDatabaseEngineMetricsStatusLabel,
   getDatabaseLivenessLabel,
 } from "../../../FeatureSet/Dashboard/src/Pages/Database/Utils/DatabaseServerPresentation";
+import {
+  DATABASE_AGENT_COLLECTOR_VERSION,
+  DATABASE_AGENT_VERSION,
+} from "../../../FeatureSet/Dashboard/src/Components/AgentVersion/AgentKind";
 import slugify from "Common/Server/Types/MarkdownSlugify";
 import { tabPanel } from "./DocsPageShape";
 import { describe, expect, it } from "@jest/globals";
@@ -791,16 +807,37 @@ describe("Databases docs", (): void => {
       expect(pinsIn(manifest as string)).toEqual(composePins);
     });
 
+    /*
+     * The configs stamp the version the database's page shows. It follows
+     * the collector image the compose file pins, with the last number raised
+     * each time the files change on that collector (0.161.1: the PostgreSQL
+     * config's own SQL checks), so a page can say an agent is behind even
+     * when its image is not.
+     */
     it("keeps oneuptime.agent.version in every config in step with the image pin", (): void => {
       const pin: string = pinsIn(
         readAgentFile("docker-compose.yml"),
       )[0] as string;
 
+      expect(pin).toBe(DATABASE_AGENT_COLLECTOR_VERSION);
+
+      const [pinMajor, pinMinor, pinPatch] = pin.split(".").map(Number) as [
+        number,
+        number,
+        number,
+      ];
+      const [major, minor, patch] = DATABASE_AGENT_VERSION.split(".").map(
+        Number,
+      ) as [number, number, number];
+
+      expect({ major, minor }).toEqual({ major: pinMajor, minor: pinMinor });
+      expect(patch).toBeGreaterThanOrEqual(pinPatch);
+
       for (const engine of AGENT_ENGINES) {
         expect({
           engine,
           stamped: readConfig(engine).includes(
-            `- key: oneuptime.agent.version\n        value: "${pin}"`,
+            `- key: oneuptime.agent.version\n        value: "${DATABASE_AGENT_VERSION}"`,
           ),
         }).toEqual({ engine, stamped: true });
       }
@@ -3496,5 +3533,217 @@ done`;
         }
       },
     );
+  });
+
+  /*
+   * A database's health (Common/Types/DatabaseServer/DatabaseHealth) is
+   * judged by its engine's recommended alerts' own lines, so the page's
+   * account of it is held to the templates: the status words the product
+   * draws, a row per engine with as many lines as it has templates of each
+   * severity, and only the numbers those templates draw their lines at.
+   */
+  describe("a database's health", (): void => {
+    const HEALTH: string = "## See which databases need attention";
+    const ENGINE_TABLE_HEADER: string = "| Engine | Unhealthy | Degraded |";
+
+    function cellsOf(row: string): Array<string> {
+      return row
+        .slice(1, -1)
+        .split("|")
+        .map((cell: string): string => {
+          return cell.trim();
+        });
+    }
+
+    // The rows of the table under a header, the delimiter row left out.
+    function tableRows(markdown: string, header: string): Array<string> {
+      const lines: Array<string> = markdown.split("\n");
+      const start: number = lines.indexOf(header);
+
+      expect({ header, found: start >= 0 }).toEqual({ header, found: true });
+
+      const rows: Array<string> = [];
+      for (const line of lines.slice(start + 2)) {
+        if (!line.startsWith("|")) {
+          break;
+        }
+        rows.push(line);
+      }
+      return rows;
+    }
+
+    // A cell's lines: "—" when it has none.
+    function linesOf(cell: string): Array<string> {
+      return cell === "—" ? [] : cell.split("; ");
+    }
+
+    // The numbers a text states, digit groups joined: "9,000" is 9000.
+    function numbersOf(text: string): Array<number> {
+      return Array.from(
+        text
+          .replace(/`[^`]*`/g, "")
+          .replace(/(\d),(\d{3})(?!\d)/g, "$1$2")
+          .matchAll(/\d+(?:\.\d+)?/g),
+      ).map((match: RegExpMatchArray): number => {
+        return Number(match[0]);
+      });
+    }
+
+    // The templates a health row judges: all but the no-data check, its Status row.
+    function judgedTemplates(engineName: string): Array<DatabaseAlertTemplate> {
+      const descriptor: DatabaseSystemDescriptor | undefined =
+        DATABASE_SYSTEMS.find((candidate: DatabaseSystemDescriptor) => {
+          return candidate.displayName === engineName.split(" / ")[0];
+        });
+
+      expect({ engineName, known: Boolean(descriptor) }).toEqual({
+        engineName,
+        known: true,
+      });
+
+      return getDatabaseAlertTemplates(
+        (descriptor as DatabaseSystemDescriptor).system,
+      ).filter((template: DatabaseAlertTemplate): boolean => {
+        return !template.criteria.triggerOnNoData;
+      });
+    }
+
+    it("names each Status as the product draws it, in the order the rules weigh them", (): void => {
+      const rows: Array<string> = tableRows(
+        section(readPage(), HEALTH),
+        "| Status | When |",
+      );
+
+      expect(
+        rows.map((row: string): string => {
+          return cellsOf(row)[0] as string;
+        }),
+      ).toEqual(
+        [
+          DATABASE_STATUS_HEALTHY,
+          DATABASE_STATUS_DEGRADED,
+          DATABASE_STATUS_UNHEALTHY,
+          DATABASE_STATUS_STOPPED,
+          DATABASE_STATUS_NO_ENGINE_METRICS,
+          DATABASE_STATUS_REPORTING,
+        ].map((word: string): string => {
+          return `**${word}**`;
+        }),
+      );
+      // A reading older than the rules' window is not judged.
+      expect(
+        rows.find((row: string): boolean => {
+          return row.startsWith(`| **${DATABASE_STATUS_REPORTING}** |`);
+        }),
+      ).toContain(
+        `in the last ${DATABASE_ENGINE_READINGS_STALE_MS / 60_000} minutes`,
+      );
+    });
+
+    it("gives every engine with recommended alerts a row, with a line for each of its templates", (): void => {
+      const rows: Array<string> = tableRows(
+        section(readPage(), HEALTH),
+        ENGINE_TABLE_HEADER,
+      );
+      const receivers: Array<string> = [];
+
+      for (const row of rows) {
+        const [engine, unhealthy, degraded] = cellsOf(row) as [
+          string,
+          string,
+          string,
+        ];
+        const templates: Array<DatabaseAlertTemplate> = judgedTemplates(engine);
+
+        expect({
+          engine,
+          unhealthy: linesOf(unhealthy).length,
+          degraded: linesOf(degraded).length,
+        }).toEqual({
+          engine,
+          unhealthy: templates.filter((template: DatabaseAlertTemplate) => {
+            return template.severity === "Critical";
+          }).length,
+          degraded: templates.filter((template: DatabaseAlertTemplate) => {
+            return template.severity === "Warning";
+          }).length,
+        });
+
+        for (const template of templates) {
+          if (!receivers.includes(template.receiver)) {
+            receivers.push(template.receiver);
+          }
+        }
+      }
+
+      const withTemplates: Array<string> = [];
+      for (const template of getAllDatabaseAlertTemplates()) {
+        if (!withTemplates.includes(template.receiver)) {
+          withTemplates.push(template.receiver);
+        }
+      }
+
+      expect(withTemplates.length).toBe(9);
+      expect([...receivers].sort()).toEqual([...withTemplates].sort());
+    });
+
+    it("states only the numbers its engine's templates draw their lines at", (): void => {
+      const rows: Array<string> = tableRows(
+        section(readPage(), HEALTH),
+        ENGINE_TABLE_HEADER,
+      );
+
+      for (const row of rows) {
+        const [engine, unhealthy, degraded] = cellsOf(row) as [
+          string,
+          string,
+          string,
+        ];
+        const drawn: Array<number> = judgedTemplates(engine).flatMap(
+          (template: DatabaseAlertTemplate): Array<number> => {
+            return numbersOf(
+              [
+                template.criteria.thresholdLabel,
+                template.criteria.additionalFilter?.label || "",
+              ].join(" "),
+            );
+          },
+        );
+
+        for (const stated of numbersOf(`${unhealthy} ${degraded}`)) {
+          expect({ engine, stated, drawn: drawn.includes(stated) }).toEqual({
+            engine,
+            stated,
+            drawn: true,
+          });
+        }
+      }
+    });
+
+    it("names what the PostgreSQL config's own SQL checks report, and the receiver a collector of your own copies", (): void => {
+      const collected: string = section(readPage(), "### What gets collected");
+      const fromTheAgentQuery: Array<DatabaseAlertMetric> =
+        DATABASE_ALERT_METRICS.filter((metric: DatabaseAlertMetric) => {
+          return metric.source === "agent-query";
+        });
+
+      expect(fromTheAgentQuery.length).toBe(4);
+      for (const metric of fromTheAgentQuery) {
+        expect({
+          metric: metric.metricName,
+          named: collected.includes(`\`${metric.metricName}\``),
+        }).toEqual({ metric: metric.metricName, named: true });
+      }
+
+      const receiver: string = (
+        collected.match(/`(sqlquery\/[a-z]+)`/) as RegExpMatchArray
+      )[1] as string;
+
+      // The metrics pipeline runs it beside the engine's receiver.
+      expect(readConfig("postgresql").split("\n")).toContain(
+        `      receivers: [postgresql, ${receiver}]`,
+      );
+      expect(collected).toContain("`DATABASE_TLS_SSLMODE`");
+    });
   });
 });

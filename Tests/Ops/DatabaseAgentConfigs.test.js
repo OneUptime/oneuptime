@@ -149,15 +149,24 @@ function resourceAttribute(engine, key) {
 }
 
 describe.each(ENGINES)("the %s config", (engine) => {
-  test("runs exactly one receiver instance, the engine's own, in every pipeline", () => {
+  test("runs the engine's own receiver in every pipeline, and only PostgreSQL's SQL checks beside it", () => {
     const parsed = config(engine);
 
-    expect(Object.keys(parsed.receivers)).toEqual([engine]);
+    /*
+     * One engine, one server: the resource processor stamps one identity on
+     * everything a pipeline carries. PostgreSQL's config also reads what its
+     * receiver does not report (a restart, transaction ID wraparound, long
+     * transactions, lock waits) with the collector's sqlquery receiver -
+     * the same server over the same login, in the metrics pipeline only.
+     */
+    const extra = engine === "postgresql" ? ["sqlquery/oneuptime"] : [];
+
+    expect(Object.keys(parsed.receivers)).toEqual([engine, ...extra]);
 
     for (const [name, pipeline] of Object.entries(parsed.service.pipelines)) {
       expect({ name, receivers: pipeline.receivers }).toEqual({
         name,
-        receivers: [engine],
+        receivers: name === "metrics" ? [engine, ...extra] : [engine],
       });
     }
   });
@@ -188,11 +197,23 @@ describe.each(ENGINES)("the %s config", (engine) => {
       value: "true",
       action: "upsert",
     });
-    expect(resourceAttribute(engine, "oneuptime.agent.version")).toEqual({
+    /*
+     * The files' own version: the collector release the compose file pins,
+     * its last number raised each time the files change on that collector
+     * (Common's AgentFilesVersion pins which), and the same in every config.
+     */
+    const stamp = resourceAttribute(engine, "oneuptime.agent.version");
+    expect({ key: stamp.key, action: stamp.action }).toEqual({
       key: "oneuptime.agent.version",
-      value: composePin(),
       action: "upsert",
     });
+    const [pinMajor, pinMinor, pinPatch] = composePin().split(".").map(Number);
+    const [major, minor, patch] = stamp.value.split(".").map(Number);
+    expect([major, minor]).toEqual([pinMajor, pinMinor]);
+    expect(patch).toBeGreaterThanOrEqual(pinPatch);
+    expect(stamp.value).toBe(
+      resourceAttribute("postgresql", "oneuptime.agent.version").value,
+    );
   });
 
   test("keeps server.port an integer and the marker a string", () => {
@@ -615,5 +636,103 @@ describe("the Database Agent install", () => {
 
     expect(defaultDir).not.toBeNull();
     expect(unit).toContain(`WorkingDirectory=${defaultDir[1]}\n`);
+  });
+});
+
+/*
+ * PostgreSQL's SQL checks: what the postgresql receiver does not report,
+ * read with the collector's sqlquery receiver over the same server and
+ * login. Common's DatabaseAlertTemplates suite holds the four metrics to
+ * the templates that read them; this holds the receiver to the agent's
+ * own connection settings and to views the monitoring role can read.
+ */
+// A FROM followed by a name that is not a call (EXTRACT(EPOCH FROM max(...))).
+const SQL_CHECK_RELATION = /\bFROM\s+([a-z_]+)\b(?!\s*\()/gi;
+const SQL_CHECK_PORT_LINE = /\n\s+port: \$\{env:DATABASE_ENDPOINT_PORT\}\n/;
+
+describe("the postgresql config's SQL checks", () => {
+  const receiver = () => {
+    return config("postgresql").receivers["sqlquery/oneuptime"];
+  };
+
+  test("connect to the agent's endpoint, with its login and its TLS mode, every collection interval", () => {
+    const sql = receiver();
+
+    expect(sql.driver).toBe("postgres");
+    expect(sql.host).toBe("${env:DATABASE_ENDPOINT_HOST}");
+    expect(sql.port).toBe("${env:DATABASE_ENDPOINT_PORT}");
+    // The database the postgresql receiver connects to as well.
+    expect(sql.database).toBe("postgres");
+    expect(sql.username).toBe("${env:DATABASE_USERNAME}");
+    expect(sql.password).toBe("${env:DATABASE_PASSWORD}");
+    expect(sql.additional_params).toEqual({
+      sslmode: "${env:DATABASE_TLS_SSLMODE}",
+    });
+    expect(sql.collection_interval).toBe(
+      config("postgresql").receivers.postgresql.collection_interval,
+    );
+    // No datasource: a connection string would carry the password unescaped.
+    expect(sql.datasource).toBeUndefined();
+  });
+
+  test("keep the port an integer field", () => {
+    expect(configText("postgresql")).toMatch(SQL_CHECK_PORT_LINE);
+  });
+
+  test("read only the catalog views pg_monitor covers, never a table", () => {
+    const [query, ...rest] = receiver().queries;
+
+    expect(rest).toEqual([]);
+    for (const view of [
+      "pg_postmaster_start_time()",
+      "pg_database",
+      "pg_stat_activity",
+    ]) {
+      expect(query.sql).toContain(view);
+    }
+    const relations = [...query.sql.matchAll(SQL_CHECK_RELATION)].map(
+      (match) => {
+        return match[1];
+      },
+    );
+    expect(relations.length).toBeGreaterThan(0);
+    for (const relation of relations) {
+      expect(["pg_database", "pg_stat_activity"]).toContain(relation);
+    }
+    // Its own session's transaction is never "the longest".
+    expect(query.sql).toContain("pid <> pg_backend_pid()");
+  });
+
+  test("report four whole-number gauges, each in its unit", () => {
+    const [query] = receiver().queries;
+
+    expect(
+      query.metrics.map((metric) => {
+        return [
+          metric.metric_name,
+          metric.data_type,
+          metric.value_type,
+          metric.unit,
+        ];
+      }),
+    ).toEqual([
+      ["postgresql.uptime", "gauge", "int", "s"],
+      ["postgresql.xid.oldest_age", "gauge", "int", "{transactions}"],
+      ["postgresql.transaction.longest_duration", "gauge", "int", "s"],
+      ["postgresql.sessions.waiting_on_lock", "gauge", "int", "{sessions}"],
+    ]);
+    for (const metric of query.metrics) {
+      expect(query.sql).toContain(`AS ${metric.value_column}`);
+    }
+  });
+
+  test("run in the metrics pipeline only, behind the same identity stamp", () => {
+    const pipelines = config("postgresql").service.pipelines;
+
+    expect(pipelines.metrics.receivers).toContain("sqlquery/oneuptime");
+    expect(pipelines.logs.receivers).not.toContain("sqlquery/oneuptime");
+    expect(pipelines.metrics.processors).toEqual(
+      config("mysql").service.pipelines.metrics.processors,
+    );
   });
 });

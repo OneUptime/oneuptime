@@ -17,6 +17,7 @@ import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -33,9 +34,6 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import getLabelsFormField from "../../Utils/Form/LabelsFormField";
 import LabelsElement from "Common/UI/Components/Label/Labels";
-import Pill from "Common/UI/Components/Pill/Pill";
-import { Gray500, Green, Red } from "Common/Types/BrandColors";
-import Color from "Common/Types/Color";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import useFirstRecordWatch, {
   FirstRecordWatch,
@@ -60,6 +58,13 @@ import DatabaseAddedModal from "../../Components/DatabaseServer/DatabaseAddedMod
 import DatabaseServerSummaryStrip from "../../Components/DatabaseServer/DatabaseServerSummaryStrip";
 import DatabaseRunsOnLink from "../../Components/DatabaseServer/DatabaseRunsOnLink";
 import DatabaseLastSeenCell from "../../Components/DatabaseServer/DatabaseLastSeenCell";
+import DatabaseFleetAttentionCard from "../../Components/DatabaseServer/DatabaseFleetAttentionCard";
+import ResourceStatusCell from "../../Components/Infrastructure/ResourceStatusCell";
+import { assessDatabase } from "Common/Types/DatabaseServer/DatabaseHealth";
+import {
+  DATABASE_STATUS_COLUMN_DESCRIPTION,
+  getDatabaseStatusCell,
+} from "./Utils/DatabaseHealthPresentation";
 import useDatabaseWideTable from "./Utils/useDatabaseWideTable";
 import OneUptimeDate from "Common/Types/Date";
 import { computeDatabaseServerIdsForEngineMetricsStatuses } from "./Utils/DatabaseEngineMetricsFilter";
@@ -71,16 +76,16 @@ import {
 } from "./Utils/DatabaseManualEndpointForm";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import {
-  DatabaseEngineMetricsStatus,
   DatabaseOption,
   getDatabaseDiscoverySourceOptions,
   getDatabaseEngineLabel,
-  getDatabaseEngineMetricsStatus,
-  getDatabaseEngineMetricsStatusLabel,
   getDatabaseEngineMetricsStatusOptions,
   getDatabaseEndpointLabel,
   getDatabaseEngineOptions,
+  getDatabaseRuntimePlatform,
+  translateDatabaseOptions,
 } from "./Utils/DatabaseServerPresentation";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * Width caps for the two cells whose text can be long. With them, and with
@@ -96,17 +101,28 @@ const DISCOVERY_SOURCE_OPTIONS: Array<DatabaseOption> =
 const ENGINE_METRICS_STATUS_OPTIONS: Array<DatabaseOption> =
   getDatabaseEngineMetricsStatusOptions();
 
-const ENGINE_METRICS_STATUS_COLORS: Record<DatabaseEngineMetricsStatus, Color> =
-  {
-    [DatabaseEngineMetricsStatus.Connected]: Green,
-    [DatabaseEngineMetricsStatus.Disconnected]: Red,
-    [DatabaseEngineMetricsStatus.NotConnected]: Gray500,
-  };
+/*
+ * The Status column's width: the word and its reason under it wrap inside
+ * it, so a long reason never pushes Last Seen and View off a laptop.
+ */
+export const DATABASE_STATUS_COLUMN_CLASS_NAME: string =
+  "min-w-[8rem] max-w-[13rem]";
 
 const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const translator: Translator = useTranslator();
-  // Below 2xl: Discovered from, Labels and Owners start hidden.
+  // Below 2xl: Discovered From, Labels and Owners start hidden.
   const isWideTable: boolean = useDatabaseWideTable();
+  /*
+   * The filters' options in the reader's language: the chips draw an
+   * option's label as they are given it, and these are the product's own
+   * words ("Application traces", "Not connected").
+   */
+  const discoverySourceOptions: Array<DatabaseOption> = useMemo(() => {
+    return translateDatabaseOptions(DISCOVERY_SOURCE_OPTIONS, translator);
+  }, [translator.language]);
+  const engineMetricsStatusOptions: Array<DatabaseOption> = useMemo(() => {
+    return translateDatabaseOptions(ENGINE_METRICS_STATUS_OPTIONS, translator);
+  }, [translator.language]);
   /*
    * Bumped whenever the summary strip above the table must re-count: at
    * once after what changes its project-wide counts (a create, an
@@ -202,10 +218,10 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
     },
     {
       key: "discoverySource",
-      label: "Discovered from",
+      label: "Discovered From",
       icon: IconProp.Search,
       isMultiSelect: true,
-      options: DISCOVERY_SOURCE_OPTIONS,
+      options: discoverySourceOptions,
       toQueryValue: (
         values: Array<string>,
         operator: FilterOperator,
@@ -222,10 +238,10 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
        * reads "disconnected" — so the chip resolves row ids.
        */
       key: "otelCollectorStatus",
-      label: "Engine metrics",
+      label: "Engine Metrics",
       icon: IconProp.Wifi,
       isMultiSelect: true,
-      options: ENGINE_METRICS_STATUS_OPTIONS,
+      options: engineMetricsStatusOptions,
       supportedOperators: ["is", "is_not"],
       computeMatchingResourceIds: (
         projectId: ObjectID,
@@ -270,9 +286,24 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
     return <PageLoader isVisible={true} />;
   }
 
+  // Every row's readings are judged against one moment (DatabaseHealth).
+  const now: Date = new Date();
+
   return (
     <Fragment>
       <DatabaseServerSummaryStrip refreshToken={summaryRefreshToken} />
+      {/*
+       * What on the fleet needs someone, the most urgent first, before the
+       * list: databases past their engine's alert lines, and databases
+       * whose engine metrics stopped (DatabaseHealth).
+       */}
+      {(firstRecordWatch.count ?? 0) > 0 ? (
+        <DatabaseFleetAttentionCard
+          refreshToken={`${firstRecordWatch.refreshToken}-${summaryRefreshToken}`}
+        />
+      ) : (
+        <></>
+      )}
       <ModelTable<DatabaseServer>
         modelType={DatabaseServer}
         // Archive in each row's ⋯ menu, as in Bulk Actions.
@@ -293,6 +324,13 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery({ isArchived: false })}
+        selectMoreFields={{
+          // What the Status column judges (DatabaseHealth).
+          dbSystem: true,
+          collectorLastSeenAt: true,
+          engineReadings: true,
+          engineReadingsAt: true,
+        }}
         onFetchSuccess={(data: Array<DatabaseServer>) => {
           onResourcesFetched(data);
           if (
@@ -492,7 +530,17 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
               );
               const subtitle: string = getDatabaseEndpointLabel(item);
               return (
-                <div className="min-w-0">
+                <div
+                  /*
+                   * A grid of one column its lines shrink in, as a cell with
+                   * values folded under it is (TableFoldedValues): the
+                   * endpoint, on one line, would otherwise hold the column
+                   * at its 14rem cap however narrow the table needs it - in
+                   * German the list ran 59px past its card.
+                   */
+                  className="grid min-w-0 grid-cols-1 justify-items-start [&>*]:min-w-0 [&>*]:max-w-full"
+                  data-testid="database-name"
+                >
                   <AppLink
                     to={route}
                     className="text-sm font-medium text-gray-900 break-words hover:underline"
@@ -509,12 +557,53 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
                       data-testid="database-name-endpoint"
                       className="truncate text-xs text-gray-500 font-mono"
                       title={subtitle}
+                      /*
+                       * A host and port read left to right on every page, so
+                       * a right-to-left one cuts it at its end too: it read
+                       * "...ders-db.prod.internal:5432" in Persian.
+                       */
+                      dir="ltr"
                     >
                       {subtitle}
                     </div>
                   )}
                 </div>
               );
+            },
+          },
+          {
+            field: {
+              otelCollectorStatus: true,
+            },
+            title: "Status",
+            type: FieldType.Element,
+            disableSort: true,
+            contentClassName: DATABASE_STATUS_COLUMN_CLASS_NAME,
+            headerTooltip: DATABASE_STATUS_COLUMN_DESCRIPTION,
+            /*
+             * Its health in one word, by the lines of its engine's
+             * recommended alerts, with the reason under it - the rules its
+             * Overview and the Needs attention card above follow. It says
+             * whether its engine metrics arrive too, so it stands in for the
+             * Engine Metrics column the list used to have.
+             */
+            getElement: (item: DatabaseServer): ReactElement => {
+              return (
+                <div data-testid="database-status">
+                  <ResourceStatusCell
+                    resource={getDatabaseStatusCell({
+                      assessment: assessDatabase(item, { now: now }),
+                      language: translator.language,
+                      now: now,
+                    })}
+                  />
+                </div>
+              );
+            },
+            getExportValue: (item: DatabaseServer): string => {
+              const text: string = assessDatabase(item, { now: now }).status
+                .text;
+              return translator.translateText(text) || text;
             },
           },
           {
@@ -528,12 +617,19 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
               const version: string = ((item.dbVersion as string) || "").trim();
               return (
                 <div className="text-sm text-gray-700">
-                  <span>{getDatabaseEngineLabel(item.dbSystem)}</span>
-                  {version && (
-                    <span className="ml-1.5 text-xs text-gray-500 font-mono">
-                      {version}
-                    </span>
-                  )}
+                  {/*
+                   * The engine and its version read left to right as one, so
+                   * the version's gap stays between them on a right-to-left
+                   * page: "PostgreSQL16.4" in Persian.
+                   */}
+                  <span dir="ltr" data-testid="database-engine">
+                    <span>{getDatabaseEngineLabel(item.dbSystem)}</span>
+                    {version && (
+                      <span className="ml-1.5 text-xs text-gray-500 font-mono">
+                        {version}
+                      </span>
+                    )}
+                  </span>
                 </div>
               );
             },
@@ -554,13 +650,22 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 name: true,
               },
             },
-            title: "Runs on",
+            title: "Runs On",
             type: FieldType.Element,
             hideOnMobile: true,
+            hideBelowLargeScreen: true,
+            foldInto: "name",
             disableSort: true,
             wrapContent: true,
             wrapMaxWidthClassName: DATABASE_RUNS_ON_COLUMN_MAX_WIDTH_CLASS,
             getElement: (item: DatabaseServer): ReactElement => {
+              /*
+               * The table's quiet dash when it runs on nothing OneUptime
+               * knows: folded under the name, it draws no line of its own.
+               */
+              if (!getDatabaseRuntimePlatform(item)) {
+                return <TableEmptyValue />;
+              }
               // Links to the cluster / host page when the database runs on one.
               return <DatabaseRunsOnLink source={item} />;
             },
@@ -569,9 +674,11 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
             field: {
               discoverySource: true,
             },
-            title: "Discovered from",
+            title: "Discovered From",
             type: FieldType.Element,
             hideOnMobile: true,
+            hideBelowLargeScreen: true,
+            foldInto: "name",
             // Also a filter above the table; shown by default on wide screens.
             isHiddenByDefault: !isWideTable,
             getElement: (item: DatabaseServer): ReactElement => {
@@ -582,24 +689,6 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 <span className="text-sm text-gray-700">
                   {translator.translateText(discoveredFrom) || discoveredFrom}
                 </span>
-              );
-            },
-          },
-          {
-            field: {
-              otelCollectorStatus: true,
-              collectorLastSeenAt: true,
-            },
-            title: "Engine metrics",
-            type: FieldType.Element,
-            getElement: (item: DatabaseServer): ReactElement => {
-              const status: DatabaseEngineMetricsStatus =
-                getDatabaseEngineMetricsStatus(item);
-              return (
-                <Pill
-                  text={getDatabaseEngineMetricsStatusLabel(status)}
-                  color={ENGINE_METRICS_STATUS_COLORS[status]}
-                />
               );
             },
           },
@@ -632,6 +721,8 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
             title: "Labels",
             type: FieldType.EntityArray,
             hideOnMobile: true,
+            hideBelowLargeScreen: true,
+            foldInto: "name",
             isHiddenByDefault: !isWideTable,
             getElement: (item: DatabaseServer): ReactElement => {
               return <LabelsElement labels={item["labels"] || []} />;
@@ -644,6 +735,8 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
             title: "Owners",
             type: FieldType.Element,
             hideOnMobile: true,
+            hideBelowLargeScreen: true,
+            foldInto: "name",
             isHiddenByDefault: !isWideTable,
             getElement: (item: DatabaseServer): ReactElement => {
               return (

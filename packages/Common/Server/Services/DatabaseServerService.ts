@@ -78,6 +78,15 @@ import {
   normalizeDatabaseSystem,
 } from "../../Types/DatabaseServer/DatabaseSystem";
 import { ContainerWorkloadKind } from "../../Types/DatabaseServer/DatabaseContainerClassifier";
+import {
+  DatabaseEngineReadings,
+  mergeDatabaseEngineReadings,
+} from "../../Types/DatabaseServer/DatabaseEngineReadings";
+import {
+  DatabaseEngineHealthVerdict,
+  getDatabaseEngineHealthVerdict,
+  judgeDatabaseEngineReadings,
+} from "../../Types/DatabaseServer/DatabaseHealth";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
@@ -96,6 +105,16 @@ import FeedMarkdown, {
  */
 const LAST_SEEN_CACHE_NAMESPACE: string = "database-server-last-seen";
 const SIGHTING_CACHE_NAMESPACE: string = "database-server-sighting";
+
+/*
+ * The engine readings' own gate (recordEngineReadings): one write per
+ * database and reporting agent per window, whatever the batches carry. A
+ * reading is a gauge that moves on every scrape, so it is never part of a
+ * fingerprint - the window alone bounds the writes, as a heartbeat's does.
+ */
+export const ENGINE_READINGS_CACHE_NAMESPACE: string =
+  "database-server-engine-readings";
+export const ENGINE_READINGS_WINDOW_SECONDS: number = 60;
 const LAST_SEEN_THROTTLE_SECONDS: number = 60;
 
 const LABELS_APPLIED_CACHE_NAMESPACE: string = "database-server-labels-applied";
@@ -491,6 +510,17 @@ export class Service extends ProjectReferencesService<Model> {
   private autoCreateBudgetWarningMemo: InProcessMemo<boolean> =
     new InProcessMemo<boolean>({
       ttlInMs: AUTO_CREATE_BUDGET_WARNING_MS,
+      maxEntries: 10_000,
+    });
+
+  /*
+   * In-process front for the engine readings' gate: per database and
+   * reporting agent, the window this process already settled, so the next
+   * batch inside it costs no Redis round trip.
+   */
+  private engineReadingsMemo: InProcessMemo<boolean> =
+    new InProcessMemo<boolean>({
+      ttlInMs: ENGINE_READINGS_WINDOW_SECONDS * 1000,
       maxEntries: 10_000,
     });
 
@@ -1094,6 +1124,124 @@ export class Service extends ProjectReferencesService<Model> {
       fingerprint: "",
       describe: `database ${databaseServerId.toString()} (sighting)`,
     });
+  }
+
+  /**
+   * What one reporting agent's batch says the database's engine reads,
+   * worked out by the metrics ingest (DatabaseEngineReadingsScan): merged
+   * into the database's readings beside every other agent's
+   * (DatabaseEngineReadings), judged by its engine's alert template lines
+   * (DatabaseHealth), and stored with that verdict and the time.
+   *
+   * At most once per database and agent per minute: an in-process memo
+   * first, then a presence-only Redis gate, as a heartbeat's liveness is
+   * gated. A Redis outage fails open but stays bounded by the memo - one
+   * write per process per window - because freezing every database's
+   * health while the cache is down would show old verdicts as current. The
+   * write is hook-free and SKIP LOCKED: a contended row yields, and the next
+   * window writes again. Never throws - the readings only describe a batch
+   * that has already landed. Resolves true when the readings were written.
+   */
+  @CaptureSpan()
+  public async recordEngineReadings(data: {
+    databaseServerId: ObjectID;
+    instance: string;
+    values: Record<string, number>;
+  }): Promise<boolean> {
+    if (Object.keys(data.values).length === 0) {
+      return false;
+    }
+
+    const gateKey: string = `${data.databaseServerId.toString()}:${data.instance}`;
+
+    if (this.engineReadingsMemo.get(gateKey)) {
+      return false;
+    }
+    this.engineReadingsMemo.set(gateKey, true);
+
+    let isAdmitted: boolean = true;
+    try {
+      isAdmitted = await GlobalCache.setStringIfNotExists(
+        ENGINE_READINGS_CACHE_NAMESPACE,
+        gateKey,
+        "1",
+        {
+          expiresInSeconds: GlobalCache.withJitter(
+            ENGINE_READINGS_WINDOW_SECONDS,
+          ),
+        },
+      );
+    } catch {
+      isAdmitted = true;
+    }
+
+    if (!isAdmitted) {
+      return false;
+    }
+
+    try {
+      const row: Model | null = await this.findOneBy({
+        query: { _id: data.databaseServerId },
+        select: { _id: true, dbSystem: true, engineReadings: true },
+        props: { isRoot: true },
+      });
+
+      if (!row) {
+        return false;
+      }
+
+      const now: Date = OneUptimeDate.getCurrentDate();
+      const readings: DatabaseEngineReadings = mergeDatabaseEngineReadings({
+        existing: row.engineReadings,
+        instance: data.instance,
+        values: data.values,
+        now: now,
+      });
+      const verdict: DatabaseEngineHealthVerdict | null =
+        getDatabaseEngineHealthVerdict(
+          judgeDatabaseEngineReadings({
+            dbSystem: row.dbSystem,
+            readings: readings,
+            now: now,
+          }),
+        );
+
+      /*
+       * A plain record: PartialEntity's deep partial of the JSON readings
+       * column is too deep for the compiler to instantiate.
+       */
+      const update: Record<string, unknown> = {
+        engineReadings: readings,
+        engineReadingsAt: now,
+        engineHealth: verdict,
+      };
+
+      return await this.updateColumnsByIdIfUnlockedWithoutHooks({
+        id: data.databaseServerId,
+        data: update as unknown as PartialEntity<Model>,
+        // Telemetry about the database, not an edit of its record.
+        skipUpdateDateColumn: true,
+      });
+    } catch (error) {
+      // Re-open this window so the next batch tries again.
+      this.engineReadingsMemo.delete(gateKey);
+      try {
+        await GlobalCache.deleteKey(ENGINE_READINGS_CACHE_NAMESPACE, gateKey);
+      } catch {
+        // Best effort - the window closes on its own.
+      }
+      logger.warn(
+        `DatabaseServerService: could not record the engine readings of database ${data.databaseServerId.toString()}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+      return false;
+    }
+  }
+
+  /** Forget the engine readings' in-process gate. For tests only. */
+  public clearEngineReadingsMemo(): void {
+    this.engineReadingsMemo.clear();
   }
 
   /**

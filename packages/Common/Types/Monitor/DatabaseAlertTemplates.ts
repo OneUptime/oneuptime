@@ -193,7 +193,28 @@ export interface DatabaseAlertTemplate {
   receiver: string;
   // Every metric name the template's queries read, in query order.
   metricNames: Array<string>;
+  /*
+   * The template's lines as data - its queries (without the database scope,
+   * which getMonitorStep adds), its formula and what its criteria compare,
+   * over which window. getMonitorStep builds the monitor from exactly these,
+   * and a database's health (DatabaseHealth) judges its latest readings
+   * against them, so the page and the alert can never draw different lines.
+   */
+  queries: ReadonlyArray<DatabaseAlertQuery>;
+  formula?: DatabaseAlertFormula | undefined;
+  criteria: DatabaseAlertCriteria;
+  rollingTime: RollingTime;
   getMonitorStep: (args: DatabaseAlertTemplateArgs) => MonitorStep;
+}
+
+/*
+ * A formula over a template's query aliases ("(a / b) * 100"); the criteria
+ * then compares its alias.
+ */
+export interface DatabaseAlertFormula {
+  alias: string;
+  expression: string;
+  legendUnit?: string | undefined;
 }
 
 /*
@@ -229,6 +250,15 @@ export const DATABASE_SERVER_ID_SCOPE_ATTRIBUTE: string =
  */
 export type DatabaseAlertMetricKind = "gauge" | "elapsed" | "counter";
 
+/*
+ * Where a metric comes from: the engine's receiver (the default), or the
+ * Database Agent's own SQL query beside it - the PostgreSQL config's
+ * sqlquery/oneuptime receiver, for what the postgresql receiver does not
+ * report (a restart, transaction ID wraparound, long transactions, lock
+ * waits). A team running its own collector adds the same query to get one.
+ */
+export type DatabaseAlertMetricSource = "receiver" | "agent-query";
+
 export interface DatabaseAlertMetric {
   engine: string;
   // The collector-contrib receiver type that emits it ("sqlserver").
@@ -245,6 +275,8 @@ export interface DatabaseAlertMetric {
    * a team running its own collector.
    */
   enabledByDefault: boolean;
+  // The receiver unless said otherwise (see DatabaseAlertMetricSource).
+  source?: DatabaseAlertMetricSource | undefined;
 }
 
 /*
@@ -301,6 +333,52 @@ export const DATABASE_ALERT_METRICS: ReadonlyArray<DatabaseAlertMetric> = [
     kind: "gauge",
     unit: "By",
     enabledByDefault: true,
+  },
+  /*
+   * What the postgresql receiver does not report, read by the Database
+   * Agent's PostgreSQL config with one catalog query a collection interval
+   * (agents/DatabaseAgent/configs/postgresql.yaml, sqlquery/oneuptime),
+   * seen arriving from a real server with a pg_monitor-only role.
+   */
+  {
+    engine: "postgresql",
+    receiver: "postgresql",
+    // now() - pg_postmaster_start_time(), whole seconds.
+    metricName: "postgresql.uptime",
+    kind: "elapsed",
+    unit: "s",
+    enabledByDefault: false,
+    source: "agent-query",
+  },
+  {
+    engine: "postgresql",
+    receiver: "postgresql",
+    // max(age(datfrozenxid)) over pg_database: the oldest database's.
+    metricName: "postgresql.xid.oldest_age",
+    kind: "gauge",
+    unit: "{transactions}",
+    enabledByDefault: false,
+    source: "agent-query",
+  },
+  {
+    engine: "postgresql",
+    receiver: "postgresql",
+    // The oldest open transaction of a client session, in seconds (0: none).
+    metricName: "postgresql.transaction.longest_duration",
+    kind: "gauge",
+    unit: "s",
+    enabledByDefault: false,
+    source: "agent-query",
+  },
+  {
+    engine: "postgresql",
+    receiver: "postgresql",
+    // Sessions whose wait_event_type is Lock in pg_stat_activity.
+    metricName: "postgresql.sessions.waiting_on_lock",
+    kind: "gauge",
+    unit: "{sessions}",
+    enabledByDefault: false,
+    source: "agent-query",
   },
 
   // MySQL / MariaDB — mysqlreceiver.
@@ -641,7 +719,15 @@ export function getDatabaseAlertMetric(
 
 // --- builders ---
 
-interface DatabaseQuerySpec {
+/*
+ * One query of a template, as data: the metric, the datapoint attributes it
+ * pins and how a bucket's samples fold into one number. The monitor step is
+ * built from it (buildDatabaseQuery adds the database scope), and the
+ * database's own pages read the same object to judge its latest readings
+ * (Common/Types/DatabaseServer/DatabaseHealth), so a line changed here
+ * changes the alert and the page together.
+ */
+export interface DatabaseAlertQuery {
   alias: string;
   metricName: string;
   aggregationType: MetricsAggregationType;
@@ -656,7 +742,12 @@ interface DatabaseQuerySpec {
   legendUnit?: string | undefined;
 }
 
-interface DatabaseCriteriaSpec {
+/*
+ * What the template compares, as data: the alias, the comparison and its
+ * line - the same object the monitor's criteria are built from and the
+ * database's pages judge against.
+ */
+export interface DatabaseAlertCriteria {
   // The query or formula alias the criteria compares.
   metricAlias: string;
   filterType: FilterType;
@@ -697,7 +788,7 @@ interface DatabaseCriteriaSpec {
  * names it. The database scope is left out: every query carries it, and it
  * is an id nobody reads.
  */
-function describeQuery(query: DatabaseQuerySpec): string {
+function describeQuery(query: DatabaseAlertQuery): string {
   const filters: Array<string> = Object.keys(query.attributes || {}).map(
     (key: string): string => {
       return `${key} = ${(query.attributes || {})[key]}`;
@@ -711,7 +802,7 @@ function describeQuery(query: DatabaseQuerySpec): string {
 
 function describeCriteria(data: {
   subject: string;
-  criteria: DatabaseCriteriaSpec;
+  criteria: DatabaseAlertCriteria;
 }): string {
   if (data.criteria.triggerOnNoData) {
     return `Triggers when ${data.subject} reports no data for the whole evaluation window.`;
@@ -734,7 +825,7 @@ function describeCriteria(data: {
  * watch the whole project and attach its alerts to nothing.
  */
 function buildDatabaseQuery(data: {
-  spec: DatabaseQuerySpec;
+  spec: DatabaseAlertQuery;
   databaseServerId: string;
   title: string;
 }): MetricQueryConfigData {
@@ -764,9 +855,9 @@ function buildDatabaseCriteria(data: {
   args: DatabaseAlertTemplateArgs;
   templateName: string;
   subject: string;
-  criteria: DatabaseCriteriaSpec;
+  criteria: DatabaseAlertCriteria;
 }): MonitorCriteria {
-  const criteria: DatabaseCriteriaSpec = data.criteria;
+  const criteria: DatabaseAlertCriteria = data.criteria;
 
   const incidentTitle: string = `[Database] ${data.templateName} - ${data.args.monitorName}`;
 
@@ -843,7 +934,7 @@ interface DatabaseTemplateSpec {
   category: DatabaseAlertTemplateCategory;
   severity: DatabaseAlertTemplateSeverity;
   engine: DatabaseTemplateEngine;
-  queries: Array<DatabaseQuerySpec>;
+  queries: Array<DatabaseAlertQuery>;
   /*
    * Optional formula over the query aliases; when present the criteria
    * compares `formulaAlias`. Every alias — query and formula — must differ:
@@ -851,16 +942,16 @@ interface DatabaseTemplateSpec {
    * formulas second, and an alias matching nothing silently falls back to
    * the first query's result.
    */
-  formula?:
-    | { alias: string; expression: string; legendUnit?: string | undefined }
-    | undefined;
+  formula?: DatabaseAlertFormula | undefined;
   rollingTime?: RollingTime | undefined;
-  criteria: DatabaseCriteriaSpec;
+  criteria: DatabaseAlertCriteria;
 }
 
 function buildDatabaseTemplate(
   spec: DatabaseTemplateSpec,
 ): DatabaseAlertTemplate {
+  const rollingTime: RollingTime = spec.rollingTime || RollingTime.Past5Minutes;
+
   return {
     id: spec.id,
     name: spec.name,
@@ -870,9 +961,13 @@ function buildDatabaseTemplate(
     monitorType: MonitorType.Metrics,
     engine: spec.engine.engine,
     receiver: spec.engine.receiver,
-    metricNames: spec.queries.map((query: DatabaseQuerySpec): string => {
+    metricNames: spec.queries.map((query: DatabaseAlertQuery): string => {
       return query.metricName;
     }),
+    queries: spec.queries,
+    formula: spec.formula,
+    criteria: spec.criteria,
+    rollingTime: rollingTime,
     getMonitorStep: (args: DatabaseAlertTemplateArgs): MonitorStep => {
       const step: MonitorStep = MonitorStep.getDefaultMonitorStep({
         monitorName: args.monitorName,
@@ -901,10 +996,10 @@ function buildDatabaseTemplate(
         : [];
 
       step.setMetricMonitor({
-        rollingTime: spec.rollingTime || RollingTime.Past5Minutes,
+        rollingTime: rollingTime,
         metricViewConfig: {
           queryConfigs: spec.queries.map(
-            (query: DatabaseQuerySpec): MetricQueryConfigData => {
+            (query: DatabaseAlertQuery): MetricQueryConfigData => {
               return buildDatabaseQuery({
                 spec: query,
                 databaseServerId: args.databaseServerId,
@@ -942,8 +1037,8 @@ function getCriteriaSubject(spec: DatabaseTemplateSpec): string {
     return spec.criteria.subject;
   }
 
-  const query: DatabaseQuerySpec | undefined = spec.queries.find(
-    (candidate: DatabaseQuerySpec): boolean => {
+  const query: DatabaseAlertQuery | undefined = spec.queries.find(
+    (candidate: DatabaseAlertQuery): boolean => {
       return candidate.alias === spec.criteria.metricAlias;
     },
   );
@@ -963,8 +1058,8 @@ function buildPercentOfLimitTemplate(data: {
   category: DatabaseAlertTemplateCategory;
   severity: DatabaseAlertTemplateSeverity;
   engine: DatabaseTemplateEngine;
-  numerator: DatabaseQuerySpec;
-  denominator: DatabaseQuerySpec;
+  numerator: DatabaseAlertQuery;
+  denominator: DatabaseAlertQuery;
   resultAlias: string;
   thresholdPercent: number;
   rollingTime?: RollingTime | undefined;
@@ -1061,15 +1156,18 @@ function buildRestartTemplate(data: {
   // Ten minutes, in the metric's own unit (seconds, or MongoDB's ms).
   threshold: number;
   requiresEnabling?: boolean | undefined;
+  // Read by the Database Agent's own SQL query, from what it says here.
+  readByAgentQuery?: string | undefined;
 }): DatabaseAlertTemplate {
+  const readBy: string = data.readByAgentQuery
+    ? `, which the Database Agent reads with SQL (${data.readByAgentQuery}); enable the same sqlquery receiver in a collector of your own`
+    : data.requiresEnabling
+      ? ", which the receiver only emits once it is enabled (the Database Agent enables it)"
+      : "";
   return buildDatabaseTemplate({
     id: data.id,
     name: "Server Restarted",
-    description: `Alert when the ${data.engine.displayName} server has been up for less than ten minutes — it restarted, crashed and came back, or failed over. Reads ${data.metricName}${
-      data.requiresEnabling
-        ? ", which the receiver only emits once it is enabled (the Database Agent enables it)"
-        : ""
-    }.`,
+    description: `Alert when the ${data.engine.displayName} server has been up for less than ten minutes — it restarted, crashed and came back, or failed over. Reads ${data.metricName}${readBy}.`,
     category: "Availability",
     severity: "Warning",
     engine: data.engine,
@@ -1106,6 +1204,71 @@ const postgresqlTemplates: Array<DatabaseAlertTemplate> = [
     engine: POSTGRESQL,
     metricName: "postgresql.connection.max",
     metricAlias: "pg_heartbeat",
+  }),
+  buildRestartTemplate({
+    id: "database-postgresql-restarted",
+    engine: POSTGRESQL,
+    metricName: "postgresql.uptime",
+    metricAlias: "pg_uptime",
+    threshold: 600,
+    readByAgentQuery: "pg_postmaster_start_time()",
+  }),
+  /*
+   * Transaction ID wraparound: near 2^31 (about 2.1 billion) PostgreSQL
+   * stops assigning transaction IDs, and every write fails with "database
+   * is not accepting commands to avoid wraparound data loss" until the
+   * oldest database is vacuumed. The age moves slowly, so both lines are
+   * judged over fifteen minutes.
+   */
+  buildDatabaseTemplate({
+    id: "database-postgresql-xid-wraparound-near",
+    name: "Transaction ID Wraparound Near",
+    description:
+      "Alert when the oldest transaction ID of any database is 1.5 billion transactions old — about 70% of the way to the 2.1 billion at which PostgreSQL stops accepting writes. Reads postgresql.xid.oldest_age, which the Database Agent reads with SQL (age(datfrozenxid) in pg_database); enable the same sqlquery receiver in a collector of your own.",
+    category: "Availability",
+    severity: "Critical",
+    engine: POSTGRESQL,
+    queries: [
+      {
+        alias: "pg_xid_age_critical",
+        metricName: "postgresql.xid.oldest_age",
+        aggregationType: MetricsAggregationType.Max,
+      },
+    ],
+    rollingTime: RollingTime.Past15Minutes,
+    criteria: {
+      metricAlias: "pg_xid_age_critical",
+      filterType: FilterType.GreaterThanOrEqualTo,
+      threshold: 1500000000,
+      thresholdLabel: "at or above 1.5 billion transactions",
+      incidentDescription:
+        "PostgreSQL is running out of transaction IDs: near 2.1 billion it stops accepting writes until the oldest database is vacuumed. Find it with SELECT datname, age(datfrozenxid) FROM pg_database ORDER BY 2 DESC, remove what holds autovacuum back (a long-open transaction, an inactive replication slot, a forgotten prepared transaction), then VACUUM (FREEZE) its oldest tables.",
+    },
+  }),
+  buildDatabaseTemplate({
+    id: "database-postgresql-xid-age-high",
+    name: "Transaction ID Age Above 1 Billion",
+    description:
+      "Alert when the oldest transaction ID of any database is a billion transactions old — half way to wraparound: autovacuum's freezing is falling behind. Reads postgresql.xid.oldest_age, which the Database Agent reads with SQL (age(datfrozenxid) in pg_database); enable the same sqlquery receiver in a collector of your own.",
+    category: "Availability",
+    severity: "Warning",
+    engine: POSTGRESQL,
+    queries: [
+      {
+        alias: "pg_xid_age_warning",
+        metricName: "postgresql.xid.oldest_age",
+        aggregationType: MetricsAggregationType.Max,
+      },
+    ],
+    rollingTime: RollingTime.Past15Minutes,
+    criteria: {
+      metricAlias: "pg_xid_age_warning",
+      filterType: FilterType.GreaterThanOrEqualTo,
+      threshold: 1000000000,
+      thresholdLabel: "at or above 1 billion transactions",
+      incidentDescription:
+        "The oldest transaction ID is a billion transactions old, so autovacuum's freezing is not keeping up. Look for long-open transactions in pg_stat_activity, an inactive slot in pg_replication_slots and forgotten prepared transactions in pg_prepared_xacts, then make sure autovacuum reaches the oldest tables.",
+    },
   }),
   buildPercentOfLimitTemplate({
     id: "database-postgresql-connections-exhausted",
@@ -1202,6 +1365,56 @@ const postgresqlTemplates: Array<DatabaseAlertTemplate> = [
       thresholdLabel: "at or above 1 GB",
       incidentDescription:
         "A replica has fallen 1 GB or more of WAL behind. The primary must keep that WAL until the replica catches up, so its disk fills as well; check the replica's disk throughput and the network link.",
+    },
+  }),
+  buildDatabaseTemplate({
+    id: "database-postgresql-long-running-transaction",
+    name: "Long-Running Transaction",
+    description:
+      "Alert when a transaction stays open for an hour or more — it holds back vacuum (dead rows pile up and tables bloat) and keeps every lock it took. Usually a session left idle in transaction; retune to your longest legitimate batch job. Reads postgresql.transaction.longest_duration, which the Database Agent reads with SQL (xact_start in pg_stat_activity); enable the same sqlquery receiver in a collector of your own.",
+    category: "Performance",
+    severity: "Warning",
+    engine: POSTGRESQL,
+    queries: [
+      {
+        alias: "pg_longest_transaction",
+        metricName: "postgresql.transaction.longest_duration",
+        aggregationType: MetricsAggregationType.Max,
+      },
+    ],
+    criteria: {
+      metricAlias: "pg_longest_transaction",
+      filterType: FilterType.GreaterThanOrEqualTo,
+      threshold: 3600,
+      thresholdLabel: "at or above an hour",
+      incidentDescription:
+        'A transaction has been open for an hour. pg_stat_activity shows it (state, xact_start, query): an "idle in transaction" session is usually an application that forgot to commit, and pg_terminate_backend(pid) ends it if that is safe. Until it closes, vacuum cannot clean up behind it and its locks stay held.',
+    },
+  }),
+  buildDatabaseTemplate({
+    id: "database-postgresql-sessions-waiting-on-locks",
+    name: "Sessions Waiting on Locks",
+    description:
+      "Alert when sessions waiting on another session's lock are seen throughout ten minutes — a blocking chain that is not clearing. Reads postgresql.sessions.waiting_on_lock, which the Database Agent reads with SQL (wait_event_type in pg_stat_activity); enable the same sqlquery receiver in a collector of your own.",
+    category: "Performance",
+    severity: "Warning",
+    engine: POSTGRESQL,
+    queries: [
+      {
+        alias: "pg_sessions_waiting_on_lock",
+        metricName: "postgresql.sessions.waiting_on_lock",
+        // The worst scrape of each minute, across every agent reporting it.
+        aggregationType: MetricsAggregationType.Max,
+      },
+    ],
+    rollingTime: RollingTime.Past10Minutes,
+    criteria: {
+      metricAlias: "pg_sessions_waiting_on_lock",
+      filterType: FilterType.GreaterThanOrEqualTo,
+      threshold: 1,
+      thresholdLabel: "at or above 1 waiting session",
+      incidentDescription:
+        "Sessions have been waiting on locks for ten minutes. pg_blocking_pids(pid) on the waiting sessions in pg_stat_activity names the head of the chain — usually a transaction an application opened and never committed.",
     },
   }),
   buildDatabaseTemplate({

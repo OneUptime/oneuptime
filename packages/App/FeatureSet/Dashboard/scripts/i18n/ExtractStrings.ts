@@ -281,6 +281,17 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * A database's status and what needs attention on it, by the lines of its
+   * engine's recommended alerts: the Databases list and its Needs attention
+   * card, a database's hero and its Needs attention say them in the
+   * reader's language. Only the words the file marks are read: the alert
+   * templates' own names and the metric names stay as written.
+   */
+  {
+    directory: "packages/Common/Types/DatabaseServer/DatabaseHealth.ts",
+    kind: "keys",
+  },
+  /*
    * Where a database or a queue was found ("Application traces", "Added
    * manually") and what kind of cloud resource one is ("Databases and
    * caches"): a database's and a queue's Overview, their lists and a cloud
