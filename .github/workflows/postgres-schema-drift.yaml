@@ -1496,6 +1496,25 @@ jobs:
           Tests/Server/Infrastructure/Postgres/ClearNextEventOfTemplatesThatDoNotRecurPostgres.test.ts
           --forceExit
 
+      # Clones the migrated LogSavedView table into an isolated schema, as it
+      # was before AddScopeToLogSavedView, and runs the migration on seeded
+      # views: every view keeps no scope (the Logs page's, so none goes
+      # missing) and everything else as it was; a view saved on a page is
+      # listed by that page's query alone; a scope as long as the column is
+      # kept and a longer one refused; down() keeps every view.
+      - name: Test saved log views' pages on migrated Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_LOG_SAVED_VIEW_SCOPE_TESTS: "true"
+          LOG_SAVED_VIEW_SCOPE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          LOG_SAVED_VIEW_SCOPE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          LOG_SAVED_VIEW_SCOPE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Infrastructure/Postgres/AddScopeToLogSavedViewPostgres.test.ts
+          --forceExit
+
       # Clones the migrated LlmLog and AIRun tables into an isolated schema,
       # seeds a long AI Log history and reads the plans Postgres executes for
       # the daily AI limit sums (the project's limits and every incident and
