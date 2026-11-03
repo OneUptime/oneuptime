@@ -297,10 +297,21 @@ const LEDGER: Record<string, Array<Choice>> = {
       why: "Block and Unblock users: each user's switch is their own.",
     },
     {
+      expression: SEVERAL,
+      why: "Require and Do Not Require Two Factor Auth: each request writes one user's requirement and signs that user out, nothing another user's request reads.",
+    },
+    {
       expression: "1",
       why: "Delete users: a project keeps at least one owner, a rule two deletes at once would each check against the other's user.",
     },
   ],
+  "packages/App/FeatureSet/AdminDashboard/src/Components/User/BulkAddUsersToProject.ts":
+    [
+      {
+        expression: "1",
+        why: "Add users to a project: each membership runs the project's seat accounting (seatLimit against the subscription's seats), which creates at once would race past the limit.",
+      },
+    ],
   "ee/AdminDashboard/EnterpriseLicenses/Components/useLicenseBulkActions.tsx": [
     {
       expression: "1",
