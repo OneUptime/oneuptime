@@ -11,7 +11,8 @@ import path from "path";
  * download, the walk read back after a reload, and the page at a phone's
  * width, in the dark theme and in German.
  */
-const port: string = process.env["MULTI_DEVICE_SNMP_WALK_FIXTURE_PORT"] || "4522";
+const port: string =
+  process.env["MULTI_DEVICE_SNMP_WALK_FIXTURE_PORT"] || "4522";
 
 export default defineConfig({
   testDir: "./MultiDeviceSnmpWalk",
