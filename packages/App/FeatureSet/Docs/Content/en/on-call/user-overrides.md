@@ -70,6 +70,8 @@ When someone leaves the project, every override that names them and has not ende
 
 **Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** and **On-Call Member** can add and delete overrides; **Viewer** and **On-Call Viewer** can see them. In a custom role, the permissions are **Create On-Call Duty Policy User Override**, **Delete On-Call Duty Policy User Override** and **Read On-Call Duty Policy User Override**. On the **Schedule Timeline**, only people who can read overrides see whose shift is being covered.
 
+An override on a policy follows the policy's scope. Give a team **On-Call Member** limited to the policies it owns, or to its label, and its members add and delete overrides on those policies only. A global override applies to every policy, another team's included, so adding or deleting one takes the override permission over the whole project. With a narrower one, **Add User Override** and **Delete** on **On-Call Duty → Advanced → User Overrides** are locked and say why, and the team adds its overrides on each policy's own **User Overrides** page. The same holds for the API: an override with no `onCallDutyPolicyId` is refused for a permission limited to labels or to owned policies.
+
 On OneUptime Cloud, user overrides need the **Growth** plan.
 
 ## API
@@ -111,7 +113,7 @@ They are reached through their own personal on-call rules and verified methods. 
 :::
 
 :::details I cannot add an override
-Adding one takes one of the roles above, and on OneUptime Cloud the **Growth** plan.
+Adding one takes one of the roles above, and on OneUptime Cloud the **Growth** plan. A global override takes the role over the whole project: if your team's role is limited to its own policies or to some labels, add the override on the policy's own **User Overrides** page.
 :::
 
 ## Next steps

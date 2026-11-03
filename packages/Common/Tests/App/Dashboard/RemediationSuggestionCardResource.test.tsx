@@ -42,7 +42,10 @@ import { ResourceCommandTier } from "../../../Types/ResourceAiAgent/ResourceAiAc
 import ObjectID from "../../../Types/ObjectID";
 import RunbookStepType from "../../../Types/Runbook/RunbookStepType";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
-import { openRemediationFixes } from "./RemediationFixHarness";
+import {
+  findRemediationCommandLines,
+  openRemediationFixes,
+} from "./RemediationFixHarness";
 
 /*
  * The remediation card for a RESOURCE round — AI fixes on a Docker or
@@ -124,16 +127,10 @@ async function renderCard(
   render(
     <RemediationStep investigationStage="reported" incidentId={INCIDENT_ID} />,
   );
-  // Folded to its sentence: opened, as a reader does.
+  // Each step of the fix opened, as a reader does; the command as planned.
   await openRemediationFixes();
-  const command: HTMLElement = await screen.findByText(commandText);
-  const commandRow: HTMLElement | null = command.closest("li");
 
-  if (!commandRow) {
-    throw new Error("The command is not rendered inside a command row.");
-  }
-
-  return commandRow;
+  return (await findRemediationCommandLines(commandText)).plan;
 }
 
 beforeEach(() => {
@@ -310,7 +307,11 @@ describe("RemediationStep for a resource round", () => {
     ).not.toBeInTheDocument();
     expect(within(row).getByText("safe change")).toBeInTheDocument();
     expect(within(row).getByText("auto-approved")).toBeInTheDocument();
-    expect(within(row).getByText("Succeeded")).toBeInTheDocument();
+    // How it ran is its run step's.
+    const { run } = await findRemediationCommandLines(
+      "systemctl restart nginx",
+    );
+    expect(within(run!).getByText("Succeeded")).toBeInTheDocument();
     expect(screen.queryByText("Approve & Run")).not.toBeInTheDocument();
   });
 

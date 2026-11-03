@@ -7,7 +7,7 @@ import {
 import {
   findTailwindStylesheet,
   getTailwindStylesheetFileName,
-  getTailwindStylesheetRoutePattern,
+  isTailwindStylesheetAddress,
 } from "../../Utils/TailwindStylesheet";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
@@ -236,24 +236,38 @@ describe("a site's built stylesheet", () => {
   });
 
   it("is served at the addresses a build of it can have, and no others", () => {
-    const pattern: RegExp = getTailwindStylesheetRoutePattern(
-      "/reference/tailwind/",
-    );
+    const isAddress: (path: string) => boolean = (path: string): boolean => {
+      return isTailwindStylesheetAddress({
+        hrefPrefix: "/reference/tailwind/",
+        path,
+      });
+    };
 
-    expect(pattern.test("/reference/tailwind/tailwind.0123456789ab.css")).toBe(
+    expect(isAddress("/reference/tailwind/tailwind.0123456789ab.css")).toBe(
       true,
     );
-    expect(pattern.test("/reference/tailwind/tailwind.0123456789a.css")).toBe(
+    expect(isAddress("/reference/tailwind/tailwind.0123456789a.css")).toBe(
       false,
     );
-    expect(pattern.test("/docs/tailwind/tailwind.0123456789ab.css")).toBe(
+    expect(isAddress("/docs/tailwind/tailwind.0123456789ab.css")).toBe(false);
+    expect(isAddress("/referenceXtailwind/tailwind.0123456789ab.css")).toBe(
       false,
     );
-    expect(pattern.test("/referenceXtailwind/tailwind.0123456789ab.css")).toBe(
+    expect(isAddress("/reference/tailwind/tailwind.0123456789ab.css.map")).toBe(
       false,
     );
+    // The prefix is read as it is written: nothing in it is a pattern.
     expect(
-      pattern.test("/reference/tailwind/tailwind.0123456789ab.css.map"),
+      isTailwindStylesheetAddress({
+        hrefPrefix: "/a.b/",
+        path: "/aXb/tailwind.0123456789ab.css",
+      }),
     ).toBe(false);
+    expect(
+      isTailwindStylesheetAddress({
+        hrefPrefix: "/a.b/",
+        path: "/a.b/tailwind.0123456789ab.css",
+      }),
+    ).toBe(true);
   });
 });

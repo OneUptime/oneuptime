@@ -39,6 +39,10 @@ import {
   AIChatToolAction,
   AIChatToolActionStatus,
 } from "../../../Types/AI/AIChatTypes";
+import {
+  AIActionWords,
+  describeAIActionWords,
+} from "../../../Types/AI/AIActionWords";
 import { AIResourceType } from "../../../Types/AI/AIResourceContext";
 import AIRunEventType from "../../../Types/AI/AIRunEventType";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -160,12 +164,21 @@ async function pendingAction(): Promise<AIChatToolAction> {
     HOST_PAGE_CONTEXT,
   );
 
-  return {
-    id: "call-raise",
-    toolName: CreateAlertTool.name,
+  // Its English, and the sentences the card says in the reader's language.
+  const words: AIActionWords = {
     title:
       prepared.title || CreateAlertTool.buildActionTitle!(prepared.arguments),
     ...(prepared.description ? { description: prepared.description } : {}),
+  };
+  const english: { title: string; description?: string | undefined } =
+    describeAIActionWords(words);
+
+  return {
+    id: "call-raise",
+    toolName: CreateAlertTool.name,
+    title: english.title,
+    ...(english.description ? { description: english.description } : {}),
+    words,
     arguments: prepared.arguments,
     isMutation: true,
     requiresApproval: true,

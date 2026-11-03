@@ -33,6 +33,9 @@
  *                    cannot be read
  *   - lang=de        the Dashboard's German words (fa: Persian, right to
  *                    left)
+ *   - words=none     the approval card's action was saved before actions
+ *                    stored their words: only its English, as conversations
+ *                    saved then read
  *   - theme=dark     dark mode (set before the bundle by server.js)
  *
  * What the page sends is recorded on window.__askAiFixture.state: `sent`
@@ -75,6 +78,14 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import AIChatMessageRole from "Common/Types/AI/AIChatMessageRole";
 import AIChatMessageStatus from "Common/Types/AI/AIChatMessageStatus";
 import AIRunEventType from "Common/Types/AI/AIRunEventType";
+import {
+  AI_ACTION_LINES,
+  AI_ACTION_TITLES,
+  aiActionList,
+  aiActionResourceByName,
+  aiActionSentence,
+  describeAIActionWords,
+} from "Common/Types/AI/AIActionWords";
 import {
   AIChatCitationTargetType,
   AIChatToolActionStatus,
@@ -124,6 +135,8 @@ const failKind = ["send", "conversations"].includes(params.get("fail"))
   : "";
 // Where the incident under the dialog stands: open (the default) or resolved.
 const isIncidentResolved = params.get("incident") === "resolved";
+// An action saved before actions stored their words: its English only.
+const isSavedBeforeWords = params.get("words") === "none";
 
 // ---- who is signed in -------------------------------------------------------
 
@@ -315,12 +328,37 @@ function alertCard() {
   };
 }
 
+/*
+ * What the server stores for create_alert's card: its title and its line as
+ * sentences (Common/Types/AI/AIActionWords), which the card says in the
+ * reader's language, the alert's title, its severity and the host's name as
+ * data - and their English, which the model and the exports read.
+ */
+const ALERT_ACTION_WORDS = {
+  title: aiActionSentence(AI_ACTION_TITLES.createAlert, {
+    title: "High memory usage on test01",
+  }),
+  description: [
+    aiActionSentence(AI_ACTION_LINES.severity, { severity: "High" }),
+    aiActionSentence(AI_ACTION_LINES.linkedTo, {
+      resources: aiActionList([
+        aiActionResourceByName({ noun: "host", name: "test01" }),
+      ]),
+    }),
+  ],
+};
+
 function alertAction(status) {
+  const english = describeAIActionWords(ALERT_ACTION_WORDS);
+
   return {
     id: "call_alert_1",
     toolName: "create_alert",
-    title: "Create alert: High memory usage on test01",
-    description: 'Severity: High. Linked to host "test01".',
+    // "Create alert: High memory usage on test01"
+    title: english.title,
+    // 'Severity: High. Linked to host "test01".'
+    description: english.description,
+    ...(isSavedBeforeWords ? {} : { words: ALERT_ACTION_WORDS }),
     arguments: {
       title: "High memory usage on test01",
       description: "Memory has been above 92% for 20 minutes.",

@@ -20,6 +20,11 @@ import {
 } from "Common/Types/NetFlow/NetworkTrafficUsage";
 import { NetworkControllerConnectionStatus } from "Common/Types/NetworkController/NetworkControllerConnectionHealth";
 import {
+  NetworkControllerDeviceAddRequest,
+  NetworkControllerDeviceAddState,
+  readNetworkControllerDeviceAddState,
+} from "Common/Types/NetworkController/NetworkControllerDeviceAdd";
+import {
   NetworkControllerOrganization,
   NetworkControllerTestResult,
   NetworkControllerTestStatus,
@@ -391,4 +396,38 @@ export async function readNetworkControllerConnectionNow(
   if (response instanceof HTTPErrorResponse) {
     throw response;
   }
+}
+
+/*
+ * Ask for a connection's devices of the kinds picked to be added as network
+ * devices. Answers the ask as the connection now keeps it (Queued), or
+ * undefined when the answer cannot be read - the connection's row reads it
+ * again either way.
+ */
+export async function addNetworkControllerDevices(
+  connectionId: ObjectID,
+  request: NetworkControllerDeviceAddRequest,
+): Promise<NetworkControllerDeviceAddState | undefined> {
+  const url: URL = URL.fromString(APP_API_URL.toString()).addRoute(
+    `${NETWORK_CONTROLLER_CONNECTION_PATH}/${connectionId.toString()}/add-devices`,
+  );
+
+  const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+    await API.post<JSONObject>({
+      url: url,
+      data: {
+        productTypes: [...request.productTypes],
+        groupBySite: request.groupBySite,
+        ...(request.probeId ? { probeId: request.probeId } : {}),
+      },
+      headers: { ...ModelAPI.getCommonHeaders() },
+    });
+
+  if (response instanceof HTTPErrorResponse) {
+    throw response;
+  }
+
+  return readNetworkControllerDeviceAddState(
+    (response.data as JSONObject | undefined)?.["lastDeviceAdd"],
+  );
 }

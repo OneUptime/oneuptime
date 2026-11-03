@@ -20,7 +20,9 @@ import TimePicker from "../../TimePicker/Index";
 import Link from "../../Link/Link";
 import Modal from "../../Modal/Modal";
 import IDGenerator from "../../ObjectID/IDGenerator";
-import RadioButtons from "../../RadioButtons/GroupRadioButtons";
+import RadioButtons, {
+  RadioButton,
+} from "../../RadioButtons/GroupRadioButtons";
 import TextArea from "../../TextArea/TextArea";
 import Toggle from "../../Toggle/Toggle";
 import ColorPicker from "../Fields/ColorPicker";
@@ -232,6 +234,15 @@ const FormField: <T extends GenericObject>(
   };
 
   const getFormField: GetReactElementFunction = (): ReactElement => {
+    /*
+     * The answers a radio field offers: for the values the form holds, when
+     * they depend on another field (getRadioButtonOptions), else its list.
+     */
+    const radioButtonOptions: Array<RadioButton> =
+      (props.field.getRadioButtonOptions
+        ? props.field.getRadioButtonOptions(props.currentValues)
+        : props.field.radioButtonOptions) || [];
+
     const [
       showMultiSelectCheckboxCategoryModal,
       setShowMultiSelectCheckboxCategoryModal,
@@ -905,7 +916,7 @@ const FormField: <T extends GenericObject>(
                 onChange(value);
                 props.setFieldValue(props.fieldName, value);
               }}
-              options={props.field.radioButtonOptions || []}
+              options={radioButtonOptions}
               initialValue={
                 props.currentValues &&
                 (props.currentValues as any)[props.fieldName]
@@ -930,23 +941,21 @@ const FormField: <T extends GenericObject>(
                * under it when it has one - a choice of modes reads as plain
                * answers (a reminder rule's Resolved / Acknowledged).
                */
-              options={
-                props.field.radioButtonOptions?.map(
-                  (option: BasicRadioButtonOption) => {
-                    return {
-                      label: translateString(option.title) || option.title,
-                      value: option.value,
-                      ...(option.description
-                        ? {
-                            description:
-                              translateString(option.description) ||
-                              option.description,
-                          }
-                        : {}),
-                    };
-                  },
-                ) || []
-              }
+              options={radioButtonOptions.map(
+                (option: BasicRadioButtonOption) => {
+                  return {
+                    label: translateString(option.title) || option.title,
+                    value: option.value,
+                    ...(option.description
+                      ? {
+                          description:
+                            translateString(option.description) ||
+                            option.description,
+                        }
+                      : {}),
+                  };
+                },
+              )}
               value={
                 props.currentValues &&
                 (props.currentValues as any)[props.fieldName]

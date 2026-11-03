@@ -242,8 +242,10 @@ COPY ./agents/PodmanAgent /usr/src/agents/PodmanAgent
 COPY ./agents/ProxmoxAgent /usr/src/agents/ProxmoxAgent
 COPY ./agents/StorageArrayAgent /usr/src/agents/StorageArrayAgent
 COPY ./agents/VMwareAgent /usr/src/agents/VMwareAgent
-# .dockerignore leaves HelmChart/ out of the context except this one file.
+# .dockerignore leaves HelmChart/ out of the context except these two files.
 COPY ./HelmChart/Public/kubernetes-agent/troubleshoot.sh /usr/src/HelmChart/Public/kubernetes-agent/troubleshoot.sh
+# The air-gapped image bundle script, served at /install/air-gapped.
+COPY ./HelmChart/AirGap/install.sh /usr/src/HelmChart/AirGap/install.sh
 # The CLI's installer, served at /install/cli: it installs the npm package of
 # this release's version.
 COPY ./packages/CLI/Install /usr/src/packages/CLI/Install

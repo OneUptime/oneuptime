@@ -32,6 +32,7 @@ import PublicMessageRateLimit, {
 } from "../Utils/RateLimit/PublicMessageRateLimit";
 import Exception from "../../Types/Exception/Exception";
 import { StatementContext } from "../Utils/Database/StatementOutcome";
+import { IsNull, MoreThan, UpdateResult } from "typeorm";
 
 // The status page's two names, ID column first: a write may use either.
 const STATUS_PAGE_KEYS: Array<string> = ["statusPageId", "statusPage"];
@@ -182,8 +183,8 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /**
-   * Kill any outstanding password-reset link for a status page user whose
-   * email address is about to change.
+   * Kill any outstanding password-reset link, and sign-in link, for a
+   * status page user whose email address is about to change.
    *
    * Same invariant, and the same reasoning, as
    * `UserService.expirePasswordResetTokensForEmailChange`: the link is a
@@ -202,6 +203,10 @@ export class Service extends ProjectReferencesService<Model> {
    * Cleared before the write, and only for rows whose address actually
    * changes, so a SCIM push that re-sends an unchanged address does not
    * invalidate a reset link the user is part-way through using.
+   *
+   * A sign-in link (Types/StatusPage/StatusPageMagicLink) is found the same
+   * way - by its token's hash and the status page - and signs the account
+   * in outright, so it goes with the reset link.
    */
   @CaptureSpan()
   protected override async onBeforeUpdate(
@@ -242,6 +247,8 @@ export class Service extends ProjectReferencesService<Model> {
           data: {
             resetPasswordToken: null!,
             resetPasswordExpires: null!,
+            magicLinkToken: null!,
+            magicLinkExpires: null!,
           },
           props: {
             isRoot: true,
@@ -392,6 +399,78 @@ export class Service extends ProjectReferencesService<Model> {
     });
 
     return createdItem;
+  }
+
+  /*
+   * Spend a sign-in link (Types/StatusPage/StatusPageMagicLink): the private
+   * user of this status page whose latest link carries this token, or null
+   * - no such link, one that expired, a newer link replaced it, the user was
+   * removed, or another request spent it first. The link is cleared by the
+   * same write that checks it, with the token's hash, the page, the expiry
+   * and the user not being removed all in the UPDATE's predicate, so of two
+   * requests that carry one link only one finds it there.
+   */
+  @CaptureSpan()
+  public async consumeMagicLinkToken(data: {
+    statusPageId: ObjectID;
+    token: string;
+  }): Promise<Model | null> {
+    // An empty value hashes to "" (HashedString), which no link is.
+    if (!data.token) {
+      return null;
+    }
+
+    const hashedToken: string = await HashedString.hashValue(
+      data.token,
+      EncryptionSecret,
+    );
+
+    const user: Model | null = await this.findOneBy({
+      query: {
+        statusPageId: data.statusPageId,
+        magicLinkToken: hashedToken,
+      },
+      select: {
+        _id: true,
+        email: true,
+        statusPageId: true,
+        projectId: true,
+        magicLinkExpires: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (
+      !user?.id ||
+      !user.magicLinkExpires ||
+      OneUptimeDate.hasExpired(user.magicLinkExpires)
+    ) {
+      return null;
+    }
+
+    const updateResult: UpdateResult = await this.getRepository().update(
+      {
+        _id: user.id.toString(),
+        statusPageId: data.statusPageId,
+        magicLinkToken: hashedToken,
+        magicLinkExpires: MoreThan(OneUptimeDate.getCurrentDate()),
+        deletedAt: IsNull(),
+      } as any,
+      {
+        magicLinkToken: null,
+        magicLinkExpires: null,
+      } as any,
+    );
+
+    if (updateResult.affected !== 1) {
+      return null;
+    }
+
+    delete user.magicLinkExpires;
+
+    return user;
   }
 
   /*

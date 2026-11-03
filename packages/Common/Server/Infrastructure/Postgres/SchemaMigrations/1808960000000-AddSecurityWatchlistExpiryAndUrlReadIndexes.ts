@@ -16,11 +16,11 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * Every existing row's column is null. Safe to run again after a stop part
  * way: an index that is already there is left as it is.
  */
-export class AddSecurityWatchlistExpiryAndUrlReadIndexes1808906000000
+export class AddSecurityWatchlistExpiryAndUrlReadIndexes1808960000000
   implements MigrationInterface
 {
   public name: string =
-    "AddSecurityWatchlistExpiryAndUrlReadIndexes1808906000000";
+    "AddSecurityWatchlistExpiryAndUrlReadIndexes1808960000000";
 
   // CREATE INDEX CONCURRENTLY runs outside a transaction.
   public transaction: boolean = false;

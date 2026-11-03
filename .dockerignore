@@ -41,6 +41,9 @@ HelmChart
 # The Kubernetes agent's diagnostic script, which the App image serves at
 # /install/kubernetes-agent/troubleshoot.sh (packages/App/Dockerfile.tpl).
 !HelmChart/Public/kubernetes-agent/troubleshoot.sh
+# The air-gapped image bundle script, which the App image serves at
+# /install/air-gapped (packages/App/Dockerfile.tpl).
+!HelmChart/AirGap/install.sh
 Scripts
 # Every Node image runs this while it is built (see the script's header).
 !Scripts/Docker/UpdateNpmCli.js

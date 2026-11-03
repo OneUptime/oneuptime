@@ -6605,23 +6605,41 @@ function remediationCard(page: Page): Locator {
 }
 
 /*
- * Opens every fix on the Remediation step, as a reader does: a fix of
- * commands or changes is folded to its sentence (#5413's UI review: a
- * lighter fixes block), and Review and approve - Show details, for a fix
- * that waits for nobody - opens its commands, its reasoning and Approve &
- * Run. Waits for the first fix's press to be drawn.
+ * Opens every fix on the Remediation step, as a reader does: a fix reads as
+ * the steps it went through (issue #5598), and each step with more to read
+ * opens on its own press - the plan to its reasoning and each command, the
+ * run to each command's output, the rollback to each undo - while Review
+ * and approve opens the plan of a fix that waits, with Approve & Run under
+ * it. One press at a time, read again after each: Review and approve and
+ * the plan's own press open the same step. Waits for the first press.
  */
-async function openEveryFix(page: Page): Promise<void> {
-  const toggles: Locator = remediationStep(page).getByTestId(
-    "remediation-fix-details-toggle",
-  );
-  await expect(toggles.first()).toBeVisible({ timeout: 30000 });
+const FIX_OPENING_PRESSES: string =
+  "[data-testid='remediation-fix-details-toggle'], [data-testid='remediation-fix-step-toggle']";
 
-  for (const toggle of await toggles.all()) {
-    if ((await toggle.getAttribute("aria-expanded")) === "false") {
-      await toggle.click();
-      await expect(toggle).toHaveAttribute("aria-expanded", "true");
+async function openEveryFix(page: Page): Promise<void> {
+  const presses: Locator = remediationStep(page).locator(FIX_OPENING_PRESSES);
+  await expect(presses.first()).toBeVisible({ timeout: 30000 });
+  const closed: Locator = remediationStep(page).locator(
+    FIX_OPENING_PRESSES.split(", ")
+      .map((press: string): string => {
+        return `${press}[aria-expanded='false']`;
+      })
+      .join(", "),
+  );
+
+  for (let round: number = 0; round < 50; round++) {
+    const left: number = await closed.count();
+
+    if (left === 0) {
+      return;
     }
+
+    await closed.first().click();
+    await expect
+      .poll(() => {
+        return closed.count();
+      })
+      .toBeLessThan(left);
   }
 }
 
@@ -19062,8 +19080,12 @@ test.describe("an action linking what a record is about waits for approval (issu
     await expect(prompt.getByTestId("tool-approval-description")).toHaveText(
       ADDS_HOST,
     );
-    // The arguments line keeps the incident and leaves the list out.
-    await expect(prompt).toContainText(`incidentId: ${INCIDENT_ID}`);
+    /*
+     * The title names the incident by its number, and the line names the
+     * host: neither's ID is repeated in the arguments.
+     */
+    await expect(prompt).not.toContainText("incidentId");
+    await expect(prompt).not.toContainText(INCIDENT_ID);
     await expect(prompt).not.toContainText("affectedResources");
     await expect(prompt).not.toContainText(HOST_ID);
 
@@ -19099,7 +19121,7 @@ test.describe("an action linking what a record is about waits for approval (issu
     await expect(prompt.getByTestId("tool-approval-description")).toHaveText(
       ADDS_HOST,
     );
-    await expect(prompt).toContainText(`alertId: ${ALERT_ID}`);
+    await expect(prompt).not.toContainText(ALERT_ID);
     await expect(prompt).not.toContainText(HOST_ID);
   });
 
@@ -19199,6 +19221,108 @@ test.describe("an action linking what a record is about waits for approval (issu
     expect(Math.abs(choiceBox!.y - titleBox!.y)).toBeLessThan(8);
     expect(choiceBox!.x).toBeGreaterThan(titleBox!.x + titleBox!.width);
   });
+
+  /*
+   * The server stores the card's title and line as sentences beside their
+   * English, and the incident's conversation says them in the reader's
+   * language: German, and Persian read right to left - the incident's
+   * number and the host's name as written, set apart in a Persian
+   * sentence. Its words are read from the locale file the page draws.
+   */
+  for (const language of ["de", "fa"]) {
+    test(`the card says it in the reader's language (?lang=${language})`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      const words: Record<string, string> = JSON.parse(
+        await fs.readFile(
+          path.resolve(
+            __dirname,
+            "../../App/FeatureSet/Dashboard/src/Locales",
+            `${language}.json`,
+          ),
+          "utf8",
+        ),
+      ) as Record<string, string>;
+      const sentence: (
+        key: string,
+        values: Record<string, string>,
+      ) => string = (key: string, values: Record<string, string>): string => {
+        let text: string = words[key]!;
+        for (const name of Object.keys(values)) {
+          text = text.split(`{{${name}}}`).join(values[name]!);
+        }
+        return text;
+      };
+
+      await open(
+        page,
+        INCIDENT_PATH,
+        `thread=linking&lang=${language}${language === "fa" ? "&dir=auto" : ""}`,
+      );
+      const title: Locator = conversation(page).getByTestId(
+        "tool-approval-title",
+      );
+      const line: Locator = conversation(page).getByTestId(
+        "tool-approval-description",
+      );
+      await expect(title).toBeVisible({ timeout: 30000 });
+
+      const said: { title: string; line: string; direction: string } =
+        await conversation(page).evaluate(
+          (
+            element: Element,
+          ): { title: string; line: string; direction: string } => {
+            const read: (testId: string) => Element = (
+              testId: string,
+            ): Element => {
+              return element.querySelector(`[data-testid="${testId}"]`)!;
+            };
+            const marks: RegExp = /[\u2066-\u2069]/g;
+            return {
+              title: (read("tool-approval-title").textContent || "").replace(
+                marks,
+                "",
+              ),
+              line: (
+                read("tool-approval-description").textContent || ""
+              ).replace(marks, ""),
+              direction: window.getComputedStyle(
+                read("tool-approval-title").querySelector("bdi")!,
+              ).direction,
+            };
+          },
+        );
+
+      expect(said.title).toBe(
+        sentence("Link incident {{incident}} to affected resources", {
+          incident: "#1042",
+        }),
+      );
+      expect(said.line).toBe(
+        sentence("Adds {{resources}}.", {
+          resources: `${words["host"]} "checkout-api-7f9c"`,
+        }),
+      );
+      expect(said.direction).toBe(language === "fa" ? "rtl" : "ltr");
+      /*
+       * The question someone asked in English reads its own way on either
+       * page: left to right, its full stop at its end.
+       */
+      await expect(
+        conversation(page)
+          .getByTestId("investigation-conversation-question-text")
+          .first(),
+      ).toHaveCSS("direction", "ltr");
+      await expect(line).toBeVisible();
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
+      await screenshotElement(
+        conversation(page),
+        `tool-approval-linking-${language}`,
+      );
+    });
+  }
 });
 
 /*
@@ -20929,18 +21053,31 @@ test.describe("a busy incident's fixes on the Remediation step read as lines (?f
 });
 
 /*
- * A LIGHTER FIXES BLOCK (#5413's UI review): each fix of commands or changes
- * is folded to where it stands and its sentence - how many commands, and
- * where; how many changes, and through which servers - with a failure in
- * red beside where it stands, and Review and approve (or Show details) one
- * press from its commands, its reasoning and Approve & Run.
+ * A FIX, STEP BY STEP (issue #5598): each fix reads as the steps it went
+ * through, in the order they happened - planned, approved, ran, recovered
+ * or not, rolled back - each one line with when it happened and why or
+ * what went wrong, a failure in red beside where the fix stands, and each
+ * step with more to read opening on its own press. A fix that waits for
+ * approval is approved with its commands in sight: Review and approve opens
+ * its plan, with Approve & Run under it.
  */
-const KUBECTL_FIX_SENTENCE: string = "2 commands on cluster prod-eu-west-1.";
-const MCP_FIX_SENTENCE: string =
-  "2 changes through Feature flags and Status page.";
+const KUBECTL_FIX_PLAN: string = "Planned 2 commands on cluster prod-eu-west-1";
+const MCP_FIX_PLAN: string =
+  "Planned 2 changes through Feature flags and Status page";
 
-test.describe("a busy incident's fixes, each folded to its sentence (?fixes=many)", () => {
-  test("where each stands and its sentence, a failure in red, and one press from its commands and Approve & Run", async ({
+// A fix's step of the given kind, and the words of its title.
+function fixStep(fix: Locator, kind: string): Locator {
+  return fix.locator(
+    `[data-testid='remediation-fix-step'][data-step='${kind}']`,
+  );
+}
+
+async function stepTitles(fix: Locator): Promise<Array<string>> {
+  return fix.getByTestId("remediation-fix-step-title").allTextContents();
+}
+
+test.describe("a busy incident's fixes, step by step (?fixes=many)", () => {
+  test("each fix reads as its steps, a failure in red, and the plan of the one that waits one press from Approve & Run", async ({
     page,
   }: {
     page: Page;
@@ -20951,9 +21088,48 @@ test.describe("a busy incident's fixes, each folded to its sentence (?fixes=many
     const mcp: Locator = fixOnStep(page, "AI fix through MCP servers");
     const runbook: Locator = fixOnStep(page, "Restart checkout-api pods");
 
-    await expect(kubectl.getByTestId("remediation-fix-sentence")).toHaveText(
-      KUBECTL_FIX_SENTENCE,
-    );
+    // The order OneUptime AI tried them in: the oldest first.
+    expect(
+      await remediation.getByTestId("remediation-fix-title").allTextContents(),
+    ).toEqual([
+      "Restart checkout-api pods",
+      "AI fix through MCP servers",
+      "AI kubectl fix",
+    ]);
+
+    expect(await stepTitles(runbook)).toEqual([
+      "Picked this runbook",
+      "Approved",
+      "Started the runbook",
+      "Recovered",
+    ]);
+    await expect(
+      fixStep(runbook, "verify").getByTestId(
+        "remediation-fix-verification-note",
+      ),
+    ).toHaveText("p95 latency was back under 500 ms 4 minutes after the run.");
+    await expect(
+      fixStep(runbook, "run").getByRole("button", { name: "View Execution" }),
+    ).toBeVisible();
+
+    expect(await stepTitles(mcp)).toEqual([
+      MCP_FIX_PLAN,
+      "Approved automatically",
+      "1 of 2 changes failed",
+    ]);
+    await expect(fixStep(mcp, "run")).toHaveAttribute("data-tone", "failed");
+    await expect(
+      fixStep(mcp, "run").getByTestId("remediation-fix-step-summary"),
+    ).toHaveText("The server did not answer within 30 seconds.");
+    const failed: Locator = mcp.getByTestId("remediation-fix-failed-count");
+    await expect(failed).toHaveText("1 failed");
+    await expect(failed).toHaveAttribute("data-alarming", "true");
+    await expect(mcp.getByTestId("remediation-mcp-tool-call")).toHaveCount(0);
+
+    expect(await stepTitles(kubectl)).toEqual([
+      KUBECTL_FIX_PLAN,
+      "Needs your approval",
+    ]);
     await expect(
       kubectl.getByTestId("remediation-fix-details-toggle"),
     ).toHaveText("Review and approve");
@@ -20962,10 +21138,10 @@ test.describe("a busy incident's fixes, each folded to its sentence (?fixes=many
       0,
     );
     /*
-     * It is decided with its commands in sight: folded, Review and approve
-     * is its one press, and Dismiss waits beside Approve & Run inside.
+     * It is decided with its commands in sight: its plan's own press, and
+     * Review and approve, are all it offers until its plan is open.
      */
-    await expect(kubectl.getByRole("button")).toHaveCount(1);
+    await expect(kubectl.getByRole("button")).toHaveCount(2);
     await expect(kubectl.getByRole("button", { name: "Dismiss" })).toHaveCount(
       0,
     );
@@ -20973,27 +21149,7 @@ test.describe("a busy incident's fixes, each folded to its sentence (?fixes=many
       0,
     );
 
-    await expect(mcp.getByTestId("remediation-fix-sentence")).toHaveText(
-      MCP_FIX_SENTENCE,
-    );
-    await expect(mcp.getByTestId("remediation-fix-details-toggle")).toHaveText(
-      "Show details",
-    );
-    const failed: Locator = mcp.getByTestId("remediation-fix-failed-count");
-    await expect(failed).toHaveText("1 failed");
-    await expect(failed).toHaveAttribute("data-alarming", "true");
-    await expect(mcp.getByTestId("remediation-mcp-tool-call")).toHaveCount(0);
-
-    // A runbook has nothing to fold: its name is what approving runs.
-    await expect(
-      runbook.getByTestId("remediation-fix-details-toggle"),
-    ).toHaveCount(0);
-    await expect(
-      runbook.getByRole("button", { name: "View Execution" }),
-    ).toBeVisible();
-
-    // Folded, the three fixes take a fraction of the room they took open.
-    const folded: Box = await documentBox(
+    const closed: Box = await documentBox(
       remediation.getByTestId("remediation-fixes"),
     );
     expect(
@@ -21001,23 +21157,24 @@ test.describe("a busy incident's fixes, each folded to its sentence (?fixes=many
     ).toEqual([]);
     expect(await panelsInsideTheCard(page)).toEqual([]);
     await page.mouse.move(0, 0);
-    await screenshotElement(remediation, "ai-card-fixes-folded-1280");
+    await screenshotElement(remediation, "ai-card-fixes-steps-1280");
 
-    // One press: the kubectl fix's commands, and Approve & Run under them.
+    // One press: the kubectl fix's plan, and Approve & Run under it.
     const toggle: Locator = kubectl.getByTestId(
       "remediation-fix-details-toggle",
     );
     await toggle.click();
     await expect(toggle).toHaveAttribute("aria-expanded", "true");
     await expect(toggle).toHaveText("Hide details");
-    await expect(kubectl.getByTestId("remediation-command")).toHaveCount(2);
-    // Why, shown first: never one more press inside the opened fix.
-    await expect(kubectl.getByTestId("remediation-fix-reasoning")).toHaveText(
+    const plan: Locator = fixStep(kubectl, "plan");
+    await expect(plan.getByTestId("remediation-command")).toHaveCount(2);
+    // Why, shown first: never one more press inside the opened plan.
+    await expect(plan.getByTestId("remediation-fix-reasoning")).toHaveText(
       "The pool exhaustion follows the 17:52 restart. Restarting the deployment brings the configured pool back.",
     );
     await expect(kubectl.getByText("Show reasoning")).toHaveCount(0);
     const details: Box = await documentBox(
-      kubectl.getByTestId("remediation-fix-details"),
+      plan.getByTestId("remediation-fix-step-details"),
     );
     const note: Box = await documentBox(
       kubectl.getByTestId("remediation-approval-note"),
@@ -21034,11 +21191,23 @@ test.describe("a busy incident's fixes, each folded to its sentence (?fixes=many
     expect(Math.abs(dismiss.y - approve.y)).toBeLessThan(2);
     expect(dismiss.x).toBeGreaterThan(approve.x + approve.width);
 
-    await mcp.getByTestId("remediation-fix-details-toggle").click();
+    // Each change through MCP servers, once the run that made them is open.
+    await fixStep(mcp, "run")
+      .getByTestId("remediation-fix-step-toggle")
+      .click();
+    expect(
+      await mcp
+        .getByTestId("remediation-mcp-tool-call-status")
+        .allTextContents(),
+    ).toEqual(["Done", "Failed"]);
+
+    // Closed, the three fixes take a fraction of the room they take open.
+    await openEveryFix(page);
     const opened: Box = await documentBox(
       remediation.getByTestId("remediation-fixes"),
     );
-    expect(folded.height).toBeLessThan(opened.height * 0.5);
+    expect(closed.height).toBeLessThan(opened.height * 0.6);
+    expect(await panelsInsideTheCard(page)).toEqual([]);
     await expectNoErrorStates(page);
   });
 
@@ -21060,18 +21229,19 @@ test.describe("a busy incident's fixes, each folded to its sentence (?fixes=many
       const body: Box = await documentBox(
         page.getByTestId("ai-card-step-remediation-body"),
       );
-      for (const sentence of await remediation
-        .getByTestId("remediation-fix-sentence")
+      for (const title of await remediation
+        .getByTestId("remediation-fix-step-title")
         .all()) {
-        const box: Box = await documentBox(sentence);
+        const box: Box = await documentBox(title);
         expect(box.x).toBeGreaterThanOrEqual(body.x - 1);
         expect(box.x + box.width).toBeLessThanOrEqual(body.x + body.width + 1);
       }
-      // All three fixes fit a phone's screen.
-      const fixes: Box = await documentBox(
-        remediation.getByTestId("remediation-fixes"),
-      );
-      expect(fixes.height).toBeLessThan(700);
+      // Each fix, closed, is a third of a phone's screen at most.
+      for (const fix of await remediation
+        .getByTestId("remediation-fix")
+        .all()) {
+        expect((await documentBox(fix)).height).toBeLessThan(340);
+      }
 
       expect(
         await pillsIn(page.getByTestId("ai-card-step-remediation-body")),
@@ -21080,12 +21250,12 @@ test.describe("a busy incident's fixes, each folded to its sentence (?fixes=many
       await page.mouse.move(0, 0);
       await screenshotElement(
         remediation,
-        `ai-card-fixes-folded-${width}-${theme}`,
+        `ai-card-fixes-steps-${width}-${theme}`,
       );
     });
   }
 
-  test("by keyboard: Review and approve opens the fix and keeps the keyboard, and Tab walks what it opened to Approve & Run, then Dismiss", async ({
+  test("by keyboard: Review and approve opens the plan and keeps the keyboard, and Tab goes on to Approve & Run, then Dismiss", async ({
     page,
   }: {
     page: Page;
@@ -21104,16 +21274,13 @@ test.describe("a busy incident's fixes, each folded to its sentence (?fixes=many
     const controls: string | null = await toggle.getAttribute("aria-controls");
     expect(controls).toBeTruthy();
     await expect(
-      kubectl.getByTestId("remediation-fix-details"),
+      fixStep(kubectl, "plan").getByTestId("remediation-fix-step-details"),
     ).toHaveAttribute("id", controls!);
     await expect(
       kubectl.getByTestId("remediation-approve-button"),
     ).toBeVisible();
 
-    /*
-     * From the press, Tab stays inside the opened fix - its commands - until
-     * Approve & Run, and Dismiss is the stop after it.
-     */
+    // From the press, Tab stays inside the fix until Approve & Run, then Dismiss.
     const stops: Array<{ isInFix: boolean; name: string }> = [];
     for (let stop: number = 0; stop < 12; stop++) {
       await page.keyboard.press("Tab");
@@ -21152,9 +21319,19 @@ test.describe("a busy incident's fixes, each folded to its sentence (?fixes=many
     await expect(kubectl.getByTestId("remediation-approve-button")).toHaveCount(
       0,
     );
+
+    // A step's own press opens it by keyboard too, and keeps the keyboard.
+    const mcpRun: Locator = fixStep(
+      fixOnStep(page, "AI fix through MCP servers"),
+      "run",
+    ).getByTestId("remediation-fix-step-toggle");
+    await mcpRun.focus();
+    await page.keyboard.press("Enter");
+    await expect(mcpRun).toHaveAttribute("aria-expanded", "true");
+    await expect(mcpRun).toBeFocused();
   });
 
-  test("in Persian at 390px: each sentence reads right to left, its names in place", async ({
+  test("in Persian at 390px: each step reads right to left, its names in place", async ({
     page,
   }: {
     page: Page;
@@ -21162,11 +21339,13 @@ test.describe("a busy incident's fixes, each folded to its sentence (?fixes=many
     await page.setViewportSize({ width: 390, height: 1000 });
     await openManyFixes(page, "lang=fa&dir=auto", { isFolded: true });
     const kubectl: Locator = fixOnStep(page, "prod-eu-west-1");
-    const sentence: Locator = kubectl.getByTestId("remediation-fix-sentence");
+    const plan: Locator = fixStep(kubectl, "plan").getByTestId(
+      "remediation-fix-step-title",
+    );
 
-    await expect(sentence).toContainText("prod-eu-west-1");
+    await expect(plan).toContainText("prod-eu-west-1");
     expect(
-      await sentence.evaluate((element: Element): string => {
+      await plan.evaluate((element: Element): string => {
         return window.getComputedStyle(element).direction;
       }),
     ).toBe("rtl");
@@ -21177,7 +21356,238 @@ test.describe("a busy incident's fixes, each folded to its sentence (?fixes=many
     await page.mouse.move(0, 0);
     await screenshotElement(
       remediationStep(page),
-      "ai-card-fixes-folded-fa-390",
+      "ai-card-fixes-steps-fa-390",
+    );
+  });
+});
+
+/*
+ * A FIX THAT DID NOT WORK, STEP BY STEP (?fixes=rolled-back, issue #5598):
+ * the Remediation step the issue showed - a kubectl fix OneUptime AI ran on
+ * its own, after which the incident did not recover, so the change was
+ * undone; the runbooks it looked through; and a second round that found no
+ * safe fix - reads as what happened, in order, and each step opens to why,
+ * the commands that ran and what they printed.
+ */
+async function openRolledBackFixes(
+  page: Page,
+  query: string = "",
+): Promise<void> {
+  await open(
+    page,
+    INCIDENT_PATH,
+    `fixes=rolled-back${query ? `&${query}` : ""}`,
+  );
+  await expect(remediationStep(page)).toBeVisible({ timeout: 30000 });
+  await expect(
+    remediationStep(page).getByTestId("remediation-fix"),
+  ).toHaveCount(3, { timeout: 30000 });
+  await expectWhatHappenedSettled(page);
+}
+
+test.describe("a fix that did not work, step by step (?fixes=rolled-back)", () => {
+  test("planned, approved automatically, ran, did not recover, rolled back; then no runbook, and no safe fix", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRolledBackFixes(page);
+    const remediation: Locator = remediationStep(page);
+    const [ran, noRunbook, secondRound] = await remediation
+      .getByTestId("remediation-fix")
+      .all();
+
+    await expect(stepPillWords(remediation, "remediation")).toHaveText(
+      "Didn't work",
+    );
+    expect(await stepTitles(ran!)).toEqual([
+      "Planned 1 command on cluster prod-eu-west-1",
+      "Approved automatically",
+      "Ran 1 command",
+      "Did not recover",
+      "Rolled back 1 command",
+    ]);
+    expect(
+      await ran!
+        .getByTestId("remediation-fix-step")
+        .evaluateAll((steps: Array<Element>): Array<string | null> => {
+          return steps.map((step: Element): string | null => {
+            return step.getAttribute("data-tone");
+          });
+        }),
+    ).toEqual(["done", "done", "done", "failed", "done"]);
+    /*
+     * When each happened, on the pinned clock: the same day, so the time
+     * alone, in the reader's clock (en-US: twelve hours).
+     */
+    expect(
+      await ran!.getByTestId("remediation-fix-step-time").allTextContents(),
+    ).toEqual(["6:04 PM", "6:04 PM", "6:14 PM", "6:14 PM"]);
+    await expect(
+      fixStep(ran!, "verify").getByTestId("remediation-fix-verification-note"),
+    ).toContainText("did not recover within the verification window");
+
+    expect(await stepTitles(noRunbook!)).toEqual([
+      "Found no runbook that applies",
+    ]);
+    expect(await stepTitles(secondRound!)).toEqual(["Found no safe fix"]);
+    await expect(
+      fixStep(secondRound!, "plan").getByTestId("remediation-fix-step-summary"),
+    ).toContainText("would repeat the change that was just rolled back");
+
+    // Nothing is open until it is asked for.
+    await expect(
+      remediation.getByTestId("remediation-fix-step-details"),
+    ).toHaveCount(0);
+    expect(
+      await pillsIn(page.getByTestId("ai-card-step-remediation-body")),
+    ).toEqual([]);
+    expect(await panelsInsideTheCard(page)).toEqual([]);
+    await page.mouse.move(0, 0);
+    await screenshotElement(remediation, "remediation-fix-steps-rolled-back");
+  });
+
+  test("each step opens to more: why and the command, the command as it ran and what it printed, the undo as it ran", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRolledBackFixes(page);
+    const ran: Locator = remediationStep(page)
+      .getByTestId("remediation-fix")
+      .first();
+
+    await fixStep(ran, "plan")
+      .getByTestId("remediation-fix-step-toggle")
+      .click();
+    const plan: Locator = fixStep(ran, "plan");
+    await expect(plan.getByTestId("remediation-fix-reasoning")).toContainText(
+      "HPA is pinned at its 3-replica ceiling",
+    );
+    const command: Locator = plan.getByTestId("remediation-command");
+    await expect(command).toContainText(
+      "kubectl set resources deployment/checkout-api -n checkout -c checkout-api --requests=memory=1Gi",
+    );
+    await expect(command.getByTestId("remediation-command-tier")).toHaveText(
+      "riskier change",
+    );
+    await expect(
+      command.getByTestId("remediation-command-approval"),
+    ).toHaveText("auto-approved");
+    await expect(
+      command.getByTestId("remediation-command-gitops"),
+    ).toContainText("Temporary fix");
+
+    await fixStep(ran, "run")
+      .getByTestId("remediation-fix-step-toggle")
+      .click();
+    const run: Locator = fixStep(ran, "run").getByTestId(
+      "remediation-command-run",
+    );
+    await expect(run.getByTestId("remediation-command-execution")).toHaveText(
+      "Succeeded",
+    );
+    await expect(run.getByTestId("remediation-command-duration")).toHaveText(
+      "3s",
+    );
+    await expect(run.getByTestId("remediation-command-output")).toHaveText(
+      "deployment.apps/checkout-api resource requirements updated",
+    );
+    await expect(run.getByTestId("remediation-command-exit-code")).toHaveText(
+      "Exit code: 0",
+    );
+
+    await fixStep(ran, "rollback")
+      .getByTestId("remediation-fix-step-toggle")
+      .click();
+    const undo: Locator = fixStep(ran, "rollback").getByTestId(
+      "remediation-rollback-outcome",
+    );
+    await expect(undo.getByTestId("remediation-command-line")).toHaveText(
+      "kubectl rollout undo deployment/checkout-api -n checkout",
+    );
+    await expect(undo.getByTestId("remediation-command-output")).toHaveText(
+      "deployment.apps/checkout-api rolled back",
+    );
+
+    expect(await panelsInsideTheCard(page)).toEqual([]);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await page.mouse.move(0, 0);
+    await screenshotElement(
+      remediationStep(page),
+      "remediation-fix-steps-rolled-back-open",
+    );
+  });
+
+  for (const [width, theme] of [
+    [390, "light"],
+    [390, "dark"],
+    [1280, "dark"],
+  ] as Array<[number, string]>) {
+    test(`at ${width}px, ${theme}: the steps and their output stay inside the step`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width, height: 1000 });
+      await openRolledBackFixes(page, theme === "dark" ? "theme=dark" : "");
+      await openEveryFix(page);
+      const body: Box = await documentBox(
+        page.getByTestId("ai-card-step-remediation-body"),
+      );
+
+      for (const transcript of await remediationStep(page)
+        .getByTestId("remediation-command-transcript")
+        .all()) {
+        const box: Box = await documentBox(transcript);
+        expect(box.x).toBeGreaterThanOrEqual(body.x - 1);
+        expect(box.x + box.width).toBeLessThanOrEqual(body.x + body.width + 1);
+      }
+      expect(
+        await pillsIn(page.getByTestId("ai-card-step-remediation-body")),
+      ).toEqual([]);
+      expect(await panelsInsideTheCard(page)).toEqual([]);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
+      await page.mouse.move(0, 0);
+      await screenshotElement(
+        remediationStep(page),
+        `remediation-fix-steps-rolled-back-${width}-${theme}`,
+      );
+    });
+  }
+
+  test("in Persian at 390px: the steps read right to left, the commands and their output left to right", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 1000 });
+    await openRolledBackFixes(page, "lang=fa&dir=auto");
+    await openEveryFix(page);
+    const ran: Locator = remediationStep(page)
+      .getByTestId("remediation-fix")
+      .first();
+
+    expect(
+      await fixStep(ran, "run")
+        .getByTestId("remediation-fix-step-title")
+        .evaluate((element: Element): string => {
+          return window.getComputedStyle(element).direction;
+        }),
+    ).toBe("rtl");
+    expect(
+      await ran
+        .getByTestId("remediation-command-transcript")
+        .first()
+        .evaluate((element: Element): string => {
+          return window.getComputedStyle(element).direction;
+        }),
+    ).toBe("ltr");
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await page.mouse.move(0, 0);
+    await screenshotElement(
+      remediationStep(page),
+      "remediation-fix-steps-rolled-back-fa-390",
     );
   });
 });

@@ -80,6 +80,12 @@ På AWS lister læsningen kontoens brugere og roller én gang og afgør, som IAM
 
 Scoren er højst 100. En rolle fra en konto udefra, der kan ændre ét datalager med kortnumre, får 50 + 15 + 15 + 1 = 81.
 
+## Se et datalagers veje på ét kort
+
+Et datalagers **Oversigt** tegner på ét kort, hvem der kan nå det, og hvor dets data kan komme hen, så en vej gennem flere trin kan læses med et blik. Til venstre står, hvem der kan nå datalageret: ét kort for hver identitet, uanset hvor mange tildelinger den har, med en pil ind i datalageret, der nævner det mest, den må: rød fra hvem som helst på internettet, orange fra uden for dine konti. Derefter kommer de tjenester, der bruger datalageret, og til højre står, hvor dets data kan komme hen fra dem: de AI-udbydere og eksterne værter, som tjenesterne kalder, og de datalagre, der har kopier af dataene.
+
+En pil, der bærer data, er farvet efter, hvor følsomme dataene er, og stiplet, indtil en scanning har fundet dataene i den anden ende. En tjenestes AI-kald og eksterne kald siger, hvor datalagerets data kan komme hen, ikke at de kom derhen, så deres pile forbliver stiplede, indtil en scanning bekræfter dem. Hver kolonne viser sine mest risikable kort først og samler resten i ét kort, der åbner **Hvem kan nå det** eller **Datastrømme**, hvor de alle er opført. Klik på et kort for at åbne dets identitet, tjeneste eller datalager.
+
 ## Residensregler
 
 En residensregel angiver, hvor en slags data må ligge. Tilføj en under **Datasikkerhed → Indstillinger → Residensregler**:

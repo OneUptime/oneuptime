@@ -361,6 +361,16 @@ export default interface Field<TEntity> {
    */
   columnDefaultValue?: boolean | string | number | undefined;
   radioButtonOptions?: Array<RadioButton>;
+  /*
+   * The answers a radio field offers for the values the form holds, when
+   * they depend on another field: a permission's Scope offers only the
+   * answers that narrow the permission picked. Each is one of
+   * radioButtonOptions, which stays the field's whole list - its defaults
+   * are checked against it, and a folded section names the answer from it.
+   */
+  getRadioButtonOptions?:
+    | ((values: FormValues<TEntity>) => Array<RadioButton>)
+    | undefined;
   footerElement?: ReactElement | undefined;
   /*
    * Drawn under the field, from the form's values as they are now. error is

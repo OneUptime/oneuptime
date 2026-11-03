@@ -51,6 +51,13 @@ import { MASTER_PASSWORD_COOKIE_IDENTIFIER } from "Common/Types/StatusPage/Maste
 import StatusPageEmailLogo, {
   STATUS_PAGE_EMAIL_LOGO_SELECT,
 } from "Common/Server/Utils/StatusPage/StatusPageEmailLogo";
+import Select from "Common/Server/Types/Database/Select";
+import {
+  getStatusPageMagicLinkRefusal,
+  STATUS_PAGE_MAGIC_LINK_EXPIRY_MINUTES,
+  STATUS_PAGE_MAGIC_LINK_INVALID_MESSAGE,
+  STATUS_PAGE_MAGIC_LINK_LOGIN_ROUTE,
+} from "Common/Types/StatusPage/StatusPageMagicLink";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -880,6 +887,299 @@ router.post(
       });
 
       return Response.sendEmptySuccessResponse(req, res);
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+/*
+ * What a status page holds that decides whether it takes sign-in links
+ * (Types/StatusPage/StatusPageMagicLink.getStatusPageMagicLinkRefusal).
+ */
+const MAGIC_LINK_STATUS_PAGE_SELECT: Select<StatusPage> = {
+  isPublicStatusPage: true,
+  enableMasterPassword: true,
+  // Only to tell whether one is set.
+  masterPassword: true,
+  requireSsoForLogin: true,
+  enableMagicLinkLogin: true,
+  isArchived: true,
+};
+
+/*
+ * Why this status page does not take sign-in links now, or null when it
+ * does. An archived page is offline: it is answered as one that is gone.
+ */
+const getMagicLinkRefusalFor: (
+  statusPage: StatusPage | null,
+) => string | null = (statusPage: StatusPage | null): string | null => {
+  if (!statusPage || statusPage.isArchived) {
+    return "Status Page not found";
+  }
+
+  return getStatusPageMagicLinkRefusal({
+    isPublicStatusPage: statusPage.isPublicStatusPage,
+    enableMasterPassword: statusPage.enableMasterPassword,
+    hasMasterPassword: Boolean(statusPage.masterPassword),
+    requireSsoForLogin: statusPage.requireSsoForLogin,
+    enableMagicLinkLogin: statusPage.enableMagicLinkLogin,
+  });
+};
+
+/*
+ * A private user asks for a sign-in link (Types/StatusPage/
+ * StatusPageMagicLink). It is emailed to the address the request names
+ * when that address is a private user of the page, and the answer is the
+ * same either way, so asking says nothing about who may sign in. For the
+ * same reason the request is counted per caller and per address
+ * (PublicMessageRateLimit) before the address is looked up, whether or not
+ * it matches, and the link's token is minted and hashed before the lookup
+ * too, so both answers cost the same work.
+ */
+router.post(
+  "/send-magic-link",
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const data: JSONObject | undefined = req.body["data"] as
+        | JSONObject
+        | undefined;
+
+      if (!data || !data["email"]) {
+        throw new BadDataException("Email is required.");
+      }
+
+      const user: StatusPagePrivateUser = BaseModel.fromJSON(
+        data as JSONObject,
+        StatusPagePrivateUser,
+      ) as StatusPagePrivateUser;
+
+      if (!user.statusPageId) {
+        throw new BadDataException("Status Page ID is required.");
+      }
+
+      /*
+       * The check above reads the raw body; re-check the deserialized value,
+       * which is what reaches the query and the email.
+       */
+      CredentialGuard.assertPresent(user.email, "Email");
+
+      const statusPage: StatusPage | null = await StatusPageService.findOneById(
+        {
+          id: user.statusPageId,
+          props: {
+            isRoot: true,
+            ignoreHooks: true,
+          },
+          select: {
+            _id: true,
+            name: true,
+            pageTitle: true,
+            ...STATUS_PAGE_EMAIL_LOGO_SELECT,
+            ...MAGIC_LINK_STATUS_PAGE_SELECT,
+            projectId: true,
+            smtpConfig: {
+              _id: true,
+              transportType: true,
+              hostname: true,
+              port: true,
+              username: true,
+              password: true,
+              fromEmail: true,
+              fromName: true,
+              secure: true,
+              authType: true,
+              clientId: true,
+              clientSecret: true,
+              tokenUrl: true,
+              scope: true,
+              oauthProviderType: true,
+            },
+          },
+        },
+      );
+
+      const refusal: string | null = getMagicLinkRefusalFor(statusPage);
+
+      if (refusal || !statusPage) {
+        throw new BadDataException(refusal || "Status Page not found");
+      }
+
+      await PublicMessageRateLimit.assertMaySend({
+        req: req,
+        kind: PublicMessageKind.StatusPageMagicLink,
+        contacts: [PublicMessageRateLimit.forEmail(user.email!)],
+      });
+
+      // A bearer secret: from the CSPRNG, never ObjectID's non-crypto fallback.
+      const token: string = crypto.randomUUID();
+      const hashedToken: string = await HashedString.hashValue(
+        token,
+        EncryptionSecret,
+      );
+
+      const privateUser: StatusPagePrivateUser | null =
+        await StatusPagePrivateUserService.findOneBy({
+          query: {
+            email: user.email!,
+            statusPageId: user.statusPageId,
+          },
+          select: {
+            _id: true,
+            email: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+      if (privateUser?.email) {
+        // Replaces the last link this user was sent: only the newest works.
+        await StatusPagePrivateUserService.updateOneBy({
+          query: {
+            _id: privateUser._id!,
+          },
+          data: {
+            magicLinkToken: hashedToken,
+            magicLinkExpires: OneUptimeDate.getSomeMinutesAfter(
+              STATUS_PAGE_MAGIC_LINK_EXPIRY_MINUTES,
+            ),
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+        const statusPageName: string =
+          statusPage.pageTitle || statusPage.name || "Status Page";
+
+        const statusPageURL: string = await StatusPageService.getStatusPageURL(
+          statusPage.id!,
+        );
+
+        const host: Hostname = await DatabaseConfig.getHost();
+        const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
+
+        MailService.sendMail(
+          {
+            toEmail: privateUser.email,
+            subject: "Log in to " + statusPageName,
+            isSubjectLiteral: true,
+            templateType: EmailTemplateType.StatusPageMagicLink,
+            vars: {
+              statusPageName: statusPageName,
+              logoUrl: StatusPageEmailLogo.getLogoUrl({
+                statusPage: statusPage,
+                host: host,
+                httpProtocol: httpProtocol,
+              }),
+              homeURL: statusPageURL,
+              tokenVerifyUrl: URL.fromString(statusPageURL)
+                .addRoute(`/${STATUS_PAGE_MAGIC_LINK_LOGIN_ROUTE}/${token}`)
+                .toString(),
+              expiresInMinutes:
+                STATUS_PAGE_MAGIC_LINK_EXPIRY_MINUTES.toString(),
+            },
+          },
+          {
+            projectId: statusPage.projectId!,
+            mailServer: ProjectSMTPConfigService.toEmailServer(
+              statusPage.smtpConfig,
+            ),
+            statusPageId: statusPage.id!,
+          },
+        ).catch((err: Error) => {
+          logger.error(err, getLogAttributesFromRequest(req as RequestLike));
+        });
+      }
+
+      return Response.sendEmptySuccessResponse(req, res);
+    } catch (err) {
+      // A link refused for its rate limits says when to come back.
+      PublicMessageRateLimit.setRetryAfterFor(res, err);
+      return next(err);
+    }
+  },
+);
+
+/*
+ * A private user opens their sign-in link and confirms: the link is spent
+ * and they are signed in, with the same session and cookies a password
+ * sign-in gets (finalizeStatusPageLogin) - a session no SSO provider signed
+ * in, which counts only while the page does not require SSO.
+ *
+ * The page is asked again here, so a link sent before its team turned sign-in
+ * links off, required SSO or changed who can see the page no longer signs
+ * anybody in. A link that is not a link, one already used, one that expired
+ * and one a newer link replaced are answered alike.
+ *
+ * No attempt limit in front of it, as with /reset-password: the token is a
+ * server-minted random UUID - 122 bits - that works once and for minutes,
+ * so there is nothing to guess.
+ */
+router.post(
+  "/login-with-magic-link/:statuspageid",
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      Response.setNoCacheHeaders(res);
+
+      const statusPageIdParam: string | undefined = req.params["statuspageid"];
+      const token: unknown = req.body["token"];
+
+      if (!statusPageIdParam || !ObjectID.isValidUUID(statusPageIdParam)) {
+        throw new BadDataException("A valid Status Page ID is required.");
+      }
+
+      // Every link's token is a UUID: anything else is no link at all.
+      if (typeof token !== "string" || !ObjectID.isValidUUID(token)) {
+        throw new BadDataException(STATUS_PAGE_MAGIC_LINK_INVALID_MESSAGE);
+      }
+
+      const statusPageId: ObjectID = new ObjectID(statusPageIdParam);
+
+      const statusPage: StatusPage | null = await StatusPageService.findOneById(
+        {
+          id: statusPageId,
+          props: {
+            isRoot: true,
+            ignoreHooks: true,
+          },
+          select: MAGIC_LINK_STATUS_PAGE_SELECT,
+        },
+      );
+
+      const refusal: string | null = getMagicLinkRefusalFor(statusPage);
+
+      if (refusal) {
+        throw new BadDataException(refusal);
+      }
+
+      const user: StatusPagePrivateUser | null =
+        await StatusPagePrivateUserService.consumeMagicLinkToken({
+          statusPageId: statusPageId,
+          token: token,
+        });
+
+      if (!user) {
+        throw new BadDataException(STATUS_PAGE_MAGIC_LINK_INVALID_MESSAGE);
+      }
+
+      await finalizeStatusPageLogin({
+        req,
+        res,
+        user,
+      });
+
+      // Who signed in - their id, address and page - and nothing else.
+      return Response.sendEntityResponse(req, res, user, StatusPagePrivateUser);
     } catch (err) {
       return next(err);
     }

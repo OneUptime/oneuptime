@@ -98,7 +98,7 @@ Elke limiet per netwerk telt ook de adressen van één IPv6 /64 samen, met tien 
 
 **Wat uw team verstuurt, telt ook.** Niets beperkt hoe snel uw team abonnees toevoegt, in het dashboard, in bulk, via de API of met een workflow. Maar het bericht dat een toegevoegde abonnee krijgt, de e-mail die om bevestiging vraagt of het bericht dat zegt dat die geabonneerd is, telt mee voor de 10 aanmeldingen per uur van dat contact, en daarboven wordt die toevoeging met `429` geweigerd. Een abonnee die zonder bericht wordt toegevoegd, wordt nooit geteld: **Nu abonneren** voor een e-mailadres, of **Een welkomstbericht sturen** uitgeschakeld voor de andere kanalen. Als de rate limiter niet bereikbaar is, gaan de toevoegingen van uw team ongeteld door.
 
-Een privégebruiker die op de aanmeldpagina van de statuspagina een link vraagt om het wachtwoord opnieuw in te stellen, is op dezelfde manier beperkt: 5 resetmails naar één adres in een uur, op alle statuspagina's samen, en 30 vanaf één netwerk in 15 minuten. Een uitnodiging, voor een privéstatuspagina of voor een project, wordt ook per adres geteld: 10 naar één adres in een uur, beide soorten samen.
+Een privégebruiker die op de aanmeldpagina van de statuspagina een link vraagt om het wachtwoord opnieuw in te stellen, is op dezelfde manier beperkt: 5 resetmails naar één adres in een uur, op alle statuspagina's samen, en 30 vanaf één netwerk in 15 minuten. Een uitnodiging, voor een privéstatuspagina of voor een project, wordt ook per adres geteld: 10 naar één adres in een uur, beide soorten samen. Een inloglink aanvragen op de aanmeldpagina is ook beperkt, en wordt geteld of het adres nu van een privégebruiker van de pagina is of niet: 10 mails naar één adres in een uur, op alle statuspagina's samen, en 30 vanaf één netwerk in 15 minuten.
 
 Op een zelf gehoste installatie wijzigen deze omgevingsvariabelen van de OneUptime-app de limieten:
 
@@ -113,6 +113,8 @@ Op een zelf gehoste installatie wijzigen deze omgevingsvariabelen van de OneUpti
 | `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_CONTACT` | `5` | Beheerlinks voor één contact per venster. |
 | `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_IP` | `30` | Wachtwoordresets van privégebruikers die vanaf één adres per venster worden aangevraagd. |
 | `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_CONTACT` | `5` | Resetmails van privégebruikers naar één adres per venster. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MAGIC_LINKS_PER_IP` | `30` | Inloglinks van privégebruikers die vanaf één adres per venster worden aangevraagd. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MAGIC_LINKS_PER_CONTACT` | `10` | Inloglinkmails van privégebruikers naar één adres per venster. |
 | `PUBLIC_MESSAGE_RATE_LIMIT_INVITATIONS_PER_CONTACT` | `10` | Uitnodigingen naar één adres per venster, voor privéstatuspagina's en projecten samen. |
 
 Noch `config.env` noch de waarden van de Helm-chart geven ze door: voeg ze zelf toe aan de omgeving van de container `app`, met `app.extraEnv`, of de chartbrede `extraEnv`, in de Helm-chart, of in een `docker-compose.override.yml` voor Docker Compose. `TRUSTED_PROXY_HOPS` bepaalt welk adres de limieten per netwerk tellen.

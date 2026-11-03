@@ -1,5 +1,7 @@
 import {
+  afterAll,
   afterEach,
+  beforeAll,
   beforeEach,
   describe,
   expect,
@@ -179,6 +181,15 @@ import AIRunEventType from "../../../Types/AI/AIRunEventType";
 import AIRunStatus from "../../../Types/AI/AIRunStatus";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import {
+  AI_ACTION_TITLES,
+  AIActionWords,
+  aiActionSentence,
+  describeAIActionWords,
+} from "../../../Types/AI/AIActionWords";
+import i18next from "i18next";
+import { initReactI18next } from "react-i18next";
+import { readDashboardLocale } from "../../Helpers/DashboardLocales";
 
 const PRIYA: string = "11111111-1111-4111-8111-111111111111";
 const SAM: string = "22222222-2222-4222-8222-222222222222";
@@ -710,6 +721,15 @@ describe("InvestigationConversation — a shared thread", () => {
     );
     expect(within(questions[0]!).getByText("Priya Shah")).toBeVisible();
     expect(within(questions[1]!).getByText("You")).toBeVisible();
+    /*
+     * Each question reads its own way, as Ask AI's does: an English one on
+     * a Persian page keeps its question mark at its end.
+     */
+    for (const asked of questions) {
+      expect(
+        within(asked).getByTestId("investigation-conversation-question-text"),
+      ).toHaveAttribute("dir", "auto");
+    }
 
     const reply: HTMLElement = screen.getByTestId(
       "investigation-conversation-answer",
@@ -2845,5 +2865,150 @@ describe("InvestigationConversation — folded into the AI card's one line", () 
 
     expect(screen.getByTestId("investigation-conversation")).toBeVisible();
     expect(composer()).not.toHaveFocus();
+  });
+});
+
+/*
+ * AN INCIDENT'S CONVERSATION IN THE READER'S LANGUAGE.
+ *
+ * The actions OneUptime AI proposes and takes in an incident's
+ * conversation carry their title as a sentence (Types/AI/AIActionWords)
+ * beside its English: the card waiting for approval and the line an
+ * action leaves once it ran say it in the reader's language, with the
+ * incident's number as data. The English it stores still reads for an
+ * action saved before.
+ */
+describe("InvestigationConversation — in the reader's language", () => {
+  const GERMAN: Record<string, string> = readDashboardLocale("de");
+
+  const ACKNOWLEDGE_WORDS: AIActionWords = {
+    title: aiActionSentence(AI_ACTION_TITLES.acknowledgeIncident, {
+      incident: "INC-42",
+    }),
+    namedArguments: ["incidentId"],
+  };
+
+  function acknowledgeAction(status: AIChatToolActionStatus): JSONObject {
+    return {
+      id: "call-1",
+      toolName: "acknowledge_incident",
+      title: describeAIActionWords(ACKNOWLEDGE_WORDS).title,
+      words: ACKNOWLEDGE_WORDS as unknown as JSONObject,
+      arguments: { incidentId: INCIDENT_ID.toString() },
+      isMutation: true,
+      requiresApproval: true,
+      status,
+    };
+  }
+
+  const GERMAN_TITLE: string = GERMAN[
+    "Acknowledge incident {{incident}}"
+  ]!.replace("{{incident}}", "INC-42");
+
+  beforeAll(async () => {
+    await i18next.use(initReactI18next).init({
+      lng: "de",
+      fallbackLng: "en",
+      resources: { de: { translation: GERMAN } },
+      interpolation: { escapeValue: false },
+      keySeparator: false,
+      nsSeparator: false,
+    });
+  });
+
+  afterAll(async () => {
+    await act(async (): Promise<void> => {
+      await i18next.changeLanguage("en");
+    });
+  });
+
+  test("an action waiting for approval is asked about in German, by the incident's number", async () => {
+    routeResponses({
+      thread: () => {
+        return threadResponse({
+          isBusy: true,
+          messages: [
+            answer({
+              status: AIChatMessageStatus.WaitingForApproval,
+              userId: PRIYA,
+              name: "Priya Shah",
+              toolActions: [acknowledgeAction(AIChatToolActionStatus.Pending)],
+            }),
+          ],
+        });
+      },
+    });
+
+    renderConversation();
+    await flush();
+
+    expect(
+      screen.getByText(
+        GERMAN[
+          "I'd like to take this action. Review it and approve to continue."
+        ]!,
+      ),
+    ).toBeVisible();
+    expect(screen.getByTestId("tool-approval-title")).toHaveTextContent(
+      GERMAN_TITLE,
+    );
+    expect(screen.queryByText("Acknowledge incident INC-42")).toBeNull();
+    // Its ID is named by its number in the title, not again under it.
+    expect(screen.queryByTestId("tool-approval-arguments")).toBeNull();
+  });
+
+  test("an action that ran is a German line of the answer: what it did, then how it ended", async () => {
+    routeResponses({
+      thread: () => {
+        return threadResponse({
+          messages: [
+            answer({
+              content: "Acknowledged.",
+              userId: PRIYA,
+              name: "Priya Shah",
+              toolActions: [acknowledgeAction(AIChatToolActionStatus.Executed)],
+            }),
+          ],
+        });
+      },
+    });
+
+    renderConversation();
+    await flush();
+
+    const actions: HTMLElement = screen.getByTestId(
+      "investigation-conversation-actions",
+    );
+    expect(actions).toHaveTextContent(`${GERMAN_TITLE} · ${GERMAN["Done"]}`);
+    expect(actions).not.toHaveTextContent("Acknowledge incident");
+  });
+
+  test("an action saved before its words reads the English it stores", async () => {
+    const saved: JSONObject = acknowledgeAction(
+      AIChatToolActionStatus.Executed,
+    );
+    delete saved["words"];
+
+    routeResponses({
+      thread: () => {
+        return threadResponse({
+          messages: [
+            answer({
+              content: "Acknowledged.",
+              userId: PRIYA,
+              name: "Priya Shah",
+              toolActions: [saved],
+            }),
+          ],
+        });
+      },
+    });
+
+    renderConversation();
+    await flush();
+
+    expect(
+      screen.getByTestId("investigation-conversation-actions"),
+    ).toHaveTextContent("Acknowledge incident INC-42");
   });
 });

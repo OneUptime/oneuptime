@@ -220,6 +220,17 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * Why Add or Delete is locked on the Global User Overrides page for a
+   * reader whose permission to add or delete overrides covers only some
+   * policies - the words the server refuses with. Only the sentences the
+   * file marks are read.
+   */
+  {
+    directory:
+      "packages/Common/Types/OnCallDutyPolicy/GlobalUserOverrideAccess.ts",
+    kind: "keys",
+  },
+  /*
    * What a dashboard template's chart says while it draws its fallback
    * query - why, and where the fix is. Stored in the dashboard as written
    * and looked up where the chart draws it; only the hints the file marks
@@ -298,6 +309,29 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    */
   {
     directory: "packages/Common/Server/Utils/AI/Toolbox",
+    kind: "keys",
+  },
+  /*
+   * What an AI action's approval card says - its title and the line under
+   * it - and the kinds of resource it names: the server stores each as a
+   * sentence of AIActionWords and the card says it in the reader's
+   * language (ToolActionWords). Only the words the files mark are read.
+   */
+  {
+    directory: "packages/Common/Types/AI/AIActionWords.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/AI/AiAffectedResources.ts",
+    kind: "keys",
+  },
+  /*
+   * How an AI remediation round reads on the Remediation step - 'AI
+   * remediation for cluster "prod"' - in the reader's language, and the
+   * kinds of resource a round runs on.
+   */
+  {
+    directory: "packages/Common/Types/AutoRemediation/RemediationRoundName.ts",
     kind: "keys",
   },
 ];

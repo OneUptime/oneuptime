@@ -45,6 +45,10 @@ An in-page server answers what the dialog asks and records what it sends on
   `finish()` move it on.
 - `respond-to-approval` runs or denies the alert and leaves the card a write leaves
   ("ALT-12 · High memory usage on test01").
+- The alert's action is stored as the server stores it: its title and its line as sentences
+  (`Common/Types/AI/AIActionWords`) beside their English, so the approval card says them in the
+  reader's language. `?words=none` leaves the sentences out, as an action saved before them
+  reads: its English only.
 - `window.__askAiFixture.navigate(path)` moves the router as a link inside the app does.
 
 `?providers=two` gives two LLM providers to choose between, `?ai=off` switches AI off for the
@@ -56,7 +60,7 @@ states are listed, as the API answers them.
 
 ## What the spec holds
 
-`AskAi.spec.ts` (54 tests, Chromium) pins the browser clock, fences the network to the fixture
+`AskAi.spec.ts` (61 tests, Chromium) pins the browser clock, fences the network to the fixture
 server, and fails on any uncaught page error:
 
 - every way in: the header's Ask AI, `Ctrl` / `Cmd` + `I` (and the keys left to another text
@@ -89,7 +93,11 @@ server, and fails on any uncaught page error:
   laptop and under the header on a phone, saying when it is ready;
 - dark (the start's mark glowing indigo, not sitting in a black shadow), German (the permission
   menu naming each mode as its button does, and saying what it means in German), Persian (right
-  to left: an English title beside its icon and cut at its own end, an approval card's English
-  lines keeping their punctuation) and reduced motion.
+  to left: an English title beside its icon and cut at its own end, an approval card saved
+  before its words keeping its English lines' punctuation) and reduced motion;
+- an approval card in the reader's language, at 1280 and 390: its title, its line and its own
+  words in German and in Persian - the alert's title and the host's name as written, set apart
+  in the Persian sentences, each read right to left - with Allow and Skip beside the title on a
+  laptop and under its whole title on a phone, and the row a run leaves in German.
 
 Screenshots of each state land in `output/playwright/ask-ai-ui/`.

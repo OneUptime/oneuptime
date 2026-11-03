@@ -118,7 +118,7 @@ Den offentliga sidan är en egen applikation, med en liten uppsättning rutter:
 - `/subscribe/email`, `/subscribe/sms`, `/subscribe/slack`, `/subscribe/microsoft-teams`, `/subscribe/webhooks`.
 - `/confirm-subscription/:id`, `/update-subscription/:token` och `/unsubscribe/:token`: länkarna i meddelandena prenumeranterna får.
 - `/rss`: flödet.
-- `/login`, `/sso` och `/master-password`: bara relevanta på en privat sida.
+- `/login`, `/sso`, `/magic-link`, `/magic-link-login/:token` och `/master-password`: bara relevanta på en privat sida.
 
 Navigeringsfältet högst upp visar alltid **Översikt**; resten visas bara när det är påslaget. **Incidenter**, **Meddelanden** och **Planerade händelser** behöver var sitt reglage; **Prenumerera** behöver både **Visa prenumerantsida** och minst en påslagen prenumerationskanal. En privat sida har också ett objekt **Logga ut**.
 
@@ -194,6 +194,8 @@ Att välja ett alternativ ber om bekräftelse och säger vad som ändras för be
 Lägg till personerna som får logga in under **Statussidor → din sida → Säkerhet → Privata användare**. Det finns en åtgärd **Lägg till i bulk**: klistra in en lista med e-postadresser så får varje adress ett inbjudningsmejl. Privata användare har ett eget flöde för glömt lösenord och återställning, skilt från kontona i ditt OneUptime-projekt.
 
 **Privata användare och lösenordet läggs inte ihop.** Så länge **Alla med lösenordet** är valet kan privata användare inte logga in (de anger också lösenordet), och skärmen **Privata användare** säger det, med en länk tillbaka till **Åtkomst**.
+
+**Inloggningslänkar.** På en sida som besökare loggar in på erbjuder inloggningssidan också **Skicka en inloggningslänk till mig**: en privat användare anger sin e-postadress och får en länk som loggar in hen utan lösenord. Länken fungerar en gång, i 15 minuter, och ber man om en ny ersätter den den gamla. Den öppnar en sida där användaren trycker på **Logga in**, så att e-postfilter som öppnar varje länk för att skanna den inte kan förbruka den först. Sidan svarar likadant oavsett om adressen tillhör en av dess privata användare eller inte, så att be om en länk avslöjar inte för någon vem som kan logga in. Länkar är påslagna på alla sidor; för att hålla privata användare till sina lösenord stänger du av **Inloggningslänkar** under **Fler inställningar** på **Privata användare** (den som redan är inloggad med en länk förblir inloggad). De erbjuds aldrig medan **Kräv SSO för inloggning** är på eller **Alla med lösenordet** är valet.
 
 ### SSO och OIDC
 
