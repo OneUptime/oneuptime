@@ -86,7 +86,10 @@ import {
 } from "./RecommendationViewModel";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
-import { bringPageAnchorIntoView } from "Common/UI/Utils/PageAnchor";
+import {
+  bringPageAnchorIntoView,
+  givePageAnchorFocus,
+} from "Common/UI/Utils/PageAnchor";
 import {
   translatableTerm,
   TranslatableTerm,
@@ -838,11 +841,24 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
       );
     });
 
-    if (firstCard) {
-      stopShowingLinkedSelection.current = bringPageAnchorIntoView(firstCard, {
-        block: "center",
-      });
+    if (!firstCard) {
+      return;
     }
+
+    stopShowingLinkedSelection.current = bringPageAnchorIntoView(firstCard, {
+      block: "center",
+    });
+
+    /*
+     * And the keyboard's focus, when nothing holds it - the link that was
+     * followed went away with its page - as a link to a place on a page
+     * gives it: Tab goes on from the ticked card, to its own select button,
+     * not from the top of the page, scrolled back to; and a screen reader
+     * reads where the page went. The card takes it, not its select button,
+     * so a Space pressed to scroll the page never unticks it. Being ticked
+     * is its mark: it is not tinted as a landed setting is.
+     */
+    givePageAnchorFocus(firstCard);
   }, [isLoading]);
 
   if (isLoading) {

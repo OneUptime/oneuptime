@@ -740,7 +740,9 @@ describe("MonitorRecommendations seeds its selection from the URL", () => {
      * the window's bottom edge once they did.
      */
     expect(PAGE_CODE).toContain(
-      'import { bringPageAnchorIntoView } from "Common/UI/Utils/PageAnchor";',
+      squash(
+        'import { bringPageAnchorIntoView, givePageAnchorFocus, } from "Common/UI/Utils/PageAnchor";',
+      ),
     );
     expect(effect).toContain(
       squash(
@@ -748,6 +750,15 @@ describe("MonitorRecommendations seeds its selection from the URL", () => {
       ),
     );
     expect(effect).not.toContain(".scrollIntoView(");
+    /*
+     * And given the keyboard's focus when nothing holds it: Tab goes on
+     * from the ticked card, not from the top of the page. The card takes
+     * it, never its select button (a Space meant to scroll would untick
+     * it), and it is not tinted: being ticked is its mark.
+     */
+    expect(effect).toContain("givePageAnchorFocus(firstCard);");
+    expect(effect).not.toContain("markPageAnchorLanded(");
+    expect(effect).not.toContain(".focus(");
     // And let go of when the page goes away.
     expect(effect).toContain(
       squash(

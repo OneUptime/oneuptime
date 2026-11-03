@@ -18,6 +18,7 @@ import {
   bringPageAnchorIntoView,
   getPageAnchor,
   getRouteToPageAnchor,
+  givePageAnchorFocus,
   isPageAnchorName,
   markPageAnchorLanded,
 } from "../../../UI/Utils/PageAnchor";
@@ -46,7 +47,9 @@ import {
  *   - the place a link landed on is marked for a moment (Theme.css tints
  *     it, the tint fading) and takes the keyboard's focus when nothing else
  *     holds it, giving it back - and the tabindex it took - when the focus
- *     moves on.
+ *     moves on;
+ *   - a place the page marks some other way (a ticked recommendation) takes
+ *     the focus alone, by the same rules, and is never tinted.
  */
 
 // ---- frames, drawn when a test says so -----------------------------------
@@ -678,5 +681,85 @@ describe("marking the place a link landed on", () => {
     expect(document.activeElement).toBe(document.body);
     expect(runner.hasAttribute("tabindex")).toBe(false);
     expect(runner.hasAttribute(PAGE_ANCHOR_FOCUSED_ATTRIBUTE)).toBe(false);
+  });
+});
+
+/*
+ * The focus half of a landing, alone: a page whose place is marked some
+ * other way - Recommendations opened by "Turn on N alerts", its ticked
+ * cards ticked - gives the first of them the keyboard's focus without the
+ * tint, which would fade a ticked card's own colour out and snap it back.
+ */
+describe("giving the place a link landed on the keyboard's focus, alone", () => {
+  test("with nothing focused, it takes the focus without scrolling - and no tint, no timer", () => {
+    const card: HTMLElement = place("ticked-card");
+    const select: HTMLButtonElement = document.createElement("button");
+    card.appendChild(select);
+
+    const focusCalls: Array<unknown> = [];
+    const focus: (options?: FocusOptions) => void = card.focus.bind(card);
+    card.focus = (options?: FocusOptions): void => {
+      focusCalls.push(options);
+      focus(options);
+    };
+
+    givePageAnchorFocus(card);
+
+    expect(document.activeElement).toBe(card);
+    expect(focusCalls).toEqual([{ preventScroll: true }]);
+    expect(card.getAttribute("tabindex")).toBe("-1");
+    expect(card.getAttribute(PAGE_ANCHOR_FOCUSED_ATTRIBUTE)).toBe("true");
+    expect(card.hasAttribute(PAGE_ANCHOR_LANDED_ATTRIBUTE)).toBe(false);
+    expect(jest.getTimerCount()).toBe(0);
+    // Nothing is scrolled: bringPageAnchorIntoView does that.
+    expect(scrolls).toEqual([]);
+
+    // Tab goes on to its own control; it leaves the tab order again.
+    select.focus();
+    expect(card.hasAttribute("tabindex")).toBe(false);
+    expect(card.hasAttribute(PAGE_ANCHOR_FOCUSED_ATTRIBUTE)).toBe(false);
+  });
+
+  test("focus somewhere already - a field the person is typing in - is never taken", () => {
+    const card: HTMLElement = place("ticked-card");
+    const field: HTMLInputElement = document.createElement("input");
+    document.body.appendChild(field);
+    field.focus();
+
+    givePageAnchorFocus(card);
+
+    expect(document.activeElement).toBe(field);
+    expect(card.hasAttribute("tabindex")).toBe(false);
+    expect(card.hasAttribute(PAGE_ANCHOR_FOCUSED_ATTRIBUTE)).toBe(false);
+  });
+
+  test("the control that took the person there hands its focus on; no other does", () => {
+    const card: HTMLElement = place("ticked-card");
+    const go: HTMLButtonElement = document.createElement("button");
+    const other: HTMLButtonElement = document.createElement("button");
+    document.body.appendChild(go);
+    document.body.appendChild(other);
+
+    other.focus();
+    givePageAnchorFocus(card, { takesFocusFrom: go });
+    expect(document.activeElement).toBe(other);
+    expect(card.hasAttribute("tabindex")).toBe(false);
+
+    go.focus();
+    givePageAnchorFocus(card, { takesFocusFrom: go });
+    expect(document.activeElement).toBe(card);
+  });
+
+  test("a place that cannot take the focus - out of sight - keeps none of what it was given to take it", () => {
+    const card: HTMLElement = place("ticked-card");
+    card.focus = (): void => {
+      // A hidden element: the browser does not move the focus.
+    };
+
+    givePageAnchorFocus(card);
+
+    expect(document.activeElement).toBe(document.body);
+    expect(card.hasAttribute("tabindex")).toBe(false);
+    expect(card.hasAttribute(PAGE_ANCHOR_FOCUSED_ATTRIBUTE)).toBe(false);
   });
 });

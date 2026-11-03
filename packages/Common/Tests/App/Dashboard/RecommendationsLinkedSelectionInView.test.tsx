@@ -38,6 +38,13 @@ import { PROJECT_ID, goTo } from "./SideMenuHarness";
  * the next frame, and again each time the page changes size, until the
  * settle time is up or the person scrolls, clicks, touches or types.
  *
+ * And the card takes the keyboard's focus when nothing holds it, as a link
+ * to a place on a page gives it (PageAnchor's givePageAnchorFocus): Tab
+ * goes on from it - to its own select button - not from the top of the
+ * page, scrolled back to, and a screen reader reads where the page went.
+ * The card, not its select button, so a Space pressed to scroll the page
+ * never unticks it.
+ *
  * The page is rendered for real (a Kubernetes cluster's Recommendations),
  * with the browser's frames and its ResizeObserver stood in for, so a test
  * says when a frame is drawn and when the page changes size.
@@ -83,7 +90,11 @@ import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
 import Route from "../../../Types/API/Route";
 import ObjectID from "../../../Types/ObjectID";
-import { PAGE_ANCHOR_RELEASING_EVENTS } from "../../../UI/Utils/PageAnchor";
+import {
+  PAGE_ANCHOR_FOCUSED_ATTRIBUTE,
+  PAGE_ANCHOR_LANDED_ATTRIBUTE,
+  PAGE_ANCHOR_RELEASING_EVENTS,
+} from "../../../UI/Utils/PageAnchor";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import KubernetesRecommendations from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/Recommendations";
 
@@ -392,6 +403,65 @@ describe("a link that ticks recommendations", () => {
   });
 });
 
+describe("the keyboard's focus, where a link that ticks recommendations lands", () => {
+  test("the first ticked card takes it - the card, not its select button - and is not tinted", async () => {
+    await openRecommendations(`?select=${encodeURIComponent(WARNING_EVENTS)}`);
+
+    const card: HTMLElement = screen.getByTestId(
+      `recommendation-card-${WARNING_EVENTS}`,
+    );
+    expect(document.activeElement).toBe(card);
+    // In the tab order only while it holds the focus.
+    expect(card).toHaveAttribute("tabindex", "-1");
+    // Ringed inside its edge after the keyboard (Theme.css).
+    expect(card).toHaveAttribute(PAGE_ANCHOR_FOCUSED_ATTRIBUTE, "true");
+    // Being ticked is its mark: no tint that would fade its colour out.
+    expect(card).not.toHaveAttribute(PAGE_ANCHOR_LANDED_ATTRIBUTE);
+
+    // Tab goes on to its select button, pressed; the card leaves the order.
+    const select: HTMLElement = screen.getByTestId(
+      `recommendation-card-select-${WARNING_EVENTS}`,
+    );
+    expect(card.contains(select)).toBe(true);
+    expect(select).toHaveAttribute("aria-pressed", "true");
+
+    act(() => {
+      select.focus();
+    });
+    expect(card).not.toHaveAttribute("tabindex");
+    expect(card).not.toHaveAttribute(PAGE_ANCHOR_FOCUSED_ATTRIBUTE);
+  });
+
+  test("of several, the first in the page's order takes it", async () => {
+    await openRecommendations(
+      `?select=${encodeURIComponent(`${WARNING_EVENTS},${CRASH_LOOP}`)}`,
+    );
+
+    expect(document.activeElement).toBe(
+      screen.getByTestId(`recommendation-card-${CRASH_LOOP}`),
+    );
+  });
+
+  test("focus somewhere already - a field someone is typing in - is never taken", async () => {
+    const field: HTMLInputElement = document.createElement("input");
+    document.body.appendChild(field);
+    field.focus();
+
+    try {
+      await openRecommendations(
+        `?select=${encodeURIComponent(WARNING_EVENTS)}`,
+      );
+
+      expect(document.activeElement).toBe(field);
+      expect(
+        screen.getByTestId(`recommendation-card-${WARNING_EVENTS}`),
+      ).not.toHaveAttribute("tabindex");
+    } finally {
+      field.remove();
+    }
+  });
+});
+
 describe("without a link that ticks any", () => {
   test("the page is left where it was opened, however it settles", async () => {
     await openRecommendations("");
@@ -401,6 +471,8 @@ describe("without a link that ticks any", () => {
 
     expect(scrolls).toEqual([]);
     expect(pageObservers()).toEqual([]);
+    // And nothing on it takes the keyboard's focus.
+    expect(document.activeElement).toBe(document.body);
   });
 
   test("nor by a link whose ids name no card on the list", async () => {
@@ -413,5 +485,6 @@ describe("without a link that ticks any", () => {
 
     expect(scrolls).toEqual([]);
     expect(pageObservers()).toEqual([]);
+    expect(document.activeElement).toBe(document.body);
   });
 });

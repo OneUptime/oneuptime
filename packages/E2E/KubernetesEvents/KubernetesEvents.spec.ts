@@ -1637,6 +1637,8 @@ test.describe("being told when Kubernetes warns", () => {
     );
 
     await expect(card).toBeInViewport();
+    // And holds the keyboard's focus: Tab goes on from it.
+    await expect(card).toBeFocused();
     await screenshot(page, "kubernetes-warning-events-recommendation");
   });
 
