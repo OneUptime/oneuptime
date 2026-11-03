@@ -18,6 +18,14 @@ on:
 permissions:
   contents: read
 
+# The builds run in nick-fields/retry, as the runner's own user (it is in the
+# docker group), never through sudo. An attempt that reaches its
+# timeout_minutes is stopped by the action killing the command's processes,
+# which it cannot do to a root-owned `sudo docker build`: the action died on
+# "Error: kill EPERM" and failed the job instead of trying again (Build run
+# 41681440927, whose Home image's blog clone stalled).
+# Tests/Ops/RetryStepsWithoutSudo.test.js keeps sudo out of them.
+
 jobs:
 
   docker-build-home:
@@ -57,7 +65,7 @@ jobs:
         with:
           timeout_minutes: 45
           max_attempts: 3
-          command: sudo docker build --no-cache -f ./packages/Home/Dockerfile .
+          command: docker build --no-cache -f ./packages/Home/Dockerfile .
 
 
   docker-build-app:
@@ -108,14 +116,14 @@ jobs:
         with:
           timeout_minutes: 45
           max_attempts: 3
-          command: sudo docker build --no-cache --target community -t oneuptime-app:community -f ./packages/App/Dockerfile .
+          command: docker build --no-cache --target community -t oneuptime-app:community -f ./packages/App/Dockerfile .
 
       - name: build the Enterprise Edition image
         uses: nick-fields/retry@v3
         with:
           timeout_minutes: 45
           max_attempts: 3
-          command: sudo docker build --target enterprise -t oneuptime-app:enterprise -f ./packages/App/Dockerfile .
+          command: docker build --target enterprise -t oneuptime-app:enterprise -f ./packages/App/Dockerfile .
 
       # Nothing else would notice a Community image that picked up ee/, or an
       # Enterprise image whose Dashboard quietly fell back to the Community UI.
@@ -187,7 +195,7 @@ jobs:
         with:
           timeout_minutes: 45
           max_attempts: 3
-          command: sudo docker build --no-cache -f ./packages/E2E/Dockerfile .
+          command: docker build --no-cache -f ./packages/E2E/Dockerfile .
 
   docker-build-probe:
     runs-on: ubuntu-latest
@@ -226,7 +234,7 @@ jobs:
         with:
           timeout_minutes: 45
           max_attempts: 3
-          command: sudo docker build --no-cache -f ./packages/Probe/Dockerfile .
+          command: docker build --no-cache -f ./packages/Probe/Dockerfile .
 
   docker-build-runner:
     runs-on: ubuntu-latest
@@ -265,7 +273,7 @@ jobs:
         with:
           timeout_minutes: 45
           max_attempts: 3
-          command: sudo docker build --no-cache -t oneuptime-runner:ci -f ./packages/Runner/Dockerfile .
+          command: docker build --no-cache -t oneuptime-runner:ci -f ./packages/Runner/Dockerfile .
 
       # The image is pruned to the packages the Runner reaches
       # (Scripts/Docker/PruneUnreachablePackages.js), so a package the walk
@@ -329,7 +337,7 @@ jobs:
         with:
           timeout_minutes: 45
           max_attempts: 3
-          command: sudo docker build --no-cache -f ./agents/KubernetesAIAgent/Dockerfile .
+          command: docker build --no-cache -f ./agents/KubernetesAIAgent/Dockerfile .
 
   # The resource AI agent image (agents/ResourceAIAgent), which the Docker,
   # Podman, Swarm, Proxmox, VMware, Ceph, database and host agents run as
@@ -370,7 +378,7 @@ jobs:
         with:
           timeout_minutes: 45
           max_attempts: 3
-          command: sudo docker build --no-cache -f ./agents/ResourceAIAgent/Dockerfile .
+          command: docker build --no-cache -f ./agents/ResourceAIAgent/Dockerfile .
 
   docker-build-test-server:
     runs-on: ubuntu-latest
@@ -409,4 +417,4 @@ jobs:
         with:
           timeout_minutes: 45
           max_attempts: 3
-          command: sudo docker build --no-cache -f ./packages/TestServer/Dockerfile .
+          command: docker build --no-cache -f ./packages/TestServer/Dockerfile .

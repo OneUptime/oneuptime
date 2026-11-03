@@ -29,10 +29,126 @@ interface CreateOnCallOverrideInput {
    * Omitted for a project-wide override, which is what the app creates.
    * Covering someone on one policy and leaving them paged by the rest is not
    * what "cover for me" means to the person asking for it. The server takes
-   * a permission to add overrides over the whole project for one; the cover
-   * sheet does not offer it to anyone else (oncall/globalOverrideAccess).
+   * a permission to add overrides over the whole project for one; someone
+   * whose permission covers only some policies gets one override on each
+   * policy they may cover instead (fetchOverrideAddAccess).
    */
   onCallDutyPolicyId?: string;
+}
+
+/*
+ * Where the signed-in person may add a user override in a project: whether
+ * a global one, and on which of the policies asked about. The server's own
+ * answer (POST /api/on-call-duty-policy-user-override/add-access), from
+ * running a create's checks on each - only the server can tell which
+ * policies a permission limited to labels or to owned policies reaches.
+ */
+export interface OverrideAddAccess {
+  global: boolean;
+  onCallDutyPolicyIds: string[];
+}
+
+// An on-call policy cover can be arranged on, as the person sees it named.
+export interface CoverPolicy {
+  policyId: string;
+  policyName: string;
+}
+
+// The answer, read so that nothing it does not plainly say grants anything.
+export function toOverrideAddAccess(raw: unknown): OverrideAddAccess {
+  const record: Record<string, unknown> =
+    raw && typeof raw === "object" && !Array.isArray(raw)
+      ? (raw as Record<string, unknown>)
+      : {};
+  const ids: unknown = record["onCallDutyPolicyIds"];
+
+  return {
+    global: record["global"] === true,
+    onCallDutyPolicyIds: Array.isArray(ids)
+      ? ids.filter((id: unknown): id is string => {
+          return typeof id === "string" && id.trim().length > 0;
+        })
+      : [],
+  };
+}
+
+/**
+ * Where the person may add an override in `projectId`, about
+ * `onCallDutyPolicyIds` - or null from a server older than the question,
+ * which answers 404: the sheet keeps its lock there, as before.
+ */
+export async function fetchOverrideAddAccess(
+  projectId: string,
+  onCallDutyPolicyIds: string[],
+): Promise<OverrideAddAccess | null> {
+  try {
+    const response: AxiosResponse = await apiClient.post(
+      "/api/on-call-duty-policy-user-override/add-access",
+      { onCallDutyPolicyIds },
+      {
+        headers: { tenantid: projectId },
+      },
+    );
+
+    return toOverrideAddAccess(response.data);
+  } catch (err: unknown) {
+    if (
+      err &&
+      typeof err === "object" &&
+      (err as { isAxiosError?: unknown }).isAxiosError === true &&
+      (err as { response?: { status?: unknown } }).response?.status === 404
+    ) {
+      return null;
+    }
+
+    throw err;
+  }
+}
+
+/*
+ * The project's on-call policies the person can see, by name: what cover
+ * arranged from "Cover for me" or "I'll take over" may be added on, before
+ * the server says which they may cover. At most as many as the server
+ * answers about at once.
+ */
+export async function fetchCoverPolicies(
+  projectId: string,
+): Promise<CoverPolicy[]> {
+  const response: AxiosResponse = await apiClient.post(
+    "/api/on-call-duty-policy/get-list?skip=0&limit=100",
+    {
+      query: {},
+      select: { _id: true, name: true },
+      sort: { name: "ASC" },
+    },
+    {
+      headers: { tenantid: projectId },
+    },
+  );
+
+  const rows: Array<unknown> = Array.isArray(response.data?.data)
+    ? response.data.data
+    : [];
+
+  const policies: CoverPolicy[] = [];
+
+  rows.forEach((row: unknown) => {
+    if (!row || typeof row !== "object") {
+      return;
+    }
+
+    const record: Record<string, unknown> = row as Record<string, unknown>;
+    const policyId: string = toPlainText(record["_id"]);
+
+    if (policyId) {
+      policies.push({
+        policyId,
+        policyName: toPlainText(record["name"]) || policyId,
+      });
+    }
+  });
+
+  return policies;
 }
 
 function toUserRef(raw: unknown): OnCallUserRef | null {

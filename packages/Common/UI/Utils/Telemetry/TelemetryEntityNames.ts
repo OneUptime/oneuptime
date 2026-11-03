@@ -4,6 +4,7 @@ import StorageArray from "../../../Models/DatabaseModels/StorageArray";
 import CloudResource from "../../../Models/DatabaseModels/CloudResource";
 import DatabaseServer from "../../../Models/DatabaseModels/DatabaseServer";
 import DataStore from "../../../Models/DatabaseModels/DataStore";
+import DataPipeline from "../../../Models/DatabaseModels/DataPipeline";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DockerHost from "../../../Models/DatabaseModels/DockerHost";
 import DockerSwarmCluster from "../../../Models/DatabaseModels/DockerSwarmCluster";
@@ -156,6 +157,12 @@ export const TELEMETRY_ENTITY_TYPES: Record<
     modelType: DataStore,
     nameFields: ["name"],
   },
+  // Data Observability's pipeline run rows: the pipeline whose runs they describe.
+  [ServiceType.DataPipeline]: {
+    label: "Data Pipeline",
+    modelType: DataPipeline,
+    nameFields: ["jobName"],
+  },
   [ServiceType.NetworkDevice]: {
     label: "Network Device",
     modelType: NetworkDevice,
@@ -211,6 +218,7 @@ export const TELEMETRY_ENTITY_RESOLUTION_ORDER: Array<ServiceType> = [
   ServiceType.CloudResource,
   ServiceType.DatabaseServer,
   ServiceType.DataStore,
+  ServiceType.DataPipeline,
   ServiceType.IoTDevice,
   ServiceType.ProxmoxCluster,
   ServiceType.CephCluster,

@@ -488,6 +488,8 @@ describe("Data Security's permission matrix", () => {
       "fingerprints",
       // Data Observability's schedule: when the store's tables are next collected.
       "nextTableHealthCollectionAt",
+      // The database a collection read, for tying services' spans to its tables.
+      "tableHealthTarget",
     ]);
   });
 

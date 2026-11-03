@@ -342,4 +342,58 @@ describe("buildCoverParams", () => {
 
     expect("policyId" in buildCoverParams(shift())).toBe(false);
   });
+
+  test("carries the policies that page through the shift, by id and name, for a sheet that offers them", () => {
+    expect(
+      buildCoverParams(
+        shift({
+          policies: [
+            {
+              policyId: "policy-1",
+              policyName: "Database",
+              ruleId: "rule-1",
+              ruleName: "Level 1",
+              ruleOrder: 1,
+            },
+            {
+              policyId: "policy-2",
+              policyName: "Payments",
+              ruleId: "rule-2",
+              ruleName: "Level 2",
+              ruleOrder: 2,
+            },
+          ],
+        }),
+      ).policies,
+    ).toEqual([
+      { policyId: "policy-1", policyName: "Database" },
+      { policyId: "policy-2", policyName: "Payments" },
+    ]);
+
+    expect("policies" in buildCoverParams(shift())).toBe(false);
+  });
+
+  test("a policy-variant shift carries its own policy, not the list: the cover is that policy's", () => {
+    const params: ReturnType<typeof buildCoverParams> = buildCoverParams(
+      shift({
+        policyVariantOf: {
+          policyId: "policy-1",
+          policyName: "Database",
+          globalUserId: "user-2",
+        },
+        policies: [
+          {
+            policyId: "policy-2",
+            policyName: "Payments",
+            ruleId: "rule-2",
+            ruleName: "Level 1",
+            ruleOrder: 1,
+          },
+        ],
+      }),
+    );
+
+    expect(params.policyId).toBe("policy-1");
+    expect("policies" in params).toBe(false);
+  });
 });
