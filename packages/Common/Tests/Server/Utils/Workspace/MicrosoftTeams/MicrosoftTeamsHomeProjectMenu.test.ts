@@ -334,7 +334,11 @@ describe("more: a dropdown, and a Switch button that sends the option chosen", (
             title: "Open OneUptime",
             value: "",
             actionId: "open",
-            url: { toString: () => "https://oneuptime.test" },
+            url: {
+              toString: (): string => {
+                return "https://oneuptime.test";
+              },
+            },
           },
         ],
       } as unknown as WorkspaceMessageBlock,

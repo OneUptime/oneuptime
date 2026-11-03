@@ -246,11 +246,8 @@ export default class MicrosoftTeamsProjectChoice {
   public static isAskInAnotherProject(cleanText: string): boolean {
     let text: string = cleanText.trim().toLowerCase();
 
-    while (
-      TRAILING_PUNCTUATION.some((mark: string): boolean => {
-        return text.endsWith(mark);
-      })
-    ) {
+    // Each mark after the words, and the spaces before it, one at a time.
+    while (TRAILING_PUNCTUATION.includes(text.charAt(text.length - 1))) {
       text = text.substring(0, text.length - 1).trimEnd();
     }
 
