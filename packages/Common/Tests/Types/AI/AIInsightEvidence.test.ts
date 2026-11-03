@@ -47,6 +47,7 @@ const SECTION_FOR_TYPE: Record<AIInsightType, EvidenceSection> = {
   [AIInsightType.MetricHighCardinality]: "metric",
   [AIInsightType.MetricHistogramBuckets]: "metric",
   [AIInsightType.MetricMissingMetrics]: "metric",
+  [AIInsightType.MetricMissingRequestMetrics]: "metric",
 };
 
 const ALL_SECTIONS: Array<EvidenceSection> = [
@@ -452,6 +453,38 @@ describe("AIInsightEvidence", () => {
     expect(restored.log?.patternPercent).toBe(62.5);
     expect(restored.log?.severities).toEqual(["Debug", "Information"]);
     expect(restored.log?.searchText).toBe("cache hit for key");
+  });
+
+  /*
+   * A service that sends metrics, but none for its requests: what it serves
+   * and the metrics it sent are stored as read - names, never a value.
+   */
+  test("missing request metrics evidence keeps what the service serves and the metrics it sent", () => {
+    const evidence: MetricInsightEvidence = {
+      serviceId: "7e6a3c1a-1111-4222-8333-944455556666",
+      kind: "MissingRequestMetrics",
+      windowStartTime: "2026-10-24T08:00:00.000Z",
+      windowEndTime: "2026-10-24T09:00:00.000Z",
+      spanCount: 12400,
+      failedSpanCount: 310,
+      servedProtocols: ["Http", "Messaging"],
+      sentMetricNames: ["jvm.memory.used", "process.cpu.time"],
+      sentMetricCount: 14,
+      topOperations: [{ name: "GET /orders", spanCount: 4000 }],
+      sdkLanguage: "java",
+    };
+
+    expect(roundTrip({ metric: evidence })).toEqual({ metric: evidence });
+
+    // A read cut at its limit names the metrics, never how many.
+    const cut: MetricInsightEvidence = { ...evidence };
+    delete cut.sentMetricCount;
+
+    expect(roundTrip({ metric: cut }).metric?.sentMetricCount).toBeUndefined();
+    expect(roundTrip({ metric: cut }).metric?.sentMetricNames).toEqual([
+      "jvm.memory.used",
+      "process.cpu.time",
+    ]);
   });
 
   test("a missing-logging finding needs no message, and a silent failure keeps its error", () => {
