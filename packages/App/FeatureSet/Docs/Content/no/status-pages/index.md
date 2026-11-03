@@ -118,7 +118,7 @@ Den offentlige siden er en egen applikasjon, med et lite sett ruter:
 - `/subscribe/email`, `/subscribe/sms`, `/subscribe/slack`, `/subscribe/microsoft-teams`, `/subscribe/webhooks`.
 - `/confirm-subscription/:id`, `/update-subscription/:token` og `/unsubscribe/:token`: lenkene i meldingene abonnentene får.
 - `/rss`: strømmen.
-- `/login`, `/sso` og `/master-password`: bare relevante på en privat side.
+- `/login`, `/sso`, `/magic-link`, `/magic-link-login/:token` og `/master-password`: bare relevante på en privat side.
 
 Navigasjonslinjen øverst viser alltid **Oversikt**; resten vises bare når det er slått på. **Hendelser**, **Kunngjøringer** og **Planlagte hendelser** trenger hver sin bryter; **Abonner** trenger både **Vis abonnentside** og minst én påslått abonnementskanal. En privat side har også et element **Logg ut**.
 
@@ -194,6 +194,8 @@ Et valg ber om bekreftelse og sier hva som endres for de besøkende, og lagres m
 Legg til personene som kan logge inn, under **Statussider → siden din → Sikkerhet → Private brukere**. Det finnes en handling **Legg til i bulk**: lim inn en liste med e-postadresser, så får hver adresse en invitasjons-e-post. Private brukere har sin egen flyt for glemt passord og tilbakestilling, atskilt fra kontoene i OneUptime-prosjektet ditt.
 
 **Private brukere og passordet legges ikke sammen.** Så lenge **Alle med passordet** er valget, kan private brukere ikke logge inn (de skriver også inn passordet), og skjermen **Private brukere** sier det, med en lenke tilbake til **Tilgang**.
+
+**Innloggingslenker.** På en side besøkende logger inn på, tilbyr innloggingssiden også **Send meg en innloggingslenke**: en privat bruker skriver inn e-postadressen sin og får tilsendt en lenke som logger vedkommende inn uten passord. Lenken virker én gang, i 15 minutter, og ber man om en ny, erstatter den den gamle. Den åpner en side der brukeren trykker **Logg inn**, slik at e-postfiltre som åpner hver lenke for å skanne den, ikke kan bruke den opp først. Siden svarer likt enten adressen tilhører en av de private brukerne eller ikke, så å be om en lenke røper ikke for noen hvem som kan logge inn. Lenker er slått på for alle sider; for å holde private brukere til passordene sine, slå av **Innloggingslenker** under **Flere innstillinger** på **Private brukere** (de som allerede er logget inn med en lenke, forblir innlogget). De tilbys aldri mens **Krev SSO for innlogging** er på eller **Alle med passordet** er valget.
 
 ### SSO og OIDC
 

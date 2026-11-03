@@ -365,8 +365,11 @@ import "./Jobs/Cloud/CleanupStaleResources";
 import "./Jobs/Cloud/ReadCloudConnections";
 import "./Jobs/Cloud/EvaluateCloudBudgets";
 import "./Jobs/DataSecurity/DataSecurityJobs";
+import "./Jobs/DataObservability/DataObservabilityJobs";
 // Network controller connections (Meraki): traffic read on a schedule.
 import "./Jobs/Network/ReadNetworkControllerConnections";
+// ...and their devices added as network devices, when someone asks.
+import "./Jobs/Network/AddNetworkControllerDevices";
 
 // Serverless function disconnection sweeper + instance inventory cleanup.
 import "./Jobs/Serverless/CleanupStaleResources";

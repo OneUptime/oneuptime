@@ -3,7 +3,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 
 /*
  * Generated with npm run generate-postgres-migration alongside
- * AddCloudCostsAndResourceHealth1808900000000, and moved into a migration
+ * AddCloudCostsAndResourceHealth1808930000000, and moved into a migration
  * of its own: "CloudResource" holds every connected account's inventory,
  * which each cloud connection rewrites as it reads, so its new index is
  * built online, without blocking those writes. Safe to run again after a
@@ -13,10 +13,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  *     wrong, which the Cloud Overview and an account's Overview read every
  *     minute (Needs attention): it holds those few rows only.
  */
-export class AddCloudResourceHealthSeverityIndex1808910000000
+export class AddCloudResourceHealthSeverityIndex1808940000000
   implements MigrationInterface
 {
-  public name: string = "AddCloudResourceHealthSeverityIndex1808910000000";
+  public name: string = "AddCloudResourceHealthSeverityIndex1808940000000";
 
   // CREATE INDEX CONCURRENTLY runs outside a transaction.
   public transaction: boolean = false;

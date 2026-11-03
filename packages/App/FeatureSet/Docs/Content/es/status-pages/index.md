@@ -118,7 +118,7 @@ La página pública es una aplicación propia, con un pequeño conjunto de rutas
 - `/subscribe/email`, `/subscribe/sms`, `/subscribe/slack`, `/subscribe/microsoft-teams`, `/subscribe/webhooks`.
 - `/confirm-subscription/:id`, `/update-subscription/:token` y `/unsubscribe/:token`: los enlaces de los mensajes que reciben los suscriptores.
 - `/rss`: el feed.
-- `/login`, `/sso` y `/master-password`: solo relevantes en una página privada.
+- `/login`, `/sso`, `/magic-link`, `/magic-link-login/:token` y `/master-password`: solo relevantes en una página privada.
 
 La barra de navegación superior siempre muestra **Resumen**; el resto solo aparece cuando está activado. **Incidencias**, **Anuncios** y **Eventos programados** necesitan cada uno su interruptor; **Suscribirse** necesita tanto **Mostrar página de suscriptores** como al menos un canal de suscripción activado. Una página privada también tiene un elemento **Cerrar sesión**.
 
@@ -194,6 +194,8 @@ Elegir una opción pide confirmación, indicando qué cambia para los visitantes
 Añade a las personas que pueden iniciar sesión en **Páginas de estado → tu página → Seguridad → Usuarios privados**. Hay una acción **Añadir en masa**: pega una lista de direcciones de correo electrónico y cada una recibe un correo de invitación. Los usuarios privados tienen su propio flujo de contraseña olvidada y de restablecimiento, independiente de las cuentas de tu proyecto de OneUptime.
 
 **Los usuarios privados y la contraseña no se suman.** Mientras **Cualquiera con la contraseña** es la elección, los usuarios privados no pueden iniciar sesión (también introducen la contraseña), y la pantalla **Usuarios privados** lo indica, con un enlace de vuelta a **Acceso**.
+
+**Enlaces de inicio de sesión.** En una página en la que los visitantes inician sesión, la página de inicio de sesión también ofrece **Enviarme un enlace de inicio de sesión**: un usuario privado escribe su dirección de correo electrónico y recibe un enlace que le inicia sesión sin su contraseña. El enlace funciona una vez, durante 15 minutos, y pedir otro lo reemplaza. Abre una página en la que pulsa **Iniciar sesión**, para que los filtros de correo que abren cada enlace para analizarlo no lo gasten antes. La página responde igual tanto si la dirección es de uno de sus usuarios privados como si no, así que pedirlo no revela a nadie quién puede iniciar sesión. Los enlaces están activados en todas las páginas; para que los usuarios privados sigan con sus contraseñas, desactiva **Enlaces de inicio de sesión** en **Más ajustes** de **Usuarios privados** (quien ya inició sesión con un enlace sigue con la sesión iniciada). Nunca se ofrecen mientras **Requerir SSO para iniciar sesión** esté activado o **Cualquiera con la contraseña** sea la opción.
 
 ### SSO y OIDC
 

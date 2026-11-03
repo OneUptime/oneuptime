@@ -1839,6 +1839,48 @@ describe("user overrides", () => {
     );
   });
 
+  /*
+   * Issue #5617: an override on a policy follows the policy's scope, and a
+   * global one - every policy - takes the override permission over the
+   * whole project. The service refuses it, and the global page locks Add
+   * and Delete, with the words the page says.
+   */
+  it("says a global override takes the override permission over the whole project, as the service and the page hold it", () => {
+    const service: string = readCommonSource(
+      "Server/Services/OnCallDutyPolicyUserOverrideService.ts",
+    );
+    const access: string = readCommonSource(
+      "Types/OnCallDutyPolicy/GlobalUserOverrideAccess.ts",
+    );
+
+    expect(service).toContain(
+      'this.checkGlobalOverrideAccess(createBy.props, "create");',
+    );
+    expect(service).toContain(
+      'this.checkGlobalOverrideAccess(deleteBy.props, "delete");',
+    );
+    expect(access).toContain("projectWideOnly: true,");
+    expect(USER_OVERRIDE_TABLE).toContain(
+      "createDisabledReason={addLock || undefined}",
+    );
+    expect(USER_OVERRIDE_TABLE).toContain("getDeleteDisabledReason={");
+
+    const page: string = english(USER_OVERRIDES);
+
+    expect(page).toContain(
+      "An override on a policy follows the policy's scope.",
+    );
+    expect(page).toContain(
+      "A global override applies to every policy, another team's included, so adding or deleting one takes the override permission over the whole project.",
+    );
+    expect(page).toContain(
+      "**Add User Override** and **Delete** on **On-Call Duty → Advanced → User Overrides** are locked and say why",
+    );
+    expect(page).toContain(
+      "an override with no `onCallDutyPolicyId` is refused for a permission limited to labels or to owned policies.",
+    );
+  });
+
   it("shows whose shift is covered on the Schedule Timeline only to people who can read overrides", () => {
     expect(
       readCommonSource("Server/API/OnCallScheduleTimelineAPI.ts"),

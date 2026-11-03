@@ -11,8 +11,9 @@ import { afterEach, describe, expect, it, jest } from "@jest/globals";
 /*
  * The Subscribers & Announcements page says how many signups and management
  * links a visitor can ask for, how many a contact can be sent, what a
- * private user's password reset is held to, and which environment variable
- * changes each - all of it PublicMessageRateLimit's. Held here to the code:
+ * private user's password reset and sign-in link are held to, and which
+ * environment variable changes each - all of it PublicMessageRateLimit's.
+ * Held here to the code:
  *
  *  - every number the page gives is the limit in force, and its window;
  *  - every variable the page names changes the limit it says it does, and
@@ -76,6 +77,16 @@ const VARIABLES: Record<string, ConfigReading> = {
   ): number => {
     return config.kinds[PublicMessageKind.StatusPagePasswordReset]
       .perContactLimit;
+  },
+  PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MAGIC_LINKS_PER_IP: (
+    config: PublicMessageRateLimitConfig,
+  ): number => {
+    return config.kinds[PublicMessageKind.StatusPageMagicLink].perClientLimit;
+  },
+  PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MAGIC_LINKS_PER_CONTACT: (
+    config: PublicMessageRateLimitConfig,
+  ): number => {
+    return config.kinds[PublicMessageKind.StatusPageMagicLink].perContactLimit;
   },
   PUBLIC_MESSAGE_RATE_LIMIT_INVITATIONS_PER_CONTACT: (
     config: PublicMessageRateLimitConfig,
@@ -179,6 +190,15 @@ describe("the English page gives the limits in force", () => {
 
     expect(englishSection()).toContain(
       `limited the same way: ${reset.perContactLimit} reset emails to one address in an hour, on all status pages together, and ${reset.perClientLimit} from one network in ${minutes} minutes.`,
+    );
+  });
+
+  it("gives a private user's sign-in link its limits, counted whoever the address belongs to", () => {
+    const link: { perClientLimit: number; perContactLimit: number } =
+      config.kinds[PublicMessageKind.StatusPageMagicLink];
+
+    expect(englishSection()).toContain(
+      `Asking for a sign-in link on the sign-in page is limited too, and counted whether or not the address is a private user of the page: ${link.perContactLimit} emails to one address in an hour, on all status pages together, and ${link.perClientLimit} from one network in ${minutes} minutes.`,
     );
   });
 

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40866,
-    "untranslated": 3489
+    "keys": 40996,
+    "untranslated": 3514
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -494,6 +494,7 @@
     "Sudan",
     "Suriname",
     "Switch",
+    "Switches",
     "System",
     "TLS",
     "TTL",

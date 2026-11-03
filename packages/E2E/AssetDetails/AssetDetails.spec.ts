@@ -530,6 +530,51 @@ test.describe("the device's Overview", () => {
     await shoot(page, "overview-pinged-390-dark");
   });
 
+  /*
+   * Refresh on the Inventory card reads the device again; once it was
+   * read, the rest of the Overview reads it again too - the Device Details
+   * card above shows the new reading, not the one the page opened with.
+   */
+  test("Refresh on its Inventory card: once the device was read again, the Device Details card reads it again too", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openOverview(page, "&scenario=meraki&probe=none");
+
+    /*
+     * The Device Details card's reads: the discovered name, as the Inventory
+     * card asks for too - but not when a refresh was asked for, which only
+     * the Inventory card follows.
+     */
+    const detailsReads: () => Promise<number> = async (): Promise<number> => {
+      return (await reads(page)).filter((read: FixtureRead): boolean => {
+        return (
+          read.model === "NetworkDevice" &&
+          read.select.includes("discoveredName") &&
+          !read.select.includes("refreshRequestedAt")
+        );
+      }).length;
+    };
+
+    await expect.poll(detailsReads).toBeGreaterThan(0);
+    const before: number = await detailsReads();
+
+    await page.getByTestId("device-inventory-refresh").click();
+    const status: Locator = page.getByTestId("device-inventory-refresh-status");
+    await expect(status).toHaveText(
+      "The Meraki dashboard is read again within a minute.",
+    );
+    // Not before the reading is in: nothing to show yet.
+    expect(await detailsReads()).toBe(before);
+
+    await expect(status).toHaveText("Read again just now.");
+    await expect.poll(detailsReads).toBe(before + 1);
+    await expect(page.getByText("Device Details")).toBeVisible();
+    await expectNoSidewaysScroll(page);
+    await shoot(page, "overview-meraki-read-again-1280-light");
+  });
+
   test("values typed on the device say nothing; one discovery reads differently says it was saved", async ({
     page,
   }: {
@@ -1374,6 +1419,68 @@ test.describe("Refresh, every way it can go", () => {
     await expect(button).toBeEnabled();
     await expect(button).toContainText("Refresh");
     await shoot(page, "item-meraki-late-1280-light");
+  });
+
+  /*
+   * Only its Meraki connection reads it, and the dashboard has not been
+   * read in three minutes: the line says so and links to the connection, on
+   * the network's Traffic page - its row says why (a refused key, a
+   * connection turned off) and has the way on. On both cards.
+   */
+  test("nobody reads it in three minutes and only Meraki would: the line links to the Meraki connection", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const traffic: string =
+      "/dashboard/10000000-0000-4000-8000-000000000001/network-devices/traffic?source=meraki#traffic-meraki-connections";
+
+    await page.clock.install();
+    await openItem(page, "?scenario=meraki&probe=none&refresh=late");
+
+    const button: Locator = page.getByTestId(ITEM_BUTTON);
+    const status: Locator = page.getByTestId(ITEM_STATUS);
+
+    await button.click();
+    await expect(status).toHaveText(
+      "The Meraki dashboard is read again within a minute.",
+    );
+
+    await page.clock.fastForward("03:10");
+
+    await expect(status).toHaveText(
+      "The Meraki dashboard has not been read yet. See the Meraki connection",
+    );
+    await expect(status).toHaveAttribute("data-tone", "warning");
+    const link: Locator = status.getByRole("link", {
+      name: "See the Meraki connection",
+    });
+    await expect(link).toHaveAttribute("href", traffic);
+    await expect(button).toBeEnabled();
+    await expectNoSidewaysScroll(page);
+    await shoot(page, "item-meraki-late-link-1280-light");
+
+    // The device's own Inventory card says the same, with the same link.
+    await open(page, "?page=device&scenario=meraki&probe=none&refresh=late");
+    const deviceStatus: Locator = page.getByTestId(
+      "device-inventory-refresh-status",
+    );
+    await page.getByTestId("device-inventory-refresh").click();
+    await expect(deviceStatus).toHaveAttribute("data-tone", "progress");
+    await page.clock.fastForward("03:10");
+    await expect(deviceStatus).toHaveText(
+      "The Meraki dashboard has not been read yet. See the Meraki connection",
+    );
+    const deviceLink: Locator = deviceStatus.getByRole("link", {
+      name: "See the Meraki connection",
+    });
+    await expect(deviceLink).toHaveAttribute("href", traffic);
+
+    // It goes there, in the app.
+    await deviceLink.click();
+    await expect(page).toHaveURL(
+      /\/dashboard\/10000000-0000-4000-8000-000000000001\/network-devices\/traffic\?source=meraki#traffic-meraki-connections$/,
+    );
   });
 
   test("refused: the server's reason, in red, and Refresh ready again", async ({

@@ -72,14 +72,21 @@ const INCIDENT_ID: string = "66666666-6666-4666-8666-666666666666";
 const HOST_ID: string = "77777777-7777-4777-8777-777777777777";
 
 describe("TELEMETRY_BILLING_EXCLUDED_ENTITY_TYPES", () => {
-  test("is exactly OneUptime's own operational data: monitors, alerts, incidents and SLOs", () => {
+  test("is exactly OneUptime's own operational data: monitors, alerts, incidents, SLOs and table health", () => {
     expect([...TELEMETRY_BILLING_EXCLUDED_ENTITY_TYPES].sort()).toEqual(
       [
         ServiceType.Monitor,
         ServiceType.Alert,
         ServiceType.Incident,
         ServiceType.ServiceLevelObjective,
+        ServiceType.DataStore,
       ].sort(),
+    );
+  });
+
+  test("never bills Data Observability's oneuptime.data.table.* rows", () => {
+    expect(isTelemetryBillingExcludedEntityType(ServiceType.DataStore)).toBe(
+      true,
     );
   });
 });

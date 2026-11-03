@@ -259,8 +259,12 @@ import { AddRunnerTakesCodeFixes1808872000000 } from "./1808872000000-AddRunnerT
 import { AddScopeToLogSavedView1808880000000 } from "./1808880000000-AddScopeToLogSavedView";
 import { AddProjectDefaultNetworkTopologyLayout1808890000000 } from "./1808890000000-AddProjectDefaultNetworkTopologyLayout";
 import { AddWorkspaceHomeChoice1808891613000 } from "./1808891613000-AddWorkspaceHomeChoice";
-import { AddCloudCostsAndResourceHealth1808900000000 } from "./1808900000000-AddCloudCostsAndResourceHealth";
-import { AddCloudResourceHealthSeverityIndex1808910000000 } from "./1808910000000-AddCloudResourceHealthSeverityIndex";
+import { AddNetworkControllerConnectionLastDeviceAdd1808900000000 } from "./1808900000000-AddNetworkControllerConnectionLastDeviceAdd";
+import { AddDataObservability1808910000000 } from "./1808910000000-AddDataObservability";
+import { AddDataObservabilityStoreIndex1808910100000 } from "./1808910100000-AddDataObservabilityStoreIndex";
+import { AddStatusPageMagicLinkLogin1808920000000 } from "./1808920000000-AddStatusPageMagicLinkLogin";
+import { AddCloudCostsAndResourceHealth1808930000000 } from "./1808930000000-AddCloudCostsAndResourceHealth";
+import { AddCloudResourceHealthSeverityIndex1808940000000 } from "./1808940000000-AddCloudResourceHealthSeverityIndex";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1722,6 +1726,10 @@ export default [
   AddScopeToLogSavedView1808880000000,
   AddProjectDefaultNetworkTopologyLayout1808890000000,
   AddWorkspaceHomeChoice1808891613000,
-  AddCloudCostsAndResourceHealth1808900000000,
-  AddCloudResourceHealthSeverityIndex1808910000000,
+  AddNetworkControllerConnectionLastDeviceAdd1808900000000,
+  AddDataObservability1808910000000,
+  AddDataObservabilityStoreIndex1808910100000,
+  AddStatusPageMagicLinkLogin1808920000000,
+  AddCloudCostsAndResourceHealth1808930000000,
+  AddCloudResourceHealthSeverityIndex1808940000000,
 ];

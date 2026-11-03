@@ -19,13 +19,13 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * Every column added to a table that holds rows is nullable with no
  * default: a catalogue change, not a rewrite. The partial index of the
  * resources that need attention is built online, in
- * AddCloudResourceHealthSeverityIndex1808910000000. The costs themselves
+ * AddCloudResourceHealthSeverityIndex1808940000000. The costs themselves
  * are in ClickHouse ("CloudCostV1"), created by its own schema.
  */
-export class AddCloudCostsAndResourceHealth1808900000000
+export class AddCloudCostsAndResourceHealth1808930000000
   implements MigrationInterface
 {
-  public name: string = "AddCloudCostsAndResourceHealth1808900000000";
+  public name: string = "AddCloudCostsAndResourceHealth1808930000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
