@@ -1231,6 +1231,13 @@ jobs:
           # each host's health and readings - and a host's Overview, Turn on
           # N alerts into Recommendations, at 1280 and 390 pixels, dark,
           # German and Persian) joined it on 2026-11-02: about 21.
+          # Storage Array Pages (18 tests, 1.4 minutes locally plus its
+          # bundle, Chromium only: a FlashArray's Overview - its health and
+          # what needs attention by the array's rules - its Hosts,
+          # Replication and Hardware lists, a FlashBlade's File Systems and a
+          # host's, a file system's and a volume's page, at 1280, 1024, 768
+          # and 390 pixels, dark, German and Persian) joined it on
+          # 2026-11-03: about 23.5.
           - group: 15
             model_tables_shard: 2/2
             suites: >-
@@ -1242,6 +1249,7 @@ jobs:
               test-runbook-triggers-ui
               test-kubernetes-events-ui
               test-host-pages-ui
+              test-storage-array-pages-ui
           # Added on 2026-11-01, when 14.0.100's second gate run, on runners up
           # to 1.45 times slower, took groups 2, 3 and 14 past their run step's
           # 28 minutes and groups 6, 7, 9, 12 and 13 to 24 to 26: Monitor
@@ -1534,4 +1542,6 @@ jobs:
             output/playwright/container-host-pages-ui/test-results
             output/playwright/ceph-pages-ui/*.png
             output/playwright/ceph-pages-ui/test-results
+            output/playwright/storage-array-pages-ui/*.png
+            output/playwright/storage-array-pages-ui/test-results
           retention-days: 7

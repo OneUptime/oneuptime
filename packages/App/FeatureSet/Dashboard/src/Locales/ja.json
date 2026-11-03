@@ -40595,5 +40595,9 @@
   "{{percent}} of its provisioned size used": "プロビジョニング済みサイズの {{percent}} を使用",
   "{{percent}} of usable capacity used": "使用可能容量の {{percent}} を使用",
   "{{size}} provisioned": "{{size}} プロビジョニング済み",
-  "{{size}} quota": "クォータ {{size}}"
+  "{{size}} quota": "クォータ {{size}}",
+  "Bytes read and written per second across the array.": "アレイ全体で 1 秒あたりに読み書きされたバイト数です。",
+  "How long a read and a write take on average, per operation, as hosts see them.": "ホストから見た、読み取りと書き込みの 1 回の操作にかかる平均時間です。",
+  "Read and write operations per second across the array.": "アレイ全体の 1 秒あたりの読み取りと書き込みの操作数です。",
+  "Share of the array's usable capacity in use. Pure raises its own capacity alerts at 80%, 90% and 100%.": "アレイの使用可能容量のうち使用中の割合です。Pure は 80%、90%、100% で独自の容量アラートを発生させます。"
 }

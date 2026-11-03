@@ -40595,5 +40595,9 @@
   "{{percent}} of its provisioned size used": "프로비저닝 크기의 {{percent}} 사용",
   "{{percent}} of usable capacity used": "사용 가능 용량의 {{percent}} 사용",
   "{{size}} provisioned": "{{size}} 프로비저닝됨",
-  "{{size}} quota": "할당량 {{size}}"
+  "{{size}} quota": "할당량 {{size}}",
+  "Bytes read and written per second across the array.": "어레이 전체에서 초당 읽고 쓴 바이트입니다.",
+  "How long a read and a write take on average, per operation, as hosts see them.": "호스트가 보는 읽기와 쓰기 한 번의 작업당 평균 시간입니다.",
+  "Read and write operations per second across the array.": "어레이 전체의 초당 읽기 및 쓰기 작업 수입니다.",
+  "Share of the array's usable capacity in use. Pure raises its own capacity alerts at 80%, 90% and 100%.": "어레이의 사용 가능 용량 중 사용 중인 비율입니다. Pure는 80%, 90%, 100%에서 자체 용량 알림을 발생시킵니다."
 }

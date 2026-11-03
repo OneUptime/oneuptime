@@ -40595,5 +40595,9 @@
   "{{percent}} of its provisioned size used": "{{percent}} af den tildelte størrelse brugt",
   "{{percent}} of usable capacity used": "{{percent}} af den anvendelige kapacitet brugt",
   "{{size}} provisioned": "{{size}} tildelt",
-  "{{size}} quota": "Kvote på {{size}}"
+  "{{size}} quota": "Kvote på {{size}}",
+  "Bytes read and written per second across the array.": "Bytes læst og skrevet pr. sekund på tværs af arrayet.",
+  "How long a read and a write take on average, per operation, as hosts see them.": "Hvor lang tid en læsning og en skrivning tager i gennemsnit, pr. operation, som værterne ser dem.",
+  "Read and write operations per second across the array.": "Læse- og skriveoperationer pr. sekund på tværs af arrayet.",
+  "Share of the array's usable capacity in use. Pure raises its own capacity alerts at 80%, 90% and 100%.": "Andel af arrayets brugbare kapacitet i brug. Pure udløser sine egne kapacitetsadvarsler ved 80 %, 90 % og 100 %."
 }

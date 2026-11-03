@@ -497,6 +497,13 @@ export function buildCatalogQuery(data: {
   objectFilters?: Record<string, string> | undefined;
   groupByAttributeKeys?: Array<string> | undefined;
   legend?: string | undefined;
+  /*
+   * A chart's own title and description, where a page says the chart in
+   * words of its own rather than the catalog's metric (a key of the
+   * Dashboard's locales, looked up where the chart is drawn).
+   */
+  title?: string | undefined;
+  description?: string | undefined;
   overlayWithPreviousQuery?: boolean | undefined;
 }): MetricQueryConfigData | undefined {
   const metric: StorageArrayMetricDefinition | undefined =
@@ -509,8 +516,8 @@ export function buildCatalogQuery(data: {
   return {
     metricAliasData: {
       metricVariable: metric.id.replace(/-/g, "_"),
-      title: metric.friendlyName,
-      description: metric.description,
+      title: data.title || metric.friendlyName,
+      description: data.description || metric.description,
       legend: data.legend || metric.friendlyName,
       legendUnit: getChartUnit(metric.unit),
     },

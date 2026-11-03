@@ -40595,5 +40595,9 @@
   "{{percent}} of its provisioned size used": "{{percent}} de su tamaño aprovisionado en uso",
   "{{percent}} of usable capacity used": "{{percent}} de la capacidad utilizable en uso",
   "{{size}} provisioned": "{{size}} aprovisionados",
-  "{{size}} quota": "Cuota de {{size}}"
+  "{{size}} quota": "Cuota de {{size}}",
+  "Bytes read and written per second across the array.": "Bytes leídos y escritos por segundo en toda la cabina.",
+  "How long a read and a write take on average, per operation, as hosts see them.": "Cuánto tardan de media una lectura y una escritura, por operación, tal como las ven los hosts.",
+  "Read and write operations per second across the array.": "Operaciones de lectura y escritura por segundo en toda la cabina.",
+  "Share of the array's usable capacity in use. Pure raises its own capacity alerts at 80%, 90% and 100%.": "Parte de la capacidad utilizable de la cabina en uso. Pure genera sus propias alertas de capacidad al 80 %, 90 % y 100 %."
 }

@@ -179,7 +179,54 @@ function mockStub(testId: string): {
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/Metrics/EmbeddedMetricCard",
   () => {
-    return mockStub("metric-card");
+    /*
+     * The golden charts' card, standing in for the real one: it shows each
+     * chart's title, description and line name as the page hands them over,
+     * as the card's charts draw them.
+     */
+    return {
+      __esModule: true,
+      default: (props: {
+        queryConfigs: Array<{
+          metricAliasData?: {
+            title?: string;
+            description?: string;
+            legend?: string;
+          };
+        }>;
+      }): React.ReactElement => {
+        return (
+          <div data-testid="metric-card">
+            {props.queryConfigs.map(
+              (
+                config: {
+                  metricAliasData?: {
+                    title?: string;
+                    description?: string;
+                    legend?: string;
+                  };
+                },
+                index: number,
+              ): React.ReactElement => {
+                return (
+                  <div key={index} data-testid="metric-card-chart">
+                    <span data-testid="metric-card-chart-title">
+                      {config.metricAliasData?.title}
+                    </span>
+                    <span data-testid="metric-card-chart-description">
+                      {config.metricAliasData?.description}
+                    </span>
+                    <span data-testid="metric-card-chart-legend">
+                      {config.metricAliasData?.legend}
+                    </span>
+                  </div>
+                );
+              },
+            )}
+          </div>
+        );
+      },
+    };
   },
 );
 jest.mock(
@@ -433,8 +480,62 @@ describe("a storage array's Overview in German", () => {
     }
   });
 
-  test("the tiles' titles and lines are German", async () => {
+  test("the golden charts' titles, descriptions and line names are German", async () => {
     await openOverview();
+
+    const texts: (testId: string) => Array<string> = (
+      testId: string,
+    ): Array<string> => {
+      return screen.getAllByTestId(testId).map((element: HTMLElement) => {
+        return element.textContent || "";
+      });
+    };
+    // Read and write on one panel each: the panel says the first's words.
+    const titles: Array<string> = texts("metric-card-chart-title");
+    expect([titles[0], titles[2], titles[4], titles[6]]).toEqual([
+      worded(DE, "Latency"),
+      "IOPS",
+      worded(DE, "Throughput"),
+      worded(DE, "Capacity Used"),
+    ]);
+    const descriptions: Array<string> = texts("metric-card-chart-description");
+    expect(descriptions[0]).toBe(
+      worded(
+        DE,
+        "How long a read and a write take on average, per operation, as hosts see them.",
+      ),
+    );
+    expect(descriptions[6]).toBe(
+      worded(
+        DE,
+        "Share of the array's usable capacity in use. Pure raises its own capacity alerts at 80%, 90% and 100%.",
+      ),
+    );
+    expect(texts("metric-card-chart-legend")).toEqual([
+      worded(DE, "Read"),
+      worded(DE, "Write"),
+      worded(DE, "Read"),
+      worded(DE, "Write"),
+      worded(DE, "Read"),
+      worded(DE, "Write"),
+      worded(DE, "Capacity Used"),
+    ]);
+    // Never the catalog's words, which a monitor's metric picker shows.
+    expect(screen.queryByText("Read Latency")).not.toBeInTheDocument();
+    expect(screen.queryByText(/dimension usec_per_read_op/)).toBeNull();
+  });
+
+  test("the tiles' titles and lines are German, and when the array last reported", async () => {
+    await openOverview();
+
+    // When it last reported, all in German: no English "a minute ago".
+    const lastSeenStart: string = worded(DE, "Last seen {{time}}").split(
+      "{{time}}",
+    )[0] as string;
+    const lastSeen: HTMLElement = screen.getByText((text: string) => {
+      return text.startsWith(lastSeenStart);
+    });
+    expect(lastSeen).not.toHaveTextContent(/ago|seconds|minute/);
 
     for (const key of [
       "Capacity Used",

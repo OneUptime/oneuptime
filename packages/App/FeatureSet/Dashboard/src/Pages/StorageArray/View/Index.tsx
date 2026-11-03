@@ -99,7 +99,8 @@ import React, {
   useState,
 } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { formatRelativeTime } from "../../../Components/Home/HomeRelativeTime";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Storage array overview hero — the Ceph View/Index.tsx analog. Health,
@@ -200,43 +201,65 @@ export function getGoldenChartQueries(data: {
     return [];
   }
 
+  /*
+   * Each panel is said in the page's own words (keys of the locales): the
+   * catalog's metric names and descriptions are written for a monitor's
+   * metric picker, each one line of the panel.
+   */
   return StorageArrayResourceUtils.buildCatalogQueries([
     {
       metricId: `${prefix}-array-read-latency`,
       arrayName: data.arrayName,
-      legend: "Read",
+      title: translationKey("Latency"),
+      description: translationKey(
+        "How long a read and a write take on average, per operation, as hosts see them.",
+      ),
+      legend: translationKey("Read"),
     },
     {
       metricId: `${prefix}-array-write-latency`,
       arrayName: data.arrayName,
-      legend: "Write",
+      legend: translationKey("Write"),
       overlayWithPreviousQuery: true,
     },
     {
       metricId: `${prefix}-array-read-iops`,
       arrayName: data.arrayName,
-      legend: "Read",
+      title: translationKey("IOPS"),
+      description: translationKey(
+        "Read and write operations per second across the array.",
+      ),
+      legend: translationKey("Read"),
     },
     {
       metricId: `${prefix}-array-write-iops`,
       arrayName: data.arrayName,
-      legend: "Write",
+      legend: translationKey("Write"),
       overlayWithPreviousQuery: true,
     },
     {
       metricId: `${prefix}-array-read-bandwidth`,
       arrayName: data.arrayName,
-      legend: "Read",
+      title: translationKey("Throughput"),
+      description: translationKey(
+        "Bytes read and written per second across the array.",
+      ),
+      legend: translationKey("Read"),
     },
     {
       metricId: `${prefix}-array-write-bandwidth`,
       arrayName: data.arrayName,
-      legend: "Write",
+      legend: translationKey("Write"),
       overlayWithPreviousQuery: true,
     },
     {
       metricId: `${prefix}-array-space-utilization`,
       arrayName: data.arrayName,
+      title: translationKey("Capacity Used"),
+      description: translationKey(
+        "Share of the array's usable capacity in use. Pure raises its own capacity alerts at 80%, 90% and 100%.",
+      ),
+      legend: translationKey("Capacity Used"),
     },
   ]);
 }
@@ -261,6 +284,10 @@ const StorageArrayOverview: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
+  // A word or sentence of the page's, in the reader's language.
+  const tx: (text: string) => string = (text: string): string => {
+    return (translator.translateText(text) as string) || text;
+  };
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
   const [storageArray, setStorageArray] = useState<StorageArray | null>(null);
@@ -894,7 +921,12 @@ const StorageArrayOverview: FunctionComponent<
      */
     const lastSeenText: string = lastSeenAt
       ? translator.translateTemplate("Last seen {{time}}", {
-          time: OneUptimeDate.fromNow(lastSeenAt),
+          // In the reader's language, as a part's page says it.
+          time: formatRelativeTime({
+            date: OneUptimeDate.fromString(lastSeenAt),
+            now: new Date(),
+            language: translator.language,
+          }),
         })
       : translator.translateText("Never seen") || "Never seen";
 
@@ -1391,9 +1423,30 @@ const StorageArrayOverview: FunctionComponent<
       return <Fragment />;
     }
 
+    /*
+     * The charts draw their titles, descriptions and line names as given:
+     * each is looked up here, in the reader's language.
+     */
     const queryConfigs: Array<MetricQueryConfigData> = getGoldenChartQueries({
       storageSystem: storageArray.storageSystem,
       arrayName: storageArray.name,
+    }).map((query: MetricQueryConfigData): MetricQueryConfigData => {
+      const alias: MetricQueryConfigData["metricAliasData"] =
+        query.metricAliasData;
+      if (!alias) {
+        return query;
+      }
+      return {
+        ...query,
+        metricAliasData: {
+          ...alias,
+          title: alias.title ? tx(alias.title) : alias.title,
+          description: alias.description
+            ? tx(alias.description)
+            : alias.description,
+          legend: alias.legend ? tx(alias.legend) : alias.legend,
+        },
+      };
     });
 
     if (queryConfigs.length === 0) {

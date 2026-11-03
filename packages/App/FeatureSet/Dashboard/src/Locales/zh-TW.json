@@ -40595,5 +40595,9 @@
   "{{percent}} of its provisioned size used": "已使用已佈建大小的 {{percent}}",
   "{{percent}} of usable capacity used": "已使用可用容量的 {{percent}}",
   "{{size}} provisioned": "已佈建 {{size}}",
-  "{{size}} quota": "配額 {{size}}"
+  "{{size}} quota": "配額 {{size}}",
+  "Bytes read and written per second across the array.": "整個陣列每秒讀取和寫入的位元組數。",
+  "How long a read and a write take on average, per operation, as hosts see them.": "主機看到的每次讀取和寫入操作的平均耗時。",
+  "Read and write operations per second across the array.": "整個陣列每秒的讀取和寫入操作數。",
+  "Share of the array's usable capacity in use. Pure raises its own capacity alerts at 80%, 90% and 100%.": "陣列可用容量中已使用的比例。Pure 會在 80%、90% 和 100% 時發出自己的容量警示。"
 }

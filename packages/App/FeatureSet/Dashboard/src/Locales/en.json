@@ -40595,5 +40595,9 @@
   "{{percent}} of its provisioned size used": "{{percent}} of its provisioned size used",
   "{{percent}} of usable capacity used": "{{percent}} of usable capacity used",
   "{{size}} provisioned": "{{size}} provisioned",
-  "{{size}} quota": "{{size}} quota"
+  "{{size}} quota": "{{size}} quota",
+  "Bytes read and written per second across the array.": "Bytes read and written per second across the array.",
+  "How long a read and a write take on average, per operation, as hosts see them.": "How long a read and a write take on average, per operation, as hosts see them.",
+  "Read and write operations per second across the array.": "Read and write operations per second across the array.",
+  "Share of the array's usable capacity in use. Pure raises its own capacity alerts at 80%, 90% and 100%.": "Share of the array's usable capacity in use. Pure raises its own capacity alerts at 80%, 90% and 100%."
 }

@@ -40595,5 +40595,9 @@
   "{{percent}} of its provisioned size used": "{{percent}} از اندازه تخصیص‌یافته استفاده شده",
   "{{percent}} of usable capacity used": "{{percent}} از ظرفیت قابل استفاده استفاده شده",
   "{{size}} provisioned": "{{size}} تخصیص‌یافته",
-  "{{size}} quota": "سهمیه {{size}}"
+  "{{size}} quota": "سهمیه {{size}}",
+  "Bytes read and written per second across the array.": "بایت‌های خوانده‌شده و نوشته‌شده در ثانیه در کل آرایه.",
+  "How long a read and a write take on average, per operation, as hosts see them.": "میانگین زمان هر خواندن و هر نوشتن به ازای هر عملیات، آن‌طور که میزبان‌ها می‌بینند.",
+  "Read and write operations per second across the array.": "عملیات خواندن و نوشتن در ثانیه در کل آرایه.",
+  "Share of the array's usable capacity in use. Pure raises its own capacity alerts at 80%, 90% and 100%.": "سهم مصرف‌شده از ظرفیت قابل استفاده آرایه. Pure هشدارهای ظرفیت خودش را در ۸۰٪، ۹۰٪ و ۱۰۰٪ می‌دهد."
 }

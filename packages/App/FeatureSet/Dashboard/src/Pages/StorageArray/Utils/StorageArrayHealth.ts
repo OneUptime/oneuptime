@@ -709,6 +709,14 @@ export function getStorageArrayAttentionKey(
  * is), then each part with why, the most urgent first. routeFor gives a
  * part's own page, or the list it is on.
  */
+// Which of a physical part's rows names it: the drive in a bay, not the bay.
+const HARDWARE_KIND_SPECIFICITY: ReadonlyArray<StorageArrayPartKind> = [
+  "Drive",
+  "Controller",
+  "NetworkInterface",
+  "Hardware",
+];
+
 export function getStorageArrayAttentionItems(data: {
   arrayName: string;
   array: StorageArrayState;
@@ -732,6 +740,16 @@ export function getStorageArrayAttentionItems(data: {
     });
   }
 
+  /*
+   * One physical part can be several rows under one name: a failed
+   * FlashArray drive is its bay (Hardware, critical) and the drive in it
+   * (Drive, failed); a controller is a Hardware and a Controller row. Each
+   * is one row here, named by its most specific kind, with every reason -
+   * the part the ingest counts once (StorageArraySnapshotScan).
+   */
+  const hardwareByName: Map<string, ResourceAttentionItem> = new Map();
+  const hardwareKindOf: Map<string, StorageArrayPartKind> = new Map();
+
   for (const row of data.parts) {
     if (!isStorageArrayPartKind(row.kind)) {
       continue;
@@ -743,7 +761,7 @@ export function getStorageArrayAttentionItems(data: {
     if (!assessment.severity) {
       continue;
     }
-    items.push({
+    const item: ResourceAttentionItem = {
       key: getStorageArrayAttentionKey(row),
       kind: STORAGE_ARRAY_KIND_LABELS[row.kind],
       icon: KIND_ICONS[row.kind],
@@ -751,7 +769,59 @@ export function getStorageArrayAttentionItems(data: {
       severity: assessment.severity,
       reasons: assessment.reasons,
       route: data.routeFor ? data.routeFor(row) : undefined,
+    };
+
+    if (!STORAGE_ARRAY_HARDWARE_KINDS.includes(row.kind)) {
+      items.push(item);
+      continue;
+    }
+
+    const physical: string = item.name.trim().toLowerCase();
+    const earlier: ResourceAttentionItem | undefined =
+      hardwareByName.get(physical);
+    const earlierKind: StorageArrayPartKind | undefined =
+      hardwareKindOf.get(physical);
+    if (!earlier || !earlierKind) {
+      hardwareByName.set(physical, item);
+      hardwareKindOf.set(physical, row.kind);
+      items.push(item);
+      continue;
+    }
+
+    // The more specific kind names the part; its reasons come first.
+    const thisIsSpecific: boolean =
+      HARDWARE_KIND_SPECIFICITY.indexOf(row.kind) <
+      HARDWARE_KIND_SPECIFICITY.indexOf(earlierKind);
+    const first: ResourceAttentionItem = thisIsSpecific ? item : earlier;
+    const second: ResourceAttentionItem = thisIsSpecific ? earlier : item;
+    const reasons: Array<ResourceAttentionText> = [...first.reasons];
+    for (const reason of second.reasons) {
+      const seen: boolean = reasons.some(
+        (kept: ResourceAttentionText): boolean => {
+          return (
+            kept.text === reason.text &&
+            JSON.stringify(kept.values || {}) ===
+              JSON.stringify(reason.values || {})
+          );
+        },
+      );
+      if (!seen) {
+        reasons.push(reason);
+      }
+    }
+    Object.assign(earlier, {
+      key: first.key,
+      kind: first.kind,
+      icon: first.icon,
+      severity:
+        mergeResourceAttentionSeverity([earlier.severity, item.severity]) ||
+        earlier.severity,
+      reasons: reasons,
+      route: first.route || second.route,
     });
+    if (thisIsSpecific) {
+      hardwareKindOf.set(physical, row.kind);
+    }
   }
 
   return sortResourceAttention(items, STORAGE_ARRAY_ATTENTION_KIND_ORDER);

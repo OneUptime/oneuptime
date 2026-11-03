@@ -40595,5 +40595,9 @@
   "{{percent}} of its provisioned size used": "Занято {{percent}} выделенного размера",
   "{{percent}} of usable capacity used": "Занято {{percent}} полезной ёмкости",
   "{{size}} provisioned": "Выделено {{size}}",
-  "{{size}} quota": "Квота {{size}}"
+  "{{size}} quota": "Квота {{size}}",
+  "Bytes read and written per second across the array.": "Байты, прочитанные и записанные в секунду по всему массиву.",
+  "How long a read and a write take on average, per operation, as hosts see them.": "Сколько в среднем длятся чтение и запись на операцию, как их видят хосты.",
+  "Read and write operations per second across the array.": "Операции чтения и записи в секунду по всему массиву.",
+  "Share of the array's usable capacity in use. Pure raises its own capacity alerts at 80%, 90% and 100%.": "Доля занятой используемой ёмкости массива. Pure сама поднимает оповещения о ёмкости на 80%, 90% и 100%."
 }

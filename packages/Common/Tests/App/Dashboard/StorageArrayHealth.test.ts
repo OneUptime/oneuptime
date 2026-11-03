@@ -518,6 +518,44 @@ describe("Needs attention", () => {
     expect(texts(drive.reasons)).toEqual(["Reports failed"]);
   });
 
+  test("one physical part is one row: a failed drive and its bay, a controller and its chassis entry", () => {
+    const items: Array<ResourceAttentionItem> = getStorageArrayAttentionItems({
+      arrayName: "pure-prod",
+      array: {},
+      parts: [
+        // The bay first, as the inventory may list it.
+        part("Hardware", { externalId: "CH0.BAY3", status: "critical" }),
+        part("Drive", { externalId: "CH0.BAY3", status: "failed" }),
+        part("Hardware", { externalId: "CT1", status: "degraded" }),
+        part("Controller", { externalId: "CT1", status: "not ready" }),
+        // A fine controller row beside a degraded chassis entry: one row.
+        part("Controller", { externalId: "CT0", status: "ready" }),
+        part("Hardware", { externalId: "CT0", status: "degraded" }),
+      ],
+      routeFor: routeFor,
+    });
+
+    expect(
+      items.map((item: ResourceAttentionItem): [string, string, string] => {
+        return [item.key, item.kind, item.severity];
+      }),
+    ).toEqual([
+      ["Drive:CH0.BAY3", "Drive", "critical"],
+      ["Hardware:CT0", "Hardware Component", "warning"],
+      ["Controller:CT1", "Controller", "warning"],
+    ]);
+    // The specific kind's reason first, then the rest, each once.
+    expect(texts(items[0]!.reasons)).toEqual([
+      "Reports failed",
+      "Reports critical",
+    ]);
+    expect(items[0]!.route?.toString()).toBe("/array/Drive/CH0.BAY3");
+    expect(texts(items[2]!.reasons)).toEqual([
+      "Reports not ready",
+      "Reports degraded",
+    ]);
+  });
+
   test("the array's health is the worst of what it lists", () => {
     expect(getStorageArrayHealth([])).toBe("Healthy");
     expect(
