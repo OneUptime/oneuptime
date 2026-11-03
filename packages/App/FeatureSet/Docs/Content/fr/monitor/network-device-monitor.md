@@ -961,6 +961,12 @@ Pour que la carte se remplisse :
 
 Cliquez sur un pair non géré et **Ajouter à la surveillance** l'enregistre comme équipement interrogé par sonde. Il prend la sonde sur laquelle ses voisins s'accordent, il est donc pingué dès sa première interrogation, et vous pouvez ajouter des identifiants plus tard s'il s'avère avoir SNMP.
 
+### Choisir la disposition à l'ouverture de la carte
+
+**Options de la carte → Organiser la carte** dispose la carte en **Automatique**, **Par couche réseau**, **Concentrique**, **En étoile** ou **Parent and child**. La carte s'ouvre sur la disposition marquée **Par défaut** : **Automatique** pour tous les équipements et **Par couche réseau** pour un site, sauf si votre projet a choisi une disposition pour tout le monde. Chacun peut changer de disposition pendant la consultation ; la carte s'ouvre de nouveau sur la disposition par défaut la fois suivante.
+
+Les propriétaires et les administrateurs du projet choisissent la disposition par défaut : passez à une disposition et sélectionnez **Définir par défaut pour tout le monde**. Chaque vue de la carte des équipements s'ouvre alors sur elle : **Topologie de l'équipement**, un site sur la **Carte**, et l'onglet **Réseau** de **Topologie**. Sur la disposition par défaut, **Supprimer la valeur par défaut** rend à chaque carte sa propre disposition par défaut. Les positions déplacées sont enregistrées pour chaque disposition dans votre navigateur : la carte s'ouvre avec l'agencement que vous avez fait dans cette disposition.
+
 ### Exporter la carte en PDF
 
 **Exporter en PDF**, en haut de la carte, télécharge la carte que vous regardez sous forme de PDF à joindre à un audit, une demande de changement ou une revue d'incident, ou à lire hors ligne. Chaque vue de la carte des équipements l'a : **Topologie de l'équipement**, un site sur la **Carte**, et l'onglet **Réseau** de **Topologie**.

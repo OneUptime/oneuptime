@@ -40346,6 +40346,14 @@
   "{{count}} command on {{targets}}.": "{{targets}} 上的 {{count}} 个命令。",
   "{{count}} commands on {{targets}}.": "{{targets}} 上的 {{count}} 个命令。",
   "{{count}} commands on {{targets}}._one": "{{targets}} 上的 {{count}} 个命令。",
+  "Clear default": "Clear default",
+  "Default Network Topology Layout": "Default Network Topology Layout",
+  "Each map opens on its own default again: Automatic for all devices, By network layer for a site.": "Each map opens on its own default again: Automatic for all devices, By network layer for a site.",
+  "Every network map in this project will open on this layout. People can still switch while they look.": "Every network map in this project will open on this layout. People can still switch while they look.",
+  "Everyone in this project opens network maps on this layout.": "Everyone in this project opens network maps on this layout.",
+  "Make default for everyone": "Make default for everyone",
+  "Save and reuse log explorer views, including the current filters, columns, sorting, and page size. Each view is listed on the page it was saved on: the Logs page, or one resource's Logs tab.": "Save and reuse log explorer views, including the current filters, columns, sorting, and page size. Each view is listed on the page it was saved on: the Logs page, or one resource's Logs tab.",
+  "We couldn't change the default layout. Try again.": "We couldn't change the default layout. Try again.",
   "A manager's standing in the swarm, as docker node ls shows it: the Leader, Reachable, or Unreachable when the other managers cannot reach it. The swarm keeps working while more than half of its managers are reachable.": "管理节点在 swarm 中的地位，与 docker node ls 显示的一致：领导者、可达，或在其他管理节点无法访问它时为不可达。只要超过一半的管理节点可达，swarm 就能继续工作。",
   "CPU used by this task's container at the last reading the OneUptime agent sent (it reads every 30 seconds); 100% is one full CPU core. Amber past 80%, where the High Task CPU Usage alert fires. A reading more than 15 minutes old is not shown.": "OneUptime 代理发送的最新读数（每 30 秒读取一次）中，此任务容器使用的 CPU；100% 为一个完整的 CPU 核心。超过 80% 时为琥珀色，此时会触发 High Task CPU Usage 警报。超过 15 分钟的读数不会显示。",
   "CPUs": "CPU",
@@ -40640,6 +40648,5 @@
   "Bytes read and written per second across the array.": "整个阵列每秒读取和写入的字节数。",
   "How long a read and a write take on average, per operation, as hosts see them.": "主机看到的每次读取和写入操作的平均耗时。",
   "Read and write operations per second across the array.": "整个阵列每秒的读取和写入操作数。",
-  "Share of the array's usable capacity in use. Pure raises its own capacity alerts at 80%, 90% and 100%.": "阵列可用容量中已使用的比例。Pure 会在 80%、90% 和 100% 时发出自己的容量警报。",
-  "Save and reuse log explorer views, including the current filters, columns, sorting, and page size. Each view is listed on the page it was saved on: the Logs page, or one resource's Logs tab.": "Save and reuse log explorer views, including the current filters, columns, sorting, and page size. Each view is listed on the page it was saved on: the Logs page, or one resource's Logs tab."
+  "Share of the array's usable capacity in use. Pure raises its own capacity alerts at 80%, 90% and 100%.": "阵列可用容量中已使用的比例。Pure 会在 80%、90% 和 100% 时发出自己的容量警报。"
 }

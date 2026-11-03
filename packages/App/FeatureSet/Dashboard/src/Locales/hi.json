@@ -40346,6 +40346,14 @@
   "{{count}} command on {{targets}}.": "{{targets}} पर {{count}} कमांड।",
   "{{count}} commands on {{targets}}.": "{{targets}} पर {{count}} कमांड।",
   "{{count}} commands on {{targets}}._one": "{{targets}} पर {{count}} कमांड।",
+  "Clear default": "Clear default",
+  "Default Network Topology Layout": "Default Network Topology Layout",
+  "Each map opens on its own default again: Automatic for all devices, By network layer for a site.": "Each map opens on its own default again: Automatic for all devices, By network layer for a site.",
+  "Every network map in this project will open on this layout. People can still switch while they look.": "Every network map in this project will open on this layout. People can still switch while they look.",
+  "Everyone in this project opens network maps on this layout.": "Everyone in this project opens network maps on this layout.",
+  "Make default for everyone": "Make default for everyone",
+  "Save and reuse log explorer views, including the current filters, columns, sorting, and page size. Each view is listed on the page it was saved on: the Logs page, or one resource's Logs tab.": "Save and reuse log explorer views, including the current filters, columns, sorting, and page size. Each view is listed on the page it was saved on: the Logs page, or one resource's Logs tab.",
+  "We couldn't change the default layout. Try again.": "We couldn't change the default layout. Try again.",
   "A manager's standing in the swarm, as docker node ls shows it: the Leader, Reachable, or Unreachable when the other managers cannot reach it. The swarm keeps working while more than half of its managers are reachable.": "swarm में किसी मैनेजर की स्थिति, जैसे docker node ls उसे दिखाता है: लीडर, पहुँच में, या पहुँच से बाहर जब बाकी मैनेजर उस तक नहीं पहुँच पाते। जब तक आधे से ज़्यादा मैनेजर पहुँच में हैं, swarm काम करता रहता है।",
   "CPU used by this task's container at the last reading the OneUptime agent sent (it reads every 30 seconds); 100% is one full CPU core. Amber past 80%, where the High Task CPU Usage alert fires. A reading more than 15 minutes old is not shown.": "OneUptime एजेंट की भेजी गई पिछली रीडिंग पर इस कार्य के कंटेनर का इस्तेमाल किया CPU (यह हर 30 सेकंड में पढ़ता है); 100% एक पूरा CPU कोर है। 80% से ऊपर एम्बर, जहाँ High Task CPU Usage अलर्ट ट्रिगर होता है। 15 मिनट से पुरानी रीडिंग नहीं दिखाई जाती।",
   "CPUs": "CPU",
@@ -40640,6 +40648,5 @@
   "Bytes read and written per second across the array.": "पूरे ऐरे में प्रति सेकंड पढ़े और लिखे गए बाइट।",
   "How long a read and a write take on average, per operation, as hosts see them.": "होस्ट को दिखने वाले हर रीड और राइट ऑपरेशन में औसतन लगने वाला समय।",
   "Read and write operations per second across the array.": "पूरे ऐरे में प्रति सेकंड रीड और राइट ऑपरेशन।",
-  "Share of the array's usable capacity in use. Pure raises its own capacity alerts at 80%, 90% and 100%.": "ऐरे की उपयोग योग्य क्षमता का इस्तेमाल हो रहा हिस्सा। Pure ख़ुद 80%, 90% और 100% पर क्षमता अलर्ट उठाता है।",
-  "Save and reuse log explorer views, including the current filters, columns, sorting, and page size. Each view is listed on the page it was saved on: the Logs page, or one resource's Logs tab.": "Save and reuse log explorer views, including the current filters, columns, sorting, and page size. Each view is listed on the page it was saved on: the Logs page, or one resource's Logs tab."
+  "Share of the array's usable capacity in use. Pure raises its own capacity alerts at 80%, 90% and 100%.": "ऐरे की उपयोग योग्य क्षमता का इस्तेमाल हो रहा हिस्सा। Pure ख़ुद 80%, 90% और 100% पर क्षमता अलर्ट उठाता है।"
 }

@@ -184,6 +184,7 @@ import {
   OnCallPageSmsKind,
 } from "../../Utils/Sms/OnCallPageSms";
 import PushNotificationMessage from "../../Types/PushNotification/PushNotificationMessage";
+import { ON_CALL_PAGE_PUSH_CATEGORY } from "../../Types/PushNotification/PushNotificationCategory";
 import logger, { LogAttributes } from "../Utils/Logger";
 import ProjectMembership from "../Utils/TeamMember/ProjectMembership";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -2885,6 +2886,8 @@ export class Service extends ProjectReferencesService<Model> {
           notificationRuleItem.userPush.criticalAlertSound;
         pushMessage.criticalAlertVolume =
           notificationRuleItem.userPush.criticalAlertVolume;
+        // Acknowledge and Escalate under the page (PushNotificationCategory).
+        pushMessage.categoryId = ON_CALL_PAGE_PUSH_CATEGORY;
 
         // send push notification.
         PushNotificationService.sendPushNotification(
@@ -2979,6 +2982,8 @@ export class Service extends ProjectReferencesService<Model> {
           notificationRuleItem.userPush.criticalAlertSound;
         pushMessage.criticalAlertVolume =
           notificationRuleItem.userPush.criticalAlertVolume;
+        // Acknowledge and Escalate under the page (PushNotificationCategory).
+        pushMessage.categoryId = ON_CALL_PAGE_PUSH_CATEGORY;
 
         // send push notification.
         PushNotificationService.sendPushNotification(
@@ -3071,6 +3076,8 @@ export class Service extends ProjectReferencesService<Model> {
           notificationRuleItem.userPush.criticalAlertSound;
         pushMessage.criticalAlertVolume =
           notificationRuleItem.userPush.criticalAlertVolume;
+        // Acknowledge and Escalate under the page (PushNotificationCategory).
+        pushMessage.categoryId = ON_CALL_PAGE_PUSH_CATEGORY;
 
         PushNotificationService.sendPushNotification(
           {
@@ -3162,6 +3169,8 @@ export class Service extends ProjectReferencesService<Model> {
           notificationRuleItem.userPush.criticalAlertSound;
         pushMessage.criticalAlertVolume =
           notificationRuleItem.userPush.criticalAlertVolume;
+        // Acknowledge and Escalate under the page (PushNotificationCategory).
+        pushMessage.categoryId = ON_CALL_PAGE_PUSH_CATEGORY;
 
         PushNotificationService.sendPushNotification(
           {

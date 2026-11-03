@@ -4,6 +4,11 @@ import {
 } from "../Network/NetworkQuickActions";
 import NetworkDeviceGraph from "./NetworkDeviceGraph";
 import NetworkTopologyToolbar from "./NetworkTopologyToolbar";
+import {
+  canChangeProjectDefaultLayout,
+  fetchProjectDefaultLayout,
+  saveProjectDefaultLayout,
+} from "./NetworkTopologyDefaultLayout";
 import NetworkTopologyEmptyState from "./NetworkTopologyEmptyState";
 import NetworkDeviceDetailPanel from "./NetworkDeviceDetailPanel";
 import AddNeighborToMonitoringModal from "./AddNeighborToMonitoringModal";
@@ -97,8 +102,11 @@ export interface ComponentProps {
    */
   siteId?: string | undefined;
   /*
-   * The layout the view opens on. The user can switch between force,
-   * tiered, radial, star and parent-child from the toolbar afterwards.
+   * The layout the view opens on when the project has no default layout of
+   * its own (issue #5378: Project.defaultNetworkTopologyLayout, which wins
+   * wherever the map is shown). The user can switch between force, tiered,
+   * radial, star and parent-child from the toolbar afterwards, for as long
+   * as they look.
    */
   layoutMode?: TopologyLayoutMode | undefined;
   /*
@@ -223,9 +231,29 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
   const [nodeToAdopt, setNodeToAdopt] = useState<NetworkTopologyNode | null>(
     null,
   );
-  const [layoutMode, setLayoutMode] = useState<TopologyLayoutMode>(
-    props.layoutMode || "force",
-  );
+  /*
+   * Issue #5378: the layout the project opens its network maps on, so the
+   * whole team reads the network the same way. undefined until it has been
+   * read - the map waits for it rather than drawing one layout and jumping
+   * to another - and null when the project has chosen none, or it could not
+   * be read: the map then opens on its own default, as it always did.
+   */
+  const [projectDefaultLayout, setProjectDefaultLayout] = useState<
+    TopologyLayoutMode | null | undefined
+  >(undefined);
+  /*
+   * The layout picked on this visit, if any. Never remembered: the next
+   * visit opens on the default again, which is how a reader gets back to
+   * the team's picture without a control of its own.
+   */
+  const [chosenLayoutMode, setChosenLayoutMode] =
+    useState<TopologyLayoutMode | null>(null);
+  const [isSavingDefaultLayout, setIsSavingDefaultLayout] =
+    useState<boolean>(false);
+  const [defaultLayoutError, setDefaultLayoutError] = useState<string>("");
+  const defaultLayoutMode: TopologyLayoutMode =
+    projectDefaultLayout || props.layoutMode || "force";
+  const layoutMode: TopologyLayoutMode = chosenLayoutMode || defaultLayoutMode;
   const [visibleKinds, setVisibleKinds] =
     useState<ReadonlySet<TopologyNodeKind> | null>(null);
   /*
@@ -264,6 +292,28 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
     return () => {
       isMounted.current = false;
     };
+  }, []);
+
+  /*
+   * Read the project's default layout alongside the first topology fetch.
+   * A failure is not the reader's problem: the map opens on its own default
+   * and the reason goes to the console.
+   */
+  useEffect(() => {
+    fetchProjectDefaultLayout()
+      .then((layout: TopologyLayoutMode | null) => {
+        if (isMounted.current) {
+          setProjectDefaultLayout(layout);
+        }
+      })
+      .catch((err: unknown) => {
+        Logger.error(
+          `Could not read the project's default network topology layout: ${API.getFriendlyMessage(err)}`,
+        );
+        if (isMounted.current) {
+          setProjectDefaultLayout(null);
+        }
+      });
   }, []);
 
   const fetchTopology: (isBackgroundRefresh: boolean) => Promise<void> =
@@ -560,6 +610,48 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
     (healthFilterMode === "all" || healthFilterMatchCount > 0);
 
   /*
+   * Issue #5378: make a layout everyone's default, or clear the project's
+   * default with null. The map on screen stays where it is either way - the
+   * default decides where the map OPENS - so the layout being looked at is
+   * pinned as this visit's choice before the default moves under it.
+   */
+  const canChangeDefaultLayout: boolean = canChangeProjectDefaultLayout();
+
+  const saveDefaultLayout: (layout: TopologyLayoutMode | null) => void = (
+    layout: TopologyLayoutMode | null,
+  ): void => {
+    if (isSavingDefaultLayout) {
+      return;
+    }
+    setDefaultLayoutError("");
+    setIsSavingDefaultLayout(true);
+    setChosenLayoutMode(layoutMode);
+    saveProjectDefaultLayout(layout)
+      .then(() => {
+        if (isMounted.current) {
+          setProjectDefaultLayout(layout);
+        }
+      })
+      .catch((err: unknown) => {
+        Logger.error(
+          `Could not change the project's default network topology layout: ${API.getFriendlyMessage(err)}`,
+        );
+        if (isMounted.current) {
+          setDefaultLayoutError(
+            translateString(
+              "We couldn't change the default layout. Try again.",
+            ) || "We couldn't change the default layout. Try again.",
+          );
+        }
+      })
+      .finally(() => {
+        if (isMounted.current) {
+          setIsSavingDefaultLayout(false);
+        }
+      });
+  };
+
+  /*
    * Export what the reader is looking at: the same nodes after the VLAN
    * filter, the same layout and dragged positions, the same type, health and
    * search filters — and the whole map, not the part inside the viewport.
@@ -805,6 +897,15 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
     );
   }
 
+  /*
+   * A map to draw, but not yet the layout to draw it in: wait the moment it
+   * takes to read the project's default rather than draw the map's own
+   * default and jump.
+   */
+  if (projectDefaultLayout === undefined && topology.nodes.length > 0) {
+    return <PageLoader isVisible={true} />;
+  }
+
   if (error && topology.nodes.length === 0) {
     return (
       <Card
@@ -874,7 +975,23 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
         searchText={searchText}
         onSearchChange={setSearchText}
         layoutMode={layoutMode}
-        onLayoutChange={setLayoutMode}
+        onLayoutChange={(mode: TopologyLayoutMode) => {
+          setChosenLayoutMode(mode);
+          setDefaultLayoutError("");
+        }}
+        defaultLayout={{
+          layoutMode: defaultLayoutMode,
+          isSetByProject: Boolean(projectDefaultLayout),
+          canChange: canChangeDefaultLayout,
+          isSaving: isSavingDefaultLayout,
+          error: defaultLayoutError,
+          onMakeDefault: () => {
+            saveDefaultLayout(layoutMode);
+          },
+          onClear: () => {
+            saveDefaultLayout(null);
+          },
+        }}
         availableKinds={availableKinds}
         visibleKinds={effectiveVisibleKinds}
         onKindToggle={(kind: TopologyNodeKind) => {

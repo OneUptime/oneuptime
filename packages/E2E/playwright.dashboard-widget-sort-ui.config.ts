@@ -1,6 +1,10 @@
 import { defineConfig, devices } from "@playwright/test";
 import path from "path";
 
+// The fixture's port: its server (Fixture/server.js) reads the same variable.
+const port: string =
+  process.env["DASHBOARD_WIDGET_SORT_FIXTURE_PORT"] || "4404";
+
 export default defineConfig({
   testDir: "./DashboardWidgetSort",
   testMatch: "**/*.spec.ts",
@@ -25,7 +29,7 @@ export default defineConfig({
     },
   ],
   use: {
-    baseURL: "http://127.0.0.1:4404",
+    baseURL: `http://127.0.0.1:${port}`,
     timezoneId: "UTC",
     locale: "en-GB",
     trace: "retain-on-failure",
@@ -34,7 +38,7 @@ export default defineConfig({
   webServer: {
     command: "node DashboardWidgetSort/Fixture/server.js",
     cwd: path.resolve(__dirname),
-    url: "http://127.0.0.1:4404/ready",
+    url: `http://127.0.0.1:${port}/ready`,
     timeout: 300000,
     reuseExistingServer: false,
   },

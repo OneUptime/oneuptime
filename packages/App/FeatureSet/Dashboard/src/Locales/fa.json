@@ -40346,6 +40346,14 @@
   "{{count}} command on {{targets}}.": "{{count}} فرمان روی {{targets}}.",
   "{{count}} commands on {{targets}}.": "{{count}} فرمان روی {{targets}}.",
   "{{count}} commands on {{targets}}._one": "{{count}} فرمان روی {{targets}}.",
+  "Clear default": "Clear default",
+  "Default Network Topology Layout": "Default Network Topology Layout",
+  "Each map opens on its own default again: Automatic for all devices, By network layer for a site.": "Each map opens on its own default again: Automatic for all devices, By network layer for a site.",
+  "Every network map in this project will open on this layout. People can still switch while they look.": "Every network map in this project will open on this layout. People can still switch while they look.",
+  "Everyone in this project opens network maps on this layout.": "Everyone in this project opens network maps on this layout.",
+  "Make default for everyone": "Make default for everyone",
+  "Save and reuse log explorer views, including the current filters, columns, sorting, and page size. Each view is listed on the page it was saved on: the Logs page, or one resource's Logs tab.": "Save and reuse log explorer views, including the current filters, columns, sorting, and page size. Each view is listed on the page it was saved on: the Logs page, or one resource's Logs tab.",
+  "We couldn't change the default layout. Try again.": "We couldn't change the default layout. Try again.",
   "A manager's standing in the swarm, as docker node ls shows it: the Leader, Reachable, or Unreachable when the other managers cannot reach it. The swarm keeps working while more than half of its managers are reachable.": "جایگاه یک مدیر در swarm، آن‌طور که docker node ls نشان می‌دهد: رهبر، در دسترس، یا در دسترس نیست وقتی مدیرهای دیگر به آن دسترسی ندارند. swarm تا وقتی بیش از نیمی از مدیرهایش در دسترس باشند به کار ادامه می‌دهد.",
   "CPU used by this task's container at the last reading the OneUptime agent sent (it reads every 30 seconds); 100% is one full CPU core. Amber past 80%, where the High Task CPU Usage alert fires. A reading more than 15 minutes old is not shown.": "CPU مصرف‌شده توسط کانتینر این وظیفه در آخرین خوانشی که عامل OneUptime فرستاد (هر ۳۰ ثانیه می‌خواند)؛ ۱۰۰٪ یک هسته کامل CPU است. بالای ۸۰٪ کهربایی، جایی که هشدار High Task CPU Usage فعال می‌شود. خوانش قدیمی‌تر از ۱۵ دقیقه نشان داده نمی‌شود.",
   "CPUs": "CPUها",
@@ -40640,6 +40648,5 @@
   "Bytes read and written per second across the array.": "بایت‌های خوانده‌شده و نوشته‌شده در ثانیه در کل آرایه.",
   "How long a read and a write take on average, per operation, as hosts see them.": "میانگین زمان هر خواندن و هر نوشتن به ازای هر عملیات، آن‌طور که میزبان‌ها می‌بینند.",
   "Read and write operations per second across the array.": "عملیات خواندن و نوشتن در ثانیه در کل آرایه.",
-  "Share of the array's usable capacity in use. Pure raises its own capacity alerts at 80%, 90% and 100%.": "سهم مصرف‌شده از ظرفیت قابل استفاده آرایه. Pure هشدارهای ظرفیت خودش را در ۸۰٪، ۹۰٪ و ۱۰۰٪ می‌دهد.",
-  "Save and reuse log explorer views, including the current filters, columns, sorting, and page size. Each view is listed on the page it was saved on: the Logs page, or one resource's Logs tab.": "Save and reuse log explorer views, including the current filters, columns, sorting, and page size. Each view is listed on the page it was saved on: the Logs page, or one resource's Logs tab."
+  "Share of the array's usable capacity in use. Pure raises its own capacity alerts at 80%, 90% and 100%.": "سهم مصرف‌شده از ظرفیت قابل استفاده آرایه. Pure هشدارهای ظرفیت خودش را در ۸۰٪، ۹۰٪ و ۱۰۰٪ می‌دهد."
 }

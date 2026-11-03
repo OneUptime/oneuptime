@@ -40346,6 +40346,14 @@
   "{{count}} command on {{targets}}.": "{{targets}}의 명령 {{count}}개.",
   "{{count}} commands on {{targets}}.": "{{targets}}의 명령 {{count}}개.",
   "{{count}} commands on {{targets}}._one": "{{targets}}의 명령 {{count}}개.",
+  "Clear default": "Clear default",
+  "Default Network Topology Layout": "Default Network Topology Layout",
+  "Each map opens on its own default again: Automatic for all devices, By network layer for a site.": "Each map opens on its own default again: Automatic for all devices, By network layer for a site.",
+  "Every network map in this project will open on this layout. People can still switch while they look.": "Every network map in this project will open on this layout. People can still switch while they look.",
+  "Everyone in this project opens network maps on this layout.": "Everyone in this project opens network maps on this layout.",
+  "Make default for everyone": "Make default for everyone",
+  "Save and reuse log explorer views, including the current filters, columns, sorting, and page size. Each view is listed on the page it was saved on: the Logs page, or one resource's Logs tab.": "Save and reuse log explorer views, including the current filters, columns, sorting, and page size. Each view is listed on the page it was saved on: the Logs page, or one resource's Logs tab.",
+  "We couldn't change the default layout. Try again.": "We couldn't change the default layout. Try again.",
   "A manager's standing in the swarm, as docker node ls shows it: the Leader, Reachable, or Unreachable when the other managers cannot reach it. The swarm keeps working while more than half of its managers are reachable.": "docker node ls가 보여 주는 Swarm 안에서의 매니저 위치입니다. 리더, 연결 가능, 또는 다른 매니저가 연결할 수 없으면 연결 불가입니다. Swarm은 매니저의 절반을 넘게 연결할 수 있는 동안 계속 동작합니다.",
   "CPU used by this task's container at the last reading the OneUptime agent sent (it reads every 30 seconds); 100% is one full CPU core. Amber past 80%, where the High Task CPU Usage alert fires. A reading more than 15 minutes old is not shown.": "OneUptime 에이전트가 보낸 마지막 측정값(30초마다 측정)에서 이 작업의 컨테이너가 사용한 CPU입니다. 100%는 CPU 코어 1개 전체입니다. 80%를 넘으면 주황색이며, 이때 High Task CPU Usage 알림이 발생합니다. 15분보다 오래된 측정값은 표시되지 않습니다.",
   "CPUs": "CPU",
@@ -40640,6 +40648,5 @@
   "Bytes read and written per second across the array.": "어레이 전체에서 초당 읽고 쓴 바이트입니다.",
   "How long a read and a write take on average, per operation, as hosts see them.": "호스트가 보는 읽기와 쓰기 한 번의 작업당 평균 시간입니다.",
   "Read and write operations per second across the array.": "어레이 전체의 초당 읽기 및 쓰기 작업 수입니다.",
-  "Share of the array's usable capacity in use. Pure raises its own capacity alerts at 80%, 90% and 100%.": "어레이의 사용 가능 용량 중 사용 중인 비율입니다. Pure는 80%, 90%, 100%에서 자체 용량 알림을 발생시킵니다.",
-  "Save and reuse log explorer views, including the current filters, columns, sorting, and page size. Each view is listed on the page it was saved on: the Logs page, or one resource's Logs tab.": "Save and reuse log explorer views, including the current filters, columns, sorting, and page size. Each view is listed on the page it was saved on: the Logs page, or one resource's Logs tab."
+  "Share of the array's usable capacity in use. Pure raises its own capacity alerts at 80%, 90% and 100%.": "어레이의 사용 가능 용량 중 사용 중인 비율입니다. Pure는 80%, 90%, 100%에서 자체 용량 알림을 발생시킵니다."
 }

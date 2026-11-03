@@ -11,6 +11,7 @@ import {
 } from "@jest/globals";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
+  PAGE_AGAIN_ACTION_MIN_WIDTH,
   RESPONSE_ACTION_MIN_WIDTH,
   ResponseActions,
   ResponseDetailHeader,
@@ -350,6 +351,131 @@ describe("Response actions", () => {
      * width, so only this test can see it.
      */
     expect(flat(screen.getByText("Acknowledge")).flexShrink ?? 0).toBe(0);
+  });
+
+  test("paged again, Acknowledge again takes a row of its own on a phone, and Resolve and Escalate share the next one where two fit", async () => {
+    /*
+     * "Acknowledge again" is two words, which a narrow row breaks across two
+     * lines on a phone and in a browser alike. Its icon, words and padding
+     * take about 208 points, so that one action asks for
+     * PAGE_AGAIN_ACTION_MIN_WIDTH, and Resolve and Escalate keep the row's
+     * own minimum. The row wraps as flexbox does: each line takes the
+     * actions, in order, that fit the card's inner width (the window less 74
+     * points) at their minimum, with 12 points between two.
+     */
+    const actionsPerRow: (
+      windowWidth: number,
+      minimums: Array<number>,
+    ) => Array<number> = (
+      windowWidth: number,
+      minimums: Array<number>,
+    ): Array<number> => {
+      const inner: number = windowWidth - 74;
+      const rows: Array<number> = [];
+      let used: number = 0;
+      for (const minimum of minimums) {
+        const last: number = rows.length - 1;
+        if (last >= 0 && used + 12 + minimum <= inner) {
+          rows[last] = (rows[last] ?? 0) + 1;
+          used += 12 + minimum;
+        } else {
+          rows.push(1);
+          used = minimum;
+        }
+      }
+      return rows;
+    };
+    const pagedAgain: Array<number> = [
+      PAGE_AGAIN_ACTION_MIN_WIDTH,
+      RESPONSE_ACTION_MIN_WIDTH,
+      RESPONSE_ACTION_MIN_WIDTH,
+    ];
+    // The narrowest phones: a row each, the card's width, never a broken label.
+    for (const phone of [320, 344, 360, 375]) {
+      expect([phone, actionsPerRow(phone, pagedAgain)]).toEqual([
+        phone,
+        [1, 1, 1],
+      ]);
+    }
+    // Every other phone: Acknowledge again filled across the card, the two others under it.
+    for (const phone of [390, 393, 412, 430, 440]) {
+      expect([phone, actionsPerRow(phone, pagedAgain)]).toEqual([
+        phone,
+        [1, 2],
+      ]);
+    }
+    // A tablet: all three in one row.
+    expect(actionsPerRow(768, pagedAgain)).toEqual([3]);
+    expect(PAGE_AGAIN_ACTION_MIN_WIDTH).toBeGreaterThanOrEqual(208);
+
+    await render(
+      <ResponseActions
+        actions={[
+          {
+            label: "Acknowledge again",
+            accessibilityLabel: "Acknowledge this incident again",
+            onPress: jest.fn<() => void>(),
+            primary: true,
+            icon: "eye-outline",
+            minWidth: PAGE_AGAIN_ACTION_MIN_WIDTH,
+          },
+          {
+            label: "Resolve",
+            accessibilityLabel: "Resolve incident",
+            onPress: jest.fn<() => void>(),
+            icon: "checkmark-circle-outline",
+          },
+          {
+            label: "Escalate",
+            accessibilityLabel: "Escalate this incident",
+            onPress: jest.fn<() => void>(),
+            icon: "arrow-up-circle-outline",
+          },
+        ]}
+        busy={false}
+      />,
+    );
+    expect(
+      screen.getByRole("button", { name: "Acknowledge this incident again" }),
+    ).toHaveStyle({ minWidth: PAGE_AGAIN_ACTION_MIN_WIDTH });
+    for (const name of ["Resolve incident", "Escalate this incident"]) {
+      expect(screen.getByRole("button", { name })).toHaveStyle({
+        minWidth: RESPONSE_ACTION_MIN_WIDTH,
+      });
+    }
+    expect(flat(screen.getByText("Acknowledge again")).flexShrink ?? 0).toBe(0);
+  });
+
+  test("an action's own minimum never narrows a row that asks for more", async () => {
+    // A screen whose labels need more than an action's own minimum keeps its row's.
+    await render(
+      <ResponseActions
+        actions={[
+          {
+            label: "Acknowledge again",
+            accessibilityLabel: "Acknowledge this incident again",
+            onPress: jest.fn<() => void>(),
+            primary: true,
+            minWidth: PAGE_AGAIN_ACTION_MIN_WIDTH,
+          },
+          {
+            label: "Escalate",
+            accessibilityLabel: "Escalate this incident",
+            onPress: jest.fn<() => void>(),
+          },
+        ]}
+        busy={false}
+        minWidth={PAGE_AGAIN_ACTION_MIN_WIDTH + 16}
+      />,
+    );
+    for (const name of [
+      "Acknowledge this incident again",
+      "Escalate this incident",
+    ]) {
+      expect(screen.getByRole("button", { name })).toHaveStyle({
+        minWidth: PAGE_AGAIN_ACTION_MIN_WIDTH + 16,
+      });
+    }
   });
 
   test("a caller can drop the bottom margin when actions sit inside a card", async () => {

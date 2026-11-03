@@ -1,4 +1,13 @@
 import { expect, Locator, Page, Route, test, TestInfo } from "@playwright/test";
+import {
+  DrawnBox,
+  DrawnBoxes,
+  drawnBoxAt,
+  drawnPlacesOf,
+  readDrawnBoxes,
+  recordDrawnBoxes,
+  waitForFrames,
+} from "../SuiteHelpers/DrawnBoxes";
 
 /*
  * Click-to-sort on a dashboard's list and table widgets (issue #5082), in a
@@ -47,10 +56,13 @@ interface FixtureRecord {
 declare global {
   interface Window {
     __dashboardWidgetSortFixture?: FixtureRecord | undefined;
+    __windowErrors?: Array<string> | undefined;
   }
 }
 
-const PORT: string = "4404";
+// The fixture's port, as its config and server read it.
+const PORT: string =
+  process.env["DASHBOARD_WIDGET_SORT_FIXTURE_PORT"] || "4404";
 
 const PROJECT_ID: string = "10000000-0000-4000-8000-0000000000e1";
 const DASHBOARD_ID: string = "db000000-0000-4000-8000-0000000000e1";
@@ -555,22 +567,15 @@ test.describe("a list on the dashboard inside OneUptime", () => {
     };
 
     /*
-     * The rows fit the widget: nothing scrolls sideways - once the list has
-     * laid itself out. Read the moment its title first shows, a busy runner
-     * (14.0.94's gate) found 433 pixels of rows in a 426-pixel box, a
-     * scrollbar there for a moment, where the list settles at 438 in 438;
-     * so this asks until it settles, and keeps the box it settled in.
+     * The rows fit the widget: nothing scrolls sideways. Read once, the
+     * moment the title shows: the widget is drawn at its size from its
+     * first frame ("each widget is drawn once, at its own size", below).
+     * When the board drew its widgets small first and grew them, a busy
+     * runner (14.0.94's gate) read 433 pixels of rows in a 426-pixel box
+     * here, mid-growth, where the list fits at 438 in 438.
      */
-    let fit: Fit = await readFit();
-    await expect
-      .poll(
-        async (): Promise<number> => {
-          fit = await readFit();
-          return fit.scrollWidth - fit.boxWidth;
-        },
-        { timeout: 10000 },
-      )
-      .toBeLessThanOrEqual(1);
+    const fit: Fit = await readFit();
+    expect(fit.scrollWidth - fit.boxWidth).toBeLessThanOrEqual(1);
 
     // The title is cut short on its line, and keeps 6rem of its words.
     const cut: { width: number; isCut: boolean; lines: number } =
@@ -756,7 +761,14 @@ test.describe("the headers take no more room than plain ones", () => {
     rowHeights: Array<number>;
   }
 
-  // The table's scroll box, and the height of each of its rows.
+  /*
+   * The table's scroll box, and the height of each of its rows: read once,
+   * as soon as its rows show. Its widget is drawn at its size from its first
+   * frame ("each widget is drawn once, at its own size", below); when the
+   * board drew its widgets small first, master's run of 10-30 read 174
+   * pixels of rows in a 153-pixel box here, and 14.0.95's gate 542 in 483,
+   * mid-growth.
+   */
   const measure: (table: Locator) => Promise<TableBox> = async (
     table: Locator,
   ): Promise<TableBox> => {
@@ -773,40 +785,6 @@ test.describe("the headers take no more room than plain ones", () => {
         ),
       };
     });
-  };
-
-  /*
-   * The table's box once the dashboard has given its widgets their widths.
-   * The canvas draws its widgets small first and gives them their widths a
-   * moment later (the layout shift 14.0.95's gate trace showed), and the
-   * rows can already be there: master's run of 10-30 read the box while
-   * its trace still drew every widget a few pixels across, and found 174
-   * pixels of rows in a 153-pixel box. So this asks, for up to 10 seconds,
-   * until two reads in a row find the same box and the table fits it, and
-   * returns that box - a header that does widen its table never fits, and
-   * fails here.
-   */
-  const measureSettled: (table: Locator) => Promise<TableBox> = async (
-    table: Locator,
-  ): Promise<TableBox> => {
-    let box: TableBox = await measure(table);
-    await expect
-      .poll(
-        async (): Promise<number> => {
-          const previous: TableBox = box;
-          box = await measure(table);
-          const moved: boolean =
-            box.boxWidth !== previous.boxWidth ||
-            box.scrollWidth !== previous.scrollWidth;
-          // How far the rows run past the box: no answer yet while it moves.
-          return moved
-            ? Number.POSITIVE_INFINITY
-            : box.scrollWidth - box.boxWidth;
-        },
-        { timeout: 10000 },
-      )
-      .toBeLessThanOrEqual(1);
-    return box;
   };
 
   // A header's words: the one element in it a screen reader reads.
@@ -835,8 +813,6 @@ test.describe("the headers take no more room than plain ones", () => {
     await openNarrow(page);
 
     const table: Locator = tableWith(page, "col:requests");
-    // Both reads below are of the widget at the width it settles at.
-    const box: TableBox = await measureSettled(table);
 
     // "Requests per minute" takes two lines in a 4-unit widget...
     const words: Locator = wordsOf(header(table, "col:requests"));
@@ -844,6 +820,7 @@ test.describe("the headers take no more room than plain ones", () => {
     expect((await words.boundingBox())!.height).toBeGreaterThanOrEqual(28);
 
     // ...so the table fits its widget, as it did before headers sorted.
+    const box: TableBox = await measure(table);
     expect(box.scrollWidth).toBeLessThanOrEqual(box.boxWidth + 1);
 
     await shoot(page, testInfo, "narrow-metric-table", table);
@@ -888,7 +865,7 @@ test.describe("the headers take no more room than plain ones", () => {
     expect(arrowBox.x).toBeGreaterThanOrEqual(cellBox.x - 0.5);
 
     // The last column's arrow never draws past the table's edge.
-    const box: TableBox = await measureSettled(table);
+    const box: TableBox = await measure(table);
     expect(box.scrollWidth).toBeLessThanOrEqual(box.boxWidth + 1);
   });
 
@@ -912,35 +889,19 @@ test.describe("the headers take no more room than plain ones", () => {
       await expect(tables.nth(index).locator("tbody tr")).toHaveCount(4);
     }
 
-    const measureBoth: () => Promise<Array<TableBox>> = async (): Promise<
-      Array<TableBox>
-    > => {
-      return [await measure(tables.nth(0)), await measure(tables.nth(1))];
-    };
+    // Both lists, read once their rows are in.
+    const boxes: Array<TableBox> = [
+      await measure(tables.nth(0)),
+      await measure(tables.nth(1)),
+    ];
 
-    /*
-     * At its default width, the list fits its widget - once the dashboard
-     * has given its widgets their widths. Read the moment its rows first
-     * showed, a busy runner (14.0.95's gate) found 542 pixels of rows in a
-     * 483-pixel box, where its failure screenshot shows the list fitting; so
-     * this asks until it settles, as the long-title list's test does, and
-     * the rows below are those of the boxes it settled in.
-     */
-    let boxes: Array<TableBox> = await measureBoth();
-    await expect
-      .poll(
-        async (): Promise<number> => {
-          boxes = await measureBoth();
-          const widest: TableBox = boxes.reduce(
-            (wider: TableBox, box: TableBox): TableBox => {
-              return box.boxWidth > wider.boxWidth ? box : wider;
-            },
-          );
-          return widest.scrollWidth - widest.boxWidth;
-        },
-        { timeout: 10000 },
-      )
-      .toBeLessThanOrEqual(1);
+    // At its default width, the list fits its widget.
+    const widest: TableBox = boxes.reduce(
+      (wider: TableBox, box: TableBox): TableBox => {
+        return box.boxWidth > wider.boxWidth ? box : wider;
+      },
+    );
+    expect(widest.scrollWidth).toBeLessThanOrEqual(widest.boxWidth + 1);
 
     // One line of the list's text and its padding: never two.
     for (const box of boxes) {
@@ -1134,5 +1095,296 @@ test.describe("a list on a public dashboard", () => {
       "other",
       "none",
     ]);
+  });
+});
+
+/*
+ * Each widget is drawn once, at its own size (14.0.95's gate). The board
+ * drew every widget a few pixels across first - laid out for a board of no
+ * width, before it had measured its own - and their measured size came in
+ * through their transition: on every load each widget grew from a sliver to
+ * its size over a quarter of a second, with its rows already in it, and the
+ * checks above that read a widget's table as its rows showed read it
+ * mid-growth on busy runners. The board's own width never changed.
+ *
+ * Every frame the page draws is recorded from its first
+ * (SuiteHelpers/DrawnBoxes): each widget, and the board, must be drawn at
+ * one size and in one place in all of them - from the first frame it is
+ * drawn in to a quarter of a second after the rows are in - with no
+ * animation running on it. And the empty board is never drawn: the
+ * dashboard inside OneUptime opened on "No widgets yet" and Add Widget, for
+ * the frame before it began to read its board.
+ */
+test.describe("each widget is drawn once, at its own size", () => {
+  const BLANK_BOARD: string = "dashboard-blank-canvas";
+
+  // The widgets' boxes, the board's own and the empty board's; each widget's rows.
+  const DRAWN: { selector: string; contentSelector: string } = {
+    selector: `[id^="dashboard-component-"], [data-testid="dashboard-board"], [data-testid="${BLANK_BOARD}"]`,
+    contentSelector: "tbody tr",
+  };
+
+  /*
+   * An error event on the window that is no exception - "ResizeObserver
+   * loop completed with undelivered notifications" - reaches neither the
+   * console nor pageerror (ModelTables.spec.ts): recorded from the page's
+   * first script. The board raised it on a wide window's first frame and
+   * on every resize while it laid its widgets out inside its observer's
+   * call, where the side menu's observer of the page's body shared the
+   * frame.
+   */
+  const recordWindowErrors: (page: Page) => Promise<void> = async (
+    page: Page,
+  ): Promise<void> => {
+    await page.addInitScript((): void => {
+      const errors: Array<string> = [];
+
+      window.__windowErrors = errors;
+      window.addEventListener("error", (event: ErrorEvent): void => {
+        errors.push(String(event.message));
+      });
+    });
+  };
+
+  const windowErrors: (page: Page) => Promise<Array<string>> = async (
+    page: Page,
+  ): Promise<Array<string>> => {
+    return page.evaluate((): Array<string> => {
+      return window.__windowErrors || [];
+    });
+  };
+
+  const openRecorded: (page: Page, path: string) => Promise<void> = async (
+    page: Page,
+    path: string,
+  ): Promise<void> => {
+    await recordDrawnBoxes(page, DRAWN);
+    await recordWindowErrors(page);
+    await page.goto(path);
+    await expect(
+      page.getByTestId("dashboard-board").locator("tbody tr").first(),
+    ).toBeVisible({ timeout: 60000 });
+  };
+
+  const expectEachDrawnOnce: (page: Page) => Promise<void> = async (
+    page: Page,
+  ): Promise<void> => {
+    /*
+     * A quarter of a second of frames more - some 15 at 60 a second; the
+     * growth lasted 220 ms - so whatever still moves is drawn and recorded.
+     */
+    await waitForFrames(page, 30);
+
+    const drawn: DrawnBoxes = await readDrawnBoxes(page);
+    const widgets: Array<string> = Object.keys(drawn).filter(
+      (key: string): boolean => {
+        return key.startsWith("dashboard-component-");
+      },
+    );
+
+    expect(widgets.length).toBeGreaterThan(1);
+    expect(Object.keys(drawn)).toContain("dashboard-board");
+
+    // Its rows were in, in some widget, before the record was read.
+    expect(
+      widgets.some((key: string): boolean => {
+        return drawn[key]!.some((box: DrawnBox): boolean => {
+          return box.content > 0;
+        });
+      }),
+    ).toBe(true);
+
+    /*
+     * Soft, so a failure names everything that moved, the empty board and
+     * each widget, not only the first.
+     */
+    expect
+      .soft(
+        drawn[BLANK_BOARD],
+        "the empty board, drawn while a board with widgets opened",
+      )
+      .toBeUndefined();
+
+    expect
+      .soft(await windowErrors(page), "error events on the window")
+      .toEqual([]);
+
+    for (const key of Object.keys(drawn)) {
+      if (key === BLANK_BOARD) {
+        continue;
+      }
+
+      const boxes: Array<DrawnBox> = drawn[key]!;
+
+      expect
+        .soft(
+          drawnPlacesOf(boxes),
+          `${key}: every size and place it was drawn at, in the order drawn`,
+        )
+        .toHaveLength(1);
+      expect
+        .soft(
+          Math.max(
+            ...boxes.map((box: DrawnBox): number => {
+              return box.animations;
+            }),
+          ),
+          `${key}: animations that ran on it`,
+        )
+        .toBe(0);
+    }
+  };
+
+  test("at 1280 beside the side menu, every widget is drawn at its size from its first frame", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    atDesktopOnly();
+    await openRecorded(page, APP_PATH);
+    await expectEachDrawnOnce(page);
+  });
+
+  test("the narrow widgets too, where a list read mid-growth ran past its box", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    atDesktopOnly();
+    await openRecorded(page, `${APP_PATH}?board=narrow`);
+    await expectEachDrawnOnce(page);
+  });
+
+  test("at 1440, where the grid's units are square and its rows grow with the board", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    atDesktopOnly();
+    await atLaptopWidth(page);
+    await openRecorded(page, `${APP_PATH}?board=narrow`);
+    await expectSquareGrid(page);
+    await expectEachDrawnOnce(page);
+  });
+
+  test("in a wide window, where the grid's rows grow with the board", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    atDesktopOnly();
+    await page.setViewportSize({ width: 1600, height: 900 });
+    await openRecorded(page, APP_PATH);
+    await expectSquareGrid(page);
+    await expectEachDrawnOnce(page);
+  });
+
+  test("on a public dashboard", async ({ page }: { page: Page }) => {
+    atDesktopOnly();
+    await openRecorded(page, PUBLIC_PATH);
+    await expectEachDrawnOnce(page);
+  });
+
+  /*
+   * The frames in which the widgets do not end where the board's grid
+   * does: a widget drawn at a width the board no longer has (past its
+   * edge) or does not have yet (short of it). Each element is read where
+   * it was in that frame (drawnBoxAt); the fixture's board has widgets as
+   * wide as the grid, and each widget's place is inside the grid, which
+   * starts and ends 8px inside the board.
+   */
+  const framesOffTheGrid: (drawn: DrawnBoxes) => Array<string> = (
+    drawn: DrawnBoxes,
+  ): Array<string> => {
+    const board: Array<DrawnBox> = drawn["dashboard-board"] || [];
+    const widgets: Array<Array<DrawnBox>> = Object.keys(drawn)
+      .filter((key: string): boolean => {
+        return key.startsWith("dashboard-component-");
+      })
+      .map((key: string): Array<DrawnBox> => {
+        return drawn[key]!;
+      });
+    const frames: Array<number> = Array.from(
+      new Set<number>(
+        [board, ...widgets].flat().map((box: DrawnBox): number => {
+          return box.frame;
+        }),
+      ),
+    ).sort((a: number, b: number): number => {
+      return a - b;
+    });
+    const off: Array<string> = [];
+
+    for (const frame of frames) {
+      const boardBox: DrawnBox | null = drawnBoxAt(board, frame);
+      const ends: Array<number> = [];
+
+      for (const boxes of widgets) {
+        const box: DrawnBox | null = drawnBoxAt(boxes, frame);
+
+        if (box) {
+          ends.push(box.x + box.width);
+        }
+      }
+
+      if (!boardBox || ends.length < widgets.length) {
+        continue;
+      }
+
+      const gridEnd: number = boardBox.width - 16;
+      const widgetsEnd: number = Math.max(...ends);
+
+      if (Math.abs(widgetsEnd - gridEnd) > 1) {
+        off.push(
+          `frame ${frame}: the widgets end at ${Math.round(widgetsEnd)}px, the grid at ${Math.round(gridEnd)}px`,
+        );
+      }
+    }
+
+    return off;
+  };
+
+  test("a window resized while viewing: in every frame the widgets end where the board's grid does, and the page raises no error", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    atDesktopOnly();
+    await openRecorded(page, APP_PATH);
+    await waitForFrames(page, 10);
+
+    /*
+     * Narrower, wider, under the side menu's breakpoint and back over it:
+     * the side menu comes and goes a moment after the window is resized,
+     * and the board's width with it.
+     */
+    for (const width of [1100, 1440, 760, 1280]) {
+      await page.setViewportSize({ width, height: 900 });
+      await waitForFrames(page, 30);
+    }
+
+    const drawn: DrawnBoxes = await readDrawnBoxes(page);
+
+    // The board was drawn at each of those widths.
+    expect(drawnPlacesOf(drawn["dashboard-board"]!).length).toBeGreaterThan(4);
+    expect(framesOffTheGrid(drawn)).toEqual([]);
+    expect(await windowErrors(page)).toEqual([]);
+  });
+
+  test("on a phone, one widget under another", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.skip(
+      !test.info().project.use.isMobile,
+      "A phone's board: at 1280 above.",
+    );
+    await openRecorded(page, APP_PATH);
+    await expect(page.getByTestId("dashboard-board")).toHaveAttribute(
+      "data-arrangement",
+      "stacked",
+    );
+    await expectEachDrawnOnce(page);
   });
 });

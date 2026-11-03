@@ -8,9 +8,11 @@ import { expect, Page } from "@playwright/test";
  * fits its columns on the next frame; on a phone it first paints the
  * desktop table and becomes cards a moment later. A chart keeps the width
  * recharts' ResponsiveContainer gave it until the container's
- * ResizeObserver runs, a frame or more after the window narrows. The
- * dashboard canvas resizes its widgets after their rows show; a font swaps
- * in. A test that read document.documentElement.scrollWidth once, right
+ * ResizeObserver runs, a frame or more after the window narrows. A font
+ * swaps in. (The dashboard's board grew its widgets after their rows
+ * showed until November 2026; it draws each at its size now, which
+ * SuiteHelpers/DrawnBoxes can hold a page to.) A test that read
+ * document.documentElement.scrollWidth once, right
  * after a resize, a click or a page load, could catch such a frame and fail
  * a page that fits: about twenty suites did so on slow runners in October
  * and November 2026 (CloudConnect's account Changes one run in 97 under

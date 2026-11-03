@@ -17,8 +17,13 @@ import SearchField from "./SearchField";
 import AppText from "./AppText";
 import IconBadge from "./IconBadge";
 import { getInitials } from "./RosterScheduleCard";
-import { useScreenPadding } from "../hooks/useScreenPadding";
 import { SHEET_MAX_WIDTH } from "../layout/windowLayout";
+import {
+  getSheetBackdropLayout,
+  getSheetCorners,
+  type SheetPlacement,
+} from "../layout/sheetPlacement";
+import { useSheetPlacement } from "../layout/useSheetPlacement";
 import getToggleAccessibilityProps from "../utils/getToggleAccessibilityProps";
 
 interface UserPickerModalProps {
@@ -81,7 +86,9 @@ export default function UserPickerModal({
 }: UserPickerModalProps): React.JSX.Element {
   const { theme } = useTheme();
   const { colors } = theme;
-  const paddingBottom: number = useScreenPadding({ tabBar: false });
+  // Clear of a tabletop fold: over the half on the table, or above the fold while typing.
+  const placement: SheetPlacement = useSheetPlacement();
+  const paddingBottom: number = placement.paddingBottom;
   const [searchTerm, setSearchTerm] = useState<string>("");
   useEffect(() => {
     if (!visible) {
@@ -103,9 +110,10 @@ export default function UserPickerModal({
       <KeyboardAvoidingView
         testID="user-picker-overlay"
         behavior={Platform.OS === "ios" ? "padding" : "height"}
+        enabled={placement.avoidsKeyboard}
         style={{
           flex: 1,
-          justifyContent: "flex-end",
+          ...getSheetBackdropLayout(placement),
           backgroundColor: colors.overlay,
         }}
       >
@@ -116,13 +124,13 @@ export default function UserPickerModal({
             width: "100%",
             maxWidth: SHEET_MAX_WIDTH,
             alignSelf: "center",
-            maxHeight: "85%",
-            borderTopLeftRadius: radius.xl,
-            borderTopRightRadius: radius.xl,
+            maxHeight: placement.maxHeight ?? "85%",
+            ...getSheetCorners(placement, radius.xl),
             paddingTop: spacing.sm,
             paddingBottom,
             backgroundColor: colors.backgroundSecondary,
             borderTopWidth: 1,
+            borderBottomWidth: placement.anchor === "top" ? 1 : 0,
             borderColor: colors.borderSubtle,
             ...elevation("overlay", theme.dark),
           }}

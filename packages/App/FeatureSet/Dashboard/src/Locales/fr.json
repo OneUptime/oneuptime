@@ -40346,6 +40346,14 @@
   "{{count}} command on {{targets}}.": "{{count}} commande sur {{targets}}.",
   "{{count}} commands on {{targets}}.": "{{count}} commandes sur {{targets}}.",
   "{{count}} commands on {{targets}}._one": "{{count}} commande sur {{targets}}.",
+  "Clear default": "Supprimer la valeur par défaut",
+  "Default Network Topology Layout": "Disposition par défaut de la topologie du réseau",
+  "Each map opens on its own default again: Automatic for all devices, By network layer for a site.": "Chaque carte s'ouvre de nouveau sur sa propre disposition par défaut : Automatique pour tous les appareils, Par couche réseau pour un site.",
+  "Every network map in this project will open on this layout. People can still switch while they look.": "Toutes les cartes réseau de ce projet s'ouvriront sur cette disposition. Chacun peut toujours en changer pendant la consultation.",
+  "Everyone in this project opens network maps on this layout.": "Tout le monde dans ce projet ouvre les cartes réseau sur cette disposition.",
+  "Make default for everyone": "Définir par défaut pour tout le monde",
+  "Save and reuse log explorer views, including the current filters, columns, sorting, and page size. Each view is listed on the page it was saved on: the Logs page, or one resource's Logs tab.": "Save and reuse log explorer views, including the current filters, columns, sorting, and page size. Each view is listed on the page it was saved on: the Logs page, or one resource's Logs tab.",
+  "We couldn't change the default layout. Try again.": "Impossible de modifier la disposition par défaut. Réessayez.",
   "A manager's standing in the swarm, as docker node ls shows it: the Leader, Reachable, or Unreachable when the other managers cannot reach it. The swarm keeps working while more than half of its managers are reachable.": "La place d'un manager dans le swarm, telle que docker node ls l'affiche : le Leader, Joignable, ou Injoignable lorsque les autres managers ne le joignent pas. Le swarm continue de fonctionner tant que plus de la moitié de ses managers sont joignables.",
   "CPU used by this task's container at the last reading the OneUptime agent sent (it reads every 30 seconds); 100% is one full CPU core. Amber past 80%, where the High Task CPU Usage alert fires. A reading more than 15 minutes old is not shown.": "Le CPU utilisé par le conteneur de cette tâche lors de la dernière mesure envoyée par l'agent OneUptime (il mesure toutes les 30 secondes) ; 100 % correspond à un cœur de CPU entier. Ambre au-delà de 80 %, seuil de l'alerte High Task CPU Usage. Une mesure de plus de 15 minutes n'est pas affichée.",
   "CPUs": "CPU",
@@ -40640,6 +40648,5 @@
   "Bytes read and written per second across the array.": "Octets lus et écrits par seconde sur toute la baie.",
   "How long a read and a write take on average, per operation, as hosts see them.": "Durée moyenne d'une lecture et d'une écriture, par opération, telle que les hôtes la voient.",
   "Read and write operations per second across the array.": "Opérations de lecture et d'écriture par seconde sur toute la baie.",
-  "Share of the array's usable capacity in use. Pure raises its own capacity alerts at 80%, 90% and 100%.": "Part de la capacité utilisable de la baie en cours d'utilisation. Pure lève ses propres alertes de capacité à 80 %, 90 % et 100 %.",
-  "Save and reuse log explorer views, including the current filters, columns, sorting, and page size. Each view is listed on the page it was saved on: the Logs page, or one resource's Logs tab.": "Save and reuse log explorer views, including the current filters, columns, sorting, and page size. Each view is listed on the page it was saved on: the Logs page, or one resource's Logs tab."
+  "Share of the array's usable capacity in use. Pure raises its own capacity alerts at 80%, 90% and 100%.": "Part de la capacité utilisable de la baie en cours d'utilisation. Pure lève ses propres alertes de capacité à 80 %, 90 % et 100 %."
 }

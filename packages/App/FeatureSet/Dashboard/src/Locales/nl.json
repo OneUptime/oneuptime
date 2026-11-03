@@ -40346,6 +40346,14 @@
   "{{count}} command on {{targets}}.": "{{count}} opdracht op {{targets}}.",
   "{{count}} commands on {{targets}}.": "{{count}} opdrachten op {{targets}}.",
   "{{count}} commands on {{targets}}._one": "{{count}} opdracht op {{targets}}.",
+  "Clear default": "Clear default",
+  "Default Network Topology Layout": "Default Network Topology Layout",
+  "Each map opens on its own default again: Automatic for all devices, By network layer for a site.": "Each map opens on its own default again: Automatic for all devices, By network layer for a site.",
+  "Every network map in this project will open on this layout. People can still switch while they look.": "Every network map in this project will open on this layout. People can still switch while they look.",
+  "Everyone in this project opens network maps on this layout.": "Everyone in this project opens network maps on this layout.",
+  "Make default for everyone": "Make default for everyone",
+  "Save and reuse log explorer views, including the current filters, columns, sorting, and page size. Each view is listed on the page it was saved on: the Logs page, or one resource's Logs tab.": "Save and reuse log explorer views, including the current filters, columns, sorting, and page size. Each view is listed on the page it was saved on: the Logs page, or one resource's Logs tab.",
+  "We couldn't change the default layout. Try again.": "We couldn't change the default layout. Try again.",
   "A manager's standing in the swarm, as docker node ls shows it: the Leader, Reachable, or Unreachable when the other managers cannot reach it. The swarm keeps working while more than half of its managers are reachable.": "De positie van een manager in de swarm, zoals docker node ls die toont: de Leider, Bereikbaar, of Onbereikbaar als de andere managers hem niet bereiken. De swarm blijft werken zolang meer dan de helft van zijn managers bereikbaar is.",
   "CPU used by this task's container at the last reading the OneUptime agent sent (it reads every 30 seconds); 100% is one full CPU core. Amber past 80%, where the High Task CPU Usage alert fires. A reading more than 15 minutes old is not shown.": "CPU die de container van deze taak gebruikte bij de laatste meting die de OneUptime-agent verstuurde (hij meet elke 30 seconden); 100% is één volledige CPU-kern. Oranje boven 80%, waar de waarschuwing High Task CPU Usage afgaat. Een meting ouder dan 15 minuten wordt niet getoond.",
   "CPUs": "CPU's",
@@ -40640,6 +40648,5 @@
   "Bytes read and written per second across the array.": "Bytes per seconde gelezen en geschreven over het hele array.",
   "How long a read and a write take on average, per operation, as hosts see them.": "Hoe lang een lees- en een schrijfbewerking gemiddeld duren, per bewerking, zoals hosts ze zien.",
   "Read and write operations per second across the array.": "Lees- en schrijfbewerkingen per seconde over het hele array.",
-  "Share of the array's usable capacity in use. Pure raises its own capacity alerts at 80%, 90% and 100%.": "Aandeel van de bruikbare capaciteit van het array dat in gebruik is. Pure geeft zelf capaciteitswaarschuwingen bij 80%, 90% en 100%.",
-  "Save and reuse log explorer views, including the current filters, columns, sorting, and page size. Each view is listed on the page it was saved on: the Logs page, or one resource's Logs tab.": "Save and reuse log explorer views, including the current filters, columns, sorting, and page size. Each view is listed on the page it was saved on: the Logs page, or one resource's Logs tab."
+  "Share of the array's usable capacity in use. Pure raises its own capacity alerts at 80%, 90% and 100%.": "Aandeel van de bruikbare capaciteit van het array dat in gebruik is. Pure geeft zelf capaciteitswaarschuwingen bij 80%, 90% en 100%."
 }

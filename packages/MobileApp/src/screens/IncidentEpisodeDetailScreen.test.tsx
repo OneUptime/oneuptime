@@ -155,6 +155,9 @@ jest.mock("../api/onCallPassOn", () => {
     passOnOnCallPages: jest.fn(async () => {
       return [];
     }),
+    acknowledgeOnCallPagesAgain: jest.fn(async () => {
+      return 1;
+    }),
   };
 });
 
@@ -1224,5 +1227,120 @@ describe("Escalating the page", () => {
       "incident-episode",
       EPISODE_ID,
     );
+  });
+});
+describe("Paged again, and answering a page from its push", () => {
+  /*
+   * The same rule as an incident's (IncidentDetailScreen.test.tsx holds it
+   * in full), for an incident episode.
+   */
+  let setParams: jest.Mock;
+  const acknowledgeAgainMock: jest.Mock =
+    passOnApi.acknowledgeOnCallPagesAgain as unknown as jest.Mock;
+
+  const PAGE: OnCallPassOnPage = {
+    executionLogId: "run-1",
+    policyName: "Payments",
+    sentence:
+      "This will immediately page Platform leads (Level 2 of 3), without waiting.",
+  };
+
+  async function renderWithPush(pushAction?: unknown): Promise<void> {
+    const props: ScreenProps = {
+      route: {
+        key: "IncidentEpisodeDetail-1",
+        name: "IncidentEpisodeDetail",
+        params: {
+          episodeId: EPISODE_ID,
+          projectId: PROJECT_ID,
+          ...(pushAction ? { pushAction } : {}),
+        },
+      },
+      navigation: { setParams },
+    } as unknown as ScreenProps;
+
+    await render(<IncidentEpisodeDetailScreen {...props} />, {
+      wrapper: createQueryWrapper(createTestQueryClient()),
+    });
+  }
+
+  function acknowledgedEpisode(): EpisodeQueryState {
+    return episodeStateWith({
+      data: makeIncidentEpisode({
+        currentIncidentState: makeNamedEntityWithColor({
+          _id: acknowledgedState._id,
+          name: acknowledgedState.name,
+        }),
+      }),
+    });
+  }
+
+  beforeEach(() => {
+    setParams = jest.fn();
+    acknowledgeAgainMock.mockClear();
+  });
+
+  afterEach(() => {
+    mockPassOnPages.current = null;
+  });
+
+  test("paged again about an acknowledged episode: Acknowledge again, then Resolve, then Escalate", async () => {
+    mockPassOnPages.current = [{ ...PAGE, isPageAgain: true }];
+    mockEpisodeQuery.current = acknowledgedEpisode();
+
+    await renderWithPush();
+
+    await screen.findByRole("button", {
+      name: "Acknowledge this incident episode again",
+    });
+    expect(
+      within(screen.getByTestId("response-actions"))
+        .getAllByRole("button")
+        .map((button: { props: { accessibilityLabel?: string } }) => {
+          return button.props.accessibilityLabel;
+        }),
+    ).toEqual([
+      "Acknowledge this incident episode again",
+      "Resolve incident episode",
+      "Escalate this incident episode",
+    ]);
+    expect(screen.getByText("You're being paged again")).toBeTruthy();
+    expect(
+      screen.getByText(
+        "This incident episode is still not resolved. Acknowledge again if you're still on it, or escalate it.",
+      ),
+    ).toBeTruthy();
+  });
+
+  test("the push's Acknowledge on a page again acknowledges it again, and changes no state", async () => {
+    mockPassOnPages.current = [{ ...PAGE, isPageAgain: true }];
+    mockEpisodeQuery.current = acknowledgedEpisode();
+
+    await renderWithPush({ kind: "acknowledge", id: "n-1:ACKNOWLEDGE_PAGE" });
+
+    await waitFor(() => {
+      return expect(acknowledgeAgainMock).toHaveBeenCalledWith(
+        PROJECT_ID,
+        "incident-episode",
+        EPISODE_ID,
+      );
+    });
+    expect(mockChangeState).not.toHaveBeenCalled();
+    expect(setParams).toHaveBeenCalledWith({ pushAction: undefined });
+  });
+
+  test("the push's Acknowledge on an episode nobody took acknowledges it", async () => {
+    mockPassOnPages.current = [PAGE];
+
+    await renderWithPush({ kind: "acknowledge", id: "n-2:ACKNOWLEDGE_PAGE" });
+
+    await waitFor(() => {
+      return expect(mockChangeState).toHaveBeenCalledWith(
+        PROJECT_ID,
+        EPISODE_ID,
+        acknowledgedState._id,
+      );
+    });
+    expect(mockChangeState).toHaveBeenCalledTimes(1);
   });
 });

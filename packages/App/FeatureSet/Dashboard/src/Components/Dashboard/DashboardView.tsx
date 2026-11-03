@@ -323,7 +323,13 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
     });
 
   const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  /*
+   * The board is read as it opens (loadPage, below), so it starts loading,
+   * as a public dashboard does: its first frame is the loader. It started
+   * not loading, and every dashboard's first frame was an empty board -
+   * "No widgets yet", Add Widget - until the read began a moment later.
+   */
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const fetchDashboardViewConfig: PromiseVoidFunction =
     async (): Promise<void> => {
@@ -497,6 +503,13 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
       loadTelemetryAttributesInBackground();
     }
   }, [dashboardMode, loadTelemetryAttributesInBackground]);
+
+  // Once the board is drawn, the width of the page it is drawn on.
+  useEffect(() => {
+    if (!isLoading) {
+      handleResize();
+    }
+  }, [isLoading]);
 
   useEffect(() => {
     if (!pendingScrollComponentId) {

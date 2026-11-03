@@ -218,7 +218,9 @@ npm run test-file -- --watch=false --runTestsByPath \
   src/api/sso.test.ts \
   src/screens/auth/SSOLoginScreen.test.tsx \
   src/notifications/setup.test.ts \
-  src/notifications/handlers.test.ts
+  src/notifications/handlers.test.ts \
+  src/notifications/categories.test.ts \
+  src/notifications/handlersPageActions.test.ts
 npx expo export --platform ios --output-dir ../export-ios
 npx expo export --platform android --output-dir ../export-android
 ```
@@ -367,11 +369,19 @@ report's shape it shares with JavaScript. Before the first release that ships
 it, go through [the module's device checks](modules/window-posture/README.md#on-a-device)
 on a Galaxy Z Fold (or the Android Studio foldable emulator) and a Galaxy Z
 Flip: the divider on the crease when half open like a book, the tabletop
-layout half open on a table, the handle that moves the divider when flat and
+layout half open on a table - Home and Settings split on the crease, and
+sheets over the lower half - the handle that moves the divider when flat and
 remembers its width, and nothing lost through any of them. If any of it
 fails, removing `modules/window-posture` (or its `android` entry in
 `expo-module.config.json`) puts Android back on the layout by window size
 alone, as iOS is.
+
+The module's iOS side (`modules/window-posture/ios`, the iPhone Duo's division
+regions and hinge from the iOS 27.1 SDK) is written but not linked: it has not
+been built on a Mac yet. Link it in its own change, on Xcode 27.1, as
+[the module's README](modules/window-posture/README.md#linking-the-ios-side)
+says, and go through the device checks in the iPhone Duo simulator before the
+release that ships it.
 
 **Store listings.** iPhone Duo screenshots (outer display 1398 × 2034, inner
 display 2007 × 2853 pixels, portrait) are optional today and earn the product
@@ -385,8 +395,45 @@ emulator so the listing shows the two-pane layout.
 overview and the FAQ, in all 17 languages) describe only what customers can
 install. Once a release with the two-pane layout is live in both stores,
 describe it there - the list beside its detail on unfolded foldables and
-tablets, the rail, and on Android the tabletop layout and the divider that can
-be moved - in the same change for every language.
+tablets, the rail, and on Android the tabletop layout (Home and Settings split
+on the crease, sheets over the lower half) and the divider that can be moved -
+in the same change for every language. The same goes for the actions under an
+on-call page's push (below): the FAQ's "Can I acknowledge a page from the
+notification?" still answers no, for the app the stores have, and
+`packages/App/Tests/FeatureSet/Docs/MobileDesktopDocsFacts.test.ts` fails
+once `app.json` moves past 1.6.0 until it names **Acknowledge** and
+**Escalate**.
+
+### On-call pages: Acknowledge and Escalate under the push
+
+Since the release after 1.6.0 the app registers one notification category,
+`ON_CALL_PAGE`, with two actions: **Acknowledge** and **Escalate**. The server
+names it on every push of an on-call page (an incident, an alert or an
+episode, a first page or a page again), and the push relay passes it on to
+Expo. A server older than this names none and a build older than this knows
+none: the push arrives without actions, as before. Both actions open the app
+on the record - after the phone is unlocked and after the app's own biometric
+lock - and do there what the record's own button does: Acknowledge
+acknowledges (or acknowledges again on a page again), Escalate asks first.
+
+Before the release, on an iPhone and an Android phone signed in to a project
+with an on-call policy:
+
+1. Page yourself with the phone locked. Long press (iOS) or expand (Android)
+   the notification: Acknowledge and Escalate are under it.
+2. Tap Acknowledge: the phone asks to be unlocked, the app opens on the
+   incident, and the incident is acknowledged once - Back, a fold or a
+   second render never does it again. The notification leaves the shade
+   (Android keeps it there unless the app takes it away).
+3. Page yourself again on an incident still not resolved: the screen says
+   "You're being paged again" and offers Acknowledge again, filled across
+   the card, with Resolve and Escalate under it; the action under the push
+   acknowledges again.
+4. Tap Escalate: the app opens on the record and asks before passing it on.
+5. A push that is not a page (a note, a state change, a security hunt) has no
+   actions. A security hunt's push and a scheduled maintenance event's open
+   their page in the browser on the reader's OneUptime.
+6. On a self-hosted server that relays its pushes, repeat 1 and 2.
 
 ## 5. Publish Android through Play Console
 
