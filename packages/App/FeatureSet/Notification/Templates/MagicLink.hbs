@@ -1,0 +1,33 @@
+{{> Start this}}
+
+{{> Logo this}}
+
+{{!--
+  A sign-in link for an account (Types/Accounts/MagicLink), sent when
+  somebody asks for one with this address on the sign-in page - which may
+  not have been its owner, so the closing note says what happens if it is
+  ignored. The link stands in for the password only: an account with two
+  factor authentication still gives its second factor after opening it.
+--}}
+
+{{> EmailTitle title=(concat "Sign in to " (brandName)) }}
+
+{{> InfoBlock plainInfo=(concat "Use the button below to sign in to " (brandName) ". You don't need your password. If your account uses two factor authentication, you will still be asked for your code.")}}
+
+{{> ButtonBlock buttonUrl=tokenVerifyUrl buttonText="Sign In"}}
+
+{{> VerticalSpace this}}
+
+{{> LinkBlock linkUrl=tokenVerifyUrl linkLabel="Or copy and paste this link into your browser:"}}
+
+{{> VerticalSpace this}}
+
+{{> InfoBlock plainInfo=(concat "The link works once and expires in " expiresInMinutes " minutes. Asking for another link replaces this one.")}}
+
+{{> InfoBlock plainInfo="If you didn't ask to sign in, you can safely ignore this email. Nobody can sign in with it unless the link above is used."}}
+
+{{> SupportBlock this }}
+
+{{> Footer this}}
+
+{{> End this}}

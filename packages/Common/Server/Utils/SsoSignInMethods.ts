@@ -1,3 +1,4 @@
+import GlobalConfigService from "../Services/GlobalConfigService";
 import GlobalOidcProjectService from "../Services/GlobalOidcProjectService";
 import GlobalOidcService from "../Services/GlobalOidcService";
 import GlobalSsoProjectService from "../Services/GlobalSsoProjectService";
@@ -142,6 +143,14 @@ export default class SsoSignInMethods {
       hasProjectSsoProviders: isSsoRequired
         ? await SsoSignInMethods.hasProjectSsoProviders()
         : false,
+      /*
+       * Sign-in links (Types/Accounts/MagicLink): on until a master admin
+       * turns them off - and not while SSO is required, when the page offers
+       * SSO alone and the server signs nobody but master admins in otherwise.
+       */
+      isMagicLinkLoginEnabled: isSsoRequired
+        ? false
+        : !(await GlobalConfigService.getMagicLinkLoginTurnedOff()),
     };
   }
 

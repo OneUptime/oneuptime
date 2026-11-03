@@ -36,9 +36,16 @@ import HashedString from "Common/Types/HashedString";
 import Name from "Common/Types/Name";
 import ObjectID from "Common/Types/ObjectID";
 import { getSignupPasswordValidationError } from "Common/Types/Password";
+import MagicLink, {
+  MAGIC_LINK_EXPIRY_MINUTES,
+  MAGIC_LINK_INVALID_MESSAGE,
+  MAGIC_LINK_LOGIN_ROUTE,
+  MAGIC_LINK_TURNED_OFF_MESSAGE,
+} from "Common/Types/Accounts/MagicLink";
 import DatabaseConfig from "Common/Server/DatabaseConfig";
 import GlobalCache from "Common/Server/Infrastructure/GlobalCache";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
+import Select from "Common/Server/Types/Database/Select";
 import {
   AppVersion,
   DisableInstanceCheckIn,
@@ -50,6 +57,7 @@ import {
 import API from "Common/Utils/API";
 import AccessTokenService from "Common/Server/Services/AccessTokenService";
 import EmailVerificationTokenService from "Common/Server/Services/EmailVerificationTokenService";
+import GlobalConfigService from "Common/Server/Services/GlobalConfigService";
 import MailService from "Common/Server/Services/MailService";
 import ProductBrandingText from "Common/Server/Utils/ProductBrandingText";
 import SsoRequiredSignIn from "Common/Server/Utils/SsoRequiredSignIn";
@@ -1166,6 +1174,156 @@ router.post(
   },
 );
 
+/*
+ * POST /send-magic-link -- email an account a sign-in link (Types/Accounts/
+ * MagicLink), so its owner can sign in without typing their password.
+ *
+ * The answer is the same whether or not the address has an account a link
+ * could sign in, so asking says nothing about who has one. For the same
+ * reason the request is counted per caller and per address
+ * (PublicMessageRateLimit) before the address is looked up, whether or not
+ * it matches, and the link's token is minted and hashed before the lookup
+ * too.
+ *
+ * A link goes only to an account a link could sign in now: one that has
+ * finished signing up (an invitation nobody has claimed has no password for
+ * a link to stand in for - it signs up through its invitation), that is not
+ * blocked, and that may sign in without single sign-on (SsoRequiredSignIn:
+ * while the server requires SSO, only a master admin may). Each is asked
+ * again when the link is used - any can change in the minutes it works -
+ * but nobody is mailed a link for a sign-in that cannot happen. An address
+ * nobody has verified is sent one: following it proves the mailbox, which
+ * verifies the address.
+ *
+ * The captcha, where it is on, is asked first, as on /login: this route
+ * mails an address its caller names. While a master admin has turned
+ * sign-in links off, it says so to anyone - that is a setting of the
+ * server, which the sign-in page already reads, not of an account.
+ */
+router.post(
+  "/send-magic-link",
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const miscDataProps: JSONObject =
+        (req.body?.["miscDataProps"] as JSONObject) || {};
+
+      await CaptchaUtil.verifyCaptcha({
+        token:
+          (miscDataProps["captchaToken"] as string | undefined) ||
+          (req.body?.["captchaToken"] as string | undefined),
+        remoteIp: getClientIp(req) || null,
+      });
+
+      const data: JSONObject = (req.body?.["data"] as JSONObject) || {};
+
+      const user: User = BaseModel.fromJSON(data, User) as User;
+
+      /*
+       * A missing email would drop the predicate below and select the newest
+       * user in the instance - mailing a link to somebody nobody named.
+       */
+      CredentialGuard.assertPresent(user.email, "Email");
+
+      if (await GlobalConfigService.getMagicLinkLoginTurnedOff()) {
+        throw new BadDataException(MAGIC_LINK_TURNED_OFF_MESSAGE);
+      }
+
+      await PublicMessageRateLimit.assertMaySend({
+        req: req,
+        kind: PublicMessageKind.MagicLink,
+        contacts: [PublicMessageRateLimit.forEmail(user.email!)],
+      });
+
+      // A bearer secret: from the CSPRNG, never ObjectID's non-crypto fallback.
+      const token: string = crypto.randomUUID();
+      const hashedToken: string = await HashedString.hashValue(
+        token,
+        EncryptionSecret,
+      );
+
+      const account: User | null = await UserService.findOneBy({
+        query: { email: user.email! },
+        select: {
+          _id: true,
+          email: true,
+          password: true,
+          isBlocked: true,
+          isMasterAdmin: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (
+        account?.id &&
+        account.email &&
+        account.password &&
+        !account.isBlocked &&
+        !(await SsoRequiredSignIn.isNonSsoSignInRefused(account))
+      ) {
+        // Replaces the last link this account was sent: only the newest works.
+        await UserService.updateOneBy({
+          query: {
+            _id: account._id!,
+          },
+          data: {
+            magicLinkToken: hashedToken,
+            magicLinkExpires: OneUptimeDate.getSomeMinutesAfter(
+              MAGIC_LINK_EXPIRY_MINUTES,
+            ),
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+        const host: Hostname = await DatabaseConfig.getHost();
+        const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
+
+        /*
+         * The link embeds the token, which signs the account in until it is
+         * spent -- so it is not logged, only mailed.
+         */
+        logger.debug(
+          "Sign-in link sent: " + account.email.toString(),
+          getLogAttributesFromRequest(req as RequestLike),
+        );
+
+        MailService.sendMail({
+          toEmail: account.email,
+          subject: `Sign in to ${ProductBrandingText.getProductName()}`,
+          isSubjectLiteral: true,
+          templateType: EmailTemplateType.MagicLink,
+          vars: {
+            homeURL: new URL(httpProtocol, host).toString(),
+            tokenVerifyUrl: new URL(
+              httpProtocol,
+              host,
+              new Route(AccountsRoute.toString()).addRoute(
+                `/${MAGIC_LINK_LOGIN_ROUTE}/${token}`,
+              ),
+            ).toString(),
+            expiresInMinutes: MAGIC_LINK_EXPIRY_MINUTES.toString(),
+          },
+        }).catch((err: Error) => {
+          logger.error(err, getLogAttributesFromRequest(req as RequestLike));
+        });
+      }
+
+      return Response.sendEmptySuccessResponse(req, res);
+    } catch (err) {
+      // A link refused for its rate limits says when to come back.
+      PublicMessageRateLimit.setRetryAfterFor(res, err);
+      return next(err);
+    }
+  },
+);
+
 router.post(
   "/verify-email",
   async (
@@ -1899,6 +2057,13 @@ router.post(
           resetPasswordToken: null!,
           resetPasswordExpires: null!,
           /*
+           * A sign-in link sent before the reset stops working with the
+           * sessions it ends below: somebody resetting their password may be
+           * locking out whoever read their mail (Types/Accounts/MagicLink).
+           */
+          magicLinkToken: null!,
+          magicLinkExpires: null!,
+          /*
            * The reset token only ever travelled inside an email to this
            * account's current address -- changing the address clears it (see
            * UserService.onBeforeUpdate) -- so spending it proves the mailbox,
@@ -2329,6 +2494,45 @@ router.post(
   },
 );
 
+/*
+ * POST /login-with-magic-link -- the first step of a sign-in begun with a
+ * sign-in link (Types/Accounts/MagicLink): the page the link opens posts its
+ * token here once its reader presses Sign In. It is `login()`, with the link
+ * standing in for the email and password, so everything after the password
+ * holds as it does for a password: a blocked account is refused, the
+ * server's SSO requirement applies, and an account with two factor
+ * authentication is sent to its second step - which carries the token
+ * again, as a password sign-in's carries the password - before the link is
+ * spent and a session made.
+ *
+ * No attempt limit in front of it, as with /reset-password and a status
+ * page's sign-in link: the token is a server-minted random UUID - 122 bits
+ * - that works once and for minutes, so there is nothing to guess. Nor a
+ * captcha: the request for the link carried one, where it is on. The second
+ * steps keep their own limiters.
+ */
+router.post(
+  "/login-with-magic-link",
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    Response.setNoCacheHeaders(res);
+
+    return login({
+      req: req,
+      res: res,
+      next: next,
+      verifyTotpAuth: false,
+      verifyWebAuthn: false,
+      verifyTotpEnrolment: false,
+      verifyBackupCode: false,
+      isMagicLinkFirstStep: true,
+    });
+  },
+);
+
 type FetchTotpAuthListFunction = (userId: ObjectID) => Promise<{
   totpAuthList: Array<UserTotpAuth>;
   webAuthnList: Array<UserWebAuthn>;
@@ -2559,6 +2763,12 @@ const tellOwnerAboutWrongCode: TellOwnerAboutWrongCodeFunction = async (data: {
  * requirement yet. It is a login stage rather than a page inside the product
  * because the session must not exist until the factor does -- see the
  * enrolment branch below.
+ *
+ * `isMagicLinkFirstStep` is POST /login-with-magic-link: a first step that
+ * proves the account with a sign-in link instead of its email and password
+ * (Types/Accounts/MagicLink). A second step needs no flag of its own for
+ * that: it finishes whichever first step began it, by what its request
+ * carries -- the password again, or the link's token again.
  */
 type LoginFunction = (options: {
   req: ExpressRequest;
@@ -2568,6 +2778,7 @@ type LoginFunction = (options: {
   verifyWebAuthn: boolean;
   verifyTotpEnrolment: boolean;
   verifyBackupCode: boolean;
+  isMagicLinkFirstStep?: boolean | undefined;
 }) => Promise<void>;
 
 const login: LoginFunction = async (options: {
@@ -2578,6 +2789,7 @@ const login: LoginFunction = async (options: {
   verifyWebAuthn: boolean;
   verifyTotpEnrolment: boolean;
   verifyBackupCode: boolean;
+  isMagicLinkFirstStep?: boolean | undefined;
 }): Promise<void> => {
   const req: ExpressRequest = options.req;
   const res: ExpressResponse = options.res;
@@ -2586,6 +2798,7 @@ const login: LoginFunction = async (options: {
   const verifyWebAuthn: boolean = options.verifyWebAuthn;
   const verifyTotpEnrolment: boolean = options.verifyTotpEnrolment;
   const verifyBackupCode: boolean = options.verifyBackupCode;
+  const isMagicLinkFirstStep: boolean = options.isMagicLinkFirstStep === true;
 
   /*
    * True for every request that is finishing a two factor login rather than
@@ -2626,8 +2839,12 @@ const login: LoginFunction = async (options: {
      * already spent, and demanding a fresh one would mean rendering a second
      * challenge in the middle of an authentication the user has already
      * mostly completed.
+     *
+     * Nor does a first step made with a sign-in link: the captcha guards
+     * against guessing, and the link is a server-minted random token, sent
+     * by a request that carried a captcha of its own (/send-magic-link).
      */
-    if (!isSecondStep) {
+    if (!isSecondStep && !isMagicLinkFirstStep) {
       await CaptchaUtil.verifyCaptcha({
         token:
           (miscDataProps["captchaToken"] as string | undefined) ||
@@ -2639,12 +2856,26 @@ const login: LoginFunction = async (options: {
     const data: JSONObject = req.body["data"];
 
     /*
+     * The sign-in link this request proves the account with, in place of its
+     * password (Types/Accounts/MagicLink), or null when the password proves
+     * it. POST /login-with-magic-link always signs in with a link; a second
+     * step does when it carries the link's token again; /login never does.
+     * A token that is present but not one ("" from readToken) is a link that
+     * does not work - never a password sign-in.
+     */
+    const magicLinkToken: string | null =
+      isMagicLinkFirstStep || isSecondStep ? MagicLink.readToken(data) : null;
+
+    const isMagicLinkSignIn: boolean =
+      isMagicLinkFirstStep || magicLinkToken !== null;
+
+    /*
      * The request body is NOT logged here. This handler is shared by password
      * login, TOTP verification and WebAuthn verification, so the body carries a
      * plaintext password, a TOTP code, or a WebAuthn assertion on every call --
      * and DEBUG output goes to stdout, the recent-log buffer and telemetry at
      * once. Log the stage instead; the user is identified by the request
-     * attributes.
+     * attributes. (A sign-in link's token is a credential like the others.)
      */
     logger.debug(
       "Login request received. stage: " +
@@ -2656,13 +2887,15 @@ const login: LoginFunction = async (options: {
               ? "totp-enrolment"
               : verifyBackupCode
                 ? "backup-code"
-                : "password"),
+                : isMagicLinkFirstStep
+                  ? "magic-link"
+                  : "password"),
       getLogAttributesFromRequest(req as RequestLike),
     );
 
     const user: User = BaseModel.fromJSON(data as JSONObject, User) as User;
 
-    if (!user.email || !user.password) {
+    if (!isMagicLinkSignIn && (!user.email || !user.password)) {
       return Response.sendErrorResponse(
         req,
         res,
@@ -2671,31 +2904,133 @@ const login: LoginFunction = async (options: {
     }
 
     /*
+     * While a master admin has turned sign-in links off, none signs anybody
+     * in - one sent before they were turned off included, at every stage, so
+     * a second step begun with a link finishes nowhere either.
+     */
+    if (
+      isMagicLinkSignIn &&
+      (await GlobalConfigService.getMagicLinkLoginTurnedOff())
+    ) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadDataException(MAGIC_LINK_TURNED_OFF_MESSAGE),
+      );
+    }
+
+    /*
      * The submitted password stays plaintext until the account is on hand:
      * its hash cannot be computed without that account's own salt, so there
-     * is nothing to pre-hash and nothing to query by.
+     * is nothing to pre-hash and nothing to query by. Empty for a sign-in
+     * with a link, which never reaches the password check.
      */
-    const submittedPassword: string = user.password.toString();
+    const submittedPassword: string = isMagicLinkSignIn
+      ? ""
+      : user.password!.toString();
 
-    const alreadySavedUser: User | null = await UserService.findOneBy({
-      query: { email: user.email! },
-      select: {
-        _id: true,
-        password: true,
-        passwordSalt: true,
-        name: true,
-        email: true,
-        isMasterAdmin: true,
-        isEmailVerified: true,
-        isBlocked: true,
-        profilePictureId: true,
-        timezone: true,
-        enableTwoFactorAuth: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
+    const signInSelect: Select<User> = {
+      _id: true,
+      password: true,
+      passwordSalt: true,
+      name: true,
+      email: true,
+      isMasterAdmin: true,
+      isEmailVerified: true,
+      isBlocked: true,
+      profilePictureId: true,
+      timezone: true,
+      enableTwoFactorAuth: true,
+    };
+
+    /*
+     * The account: by the address typed, for a password; by the token, for
+     * a sign-in link - the account whose latest link it is, while that link
+     * still works. The link is only read here; it is spent once the whole
+     * sign-in has succeeded (spendMagicLink, below), so it still stands in
+     * for the password at the second step.
+     */
+    const alreadySavedUser: User | null = isMagicLinkSignIn
+      ? await UserService.findByMagicLinkToken({
+          token: magicLinkToken || "",
+          select: signInSelect,
+        })
+      : await UserService.findOneBy({
+          query: { email: user.email! },
+          select: signInSelect,
+          props: {
+            isRoot: true,
+          },
+        });
+
+    /*
+     * A link that is not one, has been used, has expired or was replaced by
+     * a newer one: answered alike, so the answer says nothing about which -
+     * and not as a wrong password, which it is not.
+     */
+    if (isMagicLinkSignIn && !alreadySavedUser) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadDataException(MAGIC_LINK_INVALID_MESSAGE),
+      );
+    }
+
+    /*
+     * Spends the sign-in link this request proved the account with, once:
+     * true when it is spent - by this call, or by an earlier one in this
+     * request - and false when there was nothing left to spend, because
+     * another request spent it first or it stopped working. Nothing is
+     * signed in then.
+     *
+     * Called where the sign-in is decided, and nowhere sooner: once the
+     * second factor has passed, or straight away for an account without
+     * one. A step that spends something scarce or shows something once
+     * calls it first - before a backup code is spent, and before an
+     * enrolment is saved and its recovery codes minted - so that losing a
+     * race for the link, a credential a fresh email replaces, never costs a
+     * credential that nothing replaces.
+     *
+     * Spending a link proves the mailbox it was sent to, so the address is
+     * verified with it, as a password reset verifies it. Never fatal: the
+     * link is spent and the sign-in is going ahead, so a failed write leaves
+     * the address unverified, to be proved another time, rather than
+     * refusing a sign-in that has already cost the link.
+     */
+    let isMagicLinkSpent: boolean = false;
+
+    const spendMagicLink: (account: User) => Promise<boolean> = async (
+      account: User,
+    ): Promise<boolean> => {
+      if (isMagicLinkSpent) {
+        return true;
+      }
+
+      isMagicLinkSpent = await UserService.consumeMagicLinkToken({
+        userId: account.id!,
+        token: magicLinkToken || "",
+      });
+
+      if (isMagicLinkSpent && !account.isEmailVerified) {
+        try {
+          await UserService.updateOneById({
+            id: account.id!,
+            data: {
+              isEmailVerified: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+
+          account.isEmailVerified = true;
+        } catch (err) {
+          logger.error(err, getLogAttributesFromRequest(req as RequestLike));
+        }
+      }
+
+      return isMagicLinkSpent;
+    };
 
     if (alreadySavedUser) {
       if (!alreadySavedUser.password) {
@@ -2712,13 +3047,19 @@ const login: LoginFunction = async (options: {
        * Verified once, against this user's own salt, and reused for the
        * final gate below. Re-verifying there would repeat the legacy-hash
        * upgrade write on every login of an un-upgraded account.
+       *
+       * A sign-in link stands in for the password (Types/Accounts/MagicLink):
+       * the account was found by the link's token, still working, so there
+       * is no password to check, and every check after this one holds for a
+       * link as it does for a password.
        */
       const isPasswordValid: boolean =
-        await UserService.verifyHashedColumnValue({
+        isMagicLinkSignIn ||
+        (await UserService.verifyHashedColumnValue({
           item: alreadySavedUser,
           columnName: "password",
           plainValue: submittedPassword,
-        });
+        }));
 
       if (!isPasswordValid) {
         return Response.sendErrorResponse(
@@ -2771,8 +3112,13 @@ const login: LoginFunction = async (options: {
        * that now, and only their attempts send mail. Somebody who does not
        * have the password recovers through forgot-password instead, whose
        * reset link proves the mailbox and so verifies the address on the way.
+       *
+       * Not for a sign-in link, which proves the mailbox itself: it only ever
+       * travelled inside an email to this address. Mailing it a verification
+       * link would ask for a proof it has just been given, so the address is
+       * verified when the link is spent instead (spendMagicLink).
        */
-      if (!alreadySavedUser.isEmailVerified) {
+      if (!alreadySavedUser.isEmailVerified && !isMagicLinkSignIn) {
         /*
          * The link is the same "please verify" email a sign-up sends, so it
          * is counted with them, per caller and per address
@@ -3102,6 +3448,21 @@ const login: LoginFunction = async (options: {
             });
           }
 
+          /*
+           * A sign-in begun with a link spends the link before the code, not
+           * after: a backup code is gone for good the moment it is spent (see
+           * below), and losing a race for the link after spending one would
+           * have it buy no session. A wrong code costs the link instead, which
+           * a fresh email replaces.
+           */
+          if (isMagicLinkSignIn && !(await spendMagicLink(alreadySavedUser))) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException(MAGIC_LINK_INVALID_MESSAGE),
+            );
+          }
+
           let isBackupCodeConsumed: boolean = false;
 
           /*
@@ -3289,6 +3650,20 @@ const login: LoginFunction = async (options: {
             );
           }
 
+          /*
+           * A sign-in begun with a link spends it now, once the code is right
+           * and before anything is saved: the recovery codes minted below are
+           * shown once, in this response, and a sign-in that lost a race for
+           * its link afterwards would have no response to show them in.
+           */
+          if (isMagicLinkSignIn && !(await spendMagicLink(alreadySavedUser))) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException(MAGIC_LINK_INVALID_MESSAGE),
+            );
+          }
+
           await UserTotpAuthService.updateOneById({
             id: pendingTotpAuth.id!,
             data: {
@@ -3394,12 +3769,31 @@ const login: LoginFunction = async (options: {
          * sign-in (TwoFactorWrongCodes.forget does not throw).
          */
         await TwoFactorWrongCodes.forget(alreadySavedUser.id!);
-      } // Refresh Permissions for this user here.
+      }
+
+      /*
+       * The sign-in is decided - the second factor passed, or the account has
+       * none - so a sign-in begun with a link spends it here, if a step above
+       * has not already. Of two requests carrying one link only one spends
+       * it, and only that one is signed in: the other is answered as a link
+       * that has been used.
+       */
+      if (isMagicLinkSignIn && !(await spendMagicLink(alreadySavedUser))) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException(MAGIC_LINK_INVALID_MESSAGE),
+        );
+      }
+
+      // Refresh Permissions for this user here.
       await AccessTokenService.refreshUserAllPermissions(alreadySavedUser.id!);
 
       if (isPasswordValid) {
         logger.info(
-          "User logged in: " + alreadySavedUser.email?.toString(),
+          (isMagicLinkSignIn
+            ? "User logged in with a sign-in link: "
+            : "User logged in: ") + alreadySavedUser.email?.toString(),
           getLogAttributesFromRequest(req as RequestLike),
         );
 
