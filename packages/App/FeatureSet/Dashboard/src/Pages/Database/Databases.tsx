@@ -528,7 +528,7 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
               );
               const subtitle: string = getDatabaseEndpointLabel(item);
               return (
-                <div className="min-w-0">
+                <div className="min-w-0" data-testid="database-name">
                   <AppLink
                     to={route}
                     className="text-sm font-medium text-gray-900 break-words hover:underline"
@@ -571,13 +571,15 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
              */
             getElement: (item: DatabaseServer): ReactElement => {
               return (
-                <ResourceStatusCell
-                  resource={getDatabaseStatusCell({
-                    assessment: assessDatabase(item, { now: now }),
-                    language: translator.language,
-                    now: now,
-                  })}
-                />
+                <div data-testid="database-status">
+                  <ResourceStatusCell
+                    resource={getDatabaseStatusCell({
+                      assessment: assessDatabase(item, { now: now }),
+                      language: translator.language,
+                      now: now,
+                    })}
+                  />
+                </div>
               );
             },
             getExportValue: (item: DatabaseServer): string => {
@@ -626,6 +628,8 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
             title: "Runs On",
             type: FieldType.Element,
             hideOnMobile: true,
+            hideBelowLargeScreen: true,
+            foldInto: "name",
             disableSort: true,
             wrapContent: true,
             wrapMaxWidthClassName: DATABASE_RUNS_ON_COLUMN_MAX_WIDTH_CLASS,
@@ -641,6 +645,8 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
             title: "Discovered From",
             type: FieldType.Element,
             hideOnMobile: true,
+            hideBelowLargeScreen: true,
+            foldInto: "name",
             // Also a filter above the table; shown by default on wide screens.
             isHiddenByDefault: !isWideTable,
             getElement: (item: DatabaseServer): ReactElement => {
@@ -683,6 +689,8 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
             title: "Labels",
             type: FieldType.EntityArray,
             hideOnMobile: true,
+            hideBelowLargeScreen: true,
+            foldInto: "name",
             isHiddenByDefault: !isWideTable,
             getElement: (item: DatabaseServer): ReactElement => {
               return <LabelsElement labels={item["labels"] || []} />;
@@ -695,6 +703,8 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
             title: "Owners",
             type: FieldType.Element,
             hideOnMobile: true,
+            hideBelowLargeScreen: true,
+            foldInto: "name",
             isHiddenByDefault: !isWideTable,
             getElement: (item: DatabaseServer): ReactElement => {
               return (
