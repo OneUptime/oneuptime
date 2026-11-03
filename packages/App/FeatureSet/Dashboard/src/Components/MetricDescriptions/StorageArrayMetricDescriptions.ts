@@ -30,20 +30,20 @@
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 export type StorageArrayMetric =
-  // Storage Arrays list (Pages/StorageArray/StorageArrays.tsx) and overview
+  // Storage Arrays list (Pages/StorageArray/StorageArrays.tsx)
   | "health"
   | "arrayCapacity"
   | "arrayDataReduction"
   | "arrayInventory"
   | "arrayOpenAlerts"
   // Array overview (Pages/StorageArray/View/Index.tsx)
+  | "arrayHealth"
   | "inventoryCounts"
   | "activeAlerts"
   | "capacityUsed"
   | "dataReduction"
   | "openAlerts"
   | "unhealthyHardware"
-  | "unhealthyHardwareList"
   | "volumesTile"
   | "fileSystemsTile"
   | "slowestVolumes"
@@ -89,6 +89,7 @@ export type StorageArrayMetric =
   // Directories (Pages/StorageArray/View/Directories.tsx)
   | "directorySpaceColumn"
   // File systems (Pages/StorageArray/View/FileSystems.tsx, FileSystemDetail.tsx)
+  | "fileSystemStatusColumn"
   | "fileSystemProvisionedColumn"
   | "fileSystemProtocolsColumn"
   // Buckets (Pages/StorageArray/View/Buckets.tsx, BucketDetail.tsx)
@@ -102,7 +103,10 @@ export const STORAGE_ARRAY_METRIC_DESCRIPTIONS: Record<
   string
 > = {
   health: translationKey(
-    "OneUptime's health verdict from the array's latest data: Critical when the array has an open critical alert or a failed hardware part, Warning when it has an open warning alert or a degraded part, otherwise OK. Unknown means no alert and hardware data has arrived yet.",
+    "OneUptime's health verdict from the array's latest data: Critical when the array has an open critical alert or a failed hardware part, Warning when it has an open warning alert or a degraded part, otherwise OK. Unknown means no alert and hardware data has arrived yet, or the agent is not connected.",
+  ),
+  arrayHealth: translationKey(
+    "As Needs attention lists, at the alert lines: Unhealthy with an open critical alert, past 90% used or a failed part; Degraded with an open warning alert, past 80%, slower than 5 ms (10 ms reads on a FlashBlade), a degraded part, a host short of a path, a pod a minute behind or a file system under 10% left. Unknown while disconnected.",
   ),
   arrayCapacity: translationKey(
     "Share of the array's usable capacity in use, from its latest data — the figure Pure itself reports, after data reduction. The bar turns amber at 80% and red at 90%, the levels Pure raises capacity alerts at.",
@@ -133,9 +137,6 @@ export const STORAGE_ARRAY_METRIC_DESCRIPTIONS: Record<
   ),
   unhealthyHardware: translationKey(
     "Hardware components, drives and controllers whose latest reported status is critical, failed, missing, unhealthy, degraded, unknown, unrecognized or not ready, out of all the components the array reports.",
-  ),
-  unhealthyHardwareList: translationKey(
-    "The hardware parts whose latest status needs a person: failed or missing drives, critical or degraded components and controllers that are not ready. Not installed, powered-off and unused parts are not listed.",
   ),
   volumesTile: translationKey(
     "Volumes the FlashArray reported in its latest data, with the number of hosts below. Volumes are the block devices the array serves to hosts over Fibre Channel, iSCSI or NVMe.",
@@ -189,7 +190,7 @@ export const STORAGE_ARRAY_METRIC_DESCRIPTIONS: Record<
     "How many hosts the volume is connected to, directly or through a host group, from the array's latest host connection data.",
   ),
   hostConnectivityColumn: translationKey(
-    "Whether the array sees this host on all its paths: Healthy when it is connected to every controller, Critical when it has lost its redundant paths, Unused when no volume is connected. The detail, such as Redundant or Single Controller, is Pure's own.",
+    "Whether the array sees this host on all its paths: Redundant paths when it reaches both controllers, and Lost redundant paths, in amber, when it reaches one controller or none — the Host Lost Redundant Paths alert's line — with why under it. Unused when no volume is connected.",
   ),
   hostGroupColumn: translationKey(
     "The host group the host belongs to on the array. Volumes connected to a host group are connected to every host in it.",
@@ -201,7 +202,7 @@ export const STORAGE_ARRAY_METRIC_DESCRIPTIONS: Record<
     "Total size of every volume connected to this host, as the host sees it, from the latest report.",
   ),
   podLinkStatusColumn: translationKey(
-    "Status of the pod's replica link to its remote array as Pure reports it, such as Replicating, Baselining, Paused or Unhealthy. With several links, the one with the largest lag is shown.",
+    "Status of the pod's replica link to its remote array as Pure reports it, such as Replicating, Baselining, Paused or Unhealthy, in red when Pure reports it unhealthy, and in amber with why when the link is more than a minute behind — the Replication Lag Above 1 Minute alert's line. With several links, the one with the largest lag is shown.",
   ),
   podLagColumn: translationKey(
     "How far the remote copy of the pod is behind, the largest lag across its replica links in the latest report. Lag that keeps growing means the link cannot keep up and the recovery point is slipping.",
@@ -253,6 +254,9 @@ export const STORAGE_ARRAY_METRIC_DESCRIPTIONS: Record<
   ),
   fileSystemProvisionedColumn: translationKey(
     "The size the file system was given on the FlashBlade, from its latest report. Clients see this as the size of the share.",
+  ),
+  fileSystemStatusColumn: translationKey(
+    "Near full, in amber, when less than 10% of the file system's provisioned size is left in its latest reading — the File System Near Full alert's line — with how much is used under it; otherwise Available.",
   ),
   fileSystemProtocolsColumn: translationKey(
     "The protocols the file system is shared over, NFS and SMB, as the FlashBlade reports them.",

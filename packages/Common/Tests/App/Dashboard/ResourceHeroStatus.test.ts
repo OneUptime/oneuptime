@@ -286,7 +286,11 @@ describe("every Dashboard language words the pills", () => {
       return name.replace(".json", "");
     });
 
-  // The hero pills' words, and the Ceph and storage array health pills'.
+  /*
+   * The hero pills' words, and the storage array list's health pill's. A
+   * Ceph cluster's hero says its health by the rules (Healthy, Degraded,
+   * Unhealthy) since its Needs attention, so no pill draws Health Error.
+   */
   const PILL_WORDS: Array<string> = [
     "Connected",
     "Disconnected",
@@ -297,7 +301,6 @@ describe("every Dashboard language words the pills", () => {
     "Health Unknown",
     "Health OK",
     "Health Warning",
-    "Health Error",
     "Health Critical",
   ];
 

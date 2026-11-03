@@ -2,9 +2,11 @@
 
 En Docker Swarm-monitor övervakar containrarna bakom ett Swarm-klusters tjänsteuppgifter och säger till när en uppgift startar om, går varm eller får slut på minne. Den läser de containermått som OneUptimes Docker Swarm-agent skickar, så ingenting undersöks utifrån: installera agenten och skapa sedan monitorn från en mall eller din egen fråga.
 
+Från version 0.161.3 av sina filer skickar agenten också varje minut swarmens eget tillstånd, så att en monitor kan bevaka själva noderna och tjänsterna: en nod som inte är redo, eller en tjänst som kör färre repliker än den vill.
+
 :::cards
 - [Skapa monitorn](#skapa-en-docker-swarm-monitor): Sex steg i instrumentpanelen.
-- [Mallar](#färdiga-larmmallar): Fem färdiga larm, en incident per uppgift.
+- [Mallar](#färdiga-larmmallar): Sju färdiga larm, en incident per nod, tjänst eller uppgift.
 - [Mätvärden](#insamlade-mätvärden): De containermått som du kan varna på.
 - [Filter](#monitorinställningar): Begränsa en monitor till en tjänst, en uppgift eller en avbildning.
 :::
@@ -12,6 +14,8 @@ En Docker Swarm-monitor övervakar containrarna bakom ett Swarm-klusters tjänst
 ## Så fungerar det
 
 OneUptimes Docker Swarm-agent körs på en managernod. Dess insamlare läser containerstatistik från nodens Docker-daemon var 30:e sekund, stämplar varje omgång med klustrets namn, `docker.swarm.cluster.name`, och varje uppgifts mätvärden med dess tjänst och nod. En liten inventeringspoller bredvid läser klustrets noder, tjänster och uppgifter från Swarm-API:t var 5:e minut. De första data registrerar klustret i OneUptime.
+
+Varje minut läser pollern också från managern om varje nod är redo och hur många repliker varje tjänst vill ha och kör, och skickar det som mätvärden. Så får **Node Not Ready** och **Service Replicas Mismatch** veta om en nod eller en tjänst som har problem inom en minut eller två, inte fem.
 
 Insamlaren ser bara containrar på den nod den körs på. För mått från varje nod kör du insamlaren på varje nod med samma `DOCKER_SWARM_CLUSTER_NAME`.
 
@@ -92,15 +96,17 @@ Klicka på **Skapa monitor**. OneUptime öppnar monitorns sida och utvärderar d
 
 ## Färdiga larmmallar
 
-Listan under **Vad som ska larmas om** erbjuder fem mallar. Varje mall bygger en komplett monitor: en fråga, ett kriterium som utlöses och ett som återställer. Alla mallar utom **Cluster Stopped Reporting** grupperar sin fråga efter `resource.container.name`, så att varje uppgift bedöms för sig och får en egen incident och ett eget larm, vars grundorsak listar de berörda uppgifterna och deras värden. Trösklarna är utgångspunkter som du kan redigera.
+Listan **Vad som ska larmas om** erbjuder sju mallar. Var och en bygger en komplett monitor: en fråga, ett kriterium som utlöses och ett som återställer. **Node Not Ready** grupperar sin fråga per nod, `resource.docker.swarm.node.name`, **Service Replicas Mismatch** per tjänst, `resource.docker.swarm.service.name`, och uppgiftsmallarna per `resource.container.name`, så att varje nod, tjänst eller uppgift bedöms för sig och får en egen incident och ett eget larm, vars grundorsak listar de berörda och deras värden. Tröskelvärdena är utgångspunkter som du kan redigera.
 
-De mallarna läser dessutom bara Swarms uppgifter: en container som startats på något annat sätt på en nod, bland dem agentens egen, räknas inte. En fråga via **Custom Metric** eller **Avancerad** läser varje container som agenten rapporterar; filtret **Tjänstenamn** begränsar den till en tjänsts uppgifter.
+Uppgiftsmallarna läser dessutom bara Swarms uppgifter: en container som startats på något annat sätt på en nod, agentens egen inräknad, lämnas utanför. En fråga via **Custom Metric** eller **Avancerad** läser varje container som agenten rapporterar; filtret **Tjänstenamn** begränsar den till en tjänsts uppgifter.
 
 Om inte tabellen säger något annat utlöses ett kriterium bara när villkoret gäller varje minut i fönstret, och det återställs 10 % förbi tröskeln, så att ett värde som pendlar vid gränsen inte fladdrar.
 
 | Mall | Allvarlighetsgrad | Övervakar | Utlöses när | Återställs när |
 | --- | --- | --- | --- | --- |
 | Cluster Stopped Reporting | Kritisk | `container.memory.percent`, Count över alla containrar i klustret, senaste 10 minuterna | Inga data under hela fönstret | Data kommer in igen |
+| Node Not Ready | Kritisk | `docker.swarm.node.ready`, Min per `resource.docker.swarm.node.name`, senaste 5 minuterna | Under 1 | Vid 1 |
+| Service Replicas Mismatch | Varning | `docker.swarm.service.replicas.desired` − `docker.swarm.service.replicas.running` (båda Avg) per `resource.docker.swarm.service.name`, senaste 15 minuterna | Över 0 | Vid eller under 0 |
 | Task Down (Low Uptime) | Kritisk | `container.uptime`, Min per uppgift, senaste 1 minuten | Något värde är under 60 sekunder | Varje värde är vid eller över 66 sekunder |
 | High Task CPU Usage | Varning | `container.cpu.utilization`, Avg per uppgift, senaste 5 minuterna | Över 80 (% av en kärna) | Vid eller under 72 |
 | High Task Memory Usage | Varning | `container.memory.percent`, Avg per uppgift, senaste 5 minuterna | Över 85 % | Vid eller under 76,5 % |
@@ -114,9 +120,14 @@ Om inte tabellen säger något annat utlöses ett kriterium bara när villkoret 
 > [!NOTE]
 > **Task Down (Low Uptime)** utlöses på en enda ung mätning, eftersom en omstart är en händelse och inte en nivå. Swarm ger en ersättningsuppgift en ny container, och därmed en ny serie, vilket är varför mallen letar efter en drifttid under en minut i stället för en nolla. En driftsättning eller en uppskalning utlöser den också, och den upphör när de nya uppgifterna har passerat en minuts drifttid. En uppgift som dör och inte ersätts skickar ingenting, så den fångas inte.
 
+> [!NOTE]
+> **Node Not Ready** och **Service Replicas Mismatch** läser de serier som agentens inventeringspoller skickar från en manager, från version 0.161.3 av dess filer. En äldre agent skickar ingen av dem, så båda mallarna har inget att läsa och utlöses aldrig: [uppgradera agenten](/docs/telemetry/docker-swarm#uppgradera-agenten); ett tecken vid dess version i klustrets översikt visar när den ligger efter. Service Replicas Mismatch väntar i femton minuter, så att en rullande uppdatering, som byter ut en tjänsts uppgifter några i taget, inte larmar någon. En jobbtjänst kör sina uppgifter till slutet, har inga repliker som kan saknas och lämnas utanför.
+
 ## Insamlade mätvärden
 
 Agentens insamlare använder OpenTelemetry-mottagaren `docker_stats`, så måtten är de vanliga containermåtten, en serie per uppgiftscontainer. Det finns inga mått `docker_swarm_*`: noder, tjänster och uppgifter följs som inventering, på klustrets sidor **Tjänster**, **Uppgifter**, **Noder** och relaterade sidor.
+
+Bredvid dem skickar agentens inventeringspoller från version 0.161.3 av dess filer varje minut swarmens eget tillstånd: de tre mätvärdena under [Swarm](#swarm).
 
 ### CPU
 
@@ -146,6 +157,16 @@ Agentens insamlare använder OpenTelemetry-mottagaren `docker_stats`, så måtte
 | `container.uptime` | sekunder | Hur länge en uppgifts container har körts. En uppgift som schemaläggs om eller startas om börjar en ny container på 0. |
 
 Varje serie bär containerns identitet som resursattribut: `resource.container.name` (`<service>.<slot>.<taskid>`), `resource.container.image.name`, `resource.docker.swarm.service.name`, `resource.docker.swarm.node.id`, `resource.docker.swarm.node.name` (när agenten känner till nodens namn) och `resource.docker.swarm.cluster.name`.
+
+### Swarm
+
+| Mätvärde | Enhet | Beskrivning |
+| --- | --- | --- |
+| `docker.swarm.node.ready` | — | Om en nod är redo, så som managers ser den: 1 medan den är det, 0 medan den är nere, frånkopplad eller okänd. En serie per nod. |
+| `docker.swarm.service.replicas.desired` | count | De uppgifter som en replikerad eller global tjänst vill ha igång: dess repliker, eller för en global tjänst de noder den ska köras på. En serie per tjänst. |
+| `docker.swarm.service.replicas.running` | count | Tjänstens uppgifter som körs. Under det önskade antalet saknar tjänsten repliker. |
+
+En nods serie bär `resource.docker.swarm.node.name`, `resource.docker.swarm.node.id` och `resource.docker.swarm.node.role`; en tjänsts bär `resource.docker.swarm.service.name`, `resource.docker.swarm.service.mode` och, i en stack, `resource.docker.swarm.stack.namespace`. Båda bär `resource.docker.swarm.cluster.name`.
 
 ## Övervakningskriterier
 
@@ -193,6 +214,10 @@ Insamlaren läser Docker-daemonen på den nod den körs på, så den ser bara up
 
 :::details Varje uppgift visas som en enda serie
 Gruppera efter resursattributet `resource.container.name`, som mallarna gör. Det nakna `container.name` matchar ingenting, så alla uppgifter slås ihop till en serie med ett tomt namn.
+:::
+
+:::details Node Not Ready eller Service Replicas Mismatch utlöses aldrig
+Båda läser de serier som agentens inventeringspoller skickar från version 0.161.3 av dess filer, och bara från en manager: [uppgradera agenten](/docs/telemetry/docker-swarm#uppgradera-agenten) och kontrollera att inventeringspollern körs på en manager (`docker node ls` måste lyckas där). Klustrets sida **Mätvärden** visar om `docker.swarm.node.ready` kommer in.
 :::
 
 ## Nästa steg

@@ -601,6 +601,15 @@ const GROUP_BY_WORDS: Array<{ pattern: RegExp; keys: Array<string> }> = [
     pattern: /\bper `resource\.systemd\.unit\.name`/,
     keys: ["resource.systemd.unit.name"],
   },
+  // A Swarm node's and service's names: the agent's poller's series' resource.
+  {
+    pattern: /\bper `resource\.docker\.swarm\.node\.name`/,
+    keys: ["resource.docker.swarm.node.name"],
+  },
+  {
+    pattern: /\bper `resource\.docker\.swarm\.service\.name`/,
+    keys: ["resource.docker.swarm.service.name"],
+  },
 ];
 
 function groupByWritten(watches: string): Array<string> {
@@ -2861,9 +2870,20 @@ describe("the agents the pages describe", () => {
       "and each task's metrics with its service and node",
     );
     expect(englishPage(SWARM)).not.toContain("does not set");
-    // The page names the files version that sends them, which the agent reports.
+    // The page names the files versions that send them, which the agent reports.
     expect(englishPage(SWARM)).toContain("version 0.161.2");
-    expect(compose).toContain("APP_VERSION=${APP_VERSION:-0.161.2}");
+    expect(englishPage(SWARM)).toContain("version 0.161.3");
+    expect(compose).toContain("APP_VERSION=${APP_VERSION:-0.161.3}");
+    // The swarm's own state, every minute, from the poller on a manager.
+    const poller: string = source(
+      "agents/DockerSwarmAgent/inventory-snapshot.sh",
+    );
+    expect(poller).toContain(
+      'METRICS_INTERVAL="${DOCKER_INVENTORY_METRICS_INTERVAL_SECONDS:-60}"',
+    );
+    expect(englishPage(SWARM)).toContain(
+      "Every minute, the poller also reads from the manager whether each node is ready and how many replicas each service wants and runs",
+    );
   });
 
   it("Proxmox: the cluster and node collectors every 30 seconds, and id split into pve.scope, pve.type and pve.id", () => {
@@ -3014,6 +3034,7 @@ describe("the metric tables against the catalogs", () => {
       Memory: "### Memory",
       Network: "### Network",
       Container: "### Container",
+      Swarm: "### Swarm",
     };
 
     for (const metric of getAllDockerSwarmMetrics()) {
@@ -3025,7 +3046,7 @@ describe("the metric tables against the catalogs", () => {
 
       expect({ metric: metric.metricName, unit: row?.[1] }).toEqual({
         metric: metric.metricName,
-        unit: (metric as DockerSwarmMetricDefinition).unit,
+        unit: (metric as DockerSwarmMetricDefinition).unit || "—",
       });
     }
 

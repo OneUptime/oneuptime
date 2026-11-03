@@ -155,10 +155,25 @@ function emptyResource(
   };
 }
 
+// A whole count the agent sends as text ("3", "1800000000"), or null.
+function readCount(obj: JSONObject, key: string): number | null {
+  const raw: string | null = readString(obj, key);
+  if (raw === null) {
+    return null;
+  }
+  const value: number = Number(raw);
+  return Number.isFinite(value) && value >= 0 ? value : null;
+}
+
 /*
  * `docker node ls --format json`:
  *   { ID, Hostname, Status, Availability, ManagerStatus, EngineVersion,
  *     TLSStatus, Self }
+ * and, from the agent's own snapshot (inventory-snapshot.sh, files 0.161.3
+ * on): Addr, Message (Swarm's word on the node's state), NanoCPUs and
+ * MemoryBytes (what the node has), and a ManagerStatus that says
+ * Unreachable for a manager the others cannot reach - older files said
+ * Reachable for every manager but the leader.
  */
 function parseNode(
   data: JSONObject,
@@ -178,19 +193,42 @@ function parseNode(
   r.isReady = r.state ? r.state.toLowerCase() === "ready" : null;
   const managerStatus: string | null = readString(data, "ManagerStatus");
   r.role = managerStatus ? "manager" : "worker";
+  const nanoCpus: number | null = readCount(data, "NanoCPUs");
+  const memoryBytes: number | null = readCount(data, "MemoryBytes");
   r.attributes = {
     availability: readString(data, "Availability"),
     managerStatus: managerStatus,
     engineVersion: readString(data, "EngineVersion"),
     tlsStatus: readString(data, "TLSStatus"),
     isLeader: managerStatus ? managerStatus.toLowerCase() === "leader" : false,
+    addr: readString(data, "Addr"),
+    message: readString(data, "Message"),
+    cpus: nanoCpus && nanoCpus > 0 ? nanoCpus / 1_000_000_000 : null,
+    memoryBytes: memoryBytes && memoryBytes > 0 ? memoryBytes : null,
   };
   return r;
 }
 
 /*
+ * A job service (replicated-job, global-job) runs its tasks to completion:
+ * it has no replicas to keep running.
+ */
+export function isDockerSwarmJobMode(mode: string | null | undefined): boolean {
+  const normalized: string = (mode || "").trim().toLowerCase();
+  return normalized === "replicated-job" || normalized === "global-job";
+}
+
+/*
  * `docker service ls --format json`:
  *   { ID, Name, Mode, Replicas, Image, Ports }
+ * and, from the agent's own snapshot (files 0.161.3 on): StackNamespace (the
+ * com.docker.stack.namespace label), CreatedAt and UpdatedAt, the last
+ * rolling update (UpdateState - updating, paused, completed,
+ * rollback_started, rollback_paused, rollback_completed - its Message and
+ * its StartedAt / CompletedAt), the job modes and their CompletedTasks, and
+ * the tasks that failed or were rejected in the last hour
+ * (RecentFailedTasks) with the newest one's error, state, time and exit
+ * code (LastTaskError, LastTaskState, LastTaskErrorAt, LastTaskExitCode).
  */
 function parseService(
   data: JSONObject,
@@ -206,7 +244,7 @@ function parseService(
     lastSeenAt,
   );
   r.name = readString(data, "Name");
-  r.serviceMode = readString(data, "Mode"); // replicated | global
+  r.serviceMode = readString(data, "Mode"); // replicated | global | *-job
   r.image = readString(data, "Image");
   const replicas: { running: number | null; desired: number | null } =
     parseReplicas(readString(data, "Replicas"));
@@ -216,16 +254,36 @@ function parseService(
     replicas.running !== null && replicas.desired !== null
       ? `${replicas.running}/${replicas.desired}`
       : null;
-  r.isReady =
-    replicas.running !== null && replicas.desired !== null
+  r.isReady = isDockerSwarmJobMode(r.serviceMode)
+    ? null
+    : replicas.running !== null && replicas.desired !== null
       ? replicas.running >= replicas.desired && replicas.desired > 0
       : null;
-  // Stack namespace: services deployed via a stack are named "<stack>_<svc>".
-  if (r.name && r.name.includes("_")) {
+  /*
+   * The stack it was deployed with: the agent's StackNamespace when it sends
+   * one, else the name's part before its first underscore, as a stack names
+   * its services "<stack>_<service>" (older files sent no label).
+   */
+  const stackNamespace: string | null = readString(data, "StackNamespace");
+  if (stackNamespace) {
+    r.stackName = stackNamespace;
+  } else if (r.name && r.name.includes("_")) {
     r.stackName = r.name.split("_")[0] || null;
   }
   r.attributes = {
     ports: readString(data, "Ports"),
+    completedTasks: readCount(data, "CompletedTasks"),
+    createdAt: readString(data, "CreatedAt"),
+    updatedAt: readString(data, "UpdatedAt"),
+    updateState: readString(data, "UpdateState"),
+    updateMessage: readString(data, "UpdateMessage"),
+    updateStartedAt: readString(data, "UpdateStartedAt"),
+    updateCompletedAt: readString(data, "UpdateCompletedAt"),
+    recentFailedTasks: readCount(data, "RecentFailedTasks"),
+    lastTaskError: readString(data, "LastTaskError"),
+    lastTaskState: readString(data, "LastTaskState"),
+    lastTaskErrorAt: readString(data, "LastTaskErrorAt"),
+    lastTaskExitCode: readString(data, "LastTaskExitCode"),
   };
   return r;
 }
@@ -233,6 +291,9 @@ function parseService(
 /*
  * `docker service ps <svc> --format json` / `docker node ps`:
  *   { ID, Name, Image, Node, DesiredState, CurrentState, Error, Ports }
+ * and, from the agent's own snapshot (files 0.161.3 on): Since (when the
+ * task entered its current state), Slot, and its container's ContainerID
+ * and ExitCode.
  */
 function parseTask(
   data: JSONObject,
@@ -254,7 +315,14 @@ function parseTask(
   const currentState: string | null = readString(data, "CurrentState");
   r.state = currentState ? currentState.split(/\s+/)[0]!.toLowerCase() : null;
   r.isReady = r.state ? r.state === "running" : null;
-  if (r.name && r.name.includes(".")) {
+  /*
+   * Its service: the agent's Service when it sends one (files 0.161.3 on),
+   * else the name's part before its first dot (<service>.<slot>).
+   */
+  const service: string | null = readString(data, "Service");
+  if (service) {
+    r.serviceName = service;
+  } else if (r.name && r.name.includes(".")) {
     r.serviceName = r.name.split(".")[0] || null;
   }
   if (r.serviceName && r.serviceName.includes("_")) {
@@ -264,6 +332,15 @@ function parseTask(
     desiredState: readString(data, "DesiredState"),
     currentState: currentState,
     error: readString(data, "Error"),
+    /*
+     * From the agent's files 0.161.3 on: when it entered its current state,
+     * its slot (a replicated service's) and its container's id and exit
+     * code.
+     */
+    since: readString(data, "Since"),
+    slot: readString(data, "Slot"),
+    containerId: readString(data, "ContainerID"),
+    exitCode: readString(data, "ExitCode"),
   };
   return r;
 }

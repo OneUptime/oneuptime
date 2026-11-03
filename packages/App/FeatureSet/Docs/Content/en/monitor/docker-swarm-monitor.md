@@ -2,9 +2,11 @@
 
 A Docker Swarm monitor watches the containers behind a Swarm cluster's service tasks and tells you when a task restarts, runs hot, or runs out of memory. It reads the container metrics the OneUptime Docker Swarm Agent sends, so nothing is probed from outside: install the agent, then create the monitor from a template or your own query.
 
+From version 0.161.3 of its files, the agent also sends the swarm's own state every minute, so a monitor can watch the nodes and services themselves: a node that is not ready, or a service that runs fewer replicas than it wants.
+
 :::cards
 - [Create the monitor](#create-a-docker-swarm-monitor): Six steps in the dashboard.
-- [Templates](#pre-built-alert-templates): Five ready-made alerts, one incident per task.
+- [Templates](#pre-built-alert-templates): Seven ready-made alerts, one incident per node, service or task.
 - [Metrics](#collected-metrics): The container metrics you can alert on.
 - [Filters](#monitor-settings): Narrow a monitor to a service, a task or an image.
 :::
@@ -12,6 +14,8 @@ A Docker Swarm monitor watches the containers behind a Swarm cluster's service t
 ## How it works
 
 The OneUptime Docker Swarm Agent runs on a manager node. Its collector reads container stats from that node's Docker daemon every 30 seconds, stamps every batch with the cluster's name, `docker.swarm.cluster.name`, and each task's metrics with its service and node. A small inventory poller beside it reads the cluster's nodes, services and tasks from the Swarm API every 5 minutes. The first data registers the cluster in OneUptime.
+
+Every minute, the poller also reads from the manager whether each node is ready and how many replicas each service wants and runs, and sends them as metrics. That is how **Node Not Ready** and **Service Replicas Mismatch** hear of a node or a service in trouble within a minute or two, not five.
 
 The collector only sees containers on the node it runs on. For metrics from every node, run the collector on each node with the same `DOCKER_SWARM_CLUSTER_NAME`.
 
@@ -92,15 +96,17 @@ Click **Create Monitor**. OneUptime opens the monitor's page and evaluates it ev
 
 ## Pre-built Alert Templates
 
-The **What to alert on** list offers five templates. Each builds a complete monitor: a query, a criteria that fires and one that recovers. Every template but **Cluster Stopped Reporting** groups its query by `resource.container.name`, so every task is judged on its own and gets its own incident and alert, whose root cause lists the affected tasks and their values. Thresholds are starting points you can edit.
+The **What to alert on** list offers seven templates. Each builds a complete monitor: a query, a criteria that fires and one that recovers. **Node Not Ready** groups its query by the node, `resource.docker.swarm.node.name`, **Service Replicas Mismatch** by the service, `resource.docker.swarm.service.name`, and the task templates by `resource.container.name`, so every node, service or task is judged on its own and gets its own incident and alert, whose root cause lists the affected ones and their values. Thresholds are starting points you can edit.
 
-Those templates also read only Swarm's tasks: a container started any other way on a node, the agent's own among them, is left out. A **Custom Metric** or **Advanced** query reads every container the agent reports; the **Service Name** filter narrows it to one service's tasks.
+The task templates also read only Swarm's tasks: a container started any other way on a node, the agent's own among them, is left out. A **Custom Metric** or **Advanced** query reads every container the agent reports; the **Service Name** filter narrows it to one service's tasks.
 
 Unless the table says otherwise, a criteria fires only when the condition holds for every minute of its window, and recovers 10% past the threshold so a value hovering at the line does not flap.
 
 | Template | Severity | Watches | Fires when | Recovers when |
 | --- | --- | --- | --- | --- |
 | Cluster Stopped Reporting | Critical | `container.memory.percent`, Count over every container in the cluster, past 10 minutes | No data for the whole window | Data arrives again |
+| Node Not Ready | Critical | `docker.swarm.node.ready`, Min per `resource.docker.swarm.node.name`, past 5 minutes | Below 1 | At 1 |
+| Service Replicas Mismatch | Warning | `docker.swarm.service.replicas.desired` − `docker.swarm.service.replicas.running` (both Avg) per `resource.docker.swarm.service.name`, past 15 minutes | Above 0 | At or below 0 |
 | Task Down (Low Uptime) | Critical | `container.uptime`, Min per task, past 1 minute | Any value is below 60 seconds | Every value is at or above 66 seconds |
 | High Task CPU Usage | Warning | `container.cpu.utilization`, Avg per task, past 5 minutes | Above 80 (% of one core) | At or below 72 |
 | High Task Memory Usage | Warning | `container.memory.percent`, Avg per task, past 5 minutes | Above 85% | At or below 76.5% |
@@ -114,9 +120,14 @@ Unless the table says otherwise, a criteria fires only when the condition holds 
 > [!NOTE]
 > **Task Down (Low Uptime)** fires on a single young sample because a restart is an event, not a level. Swarm gives a replacement task a new container, and so a new series, which is why the template looks for an uptime under a minute rather than a 0. A deploy or a scale-up trips it too, and it clears once the new tasks pass a minute of uptime. A task that dies and is not replaced sends nothing, so it is not caught.
 
+> [!NOTE]
+> **Node Not Ready** and **Service Replicas Mismatch** read the series the agent's inventory poller sends from a manager, from version 0.161.3 of its files on. An older agent sends neither, so both templates have nothing to read and never fire: [upgrade the agent](/docs/telemetry/docker-swarm#upgrading-the-agent); a sign beside its version on the cluster's Overview says when it is behind. Service Replicas Mismatch waits fifteen minutes, so a rolling update, which replaces a service's tasks a few at a time, does not page. A job service runs its tasks to completion, has no replicas to fall short of, and is left out.
+
 ## Collected Metrics
 
 The agent's collector uses the OpenTelemetry `docker_stats` receiver, so the metrics are the standard container metrics, one series per task container. There are no `docker_swarm_*` metrics: nodes, services and tasks are tracked as inventory, on the cluster's **Services**, **Tasks**, **Nodes** and related pages.
+
+Beside them, from version 0.161.3 of its files, the agent's inventory poller sends the swarm's own state every minute: the three metrics under [Swarm](#swarm).
 
 ### CPU
 
@@ -146,6 +157,16 @@ The agent's collector uses the OpenTelemetry `docker_stats` receiver, so the met
 | `container.uptime` | seconds | How long a task's container has been running. A rescheduled or restarted task starts a new container at 0. |
 
 Each series carries the container's identity as resource attributes: `resource.container.name` (`<service>.<slot>.<taskid>`), `resource.container.image.name`, `resource.docker.swarm.service.name`, `resource.docker.swarm.node.id`, `resource.docker.swarm.node.name` (when the agent knows the node's name) and `resource.docker.swarm.cluster.name`.
+
+### Swarm
+
+| Metric | Unit | Description |
+| --- | --- | --- |
+| `docker.swarm.node.ready` | — | Whether a node is ready, as the managers see it: 1 while it is, 0 while it is down, disconnected or unknown. One series per node. |
+| `docker.swarm.service.replicas.desired` | count | The tasks a replicated or global service wants running: its replicas, or for a global service the nodes it should run on. One series per service. |
+| `docker.swarm.service.replicas.running` | count | The tasks of the service that are running. Below the desired count, the service runs short. |
+
+A node's series carries `resource.docker.swarm.node.name`, `resource.docker.swarm.node.id` and `resource.docker.swarm.node.role`; a service's carries `resource.docker.swarm.service.name`, `resource.docker.swarm.service.mode` and, in a stack, `resource.docker.swarm.stack.namespace`. Both carry `resource.docker.swarm.cluster.name`.
 
 ## Monitoring criteria
 
@@ -193,6 +214,10 @@ The collector reads the Docker daemon of the node it runs on, so it only sees th
 
 :::details Every task shows as one series
 Group by the resource attribute, `resource.container.name`, as the templates do. The bare `container.name` matches nothing, so every task collapses into one series with an empty name.
+:::
+
+:::details Node Not Ready or Service Replicas Mismatch never fires
+Both read the series the agent's inventory poller sends from version 0.161.3 of its files on, and only from a manager: [upgrade the agent](/docs/telemetry/docker-swarm#upgrading-the-agent), and check that the inventory poller runs on a manager (`docker node ls` must succeed there). The cluster's **Metrics** page shows whether `docker.swarm.node.ready` arrives.
 :::
 
 ## Next steps

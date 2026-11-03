@@ -50,11 +50,29 @@ import ObjectID from "../../../Types/ObjectID";
  * `resource.container.name`). Templates group by `resource.container.name` so
  * one incident fires per task; the worker injects the cluster scope from
  * clusterIdentifier.
+ *
+ * The swarm's own state arrives apart from docker_stats (agent files 0.161.3
+ * on): the agent's poller reads `docker node ls` and `docker service ls` from
+ * a manager every minute and sends docker.swarm.node.ready per node and
+ * docker.swarm.service.replicas.desired / .running per service, each on a
+ * resource named `docker.swarm.node.name` / `docker.swarm.service.name`.
+ * The Node Not Ready and Service Replicas Mismatch templates group by those,
+ * one incident per node or per service.
  */
 
 interface QueryExpectation {
   metricName: string;
   aggregation: MetricsAggregationType;
+}
+
+/*
+ * A template that judges a difference of two series: both queries, the
+ * formula over their aliases, and the formula's alias the criteria read.
+ */
+interface FormulaExpectation {
+  queries: Array<QueryExpectation & { alias: string }>;
+  formula: string;
+  resultAlias: string;
 }
 
 interface ThresholdExpectation {
@@ -69,9 +87,16 @@ interface TemplateExpectation {
   category: string;
   severity: string;
   rollingTime: RollingTime;
-  query: QueryExpectation;
+  // The one series a single-query template reads.
+  query?: QueryExpectation | undefined;
+  // Or the two series and the formula of a difference template.
+  formula?: FormulaExpectation | undefined;
   // Undefined for the one whole-cluster template, the heartbeat.
   groupBy: string | undefined;
+  // Reads only Swarm's own task containers (resourceFilters.tasksOnly).
+  tasksOnly: boolean;
+  // A 0/1 series: fire and recover share the threshold (no dead band).
+  isBinary?: boolean | undefined;
   fire: ThresholdExpectation;
   recover: ThresholdExpectation;
 }
@@ -96,6 +121,7 @@ const EXPECTED_TEMPLATES: Array<TemplateExpectation> = [
       aggregation: MetricsAggregationType.Count,
     },
     groupBy: undefined,
+    tasksOnly: false,
     fire: {
       alias: "samples_received",
       filterType: FilterType.LessThan,
@@ -125,6 +151,7 @@ const EXPECTED_TEMPLATES: Array<TemplateExpectation> = [
       aggregation: MetricsAggregationType.Min,
     },
     groupBy: "resource.container.name",
+    tasksOnly: true,
     fire: {
       alias: "container_uptime",
       filterType: FilterType.LessThan,
@@ -151,6 +178,7 @@ const EXPECTED_TEMPLATES: Array<TemplateExpectation> = [
       aggregation: MetricsAggregationType.Avg,
     },
     groupBy: "resource.container.name",
+    tasksOnly: true,
     fire: {
       alias: "container_cpu",
       filterType: FilterType.GreaterThan,
@@ -174,6 +202,7 @@ const EXPECTED_TEMPLATES: Array<TemplateExpectation> = [
       aggregation: MetricsAggregationType.Avg,
     },
     groupBy: "resource.container.name",
+    tasksOnly: true,
     fire: {
       alias: "container_memory",
       filterType: FilterType.GreaterThan,
@@ -201,6 +230,7 @@ const EXPECTED_TEMPLATES: Array<TemplateExpectation> = [
       aggregation: MetricsAggregationType.Max,
     },
     groupBy: "resource.container.name",
+    tasksOnly: true,
     fire: {
       alias: "container_pids",
       filterType: FilterType.GreaterThan,
@@ -212,7 +242,98 @@ const EXPECTED_TEMPLATES: Array<TemplateExpectation> = [
       value: 2000,
     },
   },
+  {
+    /*
+     * The managers' own view, from the agent's poller: 1 while the node is
+     * ready, 0 otherwise, one reading a minute. Min per node per minute, so
+     * a minute reads 1 only if the node was ready all of it; sustained over
+     * five minutes. A 0/1 series: recovery is >= 1 exactly, never 1.1.
+     */
+    id: "docker-swarm-node-not-ready",
+    name: "Node Not Ready",
+    category: "Availability",
+    severity: "Critical",
+    rollingTime: RollingTime.Past5Minutes,
+    query: {
+      metricName: "docker.swarm.node.ready",
+      aggregation: MetricsAggregationType.Min,
+    },
+    groupBy: "resource.docker.swarm.node.name",
+    tasksOnly: false,
+    isBinary: true,
+    fire: {
+      alias: "node_ready",
+      filterType: FilterType.LessThan,
+      value: 1,
+    },
+    recover: {
+      alias: "node_ready",
+      filterType: FilterType.GreaterThanOrEqualTo,
+      value: 1,
+    },
+  },
+  {
+    /*
+     * docker service ls's REPLICAS column: wanted less running, per
+     * service. Avg of each, as each arrives once a minute (Sum would
+     * multiply the shortfall by the readings); fifteen minutes, so a
+     * rolling update with slow health checks does not page.
+     */
+    id: "docker-swarm-service-replicas-mismatch",
+    name: "Service Replicas Mismatch",
+    category: "Availability",
+    severity: "Warning",
+    rollingTime: RollingTime.Past15Minutes,
+    formula: {
+      queries: [
+        {
+          alias: "desired_replicas",
+          metricName: "docker.swarm.service.replicas.desired",
+          aggregation: MetricsAggregationType.Avg,
+        },
+        {
+          alias: "running_replicas",
+          metricName: "docker.swarm.service.replicas.running",
+          aggregation: MetricsAggregationType.Avg,
+        },
+      ],
+      formula: "desired_replicas - running_replicas",
+      resultAlias: "replica_shortfall",
+    },
+    groupBy: "resource.docker.swarm.service.name",
+    tasksOnly: false,
+    fire: {
+      alias: "replica_shortfall",
+      filterType: FilterType.GreaterThan,
+      value: 0,
+    },
+    recover: {
+      alias: "replica_shortfall",
+      filterType: FilterType.LessThanOrEqualTo,
+      value: 0,
+    },
+  },
 ];
+
+// The series the swarm's own state arrives as, from the agent's poller.
+const SWARM_STATE_METRICS: Set<string> = new Set<string>([
+  "docker.swarm.node.ready",
+  "docker.swarm.service.replicas.desired",
+  "docker.swarm.service.replicas.running",
+]);
+
+// The expectation row of a template, which every template has.
+function getExpectation(id: string): TemplateExpectation {
+  const expectation: TemplateExpectation | undefined = EXPECTED_TEMPLATES.find(
+    (t: TemplateExpectation) => {
+      return t.id === id;
+    },
+  );
+  if (!expectation) {
+    throw new Error(`no expectation row for ${id}`);
+  }
+  return expectation;
+}
 
 function buildArgs(): DockerSwarmAlertTemplateArgs {
   return {
@@ -277,7 +398,19 @@ function getReferencableAliases(
 function isDisjointComplement(
   fire: { filterType: FilterType; value: number },
   recover: { filterType: FilterType; value: number },
+  isBinary: boolean = false,
 ): boolean {
+  if (isBinary) {
+    /*
+     * A 0/1 series has no room for a dead band: the pair must be exact
+     * complements on the same threshold. Recovering at >= 1.1 would never
+     * match a node that is ready again, so it would never read Online.
+     */
+    return (
+      getComplementFilterType(fire.filterType) === recover.filterType &&
+      recover.value === fire.value
+    );
+  }
   return hasRecoveryDeadBand(fire, recover);
 }
 
@@ -326,7 +459,12 @@ describe("DockerSwarmAlertTemplates - registry", () => {
       availability.map((t: DockerSwarmAlertTemplate) => {
         return t.id;
       }),
-    ).toEqual([STOPPED_REPORTING_ID, "docker-swarm-task-down"]);
+    ).toEqual([
+      STOPPED_REPORTING_ID,
+      "docker-swarm-node-not-ready",
+      "docker-swarm-service-replicas-mismatch",
+      "docker-swarm-task-down",
+    ]);
     expect(
       container.map((t: DockerSwarmAlertTemplate) => {
         return t.id;
@@ -427,13 +565,14 @@ describe("DockerSwarmAlertTemplates - enumerated invariants (every template)", (
       return [t.id, t];
     }),
   )(
-    "%s groups by the resource-prefixed container name (never the bare datapoint spelling)",
-    (_id: unknown, template: unknown) => {
+    "%s groups by a resource-prefixed attribute (never the bare datapoint spelling)",
+    (id: unknown, template: unknown) => {
       const step: MonitorStep = (
         template as DockerSwarmAlertTemplate
       ).getMonitorStep(buildArgs());
       const monitor: MonitorStepDockerSwarmMonitor =
         getDockerSwarmMonitor(step);
+      const expected: TemplateExpectation = getExpectation(id as string);
 
       for (const queryConfig of monitor.metricViewConfig
         .queryConfigs as Array<any>) {
@@ -449,9 +588,11 @@ describe("DockerSwarmAlertTemplates - enumerated invariants (every template)", (
            * stored attribute: the worker's grouped read (GROUP BY
            * attributes['container.name']) then labels every datapoint
            * `{"container.name": ""}`, collapsing the whole cluster into one
-           * unnamed series.
+           * unnamed series. The poller's node and service series carry
+           * their names the same way, as resource attributes.
            */
-          expect(key).toBe("resource.container.name");
+          expect(key.startsWith("resource.")).toBe(true);
+          expect(key).toBe(expected.groupBy);
         }
       }
     },
@@ -463,10 +604,11 @@ describe("DockerSwarmAlertTemplates - enumerated invariants (every template)", (
     }),
   )(
     "%s has disjoint fire/recover thresholds on the same alias",
-    (_id: unknown, template: unknown) => {
+    (id: unknown, template: unknown) => {
       const step: MonitorStep = (
         template as DockerSwarmAlertTemplate
       ).getMonitorStep(buildArgs());
+      const isBinary: boolean = Boolean(getExpectation(id as string).isBinary);
       const instances: Array<MonitorCriteriaInstance> =
         getCriteriaInstances(step);
       const onlineFilters: Array<any> = (instances[instances.length - 1]!.data
@@ -491,6 +633,7 @@ describe("DockerSwarmAlertTemplates - enumerated invariants (every template)", (
                 filterType: recoverFilter.filterType,
                 value: recoverFilter.value as number,
               },
+              isBinary,
             ),
           ).toBe(true);
         }
@@ -503,17 +646,74 @@ describe("DockerSwarmAlertTemplates - enumerated invariants (every template)", (
       return [t.id, t];
     }),
   )(
-    "%s is single-query with no formulas (per-task container metric)",
-    (_id: unknown, template: unknown) => {
+    "%s reads one series, or two and a formula over them",
+    (id: unknown, template: unknown) => {
       const step: MonitorStep = (
         template as DockerSwarmAlertTemplate
       ).getMonitorStep(buildArgs());
       const monitor: MonitorStepDockerSwarmMonitor =
         getDockerSwarmMonitor(step);
+      const expected: TemplateExpectation = getExpectation(id as string);
 
-      // Each Docker Swarm template reads exactly one container.* series.
-      expect(monitor.metricViewConfig.queryConfigs).toHaveLength(1);
-      expect(monitor.metricViewConfig.formulaConfigs || []).toHaveLength(0);
+      if (!expected.formula) {
+        // A per-task or per-node template reads exactly one series.
+        expect(monitor.metricViewConfig.queryConfigs).toHaveLength(1);
+        expect(monitor.metricViewConfig.formulaConfigs || []).toHaveLength(0);
+        return;
+      }
+
+      // A difference: both series grouped alike, so the formula pairs them.
+      const queryConfigs: Array<any> = monitor.metricViewConfig
+        .queryConfigs as Array<any>;
+      expect(queryConfigs).toHaveLength(expected.formula.queries.length);
+      const groupBys: Array<string> = queryConfigs.map((config: any) => {
+        return (config.metricQueryData.groupByAttributeKeys || []).join(",");
+      });
+      expect(new Set(groupBys).size).toBe(1);
+
+      const formulaConfigs: Array<any> = (monitor.metricViewConfig
+        .formulaConfigs || []) as Array<any>;
+      expect(formulaConfigs).toHaveLength(1);
+      const formula: string = formulaConfigs[0].metricFormulaData.metricFormula;
+      for (const queryConfig of queryConfigs) {
+        expect(formula).toContain(queryConfig.metricAliasData.metricVariable);
+      }
+    },
+  );
+
+  test.each(
+    ALL_TEMPLATES.map((t: DockerSwarmAlertTemplate) => {
+      return [t.id, t];
+    }),
+  )(
+    "%s narrows to task containers exactly when it reads them",
+    (id: unknown, template: unknown) => {
+      const step: MonitorStep = (
+        template as DockerSwarmAlertTemplate
+      ).getMonitorStep(buildArgs());
+      const monitor: MonitorStepDockerSwarmMonitor =
+        getDockerSwarmMonitor(step);
+      const metricNames: Array<string> = (
+        monitor.metricViewConfig.queryConfigs as Array<any>
+      ).map((config: any) => {
+        return config.metricQueryData.filterData.metricName;
+      });
+
+      /*
+       * tasksOnly keeps the series of containers that carry a Swarm task's
+       * label. The poller's node and service series are no container's, so
+       * tasksOnly on them would filter out every one: the template would
+       * read nothing and never fire.
+       */
+      const readsSwarmState: boolean = metricNames.some((name: string) => {
+        return SWARM_STATE_METRICS.has(name);
+      });
+      if (readsSwarmState) {
+        expect(monitor.resourceFilters?.tasksOnly).toBeFalsy();
+      }
+      expect(Boolean(monitor.resourceFilters?.tasksOnly)).toBe(
+        getExpectation(id as string).tasksOnly,
+      );
     },
   );
 
@@ -555,8 +755,77 @@ describe("DockerSwarmAlertTemplates - enumerated invariants (every template)", (
         template.getMonitorStep(buildArgs()),
       );
 
+      if (!getExpectation(template.id).tasksOnly) {
+        // One incident per node or per service, named as its tasks are.
+        expect(keys).toEqual([getExpectation(template.id).groupBy]);
+        expect(keys[0]!.startsWith("resource.docker.swarm.")).toBe(true);
+        continue;
+      }
+
       expect(keys).toEqual(["resource.container.name"]);
       expect(keys[0]!.startsWith("resource.")).toBe(true);
+    }
+  });
+
+  /*
+   * Regression guard for the node template's recovery: docker.swarm.node
+   * .ready is 1 or 0, so the shared 10% dead band (recover at >= 1.1) would
+   * never match a node that is ready again. Its recovery is >= 1 exactly.
+   */
+  test("the node template recovers at exactly 1, a value the series can read", () => {
+    const template: DockerSwarmAlertTemplate | undefined =
+      getDockerSwarmAlertTemplateById("docker-swarm-node-not-ready");
+    expect(template).toBeDefined();
+    const instances: Array<MonitorCriteriaInstance> = getCriteriaInstances(
+      template!.getMonitorStep(buildArgs()),
+    );
+    const fireFilter: any = (instances[0]!.data?.filters as Array<any>)[0];
+    const recoverFilter: any = (
+      instances[instances.length - 1]!.data?.filters as Array<any>
+    )[0];
+
+    expect(fireFilter.filterType).toBe(FilterType.LessThan);
+    expect(fireFilter.value).toBe(1);
+    expect(recoverFilter.filterType).toBe(FilterType.GreaterThanOrEqualTo);
+    expect(recoverFilter.value).toBe(1);
+  });
+
+  /*
+   * The replicas template must not page for a rolling update: Swarm
+   * replaces a service's tasks a few at a time, each waiting for its health
+   * check, so a service briefly runs short. Sustained over fifteen minutes,
+   * every minute short, as Kubernetes' Deployment Replica Mismatch.
+   */
+  test("the replicas template waits out a rolling update", () => {
+    const template: DockerSwarmAlertTemplate | undefined =
+      getDockerSwarmAlertTemplateById("docker-swarm-service-replicas-mismatch");
+    expect(template).toBeDefined();
+    const step: MonitorStep = template!.getMonitorStep(buildArgs());
+    expect(getDockerSwarmMonitor(step).rollingTime).toBe(
+      RollingTime.Past15Minutes,
+    );
+    const fireFilter: any = (
+      getCriteriaInstances(step)[0]!.data?.filters as Array<any>
+    )[0];
+    expect(fireFilter.metricMonitorOptions.metricAggregationType).toBe(
+      EvaluateOverTimeType.AllValues,
+    );
+  });
+
+  /*
+   * The two swarm-state templates read series only an agent with files
+   * 0.161.3 or later sends, and they say so: a customer on an older agent
+   * reads why the alert never fires, next to the cluster's upgrade sign.
+   */
+  test("the swarm-state templates name the agent files they need", () => {
+    for (const id of [
+      "docker-swarm-node-not-ready",
+      "docker-swarm-service-replicas-mismatch",
+    ]) {
+      const template: DockerSwarmAlertTemplate | undefined =
+        getDockerSwarmAlertTemplateById(id);
+      expect(template).toBeDefined();
+      expect(template!.description).toContain("0.161.3");
     }
   });
 
@@ -681,15 +950,44 @@ describe("DockerSwarmAlertTemplates - spec table expectations", () => {
 
       const queryConfigs: Array<any> = monitor.metricViewConfig
         .queryConfigs as Array<any>;
-      expect(queryConfigs).toHaveLength(1);
 
-      const filterData: any = queryConfigs[0].metricQueryData.filterData;
-      expect(filterData.metricName).toBe(tc.query.metricName);
-      expect(filterData.aggegationType).toBe(tc.query.aggregation);
+      if (tc.formula) {
+        expect(queryConfigs).toHaveLength(tc.formula.queries.length);
+        tc.formula.queries.forEach(
+          (query: QueryExpectation & { alias: string }, index: number) => {
+            const config: any = queryConfigs[index];
+            expect(config.metricAliasData.metricVariable).toBe(query.alias);
+            expect(config.metricQueryData.filterData.metricName).toBe(
+              query.metricName,
+            );
+            expect(config.metricQueryData.filterData.aggegationType).toBe(
+              query.aggregation,
+            );
+            expect(config.metricQueryData.groupByAttributeKeys || []).toEqual(
+              tc.groupBy ? [tc.groupBy] : [],
+            );
+          },
+        );
+        const formulaConfigs: Array<any> = (monitor.metricViewConfig
+          .formulaConfigs || []) as Array<any>;
+        expect(formulaConfigs).toHaveLength(1);
+        expect(formulaConfigs[0].metricFormulaData.metricFormula).toBe(
+          tc.formula.formula,
+        );
+        expect(formulaConfigs[0].metricAliasData.metricVariable).toBe(
+          tc.formula.resultAlias,
+        );
+      } else {
+        expect(queryConfigs).toHaveLength(1);
 
-      const groupBys: Array<string> =
-        queryConfigs[0].metricQueryData.groupByAttributeKeys || [];
-      expect(groupBys).toEqual(tc.groupBy ? [tc.groupBy] : []);
+        const filterData: any = queryConfigs[0].metricQueryData.filterData;
+        expect(filterData.metricName).toBe(tc.query!.metricName);
+        expect(filterData.aggegationType).toBe(tc.query!.aggregation);
+
+        const groupBys: Array<string> =
+          queryConfigs[0].metricQueryData.groupByAttributeKeys || [];
+        expect(groupBys).toEqual(tc.groupBy ? [tc.groupBy] : []);
+      }
 
       const instances: Array<MonitorCriteriaInstance> =
         getCriteriaInstances(step);
@@ -714,6 +1012,7 @@ describe("DockerSwarmAlertTemplates - spec table expectations", () => {
         getRecoveryThreshold({
           filterType: getComplementFilterType(tc.recover.filterType)!,
           value: tc.recover.value,
+          isBinaryMetric: tc.isBinary,
         }) ?? tc.recover.value,
       );
     },

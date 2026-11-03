@@ -133,7 +133,7 @@ AI एजेंट की अपनी सेटिंग्स [AI एजें
 
 | श्रेणी | मेट्रिक्स |
 | --- | --- |
-| क्लस्टर हेल्थ | `ceph_health_status` (0 = OK, 1 = WARN, 2 = ERR), `ceph_health_detail` (हर हेल्थ चेक के लिए एक सीरीज़, सक्रिय रहने तक 1 और साफ़ होने के बाद 0, `name` और `severity` लेबल के साथ, Quincy से आगे; हेल्थ-चेक अलर्ट टेम्पलेट और अवलोकन के **Active Health Checks** का आधार), `ceph_healthcheck_slow_ops`, `ceph_daemon_health_metrics` (हर डेमन के लिए, `type` से पहचाना गया), `ceph_mon_quorum_status`, `ceph_mon_metadata`, `ceph_cluster_total_bytes`, `ceph_cluster_total_used_bytes` |
+| क्लस्टर हेल्थ | `ceph_health_status` (0 = OK, 1 = WARN, 2 = ERR), `ceph_health_detail` (हर हेल्थ चेक के लिए एक सीरीज़, सक्रिय रहने तक 1 और साफ़ होने के बाद 0, `name` और `severity` लेबल के साथ, Quincy से आगे; हेल्थ-चेक अलर्ट टेम्पलेट और अवलोकन के **ध्यान देने की ज़रूरत** में दिखने वाली जाँचों का आधार), `ceph_healthcheck_slow_ops`, `ceph_daemon_health_metrics` (हर डेमन के लिए, `type` से पहचाना गया), `ceph_mon_quorum_status`, `ceph_mon_metadata`, `ceph_cluster_total_bytes`, `ceph_cluster_total_used_bytes` |
 | OSD | `ceph_osd_up`, `ceph_osd_in`, `ceph_osd_apply_latency_ms`, `ceph_osd_commit_latency_ms`, `ceph_osd_stat_bytes`, `ceph_osd_stat_bytes_used`, `ceph_osd_numpg`, `ceph_osd_metadata`, हर OSD के लिए `ceph_daemon` लेबल से (जैसे `osd.3`) |
 | पूल | `ceph_pool_stored`, `ceph_pool_max_avail`, `ceph_pool_objects`, `ceph_pool_rd`, `ceph_pool_wr`, `ceph_pool_rd_bytes`, `ceph_pool_wr_bytes`, `ceph_pool_metadata`। डेटा सीरीज़ में सिर्फ़ `pool_id` लेबल होता है; पूल का नाम `ceph_pool_metadata` पर होता है। |
 | प्लेसमेंट ग्रुप | `ceph_pg_total`, `ceph_pg_active`, `ceph_pg_clean`, `ceph_pg_degraded`, `ceph_pg_undersized` (सभी हर पूल के लिए, `pool_id` से), `ceph_num_objects_degraded`, `ceph_num_objects_misplaced` |
@@ -147,6 +147,19 @@ mgr मॉड्यूल क्लस्टर की हेल्थ और �
 - **`node_exporter`।** हर Ceph होस्ट के CPU, मेमोरी, डिस्क और नेटवर्क मेट्रिक्स के लिए सामान्य साथी, डिफ़ॉल्ट रूप से पोर्ट `9100` पर।
 
 दोनों को साथ आने वाले `resource` प्रोसेसर से `ceph.cluster.name` रिसोर्स एट्रिब्यूट मिलता है, इसलिए वे OneUptime में उसी क्लस्टर पर पहुँचते हैं।
+
+## क्लस्टर के पेज क्या दिखाते हैं
+
+क्लस्टर का **अवलोकन** जिस पर ध्यान देने की ज़रूरत है उसके आधार पर उसका स्वास्थ्य, **स्वस्थ**, **प्रदर्शन में गिरावट** या **अस्वस्थ**, बताता है, और उसे **ध्यान देने की ज़रूरत** में सबसे ज़रूरी पहले रखकर सूचीबद्ध करता है:
+
+- **खुद क्लस्टर।** Ceph का अपना `HEALTH_WARN` या `HEALTH_ERR`, उन जाँचों के साथ जो उसने उठाईं, उन्हीं नामों से जो Ceph देता है, जैसे `OSD_DOWN` या `PG_DEGRADED`, और 85% से ऊपर कच्ची क्षमता (95% से ऊपर गंभीर), जहाँ Cluster Near Full और Cluster Full अलर्ट ट्रिगर होते हैं।
+- **OSD।** जो OSD डाउन है पर फिर भी क्लस्टर में है वह गंभीर है: उसके Placement Groups में एक कॉपी कम है। जो डाउन और बाहर है, या अप है पर बाहर है, उसे देखने की ज़रूरत है, वैसे ही जो Ceph के nearfull अनुपात (85%) या backfillfull अनुपात (90%) से ऊपर है, या जिसकी अप्लाई लेटेंसी 100 ms से ऊपर है। full अनुपात (95%) से ऊपर वह लिखना अस्वीकार करता है, जो गंभीर है।
+- **मॉनिटर।** कोरम से बाहर मॉनिटर गंभीर है।
+- **पूल।** जो पूल अपनी लिखने लायक जगह के 85% से ऊपर है, stored ÷ (stored + max avail), उसे देखने की ज़रूरत है, और 95% से ऊपर वह गंभीर है। खराब या अधूरे Placement Groups को देखने की ज़रूरत है; निष्क्रिय वाले, जिनका I/O अटक जाता है, गंभीर हैं।
+
+**OSD**, **पूल** और **डेमन** सूचियाँ उन्हीं नियमों से हर हिस्से की स्थिति दिखाती हैं, और कारण उसके नीचे। किसी OSD और पूल का अपना पेज बताता है कि उसमें किस पर ध्यान देने की ज़रूरत है, उस पर क्या खुला है और क्लस्टर के कौन से अलर्ट उस पर नज़र रखते हैं, बाकी को चालू करने के लिए एक कदम के साथ। जिस मैनेजर, मेटाडेटा सर्वर या ऑब्जेक्ट गेटवे को Ceph अब सूची में नहीं दिखाता, वह धूसर रंग में **रिपोर्ट करना बंद किया** दिखाता है: जो विफल होता है उसके लिए Ceph एक जाँच उठाता है, जैसे `RECENT_CRASH` या `MDS_ALL_DOWN`, जिसे क्लस्टर की पंक्ति दिखाती है। एजेंट डिस्कनेक्ट रहने तक स्वास्थ्य **स्वास्थ्य: अज्ञात** दिखाता है: क्लस्टर की आखिरी रिपोर्ट अब सही नहीं है।
+
+OSD अनुपात Ceph के डिफ़ॉल्ट हैं। दूसरे मानों पर सेट किया गया क्लस्टर अपनी सीमाओं पर अपनी `OSD_NEARFULL`, `OSD_BACKFILLFULL` और `OSD_FULL` जाँचें उठाता है, जिन्हें क्लस्टर की पंक्ति दिखाती है।
 
 ## वैकल्पिक — Ceph क्लस्टर लॉग भेजें
 

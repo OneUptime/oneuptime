@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40492,
-    "untranslated": 1135
+    "keys": 40737,
+    "untranslated": 973
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -130,6 +130,7 @@
     "Mbps",
     "Microsoft Entra ID",
     "Mistral",
+    "NAA ID",
     "Namespace",
     "NetFlow v5",
     "Null",

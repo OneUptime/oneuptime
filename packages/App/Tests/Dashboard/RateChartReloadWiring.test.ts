@@ -154,7 +154,7 @@ describe.each(KEPT_CHARTS)(
       const firstLoad: string = between(
         source,
         "if (!shown) {",
-        "const series: Array<SeriesPoint> = shown.series;",
+        "const series: Array<SeriesPoint> = shown.series",
       );
       expect(firstLoad).toContain(
         "return <ChartLoadingSkeleton heightInPx={heightInPx} />;",
@@ -166,7 +166,7 @@ describe.each(KEPT_CHARTS)(
       const firstLoad: string = between(
         source,
         "if (!shown) {",
-        "const series: Array<SeriesPoint> = shown.series;",
+        "const series: Array<SeriesPoint> = shown.series",
       );
       expect(firstLoad).toContain(
         'if (error && !isLoading) { return ( <div className="flex select-none flex-col justify-center" style={{ minHeight: `${heightInPx}px` }} onDoubleClick={zoom?.onTimeRangeReset} > <ErrorMessage message={error} /> </div> ); }',

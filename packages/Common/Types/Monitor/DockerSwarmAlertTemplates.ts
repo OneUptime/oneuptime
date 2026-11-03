@@ -185,6 +185,73 @@ export function buildDockerSwarmMonitorConfig(args: {
   };
 }
 
+/*
+ * Two queries and a formula over them, for a template that judges a
+ * difference rather than one series - a service's replicas wanted less the
+ * ones it runs. Both queries group by the same keys, which the poller puts
+ * on both series of a service's resource, so the formula's fingerprint join
+ * pairs each service's two readings.
+ */
+export interface DockerSwarmFormulaQuery {
+  alias: string;
+  metricName: string;
+  aggregationType: MetricsAggregationType;
+}
+
+export function buildDockerSwarmFormulaMonitorConfig(args: {
+  clusterIdentifier: string;
+  queries: Array<DockerSwarmFormulaQuery>;
+  formula: string;
+  resultAlias: string;
+  resultLegend: string;
+  // Display only: "" for a count.
+  resultLegendUnit: string;
+  groupByAttributeKey: string;
+  rollingTime: RollingTime;
+}): MonitorStepDockerSwarmMonitor {
+  return {
+    clusterIdentifier: args.clusterIdentifier,
+    resourceFilters: {},
+    metricViewConfig: {
+      queryConfigs: args.queries.map((query: DockerSwarmFormulaQuery) => {
+        return {
+          metricAliasData: {
+            metricVariable: query.alias,
+            title: query.alias,
+            description: query.alias,
+            legend: query.alias,
+            legendUnit: undefined,
+          },
+          metricQueryData: {
+            filterData: {
+              metricName: query.metricName,
+              attributes: {},
+              aggegationType: query.aggregationType,
+              aggregateBy: {},
+            },
+            groupByAttributeKeys: [args.groupByAttributeKey],
+          },
+        };
+      }),
+      formulaConfigs: [
+        {
+          metricAliasData: {
+            metricVariable: args.resultAlias,
+            title: args.resultLegend,
+            description: args.resultLegend,
+            legend: args.resultLegend,
+            legendUnit: args.resultLegendUnit,
+          },
+          metricFormulaData: {
+            metricFormula: args.formula,
+          },
+        },
+      ],
+    },
+    rollingTime: args.rollingTime,
+  };
+}
+
 // --- Template Definitions ---
 
 /*
@@ -494,9 +561,141 @@ const taskDownTemplate: DockerSwarmAlertTemplate = {
   },
 };
 
+/*
+ * The swarm's own state, from the agent's poller (files 0.161.3 on): every
+ * minute it reads `docker node ls` and `docker service ls` from a manager
+ * and sends, per node, docker.swarm.node.ready (1 while the node is ready)
+ * and, per replicated or global service, docker.swarm.service.replicas
+ * .desired and .running - on a resource named as the node's and the
+ * service's task containers are (`resource.docker.swarm.node.name`,
+ * `resource.docker.swarm.service.name`). Not task containers, so neither
+ * template asks for tasksOnly. An agent older than 0.161.3 sends neither
+ * series: both templates then have nothing to read and never fire, and the
+ * cluster's agent version shows the sign that says to upgrade it.
+ */
+const nodeNotReadyTemplate: DockerSwarmAlertTemplate = {
+  id: "docker-swarm-node-not-ready",
+  name: "Node Not Ready",
+  summary: "A node is down or disconnected for 5 minutes.",
+  description:
+    "Alert when a Swarm node has not been ready for five minutes: the managers have lost its heartbeat, so it is down or disconnected, and Swarm moves its replicated tasks to other nodes while its global ones stop. Read every minute from the managers' own view (docker.swarm.node.ready, from the agent's poller, files 0.161.3 on). One incident per node.",
+  category: "Availability",
+  severity: "Critical",
+  getMonitorStep: (args: DockerSwarmAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = "node_ready";
+
+    return buildDockerSwarmMonitorStep({
+      dockerSwarmMonitor: buildDockerSwarmMonitorConfig({
+        clusterIdentifier: args.clusterIdentifier,
+        metricName: "docker.swarm.node.ready",
+        metricAlias,
+        rollingTime: RollingTime.Past5Minutes,
+        /*
+         * Min per node: one reading a minute, 1 or 0, so the minute's
+         * lowest is whether the node was ready all of it.
+         */
+        aggregationType: MetricsAggregationType.Min,
+        groupByAttributeKey: "resource.docker.swarm.node.name",
+      }),
+      offlineCriteriaInstance: buildDockerSwarmOfflineCriteriaInstance({
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        incidentSeverityId: args.defaultIncidentSeverityId,
+        alertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+        metricAlias,
+        filterType: FilterType.LessThan,
+        value: 1,
+        incidentTitle: `[Docker Swarm] Node Not Ready - ${args.monitorName}`,
+        incidentDescription: `A Docker Swarm node has not been ready for five minutes: the swarm's managers have lost its heartbeat, so it is down, disconnected or cut off from them. Swarm moves the node's replicated tasks to the other nodes, if they have room, and a global service's task on it stops. Run \`docker node ls\` on a manager to see the node's status and \`docker node inspect <node> --pretty\` for Swarm's message about it; then check that the machine is up, that its Docker daemon runs, and that it can reach the managers on ports 2377, 7946 and 4789. If the node is a manager, the swarm can lose fewer managers until it is back. The incident resolves on its own once the node is ready again.`,
+        criteriaName: "Node Not Ready - Not ready for 5 minutes",
+        criteriaDescription:
+          "Triggers when a node reads not ready in every minute of a five-minute window.",
+      }),
+      onlineCriteriaInstance: buildDockerSwarmOnlineCriteriaInstance({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        metricAlias,
+        filterType: FilterType.GreaterThanOrEqualTo,
+        value: 1,
+        isBinaryMetric: true,
+      }),
+    });
+  },
+};
+
+const serviceReplicasMismatchTemplate: DockerSwarmAlertTemplate = {
+  id: "docker-swarm-service-replicas-mismatch",
+  name: "Service Replicas Mismatch",
+  summary: "A service runs fewer replicas than it wants for 15 minutes.",
+  description:
+    "Alert when a replicated or global Swarm service has run fewer tasks than it wants for fifteen minutes - the REPLICAS column of docker service ls reading 2/3. Computed per service as docker.swarm.service.replicas.desired - docker.swarm.service.replicas.running, read every minute from a manager by the agent's poller (files 0.161.3 on). Fifteen minutes, so a rolling update that replaces its tasks a few at a time does not page. One incident per service.",
+  category: "Availability",
+  severity: "Warning",
+  getMonitorStep: (args: DockerSwarmAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = "replica_shortfall";
+
+    return buildDockerSwarmMonitorStep({
+      dockerSwarmMonitor: buildDockerSwarmFormulaMonitorConfig({
+        clusterIdentifier: args.clusterIdentifier,
+        /*
+         * ONE reading a minute of each, from the same `docker service ls`,
+         * so Avg is the minute's count whatever the reading's rate; Sum
+         * would multiply the shortfall by the readings in the minute.
+         */
+        queries: [
+          {
+            alias: "desired_replicas",
+            metricName: "docker.swarm.service.replicas.desired",
+            aggregationType: MetricsAggregationType.Avg,
+          },
+          {
+            alias: "running_replicas",
+            metricName: "docker.swarm.service.replicas.running",
+            aggregationType: MetricsAggregationType.Avg,
+          },
+        ],
+        formula: "desired_replicas - running_replicas",
+        resultAlias: metricAlias,
+        resultLegend: "Service Replica Shortfall",
+        // A task count, not a percentage.
+        resultLegendUnit: "",
+        groupByAttributeKey: "resource.docker.swarm.service.name",
+        /*
+         * 15 minutes, as Kubernetes' Deployment Replica Mismatch: with the
+         * sustained (AllValues) default every minute must be short, and a
+         * rolling update of a service with slow health checks keeps it
+         * short for longer than five.
+         */
+        rollingTime: RollingTime.Past15Minutes,
+      }),
+      offlineCriteriaInstance: buildDockerSwarmOfflineCriteriaInstance({
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        incidentSeverityId: args.defaultIncidentSeverityId,
+        alertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+        metricAlias,
+        filterType: FilterType.GreaterThan,
+        value: 0,
+        incidentTitle: `[Docker Swarm] Service Replicas Mismatch - ${args.monitorName}`,
+        incidentDescription: `A Docker Swarm service has run fewer tasks than it wants for fifteen minutes. Its tasks keep failing, no node can run them (not enough CPU or memory, a placement constraint no node meets, an image no node can pull), or the nodes that ran them are down; when none of them run, the service is down. Run \`docker service ps <service> --no-trunc\` on a manager: its ERROR column says why each task failed or waits. The incident resolves on its own once the service runs every replica again.`,
+        criteriaName: "Replicas Mismatch - Desired > Running for 15 minutes",
+        criteriaDescription:
+          "Triggers when a service's wanted replicas exceed the ones it runs in every minute of a fifteen-minute window - long enough that a normal rolling update has finished.",
+      }),
+      onlineCriteriaInstance: buildDockerSwarmOnlineCriteriaInstance({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        metricAlias,
+        filterType: FilterType.LessThanOrEqualTo,
+        value: 0,
+      }),
+    });
+  },
+};
+
 export function getAllDockerSwarmAlertTemplates(): Array<DockerSwarmAlertTemplate> {
   return [
     clusterStoppedReportingTemplate,
+    nodeNotReadyTemplate,
+    serviceReplicasMismatchTemplate,
     taskDownTemplate,
     highCpuTemplate,
     highMemoryTemplate,

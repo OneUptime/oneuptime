@@ -133,7 +133,7 @@ AI 代理自己的设置见 [AI 代理](#ai-代理)。
 
 | 类别 | 指标 |
 | --- | --- |
-| 集群健康 | `ceph_health_status`（0 = OK，1 = WARN，2 = ERR）、`ceph_health_detail`（每个健康检查一个序列（活动期间为 1，清除后为 0），带 `name` 和 `severity` 标签，从 Quincy 开始；健康检查警报模板和概览中 **Active Health Checks** 的数据来源）、`ceph_healthcheck_slow_ops`、`ceph_daemon_health_metrics`（按守护进程，以 `type` 为键）、`ceph_mon_quorum_status`、`ceph_mon_metadata`、`ceph_cluster_total_bytes`、`ceph_cluster_total_used_bytes` |
+| 集群健康 | `ceph_health_status`（0 = OK，1 = WARN，2 = ERR）、`ceph_health_detail`（每个健康检查一个序列（活动期间为 1，清除后为 0），带 `name` 和 `severity` 标签，从 Quincy 开始；健康检查警报模板和概览中 **需要关注** 所示检查的数据来源）、`ceph_healthcheck_slow_ops`、`ceph_daemon_health_metrics`（按守护进程，以 `type` 为键）、`ceph_mon_quorum_status`、`ceph_mon_metadata`、`ceph_cluster_total_bytes`、`ceph_cluster_total_used_bytes` |
 | OSD | `ceph_osd_up`、`ceph_osd_in`、`ceph_osd_apply_latency_ms`、`ceph_osd_commit_latency_ms`、`ceph_osd_stat_bytes`、`ceph_osd_stat_bytes_used`、`ceph_osd_numpg`、`ceph_osd_metadata`，按 OSD 以 `ceph_daemon` 标签区分（例如 `osd.3`） |
 | 存储池 | `ceph_pool_stored`、`ceph_pool_max_avail`、`ceph_pool_objects`、`ceph_pool_rd`、`ceph_pool_wr`、`ceph_pool_rd_bytes`、`ceph_pool_wr_bytes`、`ceph_pool_metadata`。数据序列只带有 `pool_id` 标签；存储池的名称在 `ceph_pool_metadata` 上。 |
 | 归置组 | `ceph_pg_total`、`ceph_pg_active`、`ceph_pg_clean`、`ceph_pg_degraded`、`ceph_pg_undersized`（均按存储池，以 `pool_id` 区分）、`ceph_num_objects_degraded`、`ceph_num_objects_misplaced` |
@@ -147,6 +147,19 @@ mgr 模块涵盖集群的健康状况和容量。若要深入查看，请在 `ot
 - **`node_exporter`。** 每台 Ceph 主机的 CPU、内存、磁盘和网络指标的常用搭档，默认端口为 `9100`。
 
 两者都会从随附的 `resource` 处理器获得 `ceph.cluster.name` 资源属性，因此会落到 OneUptime 中的同一个集群上。
+
+## 集群页面显示的内容
+
+集群的 **概览** 根据需要关注的内容显示其健康状况：**健康**、**性能下降** 或 **不健康**，并在 **需要关注** 中按紧急程度依次列出：
+
+- **集群本身。** Ceph 自身的 `HEALTH_WARN` 或 `HEALTH_ERR`，以及它发出的检查（沿用 Ceph 的名称，例如 `OSD_DOWN` 或 `PG_DEGRADED`），还有超过 85% 的原始容量（超过 95% 为严重），此时会触发 Cluster Near Full 和 Cluster Full 警报。
+- **OSD。** 已宕机但仍在集群中的 OSD 为严重：它的 Placement Group 少了一个副本。已宕机并移出、或正常运行但已移出的 OSD 需要查看，超过 Ceph 的 nearfull 比率（85%）或 backfillfull 比率（90%）、或应用延迟超过 100 ms 的 OSD 也一样。超过 full 比率（95%）时它会拒绝写入，这是严重问题。
+- **监视器。** 不在仲裁中的监视器为严重。
+- **存储池。** 超过其可写空间 85% 的存储池（stored ÷ (stored + max avail)）需要查看，超过 95% 为严重。降级或副本不足的 Placement Group 需要查看；I/O 会卡住的非活动 Placement Group 为严重。
+
+**OSD**、**存储池** 和 **守护进程** 列表按同样的规则显示每个部分的状态，并在下方说明原因。OSD 和存储池各自的页面会说明其中需要关注的内容、其上未解决的事项以及监视它的集群警报，只需一步即可开启其余警报。Ceph 不再列出的管理器、元数据服务器或对象网关显示为灰色的 **已停止上报**：对于发生故障的守护进程，Ceph 会发出检查，例如 `RECENT_CRASH` 或 `MDS_ALL_DOWN`，集群所在行会显示它。代理断开连接期间，健康状况显示为 **健康状况未知**：集群的最后一次报告已不再准确。
+
+OSD 比率是 Ceph 的默认值。设置了其他值的集群会在自己的阈值上发出 `OSD_NEARFULL`、`OSD_BACKFILLFULL` 和 `OSD_FULL` 检查，集群所在行会显示它们。
 
 ## 可选 — 发送 Ceph 集群日志
 

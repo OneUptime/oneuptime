@@ -136,7 +136,7 @@ Everything is ready. Begin running and processing data.
 
 ### Encontrar la cabina en OneUptime
 
-Abre **Productos → Infraestructura → Cabinas de almacenamiento → All Storage Arrays**. Tras la primera recopilación (un minuto aproximadamente), la cabina está ahí con su capacidad, rendimiento, alertas abiertas y hardware. Los volúmenes, hosts y pods llegan en menos de 2 minutos, los sistemas de archivos y buckets de una FlashBlade en menos de 5, y los directorios de FlashArray en menos de 30. La página **Topología** de la cabina dibuja sus hosts, volúmenes, sistemas de archivos y hardware en un solo mapa: consulte [Topología](/docs/telemetry/topology#abrir-el-mapa-propio-de-un-recurso).
+Abre **Productos → Infraestructura → Cabinas de almacenamiento → Todas las cabinas de almacenamiento**. Tras la primera recopilación (un minuto aproximadamente), la cabina está ahí con su capacidad, rendimiento, alertas abiertas y hardware. Los volúmenes, hosts y pods llegan en menos de 2 minutos, los sistemas de archivos y buckets de una FlashBlade en menos de 5, y los directorios de FlashArray en menos de 30. La página **Topología** de la cabina dibuja sus hosts, volúmenes, sistemas de archivos y hardware en un solo mapa: consulte [Topología](/docs/telemetry/topology#abrir-el-mapa-propio-de-un-recurso).
 :::
 
 ## Variables de entorno
@@ -180,7 +180,19 @@ Las convenciones semánticas de Pure son comunes al endpoint nativo de FlashArra
 | FlashBlade `/metrics/filesystems` | `purefb_file_systems_space_*`, `purefb_file_systems_performance_*` | La página **Sistemas de archivos**: espacio aprovisionado y usado, reducción de datos, latencia, IOPS y ancho de banda por sistema de archivos |
 | FlashBlade `/metrics/objectstore` | `purefb_buckets_space_*`, `purefb_buckets_quota_space_bytes`, `purefb_buckets_object_count`, `purefb_buckets_performance_*`, `purefb_object_store_accounts_*` | La página **Buckets**: espacio, cuota, número de objetos y rendimiento por bucket, agrupados por cuenta |
 
-El estado de la cabina en su página **Vista general** es **Crítico** mientras informa de una alerta crítica abierta, o de un componente de hardware, disco o controladora en estado crítico, averiado, ausente o no saludable; **Advertencia** mientras informa de una alerta de advertencia abierta, o de un componente degradado o desconocido; y **OK** en caso contrario. En los criterios de un monitor, los atributos de la cabina llevan un prefijo `resource.` (`resource.storage.array.name`, `resource.storage.system`), mientras que las etiquetas de punto de datos van sin prefijo (`name`, `host`, `dimension`, `space`).
+La columna **Salud** de **Todas las cabinas de almacenamiento** lee las alertas y el hardware de la propia cabina en sus datos más recientes: **Crítico** mientras informa de una alerta crítica abierta, o de un componente de hardware, disco o controladora en estado crítico, averiado, ausente o no saludable; **Advertencia** mientras informa de una alerta de advertencia abierta, o de un componente degradado o desconocido; **OK** en caso contrario; y **Desconocido** mientras el agente está desconectado. La **Vista general** de la cabina juzga más, como dice la sección siguiente. En los criterios de un monitor, los atributos de la cabina llevan un prefijo `resource.` (`resource.storage.array.name`, `resource.storage.system`), mientras que las etiquetas de punto de datos van sin prefijo (`name`, `host`, `dimension`, `space`).
+
+## Lo que muestran las páginas de la cabina
+
+La **Vista general** de la cabina indica su salud, **En buen estado**, **Degradado** o **Con problemas**, según lo que necesita atención, y lo enumera en **Requiere atención**, lo más urgente primero, cada elemento a un paso de donde mirar:
+
+- **La propia cabina.** Una alerta abierta que la cabina generó con severidad crítica es crítica, y una con severidad de advertencia necesita un vistazo. Por encima del 80 % de su capacidad utilizable necesita un vistazo, y por encima del 90 % es crítica, donde se disparan las alertas Capacity Above 80% y Capacity Above 90%. Un FlashArray cuya latencia media de lectura o escritura supera 5 ms, o un FlashBlade cuyas lecturas tardan más de 10 ms, necesita un vistazo.
+- **Hardware.** Un componente, disco, controladora o interfaz de red que la cabina informa como crítico, averiado, ausente o no saludable es crítico: su redundancia ha desaparecido hasta que se sustituya la pieza. Uno que informa como degradado, desconocido, no reconocido o no listo necesita un vistazo. Las piezas no instaladas, apagadas o sin usar nunca se enumeran.
+- **Hosts.** Un host que ya no llega a la cabina por ambas controladoras necesita un vistazo, con el motivo: por una sola controladora, por rutas desiguales o sin ninguna ruta.
+- **Pods.** Un pod cuyo enlace de réplica la cabina informa como no saludable es crítico, y uno con más de un minuto de retraso necesita un vistazo.
+- **Sistemas de archivos.** Un sistema de archivos de FlashBlade al que le queda menos del 10 % de su tamaño aprovisionado necesita un vistazo.
+
+Las listas **Hosts**, **Replicación** y **Sistemas de archivos** indican el estado de cada parte con las mismas reglas, con el motivo debajo. La página de un host y la de un sistema de archivos dicen qué necesita atención y qué alertas de la cabina lo vigilan, con un paso para activar el resto, y la página de cada parte, también la de un volumen y la de un bucket, dice qué está abierto en ella. Mientras el agente está desconectado, la salud muestra **Salud desconocida**: el último informe de la cabina ya no es la verdad. Cada umbral de arriba es aquel en el que se dispara su plantilla de alerta, como enumera el [monitor de cabinas de almacenamiento](/docs/monitor/storage-array-monitor).
 
 ## Opcional — Enviar el syslog de la cabina
 
