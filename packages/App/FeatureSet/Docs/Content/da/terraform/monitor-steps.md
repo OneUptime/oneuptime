@@ -333,6 +333,7 @@ De `check_on`-værdier, hver monitortype bruger mest. Dashboardets kriterieedito
 | Serverprocesser | `Is Executing`, `Is Not Executing` |
 | Scripts | `Evaluates To True` |
 | Anomalier, for metrikker, logs og traces | `Anomalously High`, `Anomalously Low`, `Anomalous` |
+| Prognoser, for metrikker | `Forecast Above`, `Forecast Below` (tidshorisonten er `forecast.horizonInHours` i `metric_monitor_options`: en uge, hvis den udelades) |
 
 Et filter, der passer, når et SSL-certifikat udløber om 14 dage eller mindre:
 

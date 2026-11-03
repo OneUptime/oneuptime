@@ -214,8 +214,14 @@ export default class CriteriaFilterUtil {
   ): string {
     let text: string = "Check if ";
 
-    // add metic aggregation type to the text
-    if (criteriaFilter?.metricMonitorOptions?.metricAggregationType) {
+    /*
+     * add metic aggregation type to the text - not for a forecast, which
+     * reads every value of the window into its trend
+     */
+    if (
+      criteriaFilter?.metricMonitorOptions?.metricAggregationType &&
+      !CommonCriteriaFilterUtil.isForecastFilterType(criteriaFilter.filterType)
+    ) {
       text += `${criteriaFilter.metricMonitorOptions.metricAggregationType.toString()} of `;
     }
 

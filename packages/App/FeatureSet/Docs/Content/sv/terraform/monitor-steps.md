@@ -333,6 +333,7 @@ De `check_on`-värden som varje monitortyp använder mest. Instrumentpanelens kr
 | Serverprocesser | `Is Executing`, `Is Not Executing` |
 | Skript | `Evaluates To True` |
 | Avvikelser, för metriker, loggar och spårningar | `Anomalously High`, `Anomalously Low`, `Anomalous` |
+| Prognoser, för metriker | `Forecast Above`, `Forecast Below` (tidshorisonten är `forecast.horizonInHours` i `metric_monitor_options`: en vecka om den utelämnas) |
 
 Ett filter som stämmer när ett SSL-certifikat går ut om 14 dagar eller mindre:
 
