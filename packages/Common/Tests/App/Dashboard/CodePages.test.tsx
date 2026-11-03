@@ -84,6 +84,7 @@ const getRepositoryMock: MockFunction = getJestMockFunction();
 const listTasksMock: MockFunction = getJestMockFunction();
 const getBranchesMock: MockFunction = getJestMockFunction();
 const getTaskMock: MockFunction = getJestMockFunction();
+const getTurnProgressMock: MockFunction = getJestMockFunction();
 const createTaskMock: MockFunction = getJestMockFunction();
 const replyMock: MockFunction = getJestMockFunction();
 const retryMock: MockFunction = getJestMockFunction();
@@ -110,6 +111,9 @@ jest.mock(
         },
         getTask: (...args: Array<unknown>) => {
           return getTaskMock(...args);
+        },
+        getTurnProgress: (...args: Array<unknown>) => {
+          return getTurnProgressMock(...args);
         },
         createTask: (...args: Array<unknown>) => {
           return createTaskMock(...args);
@@ -222,10 +226,10 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeRepositoriesList";
 import CodeRepositoryTasks from "../../../../App/FeatureSet/Dashboard/src/Pages/Code/Repository/Tasks";
 import CodeTaskConversation, {
-  CODE_TASK_POLL_MS,
   getTaskBaseBranch,
   STICKY_FOOTER_STYLE,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Code/Task/Conversation";
+import { CODE_TASK_POLL_MS } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeTaskLive";
 import CodeTaskLog from "../../../../App/FeatureSet/Dashboard/src/Pages/Code/Task/Log";
 import { CodeRepositoryListItem } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeApi";
 import {
@@ -267,6 +271,7 @@ beforeEach(() => {
     listTasksMock,
     getBranchesMock,
     getTaskMock,
+    getTurnProgressMock,
     createTaskMock,
     replyMock,
     retryMock,
@@ -2538,7 +2543,12 @@ describe("a task's conversation", () => {
     );
   });
 
-  test(`while AI works, the page reads the task again every ${CODE_TASK_POLL_MS / 1000} seconds - and stops once it is done`, async () => {
+  /*
+   * Drawn without the live connection (as here), the page reads on its
+   * own: the working turn's new steps every few seconds, and the whole task
+   * once the turn is done (CodeTaskLive.test.tsx has the announcements).
+   */
+  test(`while AI works, the page reads the turn's new steps every ${CODE_TASK_POLL_MS / 1000} seconds - the whole task once it is done - and then stops`, async () => {
     jest.useFakeTimers();
     getTaskMock
       .mockResolvedValueOnce(
@@ -2555,6 +2565,24 @@ describe("a task's conversation", () => {
         }) as never,
       )
       .mockResolvedValue(taskAnswer() as never);
+    getTurnProgressMock
+      .mockResolvedValueOnce({
+        runId: TASK_ID,
+        status: AIRunStatus.Running,
+        state: CodeTaskState.Working,
+        isQueued: false,
+        startedAt: "2026-10-19T10:00:30.000Z",
+        steps: [],
+        hasMore: false,
+      } as never)
+      .mockResolvedValue({
+        runId: TASK_ID,
+        status: AIRunStatus.Completed,
+        state: CodeTaskState.Done,
+        isQueued: false,
+        steps: [],
+        hasMore: false,
+      } as never);
 
     draw(<CodeTaskConversation {...PAGE_PROPS} />);
     await act(async () => {
@@ -2562,18 +2590,42 @@ describe("a task's conversation", () => {
     });
     expect(getTaskMock).toHaveBeenCalledTimes(1);
 
+    // Picked up by a Runner: read as the turn's progress, not the task.
     await act(async () => {
       jest.advanceTimersByTime(CODE_TASK_POLL_MS);
       await Promise.resolve();
     });
+    expect(getTurnProgressMock).toHaveBeenCalledTimes(1);
+    expect(getTurnProgressMock).toHaveBeenCalledWith({
+      taskId: TASK_ID,
+      runId: TASK_ID,
+      afterSequence: -1,
+    });
+    expect(getTaskMock).toHaveBeenCalledTimes(1);
+    // No longer waiting for a Runner: the header says it works.
+    expect(
+      within(screen.getByTestId("code-task-header")).getByTestId(
+        "code-task-state",
+      ),
+    ).toHaveAttribute("data-state", CodeTaskState.Working);
+    expect(screen.queryByText("Waiting for a Runner to pick this up…")).toBeNull();
+
+    // Done: the whole task is read once, for its reply and pull request...
+    await act(async () => {
+      jest.advanceTimersByTime(CODE_TASK_POLL_MS);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(getTurnProgressMock).toHaveBeenCalledTimes(2);
     expect(getTaskMock).toHaveBeenCalledTimes(2);
 
-    // Done now: no more reads.
+    // ...and then nothing more is read.
     await act(async () => {
       jest.advanceTimersByTime(CODE_TASK_POLL_MS * 3);
       await Promise.resolve();
     });
     expect(getTaskMock).toHaveBeenCalledTimes(2);
+    expect(getTurnProgressMock).toHaveBeenCalledTimes(2);
   });
 
   /*
