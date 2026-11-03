@@ -147,7 +147,7 @@ OneUptime AI 打开的修复拉取请求也会以同样的方式检查：一旦�
 
 名称以 `oneuptime.` 开头的属性是 OneUptime 自己的属性，会从流水线发送的内容中丢弃。流水线记录的每个变更都会在 `oneuptime.change.source` 中注明这一点，其值为 `api`。
 
-从云账户读取的变更会用 OpenTelemetry 的名称 `cloud.provider`、`cloud.account.id`、`cloud.region` 和 `cloud.resource_id` 标明账户和资源，并把操作记在 `oneuptime.cloud.operation`，执行者记在 `oneuptime.cloud.actor`，是否失败记在 `oneuptime.change.status`，所属云账户记在 `oneuptime.cloud_account.id`。
+从云账户读取的变更会用 OpenTelemetry 的名称 `cloud.provider`、`cloud.account.id`、`cloud.region` 和 `cloud.resource_id` 标明账户和资源，并把操作记在 `oneuptime.cloud.operation`，执行者记在 `oneuptime.cloud.actor`，是否失败记在 `oneuptime.change.status`，资源在 OneUptime 中的名称记在 `oneuptime.cloud.resource_name`，所属云账户记在 `oneuptime.cloud_account.id`。其标题以英文保存，供 API 和 OneUptime AI 读取；各页面根据这些属性，以读者的语言显示标题。
 
 ### 限制
 

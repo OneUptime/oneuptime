@@ -1373,6 +1373,8 @@ describe("the real source roots", () => {
       // A cloud resource's status by its key metrics, and the kinds of saving the clouds recommend.
       "keys packages/Common/Types/Cloud/CloudResourceHealth.ts",
       "keys packages/Common/Types/Cloud/CloudCost.ts",
+      // A cloud change's title in the reader's language - only its frame.
+      "keys packages/Common/Utils/Telemetry/CloudChangeTitle.ts",
       // The column titles of OneUptime AI's tables - not its prompts.
       "keys packages/Common/Server/Utils/AI/Toolbox",
       // What an AI action's approval card says, and the kinds of resource it names.

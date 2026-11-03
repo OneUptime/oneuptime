@@ -147,7 +147,7 @@ OneUptime AI 開啟的修正拉取請求也會以同樣的方式檢查：一旦�
 
 名稱以 `oneuptime.` 開頭的屬性是 OneUptime 自己的屬性，會從管線傳送的內容中捨棄。管線記錄的每個變更都會在 `oneuptime.change.source` 中註明這一點，其值為 `api`。
 
-從雲端帳戶讀取的變更會用 OpenTelemetry 的名稱 `cloud.provider`、`cloud.account.id`、`cloud.region` 和 `cloud.resource_id` 標明帳戶和資源，並把操作記在 `oneuptime.cloud.operation`，執行者記在 `oneuptime.cloud.actor`，是否失敗記在 `oneuptime.change.status`，所屬雲端帳戶記在 `oneuptime.cloud_account.id`。
+從雲端帳戶讀取的變更會用 OpenTelemetry 的名稱 `cloud.provider`、`cloud.account.id`、`cloud.region` 和 `cloud.resource_id` 標明帳戶和資源，並把操作記在 `oneuptime.cloud.operation`，執行者記在 `oneuptime.cloud.actor`，是否失敗記在 `oneuptime.change.status`，資源在 OneUptime 中的名稱記在 `oneuptime.cloud.resource_name`，所屬雲端帳戶記在 `oneuptime.cloud_account.id`。其標題以英文儲存，供 API 和 OneUptime AI 讀取；各頁面根據這些屬性，以讀者的語言顯示標題。
 
 ### 限制
 

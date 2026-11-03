@@ -147,7 +147,7 @@ Die Felder der obersten Ebene werden als Attribute unter ihren OpenTelemetry-Nam
 
 Attribute, deren Namen mit `oneuptime.` beginnen, gehören OneUptime selbst und werden aus dem entfernt, was eine Pipeline sendet. Jede Änderung, die eine Pipeline aufzeichnet, weist sich in `oneuptime.change.source` als solche aus: Der Wert ist `api`.
 
-Eine aus einem Cloud-Konto gelesene Änderung nennt das Konto und die Ressource unter den Namen von OpenTelemetry, `cloud.provider`, `cloud.account.id`, `cloud.region` und `cloud.resource_id`, und hält die Operation in `oneuptime.cloud.operation` fest, wer sie ausgeführt hat in `oneuptime.cloud.actor`, ob sie fehlgeschlagen ist in `oneuptime.change.status` und ihr Cloud-Konto in `oneuptime.cloud_account.id`.
+Eine aus einem Cloud-Konto gelesene Änderung nennt das Konto und die Ressource unter den Namen von OpenTelemetry, `cloud.provider`, `cloud.account.id`, `cloud.region` und `cloud.resource_id`, und hält die Operation in `oneuptime.cloud.operation` fest, wer sie ausgeführt hat in `oneuptime.cloud.actor`, ob sie fehlgeschlagen ist in `oneuptime.change.status`, den Namen, unter dem OneUptime die Ressource führt, in `oneuptime.cloud.resource_name` und ihr Cloud-Konto in `oneuptime.cloud_account.id`. Ihr Titel wird auf Englisch gespeichert, wie die API und OneUptime AI ihn lesen, und jede Seite formuliert ihn daraus in der Sprache ihres Lesers.
 
 ### Grenzen
 

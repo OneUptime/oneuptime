@@ -8613,7 +8613,7 @@
   "Change Plan": "Alterar plano",
   "Change Plan Link": "Change Plan Link",
   "Change budget": "Change budget",
-  "Change event": "Change event",
+  "Change event": "Evento de alteração",
   "Change events (deployments, config changes, scaling) posted by CI/CD pipelines. Rendered as markers on metric charts so spikes can be correlated with what changed.": "Change events (deployments, config changes, scaling) posted by CI/CD pipelines. Rendered as markers on metric charts so spikes can be correlated with what changed.",
   "Change it": "Alterar",
   "Change settings using Edit connection.": "Change settings using Edit connection.",
@@ -41633,5 +41633,8 @@
   "{{count}} tables nobody has read for 90 days hold {{size}}._one": "{{count}} table nobody has read for 90 days holds {{size}}.",
   "Amazon Redshift": "Amazon Redshift",
   "Snowflake": "Snowflake",
-  "Google BigQuery": "Google BigQuery"
+  "Google BigQuery": "Google BigQuery",
+  "Failed: {{operation}}": "Falhou: {{operation}}",
+  "Failed: {{operation}} on {{resource}}": "Falhou: {{operation}} em {{resource}}",
+  "{{operation}} on {{resource}}": "{{operation}} em {{resource}}"
 }

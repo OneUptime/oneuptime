@@ -13,6 +13,12 @@ import AnalyticsModelTable from "Common/UI/Components/ModelTable/AnalyticsModelT
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ProjectUtil from "Common/UI/Utils/Project";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  getChangeTitleForReader,
+  readCloudChangeTitleFacts,
+} from "Common/Utils/Telemetry/CloudChangeTitle";
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
 import { getChangeEventTypeLabel } from "../Metrics/Utils/UseEventTimeReferenceLines";
 import {
@@ -30,7 +36,10 @@ import {
  * (CloudChangesScope).
  *
  * The words are the cloud's - an operation's name, a principal, a health
- * event's title - shown as written.
+ * event's title - shown as written, in a title worded in the reader's
+ * language from what the change keeps: "DeleteLoadBalancer on web-alb" is
+ * "DeleteLoadBalancer für web-alb" in German (CloudChangeTitle), for rows
+ * written before the resource's name was kept too.
  */
 
 // A change's time takes the room it needs (TableLayout's min-w- floor).
@@ -46,6 +55,27 @@ export const CLOUD_CHANGE_TYPE_OPTIONS: Array<DropdownOption> = [
 ].map((type: ChangeEventType): DropdownOption => {
   return { label: getChangeEventTypeLabel(type), value: type };
 });
+
+/*
+ * What changed, in the reader's language: an operation the activity log
+ * recorded worded from its operation, resource and outcome; a health
+ * event, or any other change, by its own title.
+ */
+export function getCloudChangeTitleText(
+  change: ChangeEvent,
+  translator: Translator,
+): string {
+  return getChangeTitleForReader({
+    title: change.title,
+    eventType: change.eventType,
+    facts: readCloudChangeTitleFacts({
+      title: change.title,
+      attributes: change.attributes as JSONObject | undefined,
+    }),
+    translator,
+    options: { setsValuesApart: true },
+  });
+}
 
 function readAttribute(change: ChangeEvent, key: string): string {
   const attributes: JSONObject | undefined = change.attributes as
@@ -68,6 +98,7 @@ export interface ComponentProps {
 const CloudChangesTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const scopeKey: string = JSON.stringify(
     getCloudChangesAttributeFilter(props.scope),
   );
@@ -166,10 +197,15 @@ const CloudChangesTable: FunctionComponent<ComponentProps> = (
               ? (change.description || "").trim()
               : "";
 
+            const title: string = getCloudChangeTitleText(change, translator);
+
             return (
               <div className="min-w-0">
-                <div className="text-sm font-medium text-gray-900 break-words">
-                  {change.title || "—"}
+                <div
+                  className="text-sm font-medium text-gray-900 break-words"
+                  data-testid="cloud-change-title"
+                >
+                  {title || "—"}
                 </div>
                 {detail ? (
                   <div

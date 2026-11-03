@@ -333,6 +333,17 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * A cloud change's title - "Failed: DeleteLoadBalancer on web-alb" - in
+   * the reader's language: a cloud resource's and an account's Changes,
+   * the chart markers and the security cards word it from what the change
+   * keeps. Only the frame is a key: the operation and the resource are the
+   * cloud's words and OneUptime's names, drawn as written.
+   */
+  {
+    directory: "packages/Common/Utils/Telemetry/CloudChangeTitle.ts",
+    kind: "keys",
+  },
+  /*
    * The column titles of the tables OneUptime AI's tools put beside an
    * answer ("Time", "Severity", "Last seen"): the chat draws each in the
    * reader's language (DataTableWidget). Only the titles the tools mark are

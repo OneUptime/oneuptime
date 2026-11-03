@@ -8613,7 +8613,7 @@
   "Change Plan": "更改套餐",
   "Change Plan Link": "Change Plan Link",
   "Change budget": "Change budget",
-  "Change event": "Change event",
+  "Change event": "变更事件",
   "Change events (deployments, config changes, scaling) posted by CI/CD pipelines. Rendered as markers on metric charts so spikes can be correlated with what changed.": "Change events (deployments, config changes, scaling) posted by CI/CD pipelines. Rendered as markers on metric charts so spikes can be correlated with what changed.",
   "Change it": "修改",
   "Change settings using Edit connection.": "Change settings using Edit connection.",
@@ -41633,5 +41633,8 @@
   "{{count}} tables nobody has read for 90 days hold {{size}}._one": "{{count}} table nobody has read for 90 days holds {{size}}.",
   "Amazon Redshift": "Amazon Redshift",
   "Snowflake": "Snowflake",
-  "Google BigQuery": "Google BigQuery"
+  "Google BigQuery": "Google BigQuery",
+  "Failed: {{operation}}": "失败：{{operation}}",
+  "Failed: {{operation}} on {{resource}}": "失败：对 {{resource}} 执行 {{operation}}",
+  "{{operation}} on {{resource}}": "对 {{resource}} 执行 {{operation}}"
 }

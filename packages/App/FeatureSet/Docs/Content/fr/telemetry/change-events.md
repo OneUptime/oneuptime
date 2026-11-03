@@ -147,7 +147,7 @@ Les champs de premier niveau sont stockés comme attributs sous les noms OpenTel
 
 Les attributs dont le nom commence par `oneuptime.` appartiennent à OneUptime et sont retirés de ce qu'un pipeline envoie. Chaque changement qu'un pipeline enregistre l'indique dans `oneuptime.change.source`, qui vaut `api`.
 
-Un changement lu dans un compte cloud nomme le compte et la ressource sous les noms d'OpenTelemetry, `cloud.provider`, `cloud.account.id`, `cloud.region` et `cloud.resource_id`, et garde l'opération dans `oneuptime.cloud.operation`, qui l'a lancée dans `oneuptime.cloud.actor`, si elle a échoué dans `oneuptime.change.status` et son compte cloud dans `oneuptime.cloud_account.id`.
+Un changement lu dans un compte cloud nomme le compte et la ressource sous les noms d'OpenTelemetry, `cloud.provider`, `cloud.account.id`, `cloud.region` et `cloud.resource_id`, et garde l'opération dans `oneuptime.cloud.operation`, qui l'a lancée dans `oneuptime.cloud.actor`, si elle a échoué dans `oneuptime.change.status`, le nom sous lequel OneUptime connaît la ressource dans `oneuptime.cloud.resource_name` et son compte cloud dans `oneuptime.cloud_account.id`. Son titre est enregistré en anglais, tel que l'API et OneUptime AI le lisent, et chaque page le formule à partir de ces attributs dans la langue de son lecteur.
 
 ### Limites
 

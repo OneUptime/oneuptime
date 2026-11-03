@@ -147,7 +147,7 @@ Los campos de nivel superior se guardan como atributos con los nombres de OpenTe
 
 Los atributos cuyos nombres empiezan por `oneuptime.` son propios de OneUptime y se eliminan de lo que envía un pipeline. Cada cambio que registra un pipeline lo indica en `oneuptime.change.source`, que vale `api`.
 
-Un cambio leído de una cuenta en la nube nombra la cuenta y el recurso con los nombres de OpenTelemetry, `cloud.provider`, `cloud.account.id`, `cloud.region` y `cloud.resource_id`, y guarda la operación en `oneuptime.cloud.operation`, quién la ejecutó en `oneuptime.cloud.actor`, si falló en `oneuptime.change.status` y su cuenta en la nube en `oneuptime.cloud_account.id`.
+Un cambio leído de una cuenta en la nube nombra la cuenta y el recurso con los nombres de OpenTelemetry, `cloud.provider`, `cloud.account.id`, `cloud.region` y `cloud.resource_id`, y guarda la operación en `oneuptime.cloud.operation`, quién la ejecutó en `oneuptime.cloud.actor`, si falló en `oneuptime.change.status`, el nombre con el que OneUptime conoce el recurso en `oneuptime.cloud.resource_name` y su cuenta en la nube en `oneuptime.cloud_account.id`. Su título se guarda en inglés, tal como lo leen la API y OneUptime AI, y cada página lo redacta a partir de estos datos en el idioma de quien la lee.
 
 ### Límites
 

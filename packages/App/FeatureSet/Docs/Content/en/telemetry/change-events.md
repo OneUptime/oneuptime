@@ -147,7 +147,7 @@ The top-level fields are stored as attributes under the OpenTelemetry names: `ve
 
 Attributes whose names start with `oneuptime.` are OneUptime's own and are dropped from what a pipeline sends. Every change a pipeline records says so in `oneuptime.change.source`, which is `api`.
 
-A change read from a cloud account names the account and the resource under OpenTelemetry's names, `cloud.provider`, `cloud.account.id`, `cloud.region` and `cloud.resource_id`, and keeps the operation in `oneuptime.cloud.operation`, who ran it in `oneuptime.cloud.actor`, whether it failed in `oneuptime.change.status` and its Cloud Account in `oneuptime.cloud_account.id`.
+A change read from a cloud account names the account and the resource under OpenTelemetry's names, `cloud.provider`, `cloud.account.id`, `cloud.region` and `cloud.resource_id`, and keeps the operation in `oneuptime.cloud.operation`, who ran it in `oneuptime.cloud.actor`, whether it failed in `oneuptime.change.status`, the name OneUptime holds the resource by in `oneuptime.cloud.resource_name` and its Cloud Account in `oneuptime.cloud_account.id`. Its title is stored in English, as the API and OneUptime AI read it, and each page words it from these in its reader's language.
 
 ### Limits
 

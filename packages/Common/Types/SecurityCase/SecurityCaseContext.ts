@@ -4,6 +4,7 @@ import {
   SecurityConnectionKind,
   SecurityConnectionRecordListJson,
 } from "./SecurityConnection";
+import type { CloudChangeTitleFacts } from "../../Utils/Telemetry/CloudChangeTitle";
 
 /*
  * A SECURITY CASE AS THE REST OF ONEUPTIME TELLS IT: its Story and its
@@ -174,6 +175,12 @@ export interface SecurityCaseStoryItemJson {
   // Who did it, for a note or a playbook someone started.
   actorName?: string | undefined;
   milestone?: SecurityCaseStoryMilestone | undefined;
+  /*
+   * A change's facts, when it is an operation a cloud account's activity
+   * log recorded: the story words its title from them in the reader's
+   * language (Utils/Telemetry/CloudChangeTitle).
+   */
+  cloudChange?: CloudChangeTitleFacts | undefined;
   links: SecurityCaseStoryLinksJson;
 }
 

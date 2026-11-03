@@ -147,7 +147,7 @@ Felterne på øverste niveau gemmes som attributter under OpenTelemetry-navnene:
 
 Attributter, hvis navne begynder med `oneuptime.`, er OneUptimes egne og fjernes fra det, en pipeline sender. Hver ændring, som en pipeline registrerer, angiver det i `oneuptime.change.source`, som er `api`.
 
-En ændring, der er læst fra en cloudkonto, navngiver kontoen og ressourcen under OpenTelemetrys navne, `cloud.provider`, `cloud.account.id`, `cloud.region` og `cloud.resource_id`, og gemmer handlingen i `oneuptime.cloud.operation`, hvem der kørte den i `oneuptime.cloud.actor`, om den mislykkedes i `oneuptime.change.status` og dens cloudkonto i `oneuptime.cloud_account.id`.
+En ændring, der er læst fra en cloudkonto, navngiver kontoen og ressourcen under OpenTelemetrys navne, `cloud.provider`, `cloud.account.id`, `cloud.region` og `cloud.resource_id`, og gemmer handlingen i `oneuptime.cloud.operation`, hvem der kørte den i `oneuptime.cloud.actor`, om den mislykkedes i `oneuptime.change.status`, det navn OneUptime kender ressourcen under i `oneuptime.cloud.resource_name` og dens cloudkonto i `oneuptime.cloud_account.id`. Titlen gemmes på engelsk, sådan som API'et og OneUptime AI læser den, og hver side formulerer den ud fra disse på læserens sprog.
 
 ### Grænser
 

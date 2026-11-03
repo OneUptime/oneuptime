@@ -41633,5 +41633,8 @@
   "{{count}} tables nobody has read for 90 days hold {{size}}._one": "{{count}} table nobody has read for 90 days holds {{size}}.",
   "Amazon Redshift": "Amazon Redshift",
   "Snowflake": "Snowflake",
-  "Google BigQuery": "Google BigQuery"
+  "Google BigQuery": "Google BigQuery",
+  "Failed: {{operation}}": "失敗: {{operation}}",
+  "Failed: {{operation}} on {{resource}}": "失敗: {{resource}} に対する {{operation}}",
+  "{{operation}} on {{resource}}": "{{resource}} に対する {{operation}}"
 }

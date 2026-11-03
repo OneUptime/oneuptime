@@ -147,7 +147,7 @@ OneUptime также сам проверяет каждое развёртыва
 
 Атрибуты, имена которых начинаются с `oneuptime.`, принадлежат самому OneUptime и отбрасываются из того, что отправляет конвейер. Каждое изменение, записанное конвейером, сообщает об этом в `oneuptime.change.source`, где указано `api`.
 
-Изменение, прочитанное из облачного аккаунта, называет аккаунт и ресурс под именами OpenTelemetry — `cloud.provider`, `cloud.account.id`, `cloud.region` и `cloud.resource_id` — и хранит операцию в `oneuptime.cloud.operation`, того, кто её выполнил, в `oneuptime.cloud.actor`, то, завершилась ли она сбоем, в `oneuptime.change.status`, а облачный аккаунт в `oneuptime.cloud_account.id`.
+Изменение, прочитанное из облачного аккаунта, называет аккаунт и ресурс под именами OpenTelemetry — `cloud.provider`, `cloud.account.id`, `cloud.region` и `cloud.resource_id` — и хранит операцию в `oneuptime.cloud.operation`, того, кто её выполнил, в `oneuptime.cloud.actor`, то, завершилась ли она сбоем, в `oneuptime.change.status`, имя, под которым ресурс известен OneUptime, в `oneuptime.cloud.resource_name`, а облачный аккаунт в `oneuptime.cloud_account.id`. Её заголовок хранится на английском — так его читают API и OneUptime AI, — а каждая страница формулирует его по этим атрибутам на языке читателя.
 
 ### Ограничения
 

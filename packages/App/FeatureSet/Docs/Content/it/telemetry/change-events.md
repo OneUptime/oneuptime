@@ -147,7 +147,7 @@ I campi di primo livello vengono memorizzati come attributi con i nomi OpenTelem
 
 Gli attributi il cui nome inizia con `oneuptime.` sono di OneUptime e vengono scartati da ciò che invia una pipeline. Ogni modifica registrata da una pipeline lo dice in `oneuptime.change.source`, che vale `api`.
 
-Una modifica letta da un account cloud nomina l'account e la risorsa con i nomi di OpenTelemetry, `cloud.provider`, `cloud.account.id`, `cloud.region` e `cloud.resource_id`, e tiene l'operazione in `oneuptime.cloud.operation`, chi l'ha eseguita in `oneuptime.cloud.actor`, se non è riuscita in `oneuptime.change.status` e il suo account cloud in `oneuptime.cloud_account.id`.
+Una modifica letta da un account cloud nomina l'account e la risorsa con i nomi di OpenTelemetry, `cloud.provider`, `cloud.account.id`, `cloud.region` e `cloud.resource_id`, e tiene l'operazione in `oneuptime.cloud.operation`, chi l'ha eseguita in `oneuptime.cloud.actor`, se non è riuscita in `oneuptime.change.status`, il nome con cui OneUptime conosce la risorsa in `oneuptime.cloud.resource_name` e il suo account cloud in `oneuptime.cloud_account.id`. Il suo titolo è salvato in inglese, come lo leggono l'API e OneUptime AI, e ogni pagina lo formula da questi attributi nella lingua di chi la legge.
 
 ### Limiti
 

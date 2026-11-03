@@ -147,7 +147,7 @@ OneUptime AI が作成した修正のプルリクエストも、同じ方法で�
 
 名前が `oneuptime.` で始まる属性は OneUptime 自身のもので、パイプラインが送った内容からは削除されます。パイプラインが記録した変更には、そのことが `oneuptime.change.source` に `api` として示されます。
 
-クラウド アカウントから読み取った変更は、アカウントとリソースを OpenTelemetry の名前 `cloud.provider`、`cloud.account.id`、`cloud.region`、`cloud.resource_id` で示し、操作を `oneuptime.cloud.operation`、実行した人を `oneuptime.cloud.actor`、失敗したかどうかを `oneuptime.change.status`、クラウド アカウントを `oneuptime.cloud_account.id` に保持します。
+クラウド アカウントから読み取った変更は、アカウントとリソースを OpenTelemetry の名前 `cloud.provider`、`cloud.account.id`、`cloud.region`、`cloud.resource_id` で示し、操作を `oneuptime.cloud.operation`、実行した人を `oneuptime.cloud.actor`、失敗したかどうかを `oneuptime.change.status`、OneUptime でのリソース名を `oneuptime.cloud.resource_name`、クラウド アカウントを `oneuptime.cloud_account.id` に保持します。タイトルは API と OneUptime AI が読むとおり英語で保存され、各ページはこれらの属性から読む人の言語で表示します。
 
 ### 上限
 
