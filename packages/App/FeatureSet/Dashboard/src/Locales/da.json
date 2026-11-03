@@ -40422,5 +40422,13 @@
   "Everyone in this project opens network maps on this layout.": "Everyone in this project opens network maps on this layout.",
   "Make default for everyone": "Make default for everyone",
   "Save and reuse log explorer views, including the current filters, columns, sorting, and page size. Each view is listed on the page it was saved on: the Logs page, or one resource's Logs tab.": "Save and reuse log explorer views, including the current filters, columns, sorting, and page size. Each view is listed on the page it was saved on: the Logs page, or one resource's Logs tab.",
-  "We couldn't change the default layout. Try again.": "We couldn't change the default layout. Try again."
+  "We couldn't change the default layout. Try again.": "We couldn't change the default layout. Try again.",
+  "Each link works once and expires after 15 minutes. Links are never offered while SSO is required. Turning this off stops new sign-ins with a link; readers already signed in stay signed in.": "Hvert link virker én gang og udløber efter 15 minutter. Der tilbydes aldrig links, mens SSO er påkrævet. Slår du dette fra, stopper nye login med link; læsere, der allerede er logget ind, forbliver logget ind.",
+  "Enable Sign-In Links": "Aktivér login-links",
+  "How private users sign in.": "Hvordan private brugere logger ind.",
+  "Last Signed In": "Sidst logget ind",
+  "Private users can ask for a one-time link on the sign-in page and sign in from their email, without a password. They can still sign in with their password.": "Private brugere kan bede om et engangslink på login-siden og logge ind fra deres e-mail uden adgangskode. De kan stadig logge ind med deres adgangskode.",
+  "Private users sign in with their email and password.": "Private brugere logger ind med e-mail og adgangskode.",
+  "Sign in with a link": "Log ind med et link",
+  "Sign-In Links": "Login-links"
 }

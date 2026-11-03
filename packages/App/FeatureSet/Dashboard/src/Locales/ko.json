@@ -40422,5 +40422,13 @@
   "Everyone in this project opens network maps on this layout.": "Everyone in this project opens network maps on this layout.",
   "Make default for everyone": "Make default for everyone",
   "Save and reuse log explorer views, including the current filters, columns, sorting, and page size. Each view is listed on the page it was saved on: the Logs page, or one resource's Logs tab.": "Save and reuse log explorer views, including the current filters, columns, sorting, and page size. Each view is listed on the page it was saved on: the Logs page, or one resource's Logs tab.",
-  "We couldn't change the default layout. Try again.": "We couldn't change the default layout. Try again."
+  "We couldn't change the default layout. Try again.": "We couldn't change the default layout. Try again.",
+  "Each link works once and expires after 15 minutes. Links are never offered while SSO is required. Turning this off stops new sign-ins with a link; readers already signed in stay signed in.": "각 링크는 한 번만 사용할 수 있으며 15분 후에 만료됩니다. SSO가 필수인 동안에는 링크가 제공되지 않습니다. 이 기능을 끄면 링크를 통한 새 로그인이 중단되며, 이미 로그인한 독자는 로그인 상태가 유지됩니다.",
+  "Enable Sign-In Links": "로그인 링크 사용",
+  "How private users sign in.": "비공개 사용자가 로그인하는 방법입니다.",
+  "Last Signed In": "마지막 로그인",
+  "Private users can ask for a one-time link on the sign-in page and sign in from their email, without a password. They can still sign in with their password.": "비공개 사용자는 로그인 페이지에서 일회용 링크를 요청하고 비밀번호 없이 이메일에서 로그인할 수 있습니다. 비밀번호로도 계속 로그인할 수 있습니다.",
+  "Private users sign in with their email and password.": "비공개 사용자는 이메일과 비밀번호로 로그인합니다.",
+  "Sign in with a link": "링크로 로그인",
+  "Sign-In Links": "로그인 링크"
 }

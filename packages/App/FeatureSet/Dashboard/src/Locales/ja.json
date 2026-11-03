@@ -40422,5 +40422,13 @@
   "Everyone in this project opens network maps on this layout.": "このプロジェクトのすべてのユーザーが、このレイアウトでネットワークマップを開きます。",
   "Make default for everyone": "全員のデフォルトに設定",
   "Save and reuse log explorer views, including the current filters, columns, sorting, and page size. Each view is listed on the page it was saved on: the Logs page, or one resource's Logs tab.": "Save and reuse log explorer views, including the current filters, columns, sorting, and page size. Each view is listed on the page it was saved on: the Logs page, or one resource's Logs tab.",
-  "We couldn't change the default layout. Try again.": "デフォルトのレイアウトを変更できませんでした。もう一度お試しください。"
+  "We couldn't change the default layout. Try again.": "デフォルトのレイアウトを変更できませんでした。もう一度お試しください。",
+  "Each link works once and expires after 15 minutes. Links are never offered while SSO is required. Turning this off stops new sign-ins with a link; readers already signed in stay signed in.": "各リンクは1回のみ有効で、15分後に期限切れになります。SSO が必須の間はリンクは提供されません。オフにすると、リンクによる新しいサインインはできなくなりますが、すでにサインインしている閲覧者はそのままです。",
+  "Enable Sign-In Links": "サインインリンクを有効にする",
+  "How private users sign in.": "プライベートユーザーのサインイン方法。",
+  "Last Signed In": "最終サインイン",
+  "Private users can ask for a one-time link on the sign-in page and sign in from their email, without a password. They can still sign in with their password.": "プライベートユーザーはサインインページで1回限りのリンクを依頼し、パスワードなしでメールからサインインできます。パスワードでのサインインも引き続き可能です。",
+  "Private users sign in with their email and password.": "プライベートユーザーはメールアドレスとパスワードでサインインします。",
+  "Sign in with a link": "リンクでサインイン",
+  "Sign-In Links": "サインインリンク"
 }

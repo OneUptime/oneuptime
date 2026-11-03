@@ -40422,5 +40422,13 @@
   "Everyone in this project opens network maps on this layout.": "Todos en este proyecto abren los mapas de red con este diseño.",
   "Make default for everyone": "Establecer como predeterminado para todos",
   "Save and reuse log explorer views, including the current filters, columns, sorting, and page size. Each view is listed on the page it was saved on: the Logs page, or one resource's Logs tab.": "Save and reuse log explorer views, including the current filters, columns, sorting, and page size. Each view is listed on the page it was saved on: the Logs page, or one resource's Logs tab.",
-  "We couldn't change the default layout. Try again.": "No se pudo cambiar el diseño predeterminado. Vuelve a intentarlo."
+  "We couldn't change the default layout. Try again.": "No se pudo cambiar el diseño predeterminado. Vuelve a intentarlo.",
+  "Each link works once and expires after 15 minutes. Links are never offered while SSO is required. Turning this off stops new sign-ins with a link; readers already signed in stay signed in.": "Cada enlace funciona una vez y caduca a los 15 minutos. Nunca se ofrecen enlaces mientras se requiera SSO. Al desactivarlo, se impiden nuevos inicios de sesión con enlace; los lectores que ya iniciaron sesión la mantienen.",
+  "Enable Sign-In Links": "Habilitar enlaces de inicio de sesión",
+  "How private users sign in.": "Cómo inician sesión los usuarios privados.",
+  "Last Signed In": "Último inicio de sesión",
+  "Private users can ask for a one-time link on the sign-in page and sign in from their email, without a password. They can still sign in with their password.": "Los usuarios privados pueden pedir un enlace de un solo uso en la página de inicio de sesión e iniciar sesión desde su correo, sin contraseña. Pueden seguir iniciando sesión con su contraseña.",
+  "Private users sign in with their email and password.": "Los usuarios privados inician sesión con su correo electrónico y contraseña.",
+  "Sign in with a link": "Iniciar sesión con un enlace",
+  "Sign-In Links": "Enlaces de inicio de sesión"
 }

@@ -40422,5 +40422,13 @@
   "Everyone in this project opens network maps on this layout.": "Everyone in this project opens network maps on this layout.",
   "Make default for everyone": "Make default for everyone",
   "Save and reuse log explorer views, including the current filters, columns, sorting, and page size. Each view is listed on the page it was saved on: the Logs page, or one resource's Logs tab.": "Save and reuse log explorer views, including the current filters, columns, sorting, and page size. Each view is listed on the page it was saved on: the Logs page, or one resource's Logs tab.",
-  "We couldn't change the default layout. Try again.": "We couldn't change the default layout. Try again."
+  "We couldn't change the default layout. Try again.": "We couldn't change the default layout. Try again.",
+  "Each link works once and expires after 15 minutes. Links are never offered while SSO is required. Turning this off stops new sign-ins with a link; readers already signed in stay signed in.": "Ogni link funziona una sola volta e scade dopo 15 minuti. I link non vengono mai offerti finché è richiesto l'SSO. Disattivando questa opzione si bloccano i nuovi accessi tramite link; i lettori già connessi restano connessi.",
+  "Enable Sign-In Links": "Abilita link di accesso",
+  "How private users sign in.": "Come accedono gli utenti privati.",
+  "Last Signed In": "Ultimo accesso",
+  "Private users can ask for a one-time link on the sign-in page and sign in from their email, without a password. They can still sign in with their password.": "Gli utenti privati possono richiedere un link monouso nella pagina di accesso e accedere dalla propria e-mail, senza password. Possono comunque accedere con la propria password.",
+  "Private users sign in with their email and password.": "Gli utenti privati accedono con e-mail e password.",
+  "Sign in with a link": "Accedi con un link",
+  "Sign-In Links": "Link di accesso"
 }

@@ -40422,5 +40422,13 @@
   "Everyone in this project opens network maps on this layout.": "Everyone in this project opens network maps on this layout.",
   "Make default for everyone": "Make default for everyone",
   "Save and reuse log explorer views, including the current filters, columns, sorting, and page size. Each view is listed on the page it was saved on: the Logs page, or one resource's Logs tab.": "Save and reuse log explorer views, including the current filters, columns, sorting, and page size. Each view is listed on the page it was saved on: the Logs page, or one resource's Logs tab.",
-  "We couldn't change the default layout. Try again.": "We couldn't change the default layout. Try again."
+  "We couldn't change the default layout. Try again.": "We couldn't change the default layout. Try again.",
+  "Each link works once and expires after 15 minutes. Links are never offered while SSO is required. Turning this off stops new sign-ins with a link; readers already signed in stay signed in.": "Hver lenke virker én gang og utløper etter 15 minutter. Lenker tilbys aldri mens SSO er påkrevd. Slår du dette av, stoppes nye innlogginger med lenke; lesere som allerede er logget inn, forblir innlogget.",
+  "Enable Sign-In Links": "Aktiver innloggingslenker",
+  "How private users sign in.": "Hvordan private brukere logger inn.",
+  "Last Signed In": "Sist innlogget",
+  "Private users can ask for a one-time link on the sign-in page and sign in from their email, without a password. They can still sign in with their password.": "Private brukere kan be om en engangslenke på innloggingssiden og logge inn fra e-posten sin uten passord. De kan fortsatt logge inn med passordet sitt.",
+  "Private users sign in with their email and password.": "Private brukere logger inn med e-post og passord.",
+  "Sign in with a link": "Logg inn med en lenke",
+  "Sign-In Links": "Innloggingslenker"
 }

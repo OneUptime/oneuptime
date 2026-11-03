@@ -40422,5 +40422,13 @@
   "Everyone in this project opens network maps on this layout.": "Everyone in this project opens network maps on this layout.",
   "Make default for everyone": "Make default for everyone",
   "Save and reuse log explorer views, including the current filters, columns, sorting, and page size. Each view is listed on the page it was saved on: the Logs page, or one resource's Logs tab.": "Save and reuse log explorer views, including the current filters, columns, sorting, and page size. Each view is listed on the page it was saved on: the Logs page, or one resource's Logs tab.",
-  "We couldn't change the default layout. Try again.": "We couldn't change the default layout. Try again."
+  "We couldn't change the default layout. Try again.": "We couldn't change the default layout. Try again.",
+  "Each link works once and expires after 15 minutes. Links are never offered while SSO is required. Turning this off stops new sign-ins with a link; readers already signed in stay signed in.": "हर लिंक केवल एक बार काम करता है और 15 मिनट बाद समाप्त हो जाता है। जब तक SSO अनिवार्य है, लिंक नहीं दिए जाते। इसे बंद करने पर लिंक से नए साइन इन रुक जाते हैं; जो पाठक पहले से साइन इन हैं, वे साइन इन रहते हैं।",
+  "Enable Sign-In Links": "साइन-इन लिंक चालू करें",
+  "How private users sign in.": "निजी उपयोगकर्ता कैसे साइन इन करते हैं।",
+  "Last Signed In": "पिछला साइन इन",
+  "Private users can ask for a one-time link on the sign-in page and sign in from their email, without a password. They can still sign in with their password.": "निजी उपयोगकर्ता साइन-इन पेज पर एक बार इस्तेमाल होने वाला लिंक मांग सकते हैं और बिना पासवर्ड के अपने ईमेल से साइन इन कर सकते हैं। वे अब भी अपने पासवर्ड से साइन इन कर सकते हैं।",
+  "Private users sign in with their email and password.": "निजी उपयोगकर्ता अपने ईमेल और पासवर्ड से साइन इन करते हैं।",
+  "Sign in with a link": "लिंक से साइन इन करें",
+  "Sign-In Links": "साइन-इन लिंक"
 }

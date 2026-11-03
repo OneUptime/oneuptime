@@ -40422,5 +40422,13 @@
   "Everyone in this project opens network maps on this layout.": "Tout le monde dans ce projet ouvre les cartes réseau sur cette disposition.",
   "Make default for everyone": "Définir par défaut pour tout le monde",
   "Save and reuse log explorer views, including the current filters, columns, sorting, and page size. Each view is listed on the page it was saved on: the Logs page, or one resource's Logs tab.": "Save and reuse log explorer views, including the current filters, columns, sorting, and page size. Each view is listed on the page it was saved on: the Logs page, or one resource's Logs tab.",
-  "We couldn't change the default layout. Try again.": "Impossible de modifier la disposition par défaut. Réessayez."
+  "We couldn't change the default layout. Try again.": "Impossible de modifier la disposition par défaut. Réessayez.",
+  "Each link works once and expires after 15 minutes. Links are never offered while SSO is required. Turning this off stops new sign-ins with a link; readers already signed in stay signed in.": "Chaque lien ne fonctionne qu'une fois et expire au bout de 15 minutes. Aucun lien n'est proposé tant que le SSO est exigé. Désactiver cette option empêche toute nouvelle connexion par lien ; les lecteurs déjà connectés le restent.",
+  "Enable Sign-In Links": "Activer les liens de connexion",
+  "How private users sign in.": "Comment les utilisateurs privés se connectent.",
+  "Last Signed In": "Dernière connexion",
+  "Private users can ask for a one-time link on the sign-in page and sign in from their email, without a password. They can still sign in with their password.": "Les utilisateurs privés peuvent demander un lien à usage unique sur la page de connexion et se connecter depuis leur e-mail, sans mot de passe. Ils peuvent toujours se connecter avec leur mot de passe.",
+  "Private users sign in with their email and password.": "Les utilisateurs privés se connectent avec leur e-mail et leur mot de passe.",
+  "Sign in with a link": "Se connecter avec un lien",
+  "Sign-In Links": "Liens de connexion"
 }

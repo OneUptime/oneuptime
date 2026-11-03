@@ -181,6 +181,8 @@ describe("the sensitive-URL-token partial", () => {
       "unsubscribe",
       // Its manage link, with the same credential: .../update-subscription/<id>-<token>.
       "update-subscription",
+      // A status page private user's sign-in link: .../magic-link-login/<token>.
+      "magic-link-login",
     ];
 
     expect(routeListOf(PARTIAL_PATH)).toEqual(expectedRoutes);

@@ -40422,5 +40422,13 @@
   "Everyone in this project opens network maps on this layout.": "Alle in diesem Projekt öffnen Netzwerkkarten mit diesem Layout.",
   "Make default for everyone": "Für alle als Standard festlegen",
   "Save and reuse log explorer views, including the current filters, columns, sorting, and page size. Each view is listed on the page it was saved on: the Logs page, or one resource's Logs tab.": "Save and reuse log explorer views, including the current filters, columns, sorting, and page size. Each view is listed on the page it was saved on: the Logs page, or one resource's Logs tab.",
-  "We couldn't change the default layout. Try again.": "Das Standardlayout konnte nicht geändert werden. Versuchen Sie es erneut."
+  "We couldn't change the default layout. Try again.": "Das Standardlayout konnte nicht geändert werden. Versuchen Sie es erneut.",
+  "Each link works once and expires after 15 minutes. Links are never offered while SSO is required. Turning this off stops new sign-ins with a link; readers already signed in stay signed in.": "Jeder Link funktioniert einmal und läuft nach 15 Minuten ab. Solange SSO erforderlich ist, werden keine Links angeboten. Wenn Sie dies ausschalten, sind keine neuen Anmeldungen per Link mehr möglich; bereits angemeldete Leser bleiben angemeldet.",
+  "Enable Sign-In Links": "Anmeldelinks aktivieren",
+  "How private users sign in.": "Wie sich private Benutzer anmelden.",
+  "Last Signed In": "Zuletzt angemeldet",
+  "Private users can ask for a one-time link on the sign-in page and sign in from their email, without a password. They can still sign in with their password.": "Private Benutzer können auf der Anmeldeseite einen einmaligen Link anfordern und sich ohne Passwort über ihre E-Mail anmelden. Sie können sich weiterhin mit ihrem Passwort anmelden.",
+  "Private users sign in with their email and password.": "Private Benutzer melden sich mit E-Mail und Passwort an.",
+  "Sign in with a link": "Mit einem Link anmelden",
+  "Sign-In Links": "Anmeldelinks"
 }

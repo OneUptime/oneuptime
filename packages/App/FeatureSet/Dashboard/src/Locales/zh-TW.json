@@ -40422,5 +40422,13 @@
   "Everyone in this project opens network maps on this layout.": "Everyone in this project opens network maps on this layout.",
   "Make default for everyone": "Make default for everyone",
   "Save and reuse log explorer views, including the current filters, columns, sorting, and page size. Each view is listed on the page it was saved on: the Logs page, or one resource's Logs tab.": "Save and reuse log explorer views, including the current filters, columns, sorting, and page size. Each view is listed on the page it was saved on: the Logs page, or one resource's Logs tab.",
-  "We couldn't change the default layout. Try again.": "We couldn't change the default layout. Try again."
+  "We couldn't change the default layout. Try again.": "We couldn't change the default layout. Try again.",
+  "Each link works once and expires after 15 minutes. Links are never offered while SSO is required. Turning this off stops new sign-ins with a link; readers already signed in stay signed in.": "每個連結只能使用一次，15 分鐘後失效。要求使用 SSO 時不會提供連結。關閉此功能後將無法再透過連結登入；已登入的讀者仍保持登入狀態。",
+  "Enable Sign-In Links": "啟用登入連結",
+  "How private users sign in.": "私人使用者的登入方式。",
+  "Last Signed In": "上次登入",
+  "Private users can ask for a one-time link on the sign-in page and sign in from their email, without a password. They can still sign in with their password.": "私人使用者可以在登入頁面申請一次性連結，無需密碼即可透過電子郵件登入。他們仍可使用密碼登入。",
+  "Private users sign in with their email and password.": "私人使用者使用電子郵件和密碼登入。",
+  "Sign in with a link": "使用連結登入",
+  "Sign-In Links": "登入連結"
 }

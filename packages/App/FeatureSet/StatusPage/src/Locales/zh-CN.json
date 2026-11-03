@@ -307,7 +307,8 @@
       "forgotPassword": "忘记密码？",
       "submit": "登录",
       "or": "或",
-      "logInWithSso": "通过 SSO 登录"
+      "logInWithSso": "通过 SSO 登录",
+      "emailSignInLink": "通过电子邮件发送登录链接"
     },
     "sso": {
       "title": "通过 SSO 登录",
@@ -330,6 +331,23 @@
       "success": "您的密码已更新。请登录。",
       "submit": "重置密码",
       "knowPassword": "知道您的密码？"
+    },
+    "magicLink": {
+      "title": "使用链接登录",
+      "description": "输入您的电子邮件地址，我们会向您发送一个登录 {{statusPageName}} 的链接。无需密码。",
+      "submit": "发送登录链接",
+      "sentTitle": "请查收电子邮件",
+      "sent": "如果 {{email}} 可以登录 {{statusPageName}}，登录链接已发出。该链接仅可使用一次，{{minutes}} 分钟后失效。",
+      "notReceived": "收件箱中没有？请检查垃圾邮件文件夹，或请状态页面的团队添加您。",
+      "sendAnother": "再发送一个链接"
+    },
+    "magicLinkLogin": {
+      "title": "登录 {{statusPageName}}",
+      "description": "请使用下方按钮完成登录。",
+      "submit": "登录",
+      "noLink": "此页面需要您电子邮件中的登录链接。请重新打开该链接，或申请新的链接。",
+      "turnedOff": "此状态页面已关闭登录链接。请使用您的电子邮件和密码登录。",
+      "requestNewLink": "通过电子邮件发送新链接"
     },
     "masterPassword": {
       "prompt": "输入密码以查看此状态页。",

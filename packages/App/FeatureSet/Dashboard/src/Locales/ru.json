@@ -40422,5 +40422,13 @@
   "Everyone in this project opens network maps on this layout.": "Everyone in this project opens network maps on this layout.",
   "Make default for everyone": "Make default for everyone",
   "Save and reuse log explorer views, including the current filters, columns, sorting, and page size. Each view is listed on the page it was saved on: the Logs page, or one resource's Logs tab.": "Save and reuse log explorer views, including the current filters, columns, sorting, and page size. Each view is listed on the page it was saved on: the Logs page, or one resource's Logs tab.",
-  "We couldn't change the default layout. Try again.": "We couldn't change the default layout. Try again."
+  "We couldn't change the default layout. Try again.": "We couldn't change the default layout. Try again.",
+  "Each link works once and expires after 15 minutes. Links are never offered while SSO is required. Turning this off stops new sign-ins with a link; readers already signed in stay signed in.": "Каждая ссылка работает один раз и действует 15 минут. Пока требуется SSO, ссылки не предлагаются. Если отключить эту функцию, новые входы по ссылке станут невозможны; читатели, которые уже вошли, останутся в системе.",
+  "Enable Sign-In Links": "Включить ссылки для входа",
+  "How private users sign in.": "Как входят приватные пользователи.",
+  "Last Signed In": "Последний вход",
+  "Private users can ask for a one-time link on the sign-in page and sign in from their email, without a password. They can still sign in with their password.": "Приватные пользователи могут запросить одноразовую ссылку на странице входа и войти из письма без пароля. Входить с паролем они по-прежнему могут.",
+  "Private users sign in with their email and password.": "Приватные пользователи входят по электронной почте и паролю.",
+  "Sign in with a link": "Вход по ссылке",
+  "Sign-In Links": "Ссылки для входа"
 }

@@ -40422,5 +40422,13 @@
   "Everyone in this project opens network maps on this layout.": "Everyone in this project opens network maps on this layout.",
   "Make default for everyone": "Make default for everyone",
   "Save and reuse log explorer views, including the current filters, columns, sorting, and page size. Each view is listed on the page it was saved on: the Logs page, or one resource's Logs tab.": "Save and reuse log explorer views, including the current filters, columns, sorting, and page size. Each view is listed on the page it was saved on: the Logs page, or one resource's Logs tab.",
-  "We couldn't change the default layout. Try again.": "We couldn't change the default layout. Try again."
+  "We couldn't change the default layout. Try again.": "We couldn't change the default layout. Try again.",
+  "Each link works once and expires after 15 minutes. Links are never offered while SSO is required. Turning this off stops new sign-ins with a link; readers already signed in stay signed in.": "Elke link werkt één keer en verloopt na 15 minuten. Zolang SSO vereist is, worden er geen links aangeboden. Als u dit uitschakelt, kan er niet meer met een nieuwe link worden ingelogd; lezers die al zijn ingelogd, blijven ingelogd.",
+  "Enable Sign-In Links": "Inloglinks inschakelen",
+  "How private users sign in.": "Hoe privégebruikers inloggen.",
+  "Last Signed In": "Laatst ingelogd",
+  "Private users can ask for a one-time link on the sign-in page and sign in from their email, without a password. They can still sign in with their password.": "Privégebruikers kunnen op de inlogpagina een eenmalige link aanvragen en zonder wachtwoord inloggen vanuit hun e-mail. Ze kunnen nog steeds inloggen met hun wachtwoord.",
+  "Private users sign in with their email and password.": "Privégebruikers loggen in met hun e-mailadres en wachtwoord.",
+  "Sign in with a link": "Inloggen met een link",
+  "Sign-In Links": "Inloglinks"
 }
