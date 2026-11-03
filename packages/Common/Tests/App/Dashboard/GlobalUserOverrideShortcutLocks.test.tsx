@@ -32,8 +32,11 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * the whole project for one. Someone whose permission covers only some
  * policies (their team's label, or the policies their team owns) used to
  * fill in the form and be refused on save, or land on a page that said so.
- * On the real Layers page and the real Upcoming shifts card, with only the
- * network stubbed:
+ * Now each shortcut offers them the policies the server says they may
+ * cover instead (GlobalUserOverrideShortcutPolicies holds that); here the
+ * schedule and the shifts are ones no policy pages through, so there is
+ * none to offer. On the real Layers page and the real Upcoming shifts card,
+ * with only the network stubbed:
  *
  *   - for them, each shortcut stays where it was, locked: it opens nothing,
  *     says why on a press (and to a screen reader, as its description), in

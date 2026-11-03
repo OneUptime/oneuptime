@@ -13,6 +13,7 @@ import RumApplication from "Common/Models/DatabaseModels/RumApplication";
 import Service from "Common/Models/DatabaseModels/Service";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
 import DataStore from "Common/Models/DatabaseModels/DataStore";
+import DataPipeline from "Common/Models/DatabaseModels/DataPipeline";
 import { getDatabaseAlertTemplates } from "Common/Types/Monitor/DatabaseAlertTemplates";
 import { getDatabaseSystemDisplayName } from "Common/Types/DatabaseServer/DatabaseSystem";
 import { OPENSHIFT_KUBERNETES_PROVIDER } from "Common/Types/Kubernetes/KubernetesClusterProvider";
@@ -170,6 +171,9 @@ function readSessionReplayMonthlyBudgetInGB(value: unknown): number | null {
  *   DataStore   _id                the `oneuptime.data.store.id` stamp table
  *                                  health writes on every row is the
  *                                  DataStore row id
+ *   DataPipeline _id               the `oneuptime.data.pipeline.id` each
+ *                                  run's metrics carry is the DataPipeline
+ *                                  row id
  *
  * The six `name` rows mean renaming one of those resources orphans its
  * existing monitors from the diff — they will show as available again. That is
@@ -636,6 +640,13 @@ const RESOURCE_DEFINITIONS: Array<RecommendationResourceDefinition> = [
 
       return store;
     },
+  },
+  // A data pipeline: every template filters on its id, as each run's metrics carry it.
+  {
+    resourceType: MonitorRecommendationResourceType.DataPipeline,
+    modelType: DataPipeline,
+    identifierFieldName: "_id",
+    displayNameFieldName: "jobName",
   },
 ];
 

@@ -191,3 +191,20 @@ export function describeOverride(
 
   return `${counterpartName}'s on-call pages come to you for the next ${durationLabel}.`;
 }
+
+/**
+ * The line under the preview for cover arranged on some policies only -
+ * someone whose permission covers only some policies - naming them:
+ * "Only on Payments.", "Only on Payments and Checkout.", "Only on Payments,
+ * Checkout and Platform." Pages from any other policy still reach whoever
+ * they reached before.
+ */
+export function describePolicyScope(policyNames: string[]): string {
+  if (policyNames.length <= 1) {
+    return `Only on ${policyNames[0] ?? "this policy"}.`;
+  }
+
+  const last: string = policyNames[policyNames.length - 1]!;
+
+  return `Only on ${policyNames.slice(0, -1).join(", ")} and ${last}.`;
+}

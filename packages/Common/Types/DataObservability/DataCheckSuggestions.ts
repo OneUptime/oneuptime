@@ -1,0 +1,237 @@
+import { DataAssetColumn } from "./DataAssetColumn";
+import { DataCheckAlertCondition, DataCheckType } from "./DataCheckType";
+
+/*
+ * THE CHECKS A TABLE SHOULD PROBABLY HAVE.
+ *
+ * Writing checks by hand for hundreds of tables is why teams under-watch
+ * their data, so a table's Checks tab offers the ones its own columns call
+ * for, from their names and types alone - no row is read to suggest them:
+ *
+ *  - an id must be unique;
+ *  - a reference (customer_id) must point at a row that exists, when the
+ *    database has the table it names;
+ *  - an email must look like one;
+ *  - an amount, price or total must not go below zero;
+ *  - a status, state or type should not suddenly take new values;
+ *  - a reference that is sometimes empty should not become empty more
+ *    often than usual;
+ *  - a table split by tenant, organization or account should not stop
+ *    receiving rows for one of them.
+ *
+ * A suggestion the table already has a check for, or one dismissed, is not
+ * offered again. Each has a stable id, so dismissing it sticks.
+ */
+
+export interface DataCheckSuggestion {
+  // Stable across visits: what a dismissal remembers.
+  id: string;
+  name: string;
+  reason: string;
+  checkType: DataCheckType;
+  columnName?: string | undefined;
+  segmentColumn?: string | undefined;
+  pattern?: string | undefined;
+  referenceTableKey?: string | undefined;
+  referenceColumnName?: string | undefined;
+  alertCondition: DataCheckAlertCondition;
+  alertThreshold?: number | undefined;
+}
+
+// A check the table has: enough to tell whether a suggestion is already covered.
+export interface ExistingDataCheck {
+  checkType: DataCheckType | string;
+  columnName?: string | null | undefined;
+  segmentColumn?: string | null | undefined;
+}
+
+// A table of the same store, for references.
+export interface SuggestionTable {
+  tableKey: string;
+  name: string;
+  columns: Array<DataAssetColumn>;
+}
+
+export const EMAIL_PATTERN: string = "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$";
+
+// The most suggestions one table is offered at once.
+export const MAX_SUGGESTIONS_PER_TABLE: number = 12;
+
+const NUMERIC_TYPE: RegExp =
+  /int|numeric|decimal|real|double|float|money|number/i;
+const TEXT_TYPE: RegExp = /char|text|string|varchar|citext/i;
+const MONEY_NAME: RegExp =
+  /(^|_)(amount|price|total|cost|balance|fee|subtotal)(_|$)/i;
+const CATEGORY_NAME: RegExp = /(^|_)(status|state|type|kind|category|stage)$/i;
+const EMAIL_NAME: RegExp = /(^|_)e?mail(_address)?$/i;
+const TENANT_NAME: RegExp =
+  /^(tenant|org|organization|organisation|account|workspace|team|customer)_id$/i;
+
+function isNumeric(column: DataAssetColumn): boolean {
+  return NUMERIC_TYPE.test(column.dataType);
+}
+
+function isText(column: DataAssetColumn): boolean {
+  return TEXT_TYPE.test(column.dataType);
+}
+
+function isCovered(
+  existing: ReadonlyArray<ExistingDataCheck>,
+  suggestion: DataCheckSuggestion,
+): boolean {
+  return existing.some((check: ExistingDataCheck) => {
+    return (
+      check.checkType === suggestion.checkType &&
+      (check.columnName || undefined) === suggestion.columnName &&
+      (check.segmentColumn || undefined) === suggestion.segmentColumn
+    );
+  });
+}
+
+// "customer_id" -> the table it most likely refers to, by name: customers, customer.
+function findReferencedTable(
+  column: string,
+  tables: ReadonlyArray<SuggestionTable>,
+): SuggestionTable | undefined {
+  const stem: string = column.toLowerCase().replace(/_id$/, "");
+
+  if (!stem || stem === column.toLowerCase()) {
+    return undefined;
+  }
+
+  const candidates: Array<string> = [
+    `${stem}s`,
+    stem,
+    `${stem}es`,
+    stem.endsWith("y") ? `${stem.slice(0, -1)}ies` : "",
+  ].filter(Boolean);
+
+  return tables.find((table: SuggestionTable) => {
+    return (
+      candidates.includes(table.name.toLowerCase()) &&
+      table.columns.some((candidate: DataAssetColumn) => {
+        return candidate.name.toLowerCase() === "id";
+      })
+    );
+  });
+}
+
+export function suggestDataChecks(data: {
+  tableName: string;
+  columns: ReadonlyArray<DataAssetColumn>;
+  otherTables: ReadonlyArray<SuggestionTable>;
+  existing: ReadonlyArray<ExistingDataCheck>;
+  dismissedIds: ReadonlyArray<string>;
+}): Array<DataCheckSuggestion> {
+  const suggestions: Array<DataCheckSuggestion> = [];
+
+  for (const column of data.columns) {
+    const name: string = column.name;
+    const lower: string = name.toLowerCase();
+
+    if (lower === "id") {
+      suggestions.push({
+        id: `unique:${name}`,
+        name: `${name} is unique`,
+        reason: "An id that repeats breaks every join and lookup on it.",
+        checkType: DataCheckType.DuplicatePercent,
+        columnName: name,
+        alertCondition: DataCheckAlertCondition.Above,
+        alertThreshold: 0,
+      });
+      continue;
+    }
+
+    if (lower.endsWith("_id")) {
+      const referenced: SuggestionTable | undefined = findReferencedTable(
+        name,
+        data.otherTables,
+      );
+
+      if (referenced) {
+        suggestions.push({
+          id: `orphans:${name}:${referenced.tableKey}`,
+          name: `Every ${name} has a ${referenced.name} row`,
+          reason: `Rows whose ${name} has no match in ${referenced.tableKey} are orphans: a delete that did not cascade, or a load out of order.`,
+          checkType: DataCheckType.OrphanCount,
+          columnName: name,
+          referenceTableKey: referenced.tableKey,
+          referenceColumnName:
+            referenced.columns.find((candidate: DataAssetColumn) => {
+              return candidate.name.toLowerCase() === "id";
+            })?.name || "id",
+          alertCondition: DataCheckAlertCondition.Above,
+          alertThreshold: 0,
+        });
+      }
+
+      if (column.isNullable) {
+        suggestions.push({
+          id: `nulls:${name}`,
+          name: `${name} is filled in as usual`,
+          reason: `A deploy that stops setting ${name} shows as more empty values than usual.`,
+          checkType: DataCheckType.NullPercent,
+          columnName: name,
+          alertCondition: DataCheckAlertCondition.UnusuallyHigh,
+        });
+      }
+    }
+
+    if (TENANT_NAME.test(lower)) {
+      suggestions.push({
+        id: `volume-by:${name}`,
+        name: `Rows per ${name.replace(/_id$/i, "")}`,
+        reason: `One ${name.replace(/_id$/i, "")} that stops sending data is lost in the table's total: counted per ${name}, it alerts on its own.`,
+        checkType: DataCheckType.RowCount,
+        segmentColumn: name,
+        alertCondition: DataCheckAlertCondition.UnusuallyLow,
+      });
+    }
+
+    if (EMAIL_NAME.test(lower) && isText(column)) {
+      suggestions.push({
+        id: `email-format:${name}`,
+        name: `${name} looks like an email address`,
+        reason:
+          "Values that are not email addresses are bad input, or a column filled from the wrong field.",
+        checkType: DataCheckType.FormatMismatchPercent,
+        columnName: name,
+        pattern: EMAIL_PATTERN,
+        alertCondition: DataCheckAlertCondition.Above,
+        alertThreshold: 1,
+      });
+    }
+
+    if (MONEY_NAME.test(lower) && isNumeric(column)) {
+      suggestions.push({
+        id: `not-negative:${name}`,
+        name: `${name} is not negative`,
+        reason: `A negative ${name} is usually a sign or unit error.`,
+        checkType: DataCheckType.Minimum,
+        columnName: name,
+        alertCondition: DataCheckAlertCondition.Below,
+        alertThreshold: 0,
+      });
+    }
+
+    if (CATEGORY_NAME.test(lower)) {
+      suggestions.push({
+        id: `values:${name}`,
+        name: `${name} takes its usual values`,
+        reason: `A ${name} that suddenly has more different values than usual is a new, unexpected value being written.`,
+        checkType: DataCheckType.DistinctCount,
+        columnName: name,
+        alertCondition: DataCheckAlertCondition.UnusuallyHigh,
+      });
+    }
+  }
+
+  return suggestions
+    .filter((suggestion: DataCheckSuggestion) => {
+      return (
+        !data.dismissedIds.includes(suggestion.id) &&
+        !isCovered(data.existing, suggestion)
+      );
+    })
+    .slice(0, MAX_SUGGESTIONS_PER_TABLE);
+}

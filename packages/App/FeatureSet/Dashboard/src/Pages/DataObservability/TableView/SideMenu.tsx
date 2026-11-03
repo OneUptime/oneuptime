@@ -55,6 +55,20 @@ const TableViewSideMenu: FunctionComponent<ComponentProps> = (
         />
         <SideMenuItem
           link={{
+            title: "Checks",
+            to: routeOf(PageMap.DATA_OBSERVABILITY_TABLE_VIEW_CHECKS),
+          }}
+          icon={IconProp.CheckCircle}
+        />
+        <SideMenuItem
+          link={{
+            title: "Lineage",
+            to: routeOf(PageMap.DATA_OBSERVABILITY_TABLE_VIEW_LINEAGE),
+          }}
+          icon={IconProp.Workflow}
+        />
+        <SideMenuItem
+          link={{
             title: "Services",
             to: routeOf(PageMap.DATA_OBSERVABILITY_TABLE_VIEW_SERVICES),
           }}
