@@ -93,10 +93,8 @@ export const CloudCardFooterLink: FunctionComponent<{
         className="inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-700"
       >
         <span>{translator.translateText(props.text)}</span>
-        <Icon
-          icon={IconProp.ArrowRight}
-          className="h-3.5 w-3.5 rtl:-scale-x-100"
-        />
+        {/* Icon turns an arrow round for a page read right to left. */}
+        <Icon icon={IconProp.ArrowRight} className="h-3.5 w-3.5" />
       </AppLink>
     </div>
   );
