@@ -2,6 +2,7 @@ import {
   ExtractedString,
   scanSourceText,
 } from "../../FeatureSet/Dashboard/scripts/i18n/ExtractStrings";
+import { markupAsSpaces } from "Common/Tests/Helpers/HtmlText";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -37,9 +38,12 @@ const DOCS: string = path.join(
   "packages/App/FeatureSet/Docs/Content/fa/data-security",
 );
 
-// Spans never read: code, placeholders, link targets, URLs, tags, quoted English.
+/*
+ * Spans never read: code, placeholders, link targets, URLs and quoted
+ * English. Tags are taken out before, by the shared markup walk.
+ */
 const PROTECTED: RegExp =
-  /`[^`]*`|\{\{[^}]*\}\}|\]\([^)]*\)|https?:\/\/\S+|<[^>]+>|«[^»]*[A-Za-z][^»]*»|"[^"]*[A-Za-z]{3,}[^"]*"/g;
+  /`[^`]*`|\{\{[^}]*\}\}|\]\([^)]*\)|https?:\/\/\S+|«[^»]*[A-Za-z][^»]*»|"[^"]*[A-Za-z]{3,}[^"]*"/g;
 const NUMBER: RegExp = /\d+(?:[.,:/]\d+)*%?/g;
 const LETTER_BEFORE: RegExp = /[A-Za-z\\]-?$/;
 const LETTER_AFTER: RegExp = /^[A-Za-z]/;
@@ -74,9 +78,12 @@ function isAName(text: string, start: number, run: string): boolean {
 
 // The Latin-digit runs of a Persian text that count something: each should be Persian.
 function latinNumbersInProse(text: string): Array<string> {
-  const plain: string = text.replace(PROTECTED, (span: string): string => {
-    return " ".repeat(span.length);
-  });
+  const plain: string = markupAsSpaces(text).replace(
+    PROTECTED,
+    (span: string): string => {
+      return " ".repeat(span.length);
+    },
+  );
   const found: Array<string> = [];
 
   for (const match of plain.matchAll(NUMBER)) {
@@ -173,6 +180,7 @@ describe("the rule's two sides", () => {
     ["1. **کشف**", []],
     ["«Data Security: 2 new issues on orders-db»", []],
     ["`top 10` و {{count}} مورد", []],
+    ['<img src="score.png" width="640"> و <h2>', []],
     ["۷۵ + ۱۰ + ۵ + ۴ = ۹۴", []],
     ["90 روز", ["90"]],
     ["از 0 تا 100", ["0", "100"]],
