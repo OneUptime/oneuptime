@@ -130,6 +130,15 @@ const PROVIDER_2: string = "44444444-4444-4444-8444-444444444444";
 // Where a sentence ends, in the scripts the Accounts locales are written in.
 const SENTENCE_END: RegExp = /[.。।]$/u;
 
+/*
+ * The informal "you" - its pronouns and the imperatives a sign-in page
+ * uses - as a word of its own, in Spanish (tú) and in Dutch (je).
+ */
+const SPANISH_INFORMAL_ADDRESS: RegExp =
+  /(?<!\p{L})(?:tú|tu|tus|ti|te|contigo|tienes|introduce|pide|haz|continúa|inicia)(?!\p{L})/iu;
+const DUTCH_INFORMAL_ADDRESS: RegExp =
+  /(?<!\p{L})(?:je|jij|jou|jouw)(?!\p{L})/iu;
+
 // What neither page may say about single sign-on any more.
 const EDITION_OR_LICENSE_WORDING: RegExp =
   /Enterprise|Community Edition|licen[cs]e|not available on this server/i;
@@ -1159,10 +1168,6 @@ describe("Accounts single sign-on, in every edition", () => {
     });
 
     /*
-     * The explanation that SSO needs the Enterprise Edition with an active
-     * license is no longer true anywhere, and no page renders it.
-     */
-    /*
      * The SSO page's line under its heading said the heading again in every
      * language ("Sign in with your SSO provider to access your account."
      * under "Sign in with SSO"), and so did the project list's ("Select the
@@ -1204,7 +1209,9 @@ describe("Accounts single sign-on, in every edition", () => {
      */
     test("the line while SSO is required says why, in the master admins' page's words, in every language", () => {
       for (const { file, locale } of readLocales()) {
-        const line: string = String(localeValue(locale, "sso.requiredSubtitle"));
+        const line: string = String(
+          localeValue(locale, "sso.requiredSubtitle"),
+        );
         const adminLine: string = String(
           localeValue(locale, "adminLogin.subtitle"),
         );
@@ -1233,6 +1240,62 @@ describe("Accounts single sign-on, in every edition", () => {
       );
     });
 
+    /*
+     * In Spanish and Dutch the SSO page speaks to the reader one way: as its
+     * older lines do, formally ("¿No tiene una cuenta?", "Inicie sesión con
+     * su organización"; "Hebt u geen account?", "Aanmelden met uw
+     * organisatie"). The email form's line and the not-set-up card's said tú
+     * and je right beside them (fu-platform-next's review).
+     */
+    test("in Spanish and Dutch, every line of the SSO page addresses the reader formally, as its older lines do", () => {
+      const informalAddress: Array<{ file: string; pattern: RegExp }> = [
+        { file: "es.json", pattern: SPANISH_INFORMAL_ADDRESS },
+        { file: "nl.json", pattern: DUTCH_INFORMAL_ADDRESS },
+      ];
+
+      for (const { file, pattern } of informalAddress) {
+        const { locale } = readLocales().find(
+          (entry: { file: string; locale: JSONObject }) => {
+            return entry.file === file;
+          },
+        ) as { file: string; locale: JSONObject };
+
+        const informal: Array<string> = [
+          ...SSO_LOCALE_KEYS,
+          "login.title",
+        ].filter((key: string) => {
+          return pattern.test(String(localeValue(locale, key)));
+        });
+
+        expect({ file, informal }).toEqual({ file, informal: [] });
+      }
+
+      // The patterns find the informal voice the lines had.
+      expect(
+        SPANISH_INFORMAL_ADDRESS.test(
+          "Introduce tu correo electrónico para encontrar el inicio de sesión de tu organización.",
+        ),
+      ).toBe(true);
+      expect(
+        SPANISH_INFORMAL_ADDRESS.test(
+          "Pide a tu administrador del servidor que lo configure.",
+        ),
+      ).toBe(true);
+      expect(
+        DUTCH_INFORMAL_ADDRESS.test(
+          "Vraag je serverbeheerder om het in te stellen.",
+        ),
+      ).toBe(true);
+      expect(SPANISH_INFORMAL_ADDRESS.test("¿No tiene una cuenta?")).toBe(
+        false,
+      );
+      expect(DUTCH_INFORMAL_ADDRESS.test("Hebt u geen account?")).toBe(false);
+    });
+
+    /*
+     * The explanation that SSO needs the Enterprise Edition with an active
+     * license is no longer true anywhere, and no page renders it.
+     */
     test("no locale keeps the retired 'SSO needs the Enterprise Edition' explanation", () => {
       for (const { file, locale } of readLocales()) {
         expect({

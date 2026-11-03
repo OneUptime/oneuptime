@@ -159,7 +159,7 @@
   },
   "sso": {
     "title": "Inloggen met SSO",
-    "emailFormSubtitle": "Vul je e-mailadres in om de aanmelding van je organisatie te vinden.",
+    "emailFormSubtitle": "Vul uw e-mailadres in om de aanmelding van uw organisatie te vinden.",
     "submitButton": "Inloggen met SSO",
     "signInWithPassword": "Inloggen met wachtwoord",
     "noAccountPrompt": "Hebt u geen account?",
@@ -172,7 +172,7 @@
     "globalProvidersDivider": "Of ga verder met e-mail",
     "signInWithProvider": "Inloggen met {{name}}",
     "requiredSubtitle": "Deze server vereist single sign-on (SSO).",
-    "requiredNotSetUp": "Single sign-on is nog niet ingesteld op deze server. Vraag je serverbeheerder om het in te stellen.",
+    "requiredNotSetUp": "Single sign-on is nog niet ingesteld op deze server. Vraag uw serverbeheerder om het in te stellen.",
     "useDifferentEmail": "Ander e-mailadres gebruiken"
   },
   "adminLogin": {
