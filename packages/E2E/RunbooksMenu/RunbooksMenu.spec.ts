@@ -8,6 +8,7 @@ import {
 import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 /*
  * The Runbooks side menu, after AI Access went.
@@ -248,16 +249,11 @@ test.describe("at a laptop's 1280 pixels", () => {
     await expect(runners).toBeVisible();
     await expect(runners.locator("svg")).toHaveCount(1);
     // Drawn right below Executions, above the Settings section.
-    const runnersBox: { y: number; height: number } | null =
-      await runners.boundingBox();
-    const executionsBox: { y: number } | null = await link(
-      menu,
-      EXECUTIONS,
-    ).boundingBox();
-    const settingsBox: { y: number } | null = await sectionToggle(
-      menu,
-      "Settings",
-    ).boundingBox();
+    const [runnersBox, executionsBox, settingsBox] = await boxesInOneFrame([
+      runners,
+      link(menu, EXECUTIONS),
+      sectionToggle(menu, "Settings"),
+    ]);
 
     expect(runnersBox!.y).toBeGreaterThan(executionsBox!.y);
     expect(settingsBox!.y).toBeGreaterThanOrEqual(

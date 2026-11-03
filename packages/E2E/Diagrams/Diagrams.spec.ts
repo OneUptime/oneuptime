@@ -9,6 +9,7 @@ import {
 } from "@playwright/test";
 import fs from "fs";
 import path from "path";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 /*
  * Diagrams in a real browser, the three ways OneUptime draws them: the
@@ -630,8 +631,7 @@ test.describe("the docs", () => {
       }),
     ).toBe("pre");
 
-    const noteBox: { y: number } | null = await note.boundingBox();
-    const sourceBox: { y: number } | null = await source.boundingBox();
+    const [noteBox, sourceBox] = await boxesInOneFrame([note, source]);
 
     expect(noteBox?.y || 0).toBeLessThan(sourceBox?.y || 0);
 
@@ -1132,9 +1132,7 @@ test.describe("the blog", () => {
     ).toEqual(["note", "pre", "diagram", "diagram", "pre"]);
 
     // Set close above the block it is about.
-    const noteBox: { y: number; height: number } | null =
-      await note.boundingBox();
-    const codeBox: { y: number } | null = await codeBlock.boundingBox();
+    const [noteBox, codeBox] = await boxesInOneFrame([note, codeBlock]);
     const gap: number =
       (codeBox?.y || 0) - ((noteBox?.y || 0) + (noteBox?.height || 0));
 

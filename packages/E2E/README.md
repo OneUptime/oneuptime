@@ -312,7 +312,9 @@ when its words fit one line, and balances its lines when they wrap. See
   in, More fields scrolling its fields into view, a menu opening - come from
   two moments, and a gap or an alignment between them can be off by a hundred
   pixels. Compare boxes read with it. An element that is not displayed fails
-  the read, naming it, where `boundingBox()` would answer null.
+  the read, naming it, where `boundingBox()` would answer null. Two boxes read
+  one after the other with `boundingBox()` fail
+  `Tests/Ops/E2EBoxesInOneFrame`: read them with this instead.
 - `PageFit.ts`: `expectNoSidewaysScroll(page)` holds a page to its window's
   width, reading it until it fits for as long as an expect waits: a table
   fits its columns to its card a frame after it paints (and on a phone turns

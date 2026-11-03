@@ -12,6 +12,7 @@ import {
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 import fs from "fs";
 import path from "path";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 /*
  * Admin Dashboard > Settings > Backups, in a browser, against the offline
@@ -139,12 +140,10 @@ async function expectStepLineUnderMark(page: Page, key: string): Promise<void> {
   const item: Locator = page
     .getByTestId("modal")
     .getByTestId(`backup-run-step-${key}`);
-  const line: { x: number; width: number } | null = await item
-    .locator(":scope > [aria-hidden=true]")
-    .boundingBox();
-  const mark: { x: number; width: number } | null = await item
-    .locator(":scope > div.relative.flex-none")
-    .boundingBox();
+  const [line, mark] = await boxesInOneFrame([
+    item.locator(":scope > [aria-hidden=true]"),
+    item.locator(":scope > div.relative.flex-none"),
+  ]);
 
   expect(line && mark).toBeTruthy();
 
@@ -464,10 +463,10 @@ test.describe("the Enterprise Edition's Backups page", () => {
         .locator("xpath=ancestor::*[.//*[@data-testid='card-header']][1]")
         .getByTestId("card-header")
         .getByRole("button", { name: "More options" });
-      const statusBox: { width: number; height: number } | null =
-        await statusMore.boundingBox();
-      const tableBox: { width: number; height: number } | null =
-        await tableMore.boundingBox();
+      const [statusBox, tableBox] = await boxesInOneFrame([
+        statusMore,
+        tableMore,
+      ]);
 
       expect(statusBox && tableBox).toBeTruthy();
       expect(Math.round(statusBox!.width)).toBe(Math.round(tableBox!.width));

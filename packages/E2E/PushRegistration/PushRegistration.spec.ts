@@ -12,6 +12,7 @@ import {
 import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 /*
  * Register Device (User Settings > Notification Methods > Push
@@ -1644,10 +1645,7 @@ test.describe("critical alerts in the device list", () => {
         .join("Critical On-Call Alerts"),
     );
 
-    const box: { x: number; width: number } | null =
-      await dialog(page).boundingBox();
-    const hintBox: { x: number; width: number } | null =
-      await hint.boundingBox();
+    const [box, hintBox] = await boxesInOneFrame([dialog(page), hint]);
 
     expect(box).not.toBeNull();
     expect(hintBox).not.toBeNull();

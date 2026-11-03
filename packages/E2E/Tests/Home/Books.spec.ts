@@ -10,6 +10,7 @@ import {
 } from "@playwright/test";
 import URL from "Common/Types/API/URL";
 import { expectNoSidewaysScroll } from "../../SuiteHelpers/PageFit";
+import { boxesInOneFrame } from "../../SuiteHelpers/Frames";
 
 const bookUrl: string = "https://backtometal.oneuptime.com/";
 const booksUrl: string = URL.fromString(BASE_URL.toString())
@@ -705,18 +706,7 @@ test.describe("Home: Books", () => {
       await expect(note).toBeVisible();
       await expect(mark).toBeVisible();
 
-      const noteBounds: {
-        x: number;
-        y: number;
-        width: number;
-        height: number;
-      } | null = await note.boundingBox();
-      const markBounds: {
-        x: number;
-        y: number;
-        width: number;
-        height: number;
-      } | null = await mark.boundingBox();
+      const [noteBounds, markBounds] = await boxesInOneFrame([note, mark]);
 
       expect(noteBounds).not.toBeNull();
       expect(markBounds).not.toBeNull();

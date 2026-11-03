@@ -8,6 +8,7 @@ import {
 import fs from "fs";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 /*
  * The shared buttons, dialogs and cards, drawn by the production components
@@ -678,10 +679,7 @@ test.describe("a button that cannot be pressed looks it", () => {
       const spinner: Locator = busy.locator(".animate-spin").first();
       const words: Locator = busy.getByText("Ping", { exact: true });
 
-      const spinnerBox: { y: number; height: number } | null =
-        await spinner.boundingBox();
-      const wordsBox: { y: number; height: number } | null =
-        await words.boundingBox();
+      const [spinnerBox, wordsBox] = await boxesInOneFrame([spinner, words]);
 
       expect(spinnerBox).not.toBeNull();
       expect(wordsBox).not.toBeNull();
@@ -786,11 +784,10 @@ test.describe("a locked button or switch says why on a tap", () => {
     await open(page, "section=buttons");
 
     const help: Locator = page.getByTestId("locked-switch-toggle-help");
-    const box: { width: number; height: number; y: number } | null =
-      await help.boundingBox();
-    const title: { y: number; height: number } | null = await page
-      .getByText("Show on status page", { exact: true })
-      .boundingBox();
+    const [box, title] = await boxesInOneFrame([
+      help,
+      page.getByText("Show on status page", { exact: true }),
+    ]);
 
     expect(box).not.toBeNull();
     expect(title).not.toBeNull();
@@ -1085,13 +1082,10 @@ test.describe("a menu's own ⋯ is a bare icon button", () => {
     const trigger: Locator = page.getByTestId("worded-more-menu");
     await expect(trigger).toHaveText("1m");
 
-    const icon: { y: number; height: number } | null = await trigger
-      .locator("svg")
-      .first()
-      .boundingBox();
-    const words: { y: number; height: number } | null = await trigger
-      .getByText("1m", { exact: true })
-      .boundingBox();
+    const [icon, words] = await boxesInOneFrame([
+      trigger.locator("svg").first(),
+      trigger.getByText("1m", { exact: true }),
+    ]);
     const iconMiddle: number = icon!.y + icon!.height / 2;
 
     expect(iconMiddle).toBeGreaterThan(words!.y);
@@ -1662,10 +1656,7 @@ test.describe("radios and checkboxes in the dark theme are the theme's own", () 
         .getByTestId("choice-light-row")
         .getByText("Light", { exact: true });
 
-      const radioBox: { y: number; height: number } | null =
-        await radio.boundingBox();
-      const titleBox: { y: number; height: number } | null =
-        await title.boundingBox();
+      const [radioBox, titleBox] = await boxesInOneFrame([radio, title]);
 
       offsets[theme] =
         radioBox!.y +

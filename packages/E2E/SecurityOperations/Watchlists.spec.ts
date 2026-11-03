@@ -8,6 +8,7 @@ import {
 import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 /*
  * Watchlists on the Security Operations fixture's synthetic month
@@ -711,12 +712,10 @@ test.describe("a watchlist's page", () => {
     await openImport(page);
 
     // The paste box spans the dialog, in the type values are written in.
-    const box: { width: number } | null = await page
-      .getByTestId("watchlist-import-text")
-      .boundingBox();
-    const content: { width: number } | null = await page
-      .getByTestId("watchlist-import-modal")
-      .boundingBox();
+    const [box, content] = await boxesInOneFrame([
+      page.getByTestId("watchlist-import-text"),
+      page.getByTestId("watchlist-import-modal"),
+    ]);
     expect(box!.width).toBeGreaterThan(content!.width * 0.9);
     await expect(page.getByTestId("watchlist-import-text")).toHaveCSS(
       "font-family",

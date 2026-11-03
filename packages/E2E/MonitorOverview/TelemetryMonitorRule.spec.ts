@@ -8,6 +8,7 @@ import {
 import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 /*
  * A LOGS, TRACES, EXCEPTIONS OR METRICS MONITOR, SET UP AS ONE RULE.
@@ -228,10 +229,7 @@ async function expectRuleLineOnChart(page: Page): Promise<void> {
 
   await expect(line).toHaveCount(1);
 
-  const chartBox: { y: number; height: number } | null =
-    await chart.boundingBox();
-  const lineBox: { y: number; height: number } | null =
-    await line.boundingBox();
+  const [chartBox, lineBox] = await boxesInOneFrame([chart, line]);
 
   expect(chartBox).not.toBeNull();
   expect(lineBox).not.toBeNull();
@@ -319,12 +317,10 @@ test.describe("A Logs monitor's criteria step", () => {
      * by whose they are: indented under the radios they read as the last
      * radio's ("Both").
      */
-    const choice: { x: number; width: number } | null = await page
-      .getByTestId("telemetry-rule-action")
-      .boundingBox();
-    const alertBox: { x: number; width: number } | null = await page
-      .getByTestId("telemetry-rule-alert")
-      .boundingBox();
+    const [choice, alertBox] = await boxesInOneFrame([
+      page.getByTestId("telemetry-rule-action"),
+      page.getByTestId("telemetry-rule-alert"),
+    ]);
     expect(choice).not.toBeNull();
     expect(alertBox).not.toBeNull();
     expect(Math.abs(alertBox!.x - choice!.x)).toBeLessThan(2);
@@ -759,12 +755,10 @@ test.describe("The rule on a phone, in dark mode, in German and in Persian", () 
     await openCriteria(page, { type: "Logs", name: "Checkout logs" });
     await previewSettled(page);
 
-    const condition: { y: number; x: number } | null = await page
-      .getByTestId("telemetry-rule-comparison")
-      .boundingBox();
-    const value: { y: number; x: number } | null = await page
-      .getByTestId("telemetry-rule-value")
-      .boundingBox();
+    const [condition, value] = await boxesInOneFrame([
+      page.getByTestId("telemetry-rule-comparison"),
+      page.getByTestId("telemetry-rule-value"),
+    ]);
 
     expect(condition).not.toBeNull();
     expect(value).not.toBeNull();

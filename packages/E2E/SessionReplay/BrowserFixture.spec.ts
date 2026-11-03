@@ -9,6 +9,7 @@ import {
 import { mkdir } from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 const artifacts: string = path.resolve(
   __dirname,
@@ -1486,11 +1487,10 @@ test("the mobile list, filters, recording and event search fit a narrow viewport
   expect(dialogBounds!.width).toBeLessThanOrEqual(372);
   await expect(page.getByTestId("details-section-session")).toBeVisible();
 
-  const browserTileBounds: Awaited<ReturnType<Locator["boundingBox"]>> =
-    await page.getByTestId("replay-details-browser").boundingBox();
-  const osTileBounds: Awaited<ReturnType<Locator["boundingBox"]>> = await page
-    .getByTestId("replay-details-os")
-    .boundingBox();
+  const [browserTileBounds, osTileBounds] = await boxesInOneFrame([
+    page.getByTestId("replay-details-browser"),
+    page.getByTestId("replay-details-os"),
+  ]);
 
   expect(browserTileBounds).not.toBeNull();
   expect(osTileBounds).not.toBeNull();

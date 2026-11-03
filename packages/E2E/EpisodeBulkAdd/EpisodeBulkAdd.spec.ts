@@ -315,14 +315,11 @@ test.describe("the alerts list: Add to Existing Episode", () => {
     );
 
     // Between the list and the button that adds them.
-    const notesBox: { y: number; height: number } | null =
-      await notes.boundingBox();
-    const listBox: { y: number; height: number } | null = await dialog(page)
-      .getByTestId("add-to-existing-episode-list-list")
-      .boundingBox();
-    const buttonBox: { y: number } | null = await dialog(page)
-      .getByTestId("modal-footer-submit-button")
-      .boundingBox();
+    const [notesBox, listBox, buttonBox] = await boxesInOneFrame([
+      notes,
+      dialog(page).getByTestId("add-to-existing-episode-list-list"),
+      dialog(page).getByTestId("modal-footer-submit-button"),
+    ]);
     expect(notesBox!.y).toBeGreaterThanOrEqual(listBox!.y + listBox!.height);
     expect(buttonBox!.y).toBeGreaterThan(notesBox!.y + notesBox!.height);
 
@@ -767,12 +764,10 @@ test.describe("an alert episode's Add Alerts", () => {
     ).toHaveText("Private");
 
     // Under the title, not beside it.
-    const titleBox: { y: number; height: number } | null = await option
-      .getByTestId(`${LIST}-option-title`)
-      .boundingBox();
-    const privateBox: { y: number } | null = await option
-      .getByTestId(`${LIST}-option-private`)
-      .boundingBox();
+    const [titleBox, privateBox] = await boxesInOneFrame([
+      option.getByTestId(`${LIST}-option-title`),
+      option.getByTestId(`${LIST}-option-private`),
+    ]);
     expect(privateBox!.y).toBeGreaterThanOrEqual(
       titleBox!.y + titleBox!.height - 1,
     );
@@ -1015,12 +1010,10 @@ test.describe("on a phone", () => {
       LIST,
       "Payroll export job failing",
     );
-    const privateTitle: { y: number; height: number } | null = await privateOne
-      .getByTestId(`${LIST}-option-title`)
-      .boundingBox();
-    const privatePill: { y: number } | null = await privateOne
-      .getByTestId(`${LIST}-option-private`)
-      .boundingBox();
+    const [privateTitle, privatePill] = await boxesInOneFrame([
+      privateOne.getByTestId(`${LIST}-option-title`),
+      privateOne.getByTestId(`${LIST}-option-private`),
+    ]);
     expect(privatePill!.y).toBeGreaterThanOrEqual(
       privateTitle!.y + privateTitle!.height - 1,
     );

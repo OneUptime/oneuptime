@@ -485,11 +485,10 @@ test.describe("Project Settings > AI > LLM Providers: adding a provider", () => 
     );
 
     // It starts where the fields start, as part of the form.
-    const name: { x: number; width: number } | null =
-      await nameInput(page).boundingBox();
-    const chevron: { x: number } | null = await dialog(page)
-      .getByTestId("folded-section-chevron")
-      .boundingBox();
+    const [name, chevron] = await boxesInOneFrame([
+      nameInput(page),
+      dialog(page).getByTestId("folded-section-chevron"),
+    ]);
     expect(Math.abs(chevron!.x - name!.x)).toBeLessThanOrEqual(2);
 
     await more.click();

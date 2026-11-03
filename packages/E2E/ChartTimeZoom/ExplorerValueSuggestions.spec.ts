@@ -7,6 +7,7 @@ import {
 } from "@playwright/test";
 import path from "path";
 import { sidewaysScrollOf } from "../SuiteHelpers/PageFit";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 /*
  * Issue #4708 in a real browser: what the Logs and Traces explorers ask the
@@ -452,14 +453,11 @@ test.describe("Logs explorer: the @key: value picker", () => {
     });
     expect(keyFont.toLowerCase()).toContain("mono");
 
-    const dropdownBox: { x: number; width: number } | null = await page
-      .getByTestId(SUGGESTIONS_TEST_ID)
-      .boundingBox();
-    const sentenceBox: { x: number; y: number; height: number } | null =
-      await error.locator("p").first().boundingBox();
-    const retryBox: { x: number; y: number } | null = await page
-      .getByTestId(RETRY_TEST_ID)
-      .boundingBox();
+    const [dropdownBox, sentenceBox, retryBox] = await boxesInOneFrame([
+      page.getByTestId(SUGGESTIONS_TEST_ID),
+      error.locator("p").first(),
+      page.getByTestId(RETRY_TEST_ID),
+    ]);
 
     expect(dropdownBox).not.toBeNull();
     expect(sentenceBox).not.toBeNull();
@@ -649,11 +647,10 @@ test.describe("Logs explorer: the @key: value picker", () => {
     const error: Locator = page.getByTestId(ERROR_TEST_ID);
     await expect(error).toBeVisible({ timeout: 15000 });
 
-    const errorBox: { x: number; width: number } | null =
-      await error.boundingBox();
-    const retryBox: { x: number; width: number } | null = await page
-      .getByTestId(RETRY_TEST_ID)
-      .boundingBox();
+    const [errorBox, retryBox] = await boxesInOneFrame([
+      error,
+      page.getByTestId(RETRY_TEST_ID),
+    ]);
 
     expect(errorBox).not.toBeNull();
     expect(errorBox!.x).toBeGreaterThanOrEqual(0);

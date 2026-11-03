@@ -3,6 +3,7 @@ import fs from "fs";
 import fsPromises from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 /*
  * A Proxmox VE cluster's pages, in a browser, against the offline fixture
@@ -1333,9 +1334,7 @@ test.describe("at a phone's width, in dark mode, in German and in Persian", () =
       .first()
       .locator(":scope > div")
       .last();
-    const titleBox: { x: number; width: number } | null =
-      await title.boundingBox();
-    const iconBox: { x: number } | null = await icon.boundingBox();
+    const [titleBox, iconBox] = await boxesInOneFrame([title, icon]);
     expect(titleBox && iconBox).toBeTruthy();
     expect(titleBox!.x + titleBox!.width).toBeLessThanOrEqual(iconBox!.x);
 

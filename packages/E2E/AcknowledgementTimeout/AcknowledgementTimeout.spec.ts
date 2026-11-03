@@ -8,6 +8,7 @@ import {
 import fs from "fs";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 /*
  * An on-call policy's acknowledgement timeout (issue #5123): page again
@@ -211,8 +212,10 @@ test("keeps the setting folded under More settings, below the cards everyone use
   // The Repeat Policy card the page always showed comes first, then the fold.
   const repeat: Locator = page.getByText("Repeat Policy", { exact: true });
   await expect(repeat).toBeVisible();
-  const repeatBox: { y: number } | null = await repeat.boundingBox();
-  const foldBox: { y: number } | null = await moreSettings(page).boundingBox();
+  const [repeatBox, foldBox] = await boxesInOneFrame([
+    repeat,
+    moreSettings(page),
+  ]);
   expect(repeatBox).not.toBeNull();
   expect(foldBox).not.toBeNull();
   expect(foldBox!.y).toBeGreaterThan(repeatBox!.y);

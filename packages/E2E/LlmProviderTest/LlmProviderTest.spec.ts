@@ -1,6 +1,7 @@
 import { expect, Locator, Page, test } from "@playwright/test";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 /*
  * Test LLM Provider, end to end in a browser, against the fixture's in-page
@@ -146,10 +147,7 @@ function tooltip(page: Page): Locator {
  * from instead of next to the item.
  */
 async function expectBesideItem(page: Page, item: Locator): Promise<void> {
-  const itemBox: { x: number; y: number; height: number } | null =
-    await item.boundingBox();
-  const tipBox: { x: number; y: number; width: number; height: number } | null =
-    await tooltip(page).boundingBox();
+  const [itemBox, tipBox] = await boxesInOneFrame([item, tooltip(page)]);
 
   expect(
     Math.abs(

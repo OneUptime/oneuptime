@@ -8,6 +8,7 @@ import {
 import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 /*
  * CREATE MONITOR, IN A REAL BROWSER.
@@ -2014,10 +2015,10 @@ test.describe("Create Monitor's plainer fields", () => {
     await expect(target).toHaveCount(1);
     await expect(target.getByTestId("monitor-step-more-fields")).toHaveCount(1);
 
-    const url: { y: number } | null = await target
-      .getByPlaceholder("https://example.com")
-      .boundingBox();
-    const line: { y: number } | null = await moreFields.boundingBox();
+    const [url, line] = await boxesInOneFrame([
+      target.getByPlaceholder("https://example.com"),
+      moreFields,
+    ]);
     expect(line!.y).toBeGreaterThan(url!.y);
 
     const header: Locator = moreFields.getByTestId("folded-section-header");

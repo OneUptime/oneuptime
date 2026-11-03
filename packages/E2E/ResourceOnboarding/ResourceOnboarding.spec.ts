@@ -8,6 +8,7 @@ import {
 import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 /*
  * Adding a resource the way a host is added, in a real browser: the real
@@ -203,8 +204,7 @@ function showcaseButton(page: Page): Locator {
 
 // Whether `lower` is drawn below `upper` on the page.
 async function isBelow(upper: Locator, lower: Locator): Promise<boolean> {
-  const top: { y: number; height: number } | null = await upper.boundingBox();
-  const bottom: { y: number } | null = await lower.boundingBox();
+  const [top, bottom] = await boxesInOneFrame([upper, lower]);
   return Boolean(top && bottom && bottom.y >= top.y + top.height - 1);
 }
 

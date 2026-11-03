@@ -3,6 +3,7 @@ import fs from "fs";
 import fsPromises from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 /*
  * Runbook variables, and SSH and kubectl steps that take a script, in a
@@ -637,10 +638,10 @@ test.describe("an SSH step", () => {
     );
 
     // After the key passphrase, before the description.
-    const passphraseBox: { y: number } | null = await page
-      .getByTestId("runbook-step-0-ssh-passphrase")
-      .boundingBox();
-    const hostKeyBox: { y: number } | null = await box.boundingBox();
+    const [passphraseBox, hostKeyBox] = await boxesInOneFrame([
+      page.getByTestId("runbook-step-0-ssh-passphrase"),
+      box,
+    ]);
     expect(hostKeyBox!.y).toBeGreaterThan(passphraseBox!.y);
 
     const keyscan: string =

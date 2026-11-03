@@ -2,6 +2,7 @@ import { expect, Locator, Page, test, TestInfo } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 /*
  * Traces' AI tab - Traces → AI → Insights, a finding's page with Fix with
@@ -185,10 +186,7 @@ async function measureFixStrip(
   picker: Locator,
   button: Locator,
 ): Promise<{ isStacked: boolean; buttonHeight: number }> {
-  const pickerBox: { y: number; height: number } | null =
-    await picker.boundingBox();
-  const buttonBox: { y: number; height: number } | null =
-    await button.boundingBox();
+  const [pickerBox, buttonBox] = await boxesInOneFrame([picker, button]);
 
   if (!pickerBox || !buttonBox) {
     throw new Error("The picker or the button is not drawn.");

@@ -12,6 +12,7 @@ import {
 import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 /*
  * The first-run path of the Network Overview, in a real browser: the real
@@ -990,15 +991,13 @@ test("a busy network's four lists end on one line two by two, and one above the 
       exact: true,
     }),
   });
-  const card: { y: number; height: number } | null = await scans.boundingBox();
-  const header: { y: number; height: number } | null = await scans
-    .getByTestId("card-header")
-    .boundingBox();
-  const words: { y: number; height: number } | null = await scans
-    .getByText(
+  const [card, header, words] = await boxesInOneFrame([
+    scans,
+    scans.getByTestId("card-header"),
+    scans.getByText(
       "No scans yet. Scan a subnet to find the devices on it, then pick the ones to add.",
-    )
-    .boundingBox();
+    ),
+  ]);
   const room: number =
     (header!.y + header!.height + card!.y + card!.height) / 2;
   expect(Math.abs(words!.y + words!.height / 2 - room)).toBeLessThanOrEqual(24);

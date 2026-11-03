@@ -1,6 +1,7 @@
 import { expect, Locator, Page, test } from "@playwright/test";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 /*
  * Where each asset detail came from, and when (OneUptime issue #5185), end
@@ -220,10 +221,10 @@ test.describe("Inventory's Asset Details card, at a laptop's width", () => {
     ).toContainText(
       "neither this device's SNMP poll nor a discovery scan has found",
     );
-    const sourceBox: { y: number } | null = await saidOnce(page).boundingBox();
-    const unknownBox: { y: number } | null = await page
-      .getByTestId("inventory-asset-details-unknown")
-      .boundingBox();
+    const [sourceBox, unknownBox] = await boxesInOneFrame([
+      saidOnce(page),
+      page.getByTestId("inventory-asset-details-unknown"),
+    ]);
     expect(sourceBox!.y).toBeLessThan(unknownBox!.y);
 
     // The card read the device itself, with every column its facts need.
@@ -630,11 +631,10 @@ test.describe("the device's Overview", () => {
       timeout: 30000,
     });
     await expectNoSidewaysScroll(page);
-    const cardBox: { x: number; width: number } | null =
-      await card.boundingBox();
-    const caseBox: { x: number; width: number } | null = await card
-      .getByTestId("resource-security-case")
-      .boundingBox();
+    const [cardBox, caseBox] = await boxesInOneFrame([
+      card,
+      card.getByTestId("resource-security-case"),
+    ]);
     expect(caseBox!.x).toBeGreaterThanOrEqual(cardBox!.x);
     expect(caseBox!.x + caseBox!.width).toBeLessThanOrEqual(
       cardBox!.x + cardBox!.width + 1,

@@ -3,6 +3,7 @@ import fs from "fs";
 import fsPromises from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 /*
  * Where a Kubernetes cluster's warning events show, in a browser, against
@@ -712,12 +713,13 @@ test.describe("the cluster's Events page", () => {
      * Under the list's pager, clear of it (#5298's UI review): the pager ends
      * its card, and the note sat 8px into it, against Rows per page.
      */
-    const pager: { y: number; height: number } | null = await page
-      .getByTestId("kubernetes-events-view")
-      .getByTestId("pagination-summary")
-      .locator("xpath=ancestor::nav[1]")
-      .boundingBox();
-    const noteBox: { y: number } | null = await note.boundingBox();
+    const [pager, noteBox] = await boxesInOneFrame([
+      page
+        .getByTestId("kubernetes-events-view")
+        .getByTestId("pagination-summary")
+        .locator("xpath=ancestor::nav[1]"),
+      note,
+    ]);
     expect(noteBox!.y).toBeGreaterThanOrEqual(pager!.y + pager!.height + 12);
   });
 
@@ -1583,10 +1585,10 @@ test.describe("being told when Kubernetes warns", () => {
     // Inside the Events card, after the list of events.
     const card: Locator = page.getByTestId("kubernetes-events-view");
     await expect(card.getByTestId("kubernetes-warning-alerts")).toHaveCount(1);
-    const lineBox: { y: number } | null = await line.boundingBox();
-    const filtersBox: { y: number; height: number } | null = await page
-      .getByTestId("kubernetes-events-filters")
-      .boundingBox();
+    const [lineBox, filtersBox] = await boxesInOneFrame([
+      line,
+      page.getByTestId("kubernetes-events-filters"),
+    ]);
     expect(lineBox!.y).toBeGreaterThan(filtersBox!.y + filtersBox!.height);
 
     await expect(

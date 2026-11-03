@@ -8,6 +8,7 @@ import {
 import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 /*
  * Each exception's ⋯ menu on the exceptions list: Resolve or Reopen,
@@ -201,11 +202,10 @@ test.describe("an exception's ⋯ menu on the exceptions list", () => {
       deadline.getByTestId("exception-row-status-inline"),
     ).toBeHidden();
 
-    const pill: { x: number; y: number; width: number } | null =
-      await corner.boundingBox();
-    const more: { x: number; y: number; height: number } | null = await deadline
-      .getByTestId("row-actions-more-button")
-      .boundingBox();
+    const [pill, more] = await boxesInOneFrame([
+      corner,
+      deadline.getByTestId("row-actions-more-button"),
+    ]);
 
     // On the ⋯'s line, just left of it.
     expect(pill!.x + pill!.width).toBeLessThanOrEqual(more!.x);
@@ -243,11 +243,10 @@ test.describe("an exception's ⋯ menu on the exceptions list", () => {
       await expect(inline).toHaveText("Unresolved");
 
       // The pill leads the line the service chip is on.
-      const pill: { x: number; y: number; height: number } | null =
-        await inline.boundingBox();
-      const service: { x: number; y: number } | null = await deadline
-        .getByText("checkout-api", { exact: true })
-        .boundingBox();
+      const [pill, service] = await boxesInOneFrame([
+        inline,
+        deadline.getByText("checkout-api", { exact: true }),
+      ]);
 
       expect(pill!.x).toBeLessThan(service!.x);
       expect(Math.abs(pill!.y - service!.y)).toBeLessThan(pill!.height);
@@ -274,11 +273,10 @@ test.describe("an exception's ⋯ menu on the exceptions list", () => {
       expect(chipLines).toBe(1);
 
       // The type and message take the row's width, not what the pill left.
-      const button: { width: number } | null = await deadline
-        .locator("button")
-        .first()
-        .boundingBox();
-      const row: { width: number } | null = await deadline.boundingBox();
+      const [button, row] = await boxesInOneFrame([
+        deadline.locator("button").first(),
+        deadline,
+      ]);
 
       expect(button!.width).toBeGreaterThan(row!.width * 0.8);
       await expectNoSidewaysScroll(page, { tolerance: 1 });
@@ -419,18 +417,11 @@ test.describe("Bulk Actions on the exceptions list", () => {
       expect(await topOf(second)).toBe(secondBefore);
 
       // One line: the count and Bulk Actions side by side, the menu at the end.
-      const count: { y: number; height: number } | null =
-        await selectedCount(page).boundingBox();
-      const actions: {
-        x: number;
-        y: number;
-        width: number;
-        height: number;
-      } | null = await page
-        .getByRole("button", { name: "Bulk Actions" })
-        .boundingBox();
-      const headerBox: { x: number; width: number } | null =
-        await header.boundingBox();
+      const [count, actions, headerBox] = await boxesInOneFrame([
+        selectedCount(page),
+        page.getByRole("button", { name: "Bulk Actions" }),
+        header,
+      ]);
 
       expect(
         Math.abs(
@@ -511,14 +502,12 @@ test.describe("Bulk Actions on the exceptions list", () => {
       await expect(deadline).toBeVisible();
 
       const box: Locator = rowBox(page, "DeadlineExceededError");
-      const boxRect: { x: number; y: number; height: number } | null =
-        await box.boundingBox();
-      const rowRect: { x: number; y: number } | null =
-        await deadline.boundingBox();
       // The row's first line: the exception's type.
-      const typeRect: { y: number; height: number } | null = await deadline
-        .getByText("DeadlineExceededError", { exact: true })
-        .boundingBox();
+      const [boxRect, rowRect, typeRect] = await boxesInOneFrame([
+        box,
+        deadline,
+        deadline.getByText("DeadlineExceededError", { exact: true }),
+      ]);
 
       // Before the row, and level with its first line.
       expect(boxRect!.x).toBeLessThan(rowRect!.x);

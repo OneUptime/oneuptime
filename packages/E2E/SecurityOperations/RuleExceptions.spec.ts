@@ -8,6 +8,7 @@ import {
 import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 /*
  * Detection rule exceptions and Run on Past Events on the Security
@@ -1009,12 +1010,10 @@ test.describe("Run on Past Events", () => {
     await expect(dialog(page)).toBeVisible();
 
     // Beside Draft with AI, on one line under the YAML.
-    const draftBox: { y: number; height: number } | null = await dialog(page)
-      .getByTestId("detection-rule-ai-draft-open")
-      .boundingBox();
-    const runBox: { y: number; height: number } | null = await dialog(page)
-      .getByTestId("detection-rule-retrohunt-open")
-      .boundingBox();
+    const [draftBox, runBox] = await boxesInOneFrame([
+      dialog(page).getByTestId("detection-rule-ai-draft-open"),
+      dialog(page).getByTestId("detection-rule-retrohunt-open"),
+    ]);
     expect(draftBox).not.toBeNull();
     expect(runBox).not.toBeNull();
     expect(

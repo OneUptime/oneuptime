@@ -323,11 +323,10 @@ test.describe("Code opens on the request box, like Claude Code and Codex", () =>
   }, testInfo: TestInfo) => {
     // Add context, the pickers and Start task share one line.
     const expectOneLine: () => Promise<void> = async (): Promise<void> => {
-      const addContext: { y: number; height: number } | null = await page
-        .getByTestId("code-add-context")
-        .boundingBox();
-      const send: { y: number; height: number } | null =
-        await sendButton(page).boundingBox();
+      const [addContext, send] = await boxesInOneFrame([
+        page.getByTestId("code-add-context"),
+        sendButton(page),
+      ]);
       expect(
         Math.abs(
           addContext!.y + addContext!.height / 2 - (send!.y + send!.height / 2),
@@ -934,10 +933,10 @@ test.describe("Code's Repositories", () => {
       "GitHub does not give OneUptime access to these repositories any more, so AI cannot work in them.",
     );
     // It sits below the list, never among its rows.
-    const cardBox: { y: number; height: number } | null =
-      await connectedCard(page).boundingBox();
-    const foldBox: { y: number } | null =
-      await notConnected(page).boundingBox();
+    const [cardBox, foldBox] = await boxesInOneFrame([
+      connectedCard(page),
+      notConnected(page),
+    ]);
     expect(foldBox!.y).toBeGreaterThanOrEqual(cardBox!.y + cardBox!.height);
 
     await expectNoSidewaysScroll(page);
@@ -2344,10 +2343,10 @@ test.describe("a repository's settings", () => {
     await expect(commandsSwitch(page)).toBeHidden();
     await expect(page.getByTestId("code-repository-runner")).toBeHidden();
     await expect(page.getByRole("switch")).toHaveCount(0);
-    const detailsBox: { y: number; height: number } | null =
-      await details.boundingBox();
-    const foldBox: { y: number } | null =
-      await moreSettings(page).boundingBox();
+    const [detailsBox, foldBox] = await boxesInOneFrame([
+      details,
+      moreSettings(page),
+    ]);
     expect(foldBox!.y).toBeGreaterThanOrEqual(
       detailsBox!.y + detailsBox!.height,
     );
@@ -4324,13 +4323,10 @@ test.describe("a task's conversation", () => {
     await expect(pullRequest).toHaveAttribute("target", "_blank");
 
     // The person's message on the right, as a chat draws what was sent.
-    const message: { x: number; width: number } | null = await page
-      .getByTestId("code-turn-request-message")
-      .first()
-      .boundingBox();
-    const turns: { x: number; width: number } | null = await page
-      .getByTestId("code-task-turns")
-      .boundingBox();
+    const [message, turns] = await boxesInOneFrame([
+      page.getByTestId("code-turn-request-message").first(),
+      page.getByTestId("code-task-turns"),
+    ]);
     expect(
       Math.abs(message!.x + message!.width - (turns!.x + turns!.width)),
     ).toBeLessThanOrEqual(1);
@@ -4827,10 +4823,10 @@ test.describe("a repository's pull requests, reviewed against production", () =>
     await expect(
       unread.getByTestId("production-review-unread-section"),
     ).toHaveText(["Traces", "Profiles"]);
-    const unreadBox: { y: number } | null = await unread.boundingBox();
-    const findingsBox: { y: number } | null = await page
-      .getByTestId("production-review-exceptions")
-      .boundingBox();
+    const [unreadBox, findingsBox] = await boxesInOneFrame([
+      unread,
+      page.getByTestId("production-review-exceptions"),
+    ]);
     expect(unreadBox!.y).toBeLessThan(findingsBox!.y);
 
     // Long names of code wrap between their parts, and nothing scrolls sideways.
@@ -4852,12 +4848,10 @@ test.describe("a repository's pull requests, reviewed against production", () =>
     await expect(ask).toHaveText("Review a pull request");
     // Beside the list's heading, on the same line at a laptop's width.
     if (!isPhone(testInfo)) {
-      const askBox: { y: number; height: number } | null =
-        await ask.boundingBox();
-      const headingBox: { y: number; height: number } | null = await page
-        .getByTestId("code-production-reviews-list")
-        .getByRole("heading")
-        .boundingBox();
+      const [askBox, headingBox] = await boxesInOneFrame([
+        ask,
+        page.getByTestId("code-production-reviews-list").getByRole("heading"),
+      ]);
       expect(
         Math.abs(
           askBox!.y +

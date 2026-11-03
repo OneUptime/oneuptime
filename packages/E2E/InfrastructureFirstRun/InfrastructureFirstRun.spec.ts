@@ -8,6 +8,7 @@ import {
 import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 /*
  * The first run of the infrastructure lists, in a real browser: the real
@@ -225,8 +226,7 @@ async function screenshot(page: Page, name: string): Promise<void> {
 
 // Whether `lower` is drawn below `upper` on the page.
 async function isBelow(upper: Locator, lower: Locator): Promise<boolean> {
-  const top: { y: number; height: number } | null = await upper.boundingBox();
-  const bottom: { y: number } | null = await lower.boundingBox();
+  const [top, bottom] = await boxesInOneFrame([upper, lower]);
   return Boolean(top && bottom && bottom.y >= top.y + top.height - 1);
 }
 

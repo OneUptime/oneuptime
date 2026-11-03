@@ -8,6 +8,7 @@ import {
 import fs from "fs";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 /*
  * File and Multiple files custom fields, and a public form's file
@@ -394,10 +395,7 @@ test.describe("a record's file custom fields: the card", () => {
         "custom-field-file",
       );
       const card: Locator = cardFiles(page, FILE_FIELD);
-      const rowBox: { x: number; width: number } | null =
-        await row.boundingBox();
-      const listBox: { x: number; width: number } | null =
-        await card.boundingBox();
+      const [rowBox, listBox] = await boxesInOneFrame([row, card]);
 
       await expectNoSidewaysScroll(page, { tolerance: 1 });
       expect(rowBox!.x + rowBox!.width).toBeLessThanOrEqual(
@@ -922,12 +920,10 @@ test.describe("a record's file custom fields: Edit", () => {
     const row: Locator = cardFiles(page, FILES_FIELD)
       .getByTestId("custom-field-file")
       .first();
-    const name: { x: number } | null = await row
-      .getByText("checkout-latency.png")
-      .boundingBox();
-    const size: { x: number } | null = await row
-      .getByText("240 KB")
-      .boundingBox();
+    const [name, size] = await boxesInOneFrame([
+      row.getByText("checkout-latency.png"),
+      row.getByText("240 KB"),
+    ]);
 
     expect(name!.x).toBeGreaterThan(size!.x);
     await screenshot(page, "card-fa-1280");

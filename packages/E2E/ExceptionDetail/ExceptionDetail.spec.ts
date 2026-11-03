@@ -6,6 +6,7 @@ import {
 import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 /*
  * Renders the real exception detail pages against the offline fixture
@@ -1489,10 +1490,10 @@ test.describe("Create monitor on an exception", () => {
         actions.getByTestId("exception-create-monitor"),
       ).toBeVisible();
 
-      const messageBox: { x: number; y: number; width: number } | null =
-        await message.boundingBox();
-      const actionsBox: { x: number; y: number; height: number } | null =
-        await actions.boundingBox();
+      const [messageBox, actionsBox] = await boxesInOneFrame([
+        message,
+        actions,
+      ]);
       expect(messageBox).not.toBeNull();
       expect(actionsBox).not.toBeNull();
 

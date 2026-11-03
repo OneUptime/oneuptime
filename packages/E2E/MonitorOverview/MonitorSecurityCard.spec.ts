@@ -8,6 +8,7 @@ import {
 import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 /*
  * THE WAY BACK FROM SECURITY EVENTS, ON A MONITOR'S PAGE.
@@ -450,10 +451,10 @@ test.describe("a monitor's Security card", () => {
       expect(headingBox!.height).toBeLessThanOrEqual(lineHeight + 1);
       const description: Locator = card(page).getByTestId("card-description");
       if (width >= 768) {
-        const cardBox: { width: number } | null =
-          await card(page).boundingBox();
-        const descriptionBox: { width: number } | null =
-          await description.boundingBox();
+        const [cardBox, descriptionBox] = await boxesInOneFrame([
+          card(page),
+          description,
+        ]);
         expect(descriptionBox!.width).toBeGreaterThan(cardBox!.width * 0.6);
       } else {
         // A phone hides a card's description, as on every other card.

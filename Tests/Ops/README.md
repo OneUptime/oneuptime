@@ -1404,6 +1404,17 @@ that reads `document.documentElement.scrollWidth` or `document.body.scrollWidth`
 (an element's own `scrollWidth` is left alone), and checks that the helper
 still polls.
 
+### `E2EBoxesInOneFrame.test.js`
+
+Each `locator.boundingBox()` is a round trip of its own, so boxes read one
+after the other come from two moments, and while the page moves (a panel
+sliding in, a dialog growing in, a table fitting its columns a frame after it
+paints) a gap or an alignment between them is off by however far things moved.
+`packages/E2E/SuiteHelpers/Frames.ts`'s `boxesInOneFrame` reads every box in one
+evaluate. The suite fails any spec under packages/E2E with two or more
+statements in a row that each await one locator's `boundingBox()`; a box read
+alone, or after an action, is left alone.
+
 ### `CompileWorkflow.test.js`
 
 `.github/workflows/compile.yml` compiles the core packages in four jobs rather

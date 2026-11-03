@@ -1651,11 +1651,10 @@ test.describe("on a phone and in dark mode", () => {
     await openRoles(page, "?long=1");
 
     const table: Locator = card(page, "Custom Roles");
-    const tableBox: { x: number; width: number } | null =
-      await table.boundingBox();
-    const header: { x: number; width: number } | null = await table
-      .getByRole("columnheader", { name: "Permissions" })
-      .boundingBox();
+    const [tableBox, header] = await boxesInOneFrame([
+      table,
+      table.getByRole("columnheader", { name: "Permissions" }),
+    ]);
 
     expect(tableBox).not.toBeNull();
     expect(header).not.toBeNull();

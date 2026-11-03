@@ -9,6 +9,7 @@ import {
 import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 /*
  * Renders the real Incident, Alert, Scheduled Maintenance, Incident Episode
@@ -14051,12 +14052,10 @@ test.describe("Escalate", () => {
     expect(await dialogLines(page, "pass-on-preview")).toEqual([
       NOT_PAGED_AGAIN,
     ]);
-    const warningBox: { y: number } | null = await asked.boundingBox();
-    const lineBox: { y: number } | null = await escalateDialog(page)
-      .getByTestId("pass-on-preview")
-      .locator("p")
-      .first()
-      .boundingBox();
+    const [warningBox, lineBox] = await boxesInOneFrame([
+      asked,
+      escalateDialog(page).getByTestId("pass-on-preview").locator("p").first(),
+    ]);
     expect(warningBox!.y).toBeLessThan(lineBox!.y);
     await screenshotElement(
       escalateDialog(page),
@@ -14706,12 +14705,11 @@ test.describe("the record's channel card", () => {
 
     await expect(addPeople).toBeVisible();
 
-    const row: { x: number; width: number } | null =
-      await actions.boundingBox();
-    const joinBox: { x: number; y: number; width: number } | null =
-      await join.boundingBox();
-    const addBox: { x: number; y: number; width: number } | null =
-      await addPeople.boundingBox();
+    const [row, joinBox, addBox] = await boxesInOneFrame([
+      actions,
+      join,
+      addPeople,
+    ]);
 
     // Stacked, each as wide as the column - not two ragged ends.
     expect(addBox!.y).toBeGreaterThan(joinBox!.y);
@@ -14724,8 +14722,7 @@ test.describe("the record's channel card", () => {
     // A phone's full-width card has room for both, side by side.
     await page.setViewportSize({ width: 390, height: 844 });
     await expect(async () => {
-      const phoneJoin: { y: number } | null = await join.boundingBox();
-      const phoneAdd: { y: number } | null = await addPeople.boundingBox();
+      const [phoneJoin, phoneAdd] = await boxesInOneFrame([join, addPeople]);
 
       expect(Math.abs(phoneJoin!.y - phoneAdd!.y)).toBeLessThanOrEqual(1);
     }).toPass();
@@ -14747,9 +14744,7 @@ test.describe("the record's channel card", () => {
     await expect(start).toBeVisible();
 
     // Before, a row with the button beside it left the words a word a line.
-    const titleBox: { height: number; y: number } | null =
-      await title.boundingBox();
-    const startBox: { y: number } | null = await start.boundingBox();
+    const [titleBox, startBox] = await boxesInOneFrame([title, start]);
     const lineHeight: number = await title.evaluate(
       (element: Element): number => {
         return parseFloat(window.getComputedStyle(element).lineHeight);
@@ -18934,10 +18929,10 @@ test.describe("an action linking what a record is about waits for approval (issu
       await expectNoSidewaysScroll(page, { tolerance: 1 });
 
       // The line wraps inside the card rather than running past it.
-      const promptBox: { x: number; width: number } | null =
-        await prompt.boundingBox();
-      const descriptionBox: { x: number; width: number } | null =
-        await description.boundingBox();
+      const [promptBox, descriptionBox] = await boxesInOneFrame([
+        prompt,
+        description,
+      ]);
       expect(promptBox).not.toBeNull();
       expect(descriptionBox).not.toBeNull();
       expect(descriptionBox!.x).toBeGreaterThanOrEqual(promptBox!.x);
@@ -18970,16 +18965,11 @@ test.describe("an action linking what a record is about waits for approval (issu
       const action: Locator = prompt.getByTestId("tool-approval-action");
       const choice: Locator = prompt.getByTestId("tool-approval-choice");
       await expect(choice).toBeVisible();
-      const actionBox: { x: number; width: number } | null =
-        await action.boundingBox();
-      const titleBox: {
-        x: number;
-        y: number;
-        width: number;
-        height: number;
-      } | null = await title.boundingBox();
-      const choiceBox: { x: number; y: number } | null =
-        await choice.boundingBox();
+      const [actionBox, titleBox, choiceBox] = await boxesInOneFrame([
+        action,
+        title,
+        choice,
+      ]);
       expect(choiceBox!.y).toBeGreaterThanOrEqual(
         titleBox!.y + titleBox!.height,
       );
@@ -19010,10 +19000,7 @@ test.describe("an action linking what a record is about waits for approval (issu
       }),
     ).toBeVisible();
 
-    const titleBox: { x: number; y: number; width: number } | null =
-      await title.boundingBox();
-    const choiceBox: { x: number; y: number } | null =
-      await choice.boundingBox();
+    const [titleBox, choiceBox] = await boxesInOneFrame([title, choice]);
     // On the title's line, past its end.
     expect(Math.abs(choiceBox!.y - titleBox!.y)).toBeLessThan(8);
     expect(choiceBox!.x).toBeGreaterThan(titleBox!.x + titleBox!.width);

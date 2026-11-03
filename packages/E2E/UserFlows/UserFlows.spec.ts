@@ -2,6 +2,7 @@ import { Locator, Page, expect, test } from "@playwright/test";
 import { mkdir } from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 /*
  * User Flows in a real browser: the production page, flow-map engine,
@@ -217,16 +218,10 @@ test.describe("User Flows", () => {
     await expect(node(page, "/cart", 2)).toHaveAttribute("data-sessions", "80");
 
     /* Backward maps are drawn right to left: the anchor is rightmost. */
-    const anchorBox: { x: number } | null = await node(
-      page,
-      "/checkout/payment",
-      0,
-    ).boundingBox();
-    const earlierBox: { x: number } | null = await node(
-      page,
-      "/checkout",
-      1,
-    ).boundingBox();
+    const [anchorBox, earlierBox] = await boxesInOneFrame([
+      node(page, "/checkout/payment", 0),
+      node(page, "/checkout", 1),
+    ]);
 
     expect(anchorBox!.x).toBeGreaterThan(earlierBox!.x);
 

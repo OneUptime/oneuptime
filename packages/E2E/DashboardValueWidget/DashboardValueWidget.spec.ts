@@ -9,6 +9,7 @@ import {
   ValueWidgetReduce,
   ValueWidgetTrend,
 } from "Common/Utils/Dashboard/ValueWidgetSeries";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 /*
  * The dashboard Value widget's sparkline and trend arrow, in a real browser,
@@ -904,14 +905,11 @@ test.describe("the Value widgets on the dashboard inside OneUptime", () => {
     );
 
     // The labels sit outside the line: the oldest to its left, the newest to its right.
-    const line: { x: number; width: number } | null =
-      await sparklineOf(widget).boundingBox();
-    const start: { x: number; width: number } | null = await widget
-      .getByTestId("value-widget-sparkline-start")
-      .boundingBox();
-    const end: { x: number; width: number } | null = await widget
-      .getByTestId("value-widget-sparkline-end")
-      .boundingBox();
+    const [line, start, end] = await boxesInOneFrame([
+      sparklineOf(widget),
+      widget.getByTestId("value-widget-sparkline-start"),
+      widget.getByTestId("value-widget-sparkline-end"),
+    ]);
 
     expect(start!.x + start!.width).toBeLessThanOrEqual(line!.x);
     expect(end!.x).toBeGreaterThanOrEqual(line!.x + line!.width);
@@ -978,8 +976,7 @@ test.describe("the Value widgets on the dashboard inside OneUptime", () => {
     );
 
     // The tooltip opens on the page, not clipped inside the tile.
-    const tileBox: { y: number } | null = await widget.boundingBox();
-    const detailsBox: { y: number } | null = await details.boundingBox();
+    const [tileBox, detailsBox] = await boxesInOneFrame([widget, details]);
     expect(detailsBox!.y).toBeLessThan(tileBox!.y + 200);
 
     await shootViewport(page, testInfo, "trend-tooltip");
@@ -1271,9 +1268,7 @@ test.describe("the Value widgets on the dashboard inside OneUptime", () => {
     );
 
     // The oldest end is labelled on the left, on a right-to-left page too.
-    const startBox: { x: number; width: number } | null =
-      await start.boundingBox();
-    const endBox: { x: number; width: number } | null = await end.boundingBox();
+    const [startBox, endBox] = await boxesInOneFrame([start, end]);
 
     expect(startBox!.x + startBox!.width).toBeLessThanOrEqual(line!.x);
     expect(endBox!.x).toBeGreaterThanOrEqual(line!.x + line!.width);

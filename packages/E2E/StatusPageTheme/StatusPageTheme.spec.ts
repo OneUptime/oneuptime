@@ -9,6 +9,7 @@ import {
   TestInfo,
 } from "@playwright/test";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 /*
  * A status page's theme, in a real browser, on the real status page: its own
@@ -520,10 +521,10 @@ test.describe("a page that follows the visitor's device", () => {
       name: "Switch language",
     });
 
-    const switchBox: { y: number; height: number } | null =
-      await themeSwitch.boundingBox();
-    const languageBox: { y: number; height: number } | null =
-      await language.boundingBox();
+    const [switchBox, languageBox] = await boxesInOneFrame([
+      themeSwitch,
+      language,
+    ]);
 
     expect(switchBox).not.toBeNull();
     expect(languageBox).not.toBeNull();
@@ -1135,22 +1136,22 @@ test.describe("the SSO page", () => {
     await expect(page.getByTestId("sign-in-options-divider")).toBeVisible();
 
     // Under the providers, as wide as they are.
-    const provider: { y: number; width: number } | null = await page
-      .getByText("Acme Okta", { exact: true })
-      .boundingBox();
-    const link: { y: number } | null = await back.boundingBox();
+    const [provider, link] = await boxesInOneFrame([
+      page.getByText("Acme Okta", { exact: true }),
+      back,
+    ]);
 
     expect(provider).not.toBeNull();
     expect(link).not.toBeNull();
     expect(link!.y).toBeGreaterThan(provider!.y);
 
     // The provider's card and the link line up, edge to edge.
-    const card: { x: number; width: number } | null = await page
-      .getByText("Acme Okta", { exact: true })
-      .locator("xpath=ancestor::div[contains(@class, 'rounded-lg')][1]")
-      .boundingBox();
-    const linkBox: { x: number; width: number } | null =
-      await back.boundingBox();
+    const [card, linkBox] = await boxesInOneFrame([
+      page
+        .getByText("Acme Okta", { exact: true })
+        .locator("xpath=ancestor::div[contains(@class, 'rounded-lg')][1]"),
+      back,
+    ]);
 
     expect(card).not.toBeNull();
     expect(Math.abs(card!.x - linkBox!.x)).toBeLessThanOrEqual(1);
@@ -1395,11 +1396,10 @@ test.describe("the browser going offline under the page", () => {
       await expect(logo).toBeVisible();
       await expect(tab).toBeVisible();
 
-      const tabBox: { y: number; height: number } | null =
-        await tab.boundingBox();
-      const cardBox: { y: number } | null = await card
-        .locator(".oueb-card")
-        .boundingBox();
+      const [tabBox, cardBox] = await boxesInOneFrame([
+        tab,
+        card.locator(".oueb-card"),
+      ]);
 
       expect(tabBox).not.toBeNull();
       expect(cardBox).not.toBeNull();

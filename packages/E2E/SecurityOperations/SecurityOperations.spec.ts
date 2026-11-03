@@ -18,6 +18,7 @@ import { escapeRegExp } from "Common/Utils/RegExpEscape";
 import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 /*
  * The Security Events SOC pages - the overview, the case queue's pages, a
@@ -1142,11 +1143,10 @@ test.describe("the overview", () => {
     await open(page, OVERVIEW_PATH, { empty: true, width: 390 });
     await expect(gettingStarted(page)).toBeVisible();
     // The two buttons stack under the text, each the card's width.
-    const turnOn: { width: number } | null = await page
-      .getByTestId("security-turn-on-recommended")
-      .boundingBox();
-    const card: { width: number } | null =
-      await gettingStarted(page).boundingBox();
+    const [turnOn, card] = await boxesInOneFrame([
+      page.getByTestId("security-turn-on-recommended"),
+      gettingStarted(page),
+    ]);
     expect(turnOn!.width).toBeGreaterThan(card!.width * 0.75);
     await expectNoSidewaysScroll(page, { tolerance: 1 });
     // The main button is on the first screen of a phone, nothing above the card.
@@ -2507,11 +2507,10 @@ test.describe("the case queue", () => {
       await expectNoSidewaysScroll(page, { tolerance: 1 });
 
       const card: Locator = cardTitled(page, "Open Cases");
-      const cardBox: { x: number; width: number } | null =
-        await card.boundingBox();
-      const search: { x: number; width: number } | null = await page
-        .getByRole("button", { name: "Open search" })
-        .boundingBox();
+      const [cardBox, search] = await boxesInOneFrame([
+        card,
+        page.getByRole("button", { name: "Open search" }),
+      ]);
       expect(cardBox).not.toBeNull();
       expect(search).not.toBeNull();
       expect(search!.x, "search starts inside the card").toBeGreaterThanOrEqual(

@@ -8,6 +8,7 @@ import {
 import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 /*
  * A security case's response targets, tasks and evidence on the Security
@@ -362,11 +363,10 @@ test.describe("a case's tasks", () => {
     const mayaName: Locator = maya
       .getByTestId("security-case-task-assignee")
       .getByText("Maya Chen", { exact: true });
-    const titleBox: { y: number; height: number } | null = await maya
-      .getByTestId("security-case-task-title")
-      .boundingBox();
-    const nameBox: { y: number; height: number } | null =
-      await mayaName.boundingBox();
+    const [titleBox, nameBox] = await boxesInOneFrame([
+      maya.getByTestId("security-case-task-title"),
+      mayaName,
+    ]);
     // One line, level with the task's first line.
     expect(nameBox!.height).toBeLessThanOrEqual(21);
     expect(
@@ -391,12 +391,10 @@ test.describe("a case's tasks", () => {
     ).toBeLessThanOrEqual(3);
 
     // The add line: the text box and Add Task level, the same height.
-    const addBox: { y: number; height: number } | null = await page
-      .getByTestId("security-case-task-add-input")
-      .boundingBox();
-    const addButtonBox: { y: number; height: number } | null = await page
-      .getByTestId("security-case-task-add")
-      .boundingBox();
+    const [addBox, addButtonBox] = await boxesInOneFrame([
+      page.getByTestId("security-case-task-add-input"),
+      page.getByTestId("security-case-task-add"),
+    ]);
     expect(Math.abs(addBox!.y - addButtonBox!.y)).toBeLessThanOrEqual(1);
     expect(Math.abs(addBox!.height - addButtonBox!.height)).toBeLessThanOrEqual(
       1,
@@ -1187,12 +1185,10 @@ test.describe("response targets", () => {
     const fields: Locator = dialog.getByTestId("response-target-duration");
     await expect(fields).toHaveCount(2);
     for (const field of await fields.all()) {
-      const amount: { y: number; height: number } | null = await field
-        .getByTestId("response-target-duration-amount")
-        .boundingBox();
-      const unit: { y: number; height: number } | null = await field
-        .locator(".ou-select__control")
-        .boundingBox();
+      const [amount, unit] = await boxesInOneFrame([
+        field.getByTestId("response-target-duration-amount"),
+        field.locator(".ou-select__control"),
+      ]);
       expect(Math.abs(amount!.y - unit!.y)).toBeLessThanOrEqual(1);
       expect(Math.abs(amount!.height - unit!.height)).toBeLessThanOrEqual(1);
       expect(

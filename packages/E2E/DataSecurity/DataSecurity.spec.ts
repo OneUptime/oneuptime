@@ -9,6 +9,7 @@ import { escapeRegExp } from "Common/Utils/RegExpEscape";
 import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 /*
  * Walks Data Security's real pages - the product's Overview, its data
@@ -250,10 +251,10 @@ test.describe("the Overview", () => {
     );
     await expect(description).toBeVisible();
 
-    const titleBox: { y: number; height: number } | null =
-      await title.boundingBox();
-    const descriptionBox: { width: number; y: number } | null =
-      await description.boundingBox();
+    const [titleBox, descriptionBox] = await boxesInOneFrame([
+      title,
+      description,
+    ]);
     // Beside two buttons it was squeezed to a word or two a line.
     expect(descriptionBox!.width).toBeGreaterThan(300);
     expect(descriptionBox!.y).toBeGreaterThanOrEqual(

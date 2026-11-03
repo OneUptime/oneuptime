@@ -3,6 +3,7 @@ import fs from "fs";
 import fsPromises from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 /*
  * Global Runners - the Runners OneUptime runs for every project - on the
@@ -1128,14 +1129,10 @@ test.describe("a project with a default Runner", () => {
     expect(drawn).toEqual({ isCutShort: true, textOverflow: "ellipsis" });
 
     // The pill is not pushed off the cell by the name: it starts under it.
-    const nameBox: { x: number; y: number; height: number } | null =
-      await name.boundingBox();
-    const pillBox: { x: number; y: number } | null = await card(
-      page,
-      "Custom Runners",
-    )
-      .getByTestId("runner-project-default-pill")
-      .boundingBox();
+    const [nameBox, pillBox] = await boxesInOneFrame([
+      name,
+      card(page, "Custom Runners").getByTestId("runner-project-default-pill"),
+    ]);
     expect(nameBox).not.toBeNull();
     expect(pillBox).not.toBeNull();
     expect(pillBox!.y).toBeGreaterThanOrEqual(nameBox!.y + nameBox!.height);

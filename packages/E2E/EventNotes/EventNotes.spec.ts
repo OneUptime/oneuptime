@@ -8,6 +8,7 @@ import {
 import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 /*
  * Renders the real public and private note pages of incidents, alerts,
@@ -1520,12 +1521,10 @@ test.describe("small screens", () => {
 
     // Every note keeps its menu inside its card.
     for (const noteCard of await cards(page).all()) {
-      const cardBox: { x: number; width: number } | null = await noteCard
-        .locator("article")
-        .boundingBox();
-      const menuBox: { x: number; width: number } | null = await noteCard
-        .getByRole("button", { name: "Note actions" })
-        .boundingBox();
+      const [cardBox, menuBox] = await boxesInOneFrame([
+        noteCard.locator("article"),
+        noteCard.getByRole("button", { name: "Note actions" }),
+      ]);
       expect(menuBox!.x + menuBox!.width).toBeLessThanOrEqual(
         cardBox!.x + cardBox!.width,
       );

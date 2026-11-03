@@ -3,6 +3,7 @@ import { escapeRegExp } from "Common/Utils/RegExpEscape";
 import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 /*
  * Postmortems across every incident, in a browser, against the offline
@@ -440,18 +441,11 @@ test.describe("Incidents -> Postmortems", () => {
     await page.goto(`${PROJECT}/incidents/postmortems?page=list`);
     await expect(count(page, NOT_STARTED)).toHaveText("3");
 
-    const first: { x: number; y: number } | null = await tile(
-      page,
-      "Not Started",
-    ).boundingBox();
-    const second: { x: number; y: number } | null = await tile(
-      page,
-      "Draft",
-    ).boundingBox();
-    const third: { x: number; y: number } | null = await tile(
-      page,
-      "Completed",
-    ).boundingBox();
+    const [first, second, third] = await boxesInOneFrame([
+      tile(page, "Not Started"),
+      tile(page, "Draft"),
+      tile(page, "Completed"),
+    ]);
 
     // Not Started and Draft share a line; Completed starts the next.
     expect(Math.abs((first?.y || 0) - (second?.y || 0))).toBeLessThan(2);
@@ -479,18 +473,11 @@ test.describe("Incidents -> Postmortems", () => {
     await openList(page);
     await expect(count(page, NOT_STARTED)).toHaveText("3");
 
-    const first: { x: number; y: number } | null = await tile(
-      page,
-      "Not Started",
-    ).boundingBox();
-    const second: { x: number; y: number } | null = await tile(
-      page,
-      "Draft",
-    ).boundingBox();
-    const third: { x: number; y: number } | null = await tile(
-      page,
-      "Completed",
-    ).boundingBox();
+    const [first, second, third] = await boxesInOneFrame([
+      tile(page, "Not Started"),
+      tile(page, "Draft"),
+      tile(page, "Completed"),
+    ]);
 
     expect(Math.abs((first?.y || 0) - (second?.y || 0))).toBeLessThan(2);
     expect((third?.y || 0) - (first?.y || 0)).toBeGreaterThan(20);

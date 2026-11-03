@@ -8,6 +8,7 @@ import {
 import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 /*
  * How Data Security's pages read, as its UI review left them: every list
@@ -639,10 +640,7 @@ test.describe("a store's Overview", () => {
       name: "What's Inside",
     });
     const scanNow: Locator = page.getByRole("button", { name: "Scan Now" });
-    const titleBox: { y: number; height: number } | null =
-      await inside.boundingBox();
-    const buttonBox: { y: number; height: number } | null =
-      await scanNow.boundingBox();
+    const [titleBox, buttonBox] = await boxesInOneFrame([inside, scanNow]);
     expect(
       Math.abs(
         titleBox!.y +
