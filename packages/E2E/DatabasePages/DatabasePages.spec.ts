@@ -90,7 +90,7 @@ const SCREENSHOTS: string = path.resolve(
   "../../../output/playwright/database-pages-ui",
 );
 
-const LAPTOP: { width: number; height: number } = { width: 1280, height: 900 };
+// The other sizes the pages are drawn at; 1280 is the suite's own viewport.
 const SMALL_LAPTOP: { width: number; height: number } = {
   width: 1024,
   height: 768,
