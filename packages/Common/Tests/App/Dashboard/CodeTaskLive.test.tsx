@@ -840,6 +840,8 @@ describe("a task's conversation while AI works", () => {
     expect(screen.getByTestId("code-turn-stopped")).toBeInTheDocument();
     expect(screen.queryByTestId("code-task-working-footer")).toBeNull();
     expect(stepSubjects()).not.toContain("Ran npm test");
+    // Dropped as it arrived: not even a read of the whole task again for it.
+    expect(getTaskMock).toHaveBeenCalledTimes(2);
   });
 
   test("a hidden tab reads nothing, and reads once when it is looked at again", async () => {

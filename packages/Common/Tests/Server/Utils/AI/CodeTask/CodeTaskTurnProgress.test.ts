@@ -273,14 +273,26 @@ describe("CodeTaskPresenter.getTurnProgress", () => {
   });
 
   test("a step's plain copy right after the step the page has is still told apart from a new note", async () => {
-    findEvents.mockResolvedValue([
+    const trail: Array<AIRunEvent> = [
+      toolLine(8, "list_directory", "listed src"),
       // The step the page has...
       toolLine(9, "read_file", "read src/a.ts"),
       // ...its plain copy, which the conversation never shows...
       plainLine(10, "read src/a.ts"),
       // ...and a new note.
       plainLine(11, "Created branch oneuptime/fix-timeout"),
-    ]);
+    ];
+
+    // The events the read's bound lets through, as the database would.
+    findEvents.mockImplementation((async (data: {
+      query: Record<string, unknown>;
+    }): Promise<Array<AIRunEvent>> => {
+      const least: number = leastSequenceOf(data.query["sequence"]) ?? 0;
+
+      return trail.filter((event: AIRunEvent): boolean => {
+        return (event.sequence || 0) >= least;
+      });
+    }) as never);
 
     const progress: CodeTaskTurnProgressJSON | null = await progressOf({
       runId: TASK_ID,
