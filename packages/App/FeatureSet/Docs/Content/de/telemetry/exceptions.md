@@ -99,7 +99,7 @@ Die Schaltflächen oben auf der Seite der Ausnahme, ihre Seite **Einstellungen**
 
 **Einstellungen** zeigt, wer die Ausnahme zuletzt als behoben markiert oder archiviert hat, und wann. Ihre Schaltflächen lauten **Als gelöst markieren** oder **Als ungelöst markieren** und **Archivieren** oder **Aus Archiv entfernen**.
 
-Um mehrere auf einmal zu ändern, haken Sie ihre Zeilen in der Liste an, oder das Kästchen über den Zeilen für alle Ausnahmen auf der Seite, und nutzen Sie dieselben Aktionen unter **Massenaktionen**. Das Ergebnis zeigt, welche Ausnahmen geändert wurden, welche unverändert blieben und warum.
+Um mehrere auf einmal zu ändern, haken Sie ihre Zeilen in der Liste an, oder das Kästchen über den Zeilen für alle Ausnahmen auf der Seite, und nutzen Sie dieselben Aktionen unter **Massenaktionen**. Sind alle Ausnahmen der Seite angehakt, bietet die Leiste über den Zeilen an, alle Ausnahmen auszuwählen, die zur Suche und zu den Filtern der Liste passen, auf allen Seiten und bis zu 10.000 auf einmal; eine Aktion fragt dann nach, bevor sie sie ändert. Das Ergebnis zeigt, welche Ausnahmen geändert wurden, welche unverändert blieben und warum.
 
 **Zuweisen** im Kopf der Ausnahme gibt sie einer Person oder einem Team, und wer die Auswahl entfernt, hebt die Zuweisung auf. Jede Zeile zeigt, wem sie gehört, ihr Menü ⋯ bietet **Mir zuweisen**, und **Zuweisen an…** unter **Massenaktionen** weist mehrere auf einmal zu. Die Person, der sie zugewiesen wird, oder jedes Mitglied des Teams wird benachrichtigt, wie es die Zeile **Mir zugewiesene Ausnahme** in ihren [Benachrichtigungseinstellungen](/docs/notifications/notification-settings) vorgibt; wer sie zugewiesen hat, wird es nicht.
 

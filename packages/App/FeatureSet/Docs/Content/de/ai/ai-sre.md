@@ -188,7 +188,8 @@ Solange **Neue Vorfälle automatisch beheben** an ist und keine KI-Regel eingeri
 - sein Monitor ein Kubernetes-Monitor des Clusters ist;
 - sein Monitor unter **Überwachung → Übersicht → Verknüpfte Ressourcen** mit dem Cluster verknüpft ist – so verknüpfen Sie einen Website-, API- oder synthetischen Monitor mit dem Cluster, der das bereitstellt, was er prüft;
 - KI fragen ihn auf der Seite des Clusters gemeldet oder auf Nachfrage mit dem Cluster verknüpft hat;
-- jemand beim Melden den Cluster unter **Andere betroffene Ressourcen** ausgewählt hat (die Auswahl eines verknüpften Monitors fügt ihn dort für Sie hinzu).
+- jemand beim Melden den Cluster unter **Andere betroffene Ressourcen** ausgewählt hat (die Auswahl eines verknüpften Monitors fügt ihn dort für Sie hinzu);
+- jemand den Cluster beim Melden aus [Slack](/docs/workspace-connections/slack) oder [Microsoft Teams](/docs/workspace-connections/microsoft-teams) ausgewählt hat.
 
 Jeder Vorfall und jede Warnung sagt im Schritt **Behebung** seiner Karte **OneUptime AI**, ob er mit einem Cluster verknüpft war und was die Korrekturen des Clusters getan haben; siehe [Was die automatische Behebung getan hat](#was-die-automatische-behebung-getan-hat). Dasselbe gilt für eine Infrastrukturressource und ihren KI-Agenten.
 

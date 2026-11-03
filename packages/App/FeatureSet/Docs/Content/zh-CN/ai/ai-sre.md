@@ -188,7 +188,8 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 - 它的监视器是该集群的 Kubernetes 监视器；
 - 它的监视器在 **监视器 → 概览 → 已关联资源** 下与该集群关联——这是将网站、API 或合成监视器关联到为其检查对象提供服务的集群的方法；
 - 询问 AI 在该集群的页面上宣布了它，或在被要求时将它关联到该集群；
-- 有人在宣布时于 **其他受影响的资源** 下选择了该集群（选择一个已关联的监视器会自动把它加到那里）。
+- 有人在宣布时于 **其他受影响的资源** 下选择了该集群（选择一个已关联的监视器会自动把它加到那里）；
+- 有人从 [Slack](/docs/workspace-connections/slack) 或 [Microsoft Teams](/docs/workspace-connections/microsoft-teams) 宣布时选择了该集群。
 
 每个事件和警报都会在其 **OneUptime AI** 卡片的 **补救** 步骤中说明它是否关联到某个集群，以及集群的修复做了什么；参见 [自动补救做了什么](#自动补救做了什么)。基础设施资源及其 AI 代理也是如此。
 

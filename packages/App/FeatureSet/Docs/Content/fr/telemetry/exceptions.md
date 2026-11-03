@@ -99,7 +99,7 @@ Les boutons en haut de la page de l'exception, sa page **Paramètres** et le men
 
 **Paramètres** indique qui a résolu ou archivé l'exception en dernier, et quand. Ses boutons s'intitulent **Marquer comme résolu** ou **Marquer comme non résolu**, et **Archiver** ou **Désarchiver**.
 
-Pour en changer plusieurs à la fois, cochez leurs lignes dans la liste, ou la case au-dessus des lignes pour toutes les exceptions de la page, et utilisez les mêmes actions sous **Actions groupées**. Le résultat indique quelles exceptions ont été modifiées, lesquelles sont restées telles quelles, et pourquoi.
+Pour en changer plusieurs à la fois, cochez leurs lignes dans la liste, ou la case au-dessus des lignes pour toutes les exceptions de la page, et utilisez les mêmes actions sous **Actions groupées**. Une fois toutes les exceptions de la page cochées, la barre au-dessus des lignes propose de sélectionner toutes les exceptions qui correspondent à la recherche et aux filtres de la liste, sur toutes les pages, jusqu'à 10 000 à la fois ; une action demande alors confirmation avant de les modifier. Le résultat indique quelles exceptions ont été modifiées, lesquelles sont restées telles quelles, et pourquoi.
 
 **Attribuer** dans l'en-tête de l'exception la confie à une personne ou à une équipe, et retirer ce choix annule l'attribution. Chaque ligne montre à qui elle appartient, son menu ⋯ propose **M'attribuer**, et **Attribuer à…** sous **Actions groupées** en attribue plusieurs à la fois. La personne à qui elle est attribuée, ou chaque membre de l'équipe, reçoit une notification selon la ligne **Exception qui m'est attribuée** de ses [Paramètres de notification](/docs/notifications/notification-settings) ; la personne qui l'a attribuée n'en reçoit pas.
 

@@ -5,6 +5,7 @@ import React from "react";
 import SecurityListNameCell, {
   SECURITY_LIST_NAME_COLUMN_MAX_WIDTH_CLASS_NAME,
   SECURITY_LIST_NAME_DETAIL_CLASS_NAME,
+  SECURITY_LIST_NAME_DETAIL_PART_CLASS_NAME,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityListNameCell";
 
 /*
@@ -68,7 +69,7 @@ describe("SecurityListNameCell", () => {
     ).toHaveAttribute("href", "/rule-exceptions");
   });
 
-  test("its parts are joined by a dot, and the line breaks only between them", () => {
+  test("its parts are joined by a dot, and the line breaks between them before it breaks inside one", () => {
     render(
       <SecurityListNameCell
         name="Customer SecOps"
@@ -83,15 +84,52 @@ describe("SecurityListNameCell", () => {
 
     expect(detail).toHaveTextContent("Google SecOps · Alerts only");
 
-    const parts: Array<Element> = Array.from(
-      detail.querySelectorAll(".whitespace-nowrap"),
-    );
+    /*
+     * Each part a box of its own on the line: the line breaks at the space
+     * between two of them first ("Google SecOps ·" / "Alerts only").
+     */
+    const parts: Array<Element> = Array.from(detail.children);
 
     expect(
       parts.map((part: Element): string => {
         return part.textContent || "";
       }),
     ).toEqual(["Google SecOps ·", "Alerts only"]);
+
+    for (const part of parts) {
+      expect(part.className).toBe(SECURITY_LIST_NAME_DETAIL_PART_CLASS_NAME);
+    }
+  });
+
+  test("a part wider than the column breaks between its own words, and never holds the column wider than the table can give it", () => {
+    render(
+      <SecurityListNameCell
+        name="Defender XDR - EU tenant"
+        detailParts={["Microsoft Defender XDR"]}
+        detailTestId="security-event-connection-provider"
+      />,
+    );
+
+    const part: Element = screen.getByTestId(
+      "security-event-connection-provider",
+    ).firstElementChild as Element;
+
+    expect(part).toHaveTextContent("Microsoft Defender XDR");
+    /*
+     * An inline box that wraps its words: its narrowest is its longest word,
+     * not the whole product name. A part that never broke kept Your security
+     * tools' names wide enough at 1280 that the table cut the Health pills
+     * beside them to "Last poll succ...".
+     */
+    expect(SECURITY_LIST_NAME_DETAIL_PART_CLASS_NAME.split(" ")).toEqual(
+      expect.arrayContaining([
+        "inline-block",
+        "max-w-full",
+        "whitespace-normal",
+      ]),
+    );
+    expect(SECURITY_LIST_NAME_DETAIL_PART_CLASS_NAME).not.toContain("nowrap");
+    expect(part).not.toHaveClass("whitespace-nowrap");
   });
 
   test("an empty part is left out, and with none there is no line under the name", () => {

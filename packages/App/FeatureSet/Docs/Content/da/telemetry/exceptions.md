@@ -99,7 +99,7 @@ Knapperne øverst på undtagelsens side, dens side **Indstillinger** og menuen �
 
 **Indstillinger** viser, hvem der sidst løste eller arkiverede undtagelsen, og hvornår. Dens knapper hedder **Marker som løst** eller **Marker som uafklaret** og **Arkiver** eller **Fjern fra arkiv**.
 
-For at ændre flere på én gang markerer du deres rækker i listen, eller feltet over rækkerne for alle undtagelser på siden, og bruger de samme handlinger under **Massehandlinger**. Resultatet viser, hvilke undtagelser der blev ændret, hvilke der blev ladt være, og hvorfor.
+For at ændre flere på én gang markerer du deres rækker i listen, eller feltet over rækkerne for alle undtagelser på siden, og bruger de samme handlinger under **Massehandlinger**. Når alle undtagelser på siden er markeret, tilbyder linjen over rækkerne at vælge alle undtagelser, der matcher listens søgning og filtre, på alle sider, op til 10.000 ad gangen; en handling spørger så, før den ændrer dem. Resultatet viser, hvilke undtagelser der blev ændret, hvilke der blev ladt være, og hvorfor.
 
 **Tildel** i undtagelsens overskrift giver den til én person eller ét team, og fjerner du valget, ophæves tildelingen. Hver række viser, hvem den tilhører, dens menu ⋯ tilbyder **Tildel til mig**, og **Tildel til…** under **Massehandlinger** tildeler flere på én gang. Den person, den tildeles, eller hvert medlem af teamet får en notifikation, som rækken **Undtagelse tildelt mig** i deres [Notifikationsindstillinger](/docs/notifications/notification-settings) siger; den, der tildelte den, får ingen.
 

@@ -1,18 +1,26 @@
 import { getHandDrawnLookClassName } from "../Button/ButtonStates";
 import React, {
+  MutableRefObject,
   ReactElement,
   ReactNode,
   useEffect,
   useId,
+  useRef,
   useState,
 } from "react";
 import useTranslateValue from "../../Utils/Translation";
-import { translatableTerm } from "../../Utils/TranslateTemplate";
+import { Translator, translatableTerm } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
+import API from "../../Utils/API/API";
 import GenericObject from "../../../Types/GenericObject";
 import BulkUpdateForm, {
   BulkActionButtonSchema,
   BulkUpdateBarLayout,
 } from "../BulkUpdate/BulkUpdateForm";
+import {
+  EveryMatch,
+  askBeforeActingAcrossPages,
+} from "../BulkUpdate/BulkSelectAll";
 import CheckboxElement from "../Checkbox/Checkbox";
 import { TABLE_SELECTED_ROW_CLASS_NAME } from "../Table/TableLayout";
 import {
@@ -20,6 +28,7 @@ import {
   getPageSelectionState,
   isRowSelected,
   keepSelectedOnPage,
+  refreshSelectedFromPage,
   setRowSelected,
 } from "./TelemetryViewerSelection";
 import RangeStartAndEndDateTime from "../../../Types/Time/RangeStartAndEndDateTime";
@@ -64,7 +73,8 @@ import { TimeRangeZoomProvider } from "../Charts/TimeRangeZoom/TimeRangeZoomCont
  * for every row on the page, and the bar a table shows over its rows while
  * some are ticked (BulkUpdateForm), with its menu of actions and its
  * progress and result dialog. A list pages, so a selection is the page's
- * rows a person ticked (TelemetryViewerSelection).
+ * rows a person ticked (TelemetryViewerSelection) - or, where the list
+ * offers it (selectAllMatching), every row that matches its search.
  */
 export interface TelemetryViewerBulk<T> {
   buttons: Array<BulkActionButtonSchema<T & GenericObject>>;
@@ -77,6 +87,31 @@ export interface TelemetryViewerBulk<T> {
   itemToString: (item: T) => string;
   // Told once an action ran: the list reads its rows again.
   onActionEnd?: (() => void) | undefined;
+  /*
+   * Every row that matches, not only the page's: once every row on the
+   * page is ticked and the list's exact total says more rows match, the
+   * header line offers them ("Select all 4,213 exceptions"). Left out, a
+   * selection is the page's rows.
+   */
+  selectAllMatching?: TelemetryViewerSelectAllMatching<T> | undefined;
+}
+
+export interface TelemetryViewerSelectAllMatching<T> {
+  /*
+   * Reads every row that matches the list's search and filters, in the
+   * list's order, up to the most one selection holds (BulkSelectAll's
+   * readEveryMatch). Asked to stop - answering null - once a newer
+   * selection, a cleared one or a changed search supersedes it.
+   */
+  read: (options: {
+    isSuperseded: () => boolean;
+  }) => Promise<EveryMatch<T> | null>;
+  /*
+   * What decides which rows match - the list's search, filters and window,
+   * not its page or its order. A selection of every match is let go when it
+   * changes.
+   */
+  matchKey: string;
 }
 
 export const TELEMETRY_VIEWER_SELECT_PAGE_TEST_ID: string =
@@ -104,6 +139,15 @@ export const TELEMETRY_VIEWER_ROW_BOX_CLASS_NAME: string =
  */
 export const TELEMETRY_VIEWER_BULK_ROW_CLASS_NAME: string =
   "flex min-h-[2.75rem] items-center gap-3 border-b border-gray-100 py-1.5 pl-4 pr-2 sm:pr-3";
+
+/*
+ * Where the page's box sits on that line: level with its first line, the
+ * 30px Bulk Actions takes - when the rest of the line wraps (a phone's
+ * "Select all 4,213 exceptions" takes a line of its own) the box stays
+ * beside the count, not halfway down the two lines.
+ */
+export const TELEMETRY_VIEWER_PAGE_BOX_SLOT_CLASS_NAME: string =
+  "flex min-h-[1.875rem] min-w-0 items-center self-start";
 
 export interface TelemetryViewerProps<T> {
   // -- Data --
@@ -319,10 +363,33 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
   const [isBulkActionRunning, setIsBulkActionRunning] =
     useState<boolean>(false);
   const bulk: TelemetryViewerBulk<T> | undefined = props.bulk;
+  const translator: Translator = useTranslator();
+
+  /*
+   * A selection of every row that matches (bulk.selectAllMatching): how many
+   * match, and whether the selection stopped at the most it holds. Null
+   * while the selection is the page's ticked rows.
+   */
+  const [everyMatch, setEveryMatch] = useState<{
+    totalCount: number;
+    isTruncated: boolean;
+  } | null>(null);
+  const [isReadingEveryMatch, setIsReadingEveryMatch] =
+    useState<boolean>(false);
+  const [everyMatchError, setEveryMatchError] = useState<string>("");
+
+  /*
+   * Which read of every match is the current one: a newer read, a cleared
+   * selection or a changed search moves it on, and a read it no longer
+   * names stops and changes nothing.
+   */
+  const everyMatchReadRef: MutableRefObject<number> = useRef<number>(0);
 
   const shownSelection: Array<T> =
     bulk && !isBulkActionRunning
-      ? keepSelectedOnPage(selectedItems, props.items, bulk.getItemId)
+      ? everyMatch
+        ? refreshSelectedFromPage(selectedItems, props.items, bulk.getItemId)
+        : keepSelectedOnPage(selectedItems, props.items, bulk.getItemId)
       : selectedItems;
 
   useEffect(() => {
@@ -331,13 +398,126 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
     }
 
     setSelectedItems((selected: Array<T>): Array<T> => {
-      return keepSelectedOnPage(selected, props.items, bulk.getItemId);
+      return everyMatch
+        ? refreshSelectedFromPage(selected, props.items, bulk.getItemId)
+        : keepSelectedOnPage(selected, props.items, bulk.getItemId);
     });
-  }, [props.items, isBulkActionRunning]);
+  }, [props.items, isBulkActionRunning, everyMatch]);
+
+  /*
+   * The search, the filters or the window changed: a selection of every
+   * match no longer describes what matches, and a read of it still going
+   * on is out of date. What is left is the page's ticked rows, kept to the
+   * page as any selection of them is.
+   */
+  const matchKey: string | undefined = bulk?.selectAllMatching?.matchKey;
+  const previousMatchKeyRef: MutableRefObject<string | undefined> = useRef<
+    string | undefined
+  >(matchKey);
+
+  useEffect(() => {
+    if (previousMatchKeyRef.current === matchKey) {
+      return;
+    }
+
+    previousMatchKeyRef.current = matchKey;
+    everyMatchReadRef.current++;
+    setIsReadingEveryMatch(false);
+    setEveryMatchError("");
+
+    if (!everyMatch) {
+      return;
+    }
+
+    setEveryMatch(null);
+
+    if (bulk && !isBulkActionRunning) {
+      setSelectedItems((selected: Array<T>): Array<T> => {
+        return keepSelectedOnPage(selected, props.items, bulk.getItemId);
+      });
+    }
+  }, [matchKey]);
+
+  // Lets go of every selection, and of any read of every match going on.
+  const clearSelection: () => void = (): void => {
+    everyMatchReadRef.current++;
+    setIsReadingEveryMatch(false);
+    setEveryMatchError("");
+    setEveryMatch(null);
+    setSelectedItems([]);
+  };
+
+  /*
+   * "Select all 4,213 exceptions": reads every match, and selects it once
+   * the whole of it is read. A read that fails leaves the page's selection
+   * as it was and says why, under the line, with the offer there to try
+   * again.
+   */
+  const selectEveryMatch: () => Promise<void> = async (): Promise<void> => {
+    const selectAll: TelemetryViewerSelectAllMatching<T> | undefined =
+      bulk?.selectAllMatching;
+
+    if (!selectAll) {
+      return;
+    }
+
+    const read: number = ++everyMatchReadRef.current;
+    const isSuperseded: () => boolean = (): boolean => {
+      return read !== everyMatchReadRef.current;
+    };
+
+    setEveryMatchError("");
+    setIsReadingEveryMatch(true);
+
+    try {
+      const match: EveryMatch<T> | null = await selectAll.read({
+        isSuperseded: isSuperseded,
+      });
+
+      if (isSuperseded() || !match) {
+        return;
+      }
+
+      setSelectedItems(match.items);
+      setEveryMatch({
+        totalCount: match.totalCount,
+        isTruncated: match.isTruncated,
+      });
+    } catch (err) {
+      if (!isSuperseded()) {
+        setEveryMatchError(API.getFriendlyMessage(err));
+      }
+    } finally {
+      if (!isSuperseded()) {
+        setIsReadingEveryMatch(false);
+      }
+    }
+  };
 
   const pageSelection: PageSelectionState = bulk
     ? getPageSelectionState(shownSelection, props.items, bulk.getItemId)
     : PageSelectionState.None;
+
+  /*
+   * What Bulk Actions offers. Over every match - rows the page does not
+   * show - an action that asks nothing first, as a row's quick moves do,
+   * asks before it changes them, naming how many.
+   */
+  const bulkButtons: Array<BulkActionButtonSchema<T & GenericObject>> = bulk
+    ? everyMatch
+      ? bulk.buttons.map(
+          (
+            button: BulkActionButtonSchema<T & GenericObject>,
+          ): BulkActionButtonSchema<T & GenericObject> => {
+            return askBeforeActingAcrossPages(button, {
+              translator: translator,
+              singularLabel: bulk.singularLabel,
+              pluralLabel: bulk.pluralLabel,
+            });
+          },
+        )
+      : bulk.buttons
+    : [];
 
   // The page's box: "Select all exceptions on this page".
   const pageBoxWords: string = bulk
@@ -638,11 +818,15 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
            * start, level with the rows' boxes, and its words; once rows are
            * ticked, the rest of the line says how many, with a × to let go
            * of them, and offers Bulk Actions at its end (BulkUpdateForm's
-           * Row) - the same menu, progress and result as a table's bar. A
-           * list pages, so the page is all a selection holds: the page's
-           * box is its Select All.
+           * Row) - the same menu, progress and result as a table's bar. The
+           * page's box selects the page; once it is all ticked and the
+           * list's exact total says more rows match, the line offers every
+           * one of them (bulk.selectAllMatching). Drawn while a run goes
+           * on whatever the list reads meanwhile: its dialog is here.
            */}
-          {bulk && !listError && props.items.length > 0 ? (
+          {bulk &&
+          !listError &&
+          (props.items.length > 0 || isBulkActionRunning) ? (
             <div
               className={TELEMETRY_VIEWER_BULK_ROW_CLASS_NAME}
               data-testid="telemetry-viewer-bulk"
@@ -653,49 +837,70 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
                * rows are ticked the count takes their place, and the box
                * keeps its name for a screen reader.
                */}
-              <CheckboxElement
-                dataTestId={TELEMETRY_VIEWER_SELECT_PAGE_TEST_ID}
-                value={pageSelection === PageSelectionState.All}
-                isIndeterminate={pageSelection === PageSelectionState.Some}
-                ariaLabel={pageBoxWords}
-                title={
-                  shownSelection.length > 0 ? undefined : (
-                    <span
-                      className="cursor-pointer select-none text-xs font-normal text-gray-500"
-                      data-testid={TELEMETRY_VIEWER_SELECT_PAGE_WORDS_TEST_ID}
-                    >
-                      {pageBoxWords}
-                    </span>
-                  )
-                }
-                outerDivClassName={
-                  shownSelection.length > 0
-                    ? "[&>div:last-child]:ml-0"
-                    : undefined
-                }
-                onChange={(value: boolean) => {
-                  setSelectedItems(value ? [...props.items] : []);
-                }}
-              />
+              <div className={TELEMETRY_VIEWER_PAGE_BOX_SLOT_CLASS_NAME}>
+                <CheckboxElement
+                  dataTestId={TELEMETRY_VIEWER_SELECT_PAGE_TEST_ID}
+                  value={pageSelection === PageSelectionState.All}
+                  isIndeterminate={pageSelection === PageSelectionState.Some}
+                  ariaLabel={pageBoxWords}
+                  title={
+                    shownSelection.length > 0 ? undefined : (
+                      <span
+                        className="cursor-pointer select-none text-xs font-normal text-gray-500"
+                        data-testid={TELEMETRY_VIEWER_SELECT_PAGE_WORDS_TEST_ID}
+                      >
+                        {pageBoxWords}
+                      </span>
+                    )
+                  }
+                  outerDivClassName={
+                    shownSelection.length > 0
+                      ? "[&>div:last-child]:ml-0"
+                      : undefined
+                  }
+                  onChange={(value: boolean) => {
+                    if (!value) {
+                      // Every row the selection holds, on this page or not.
+                      clearSelection();
+                      return;
+                    }
+
+                    setSelectedItems([...props.items]);
+                  }}
+                />
+              </div>
               <BulkUpdateForm<T & GenericObject>
                 layout={BulkUpdateBarLayout.Row}
-                buttons={bulk.buttons}
+                buttons={bulkButtons}
                 selectedItems={shownSelection as Array<T & GenericObject>}
-                isAllItemsSelected={true}
+                isAllItemsSelected={Boolean(everyMatch)}
                 onSelectAllClick={() => {
-                  setSelectedItems([...props.items]);
+                  void selectEveryMatch();
                 }}
+                selectAllMatching={
+                  bulk.selectAllMatching && exactTotalCount !== undefined
+                    ? {
+                        isPageSelected:
+                          pageSelection === PageSelectionState.All,
+                        matchingCount: exactTotalCount,
+                      }
+                    : undefined
+                }
+                isSelectingAllItems={isReadingEveryMatch}
+                isSelectionTruncated={everyMatch?.isTruncated}
+                totalMatchingItemsCount={everyMatch?.totalCount}
+                errorMessage={everyMatchError || undefined}
                 singularLabel={bulk.singularLabel}
                 pluralLabel={bulk.pluralLabel}
                 onClearSelectionClick={() => {
-                  setSelectedItems([]);
+                  clearSelection();
                 }}
                 onActionStart={() => {
                   setIsBulkActionRunning(true);
                 }}
                 onActionEnd={() => {
                   setIsBulkActionRunning(false);
-                  setSelectedItems([]);
+                  clearSelection();
                   bulk.onActionEnd?.();
                 }}
                 itemToString={(item: T & GenericObject): string => {
@@ -769,14 +974,37 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
                             })}
                             outerDivClassName="[&>div:last-child]:ml-0"
                             onChange={(value: boolean) => {
+                              /*
+                               * A row of every match unticked: the
+                               * selection is the page's ticked rows again,
+                               * as a mail list does - "all but one", over
+                               * rows out of sight, is not what the line
+                               * said it held.
+                               */
+                              const isLeavingEveryMatch: boolean =
+                                Boolean(everyMatch) && !value;
+
+                              if (isLeavingEveryMatch) {
+                                everyMatchReadRef.current++;
+                                setEveryMatch(null);
+                              }
+
                               setSelectedItems(
                                 (selected: Array<T>): Array<T> => {
-                                  return setRowSelected(
+                                  const changed: Array<T> = setRowSelected(
                                     selected,
                                     item,
                                     value,
                                     bulk.getItemId,
                                   );
+
+                                  return isLeavingEveryMatch
+                                    ? keepSelectedOnPage(
+                                        changed,
+                                        props.items,
+                                        bulk.getItemId,
+                                      )
+                                    : changed;
                                 },
                               );
                             }}

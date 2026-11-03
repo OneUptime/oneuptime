@@ -125,6 +125,7 @@ import MicrosoftTeamsReplies from "./MicrosoftTeamsReplies";
 import MicrosoftTeamsAiAnswer from "./MicrosoftTeamsAiAnswer";
 import MicrosoftTeamsInlineImages from "./MicrosoftTeamsInlineImages";
 import MicrosoftTeamsCardProject from "./MicrosoftTeamsCardProject";
+import MicrosoftTeamsAffectedResources from "./MicrosoftTeamsAffectedResources";
 import MicrosoftTeamsProjectChoice, {
   MicrosoftTeamsProjectChoiceKind,
   MicrosoftTeamsProjectChoiceRequest,
@@ -7498,6 +7499,23 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           logger.debug(
             "Handling invoke activity: " + JSON.stringify(context.activity),
           );
+
+          /*
+           * A card's typeahead search - the Create New Incident card's
+           * Affected Resources, as the person types: answered with its
+           * results, as the member in the card's project, and nothing else
+           * (MicrosoftTeamsAffectedResources). It is no button's press.
+           */
+          if (
+            MicrosoftTeamsAffectedResources.isSearch(
+              context.activity as unknown as JSONObject,
+            )
+          ) {
+            return await MicrosoftTeamsAffectedResources.answerSearch({
+              activity: context.activity as unknown as JSONObject,
+            });
+          }
+
           await MicrosoftTeamsUtil.handleBotInvokeActivity({
             activity: context.activity as unknown as JSONObject,
             turnContext: context,
