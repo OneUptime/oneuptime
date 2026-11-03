@@ -1770,7 +1770,9 @@ describe("comparing an OID with other devices", () => {
     for (const oid of [SYS_UPTIME.oid, SYS_NAME.oid]) {
       await click(within(rowFor(oid)).getByTestId("snmp-walk-row-more"));
 
-      expect(screen.getByText("Compare with other devices")).toBeInTheDocument();
+      expect(
+        screen.getByText("Compare with other devices"),
+      ).toBeInTheDocument();
 
       // Close the menu again before opening the next one.
       await click(within(rowFor(oid)).getByTestId("snmp-walk-row-more"));
@@ -1780,7 +1782,9 @@ describe("comparing an OID with other devices", () => {
   test("is not offered to a reader who may not walk", async () => {
     givenLastWalk();
     await renderCard({ canWalk: false });
-    await click(within(rowFor(CISCO_CPU.oid)).getByTestId("snmp-walk-row-more"));
+    await click(
+      within(rowFor(CISCO_CPU.oid)).getByTestId("snmp-walk-row-more"),
+    );
 
     expect(screen.getByText("Copy OID")).toBeInTheDocument();
     expect(screen.queryByText("Compare with other devices")).toBeNull();

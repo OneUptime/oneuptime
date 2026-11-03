@@ -154,7 +154,7 @@ Cada acción es un diálogo y un guardado para toda la selección, y cada dispos
 
 Cuando una acción termina, indica cuántos dispositivos cambiaron, cuáles fallaron y por qué — un dispositivo que tu rol no puede editar, una lista por encima de su límite — y cuáles no cambió y por qué: un dispositivo que ya estaba en ese sitio o rol, o uno que la plantilla del fabricante deja sin cambios.
 
-Las demás acciones masivas se describen donde corresponden: **Definir plantilla de recopilación de OID** en [Plantillas de recopilación de OID](#plantillas-de-recopilación-de-oid), **Set SNMP Credential Profile**, **Switch to Probe Polling** y **Crear monitores de ping** en [En bloque](#en-bloque), y **Shorten Names to Hostname** en [Cómo se nombran los dispositivos descubiertos](#cómo-se-nombran-los-dispositivos-descubiertos).
+Las demás acciones masivas se describen donde corresponden: **Definir plantilla de recopilación de OID** en [Plantillas de recopilación de OID](#plantillas-de-recopilación-de-oid), **Recorrido SNMP** en [Recorrer muchos dispositivos a la vez](#recorrer-muchos-dispositivos-a-la-vez), **Set SNMP Credential Profile**, **Switch to Probe Polling** y **Crear monitores de ping** en [En bloque](#en-bloque), y **Shorten Names to Hostname** en [Cómo se nombran los dispositivos descubiertos](#cómo-se-nombran-los-dispositivos-descubiertos).
 
 ## Lo que hace realmente un sondeo
 
@@ -397,6 +397,21 @@ Cada fila indica dónde se conoce su OID: un valor que recopila una plantilla de
 **Descargar**, junto al resumen del recorrido, guarda lo que leyó el recorrido como un archivo: **Texto de snmpwalk (.txt)**, un OID por línea tal como lo imprime `snmpwalk -On`, que lee cualquier herramienta SNMP y el soporte de cualquier fabricante, u **Hoja de cálculo CSV (.csv)**, con el nombre, la MIB, el tipo y el valor de cada OID. El archivo contiene cada OID que leyó el recorrido, incluidos los recorridos continuados, muestre lo que muestre el filtro, y lleva el nombre del dispositivo, del subárbol y de la hora en que se guardó. Quien puede leer el último recorrido del dispositivo puede descargarlo.
 
 Un recorrido que falla dice por qué y qué revisar: un dispositivo que no responde (SNMP desactivado, UDP 161 bloqueado o, en v1 y v2c, una cadena de comunidad incorrecta, que un agente ignora sin decir nada), un usuario, una contraseña o un protocolo de SNMPv3 que el dispositivo rechazó, o una parte del árbol que la vista SNMP de las credenciales deja fuera. Un recorrido que se detiene a medias conserva lo que leyó. Recorrer necesita el permiso **Create Network Device Diagnostic** y una sonda lo bastante reciente para recorrer SNMP: con una más antigua, la página te pide que la actualices.
+
+### Recorrer muchos dispositivos a la vez
+
+Cuando un valor importa en toda una flota, como la CPU de cada router o la temperatura de cada switch de un sitio, recorre los dispositivos juntos en lugar de una página de dispositivo tras otra. Selecciónalos en la lista **Dispositivos**, marcando filas o seleccionando todos los que coinciden con los filtros, y usa **Recorrido SNMP** en **Acciones masivas**. O pulsa **Comparar con otros dispositivos** en el menú de un OID en la propia página **Recorrido SNMP** de un dispositivo: la página se abre con ese dispositivo elegido y ese OID como punto de partida, y tú añades el resto. La página también está en **Red → Avanzado → Recorrido SNMP**, donde eliges los dispositivos uno a uno o todos los que tienen una etiqueta.
+
+Cada dispositivo se recorre como lo hace su propia página: desde su propia sonda, con las credenciales SNMP que OneUptime guarda para él (v1, v2c o v3, del dispositivo, de su perfil de credenciales o de su sitio), como máximo 1000 OID por dispositivo. Se recorren hasta 50 dispositivos a la vez. Empieza en un OID para comprobar ese valor en cada dispositivo, o en un subárbol para comparar lo que los dispositivos exponen bajo él. La respuesta de cada dispositivo aparece en cuanto llega, y la página espera hasta cinco minutos a la sonda más lenta.
+
+Los resultados listan cada OID al que respondió algún dispositivo, un OID por fila:
+
+- **Respondido por** indica cuántos de los dispositivos cuyo recorrido llegó al OID responden a él, y se despliega con el valor propio de cada dispositivo. Un dispositivo cuyo recorrido se detuvo en su límite antes del OID nunca se cuenta como un dispositivo que no lo tiene.
+- Un valor que es igual en todos los dispositivos se muestra una vez; los números que difieren se muestran como el más bajo y el más alto, y el texto que difiere como cuántos valores distintos hay.
+- **Solo los OID a los que algunos dispositivos no responden**, junto al filtro, deja solo los OID que una parte de la flota no tiene.
+- **Recopilar en 12 dispositivos** añade el OID a cada dispositivo que responde a él y aún no lo recopila, como hace **Recopilar** en un dispositivo: una vez por dispositivo, nunca dos, y un dispositivo que lo rechaza, porque su lista está llena por ejemplo, se nombra con el motivo mientras los demás siguen adelante. Cuando esos dispositivos están vinculados a una plantilla de recopilación de OID, el menú de la fila puede añadir el OID a la plantilla en su lugar, para cada dispositivo que la usa.
+
+Encima de los resultados, cada dispositivo que no se recorrió por completo aparece con el motivo y lo que hay que corregir: sin sonda, sin credenciales SNMP, credenciales rechazadas, sin respuesta o sin informe de su sonda. El nombre de un dispositivo abre su propia página **Recorrido SNMP** en este recorrido suyo, donde **Continuar el recorrido** sigue leyendo y **Crear una alerta** abre un nuevo monitor. **Descargar CSV** guarda cada OID de cada dispositivo en un solo archivo, con el nombre del dispositivo en la primera columna. La dirección de la página conserva los dispositivos y el OID, así que al recargar o abrir un enlace compartido se abre el mismo recorrido, y los recorridos se conservan dos días.
 
 ### Tablas SNMP
 

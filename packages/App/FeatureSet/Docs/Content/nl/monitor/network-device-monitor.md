@@ -154,7 +154,7 @@ Elke actie is één dialoogvenster en één keer opslaan voor de hele selectie, 
 
 Als een actie klaar is, somt ze op hoeveel apparaten zijn gewijzigd, welke mislukten en waarom — een apparaat dat je rol niet mag bewerken, een lijst boven haar limiet — en welke ze niet heeft gewijzigd en waarom: een apparaat dat al in die locatie of rol zat, of een dat het leverancierssjabloon met rust laat.
 
-De andere bulkacties komen aan bod waar ze thuishoren: **Set OID Collection Template** onder [OID Collection Templates](#sjablonen-voor-oid-verzameling), **Set SNMP Credential Profile**, **Switch to Probe Polling** en **Create Ping Monitors** onder [In bulk](#in-bulk), en **Shorten Names to Hostname** onder [Hoe ontdekte apparaten hun naam krijgen](#hoe-ontdekte-apparaten-hun-naam-krijgen).
+De andere bulkacties komen aan bod waar ze thuishoren: **Set OID Collection Template** onder [OID Collection Templates](#sjablonen-voor-oid-verzameling), **SNMP-walk** onder [Veel apparaten tegelijk walken](#veel-apparaten-tegelijk-walken), **Set SNMP Credential Profile**, **Switch to Probe Polling** en **Create Ping Monitors** onder [In bulk](#in-bulk), en **Shorten Names to Hostname** onder [Hoe ontdekte apparaten hun naam krijgen](#hoe-ontdekte-apparaten-hun-naam-krijgen).
 
 ## Wat een poll echt doet
 
@@ -397,6 +397,21 @@ Elke rij zegt waar zijn OID bekend is: een waarde die een gezondheidssjabloon va
 **Downloaden**, naast de samenvatting van de walk, slaat op wat de walk heeft gelezen als bestand: **snmpwalk-tekst (.txt)**, één OID per regel zoals `snmpwalk -On` die afdrukt, die elk SNMP-hulpmiddel en elke leverancierssupport leest, of **CSV-spreadsheet (.csv)**, met de naam, MIB, het type en de waarde van elke OID. Het bestand bevat elke OID die de walk heeft gelezen, voortgezette walks inbegrepen, wat het filter ook toont, en is genoemd naar het apparaat, de subboom en het tijdstip waarop het is opgeslagen. Iedereen die de laatste walk van het apparaat kan lezen, kan hem downloaden.
 
 Een mislukte walk zegt waarom, en wat je moet controleren: een apparaat dat niet antwoordt (SNMP uit, UDP 161 geblokkeerd of, bij v1 en v2c, een verkeerde communitystring, die een agent zonder melding negeert), een SNMPv3-gebruiker, -wachtwoord of -protocol dat het apparaat weigerde, of een deel van de boom dat de SNMP-view van de inloggegevens weglaat. Een walk die halverwege stopt, houdt wat hij las. Een walk vraagt de machtiging **Create Network Device Diagnostic** en een sonde die recent genoeg is voor SNMP-walks: bij een oudere vraagt de pagina je die bij te werken.
+
+### Veel apparaten tegelijk walken
+
+Als één waarde telt voor een hele vloot, zoals de CPU van elke router of de temperatuur van elke switch op een locatie, voer de walk dan op de apparaten samen uit in plaats van op één apparaatpagina tegelijk. Selecteer ze in de lijst **Apparaten**, door rijen aan te vinken of alle apparaten te selecteren die aan de filters voldoen, en gebruik **SNMP-walk** in **Bulkacties**. Of klik op **Vergelijken met andere apparaten** in het menu van een OID op de eigen pagina **SNMP-walk** van een apparaat: de pagina opent met dat apparaat gekozen en die OID als startpunt, en jij voegt de rest toe. De pagina staat ook onder **Netwerk → Geavanceerd → SNMP-walk**, waar je apparaten een voor een kiest of elk apparaat met een label.
+
+Elk apparaat wordt gewalkt zoals zijn eigen pagina dat doet: door zijn eigen sonde, met de SNMP-inloggegevens die OneUptime ervoor bewaart (v1, v2c of v3, van het apparaat, zijn inloggegevensprofiel of zijn locatie), hoogstens 1.000 OID's per apparaat. Er worden tot 50 apparaten tegelijk gewalkt. Begin bij één OID om die waarde op elk apparaat te controleren, of bij een subboom om te vergelijken wat de apparaten eronder aanbieden. Het antwoord van elk apparaat verschijnt zodra het binnenkomt, en de pagina wacht tot vijf minuten op de traagste sonde.
+
+De resultaten tonen elke OID waarop een apparaat antwoordde, één OID per rij:
+
+- **Beantwoord door** zegt hoeveel van de apparaten waarvan de walk de OID bereikte erop antwoorden, en klapt open naar de eigen waarde van elk apparaat. Een apparaat waarvan de walk vóór de OID bij zijn limiet stopte, telt nooit als een apparaat zonder die OID.
+- Een waarde die elk apparaat hetzelfde leest, wordt één keer getoond; getallen die verschillen, worden getoond als de laagste en de hoogste, en tekst die verschilt als het aantal verschillende waarden.
+- **Alleen OID's waarop sommige apparaten niet antwoorden**, naast het filter, houdt alleen de OID's over die een deel van de vloot niet heeft.
+- **Verzamelen op 12 apparaten** voegt de OID toe aan elk apparaat dat erop antwoordt en hem nog niet verzamelt, zoals **Verzamelen** dat op één apparaat doet: één keer per apparaat, nooit twee keer, en een apparaat dat weigert, bijvoorbeeld omdat zijn lijst vol is, wordt met de reden genoemd terwijl de andere gewoon doorgaan. Als die apparaten aan een OID Collection Template zijn gekoppeld, kan het menu van de rij de OID in plaats daarvan aan het sjabloon toevoegen, voor elk apparaat dat het gebruikt.
+
+Boven de resultaten staat elk apparaat waarvan de walk niet is voltooid, met de reden en wat je moet oplossen: geen sonde, geen SNMP-inloggegevens, geweigerde inloggegevens, geen antwoord of geen melding van zijn sonde. De naam van een apparaat opent zijn eigen pagina **SNMP-walk** op deze walk ervan, waar **Walk voortzetten** verder leest en **Waarschuwing instellen** een nieuwe monitor opent. **CSV downloaden** slaat elke OID van elk apparaat op in één bestand, met de naam van het apparaat in de eerste kolom. Het adres van de pagina bewaart de apparaten en de OID, zodat herladen of een gedeelde link dezelfde walk opent, en de walks worden twee dagen bewaard.
 
 ### SNMP-tabellen
 

@@ -41588,7 +41588,6 @@
   "This device has no probe assigned. Assign one under Device → Settings and try again.": "This device has no probe assigned. Assign one under Device → Settings and try again.",
   "This device is archived. Restore it to run diagnostics.": "This device is archived. Restore it to run diagnostics.",
   "Up to {{count}} at a time. Pick devices one by one, or every device with a label.": "Up to {{count}} at a time. Pick devices one by one, or every device with a label.",
-  "Walk many devices at once, each from its own probe with its own SNMP credentials. See which devices answer an OID and with what, then collect it on every one of them.": "Walk many devices at once, each from its own probe with its own SNMP credentials. See which devices answer an OID and with what, then collect it on every one of them.",
   "Walk up to {{max}} devices at a time. Remove {{count}} devices to walk the rest.": "Walk up to {{max}} devices at a time. Remove {{count}} devices to walk the rest.",
   "Walk up to {{max}} devices at a time. Remove {{count}} devices to walk the rest._one": "Walk up to {{max}} devices at a time. Remove {{count}} device to walk the rest.",
   "Walked devices": "Walked devices",
@@ -41617,5 +41616,6 @@
   "{{count}} walks stopped before it_one": "{{count}} walk stopped before it",
   "{{done}} of {{count}} walks finished. Each probe picks its walks up within ten seconds, and what they read shows here as it arrives.": "{{done}} of {{count}} walks finished. Each probe picks its walks up within ten seconds, and what they read shows here as it arrives.",
   "{{done}} of {{count}} walks finished. Each probe picks its walks up within ten seconds, and what they read shows here as it arrives._one": "{{done}} of {{count}} walk finished. Each probe picks its walks up within ten seconds, and what they read shows here as it arrives.",
-  "{{low}} to {{high}}": "{{low}} to {{high}}"
+  "{{low}} to {{high}}": "{{low}} to {{high}}",
+  "Walk many devices at once, each from its own probe with its own credentials. See which devices answer an OID, then collect it on all of them.": "Walk many devices at once, each from its own probe with its own credentials. See which devices answer an OID, then collect it on all of them."
 }

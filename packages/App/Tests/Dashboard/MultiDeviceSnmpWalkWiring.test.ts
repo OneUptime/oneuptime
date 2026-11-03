@@ -117,7 +117,11 @@ describe("the Network's SNMP Walk page's place in the product", () => {
   });
 
   test("waits folded under Advanced in the Network menu, before Archived Devices", () => {
-    const menu: string = readCode("Components", "Network", "NetworkSideMenu.tsx");
+    const menu: string = readCode(
+      "Components",
+      "Network",
+      "NetworkSideMenu.tsx",
+    );
     const advanced: number = menu.indexOf('title: "Advanced"');
     const walk: number = menu.indexOf('title: "SNMP Walk"');
     const archived: number = menu.indexOf('title: "Archived Devices"');
@@ -138,7 +142,9 @@ describe("the Network's SNMP Walk page's place in the product", () => {
       "CommandPalette",
       "PageSearchIndex.ts",
     );
-    const network: number = index.indexOf("page: PageMap.NETWORK_DEVICE_ARCHIVED");
+    const network: number = index.indexOf(
+      "page: PageMap.NETWORK_DEVICE_ARCHIVED",
+    );
     const walk: number = index.indexOf("page: PageMap.NETWORK_SNMP_WALK");
 
     expect(walk).toBeGreaterThan(-1);
@@ -163,7 +169,7 @@ describe("the ways to the page", () => {
     expect(BULK_ACTION).toContain('title: "SNMP Walk"');
     expect(BULK_ACTION).toContain("icon: IconProp.Search");
     expect(BULK_ACTION).toContain(
-      "Navigation.navigate( getMultiDeviceSnmpWalkRoute({ deviceIds: deviceIds, startOid: \"\" }), );",
+      'Navigation.navigate( getMultiDeviceSnmpWalkRoute({ deviceIds: deviceIds, startOid: "" }), );',
     );
   });
 
@@ -178,7 +184,9 @@ describe("the ways to the page", () => {
     expect(BULK_ACTION).toContain(
       "PermissionGate.check( new NetworkDeviceDiagnostic(), ModelAction.Create, )",
     );
-    expect(BULK_ACTION).toContain("disabled: true, tooltip: walkGate.disabledReason,");
+    expect(BULK_ACTION).toContain(
+      "disabled: true, tooltip: walkGate.disabledReason,",
+    );
   });
 
   test("an OID on a device's own SNMP Walk page opens it on the OID, with the device picked, for who may walk", () => {
@@ -255,7 +263,9 @@ describe("what the page reads and writes", () => {
   });
 
   test("asks for each walk as a device's own page does: the device, the type and where to start", () => {
-    expect(CARD).toContain("diagnostic.networkDeviceId = new ObjectID(deviceId);");
+    expect(CARD).toContain(
+      "diagnostic.networkDeviceId = new ObjectID(deviceId);",
+    );
     expect(CARD).toContain(
       "diagnostic.diagnosticType = NetworkDeviceDiagnosticType.SnmpWalk;",
     );

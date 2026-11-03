@@ -1858,7 +1858,7 @@ const MultiDeviceSnmpWalkCard: FunctionComponent<ComponentProps> = (
   return (
     <Card
       title="SNMP Walk"
-      description="Walk many devices at once, each from its own probe with its own SNMP credentials. See which devices answer an OID and with what, then collect it on every one of them."
+      description="Walk many devices at once, each from its own probe with its own credentials. See which devices answer an OID, then collect it on all of them."
     >
       <div data-testid="multi-snmp-walk" aria-busy={isWalking}>
         {getBody()}

@@ -529,7 +529,9 @@ describe("before anything is walked", () => {
     await renderCard();
     await typeStart("sysDescr");
 
-    expect(screen.getByTestId("multi-snmp-walk-start-invalid")).toHaveTextContent(
+    expect(
+      screen.getByTestId("multi-snmp-walk-start-invalid"),
+    ).toHaveTextContent(
       "Use a numeric OID such as 1.3.6.1.2.1.1, not a MIB name.",
     );
     expect(screen.getByTestId("multi-snmp-walk-start")).toBeDisabled();
@@ -573,7 +575,11 @@ describe("before anything is walked", () => {
   test("more devices than one walk takes are said, and the first fifty can be kept with one press", async () => {
     const many: Array<string> = [];
 
-    for (let index: number = 0; index < MULTI_DEVICE_SNMP_WALK_MAX_DEVICES + 2; index++) {
+    for (
+      let index: number = 0;
+      index < MULTI_DEVICE_SNMP_WALK_MAX_DEVICES + 2;
+      index++
+    ) {
       const id: string = `aaaaaaaa-aaaa-4aaa-8aaa-${index.toString(16).padStart(12, "0")}`;
       many.push(id);
       devices.push(device(id, `edge-${index}`));
@@ -740,7 +746,9 @@ describe("walking the devices", () => {
 
     expect(chip(DEVICE_B)).toHaveAttribute("data-status", "notStarted");
 
-    const problems: HTMLElement = screen.getByTestId("multi-snmp-walk-problems");
+    const problems: HTMLElement = screen.getByTestId(
+      "multi-snmp-walk-problems",
+    );
     const problemB: HTMLElement = within(problems)
       .getAllByTestId("multi-snmp-walk-problem")
       .find((element: HTMLElement): boolean => {
@@ -884,7 +892,9 @@ describe("walking the devices", () => {
 
     await tick(2);
 
-    expect(screen.queryByTestId("multi-snmp-walk-error")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("multi-snmp-walk-error"),
+    ).not.toBeInTheDocument();
     expect(rowsShown()).toEqual([SYS_NAME]);
   });
 
@@ -912,7 +922,9 @@ describe("walking the devices", () => {
     await tick();
 
     expect(chip(DEVICE_A)).toHaveTextContent("1 OID so far, more to read");
-    expect(screen.getByTestId("multi-snmp-walk-more-to-read")).toHaveTextContent(
+    expect(
+      screen.getByTestId("multi-snmp-walk-more-to-read"),
+    ).toHaveTextContent(
       "One device's walk stopped at its limit with more to read.",
     );
     // A's walk stopped before sysName: it is not counted as missing it.
@@ -976,7 +988,12 @@ describe("the devices' answers, side by side", () => {
   test("one row an OID, in OID order, with how many devices answer it", async () => {
     await walkFleet();
 
-    expect(rowsShown()).toEqual([SYS_DESCR, SYS_UPTIME, SYS_NAME, SYS_LOCATION]);
+    expect(rowsShown()).toEqual([
+      SYS_DESCR,
+      SYS_UPTIME,
+      SYS_NAME,
+      SYS_LOCATION,
+    ]);
     expect(
       within(rowFor(SYS_DESCR)).getByTestId("multi-snmp-walk-row-answered"),
     ).toHaveTextContent("3 of 3 devices");
@@ -1013,9 +1030,9 @@ describe("the devices' answers, side by side", () => {
 
     expect(toggle).toHaveAttribute("aria-expanded", "true");
 
-    const answers: Array<HTMLElement> = within(rowFor(SYS_LOCATION)).getAllByTestId(
-      "multi-snmp-walk-row-answer",
-    );
+    const answers: Array<HTMLElement> = within(
+      rowFor(SYS_LOCATION),
+    ).getAllByTestId("multi-snmp-walk-row-answer");
 
     expect(
       answers.map((element: HTMLElement): [string, string] => {
@@ -1044,9 +1061,9 @@ describe("the devices' answers, side by side", () => {
     });
 
     expect(rowsShown()).toEqual([SYS_NAME]);
-    expect(screen.getByTestId("multi-snmp-walk-filter-count")).toHaveTextContent(
-      "1 of 4 OIDs matches.",
-    );
+    expect(
+      screen.getByTestId("multi-snmp-walk-filter-count"),
+    ).toHaveTextContent("1 of 4 OIDs matches.");
 
     await act(async () => {
       fireEvent.change(screen.getByTestId("multi-snmp-walk-filter"), {
@@ -1282,7 +1299,9 @@ describe("the devices' answers, side by side", () => {
       within(rowFor(SYS_NAME)).queryByTestId("multi-snmp-walk-row-collect"),
     ).not.toBeInTheDocument();
 
-    await click(within(rowFor(SYS_NAME)).getByTestId("multi-snmp-walk-row-more"));
+    await click(
+      within(rowFor(SYS_NAME)).getByTestId("multi-snmp-walk-row-more"),
+    );
 
     expect(screen.queryByText(/Collect on every device using/)).toBeNull();
     expect(screen.getByText("Copy OID")).toBeInTheDocument();
@@ -1527,7 +1546,9 @@ describe("the last walk, after a reload", () => {
       canWalk: false,
     });
 
-    expect(screen.queryByTestId("multi-snmp-walk-form")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("multi-snmp-walk-form"),
+    ).not.toBeInTheDocument();
     expect(screen.getByTestId("multi-snmp-walk-read-only")).toHaveTextContent(
       "You can read this walk. Walking devices needs the Create Network Device Diagnostic permission.",
     );
@@ -1540,7 +1561,9 @@ describe("the last walk, after a reload", () => {
     expect(screen.getByTestId("multi-snmp-walk-read-only")).toHaveTextContent(
       "Walking devices needs the Create Network Device Diagnostic permission.",
     );
-    expect(screen.queryByTestId("multi-snmp-walk-empty")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("multi-snmp-walk-empty"),
+    ).not.toBeInTheDocument();
   });
 
   test("a page whose walks cannot be read still opens, with nothing walked", async () => {

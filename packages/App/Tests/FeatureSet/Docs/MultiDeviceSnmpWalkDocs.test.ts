@@ -215,7 +215,7 @@ describe("the section in every docs language", () => {
         .replace(/[०-९]/g, (digit: string): string => {
           return String(digit.charCodeAt(0) - 0x0966);
         })
-        .replace(/(\d)[\s  .,'٬](\d{3})(?!\d)/g, "$1$2");
+        .replace(/(\d)[\s\u00a0\u202f.,'\u066c](\d{3})(?!\d)/g, "$1$2");
 
       expect({ language, devices: latin.includes("50") }).toEqual({
         language,

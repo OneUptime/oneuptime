@@ -178,9 +178,7 @@ const SYS_LOCATION: string = "1.3.6.1.2.1.1.6.0";
 describe("the bounds of a walk of many devices", () => {
   test("fifty devices at a time, each read up to a walk's own thousand OIDs", () => {
     expect(MULTI_DEVICE_SNMP_WALK_MAX_DEVICES).toBe(50);
-    expect(MULTI_DEVICE_SNMP_WALK_MAX_DEVICES * SNMP_WALK_MAX_OIDS).toBe(
-      50000,
-    );
+    expect(MULTI_DEVICE_SNMP_WALK_MAX_DEVICES * SNMP_WALK_MAX_OIDS).toBe(50000);
   });
 
   test("waits five minutes, longer than a device's own page, and never past a walk's claim window", () => {
@@ -563,7 +561,9 @@ describe("finding the last walk again after a reload", () => {
 
     expect(
       isWalkStillAwaited({
-        createdAt: new Date(now.getTime() - MULTI_DEVICE_SNMP_WALK_WAIT_IN_MS + 1),
+        createdAt: new Date(
+          now.getTime() - MULTI_DEVICE_SNMP_WALK_WAIT_IN_MS + 1,
+        ),
         now: now,
       }),
     ).toBe(true);
@@ -794,7 +794,9 @@ describe("the devices' walks, side by side", () => {
   test("no comparable walk is no row", () => {
     expect(compareDeviceWalks([])).toEqual([]);
     expect(
-      compareDeviceWalks([{ deviceId: DEVICE_A, status: DeviceWalkStatus.Asking }]),
+      compareDeviceWalks([
+        { deviceId: DEVICE_A, status: DeviceWalkStatus.Asking },
+      ]),
     ).toEqual([]);
   });
 
@@ -818,7 +820,11 @@ describe("the devices' walks, side by side", () => {
             const a: Array<number> = left.split(".").map(Number);
             const b: Array<number> = right.split(".").map(Number);
 
-            for (let arc: number = 0; arc < Math.min(a.length, b.length); arc++) {
+            for (
+              let arc: number = 0;
+              arc < Math.min(a.length, b.length);
+              arc++
+            ) {
               if (a[arc] !== b[arc]) {
                 return a[arc]! - b[arc]!;
               }
@@ -862,9 +868,8 @@ describe("the devices' walks, side by side", () => {
       const outOfOrder: Array<string> = [];
 
       for (let index: number = 1; index < rows.length; index++) {
-        const previous: Array<number> = rows[index - 1]!.oid
-          .split(".")
-          .map(Number);
+        const previous: Array<number> =
+          rows[index - 1]!.oid.split(".").map(Number);
         const current: Array<number> = rows[index]!.oid.split(".").map(Number);
         let order: number = 0;
 
@@ -933,7 +938,11 @@ describe("the devices' walks, side by side", () => {
   test("compares fifty walks of a thousand OIDs in a moment", () => {
     const walks: Array<DeviceWalk> = [];
 
-    for (let index: number = 0; index < MULTI_DEVICE_SNMP_WALK_MAX_DEVICES; index++) {
+    for (
+      let index: number = 0;
+      index < MULTI_DEVICE_SNMP_WALK_MAX_DEVICES;
+      index++
+    ) {
       const rows: Array<SnmpWalkRow> = [];
 
       for (let oid: number = 0; oid < SNMP_WALK_MAX_OIDS; oid++) {
@@ -951,9 +960,10 @@ describe("the devices' walks, side by side", () => {
         walked(`device-${index}`, {
           rootOid: "1.3.6.1.2.1.2",
           rows: rows,
-          stopReason: index % 2 === 0
-            ? SnmpWalkStopReason.Complete
-            : SnmpWalkStopReason.OidLimit,
+          stopReason:
+            index % 2 === 0
+              ? SnmpWalkStopReason.Complete
+              : SnmpWalkStopReason.OidLimit,
           nextOid: index % 2 === 0 ? undefined : rows[rows.length - 1]!.oid,
         }),
       );
@@ -963,7 +973,9 @@ describe("the devices' walks, side by side", () => {
     const rows: Array<SnmpWalkComparisonRow> = compareDeviceWalks(walks);
     const tookInMs: number = Date.now() - startedAt;
 
-    expect(rows).toHaveLength(MULTI_DEVICE_SNMP_WALK_MAX_DEVICES * SNMP_WALK_MAX_OIDS);
+    expect(rows).toHaveLength(
+      MULTI_DEVICE_SNMP_WALK_MAX_DEVICES * SNMP_WALK_MAX_OIDS,
+    );
     // Generous for a busy CI worker; a few hundred milliseconds on a laptop.
     expect(tookInMs).toBeLessThan(3000);
     // Every walk that stopped short reached all its own OIDs.
@@ -1076,7 +1088,11 @@ describe("what a fleet's values come to", () => {
 
     const counters: ComparisonValues | undefined = summarizeComparisonValues(
       answers(
-        row("1.3.6.1.2.1.31.1.1.1.6.1", SnmpDataType.Counter64, "18446744073709551000"),
+        row(
+          "1.3.6.1.2.1.31.1.1.1.6.1",
+          SnmpDataType.Counter64,
+          "18446744073709551000",
+        ),
         row("1.3.6.1.2.1.31.1.1.1.6.1", SnmpDataType.Counter64, "12"),
       ),
     );
@@ -1098,7 +1114,10 @@ describe("what a fleet's values come to", () => {
       ),
     );
 
-    expect(different).toEqual({ kind: ComparisonValuesKind.Different, count: 2 });
+    expect(different).toEqual({
+      kind: ComparisonValuesKind.Different,
+      count: 2,
+    });
     expect(
       summarizeComparisonValues(
         answers(
@@ -1129,7 +1148,10 @@ describe("what a fleet's values come to", () => {
       ),
     ).toBe("12 days, 02:20:45");
     expect(
-      formatComparisonNumber(row(SYS_UPTIME, SnmpDataType.Gauge32, 12), translator),
+      formatComparisonNumber(
+        row(SYS_UPTIME, SnmpDataType.Gauge32, 12),
+        translator,
+      ),
     ).toBe("12");
   });
 });
@@ -1227,7 +1249,11 @@ describe("how an OID's row reads, and what its filter matches", () => {
     expect(view.searchText).not.toContain(
       `name-${MULTI_DEVICE_SNMP_WALK_MAX_SEARCHED_VALUES}\n`,
     );
-    expect(view.searchText.endsWith(`name-${MULTI_DEVICE_SNMP_WALK_MAX_SEARCHED_VALUES}`)).toBe(false);
+    expect(
+      view.searchText.endsWith(
+        `name-${MULTI_DEVICE_SNMP_WALK_MAX_SEARCHED_VALUES}`,
+      ),
+    ).toBe(false);
   });
 
   test("can show only the OIDs some device walked past without answering", () => {
@@ -1295,7 +1321,10 @@ describe("who Collect writes to", () => {
     const collected: Map<string, Set<string>> = getCollectedOidsByDevice({
       devices: [
         device(DEVICE_A, { snmpOids: [oid] }),
-        device(DEVICE_B, { templateId: "t1", templateOids: [{ oid: `.${CPU}` }] }),
+        device(DEVICE_B, {
+          templateId: "t1",
+          templateOids: [{ oid: `.${CPU}` }],
+        }),
         device(DEVICE_C),
       ],
       justCollected: new Map([[DEVICE_C, new Set([CPU])]]),
@@ -1332,13 +1361,22 @@ describe("who Collect writes to", () => {
     const devicesById: Map<string, MultiDeviceSnmpWalkDevice> = new Map([
       [
         DEVICE_A,
-        device(DEVICE_A, { templateId: "t-core", templateName: "Core routers" }),
+        device(DEVICE_A, {
+          templateId: "t-core",
+          templateName: "Core routers",
+        }),
       ],
       [
         DEVICE_B,
-        device(DEVICE_B, { templateId: "t-core", templateName: "Core routers" }),
+        device(DEVICE_B, {
+          templateId: "t-core",
+          templateName: "Core routers",
+        }),
       ],
-      [DEVICE_C, device(DEVICE_C, { templateId: "t-edge", templateName: "Edge" })],
+      [
+        DEVICE_C,
+        device(DEVICE_C, { templateId: "t-edge", templateName: "Edge" }),
+      ],
       [DEVICE_D, device(DEVICE_D)],
     ]);
 
@@ -1678,7 +1716,8 @@ describe("the server's and probe's words, in the reader's language", () => {
           "This device is archived. Restore it to run diagnostics.":
             "Dieses Gerät ist archiviert.",
           [MULTI_DEVICE_SNMP_WALK_NO_PROBE_MESSAGE]: "Kein Probe zugewiesen.",
-          [MULTI_DEVICE_SNMP_WALK_GONE_MESSAGE]: "Dieser Walk existiert nicht mehr.",
+          [MULTI_DEVICE_SNMP_WALK_GONE_MESSAGE]:
+            "Dieser Walk existiert nicht mehr.",
         };
 
         return (text && words[text]) || text;
@@ -1687,7 +1726,10 @@ describe("the server's and probe's words, in the reader's language", () => {
     );
 
     expect(
-      translateMultiDeviceSnmpWalkMessage(SNMP_WALK_ALREADY_RUNNING_MESSAGE, german),
+      translateMultiDeviceSnmpWalkMessage(
+        SNMP_WALK_ALREADY_RUNNING_MESSAGE,
+        german,
+      ),
     ).toBe("Für dieses Gerät läuft bereits ein Walk.");
     expect(
       translateMultiDeviceSnmpWalkMessage(
@@ -1702,10 +1744,16 @@ describe("the server's and probe's words, in the reader's language", () => {
       ),
     ).toBe("Kein Probe zugewiesen.");
     expect(
-      translateMultiDeviceSnmpWalkMessage(MULTI_DEVICE_SNMP_WALK_GONE_MESSAGE, german),
+      translateMultiDeviceSnmpWalkMessage(
+        MULTI_DEVICE_SNMP_WALK_GONE_MESSAGE,
+        german,
+      ),
     ).toBe("Dieser Walk existiert nicht mehr.");
     expect(
-      translateMultiDeviceSnmpWalkMessage("Permission denied: NetworkDevice", german),
+      translateMultiDeviceSnmpWalkMessage(
+        "Permission denied: NetworkDevice",
+        german,
+      ),
     ).toBe("Permission denied: NetworkDevice");
   });
 });
@@ -1779,9 +1827,11 @@ describe("asking a few at a time", () => {
       },
     });
 
-    expect(done.sort((a: number, b: number) => a - b)).toEqual([
-      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
-    ]);
+    expect(
+      done.sort((a: number, b: number) => {
+        return a - b;
+      }),
+    ).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
     expect(mostAtOnce).toBe(5);
   });
 
@@ -1860,7 +1910,7 @@ describe("the walk of many devices, saved as a CSV", () => {
   test("a device's name or value is never read as a spreadsheet formula, and a comma stays in its field", () => {
     const csv: string = buildMultiDeviceSnmpWalkCsv([
       {
-        deviceName: "=HYPERLINK(\"http://evil\")",
+        deviceName: '=HYPERLINK("http://evil")',
         rows: [row(SYS_LOCATION, SnmpDataType.OctetString, "Rack 3, Row 2")],
       },
     ]);

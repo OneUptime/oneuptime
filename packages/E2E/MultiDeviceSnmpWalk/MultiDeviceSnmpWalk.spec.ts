@@ -100,9 +100,7 @@ async function fixtureState(page: Page): Promise<FixtureState> {
 }
 
 function rowOf(page: Page, oid: string): Locator {
-  return page.locator(
-    `[data-testid="multi-snmp-walk-row"][data-oid="${oid}"]`,
-  );
+  return page.locator(`[data-testid="multi-snmp-walk-row"][data-oid="${oid}"]`);
 }
 
 function rows(page: Page): Locator {
@@ -305,7 +303,9 @@ test.describe("walking a fleet at once", () => {
     await expect(chipOf(page, FRANKFURT)).toContainText(
       "OIDs so far, more to read",
     );
-    await expect(page.getByTestId("multi-snmp-walk-more-to-read")).toContainText(
+    await expect(
+      page.getByTestId("multi-snmp-walk-more-to-read"),
+    ).toContainText(
       "One device's walk stopped at its limit with more to read.",
     );
 
@@ -495,7 +495,9 @@ test.describe("collecting what the fleet answers", () => {
     await open(page);
     await walkFleet(page);
 
-    await rowOf(page, SYS_CONTACT).getByTestId("multi-snmp-walk-row-more").click();
+    await rowOf(page, SYS_CONTACT)
+      .getByTestId("multi-snmp-walk-row-more")
+      .click();
     await page.getByText("Collect on every device using Edge routers").click();
 
     await expect(
@@ -533,11 +535,8 @@ test.describe("collecting what the fleet answers", () => {
       /^4-devices-snmp-walk-1\.3\.6\.1-\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}\.csv$/,
     );
 
-    const content: string = await fs.readFile(
-      (await download.path())!,
-      "utf8",
-    );
-    const lines: Array<string> = content.replace(/^﻿/, "").split("\r\n");
+    const content: string = await fs.readFile((await download.path())!, "utf8");
+    const lines: Array<string> = content.replace(/^\uFEFF/, "").split("\r\n");
 
     expect(lines[0]).toBe("Device,OID,Name,MIB,Type,Value");
     expect(
@@ -592,7 +591,9 @@ test.describe("the walk, read back", () => {
       "Walked",
     );
     // Reading only: nothing to collect.
-    await expect(page.getByTestId("multi-snmp-walk-row-collect")).toHaveCount(0);
+    await expect(page.getByTestId("multi-snmp-walk-row-collect")).toHaveCount(
+      0,
+    );
     expect((await fixtureState(page)).creates).toEqual([]);
   });
 });
@@ -634,7 +635,10 @@ test.describe("the page in every shape", () => {
 
     expect(
       await backgroundBrightness(
-        page.getByTestId("multi-snmp-walk-devices-status").locator("li").first(),
+        page
+          .getByTestId("multi-snmp-walk-devices-status")
+          .locator("li")
+          .first(),
       ),
     ).toBeLessThan(200);
     await shoot(page, "fleet-1280-dark");
@@ -661,9 +665,9 @@ test.describe("the page in every shape", () => {
     await expect(
       page.getByTestId("multi-snmp-walk-results-header"),
     ).toContainText(german["Answered by"]!);
-    await expect(
-      page.getByTestId("multi-snmp-walk-results"),
-    ).toContainText(german["Only OIDs some devices do not answer"]!);
+    await expect(page.getByTestId("multi-snmp-walk-results")).toContainText(
+      german["Only OIDs some devices do not answer"]!,
+    );
     await expect(page.getByTestId("multi-snmp-walk-download")).toContainText(
       german["Download CSV"]!,
     );

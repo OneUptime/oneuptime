@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 41249,
-    "untranslated": 12139
+    "keys": 41579,
+    "untranslated": 12281
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -66,6 +66,7 @@
     "Down + In",
     "Down + Out",
     "Download",
+    "Download CSV",
     "Download pprof",
     "Edge",
     "Embedding",
