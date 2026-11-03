@@ -819,6 +819,17 @@ const HEALTH_HEROES: Array<[string, string, string]> = [
   ["Pages/Kubernetes/View/Index.tsx", "{connectionLabel}", "{healthLabel}"],
   ["Pages/Proxmox/View/Index.tsx", "{connectionLabel}", "{healthLabel}"],
   ["Pages/VMware/View/Index.tsx", "{connectionLabel}", "{healthLabel}"],
+  // A Docker or Podman host's health by its containers' rules.
+  [
+    "Pages/Docker/View/Overview.tsx",
+    "{statusLabel}",
+    "<ContainerHostHealthPill",
+  ],
+  [
+    "Pages/Podman/View/Overview.tsx",
+    "{statusLabel}",
+    "<ContainerHostHealthPill",
+  ],
 ];
 
 // What a health pill is written with, in any hero.

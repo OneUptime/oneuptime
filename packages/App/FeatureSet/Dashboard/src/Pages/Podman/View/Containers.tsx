@@ -19,13 +19,6 @@ import {
   VoidFunction,
 } from "Common/Types/FunctionTypes";
 import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
-import AnalyticsModelAPI, {
-  ListResult,
-} from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
-import Metric from "Common/Models/AnalyticsModels/Metric";
-import ProjectUtil from "Common/UI/Utils/Project";
-import OneUptimeDate from "Common/Types/Date";
-import InBetween from "Common/Types/BaseDatabase/InBetween";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import { getTableHeaderButtons } from "Common/UI/Components/Table/TableHeaderControls";
@@ -36,8 +29,9 @@ import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import Link from "Common/UI/Components/Link/Link";
 import Route from "Common/Types/API/Route";
-import PageMap from "../../../Utils/PageMap";
-import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import OneUptimeDate from "Common/Types/Date";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import {
   ClientSort,
   ClientSortColumns,
@@ -46,45 +40,56 @@ import {
   sortClientRows,
 } from "../../../Utils/ClientTableSort";
 import { CONTAINER_HOST_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/ContainerHostMetricDescriptions";
+import ResourceStatusCell from "../../../Components/Infrastructure/ResourceStatusCell";
+import {
+  RESOURCE_COLUMN_TONE_CLASS_NAMES,
+  ResourceColumnTone,
+} from "../../../Components/Infrastructure/ResourceTable";
+import { formatRelativeTime } from "../../../Components/Home/HomeRelativeTime";
+import {
+  ContainerHostRow,
+  getContainerHostRows,
+} from "../../../Components/ContainerHost/ContainerHostRows";
+import { loadContainerHostReadings } from "../../../Components/ContainerHost/ContainerHostReadings";
+import {
+  PODMAN_CONTAINER_HOST_RUNTIME,
+  getContainerHostRoutes,
+} from "../../../Components/ContainerHost/ContainerHostRuntime";
 
-interface PodmanContainerRow {
-  containerName: string;
-  // Null when no reading carried an image name; the cell says "unknown".
-  containerImage: string | null;
-  /*
-   * The latest readings, kept as numbers so each column sorts by the reading
-   * rather than its text: as text, "12.35%" sorts before "9.00%" and
-   * "1.5 GB" before "50.0 MB". Null when the container sent no reading in
-   * the window; the cell shows "—".
-   */
-  cpuPercent: number | null;
-  memoryUsage: number | null;
-  memoryPercent: number | null;
-  networkRx: number | null;
-  networkTx: number | null;
-}
+// The columns that sort: each by the value behind its cell.
+type ContainerSortKey =
+  | "containerName"
+  | "statusRank"
+  | "composeProject"
+  | "containerImage"
+  | "cpuPercent"
+  | "memoryUsage"
+  | "memoryPercent"
+  | "restarts"
+  | "startedAtMs"
+  | "networkRx"
+  | "networkTx";
 
-type PodmanContainerSort = ClientSort<keyof PodmanContainerRow>;
-
-const CONTAINER_NAME_ATTR: string = "resource.container.name";
-const CONTAINER_IMAGE_ATTR: string = "resource.container.image.name";
+type PodmanContainerSort = ClientSort<ContainerSortKey>;
 
 const PAGE_SIZE: number = 25;
 
 /*
  * Every column sorts, by the value behind its cell. The readings open busiest
- * first, the name and image A to Z; a missing reading or image sorts last
- * either way.
+ * first, the name and image A to Z, the status most urgent first and Started
+ * the newest first (a container that just restarted); a missing reading or
+ * image sorts last either way.
  */
-const SORT_COLUMNS: ClientSortColumns<
-  PodmanContainerRow,
-  keyof PodmanContainerRow
-> = {
+const SORT_COLUMNS: ClientSortColumns<ContainerHostRow, ContainerSortKey> = {
   containerName: { firstSortOrder: SortOrder.Ascending },
+  statusRank: { firstSortOrder: SortOrder.Ascending },
+  composeProject: { firstSortOrder: SortOrder.Ascending },
   containerImage: { firstSortOrder: SortOrder.Ascending },
   cpuPercent: { firstSortOrder: SortOrder.Descending },
   memoryUsage: { firstSortOrder: SortOrder.Descending },
   memoryPercent: { firstSortOrder: SortOrder.Descending },
+  restarts: { firstSortOrder: SortOrder.Descending },
+  startedAtMs: { firstSortOrder: SortOrder.Descending },
   networkRx: { firstSortOrder: SortOrder.Descending },
   networkTx: { firstSortOrder: SortOrder.Descending },
 };
@@ -95,10 +100,10 @@ const DEFAULT_SORT: PodmanContainerSort = {
 };
 
 // Containers that tie in the sorted column stay in name order.
-const compareByName: (
-  a: PodmanContainerRow,
-  b: PodmanContainerRow,
-) => number = (a: PodmanContainerRow, b: PodmanContainerRow): number => {
+const compareByName: (a: ContainerHostRow, b: ContainerHostRow) => number = (
+  a: ContainerHostRow,
+  b: ContainerHostRow,
+): number => {
   return compareText(a.containerName, b.containerName);
 };
 
@@ -128,21 +133,35 @@ const formatReadingPercent: (value: number | null) => string = (
   return value === null ? "—" : `${value.toFixed(2)}%`;
 };
 
-// A metric's latest reading for one container, or null when it sent none.
-const readingOf: (metric: Metric | undefined) => number | null = (
-  metric: Metric | undefined,
-): number | null => {
-  return metric && metric.value !== undefined ? Number(metric.value) : null;
+// A reading past its alert's line reads amber, as Needs attention says it.
+const renderReading: (
+  text: string,
+  tone: ResourceColumnTone | undefined,
+) => ReactElement = (
+  text: string,
+  tone: ResourceColumnTone | undefined,
+): ReactElement => {
+  return (
+    <span
+      className={tone ? RESOURCE_COLUMN_TONE_CLASS_NAMES[tone] : undefined}
+      data-tone={tone}
+    >
+      {text}
+    </span>
+  );
 };
 
 const PodmanHostContainers: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
-  const [containers, setContainers] = useState<Array<PodmanContainerRow>>([]);
+  const [containers, setContainers] = useState<Array<ContainerHostRow>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+  const [isHostMissing, setIsHostMissing] = useState<boolean>(false);
+  const [readAt, setReadAt] = useState<Date>(OneUptimeDate.getCurrentDate());
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(PAGE_SIZE);
   const [sort, setSort] = useState<PodmanContainerSort>(DEFAULT_SORT);
@@ -160,130 +179,26 @@ const PodmanHostContainers: FunctionComponent<
       });
 
       if (!host?.hostIdentifier) {
-        setError("Host not found.");
+        setIsHostMissing(true);
         setIsLoading(false);
         return;
       }
 
-      const endDate: Date = OneUptimeDate.getCurrentDate();
-      const startDate: Date = OneUptimeDate.addRemoveMinutes(endDate, -5);
-
-      const metricNames: Array<string> = [
-        "container.cpu.utilization",
-        "container.memory.usage.total",
-        "container.memory.percent",
-        "container.network.io.usage.rx_bytes",
-        "container.network.io.usage.tx_bytes",
-      ];
-
-      const projectId: string = ProjectUtil.getCurrentProjectId()!.toString();
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const buildQuery: (metricName: string) => any = (metricName: string) => {
-        return {
-          modelType: Metric,
-          query: {
-            projectId: projectId,
-            name: metricName,
-            time: new InBetween<Date>(startDate, endDate),
-            attributes: {
-              "resource.host.name": host.hostIdentifier,
-              "resource.container.runtime": "podman",
-            },
-          },
-          limit: 500,
-          skip: 0,
-          select: {
-            time: true,
-            value: true,
-            attributes: true,
-          },
-          sort: {
-            time: SortOrder.Descending,
-          },
-          requestOptions: {},
-        };
-      };
-
-      const results: Array<ListResult<Metric>> = await Promise.all(
-        metricNames.map((n: string) => {
-          return AnalyticsModelAPI.getList<Metric>(buildQuery(n));
-        }),
-      );
-
-      // For each metric, take the latest value per container name.
-      const latestByMetric: Map<string, Map<string, Metric>> = new Map();
-      metricNames.forEach((name: string, idx: number) => {
-        const perContainer: Map<string, Metric> = new Map();
-        const listResult: ListResult<Metric> = results[idx]!;
-        for (const metric of listResult.data) {
-          const attrs: Record<string, unknown> =
-            (metric.attributes as Record<string, unknown>) || {};
-          const containerName: string =
-            (attrs[CONTAINER_NAME_ATTR] as string) || "";
-          if (!containerName) {
-            continue;
-          }
-          if (!perContainer.has(containerName)) {
-            perContainer.set(containerName, metric);
-          }
-        }
-        latestByMetric.set(name, perContainer);
-      });
-
-      // Collect union of container names.
-      const containerNames: Set<string> = new Set();
-      for (const perContainer of latestByMetric.values()) {
-        for (const name of perContainer.keys()) {
-          containerNames.add(name);
-        }
-      }
-
-      const rows: Array<PodmanContainerRow> = [];
-      for (const containerName of containerNames) {
-        // Pick image from whichever metric has it.
-        let image: string | null = null;
-        for (const perContainer of latestByMetric.values()) {
-          const m: Metric | undefined = perContainer.get(containerName);
-          if (m) {
-            const attrs: Record<string, unknown> =
-              (m.attributes as Record<string, unknown>) || {};
-            const img: string = (attrs[CONTAINER_IMAGE_ATTR] as string) || "";
-            if (img) {
-              image = img;
-              break;
-            }
-          }
-        }
-
-        const cpuMetric: Metric | undefined = latestByMetric
-          .get("container.cpu.utilization")
-          ?.get(containerName);
-        const memBytesMetric: Metric | undefined = latestByMetric
-          .get("container.memory.usage.total")
-          ?.get(containerName);
-        const memPctMetric: Metric | undefined = latestByMetric
-          .get("container.memory.percent")
-          ?.get(containerName);
-        const rxMetric: Metric | undefined = latestByMetric
-          .get("container.network.io.usage.rx_bytes")
-          ?.get(containerName);
-        const txMetric: Metric | undefined = latestByMetric
-          .get("container.network.io.usage.tx_bytes")
-          ?.get(containerName);
-
-        rows.push({
-          containerName: containerName,
-          containerImage: image,
-          cpuPercent: readingOf(cpuMetric),
-          memoryUsage: readingOf(memBytesMetric),
-          memoryPercent: readingOf(memPctMetric),
-          networkRx: readingOf(rxMetric),
-          networkTx: readingOf(txMetric),
+      /*
+       * Every container with its latest readings in the last 5 minutes
+       * before now, its restarts in the last 15 and its inventory row, which
+       * keeps a container that stopped listed until OneUptime forgets it
+       * (ContainerHostReadings); its state by the host's rules.
+       */
+      const readings: Awaited<ReturnType<typeof loadContainerHostReadings>> =
+        await loadContainerHostReadings({
+          runtime: PODMAN_CONTAINER_HOST_RUNTIME,
+          hostId: modelId,
+          hostIdentifier: host.hostIdentifier as string,
         });
-      }
 
-      setContainers(rows);
+      setContainers(getContainerHostRows(readings));
+      setReadAt(readings.readAt);
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     }
@@ -297,7 +212,7 @@ const PodmanHostContainers: FunctionComponent<
   }, []);
 
   // Sorted before the page is cut out, so a sort runs across every page.
-  const sortedContainers: Array<PodmanContainerRow> = useMemo(() => {
+  const sortedContainers: Array<ContainerHostRow> = useMemo(() => {
     return sortClientRows({
       rows: containers,
       columns: SORT_COLUMNS,
@@ -307,9 +222,10 @@ const PodmanHostContainers: FunctionComponent<
   }, [containers, sort]);
 
   /*
-   * A refresh can shrink the list (a stopped container ages out of the
-   * 5-minute window), so clamp instead of trusting currentPage — otherwise
-   * the user is stranded on a page past the end, staring at an empty table.
+   * A refresh can shrink the list (OneUptime forgets a stopped container 15
+   * minutes after its last reading), so clamp instead of trusting
+   * currentPage — otherwise the user is stranded on a page past the end,
+   * staring at an empty table.
    */
   const totalPages: number = Math.max(
     1,
@@ -317,53 +233,98 @@ const PodmanHostContainers: FunctionComponent<
   );
   const effectivePage: number = Math.min(currentPage, totalPages);
 
-  const paginatedData: Array<PodmanContainerRow> = useMemo(() => {
+  const paginatedData: Array<ContainerHostRow> = useMemo(() => {
     const start: number = (effectivePage - 1) * pageSize;
     return sortedContainers.slice(start, start + pageSize);
   }, [sortedContainers, effectivePage, pageSize]);
 
-  const getContainerDetailRoute: (row: PodmanContainerRow) => Route = (
-    row: PodmanContainerRow,
+  const routes: ReturnType<typeof getContainerHostRoutes> = useMemo(() => {
+    return getContainerHostRoutes(PODMAN_CONTAINER_HOST_RUNTIME, modelId);
+  }, [modelId]);
+
+  const getContainerDetailRoute: (row: ContainerHostRow) => Route = (
+    row: ContainerHostRow,
   ): Route => {
-    return RouteUtil.populateRouteParams(
-      RouteMap[PageMap.PODMAN_HOST_VIEW_CONTAINER_DETAIL] as Route,
-      {
-        modelId: modelId,
-        subModelId: row.containerName,
-      },
-    );
+    return routes.getContainerRoute(row.containerName);
   };
 
-  const tableColumns: Array<Column<PodmanContainerRow>> = useMemo(() => {
-    return [
+  // A column the host's containers fill: Compose project only when one does.
+  const hasComposeProjects: boolean = containers.some(
+    (row: ContainerHostRow): boolean => {
+      return Boolean(row.composeProject);
+    },
+  );
+
+  const tableColumns: Array<Column<ContainerHostRow>> = useMemo(() => {
+    const columns: Array<Column<ContainerHostRow>> = [
       {
         title: "Container Name",
         type: FieldType.Element,
         key: "containerName",
-        getElement: (row: PodmanContainerRow): ReactElement => {
+        getElement: (row: ContainerHostRow): ReactElement => {
           return (
             <Link
               to={getContainerDetailRoute(row)}
-              className="font-medium text-gray-900 hover:text-indigo-600 hover:underline"
+              className="font-medium text-gray-900 hover:text-indigo-600 hover:underline [overflow-wrap:anywhere]"
             >
-              {row.containerName}
+              <bdi>{row.containerName}</bdi>
             </Link>
           );
         },
       },
       {
+        title: "Status",
+        type: FieldType.Element,
+        key: "statusRank",
+        headerTooltip: CONTAINER_HOST_METRIC_DESCRIPTIONS.containerStatus,
+        wrapContent: true,
+        wrapMaxWidthClassName: "max-w-[12rem]",
+        contentClassName: "min-w-[7rem]",
+        getElement: (row: ContainerHostRow): ReactElement => {
+          return <ResourceStatusCell resource={row.status} />;
+        },
+      },
+    ];
+
+    if (hasComposeProjects) {
+      columns.push({
+        title: "Compose Project",
+        type: FieldType.Element,
+        key: "composeProject",
+        headerTooltip:
+          CONTAINER_HOST_METRIC_DESCRIPTIONS.containerComposeProject,
+        hideBelowLargeScreen: true,
+        foldInto: "containerName",
+        showTitleWhenFolded: true,
+        getElement: (row: ContainerHostRow): ReactElement => {
+          return row.composeProject ? (
+            <bdi>{row.composeProject}</bdi>
+          ) : (
+            <span>—</span>
+          );
+        },
+      });
+    }
+
+    columns.push(
+      {
         title: "Image",
         type: FieldType.Text,
         key: "containerImage",
         noValueMessage: "unknown",
+        hideBelowLargeScreen: true,
+        foldInto: "containerName",
       },
       {
         title: "CPU",
         type: FieldType.Element,
         key: "cpuPercent",
         headerTooltip: CONTAINER_HOST_METRIC_DESCRIPTIONS.containerCpu,
-        getElement: (row: PodmanContainerRow): ReactElement => {
-          return <span>{formatReadingPercent(row.cpuPercent)}</span>;
+        getElement: (row: ContainerHostRow): ReactElement => {
+          return renderReading(
+            formatReadingPercent(row.cpuPercent),
+            row.cpuTone,
+          );
         },
       },
       {
@@ -371,7 +332,7 @@ const PodmanHostContainers: FunctionComponent<
         type: FieldType.Element,
         key: "memoryUsage",
         headerTooltip: CONTAINER_HOST_METRIC_DESCRIPTIONS.containerMemory,
-        getElement: (row: PodmanContainerRow): ReactElement => {
+        getElement: (row: ContainerHostRow): ReactElement => {
           return <span>{formatReadingBytes(row.memoryUsage)}</span>;
         },
       },
@@ -381,8 +342,46 @@ const PodmanHostContainers: FunctionComponent<
         key: "memoryPercent",
         headerTooltip:
           CONTAINER_HOST_METRIC_DESCRIPTIONS.containerMemoryPercent,
-        getElement: (row: PodmanContainerRow): ReactElement => {
-          return <span>{formatReadingPercent(row.memoryPercent)}</span>;
+        getElement: (row: ContainerHostRow): ReactElement => {
+          return renderReading(
+            formatReadingPercent(row.memoryPercent),
+            row.memoryTone,
+          );
+        },
+      },
+      {
+        title: "Restarts (15 min)",
+        type: FieldType.Element,
+        key: "restarts",
+        headerTooltip: CONTAINER_HOST_METRIC_DESCRIPTIONS.containerRestarts,
+        getElement: (row: ContainerHostRow): ReactElement => {
+          return renderReading(
+            row.restarts === null ? "—" : String(row.restarts),
+            row.restartsTone,
+          );
+        },
+      },
+      {
+        title: "Last Started",
+        type: FieldType.Element,
+        key: "startedAtMs",
+        headerTooltip: CONTAINER_HOST_METRIC_DESCRIPTIONS.containerUptime,
+        getElement: (row: ContainerHostRow): ReactElement => {
+          if (row.startedAtMs === null) {
+            return <span>—</span>;
+          }
+          const startedAt: Date = new Date(row.startedAtMs);
+          return (
+            <span
+              title={OneUptimeDate.getDateAsLocalFormattedString(startedAt)}
+            >
+              {formatRelativeTime({
+                date: startedAt,
+                now: readAt,
+                language: translator.language,
+              })}
+            </span>
+          );
         },
       },
       {
@@ -390,7 +389,10 @@ const PodmanHostContainers: FunctionComponent<
         type: FieldType.Element,
         key: "networkRx",
         headerTooltip: CONTAINER_HOST_METRIC_DESCRIPTIONS.containerNetworkRx,
-        getElement: (row: PodmanContainerRow): ReactElement => {
+        hideBelowLargeScreen: true,
+        foldInto: "memoryUsage",
+        showTitleWhenFolded: true,
+        getElement: (row: ContainerHostRow): ReactElement => {
           return <span>{formatReadingBytes(row.networkRx)}</span>;
         },
       },
@@ -399,7 +401,10 @@ const PodmanHostContainers: FunctionComponent<
         type: FieldType.Element,
         key: "networkTx",
         headerTooltip: CONTAINER_HOST_METRIC_DESCRIPTIONS.containerNetworkTx,
-        getElement: (row: PodmanContainerRow): ReactElement => {
+        hideBelowLargeScreen: true,
+        foldInto: "memoryUsage",
+        showTitleWhenFolded: true,
+        getElement: (row: ContainerHostRow): ReactElement => {
           return <span>{formatReadingBytes(row.networkTx)}</span>;
         },
       },
@@ -409,16 +414,18 @@ const PodmanHostContainers: FunctionComponent<
         key: null,
         disableSort: true,
       },
-    ];
-  }, [modelId]);
+    );
 
-  const actionButtons: Array<ActionButtonSchema<PodmanContainerRow>> = [
+    return columns;
+  }, [modelId, hasComposeProjects, readAt, translator]);
+
+  const actionButtons: Array<ActionButtonSchema<ContainerHostRow>> = [
     {
       title: "View",
       icon: IconProp.Eye,
       buttonStyleType: ButtonStyleType.NORMAL,
       onClick: (
-        row: PodmanContainerRow,
+        row: ContainerHostRow,
         onCompleteAction: VoidFunction,
         onError: ErrorFunction,
       ): void => {
@@ -448,30 +455,33 @@ const PodmanHostContainers: FunctionComponent<
     },
   ];
 
-  if (isLoading) {
+  if (isLoading && containers.length === 0) {
     return <PageLoader isVisible={true} />;
   }
 
-  if (error) {
-    return <ErrorMessage message={error} />;
+  if (isHostMissing) {
+    return <ErrorMessage message="Host not found." />;
   }
 
   return (
     <Card
       title="Podman Containers"
-      description="Containers running on this Podman host (last 5 minutes)."
+      description="Every container on this host, with its state by the host's rules, its restarts and what it uses now. One that stopped stays listed for 15 minutes after its last reading."
       headerLayout="toolbar"
       buttons={getTableHeaderButtons(cardButtons)}
     >
-      <Table<PodmanContainerRow>
+      <Table<ContainerHostRow>
         id="podman-containers-table"
         columns={tableColumns}
         actionButtons={actionButtons}
         data={paginatedData}
         singularLabel="Container"
         pluralLabel="Containers"
-        isLoading={false}
-        error=""
+        isLoading={isLoading}
+        error={error}
+        onRefreshClick={() => {
+          fetchData().catch(() => {});
+        }}
         currentPageNumber={effectivePage}
         totalItemsCount={containers.length}
         itemsOnPage={pageSize}
@@ -484,7 +494,7 @@ const PodmanHostContainers: FunctionComponent<
         sortOrder={sort.sortOrder}
         sortBy={sort.sortBy}
         onSortChanged={(
-          newSortBy: keyof PodmanContainerRow | null,
+          newSortBy: keyof ContainerHostRow | null,
           newSortOrder: SortOrder,
         ) => {
           setSort((current: PodmanContainerSort): PodmanContainerSort => {
@@ -497,7 +507,7 @@ const PodmanHostContainers: FunctionComponent<
           });
           setCurrentPage(1);
         }}
-        noItemsMessage="No containers found in the last 5 minutes. Make sure the Podman agent is sending metrics."
+        noItemsMessage="No containers reported in the last 15 minutes. Make sure the Podman agent is running on this host and sending metrics."
       />
     </Card>
   );

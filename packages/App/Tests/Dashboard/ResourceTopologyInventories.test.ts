@@ -187,6 +187,91 @@ describe("a Docker or Podman host", () => {
     expect(issueIds(graph, "container:broken")).toEqual(["by-name"]);
   });
 
+  test("by the host's rules: a service that stopped needs a look, a job that finished is off", () => {
+    const minutesAgo: (minutes: number) => Date = (minutes: number): Date => {
+      return new Date(NOW.getTime() - minutes * 60 * 1000);
+    };
+    const quiet: ResourceTopologyGraph = buildContainerHostTopology({
+      product: "docker",
+      host: { id: "host-row", name: "docker-01", lastSeenAt: FRESH },
+      rows: [
+        {
+          kind: "Container",
+          name: "api",
+          state: "running",
+          metricsUpdatedAt: FRESH,
+          resourceCreationTimestamp: minutesAgo(120),
+          latestCpuPercent: 7,
+        },
+        {
+          kind: "Container",
+          name: "billing",
+          state: "running",
+          metricsUpdatedAt: minutesAgo(6),
+          resourceCreationTimestamp: minutesAgo(180),
+          latestCpuPercent: 40,
+        },
+        {
+          kind: "Container",
+          name: "migrate",
+          state: "running",
+          metricsUpdatedAt: minutesAgo(6),
+          resourceCreationTimestamp: minutesAgo(7),
+        },
+        {
+          kind: "Container",
+          name: "seed",
+          state: "running",
+          metricsUpdatedAt: minutesAgo(6),
+          resourceCreationTimestamp: minutesAgo(60),
+          labels: { "com.docker.compose.oneoff": "True" },
+        },
+      ],
+      now: NOW,
+    });
+
+    expect(node(quiet, "container:api").health).toBe("healthy");
+    expect(node(quiet, "container:api").status?.text).toBe("Running");
+
+    // A service that ran for hours and went quiet while api still reports.
+    expect(node(quiet, "container:billing").health).toBe("warning");
+    expect(node(quiet, "container:billing").status?.text).toBe(
+      "Stopped reporting",
+    );
+    expect(node(quiet, "container:billing").reasons).toEqual([
+      { text: "Stopped reporting" },
+    ]);
+    // Its last CPU reading is not what it uses now.
+    expect(node(quiet, "container:billing").facts).toEqual([]);
+
+    // A short job, and a Compose one-off, that finished: off, not a problem.
+    expect(node(quiet, "container:migrate").health).toBe("off");
+    expect(node(quiet, "container:migrate").status?.text).toBe("Not reporting");
+    expect(node(quiet, "container:seed").health).toBe("off");
+  });
+
+  test("a host whose agent went quiet does not read as every container stopping", () => {
+    const old: Date = new Date(NOW.getTime() - 20 * 60 * 1000);
+    const quietHost: ResourceTopologyGraph = buildContainerHostTopology({
+      product: "docker",
+      host: { id: "host-row", name: "docker-01", lastSeenAt: old },
+      rows: [
+        {
+          kind: "Container",
+          name: "api",
+          state: "running",
+          metricsUpdatedAt: old,
+          resourceCreationTimestamp: new Date(old.getTime() - 3600_000),
+        },
+      ],
+      now: NOW,
+    });
+
+    // No reading for 20 minutes: no data, rather than a stopped service.
+    expect(node(quietHost, "container:api").health).toBe("unknown");
+    expect(node(quietHost, CONTAINER_HOST_ROOT_ID).health).toBe("warning");
+  });
+
   test("a Podman host reads the same way, with its own pages", () => {
     const podman: ResourceTopologyGraph = buildContainerHostTopology({
       product: "podman",

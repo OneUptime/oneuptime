@@ -92,6 +92,23 @@ import {
   getNotMonitoredRegions,
 } from "../../../Utils/ReceivingGaps";
 import ValueFormatter from "Common/Utils/ValueFormatter";
+import NeedsAttentionCard from "../../../Components/ResourcePart/NeedsAttentionCard";
+import { ResourceAttentionItem } from "../../../Components/ResourcePart/ResourceAttention";
+import ContainerHostHealthPill from "../../../Components/ContainerHost/ContainerHostHealthPill";
+import {
+  CONTAINER_CPU_WARNING_PERCENT,
+  CONTAINER_MEMORY_WARNING_PERCENT,
+  getContainerHostAttentionItems,
+  getContainerHostHealth,
+} from "../../../Components/ContainerHost/ContainerHostHealth";
+import {
+  ContainerHostRoutes,
+  DOCKER_CONTAINER_HOST_RUNTIME,
+  getContainerHostRoutes,
+} from "../../../Components/ContainerHost/ContainerHostRuntime";
+import useContainerHostReadings, {
+  ContainerHostReadingsState,
+} from "../../../Components/ContainerHost/UseContainerHostReadings";
 import React, {
   Fragment,
   FunctionComponent,
@@ -148,7 +165,14 @@ interface SpecChip {
   icon: IconProp;
   label: string;
   description?: string | undefined;
+  // The list a count chip opens.
+  route?: Route | undefined;
+  testId?: string | undefined;
 }
+
+const CHIP_CLASS_NAME: string =
+  "inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-700";
+const CHIP_LINK_CLASS_NAME: string = `${CHIP_CLASS_NAME} hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500`;
 
 type ChartCardColor = Exclude<GoldenMetricTileColor, "slate">;
 
@@ -860,6 +884,35 @@ const DockerHostOverview: FunctionComponent<
     useRef<PromiseVoidFunction>(fetchStats);
   fetchStatsRef.current = fetchStats;
 
+  /*
+   * Every container with its latest readings (ContainerHostReadings), read
+   * again with the rest of the page: what the health pill and Needs
+   * attention say, by the rules the Containers list, a container's page and
+   * the Topology use.
+   */
+  const routes: ContainerHostRoutes = getContainerHostRoutes(
+    DOCKER_CONTAINER_HOST_RUNTIME,
+    modelId,
+  );
+  const readingsState: ContainerHostReadingsState = useContainerHostReadings({
+    runtime: DOCKER_CONTAINER_HOST_RUNTIME,
+    hostId: modelId,
+    hostIdentifier: host?.hostIdentifier as string | undefined,
+    refreshToken: lastRefreshedAt ? lastRefreshedAt.getTime() : undefined,
+  });
+  const attentionItems: Array<ResourceAttentionItem> = readingsState.readings
+    ? getContainerHostAttentionItems({
+        containers: readingsState.readings.containers,
+        hostLatestReadingAt: readingsState.readings.hostLatestReadingAt,
+        getContainerRoute: routes.getContainerRoute,
+      })
+    : [];
+  const hostStatus: string = (
+    (host?.otelCollectorStatus as string | undefined) || ""
+  ).toLowerCase();
+  const isHostConnected: boolean =
+    hostStatus === "connected" || hostStatus === "active";
+
   useEffect(() => {
     fetchStatsRef.current().catch((err: Error) => {
       setStatsError(API.getFriendlyMessage(err));
@@ -955,14 +1008,23 @@ const DockerHostOverview: FunctionComponent<
 
     const specChips: Array<SpecChip> = [];
 
-    if (stats && stats.containerCount > 0) {
+    /*
+     * Every container the Containers list has - running, and one that
+     * stopped until OneUptime forgets it - and one step to that list.
+     */
+    const containerCount: number = readingsState.readings
+      ? readingsState.readings.containers.length
+      : 0;
+    if (containerCount > 0) {
       specChips.push({
         icon: IconProp.Cube,
         label: translator.translatePlural(
           { one: "{{count}} container", other: "{{count}} containers" },
-          stats.containerCount,
+          containerCount,
         ),
         description: CONTAINER_HOST_METRIC_DESCRIPTIONS.containers,
+        route: routes.containersRoute,
+        testId: "container-host-hero-containers",
       });
     }
     if (host.osType) {
@@ -1032,6 +1094,19 @@ const DockerHostOverview: FunctionComponent<
                       />
                       {statusLabel}
                     </span>
+                    {/*
+                     * Its health by its containers' rules, once there is a
+                     * container to judge: a host that reported none has no
+                     * health to tell.
+                     */}
+                    {containerCount > 0 ? (
+                      <ContainerHostHealthPill
+                        health={getContainerHostHealth(attentionItems)}
+                        isConnected={isConnected}
+                      />
+                    ) : (
+                      <></>
+                    )}
                   </div>
                   {/*
                    * What the host is, in its owner's words: under its
@@ -1062,16 +1137,31 @@ const DockerHostOverview: FunctionComponent<
             {specChips.length > 0 && (
               <div className="mt-4 flex flex-wrap gap-1.5">
                 {specChips.map((chip: SpecChip, idx: number): ReactElement => {
-                  return (
-                    <span
-                      key={`spec-${idx}`}
-                      className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-700"
-                    >
+                  const content: ReactElement = (
+                    <>
                       <Icon
                         icon={chip.icon}
                         className="h-3 w-3 text-gray-500"
                       />
                       <span className="font-medium">{chip.label}</span>
+                    </>
+                  );
+                  return (
+                    <span
+                      key={`spec-${idx}`}
+                      className="inline-flex items-center gap-1"
+                    >
+                      {chip.route ? (
+                        <Link
+                          to={chip.route}
+                          dataTestId={chip.testId}
+                          className={CHIP_LINK_CLASS_NAME}
+                        >
+                          {content}
+                        </Link>
+                      ) : (
+                        <span className={CHIP_CLASS_NAME}>{content}</span>
+                      )}
                       <InfoTooltip
                         label={chip.label}
                         text={chip.description}
@@ -1111,15 +1201,7 @@ const DockerHostOverview: FunctionComponent<
     }
 
     return (
-      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        <GoldenMetricTile
-          title="Containers"
-          icon={IconProp.Cube}
-          iconColor="sky"
-          value={formatInt(s.containerCount)}
-          sublabel="reporting"
-          description={CONTAINER_HOST_METRIC_DESCRIPTIONS.containers}
-        />
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <GoldenMetricTile
           title="Avg CPU"
           icon={IconProp.ChartBar}
@@ -1136,7 +1218,13 @@ const DockerHostOverview: FunctionComponent<
           value={formatPercent(s.maxCpu)}
           sublabel="busiest container"
           percent={s.maxCpu}
-          thresholds={{ warn: 75, danger: 95 }}
+          tone={
+            s.maxCpu === null
+              ? undefined
+              : s.maxCpu > CONTAINER_CPU_WARNING_PERCENT
+                ? "warning"
+                : "positive"
+          }
           description={CONTAINER_HOST_METRIC_DESCRIPTIONS.peakCpu}
         />
         {/*
@@ -1159,7 +1247,13 @@ const DockerHostOverview: FunctionComponent<
           value={formatPercent(s.maxMemory)}
           sublabel="hottest container"
           percent={s.maxMemory}
-          thresholds={{ warn: 80, danger: 95 }}
+          tone={
+            s.maxMemory === null
+              ? undefined
+              : s.maxMemory > CONTAINER_MEMORY_WARNING_PERCENT
+                ? "warning"
+                : "positive"
+          }
           description={CONTAINER_HOST_METRIC_DESCRIPTIONS.peakMemory}
         />
         {/*
@@ -1609,6 +1703,28 @@ const DockerHostOverview: FunctionComponent<
             RouteMap[PageMap.DOCKER_HOST_VIEW_DOCUMENTATION] as Route,
             { modelId: modelId },
           )}
+        />
+      ) : (
+        <></>
+      )}
+      {/*
+       * What needs someone, most urgent first, while the agent reports: a
+       * disconnected host's last readings are no longer the truth, and the
+       * hero says Health Unknown instead. A read that fails says so in the
+       * card's frame, with Refresh.
+       */}
+      {readingsState.error ? (
+        <NeedsAttentionCard
+          testId="container-host-needs-attention"
+          items={[]}
+          error={readingsState.error}
+          onRetry={readingsState.refresh}
+        />
+      ) : isHostConnected ? (
+        <NeedsAttentionCard
+          testId="container-host-needs-attention"
+          items={attentionItems}
+          description="Containers that keep restarting, restarted, use most of their memory or stopped, the most urgent first."
         />
       ) : (
         <></>

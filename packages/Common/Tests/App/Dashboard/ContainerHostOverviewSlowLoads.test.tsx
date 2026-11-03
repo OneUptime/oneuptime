@@ -177,11 +177,34 @@ function endsAt(end: Date): (call: SlowCall) => boolean {
   };
 }
 
+/*
+ * The containers' latest readings and restarts (ContainerHostReadings),
+ * which the health pill and Needs attention read with each refresh, answer
+ * at once: this suite is about the charts' and tiles' fetch.
+ */
+const RESTARTS_METRIC: string = "container.restarts.increase";
+
 function serveAnalytics(): void {
+  jest
+    .spyOn(AnalyticsModelAPI, "getList")
+    .mockImplementation((): Promise<never> => {
+      return Promise.resolve({
+        data: [],
+        count: 0,
+        skip: 0,
+        limit: 500,
+      } as never);
+    });
+  jest.spyOn(ModelAPI, "getList").mockImplementation((): Promise<never> => {
+    return Promise.resolve({ data: [], count: 0, skip: 0, limit: 0 } as never);
+  });
   jest
     .spyOn(AnalyticsModelAPI, "aggregate")
     .mockImplementation((...args: Array<unknown>): Promise<never> => {
       const request: AggregateRequest = args[0] as AggregateRequest;
+      if (request.aggregateBy.query.name === RESTARTS_METRIC) {
+        return Promise.resolve({ data: [] } as never);
+      }
       const start: Date = request.aggregateBy.query.time.startValue;
       const end: Date = request.aggregateBy.query.time.endValue;
       const answer: never = {
@@ -329,7 +352,7 @@ describe.each(RUNTIME_CASES)(
 
       expect(pageWindow()).toBe(windowText(at("11:30"), NOW));
       expect(tileValue("Avg CPU")).toBe("20.0%");
-      expect(tileValue("Containers")).toBe("1");
+      expect(tileValue("Processes")).toBe("—");
       expectRefreshSettled();
     });
 

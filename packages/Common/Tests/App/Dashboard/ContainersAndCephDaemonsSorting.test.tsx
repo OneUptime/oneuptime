@@ -38,6 +38,7 @@ const MODEL_ID: string = "0193c0de-4444-4aaa-8bbb-000000000004";
 const getItemMock: MockFunction = getJestMockFunction();
 const modelGetListMock: MockFunction = getJestMockFunction();
 const analyticsGetListMock: MockFunction = getJestMockFunction();
+const analyticsAggregateMock: MockFunction = getJestMockFunction();
 
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
@@ -59,6 +60,10 @@ jest.mock("../../../UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI", () => {
     default: {
       getList: (...args: Array<unknown>) => {
         return analyticsGetListMock(...args);
+      },
+      // The containers' restarts in the last 15 minutes.
+      aggregate: (...args: Array<unknown>) => {
+        return analyticsAggregateMock(...args);
       },
     },
   };
@@ -123,6 +128,9 @@ beforeEach(() => {
   getItemMock.mockReset();
   modelGetListMock.mockReset();
   analyticsGetListMock.mockReset();
+  analyticsAggregateMock.mockReset();
+  // No restart counts unless a test serves them (serveRestarts).
+  analyticsAggregateMock.mockResolvedValue({ data: [] });
 });
 
 afterEach(() => {
@@ -341,6 +349,37 @@ function serveContainers(containers: Array<ContainerFixture>): void {
   });
 }
 
+// Each container's restarts in the last 15 minutes, as the aggregate answers.
+function serveRestarts(restarts: Record<string, number>): void {
+  analyticsAggregateMock.mockResolvedValue({
+    data: Object.entries(restarts).map(
+      ([name, value]: [string, number]): Record<string, unknown> => {
+        return {
+          value: value,
+          attributes: { "resource.container.name": name },
+        };
+      },
+    ),
+  });
+}
+
+// The containers' inventory rows: when each one's current run started.
+function serveStarts(startedSecondsAgo: Record<string, number>): void {
+  modelGetListMock.mockResolvedValue({
+    data: Object.entries(startedSecondsAgo).map(
+      ([name, seconds]: [string, number]): Record<string, unknown> => {
+        return {
+          kind: "Container",
+          name: name,
+          resourceCreationTimestamp: secondsAgo(seconds),
+          metricsUpdatedAt: secondsAgo(15),
+          lastSeenAt: secondsAgo(15),
+        };
+      },
+    ),
+  });
+}
+
 // `count` containers, each busier than the one before it.
 function containersBusierInTurn(count: number): Array<ContainerFixture> {
   return numberedNames("container", count).map(
@@ -373,15 +412,21 @@ const CONTAINER_LISTS: Array<ContainerList> = [
   },
 ];
 
-// Name, image, CPU, memory, memory %, RX, TX, then the actions.
+/*
+ * Name, status, image, CPU, memory, memory %, restarts, started, RX, TX,
+ * then the actions.
+ */
 const CONTAINER_COLUMN_INDEX: Record<string, number> = {
   "Container Name": 0,
-  Image: 1,
-  CPU: 2,
-  Memory: 3,
-  "Memory %": 4,
-  "Network RX (total)": 5,
-  "Network TX (total)": 6,
+  Status: 1,
+  Image: 2,
+  CPU: 3,
+  Memory: 4,
+  "Memory %": 5,
+  "Restarts (15 min)": 6,
+  "Last Started": 7,
+  "Network RX (total)": 8,
+  "Network TX (total)": 9,
 };
 
 interface ExpectedOrder {
@@ -478,10 +523,13 @@ describe.each(CONTAINER_LISTS)(
       ]);
       expect(announcedSorts(list.tableId)).toEqual({
         "Container Name": "ascending",
+        Status: "none",
         Image: "none",
         CPU: "none",
         Memory: "none",
         "Memory %": "none",
+        "Restarts (15 min)": "none",
+        "Last Started": "none",
         "Network RX (total)": "none",
         "Network TX (total)": "none",
       });
@@ -494,7 +542,7 @@ describe.each(CONTAINER_LISTS)(
       const after: Record<string, string | null> =
         await clickEverySortableHeader(list.tableId);
 
-      expect(Object.keys(after)).toHaveLength(7);
+      expect(Object.keys(after)).toHaveLength(10);
 
       for (const [title, ariaSort] of Object.entries(after)) {
         expect({ title, ariaSort }).toEqual({
@@ -581,6 +629,92 @@ describe.each(CONTAINER_LISTS)(
         "batch-10",
         "api",
         "cache",
+      ]);
+    });
+
+    test("Status puts the most urgent first: a restart loop, a restart, then the rest by name", async () => {
+      serveContainers(FIVE_CONTAINERS);
+      serveRestarts({ web: 2, "batch-9": 5, api: 0 });
+      await renderPage(list.Page);
+
+      await clickHeader(list.tableId, "Status");
+
+      expect(ariaSortOf(list.tableId, "Status")).toBe("ascending");
+      expect(visibleNames()).toEqual([
+        "batch-9",
+        "web",
+        "api",
+        "batch-10",
+        "cache",
+      ]);
+      expect(visibleCells("Status")).toEqual([
+        "Restart loop5 restarts in 15 minutes",
+        "Running2 restarts in 15 minutes",
+        "Running",
+        "Running",
+        "Running",
+      ]);
+    });
+
+    test("Restarts sorts the most first, and a container the count left out reads 0", async () => {
+      serveContainers(FIVE_CONTAINERS);
+      serveRestarts({ web: 2, "batch-9": 5 });
+      await renderPage(list.Page);
+
+      await clickHeader(list.tableId, "Restarts (15 min)");
+
+      expect(ariaSortOf(list.tableId, "Restarts (15 min)")).toBe("descending");
+      expect(visibleNames()).toEqual([
+        "batch-9",
+        "web",
+        "api",
+        "batch-10",
+        "cache",
+      ]);
+      expect(visibleCells("Restarts (15 min)")).toEqual([
+        "5",
+        "2",
+        "0",
+        "0",
+        "0",
+      ]);
+    });
+
+    test("without restart counts (an older agent), every Restarts cell is missing, never 0", async () => {
+      serveContainers(FIVE_CONTAINERS);
+      await renderPage(list.Page);
+
+      expect(visibleCells("Restarts (15 min)")).toEqual([
+        "—",
+        "—",
+        "—",
+        "—",
+        "—",
+      ]);
+    });
+
+    test("Last Started sorts the newest run first, with an unknown start last", async () => {
+      serveContainers(FIVE_CONTAINERS);
+      // Well inside each unit, so a read's timing never tips a boundary.
+      serveStarts({ api: 3.5 * 60 * 60, web: 100, cache: 2.5 * 24 * 60 * 60 });
+      await renderPage(list.Page);
+
+      await clickHeader(list.tableId, "Last Started");
+
+      expect(ariaSortOf(list.tableId, "Last Started")).toBe("descending");
+      expect(visibleNames()).toEqual([
+        "web",
+        "api",
+        "cache",
+        "batch-9",
+        "batch-10",
+      ]);
+      expect(visibleCells("Last Started")).toEqual([
+        "2 minutes ago",
+        "3 hours ago",
+        "2 days ago",
+        "—",
+        "—",
       ]);
     });
 

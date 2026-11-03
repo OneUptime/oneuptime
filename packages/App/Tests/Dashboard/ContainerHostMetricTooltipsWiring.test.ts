@@ -111,10 +111,10 @@ const RUNTIMES: Array<string> = ["Docker", "Podman"];
 /*
  * Each title on the overview and the description it must carry. The tiles
  * and the charts share titles but not texts: a tile is one number from the
- * last few minutes, a chart is the whole range.
+ * last few minutes, a chart is the whole range. How many containers the host
+ * has is the hero's chip (the "containers" text), not a tile.
  */
 const TILE_KEYS: Array<[string, ContainerHostMetric]> = [
-  ["Containers", "containers"],
   ["Avg CPU", "avgCpu"],
   ["Peak CPU", "peakCpu"],
   ["Avg Memory", "avgMemory"],
@@ -137,11 +137,21 @@ const LIST_KEYS: Array<[string, ContainerHostMetric]> = [
 ];
 
 const COLUMN_KEYS: Array<[string, ContainerHostMetric]> = [
+  ["Status", "containerStatus"],
+  ["Compose Project", "containerComposeProject"],
   ["CPU", "containerCpu"],
   ["Memory", "containerMemory"],
   ["Memory %", "containerMemoryPercent"],
+  ["Restarts (15 min)", "containerRestarts"],
+  ["Last Started", "containerUptime"],
   ["Network RX (total)", "containerNetworkRx"],
   ["Network TX (total)", "containerNetworkTx"],
+];
+
+// The shared pieces both runtimes' pages draw (Components/ContainerHost).
+const SHARED_COMPONENTS: Array<string> = [
+  "../Components/ContainerHost/ContainerHostHealthPill.tsx",
+  "../Components/ContainerHost/ContainerHostContainerOverview.tsx",
 ];
 
 // Columns that are facts, not measurements, and so carry no (i).
@@ -201,11 +211,13 @@ describe.each(RUNTIMES)("%s host overview", (runtime: string) => {
     expect(code).toContain("totalPids: totalPids");
   });
 
-  test("the tile grid has room for all six tiles", () => {
+  test("the tile grid lays its five tiles out as every resource Overview does", () => {
     expect(code).toContain(
-      "grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6",
+      "grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5",
     );
-    expect(code).not.toContain("lg:grid-cols-5");
+    expect(code).not.toContain("xl:grid-cols-6");
+    // The count is the hero's chip, which opens the Containers list.
+    expect(code).not.toContain('title="Containers"');
   });
 
   test("the memory tile no longer claims every percent is of a container limit", () => {
@@ -361,6 +373,8 @@ describe.each(RUNTIMES)("%s host overview", (runtime: string) => {
     expect(tooltips).toBe(3);
     expect(new Set(references)).toEqual(
       new Set<string>([
+        // The hero's container count.
+        "containers",
         ...TILE_KEYS.map((pair: [string, ContainerHostMetric]): string => {
           return pair[1];
         }),
@@ -426,12 +440,24 @@ describe.each(RUNTIMES)("%s host containers table", (runtime: string) => {
   });
 
   test("the table still reads the last 5 minutes before now, as the texts say", () => {
-    expect(code).toContain(
-      "const startDate: Date = OneUptimeDate.addRemoveMinutes(endDate, -5);",
+    // Every container's readings come from the shared loader...
+    expect(code).toContain("await loadContainerHostReadings({");
+    // ...which reads the 5 minutes before now, and restarts over 15.
+    const readings: string = readCode(
+      "../Components/ContainerHost/ContainerHostReadings.ts",
     );
-    expect(code).toContain(
-      "const endDate: Date = OneUptimeDate.getCurrentDate();",
+    expect(readings).toContain(
+      "export const CONTAINER_READINGS_WINDOW_MINUTES: number = 5;",
     );
+    expect(readings).toContain(
+      "const readingsStart: Date = OneUptimeDate.addRemoveMinutes( readAt, -CONTAINER_READINGS_WINDOW_MINUTES, );",
+    );
+    expect(readings).toContain(
+      "const readAt: Date = OneUptimeDate.getCurrentDate();",
+    );
+    expect(
+      readCode("../Components/ContainerHost/ContainerHostHealth.ts"),
+    ).toContain("export const CONTAINER_RESTART_WINDOW_MINUTES: number = 15;");
   });
 });
 
@@ -487,14 +513,29 @@ describe("Docker and Podman pages stay identical", () => {
   );
 
   test("each page queries its own runtime", () => {
+    expect(readCode("Docker/View/Overview.tsx")).toContain(
+      '"resource.container.runtime": "docker"',
+    );
+    expect(readCode("Podman/View/Overview.tsx")).toContain(
+      '"resource.container.runtime": "podman"',
+    );
+    // The readings each page reads with its own runtime's descriptor.
     for (const file of ["Overview.tsx", "Containers.tsx"]) {
       expect(readCode(`Docker/View/${file}`)).toContain(
-        '"resource.container.runtime": "docker"',
+        "runtime: DOCKER_CONTAINER_HOST_RUNTIME,",
       );
       expect(readCode(`Podman/View/${file}`)).toContain(
-        '"resource.container.runtime": "podman"',
+        "runtime: PODMAN_CONTAINER_HOST_RUNTIME,",
       );
     }
+    const runtimes: string = readCode(
+      "../Components/ContainerHost/ContainerHostRuntime.ts",
+    );
+    expect(runtimes).toContain('runtime: "docker",');
+    expect(runtimes).toContain('runtime: "podman",');
+    expect(
+      readCode("../Components/ContainerHost/ContainerHostReadings.ts"),
+    ).toContain('"resource.container.runtime": data.runtime.runtime,');
   });
 });
 
@@ -505,6 +546,7 @@ describe("the container host description record", () => {
     for (const file of [
       "Docker/View/Overview.tsx",
       "Docker/View/Containers.tsx",
+      ...SHARED_COMPONENTS,
     ]) {
       for (const match of readCode(file).matchAll(RECORD_KEY_GLOBAL_PATTERN)) {
         shown.add(match[1]!);

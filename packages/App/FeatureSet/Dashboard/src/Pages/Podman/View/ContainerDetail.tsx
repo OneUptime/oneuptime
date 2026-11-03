@@ -3,7 +3,6 @@ import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import Card from "Common/UI/Components/Card/Card";
-import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import React, {
   Fragment,
   FunctionComponent,
@@ -25,22 +24,31 @@ import { Tab } from "Common/UI/Components/Tabs/Tab";
 import DashboardLogsViewer from "../../../Components/Logs/LogsViewer";
 import Query from "Common/Types/BaseDatabase/Query";
 import Log from "Common/Models/AnalyticsModels/Log";
-import AnalyticsModelAPI, {
-  ListResult,
-} from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
-import Metric from "Common/Models/AnalyticsModels/Metric";
-import ProjectUtil from "Common/UI/Utils/Project";
-import OneUptimeDate from "Common/Types/Date";
-import InBetween from "Common/Types/BaseDatabase/InBetween";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import EmbeddedMetricCard from "../../../Components/Metrics/EmbeddedMetricCard";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import ResourcePartReadError from "../../../Components/ResourcePart/ResourcePartReadError";
+import ContainerHostContainerHero from "../../../Components/ContainerHost/ContainerHostContainerHero";
+import ContainerHostContainerOverview from "../../../Components/ContainerHost/ContainerHostContainerOverview";
+import { ContainerHostContainer } from "../../../Components/ContainerHost/ContainerHostHealth";
+import {
+  ContainerHostRoutes,
+  PODMAN_CONTAINER_HOST_RUNTIME,
+  getContainerHostRoutes,
+} from "../../../Components/ContainerHost/ContainerHostRuntime";
+import useContainerHostReadings, {
+  ContainerHostReadingsState,
+} from "../../../Components/ContainerHost/UseContainerHostReadings";
 
-const CONTAINER_ID_ATTR: string = "resource.container.id";
-const CONTAINER_IMAGE_ATTR: string = "resource.container.image.name";
+/*
+ * A Podman container's page: its hero (its state by the host's rules, the
+ * host it runs on, its image and Compose project), its Overview - what needs
+ * attention on it, what it uses, how often it restarted, what is open on it,
+ * the container alerts and its details (ContainerHostContainerOverview) -
+ * its metrics and its logs.
+ */
 
 /*
  * Labels for the locked chips the Logs tab builds from logQuery.attributes.
@@ -62,8 +70,6 @@ const PodmanHostContainerDetail: FunctionComponent<
   const containerName: string = Navigation.getLastParamAsString();
 
   const [host, setHost] = useState<PodmanHost | null>(null);
-  const [containerId, setContainerId] = useState<string>("");
-  const [containerImage, setContainerImage] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
 
@@ -87,56 +93,6 @@ const PodmanHostContainerDetail: FunctionComponent<
       }
 
       setHost(item);
-
-      /*
-       * Look up the container's id + image from recent docker_stats metrics.
-       * filelog-ingested logs only carry resource.container.id (not name), so
-       * we resolve the name -> id mapping here so the Logs tab can filter
-       * precisely to THIS container.
-       */
-      const endDate: Date = OneUptimeDate.getCurrentDate();
-      const startDate: Date = OneUptimeDate.addRemoveMinutes(endDate, -10);
-      const projectId: string = ProjectUtil.getCurrentProjectId()!.toString();
-
-      /*
-       * Same pattern as Containers.tsx — using an `any`-typed query object
-       * avoids a TS2589 "excessively deep type instantiation" error on the
-       * AnalyticsModelAPI generic select inference when combined with the
-       * attributes map filter.
-       */
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const metricQuery: any = {
-        modelType: Metric,
-        query: {
-          projectId: projectId,
-          name: "container.cpu.utilization",
-          time: new InBetween<Date>(startDate, endDate),
-          attributes: {
-            "resource.host.name": item.hostIdentifier,
-            "resource.container.runtime": "podman",
-            "resource.container.name": containerName,
-          },
-        },
-        limit: 1,
-        skip: 0,
-        select: {
-          attributes: true,
-        },
-        sort: {
-          time: SortOrder.Descending,
-        },
-        requestOptions: {},
-      };
-
-      const result: ListResult<Metric> =
-        await AnalyticsModelAPI.getList<Metric>(metricQuery);
-
-      if (result.data.length > 0) {
-        const attrs: Record<string, unknown> =
-          (result.data[0]!.attributes as Record<string, unknown>) || {};
-        setContainerId((attrs[CONTAINER_ID_ATTR] as string) || "");
-        setContainerImage((attrs[CONTAINER_IMAGE_ATTR] as string) || "");
-      }
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     }
@@ -148,6 +104,35 @@ const PodmanHostContainerDetail: FunctionComponent<
       setError(API.getFriendlyMessage(err));
     });
   }, [containerName]);
+
+  /*
+   * Every container of the host with its latest readings (the host's
+   * newest reading is what this one is measured against), its restarts and
+   * its inventory row - its id, image, labels and when its run started.
+   */
+  const readingsState: ContainerHostReadingsState = useContainerHostReadings({
+    runtime: PODMAN_CONTAINER_HOST_RUNTIME,
+    hostId: modelId,
+    hostIdentifier: host?.hostIdentifier as string | undefined,
+  });
+
+  const container: ContainerHostContainer | null = useMemo(() => {
+    return (
+      readingsState.readings?.containers.find(
+        (candidate: ContainerHostContainer): boolean => {
+          return candidate.name === containerName;
+        },
+      ) || null
+    );
+  }, [readingsState.readings, containerName]);
+
+  /*
+   * filelog-ingested logs only carry resource.container.id (not name), so
+   * the name -> id mapping comes from the container's readings and its
+   * inventory row, and the Logs tab filters precisely to THIS container.
+   */
+  const containerId: string = container?.containerId || "";
+  const containerImage: string = container?.image || "";
 
   const logQuery: Query<Log> = useMemo(() => {
     const attributeFilters: Record<string, string> = {
@@ -243,9 +228,9 @@ const PodmanHostContainerDetail: FunctionComponent<
 
   /*
    * The Database discovered in this container, if any: by its name, or the
-   * Compose service discovery groups a database image under — read from the
-   * container's inventory row (its labels, and its image when no recent
-   * metric carried one).
+   * Swarm / Compose service discovery groups a database image under — read
+   * from the container's inventory row (its labels, and its image when no
+   * recent metric carried one).
    */
   const databaseTarget: DatabaseWorkloadTarget | null =
     useContainerDatabaseWorkloadTarget({
@@ -267,25 +252,40 @@ const PodmanHostContainerDetail: FunctionComponent<
     return <ErrorMessage message="Host not found." />;
   }
 
+  const routes: ContainerHostRoutes = getContainerHostRoutes(
+    PODMAN_CONTAINER_HOST_RUNTIME,
+    modelId,
+  );
+  const hostName: string = host.name || host.hostIdentifier || "—";
+
   const tabs: Array<Tab> = [
     {
       name: "Overview",
-      children: (
-        <div className="p-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <InfoCard title="Container Name" value={containerName || "—"} />
-            <InfoCard title="Image" value={containerImage || "unknown"} />
-            <InfoCard
-              title="Container ID"
-              value={containerId ? containerId.substring(0, 12) : "unavailable"}
-            />
-            <InfoCard
-              title="Host"
-              value={host.name || host.hostIdentifier || "—"}
-            />
-          </div>
-        </div>
-      ),
+      children:
+        readingsState.isLoading && !readingsState.readings ? (
+          <PageLoader isVisible={true} />
+        ) : readingsState.error && !readingsState.readings ? (
+          <ResourcePartReadError
+            testId="container-host-container-read-error"
+            title="Couldn't load this container"
+            message={readingsState.error}
+            onRetry={readingsState.refresh}
+          />
+        ) : (
+          <ContainerHostContainerOverview
+            runtime={PODMAN_CONTAINER_HOST_RUNTIME}
+            hostId={modelId}
+            hostName={hostName}
+            hostIdentifier={host.hostIdentifier || ""}
+            container={container}
+            hostLatestReadingAt={
+              readingsState.readings?.hostLatestReadingAt || null
+            }
+            hasRestartCounts={Boolean(readingsState.readings?.hasRestartCounts)}
+            routes={routes}
+            readAt={readingsState.readings?.readAt || new Date()}
+          />
+        ),
     },
     {
       name: "Metrics",
@@ -327,6 +327,15 @@ const PodmanHostContainerDetail: FunctionComponent<
 
   return (
     <Fragment>
+      <ContainerHostContainerHero
+        containerName={containerName}
+        container={container}
+        hostLatestReadingAt={
+          readingsState.readings?.hostLatestReadingAt || null
+        }
+        hostName={hostName}
+        hostRoute={routes.hostRoute}
+      />
       <DatabaseServerWorkloadBadge
         resourceLabel="container"
         target={databaseTarget}

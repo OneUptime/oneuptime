@@ -25,6 +25,7 @@ import Includes from "Common/Types/BaseDatabase/Includes";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { withSentenceDigits } from "../ResourcePart/SentenceDigits";
+import ResourceStatusCell from "./ResourceStatusCell";
 
 /*
  * Product-neutral client-side view-model for infrastructure resource
@@ -624,50 +625,7 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
           }
         : {}),
       getElement: (resource: InfrastructureResource): ReactElement => {
-        if (!resource.status) {
-          return <span className="text-gray-400">-</span>;
-        }
-        const pill: ReactElement = (
-          <span
-            data-tone={resource.statusTone}
-            className={`inline-flex whitespace-nowrap px-2 py-0.5 text-xs font-medium rounded ${
-              resource.statusTone
-                ? RESOURCE_STATUS_TONE_CLASS_NAMES[resource.statusTone]
-                : getStatusBadgeClass(resource.status)
-            }`}
-          >
-            {getResourceStatusLabel(resource, translator)}
-          </span>
-        );
-        const reasons: Array<ResourceStatusReason> =
-          resource.statusReasons || [];
-        if (reasons.length === 0) {
-          return pill;
-        }
-        return (
-          <div className="flex min-w-0 flex-col items-start gap-1">
-            {pill}
-            <div
-              data-testid="resource-status-reason"
-              className={RESOURCE_STATUS_REASON_CLASS_NAME}
-            >
-              {getResourceStatusReasonText(reasons[0]!, translator)}
-              {reasons.length > 1 ? (
-                <>
-                  {/* A space, so "+1 more" may move to a line of its own. */}{" "}
-                  <span className="whitespace-nowrap text-gray-500">
-                    {translator.translatePlural(
-                      { one: "+{{count}} more", other: "+{{count}} more" },
-                      reasons.length - 1,
-                    )}
-                  </span>
-                </>
-              ) : (
-                <></>
-              )}
-            </div>
-          </div>
-        );
+        return <ResourceStatusCell resource={resource} />;
       },
     });
   }

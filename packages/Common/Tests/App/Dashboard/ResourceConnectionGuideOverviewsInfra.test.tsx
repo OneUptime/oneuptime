@@ -159,6 +159,10 @@ jest.mock("../../../UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI", () => {
       aggregate: (): Promise<unknown> => {
         return Promise.resolve({ data: [] });
       },
+      // A container host's latest readings: none yet.
+      getList: (): Promise<unknown> => {
+        return Promise.resolve({ data: [], count: 0, skip: 0, limit: 500 });
+      },
     },
   };
 });
@@ -357,9 +361,9 @@ const OVERVIEWS: Array<[string, OverviewCase]> = [
       guide: getDockerHostConnectionGuide,
       setupCode: '-e DOCKER_HOST_NAME="web-01"',
       identifierMention: 'DOCKER_HOST_NAME="web-01"',
-      // The summary tiles.
+      // The summary tiles: average CPU first (the hero counts the containers).
       nextSection: (): HTMLElement => {
-        return infoButton("Containers");
+        return infoButton("Avg CPU");
       },
     },
   ],
@@ -377,7 +381,7 @@ const OVERVIEWS: Array<[string, OverviewCase]> = [
       setupCode: '-e PODMAN_HOST_NAME="web-01"',
       identifierMention: 'PODMAN_HOST_NAME="web-01"',
       nextSection: (): HTMLElement => {
-        return infoButton("Containers");
+        return infoButton("Avg CPU");
       },
     },
   ],
