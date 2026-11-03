@@ -10,6 +10,7 @@ import { CriteriaIncident } from "../CriteriaIncident";
 import { CriteriaAlert } from "../CriteriaAlert";
 import { DATABASE_SERVER_ID_SCOPE_ATTRIBUTE } from "../DatabaseAlertTemplates";
 import { DATA_STORE_ID_SCOPE_ATTRIBUTE } from "../DataObservabilityAlertTemplates";
+import { DATA_PIPELINE_ID_SCOPE_ATTRIBUTE } from "../DataPipelineAlertTemplates";
 import { KUBERNETES_CLUSTER_NAME_LOG_ATTRIBUTE } from "../KubernetesEventAlertTemplates";
 import { PROXMOX_CLUSTER_NAME_LOG_ATTRIBUTE } from "../ProxmoxNotificationAlertTemplates";
 
@@ -17,6 +18,7 @@ import { PROXMOX_CLUSTER_NAME_LOG_ATTRIBUTE } from "../ProxmoxNotificationAlertT
 const ATTRIBUTE_SCOPES: ReadonlyArray<string> = [
   DATABASE_SERVER_ID_SCOPE_ATTRIBUTE,
   DATA_STORE_ID_SCOPE_ATTRIBUTE,
+  DATA_PIPELINE_ID_SCOPE_ATTRIBUTE,
 ];
 
 /*

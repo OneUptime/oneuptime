@@ -83,11 +83,15 @@ EXPOSE 1444
 
 # The blog repo is cloned per-branch below. In production it is cloned as the
 # non-root `node` user so the runtime UpdateBlog `git pull` can write into it
-# without a costly recursive chown of its ~100k files.
+# without a costly recursive chown of its ~250k files. Both clones run
+# Scripts/CloneBlog.sh: the blog is ~4 GB with its history, and the script
+# gives up a transfer that stalls and clones again.
 
 {{ if eq .Env.ENVIRONMENT "development" }}
-# Clone blog repo (dev container runs as root).
-RUN cd /usr/src && git clone https://github.com/oneuptime/blog
+# Clone blog repo (dev container runs as root). The dev image has no Home
+# sources of its own (they are mounted), so the script is copied in for it.
+COPY ./packages/Home/Scripts/CloneBlog.sh /usr/src/CloneBlog.sh
+RUN bash /usr/src/CloneBlog.sh /usr/src/blog && rm /usr/src/CloneBlog.sh
 #Run the app
 CMD [ "npm", "run", "dev" ]
 {{ else }}
@@ -104,8 +108,8 @@ RUN npm run compile
 RUN mkdir -p /usr/src/app/build && chown 1000:1000 /usr/src /usr/src/app/build
 USER node
 # Clone the blog as node so the runtime UpdateBlog `git pull` (runs as node) can
-# write into it — avoids a recursive chown of the blog's ~100k files.
-RUN cd /usr/src && git clone https://github.com/oneuptime/blog
+# write into it — avoids a recursive chown of the blog's ~250k files.
+RUN bash /usr/src/app/Scripts/CloneBlog.sh /usr/src/blog
 # The marketing site's Tailwind CSS (Scripts/BuildTailwindCss.ts): one
 # content-hashed stylesheet that every page links, instead of the Play CDN
 # runtime building the CSS in each visitor's browser. It reads the class

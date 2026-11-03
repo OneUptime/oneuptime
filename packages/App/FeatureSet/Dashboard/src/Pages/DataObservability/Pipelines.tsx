@@ -1,8 +1,18 @@
 import PageComponentProps from "../PageComponentProps";
+import PageMap from "../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import Route from "Common/Types/API/Route";
 import DataPipeline from "Common/Models/DatabaseModels/DataPipeline";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { Gray500, Green500, Red500, Yellow500 } from "Common/Types/BrandColors";
 import OneUptimeDate from "Common/Types/Date";
+import {
+  DataPipelineLateness,
+  DataPipelineTimeliness,
+  getDataPipelineLateness,
+  getDurationRatio,
+  isUnusuallyLong,
+} from "Common/Types/DataObservability/DataPipelineSchedule";
 import ObjectID from "Common/Types/ObjectID";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
@@ -48,10 +58,84 @@ export function formatRunDuration(
     });
   }
 
-  return translator.translateTemplate("{{hours}}h {{minutes}}m", {
-    hours: Math.floor(seconds / 3600),
-    minutes: Math.floor((seconds % 3600) / 60),
+  if (seconds < 86400) {
+    return translator.translateTemplate("{{hours}}h {{minutes}}m", {
+      hours: Math.floor(seconds / 3600),
+      minutes: Math.floor((seconds % 3600) / 60),
+    });
+  }
+
+  return translator.translateTemplate("{{days}}d {{hours}}h", {
+    days: Math.floor(seconds / 86400),
+    hours: Math.floor((seconds % 86400) / 3600),
   });
+}
+
+// Whether the pipeline's next run is on time, by the schedule its runs taught.
+export function getPipelineLateness(
+  pipeline: DataPipeline,
+): DataPipelineLateness {
+  return getDataPipelineLateness({
+    lastRunStartedAt: pipeline.lastRunStartedAt
+      ? OneUptimeDate.fromString(pipeline.lastRunStartedAt)
+      : null,
+    expectedRunIntervalInSeconds: pipeline.expectedRunIntervalInSeconds,
+    now: OneUptimeDate.getCurrentDate(),
+  });
+}
+
+export function getPipelineSchedulePill(
+  lateness: DataPipelineLateness,
+): ReactElement {
+  switch (lateness.timeliness) {
+    case DataPipelineTimeliness.Late:
+      return <Pill text="Late" color={Red500} />;
+    case DataPipelineTimeliness.OnTime:
+      return <Pill text="On Time" color={Green500} />;
+    default:
+      return <Pill text="Learning" color={Gray500} />;
+  }
+}
+
+// What the schedule says: how late, how often it runs, or that it is still learned.
+export function getPipelineScheduleText(
+  translator: Translator,
+  pipeline: DataPipeline,
+  lateness: DataPipelineLateness,
+): string {
+  if (lateness.timeliness === DataPipelineTimeliness.Late) {
+    return translator.translateTemplate("Late by {{duration}}", {
+      duration: formatRunDuration(translator, lateness.overdueBySeconds),
+    });
+  }
+
+  if (lateness.timeliness === DataPipelineTimeliness.OnTime) {
+    return translator.translateTemplate("Up to {{duration}} between runs", {
+      duration: formatRunDuration(
+        translator,
+        pipeline.expectedRunIntervalInSeconds,
+      ),
+    });
+  }
+
+  return pipeline.expectedRunIntervalInSeconds
+    ? translator.translateText("No run in 30 days") || "No run in 30 days"
+    : translator.translateText("Learned from its first five runs") ||
+        "Learned from its first five runs";
+}
+
+// Whether the pipeline's latest finished run took unusually long for it.
+export function isLastRunUnusuallyLong(pipeline: DataPipeline): boolean {
+  return (
+    pipeline.lastRunDurationInSeconds !== undefined &&
+    pipeline.lastRunDurationInSeconds !== null &&
+    isUnusuallyLong(
+      getDurationRatio({
+        durationInSeconds: pipeline.lastRunDurationInSeconds,
+        typicalDurationInSeconds: pipeline.typicalRunDurationInSeconds,
+      }),
+    )
+  );
 }
 
 /*
@@ -75,7 +159,16 @@ const DataObservabilityPipelinesPage: FunctionComponent<
       isDeleteable={true}
       isEditable={false}
       isCreateable={false}
-      isViewable={false}
+      isViewable={true}
+      viewButtonText="View"
+      onViewPage={(pipeline: DataPipeline): Promise<Route> => {
+        return Promise.resolve(
+          RouteUtil.populateRouteParams(
+            RouteMap[PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW] as Route,
+            { modelId: pipeline.id! },
+          ),
+        );
+      }}
       sortBy="lastRunEndedAt"
       sortOrder={SortOrder.Descending}
       showRefreshButton={true}
@@ -86,7 +179,12 @@ const DataObservabilityPipelinesPage: FunctionComponent<
           "Every job that sends OpenLineage events - Airflow, Dagster, Spark, dbt, Flink - and how its latest run went.",
       }}
       noItemsMessage="No pipeline yet. Point your scheduler's OpenLineage integration at OneUptime, as Documentation shows, and each job appears with its first run."
-      selectMoreFields={{ lastErrorMessage: true, lastRunEndedAt: true }}
+      selectMoreFields={{
+        lastErrorMessage: true,
+        lastRunEndedAt: true,
+        lastRunStartedAt: true,
+        typicalRunDurationInSeconds: true,
+      }}
       filters={[
         {
           field: { lastRunState: true },
@@ -153,6 +251,27 @@ const DataObservabilityPipelinesPage: FunctionComponent<
           },
         },
         {
+          field: { expectedRunIntervalInSeconds: true },
+          title: "Schedule",
+          type: FieldType.Element,
+          getExportValue: (pipeline: DataPipeline): string => {
+            return getPipelineLateness(pipeline).timeliness;
+          },
+          getElement: (pipeline: DataPipeline): ReactElement => {
+            const lateness: DataPipelineLateness =
+              getPipelineLateness(pipeline);
+
+            return (
+              <div className="min-w-0 space-y-1">
+                {getPipelineSchedulePill(lateness)}
+                <span className="block whitespace-nowrap text-xs text-gray-500">
+                  {getPipelineScheduleText(translator, pipeline, lateness)}
+                </span>
+              </div>
+            );
+          },
+        },
+        {
           field: { lastRunDurationInSeconds: true },
           title: "Duration",
           type: FieldType.Element,
@@ -161,12 +280,32 @@ const DataObservabilityPipelinesPage: FunctionComponent<
           },
           getElement: (pipeline: DataPipeline): ReactElement => {
             return (
-              <span className="whitespace-nowrap text-sm text-gray-700">
-                {formatRunDuration(
-                  translator,
-                  pipeline.lastRunDurationInSeconds,
+              <div className="min-w-0">
+                <span
+                  className={`whitespace-nowrap text-sm ${
+                    isLastRunUnusuallyLong(pipeline)
+                      ? "font-medium text-red-600"
+                      : "text-gray-700"
+                  }`}
+                >
+                  {formatRunDuration(
+                    translator,
+                    pipeline.lastRunDurationInSeconds,
+                  )}
+                </span>
+                {pipeline.typicalRunDurationInSeconds ? (
+                  <span className="block whitespace-nowrap text-xs text-gray-500">
+                    {translator.translateTemplate("Usually {{duration}}", {
+                      duration: formatRunDuration(
+                        translator,
+                        pipeline.typicalRunDurationInSeconds,
+                      ),
+                    })}
+                  </span>
+                ) : (
+                  <></>
                 )}
-              </span>
+              </div>
             );
           },
         },

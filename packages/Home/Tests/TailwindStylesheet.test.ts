@@ -854,8 +854,9 @@ describe("the image", () => {
   const development: string = template.slice(developmentAt, elseAt);
   const production: string = template.slice(elseAt, endAt);
   const BUILD: string = "RUN npm run build:css -- --require-blog";
+  // Scripts/CloneBlog.sh (Tests/Ops/HomeBlogClone.test.js).
   const CLONE: string =
-    "RUN cd /usr/src && git clone https://github.com/oneuptime/blog";
+    "RUN bash /usr/src/app/Scripts/CloneBlog.sh /usr/src/blog";
 
   test("builds the stylesheet in production, once", () => {
     expect(developmentAt).toBeGreaterThan(0);
