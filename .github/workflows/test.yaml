@@ -98,11 +98,13 @@ jobs:
           # image has them.
           args: --ignore-scripts
       # What the Home and App images build before they start: the site's
-      # stylesheet, and the mermaid the docs draw their diagrams with.
-      - name: Build the site's stylesheet and the docs' mermaid
+      # stylesheet, the docs' and the API reference's stylesheets, and the
+      # mermaid the docs draw their diagrams with.
+      - name: Build the stylesheets and the docs' mermaid
         timeout-minutes: 5
         run: |
           (cd packages/Home && npm run build:css)
+          (cd packages/App && npm run build-docs-css)
           node packages/Common/Scripts/build-mermaid-browser.js
       - name: Run Lighthouse
         working-directory: packages/E2E

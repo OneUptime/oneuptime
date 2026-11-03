@@ -42,6 +42,11 @@ import {
 } from "Common/Server/Utils/Sitemap";
 import "ejs";
 import { GoogleTagManagerEnabled } from "Common/Server/EnvironmentConfig";
+import {
+  DocsTailwindSite,
+  getDocsTailwindSite,
+} from "../../Utils/DocsTailwind";
+import { mountTailwindStylesheet } from "../../Utils/TailwindStylesheet";
 
 interface DocsContent {
   markdown: string;
@@ -133,6 +138,21 @@ function renderNotFound(
 const DocsFeatureSet: FeatureSet = {
   init: async (): Promise<void> => {
     const app: ExpressApplication = Express.getExpressApp();
+
+    /*
+     * The docs' built Tailwind stylesheet, when the image built one: the
+     * pages link it instead of generating their CSS in the browser with the
+     * Tailwind runtime (Utils/DocsTailwind.ts).
+     */
+    const tailwindSite: DocsTailwindSite = getDocsTailwindSite("docs");
+
+    mountTailwindStylesheet({
+      app: app,
+      name: "docs",
+      directory: tailwindSite.directory,
+      hrefPrefix: tailwindSite.hrefPrefix,
+      sitePath: "/docs",
+    });
 
     // Root /docs — redirect to the best language's getting-started page.
     app.get("/docs", (req: ExpressRequest, res: ExpressResponse) => {
