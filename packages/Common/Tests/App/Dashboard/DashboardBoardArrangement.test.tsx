@@ -497,7 +497,11 @@ describe("the board follows its width as it changes", () => {
     }
   });
 
-  test("a board not measured yet is drawn as the grid, as it was before it was measured", () => {
+  /*
+   * A board is measured before its widgets are drawn (DashboardBoardFirstDraw);
+   * one measured 0 wide is not shown, and is laid out as the grid.
+   */
+  test("a board measured 0 wide - not shown - is drawn as the grid", () => {
     renderAt(0);
 
     expect(board()).toHaveAttribute(
