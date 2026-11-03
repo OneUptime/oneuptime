@@ -20,6 +20,20 @@ import {
   DATA_SECURITY_SCAN_STORE_JOB,
 } from "../../../Server/Utils/DataSecurity/DataSecurityJobs";
 import * as TelemetryScrubCoverage from "../../../Server/Utils/DataSecurity/Telemetry/TelemetryScrubCoverage";
+import * as TelemetryFindingOccurrences from "../../../Server/Utils/DataSecurity/Telemetry/TelemetryFindingOccurrences";
+import { TelemetrySampleSource } from "../../../Server/Utils/DataSecurity/Telemetry/TelemetryDataScanner";
+import DataSecurityRunner from "../../../Server/Utils/DataSecurity/DataSecurityRunner";
+import { ContentScanOptions } from "../../../Server/Utils/DataSecurity/DataSecurityScanTypes";
+import AnalyticsDatabaseService, {
+  Results,
+} from "../../../Server/Services/AnalyticsDatabaseService";
+import AnalyticsModelPermission from "../../../Server/Types/AnalyticsDatabase/ModelPermission";
+import TelemetryReadAccess from "../../../Server/Utils/Telemetry/TelemetryReadAccess";
+import ExceptionInstance from "../../../Models/AnalyticsModels/ExceptionInstance";
+import Log from "../../../Models/AnalyticsModels/Log";
+import RumSession from "../../../Models/AnalyticsModels/RumSession";
+import Span from "../../../Models/AnalyticsModels/Span";
+import PaymentRequiredException from "../../../Types/Exception/PaymentRequiredException";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -64,10 +78,14 @@ import {
   scoreComplianceFramework,
 } from "../../../Types/DataSecurity/ComplianceRequirementCatalog";
 import DataCategory from "../../../Types/DataSecurity/DataCategory";
+import DataConfidence from "../../../Types/DataSecurity/DataConfidence";
 import {
   DATA_SECURITY_API_ROUTES,
   DataSecurityComplianceFramework,
   DataSecurityComplianceResponse,
+  DataSecurityFindingOccurrences,
+  DataSecurityOccurrenceRecordKind,
+  DataSecurityOccurrencesUnavailableReason,
   DataSecurityOverview,
   DataSecurityRecordOfProcessingResponse,
 } from "../../../Types/DataSecurity/DataSecurityApiTypes";
@@ -147,6 +165,13 @@ const SCRUB: Array<Permission> = [
   Permission.CreateProjectLogScrubRule,
   Permission.CreateProjectTraceScrubRule,
 ];
+const OCCURRENCES: Array<Permission> = [
+  Permission.ProjectOwner,
+  Permission.ProjectAdmin,
+  Permission.SecurityAdmin,
+  Permission.SecurityMember,
+  Permission.ReadDataStoreFinding,
+];
 const FIX: Array<Permission> = [
   Permission.ProjectOwner,
   Permission.ProjectAdmin,
@@ -209,6 +234,19 @@ const ROUTES: Array<RouteCase> = [
       Permission.SecurityAdmin,
       Permission.EditDataStore,
       Permission.EditDataStoreFinding,
+    ],
+  },
+  {
+    name: "a finding's records",
+    path: DATA_SECURITY_API_ROUTES.findingOccurrences(":id"),
+    allowed: OCCURRENCES,
+    // A Security Viewer does not read masked samples, which the records carry.
+    refused: [
+      Permission.SecurityViewer,
+      Permission.ReadDataStore,
+      Permission.ProjectMember,
+      Permission.EditDataStoreFinding,
+      Permission.ReadTelemetryServiceLog,
     ],
   },
   {
@@ -512,6 +550,9 @@ describe("routes and who may call them", () => {
     expect(DATA_SECURITY_API_ROUTES.scrubFinding("x")).toBe(
       "/data-store-finding/x/scrub",
     );
+    expect(DATA_SECURITY_API_ROUTES.findingOccurrences("x")).toBe(
+      "/data-store-finding/x/occurrences",
+    );
     expect(DATA_SECURITY_API_ROUTES.explainIssue("x")).toBe(
       "/data-security-issue/x/explain",
     );
@@ -790,6 +831,378 @@ describe("Scrub It", () => {
   });
 });
 
+describe("A telemetry finding's records", () => {
+  const SERVICE_ID: ObjectID = new ObjectID(
+    "44444444-4444-4444-8444-444444444444",
+  );
+  const WEB_APP_ID: string = "55555555-5555-4555-8555-555555555555";
+  const ROUTE: string = DATA_SECURITY_API_ROUTES.findingOccurrences(":id");
+
+  let tablePermissionSpy: jest.SpyInstance;
+  let scopeSpy: jest.SpyInstance;
+  let setupSpy: jest.SpyInstance;
+  let occurrencesSpy: jest.SpyInstance;
+  let scanOptions: ContentScanOptions;
+
+  const READ_ANSWER: DataSecurityFindingOccurrences = {
+    occurrences: [
+      {
+        time: "2026-10-27T11:57:00.000Z",
+        recordKind: DataSecurityOccurrenceRecordKind.Log,
+        serviceId: SERVICE_ID.toString(),
+        traceId: "trace-1",
+        maskedValue: "j***@a********.com",
+      },
+    ],
+    since: "2026-10-20T12:00:00.000Z",
+    until: "2026-10-27T12:00:00.000Z",
+    recordsRead: 12,
+    isComplete: true,
+  };
+
+  function serviceFinding(
+    kind: DataStoreKind,
+    location: string = "attributes.user.email",
+  ): DataStoreFinding {
+    const finding: DataStoreFinding = telemetryFinding(kind);
+    finding.location = location;
+    finding.dataStore!.serviceId = SERVICE_ID;
+    finding.dataStore!.storeKey = `telemetry:${SERVICE_ID.toString()}:${kind}`;
+    return finding;
+  }
+
+  async function records(): Promise<RouteCall> {
+    return await call(ROUTE, { id: STORE_ID.toString() });
+  }
+
+  function unavailable(
+    reason: DataSecurityOccurrencesUnavailableReason,
+  ): DataSecurityFindingOccurrences {
+    return {
+      occurrences: [],
+      since: "2026-10-20T12:00:00.000Z",
+      until: "2026-10-27T12:00:00.000Z",
+      recordsRead: 0,
+      isComplete: true,
+      unavailableReason: reason,
+    };
+  }
+
+  beforeEach(() => {
+    findingRow = serviceFinding(DataStoreKind.TelemetryLogs);
+    scanOptions = {
+      limits: {
+        maxObjects: 2000,
+        maxBytesPerObject: 65536,
+        maxBytesTotal: 52428800,
+        maxRowsPerTable: 1000,
+        maxTables: 200,
+        deadline: new Date(NOW.getTime() + 60_000),
+      },
+      customDetectors: [],
+      extraHints: [],
+      disabledDataTypeIds: new Set(),
+      allowedValues: new Set(["support@acme.io"]),
+      exclusions: [],
+      fingerprintKey: "key",
+    };
+    tablePermissionSpy = jest
+      .spyOn(AnalyticsModelPermission, "checkReadPermission")
+      .mockImplementation((async (...args: Array<unknown>) => {
+        return { query: args[1], select: null };
+      }) as never);
+    scopeSpy = jest
+      .spyOn(TelemetryReadAccess, "getScope")
+      .mockResolvedValue({ readableIds: null, blockedIds: [] });
+    setupSpy = jest
+      .spyOn(DataSecurityRunner, "getScanSetup")
+      .mockImplementation((async () => {
+        return { options: scanOptions } as never;
+      }) as never);
+    occurrencesSpy = jest
+      .spyOn(TelemetryFindingOccurrences, "findTelemetryFindingOccurrences")
+      .mockResolvedValue(READ_ANSWER);
+  });
+
+  test("reads the newest records of the finding's store, at its location, for its data type, with the project's scan setup", async () => {
+    asCaller([Permission.SecurityMember]);
+
+    const result: RouteCall = await records();
+
+    expect(result.thrown).toBeUndefined();
+    expect(result.answer).toEqual(READ_ANSWER);
+    expect(findingFindOneSpy.mock.calls[0]![0]).toMatchObject({
+      query: { _id: STORE_ID, projectId: PROJECT_ID },
+      select: {
+        dataTypeId: true,
+        location: true,
+        dataStore: { kind: true, serviceId: true, storeKey: true },
+      },
+    });
+    expect(setupSpy).toHaveBeenCalledWith(PROJECT_ID);
+    expect(occurrencesSpy).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      plan: {
+        source: TelemetrySampleSource.Logs,
+        read: { kind: "pairs", column: "attributes", key: "user.email" },
+      },
+      ownerId: SERVICE_ID.toString(),
+      location: "attributes.user.email",
+      dataTypeId: "email-address",
+      options: scanOptions,
+      now: NOW,
+    });
+  });
+
+  test("asks whether the caller may read that telemetry themselves, of the table its records are rows of", async () => {
+    const cases: Array<[DataStoreKind, string, unknown, string]> = [
+      [
+        DataStoreKind.TelemetryLogs,
+        "attributes.user.email",
+        Log,
+        SERVICE_ID.toString(),
+      ],
+      [
+        DataStoreKind.TelemetryTraces,
+        "attributes.user.pps",
+        Span,
+        SERVICE_ID.toString(),
+      ],
+      [
+        DataStoreKind.TelemetryAiConversations,
+        "gen_ai.input.messages",
+        Span,
+        SERVICE_ID.toString(),
+      ],
+      [
+        DataStoreKind.TelemetryExceptions,
+        "message",
+        ExceptionInstance,
+        SERVICE_ID.toString(),
+      ],
+      [
+        DataStoreKind.TelemetrySessionReplays,
+        "sessions.identifiedUserTraits.email",
+        RumSession,
+        WEB_APP_ID,
+      ],
+      [
+        DataStoreKind.TelemetrySessionReplays,
+        "logs.attributes.email",
+        Log,
+        WEB_APP_ID,
+      ],
+    ];
+
+    for (const [kind, location, model, ownerId] of cases) {
+      tablePermissionSpy.mockClear();
+      scopeSpy.mockClear();
+      findingRow = serviceFinding(kind, location);
+
+      if (kind === DataStoreKind.TelemetrySessionReplays) {
+        // A RUM application is not a service: its id is in the store's key.
+        delete findingRow.dataStore!.serviceId;
+        findingRow.dataStore!.storeKey = `telemetry:${WEB_APP_ID}:${kind}`;
+      }
+
+      const result: RouteCall = await records();
+
+      expect([kind, location, result.thrown]).toEqual([
+        kind,
+        location,
+        undefined,
+      ]);
+      expect(tablePermissionSpy.mock.calls[0]![0]).toBe(model);
+      expect(tablePermissionSpy.mock.calls[0]![1]).toEqual({
+        projectId: PROJECT_ID,
+        primaryEntityId: new ObjectID(ownerId),
+      });
+      expect(
+        (tablePermissionSpy.mock.calls[0]![3] as DatabaseCommonInteractionProps)
+          .userId,
+      ).toEqual(USER_ID);
+      expect(scopeSpy.mock.calls[0]![0]).toBe(model);
+    }
+  });
+
+  test("a caller who may not read the store's telemetry gets no records, and nothing is read", async () => {
+    asCaller([Permission.SecurityMember]);
+    tablePermissionSpy.mockRejectedValue(
+      new NotAuthorizedException("You do not have permission to read logs."),
+    );
+
+    const result: RouteCall = await records();
+
+    expect(result.thrown).toBeUndefined();
+    expect(result.answer).toEqual(
+      unavailable(DataSecurityOccurrencesUnavailableReason.NoTelemetryAccess),
+    );
+    expect(occurrencesSpy).not.toHaveBeenCalled();
+    expect(setupSpy).not.toHaveBeenCalled();
+  });
+
+  test("a caller whose plan does not reach the table gets no records", async () => {
+    tablePermissionSpy.mockRejectedValue(
+      new PaymentRequiredException("Please upgrade your plan."),
+    );
+
+    expect((await records()).answer).toEqual(
+      unavailable(DataSecurityOccurrencesUnavailableReason.NoTelemetryAccess),
+    );
+    expect(occurrencesSpy).not.toHaveBeenCalled();
+  });
+
+  test("a caller whose grants reach other services, or block this one, gets no records", async () => {
+    scopeSpy.mockResolvedValue({
+      readableIds: ["66666666-6666-4666-8666-666666666666"],
+      blockedIds: [],
+    });
+
+    expect((await records()).answer).toEqual(
+      unavailable(DataSecurityOccurrencesUnavailableReason.NoTelemetryAccess),
+    );
+
+    scopeSpy.mockResolvedValue({
+      readableIds: null,
+      blockedIds: [SERVICE_ID.toString().toUpperCase()],
+    });
+
+    expect((await records()).answer).toEqual(
+      unavailable(DataSecurityOccurrencesUnavailableReason.NoTelemetryAccess),
+    );
+    expect(occurrencesSpy).not.toHaveBeenCalled();
+  });
+
+  test("a caller whose grants reach this service reads its records", async () => {
+    scopeSpy.mockResolvedValue({
+      readableIds: [SERVICE_ID.toString().toUpperCase()],
+      blockedIds: [],
+    });
+
+    expect((await records()).answer).toEqual(READ_ANSWER);
+  });
+
+  test("any other failure of the permission check is not taken for a refusal", async () => {
+    tablePermissionSpy.mockRejectedValue(new Error("Postgres is down"));
+
+    const result: RouteCall = await records();
+
+    expect((result.thrown as Error).message).toBe("Postgres is down");
+    expect(occurrencesSpy).not.toHaveBeenCalled();
+  });
+
+  test("a location no record has, or a store whose service is gone, says why", async () => {
+    findingRow = serviceFinding(DataStoreKind.TelemetryTraces, "body");
+
+    expect((await records()).answer).toEqual(
+      unavailable(DataSecurityOccurrencesUnavailableReason.UnreadableLocation),
+    );
+
+    findingRow = serviceFinding(DataStoreKind.TelemetryLogs);
+    delete findingRow.dataStore!.serviceId;
+
+    expect((await records()).answer).toEqual(
+      unavailable(DataSecurityOccurrencesUnavailableReason.NoOwner),
+    );
+
+    findingRow = serviceFinding(
+      DataStoreKind.TelemetrySessionReplays,
+      "sessions.attributes.plan",
+    );
+    findingRow.dataStore!.storeKey = "telemetry:not-an-id:Session Replays";
+
+    expect((await records()).answer).toEqual(
+      unavailable(DataSecurityOccurrencesUnavailableReason.NoOwner),
+    );
+    expect(tablePermissionSpy).not.toHaveBeenCalled();
+    expect(occurrencesSpy).not.toHaveBeenCalled();
+  });
+
+  test("a finding in a data store has no records to show", async () => {
+    findingRow = serviceFinding(DataStoreKind.AwsS3Bucket, "exports/*.csv");
+
+    const result: RouteCall = await records();
+
+    expect((result.thrown as Exception).message).toBe(
+      "Only a finding in telemetry has records to show; this finding is in a data store.",
+    );
+    expect(occurrencesSpy).not.toHaveBeenCalled();
+  });
+
+  test("a finding of another project, or with no data type or location, is not found", async () => {
+    findingRow = null;
+
+    expect(((await records()).thrown as Exception).message).toBe(
+      "Finding not found.",
+    );
+
+    findingRow = serviceFinding(DataStoreKind.TelemetryLogs);
+    delete findingRow.dataTypeId;
+
+    expect(((await records()).thrown as Exception).message).toBe(
+      "Finding not found.",
+    );
+    expect(occurrencesSpy).not.toHaveBeenCalled();
+  });
+
+  test("an id that is not one is not found, and nothing is read", async () => {
+    const result: RouteCall = await call(ROUTE, { id: "not-an-id" });
+
+    expect((result.thrown as Exception).message).toBe("Not found.");
+    expect(findingFindOneSpy).not.toHaveBeenCalled();
+  });
+
+  test("end to end: ClickHouse's rows come back as masked records, never a raw value", async () => {
+    occurrencesSpy.mockRestore();
+    jest
+      .spyOn(AnalyticsDatabaseService.prototype, "executeQuery")
+      .mockImplementation((async (): Promise<Results> => {
+        return {
+          json: (): Promise<unknown> => {
+            return Promise.resolve({
+              data: [
+                {
+                  ownerId: SERVICE_ID.toString(),
+                  recordTime: String(NOW.getTime() - 3 * 60_000),
+                  readTraceId: "4bf92f3577b34da6a3ce929d0e0e4736",
+                  readSpanId: "00f067aa0ba902b7",
+                  readSeverity: "Warning",
+                  readAttributes: [["user.email", "jane.doe@acme-corp.com"]],
+                },
+                {
+                  ownerId: SERVICE_ID.toString(),
+                  recordTime: String(NOW.getTime() - 4 * 60_000),
+                  // A value the project allows is no finding's.
+                  readAttributes: [["user.email", "support@acme.io"]],
+                },
+              ],
+            });
+          },
+        } as unknown as Results;
+      }) as never);
+
+    const result: RouteCall = await records();
+    const answer: DataSecurityFindingOccurrences =
+      result.answer as unknown as DataSecurityFindingOccurrences;
+
+    expect(result.thrown).toBeUndefined();
+    expect(answer.occurrences).toEqual([
+      {
+        time: "2026-10-27T11:57:00.000Z",
+        recordKind: DataSecurityOccurrenceRecordKind.Log,
+        serviceId: SERVICE_ID.toString(),
+        traceId: "4bf92f3577b34da6a3ce929d0e0e4736",
+        spanId: "00f067aa0ba902b7",
+        severity: "Warning",
+        maskedValue: "j***@a********.com",
+      },
+    ]);
+    expect(answer.recordsRead).toBe(2);
+    expect(JSON.stringify(answer)).not.toContain("jane.doe");
+    expect(JSON.stringify(answer)).not.toContain("support@acme.io");
+  });
+});
+
 describe("Explain and Fix With AI", () => {
   test("Explain asks OneUptime AI about the issue as the check saw it, and writes the answer to its timeline", async () => {
     const result: RouteCall = await call(
@@ -908,6 +1321,8 @@ describe("Explain and Fix With AI", () => {
       "_id",
       "checkId",
       "dataStore",
+      // A telemetry issue's findings are read from it: never their samples.
+      "dataStoreId",
       "dataTypeIds",
       "evidence",
       "severity",
@@ -1063,6 +1478,198 @@ describe("Explain and Fix With AI", () => {
     expect(result.answer).toEqual({
       message:
         "This project has several repositories: choose the one that holds this store's infrastructure code.",
+    });
+    expect(codeTaskSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe("Explain and Fix With AI on a telemetry issue", () => {
+  const TRACES_STORE_ID: ObjectID = new ObjectID(
+    "99999999-9999-4999-8999-999999999999",
+  );
+
+  function telemetryIssue(checkId: string): DataSecurityIssue {
+    const issue: DataSecurityIssue = new DataSecurityIssue(STORE_ID);
+    issue.checkId = checkId;
+    issue.title = "Sensitive data is reaching your telemetry";
+    issue.severity = SecuritySeverity.High;
+    issue.evidence =
+      "2 kinds of sensitive data are not scrubbed: IP address, Ireland PPS number.";
+    issue.dataStoreId = TRACES_STORE_ID;
+    const store: DataStore = new DataStore();
+    store.name = "oneuptime-app · Traces";
+    store.kind = DataStoreKind.TelemetryTraces;
+    store.sensitivity = DataSensitivity.Restricted;
+    issue.dataStore = store;
+    return issue;
+  }
+
+  function finding(
+    dataTypeId: string,
+    location: string,
+    overrides: Partial<DataStoreFinding> = {},
+  ): DataStoreFinding {
+    const row: DataStoreFinding = new DataStoreFinding(ObjectID.generate());
+    row.dataTypeId = dataTypeId;
+    row.dataTypeName = dataTypeId;
+    row.location = location;
+    row.locationKind = "Attribute";
+    row.confidence = DataConfidence.High;
+    row.matchCount = 40;
+    row.isScrubbed = false;
+    row.isConfirmed = false;
+    row.isAiSuggested = false;
+    Object.assign(row, overrides);
+    return row;
+  }
+
+  beforeEach(() => {
+    issueRow = telemetryIssue("sensitive-data-in-telemetry");
+    findings = [
+      finding("ie-ppsn", "attributes.user.pps"),
+      finding("ip-address", "attributes.http.client_ip"),
+      // The other check's: a secret.
+      finding("github-token", "attributes.config.token"),
+      // Not counted, or not sure enough: none of them is named.
+      finding("email-address", "attributes.user.email", {
+        confidence: DataConfidence.Low,
+      }),
+      finding("phone-number", "attributes.user.phone", {
+        isAiSuggested: true,
+        matchCount: 0,
+      }),
+    ];
+  });
+
+  test("Explain tells OneUptime AI where the data sits in the service's telemetry, and asks how to stop it", async () => {
+    await call(DATA_SECURITY_API_ROUTES.explainIssue(":id"), {
+      id: STORE_ID.toString(),
+    });
+
+    const request: { messages: Array<{ role: string; content: string }> } =
+      aiSpy.mock.calls[0]![0];
+
+    expect(request.messages[0]!.content).toContain(
+      "what sensitive data reaches their telemetry, where it sits in it",
+    );
+    expect(request.messages[0]!.content).toContain(
+      "scrub it at ingest, then change the code that writes it",
+    );
+    expect(request.messages[1]!.content).toContain(
+      [
+        "Where it was found:",
+        "- Ireland PPS number in attributes.user.pps (Attribute)",
+        "- IP address in attributes.http.client_ip (Attribute)",
+      ].join("\n"),
+    );
+    expect(request.messages[1]!.content).not.toContain("config.token");
+    expect(request.messages[1]!.content).not.toContain("user.email");
+    expect(request.messages[1]!.content).not.toContain("user.phone");
+  });
+
+  test("the places are read from the issue's own store and project, unscrubbed, still seen, never a sample", async () => {
+    await call(DATA_SECURITY_API_ROUTES.explainIssue(":id"), {
+      id: STORE_ID.toString(),
+    });
+
+    const read: {
+      query: JSONObject;
+      select: JSONObject;
+      props: JSONObject;
+    } = findingFindSpy.mock.calls[0]![0];
+
+    expect(read.query).toMatchObject({
+      projectId: PROJECT_ID,
+      dataStoreId: TRACES_STORE_ID,
+      isSuppressed: false,
+      isScrubbed: false,
+    });
+    expect(read.query["lastSeenAt"]).toBeDefined();
+    expect(read.select["maskedSamples"]).toBeUndefined();
+    expect(read.props).toEqual({ isRoot: true });
+  });
+
+  test("the secrets check names its secrets, and only them", async () => {
+    issueRow = telemetryIssue("secrets-in-telemetry");
+
+    await call(DATA_SECURITY_API_ROUTES.explainIssue(":id"), {
+      id: STORE_ID.toString(),
+    });
+
+    const content: string = (
+      aiSpy.mock.calls[0]![0] as {
+        messages: Array<{ role: string; content: string }>;
+      }
+    ).messages[1]!.content;
+
+    expect(content).toContain(
+      "- GitHub token in attributes.config.token (Attribute)",
+    );
+    expect(content).not.toContain("attributes.user.pps");
+  });
+
+  test("an issue that is not about telemetry reads no findings and keeps the cloud prompt", async () => {
+    issueRow = issueOf();
+
+    await call(DATA_SECURITY_API_ROUTES.explainIssue(":id"), {
+      id: STORE_ID.toString(),
+    });
+
+    expect(findingFindSpy).not.toHaveBeenCalled();
+    expect(
+      (
+        aiSpy.mock.calls[0]![0] as {
+          messages: Array<{ role: string; content: string }>;
+        }
+      ).messages[0]!.content,
+    ).toContain("the exact steps to fix it on their cloud");
+  });
+
+  test("Fix With AI asks for a change to the service's code at each place, not to infrastructure code", async () => {
+    repositories = [new CodeRepository(ObjectID.generate())];
+
+    await call(DATA_SECURITY_API_ROUTES.fixIssueWithAi(":id"), {
+      id: STORE_ID.toString(),
+    });
+
+    const message: string = (
+      codeTaskSpy.mock.calls[0]![0] as { message: string }
+    ).message;
+
+    expect(message).toContain(
+      "Fix this data security issue in the code of the service that writes this data to its telemetry",
+    );
+    expect(message).not.toContain("infrastructure code");
+    expect(message).toContain(
+      "- Ireland PPS number in attributes.user.pps (Attribute)",
+    );
+    expect(message).toContain("Open a pull request.");
+  });
+
+  test("Fix With AI asks for the repository that holds the service's code", async () => {
+    const none: RouteCall = await call(
+      DATA_SECURITY_API_ROUTES.fixIssueWithAi(":id"),
+      { id: STORE_ID.toString() },
+    );
+
+    expect(none.answer).toEqual({
+      message:
+        "Connect the repository that holds this service's code under Code, then ask again.",
+    });
+
+    repositories = [
+      new CodeRepository(ObjectID.generate()),
+      new CodeRepository(ObjectID.generate()),
+    ];
+
+    const several: RouteCall = await call(
+      DATA_SECURITY_API_ROUTES.fixIssueWithAi(":id"),
+      { id: STORE_ID.toString() },
+    );
+
+    expect(several.answer).toEqual({
+      message:
+        "This project has several repositories: choose the one that holds this service's code.",
     });
     expect(codeTaskSpy).not.toHaveBeenCalled();
   });
