@@ -37,3 +37,26 @@ effect and its undo, and Approve & Run under all of it.
 - `after-ai-off-whole-open.png`: an open incident AI did not investigate,
   whose fixing switch is on now: the card is drawn whole instead of the
   AI-off one line, so its Remediation step offers Try again.
+
+## UI review
+
+The same three fixes after the UI review, taken from the same fixture
+(`?fixes=many&state=created`, the incident open) at twice the pixel
+density. The `after-*` shots above are the first pass the review started
+from.
+
+- `ui-review-fixes-folded-1280.png`: folded, the waiting kubectl fix offers
+  one thing, Review and approve: Dismiss alone under its sentence was the
+  one button in sight. Nothing says what approving runs while nothing is
+  shown, and the two servers read "Feature flags and Status page".
+- `ui-review-fixes-opened-1280.png`: every fix opened: the kubectl fix's
+  reasoning first (no second Show reasoning press), its commands, then
+  "Approving runs exactly what is shown, under your name." right over
+  Approve & Run and Dismiss.
+- `ui-review-fixes-folded-390.png`, `ui-review-fixes-folded-390-dark.png`:
+  a 390 pixel phone, light and dark.
+- `ui-review-fixes-opened-390.png`: the waiting fix opened on a phone.
+- `ui-review-fixes-folded-de-390.png`: German ("2 Änderungen über Feature
+  flags und Status page.").
+- `ui-review-fixes-folded-fa-390.png`: Persian, right to left: each server
+  set apart, so the list reads in its order.
