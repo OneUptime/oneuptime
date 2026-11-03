@@ -11,8 +11,9 @@ import path from "path";
  * services, or others for a second copy running at the same time.
  *
  * The services need their packages installed (Common, Home, App), the
- * site's stylesheet built (npm run build:css in packages/Home) and the
- * docs' mermaid built (node packages/Common/Scripts/build-mermaid-browser.js):
+ * stylesheets built as the images build them (npm run build:css in
+ * packages/Home, npm run build-docs-css in packages/App) and the docs'
+ * mermaid built (node packages/Common/Scripts/build-mermaid-browser.js):
  * Lighthouse/README.md.
  */
 const port: string = process.env["LIGHTHOUSE_PORT"] || "4800";

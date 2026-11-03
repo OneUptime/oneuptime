@@ -435,6 +435,16 @@ const RECORD_PAGES: Array<RecordPage> = [
     identifier: "hostIdentifier",
   },
   {
+    name: "Docker Swarm cluster",
+    overview: "Pages/DockerSwarm/View/Index.tsx",
+    model: "DockerSwarmCluster",
+    title: "Cluster Details",
+    settings: "Pages/DockerSwarm/View/Settings.tsx",
+    settingsPage: "DOCKER_SWARM_CLUSTER_VIEW_SETTINGS",
+    // The telemetry matches it by its name, which the hero says.
+    identifier: null,
+  },
+  {
     name: "Kubernetes cluster",
     overview: "Pages/Kubernetes/View/Index.tsx",
     model: "KubernetesCluster",

@@ -2,9 +2,11 @@
 
 En Docker Swarm-monitor overvåker containerne bak tjenesteoppgavene i en Swarm-klynge og sier fra når en oppgave starter på nytt, går varm eller går tom for minne. Den leser containermetrikkene som OneUptimes Docker Swarm-agent sender, så ingenting undersøkes utenfra: installer agenten, og opprett deretter monitoren fra en mal eller din egen spørring.
 
+Fra versjon 0.161.3 av filene sender agenten også hvert minutt swarmens egen tilstand, så en monitor kan overvåke selve nodene og tjenestene: en node som ikke er klar, eller en tjeneste som kjører færre replikaer enn den vil.
+
 :::cards
 - [Opprett monitoren](#opprett-en-docker-swarm-monitor): Seks trinn i dashbordet.
-- [Maler](#ferdige-varslingsmaler): Fem ferdige varsler, én hendelse per oppgave.
+- [Maler](#ferdige-varslingsmaler): Sju ferdige varsler, én hendelse per node, tjeneste eller oppgave.
 - [Metrikker](#innsamlede-metrikker): Containermetrikkene du kan varsle på.
 - [Filtre](#monitorinnstillinger): Snevre inn en monitor til en tjeneste, en oppgave eller et bilde.
 :::
@@ -12,6 +14,8 @@ En Docker Swarm-monitor overvåker containerne bak tjenesteoppgavene i en Swarm-
 ## Slik fungerer det
 
 OneUptimes Docker Swarm-agent kjører på en managernode. Innsamleren leser containerstatistikk fra nodens Docker-daemon hvert 30. sekund, stempler hver bunke med klyngens navn, `docker.swarm.cluster.name`, og metrikkene til hver oppgave med oppgavens tjeneste og node. En liten inventarpoller ved siden av leser klyngens noder, tjenester og oppgaver fra Swarm-API-et hvert 5. minutt. De første dataene registrerer klyngen i OneUptime.
+
+Hvert minutt leser polleren også fra manageren om hver node er klar, og hvor mange replikaer hver tjeneste vil ha og kjører, og sender det som metrikker. Slik hører **Node Not Ready** og **Service Replicas Mismatch** om en node eller en tjeneste i trøbbel innen et minutt eller to, ikke fem.
 
 Innsamleren ser bare containere på noden den kjører på. For å få metrikker fra hver node kjører du innsamleren på hver node med samme `DOCKER_SWARM_CLUSTER_NAME`.
 
@@ -92,15 +96,17 @@ Klikk på **Opprett monitor**. OneUptime åpner monitorens side og evaluerer den
 
 ## Ferdige varslingsmaler
 
-Listen under **Hva det skal varsles om** tilbyr fem maler. Hver bygger en komplett monitor: en spørring, et kriterium som utløses, og et som gjenoppretter. Alle maler unntatt **Cluster Stopped Reporting** grupperer spørringen sin etter `resource.container.name`, så hver oppgave vurderes for seg og får sin egen hendelse og sitt eget varsel, der rotårsaken lister de berørte oppgavene og verdiene deres. Tersklene er utgangspunkter du kan redigere.
+Listen **Hva det skal varsles om** tilbyr sju maler. Hver bygger en komplett monitor: en spørring, et kriterium som utløses, og et som gjenoppretter. **Node Not Ready** grupperer spørringen per node, `resource.docker.swarm.node.name`, **Service Replicas Mismatch** per tjeneste, `resource.docker.swarm.service.name`, og oppgavemalene per `resource.container.name`, så hver node, tjeneste eller oppgave vurderes for seg og får sin egen hendelse og sitt eget varsel, der rotårsaken viser de berørte og verdiene deres. Tersklene er utgangspunkter du kan endre.
 
-Disse malene leser også bare Swarms oppgaver: en container som er startet på en annen måte på en node, blant dem agentens egen, telles ikke med. En spørring via **Custom Metric** eller **Avansert** leser alle containerne agenten rapporterer; filteret **Tjenestenavn** snevrer den inn til én tjenestes oppgaver.
+Oppgavemalene leser dessuten bare Swarms oppgaver: en container som er startet på en annen måte på en node, agentens egen inkludert, holdes utenfor. En **Custom Metric**- eller **Avansert**-spørring leser hver container agenten rapporterer; filteret **Tjenestenavn** begrenser den til én tjenestes oppgaver.
 
 Med mindre tabellen sier noe annet, utløses et kriterium bare når betingelsen gjelder i hvert minutt av vinduet, og det gjenoppretter 10 % forbi terskelen, slik at en verdi som svever ved grensen, ikke blafrer.
 
 | Mal | Alvorlighetsgrad | Overvåker | Utløses når | Gjenoppretter når |
 | --- | --- | --- | --- | --- |
 | Cluster Stopped Reporting | Kritisk | `container.memory.percent`, Count over alle containere i klyngen, siste 10 minutter | Ingen data i hele vinduet | Data kommer inn igjen |
+| Node Not Ready | Kritisk | `docker.swarm.node.ready`, Min per `resource.docker.swarm.node.name`, siste 5 minutter | Under 1 | På 1 |
+| Service Replicas Mismatch | Advarsel | `docker.swarm.service.replicas.desired` − `docker.swarm.service.replicas.running` (begge Avg) per `resource.docker.swarm.service.name`, siste 15 minutter | Over 0 | På eller under 0 |
 | Task Down (Low Uptime) | Kritisk | `container.uptime`, Min per oppgave, siste 1 minutt | En hvilken som helst verdi er under 60 sekunder | Hver verdi er på eller over 66 sekunder |
 | High Task CPU Usage | Advarsel | `container.cpu.utilization`, Avg per oppgave, siste 5 minutter | Over 80 (% av én kjerne) | På eller under 72 |
 | High Task Memory Usage | Advarsel | `container.memory.percent`, Avg per oppgave, siste 5 minutter | Over 85 % | På eller under 76,5 % |
@@ -114,9 +120,14 @@ Med mindre tabellen sier noe annet, utløses et kriterium bare når betingelsen 
 > [!NOTE]
 > **Task Down (Low Uptime)** utløses på én enkelt ung måling, fordi en omstart er en hendelse, ikke et nivå. Swarm gir en erstatningsoppgave en ny container, og dermed en ny serie, og derfor ser malen etter en oppetid under ett minutt i stedet for en 0. En utrulling eller en oppskalering utløser den også, og den opphører så snart de nye oppgavene har passert ett minutts oppetid. En oppgave som dør og ikke erstattes, sender ingenting, så den fanges ikke.
 
+> [!NOTE]
+> **Node Not Ready** og **Service Replicas Mismatch** leser seriene agentens inventarpoller sender fra en manager, fra versjon 0.161.3 av filene. En eldre agent sender ingen av dem, så begge malene har ingenting å lese og utløses aldri: [oppgrader agenten](/docs/telemetry/docker-swarm#oppgradere-agenten); et tegn ved versjonen i klyngens oversikt viser når den ligger bak. Service Replicas Mismatch venter femten minutter, så en rullerende oppdatering, som bytter ut en tjenestes oppgaver noen få om gangen, ikke varsler noen. En jobbtjeneste kjører oppgavene sine til de er ferdige, har ingen replikaer som kan mangle, og holdes utenfor.
+
 ## Innsamlede metrikker
 
 Agentens innsamler bruker OpenTelemetry-mottakeren `docker_stats`, så metrikkene er de vanlige containermetrikkene, én serie per oppgavecontainer. Det finnes ingen metrikker `docker_swarm_*`: noder, tjenester og oppgaver spores som inventar, på klyngens sider **Tjenester**, **Oppgaver**, **Noder** og relaterte sider.
+
+Ved siden av dem sender agentens inventarpoller fra versjon 0.161.3 av filene hvert minutt swarmens egen tilstand: de tre metrikkene under [Swarm](#swarm).
 
 ### CPU
 
@@ -146,6 +157,16 @@ Agentens innsamler bruker OpenTelemetry-mottakeren `docker_stats`, så metrikken
 | `container.uptime` | sekunder | Hvor lenge en oppgaves container har kjørt. En oppgave som planlegges på nytt eller startes på nytt, starter en ny container på 0. |
 
 Hver serie bærer containerens identitet som ressursattributter: `resource.container.name` (`<service>.<slot>.<taskid>`), `resource.container.image.name`, `resource.docker.swarm.service.name`, `resource.docker.swarm.node.id`, `resource.docker.swarm.node.name` (når agenten kjenner nodens navn) og `resource.docker.swarm.cluster.name`.
+
+### Swarm
+
+| Metrikk | Enhet | Beskrivelse |
+| --- | --- | --- |
+| `docker.swarm.node.ready` | — | Om en node er klar, slik managerne ser den: 1 mens den er det, 0 mens den er nede, frakoblet eller ukjent. Én serie per node. |
+| `docker.swarm.service.replicas.desired` | count | Oppgavene en replikert eller global tjeneste vil ha kjørende: replikaene, eller for en global tjeneste nodene den skal kjøre på. Én serie per tjeneste. |
+| `docker.swarm.service.replicas.running` | count | Oppgavene til tjenesten som kjører. Under ønsket antall mangler tjenesten replikaer. |
+
+Serien til en node bærer `resource.docker.swarm.node.name`, `resource.docker.swarm.node.id` og `resource.docker.swarm.node.role`; serien til en tjeneste bærer `resource.docker.swarm.service.name`, `resource.docker.swarm.service.mode` og, i en stack, `resource.docker.swarm.stack.namespace`. Begge bærer `resource.docker.swarm.cluster.name`.
 
 ## Overvåkingskriterier
 
@@ -193,6 +214,10 @@ Innsamleren leser Docker-daemonen på noden den kjører på, så den ser bare op
 
 :::details Hver oppgave vises som én serie
 Grupper etter ressursattributten `resource.container.name`, slik malene gjør. Den nakne `container.name` samsvarer med ingenting, så alle oppgavene slås sammen til én serie med et tomt navn.
+:::
+
+:::details Node Not Ready eller Service Replicas Mismatch utløses aldri
+Begge leser seriene agentens inventarpoller sender fra versjon 0.161.3 av filene, og bare fra en manager: [oppgrader agenten](/docs/telemetry/docker-swarm#oppgradere-agenten), og sjekk at inventarpolleren kjører på en manager (`docker node ls` må lykkes der). Klyngens side **Målinger** viser om `docker.swarm.node.ready` kommer inn.
 :::
 
 ## Neste trinn

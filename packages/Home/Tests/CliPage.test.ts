@@ -24,11 +24,13 @@ import {
   CliInvocation,
   CliManifest,
   CliOption,
+  CliOptionGiven,
   CliProgram,
   CliResource,
   RESOURCE,
   REPOSITORY_ROOT,
   enumValues,
+  jsonOption,
   optionValue,
   outputOption,
   readCliManifest,
@@ -181,7 +183,7 @@ const resourceNamed: (name: string) => CliResource = (
 const operationsOf: (name: string) => Array<string> = (
   name: string,
 ): Array<string> => {
-  return program.operationsByType[resourceNamed(name).type] || [];
+  return resourceNamed(name).operations;
 };
 
 // The words of a page command after "oneuptime", for the CLI.
@@ -344,9 +346,14 @@ describe("the CLI as its sources define it", () => {
         "resources",
         "version",
         "help",
+        "deploy",
         `${RESOURCE} list`,
         `${RESOURCE} update`,
         `${RESOURCE} count`,
+        `${RESOURCE} fields`,
+        `${RESOURCE} acknowledge`,
+        `${RESOURCE} resolve`,
+        `${RESOURCE} add-note`,
       ]),
     );
     expect(
@@ -359,10 +366,11 @@ describe("the CLI as its sources define it", () => {
         "--url <url>",
         "--context <name>",
         "-o, --output <format>",
+        "--json",
         "--no-color",
       ]),
     );
-    expect(program.operationsByType["database"]).toEqual([
+    expect(resourceNamed("incident").operations).toEqual([
       "list",
       "get",
       "create",
@@ -370,13 +378,51 @@ describe("the CLI as its sources define it", () => {
       "delete",
       "count",
     ]);
-    expect(program.operationsByType["analytics"]).toEqual([
-      "list",
-      "create",
-      "count",
+    expect(resourceNamed("incident").actions).toEqual([
+      "acknowledge",
+      "resolve",
+      "add-note",
     ]);
+    expect(resourceNamed("monitor").actions).toEqual([]);
+    expect(resourceNamed("log").operations).toEqual(
+      expect.arrayContaining(["list", "count"]),
+    );
     expect(outputOption().choices).toEqual(enumValues("OutputFormat"));
     expect(outputOption().choices).toEqual(["json", "table", "wide"]);
+    expect([jsonOption().flags, jsonOption().takesValue]).toEqual([
+      "--json",
+      false,
+    ]);
+
+    // Every command that prints takes both, a resource's subcommands too.
+    for (const path of ["login", "context list", `${RESOURCE} get`]) {
+      const command: CliCommand | undefined = program.commands.find(
+        (candidate: CliCommand): boolean => {
+          return candidate.path === path;
+        },
+      );
+
+      expect([
+        path,
+        command?.options.map((option: CliOption): string => {
+          return option.flags;
+        }),
+      ]).toEqual([
+        path,
+        expect.arrayContaining(["-o, --output <format>", "--json"]),
+      ]);
+    }
+
+    // --all is a records' list's alone: it is added inside an `if`.
+    const listAll: CliOption | undefined = program.commands
+      .find((command: CliCommand): boolean => {
+        return command.path === `${RESOURCE} list`;
+      })
+      ?.options.find((option: CliOption): boolean => {
+        return option.flags === "--all";
+      });
+
+    expect(listAll?.onlySome).toBe(true);
 
     for (const [name, type] of [
       ["monitor", "database"],
@@ -391,13 +437,13 @@ describe("the CLI as its sources define it", () => {
 
   test("refuses what Commander refuses, so a wrong command on the page fails here", () => {
     for (const [words, refusal] of [
-      [["monitor", "status", "x"], "has no operation status"],
-      [["incident", "acknowledge", "x"], "has no operation acknowledge"],
-      [["log", "get", "x"], "has no operation get"],
+      [["monitor", "status", "x"], "has no subcommand status"],
+      [["monitor", "acknowledge", "x"], "has no subcommand acknowledge"],
+      [["log", "resolve", "x"], "has no subcommand resolve"],
       [["incident", "list", "--state", "active"], "Unknown option --state"],
       [["monitor", "create", "--query", "{}"], "has no option --query"],
       [["incident", "list", "-o", "yaml"], "takes json, table, wide"],
-      [["incident", "update", "x"], "needs --data <json>"],
+      [["incident", "add-note", "x"], "needs --note <markdown>"],
       [["incident", "get"], "not 0 arguments"],
       [["login", "only-a-key"], "not 1 arguments"],
       [["status"], "No command status"],
@@ -515,14 +561,37 @@ describe("every command on the page", () => {
           continue;
         }
 
+        const modelFile: string | null = (invocation.resource as CliResource)
+          .modelFile;
+
+        expect([name, modelFile]).not.toEqual([name, null]);
         expect([
           name,
           undeclaredFields(
-            (invocation.resource as CliResource).modelFile,
+            modelFile as string,
             JSON.parse(value) as JSONObject,
           ),
         ]).toEqual([name, []]);
       }
+    },
+  );
+
+  /*
+   * An option added inside an `if` is only some resources' (--all, records
+   * only): the reading does not tell which, so it may not stand on the page.
+   */
+  test.each(pageCommands)(
+    "%s gives no option only some resources have",
+    (_label: string, text: string) => {
+      expect(
+        invocationOf(text)
+          .options.filter((given: CliOptionGiven): boolean => {
+            return given.option.onlySome;
+          })
+          .map((given: CliOptionGiven): string => {
+            return given.name;
+          }),
+      ).toEqual([]);
     },
   );
 

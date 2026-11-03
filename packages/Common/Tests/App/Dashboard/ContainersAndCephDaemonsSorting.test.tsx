@@ -38,6 +38,7 @@ const MODEL_ID: string = "0193c0de-4444-4aaa-8bbb-000000000004";
 const getItemMock: MockFunction = getJestMockFunction();
 const modelGetListMock: MockFunction = getJestMockFunction();
 const analyticsGetListMock: MockFunction = getJestMockFunction();
+const analyticsAggregateMock: MockFunction = getJestMockFunction();
 
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
@@ -59,6 +60,10 @@ jest.mock("../../../UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI", () => {
     default: {
       getList: (...args: Array<unknown>) => {
         return analyticsGetListMock(...args);
+      },
+      // The containers' restarts in the last 15 minutes.
+      aggregate: (...args: Array<unknown>) => {
+        return analyticsAggregateMock(...args);
       },
     },
   };
@@ -123,6 +128,9 @@ beforeEach(() => {
   getItemMock.mockReset();
   modelGetListMock.mockReset();
   analyticsGetListMock.mockReset();
+  analyticsAggregateMock.mockReset();
+  // No restart counts unless a test serves them (serveRestarts).
+  analyticsAggregateMock.mockResolvedValue({ data: [] });
 });
 
 afterEach(() => {
@@ -341,6 +349,37 @@ function serveContainers(containers: Array<ContainerFixture>): void {
   });
 }
 
+// Each container's restarts in the last 15 minutes, as the aggregate answers.
+function serveRestarts(restarts: Record<string, number>): void {
+  analyticsAggregateMock.mockResolvedValue({
+    data: Object.entries(restarts).map(
+      ([name, value]: [string, number]): Record<string, unknown> => {
+        return {
+          value: value,
+          attributes: { "resource.container.name": name },
+        };
+      },
+    ),
+  });
+}
+
+// The containers' inventory rows: when each one's current run started.
+function serveStarts(startedSecondsAgo: Record<string, number>): void {
+  modelGetListMock.mockResolvedValue({
+    data: Object.entries(startedSecondsAgo).map(
+      ([name, seconds]: [string, number]): Record<string, unknown> => {
+        return {
+          kind: "Container",
+          name: name,
+          resourceCreationTimestamp: secondsAgo(seconds),
+          metricsUpdatedAt: secondsAgo(15),
+          lastSeenAt: secondsAgo(15),
+        };
+      },
+    ),
+  });
+}
+
 // `count` containers, each busier than the one before it.
 function containersBusierInTurn(count: number): Array<ContainerFixture> {
   return numberedNames("container", count).map(
@@ -373,15 +412,19 @@ const CONTAINER_LISTS: Array<ContainerList> = [
   },
 ];
 
-// Name, image, CPU, memory, memory %, RX, TX, then the actions.
+/*
+ * Name, status, image, CPU, memory (its share, the amount under it),
+ * restarts, last started, then the actions. A container's network totals
+ * are on its own page.
+ */
 const CONTAINER_COLUMN_INDEX: Record<string, number> = {
   "Container Name": 0,
-  Image: 1,
-  CPU: 2,
-  Memory: 3,
-  "Memory %": 4,
-  "Network RX (total)": 5,
-  "Network TX (total)": 6,
+  Status: 1,
+  Image: 2,
+  CPU: 3,
+  Memory: 4,
+  "Restarts (15 min)": 5,
+  "Last Started": 6,
 };
 
 interface ExpectedOrder {
@@ -400,55 +443,27 @@ const METRIC_COLUMN_CASES: Array<MetricColumnCase> = [
     title: "CPU",
     busiestFirst: {
       names: ["batch-10", "batch-9", "api", "web", "cache"],
-      cells: ["250.00%", "12.35%", "9.00%", "0.50%", "—"],
+      cells: ["250.0%", "12.3%", "9.0%", "0.5%", "—"],
     },
     quietestFirst: {
       names: ["web", "api", "batch-9", "batch-10", "cache"],
-      cells: ["0.50%", "9.00%", "12.35%", "250.00%", "—"],
+      cells: ["0.5%", "9.0%", "12.3%", "250.0%", "—"],
     },
   },
+  /*
+   * By its share of its limit (or of the host's memory), the amount under
+   * it: as a share 1.5 GB of a large limit is lighter than 900 MB of a small
+   * one. cache sent an amount but no share: last either way.
+   */
   {
     title: "Memory",
     busiestFirst: {
-      names: ["api", "batch-9", "cache", "batch-10", "web"],
-      cells: ["1.5 GB", "900 MB", "300 MB", "50.0 MB", "—"],
-    },
-    quietestFirst: {
-      names: ["batch-10", "cache", "batch-9", "api", "web"],
-      cells: ["50.0 MB", "300 MB", "900 MB", "1.5 GB", "—"],
-    },
-  },
-  {
-    title: "Memory %",
-    busiestFirst: {
       names: ["batch-9", "api", "web", "batch-10", "cache"],
-      cells: ["80.00%", "37.50%", "12.00%", "2.25%", "—"],
+      cells: ["80.0%900 MB", "37.5%1.5 GB", "12.0%", "2.3%50.0 MB", "—300 MB"],
     },
     quietestFirst: {
       names: ["batch-10", "web", "api", "batch-9", "cache"],
-      cells: ["2.25%", "12.00%", "37.50%", "80.00%", "—"],
-    },
-  },
-  {
-    title: "Network RX (total)",
-    busiestFirst: {
-      names: ["batch-10", "batch-9", "api", "web", "cache"],
-      cells: ["5.0 GB", "2.0 KB", "1000 B", "0 B", "—"],
-    },
-    quietestFirst: {
-      names: ["web", "api", "batch-9", "batch-10", "cache"],
-      cells: ["0 B", "1000 B", "2.0 KB", "5.0 GB", "—"],
-    },
-  },
-  {
-    title: "Network TX (total)",
-    busiestFirst: {
-      names: ["cache", "web", "api", "batch-10", "batch-9"],
-      cells: ["100 MB", "1.0 MB", "3.0 KB", "512 B", "—"],
-    },
-    quietestFirst: {
-      names: ["batch-10", "api", "web", "cache", "batch-9"],
-      cells: ["512 B", "3.0 KB", "1.0 MB", "100 MB", "—"],
+      cells: ["2.3%50.0 MB", "12.0%", "37.5%1.5 GB", "80.0%900 MB", "—300 MB"],
     },
   },
 ];
@@ -478,12 +493,12 @@ describe.each(CONTAINER_LISTS)(
       ]);
       expect(announcedSorts(list.tableId)).toEqual({
         "Container Name": "ascending",
+        Status: "none",
         Image: "none",
         CPU: "none",
         Memory: "none",
-        "Memory %": "none",
-        "Network RX (total)": "none",
-        "Network TX (total)": "none",
+        "Restarts (15 min)": "none",
+        "Last Started": "none",
       });
     });
 
@@ -535,10 +550,10 @@ describe.each(CONTAINER_LISTS)(
 
       expect(ariaSortOf(list.tableId, "CPU")).toBe("ascending");
 
-      // ...and Memory % still opens on the heaviest user, not the lightest.
-      await clickHeader(list.tableId, "Memory %");
+      // ...and Memory still opens on the heaviest user, not the lightest.
+      await clickHeader(list.tableId, "Memory");
 
-      expect(ariaSortOf(list.tableId, "Memory %")).toBe("descending");
+      expect(ariaSortOf(list.tableId, "Memory")).toBe("descending");
       expect(ariaSortOf(list.tableId, "CPU")).toBe("none");
       expect(visibleNames()).toEqual([
         "batch-9",
@@ -584,6 +599,92 @@ describe.each(CONTAINER_LISTS)(
       ]);
     });
 
+    test("Status puts the most urgent first: a restart loop, a restart, then the rest by name", async () => {
+      serveContainers(FIVE_CONTAINERS);
+      serveRestarts({ web: 2, "batch-9": 5, api: 0 });
+      await renderPage(list.Page);
+
+      await clickHeader(list.tableId, "Status");
+
+      expect(ariaSortOf(list.tableId, "Status")).toBe("ascending");
+      expect(visibleNames()).toEqual([
+        "batch-9",
+        "web",
+        "api",
+        "batch-10",
+        "cache",
+      ]);
+      expect(visibleCells("Status")).toEqual([
+        "Restart loop5 restarts in 15 minutes",
+        "Running2 restarts in 15 minutes",
+        "Running",
+        "Running",
+        "Running",
+      ]);
+    });
+
+    test("Restarts sorts the most first, and a container the count left out reads 0", async () => {
+      serveContainers(FIVE_CONTAINERS);
+      serveRestarts({ web: 2, "batch-9": 5 });
+      await renderPage(list.Page);
+
+      await clickHeader(list.tableId, "Restarts (15 min)");
+
+      expect(ariaSortOf(list.tableId, "Restarts (15 min)")).toBe("descending");
+      expect(visibleNames()).toEqual([
+        "batch-9",
+        "web",
+        "api",
+        "batch-10",
+        "cache",
+      ]);
+      expect(visibleCells("Restarts (15 min)")).toEqual([
+        "5",
+        "2",
+        "0",
+        "0",
+        "0",
+      ]);
+    });
+
+    test("without restart counts (an older agent), every Restarts cell is missing, never 0", async () => {
+      serveContainers(FIVE_CONTAINERS);
+      await renderPage(list.Page);
+
+      expect(visibleCells("Restarts (15 min)")).toEqual([
+        "—",
+        "—",
+        "—",
+        "—",
+        "—",
+      ]);
+    });
+
+    test("Last Started sorts the newest run first, with an unknown start last", async () => {
+      serveContainers(FIVE_CONTAINERS);
+      // Well inside each unit, so a read's timing never tips a boundary.
+      serveStarts({ api: 3.5 * 60 * 60, web: 100, cache: 2.5 * 24 * 60 * 60 });
+      await renderPage(list.Page);
+
+      await clickHeader(list.tableId, "Last Started");
+
+      expect(ariaSortOf(list.tableId, "Last Started")).toBe("descending");
+      expect(visibleNames()).toEqual([
+        "web",
+        "api",
+        "cache",
+        "batch-9",
+        "batch-10",
+      ]);
+      expect(visibleCells("Last Started")).toEqual([
+        "2 minutes ago",
+        "3 hours ago",
+        "2 days ago",
+        "—",
+        "—",
+      ]);
+    });
+
     test("Container Name flips to Z to A", async () => {
       serveContainers(FIVE_CONTAINERS);
       await renderPage(list.Page);
@@ -621,21 +722,29 @@ describe.each(CONTAINER_LISTS)(
       await renderPage(list.Page);
       await clickHeader(list.tableId, "Memory");
 
-      expect(visibleNames()[0]).toBe("api");
+      expect(visibleNames()[0]).toBe("batch-9");
 
-      // api restarted and is light again; cache took the memory.
+      // batch-9 restarted and is light again; cache took the memory.
       serveContainers(
         FIVE_CONTAINERS.map((container: ContainerFixture): ContainerFixture => {
-          if (container.name === "api") {
+          if (container.name === "batch-9") {
             return {
               ...container,
-              readings: { ...container.readings, [MEMORY_METRIC]: 10 * MB },
+              readings: {
+                ...container.readings,
+                [MEMORY_METRIC]: 10 * MB,
+                [MEMORY_PERCENT_METRIC]: 1,
+              },
             };
           }
           if (container.name === "cache") {
             return {
               ...container,
-              readings: { ...container.readings, [MEMORY_METRIC]: 2 * GB },
+              readings: {
+                ...container.readings,
+                [MEMORY_METRIC]: 2 * GB,
+                [MEMORY_PERCENT_METRIC]: 95,
+              },
             };
           }
           return container;
@@ -646,17 +755,17 @@ describe.each(CONTAINER_LISTS)(
       expect(ariaSortOf(list.tableId, "Memory")).toBe("descending");
       expect(visibleNames()).toEqual([
         "cache",
-        "batch-9",
-        "batch-10",
         "api",
         "web",
+        "batch-10",
+        "batch-9",
       ]);
       expect(visibleCells("Memory")).toEqual([
-        "2.0 GB",
-        "900 MB",
-        "50.0 MB",
-        "10.0 MB",
-        "—",
+        "95.0%2.0 GB",
+        "37.5%1.5 GB",
+        "12.0%",
+        "2.3%50.0 MB",
+        "1.0%10.0 MB",
       ]);
     });
   },
@@ -687,16 +796,19 @@ interface DaemonFixture {
   hostname?: string;
   version?: string;
   inQuorum?: boolean;
-  // How long ago it last reported; past 15 minutes it is Stale.
+  /*
+   * How long ago it last reported. The others report a minute ago, so one
+   * the reports have left out for more than 5 minutes is Stopped reporting.
+   */
   lastSeenSecondsAgo?: number;
 }
 
 const STALE: number = 30 * 60;
 
 /*
- * Out of quorum (red), stale (yellow) and healthy (green) daemons, on hosts
- * and versions whose numbers do not sort as text: as text ceph-node-10 comes
- * before ceph-node-3, and 18.2.10 before 18.2.4.
+ * Out of quorum (red), stopped reporting (grey) and healthy (green)
+ * daemons, on hosts and versions whose numbers do not sort as text: as text
+ * ceph-node-10 comes before ceph-node-3, and 18.2.10 before 18.2.4.
  */
 const EIGHT_DAEMONS: Array<DaemonFixture> = [
   {
@@ -772,6 +884,10 @@ function visibleDaemonCells(title: string): Array<string> {
 }
 
 describe("sorting the Ceph Daemons list", () => {
+  /*
+   * Each kind by Ceph's own name: Ceph Manager, Ceph Monitor, Metadata
+   * Server, Object Gateway.
+   */
   test("opens grouped by kind, each kind A to Z, and its header says so", async () => {
     serveDaemons(EIGHT_DAEMONS);
     await renderPage(CephClusterDaemons);
@@ -779,10 +895,10 @@ describe("sorting the Ceph Daemons list", () => {
     expect(visibleDaemons()).toEqual([
       "mgr.x",
       "mgr.y",
-      "mds.a",
       "mon.a",
       "mon.b",
       "mon.c",
+      "mds.a",
       "rgw.2",
       "rgw.10",
     ]);
@@ -856,16 +972,16 @@ describe("sorting the Ceph Daemons list", () => {
     expect(visibleDaemons()).toEqual([
       "rgw.2",
       "rgw.10",
+      "mds.a",
       "mon.a",
       "mon.b",
       "mon.c",
-      "mds.a",
       "mgr.x",
       "mgr.y",
     ]);
   });
 
-  test("Status puts the worst first - out of quorum, then stale, then healthy - not A to Z", async () => {
+  test("Status puts the worst first - out of quorum, then stopped reporting, then healthy - not A to Z", async () => {
     serveDaemons(EIGHT_DAEMONS);
     await renderPage(CephClusterDaemons);
 
@@ -875,8 +991,8 @@ describe("sorting the Ceph Daemons list", () => {
     // Within a status, the order the list opens on: by kind, then name.
     expect(visibleDaemons()).toEqual([
       "mon.b",
-      "mds.a",
       "mon.c",
+      "mds.a",
       "mgr.x",
       "mgr.y",
       "mon.a",
@@ -884,12 +1000,12 @@ describe("sorting the Ceph Daemons list", () => {
       "rgw.10",
     ]);
     expect(visibleDaemonCells("Status")).toEqual([
-      "Out of Quorum",
-      "Stale",
-      "Stale",
+      "Out of quorum",
+      "Stopped reporting",
+      "Stopped reporting",
       "Reporting",
       "Reporting",
-      "In Quorum",
+      "In quorum",
       "Reporting",
       "Reporting",
     ]);
@@ -903,8 +1019,8 @@ describe("sorting the Ceph Daemons list", () => {
       "mon.a",
       "rgw.2",
       "rgw.10",
-      "mds.a",
       "mon.c",
+      "mds.a",
       "mon.b",
     ]);
   });
@@ -919,8 +1035,8 @@ describe("sorting the Ceph Daemons list", () => {
     expect(visibleDaemons()).toEqual([
       "mgr.x",
       "mon.b",
-      "mds.a",
       "mon.a",
+      "mds.a",
       "mon.c",
       "rgw.2",
       "rgw.10",
@@ -954,8 +1070,8 @@ describe("sorting the Ceph Daemons list", () => {
       "rgw.10",
       "mon.c",
       "rgw.2",
-      "mds.a",
       "mon.a",
+      "mds.a",
       "mgr.x",
       "mon.b",
       "mgr.y",
@@ -1008,7 +1124,7 @@ describe("sorting the Ceph Daemons list", () => {
   test("a sort spans every page, and starts the reader again from page one", async () => {
     /*
      * Thirty daemons, opening on managers, metadata servers, monitors and
-     * then 23 gateways - one of the gateways on page two has gone stale.
+     * then 23 gateways - one of the gateways on page two stopped reporting.
      */
     const thirty: Array<DaemonFixture> = [
       { name: "mgr.x" },
@@ -1041,6 +1157,6 @@ describe("sorting the Ceph Daemons list", () => {
 
     expect(pagingSummary()).toBe("Showing 1-25 of 30 daemons");
     expect(visibleDaemons().slice(0, 3)).toEqual(["rgw.20", "mgr.x", "mgr.y"]);
-    expect(visibleDaemonCells("Status")[0]).toBe("Stale");
+    expect(visibleDaemonCells("Status")[0]).toBe("Stopped reporting");
   });
 });

@@ -513,11 +513,16 @@ const EmbeddedMetricCard: FunctionComponent<ComponentProps> = (
   /*
    * Long titles truncate instead of pushing the action row onto the next
    * line — Card gives the title column min-w-0, so a block/truncate
-   * wrapper is all that's needed.
+   * wrapper is all that's needed. Card translates a title it is handed as
+   * words, not one inside an element, so the words are looked up here.
    */
   const truncatedTitle: ReactElement | undefined =
     props.title !== undefined ? (
-      <span className="block truncate">{props.title}</span>
+      <span className="block truncate">
+        {typeof props.title === "string"
+          ? translator.translateText(props.title) || props.title
+          : props.title}
+      </span>
     ) : undefined;
 
   return withZoom(

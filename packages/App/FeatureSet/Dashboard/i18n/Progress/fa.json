@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40622,
-    "untranslated": 12547
+    "keys": 40861,
+    "untranslated": 12138
   },
   "sameAsEnglish": [
     "2xx",
@@ -9,6 +9,7 @@
     "412 GB",
     "4xx",
     "5xx",
+    "Active + Clean",
     "Apache Kafka · kafka-1:9092",
     "Brute force detected",
     "CPU Ready",
@@ -20,6 +21,8 @@
     "Datastore",
     "Deployment",
     "Docker Compose",
+    "Down + In",
+    "Down + Out",
     "Edge",
     "Google Calendar",
     "Google SecOps",
@@ -47,6 +50,7 @@
     "PV",
     "PVC",
     "Passthrough",
+    "Placement Groups",
     "Pool",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
     "Re-encrypt",
@@ -60,6 +64,8 @@
     "TLS",
     "Top P",
     "UTC",
+    "Up + In",
+    "Up + Out",
     "VLAN",
     "VM 101 · pve1",
     "VM 102 · pve2",
@@ -86,6 +92,7 @@
     "main",
     "message",
     "name",
+    "ops/s",
     "p95",
     "p95 {{latency}}",
     "prod, staging",
@@ -101,7 +108,9 @@
     "vCenter",
     "vSphere Client",
     "z",
+    "{{count}} CPU",
     "{{count}} VM",
-    "{{count}} datastore"
+    "{{count}} datastore",
+    "{{in}} in"
   ]
 }

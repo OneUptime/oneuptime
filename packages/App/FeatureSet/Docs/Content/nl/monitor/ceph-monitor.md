@@ -64,7 +64,7 @@ Kies onder **Ceph Monitor Configuration** het cluster in **Ceph-cluster**. Elk c
 Een nieuwe monitor begint met **Cluster Stopped Reporting**, onder **Waarover te waarschuwen**. Om iets anders te bewaken:
 
 - **Wijzigen** — kies een ander [sjabloon](#kant-en-klare-waarschuwingssjablonen). Dat stelt de metrics, filters, aggregatie, het tijdsbereik en de drempels in, en vervangt de criteria hieronder door die van het sjabloon. Het **Tijdsbereik** kun je nog wijzigen.
-- **Custom Metric** (onder **Meer velden**) — kies één metric in **Ceph Metric** en stel daarna **Aggregatie** en **Tijdsbereik** in. **OSD** en **Pool ID** beperken hem tot één daemon of pool. Een metric die per pool of per daemon wordt bijgehouden, wordt pool voor pool of daemon voor daemon beoordeeld, met één incident per stuk.
+- **Custom Metric** (onder **Meer velden**) — kies één metric in **Ceph Metric** en stel daarna **Aggregatie** en **Tijdsbereik** in. **OSD** en **Pool-ID** beperken hem tot één daemon of pool. Een metric die per pool of per daemon wordt bijgehouden, wordt pool voor pool of daemon voor daemon beoordeeld, met één incident per stuk.
 - **Geavanceerd** (onder **Meer velden**) — bouw zelf query's en formules onder **Selecteer metrieken**, bijvoorbeeld een verhouding van gebruikte capaciteit uit `ceph_cluster_total_used_bytes / ceph_cluster_total_bytes`. Gebruik **Groeperen op** `ceph_daemon` of `pool_id` om elke daemon of pool afzonderlijk te beoordelen.
 
 ### De criteria controleren
@@ -85,7 +85,7 @@ Klik op **Monitor maken**. OneUptime opent de pagina van de monitor en evalueert
 | --- | --- | --- |
 | **Ceph-cluster** | Alle | Verplicht. Beperkt elke query tot `resource.ceph.cluster.name`. |
 | **OSD** | Custom Metric, Geavanceerd | Optioneel. Exacte overeenkomst op het label `ceph_daemon`, bijvoorbeeld `osd.3`. |
-| **Pool ID** | Custom Metric, Geavanceerd | Optioneel. Exacte overeenkomst op het label `pool_id`, bijvoorbeeld `2`. |
+| **Pool-ID** | Custom Metric, Geavanceerd | Optioneel. Exacte overeenkomst op het label `pool_id`, bijvoorbeeld `2`. |
 | **Ceph Metric** | Custom Metric | Eén metric uit de [catalogus](#verzamelde-metrics). |
 | **Aggregatie** | Custom Metric | Hoe meetwaarden worden gecombineerd: **Gemiddelde**, **Maximum** of **Minimum**. Begint bij de gebruikelijke aggregatie van de metric. Een som of een telling zou elke scrape in een minuut optellen, dus die blijven over voor **Geavanceerd**. |
 | **Tijdsbereik** | Alle | Het voortschuivende venster dat de query leest, van **Past 1 Minute** tot **Past 365 Days**. Een nieuwe monitor begint bij **Past 1 Minute**; sjablonen stellen hun eigen waarde in. |

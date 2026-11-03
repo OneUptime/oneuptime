@@ -32,7 +32,7 @@ flowchart TB
 ## Avant de commencer
 
 - **Installez le Storage Array Agent** là où il peut joindre la baie en HTTPS, avec le jeton d'API d'un utilisateur qui a le rôle **readonly** de la baie. Le [guide du Storage Array Agent](/docs/telemetry/storage-arrays) couvre l'utilisateur, le jeton et l'installation, via `ONEUPTIME_URL`, `ONEUPTIME_TELEMETRY_INGESTION_KEY`, `STORAGE_ARRAY_NAME`, ainsi que l'adresse et le jeton de la baie (`PURE_FA_ENDPOINT` et `PURE_FA_API_TOKEN`, ou `PURE_FB_ENDPOINT` et `PURE_FB_API_TOKEN`).
-- **Vérifiez que la baie est enregistrée.** Elle apparaît sous **Produits → Infrastructure → Baies de stockage → All Storage Arrays**, sous le nom du `STORAGE_ARRAY_NAME` de l'agent, environ une minute après la première collecte.
+- **Vérifiez que la baie est enregistrée.** Elle apparaît sous **Produits → Infrastructure → Baies de stockage → Toutes les baies de stockage**, sous le nom du `STORAGE_ARRAY_NAME` de l'agent, environ une minute après la première collecte.
 
 ## Créer un moniteur de baie de stockage
 
@@ -77,7 +77,7 @@ Cliquez sur **Créer un moniteur**. OneUptime ouvre la page du moniteur et l'év
 | **Volume** | Custom Metric, Avancé | FlashArray uniquement. Un volume, par le label `name`, comme `vol-db-01`. Un volume dans un pod ou un groupe de volumes est nommé `pod::volume` ou `group/volume`. |
 | **Hôte** | Custom Metric, Avancé | FlashArray uniquement. Un hôte tel que la baie le connaît, par le label `host`, comme `esxi-01`. |
 | **Pod** | Custom Metric, Avancé | FlashArray uniquement. Un pod ActiveCluster ou ActiveDR, par le label `name`, ou `local_pod` sur les séries de liens de réplication. |
-| **Hardware Component** | Custom Metric, Avancé | Un composant matériel, comme `CH0.BAY1` ou `CT0` : le label `component_name` sur un FlashArray, `name` sur un FlashBlade. |
+| **Composant matériel** | Custom Metric, Avancé | Un composant matériel, comme `CH0.BAY1` ou `CT0` : le label `component_name` sur un FlashArray, `name` sur un FlashBlade. |
 | **Système de fichiers** | Custom Metric, Avancé | FlashBlade uniquement. Un système de fichiers, par le label `name`. |
 | **Bucket** | Custom Metric, Avancé | FlashBlade uniquement. Un bucket de stockage objet, par le label `name`. |
 | **Storage Array Metric** | Custom Metric | Une métrique du [catalogue](#métriques-collectées). Le formulaire ajoute le filtre de label qui lui donne son sens, et la regroupe par l'objet qu'elle décrit, de sorte que chaque volume, hôte ou composant est jugé séparément. |

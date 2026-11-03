@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40622,
-    "untranslated": 12565
+    "keys": 40861,
+    "untranslated": 12156
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -10,6 +10,7 @@
     "412 GB",
     "4xx",
     "5xx",
+    "Active + Clean",
     "Apache Kafka · kafka-1:9092",
     "Brute force detected",
     "CPU Ready",
@@ -19,7 +20,10 @@
     "DE",
     "DeploymentConfigs",
     "Docker Compose",
+    "Down + In",
+    "Down + Out",
     "Edge",
+    "Golden Signals",
     "Google SecOps",
     "HA: {{state}}",
     "Hello world",
@@ -43,10 +47,12 @@
     "OK",
     "OSD",
     "OpenShift",
+    "PGs",
     "PR #{{number}}",
     "PV",
     "PVC",
     "Passthrough",
+    "Placement Groups",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
     "Push",
     "Re-encrypt",
@@ -59,6 +65,8 @@
     "TLS",
     "Top P",
     "UTC",
+    "Up + In",
+    "Up + Out",
     "VLAN",
     "VMID {{vmid}}",
     "VMware vCenter",
@@ -79,6 +87,7 @@
     "main",
     "message",
     "name",
+    "ops/s",
     "p90 (ms)",
     "p95",
     "p95 (ms)",
@@ -96,6 +105,8 @@
     "vApp {{name}}",
     "vCenter",
     "vSphere Client",
-    "z"
+    "z",
+    "{{count}} CPU",
+    "{{in}} in"
   ]
 }

@@ -338,16 +338,17 @@ const KINDS: Record<string, ResourceTopologyKindInfo> = {
     color: "#b91c1c",
     order: 10,
   },
+  // Ceph's own names: the bare words are OneUptime's monitors, a person's manager.
   "ceph.mon": {
-    label: translationKey("Monitor"),
-    plural: translationKey("Monitors"),
+    label: translationKey("Ceph Monitor"),
+    plural: translationKey("Ceph Monitors"),
     icon: IconProp.Eye,
     color: "#e11d48",
     order: 20,
   },
   "ceph.mgr": {
-    label: translationKey("Manager"),
-    plural: translationKey("Managers"),
+    label: translationKey("Ceph Manager"),
+    plural: translationKey("Ceph Managers"),
     icon: IconProp.Cog,
     color: "#be123c",
     order: 21,

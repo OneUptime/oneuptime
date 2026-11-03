@@ -21,11 +21,11 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
  * The Docker Swarm cluster pages, rendered for real in jsdom with only the
- * API and the router replaced: every count, field and column header that
- * shows a number has an (i), hovering it shows the text from
+ * API and the router replaced: every count, state, field and column header
+ * that needs explaining has an (i), hovering it shows the text from
  * DockerSwarmMetricDescriptions, and the (i) never sits inside another
- * control. The overview tiles used to be <button>s; they are now cards with
- * an overlay button, so the (i) can be reached and does not navigate.
+ * control. The Overview's counts are chips that open their lists, under one
+ * (i) that says what they count; its health pill has its own.
  *
  * Tippy under jsdom (see InfoTooltip.test.tsx): the popup is portalled to
  * document.body and queried through `screen`; it is lazy, so fake timers
@@ -35,9 +35,10 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 const CLUSTER_ID: string = "11111111-1111-4111-8111-111111111111";
 
 const getItemMock: MockFunction = getJestMockFunction();
-const getListMock: MockFunction = getJestMockFunction();
 const navigateMock: MockFunction = getJestMockFunction();
 let lastParam: string = "";
+// The inventory the DockerSwarmResource reads return; other reads are empty.
+let mockInventory: Array<unknown> = [];
 
 jest.mock("react-i18next", () => {
   return {
@@ -58,8 +59,21 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
       getItem: (...args: Array<unknown>) => {
         return getItemMock(...args);
       },
-      getList: (...args: Array<unknown>) => {
-        return getListMock(...args);
+      getList: (request: {
+        modelType: new () => { tableName?: string };
+      }): Promise<unknown> => {
+        const Model: new () => { tableName?: string } = request.modelType;
+        const data: Array<unknown> =
+          new Model().tableName === "DockerSwarmResource" ? mockInventory : [];
+        return Promise.resolve({
+          data: data,
+          count: data.length,
+          skip: 0,
+          limit: data.length,
+        });
+      },
+      getCommonHeaders: (): Record<string, string> => {
+        return {};
       },
     },
   };
@@ -87,6 +101,16 @@ jest.mock("../../../UI/Utils/Navigation", () => {
       },
       navigate: (...args: Array<unknown>) => {
         navigateMock(...args);
+      },
+      getCurrentRoute: () => {
+        return {
+          toString: (): string => {
+            return "/";
+          },
+        };
+      },
+      getQueryStringByName: (): null => {
+        return null;
       },
     },
   };
@@ -123,9 +147,68 @@ jest.mock(
   },
 );
 
-import DockerSwarmClusterOverview, {
-  SwarmCountTile,
-} from "../../../../App/FeatureSet/Dashboard/src/Pages/DockerSwarm/View/Index";
+// What is open on the cluster has suites of its own; here it would only fetch.
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/ResourceActivity/ResourceActivityCards",
+  () => {
+    return {
+      __esModule: true,
+      default: (): null => {
+        return null;
+      },
+    };
+  },
+);
+
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/ResourceAiAgent/ResourceAiAgentStatusSummaryCard",
+  () => {
+    return {
+      __esModule: true,
+      default: (): null => {
+        return null;
+      },
+    };
+  },
+);
+
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/ResourcePart/ResourcePartOpenEventsCard",
+  () => {
+    return {
+      __esModule: true,
+      default: (): null => {
+        return null;
+      },
+    };
+  },
+);
+
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/ResourcePart/ResourcePartAlertsCard",
+  () => {
+    return {
+      __esModule: true,
+      default: (): null => {
+        return null;
+      },
+    };
+  },
+);
+
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/Logs/LogsViewer",
+  () => {
+    return {
+      __esModule: true,
+      default: (): null => {
+        return null;
+      },
+    };
+  },
+);
+
+import DockerSwarmClusterOverview from "../../../../App/FeatureSet/Dashboard/src/Pages/DockerSwarm/View/Index";
 import DockerSwarmClusterTaskDetail from "../../../../App/FeatureSet/Dashboard/src/Pages/DockerSwarm/View/TaskDetail";
 import DockerSwarmClusterServiceDetail from "../../../../App/FeatureSet/Dashboard/src/Pages/DockerSwarm/View/ServiceDetail";
 import DockerSwarmClusterNodeDetail from "../../../../App/FeatureSet/Dashboard/src/Pages/DockerSwarm/View/NodeDetail";
@@ -141,7 +224,6 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AgentVersion/AgentKind";
 import DockerSwarmCluster from "../../../Models/DatabaseModels/DockerSwarmCluster";
 import DockerSwarmResource from "../../../Models/DatabaseModels/DockerSwarmResource";
-import Route from "../../../Types/API/Route";
 
 const T: typeof DOCKER_SWARM_METRIC_DESCRIPTIONS =
   DOCKER_SWARM_METRIC_DESCRIPTIONS;
@@ -163,6 +245,7 @@ type RowInit = Partial<{
   image: string;
   latestCpuPercent: number;
   latestMemoryBytes: number;
+  latestMemoryPercent: number;
   metricsUpdatedAt: Date;
   lastSeenAt: Date;
   attributes: Record<string, unknown>;
@@ -170,7 +253,7 @@ type RowInit = Partial<{
 
 function row(init: RowInit): DockerSwarmResource {
   const model: DockerSwarmResource = new DockerSwarmResource();
-  Object.assign(model, init);
+  Object.assign(model, { lastSeenAt: new Date(), ...init });
   return model;
 }
 
@@ -183,62 +266,68 @@ function cluster(): DockerSwarmCluster {
   return model;
 }
 
-const INVENTORY: Array<DockerSwarmResource> = [
-  row({
-    kind: "Node",
-    externalId: "node/a",
-    name: "manager-1",
-    state: "ready",
-    role: "manager",
-    isReady: true,
-  }),
-  row({
-    kind: "Node",
-    externalId: "node/b",
-    name: "worker-1",
-    state: "ready",
-    role: "worker",
-    isReady: true,
-  }),
-  row({
-    kind: "Service",
-    externalId: "service/web",
-    name: "shop_web",
-    state: "2/3",
-    runningReplicas: 2,
-    desiredReplicas: 3,
-    isReady: false,
-  }),
-  row({
-    kind: "Task",
-    externalId: "task/t1",
-    name: "shop_web.1",
-    state: "running",
-    isReady: true,
-  }),
-  row({
-    kind: "Task",
-    externalId: "task/t2",
-    name: "shop_web.2",
-    state: "starting",
-    isReady: false,
-  }),
-  row({ kind: "Stack", externalId: "stack/shop", name: "shop" }),
-  row({ kind: "Network", externalId: "network/n1", name: "shop_default" }),
-  row({ kind: "Volume", externalId: "volume/data@manager-1", name: "data" }),
-];
-
-function listResult(data: Array<DockerSwarmResource>): {
-  data: Array<DockerSwarmResource>;
-  count: number;
-  skip: number;
-  limit: number;
-} {
-  return { data, count: data.length, skip: 0, limit: data.length };
+function inventory(): Array<DockerSwarmResource> {
+  return [
+    row({
+      kind: "Node",
+      externalId: "node/a",
+      name: "manager-1",
+      state: "ready",
+      role: "manager",
+      isReady: true,
+      attributes: {
+        managerStatus: "Leader",
+        isLeader: true,
+        availability: "active",
+      },
+    }),
+    row({
+      kind: "Node",
+      externalId: "node/b",
+      name: "worker-1",
+      state: "ready",
+      role: "worker",
+      isReady: true,
+      attributes: { availability: "active" },
+    }),
+    row({
+      kind: "Service",
+      externalId: "service/web",
+      name: "shop_web",
+      state: "2/3",
+      serviceMode: "replicated",
+      runningReplicas: 2,
+      desiredReplicas: 3,
+      isReady: false,
+    }),
+    row({
+      kind: "Task",
+      externalId: "task/t1",
+      name: "shop_web.1",
+      state: "running",
+      isReady: true,
+      serviceName: "shop_web",
+      nodeHostname: "worker-1",
+      attributes: { desiredState: "running" },
+    }),
+    row({
+      kind: "Task",
+      externalId: "task/t2",
+      name: "shop_web.2",
+      state: "starting",
+      isReady: false,
+      serviceName: "shop_web",
+      nodeHostname: "manager-1",
+      attributes: { desiredState: "running" },
+    }),
+    row({ kind: "Stack", externalId: "stack/shop", name: "shop" }),
+    row({ kind: "Network", externalId: "network/n1", name: "shop_default" }),
+    row({ kind: "Volume", externalId: "volume/data@manager-1", name: "data" }),
+  ];
 }
 
 async function flush(): Promise<void> {
-  for (let i: number = 0; i < 5; i++) {
+  for (let i: number = 0; i < 6; i++) {
     await act(async () => {
       await Promise.resolve();
     });
@@ -267,6 +356,15 @@ async function expectTooltip(name: string, text: string): Promise<void> {
   }
 }
 
+// The (i)s on the page, by what they are about, in page order.
+function infoNames(root: HTMLElement = document.body): Array<string> {
+  return within(root)
+    .queryAllByRole("button", { name: /^About / })
+    .map((button: HTMLElement): string => {
+      return (button.getAttribute("aria-label") || "").replace("About ", "");
+    });
+}
+
 function expectNoNestedControls(root: HTMLElement): void {
   expect(root.querySelectorAll("button button")).toHaveLength(0);
   expect(root.querySelectorAll("a button")).toHaveLength(0);
@@ -276,9 +374,9 @@ function expectNoNestedControls(root: HTMLElement): void {
 beforeEach(() => {
   jest.useFakeTimers();
   getItemMock.mockReset();
-  getListMock.mockReset();
   navigateMock.mockReset();
   lastParam = "";
+  mockInventory = inventory();
   getItemMock.mockImplementation(async () => {
     return cluster();
   });
@@ -289,99 +387,8 @@ afterEach(() => {
   jest.useRealTimers();
 });
 
-describe("SwarmCountTile", () => {
-  function renderTile(
-    props: Partial<React.ComponentProps<typeof SwarmCountTile>> = {},
-  ): { onOpen: MockFunction; result: RenderResult } {
-    const onOpen: MockFunction = getJestMockFunction();
-    const result: RenderResult = render(
-      <SwarmCountTile
-        label="Tasks"
-        value={12}
-        subline="10/12 running"
-        description={T.tasks}
-        onOpen={() => {
-          onOpen();
-        }}
-        {...props}
-      />,
-    );
-    return { onOpen, result };
-  }
-
-  test("shows the label, the count, the subline and an (i) named after the label", () => {
-    renderTile();
-
-    expect(screen.getByText("Tasks")).toBeInTheDocument();
-    expect(screen.getByText("12")).toBeInTheDocument();
-    expect(screen.getByText("10/12 running")).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "About Tasks" }),
-    ).toBeInTheDocument();
-  });
-
-  test("hovering the (i) explains the count", async () => {
-    renderTile();
-
-    await expectTooltip("Tasks", T.tasks);
-  });
-
-  test("the whole card still opens the list through an overlay button", () => {
-    const { onOpen } = renderTile();
-
-    fireEvent.click(screen.getByRole("button", { name: "View Tasks" }));
-
-    expect(onOpen).toHaveBeenCalledTimes(1);
-  });
-
-  test("asking what the count means does not open the list - by click, Enter or Space", () => {
-    const { onOpen } = renderTile();
-    const info: HTMLElement = screen.getByRole("button", {
-      name: "About Tasks",
-    });
-
-    fireEvent.click(info);
-    fireEvent.keyDown(info, { key: "Enter" });
-    fireEvent.keyDown(info, { key: " " });
-
-    expect(onOpen).not.toHaveBeenCalled();
-  });
-
-  test("the (i) is a sibling of the overlay, lifted above it, never inside it", () => {
-    const { result } = renderTile();
-    const overlay: HTMLElement = screen.getByRole("button", {
-      name: "View Tasks",
-    });
-    const info: HTMLElement = screen.getByRole("button", {
-      name: "About Tasks",
-    });
-
-    expectNoNestedControls(result.container);
-    expect(overlay).not.toContainElement(info);
-    expect(overlay.className).toContain("absolute inset-0");
-    expect(info.className).toContain("relative z-10");
-    expect(overlay.parentElement!.className).toContain("relative");
-  });
-
-  test("no description, no (i) - and the tile still works", () => {
-    const { onOpen } = renderTile({ description: undefined, subline: null });
-
-    expect(
-      screen.queryByRole("button", { name: "About Tasks" }),
-    ).not.toBeInTheDocument();
-    expect(screen.queryByText("10/12 running")).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "View Tasks" }));
-    expect(onOpen).toHaveBeenCalledTimes(1);
-  });
-});
-
 describe("Docker Swarm overview page", () => {
   async function renderOverview(): Promise<RenderResult> {
-    getListMock.mockImplementation(async () => {
-      return listResult(INVENTORY);
-    });
-
     const result: RenderResult = render(
       <DockerSwarmClusterOverview {...PAGE_PROPS} />,
     );
@@ -392,47 +399,104 @@ describe("Docker Swarm overview page", () => {
     return result;
   }
 
-  const TILES: Array<[string, string]> = [
-    ["Nodes", T.nodes],
-    ["Tasks", T.tasks],
-    ["Stacks", T.stacks],
-    ["Networks", T.networks],
-    ["Volumes", T.volumes],
-  ];
-
-  test.each(TILES)(
-    "the %s tile explains itself on hover",
-    async (title: string, text: string) => {
-      await renderOverview();
-
-      await expectTooltip(title, text);
-    },
-  );
-
-  test("Services has one (i) on its tile and one on its hero chip, both with the same text", async () => {
+  test("the counts are chips that open their lists", async () => {
     await renderOverview();
 
-    expect(
-      screen.getAllByRole("button", { name: "About Services" }),
-    ).toHaveLength(2);
-    await expectTooltip("Services", T.services);
+    const chips: Array<[string, string, string]> = [
+      ["docker-swarm-hero-nodes", "2/2 nodes ready", "/nodes"],
+      ["docker-swarm-hero-managers", "1 manager", "/nodes"],
+      ["docker-swarm-hero-services", "1 service", "/services"],
+      ["docker-swarm-hero-tasks", "1/2 tasks running", "/tasks"],
+      ["docker-swarm-hero-stacks", "1 stack", "/stacks"],
+    ];
+    for (const [testId, label, path] of chips) {
+      const chip: HTMLElement = screen.getByTestId(testId);
+      expect(chip).toHaveTextContent(label);
+      const href: string = chip.getAttribute("href") || "";
+      expect(href).toContain(CLUSTER_ID);
+      expect(href.endsWith(path)).toBe(true);
+    }
   });
 
-  test("the hero chips that are counts are explained under a static name", async () => {
+  test("one (i) says what the chips count; it is named for them, never after a number", async () => {
     await renderOverview();
 
-    expect(screen.getByText("2/2 nodes ready")).toBeInTheDocument();
-    expect(screen.getByText("1 manager")).toBeInTheDocument();
-    expect(screen.getByText("1/2 tasks running")).toBeInTheDocument();
+    const chips: HTMLElement = screen.getByTestId("docker-swarm-hero-chips");
+    expect(infoNames(chips)).toEqual(["Swarm inventory counts"]);
+    await expectTooltip("Swarm inventory counts", T.inventoryCounts);
 
-    await expectTooltip("Nodes ready", T.nodes);
-    await expectTooltip("Managers", T.managers);
-    await expectTooltip("Tasks running", T.tasks);
-
-    // The (i) is never named after the numbers in the chip.
     expect(
       screen.queryByRole("button", { name: /About \d/ }),
     ).not.toBeInTheDocument();
+  });
+
+  test("the health pill reads the swarm's rules - a service short of replicas is Degraded - and explains itself", async () => {
+    await renderOverview();
+
+    const health: HTMLElement = screen.getByTestId("docker-swarm-hero-health");
+    expect(health).toHaveAttribute("data-health", "Degraded");
+    expect(health).toHaveTextContent("Degraded");
+    await expectTooltip("Swarm health", T.clusterHealth);
+  });
+
+  test("Needs attention names the service and why, one step from its page", async () => {
+    await renderOverview();
+
+    const card: HTMLElement = screen.getByTestId(
+      "docker-swarm-needs-attention",
+    );
+    const items: Array<HTMLElement> = within(card).getAllByTestId(
+      "docker-swarm-needs-attention-item",
+    );
+    expect(
+      items.map((item: HTMLElement): string | null => {
+        return item.getAttribute("data-key");
+      }),
+    ).toEqual(["Service:service/web"]);
+    expect(items[0]).toHaveTextContent("shop_web");
+    expect(items[0]).toHaveTextContent("2 of 3 replicas run");
+    expect(
+      (items[0]!.closest("a") || items[0]!.querySelector("a"))?.getAttribute(
+        "href",
+      ),
+    ).toContain(encodeURIComponent("service/web"));
+  });
+
+  test("a disconnected swarm's last snapshot is no longer the truth: Health Unknown, and no Needs attention", async () => {
+    getItemMock.mockImplementation(async () => {
+      const model: DockerSwarmCluster = cluster();
+      model.otelCollectorStatus = "disconnected";
+      return model;
+    });
+    await renderOverview();
+
+    expect(screen.getByTestId("docker-swarm-hero-health")).toHaveAttribute(
+      "data-health",
+      "Unknown",
+    );
+    expect(
+      screen.queryByTestId("docker-swarm-needs-attention"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("each node at a glance: the leader first, then the rest, each one step from its page", async () => {
+    await renderOverview();
+
+    const card: HTMLElement = screen.getByTestId("docker-swarm-nodes-card");
+    expect(
+      within(card)
+        .getAllByTestId("docker-swarm-nodes-card-name")
+        .map((name: HTMLElement): string => {
+          return name.textContent || "";
+        }),
+    ).toEqual(["manager-1", "worker-1"]);
+    expect(
+      within(card)
+        .getAllByTestId("docker-swarm-nodes-card-status")
+        .map((status: HTMLElement): string => {
+          return status.textContent || "";
+        }),
+    ).toEqual(["Ready", "Ready"]);
   });
 
   test("version chips are metadata and get no (i)", async () => {
@@ -468,25 +532,24 @@ describe("Docker Swarm overview page", () => {
   });
 
   /*
-   * Follow-up of #5076: the CPU fix changed the agent's files, not its
-   * collector, and an agent that kept the old files showed no sign. On the
-   * same collector with the old files, it reports the collector's version,
-   * which is behind the files this release ships.
+   * The agent's files changed on the same collector (0.161.3: every
+   * snapshot read again, the swarm's state as metrics), and an agent on the
+   * older files reports their version, behind the files this release ships.
    */
-  test("an agent on the same collector with the files before the fix gets the sign", async () => {
+  test("an agent on the same collector with older files gets the sign", async () => {
     expect(DOCKER_SWARM_AGENT_COLLECTOR_VERSION).toBe("0.161.0");
     getItemMock.mockImplementation(async () => {
       const model: DockerSwarmCluster = cluster();
-      model.agentVersion = DOCKER_SWARM_AGENT_COLLECTOR_VERSION;
+      model.agentVersion = "0.161.2";
       return model;
     });
     await renderOverview();
 
     expect(
       screen.getByRole("button", {
-        name: `Agent ${DOCKER_SWARM_AGENT_COLLECTOR_VERSION} is outdated. A newer agent is available: ${DOCKER_SWARM_AGENT_VERSION}. Show how to upgrade.`,
+        name: `Agent 0.161.2 is outdated. A newer agent is available: ${DOCKER_SWARM_AGENT_VERSION}. Show how to upgrade.`,
       }),
-    ).toHaveTextContent(`Agent ${DOCKER_SWARM_AGENT_COLLECTOR_VERSION}`);
+    ).toHaveTextContent("Agent 0.161.2");
     expect(screen.queryByTestId("agent-version-chip")).not.toBeInTheDocument();
   });
 
@@ -504,7 +567,7 @@ describe("Docker Swarm overview page", () => {
     expect(chip).toHaveTextContent("Agent 0.154.0");
     // Still in the hero's chip row, after the Docker version.
     expect(chip.parentElement).toBe(
-      screen.getByText("Docker 27.1.1").closest("div.flex-wrap"),
+      screen.getByTestId("docker-swarm-hero-chips"),
     );
 
     fireEvent.click(chip);
@@ -525,188 +588,173 @@ describe("Docker Swarm overview page", () => {
     ).toEqual(["Install script", "Docker Compose"]);
   });
 
-  test("tiles show the inventory counts they explain", async () => {
-    await renderOverview();
-
-    const tasksTile: HTMLElement = screen.getByRole("button", {
-      name: "View Tasks",
-    }).parentElement!;
-
-    expect(within(tasksTile).getByText("2")).toBeInTheDocument();
-    expect(within(tasksTile).getByText("1/2 running")).toBeInTheDocument();
-
-    const servicesTile: HTMLElement = screen.getByRole("button", {
-      name: "View Services",
-    }).parentElement!;
-
-    expect(within(servicesTile).getByText("0/1 converged")).toBeInTheDocument();
-  });
-
-  test("every tile has exactly one (i), and there are six tiles", async () => {
-    await renderOverview();
-
-    const overlays: Array<HTMLElement> = screen.getAllByRole("button", {
-      name: /^View /,
-    });
-
-    expect(
-      overlays.map((overlay: HTMLElement) => {
-        return overlay.textContent;
-      }),
-    ).toEqual([
-      "View Nodes",
-      "View Services",
-      "View Tasks",
-      "View Stacks",
-      "View Networks",
-      "View Volumes",
-    ]);
-
-    for (const overlay of overlays) {
-      expect(
-        within(overlay.parentElement!).getAllByRole("button", {
-          name: /^About /,
-        }),
-      ).toHaveLength(1);
-    }
-  });
-
   test("no control is nested in another anywhere on the page", async () => {
     const result: RenderResult = await renderOverview();
 
     expectNoNestedControls(result.container);
   });
 
-  test("a tile still opens its list; its (i) does not", async () => {
+  test("a swarm that reported nothing yet has no health to tell, and no counts", async () => {
+    mockInventory = [];
     await renderOverview();
 
-    fireEvent.click(screen.getByRole("button", { name: "About Tasks" }));
-    expect(navigateMock).not.toHaveBeenCalled();
-
-    fireEvent.click(screen.getByRole("button", { name: "View Tasks" }));
-    expect(navigateMock).toHaveBeenCalledTimes(1);
-
-    const route: Route = navigateMock.mock.calls[0]![0] as Route;
-    expect(route.toString()).toContain(CLUSTER_ID);
-    expect(route.toString()).toContain("tasks");
+    expect(
+      screen.queryByTestId("docker-swarm-hero-health"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("docker-swarm-hero-nodes"),
+    ).not.toBeInTheDocument();
+    expect(infoNames()).not.toContain("Swarm inventory counts");
   });
 });
 
-describe("Docker Swarm detail pages", () => {
-  test("the task page explains CPU and Memory, and leaves names and state plain", async () => {
+describe("Docker Swarm part pages", () => {
+  const FRESH: () => Date = (): Date => {
+    return new Date(Date.now() - 60 * 1000);
+  };
+
+  test("the task page explains CPU, Memory and its desired state, and leaves names plain", async () => {
     lastParam = encodeURIComponent("task/t1");
-    getListMock.mockImplementation(async () => {
-      return listResult([
-        row({
-          kind: "Task",
-          externalId: "task/t1",
-          name: "shop_web.1",
-          state: "running",
-          isReady: true,
-          serviceName: "shop_web",
-          latestCpuPercent: 12.5,
-          latestMemoryBytes: 64 * 1024 * 1024,
-        }),
-      ]);
-    });
+    mockInventory = [
+      row({
+        kind: "Task",
+        externalId: "task/t1",
+        name: "shop_web.1",
+        state: "running",
+        isReady: true,
+        serviceName: "shop_web",
+        nodeHostname: "worker-1",
+        latestCpuPercent: 12.5,
+        latestMemoryBytes: 64 * 1024 * 1024,
+        latestMemoryPercent: 25,
+        metricsUpdatedAt: FRESH(),
+        attributes: { desiredState: "running", slot: "1" },
+      }),
+    ];
 
     render(<DockerSwarmClusterTaskDetail {...PAGE_PROPS} />);
     await flush();
 
-    expect(screen.getByText("12.5%")).toBeInTheDocument();
-    expect(screen.getByText("64.0 MiB")).toBeInTheDocument();
+    const tiles: HTMLElement = screen.getByTestId("docker-swarm-task-tiles");
+    expect(tiles).toHaveTextContent("12.5%");
+    expect(tiles).toHaveTextContent("25.0%");
+    expect(tiles).toHaveTextContent("64.0 MiB in use");
 
     await expectTooltip("CPU", T.taskCpu);
     await expectTooltip("Memory", T.taskMemory);
+    await expectTooltip("Desired State", T.taskDesiredState);
 
-    for (const plain of [
-      "Task",
-      "Cluster",
-      "State",
-      "Service",
-      "External ID",
-    ]) {
-      expect(
-        screen.queryByRole("button", { name: `About ${plain}` }),
-      ).not.toBeInTheDocument();
+    for (const plain of ["Name", "Service", "Node", "Image", "Task ID"]) {
+      expect(infoNames()).not.toContain(plain);
     }
   });
 
-  test("the service page explains Status and Replicas", async () => {
+  test("the service page explains its replicas, its update and its failures, and its tasks' columns", async () => {
     lastParam = encodeURIComponent("service/web");
-    getListMock.mockImplementation(async () => {
-      return listResult([
-        row({
-          kind: "Service",
-          externalId: "service/web",
-          name: "shop_web",
-          state: "2/3",
-          serviceMode: "replicated",
-          runningReplicas: 2,
-          desiredReplicas: 3,
-          isReady: false,
-        }),
-      ]);
-    });
+    mockInventory = [
+      row({
+        kind: "Service",
+        externalId: "service/web",
+        name: "shop_web",
+        serviceMode: "replicated",
+        runningReplicas: 2,
+        desiredReplicas: 3,
+        attributes: {
+          updateState: "paused",
+          recentFailedTasks: "4",
+          lastTaskError: "task: non-zero exit (1)",
+        },
+      }),
+      row({
+        kind: "Task",
+        externalId: "task/t1",
+        name: "shop_web.1",
+        state: "running",
+        serviceName: "shop_web",
+        nodeHostname: "worker-1",
+        latestCpuPercent: 12.5,
+        metricsUpdatedAt: FRESH(),
+        attributes: { desiredState: "running" },
+      }),
+    ];
 
     render(<DockerSwarmClusterServiceDetail {...PAGE_PROPS} />);
     await flush();
 
-    expect(screen.getAllByText("2/3").length).toBeGreaterThanOrEqual(2);
-
-    await expectTooltip("Status", T.serviceStatus);
     await expectTooltip("Replicas", T.replicas);
+    await expectTooltip("Last Update", T.serviceUpdate);
+    await expectTooltip("Failed Tasks (Last Hour)", T.recentFailedTasks);
+    await expectTooltip("Last Task Error", T.lastTaskError);
+    await expectTooltip("Status", T.taskStatus);
+    await expectTooltip("CPU", T.taskCpuColumn);
+    await expectTooltip("Memory", T.taskMemoryColumn);
 
-    expect(
-      screen.queryByRole("button", { name: "About Mode" }),
-    ).not.toBeInTheDocument();
+    expect(infoNames()).not.toContain("Mode");
+    expect(infoNames()).not.toContain("Image");
   });
 
-  test("the node page shows no (i): nothing on it is a metric the swarm reports per node", async () => {
+  test("the node page explains its role, its standing and its availability", async () => {
     lastParam = encodeURIComponent("node/a");
-    getListMock.mockImplementation(async () => {
-      return listResult([
-        row({
-          kind: "Node",
-          externalId: "node/a",
-          name: "manager-1",
-          state: "ready",
-          role: "manager",
-          isReady: true,
-        }),
-      ]);
-    });
+    mockInventory = [
+      row({
+        kind: "Node",
+        externalId: "node/a",
+        name: "manager-1",
+        state: "ready",
+        role: "manager",
+        isReady: true,
+        attributes: {
+          managerStatus: "Leader",
+          isLeader: true,
+          availability: "active",
+          cpus: "4",
+          memoryBytes: String(8 * 1024 * 1024 * 1024),
+        },
+      }),
+    ];
 
     render(<DockerSwarmClusterNodeDetail {...PAGE_PROPS} />);
     await flush();
 
-    expect(screen.getByText("manager-1")).toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: /^About / }),
-    ).not.toBeInTheDocument();
+    expect(screen.getByTestId("docker-swarm-node-hero")).toHaveTextContent(
+      "manager-1",
+    );
+    await expectTooltip("Role", T.managers);
+    await expectTooltip("Manager Status", T.managerStatus);
+    await expectTooltip("Availability", T.availability);
+
+    // Its facts are plain; the (i)s of its tasks' table are the table's.
+    const details: HTMLElement = screen.getByTestId(
+      "docker-swarm-node-details",
+    );
+    expect(infoNames(details)).toEqual([
+      "Role",
+      "Manager Status",
+      "Availability",
+    ]);
   });
 });
 
 describe("Docker Swarm list pages", () => {
   const FRESH: Date = new Date();
 
-  test("Tasks: CPU and Memory headers explain the latest reading", async () => {
-    getListMock.mockImplementation(async () => {
-      return listResult([
-        row({
-          kind: "Task",
-          externalId: "task/t1",
-          name: "shop_web.1",
-          state: "running",
-          isReady: true,
-          serviceName: "shop_web",
-          nodeHostname: "manager-1",
-          latestCpuPercent: 12.5,
-          latestMemoryBytes: 64 * 1024 * 1024,
-          metricsUpdatedAt: FRESH,
-        }),
-      ]);
-    });
+  test("Tasks: Status, CPU and Memory headers explain the rules and the latest reading", async () => {
+    mockInventory = [
+      row({
+        kind: "Task",
+        externalId: "task/t1",
+        name: "shop_web.1",
+        state: "running",
+        isReady: true,
+        serviceName: "shop_web",
+        nodeHostname: "manager-1",
+        latestCpuPercent: 12.5,
+        latestMemoryBytes: 64 * 1024 * 1024,
+        metricsUpdatedAt: FRESH,
+        image: "registry.acme-swarm.example/shop/web:5.1.2",
+        attributes: { desiredState: "running" },
+      }),
+    ];
 
     const result: RenderResult = render(
       <DockerSwarmClusterTasks {...PAGE_PROPS} />,
@@ -715,62 +763,95 @@ describe("Docker Swarm list pages", () => {
 
     expect(screen.getByText("shop_web.1")).toBeInTheDocument();
 
+    const task: HTMLElement = screen
+      .getByText("shop_web.1")
+      .closest("tr") as HTMLElement;
+    // Its memory in MiB, as Docker and the task's own page write it.
+    expect(within(task).getByText("64.0 MiB")).toBeInTheDocument();
+    expect(within(task).queryByText("64.0 MB")).not.toBeInTheDocument();
+    /*
+     * Its image whole, tag included: it breaks after its dots and slashes,
+     * never where the column ends ("shop/check").
+     */
+    const image: HTMLElement = within(task).getByTestId("resource-column-name");
+    expect(image).toHaveTextContent(
+      "registry.acme-swarm.example/shop/web:5.1.2",
+    );
+    expect(image.querySelectorAll("wbr").length).toBeGreaterThan(0);
+
+    await expectTooltip("Status", T.taskStatus);
     await expectTooltip("CPU", T.taskCpuColumn);
     await expectTooltip("Memory", T.taskMemoryColumn);
 
-    // Status and metadata columns stay plain.
-    for (const plain of ["Status", "Service", "Image", "Node", "Age"]) {
-      expect(
-        screen.queryByRole("button", { name: `About ${plain}` }),
-      ).not.toBeInTheDocument();
+    // Metadata columns stay plain.
+    for (const plain of ["Image", "Node"]) {
+      expect(infoNames()).not.toContain(plain);
     }
+    /*
+     * No Service column: a task's name is its service's and its slot, and
+     * a column that said it again pushed CPU and Memory out of view.
+     */
+    expect(
+      screen.queryByRole("columnheader", { name: /^Service/ }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("columnheader", { name: /^Memory/ }),
+    ).toBeInTheDocument();
     expectNoNestedControls(result.container);
   });
 
-  test("Nodes: CPU and Memory headers say why every row reads N/A", async () => {
-    getListMock.mockImplementation(async () => {
-      return listResult([
-        row({
-          kind: "Node",
-          externalId: "node/a",
-          name: "manager-1",
-          state: "ready",
-          role: "manager",
-          isReady: true,
-        }),
-      ]);
-    });
+  test("Nodes: Status, Role, Availability and Manager Status are explained, and there are no usage columns", async () => {
+    mockInventory = [
+      row({
+        kind: "Node",
+        externalId: "node/a",
+        name: "manager-1",
+        state: "ready",
+        role: "manager",
+        isReady: true,
+        attributes: { managerStatus: "Leader", availability: "active" },
+      }),
+    ];
 
     const result: RenderResult = render(
       <DockerSwarmClusterNodes {...PAGE_PROPS} />,
     );
     await flush();
 
-    expect(screen.getAllByText("N/A")).toHaveLength(2);
-
-    await expectTooltip("CPU", T.nodeUsageColumns);
-    await expectTooltip("Memory", T.nodeUsageColumns);
+    expect(screen.getByText("manager-1")).toBeInTheDocument();
+    /*
+     * The leader's role is Docker's, a manager; that it leads is its
+     * Manager Status, beside it - "Leader" in both said one fact twice.
+     */
+    const leader: HTMLElement = screen
+      .getByText("manager-1")
+      .closest("tr") as HTMLElement;
+    expect(within(leader).getByText("Manager node")).toBeInTheDocument();
+    expect(within(leader).getAllByText("Leader")).toHaveLength(1);
+    await expectTooltip("Status", T.nodeStatus);
+    await expectTooltip("Role", T.managers);
+    await expectTooltip("Availability", T.availability);
+    await expectTooltip("Manager Status", T.managerStatus);
     expect(
-      screen.queryByRole("button", { name: "About Role" }),
+      screen.queryByRole("columnheader", { name: /^CPU/ }),
     ).not.toBeInTheDocument();
+    expect(infoNames()).not.toContain("Engine Version");
     expectNoNestedControls(result.container);
   });
 
-  test("Services: Status, Replicas, CPU and Memory headers are explained", async () => {
-    getListMock.mockImplementation(async () => {
-      return listResult([
-        row({
-          kind: "Service",
-          externalId: "service/web",
-          name: "shop_web",
-          state: "2/3",
-          serviceMode: "replicated",
-          runningReplicas: 2,
-          desiredReplicas: 3,
-          isReady: false,
-        }),
-      ]);
-    });
+  test("Services: Status and Replicas headers are explained, and there are no usage columns", async () => {
+    mockInventory = [
+      row({
+        kind: "Service",
+        externalId: "service/web",
+        name: "shop_web",
+        state: "2/3",
+        serviceMode: "replicated",
+        runningReplicas: 2,
+        desiredReplicas: 3,
+        isReady: false,
+      }),
+    ];
 
     const result: RenderResult = render(
       <DockerSwarmClusterServices {...PAGE_PROPS} />,
@@ -781,26 +862,23 @@ describe("Docker Swarm list pages", () => {
 
     await expectTooltip("Status", T.serviceStatusColumn);
     await expectTooltip("Replicas", T.replicas);
-    await expectTooltip("CPU", T.serviceUsageColumns);
-    await expectTooltip("Memory", T.serviceUsageColumns);
     expect(
-      screen.queryByRole("button", { name: "About Mode" }),
+      screen.queryByRole("columnheader", { name: /^CPU/ }),
     ).not.toBeInTheDocument();
+    expect(infoNames()).not.toContain("Mode");
     expectNoNestedControls(result.container);
   });
 
   test("Stacks: the Services count and the Status that repeats it are explained", async () => {
-    getListMock.mockImplementation(async () => {
-      return listResult([
-        row({
-          kind: "Stack",
-          externalId: "stack/shop",
-          name: "shop",
-          state: "3 services",
-          attributes: { serviceCount: 3 },
-        }),
-      ]);
-    });
+    mockInventory = [
+      row({
+        kind: "Stack",
+        externalId: "stack/shop",
+        name: "shop",
+        state: "3 services",
+        attributes: { serviceCount: 3 },
+      }),
+    ];
 
     const result: RenderResult = render(
       <DockerSwarmClusterStacks {...PAGE_PROPS} />,
@@ -815,13 +893,7 @@ describe("Docker Swarm list pages", () => {
     await expectTooltip("Services", T.stackServices);
     await expectTooltip("Status", T.stackStatusColumn);
 
-    expect(
-      screen
-        .getAllByRole("button", { name: /^About / })
-        .map((button: HTMLElement): string => {
-          return button.getAttribute("aria-label") || "";
-        }),
-    ).toEqual(["About Status", "About Services"]);
+    expect(infoNames()).toEqual(["Status", "Services"]);
     // A stack has no CPU or memory of its own, and no columns for them.
     expect(
       screen.queryByRole("columnheader", { name: /^CPU/ }),

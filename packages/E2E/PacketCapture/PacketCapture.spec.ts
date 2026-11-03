@@ -491,21 +491,52 @@ test.describe("starting a capture", () => {
   /*
    * Host, port and protocol side by side: one top, one height. Protocol sat
    * 4px lower and stood 2px taller than the boxes beside it.
+   *
+   * Read until the form's styles are in: the fixture's Tailwind runtime
+   * writes the rules for a class a moment after the class reaches the page,
+   * and a busy runner read the protocol box at 38px, before its 40px rule
+   * came (master's 9202a4cfa1; with the page's MutationObservers held back
+   * 400 ms it reads [40, 40, 38], then [40, 40, 40]).
    */
   test("host, port and protocol line up", async ({ page }: { page: Page }) => {
     await open(page);
     await openStartForm(page);
 
-    const host: Box = await box(page.getByTestId("packet-capture-filter-host"));
-    const port: Box = await box(page.getByTestId("packet-capture-filter-port"));
-    const protocol: Box = await box(
-      page.getByTestId("packet-capture-filter").locator(".ou-select__control"),
-    );
+    const rowBoxes: () => Promise<Array<FrameBox>> = async (): Promise<
+      Array<FrameBox>
+    > => {
+      return await boxesInOneFrame([
+        page.getByTestId("packet-capture-filter-host"),
+        page.getByTestId("packet-capture-filter-port"),
+        page
+          .getByTestId("packet-capture-filter")
+          .locator(".ou-select__control"),
+      ]);
+    };
 
-    for (const other of [port, protocol]) {
-      expect(Math.abs(other.y - host.y)).toBeLessThan(1);
-      expect(Math.abs(other.height - host.height)).toBeLessThan(1);
-    }
+    // How far port's and protocol's tops and heights are from host's: none under a pixel.
+    await expect
+      .poll(async (): Promise<Array<number>> => {
+        const [host, ...others] = (await rowBoxes()) as [
+          FrameBox,
+          ...Array<FrameBox>,
+        ];
+
+        return others.flatMap((other: FrameBox): Array<number> => {
+          return [other.y - host.y, other.height - host.height].map(
+            (gap: number): number => {
+              return Math.abs(gap) < 1 ? 0 : gap;
+            },
+          );
+        });
+      })
+      .toEqual([0, 0, 0, 0]);
+
+    const [host, port, protocol] = (await rowBoxes()) as [
+      FrameBox,
+      FrameBox,
+      FrameBox,
+    ];
 
     expect(port.x).toBeGreaterThan(host.x + host.width);
     expect(protocol.x).toBeGreaterThan(port.x + port.width);

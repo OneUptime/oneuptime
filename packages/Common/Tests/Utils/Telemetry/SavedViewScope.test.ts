@@ -114,9 +114,7 @@ describe("buildSavedViewScope", () => {
         "esx%01",
         "ホスト",
       ),
-    ).toBe(
-      `vmware-host:vc%2001%2Feu:esx%2501:${encodeURIComponent("ホスト")}`,
-    );
+    ).toBe(`vmware-host:vc%2001%2Feu:esx%2501:${encodeURIComponent("ホスト")}`);
   });
 
   test("an empty part keeps its place", () => {
@@ -183,7 +181,9 @@ describe("buildSavedViewScope", () => {
 
   test("a scope as long as the column is kept whole", () => {
     const prefix: string = `${SavedViewScopeKind.Host}:`;
-    const name: string = "h".repeat(SAVED_VIEW_SCOPE_MAX_LENGTH - prefix.length);
+    const name: string = "h".repeat(
+      SAVED_VIEW_SCOPE_MAX_LENGTH - prefix.length,
+    );
     const scope: string = buildSavedViewScope(SavedViewScopeKind.Host, name);
 
     expect(scope).toBe(`${prefix}${name}`);
@@ -286,9 +286,7 @@ describe("getSavedViewScopeColumnValue", () => {
   });
 
   test("a scope the API was sent by hand is kept, case and all", () => {
-    expect(getSavedViewScopeColumnValue("Team Payments")).toBe(
-      "Team Payments",
-    );
+    expect(getSavedViewScopeColumnValue("Team Payments")).toBe("Team Payments");
     // Only the explorer's own name, exactly, is the Logs page.
     expect(getSavedViewScopeColumnValue("Explorer")).toBe("Explorer");
   });
@@ -296,9 +294,9 @@ describe("getSavedViewScopeColumnValue", () => {
 
 describe("getSavedViewScopeQueryValue", () => {
   test("the Logs page lists the views with no scope", () => {
-    expect(getSavedViewScopeQueryValue(EXPLORER_SAVED_VIEW_SCOPE)).toBeInstanceOf(
-      IsNull,
-    );
+    expect(
+      getSavedViewScopeQueryValue(EXPLORER_SAVED_VIEW_SCOPE),
+    ).toBeInstanceOf(IsNull);
     expect(getSavedViewScopeQueryValue("  ")).toBeInstanceOf(IsNull);
   });
 

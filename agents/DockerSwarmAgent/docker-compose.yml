@@ -43,11 +43,14 @@ services:
       # these files: the collector `image:` above pins, with the last number
       # raised each time the files change on the same collector (0.161.1:
       # the CPU processors, #5076; 0.161.2: the service and node of each
-      # task, and the negotiated API version). OneUptime shows a sign beside
+      # task, and the negotiated API version; 0.161.3: every inventory
+      # snapshot read again, each manager's reachability, each service's
+      # rolling update and recent task failures, and the swarm's state as
+      # metrics). OneUptime shows a sign beside
       # an agent that reports less. Raise it with any change to this file,
       # the collector config or inventory-snapshot.sh, and set it back to the
       # collector's version when `image:` moves on.
-      - APP_VERSION=${APP_VERSION:-0.161.2}
+      - APP_VERSION=${APP_VERSION:-0.161.3}
     restart: unless-stopped
     logging:
       driver: json-file

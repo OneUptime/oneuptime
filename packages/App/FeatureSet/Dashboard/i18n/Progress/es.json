@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40622,
-    "untranslated": 2972
+    "keys": 40861,
+    "untranslated": 2714
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -527,6 +527,7 @@
     "z",
     "{\"version\": \"...\", \"records\": [...]}",
     "{{count}} B",
+    "{{count}} CPU",
     "{{count}} Docker",
     "{{count}} KB",
     "{{count}} Kubernetes",
@@ -534,10 +535,10 @@
     "{{count}} OID",
     "{{count}} Podman",
     "{{count}} VM",
-    "{{count}} app",
     "{{count}} appliance",
     "{{count}} appliances",
-    "{{count}} apps",
+    "{{count}} bucket",
+    "{{count}} buckets",
     "{{count}} collector",
     "{{count}} deployment",
     "{{count}} deployments",
@@ -554,6 +555,8 @@
     "{{count}} pools",
     "{{count}} span",
     "{{count}} spans",
+    "{{count}} stack",
+    "{{count}} stacks",
     "{{count}} token",
     "{{count}} tokens",
     "{{in}} in",

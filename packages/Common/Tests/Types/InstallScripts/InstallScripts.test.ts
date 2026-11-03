@@ -59,7 +59,7 @@ describe("the list", () => {
     for (const installEntry of INSTALL_SCRIPTS) {
       expect({
         name: installEntry.name,
-        namesTheProduct: /oneuptime/i.test(installEntry.title),
+        namesTheProduct: installEntry.title.toLowerCase().includes("oneuptime"),
       }).toEqual({ name: installEntry.name, namesTheProduct: false });
       expect(installEntry.title.trim()).not.toBe("");
     }

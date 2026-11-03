@@ -105,6 +105,8 @@ const DEVELOPMENT_BRANCH_START: string =
 const FROM_INSTRUCTION: RegExp =
   /^\s*FROM\s+(?:--\S+\s+)*(\S+)(?:\s+AS\s+(\S+))?\s*$/i;
 const USER_NODE_INSTRUCTION: RegExp = /^\s*USER\s+node\s*$/m;
+// `COPY --from=<stage>`, among any other flags: the stage it copies out of.
+const COPY_FROM_STAGE: RegExp = /^\s*COPY\s+(?:--\S+\s+)*?--from=(\S+)/i;
 // Any COPY/ADD whose source is the ee/ directory (./ee, ee, ./ee/...).
 const COPIES_ENTERPRISE_DIRECTORY: RegExp =
   /^\s*(?:COPY|ADD)\s+(?:--\S+\s+)*(?:\.\/)?ee(?:\/\S*)?\s/im;
@@ -171,6 +173,52 @@ const stageAncestry: (
   }
 
   return chain;
+};
+
+/*
+ * Every stage an image is built from: the stage, its FROM ancestry, and each
+ * stage a COPY --from in any of them copies out of, with that stage's own,
+ * each once - as Tests/Ops/Utils/DockerfileTemplate's buildOrder reads them.
+ * The App's edition images start from a runtime stage and copy /usr/src out
+ * of a pruned build (#5584), so what that build ran - the type-check, the
+ * copy of ee/ - is what the image is made of.
+ */
+const buildOrder: (
+  stages: Array<DockerfileStage>,
+  name: string,
+) => Array<DockerfileStage> = (
+  stages: Array<DockerfileStage>,
+  name: string,
+): Array<DockerfileStage> => {
+  const order: Array<DockerfileStage> = [];
+  const visit: (stageName: string) => void = (stageName: string): void => {
+    for (const stage of stageAncestry(stages, stageName)) {
+      if (order.includes(stage)) {
+        continue;
+      }
+
+      order.push(stage);
+
+      for (const line of stage.body.split("\n")) {
+        const source: string | undefined = line
+          .match(COPY_FROM_STAGE)?.[1]
+          ?.toLowerCase();
+
+        if (
+          source &&
+          stages.some((candidate: DockerfileStage): boolean => {
+            return candidate.name === source;
+          })
+        ) {
+          visit(source);
+        }
+      }
+    }
+  };
+
+  visit(name);
+
+  return order;
 };
 
 const listServiceImages: () => Array<ServiceImage> =
@@ -600,9 +648,9 @@ describe("Container boot configuration", () => {
     );
 
     test.each(finalStages)(
-      "%s: the %s stage is type-checked at build time (npm run compile in its ancestry)",
+      "%s: the %s stage is type-checked at build time (npm run compile in what it is built from)",
       (service: string, name: string) => {
-        const ancestry: Array<DockerfileStage> = stageAncestry(
+        const ancestry: Array<DockerfileStage> = buildOrder(
           stagesOf(service),
           name,
         );
@@ -618,7 +666,7 @@ describe("Container boot configuration", () => {
     test.each(editionServices)(
       "%s: nothing the community stage is built from copies ee/",
       (service: string) => {
-        const ancestry: Array<DockerfileStage> = stageAncestry(
+        const ancestry: Array<DockerfileStage> = buildOrder(
           stagesOf(service),
           "community",
         );
@@ -637,10 +685,10 @@ describe("Container boot configuration", () => {
     );
 
     test.each(editionServices)(
-      "%s: the enterprise stage's ancestry does copy ee/ (so the check above can fail)",
+      "%s: what the enterprise stage is built from does copy ee/ (so the check above can fail)",
       (service: string) => {
         expect(
-          stageAncestry(stagesOf(service), "enterprise").some(
+          buildOrder(stagesOf(service), "enterprise").some(
             (stage: DockerfileStage) => {
               return COPIES_ENTERPRISE_DIRECTORY.test(stage.body);
             },
@@ -665,6 +713,19 @@ describe("Container boot configuration", () => {
 
         expect(communityParent).toBeDefined();
         expect(enterpriseAncestry).toContain(communityParent);
+
+        // And the build that type-checks the community image builds the enterprise one too.
+        const communityBuild: Array<DockerfileStage> = buildOrder(
+          stagesOf(service),
+          "community",
+        ).filter((stage: DockerfileStage): boolean => {
+          return RUN_COMPILE_INSTRUCTION.test(stage.body);
+        });
+
+        expect(communityBuild.length).toBeGreaterThan(0);
+        expect(buildOrder(stagesOf(service), "enterprise")).toEqual(
+          expect.arrayContaining(communityBuild),
+        );
       },
     );
 
@@ -675,7 +736,7 @@ describe("Container boot configuration", () => {
           SETS_ENTERPRISE_EDITION_MARKER,
         );
         expect(
-          stageAncestry(stagesOf(service), "community").some(
+          buildOrder(stagesOf(service), "community").some(
             (stage: DockerfileStage) => {
               return SETS_ONEUPTIME_EDITION.test(stage.body);
             },
