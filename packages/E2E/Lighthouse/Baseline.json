@@ -123,46 +123,38 @@
     "/docs/en/introduction/getting-started": {
       "mobile": [
         "color-contrast",
-        "doctype",
         "landmark-one-main"
       ],
       "desktop": [
         "color-contrast",
-        "doctype",
         "landmark-one-main"
       ]
     },
     "/docs/en/terraform/quick-start": {
       "mobile": [
         "color-contrast",
-        "doctype",
         "landmark-one-main"
       ],
       "desktop": [
         "color-contrast",
-        "doctype",
         "landmark-one-main"
       ]
     },
     "/docs/fa/introduction/getting-started": {
       "mobile": [
-        "doctype",
         "landmark-one-main"
       ],
       "desktop": [
-        "doctype",
         "landmark-one-main"
       ]
     },
     "/docs/zh-CN/introduction/getting-started": {
       "mobile": [
         "color-contrast",
-        "doctype",
         "landmark-one-main"
       ],
       "desktop": [
         "color-contrast",
-        "doctype",
         "landmark-one-main"
       ]
     },
