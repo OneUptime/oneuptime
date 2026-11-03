@@ -401,21 +401,23 @@ describe("the Security category, in the catalog", () => {
       "Performance Profiles",
       "Exceptions",
       "AI / LLM",
+      "Data Observability",
       "Topology",
     ]);
     expect(titlesIn(catalog, "Observability")).not.toContain("Security Events");
     expect(titlesIn(catalog, "Observability")).not.toContain("Data Security");
   });
 
-  test("moved the two products and lost none: 45 products, each listed once", () => {
+  test("moved the two products and lost none: 46 products, each listed once", () => {
     const titles: Array<string> = readCatalog().moreMenuItems.map(
       (item: MoreMenuItem): string => {
         return item.title;
       },
     );
 
-    expect(titles).toHaveLength(45);
-    expect(new Set(titles).size).toBe(45);
+    // 45 when #5592 moved them; Data Observability (#5647) is the 46th.
+    expect(titles).toHaveLength(46);
+    expect(new Set(titles).size).toBe(46);
   });
 
   test("folds like every category but Essentials: the menu does not open on it", () => {
@@ -494,7 +496,7 @@ describe("the Security category, in the products menu", () => {
       "2 products Security Events, Data Security",
     );
     expect(categoryRow("Observability")).toHaveAccessibleDescription(
-      "7 products Logs, Metrics, Traces, Performance Profiles, Exceptions, AI / LLM, Topology",
+      "8 products Logs, Metrics, Traces, Performance Profiles, Exceptions, AI / LLM, Data Observability, Topology",
     );
   });
 
@@ -563,6 +565,7 @@ describe("the Security category, in the products menu", () => {
       "Performance Profiles",
       "Exceptions",
       "AI / LLM",
+      "Data Observability",
       "Topology",
     ]);
     expect(categoryRow("Security")).toHaveAttribute("aria-expanded", "false");
@@ -759,7 +762,7 @@ describe("Home's Explore OneUptime card", () => {
       tabs().find((tab: HTMLElement): boolean => {
         return tabName(tab) === "Observability";
       }),
-    ).toHaveTextContent(/^Observability7$/);
+    ).toHaveTextContent(/^Observability8$/);
   });
 
   test("the Security tab lists Security Events and Data Security, linking to their overviews", () => {
@@ -805,7 +808,7 @@ describe("in every language the Dashboard ships", () => {
         copy("navbar.items.securityEventsTitle"),
         copy("navbar.items.dataSecurityTitle"),
       ]);
-      expect(titlesIn(catalog, observability)).toHaveLength(7);
+      expect(titlesIn(catalog, observability)).toHaveLength(8);
 
       const names: Array<string> = categoryNames(catalog);
       expect(names.indexOf(security)).toBe(names.indexOf(observability) + 1);
