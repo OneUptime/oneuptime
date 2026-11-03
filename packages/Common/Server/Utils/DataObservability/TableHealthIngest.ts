@@ -46,6 +46,7 @@ import DataAssetService from "../../Services/DataAssetService";
 import DataStoreService from "../../Services/DataStoreService";
 import MetricService from "../../Services/MetricService";
 import logger from "../Logger";
+import CollectedLineage from "./CollectedLineage";
 import MonitorMetricUtil from "../Monitor/MonitorMetricUtil";
 import TelemetryUtil from "../Telemetry/Telemetry";
 import {
@@ -568,6 +569,8 @@ export default class TableHealthIngest {
     const retentionDays: number = await MonitorMetricUtil.getRetentionDays();
     const metricRows: Array<JSONObject> = [];
     const seenKeys: Set<string> = new Set();
+    // The store's watched tables after this collection, by key: what lineage resolves against.
+    const assetIdByKey: Map<string, ObjectID> = new Map();
 
     for (const table of snapshot.tables) {
       const key: string = getDataTableKey(table.schema, table.name);
@@ -626,6 +629,8 @@ export default class TableHealthIngest {
           }
         }
 
+        assetIdByKey.set(key, assetId);
+
         for (const metric of getTableMetricValues({
           table,
           plan,
@@ -680,6 +685,40 @@ export default class TableHealthIngest {
 
     await this.writeMetricRows(store.projectId, metricRows);
     result.metricRows = metricRows.length;
+
+    if (snapshot.lineage) {
+      // A cut table list leaves tables out that are still there.
+      if (!snapshot.isComplete) {
+        for (const asset of existing) {
+          if (
+            asset.id &&
+            asset.assetKey &&
+            !asset.isDropped &&
+            !assetIdByKey.has(asset.assetKey)
+          ) {
+            assetIdByKey.set(asset.assetKey, asset.id);
+          }
+        }
+      }
+
+      // Lineage is extra: one that cannot be kept never fails the collection.
+      try {
+        await CollectedLineage.record({
+          projectId: store.projectId,
+          engine: snapshot.engine,
+          databaseName: snapshot.target?.databaseName || null,
+          lineage: snapshot.lineage,
+          isViewLineageComplete: snapshot.isViewLineageComplete === true,
+          assetIdByKey,
+          collectedAt,
+        });
+      } catch (error) {
+        logger.error(
+          `Data Observability: could not record the lineage of store ${store.id.toString()}`,
+        );
+        logger.error(error);
+      }
+    }
 
     await DataStoreService.updateColumnsByIdWithoutHooks({
       id: store.id,

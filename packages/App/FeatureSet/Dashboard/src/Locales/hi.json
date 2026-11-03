@@ -41617,5 +41617,12 @@
   "{{count}} tables nobody has read for 90 days hold {{size}}._one": "{{count}} table nobody has read for 90 days holds {{size}}.",
   "Amazon Redshift": "Amazon Redshift",
   "Snowflake": "Snowflake",
-  "Google BigQuery": "Google BigQuery"
+  "Google BigQuery": "Google BigQuery",
+  "Nothing has been seen feeding this table yet. Lineage shows here from pipelines that send OpenLineage events or dbt artifacts, from BigQuery's and Redshift's query history, and from views' definitions.": "Nothing has been seen feeding this table yet. Lineage shows here from pipelines that send OpenLineage events or dbt artifacts, from BigQuery's and Redshift's query history, and from views' definitions.",
+  "One table feeding another, from the pipelines that read the first and write the second, the database's query history, or a view's definition.": "One table feeding another, from the pipelines that read the first and write the second, the database's query history, or a view's definition.",
+  "Query history": "क्वेरी इतिहास",
+  "Seen By": "किसके द्वारा",
+  "Seen In": "कहाँ देखा गया",
+  "The tables this table is built from, and the pipelines that write it: seen in a pipeline's run, with how its latest run went, in the database's query history, or in a view's definition.": "The tables this table is built from, and the pipelines that write it: seen in a pipeline's run, with how its latest run went, in the database's query history, or in a view's definition.",
+  "View definition": "व्यू परिभाषा"
 }
