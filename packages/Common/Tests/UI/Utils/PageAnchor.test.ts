@@ -34,7 +34,8 @@ import {
  *     and an address naming anything else names no place;
  *   - a link to a place is the page's route with "#<place>" after its query
  *     string, never two "#";
- *   - the place is brought into view - its top, instantly - once the
+ *   - the place is brought into view - its top, or the middle of the
+ *     window when asked, instantly - once the
  *     browser has drawn it, and again as the page around it changes size
  *     while it settles (at most once a frame), until the settle time is up,
  *     the person scrolls, touches, clicks or types, or whoever asked stops
@@ -313,6 +314,38 @@ describe("bringing a place into view", () => {
     drawFrames();
 
     expect(scrolls).toHaveLength(3);
+  });
+
+  test("in the middle of the window when asked - one card among a grid of them - every time it is brought back", () => {
+    const card: HTMLElement = place("recommendation-card");
+
+    bringPageAnchorIntoView(card, { block: "center" });
+    drawFrames();
+
+    expect(scrolls).toEqual([{ element: card, options: { block: "center" } }]);
+
+    // The grid's styles arrive a frame late and the cards above it grow.
+    FakeResizeObserver.instances[0]!.resize();
+    drawFrames();
+
+    expect(scrolls).toEqual([
+      { element: card, options: { block: "center" } },
+      { element: card, options: { block: "center" } },
+    ]);
+  });
+
+  test("its top, unless told otherwise", () => {
+    const runner: HTMLElement = place();
+
+    bringPageAnchorIntoView(runner, { settleInMs: 1000 });
+    drawFrames();
+    FakeResizeObserver.instances[0]!.resize();
+    drawFrames();
+
+    expect(scrolls).toEqual([
+      { element: runner, options: { block: "start" } },
+      { element: runner, options: { block: "start" } },
+    ]);
   });
 
   test("not once the settle time is up: the page is the person's again", () => {

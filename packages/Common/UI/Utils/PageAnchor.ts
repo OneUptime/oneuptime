@@ -154,18 +154,29 @@ export const PAGE_ANCHOR_RELEASING_EVENTS: ReadonlyArray<string> = [
   "keydown",
 ];
 
+/*
+ * Where in the window a place lands: its top under the sticky header
+ * ("start", a setting a link names), or the middle of the window
+ * ("center", one card among a grid of them - the first recommendation a
+ * "Turn on N alerts" link ticked, with the cards around it in sight).
+ */
+export type PageAnchorViewBlock = "start" | "center";
+
 export interface PageAnchorViewOptions {
   // How long to keep it in view; PAGE_ANCHOR_SETTLE_IN_MS when left out.
   settleInMs?: number | undefined;
+  // Where it lands; "start" when left out.
+  block?: PageAnchorViewBlock | undefined;
 }
 
 /*
- * Brings a place on the page into view - its top under the sticky header -
- * once the browser has drawn it, and again each time the page changes size
- * while it settles (cards above it loading, a fold opening), until the
- * settle time is up or the person scrolls, clicks, touches or types.
- * Returns what stops it early: a page that goes away, or a place that is
- * not wanted any more.
+ * Brings a place on the page into view - its top under the sticky header,
+ * or the middle of the window (options.block) - once the browser has drawn
+ * it, and again each time the page changes size while it settles (cards
+ * above it loading, a fold opening, the styles of classes the page draws
+ * for the first time arriving a frame late), until the settle time is up
+ * or the person scrolls, clicks, touches or types. Returns what stops it
+ * early: a page that goes away, or a place that is not wanted any more.
  *
  * It scrolls instantly, never smoothly: it may scroll several times while
  * the page settles, and each time it must end where the place is.
@@ -177,6 +188,7 @@ export function bringPageAnchorIntoView(
   let isStopped: boolean = false;
   let frame: number | null = null;
   let frameIsTimeout: boolean = false;
+  const block: PageAnchorViewBlock = options?.block ?? "start";
 
   const scroll: () => void = (): void => {
     frame = null;
@@ -186,7 +198,7 @@ export function bringPageAnchorIntoView(
     }
 
     if (typeof element.scrollIntoView === "function") {
-      element.scrollIntoView({ block: "start" });
+      element.scrollIntoView({ block: block });
     }
   };
 

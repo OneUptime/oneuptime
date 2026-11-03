@@ -86,6 +86,7 @@ import {
 } from "./RecommendationViewModel";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import { bringPageAnchorIntoView } from "Common/UI/Utils/PageAnchor";
 import {
   translatableTerm,
   TranslatableTerm,
@@ -786,9 +787,29 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
    * the list is first drawn, the first ticked card is brought into view.
    * Nothing can be ticked by hand before the list is drawn, so what is
    * ticked then is what the link ticked (none without one).
+   *
+   * It is kept in view while the page settles (bringPageAnchorIntoView):
+   * the list is drawn before it is laid out - the styles of the classes a
+   * page draws for the first time (the grid's two columns, the cards'
+   * padding) arrive a frame or more after it - and the cards above the
+   * ticked one grow as they do. Scrolled to once, at the moment the list
+   * was drawn, a card at the end of the list (a cluster's Warning Events,
+   * under Events) ended half a window under the bottom edge.
    */
   const hasShownLinkedSelection: React.MutableRefObject<boolean> =
     useRef<boolean>(false);
+
+  // What stops keeping the ticked card in view: the page going away.
+  const stopShowingLinkedSelection: React.MutableRefObject<
+    (() => void) | null
+  > = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    return () => {
+      stopShowingLinkedSelection.current?.();
+      stopShowingLinkedSelection.current = null;
+    };
+  }, []);
 
   useEffect(() => {
     if (isLoading || hasShownLinkedSelection.current) {
@@ -817,8 +838,10 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
       );
     });
 
-    if (firstCard && typeof firstCard.scrollIntoView === "function") {
-      firstCard.scrollIntoView({ block: "center" });
+    if (firstCard) {
+      stopShowingLinkedSelection.current = bringPageAnchorIntoView(firstCard, {
+        block: "center",
+      });
     }
   }, [isLoading]);
 
