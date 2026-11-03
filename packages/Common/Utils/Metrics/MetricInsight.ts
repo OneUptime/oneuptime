@@ -9,6 +9,8 @@ import {
   SERVICE_LANGUAGE_DISPLAY_NAMES,
   ServiceLanguage,
 } from "../../Types/Service/ServiceLanguage";
+import { SPAN_METRICS_NAMESPACE } from "./SpanMetricsCollectorStep";
+import type { SpanKind } from "../../Models/AnalyticsModels/Span";
 
 /*
  * PROBLEMS IN A SERVICE'S METRICS WORTH TELLING SOMEONE ABOUT - the gates the
@@ -16,7 +18,7 @@ import {
  * Insights/Detectors/MetricProblemDetector), and that OneUptime AI then looks
  * into and opens a pull request for, as the project's metric AI rules say
  * (Types/AI/TelemetryAi). "Improve metrics / log metrics currently doesn't
- * exist" - the maintainer. Three kinds:
+ * exist" - the maintainer. Four kinds:
  *
  *   - High cardinality (MetricHighCardinality), in one of two shapes:
  *       Attribute: one of the project's busiest metrics, in a service, has
@@ -43,15 +45,31 @@ import {
  *   - Missing metrics (MetricMissingMetrics): a service that sent 1,000 or
  *     more spans in the hour but has never sent a metric, so nothing charts
  *     or alerts on its request rate, errors or latency over time without
- *     reading every span.
+ *     reading every span;
+ *
+ *   - Missing request metrics (MetricMissingRequestMetrics): a service that
+ *     sent 1,000 or more spans in the hour, and metrics too - its runtime's,
+ *     its own - but has never sent a request metric: none of the ones
+ *     OpenTelemetry's semantic conventions name for what its entry spans
+ *     serve (http.server.request.duration for the HTTP requests it
+ *     handles, rpc.server.call.duration for RPC calls,
+ *     messaging.process.duration for messages), nor the span metrics a
+ *     collector records from its traces. Its metrics reach OneUptime; its
+ *     requests are measured only by reading every span.
  *
  * Each look reads the hour that ended last (on the clock, UTC), the hour the
  * metrics' hourly rollup holds whole. Its 10 busiest metrics of the hour, of
  * the project's own services, are read closely, at most two findings each
- * service; at most three services are found missing their metrics. A
- * finding's fingerprint is its kind, service and metric (or name pattern),
- * so the same problem is one insight, refreshed while it lasts, and one pull
- * request.
+ * service; at most three services are found missing their metrics, and
+ * three missing their request metrics. A finding's fingerprint is its kind,
+ * service and metric (or name pattern), so the same problem is one insight,
+ * refreshed while it lasts, and one pull request.
+ *
+ * Missing request metrics come from the reads the look makes anyway - the
+ * hour's metrics by service, from the rollup, and its spans by service,
+ * from their per-minute aggregate - and, for the few services those leave,
+ * the metric catalog (never one of its request metrics, ever) and a sample
+ * of their entry spans (what they serve): never a new scan of the hour.
  *
  * An attribute's values are never kept: only its key, how many values it
  * took and what they look like (MetricValueShape). They are whatever the
@@ -93,6 +111,23 @@ export const METRIC_INSIGHT_MIN_BUCKET_SHARE: number = 90;
 export const METRIC_INSIGHT_MIN_SERVICE_SPANS: number = 1000;
 export const METRIC_INSIGHT_MAX_MISSING_METRICS_SERVICES: number = 3;
 
+/*
+ * Missing request metrics: the services found on each look (as busy as a
+ * service missing its metrics: METRIC_INSIGHT_MIN_SERVICE_SPANS), how many
+ * entry spans of a service are read to tell what it serves, the fewest of
+ * them one kind of request needs in that sample to be what it serves, and
+ * how many services' entry spans a look reads at most - each a small read
+ * of its own, so a project whose busy services all sent request metrics
+ * once, or serve none, costs a few of them, never one a service.
+ */
+export const METRIC_INSIGHT_MAX_MISSING_REQUEST_METRICS_SERVICES: number = 3;
+export const METRIC_INSIGHT_SERVED_SPAN_SAMPLE_SIZE: number = 1000;
+export const METRIC_INSIGHT_MIN_SERVED_SPANS: number = 100;
+export const METRIC_INSIGHT_MAX_SERVED_SPAN_READS: number = 6;
+
+// The metrics a missing-request-metrics finding names of the ones it sent.
+export const METRIC_INSIGHT_SENT_METRIC_NAMES: number = 3;
+
 // The findings kept of each service on each look.
 export const METRIC_INSIGHT_MAX_FINDINGS_PER_SERVICE: number = 2;
 
@@ -111,7 +146,10 @@ export const METRIC_INSIGHT_VALUE_SAMPLE_SIZE: number = 100;
 // The longest value read to tell what it looks like.
 export const METRIC_INSIGHT_MAX_VALUE_LENGTH: number = 200;
 
-// A finding this large is High; the rest Medium (missing metrics: Low).
+/*
+ * A finding this large is High; the rest Medium (missing metrics and
+ * missing request metrics: Low).
+ */
 export const METRIC_INSIGHT_HIGH_ATTRIBUTE_VALUES: number = 10000;
 export const METRIC_INSIGHT_HIGH_NAME_VARIANTS: number = 500;
 
@@ -176,16 +214,171 @@ export const METRIC_INSIGHT_FINGERPRINT_PREFIXES: {
   highCardinality: string;
   histogramBuckets: string;
   missingMetrics: string;
+  missingRequestMetrics: string;
 } = {
   highCardinality: "metric-high-cardinality",
   histogramBuckets: "metric-histogram-buckets",
   missingMetrics: "metric-missing-metrics",
+  missingRequestMetrics: "metric-missing-request-metrics",
 };
 
 export enum MetricInsightKind {
   HighCardinality = "HighCardinality",
   HistogramBuckets = "HistogramBuckets",
   MissingMetrics = "MissingMetrics",
+  MissingRequestMetrics = "MissingRequestMetrics",
+}
+
+/*
+ * What a service's requests are, as its entry spans say: an HTTP server's
+ * (a SERVER span with an HTTP method), an RPC server's (a SERVER span with
+ * rpc.system) or a messaging consumer's (a CONSUMER span with
+ * messaging.system) - each with the request metric OpenTelemetry's
+ * semantic conventions name for it. Listed in this order wherever a
+ * finding names them.
+ */
+export enum MetricServedProtocol {
+  Http = "Http",
+  Rpc = "Rpc",
+  Messaging = "Messaging",
+}
+
+export const METRIC_INSIGHT_SERVED_PROTOCOLS: ReadonlyArray<MetricServedProtocol> =
+  [
+    MetricServedProtocol.Http,
+    MetricServedProtocol.Rpc,
+    MetricServedProtocol.Messaging,
+  ];
+
+export function isMetricServedProtocol(
+  value: unknown,
+): value is MetricServedProtocol {
+  return (
+    typeof value === "string" &&
+    (METRIC_INSIGHT_SERVED_PROTOCOLS as ReadonlyArray<string>).includes(value)
+  );
+}
+
+/*
+ * How an entry span says which kind of request it is: its kind, and an
+ * attribute the semantic conventions put on it, under its new name or its
+ * old one (http.request.method was http.method before semantic conventions
+ * 1.20; rpc.system.name was rpc.system up to 1.37). Typed by the stored
+ * kinds (SpanKind), so a kind that is not one fails to compile.
+ */
+export interface MetricServedSpanDefinition {
+  kind: `${SpanKind.Server}` | `${SpanKind.Consumer}`;
+  attributeKeys: ReadonlyArray<string>;
+}
+
+export const METRIC_INSIGHT_SERVED_SPANS: Readonly<
+  Record<MetricServedProtocol, MetricServedSpanDefinition>
+> = {
+  [MetricServedProtocol.Http]: {
+    kind: "SPAN_KIND_SERVER",
+    attributeKeys: ["http.request.method", "http.method"],
+  },
+  [MetricServedProtocol.Rpc]: {
+    kind: "SPAN_KIND_SERVER",
+    attributeKeys: ["rpc.system.name", "rpc.system"],
+  },
+  [MetricServedProtocol.Messaging]: {
+    kind: "SPAN_KIND_CONSUMER",
+    attributeKeys: ["messaging.system"],
+  },
+};
+
+/*
+ * The request metric to add for each: the duration histogram, in seconds,
+ * that the semantic conventions name for a server or a consumer - its count
+ * is the request rate, and its errors are told by its status attribute.
+ * RPC's is rpc.server.call.duration in the semantic conventions after
+ * 1.37, and was rpc.server.duration (in milliseconds) up to it; both are
+ * request metrics (METRIC_INSIGHT_REQUEST_METRIC_PREFIXES).
+ */
+export const METRIC_INSIGHT_REQUEST_METRIC_BY_PROTOCOL: Readonly<
+  Record<MetricServedProtocol, string>
+> = {
+  [MetricServedProtocol.Http]: "http.server.request.duration",
+  [MetricServedProtocol.Rpc]: "rpc.server.call.duration",
+  [MetricServedProtocol.Messaging]: "messaging.process.duration",
+};
+
+/*
+ * The attributes each one is recorded with, as the semantic conventions
+ * name them: bounded values only, so the metric stays a few series.
+ */
+export const METRIC_INSIGHT_REQUEST_METRIC_ATTRIBUTES: Readonly<
+  Record<MetricServedProtocol, ReadonlyArray<string>>
+> = {
+  [MetricServedProtocol.Http]: [
+    "http.request.method",
+    "http.route",
+    "http.response.status_code",
+  ],
+  [MetricServedProtocol.Rpc]: [
+    "rpc.system.name",
+    "rpc.method",
+    "rpc.response.status_code",
+  ],
+  [MetricServedProtocol.Messaging]: [
+    "messaging.system",
+    "messaging.destination.name",
+    "messaging.operation.name",
+  ],
+};
+
+/*
+ * The names a request metric goes by, as name prefixes (lower case): the
+ * semantic conventions' own for an HTTP server, an RPC server and a
+ * messaging consumer, old and new (http.server.duration was
+ * http.server.request.duration's name before semantic conventions 1.20,
+ * rpc.server.duration rpc.server.call.duration's), the names the same
+ * metrics take through Prometheus (dots as underscores, a unit after:
+ * http_server_request_duration_seconds), Micrometer's
+ * (http.server.requests), the Prometheus client libraries' own
+ * (http_requests_total, http_request_duration_seconds) and gRPC's
+ * (grpc.server.call.duration, grpc_server_handled_total) - and the span
+ * metrics an OpenTelemetry Collector's span metrics step records from the
+ * traces passing through it (traces.span.metrics.calls and
+ * traces.span.metrics.duration; traces_spanmetrics_* before), which
+ * OneUptime's Kubernetes agent sends too. A service that sends any of them
+ * has request metrics. The metric catalog is asked by the same prefixes
+ * (QueryHelper.startsWithAnyOf, which matches "_" and "%" as themselves).
+ */
+export const METRIC_INSIGHT_REQUEST_METRIC_PREFIXES: ReadonlyArray<string> = [
+  "http.server.",
+  "http_server_",
+  "http.request",
+  "http_request",
+  "rpc.server.",
+  "rpc_server_",
+  "grpc.server.",
+  "grpc_server_",
+  "messaging.process.",
+  "messaging_process_",
+  "messaging.receive.",
+  "messaging_receive_",
+  "messaging.client.consumed.",
+  "messaging_client_consumed_",
+  "messaging.client.operation.",
+  "messaging_client_operation_",
+  `${SPAN_METRICS_NAMESPACE}.`,
+  `${SPAN_METRICS_NAMESPACE.split(".").join("_")}_`,
+  "traces.spanmetrics.",
+  "traces_spanmetrics_",
+];
+
+// Whether a metric's name is one a request metric goes by.
+export function isRequestMetricName(name: string): boolean {
+  const lowered: string = (name || "").trim().toLowerCase();
+
+  return (
+    lowered.length > 0 &&
+    METRIC_INSIGHT_REQUEST_METRIC_PREFIXES.some((prefix: string): boolean => {
+      return lowered.startsWith(prefix);
+    })
+  );
 }
 
 // What carries the values of a high-cardinality metric.
@@ -219,6 +412,8 @@ export const METRIC_INSIGHT_TYPE_BY_KIND: Readonly<
   [MetricInsightKind.HighCardinality]: AIInsightType.MetricHighCardinality,
   [MetricInsightKind.HistogramBuckets]: AIInsightType.MetricHistogramBuckets,
   [MetricInsightKind.MissingMetrics]: AIInsightType.MetricMissingMetrics,
+  [MetricInsightKind.MissingRequestMetrics]:
+    AIInsightType.MetricMissingRequestMetrics,
 };
 
 export function isMetricInsightKind(
@@ -807,9 +1002,204 @@ export function pickServicesMissingMetrics(data: {
 }
 
 /*
+ * STAGE FOUR: the services that send metrics, but none for the requests
+ * they handle - from the same two reads: the hour's metrics by service (the
+ * rollup) and its spans by service (their per-minute aggregate).
+ */
+export interface MetricRequestMetricsCandidate extends MetricServiceTraffic {
+  // The metrics it sent in the hour, its busiest first.
+  metricNames: Array<string>;
+}
+
+/*
+ * The services to ask about their request metrics: the project's own, busy
+ * enough, that sent metrics of their own in the hour - none of them a
+ * request metric (isRequestMetricName) - busiest first. The metric catalog
+ * then says whether one ever sent a request metric (one that stopped is
+ * not a pull request's to add), and its entry spans what it serves.
+ */
+export function pickServicesMissingRequestMetrics(data: {
+  traffic: ReadonlyArray<MetricServiceTraffic>;
+  serviceIds: ReadonlySet<string>;
+  // The hour's metrics, by the service they were sent for.
+  readings: ReadonlyArray<MetricVolumeReading>;
+  excludedServiceIds?: ReadonlySet<string> | undefined;
+}): Array<MetricRequestMetricsCandidate> {
+  const metricsByService: Map<string, Array<MetricVolumeReading>> = new Map<
+    string,
+    Array<MetricVolumeReading>
+  >();
+
+  for (const reading of data.readings) {
+    const serviceId: string = readId(reading.serviceId);
+
+    if (!serviceId || !hasText(reading.metricName || "")) {
+      continue;
+    }
+
+    metricsByService.set(serviceId, [
+      ...(metricsByService.get(serviceId) || []),
+      reading,
+    ]);
+  }
+
+  const candidates: Array<MetricRequestMetricsCandidate> = [];
+
+  for (const traffic of data.traffic) {
+    const serviceId: string = readId(traffic.serviceId);
+    const metrics: Array<MetricVolumeReading> =
+      metricsByService.get(serviceId) || [];
+
+    if (
+      !data.serviceIds.has(serviceId) ||
+      data.excludedServiceIds?.has(serviceId) ||
+      !isFiniteNumber(traffic.spanCount) ||
+      traffic.spanCount < METRIC_INSIGHT_MIN_SERVICE_SPANS ||
+      metrics.length === 0 ||
+      metrics.some((reading: MetricVolumeReading): boolean => {
+        return isRequestMetricName(reading.metricName);
+      })
+    ) {
+      continue;
+    }
+
+    const metricNames: Array<string> = Array.from(
+      new Set(
+        [...metrics]
+          .sort((a: MetricVolumeReading, b: MetricVolumeReading): number => {
+            return (
+              b.dataPointCount - a.dataPointCount ||
+              a.metricName.localeCompare(b.metricName)
+            );
+          })
+          .map((reading: MetricVolumeReading): string => {
+            return reading.metricName;
+          }),
+      ),
+    );
+
+    candidates.push({ ...traffic, serviceId, metricNames });
+  }
+
+  return candidates.sort(
+    (a: MetricRequestMetricsCandidate, b: MetricRequestMetricsCandidate) => {
+      return (
+        b.spanCount - a.spanCount || a.serviceId.localeCompare(b.serviceId)
+      );
+    },
+  );
+}
+
+/*
+ * A sample of a service's entry spans of the hour - its SERVER and CONSUMER
+ * spans, at most METRIC_INSIGHT_SERVED_SPAN_SAMPLE_SIZE of them - and how
+ * many of them are an HTTP server's, an RPC server's and a messaging
+ * consumer's, as METRIC_INSIGHT_SERVED_SPANS tells them.
+ */
+export interface MetricServedSpansReading {
+  sampledSpanCount: number;
+  httpServerSpanCount: number;
+  rpcServerSpanCount: number;
+  messagingConsumerSpanCount: number;
+}
+
+/*
+ * What a service serves, as its entry spans say: each kind of request with
+ * METRIC_INSIGHT_MIN_SERVED_SPANS or more spans in the sample, in the
+ * protocols' order. None when the spans hold too few of any - a service
+ * whose work starts in a cron job or a script, or an internal span, has no
+ * request metric the semantic conventions name.
+ */
+export function readServedProtocols(
+  reading: MetricServedSpansReading | null | undefined,
+): Array<MetricServedProtocol> {
+  if (!reading) {
+    return [];
+  }
+
+  const counts: Record<MetricServedProtocol, number> = {
+    [MetricServedProtocol.Http]: reading.httpServerSpanCount,
+    [MetricServedProtocol.Rpc]: reading.rpcServerSpanCount,
+    [MetricServedProtocol.Messaging]: reading.messagingConsumerSpanCount,
+  };
+
+  return METRIC_INSIGHT_SERVED_PROTOCOLS.filter(
+    (protocol: MetricServedProtocol): boolean => {
+      const count: number = counts[protocol];
+
+      return isFiniteNumber(count) && count >= METRIC_INSIGHT_MIN_SERVED_SPANS;
+    },
+  );
+}
+
+// The protocols evidence names, read back: known ones only, in order.
+export function getEvidenceServedProtocols(
+  evidence: MetricInsightEvidence,
+): Array<MetricServedProtocol> {
+  const named: ReadonlyArray<unknown> = Array.isArray(evidence.servedProtocols)
+    ? evidence.servedProtocols
+    : [];
+
+  return METRIC_INSIGHT_SERVED_PROTOCOLS.filter(
+    (protocol: MetricServedProtocol): boolean => {
+      return named.includes(protocol);
+    },
+  );
+}
+
+// The request metrics a service that serves these lacks, in order.
+export function getMissingRequestMetricNames(
+  protocols: ReadonlyArray<MetricServedProtocol>,
+): Array<string> {
+  return METRIC_INSIGHT_SERVED_PROTOCOLS.filter(
+    (protocol: MetricServedProtocol): boolean => {
+      return protocols.includes(protocol);
+    },
+  ).map((protocol: MetricServedProtocol): string => {
+    return METRIC_INSIGHT_REQUEST_METRIC_BY_PROTOCOL[protocol];
+  });
+}
+
+// Items as a sentence lists them: "a", "a and b", "a, b and c".
+function listInWords(items: ReadonlyArray<string>): string {
+  if (items.length <= 1) {
+    return items[0] || "";
+  }
+
+  return `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`;
+}
+
+// What a protocol's requests are called, in a phrase.
+const SERVED_PROTOCOL_PHRASES: Readonly<Record<MetricServedProtocol, string>> =
+  {
+    [MetricServedProtocol.Http]: "HTTP requests",
+    [MetricServedProtocol.Rpc]: "RPC calls",
+    [MetricServedProtocol.Messaging]: "messages",
+  };
+
+/*
+ * What a service handles, in a phrase: "HTTP requests", "HTTP requests and
+ * messages", "HTTP requests, RPC calls and messages" - "requests" when the
+ * evidence names none it knows.
+ */
+export function describeServedProtocols(
+  protocols: ReadonlyArray<MetricServedProtocol>,
+): string {
+  const phrases: Array<string> = METRIC_INSIGHT_SERVED_PROTOCOLS.filter(
+    (protocol: MetricServedProtocol): boolean => {
+      return protocols.includes(protocol);
+    },
+  ).map((protocol: MetricServedProtocol): string => {
+    return SERVED_PROTOCOL_PHRASES[protocol];
+  });
+
+  return phrases.length > 0 ? listInWords(phrases) : "requests";
+}
+
+/*
  * The finding's identity: its kind, its service, and its metric - or, for
  * names with ids in them, the pattern they share; a service's missing
- * metrics are one finding.
+ * metrics, and its missing request metrics, are one finding each.
  */
 export function getMetricInsightFingerprint(data: {
   kind: MetricInsightKind;
@@ -841,6 +1231,8 @@ export function getMetricInsightFingerprint(data: {
         serviceId,
         (data.metricName || "").trim().toLowerCase(),
       ].join(":");
+    case MetricInsightKind.MissingRequestMetrics:
+      return `${METRIC_INSIGHT_FINGERPRINT_PREFIXES.missingRequestMetrics}:${serviceId}`;
     case MetricInsightKind.MissingMetrics:
     default:
       return `${METRIC_INSIGHT_FINGERPRINT_PREFIXES.missingMetrics}:${serviceId}`;
@@ -962,6 +1354,8 @@ export function getMetricInsightTitle(data: {
         default:
           return `${withService(metric, data.serviceName)} puts ${formatMetricPercent(evidence.bucketShare || 0)} of its values in its smallest bucket`;
       }
+    case MetricInsightKind.MissingRequestMetrics:
+      return `${service} sends no metrics for the ${describeServedProtocols(getEvidenceServedProtocols(evidence))} it handles`;
     case MetricInsightKind.MissingMetrics:
     default:
       return `${service} sends traces but no metrics`;
@@ -991,6 +1385,7 @@ export function getMetricInsightSeverity(
     case MetricInsightKind.HistogramBuckets:
       // Every chart and monitor on it reads the same number.
       return AIInsightSeverity.Medium;
+    case MetricInsightKind.MissingRequestMetrics:
     case MetricInsightKind.MissingMetrics:
     default:
       // Nothing is wrong yet; what it costs is visibility.
@@ -1093,20 +1488,41 @@ export function describeMetricProblem(evidence: MetricInsightEvidence): string {
         .filter(hasText)
         .join(" ");
     }
+    case MetricInsightKind.MissingRequestMetrics: {
+      const protocols: Array<MetricServedProtocol> =
+        getEvidenceServedProtocols(evidence);
+      const sent: string = isFiniteNumber(evidence.sentMetricCount)
+        ? `${formatCount(evidence.sentMetricCount)} ${evidence.sentMetricCount === 1 ? "metric" : "metrics"}`
+        : "metrics";
+      const missing: Array<string> = getMissingRequestMetricNames(protocols);
+      const named: string =
+        missing.length > 0 ? ` (${missing.join(", ")})` : "";
+
+      return `It sent ${formatCount(evidence.spanCount || 0)} spans over the last hour, and ${sent} of its own, but has never sent a request metric for the ${describeServedProtocols(protocols)} it handles: none of the ones OpenTelemetry's semantic conventions name${named}, nor span metrics recorded from its traces. So nothing charts or alerts on its request rate, errors or latency over time without reading every span.${describeBusiestOperations(evidence, "Its busiest requests")}`;
+    }
     case MetricInsightKind.MissingMetrics:
     default: {
-      const busiest: string =
-        evidence.topOperations && evidence.topOperations.length > 0
-          ? ` Its busiest operations: ${evidence.topOperations
-              .map((operation: { name: string; spanCount: number }) => {
-                return `${operation.name} (${formatCount(operation.spanCount)})`;
-              })
-              .join(", ")}.`
-          : "";
-
-      return `It sent ${formatCount(evidence.spanCount || 0)} spans over the last hour and has never sent a metric, so nothing charts or alerts on its request rate, errors or latency over time without reading every span.${busiest}`;
+      return `It sent ${formatCount(evidence.spanCount || 0)} spans over the last hour and has never sent a metric, so nothing charts or alerts on its request rate, errors or latency over time without reading every span.${describeBusiestOperations(evidence, "Its busiest operations")}`;
     }
   }
+}
+
+/*
+ * A service's busiest operations, as a sentence after the problem's own:
+ * " Its busiest operations: GET /orders (2,000), POST /checkout (900)." -
+ * nothing when the evidence names none.
+ */
+function describeBusiestOperations(
+  evidence: MetricInsightEvidence,
+  lead: string,
+): string {
+  return evidence.topOperations && evidence.topOperations.length > 0
+    ? ` ${lead}: ${evidence.topOperations
+        .map((operation: { name: string; spanCount: number }) => {
+          return `${operation.name} (${formatCount(operation.spanCount)})`;
+        })
+        .join(", ")}.`
+    : "";
 }
 
 /*
@@ -1135,6 +1551,9 @@ export function buildMetricInsightDetail(data: {
       lines.push(
         mdText`**Histogram buckets that do not fit in ${data.serviceName}**`,
       );
+      break;
+    case MetricInsightKind.MissingRequestMetrics:
+      lines.push(mdText`**Missing request metrics in ${data.serviceName}**`);
       break;
     default:
       lines.push(mdText`**Missing metrics in ${data.serviceName}**`);
@@ -1256,6 +1675,74 @@ export function buildMetricInsightDetail(data: {
     );
   }
 
+  if (evidence.kind === MetricInsightKind.MissingRequestMetrics) {
+    const protocols: Array<MetricServedProtocol> =
+      getEvidenceServedProtocols(evidence);
+    const failed: string = isFiniteNumber(evidence.failedSpanCount)
+      ? `, ${formatCount(evidence.failedSpanCount)} failed`
+      : "";
+
+    lines.push(
+      mdText`- In the last hour: ${formatCount(evidence.spanCount || 0)} spans${failed}`,
+    );
+    lines.push(mdText`- It handles: ${describeServedProtocols(protocols)}`);
+
+    const sentNames: Array<MarkdownText> = (evidence.sentMetricNames || []).map(
+      (name: string): MarkdownText => {
+        return mdText`\`${name}\``;
+      },
+    );
+
+    if (sentNames.length > 0) {
+      const named: MarkdownText = FeedMarkdown.join(sentNames, ", ");
+
+      lines.push(
+        !isFiniteNumber(evidence.sentMetricCount)
+          ? mdText`- Metrics it sent in the last hour include ${named}`
+          : evidence.sentMetricCount > sentNames.length
+            ? mdText`- Metrics it sent in the last hour: ${formatCount(evidence.sentMetricCount)}, such as ${named}`
+            : mdText`- Metrics it sent in the last hour: ${named}`,
+      );
+    }
+
+    const missing: Array<MarkdownText> = getMissingRequestMetricNames(
+      protocols,
+    ).map((name: string): MarkdownText => {
+      return mdText`\`${name}\``;
+    });
+
+    if (missing.length > 0) {
+      lines.push(
+        missing.length === 1
+          ? mdText`- Request metric it has never sent: ${FeedMarkdown.join(missing, ", ")}`
+          : mdText`- Request metrics it has never sent: ${FeedMarkdown.join(missing, ", ")}`,
+      );
+    }
+
+    if (evidence.topOperations && evidence.topOperations.length > 0) {
+      lines.push(
+        mdText`- Busiest requests: ${FeedMarkdown.join(
+          evidence.topOperations.map(
+            (operation: { name: string; spanCount: number }): MarkdownText => {
+              return mdText`\`${operation.name}\` (${formatCount(operation.spanCount)})`;
+            },
+          ),
+          ", ",
+        )}`,
+      );
+    }
+
+    if (evidence.sdkLanguage) {
+      lines.push(
+        mdText`- Telemetry SDK: ${describeTelemetrySdkLanguage(evidence.sdkLanguage)}`,
+      );
+    }
+
+    lines.push(
+      mdText`- Without request metrics, nothing charts or alerts on its request rate, errors or latency over time`,
+    );
+  }
+
   return FeedMarkdown.join(lines, "\n");
 }
 
@@ -1281,10 +1768,38 @@ export function getMetricFixRequestTitle(data: {
         : `Stop recording ${evidence.attributeKey || "this attribute"} on ${metric}`;
     case MetricInsightKind.HistogramBuckets:
       return `Fix the buckets of ${metric}`;
+    case MetricInsightKind.MissingRequestMetrics:
+      return `Add request metrics to ${service}`;
     case MetricInsightKind.MissingMetrics:
     default:
       return `Add metrics to ${service}`;
   }
+}
+
+/*
+ * What to record, for each kind of request a service handles: its request
+ * metric and the attributes the semantic conventions record it with -
+ * "http.server.request.duration for its HTTP requests (with
+ * http.request.method, http.route and http.response.status_code)". An HTTP
+ * server's when the evidence names none.
+ */
+function describeRequestMetricsToRecord(
+  protocols: ReadonlyArray<MetricServedProtocol>,
+): string {
+  const named: Array<MetricServedProtocol> =
+    protocols.length > 0 ? [...protocols] : [MetricServedProtocol.Http];
+
+  return listInWords(
+    METRIC_INSIGHT_SERVED_PROTOCOLS.filter(
+      (protocol: MetricServedProtocol): boolean => {
+        return named.includes(protocol);
+      },
+    ).map((protocol: MetricServedProtocol): string => {
+      return `${METRIC_INSIGHT_REQUEST_METRIC_BY_PROTOCOL[protocol]} for its ${SERVED_PROTOCOL_PHRASES[protocol]} (with ${listInWords(
+        [...METRIC_INSIGHT_REQUEST_METRIC_ATTRIBUTES[protocol]],
+      )})`;
+    }),
+  );
 }
 
 // What a high-cardinality attribute's values could be replaced with.
@@ -1317,6 +1832,8 @@ function getMetricFixAsk(evidence: MetricInsightEvidence): string {
       return evidence.bucketProblem === MetricBucketProblem.NoBuckets
         ? "Find where the code creates this histogram, or the view that sets its aggregation, and give it explicit bucket boundaries that spread the values it records over its buckets. Keep the metric's name, unit and attributes as they are."
         : `Find where the code creates this histogram, or the view that sets its aggregation, and give it bucket boundaries that fit the values it records - for a duration in seconds, the OpenTelemetry semantic conventions' boundaries (${OTEL_SECONDS_HISTOGRAM_BOUNDS.join(", ")}). If the values are recorded in another unit than the buckets were made for, fix that instead, so the metric's unit, its values and its buckets agree. Keep the metric's name and attributes as they are.`;
+    case MetricInsightKind.MissingRequestMetrics:
+      return `This service already exports metrics to OneUptime, but none for its requests. Record the request metrics OpenTelemetry's semantic conventions name for what it handles, each a histogram in seconds, recorded for every request: ${describeRequestMetricsToRecord(getEvidenceServedProtocols(evidence))}. Prefer the OpenTelemetry instrumentation package for the framework that handles them, which records these, or turn on the metrics of the instrumentation it already uses. Export them the way its other metrics are exported now. Give attributes only values with a few possible values (a route template, a method, a status code), never IDs or full URLs. Do not change what the code does.`;
     case MetricInsightKind.MissingMetrics:
     default:
       return "Set up the OpenTelemetry metrics SDK in this service and export its metrics to OneUptime the way its traces are exported now (the same endpoint, headers and service.name). Record the request count, the error count and the request duration (a histogram, in seconds) of its busiest operations, following the OpenTelemetry semantic conventions - prefer the instrumentation packages for the frameworks it uses. Give attributes only values with a few possible values (a route template, a method, a status code), never IDs or full URLs. Do not change what the code does.";
@@ -1328,6 +1845,8 @@ function getMetricFixLeave(evidence: MetricInsightEvidence): string {
   switch (evidence.kind) {
     case MetricInsightKind.MissingMetrics:
       return "If this service's metrics are recorded somewhere other than this repository, or reach OneUptime another way, say where and change nothing.";
+    case MetricInsightKind.MissingRequestMetrics:
+      return "If this service's request metrics are recorded somewhere other than this repository - a collector's span metrics, an agent, a proxy in front of it - or reach OneUptime under another service, say where and change nothing.";
     default:
       return "If this metric is recorded by a library, an agent or a collector configured outside this repository, say where and change nothing.";
   }
@@ -1437,6 +1956,43 @@ export function buildMetricFixEvidenceNote(
     for (const operation of evidence.topOperations || []) {
       lines.push(
         `Busy operation: ${operation.name} (${formatCount(operation.spanCount)} spans)`,
+      );
+    }
+
+    if (evidence.sdkLanguage) {
+      lines.push(`Telemetry SDK language: ${evidence.sdkLanguage}`);
+    }
+  }
+
+  if (evidence.kind === MetricInsightKind.MissingRequestMetrics) {
+    const protocols: Array<MetricServedProtocol> =
+      getEvidenceServedProtocols(evidence);
+
+    lines.push(`Spans in the window: ${formatCount(evidence.spanCount || 0)}`);
+
+    if (isFiniteNumber(evidence.failedSpanCount)) {
+      lines.push(`Failed spans: ${formatCount(evidence.failedSpanCount)}`);
+    }
+
+    lines.push(`It handles: ${describeServedProtocols(protocols)}`);
+
+    if (evidence.sentMetricNames && evidence.sentMetricNames.length > 0) {
+      lines.push(
+        isFiniteNumber(evidence.sentMetricCount)
+          ? `Metrics it sent in the window: ${formatCount(evidence.sentMetricCount)} (${evidence.sentMetricNames.join(", ")})`
+          : `Metrics it sent in the window include: ${evidence.sentMetricNames.join(", ")}`,
+      );
+    }
+
+    const missing: Array<string> = getMissingRequestMetricNames(protocols);
+
+    if (missing.length > 0) {
+      lines.push(`Request metrics it never sent: ${missing.join(", ")}`);
+    }
+
+    for (const operation of evidence.topOperations || []) {
+      lines.push(
+        `Busy request: ${operation.name} (${formatCount(operation.spanCount)} spans)`,
       );
     }
 
