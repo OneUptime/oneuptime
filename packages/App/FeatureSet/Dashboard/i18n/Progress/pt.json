@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 41249,
-    "untranslated": 12111
+    "keys": 41397,
+    "untranslated": 12113
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -169,6 +169,7 @@
     "TLS",
     "Tablet",
     "Tags",
+    "Threads",
     "Tokens",
     "Top P",
     "Total",

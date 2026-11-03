@@ -226,7 +226,7 @@ const ProxmoxNodeOverview: FunctionComponent<ComponentProps> = (
         data-testid="proxmox-node-tiles"
       >
         <GoldenMetricTile
-          title={tx("CPU")}
+          title="CPU"
           icon={IconProp.CPUChip}
           iconColor="blue"
           value={formatPercent(cpu)}
@@ -243,7 +243,7 @@ const ProxmoxNodeOverview: FunctionComponent<ComponentProps> = (
           description={PROXMOX_METRIC_DESCRIPTIONS.nodeCpu}
         />
         <GoldenMetricTile
-          title={tx("Memory")}
+          title="Memory"
           icon={IconProp.SquareStack}
           iconColor="violet"
           value={formatPercent(memoryPercent)}
@@ -260,7 +260,7 @@ const ProxmoxNodeOverview: FunctionComponent<ComponentProps> = (
           description={PROXMOX_METRIC_DESCRIPTIONS.nodeMemory}
         />
         <GoldenMetricTile
-          title={tx("Root Disk")}
+          title="Root Disk"
           icon={IconProp.Database}
           iconColor="amber"
           value={formatPercent(diskPercent)}
@@ -277,7 +277,7 @@ const ProxmoxNodeOverview: FunctionComponent<ComponentProps> = (
           description={PROXMOX_METRIC_DESCRIPTIONS.nodeRootDisk}
         />
         <GoldenMetricTile
-          title={tx("Guests")}
+          title="Guests"
           icon={IconProp.Cube}
           iconColor="sky"
           value={

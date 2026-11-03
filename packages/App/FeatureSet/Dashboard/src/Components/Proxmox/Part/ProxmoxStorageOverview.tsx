@@ -179,7 +179,7 @@ const ProxmoxStorageOverview: FunctionComponent<ComponentProps> = (
         data-testid="proxmox-storage-tiles"
       >
         <GoldenMetricTile
-          title={tx("Used")}
+          title="Used"
           icon={IconProp.Database}
           iconColor="amber"
           value={formatPercent(percent)}
@@ -199,7 +199,7 @@ const ProxmoxStorageOverview: FunctionComponent<ComponentProps> = (
           description={PROXMOX_METRIC_DESCRIPTIONS.storageUsedPercent}
         />
         <GoldenMetricTile
-          title={tx("Free")}
+          title="Free"
           icon={IconProp.SquareStack}
           iconColor="emerald"
           value={formatBytes(free)}
@@ -214,7 +214,7 @@ const ProxmoxStorageOverview: FunctionComponent<ComponentProps> = (
         />
         {hasForecast ? (
           <GoldenMetricTile
-            title={tx("Growth Forecast")}
+            title="Growth Forecast"
             icon={IconProp.ArrowTrendingUp}
             iconColor="violet"
             value={
