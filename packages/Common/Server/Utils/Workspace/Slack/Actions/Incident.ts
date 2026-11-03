@@ -358,25 +358,34 @@ export default class SlackIncidentActions {
           ? data.action.actionValue || ""
           : "");
 
+      const incidentName: string =
+        createdIncident.incidentNumberWithPrefix ||
+        "#" + createdIncident.incidentNumber;
+
+      const lines: Array<MarkdownText> = [
+        mdText`**Incident ${incidentName}** created successfully. [View Incident](${await IncidentService.getIncidentLinkInDashboard(
+          slackRequest.projectId!,
+          createdIncident.id!,
+        )})`,
+      ];
+
+      // What it is linked to, for everybody in the channel.
+      const linkedLine: MarkdownText | null =
+        WorkspaceAffectedResources.getLinkedLine({
+          linked: toLink.linked,
+          alert: linkedAlert?.name,
+        });
+
+      if (linkedLine) {
+        lines.push(linkedLine);
+      }
+
+      const confirmation: WorkspacePayloadMarkdown = {
+        _type: "WorkspacePayloadMarkdown",
+        text: FeedMarkdown.join(lines, "\n").toString(),
+      };
+
       if (slackChannelId) {
-        const lines: Array<MarkdownText> = [
-          mdText`**Incident ${createdIncident.incidentNumberWithPrefix || "#" + createdIncident.incidentNumber}** created successfully. [View Incident](${await IncidentService.getIncidentLinkInDashboard(
-            slackRequest.projectId!,
-            createdIncident.id!,
-          )})`,
-        ];
-
-        // What it is linked to, for everybody in the channel.
-        const linkedLine: MarkdownText | null =
-          WorkspaceAffectedResources.getLinkedLine({
-            linked: toLink.linked,
-            alert: linkedAlert?.name,
-          });
-
-        if (linkedLine) {
-          lines.push(linkedLine);
-        }
-
         await SlackUtil.sendMessage({
           authToken: projectAuthToken,
           userId: botUserId,
@@ -386,14 +395,27 @@ export default class SlackIncidentActions {
             channelIds: [slackChannelId],
             channelNames: [],
             workspaceType: WorkspaceType.Slack,
-            messageBlocks: [
-              {
-                _type: "WorkspacePayloadMarkdown",
-                text: FeedMarkdown.join(lines, "\n").toString(),
-              } as WorkspacePayloadMarkdown,
-            ],
+            messageBlocks: [confirmation],
           },
         });
+      } else {
+        /*
+         * A form opened where there is no channel - the app's Home tab, or
+         * a shortcut from Slack's shortcuts menu - is confirmed to the
+         * person who declared it, in their direct messages with the app, as
+         * what was not linked is told to them (SlackActionAnswer): with
+         * nowhere to post, they were told nothing, not even that it worked.
+         */
+        const place: SlackAnswerPlace | null =
+          SlackActionAnswer.getPlace(slackRequest);
+
+        if (place) {
+          await SlackActionAnswer.answerWithBlocks({
+            place: place,
+            messageBlocks: [confirmation],
+            text: `Incident ${incidentName} created successfully.`,
+          });
+        }
       }
 
       // What was picked and not linked: for the person who picked it only.

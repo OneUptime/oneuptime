@@ -1603,6 +1603,8 @@ export default class SlackAPI {
               teamId: (payload["team_id"] as string) || "",
               slackUserId: (event["user"] as string) || "",
               tab: event["tab"] as string | undefined,
+              // The Home as Slack had it: drawn over only if nothing drew it since.
+              viewHash: SlackHome.readViewHash(event),
             });
 
             return;

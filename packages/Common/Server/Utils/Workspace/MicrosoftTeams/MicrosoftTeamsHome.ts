@@ -1,11 +1,16 @@
 import { Activity, TurnContext } from "./Botbuilder";
+import WorkspaceProjectAuthToken from "../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import URL from "../../../../Types/API/URL";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
-import { WorkspaceMessageBlock } from "../../../../Types/Workspace/WorkspaceMessagePayload";
+import {
+  WorkspaceMessageBlock,
+  WorkspacePayloadMenu,
+} from "../../../../Types/Workspace/WorkspaceMessagePayload";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
-import { mdText } from "../../../../Utils/Markdown/FeedMarkdown";
+import { MarkdownText, mdText } from "../../../../Utils/Markdown/FeedMarkdown";
 import DatabaseConfig from "../../../DatabaseConfig";
 import logger from "../../Logger";
 import ProductBrandingText from "../../ProductBrandingText";
@@ -19,7 +24,16 @@ import WorkspaceHome, {
   WorkspaceHomeActions,
   WorkspaceHomeView,
 } from "../WorkspaceHome";
-import MicrosoftTeamsAuthAction from "./Actions/Auth";
+import WorkspaceHomeProject from "../WorkspaceHomeProject";
+import WorkspaceProjectResolver, {
+  WorkspaceProjectChoice,
+  WorkspaceProjectResolution,
+} from "../WorkspaceProjectResolution";
+import MicrosoftTeamsAuthAction, {
+  MicrosoftTeamsAccountNotLinkedException,
+} from "./Actions/Auth";
+import MicrosoftTeamsActionAnswer from "./MicrosoftTeamsActionAnswer";
+import MicrosoftTeamsCardProject from "./MicrosoftTeamsCardProject";
 import MicrosoftTeamsUtil from "./MicrosoftTeams";
 import MicrosoftTeamsCommands from "./MicrosoftTeamsCommands";
 import MicrosoftTeamsConnectPrompt from "./MicrosoftTeamsConnectPrompt";
@@ -42,6 +56,21 @@ import MicrosoftTeamsReplies, {
  *     not connected yet gets the Home's Connect card instead.
  *   - "home", typed to the bot, sends it again.
  *
+ * In a Microsoft 365 organization connected to several projects, somebody
+ * whose Teams account is connected to a member in two or more of them sees
+ * one at a time, as in Slack (SlackHome): the one they chose last
+ * (WorkspaceHomeProject), else the first of theirs, in the order the
+ * projects were connected - never asked which first. Under the line that
+ * names it, a Switch project menu lists their others, with a button that
+ * switches (a card's dropdown cannot act by itself), or - with one other -
+ * one button, "Switch to IRM Non-Prod". A switch draws the card again in
+ * place for the project chosen, and their later Homes open on it. The menu
+ * widens nothing: a press names a project, and the person's links and
+ * memberships are read again for it - one they may not see is never drawn,
+ * nor kept, and their Home is drawn as it opens, saying first that it could
+ * not switch. A project that refuses them - blocked, or just left - still
+ * names itself with the menu beside it, so they can always switch away.
+ *
  * A team or a group chat the app is added to gets a short hello instead
  * (getTeamWelcome): what OneUptime does there, and where its notifications
  * are set up - the words Slack's channel hello says (SlackWelcome).
@@ -53,6 +82,8 @@ export enum MicrosoftTeamsHomeActionType {
   PageSomeone = "home-page-someone",
   WhoIsOnCall = "home-who-is-on-call",
   Refresh = "home-refresh",
+  // The Switch project menu's button (switchProject), read before any project.
+  SwitchProject = "home-switch-project",
 }
 
 export const MICROSOFT_TEAMS_HOME_ACTIONS: WorkspaceHomeActions = {
@@ -68,6 +99,35 @@ export const MICROSOFT_TEAMS_HOME_COMMAND: string = "home";
 // What somebody not connected is asked to connect for.
 const HOME_PURPOSE: string =
   "see your on-call shifts and the open incidents here";
+
+/*
+ * What somebody's Home shows (getPersonHome): the project, by its
+ * connection, and the projects they can switch it to.
+ */
+export interface MicrosoftTeamsPersonHome {
+  // The connection of the project the Home shows.
+  projectAuth: WorkspaceProjectAuthToken;
+  /*
+   * Connected in none of several projects: nobody's Home to draw for them
+   * there - told how to connect instead.
+   */
+  isConnectedInNone: boolean;
+  // Connected as a member in two or more of the organization's projects.
+  isInSeveralProjects: boolean;
+  /*
+   * The organization is connected to two or more projects: every card of
+   * its Home carries the project it shows (MicrosoftTeamsCardProject).
+   */
+  isSharedOrganization: boolean;
+  /*
+   * Those projects, named, in the order they were connected - the one
+   * shown among them - for the Switch project menu. Empty for somebody in
+   * fewer than two, or when any of them cannot be named: no menu then.
+   */
+  choices: Array<WorkspaceProjectChoice>;
+  // It shows the project they chose for it last (WorkspaceHomeProject).
+  isRememberedProject: boolean;
+}
 
 export default class MicrosoftTeamsHome {
   // "home", typed to the bot, alone (any case, a "!" or "?" after it).
@@ -88,9 +148,18 @@ export default class MicrosoftTeamsHome {
   }
 
   /*
+   * The Switch project menu's button: read before the press's project is,
+   * since it names the project it is for (switchProject).
+   */
+  public static isSwitchProjectAction(actionType: string | undefined): boolean {
+    return actionType === MicrosoftTeamsHomeActionType.SwitchProject;
+  }
+
+  /*
    * "home": the sender's Home, as a card in the conversation. Somebody not
    * connected is asked to connect (MicrosoftTeamsCommands.authorizeSender),
-   * and somebody no longer a member is told so.
+   * and somebody no longer a member is told so - or, with projects of
+   * theirs to switch to, shown which project refuses them, with the menu.
    */
   @CaptureSpan()
   public static async handleCommand(data: {
@@ -98,6 +167,22 @@ export default class MicrosoftTeamsHome {
     activity: JSONObject;
     projectId: ObjectID;
   }): Promise<void> {
+    const projectMenu: WorkspacePayloadMenu | null =
+      await MicrosoftTeamsHome.readProjectMenu({
+        activity: data.activity,
+        projectId: data.projectId,
+      });
+
+    if (projectMenu) {
+      await MicrosoftTeamsHome.drawHome({
+        turnContext: data.turnContext,
+        activity: data.activity,
+        projectId: data.projectId,
+        projectMenu: projectMenu,
+      });
+      return;
+    }
+
     const props: DatabaseCommonInteractionProps | null =
       await MicrosoftTeamsCommands.authorizeSender({
         turnContext: data.turnContext,
@@ -119,6 +204,7 @@ export default class MicrosoftTeamsHome {
       turnContext: data.turnContext,
       projectId: data.projectId,
       props: props,
+      projectMenu: null,
     });
   }
 
@@ -165,6 +251,337 @@ export default class MicrosoftTeamsHome {
           replacing: (data.activity["replyToId"] as string) || undefined,
         });
         return;
+      case MicrosoftTeamsHomeActionType.SwitchProject:
+        // Read before any project is (switchProject): nothing to do here.
+        return;
+    }
+  }
+
+  /*
+   * The Switch project menu, pressed: the card drawn again in place for the
+   * project chosen - when the presser's Teams account is still connected to
+   * a current member there, read again now and never taken from the press
+   * - and that project kept for their later Homes (WorkspaceHomeProject). A
+   * project they may not switch to - one they left after the menu was
+   * drawn, or any other a press names - is neither drawn nor kept: their
+   * Home is drawn as it opens, saying first that it could not switch.
+   * Somebody connected in none of the organization's projects is answered
+   * in a reply, and the card they pressed is left as it is. Never throws.
+   */
+  @CaptureSpan()
+  public static async switchProject(data: {
+    turnContext: TurnContext;
+    activity: JSONObject;
+    // What the press names (the option chosen): a project's id, or anything.
+    actionValue: string | undefined;
+  }): Promise<void> {
+    try {
+      const tenantId: string = MicrosoftTeamsHome.getTenantId(data.activity);
+      const aadObjectId: string = MicrosoftTeamsHome.getAadObjectId(
+        data.activity,
+      );
+      const chosenProjectId: ObjectID | null =
+        typeof data.actionValue === "string" &&
+        ObjectID.isValidUUID(data.actionValue)
+          ? new ObjectID(data.actionValue)
+          : null;
+
+      const home: MicrosoftTeamsPersonHome | null =
+        tenantId && aadObjectId
+          ? await MicrosoftTeamsHome.getPersonHome({
+              tenantId: tenantId,
+              aadObjectId: aadObjectId,
+              chosenProjectId: chosenProjectId || undefined,
+            })
+          : null;
+
+      if (!home || home.isConnectedInNone) {
+        await MicrosoftTeamsActionAnswer.reply({
+          turnContext: data.turnContext,
+          answer: MicrosoftTeamsHome.getSwitchRefusedAnswer(),
+        });
+        return;
+      }
+
+      const shownProjectId: ObjectID = home.projectAuth.projectId!;
+      const isSwitched: boolean = Boolean(
+        chosenProjectId &&
+          MicrosoftTeamsHome.isSameId(shownProjectId, chosenProjectId),
+      );
+
+      if (isSwitched && home.isInSeveralProjects) {
+        await WorkspaceHomeProject.rememberChosenProject({
+          workspaceType: WorkspaceType.MicrosoftTeams,
+          workspaceUserId: aadObjectId,
+          projectId: shownProjectId,
+        });
+      }
+
+      /*
+       * The card drawn again is the presser's, and so is every button on
+       * it: it acts in the project it shows (MicrosoftTeamsCardProject).
+       */
+      if (home.isSharedOrganization) {
+        MicrosoftTeamsCardProject.drawCardsFor({
+          turnContext: data.turnContext,
+          projectId: shownProjectId,
+        });
+      }
+
+      await MicrosoftTeamsHome.drawHome({
+        turnContext: data.turnContext,
+        activity: data.activity,
+        projectId: shownProjectId,
+        projectMenu: MicrosoftTeamsHome.getProjectMenu({
+          shownProjectId: shownProjectId,
+          choices: home.choices,
+        }),
+        notice: isSwitched
+          ? undefined
+          : WorkspaceHome.getSwitchRefusedNotice(WorkspaceType.MicrosoftTeams),
+        replacing: (data.activity["replyToId"] as string) || undefined,
+      });
+    } catch (err) {
+      MicrosoftTeamsReplies.logFailure(
+        "Could not switch a Microsoft Teams Home to another project",
+        err,
+        {},
+      );
+      await MicrosoftTeamsReplies.sendBestEffort(
+        data.turnContext,
+        "Sorry, I couldn't switch your Home just now. Please try again in a minute.",
+      );
+    }
+  }
+
+  /*
+   * What a switch press from somebody connected in none of the
+   * organization's projects is told, under the card it was pressed on.
+   */
+  public static getSwitchRefusedAnswer(): { markdown: string; text: string } {
+    const notice: MarkdownText = WorkspaceHome.getSwitchRefusedNotice(
+      WorkspaceType.MicrosoftTeams,
+    );
+
+    return {
+      markdown: notice.toString(),
+      text: "You can't switch to that project.",
+    };
+  }
+
+  /*
+   * The Home somebody is shown in an organization (see the header). For a
+   * person connected as a member in two or more of its projects: the one
+   * they choose now (`chosenProjectId`), or else the one they chose last
+   * (WorkspaceHomeProject), while they are a member there - else the first
+   * of their projects; with every one of them named, for the menu. For
+   * anybody else: the project WorkspaceProjectResolution tells apart for
+   * them. Null for an organization connected to no project.
+   */
+  @CaptureSpan()
+  public static async getPersonHome(data: {
+    tenantId: string;
+    aadObjectId: string;
+    chosenProjectId?: ObjectID | undefined;
+  }): Promise<MicrosoftTeamsPersonHome | null> {
+    const resolution: WorkspaceProjectResolution =
+      await WorkspaceProjectResolver.resolve({
+        workspaceType: WorkspaceType.MicrosoftTeams,
+        workspaceId: data.tenantId,
+        clues: {
+          workspaceUserId: data.aadObjectId,
+        },
+      });
+
+    const memberProjectIds: Array<ObjectID> = resolution.memberProjectIds;
+
+    if (memberProjectIds.length < 2) {
+      const personProject: WorkspaceProjectAuthToken | null =
+        WorkspaceProjectResolver.getPersonProject(resolution);
+
+      const projectAuth: WorkspaceProjectAuthToken | null =
+        personProject || resolution.connections[0] || null;
+
+      if (!projectAuth?.projectId) {
+        return null;
+      }
+
+      return {
+        projectAuth: projectAuth,
+        isConnectedInNone: !personProject,
+        isInSeveralProjects: false,
+        isSharedOrganization: resolution.connections.length > 1,
+        choices: [],
+        isRememberedProject: false,
+      };
+    }
+
+    const memberProjectId: (
+      projectId: ObjectID | null | undefined,
+    ) => ObjectID | undefined = (
+      projectId: ObjectID | null | undefined,
+    ): ObjectID | undefined => {
+      return memberProjectIds.find((memberId: ObjectID): boolean => {
+        return MicrosoftTeamsHome.isSameId(memberId, projectId);
+      });
+    };
+
+    let shownProjectId: ObjectID = memberProjectIds[0]!;
+    let isRememberedProject: boolean = false;
+
+    const chosenProjectId: ObjectID | undefined = memberProjectId(
+      data.chosenProjectId,
+    );
+
+    if (chosenProjectId) {
+      shownProjectId = chosenProjectId;
+    } else {
+      const rememberedProjectId: ObjectID | undefined = memberProjectId(
+        await WorkspaceHomeProject.getChosenProject({
+          workspaceType: WorkspaceType.MicrosoftTeams,
+          workspaceUserId: data.aadObjectId,
+          memberProjectIds: memberProjectIds,
+        }),
+      );
+
+      if (rememberedProjectId) {
+        shownProjectId = rememberedProjectId;
+        isRememberedProject = true;
+      }
+    }
+
+    const projectAuth: WorkspaceProjectAuthToken | undefined =
+      resolution.connections.find(
+        (connection: WorkspaceProjectAuthToken): boolean => {
+          return MicrosoftTeamsHome.isSameId(
+            connection.projectId,
+            shownProjectId,
+          );
+        },
+      );
+
+    if (!projectAuth?.projectId) {
+      return null;
+    }
+
+    const choices: Array<WorkspaceProjectChoice> | null =
+      await WorkspaceProjectResolver.getProjectChoices(memberProjectIds);
+
+    return {
+      projectAuth: projectAuth,
+      isConnectedInNone: false,
+      isInSeveralProjects: true,
+      isSharedOrganization: true,
+      choices: choices || [],
+      isRememberedProject: isRememberedProject,
+    };
+  }
+
+  /*
+   * The project a Home - typed `home`, or the welcome - opens on for
+   * somebody nothing else tells the project of (`resolution`, ambiguous): a
+   * member in two or more of the organization's projects sees the one they
+   * chose last, else the first of theirs, never asked which first. Null for
+   * anybody else, who is asked or told as before. Never throws.
+   */
+  @CaptureSpan()
+  public static async findPersonHomeProject(data: {
+    aadObjectId: string;
+    resolution: WorkspaceProjectResolution | undefined;
+  }): Promise<WorkspaceProjectAuthToken | null> {
+    const resolution: WorkspaceProjectResolution | undefined = data.resolution;
+
+    if (!resolution?.isAmbiguous || resolution.memberProjectIds.length < 2) {
+      return null;
+    }
+
+    const chosen: ObjectID | null = await WorkspaceHomeProject.getChosenProject(
+      {
+        workspaceType: WorkspaceType.MicrosoftTeams,
+        workspaceUserId: data.aadObjectId,
+        memberProjectIds: resolution.memberProjectIds,
+      },
+    );
+
+    const shownProjectId: ObjectID = chosen || resolution.memberProjectIds[0]!;
+
+    return (
+      resolution.connections.find(
+        (connection: WorkspaceProjectAuthToken): boolean => {
+          return MicrosoftTeamsHome.isSameId(
+            connection.projectId,
+            shownProjectId,
+          );
+        },
+      ) || null
+    );
+  }
+
+  /*
+   * The Home's Switch project menu: the person's projects other than the
+   * one shown (WorkspaceHome.getProjectMenu), sent by its button as the
+   * press's actionValue (MicrosoftTeamsUtil.getMenuElements).
+   */
+  public static getProjectMenu(data: {
+    shownProjectId: ObjectID;
+    choices: Array<WorkspaceProjectChoice>;
+  }): WorkspacePayloadMenu | null {
+    return WorkspaceHome.getProjectMenu({
+      actionId: MicrosoftTeamsHomeActionType.SwitchProject,
+      shownProjectId: data.shownProjectId,
+      choices: data.choices,
+    });
+  }
+
+  /*
+   * The Switch project menu of the Home of `projectId`, for the person an
+   * activity is from: their projects in the organization, read again now -
+   * null when they are a member of fewer than two, or the project is not
+   * one of theirs. Never throws: without it, the Home is drawn without one.
+   */
+  @CaptureSpan()
+  public static async readProjectMenu(data: {
+    activity: JSONObject;
+    projectId: ObjectID;
+  }): Promise<WorkspacePayloadMenu | null> {
+    const tenantId: string = MicrosoftTeamsHome.getTenantId(data.activity);
+    const aadObjectId: string = MicrosoftTeamsHome.getAadObjectId(
+      data.activity,
+    );
+
+    if (!tenantId || !aadObjectId) {
+      return null;
+    }
+
+    try {
+      const resolution: WorkspaceProjectResolution =
+        await WorkspaceProjectResolver.resolve({
+          workspaceType: WorkspaceType.MicrosoftTeams,
+          workspaceId: tenantId,
+          clues: {
+            workspaceUserId: aadObjectId,
+          },
+        });
+
+      if (resolution.memberProjectIds.length < 2) {
+        return null;
+      }
+
+      const choices: Array<WorkspaceProjectChoice> | null =
+        await WorkspaceProjectResolver.getProjectChoices(
+          resolution.memberProjectIds,
+        );
+
+      return MicrosoftTeamsHome.getProjectMenu({
+        shownProjectId: data.projectId,
+        choices: choices || [],
+      });
+    } catch (err) {
+      logger.debug(
+        "Could not read the projects of a Microsoft Teams Home's person; drawing it without Switch project.",
+      );
+      logger.debug(err);
+      return null;
     }
   }
 
@@ -180,23 +597,20 @@ export default class MicrosoftTeamsHome {
     try {
       const activity: JSONObject = data.turnContext
         .activity as unknown as JSONObject;
-      const teamsUserId: string =
-        ((activity["from"] as JSONObject | undefined)?.["aadObjectId"] as
-          | string
-          | undefined) || "";
+      const teamsUserId: string = MicrosoftTeamsHome.getAadObjectId(activity);
 
-      const props: DatabaseCommonInteractionProps | null = teamsUserId
-        ? await MicrosoftTeamsHome.readMemberProps({
+      const isConnected: boolean = teamsUserId
+        ? await MicrosoftTeamsHome.isConnected({
             teamsUserId: teamsUserId,
             projectId: data.projectId,
           })
-        : null;
+        : false;
 
-      if (props?.userId) {
-        await MicrosoftTeamsHome.sendHome({
+      if (isConnected) {
+        await MicrosoftTeamsHome.drawHome({
           turnContext: data.turnContext,
+          activity: activity,
           projectId: data.projectId,
-          props: props,
         });
         return;
       }
@@ -314,6 +728,9 @@ export default class MicrosoftTeamsHome {
   /*
    * The member's Home as a card, sent - or, `replacing` a Home card, drawn
    * again in its place. A card Teams will not change in place is sent anew.
+   * `projectMenu` is its Switch project menu: read for the person when not
+   * given (readProjectMenu), none for null. `notice` is said first, under
+   * the greeting.
    */
   @CaptureSpan()
   public static async sendHome(data: {
@@ -321,17 +738,39 @@ export default class MicrosoftTeamsHome {
     projectId: ObjectID;
     props: DatabaseCommonInteractionProps;
     replacing?: string | undefined;
+    projectMenu?: WorkspacePayloadMenu | null | undefined;
+    notice?: MarkdownText | undefined;
   }): Promise<void> {
+    const projectMenu: WorkspacePayloadMenu | null =
+      data.projectMenu !== undefined
+        ? data.projectMenu
+        : await MicrosoftTeamsHome.readProjectMenu({
+            activity: data.turnContext.activity as unknown as JSONObject,
+            projectId: data.projectId,
+          });
+
     const view: WorkspaceHomeView = await WorkspaceHome.read({
       projectId: data.projectId,
       userId: data.props.userId!,
       props: data.props,
     });
 
+    /*
+     * The menu goes with the line that names the project: named as the menu
+     * names it, should the Home's own read of the name have failed.
+     */
+    if (projectMenu && !view.projectName) {
+      view.projectName = await MicrosoftTeamsHome.readProjectName(
+        data.projectId,
+      );
+    }
+
     const blocks: Array<WorkspaceMessageBlock> = WorkspaceHome.getBlocks({
       workspaceType: WorkspaceType.MicrosoftTeams,
       view: view,
       actions: MICROSOFT_TEAMS_HOME_ACTIONS,
+      projectMenu: projectMenu || undefined,
+      notice: data.notice,
     });
 
     await MicrosoftTeamsHome.sendCard({
@@ -339,6 +778,112 @@ export default class MicrosoftTeamsHome {
       blocks: blocks,
       summary: WorkspaceHome.getNotificationText(view),
       replacing: data.replacing,
+    });
+  }
+
+  /*
+   * The Home of `projectId` for the person an activity is from, read as the
+   * member their Teams account is connected to there: sent, or drawn in
+   * place of the card `replacing`. Not connected there: asked to connect,
+   * in a reply. Refused there - blocked by an administrator, or left a
+   * moment ago - with projects of theirs to switch to (`projectMenu`): the
+   * Home names the project, says why, and keeps the menu, so they can switch
+   * away; without: the refusal in a reply, as every refusal is.
+   */
+  @CaptureSpan()
+  public static async drawHome(data: {
+    turnContext: TurnContext;
+    activity: JSONObject;
+    projectId: ObjectID;
+    projectMenu?: WorkspacePayloadMenu | null | undefined;
+    notice?: MarkdownText | undefined;
+    replacing?: string | undefined;
+  }): Promise<void> {
+    const teamsUserId: string = MicrosoftTeamsHome.getAadObjectId(
+      data.activity,
+    );
+
+    let userId: ObjectID;
+
+    try {
+      userId = await MicrosoftTeamsAuthAction.getOneUptimeUserIdFromTeamsUserId(
+        {
+          teamsUserId: teamsUserId,
+          projectId: data.projectId,
+        },
+      );
+    } catch (err) {
+      if (err instanceof MicrosoftTeamsAccountNotLinkedException) {
+        await MicrosoftTeamsConnectPrompt.prompt({
+          turnContext: data.turnContext,
+          projectId: data.projectId,
+          description: MicrosoftTeamsConnectPrompt.describeCommand({
+            purpose: HOME_PURPOSE,
+            command: MICROSOFT_TEAMS_HOME_COMMAND,
+          }),
+        });
+        return;
+      }
+
+      throw err;
+    }
+
+    const projectMenu: WorkspacePayloadMenu | null =
+      data.projectMenu !== undefined
+        ? data.projectMenu
+        : await MicrosoftTeamsHome.readProjectMenu({
+            activity: data.activity,
+            projectId: data.projectId,
+          });
+
+    let props: DatabaseCommonInteractionProps;
+
+    try {
+      props = await WorkspaceActionAuthorization.getProjectMemberProps({
+        userId: userId,
+        projectId: data.projectId,
+      });
+    } catch (err) {
+      if (!(err instanceof NotAuthorizedException)) {
+        throw err;
+      }
+
+      if (!projectMenu) {
+        // Placed as text: a refusal can name a label, a record or a person.
+        await MicrosoftTeamsActionAnswer.reply({
+          turnContext: data.turnContext,
+          answer: {
+            markdown: mdText`${err.message}`.toString(),
+            text: err.message,
+          },
+        });
+        return;
+      }
+
+      await MicrosoftTeamsHome.sendCard({
+        turnContext: data.turnContext,
+        blocks: WorkspaceHome.getRefusedBlocks({
+          message: err.message,
+          firstName: await WorkspaceHome.readFirstName(userId),
+          projectName: await MicrosoftTeamsHome.readProjectName(
+            data.projectId,
+          ),
+          projectMenu: projectMenu,
+          notice: data.notice,
+        }),
+        summary: err.message,
+        replacing: data.replacing,
+      });
+      return;
+    }
+
+    await MicrosoftTeamsHome.sendHome({
+      turnContext: data.turnContext,
+      projectId: data.projectId,
+      props: props,
+      replacing: data.replacing,
+      projectMenu: projectMenu,
+      notice: data.notice,
     });
   }
 
@@ -396,27 +941,60 @@ export default class MicrosoftTeamsHome {
     return card;
   }
 
-  // The member's props, or null when not connected or not a member.
-  private static async readMemberProps(data: {
+  // Whether the Teams account is connected to somebody in the project.
+  private static async isConnected(data: {
     teamsUserId: string;
     projectId: ObjectID;
-  }): Promise<DatabaseCommonInteractionProps | null> {
+  }): Promise<boolean> {
     try {
-      const userId: ObjectID =
-        await MicrosoftTeamsAuthAction.getOneUptimeUserIdFromTeamsUserId({
-          teamsUserId: data.teamsUserId,
-          projectId: data.projectId,
-        });
-
-      return await WorkspaceActionAuthorization.getProjectMemberProps({
-        userId: userId,
+      await MicrosoftTeamsAuthAction.getOneUptimeUserIdFromTeamsUserId({
+        teamsUserId: data.teamsUserId,
         projectId: data.projectId,
       });
+      return true;
     } catch (err) {
       logger.debug("A Microsoft Teams user without a member to welcome as.");
       logger.debug(err);
-      return null;
+      return false;
     }
+  }
+
+  // A project's name, for the line that names it; null when it cannot be read.
+  private static async readProjectName(
+    projectId: ObjectID,
+  ): Promise<string | null> {
+    const choices: Array<WorkspaceProjectChoice> | null =
+      await WorkspaceProjectResolver.getProjectChoices([projectId]);
+
+    return choices?.[0]?.name || null;
+  }
+
+  // The Microsoft 365 organization an activity was sent in.
+  private static getTenantId(activity: JSONObject): string {
+    const channelData: JSONObject | undefined = activity["channelData"] as
+      | JSONObject
+      | undefined;
+    const tenant: unknown = (
+      channelData?.["tenant"] as JSONObject | undefined
+    )?.["id"];
+    const conversationTenant: unknown = (
+      activity["conversation"] as JSONObject | undefined
+    )?.["tenantId"];
+
+    if (typeof tenant === "string" && tenant) {
+      return tenant;
+    }
+
+    return typeof conversationTenant === "string" ? conversationTenant : "";
+  }
+
+  // Its sender's Microsoft Entra object id.
+  private static getAadObjectId(activity: JSONObject): string {
+    const aadObjectId: unknown = (activity["from"] as JSONObject | undefined)?.[
+      "aadObjectId"
+    ];
+
+    return typeof aadObjectId === "string" ? aadObjectId : "";
   }
 
   private static async getDashboardUrl(): Promise<URL | null> {
@@ -427,5 +1005,16 @@ export default class MicrosoftTeamsHome {
       logger.debug(err);
       return null;
     }
+  }
+
+  private static isSameId(
+    a: ObjectID | string | null | undefined,
+    b: ObjectID | string | null | undefined,
+  ): boolean {
+    if (!a || !b) {
+      return false;
+    }
+
+    return a.toString().toLowerCase() === b.toString().toLowerCase();
   }
 }

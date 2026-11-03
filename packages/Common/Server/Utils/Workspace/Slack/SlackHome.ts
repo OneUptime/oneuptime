@@ -16,11 +16,10 @@ import {
 import {
   WorkspaceMessageBlock,
   WorkspacePayloadMenu,
-  WorkspacePayloadMenuOption,
 } from "../../../../Types/Workspace/WorkspaceMessagePayload";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
 import API from "../../../../Utils/API";
-import { MarkdownText, mdText } from "../../../../Utils/Markdown/FeedMarkdown";
+import { MarkdownText } from "../../../../Utils/Markdown/FeedMarkdown";
 import DatabaseConfig from "../../../DatabaseConfig";
 import GlobalCache from "../../../Infrastructure/GlobalCache";
 import WorkspaceProjectAuthTokenService from "../../../Services/WorkspaceProjectAuthTokenService";
@@ -29,15 +28,16 @@ import WorkspaceProjectResolver, {
   WorkspaceProjectResolution,
 } from "../WorkspaceProjectResolution";
 import SlackModalMetadata from "./SlackModalMetadata";
-import SlackProjectChoice, { SlackHomeOfPerson } from "./SlackProjectChoice";
 import WorkspaceUserAuthTokenService from "../../../Services/WorkspaceUserAuthTokenService";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import WorkspaceActionAuthorization from "../WorkspaceActionAuthorization";
 import WorkspaceHome, {
+  WORKSPACE_HOME_TEXT,
   WorkspaceHomeActions,
   WorkspaceHomeView,
 } from "../WorkspaceHome";
+import WorkspaceHomeProject from "../WorkspaceHomeProject";
 import SlackUtil from "./Slack";
 import SlackActionType from "./Actions/ActionTypes";
 
@@ -64,11 +64,16 @@ import SlackActionType from "./Actions/ActionTypes";
  * project it shows. Somebody connected as a member in two or more of them
  * gets a Switch project menu beside the line that names the project, which
  * lists their others by name; choosing one draws the Home again for it, and
- * it is remembered for their later openings
- * (SlackProjectChoice.rememberHomeProject) while they are still a member
- * there. Before they choose, or once they are no longer a member of the
- * project they chose, the Home shows the first of their projects, in the
- * order the projects were connected.
+ * their later openings show it (WorkspaceHomeProject, kept in Postgres) while
+ * they are still a member there. Before they choose, or once they are no
+ * longer a member of the project they chose, the Home shows the first of
+ * their projects, in the order the projects were connected.
+ *
+ * An opening of the Home that is slow to read never draws over a switch
+ * made meanwhile: the opening publishes with the hash of the view Slack
+ * said was there (app_home_opened's view.hash), and Slack refuses it -
+ * hash_conflict - once a switch has drawn the Home since. A switch is the
+ * person's latest word, so it publishes with no hash, over anything.
  *
  * The menu never widens what anybody sees: it offers only the projects
  * where the Slack account is connected to a current member, and the
@@ -101,10 +106,18 @@ export const SLACK_HOME_PROJECT_MENU: {
   placeholder: string;
   refused: string;
 } = {
-  placeholder: "Switch project",
-  refused:
-    "⚠️ You can't switch to that project: you're no longer a member of it, or your Slack account isn't connected there.",
+  placeholder: WORKSPACE_HOME_TEXT.switchProject,
+  refused: WorkspaceHome.getSwitchRefusedNotice(WorkspaceType.Slack).toString(),
 };
+
+// What Slack answers a views.publish whose hash is not the view's any more.
+const HASH_CONFLICT: string = "hash_conflict";
+
+/*
+ * A view's hash is short ("156772938.1827394"): anything much longer is not
+ * one, and is not sent back.
+ */
+const VIEW_HASH_MAX_LENGTH: number = 200;
 
 /*
  * What somebody's Home shows (SlackHome.getPersonHome): the project, by its
@@ -126,7 +139,7 @@ export interface SlackPersonHome {
    * fewer than two, or when any of them cannot be named: no menu then.
    */
   choices: Array<WorkspaceProjectChoice>;
-  // It shows the project they chose for it last (getHomeProject).
+  // It shows the project they chose for it last (WorkspaceHomeProject).
   isRememberedProject: boolean;
 }
 
@@ -140,12 +153,18 @@ export default class SlackHome {
    * app_home_opened, for the Home tab: draws the person's Home. Slack also
    * sends it when the Messages tab is opened, which is not drawn: that open
    * is SlackMessagesWelcome's. Never throws: Slack has its 200 already.
+   *
+   * It draws over the view Slack said was there (`viewHash`) and nothing
+   * newer: a switch of project made while this was read has drawn the Home
+   * since, and stands (see the header).
    */
   @CaptureSpan()
   public static async handleHomeOpened(event: {
     teamId: string;
     slackUserId: string;
     tab?: string | undefined;
+    // The Home's view as Slack had it when it was opened: its hash.
+    viewHash?: string | undefined;
   }): Promise<void> {
     if (event.tab && event.tab !== "home") {
       return;
@@ -179,18 +198,17 @@ export default class SlackHome {
         return;
       }
 
-      // The project they chose stays chosen while they go on opening it.
-      if (home.isRememberedProject) {
-        await SlackProjectChoice.rememberHomeProject({
-          person: SlackHome.personOf(event),
-          projectId: home.projectAuth.projectId!,
-        });
-      }
-
-      await SlackHome.publishHome({
+      const isDrawn: boolean = await SlackHome.publishHome({
         home: home,
         slackUserId: event.slackUserId,
+        viewHash: event.viewHash,
       });
+
+      if (!isDrawn) {
+        logger.debug(
+          "Slack Home drawn again while it opened (a project switch); the opening's drawing is dropped.",
+        );
+      }
     } catch (err) {
       logger.error("Could not draw a Slack Home tab.");
       logger.error(err);
@@ -204,8 +222,10 @@ export default class SlackHome {
    * press - and that project remembered for their later openings. A project
    * they may not switch to - one they left after the menu was drawn, or any
    * other a press names - is neither drawn nor remembered: their Home is
-   * drawn as it opens, saying first that it could not switch. Never throws:
-   * Slack has its 200 already.
+   * drawn as it opens, saying first that it could not switch. Drawn over
+   * whatever the Home shows - an opening still being read included, which
+   * then draws nothing (see the header). Never throws: Slack has its 200
+   * already.
    */
   @CaptureSpan()
   public static async switchProject(data: {
@@ -238,8 +258,9 @@ export default class SlackHome {
       );
 
       if (isSwitched && home.isInSeveralProjects) {
-        await SlackProjectChoice.rememberHomeProject({
-          person: { teamId: data.teamId, slackUserId: data.slackUserId },
+        await WorkspaceHomeProject.rememberChosenProject({
+          workspaceType: WorkspaceType.Slack,
+          workspaceUserId: data.slackUserId,
           projectId: home.projectAuth.projectId!,
         });
       }
@@ -253,6 +274,23 @@ export default class SlackHome {
       logger.error("Could not switch a Slack Home to another project.");
       logger.error(err);
     }
+  }
+
+  /*
+   * The hash of the Home view an app_home_opened event says was there:
+   * Slack sends the view once the app has published one for the person.
+   * Undefined for none, or anything that is not text Slack takes back.
+   */
+  public static readViewHash(event: JSONObject | undefined): string | undefined {
+    const view: unknown = event?.["view"];
+    const hash: unknown =
+      view && typeof view === "object" && !Array.isArray(view)
+        ? (view as JSONObject)["hash"]
+        : undefined;
+
+    return typeof hash === "string" && hash && hash.length <= VIEW_HASH_MAX_LENGTH
+      ? hash
+      : undefined;
   }
 
   /*
@@ -299,9 +337,8 @@ export default class SlackHome {
    * The Home somebody is shown in a workspace (see the header). For a
    * person connected as a member in two or more of its projects: the one
    * they choose now (`chosenProjectId`), or else the one they chose last
-   * (SlackProjectChoice.getHomeProject), while they are a member there -
-   * else the first of their projects; with every one of them named, for the
-   * menu. For anybody else: the project WorkspaceProjectResolution tells
+   * (WorkspaceHomeProject), while they are a member there - else the first
+   * of their projects; with every one of them named, for the menu. For anybody else: the project WorkspaceProjectResolution tells
    * apart for them, as before. Null for a workspace connected to no
    * project.
    */
@@ -370,7 +407,11 @@ export default class SlackHome {
       shownProjectId = chosenProjectId;
     } else {
       const rememberedProjectId: ObjectID | undefined = memberProjectId(
-        await SlackProjectChoice.getHomeProject(SlackHome.personOf(data)),
+        await WorkspaceHomeProject.getChosenProject({
+          workspaceType: WorkspaceType.Slack,
+          workspaceUserId: data.slackUserId,
+          memberProjectIds: memberProjectIds,
+        }),
       );
 
       if (rememberedProjectId) {
@@ -404,8 +445,9 @@ export default class SlackHome {
 
   /*
    * Draws `slackUserId`'s Home in the project's workspace, now: what
-   * WorkspaceHome holds for them, or how to connect. Throws when Slack
-   * refuses it.
+   * WorkspaceHome holds for them, or how to connect. With `viewHash`, only
+   * over that view: false when Slack refuses it for having been drawn
+   * since. Throws when Slack refuses it for anything else.
    */
   @CaptureSpan()
   public static async publish(data: {
@@ -424,7 +466,9 @@ export default class SlackHome {
     choices?: Array<WorkspaceProjectChoice> | undefined;
     // Drawn for a project switch it could not follow: says so first.
     isSwitchRefused?: boolean | undefined;
-  }): Promise<void> {
+    // Drawn only over the view of this hash (handleHomeOpened).
+    viewHash?: string | undefined;
+  }): Promise<boolean> {
     const blocks: Array<WorkspaceMessageBlock> = await SlackHome.getBlocks({
       projectId: data.projectId,
       slackUserId: data.slackUserId,
@@ -433,11 +477,12 @@ export default class SlackHome {
       isSwitchRefused: data.isSwitchRefused,
     });
 
-    await SlackHome.viewsPublish({
+    return await SlackHome.viewsPublish({
       authToken: data.projectAuthToken,
       slackUserId: data.slackUserId,
       blocks: blocks,
       projectId: data.projectId,
+      viewHash: data.viewHash,
     });
   }
 
@@ -479,8 +524,9 @@ export default class SlackHome {
         SlackHome.isSameId(home.projectAuth.projectId, data.projectId)
       ) {
         if (home.isInSeveralProjects) {
-          await SlackProjectChoice.rememberHomeProject({
-            person: { teamId: teamId, slackUserId: data.slackUserId },
+          await WorkspaceHomeProject.rememberChosenProject({
+            workspaceType: WorkspaceType.Slack,
+            workspaceUserId: data.slackUserId,
             projectId: data.projectId,
           });
         }
@@ -555,7 +601,7 @@ export default class SlackHome {
       })?.name || null;
 
     const notice: MarkdownText | undefined = data.isSwitchRefused
-      ? mdText`${SLACK_HOME_PROJECT_MENU.refused}`
+      ? WorkspaceHome.getSwitchRefusedNotice(WorkspaceType.Slack)
       : undefined;
 
     let props: DatabaseCommonInteractionProps;
@@ -576,6 +622,8 @@ export default class SlackHome {
       if (err instanceof NotAuthorizedException) {
         return WorkspaceHome.getRefusedBlocks({
           message: err.message,
+          // Greeted by name, as on the Home that lets them in.
+          firstName: await WorkspaceHome.readFirstName(userAuth.userId),
           projectName: projectMenu ? menuProjectName : null,
           projectMenu: projectMenu || undefined,
           notice: notice,
@@ -613,39 +661,17 @@ export default class SlackHome {
    * The Home's Switch project menu: the person's projects other than the
    * one shown, by name, in the order the projects were connected. Null when
    * there is no other, or the project shown is not among them - the menu
-   * belongs to the Home of one of the person's own projects.
+   * belongs to the Home of one of the person's own projects
+   * (WorkspaceHome.getProjectMenu).
    */
   public static getProjectMenu(data: {
     shownProjectId: ObjectID;
     choices: Array<WorkspaceProjectChoice>;
   }): WorkspacePayloadMenu | null {
-    const isShownAmongThem: boolean = data.choices.some(
-      (choice: WorkspaceProjectChoice): boolean => {
-        return SlackHome.isSameId(choice.projectId, data.shownProjectId);
-      },
-    );
-
-    const others: Array<WorkspaceProjectChoice> = data.choices.filter(
-      (choice: WorkspaceProjectChoice): boolean => {
-        return !SlackHome.isSameId(choice.projectId, data.shownProjectId);
-      },
-    );
-
-    if (!isShownAmongThem || others.length === 0) {
-      return null;
-    }
-
-    return {
+    return WorkspaceHome.getProjectMenu({
       actionId: SlackActionType.SwitchHomeProject,
-      placeholder: SLACK_HOME_PROJECT_MENU.placeholder,
-      options: others.map(
-        (choice: WorkspaceProjectChoice): WorkspacePayloadMenuOption => {
-          return {
-            label: choice.name,
-            value: choice.projectId.toString(),
-          };
-        },
-      ),
+      shownProjectId: data.shownProjectId,
+      choices: data.choices,
       /*
        * Named afresh each time the Home is drawn. Slack can keep the option
        * chosen in a menu across a redraw while the menu's block keeps its
@@ -654,7 +680,7 @@ export default class SlackHome {
        * project", never on an option that is not the project shown.
        */
       blockId: `${SlackActionType.SwitchHomeProject}:${data.shownProjectId.toString()}:${crypto.randomBytes(4).toString("hex")}`,
-    };
+    });
   }
 
   /*
@@ -679,13 +705,17 @@ export default class SlackHome {
     }
   }
 
-  // Draws the Home getPersonHome chose, for its project.
+  /*
+   * Draws the Home getPersonHome chose, for its project: false when it was
+   * to be drawn over a view drawn again since (`viewHash`).
+   */
   private static async publishHome(data: {
     home: SlackPersonHome;
     slackUserId: string;
     isSwitchRefused?: boolean | undefined;
-  }): Promise<void> {
-    await SlackHome.publish({
+    viewHash?: string | undefined;
+  }): Promise<boolean> {
+    return await SlackHome.publish({
       projectId: data.home.projectAuth.projectId!,
       projectAuthToken: data.home.projectAuth.authToken!,
       slackUserId: data.slackUserId,
@@ -693,6 +723,7 @@ export default class SlackHome {
       ...(data.home.isConnectedInNone ? { connectUrl: null } : {}),
       choices: data.home.choices,
       isSwitchRefused: data.isSwitchRefused,
+      viewHash: data.viewHash,
     });
   }
 
@@ -724,29 +755,38 @@ export default class SlackHome {
   /*
    * views.publish: the Home view, for one person. It carries the project it
    * shows (SlackModalMetadata), so a press of its buttons is read there.
+   * With `viewHash`, Slack draws it only over the view of that hash: false
+   * when Slack answers that the view was drawn since (hash_conflict).
    */
   private static async viewsPublish(data: {
     authToken: string;
     slackUserId: string;
     blocks: Array<WorkspaceMessageBlock>;
     projectId: ObjectID;
-  }): Promise<void> {
+    viewHash?: string | undefined;
+  }): Promise<boolean> {
+    const request: JSONObject = {
+      user_id: data.slackUserId,
+      view: {
+        type: "home",
+        private_metadata: SlackModalMetadata.write("", {
+          projectId: data.projectId.toString(),
+        }),
+        blocks: SlackUtil.getBlocksFromWorkspaceMessagePayload({
+          messageBlocks: data.blocks,
+          maxBlocks: SlackUtil.MAX_BLOCKS_PER_MODAL,
+        }),
+      },
+    };
+
+    if (data.viewHash) {
+      request["hash"] = data.viewHash;
+    }
+
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
       await API.post({
         url: URL.fromString("https://slack.com/api/views.publish"),
-        data: {
-          user_id: data.slackUserId,
-          view: {
-            type: "home",
-            private_metadata: SlackModalMetadata.write("", {
-              projectId: data.projectId.toString(),
-            }),
-            blocks: SlackUtil.getBlocksFromWorkspaceMessagePayload({
-              messageBlocks: data.blocks,
-              maxBlocks: SlackUtil.MAX_BLOCKS_PER_MODAL,
-            }),
-          },
-        },
+        data: request,
         headers: {
           Authorization: `Bearer ${data.authToken}`,
           ["Content-Type"]: "application/json",
@@ -762,19 +802,19 @@ export default class SlackHome {
     }
 
     if ((response.jsonData as JSONObject)?.["ok"] !== true) {
-      throw new BadRequestException(
-        "Error from Slack " +
-          String((response.jsonData as JSONObject)?.["error"] || ""),
+      const error: string = String(
+        (response.jsonData as JSONObject)?.["error"] || "",
       );
-    }
-  }
 
-  // The person whose Home it is, as the project chosen for it is kept.
-  private static personOf(data: {
-    teamId: string;
-    slackUserId: string;
-  }): SlackHomeOfPerson {
-    return { teamId: data.teamId, slackUserId: data.slackUserId };
+      // Drawn again since the view of this hash: that drawing stands.
+      if (data.viewHash && error === HASH_CONFLICT) {
+        return false;
+      }
+
+      throw new BadRequestException("Error from Slack " + error);
+    }
+
+    return true;
   }
 
   private static isSameId(

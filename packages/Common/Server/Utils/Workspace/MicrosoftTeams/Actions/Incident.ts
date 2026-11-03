@@ -775,6 +775,7 @@ export default class MicrosoftTeamsIncidentActions {
         await this.getIncidentCreatedMessage({
           projectId: projectId,
           incidentId: createdIncident.id || undefined,
+          incidentNumber: this.getIncidentNumberText(createdIncident),
           linkedLine: WorkspaceAffectedResources.getLinkedLine({
             linked: toLink.linked,
             alert: linkedAlert?.name,
@@ -838,17 +839,26 @@ export default class MicrosoftTeamsIncidentActions {
   }
 
   /*
-   * The confirmation, with a link to the incident when one can be built,
-   * and what it is linked to (WorkspaceAffectedResources.getLinkedLine).
+   * The confirmation: the incident by its number, as Slack's names it -
+   * "✅ Incident INC-43 created successfully. View incident" - with a link
+   * to it when one can be built, and what it is linked to
+   * (WorkspaceAffectedResources.getLinkedLine). The link is words, not the
+   * address itself, which ran past a phone's screen.
    */
-  private static async getIncidentCreatedMessage(data: {
+  public static async getIncidentCreatedMessage(data: {
     projectId: ObjectID;
     incidentId?: ObjectID | undefined;
+    // "INC-43", or "#43" in a project without a prefix; null for none.
+    incidentNumber?: string | null | undefined;
     linkedLine?: MarkdownText | null | undefined;
   }): Promise<string> {
     const linked: MarkdownText = data.linkedLine
       ? mdText`\n\n${data.linkedLine}`
       : FeedMarkdown.empty();
+
+    const created: MarkdownText = data.incidentNumber
+      ? mdText`✅ **Incident ${data.incidentNumber}** created successfully.`
+      : mdText`✅ Incident created successfully.`;
 
     if (data.incidentId) {
       try {
@@ -858,14 +868,26 @@ export default class MicrosoftTeamsIncidentActions {
             data.incidentId,
           );
 
-        return mdText`✅ Incident created successfully!\n\nView incident: ${incidentLink.toString()}${linked}`.toString();
+        return mdText`${created} [View incident](${incidentLink.toString()})${linked}`.toString();
       } catch (error) {
         logger.debug("Could not build the link to a new incident");
         logger.debug(error);
       }
     }
 
-    return mdText`✅ Incident created successfully!${linked}`.toString();
+    return mdText`${created}${linked}`.toString();
+  }
+
+  // An incident's number as people read it: "INC-43", or "#43"; null for none.
+  private static getIncidentNumberText(incident: Incident): string | null {
+    if (incident.incidentNumberWithPrefix) {
+      return incident.incidentNumberWithPrefix;
+    }
+
+    return incident.incidentNumber !== undefined &&
+      incident.incidentNumber !== null
+      ? `#${incident.incidentNumber}`
+      : null;
   }
 
   /*

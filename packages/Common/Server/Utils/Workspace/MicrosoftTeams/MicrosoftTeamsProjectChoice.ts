@@ -3,6 +3,7 @@ import WorkspaceProjectAuthToken from "../../../../Models/DatabaseModels/Workspa
 import { JSONArray, JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import { MarkdownText, mdText } from "../../../../Utils/Markdown/FeedMarkdown";
+import GlobalCache from "../../../Infrastructure/GlobalCache";
 import logger from "../../Logger";
 import ProductBrandingText from "../../ProductBrandingText";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
@@ -61,6 +62,14 @@ import MicrosoftTeamsReplies, {
  * those answers ends by naming the project (getAnsweredInNote): a chat
  * has no threads, so nothing else would say which.
  *
+ * Somebody whose answer came from the wrong project asks it in another,
+ * with one tap: in their chat with the bot, the answer offers "Ask in
+ * another project" as a Teams suggested action (getAskInAnotherProjectAction),
+ * which says those words for them - and anywhere, they can say them. The
+ * question the conversation keeps (rememberConversationQuestion) is asked
+ * again in their other project - asked which, with a button for each, when
+ * they have more than one - and the conversation's follow-ups go there.
+ *
  * When the card cannot be offered - the person is in fewer than two of the
  * projects or more than a card lists, a project cannot be named, the
  * request cannot be kept (the cache is down), or Teams refuses the card -
@@ -109,6 +118,15 @@ export interface MicrosoftTeamsConversationOfPerson {
 const NAMESPACE: string = "microsoft-teams-project-choice";
 const CONVERSATION_NAMESPACE: string =
   "microsoft-teams-project-choice-conversation";
+// The question a conversation's project was last chosen or kept for.
+const CONVERSATION_QUESTION_NAMESPACE: string =
+  "microsoft-teams-project-choice-conversation-question";
+
+// What "Ask in another project" is, as it is read: its words, any case.
+const ASK_IN_ANOTHER_PROJECT_WORDS: string = "ask in another project";
+
+// Punctuation that may follow the words: "Ask in another project?".
+const TRAILING_PUNCTUATION: ReadonlyArray<string> = [".", "!", "?"];
 
 // What of an activity is kept to make it again: what the bot reads of it.
 const ACTIVITY_FIELDS: ReadonlyArray<string> = [
@@ -174,9 +192,79 @@ export default class MicrosoftTeamsProjectChoice {
   public static readonly DISCONNECTED_TEXT: string =
     "That project is no longer connected to this Microsoft 365 organization. Ask again to choose another.";
 
+  /*
+   * The suggested action an answer from a chosen or kept project offers, and
+   * what it says for the person when they tap it - the words they can say
+   * themselves too (isAskInAnotherProject).
+   */
+  public static readonly ASK_IN_ANOTHER_PROJECT_TEXT: string =
+    "Ask in another project";
+
+  /*
+   * What "Ask in another project" is told when the conversation keeps no
+   * question of the person's - its hour has gone by, or none was asked in a
+   * project they chose: their next question asks which project anyway.
+   */
+  public static readonly NO_QUESTION_TO_ASK_AGAIN_TEXT: string =
+    "There's no recent question of yours here to ask in another project. Ask it again, and I'll ask which project it's for.";
+
+  /*
+   * What it is told when none of their projects is left but the one the
+   * question was answered in: they were removed from the others since.
+   */
+  public static readonly NO_OTHER_PROJECT_TEXT: string =
+    "You're not a member of another project of this Microsoft 365 organization, so there's nowhere else to ask it.";
+
   // What the question becomes once a project is chosen.
   public static getChosenText(projectName: string): string {
     return `Going ahead in ${projectName}.`;
+  }
+
+  /*
+   * Whether a message is "Ask in another project": its words alone, in any
+   * case, with a full stop, "!" or "?" after them.
+   */
+  public static isAskInAnotherProject(cleanText: string): boolean {
+    let text: string = cleanText.trim().toLowerCase();
+
+    while (
+      TRAILING_PUNCTUATION.some((mark: string): boolean => {
+        return text.endsWith(mark);
+      })
+    ) {
+      text = text.substring(0, text.length - 1).trimEnd();
+    }
+
+    return text === ASK_IN_ANOTHER_PROJECT_WORDS;
+  }
+
+  /*
+   * The suggested action under an answer given in a project its asker
+   * chose: Teams shows it by the compose box of a personal chat, for the
+   * last message only, and taps say its words as the person (imBack). It
+   * is no attachment, so the answer keeps its AI label and feedback.
+   */
+  public static getAskInAnotherProjectAction(): JSONObject {
+    return {
+      type: "imBack",
+      title: MicrosoftTeamsProjectChoice.ASK_IN_ANOTHER_PROJECT_TEXT,
+      value: MicrosoftTeamsProjectChoice.ASK_IN_ANOTHER_PROJECT_TEXT,
+    };
+  }
+
+  // What "Ask in another project" is told with no question to ask again.
+  public static getNoQuestionAnswer(): WorkspaceAnswer {
+    const text: string =
+      MicrosoftTeamsProjectChoice.NO_QUESTION_TO_ASK_AGAIN_TEXT;
+
+    return { markdown: mdText`${text}`.toString(), text: text };
+  }
+
+  // What it is told with no other project of theirs to ask in.
+  public static getNoOtherProjectAnswer(): WorkspaceAnswer {
+    const text: string = MicrosoftTeamsProjectChoice.NO_OTHER_PROJECT_TEXT;
+
+    return { markdown: mdText`${text}`.toString(), text: text };
   }
 
   /*
@@ -293,6 +381,11 @@ export default class MicrosoftTeamsProjectChoice {
     resolution: WorkspaceProjectResolution | undefined;
     kind: MicrosoftTeamsProjectChoiceKind;
     isQuestion?: boolean | undefined;
+    /*
+     * The projects to offer, of the resolution's: "Ask in another project"
+     * offers all of theirs but the one the question was answered in.
+     */
+    projectIds?: Array<ObjectID> | undefined;
   }): Promise<boolean> {
     const tenantId: string = MicrosoftTeamsProjectChoice.getTenantId(
       data.activity,
@@ -300,7 +393,8 @@ export default class MicrosoftTeamsProjectChoice {
     const aadObjectId: string = MicrosoftTeamsProjectChoice.getAadObjectId(
       data.activity,
     );
-    const projectIds: Array<ObjectID> = data.resolution?.memberProjectIds || [];
+    const projectIds: Array<ObjectID> =
+      data.projectIds || data.resolution?.memberProjectIds || [];
 
     if (
       !tenantId ||
@@ -594,6 +688,95 @@ export default class MicrosoftTeamsProjectChoice {
   }
 
   /*
+   * Keeps the question the activity asks, for its conversation and sender,
+   * as long as the project chosen for it is kept (rememberConversationProject):
+   * "Ask in another project" asks it again. What is kept of it is what
+   * asking it again reads (getKeptActivity). Never throws.
+   */
+  @CaptureSpan()
+  public static async rememberConversationQuestion(data: {
+    activity: JSONObject;
+  }): Promise<void> {
+    const conversation: MicrosoftTeamsConversationOfPerson | null =
+      MicrosoftTeamsProjectChoice.getConversationOf(data.activity);
+
+    if (!conversation) {
+      return;
+    }
+
+    try {
+      await GlobalCache.setString(
+        CONVERSATION_QUESTION_NAMESPACE,
+        MicrosoftTeamsProjectChoice.getConversationKey(conversation),
+        JSON.stringify(
+          MicrosoftTeamsProjectChoice.getKeptActivity(data.activity),
+        ),
+        {
+          expiresInSeconds:
+            MicrosoftTeamsProjectChoice.CONVERSATION_REMEMBERED_FOR_SECONDS,
+        },
+      );
+    } catch (err) {
+      logger.debug("Could not keep a Microsoft Teams conversation's question.");
+      logger.debug(err);
+    }
+  }
+
+  /*
+   * The question kept for the activity's conversation and sender
+   * (rememberConversationQuestion), as an activity to make it again with;
+   * null for none, or for anything it did not keep. Never throws.
+   */
+  @CaptureSpan()
+  public static async getConversationQuestion(
+    activity: JSONObject,
+  ): Promise<JSONObject | null> {
+    const conversation: MicrosoftTeamsConversationOfPerson | null =
+      MicrosoftTeamsProjectChoice.getConversationOf(activity);
+
+    if (!conversation) {
+      return null;
+    }
+
+    try {
+      const kept: string | null = await GlobalCache.getString(
+        CONVERSATION_QUESTION_NAMESPACE,
+        MicrosoftTeamsProjectChoice.getConversationKey(conversation),
+      );
+
+      if (!kept) {
+        return null;
+      }
+
+      const question: JSONObject | undefined =
+        WorkspaceProjectChoiceStore.asObject(JSON.parse(kept));
+
+      /*
+       * Its asker, in this conversation: a kept question is only ever made
+       * again for whoever asked it, where they asked it.
+       */
+      const keptConversation: MicrosoftTeamsConversationOfPerson | null =
+        question ? MicrosoftTeamsProjectChoice.getConversationOf(question) : null;
+
+      if (
+        !question ||
+        !keptConversation ||
+        MicrosoftTeamsProjectChoice.getConversationKey(keptConversation) !==
+          MicrosoftTeamsProjectChoice.getConversationKey(conversation) ||
+        !WorkspaceProjectChoiceStore.isText(question["text"])
+      ) {
+        return null;
+      }
+
+      return question;
+    } catch (err) {
+      logger.debug("Could not read a Microsoft Teams conversation's question.");
+      logger.debug(err);
+      return null;
+    }
+  }
+
+  /*
    * The project chosen for a question in the activity's conversation, by
    * its sender; null for none. Never throws.
    */
@@ -770,6 +953,17 @@ export default class MicrosoftTeamsProjectChoice {
     }
 
     return kept;
+  }
+
+  // A conversation's key, as the store hashes its parts.
+  private static getConversationKey(
+    conversation: MicrosoftTeamsConversationOfPerson,
+  ): string {
+    return WorkspaceProjectChoiceStore.hash(
+      JSON.stringify(
+        MicrosoftTeamsProjectChoice.getConversationKeyParts(conversation),
+      ),
+    );
   }
 
   // The parts of a conversation's key: hashed, never kept as they are.

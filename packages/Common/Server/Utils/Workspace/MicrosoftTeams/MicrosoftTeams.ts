@@ -17,6 +17,8 @@ import WorkspaceMessagePayload, {
   WorkspacePayloadImage,
   WorkspacePayloadInlineImage,
   WorkspacePayloadMarkdown,
+  WorkspacePayloadMenu,
+  WorkspacePayloadMenuOption,
   WorkspaceTextAreaBlock,
   WorkspaceTextBoxBlock,
 } from "../../../../Types/Workspace/WorkspaceMessagePayload";
@@ -134,6 +136,7 @@ import { WorkspaceProjectChoiceTaken } from "../WorkspaceProjectChoiceStore";
 import WorkspaceInlineImages from "../WorkspaceInlineImages";
 import ChatInlineImages from "../../../../Utils/Markdown/ChatInlineImages";
 import { replacePipeTables } from "../../../../Utils/Markdown/PipeTables";
+import { cutToLength } from "../../../../Utils/Markdown/OverLongText";
 import {
   FULL_WIDTH_COLON,
   MessageCardFact,
@@ -174,6 +177,23 @@ import FeedMarkdown, {
 
 // A CommonMark backslash escape: a backslash before ASCII punctuation.
 const MARKDOWN_BACKSLASH_ESCAPE_PATTERN: RegExp = /\\([!-/:-@[-`{-~])/g;
+
+/*
+ * The id of a card menu's dropdown (WorkspacePayloadMenu), which a press of
+ * its button submits: Teams adds what the card's inputs hold to the
+ * button's data, so the option chosen arrives as the press's actionValue -
+ * where a button of one option carries it in its data.
+ */
+export const MICROSOFT_TEAMS_MENU_INPUT_ID: string = "actionValue";
+
+// The most options a card's menu lists: as many as Slack's select takes.
+const MAX_CARD_MENU_OPTIONS: number = 100;
+
+// The most characters of an option a card's menu, or its button, shows.
+const CARD_MENU_OPTION_MAX_LENGTH: number = 75;
+
+// A run of whitespace: an option's text is one line.
+const CARD_MENU_WHITESPACE: RegExp = /\s+/g;
 
 /*
  * A line (already trimmed) that opens or closes a fence: three or more
@@ -3284,6 +3304,8 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     const actions: Array<JSONObject> = [];
     let imageCount: number = 0;
     let imageBytes: number = 0;
+    // A menu's dropdown is on the card: the card's own buttons leave it out.
+    let hasMenuInput: boolean = false;
 
     for (const block of data.messageBlocks) {
       logger.debug(`Processing message block of type: ${block._type}`);
@@ -3324,6 +3346,18 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           payloadMarkdownBlock: markdownBlock,
         });
         body.push(markdownObj);
+
+        // Its menu, under it (getMenuElements).
+        if (markdownBlock.menu) {
+          const menuElements: Array<JSONObject> = this.getMenuElements(
+            markdownBlock.menu,
+          );
+
+          body.push(...menuElements);
+          // More than one option: a dropdown to choose from.
+          hasMenuInput =
+            hasMenuInput || this.getMenuOptions(markdownBlock.menu).length > 1;
+        }
       } else if (block._type === "WorkspacePayloadContext") {
         body.push(
           this.getContextBlock({
@@ -3369,6 +3403,19 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       }
     }
 
+    /*
+     * A card with a menu's dropdown: its own buttons - the Home's Declare
+     * incident, Refresh - neither check the dropdown nor send what it holds
+     * (associatedInputs none). Only the menu's button does.
+     */
+    if (hasMenuInput) {
+      for (const action of actions) {
+        if (action["type"] === "Action.Submit") {
+          action["associatedInputs"] = "none";
+        }
+      }
+    }
+
     card["body"] = body;
     card["actions"] = actions;
 
@@ -3382,6 +3429,128 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
      * Teams takes has its longest text blocks cut to fit (fitAdaptiveCard).
      */
     return MicrosoftTeamsMessageSize.fitAdaptiveCard(card);
+  }
+
+  /*
+   * A line's menu (WorkspacePayloadMenu), as a card draws it under the line:
+   * a card's dropdown cannot act by itself, so a button sends the option
+   * chosen -
+   *
+   *   [ Switch project         ▾ ] [ Switch ]
+   *
+   * - checked first, so a press with nothing chosen says what to do instead
+   * of sending nothing. A menu of one option is one button that names it,
+   * "Switch to Acme Staging": nothing to choose. Each option is cut to what a
+   * button shows, and at most MAX_CARD_MENU_OPTIONS are listed; a menu with
+   * no option to list draws nothing, and the line stands on its own.
+   */
+  public static getMenuElements(menu: WorkspacePayloadMenu): Array<JSONObject> {
+    const options: Array<WorkspacePayloadMenuOption> =
+      this.getMenuOptions(menu);
+
+    if (options.length === 0) {
+      return [];
+    }
+
+    const submitTitle: string = menu.submitTitle || menu.placeholder;
+
+    if (options.length === 1) {
+      return [
+        {
+          type: "ActionSet",
+          spacing: "Small",
+          actions: [
+            {
+              type: "Action.Submit",
+              title: `${submitTitle} to ${this.getMenuOptionText(options[0]!.label)}`,
+              data: {
+                action: menu.actionId,
+                actionValue: options[0]!.value,
+              },
+            },
+          ],
+        },
+      ];
+    }
+
+    const dropdown: JSONObject = {
+      type: "Input.ChoiceSet",
+      id: MICROSOFT_TEAMS_MENU_INPUT_ID,
+      style: "compact",
+      placeholder: menu.placeholder,
+      isRequired: true,
+      choices: options.map((option: WorkspacePayloadMenuOption): JSONObject => {
+        return {
+          title: this.getMenuOptionText(option.label),
+          value: option.value,
+        };
+      }),
+    };
+
+    if (menu.requiredMessage) {
+      dropdown["errorMessage"] = menu.requiredMessage;
+    }
+
+    return [
+      {
+        type: "ColumnSet",
+        spacing: "Small",
+        columns: [
+          {
+            type: "Column",
+            width: "stretch",
+            verticalContentAlignment: "Center",
+            items: [dropdown],
+          },
+          {
+            type: "Column",
+            width: "auto",
+            verticalContentAlignment: "Center",
+            items: [
+              {
+                type: "ActionSet",
+                actions: [
+                  {
+                    type: "Action.Submit",
+                    title: submitTitle,
+                    data: {
+                      action: menu.actionId,
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    ];
+  }
+
+  /*
+   * The options a card's menu lists: those with text to show and a value
+   * to send, at most MAX_CARD_MENU_OPTIONS - none for a menu with no action.
+   */
+  private static getMenuOptions(
+    menu: WorkspacePayloadMenu,
+  ): Array<WorkspacePayloadMenuOption> {
+    if (!menu.actionId) {
+      return [];
+    }
+
+    return menu.options
+      .filter((option: WorkspacePayloadMenuOption): boolean => {
+        return Boolean(option.label.trim()) && Boolean(option.value);
+      })
+      .slice(0, MAX_CARD_MENU_OPTIONS);
+  }
+
+  // An option's text as a card's menu shows it: one line, cut with "…".
+  private static getMenuOptionText(label: string): string {
+    const text: string = label.replace(CARD_MENU_WHITESPACE, " ").trim();
+
+    return text.length > CARD_MENU_OPTION_MAX_LENGTH
+      ? `${cutToLength(text, CARD_MENU_OPTION_MAX_LENGTH - 1).trimEnd()}…`
+      : text;
   }
 
   private static convertAdaptiveCardToHtml(adaptiveCard: JSONObject): string {
@@ -3986,6 +4155,23 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       }
 
       /*
+       * "Ask in another project" - said, or tapped under an answer given in
+       * a project its asker chose: the conversation's question asked again
+       * in another of their projects (askInAnotherProject).
+       */
+      if (
+        !data.chosenProjectId &&
+        MicrosoftTeamsProjectChoice.isAskInAnotherProject(cleanText) &&
+        (await this.askInAnotherProject({
+          activity: data.activity,
+          turnContext: data.turnContext,
+          tenantId: tenantId,
+        }))
+      ) {
+        return;
+      }
+
+      /*
        * The project, by the tenant - and, for a tenant connected to several,
        * by the project its sender chose for it, the channel the message was
        * sent in and the sender's own connections.
@@ -4043,6 +4229,21 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
             });
             return;
           }
+        }
+
+        /*
+         * "home" from somebody in several of the organization's projects:
+         * their Home, of the project they chose for it last or else the
+         * first of theirs, with Switch project on it - never a question
+         * which project, which the Home answers itself (MicrosoftTeamsHome).
+         */
+        if (MicrosoftTeamsHome.isHomeCommand(cleanText) && !data.chosenProjectId) {
+          projectAuth = await MicrosoftTeamsHome.findPersonHomeProject({
+            aadObjectId: MicrosoftTeamsProjectChoice.getAadObjectId(
+              data.activity,
+            ),
+            resolution: tenantResolution.resolution,
+          });
         }
 
         /*
@@ -4242,6 +4443,11 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
               projectId: projectId,
             });
 
+            // ...and the question, for "Ask in another project".
+            await MicrosoftTeamsProjectChoice.rememberConversationQuestion({
+              activity: data.activity,
+            });
+
             chosenProjectName =
               await MicrosoftTeamsProjectChoice.getProjectName(projectId);
           }
@@ -4257,6 +4463,9 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
             projectId: projectId,
             question: input.text,
             chosenProjectName: chosenProjectName || undefined,
+            isInChosenProject: Boolean(
+              data.chosenProjectId || isInConversationProject,
+            ),
           });
           return;
       }
@@ -4632,6 +4841,12 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
      * there.
      */
     chosenProjectName?: string | undefined;
+    /*
+     * Answered in a project its asker chose, now or earlier in the
+     * conversation: the answer offers "Ask in another project", and
+     * feedback on it is reported with its project (MicrosoftTeamsAiAnswer).
+     */
+    isInChosenProject?: boolean | undefined;
   }): Promise<void> {
     const { activity, turnContext, projectId, question } = data;
 
@@ -4881,12 +5096,39 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
        */
       replyText = mdText`${replyText}\n\n${MicrosoftTeamsAiAnswer.getNotice()}`;
 
-      await this.sendAnswerInPlaceOf({
+      /*
+       * In a personal chat, an answer given in a project its asker chose
+       * offers to ask it in another, by the compose box (a group chat or a
+       * channel answers only who @mentions the bot, so the person says it
+       * there: MicrosoftTeamsProjectChoice).
+       */
+      const isPersonal: boolean =
+        (activity["conversation"] as JSONObject | undefined)?.[
+          "conversationType"
+        ] === "personal";
+
+      const answerId: string | undefined = await this.sendAnswerInPlaceOf({
         turnContext: turnContext,
         placeholderId: placeholderId,
         text: replyText.toString(),
         isAiAnswer: true,
+        suggestedActions:
+          data.isInChosenProject && isPersonal
+            ? [MicrosoftTeamsProjectChoice.getAskInAnotherProjectAction()]
+            : undefined,
       });
+
+      /*
+       * Feedback on it names the project it was answered in, which nothing
+       * else the feedback carries tells (MicrosoftTeamsAiAnswer).
+       */
+      if (data.isInChosenProject && answerId) {
+        await MicrosoftTeamsAiAnswer.rememberAnswerProject({
+          activity: activity,
+          messageId: answerId,
+          projectId: projectId,
+        });
+      }
       logger.debug("AI Ops answer sent successfully using TurnContext", {
         projectId: projectId.toString(),
       });
@@ -4960,17 +5202,26 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
    * The answer - or why there is none - in place of the channel's
    * placeholder; a new reply when there is none, or Teams will not change
    * it in place. An answer OneUptime AI wrote carries Teams' AI label and
-   * feedback buttons either way (MicrosoftTeamsAiAnswer.toActivity).
+   * feedback buttons either way (MicrosoftTeamsAiAnswer.toActivity), and
+   * `suggestedActions` by the compose box. The id of the message that holds
+   * the answer, when Teams said it.
    */
   private static async sendAnswerInPlaceOf(data: {
     turnContext: TurnContext;
     placeholderId: string | undefined;
     text: string;
     isAiAnswer?: boolean | undefined;
-  }): Promise<void> {
+    suggestedActions?: Array<JSONObject> | undefined;
+  }): Promise<string | undefined> {
     const answer: Partial<Activity> = data.isAiAnswer
       ? MicrosoftTeamsAiAnswer.toActivity(data.text)
       : { type: "message", text: data.text };
+
+    if (data.suggestedActions && data.suggestedActions.length > 0) {
+      answer.suggestedActions = {
+        actions: data.suggestedActions,
+      } as unknown as NonNullable<Activity["suggestedActions"]>;
+    }
 
     if (data.placeholderId) {
       try {
@@ -4978,7 +5229,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           ...answer,
           id: data.placeholderId,
         });
-        return;
+        return data.placeholderId;
       } catch (updateError) {
         logger.debug(
           "Microsoft Teams did not put the answer in place of its placeholder; replying instead.",
@@ -4987,7 +5238,120 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       }
     }
 
-    await data.turnContext.sendActivity(answer);
+    const sent: ResourceResponse | undefined =
+      await data.turnContext.sendActivity(answer);
+
+    return sent?.id || undefined;
+  }
+
+  /*
+   * "Ask in another project": the question this conversation keeps for
+   * its sender (MicrosoftTeamsProjectChoice.rememberConversationQuestion)
+   * asked again in another of their projects - the one other, at once; or,
+   * with more, asked which, with a button for each but the one it was
+   * answered in. Their projects are read again now. False when the words
+   * are no such request here - an organization connected to one project,
+   * where they are a question like any other. Never throws.
+   */
+  private static async askInAnotherProject(data: {
+    activity: JSONObject;
+    turnContext: TurnContext;
+    tenantId: string;
+  }): Promise<boolean> {
+    try {
+      const resolution: MicrosoftTeamsTenantResolution =
+        await this.resolveProjectByTenantId({
+          tenantId: data.tenantId,
+          clues: {
+            workspaceUserId:
+              MicrosoftTeamsProjectChoice.getAadObjectId(data.activity) ||
+              undefined,
+          },
+        });
+
+      if (resolution.candidateProjectIds.length < 2) {
+        return false;
+      }
+
+      const [question, answeredIn]: [JSONObject | null, ObjectID | null] =
+        await Promise.all([
+          MicrosoftTeamsProjectChoice.getConversationQuestion(data.activity),
+          MicrosoftTeamsProjectChoice.getConversationProject(data.activity),
+        ]);
+
+      if (!question || !answeredIn) {
+        await MicrosoftTeamsActionAnswer.reply({
+          turnContext: data.turnContext,
+          answer: MicrosoftTeamsProjectChoice.getNoQuestionAnswer(),
+        });
+        return true;
+      }
+
+      const memberProjectIds: Array<ObjectID> =
+        resolution.resolution?.memberProjectIds ||
+        (resolution.projectAuth?.projectId
+          ? [resolution.projectAuth.projectId]
+          : []);
+
+      const others: Array<ObjectID> = memberProjectIds.filter(
+        (projectId: ObjectID): boolean => {
+          return (
+            projectId.toString().toLowerCase() !==
+            answeredIn.toString().toLowerCase()
+          );
+        },
+      );
+
+      if (others.length === 0) {
+        await MicrosoftTeamsActionAnswer.reply({
+          turnContext: data.turnContext,
+          answer: MicrosoftTeamsProjectChoice.getNoOtherProjectAnswer(),
+        });
+        return true;
+      }
+
+      // One other project: asked there now, as if they had chosen it.
+      if (others.length === 1) {
+        await this.answerTypedMessage({
+          activity: question,
+          turnContext: data.turnContext,
+          chosenProjectId: others[0]!,
+        });
+        return true;
+      }
+
+      if (
+        await MicrosoftTeamsProjectChoice.offer({
+          turnContext: data.turnContext,
+          activity: question,
+          resolution: resolution.resolution,
+          kind: MicrosoftTeamsProjectChoiceKind.Message,
+          isQuestion: true,
+          projectIds: others,
+        })
+      ) {
+        return true;
+      }
+
+      // The buttons cannot be offered: said which projects, and how to ask.
+      await this.answerTenantResolutionFailure({
+        turnContext: data.turnContext,
+        resolution: resolution,
+        retry: { kind: WorkspaceAmbiguousRetryKind.Question },
+      });
+      return true;
+    } catch (err) {
+      MicrosoftTeamsReplies.logFailure(
+        "Could not ask a Microsoft Teams question in another project",
+        err,
+        {},
+      );
+      await MicrosoftTeamsReplies.sendBestEffort(
+        data.turnContext,
+        this.getUnexpectedErrorMessage(data.activity),
+      );
+      return true;
+    }
   }
 
   @CaptureSpan()
@@ -5034,6 +5398,22 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           await this.answerProjectChoice({
             activity: data.activity,
             turnContext: data.turnContext,
+            actionValue: actionValue,
+          });
+        }
+        return;
+      }
+
+      /*
+       * The Home's Switch project menu (MicrosoftTeamsHome): it names the
+       * project it is for, and the presser's projects are read again for
+       * it - whatever project the card it is on was drawn for.
+       */
+      if (MicrosoftTeamsHome.isSwitchProjectAction(actionType)) {
+        if (!data.chosenProjectId) {
+          await MicrosoftTeamsHome.switchProject({
+            turnContext: data.turnContext,
+            activity: data.activity,
             actionValue: actionValue,
           });
         }
@@ -7605,10 +7985,25 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
             clues: this.getProjectClues({ activity: activity }),
           })
         : null;
-      const projectId: ObjectID | null =
-        resolution?.projectAuth?.projectId || null;
       const isPersonal: boolean =
         conversation["conversationType"] === "personal";
+
+      /*
+       * Somebody in several of the organization's projects, adding the app
+       * for themselves: welcomed with their Home - the project they chose
+       * for it last, or the first of theirs, with Switch project on it -
+       * not a hello that names none (MicrosoftTeamsHome).
+       */
+      const personHome: WorkspaceProjectAuthToken | null =
+        isPersonal && resolution?.isAmbiguous
+          ? await MicrosoftTeamsHome.findPersonHomeProject({
+              aadObjectId: MicrosoftTeamsProjectChoice.getAadObjectId(activity),
+              resolution: resolution.resolution,
+            })
+          : null;
+
+      const projectId: ObjectID | null =
+        resolution?.projectAuth?.projectId || personHome?.projectId || null;
 
       // Its Home's buttons act in its project (MicrosoftTeamsCardProject).
       if (
