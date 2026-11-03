@@ -137,6 +137,7 @@ import PermissionGate, {
   PermissionGateOptions,
   PermissionGateResult,
 } from "../../../UI/Utils/PermissionGate";
+import { PAGE_ANCHOR_LANDED_ATTRIBUTE } from "../../../UI/Utils/PageAnchor";
 
 function connection(
   id: string,
@@ -663,6 +664,48 @@ describe("the list", () => {
     expect(screen.getByRole("alert")).toHaveTextContent(
       "Could not load the connections.",
     );
+  });
+
+  test("a page opened at the connections - from a device's or a site's page, or a device Meraki has not read - lands on the card", async () => {
+    window.history.pushState(
+      {},
+      "",
+      "/dashboard/p/network-devices/traffic?source=meraki#traffic-meraki-connections",
+    );
+    const scrolled: Array<unknown> = [];
+    Element.prototype.scrollIntoView = function (options?: unknown): void {
+      scrolled.push(options);
+    } as never;
+
+    try {
+      await renderCard();
+      await act(async () => {
+        jest.advanceTimersByTime(50);
+      });
+
+      const card: HTMLElement = screen
+        .getByTestId("meraki-connections")
+        .closest("#traffic-meraki-connections") as HTMLElement;
+      // Marked for a moment, so the eye finds it, and brought into view.
+      expect(card).toHaveAttribute(PAGE_ANCHOR_LANDED_ATTRIBUTE, "true");
+      expect(scrolled.length).toBeGreaterThan(0);
+    } finally {
+      window.history.pushState({}, "", "/");
+      delete (Element.prototype as unknown as Record<string, unknown>)[
+        "scrollIntoView"
+      ];
+    }
+  });
+
+  test("a page opened anywhere else is not moved to the card", async () => {
+    window.history.pushState({}, "", "/dashboard/p/network-devices/traffic");
+    await renderCard();
+
+    const card: HTMLElement = screen
+      .getByTestId("meraki-connections")
+      .closest("#traffic-meraki-connections") as HTMLElement;
+    expect(card).not.toHaveAttribute(PAGE_ANCHOR_LANDED_ATTRIBUTE);
+    window.history.pushState({}, "", "/");
   });
 
   test("the card is where a line over the traffic sends its Review", async () => {
