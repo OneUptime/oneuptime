@@ -56,18 +56,18 @@ const API_KEY_ID: ObjectID = new ObjectID(
 const CHROME_MAC: string =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36";
 
+// The request's own fields, and the headers and peer the gateway hands on.
+type RequestFields = Omit<Partial<OneUptimeRequest>, "headers" | "socket"> & {
+  headers?: Record<string, string> | undefined;
+  socket?: { remoteAddress?: string | undefined } | undefined;
+};
+
 type PropsForFunction = (
-  fields: Partial<OneUptimeRequest> & {
-    headers?: Record<string, string> | undefined;
-    socket?: { remoteAddress?: string | undefined } | undefined;
-  },
+  fields: RequestFields,
 ) => Promise<DatabaseCommonInteractionProps>;
 
 const propsFor: PropsForFunction = async (
-  fields: Partial<OneUptimeRequest> & {
-    headers?: Record<string, string> | undefined;
-    socket?: { remoteAddress?: string | undefined } | undefined;
-  },
+  fields: RequestFields,
 ): Promise<DatabaseCommonInteractionProps> => {
   return await CommonAPI.getDatabaseCommonInteractionProps({
     headers: {},
