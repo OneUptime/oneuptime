@@ -35,11 +35,10 @@ import Permission, {
  * Each project's snapshot, and its hash, are now kept under names that end
  * in the project's id: a tab reads the snapshot of the project it shows
  * (TabProject, the project its requests name), and a request sends the
- * hash of the project its tenantid header names
- * (Utils/API/API.ts). The two old names are left where they are and never
- * read or written: a tab still running the version before keeps using them
- * until it reloads, and signing out clears them with everything else
- * (KeptAfterSignOut.ts).
+ * hash of the project its tenantid header names (Utils/API/API.ts). The
+ * two old names are left where they are and never read or written: a tab
+ * still running the version before keeps using them until it reloads, and
+ * signing out clears them with everything else (KeptAfterSignOut.ts).
  *
  * The global snapshot stays one name for every tab, on purpose: it is the
  * person's own - the permissions they hold everywhere and the projects they

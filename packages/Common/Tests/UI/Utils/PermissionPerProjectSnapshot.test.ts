@@ -884,6 +884,47 @@ describe("a storage that refuses (a private window, blocked or full site data)",
     expect(localStorage.getItem("user_id")).toBe("kept");
   });
 
+  test("room made for a project's hash never takes that project's own snapshot", () => {
+    PermissionUtil.setProjectPermissions(VIEWER_SNAPSHOT(), {
+      hash: VIEWED_HASH,
+    });
+
+    const realSetItem: typeof LocalStorage.setItem = LocalStorage.setItem;
+    const ownHashKey: string =
+      getProjectPermissionsHashStorageKey(OWNED_PROJECT_ID)!;
+    let refusals: number = 0;
+
+    jest
+      .spyOn(LocalStorage, "setItem")
+      .mockImplementation((key: string, value: unknown): void => {
+        // The snapshot fits; its hash is the write that finds the storage full.
+        if (
+          key === ownHashKey &&
+          localStorage.getItem(
+            getProjectPermissionsStorageKey(VIEWED_PROJECT_ID)!,
+          ) !== null
+        ) {
+          refusals++;
+          throw new Error("QuotaExceededError");
+        }
+
+        realSetItem(key, value as never);
+      });
+
+    PermissionUtil.setProjectPermissions(OWNER_SNAPSHOT(), {
+      hash: OWNED_HASH,
+    });
+
+    expect(refusals).toBe(1);
+    expect(PermissionUtil.getProjectPermissions(OWNED_PROJECT_ID)).not.toBe(
+      null,
+    );
+    expect(PermissionUtil.getProjectPermissionsHash(OWNED_PROJECT_ID)).toBe(
+      OWNED_HASH,
+    );
+    expect(PermissionUtil.getProjectPermissions(VIEWED_PROJECT_ID)).toBeNull();
+  });
+
   test("a snapshot that cannot be kept at all leaves nothing stale for its project, and does not throw", () => {
     PermissionUtil.setProjectPermissions(
       snapshot(OWNED_PROJECT_ID, [Permission.ProjectAdmin]),

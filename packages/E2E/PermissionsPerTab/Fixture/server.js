@@ -304,6 +304,12 @@ async function main() {
       return;
     }
 
+    // A browser asks for it on its own; the pages have none.
+    if (url.pathname === "/favicon.ico") {
+      response.writeHead(204).end();
+      return;
+    }
+
     if (url.pathname === "/__fixture/requests") {
       sendJson(response, 200, {
         requests: requests,
