@@ -1,4 +1,4 @@
-import DataPathGraph from "./DataPathGraph";
+import DataPathGraph, { NEUTRAL_EDGE_COLOR } from "./DataPathGraph";
 import {
   DataPathGraph as DataPathGraphModel,
   DataPathStore,
@@ -318,7 +318,11 @@ const StoreDataPaths: FunctionComponent<ComponentProps> = (
           <LegendItem color={Red500.toString()} text={LEGEND_RED} />
           <LegendItem color={Orange500.toString()} text={LEGEND_ORANGE} />
           <LegendItem color={Blue500.toString()} text={LEGEND_BLUE} />
-          <LegendItem color="#94a3b8" isDashed={true} text={LEGEND_DASHED} />
+          <LegendItem
+            color={NEUTRAL_EDGE_COLOR}
+            isDashed={true}
+            text={LEGEND_DASHED}
+          />
         </div>
       </div>
     );
