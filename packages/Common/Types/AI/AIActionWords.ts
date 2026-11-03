@@ -94,6 +94,12 @@ export interface AIActionWords {
    * "INC-42" - so the card's line of arguments need not repeat their IDs.
    */
   namedArguments?: Array<string> | undefined;
+  /*
+   * The arguments the line under the title says in words - the severity
+   * a new incident takes ("Severity: High."), where it starts - so the
+   * card's line of arguments need not say them again.
+   */
+  describedArguments?: Array<string> | undefined;
 }
 
 /*
@@ -232,6 +238,8 @@ export const AI_ACTION_LINES: {
   someNotLinked: string;
   noneLinked: string;
   severity: string;
+  startsAcknowledged: string;
+  startsResolved: string;
 } = {
   // A new incident's or alert's resources: "Linked to host "test01"."
   linkedTo: translationKey("Linked to {{resources}}."),
@@ -241,8 +249,17 @@ export const AI_ACTION_LINES: {
     "Some of the other resources named will not be linked.",
   ),
   noneLinked: translationKey("The resources named will not be linked."),
-  // The severity a new alert takes.
+  // The severity a new incident or alert takes.
   severity: translationKey("Severity: {{severity}}."),
+  /*
+   * A new incident or alert written up after the fact, already acknowledged
+   * or already over (Server/Utils/AI/Toolbox/NewRecordStart): said before
+   * it is approved, because it pages nobody.
+   */
+  startsAcknowledged: translationKey(
+    "Starts acknowledged, so it pages nobody.",
+  ),
+  startsResolved: translationKey("Starts resolved, so it pages nobody."),
 };
 
 /*
@@ -272,6 +289,133 @@ export const AI_ACTION_TERMS: {
 
 /*
  * ---------------------------------------------------------------------------
+ * The card an action leaves under the answer once it ran.
+ *
+ * The approval card says what an action will do; once it ran, a card under
+ * the answer shows what it made or changed (Dashboard ResourceCardWidget):
+ * the kind of record ("INCIDENT"), the record by its number and title, a
+ * line about what happened to it ("Now acknowledged"), and its facts. The
+ * server wrote all of it in English - "ALERT", "Severity: High",
+ * "Affected resources" - in the middle of a translated page. The card's
+ * words are this module's too: the kind and each fact's name a term, the
+ * line a sentence, a fact's value data as written (a note the model wrote)
+ * or what the module can say (the resources it linked, listed the reader's
+ * way). The English the card stores beside them is what exports print and
+ * what an older conversation's card reads as.
+ * ---------------------------------------------------------------------------
+ */
+
+// The kind of record a card is about, drawn over its heading.
+export const AI_ACTION_CARD_KINDS: {
+  incident: string;
+  alert: string;
+  onCallPolicy: string;
+  runbook: string;
+  securityCase: string;
+} = {
+  incident: translationKey("Incident"),
+  alert: translationKey("Alert"),
+  onCallPolicy: translationKey("On-call policy"),
+  runbook: translationKey("Runbook"),
+  securityCase: translationKey("Security case"),
+};
+
+// The line under a card's heading: what happened to the record.
+export const AI_ACTION_CARD_LINES: {
+  severity: string;
+  startedAcknowledged: string;
+  startedResolved: string;
+  nowAcknowledged: string;
+  nowResolved: string;
+  linkedTo: string;
+  alreadyLinkedTo: string;
+  privateNoteAdded: string;
+  noteAdded: string;
+  statusUpdatePostedQuietly: string;
+  statusUpdatePostedSubscribersNotified: string;
+  pagedForIncident: string;
+  runbookStarted: string;
+  runbookStartedForIncident: string;
+  investigationQueued: string;
+  playbookStarted: string;
+  playbookStepsWaitForApproval: string;
+} = {
+  // The severity a new record took, or the one it was changed to.
+  severity: translationKey("Severity: {{severity}}"),
+  // A new record written up after the fact (NewRecordStart).
+  startedAcknowledged: translationKey("Started acknowledged"),
+  startedResolved: translationKey("Started resolved"),
+  nowAcknowledged: translationKey("Now acknowledged"),
+  nowResolved: translationKey("Now resolved"),
+  // What linking added: 'Linked to host "test01"', no full stop.
+  linkedTo: translationKey("Linked to {{resources}}"),
+  // Nothing was added: everything named was linked already.
+  alreadyLinkedTo: translationKey("Already linked to {{resources}}"),
+  // An internal note on an incident or alert: no status page shows it.
+  privateNoteAdded: translationKey("Private note added, for your team only"),
+  // A note on a security case, on its timeline.
+  noteAdded: translationKey("Note added"),
+  // A public status update, and whether its subscribers heard of it.
+  statusUpdatePostedQuietly: translationKey(
+    "Status update posted, subscribers not notified",
+  ),
+  statusUpdatePostedSubscribersNotified: translationKey(
+    "Status update posted, subscribers notified",
+  ),
+  // An on-call policy paged for an incident, named by its number.
+  pagedForIncident: translationKey("Paged for incident {{incident}}"),
+  runbookStarted: translationKey("Run started"),
+  runbookStartedForIncident: translationKey(
+    "Run started for incident {{incident}}",
+  ),
+  investigationQueued: translationKey("AI investigation queued"),
+  playbookStarted: translationKey("Started playbook {{playbook}}"),
+  // Containment steps a person approves on the case before they run.
+  playbookStepsWaitForApproval: translationKey(
+    "Steps that need approval wait on the case",
+  ),
+};
+
+// The names of a card's facts.
+export const AI_ACTION_CARD_FACTS: {
+  affectedResources: string;
+  alreadyLinked: string;
+  description: string;
+  note: string;
+  statusUpdate: string;
+} = {
+  affectedResources: translationKey("Affected resources"),
+  alreadyLinked: translationKey("Already linked"),
+  description: translationKey("Description"),
+  note: translationKey("Note"),
+  statusUpdate: translationKey("Status update"),
+};
+
+/*
+ * A fact of a card: its name, a term, and its value - data as written (a
+ * note, a description), or a sentence or a list of them (the resources it
+ * linked).
+ */
+export interface AIActionCardFact {
+  label: AIActionTerm;
+  value: string | AIActionSentence | AIActionList;
+}
+
+/*
+ * What a card says besides its heading, which is data in every language:
+ * the record by its number and title ("INC-42 · Checkout down"), a policy
+ * by its name.
+ */
+export interface AIActionCardWords {
+  // The kind of record: a term ("Incident", "On-call policy").
+  kind: AIActionTerm;
+  // The line under the heading, its sentences one after another.
+  line?: Array<AIActionSentence> | undefined;
+  facts?: Array<AIActionCardFact> | undefined;
+}
+
+/*
+ * ---------------------------------------------------------------------------
  * Every sentence and term a stored action may name.
  * ---------------------------------------------------------------------------
  */
@@ -279,6 +423,7 @@ export const AI_ACTION_TERMS: {
 export const AI_ACTION_SENTENCES: ReadonlyArray<string> = [
   ...Object.values(AI_ACTION_TITLES),
   ...Object.values(AI_ACTION_LINES),
+  ...Object.values(AI_ACTION_CARD_LINES),
   AI_ACTION_RESOURCE_BY_NAME,
 ];
 
@@ -295,6 +440,8 @@ export const AI_ACTION_RESOURCE_NOUNS: ReadonlyArray<string> =
 export const AI_ACTION_TERM_WORDS: ReadonlyArray<string> = [
   ...Object.values(AI_ACTION_TERMS),
   ...AI_ACTION_RESOURCE_NOUNS,
+  ...Object.values(AI_ACTION_CARD_KINDS),
+  ...Object.values(AI_ACTION_CARD_FACTS),
 ];
 
 /*
@@ -345,6 +492,17 @@ export function aiActionResourceByName(data: {
     kind: aiActionTerm(data.noun, { inSentence: true }),
     name: JSON.stringify(data.name),
   });
+}
+
+/*
+ * A fact of the card an action leaves (AIActionCardWords): one of
+ * AI_ACTION_CARD_FACTS, and its value.
+ */
+export function aiActionCardFact(
+  label: string,
+  value: string | AIActionSentence | AIActionList,
+): AIActionCardFact {
+  return { label: aiActionTerm(label), value };
 }
 
 /*
@@ -475,7 +633,17 @@ export function isKnownAIActionWords(value: unknown): value is AIActionWords {
   }
 
   const description: unknown = value["description"];
-  const namedArguments: unknown = value["namedArguments"];
+
+  const isNameList: (names: unknown) => boolean = (names: unknown): boolean => {
+    return (
+      names === undefined ||
+      (Array.isArray(names) &&
+        names.length <= MAX_SENTENCE_VALUES &&
+        names.every((name: unknown): boolean => {
+          return typeof name === "string";
+        }))
+    );
+  };
 
   return (
     (description === undefined ||
@@ -484,11 +652,81 @@ export function isKnownAIActionWords(value: unknown): value is AIActionWords {
         description.every((sentence: unknown): boolean => {
           return isKnownAIActionSentence(sentence);
         }))) &&
-    (namedArguments === undefined ||
-      (Array.isArray(namedArguments) &&
-        namedArguments.length <= MAX_SENTENCE_VALUES &&
-        namedArguments.every((name: unknown): boolean => {
-          return typeof name === "string";
+    isNameList(value["namedArguments"]) &&
+    isNameList(value["describedArguments"])
+  );
+}
+
+// How many facts a stored card may hold.
+const MAX_CARD_FACTS: number = 20;
+
+const CARD_KIND_TERMS: ReadonlyArray<string> =
+  Object.values(AI_ACTION_CARD_KINDS);
+const CARD_FACT_TERMS: ReadonlyArray<string> =
+  Object.values(AI_ACTION_CARD_FACTS);
+
+const isKnownCardTerm: (
+  value: unknown,
+  terms: ReadonlyArray<string>,
+) => boolean = (value: unknown, terms: ReadonlyArray<string>): boolean => {
+  return (
+    isAIActionTerm(value) &&
+    terms.includes(value.term) &&
+    (value.inSentence === undefined || typeof value.inSentence === "boolean")
+  );
+};
+
+// A fact's value: data as written, one of the module's sentences, or a list of them.
+const isKnownCardFactValue: (value: unknown) => boolean = (
+  value: unknown,
+): boolean => {
+  if (typeof value === "string") {
+    return true;
+  }
+
+  if (isAIActionList(value)) {
+    return isKnownValue(value, 0);
+  }
+
+  return isKnownAIActionSentence(value);
+};
+
+/*
+ * Whether a stored card's words are this module's: only then does the
+ * Dashboard draw the card in the reader's language. A card is read from a
+ * conversation's saved JSON, so anything else - another kind, a fact named
+ * otherwise, a value of another shape, a card saved before it had words -
+ * reads as the English the card stores.
+ */
+export function isKnownAIActionCardWords(
+  value: unknown,
+): value is AIActionCardWords {
+  if (
+    !isPlainObject(value) ||
+    !isKnownCardTerm(value["kind"], CARD_KIND_TERMS)
+  ) {
+    return false;
+  }
+
+  const line: unknown = value["line"];
+  const facts: unknown = value["facts"];
+
+  return (
+    (line === undefined ||
+      (Array.isArray(line) &&
+        line.length <= MAX_SENTENCE_VALUES &&
+        line.every((sentence: unknown): boolean => {
+          return isKnownAIActionSentence(sentence);
+        }))) &&
+    (facts === undefined ||
+      (Array.isArray(facts) &&
+        facts.length <= MAX_CARD_FACTS &&
+        facts.every((fact: unknown): boolean => {
+          return (
+            isPlainObject(fact) &&
+            isKnownCardTerm(fact["label"], CARD_FACT_TERMS) &&
+            isKnownCardFactValue(fact["value"])
+          );
         })))
   );
 }
@@ -570,6 +808,70 @@ export function describeAIActionSentence(
   }
 
   return translator.translateTemplate(sentence.template, values, options);
+}
+
+/*
+ * A card fact's value in the translator's language: data as written, a
+ * sentence, or a list of sentences joined the way the language joins a
+ * list.
+ */
+export function describeAIActionCardValue(
+  value: string | AIActionSentence | AIActionList,
+  translator: Translator = getEnglishTranslator(),
+  options?: SentenceOptions | undefined,
+): string {
+  if (typeof value === "string") {
+    return value;
+  }
+
+  if (isAIActionList(value)) {
+    return formatList(
+      value.list.map((item: AIActionSentence): string => {
+        return describeAIActionSentence(item, translator, options);
+      }),
+      translator,
+    );
+  }
+
+  return describeAIActionSentence(value, translator, options);
+}
+
+// What goes between the sentences of a card's line: "Severity: High · Started resolved".
+export const AI_ACTION_CARD_LINE_SEPARATOR: string = " · ";
+
+/*
+ * A card's words in the translator's language - English, as the card
+ * stores them for the exports and for older Dashboards, by default.
+ */
+export function describeAIActionCardWords(
+  words: AIActionCardWords,
+  translator: Translator = getEnglishTranslator(),
+): {
+  kind: string;
+  line?: string | undefined;
+  facts: Array<{ label: string; value: string }>;
+} {
+  const line: string = (words.line || [])
+    .map((sentence: AIActionSentence): string => {
+      return describeAIActionSentence(sentence, translator);
+    })
+    .filter((text: string): boolean => {
+      return Boolean(text);
+    })
+    .join(AI_ACTION_CARD_LINE_SEPARATOR);
+
+  return {
+    kind: translator.translateTerm(words.kind.term),
+    ...(line ? { line } : {}),
+    facts: (words.facts || []).map(
+      (fact: AIActionCardFact): { label: string; value: string } => {
+        return {
+          label: translator.translateTerm(fact.label.term),
+          value: describeAIActionCardValue(fact.value, translator),
+        };
+      },
+    ),
+  };
 }
 
 // The language a sentence is drawn in: the reader's when it words it.

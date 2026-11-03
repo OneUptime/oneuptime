@@ -24,6 +24,13 @@ import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import ObjectID from "../../../../Types/ObjectID";
 import { afterEach, describe, expect, test } from "@jest/globals";
 import { actionTitleText } from "../../../Helpers/AIActionText";
+import {
+  AI_ACTION_CARD_KINDS,
+  AI_ACTION_CARD_LINES,
+  aiActionSentence,
+  aiActionTerm,
+  isKnownAIActionCardWords,
+} from "../../../../Types/AI/AIActionWords";
 
 /*
  * create_incident, acknowledge_incident and resolve_incident are the copilot's
@@ -458,13 +465,49 @@ describe.each(stateCases)(
       >;
       expect(widgetData["resourceType"]).toBe("Incident");
       expect(widgetData["heading"]).toBe("#42 · Checkout down");
-      expect(widgetData["subheading"]).toBe(`Now ${newStateName}`);
+      expect(widgetData["subheading"]).toBe(
+        `Now ${newStateName.toLowerCase()}`,
+      );
       expect(widgetData["link"]).toEqual({
         type: AIChatCitationTargetType.IncidentView,
         params: { incidentId: INCIDENT_ID.toString() },
       });
       // The heading names it and the line under it says its new state.
       expect(widgetData["fields"]).toEqual([]);
+
+      /*
+       * The same card as words the Dashboard says in the reader's language
+       * (#5623's follow-up): its kind a term, its line a sentence.
+       */
+      expect(isKnownAIActionCardWords(widgetData["words"])).toBe(true);
+      expect(widgetData["words"]).toEqual({
+        kind: aiActionTerm(AI_ACTION_CARD_KINDS.incident),
+        line: [
+          aiActionSentence(
+            memberAction === "acknowledge"
+              ? AI_ACTION_CARD_LINES.nowAcknowledged
+              : AI_ACTION_CARD_LINES.nowResolved,
+          ),
+        ],
+      });
+    });
+
+    test("the card names the incident by the number the person knows it by", async () => {
+      const incident: Incident = buildIncident();
+      incident.incidentNumberWithPrefix = "INC-42";
+      jest.spyOn(IncidentService, "findOneById").mockResolvedValue(incident);
+      jest
+        .spyOn(WorkspaceMemberActions, memberAction)
+        .mockResolvedValue(undefined as never);
+
+      const result: ToolExecutionResult = await tool.execute(
+        { incidentId: INCIDENT_ID.toString() },
+        ctx,
+      );
+
+      expect((result.widget?.data as Record<string, unknown>)["heading"]).toBe(
+        "INC-42 · Checkout down",
+      );
     });
 
     test("buildActionTitle names the incident, and stays tidy with no id", () => {

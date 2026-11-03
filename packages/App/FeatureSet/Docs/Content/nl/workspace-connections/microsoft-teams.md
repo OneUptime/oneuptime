@@ -173,7 +173,7 @@ Stuur de bot een bericht in een persoonlijke chat, of noem OneUptime met @ in ee
 | `maintenance [title]` | Opent het formulier voor gepland onderhoud, met de titel ingevuld. |
 | `oncall` | Toont wie er nu dienst heeft in elk bereikbaarheidsschema dat je kunt zien, tot wanneer, en wie de volgende is. |
 | `page [who] [message]` | Roept de mensen op die je met @ noemt, over je bericht, of stuurt een kaart om te kiezen wie je oproept. Zie [Iemand oproepen vanuit Microsoft Teams](#iemand-oproepen-vanuit-microsoft-teams). |
-| `ask [question]`, of elke vraag in gewone taal | OneUptime AI beantwoordt vragen over je logs, traces, metrieken, incidenten en monitoren, bijvoorbeeld "welke monitoren liggen er nu uit?". Antwoorden lezen alleen. |
+| `ask [question]`, of elke vraag in gewone taal | OneUptime AI beantwoordt vragen over je logs, traces, metrieken, incidenten en monitoren, bijvoorbeeld "welke monitoren liggen er nu uit?". Antwoorden lezen alleen: vraag je om een wijziging, dan zegt het hoe je die hier maakt, bijvoorbeeld met `incident` of de knoppen op de kaarten van OneUptime, of linkt het voor al het andere naar AI vragen. In het eigen kanaal van een incident of waarschuwing antwoordt het over dat incident of die waarschuwing. |
 | `show active incidents`, `show active alerts` | Toont wat er nu openstaat. |
 | `show scheduled maintenance`, `show ongoing maintenance` | Toont komende, of lopende, onderhoudsgebeurtenissen. |
 

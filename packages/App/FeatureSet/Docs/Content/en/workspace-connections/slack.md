@@ -198,7 +198,7 @@ When somebody adds OneUptime to a channel, it posts a hello there: how to ask it
 
 ## Asking OneUptime AI from Slack
 
-Ask about your logs, traces, metrics, incidents and monitors in plain language. @mention OneUptime in a channel, or send it a direct message, and it answers in the thread. `/oneuptime ask which monitors are down?` posts its answer in the channel. Either needs your own Slack account connected, and AI turned on for the project. Answers in Slack only read: to change something, use the buttons. See [Ask AI](/docs/ai/ask-ai).
+Ask about your logs, traces, metrics, incidents and monitors in plain language. @mention OneUptime in a channel, or send it a direct message, and it answers in the thread. `/oneuptime ask which monitors are down?` posts its answer in the channel. Either needs your own Slack account connected, and AI turned on for the project. Answers in Slack only read: asked for a change, OneUptime AI says how to make it from Slack, such as with `/oneuptime incident` or the buttons on OneUptime's messages, or links to Ask AI for anything else. Asked in an incident's or an alert's own channel, it answers about that incident or alert. See [Ask AI](/docs/ai/ask-ai).
 
 OneUptime answers only what is addressed to it.
 
