@@ -1882,7 +1882,7 @@ describe("CreateWorkflowModal Jira templates", () => {
    * new alert: its description says the page opens one. The incident
    * templates never mention alerts, so they stay out of it.
    */
-  test("searching for alert shows the Alerts templates, then the alert Jira templates, then the alert Dynamics 365 and Zabbix ones, then the one that pages about a new alert", () => {
+  test("searching for alert shows the Alerts templates, then the alert Jira templates, then the alert Dynamics 365, Zabbix, Datadog and New Relic ones, then the one that pages about a new alert", () => {
     renderModal();
 
     const alertCategoryTemplateIds: Array<string> =
@@ -1907,6 +1907,9 @@ describe("CreateWorkflowModal Jira templates", () => {
           ...ALERT_JIRA_KIND.templateIds,
           ...ALERT_DYNAMICS_TEMPLATE_IDS,
           ...ALERT_ZABBIX_TEMPLATE_IDS,
+          // Only the versions that make OneUptime alerts: the incident ones say monitor and issue.
+          "datadog-create-alert-from-monitor",
+          "new-relic-create-alert-from-issue",
           "webhook-page-users",
         ],
       });
