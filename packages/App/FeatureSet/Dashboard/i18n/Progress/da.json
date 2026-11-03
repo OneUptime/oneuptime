@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40496,
-    "untranslated": 12410
+    "keys": 40557,
+    "untranslated": 12228
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -118,6 +118,7 @@
     "Match",
     "Matrix",
     "Median (P50)",
+    "Mediator",
     "Merge request !{{number}}",
     "Merge request {{label}}",
     "Mesh / VPN",
@@ -196,6 +197,7 @@
     "Session",
     "Signal",
     "Singapore (+65)",
+    "Slot",
     "Slug",
     "Span",
     "Span: {{id}}",
@@ -305,6 +307,8 @@
     "{{count}} alarm",
     "{{count}} appliance",
     "{{count}} appliances",
+    "{{count}} bucket",
+    "{{count}} buckets",
     "{{count}} container",
     "{{count}} dashboard",
     "{{count}} dashboards",

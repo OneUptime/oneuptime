@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40496,
-    "untranslated": 3682
+    "keys": 40557,
+    "untranslated": 3501
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -133,6 +133,7 @@
     "Cluster {{cluster}}",
     "Code",
     "Code Challenge",
+    "Code {{code}}",
     "Collector",
     "Commit",
     "Common Name",
@@ -308,6 +309,7 @@
     "Mayotte",
     "Median",
     "Median (P50)",
+    "Mediator",
     "Merge Requests",
     "Mesh / VPN",
     "Messaging",

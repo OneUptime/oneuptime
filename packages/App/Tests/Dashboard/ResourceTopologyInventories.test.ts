@@ -707,7 +707,8 @@ describe("a storage array", () => {
       id: "array-row",
       name: "flasharray-01",
       lastSeenAt: FRESH,
-      openAlertCount: 1,
+      openAlertCount: 2,
+      warningAlertCount: 1,
     },
     rows: [
       arrayRow({
@@ -773,14 +774,50 @@ describe("a storage array", () => {
     expect(node(graph, STORAGE_ARRAY_HARDWARE_ID).isSection).toBe(true);
   });
 
+  // By the rules the array's own pages use (StorageArrayHealth).
   test("statuses read the way the array's own pages read them", () => {
     expect(node(graph, "drive:d7").health).toBe("critical");
     expect(node(graph, "host:h2").health).toBe("warning");
     expect(node(graph, "controller:ct0").health).toBe("healthy");
-    // An open alert on the array itself.
+    // A warning alert open on the array itself; the other is informational.
     expect(node(graph, STORAGE_ARRAY_ROOT_ID).health).toBe("warning");
+    expect(node(graph, STORAGE_ARRAY_ROOT_ID).reasons).toEqual([
+      {
+        text: "{{count}} warning alerts open",
+        plural: { one: "{{count}} warning alert open", count: 1 },
+      },
+    ]);
     expect(storageArrayStatusHealth("Not Ready")).toBe("warning");
     expect(storageArrayStatusHealth("")).toBeNull();
+  });
+
+  test("a host that lost a path and a pod more than a minute behind need a look, with why", () => {
+    const behind: ResourceTopologyGraph = buildStorageArrayTopology({
+      array: { id: "array-row", name: "flasharray-01", lastSeenAt: FRESH },
+      rows: [
+        arrayRow({
+          kind: "Host",
+          externalId: "h3",
+          name: "esx-03",
+          status: "critical",
+          statusDetail: "Single Controller",
+        }),
+        arrayRow({
+          kind: "Pod",
+          externalId: "pod-lag",
+          name: "pod-lag",
+          status: "replicating",
+          replicationLagMs: 120000,
+        }),
+      ],
+      now: NOW,
+    });
+    expect(node(behind, "host:h3").health).toBe("warning");
+    expect(node(behind, "host:h3").reasons).toEqual([
+      { text: "Reaches the array through one controller only" },
+    ]);
+    expect(node(behind, "pod:pod-lag").health).toBe("warning");
+    expect(node(behind, STORAGE_ARRAY_ROOT_ID).health).toBe("healthy");
   });
 
   test("component_name and host place an issue", () => {

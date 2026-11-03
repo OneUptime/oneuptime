@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40496,
-    "untranslated": 12411
+    "keys": 40557,
+    "untranslated": 12227
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -11,6 +11,7 @@
     "412 GB",
     "4xx",
     "5xx",
+    "Account",
     "Active + Clean",
     "Agenda",
     "Apache Kafka · kafka-1:9092",
@@ -152,6 +153,7 @@
     "Pull request {{label}}",
     "Push",
     "Query",
+    "Quota",
     "Re-encrypt",
     "Record",
     "Red Hat OpenShift",
@@ -170,6 +172,7 @@
     "Serverless",
     "Service Mesh",
     "Singapore (+65)",
+    "Slot",
     "Slot {{slot}}",
     "Slug",
     "Span",
@@ -265,12 +268,14 @@
     "{{count}} MB",
     "{{count}} VM",
     "{{count}} appliance",
+    "{{count}} bucket",
     "{{count}} client",
     "{{count}} cluster",
     "{{count}} core",
     "{{count}} dashboard",
     "{{count}} datacenter",
     "{{count}} datastore",
+    "{{count}} file system",
     "{{count}} guest",
     "{{count}} host",
     "{{count}} manager",
@@ -283,6 +288,7 @@
     "{{count}} stack",
     "{{count}} team",
     "{{count}} trigger",
+    "{{count}} volume",
     "{{in}} in",
     "{{minutes}} min",
     "{{size}} in {{duration}}",

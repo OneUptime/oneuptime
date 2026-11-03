@@ -253,6 +253,8 @@ const StorageArrays: FunctionComponent<
           criticalAlertCount: true,
           warningAlertCount: true,
           osName: true,
+          // The Health column's Unknown, whichever columns are shown.
+          otelCollectorStatus: true,
         }}
         columns={[
           {
@@ -309,8 +311,18 @@ const StorageArrays: FunctionComponent<
                * metrics ingest scan writes, so the list never hits
                * ClickHouse — same pattern as Pages/Ceph/Clusters.tsx.
                */
+              /*
+               * An array whose agent is not connected has no verdict that
+               * still holds: Unknown, in grey.
+               */
               return (
-                <StorageArrayHealthPill healthStatus={item.healthStatus} />
+                <StorageArrayHealthPill
+                  healthStatus={
+                    item.otelCollectorStatus === "connected"
+                      ? item.healthStatus
+                      : null
+                  }
+                />
               );
             },
           },

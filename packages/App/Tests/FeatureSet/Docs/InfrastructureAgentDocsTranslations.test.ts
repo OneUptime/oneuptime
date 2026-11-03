@@ -416,6 +416,12 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "The API token is a Bearer token.",
     "No `send_batch_max_size`.",
     "datapoint labels",
+    // What the array's pages show, part by part.
+    "The array itself.",
+    "Hardware.",
+    "Hosts.",
+    "Pods.",
+    "File systems.",
   ],
   [SERVERLESS]: [
     "yes",

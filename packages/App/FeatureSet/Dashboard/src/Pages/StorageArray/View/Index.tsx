@@ -32,6 +32,7 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import OneUptimeDate from "Common/Types/Date";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import Includes from "Common/Types/BaseDatabase/Includes";
+import GreaterThan from "Common/Types/BaseDatabase/GreaterThan";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import GoldenMetricTile from "../../../Components/Infrastructure/GoldenMetricTile";
 import EmbeddedMetricCard from "../../../Components/Metrics/EmbeddedMetricCard";
@@ -50,11 +51,28 @@ import StorageArrayResourceUtils, {
   STORAGE_ARRAY_ATTRIBUTE,
   UNHEALTHY_RESOURCE_STATUSES,
 } from "../Utils/StorageArrayResourceUtils";
-import StorageArrayHealthPill, {
-  StorageArrayHealthState,
-  getStorageArrayHealthState,
-} from "../../../Components/StorageArray/StorageArrayHealthPill";
 import StorageArrayResourceStatusBadge from "../../../Components/StorageArray/StorageArrayResourceStatusBadge";
+import NeedsAttentionCard from "../../../Components/ResourcePart/NeedsAttentionCard";
+import {
+  ResourceAttentionItem,
+  ResourceHealth,
+} from "../../../Components/ResourcePart/ResourceAttention";
+import {
+  StorageArrayPartRoutes,
+  getStorageArrayPartRoutes,
+} from "../../../Components/StorageArray/Part/StorageArrayPartRoutes";
+import {
+  FILE_SYSTEM_NEAR_FULL_AVAILABLE_RATIO,
+  STORAGE_ARRAY_REPLICATION_LAG_WARNING_MS,
+  StorageArrayPartRow,
+  getStorageArrayAttentionItems,
+  getStorageArrayHealth,
+} from "../Utils/StorageArrayHealth";
+import {
+  StorageArrayLatencyReadings,
+  loadFileSystemAvailableRatios,
+  loadStorageArrayLatency,
+} from "../Utils/StorageArrayReadings";
 import AutoRefreshControl from "../../../Components/TelemetryResource/AutoRefreshControl";
 import {
   RESOURCE_HERO_CONTROLS_CLASS_NAME,
@@ -64,7 +82,10 @@ import {
   RESOURCE_HERO_TOP_ROW_CLASS_NAME,
   RESOURCE_HERO_TOP_ROW_TEST_ID,
 } from "../../../Components/TelemetryResource/ResourceHeroLayout";
-import { getResourceConnectionLabel } from "../../../Components/TelemetryResource/ResourceHeroStatus";
+import {
+  getResourceConnectionLabel,
+  getResourceHealthLabel,
+} from "../../../Components/TelemetryResource/ResourceHeroStatus";
 import useAutoRefresh from "../../../Components/TelemetryResource/useAutoRefresh";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import { STORAGE_ARRAY_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/StorageArrayMetricDescriptions";
@@ -253,10 +274,24 @@ const StorageArrayOverview: FunctionComponent<
    */
   const [detailsRefresher, setDetailsRefresher] = useState<boolean>(false);
 
-  // Inventory-backed sections (Postgres, instant).
-  const [unhealthyParts, setUnhealthyParts] = useState<
+  /*
+   * What needs attention (StorageArrayHealth): the parts the array reports
+   * a problem with, from the inventory, and what the inventory has no
+   * column for - the array's latency, each file system's available share.
+   */
+  const [attentionParts, setAttentionParts] = useState<
     Array<StorageArrayResource>
   >([]);
+  const [isAttentionLoading, setIsAttentionLoading] = useState<boolean>(true);
+  const [attentionError, setAttentionError] = useState<string>("");
+  const [latency, setLatency] = useState<StorageArrayLatencyReadings | null>(
+    null,
+  );
+  const [availableRatios, setAvailableRatios] = useState<Map<string, number>>(
+    new Map(),
+  );
+
+  // Inventory-backed sections (Postgres, instant).
   const [slowestObjects, setSlowestObjects] = useState<Array<TopObjectRow>>([]);
   const [largestObjects, setLargestObjects] = useState<Array<TopObjectRow>>([]);
 
@@ -393,55 +428,6 @@ const StorageArrayOverview: FunctionComponent<
     const kinds: Array<StorageArrayResourceKind> =
       StorageArrayResourceKindUtil.getKindsForSystem(item.storageSystem);
 
-    /*
-     * Hardware parts whose latest status needs a person, worst first.
-     * Served by the inventory's status column, so the card agrees with
-     * the Hardware page and the side menu's red badge.
-     */
-    const hardwareKinds: Array<StorageArrayResourceKind> = [
-      StorageArrayResourceKind.Hardware,
-      StorageArrayResourceKind.Drive,
-      StorageArrayResourceKind.Controller,
-    ].filter((kind: StorageArrayResourceKind): boolean => {
-      return kinds.includes(kind);
-    });
-
-    if (hardwareKinds.length > 0) {
-      const unhealthy: ListResult<StorageArrayResource> =
-        await ModelAPI.getList<StorageArrayResource>({
-          modelType: StorageArrayResource,
-          query: {
-            storageArrayId: modelId,
-            kind: new Includes(hardwareKinds),
-            status: new Includes([...UNHEALTHY_RESOURCE_STATUSES]),
-          },
-          skip: 0,
-          limit: 50,
-          select: StorageArrayResourceUtils.INVENTORY_SELECT,
-          sort: {
-            name: SortOrder.Ascending,
-          },
-        });
-
-      setUnhealthyParts(
-        [...unhealthy.data].sort(
-          (a: StorageArrayResource, b: StorageArrayResource): number => {
-            const aCritical: number =
-              StorageArrayResourceUtils.isCriticalResourceStatus(a.status)
-                ? 0
-                : 1;
-            const bCritical: number =
-              StorageArrayResourceUtils.isCriticalResourceStatus(b.status)
-                ? 0
-                : 1;
-            return aCritical - bCritical;
-          },
-        ),
-      );
-    } else {
-      setUnhealthyParts([]);
-    }
-
     // Volumes on a FlashArray, file systems on a FlashBlade.
     const topKind: StorageArrayResourceKind | null = kinds.includes(
       StorageArrayResourceKind.Volume,
@@ -516,6 +502,135 @@ const StorageArrayOverview: FunctionComponent<
           };
         }),
     );
+  };
+
+  /*
+   * The parts that need attention, by the rules' lines, read where the
+   * inventory can find them: a part the array reports a problem with (its
+   * status), a host that lost a path, a pod more than a minute behind, and
+   * a FlashBlade file system its latest reading says is nearly full. Each
+   * a short list, however many volumes the array holds.
+   */
+  const fetchAttention: (item: StorageArray) => Promise<void> = async (
+    item: StorageArray,
+  ): Promise<void> => {
+    const kinds: Array<StorageArrayResourceKind> =
+      StorageArrayResourceKindUtil.getKindsForSystem(item.storageSystem);
+    const arrayName: string = (item.name as string | undefined) || "";
+
+    const listParts: (
+      query: Record<string, unknown>,
+    ) => Promise<Array<StorageArrayResource>> = async (
+      query: Record<string, unknown>,
+    ): Promise<Array<StorageArrayResource>> => {
+      const result: ListResult<StorageArrayResource> =
+        await ModelAPI.getList<StorageArrayResource>({
+          modelType: StorageArrayResource,
+          query: {
+            storageArrayId: modelId,
+            ...query,
+          },
+          skip: 0,
+          limit: 100,
+          select: StorageArrayResourceUtils.INVENTORY_SELECT,
+          sort: {
+            name: SortOrder.Ascending,
+          },
+        });
+      return result.data;
+    };
+
+    try {
+      // Best-effort: without them the rules read the inventory alone.
+      const [latest, ratios]: [
+        StorageArrayLatencyReadings | null,
+        Map<string, number>,
+      ] = await Promise.all([
+        loadStorageArrayLatency({
+          arrayName: arrayName,
+          storageSystem: item.storageSystem,
+        }).catch((): null => {
+          return null;
+        }),
+        kinds.includes(StorageArrayResourceKind.FileSystem)
+          ? loadFileSystemAvailableRatios(arrayName).catch(
+              (): Map<string, number> => {
+                return new Map();
+              },
+            )
+          : Promise.resolve(new Map<string, number>()),
+      ]);
+
+      const statusKinds: Array<StorageArrayResourceKind> = [
+        StorageArrayResourceKind.Hardware,
+        StorageArrayResourceKind.Drive,
+        StorageArrayResourceKind.Controller,
+        StorageArrayResourceKind.NetworkInterface,
+        StorageArrayResourceKind.Pod,
+      ].filter((kind: StorageArrayResourceKind): boolean => {
+        return kinds.includes(kind);
+      });
+
+      const nearFull: Array<string> = Array.from(ratios.entries())
+        .filter(([, ratio]: [string, number]): boolean => {
+          return ratio < FILE_SYSTEM_NEAR_FULL_AVAILABLE_RATIO;
+        })
+        .map(([name]: [string, number]): string => {
+          return name;
+        });
+
+      const reads: Array<Promise<Array<StorageArrayResource>>> = [];
+      if (statusKinds.length > 0) {
+        reads.push(
+          listParts({
+            kind: new Includes(statusKinds),
+            status: new Includes([...UNHEALTHY_RESOURCE_STATUSES]),
+          }),
+        );
+      }
+      if (kinds.includes(StorageArrayResourceKind.Host)) {
+        reads.push(
+          listParts({
+            kind: StorageArrayResourceKind.Host,
+            status: "critical",
+          }),
+        );
+      }
+      if (kinds.includes(StorageArrayResourceKind.Pod)) {
+        reads.push(
+          listParts({
+            kind: StorageArrayResourceKind.Pod,
+            replicationLagMs: new GreaterThan(
+              STORAGE_ARRAY_REPLICATION_LAG_WARNING_MS,
+            ),
+          }),
+        );
+      }
+      if (nearFull.length > 0) {
+        reads.push(
+          listParts({
+            kind: StorageArrayResourceKind.FileSystem,
+            name: new Includes(nearFull),
+          }),
+        );
+      }
+
+      // A part two reads found (a pod failing and behind) is listed once.
+      const byKey: Map<string, StorageArrayResource> = new Map();
+      for (const rows of await Promise.all(reads)) {
+        for (const row of rows) {
+          byKey.set(`${row.kind}:${row.externalId || row.name || ""}`, row);
+        }
+      }
+
+      setAttentionParts(Array.from(byKey.values()));
+      setLatency(latest);
+      setAvailableRatios(ratios);
+      setAttentionError("");
+    } catch (err) {
+      setAttentionError(API.getFriendlyMessage(err));
+    }
+    setIsAttentionLoading(false);
   };
 
   const fetchActiveAlerts: (item: StorageArray) => Promise<void> = async (
@@ -688,6 +803,7 @@ const StorageArrayOverview: FunctionComponent<
       setPageError("");
       // Inventory is Postgres-fast; failures only blank its sections.
       fetchInventory(item).catch(() => {});
+      fetchAttention(item).catch(() => {});
       /*
        * Pulled here rather than from a name-keyed effect: the name is
        * stable across refreshes, so such an effect would never re-run on
@@ -727,6 +843,43 @@ const StorageArrayOverview: FunctionComponent<
   const isFlashArray: boolean = StorageSystemUtil.isFlashArray(
     storageArray?.storageSystem,
   );
+
+  const routes: StorageArrayPartRoutes = getStorageArrayPartRoutes(modelId);
+
+  const collectorStatus: string =
+    (storageArray?.otelCollectorStatus as string) || "";
+  const isArrayConnected: boolean =
+    collectorStatus.toLowerCase() === "connected" ||
+    collectorStatus.toLowerCase() === "active";
+
+  /*
+   * What needs attention, most urgent first (StorageArrayHealth): the same
+   * rules a part's page, the lists and the Topology use, so the health
+   * pill, this list and a part's page can never disagree.
+   */
+  const attentionItems: Array<ResourceAttentionItem> = storageArray
+    ? getStorageArrayAttentionItems({
+        arrayName: (storageArray.name as string | undefined) || "",
+        array: {
+          storageSystem: storageArray.storageSystem as string | undefined,
+          criticalAlertCount: storageArray.criticalAlertCount,
+          warningAlertCount: storageArray.warningAlertCount,
+          capacityUsedPercent: storageArray.capacityUsedPercent,
+          readLatencyUsec: latency?.readUsec ?? null,
+          writeLatencyUsec: latency?.writeUsec ?? null,
+        },
+        parts: attentionParts,
+        readingsFor: (row: StorageArrayPartRow) => {
+          return {
+            availableRatio: availableRatios.get(row.name || "") ?? null,
+          };
+        },
+        routeFor: (row: StorageArrayPartRow): Route => {
+          return routes.getPartRoute(row.kind || "", row.externalId || "");
+        },
+      })
+    : [];
+  const arrayHealth: ResourceHealth = getStorageArrayHealth(attentionItems);
 
   const renderHero: () => ReactElement | null = (): ReactElement | null => {
     if (!storageArray) {
@@ -829,6 +982,28 @@ const StorageArrayOverview: FunctionComponent<
       });
     }
 
+    // The health is told once Needs attention has read the array.
+    const showsHealth: boolean = !isAttentionLoading && !attentionError;
+    const healthLabel: string = getResourceHealthLabel({
+      translator: translator,
+      health: arrayHealth,
+      isConnected: isConnected,
+    });
+    const healthBadgeClass: string = !isConnected
+      ? "bg-gray-50 text-gray-600 ring-gray-200"
+      : arrayHealth === "Healthy"
+        ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
+        : arrayHealth === "Degraded"
+          ? "bg-amber-50 text-amber-700 ring-amber-200"
+          : "bg-red-50 text-red-700 ring-red-200";
+    const healthDotClass: string = !isConnected
+      ? "bg-gray-400"
+      : arrayHealth === "Healthy"
+        ? "bg-emerald-500"
+        : arrayHealth === "Degraded"
+          ? "bg-amber-500"
+          : "bg-red-500";
+
     const statusBadgeClass: string = isConnected
       ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
       : "bg-amber-50 text-amber-700 ring-amber-200";
@@ -898,20 +1073,36 @@ const StorageArrayOverview: FunctionComponent<
                       />
                       {statusLabel}
                     </span>
-                    <span className="inline-flex items-center gap-1">
-                      <StorageArrayHealthPill
-                        healthStatus={storageArray.healthStatus}
-                        showHealthPrefix={true}
-                      />
-                      <InfoTooltip
-                        label={
-                          translator.translateText(
-                            "Storage array health",
-                          ) as string
-                        }
-                        text={STORAGE_ARRAY_METRIC_DESCRIPTIONS.health}
-                      />
-                    </span>
+                    {/*
+                     * By the rules: what Needs attention lists, once it has
+                     * read the array. While the agent is not connected the
+                     * array's last picture is no longer the truth: Health
+                     * Unknown, in grey.
+                     */}
+                    {showsHealth ? (
+                      <span className="inline-flex items-center gap-1">
+                        <span
+                          data-testid="storage-array-hero-health"
+                          data-health={isConnected ? arrayHealth : "Unknown"}
+                          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${healthBadgeClass}`}
+                        >
+                          <span
+                            className={`h-1.5 w-1.5 rounded-full ${healthDotClass}`}
+                          />
+                          {healthLabel}
+                        </span>
+                        <InfoTooltip
+                          label={
+                            translator.translateText(
+                              "Storage array health",
+                            ) as string
+                          }
+                          text={STORAGE_ARRAY_METRIC_DESCRIPTIONS.arrayHealth}
+                        />
+                      </span>
+                    ) : (
+                      <></>
+                    )}
                   </div>
                   {/*
                    * What the array is, in its owner's words: under its
@@ -1195,72 +1386,6 @@ const StorageArrayOverview: FunctionComponent<
     );
   };
 
-  const renderUnhealthyHardware: () => ReactElement = (): ReactElement => {
-    if (unhealthyParts.length === 0) {
-      return <Fragment />;
-    }
-
-    return (
-      <div className="mb-6">
-        <Card
-          title={
-            <StorageArrayMetricTitle
-              title="Hardware Needing Attention"
-              description={
-                STORAGE_ARRAY_METRIC_DESCRIPTIONS.unhealthyHardwareList
-              }
-            />
-          }
-          description={translator.translatePlural(
-            {
-              one: "{{count}} part reports a status that needs a person.",
-              other: "{{count}} parts report a status that needs a person.",
-            },
-            unhealthyParts.length,
-          )}
-          rightElement={
-            <Link
-              to={getViewRoute(PageMap.STORAGE_ARRAY_VIEW_HARDWARE)}
-              className="text-sm font-medium text-indigo-600 hover:text-indigo-900"
-            >
-              {translator.translateText("View Hardware")}
-            </Link>
-          }
-        >
-          <div className="divide-y divide-gray-200">
-            {unhealthyParts.map((part: StorageArrayResource) => {
-              return (
-                <div
-                  key={`${part.kind}-${part.externalId}`}
-                  className="flex items-center justify-between gap-4 py-3"
-                >
-                  <div className="min-w-0">
-                    <div className="font-mono text-sm font-medium text-gray-900">
-                      {StorageArrayResourceUtils.displayNameForResource(part)}
-                    </div>
-                    <div className="mt-0.5 text-xs text-gray-500">
-                      {[
-                        translator.translateText(
-                          StorageArrayResourceKindUtil.getSingularLabel(
-                            part.kind as StorageArrayResourceKind,
-                          ),
-                        ),
-                        part.componentType || "",
-                      ]
-                        .filter(Boolean)
-                        .join(" · ")}
-                    </div>
-                  </div>
-                  <StorageArrayResourceStatusBadge status={part.status} />
-                </div>
-              );
-            })}
-          </div>
-        </Card>
-      </div>
-    );
-  };
-
   const renderGoldenCharts: () => ReactElement = (): ReactElement => {
     if (!storageArray?.name) {
       return <Fragment />;
@@ -1422,10 +1547,6 @@ const StorageArrayOverview: FunctionComponent<
     return <ErrorMessage message={pageError} />;
   }
 
-  const health: StorageArrayHealthState = getStorageArrayHealthState(
-    storageArray?.healthStatus,
-  );
-
   return (
     /*
      * The Golden Signals card is the page's only time series, and its range
@@ -1457,9 +1578,34 @@ const StorageArrayOverview: FunctionComponent<
       ) : (
         <></>
       )}
-      {health !== StorageArrayHealthState.Ok ? renderActiveAlerts() : <></>}
+      {/*
+       * What needs someone, most urgent first - while the agent reports: a
+       * disconnected array's last picture is no longer the truth, and the
+       * hero says Health Unknown instead. A read that fails says so in the
+       * card's frame, with Refresh.
+       */}
+      {attentionError ? (
+        <NeedsAttentionCard
+          testId="storage-array-needs-attention"
+          items={[]}
+          error={attentionError}
+          onRetry={(): void => {
+            if (storageArray) {
+              setIsAttentionLoading(true);
+              fetchAttention(storageArray).catch(() => {});
+            }
+          }}
+        />
+      ) : isArrayConnected && !isAttentionLoading ? (
+        <NeedsAttentionCard
+          testId="storage-array-needs-attention"
+          items={attentionItems}
+        />
+      ) : (
+        <></>
+      )}
+      {renderActiveAlerts()}
       {renderGoldenTiles()}
-      {renderUnhealthyHardware()}
       {renderGoldenCharts()}
       {renderTopObjects()}
       {/*

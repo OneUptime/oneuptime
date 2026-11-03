@@ -10,6 +10,7 @@ import StorageArrayResourceColumns from "../../../Components/StorageArray/Storag
 import StorageArrayResourceStatusBadge from "../../../Components/StorageArray/StorageArrayResourceStatusBadge";
 import StorageArrayResourceUtils from "../Utils/StorageArrayResourceUtils";
 import { STORAGE_ARRAY_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/StorageArrayMetricDescriptions";
+import { STORAGE_ARRAY_REPLICATION_LAG_WARNING_MS } from "../Utils/StorageArrayHealth";
 
 /*
  * FlashArray pods (kind=Pod) — the unit of ActiveCluster and ActiveDR
@@ -43,9 +44,11 @@ const StorageArrayReplication: FunctionComponent<
       description="Pods on this FlashArray and their replica links: how far each remote copy is behind, the link's status, and whether stretched pods reach their mediator."
       noItemsMessage="No pods found in the inventory yet. Pods appear here a few minutes after the Storage Array Agent starts scraping the array, if the array has any."
       columns={[
-        StorageArrayResourceColumns.getStatusColumn({
+        // By the rules: a link more than a minute behind is amber, with why.
+        StorageArrayResourceColumns.getRulesStatusColumn({
           title: "Link Status",
           description: STORAGE_ARRAY_METRIC_DESCRIPTIONS.podLinkStatusColumn,
+          field: "status",
         }),
         {
           field: {
@@ -62,6 +65,17 @@ const StorageArrayReplication: FunctionComponent<
               );
             if (lag === null) {
               return textCell("");
+            }
+            // Past the Replication Lag Above 1 Minute alert's line.
+            if (lag > STORAGE_ARRAY_REPLICATION_LAG_WARNING_MS) {
+              return (
+                <span
+                  data-tone="warning"
+                  className="text-sm font-medium text-amber-700"
+                >
+                  {StorageArrayResourceUtils.formatDurationMs(lag)}
+                </span>
+              );
             }
             return textCell(StorageArrayResourceUtils.formatDurationMs(lag));
           },

@@ -32,7 +32,7 @@ flowchart TB
 ## Før du begynner
 
 - **Installer Storage Array Agent** et sted der den kan nå arrayet over HTTPS, med API-tokenet til en bruker som har arrayets rolle **readonly**. [Veiledningen for Storage Array Agent](/docs/telemetry/storage-arrays) dekker brukeren, tokenet og installasjonen, gjennom `ONEUPTIME_URL`, `ONEUPTIME_TELEMETRY_INGESTION_KEY`, `STORAGE_ARRAY_NAME` og arrayets adresse og token (`PURE_FA_ENDPOINT` og `PURE_FA_API_TOKEN`, eller `PURE_FB_ENDPOINT` og `PURE_FB_API_TOKEN`).
-- **Sjekk at arrayet er registrert.** Det vises under **Produkter → Infrastruktur → Lagringsarrayer → All Storage Arrays**, oppkalt etter agentens `STORAGE_ARRAY_NAME`, rundt et minutt etter den første avlesningen.
+- **Sjekk at arrayet er registrert.** Det vises under **Produkter → Infrastruktur → Lagringsarrayer → Alle lagringsarrayer**, oppkalt etter agentens `STORAGE_ARRAY_NAME`, rundt et minutt etter den første avlesningen.
 
 ## Opprett en lagringsarray-monitor
 
@@ -77,7 +77,7 @@ Klikk på **Opprett monitor**. OneUptime åpner monitorens side og evaluerer den
 | **Volum** | Custom Metric, Avansert | Bare FlashArray. Ett volum, via etiketten `name`, som `vol-db-01`. Et volum i en pod eller en volumgruppe heter `pod::volume` eller `group/volume`. |
 | **Vert** | Custom Metric, Avansert | Bare FlashArray. Én vert slik arrayet kjenner den, via etiketten `host`, som `esxi-01`. |
 | **Pod** | Custom Metric, Avansert | Bare FlashArray. Én ActiveCluster- eller ActiveDR-pod, via etiketten `name`, eller `local_pod` på serier for replikalenker. |
-| **Hardware Component** | Custom Metric, Avansert | Én maskinvarekomponent, som `CH0.BAY1` eller `CT0`: etiketten `component_name` på et FlashArray, `name` på et FlashBlade. |
+| **Maskinvarekomponent** | Custom Metric, Avansert | Én maskinvarekomponent, som `CH0.BAY1` eller `CT0`: etiketten `component_name` på et FlashArray, `name` på et FlashBlade. |
 | **Filsystem** | Custom Metric, Avansert | Bare FlashBlade. Ett filsystem, via etiketten `name`. |
 | **Bucket** | Custom Metric, Avansert | Bare FlashBlade. Én bucket for objektlagring, via etiketten `name`. |
 | **Storage Array Metric** | Custom Metric | Én metrikk fra [katalogen](#innsamlede-metrikker). Skjemaet legger til etikettfilteret som gir den betydningen sin, og grupperer den etter objektet den beskriver, så hvert volum, hver vert eller hver komponent vurderes for seg. |

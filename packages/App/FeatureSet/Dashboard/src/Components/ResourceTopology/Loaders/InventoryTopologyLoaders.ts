@@ -320,7 +320,15 @@ export async function loadStorageArrayTopology(
     await loadInventory({
       id: arrayId,
       resourceType: StorageArray,
-      resourceSelect: { name: true, lastSeenAt: true, openAlertCount: true },
+      resourceSelect: {
+        name: true,
+        lastSeenAt: true,
+        openAlertCount: true,
+        criticalAlertCount: true,
+        warningAlertCount: true,
+        capacityUsedPercent: true,
+        storageSystem: true,
+      },
       rowType: StorageArrayResource,
       rowQuery: { storageArrayId: arrayId },
       rowSelect: {
@@ -335,6 +343,8 @@ export async function loadStorageArrayTopology(
         groupName: true,
         capacityBytes: true,
         usedBytes: true,
+        replicationLagMs: true,
+        metricsUpdatedAt: true,
         lastSeenAt: true,
       },
       relation: "storageArrays",
@@ -353,6 +363,11 @@ export async function loadStorageArrayTopology(
             name: name,
             lastSeenAt: loaded.resource?.lastSeenAt || null,
             openAlertCount: loaded.resource?.openAlertCount ?? null,
+            criticalAlertCount: loaded.resource?.criticalAlertCount ?? null,
+            warningAlertCount: loaded.resource?.warningAlertCount ?? null,
+            capacityUsedPercent: loaded.resource?.capacityUsedPercent ?? null,
+            storageSystem:
+              (loaded.resource?.storageSystem as string | undefined) ?? null,
           },
           rows: loaded.rows.data,
           issues: loaded.issues?.records || [],

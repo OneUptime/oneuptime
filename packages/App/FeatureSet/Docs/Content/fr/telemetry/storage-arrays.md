@@ -136,7 +136,7 @@ Everything is ready. Begin running and processing data.
 
 ### Trouver la baie dans OneUptime
 
-Ouvrez **Produits → Infrastructure → Baies de stockage → All Storage Arrays**. Après la première collecte (une minute environ), la baie est là avec sa capacité, ses performances, ses alertes ouvertes et son matériel. Les volumes, hôtes et pods suivent en moins de 2 minutes, les systèmes de fichiers et buckets d'une FlashBlade en moins de 5, et les répertoires FlashArray en moins de 30. La page **Topologie** de la baie dessine ses hôtes, volumes, systèmes de fichiers et son matériel sur une seule carte : voir [Topologie](/docs/telemetry/topology#ouvrir-la-carte-propre-à-une-ressource).
+Ouvrez **Produits → Infrastructure → Baies de stockage → Toutes les baies de stockage**. Après la première collecte (une minute environ), la baie est là avec sa capacité, ses performances, ses alertes ouvertes et son matériel. Les volumes, hôtes et pods suivent en moins de 2 minutes, les systèmes de fichiers et buckets d'une FlashBlade en moins de 5, et les répertoires FlashArray en moins de 30. La page **Topologie** de la baie dessine ses hôtes, volumes, systèmes de fichiers et son matériel sur une seule carte : voir [Topologie](/docs/telemetry/topology#ouvrir-la-carte-propre-à-une-ressource).
 :::
 
 ## Variables d'environnement
@@ -180,7 +180,19 @@ Les conventions sémantiques de Pure sont communes à l'endpoint FlashArray nati
 | FlashBlade `/metrics/filesystems` | `purefb_file_systems_space_*`, `purefb_file_systems_performance_*` | La page **Systèmes de fichiers** : espace provisionné et utilisé, réduction de données, latence, IOPS et bande passante par système de fichiers |
 | FlashBlade `/metrics/objectstore` | `purefb_buckets_space_*`, `purefb_buckets_quota_space_bytes`, `purefb_buckets_object_count`, `purefb_buckets_performance_*`, `purefb_object_store_accounts_*` | La page **Buckets** : espace, quota, nombre d'objets et performances par bucket, regroupés par compte |
 
-La santé de la baie sur sa page **Vue d'ensemble** est **Critique** tant qu'elle signale une alerte critique ouverte, ou un composant matériel, un disque ou un contrôleur critique, en panne, manquant ou défaillant ; **Avertissement** tant qu'elle signale une alerte d'avertissement ouverte, ou un composant dégradé ou inconnu ; et **OK** sinon. Dans les critères de moniteur, les attributs de la baie prennent un préfixe `resource.` (`resource.storage.array.name`, `resource.storage.system`), tandis que les labels de point de données restent nus (`name`, `host`, `dimension`, `space`).
+La colonne **Santé** de **Toutes les baies de stockage** lit les alertes et le matériel de la baie elle-même dans ses dernières données : **Critique** tant qu'elle signale une alerte critique ouverte, ou un composant matériel, un disque ou un contrôleur critique, en panne, manquant ou défaillant ; **Avertissement** tant qu'elle signale une alerte d'avertissement ouverte, ou un composant dégradé ou inconnu ; **OK** sinon ; et **Inconnu** tant que l'agent est déconnecté. La **Vue d'ensemble** de la baie en juge davantage, comme le dit la section suivante. Dans les critères de moniteur, les attributs de la baie prennent un préfixe `resource.` (`resource.storage.array.name`, `resource.storage.system`), tandis que les labels de point de données restent nus (`name`, `host`, `dimension`, `space`).
+
+## Ce que montrent les pages de la baie
+
+La **Vue d'ensemble** de la baie indique sa santé, **Sain**, **Dégradé** ou **Défaillant**, d'après ce qui demande de l'attention, et le liste sous **Attention requise**, le plus urgent d'abord, chaque élément à un geste de l'endroit où regarder :
+
+- **La baie elle-même.** Une alerte ouverte que la baie a levée avec une sévérité critique est critique, et une de sévérité avertissement demande un coup d'œil. Au-delà de 80 % de sa capacité utilisable, elle demande un coup d'œil, et au-delà de 90 %, elle est critique, là où se déclenchent les alertes Capacity Above 80% et Capacity Above 90%. Un FlashArray dont la latence moyenne de lecture ou d'écriture dépasse 5 ms, ou un FlashBlade dont les lectures prennent plus de 10 ms, demande un coup d'œil.
+- **Matériel.** Un composant, un disque, un contrôleur ou une interface réseau que la baie signale critique, en panne, manquant ou défaillant est critique : sa redondance a disparu jusqu'au remplacement de la pièce. Celui qu'elle signale dégradé, inconnu, non reconnu ou pas prêt demande un coup d'œil. Les pièces non installées, éteintes ou inutilisées ne sont jamais listées.
+- **Hôtes.** Un hôte qui n'atteint plus la baie par les deux contrôleurs demande un coup d'œil, avec la raison : par un seul contrôleur, par des chemins inégaux ou sans aucun chemin.
+- **Pods.** Un pod dont la baie signale le lien de réplica comme défaillant est critique, et celui qui a plus d'une minute de retard demande un coup d'œil.
+- **Systèmes de fichiers.** Un système de fichiers FlashBlade à qui il reste moins de 10 % de sa taille provisionnée demande un coup d'œil.
+
+Les listes **Hôtes**, **Réplication** et **Systèmes de fichiers** indiquent l'état de chaque élément selon les mêmes règles, avec la raison en dessous. La page d'un hôte et celle d'un système de fichiers disent ce qui demande de l'attention et quelles alertes de la baie le surveillent, avec un geste pour activer les autres, et la page de chaque élément, celle d'un volume et d'un bucket aussi, dit ce qui est ouvert dessus. Tant que l'agent est déconnecté, la santé affiche **Santé inconnue** : le dernier rapport de la baie n'est plus la vérité. Chaque seuil ci-dessus est celui où se déclenche son modèle d'alerte, comme le liste le [moniteur de baie de stockage](/docs/monitor/storage-array-monitor).
 
 ## Facultatif — Envoyer le syslog de la baie
 

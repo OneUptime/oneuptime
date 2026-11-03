@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40496,
-    "untranslated": 12456
+    "keys": 40557,
+    "untranslated": 12272
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -18,6 +18,7 @@
     "5xx",
     "AI / LLM",
     "AI: {{prompt}}",
+    "Account",
     "Accounts",
     "Active + Clean",
     "Adapter",
@@ -54,6 +55,7 @@
     "Cluster {{cluster}}",
     "Clusters",
     "Code",
+    "Code {{code}}",
     "Collector",
     "Commit",
     "Compliance",
@@ -159,6 +161,7 @@
     "Markdown",
     "Marketplace",
     "Matrix",
+    "Mediator",
     "Merge request !{{number}}",
     "Merge request {{label}}",
     "Mesh / VPN",
@@ -250,6 +253,7 @@
     "Service:",
     "Services",
     "Singapore (+65)",
+    "Slot",
     "Slot {{slot}}",
     "Slug",
     "Span",
@@ -382,6 +386,8 @@
     "{{count}} alarm",
     "{{count}} appliance",
     "{{count}} appliances",
+    "{{count}} bucket",
+    "{{count}} buckets",
     "{{count}} client",
     "{{count}} cluster",
     "{{count}} clusters",
@@ -431,6 +437,8 @@
     "{{count}} teams",
     "{{count}} trigger",
     "{{count}} triggers",
+    "{{count}} volume",
+    "{{count}} volumes",
     "{{count}} week",
     "{{delta}} pp",
     "{{field}} is {{value}}",

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40496,
-    "untranslated": 12382
+    "keys": 40557,
+    "untranslated": 12200
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -156,6 +156,7 @@
     "Service Mesh",
     "Site",
     "Sites",
+    "Slot",
     "Slot {{slot}}",
     "Slug",
     "Span",
@@ -253,6 +254,8 @@
     "{{count}} VMs",
     "{{count}} appliance",
     "{{count}} appliances",
+    "{{count}} bucket",
+    "{{count}} buckets",
     "{{count}} cluster",
     "{{count}} clusters",
     "{{count}} datacenter",
@@ -277,6 +280,8 @@
     "{{count}} spans",
     "{{count}} stack",
     "{{count}} stacks",
+    "{{count}} volume",
+    "{{count}} volumes",
     "{{in}} in",
     "{{minutes}} min",
     "{{tokens}} tokens",

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40496,
-    "untranslated": 12405
+    "keys": 40557,
+    "untranslated": 12223
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -88,6 +88,7 @@
     "Managers",
     "Markdown",
     "Median (P50)",
+    "Mediator",
     "Merge request !{{number}}",
     "Merge request {{label}}",
     "Mesh / VPN",
@@ -238,6 +239,7 @@
     "{{count}} VM",
     "{{count}} alarm",
     "{{count}} appliance",
+    "{{count}} bucket",
     "{{count}} container",
     "{{count}} filter",
     "{{count}} filter ({{condition}})",

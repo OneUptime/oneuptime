@@ -810,11 +810,11 @@ describe("rule 6: ResourceOverview's hero row is every hero's", () => {
 const HEALTH_HEROES: Array<[string, string, string]> = [
   // A Ceph cluster's health by its rules: Ceph's verdict, OSDs, pools.
   ["Pages/Ceph/View/Index.tsx", "{statusLabel}", "{healthLabel}"],
-  [
-    "Pages/StorageArray/View/Index.tsx",
-    "{statusLabel}",
-    "<StorageArrayHealthPill",
-  ],
+  /*
+   * A storage array's health by its rules: its own alerts, how full and
+   * how slow it is, and its parts.
+   */
+  ["Pages/StorageArray/View/Index.tsx", "{statusLabel}", "{healthLabel}"],
   ["Pages/DockerSwarm/View/Index.tsx", "{connectionLabel}", "{healthLabel}"],
   // A host's health by HostHealth's rules, beside its collector's pill.
   ["Pages/Host/View/Overview.tsx", "{statusLabel}", "{healthLabel}"],
@@ -1101,7 +1101,7 @@ describe("rule 9: a hero's pills are in the reader's language", () => {
     expect(withPill.sort()).toEqual([...CONNECTION_PILL_HEROES].sort());
   });
 
-  test("the six heroes that work out a health draw it from getResourceHealthLabel", () => {
+  test("the seven heroes that work out a health draw it from getResourceHealthLabel", () => {
     const withHealth: Array<string> = HEROES.filter((hero: Hero): boolean => {
       return pillVariablesDrawn(hero).includes("healthLabel");
     }).map((hero: Hero): string => {
@@ -1115,6 +1115,7 @@ describe("rule 9: a hero's pills are in the reader's language", () => {
         "Pages/Host/View/Overview.tsx",
         "Pages/Kubernetes/View/Index.tsx",
         "Pages/Proxmox/View/Index.tsx",
+        "Pages/StorageArray/View/Index.tsx",
         "Pages/VMware/View/Index.tsx",
       ].sort(),
     );

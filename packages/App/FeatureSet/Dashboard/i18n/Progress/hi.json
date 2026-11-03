@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40496,
-    "untranslated": 12364
+    "keys": 40557,
+    "untranslated": 12182
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -44,6 +44,7 @@
     "MITRE ATT&CK",
     "MITRE ATT&CK Enterprise v{{version}}",
     "Markdown",
+    "NAA ID",
     "OK",
     "OSD",
     "OpenShift",

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40496,
-    "untranslated": 7092
+    "keys": 40557,
+    "untranslated": 6909
   },
   "sameAsEnglish": [
     " incidents",
@@ -122,6 +122,7 @@
     "Clusters",
     "Code",
     "Code Challenge",
+    "Code {{code}}",
     "Collection",
     "Commit",
     "Community Edition",
@@ -385,6 +386,7 @@
     "Push",
     "Question",
     "Questions",
+    "Quota",
     "Re-encrypt",
     "Red Hat OpenShift",
     "Restrictions",
@@ -518,6 +520,8 @@
     "{{count}} actions",
     "{{count}} appliance",
     "{{count}} appliances",
+    "{{count}} bucket",
+    "{{count}} buckets",
     "{{count}} client",
     "{{count}} cluster",
     "{{count}} clusters",
@@ -556,6 +560,8 @@
     "{{count}} spans",
     "{{count}} stack",
     "{{count}} stacks",
+    "{{count}} volume",
+    "{{count}} volumes",
     "{{in}} in",
     "{{minutes}} min",
     "{{protocol}} port {{port}}",
