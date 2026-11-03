@@ -60,6 +60,18 @@ export const PROFILE_CHECK_ON_LABELS: ReadonlyArray<string> = [
 export const METRIC_HAS_NO_DATA_LABEL: string = translationKey("Has No Data");
 export const METRIC_HAS_DATA_LABEL: string = translationKey("Has Data");
 
+/*
+ * The two conditions that compare where a metric is headed with the
+ * threshold (FilterType.ForecastAbove / ForecastBelow), worded as the
+ * Condition dropdown of the simple rule words them.
+ */
+export const METRIC_FORECAST_ABOVE_LABEL: string = translationKey(
+  "Forecast To Rise Above",
+);
+export const METRIC_FORECAST_BELOW_LABEL: string = translationKey(
+  "Forecast To Fall Below",
+);
+
 export default class CriteriaFilterUtil {
   /*
    * The window a filter is given when "Evaluate this criteria over a period
@@ -309,6 +321,33 @@ export default class CriteriaFilterUtil {
             ? "anomalously low"
             : "anomalous (either direction)";
       text += `"${criteriaFilter?.checkOn.toString()}" is ${direction} (sensitivity: ${sensitivity}, baseline window: ${windowDays} days)`;
+      if (filterCondition === FilterCondition.All) {
+        text += " and,";
+      }
+      if (filterCondition === FilterCondition.Any) {
+        text += " or,";
+      }
+      return text;
+    }
+
+    // A forecast says where the metric is headed, and by when.
+    if (
+      CommonCriteriaFilterUtil.isForecastFilterType(criteriaFilter?.filterType)
+    ) {
+      const horizonInHours: number =
+        CommonCriteriaFilterUtil.getForecastHorizonInHours(criteriaFilter);
+      const horizon: string =
+        horizonInHours >= 24 && horizonInHours % 24 === 0
+          ? `${horizonInHours / 24} ${horizonInHours === 24 ? "day" : "days"}`
+          : `${horizonInHours} ${horizonInHours === 1 ? "hour" : "hours"}`;
+      const direction: string =
+        criteriaFilter?.filterType === FilterType.ForecastAbove
+          ? "rise above"
+          : "fall below";
+      const unit: string = criteriaFilter?.metricMonitorOptions?.thresholdUnit
+        ? ` ${criteriaFilter.metricMonitorOptions.thresholdUnit}`
+        : "";
+      text += `"${criteriaFilter?.checkOn.toString()}" is forecast to ${direction} ${criteriaFilter?.value ?? "..."}${unit} within ${horizon}`;
       if (filterCondition === FilterCondition.All) {
         text += " and,";
       }
@@ -965,12 +1004,21 @@ export default class CriteriaFilterUtil {
       });
 
       /*
-       * A metric can also be asked whether it sent anything at all, last,
-       * after the comparisons people pick most.
+       * A metric can also be asked where its trend is headed
+       * (MetricMonitorCriteria's forecast), and whether it sent anything at
+       * all - last, after the comparisons people pick most.
        */
       if (checkOn === CheckOn.MetricValue) {
         options = [
           ...options,
+          {
+            label: METRIC_FORECAST_ABOVE_LABEL,
+            value: FilterType.ForecastAbove,
+          },
+          {
+            label: METRIC_FORECAST_BELOW_LABEL,
+            value: FilterType.ForecastBelow,
+          },
           { label: METRIC_HAS_NO_DATA_LABEL, value: FilterType.IsEmpty },
           { label: METRIC_HAS_DATA_LABEL, value: FilterType.IsNotEmpty },
         ];
@@ -1715,6 +1763,18 @@ export default class CriteriaFilterUtil {
           i.value === FilterType.NotEqualTo ||
           i.value === FilterType.StartsWith ||
           i.value === FilterType.EndsWith
+        );
+      });
+    }
+
+    /*
+     * Only a metric criteria forecasts (MetricMonitorCriteria): a check
+     * that offers every condition must not offer one no evaluator judges.
+     */
+    if (checkOn !== CheckOn.MetricValue) {
+      options = options.filter((i: DropdownOption) => {
+        return !CommonCriteriaFilterUtil.isForecastFilterType(
+          i.value as FilterType,
         );
       });
     }

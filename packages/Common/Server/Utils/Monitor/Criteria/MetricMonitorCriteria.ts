@@ -12,6 +12,7 @@ import MetricCriteriaContext, {
   MetricAnomalyBaseline,
   MetricComponent,
   MetricComponentValue,
+  MetricForecastDetails,
   MetricWindowAggregate,
   MetricWindowAggregation,
   MetricWindowShortfall,
@@ -42,6 +43,10 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
 import MetricUnitUtil from "../../../../Utils/MetricUnitUtil";
 import MetricValueFormatter from "../../../../Utils/Monitor/MetricValueFormatter";
 import MetricFormulaEvaluator from "../../../../Utils/Metrics/MetricFormulaEvaluator";
+import MetricForecast, {
+  MetricForecastPoint,
+  MetricForecastResult,
+} from "../../../../Utils/Metrics/MetricForecast";
 import MetricBaselineService, {
   BaselineBand,
   BaselineSummary,
@@ -54,6 +59,8 @@ import MetricBaselineService, {
 import MetricHourBaseline, {
   METRIC_BASELINE_MAX_SERIES,
 } from "../MetricHourBaseline";
+
+const HOUR_IN_MS: number = 60 * 60 * 1000;
 
 /**
  * Result of evaluating a single criteria filter against a single metric
@@ -133,17 +140,63 @@ export default class MetricMonitorCriteria {
      * renderer can still read metric identity from the criteria filter
      * even when nothing matched. Pick the first evaluation's context -
      * or, when series are waiting for a full window, the one closest to
-     * it, so the evaluation log can say why nothing fired yet.
+     * it, and for a forecast the series forecast closest to its
+     * threshold, so the evaluation log can say why nothing fired yet.
      */
     if (evaluations.length > 0) {
       input.criteriaFilter.metricCriteriaContext = (
         match ||
         MetricMonitorCriteria.getClosestWaitingEvaluation(evaluations) ||
+        MetricMonitorCriteria.getClosestForecastEvaluation(evaluations) ||
         evaluations[0]!
       ).context;
     }
 
     return match ? match.rootCause : null;
+  }
+
+  /*
+   * The series whose forecast came closest to its threshold: the highest
+   * forecast for Forecast Above, the lowest for Forecast Below. A series
+   * that could not be forecast only when none could. Undefined when the
+   * criteria is not a forecast.
+   */
+  private static getClosestForecastEvaluation(
+    evaluations: Array<MetricSeriesEvaluationResult>,
+  ): MetricSeriesEvaluationResult | undefined {
+    let closest: MetricSeriesEvaluationResult | undefined = undefined;
+
+    for (const evaluation of evaluations) {
+      const forecast: MetricForecastDetails | undefined =
+        evaluation.context.forecast;
+
+      if (!forecast) {
+        continue;
+      }
+
+      const closestForecast: MetricForecastDetails | undefined =
+        closest?.context.forecast;
+
+      if (!closestForecast) {
+        closest = evaluation;
+        continue;
+      }
+
+      if (forecast.projectedValue === undefined) {
+        continue;
+      }
+
+      if (
+        closestForecast.projectedValue === undefined ||
+        (forecast.direction === "above"
+          ? forecast.projectedValue > closestForecast.projectedValue
+          : forecast.projectedValue < closestForecast.projectedValue)
+      ) {
+        closest = evaluation;
+      }
+    }
+
+    return closest;
   }
 
   /*
@@ -244,10 +297,15 @@ export default class MetricMonitorCriteria {
 
     /*
      * The data points this criteria compares - its query's or formula's -
-     * in every series. Only "All Values" judges a window's coverage.
+     * in every series. Only "All Values" judges a window's coverage, and
+     * only it and a forecast judge whether a series' data is fresh.
      */
     const comparedSamplesOfEverySeries: Array<Array<AggregateModel>> | null =
-      window && MetricMonitorCriteria.isAllValues(input.criteriaFilter)
+      window &&
+      (MetricMonitorCriteria.isAllValues(input.criteriaFilter) ||
+        CriteriaFilterUtil.isForecastFilterType(
+          input.criteriaFilter.filterType,
+        ))
         ? MetricMonitorCriteria.getComparedSamplesOfEverySeries({
             criteriaFilter: input.criteriaFilter,
             queryConfigs,
@@ -763,6 +821,32 @@ export default class MetricMonitorCriteria {
       // TreatAsZero: fall through to the comparator with value 0.
     }
 
+    /*
+     * Forecast: where the series' trend is headed, compared with the
+     * threshold - not any value it has had. An empty window has no trend,
+     * whatever the no-data policy says zero is.
+     */
+    if (
+      CriteriaFilterUtil.isForecastFilterType(input.criteriaFilter.filterType)
+    ) {
+      return MetricMonitorCriteria.evaluateForecast({
+        criteriaFilter: input.criteriaFilter,
+        metricContext,
+        samples,
+        threshold,
+        convertToDisplayUnit,
+        displayUnit,
+        metricDisplayName:
+          matchedQuery?.metricAliasData?.title?.trim() ||
+          matchedFormula?.metricAliasData?.title?.trim() ||
+          metricContext.metricName,
+        seriesFingerprint: input.seriesFingerprint,
+        seriesLabels: input.seriesLabels,
+        window: input.window,
+        monitorNewestDataPointMs: input.monitorNewestDataPointMs,
+      });
+    }
+
     const numbersInDisplayUnit: Array<number> = samples.map(
       (d: AggregateModel) => {
         return convertToDisplayUnit(d.value);
@@ -981,6 +1065,232 @@ export default class MetricMonitorCriteria {
       rootCause: comparisonMessage,
       context: metricContext,
     };
+  }
+
+  /*
+   * A forecast criteria on one series: fit the trend of its data points in
+   * the window, follow it to the end of the horizon, and compare where it
+   * ends up with the threshold (MetricForecast). It matches days before the
+   * metric gets there, so the root cause says where the metric is headed
+   * and when it gets there; a forecast that does not match says why in the
+   * evaluation log.
+   */
+  private static evaluateForecast(input: {
+    criteriaFilter: CriteriaFilter;
+    metricContext: MetricCriteriaContext;
+    samples: Array<AggregateModel>;
+    // In the display unit.
+    threshold: number;
+    convertToDisplayUnit: (value: number) => number;
+    displayUnit: string | undefined;
+    metricDisplayName: string;
+    seriesFingerprint: string | undefined;
+    seriesLabels: JSONObject;
+    window?: MetricEvaluationWindow | null | undefined;
+    monitorNewestDataPointMs?: number | null | undefined;
+  }): MetricSeriesEvaluationResult {
+    const metricContext: MetricCriteriaContext = input.metricContext;
+    const isAbove: boolean =
+      input.criteriaFilter.filterType === FilterType.ForecastAbove;
+    const horizonInHours: number = CriteriaFilterUtil.getForecastHorizonInHours(
+      input.criteriaFilter,
+    );
+
+    const points: Array<MetricForecastPoint> = input.samples.map(
+      (sample: AggregateModel): MetricForecastPoint => {
+        return {
+          timeMs: new Date(sample.timestamp).getTime(),
+          value: input.convertToDisplayUnit(sample.value),
+        };
+      },
+    );
+
+    const pointTimes: Array<number> = points
+      .map((point: MetricForecastPoint) => {
+        return point.timeMs;
+      })
+      .filter((time: number) => {
+        return Number.isFinite(time);
+      });
+
+    /*
+     * A response that does not say what window it read (a payload from
+     * before windows were recorded) is forecast over the span its data
+     * covers, from its newest data point.
+     */
+    const windowStartMs: number =
+      input.window?.startMs ??
+      (pointTimes.length > 0 ? Math.min(...pointTimes) : 0);
+    const windowEndMs: number =
+      input.window?.endMs ??
+      (pointTimes.length > 0 ? Math.max(...pointTimes) : 0);
+
+    const forecast: MetricForecastResult = MetricForecast.forecast({
+      points,
+      windowStartMs,
+      windowEndMs,
+      horizonMs: horizonInHours * HOUR_IN_MS,
+      threshold: input.threshold,
+      filterType: input.criteriaFilter.filterType!,
+      dataPointMs: input.window
+        ? MetricWindowCoverage.getDataPointMs(input.window)
+        : undefined,
+      freshnessReferenceMs:
+        typeof input.monitorNewestDataPointMs === "number"
+          ? input.monitorNewestDataPointMs
+          : undefined,
+    });
+
+    const finiteValues: Array<number> = points
+      .map((point: MetricForecastPoint) => {
+        return point.value;
+      })
+      .filter((value: number) => {
+        return Number.isFinite(value);
+      });
+
+    if (finiteValues.length > 0) {
+      metricContext.sampleValueRange = {
+        min: Math.min(...finiteValues),
+        max: Math.max(...finiteValues),
+      };
+    }
+
+    metricContext.totalSamplesInWindow = input.samples.length;
+
+    const details: MetricForecastDetails = {
+      state: forecast.state,
+      direction: isAbove ? "above" : "below",
+      threshold: input.threshold,
+      horizonInHours: horizonInHours,
+      windowMs: Math.max(0, windowEndMs - windowStartMs),
+      sampleCount: forecast.sampleCount,
+      historyMs: forecast.historyMs,
+      requiredHistoryMs: forecast.requiredHistoryMs,
+      sinceNewestMs: forecast.sinceNewestMs,
+      currentValue: forecast.currentValue,
+      projectedValue: forecast.projectedValue,
+      slopePerDay: forecast.slopePerDay,
+      reachesThresholdInMs: forecast.reachesThresholdInMs,
+    };
+
+    metricContext.forecast = details;
+
+    const message: string = `${MetricMonitorCriteria.getSeriesPrefix(input.seriesLabels)}${MetricMonitorCriteria.describeForecast(
+      {
+        details,
+        metricDisplayName: input.metricDisplayName,
+        formatValue: (value: number): string => {
+          return MetricValueFormatter.format({
+            value: value,
+            unit: input.displayUnit,
+            metricName: metricContext.isFormula
+              ? undefined
+              : metricContext.metricName,
+          });
+        },
+      },
+    )}`;
+
+    if (!forecast.isMet) {
+      details.message = message;
+    }
+
+    return {
+      fingerprint: input.seriesFingerprint,
+      labels: input.seriesLabels,
+      rootCause: forecast.isMet ? message : null,
+      context: metricContext,
+    };
+  }
+
+  /*
+   * A forecast in words. Matched: "Disk Used (%) is forecast to be 96.4% in
+   * 7 days, above the 90% threshold. Over the last 7 days it has been rising
+   * 1.5% a day: at that rate it reaches 90% in about 2 days." Not matched,
+   * the same forecast and what the condition needs; not forecast, why.
+   */
+  public static describeForecast(input: {
+    details: MetricForecastDetails;
+    metricDisplayName: string;
+    formatValue: (value: number) => string;
+  }): string {
+    const { details, metricDisplayName, formatValue } = input;
+    const window: string = MetricWindowCoverage.describeDuration(
+      details.windowMs,
+    );
+    const threshold: string = formatValue(details.threshold);
+
+    if (details.state === "Learning") {
+      if (details.sampleCount === 0) {
+        return `${metricDisplayName} has no data in the last ${window} to forecast from.`;
+      }
+
+      return `${metricDisplayName} is not forecast yet: its data covers ${MetricWindowCoverage.describeDuration(
+        details.historyMs,
+      )} of the last ${window}, and a forecast needs at least half of it.`;
+    }
+
+    if (details.state === "Stale") {
+      return `${metricDisplayName} is not forecast: its newest value is ${MetricWindowCoverage.describeDuration(
+        details.sinceNewestMs,
+      )} old.`;
+    }
+
+    const horizon: string = MetricMonitorCriteria.describeHorizon(
+      details.horizonInHours,
+    );
+    const projected: string = formatValue(details.projectedValue ?? 0);
+    const forecast: string = `${metricDisplayName} is forecast to be ${projected} in ${horizon}`;
+    const isMet: boolean =
+      details.direction === "above"
+        ? (details.projectedValue ?? 0) > details.threshold
+        : (details.projectedValue ?? 0) < details.threshold;
+
+    if (!isMet) {
+      return `${forecast}, from its trend over the last ${window}. The condition requires the forecast to be ${details.direction} the ${threshold} threshold.`;
+    }
+
+    /*
+     * A horizon under a day reads its trend by the hour: a queue that grows
+     * 40 messages an hour, not 960 a day.
+     */
+    const byHour: boolean = details.horizonInHours < 24;
+    const rate: number = (details.slopePerDay ?? 0) / (byHour ? 24 : 1);
+    const per: string = byHour ? "an hour" : "a day";
+    const trend: string =
+      rate > 0
+        ? `rising ${formatValue(rate)} ${per}`
+        : rate < 0
+          ? `falling ${formatValue(-rate)} ${per}`
+          : "flat";
+
+    let message: string = `${forecast}, ${details.direction} the ${threshold} threshold.`;
+
+    if (
+      typeof details.reachesThresholdInMs === "number" &&
+      details.reachesThresholdInMs > 0
+    ) {
+      message += ` Over the last ${window} it has been ${trend}: at that rate it reaches ${threshold} in about ${MetricWindowCoverage.describeDuration(
+        details.reachesThresholdInMs,
+      )}.`;
+    } else {
+      message += ` Its trend over the last ${window} puts it at ${formatValue(
+        details.currentValue ?? 0,
+      )} now, ${trend}.`;
+    }
+
+    return message;
+  }
+
+  // 1 hour, 12 hours, 1 day, 7 days.
+  private static describeHorizon(hours: number): string {
+    if (hours >= 24 && hours % 24 === 0) {
+      const days: number = hours / 24;
+      return `${days} ${days === 1 ? "day" : "days"}`;
+    }
+
+    return `${hours} ${hours === 1 ? "hour" : "hours"}`;
   }
 
   private static buildComponentValueLookup(input: {

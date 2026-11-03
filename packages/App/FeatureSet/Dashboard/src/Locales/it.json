@@ -40666,5 +40666,16 @@
   "Who can reach this store, the services that use it, and where its data can go from there. Open a card for its page.": "Who can reach this store, the services that use it, and where its data can go from there. Open a card for its page.",
   "Workspace Home Choice": "Scelta della Home dell'area di lavoro",
   "Workspace Home Choices": "Scelte della Home dell'area di lavoro",
-  "Workspace User ID": "ID utente dell'area di lavoro"
+  "Workspace User ID": "ID utente dell'area di lavoro",
+  "Alerts when the trend of {{metric}} over the last {{window}} is forecast to fall below the value you enter within {{horizon}}.": "Avvisa quando la tendenza di {{metric}} nella finestra di {{window}} dovrebbe scendere sotto quanto indicato entro {{horizon}}.",
+  "Alerts when the trend of {{metric}} over the last {{window}} is forecast to fall below {{value}} within {{horizon}}.": "Avvisa quando la tendenza di {{metric}} nella finestra di {{window}} dovrebbe scendere sotto {{value}} entro {{horizon}}.",
+  "Alerts when the trend of {{metric}} over the last {{window}} is forecast to rise above the value you enter within {{horizon}}.": "Avvisa quando la tendenza di {{metric}} nella finestra di {{window}} dovrebbe superare quanto indicato entro {{horizon}}.",
+  "Alerts when the trend of {{metric}} over the last {{window}} is forecast to rise above {{value}} within {{horizon}}.": "Avvisa quando la tendenza di {{metric}} nella finestra di {{window}} dovrebbe superare {{value}} entro {{horizon}}.",
+  "Draws a straight line through the metric's values in the time window and follows it ahead. Use a long window, such as 7 days, so the line shows how the metric grows rather than its daily ups and downs. A new series waits until it has data for half the window.": "Traccia una retta attraverso i valori della metrica nella finestra temporale e la prolunga. Usa una finestra lunga, ad esempio 7 giorni, così la retta mostra come cresce la metrica e non i suoi alti e bassi giornalieri. Una nuova serie attende di avere dati per metà della finestra.",
+  "Forecast To Fall Below": "Previsto sotto",
+  "Forecast To Rise Above": "Previsto sopra",
+  "Forecast to fall below": "Previsto sotto",
+  "Forecast to rise above": "Previsto sopra",
+  "How far ahead to follow the trend before comparing it with the threshold.": "Fin dove prolungare la tendenza prima di confrontarla con la soglia.",
+  "Within": "Orizzonte"
 }

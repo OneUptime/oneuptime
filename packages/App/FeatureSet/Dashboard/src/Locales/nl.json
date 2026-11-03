@@ -40666,5 +40666,16 @@
   "Who can reach this store, the services that use it, and where its data can go from there. Open a card for its page.": "Who can reach this store, the services that use it, and where its data can go from there. Open a card for its page.",
   "Workspace Home Choice": "Startpaginakeuze van de werkruimte",
   "Workspace Home Choices": "Startpaginakeuzes van de werkruimte",
-  "Workspace User ID": "Gebruikers-ID in de werkruimte"
+  "Workspace User ID": "Gebruikers-ID in de werkruimte",
+  "Alerts when the trend of {{metric}} over the last {{window}} is forecast to fall below the value you enter within {{horizon}}.": "Waarschuwt wanneer de trend van {{metric}} in het venster van {{window}} naar verwachting binnen {{horizon}} onder de opgegeven waarde zakt.",
+  "Alerts when the trend of {{metric}} over the last {{window}} is forecast to fall below {{value}} within {{horizon}}.": "Waarschuwt wanneer de trend van {{metric}} in het venster van {{window}} naar verwachting binnen {{horizon}} onder {{value}} zakt.",
+  "Alerts when the trend of {{metric}} over the last {{window}} is forecast to rise above the value you enter within {{horizon}}.": "Waarschuwt wanneer de trend van {{metric}} in het venster van {{window}} naar verwachting binnen {{horizon}} boven de opgegeven waarde uitkomt.",
+  "Alerts when the trend of {{metric}} over the last {{window}} is forecast to rise above {{value}} within {{horizon}}.": "Waarschuwt wanneer de trend van {{metric}} in het venster van {{window}} naar verwachting binnen {{horizon}} boven {{value}} uitkomt.",
+  "Draws a straight line through the metric's values in the time window and follows it ahead. Use a long window, such as 7 days, so the line shows how the metric grows rather than its daily ups and downs. A new series waits until it has data for half the window.": "Trekt een rechte lijn door de waarden van de metriek in het tijdvenster en trekt die door. Kies een lang venster, zoals 7 dagen, zodat de lijn laat zien hoe de metriek groeit en niet de dagelijkse schommelingen. Een nieuwe reeks wacht tot er gegevens zijn voor de helft van het venster.",
+  "Forecast To Fall Below": "Verwacht onder",
+  "Forecast To Rise Above": "Verwacht boven",
+  "Forecast to fall below": "Verwacht onder",
+  "Forecast to rise above": "Verwacht boven",
+  "How far ahead to follow the trend before comparing it with the threshold.": "Hoe ver de trend wordt doorgetrokken voordat hij met de drempel wordt vergeleken.",
+  "Within": "Termijn"
 }

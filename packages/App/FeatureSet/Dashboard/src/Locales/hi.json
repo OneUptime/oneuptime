@@ -40666,5 +40666,16 @@
   "Who can reach this store, the services that use it, and where its data can go from there. Open a card for its page.": "Who can reach this store, the services that use it, and where its data can go from there. Open a card for its page.",
   "Workspace Home Choice": "वर्कस्पेस होम का चुनाव",
   "Workspace Home Choices": "वर्कस्पेस होम के चुनाव",
-  "Workspace User ID": "वर्कस्पेस उपयोगकर्ता ID"
+  "Workspace User ID": "वर्कस्पेस उपयोगकर्ता ID",
+  "Alerts when the trend of {{metric}} over the last {{window}} is forecast to fall below the value you enter within {{horizon}}.": "जब पिछले {{window}} में {{metric}} के रुझान के अनुसार {{horizon}} के भीतर उसके आपके दर्ज किए गए मान से नीचे जाने का अनुमान हो, तब अलर्ट करता है।",
+  "Alerts when the trend of {{metric}} over the last {{window}} is forecast to fall below {{value}} within {{horizon}}.": "जब पिछले {{window}} में {{metric}} के रुझान के अनुसार {{horizon}} के भीतर उसके {{value}} से नीचे जाने का अनुमान हो, तब अलर्ट करता है।",
+  "Alerts when the trend of {{metric}} over the last {{window}} is forecast to rise above the value you enter within {{horizon}}.": "जब पिछले {{window}} में {{metric}} के रुझान के अनुसार {{horizon}} के भीतर उसके आपके दर्ज किए गए मान से ऊपर जाने का अनुमान हो, तब अलर्ट करता है।",
+  "Alerts when the trend of {{metric}} over the last {{window}} is forecast to rise above {{value}} within {{horizon}}.": "जब पिछले {{window}} में {{metric}} के रुझान के अनुसार {{horizon}} के भीतर उसके {{value}} से ऊपर जाने का अनुमान हो, तब अलर्ट करता है।",
+  "Draws a straight line through the metric's values in the time window and follows it ahead. Use a long window, such as 7 days, so the line shows how the metric grows rather than its daily ups and downs. A new series waits until it has data for half the window.": "समय-सीमा में मेट्रिक के मानों से होकर एक सीधी रेखा खींचता है और उसे आगे बढ़ाता है। 7 दिन जैसी लंबी समय-सीमा चुनें, ताकि रेखा मेट्रिक की बढ़त दिखाए, न कि उसके रोज़ के उतार-चढ़ाव। नई सीरीज़ तब तक इंतज़ार करती है जब तक उसके पास आधी समय-सीमा का डेटा न हो।",
+  "Forecast To Fall Below": "नीचे जाने का अनुमान",
+  "Forecast To Rise Above": "ऊपर जाने का अनुमान",
+  "Forecast to fall below": "नीचे जाने का अनुमान",
+  "Forecast to rise above": "ऊपर जाने का अनुमान",
+  "How far ahead to follow the trend before comparing it with the threshold.": "सीमा से तुलना करने से पहले रुझान को कितना आगे तक बढ़ाना है।",
+  "Within": "अनुमान अवधि"
 }

@@ -40666,5 +40666,16 @@
   "Who can reach this store, the services that use it, and where its data can go from there. Open a card for its page.": "Who can reach this store, the services that use it, and where its data can go from there. Open a card for its page.",
   "Workspace Home Choice": "工作區首頁選擇",
   "Workspace Home Choices": "工作區首頁選擇",
-  "Workspace User ID": "工作區使用者 ID"
+  "Workspace User ID": "工作區使用者 ID",
+  "Alerts when the trend of {{metric}} over the last {{window}} is forecast to fall below the value you enter within {{horizon}}.": "當根據最近 {{window}} 內 {{metric}} 的趨勢，預計在 {{horizon}} 內低於你輸入的值時發出警示。",
+  "Alerts when the trend of {{metric}} over the last {{window}} is forecast to fall below {{value}} within {{horizon}}.": "當根據最近 {{window}} 內 {{metric}} 的趨勢，預計在 {{horizon}} 內低於 {{value}} 時發出警示。",
+  "Alerts when the trend of {{metric}} over the last {{window}} is forecast to rise above the value you enter within {{horizon}}.": "當根據最近 {{window}} 內 {{metric}} 的趨勢，預計在 {{horizon}} 內高於你輸入的值時發出警示。",
+  "Alerts when the trend of {{metric}} over the last {{window}} is forecast to rise above {{value}} within {{horizon}}.": "當根據最近 {{window}} 內 {{metric}} 的趨勢，預計在 {{horizon}} 內高於 {{value}} 時發出警示。",
+  "Draws a straight line through the metric's values in the time window and follows it ahead. Use a long window, such as 7 days, so the line shows how the metric grows rather than its daily ups and downs. A new series waits until it has data for half the window.": "在時間範圍內的指標值上擬合一條直線，並往後延伸。請使用較長的時間範圍，例如 7 天，這樣直線呈現的是指標的成長，而不是每天的起伏。新的序列會等到有涵蓋一半時間範圍的資料後再判斷。",
+  "Forecast To Fall Below": "預計低於",
+  "Forecast To Rise Above": "預計高於",
+  "Forecast to fall below": "預計低於",
+  "Forecast to rise above": "預計高於",
+  "How far ahead to follow the trend before comparing it with the threshold.": "將趨勢往後延伸多遠，再與閾值比較。",
+  "Within": "預測範圍"
 }

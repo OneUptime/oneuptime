@@ -40666,5 +40666,16 @@
   "Who can reach this store, the services that use it, and where its data can go from there. Open a card for its page.": "Who can reach this store, the services that use it, and where its data can go from there. Open a card for its page.",
   "Workspace Home Choice": "Startsidevalg for arbejdsområdet",
   "Workspace Home Choices": "Startsidevalg for arbejdsområdet",
-  "Workspace User ID": "Bruger-ID i arbejdsområdet"
+  "Workspace User ID": "Bruger-ID i arbejdsområdet",
+  "Alerts when the trend of {{metric}} over the last {{window}} is forecast to fall below the value you enter within {{horizon}}.": "Advarer, når tendensen for {{metric}} i vinduet på {{window}} forventes at falde under den værdi, du angiver, inden for {{horizon}}.",
+  "Alerts when the trend of {{metric}} over the last {{window}} is forecast to fall below {{value}} within {{horizon}}.": "Advarer, når tendensen for {{metric}} i vinduet på {{window}} forventes at falde under {{value}} inden for {{horizon}}.",
+  "Alerts when the trend of {{metric}} over the last {{window}} is forecast to rise above the value you enter within {{horizon}}.": "Advarer, når tendensen for {{metric}} i vinduet på {{window}} forventes at stige over den værdi, du angiver, inden for {{horizon}}.",
+  "Alerts when the trend of {{metric}} over the last {{window}} is forecast to rise above {{value}} within {{horizon}}.": "Advarer, når tendensen for {{metric}} i vinduet på {{window}} forventes at stige over {{value}} inden for {{horizon}}.",
+  "Draws a straight line through the metric's values in the time window and follows it ahead. Use a long window, such as 7 days, so the line shows how the metric grows rather than its daily ups and downs. A new series waits until it has data for half the window.": "Trækker en ret linje gennem metrikkens værdier i tidsvinduet og forlænger den. Brug et langt vindue, fx 7 dage, så linjen viser, hvordan metrikken vokser, og ikke dens daglige udsving. En ny serie venter, til den har data for halvdelen af vinduet.",
+  "Forecast To Fall Below": "Forventes at falde under",
+  "Forecast To Rise Above": "Forventes at stige over",
+  "Forecast to fall below": "Forventes at falde under",
+  "Forecast to rise above": "Forventes at stige over",
+  "How far ahead to follow the trend before comparing it with the threshold.": "Hvor langt tendensen følges frem, før den sammenlignes med tærsklen.",
+  "Within": "Tidshorisont"
 }

@@ -315,7 +315,7 @@ describe("Which monitor types have a rule", () => {
 });
 
 describe("The comparisons the rule editor offers", () => {
-  test("the threshold comparisons, then the anomaly ones where the server has a baseline", () => {
+  test("the threshold comparisons, then the anomaly ones where the server has a baseline, then a metric's forecasts", () => {
     const threshold: Array<FilterType> = [
       FilterType.GreaterThan,
       FilterType.GreaterThanOrEqualTo,
@@ -327,6 +327,10 @@ describe("The comparisons the rule editor offers", () => {
       FilterType.AnomalouslyHigh,
       FilterType.AnomalouslyLow,
       FilterType.Anomalous,
+    ];
+    const forecast: Array<FilterType> = [
+      FilterType.ForecastAbove,
+      FilterType.ForecastBelow,
     ];
 
     expect(
@@ -341,7 +345,7 @@ describe("The comparisons the rule editor offers", () => {
       TelemetryAlertRuleUtil.getComparisons({
         monitorType: MonitorType.Metrics,
       }),
-    ).toEqual([...threshold, ...anomaly]);
+    ).toEqual([...threshold, ...anomaly, ...forecast]);
     // The count against its own earlier weeks (ExceptionLearnedBaseline).
     expect(
       TelemetryAlertRuleUtil.getComparisons({
@@ -1951,5 +1955,157 @@ describe("an Exceptions rule's measure", () => {
     expect(
       criteria.data!.monitorCriteriaInstanceArray[0]!.data!.filters[0]!.checkOn,
     ).toBe(CheckOn.NewExceptionCount);
+  });
+});
+
+describe("A metric's forecast reads and writes as a rule", () => {
+  test("only a Metrics rule is offered the forecasts: a count has no trend of values", () => {
+    for (const monitorType of TELEMETRY_TYPES) {
+      const comparisons: Array<FilterType> =
+        TelemetryAlertRuleUtil.getComparisons({ monitorType });
+
+      expect({
+        monitorType,
+        offered: comparisons.includes(FilterType.ForecastAbove),
+      }).toEqual({
+        monitorType,
+        offered: monitorType === MonitorType.Metrics,
+      });
+      expect(comparisons.includes(FilterType.ForecastBelow)).toBe(
+        monitorType === MonitorType.Metrics,
+      );
+      expect(TelemetryAlertRuleUtil.supportsForecast(monitorType)).toBe(
+        monitorType === MonitorType.Metrics,
+      );
+    }
+  });
+
+  test("a forecast keeps its threshold and its horizon through a save and a read", () => {
+    const step: MonitorStep = metricStep();
+    step.setMonitorCriteria(
+      defaultStep(MonitorType.Metrics).data!.monitorCriteria,
+    );
+
+    const written: MonitorStep = TelemetryAlertRuleUtil.write({
+      monitorType: MonitorType.Metrics,
+      monitorStep: step,
+      rule: {
+        ...ruleOf(MonitorType.Metrics, step),
+        filterType: FilterType.ForecastAbove,
+        threshold: 90,
+        thresholdUnit: "%",
+        rollingTime: RollingTime.Past7Days,
+        forecast: { horizonInHours: 72 },
+      },
+    });
+
+    const rule: TelemetryAlertRule = ruleOf(MonitorType.Metrics, written);
+
+    expect(rule).toMatchObject({
+      filterType: FilterType.ForecastAbove,
+      threshold: 90,
+      thresholdUnit: "%",
+      rollingTime: RollingTime.Past7Days,
+      forecast: { horizonInHours: 72 },
+    });
+
+    const instances: Array<MonitorCriteriaInstance> =
+      written.data!.monitorCriteria.data!.monitorCriteriaInstanceArray;
+
+    expect(instances[0]!.data!.filters[0]).toMatchObject({
+      checkOn: CheckOn.MetricValue,
+      filterType: FilterType.ForecastAbove,
+      value: 90,
+      metricMonitorOptions: {
+        thresholdUnit: "%",
+        forecast: { horizonInHours: 72 },
+      },
+    });
+    expect(written.data!.metricMonitor!.rollingTime).toBe(
+      RollingTime.Past7Days,
+    );
+  });
+
+  test("a forecast has no opposite: the default's recovery criteria goes, and the monitor recovers to its default status", () => {
+    const step: MonitorStep = metricStep();
+    step.setMonitorCriteria(
+      defaultStep(MonitorType.Metrics).data!.monitorCriteria,
+    );
+
+    expect(
+      step.data!.monitorCriteria.data!.monitorCriteriaInstanceArray,
+    ).toHaveLength(2);
+
+    const written: MonitorStep = TelemetryAlertRuleUtil.write({
+      monitorType: MonitorType.Metrics,
+      monitorStep: step,
+      rule: {
+        ...ruleOf(MonitorType.Metrics, step),
+        filterType: FilterType.ForecastBelow,
+        threshold: 10,
+      },
+    });
+
+    expect(
+      written.data!.monitorCriteria.data!.monitorCriteriaInstanceArray,
+    ).toHaveLength(1);
+    expect(ruleOf(MonitorType.Metrics, written).recovery).toBe(
+      TelemetryAlertRuleRecovery.DefaultStatus,
+    );
+  });
+
+  test("a forecast with a recovery criteria beside it is more than one rule", () => {
+    const step: MonitorStep = metricStep();
+    step.setMonitorCriteria(
+      criteriaOf([
+        instanceOf({
+          filters: [
+            {
+              checkOn: CheckOn.MetricValue,
+              filterType: FilterType.ForecastAbove,
+              value: 90,
+              metricMonitorOptions: { forecast: { horizonInHours: 168 } },
+            },
+          ],
+          monitorStatusId: OFFLINE,
+          createIncidents: true,
+          incidentCount: 1,
+        }),
+        instanceOf({
+          filters: [
+            {
+              checkOn: CheckOn.MetricValue,
+              filterType: FilterType.ForecastBelow,
+              value: 90,
+            },
+          ],
+          monitorStatusId: OPERATIONAL,
+        }),
+      ]),
+    );
+
+    expect(read(MonitorType.Metrics, step)).toEqual({
+      rule: null,
+      problem: TelemetryAlertRuleShapeProblem.SeveralRules,
+    });
+  });
+
+  test("a forecast written by hand on a count is shown in the full editor", () => {
+    const step: MonitorStep = defaultStep(MonitorType.Logs);
+    step.setMonitorCriteria(
+      criteriaOf([
+        instanceOf({
+          filters: [countFilter(CheckOn.LogCount, FilterType.ForecastAbove, 5)],
+          monitorStatusId: OFFLINE,
+          createIncidents: true,
+          incidentCount: 1,
+        }),
+      ]),
+    );
+
+    expect(read(MonitorType.Logs, step)).toEqual({
+      rule: null,
+      problem: TelemetryAlertRuleShapeProblem.UnsupportedCondition,
+    });
   });
 });
