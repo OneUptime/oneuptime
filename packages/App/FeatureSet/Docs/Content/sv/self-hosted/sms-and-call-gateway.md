@@ -33,7 +33,7 @@ Gatewayen ersätter serverns eget Twilio-konto för allt som annars skulle gå v
 4. Klicka på **Send Test**. Din gateway ska svara med en 2xx-status och inte skicka något.
 :::
 
-Om du vill byta hemligheten tömmer du **Signing Secret** under **Fler fält** och sparar: OneUptime skapar en ny. Om du vill gå tillbaka till Twilio väljer du **Twilio** och sparar.
+Om du vill byta hemligheten tömmer du **Signeringshemlighet** under **Fler fält** och sparar: OneUptime skapar en ny. Om du vill gå tillbaka till Twilio väljer du **Twilio** och sparar.
 
 ## Vad din gateway tar emot
 
@@ -116,7 +116,7 @@ SMS- eller samtalsloggen, och för ett jourlarm personens jourlogg, säger `Sent
 
 ## Testbegäranden
 
-**Send test** skickar en begäran med `event` satt till `test`, och `to`, `project` och `actions` satta till `null`. Svara på den med en 2xx-status och skicka ingenting.
+**Skicka test** skickar en begäran med `event` satt till `test`, och `to`, `project` och `actions` satta till `null`. Svara på den med en 2xx-status och skicka ingenting.
 
 ## Nästa steg
 

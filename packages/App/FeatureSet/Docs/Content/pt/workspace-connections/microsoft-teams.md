@@ -141,7 +141,7 @@ Para ser acionado por mensagem direta quando estiver de plantão, adicione o Mic
 
 :::steps
 1. Conecte a sua própria conta do Microsoft Teams (consulte [Conectar o Microsoft Teams](#conectar-o-microsoft-teams)).
-2. Vá para **Configurações do usuário** > **Métodos de notificação**, abra a aba **Workspace Apps** e clique em **Add Microsoft Teams Account**.
+2. Vá para **Configurações do usuário** > **Métodos de notificação**, abra a aba **Aplicativos do espaço de trabalho** e clique em **Add Microsoft Teams Account**.
 3. Clique em **Send Test Message** na linha dele. A mensagem chega aos seus chats do Microsoft Teams.
 :::
 

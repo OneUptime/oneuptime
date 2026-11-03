@@ -204,6 +204,7 @@
     "Version {{number}}",
     "Vital",
     "Webhook",
+    "Webhooks",
     "[\".customer-name\", \"#invoice-total\"]",
     "[\"ResizeObserver loop\", \"third-party-tag\\\\.js\"]",
     "[\"iframe.payment\", \".id-document\"]",

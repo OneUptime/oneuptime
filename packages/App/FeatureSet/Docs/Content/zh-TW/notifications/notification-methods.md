@@ -28,17 +28,17 @@ flowchart TB
 
 | 卡片 | 分頁 | 你新增的內容 | 驗證方式 |
 | --- | --- | --- | --- |
-| **電子郵件 用於通知** | **Direct Contact** | 一個電子郵件地址 | 透過郵件傳送的驗證碼 |
-| **電話號碼 用於簡訊通知** | **Direct Contact** | 一個電話號碼 | 透過簡訊傳送的驗證碼 |
-| **用於來電通知的電話號碼** | **Direct Contact** | 一個電話號碼 | 在電話中唸出的驗證碼；已為簡訊驗證的號碼則不需要驗證碼 |
-| **用於通知的 WhatsApp 號碼** | **Direct Contact** | 一個 WhatsApp 號碼 | 透過 WhatsApp 傳送的驗證碼 |
-| **用於通知的 Telegram 帳戶** | **Direct Contact** | 你的 Telegram 帳戶 | 傳送一則訊息給 OneUptime 機器人 |
-| **Slack Account for Notifications** | **Workspace Apps** | 你的 Slack 帳戶 | 將你的帳戶連結到專案的工作區 |
-| **Microsoft Teams Account for Notifications** | **Workspace Apps** | 你的 Microsoft Teams 帳戶 | 將你的帳戶連結到專案的工作區 |
-| **推送通知裝置** | **Push Notifications** | 安裝了 OneUptime On-Call 應用程式的手機，或一個瀏覽器 | 註冊該裝置 |
-| **用於通知的 Webhook** | **Webhooks** | 你自己的 HTTPS 端點 | 不需要驗證 |
+| **電子郵件 用於通知** | **直接聯絡** | 一個電子郵件地址 | 透過郵件傳送的驗證碼 |
+| **電話號碼 用於簡訊通知** | **直接聯絡** | 一個電話號碼 | 透過簡訊傳送的驗證碼 |
+| **用於來電通知的電話號碼** | **直接聯絡** | 一個電話號碼 | 在電話中唸出的驗證碼；已為簡訊驗證的號碼則不需要驗證碼 |
+| **用於通知的 WhatsApp 號碼** | **直接聯絡** | 一個 WhatsApp 號碼 | 透過 WhatsApp 傳送的驗證碼 |
+| **用於通知的 Telegram 帳戶** | **直接聯絡** | 你的 Telegram 帳戶 | 傳送一則訊息給 OneUptime 機器人 |
+| **Slack Account for Notifications** | **工作區應用程式** | 你的 Slack 帳戶 | 將你的帳戶連結到專案的工作區 |
+| **Microsoft Teams Account for Notifications** | **工作區應用程式** | 你的 Microsoft Teams 帳戶 | 將你的帳戶連結到專案的工作區 |
+| **推送通知裝置** | **推播通知** | 安裝了 OneUptime On-Call 應用程式的手機，或一個瀏覽器 | 註冊該裝置 |
+| **用於通知的 Webhook** | **Webhook** | 你自己的 HTTPS 端點 | 不需要驗證 |
 
-**Workspace Apps** 只有在專案已連線 Slack 或 Microsoft Teams 時才會顯示，而且只包含已連線的那些。簡訊、電話、WhatsApp 和 Telegram 可以在整個專案中關閉；請參閱 [為專案開啟管道](#為專案開啟管道)。
+**工作區應用程式** 只有在專案已連線 Slack 或 Microsoft Teams 時才會顯示，而且只包含已連線的那些。簡訊、電話、WhatsApp 和 Telegram 可以在整個專案中關閉；請參閱 [為專案開啟管道](#為專案開啟管道)。
 
 ## 新增並驗證通知方式
 
@@ -47,7 +47,7 @@ flowchart TB
 :::steps
 ### 開啟你的通知方式
 
-前往 **使用者設定 → 通知方式**。 **Direct Contact** 是第一個分頁。
+前往 **使用者設定 → 通知方式**。 **直接聯絡** 是第一個分頁。
 
 ### 新增地址
 
@@ -88,12 +88,12 @@ flowchart TB
 ## Slack 和 Microsoft Teams
 
 1. 將你自己的帳戶連結到專案的工作區： **使用者設定 → 工作區 → Slack** 或 **Microsoft Teams**。請參閱 [Slack](/docs/workspace-connections/slack) 和 [Microsoft Teams](/docs/workspace-connections/microsoft-teams)。
-2. 在 **Workspace Apps** 分頁上，點選 **Add Slack Account** 或 **Add Microsoft Teams Account**。帳戶在新增時即完成驗證。
+2. 在 **工作區應用程式** 分頁上，點選 **Add Slack Account** 或 **Add Microsoft Teams Account**。帳戶在新增時即完成驗證。
 3. 點選其所在列的 **Send Test Message**。呼叫會以來自 OneUptime 應用程式的私人訊息形式送達。
 
 ## 推播通知
 
-**Push Notifications** 分頁列出你的 **推送通知裝置**。
+**推播通知** 分頁列出你的 **推送通知裝置**。
 
 - **手機。** 安裝 OneUptime On-Call 應用程式，將其連接到你的 OneUptime，登入並允許通知：手機會自動加入此清單。請參閱 [應用程式概觀](/docs/mobile-desktop-apps/index)。
 - **此瀏覽器。** 點選 **註冊裝置**，填寫 **裝置名稱**，並在瀏覽器詢問時允許通知。
@@ -108,7 +108,7 @@ Webhook 會把每次呼叫以 JSON 形式傳送到你的 HTTPS 端點，供你�
 :::steps
 ### 新增 Webhook
 
-在 **Webhooks** 分頁上，點選 **新增Webhook**。填寫一個便於辨識的 **名稱**、 **Webhook URL** 以及 **簽署密鑰（選填）**。
+在 **Webhook** 分頁上，點選 **新增Webhook**。填寫一個便於辨識的 **名稱**、 **Webhook URL** 以及 **簽署密鑰（選填）**。
 
 ### 傳送測試
 

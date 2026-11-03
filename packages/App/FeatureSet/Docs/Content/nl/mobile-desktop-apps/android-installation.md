@@ -72,7 +72,7 @@ De app toont één project tegelijk: tik bovenaan een scherm op de naam van het 
 
 :::steps
 ### De telefoon in het dashboard vinden
-Open in het dashboard **Gebruikersinstellingen → Meldingsmethoden** en het tabblad **Push Notifications**. De telefoon staat onder **Apparaten voor pushmeldingen** met de naam van zijn model. Elk project houdt een eigen lijst bij.
+Open in het dashboard **Gebruikersinstellingen → Meldingsmethoden** en het tabblad **Pushmeldingen**. De telefoon staat onder **Apparaten voor pushmeldingen** met de naam van zijn model. Elk project houdt een eigen lijst bij.
 
 ### Een test sturen
 Klik op **Testmelding** in de rij van de telefoon. Er komt een melding op de telefoon; tik erop om de app te openen.
@@ -137,7 +137,7 @@ De app kon `https://<your-oneuptime>/api/status` niet bereiken. Controleer het a
 
 :::details Er komen geen meldingen aan
 - Controleer in de Android-instellingen of meldingen voor de app aanstaan, en of Niet storen uit is of kritieke meldingen aan zijn.
-- Controleer of de telefoon onder **Push Notifications** staat in **Gebruikersinstellingen → Meldingsmethoden**, en stuur hem een **Testmelding**.
+- Controleer of de telefoon onder **Pushmeldingen** staat in **Gebruikersinstellingen → Meldingsmethoden**, en stuur hem een **Testmelding**.
 - Is de telefoon gemarkeerd als **Ontvangt geen meldingen**, open dan de app terwijl u bent aangemeld. Die registreert de telefoon opnieuw; zie [Wanneer een telefoon zich opnieuw moet registreren](/docs/mobile-desktop-apps/faq-troubleshooting#wanneer-een-telefoon-zich-opnieuw-moet-registreren).
 - Controleer uw bereikbaarheidsregels onder **Gebruikersinstellingen → Bereikbaarheidsregels**.
 - Controleer bij een zelf gehost OneUptime of uw server zijn push-relay bereikt: zie [Pushmeldingen](/docs/self-hosted/push-notifications#netwerktoegang).

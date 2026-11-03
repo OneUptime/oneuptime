@@ -141,7 +141,7 @@ Om met een direct bericht te worden opgeroepen als je dienst hebt, voeg je Micro
 
 :::steps
 1. Koppel je eigen Microsoft Teams-account (zie [Microsoft Teams koppelen](#microsoft-teams-koppelen)).
-2. Ga naar **Gebruikersinstellingen** > **Meldingsmethoden**, open het tabblad **Workspace Apps** en klik op **Add Microsoft Teams Account**.
+2. Ga naar **Gebruikersinstellingen** > **Meldingsmethoden**, open het tabblad **Werkruimte-apps** en klik op **Add Microsoft Teams Account**.
 3. Klik op **Send Test Message** in de rij ervan. Het bericht komt aan in je chats in Microsoft Teams.
 :::
 

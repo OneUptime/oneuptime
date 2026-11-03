@@ -141,7 +141,7 @@ OneUptime Cloud पर सूचना नियम और सारांश **
 
 :::steps
 1. अपना Microsoft Teams खाता कनेक्ट करें ([Microsoft Teams कनेक्ट करें](#microsoft-teams-कनेक्ट-करें) देखें)।
-2. **उपयोगकर्ता सेटिंग्स** > **सूचना विधियां** पर जाएं, **Workspace Apps** टैब खोलें और **Add Microsoft Teams Account** पर क्लिक करें।
+2. **उपयोगकर्ता सेटिंग्स** > **सूचना विधियां** पर जाएं, **वर्कस्पेस ऐप्स** टैब खोलें और **Add Microsoft Teams Account** पर क्लिक करें।
 3. उसकी पंक्ति में **Send Test Message** पर क्लिक करें। संदेश आपकी Microsoft Teams चैट में आता है।
 :::
 

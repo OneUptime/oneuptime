@@ -143,7 +143,7 @@ For å bli tilkalt med direktemelding når du har vakt, legger du til Slack som 
 
 :::steps
 1. Koble til din egen Slack-konto (se [Koble til Slack](#koble-til-slack)).
-2. Gå til **Brukerinnstillinger** > **Varselmetoder**, åpne fanen **Workspace Apps**, og klikk på **Add Slack Account**.
+2. Gå til **Brukerinnstillinger** > **Varselmetoder**, åpne fanen **Arbeidsområdeapper**, og klikk på **Add Slack Account**.
 3. Klikk på **Send Test Message** i raden. Meldingen kommer i direktemeldingene dine i Slack.
 :::
 

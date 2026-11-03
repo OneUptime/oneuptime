@@ -101,7 +101,7 @@ En alvorlighetsgrad prosjektet legger til senere, får regler innen noen minutte
 En tilkalling som likevel ikke finner noen regel, sendes til de verifiserte metodene dine uansett, og du får en e-post om det; se [Når ingen regel passer](/docs/notifications/index#når-ingen-regel-passer).
 
 :::details Slå av en alvorlighetsgrad med vilje
-API-et kan lagre en reservasjonsregel, med `isOptOut` satt og uten metode: da blir du ikke tilkalt i det hele tatt for den typen tilkalling og den alvorlighetsgraden, og ingenting trer inn i stedet. Raden viser **Muted - notifications turned off for this rule**, og å slette den slår tilkallingene på igjen. En alvorlighetsgrad som legges til senere, blir også stum når hver regel du har på den fanen, er en reservasjon.
+API-et kan lagre en reservasjonsregel, med `isOptOut` satt og uten metode: da blir du ikke tilkalt i det hele tatt for den typen tilkalling og den alvorlighetsgraden, og ingenting trer inn i stedet. Raden viser **Dempet – varsler er slått av for denne regelen**, og å slette den slår tilkallingene på igjen. En alvorlighetsgrad som legges til senere, blir også stum når hver regel du har på den fanen, er en reservasjon.
 :::
 
 :::details Slå av reserveløsningen for et helt prosjekt
@@ -115,7 +115,7 @@ Prosjekteiere og administratorer kan se og endre den samme siden for alle i pros
 ## Feilsøking
 
 :::details Telefonen min var stille ved en kritisk tilkalling
-Sjekk at regelens push er **Kritisk varsel** og ikke **Normal**, og at **Kritiske varsler** er slått på for telefonen under **Brukerinnstillinger → Varselmetoder**, på fanen **Push Notifications**.
+Sjekk at regelens push er **Kritisk varsel** og ikke **Normal**, og at **Kritiske varsler** er slått på for telefonen under **Brukerinnstillinger → Varselmetoder**, på fanen **Push-varsler**.
 :::
 
 :::details Jeg blir tilkalt to ganger for hver hendelse

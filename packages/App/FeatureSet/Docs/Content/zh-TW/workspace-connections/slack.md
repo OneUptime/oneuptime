@@ -143,7 +143,7 @@ flowchart TB
 
 :::steps
 1. 連接您自己的 Slack 帳戶（請參閱 [連接 Slack](#連接-slack) ）。
-2. 前往 **使用者設定** > **通知方式**，開啟 **Workspace Apps** 分頁，然後按一下 **Add Slack Account**。
+2. 前往 **使用者設定** > **通知方式**，開啟 **工作區應用程式** 分頁，然後按一下 **Add Slack Account**。
 3. 在其所在列按一下 **Send Test Message**。訊息會送到您的 Slack 私人訊息。
 :::
 

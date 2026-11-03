@@ -143,7 +143,7 @@ For at blive tilkaldt via direkte besked, når du har vagt, tilføjer du Slack s
 
 :::steps
 1. Forbind din egen Slack-konto (se [Forbind Slack](#forbind-slack)).
-2. Gå til **Brugerindstillinger** > **Notifikationsmetoder**, åbn fanen **Workspace Apps**, og klik på **Add Slack Account**.
+2. Gå til **Brugerindstillinger** > **Notifikationsmetoder**, åbn fanen **Arbejdsområdeapps**, og klik på **Add Slack Account**.
 3. Klik på **Send Test Message** i dens række. Beskeden ankommer i dine direkte beskeder i Slack.
 :::
 
