@@ -171,6 +171,7 @@ import Span, { SpanStatus } from "Common/Models/AnalyticsModels/Span";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
+import DockerResource from "Common/Models/DatabaseModels/DockerResource";
 import Host from "Common/Models/DatabaseModels/Host";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
@@ -184,6 +185,7 @@ import MetricSavedView from "Common/Models/DatabaseModels/MetricSavedView";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
+import PodmanResource from "Common/Models/DatabaseModels/PodmanResource";
 import Project from "Common/Models/DatabaseModels/Project";
 import RecommendationDismissal from "Common/Models/DatabaseModels/RecommendationDismissal";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
@@ -1232,9 +1234,10 @@ HOST_MOUNTS.forEach((mount, index) => {
 /*
  * The Docker host's and the Podman host's containers, as their collectors'
  * docker_stats / podman_stats receivers report them: CPU and memory in
- * percent, network as cumulative byte counters, and processes per
- * container - each tagged with the host and its runtime, as the Overviews
- * read them.
+ * percent, network as cumulative byte counters, processes per container,
+ * and restarts per interval (container.restarts.increase: none, a calm
+ * host) - each tagged with the host and its runtime, as the Overviews read
+ * them.
  */
 [
   [DOCKER_HOST_IDENTIFIER, "docker", ["nginx", "checkout-worker"]],
@@ -1280,6 +1283,13 @@ HOST_MOUNTS.forEach((mount, index) => {
     );
     series("container.pids.count", containerAttributes, () => {
       return 6 + 5 * index;
+    });
+    /*
+     * Read by the host Overviews' Needs attention (ContainerHostReadings),
+     * summed over the Container Restart Loop alert's window.
+     */
+    series("container.restarts.increase", containerAttributes, () => {
+      return 0;
     });
   });
 });
@@ -1724,6 +1734,43 @@ const CONTAINER_HOSTS = {
     },
   },
 };
+
+/*
+ * The two hosts' inventories (DockerResource / PodmanResource), which ingest
+ * keeps from the same readings as the containers' series above: each
+ * container running for some days, reporting. The host Overviews join them
+ * with the readings and the restarts by the container's name
+ * (ContainerHostReadings).
+ */
+[
+  [
+    DockerResource,
+    "dockerHostId",
+    DOCKER_HOST_ID,
+    ["nginx", "checkout-worker"],
+  ],
+  [
+    PodmanResource,
+    "podmanHostId",
+    PODMAN_HOST_ID,
+    ["build-runner", "registry-cache"],
+  ],
+].forEach(([modelType, hostColumn, hostId, containers], hostIndex) => {
+  containers.forEach((containerName, index) => {
+    insert(modelType, {
+      [hostColumn]: hostId,
+      kind: "Container",
+      name: containerName,
+      containerId: `${hostIndex + 1}${index + 1}`.padEnd(12, "0"),
+      imageName: containerName,
+      labels: {},
+      metricsUpdatedAt: ago(30 * SECOND),
+      lastSeenAt: ago(30 * SECOND),
+      resourceCreationTimestamp: ago((3 + index) * DAY),
+      createdAt: ago(30 * DAY),
+    });
+  });
+});
 table(TraceSavedView);
 
 /*
