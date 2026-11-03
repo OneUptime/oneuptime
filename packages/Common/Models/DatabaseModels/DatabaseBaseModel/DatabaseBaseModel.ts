@@ -32,6 +32,10 @@ import {
   isBooleanTableColumnType,
   toStoredBoolean,
 } from "../../../Types/Database/BooleanColumnValue";
+import {
+  coerceTextColumnValue,
+  isTextTableColumnType,
+} from "../../../Types/Database/TextColumnValue";
 import { getFirstColorFieldColumn } from "../../../Types/Database/ColorField";
 import Dictionary from "../../../Types/Dictionary";
 import Email from "../../../Types/Email";
@@ -824,6 +828,14 @@ export default class DatabaseBaseModel extends BaseEntity {
            * to refuse. See Types/Database/BooleanColumnValue.
            */
           (baseModel as any)[key] = toStoredBoolean(json[key]);
+        } else if (isTextTableColumnType(tableColumnMetadata.type)) {
+          /*
+           * A name sent as the person's-name object, as the API asked for
+           * thirty-one names before they were text, is the text it holds -
+           * not a Name the column would store as its JSON. See
+           * Types/Database/TextColumnValue.
+           */
+          (baseModel as any)[key] = coerceTextColumnValue(json[key]);
         } else {
           (baseModel as any)[key] = json[key];
         }
