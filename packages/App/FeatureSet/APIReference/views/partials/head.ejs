@@ -101,6 +101,17 @@
    <script src="/oneuptime-assets/highlight/languages/javascript.min.js"></script>
    <script src="/oneuptime-assets/highlight/languages/typescript.min.js"></script>
 
+   <%
+   /*
+    * The reference's Tailwind stylesheet, when the App image built one
+    * (Utils/DocsTailwind.ts): it is linked at the end of this head, where
+    * the runtime's styles used to land. Without one (npm run dev), the
+    * Tailwind runtime generates them in the browser, with the config below -
+    * the one the build uses too.
+    */
+   var builtTailwindStylesheet = typeof tailwindStylesheetHref !== 'undefined' && tailwindStylesheetHref ? tailwindStylesheetHref : null;
+   -%>
+   <% if (!builtTailwindStylesheet) { -%>
    <link rel="preload" href="/oneuptime-assets/tailwind/tailwind-3.4.5.js" as="script">
    <script src="/oneuptime-assets/tailwind/tailwind-3.4.5.js"></script>
    <script>
@@ -153,6 +164,7 @@
          }
       };
    </script>
+   <% } -%>
 
    <%- include('styles') -%>
 
@@ -209,4 +221,8 @@
      "description": "OneUptime monitors websites, API's, and servers and alerts your team if something goes wrong. It also keeps your customers updated about any downtime."
  }
  </script>
+ <% if (builtTailwindStylesheet) { -%>
+ <%# Tailwind, built with the image: last in the head, where the runtime put its styles. -%>
+ <link rel="stylesheet" href="<%= builtTailwindStylesheet %>">
+ <% } -%>
 </head>

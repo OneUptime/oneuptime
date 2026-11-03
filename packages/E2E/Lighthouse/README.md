@@ -59,7 +59,7 @@ From the repository's root, once:
 ```bash
 (cd packages/Common && npm install)
 (cd packages/Home && npm install && npm run build:css)
-(cd packages/App && npm install)
+(cd packages/App && npm install && npm run build-docs-css)
 node packages/Common/Scripts/build-mermaid-browser.js
 (cd packages/E2E && npm install --ignore-scripts && npx playwright install chromium)
 ```
