@@ -41573,5 +41573,7 @@
   "Incident Rule Executed": "インシデントルール実行済み",
   "What It Reads": "読み取る対象",
   "{{count}} {{itemsName}} added": "{{itemsName}}: {{count}} 件を追加しました",
-  "{{count}} {{itemsName}} added_one": "{{itemName}}: {{count}} 件を追加しました"
+  "{{count}} {{itemsName}} added_one": "{{itemName}}: {{count}} 件を追加しました",
+  "No valid email address found. Enter one address per line.": "有効なメールアドレスが見つかりません。1 行に 1 つのアドレスを入力してください。",
+  "No valid phone number found. Enter one number per line.": "有効な電話番号が見つかりません。1 行に 1 つの番号を入力してください。"
 }

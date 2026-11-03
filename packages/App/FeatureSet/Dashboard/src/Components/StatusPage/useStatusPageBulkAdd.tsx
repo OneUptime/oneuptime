@@ -11,6 +11,7 @@ import {
 } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
 import {
   BULK_ADD_RESULT_LABELS,
+  getBulkAddEntryName,
   StatusPageBulkAddEntry,
 } from "./StatusPageBulkAddEntries";
 
@@ -68,10 +69,12 @@ const useStatusPageBulkAdd: (
     useBulkActionProgress<StatusPageBulkAddEntry>({
       singularLabel: options.singularLabel,
       pluralLabel: options.pluralLabel,
-      // Named in the result as it was pasted: the address, the number, the URL.
-      itemToString: (entry: StatusPageBulkAddEntry): string => {
-        return entry.value;
-      },
+      /*
+       * Named in the result as the person wrote it: the address, the
+       * number, the URL - or, for a Slack or Microsoft Teams row, its
+       * workspace, as the list names it.
+       */
+      itemToString: getBulkAddEntryName,
     });
 
   const run: StatusPageBulkAdd["run"] = async (
@@ -87,7 +90,7 @@ const useStatusPageBulkAdd: (
         step: async (
           entry: StatusPageBulkAddEntry,
         ): Promise<BulkItemOutcome | void> => {
-          // Not an address or a number: nothing is sent, and it says why.
+          // Not an address, a number or a URL: nothing is sent, and it says why.
           if (entry.skippedReason) {
             return bulkItemUnchanged(entry.skippedReason);
           }

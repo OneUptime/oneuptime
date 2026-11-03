@@ -21260,7 +21260,7 @@
   "Type a value instead": "Type a value instead",
   "Type or pick what to compare with.": "请输入或选择要比较的对象。",
   "Types: {{types}}. Max 10MB each.": "类型：{{types}}。每个文件最大 10 MB。",
-  "URL is not valid.": "URL is not valid.",
+  "URL is not valid.": "URL 无效。",
   "Unarchive this dashboard? It will reappear in the Dashboards list, and its public link works again if it is public.": "Unarchive this dashboard? It will reappear in the Dashboards list, and its public link works again if it is public.",
   "Unarchive this monitor? It will reappear in monitor lists and on status pages, and monitoring resumes unless the monitor is disabled.": "Unarchive this monitor? It will reappear in monitor lists and on status pages, and monitoring resumes unless the monitor is disabled.",
   "Unarchive this on-call policy? It will page people again for new incidents and alerts that use it.": "Unarchive this on-call policy? It will page people again for new incidents and alerts that use it.",
@@ -41573,5 +41573,7 @@
   "Incident Rule Executed": "事件规则已执行",
   "What It Reads": "读取内容",
   "{{count}} {{itemsName}} added": "已添加 {{count}} 个{{itemsName}}",
-  "{{count}} {{itemsName}} added_one": "已添加 {{count}} 个{{itemName}}"
+  "{{count}} {{itemsName}} added_one": "已添加 {{count}} 个{{itemName}}",
+  "No valid email address found. Enter one address per line.": "未找到有效的电子邮件地址。请每行输入一个地址。",
+  "No valid phone number found. Enter one number per line.": "未找到有效的电话号码。请每行输入一个号码。"
 }

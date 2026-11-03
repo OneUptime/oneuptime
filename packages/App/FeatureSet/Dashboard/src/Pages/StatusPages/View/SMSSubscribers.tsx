@@ -3,6 +3,8 @@ import useStatusPageBulkAdd, {
   StatusPageBulkAdd,
 } from "../../../Components/StatusPage/useStatusPageBulkAdd";
 import {
+  BULK_ADD_NO_VALID_PHONE,
+  getBulkAddNothingToAddError,
   getBulkPhoneEntries,
   hasBulkAddEntryToAdd,
   StatusPageBulkAddEntry,
@@ -189,10 +191,12 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
       data.phones,
     );
 
+    /*
+     * The field says so when nothing in it can be added, and the form waits
+     * (getBulkAddNothingToAddError): there is always an entry to add here.
+     */
     if (!hasBulkAddEntryToAdd(entries)) {
-      throw new BadDataException(
-        "No valid phone numbers found. Please enter one phone number per line.",
-      );
+      return;
     }
 
     // The form goes; the progress dialog takes over.
@@ -561,6 +565,15 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     fieldType: FormFieldSchemaType.LongText,
                     required: true,
                     placeholder: "+11234567890\n+11234567891\n+11234567892",
+                    // Nothing in it a number: said under it, and Next waits.
+                    customValidation: (
+                      values: FormValues<BulkAddFormData>,
+                    ): string | null => {
+                      return getBulkAddNothingToAddError(
+                        getBulkPhoneEntries(String(values.phones || "")),
+                        BULK_ADD_NO_VALID_PHONE,
+                      );
+                    },
                   },
                   {
                     field: { sendYouHaveSubscribedMessage: true },

@@ -21260,7 +21260,7 @@
   "Type a value instead": "Type a value instead",
   "Type or pick what to compare with.": "Digita o scegli con cosa confrontare.",
   "Types: {{types}}. Max 10MB each.": "Tipi: {{types}}. Massimo 10 MB ciascuno.",
-  "URL is not valid.": "URL is not valid.",
+  "URL is not valid.": "L'URL non è valido.",
   "Unarchive this dashboard? It will reappear in the Dashboards list, and its public link works again if it is public.": "Unarchive this dashboard? It will reappear in the Dashboards list, and its public link works again if it is public.",
   "Unarchive this monitor? It will reappear in monitor lists and on status pages, and monitoring resumes unless the monitor is disabled.": "Unarchive this monitor? It will reappear in monitor lists and on status pages, and monitoring resumes unless the monitor is disabled.",
   "Unarchive this on-call policy? It will page people again for new incidents and alerts that use it.": "Unarchive this on-call policy? It will page people again for new incidents and alerts that use it.",
@@ -41573,5 +41573,7 @@
   "Incident Rule Executed": "Regola degli incidenti eseguita",
   "What It Reads": "Cosa legge",
   "{{count}} {{itemsName}} added": "{{itemsName}} aggiunti: {{count}}",
-  "{{count}} {{itemsName}} added_one": "{{itemName}} aggiunto: {{count}}"
+  "{{count}} {{itemsName}} added_one": "{{itemName}} aggiunto: {{count}}",
+  "No valid email address found. Enter one address per line.": "Nessun indirizzo email valido trovato. Inserisci un indirizzo per riga.",
+  "No valid phone number found. Enter one number per line.": "Nessun numero di telefono valido trovato. Inserisci un numero per riga."
 }

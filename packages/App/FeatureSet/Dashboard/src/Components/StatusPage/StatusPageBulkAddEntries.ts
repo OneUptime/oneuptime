@@ -1,3 +1,4 @@
+import URL from "Common/Types/API/URL";
 import Email from "Common/Types/Email";
 import Phone from "Common/Types/Phone";
 import SubscriberContactKey from "Common/Types/StatusPage/SubscriberContactKey";
@@ -13,16 +14,23 @@ import {
  * takes what was pasted, or the rows of a CSV file, and adds one record for
  * each (useStatusPageBulkAdd). Every entry is accounted for in the result:
  * added, not added with the server's reason, or skipped - a line that is
- * not an address or a number is never sent, and is listed with why. A line
- * that says the same as one before it is added once, as the forms say
+ * not an address, a number or a URL is never sent, and is listed with why.
+ * A line that says the same as one before it is added once, as the forms say
  * ("Invalid and duplicate ones are skipped").
  *
  * React-free, so the parsing is tested on its own.
  */
 
 export interface StatusPageBulkAddEntry {
-  // What is added, and how the result names it: an address, a number, a URL.
+  // What is added: an address, a number, a URL.
   value: string;
+  /*
+   * How the result names it, where its list names it otherwise than by its
+   * value: a Slack or Microsoft Teams subscriber by its workspace, as the
+   * list does (getSubscriberName), not by a webhook URL nobody reads.
+   * Left out, the value names it.
+   */
+  name?: string | undefined;
   /*
    * Why it is left out, when it is: nothing is sent for it, and the result
    * lists it as skipped, with this reason.
@@ -38,6 +46,22 @@ export const BULK_ADD_EMAIL_NOT_VALID: string = translationKey(
 
 export const BULK_ADD_PHONE_NOT_VALID: string = translationKey(
   "Phone number is not valid.",
+);
+
+// A CSV row whose webhook URL is not one, or is empty.
+export const BULK_ADD_URL_NOT_VALID: string =
+  translationKey("URL is not valid.");
+
+/*
+ * What the form says under its field when what was pasted holds nothing it
+ * could add: the form waits, instead of a press of Add that did nothing.
+ */
+export const BULK_ADD_NO_VALID_EMAIL: string = translationKey(
+  "No valid email address found. Enter one address per line.",
+);
+
+export const BULK_ADD_NO_VALID_PHONE: string = translationKey(
+  "No valid phone number found. Enter one number per line.",
 );
 
 /*
@@ -161,19 +185,54 @@ export const getBulkPhoneEntries: (
   return entries;
 };
 
+// Whether a row's URL is one an add would take (URL.fromString).
+const isUrl: (value: string) => boolean = (value: string): boolean => {
+  if (!value) {
+    return false;
+  }
+
+  try {
+    URL.fromString(value);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 /*
  * A CSV file's rows, in the file's order: the value is the row's URL, the
- * contact a subscriber is told on, which the result names it by.
+ * contact a subscriber is told on - checked here as each add would check
+ * it, so a row whose URL is not one is never sent and is listed as skipped
+ * with why ("URL is not valid.", not the parser's "Hostname not a url is
+ * not in valid format.") - and the name, where the list has one, is its
+ * workspace's (nameColumn).
  */
 export const getBulkCsvEntries: (
   rows: Array<Record<string, string>>,
   valueColumn: string,
+  nameColumn?: string | undefined,
 ) => Array<StatusPageBulkAddEntry> = (
   rows: Array<Record<string, string>>,
   valueColumn: string,
+  nameColumn?: string | undefined,
 ): Array<StatusPageBulkAddEntry> => {
   return rows.map((row: Record<string, string>): StatusPageBulkAddEntry => {
-    return { value: (row[valueColumn] || "").trim(), row: row };
+    const entry: StatusPageBulkAddEntry = {
+      value: (row[valueColumn] || "").trim(),
+      row: row,
+    };
+
+    const name: string = nameColumn ? (row[nameColumn] || "").trim() : "";
+
+    if (name) {
+      entry.name = name;
+    }
+
+    if (!isUrl(entry.value)) {
+      entry.skippedReason = BULK_ADD_URL_NOT_VALID;
+    }
+
+    return entry;
   });
 };
 
@@ -184,4 +243,31 @@ export const hasBulkAddEntryToAdd: (
   return entries.some((entry: StatusPageBulkAddEntry): boolean => {
     return !entry.skippedReason;
   });
+};
+
+/*
+ * A pasted list's field, checked as the form checks it
+ * (Field.customValidation): the error to show under it when what was
+ * pasted holds nothing to add, null otherwise - an empty field is the
+ * field's own "required" to say.
+ */
+export const getBulkAddNothingToAddError: (
+  entries: Array<StatusPageBulkAddEntry>,
+  error: string,
+) => string | null = (
+  entries: Array<StatusPageBulkAddEntry>,
+  error: string,
+): string | null => {
+  if (entries.length === 0 || hasBulkAddEntryToAdd(entries)) {
+    return null;
+  }
+
+  return error;
+};
+
+// How the result names an entry: its name, else its value.
+export const getBulkAddEntryName: (entry: StatusPageBulkAddEntry) => string = (
+  entry: StatusPageBulkAddEntry,
+): string => {
+  return entry.name || entry.value;
 };

@@ -199,6 +199,10 @@ import {
   BulkActionButtonSchema,
   ProgressInfo,
 } from "../../../UI/Components/BulkUpdate/BulkUpdateForm";
+import {
+  ADD_TO_PROJECT_RESULT_LABELS,
+  TWO_FACTOR_AUTH_RESULT_LABELS,
+} from "../../../../App/FeatureSet/AdminDashboard/src/Components/User/BulkUserResultLabels";
 import IconProp from "../../../Types/Icon/IconProp";
 import ObjectID from "../../../Types/ObjectID";
 import Navigation from "../../../UI/Utils/Navigation";
@@ -514,6 +518,49 @@ describe("Admin > Users > Add to Project bulk action", () => {
       expect(bulkActionTitled(ADD_TO_PROJECT_TITLE_KEY).icon).toBe(
         IconProp.FolderPlus,
       );
+    });
+
+    /*
+     * The shared dialog's result says what the action did, in its own words
+     * where it has them: "2 Users added" and "1 User not added", not "2
+     * Users succeeded" - which left the admin to work out what had.
+     */
+    test("says in its result that the users were added, or not added", () => {
+      expect(bulkActionTitled(ADD_TO_PROJECT_TITLE_KEY).resultLabels).toBe(
+        ADD_TO_PROJECT_RESULT_LABELS,
+      );
+      expect(ADD_TO_PROJECT_RESULT_LABELS).toEqual({
+        succeeded: {
+          one: "{{count}} {{itemName}} added",
+          other: "{{count}} {{itemsName}} added",
+        },
+        failed: {
+          one: "{{count}} {{itemName}} not added",
+          other: "{{count}} {{itemsName}} not added",
+        },
+      });
+    });
+
+    test("and Require / Do Not Require Two Factor Auth say the users were updated, or not updated", () => {
+      for (const title of [
+        "pages.users.bulkRequireTwoFactorAuth",
+        "pages.users.bulkDoNotRequireTwoFactorAuth",
+      ]) {
+        expect(bulkActionTitled(title).resultLabels).toBe(
+          TWO_FACTOR_AUTH_RESULT_LABELS,
+        );
+      }
+
+      expect(TWO_FACTOR_AUTH_RESULT_LABELS).toEqual({
+        succeeded: {
+          one: "{{count}} {{itemName}} updated",
+          other: "{{count}} {{itemsName}} updated",
+        },
+        failed: {
+          one: "{{count}} {{itemName}} not updated",
+          other: "{{count}} {{itemsName}} not updated",
+        },
+      });
     });
   });
 

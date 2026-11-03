@@ -21260,7 +21260,7 @@
   "Type a value instead": "Type a value instead",
   "Type or pick what to compare with.": "किससे तुलना करनी है, वह लिखें या चुनें।",
   "Types: {{types}}. Max 10MB each.": "प्रकार: {{types}}। हर फ़ाइल अधिकतम 10 MB।",
-  "URL is not valid.": "URL is not valid.",
+  "URL is not valid.": "URL मान्य नहीं है।",
   "Unarchive this dashboard? It will reappear in the Dashboards list, and its public link works again if it is public.": "Unarchive this dashboard? It will reappear in the Dashboards list, and its public link works again if it is public.",
   "Unarchive this monitor? It will reappear in monitor lists and on status pages, and monitoring resumes unless the monitor is disabled.": "Unarchive this monitor? It will reappear in monitor lists and on status pages, and monitoring resumes unless the monitor is disabled.",
   "Unarchive this on-call policy? It will page people again for new incidents and alerts that use it.": "Unarchive this on-call policy? It will page people again for new incidents and alerts that use it.",
@@ -41573,5 +41573,7 @@
   "Incident Rule Executed": "घटना नियम निष्पादित किया गया",
   "What It Reads": "यह क्या पढ़ता है",
   "{{count}} {{itemsName}} added": "{{count}} {{itemsName}} जोड़े गए",
-  "{{count}} {{itemsName}} added_one": "{{count}} {{itemName}} जोड़ा गया"
+  "{{count}} {{itemsName}} added_one": "{{count}} {{itemName}} जोड़ा गया",
+  "No valid email address found. Enter one address per line.": "कोई मान्य ईमेल पता नहीं मिला। हर पंक्ति में एक पता लिखें।",
+  "No valid phone number found. Enter one number per line.": "कोई मान्य फ़ोन नंबर नहीं मिला। हर पंक्ति में एक नंबर लिखें।"
 }

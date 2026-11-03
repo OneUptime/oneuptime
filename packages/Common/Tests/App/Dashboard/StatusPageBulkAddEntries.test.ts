@@ -1,9 +1,14 @@
 import { describe, expect, test } from "@jest/globals";
 import {
   BULK_ADD_EMAIL_NOT_VALID,
+  BULK_ADD_NO_VALID_EMAIL,
+  BULK_ADD_NO_VALID_PHONE,
   BULK_ADD_PHONE_NOT_VALID,
   BULK_ADD_RESULT_LABELS,
+  BULK_ADD_URL_NOT_VALID,
   StatusPageBulkAddEntry,
+  getBulkAddEntryName,
+  getBulkAddNothingToAddError,
   getBulkCsvEntries,
   getBulkEmailEntries,
   getBulkPhoneEntries,
@@ -138,7 +143,7 @@ describe("phone numbers pasted into Add in Bulk", () => {
 });
 
 describe("a CSV file's rows in Add in Bulk", () => {
-  test("each row an entry, in the file's order, named by its URL and keeping its other columns", () => {
+  test("each row an entry, in the file's order, its URL as written and its other columns kept", () => {
     const entries: Array<StatusPageBulkAddEntry> = getBulkCsvEntries(
       [
         {
@@ -149,7 +154,6 @@ describe("a CSV file's rows in Add in Bulk", () => {
           workspaceName: "Acme",
           webhookUrl: "https://hooks.slack.com/services/T1/B2/two",
         },
-        { workspaceName: "Missing URL" },
       ],
       "webhookUrl",
     );
@@ -157,11 +161,112 @@ describe("a CSV file's rows in Add in Bulk", () => {
     expect(values(entries)).toEqual([
       "https://hooks.slack.com/services/T1/B1/one",
       "https://hooks.slack.com/services/T1/B2/two",
-      "",
     ]);
     expect(entries[0]!.row?.["workspaceName"]).toBe("Acme");
-    // A URL is checked as it is added, by the server's own rules.
     expect(skipped(entries)).toEqual([]);
+  });
+
+  /*
+   * Checked as each add checks it (URL.fromString): a row that is not a
+   * URL is never sent, and the result lists it as skipped in the product's
+   * words, where it was listed as not added with the parser's "Hostname
+   * not a url is not in valid format.".
+   */
+  test("a row whose URL is not one, or that has none, is skipped with why", () => {
+    const entries: Array<StatusPageBulkAddEntry> = getBulkCsvEntries(
+      [
+        { webhookUrl: "https://ops.example.com/hook" },
+        { webhookUrl: "not a url" },
+        { webhookUrl: "   " },
+        { workspaceName: "Missing URL" },
+      ],
+      "webhookUrl",
+    );
+
+    expect(skipped(entries)).toEqual([
+      ["not a url", BULK_ADD_URL_NOT_VALID],
+      ["", BULK_ADD_URL_NOT_VALID],
+      ["", BULK_ADD_URL_NOT_VALID],
+    ]);
+    expect(BULK_ADD_URL_NOT_VALID).toBe("URL is not valid.");
+    expect(hasBulkAddEntryToAdd(entries)).toBe(true);
+  });
+
+  test("a row is named by its workspace, as the Slack and Microsoft Teams lists name it, else by its URL", () => {
+    const entries: Array<StatusPageBulkAddEntry> = getBulkCsvEntries(
+      [
+        {
+          workspaceName: "  Acme Ops ",
+          webhookUrl: "https://hooks.slack.com/services/T1/B1/one",
+        },
+        {
+          workspaceName: "",
+          webhookUrl: "https://hooks.slack.com/services/T1/B2/two",
+        },
+        { workspaceName: "Initech", webhookUrl: "not a url" },
+      ],
+      "webhookUrl",
+      "workspaceName",
+    );
+
+    expect(entries.map(getBulkAddEntryName)).toEqual([
+      "Acme Ops",
+      "https://hooks.slack.com/services/T1/B2/two",
+      "Initech",
+    ]);
+    // The name only names it: what is added is still the URL.
+    expect(entries[0]!.value).toBe(
+      "https://hooks.slack.com/services/T1/B1/one",
+    );
+  });
+
+  test("without a name column, every row is named by its URL", () => {
+    const entries: Array<StatusPageBulkAddEntry> = getBulkCsvEntries(
+      [{ workspaceName: "Acme", webhookUrl: "https://ops.example.com/a" }],
+      "webhookUrl",
+    );
+
+    expect(entries[0]!.name).toBeUndefined();
+    expect(getBulkAddEntryName(entries[0]!)).toBe("https://ops.example.com/a");
+  });
+});
+
+describe("a pasted list's field, when nothing in it can be added", () => {
+  /*
+   * The bulk form never showed the error its submit threw: Add did
+   * nothing, and said nothing. The field now says it, and the form waits.
+   */
+  test("says there is nothing to add, and how to write the list", () => {
+    expect(
+      getBulkAddNothingToAddError(
+        getBulkEmailEntries("not-an-address\nalso wrong"),
+        BULK_ADD_NO_VALID_EMAIL,
+      ),
+    ).toBe("No valid email address found. Enter one address per line.");
+    expect(
+      getBulkAddNothingToAddError(
+        getBulkPhoneEntries("call me"),
+        BULK_ADD_NO_VALID_PHONE,
+      ),
+    ).toBe("No valid phone number found. Enter one number per line.");
+  });
+
+  test("is quiet when one entry can be added: the others are listed as skipped", () => {
+    expect(
+      getBulkAddNothingToAddError(
+        getBulkEmailEntries("not-an-address\nada@example.com"),
+        BULK_ADD_NO_VALID_EMAIL,
+      ),
+    ).toBeNull();
+  });
+
+  test("leaves an empty field to its own Required", () => {
+    expect(
+      getBulkAddNothingToAddError(
+        getBulkEmailEntries("  \n "),
+        BULK_ADD_NO_VALID_EMAIL,
+      ),
+    ).toBeNull();
   });
 });
 

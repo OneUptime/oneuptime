@@ -3,6 +3,8 @@ import useStatusPageBulkAdd, {
   StatusPageBulkAdd,
 } from "../../../Components/StatusPage/useStatusPageBulkAdd";
 import {
+  BULK_ADD_NO_VALID_EMAIL,
+  getBulkAddNothingToAddError,
   getBulkEmailEntries,
   hasBulkAddEntryToAdd,
   StatusPageBulkAddEntry,
@@ -15,6 +17,7 @@ import ObjectID from "Common/Types/ObjectID";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -110,10 +113,12 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
       data.emails,
     );
 
+    /*
+     * The field says so when nothing in it can be added, and the form waits
+     * (getBulkAddNothingToAddError): there is always an entry to add here.
+     */
     if (!hasBulkAddEntryToAdd(entries)) {
-      throw new BadDataException(
-        "No valid email addresses found. Please enter one email per line.",
-      );
+      return;
     }
 
     // The form goes; the progress dialog takes over.
@@ -327,6 +332,15 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 required: true,
                 placeholder:
                   "user1@example.com\nuser2@example.com\nuser3@example.com",
+                // Nothing in it an address: said under it, and Add waits.
+                customValidation: (
+                  values: FormValues<BulkAddFormData>,
+                ): string | null => {
+                  return getBulkAddNothingToAddError(
+                    getBulkEmailEntries(String(values.emails || "")),
+                    BULK_ADD_NO_VALID_EMAIL,
+                  );
+                },
               },
             ],
           }}

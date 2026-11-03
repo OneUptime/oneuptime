@@ -21260,7 +21260,7 @@
   "Type a value instead": "Type a value instead",
   "Type or pick what to compare with.": "Skriv eller välj vad det ska jämföras med.",
   "Types: {{types}}. Max 10MB each.": "Typer: {{types}}. Högst 10 MB per fil.",
-  "URL is not valid.": "URL is not valid.",
+  "URL is not valid.": "URL:en är ogiltig.",
   "Unarchive this dashboard? It will reappear in the Dashboards list, and its public link works again if it is public.": "Unarchive this dashboard? It will reappear in the Dashboards list, and its public link works again if it is public.",
   "Unarchive this monitor? It will reappear in monitor lists and on status pages, and monitoring resumes unless the monitor is disabled.": "Unarchive this monitor? It will reappear in monitor lists and on status pages, and monitoring resumes unless the monitor is disabled.",
   "Unarchive this on-call policy? It will page people again for new incidents and alerts that use it.": "Unarchive this on-call policy? It will page people again for new incidents and alerts that use it.",
@@ -41573,5 +41573,7 @@
   "Incident Rule Executed": "Incidentregel körd",
   "What It Reads": "Vad den läser",
   "{{count}} {{itemsName}} added": "{{count}} {{itemsName}} har lagts till",
-  "{{count}} {{itemsName}} added_one": "{{count}} {{itemName}} har lagts till"
+  "{{count}} {{itemsName}} added_one": "{{count}} {{itemName}} har lagts till",
+  "No valid email address found. Enter one address per line.": "Ingen giltig e-postadress hittades. Ange en adress per rad.",
+  "No valid phone number found. Enter one number per line.": "Inget giltigt telefonnummer hittades. Ange ett nummer per rad."
 }

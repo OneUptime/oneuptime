@@ -14,6 +14,7 @@ import BulkUpdateForm, {
   BULK_KEEP_PAGE_OPEN,
   BULK_KEEP_PAGE_OPEN_NOT_STOPPABLE,
   BULK_NOT_STARTED_COUNT,
+  BULK_RESULT_MORE_NAMES,
   BULK_STOPPING,
   BULK_TIME_LEFT_HOURS,
   BULK_TIME_LEFT_MINUTES,
@@ -31,6 +32,7 @@ import { ButtonStyleType } from "../../../UI/Components/Button/Button";
 import IconProp from "../../../Types/Icon/IconProp";
 import { createTranslator } from "../../../UI/Utils/TranslateTemplate";
 import { getJestSpyOn } from "../../Spy";
+import { ADD_TO_PROJECT_RESULT_LABELS } from "../../../../App/FeatureSet/AdminDashboard/src/Components/User/BulkUserResultLabels";
 
 /*
  * THE BULK PROGRESS DIALOG, WHILE A RUN GOES ON AND WHEN IT ENDS (#5299).
@@ -532,6 +534,30 @@ describe("the words in every language", () => {
       "Progress: {{count}} of {{total}} {{suffix}} ({{percent}}%)",
       "Progress: {{count}} of {{total}} {{suffix}} ({{percent}}%)",
     ],
+    /*
+     * The result's words of the Admin Dashboard's Add to Project (and of a
+     * status page's Add in Bulk): "2 Users added", "1 User not added" -
+     * the Admin Dashboard said "2 Users succeeded" until the UI review of
+     * fu-bulk-actions.
+     */
+    [
+      ADD_TO_PROJECT_RESULT_LABELS.succeeded.other,
+      ADD_TO_PROJECT_RESULT_LABELS.succeeded.other,
+    ],
+    [
+      `${ADD_TO_PROJECT_RESULT_LABELS.succeeded.other}_one`,
+      ADD_TO_PROJECT_RESULT_LABELS.succeeded.one,
+    ],
+    [
+      ADD_TO_PROJECT_RESULT_LABELS.failed.other,
+      ADD_TO_PROJECT_RESULT_LABELS.failed.other,
+    ],
+    [
+      `${ADD_TO_PROJECT_RESULT_LABELS.failed.other}_one`,
+      ADD_TO_PROJECT_RESULT_LABELS.failed.one,
+    ],
+    // What follows the first names of a long result group.
+    [BULK_RESULT_MORE_NAMES, BULK_RESULT_MORE_NAMES],
   ];
 
   const PLACEHOLDER: RegExp = /{{\s*(\w+)\s*}}/g;

@@ -3,6 +3,8 @@ import useStatusPageBulkAdd, {
   StatusPageBulkAdd,
 } from "../../../Components/StatusPage/useStatusPageBulkAdd";
 import {
+  BULK_ADD_NO_VALID_EMAIL,
+  getBulkAddNothingToAddError,
   getBulkEmailEntries,
   hasBulkAddEntryToAdd,
   StatusPageBulkAddEntry,
@@ -199,10 +201,12 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
       data.emails,
     );
 
+    /*
+     * The field says so when nothing in it can be added, and the form waits
+     * (getBulkAddNothingToAddError): there is always an entry to add here.
+     */
     if (!hasBulkAddEntryToAdd(entries)) {
-      throw new BadDataException(
-        "No valid email addresses found. Please enter one email per line.",
-      );
+      return;
     }
 
     // The form goes; the progress dialog takes over.
@@ -605,6 +609,15 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     required: true,
                     placeholder:
                       "user1@example.com\nuser2@example.com\nuser3@example.com",
+                    // Nothing in it an address: said under it, and Add waits.
+                    customValidation: (
+                      values: FormValues<BulkAddFormData>,
+                    ): string | null => {
+                      return getBulkAddNothingToAddError(
+                        getBulkEmailEntries(String(values.emails || "")),
+                        BULK_ADD_NO_VALID_EMAIL,
+                      );
+                    },
                   },
                   {
                     /*

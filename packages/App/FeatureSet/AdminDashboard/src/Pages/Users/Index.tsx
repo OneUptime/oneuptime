@@ -4,6 +4,10 @@ import ServerSetupChecklist from "../../Components/ServerSetup/ServerSetupCheckl
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import { bulkAddUsersToProject } from "../../Components/User/BulkAddUsersToProject";
+import {
+  ADD_TO_PROJECT_RESULT_LABELS,
+  TWO_FACTOR_AUTH_RESULT_LABELS,
+} from "../../Components/User/BulkUserResultLabels";
 import BulkAddUsersToProjectModal, {
   BulkAddUsersToProjectSelection,
 } from "../../Components/User/BulkAddUsersToProjectModal";
@@ -148,6 +152,8 @@ const Users: FunctionComponent = (): ReactElement => {
        * divider at the bottom of the bulk menu, where Delete lives.
        */
       buttonStyleType: ButtonStyleType.NORMAL,
+      // "6 Users updated", not "6 Users succeeded" (BulkUserResultLabels).
+      resultLabels: TWO_FACTOR_AUTH_RESULT_LABELS,
       confirmTitle: (items: Array<User>): string => {
         return isRequired
           ? t("pages.users.bulkRequireTwoFactorAuthTitle", {
@@ -216,6 +222,8 @@ const Users: FunctionComponent = (): ReactElement => {
         title: t("pages.users.bulkAddToProject"),
         icon: IconProp.FolderPlus,
         buttonStyleType: ButtonStyleType.NORMAL,
+        // "2 Users added", not "2 Users succeeded" (BulkUserResultLabels).
+        resultLabels: ADD_TO_PROJECT_RESULT_LABELS,
         onClick: (
           onClickProps: BulkActionOnClickProps<User>,
         ): Promise<void> => {

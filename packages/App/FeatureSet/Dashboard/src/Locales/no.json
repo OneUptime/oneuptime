@@ -21260,7 +21260,7 @@
   "Type a value instead": "Type a value instead",
   "Type or pick what to compare with.": "Skriv inn eller velg hva det skal sammenlignes med.",
   "Types: {{types}}. Max 10MB each.": "Typer: {{types}}. Maks. 10 MB per fil.",
-  "URL is not valid.": "URL is not valid.",
+  "URL is not valid.": "URL-en er ikke gyldig.",
   "Unarchive this dashboard? It will reappear in the Dashboards list, and its public link works again if it is public.": "Unarchive this dashboard? It will reappear in the Dashboards list, and its public link works again if it is public.",
   "Unarchive this monitor? It will reappear in monitor lists and on status pages, and monitoring resumes unless the monitor is disabled.": "Unarchive this monitor? It will reappear in monitor lists and on status pages, and monitoring resumes unless the monitor is disabled.",
   "Unarchive this on-call policy? It will page people again for new incidents and alerts that use it.": "Unarchive this on-call policy? It will page people again for new incidents and alerts that use it.",
@@ -41573,5 +41573,7 @@
   "Incident Rule Executed": "Hendelsesregel utført",
   "What It Reads": "Hva den leser",
   "{{count}} {{itemsName}} added": "{{count}} {{itemsName}} lagt til",
-  "{{count}} {{itemsName}} added_one": "{{count}} {{itemName}} lagt til"
+  "{{count}} {{itemsName}} added_one": "{{count}} {{itemName}} lagt til",
+  "No valid email address found. Enter one address per line.": "Fant ingen gyldig e-postadresse. Skriv inn én adresse per linje.",
+  "No valid phone number found. Enter one number per line.": "Fant ikke noe gyldig telefonnummer. Skriv inn ett nummer per linje."
 }

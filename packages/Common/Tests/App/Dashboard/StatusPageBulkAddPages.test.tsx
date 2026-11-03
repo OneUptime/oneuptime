@@ -212,12 +212,14 @@ interface PageCase {
   entries: (count: number) => Array<string>;
   // A line the page skips, and why - for the pasted lists.
   invalidLine?: { line: string; reason: string } | undefined;
+  // What the field says when nothing pasted can be added.
+  noValidEntry?: string | undefined;
   // Hands the form what was typed, and submits it.
   submit: (values: Array<string>) => Promise<void>;
   // What the create wrote for an entry, as the page names it.
   readValue: (model: BaseModel) => string;
-  // How an entry is named in the result.
-  namedAs: (value: string) => string;
+  // How the result names the entry at index of these values.
+  namedAs: (values: Array<string>, index: number) => string;
   singular: string;
   plural: string;
 }
@@ -318,6 +320,7 @@ const PAGES: Array<PageCase> = [
       });
     },
     invalidLine: { line: "not-an-address", reason: "Email is not valid." },
+    noValidEntry: "No valid email address found. Enter one address per line.",
     submit: async (values: Array<string>): Promise<void> => {
       await submitText({
         emails: values.join("\n"),
@@ -327,8 +330,8 @@ const PAGES: Array<PageCase> = [
     readValue: (model: BaseModel): string => {
       return (model as StatusPageSubscriber).subscriberEmail!.toString();
     },
-    namedAs: (value: string): string => {
-      return value;
+    namedAs: (values: Array<string>, index: number): string => {
+      return values[index]!;
     },
     singular: "Subscriber",
     plural: "Subscribers",
@@ -344,6 +347,7 @@ const PAGES: Array<PageCase> = [
       });
     },
     invalidLine: { line: "call me", reason: "Phone number is not valid." },
+    noValidEntry: "No valid phone number found. Enter one number per line.",
     submit: async (values: Array<string>): Promise<void> => {
       await submitText({
         phones: values.join("\n"),
@@ -353,8 +357,8 @@ const PAGES: Array<PageCase> = [
     readValue: (model: BaseModel): string => {
       return (model as StatusPageSubscriber).subscriberPhone!.toString();
     },
-    namedAs: (value: string): string => {
-      return value;
+    namedAs: (values: Array<string>, index: number): string => {
+      return values[index]!;
     },
     singular: "Subscriber",
     plural: "Subscribers",
@@ -377,8 +381,9 @@ const PAGES: Array<PageCase> = [
         model as StatusPageSubscriber
       ).slackIncomingWebhookUrl!.toString();
     },
-    namedAs: (value: string): string => {
-      return value;
+    // By its workspace, as the list names it (csvRows: "Workspace 2").
+    namedAs: (_values: Array<string>, index: number): string => {
+      return `Workspace ${index + 1}`;
     },
     singular: "Subscriber",
     plural: "Subscribers",
@@ -401,8 +406,9 @@ const PAGES: Array<PageCase> = [
         model as StatusPageSubscriber
       ).microsoftTeamsIncomingWebhookUrl!.toString();
     },
-    namedAs: (value: string): string => {
-      return value;
+    // By its workspace, as the list names it (csvRows: "Workspace 2").
+    namedAs: (_values: Array<string>, index: number): string => {
+      return `Workspace ${index + 1}`;
     },
     singular: "Subscriber",
     plural: "Subscribers",
@@ -423,8 +429,8 @@ const PAGES: Array<PageCase> = [
     readValue: (model: BaseModel): string => {
       return (model as StatusPageSubscriber).subscriberWebhook!.toString();
     },
-    namedAs: (value: string): string => {
-      return value;
+    namedAs: (values: Array<string>, index: number): string => {
+      return values[index]!;
     },
     singular: "Subscriber",
     plural: "Subscribers",
@@ -440,14 +446,15 @@ const PAGES: Array<PageCase> = [
       });
     },
     invalidLine: { line: "reader@", reason: "Email is not valid." },
+    noValidEntry: "No valid email address found. Enter one address per line.",
     submit: async (values: Array<string>): Promise<void> => {
       await submitText({ emails: values.join("\n") });
     },
     readValue: (model: BaseModel): string => {
       return (model as StatusPagePrivateUser).email!.toString();
     },
-    namedAs: (value: string): string => {
-      return value;
+    namedAs: (values: Array<string>, index: number): string => {
+      return values[index]!;
     },
     singular: "Private User",
     plural: "Private Users",
@@ -669,7 +676,7 @@ describe.each(
       "bulk-action-failed-items",
     );
     expect(
-      within(failed).getByText(pageCase.namedAs(values[1]!)),
+      within(failed).getByText(pageCase.namedAs(values, 1)),
     ).toBeInTheDocument();
     expect(
       within(failed).getByText(
@@ -757,7 +764,42 @@ describe.each(
       expect(within(skipped).getByText(invalid.reason)).toBeInTheDocument();
     });
 
-    test("a list with nothing valid in it is refused in the form, and nothing is sent", async () => {
+    /*
+     * The form's field says it, under the field, and the form waits. It
+     * used to be an error thrown from the submit, which the bulk form
+     * never shows: Add did nothing, and said nothing.
+     */
+    test("a list with nothing valid in it is refused under the field, with how to fix it", async () => {
+      await renderPage(pageCase);
+      await pressAddInBulk();
+
+      const fields: Array<Record<string, unknown>> = (
+        lastBulkForm()["formProps"] as Record<string, unknown>
+      )["fields"] as Array<Record<string, unknown>>;
+      const pasted: Record<string, unknown> = fields[0]!;
+      const fieldName: string = Object.keys(
+        pasted["field"] as Record<string, unknown>,
+      )[0]!;
+      const check: (values: Record<string, unknown>) => string | null = pasted[
+        "customValidation"
+      ] as (values: Record<string, unknown>) => string | null;
+
+      expect(typeof check).toBe("function");
+      expect(check({ [fieldName]: `${invalid.line}\nalso not one` })).toBe(
+        pageCase.noValidEntry,
+      );
+      // One good entry is enough: the rest are listed as skipped.
+      expect(
+        check({
+          [fieldName]: `${invalid.line}\n${pageCase.entries(1)[0]!}`,
+        }),
+      ).toBeNull();
+      // An empty field is the field's own Required to say.
+      expect(check({ [fieldName]: "" })).toBeNull();
+      expect(check({})).toBeNull();
+    });
+
+    test("a submit with nothing valid in it, should one get past the field, sends nothing and throws nothing", async () => {
       await renderPage(pageCase);
       await pressAddInBulk();
       await pageCase.submit([invalid.line]);
@@ -765,7 +807,7 @@ describe.each(
       await flush();
 
       expect(createMock).not.toHaveBeenCalled();
-      expect(submitError).toMatch(/^No valid /);
+      expect(submitError).toBeNull();
       expect(screen.queryByText("In Progress")).toBeNull();
       expect(screen.queryByText("Completed")).toBeNull();
     });
@@ -875,26 +917,86 @@ describe("what each page writes for an entry", () => {
     expect(subscriber.microsoftTeamsWorkspaceName).toBe("Contoso");
   });
 
-  test("Webhook Subscribers: a URL that is not one is not added, with why", async () => {
+  /*
+   * A row whose URL is not one is never sent, and is listed as skipped
+   * with the product's words - not as "not added" with the parser's
+   * "Hostname not a url is not in valid format.".
+   */
+  test("Webhook Subscribers: a URL that is not one is skipped, with why, and never sent", async () => {
     await renderPage(PAGES[4]!);
     await pressAddInBulk();
     await submitCsv([
       { webhookUrl: "https://ops.example.com/status-hook/1" },
       { webhookUrl: "not a url" },
+      { webhookUrl: "" },
     ]);
     await waitForResult();
 
-    // The good one is written; the other never reaches the server.
     expect(createMock).toHaveBeenCalledTimes(1);
     expect(
-      within(progressDialog()).getByTestId("bulk-action-failed-count"),
-    ).toHaveTextContent("1 Subscriber not added");
+      within(progressDialog()).getByTestId("bulk-action-succeeded-count"),
+    ).toHaveTextContent("1 Subscriber added");
     expect(
-      within(
-        within(progressDialog()).getByTestId("bulk-action-failed-items"),
-      ).getByText("not a url"),
-    ).toBeInTheDocument();
+      within(progressDialog()).queryByTestId("bulk-action-failed-count"),
+    ).toBeNull();
+    expect(
+      within(progressDialog()).getByTestId("bulk-action-unchanged-count"),
+    ).toHaveTextContent("2 Subscribers skipped");
+
+    const skipped: HTMLElement = within(progressDialog()).getByTestId(
+      "bulk-action-unchanged-items",
+    );
+    expect(within(skipped).getByText("not a url")).toBeInTheDocument();
+    expect(within(skipped).getByText("URL is not valid.")).toBeInTheDocument();
+    expect(skipped).not.toHaveTextContent("Hostname");
   });
+
+  test.each([
+    ["Slack Subscribers", 2],
+    ["Microsoft Teams Subscribers", 3],
+  ])(
+    "%s: a row is named by its workspace in the result, and a row whose URL is not one is skipped by that name",
+    async (_name: string, index: number) => {
+      const pageCase: PageCase = PAGES[index]!;
+      const values: Array<string> = pageCase.entries(2);
+
+      createMock.mockImplementation(
+        async (request: { model: BaseModel }): Promise<unknown> => {
+          if (pageCase.readValue(request.model) === values[1]) {
+            throw new Error("You are already subscribed to this status page.");
+          }
+
+          return { data: {} };
+        },
+      );
+
+      await renderPage(pageCase);
+      await pressAddInBulk();
+      await submitCsv([
+        { workspaceName: "Acme Ops", webhookUrl: values[0]! },
+        { workspaceName: "Globex", webhookUrl: values[1]! },
+        { workspaceName: "Initech", webhookUrl: "not a url" },
+      ]);
+      await waitForResult();
+
+      // Only the two that are URLs were sent.
+      expect(createMock).toHaveBeenCalledTimes(2);
+
+      const failed: HTMLElement = within(progressDialog()).getByTestId(
+        "bulk-action-failed-items",
+      );
+      expect(within(failed).getByText("Globex")).toBeInTheDocument();
+      expect(failed).not.toHaveTextContent(values[1]!);
+
+      const skipped: HTMLElement = within(progressDialog()).getByTestId(
+        "bulk-action-unchanged-items",
+      );
+      expect(within(skipped).getByText("Initech")).toBeInTheDocument();
+      expect(
+        within(skipped).getByText("URL is not valid."),
+      ).toBeInTheDocument();
+    },
+  );
 
   test("Private Users: the address, on this page and project", async () => {
     await renderPage(PAGES[5]!);

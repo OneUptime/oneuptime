@@ -63,6 +63,9 @@ const ADMIN_LOCALES: string = path.resolve(
 
 const PHONE: { width: number; height: number } = { width: 390, height: 844 };
 
+// A percent as Persian writes it: its own digits and sign ("۱۵٪").
+const PERSIAN_PERCENT: RegExp = /^[\u06f0-\u06f9]+\u066a$/;
+
 interface Post {
   userId: string;
   data: { isRequired?: boolean };
@@ -276,8 +279,9 @@ test.describe("the Admin Dashboard's Users list", () => {
 
     await finishRun(page, "Completed");
 
+    // In the action's own words, not "6 Users succeeded".
     await expect(page.getByTestId("bulk-action-succeeded-count")).toHaveText(
-      "6 Users succeeded",
+      "6 Users updated",
     );
     await expect(page.getByTestId("bulk-action-failed-count")).toHaveCount(0);
     await screenshot(page, "admin-users-two-factor-completed");
@@ -320,10 +324,10 @@ test.describe("the Admin Dashboard's Users list", () => {
     ).toBeVisible();
 
     await expect(page.getByTestId("bulk-action-succeeded-count")).toHaveText(
-      "2 Users succeeded",
+      "2 Users updated",
     );
     await expect(page.getByTestId("bulk-action-failed-count")).toHaveText(
-      "1 User failed",
+      "1 User not updated",
     );
     await expect(page.getByTestId("bulk-action-failed-items-group")).toHaveText(
       ["User: Grace HopperUser not found."],
@@ -363,7 +367,7 @@ test.describe("the Admin Dashboard's Users list", () => {
     await finishRun(page, "Stopped");
 
     await expect(page.getByTestId("bulk-action-succeeded-count")).toHaveText(
-      "4 Users succeeded",
+      "4 Users updated",
     );
     await expect(page.getByTestId("bulk-action-not-started-count")).toHaveText(
       "4 Users not started: you stopped the action",
@@ -407,11 +411,12 @@ test.describe("the Admin Dashboard's Users list", () => {
 
     await finishRun(page, "Completed");
 
+    // In the action's own words, not "2 Users succeeded".
     await expect(page.getByTestId("bulk-action-succeeded-count")).toHaveText(
-      "2 Users succeeded",
+      "2 Users added",
     );
     await expect(page.getByTestId("bulk-action-failed-count")).toHaveText(
-      "1 User failed",
+      "1 User not added",
     );
     await expect(page.getByTestId("bulk-action-failed-items-group")).toHaveText(
       ["User: Grace HopperThis user has already been invited to this team."],
@@ -493,6 +498,12 @@ test.describe("the Admin Dashboard's Users list", () => {
       await expect(footerButton(page)).toBeInViewport();
       await expect(footerButton(page)).toHaveText(
         adminWords(variant.language, "Close"),
+      );
+      // "5 Benutzer aktualisiert", not "5 Benutzer erfolgreich".
+      await expect(page.getByTestId("bulk-action-succeeded-count")).toHaveText(
+        adminWords(variant.language, "{{count}} {{itemsName}} updated")
+          .replace("{{count}}", "5")
+          .replace("{{itemsName}}", adminWords(variant.language, "Users")),
       );
       await screenshot(
         page,
@@ -612,6 +623,28 @@ test.describe("Add in Bulk on a status page's Email Subscribers", () => {
     await expect(page.getByText("katherine@example.com").first()).toBeVisible();
   });
 
+  /*
+   * The bulk form never showed the error its submit threw: Add did nothing
+   * and said nothing. The field says it now, and the form waits.
+   */
+  test("a paste with no address in it is refused under the field, and nothing is sent", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openSubscribers(page);
+    await addInBulk(page, ["not-an-address", "also wrong"]);
+
+    await expect(dialog(page).getByTestId("error-message")).toHaveText(
+      "No valid email address found. Enter one address per line.",
+    );
+    // Still the form: nothing ran.
+    await expect(
+      dialog(page).getByText("In Progress", { exact: true }),
+    ).toHaveCount(0);
+    expect((await fixtureState(page)).creates).toEqual([]);
+  });
+
   test("an address the server refuses is named with its words, and the others are added", async ({
     page,
   }: {
@@ -657,6 +690,10 @@ test.describe("Add in Bulk on a status page's Email Subscribers", () => {
     await expectNoSidewaysScroll(page, {
       message: "Add in Bulk in progress, a phone, Persian",
     });
+    // The percent in Persian digits and sign, as the count beside it.
+    await expect(page.getByTestId("progress-bar-percent")).toHaveText(
+      PERSIAN_PERCENT,
+    );
     await expect(footerButton(page)).toBeInViewport();
     await screenshot(
       page,

@@ -202,9 +202,11 @@ const StatusPageMicrosoftTeamsSubscribers: FunctionComponent<
       return;
     }
 
+    // Each row named in the result by its workspace, as the list names it.
     const entries: Array<StatusPageBulkAddEntry> = getBulkCsvEntries(
       csvRows,
       "webhookUrl",
+      "workspaceName",
     );
     const shouldTell: boolean = sendNotification;
 

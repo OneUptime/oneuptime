@@ -309,6 +309,37 @@ export const groupItemsByReason: (
   return groups;
 };
 
+/*
+ * How many of a result group's names are listed before the rest are only
+ * counted. A group lists its names and then its reason; a run of thousands
+ * that one reason refused - Add in Bulk past a plan's limit on subscribers
+ * - listed every one of them first, so the reason, the one thing to act
+ * on, sat below a box of addresses nobody scrolls through. Eight names,
+ * the count of the rest and the reason fit the list's box (max-h-64)
+ * without a scroll; the count of every outcome is in the line above it.
+ */
+export const BULK_RESULT_NAMES_SHOWN: number = 8;
+
+// What follows the names a group lists: "and 1,890 more".
+export const BULK_RESULT_MORE_NAMES: string = translationKey(
+  "and {{remaining}} more",
+);
+
+/*
+ * The names a result group lists: all of them, up to one more than
+ * BULK_RESULT_NAMES_SHOWN - "and 1 more" would take the line the name
+ * would - else the first BULK_RESULT_NAMES_SHOWN, in the order they ran.
+ */
+export const getBulkResultNamesShown: (
+  names: ReadonlyArray<string>,
+) => Array<string> = (names: ReadonlyArray<string>): Array<string> => {
+  if (names.length <= BULK_RESULT_NAMES_SHOWN + 1) {
+    return [...names];
+  }
+
+  return names.slice(0, BULK_RESULT_NAMES_SHOWN);
+};
+
 export interface ProgressInfo<T extends GenericObject> {
   inProgressItems: Array<T>;
   successItems: Array<T>;
@@ -999,6 +1030,12 @@ export const useBulkActionProgress: <T extends GenericObject>(
                 ? translator.translateText(group.message) || group.message
                 : group.message;
 
+            // A long group's first names, and how many more it holds.
+            const shownNames: Array<string> = getBulkResultNamesShown(
+              group.names,
+            );
+            const moreCount: number = group.names.length - shownNames.length;
+
             /*
              * A record's name, and a reason the server gave in English, read
              * the way they are written (IsolatedText): on a Persian page an
@@ -1021,7 +1058,7 @@ export const useBulkActionProgress: <T extends GenericObject>(
                 )}
                 {group.names.length > 1 ? (
                   <ul className="space-y-0.5">
-                    {group.names.map((name: string, j: number) => {
+                    {shownNames.map((name: string, j: number) => {
                       return (
                         <li
                           key={j}
@@ -1032,6 +1069,18 @@ export const useBulkActionProgress: <T extends GenericObject>(
                       );
                     })}
                   </ul>
+                ) : (
+                  <></>
+                )}
+                {moreCount > 0 ? (
+                  <div
+                    className="mt-0.5 font-medium text-gray-500"
+                    data-testid={`${dataTestId}-more`}
+                  >
+                    {translator.translateTemplate(BULK_RESULT_MORE_NAMES, {
+                      remaining: translator.formatNumber(moreCount),
+                    })}
+                  </div>
                 ) : (
                   <></>
                 )}

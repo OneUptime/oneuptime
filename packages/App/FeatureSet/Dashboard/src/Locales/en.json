@@ -41573,5 +41573,7 @@
   "Incident Rule Executed": "Incident Rule Executed",
   "What It Reads": "What It Reads",
   "{{count}} {{itemsName}} added": "{{count}} {{itemsName}} added",
-  "{{count}} {{itemsName}} added_one": "{{count}} {{itemName}} added"
+  "{{count}} {{itemsName}} added_one": "{{count}} {{itemName}} added",
+  "No valid email address found. Enter one address per line.": "No valid email address found. Enter one address per line.",
+  "No valid phone number found. Enter one number per line.": "No valid phone number found. Enter one number per line."
 }

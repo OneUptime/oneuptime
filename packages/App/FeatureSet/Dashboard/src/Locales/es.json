@@ -41573,5 +41573,7 @@
   "Incident Rule Executed": "Regla de incidentes ejecutada",
   "What It Reads": "Qué lee",
   "{{count}} {{itemsName}} added": "{{count}} elementos añadidos ({{itemsName}})",
-  "{{count}} {{itemsName}} added_one": "{{count}} elemento añadido ({{itemName}})"
+  "{{count}} {{itemsName}} added_one": "{{count}} elemento añadido ({{itemName}})",
+  "No valid email address found. Enter one address per line.": "No se encontró ninguna dirección de correo válida. Escribe una dirección por línea.",
+  "No valid phone number found. Enter one number per line.": "No se encontró ningún número de teléfono válido. Escribe un número por línea."
 }

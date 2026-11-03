@@ -21260,7 +21260,7 @@
   "Type a value instead": "Type a value instead",
   "Type or pick what to compare with.": "비교할 값을 입력하거나 선택하세요.",
   "Types: {{types}}. Max 10MB each.": "형식: {{types}}. 파일당 최대 10 MB.",
-  "URL is not valid.": "URL is not valid.",
+  "URL is not valid.": "URL이 올바르지 않습니다.",
   "Unarchive this dashboard? It will reappear in the Dashboards list, and its public link works again if it is public.": "Unarchive this dashboard? It will reappear in the Dashboards list, and its public link works again if it is public.",
   "Unarchive this monitor? It will reappear in monitor lists and on status pages, and monitoring resumes unless the monitor is disabled.": "Unarchive this monitor? It will reappear in monitor lists and on status pages, and monitoring resumes unless the monitor is disabled.",
   "Unarchive this on-call policy? It will page people again for new incidents and alerts that use it.": "Unarchive this on-call policy? It will page people again for new incidents and alerts that use it.",
@@ -41573,5 +41573,7 @@
   "Incident Rule Executed": "인시던트 규칙 실행됨",
   "What It Reads": "읽는 대상",
   "{{count}} {{itemsName}} added": "{{itemsName}} {{count}}개 추가됨",
-  "{{count}} {{itemsName}} added_one": "{{itemName}} {{count}}개 추가됨"
+  "{{count}} {{itemsName}} added_one": "{{itemName}} {{count}}개 추가됨",
+  "No valid email address found. Enter one address per line.": "유효한 이메일 주소가 없습니다. 한 줄에 주소 하나씩 입력하세요.",
+  "No valid phone number found. Enter one number per line.": "유효한 전화번호가 없습니다. 한 줄에 번호 하나씩 입력하세요."
 }
