@@ -38,6 +38,9 @@ import "./Jobs/AlertOwners/SendStateChangeNotification";
 import "./Jobs/AlertOwners/SendUnresolvedReminderNotification";
 import "./Jobs/Alert/KeepCurrentStateConsistent";
 
+// Alert Incident Rules
+import "./Jobs/AlertIncidentRules/DeclareIncidentsWhenWaitIsUp";
+
 // Alert Episodes
 import "./Jobs/AlertEpisode/AutoResolve";
 import "./Jobs/AlertEpisode/ResolveInactiveEpisodes";
