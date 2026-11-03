@@ -1444,6 +1444,25 @@ apt is told to keep its downloads; on a miss, what apt kept copied out and saved
 under the restore's key; on a hit, the browsers alone, without `--with-deps`;
 the suite last, either way; and a job limit that holds every step's.
 
+### `DashboardOfflineUiBudget.test.js`
+
+Every Dashboard Offline UI group fits its run step with room for a slow runner.
+A runner has taken 1.45 times the minutes of another, suite for suite, and the
+run step stops at 35 minutes, so a group is planned at 22 minutes on a runner
+of median speed. Planned by hand from each group's comment, the groups drifted:
+on 2026-11-02's six finished App Test runs group 14's suites took 30.5 minutes
+at median speed (32.3 on its slowest run), group 13's 26.1, and four more
+groups' between 23.4 and 25. `DashboardOfflineUiMinutes.json` holds each
+suite's minutes - each half's, `<suite> <i>/<n>`, for a suite run in halves -
+the median over the runs it
+names, and the suite holds every suite a group runs to having its minutes there
+(and nothing there that no group runs), every group's suites to summing to at
+most 22, naming a group past it with its sum, its suites and the groups with
+the most room, and the run step's limit to 22 x 1.45. A new suite's minutes
+come from a local run (CI=1, its bundle built, nothing else running) until App
+Test's runs measure it. Re-measure from finished runs (each group job's log,
+from one `▶ npm run` to the next) when the groups are moved again.
+
 ### `DashboardOfflineUiShards.test.js`
 
 App Test runs Event Overview and the Workflow Builder suite in halves, one per

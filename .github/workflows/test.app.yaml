@@ -190,7 +190,7 @@ jobs:
   # esbuild and serve them against fixture data: no database or Docker stack.
   # They used to run one after another in a single 41-minute job, the longest
   # of every pull request's checks. They are independent - each starts its
-  # own fixture server on its own port - so they run here in sixteen groups
+  # own fixture server on its own port - so they run here in eighteen groups
   # balanced by measured duration. Event Overview and the Workflow Builder
   # suite outgrew a group each on their own (20.4 and 19.4 minutes on
   # 2026-10-17's slowest runner), so each now runs in halves, in two groups
@@ -206,6 +206,11 @@ jobs:
   # pass 28. So the run step's limit is 35, and a group is planned at about 22
   # minutes on a runner of normal speed (about 32 on the slowest seen). When
   # one passes that, move a suite or add a group.
+  # Tests/Ops/DashboardOfflineUiBudget holds every group to it: each suite's
+  # minutes - a suite run in halves, each half's - are in
+  # Tests/Ops/DashboardOfflineUiMinutes.json, the median of App Test's runs
+  # (a new suite's from a local run until then), and a group's suites may
+  # sum to at most 22. Its failure names the groups with the most room.
   #
   # The groups run in the Playwright image (mcr.microsoft.com/playwright, at
   # the version packages/E2E locks): Chromium, Firefox and the system
@@ -237,8 +242,9 @@ jobs:
   # MODEL_TABLES_SHARD and MONITOR_OVERVIEW_SHARD, by test as Event Overview
   # is (Tests/Ops/DashboardOfflineUiShards holds every half to running once).
   #
-  # A suite added to packages/E2E needs a place in one group's `suites`, and
-  # its output paths in the upload step below.
+  # A suite added to packages/E2E needs a place in one group's `suites`, its
+  # minutes in Tests/Ops/DashboardOfflineUiMinutes.json, and its output
+  # paths in the upload step below.
   dashboard-offline-ui:
     name: Dashboard Offline UI (${{ matrix.group }})
     runs-on: ubuntu-latest
@@ -377,6 +383,11 @@ jobs:
           # locally: their open case, week and risk, a quiet week, no card
           # without Security Events, at 1280 and 390 pixels, dark): about
           # 21.5.
+          # Measured on 2026-11-03 over App Test's six finished runs of 11-02
+          # (each suite's median minutes,
+          # Tests/Ops/DashboardOfflineUiMinutes.json): this group's suites sum
+          # to 25.0 minutes on a runner of median speed (25.3 on its slowest
+          # run). Diagrams (4.6) moved to the new group 17: about 20.5.
           - group: 2
             suites: >-
               test-chart-time-zoom-ui
@@ -385,7 +396,6 @@ jobs:
               test-alerts-ui
               test-pencil-button-ui
               test-color-picker-ui
-              test-diagrams-ui
               test-runbook-steps-ui
           # Value Picker also runs in Firefox (the chip editor's caret handling
           # differs in each). Discovery (about 5 minutes) moved to group 6
@@ -450,6 +460,11 @@ jobs:
           # week and risk, a quiet week, none for a heartbeat or a role that
           # may not read security events, read again on Refresh, its stacked
           # header in the side column at 1440 and 390 pixels, dark): about 22.
+          # Measured on 2026-11-03 over App Test's six finished runs of 11-02
+          # (each suite's median minutes,
+          # Tests/Ops/DashboardOfflineUiMinutes.json): this group's suites sum
+          # to 24.4 minutes on a runner of median speed (26.5 on its slowest
+          # run). Meraki Traffic (3.5) moved to the new group 17: about 21.
           - group: 3
             monitor_overview_shard: 1/2
             suites: >-
@@ -458,7 +473,6 @@ jobs:
               test-trace-detail-ui
               test-label-rule-transfer-ui
               test-rules-menu-section-ui
-              test-meraki-traffic-ui
               test-security-events-empty-states-ui
           # The Workflow Builder suite on its own: it sat in group 2 near the
           # job's 30 minutes, and its On Create or Update spec would take that
@@ -582,6 +596,11 @@ jobs:
           # seconds locally: the line that says the search is running, and an
           # entity no record matches at 1280 and 390 pixels, dark): still
           # about 22.
+          # Measured on 2026-11-03 over App Test's six finished runs of 11-02
+          # (each suite's median minutes,
+          # Tests/Ops/DashboardOfflineUiMinutes.json): this group's suites sum
+          # to 22.3 minutes on a runner of median speed (25.1 on its slowest
+          # run). Dashboard Value Widget (1.6) moved to group 13: about 20.5.
           - group: 5
             suites: >-
               test-slo-burn-rate-ui
@@ -592,7 +611,6 @@ jobs:
               test-pagination-ui
               test-network-first-run-ui
               test-runbook-variables-ui
-              test-dashboard-value-widget-ui
               test-owners-on-create-ui
               test-first-on-call-policy-ui
               test-side-by-side-pages-ui
@@ -735,13 +753,18 @@ jobs:
           # first gate run took this group 20.3 and group 8 27.5: about 23.5.
           # It moved on to group 3 when the second took this group 25.5:
           # about 20.
+          # Measured on 2026-11-03 over App Test's six finished runs of 11-02
+          # (each suite's median minutes,
+          # Tests/Ops/DashboardOfflineUiMinutes.json): this group's suites sum
+          # to 22.3 minutes on a runner of median speed (22.8 on its slowest
+          # run). Dashboard Table Thresholds (2.2) moved to the new group 17:
+          # about 20.
           - group: 7
             suites: >-
               test-profiles-ui
               test-auto-remediation-rules-ui
               test-custom-roles-ui
               test-public-dashboard-theme-ui
-              test-dashboard-table-thresholds-ui
           # Dashboard Time Range (about 3.5 minutes with its bundle locally: a
           # dashboard's default time range and auto-refresh inside OneUptime
           # and on its public page, at a laptop's width and, for what a phone
@@ -856,6 +879,11 @@ jobs:
           # locally: its open case and week, opening Security Events on the
           # name it answers on, a quiet week and no card without Security
           # Events): still about 21.
+          # Measured on 2026-11-03 over App Test's six finished runs of 11-02
+          # (each suite's median minutes,
+          # Tests/Ops/DashboardOfflineUiMinutes.json): this group's suites sum
+          # to 17.9 minutes on a runner of median speed (22.8 on its slowest
+          # run). Dashboard Templates (2.5) joined it from group 10: about 20.5.
           - group: 8
             suites: >-
               test-dashboard-time-range-ui
@@ -866,6 +894,7 @@ jobs:
               test-vmware-host-page-ui
               test-public-addresses-ui
               test-docker-swarm-pages-ui
+              test-dashboard-templates-ui
           # Added on 2026-10-21, when every group took 20 to 26 minutes on one
           # run (groups 1 and 5 near 25) and Resource Topology would have
           # taken group 7 past 22: Code (6.4 minutes on that run, a laptop
@@ -918,6 +947,11 @@ jobs:
           # and Topology (about 2.8 each) moved to group 15. About 22.5.
           # Kubernetes Events (3.5) followed them when the second run took this
           # group 24.0: about 20.5.
+          # Measured on 2026-11-03 over App Test's six finished runs of 11-02
+          # (each suite's median minutes,
+          # Tests/Ops/DashboardOfflineUiMinutes.json): this group's suites sum
+          # to 16.3 minutes on a runner of median speed (21.4 on its slowest
+          # run). Kubernetes Events (3.5) joined it from group 15: about 20.
           - group: 9
             workflow_builder_shard: 2/2
             suites: >-
@@ -927,6 +961,7 @@ jobs:
               test-runbooks-menu-ui
               test-postmortems-ui
               test-archivable-values-ui
+              test-kubernetes-events-ui
           # Added on 2026-10-22 with the second half of Event Overview (about
           # 13 minutes on a slow runner) and Navigation Search from group 2
           # (2.9 to 3.5): about 18.5 with the setup. Chromium only. Owner
@@ -989,11 +1024,15 @@ jobs:
           # suites and tests each time: its half of Event Overview took 13.3,
           # 17.4 and 21.3 minutes, on runners slower than the runs before. Data
           # Security moved on to group 13: about 15 to 24.5.
+          # Measured on 2026-11-03 over App Test's six finished runs of 11-02
+          # (each suite's median minutes,
+          # Tests/Ops/DashboardOfflineUiMinutes.json): this group's suites sum
+          # to 21.4 minutes on a runner of median speed (25.9 on its slowest
+          # run). Dashboard Templates (2.5) moved to group 8: about 19.
           - group: 10
             event_overview_shard: 2/2
             suites: >-
               test-event-overview-ui
-              test-dashboard-templates-ui
           # Security Operations on its own, Chromium only, from 2026-10-25. In
           # group 8 it took 9.8 of that group's 23.4 minutes on master's run of
           # 03:08 that day, and the group took 26.1 and 26.7 minutes on the
@@ -1054,10 +1093,14 @@ jobs:
           # 14.0.100's first gate run (2026-11-01) took this group 25.7 minutes,
           # Security Operations 19.9 of them: Status Timeline (2.3) and Runbook
           # Triggers (1.8) moved to group 15. About 21.5.
+          # Measured on 2026-11-03 over App Test's six finished runs of 11-02
+          # (each suite's median minutes,
+          # Tests/Ops/DashboardOfflineUiMinutes.json): this group's suites sum
+          # to 22.6 minutes on a runner of median speed (23.3 on its slowest
+          # run). AI Context (1.7) moved to group 13: about 21.
           - group: 11
             suites: >-
               test-security-operations-ui
-              test-ai-context-ui
           # Added on 2026-10-26, when group 9 ran past its run step's 28
           # minutes on 14.0.93's gate run with every suite passing: Code had
           # grown to 13.0 minutes (6.4 when it joined group 9). Code, with
@@ -1099,13 +1142,18 @@ jobs:
           # same card on the function's own Overview, at 390, 768 and 1280
           # pixels, dark, German and Persian right to left; the whole suite
           # took 3.6 minutes with its bundle on a loaded machine): about 21.
+          # Measured on 2026-11-03 over App Test's six finished runs of 11-02
+          # (each suite's median minutes,
+          # Tests/Ops/DashboardOfflineUiMinutes.json): this group's suites sum
+          # to 23.9 minutes on a runner of median speed (25.1 on its slowest
+          # run). Resource Overviews (4.6) moved to the new group 17: about
+          # 19.5.
           - group: 12
             suites: >-
               test-code-ui
               test-exceptions-ai-ui
               test-acknowledgement-timeout-ui
               test-new-version-ui
-              test-resource-overviews-ui
           # Added on 2026-10-27, when 14.0.93's gate run took groups 10, 11, 1, 6
           # and 2 20.9 to 24.4 minutes and the Workflow Builder suite's halves
           # filled groups 4 and 9: Navigation Search (3.6) and Bulk Actions (1.2)
@@ -1138,6 +1186,14 @@ jobs:
           # it, its week and risk, a quiet week, no card without Security
           # Events, at 1280 and 390 pixels, dark and Persian right to left):
           # still about 22.
+          # Measured on 2026-11-03 over App Test's six finished runs of 11-02
+          # (each suite's median minutes,
+          # Tests/Ops/DashboardOfflineUiMinutes.json): this group's suites sum
+          # to 26.1 minutes on a runner of median speed (29.3 on its slowest
+          # run). Reading Direction (4.4) moved to the new group 17 and Data
+          # Security (4.3) to the new group 18; Dashboard Value Widget (1.6)
+          # from group 5 and AI Context (1.7) from group 11 joined it: about
+          # 20.5.
           - group: 13
             suites: >-
               test-asset-details-ui
@@ -1147,10 +1203,10 @@ jobs:
               test-llm-connect-ui
               test-bulk-actions-ui
               test-status-page-search-ui
-              test-reading-direction-ui
               test-global-runners-ui
               test-accounts-theme-ui
-              test-data-security-ui
+              test-dashboard-value-widget-ui
+              test-ai-context-ui
           # Added on 2026-10-29, when group 3's run step reached its 28 minutes
           # on two of master's runs (#5393 grew Monitor Overview from 209 tests
           # to 222) and took 24.6 on the next, and groups 5 and 9 took 25.3 and
@@ -1197,19 +1253,23 @@ jobs:
           # Recommendations, the side menu, at 1280 and 390 pixels, dark,
           # German and Persian) joined them on 2026-11-02, the lightest group:
           # about 22.5.
+          # Measured on 2026-11-03 over App Test's six finished runs of 11-02
+          # (each suite's median minutes,
+          # Tests/Ops/DashboardOfflineUiMinutes.json): this group's suites sum
+          # to 30.5 minutes on a runner of median speed (32.3 on its slowest
+          # run, 3 minutes from its run step's 35). Dashboard Playlists (4.3),
+          # Proxmox Pages (2.8) and VMware Pages (3.1) moved to the new group
+          # 18: about 20.5.
           - group: 14
             suites: >-
               test-value-picker-ui
               test-list-delete-ui
-              test-dashboard-playlists-ui
               test-shared-ui-ui
               test-llm-provider-test-ui
               test-episode-bulk-add-ui
               test-traces-ai-ui
               test-network-traffic-names-ui
               test-custom-field-files-ui
-              test-proxmox-pages-ui
-              test-vmware-pages-ui
           # A group of its own since 2026-11-01, as no group had the room: the
           # second half of Model Tables (88 tests, 6.9 minutes locally) and
           # Metrics AI (3.0 on 14.0.100's first gate run) from group 4, whose
@@ -1224,6 +1284,11 @@ jobs:
           # each host's health and readings - and a host's Overview, Turn on
           # N alerts into Recommendations, at 1280 and 390 pixels, dark,
           # German and Persian) joined it on 2026-11-02: about 21.
+          # Measured on 2026-11-03 over App Test's six finished runs of 11-02
+          # (each suite's median minutes,
+          # Tests/Ops/DashboardOfflineUiMinutes.json): this group's suites sum
+          # to 23.5 minutes on a runner of median speed (24.1 on its slowest
+          # run). Kubernetes Events (3.5) moved to group 9: about 20.
           - group: 15
             model_tables_shard: 2/2
             suites: >-
@@ -1233,7 +1298,6 @@ jobs:
               test-topology-ui
               test-status-timeline-ui
               test-runbook-triggers-ui
-              test-kubernetes-events-ui
               test-host-pages-ui
           # Added on 2026-11-01, when 14.0.100's second gate run, on runners up
           # to 1.45 times slower, took groups 2, 3 and 14 past their run step's
@@ -1248,14 +1312,46 @@ jobs:
           # about 20 seconds locally in Chromium and Firefox: the shared page
           # fit and box helpers held to their jobs) joined it on 2026-11-02,
           # the lightest group: still about 20.
+          # Measured on 2026-11-03 over App Test's six finished runs of 11-02
+          # (each suite's median minutes,
+          # Tests/Ops/DashboardOfflineUiMinutes.json): this group's suites sum
+          # to 22.4 minutes on a runner of median speed (23.3 on its slowest
+          # run) before Suite Helpers (about 0.5). Ask AI (3.4) moved to the new
+          # group 18: about 19.5.
           - group: 16
             monitor_overview_shard: 2/2
             suites: >-
               test-monitor-overview-ui
               test-navigation-search-ui
               test-discovery-ui
-              test-ask-ai-ui
               test-suite-helpers-ui
+          # Added on 2026-11-03, when App Test's six finished runs of 11-02 took
+          # group 14 30.5 minutes on a runner of median speed (32.3 on its
+          # slowest run, 3 minutes from its run step's 35), group 13 26.1 and
+          # groups 2, 3, 12 and 15 23.4 to 25 - past the 22 a group is planned
+          # at, which Tests/Ops/DashboardOfflineUiBudget now holds every group
+          # to, from each suite's median minutes on those runs
+          # (Tests/Ops/DashboardOfflineUiMinutes.json): Diagrams (4.6) from
+          # group 2, Resource Overviews (4.6) from group 12, Reading Direction
+          # (4.4) from group 13, Meraki Traffic (3.5) from group 3 and Dashboard
+          # Table Thresholds (2.2) from group 7: about 19.5.
+          - group: 17
+            suites: >-
+              test-diagrams-ui
+              test-resource-overviews-ui
+              test-reading-direction-ui
+              test-meraki-traffic-ui
+              test-dashboard-table-thresholds-ui
+          # Added the same day, with group 17 (see it): Data Security (4.3) from
+          # group 13, Dashboard Playlists (4.3), VMware Pages (3.1) and Proxmox
+          # Pages (2.8) from group 14, and Ask AI (3.4) from group 16: about 18.
+          - group: 18
+            suites: >-
+              test-data-security-ui
+              test-dashboard-playlists-ui
+              test-ask-ai-ui
+              test-vmware-pages-ui
+              test-proxmox-pages-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
