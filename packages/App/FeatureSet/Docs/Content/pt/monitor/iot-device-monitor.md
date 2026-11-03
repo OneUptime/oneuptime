@@ -34,7 +34,7 @@ flowchart TB
 ## Antes de começar
 
 - **Faça os seus dispositivos enviarem dados.** O [guia de dispositivos IoT](/docs/telemetry/iot-devices) mostra como enviar métricas com um SDK ou um Collector do OpenTelemetry, ou via MQTT.
-- **Verifique se a frota está registrada.** Ela aparece em **Produtos → Infraestrutura → IoT → All Fleets**, com o nome do `iot.fleet.name` que os dispositivos enviam.
+- **Verifique se a frota está registrada.** Ela aparece em **Produtos → Infraestrutura → IoT → Todas as frotas**, com o nome do `iot.fleet.name` que os dispositivos enviam.
 - **Registre os dispositivos que você espera**, no **Registro de dispositivos** da frota, para ser avisado quando um ficar em silêncio: veja [Detecção de offline](#detecção-de-offline).
 
 ## Criar um monitor de dispositivos IoT

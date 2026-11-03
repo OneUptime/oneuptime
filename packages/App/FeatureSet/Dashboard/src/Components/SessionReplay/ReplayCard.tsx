@@ -7,8 +7,17 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  composedValue,
+  formatList,
+  PluralTemplate,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
+import { formatDurationCompactInLanguage } from "Common/Utils/Slo/SloDuration";
+import SessionReplayMaskingMode from "Common/Types/Rum/SessionReplayMaskingMode";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { APP_API_URL } from "Common/UI/Config";
@@ -70,14 +79,54 @@ export type ReplayCardFailureKind = "permission" | "plan" | "error";
 
 export interface ReplayCardFailure {
   kind: ReplayCardFailureKind;
+  // The English line; the card draws it in the reader's language.
   message: string;
+  // What the server said went wrong, as it said it, for an "error" failure.
+  detail?: string | undefined;
 }
 
-export const REPLAY_CARD_PERMISSION_COPY: string =
-  "A recording of this error may exist, but your role cannot list session replays. Ask a project admin for the Read Session Replay permission.";
+/*
+ * The card's words, in English: it draws each in the reader's language
+ * (Locales/README.md). Its dates already follow the reader, and so do Show
+ * all and Show fewer.
+ */
+export const REPLAY_CARD_PERMISSION_COPY: string = translationKey(
+  "A recording of this error may exist, but your role cannot list session replays. Ask a project admin for the Read Session Replay permission.",
+);
 
-export const REPLAY_CARD_PLAN_COPY: string =
-  "Session replay is not included in this project's plan, so recordings of this error cannot be looked up.";
+export const REPLAY_CARD_PLAN_COPY: string = translationKey(
+  "Session replay is not included in this project's plan, so recordings of this error cannot be looked up.",
+);
+
+export const REPLAY_CARD_ERROR_COPY: string = translationKey(
+  "Could not check for a recording.",
+);
+
+export const REPLAY_CARD_ERROR_DETAIL_COPY: string = translationKey(
+  "Could not check for a recording: {{error}}",
+);
+
+// The masking a session was recorded with, by the policy's own choice names.
+const MASKING_MODE_TITLES: Record<string, string> = {
+  [SessionReplayMaskingMode.MaskSensitiveInputsOnly]: translationKey(
+    "Mask sensitive inputs only",
+  ),
+  [SessionReplayMaskingMode.MaskInputsOnly]: translationKey("Mask inputs only"),
+  [SessionReplayMaskingMode.MaskAllText]: translationKey("Mask all text"),
+};
+
+// The frustration a session showed before the error, one plural each.
+const SIGNAL_TEMPLATES: {
+  rage: PluralTemplate;
+  dead: PluralTemplate;
+  error: PluralTemplate;
+  refresh: PluralTemplate;
+} = {
+  rage: { one: "{{count}} rage click", other: "{{count}} rage clicks" },
+  dead: { one: "{{count}} dead click", other: "{{count}} dead clicks" },
+  error: { one: "{{count}} error click", other: "{{count}} error clicks" },
+  refresh: { one: "{{count}} refresh rage", other: "{{count}} refresh rage" },
+};
 
 export interface ReplayCardProps {
   /*
@@ -133,33 +182,134 @@ export function classifyReplayCardFailure(error: unknown): ReplayCardFailure {
 
   const friendly: string = API.getFriendlyMessage(error);
 
-  return {
-    kind: "error",
-    message: friendly
-      ? `Could not check for a recording: ${friendly}`
-      : "Could not check for a recording.",
-  };
+  return friendly
+    ? {
+        kind: "error",
+        message: REPLAY_CARD_ERROR_DETAIL_COPY.replace("{{error}}", friendly),
+        detail: friendly,
+      }
+    : { kind: "error", message: REPLAY_CARD_ERROR_COPY };
 }
 
-function formatSessionStart(startTime: string): string {
+// What the card says for a failure, in the reader's language.
+export function describeReplayCardFailure(
+  failure: ReplayCardFailure,
+  translator: Translator,
+): string {
+  if (failure.kind === "error" && failure.detail) {
+    return translator.translateTemplate(REPLAY_CARD_ERROR_DETAIL_COPY, {
+      error: failure.detail,
+    });
+  }
+
+  return translator.translateText(failure.message) || failure.message;
+}
+
+function formatSessionStart(startTime: string, translator: Translator): string {
   if (!startTime) {
-    return "unknown start";
+    return translator.translateText("unknown start");
   }
 
   const date: Date = OneUptimeDate.fromString(startTime);
 
   if (Number.isNaN(date.getTime())) {
-    return "unknown start";
+    return translator.translateText("unknown start");
   }
 
   return OneUptimeDate.getDateAsUserFriendlyFormattedString(date);
 }
 
-function describeDevice(summary: SessionReplaySummary): string {
+/*
+ * A session's browser and system, as the recorder named them ("Chrome on
+ * macOS"), in the reader's sentence; the names themselves are as written.
+ */
+export function describeReplayDevice(
+  summary: Pick<SessionReplaySummary, "browserName" | "osName">,
+  translator: Translator,
+): string {
+  if (summary.browserName && summary.osName) {
+    return translator.translateTemplate("{{browser}} on {{os}}", {
+      browser: summary.browserName,
+      os: summary.osName,
+    });
+  }
+
   return (
-    [summary.browserName, summary.osName].filter(Boolean).join(" on ") ||
-    "Unknown device"
+    summary.browserName ||
+    summary.osName ||
+    translator.translateText("Unknown device")
   );
+}
+
+/*
+ * How long a session ran, as the reader's language writes a duration ("2
+ * Min., 30 Sek." in German, "۲ دقیقه و ۳۰ ثانیه" in Persian); English reads
+ * as the session lists write it ("2m 30s").
+ */
+export function describeReplayDuration(
+  durationMs: number,
+  translator: Translator,
+): string {
+  if (
+    !Number.isFinite(durationMs) ||
+    durationMs <= 0 ||
+    translator.language.toLowerCase().startsWith("en")
+  ) {
+    return formatSessionDuration(durationMs);
+  }
+
+  return formatDurationCompactInLanguage(
+    Math.round(durationMs / 1000),
+    translator.language,
+  );
+}
+
+/*
+ * The masking a session was recorded with, by the policy's choice names
+ * ("Mask inputs only"), in the reader's language. A mode this dashboard
+ * does not know is shown as the recorder wrote it.
+ */
+export function describeReplayMasking(
+  maskingMode: string | undefined,
+  translator: Translator,
+): string {
+  if (!maskingMode) {
+    return translator.translateText("not reported");
+  }
+
+  const title: string | undefined = MASKING_MODE_TITLES[maskingMode];
+
+  return title ? translator.translateText(title) || title : maskingMode;
+}
+
+/*
+ * The frustration a session showed before the error ("2 rage clicks, 1 dead
+ * click"), each count in the reader's plural and the list joined the
+ * reader's way. Empty when there was none.
+ */
+export function describeReplaySignals(
+  summary: Pick<
+    SessionReplaySummary,
+    "rageClickCount" | "deadClickCount" | "errorClickCount" | "refreshRageCount"
+  >,
+  translator: Translator,
+): Array<string> {
+  const signals: Array<string> = [];
+  const add: (template: PluralTemplate, count: number) => void = (
+    template: PluralTemplate,
+    count: number,
+  ): void => {
+    if (count > 0) {
+      signals.push(translator.translatePlural(template, count));
+    }
+  };
+
+  add(SIGNAL_TEMPLATES.rage, summary.rageClickCount);
+  add(SIGNAL_TEMPLATES.dead, summary.deadClickCount);
+  add(SIGNAL_TEMPLATES.error, summary.errorClickCount);
+  add(SIGNAL_TEMPLATES.refresh, summary.refreshRageCount);
+
+  return signals;
 }
 
 const ReplayCard: FunctionComponent<ReplayCardProps> = (
@@ -341,7 +491,7 @@ const ReplayCard: FunctionComponent<ReplayCardProps> = (
         data-failure-kind={failure.kind}
       >
         <Icon icon={IconProp.Film} className="h-3.5 w-3.5 text-gray-400" />
-        <span>{failure.message}</span>
+        <span>{describeReplayCardFailure(failure, translator)}</span>
         {failure.kind === "error" && (
           <Button
             title="Retry"
@@ -410,30 +560,19 @@ const ReplayCard: FunctionComponent<ReplayCardProps> = (
   if (!moment && errorTimeUnixMs && sessionId) {
     momentNote =
       primary.sessionId === sessionId
-        ? "The occurrence's timestamp falls outside this recording, so playback starts at the beginning."
-        : "The latest occurrence was in a session that was not recorded; this is the newest recording that hit the same error, from the beginning.";
+        ? translator.translateText(
+            "The occurrence's timestamp falls outside this recording, so playback starts at the beginning.",
+          )
+        : translator.translateText(
+            "The latest occurrence was in a session that was not recorded; this is the newest recording that hit the same error, from the beginning.",
+          );
   } else if (!moment && errorTimeUnixMs && !sessionId) {
-    momentNote =
-      "The latest occurrence carries no session id; this is the newest recording that hit the same error, from the beginning.";
+    momentNote = translator.translateText(
+      "The latest occurrence carries no session id; this is the newest recording that hit the same error, from the beginning.",
+    );
   }
 
-  const signals: Array<string> = [];
-
-  if (primary.rageClickCount > 0) {
-    signals.push(`${primary.rageClickCount} rage clicks`);
-  }
-
-  if (primary.deadClickCount > 0) {
-    signals.push(`${primary.deadClickCount} dead clicks`);
-  }
-
-  if (primary.errorClickCount > 0) {
-    signals.push(`${primary.errorClickCount} error clicks`);
-  }
-
-  if (primary.refreshRageCount > 0) {
-    signals.push(`${primary.refreshRageCount} refresh rage`);
-  }
+  const signals: Array<string> = describeReplaySignals(primary, translator);
 
   const otherSessions: Array<ReplaySessionRow> = sessions.slice(1);
   const visibleOtherSessions: Array<ReplaySessionRow> = showAllSessions
@@ -450,17 +589,39 @@ const ReplayCard: FunctionComponent<ReplayCardProps> = (
                 <Icon icon={IconProp.Film} className="h-4 w-4" />
               </span>
               <h3 className="text-sm font-semibold text-gray-900">
-                Watch what the user saw
+                {translator.translateText("Watch what the user saw")}
               </h3>
             </div>
-            <div className="mt-2 truncate text-xs text-gray-500">
-              {primary.entryUrl || "Unknown page"} ·{" "}
-              {formatSessionDuration(primary.durationMs)} ·{" "}
-              {describeDevice(primary)}
+            {/*
+             * The page, how long the session ran and the device it ran on.
+             * The page's address and the device are as the recorder wrote
+             * them, each reading its own way on a Persian page.
+             */}
+            <div
+              className="mt-2 truncate text-xs text-gray-500"
+              data-testid="replay-card-facts"
+            >
+              {primary.entryUrl ? (
+                <IsolatedText text={primary.entryUrl} />
+              ) : (
+                translator.translateText("Unknown page")
+              )}{" "}
+              · {describeReplayDuration(primary.durationMs, translator)} ·{" "}
+              <IsolatedText text={describeReplayDevice(primary, translator)} />
             </div>
             {signals.length > 0 && (
-              <div className="mt-1 text-xs text-amber-700">
-                Before the error: {signals.join(", ")}
+              <div
+                className="mt-1 text-xs text-amber-700"
+                data-testid="replay-card-signals"
+              >
+                {translator.translateTemplate("Before the error: {{signals}}", {
+                  signals: composedValue((sentence: Translator): string => {
+                    return formatList(
+                      describeReplaySignals(primary, sentence),
+                      sentence,
+                    );
+                  }),
+                })}
               </div>
             )}
             {/*
@@ -468,8 +629,13 @@ const ReplayCard: FunctionComponent<ReplayCardProps> = (
              * person's screen should know which mode produced it before they
              * click, not after.
              */}
-            <div className="mt-1 text-[11px] text-gray-500">
-              Recorded with {primary.maskingMode || "unknown"} masking.
+            <div
+              className="mt-1 text-[11px] text-gray-500"
+              data-testid="replay-card-masking"
+            >
+              {translator.translateTemplate("Masking when recorded: {{mode}}", {
+                mode: describeReplayMasking(primary.maskingMode, translator),
+              })}
             </div>
             {momentNote && (
               <div
@@ -489,10 +655,15 @@ const ReplayCard: FunctionComponent<ReplayCardProps> = (
               <Icon icon={IconProp.Play} className="h-3.5 w-3.5" />
               <span data-testid="replay-card-watch">
                 {moment
-                  ? `Watch ${Math.round(
-                      REPLAY_EXCEPTION_PRE_ROLL_MS / 1000,
-                    )}s before the error`
-                  : "Watch session"}
+                  ? translator.translateTemplate(
+                      "Watch {{seconds}}s before the error",
+                      {
+                        seconds: translator.formatNumber(
+                          Math.round(REPLAY_EXCEPTION_PRE_ROLL_MS / 1000),
+                        ),
+                      },
+                    )
+                  : translator.translateText("Watch session")}
               </span>
             </AppLink>
           </div>
@@ -503,9 +674,13 @@ const ReplayCard: FunctionComponent<ReplayCardProps> = (
             {otherSessions.length > 0 && (
               <div data-testid="replay-card-more-sessions">
                 <div className="text-[11px] font-medium uppercase tracking-wide text-gray-500">
-                  {otherSessions.length} more recorded{" "}
-                  {otherSessions.length === 1 ? "session" : "sessions"} hit this
-                  error
+                  {translator.translatePlural(
+                    {
+                      one: "{{count}} more recorded session hit this error",
+                      other: "{{count}} more recorded sessions hit this error",
+                    },
+                    otherSessions.length,
+                  )}
                 </div>
                 <ul
                   id={sessionListId}
@@ -527,16 +702,29 @@ const ReplayCard: FunctionComponent<ReplayCardProps> = (
                           data-testid="replay-card-session-row"
                         >
                           <span className="min-w-0 truncate">
-                            {formatSessionStart(row.summary.startTime)} ·{" "}
-                            {formatSessionDuration(row.summary.durationMs)} ·{" "}
-                            {describeDevice(row.summary)}
+                            {formatSessionStart(
+                              row.summary.startTime,
+                              translator,
+                            )}{" "}
+                            ·{" "}
+                            {describeReplayDuration(
+                              row.summary.durationMs,
+                              translator,
+                            )}{" "}
+                            ·{" "}
+                            <IsolatedText
+                              text={describeReplayDevice(
+                                row.summary,
+                                translator,
+                              )}
+                            />
                           </span>
                           {route && (
                             <AppLink
                               to={route}
                               className="shrink-0 font-medium text-indigo-600 hover:text-indigo-800 hover:underline"
                             >
-                              Watch
+                              {translator.translateText("Watch")}
                             </AppLink>
                           )}
                         </li>
@@ -576,8 +764,9 @@ const ReplayCard: FunctionComponent<ReplayCardProps> = (
                 className="mt-1 text-[11px] text-amber-700"
                 data-testid="replay-card-truncated"
               >
-                Only the first applications your role can access were searched;
-                recordings of this error in other applications may be missing.
+                {translator.translateText(
+                  "Only the first applications your role can access were searched; recordings of this error in other applications may be missing.",
+                )}
               </div>
             )}
           </div>

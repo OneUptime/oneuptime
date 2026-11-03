@@ -34,7 +34,7 @@ flowchart TB
 ## Voordat je begint
 
 - **Laat je apparaten gegevens sturen.** De [handleiding voor IoT-apparaten](/docs/telemetry/iot-devices) laat zien hoe je metrieken stuurt met een OpenTelemetry-SDK of -Collector, of via MQTT.
-- **Controleer of de vloot geregistreerd is.** Ze verschijnt onder **Producten → Infrastructuur → IoT → All Fleets**, genoemd naar de `iot.fleet.name` die de apparaten sturen.
+- **Controleer of de vloot geregistreerd is.** Ze verschijnt onder **Producten → Infrastructuur → IoT → Alle vloten**, genoemd naar de `iot.fleet.name` die de apparaten sturen.
 - **Registreer de apparaten die je verwacht**, in het **Apparaatregister** van de vloot, om te horen wanneer er een stil wordt: zie [Offline-detectie](#offline-detectie).
 
 ## Een IoT-apparaat-monitor maken

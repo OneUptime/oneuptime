@@ -34,7 +34,7 @@ flowchart TB
 ## 開始之前
 
 - **讓你的裝置開始回報。** [IoT 裝置指南](/docs/telemetry/iot-devices) 介紹了如何用 OpenTelemetry SDK 或 Collector，或透過 MQTT 傳送指標。
-- **確認機群已註冊。** 它會以裝置傳送的 `iot.fleet.name` 命名，出現在 **產品 → 基礎設施 → IoT → All Fleets** 下。
+- **確認機群已註冊。** 它會以裝置傳送的 `iot.fleet.name` 命名，出現在 **產品 → 基礎設施 → IoT → 所有裝置群** 下。
 - **註冊你預期的裝置**，在機群的 **裝置註冊表** 下註冊，這樣裝置靜默時你會收到通知：請參閱 [離線偵測](#離線偵測)。
 
 ## 建立 IoT 裝置監測器

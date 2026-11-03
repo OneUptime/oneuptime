@@ -34,7 +34,7 @@ flowchart TB
 ## 开始之前
 
 - **让你的设备开始上报。** [IoT 设备指南](/docs/telemetry/iot-devices) 介绍了如何用 OpenTelemetry SDK 或 Collector，或通过 MQTT 发送指标。
-- **确认机群已注册。** 它会以设备发送的 `iot.fleet.name` 命名，出现在 **产品 → 基础设施 → IoT → All Fleets** 下。
+- **确认机群已注册。** 它会以设备发送的 `iot.fleet.name` 命名，出现在 **产品 → 基础设施 → IoT → 所有设备群** 下。
 - **注册你预期的设备**，在机群的 **设备注册表** 下注册，这样设备静默时你会收到通知：请参阅 [离线检测](#离线检测)。
 
 ## 创建 IoT 设备监视器

@@ -149,7 +149,7 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 
 包含的数据库用户（在被监控的数据库中用 `CREATE USER oneuptime_health WITH PASSWORD = '...'` 创建、没有登录名的用户）在 S2 及以上可以配合 `VIEW DATABASE STATE` 使用，但不能加入 `##MS_ServerStateReader##`：服务器角色只接受登录名。要把包含的用户移到该角色中，请删除它（`DROP USER oneuptime_health;`），然后按上面的语句操作。
 
-探测器通过 `SERVERPROPERTY('EngineEdition')` 而不是版本来识别 Azure SQL Database——无论实际运行的是什么，Azure SQL Database 都会报告 `12.0.2000.8`，看起来就像 SQL Server 2014。因此，监视器的 **Engine** 显示为 `Azure SQL Database 12.0.2000.8`，缺少的权限会显示为上面的 Azure 语句，而绝不会显示为 `VIEW SERVER STATE`。
+探测器通过 `SERVERPROPERTY('EngineEdition')` 而不是版本来识别 Azure SQL Database——无论实际运行的是什么，Azure SQL Database 都会报告 `12.0.2000.8`，看起来就像 SQL Server 2014。因此，监视器的 **引擎** 显示为 `Azure SQL Database 12.0.2000.8`，缺少的权限会显示为上面的 Azure 语句，而绝不会显示为 `VIEW SERVER STATE`。
 
 - **在 Azure SQL Database 上不收集复制信息。** Azure SQL Database 没有 `sys.dm_hadr_database_replica_states`，因此 Replication 组在那里会被跳过，而不是每次检查都报告失败。Azure 自己的副本视图（`sys.dm_database_replica_states`、`sys.dm_geo_replication_link_status`）目前还不读取。
 - **连接按数据库计算。** 使用 `VIEW DATABASE STATE` 时，Azure SQL Database 只显示被监控数据库的会话，所以 Connections 统计的是该数据库，而不是逻辑服务器。请分别监控你关心的每个数据库。

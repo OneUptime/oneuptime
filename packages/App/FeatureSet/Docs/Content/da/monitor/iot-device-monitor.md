@@ -34,7 +34,7 @@ flowchart TB
 ## Før du begynder
 
 - **Få dine enheder til at sende data.** [Vejledningen til IoT-enheder](/docs/telemetry/iot-devices) viser, hvordan du sender metrikker med en OpenTelemetry-SDK eller -Collector, eller over MQTT.
-- **Tjek, at flåden er registreret.** Den vises under **Produkter → Infrastruktur → IoT → All Fleets**, opkaldt efter det `iot.fleet.name`, enhederne sender.
+- **Tjek, at flåden er registreret.** Den vises under **Produkter → Infrastruktur → IoT → Alle flåder**, opkaldt efter det `iot.fleet.name`, enhederne sender.
 - **Registrér de enheder, du forventer**, under flådens **Enhedsregister**, så du får besked, når en bliver tavs: se [Offline-registrering](#offline-registrering).
 
 ## Opret en IoT-enhedsmonitor

@@ -149,7 +149,7 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 
 En innesluten databasanvändare (`CREATE USER oneuptime_health WITH PASSWORD = '...'` i den övervakade databasen, utan inloggning) fungerar med `VIEW DATABASE STATE` från S2 och uppåt, men kan inte gå med i `##MS_ServerStateReader##`: serverroller tar bara inloggningar. För att flytta en innesluten användare till rollen tar du bort den (`DROP USER oneuptime_health;`) och följer satserna ovan.
 
-Proben känner igen Azure SQL Database på `SERVERPROPERTY('EngineEdition')` och inte på versionen — Azure SQL Database rapporterar `12.0.2000.8` vad den än faktiskt kör, vilket läses som SQL Server 2014. Därför visar monitorns **Engine** `Azure SQL Database 12.0.2000.8`, och en saknad behörighet visas som Azure-satsen ovan, aldrig som `VIEW SERVER STATE`.
+Proben känner igen Azure SQL Database på `SERVERPROPERTY('EngineEdition')` och inte på versionen — Azure SQL Database rapporterar `12.0.2000.8` vad den än faktiskt kör, vilket läses som SQL Server 2014. Därför visar monitorns **Motor** `Azure SQL Database 12.0.2000.8`, och en saknad behörighet visas som Azure-satsen ovan, aldrig som `VIEW SERVER STATE`.
 
 - **Replikering samlas inte in på Azure SQL Database.** Azure SQL Database har ingen `sys.dm_hadr_database_replica_states`, så gruppen Replication hoppas över där i stället för att rapporteras som misslyckad vid varje kontroll. Azures egna replikvyer (`sys.dm_database_replica_states`, `sys.dm_geo_replication_link_status`) läses inte ännu.
 - **Anslutningar gäller per databas.** Med `VIEW DATABASE STATE` visar Azure SQL Database bara den övervakade databasens sessioner, så Connections räknar den databasen och inte den logiska servern. Övervaka varje databas som är viktig för dig.
