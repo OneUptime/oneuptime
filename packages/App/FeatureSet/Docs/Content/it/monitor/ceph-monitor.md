@@ -64,7 +64,7 @@ In **Ceph Monitor Configuration**, scegli il cluster da **Cluster Ceph**. Ogni c
 Un nuovo monitor parte da **Cluster Stopped Reporting**, in **Su cosa avvisare**. Per controllare altro:
 
 - **Cambia**: scegli un altro [modello](#modelli-di-avviso-predefiniti). Imposta metriche, filtri, aggregazione, intervallo di tempo e soglie, e sostituisce i criteri sottostanti con i propri. Puoi comunque cambiare l'**Intervallo di tempo**.
-- **Custom Metric** (in **Altri campi**): scegli una metrica da **Ceph Metric**, poi imposta **Aggregazione** e **Intervallo di tempo**. **OSD** e **Pool ID** la limitano a un daemon o a un pool. Una metrica tenuta per pool o per daemon viene giudicata pool per pool o daemon per daemon, con un incidente ciascuno.
+- **Custom Metric** (in **Altri campi**): scegli una metrica da **Ceph Metric**, poi imposta **Aggregazione** e **Intervallo di tempo**. **OSD** e **ID pool** la limitano a un daemon o a un pool. Una metrica tenuta per pool o per daemon viene giudicata pool per pool o daemon per daemon, con un incidente ciascuno.
 - **Avanzato** (in **Altri campi**): costruisci da solo query e formule in **Seleziona metriche**, per esempio un rapporto di capacità usata da `ceph_cluster_total_used_bytes / ceph_cluster_total_bytes`. Usa **Raggruppa per** `ceph_daemon` o `pool_id` per valutare ogni daemon o pool separatamente.
 
 ### Controllare i criteri
@@ -85,7 +85,7 @@ Fai clic su **Crea monitor**. OneUptime apre la pagina del monitor e lo valuta o
 | --- | --- | --- |
 | **Cluster Ceph** | Tutte | Obbligatorio. Limita ogni query a `resource.ceph.cluster.name`. |
 | **OSD** | Custom Metric, Avanzato | Facoltativo. Corrispondenza esatta con l'etichetta `ceph_daemon`, per esempio `osd.3`. |
-| **Pool ID** | Custom Metric, Avanzato | Facoltativo. Corrispondenza esatta con l'etichetta `pool_id`, per esempio `2`. |
+| **ID pool** | Custom Metric, Avanzato | Facoltativo. Corrispondenza esatta con l'etichetta `pool_id`, per esempio `2`. |
 | **Ceph Metric** | Custom Metric | Una metrica del [catalogo](#metriche-raccolte). |
 | **Aggregazione** | Custom Metric | Come vengono combinati i campioni: **Media**, **Massimo** o **Minimo**. Parte dall'aggregazione abituale della metrica. Una somma o un conteggio sommerebbe ogni raccolta di un minuto, quindi sono lasciati ad **Avanzato**. |
 | **Intervallo di tempo** | Tutte | La finestra mobile letta dalla query, da **Past 1 Minute** a **Past 365 Days**. Un nuovo monitor parte da **Past 1 Minute**; i modelli impostano il proprio. |

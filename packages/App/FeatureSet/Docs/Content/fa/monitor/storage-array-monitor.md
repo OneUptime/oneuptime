@@ -32,7 +32,7 @@ flowchart TB
 ## پیش از شروع
 
 - **عامل آرایه ذخیره‌سازی را نصب کنید**، جایی که از راه HTTPS به آرایه دسترسی دارد، با توکن API کاربری که نقش **readonly** آرایه را دارد. [راهنمای عامل آرایه ذخیره‌سازی](/docs/telemetry/storage-arrays) کاربر، توکن و نصب را پوشش می‌دهد، از راه `ONEUPTIME_URL`، `ONEUPTIME_TELEMETRY_INGESTION_KEY`، `STORAGE_ARRAY_NAME`، و نشانی و توکن آرایه (`PURE_FA_ENDPOINT` و `PURE_FA_API_TOKEN`، یا `PURE_FB_ENDPOINT` و `PURE_FB_API_TOKEN`).
-- **بررسی کنید آرایه ثبت شده باشد.** حدود یک دقیقه پس از نخستین خراش، با نام `STORAGE_ARRAY_NAME` عامل زیر **محصولات → زیرساخت → آرایه‌های ذخیره‌سازی → All Storage Arrays** پدیدار می‌شود.
+- **بررسی کنید آرایه ثبت شده باشد.** حدود یک دقیقه پس از نخستین خراش، با نام `STORAGE_ARRAY_NAME` عامل زیر **محصولات → زیرساخت → آرایه‌های ذخیره‌سازی → همه آرایه‌های ذخیره‌سازی** پدیدار می‌شود.
 
 ## ساخت یک مانیتور آرایه ذخیره‌سازی
 
@@ -77,7 +77,7 @@ flowchart TB
 | **حجم** | Custom Metric، پیشرفته | فقط FlashArray. یک حجم، بر پایه برچسب `name`، مانند `vol-db-01`. حجمی که در یک پاد یا یک گروه حجم است `pod::volume` یا `group/volume` نام دارد. |
 | **میزبان** | Custom Metric، پیشرفته | فقط FlashArray. یک میزبان آن‌طور که آرایه می‌شناسدش، بر پایه برچسب `host`، مانند `esxi-01`. |
 | **پاد** | Custom Metric، پیشرفته | فقط FlashArray. یک پاد ActiveCluster یا ActiveDR، بر پایه برچسب `name`، یا `local_pod` روی سری‌های پیوند replica. |
-| **Hardware Component** | Custom Metric، پیشرفته | یک قطعه سخت‌افزاری، مانند `CH0.BAY1` یا `CT0`: برچسب `component_name` روی FlashArray، و `name` روی FlashBlade. |
+| **قطعه سخت‌افزاری** | Custom Metric، پیشرفته | یک قطعه سخت‌افزاری، مانند `CH0.BAY1` یا `CT0`: برچسب `component_name` روی FlashArray، و `name` روی FlashBlade. |
 | **سامانه فایل** | Custom Metric، پیشرفته | فقط FlashBlade. یک سیستم فایل، بر پایه برچسب `name`. |
 | **باکت** | Custom Metric، پیشرفته | فقط FlashBlade. یک باکت ذخیره‌سازی شیء، بر پایه برچسب `name`. |
 | **Storage Array Metric** | Custom Metric | یک متریک از [فهرست](#متریکهای-جمعآوریشده). فرم فیلتر برچسبی را که به آن معنا می‌دهد اضافه می‌کند و آن را بر پایه شیئی که توصیف می‌کند گروه‌بندی می‌کند، پس هر حجم، میزبان یا قطعه جداگانه سنجیده می‌شود. |

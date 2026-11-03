@@ -37,6 +37,11 @@ import { getJestSpyOn } from "../../Spy";
  * turned back on. A reader who may not change connections sees no buttons,
  * and why. A project without a connection gets nothing - or, on a page
  * that shows its flows, one line offering Meraki. The network is replaced.
+ *
+ * And Add devices: how many of the organization's devices are not network
+ * devices here, with Add devices beside them for who may; an ask followed
+ * while it runs, every few seconds, and for a day after what it added and
+ * what it could not, with why.
  */
 
 const NOW: Date = new Date("2026-10-24T12:00:00.000Z");
@@ -89,6 +94,17 @@ jest.mock("../../../UI/Utils/API/API", () => {
   };
 });
 
+jest.mock("../../../../App/FeatureSet/Dashboard/src/Utils/Probe", () => {
+  return {
+    __esModule: true,
+    default: {
+      getAllProbes: async (): Promise<Array<unknown>> => {
+        return [];
+      },
+    },
+  };
+});
+
 jest.mock("../../../UI/Utils/Project", () => {
   return {
     __esModule: true,
@@ -108,12 +124,21 @@ import MerakiConnectionsCard, {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkTraffic/Meraki/MerakiConnectionsCard";
 import NetworkControllerConnection from "../../../Models/DatabaseModels/NetworkControllerConnection";
 import { JSONObject } from "../../../Types/JSON";
+import {
+  NetworkControllerDeviceAddState,
+  NetworkControllerDeviceAddStatus,
+  NETWORK_CONTROLLER_DEVICE_ADD_QUEUED_STALE_MS,
+  NETWORK_CONTROLLER_DEVICE_ADD_STALE_MS,
+  buildQueuedNetworkControllerDeviceAddState,
+  toNetworkControllerDeviceAddStateJson,
+} from "../../../Types/NetworkController/NetworkControllerDeviceAdd";
 import ObjectID from "../../../Types/ObjectID";
 import PermissionGate, {
   ModelAction,
   PermissionGateOptions,
   PermissionGateResult,
 } from "../../../UI/Utils/PermissionGate";
+import { PAGE_ANCHOR_LANDED_ATTRIBUTE } from "../../../UI/Utils/PageAnchor";
 
 function connection(
   id: string,
@@ -171,6 +196,8 @@ let onConnect: MockFunction;
 // What PermissionGate answers, by operation; and the options it was asked with.
 let gates: Record<ModelAction, PermissionGateResult>;
 let gateOptions: Array<PermissionGateOptions | undefined>;
+// What each gate was asked about: the connection, or a network device.
+let gateModels: Array<unknown>;
 
 const LOCKED: string =
   "You do not have permission to update this Meraki connection. You need one of these permissions: Project Owner, Project Admin.";
@@ -266,12 +293,14 @@ beforeEach(() => {
     [ModelAction.Delete]: { isAllowed: true },
   };
   gateOptions = [];
+  gateModels = [];
   getJestSpyOn(PermissionGate, "check").mockImplementation(((
-    _model: unknown,
+    model: unknown,
     action: ModelAction,
     options?: PermissionGateOptions,
   ): PermissionGateResult => {
     gateOptions.push(options);
+    gateModels.push(model);
     return gates[action];
   }) as never);
 });
@@ -638,6 +667,48 @@ describe("the list", () => {
     );
   });
 
+  test("a page opened at the connections - from a device's or a site's page, or a device Meraki has not read - lands on the card", async () => {
+    window.history.pushState(
+      {},
+      "",
+      "/dashboard/p/network-devices/traffic?source=meraki#traffic-meraki-connections",
+    );
+    const scrolled: Array<unknown> = [];
+    Element.prototype.scrollIntoView = function (options?: unknown): void {
+      scrolled.push(options);
+    } as never;
+
+    try {
+      await renderCard();
+      await act(async () => {
+        jest.advanceTimersByTime(50);
+      });
+
+      const card: HTMLElement = screen
+        .getByTestId("meraki-connections")
+        .closest("#traffic-meraki-connections") as HTMLElement;
+      // Marked for a moment, so the eye finds it, and brought into view.
+      expect(card).toHaveAttribute(PAGE_ANCHOR_LANDED_ATTRIBUTE, "true");
+      expect(scrolled.length).toBeGreaterThan(0);
+    } finally {
+      window.history.pushState({}, "", "/");
+      delete (Element.prototype as unknown as Record<string, unknown>)[
+        "scrollIntoView"
+      ];
+    }
+  });
+
+  test("a page opened anywhere else is not moved to the card", async () => {
+    window.history.pushState({}, "", "/dashboard/p/network-devices/traffic");
+    await renderCard();
+
+    const card: HTMLElement = screen
+      .getByTestId("meraki-connections")
+      .closest("#traffic-meraki-connections") as HTMLElement;
+    expect(card).not.toHaveAttribute(PAGE_ANCHOR_LANDED_ATTRIBUTE);
+    window.history.pushState({}, "", "/");
+  });
+
   test("the card is where a line over the traffic sends its Review", async () => {
     await renderCard();
 
@@ -916,9 +987,21 @@ describe("who may do what", () => {
     await renderCard();
 
     expect(gateOptions.length).toBeGreaterThan(0);
-    for (const options of gateOptions) {
-      expect(options).toEqual({ singularName: "Meraki connection" });
-    }
+    gateOptions.forEach(
+      (options: PermissionGateOptions | undefined, index: number) => {
+        // Add devices asks about network devices too, in their own words.
+        if (!(gateModels[index] instanceof NetworkControllerConnection)) {
+          return;
+        }
+
+        expect(options).toEqual({ singularName: "Meraki connection" });
+      },
+    );
+    expect(
+      gateModels.filter((model: unknown): boolean => {
+        return model instanceof NetworkControllerConnection;
+      }).length,
+    ).toBeGreaterThan(0);
   });
 
   test("a reader who may not change connections sees them without buttons, and why in words", async () => {
@@ -993,5 +1076,571 @@ describe("a project without a connection", () => {
 
     expect(screen.queryByTestId("meraki-offer")).toBeNull();
     expect(rows()).toHaveLength(1);
+  });
+});
+
+describe("the organization's devices that are not network devices here", () => {
+  const COUNTS: Array<JSONObject> = [
+    {
+      productType: "switch",
+      addable: 40,
+      withoutAddress: 0,
+      taken: 0,
+      archived: 0,
+    },
+    {
+      productType: "wireless",
+      addable: 70,
+      withoutAddress: 0,
+      taken: 0,
+      archived: 0,
+    },
+    {
+      productType: "appliance",
+      addable: 0,
+      withoutAddress: 8,
+      taken: 0,
+      archived: 0,
+    },
+    {
+      productType: "camera",
+      addable: 12,
+      withoutAddress: 0,
+      taken: 0,
+      archived: 0,
+    },
+  ];
+
+  function counted(
+    id: string,
+    counts: Array<JSONObject> = COUNTS,
+    overrides: Record<string, unknown> = {},
+  ): NetworkControllerConnection {
+    return connection(id, {
+      lastPullResult: {
+        status: "success",
+        organizationName: "Acme Retail",
+        networkCount: 312,
+        applianceCount: 287,
+        requestCount: 245,
+        warnings: [],
+        unaddedDevices: counts,
+      },
+      ...overrides,
+    });
+  }
+
+  function state(
+    overrides: Partial<NetworkControllerDeviceAddState> = {},
+  ): JSONObject {
+    return toNetworkControllerDeviceAddStateJson({
+      ...buildQueuedNetworkControllerDeviceAddState({
+        request: { productTypes: ["switch", "wireless"], groupBySite: true },
+        requestedByUserId: "55555555-5555-4555-8555-555555555555",
+        now: new Date(NOW.getTime() - 60 * 1000),
+      }),
+      ...overrides,
+    });
+  }
+
+  function lines(row: HTMLElement): Array<{ state: string; text: string }> {
+    return within(row)
+      .queryAllByTestId("meraki-connection-device-add")
+      .map((line: HTMLElement) => {
+        return {
+          state: line.getAttribute("data-state") || "",
+          text: line.textContent || "",
+        };
+      });
+  }
+
+  test("a read that counted them says how many of the kinds an ask starts with, with Add devices beside them", async () => {
+    connections = [counted(FIRST_ID)];
+    await renderCard();
+
+    const row: HTMLElement = rows()[0]!;
+    // The switches and access points: cameras are added when someone ticks them.
+    expect(lines(row)).toEqual([
+      {
+        state: "not-added",
+        text: "110 Meraki devices are not network devices here yet.Add devices",
+      },
+    ]);
+
+    fireEvent.click(within(row).getByTestId("meraki-connection-add-devices"));
+    await flush();
+
+    expect(screen.getByTestId("modal-title")).toHaveTextContent(
+      "Add Meraki devices",
+    );
+    expect(screen.getByTestId("meraki-add-devices")).toBeInTheDocument();
+  });
+
+  test("the count follows the kinds the last ask picked", async () => {
+    connections = [
+      counted(FIRST_ID, COUNTS, {
+        lastDeviceAdd: state({
+          status: NetworkControllerDeviceAddStatus.Done,
+          request: { productTypes: ["camera"], groupBySite: true },
+          finishedAt: "2026-10-20T00:00:00.000Z",
+          updatedAt: "2026-10-20T00:00:00.000Z",
+        }),
+      }),
+    ];
+    await renderCard();
+
+    expect(lines(rows()[0]!)[0]!.text).toContain(
+      "12 Meraki devices are not network devices here yet.",
+    );
+  });
+
+  test("one is said in the singular; none, or a read that counted nothing, says nothing", async () => {
+    connections = [
+      counted(FIRST_ID, [{ productType: "switch", addable: 1 }]),
+      counted(SECOND_ID, [{ productType: "appliance", withoutAddress: 3 }]),
+      connection(THIRD_ID),
+    ];
+    await renderCard();
+
+    expect(lines(rows()[0]!)[0]!.text).toContain(
+      "1 Meraki device is not a network device here yet.",
+    );
+    expect(lines(rows()[1]!)).toEqual([]);
+    expect(lines(rows()[2]!)).toEqual([]);
+  });
+
+  test("the row's menu offers Add devices whenever it can be asked for - nothing counted too - and opens the dialog", async () => {
+    connections = [connection(FIRST_ID)];
+    await renderCard();
+
+    await openMenu(rows()[0]!, "Add devices");
+
+    expect(screen.getByTestId("meraki-add-devices")).toBeInTheDocument();
+  });
+
+  test("a connection that is off says nothing of them, and its menu offers no Add devices", async () => {
+    connections = [counted(FIRST_ID, COUNTS, { isEnabled: false })];
+    await renderCard();
+
+    expect(lines(rows()[0]!)).toEqual([]);
+
+    fireEvent.click(within(rows()[0]!).getByTestId("meraki-connection-more"));
+    await flush();
+    expect(screen.queryByText("Add devices")).toBeNull();
+  });
+
+  test("while Meraki refuses its key, the row says how many but offers only Update API key - an ask would fail on that key", async () => {
+    connections = [
+      counted(FIRST_ID, COUNTS, {
+        lastSuccessfulPullAt: new Date("2026-10-24T10:00:00.000Z"),
+        lastError:
+          "Meraki answered the organization with HTTP 401: Invalid API key",
+        lastPullResult: {
+          status: "failed",
+          organizationName: "Acme Retail",
+          networkCount: 312,
+          applianceCount: 287,
+          requestCount: 0,
+          failureKind: "authentication",
+          warnings: [],
+          // The last good read's counts, kept by the read that failed.
+          unaddedDevices: COUNTS,
+        },
+      }),
+    ];
+    await renderCard();
+
+    const row: HTMLElement = rows()[0]!;
+    expect(
+      within(row).getByTestId("meraki-connection-update-key"),
+    ).toBeInTheDocument();
+    expect(lines(row)).toEqual([
+      {
+        state: "not-added",
+        text: "110 Meraki devices are not network devices here yet.",
+      },
+    ]);
+    expect(
+      within(row).queryByTestId("meraki-connection-add-devices"),
+    ).toBeNull();
+
+    fireEvent.click(within(row).getByTestId("meraki-connection-more"));
+    await flush();
+    expect(screen.getByText("Edit")).toBeInTheDocument();
+    expect(screen.queryByText("Add devices")).toBeNull();
+  });
+
+  test("who may not change the connection, or not create network devices, reads how many - and is offered nothing", async () => {
+    gates[ModelAction.Create] = { isAllowed: false };
+    connections = [counted(FIRST_ID)];
+    await renderCard();
+
+    const row: HTMLElement = rows()[0]!;
+    expect(lines(row)[0]!.text).toBe(
+      "110 Meraki devices are not network devices here yet.",
+    );
+    expect(
+      within(row).queryByTestId("meraki-connection-add-devices"),
+    ).toBeNull();
+  });
+
+  test("an ask is followed while it runs, every few seconds, and the list and the page read again once it is done", async () => {
+    connections = [counted(FIRST_ID, COUNTS, { lastDeviceAdd: state() })];
+    await renderCard();
+
+    expect(lines(rows()[0]!)).toEqual([
+      { state: "adding", text: "Adding devices from Meraki…" },
+    ]);
+    // While it runs, there is no second ask to make.
+    fireEvent.click(within(rows()[0]!).getByTestId("meraki-connection-more"));
+    await flush();
+    expect(screen.queryByText("Add devices")).toBeNull();
+
+    getItemMock.mockImplementation(async () => {
+      return counted(FIRST_ID, COUNTS, {
+        lastDeviceAdd: state({
+          status: NetworkControllerDeviceAddStatus.Adding,
+          updatedAt: NOW.toISOString(),
+          toAddCount: 12,
+          addedCount: 3,
+        }),
+      });
+    });
+    await act(async () => {
+      jest.advanceTimersByTime(READ_NOW_POLL_MS);
+    });
+    await flush();
+
+    expect(lines(rows()[0]!)).toEqual([
+      {
+        state: "adding",
+        text: "Adding devices from Meraki: 3 of 12 so far.",
+      },
+    ]);
+    expect(onChanged).not.toHaveBeenCalled();
+
+    const done: JSONObject = state({
+      status: NetworkControllerDeviceAddStatus.Done,
+      updatedAt: NOW.toISOString(),
+      finishedAt: NOW.toISOString(),
+      toAddCount: 12,
+      addedCount: 12,
+    });
+    getItemMock.mockImplementation(async () => {
+      return counted(FIRST_ID, COUNTS, { lastDeviceAdd: done });
+    });
+    connections = [counted(FIRST_ID, COUNTS, { lastDeviceAdd: done })];
+    await act(async () => {
+      jest.advanceTimersByTime(READ_NOW_POLL_MS);
+    });
+    await flush();
+
+    expect(onChanged).toHaveBeenCalledTimes(1);
+    expect(lines(rows()[0]!)[0]!.state).toBe("added");
+    expect(lines(rows()[0]!)[0]!.text).toMatch(
+      /^Added 12 network devices from Meraki /,
+    );
+    // The read's count is older than the ask: not said again until a read counts.
+    expect(
+      lines(rows()[0]!).map((line: { state: string }) => {
+        return line.state;
+      }),
+    ).toEqual(["added"]);
+  });
+
+  test("what an ask did, for a day: the devices and sites it added, and the first few it could not add, with why", async () => {
+    connections = [
+      counted(FIRST_ID, COUNTS, {
+        lastDeviceAdd: state({
+          status: NetworkControllerDeviceAddStatus.Done,
+          updatedAt: "2026-10-24T11:00:00.000Z",
+          finishedAt: "2026-10-24T11:00:00.000Z",
+          toAddCount: 110,
+          addedCount: 105,
+          createdSiteCount: 1,
+          failedCount: 5,
+          failures: [
+            { name: "Core", reason: "Another network device has this name." },
+            {
+              name: "Lobby",
+              reason: "Probe not found or it does not belong to this project.",
+            },
+            { name: "Till", reason: "Something went wrong." },
+            { name: "Back office", reason: "Something went wrong." },
+          ],
+        }),
+      }),
+    ];
+    await renderCard();
+
+    expect(lines(rows()[0]!)).toEqual([
+      {
+        state: "added",
+        text: "Added 105 network devices from Meraki 1 hour ago.",
+      },
+      { state: "sites-added", text: "Added 1 site for their Meraki networks." },
+      {
+        state: "failed-devices",
+        text:
+          "5 devices could not be added:" +
+          "Core: Another network device has this name." +
+          "Lobby: Probe not found or it does not belong to this project." +
+          "Till: Something went wrong.",
+      },
+      // A read came after the ask: what it counted is said again.
+      {
+        state: "not-added",
+        text: "110 Meraki devices are not network devices here yet.Add devices",
+      },
+    ]);
+    expect(
+      within(rows()[0]!)
+        .getAllByTestId("meraki-connection-device-add")[0]!
+        .getAttribute("data-tone"),
+    ).toBe("done");
+
+    /*
+     * Each one read as it is written - the server's English, on a Persian
+     * page too, keeps its full stop at its end - with its name to scan by.
+     */
+    const failures: Array<HTMLElement> = within(
+      within(rows()[0]!).getByTestId("meraki-connection-device-add-failures"),
+    ).getAllByRole("listitem");
+    expect(failures).toHaveLength(3);
+    const isolate: Element | null = failures[0]!.querySelector("bdi");
+    expect(isolate).not.toBeNull();
+    expect(isolate!.getAttribute("dir")).toBe("ltr");
+    expect(isolate!.textContent).toBe(
+      "Core: Another network device has this name.",
+    );
+    expect(isolate!.querySelector("span.font-medium")?.textContent).toBe(
+      "Core",
+    );
+  });
+
+  test("devices left past an ask's limit are said, with Add devices, until a read counts them", async () => {
+    connections = [
+      counted(FIRST_ID, COUNTS, {
+        lastPulledAt: new Date("2026-10-24T11:00:00.000Z"),
+        lastDeviceAdd: state({
+          status: NetworkControllerDeviceAddStatus.Done,
+          updatedAt: "2026-10-24T11:58:00.000Z",
+          finishedAt: "2026-10-24T11:58:00.000Z",
+          toAddCount: 5000,
+          addedCount: 5000,
+          remainingCount: 700,
+        }),
+      }),
+    ];
+    await renderCard();
+
+    expect(
+      lines(rows()[0]!).map((line: { state: string; text: string }) => {
+        return `${line.state}: ${line.text}`;
+      }),
+    ).toEqual([
+      "added: Added 5,000 network devices from Meraki 2 minutes ago.",
+      "remaining: 700 more devices are left to add.Add the rest",
+    ]);
+  });
+
+  test("an ask with nothing to add says so", async () => {
+    connections = [
+      counted(FIRST_ID, [], {
+        lastDeviceAdd: state({
+          status: NetworkControllerDeviceAddStatus.Done,
+          updatedAt: "2026-10-24T11:58:00.000Z",
+          finishedAt: "2026-10-24T11:58:00.000Z",
+        }),
+      }),
+    ];
+    await renderCard();
+
+    expect(lines(rows()[0]!)).toEqual([
+      {
+        state: "nothing-added",
+        text: "Nothing was added 2 minutes ago: every device of the kinds picked is a network device here already.",
+      },
+    ]);
+  });
+
+  test("an ask that failed as a whole says why, in red", async () => {
+    connections = [
+      counted(FIRST_ID, COUNTS, {
+        lastPulledAt: new Date("2026-10-24T11:00:00.000Z"),
+        lastDeviceAdd: state({
+          status: NetworkControllerDeviceAddStatus.Failed,
+          updatedAt: "2026-10-24T11:58:00.000Z",
+          finishedAt: "2026-10-24T11:58:00.000Z",
+          message:
+            "You may not create network devices in this project, so you cannot add Meraki's devices. Ask a project owner or admin.",
+        }),
+      }),
+    ];
+    await renderCard();
+
+    const line: HTMLElement = within(rows()[0]!).getAllByTestId(
+      "meraki-connection-device-add",
+    )[0]!;
+    expect(line).toHaveAttribute("data-tone", "error");
+    expect(line).toHaveTextContent(
+      "Devices could not be added from Meraki: You may not create network devices in this project, so you cannot add Meraki's devices. Ask a project owner or admin.",
+    );
+    // It added nothing before it failed: nothing is said to be added.
+    expect(
+      lines(rows()[0]!).map((each: { state: string }) => {
+        return each.state;
+      }),
+    ).toEqual(["add-failed"]);
+  });
+
+  test("an ask that failed half way says what it added first, then why it stopped", async () => {
+    connections = [
+      counted(FIRST_ID, COUNTS, {
+        lastPulledAt: new Date("2026-10-24T11:00:00.000Z"),
+        lastDeviceAdd: state({
+          status: NetworkControllerDeviceAddStatus.Failed,
+          updatedAt: "2026-10-24T11:58:00.000Z",
+          finishedAt: "2026-10-24T11:58:00.000Z",
+          toAddCount: 110,
+          addedCount: 40,
+          message:
+            "You may not create network devices in this project, so you cannot add Meraki's devices. Ask a project owner or admin.",
+        }),
+      }),
+    ];
+    await renderCard();
+
+    expect(lines(rows()[0]!)).toEqual([
+      {
+        state: "added",
+        text: "Added 40 network devices from Meraki 2 minutes ago.",
+      },
+      {
+        state: "add-failed",
+        text: "Devices could not be added from Meraki: You may not create network devices in this project, so you cannot add Meraki's devices. Ask a project owner or admin.",
+      },
+    ]);
+    expect(
+      within(rows()[0]!)
+        .getAllByTestId("meraki-connection-device-add")
+        .map((each: HTMLElement) => {
+          return each.getAttribute("data-tone");
+        }),
+    ).toEqual(["done", "error"]);
+  });
+
+  test("an ask whose worker was lost says it stopped, with the way to carry on", async () => {
+    connections = [
+      counted(FIRST_ID, COUNTS, {
+        lastDeviceAdd: state({
+          status: NetworkControllerDeviceAddStatus.Adding,
+          updatedAt: new Date(
+            NOW.getTime() - NETWORK_CONTROLLER_DEVICE_ADD_STALE_MS - 1000,
+          ).toISOString(),
+          toAddCount: 12,
+          addedCount: 4,
+        }),
+      }),
+    ];
+    await renderCard();
+
+    // What it added before its worker went quiet, as of its last word.
+    expect(lines(rows()[0]!)).toEqual([
+      {
+        state: "added",
+        text: "Added 4 network devices from Meraki 5 minutes ago.",
+      },
+      {
+        state: "add-stopped",
+        text: "Adding devices from Meraki stopped before it finished.Add the rest",
+      },
+    ]);
+  });
+
+  test("an ask that stopped before it added anything says only that it stopped", async () => {
+    connections = [
+      counted(FIRST_ID, COUNTS, {
+        lastDeviceAdd: state({
+          status: NetworkControllerDeviceAddStatus.Queued,
+          requestedAt: new Date(
+            NOW.getTime() -
+              NETWORK_CONTROLLER_DEVICE_ADD_QUEUED_STALE_MS -
+              1000,
+          ).toISOString(),
+          updatedAt: new Date(
+            NOW.getTime() -
+              NETWORK_CONTROLLER_DEVICE_ADD_QUEUED_STALE_MS -
+              1000,
+          ).toISOString(),
+        }),
+      }),
+    ];
+    await renderCard();
+
+    expect(
+      lines(rows()[0]!).map((each: { state: string }) => {
+        return each.state;
+      }),
+    ).toEqual(["add-stopped"]);
+    // Nothing added, so there is no rest: what it set out to do, again.
+    expect(
+      within(rows()[0]!).getByTestId("meraki-connection-add-devices"),
+    ).toHaveTextContent(/^Add devices$/);
+  });
+
+  test("an ask more than a day old is not said any more", async () => {
+    connections = [
+      counted(FIRST_ID, COUNTS, {
+        lastDeviceAdd: state({
+          status: NetworkControllerDeviceAddStatus.Done,
+          updatedAt: "2026-10-22T11:00:00.000Z",
+          finishedAt: "2026-10-22T11:00:00.000Z",
+          addedCount: 3,
+        }),
+      }),
+    ];
+    await renderCard();
+
+    expect(
+      lines(rows()[0]!).map((line: { state: string }) => {
+        return line.state;
+      }),
+    ).toEqual(["not-added"]);
+  });
+
+  test("once the dialog asks, the row says it is adding at once", async () => {
+    connections = [counted(FIRST_ID)];
+    apiPostMock.mockImplementation(async (request: unknown) => {
+      const data: JSONObject = (request as { data: JSONObject }).data;
+
+      return {
+        data: {
+          lastDeviceAdd: toNetworkControllerDeviceAddStateJson(
+            buildQueuedNetworkControllerDeviceAddState({
+              request: {
+                productTypes: data["productTypes"] as Array<string>,
+                groupBySite: true,
+              },
+              requestedByUserId: "55555555-5555-4555-8555-555555555555",
+              now: NOW,
+            }),
+          ),
+        },
+      };
+    });
+    await renderCard();
+
+    fireEvent.click(
+      within(rows()[0]!).getByTestId("meraki-connection-add-devices"),
+    );
+    await flush();
+    fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+    await flush();
+
+    expect(screen.queryByTestId("meraki-add-devices")).toBeNull();
+    expect(lines(rows()[0]!)).toEqual([
+      { state: "adding", text: "Adding devices from Meraki…" },
+    ]);
   });
 });

@@ -14,7 +14,7 @@ De OneUptime Docker Swarm-agent bewaakt een Docker Swarm-cluster: de nodes, serv
 De agent bestaat uit drie containers, allemaal gedefinieerd in één `docker-compose.yml`:
 
 1. **Collector**: een OpenTelemetry Collector die `docker_stats` leest voor de metrics van elke container, de logbestanden van de containers volgt en het bestand met de inventarissnapshot volgt. Hij stempelt alles met de naam van je cluster (`docker.swarm.cluster.name`), en de metrics van elke taak met de service en node van die taak, en stuurt het via OTLP naar OneUptime.
-2. **Inventarispoller**: een kleine sidecar met `curl` en `jq` die elke 5 minuten de API van de swarmmanager doorloopt (`/nodes`, `/services`, `/tasks`, `/networks`, `/secrets`, `/configs`, `/volumes`) en de stacks afleidt uit het servicelabel `com.docker.stack.namespace`. Hij schrijft één JSON-regel per object, die de collector doorstuurt.
+2. **Inventarispoller**: een kleine sidecar met `curl` en `jq` die elke 5 minuten de API van de swarmmanager doorloopt (`/nodes`, `/services`, `/tasks`, `/networks`, `/secrets`, `/configs`, `/volumes`) en de stacks afleidt uit het servicelabel `com.docker.stack.namespace`. Hij schrijft één JSON-regel per object, die de collector doorstuurt. Elke minuut leest hij ook of elke node gereed is en hoeveel replica's elke service wil en draait, en schrijft dat als metrieken (vanaf versie 0.161.3 van de bestanden van de agent).
 3. **AI-agent**: `oneuptime-docker-swarm-ai-agent`, die de `docker`-commando's uitvoert waar OneUptime AI om vraagt terwijl het een incident of waarschuwing op dit cluster onderzoekt. Hij is alleen-lezen, tenzij je fixes toestaat (zie [AI-agent](#ai-agent)).
 
 ```mermaid title="Drie containers op een managernode"
@@ -124,7 +124,8 @@ De eigen instellingen van de AI-agent staan onder [AI-agent](#ai-agent).
 | Signaal | Bron | Waar het verschijnt |
 | --- | --- | --- |
 | De nodes, services, taken, stacks, netwerken, secrets, configs en volumes | De inventarispoller, uit de API van de swarmmanager | De lijsten en detailpagina's van het cluster |
-| Clustertellingen (nodes gereed, taken actief, services, stacks, …) | Dezelfde snapshot | De kaarten van het overzicht en de badges van het zijmenu |
+| Clustertellingen (nodes gereed, taken actief, services, stacks, …) | Dezelfde snapshot | De telchips van het overzicht en de badges van het zijmenu |
+| Of elke node gereed is en de replica's van elke service, elke minuut | De inventarispoller, als de metrieken `docker.swarm.node.ready`, `docker.swarm.service.replicas.desired` en `docker.swarm.service.replicas.running` | De waarschuwingen Node Not Ready en Service Replicas Mismatch, en de pagina **Metrieken** |
 | CPU, geheugen, aantal processen en uptime van containers | De receiver `docker_stats` | De pagina **Metrieken** |
 | stdout- en stderr-logs van containers | De receiver `filelog` | De pagina **Logboeken** |
 
@@ -133,6 +134,14 @@ De metrics van elke taak dragen de identiteit van zijn container, die de receive
 ### Hoe hij verschilt van de Docker-agent
 
 De [Docker-agent](/docs/telemetry/docker-host) modelleert één host en stempelt `host.name` op alles. De Docker Swarm-agent stempelt `docker.swarm.cluster.name` en nooit `host.name`, en dat is bewust: OneUptime zet de gegevens dan onder het swarmcluster, in plaats van elke node als eigen host te registreren.
+
+## Wat de pagina's van het cluster laten zien
+
+De pagina's van het cluster lezen dezelfde inventaris en beoordelen die volgens de regels van Docker zelf, zoals `docker node ls` en `docker service ls` dat doen, zodat het overzicht, de lijsten en de eigen pagina van een node, service of taak het altijd met elkaar eens zijn:
+
+- **Overzicht**: de gezondheid van de swarm, en **Vraagt aandacht**: wat stuk is of een blik nodig heeft, het dringendste eerst, elk met de reden en de eigen fout van Docker. Een node die offline is, een manager die de andere niet bereiken, een swarm die op het punt staat de meerderheid van zijn managers te verliezen, een service waarvan geen enkele replica draait of die replica's tekortkomt, een rolling update die gepauzeerd of teruggedraaid is, taken die steeds mislukken. Daaronder elke node in één oogopslag.
+- **Knooppunten**, **Services** en **Taken**: de toestand van elke rij in dezelfde woorden en kleuren, met de reden.
+- De eigen pagina van een node, service of taak: wat er een blik nodig heeft, zijn taken, wat er openstaat, de waarschuwingen die hem bewaken met één stap om ze aan te zetten, en wat Docker erover meldt.
 
 ## Het cluster labelen met projectlabels
 
@@ -253,6 +262,10 @@ De naam van het cluster komt uit `DOCKER_SWARM_CLUSTER_NAME`. Wijzig hem in `.en
 
 :::details Taak-CPU is een vlakke lijn
 Een oudere `otel-collector-config.yaml` stuurt het eigen CPU-cijfer van de receiver `docker_stats`. Sinds collector 0.150.0 berekent de receiver dat uit één statistiekmeting: alle CPU die een container sinds zijn start heeft gebruikt, gedeeld door alle CPU die de node sinds het opstarten heeft gebruikt. De lijn beweegt nauwelijks en volgt de belasting niet, terwijl `container.cpu.usage.total` dat wel doet. Zo'n agent meldt versie 0.161.0 of ouder, dus er verschijnt een waarschuwingsteken naast zijn versie: download de bestanden van de agent opnieuw, zoals [De agent upgraden](#de-agent-upgraden) laat zien. Vanaf zijn tweede meting stuurt de collector dan de CPU die elke container in elk interval van 30 seconden heeft gebruikt. Al opgeslagen metingen blijven zoals ze waren.
+:::
+
+:::details De inventaris verandert niet meer
+Bestanden van de agent ouder dan versie 0.161.3 begonnen elke snapshot met dezelfde bytes, zodat de collector de nieuwe snapshot van een rustige swarm aanzag voor een die hij al had gelezen: de lijsten van het cluster veranderden niet meer en raakten 15 minuten na de start van de agent leeg. [Werk de agent bij](#de-agent-upgraden) op de manager waarop de inventarispoller draait.
 :::
 
 ## Volgende stappen

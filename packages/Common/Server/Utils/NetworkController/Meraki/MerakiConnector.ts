@@ -15,6 +15,8 @@ import LlmProviderError from "../../LlmObservability/LlmProviderError";
 import {
   NetworkControllerCallOptions,
   NetworkControllerConnector,
+  NetworkControllerDeviceListing,
+  NetworkControllerListOptions,
   NetworkControllerReadOptions,
   NetworkControllerReadResult,
   NetworkControllerSettings,
@@ -324,5 +326,12 @@ export default class MerakiConnector implements NetworkControllerConnector {
     options: NetworkControllerReadOptions,
   ): Promise<NetworkControllerReadResult> {
     return await MerakiTrafficReader.read(settings, options);
+  }
+
+  public async listDevices(
+    settings: NetworkControllerSettings,
+    options: NetworkControllerListOptions,
+  ): Promise<NetworkControllerDeviceListing> {
+    return await MerakiTrafficReader.listDevices(settings, options);
   }
 }

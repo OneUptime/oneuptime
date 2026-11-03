@@ -133,7 +133,7 @@ De agent stuurt alles wat de mgr-module `prometheus` exporteert. De Ceph-pagina'
 
 | Categorie | Metrics |
 | --- | --- |
-| Clustergezondheid | `ceph_health_status` (0 = OK, 1 = WARN, 2 = ERR), `ceph_health_detail` (één serie per gezondheidscontrole, 1 zolang die actief is en 0 nadat die is opgeheven, met de labels `name` en `severity`, vanaf Quincy; de basis van de waarschuwingssjablonen voor gezondheidscontroles en van de **Active Health Checks** in het overzicht), `ceph_healthcheck_slow_ops`, `ceph_daemon_health_metrics` (per daemon, op `type`), `ceph_mon_quorum_status`, `ceph_mon_metadata`, `ceph_cluster_total_bytes`, `ceph_cluster_total_used_bytes` |
+| Clustergezondheid | `ceph_health_status` (0 = OK, 1 = WARN, 2 = ERR), `ceph_health_detail` (één serie per gezondheidscontrole, 1 zolang die actief is en 0 nadat die is opgeheven, met de labels `name` en `severity`, vanaf Quincy; de basis van de waarschuwingssjablonen voor gezondheidscontroles en van de controles die **Vraagt aandacht** in het overzicht toont), `ceph_healthcheck_slow_ops`, `ceph_daemon_health_metrics` (per daemon, op `type`), `ceph_mon_quorum_status`, `ceph_mon_metadata`, `ceph_cluster_total_bytes`, `ceph_cluster_total_used_bytes` |
 | OSD | `ceph_osd_up`, `ceph_osd_in`, `ceph_osd_apply_latency_ms`, `ceph_osd_commit_latency_ms`, `ceph_osd_stat_bytes`, `ceph_osd_stat_bytes_used`, `ceph_osd_numpg`, `ceph_osd_metadata`, per OSD via het label `ceph_daemon` (zoals `osd.3`) |
 | Pool | `ceph_pool_stored`, `ceph_pool_max_avail`, `ceph_pool_objects`, `ceph_pool_rd`, `ceph_pool_wr`, `ceph_pool_rd_bytes`, `ceph_pool_wr_bytes`, `ceph_pool_metadata`. De dataseries dragen alleen een label `pool_id`; de naam van de pool staat op `ceph_pool_metadata`. |
 | Placement groups | `ceph_pg_total`, `ceph_pg_active`, `ceph_pg_clean`, `ceph_pg_degraded`, `ceph_pg_undersized` (allemaal per pool, op `pool_id`), `ceph_num_objects_degraded`, `ceph_num_objects_misplaced` |
@@ -147,6 +147,19 @@ De mgr-module dekt de gezondheid en capaciteit van het cluster. Voeg voor een na
 - **`node_exporter`.** De gebruikelijke metgezel voor de CPU-, geheugen-, schijf- en netwerkmetrics van elke Ceph-host, standaard op poort `9100`.
 
 Beide krijgen het resource-attribuut `ceph.cluster.name` van de meegeleverde processor `resource`, zodat ze op hetzelfde cluster in OneUptime terechtkomen.
+
+## Wat de pagina's van het cluster tonen
+
+Het **Overzicht** van het cluster noemt zijn gezondheid, **Gezond**, **Verminderd** of **Ongezond**, naar wat aandacht nodig heeft, en somt dat op onder **Vraagt aandacht**, het dringendste eerst:
+
+- **Het cluster zelf.** De eigen `HEALTH_WARN` of `HEALTH_ERR` van Ceph, met de controles die Ceph heeft gemeld zoals Ceph ze noemt, zoals `OSD_DOWN` of `PG_DEGRADED`, en ruwe capaciteit boven 85% (kritiek boven 95%), waar de waarschuwingen Cluster Near Full en Cluster Full afgaan.
+- **OSD's.** Een OSD die offline is maar nog in het cluster zit, is kritiek: zijn placement groups missen een kopie. Een die offline en uit het cluster is, of online maar uit het cluster, moet bekeken worden, net als een boven de nearfull-drempel van Ceph (85%) of de backfillfull-drempel (90%), of met een apply-latentie boven 100 ms. Boven de full-drempel (95%) weigert hij schrijfacties, wat kritiek is.
+- **Monitors.** Een monitor buiten het quorum is kritiek.
+- **Pools.** Een pool boven 85% van zijn beschrijfbare ruimte, stored ÷ (stored + max avail), moet bekeken worden, en boven 95% is hij kritiek. Gedegradeerde of onderbezette placement groups moeten bekeken worden; inactieve, waarvan de I/O blijft hangen, zijn kritiek.
+
+De lijsten **OSD's**, **Pools** en **Daemons** tonen de staat van elk onderdeel volgens dezelfde regels, met de reden eronder. De eigen pagina van een OSD en van een pool zegt wat er aandacht nodig heeft, wat erop open staat en welke waarschuwingen van het cluster hem bewaken, met één stap om de rest aan te zetten. Een manager, metadataserver of object gateway die Ceph niet meer vermeldt, toont **Rapporteert niet meer**, in grijs: Ceph meldt een controle voor een die uitvalt, zoals `RECENT_CRASH` of `MDS_ALL_DOWN`, die de regel van het cluster toont. Zolang de agent niet verbonden is, toont de gezondheid **Gezondheid onbekend**: de laatste melding van het cluster klopt niet meer.
+
+De OSD-drempels zijn de standaardwaarden van Ceph. Een cluster dat anders is ingesteld, meldt zijn eigen controles `OSD_NEARFULL`, `OSD_BACKFILLFULL` en `OSD_FULL` bij zijn eigen grenzen, die de regel van het cluster toont.
 
 ## Optioneel — Het Ceph-clusterlog versturen
 

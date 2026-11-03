@@ -814,8 +814,12 @@ describe("Docker and Podman container detail Logs tab", () => {
     (runtime: string, _hostLabel: string, runtimeSlug: string) => {
       const source: string = readPage(`${runtime}/View/ContainerDetail.tsx`);
 
-      expect(getConstString(source, "CONTAINER_ID_ATTR")).toBe(
-        "resource.container.id",
+      /*
+       * The id the agent files the container's lines under, from the
+       * container's readings and inventory row (ContainerHostReadings).
+       */
+      expect(source).toContain(
+        'const containerId: string = container?.containerId || "";',
       );
       expect(source).toContain(
         `const attributeFilters: Record<string, string> = { "resource.host.name": host?.hostIdentifier || "", "resource.container.runtime": "${runtimeSlug}", };`,
@@ -828,16 +832,15 @@ describe("Docker and Podman container detail Logs tab", () => {
   );
 
   test.each(RUNTIMES)(
-    "%s container overview shows the host's name before its identifier",
+    "%s container page names the host by its name before its identifier",
     (runtime: string) => {
       const source: string = readPage(`${runtime}/View/ContainerDetail.tsx`);
 
       expect(source).toContain(
-        '<InfoCard title="Host" value={host.name || host.hostIdentifier || "—"} />',
+        'const hostName: string = host.name || host.hostIdentifier || "—";',
       );
-      expect(source).not.toContain(
-        '<InfoCard title="Host" value={host.hostIdentifier || "—"} />',
-      );
+      // The hero's "Container on <host>" and the Details card's Host row.
+      expect(source.split("hostName={hostName}").length - 1).toBe(2);
     },
   );
 

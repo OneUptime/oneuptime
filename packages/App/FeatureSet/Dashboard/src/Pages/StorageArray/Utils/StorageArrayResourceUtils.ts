@@ -13,6 +13,7 @@ import {
   StorageArrayMetricDefinition,
   getStorageArrayMetricById,
 } from "Common/Types/Monitor/StorageArrayMetricCatalog";
+import { formatStorageArrayLag } from "./StorageArrayHealth";
 
 /*
  * Shared helpers for the Storage Array list/detail pages. The pages read
@@ -216,23 +217,16 @@ export function formatLatencyUsec(value: number | null | undefined): string {
   return `${(value / 1000).toFixed(value >= 100_000 ? 0 : 2)} ms`;
 }
 
-// Replication lag arrives in milliseconds.
+/*
+ * Replication lag arrives in milliseconds: "1 min 35 s", as the reason
+ * under a pod's state says it (formatStorageArrayLag), never "1.6 min" in
+ * the column beside it.
+ */
 export function formatDurationMs(value: number | null | undefined): string {
   if (value === null || value === undefined || !Number.isFinite(value)) {
     return "—";
   }
-  if (value < 1000) {
-    return `${Math.round(value)} ms`;
-  }
-  const seconds: number = value / 1000;
-  if (seconds < 60) {
-    return `${seconds.toFixed(1)} s`;
-  }
-  const minutes: number = seconds / 60;
-  if (minutes < 60) {
-    return `${minutes.toFixed(1)} min`;
-  }
-  return `${(minutes / 60).toFixed(1)} h`;
+  return formatStorageArrayLag(value);
 }
 
 // Data reduction as Pure writes it: 4.2 -> "4.2:1".
@@ -497,6 +491,13 @@ export function buildCatalogQuery(data: {
   objectFilters?: Record<string, string> | undefined;
   groupByAttributeKeys?: Array<string> | undefined;
   legend?: string | undefined;
+  /*
+   * A chart's own title and description, where a page says the chart in
+   * words of its own rather than the catalog's metric (a key of the
+   * Dashboard's locales, looked up where the chart is drawn).
+   */
+  title?: string | undefined;
+  description?: string | undefined;
   overlayWithPreviousQuery?: boolean | undefined;
 }): MetricQueryConfigData | undefined {
   const metric: StorageArrayMetricDefinition | undefined =
@@ -509,8 +510,8 @@ export function buildCatalogQuery(data: {
   return {
     metricAliasData: {
       metricVariable: metric.id.replace(/-/g, "_"),
-      title: metric.friendlyName,
-      description: metric.description,
+      title: data.title || metric.friendlyName,
+      description: data.description || metric.description,
       legend: data.legend || metric.friendlyName,
       legendUnit: getChartUnit(metric.unit),
     },

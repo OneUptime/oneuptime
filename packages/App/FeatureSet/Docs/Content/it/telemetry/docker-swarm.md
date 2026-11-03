@@ -14,7 +14,7 @@ L'agent Docker Swarm di OneUptime monitora un cluster Docker Swarm: i suoi nodi,
 L'agent è composto da tre container, tutti definiti in un unico `docker-compose.yml`:
 
 1. **Collector**: un OpenTelemetry Collector che legge `docker_stats` per le metriche di ogni container, segue i file di log dei container e segue il file con lo snapshot dell'inventario. Applica a tutto il nome del tuo cluster (`docker.swarm.cluster.name`), e alle metriche di ogni task il suo servizio e il suo nodo, poi invia tutto a OneUptime tramite OTLP.
-2. **Poller dell'inventario**: un piccolo sidecar con `curl` e `jq` che ogni 5 minuti percorre l'API del manager dello swarm (`/nodes`, `/services`, `/tasks`, `/networks`, `/secrets`, `/configs`, `/volumes`) e ricava gli stack dall'etichetta di servizio `com.docker.stack.namespace`. Scrive una riga JSON per oggetto, che il collector inoltra.
+2. **Poller dell'inventario**: un piccolo sidecar con `curl` e `jq` che ogni 5 minuti percorre l'API del manager dello swarm (`/nodes`, `/services`, `/tasks`, `/networks`, `/secrets`, `/configs`, `/volumes`) e ricava gli stack dall'etichetta di servizio `com.docker.stack.namespace`. Scrive una riga JSON per oggetto, che il collector inoltra. Ogni minuto legge anche se ogni nodo è pronto e quante repliche ogni servizio vuole ed esegue, e le scrive come metriche (dalla versione 0.161.3 dei file dell'agente).
 3. **Agente IA**: `oneuptime-docker-swarm-ai-agent`, che esegue i comandi `docker` richiesti da OneUptime AI mentre indaga su un incidente o un avviso in questo cluster. È in sola lettura a meno che tu non consenta le correzioni (vedi [Agente IA](#agente-ia)).
 
 ```mermaid title="Tre container su un nodo manager"
@@ -124,7 +124,8 @@ Le impostazioni proprie dell'agente IA sono in [Agente IA](#agente-ia).
 | Segnale | Origine | Dove compare |
 | --- | --- | --- |
 | I nodi, servizi, task, stack, reti, secret, config e volumi | Il poller dell'inventario, dall'API del manager dello swarm | Gli elenchi e le pagine di dettaglio del cluster |
-| Conteggi del cluster (nodi pronti, task in esecuzione, servizi, stack, …) | Lo stesso snapshot | Le schede della panoramica e i badge del menu laterale |
+| Conteggi del cluster (nodi pronti, task in esecuzione, servizi, stack, …) | Lo stesso snapshot | I chip dei conteggi della panoramica e i badge del menu laterale |
+| Se ogni nodo è pronto e le repliche di ogni servizio, ogni minuto | Il poller dell'inventario, come le metriche `docker.swarm.node.ready`, `docker.swarm.service.replicas.desired` e `docker.swarm.service.replicas.running` | Gli avvisi Node Not Ready e Service Replicas Mismatch, e la pagina **Metriche** |
 | CPU, memoria, numero di processi e uptime dei container | Il receiver `docker_stats` | La pagina **Metriche** |
 | Log stdout e stderr dei container | Il receiver `filelog` | La pagina **Registri** |
 
@@ -133,6 +134,14 @@ Le metriche di ogni task portano l'identità del suo container, che aggiunge il 
 ### In cosa differisce dall'agent Docker
 
 L'[agent Docker](/docs/telemetry/docker-host) modella un singolo host e applica `host.name` a tutto. L'agent Docker Swarm applica `docker.swarm.cluster.name` e mai `host.name`, di proposito: così OneUptime archivia i dati sotto il cluster swarm, invece di registrare ogni nodo come un host a sé.
+
+## Cosa mostrano le pagine del cluster
+
+Le pagine del cluster leggono lo stesso inventario e lo giudicano con le regole di Docker stesso, come fanno `docker node ls` e `docker service ls`, così la panoramica, gli elenchi e la pagina di un nodo, di un servizio o di un task sono sempre d'accordo:
+
+- **Panoramica**: la salute dello swarm, e **Richiede attenzione**: cosa è rotto o va controllato, il più urgente per primo, ciascuno con il motivo e l'errore di Docker stesso. Un nodo inattivo, un manager che gli altri non raggiungono, uno swarm sul punto di perdere la maggioranza dei suoi manager, un servizio senza nessuna replica in esecuzione o a cui mancano repliche, un aggiornamento progressivo in pausa o annullato, task che falliscono di continuo. Sotto, ogni nodo a colpo d'occhio.
+- **Nodi**, **Servizi** e **Attività**: lo stato di ogni riga con le stesse parole e gli stessi colori, con il motivo.
+- La pagina di un nodo, di un servizio o di un task: cosa va controllato, i suoi task, cosa è aperto al riguardo, gli avvisi che lo sorvegliano con un passo per attivarli, e cosa ne riporta Docker.
 
 ## Etichettare il cluster con le etichette di progetto
 
@@ -253,6 +262,10 @@ Il nome del cluster viene da `DOCKER_SWARM_CLUSTER_NAME`. Cambialo in `.env` ed 
 
 :::details La CPU dei task è una linea piatta
 Un `otel-collector-config.yaml` più vecchio invia il valore di CPU calcolato dal receiver `docker_stats` stesso. Dal collector 0.150.0 il receiver lo ricava da una sola lettura delle statistiche: tutta la CPU usata da un container dal suo avvio, divisa per tutta la CPU usata dal nodo dal suo boot. La linea si muove appena e non segue il carico, mentre `container.cpu.usage.total` sì. Un agent così riporta la versione 0.161.0 o precedente, quindi compare un segnale di avviso accanto alla sua versione: scarica di nuovo i file dell'agent come mostra [Aggiornare l'agent](#aggiornare-lagent). Dalla sua seconda lettura in poi il collector invia allora la CPU usata da ogni container in ogni intervallo di 30 secondi. Le letture già salvate restano com'erano.
+:::
+
+:::details L'inventario smette di cambiare
+I file dell'agente precedenti alla versione 0.161.3 iniziavano ogni snapshot con gli stessi byte, così il collector scambiava il nuovo snapshot di uno swarm tranquillo per uno già letto: gli elenchi del cluster smettevano di cambiare e si svuotavano 15 minuti dopo l'avvio dell'agente. [Aggiornate l'agente](#aggiornare-lagent) sul manager su cui gira il poller dell'inventario.
 :::
 
 ## Passaggi successivi

@@ -1,5 +1,9 @@
 import { JSONObject } from "../JSON";
 import { LlmConnectionFailureKind } from "../LlmObservability/LlmConnectionTest";
+import {
+  NetworkControllerUnaddedDeviceCount,
+  readNetworkControllerUnaddedDeviceCounts,
+} from "./NetworkControllerDeviceAdd";
 
 /*
  * What the last read of a network controller connection found, kept on the
@@ -50,6 +54,14 @@ export interface NetworkControllerReadSummary {
   unplacedDeviceCount?: number | undefined;
   // Devices in OneUptime whose links the last read of any links recorded.
   linkedDeviceCount?: number | undefined;
+  /*
+   * The organization's devices that are no network device in OneUptime, by
+   * kind, with how many of them Add devices can add and why it cannot add
+   * the rest (NetworkControllerDeviceAdd). Absent from a summary written
+   * before a connection could add its devices, and from a read whose device
+   * details could not be recorded.
+   */
+  unaddedDevices?: Array<NetworkControllerUnaddedDeviceCount> | undefined;
   // Uplink windows this read stored, and the end of the newest (ISO).
   uplinkWindows: number;
   newestUplinkAt?: string | undefined;
@@ -132,6 +144,13 @@ export function readNetworkControllerReadSummary(
       : {}),
     ...(summary["linkedDeviceCount"] !== undefined
       ? { linkedDeviceCount: readNumber(summary["linkedDeviceCount"]) }
+      : {}),
+    ...(Array.isArray(summary["unaddedDevices"])
+      ? {
+          unaddedDevices: readNetworkControllerUnaddedDeviceCounts(
+            summary["unaddedDevices"],
+          ),
+        }
       : {}),
     uplinkWindows: readNumber(summary["uplinkWindows"]),
     ...(newestUplinkAt ? { newestUplinkAt: newestUplinkAt } : {}),

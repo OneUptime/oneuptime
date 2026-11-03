@@ -3,6 +3,7 @@ import CephCluster from "../../../Models/DatabaseModels/CephCluster";
 import StorageArray from "../../../Models/DatabaseModels/StorageArray";
 import CloudResource from "../../../Models/DatabaseModels/CloudResource";
 import DatabaseServer from "../../../Models/DatabaseModels/DatabaseServer";
+import DataStore from "../../../Models/DatabaseModels/DataStore";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DockerHost from "../../../Models/DatabaseModels/DockerHost";
 import DockerSwarmCluster from "../../../Models/DatabaseModels/DockerSwarmCluster";
@@ -149,6 +150,12 @@ export const TELEMETRY_ENTITY_TYPES: Record<
     modelType: DatabaseServer,
     nameFields: ["name"],
   },
+  // Data Observability's table health rows: the data store whose tables they describe.
+  [ServiceType.DataStore]: {
+    label: "Data Store",
+    modelType: DataStore,
+    nameFields: ["name"],
+  },
   [ServiceType.NetworkDevice]: {
     label: "Network Device",
     modelType: NetworkDevice,
@@ -203,6 +210,7 @@ export const TELEMETRY_ENTITY_RESOLUTION_ORDER: Array<ServiceType> = [
   ServiceType.ServerlessFunction,
   ServiceType.CloudResource,
   ServiceType.DatabaseServer,
+  ServiceType.DataStore,
   ServiceType.IoTDevice,
   ServiceType.ProxmoxCluster,
   ServiceType.CephCluster,

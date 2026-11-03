@@ -715,6 +715,9 @@ import DataSecurityResidencyRuleService, {
 import DataSecuritySettingService, {
   Service as DataSecuritySettingServiceType,
 } from "Common/Server/Services/DataSecuritySettingService";
+import DataAssetFeedService, {
+  Service as DataAssetFeedServiceType,
+} from "Common/Server/Services/DataAssetFeedService";
 import SecurityEntityCriticalityService, {
   Service as SecurityEntityCriticalityServiceType,
 } from "Common/Server/Services/SecurityEntityCriticalityService";
@@ -1757,6 +1760,7 @@ import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
 import SecurityProtectedEntity from "Common/Models/DatabaseModels/SecurityProtectedEntity";
 import SecurityEntityRisk from "Common/Models/DatabaseModels/SecurityEntityRisk";
 import DataSecurityAPI from "Common/Server/API/DataSecurityAPI";
+import DataObservabilityAPI from "Common/Server/API/DataObservabilityAPI";
 import DataStoreFinding from "Common/Models/DatabaseModels/DataStoreFinding";
 import DataStoreAccess from "Common/Models/DatabaseModels/DataStoreAccess";
 import DataStoreFeed from "Common/Models/DatabaseModels/DataStoreFeed";
@@ -1773,6 +1777,7 @@ import DataSecurityCustomDataType from "Common/Models/DatabaseModels/DataSecurit
 import DataSecurityCheckSetting from "Common/Models/DatabaseModels/DataSecurityCheckSetting";
 import DataSecurityResidencyRule from "Common/Models/DatabaseModels/DataSecurityResidencyRule";
 import DataSecuritySetting from "Common/Models/DatabaseModels/DataSecuritySetting";
+import DataAssetFeed from "Common/Models/DatabaseModels/DataAssetFeed";
 import SecurityEntityCriticality from "Common/Models/DatabaseModels/SecurityEntityCriticality";
 import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePriority";
 import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus";
@@ -4466,6 +4471,20 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<DataSecuritySetting, DataSecuritySettingServiceType>(
         DataSecuritySetting,
         DataSecuritySettingService,
+      ).getRouter(),
+    );
+
+    // Data Observability: the tables of connected stores (with the product's own routes) and their timelines.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new DataObservabilityAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DataAssetFeed, DataAssetFeedServiceType>(
+        DataAssetFeed,
+        DataAssetFeedService,
       ).getRouter(),
     );
 

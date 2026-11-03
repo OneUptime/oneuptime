@@ -125,6 +125,7 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/ResourceHeroLayout";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import DockerSwarmCluster from "../../../Models/DatabaseModels/DockerSwarmCluster";
+import { DOCKER_SWARM_AGENT_VERSION } from "../../../../App/FeatureSet/Dashboard/src/Components/AgentVersion/AgentKind";
 
 const PAGE_PROPS: PageComponentProps = {} as PageComponentProps;
 
@@ -321,11 +322,11 @@ describe("the Docker Swarm Overview's hero", () => {
   });
 
   test("an agent with this release's files: the plain chip, under the top row too", async () => {
-    const { topRow } = await renderOverview("0.161.2");
+    const { topRow } = await renderOverview(DOCKER_SWARM_AGENT_VERSION);
 
     expect(screen.queryByTestId("agent-version-outdated")).toBeNull();
     const chip: HTMLElement = screen.getByTestId("agent-version-chip");
-    expect(chip).toHaveTextContent("Agent 0.161.2");
+    expect(chip).toHaveTextContent(`Agent ${DOCKER_SWARM_AGENT_VERSION}`);
     expect(topRow.contains(chip)).toBe(false);
   });
 });

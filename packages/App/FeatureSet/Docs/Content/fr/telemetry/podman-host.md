@@ -154,6 +154,16 @@ Les métriques et les journaux de chaque conteneur sont classés sous un service
 
 [Surveillance Podman](/docs/monitor/podman-monitor#métriques-collectées) liste chaque métrique et sa signification.
 
+## Ce que montrent les pages de l'hôte
+
+Les pages de l'hôte jugent chaque conteneur selon les mêmes règles, si bien que la vue d'ensemble, la liste des conteneurs et la page d'un conteneur sont toujours d'accord :
+
+- **Vue d'ensemble** : l'état de l'hôte à côté de sa connexion, et **Attention requise** : les conteneurs en panne ou qui méritent un coup d'œil, les plus urgents en premier, chacun avec la raison. Un conteneur que sa politique de redémarrage a redémarré plus de 3 fois en 15 minutes est dans une boucle de redémarrage ; un conteneur qui a redémarré, utilise plus de 85 % de sa mémoire ou a tourné 10 minutes ou plus puis a cessé de remonter des données mérite un coup d'œil.
+- **Conteneurs** : l'état de chaque conteneur avec les mêmes mots et les mêmes couleurs, avec la raison, ses redémarrages des 15 dernières minutes et son dernier démarrage. Un conteneur arrêté reste dans la liste 15 minutes après sa dernière mesure : **A cessé de remonter des données** pour un conteneur qui a tourné 10 minutes ou plus, **Ne remonte plus de données** en gris pour une tâche ou une exécution ponctuelle terminée.
+- La page d'un conteneur : ce qui, sur lui, mérite un coup d'œil, son CPU, sa mémoire et ses redémarrages, ce qui est ouvert sur lui, les alertes de conteneur avec une étape pour les activer, et ce que l'agent signale sur lui.
+
+L'agent ne lit que les conteneurs en cours d'exécution : un conteneur déjà arrêté au démarrage de l'agent, un code de sortie et le verdict d'un contrôle de santé n'apparaissent donc pas.
+
 ## Les journaux de conteneurs nécessitent le pilote k8s-file
 
 L'agent suit `/var/lib/containers/storage/overlay-containers/*/userdata/ctr.log`, les fichiers qu'écrit le pilote de journalisation `k8s-file` de Podman (`json-file` est le même pilote dans Podman). Le pilote par défaut de Podman en mode root est `journald`, qui ne laisse aucun fichier à lire, tout comme un pilote distant tel que `syslog`. Les métriques d'un tel conteneur arrivent toujours ; ses journaux, non.
