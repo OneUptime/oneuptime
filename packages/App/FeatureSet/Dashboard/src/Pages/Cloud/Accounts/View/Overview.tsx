@@ -16,6 +16,8 @@ import RankedBars, {
   RankedBarItem,
 } from "../../../../Components/SecurityOverview/RankedBars";
 import CloudAiAgentCard from "../../../../Components/Cloud/CloudAiAgentCard";
+import CloudAttentionCard from "../../../../Components/Cloud/CloudAttentionCard";
+import { getCloudAccountResourcesQuery } from "../../../../Components/Cloud/CloudAccountScope";
 import { readCloudProvider } from "../../../../Components/Cloud/CloudAiAgentSetup";
 import ChangeEvent from "Common/Models/AnalyticsModels/ChangeEvent";
 import CloudAccount from "Common/Models/DatabaseModels/CloudAccount";
@@ -248,6 +250,7 @@ const CloudAccountOverview: FunctionComponent<
   }
 
   const provider: string = (account.provider as string) || "";
+  const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
   const cloudProvider: CloudProvider | null = readCloudProvider(provider);
   const summary: CloudAccountResourceSummary = readCloudAccountResourceSummary(
     account.resourceSummary,
@@ -385,6 +388,24 @@ const CloudAccountOverview: FunctionComponent<
         settingsRoute={populate(PageMap.CLOUD_ACCOUNT_VIEW_SETTINGS)}
         labels={account.labels}
       />
+
+      {/*
+       * What needs someone in the account now: its resources whose key
+       * metrics show something wrong, the most urgent first. Nothing is
+       * drawn while nothing does.
+       */}
+      {projectId ? (
+        <CloudAttentionCard
+          testId="cloud-account-attention"
+          query={getCloudAccountResourcesQuery({
+            projectId,
+            provider,
+            accountId: (account.accountId as string) || "",
+          })}
+        />
+      ) : (
+        <></>
+      )}
 
       {/*
        * What it holds, side by side while the page is wide enough: a short

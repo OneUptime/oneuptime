@@ -45,6 +45,22 @@ import ResourceActivityCards from "../../../Components/ResourceActivity/Resource
 import CloudResourceInventoryCards from "../../../Components/Cloud/CloudResourceInventoryCards";
 import ResourceSecurityCard from "../../../Components/SecurityConnections/ResourceSecurityCard";
 import { SecurityConnectionKind } from "Common/Types/SecurityCase/SecurityConnection";
+import {
+  CloudHealthAssessment,
+  CloudHealthState,
+  assessCloudResourceHealth,
+  readCloudResourceReadings,
+} from "Common/Types/Cloud/CloudResourceHealth";
+import {
+  CloudHeadlineTile,
+  getCloudHeadlineTiles,
+} from "../../../Components/Cloud/CloudHeadlineTiles";
+import {
+  CLOUD_RESOURCE_ATTENTION_CURRENT,
+  getCloudResourceOwnAttentionItems,
+} from "../../../Components/Cloud/CloudResourceAttention";
+import NeedsAttentionCard from "../../../Components/ResourcePart/NeedsAttentionCard";
+import { ResourceOverviewTile } from "../../../Components/TelemetryResource/ResourceOverview";
 
 /*
  * The Overview of a Cloud Resource - one a cloud connection lists from its
@@ -55,9 +71,39 @@ import { SecurityConnectionKind } from "Common/Types/SecurityCase/SecurityConnec
  * every metric the provider reports about it, each one a click away from
  * the explorer and from "Create monitor from this view".
  *
- * There are no golden-metric tiles: a resource is any of a hundred types,
- * each with its own metrics, and the list below is what this one reports.
+ * Its health leads: the hero's pill says how it is by its type's rules
+ * (CloudResourceHealth) - Healthy, Degraded, Unhealthy, Reporting or Not
+ * reporting - "This resource" under it says why when it needs attention,
+ * and for the common types the tiles show the few numbers people read
+ * first (CloudHeadlineTiles), all from what the last read kept on the
+ * resource. A type with no headline numbers has no tiles: the Metrics card
+ * lists everything it reports.
  */
+
+/*
+ * What the hero's pill says it is judged by, in each state: on hover, so a
+ * "Reporting" never reads as an all-clear the rules did not give.
+ */
+export const CLOUD_RESOURCE_STATUS_DESCRIPTIONS: Record<
+  CloudHealthState,
+  string
+> = {
+  healthy: translationKey(
+    "Its cloud connection's last read found nothing wrong in its key metrics.",
+  ),
+  degraded: translationKey(
+    "Its key metrics show something that needs a look. The reasons are below.",
+  ),
+  unhealthy: translationKey(
+    "Its key metrics show it broken, or about to be. The reasons are below.",
+  ),
+  reporting: translationKey(
+    "Reporting while its cloud connection listed it, or its provider sent a metric about it, within the last hour. No rule judges its type, or no key metric was read lately.",
+  ),
+  "not-reporting": translationKey(
+    "Not listed by its cloud connection, and no metric about it, for over an hour. One its account no longer lists, or silent for a week, is archived.",
+  ),
+};
 
 // The monitoring API a provider's resources are discovered from.
 const MONITORING_SOURCE_BY_PROVIDER: Readonly<Record<string, string>> = {
@@ -110,6 +156,9 @@ const CloudMonitoredResourceOverview: FunctionComponent<
           cloudEndpoints: true,
           inventoriedAt: true,
           otelCollectorStatus: true,
+          cloudReadings: true,
+          cloudReadingsAt: true,
+          healthSeverity: true,
           lastSeenAt: true,
           createdAt: true,
           cloudConnectionId: true,
@@ -171,7 +220,24 @@ const CloudMonitoredResourceOverview: FunctionComponent<
   const typeLabel: string = getCloudResourceTypeLabel(provider, type);
   const descriptor: CloudResourceTypeDescriptor | null =
     getCloudResourceTypeDescriptor(provider, type);
-  const isReporting: boolean = r.otelCollectorStatus === "connected";
+  const now: Date = OneUptimeDate.getCurrentDate();
+  const health: CloudHealthAssessment = assessCloudResourceHealth(r, { now });
+  const headlineTiles: Array<ResourceOverviewTile> = getCloudHeadlineTiles({
+    provider,
+    type,
+    readings: readCloudResourceReadings(r.cloudReadings),
+    hasFreshReadings: health.hasFreshReadings && health.isReporting,
+    translator,
+  }).map((tile: CloudHeadlineTile): ResourceOverviewTile => {
+    return {
+      title: tile.title,
+      value: tile.value,
+      sublabel: tile.sublabel,
+      percent: tile.percent,
+      icon: tile.icon,
+      iconColor: tile.iconColor,
+    };
+  });
   const hasNoMetrics: boolean =
     isInventoryOnlyCloudResourceType(provider, type) &&
     Object.keys(attributeFilters).length === 0;
@@ -293,13 +359,17 @@ const CloudMonitoredResourceOverview: FunctionComponent<
         identifier={typeLabel}
         identifierLabel="type"
         status={r.otelCollectorStatus}
-        statusLabel={isReporting ? "Reporting" : "Not reporting"}
-        statusTone={isReporting ? "positive" : "neutral"}
-        statusDescription="Reporting while its cloud connection listed it, or its provider sent a metric about it, within the last hour. One its account no longer lists, or silent for a week, is archived."
+        statusLabel={health.status.text}
+        statusTone={health.tone}
+        statusDescription={
+          translator.translateText(
+            CLOUD_RESOURCE_STATUS_DESCRIPTIONS[health.state],
+          ) || CLOUD_RESOURCE_STATUS_DESCRIPTIONS[health.state]
+        }
         lastSeenAt={r.lastSeenAt}
         description={r.description as string}
         chips={chips}
-        tiles={[]}
+        tiles={headlineTiles}
         detailRows={detailRows}
         detailsDescription={translationKey(
           "What its cloud says it is, where it is, and how OneUptime reads it.",
@@ -307,6 +377,17 @@ const CloudMonitoredResourceOverview: FunctionComponent<
         recordId={modelId.toString()}
         settingsRoute={populate(PageMap.CLOUD_RESOURCE_VIEW_SETTINGS)}
         labels={r.labels}
+      />
+
+      {/*
+       * Why it needs attention, when it does: "This resource" and its
+       * reasons, the same rows the Overview's Needs attention lists.
+       */}
+      <NeedsAttentionCard
+        testId="cloud-resource-attention"
+        items={getCloudResourceOwnAttentionItems({ resource: r, now })}
+        current={CLOUD_RESOURCE_ATTENTION_CURRENT}
+        showKind={false}
       />
 
       <div className="mt-6">

@@ -24,6 +24,7 @@ import CloudConnectionLanes, {
 } from "./CloudConnectionLanes";
 import CloudConnectionScheduler from "./CloudConnectionScheduler";
 import CloudConnectorRegistry from "./CloudConnectorRegistry";
+import CloudResourceReadingsWriter from "./CloudResourceReadings";
 import {
   CloudConnectionPullState,
   CloudConnectionSettings,
@@ -52,7 +53,9 @@ import {
  *   5. on their own slower beat, lists every resource of the accounts (the
  *      inventory) and keeps the connection's cloud accounts
  *      (CloudConnectionLanes);
- *   6. records the outcome on the connection: when it read, what it found,
+ *   6. keeps, on each resource, the newest of the metrics that say whether
+ *      it is well, and what its rules find in them (CloudResourceReadings);
+ *   7. records the outcome on the connection: when it read, what it found,
  *      the error (secrets removed), where it got to and when it reads next.
  *
  * A failure never escapes as anything but a recorded outcome, and the
@@ -301,6 +304,18 @@ export default class CloudConnectionPullRunner {
           inventory.ran ||
           synced.newResources > 0 ||
           synced.archivedResources > 0,
+      });
+
+      /*
+       * What each resource's newest metrics say of it - its readings and
+       * the severity of what its rules find - once every resource of this
+       * read has its row.
+       */
+      await CloudResourceReadingsWriter.writeFromPayloads({
+        projectId: connection.projectId,
+        connectionId: connection.id!,
+        payloads: read.payloads,
+        writtenAt: now,
       });
 
       // What the connection holds after the last sync of this read.

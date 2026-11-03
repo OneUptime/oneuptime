@@ -12,6 +12,7 @@ import CloudConnectionResourceSync, {
 } from "../../../../Server/Utils/CloudConnection/CloudConnectionResourceSync";
 import CloudConnectionLanes from "../../../../Server/Utils/CloudConnection/CloudConnectionLanes";
 import CloudConnectorRegistry from "../../../../Server/Utils/CloudConnection/CloudConnectorRegistry";
+import CloudResourceReadingsWriter from "../../../../Server/Utils/CloudConnection/CloudResourceReadings";
 import {
   CloudConnectionSettings,
   CloudConnector,
@@ -547,5 +548,52 @@ describe("when the next read comes", () => {
     ).toEqual({
       accounts: ["a"],
     });
+  });
+});
+
+describe("each resource's readings", () => {
+  test("are written from the read's own payloads, after its metrics are imported", async () => {
+    const written: Array<JSONObject> = [];
+    jest
+      .spyOn(CloudResourceReadingsWriter, "writeFromPayloads")
+      .mockImplementation((async (data: JSONObject) => {
+        order.push("readings");
+        written.push(data);
+        return { written: 1, needingAttention: 0, cleared: 0 };
+      }) as never);
+
+    const payloads: Array<JSONObject> = [
+      { resourceMetrics: [{ resource: { attributes: [] } }] },
+    ];
+    readResult = async () => {
+      return result({ payloads });
+    };
+
+    const outcome: CloudConnectionPullOutcome = await run();
+
+    expect(outcome.status).toBe("success");
+    expect(order).toEqual(["sync", "import", "readings"]);
+    expect(written).toEqual([
+      {
+        projectId: PROJECT,
+        connectionId: CONNECTION,
+        payloads,
+        writtenAt: NOW,
+      },
+    ]);
+  });
+
+  test("a read that fails writes none", async () => {
+    const writeFromPayloads: jest.SpiedFunction<
+      typeof CloudResourceReadingsWriter.writeFromPayloads
+    > = jest.spyOn(CloudResourceReadingsWriter, "writeFromPayloads");
+    readResult = async () => {
+      throw new Error("throttled");
+    };
+
+    const outcome: CloudConnectionPullOutcome = await run();
+
+    expect(outcome.status).toBe("failed");
+    expect(writeFromPayloads).not.toHaveBeenCalled();
   });
 });
