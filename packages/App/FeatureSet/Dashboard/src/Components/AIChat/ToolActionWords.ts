@@ -208,6 +208,20 @@ export const ACTION_ARGUMENT_LABELS: { [key: string]: string } = {
 };
 
 /*
+ * An argument a tool names otherwise: a public status update's `note` is
+ * the update itself, which the status page shows - beside a private note
+ * on the same card, two rows read "Note:" - and the card it leaves names
+ * it "Status update" too.
+ */
+export const TOOL_ARGUMENT_LABELS: {
+  [toolName: string]: { [key: string]: string };
+} = {
+  post_incident_status_update: {
+    note: translationKey("Status update"),
+  },
+};
+
+/*
  * How long a value may be before it is cut. The card shows each argument
  * on a few lines of its own (ToolApprovalCard); this only bounds what a
  * screen reader reads of a very long one - the description of a pull
@@ -235,6 +249,8 @@ export interface ActionArgumentOptions {
   namedArguments?: Array<string> | undefined;
   // Arguments the line under the title says in words (the severity).
   describedArguments?: Array<string> | undefined;
+  // The tool, for an argument it names otherwise (TOOL_ARGUMENT_LABELS).
+  toolName?: string | undefined;
 }
 
 /*
@@ -301,7 +317,10 @@ export function getActionArgumentParts(
       continue;
     }
 
-    const labelKey: string | undefined = ACTION_ARGUMENT_LABELS[key];
+    const labelKey: string | undefined =
+      (options.toolName
+        ? TOOL_ARGUMENT_LABELS[options.toolName]?.[key]
+        : undefined) || ACTION_ARGUMENT_LABELS[key];
     const label: string = labelKey
       ? translator.translateText(labelKey) || labelKey
       : key;

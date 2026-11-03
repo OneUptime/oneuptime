@@ -231,6 +231,7 @@ const ToolApprovalCard: FunctionComponent<ComponentProps> = (
                     shownValues: getToolActionShownValues(action),
                     namedArguments: getToolActionNamedArguments(action),
                     describedArguments: getToolActionDescribedArguments(action),
+                    toolName: action.toolName,
                   },
                   translator,
                 );

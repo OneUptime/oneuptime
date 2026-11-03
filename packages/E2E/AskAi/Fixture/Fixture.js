@@ -22,7 +22,10 @@
  *   - thread=answered  Ask AI opens on a conversation already answered;
  *                    approval, one waiting on an approval card; error, one
  *                    whose answer failed; rich, one whose answer carries a
- *                    row of figures, a wide table and a trace
+ *                    row of figures, a wide table and a trace; actions, one
+ *                    waiting to post a public status update on incident
+ *                    #42 and add a private note to it, each with its
+ *                    arguments, which leave their two cards once run
  *   - run=hold       an answer being written stays written-so-far until
  *                    window.__askAiFixture.finish() is called (it finishes
  *                    on its own, a step a poll, by default)
@@ -126,7 +129,13 @@ const language = ["de", "fa"].includes(params.get("lang"))
 const historyKind = ["some", "many"].includes(params.get("history"))
   ? params.get("history")
   : "none";
-const threadKind = ["answered", "approval", "error", "rich"].includes(
+const threadKind = [
+  "answered",
+  "approval",
+  "error",
+  "rich",
+  "actions",
+].includes(
   params.get("thread"),
 )
   ? params.get("thread")
@@ -408,6 +417,107 @@ function alertAction(status) {
   };
 }
 
+/*
+ * A public status update and a private note on incident #42, as the server
+ * stores them: each title a sentence naming the incident by its number
+ * (so the card leaves its ID out), and the arguments the person approves
+ * - the update's note and whether subscribers hear of it, the note's text.
+ */
+const STATUS_UPDATE_NOTE =
+  "We have found the cause of the slow checkouts and are rolling out a fix. Payments are not affected, and orders placed during the slowdown will go through.";
+const INTERNAL_NOTE =
+  "pgbouncer on test01 held 400 connections to the old primary after the failover. Restarted it at 14:25.";
+
+function incidentNoteActions(status) {
+  const statusUpdateWords = {
+    title: aiActionSentence(AI_ACTION_TITLES.postIncidentStatusUpdate, {
+      incident: "#42",
+    }),
+    namedArguments: ["incidentId"],
+  };
+  const noteWords = {
+    title: aiActionSentence(AI_ACTION_TITLES.addIncidentNote, {
+      incident: "#42",
+    }),
+    namedArguments: ["incidentId"],
+  };
+  const isExecuted = status === AIChatToolActionStatus.Executed;
+
+  return [
+    {
+      id: "call_status_update",
+      toolName: "post_incident_status_update",
+      title: describeAIActionWords(statusUpdateWords).title,
+      words: statusUpdateWords,
+      ...(isExecuted ? { widgetId: "W1" } : {}),
+      arguments: {
+        incidentId: INCIDENT_ID,
+        note: STATUS_UPDATE_NOTE,
+        notifySubscribers: true,
+      },
+      isMutation: true,
+      requiresApproval: true,
+      status,
+    },
+    {
+      id: "call_internal_note",
+      toolName: "create_incident_note",
+      title: describeAIActionWords(noteWords).title,
+      words: noteWords,
+      ...(isExecuted ? { widgetId: "W2" } : {}),
+      arguments: { incidentId: INCIDENT_ID, note: INTERNAL_NOTE },
+      isMutation: true,
+      requiresApproval: true,
+      status,
+    },
+  ];
+}
+
+// The cards the two leave once run (WidgetBuilder.actionCard).
+function incidentNoteCards() {
+  const heading = "#42 · Checkout latency above 2s";
+  const link = {
+    type: AIChatCitationTargetType.IncidentView,
+    params: { incidentId: INCIDENT_ID },
+  };
+  const statusUpdateWords = {
+    kind: aiActionTerm(AI_ACTION_CARD_KINDS.incident),
+    line: [
+      aiActionSentence(
+        AI_ACTION_CARD_LINES.statusUpdatePostedSubscribersNotified,
+      ),
+    ],
+    facts: [
+      aiActionCardFact(AI_ACTION_CARD_FACTS.statusUpdate, STATUS_UPDATE_NOTE),
+    ],
+  };
+  const noteWords = {
+    kind: aiActionTerm(AI_ACTION_CARD_KINDS.incident),
+    line: [aiActionSentence(AI_ACTION_CARD_LINES.privateNoteAdded)],
+    facts: [aiActionCardFact(AI_ACTION_CARD_FACTS.note, INTERNAL_NOTE)],
+  };
+
+  return [
+    ["W1", "Status update posted", statusUpdateWords],
+    ["W2", "Internal note added", noteWords],
+  ].map(([id, title, words]) => {
+    const english = describeAIActionCardWords(words);
+    return {
+      id,
+      type: AIChatWidgetType.ResourceCard,
+      title,
+      data: {
+        resourceType: english.kind,
+        heading,
+        subheading: english.line,
+        fields: english.facts,
+        words,
+        link,
+      },
+    };
+  });
+}
+
 const LATENCY_QUESTION = "Why did checkout latency spike this afternoon?";
 
 /*
@@ -417,6 +527,8 @@ const LATENCY_QUESTION = "Why did checkout latency spike this afternoon?";
  * to fit the dialog's column at 1280 pixels and a phone's whole screen.
  */
 let richConversation = null;
+// The conversation waiting to post a status update and a note (?thread=actions).
+let actionsConversation = null;
 
 function seedRichAnswer() {
   richConversation = conversationOf("Payments health this week", 3);
@@ -604,6 +716,21 @@ function seedHistory() {
     seedRichAnswer();
   }
 
+  if (threadKind === "actions") {
+    actionsConversation = conversationOf("Update the status page", 5);
+    messageOf(actionsConversation.id.toString(), AIChatMessageRole.User, {
+      contentInMarkdown:
+        "Post a status update that we found the cause, and note what we did.",
+      createdAt: minutesAgo(5),
+    });
+    messageOf(actionsConversation.id.toString(), AIChatMessageRole.Assistant, {
+      contentInMarkdown: "",
+      status: AIChatMessageStatus.WaitingForApproval,
+      toolActions: incidentNoteActions(AIChatToolActionStatus.Pending),
+      createdAt: minutesAgo(5),
+    });
+  }
+
   if (historyKind === "none") {
     return;
   }
@@ -643,6 +770,7 @@ fixture.conversationIds = {
   approval: conversations[1]?.id.toString(),
   error: conversations[2]?.id.toString(),
   rich: richConversation?.id.toString(),
+  actions: actionsConversation?.id.toString(),
 };
 
 // ---- a run, written step by step as the dialog polls --------------------------
@@ -987,6 +1115,22 @@ function respondToApproval(data) {
   const approved = (data.decisions || []).some((decision) => {
     return decision.approved;
   });
+
+  // The status update and the note: both run, and leave their two cards.
+  if (data.conversationId === actionsConversation?.id.toString()) {
+    message.toolActions = incidentNoteActions(
+      approved
+        ? AIChatToolActionStatus.Executed
+        : AIChatToolActionStatus.Denied,
+    );
+    message.status = AIChatMessageStatus.Completed;
+    message.contentInMarkdown = approved
+      ? "I posted the status update, and added the note for your team."
+      : "I did not post anything.";
+    message.widgets = approved ? incidentNoteCards() : [];
+    message.aiRunId = runOf({ toolCallCount: 2, totalTokens: 5120 }).id;
+    return {};
+  }
 
   message.toolActions = [
     alertAction(

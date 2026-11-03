@@ -17,6 +17,7 @@ import ToolApprovalCard, {
 import {
   getActionArgumentParts,
   MAX_ARGUMENT_VALUE_LENGTH,
+  TOOL_ARGUMENT_LABELS,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/ToolActionWords";
 import ResourceCardWidget from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/Widgets/ResourceCardWidget";
 import WidgetBuilder from "../../../Server/Utils/AI/Toolbox/WidgetBuilder";
@@ -42,7 +43,9 @@ import {
 } from "../../../Types/AI/AIChatTypes";
 import { createTranslator, PluralTemplate } from "../../../Types/Translator";
 import {
+  DASHBOARD_LANGUAGES,
   dashboardTranslator,
+  isWordedInDashboardLocale,
   readDashboardLocale,
 } from "../../Helpers/DashboardLocales";
 
@@ -148,7 +151,7 @@ describe("the approval card's arguments, a line each", () => {
       rows.map((row: HTMLElement): string => {
         return row.textContent || "";
       }),
-    ).toEqual([`Note: ${NOTE}`, "Notify subscribers: Yes"]);
+    ).toEqual([`Status update: ${NOTE}`, "Notify subscribers: Yes"]);
 
     for (const row of rows) {
       expect(row.tagName).toBe("DIV");
@@ -254,13 +257,58 @@ describe("the approval card's arguments, a line each", () => {
           return row.textContent || "";
         }),
     ).toEqual([
-      `${DE["Note"]}: ${NOTE}`,
+      `${DE["Status update"]}: ${NOTE}`,
       `${DE["Notify subscribers"]}: ${DE["Yes"]}`,
     ]);
 
     await act(async (): Promise<void> => {
       await i18next.changeLanguage("en");
     });
+  });
+
+  /*
+   * A public status update's text is the update itself: beside a private
+   * note on the same card, two rows read "Note:". It is named as the card
+   * it leaves names it.
+   */
+  test("a public update's text is named Status update, a private note Note", () => {
+    renderCard([
+      statusUpdateAction(),
+      {
+        id: "call-note",
+        toolName: "create_incident_note",
+        title: "Add private internal note to incident INC-42",
+        arguments: {
+          incidentId: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+          note: "Restarted pgbouncer.",
+        },
+        isMutation: true,
+        requiresApproval: true,
+        status: AIChatToolActionStatus.Pending,
+      },
+    ]);
+
+    expect(
+      screen
+        .getAllByTestId("tool-approval-argument-label")
+        .map((label: HTMLElement): string => {
+          return label.textContent || "";
+        }),
+    ).toEqual(["Status update:", "Notify subscribers:", "Incident:", "Note:"]);
+  });
+
+  test("a tool's own names are worded in every Dashboard language", () => {
+    for (const labels of Object.values(TOOL_ARGUMENT_LABELS)) {
+      for (const label of Object.values(labels)) {
+        for (const language of DASHBOARD_LANGUAGES) {
+          expect({
+            language,
+            label,
+            worded: isWordedInDashboardLocale(label, language),
+          }).toEqual({ language, label, worded: true });
+        }
+      }
+    }
   });
 
   test("written on one line, as text, they are still set apart", () => {
