@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40302,
-    "untranslated": 2962
+    "keys": 40614,
+    "untranslated": 2967
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -534,8 +534,10 @@
     "{{count}} OID",
     "{{count}} Podman",
     "{{count}} VM",
+    "{{count}} app",
     "{{count}} appliance",
     "{{count}} appliances",
+    "{{count}} apps",
     "{{count}} collector",
     "{{count}} deployment",
     "{{count}} deployments",

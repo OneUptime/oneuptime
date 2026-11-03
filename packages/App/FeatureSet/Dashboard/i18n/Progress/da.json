@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40302,
-    "untranslated": 12609
+    "keys": 40614,
+    "untranslated": 12612
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -132,6 +132,7 @@
     "Ok",
     "Online",
     "OpenShift",
+    "Over budget",
     "PR #{{number}}",
     "PV",
     "PVC",
@@ -289,14 +290,18 @@
     "{{count}} MB",
     "{{count}} VM",
     "{{count}} alarm",
+    "{{count}} app",
     "{{count}} appliance",
     "{{count}} appliances",
+    "{{count}} apps",
     "{{count}} container",
     "{{count}} dashboard",
     "{{count}} dashboards",
     "{{count}} datacenter",
     "{{count}} datastore",
     "{{count}} datastores",
+    "{{count}} deadlock",
+    "{{count}} deadlocks",
     "{{count}} filter",
     "{{count}} filter ({{condition}})",
     "{{count}} flow",

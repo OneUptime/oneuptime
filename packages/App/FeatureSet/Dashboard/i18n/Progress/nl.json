@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40302,
-    "untranslated": 12656
+    "keys": 40614,
+    "untranslated": 12659
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -18,6 +18,7 @@
     "5xx",
     "AI / LLM",
     "AI: {{prompt}}",
+    "AWS · 248 resources",
     "Accounts",
     "Adapter",
     "Agenda",
@@ -365,8 +366,10 @@
     "{{count}} MB",
     "{{count}} VM",
     "{{count}} alarm",
+    "{{count}} app",
     "{{count}} appliance",
     "{{count}} appliances",
+    "{{count}} apps",
     "{{count}} client",
     "{{count}} cluster",
     "{{count}} clusters",
@@ -378,6 +381,8 @@
     "{{count}} datacenters",
     "{{count}} datastore",
     "{{count}} datastores",
+    "{{count}} deadlock",
+    "{{count}} deadlocks",
     "{{count}} filter",
     "{{count}} filter ({{condition}})",
     "{{count}} filters",

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40302,
-    "untranslated": 12610
+    "keys": 40614,
+    "untranslated": 12613
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -248,6 +248,7 @@
     "{{count}} KB",
     "{{count}} MB",
     "{{count}} VM",
+    "{{count}} app",
     "{{count}} appliance",
     "{{count}} client",
     "{{count}} cluster",
@@ -255,6 +256,7 @@
     "{{count}} dashboard",
     "{{count}} datacenter",
     "{{count}} datastore",
+    "{{count}} deadlock",
     "{{count}} guest",
     "{{count}} host",
     "{{count}} pod",

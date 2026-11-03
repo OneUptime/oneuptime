@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40302,
-    "untranslated": 7229
+    "keys": 40614,
+    "untranslated": 7230
   },
   "sameAsEnglish": [
     " incidents",
@@ -177,6 +177,7 @@
     "EKS Fargate",
     "ERR",
     "Edge",
+    "Effort",
     "Embedding",
     "Enterprise Edition",
     "Envoy Proxy",
@@ -509,8 +510,10 @@
     "{{count}} VM",
     "{{count}} action",
     "{{count}} actions",
+    "{{count}} app",
     "{{count}} appliance",
     "{{count}} appliances",
+    "{{count}} apps",
     "{{count}} client",
     "{{count}} cluster",
     "{{count}} clusters",
