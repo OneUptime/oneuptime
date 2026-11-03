@@ -1,12 +1,13 @@
 # 连接云账户
 
-在仪表板中连接 AWS 账户、Azure 订阅或 Google Cloud 项目，OneUptime 会列出其中的每个资源，读取它们的关键指标，并记录它们发生了哪些变更，以及你的云提供商对它们健康状况的说明。你只需在云自带的浏览器终端中运行一条命令，再粘贴它的输出：无需运行采集器，也无需安装任何东西。
+在仪表板中连接 AWS 账户、Azure 订阅或 Google Cloud 项目，OneUptime 会列出其中的每个资源，读取它们的关键指标并说明每个资源的状况，记录它们发生了哪些变更以及你的云提供商对它们健康状况的说明，并读取账户的成本以及降低成本的方法。你只需在云自带的浏览器终端中运行一条命令，再粘贴它的输出：无需运行采集器，也无需安装任何东西。
 
 :::cards
 - [Amazon Web Services](#amazon-web-services): OneUptime 登录所用的 IAM 角色，或一个访问密钥。
-- [Microsoft Azure](#microsoft-azure): 具有 Monitoring Reader 角色的应用。
-- [Google Cloud](#google-cloud): 具有四个只读角色的服务账号。
-- [OneUptime 读取什么](#oneuptime-读取什么): 资源、指标、变更和健康事件，多久读取一次，以及费用是多少。
+- [Microsoft Azure](#microsoft-azure): 具有 Monitoring Reader 和 Cost Management Reader 角色的应用。
+- [Google Cloud](#google-cloud): 具有六个只读角色的服务账号。
+- [OneUptime 读取什么](#oneuptime-读取什么): 资源、指标、变更、健康事件和成本，多久读取一次，以及读取它们的费用是多少。
+- [云成本与节省](/docs/telemetry/cloud-costs): 每个账户的成本、减少支出的方法，以及会发出警报的预算。
 - [数据安全](#数据安全): 该连接让数据安全可以读取什么，以及每个级别会给命令添加什么。
 - [让 AI 修复问题](#让-ai-修复问题): 再运行一条命令，OneUptime AI 就能修复它发现的问题。
 :::
@@ -22,10 +23,11 @@ flowchart TB
     ou --> chg["变更和<br/>健康事件"]
 ```
 
-- **访问权限只能读取。** 命令创建的访问权限只读取你的资源及其配置、它们的指标、发生的变更和提供商的健康事件，不做其他任何事：在 AWS 上是下面列出的操作，在 Azure 上是 **Monitoring Reader** 角色，在 Google Cloud 上是四个查看者角色。OneUptime 从不通过它读取数据或机密：只有当你允许 AI 读取账户的日志时，才会读取日志行；只有当你为 [数据安全](#数据安全) 开启了内容样本时，才会读取这些样本。删除它即可切断 OneUptime 的访问。
+- **访问权限只能读取。** 命令创建的访问权限只读取你的资源及其配置、它们的指标、发生的变更、提供商的健康事件和账户的成本，不做其他任何事：在 AWS 上是下面列出的操作，在 Azure 上是 **Monitoring Reader** 和 **Cost Management Reader** 角色，在 Google Cloud 上是六个查看者角色。OneUptime 从不通过它读取数据或机密：只有当你允许 AI 读取账户的日志时，才会读取日志行；只有当你为 [数据安全](#数据安全) 开启了内容样本时，才会读取这些样本。删除它即可切断 OneUptime 的访问。
 - **OneUptime 按计划读取。** 除非你在连接时选择其他间隔，Azure 和 Google Cloud 每 5 分钟读取一次，AWS 每 10 分钟读取一次。每次读取还会记录自上次以来的变更，并且每 30 分钟会有一次读取重新列出所有资源。
-- **每个资源都有自己的页面。** 资源会显示在 **云 → 所有资源** 中，带有其关键指标、负责人和标签。已列出资源的页面还会显示它的 **相连的资源**（它运行在什么里面，什么向它发送流量）、它的端点、标签和设置，以及它的 **事件**、**警报** 和 **更改**。
-- **每个账户都有自己的页面。** 账户会显示在 **云 → 账户** 中，带有按类型和区域划分的资源、它们的 **更改**，以及显示其资源如何相互关联的 **拓扑**。
+- **每个资源都有自己的页面。** 资源会显示在 **云 → 所有资源** 中，带有其健康状况、关键指标、负责人和标签。已列出资源的页面还会显示它的 **相连的资源**（它运行在什么里面，什么向它发送流量）、它的端点、标签和设置，以及它的 **事件**、**警报** 和 **更改**。
+- **每个账户都有自己的页面。** 账户会显示在 **云 → 账户** 中，带有按类型和区域划分的资源、它们的 **成本**、它们的 **更改**，以及显示其资源如何相互关联的 **拓扑**。
+- **云从它的概览打开。** **云 → 概览** 列出需要关注的资源及原因、账户本月的成本，以及你的云认为可以节省的金额。[云成本与节省](/docs/telemetry/cloud-costs) 说明成本、节省和预算是如何读取的。
 - **OneUptime AI 会读取发生的变更。** 对关联到云资源的事件或警报的调查，会先读取该资源的变更，并在开始时重新读取账户的活动日志。
 
 ## 开始之前
@@ -72,6 +74,8 @@ aws iam create-access-key --user-name OneUptimeReadOnly
 | 通过 Cloud Control 列出每个资源及其配置 | `cloudformation:ListResources`, `ec2:DescribeInstances`, `ec2:DescribeVolumes`, `ec2:DescribeVpcs`, `ec2:DescribeNatGateways`, `autoscaling:DescribeAutoScalingGroups`, `elasticloadbalancing:DescribeLoadBalancers`, `elasticloadbalancing:DescribeLoadBalancerAttributes`, `elasticloadbalancing:DescribeTargetGroups`, `elasticloadbalancing:DescribeTargetGroupAttributes`, `elasticloadbalancing:DescribeTargetHealth`, `elasticloadbalancing:DescribeTags`, `ecs:ListClusters`, `ecs:DescribeClusters`, `ecs:ListServices`, `ecs:DescribeServices`, `lambda:ListFunctions`, `rds:DescribeDBInstances`, `rds:DescribeDBClusters`, `elasticache:DescribeReplicationGroups`, `sqs:ListQueues`, `sqs:GetQueueAttributes`, `sns:ListTopics`, `sns:GetTopicAttributes`, `sns:ListSubscriptionsByTopic`, `dynamodb:ListTables`, `dynamodb:DescribeTable`, `kinesis:ListStreams`, `kinesis:DescribeStreamSummary`, `states:ListStateMachines`, `states:DescribeStateMachine`, `cloudfront:ListDistributions`, `elasticfilesystem:DescribeFileSystems`, `es:ListDomainNames`, `es:DescribeDomains`, `apprunner:ListServices`, `apprunner:DescribeService`, `apigateway:GET` |
 | 读取发生的变更：账户的管理事件 | `cloudtrail:LookupEvents` |
 | 读取 AWS 自己针对该账户的健康事件 | `health:DescribeEvents`, `health:DescribeEventDetails` |
+| 从 Cost Explorer 读取账户的成本 | `ce:GetCostAndUsage` |
+| 从 Cost Optimization Hub 读取减少支出的方法 | `cost-optimization-hub:ListRecommendations` |
 | 在调查期间读取资源的当前状态和最近的事件 | `rds:DescribeEvents`, `autoscaling:DescribeScalingActivities`, `ec2:DescribeInstanceStatus`, `ecs:DescribeTaskDefinition`, `lambda:GetFunctionConfiguration`, `lambda:GetFunctionConcurrency`, `lambda:GetAlias` |
 | 在调查期间读取账户的配额 | `servicequotas:ListServiceQuotas` |
 | 读取日志行，仅当你允许 AI 读取账户的日志时 | `logs:DescribeLogGroups`, `logs:FilterLogEvents` |
@@ -91,7 +95,7 @@ aws iam create-access-key --user-name OneUptimeReadOnly
 
 ### 在 Azure Cloud Shell 中运行命令
 
-该命令会在你当前的订阅上创建一个具有 **Monitoring Reader** 角色的应用，并输出其详细信息以及其机密的到期日期：
+该命令会在你当前的订阅上创建一个具有 **Monitoring Reader** 和 **Cost Management Reader** 角色的应用，并输出其详细信息以及其机密的到期日期：
 
 ```bash
 SCOPE="/subscriptions/$(az account show --query id --output tsv)"
@@ -122,10 +126,11 @@ echo "$OUT" | jq --arg end "$END" '. + {endDateTime: $end}'
 此步骤打开时，OneUptime 会测试连接。选择 **连接** 即可保存。
 :::
 
-要用同一个应用读取更多订阅，请在每个订阅上为它授予该角色：
+要用同一个应用读取更多订阅，请在每个订阅上为它授予这两个角色：
 
 ```bash
 az role assignment create --assignee <APP_ID> --role "Monitoring Reader" --scope /subscriptions/<SUBSCRIPTION_ID>
+az role assignment create --assignee <APP_ID> --role "Cost Management Reader" --scope /subscriptions/<SUBSCRIPTION_ID>
 ```
 
 除非你在 **订阅** 中列出一些订阅，否则 OneUptime 会读取该应用可以读取的每个订阅，最多 50 个。应用的机密会在到期日停止工作：从到期前 30 天起，每次读取都会对此发出提醒。再次运行该命令并粘贴它的输出，即可为它换一个新的机密。
@@ -139,7 +144,7 @@ az role assignment create --assignee <APP_ID> --role "Monitoring Reader" --scope
 
 ### 在 Google Cloud Shell 中运行命令
 
-在要监控的项目中运行它。它会启用 OneUptime 读取的 API，创建一个具有 **Monitoring Viewer**、**Cloud Asset Viewer**、**Logs Viewer** 和 **Service Health Viewer** 角色的服务账号，并输出其密钥：
+在要监控的项目中运行它。它会启用 OneUptime 读取的 API，创建一个具有 **Monitoring Viewer**、**Cloud Asset Viewer**、**Logs Viewer**、**Service Health Viewer**、**BigQuery Job User** 和 **Compute Recommender Viewer** 角色的服务账号，并输出其密钥：
 
 ```bash
 PROJECT_ID=$(gcloud config get-value project)
@@ -181,13 +186,15 @@ cat oneuptime-key.json && rm oneuptime-key.json
 此步骤打开时，OneUptime 会测试连接。选择 **连接** 即可保存。
 :::
 
-要用同一个服务账号读取更多项目，请在每个项目中为它授予这四个角色，并在 **项目** 中列出它们：
+要用同一个服务账号读取更多项目，请在每个项目中为它授予这些角色，并在 **项目** 中列出它们：
 
 ```bash
-for ROLE in roles/monitoring.viewer roles/cloudasset.viewer roles/logging.viewer roles/servicehealth.viewer; do gcloud projects add-iam-policy-binding <PROJECT_ID> --member "serviceAccount:oneuptime-read-only@<KEY_PROJECT_ID>.iam.gserviceaccount.com" --role "$ROLE"; done
+for ROLE in roles/monitoring.viewer roles/cloudasset.viewer roles/logging.viewer roles/servicehealth.viewer roles/recommender.computeViewer; do gcloud projects add-iam-policy-binding <PROJECT_ID> --member "serviceAccount:oneuptime-read-only@<KEY_PROJECT_ID>.iam.gserviceaccount.com" --role "$ROLE"; done
 ```
 
 除非你在 **项目** 中列出一些项目，否则组织的连接最多读取其 50 个项目。
+
+Google Cloud 没有提供项目成本的 API：OneUptime 从你的结算账户导出到 BigQuery 的数据中读取成本，只要你在 **账单导出表** 中填入它的表即可。[云成本与节省](/docs/telemetry/cloud-costs#google-cloud) 说明了具体做法。
 
 ## 数据安全
 
@@ -197,7 +204,7 @@ for ROLE in roles/monitoring.viewer roles/cloudasset.viewer roles/logging.viewer
 | --- | --- | --- |
 | **关闭** | 不读取账户中的任何数据存储 | 无 |
 | **仅配置** | 谁可以访问每个数据存储，以及它如何加密、备份和记录日志。从不读取数据。 | 在 AWS 上，添加第二个由读取操作组成的内联策略 `OneUptimeDataSecurity`。在 Azure 和 Google Cloud 上不添加任何内容：**Monitoring Reader** 和 **Cloud Asset Viewer** 已经能读取这些信息。 |
-| **配置和内容样本** | 上述内容，以及对象和行的样本，用于在其中查找敏感数据 | 在 AWS 上，同一策略再加上 `s3:ListBucket`、`s3:GetObject` 和仅限通过 S3 使用的 `kms:Decrypt`。在 Azure 上，添加 **Storage Blob Data Reader**。在 Google Cloud 上，添加 `roles/storage.objectViewer`、`roles/bigquery.dataViewer` 和 BigQuery API。 |
+| **配置和内容样本** | 上述内容，以及对象和行的样本，用于在其中查找敏感数据 | 在 AWS 上，同一策略再加上 `s3:ListBucket`、`s3:GetObject` 和仅限通过 S3 使用的 `kms:Decrypt`。在 Azure 上，添加 **Storage Blob Data Reader**。在 Google Cloud 上，添加 `roles/storage.objectViewer` 和 `roles/bigquery.dataViewer`。 |
 
 在 AWS 上，角色的命令会多用一行来添加该策略。在内容级别下，这一行是：
 
@@ -228,7 +235,7 @@ END=$(az ad app credential list --id "$APP" --query "max([].endDateTime)" --outp
 echo "$OUT" | jq --arg end "$END" '. + {endDateTime: $end}'
 ```
 
-在 Google Cloud 上，它会添加这两个角色，并启用 `bigquery.googleapis.com`：
+在 Google Cloud 上，它会添加这两个角色：
 
 ```bash
 PROJECT_ID=$(gcloud config get-value project)
@@ -256,24 +263,30 @@ cat oneuptime-key.json && rm oneuptime-key.json
 | 指标 | 每项服务的关键指标，例如实例的 CPU、网络和状态检查 | 每个资源最多 8 个关键指标 | 每种资源类型的关键指标 |
 | 变更 | CloudTrail 管理事件 | 活动日志的管理事件 | Admin Activity 审核日志 |
 | 健康事件 | AWS Health | Service Health 和 Resource Health | Service Health |
+| 成本 | 每天的成本，按服务和区域，来自 Cost Explorer | 每天的成本，按资源和服务，来自 Cost Management | 每天的成本，按服务、区域和资源，来自你导出到 BigQuery 的结算数据 |
+| 减少支出的方法 | Cost Optimization Hub | Azure Advisor | Recommender |
 | 读取间隔 | 10 分钟 | 5 分钟 | 5 分钟 |
 | 已删除的资源 | 完整列表中不再有它时归档 | 完整列表中不再有它时归档 | 完整列表中不再有它时归档 |
 
-每次读取都会从上一次停止的地方继续，因此每个数据点和每项变更只写入一次。新连接的首次读取会在一分钟内开始，指标回溯一小时，变更回溯 2 小时；暂停之后，一次读取最多回溯 6 小时。只上报指标、且不在任何列表中的资源，会在 7 天没有指标后归档。
+每次读取都会从上一次停止的地方继续，因此每个数据点和每项变更只写入一次。新连接的首次读取会在一分钟内开始，指标回溯一小时，变更回溯 2 小时；暂停之后，一次读取最多回溯 6 小时。只上报指标、且不在任何列表中的资源，会在 7 天没有指标后归档。成本每天读取两次，减少支出的方法每天读取一次。
 
-OneUptime 发出的调用会按你的云的价格计入你的云账户。在这三种云上，列出资源以及读取变更和健康事件都不收费；读取指标则收费。测试会估算它找到的内容的费用，降低读取频率可以减少费用：在 **更多字段** 中修改 **指标读取间隔**。
+OneUptime 发出的调用会按你的云的价格计入你的云账户。列出资源、读取变更和健康事件、读取减少支出的方法以及读取 Azure 的成本都不收费；读取指标收费，读取 AWS 和 Google Cloud 的成本也收费。测试会估算它找到的内容的费用，降低读取频率可以减少费用：在 **更多字段** 中修改 **指标读取间隔**。
 
 | 云 | 价格 |
 | --- | --- |
 | AWS | CloudWatch `GetMetricData`：每 1,000 个指标 $0.01，每个资源的每个关键指标每次读取计为一个指标 |
+| AWS 成本 | Cost Explorer `GetCostAndUsage`：每个请求 $0.01，每次读取成本会发出几个请求 |
 | Azure | 每个订阅每月的前 1,000,000 次指标读取免费，之后每 1,000 次 $0.01 |
 | Google Cloud | 每月读取的前 1,000,000 个时间序列免费，之后每百万个 $0.50 |
+| Google Cloud 成本 | BigQuery 对结算导出的查询收费：每月前 1 TiB 免费，之后每 TiB $6.25 |
 
 ## 你在 OneUptime 中看到的内容
 
 - **账户的页面。** 在 **云 → 账户** 下，账户的概览会按类型和区域统计其资源，并说明某个连接上次读取它的时间。它的 **资源** 会列出这些资源，它的 **更改** 会按从新到旧列出其中发生的变更，它的 **拓扑** 会绘制它的区域、其中的网络以及每个网络中运行的内容，并在关联的资源上显示未关闭的事件和警报。它的 **动态** 会记录该账户如何来到 OneUptime、它的云 AI 代理何时连接或被重置，以及谁更改了 OneUptime AI 在其中可以做什么。
 - **资源的变更。** 一项变更会保存为一个变更事件，关联到它所变更的资源和该资源的账户，并与资源的事件和警报一起，以标记的形式绘制在资源的指标图表上。未筛选到任何资源的图表不会显示云账户的活动日志，这样繁忙的账户就不会挤掉你的部署；提供商的健康事件仍会保留在这些图表上。
 - **事件和警报。** 在监控器、事件或警报的关联资源中关联一个云资源，它的事件和警报就会列在该资源的页面上。如果网站、API、SSL、ping 或端口监控器的主机直接或通过 DNS 指向某个资源的端点，该监控器的 **已关联资源** 卡片会在 **建议的云资源** 下列出该资源：选择 **关联资源** 即可关联它。
+- **资源的健康状况。** 每次读取都会保存资源关键指标的最新值并加以判断：资源会显示 **健康**、**性能下降** 或 **不健康**，并附上原因，例如状态检查失败或存储快满，指标停止时会显示 **未上报**。**云 → 概览** 和账户的概览会列出需要关注的内容，最紧急的排在最前。
+- **账户的成本。** **云 → 支出 → 成本** 绘制每天的支出及其去向，**云 → 支出 → 节省** 列出减少支出的方法，**云 → 支出 → 预算** 会在某个月的成本超出应有水平之前发出警报：[云成本与节省](/docs/telemetry/cloud-costs)。
 
 ## 让 AI 修复问题
 

@@ -40513,7 +40513,7 @@
   "Not listed by its cloud connection, and no metric about it, for over an hour. One its account no longer lists, or silent for a week, is archived.": "1 時間以上、クラウド接続の一覧になく、メトリクスもありません。アカウントの一覧から消えたリソースや、1 週間データのないリソースはアーカイブされます。",
   "Nothing cost anything in this period.": "この期間にコストは発生していません。",
   "Nothing needs a look": "確認が必要なものはありません",
-  "Nothing to turn on: Azure Advisor's cost recommendations are read with the connection's Reader role.": "有効にするものはありません。Azure Advisor のコスト推奨事項は、接続の閲覧者ロールで読み取られます。",
+  "Nothing to turn on: Azure Advisor's cost recommendations are read with the connection's Monitoring Reader role.": "有効にするものはありません。Azure Advisor のコスト推奨事項は、接続の Monitoring Reader ロールで読み取られます。",
   "Oldest message": "最も古いメッセージ",
   "Oldest message waiting {{count}} day": "最も古いメッセージが {{count}} 日待機中",
   "Oldest message waiting {{count}} days": "最も古いメッセージが {{count}} 日待機中",

@@ -40513,7 +40513,7 @@
   "Not listed by its cloud connection, and no metric about it, for over an hour. One its account no longer lists, or silent for a week, is archived.": "Al meer dan een uur niet getoond door de cloudkoppeling en zonder metric. Een resource die het account niet meer toont, of een week stil is, wordt gearchiveerd.",
   "Nothing cost anything in this period.": "Niets heeft in deze periode iets gekost.",
   "Nothing needs a look": "Niets vraagt aandacht",
-  "Nothing to turn on: Azure Advisor's cost recommendations are read with the connection's Reader role.": "Niets in te schakelen: de kostenaanbevelingen van Azure Advisor worden gelezen met de rol Lezer van de koppeling.",
+  "Nothing to turn on: Azure Advisor's cost recommendations are read with the connection's Monitoring Reader role.": "Niets in te schakelen: de kostenaanbevelingen van Azure Advisor worden gelezen met de rol Monitoring Reader van de koppeling.",
   "Oldest message": "Oudste bericht",
   "Oldest message waiting {{count}} day": "Oudste bericht wacht al {{count}} dag",
   "Oldest message waiting {{count}} days": "Oudste bericht wacht al {{count}} dagen",

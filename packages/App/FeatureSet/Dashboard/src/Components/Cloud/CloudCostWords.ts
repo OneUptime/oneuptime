@@ -80,20 +80,21 @@ export const SAVINGS_SETUP_STEPS: Readonly<Record<CloudProvider, string>> = {
     "Opt in to Cost Optimization Hub once, in the Billing and Cost Management console, and run the connection's setup command again so it may read it.",
   ),
   [CloudProvider.Azure]: translationKey(
-    "Nothing to turn on: Azure Advisor's cost recommendations are read with the connection's Reader role.",
+    "Nothing to turn on: Azure Advisor's cost recommendations are read with the connection's Monitoring Reader role.",
   ),
   [CloudProvider.GCP]: translationKey(
     "Run the connection's setup command again: it turns on the Recommender API and lets the connection read it.",
   ),
 };
 
-// Where each cloud's ways to spend less are explained.
+/*
+ * Where each cloud's ways to spend less are explained: its own section,
+ * which says what its recommender needs beside its costs. The clouds'
+ * names are its headings in every docs language, so the anchors hold in
+ * each.
+ */
 export const SAVINGS_SETUP_DOCS_PATHS: Readonly<Record<CloudProvider, string>> =
-  {
-    [CloudProvider.AWS]: "/docs/telemetry/cloud-costs#ways-to-spend-less",
-    [CloudProvider.Azure]: "/docs/telemetry/cloud-costs#ways-to-spend-less",
-    [CloudProvider.GCP]: "/docs/telemetry/cloud-costs#ways-to-spend-less",
-  };
+  COST_SETUP_DOCS_PATHS;
 
 /*
  * An amount of money as the reader writes money: whole from a thousand

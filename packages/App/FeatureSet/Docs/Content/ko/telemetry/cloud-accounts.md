@@ -1,12 +1,13 @@
 # 클라우드 계정 연결
 
-대시보드에서 AWS 계정, Azure 구독 또는 Google Cloud 프로젝트를 연결하면 OneUptime이 그 안의 모든 리소스를 나열하고, 주요 메트릭을 읽고, 리소스에서 무엇이 바뀌었는지와 클라우드 공급자가 리소스 상태에 대해 무엇을 알리는지 기록합니다. 클라우드의 브라우저 터미널에서 명령 하나를 실행하고 출력 내용을 붙여 넣기만 하면 됩니다. 실행할 컬렉터도, 설치할 것도 없습니다.
+대시보드에서 AWS 계정, Azure 구독 또는 Google Cloud 프로젝트를 연결하면 OneUptime이 그 안의 모든 리소스를 나열하고, 주요 메트릭을 읽어 각 리소스의 상태를 알려 주고, 리소스에서 무엇이 바뀌었는지와 클라우드 공급자가 리소스 상태에 대해 무엇을 알리는지 기록하며, 계정의 비용과 비용을 줄이는 방법을 읽습니다. 클라우드의 브라우저 터미널에서 명령 하나를 실행하고 출력 내용을 붙여 넣기만 하면 됩니다. 실행할 컬렉터도, 설치할 것도 없습니다.
 
 :::cards
 - [Amazon Web Services](#amazon-web-services): OneUptime이 로그인하는 IAM 역할 또는 액세스 키.
-- [Microsoft Azure](#microsoft-azure): Monitoring Reader 역할이 있는 앱.
-- [Google Cloud](#google-cloud): 읽기 전용 역할 네 개가 있는 서비스 계정.
-- [OneUptime이 읽는 것](#oneuptime이-읽는-것): 리소스, 메트릭, 변경 사항, 상태 이벤트를 얼마나 자주 읽으며 비용이 얼마인지.
+- [Microsoft Azure](#microsoft-azure): Monitoring Reader 및 Cost Management Reader 역할이 있는 앱.
+- [Google Cloud](#google-cloud): 읽기 전용 역할 여섯 개가 있는 서비스 계정.
+- [OneUptime이 읽는 것](#oneuptime이-읽는-것): 리소스, 메트릭, 변경 사항, 상태 이벤트, 비용을 얼마나 자주 읽으며 읽는 데 비용이 얼마인지.
+- [클라우드 비용과 절감](/docs/telemetry/cloud-costs): 각 계정의 비용, 지출을 줄이는 방법, 알림을 보내는 예산.
 - [데이터 보안](#데이터-보안): 연결이 데이터 보안에 무엇을 읽도록 허용하는지, 그리고 각 수준이 명령에 무엇을 더하는지.
 - [AI가 문제를 해결하도록 허용](#ai가-문제를-해결하도록-허용): 명령 하나만 더 실행하면 OneUptime AI가 찾은 문제를 해결할 수 있습니다.
 :::
@@ -22,10 +23,11 @@ flowchart TB
     ou --> chg["변경 사항과<br/>상태 이벤트"]
 ```
 
-- **액세스는 읽기만 할 수 있습니다.** 명령이 만드는 액세스는 리소스와 그 설정, 메트릭, 변경 사항, 공급자의 상태 이벤트만 읽고 그 외에는 아무것도 할 수 없습니다. AWS에서는 아래에 나열된 작업, Azure에서는 **Monitoring Reader** 역할, Google Cloud에서는 뷰어 역할 네 개입니다. OneUptime은 이 액세스로 데이터나 비밀을 절대 읽지 않습니다. 다만 AI가 계정의 로그를 읽도록 허용한 경우에는 로그 줄을, [데이터 보안](#데이터-보안)의 콘텐츠 샘플을 켠 경우에는 그 샘플을 읽습니다. 삭제하면 OneUptime의 액세스가 끊깁니다.
+- **액세스는 읽기만 할 수 있습니다.** 명령이 만드는 액세스는 리소스와 그 설정, 메트릭, 변경 사항, 공급자의 상태 이벤트, 계정의 비용만 읽고 그 외에는 아무것도 할 수 없습니다. AWS에서는 아래에 나열된 작업, Azure에서는 **Monitoring Reader** 및 **Cost Management Reader** 역할, Google Cloud에서는 뷰어 역할 여섯 개입니다. OneUptime은 이 액세스로 데이터나 비밀을 절대 읽지 않습니다. 다만 AI가 계정의 로그를 읽도록 허용한 경우에는 로그 줄을, [데이터 보안](#데이터-보안)의 콘텐츠 샘플을 켠 경우에는 그 샘플을 읽습니다. 삭제하면 OneUptime의 액세스가 끊깁니다.
 - **OneUptime은 일정에 따라 읽습니다.** 연결할 때 다른 간격을 고르지 않으면 Azure와 Google Cloud는 5분마다, AWS는 10분마다 읽습니다. 각 읽기는 지난 읽기 이후 바뀐 내용도 기록하며, 30분마다 모든 리소스를 다시 나열합니다.
-- **리소스마다 고유한 페이지가 있습니다.** 리소스는 **클라우드 → 모든 리소스**에 주요 메트릭, 소유자, 레이블과 함께 표시됩니다. 나열된 리소스의 페이지에는 **연결된 리소스**(실행되는 곳, 트래픽을 보내는 곳), 엔드포인트, 태그, 설정, 그리고 **인시던트**, **알림**, **변경 사항**도 표시됩니다.
-- **계정마다 고유한 페이지가 있습니다.** 계정은 **클라우드 → 계정**에 유형과 리전별 리소스, **변경 사항**, 그리고 리소스가 어떻게 이어지는지 보여 주는 **토폴로지**와 함께 표시됩니다.
+- **리소스마다 고유한 페이지가 있습니다.** 리소스는 **클라우드 → 모든 리소스**에 상태, 주요 메트릭, 소유자, 레이블과 함께 표시됩니다. 나열된 리소스의 페이지에는 **연결된 리소스**(실행되는 곳, 트래픽을 보내는 곳), 엔드포인트, 태그, 설정, 그리고 **인시던트**, **알림**, **변경 사항**도 표시됩니다.
+- **계정마다 고유한 페이지가 있습니다.** 계정은 **클라우드 → 계정**에 유형과 리전별 리소스, **비용**, **변경 사항**, 그리고 리소스가 어떻게 이어지는지 보여 주는 **토폴로지**와 함께 표시됩니다.
+- **클라우드는 개요에서 열립니다.** **클라우드 → 개요**에는 주의가 필요한 리소스와 그 이유, 이번 달 계정의 비용, 클라우드가 절감할 수 있다고 알려 주는 금액이 나열됩니다. 비용, 절감, 예산을 읽는 방식은 [클라우드 비용과 절감](/docs/telemetry/cloud-costs)에서 설명합니다.
 - **OneUptime AI가 바뀐 내용을 읽습니다.** 클라우드 리소스에 연결된 인시던트나 알림을 조사할 때는 먼저 그 리소스의 변경 사항을 읽고, 시작할 때 계정의 활동 로그를 다시 읽습니다.
 
 ## 시작하기 전에
@@ -72,6 +74,8 @@ aws iam create-access-key --user-name OneUptimeReadOnly
 | Cloud Control을 통해 모든 리소스와 그 구성을 나열함 | `cloudformation:ListResources`, `ec2:DescribeInstances`, `ec2:DescribeVolumes`, `ec2:DescribeVpcs`, `ec2:DescribeNatGateways`, `autoscaling:DescribeAutoScalingGroups`, `elasticloadbalancing:DescribeLoadBalancers`, `elasticloadbalancing:DescribeLoadBalancerAttributes`, `elasticloadbalancing:DescribeTargetGroups`, `elasticloadbalancing:DescribeTargetGroupAttributes`, `elasticloadbalancing:DescribeTargetHealth`, `elasticloadbalancing:DescribeTags`, `ecs:ListClusters`, `ecs:DescribeClusters`, `ecs:ListServices`, `ecs:DescribeServices`, `lambda:ListFunctions`, `rds:DescribeDBInstances`, `rds:DescribeDBClusters`, `elasticache:DescribeReplicationGroups`, `sqs:ListQueues`, `sqs:GetQueueAttributes`, `sns:ListTopics`, `sns:GetTopicAttributes`, `sns:ListSubscriptionsByTopic`, `dynamodb:ListTables`, `dynamodb:DescribeTable`, `kinesis:ListStreams`, `kinesis:DescribeStreamSummary`, `states:ListStateMachines`, `states:DescribeStateMachine`, `cloudfront:ListDistributions`, `elasticfilesystem:DescribeFileSystems`, `es:ListDomainNames`, `es:DescribeDomains`, `apprunner:ListServices`, `apprunner:DescribeService`, `apigateway:GET` |
 | 바뀐 내용을 읽음: 계정의 관리 이벤트 | `cloudtrail:LookupEvents` |
 | 계정에 대한 AWS 자체 상태 이벤트를 읽음 | `health:DescribeEvents`, `health:DescribeEventDetails` |
+| 계정의 비용을 Cost Explorer에서 읽음 | `ce:GetCostAndUsage` |
+| 지출을 줄이는 방법을 Cost Optimization Hub에서 읽음 | `cost-optimization-hub:ListRecommendations` |
 | 조사 중에 리소스의 현재 상태와 최근 이벤트를 읽음 | `rds:DescribeEvents`, `autoscaling:DescribeScalingActivities`, `ec2:DescribeInstanceStatus`, `ecs:DescribeTaskDefinition`, `lambda:GetFunctionConfiguration`, `lambda:GetFunctionConcurrency`, `lambda:GetAlias` |
 | 조사 중에 계정의 할당량을 읽음 | `servicequotas:ListServiceQuotas` |
 | AI가 계정의 로그를 읽도록 허용한 경우에만 로그 줄을 읽음 | `logs:DescribeLogGroups`, `logs:FilterLogEvents` |
@@ -91,7 +95,7 @@ aws iam create-access-key --user-name OneUptimeReadOnly
 
 ### Azure Cloud Shell에서 명령 실행
 
-이 명령은 현재 구독에 **Monitoring Reader** 역할이 있는 앱을 만들고, 비밀이 만료되는 날짜와 함께 앱의 세부 정보를 출력합니다.
+이 명령은 현재 구독에 **Monitoring Reader** 및 **Cost Management Reader** 역할이 있는 앱을 만들고, 비밀이 만료되는 날짜와 함께 앱의 세부 정보를 출력합니다.
 
 ```bash
 SCOPE="/subscriptions/$(az account show --query id --output tsv)"
@@ -122,10 +126,11 @@ echo "$OUT" | jq --arg end "$END" '. + {endDateTime: $end}'
 이 단계가 열리면 OneUptime이 연결을 테스트합니다. 저장하려면 **연결**을 선택합니다.
 :::
 
-같은 앱으로 더 많은 구독을 읽으려면 각 구독에서 앱에 역할을 부여합니다.
+같은 앱으로 더 많은 구독을 읽으려면 각 구독에서 앱에 두 역할을 모두 부여합니다.
 
 ```bash
 az role assignment create --assignee <APP_ID> --role "Monitoring Reader" --scope /subscriptions/<SUBSCRIPTION_ID>
+az role assignment create --assignee <APP_ID> --role "Cost Management Reader" --scope /subscriptions/<SUBSCRIPTION_ID>
 ```
 
 **구독**에 몇 개를 지정하지 않으면 OneUptime은 앱이 읽을 수 있는 모든 구독을 최대 50개까지 읽습니다. 앱의 비밀은 만료 날짜에 작동을 멈추며, 30일 전부터 읽을 때마다 이를 경고합니다. 새 비밀을 주려면 명령을 다시 실행하고 출력 내용을 붙여 넣으세요.
@@ -139,7 +144,7 @@ az role assignment create --assignee <APP_ID> --role "Monitoring Reader" --scope
 
 ### Google Cloud Shell에서 명령 실행
 
-모니터링할 프로젝트에서 실행합니다. 이 명령은 OneUptime이 읽는 API를 켜고, **Monitoring Viewer**, **Cloud Asset Viewer**, **Logs Viewer**, **Service Health Viewer** 역할이 있는 서비스 계정을 만든 다음 그 키를 출력합니다.
+모니터링할 프로젝트에서 실행합니다. 이 명령은 OneUptime이 읽는 API를 켜고, **Monitoring Viewer**, **Cloud Asset Viewer**, **Logs Viewer**, **Service Health Viewer**, **BigQuery Job User**, **Compute Recommender Viewer** 역할이 있는 서비스 계정을 만든 다음 그 키를 출력합니다.
 
 ```bash
 PROJECT_ID=$(gcloud config get-value project)
@@ -181,13 +186,15 @@ cat oneuptime-key.json && rm oneuptime-key.json
 이 단계가 열리면 OneUptime이 연결을 테스트합니다. 저장하려면 **연결**을 선택합니다.
 :::
 
-같은 서비스 계정으로 더 많은 프로젝트를 읽으려면 각 프로젝트에서 역할 네 개를 부여하고 **프로젝트**에 지정합니다.
+같은 서비스 계정으로 더 많은 프로젝트를 읽으려면 각 프로젝트에서 다음 역할을 부여하고 **프로젝트**에 지정합니다.
 
 ```bash
-for ROLE in roles/monitoring.viewer roles/cloudasset.viewer roles/logging.viewer roles/servicehealth.viewer; do gcloud projects add-iam-policy-binding <PROJECT_ID> --member "serviceAccount:oneuptime-read-only@<KEY_PROJECT_ID>.iam.gserviceaccount.com" --role "$ROLE"; done
+for ROLE in roles/monitoring.viewer roles/cloudasset.viewer roles/logging.viewer roles/servicehealth.viewer roles/recommender.computeViewer; do gcloud projects add-iam-policy-binding <PROJECT_ID> --member "serviceAccount:oneuptime-read-only@<KEY_PROJECT_ID>.iam.gserviceaccount.com" --role "$ROLE"; done
 ```
 
 **프로젝트**에 몇 개를 지정하지 않으면 조직 연결은 조직의 프로젝트를 최대 50개까지 읽습니다.
+
+Google Cloud에는 프로젝트 비용을 알려 주는 API가 없습니다. OneUptime은 결제 계정의 BigQuery 내보내기에서 비용을 읽으며, 그 테이블을 **결제 내보내기 테이블**에 지정하면 읽기가 시작됩니다. 방법은 [클라우드 비용과 절감](/docs/telemetry/cloud-costs#google-cloud)에서 확인하세요.
 
 ## 데이터 보안
 
@@ -197,7 +204,7 @@ for ROLE in roles/monitoring.viewer roles/cloudasset.viewer roles/logging.viewer
 | --- | --- | --- |
 | **꺼짐** | 계정의 어떤 저장소도 읽지 않음 | 없음 |
 | **구성만** | 각 저장소에 누가 접근할 수 있는지, 그리고 어떻게 암호화, 백업, 로깅되는지. 데이터는 절대 읽지 않습니다. | AWS에서는 읽기 작업으로 된 두 번째 인라인 정책 `OneUptimeDataSecurity`. Azure와 Google Cloud에서는 없음: **Monitoring Reader** 와 **Cloud Asset Viewer** 가 이미 이를 읽습니다. |
-| **구성 및 콘텐츠 샘플** | 위의 내용에 더해, 민감한 데이터를 찾기 위한 객체와 행의 샘플 | AWS에서는 같은 정책에 `s3:ListBucket`, `s3:GetObject`, 그리고 S3를 통해서만 허용되는 `kms:Decrypt` 를 더한 것. Azure에서는 **Storage Blob Data Reader**. Google Cloud에서는 `roles/storage.objectViewer`, `roles/bigquery.dataViewer`, BigQuery API. |
+| **구성 및 콘텐츠 샘플** | 위의 내용에 더해, 민감한 데이터를 찾기 위한 객체와 행의 샘플 | AWS에서는 같은 정책에 `s3:ListBucket`, `s3:GetObject`, 그리고 S3를 통해서만 허용되는 `kms:Decrypt` 를 더한 것. Azure에서는 **Storage Blob Data Reader**. Google Cloud에서는 `roles/storage.objectViewer`, `roles/bigquery.dataViewer`. |
 
 AWS에서는 역할용 명령에 한 줄이 더해져 정책이 추가됩니다. 콘텐츠 수준에서는 다음과 같습니다.
 
@@ -228,7 +235,7 @@ END=$(az ad app credential list --id "$APP" --query "max([].endDateTime)" --outp
 echo "$OUT" | jq --arg end "$END" '. + {endDateTime: $end}'
 ```
 
-Google Cloud에서는 두 역할을 추가하고 `bigquery.googleapis.com` 을 켭니다.
+Google Cloud에서는 두 역할을 추가합니다.
 
 ```bash
 PROJECT_ID=$(gcloud config get-value project)
@@ -256,24 +263,30 @@ cat oneuptime-key.json && rm oneuptime-key.json
 | 메트릭 | 각 서비스의 주요 메트릭(예: 인스턴스의 CPU, 네트워크, 상태 검사) | 리소스당 최대 8개의 주요 메트릭 | 각 리소스 유형의 주요 메트릭 |
 | 변경 사항 | CloudTrail 관리 이벤트 | 활동 로그의 관리 이벤트 | Admin Activity 감사 로그 |
 | 상태 이벤트 | AWS Health | Service Health 및 Resource Health | Service Health |
+| 비용 | 매일의 비용을 서비스와 리전별로 Cost Explorer에서 | 매일의 비용을 리소스와 서비스별로 Cost Management에서 | 매일의 비용을 서비스, 리전, 리소스별로 BigQuery 결제 내보내기에서 |
+| 지출을 줄이는 방법 | Cost Optimization Hub | Azure Advisor | Recommender |
 | 읽기 간격 | 10분 | 5분 | 5분 |
 | 삭제된 리소스 | 전체 목록에 더 이상 없으면 보관 처리 | 전체 목록에 더 이상 없으면 보관 처리 | 전체 목록에 더 이상 없으면 보관 처리 |
 
-각 읽기는 이전 읽기가 멈춘 곳에서 이어지므로 각 데이터 포인트와 각 변경 사항은 한 번만 기록됩니다. 새 연결의 첫 읽기는 일 분 안에 시작되며 메트릭은 한 시간, 변경 사항은 2시간 전까지 거슬러 올라가고, 중단된 뒤의 읽기는 최대 6시간까지 거슬러 올라갑니다. 메트릭만 보고하고 어떤 목록에도 없는 리소스는 메트릭 없이 7일이 지나면 보관 처리됩니다.
+각 읽기는 이전 읽기가 멈춘 곳에서 이어지므로 각 데이터 포인트와 각 변경 사항은 한 번만 기록됩니다. 새 연결의 첫 읽기는 일 분 안에 시작되며 메트릭은 한 시간, 변경 사항은 2시간 전까지 거슬러 올라가고, 중단된 뒤의 읽기는 최대 6시간까지 거슬러 올라갑니다. 메트릭만 보고하고 어떤 목록에도 없는 리소스는 메트릭 없이 7일이 지나면 보관 처리됩니다. 비용은 하루에 두 번, 지출을 줄이는 방법은 하루에 한 번 읽습니다.
 
-OneUptime의 호출은 클라우드 요금으로 클라우드 계정에 청구됩니다. 세 클라우드 모두에서 리소스 나열과 변경 사항 및 상태 이벤트 읽기는 무료이며, 메트릭 읽기에는 비용이 듭니다. 테스트는 찾은 항목의 비용을 추정하며, 덜 자주 읽을수록 비용이 줄어듭니다. **추가 필드**에서 **메트릭 읽기 간격**을 변경하세요.
+OneUptime의 호출은 클라우드 요금으로 클라우드 계정에 청구됩니다. 리소스 나열, 변경 사항 및 상태 이벤트 읽기, 지출을 줄이는 방법 읽기, Azure 비용 읽기는 무료이며, 메트릭 읽기와 AWS 및 Google Cloud 비용 읽기에는 비용이 듭니다. 테스트는 찾은 항목의 비용을 추정하며, 덜 자주 읽을수록 비용이 줄어듭니다. **추가 필드**에서 **메트릭 읽기 간격**을 변경하세요.
 
 | 클라우드 | 가격 |
 | --- | --- |
 | AWS | CloudWatch `GetMetricData`: 메트릭 1,000개당 $0.01이며, 리소스의 주요 메트릭 하나는 읽기마다 메트릭 하나입니다 |
+| AWS 비용 | Cost Explorer `GetCostAndUsage`: 요청당 $0.01이며, 비용 읽기 한 번에 요청을 몇 번 보냅니다 |
 | Azure | 구독마다 매월 처음 1,000,000회의 메트릭 읽기는 무료이며, 그 이후에는 1,000회당 $0.01 |
 | Google Cloud | 매월 처음 1,000,000개의 시계열 읽기는 무료이며, 그 이후에는 백만 개당 $0.50 |
+| Google Cloud 비용 | 결제 내보내기 쿼리는 BigQuery 요금입니다. 매월 처음 1 TiB는 무료이며, 그 이후에는 TiB당 $6.25 |
 
 ## OneUptime에서 보는 것
 
 - **계정 페이지.** **클라우드 → 계정**에서 계정의 개요는 리소스를 유형과 리전별로 세고, 연결이 마지막으로 읽은 시각을 알려 줍니다. **리소스**는 리소스를 나열하고, **변경 사항**은 계정에서 바뀐 내용을 최신순으로 나열하며, **토폴로지**는 리전, 그 안의 네트워크, 각각에서 실행되는 것을 연결된 리소스의 열린 인시던트 및 알림과 함께 그립니다. **피드**는 계정이 OneUptime에 들어온 경위, 클라우드 AI 에이전트의 연결이나 재설정, 그리고 OneUptime AI가 계정에서 할 수 있는 일을 누가 변경했는지 기록합니다.
 - **리소스의 변경 사항.** 변경 사항은 바뀐 리소스와 그 계정에 연결된 변경 이벤트로 저장되며, 리소스의 메트릭 차트에 인시던트 및 알림과 함께 마커로 그려집니다. 어떤 리소스로도 필터링되지 않은 차트에는 클라우드 계정의 활동 로그가 나오지 않으므로, 바쁜 계정이 배포를 밀어내지 않습니다. 공급자의 상태 이벤트는 그대로 표시됩니다.
 - **인시던트와 알림.** 모니터, 인시던트 또는 알림의 연결된 리소스에서 클라우드 리소스를 연결하면 그 인시던트와 알림이 리소스 페이지에 나열됩니다. 호스트가 직접 또는 DNS를 통해 리소스의 엔드포인트로 이어지는 웹사이트, API, SSL, ping 또는 포트 모니터는 **연결된 리소스** 카드의 **추천 클라우드 리소스**에 그 리소스를 표시합니다. 연결하려면 **리소스 연결**을 선택합니다.
+- **리소스의 상태.** 각 읽기는 리소스 주요 메트릭의 최신 값을 보관하고 판단합니다. 리소스에는 **정상**, **저하됨** 또는 **비정상**이 상태 확인 실패나 거의 찬 스토리지 같은 이유와 함께 표시되며, 메트릭이 멈추면 **보고 없음**이 표시됩니다. **클라우드 → 개요**와 계정의 개요에는 주의가 필요한 항목이 가장 급한 것부터 나열됩니다.
+- **계정의 비용.** **클라우드 → 지출 → 비용**은 매일의 지출과 그 쓰임을 그리고, **클라우드 → 지출 → 절감**은 지출을 줄이는 방법을 나열하며, **클라우드 → 지출 → 예산**은 한 달 비용이 예상보다 커지기 전에 알림을 보냅니다. [클라우드 비용과 절감](/docs/telemetry/cloud-costs)을 참고하세요.
 
 ## AI가 문제를 해결하도록 허용
 

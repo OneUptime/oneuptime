@@ -40513,7 +40513,7 @@
   "Not listed by its cloud connection, and no metric about it, for over an hour. One its account no longer lists, or silent for a week, is archived.": "Больше часа не показывается облачным подключением и не присылает метрик. Ресурс, который аккаунт больше не показывает или который молчит неделю, архивируется.",
   "Nothing cost anything in this period.": "За этот период ничего ничего не стоило.",
   "Nothing needs a look": "Ничего не требует внимания",
-  "Nothing to turn on: Azure Advisor's cost recommendations are read with the connection's Reader role.": "Ничего включать не нужно: рекомендации Azure Advisor по затратам читаются с ролью читателя подключения.",
+  "Nothing to turn on: Azure Advisor's cost recommendations are read with the connection's Monitoring Reader role.": "Ничего включать не нужно: рекомендации Azure Advisor по затратам читаются с ролью Monitoring Reader подключения.",
   "Oldest message": "Самое старое сообщение",
   "Oldest message waiting {{count}} day": "Самое старое сообщение ждёт {{count}} день",
   "Oldest message waiting {{count}} days": "Самое старое сообщение ждёт {{count}} дн.",

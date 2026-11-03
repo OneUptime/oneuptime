@@ -40513,7 +40513,7 @@
   "Not listed by its cloud connection, and no metric about it, for over an hour. One its account no longer lists, or silent for a week, is archived.": "Ikke vist af cloudforbindelsen og uden metrikker i over en time. En ressource, som kontoen ikke længere viser, eller som har været tavs i en uge, arkiveres.",
   "Nothing cost anything in this period.": "Intet kostede noget i denne periode.",
   "Nothing needs a look": "Intet kræver opmærksomhed",
-  "Nothing to turn on: Azure Advisor's cost recommendations are read with the connection's Reader role.": "Intet at slå til: Azure Advisors omkostningsanbefalinger læses med forbindelsens læserrolle.",
+  "Nothing to turn on: Azure Advisor's cost recommendations are read with the connection's Monitoring Reader role.": "Intet at slå til: Azure Advisors omkostningsanbefalinger læses med forbindelsens rolle Monitoring Reader.",
   "Oldest message": "Ældste besked",
   "Oldest message waiting {{count}} day": "Ældste besked har ventet {{count}} dag",
   "Oldest message waiting {{count}} days": "Ældste besked har ventet {{count}} dage",

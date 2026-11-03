@@ -1,12 +1,13 @@
 # Een cloudaccount koppelen
 
-Koppel een AWS-account, een Azure-abonnement of een Google Cloud-project vanuit het dashboard, en OneUptime toont elke resource erin, leest hun belangrijkste metrieken en legt vast wat er in ze is gewijzigd en wat je cloudprovider over hun status zegt. Je voert één opdracht uit in de browserterminal van je cloud en plakt wat die toont: er is geen collector om te draaien en niets om te installeren.
+Koppel een AWS-account, een Azure-abonnement of een Google Cloud-project vanuit het dashboard, en OneUptime toont elke resource erin, leest hun belangrijkste metrieken en zegt hoe het met elke resource gaat, legt vast wat er in ze is gewijzigd en wat je cloudprovider over hun status zegt, en leest wat het account kost en hoe het minder zou kunnen kosten. Je voert één opdracht uit in de browserterminal van je cloud en plakt wat die toont: er is geen collector om te draaien en niets om te installeren.
 
 :::cards
 - [Amazon Web Services](#amazon-web-services): Een IAM-rol waarmee OneUptime zich aanmeldt, of een toegangssleutel.
-- [Microsoft Azure](#microsoft-azure): Een app met de rol Monitoring Reader.
-- [Google Cloud](#google-cloud): Een serviceaccount met vier rollen die alleen lezen.
-- [Wat OneUptime leest](#wat-oneuptime-leest): Resources, metrieken, wijzigingen en statusgebeurtenissen, hoe vaak, en wat het kost.
+- [Microsoft Azure](#microsoft-azure): Een app met de rollen Monitoring Reader en Cost Management Reader.
+- [Google Cloud](#google-cloud): Een serviceaccount met zes rollen die alleen lezen.
+- [Wat OneUptime leest](#wat-oneuptime-leest): Resources, metrieken, wijzigingen, statusgebeurtenissen en kosten, hoe vaak, en wat het lezen ervan kost.
+- [Cloudkosten en besparingen](/docs/telemetry/cloud-costs): Wat elk account kost, de manieren om minder uit te geven en budgetten die waarschuwen.
 - [Gegevensbeveiliging](#gegevensbeveiliging): Wat de koppeling Gegevensbeveiliging laat lezen, en wat elk niveau aan de opdracht toevoegt.
 - [AI problemen laten oplossen](#ai-problemen-laten-oplossen): Nog één opdracht, en OneUptime AI kan oplossen wat het vindt.
 :::
@@ -22,10 +23,11 @@ flowchart TB
     ou --> chg["Wijzigingen en<br/>statusgebeurtenissen"]
 ```
 
-- **De toegang kan alleen lezen.** De opdracht maakt toegang die je resources en hun instellingen, hun metrieken, wat er is gewijzigd en de statusgebeurtenissen van je provider leest, en verder niets: de acties hieronder op AWS, de rol **Monitoring Reader** op Azure en vier leesrollen op Google Cloud. OneUptime leest er nooit gegevens of geheimen mee, behalve logregels als je AI de logs van een account laat lezen, en inhoudsvoorbeelden als je ze aanzet voor [Gegevensbeveiliging](#gegevensbeveiliging). Verwijder haar om OneUptime de toegang te ontnemen.
+- **De toegang kan alleen lezen.** De opdracht maakt toegang die je resources en hun instellingen, hun metrieken, wat er is gewijzigd, de statusgebeurtenissen van je provider en wat het account kost leest, en verder niets: de acties hieronder op AWS, de rollen **Monitoring Reader** en **Cost Management Reader** op Azure en zes leesrollen op Google Cloud. OneUptime leest er nooit gegevens of geheimen mee, behalve logregels als je AI de logs van een account laat lezen, en inhoudsvoorbeelden als je ze aanzet voor [Gegevensbeveiliging](#gegevensbeveiliging). Verwijder haar om OneUptime de toegang te ontnemen.
 - **OneUptime leest volgens een schema.** Elke 5 minuten voor Azure en Google Cloud, en elke 10 minuten voor AWS, tenzij je bij het koppelen een ander interval kiest. Elke keer lezen legt ook vast wat er sinds de vorige keer is gewijzigd, en elke 30 minuten toont een leesbeurt alle resources opnieuw.
-- **Elke resource krijgt een eigen pagina.** Resources verschijnen onder **Cloud → Alle resources** met hun belangrijkste metrieken, eigenaren en labels. De pagina van een vermelde resource toont ook de **Verbonden resources** (waarin die draait, wat er verkeer naartoe stuurt), de endpoints, tags en instellingen, en de **Incidenten**, **Waarschuwingen** en **Wijzigingen**.
-- **Elk account krijgt een eigen pagina.** Accounts verschijnen onder **Cloud → Accounts** met hun resources per type en regio, hun **Wijzigingen** en een **Topologie** van hoe hun resources samenhangen.
+- **Elke resource krijgt een eigen pagina.** Resources verschijnen onder **Cloud → Alle resources** met hun status, belangrijkste metrieken, eigenaren en labels. De pagina van een vermelde resource toont ook de **Verbonden resources** (waarin die draait, wat er verkeer naartoe stuurt), de endpoints, tags en instellingen, en de **Incidenten**, **Waarschuwingen** en **Wijzigingen**.
+- **Elk account krijgt een eigen pagina.** Accounts verschijnen onder **Cloud → Accounts** met hun resources per type en regio, hun **Kosten**, hun **Wijzigingen** en een **Topologie** van hoe hun resources samenhangen.
+- **Cloud opent op zijn overzicht.** **Cloud → Overzicht** toont de resources die aandacht nodig hebben en waarom, wat de accounts deze maand kosten en wat je clouds zeggen dat er bespaard kan worden. [Cloudkosten en besparingen](/docs/telemetry/cloud-costs) legt uit hoe kosten, besparingen en budgetten worden gelezen.
 - **OneUptime AI leest wat er is gewijzigd.** Een onderzoek naar een incident of waarschuwing dat aan een cloudresource is gekoppeld, leest eerst de wijzigingen van die resource en leest bij de start het activiteitenlogboek van het account opnieuw.
 
 ## Voordat je begint
@@ -72,6 +74,8 @@ De rol en de gebruiker kunnen dit, en verder niets:
 | Elke resource en de configuratie ervan tonen, via Cloud Control | `cloudformation:ListResources`, `ec2:DescribeInstances`, `ec2:DescribeVolumes`, `ec2:DescribeVpcs`, `ec2:DescribeNatGateways`, `autoscaling:DescribeAutoScalingGroups`, `elasticloadbalancing:DescribeLoadBalancers`, `elasticloadbalancing:DescribeLoadBalancerAttributes`, `elasticloadbalancing:DescribeTargetGroups`, `elasticloadbalancing:DescribeTargetGroupAttributes`, `elasticloadbalancing:DescribeTargetHealth`, `elasticloadbalancing:DescribeTags`, `ecs:ListClusters`, `ecs:DescribeClusters`, `ecs:ListServices`, `ecs:DescribeServices`, `lambda:ListFunctions`, `rds:DescribeDBInstances`, `rds:DescribeDBClusters`, `elasticache:DescribeReplicationGroups`, `sqs:ListQueues`, `sqs:GetQueueAttributes`, `sns:ListTopics`, `sns:GetTopicAttributes`, `sns:ListSubscriptionsByTopic`, `dynamodb:ListTables`, `dynamodb:DescribeTable`, `kinesis:ListStreams`, `kinesis:DescribeStreamSummary`, `states:ListStateMachines`, `states:DescribeStateMachine`, `cloudfront:ListDistributions`, `elasticfilesystem:DescribeFileSystems`, `es:ListDomainNames`, `es:DescribeDomains`, `apprunner:ListServices`, `apprunner:DescribeService`, `apigateway:GET` |
 | Lezen wat er is gewijzigd: de beheergebeurtenissen van het account | `cloudtrail:LookupEvents` |
 | De eigen statusgebeurtenissen van AWS voor het account lezen | `health:DescribeEvents`, `health:DescribeEventDetails` |
+| Lezen wat het account kost, uit Cost Explorer | `ce:GetCostAndUsage` |
+| De manieren lezen om minder uit te geven, uit Cost Optimization Hub | `cost-optimization-hub:ListRecommendations` |
 | De actuele status en recente gebeurtenissen van een resource lezen tijdens een onderzoek | `rds:DescribeEvents`, `autoscaling:DescribeScalingActivities`, `ec2:DescribeInstanceStatus`, `ecs:DescribeTaskDefinition`, `lambda:GetFunctionConfiguration`, `lambda:GetFunctionConcurrency`, `lambda:GetAlias` |
 | De quota van het account lezen tijdens een onderzoek | `servicequotas:ListServiceQuotas` |
 | Logregels lezen, alleen als je AI de logs van een account laat lezen | `logs:DescribeLogGroups`, `logs:FilterLogEvents` |
@@ -91,7 +95,7 @@ Ga naar **Cloud → Koppelen** en kies **Microsoft Azure**.
 
 ### De opdracht uitvoeren in Azure Cloud Shell
 
-De opdracht maakt een app met de rol **Monitoring Reader** op je huidige abonnement, en toont de gegevens ervan met de datum waarop het geheim verloopt:
+De opdracht maakt een app met de rollen **Monitoring Reader** en **Cost Management Reader** op je huidige abonnement, en toont de gegevens ervan met de datum waarop het geheim verloopt:
 
 ```bash
 SCOPE="/subscriptions/$(az account show --query id --output tsv)"
@@ -122,10 +126,11 @@ Plak alles wat de opdracht toonde in **Wat de opdracht heeft getoond**. OneUptim
 OneUptime test de koppeling zodra deze stap opent. Kies **Koppelen** om op te slaan.
 :::
 
-Om meer abonnementen met dezelfde app te lezen, geef je haar de rol op elk ervan:
+Om meer abonnementen met dezelfde app te lezen, geef je haar beide rollen op elk ervan:
 
 ```bash
 az role assignment create --assignee <APP_ID> --role "Monitoring Reader" --scope /subscriptions/<SUBSCRIPTION_ID>
+az role assignment create --assignee <APP_ID> --role "Cost Management Reader" --scope /subscriptions/<SUBSCRIPTION_ID>
 ```
 
 OneUptime leest elk abonnement dat de app kan lezen, maximaal 50, tenzij je er enkele vermeldt onder **Abonnementen**. Het geheim van de app werkt niet meer na de verloopdatum: vanaf 30 dagen ervoor waarschuwt elke leesbeurt ervoor. Voer de opdracht opnieuw uit en plak wat die toont om haar een nieuw geheim te geven.
@@ -139,7 +144,7 @@ Ga naar **Cloud → Koppelen** en kies **Google Cloud**.
 
 ### De opdracht uitvoeren in Google Cloud Shell
 
-Voer haar uit in het project dat je wilt bewaken. Ze zet de API's aan die OneUptime leest, maakt een serviceaccount met de rollen **Monitoring Viewer**, **Cloud Asset Viewer**, **Logs Viewer** en **Service Health Viewer**, en toont de sleutel ervan:
+Voer haar uit in het project dat je wilt bewaken. Ze zet de API's aan die OneUptime leest, maakt een serviceaccount met de rollen **Monitoring Viewer**, **Cloud Asset Viewer**, **Logs Viewer**, **Service Health Viewer**, **BigQuery Job User** en **Compute Recommender Viewer**, en toont de sleutel ervan:
 
 ```bash
 PROJECT_ID=$(gcloud config get-value project)
@@ -181,13 +186,15 @@ Plak alles wat de opdracht toonde. OneUptime leest het eigen project van de sleu
 OneUptime test de koppeling zodra deze stap opent. Kies **Koppelen** om op te slaan.
 :::
 
-Om meer projecten met hetzelfde serviceaccount te lezen, geef je het de vier rollen in elk ervan en vermeld je ze onder **Projecten**:
+Om meer projecten met hetzelfde serviceaccount te lezen, geef je het deze rollen in elk ervan en vermeld je ze onder **Projecten**:
 
 ```bash
-for ROLE in roles/monitoring.viewer roles/cloudasset.viewer roles/logging.viewer roles/servicehealth.viewer; do gcloud projects add-iam-policy-binding <PROJECT_ID> --member "serviceAccount:oneuptime-read-only@<KEY_PROJECT_ID>.iam.gserviceaccount.com" --role "$ROLE"; done
+for ROLE in roles/monitoring.viewer roles/cloudasset.viewer roles/logging.viewer roles/servicehealth.viewer roles/recommender.computeViewer; do gcloud projects add-iam-policy-binding <PROJECT_ID> --member "serviceAccount:oneuptime-read-only@<KEY_PROJECT_ID>.iam.gserviceaccount.com" --role "$ROLE"; done
 ```
 
 De koppeling van een organisatie leest maximaal 50 van haar projecten, tenzij je er enkele vermeldt onder **Projecten**.
+
+Google Cloud heeft geen API voor de kosten van een project: OneUptime leest ze uit de export van je factureringsaccount naar BigQuery, zodra je de tabel ervan opgeeft onder **Tabel van de factuurexport**. [Cloudkosten en besparingen](/docs/telemetry/cloud-costs#google-cloud) laat zien hoe.
 
 ## Gegevensbeveiliging
 
@@ -197,7 +204,7 @@ Dezelfde koppeling kan [Gegevensbeveiliging](/docs/data-security/index) de gegev
 | --- | --- | --- |
 | **Uit** | Geen enkele opslag van het account | Niets |
 | **Alleen configuratie** | Wie bij elke opslag kan, en hoe die is versleuteld, geback-upt en gelogd. Nooit gegevens. | Op AWS een tweede inline-beleid, `OneUptimeDataSecurity`, met leesacties. Op Azure en Google Cloud niets: **Monitoring Reader** en **Cloud Asset Viewer** lezen dat al. |
-| **Configuratie en inhoudsvoorbeelden** | Dat, en voorbeelden van objecten en rijen, om er gevoelige gegevens in te vinden | Op AWS hetzelfde beleid met `s3:ListBucket`, `s3:GetObject` en `kms:Decrypt`, alleen via S3. Op Azure **Storage Blob Data Reader**. Op Google Cloud `roles/storage.objectViewer`, `roles/bigquery.dataViewer` en de BigQuery API. |
+| **Configuratie en inhoudsvoorbeelden** | Dat, en voorbeelden van objecten en rijen, om er gevoelige gegevens in te vinden | Op AWS hetzelfde beleid met `s3:ListBucket`, `s3:GetObject` en `kms:Decrypt`, alleen via S3. Op Azure **Storage Blob Data Reader**. Op Google Cloud `roles/storage.objectViewer` en `roles/bigquery.dataViewer`. |
 
 Op AWS voegt de opdracht van de rol het beleid toe met één regel extra. Op het inhoudsniveau is dat:
 
@@ -228,7 +235,7 @@ END=$(az ad app credential list --id "$APP" --query "max([].endDateTime)" --outp
 echo "$OUT" | jq --arg end "$END" '. + {endDateTime: $end}'
 ```
 
-Op Google Cloud voegt het de twee rollen toe en zet het `bigquery.googleapis.com` aan:
+Op Google Cloud voegt het de twee rollen toe:
 
 ```bash
 PROJECT_ID=$(gcloud config get-value project)
@@ -256,24 +263,30 @@ De opdracht van een lager niveau vervangt het AWS-beleid door het lagere. **Uit*
 | Metrieken | De belangrijkste metrieken van elke service, zoals de CPU, het netwerk en de statuscontroles van een instance | Maximaal 8 belangrijke metrieken per resource | De belangrijkste metrieken van elk resourcetype |
 | Wijzigingen | De beheergebeurtenissen van CloudTrail | De beheergebeurtenissen van het activiteitenlogboek | Het auditlogboek Admin Activity |
 | Statusgebeurtenissen | AWS Health | Service Health en Resource Health | Service Health |
+| Kosten | Die van elke dag, per dienst en regio, uit Cost Explorer | Die van elke dag, per resource en dienst, uit Cost Management | Die van elke dag, per dienst, regio en resource, uit je factuurexport naar BigQuery |
+| Manieren om minder uit te geven | Cost Optimization Hub | Azure Advisor | De Recommender |
 | Gelezen elke | 10 minuten | 5 minuten | 5 minuten |
 | Een verwijderde resource | Gearchiveerd zodra een volledige lijst hem niet meer bevat | Gearchiveerd zodra een volledige lijst hem niet meer bevat | Gearchiveerd zodra een volledige lijst hem niet meer bevat |
 
-Elke leesbeurt gaat verder waar de vorige stopte, zodat elk datapunt en elke wijziging één keer wordt geschreven. De eerste leesbeurt van een nieuwe koppeling start binnen een minuut en gaat een uur terug voor metrieken en 2 uur voor wijzigingen; na een pauze gaat een leesbeurt hooguit 6 uur terug. Een resource die alleen metrieken meldt, en die geen enkele lijst bevat, wordt na 7 dagen zonder metrieken gearchiveerd.
+Elke leesbeurt gaat verder waar de vorige stopte, zodat elk datapunt en elke wijziging één keer wordt geschreven. De eerste leesbeurt van een nieuwe koppeling start binnen een minuut en gaat een uur terug voor metrieken en 2 uur voor wijzigingen; na een pauze gaat een leesbeurt hooguit 6 uur terug. Een resource die alleen metrieken meldt, en die geen enkele lijst bevat, wordt na 7 dagen zonder metrieken gearchiveerd. Kosten worden twee keer per dag gelezen, en de manieren om minder uit te geven één keer per dag.
 
-De aanroepen van OneUptime worden aan je cloudaccount gefactureerd, tegen de prijzen van je cloud. Resources tonen en wijzigingen en statusgebeurtenissen lezen kost op alle drie de clouds niets; metrieken lezen wel. De test schat de kosten van wat hij vindt, en minder vaak lezen kost minder: wijzig **Leesinterval voor metrieken** onder **Meer velden**.
+De aanroepen van OneUptime worden aan je cloudaccount gefactureerd, tegen de prijzen van je cloud. Resources tonen, wijzigingen en statusgebeurtenissen lezen, de manieren lezen om minder uit te geven en de kosten van Azure lezen kost niets; metrieken lezen wel, en ook de kosten van AWS en Google Cloud lezen. De test schat de kosten van wat hij vindt, en minder vaak lezen kost minder: wijzig **Leesinterval voor metrieken** onder **Meer velden**.
 
 | Cloud | Prijs |
 | --- | --- |
 | AWS | CloudWatch `GetMetricData`: $0.01 per 1.000 metrieken, en elke belangrijke metriek van een resource is één metriek per leesbeurt |
+| AWS-kosten | Cost Explorer `GetCostAndUsage`: $0.01 per verzoek, en een leesbeurt van de kosten doet er een paar |
 | Azure | De eerste 1.000.000 metriekleesbeurten per maand van elk abonnement zijn gratis, daarna $0.01 per 1.000 |
 | Google Cloud | De eerste 1.000.000 gelezen tijdreeksen per maand zijn gratis, daarna $0.50 per miljoen |
+| Google Cloud-kosten | BigQuery factureert de query op je factuurexport: de eerste 1 TiB per maand is gratis, daarna $6.25 per TiB |
 
 ## Wat je in OneUptime ziet
 
 - **De pagina van een account.** Onder **Cloud → Accounts** telt het overzicht van een account de resources per type en regio en zegt het wanneer een koppeling het voor het laatst las. De **Middelen** tonen ze, de **Wijzigingen** tonen wat er is gewijzigd, de nieuwste eerst, en de **Topologie** tekent de regio's, de netwerken erin en wat in elk draait, met de open incidenten en waarschuwingen op de resources waaraan ze zijn gekoppeld. De **Feed** legt vast hoe het account in OneUptime kwam, wanneer de Cloud-AI-agent verbinding maakte of opnieuw werd ingesteld, en wie wijzigde wat OneUptime AI erin mag doen.
 - **De wijzigingen van een resource.** Een wijziging wordt bewaard als wijzigingsgebeurtenis, gekoppeld aan de resource die ze wijzigde en aan het account ervan, en getekend als markering in de metriekgrafieken van de resource, samen met de incidenten en waarschuwingen. Grafieken die op geen enkele resource zijn gefilterd, laten het activiteitenlogboek van een cloudaccount weg, zodat een druk account je deploys niet verdringt; de statusgebeurtenissen van de provider blijven erop staan.
 - **Incidenten en waarschuwingen.** Koppel een cloudresource aan een monitor, een incident of een waarschuwing onder de gekoppelde resources ervan, en de incidenten en waarschuwingen worden op de pagina van de resource vermeld. Een website-, API-, SSL-, ping- of poortmonitor waarvan de host naar een endpoint van een resource leidt, rechtstreeks of via DNS, toont de resource onder **Voorgestelde cloud-resources** op de kaart **Gekoppelde resources**: kies **Resource koppelen** om hem te koppelen.
+- **De status van een resource.** Elke leesbeurt bewaart de nieuwste waarde van de belangrijkste metrieken van een resource en beoordeelt ze: een resource toont **Gezond**, **Verminderd** of **Ongezond**, met de reden, zoals mislukte statuscontroles of bijna volle opslag, en **Rapporteert niet** zodra de metrieken stoppen. **Cloud → Overzicht** en het overzicht van een account tonen wat aandacht nodig heeft, het dringendste eerst.
+- **Wat de accounts kosten.** **Cloud → Uitgaven → Kosten** tekent de uitgaven van elke dag en waar ze naartoe gaan, **Cloud → Uitgaven → Besparingen** toont de manieren om minder uit te geven, en **Cloud → Uitgaven → Budgetten** waarschuwt voordat een maand meer kost dan zou moeten: [Cloudkosten en besparingen](/docs/telemetry/cloud-costs).
 
 ## AI problemen laten oplossen
 

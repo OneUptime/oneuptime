@@ -40513,7 +40513,7 @@
   "Not listed by its cloud connection, and no metric about it, for over an hour. One its account no longer lists, or silent for a week, is archived.": "Não listado pela sua conexão de nuvem e sem nenhuma métrica há mais de uma hora. Um recurso que a conta deixou de listar, ou sem dados há uma semana, é arquivado.",
   "Nothing cost anything in this period.": "Nada custou nada neste período.",
   "Nothing needs a look": "Nada precisa de atenção",
-  "Nothing to turn on: Azure Advisor's cost recommendations are read with the connection's Reader role.": "Nada a ativar: as recomendações de custo do Azure Advisor são lidas com a função Leitor da conexão.",
+  "Nothing to turn on: Azure Advisor's cost recommendations are read with the connection's Monitoring Reader role.": "Nada a ativar: as recomendações de custo do Azure Advisor são lidas com a função Monitoring Reader da conexão.",
   "Oldest message": "Mensagem mais antiga",
   "Oldest message waiting {{count}} day": "Mensagem mais antiga aguardando há {{count}} dia",
   "Oldest message waiting {{count}} days": "Mensagem mais antiga aguardando há {{count}} dias",

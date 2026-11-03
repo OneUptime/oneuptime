@@ -1,12 +1,13 @@
 # 連線雲端帳戶
 
-在儀表板中連線 AWS 帳戶、Azure 訂用帳戶或 Google Cloud 專案，OneUptime 會列出其中的每個資源，讀取它們的關鍵指標，並記錄它們發生了哪些變更，以及你的雲端供應商對它們健康狀況的說明。你只需在雲端自帶的瀏覽器終端機中執行一個指令，再貼上它的輸出：不需要執行收集器，也不需要安裝任何東西。
+在儀表板中連線 AWS 帳戶、Azure 訂用帳戶或 Google Cloud 專案，OneUptime 會列出其中的每個資源，讀取它們的關鍵指標並說明每個資源的狀況，記錄它們發生了哪些變更以及你的雲端供應商對它們健康狀況的說明，並讀取帳戶的成本以及降低成本的方法。你只需在雲端自帶的瀏覽器終端機中執行一個指令，再貼上它的輸出：不需要執行收集器，也不需要安裝任何東西。
 
 :::cards
 - [Amazon Web Services](#amazon-web-services): OneUptime 登入所用的 IAM 角色，或一組存取金鑰。
-- [Microsoft Azure](#microsoft-azure): 具有 Monitoring Reader 角色的應用程式。
-- [Google Cloud](#google-cloud): 具有四個唯讀角色的服務帳戶。
-- [OneUptime 讀取什麼](#oneuptime-讀取什麼): 資源、指標、變更和健康事件，多久讀取一次，以及費用是多少。
+- [Microsoft Azure](#microsoft-azure): 具有 Monitoring Reader 和 Cost Management Reader 角色的應用程式。
+- [Google Cloud](#google-cloud): 具有六個唯讀角色的服務帳戶。
+- [OneUptime 讀取什麼](#oneuptime-讀取什麼): 資源、指標、變更、健康事件和成本，多久讀取一次，以及讀取它們的費用是多少。
+- [雲端成本與節省](/docs/telemetry/cloud-costs): 每個帳戶的成本、減少支出的方法，以及會發出警示的預算。
 - [資料安全](#資料安全): 這個連線讓資料安全讀取什麼，以及每個層級會在指令中新增什麼。
 - [讓 AI 修正問題](#讓-ai-修正問題): 再執行一個指令，OneUptime AI 就能修正它發現的問題。
 :::
@@ -22,10 +23,11 @@ flowchart TB
     ou --> chg["變更和<br/>健康事件"]
 ```
 
-- **存取權只能讀取。** 指令建立的存取權只會讀取你的資源及其設定、它們的指標、發生的變更和供應商的健康事件，不做其他任何事：在 AWS 上是下方列出的動作，在 Azure 上是 **Monitoring Reader** 角色，在 Google Cloud 上是四個檢視者角色。OneUptime 從不透過它讀取資料或機密：只有當你允許 AI 讀取帳戶的日誌時，才會讀取日誌行；只有當你為 [資料安全](#資料安全) 開啟內容樣本時，才會讀取這些樣本。刪除它即可切斷 OneUptime 的存取。
+- **存取權只能讀取。** 指令建立的存取權只會讀取你的資源及其設定、它們的指標、發生的變更、供應商的健康事件和帳戶的成本，不做其他任何事：在 AWS 上是下方列出的動作，在 Azure 上是 **Monitoring Reader** 和 **Cost Management Reader** 角色，在 Google Cloud 上是六個檢視者角色。OneUptime 從不透過它讀取資料或機密：只有當你允許 AI 讀取帳戶的日誌時，才會讀取日誌行；只有當你為 [資料安全](#資料安全) 開啟內容樣本時，才會讀取這些樣本。刪除它即可切斷 OneUptime 的存取。
 - **OneUptime 依排程讀取。** 除非你在連線時選擇其他間隔，Azure 和 Google Cloud 每 5 分鐘讀取一次，AWS 每 10 分鐘讀取一次。每次讀取也會記錄自上次以來的變更，而且每 30 分鐘會有一次讀取重新列出所有資源。
-- **每個資源都有自己的頁面。** 資源會顯示在 **雲端 → 所有資源** 中，附上其關鍵指標、擁有者和標籤。已列出資源的頁面也會顯示它的 **相連的資源**（它在什麼裡面執行，什麼向它傳送流量）、它的端點、標籤和設定，以及它的 **事件**、**警示** 和 **變更**。
-- **每個帳戶都有自己的頁面。** 帳戶會顯示在 **雲端 → 帳戶** 中，附上依類型和區域分組的資源、它們的 **變更**，以及顯示其資源如何彼此相連的 **拓撲**。
+- **每個資源都有自己的頁面。** 資源會顯示在 **雲端 → 所有資源** 中，附上其健康狀況、關鍵指標、擁有者和標籤。已列出資源的頁面也會顯示它的 **相連的資源**（它在什麼裡面執行，什麼向它傳送流量）、它的端點、標籤和設定，以及它的 **事件**、**警示** 和 **變更**。
+- **每個帳戶都有自己的頁面。** 帳戶會顯示在 **雲端 → 帳戶** 中，附上依類型和區域分組的資源、它們的 **成本**、它們的 **變更**，以及顯示其資源如何彼此相連的 **拓撲**。
+- **雲端從它的概覽開啟。** **雲端 → 概覽** 列出需要注意的資源及原因、帳戶本月的成本，以及你的雲端認為可以節省的金額。[雲端成本與節省](/docs/telemetry/cloud-costs) 說明成本、節省和預算是如何讀取的。
 - **OneUptime AI 會讀取發生的變更。** 對連結到雲端資源的事件或警示所做的調查，會先讀取該資源的變更，並在開始時重新讀取帳戶的活動記錄。
 
 ## 開始之前
@@ -72,6 +74,8 @@ aws iam create-access-key --user-name OneUptimeReadOnly
 | 透過 Cloud Control 列出每個資源及其設定 | `cloudformation:ListResources`, `ec2:DescribeInstances`, `ec2:DescribeVolumes`, `ec2:DescribeVpcs`, `ec2:DescribeNatGateways`, `autoscaling:DescribeAutoScalingGroups`, `elasticloadbalancing:DescribeLoadBalancers`, `elasticloadbalancing:DescribeLoadBalancerAttributes`, `elasticloadbalancing:DescribeTargetGroups`, `elasticloadbalancing:DescribeTargetGroupAttributes`, `elasticloadbalancing:DescribeTargetHealth`, `elasticloadbalancing:DescribeTags`, `ecs:ListClusters`, `ecs:DescribeClusters`, `ecs:ListServices`, `ecs:DescribeServices`, `lambda:ListFunctions`, `rds:DescribeDBInstances`, `rds:DescribeDBClusters`, `elasticache:DescribeReplicationGroups`, `sqs:ListQueues`, `sqs:GetQueueAttributes`, `sns:ListTopics`, `sns:GetTopicAttributes`, `sns:ListSubscriptionsByTopic`, `dynamodb:ListTables`, `dynamodb:DescribeTable`, `kinesis:ListStreams`, `kinesis:DescribeStreamSummary`, `states:ListStateMachines`, `states:DescribeStateMachine`, `cloudfront:ListDistributions`, `elasticfilesystem:DescribeFileSystems`, `es:ListDomainNames`, `es:DescribeDomains`, `apprunner:ListServices`, `apprunner:DescribeService`, `apigateway:GET` |
 | 讀取發生的變更：帳戶的管理事件 | `cloudtrail:LookupEvents` |
 | 讀取 AWS 自己針對該帳戶的健康事件 | `health:DescribeEvents`, `health:DescribeEventDetails` |
+| 從 Cost Explorer 讀取帳戶的成本 | `ce:GetCostAndUsage` |
+| 從 Cost Optimization Hub 讀取減少支出的方法 | `cost-optimization-hub:ListRecommendations` |
 | 在調查期間讀取資源的目前狀態和最近的事件 | `rds:DescribeEvents`, `autoscaling:DescribeScalingActivities`, `ec2:DescribeInstanceStatus`, `ecs:DescribeTaskDefinition`, `lambda:GetFunctionConfiguration`, `lambda:GetFunctionConcurrency`, `lambda:GetAlias` |
 | 在調查期間讀取帳戶的配額 | `servicequotas:ListServiceQuotas` |
 | 讀取日誌行，僅當你允許 AI 讀取帳戶的日誌時 | `logs:DescribeLogGroups`, `logs:FilterLogEvents` |
@@ -91,7 +95,7 @@ aws iam create-access-key --user-name OneUptimeReadOnly
 
 ### 在 Azure Cloud Shell 中執行指令
 
-該指令會在你目前的訂用帳戶上建立一個具有 **Monitoring Reader** 角色的應用程式，並輸出其詳細資料以及其機密的到期日期：
+該指令會在你目前的訂用帳戶上建立一個具有 **Monitoring Reader** 和 **Cost Management Reader** 角色的應用程式，並輸出其詳細資料以及其機密的到期日期：
 
 ```bash
 SCOPE="/subscriptions/$(az account show --query id --output tsv)"
@@ -122,10 +126,11 @@ echo "$OUT" | jq --arg end "$END" '. + {endDateTime: $end}'
 此步驟開啟時，OneUptime 會測試連線。選擇 **連線** 即可儲存。
 :::
 
-要用同一個應用程式讀取更多訂用帳戶，請在每個訂用帳戶上為它授予該角色：
+要用同一個應用程式讀取更多訂用帳戶，請在每個訂用帳戶上為它授予這兩個角色：
 
 ```bash
 az role assignment create --assignee <APP_ID> --role "Monitoring Reader" --scope /subscriptions/<SUBSCRIPTION_ID>
+az role assignment create --assignee <APP_ID> --role "Cost Management Reader" --scope /subscriptions/<SUBSCRIPTION_ID>
 ```
 
 除非你在 **訂用帳戶** 中列出一些訂用帳戶，否則 OneUptime 會讀取該應用程式可以讀取的每個訂用帳戶，最多 50 個。應用程式的機密會在到期日停止運作：從到期前 30 天起，每次讀取都會對此發出提醒。再次執行該指令並貼上它的輸出，即可為它換一個新的機密。
@@ -139,7 +144,7 @@ az role assignment create --assignee <APP_ID> --role "Monitoring Reader" --scope
 
 ### 在 Google Cloud Shell 中執行指令
 
-在要監控的專案中執行它。它會啟用 OneUptime 讀取的 API，建立一個具有 **Monitoring Viewer**、**Cloud Asset Viewer**、**Logs Viewer** 和 **Service Health Viewer** 角色的服務帳戶，並輸出其金鑰：
+在要監控的專案中執行它。它會啟用 OneUptime 讀取的 API，建立一個具有 **Monitoring Viewer**、**Cloud Asset Viewer**、**Logs Viewer**、**Service Health Viewer**、**BigQuery Job User** 和 **Compute Recommender Viewer** 角色的服務帳戶，並輸出其金鑰：
 
 ```bash
 PROJECT_ID=$(gcloud config get-value project)
@@ -181,13 +186,15 @@ cat oneuptime-key.json && rm oneuptime-key.json
 此步驟開啟時，OneUptime 會測試連線。選擇 **連線** 即可儲存。
 :::
 
-要用同一個服務帳戶讀取更多專案，請在每個專案中為它授予這四個角色，並在 **專案** 中列出它們：
+要用同一個服務帳戶讀取更多專案，請在每個專案中為它授予這些角色，並在 **專案** 中列出它們：
 
 ```bash
-for ROLE in roles/monitoring.viewer roles/cloudasset.viewer roles/logging.viewer roles/servicehealth.viewer; do gcloud projects add-iam-policy-binding <PROJECT_ID> --member "serviceAccount:oneuptime-read-only@<KEY_PROJECT_ID>.iam.gserviceaccount.com" --role "$ROLE"; done
+for ROLE in roles/monitoring.viewer roles/cloudasset.viewer roles/logging.viewer roles/servicehealth.viewer roles/recommender.computeViewer; do gcloud projects add-iam-policy-binding <PROJECT_ID> --member "serviceAccount:oneuptime-read-only@<KEY_PROJECT_ID>.iam.gserviceaccount.com" --role "$ROLE"; done
 ```
 
 除非你在 **專案** 中列出一些專案，否則組織的連線最多讀取其 50 個專案。
+
+Google Cloud 沒有提供專案成本的 API：OneUptime 從你的帳單帳戶匯出到 BigQuery 的資料中讀取成本，只要你在 **帳單匯出資料表** 中填入它的資料表即可。[雲端成本與節省](/docs/telemetry/cloud-costs#google-cloud) 說明了具體做法。
 
 ## 資料安全
 
@@ -197,7 +204,7 @@ for ROLE in roles/monitoring.viewer roles/cloudasset.viewer roles/logging.viewer
 | --- | --- | --- |
 | **關閉** | 不讀取帳戶的任何資料儲存區 | 無 |
 | **僅設定** | 誰可以存取每個資料儲存區，以及它的加密、備份和日誌記錄方式。從不讀取資料。 | 在 AWS 上，新增第二個內嵌政策 `OneUptimeDataSecurity`，其中包含讀取動作。在 Azure 和 Google Cloud 上不新增任何內容：**Monitoring Reader** 和 **Cloud Asset Viewer** 已經能讀取這些資訊。 |
-| **設定和內容樣本** | 上述內容，以及物件和資料列的樣本，用來在其中找出敏感資料 | 在 AWS 上，是同一個政策再加上 `s3:ListBucket`、`s3:GetObject`，以及僅限透過 S3 的 `kms:Decrypt`。在 Azure 上，是 **Storage Blob Data Reader**。在 Google Cloud 上，是 `roles/storage.objectViewer`、`roles/bigquery.dataViewer` 和 BigQuery API。 |
+| **設定和內容樣本** | 上述內容，以及物件和資料列的樣本，用來在其中找出敏感資料 | 在 AWS 上，是同一個政策再加上 `s3:ListBucket`、`s3:GetObject`，以及僅限透過 S3 的 `kms:Decrypt`。在 Azure 上，是 **Storage Blob Data Reader**。在 Google Cloud 上，是 `roles/storage.objectViewer` 和 `roles/bigquery.dataViewer`。 |
 
 在 AWS 上，角色的指令會多一行來新增這個政策。在內容層級時，這一行是：
 
@@ -228,7 +235,7 @@ END=$(az ad app credential list --id "$APP" --query "max([].endDateTime)" --outp
 echo "$OUT" | jq --arg end "$END" '. + {endDateTime: $end}'
 ```
 
-在 Google Cloud 上，它會新增這兩個角色並啟用 `bigquery.googleapis.com`：
+在 Google Cloud 上，它會新增這兩個角色：
 
 ```bash
 PROJECT_ID=$(gcloud config get-value project)
@@ -256,24 +263,30 @@ cat oneuptime-key.json && rm oneuptime-key.json
 | 指標 | 每項服務的關鍵指標，例如執行個體的 CPU、網路和狀態檢查 | 每個資源最多 8 個關鍵指標 | 每種資源類型的關鍵指標 |
 | 變更 | CloudTrail 管理事件 | 活動記錄的管理事件 | Admin Activity 稽核記錄 |
 | 健康事件 | AWS Health | Service Health 和 Resource Health | Service Health |
+| 成本 | 每天的成本，依服務和區域，來自 Cost Explorer | 每天的成本，依資源和服務，來自 Cost Management | 每天的成本，依服務、區域和資源，來自你匯出到 BigQuery 的帳單資料 |
+| 減少支出的方法 | Cost Optimization Hub | Azure Advisor | Recommender |
 | 讀取間隔 | 10 分鐘 | 5 分鐘 | 5 分鐘 |
 | 已刪除的資源 | 完整清單中不再有它時封存 | 完整清單中不再有它時封存 | 完整清單中不再有它時封存 |
 
-每次讀取都會從上一次停止的地方繼續，因此每個資料點和每項變更只會寫入一次。新連線的第一次讀取會在一分鐘內開始，指標回溯一小時，變更回溯 2 小時；暫停之後，一次讀取最多回溯 6 小時。只回報指標、且不在任何清單中的資源，會在 7 天沒有指標後封存。
+每次讀取都會從上一次停止的地方繼續，因此每個資料點和每項變更只會寫入一次。新連線的第一次讀取會在一分鐘內開始，指標回溯一小時，變更回溯 2 小時；暫停之後，一次讀取最多回溯 6 小時。只回報指標、且不在任何清單中的資源，會在 7 天沒有指標後封存。成本每天讀取兩次，減少支出的方法每天讀取一次。
 
-OneUptime 發出的呼叫會依你的雲端的價格計入你的雲端帳戶。在這三種雲端上，列出資源以及讀取變更和健康事件都不收費；讀取指標則會收費。測試會估算它找到的內容的費用，降低讀取頻率可以減少費用：在 **更多欄位** 中修改 **指標讀取間隔**。
+OneUptime 發出的呼叫會依你的雲端的價格計入你的雲端帳戶。列出資源、讀取變更和健康事件、讀取減少支出的方法以及讀取 Azure 的成本都不收費；讀取指標會收費，讀取 AWS 和 Google Cloud 的成本也會收費。測試會估算它找到的內容的費用，降低讀取頻率可以減少費用：在 **更多欄位** 中修改 **指標讀取間隔**。
 
 | 雲端 | 價格 |
 | --- | --- |
 | AWS | CloudWatch `GetMetricData`：每 1,000 個指標 $0.01，每個資源的每個關鍵指標每次讀取計為一個指標 |
+| AWS 成本 | Cost Explorer `GetCostAndUsage`：每個請求 $0.01，每次讀取成本會發出幾個請求 |
 | Azure | 每個訂用帳戶每月的前 1,000,000 次指標讀取免費，之後每 1,000 次 $0.01 |
 | Google Cloud | 每月讀取的前 1,000,000 個時間序列免費，之後每百萬個 $0.50 |
+| Google Cloud 成本 | BigQuery 會對帳單匯出的查詢收費：每月前 1 TiB 免費，之後每 TiB $6.25 |
 
 ## 你在 OneUptime 中看到的內容
 
 - **帳戶的頁面。** 在 **雲端 → 帳戶** 下，帳戶的概觀會依類型和區域計算其資源，並說明某個連線上次讀取它的時間。它的 **資源** 會列出這些資源，它的 **變更** 會依從新到舊列出其中發生的變更，它的 **拓撲** 會繪製它的區域、其中的網路以及每個網路中執行的內容，並在連結的資源上顯示未關閉的事件和警示。它的 **動態** 會記錄該帳戶如何來到 OneUptime、它的雲端 AI 代理程式何時連線或被重設，以及誰變更了 OneUptime AI 在其中可以做什麼。
 - **資源的變更。** 一項變更會儲存為一個變更事件，連結到它所變更的資源和該資源的帳戶，並與資源的事件和警示一起，以標記的形式繪製在資源的指標圖表上。未篩選到任何資源的圖表不會顯示雲端帳戶的活動記錄，這樣忙碌的帳戶就不會擠掉你的部署；供應商的健康事件仍會保留在這些圖表上。
 - **事件和警示。** 在監控器、事件或警示的已連結資源中連結一個雲端資源，它的事件和警示就會列在該資源的頁面上。如果網站、API、SSL、ping 或連接埠監控器的主機直接或透過 DNS 指向某個資源的端點，該監控器的 **已連結的資源** 卡片會在 **建議的雲端資源** 下列出該資源：選擇 **連結資源** 即可連結它。
+- **資源的健康狀況。** 每次讀取都會保存資源關鍵指標的最新值並加以判斷：資源會顯示 **健康**、**效能下降** 或 **不健康**，並附上原因，例如狀態檢查失敗或儲存空間快滿，指標停止時會顯示 **未回報**。**雲端 → 概覽** 和帳戶的概覽會列出需要注意的內容，最緊急的排在最前。
+- **帳戶的成本。** **雲端 → 支出 → 成本** 繪製每天的支出及其去向，**雲端 → 支出 → 節省** 列出減少支出的方法，**雲端 → 支出 → 預算** 會在某個月的成本超出應有水準之前發出警示：[雲端成本與節省](/docs/telemetry/cloud-costs)。
 
 ## 讓 AI 修正問題
 

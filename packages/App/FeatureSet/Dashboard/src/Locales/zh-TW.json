@@ -40513,7 +40513,7 @@
   "Not listed by its cloud connection, and no metric about it, for over an hour. One its account no longer lists, or silent for a week, is archived.": "超過一小時未被雲端連線列出，也沒有任何指標。帳戶不再列出或一週沒有資料的資源會被封存。",
   "Nothing cost anything in this period.": "此期間沒有產生任何成本。",
   "Nothing needs a look": "沒有需要查看的項目",
-  "Nothing to turn on: Azure Advisor's cost recommendations are read with the connection's Reader role.": "無需開啟：Azure Advisor 的成本建議透過連線的讀者角色讀取。",
+  "Nothing to turn on: Azure Advisor's cost recommendations are read with the connection's Monitoring Reader role.": "無需開啟：Azure Advisor 的成本建議透過連線的 Monitoring Reader 角色讀取。",
   "Oldest message": "最早的訊息",
   "Oldest message waiting {{count}} day": "最早的訊息已等待 {{count}} 天",
   "Oldest message waiting {{count}} days": "最早的訊息已等待 {{count}} 天",

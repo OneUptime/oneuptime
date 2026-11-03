@@ -1,12 +1,13 @@
 # Collegare un account cloud
 
-Collega un account AWS, una sottoscrizione Azure o un progetto Google Cloud dalla dashboard, e OneUptime elenca ogni risorsa che contiene, legge le loro metriche principali e registra cosa vi è cambiato e cosa dice il tuo provider cloud sul loro stato. Esegui un comando nel terminale del browser del tuo cloud e incolli ciò che stampa: nessun collector da far girare, niente da installare.
+Collega un account AWS, una sottoscrizione Azure o un progetto Google Cloud dalla dashboard, e OneUptime elenca ogni risorsa che contiene, legge le loro metriche principali e dice come sta ciascuna, registra cosa vi è cambiato e cosa dice il tuo provider cloud sul loro stato, e legge quanto costa l'account e come potrebbe costare meno. Esegui un comando nel terminale del browser del tuo cloud e incolli ciò che stampa: nessun collector da far girare, niente da installare.
 
 :::cards
 - [Amazon Web Services](#amazon-web-services): Un ruolo IAM con cui OneUptime accede, o una chiave di accesso.
-- [Microsoft Azure](#microsoft-azure): Un'app con il ruolo Monitoring Reader.
-- [Google Cloud](#google-cloud): Un account di servizio con quattro ruoli di sola lettura.
-- [Cosa legge OneUptime](#cosa-legge-oneuptime): Risorse, metriche, modifiche ed eventi di stato, con quale frequenza e quanto costa.
+- [Microsoft Azure](#microsoft-azure): Un'app con i ruoli Monitoring Reader e Cost Management Reader.
+- [Google Cloud](#google-cloud): Un account di servizio con sei ruoli di sola lettura.
+- [Cosa legge OneUptime](#cosa-legge-oneuptime): Risorse, metriche, modifiche, eventi di stato e costi, con quale frequenza e quanto costa leggerli.
+- [Costi e risparmi del cloud](/docs/telemetry/cloud-costs): Quanto costa ogni account, i modi per spendere meno e budget che avvisano.
 - [Sicurezza dei dati](#sicurezza-dei-dati): Cosa permette di leggere la connessione a Sicurezza dei dati, e cosa aggiunge al comando ogni livello.
 - [Consenti all'IA di correggere i problemi](#consenti-allia-di-correggere-i-problemi): Un comando in più, e OneUptime AI può correggere ciò che trova.
 :::
@@ -22,10 +23,11 @@ flowchart TB
     ou --> chg["Modifiche ed<br/>eventi di stato"]
 ```
 
-- **L'accesso può solo leggere.** Il comando crea un accesso che legge le tue risorse e la loro configurazione, le loro metriche, cosa è cambiato e gli eventi di stato del tuo provider, e nient'altro: le azioni elencate sotto su AWS, il ruolo **Monitoring Reader** su Azure e quattro ruoli di lettura su Google Cloud. OneUptime non legge mai dati o segreti con esso, tranne righe di log se lasci che l'IA legga i log di un account, e campioni di contenuto se li attivi per [Sicurezza dei dati](#sicurezza-dei-dati). Eliminalo per togliere l'accesso a OneUptime.
+- **L'accesso può solo leggere.** Il comando crea un accesso che legge le tue risorse e la loro configurazione, le loro metriche, cosa è cambiato, gli eventi di stato del tuo provider e quanto costa l'account, e nient'altro: le azioni elencate sotto su AWS, i ruoli **Monitoring Reader** e **Cost Management Reader** su Azure e sei ruoli di lettura su Google Cloud. OneUptime non legge mai dati o segreti con esso, tranne righe di log se lasci che l'IA legga i log di un account, e campioni di contenuto se li attivi per [Sicurezza dei dati](#sicurezza-dei-dati). Eliminalo per togliere l'accesso a OneUptime.
 - **OneUptime legge secondo una pianificazione.** Ogni 5 minuti per Azure e Google Cloud, e ogni 10 minuti per AWS, a meno che tu non scelga un altro intervallo quando colleghi. Ogni lettura registra anche cosa è cambiato dalla precedente, e ogni 30 minuti una lettura elenca di nuovo ogni risorsa.
-- **Ogni risorsa ha una pagina propria.** Le risorse compaiono in **Cloud → Tutte le risorse** con le metriche principali, i proprietari e le etichette. La pagina di una risorsa elencata mostra anche le sue **Risorse connesse** (dove viene eseguita, cosa le invia traffico), i suoi endpoint, tag e impostazioni, e i suoi **Incidenti**, **Avvisi** e **Modifiche**.
-- **Ogni account ha una pagina propria.** Gli account compaiono in **Cloud → Account** con le loro risorse per tipo e regione, le loro **Modifiche** e una **Topologia** di come si incastrano le loro risorse.
+- **Ogni risorsa ha una pagina propria.** Le risorse compaiono in **Cloud → Tutte le risorse** con il loro stato, le metriche principali, i proprietari e le etichette. La pagina di una risorsa elencata mostra anche le sue **Risorse connesse** (dove viene eseguita, cosa le invia traffico), i suoi endpoint, tag e impostazioni, e i suoi **Incidenti**, **Avvisi** e **Modifiche**.
+- **Ogni account ha una pagina propria.** Gli account compaiono in **Cloud → Account** con le loro risorse per tipo e regione, i loro **Costi**, le loro **Modifiche** e una **Topologia** di come si incastrano le loro risorse.
+- **Cloud si apre sulla sua panoramica.** **Cloud → Panoramica** elenca le risorse che richiedono attenzione e perché, quanto costano gli account questo mese e quanto i tuoi cloud dicono che si potrebbe risparmiare. [Costi e risparmi del cloud](/docs/telemetry/cloud-costs) spiega come vengono letti costi, risparmi e budget.
 - **OneUptime AI legge cosa è cambiato.** Un'indagine su un incidente o un avviso collegati a una risorsa cloud legge per prime le modifiche di quella risorsa, e rilegge il log attività dell'account quando inizia.
 
 ## Prima di iniziare
@@ -72,6 +74,8 @@ Il ruolo e l'utente possono fare questo, e nient'altro:
 | Elencare ogni risorsa e la sua configurazione, tramite Cloud Control | `cloudformation:ListResources`, `ec2:DescribeInstances`, `ec2:DescribeVolumes`, `ec2:DescribeVpcs`, `ec2:DescribeNatGateways`, `autoscaling:DescribeAutoScalingGroups`, `elasticloadbalancing:DescribeLoadBalancers`, `elasticloadbalancing:DescribeLoadBalancerAttributes`, `elasticloadbalancing:DescribeTargetGroups`, `elasticloadbalancing:DescribeTargetGroupAttributes`, `elasticloadbalancing:DescribeTargetHealth`, `elasticloadbalancing:DescribeTags`, `ecs:ListClusters`, `ecs:DescribeClusters`, `ecs:ListServices`, `ecs:DescribeServices`, `lambda:ListFunctions`, `rds:DescribeDBInstances`, `rds:DescribeDBClusters`, `elasticache:DescribeReplicationGroups`, `sqs:ListQueues`, `sqs:GetQueueAttributes`, `sns:ListTopics`, `sns:GetTopicAttributes`, `sns:ListSubscriptionsByTopic`, `dynamodb:ListTables`, `dynamodb:DescribeTable`, `kinesis:ListStreams`, `kinesis:DescribeStreamSummary`, `states:ListStateMachines`, `states:DescribeStateMachine`, `cloudfront:ListDistributions`, `elasticfilesystem:DescribeFileSystems`, `es:ListDomainNames`, `es:DescribeDomains`, `apprunner:ListServices`, `apprunner:DescribeService`, `apigateway:GET` |
 | Leggere cosa è cambiato: gli eventi di gestione dell'account | `cloudtrail:LookupEvents` |
 | Leggere gli eventi di stato di AWS stesso per l'account | `health:DescribeEvents`, `health:DescribeEventDetails` |
+| Leggere quanto costa l'account, da Cost Explorer | `ce:GetCostAndUsage` |
+| Leggere i modi per spendere meno, da Cost Optimization Hub | `cost-optimization-hub:ListRecommendations` |
 | Leggere lo stato attuale e gli eventi recenti di una risorsa durante un'indagine | `rds:DescribeEvents`, `autoscaling:DescribeScalingActivities`, `ec2:DescribeInstanceStatus`, `ecs:DescribeTaskDefinition`, `lambda:GetFunctionConfiguration`, `lambda:GetFunctionConcurrency`, `lambda:GetAlias` |
 | Leggere le quote dell'account durante un'indagine | `servicequotas:ListServiceQuotas` |
 | Leggere righe di log, solo se lasci che l'IA legga i log di un account | `logs:DescribeLogGroups`, `logs:FilterLogEvents` |
@@ -91,7 +95,7 @@ Vai in **Cloud → Collega** e scegli **Microsoft Azure**.
 
 ### Eseguire il comando in Azure Cloud Shell
 
-Il comando crea un'app con il ruolo **Monitoring Reader** sulla tua sottoscrizione attuale, e ne stampa i dettagli con la data di scadenza del suo segreto:
+Il comando crea un'app con i ruoli **Monitoring Reader** e **Cost Management Reader** sulla tua sottoscrizione attuale, e ne stampa i dettagli con la data di scadenza del suo segreto:
 
 ```bash
 SCOPE="/subscriptions/$(az account show --query id --output tsv)"
@@ -122,10 +126,11 @@ Incolla tutto ciò che il comando ha stampato in **Cosa ha stampato il comando**
 OneUptime testa la connessione appena si apre questo passaggio. Seleziona **Collega** per salvare.
 :::
 
-Per leggere altre sottoscrizioni con la stessa app, assegnale il ruolo su ciascuna:
+Per leggere altre sottoscrizioni con la stessa app, assegnale entrambi i ruoli su ciascuna:
 
 ```bash
 az role assignment create --assignee <APP_ID> --role "Monitoring Reader" --scope /subscriptions/<SUBSCRIPTION_ID>
+az role assignment create --assignee <APP_ID> --role "Cost Management Reader" --scope /subscriptions/<SUBSCRIPTION_ID>
 ```
 
 OneUptime legge ogni sottoscrizione che l'app può leggere, fino a 50, a meno che tu non ne elenchi alcune in **Sottoscrizioni**. Il segreto dell'app smette di funzionare alla data di scadenza: da 30 giorni prima, ogni lettura ti avvisa. Esegui di nuovo il comando e incolla ciò che stampa per dargliene uno nuovo.
@@ -139,7 +144,7 @@ Vai in **Cloud → Collega** e scegli **Google Cloud**.
 
 ### Eseguire il comando in Google Cloud Shell
 
-Eseguilo nel progetto da monitorare. Attiva le API che OneUptime legge, crea un account di servizio con i ruoli **Monitoring Viewer**, **Cloud Asset Viewer**, **Logs Viewer** e **Service Health Viewer**, e ne stampa la chiave:
+Eseguilo nel progetto da monitorare. Attiva le API che OneUptime legge, crea un account di servizio con i ruoli **Monitoring Viewer**, **Cloud Asset Viewer**, **Logs Viewer**, **Service Health Viewer**, **BigQuery Job User** e **Compute Recommender Viewer**, e ne stampa la chiave:
 
 ```bash
 PROJECT_ID=$(gcloud config get-value project)
@@ -181,13 +186,15 @@ Incolla tutto ciò che il comando ha stampato. OneUptime legge il progetto propr
 OneUptime testa la connessione appena si apre questo passaggio. Seleziona **Collega** per salvare.
 :::
 
-Per leggere altri progetti con lo stesso account di servizio, assegnagli i quattro ruoli in ciascuno ed elencali in **Progetti**:
+Per leggere altri progetti con lo stesso account di servizio, assegnagli questi ruoli in ciascuno ed elencali in **Progetti**:
 
 ```bash
-for ROLE in roles/monitoring.viewer roles/cloudasset.viewer roles/logging.viewer roles/servicehealth.viewer; do gcloud projects add-iam-policy-binding <PROJECT_ID> --member "serviceAccount:oneuptime-read-only@<KEY_PROJECT_ID>.iam.gserviceaccount.com" --role "$ROLE"; done
+for ROLE in roles/monitoring.viewer roles/cloudasset.viewer roles/logging.viewer roles/servicehealth.viewer roles/recommender.computeViewer; do gcloud projects add-iam-policy-binding <PROJECT_ID> --member "serviceAccount:oneuptime-read-only@<KEY_PROJECT_ID>.iam.gserviceaccount.com" --role "$ROLE"; done
 ```
 
 La connessione di un'organizzazione legge fino a 50 dei suoi progetti, a meno che tu non ne elenchi alcuni in **Progetti**.
+
+Google Cloud non ha un'API per i costi di un progetto: OneUptime li legge dall'esportazione del tuo account di fatturazione verso BigQuery, non appena ne indichi la tabella in **Tabella dell'esportazione della fatturazione**. [Costi e risparmi del cloud](/docs/telemetry/cloud-costs#google-cloud) mostra come.
 
 ## Sicurezza dei dati
 
@@ -197,7 +204,7 @@ La stessa connessione può permettere a [Sicurezza dei dati](/docs/data-security
 | --- | --- | --- |
 | **Disattivato** | Nessuno degli archivi dell'account | Nulla |
 | **Solo configurazione** | Chi può raggiungere ogni archivio, e come è cifrato, sottoposto a backup e registrato nei log. Mai i dati. | Su AWS, una seconda policy inline, `OneUptimeDataSecurity`, di azioni di lettura. Su Azure e Google Cloud, nulla: **Monitoring Reader** e **Cloud Asset Viewer** la leggono già. |
-| **Configurazione e campioni di contenuto** | Tutto questo, più campioni di oggetti e righe, per trovarvi dati sensibili | Su AWS, la stessa policy con `s3:ListBucket`, `s3:GetObject` e `kms:Decrypt` solo tramite S3. Su Azure, **Storage Blob Data Reader**. Su Google Cloud, `roles/storage.objectViewer`, `roles/bigquery.dataViewer` e la BigQuery API. |
+| **Configurazione e campioni di contenuto** | Tutto questo, più campioni di oggetti e righe, per trovarvi dati sensibili | Su AWS, la stessa policy con `s3:ListBucket`, `s3:GetObject` e `kms:Decrypt` solo tramite S3. Su Azure, **Storage Blob Data Reader**. Su Google Cloud, `roles/storage.objectViewer` e `roles/bigquery.dataViewer`. |
 
 Su AWS, il comando del ruolo aggiunge la policy con una riga in più. Al livello del contenuto, è questa:
 
@@ -228,7 +235,7 @@ END=$(az ad app credential list --id "$APP" --query "max([].endDateTime)" --outp
 echo "$OUT" | jq --arg end "$END" '. + {endDateTime: $end}'
 ```
 
-Su Google Cloud, aggiunge i due ruoli e attiva `bigquery.googleapis.com`:
+Su Google Cloud, aggiunge i due ruoli:
 
 ```bash
 PROJECT_ID=$(gcloud config get-value project)
@@ -256,24 +263,30 @@ Il comando di un livello inferiore sostituisce la policy AWS con quella del live
 | Metriche | Le metriche principali di ogni servizio, come CPU, rete e controlli di stato di un'istanza | Fino a 8 metriche principali per risorsa | Le metriche principali di ogni tipo di risorsa |
 | Modifiche | Gli eventi di gestione di CloudTrail | Gli eventi amministrativi del log attività | Il log di audit Admin Activity |
 | Eventi di stato | AWS Health | Service Health e Resource Health | Service Health |
+| Costi | Quelli di ogni giorno, per servizio e regione, da Cost Explorer | Quelli di ogni giorno, per risorsa e servizio, da Cost Management | Quelli di ogni giorno, per servizio, regione e risorsa, dalla tua esportazione della fatturazione verso BigQuery |
+| Modi per spendere meno | Cost Optimization Hub | Azure Advisor | Il Recommender |
 | Letto ogni | 10 minuti | 5 minuti | 5 minuti |
 | Una risorsa eliminata | Archiviata quando un elenco completo non la contiene più | Archiviata quando un elenco completo non la contiene più | Archiviata quando un elenco completo non la contiene più |
 
-Ogni lettura riprende da dove si è fermata la precedente, così ogni punto dati e ogni modifica vengono scritti una sola volta. La prima lettura di una nuova connessione parte entro un minuto e risale di un'ora per le metriche e di 2 ore per le modifiche; dopo una pausa, una lettura risale al massimo di 6 ore. Una risorsa che segnala solo metriche, e che nessun elenco contiene, viene archiviata dopo 7 giorni senza metriche.
+Ogni lettura riprende da dove si è fermata la precedente, così ogni punto dati e ogni modifica vengono scritti una sola volta. La prima lettura di una nuova connessione parte entro un minuto e risale di un'ora per le metriche e di 2 ore per le modifiche; dopo una pausa, una lettura risale al massimo di 6 ore. Una risorsa che segnala solo metriche, e che nessun elenco contiene, viene archiviata dopo 7 giorni senza metriche. I costi vengono letti due volte al giorno, e i modi per spendere meno una volta al giorno.
 
-Le chiamate di OneUptime vengono addebitate al tuo account cloud, ai prezzi del tuo cloud. Elencare le risorse e leggere modifiche ed eventi di stato non costa nulla sui tre cloud; leggere le metriche sì. Il test stima il costo di ciò che trova, e leggere meno spesso costa meno: cambia **Frequenza di lettura delle metriche** in **Altri campi**.
+Le chiamate di OneUptime vengono addebitate al tuo account cloud, ai prezzi del tuo cloud. Elencare le risorse, leggere modifiche ed eventi di stato, leggere i modi per spendere meno e leggere i costi di Azure non costa nulla; leggere le metriche sì, e così leggere i costi di AWS e di Google Cloud. Il test stima il costo di ciò che trova, e leggere meno spesso costa meno: cambia **Frequenza di lettura delle metriche** in **Altri campi**.
 
 | Cloud | Prezzo |
 | --- | --- |
 | AWS | CloudWatch `GetMetricData`: $0.01 ogni 1.000 metriche, e ogni metrica principale di una risorsa è una metrica per lettura |
+| Costi AWS | Cost Explorer `GetCostAndUsage`: $0.01 a richiesta, e una lettura dei costi ne fa alcune |
 | Azure | Le prime 1.000.000 letture di metriche al mese di ogni sottoscrizione sono gratuite, poi $0.01 ogni 1.000 |
 | Google Cloud | Le prime 1.000.000 serie temporali lette al mese sono gratuite, poi $0.50 per milione |
+| Costi Google Cloud | BigQuery addebita la query della tua esportazione della fatturazione: il primo 1 TiB al mese è gratuito, poi $6.25 per TiB |
 
 ## Cosa vedi in OneUptime
 
 - **La pagina di un account.** In **Cloud → Account**, la panoramica di un account ne conta le risorse per tipo e regione e dice quando una connessione l'ha letto l'ultima volta. Le sue **Risorse** le elencano, le sue **Modifiche** elencano cosa vi è cambiato, prima le più recenti, e la sua **Topologia** disegna le sue regioni, le reti che contengono e cosa gira in ciascuna, con gli incidenti e gli avvisi aperti sulle risorse a cui sono collegati. Il suo **Feed** registra come l'account è arrivato in OneUptime, quando il suo agente IA cloud si è connesso o è stato reimpostato, e chi ha cambiato ciò che OneUptime AI può farvi.
 - **Le modifiche di una risorsa.** Una modifica viene conservata come evento di modifica collegato alla risorsa che ha cambiato e al suo account, e disegnata come indicatore sui grafici delle metriche della risorsa, insieme ai suoi incidenti e avvisi. I grafici filtrati su nessuna risorsa lasciano fuori il log attività di un account cloud, così un account molto attivo non copre i tuoi deploy; gli eventi di stato del provider restano.
 - **Incidenti e avvisi.** Collega una risorsa cloud a un monitor, un incidente o un avviso nelle sue risorse collegate, e i suoi incidenti e avvisi vengono elencati nella pagina della risorsa. Un monitor di sito web, API, SSL, ping o porta il cui host porta a un endpoint di una risorsa, direttamente o tramite il suo DNS, mostra la risorsa in **Risorse cloud suggerite** sulla sua scheda **Risorse collegate**: seleziona **Collega risorsa** per collegarla.
+- **Lo stato di una risorsa.** Ogni lettura conserva il valore più recente delle metriche principali di una risorsa e le valuta: una risorsa risulta **Integro**, **Degradato** o **Non integro**, con il motivo, come controlli di stato non superati o uno spazio di archiviazione quasi pieno, e **Non segnala** quando le sue metriche si fermano. **Cloud → Panoramica** e la panoramica di un account elencano ciò che richiede attenzione, il più urgente per primo.
+- **Quanto costano gli account.** **Cloud → Spesa → Costi** disegna la spesa di ogni giorno e dove va, **Cloud → Spesa → Risparmi** elenca i modi per spendere meno, e **Cloud → Spesa → Budget** avvisa prima che un mese costi più del dovuto: [Costi e risparmi del cloud](/docs/telemetry/cloud-costs).
 
 ## Consenti all'IA di correggere i problemi
 

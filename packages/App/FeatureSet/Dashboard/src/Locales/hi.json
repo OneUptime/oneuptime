@@ -40513,7 +40513,7 @@
   "Not listed by its cloud connection, and no metric about it, for over an hour. One its account no longer lists, or silent for a week, is archived.": "एक घंटे से ज़्यादा समय से न इसके क्लाउड कनेक्शन ने इसे सूचीबद्ध किया, न कोई मेट्रिक आया। जिस संसाधन को उसका खाता अब सूचीबद्ध नहीं करता, या जो एक हफ़्ते से चुप है, वह संग्रहीत हो जाता है।",
   "Nothing cost anything in this period.": "इस अवधि में कुछ भी लागत नहीं आई।",
   "Nothing needs a look": "कुछ भी देखने की ज़रूरत नहीं",
-  "Nothing to turn on: Azure Advisor's cost recommendations are read with the connection's Reader role.": "चालू करने के लिए कुछ नहीं: Azure Advisor की लागत सिफ़ारिशें कनेक्शन की रीडर भूमिका से पढ़ी जाती हैं।",
+  "Nothing to turn on: Azure Advisor's cost recommendations are read with the connection's Monitoring Reader role.": "चालू करने के लिए कुछ नहीं: Azure Advisor की लागत सिफ़ारिशें कनेक्शन की Monitoring Reader भूमिका से पढ़ी जाती हैं।",
   "Oldest message": "सबसे पुराना संदेश",
   "Oldest message waiting {{count}} day": "सबसे पुराना संदेश {{count}} दिन से प्रतीक्षा में",
   "Oldest message waiting {{count}} days": "सबसे पुराना संदेश {{count}} दिनों से प्रतीक्षा में",

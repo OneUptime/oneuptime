@@ -40513,7 +40513,7 @@
   "Not listed by its cloud connection, and no metric about it, for over an hour. One its account no longer lists, or silent for a week, is archived.": "한 시간 넘게 클라우드 연결 목록에 없고 지표도 없습니다. 계정이 더 이상 나열하지 않거나 일주일 동안 조용한 리소스는 보관됩니다.",
   "Nothing cost anything in this period.": "이 기간에는 비용이 발생하지 않았습니다.",
   "Nothing needs a look": "확인할 항목 없음",
-  "Nothing to turn on: Azure Advisor's cost recommendations are read with the connection's Reader role.": "켤 것이 없습니다. Azure Advisor의 비용 권장 사항은 연결의 읽기 권한자 역할로 읽습니다.",
+  "Nothing to turn on: Azure Advisor's cost recommendations are read with the connection's Monitoring Reader role.": "켤 것이 없습니다. Azure Advisor의 비용 권장 사항은 연결의 Monitoring Reader 역할로 읽습니다.",
   "Oldest message": "가장 오래된 메시지",
   "Oldest message waiting {{count}} day": "가장 오래된 메시지가 {{count}}일째 대기 중",
   "Oldest message waiting {{count}} days": "가장 오래된 메시지가 {{count}}일째 대기 중",

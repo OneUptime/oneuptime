@@ -1,12 +1,13 @@
 # Anslut ett molnkonto
 
-Anslut ett AWS-konto, en Azure-prenumeration eller ett Google Cloud-projekt från instrumentpanelen, så listar OneUptime alla resurser där, läser deras viktigaste mätvärden och registrerar vad som ändrats i dem och vad din molnleverantör säger om deras hälsa. Du kör ett kommando i molnets egen webbläsarterminal och klistrar in det som skrivs ut: ingen collector att köra och inget att installera.
+Anslut ett AWS-konto, en Azure-prenumeration eller ett Google Cloud-projekt från instrumentpanelen, så listar OneUptime alla resurser där, läser deras viktigaste mätvärden och säger hur var och en mår, registrerar vad som ändrats i dem och vad din molnleverantör säger om deras hälsa, och läser vad kontot kostar och hur det kunde kosta mindre. Du kör ett kommando i molnets egen webbläsarterminal och klistrar in det som skrivs ut: ingen collector att köra och inget att installera.
 
 :::cards
 - [Amazon Web Services](#amazon-web-services): En IAM-roll som OneUptime loggar in med, eller en åtkomstnyckel.
-- [Microsoft Azure](#microsoft-azure): En app med rollen Monitoring Reader.
-- [Google Cloud](#google-cloud): Ett tjänstkonto med fyra skrivskyddade roller.
-- [Vad OneUptime läser](#vad-oneuptime-läser): Resurser, mätvärden, ändringar och hälsohändelser, hur ofta och vad det kostar.
+- [Microsoft Azure](#microsoft-azure): En app med rollerna Monitoring Reader och Cost Management Reader.
+- [Google Cloud](#google-cloud): Ett tjänstkonto med sex skrivskyddade roller.
+- [Vad OneUptime läser](#vad-oneuptime-läser): Resurser, mätvärden, ändringar, hälsohändelser och kostnader, hur ofta och vad det kostar att läsa dem.
+- [Molnkostnader och besparingar](/docs/telemetry/cloud-costs): Vad varje konto kostar, sätten att spendera mindre och budgetar som varnar.
 - [Datasäkerhet](#datasäkerhet): Vad anslutningen låter Datasäkerhet läsa, och vad varje nivå lägger till i kommandot.
 - [Låt AI åtgärda problem](#låt-ai-åtgärda-problem): Ett kommando till, så kan OneUptime AI åtgärda det den hittar.
 :::
@@ -22,10 +23,11 @@ flowchart TB
     ou --> chg["Ändringar och<br/>hälsohändelser"]
 ```
 
-- **Åtkomsten kan bara läsa.** Kommandot skapar en åtkomst som läser dina resurser och hur de är konfigurerade, deras mätvärden, vad som ändrats och leverantörens hälsohändelser, och inget annat: åtgärderna nedan på AWS, rollen **Monitoring Reader** på Azure och fyra visningsroller på Google Cloud. OneUptime läser aldrig data eller hemligheter med den, utom loggrader när du låter AI läsa ett kontos loggar och innehållsprover när du slår på dem för [Datasäkerhet](#datasäkerhet). Ta bort den för att stänga ute OneUptime.
+- **Åtkomsten kan bara läsa.** Kommandot skapar en åtkomst som läser dina resurser och hur de är konfigurerade, deras mätvärden, vad som ändrats, leverantörens hälsohändelser och vad kontot kostar, och inget annat: åtgärderna nedan på AWS, rollerna **Monitoring Reader** och **Cost Management Reader** på Azure och sex visningsroller på Google Cloud. OneUptime läser aldrig data eller hemligheter med den, utom loggrader när du låter AI läsa ett kontos loggar och innehållsprover när du slår på dem för [Datasäkerhet](#datasäkerhet). Ta bort den för att stänga ute OneUptime.
 - **OneUptime läser enligt ett schema.** Var 5:e minut för Azure och Google Cloud, och var 10:e minut för AWS, om du inte väljer ett annat intervall när du ansluter. Varje läsning registrerar också vad som ändrats sedan den förra, och var 30:e minut listar en läsning alla resurser igen.
-- **Varje resurs får en egen sida.** Resurser visas under **Moln → Alla resurser** med sina viktigaste mätvärden, ägare och etiketter. Sidan för en listad resurs visar också dess **Anslutna resurser** (vad den körs i, vad som skickar trafik till den), dess slutpunkter, taggar och inställningar, och dess **Incidenter**, **Larm** och **Ändringar**.
-- **Varje konto får en egen sida.** Konton visas under **Moln → Konton** med sina resurser efter typ och region, sina **Ändringar** och en **Topologi** över hur resurserna hänger ihop.
+- **Varje resurs får en egen sida.** Resurser visas under **Moln → Alla resurser** med sin hälsa, sina viktigaste mätvärden, ägare och etiketter. Sidan för en listad resurs visar också dess **Anslutna resurser** (vad den körs i, vad som skickar trafik till den), dess slutpunkter, taggar och inställningar, och dess **Incidenter**, **Larm** och **Ändringar**.
+- **Varje konto får en egen sida.** Konton visas under **Moln → Konton** med sina resurser efter typ och region, sina **Kostnader**, sina **Ändringar** och en **Topologi** över hur resurserna hänger ihop.
+- **Moln öppnar på sin översikt.** **Moln → Översikt** listar resurserna som behöver uppmärksamhet och varför, vad kontona kostar den här månaden och vad dina moln säger att det går att spara. [Molnkostnader och besparingar](/docs/telemetry/cloud-costs) förklarar hur kostnader, besparingar och budgetar läses.
 - **OneUptime AI läser vad som ändrats.** En undersökning av en incident eller ett larm som är länkat till en molnresurs läser först den resursens ändringar, och läser kontots aktivitetslogg igen när den startar.
 
 ## Innan du börjar
@@ -72,6 +74,8 @@ Rollen och användaren kan göra följande, och inget annat:
 | Lista varje resurs och hur den är konfigurerad, genom Cloud Control | `cloudformation:ListResources`, `ec2:DescribeInstances`, `ec2:DescribeVolumes`, `ec2:DescribeVpcs`, `ec2:DescribeNatGateways`, `autoscaling:DescribeAutoScalingGroups`, `elasticloadbalancing:DescribeLoadBalancers`, `elasticloadbalancing:DescribeLoadBalancerAttributes`, `elasticloadbalancing:DescribeTargetGroups`, `elasticloadbalancing:DescribeTargetGroupAttributes`, `elasticloadbalancing:DescribeTargetHealth`, `elasticloadbalancing:DescribeTags`, `ecs:ListClusters`, `ecs:DescribeClusters`, `ecs:ListServices`, `ecs:DescribeServices`, `lambda:ListFunctions`, `rds:DescribeDBInstances`, `rds:DescribeDBClusters`, `elasticache:DescribeReplicationGroups`, `sqs:ListQueues`, `sqs:GetQueueAttributes`, `sns:ListTopics`, `sns:GetTopicAttributes`, `sns:ListSubscriptionsByTopic`, `dynamodb:ListTables`, `dynamodb:DescribeTable`, `kinesis:ListStreams`, `kinesis:DescribeStreamSummary`, `states:ListStateMachines`, `states:DescribeStateMachine`, `cloudfront:ListDistributions`, `elasticfilesystem:DescribeFileSystems`, `es:ListDomainNames`, `es:DescribeDomains`, `apprunner:ListServices`, `apprunner:DescribeService`, `apigateway:GET` |
 | Läsa vad som ändrats: kontots hanteringshändelser | `cloudtrail:LookupEvents` |
 | Läsa AWS egna hälsohändelser för kontot | `health:DescribeEvents`, `health:DescribeEventDetails` |
+| Läsa vad kontot kostar, från Cost Explorer | `ce:GetCostAndUsage` |
+| Läsa sätten att spendera mindre, från Cost Optimization Hub | `cost-optimization-hub:ListRecommendations` |
 | Läsa en resurs aktuella status och senaste händelser under en undersökning | `rds:DescribeEvents`, `autoscaling:DescribeScalingActivities`, `ec2:DescribeInstanceStatus`, `ecs:DescribeTaskDefinition`, `lambda:GetFunctionConfiguration`, `lambda:GetFunctionConcurrency`, `lambda:GetAlias` |
 | Läsa kontots kvoter under en undersökning | `servicequotas:ListServiceQuotas` |
 | Läsa loggrader, bara när du låter AI läsa ett kontos loggar | `logs:DescribeLogGroups`, `logs:FilterLogEvents` |
@@ -91,7 +95,7 @@ Gå till **Moln → Anslut** och välj **Microsoft Azure**.
 
 ### Kör kommandot i Azure Cloud Shell
 
-Kommandot skapar en app med rollen **Monitoring Reader** på din nuvarande prenumeration, och skriver ut dess uppgifter med datumet då dess hemlighet går ut:
+Kommandot skapar en app med rollerna **Monitoring Reader** och **Cost Management Reader** på din nuvarande prenumeration, och skriver ut dess uppgifter med datumet då dess hemlighet går ut:
 
 ```bash
 SCOPE="/subscriptions/$(az account show --query id --output tsv)"
@@ -122,10 +126,11 @@ Klistra in allt som kommandot skrev ut i **Det som kommandot skrev ut**. OneUpti
 OneUptime testar anslutningen när det här steget öppnas. Välj **Anslut** för att spara.
 :::
 
-För att läsa fler prenumerationer med samma app ger du den rollen på var och en av dem:
+För att läsa fler prenumerationer med samma app ger du den båda rollerna på var och en av dem:
 
 ```bash
 az role assignment create --assignee <APP_ID> --role "Monitoring Reader" --scope /subscriptions/<SUBSCRIPTION_ID>
+az role assignment create --assignee <APP_ID> --role "Cost Management Reader" --scope /subscriptions/<SUBSCRIPTION_ID>
 ```
 
 OneUptime läser varje prenumeration som appen kan läsa, upp till 50, om du inte listar några under **Prenumerationer**. Appens hemlighet slutar fungera det datum den går ut: från 30 dagar innan varnar varje läsning för det. Kör kommandot igen och klistra in det som skrivs ut för att ge den en ny.
@@ -139,7 +144,7 @@ Gå till **Moln → Anslut** och välj **Google Cloud**.
 
 ### Kör kommandot i Google Cloud Shell
 
-Kör det i projektet som ska övervakas. Det slår på API:erna som OneUptime läser, skapar ett tjänstkonto med rollerna **Monitoring Viewer**, **Cloud Asset Viewer**, **Logs Viewer** och **Service Health Viewer**, och skriver ut dess nyckel:
+Kör det i projektet som ska övervakas. Det slår på API:erna som OneUptime läser, skapar ett tjänstkonto med rollerna **Monitoring Viewer**, **Cloud Asset Viewer**, **Logs Viewer**, **Service Health Viewer**, **BigQuery Job User** och **Compute Recommender Viewer**, och skriver ut dess nyckel:
 
 ```bash
 PROJECT_ID=$(gcloud config get-value project)
@@ -181,13 +186,15 @@ Klistra in allt som kommandot skrev ut. OneUptime läser nyckelns eget projekt o
 OneUptime testar anslutningen när det här steget öppnas. Välj **Anslut** för att spara.
 :::
 
-För att läsa fler projekt med samma tjänstkonto ger du det de fyra rollerna i vart och ett av dem och listar dem under **Projekt**:
+För att läsa fler projekt med samma tjänstkonto ger du det de här rollerna i vart och ett av dem och listar dem under **Projekt**:
 
 ```bash
-for ROLE in roles/monitoring.viewer roles/cloudasset.viewer roles/logging.viewer roles/servicehealth.viewer; do gcloud projects add-iam-policy-binding <PROJECT_ID> --member "serviceAccount:oneuptime-read-only@<KEY_PROJECT_ID>.iam.gserviceaccount.com" --role "$ROLE"; done
+for ROLE in roles/monitoring.viewer roles/cloudasset.viewer roles/logging.viewer roles/servicehealth.viewer roles/recommender.computeViewer; do gcloud projects add-iam-policy-binding <PROJECT_ID> --member "serviceAccount:oneuptime-read-only@<KEY_PROJECT_ID>.iam.gserviceaccount.com" --role "$ROLE"; done
 ```
 
 En organisations anslutning läser upp till 50 av dess projekt, om du inte listar några under **Projekt**.
+
+Google Cloud har inget API för ett projekts kostnader: OneUptime läser dem från faktureringskontots export till BigQuery, så snart du anger dess tabell under **Tabell för faktureringsexport**. [Molnkostnader och besparingar](/docs/telemetry/cloud-costs#google-cloud) visar hur.
 
 ## Datasäkerhet
 
@@ -197,7 +204,7 @@ Samma anslutning kan låta [Datasäkerhet](/docs/data-security/index) läsa kont
 | --- | --- | --- |
 | **Av** | Inget av kontots datalager | Ingenting |
 | **Endast konfiguration** | Vem som kan nå varje datalager, och hur det krypteras, säkerhetskopieras och loggas. Aldrig data. | På AWS en andra inbäddad policy, `OneUptimeDataSecurity`, med läsåtgärder. På Azure och Google Cloud ingenting: **Monitoring Reader** och **Cloud Asset Viewer** läser det redan. |
-| **Konfiguration och innehållsprover** | Det, och prov från objekt och rader, för att hitta känsliga data i dem | På AWS samma policy med `s3:ListBucket`, `s3:GetObject` och `kms:Decrypt` enbart via S3. På Azure **Storage Blob Data Reader**. På Google Cloud `roles/storage.objectViewer`, `roles/bigquery.dataViewer` och BigQuery API. |
+| **Konfiguration och innehållsprover** | Det, och prov från objekt och rader, för att hitta känsliga data i dem | På AWS samma policy med `s3:ListBucket`, `s3:GetObject` och `kms:Decrypt` enbart via S3. På Azure **Storage Blob Data Reader**. På Google Cloud `roles/storage.objectViewer` och `roles/bigquery.dataViewer`. |
 
 På AWS lägger rollens kommando till policyn med en rad till. På innehållsnivån ser den ut så här:
 
@@ -228,7 +235,7 @@ END=$(az ad app credential list --id "$APP" --query "max([].endDateTime)" --outp
 echo "$OUT" | jq --arg end "$END" '. + {endDateTime: $end}'
 ```
 
-På Google Cloud lägger den till de två rollerna och slår på `bigquery.googleapis.com`:
+På Google Cloud lägger den till de två rollerna:
 
 ```bash
 PROJECT_ID=$(gcloud config get-value project)
@@ -256,24 +263,30 @@ Kommandot för en lägre nivå ersätter AWS-policyn med den lägre nivåns poli
 | Mätvärden | De viktigaste mätvärdena för varje tjänst, som en instans CPU, nätverk och statuskontroller | Upp till 8 viktiga mätvärden per resurs | De viktigaste mätvärdena för varje resurstyp |
 | Ändringar | Hanteringshändelserna i CloudTrail | Aktivitetsloggens administrativa händelser | Granskningsloggen Admin Activity |
 | Hälsohändelser | AWS Health | Service Health och Resource Health | Service Health |
+| Kostnader | Varje dags, efter tjänst och region, från Cost Explorer | Varje dags, efter resurs och tjänst, från Cost Management | Varje dags, efter tjänst, region och resurs, från din faktureringsexport till BigQuery |
+| Sätt att spendera mindre | Cost Optimization Hub | Azure Advisor | Recommender |
 | Läses var | 10:e minut | 5:e minut | 5:e minut |
 | En borttagen resurs | Arkiveras när en fullständig listning inte längre har den | Arkiveras när en fullständig listning inte längre har den | Arkiveras när en fullständig listning inte längre har den |
 
-Varje läsning fortsätter där den förra slutade, så varje datapunkt och varje ändring skrivs en gång. En ny anslutnings första läsning startar inom en minut och går en timme bakåt för mätvärden och 2 timmar bakåt för ändringar; efter ett uppehåll går en läsning högst 6 timmar bakåt. En resurs som bara rapporterar mätvärden, och som ingen listning har, arkiveras efter 7 dagar utan mätvärden.
+Varje läsning fortsätter där den förra slutade, så varje datapunkt och varje ändring skrivs en gång. En ny anslutnings första läsning startar inom en minut och går en timme bakåt för mätvärden och 2 timmar bakåt för ändringar; efter ett uppehåll går en läsning högst 6 timmar bakåt. En resurs som bara rapporterar mätvärden, och som ingen listning har, arkiveras efter 7 dagar utan mätvärden. Kostnader läses två gånger om dagen, och sätten att spendera mindre en gång om dagen.
 
-Anropen som OneUptime gör faktureras ditt molnkonto, till molnets priser. Att lista resurser och läsa ändringar och hälsohändelser kostar inget på alla tre molnen; att läsa mätvärden gör det. Testet uppskattar vad det som hittas kostar, och att läsa mer sällan kostar mindre: ändra **Intervall för läsning av mätvärden** under **Fler fält**.
+Anropen som OneUptime gör faktureras ditt molnkonto, till molnets priser. Att lista resurser, läsa ändringar och hälsohändelser, läsa sätten att spendera mindre och läsa Azures kostnader kostar inget; att läsa mätvärden gör det, och likaså att läsa kostnaderna för AWS och Google Cloud. Testet uppskattar vad det som hittas kostar, och att läsa mer sällan kostar mindre: ändra **Intervall för läsning av mätvärden** under **Fler fält**.
 
 | Moln | Pris |
 | --- | --- |
 | AWS | CloudWatch `GetMetricData`: $0.01 per 1 000 mätvärden, och varje viktigt mätvärde för en resurs är ett mätvärde per läsning |
+| AWS-kostnader | Cost Explorer `GetCostAndUsage`: $0.01 per begäran, och en läsning av kostnaderna gör några få |
 | Azure | De första 1 000 000 mätvärdesläsningarna per månad för varje prenumeration är gratis, därefter $0.01 per 1 000 |
 | Google Cloud | De första 1 000 000 lästa tidsserierna per månad är gratis, därefter $0.50 per miljon |
+| Google Cloud-kostnader | BigQuery debiterar frågan mot din faktureringsexport: den första 1 TiB per månad är gratis, därefter $6.25 per TiB |
 
 ## Det du ser i OneUptime
 
 - **Ett kontos sida.** Under **Moln → Konton** räknar ett kontos översikt dess resurser efter typ och region och säger när en anslutning senast läste det. Dess **Resurser** listar dem, dess **Ändringar** listar vad som ändrats i det, nyast först, och dess **Topologi** ritar dess regioner, nätverken i dem och vad som körs i vart och ett, med de öppna incidenterna och larmen på resurserna de är länkade till. Dess **Feed** registrerar hur kontot kom till OneUptime, när dess Moln-AI-agent anslöt eller återställdes, och vem som ändrade vad OneUptime AI får göra i det.
 - **En resurs ändringar.** En ändring sparas som en ändringshändelse knuten till resursen den ändrade och till dess konto, och ritas som en markör i resursens mätvärdesdiagram tillsammans med dess incidenter och larm. Diagram som inte är filtrerade till någon resurs utelämnar ett molnkontos aktivitetslogg, så att ett livligt konto inte tränger undan dina driftsättningar; leverantörens hälsohändelser finns kvar i dem.
 - **Incidenter och larm.** Länka en molnresurs till en övervakning, en incident eller ett larm under dess länkade resurser, så listas dess incidenter och larm på resursens sida. En övervakning av en webbplats, ett API, SSL, ping eller en port vars värd leder till en slutpunkt för en resurs, direkt eller via dess DNS, listar resursen under **Föreslagna molnresurser** på sitt kort **Länkade resurser**: välj **Länka resurs** för att länka den.
+- **En resurs hälsa.** Varje läsning sparar det senaste värdet av en resurs viktigaste mätvärden och bedömer dem: en resurs visar **Felfri**, **Försämrad** eller **Ej felfri**, med orsaken, till exempel statuskontroller som misslyckas eller lagring som nästan är full, och **Ingen rapportering** när dess mätvärden slutar komma. **Moln → Översikt** och ett kontos översikt listar det som behöver uppmärksamhet, det mest brådskande först.
+- **Vad kontona kostar.** **Moln → Utgifter → Kostnader** ritar varje dags utgifter och vart de går, **Moln → Utgifter → Besparingar** listar sätten att spendera mindre, och **Moln → Utgifter → Budgetar** varnar innan en månad kostar mer än den borde: [Molnkostnader och besparingar](/docs/telemetry/cloud-costs).
 
 ## Låt AI åtgärda problem
 
