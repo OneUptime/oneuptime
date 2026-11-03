@@ -112,8 +112,8 @@ export default class Analytics {
   ) {
     if (apiHost && apiKey && Analytics.isProductAnalyticsAllowed()) {
       this.isInitialized = true;
-      this.postHogLoaded = loadPostHogModule().then(
-        (posthog: PostHogClient): void => {
+      this.postHogLoaded = loadPostHogModule()
+        .then((posthog: PostHogClient): void => {
           posthog.init(apiKey, { api_host: apiHost, autocapture: false });
           this.posthog = posthog;
 
@@ -124,17 +124,18 @@ export default class Analytics {
               // One call PostHog refused does not hold back the ones after it.
             }
           }
-        },
-        (): void => {
+        })
+        .catch((): void => {
           /*
-           * It did not load: an ad blocker, a lost connection, a file a
-           * deploy has since replaced. This page measures nothing, and what
-           * waited is let go rather than kept for as long as the page is.
+           * It did not load - an ad blocker, a lost connection, a file a
+           * deploy has since replaced - or would not start. This page
+           * measures nothing, and what waited is let go rather than kept for
+           * as long as the page is.
            */
+          this.posthog = null;
           this.isInitialized = false;
           this.waitingCalls = [];
-        },
-      );
+        });
     }
   }
 

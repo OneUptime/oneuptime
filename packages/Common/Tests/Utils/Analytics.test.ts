@@ -351,6 +351,36 @@ describe("PostHog, loaded once analytics starts", () => {
     expect(posthog.capture).not.toHaveBeenCalled();
   });
 
+  it("measures nothing, and lets what waited go, when PostHog will not start", async () => {
+    const load: ControlledLoad = controlledLoad();
+    const analytics: Analytics = new Analytics(
+      apiHost,
+      apiKey,
+      load.loadPostHog,
+    );
+    const calls: Array<Call> = [];
+
+    analytics.capture("accounts/login");
+
+    await load.arrive(
+      recordingPostHog(calls, {
+        init: (): void => {
+          throw new Error("PostHog would not start");
+        },
+      }),
+    );
+    // Settles rather than rejects: nothing waits on it with a catch.
+    await expect(analytics.whenPostHogLoaded()).resolves.toBeUndefined();
+
+    analytics.capture("dashboard/home");
+
+    expect(analytics.isInitialized).toBe(false);
+    // init was tried; nothing was handed to a PostHog that did not start.
+    expect(calls).toEqual([
+      ["init", apiKey, { api_host: apiHost, autocapture: false }],
+    ]);
+  });
+
   it("does not hold Google's events back while PostHog loads", () => {
     const dataLayer: Array<JSONObject> = [];
     (window as any).dataLayer = dataLayer;
