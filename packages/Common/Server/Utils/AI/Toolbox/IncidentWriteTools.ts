@@ -9,6 +9,9 @@ import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import { AIChatCitationTargetType } from "../../../../Types/AI/AIChatTypes";
 import IncidentService from "../../../Services/IncidentService";
 import IncidentSeverityService from "../../../Services/IncidentSeverityService";
+import IncidentStateService from "../../../Services/IncidentStateService";
+import IncidentState from "../../../../Models/DatabaseModels/IncidentState";
+import { StateListType } from "../../../../Utils/StateOrder";
 import WorkspaceMemberActions, {
   WorkspaceEvent,
   WorkspaceEventType,
@@ -31,6 +34,8 @@ import AffectedResourceLinks, {
 import { AiAffectedResourceRelation } from "../../../../Types/AI/AiAffectedResources";
 import AIChatPageContextType from "../../../../Types/AI/AIChatPageContext";
 import {
+  AI_ACTION_CARD_KINDS,
+  AI_ACTION_CARD_LINES,
   AI_ACTION_TERMS,
   AI_ACTION_TITLES,
   AIActionSentence,
@@ -40,10 +45,29 @@ import {
 import DatabaseRequestType from "../../../Types/BaseDatabase/DatabaseRequestType";
 import {
   getIncidentNumberForPerson,
+  getIncidentNumberText,
   getRecordTitleName,
   prepareRecordNamesInTitle,
   RecordNames,
 } from "./RecordNamesForPerson";
+import {
+  asksForStart,
+  describeLinkingCard,
+  describeNewRecordCard,
+  describeNewRecordForPerson,
+  describeSeverityNotFound,
+  describeStartForModel,
+  getInitialStateArgumentSchema,
+  getInvalidStartMessage,
+  INITIAL_STATE_ARGUMENT_NAME,
+  NewRecordStart,
+  pickNamedSeverity,
+  pickStartState,
+  readRequestedStart,
+  RequestedStart,
+  SeverityChoice,
+  withStartWrittenOut,
+} from "./NewRecords";
 
 import FeedMarkdown from "../../../../Utils/Markdown/FeedMarkdown";
 /*
@@ -110,6 +134,115 @@ function getIncidentId(
 }
 
 /*
+ * The severities a new incident may take, in the project's order - never
+ * an archived one - read as the person: what the dashboard's Declare
+ * Incident form offers them.
+ */
+async function readIncidentSeverities(
+  ctx: ToolContext,
+): Promise<Array<IncidentSeverity>> {
+  return await IncidentSeverityService.findBy({
+    query: { projectId: ctx.projectId, isArchived: false },
+    select: {
+      _id: true,
+      name: true,
+      order: true,
+    },
+    sort: {
+      order: SortOrder.Ascending,
+    },
+    limit: 50,
+    skip: 0,
+    props: ctx.props,
+  });
+}
+
+// The severity a new incident takes, and whether it is the one the call named.
+export type IncidentSeverityChoice = SeverityChoice<IncidentSeverity>;
+
+/*
+ * The severity a new incident takes: the one the call names, matched
+ * without regard to case or the spaces around it, else the project's
+ * first - as create_alert picks an alert's (NewRecords). Null when the
+ * project has none.
+ */
+export function pickIncidentSeverity(data: {
+  severities: Array<IncidentSeverity>;
+  severityName: string | undefined;
+}): IncidentSeverityChoice | null {
+  return pickNamedSeverity(data);
+}
+
+/*
+ * The severity a call gives its incident, by its name in the project, for
+ * the arguments the person approves and the card's line: the call's own,
+ * or the project's first when it names none, or one the project does not
+ * have - as create_alert says its alert's. Null when the person may not
+ * read the severities or the project has none: running the action then
+ * says why.
+ */
+async function getIncidentSeverityNameForPerson(data: {
+  args: JSONObject;
+  ctx: ToolContext;
+}): Promise<string | null> {
+  try {
+    const choice: IncidentSeverityChoice | null = pickIncidentSeverity({
+      severities: await readIncidentSeverities(data.ctx),
+      severityName: ToolArgs.getString(data.args, "severityName"),
+    });
+
+    return choice?.severity.name?.trim() || null;
+  } catch {
+    return null;
+  }
+}
+
+/*
+ * The approval card's line under "Create incident: <title>": the severity
+ * it takes, where it starts when it is written up after the fact, then
+ * what it is linked to - 'Severity: SEV2. Linked to host "test01".' - as
+ * create_alert's card says its alert's (NewRecords).
+ */
+export function describeIncidentForPerson(data: {
+  severityName: string | null;
+  start?: NewRecordStart | null | undefined;
+  linked: Array<AIActionSentence>;
+}): Array<AIActionSentence> {
+  return describeNewRecordForPerson(data);
+}
+
+/*
+ * The project's incident state a new incident starts in, when the call
+ * asks for a later one (NewRecords): its acknowledged or its resolved
+ * state, read as OneUptime - which states those are is the project's to
+ * say, as for Acknowledge and Resolve (WorkspaceMemberActions).
+ */
+async function getIncidentStartState(data: {
+  start: NewRecordStart;
+  ctx: ToolContext;
+}): Promise<IncidentState> {
+  const states: Array<IncidentState> =
+    await IncidentStateService.getAllIncidentStates({
+      projectId: data.ctx.projectId,
+      props: { isRoot: true },
+    });
+
+  const state: IncidentState | null = pickStartState({
+    start: data.start,
+    list: StateListType.IncidentState,
+    states,
+  });
+
+  if (!state || !state.id) {
+    throw new BadDataException(
+      `This project has no ${data.start} incident state. Add one in Incidents > Settings > Incident State first.`,
+    );
+  }
+
+  return state;
+}
+
+/*
  * An acknowledge's or resolve's card title: the incident by its number,
  * once the prepare read it (RecordNamesForPerson), else by what the call
  * names - its ID - or nothing at all.
@@ -163,7 +296,7 @@ const buildResolveIncidentTitle: (
 export const CreateIncidentTool: ObservabilityTool = {
   name: "create_incident",
   description:
-    "Declare (create) a new incident in this project. Provide a clear title and a description of the problem. Optionally set the severity by name (must match an existing incident severity); otherwise the project's first-defined severity is used. Link it to the infrastructure and services it is about with affectedResources: OneUptime AI investigates and fixes what an incident is linked to, and nothing else. Asked from a resource's page (a host, a cluster, a database, a service, ...), the incident is linked to that resource unless you pass affectedResources yourself; pass an empty list to link nothing. Use this when the user asks you to open, declare or create an incident.",
+    "Declare (create) a new incident in this project. Provide a clear title and a description of the problem. Optionally set the severity by name (must match an existing incident severity); otherwise the project's first-defined severity is used. Link it to the infrastructure and services it is about with affectedResources: OneUptime AI investigates and fixes what an incident is linked to, and nothing else. Asked from a resource's page (a host, a cluster, a database, a service, ...), the incident is linked to that resource unless you pass affectedResources yourself; pass an empty list to link nothing. To write up an incident that already happened, at the user's word, set initialState: it then pages nobody. Use this when the user asks you to open, declare or create an incident.",
   inputSchema: {
     type: "object",
     properties: {
@@ -182,11 +315,23 @@ export const CreateIncidentTool: ObservabilityTool = {
           "Name of an existing incident severity (e.g. 'SEV1', 'Critical'). Defaults to the project's first-defined severity.",
       },
       [AFFECTED_RESOURCES_ARGUMENT_NAME]: AFFECTED_RESOURCES_ARGUMENT_SCHEMA,
+      [INITIAL_STATE_ARGUMENT_NAME]: getInitialStateArgumentSchema("incident"),
     },
     required: ["title"],
   },
   get requiredPermissions(): Array<Permission> {
     return resolveCreatePermissions();
+  },
+  /*
+   * An incident that starts acknowledged or resolved is an incident
+   * declared and then acknowledged or resolved, paging nobody: it takes the
+   * permission to change an incident's state too, as acknowledge_incident
+   * does (NewRecords).
+   */
+  getRequiredPermissionGroups: (args: JSONObject): Array<Array<Permission>> => {
+    return asksForStart(args)
+      ? [resolveCreatePermissions(), resolveStateChangePermissions()]
+      : [resolveCreatePermissions()];
   },
   isMutation: true,
   buildActionTitle: (args: JSONObject): AIActionSentence => {
@@ -197,15 +342,18 @@ export const CreateIncidentTool: ObservabilityTool = {
     });
   },
   /*
-   * The page's resource written out (the incident is declared from it), and
-   * what every resource it names is, for the approval card.
+   * The page's resource written out (the incident is declared from it),
+   * the severity it takes by name, where it starts when it starts later,
+   * and what every resource it names is, for the approval card - as
+   * create_alert prepares its alert.
    */
   prepareMutation: async (
     args: JSONObject,
     ctx: ToolContext,
   ): Promise<PreparedMutation> => {
-    const prepared: JSONObject =
-      AffectedResourceLinks.withPageResourceWrittenOut({ args, ctx });
+    const prepared: JSONObject = withStartWrittenOut(
+      AffectedResourceLinks.withPageResourceWrittenOut({ args, ctx }),
+    );
 
     const toLink: AffectedResourcesToLink =
       await AffectedResourceLinks.resolveForCall({
@@ -214,12 +362,22 @@ export const CreateIncidentTool: ObservabilityTool = {
         defaultsToPage: false,
       });
 
+    const severityName: string | null =
+      await getIncidentSeverityNameForPerson({
+        args: prepared,
+        ctx,
+      });
+
     return {
-      arguments: prepared,
-      description: AffectedResourceLinks.describeForPerson({
-        linked: toLink.linked,
-        hasNotLinked: toLink.notLinked.length > 0,
-        verb: "Linked to",
+      arguments: severityName ? { ...prepared, severityName } : prepared,
+      description: describeIncidentForPerson({
+        severityName,
+        start: readRequestedStart(prepared).start,
+        linked: AffectedResourceLinks.describeForPerson({
+          linked: toLink.linked,
+          hasNotLinked: toLink.notLinked.length > 0,
+          verb: "Linked to",
+        }),
       }),
     };
   },
@@ -241,44 +399,32 @@ export const CreateIncidentTool: ObservabilityTool = {
       );
     }
 
-    const severities: Array<IncidentSeverity> =
-      await IncidentSeverityService.findBy({
-        // The severities a new incident may take: never an archived one.
-        query: { isArchived: false },
-        select: {
-          _id: true,
-          name: true,
-          order: true,
-        },
-        sort: {
-          order: SortOrder.Ascending,
-        },
-        limit: 50,
-        skip: 0,
-        props: ctx.props,
-      });
+    // Where it starts: where every new incident does, unless the call asks later.
+    const requestedStart: RequestedStart = readRequestedStart(args);
 
-    if (severities.length === 0) {
+    if (requestedStart.isInvalid) {
+      throw new BadDataException(getInvalidStartMessage("incident"));
+    }
+
+    // The severities a new incident may take: never an archived one.
+    const severities: Array<IncidentSeverity> =
+      await readIncidentSeverities(ctx);
+    const severityName: string | undefined = ToolArgs.getString(
+      args,
+      "severityName",
+    );
+    const choice: IncidentSeverityChoice | null = pickIncidentSeverity({
+      severities,
+      severityName,
+    });
+
+    if (!choice) {
       throw new BadDataException(
         "No incident severities are configured for this project. Add one in Incidents > Settings > Incident Severity first.",
       );
     }
 
-    let severity: IncidentSeverity = severities[0]!;
-    const severityName: string | undefined = ToolArgs.getString(
-      args,
-      "severityName",
-    );
-    if (severityName) {
-      const match: IncidentSeverity | undefined = severities.find(
-        (item: IncidentSeverity) => {
-          return item.name?.toLowerCase() === severityName.toLowerCase();
-        },
-      );
-      if (match) {
-        severity = match;
-      }
-    }
+    const severity: IncidentSeverity = choice.severity;
 
     /*
      * What it is linked to: the resources the call names, or - declared
@@ -293,6 +439,15 @@ export const CreateIncidentTool: ObservabilityTool = {
         defaultsToPage: true,
       });
 
+    /*
+     * The project's acknowledged or resolved state: IncidentService places
+     * it (StartingStage), so the incident pages nobody and, resolved,
+     * nothing answers it as a live problem.
+     */
+    const startState: IncidentState | null = requestedStart.start
+      ? await getIncidentStartState({ start: requestedStart.start, ctx })
+      : null;
+
     const incident: Incident = new Incident();
     incident.projectId = ctx.projectId;
     incident.title = title;
@@ -304,6 +459,10 @@ export const CreateIncidentTool: ObservabilityTool = {
     incident.description = FeedMarkdown.aiWritten(description).toString();
     incident.incidentSeverityId = severity.id!;
     incident.createdByUserId = userId;
+
+    if (startState) {
+      incident.currentIncidentStateId = startState.id!;
+    }
     /*
      * No root cause until somebody knows one: the incident names the person
      * whose copilot opened it as its creator (WhoOpenedItRootCause).
@@ -346,8 +505,26 @@ export const CreateIncidentTool: ObservabilityTool = {
       verb: "Linked to",
     });
 
+    const startText: string = describeStartForModel(
+      requestedStart.start,
+      "incident",
+    );
+
+    // Said when the severity it named is not one of the project's, as for an alert.
+    const severityText: string =
+      severityName && !choice.isNamed
+        ? describeSeverityNotFound({
+            noun: "incident",
+            severityName,
+            taken: severity.name || "",
+            severities,
+          })
+        : "";
+
     return {
       dataForLlm: `Successfully created incident #${created.incidentNumber} ("${title}", severity ${severity.name}).${
+        startText ? `\n${startText}` : ""
+      }${severityText ? `\n${severityText}` : ""}${
         linkedText ? `\n${linkedText}` : ""
       }${
         toLink.linked.length === 0
@@ -362,34 +539,16 @@ export const CreateIncidentTool: ObservabilityTool = {
       },
       redactionCount: serialized.redactionCount,
       isTruncated: false,
-      widget: WidgetBuilder.resourceCard({
+      widget: WidgetBuilder.actionCard({
         title: "Incident created",
-        resourceType: "Incident",
-        heading: `#${created.incidentNumber} · ${title}`,
-        subheading: severity.name ? `Severity: ${severity.name}` : undefined,
-        fields: [
-          { label: "Number", value: `#${created.incidentNumber ?? ""}` },
-          { label: "Severity", value: severity.name || "—" },
-          ...(toLink.linked.length > 0
-            ? [
-                {
-                  label: "Affected resources",
-                  value: AffectedResourceLinks.describeForWidget(toLink.linked),
-                },
-              ]
-            : []),
-          ...(description
-            ? [
-                {
-                  label: "Description",
-                  value:
-                    description.length > 200
-                      ? `${description.substring(0, 200)}…`
-                      : description,
-                },
-              ]
-            : []),
-        ],
+        heading: `${getIncidentNumberText(created)} · ${title}`,
+        words: describeNewRecordCard({
+          kind: AI_ACTION_CARD_KINDS.incident,
+          severityName: severity.name,
+          start: requestedStart.start,
+          linked: toLink.linked,
+          description,
+        }),
         link: {
           type: AIChatCitationTargetType.IncidentView,
           params: { incidentId: incidentIdString },
@@ -502,7 +661,12 @@ export const AddIncidentAffectedResourcesTool: ObservabilityTool = {
     // The incident as the person reads it, for the answer below.
     const incident: Incident | null = await IncidentService.findOneById({
       id: incidentId,
-      select: { _id: true, incidentNumber: true, title: true },
+      select: {
+        _id: true,
+        incidentNumber: true,
+        incidentNumberWithPrefix: true,
+        title: true,
+      },
       props: ctx.props,
     });
 
@@ -623,31 +787,14 @@ export const AddIncidentAffectedResourcesTool: ObservabilityTool = {
       },
       redactionCount: serialized.redactionCount,
       isTruncated: false,
-      widget: WidgetBuilder.resourceCard({
+      widget: WidgetBuilder.actionCard({
         title: "Affected resources linked",
-        resourceType: "Incident",
-        heading: `#${incident.incidentNumber} · ${incident.title}`,
-        fields: [
-          { label: "Number", value: `#${incident.incidentNumber ?? ""}` },
-          ...(lists.added.length > 0
-            ? [
-                {
-                  label: "Linked",
-                  value: AffectedResourceLinks.describeForWidget(lists.added),
-                },
-              ]
-            : []),
-          ...(lists.alreadyLinked.length > 0
-            ? [
-                {
-                  label: "Already linked",
-                  value: AffectedResourceLinks.describeForWidget(
-                    lists.alreadyLinked,
-                  ),
-                },
-              ]
-            : []),
-        ],
+        heading: `${getIncidentNumberText(incident)} · ${incident.title}`,
+        words: describeLinkingCard({
+          kind: AI_ACTION_CARD_KINDS.incident,
+          added: lists.added,
+          alreadyLinked: lists.alreadyLinked,
+        }),
         link: {
           type: AIChatCitationTargetType.IncidentView,
           params: { incidentId: incidentIdString },
@@ -686,6 +833,7 @@ async function changeIncidentStateTool(data: {
     select: {
       _id: true,
       incidentNumber: true,
+      incidentNumberWithPrefix: true,
       title: true,
     },
     props: ctx.props,
@@ -742,13 +890,20 @@ async function changeIncidentStateTool(data: {
     },
     redactionCount: serialized.redactionCount,
     isTruncated: false,
-    widget: WidgetBuilder.resourceCard({
+    // The heading and the line under it say the number and the state.
+    widget: WidgetBuilder.actionCard({
       title: `Incident ${newStateName.toLowerCase()}`,
-      resourceType: "Incident",
-      heading: `#${incident.incidentNumber} · ${incident.title}`,
-      subheading: `Now ${newStateName}`,
-      // The heading and the line under it say the number and the state.
-      fields: [],
+      heading: `${getIncidentNumberText(incident)} · ${incident.title}`,
+      words: {
+        kind: aiActionTerm(AI_ACTION_CARD_KINDS.incident),
+        line: [
+          aiActionSentence(
+            verb === "acknowledge"
+              ? AI_ACTION_CARD_LINES.nowAcknowledged
+              : AI_ACTION_CARD_LINES.nowResolved,
+          ),
+        ],
+      },
       link: {
         type: AIChatCitationTargetType.IncidentView,
         params: { incidentId: incidentIdString },

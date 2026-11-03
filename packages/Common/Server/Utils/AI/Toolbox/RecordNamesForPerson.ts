@@ -54,6 +54,21 @@ function numbered(
   return typeof number === "number" ? `#${number}` : null;
 }
 
+/*
+ * An incident or alert already read, by the number the person knows it
+ * by - "INC-42", or "#42" with no prefix - for the card an action leaves.
+ */
+export function getIncidentNumberText(incident: Incident): string {
+  return (
+    numbered(incident.incidentNumberWithPrefix, incident.incidentNumber) ||
+    "#"
+  );
+}
+
+export function getAlertNumberText(alert: Alert): string {
+  return numbered(alert.alertNumberWithPrefix, alert.alertNumber) || "#";
+}
+
 export async function getIncidentNumberForPerson(data: {
   incidentId: ObjectID;
   ctx: ToolContext;

@@ -15,6 +15,7 @@ import {
 } from "../../../../Types/AI/AiAffectedResources";
 import {
   AI_ACTION_LINES,
+  AIActionList,
   AIActionSentence,
   aiActionList,
   aiActionResourceByName,
@@ -618,6 +619,24 @@ export default class AffectedResourceLinks {
     linked: Array<LinkedAffectedResource>,
   ): string {
     return linked.map(describeLinkedResource).join(", ");
+  }
+
+  /*
+   * The same names as a list of sentences of Types/AI/AIActionWords - 'host
+   * "test01"', the kind in the reader's words - for the card an action
+   * leaves (its words), listed the way the reader's language lists them.
+   */
+  public static describeForCard(
+    linked: Array<LinkedAffectedResource>,
+  ): AIActionList {
+    return aiActionList(
+      linked.map((resource: LinkedAffectedResource): AIActionSentence => {
+        return aiActionResourceByName({
+          noun: getAiAffectedResourceKindInfo(resource.kind).noun,
+          name: resource.name,
+        });
+      }),
+    );
   }
 
   // Whether any of these is something auto-remediation can fix.
