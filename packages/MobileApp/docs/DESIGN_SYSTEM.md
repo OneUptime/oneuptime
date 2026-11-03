@@ -188,4 +188,24 @@ above: never assume a fold the platform did not report.
   reader lets go (`useListPaneWidthControl()`), and it is remembered
   (`src/storage/listPaneWidth.ts`). Let go within 16 points of the layout's own
   position, the divider settles on it; a double tap, or a screen reader's,
-  puts it back.
+  puts it back. From a keyboard it is a tab stop with a ring while it has
+  focus: the arrow keys move it 40 points (`DIVIDER_STEP`, a screen reader's
+  step), Home and End take it to either end, Enter puts it back
+  (`getDividerKeyMove()` in `src/layout/paneDivider.ts`).
+- **A one-pane screen splits on a tabletop fold too**, when it has a natural
+  split: what the reader reads without touching above the fold, the rows they
+  tap below it, each half scrolling and refreshing on its own. Home puts Needs
+  attention and On-Call above, Service health and Grouped events below;
+  Settings puts the account and workspace above, everything else below. Use
+  `useFoldSplit()` and `FoldSplitView` (`src/layout/FoldSplitView.tsx`); it
+  gives no split - keep the screen's one scroll - when less than 160 points
+  are left above the fold under the screen's header
+  (`MIN_ABOVE_FOLD_HEIGHT`). A screen that is one long read (a record, a
+  form) does not split.
+- **A sheet rises over the half on the table**, never over the fold: on a
+  tabletop fold its height stops at the lower half's, and while the keyboard
+  is up it moves above the fold, the keys below it, as on a laptop. Place
+  every sheet with `useSheetPlacement()` (`src/layout/useSheetPlacement.ts`):
+  its backdrop's justify, its `maxHeight`, its corners, and whether
+  `KeyboardAvoidingView` is on. Off a tabletop fold it places the sheet as
+  before.
