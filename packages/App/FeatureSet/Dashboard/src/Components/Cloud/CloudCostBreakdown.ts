@@ -85,7 +85,19 @@ export interface CloudCostShareLabel {
  * "/" or ":").
  */
 export function getCloudCostResourceName(resourceId: string): string {
-  const trimmed: string = (resourceId || "").trim().replace(/\/+$/, "");
+  /*
+   * The id without the slashes it ends in, by a loop: the id is the
+   * cloud's, and a pattern for "slashes at the end" is retried from every
+   * slash of a long run of them (time that grows with its square).
+   */
+  const spaced: string = (resourceId || "").trim();
+  let end: number = spaced.length;
+
+  while (end > 0 && spaced.charAt(end - 1) === "/") {
+    end--;
+  }
+
+  const trimmed: string = spaced.slice(0, end);
 
   if (!trimmed) {
     return "";

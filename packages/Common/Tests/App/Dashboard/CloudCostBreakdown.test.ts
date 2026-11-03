@@ -1,4 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 import {
   CLOUD_COST_DIMENSION_OPTIONS,
   CLOUD_COST_PERIOD_OPTIONS,
@@ -97,6 +98,25 @@ describe("what an entry is called", () => {
     );
     expect(getCloudCostResourceName("i-0plain")).toBe("i-0plain");
     expect(getCloudCostResourceName("  ")).toBe("");
+    // Only slashes: no name.
+    expect(getCloudCostResourceName("///")).toBe("");
+  });
+
+  /*
+   * The id is the cloud's own text. Slashes at its end are dropped by a
+   * loop, in time that grows with the id: a pattern for them was retried
+   * from every slash of a long run and took time growing with its square.
+   */
+  test("an id of a long run of slashes is named in time that grows with it", () => {
+    const run: FastestRun<string> = fastestRun({
+      run: (): string => {
+        return getCloudCostResourceName(`${"/".repeat(400000)}x/`);
+      },
+      limitInMs: 2000,
+    });
+
+    expect(run.result).toBe("x");
+    expect(run.inMs).toBeLessThan(2000);
   });
 
   test("an account by its name, or said to be one since removed", () => {
