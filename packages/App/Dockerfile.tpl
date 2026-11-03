@@ -213,6 +213,11 @@ COPY --chown=1000:1000 ./packages/App/FeatureSet/BrowserRecorder /usr/src/app/Fe
 # Bundle frontend source. There is no ee/ in this stage, so the Dashboard and
 # Admin Dashboard bundle their Community stubs (Common/UI/esbuild-enterprise.js).
 RUN npm run build-frontends:prod
+# The docs' and the API reference's Tailwind stylesheets, so their pages link
+# one file instead of generating their CSS in the browser (Utils/DocsTailwind.ts).
+# Written into FeatureSet/Docs/build and FeatureSet/APIReference/build, which
+# the pruned stages keep (they remove /usr/src/app/build, the type-check's).
+RUN npm run build-docs-css
 # Bundle app source
 RUN npm run compile
 # The license terms travel with both images: LICENSE (the Apache License 2.0,
