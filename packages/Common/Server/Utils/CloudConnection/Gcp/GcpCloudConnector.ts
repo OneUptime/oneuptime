@@ -550,13 +550,7 @@ export default class GcpCloudConnector implements CloudConnector {
     return result;
   }
 
-  /*
-   * The projects' inventory (GcpInventory): every asset of the inventory's
-   * types in each project read, and each project's name - the project
-   * listed least recently first, so a listing that stops at its limit lists
-   * the others next time. A project whose Cloud Asset API is off, or that
-   * the service account may not list, is a warning that says what to run.
-   */
+  // The client a read of costs or savings asks Google Cloud with.
   private costClient(
     settings: CloudConnectionSettings,
     options: CloudConnectorCallOptions,
@@ -820,6 +814,13 @@ export default class GcpCloudConnector implements CloudConnector {
     return result;
   }
 
+  /*
+   * The projects' inventory (GcpInventory): every asset of the inventory's
+   * types in each project read, and each project's name - the project
+   * listed least recently first, so a listing that stops at its limit lists
+   * the others next time. A project whose Cloud Asset API is off, or that
+   * the service account may not list, is a warning that says what to run.
+   */
   public async readInventory(
     settings: CloudConnectionSettings,
     options: CloudInventoryOptions,

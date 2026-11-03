@@ -597,3 +597,64 @@ describe("each resource's readings", () => {
     expect(writeFromPayloads).not.toHaveBeenCalled();
   });
 });
+
+describe("what the accounts cost, and how to spend less", () => {
+  test("are read after the accounts are kept, with the read's state and bounds, their warnings the read's", async () => {
+    const lanes: Array<{ lane: string; data: JSONObject }> = [];
+    jest.spyOn(CloudConnectionLanes, "keepAccounts").mockImplementation(
+      (async () => {
+        order.push("accounts");
+      }) as never,
+    );
+    jest.spyOn(CloudConnectionLanes, "runCosts").mockImplementation((async (
+      data: JSONObject,
+    ) => {
+      order.push("costs");
+      lanes.push({ lane: "costs", data });
+      return {
+        ran: true,
+        warnings: ["Cost Explorer is not turned on for 123456789012."],
+        rowsWritten: 0,
+        accountsRead: 0,
+      };
+    }) as never);
+    jest.spyOn(CloudConnectionLanes, "runSavings").mockImplementation((async (
+      data: JSONObject,
+    ) => {
+      order.push("savings");
+      lanes.push({ lane: "savings", data });
+      return { ran: true, warnings: [], recommendations: 3 };
+    }) as never);
+    jest
+      .spyOn(CloudResourceReadingsWriter, "writeFromPayloads")
+      .mockImplementation((async () => {
+        order.push("readings");
+        return { written: 0, needingAttention: 0, cleared: 0 };
+      }) as never);
+
+    const outcome: CloudConnectionPullOutcome = await run();
+
+    expect(outcome.status).toBe("success");
+    // Every payload imported first, then the accounts, then the two lanes.
+    expect(order.lastIndexOf("import")).toBeLessThan(order.indexOf("accounts"));
+    expect(
+      order.filter((step: string): boolean => {
+        return step !== "import";
+      }),
+    ).toEqual(["sync", "accounts", "costs", "savings", "readings"]);
+    expect(lanes.map((entry: { lane: string }) => entry.lane)).toEqual([
+      "costs",
+      "savings",
+    ]);
+    expect(lanes[0]!.data).toMatchObject({
+      projectId: PROJECT,
+      connectionId: CONNECTION,
+      provider: CloudProvider.AWS,
+      now: NOW,
+    });
+    // The lane's warning is the read's: shown on the connection.
+    expect(JSON.stringify(lastRecord())).toContain(
+      "Cost Explorer is not turned on for 123456789012.",
+    );
+  });
+});

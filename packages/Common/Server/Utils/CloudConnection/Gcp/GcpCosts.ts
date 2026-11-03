@@ -434,7 +434,11 @@ export function readGcpMonthlySavings(primaryImpact: JSONObject): {
 } {
   const projection: JSONObject = readObject(primaryImpact["costProjection"]);
   const cost: JSONObject = readObject(projection["cost"]);
-  const units: number = Number(readText(cost["units"]) || 0);
+  // A Money's units are an int64, which JSON writes as text ("-25").
+  const units: number =
+    typeof cost["units"] === "number"
+      ? cost["units"]
+      : Number(readText(cost["units"]) || 0);
   const nanos: number = Number(cost["nanos"] || 0);
   const total: number =
     (Number.isFinite(units) ? units : 0) +

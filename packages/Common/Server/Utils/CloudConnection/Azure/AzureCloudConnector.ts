@@ -860,11 +860,6 @@ export default class AzureCloudConnector implements CloudConnector {
     return result;
   }
 
-  /*
-   * The subscriptions' inventory (AzureInventory): one Resource Graph query
-   * over the subscriptions read, with each subscription named as Azure
-   * names it.
-   */
   // The subscriptions a read of costs or savings is about, as the reads find them.
   private async getCostSubscriptions(
     arm: AzureArm,
@@ -1100,6 +1095,11 @@ export default class AzureCloudConnector implements CloudConnector {
     }
   }
 
+  /*
+   * The subscriptions' inventory (AzureInventory): one Resource Graph query
+   * over the subscriptions read, with each subscription named as Azure
+   * names it.
+   */
   public async readInventory(
     settings: CloudConnectionSettings,
     options: CloudInventoryOptions,

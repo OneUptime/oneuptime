@@ -46,9 +46,15 @@ export const AZURE_ADVISOR_API_VERSION: string = "2023-01-01";
 // Pages of one subscription's costs at most.
 export const AZURE_COST_MAX_PAGES: number = 10;
 
-// "20261102" (Cost Management's UsageDate) -> "2026-11-02".
+/*
+ * Cost Management's UsageDate -> "2026-11-02": a number in a query's rows
+ * (20261102), text in some answers ("20261102").
+ */
 export function readAzureUsageDate(value: unknown): string {
-  const text: string = readText(value);
+  const text: string =
+    typeof value === "number" && Number.isInteger(value)
+      ? String(value)
+      : readText(value);
 
   if (text.length !== 8) {
     return "";
@@ -144,8 +150,10 @@ export async function readAzureCosts(data: {
   return { records, complete: false };
 }
 
+// An amount as text ("123.4", as Advisor's properties write it) or a number.
 function readNumber(value: unknown): number {
-  const number: number = Number(readText(value));
+  const number: number =
+    typeof value === "number" ? value : Number(readText(value));
   return Number.isFinite(number) ? number : 0;
 }
 

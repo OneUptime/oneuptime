@@ -18,10 +18,11 @@ import {
 } from "./SideMenuHarness";
 
 /*
- * The Cloud menus: the product's (the accounts, every resource in them,
- * then Connect), a cloud resource's - its incidents, alerts and changes,
- * under Activity - and a cloud account's. The environments that managed
- * platforms run are App Platforms' (AppPlatformsSideMenus.test.tsx).
+ * The Cloud menus: the product's (its Overview, the accounts, every
+ * resource in them, then Connect; what they cost, the ways to spend less
+ * and the budgets under Spend), a cloud resource's - its incidents, alerts
+ * and changes, under Activity - and a cloud account's. The environments
+ * that managed platforms run are App Platforms' (AppPlatformsSideMenus.test.tsx).
  */
 
 const RESOURCE_ID: string = "0193c0de-3333-4aaa-8bbb-000000000003";
@@ -39,20 +40,27 @@ afterEach(() => {
 });
 
 describe("the Cloud product menu", () => {
-  test("the accounts first, then every resource in them, then Connect - no environments", async () => {
+  test("the Overview first, the accounts, every resource in them, then Connect; what they cost under Spend - no environments", async () => {
     goTo(`${CLOUD}/accounts`);
     await renderMenu(<CloudSideMenu />);
 
     expect(sectionTitlesInOrder()).toEqual([
       "Cloud",
+      "Spend",
       "Settings",
       "Advanced",
       "Developer",
     ]);
     expect(linksIn("Cloud")).toEqual([
+      { title: "Overview", href: CLOUD },
       { title: "Accounts", href: `${CLOUD}/accounts` },
       { title: "All Resources", href: `${CLOUD}/resources` },
       { title: "Connect", href: `${CLOUD}/connect` },
+    ]);
+    expect(linksIn("Spend")).toEqual([
+      { title: "Costs", href: `${CLOUD}/costs` },
+      { title: "Savings", href: `${CLOUD}/savings` },
+      { title: "Budgets", href: `${CLOUD}/budgets` },
     ]);
     expect(linksIn("Settings")).toEqual([
       { title: "Owner Rules", href: `${CLOUD}/settings/owner-rules` },
@@ -130,7 +138,7 @@ describe("a cloud resource's menu", () => {
 });
 
 describe("a cloud account's menu", () => {
-  test("its overview, resources and map; its AI agent; its changes and its feed; its settings, Developer pages and delete", async () => {
+  test("its overview, resources, map and costs; its AI agent; its changes and its feed; its settings, Developer pages and delete", async () => {
     goTo(ACCOUNT_PATH);
     await renderMenu(
       <CloudAccountSideMenu modelId={new ObjectID(ACCOUNT_ID)} />,
@@ -148,6 +156,7 @@ describe("a cloud account's menu", () => {
       { title: "Overview", href: ACCOUNT_PATH },
       { title: "Resources", href: `${ACCOUNT_PATH}/resources` },
       { title: "Topology", href: `${ACCOUNT_PATH}/topology` },
+      { title: "Costs", href: `${ACCOUNT_PATH}/costs` },
     ]);
     // What AI did first, its agent last, as every resource's AI section.
     expect(linksIn("AI")).toEqual([

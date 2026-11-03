@@ -96,8 +96,13 @@ function readCostRegion(value: string): string {
   return region === "global" || region === "NoRegion" ? "" : region;
 }
 
+/*
+ * An amount as AWS writes it: Cost Explorer as text ("120.5"), Cost
+ * Optimization Hub as a JSON number (61.32).
+ */
 function readAmount(value: unknown): number {
-  const amount: number = Number(readText(value));
+  const amount: number =
+    typeof value === "number" ? value : Number(readText(value));
   return Number.isFinite(amount) ? amount : 0;
 }
 
