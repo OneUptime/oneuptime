@@ -954,6 +954,9 @@ export const DataObservabilityRoutePath: Dictionary<string> = {
   [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_SETTINGS]: `tables/${RouteParams.ModelID}/settings`,
   [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_DELETE]: `tables/${RouteParams.ModelID}/delete`,
   [PageMap.DATA_OBSERVABILITY_STORES]: "stores",
+  [PageMap.DATA_OBSERVABILITY_STORE_VIEW]: `stores/${RouteParams.ModelID}`,
+  [PageMap.DATA_OBSERVABILITY_STORE_VIEW_TABLES]: `stores/${RouteParams.ModelID}/tables`,
+  [PageMap.DATA_OBSERVABILITY_STORE_VIEW_RECOMMENDATIONS]: `stores/${RouteParams.ModelID}/recommendations`,
   [PageMap.DATA_OBSERVABILITY_SCHEMA_CHANGES]: "schema-changes",
   [PageMap.DATA_OBSERVABILITY_DOCUMENTATION]: "documentation",
 };
@@ -7801,6 +7804,26 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.DATA_OBSERVABILITY_STORES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/data-observability/${
       DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_STORES]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_STORE_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_STORE_VIEW]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_STORE_VIEW_TABLES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_STORE_VIEW_TABLES]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_STORE_VIEW_RECOMMENDATIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[
+        PageMap.DATA_OBSERVABILITY_STORE_VIEW_RECOMMENDATIONS
+      ]
     }`,
   ),
 

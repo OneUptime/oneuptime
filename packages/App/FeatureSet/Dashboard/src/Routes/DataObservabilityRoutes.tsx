@@ -1,6 +1,7 @@
 import ComponentProps from "../Pages/PageComponentProps";
 import DataObservabilityLayout from "../Pages/DataObservability/Layout";
 import TableViewLayout from "../Pages/DataObservability/TableView/Layout";
+import StoreViewLayout from "../Pages/DataObservability/View/Layout";
 import PageMap from "../Utils/PageMap";
 import RouteMap, {
   DataObservabilityRoutePath,
@@ -15,6 +16,9 @@ import DataObservabilityOverviewPage from "../Pages/DataObservability/Overview";
 import DataObservabilityTablesPage from "../Pages/DataObservability/Tables";
 import DataObservabilityDroppedTablesPage from "../Pages/DataObservability/DroppedTables";
 import DataObservabilityStoresPage from "../Pages/DataObservability/Stores";
+import StoreOverviewPage from "../Pages/DataObservability/View/Overview";
+import StoreTablesPage from "../Pages/DataObservability/View/Tables";
+import StoreRecommendationsPage from "../Pages/DataObservability/View/Recommendations";
 import DataObservabilitySchemaChangesPage from "../Pages/DataObservability/SchemaChanges";
 import DataObservabilityDocumentationPage from "../Pages/DataObservability/Documentation";
 import TableOverviewPage from "../Pages/DataObservability/TableView/Overview";
@@ -29,7 +33,8 @@ import TableDeletePage from "../Pages/DataObservability/TableView/Delete";
  * product's own address opening its Overview. A table is worked on pages of
  * its own, under its own layout and side menu: its Overview at the table's
  * address, and each of its other pages one level under it.
- * "tables/dropped" is a word, so it wins over a table's "tables/:id".
+ * "tables/dropped" is a word, so it wins over a table's "tables/:id". A
+ * database is worked on pages of its own in the same way, at "stores/:id".
  */
 const DataObservabilityRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -186,6 +191,54 @@ const DataObservabilityRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.DATA_OBSERVABILITY_TABLE_VIEW_DELETE] as Route
+              }
+            />
+          }
+        />
+      </PageRoute>
+
+      <PageRoute
+        path={
+          DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_STORE_VIEW] ||
+          ""
+        }
+        element={<StoreViewLayout {...props} />}
+      >
+        <PageRoute
+          index
+          element={
+            <StoreOverviewPage
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.DATA_OBSERVABILITY_STORE_VIEW] as Route
+              }
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.DATA_OBSERVABILITY_STORE_VIEW_TABLES,
+          )}
+          element={
+            <StoreTablesPage
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.DATA_OBSERVABILITY_STORE_VIEW_TABLES] as Route
+              }
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.DATA_OBSERVABILITY_STORE_VIEW_RECOMMENDATIONS,
+          )}
+          element={
+            <StoreRecommendationsPage
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.DATA_OBSERVABILITY_STORE_VIEW_RECOMMENDATIONS
+                ] as Route
               }
             />
           }

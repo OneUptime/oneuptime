@@ -66,11 +66,18 @@ const RecommendationsPage: FunctionComponent<ComponentProps> = (
     setIsLoading(true);
 
     try {
-      const item: BaseModel | null = await ModelAPI.getItem({
-        modelType: definition.modelType,
-        id: modelId,
-        select: RecommendationResourceRegistry.getSelect(props.resourceType),
-      });
+      let item: BaseModel | null = null;
+
+      // A resource type whose row the person cannot read says how to read it.
+      if (definition.loadResource) {
+        item = await definition.loadResource(modelId);
+      } else {
+        item = await ModelAPI.getItem({
+          modelType: definition.modelType,
+          id: modelId,
+          select: RecommendationResourceRegistry.getSelect(props.resourceType),
+        });
+      }
 
       /*
        * What narrows the catalog, from the SAME fetched row the identifier

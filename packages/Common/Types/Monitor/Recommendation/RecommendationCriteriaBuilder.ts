@@ -6,6 +6,7 @@ import {
   CriteriaFilter,
   EvaluateOverTimeType,
   FilterType,
+  MetricAnomalyDetectionOptions,
   NoDataPolicy,
 } from "../CriteriaFilter";
 
@@ -187,6 +188,7 @@ function buildFilters(data: {
   additionalFilters?: Array<AdditionalCriteriaFilterSpec> | undefined;
   onNoDataPolicy?: NoDataPolicy | undefined;
   deriveValue?: ((spec: AdditionalCriteriaFilterSpec) => number) | undefined;
+  anomalyDetection?: MetricAnomalyDetectionOptions | undefined;
 }): Array<CriteriaFilter> {
   const specs: Array<AdditionalCriteriaFilterSpec> = [
     {
@@ -197,7 +199,7 @@ function buildFilters(data: {
     ...(data.additionalFilters || []),
   ];
 
-  return specs.map((spec: AdditionalCriteriaFilterSpec) => {
+  return specs.map((spec: AdditionalCriteriaFilterSpec, index: number) => {
     return {
       checkOn: CheckOn.MetricValue,
       filterType: spec.filterType,
@@ -206,6 +208,10 @@ function buildFilters(data: {
           spec.metricAggregationType ?? data.metricAggregationType,
         metricAlias: spec.metricAlias,
         ...(data.onNoDataPolicy ? { onNoDataPolicy: data.onNoDataPolicy } : {}),
+        // The baseline options belong to the primary comparison only.
+        ...(index === 0 && data.anomalyDetection
+          ? { anomalyDetection: data.anomalyDetection }
+          : {}),
       },
       value: data.deriveValue ? data.deriveValue(spec) : spec.value,
     } as CriteriaFilter;
@@ -253,6 +259,12 @@ export interface UnhealthyCriteriaArgs {
    * monitor holds its offline status until data comes back.
    */
   triggerOnNoData?: boolean | undefined;
+  /*
+   * For an Anomalously High / Low comparison: how the learned baseline is
+   * read (sensitivity, method, history). Left off, the evaluator's defaults
+   * apply; ignored by every other filter type.
+   */
+  anomalyDetection?: MetricAnomalyDetectionOptions | undefined;
 }
 
 /*
@@ -302,6 +314,7 @@ export function buildUnhealthyCriteriaInstance(
         treatNoDataAsZero: args.treatNoDataAsZero,
         triggerOnNoData: args.triggerOnNoData,
       }),
+      anomalyDetection: args.anomalyDetection,
     }),
     incidents: [
       {

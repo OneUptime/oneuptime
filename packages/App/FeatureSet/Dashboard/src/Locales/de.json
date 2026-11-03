@@ -40990,7 +40990,7 @@
   "View Table": "Tabelle anzeigen",
   "Waiting for first collection": "Waiting for first collection",
   "Watch your data, not just your services": "Watch your data, not just your services",
-  "What the asset holds and who relies on it, in your own words.": "What the asset holds and who relies on it, in your own words.",
+  "What the asset holds and who relies on it, in your own words.": "Was das Datenobjekt enthält und wer sich darauf verlässt, in Ihren eigenen Worten.",
   "What this table holds and who relies on it, in your team's words. It shows on the table's Overview.": "What this table holds and who relies on it, in your team's words. It shows on the table's Overview.",
   "What this table holds and who relies on it. Edit it on Settings.": "What this table holds and who relies on it. Edit it on Settings.",
   "What your team calls this database.": "What your team calls this database.",
@@ -41003,5 +41003,15 @@
   "{{count}} tables watched": "{{count}} tables watched",
   "{{count}} tables watched_one": "{{count}} table watched",
   "Connect a database and every table in it is watched from the first minute: its rows, size, last change and columns. Only the catalog is read, never a row, and no threshold has to be set.": "Connect a database and every table in it is watched from the first minute: its rows, size, last change and columns. Only the catalog is read, never a row, and no threshold has to be set.",
-  "Reads the database's catalog every few minutes: tables, columns, row counts, sizes and last changes. Never a row. Use a read-only login.": "Reads the database's catalog every few minutes: tables, columns, row counts, sizes and last changes. Never a row. Use a read-only login."
+  "Reads the database's catalog every few minutes: tables, columns, row counts, sizes and last changes. Never a row. Use a read-only login.": "Reads the database's catalog every few minutes: tables, columns, row counts, sizes and last changes. Never a row. Use a read-only login.",
+  "Recommended Alerts": "Recommended Alerts",
+  "This database was not found.": "This database was not found.",
+  "Database health": "Database health",
+  "Each is one monitor for the whole database that alerts once per table, so tables created later are watched too.": "Each is one monitor for the whole database that alerts once per table, so tables created later are watched too.",
+  "Last Collected": "Last Collected",
+  "Monitors recommended for this database: late tables, sharp drops in rows, schema changes, and a collection that stopped.": "Monitors recommended for this database: late tables, sharp drops in rows, schema changes, and a collection that stopped.",
+  "Tables and views in this database.": "Tables and views in this database.",
+  "The catalog is read every few minutes.": "The catalog is read every few minutes.",
+  "View Recommendations": "View Recommendations",
+  "Who reads this database's catalog, and how the last read went.": "Who reads this database's catalog, and how the last read went."
 }

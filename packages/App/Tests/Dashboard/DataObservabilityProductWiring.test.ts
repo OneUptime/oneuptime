@@ -5,7 +5,8 @@ import path from "path";
 /*
  * The Data Observability product is a lazy-loaded route group: a product
  * layout (Overview, Tables, Schema Changes, Databases, Documentation,
- * Dropped Tables) and a per-table layout (Overview, Columns, Metrics,
+ * Dropped Tables), a per-database layout (Overview, Tables,
+ * Recommendations) and a per-table layout (Overview, Columns, Metrics,
  * Timeline, Settings, Delete). Every piece of that wiring fails silently:
  * a missing navbar entry hides the product, a route in PageMap that is never
  * mounted renders a blank page, a page with no trail renders without
@@ -43,6 +44,9 @@ const PAGE_KEYS: ReadonlyArray<string> = [
   "DATA_OBSERVABILITY_TABLE_VIEW_SETTINGS",
   "DATA_OBSERVABILITY_TABLE_VIEW_DELETE",
   "DATA_OBSERVABILITY_STORES",
+  "DATA_OBSERVABILITY_STORE_VIEW",
+  "DATA_OBSERVABILITY_STORE_VIEW_TABLES",
+  "DATA_OBSERVABILITY_STORE_VIEW_RECOMMENDATIONS",
   "DATA_OBSERVABILITY_SCHEMA_CHANGES",
   "DATA_OBSERVABILITY_DOCUMENTATION",
 ];

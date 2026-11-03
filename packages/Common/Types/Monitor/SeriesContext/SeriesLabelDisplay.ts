@@ -215,6 +215,21 @@ const FriendlyLabelNames: Record<string, string> = {
   tablespace_name: "Tablespace",
   replication_client: "Replica",
 
+  /*
+   * --- Data Observability ---
+   *
+   * Table health (TableHealthIngest) writes one series per table, keyed by
+   * `oneuptime.data.table.key` (schema.table) and stamped with the data
+   * store it was read from, so a store's table monitors - one monitor per
+   * store, grouped by table - alert once per table and say which.
+   */
+  "oneuptime.data.table.key": "Table",
+  "oneuptime.data.table.schema": "Schema",
+  "oneuptime.data.table.name": "Table Name",
+  "oneuptime.data.table.id": "Table ID",
+  "oneuptime.data.store.name": "Data Store",
+  "oneuptime.data.store.id": "Data Store ID",
+
   // --- Services / RUM / telemetry ---
   "service.name": "Service",
   "oneuptime.service.name": "Service",
@@ -355,6 +370,16 @@ const LabelPriority: Record<string, number> = {
   replication_client: 30,
   "oneuptime.database.server.name": 40,
   "oneuptime.database.server.id": 95,
+  /*
+   * Data Observability: the table first, then the store it lives in; the
+   * ids last, with the other ids.
+   */
+  "oneuptime.data.table.key": 25,
+  "oneuptime.data.table.name": 26,
+  "oneuptime.data.table.schema": 35,
+  "oneuptime.data.store.name": 40,
+  "oneuptime.data.table.id": 95,
+  "oneuptime.data.store.id": 95,
   "k8s.namespace.name": 50,
   "service.namespace": 50,
   "k8s.node.name": 60,

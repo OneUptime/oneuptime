@@ -7,7 +7,8 @@ import Link from "Common/Types/Link";
  * Every routed DATA_OBSERVABILITY_* page has a trail here, named as the side
  * menus name the pages: Project > Data Observability > Tables > View Table >
  * Columns. A table's pages sit under Tables and the table - "View Table",
- * which the table's layout names for the table once it is read. The
+ * which the table's layout names for the table once it is read - and a
+ * database's under Databases and "View Database", named the same way. The
  * product's own address opens its Overview, and is named so.
  */
 export function getDataObservabilityBreadcrumbs(
@@ -66,6 +67,26 @@ export function getDataObservabilityBreadcrumbs(
       "Data Observability",
       "Databases",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.DATA_OBSERVABILITY_STORE_VIEW, [
+      "Project",
+      "Data Observability",
+      "Databases",
+      "View Database",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.DATA_OBSERVABILITY_STORE_VIEW_TABLES,
+      ["Project", "Data Observability", "Databases", "View Database", "Tables"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.DATA_OBSERVABILITY_STORE_VIEW_RECOMMENDATIONS,
+      [
+        "Project",
+        "Data Observability",
+        "Databases",
+        "View Database",
+        "Recommendations",
+      ],
+    ),
     ...BuildBreadcrumbLinksByTitles(PageMap.DATA_OBSERVABILITY_SCHEMA_CHANGES, [
       "Project",
       "Data Observability",

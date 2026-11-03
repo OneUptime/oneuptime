@@ -1,7 +1,11 @@
 import PageComponentProps from "../PageComponentProps";
+import AppLink from "../../Components/AppLink/AppLink";
 import ConnectDatabaseModal from "../../Components/DataObservability/ConnectDatabaseModal";
 import DataObservabilityApi from "../../Components/DataObservability/DataObservabilityApi";
-import { Gray500, Green500, Red500 } from "Common/Types/BrandColors";
+import StoreStatusPill from "../../Components/DataObservability/StoreStatusPill";
+import PageMap from "../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import Route from "Common/Types/API/Route";
 import OneUptimeDate from "Common/Types/Date";
 import {
   DataObservabilityCollector,
@@ -13,8 +17,8 @@ import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
-import Pill from "Common/UI/Components/Pill/Pill";
 import API from "Common/UI/Utils/API/API";
+import Navigation from "Common/UI/Utils/Navigation";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
@@ -28,7 +32,8 @@ import React, {
  * The databases whose tables are watched, with who collects each - OneUptime,
  * or a probe in the customer's network - how the last collection went and
  * why one failed. Connect a Database adds one; Collect Now reads one again
- * without waiting for its next turn.
+ * without waiting for its next turn; Recommended Alerts opens the monitors
+ * recommended for its tables.
  */
 const DataObservabilityStoresPage: FunctionComponent<
   PageComponentProps
@@ -107,22 +112,13 @@ const DataObservabilityStoresPage: FunctionComponent<
     return <PageLoader isVisible={true} />;
   }
 
-  const statusPill: (store: DataObservabilityStoreSummary) => ReactElement = (
+  const storeRoute: (
     store: DataObservabilityStoreSummary,
-  ): ReactElement => {
-    if (!store.isTableHealthEnabled) {
-      return <Pill text="Not watched" color={Gray500} />;
-    }
-
-    if (store.status === "Failed") {
-      return <Pill text="Collection failed" color={Red500} />;
-    }
-
-    if (store.status === "Collected") {
-      return <Pill text="Collected" color={Green500} />;
-    }
-
-    return <Pill text="Waiting for first collection" color={Gray500} />;
+    page: PageMap,
+  ) => Route = (store: DataObservabilityStoreSummary, page: PageMap): Route => {
+    return RouteUtil.populateRouteParams(RouteMap[page] as Route, {
+      modelId: new ObjectID(store.dataStoreId),
+    });
   };
 
   return (
@@ -170,10 +166,16 @@ const DataObservabilityStoresPage: FunctionComponent<
                     >
                       <div className="min-w-0 space-y-1">
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="font-medium text-gray-900">
-                            {store.name}
-                          </span>
-                          {statusPill(store)}
+                          <AppLink
+                            to={storeRoute(
+                              store,
+                              PageMap.DATA_OBSERVABILITY_STORE_VIEW,
+                            )}
+                            className="font-medium text-gray-900 hover:underline"
+                          >
+                            <span>{store.name}</span>
+                          </AppLink>
+                          <StoreStatusPill store={store} />
                         </div>
                         <div className="text-xs text-gray-500">
                           {store.kind}
@@ -235,7 +237,20 @@ const DataObservabilityStoresPage: FunctionComponent<
                           <></>
                         )}
                       </div>
-                      <div className="shrink-0">
+                      <div className="flex shrink-0 flex-wrap gap-2">
+                        <Button
+                          title="Recommended Alerts"
+                          buttonStyle={ButtonStyleType.NORMAL}
+                          icon={IconProp.Alert}
+                          onClick={() => {
+                            Navigation.navigate(
+                              storeRoute(
+                                store,
+                                PageMap.DATA_OBSERVABILITY_STORE_VIEW_RECOMMENDATIONS,
+                              ),
+                            );
+                          }}
+                        />
                         <Button
                           title="Collect Now"
                           buttonStyle={ButtonStyleType.NORMAL}
