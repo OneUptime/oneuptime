@@ -102,12 +102,18 @@ const SEARCH_CASES: Array<[string, string, string]> = [
   ["snmp", "Network", PageMap.NETWORK_OVERVIEW],
   ["flamegraph", "Performance Profiles", PageMap.PROFILES],
   ["lambda", "Serverless", PageMap.SERVERLESS_FUNCTIONS],
-  // Cloud opens on the accounts connected to it.
-  ["aws", "Cloud", PageMap.CLOUD_ACCOUNTS],
-  ["azure", "Cloud", PageMap.CLOUD_ACCOUNTS],
-  ["gcp", "Cloud", PageMap.CLOUD_ACCOUNTS],
-  ["ec2", "Cloud", PageMap.CLOUD_ACCOUNTS],
-  ["iaas", "Cloud", PageMap.CLOUD_ACCOUNTS],
+  /*
+   * Cloud opens on its Overview of every account connected to it, and what
+   * the accounts cost finds it too.
+   */
+  ["aws", "Cloud", PageMap.CLOUD_OVERVIEW],
+  ["azure", "Cloud", PageMap.CLOUD_OVERVIEW],
+  ["gcp", "Cloud", PageMap.CLOUD_OVERVIEW],
+  ["ec2", "Cloud", PageMap.CLOUD_OVERVIEW],
+  ["iaas", "Cloud", PageMap.CLOUD_OVERVIEW],
+  ["cloud costs", "Cloud", PageMap.CLOUD_OVERVIEW],
+  ["finops", "Cloud", PageMap.CLOUD_OVERVIEW],
+  ["rightsizing", "Cloud", PageMap.CLOUD_OVERVIEW],
   /*
    * The apps a managed platform runs were Cloud's environments; the
    * platforms' names find App Platforms, on its Overview.
@@ -221,11 +227,11 @@ describe("dashboard product search keywords", () => {
    * Platforms, and a cloud's own words only Cloud.
    */
   test.each([
-    ["paas", PageMap.APP_PLATFORMS_OVERVIEW, PageMap.CLOUD_ACCOUNTS],
-    ["fargate", PageMap.APP_PLATFORMS_OVERVIEW, PageMap.CLOUD_ACCOUNTS],
-    ["cloud run", PageMap.APP_PLATFORMS_OVERVIEW, PageMap.CLOUD_ACCOUNTS],
-    ["ec2", PageMap.CLOUD_ACCOUNTS, PageMap.APP_PLATFORMS_OVERVIEW],
-    ["cloud accounts", PageMap.CLOUD_ACCOUNTS, PageMap.APP_PLATFORMS_OVERVIEW],
+    ["paas", PageMap.APP_PLATFORMS_OVERVIEW, PageMap.CLOUD_OVERVIEW],
+    ["fargate", PageMap.APP_PLATFORMS_OVERVIEW, PageMap.CLOUD_OVERVIEW],
+    ["cloud run", PageMap.APP_PLATFORMS_OVERVIEW, PageMap.CLOUD_OVERVIEW],
+    ["ec2", PageMap.CLOUD_OVERVIEW, PageMap.APP_PLATFORMS_OVERVIEW],
+    ["cloud accounts", PageMap.CLOUD_OVERVIEW, PageMap.APP_PLATFORMS_OVERVIEW],
   ])(
     "%j finds its own product and not the other",
     (query: string, found: string, notFound: string) => {
