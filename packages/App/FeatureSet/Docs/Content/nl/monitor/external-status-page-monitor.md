@@ -208,6 +208,7 @@ Als u incidenten of waarschuwingen maakt vanuit monitoren voor externe statuspag
 | `{{provider}}`            | De vastgestelde provider (Atlassian Statuspage, incident.io, OneUptime Status Page, RSS, Atom); leeg na een controle op bereikbaarheid |
 | `{{componentGroup}}`      | De componentgroep waartoe de monitor is afgebakend, als die er is |
 | `{{componentName}}`       | De componenten die de monitor volgt, gescheiden door komma's, als er gekozen zijn |
+| `{{componentNames}}`      | Dezelfde componenten als lijst, om met `{{#each componentNames}}` voor elk een regel te herhalen |
 
 ## Populaire statuspagina-URL's
 

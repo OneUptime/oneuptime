@@ -208,6 +208,7 @@ När du skapar incidenter eller larm från monitorer för externa statussidor ka
 | `{{provider}}`            | Den identifierade leverantören (Atlassian Statuspage, incident.io, OneUptime Status Page, RSS, Atom); tom efter en kontroll av om sidan kan nås |
 | `{{componentGroup}}`      | Komponentgruppen som monitorn är avgränsad till, om någon |
 | `{{componentName}}`       | Komponenterna som monitorn bevakar, avgränsade med kommatecken, om några är valda |
+| `{{componentNames}}`      | Samma komponenter som en lista, för att upprepa en rad för var och en med `{{#each componentNames}}` |
 
 ## Populära statussidors URL:er
 

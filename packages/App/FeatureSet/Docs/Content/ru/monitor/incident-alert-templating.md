@@ -445,6 +445,7 @@ Alerts for payments:
 | `provider` | Вид страницы статуса: Atlassian Statuspage, incident.io, RSS или Atom. | `string` |
 | `componentGroup` | Группа компонентов, за которой следит монитор, если он за ней следит. | `string` |
 | `componentName` | Компоненты, за которыми следит монитор, через запятую, если он их выбрал. | `string` |
+| `componentNames` | Те же компоненты списком, чтобы повторить строку для каждого из них с `{{#each componentNames}}`. | `Array<string>` |
 | `isOnline` | Ответила ли страница статуса. | `boolean` |
 | `responseTimeInMs` | Сколько времени страница статуса отвечала, в миллисекундах. | `number` |
 | `failureCause` | Почему проверка провалилась, если это произошло. | `string` |

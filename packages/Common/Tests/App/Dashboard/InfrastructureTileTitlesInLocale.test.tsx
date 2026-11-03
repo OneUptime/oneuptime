@@ -522,6 +522,81 @@ describe("a golden metric tile", () => {
   });
 });
 
+/*
+ * A chart whose lines a page names with English words of its own ("State",
+ * "Total Cost", "Calls", "Read") hands them to the chart in the reader's
+ * words - through ChartCard, which translates them, or through
+ * withTranslatedSeriesNames - and each of those words is worded in every
+ * language. A series named by data (a service, a host) is never a literal.
+ */
+describe("charts whose lines the page names", () => {
+  const LITERAL_SERIES_NAME: RegExp = /seriesName: "([^"]+)"/g;
+  const TRANSLATES_ITS_SERIES: RegExp =
+    /withTranslatedSeriesNames\(|<ChartCard\b|translateText\(item\.seriesName\)/;
+
+  function filesNamingSeries(): Array<{ file: string; names: Array<string> }> {
+    const found: Array<{ file: string; names: Array<string> }> = [];
+
+    for (const file of sourceFiles(SOURCE)) {
+      const code: string = fs.readFileSync(file, "utf8");
+      const names: Array<string> = Array.from(
+        code.matchAll(LITERAL_SERIES_NAME),
+      ).map((match: RegExpMatchArray): string => {
+        return match[1] as string;
+      });
+
+      if (names.length > 0) {
+        found.push({
+          file: path.relative(SOURCE, file).split(path.sep).join("/"),
+          names,
+        });
+      }
+    }
+
+    return found;
+  }
+
+  test("hand their charts the lines' names in the reader's words", () => {
+    const files: Array<{ file: string; names: Array<string> }> =
+      filesNamingSeries();
+
+    expect(files.length).toBeGreaterThan(15);
+
+    const untranslated: Array<string> = files
+      .filter((entry: { file: string }): boolean => {
+        return !TRANSLATES_ITS_SERIES.test(
+          fs.readFileSync(path.join(SOURCE, entry.file), "utf8"),
+        );
+      })
+      .map((entry: { file: string }): string => {
+        return entry.file;
+      });
+
+    expect(untranslated).toEqual([]);
+  });
+
+  test.each(LANGUAGES)(
+    "%s words every line a page names in English",
+    (language: string) => {
+      const english: Array<string> = Array.from(
+        new Set<string>(
+          filesNamingSeries().flatMap(
+            (entry: { names: Array<string> }): Array<string> => {
+              return entry.names;
+            },
+          ),
+        ),
+      ).filter((words: string): boolean => {
+        return (
+          drawn(language, words) === words && !isKeptAsWritten(language, words)
+        );
+      });
+
+      expect({ language, english }).toEqual({ language, english: [] });
+    },
+  );
+});
+
 describe("a chart card's lines", () => {
   const WINDOW_START: Date = new Date("2026-11-03T10:00:00.000Z");
   const WINDOW_END: Date = new Date("2026-11-03T11:00:00.000Z");

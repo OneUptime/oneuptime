@@ -208,6 +208,7 @@ flowchart TB
 | `{{provider}}`            | Определённый провайдер (Atlassian Statuspage, incident.io, OneUptime Status Page, RSS, Atom); пусто после проверки доступности |
 | `{{componentGroup}}`      | Группа компонентов, которой ограничен монитор, если задана |
 | `{{componentName}}`       | Компоненты, за которыми следит монитор, через запятую, если они выбраны |
+| `{{componentNames}}`      | Те же компоненты списком, чтобы повторить строку для каждого из них с `{{#each componentNames}}` |
 
 ## URL популярных страниц статуса
 

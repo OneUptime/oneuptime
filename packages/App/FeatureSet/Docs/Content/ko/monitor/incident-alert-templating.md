@@ -445,6 +445,7 @@ Alerts for payments:
 | `provider` | 상태 페이지의 종류: Atlassian Statuspage, incident.io, RSS 또는 Atom. | `string` |
 | `componentGroup` | 모니터가 지켜보는 구성 요소 그룹(있는 경우). | `string` |
 | `componentName` | 모니터가 지켜보는 구성 요소(고른 경우, 쉼표로 구분). | `string` |
+| `componentNames` | 같은 구성 요소의 목록. `{{#each componentNames}}`로 각각 한 줄씩 반복할 수 있습니다. | `Array<string>` |
 | `isOnline` | 상태 페이지가 응답했는지 여부. | `boolean` |
 | `responseTimeInMs` | 상태 페이지가 응답하는 데 걸린 시간(밀리초). | `number` |
 | `failureCause` | 검사가 실패했을 때 그 이유. | `string` |

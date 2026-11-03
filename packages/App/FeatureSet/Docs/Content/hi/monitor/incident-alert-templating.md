@@ -445,6 +445,7 @@ Alerts for payments:
 | `provider` | स्टेटस पेज का प्रकार: Atlassian Statuspage, incident.io, RSS या Atom। | `string` |
 | `componentGroup` | वह कंपोनेंट समूह जिसे मॉनिटर देखता है, यदि देखता हो। | `string` |
 | `componentName` | वे कंपोनेंट जिन्हें मॉनिटर देखता है, अल्पविराम से अलग, यदि उसने कुछ चुने हों। | `string` |
+| `componentNames` | वही कंपोनेंट एक सूची के रूप में, ताकि `{{#each componentNames}}` से हर एक के लिए एक पंक्ति दोहराई जा सके। | `Array<string>` |
 | `isOnline` | क्या स्टेटस पेज ने जवाब दिया। | `boolean` |
 | `responseTimeInMs` | स्टेटस पेज को जवाब देने में कितना समय लगा, मिलीसेकंड में। | `number` |
 | `failureCause` | जाँच विफल होने पर, उसका कारण। | `string` |

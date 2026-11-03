@@ -445,6 +445,7 @@ Alerts for payments:
 | `provider` | 状态页的类型：Atlassian Statuspage、incident.io、RSS 或 Atom。 | `string` |
 | `componentGroup` | 监视器关注的组件组(如果有)。 | `string` |
 | `componentName` | 监视器关注的组件，以逗号分隔(如果选择了组件)。 | `string` |
+| `componentNames` | 以列表形式给出的同一组组件，可用 `{{#each componentNames}}` 为每个组件重复一行。 | `Array<string>` |
 | `isOnline` | 状态页是否作出了响应。 | `boolean` |
 | `responseTimeInMs` | 状态页响应所用的时间，以毫秒为单位。 | `number` |
 | `failureCause` | 检查失败时的原因。 | `string` |

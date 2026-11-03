@@ -208,6 +208,7 @@ Wenn Sie aus Monitoren für externe Statusseiten Vorfälle oder Warnungen erstel
 | `{{provider}}`            | Erkannter Anbieter (Atlassian Statuspage, incident.io, OneUptime Status Page, RSS, Atom); leer nach einer Erreichbarkeitsprüfung |
 | `{{componentGroup}}`      | Komponentengruppe, auf die der Monitor beschränkt ist, falls vorhanden |
 | `{{componentName}}`       | Die Komponenten, die der Monitor beobachtet, durch Kommas getrennt, falls welche gewählt sind |
+| `{{componentNames}}`      | Dieselben Komponenten als Liste, um mit `{{#each componentNames}}` für jede eine Zeile zu wiederholen |
 
 ## Beliebte Statusseiten-URLs
 

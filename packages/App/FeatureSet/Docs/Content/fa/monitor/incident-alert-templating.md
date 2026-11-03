@@ -445,6 +445,7 @@ Alerts for payments:
 | `provider` | نوع صفحه وضعیت: Atlassian Statuspage، incident.io، RSS یا Atom. | `string` |
 | `componentGroup` | گروه مؤلفه‌ای که مانیتور زیر نظر دارد، اگر یکی را زیر نظر داشته باشد. | `string` |
 | `componentName` | مؤلفه‌هایی که مانیتور زیر نظر دارد، جدا شده با ویرگول، اگر برخی را برگزیده باشد. | `string` |
+| `componentNames` | همان مؤلفه‌ها به‌صورت فهرست، تا با `{{#each componentNames}}` برای هر کدام یک سطر تکرار شود. | `Array<string>` |
 | `isOnline` | اینکه آیا صفحه وضعیت پاسخ داد. | `boolean` |
 | `responseTimeInMs` | مدتی که صفحه وضعیت برای پاسخ طول کشید، بر حسب میلی‌ثانیه. | `number` |
 | `failureCause` | چرا بررسی شکست خورد، اگر شکست خورد. | `string` |

@@ -208,6 +208,7 @@ OneUptime で作られたステータスページ (別のチームのプロジ�
 | `{{provider}}`            | 判定されたプロバイダー (Atlassian Statuspage、incident.io、OneUptime Status Page、RSS、Atom)。到達可能性のチェックの後は空です |
 | `{{componentGroup}}`      | モニターが絞られているコンポーネントグループ (ある場合) |
 | `{{componentName}}`       | モニターが監視するコンポーネント (選んでいる場合、カンマ区切り) |
+| `{{componentNames}}`      | 同じコンポーネントのリスト (`{{#each componentNames}}` で 1 つずつ行を繰り返せます) |
 
 ## よく使われるステータスページの URL
 

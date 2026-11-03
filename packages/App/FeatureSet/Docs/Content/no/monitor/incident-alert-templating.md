@@ -445,6 +445,7 @@ Serienavnene i `metrics` inneholder punktum, som `oneuptime.monitor.database.con
 | `provider` | Typen statusside: Atlassian Statuspage, incident.io, RSS eller Atom. | `string` |
 | `componentGroup` | Komponentgruppen monitoren følger med på, hvis den følger med på en. | `string` |
 | `componentName` | Komponentene monitoren følger med på, skilt med komma, hvis den har valgt noen. | `string` |
+| `componentNames` | De samme komponentene som en liste, for å gjenta en linje for hver av dem med `{{#each componentNames}}`. | `Array<string>` |
 | `isOnline` | Om statussiden svarte. | `boolean` |
 | `responseTimeInMs` | Hvor lang tid statussiden brukte på å svare, i millisekunder. | `number` |
 | `failureCause` | Hvorfor sjekken feilet, når den gjorde det. | `string` |

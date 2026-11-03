@@ -208,6 +208,7 @@ OneUptime से बने किसी स्थिति पृष्ठ प�
 | `{{provider}}`            | पहचाना गया प्रदाता (Atlassian Statuspage, incident.io, OneUptime Status Page, RSS, Atom); पहुँच-योग्यता जाँच के बाद खाली |
 | `{{componentGroup}}`      | वह घटक समूह जिस तक मॉनिटर सीमित है, अगर कोई हो |
 | `{{componentName}}`       | वे घटक जिन पर मॉनिटर नज़र रखता है, अल्पविराम से अलग, अगर उसने कुछ चुने हों |
+| `{{componentNames}}`      | वही घटक एक सूची के रूप में, ताकि `{{#each componentNames}}` से हर एक के लिए एक पंक्ति दोहराई जा सके |
 
 ## लोकप्रिय स्थिति पृष्ठ URL
 

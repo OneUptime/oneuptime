@@ -445,6 +445,7 @@ De reeksnamen in `metrics` bevatten punten, zoals `oneuptime.monitor.database.co
 | `provider` | Het soort statuspagina: Atlassian Statuspage, incident.io, RSS of Atom. | `string` |
 | `componentGroup` | De componentgroep die de monitor in de gaten houdt, als hij er een volgt. | `string` |
 | `componentName` | De componenten die de monitor in de gaten houdt, gescheiden door komma's, als hij er heeft gekozen. | `string` |
+| `componentNames` | Dezelfde componenten als lijst, om met `{{#each componentNames}}` voor elk een regel te herhalen. | `Array<string>` |
 | `isOnline` | Of de statuspagina antwoordde. | `boolean` |
 | `responseTimeInMs` | Hoe lang de statuspagina over het antwoord deed, in milliseconden. | `number` |
 | `failureCause` | Waarom de controle mislukte, als dat zo was. | `string` |

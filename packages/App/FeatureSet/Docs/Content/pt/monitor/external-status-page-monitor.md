@@ -208,6 +208,7 @@ Ao criar incidentes ou alertas a partir de monitores de página de status extern
 | `{{provider}}`            | Provedor detectado (Atlassian Statuspage, incident.io, OneUptime Status Page, RSS, Atom); vazio após uma verificação de acessibilidade |
 | `{{componentGroup}}`      | Grupo de componentes ao qual o monitor está limitado, se houver |
 | `{{componentName}}`       | Os componentes que o monitor acompanha, separados por vírgulas, se escolheu algum |
+| `{{componentNames}}`      | Os mesmos componentes como lista, para repetir uma linha para cada um com `{{#each componentNames}}` |
 
 ## URLs de páginas de status populares
 

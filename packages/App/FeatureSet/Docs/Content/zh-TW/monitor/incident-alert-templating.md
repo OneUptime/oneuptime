@@ -445,6 +445,7 @@ Alerts for payments:
 | `provider` | 狀態頁面的類型：Atlassian Statuspage、incident.io、RSS 或 Atom。 | `string` |
 | `componentGroup` | 監測器關注的元件群組(如果有)。 | `string` |
 | `componentName` | 監測器關注的元件，以逗號分隔(如果選擇了元件)。 | `string` |
+| `componentNames` | 以清單形式提供的同一組元件，可用 `{{#each componentNames}}` 為每個元件重複一行。 | `Array<string>` |
 | `isOnline` | 狀態頁面是否有回應。 | `boolean` |
 | `responseTimeInMs` | 狀態頁面回應所用的時間，以毫秒為單位。 | `number` |
 | `failureCause` | 檢查失敗時的原因。 | `string` |

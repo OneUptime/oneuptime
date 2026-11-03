@@ -208,6 +208,7 @@ OneUptime으로 만든 상태 페이지(다른 팀의 프로젝트, 또는 OneUp
 | `{{provider}}`            | 감지된 공급자(Atlassian Statuspage, incident.io, OneUptime Status Page, RSS, Atom). 도달 가능성 검사 후에는 비어 있습니다 |
 | `{{componentGroup}}`      | 모니터의 범위를 좁힌 구성 요소 그룹(있는 경우) |
 | `{{componentName}}`       | 모니터가 지켜보는 구성 요소(고른 경우, 쉼표로 구분) |
+| `{{componentNames}}`      | 같은 구성 요소의 목록(`{{#each componentNames}}`로 각각 한 줄씩 반복) |
 
 ## 자주 쓰는 상태 페이지 URL
 

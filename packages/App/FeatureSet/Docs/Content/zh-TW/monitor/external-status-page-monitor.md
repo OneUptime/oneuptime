@@ -208,6 +208,7 @@ flowchart TB
 | `{{provider}}`            | 判斷出的供應商（Atlassian Statuspage、incident.io、OneUptime Status Page、RSS、Atom）；連線能力檢查之後為空 |
 | `{{componentGroup}}`      | 監測器限定到的元件群組（如果有） |
 | `{{componentName}}`       | 監測器留意的元件，以逗號分隔（如果選擇了元件） |
+| `{{componentNames}}`      | 以清單形式提供的同一組元件（可用 `{{#each componentNames}}` 為每個元件重複一行） |
 
 ## 常用狀態頁面 URL
 

@@ -41435,5 +41435,7 @@
   "Show Incident on Status Pages": "Show Incident on Status Pages",
   "Show the incident on the status pages that list its monitor, and notify their subscribers.": "Show the incident on the status pages that list its monitor, and notify their subscribers.",
   "Which alerts become incidents, and when.": "Which alerts become incidents, and when.",
-  "e.g. Declare SEV1 incidents": "e.g. Declare SEV1 incidents"
+  "e.g. Declare SEV1 incidents": "e.g. Declare SEV1 incidents",
+  "Even burn": "Consumo uniforme",
+  "The same components as a list, for a template that repeats a line for each of them.": "Los mismos componentes como lista, para una plantilla que repite una línea por cada uno."
 }

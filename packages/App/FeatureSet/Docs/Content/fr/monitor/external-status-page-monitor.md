@@ -208,6 +208,7 @@ Quand vous créez des incidents ou des alertes à partir de moniteurs de page de
 | `{{provider}}`            | Fournisseur détecté (Atlassian Statuspage, incident.io, OneUptime Status Page, RSS, Atom) ; vide après une vérification d'accessibilité |
 | `{{componentGroup}}`      | Groupe de composants auquel le moniteur est limité, le cas échéant |
 | `{{componentName}}`       | Les composants que le moniteur surveille, séparés par des virgules, s'il en a choisi |
+| `{{componentNames}}`      | Les mêmes composants sous forme de liste, pour répéter une ligne pour chacun avec `{{#each componentNames}}` |
 
 ## URL de pages de statut populaires
 

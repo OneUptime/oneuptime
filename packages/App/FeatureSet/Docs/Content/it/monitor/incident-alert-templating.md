@@ -445,6 +445,7 @@ I nomi delle serie in `metrics` contengono punti, come `oneuptime.monitor.databa
 | `provider` | Il tipo di pagina di stato: Atlassian Statuspage, incident.io, RSS o Atom. | `string` |
 | `componentGroup` | Il gruppo di componenti che il monitor osserva, se ne osserva uno. | `string` |
 | `componentName` | I componenti che il monitor osserva, separati da virgole, se ne ha scelti. | `string` |
+| `componentNames` | Gli stessi componenti come elenco, per ripetere una riga per ciascuno con `{{#each componentNames}}`. | `Array<string>` |
 | `isOnline` | Se la pagina di stato ha risposto. | `boolean` |
 | `responseTimeInMs` | Quanto ha impiegato la pagina di stato a rispondere, in millisecondi. | `number` |
 | `failureCause` | Perché il controllo è fallito, quando è fallito. | `string` |

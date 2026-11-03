@@ -208,6 +208,7 @@ Når du opretter hændelser eller advarsler fra monitorer for eksterne statussid
 | `{{provider}}`            | Den fundne udbyder (Atlassian Statuspage, incident.io, OneUptime Status Page, RSS, Atom); tom efter et tjek af, om siden kan nås |
 | `{{componentGroup}}`      | Den komponentgruppe, monitoren er afgrænset til, hvis der er en |
 | `{{componentName}}`       | De komponenter, monitoren holder øje med, adskilt af kommaer, hvis der er valgt nogen |
+| `{{componentNames}}`      | De samme komponenter som en liste, så en linje kan gentages for hver af dem med `{{#each componentNames}}` |
 
 ## Populære statusside-URL'er
 

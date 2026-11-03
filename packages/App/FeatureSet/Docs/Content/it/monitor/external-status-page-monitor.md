@@ -208,6 +208,7 @@ Quando create incidenti o avvisi da monitor di pagina di stato esterna, potete u
 | `{{provider}}`            | Provider riconosciuto (Atlassian Statuspage, incident.io, OneUptime Status Page, RSS, Atom); vuoto dopo un controllo di raggiungibilità |
 | `{{componentGroup}}`      | Gruppo di componenti a cui è limitato il monitor, se presente |
 | `{{componentName}}`       | I componenti che il monitor controlla, separati da virgole, se ne ha scelti |
+| `{{componentNames}}`      | Gli stessi componenti come elenco, per ripetere una riga per ciascuno con `{{#each componentNames}}` |
 
 ## URL di pagine di stato più diffuse
 

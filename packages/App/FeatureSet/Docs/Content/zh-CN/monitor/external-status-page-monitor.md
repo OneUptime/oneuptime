@@ -208,6 +208,7 @@ flowchart TB
 | `{{provider}}`            | 识别出的服务商（Atlassian Statuspage、incident.io、OneUptime Status Page、RSS、Atom）；可达性检查之后为空 |
 | `{{componentGroup}}`      | 监视器限定到的组件组（如果有） |
 | `{{componentName}}`       | 监视器关注的组件，以逗号分隔（如果选择了组件） |
+| `{{componentNames}}`      | 以列表形式给出的同一组组件（可用 `{{#each componentNames}}` 为每个组件重复一行） |
 
 ## 常用状态页 URL
 
