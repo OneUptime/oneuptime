@@ -3,15 +3,15 @@
 The OneUptime CLI, `oneuptime`, manages your OneUptime project from a terminal or a script. List, read, create, change, delete and count monitors, incidents, alerts, status pages and the other records the OneUptime API offers, with an API key of your project.
 
 :::cards
-- [How the CLI works](#how-the-cli-works): One command, one API request, one answer.
-- [Install the CLI](#install-the-cli): One npm command, and the version to pick.
-- [Run your first commands](#run-your-first-commands): Save your API key, then list your incidents.
+- [How the CLI works](#how-the-cli-works): A command, the API requests it sends, and its answer.
+- [Install the CLI](#install-the-cli): The installer your OneUptime serves, or npm.
+- [Run your first commands](#run-your-first-commands): Save your API key, check it, then list your incidents.
 - [Commands at a glance](#commands-at-a-glance): Every command, and the page that explains it.
 :::
 
 ## How the CLI works
 
-Each command sends one request to the OneUptime REST API and prints the answer. The CLI takes the API key and your OneUptime's address from flags, environment variables or a context that `oneuptime login` saved. The key decides what a command may read and change, exactly as it does for the API.
+Most commands send one request to the OneUptime REST API and print the answer; an action, such as `acknowledge`, sends the few the dashboard's button does. The CLI takes the API key and your OneUptime's address from flags, environment variables or a context that `oneuptime login` saved. The key decides what a command may read and change, exactly as it does for the API.
 
 ```mermaid title="One command, one request"
 flowchart TB
@@ -22,7 +22,7 @@ flowchart TB
     C -->|"a table in a terminal,<br/>JSON in a pipe"| T
 ```
 
-The commands for records come with the CLI: each kind of record the OneUptime API opens to tools has one, the same records the [MCP server](/docs/ai/mcp-server) has tools for. Run `oneuptime resources` to list them.
+Every resource of the OneUptime API is a command, 450 and more of them, from `incident` and `monitor` to `status-page-subscriber` and `telemetry-ingestion-key`, each with the operations the API takes for it. The CLI is released with OneUptime, so the CLI of your OneUptime's version has a command for each resource your server has. Run `oneuptime resources` to list them.
 
 ## Before you begin
 
@@ -32,7 +32,14 @@ The commands for records come with the CLI: each kind of record the OneUptime AP
 
 ## Install the CLI
 
-Install the `@oneuptime/cli` package from npm. It adds the `oneuptime` command, and `--version` prints the version you installed:
+Every OneUptime serves the CLI's install script for its own release: the commands below download it from `https://oneuptime.com`, so on a self-hosted OneUptime replace it with your URL. The script is saved as `install.sh` first, so you can read it before you run it. It asks your OneUptime for its version, and installs the CLI of the same version with npm:
+
+```bash
+curl -fsSL https://oneuptime.com/install/cli -o install.sh
+ONEUPTIME_URL=https://oneuptime.com bash install.sh
+```
+
+Or install the `@oneuptime/cli` package from npm yourself. It adds the `oneuptime` command, and `--version` prints the version you installed:
 
 ```bash
 npm install -g @oneuptime/cli
@@ -61,13 +68,21 @@ oneuptime login <your-api-key> https://oneuptime.com
 
 It answers `Logged in successfully. Context "default" is now active.` On a self-hosted OneUptime, use its address in place of `https://oneuptime.com`.
 
+### Check the key
+
+```bash
+oneuptime whoami --check
+```
+
+`login` saves the key without asking OneUptime about it. `--check` asks: it shows the key's project, your OneUptime's version and the CLI's, and what to install when the two differ. If OneUptime refuses the key, see [Troubleshooting](/docs/cli/authentication#troubleshooting).
+
 ### List your incidents
 
 ```bash
 oneuptime incident list
 ```
 
-The ten newest incidents appear as a table. `login` saves the key without checking it, so this is the first command that shows the key works: if it is refused, see [Troubleshooting](/docs/cli/authentication#troubleshooting).
+The ten newest incidents appear as a table.
 
 ### See what else you can manage
 
@@ -75,7 +90,7 @@ The ten newest incidents appear as a table. `login` saves the key without checki
 oneuptime resources
 ```
 
-The list shows every kind of record you can work with, and its command, such as `monitor`, `status-page` or `on-call-policy`.
+The list shows every kind of record you can work with, and its command, such as `monitor`, `status-page` or `on-call-policy`. `oneuptime monitor fields` lists a monitor's fields, and the flags that set them.
 :::
 
 ## Commands at a glance
@@ -84,9 +99,11 @@ The list shows every kind of record you can work with, and its command, such as 
 | --- | --- | --- |
 | `oneuptime login <api-key> <instance-url>` | Saves an API key and an address as a context | [Authentication](/docs/cli/authentication#log-in) |
 | `oneuptime context list`, `use`, `current`, `delete` | Lists, switches, shows and deletes saved contexts | [Authentication](/docs/cli/authentication#contexts) |
-| `oneuptime whoami` | Shows the URL and API key the next command will use | [Authentication](/docs/cli/authentication#check-what-the-cli-will-use) |
+| `oneuptime whoami` | Shows the URL and API key the next command will use, and with `--check` whether OneUptime takes the key | [Authentication](/docs/cli/authentication#check-what-the-cli-will-use) |
 | `oneuptime deploy` | Records a deploy, or another change, for charts and OneUptime AI | [Deploys and Changes](/docs/telemetry/change-events) |
 | `oneuptime <resource> list`, `get`, `create`, `update`, `delete`, `count` | Works with one kind of record | [Resource Operations](/docs/cli/resource-operations) |
+| `oneuptime <resource> fields` | Lists a resource's fields, and the flags that set them | [Resource Operations](/docs/cli/resource-operations#see-a-resources-fields) |
+| `oneuptime <resource> acknowledge`, `resolve`, `start`, `end`, `add-note` | Does what the dashboard's buttons do on incidents, alerts and scheduled maintenance | [Resource Operations](/docs/cli/resource-operations#acknowledge-resolve-and-add-notes) |
 | `oneuptime resources` | Lists the kinds of record, with their commands | [Command Reference](/docs/cli/command-reference#oneuptime-resources) |
 | `oneuptime version` | Prints the CLI's version | [Command Reference](/docs/cli/command-reference#oneuptime-version) |
 | `oneuptime help [command]` | Shows the help of a command | [Get help](#get-help) |
@@ -101,6 +118,7 @@ These options work with every command, before or after it:
 | `--url <url>` | Your OneUptime's address for this command |
 | `--context <name>` | A saved context for this command, in place of the current one |
 | `-o, --output <format>` | `table`, `json` or `wide`: see [Output Formats](/docs/cli/output-formats) |
+| `--json` | The same as `-o json` |
 | `--no-color` | Prints without colors |
 | `-V, --version` | Prints the CLI's version |
 | `-h, --help` | Shows the help of the command |
@@ -122,5 +140,6 @@ oneuptime incident list --help
 - [Resource Operations](/docs/cli/resource-operations): List, read, create, change, delete and count records.
 - [Output Formats](/docs/cli/output-formats): Tables for people, JSON for scripts.
 - [Scripting & CI/CD](/docs/cli/scripting): Exit codes, jq and pipelines.
+- [CLI for AI Agents](/docs/cli/ai-agents): When an agent runs the CLI, and when it uses the MCP server.
 - [Command Reference](/docs/cli/command-reference): Every command, option and default.
 :::

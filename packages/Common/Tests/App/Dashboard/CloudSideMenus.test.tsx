@@ -65,6 +65,7 @@ describe("the Cloud product menu", () => {
     expect(linksIn("Developer")).toEqual([
       { title: "Terraform", href: `${CLOUD}/resources/developer/terraform` },
       { title: "API", href: `${CLOUD}/resources/developer/api` },
+      { title: "CLI", href: `${CLOUD}/resources/developer/cli` },
       {
         title: "AI Assistants",
         href: `${CLOUD}/resources/developer/ai-assistants`,
@@ -111,6 +112,7 @@ describe("a cloud resource's menu", () => {
     expect(linksIn("Developer")).toEqual([
       { title: "Terraform", href: `${RESOURCE_PATH}/developer/terraform` },
       { title: "API", href: `${RESOURCE_PATH}/developer/api` },
+      { title: "CLI", href: `${RESOURCE_PATH}/developer/cli` },
       {
         title: "AI Assistants",
         href: `${RESOURCE_PATH}/developer/ai-assistants`,
@@ -164,6 +166,7 @@ describe("a cloud account's menu", () => {
     expect(linksIn("Developer")).toEqual([
       { title: "Terraform", href: `${ACCOUNT_PATH}/developer/terraform` },
       { title: "API", href: `${ACCOUNT_PATH}/developer/api` },
+      { title: "CLI", href: `${ACCOUNT_PATH}/developer/cli` },
       {
         title: "AI Assistants",
         href: `${ACCOUNT_PATH}/developer/ai-assistants`,

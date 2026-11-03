@@ -247,7 +247,7 @@ describe("one queue's side menu", () => {
       },
     );
 
-    expect(developerHrefs).toHaveLength(3);
+    expect(developerHrefs).toHaveLength(4);
     expect(viewPages).toHaveLength(7);
     expect(hrefs).toHaveLength(7);
     expect(new Set(hrefs).size).toBe(7);

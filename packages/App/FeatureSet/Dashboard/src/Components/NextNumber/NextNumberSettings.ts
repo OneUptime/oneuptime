@@ -9,12 +9,12 @@ import NextNumberUtil, {
 
 /*
  * What each product's Numbering page says about next numbers: the number a
- * new incident, alert, episode or scheduled maintenance event gets
- * (Common/Utils/Project/NextNumber). One Next Number card per page, under
- * the Number Prefix card, one row per kind of number, edited together in
- * one dialog. The copy lives here, beside the kinds it describes, so the
- * three pages say the same thing the same way. Every sentence is a key of
- * the dashboard's locale files (translationKey).
+ * new incident, alert, episode, scheduled maintenance event or security
+ * case gets (Common/Utils/Project/NextNumber). One Next Number card per
+ * page, under the Number Prefix card, one row per kind of number, edited
+ * together in one dialog. The copy lives here, beside the kinds it
+ * describes, so the four pages say the same thing the same way. Every
+ * sentence is a key of the dashboard's locale files (translationKey).
  */
 
 export const NEXT_NUMBER_CARD_TITLE: string = translationKey("Next Number");
@@ -147,10 +147,28 @@ export const SCHEDULED_MAINTENANCE_NEXT_NUMBERS: NextNumberPage = {
   ],
 };
 
+export const SECURITY_CASE_NEXT_NUMBERS: NextNumberPage = {
+  name: "Security Case Next Number",
+  cardDescription: translationKey(
+    "The number the next case gets. Moving from another tool? Start after its last number, so a number never means two cases.",
+  ),
+  editDescription: translationKey(
+    "New cases count up from the number you set. A number is never used twice, so it must be higher than the highest used so far. Existing cases keep their numbers.",
+  ),
+  rows: [
+    {
+      kind: NumberedRecordKind.SecurityCase,
+      label: "Cases",
+      formTitle: translationKey("Next Case Number"),
+    },
+  ],
+};
+
 export const NEXT_NUMBER_PAGES: ReadonlyArray<NextNumberPage> = [
   INCIDENT_NEXT_NUMBERS,
   ALERT_NEXT_NUMBERS,
   SCHEDULED_MAINTENANCE_NEXT_NUMBERS,
+  SECURITY_CASE_NEXT_NUMBERS,
 ];
 
 // The Project column that holds where a kind's numbers start.

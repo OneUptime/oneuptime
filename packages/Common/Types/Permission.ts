@@ -264,6 +264,18 @@ enum Permission {
   EditSecurityCasePriority = "EditSecurityCasePriority",
   ReadSecurityCasePriority = "ReadSecurityCasePriority",
 
+  // Security Case Note Templates (ready-made text for a case's notes)
+  CreateSecurityCaseNoteTemplate = "CreateSecurityCaseNoteTemplate",
+  DeleteSecurityCaseNoteTemplate = "DeleteSecurityCaseNoteTemplate",
+  EditSecurityCaseNoteTemplate = "EditSecurityCaseNoteTemplate",
+  ReadSecurityCaseNoteTemplate = "ReadSecurityCaseNoteTemplate",
+
+  // Security Case Custom Fields (fields a project adds to its cases)
+  CreateSecurityCaseCustomField = "CreateSecurityCaseCustomField",
+  DeleteSecurityCaseCustomField = "DeleteSecurityCaseCustomField",
+  EditSecurityCaseCustomField = "EditSecurityCaseCustomField",
+  ReadSecurityCaseCustomField = "ReadSecurityCaseCustomField",
+
   // Security Detections (the signals a case is made of)
   DeleteSecurityDetection = "DeleteSecurityDetection",
   ReadSecurityDetection = "ReadSecurityDetection",
@@ -2830,7 +2842,7 @@ export class PermissionHelper {
         permission: Permission.SecurityAdmin,
         title: "Security Admin",
         description:
-          "Full control over security operations: security events, cases with their detections, notes, tasks and evidence, response playbooks and their runs, Sigma detection rules, threat intelligence feeds and their indicators, and security event connections (Google SecOps, Microsoft Sentinel, CrowdStrike Falcon and other sources). Outside the Security roles, only Project Owner and Project Admin read security data.",
+          "Full control over security operations: security events, cases with their detections, notes, tasks and evidence, the cases' custom fields and note templates, response playbooks and their runs, Sigma detection rules, threat intelligence feeds and their indicators, and security event connections (Google SecOps, Microsoft Sentinel, CrowdStrike Falcon and other sources). Outside the Security roles, only Project Owner and Project Admin read security data.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2840,7 +2852,7 @@ export class PermissionHelper {
         permission: Permission.SecurityMember,
         title: "Security Member",
         description:
-          "Reads security events and threat intelligence, sends security events, works security cases (opens, assigns, changes and closes them, writes their notes, works their tasks and adds evidence), runs playbooks and approves their steps, and creates, changes and deletes detection rules and threat intel feeds. Cannot configure playbooks or security event connections, or delete security data.",
+          "Reads security events and threat intelligence, sends security events, works security cases (opens, assigns, changes and closes them, fills in their custom fields, writes their notes, works their tasks and adds evidence), runs playbooks and approves their steps, and creates, changes and deletes detection rules and threat intel feeds. Cannot configure playbooks, security event connections or the cases' settings, or delete security data.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2850,7 +2862,7 @@ export class PermissionHelper {
         permission: Permission.SecurityViewer,
         title: "Security Viewer",
         description:
-          "Read-only access to security events, cases with their detections, notes, tasks and evidence, playbooks and their runs, detection rules, threat intelligence feeds and indicators, and security event connections.",
+          "Read-only access to security events, cases with their detections, notes, tasks and evidence, the cases' custom fields and note templates, playbooks and their runs, detection rules, threat intelligence feeds and indicators, and security event connections.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -8511,6 +8523,90 @@ export class PermissionHelper {
         title: "Read Security Case Priority",
         description:
           "This permission can read Security Case Priorities of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+
+      // Security Case Note Template Permissions
+      {
+        permission: Permission.CreateSecurityCaseNoteTemplate,
+        title: "Create Security Case Note Template",
+        description:
+          "This permission can add Security Case Note Templates to this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.DeleteSecurityCaseNoteTemplate,
+        title: "Delete Security Case Note Template",
+        description:
+          "This permission can delete Security Case Note Templates of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.EditSecurityCaseNoteTemplate,
+        title: "Edit Security Case Note Template",
+        description:
+          "This permission can edit Security Case Note Templates of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.ReadSecurityCaseNoteTemplate,
+        title: "Read Security Case Note Template",
+        description:
+          "This permission can read Security Case Note Templates of this project, and pick them when writing a case's note.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+
+      // Security Case Custom Field Permissions
+      {
+        permission: Permission.CreateSecurityCaseCustomField,
+        title: "Create Security Case Custom Field",
+        description:
+          "This permission can add Security Case Custom Fields to this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.DeleteSecurityCaseCustomField,
+        title: "Delete Security Case Custom Field",
+        description:
+          "This permission can delete Security Case Custom Fields of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.EditSecurityCaseCustomField,
+        title: "Edit Security Case Custom Field",
+        description:
+          "This permission can edit Security Case Custom Fields of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.ReadSecurityCaseCustomField,
+        title: "Read Security Case Custom Field",
+        description:
+          "This permission can read Security Case Custom Fields of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

@@ -8,7 +8,7 @@ import path from "path";
 
 /*
  * Every custom field definition table - incidents, alerts, monitors and the
- * other six resources - is mounted with CustomFieldDefinitionAPI rather than
+ * other seven resources - is mounted with CustomFieldDefinitionAPI rather than
  * the plain BaseAPI, so each answers the option editor's
  * /<route>/:id/option-usage (#4564) beside its CRUD routes. Booting the API
  * router would pull in every service, so the mounting is pinned on the
@@ -44,7 +44,7 @@ const definitionModelNames: Array<string> = (
 describe("the custom field definition routes under the API", () => {
   const index: string = readSource("App", "FeatureSet", "BaseAPI", "Index.ts");
 
-  test("there are nine definition tables", () => {
+  test("there are ten definition tables", () => {
     expect(definitionModelNames).toEqual([
       "AlertCustomField",
       "IncidentCustomField",
@@ -52,6 +52,7 @@ describe("the custom field definition routes under the API", () => {
       "MonitorCustomField",
       "OnCallDutyPolicyCustomField",
       "ScheduledMaintenanceCustomField",
+      "SecurityCaseCustomField",
       "StatusPageCustomField",
       "TeamCustomField",
       "TeamMemberCustomField",

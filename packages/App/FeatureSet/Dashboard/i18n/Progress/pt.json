@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40315,
-    "untranslated": 12541
+    "keys": 40407,
+    "untranslated": 12526
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -180,6 +180,7 @@
     "VMs",
     "VMware vCenter",
     "Visual",
+    "Vital",
     "Volume",
     "Volumes",
     "Web",
@@ -208,8 +209,11 @@
     "main",
     "message",
     "name",
+    "p90 (ms)",
     "p95",
+    "p95 (ms)",
     "p95 {{latency}}",
+    "p99 (ms)",
     "prod, staging",
     "prod-.*",
     "prod-vcenter",

@@ -4,6 +4,7 @@ import EventStatTile from "../../../Components/EventView/EventStatTile";
 import MitreAttackChips from "../../../Components/SecurityCase/MitreAttackChips";
 import SecurityCaseAiCard from "../../../Components/SecurityCase/SecurityCaseAiCard";
 import SecurityCaseImpactCard from "../../../Components/SecurityCase/Context/SecurityCaseImpactCard";
+import OverviewCustomFields from "../../../Components/CustomFields/OverviewCustomFields";
 import {
   SecurityCaseFigures,
   getSecurityCaseFigures,
@@ -23,6 +24,7 @@ import SecurityCaseViewContext, {
 } from "./SecurityCaseViewContext";
 import SecurityCase from "Common/Models/DatabaseModels/SecurityCase";
 import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePriority";
+import SecurityCaseCustomField from "Common/Models/DatabaseModels/SecurityCaseCustomField";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
@@ -52,6 +54,10 @@ import React, { FunctionComponent, ReactElement } from "react";
  * against the response target its priority sets (Security Events >
  * Settings > Response Targets): due in, overdue by, within its target, or
  * how far over it - amber while it is about to be missed, red once it is.
+ *
+ * Last, the project's own fields on the case (Security Events > Settings >
+ * Custom Fields), edited in place - not drawn at all while the project has
+ * none, as every record's Overview draws them (OverviewCustomFields).
  *
  * Its parts are pages of their own, in the case's side menu: the Timeline,
  * the Story, the Detections, the Entities, the Evidence, the Tasks, the
@@ -203,6 +209,14 @@ const SecurityCaseOverviewPage: FunctionComponent<
           emptyText="None of this case's detections is mapped to ATT&CK."
         />
       </Card>
+
+      <OverviewCustomFields
+        key={view.caseId.toString()}
+        modelId={view.caseId}
+        modelType={SecurityCase}
+        customFieldType={SecurityCaseCustomField}
+        resourceName="Security Case"
+      />
     </>
   );
 };

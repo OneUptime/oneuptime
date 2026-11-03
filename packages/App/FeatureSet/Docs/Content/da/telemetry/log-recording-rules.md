@@ -54,7 +54,7 @@ Indsnævr reglen under **Which Logs** med telemetritjenester, alvorligheder, br�
 
 ### Del resultatet op, og gem
 
-Tilføj eventuelt attributter under **Gruppér efter** og en **Unit**. Tjek linjen nederst i editoren, og gem derefter. Inden for få minutter viser reglelisten et tidspunkt under **Computed Until**.
+Tilføj eventuelt attributter under **Gruppér efter** og en **Enhed**. Tjek linjen nederst i editoren, og gem derefter. Inden for få minutter viser reglelisten et tidspunkt under **Computed Until**.
 :::
 
 | Felt | Hvad det gør |
@@ -139,7 +139,7 @@ Opret en regel under **Protokoller → Indstillinger → Optagelsesregler**:
 - **Which Logs:** attributfiltre `log_type` = `SD-WAN` og `log_component` = `SLA`
 - **Aggregering:** Gennemsnit, **Numeric Attribute:** `latency`
 - **Gruppér efter:** `gw_name` og `profile_name`
-- **Unit:** `ms`
+- **Enhed:** `ms`
 
 Via API'et, MCP eller Terraform er den samme regels **definition**:
 

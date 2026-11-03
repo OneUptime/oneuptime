@@ -37,7 +37,10 @@ import getJestMockFunction, { MockFunction } from "../../../../MockType";
  *     the picks;
  *   - anything else the setting holds is shown as written, and removable;
  *   - outside a workflow's settings there are no values to pick, and { } is
- *     not drawn.
+ *     not drawn;
+ *   - on a view (a step opened to be read), the picks and values are chips
+ *     to read: no Add, no remove on a chip, no { }, and "None" when there
+ *     are none.
  */
 
 jest.mock("react-i18next", () => {
@@ -90,6 +93,7 @@ import {
 } from "../../../../../UI/Components/Workflow/ValuePicker/ValueSuggestion";
 import IconProp from "../../../../../Types/Icon/IconProp";
 import { withPicker } from "../ValuePicker/ValuePickerTestUtils";
+import { WorkflowViewOnlyContext } from "../../../../../UI/Components/Workflow/WorkflowViewOnly";
 
 const PROJECT_ID: string = "11111111-1111-4111-8111-111111111111";
 const JANE: string = "10000000-0000-4000-8000-000000000001";
@@ -220,6 +224,8 @@ function renderField(data: {
   // Outside a step's settings: no value picker to draw from.
   withoutValues?: boolean | undefined;
   error?: string | undefined;
+  // A step opened to be read (WorkflowViewOnly).
+  isViewOnly?: boolean | undefined;
 }): Rendered {
   const changes: Array<Array<string>> = [];
   const onBlur: MockFunction = getJestMockFunction();
@@ -247,16 +253,18 @@ function renderField(data: {
   }
 
   render(
-    data.withoutValues ? (
-      <Harness />
-    ) : (
-      // Exactly these values on offer: nothing here reads the server for them.
-      withPicker(<Harness />, {
-        groups: VALUES_ON_OFFER,
-        component: PAGE_USERS,
-        graphComponents: [MANUAL, PAGE_USERS],
-      })
-    ),
+    <WorkflowViewOnlyContext.Provider value={Boolean(data.isViewOnly)}>
+      {data.withoutValues ? (
+        <Harness />
+      ) : (
+        // Exactly these values on offer: nothing here reads the server for them.
+        withPicker(<Harness />, {
+          groups: VALUES_ON_OFFER,
+          component: PAGE_USERS,
+          graphComponents: [MANUAL, PAGE_USERS],
+        })
+      )}
+    </WorkflowViewOnlyContext.Provider>,
   );
 
   return { changes: changes, onBlur: onBlur };
@@ -617,6 +625,54 @@ describe("a step's who-to-page setting", () => {
       await waitFor(() => {
         expect(chipNames()).toEqual(["Jane Doe"]);
       });
+    });
+  });
+
+  describe("on a view: a step opened to be read", () => {
+    test("the picks and the values are chips to read, with no Add, no remove and no { }", async () => {
+      renderField({ initial: [JANE, MANUAL_VALUE], isViewOnly: true });
+
+      expect(chipIds()).toEqual([JANE]);
+
+      // Looked up and shown by name, as anywhere else.
+      await waitFor(() => {
+        expect(within(group()).getByTestId("people-chip")).toHaveTextContent(
+          "Jane Doe",
+        );
+      });
+      expect(valueChips()).toHaveLength(1);
+      expect(valueChips()[0]).toHaveTextContent("Manual");
+      // Nothing in the row is a button: no Add, no remove, no { }.
+      expect(within(group()).queryAllByRole("button")).toEqual([]);
+      expect(within(group()).queryByTestId("who-value-chip-remove")).toBeNull();
+      expect(within(group()).queryByTestId("who-insert-value")).toBeNull();
+      // A value chip without its remove button keeps its padding even.
+      expect(valueChips()[0]!.className).toContain("pr-2.5");
+    });
+
+    test("nothing to page yet: None, where the chips would be", () => {
+      renderField({ isViewOnly: true });
+
+      expect(
+        within(group()).getByTestId("people-picker-none"),
+      ).toHaveTextContent("None");
+      expect(within(group()).queryAllByRole("button")).toEqual([]);
+    });
+
+    test("for whoever may change it, the same picks keep Add and their remove buttons", async () => {
+      renderField({ initial: [JANE, MANUAL_VALUE] });
+
+      await waitFor(() => {
+        expect(chipNames()).toEqual(["Jane Doe"]);
+      });
+
+      expect(
+        within(group()).getByRole("button", { name: "Add user" }),
+      ).toBeInTheDocument();
+      expect(
+        within(group()).getByTestId("who-value-chip-remove"),
+      ).toBeEnabled();
+      expect(within(group()).queryByTestId("people-picker-none")).toBeNull();
     });
   });
 

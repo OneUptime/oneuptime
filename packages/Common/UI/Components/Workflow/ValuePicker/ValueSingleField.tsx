@@ -31,9 +31,11 @@ import ValueTextField, {
   INSERT_VALUE_BUTTON_OPEN_CLASS,
   INSERT_VALUE_LABEL,
 } from "./ValueTextField";
+import { WorkflowViewOnlyContext } from "../WorkflowViewOnly";
 import React, {
   FunctionComponent,
   ReactElement,
+  useContext,
   useId,
   useRef,
   useState,
@@ -88,6 +90,11 @@ const ValueSingleField: FunctionComponent<ValueSingleFieldProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const picker: ValuePickerContextValue = useValuePicker();
+  /*
+   * A step opened to be read (WorkflowViewOnly): a value taken from an
+   * earlier step is read as its chip, with no way back to typing one.
+   */
+  const isViewOnly: boolean = useContext(WorkflowViewOnlyContext);
   const dataTestId: string = props.dataTestId || "value-single-field";
 
   const boxRef: React.MutableRefObject<HTMLDivElement | null> =
@@ -146,7 +153,7 @@ const ValueSingleField: FunctionComponent<ValueSingleFieldProps> = (
             onBlur={props.onBlur}
           />
         </div>
-        {!props.disabled && (
+        {!props.disabled && !isViewOnly && (
           <button
             type="button"
             className="mt-1 shrink-0 rounded-md border border-gray-200 px-1.5 py-1 font-mono text-[11px] leading-none text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"

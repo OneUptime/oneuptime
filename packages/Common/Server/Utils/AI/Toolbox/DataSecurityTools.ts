@@ -49,6 +49,7 @@ import {
   ToolContext,
   ToolExecutionResult,
 } from "./ToolTypes";
+import { translationKey } from "../../../../Types/Translator";
 
 /*
  * THE DATA SECURITY TOOLS: how OneUptime AI reads what Data Security found,
@@ -403,12 +404,28 @@ export const QueryDataStoresTool: ObservabilityTool = {
           ? WidgetBuilder.table({
               title: `Data stores (${rows.length})`,
               columns: [
-                { key: "name", title: "Store", type: "text" },
-                { key: "kind", title: "Kind", type: "text" },
-                { key: "sensitivity", title: "Sensitivity", type: "text" },
-                { key: "exposure", title: "Exposure", type: "text" },
-                { key: "openIssues", title: "Open issues", type: "number" },
-                { key: "riskScore", title: "Risk", type: "number" },
+                { key: "name", title: translationKey("Store"), type: "text" },
+                { key: "kind", title: translationKey("Kind"), type: "text" },
+                {
+                  key: "sensitivity",
+                  title: translationKey("Sensitivity"),
+                  type: "text",
+                },
+                {
+                  key: "exposure",
+                  title: translationKey("Exposure"),
+                  type: "text",
+                },
+                {
+                  key: "openIssues",
+                  title: translationKey("Open issues"),
+                  type: "number",
+                },
+                {
+                  key: "riskScore",
+                  title: translationKey("Risk"),
+                  type: "number",
+                },
               ],
               rows,
               link: target,
@@ -819,11 +836,23 @@ export const QueryDataSecurityIssuesTool: ObservabilityTool = {
           ? WidgetBuilder.table({
               title: `Data security issues (${rows.length})`,
               columns: [
-                { key: "title", title: "Issue", type: "text" },
-                { key: "store", title: "Store", type: "text" },
-                { key: "severity", title: "Severity", type: "text" },
-                { key: "riskScore", title: "Risk", type: "number" },
-                { key: "status", title: "Status", type: "text" },
+                { key: "title", title: translationKey("Issue"), type: "text" },
+                { key: "store", title: translationKey("Store"), type: "text" },
+                {
+                  key: "severity",
+                  title: translationKey("Severity"),
+                  type: "text",
+                },
+                {
+                  key: "riskScore",
+                  title: translationKey("Risk"),
+                  type: "number",
+                },
+                {
+                  key: "status",
+                  title: translationKey("Status"),
+                  type: "text",
+                },
               ],
               rows,
               link: target,
@@ -1189,11 +1218,23 @@ export const QueryDataStoreAccessTool: ObservabilityTool = {
           ? WidgetBuilder.table({
               title: `What "${principal}" can reach (${listed.length})`,
               columns: [
-                { key: "store", title: "Store", type: "text" },
-                { key: "sensitivity", title: "Sensitivity", type: "text" },
-                { key: "level", title: "Access", type: "text" },
-                { key: "grantedVia", title: "Granted via", type: "text" },
-                { key: "principal", title: "Principal", type: "text" },
+                { key: "store", title: translationKey("Store"), type: "text" },
+                {
+                  key: "sensitivity",
+                  title: translationKey("Sensitivity"),
+                  type: "text",
+                },
+                { key: "level", title: translationKey("Access"), type: "text" },
+                {
+                  key: "grantedVia",
+                  title: translationKey("Granted via"),
+                  type: "text",
+                },
+                {
+                  key: "principal",
+                  title: translationKey("Principal"),
+                  type: "text",
+                },
               ],
               rows: listed,
               link: target,

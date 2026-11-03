@@ -7,12 +7,12 @@ import {
 /*
  * What each product's Numbering page says about number prefixes:
  * Incidents → Settings → Numbering (incidents and incident episodes), the
- * same page under Alerts (alerts and alert episodes) and under Scheduled
- * Maintenance (events). Its Number Prefix card has one row per kind of
- * number, edited together in one dialog; the Next Number card under it
- * (Components/NextNumber) says which number each kind gives next. The copy
- * lives here, beside the columns it describes, so the three pages say the
- * same thing the same way.
+ * same page under Alerts (alerts and alert episodes), under Scheduled
+ * Maintenance (events) and under Security Events (cases). Its Number Prefix
+ * card has one row per kind of number, edited together in one dialog; the
+ * Next Number card under it (Components/NextNumber) says which number each
+ * kind gives next. The copy lives here, beside the columns it describes, so
+ * the four pages say the same thing the same way.
  */
 
 export const NUMBER_PREFIX_PAGE_TITLE: string = "Number Prefix";
@@ -141,10 +141,33 @@ export const SCHEDULED_MAINTENANCE_NUMBER_PREFIXES: NumberPrefixPage = {
   ],
 };
 
+/*
+ * Security cases start at CASE- in every project, those from before a
+ * project could choose included; cleared, a case number reads #42 as every
+ * other kind's does.
+ */
+export const SECURITY_CASE_NUMBER_PREFIXES: NumberPrefixPage = {
+  name: "Security Case Number Prefix",
+  detailId: "model-detail-project-security-case-prefix",
+  cardDescription:
+    "The short text in front of case numbers, like CASE- in CASE-42.",
+  editDescription:
+    "Only new cases use the new prefix. Existing cases keep their numbers.",
+  rows: [
+    row({
+      column: "securityCaseNumberPrefix",
+      label: "Cases",
+      formTitle: "Security Case Number Prefix",
+      formDescription: "Shown before every case number. Leave empty for #.",
+    }),
+  ],
+};
+
 export const NUMBER_PREFIX_PAGES: ReadonlyArray<NumberPrefixPage> = [
   INCIDENT_NUMBER_PREFIXES,
   ALERT_NUMBER_PREFIXES,
   SCHEDULED_MAINTENANCE_NUMBER_PREFIXES,
+  SECURITY_CASE_NUMBER_PREFIXES,
 ];
 
 // The Project columns a page's card reads, edits and gates its button on.

@@ -1,4 +1,5 @@
 import { JSONObject, JSONValue } from "../../../../Types/JSON";
+import lookupTable from "../../../../Utils/LookupTable";
 import { ThreatIntelIndicatorType } from "../../../../Types/SecurityEvent/ThreatIntelConstants";
 import { classifyIndicatorValue } from "../../../../Utils/SecurityEvent/ThreatIntel/IndicatorListParser";
 import { ParsedIndicatorValue } from "../../../../Utils/SecurityEvent/ThreatIntel/StixPatternParser";
@@ -50,17 +51,17 @@ const MAX_LABEL_LENGTH: number = 100;
  * no score: each the middle of OneUptime's severity bands
  * (ocsfSeverityForConfidence), so a "high" match is a High one.
  */
-const CONFIDENCE_FOR_BUCKET: Record<string, number> = {
+const CONFIDENCE_FOR_BUCKET: ReadonlyMap<string, number> = lookupTable({
   low: 20,
   medium: 50,
   high: 80,
-};
+});
 
 // A match Google SecOps marks as an active breach is a Critical one, a high-priority one at least High.
-const CONFIDENCE_FLOOR_FOR_PRIORITY: Record<string, number> = {
+const CONFIDENCE_FLOOR_FOR_PRIORITY: ReadonlyMap<string, number> = lookupTable({
   ACTIVE_BREACH: 90,
   HIGH: 70,
-};
+});
 
 function readString(source: JSONObject | undefined, key: string): string {
   const value: JSONValue | undefined = source ? source[key] : undefined;
@@ -235,14 +236,14 @@ export function googleSecOpsIocConfidence(match: JSONObject): number {
   let confidence: number =
     Number.isFinite(score) && score > 0
       ? Math.min(100, Math.trunc(score))
-      : CONFIDENCE_FOR_BUCKET[
-          readString(match, "confidenceBucket").toLowerCase()
-        ] || 0;
+      : CONFIDENCE_FOR_BUCKET.get(
+          readString(match, "confidenceBucket").toLowerCase(),
+        ) || 0;
 
   const floor: number =
-    CONFIDENCE_FLOOR_FOR_PRIORITY[
-      readString(match, "priority").toUpperCase()
-    ] || 0;
+    CONFIDENCE_FLOOR_FOR_PRIORITY.get(
+      readString(match, "priority").toUpperCase(),
+    ) || 0;
 
   if (floor > confidence) {
     confidence = floor;

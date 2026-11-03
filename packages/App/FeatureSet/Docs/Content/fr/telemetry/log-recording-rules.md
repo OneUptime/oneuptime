@@ -54,7 +54,7 @@ Sous **Which Logs**, restreignez la règle avec des services de télémétrie, d
 
 ### Découper le résultat et enregistrer
 
-Ajoutez éventuellement des attributs **Regrouper par** et une **Unit**. Vérifiez la ligne en bas de l'éditeur, puis enregistrez. En quelques minutes, la liste des règles affiche une heure **Computed Until**.
+Ajoutez éventuellement des attributs **Regrouper par** et une **Unité**. Vérifiez la ligne en bas de l'éditeur, puis enregistrez. En quelques minutes, la liste des règles affiche une heure **Computed Until**.
 :::
 
 | Champ | Rôle |
@@ -139,7 +139,7 @@ Sous **Journaux → Paramètres → Règles d'enregistrement**, créez une règl
 - **Which Logs :** filtres d'attribut `log_type` = `SD-WAN` et `log_component` = `SLA`
 - **Agrégation :** Moyenne, **Numeric Attribute :** `latency`
 - **Regrouper par :** `gw_name` et `profile_name`
-- **Unit :** `ms`
+- **Unité :** `ms`
 
 Via l'API, MCP ou Terraform, la **définition** de la même règle est :
 

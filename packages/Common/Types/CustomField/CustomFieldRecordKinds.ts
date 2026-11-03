@@ -6,7 +6,7 @@ import ObjectID from "../ObjectID";
  *
  * A record keeps its values in a `customFields` bag keyed by each field's
  * name; the fields themselves - their names and types - are rows of one of
- * nine definition tables. A template holds values for the fields of what it
+ * ten definition tables. A template holds values for the fields of what it
  * creates (an incident template, an incident's), and a person's profile in a
  * project (ProjectUserProfile) holds the team member fields.
  *
@@ -90,6 +90,11 @@ export const CUSTOM_FIELD_RECORD_KINDS: ReadonlyArray<CustomFieldRecordKind> = [
     recordTableName: "InventoryItem",
     definitionTableName: "InventoryItemCustomField",
     routeName: "inventory-item",
+  },
+  {
+    recordTableName: "SecurityCase",
+    definitionTableName: "SecurityCaseCustomField",
+    routeName: "security-case",
   },
 ];
 

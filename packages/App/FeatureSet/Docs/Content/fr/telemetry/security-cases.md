@@ -91,7 +91,7 @@ Un dossier a son propre menu latéral, comme un incident, et chaque partie du do
 | **Vue d'ensemble** | **Vue d'ensemble**, **Chronologie** |
 | **Investigation** | **Déroulé**, **Détections**, **Entités**, **Signaux connectés**, **Preuves**, **Tâches**, **Playbooks** |
 | **Notes** | **Notes privées** |
-| **Avancé** | **Journaux d'audit**, **Supprimer le dossier**, repliés jusqu'à ce que vous cliquiez sur **Avancé** |
+| **Avancé** | **Champs personnalisés**, **Journaux d'audit**, **Supprimer le dossier**, repliés jusqu'à ce que vous cliquiez sur **Avancé** |
 
 Chaque page garde en haut l'en-tête du dossier : son numéro, sa priorité, son statut et son titre, **M'attribuer**, **Exécuter le playbook**, **Déclarer un incident** et **Fermer le dossier**, et, dans le menu ⋯ à côté, **Définir la priorité**, **Attribuer à quelqu'un d'autre**, **Changer le statut**, **Modifier le dossier** et **Supprimer le dossier**. Le dossier se traite ainsi depuis n'importe laquelle de ses pages, et un lien vers le dossier ouvre toujours sa **Vue d'ensemble**. Quand la priorité du dossier a des objectifs de réponse, l'en-tête indique aussi quand le prochain arrive à échéance ([Objectifs de réponse](#objectifs-de-réponse)).
 
@@ -107,7 +107,8 @@ Chaque page garde en haut l'en-tête du dossier : son numéro, sa priorité, son
 - **Preuves** : les fichiers, les liens et les événements de sécurité conservés sur le dossier, chacun avec qui l'a ajouté et quand. Le bouton **Ajouter un fichier** téléverse un fichier de 10 Mo au plus et enregistre le SHA-256 de ce qui a été téléversé, pour que quiconque le télécharge plus tard puisse vérifier que c'est bien ce qui a été conservé ; le bouton **Ajouter un lien** renvoie vers des preuves conservées ailleurs. Seul un Security Admin peut retirer une preuve, et la **Chronologie** du dossier indique ce qui a été ajouté et retiré. Un événement de sécurité y est conservé tel qu'il était, avec **Ajouter au dossier** sur **Événements** ou sur la page d'une [chasse](/docs/telemetry/security-events#chasses), et **Voir l'événement** l'ouvre. L'étape **Preserve the evidence** d'un playbook y conserve aussi les événements derrière les détections du dossier.
 - **Tâches** : ce qu'il faut faire sur le dossier, qui s'en charge et si c'est fait. Ajoutez une tâche en une ligne, confiez-la à quelqu'un et cochez-la quand elle est faite. La personne à qui elle est confiée est prévenue, sauf si elle l'a prise elle-même, et le menu indique combien de tâches sont ouvertes à côté de **Tâches**. L'étape **Ajouter des tâches** d'un playbook ajoute aussi des tâches, en laissant de côté celles que le dossier a déjà.
 - **Playbooks** : ce que chaque playbook a fait sur le dossier, étape par étape, et les étapes en attente d'approbation. Tant que des exécutions attendent, le menu indique combien à côté de **Playbooks**.
-- **Notes privées** : ce que l'équipe a écrit sur le dossier.
+- **Notes privées** : ce que l'équipe a écrit sur le dossier. Le menu **Modèles** de l'éditeur insère l'un des modèles de notes du projet dans une note.
+- **Champs personnalisés** : les champs propres au projet, remplis pour ce dossier, et **Modifier les champs** pour les modifier. Dès que le projet a un champ, la **Vue d'ensemble** les affiche aussi, dans sa dernière carte. Voir [Champs personnalisés, modèles de notes et numérotation](#champs-personnalisés-modèles-de-notes-et-numérotation).
 - **Journaux d'audit** : chaque modification apportée au dossier, et qui l'a faite. Voir [Journaux d'audit](/docs/configuration/audit-logs).
 - **Supprimer le dossier** : supprime définitivement le dossier, avec ses détections, ses notes, sa chronologie et ses exécutions de playbooks. Pour en garder la trace, clôturez-le plutôt avec un verdict.
 
@@ -184,6 +185,16 @@ Où les objectifs apparaissent :
 - L'en-tête du dossier nomme le prochain objectif et le temps qui reste, ou depuis combien de temps il est dépassé : en gris tant qu'il reste du temps, en ambre dans son dernier cinquième, en rouge une fois manqué.
 - Sur la **Vue d'ensemble** du dossier, sous **Délai de prise en compte** et **Délai de confinement** : où en est le dossier par rapport à chaque objectif, ou de combien il l'a dépassé.
 - Dans les listes de la file : la ligne sous la priorité de chaque dossier, et une colonne **Échéance** que vous pouvez afficher et utiliser pour trier. Tant que la colonne est affichée, la ligne sous la priorité disparaît. Les listes ne les affichent que lorsqu'une priorité du projet a un objectif.
+
+## Champs personnalisés, modèles de notes et numérotation
+
+Trois autres paramètres rendent les dossiers propres à votre projet, sous **Produits → Événements de sécurité → Paramètres** :
+
+- **Champs personnalisés** : les champs que votre équipe remplit dans chaque dossier, comme l'unité commerciale qu'il concerne ou son ticket dans un autre outil. Un champ contient du texte, un nombre, une date, un oui ou un non, un choix dans une liste ou un fichier. La page **Champs personnalisés** d'un dossier, sous **Avancé**, liste chaque champ avec la valeur du dossier, et **Modifier les champs** les modifie. Dans les listes de la file, chaque champ est une colonne que vous pouvez afficher dans **Colonnes**.
+- **Modèles de notes** : du texte prêt à l'emploi pour les notes que votre équipe rédige dossier après dossier, comme une liste de contrôle du confinement ou une passation à l'équipe suivante. Dans les **Notes privées** d'un dossier, le menu **Modèles** de l'éditeur en place un dans la note, à modifier avant de la publier, et **Gérer les modèles** ouvre la liste.
+- **Numérotation** : le texte placé devant les numéros de dossier, `CASE-` dans `CASE-42` sauf si vous choisissez le vôtre, et le numéro que reçoit le prochain dossier. Vous venez d'un autre outil ? Commencez après son dernier numéro de dossier, pour qu'un numéro ne désigne jamais deux dossiers. Un nouveau préfixe ou un nouveau début ne s'applique qu'aux nouveaux dossiers, et un début doit être supérieur au plus grand numéro utilisé jusqu'ici.
+
+Un Security Admin gère les champs personnalisés et les modèles de notes, et un Security Member remplit les champs d'un dossier ; sur OneUptime Cloud, ils nécessitent le forfait Growth ou supérieur. La numérotation est définie par un Project Owner ou un Project Admin, comme pour les incidents et les alertes.
 
 ## Notifications
 

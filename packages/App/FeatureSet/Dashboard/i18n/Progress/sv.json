@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40315,
-    "untranslated": 12558
+    "keys": 40407,
+    "untranslated": 12542
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -120,6 +120,7 @@
     "Plan",
     "Playbook",
     "Playbooks",
+    "Policy",
     "Pool",
     "Pool {{name}}",
     "Pools",
@@ -182,6 +183,7 @@
     "VMware vCenter",
     "Version",
     "Version {{number}}",
+    "Vital",
     "Webhook",
     "[\".customer-name\", \"#invoice-total\"]",
     "[\"ResizeObserver loop\", \"third-party-tag\\\\.js\"]",
@@ -204,8 +206,11 @@
     "median",
     "message",
     "name",
+    "p90 (ms)",
     "p95",
+    "p95 (ms)",
     "p95 {{latency}}",
+    "p99 (ms)",
     "port {{port}}",
     "prod, staging",
     "prod-.*",

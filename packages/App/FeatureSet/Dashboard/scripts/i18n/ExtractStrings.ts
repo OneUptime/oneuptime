@@ -281,6 +281,16 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     directory: "packages/Common/Types/Cloud/CloudResourceCatalog.ts",
     kind: "keys",
   },
+  /*
+   * The column titles of the tables OneUptime AI's tools put beside an
+   * answer ("Time", "Severity", "Last seen"): the chat draws each in the
+   * reader's language (DataTableWidget). Only the titles the tools mark are
+   * read: their prompts and what they hand the model stay in English.
+   */
+  {
+    directory: "packages/Common/Server/Utils/AI/Toolbox",
+    kind: "keys",
+  },
 ];
 
 /*

@@ -5,7 +5,7 @@
 :::cards
 - [全域選項](#全域選項): 每個命令都接受的選項。
 - [登入與情境](#登入與情境): login 和 context 命令。
-- [資源命令](#資源命令): list、get、create、update、delete 和 count。
+- [資源命令](#資源命令): 每個資源的操作、欄位和動作。
 - [其他命令](#其他命令): deploy、whoami、resources、version 和 help。
 :::
 
@@ -17,7 +17,8 @@ flowchart LR
     O --> C["context"]
     C --> C1["list<br/>use<br/>current<br/>delete"]
     O --> R["incident、monitor<br/>等每種資源"]
-    R --> R1["list<br/>get<br/>create<br/>update<br/>delete<br/>count"]
+    R --> R1["list<br/>get<br/>create<br/>update<br/>delete<br/>count<br/>fields"]
+    R --> R2["acknowledge<br/>resolve<br/>start<br/>end<br/>add-note"]
     O --> U["deploy<br/>whoami<br/>resources<br/>version<br/>help"]
 ```
 
@@ -29,11 +30,14 @@ flowchart LR
 | `--url <url>` | 此命令使用的 OneUptime 位址 | `ONEUPTIME_URL`，然後是情境的 URL |
 | `--context <name>` | 此命令使用的已儲存情境 | 目前情境 |
 | `-o, --output <format>` | `json`、`table` 或 `wide` | 終端機中為 `table`，管道中為 `json` |
+| `--json` | 等同於 `-o json` | |
 | `--no-color` | 不帶顏色地印出 | 帶顏色，除非設定了 `NO_COLOR` |
 | `-V, --version` | 印出 CLI 的版本 | |
 | `-h, --help` | 顯示命令的說明 | |
 
 選項可以寫在命令前後：`oneuptime --context staging incident list` 和 `oneuptime incident list --context staging` 的效果相同。
+
+每個命令都接受 `-o` 和 `--json`，因此下面的表格省略了它們。回應是一句話的命令（例如 `delete`）會印出這句話，除非 `-o json` 或 `--json` 要求 JSON：請參閱 [輸出格式](/docs/cli/output-formats#json)。
 
 ## 登入與情境
 
@@ -53,15 +57,11 @@ oneuptime login <api-key> <instance-url> [--context-name <name>]
 
 ### `oneuptime context list`
 
-列出已儲存的情境；`*` 標出目前情境。API 金鑰永遠不會被列出。
+列出已儲存的情境；`*` 標出目前的情境。API 金鑰從不列出：JSON 給出每個情境的 `name`、`apiUrl` 和 `isCurrent`。
 
 ```bash
-oneuptime context list [-o <format>]
+oneuptime context list
 ```
-
-| 選項 | 必要 | 說明 |
-| --- | --- | --- |
-| `-o, --output <format>` | 否 | `json`、`table` 或 `wide`。JSON 給出每個情境的 `name`、`apiUrl` 和 `isCurrent` |
 
 ### `oneuptime context use`
 
@@ -97,14 +97,14 @@ oneuptime context delete <name>
 
 ## 資源命令
 
-`<resource>` 是某種記錄的命令，來自 [資源](#資源) 表格，例如 `incident` 或 `monitor`。範例請參閱 [資源操作](/docs/cli/resource-operations)。
+`<resource>` 是某種記錄的命令，來自 [資源](#資源) 表格，例如 `incident` 或 `monitor`。資源帶有 API 為它接受的操作，大多數是全部六種，`oneuptime <resource> --help` 會列出它自己的操作。範例請參閱 [資源操作](/docs/cli/resource-operations)。
 
 ### `oneuptime <resource> list`
 
 列出記錄，最新的在前。標籤則依名稱排列，帶編號的標籤在前（`2. Team` 在 `10. Owner` 之前）。
 
 ```bash
-oneuptime <resource> list [--query <json>] [--limit <n>] [--skip <n>] [--sort <json>] [-o <format>]
+oneuptime <resource> list [--query <json>] [--limit <n>] [--skip <n>] [--sort <json>] [--fields <names>] [--all]
 ```
 
 | 選項 | 作用 | 預設值 |
@@ -113,52 +113,56 @@ oneuptime <resource> list [--query <json>] [--limit <n>] [--skip <n>] [--sort <j
 | `--limit <n>` | 最多傳回的記錄數，最多 10,000 | `10` |
 | `--skip <n>` | 先跳過多少筆記錄 | `0` |
 | `--sort <json>` | JSON 形式的順序：`{"<field>":"ASC"}` 或 `{"<field>":"DESC"}` | 最新的在前 |
-| `-o, --output <format>` | `json`、`table` 或 `wide` | 終端機中為 `table`，管道中為 `json` |
+| `--fields <names>` | 要傳回的欄位，以逗號分隔；關聯記錄的欄位寫在點號後面，例如 `currentIncidentState.name` | 金鑰可讀取的所有欄位 |
+| `--all` | 每次 100 筆、最多 100,000 筆地傳回所有符合的記錄，取代 `--limit` 和 `--skip`。僅限記錄：遙測資料沒有 `--all` | |
 
 ### `oneuptime <resource> get`
 
-讀取一筆記錄。僅限記錄：遙測資料沒有 `get`。
+讀取一筆記錄。
 
 ```bash
-oneuptime <resource> get <id> [-o <format>]
+oneuptime <resource> get <id> [--fields <names>]
 ```
 
 | 引數或選項 | 必要 | 說明 |
 | --- | --- | --- |
 | `<id>` | 是 | 記錄的 ID，一個 UUID |
-| `-o, --output <format>` | 否 | `json`、`table` 或 `wide` |
+| `--fields <names>` | 否 | 要傳回的欄位，以逗號分隔。預設：金鑰可讀取的所有欄位 |
 
 ### `oneuptime <resource> create`
 
 建立一筆記錄並印出它。
 
 ```bash
-oneuptime <resource> create (--data <json> | --file <path>) [-o <format>]
+oneuptime <resource> create [--<field> <value>]... [--data <json>] [--file <path>]
 ```
 
 | 選項 | 必要 | 說明 |
 | --- | --- | --- |
-| `--data <json>` | 兩者擇一 | JSON 形式的記錄 |
-| `--file <path>` | 兩者擇一 | 包含該記錄的 JSON 檔案。與 `--data` 一起給出時使用檔案 |
-| `-o, --output <format>` | 否 | `json`、`table` 或 `wide` |
+| `--<field> <value>` | 建立時必須提供的欄位 | 欄位的值：`--title <text>`、`--incident-severity-id <id>`、`--labels <ids>`。`oneuptime <resource> create --help` 會列出它們。僅限記錄 |
+| `--data <json>` | 否 | 以 JSON 表示的記錄 |
+| `--file <path>` | 否 | 包含該記錄的 JSON 檔案。與 `--data` 一起給出時使用檔案 |
+
+旗標會疊加在 `--data` 或 `--file` 之上。以使用者 ID 指定某人的欄位還有一個以電子郵件地址指定此人的旗標：`--user-email` 對應 `--user-id`。
 
 ### `oneuptime <resource> update`
 
-更改你給出的欄位。僅限記錄：遙測資料沒有 `update`。
+更改你給出的欄位。
 
 ```bash
-oneuptime <resource> update <id> --data <json> [-o <format>]
+oneuptime <resource> update <id> [--<field> <value>]... [--data <json>] [--file <path>]
 ```
 
 | 引數或選項 | 必要 | 說明 |
 | --- | --- | --- |
 | `<id>` | 是 | 記錄的 ID |
-| `--data <json>` | 是 | 要更改的欄位，JSON 形式 |
-| `-o, --output <format>` | 否 | `json`、`table` 或 `wide` |
+| `--<field> <value>` | 否 | 要更改的欄位：`oneuptime <resource> update --help` 會列出它們。僅限記錄 |
+| `--data <json>` | 否 | 以 JSON 表示的要更改的欄位 |
+| `--file <path>` | 否 | 包含要更改欄位的 JSON 檔案。與 `--data` 一起給出時使用檔案 |
 
 ### `oneuptime <resource> delete`
 
-立即刪除一筆記錄，不會詢問。僅限記錄：遙測資料沒有 `delete`。
+立即刪除一筆記錄，不會詢問。
 
 ```bash
 oneuptime <resource> delete <id> [--force]
@@ -174,37 +178,88 @@ oneuptime <resource> delete <id> [--force]
 統計記錄並印出數字。
 
 ```bash
-oneuptime <resource> count [--query <json>] [-o <format>]
+oneuptime <resource> count [--query <json>]
 ```
 
 | 選項 | 必要 | 說明 |
 | --- | --- | --- |
 | `--query <json>` | 否 | JSON 形式的篩選。不給出時為金鑰可讀取的所有記錄 |
-| `-o, --output <format>` | 否 | `json`、`table` 或 `wide` |
+
+### `oneuptime <resource> fields`
+
+列出資源的欄位：每個欄位的用途、類型、建立時是否必須提供，以及設定它的旗標。它直接從 CLI 本身讀取這些資訊，不需要 API 金鑰，也不傳送請求。
+
+```bash
+oneuptime <resource> fields
+```
+
+### `oneuptime <resource> acknowledge`
+
+像儀表板按鈕那樣，把事件、警示或它們的片段移到專案的已確認狀態。已確認或處於之後狀態的記錄保持不變。
+
+```bash
+oneuptime <resource> acknowledge <id>
+```
+
+| 引數 | 必要 | 說明 |
+| --- | --- | --- |
+| `<id>` | 是 | 記錄的 ID |
+
+### `oneuptime <resource> resolve`
+
+把事件、警示或它們的片段移到專案的已解決狀態。
+
+```bash
+oneuptime <resource> resolve <id>
+```
+
+| 引數 | 必要 | 說明 |
+| --- | --- | --- |
+| `<id>` | 是 | 記錄的 ID |
+
+### `oneuptime <resource> start`
+
+把排定維護事件移到專案的進行中狀態。
+
+```bash
+oneuptime <resource> start <id>
+```
+
+| 引數 | 必要 | 說明 |
+| --- | --- | --- |
+| `<id>` | 是 | 該事件的 ID |
+
+### `oneuptime <resource> end`
+
+把排定維護事件移到專案的已結束狀態。
+
+```bash
+oneuptime <resource> end <id>
+```
+
+| 引數 | 必要 | 說明 |
+| --- | --- | --- |
+| `<id>` | 是 | 該事件的 ID |
+
+### `oneuptime <resource> add-note`
+
+為事件、警示、它們的片段或排定維護事件新增備註。
+
+```bash
+oneuptime <resource> add-note <id> --note <markdown> [--public]
+```
+
+| 引數或選項 | 必要 | 說明 |
+| --- | --- | --- |
+| `<id>` | 是 | 記錄的 ID |
+| `--note <markdown>` | 是 | 以 Markdown 撰寫的備註 |
+| `--public` | 否 | 在記錄的狀態頁面上發布備註，並通知其訂閱者。僅限事件、它們的片段和排定維護 |
 
 ### 資源
 
-記錄支援 `list`、`get`、`create`、`update`、`delete` 和 `count`：
+OneUptime API 的每個資源都是一個命令，帶有 API 為它接受的操作、`fields`，以及具備動作的記錄的那些動作：
 
-| 領域 | 命令 |
-| --- | --- |
-| 監控 | `monitor`, `monitor-status`, `monitor-status-event` |
-| 事件 | `incident`, `incident-state`, `incident-severity`, `incident-state-timeline`, `incident-public-note`, `incident-internal-note`, `incident-alert`, `postmortem-status` |
-| 警示 | `alert`, `alert-state`, `alert-severity`, `alert-state-timeline`, `alert-internal-note` |
-| 狀態頁面 | `status-page`, `status-page-announcement` |
-| 排定維護 | `scheduled-maintenance-event`, `scheduled-maintenance-state`, `scheduled-maintenance-state-timeline` |
-| 團隊與待命 | `team`, `on-call-policy` |
-| 安全性 | `security-case`, `security-case-evidence`, `security-case-note`, `security-case-priority`, `security-case-status`, `security-case-task`, `security-detection`, `security-playbook` |
-| 資料安全 | `data-store`, `data-store-finding`, `data-store-access-entry`, `data-security-identity`, `data-flow`, `data-security-issue`, `data-security-scan`, `custom-data-type`, `check-setting`, `residency-rule`, `data-security-setting` |
-| 標籤 | `label` |
-
-遙測資料支援 `list`、`create` 和 `count`：
-
-| 領域 | 命令 |
-| --- | --- |
-| 可觀測性 | `log`, `metric`, `span`, `exception-instance`, `monitor-log` |
-| 安全性 | `security-event`, `threat-intel-indicator` |
-| 變更與成本 | `change-event`, `kubernetes-cost-allocation` |
+{{CLI_RESOURCE_COMMANDS}}
 
 CLI 與 OneUptime 一同發布，因此 `oneuptime resources` 列出的是你所安裝版本的命令。
 
@@ -220,6 +275,8 @@ CLI 與 OneUptime 一同發布，因此 `oneuptime resources` 列出的是你所
 | `update` | `PUT /api/<path>/<id>/` | `{"data": ...}` |
 | `delete` | `DELETE /api/<path>/<id>/` | 無 |
 | `count` | `POST /api/<path>/count` | `query` |
+
+動作會讀取專案的各個狀態和該記錄，然後像儀表板按鈕那樣在記錄的狀態時間軸上建立一列：對事件執行 `acknowledge` 會建立一個 `incident-state-timeline`。`add-note` 建立一個 `incident-internal-note`，加上 `--public` 時則建立一個 `incident-public-note`。電子郵件旗標會先列出專案中使用該地址的團隊成員。當 OneUptime 拒絕金鑰無法讀取的欄位時，列出或讀取會去掉該欄位重新請求。
 
 ## 其他命令
 
@@ -250,24 +307,27 @@ oneuptime deploy [--service <name>] [--service-version <version>] [--previous-ve
 
 ### `oneuptime whoami`
 
-顯示下一個命令將使用的 URL 和 API 金鑰（金鑰已隱藏部分），以及它們來自的情境。它不呼叫 OneUptime。請參閱 [檢查 CLI 將使用什麼](/docs/cli/authentication#檢查-cli-將使用什麼)。
+顯示下一個命令將使用的 URL 和 API 金鑰（金鑰已遮蔽），以及它們來自的情境。不加 `--check` 時，它不呼叫 OneUptime。請參閱 [檢查 CLI 將使用什麼](/docs/cli/authentication#檢查-cli-將使用什麼)。
 
 ```bash
-oneuptime whoami
+oneuptime whoami [--check]
 ```
+
+| 選項 | 必要 | 說明 |
+| --- | --- | --- |
+| `--check` | 否 | 詢問 OneUptime 是否接受該金鑰，並顯示金鑰所屬的專案、你的 OneUptime 的版本和 CLI 的版本 |
 
 ### `oneuptime resources`
 
-列出 CLI 有命令的每種記錄：它的命令、單數和複數名稱、類型和 API 路徑，以及總數。
+列出 CLI 為之提供命令的每種記錄：它的命令、單數和複數名稱、類型和 API 路徑，以及總數。JSON 給出每種記錄的 `name`、`singularName`、`pluralName`、`modelType`、`apiPath`、`operations` 和 `actions`。
 
 ```bash
-oneuptime resources [--type <type>] [-o <format>]
+oneuptime resources [--type <type>]
 ```
 
 | 選項 | 必要 | 說明 | 預設值 |
 | --- | --- | --- | --- |
 | `--type <type>` | 否 | 記錄用 `database`，遙測資料用 `analytics` | 兩者都有 |
-| `-o, --output <format>` | 否 | `json`、`table` 或 `wide`。JSON 給出每一種的 `name`、`singularName`、`pluralName`、`modelType` 和 `apiPath` | 終端機中為 `table`，管道中為 `json` |
 
 ### `oneuptime version`
 

@@ -4,6 +4,7 @@ import InventoryItemCustomField from "../../../Models/DatabaseModels/InventoryIt
 import MonitorCustomField from "../../../Models/DatabaseModels/MonitorCustomField";
 import OnCallDutyPolicyCustomField from "../../../Models/DatabaseModels/OnCallDutyPolicyCustomField";
 import ScheduledMaintenanceCustomField from "../../../Models/DatabaseModels/ScheduledMaintenanceCustomField";
+import SecurityCaseCustomField from "../../../Models/DatabaseModels/SecurityCaseCustomField";
 import StatusPageCustomField from "../../../Models/DatabaseModels/StatusPageCustomField";
 import TeamCustomField from "../../../Models/DatabaseModels/TeamCustomField";
 import TeamMemberCustomField from "../../../Models/DatabaseModels/TeamMemberCustomField";
@@ -20,6 +21,7 @@ import OnCallDutyPolicyService from "../../Services/OnCallDutyPolicyService";
 import ProjectUserProfileService from "../../Services/ProjectUserProfileService";
 import ScheduledMaintenanceService from "../../Services/ScheduledMaintenanceService";
 import ScheduledMaintenanceTemplateService from "../../Services/ScheduledMaintenanceTemplateService";
+import SecurityCaseService from "../../Services/SecurityCaseService";
 import StatusPageService from "../../Services/StatusPageService";
 import TeamService from "../../Services/TeamService";
 
@@ -164,6 +166,13 @@ const buildStores: BuildStoresFunction = (): Array<CustomFieldValueStore> => {
       definitionName: "inventory custom field",
       getValueServices: (): Array<DatabaseService<any>> => {
         return [InventoryItemService as DatabaseService<any>];
+      },
+    }),
+    store({
+      definitionTableName: new SecurityCaseCustomField().tableName!,
+      definitionName: "security case custom field",
+      getValueServices: (): Array<DatabaseService<any>> => {
+        return [SecurityCaseService as DatabaseService<any>];
       },
     }),
   ];

@@ -54,7 +54,7 @@ Snevre inn regelen under **Which Logs** med telemetritjenester, alvorlighetsgrad
 
 ### Del opp resultatet og lagre
 
-Legg eventuelt til attributter under **Grupper etter** og en **Unit**. Sjekk linjen nederst i editoren, og lagre deretter. Innen noen få minutter viser regellisten et tidspunkt under **Computed Until**.
+Legg eventuelt til attributter under **Grupper etter** og en **Enhet**. Sjekk linjen nederst i editoren, og lagre deretter. Innen noen få minutter viser regellisten et tidspunkt under **Computed Until**.
 :::
 
 | Felt | Hva det gjør |
@@ -139,7 +139,7 @@ Opprett en regel under **Logger → Innstillinger → Opptaksregler**:
 - **Which Logs:** attributtfiltre `log_type` = `SD-WAN` og `log_component` = `SLA`
 - **Aggregering:** Gjennomsnitt, **Numeric Attribute:** `latency`
 - **Grupper etter:** `gw_name` og `profile_name`
-- **Unit:** `ms`
+- **Enhet:** `ms`
 
 Via API-et, MCP eller Terraform er **definisjonen** av samme regel:
 

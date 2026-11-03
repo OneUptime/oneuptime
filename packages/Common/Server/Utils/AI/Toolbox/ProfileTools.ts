@@ -48,6 +48,7 @@ import {
   ToolContext,
   ToolExecutionResult,
 } from "./ToolTypes";
+import { translationKey } from "../../../../Types/Translator";
 
 /*
  * CONTINUOUS PROFILING, FOR THE AI.
@@ -322,11 +323,15 @@ export const GetProfileHotspotsTool: ObservabilityTool = {
               title: "Where the time goes",
               description: `${ProfileEvidence.describeKind(kind)} · ${windowText(window)}`,
               columns: [
-                { key: "function", title: "Function", type: "text" },
-                { key: "file", title: "File", type: "text" },
-                { key: "code", title: "Code", type: "text" },
-                { key: "self", title: "Self", type: "text" },
-                { key: "total", title: "Total", type: "text" },
+                {
+                  key: "function",
+                  title: translationKey("Function"),
+                  type: "text",
+                },
+                { key: "file", title: translationKey("File"), type: "text" },
+                { key: "code", title: translationKey("Code"), type: "text" },
+                { key: "self", title: translationKey("Self"), type: "text" },
+                { key: "total", title: translationKey("Total"), type: "text" },
               ],
               rows: rows,
               link: profilesTarget({ serviceId, kind, window }),
@@ -601,11 +606,27 @@ export const CompareProfilesTool: ObservabilityTool = {
               title: "What got slower",
               description: `${windowText(before)} → ${windowText(after)}`,
               columns: [
-                { key: "function", title: "Function", type: "text" },
-                { key: "code", title: "Code", type: "text" },
-                { key: "selfBefore", title: "Before", type: "text" },
-                { key: "selfAfter", title: "After", type: "text" },
-                { key: "change", title: "Change", type: "text" },
+                {
+                  key: "function",
+                  title: translationKey("Function"),
+                  type: "text",
+                },
+                { key: "code", title: translationKey("Code"), type: "text" },
+                {
+                  key: "selfBefore",
+                  title: translationKey("Before"),
+                  type: "text",
+                },
+                {
+                  key: "selfAfter",
+                  title: translationKey("After"),
+                  type: "text",
+                },
+                {
+                  key: "change",
+                  title: translationKey("Change"),
+                  type: "text",
+                },
               ],
               rows: slower,
               link: profilesTarget({ serviceId, kind, window: after }),

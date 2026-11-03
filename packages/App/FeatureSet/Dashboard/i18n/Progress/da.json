@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40315,
-    "untranslated": 12570
+    "keys": 40407,
+    "untranslated": 12554
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -157,6 +157,7 @@
     "Portugal (+351)",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
     "Postmortem",
+    "Principal",
     "Problem",
     "Profiler",
     "Prompt",
@@ -229,6 +230,7 @@
     "VMID {{vmid}}",
     "Version",
     "Version {{number}}",
+    "Vital",
     "Web",
     "Web, iOS, Android, React Native",
     "Webhook",
@@ -256,8 +258,11 @@
     "message",
     "name",
     "over budget",
+    "p90 (ms)",
     "p95",
+    "p95 (ms)",
     "p95 {{latency}}",
+    "p99 (ms)",
     "port {{port}}",
     "prod, staging",
     "prod-.*",

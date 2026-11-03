@@ -23,6 +23,7 @@ import {
   ToolContext,
   ToolExecutionResult,
 } from "./ToolTypes";
+import { translationKey } from "../../../../Types/Translator";
 
 /*
  * AI toolbox over the SecurityEvent table — the "AI security analyst"
@@ -492,10 +493,10 @@ export const SearchSecurityEventsTool: ObservabilityTool = {
       },
     );
     const columns: Array<AIChatWidgetColumn> = [
-      { key: "time", title: "Time", type: "date" },
-      { key: "severity", title: "Severity", type: "text" },
-      { key: "eventShown", title: "Event", type: "text" },
-      { key: "principalHost", title: "Host", type: "text" },
+      { key: "time", title: translationKey("Time"), type: "date" },
+      { key: "severity", title: translationKey("Severity"), type: "text" },
+      { key: "eventShown", title: translationKey("Event"), type: "text" },
+      { key: "principalHost", title: translationKey("Host"), type: "text" },
     ];
 
     return {
@@ -633,9 +634,21 @@ export const SecurityEventSummaryTool: ObservabilityTool = {
               title: "Security events by class and severity",
               description: `${startTime.toISOString()} – ${endTime.toISOString()}${sampleNote}`,
               columns: [
-                { key: "class", title: "Event Class", type: "text" },
-                { key: "severity", title: "Severity", type: "text" },
-                { key: "count", title: "Count", type: "number" },
+                {
+                  key: "class",
+                  title: translationKey("Event Class"),
+                  type: "text",
+                },
+                {
+                  key: "severity",
+                  title: translationKey("Severity"),
+                  type: "text",
+                },
+                {
+                  key: "count",
+                  title: translationKey("Count"),
+                  type: "number",
+                },
               ],
               rows: rows,
             })

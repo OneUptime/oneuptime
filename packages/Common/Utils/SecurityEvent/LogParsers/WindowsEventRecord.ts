@@ -1,4 +1,5 @@
 import { JSONObject, JSONValue } from "../../../Types/JSON";
+import lookupTable from "../../LookupTable";
 import { parseEventTime } from "../NormalizerHelpers";
 import { MAX_JSON_LINE_LENGTH } from "./SecurityLogLine";
 
@@ -63,7 +64,10 @@ const MAX_DEPTH: number = 8;
  * that matter most and change least: a sign-in, a failed one, a process.
  * Later versions of an event add fields at the end, never before.
  */
-export const STRING_INSERT_FIELDS: Record<string, ReadonlyArray<string>> = {
+export const STRING_INSERT_FIELDS: ReadonlyMap<
+  string,
+  ReadonlyArray<string>
+> = lookupTable({
   "microsoft-windows-security-auditing:4624": [
     "SubjectUserSid",
     "SubjectUserName",
@@ -133,7 +137,7 @@ export const STRING_INSERT_FIELDS: Record<string, ReadonlyArray<string>> = {
     "ParentProcessName",
     "MandatoryLabel",
   ],
-};
+});
 
 function cap(value: string): string {
   return value.length > MAX_WINDOWS_FIELD_VALUE_LENGTH
@@ -510,7 +514,7 @@ function fromShipperJson(body: JSONObject): WindowsEventRecord | null {
 
   if (Array.isArray(inserts)) {
     const names: ReadonlyArray<string> =
-      STRING_INSERT_FIELDS[`${provider.toLowerCase()}:${eventId}`] || [];
+      STRING_INSERT_FIELDS.get(`${provider.toLowerCase()}:${eventId}`) || [];
 
     inserts
       .slice(0, MAX_WINDOWS_EVENT_FIELDS)
@@ -600,13 +604,13 @@ function fromWinlogbeat(body: JSONObject): WindowsEventRecord | null {
   };
 }
 
-const XML_ENTITIES: Record<string, string> = {
+const XML_ENTITIES: ReadonlyMap<string, string> = lookupTable({
   "&amp;": "&",
   "&lt;": "<",
   "&gt;": ">",
   "&quot;": '"',
   "&apos;": "'",
-};
+});
 
 // XML text as it was meant: the five named entities and numeric ones.
 export function decodeXmlText(text: string): string {
@@ -635,7 +639,7 @@ export function decodeXmlText(text: string): string {
     }
 
     const entity: string = text.slice(amp, semicolon + 1);
-    const named: string | undefined = XML_ENTITIES[entity];
+    const named: string | undefined = XML_ENTITIES.get(entity);
 
     if (named !== undefined) {
       output += named;

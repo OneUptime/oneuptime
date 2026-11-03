@@ -71,7 +71,19 @@ export interface ComponentProps {
         rowIndex: number;
       }) => ReactElement)
     | undefined;
+  /*
+   * The rows shown to be read, not changed - a workflow step opened by
+   * someone who may not change it (Workflow/ArgumentsForm): no Add, no
+   * Delete beside a row, and no way to clear a row's type or comparison.
+   * With no rows, "None" stands where Add would be, as a read-only list of
+   * people says it (PeopleList). The boxes themselves are the caller's to
+   * hold still: a disabled fieldset around the rows does that.
+   */
+  readOnly?: boolean | undefined;
 }
+
+// What a read-only dictionary with no rows says (readOnly).
+export const DICTIONARY_NO_ROWS_TEXT: string = translationKey("None");
 
 interface Item {
   key: string;
@@ -84,6 +96,7 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  const isReadOnly: boolean = Boolean(props.readOnly);
   const valueTypes: Array<ValueType> =
     props.valueTypes && props.valueTypes.length > 0
       ? props.valueTypes
@@ -336,6 +349,7 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
                     )}
                     options={operatorDropdownOptions}
                     isMultiSelect={false}
+                    disabled={isReadOnly}
                     onChange={(
                       selectedOption:
                         | DropdownValue
@@ -397,6 +411,7 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
                     )}
                     options={dropdownOptionsForValueTypes}
                     isMultiSelect={false}
+                    disabled={isReadOnly}
                     onChange={(
                       selectedOption:
                         | DropdownValue
@@ -438,6 +453,7 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
                   operatorOption.expectsMultiValue && (
                     <Dropdown
                       isMultiSelect={true}
+                      disabled={isReadOnly}
                       placeholder={props.valuePlaceholder}
                       value={(Array.isArray(item.value) ? item.value : []).map(
                         (selectedValue: string) => {
@@ -576,6 +592,7 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
                     }
                     options={[trueDropdownOption, falseDropdownOption]}
                     isMultiSelect={false}
+                    disabled={isReadOnly}
                     onChange={(
                       selectedOption:
                         | DropdownValue
@@ -597,44 +614,58 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
                   />
                 )}
               </div>
-              <div className="ml-1 flex flex-col justify-end pt-6">
-                <Button
-                  dataTestId={`delete-${item.key}`}
-                  title="Delete"
-                  buttonStyle={ButtonStyleType.ICON}
-                  icon={IconProp.Trash}
-                  onClick={() => {
-                    const newData: Array<Item> = [...data];
-                    newData.splice(index, 1);
-                    setData(newData);
-                    onDataChange(newData);
-                  }}
-                />
-              </div>
+              {isReadOnly ? (
+                <></>
+              ) : (
+                <div className="ml-1 flex flex-col justify-end pt-6">
+                  <Button
+                    dataTestId={`delete-${item.key}`}
+                    title="Delete"
+                    buttonStyle={ButtonStyleType.ICON}
+                    icon={IconProp.Trash}
+                    onClick={() => {
+                      const newData: Array<Item> = [...data];
+                      newData.splice(index, 1);
+                      setData(newData);
+                      onDataChange(newData);
+                    }}
+                  />
+                </div>
+              )}
             </div>
           );
         })}
-        <div className="mt-4 md:-ml-3">
-          <Button
-            title={translateNamedAction(translator, {
-              template: "Add {{itemName}}",
-              itemName: props.addButtonSuffix || translationKey("Item"),
-            })}
-            icon={IconProp.Add}
-            buttonSize={ButtonSize.Small}
-            onClick={() => {
-              setData([
-                ...data,
-                {
-                  key: "",
-                  value: getDefaultValueForType(valueTypes[0] as ValueType),
-                  type: valueTypes[0] as ValueType,
-                  operator: DictionaryFilterOperator.EqualTo,
-                },
-              ]);
-            }}
-          />
-        </div>
+        {isReadOnly ? (
+          data.length === 0 ? (
+            <p className="text-sm text-gray-500" data-testid="dictionary-none">
+              {translator.translateText(DICTIONARY_NO_ROWS_TEXT)}
+            </p>
+          ) : (
+            <></>
+          )
+        ) : (
+          <div className="mt-4 md:-ml-3">
+            <Button
+              title={translateNamedAction(translator, {
+                template: "Add {{itemName}}",
+                itemName: props.addButtonSuffix || translationKey("Item"),
+              })}
+              icon={IconProp.Add}
+              buttonSize={ButtonSize.Small}
+              onClick={() => {
+                setData([
+                  ...data,
+                  {
+                    key: "",
+                    value: getDefaultValueForType(valueTypes[0] as ValueType),
+                    type: valueTypes[0] as ValueType,
+                    operator: DictionaryFilterOperator.EqualTo,
+                  },
+                ]);
+              }}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

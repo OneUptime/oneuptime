@@ -82,6 +82,7 @@ import MonitorCustomFields from "../../../../App/FeatureSet/Dashboard/src/Pages/
 import OnCallDutyPolicyCustomFields from "../../../../App/FeatureSet/Dashboard/src/Pages/OnCallDuty/Settings/OnCallDutyPolicyCustomFields";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import ScheduledMaintenanceCustomFields from "../../../../App/FeatureSet/Dashboard/src/Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceCusomFields";
+import SecurityCaseCustomFields from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Settings/CustomFields";
 import StatusPageCustomFields from "../../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/Settings/StatusPageCustomFields";
 import TeamCustomFields from "../../../../App/FeatureSet/Dashboard/src/Pages/Teams/CustomFields";
 import TeamMemberCustomFields from "../../../../App/FeatureSet/Dashboard/src/Pages/Users/CustomFields";
@@ -91,6 +92,7 @@ import InventoryItemCustomField from "../../../Models/DatabaseModels/InventoryIt
 import MonitorCustomField from "../../../Models/DatabaseModels/MonitorCustomField";
 import OnCallDutyPolicyCustomField from "../../../Models/DatabaseModels/OnCallDutyPolicyCustomField";
 import ScheduledMaintenanceCustomField from "../../../Models/DatabaseModels/ScheduledMaintenanceCustomField";
+import SecurityCaseCustomField from "../../../Models/DatabaseModels/SecurityCaseCustomField";
 import StatusPageCustomField from "../../../Models/DatabaseModels/StatusPageCustomField";
 import TeamCustomField from "../../../Models/DatabaseModels/TeamCustomField";
 import TeamMemberCustomField from "../../../Models/DatabaseModels/TeamMemberCustomField";
@@ -161,6 +163,11 @@ const SETTINGS_TABLES: Array<SettingsTable> = [
     name: "Team Member",
     page: TeamMemberCustomFields,
     modelType: TeamMemberCustomField,
+  },
+  {
+    name: "Security Case",
+    page: SecurityCaseCustomFields,
+    modelType: SecurityCaseCustomField,
   },
 ];
 

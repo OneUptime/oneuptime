@@ -1,4 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
+import { INHERITED_PROPERTY_NAME_SPELLINGS } from "../../../Helpers/InheritedNames";
+import { prettifyUdmEventType } from "../../../../Utils/SecurityEvent/UdmNormalizer";
 import OktaNormalizer, {
   OKTA_ACCOUNT_CHANGE_CLASS_UID,
   OKTA_AUTHENTICATION_CLASS_UID,
@@ -748,5 +750,21 @@ describe("OktaNormalizer: processes", () => {
       event.parentProcessPath,
       event.parentProcessCommandLine,
     ]).toEqual(["", "", "", "", "", ""]);
+  });
+});
+
+describe("OktaNormalizer: words named after what every object inherits", () => {
+  test("a severity named after one is Unknown, and an outcome named after one reads as its own words", () => {
+    for (const name of INHERITED_PROPERTY_NAME_SPELLINGS) {
+      expect({
+        name,
+        severity: OktaNormalizer.severityFor(name, 0, "SUCCESS"),
+        status: OktaNormalizer.statusFor(name),
+      }).toEqual({
+        name,
+        severity: OcsfSeverity.Unknown,
+        status: prettifyUdmEventType(name.trim().toUpperCase()),
+      });
+    }
   });
 });

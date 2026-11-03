@@ -124,6 +124,11 @@ const EXPECTED_SECTIONS: Array<ExpectedSection> = [
         icon: IconProp.Code,
       },
       {
+        title: "CLI",
+        pageMapKey: "TEAMS_DEVELOPER_CLI",
+        icon: IconProp.Code,
+      },
+      {
         title: "AI Assistants",
         pageMapKey: "TEAMS_DEVELOPER_AI_ASSISTANTS",
         icon: IconProp.Sparkles,

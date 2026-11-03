@@ -111,6 +111,10 @@ interface Box {
 // A monospace family, as the Dashboard writes code.
 const MONOSPACE: RegExp = /mono|Menlo|Consolas|Courier/i;
 
+// A table's date under the pointer: the whole of it, and how long ago it was.
+const WHOLE_DATE_UNDER_THE_POINTER: RegExp =
+  /^Oct 27 2026, 02:57 PM \S+ · 3 minutes ago$/;
+
 const pageErrors: Map<Page, Array<string>> = new Map();
 
 test.beforeEach(async ({ page }: { page: Page }) => {
@@ -1086,6 +1090,103 @@ test.describe("what an answer carries fits where it is drawn", () => {
 
     await screenshot(page, "rich-table-390");
   });
+
+  /*
+   * A tool's table wrote each date whole - "Oct 27 2026, 02:57 PM UTC · 3
+   * minutes ago" - which took a third of the chat's column, its year and
+   * zone the same on every row, and named its columns in English in every
+   * language. A date is short now, as every table writes one, and whole
+   * under the pointer with how long ago it was; a column's name reads in
+   * the reader's language.
+   */
+  for (const view of [
+    { width: 1280, lang: "" },
+    { width: 768, lang: "" },
+    { width: 768, lang: "de" },
+  ]) {
+    test(`a table's dates are short in their cells and whole under the pointer, its column names in the reader's language (${view.width}${view.lang ? `, ${view.lang}` : ""})`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width: view.width, height: 900 });
+      await load(page, `thread=rich${view.lang ? `&lang=${view.lang}` : ""}`);
+      await expect(dialog(page)).toBeVisible();
+
+      const table: Locator = page
+        .locator("table")
+        .filter({ has: page.locator("time") });
+      await table.scrollIntoViewIfNeeded();
+      await settle(page);
+
+      const headers: Array<string> = (
+        await table.locator("th").allTextContents()
+      ).map((text: string): string => {
+        return text.trim();
+      });
+      expect(headers).toEqual(
+        view.lang === "de"
+          ? ["Zeit", "Schweregrad", "Ereignis", "Host"]
+          : ["Time", "Severity", "Event", "Host"],
+      );
+
+      // The first row's date, read in one go once the table has settled.
+      const date: {
+        text: string;
+        title: string;
+        lines: number;
+        cellWidth: number;
+        tableWidth: number;
+      } = await table.evaluate(
+        (
+          element: Element,
+        ): {
+          text: string;
+          title: string;
+          lines: number;
+          cellWidth: number;
+          tableWidth: number;
+        } => {
+          const time: Element = element.querySelector("time")!;
+          const cell: Element = time.closest("td")!;
+          const range: Range = document.createRange();
+          range.selectNodeContents(cell);
+
+          return {
+            text: time.textContent || "",
+            title: cell.getAttribute("title") || "",
+            lines: new Set(
+              Array.from(range.getClientRects()).map(
+                (rect: DOMRect): number => {
+                  return Math.round(rect.top);
+                },
+              ),
+            ).size,
+            cellWidth: cell.getBoundingClientRect().width,
+            tableWidth: element.getBoundingClientRect().width,
+          };
+        },
+      );
+
+      expect(date.lines).toBe(1);
+      expect(date.cellWidth).toBeLessThan(date.tableWidth / 4);
+      expect(date.text).not.toContain("2026");
+      expect(date.title).toContain("2026");
+
+      if (view.lang === "de") {
+        expect(date.text).toContain("Okt.");
+        expect(date.title).toContain("vor 3 Minuten");
+      } else {
+        expect(date.text).toBe("Oct 27, 2:57 PM");
+        expect(date.title).toMatch(WHOLE_DATE_UNDER_THE_POINTER);
+      }
+
+      await screenshot(
+        page,
+        `rich-table-dates-${view.width}${view.lang ? `-${view.lang}` : ""}`,
+      );
+    });
+  }
 
   for (const viewport of [
     { width: 1280, rows: 1 },

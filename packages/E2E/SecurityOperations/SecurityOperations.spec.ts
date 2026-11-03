@@ -935,7 +935,11 @@ test.describe("the overview", () => {
 
     await page.getByTestId("security-getting-started-done").click();
     await expect(gettingStarted(page)).toHaveCount(0);
-    await expect(stage(page, "sources")).toContainText("1 source");
+    /*
+     * Your logs, and your other OneUptime data beside them: traces, network
+     * flows and session replays (the audit log is OneUptime Enterprise's).
+     */
+    await expect(stage(page, "sources")).toContainText("4 sources");
     await expect(stage(page, "detections")).toContainText(
       `${RECOMMENDED_RULES} rules on`,
     );
@@ -2621,6 +2625,17 @@ const CASE_PAGES: ReadonlyArray<CasePage> = [
   },
   {
     section: "Advanced",
+    title: "Custom Fields",
+    segment: "/custom-fields",
+    text: "INC-48213",
+    slug: "custom-fields",
+    // The Overview shows the same values, in a card of its own name.
+    ready: (page: Page): Locator => {
+      return cardTitled(page, "Case Custom Fields");
+    },
+  },
+  {
+    section: "Advanced",
     title: "Audit Logs",
     segment: "/audit-logs",
     text: "Case Audit Logs",
@@ -3598,14 +3613,23 @@ test.describe("a case", () => {
       );
     }
 
-    // Read once, for every page: no page read the case again.
+    /*
+     * Read once, for every page: no page read the case again. The project's
+     * own fields are read by their card, as every record's are - only the
+     * case's customFields, on the two pages that show them: the Overview and
+     * Custom Fields.
+     */
     expect(
       (await fixture(page)).listRequests.length,
       "pages listed what they show",
     ).toBeGreaterThan(0);
-    const caseReads: number = (
+    const caseReads: Array<{ select: Array<string> }> = (
       (await fixture(page)) as unknown as {
-        getItemRequests: Array<{ modelName: string; id: string }>;
+        getItemRequests: Array<{
+          modelName: string;
+          id: string;
+          select: Array<string>;
+        }>;
       }
     ).getItemRequests.filter(
       (request: { modelName: string; id: string }): boolean => {
@@ -3613,8 +3637,14 @@ test.describe("a case", () => {
           request.modelName === "SecurityCase" && request.id === SPRAY_CASE_ID
         );
       },
-    ).length;
-    expect(caseReads).toBe(1);
+    );
+    const fieldReads: Array<{ select: Array<string> }> = caseReads.filter(
+      (request: { select: Array<string> }): boolean => {
+        return request.select.join(",") === "customFields";
+      },
+    );
+    expect(caseReads.length - fieldReads.length).toBe(1);
+    expect(fieldReads).toHaveLength(2);
 
     // The case's crumb opens its Overview.
     await page
@@ -4733,9 +4763,9 @@ test.describe("a case", () => {
     page: Page;
   }) => {
     /*
-     * Thirteen pages since Evidence and Tasks, three looks at each and two
-     * more on a phone in the dark: 41 pages drawn and shot, past the
-     * config's two minutes on a busy machine.
+     * Fourteen pages since Custom Fields, three looks at each and two more
+     * on a phone in the dark: 44 pages drawn and shot, past the config's
+     * two minutes on a busy machine.
      */
     test.setTimeout(300000);
 

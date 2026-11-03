@@ -48,6 +48,7 @@ import {
 import { RESPONSE_TARGETS_COPY } from "./ResponseTargets/ResponseTargetsCopy";
 import { projectHasTargets } from "./ResponseTargets/SecurityCaseTargetDisplay";
 import SecurityCase from "Common/Models/DatabaseModels/SecurityCase";
+import SecurityCaseCustomField from "Common/Models/DatabaseModels/SecurityCaseCustomField";
 import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePriority";
 import Label from "Common/Models/DatabaseModels/Label";
 import Route from "Common/Types/API/Route";
@@ -747,6 +748,12 @@ const SecurityCasesList: FunctionComponent<{
           priorityOptions: getSecurityCasePriorityOptions(priorities),
         })}
         showRefreshButton={true}
+        /*
+         * The project's own case fields (Security Events > Settings >
+         * Custom Fields), each a column off by default in the column picker,
+         * as an incident's and an alert's are.
+         */
+        customFieldsModelType={SecurityCaseCustomField}
         searchableFields={["title", "caseNumberWithPrefix"]}
         /*
          * What a row's moves read of its case: where it stands, how urgent,

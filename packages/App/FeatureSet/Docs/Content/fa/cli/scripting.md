@@ -63,7 +63,7 @@ case $? in
 esac
 ```
 
-پیام‌های خطا به خطای استاندارد می‌روند، پس `incident.json` فقط پاسخ را در خود دارد.
+پیام‌های خطا به خطای استاندارد می‌روند، پس `incident.json` فقط پاسخ را در خود دارد. با `-o json`، خطا هم JSON است و کد خروج را در خود دارد: [JSON](/docs/cli/output-formats#json) را ببینید.
 
 ## خواندن پاسخ‌ها با jq
 
@@ -74,13 +74,16 @@ esac
 oneuptime incident list -o json | jq -r '.[].title'
 
 # The ID of a new monitor
-MONITOR_ID=$(oneuptime monitor create --data '{"name":"Checkout API","monitorType":"Manual"}' -o json | jq -r '._id')
+MONITOR_ID=$(oneuptime monitor create --name "Checkout API" --monitor-type Manual -o json | jq -r '._id')
 
 # When each incident was created: dates come as objects
 oneuptime incident list -o json | jq -r '.[] | "\(.createdAt.value)  \(.title)"'
 
 # The newest 100 incidents as CSV
 oneuptime incident list --limit 100 -o json | jq -r '.[] | [._id, .title, .createdAt.value] | @csv'
+
+# Every incident, page after page, with only the two fields the script reads
+oneuptime incident list --all --fields title,createdAt -o json | jq -r '.[] | "\(.createdAt.value)  \(.title)"'
 ```
 
 شمارش یک عدد چاپ می‌کند، آمادهٔ مقایسه:

@@ -25,6 +25,7 @@ import {
   ToolContext,
   ToolExecutionResult,
 } from "./ToolTypes";
+import { translationKey } from "../../../../Types/Translator";
 
 const TRACE_READ_PERMISSIONS: Array<Permission> = [
   Permission.ProjectOwner,
@@ -214,12 +215,36 @@ export const QueryTracesTool: ObservabilityTool = {
               description: `Ranked by ${metric} · ${startTime.toISOString()} – ${endTime.toISOString()}`,
               columns: [
                 { key: groupBy, title: groupBy, type: "text" },
-                { key: "count", title: "Count", type: "number" },
-                { key: "errorCount", title: "Errors", type: "number" },
-                { key: "avgMs", title: "Avg (ms)", type: "number" },
-                { key: "p90Ms", title: "p90 (ms)", type: "number" },
-                { key: "p95Ms", title: "p95 (ms)", type: "number" },
-                { key: "p99Ms", title: "p99 (ms)", type: "number" },
+                {
+                  key: "count",
+                  title: translationKey("Count"),
+                  type: "number",
+                },
+                {
+                  key: "errorCount",
+                  title: translationKey("Errors"),
+                  type: "number",
+                },
+                {
+                  key: "avgMs",
+                  title: translationKey("Avg (ms)"),
+                  type: "number",
+                },
+                {
+                  key: "p90Ms",
+                  title: translationKey("p90 (ms)"),
+                  type: "number",
+                },
+                {
+                  key: "p95Ms",
+                  title: translationKey("p95 (ms)"),
+                  type: "number",
+                },
+                {
+                  key: "p99Ms",
+                  title: translationKey("p99 (ms)"),
+                  type: "number",
+                },
               ],
               rows: rows,
               link: { type: AIChatCitationTargetType.Traces },

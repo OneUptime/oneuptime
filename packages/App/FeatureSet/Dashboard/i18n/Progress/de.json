@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40315,
-    "untranslated": 3753
+    "keys": 40407,
+    "untranslated": 3756
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -575,6 +575,7 @@
     "Version {{number}}",
     "Vertical Pod Autoscalers",
     "Viewport",
+    "Vital",
     "Vitals",
     "Volume",
     "Volumes",
@@ -649,8 +650,11 @@
     "orders",
     "orders-prod",
     "out",
+    "p90 (ms)",
     "p95",
+    "p95 (ms)",
     "p95 {{latency}}",
+    "p99 (ms)",
     "payment-.*",
     "prod, staging",
     "prod-.*",

@@ -9,6 +9,7 @@ import InventoryItemCustomField from "../../../../Models/DatabaseModels/Inventor
 import MonitorCustomField from "../../../../Models/DatabaseModels/MonitorCustomField";
 import OnCallDutyPolicyCustomField from "../../../../Models/DatabaseModels/OnCallDutyPolicyCustomField";
 import ScheduledMaintenanceCustomField from "../../../../Models/DatabaseModels/ScheduledMaintenanceCustomField";
+import SecurityCaseCustomField from "../../../../Models/DatabaseModels/SecurityCaseCustomField";
 import StatusPageCustomField from "../../../../Models/DatabaseModels/StatusPageCustomField";
 import TeamCustomField from "../../../../Models/DatabaseModels/TeamCustomField";
 import TeamMemberCustomField from "../../../../Models/DatabaseModels/TeamMemberCustomField";
@@ -99,9 +100,20 @@ const DEFINITION_MODELS: Record<string, ModelClass> = {
   MonitorCustomField: MonitorCustomField,
   OnCallDutyPolicyCustomField: OnCallDutyPolicyCustomField,
   ScheduledMaintenanceCustomField: ScheduledMaintenanceCustomField,
+  SecurityCaseCustomField: SecurityCaseCustomField,
   StatusPageCustomField: StatusPageCustomField,
   TeamCustomField: TeamCustomField,
   TeamMemberCustomField: TeamMemberCustomField,
+};
+
+/*
+ * The definition tables created after the value-mapping migration, each with
+ * both mapping columns in the CREATE TABLE of the migration that makes it,
+ * by that migration's file. The value-mapping migration never touches them.
+ */
+const CREATED_WITH_MAPPING: Record<string, string> = {
+  SecurityCaseCustomField:
+    "1808871270000-AddSecurityCaseCustomFieldsNoteTemplatesAndNumbering.ts",
 };
 
 /*
@@ -117,6 +129,13 @@ const DEFINITION_TABLES: Array<string> = fs
     return fileName.replace(/\.ts$/, "");
   })
   .sort();
+
+// The definition tables the value-mapping migration altered.
+const ALTERED_TABLES: Array<string> = DEFINITION_TABLES.filter(
+  (tableName: string): boolean => {
+    return !CREATED_WITH_MAPPING[tableName];
+  },
+);
 
 type DeclaredColumnsFunction = (modelType: ModelClass) => Array<string>;
 
@@ -154,7 +173,7 @@ describe("the value-mapping migration", () => {
     );
   });
 
-  test.each(DEFINITION_TABLES)(
+  test.each(ALTERED_TABLES)(
     "adds both mapping columns to %s",
     (tableName: string) => {
       for (const column of MAPPING_COLUMNS) {
@@ -165,7 +184,7 @@ describe("the value-mapping migration", () => {
     },
   );
 
-  test.each(DEFINITION_TABLES)(
+  test.each(ALTERED_TABLES)(
     "drops both mapping columns from %s on the way down",
     (tableName: string) => {
       for (const column of MAPPING_COLUMNS) {
@@ -173,6 +192,30 @@ describe("the value-mapping migration", () => {
           `ALTER TABLE "${tableName}" DROP COLUMN "${column}"`,
         );
       }
+    },
+  );
+
+  test.each(Object.entries(CREATED_WITH_MAPPING))(
+    "%s is created with both mapping columns, after the value-mapping migration",
+    (tableName: string, fileName: string) => {
+      const creator: string = fs.readFileSync(
+        path.join(MIGRATIONS_DIRECTORY, fileName),
+        "utf8",
+      );
+      const create: string | undefined = creator
+        .split("`")
+        .find((statement: string): boolean => {
+          return statement.startsWith(`CREATE TABLE "${tableName}"`);
+        });
+
+      for (const column of MAPPING_COLUMNS) {
+        expect(create).toContain(`"${column}" character varying(100)`);
+      }
+      // Its own down() takes the table, and the columns with it.
+      expect(creator).toContain(`DROP TABLE "${tableName}"`);
+      expect(
+        timestampOfClassName(fileName.replace(/-.*$/, "")),
+      ).toBeGreaterThan(timestampOfClassName(OWN_CLASS_NAME)!);
     },
   );
 

@@ -22,9 +22,23 @@ import { isColumnDescriptionInformative } from "./ColumnPickerOptions";
 import { rowIssue } from "./ColumnRowSerialization";
 import { isSystemColumn } from "./ColumnUse";
 import ColumnValueInput from "./ColumnValueInput";
-import React, { FunctionComponent, ReactElement, useId } from "react";
+import { WorkflowViewOnlyContext } from "../WorkflowViewOnly";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useContext,
+  useId,
+} from "react";
 import { Translator } from "../../../Utils/TranslateTemplate";
 import useTranslator from "../../../Utils/UseTranslator";
+
+// The field, its value, and Remove at the end of the row.
+export const FIELD_ROW_GRID_CLASS: string =
+  "group relative grid grid-cols-1 items-start gap-x-4 gap-y-2 px-3 py-3 transition-colors hover:bg-gray-50/60 sm:grid-cols-[minmax(0,14rem)_minmax(0,1fr)_auto]";
+
+// On a view there is no Remove, nor a place kept for one.
+export const FIELD_ROW_VIEW_GRID_CLASS: string =
+  "group relative grid grid-cols-1 items-start gap-x-4 gap-y-2 px-3 py-3 transition-colors hover:bg-gray-50/60 sm:grid-cols-[minmax(0,14rem)_minmax(0,1fr)]";
 
 export interface ComponentProps {
   row: ModelColumnRow;
@@ -43,6 +57,11 @@ const ColumnFieldRow: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  /*
+   * A step opened to be read (WorkflowViewOnly): the field and its value,
+   * with no Remove beside them - nothing here can change the record.
+   */
+  const isViewOnly: boolean = useContext(WorkflowViewOnlyContext);
   const labelId: string = useId();
   const control: ModelColumnControl = controlForColumn(props.column);
   const issue: string | null = rowIssue(props.row, props.column);
@@ -63,7 +82,7 @@ const ColumnFieldRow: FunctionComponent<ComponentProps> = (
 
   return (
     <div
-      className="group relative grid grid-cols-1 items-start gap-x-4 gap-y-2 px-3 py-3 transition-colors hover:bg-gray-50/60 sm:grid-cols-[minmax(0,14rem)_minmax(0,1fr)_auto]"
+      className={isViewOnly ? FIELD_ROW_VIEW_GRID_CLASS : FIELD_ROW_GRID_CLASS}
       data-testid="model-column-row"
     >
       {isEmptyRequired && (
@@ -153,8 +172,11 @@ const ColumnFieldRow: FunctionComponent<ComponentProps> = (
 
         {props.row.valueMode === ColumnValueMode.Raw && (
           <p className="mt-1 text-[11px] text-amber-600">
+            {/* What editing it would do is no news on a view. */}
             {translator.translateText(
-              "Kept exactly as it was saved. Editing it rewrites it in this column's own type.",
+              isViewOnly
+                ? "Kept exactly as it was saved."
+                : "Kept exactly as it was saved. Editing it rewrites it in this column's own type.",
             )}
           </p>
         )}
@@ -192,16 +214,20 @@ const ColumnFieldRow: FunctionComponent<ComponentProps> = (
           )}
       </div>
 
-      <div className="flex items-center pt-1">
-        <Button
-          buttonStyle={ButtonStyleType.ICON}
-          icon={IconProp.Trash}
-          title="Remove"
-          dataTestId={`model-column-remove-${props.row.columnId}`}
-          className="opacity-0 transition-opacity focus-visible:opacity-100 group-hover:opacity-100"
-          onClick={props.onRemove}
-        />
-      </div>
+      {isViewOnly ? (
+        <></>
+      ) : (
+        <div className="flex items-center pt-1">
+          <Button
+            buttonStyle={ButtonStyleType.ICON}
+            icon={IconProp.Trash}
+            title="Remove"
+            dataTestId={`model-column-remove-${props.row.columnId}`}
+            className="opacity-0 transition-opacity focus-visible:opacity-100 group-hover:opacity-100"
+            onClick={props.onRemove}
+          />
+        </div>
+      )}
     </div>
   );
 };

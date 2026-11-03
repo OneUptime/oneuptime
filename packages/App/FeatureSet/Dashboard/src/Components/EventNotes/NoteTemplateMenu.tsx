@@ -2,6 +2,7 @@ import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import DROPDOWN_MENU_Z_INDEX from "Common/UI/Components/Dropdown/DropdownMenuZIndex";
 import Icon from "Common/UI/Components/Icon/Icon";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import Link from "Common/UI/Components/Link/Link";
 import useAnchoredFieldPopup, {
@@ -261,12 +262,22 @@ const NoteTemplateMenu: FunctionComponent<ComponentProps> = (
                     popup.closePopup(false);
                   }}
                 >
+                  {/*
+                   * A template's name and first line are what someone
+                   * wrote, read the way they are written (IsolatedText):
+                   * an English one in a Persian menu put its colon at its
+                   * start (":Contained").
+                   */}
                   <span className="w-full truncate text-sm font-medium text-gray-900">
-                    {template.name || tx("Untitled template")}
+                    {template.name ? (
+                      <IsolatedText text={template.name} />
+                    ) : (
+                      tx("Untitled template")
+                    )}
                   </span>
                   {preview && (
                     <span className="w-full truncate text-xs text-gray-500">
-                      {preview}
+                      <IsolatedText text={preview} />
                     </span>
                   )}
                 </button>

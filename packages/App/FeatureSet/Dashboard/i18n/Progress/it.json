@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40315,
-    "untranslated": 12572
+    "keys": 40407,
+    "untranslated": 12555
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -58,6 +58,7 @@
     "Endpoint",
     "Failover",
     "Feed",
+    "File",
     "File {{number}}",
     "Filesystem",
     "Filesystem %",
@@ -132,6 +133,7 @@
     "Pool {{name}}",
     "Pools",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
+    "Principal",
     "Privacy",
     "Profiler",
     "Prompt",
@@ -195,6 +197,7 @@
     "VM · esx-04",
     "VMID {{vmid}}",
     "VMware vCenter",
+    "Vital",
     "Volume",
     "Web",
     "Web, iOS, Android, React Native",
@@ -222,8 +225,11 @@
     "main",
     "message",
     "name",
+    "p90 (ms)",
     "p95",
+    "p95 (ms)",
     "p95 {{latency}}",
+    "p99 (ms)",
     "prod, staging",
     "prod-.*",
     "prod-vcenter",

@@ -91,7 +91,7 @@ A case has a side menu of its own, as an incident has, and each part of the case
 | **Overview** | **Overview**, **Timeline** |
 | **Investigation** | **Story**, **Detections**, **Entities**, **Connected Signals**, **Evidence**, **Tasks**, **Playbooks** |
 | **Notes** | **Private Notes** |
-| **Advanced** | **Audit Logs**, **Delete Case**, folded until you click **Advanced** |
+| **Advanced** | **Custom Fields**, **Audit Logs**, **Delete Case**, folded until you click **Advanced** |
 
 Every page keeps the case's header on top: its number, priority, status and title, **Assign to Me**, **Run Playbook**, **Declare Incident** and **Close Case**, and in the ⋯ menu beside them **Set priority**, **Assign to Someone Else**, **Change Status**, **Edit Case** and **Delete Case**. So the case can be worked from any of its pages, and a link to the case still opens its **Overview**. When the case's priority has response targets, the header also says when the next one is due ([Response targets](#response-targets)).
 
@@ -107,7 +107,8 @@ Every page keeps the case's header on top: its number, priority, status and titl
 - **Evidence**: the files, links and security events kept on the case, each with who added it and when. **Add File** uploads a file of up to 10 MB and records the SHA-256 of what was uploaded, so whoever downloads it later can check it is what was kept; **Add Link** points to evidence kept somewhere else. Only a Security Admin can remove a piece of evidence, and the case's **Timeline** says what was added and removed. A security event is kept here as it was, with **Add to Case** on **Events** or on a [hunt's](/docs/telemetry/security-events#hunts) page, and **View Event** opens it. A playbook's **Preserve the evidence** step keeps the events behind the case's detections here too.
 - **Tasks**: what has to be done on the case, who is doing it, and whether it is done. Add a task as a line, hand it to someone, and tick it off when it is done. The person it is handed to is told, unless they took it themselves, and the menu shows how many tasks are open beside **Tasks**. A playbook's **Add tasks** step adds tasks too, and leaves out any the case has already.
 - **Playbooks**: what each playbook did on the case, step by step, and the steps waiting for approval. While runs wait, the menu shows how many beside **Playbooks**.
-- **Private Notes**: what the team wrote about the case.
+- **Private Notes**: what the team wrote about the case. The composer's **Templates** menu puts one of the project's note templates in a note.
+- **Custom Fields**: the project's own fields, filled in for this case, and **Edit Fields** to change them. Once the project has a field, the **Overview** shows them too, in its last card. See [Custom fields, note templates and numbering](#custom-fields-note-templates-and-numbering).
 - **Audit Logs**: every change made to the case, and who made it. See [Audit Logs](/docs/configuration/audit-logs).
 - **Delete Case**: deletes the case and its detections, notes, timeline and playbook runs for good. To keep the record, close it with a verdict instead.
 
@@ -184,6 +185,16 @@ Where the targets show:
 - The case's header names the next target and how long is left, or how long it is overdue: grey while there is time, amber in its last fifth, red once missed.
 - On the case's **Overview**, under **Time to Acknowledge** and **Time to Contain**: where the case stands against each target, or how far over it the case went.
 - In the queue's lists: the line under each case's priority, and a **Due** column you can turn on and sort by. While the column is on, the line under the priority is left out. The lists draw them only when one of the project's priorities has a target.
+
+## Custom fields, note templates and numbering
+
+Three more settings make cases your project's own, under **Products → Security Events → Settings**:
+
+- **Custom Fields**: the fields your team fills in on every case, such as the business unit it is about or its ticket in another tool. A field holds text, a number, a date, a yes or no, a choice from a list, or a file. A case's **Custom Fields** page, under **Advanced**, lists every field with the case's value, and **Edit Fields** changes them. In the queue's lists, each field is a column you can turn on in **Columns**.
+- **Note Templates**: ready-made text for the notes your team writes on case after case, such as a containment checklist or a hand-over to the next shift. On a case's **Private Notes**, the composer's **Templates** menu puts one in the note, to edit before it is posted, and **Manage templates** opens the list.
+- **Numbering**: the text in front of case numbers, `CASE-` in `CASE-42` unless you set your own, and the number the next case gets. Moving from another tool? Start after its last case number, so a number never means two cases. A new prefix or start applies to new cases only, and a start must be higher than the highest number used so far.
+
+A Security Admin manages the custom fields and note templates, and a Security Member fills in a case's fields; on OneUptime Cloud they take the Growth plan or above. Numbering is set by a Project Owner or Project Admin, as it is for incidents and alerts.
 
 ## Notifications
 

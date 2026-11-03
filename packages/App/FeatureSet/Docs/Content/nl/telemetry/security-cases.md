@@ -91,7 +91,7 @@ Een zaak heeft een eigen zijmenu, zoals een incident, en elk deel van de zaak is
 | **Overzicht** | **Overzicht**, **Tijdlijn** |
 | **Onderzoek** | **Verloop**, **Detecties**, **Entiteiten**, **Verbonden signalen**, **Bewijs**, **Taken**, **Playbooks** |
 | **Notities** | **Privénotities** |
-| **Geavanceerd** | **Auditlogboeken**, **Zaak verwijderen**, ingeklapt tot je op **Geavanceerd** klikt |
+| **Geavanceerd** | **Aangepaste velden**, **Auditlogboeken**, **Zaak verwijderen**, ingeklapt tot je op **Geavanceerd** klikt |
 
 Elke pagina houdt bovenaan de kop van de zaak: nummer, prioriteit, status en titel, **Aan mij toewijzen**, **Playbook uitvoeren**, **Incident melden** en **Zaak sluiten**, en in het menu ⋯ ernaast **Prioriteit instellen**, **Aan iemand anders toewijzen**, **Status wijzigen**, **Zaak bewerken** en **Zaak verwijderen**. Zo handel je de zaak af vanaf elk van haar pagina's, en een link naar de zaak opent nog steeds haar **Overzicht**. Heeft de prioriteit van de zaak reactiedoelen, dan toont de kop ook wanneer het volgende verloopt ([Reactiedoelen](#reactiedoelen)).
 
@@ -107,7 +107,8 @@ Elke pagina houdt bovenaan de kop van de zaak: nummer, prioriteit, status en tit
 - **Bewijs**: de bestanden, koppelingen en beveiligingsgebeurtenissen die bij de zaak worden bewaard, elk met wie het toevoegde en wanneer. Met **Bestand toevoegen** upload je een bestand van maximaal 10 MB en wordt de SHA-256 vastgelegd van wat is geüpload, zodat wie het later downloadt kan controleren dat het is wat werd bewaard; met **Koppeling toevoegen** verwijs je naar bewijs dat ergens anders staat. Alleen een Security Admin kan bewijs verwijderen, en de **Tijdlijn** van de zaak toont wat er is toegevoegd en verwijderd. Een beveiligingsgebeurtenis wordt hier bewaard zoals ze was, met **Aan zaak toevoegen** op **Gebeurtenissen** of op de pagina van een [hunt](/docs/telemetry/security-events#hunts), en **Gebeurtenis bekijken** opent haar. Ook de stap **Preserve the evidence** van een playbook bewaart hier de gebeurtenissen achter de detecties van de zaak.
 - **Taken**: wat er in de zaak moet gebeuren, wie het doet en of het af is. Voeg een taak toe als één regel, geef hem aan iemand en vink hem af als hij af is. Wie de taak krijgt, krijgt bericht, tenzij die hem zelf nam, en het menu toont naast **Taken** hoeveel taken open staan. Ook de stap **Taken toevoegen** van een playbook voegt taken toe en laat weg wat de zaak al heeft.
 - **Playbooks**: wat elk playbook met de zaak deed, stap voor stap, en de stappen die op goedkeuring wachten. Zolang er uitvoeringen wachten, toont het menu hoeveel naast **Playbooks**.
-- **Privénotities**: wat het team over de zaak schreef.
+- **Privénotities**: wat het team over de zaak schreef. Het menu **Sjablonen** van de editor zet een van de notitiesjablonen van het project in een notitie.
+- **Aangepaste velden**: de eigen velden van het project, ingevuld voor deze zaak, en **Velden bewerken** om ze te wijzigen. Zodra het project een veld heeft, toont het **Overzicht** ze ook, in zijn laatste kaart. Zie [Aangepaste velden, notitiesjablonen en nummering](#aangepaste-velden-notitiesjablonen-en-nummering).
 - **Auditlogboeken**: elke wijziging aan de zaak, en wie die maakte. Zie [Auditlogboeken](/docs/configuration/audit-logs).
 - **Zaak verwijderen**: verwijdert de zaak voorgoed, met haar detecties, notities, tijdlijn en playbook-uitvoeringen. Wil je haar als verslag bewaren, sluit haar dan met een oordeel.
 
@@ -184,6 +185,16 @@ Waar de doelen te zien zijn:
 - De kop van de zaak noemt het volgende doel en hoeveel tijd er nog is, of hoe lang het al is verlopen: grijs zolang er tijd is, amber in het laatste vijfde, rood zodra het is gemist.
 - In het **Overzicht** van de zaak, onder **Tijd tot bevestiging** en **Tijd tot indamming**: hoe de zaak ervoor staat ten opzichte van elk doel, of hoe ver ze erover ging.
 - In de lijsten van de wachtrij: de regel onder de prioriteit van elke zaak, en een kolom **Termijn** die je kunt inschakelen en waarop je kunt sorteren. Zolang de kolom aan staat, vervalt de regel onder de prioriteit. De lijsten tonen ze alleen als een prioriteit van het project een doel heeft.
+
+## Aangepaste velden, notitiesjablonen en nummering
+
+Nog drie instellingen maken zaken eigen aan je project, onder **Producten → Beveiligingsgebeurtenissen → Instellingen**:
+
+- **Aangepaste velden**: de velden die je team bij elke zaak invult, zoals de bedrijfseenheid waar die over gaat of het ticket in een andere tool. Een veld bevat tekst, een getal, een datum, een ja of nee, een keuze uit een lijst of een bestand. De pagina **Aangepaste velden** van een zaak, onder **Geavanceerd**, toont elk veld met de waarde van de zaak, en **Velden bewerken** wijzigt ze. In de lijsten van de wachtrij is elk veld een kolom die je aanzet via **Kolommen**.
+- **Notitie-sjablonen**: kant-en-klare tekst voor de notities die je team zaak na zaak schrijft, zoals een checklist voor indamming of een overdracht aan de volgende dienst. Bij de **Privénotities** van een zaak zet het menu **Sjablonen** van de editor er een in de notitie, om aan te passen voordat je plaatst, en **Sjablonen beheren** opent de lijst.
+- **Nummering**: de tekst voor de zaaknummers, `CASE-` in `CASE-42` tenzij je je eigen kiest, en het nummer dat de volgende zaak krijgt. Overgestapt van een andere tool? Begin na het laatste zaaknummer daarvan, zodat een nummer nooit voor twee zaken staat. Een nieuw voorvoegsel of begin geldt alleen voor nieuwe zaken, en een begin moet hoger zijn dan het hoogste nummer tot nu toe.
+
+Een Security Admin beheert de aangepaste velden en notitiesjablonen, en een Security Member vult de velden van een zaak in; op OneUptime Cloud vragen ze het Growth-abonnement of hoger. De nummering stelt een Project Owner of Project Admin in, net als bij incidenten en waarschuwingen.
 
 ## Meldingen
 

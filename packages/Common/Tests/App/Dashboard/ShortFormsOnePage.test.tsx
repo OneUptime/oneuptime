@@ -166,6 +166,7 @@ import IncidentNoteTemplates from "../../../../App/FeatureSet/Dashboard/src/Page
 import IncidentPostmortemTemplates from "../../../../App/FeatureSet/Dashboard/src/Pages/Incidents/Settings/IncidentPostmortemTemplates";
 import AlertNoteTemplates from "../../../../App/FeatureSet/Dashboard/src/Pages/Alerts/Settings/AlertNoteTemplates";
 import ScheduledMaintenanceNoteTemplates from "../../../../App/FeatureSet/Dashboard/src/Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceNoteTemplates";
+import SecurityCaseNoteTemplates from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Settings/NoteTemplates";
 import OidCollectionTemplates from "../../../../App/FeatureSet/Dashboard/src/Pages/NetworkDevice/Settings/OidCollectionTemplates";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import {
@@ -253,6 +254,11 @@ interface TemplatePage {
   createButton: string;
   // The column the template's body is saved in.
   bodyColumn: string;
+  // What its name and description fields show while empty.
+  namePlaceholder: string;
+  descriptionPlaceholder: string;
+  // How many of the three it asks for: a case template's description is optional.
+  requiredFields: number;
 }
 
 const TEMPLATE_PAGES: Array<TemplatePage> = [
@@ -262,6 +268,9 @@ const TEMPLATE_PAGES: Array<TemplatePage> = [
     title: "Create New Incident Note Template",
     createButton: "Create Incident Note Template",
     bodyColumn: "note",
+    namePlaceholder: "Template Name",
+    descriptionPlaceholder: "Template Description",
+    requiredFields: 3,
   },
   {
     name: "Alerts > Settings > Note Templates",
@@ -269,6 +278,9 @@ const TEMPLATE_PAGES: Array<TemplatePage> = [
     title: "Create New Alert Note Template",
     createButton: "Create Alert Note Template",
     bodyColumn: "note",
+    namePlaceholder: "Template Name",
+    descriptionPlaceholder: "Template Description",
+    requiredFields: 3,
   },
   {
     name: "Scheduled Maintenance > Settings > Note Templates",
@@ -276,6 +288,21 @@ const TEMPLATE_PAGES: Array<TemplatePage> = [
     title: "Create New Scheduled Maintenance Note Template",
     createButton: "Create Scheduled Maintenance Note Template",
     bodyColumn: "note",
+    namePlaceholder: "Template Name",
+    descriptionPlaceholder: "Template Description",
+    requiredFields: 3,
+  },
+  {
+    name: "Security Events > Settings > Note Templates",
+    Page: SecurityCaseNoteTemplates,
+    // Under Security Events > Settings the rows are the cases' note templates.
+    title: "Create New Note Template",
+    createButton: "Create Note Template",
+    bodyColumn: "note",
+    // An example of each, rather than the field's name again.
+    namePlaceholder: "Containment checklist",
+    descriptionPlaceholder: "What was contained, how, and what is still open.",
+    requiredFields: 2,
   },
   {
     name: "Incidents > Settings > Postmortem Templates",
@@ -283,6 +310,9 @@ const TEMPLATE_PAGES: Array<TemplatePage> = [
     title: "Create New Incident Postmortem Template",
     createButton: "Create Incident Postmortem Template",
     bodyColumn: "postmortemNote",
+    namePlaceholder: "Template Name",
+    descriptionPlaceholder: "Template Description",
+    requiredFields: 3,
   },
 ];
 
@@ -291,7 +321,7 @@ const TEMPLATE_PAGES: Array<TemplatePage> = [
  * opens in its visual mode, and its Markdown button shows the source as a
  * textarea - the dialog's only one besides the template's description.
  */
-function writeBody(text: string): void {
+function writeBody(page: TemplatePage, text: string): void {
   const toolbar: HTMLElement = within(dialog()).getByTestId(
     "markdown-editor-toolbar",
   );
@@ -299,7 +329,7 @@ function writeBody(text: string): void {
   fireEvent.click(within(toolbar).getByRole("button", { name: "Markdown" }));
 
   const description: HTMLElement = within(dialog()).getByPlaceholderText(
-    "Template Description",
+    page.descriptionPlaceholder,
   );
   const sources: Array<HTMLTextAreaElement> = Array.from(
     dialog().querySelectorAll<HTMLTextAreaElement>("textarea"),
@@ -322,10 +352,10 @@ describe("the note and postmortem template forms", () => {
 
       // All three on the one page, the editor's toolbar whole beside them.
       expect(
-        within(dialog()).getByPlaceholderText("Template Name"),
+        within(dialog()).getByPlaceholderText(page.namePlaceholder),
       ).toBeVisible();
       expect(
-        within(dialog()).getByPlaceholderText("Template Description"),
+        within(dialog()).getByPlaceholderText(page.descriptionPlaceholder),
       ).toBeVisible();
       const toolbar: HTMLElement = within(dialog()).getByTestId(
         "markdown-editor-toolbar",
@@ -360,14 +390,17 @@ describe("the note and postmortem template forms", () => {
       expect(await screen.findByText(page.title)).toBeInTheDocument();
       await settle();
 
-      fireEvent.change(within(dialog()).getByPlaceholderText("Template Name"), {
-        target: { value: "Investigating" },
-      });
       fireEvent.change(
-        within(dialog()).getByPlaceholderText("Template Description"),
+        within(dialog()).getByPlaceholderText(page.namePlaceholder),
+        {
+          target: { value: "Investigating" },
+        },
+      );
+      fireEvent.change(
+        within(dialog()).getByPlaceholderText(page.descriptionPlaceholder),
         { target: { value: "The first update of an outage" } },
       );
-      writeBody("We are looking into it.");
+      writeBody(page, "We are looking into it.");
 
       const model: JSONObject = await submitDialog();
 
@@ -378,7 +411,7 @@ describe("the note and postmortem template forms", () => {
       expect(model[page.bodyColumn]).toBe("We are looking into it.");
     });
 
-    test(`${page.name}: an empty form asks for all three on the one page`, async () => {
+    test(`${page.name}: an empty form asks for what it needs on the one page`, async () => {
       renderPage(page.Page);
 
       expect(await screen.findByText(page.title)).toBeInTheDocument();
@@ -392,7 +425,9 @@ describe("the note and postmortem template forms", () => {
 
       // Nothing is sent, and no step is walked to: the errors are all here.
       await waitFor(() => {
-        expect(within(dialog()).getAllByText(/is required/i).length).toBe(3);
+        expect(within(dialog()).getAllByText(/is required/i).length).toBe(
+          page.requiredFields,
+        );
       });
       expectNothingSent();
       expect(

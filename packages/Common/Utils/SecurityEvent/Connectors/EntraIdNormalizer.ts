@@ -1,4 +1,5 @@
 import { JSONObject, JSONValue } from "../../../Types/JSON";
+import lookupTable from "../../LookupTable";
 import OcsfSeverity from "../../../Types/SecurityEvent/OcsfSeverity";
 import {
   flattenPayload,
@@ -88,36 +89,38 @@ export const PRIVILEGED_ENTRA_ROLES: ReadonlyArray<string> = [
 ];
 
 // Identity Protection's risk types, in the words its own portal uses.
-export const ENTRA_RISK_EVENT_TITLES: Record<string, string> = {
-  anonymizedIPAddress: "Anonymous IP address",
-  unlikelyTravel: "Atypical travel",
-  maliciousIPAddress: "Malicious IP address",
-  unfamiliarFeatures: "Unfamiliar sign-in properties",
-  malwareInfectedIPAddress: "Malware-linked IP address",
-  suspiciousIPAddress: "Suspicious IP address",
-  leakedCredentials: "Leaked credentials",
-  investigationsThreatIntelligence: "Microsoft Entra threat intelligence",
-  generic: "Additional risk detected",
-  adminConfirmedUserCompromised: "Admin confirmed user compromised",
-  passwordSpray: "Password spray",
-  mcasImpossibleTravel: "Impossible travel",
-  newCountry: "New country",
-  impossibleTravel: "Impossible travel",
-  mcasSuspiciousInboxManipulationRules: "Suspicious inbox manipulation rules",
-  suspiciousInboxForwarding: "Suspicious inbox forwarding",
-  anomalousToken: "Anomalous token",
-  tokenIssuerAnomaly: "Token issuer anomaly",
-  suspiciousBrowser: "Suspicious browser",
-  riskyIPAddress: "Activity from a risky IP address",
-  attackerinTheMiddle: "Attacker in the middle",
-  suspiciousAPITraffic: "Suspicious API traffic",
-};
+export const ENTRA_RISK_EVENT_TITLES: ReadonlyMap<string, string> = lookupTable(
+  {
+    anonymizedIPAddress: "Anonymous IP address",
+    unlikelyTravel: "Atypical travel",
+    maliciousIPAddress: "Malicious IP address",
+    unfamiliarFeatures: "Unfamiliar sign-in properties",
+    malwareInfectedIPAddress: "Malware-linked IP address",
+    suspiciousIPAddress: "Suspicious IP address",
+    leakedCredentials: "Leaked credentials",
+    investigationsThreatIntelligence: "Microsoft Entra threat intelligence",
+    generic: "Additional risk detected",
+    adminConfirmedUserCompromised: "Admin confirmed user compromised",
+    passwordSpray: "Password spray",
+    mcasImpossibleTravel: "Impossible travel",
+    newCountry: "New country",
+    impossibleTravel: "Impossible travel",
+    mcasSuspiciousInboxManipulationRules: "Suspicious inbox manipulation rules",
+    suspiciousInboxForwarding: "Suspicious inbox forwarding",
+    anomalousToken: "Anomalous token",
+    tokenIssuerAnomaly: "Token issuer anomaly",
+    suspiciousBrowser: "Suspicious browser",
+    riskyIPAddress: "Activity from a risky IP address",
+    attackerinTheMiddle: "Attacker in the middle",
+    suspiciousAPITraffic: "Suspicious API traffic",
+  },
+);
 
-const RISK_SEVERITIES: Record<string, OcsfSeverity> = {
+const RISK_SEVERITIES: ReadonlyMap<string, OcsfSeverity> = lookupTable({
   high: OcsfSeverity.High,
   medium: OcsfSeverity.Medium,
   low: OcsfSeverity.Low,
-};
+});
 
 function text(value: JSONValue | undefined): string {
   if (value === null || value === undefined || typeof value === "object") {
@@ -421,7 +424,7 @@ export function readEntraRisk(
       ? state === "confirmedcompromised"
         ? "User confirmed compromised"
         : "Risky user"
-      : ENTRA_RISK_EVENT_TITLES[type] || type || "Risk detected";
+      : ENTRA_RISK_EVENT_TITLES.get(type) || type || "Risk detected";
   const id: string = text(risk["id"]);
 
   return {
@@ -438,7 +441,7 @@ export function readEntraRisk(
     severity:
       state === "confirmedcompromised"
         ? OcsfSeverity.Critical
-        : RISK_SEVERITIES[level] || OcsfSeverity.Medium,
+        : RISK_SEVERITIES.get(level) || OcsfSeverity.Medium,
     message: `Microsoft Entra ID Protection: ${title}${user ? ` for ${user}` : ""}${level ? ` (${level} risk)` : ""}`,
     ruleName: title,
     ruleId: type,

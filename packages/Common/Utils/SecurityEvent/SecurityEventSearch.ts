@@ -1,4 +1,5 @@
 import SecurityEvent from "../../Models/AnalyticsModels/SecurityEvent";
+import lookupTable from "../LookupTable";
 import Includes from "../../Types/BaseDatabase/Includes";
 import IncludesNone from "../../Types/BaseDatabase/IncludesNone";
 import NotEqual from "../../Types/BaseDatabase/NotEqual";
@@ -123,6 +124,15 @@ export const SECURITY_EVENT_FIELD_ALIASES: Readonly<Record<string, string>> = {
  */
 export const SECURITY_EVENT_SEARCH_FIELD_KEYS: Set<string> = new Set<string>(
   Object.keys(SECURITY_EVENT_FIELD_ALIASES),
+);
+
+/*
+ * The column a typed field name filters, read by what somebody typed: a
+ * Map, so `constructor:` is a field of that name - an attribute - and not
+ * Object's constructor (Utils/LookupTable).
+ */
+const COLUMN_BY_FIELD_ALIAS: ReadonlyMap<string, string> = lookupTable(
+  SECURITY_EVENT_FIELD_ALIASES,
 );
 
 /*
@@ -255,8 +265,9 @@ export function parseSecurityEventSearch(
      * is what the user almost certainly meant, since every un-typed source
      * field lands in the attributes map.
      */
-    const column: string | undefined =
-      SECURITY_EVENT_FIELD_ALIASES[token.key.toLowerCase()];
+    const column: string | undefined = COLUMN_BY_FIELD_ALIAS.get(
+      token.key.toLowerCase(),
+    );
 
     if (!column) {
       attributes[token.key] = predicateToQueryValue(token.predicate);

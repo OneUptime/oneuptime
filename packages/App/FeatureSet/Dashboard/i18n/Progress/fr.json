@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40315,
-    "untranslated": 7195
+    "keys": 40407,
+    "untranslated": 7191
   },
   "sameAsEnglish": [
     " incidents",
@@ -375,6 +375,7 @@
     "Ports",
     "Portugal (+351)",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
+    "Principal",
     "Prompt",
     "Public",
     "Pull request",
@@ -447,6 +448,7 @@
     "Version {{number}}",
     "Versions",
     "Vertical Pod Autoscalers",
+    "Vital",
     "Volume",
     "Volumes",
     "Web",
@@ -478,8 +480,11 @@
     "main",
     "message",
     "name",
+    "p90 (ms)",
     "p95",
+    "p95 (ms)",
     "p95 {{latency}}",
+    "p99 (ms)",
     "port {{port}}",
     "prod, staging",
     "prod-.*",

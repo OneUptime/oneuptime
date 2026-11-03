@@ -26,6 +26,7 @@ import {
   ToolContext,
   ToolExecutionResult,
 } from "./ToolTypes";
+import { translationKey } from "../../../../Types/Translator";
 
 /*
  * Derived from the model ACL so the tool gate can never drift from RBAC.
@@ -472,10 +473,22 @@ export const QueryStatusPagesTool: ObservabilityTool = {
           ? WidgetBuilder.table({
               title: `Status pages (${totalCount.toNumber()})`,
               columns: [
-                { key: "name", title: "Name", type: "text" },
-                { key: "description", title: "Description", type: "text" },
-                { key: "visibility", title: "Visibility", type: "text" },
-                { key: "publicUrl", title: "Public URL", type: "text" },
+                { key: "name", title: translationKey("Name"), type: "text" },
+                {
+                  key: "description",
+                  title: translationKey("Description"),
+                  type: "text",
+                },
+                {
+                  key: "visibility",
+                  title: translationKey("Visibility"),
+                  type: "text",
+                },
+                {
+                  key: "publicUrl",
+                  title: translationKey("Public URL"),
+                  type: "text",
+                },
               ],
               rows: rows,
               link: {
@@ -636,10 +649,22 @@ export const QueryStatusPageAnnouncementsTool: ObservabilityTool = {
               title: `Status page announcements (${rows.length})`,
               description: `Shown in the last ${withinDays}d`,
               columns: [
-                { key: "title", title: "Title", type: "text" },
-                { key: "showAnnouncementAt", title: "Shown at", type: "date" },
-                { key: "endAnnouncementAt", title: "Ends at", type: "date" },
-                { key: "statusPages", title: "Status pages", type: "text" },
+                { key: "title", title: translationKey("Title"), type: "text" },
+                {
+                  key: "showAnnouncementAt",
+                  title: translationKey("Shown at"),
+                  type: "date",
+                },
+                {
+                  key: "endAnnouncementAt",
+                  title: translationKey("Ends at"),
+                  type: "date",
+                },
+                {
+                  key: "statusPages",
+                  title: translationKey("Status pages"),
+                  type: "text",
+                },
               ],
               rows: rows,
               link: statusPageId

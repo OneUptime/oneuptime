@@ -85,7 +85,7 @@ The list pages (for example **Incidents** or **Monitors**) have the same section
 
 Secrets are never shown on these pages. When the configuration needs one (for example a monitor's `Authorization` header), it reads it from a Terraform variable marked `sensitive`. Secrets it does not need are left out, and Terraform leaves them as they are in OneUptime.
 
-The same section has an **API** page, with `curl` commands for the resource, and an **AI Assistants** page, which connects Claude, GitHub Copilot or Cursor to the [MCP server](/docs/ai/mcp-server).
+The same section has an **API** page, with `curl` commands for the resource, a **CLI** page, with the same requests as `oneuptime` commands, and an **AI Assistants** page, which connects Claude, GitHub Copilot or Cursor to the [MCP server](/docs/ai/mcp-server).
 
 ## What you can manage
 

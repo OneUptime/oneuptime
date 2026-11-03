@@ -17,7 +17,13 @@ import { isOfferableColumn, jsonOnlyColumns } from "./ColumnControl";
 import ColumnFieldRow from "./ColumnFieldRow";
 import { ModelColumnRow, makeColumnRow } from "./ColumnRow";
 import { ColumnUse } from "./ColumnUse";
-import React, { FunctionComponent, ReactElement, useState } from "react";
+import { WorkflowViewOnlyContext } from "../WorkflowViewOnly";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useContext,
+  useState,
+} from "react";
 import { Translator, translationKey } from "../../../Utils/TranslateTemplate";
 import useTranslator from "../../../Utils/UseTranslator";
 
@@ -37,6 +43,12 @@ const ModelRecordForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  /*
+   * A step opened to be read (WorkflowViewOnly): the fields as they are, and
+   * none of the ways to add one - the picker under them, the hints that say
+   * how to pick one or which fields only JSON can set.
+   */
+  const isViewOnly: boolean = useContext(WorkflowViewOnlyContext);
   /*
    * The row just added from the picker, so its value control can take focus.
    * Without it the picker's list closes and focus falls to the document body,
@@ -114,11 +126,15 @@ const ModelRecordForm: FunctionComponent<ComponentProps> = (
             <p className="mt-2 text-sm font-medium text-gray-700">
               {translator.translateText("No fields set yet")}
             </p>
-            <p className="mt-1 text-xs text-gray-500">
-              {translator.translateText(
-                "Pick a field below to start building this record.",
-              )}
-            </p>
+            {isViewOnly ? (
+              <></>
+            ) : (
+              <p className="mt-1 text-xs text-gray-500">
+                {translator.translateText(
+                  "Pick a field below to start building this record.",
+                )}
+              </p>
+            )}
           </div>
         ) : (
           <div className="divide-y divide-gray-100">
@@ -147,27 +163,31 @@ const ModelRecordForm: FunctionComponent<ComponentProps> = (
           </div>
         )}
 
-        <div className="border-t border-gray-100 bg-gray-50/40 px-3 py-2.5">
-          <AddColumnPicker
-            columns={offerableColumns}
-            use={props.use}
-            requiredColumnIds={requiredColumnIds}
-            triggerLabel={translationKey("Add a field")}
-            allowCustomColumn={true}
-            dataTestId="model-column-add"
-            onAdd={(columnId: string) => {
-              const added: ModelColumnRow = makeColumnRow({
-                columnId: columnId,
-              });
+        {isViewOnly ? (
+          <></>
+        ) : (
+          <div className="border-t border-gray-100 bg-gray-50/40 px-3 py-2.5">
+            <AddColumnPicker
+              columns={offerableColumns}
+              use={props.use}
+              requiredColumnIds={requiredColumnIds}
+              triggerLabel={translationKey("Add a field")}
+              allowCustomColumn={true}
+              dataTestId="model-column-add"
+              onAdd={(columnId: string) => {
+                const added: ModelColumnRow = makeColumnRow({
+                  columnId: columnId,
+                });
 
-              setJustAddedKey(added.key);
-              props.onChange([...props.rows, added]);
-            }}
-          />
-        </div>
+                setJustAddedKey(added.key);
+                props.onChange([...props.rows, added]);
+              }}
+            />
+          </div>
+        )}
       </div>
 
-      {unofferableColumnTitles.length > 0 && (
+      {!isViewOnly && unofferableColumnTitles.length > 0 && (
         <p className="mt-1.5 text-xs text-gray-400">
           {unofferableColumnTitles.length > 3
             ? translator.translatePlural(

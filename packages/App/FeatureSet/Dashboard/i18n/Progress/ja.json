@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 40315,
+    "keys": 40407,
     "untranslated": 1140
   },
   "sameAsEnglish": [
@@ -215,6 +215,7 @@
     "VMware VM",
     "VMware vCenter",
     "Vertical Pod Autoscalers",
+    "Vital",
     "Vitals",
     "WARN",
     "Web",

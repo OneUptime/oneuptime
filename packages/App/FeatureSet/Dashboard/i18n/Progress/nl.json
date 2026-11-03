@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40315,
-    "untranslated": 12617
+    "keys": 40407,
+    "untranslated": 12601
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -199,6 +199,7 @@
     "Portugal (+351)",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
     "Postmortem",
+    "Principal",
     "Privacy",
     "Producer",
     "Product",
@@ -287,6 +288,7 @@
     "VM · esx-04",
     "VMID {{vmid}}",
     "VMware vCenter",
+    "Vital",
     "Volume",
     "Volumes",
     "Web",
@@ -326,8 +328,11 @@
     "main",
     "message",
     "name",
+    "p90 (ms)",
     "p95",
+    "p95 (ms)",
     "p95 {{latency}}",
+    "p99 (ms)",
     "probe",
     "prod, staging",
     "prod-.*",

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40315,
-    "untranslated": 12517
+    "keys": 40407,
+    "untranslated": 12502
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -62,6 +62,7 @@
     "VLAN",
     "VMID {{vmid}}",
     "VMware vCenter",
+    "Vital",
     "[\".customer-name\", \"#invoice-total\"]",
     "[\"ResizeObserver loop\", \"third-party-tag\\\\.js\"]",
     "[\"iframe.payment\", \".id-document\"]",
@@ -78,8 +79,11 @@
     "main",
     "message",
     "name",
+    "p90 (ms)",
     "p95",
+    "p95 (ms)",
     "p95 {{latency}}",
+    "p99 (ms)",
     "prod, staging",
     "prod-.*",
     "prod-vcenter",

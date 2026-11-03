@@ -10,6 +10,7 @@ import {
 import { JSONObject } from "../../../../../Types/JSON";
 import { ThreatIntelIndicatorType } from "../../../../../Types/SecurityEvent/ThreatIntelConstants";
 import { describe, expect, test } from "@jest/globals";
+import { INHERITED_PROPERTY_NAME_SPELLINGS } from "../../../../Helpers/InheritedNames";
 
 /*
  * One IoCDiscoveryInfo from legacySearchEnterpriseWideIoCs, as Google SecOps
@@ -322,5 +323,20 @@ describe("one artifact matched more than once in a window", () => {
 
     expect(mergeGoogleSecOpsIocs([muted, matched])[0]!.muted).toBe(false);
     expect(mergeGoogleSecOpsIocs([muted, { ...muted }])[0]!.muted).toBe(true);
+  });
+});
+
+describe("googleSecOpsIocConfidence: words named after what every object inherits", () => {
+  test("a bucket or a priority named after one adds no confidence", () => {
+    for (const name of INHERITED_PROPERTY_NAME_SPELLINGS) {
+      expect({
+        name,
+        bucket: googleSecOpsIocConfidence({ confidenceBucket: name }),
+        priority: googleSecOpsIocConfidence({
+          confidenceBucket: "low",
+          priority: name,
+        }),
+      }).toEqual({ name, bucket: 0, priority: 20 });
+    }
   });
 });

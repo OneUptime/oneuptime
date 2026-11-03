@@ -1,4 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
+import { INHERITED_PROPERTY_NAME_SPELLINGS } from "../../../Helpers/InheritedNames";
 import fs from "fs";
 import path from "path";
 import { JSONObject } from "../../../../Types/JSON";
@@ -754,5 +755,49 @@ describe("MicrosoftDefenderXdrNormalizer: the process the alert is about", () =>
       event.parentProcessPath,
       event.parentProcessCommandLine,
     ]).toEqual(["", "", "", "", "", ""]);
+  });
+});
+
+describe("MicrosoftDefenderXdrNormalizer: words named after what every object inherits", () => {
+  test("a category named after one is no tactic, and a status named after one has no OCSF name", () => {
+    for (const name of INHERITED_PROPERTY_NAME_SPELLINGS) {
+      const alert: JSONObject = vendorSampleAlert();
+      alert["category"] = name;
+      alert["categories"] = [name];
+      alert["status"] = name;
+
+      const event: NormalizedSecurityEvent =
+        MicrosoftDefenderXdrNormalizer.normalize(alert);
+
+      expect({
+        name,
+        tactics: event.mitreTactics,
+        status: event.statusName,
+      }).toEqual({ name, tactics: [], status: "" });
+    }
+  });
+
+  test("Graph's alert statuses still read as OCSF's, and the matrix's current tactic names map", () => {
+    for (const [status, name] of [
+      ["unknown", "Unknown"],
+      ["new", "New"],
+      ["inProgress", "In Progress"],
+      ["resolved", "Resolved"],
+    ]) {
+      const alert: JSONObject = vendorSampleAlert();
+      alert["status"] = status!;
+
+      expect(MicrosoftDefenderXdrNormalizer.normalize(alert).statusName).toBe(
+        name,
+      );
+    }
+
+    const alert: JSONObject = vendorSampleAlert();
+    alert["category"] = "Stealth";
+    alert["categories"] = ["DefenseImpairment", "Malware"];
+
+    expect(
+      MicrosoftDefenderXdrNormalizer.normalize(alert).mitreTactics.sort(),
+    ).toEqual(["TA0005", "TA0112"]);
   });
 });
