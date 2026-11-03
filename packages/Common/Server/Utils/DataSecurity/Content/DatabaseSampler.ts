@@ -63,10 +63,15 @@ import {
 
 /*
  * The engines a connection names. Data Security samples the first three
- * (DATABASE_ENGINES); Data Observability also collects Amazon Redshift
- * (DataObservabilityEngines).
+ * (DATABASE_ENGINES); Data Observability also collects Amazon Redshift and
+ * Snowflake (DataObservabilityEngines).
  */
-export type DatabaseEngine = "postgresql" | "mysql" | "sqlserver" | "redshift";
+export type DatabaseEngine =
+  | "postgresql"
+  | "mysql"
+  | "sqlserver"
+  | "redshift"
+  | "snowflake";
 
 export const DATABASE_ENGINES: ReadonlyArray<DatabaseEngine> = [
   "postgresql",

@@ -23,6 +23,11 @@ import {
   STATEMENT_TIMEOUT_IN_MS,
 } from "../DataSecurity/Content/DatabaseSampler";
 import { readConnectionTarget, TableHealthTarget } from "./TableHealthTarget";
+import SnowflakeSqlApi, {
+  readSnowflakeConnection,
+  SnowflakeConnection,
+} from "./SnowflakeSqlApi";
+import { JSONObject } from "../../../Types/JSON";
 import {
   DataCheckRunResult,
   MAX_CHECK_ERROR_LENGTH,
@@ -1199,6 +1204,257 @@ class RedshiftCatalog implements CatalogSession {
   }
 }
 
+const SNOWFLAKE_BARE_NAME: RegExp = /^[A-Za-z_][A-Za-z0-9_$]*$/;
+
+// A Snowflake name as a statement writes it: bare when it can be, else quoted.
+export function snowflakeIdentifier(name: string): string {
+  return SNOWFLAKE_BARE_NAME.test(name)
+    ? name
+    : `"${name.replace(/"/g, '""')}"`;
+}
+
+// A SHOW TABLES row's kind; a temporary table is a session's, never watched.
+export function readSnowflakeTableKind(
+  row: Record<string, unknown>,
+): DataAssetKind | null {
+  const kind: string = String(row["kind"] ?? "TABLE").toUpperCase();
+
+  if (kind === "TEMPORARY" || String(row["is_external"] ?? "N") === "Y") {
+    return null;
+  }
+
+  return DataAssetKind.Table;
+}
+
+// A SHOW COLUMNS row's type, as Snowflake writes it: NUMBER(38,0), VARCHAR(255).
+export function readSnowflakeColumnType(dataType: unknown): {
+  dataType: string;
+  isNullable: boolean;
+} {
+  let parsed: JSONObject = {};
+
+  try {
+    parsed =
+      typeof dataType === "string" ? (JSON.parse(dataType) as JSONObject) : {};
+  } catch {
+    parsed = {};
+  }
+
+  const type: string = String(parsed["type"] || "").toUpperCase();
+  const isNullable: boolean = parsed["nullable"] !== false;
+
+  if (type === "FIXED") {
+    return {
+      dataType: `NUMBER(${String(parsed["precision"] ?? 38)},${String(parsed["scale"] ?? 0)})`,
+      isNullable,
+    };
+  }
+
+  if (type === "TEXT") {
+    return {
+      dataType: parsed["length"]
+        ? `VARCHAR(${String(parsed["length"])})`
+        : "VARCHAR",
+      isNullable,
+    };
+  }
+
+  if (type === "REAL") {
+    return { dataType: "FLOAT", isNullable };
+  }
+
+  return { dataType: type || "UNKNOWN", isNullable };
+}
+
+/*
+ * Snowflake, over its SQL API (SnowflakeSqlApi). The catalog is read with
+ * SHOW - tables with their rows and bytes, views, columns schema by schema
+ * (SHOW returns at most 10,000 rows) - which needs no warehouse, so a
+ * collection costs no credits. SHOW says no table's last change, so a table
+ * changed when its rows or bytes moved. A data check reads a table's rows,
+ * so it runs on the connection's warehouse.
+ */
+class SnowflakeCatalog implements CatalogSession {
+  public readonly engine: DatabaseEngine = "snowflake";
+  private readonly api: SnowflakeSqlApi;
+  private readonly database: string;
+
+  private constructor(api: SnowflakeSqlApi, database: string) {
+    this.api = api;
+    this.database = database;
+  }
+
+  public static async open(
+    connectionString: string,
+  ): Promise<SnowflakeCatalog> {
+    const connection: SnowflakeConnection =
+      readSnowflakeConnection(connectionString);
+    const session: SnowflakeCatalog = new SnowflakeCatalog(
+      new SnowflakeSqlApi({ connection }),
+      connection.database,
+    );
+
+    // A connection that cannot list its database's schemas cannot collect.
+    await session.api.query({
+      statement: `SHOW SCHEMAS IN DATABASE ${snowflakeIdentifier(connection.database)} LIMIT 1`,
+    });
+
+    return session;
+  }
+
+  public async readAggregate(
+    sql: string,
+    params: Array<string>,
+  ): Promise<Array<Record<string, unknown>>> {
+    return await this.api.query({
+      statement: sql,
+      bindings: params,
+      useWarehouse: true,
+    });
+  }
+
+  public async read(options: TableHealthCollectOptions): Promise<CatalogRead> {
+    const warnings: Array<string> = [];
+    const database: string = snowflakeIdentifier(this.database);
+    const limit: number = Math.min(options.maxTables, 10_000);
+    const tables: Array<RawTable> = [];
+
+    for (const row of await this.api.query({
+      statement: `SHOW TABLES IN DATABASE ${database} LIMIT ${limit}`,
+    })) {
+      const kind: DataAssetKind | null = readSnowflakeTableKind(row);
+      const schema: string = readText(
+        row["schema_name"],
+        MAX_IDENTIFIER_LENGTH,
+      );
+      const name: string = readText(row["name"], MAX_IDENTIFIER_LENGTH);
+
+      if (!kind || !name || schema === "INFORMATION_SCHEMA") {
+        continue;
+      }
+
+      tables.push({
+        schema,
+        name,
+        kind,
+        estimatedRows: readCount(row["rows"]),
+        sizeInBytes: readCount(row["bytes"]),
+        writeCount: null,
+        secondsSinceChange: null,
+        readCount: null,
+        secondsSinceRead: null,
+      });
+    }
+
+    try {
+      for (const row of await this.api.query({
+        statement: `SHOW VIEWS IN DATABASE ${database} LIMIT ${limit}`,
+      })) {
+        const schema: string = readText(
+          row["schema_name"],
+          MAX_IDENTIFIER_LENGTH,
+        );
+        const name: string = readText(row["name"], MAX_IDENTIFIER_LENGTH);
+
+        if (!name || schema === "INFORMATION_SCHEMA") {
+          continue;
+        }
+
+        tables.push({
+          schema,
+          name,
+          kind:
+            String(row["is_materialized"] ?? "false") === "true"
+              ? DataAssetKind.MaterializedView
+              : DataAssetKind.View,
+          estimatedRows: null,
+          sizeInBytes: null,
+          writeCount: null,
+          secondsSinceChange: null,
+          readCount: null,
+          secondsSinceRead: null,
+        });
+      }
+    } catch (error) {
+      warnings.push(
+        `Views were left out: ${describeError(error).slice(0, 200)}`,
+      );
+    }
+
+    const columns: Array<RawColumn> = [];
+    const schemas: Array<string> = Array.from(
+      new Set(
+        tables.map((table: RawTable): string => {
+          return table.schema;
+        }),
+      ),
+    ).sort();
+
+    for (const schema of schemas) {
+      if (columns.length >= options.maxColumns) {
+        break;
+      }
+
+      try {
+        const positions: Map<string, number> = new Map();
+
+        for (const row of await this.api.query({
+          statement: `SHOW COLUMNS IN SCHEMA ${database}.${snowflakeIdentifier(schema)}`,
+        })) {
+          const table: string = readText(
+            row["table_name"],
+            MAX_IDENTIFIER_LENGTH,
+          );
+          const name: string = readText(
+            row["column_name"],
+            MAX_IDENTIFIER_LENGTH,
+          );
+
+          if (!table || !name || columns.length >= options.maxColumns) {
+            continue;
+          }
+
+          // SHOW lists a table's columns in their order.
+          const position: number = (positions.get(table) || 0) + 1;
+          const type: { dataType: string; isNullable: boolean } =
+            readSnowflakeColumnType(row["data_type"]);
+
+          positions.set(table, position);
+          columns.push({
+            schema,
+            table,
+            column: {
+              name,
+              dataType: type.dataType,
+              isNullable: type.isNullable,
+              position,
+            },
+          });
+        }
+      } catch (error) {
+        warnings.push(
+          `The columns of ${schema} were left out: ${describeError(error).slice(0, 200)}`,
+        );
+      }
+    }
+
+    return {
+      tables: tables
+        .sort((a: RawTable, b: RawTable) => {
+          return keyOf(a.schema, a.name).localeCompare(keyOf(b.schema, b.name));
+        })
+        .slice(0, options.maxTables),
+      columns,
+      warnings,
+      secondsSinceStatsReset: null,
+    };
+  }
+
+  public async close(): Promise<void> {
+    // Each statement is its own request: nothing is held open.
+  }
+}
+
 async function openCatalog(
   connection: DatabaseConnection,
 ): Promise<CatalogSession> {
@@ -1207,6 +1463,8 @@ async function openCatalog(
       return await PostgresCatalog.open(connection.connectionString);
     case "redshift":
       return await RedshiftCatalog.open(connection.connectionString);
+    case "snowflake":
+      return await SnowflakeCatalog.open(connection.connectionString);
     case "mysql":
       return await MySqlCatalog.open(connection.connectionString);
     case "sqlserver":

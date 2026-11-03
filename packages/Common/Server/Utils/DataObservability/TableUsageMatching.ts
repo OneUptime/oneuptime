@@ -84,6 +84,7 @@ const EXTRA_SYSTEM_KINDS: Readonly<Record<string, DataStoreKind>> = {
   "azure.sql_server": DataStoreKind.SqlServer,
   redshift: DataStoreKind.AwsRedshiftCluster,
   "aws.redshift": DataStoreKind.AwsRedshiftCluster,
+  snowflake: DataStoreKind.Snowflake,
 };
 
 // The schema a table is in when a statement names it alone.
@@ -91,6 +92,7 @@ const DEFAULT_SCHEMAS: Readonly<Partial<Record<DataStoreKind, string>>> = {
   [DataStoreKind.PostgreSql]: "public",
   [DataStoreKind.SqlServer]: "dbo",
   [DataStoreKind.AwsRedshiftCluster]: "public",
+  [DataStoreKind.Snowflake]: "public",
 };
 
 function normalizeName(value: string): string {
