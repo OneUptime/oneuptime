@@ -3739,11 +3739,9 @@ done`;
         collected.match(/`(sqlquery\/[a-z]+)`/) as RegExpMatchArray
       )[1] as string;
 
-      expect(readConfig("postgresql")).toMatch(
-        new RegExp(
-          `^ {6}receivers: \\[postgresql, ${receiver.replace("/", "\\/")}\\]$`,
-          "m",
-        ),
+      // The metrics pipeline runs it beside the engine's receiver.
+      expect(readConfig("postgresql").split("\n")).toContain(
+        `      receivers: [postgresql, ${receiver}]`,
       );
       expect(collected).toContain("`DATABASE_TLS_SSLMODE`");
     });
