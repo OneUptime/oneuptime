@@ -4,16 +4,20 @@ import {
   View,
   type AccessibilityActionEvent,
   type GestureResponderEvent,
+  type ViewProps,
   type ViewStyle,
 } from "react-native";
-import { touchTarget, useTheme } from "../theme";
+import { radius, touchTarget, useTheme } from "../theme";
 import type { ListPaneWidthRange } from "../layout/windowLayout";
 import {
   clampListPaneWidth,
   describeListPaneShare,
+  getDividerKeyMove,
+  moveListPaneWidthByKey,
   snapListPaneWidth,
   stepListPaneWidth,
   toPreferredListPaneWidth,
+  type DividerKeyMove,
 } from "../layout/paneDivider";
 
 /*
@@ -30,8 +34,53 @@ import {
  * Dragging it moves the divider at once; letting go keeps the width, and
  * close to where the layout puts the divider it settles exactly there. A
  * double tap puts it back. With a screen reader it is an adjustable control:
- * swipe up or down to widen or narrow the list.
+ * swipe up or down to widen or narrow the list. From a keyboard it is a tab
+ * stop: the arrow keys move it, Home and End take it to either end, and
+ * Enter puts it back (layout/paneDivider.ts) - with a ring around it and
+ * the divider's line drawn while it has focus, so the reader sees what the
+ * keys move.
  */
+
+/*
+ * A key pressed while the handle has focus. The web build delivers every
+ * key; React Native delivers them to a focused view where its key events
+ * are on. Typed by hand because React Native's own View types do not list
+ * the key props yet.
+ */
+interface DividerKeyEvent {
+  nativeEvent?: { key?: unknown };
+  key?: unknown;
+  preventDefault?: () => void;
+}
+
+function keyOf(event: DividerKeyEvent): string {
+  const key: unknown = event.nativeEvent?.key ?? event.key;
+  return typeof key === "string" ? key : "";
+}
+
+/*
+ * Whether the handle took focus from a keyboard, so it shows its ring. On a
+ * phone or a tablet a touch never focuses it - only a keyboard does - but a
+ * browser focuses it on a click too, and there the ring follows the
+ * browser's own rule for showing focus (:focus-visible).
+ */
+export function isKeyboardFocus(event: unknown): boolean {
+  if (Platform.OS !== "web") {
+    return true;
+  }
+  const target: unknown = (event as { target?: unknown } | null)?.target;
+  const matches: unknown = (target as { matches?: unknown } | null)?.matches;
+  if (typeof matches !== "function") {
+    return true;
+  }
+  try {
+    return Boolean(
+      (matches as (selector: string) => boolean).call(target, ":focus-visible"),
+    );
+  } catch {
+    return true;
+  }
+}
 
 /**
  * The handle's touch target, centred on the divider: as wide as every other
@@ -82,6 +131,8 @@ export default function PaneDivider({
 }: PaneDividerProps): React.JSX.Element {
   const { theme } = useTheme();
   const [active, setActive] = useState<boolean>(false);
+  // Focused from a keyboard: the keys move the divider.
+  const [focused, setFocused] = useState<boolean>(false);
   const dragStart: React.MutableRefObject<DragStart | null> =
     useRef<DragStart | null>(null);
   const moved: React.MutableRefObject<boolean> = useRef<boolean>(false);
@@ -144,18 +195,45 @@ export default function PaneDivider({
     }
   };
 
-  const tint: string = active
-    ? theme.colors.actionPrimary
-    : theme.colors.textTertiary;
+  const onKeyDown: (event: DividerKeyEvent) => void = (
+    event: DividerKeyEvent,
+  ): void => {
+    const move: DividerKeyMove | null = getDividerKeyMove(keyOf(event));
+    if (!move) {
+      return;
+    }
+    // The page would scroll on an arrow key; here it moves the divider instead.
+    event.preventDefault?.();
+    // The reader is on the keyboard now, whatever focused the handle: show what the keys move.
+    setFocused(true);
+    const next: number | null = moveListPaneWidthByKey(
+      width,
+      move,
+      range,
+      defaultWidth,
+    );
+    onCommit(next === null ? null : toPreferredListPaneWidth(next, defaultWidth));
+  };
 
+  const keyProps: ViewProps = {
+    onKeyDown,
+  } as unknown as ViewProps;
+
+  const tint: string =
+    active || focused ? theme.colors.actionPrimary : theme.colors.textTertiary;
+
+  /*
+   * In a browser: the resize cursor, and no outline of the browser's own -
+   * the handle draws its ring itself, in the app's colour.
+   */
   const webCursor: ViewStyle | null =
     Platform.OS === "web"
-      ? ({ cursor: "col-resize" } as unknown as ViewStyle)
+      ? ({ cursor: "col-resize", outlineStyle: "none" } as unknown as ViewStyle)
       : null;
 
   return (
     <>
-      {active ? (
+      {active || focused ? (
         <View
           testID="pane-divider-line"
           style={{
@@ -188,6 +266,14 @@ export default function PaneDivider({
           { name: "activate", label: "Put the divider back" },
         ]}
         onAccessibilityAction={onAccessibilityAction}
+        focusable
+        onFocus={(event: unknown): void => {
+          setFocused(isKeyboardFocus(event));
+        }}
+        onBlur={(): void => {
+          setFocused(false);
+        }}
+        {...keyProps}
         onStartShouldSetResponder={(): boolean => {
           return true;
         }}
@@ -230,6 +316,10 @@ export default function PaneDivider({
             marginTop: -DIVIDER_HANDLE_TOUCH_HEIGHT / 2,
             alignItems: "center",
             justifyContent: "center",
+            borderRadius: radius.md,
+            borderWidth: 2,
+            // The focus ring: the keys move what it surrounds.
+            borderColor: focused ? theme.colors.actionPrimary : "transparent",
           },
           webCursor,
         ]}
