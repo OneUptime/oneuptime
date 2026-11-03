@@ -1164,13 +1164,23 @@ test.describe("cloud accounts", () => {
       page.getByTestId("resource-overview-title-block"),
     ).toContainText("123456789012");
 
-    // The tiles: how many resources (the way to them), Regions and types.
+    /*
+     * The tiles: how many resources (the way to them), Regions, and what it
+     * cost this month (the way to its Costs) - not read yet, said so rather
+     * than as costing nothing.
+     */
     await expect(
       page.getByRole("link", { name: "View Resources" }),
     ).toHaveAttribute("href", `${ACCOUNTS_PATH}/${AWS_ACCOUNT}/resources`);
+    await expect(tile(page, "Spend this month")).toContainText(
+      "Costs not read yet",
+    );
     await expect(
-      page.getByText("Resource Types", { exact: true }),
-    ).toBeVisible();
+      page.getByRole("link", { name: "View Spend this month" }),
+    ).toHaveAttribute("href", `${ACCOUNTS_PATH}/${AWS_ACCOUNT}/costs`);
+    await expect(page.getByText("Resource Types", { exact: true })).toHaveCount(
+      0,
+    );
 
     // The Details card: the account's cloud, its name there and its connection.
     const details: Locator = page.getByTestId("resource-overview-details");
@@ -1482,7 +1492,12 @@ test.describe("an account's pages", () => {
     await expect(countRow(regions, "us-east-1")).toContainText("31");
 
     const tiles: Array<Box> = [];
-    for (const title of ["Resources", "Regions", "Resource Types", "Changes"]) {
+    for (const title of [
+      "Resources",
+      "Regions",
+      "Spend this month",
+      "Changes",
+    ]) {
       tiles.push(await boxOf(tile(page, title)));
     }
 

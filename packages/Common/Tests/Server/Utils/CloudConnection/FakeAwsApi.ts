@@ -266,6 +266,15 @@ export interface FakeAwsOptions {
   // IAM: every account's identities, or each account's own (by its id).
   iam?: FakeIam | undefined;
   iamByAccount?: Record<string, FakeIam> | undefined;
+  /*
+   * Cost Explorer (GetCostAndUsage, in us-east-1): each request answered by
+   * the next of these pages, the last repeating - or by the error.
+   */
+  costPages?: Array<JSONObject> | undefined;
+  costError?: FakeResponse | undefined;
+  // Cost Optimization Hub (ListRecommendations): its items, or the error.
+  savingsItems?: Array<JSONObject> | undefined;
+  savingsError?: FakeResponse | undefined;
 }
 
 export interface FakeAws extends FakeProviderApi {
@@ -288,6 +297,13 @@ export interface FakeAws extends FakeProviderApi {
   assumedRoles: Array<string>;
   // LookupEvents calls by Region and the account they were signed for.
   cloudTrailCalls: Array<{ region: string; body: JSONObject; account: string }>;
+  // Cost Explorer and Cost Optimization Hub calls, with the Region and body.
+  costCalls: Array<{
+    service: string;
+    action: string;
+    region: string;
+    body: JSONObject;
+  }>;
   // AWS Health calls by action, with the Region and the account they were signed for.
   healthCalls: Array<{
     action: string;
@@ -1353,6 +1369,7 @@ export function createFakeAws(options: FakeAwsOptions): FakeAws {
   const organizationsCalls: Array<string> = [];
   const cloudTrailCalls: FakeAws["cloudTrailCalls"] = [];
   const healthCalls: FakeAws["healthCalls"] = [];
+  const costCalls: FakeAws["costCalls"] = [];
   const getMetricDataTurns: Map<string, number> = new Map();
   const account: string = options.account || FAKE_ACCOUNT_ID;
   const expiredSignatures: { count: number } = { count: 0 };
@@ -1541,6 +1558,40 @@ export function createFakeAws(options: FakeAwsOptions): FakeAws {
         return json({
           Accounts: (options.organizationAccounts ||
             []) as unknown as JSONValue,
+        });
+      }
+
+      // Cost Explorer and Cost Optimization Hub, in us-east-1.
+      if (service === "ce" || service === "cost-optimization-hub") {
+        const action: string =
+          headerOf(request, "X-Amz-Target").split(".")[1] || "";
+        const body: JSONObject = bodyOf(request);
+        const turn: number = costCalls.filter(
+          (call: { service: string }): boolean => {
+            return call.service === service;
+          },
+        ).length;
+
+        costCalls.push({ service, action, region, body });
+
+        if (service === "ce") {
+          if (options.costError) {
+            return options.costError;
+          }
+
+          const pages: Array<JSONObject> = options.costPages || [
+            { ResultsByTime: [] },
+          ];
+
+          return json(pages[Math.min(turn, pages.length - 1)]!);
+        }
+
+        if (options.savingsError) {
+          return options.savingsError;
+        }
+
+        return json({
+          items: (options.savingsItems || []) as unknown as JSONValue,
         });
       }
 
@@ -2125,6 +2176,7 @@ export function createFakeAws(options: FakeAwsOptions): FakeAws {
     assumedRoles,
     cloudTrailCalls,
     healthCalls,
+    costCalls,
     expiredSignatures,
     s3Calls,
     dataCalls,

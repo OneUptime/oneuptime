@@ -50,6 +50,9 @@ import {
   CloudChange,
   CloudChangesOptions,
   CloudChangesResult,
+  CloudCostAccountOutcome,
+  CloudCostsOptions,
+  CloudCostsResult,
   CloudDiscoveredResource,
   CloudInventoryOptions,
   CloudInventoryResult,
@@ -57,12 +60,21 @@ import {
   CloudReadBudgetSpent,
   CloudReadOptions,
   CloudReadResult,
+  CloudSavingsOptions,
+  CloudSavingsResult,
   getCloudSecretValues,
   getOrganizationLimitWarning,
   orderLeastRecentlyRead,
   readCloudSetting,
 } from "../CloudConnectorTypes";
 import { AwsCredentials } from "./AwsApi";
+import {
+  describeAwsCostFailure,
+  getAwsCostRegion,
+  readAwsCostAndUsage,
+  readAwsCostOptimizationHub,
+} from "./AwsCosts";
+import { CloudCostState } from "../../../../Types/Cloud/CloudCost";
 import {
   AwsListedMetric,
   AwsMetricQuery,
@@ -1883,6 +1895,301 @@ export default class AwsCloudConnector implements CloudConnector {
     }
 
     return result;
+  }
+
+  /*
+   * The accounts a read of costs or savings is about: the one account, or
+   * every account of the organization the last read listed, with the
+   * management account itself.
+   */
+  private getCostAccounts(
+    settings: CloudConnectionSettings,
+    state: CloudConnectionPullState,
+  ): Array<string> {
+    if (!this.isOrganization(settings)) {
+      return [state.accounts?.[0] || ""];
+    }
+
+    return Array.from(
+      new Set<string>(
+        [
+          ...(state.accounts || []),
+          ...(state.organizationAccounts || []).map(
+            (account: { id: string }): string => {
+              return account.id;
+            },
+          ),
+        ].filter((accountId: string): boolean => {
+          return Boolean(accountId);
+        }),
+      ),
+    );
+  }
+
+  /*
+   * The credential and the account a read of costs or savings is signed
+   * with: the connection's own - an organization's management account,
+   * which reads every account's - and the account it is in, asked when no
+   * read has said it yet.
+   */
+  private async getCostCredentials(
+    settings: CloudConnectionSettings,
+    options: CloudCostsOptions | CloudSavingsOptions,
+  ): Promise<{ credentials: AwsCredentials; accounts: Array<string> }> {
+    const credentials: AwsCredentials = await this.getCredentials(settings, {
+      ...options,
+      connectionId: options.connectionId,
+      budget: options.budget,
+    });
+    let accounts: Array<string> = this.getCostAccounts(settings, options.state);
+
+    if (!this.isOrganization(settings) && !accounts[0]) {
+      accounts = [
+        (
+          await getCallerIdentity({
+            transport: options.transport,
+            credentials,
+            region: this.getStsRegion(settings),
+            now: options.now,
+            timeoutInMs: options.requestTimeoutInMs,
+            budget: options.budget,
+          })
+        ).account,
+      ];
+    }
+
+    return { credentials, accounts };
+  }
+
+  private static outcomesOf(
+    accounts: Array<string>,
+    state: CloudCostState,
+    message?: string | undefined,
+  ): Array<CloudCostAccountOutcome> {
+    return accounts.map((accountId: string): CloudCostAccountOutcome => {
+      return message ? { accountId, state, message } : { accountId, state };
+    });
+  }
+
+  /*
+   * What the connection's accounts cost per day, from Cost Explorer: by
+   * service and Region for one account, by account and service from an
+   * organization's management account - one call for every account
+   * (AwsCosts). A refused credential fails the read; anything else is the
+   * accounts' outcome, said in words they can act on.
+   */
+  public async readCosts(
+    settings: CloudConnectionSettings,
+    options: CloudCostsOptions,
+  ): Promise<CloudCostsResult> {
+    const region: string | null = getAwsCostRegion(this.getStsRegion(settings));
+    const isOrganization: boolean = this.isOrganization(settings);
+
+    if (!region) {
+      return {
+        records: [],
+        accounts: AwsCloudConnector.outcomesOf(
+          this.getCostAccounts(settings, options.state),
+          CloudCostState.NotSetUp,
+          "A GovCloud account's costs are read from the standard AWS account it is billed through. Connect that account to see them.",
+        ),
+        warnings: [],
+        complete: true,
+      };
+    }
+
+    const { credentials, accounts } = await this.getCostCredentials(
+      settings,
+      options,
+    );
+
+    try {
+      const read: {
+        records: Array<CloudCostsResult["records"][number]>;
+        complete: boolean;
+      } = await readAwsCostAndUsage({
+        credentials,
+        region,
+        accountId: accounts[0] || "",
+        groupByAccount: isOrganization,
+        start: options.start,
+        end: options.end,
+        options,
+        budget: options.budget,
+      });
+
+      if (!read.complete) {
+        return {
+          records: [],
+          accounts: AwsCloudConnector.outcomesOf(
+            accounts,
+            CloudCostState.Failed,
+            "The costs had more pages than one read takes: they are read again shortly.",
+          ),
+          warnings: [
+            "The accounts' costs had more pages than one read takes: they are read again shortly.",
+          ],
+          complete: false,
+        };
+      }
+
+      const seen: Set<string> = new Set<string>(accounts);
+
+      for (const record of read.records) {
+        seen.add(record.accountId);
+      }
+
+      return {
+        records: read.records,
+        accounts: AwsCloudConnector.outcomesOf(
+          Array.from(seen),
+          CloudCostState.Reading,
+        ),
+        warnings: [],
+        complete: true,
+      };
+    } catch (error) {
+      if (
+        error instanceof LlmProviderError &&
+        error.kind === CloudConnectionFailureKind.Authentication
+      ) {
+        throw error;
+      }
+
+      const failure: { state: CloudCostState; message: string } =
+        error instanceof CloudReadBudgetSpent
+          ? {
+              state: CloudCostState.Failed,
+              message:
+                "The read reached its limit before the costs: they are read again shortly.",
+            }
+          : describeAwsCostFailure({ error, what: "costs" });
+
+      return {
+        records: [],
+        accounts: AwsCloudConnector.outcomesOf(
+          accounts,
+          failure.state,
+          failure.message,
+        ),
+        warnings: [failure.message],
+        complete: false,
+      };
+    }
+  }
+
+  /*
+   * The ways to spend less in the connection's accounts, from Cost
+   * Optimization Hub: an organization's every account from its management
+   * account, else the one account's.
+   */
+  public async readSavings(
+    settings: CloudConnectionSettings,
+    options: CloudSavingsOptions,
+  ): Promise<CloudSavingsResult> {
+    const region: string | null = getAwsCostRegion(this.getStsRegion(settings));
+
+    if (!region) {
+      return {
+        recommendations: [],
+        accounts: AwsCloudConnector.outcomesOf(
+          this.getCostAccounts(settings, options.state),
+          CloudCostState.NotSetUp,
+          "A GovCloud account's recommendations are read from the standard AWS account it is billed through.",
+        ),
+        warnings: [],
+        complete: true,
+      };
+    }
+
+    const { credentials, accounts } = await this.getCostCredentials(
+      settings,
+      options,
+    );
+
+    try {
+      const read: {
+        recommendations: CloudSavingsResult["recommendations"];
+        complete: boolean;
+      } = await readAwsCostOptimizationHub({
+        credentials,
+        region,
+        options,
+        budget: options.budget,
+      });
+
+      if (!read.complete) {
+        return {
+          recommendations: [],
+          accounts: AwsCloudConnector.outcomesOf(
+            accounts,
+            CloudCostState.Failed,
+            "There were more recommendations than one read takes: they are read again tomorrow.",
+          ),
+          warnings: [],
+          complete: false,
+        };
+      }
+
+      const known: Set<string> = new Set<string>(accounts);
+
+      return {
+        // Only the connection's accounts: a management account sees others.
+        recommendations: read.recommendations.filter(
+          (recommendation: CloudSavingsResult["recommendations"][number]) => {
+            return this.isOrganization(settings)
+              ? true
+              : known.has(recommendation.accountId);
+          },
+        ),
+        accounts: AwsCloudConnector.outcomesOf(
+          this.isOrganization(settings)
+            ? Array.from(
+                new Set<string>([
+                  ...accounts,
+                  ...read.recommendations.map(
+                    (
+                      recommendation: CloudSavingsResult["recommendations"][number],
+                    ): string => {
+                      return recommendation.accountId;
+                    },
+                  ),
+                ]),
+              )
+            : accounts,
+          CloudCostState.Reading,
+        ),
+        warnings: [],
+        complete: true,
+      };
+    } catch (error) {
+      if (
+        error instanceof LlmProviderError &&
+        error.kind === CloudConnectionFailureKind.Authentication
+      ) {
+        throw error;
+      }
+
+      const failure: { state: CloudCostState; message: string } =
+        error instanceof CloudReadBudgetSpent
+          ? {
+              state: CloudCostState.Failed,
+              message:
+                "The read reached its limit before the recommendations: they are read again tomorrow.",
+            }
+          : describeAwsCostFailure({ error, what: "savings" });
+
+      return {
+        recommendations: [],
+        accounts: AwsCloudConnector.outcomesOf(
+          accounts,
+          failure.state,
+          failure.message,
+        ),
+        warnings: [failure.message],
+        complete: false,
+      };
+    }
   }
 
   private async readAccountInventory(

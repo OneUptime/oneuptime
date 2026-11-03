@@ -10,6 +10,7 @@ import {
   ImportResolver,
   listCardDrawingModules,
   makeImportResolver,
+  PROPS_DRAWN_BESIDE,
   scanCardNesting,
   scanCardSectionsChildren,
 } from "../../Helpers/CardNestingScan";
@@ -199,6 +200,85 @@ describe("no card inside a card, anywhere in the product", () => {
       expect(entry.reason.length).toBeGreaterThan(40);
     }
   });
+
+  /*
+   * The scan reads a card given to these props as beside the element's own
+   * cards (PROPS_DRAWN_BESIDE), so each element must draw them there: outside
+   * every Card and every frame built by hand with a card's border.
+   */
+  test.each(Object.entries(PROPS_DRAWN_BESIDE))(
+    "%s draws %s outside every card and card frame of its own",
+    (element: string, props: ReadonlyArray<string>) => {
+      const file: string = path.join(
+        REPOSITORY_ROOT,
+        "packages/App/FeatureSet/Dashboard/src/Components/TelemetryResource",
+        `${element}.tsx`,
+      );
+      const source: ts.SourceFile = ts.createSourceFile(
+        file,
+        fs.readFileSync(file, "utf8"),
+        ts.ScriptTarget.Latest,
+        true,
+        ts.ScriptKind.TSX,
+      );
+      const drawn: Array<{ prop: string; inside: Array<string> }> = [];
+
+      const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+        if (
+          ts.isPropertyAccessExpression(node) &&
+          node.expression.getText() === "props" &&
+          props.includes(node.name.getText()) &&
+          ts.isJsxExpression(node.parent.parent || node.parent)
+        ) {
+          const inside: Array<string> = [];
+
+          for (let up: ts.Node = node.parent; up; up = up.parent) {
+            if (ts.isJsxElement(up)) {
+              const tag: string = up.openingElement.tagName.getText();
+              const className: string =
+                up.openingElement.attributes.properties
+                  .find((property: ts.JsxAttributeLike): boolean => {
+                    return (
+                      ts.isJsxAttribute(property) &&
+                      property.name.getText() === "className"
+                    );
+                  })
+                  ?.getText() || "";
+
+              if (
+                tag === "Card" ||
+                (/\bborder\b/.test(className) && /\bbg-white\b/.test(className))
+              ) {
+                inside.push(tag);
+              }
+            }
+          }
+
+          drawn.push({ prop: node.name.getText(), inside: inside });
+        }
+
+        ts.forEachChild(node, visit);
+      };
+
+      visit(source);
+
+      // Each prop is drawn, and none of them inside a card or a card's frame.
+      expect(
+        Array.from(
+          new Set(
+            drawn.map((entry: { prop: string }): string => {
+              return entry.prop;
+            }),
+          ),
+        ).sort(),
+      ).toEqual([...props].sort());
+      expect(
+        drawn.filter((entry: { inside: Array<string> }): boolean => {
+          return entry.inside.length > 0;
+        }),
+      ).toEqual([]);
+    },
+  );
 });
 
 /*
@@ -469,6 +549,26 @@ export default Rules;
         ),
       }),
     ).toEqual(["Rules in Card"]);
+  });
+
+  test("leaves alone a card given to a prop the element draws beside its cards, and finds one in its other props", () => {
+    expect(
+      scan({
+        "app/ResourceOverview.tsx": `
+const ResourceOverview = (props) => {
+  return <Card title="Details" />;
+};
+export default ResourceOverview;
+`,
+        ...page(
+          `<div>
+      <ResourceOverview connectionGuide={<Card title="A" />} charts={<Card title="B" />} />
+      <ResourceOverview controls={<Card title="C" />} />
+    </div>`,
+          `import ResourceOverview from "./ResourceOverview";`,
+        ),
+      }),
+    ).toEqual(["Card in ResourceOverview"]);
   });
 
   test("finds a card in a component that draws its children inside a card", () => {

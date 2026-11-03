@@ -9,6 +9,7 @@ import {
   CLOUD_CONNECTION_DATA_SECURITY_LEVELS,
   DATA_SECURITY_FIELD_KEY,
   DATA_SECURITY_RESPONSE_FIELD_KEY,
+  GCP_BILLING_EXPORT_TABLE_FIELD_KEY,
   READ_INTERVAL_FIELD_KEY,
   READ_SCOPE_FIELD_KEY,
   getCloudConnectionAuthMethod,
@@ -190,6 +191,8 @@ describe("the catalog", () => {
     ]);
     expect(folded(CloudProvider.GCP)).toEqual([
       "projectIds",
+      // Costs come from a billing export a person chooses to name.
+      GCP_BILLING_EXPORT_TABLE_FIELD_KEY,
       READ_INTERVAL_FIELD_KEY,
       DATA_SECURITY_FIELD_KEY,
       DATA_SECURITY_RESPONSE_FIELD_KEY,

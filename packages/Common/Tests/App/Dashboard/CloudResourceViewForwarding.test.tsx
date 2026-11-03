@@ -159,11 +159,16 @@ const PAGES: Array<string> = [
   "Pages/Cloud/Archived",
   "Pages/Cloud/MonitoredResources",
   "Pages/Cloud/Connect",
+  "Pages/Cloud/Overview",
+  "Pages/Cloud/Costs",
+  "Pages/Cloud/Savings",
+  "Pages/Cloud/Budgets",
   "Pages/Cloud/Accounts/Accounts",
   "Pages/Cloud/Accounts/View/Overview",
   "Pages/Cloud/Accounts/View/Resources",
   "Pages/Cloud/Accounts/View/Changes",
   "Pages/Cloud/Accounts/View/Topology",
+  "Pages/Cloud/Accounts/View/Costs",
   "Pages/Cloud/Accounts/View/Settings",
   "Pages/Cloud/Accounts/View/Delete",
   "Pages/Cloud/Accounts/View/AI/Agent",
@@ -418,14 +423,32 @@ describe("a row that cannot be read", () => {
   });
 });
 
-describe("Cloud's old addresses for the environments list", () => {
-  test("Cloud's own address opens its accounts", async () => {
+describe("Cloud's own addresses", () => {
+  test("Cloud's own address opens its Overview, where it stays", async () => {
     await visit(CLOUD);
 
-    expect(landedOn()).toBe(`${CLOUD}/accounts`);
-    expect(pageName()).toBe("Pages/Cloud/Accounts/Accounts");
+    expect(landedOn()).toBe(CLOUD);
+    expect(pageName()).toBe("Pages/Cloud/Overview");
+    expect(mockItemRequests).toEqual([]);
   });
 
+  test.each([
+    ["/costs", "Pages/Cloud/Costs"],
+    ["/savings", "Pages/Cloud/Savings"],
+    ["/budgets", "Pages/Cloud/Budgets"],
+    ["/accounts", "Pages/Cloud/Accounts/Accounts"],
+    [`/accounts/${ROW_ID}/costs`, "Pages/Cloud/Accounts/View/Costs"],
+  ])("…/cloud%s is its page", async (suffix: string, page: string) => {
+    await visit(`${CLOUD}${suffix}`);
+
+    expect(landedOn()).toBe(`${CLOUD}${suffix}`);
+    expect(pageName()).toBe(page);
+    // Spend pages are Cloud's own words, never read as a resource's id.
+    expect(mockItemRequests).toEqual([]);
+  });
+});
+
+describe("Cloud's old addresses for the environments list", () => {
   test.each(["terraform", "api", "ai-assistants"])(
     "the list's Developer page (%s) is All Resources' now",
     async (page: string) => {

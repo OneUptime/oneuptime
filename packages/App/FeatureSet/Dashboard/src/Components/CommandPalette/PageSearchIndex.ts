@@ -2991,13 +2991,25 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
   {
     id: "cloud",
     title: "Cloud",
-    productPage: PageMap.CLOUD_ACCOUNTS,
+    productPage: PageMap.CLOUD_OVERVIEW,
     icon: IconProp.Cloud,
     iconColor: "blue",
     sections: [
       {
         title: "Cloud",
         pages: [
+          {
+            page: PageMap.CLOUD_OVERVIEW,
+            title: "Overview",
+            icon: IconProp.Home,
+            keywords: [
+              "cloud overview",
+              "cloud health",
+              "needs attention",
+              "unhealthy resources",
+              "cloud spend",
+            ],
+          },
           {
             page: PageMap.CLOUD_ACCOUNTS,
             title: "Accounts",
@@ -3039,6 +3051,54 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "cloudwatch",
               "azure monitor",
               "cloud monitoring",
+            ],
+          },
+        ],
+      },
+      {
+        title: "Spend",
+        pages: [
+          {
+            page: PageMap.CLOUD_COSTS,
+            title: "Costs",
+            icon: IconProp.Billing,
+            keywords: [
+              "cloud costs",
+              "cloud spend",
+              "cloud bill",
+              "billing",
+              "aws cost explorer",
+              "azure cost management",
+              "gcp billing export",
+              "finops",
+            ],
+          },
+          {
+            page: PageMap.CLOUD_SAVINGS,
+            title: "Savings",
+            icon: IconProp.ArrowTrendingDown,
+            keywords: [
+              "right-sizing",
+              "rightsizing",
+              "cost optimization",
+              "idle resources",
+              "savings plans",
+              "reserved instances",
+              "azure advisor",
+              "cost optimization hub",
+              "recommender",
+            ],
+          },
+          {
+            page: PageMap.CLOUD_BUDGETS,
+            title: "Budgets",
+            icon: IconProp.Wallet,
+            keywords: [
+              "cloud budgets",
+              "spend alerts",
+              "budget alerts",
+              "spend controls",
+              "cost alerts",
             ],
           },
         ],

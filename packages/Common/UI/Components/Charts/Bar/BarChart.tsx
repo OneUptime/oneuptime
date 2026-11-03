@@ -83,6 +83,13 @@ export interface ComponentProps {
    * for a chart whose window is not the page's time range.
    */
   disableTimeRangeZoom?: boolean | undefined;
+  /*
+   * The series' bars one on top of another in each bucket rather than side
+   * by side: for series that split one total between them - a day's spend
+   * that is final, and one still being reported - so each bucket keeps one
+   * bar at its place.
+   */
+  stacked?: boolean | undefined;
 }
 
 export interface BarInternalProps extends ComponentProps {
@@ -175,6 +182,7 @@ const BarChartElement: FunctionComponent<BarInternalProps> = (
         tickGap={30}
         index={CHART_DATA_POINT_X_AXIS_KEY}
         categories={categories}
+        type={props.stacked ? "stacked" : "default"}
         colors={
           props.colors && props.colors.length > 0
             ? props.colors

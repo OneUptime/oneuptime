@@ -17,7 +17,12 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import Pill from "Common/UI/Components/Pill/Pill";
-import { Gray500, Green } from "Common/Types/BrandColors";
+import { Gray500 } from "Common/Types/BrandColors";
+import CloudResourceStatusCell, {
+  CLOUD_STATUS_COLUMN_CLASS_NAME,
+} from "../../Components/Cloud/CloudResourceStatusCell";
+import { CLOUD_HEALTH_FILTER_OPTIONS } from "../../Components/Cloud/CloudResourceAttention";
+import OneUptimeDate from "Common/Types/Date";
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
@@ -193,6 +198,11 @@ const CloudMonitoredResources: FunctionComponent<
           cloudRegion: true,
           cloudAccountId: true,
           cloudResourceGroup: true,
+          // What the Status column's rules judge (CloudResourceHealth).
+          cloudReadings: true,
+          cloudReadingsAt: true,
+          cloudProperties: true,
+          healthSeverity: true,
         }}
         cardProps={{
           title: "Cloud Resources",
@@ -215,6 +225,18 @@ const CloudMonitoredResources: FunctionComponent<
             title: "Provider",
             type: FieldType.Dropdown,
             filterDropdownOptions: PROVIDER_DROPDOWN_OPTIONS,
+          },
+          /*
+           * What needs attention, by the severity the last read stored:
+           * the Overview's Needs attention as a list.
+           */
+          {
+            field: {
+              healthSeverity: true,
+            },
+            title: "Health",
+            type: FieldType.Dropdown,
+            filterDropdownOptions: CLOUD_HEALTH_FILTER_OPTIONS,
           },
           {
             field: {
@@ -354,13 +376,16 @@ const CloudMonitoredResources: FunctionComponent<
             },
             title: "Status",
             type: FieldType.Element,
+            contentClassName: CLOUD_STATUS_COLUMN_CLASS_NAME,
+            /*
+             * The resource's health in one word, by the rules the
+             * Overview's Needs attention follows, with the reason under it.
+             */
             getElement: (item: CloudResource): ReactElement => {
-              const isReporting: boolean =
-                item.otelCollectorStatus === "connected";
               return (
-                <Pill
-                  text={isReporting ? "Reporting" : "Not reporting"}
-                  color={isReporting ? Green : Gray500}
+                <CloudResourceStatusCell
+                  resource={item}
+                  now={OneUptimeDate.getCurrentDate()}
                 />
               );
             },

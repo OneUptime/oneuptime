@@ -285,7 +285,7 @@ describe("finding the product", () => {
     }
   });
 
-  test("Cloud opens on its accounts, and is found by a cloud's words, not a platform's", () => {
+  test("Cloud opens on its Overview, and is found by a cloud's words and its spend's, not a platform's", () => {
     const cloud: string = navigation.slice(
       navigation.indexOf('title: t("navbar.items.cloudTitle")'),
       navigation.indexOf(
@@ -294,9 +294,13 @@ describe("finding the product", () => {
     );
 
     expect(cloud).toContain(
-      "route: RouteUtil.populateRouteParams(RouteMap[PageMap.CLOUD_ACCOUNTS] as Route)",
+      "route: RouteUtil.populateRouteParams(RouteMap[PageMap.CLOUD_OVERVIEW] as Route)",
     );
     expect(cloud).toContain("activeRoute: RouteMap[PageMap.CLOUD_ROOT]");
+    // What it costs finds it too.
+    for (const keyword of ["cloud costs", "cloud budgets", "rightsizing"]) {
+      expect(cloud).toContain(`"${keyword}"`);
+    }
     expect(cloud).toContain("category: cloudCategory");
     expect(cloud).not.toContain('"paas"');
   });
@@ -324,9 +328,17 @@ describe("finding the product", () => {
 describe("old Cloud addresses still arrive", () => {
   const cloudRoutes: string = readCode("Routes/CloudResourceRoutes.tsx");
 
-  test("Cloud's own address, which was the environments list, opens Cloud's accounts", () => {
+  /*
+   * Cloud's own address was the environments list, then its accounts
+   * (#5488); since cloud-10x it is Cloud's Overview, over every account -
+   * still a Cloud page, never an App Platforms one.
+   */
+  test("Cloud's own address, which was the environments list, opens Cloud's Overview", () => {
     expect(cloudRoutes).toContain(
-      "<PageRoute index element={<MovedPageRedirect pageMap={PageMap.CLOUD_ACCOUNTS} />}",
+      "<PageRoute index element={<CloudOverview {...props} pageRoute={RouteMap[PageMap.CLOUD_OVERVIEW] as Route} />}",
+    );
+    expect(cloudRoutes).not.toContain(
+      "<PageRoute index element={<MovedPageRedirect",
     );
   });
 

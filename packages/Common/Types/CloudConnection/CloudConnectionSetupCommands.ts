@@ -160,6 +160,19 @@ export const AWS_READ_ONLY_ACTION_GROUPS: Array<AwsReadOnlyActionGroup> = [
     purpose: "Read AWS's own health events for the account",
     actions: ["health:DescribeEvents", "health:DescribeEventDetails"],
   },
+  /*
+   * What the account costs and how to spend less: Cost Explorer's daily
+   * costs ($0.01 a request, a few requests twice a day) and Cost
+   * Optimization Hub's recommendations (free).
+   */
+  {
+    purpose: "Read what the account costs, from Cost Explorer",
+    actions: ["ce:GetCostAndUsage"],
+  },
+  {
+    purpose: "Read the ways to spend less, from Cost Optimization Hub",
+    actions: ["cost-optimization-hub:ListRecommendations"],
+  },
   {
     purpose:
       "Read a resource's live status and recent events during an investigation",
@@ -231,6 +244,23 @@ export const GCP_READ_ONLY_ROLES: Array<string> = [
   GCP_AUDIT_LOG_ROLE,
   GCP_SERVICE_HEALTH_ROLE,
 ];
+
+/*
+ * What a connection reads costs and the ways to spend less with. Azure:
+ * Cost Management Reader on the same scope - Monitoring Reader already
+ * reads Azure Advisor's recommendations. Google Cloud: BigQuery Job User,
+ * to query the billing export (whose dataset a person gives the service
+ * account BigQuery Data Viewer on, wherever it is), and the Recommender's
+ * Compute Viewer, for the machine type and idle resource recommendations.
+ */
+export const AZURE_COST_ROLE: string = "Cost Management Reader";
+export const GCP_COST_QUERY_ROLE: string = "roles/bigquery.jobUser";
+export const GCP_RECOMMENDER_ROLE: string = "roles/recommender.computeViewer";
+export const GCP_COST_ROLES: Array<string> = [
+  GCP_COST_QUERY_ROLE,
+  GCP_RECOMMENDER_ROLE,
+];
+
 // The Google Cloud APIs a connection calls, turned on by the command.
 export const GCP_SERVICES: Array<string> = [
   "monitoring.googleapis.com",
@@ -238,6 +268,8 @@ export const GCP_SERVICES: Array<string> = [
   "logging.googleapis.com",
   "cloudresourcemanager.googleapis.com",
   "servicehealth.googleapis.com",
+  "bigquery.googleapis.com",
+  "recommender.googleapis.com",
 ];
 
 /*
@@ -882,6 +914,7 @@ export function getAzureSetupCommand(
     scopeLine,
     `OUT=$(az ad sp create-for-rbac --name ${CLOUD_CONNECTION_READ_ONLY_NAME} --role "${AZURE_READ_ONLY_ROLE}" --scopes "$SCOPE")`,
     `APP=$(echo "$OUT" | jq -r .appId)`,
+    `az role assignment create --assignee "$APP" --role "${AZURE_COST_ROLE}" --scope "$SCOPE" > /dev/null`,
     ...(dataSecurity === "content"
       ? [
           `az role assignment create --assignee "$APP" --role "${AZURE_DATA_SECURITY_CONTENT_ROLE}" --scope "$SCOPE" > /dev/null`,
@@ -940,12 +973,15 @@ export function getGcpSetupCommand(
           `ORG_ID=$(gcloud projects get-ancestors "$PROJECT_ID" --format="value(id)" | tail -1)`,
         ]
       : []),
-    `gcloud services enable ${[
-      ...GCP_SERVICES,
-      ...(content ? GCP_DATA_SECURITY_CONTENT_SERVICES : []),
-    ].join(" ")}`,
+    `gcloud services enable ${Array.from(
+      new Set<string>([
+        ...GCP_SERVICES,
+        ...(content ? GCP_DATA_SECURITY_CONTENT_SERVICES : []),
+      ]),
+    ).join(" ")}`,
     `gcloud iam service-accounts create ${GCP_SERVICE_ACCOUNT_ID} --display-name "OneUptime (read only)" > /dev/null 2>&1 || true`,
     ...GCP_READ_ONLY_ROLES.map(bind),
+    ...GCP_COST_ROLES.map(bind),
     ...(content ? GCP_DATA_SECURITY_CONTENT_ROLES.map(bind) : []),
     ...responseLines,
     `gcloud iam service-accounts keys create oneuptime-key.json --iam-account "${member}"`,
