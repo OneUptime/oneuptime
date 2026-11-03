@@ -41,6 +41,9 @@ import MonitorDependencySuppression, {
   DependencySuppressionResult,
 } from "./MonitorDependencySuppression";
 import PerSeriesResolutionRootCause from "./PerSeriesResolutionRootCause";
+import DataAlertCause, {
+  DataAlertSubject,
+} from "../DataObservability/DataAlertCause";
 import { JSONObject } from "../../../Types/JSON";
 import OneUptimeDate from "../../../Types/Date";
 import MonitorEvaluationSummary from "../../../Types/Monitor/MonitorEvaluationSummary";
@@ -892,12 +895,68 @@ export default class MonitorAlert {
               });
           }
 
+          /*
+           * A data alert whose cause is already open upstream - on a table
+           * its table is built from, say - is that alert's consequence: it
+           * starts acknowledged, so nobody is paged twice for one problem
+           * (DataAlertCause). Never in the way of the alert itself.
+           */
+          let dataSubject: DataAlertSubject | null = null;
+          let dataCause: Alert | null = null;
+
+          try {
+            dataSubject = await DataAlertCause.getSubject({
+              projectId: input.monitor.projectId!,
+              monitorSteps: input.monitor.monitorSteps,
+              seriesLabels: seriesLabels || null,
+            });
+
+            dataCause = dataSubject
+              ? await DataAlertCause.findCause({
+                  projectId: input.monitor.projectId!,
+                  subject: dataSubject,
+                })
+              : null;
+
+            const acknowledgedStateId: ObjectID | null = dataCause
+              ? await DataAlertCause.getAcknowledgedStateId(
+                  input.monitor.projectId!,
+                )
+              : null;
+
+            if (acknowledgedStateId) {
+              alert.currentAlertStateId = acknowledgedStateId;
+            }
+          } catch (error) {
+            logger.error(
+              `${input.monitor.id?.toString()} - Could not look for the upstream cause of a data alert.`,
+              alertLogAttributes,
+            );
+            logger.error(error, alertLogAttributes);
+          }
+
           const createdAlert: Alert = await AlertService.create({
             data: alert,
             props: {
               isRoot: true,
             },
           });
+
+          if (dataSubject) {
+            try {
+              await DataAlertCause.record({
+                alert: createdAlert,
+                subject: dataSubject,
+                cause: dataCause,
+              });
+            } catch (error) {
+              logger.error(
+                `${input.monitor.id?.toString()} - Could not record what a data alert is about.`,
+                alertLogAttributes,
+              );
+              logger.error(error, alertLogAttributes);
+            }
+          }
 
           /*
            * Add owner teams and users after alert creation. Owners configured

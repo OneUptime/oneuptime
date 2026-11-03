@@ -321,6 +321,57 @@ describe("Data Observability registry wiring", () => {
     expect(cli).toContain("registerDbtCommands(program);");
   });
 
+  test("data alerts - model, service, migration and CRUD API - are wired, and the monitor records them", () => {
+    expect(readSquashed("Common/Models/DatabaseModels/Index.ts")).toContain(
+      "DataAlert,",
+    );
+    expect(readSquashed("Common/Server/Services/Index.ts")).toContain(
+      "DataAlertService,",
+    );
+    expect(readSquashed("App/FeatureSet/BaseAPI/Index.ts")).toMatch(
+      /new BaseAPI<\s*DataAlert,\s*DataAlertServiceType\s*>\(\s*DataAlert,\s*DataAlertService,?\s*\)/,
+    );
+
+    const migrations: string = readSquashed(
+      "Common/Server/Infrastructure/Postgres/SchemaMigrations/Index.ts",
+    );
+
+    expect(migrations).toContain(
+      'import { AddDataAlerts1808991800000 } from "./1808991800000-AddDataAlerts";',
+    );
+    expect(migrations.indexOf("AddDataAlerts1808991800000,")).toBeGreaterThan(
+      migrations.indexOf("AddDbtArtifacts1808991700000,"),
+    );
+    expect(
+      readSquashed(
+        "Common/Server/Infrastructure/Postgres/SchemaMigrations/1808991800000-AddDataAlerts.ts",
+      ),
+    ).toContain('CREATE TABLE "DataAlert"');
+
+    // The cause is looked for before the alert is created, and recorded after.
+    const monitorAlert: string = readSquashed(
+      "Common/Server/Utils/Monitor/MonitorAlert.ts",
+    );
+
+    expect(
+      monitorAlert.indexOf("await DataAlertCause.findCause({"),
+    ).toBeLessThan(
+      monitorAlert.indexOf(
+        "const createdAlert: Alert = await AlertService.create({",
+      ),
+    );
+    expect(
+      monitorAlert.indexOf("await DataAlertCause.record({"),
+    ).toBeGreaterThan(
+      monitorAlert.indexOf(
+        "const createdAlert: Alert = await AlertService.create({",
+      ),
+    );
+    expect(
+      readSquashed("App/FeatureSet/Dashboard/src/Pages/Alerts/View/Index.tsx"),
+    ).toContain("<DataAlertLineage alertId={modelId} />");
+  });
+
   test("the Workers import its jobs, and the probe ingest mounts its routes", () => {
     expect(readSquashed("App/FeatureSet/Workers/Index.ts")).toContain(
       'import "./Jobs/DataObservability/DataObservabilityJobs"',

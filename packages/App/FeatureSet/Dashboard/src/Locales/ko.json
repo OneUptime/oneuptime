@@ -41591,5 +41591,16 @@
   "dbt Node": "dbt Node",
   "dbt Tests": "dbt Tests",
   "Incident Rule Executed": "인시던트 규칙 실행됨",
-  "What It Reads": "읽는 대상"
+  "What It Reads": "읽는 대상",
+  "Cause Alert": "Cause Alert",
+  "Cause Alert ID": "Cause Alert ID",
+  "Data Alert": "Data Alert",
+  "Data Alerts": "Data Alerts",
+  "Downstream Impact": "Downstream Impact",
+  "No deploy or other change of these services in the day before the alert.": "No deploy or other change of these services in the day before the alert.",
+  "That alert was open first, on what this one's table or pipeline is built from, so this alert started acknowledged: nobody was paged twice.": "That alert was open first, on what this one's table or pipeline is built from, so this alert started acknowledged: nobody was paged twice.",
+  "The alerts on tables and pipelines built from this alert's, each a consequence of it: they started acknowledged, so this alert is the one that paged.": "The alerts on tables and pipelines built from this alert's, each a consequence of it: they started acknowledged, so this alert is the one that paged.",
+  "What a data monitor's alert is about - a table, a pipeline or a store - and the alert it is a consequence of, found by lineage.": "What a data monitor's alert is about - a table, a pipeline or a store - and the alert it is a consequence of, found by lineage.",
+  "What this alert is about in Data Observability, what caused it upstream, and what changed around it.": "What this alert is about in Data Observability, what caused it upstream, and what changed around it.",
+  "{{writes}} writes, {{failed}} failed, in the hour last seen {{time}}": "{{writes}} writes, {{failed}} failed, in the hour last seen {{time}}"
 }
