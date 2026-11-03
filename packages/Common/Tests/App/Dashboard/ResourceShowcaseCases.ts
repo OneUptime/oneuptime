@@ -13,6 +13,7 @@ import DATABASE_SHOWCASE from "../../../../App/FeatureSet/Dashboard/src/Componen
 import MESSAGE_QUEUE_SHOWCASE from "../../../../App/FeatureSet/Dashboard/src/Components/MessageQueue/MessageQueueShowcase";
 import SERVERLESS_FUNCTION_SHOWCASE from "../../../../App/FeatureSet/Dashboard/src/Components/Serverless/ServerlessFunctionShowcase";
 import CLOUD_ENVIRONMENT_SHOWCASE from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudEnvironmentShowcase";
+import CLOUD_SHOWCASE from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudShowcase";
 import RUM_APPLICATION_SHOWCASE from "../../../../App/FeatureSet/Dashboard/src/Components/Rum/RumApplicationShowcase";
 
 /*
@@ -128,6 +129,13 @@ export const RESOURCE_SHOWCASE_CASES: Array<ResourceShowcaseCase> = [
     module: "Components/Cloud/CloudEnvironmentShowcase.ts",
     page: "Pages/AppPlatforms/Environments.tsx",
     showcase: CLOUD_ENVIRONMENT_SHOWCASE,
+  },
+  {
+    label: "Cloud accounts",
+    constant: "CLOUD_SHOWCASE",
+    module: "Components/Cloud/CloudShowcase.ts",
+    page: "Pages/Cloud/Overview.tsx",
+    showcase: CLOUD_SHOWCASE,
   },
   {
     label: "RUM applications",

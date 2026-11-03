@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40836,
-    "untranslated": 12065
+    "keys": 41107,
+    "untranslated": 12092
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -78,6 +78,7 @@
     "Daemon",
     "Daemons",
     "Dashboards",
+    "Data Observability",
     "Database",
     "Databases",
     "Datacenter",

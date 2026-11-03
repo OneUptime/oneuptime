@@ -850,6 +850,10 @@ const DocsNav: NavGroup[] = [
         title: "Cloud Resources (IaaS & PaaS)",
         url: "/docs/telemetry/cloud-resources",
       },
+      {
+        title: "Cloud Costs and Savings",
+        url: "/docs/telemetry/cloud-costs",
+      },
     ],
   },
   {

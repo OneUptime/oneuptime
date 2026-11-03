@@ -94,6 +94,7 @@
     "test-llm-connect-ui": "playwright test --config playwright.llm-connect-ui.config.ts",
     "test-cloud-connect-ui": "playwright test --config playwright.cloud-connect-ui.config.ts",
     "test-app-platforms-ui": "playwright test --config playwright.app-platforms-ui.config.ts",
+    "test-cloud-spend-ui": "playwright test --config playwright.cloud-spend-ui.config.ts",
     "test-profiles-ui": "playwright test --config playwright.profiles-ui.config.ts",
     "test-traces-ai-ui": "playwright test --config playwright.traces-ai-ui.config.ts",
     "test-exceptions-ai-ui": "playwright test --config playwright.exceptions-ai-ui.config.ts",

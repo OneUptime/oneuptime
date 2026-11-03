@@ -43,7 +43,10 @@ import PermissionGate, {
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { getJestSpyOn } from "../../Spy";
 import { PROJECT_ID, goTo } from "./SideMenuHarness";
-import CloudConnectCallout from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/Connect/CloudConnectCallout";
+import CloudConnectCallout, {
+  CLOUD_CONNECT_CALLOUT_DESCRIPTION,
+  CLOUD_CONNECT_CALLOUT_SPEND_DESCRIPTION,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/Connect/CloudConnectCallout";
 import CloudConnectionTestDialog from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/Connect/CloudConnectionTestDialog";
 import CloudConnectionTestPanel from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/Connect/CloudConnectionTestPanel";
 import CloudConnectionTiles from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/Connect/CloudConnectionTiles";
@@ -806,5 +809,34 @@ describe("the way in from an empty All Resources", () => {
     render(<CloudConnectCallout />);
 
     expect(screen.getByTestId("cloud-connection-tile-aws")).toBeDisabled();
+  });
+
+  /*
+   * A list fills in on its own; Costs and Savings are not lists, and say
+   * what shows on them once an account is read.
+   */
+  test("a list's callout says the list fills in; Costs' and Savings' say what shows there", () => {
+    getJestSpyOn(PermissionGate, "check").mockReturnValue({
+      isAllowed: true,
+    } as PermissionGateResult);
+
+    render(<CloudConnectCallout />);
+    expect(screen.getByTestId("cloud-connect-callout")).toHaveTextContent(
+      CLOUD_CONNECT_CALLOUT_DESCRIPTION,
+    );
+    expect(CLOUD_CONNECT_CALLOUT_DESCRIPTION).toContain("This list");
+
+    cleanup();
+    render(
+      <CloudConnectCallout
+        description={CLOUD_CONNECT_CALLOUT_SPEND_DESCRIPTION}
+      />,
+    );
+    const spend: HTMLElement = screen.getByTestId("cloud-connect-callout");
+    expect(spend).toHaveTextContent(CLOUD_CONNECT_CALLOUT_SPEND_DESCRIPTION);
+    expect(spend).not.toHaveTextContent("This list");
+    expect(CLOUD_CONNECT_CALLOUT_SPEND_DESCRIPTION).toBe(
+      "Pick your cloud and run one command in its terminal. Its costs, and the ways to spend less, show here once they are read.",
+    );
   });
 });
