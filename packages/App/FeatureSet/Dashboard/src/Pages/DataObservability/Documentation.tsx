@@ -58,6 +58,14 @@ GRANT VIEW DEFINITION TO oneuptime_reader;
 GRANT VIEW DATABASE STATE TO oneuptime_reader;
 \`\`\`
 
+Amazon Redshift: connect with a PostgreSQL connection string to the cluster or workgroup endpoint, for example \`postgres://oneuptime_reader:...@cluster.abc123.us-east-1.redshift.amazonaws.com:5439/dev?sslmode=require\`. \`SYSLOG ACCESS UNRESTRICTED\` lets OneUptime read row counts and sizes (\`svv_table_info\`), and the last writes and reads of every user's queries (\`stl_insert\`, \`stl_delete\`, \`stl_scan\`, kept a few days). Without it, a table's rows changing still says when it changed.
+
+\`\`\`sql
+CREATE USER oneuptime_reader PASSWORD '...';
+GRANT USAGE ON SCHEMA public TO oneuptime_reader;
+ALTER USER oneuptime_reader SYSLOG ACCESS UNRESTRICTED;
+\`\`\`
+
 ## Metrics every table writes
 
 Each collection writes these for every table, so you can chart them, put them on dashboards and alert on them like any other metric:

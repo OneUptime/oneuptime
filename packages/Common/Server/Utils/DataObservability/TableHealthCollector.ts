@@ -959,12 +959,254 @@ class SqlServerCatalog implements CatalogSession {
   }
 }
 
+// Redshift's table type, as a data asset kind.
+export function readRedshiftKind(tableType: unknown): DataAssetKind | null {
+  switch (String(tableType ?? "").toUpperCase()) {
+    case "BASE TABLE":
+      return DataAssetKind.Table;
+    case "VIEW":
+      return DataAssetKind.View;
+    default:
+      return null;
+  }
+}
+
+// Redshift counts a table's size in 1 MB blocks.
+export function readRedshiftSize(blocks: unknown): number | null {
+  const count: number | null = readCount(blocks);
+
+  return count === null ? null : count * 1024 * 1024;
+}
+
+/*
+ * Amazon Redshift, over the PostgreSQL protocol with its own catalog:
+ * svv_tables and svv_columns give tables, views and columns; svv_table_info
+ * rows and size (1 MB blocks); stl_insert, stl_delete and stl_scan the last
+ * write and read, kept a few days. svv_table_info and the stl views show
+ * every user's work only to a login with SYSLOG ACCESS UNRESTRICTED (or a
+ * superuser); without it, rows changing still say when a table changed.
+ * Redshift has no lock timeout, and a cluster restart does not mark its
+ * counters, so read times are kept, never "unread since".
+ */
+class RedshiftCatalog implements CatalogSession {
+  public readonly engine: DatabaseEngine = "redshift";
+  private readonly client: Client;
+
+  private constructor(client: Client) {
+    this.client = client;
+  }
+
+  public static async open(connectionString: string): Promise<RedshiftCatalog> {
+    const client: Client = new Client({
+      connectionString: connectionString.replace(
+        /^redshift:\/\//i,
+        "postgresql://",
+      ),
+      connectionTimeoutMillis: CONNECT_TIMEOUT_IN_MS,
+      query_timeout: STATEMENT_TIMEOUT_IN_MS + 5_000,
+      application_name: APPLICATION_NAME,
+    });
+    const session: RedshiftCatalog = new RedshiftCatalog(client);
+
+    try {
+      await client.connect();
+      await client.query(
+        `SET statement_timeout TO ${wholeMilliseconds(STATEMENT_TIMEOUT_IN_MS)}`,
+      );
+    } catch (error) {
+      await session.close();
+      throw error;
+    }
+
+    return session;
+  }
+
+  private async rows(
+    sql: string,
+    values: Array<unknown>,
+  ): Promise<Array<Record<string, unknown>>> {
+    await this.client.query("BEGIN READ ONLY");
+
+    try {
+      const result: { rows: Array<Record<string, unknown>> } =
+        await this.client.query(sql, values);
+
+      await this.client.query("COMMIT");
+      return result.rows || [];
+    } catch (error) {
+      try {
+        await this.client.query("ROLLBACK");
+      } catch {
+        // The connection is gone: nothing to roll back.
+      }
+
+      throw error;
+    }
+  }
+
+  public async readAggregate(
+    sql: string,
+    params: Array<string>,
+  ): Promise<Array<Record<string, unknown>>> {
+    return await this.rows(sql, params);
+  }
+
+  private static readonly SCHEMA_FILTER: string = `NOT IN ('pg_catalog', 'information_schema', 'pg_internal', 'pg_automv', 'catalog_history')`;
+
+  private tablesSql(withInfo: boolean): string {
+    return withInfo
+      ? `SELECT t.table_schema, t.table_name, t.table_type,
+          i.estimated_visible_rows AS estimated_rows, i.size AS size_blocks
+        FROM svv_tables t
+        LEFT JOIN svv_table_info i ON i."schema" = t.table_schema AND i."table" = t.table_name
+        WHERE t.table_catalog = current_database()
+          AND t.table_schema ${RedshiftCatalog.SCHEMA_FILTER}
+          AND t.table_schema NOT LIKE 'pg\\_temp\\_%'
+          AND t.table_type IN ('BASE TABLE', 'VIEW')
+        ORDER BY t.table_schema, t.table_name
+        LIMIT $1`
+      : `SELECT t.table_schema, t.table_name, t.table_type,
+          NULL::bigint AS estimated_rows, NULL::bigint AS size_blocks
+        FROM svv_tables t
+        WHERE t.table_catalog = current_database()
+          AND t.table_schema ${RedshiftCatalog.SCHEMA_FILTER}
+          AND t.table_schema NOT LIKE 'pg\\_temp\\_%'
+          AND t.table_type IN ('BASE TABLE', 'VIEW')
+        ORDER BY t.table_schema, t.table_name
+        LIMIT $1`;
+  }
+
+  // Seconds since each table's last write or read in the stl views, by table.
+  private async lastTimes(sql: string): Promise<Map<string, number> | null> {
+    try {
+      const times: Map<string, number> = new Map();
+
+      for (const row of await this.rows(sql, [])) {
+        const seconds: number | null = readCount(row["seconds"]);
+
+        if (seconds !== null) {
+          times.set(
+            keyOf(
+              String(row["table_schema"] ?? ""),
+              String(row["table_name"] ?? ""),
+            ),
+            seconds,
+          );
+        }
+      }
+
+      return times;
+    } catch {
+      return null;
+    }
+  }
+
+  public async read(options: TableHealthCollectOptions): Promise<CatalogRead> {
+    const warnings: Array<string> = [];
+    let tableRows: Array<Record<string, unknown>>;
+
+    try {
+      tableRows = await this.rows(this.tablesSql(true), [options.maxTables]);
+    } catch (error) {
+      warnings.push(
+        `Row counts and sizes were left out (svv_table_info needs SYSLOG ACCESS UNRESTRICTED): ${describeError(error).slice(0, 200)}`,
+      );
+      tableRows = await this.rows(this.tablesSql(false), [options.maxTables]);
+    }
+
+    const writes: Map<string, number> | null = await this.lastTimes(
+      `SELECT n.nspname AS table_schema, c.relname AS table_name,
+        DATEDIFF(second, MAX(s.endtime), GETDATE()) AS seconds
+      FROM (SELECT tbl, endtime FROM stl_insert UNION ALL SELECT tbl, endtime FROM stl_delete) s
+      JOIN pg_class c ON c.oid = s.tbl
+      JOIN pg_namespace n ON n.oid = c.relnamespace
+      GROUP BY n.nspname, c.relname`,
+    );
+    const reads: Map<string, number> | null = await this.lastTimes(
+      `SELECT n.nspname AS table_schema, c.relname AS table_name,
+        DATEDIFF(second, MAX(s.endtime), GETDATE()) AS seconds
+      FROM stl_scan s
+      JOIN pg_class c ON c.oid = s.tbl
+      JOIN pg_namespace n ON n.oid = c.relnamespace
+      WHERE s.userid > 1
+      GROUP BY n.nspname, c.relname`,
+    );
+
+    if (!writes || !reads) {
+      warnings.push(
+        "Last writes and reads were left out: the stl views need SYSLOG ACCESS UNRESTRICTED.",
+      );
+    }
+
+    const tables: Array<RawTable> = [];
+
+    for (const row of tableRows) {
+      const kind: DataAssetKind | null = readRedshiftKind(row["table_type"]);
+      const schema: string = readText(
+        row["table_schema"],
+        MAX_IDENTIFIER_LENGTH,
+      );
+      const name: string = readText(row["table_name"], MAX_IDENTIFIER_LENGTH);
+
+      if (!kind || !name) {
+        continue;
+      }
+
+      const isTable: boolean = kind === DataAssetKind.Table;
+      const key: string = keyOf(schema, name);
+
+      tables.push({
+        schema,
+        name,
+        kind,
+        estimatedRows: isTable ? readCount(row["estimated_rows"]) : null,
+        sizeInBytes: isTable ? readRedshiftSize(row["size_blocks"]) : null,
+        writeCount: null,
+        secondsSinceChange: writes?.get(key) ?? null,
+        readCount: null,
+        secondsSinceRead: reads?.get(key) ?? null,
+      });
+    }
+
+    const columnRows: Array<Record<string, unknown>> = await this.rows(
+      `SELECT table_schema, table_name, column_name, data_type, is_nullable, ordinal_position
+        FROM svv_columns
+        WHERE table_catalog = current_database()
+          AND table_schema ${RedshiftCatalog.SCHEMA_FILTER}
+        ORDER BY table_schema, table_name, ordinal_position
+        LIMIT $1`,
+      [options.maxColumns],
+    );
+
+    return {
+      tables,
+      columns: columnRows
+        .map(readColumnRow)
+        .filter((column: RawColumn | null): column is RawColumn => {
+          return column !== null;
+        }),
+      warnings,
+      secondsSinceStatsReset: null,
+    };
+  }
+
+  public async close(): Promise<void> {
+    try {
+      await this.client.end();
+    } catch {
+      // Already closed, or never opened.
+    }
+  }
+}
+
 async function openCatalog(
   connection: DatabaseConnection,
 ): Promise<CatalogSession> {
   switch (connection.engine) {
     case "postgresql":
       return await PostgresCatalog.open(connection.connectionString);
+    case "redshift":
+      return await RedshiftCatalog.open(connection.connectionString);
     case "mysql":
       return await MySqlCatalog.open(connection.connectionString);
     case "sqlserver":
