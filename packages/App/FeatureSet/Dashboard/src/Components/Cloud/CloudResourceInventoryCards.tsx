@@ -13,7 +13,7 @@ import {
   CloudResolvedRelationship,
   resolveCloudRelationships,
 } from "Common/Types/Cloud/CloudResourceIndex";
-import { getCloudResourceTypeLabel } from "Common/Types/Cloud/CloudResourceCatalog";
+import { getCloudResourceTypeDisplayName } from "Common/Types/Cloud/CloudResourceCatalog";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
@@ -50,6 +50,12 @@ import { getCloudRelationshipLabel } from "./CloudRelationshipWords";
  * Its neighbours are read from the same account - at most
  * CLOUD_NEIGHBOUR_READ_LIMIT of them, with a line saying so when the
  * account holds more - and grouped by CloudConnectionGroups.
+ *
+ * Each one's kind reads as words: the catalog's label ("EC2 Instance"), a
+ * named only type's in the reader's language ("Subnet", "Security Group":
+ * NAMED_ONLY_RESOURCE_TYPES), or any other type in words ("Transit Gateway
+ * (EC2)") - never "AWS::EC2::Subnet" as the cloud writes it
+ * (getCloudResourceTypeDisplayName).
  */
 
 export interface ComponentProps {
@@ -172,7 +178,7 @@ const CloudResourceInventoryCards: FunctionComponent<ComponentProps> = (
     relationship: CloudResolvedRelationship,
   ): ReactElement => {
     const typeLabel: string = relationship.otherType
-      ? getCloudResourceTypeLabel(provider, relationship.otherType)
+      ? getCloudResourceTypeDisplayName(provider, relationship.otherType)
       : "";
 
     return (
@@ -198,7 +204,12 @@ const CloudResourceInventoryCards: FunctionComponent<ComponentProps> = (
           </span>
         )}
         {typeLabel ? (
-          <span className="ml-2 text-xs text-gray-500">{typeLabel}</span>
+          <span
+            className="ml-2 text-xs text-gray-500"
+            data-testid="cloud-connection-type"
+          >
+            {translator.translateText(typeLabel) || typeLabel}
+          </span>
         ) : (
           <></>
         )}

@@ -113,6 +113,11 @@ export interface ResourceOverviewProps {
   icon: IconProp;
   title: string;
   identifier: string;
+  /*
+   * What the identifier is, as the line under the title names it: an
+   * attribute's own name ("service.name") drawn as written, or an English
+   * word ("type", "account") the line draws in the reader's language.
+   */
   identifierLabel: string;
   status: string | undefined;
   /*
@@ -123,7 +128,10 @@ export interface ResourceOverviewProps {
    */
   statusLabel?: string | undefined;
   statusTone?: ResourceOverviewStatusTone | undefined;
-  // What the pill means, as its hover text.
+  /*
+   * What the pill means, as its hover text: English the hover says in the
+   * reader's language, or words a page already put in it.
+   */
   statusDescription?: string | undefined;
   // Its health beside the status pill; left out, no health pill.
   health?: ResourceOverviewHealth | undefined;
@@ -488,6 +496,18 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
       : translationKey("Disconnected"));
   const statusLabel: string =
     translator.translateText(givenStatusLabel) || givenStatusLabel;
+  // The pill's hover, in the reader's language too.
+  const statusDescription: string | undefined = props.statusDescription
+    ? translator.translateText(props.statusDescription) ||
+      props.statusDescription
+    : undefined;
+  /*
+   * The identifier's label: a word ("type", "account") in the reader's
+   * language, an attribute's name ("service.name") as written - the
+   * locale has no word for it.
+   */
+  const identifierLabel: string =
+    translator.translateText(props.identifierLabel) || props.identifierLabel;
 
   return (
     <Fragment>
@@ -530,7 +550,7 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
                   </h1>
                   <span
                     data-testid="resource-overview-status"
-                    title={props.statusDescription}
+                    title={statusDescription}
                     className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${statusBadgeClass}`}
                   >
                     <span
@@ -570,8 +590,16 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
                 </div>
                 <ResourceHeroDescription text={props.description} />
                 {props.identifier ? (
-                  <div className="mt-1 truncate font-mono text-sm text-gray-500">
-                    {props.identifierLabel}: {props.identifier}
+                  /*
+                   * The identifier is set apart from its label, so a type
+                   * or a name in Latin letters keeps its brackets and its
+                   * place on a page read right to left.
+                   */
+                  <div
+                    data-testid="resource-overview-identifier"
+                    className="mt-1 truncate font-mono text-sm text-gray-500"
+                  >
+                    {identifierLabel}: <bdi>{props.identifier}</bdi>
                   </div>
                 ) : (
                   <></>

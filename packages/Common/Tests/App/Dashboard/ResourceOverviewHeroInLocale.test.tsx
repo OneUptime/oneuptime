@@ -11,6 +11,13 @@ import ResourceOverview, {
 import englishLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import germanLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/de.json";
 import italianLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/it.json";
+import persianLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
+import { CLOUD_ACCOUNT_STATUS_DESCRIPTIONS } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudAccountStatus";
+import { CLOUD_RESOURCE_STATUS_DESCRIPTIONS } from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/View/MonitoredResourceOverview";
+import {
+  DASHBOARD_LANGUAGES,
+  isWordedInDashboardLocale,
+} from "../../Helpers/DashboardLocales";
 import IconProp from "../../../Types/Icon/IconProp";
 import {
   forgetRememberedDateTexts,
@@ -47,6 +54,7 @@ beforeAll(async () => {
     ["en", englishLocale],
     ["de", germanLocale],
     ["it", italianLocale],
+    ["fa", persianLocale],
   ] as Array<[string, Record<string, unknown>]>) {
     const instance: i18n = createInstance();
 
@@ -77,6 +85,9 @@ function renderHero(
     lastSeenAt?: Date | undefined;
     status?: string | undefined;
     statusLabel?: string | undefined;
+    statusDescription?: string | undefined;
+    identifier?: string | undefined;
+    identifierLabel?: string | undefined;
   },
 ): void {
   setDateDisplayLanguage(language);
@@ -87,10 +98,11 @@ function renderHero(
         <ResourceOverview
           icon={IconProp.Database}
           title="orders-db"
-          identifier="orders-db:5432"
-          identifierLabel="endpoint"
+          identifier={props.identifier ?? "orders-db:5432"}
+          identifierLabel={props.identifierLabel ?? "endpoint"}
           status={props.status}
           statusLabel={props.statusLabel}
+          statusDescription={props.statusDescription}
           lastSeenAt={props.lastSeenAt}
           chips={[]}
           tiles={[]}
@@ -198,5 +210,155 @@ describe("the hero's status pill", () => {
     });
 
     expect(pill()).toHaveTextContent(/^Reporting$/);
+  });
+
+  test("its hover says what the pill means in the reader's language", () => {
+    renderHero("de", {
+      lastSeenAt: FIVE_HOURS_AGO(),
+      status: "connected",
+      statusLabel: "Reading",
+      statusDescription: CLOUD_ACCOUNT_STATUS_DESCRIPTIONS.reading,
+    });
+
+    expect(pill().getAttribute("title")).toBe(
+      "Eine Cloud-Verbindung hat dieses Konto in der letzten Stunde gelesen.",
+    );
+    cleanup();
+
+    renderHero("en", {
+      lastSeenAt: FIVE_HOURS_AGO(),
+      status: "connected",
+      statusDescription: CLOUD_ACCOUNT_STATUS_DESCRIPTIONS.reading,
+    });
+
+    expect(pill().getAttribute("title")).toBe(
+      "A cloud connection read this account within the last hour.",
+    );
+  });
+
+  test("a hover a page worded itself stays as given; none, no hover", () => {
+    renderHero("de", {
+      lastSeenAt: FIVE_HOURS_AGO(),
+      status: "connected",
+      statusDescription: "Schon übersetzt.",
+    });
+
+    expect(pill().getAttribute("title")).toBe("Schon übersetzt.");
+    cleanup();
+
+    renderHero("de", { lastSeenAt: FIVE_HOURS_AGO(), status: "connected" });
+
+    expect(pill().hasAttribute("title")).toBe(false);
+  });
+
+  test("every hover a cloud page gives reads in every language", () => {
+    for (const description of [
+      ...Object.values(CLOUD_ACCOUNT_STATUS_DESCRIPTIONS),
+      ...Object.values(CLOUD_RESOURCE_STATUS_DESCRIPTIONS),
+    ]) {
+      for (const language of DASHBOARD_LANGUAGES) {
+        expect({
+          language,
+          description,
+          worded: isWordedInDashboardLocale(description, language),
+        }).toEqual({ language, description, worded: true });
+      }
+    }
+  });
+});
+
+describe("the hero's identifier line", () => {
+  function identifierLine(): HTMLElement {
+    return screen.getByTestId("resource-overview-identifier");
+  }
+
+  test("names what the identifier is in the reader's language", () => {
+    renderHero("de", {
+      lastSeenAt: FIVE_HOURS_AGO(),
+      status: "connected",
+      identifierLabel: "type",
+      identifier: "RDS DB Instance",
+    });
+
+    expect(identifierLine()).toHaveTextContent(/^Typ: RDS DB Instance$/);
+    cleanup();
+
+    renderHero("de", {
+      lastSeenAt: FIVE_HOURS_AGO(),
+      status: "connected",
+      identifierLabel: "account",
+      identifier: "123456789012",
+    });
+
+    expect(identifierLine()).toHaveTextContent(/^Konto: 123456789012$/);
+  });
+
+  test("reads as it always did in English", () => {
+    for (const [label, identifier] of [
+      ["type", "RDS DB Instance"],
+      ["account", "123456789012"],
+      ["endpoint", "orders-db:5432"],
+      ["destination", "orders"],
+      ["platform", "AWS ECS / Fargate"],
+      ["workload", "Container/postgres"],
+    ]) {
+      renderHero("en", {
+        lastSeenAt: FIVE_HOURS_AGO(),
+        status: "connected",
+        identifierLabel: label,
+        identifier,
+      });
+
+      expect(identifierLine().textContent).toBe(`${label}: ${identifier}`);
+      cleanup();
+    }
+  });
+
+  test("an attribute's own name is drawn as written", () => {
+    renderHero("de", {
+      lastSeenAt: FIVE_HOURS_AGO(),
+      status: "connected",
+      identifierLabel: "service.name",
+      identifier: "checkout",
+    });
+
+    expect(identifierLine()).toHaveTextContent(/^service\.name: checkout$/);
+  });
+
+  test("the identifier is set apart, so a Latin type keeps its brackets on a Persian page", () => {
+    renderHero("fa", {
+      lastSeenAt: FIVE_HOURS_AGO(),
+      status: "connected",
+      identifierLabel: "type",
+      identifier: "Elastic Load Balancer (ALB, NLB, GWLB)",
+    });
+
+    const isolated: HTMLElement | null = identifierLine().querySelector("bdi");
+
+    expect(isolated?.textContent).toBe(
+      "Elastic Load Balancer (ALB, NLB, GWLB)",
+    );
+    expect(identifierLine().textContent).toBe(
+      "نوع: Elastic Load Balancer (ALB, NLB, GWLB)",
+    );
+  });
+
+  test("each word a page names its identifier by reads in every language", () => {
+    for (const label of [
+      "type",
+      "account",
+      "endpoint",
+      "destination",
+      "platform",
+      "workload",
+    ]) {
+      for (const language of DASHBOARD_LANGUAGES) {
+        expect({
+          language,
+          label,
+          worded: isWordedInDashboardLocale(label, language),
+        }).toEqual({ language, label, worded: true });
+      }
+    }
   });
 });

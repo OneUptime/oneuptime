@@ -436,6 +436,8 @@ export const USER_FACING_PROPS: ReadonlySet<string> = new Set<string>([
   "heading",
   "helpText",
   "hint",
+  // A resource overview's identifier line: "type", "account" (ResourceOverview).
+  "identifierLabel",
   // A telemetry explorer's chart title (TelemetryViewer looks it up).
   "histogramTitle",
   "label",
@@ -462,6 +464,8 @@ export const USER_FACING_PROPS: ReadonlySet<string> = new Set<string>([
   "seriesName",
   "singularLabel",
   "singularName",
+  // A resource overview's status pill's hover (ResourceOverview).
+  "statusDescription",
   "strongTitle",
   "sublabel",
   "submitButtonText",

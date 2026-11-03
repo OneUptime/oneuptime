@@ -236,6 +236,7 @@
     "svc-backup",
     "syslog",
     "timeout|connection refused",
+    "type",
     "vApp {{name}}",
     "vCenter",
     "vSphere Client",

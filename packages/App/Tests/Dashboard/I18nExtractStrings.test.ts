@@ -448,6 +448,8 @@ describe("user-facing properties and attributes", () => {
       "aria-label",
       "singularName",
       "pluralName",
+      "identifierLabel",
+      "statusDescription",
     ]) {
       expect([name, USER_FACING_PROPS.has(name)]).toEqual([name, true]);
     }

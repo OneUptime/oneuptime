@@ -231,6 +231,107 @@ describe("a listed resource's inventory", () => {
   });
 });
 
+describe("what each connection is", () => {
+  function typeNextTo(text: string): string {
+    const item: HTMLElement = screen.getByText(text).closest("li")!;
+    return (
+      within(item).queryByTestId("cloud-connection-type")?.textContent || ""
+    );
+  }
+
+  test("a subnet and a security group read as words, never as the cloud's type", async () => {
+    await renderCards(instance());
+    await screen.findByText("Connected Resources");
+
+    // Held: the account lists the subnet, by its own name.
+    expect(typeNextTo("private-a")).toBe("Subnet");
+    // Not held: the cloud's id, with what it is.
+    expect(typeNextTo("sg-0gone")).toBe("Security Group");
+    // The catalog's own label for a type it lists.
+    expect(typeNextTo("web-alb")).toBe(
+      "Elastic Load Balancer (ALB, NLB, GWLB)",
+    );
+
+    for (const raw of [
+      "AWS::EC2::Subnet",
+      "AWS::EC2::SecurityGroup",
+      "AWS::ElasticLoadBalancingV2::LoadBalancer",
+    ]) {
+      expect(screen.queryByText(raw)).not.toBeInTheDocument();
+    }
+  });
+
+  test("a type no catalog names reads in words, with its service", async () => {
+    listSpy.mockResolvedValue({ data: [], count: 0, skip: 0, limit: 2000 });
+
+    await renderCards(
+      instance({
+        cloudRelationships: [
+          {
+            kind: CloudRelationshipKind.AttachedTo,
+            target: "tgw-attach-0abc",
+            targetType: "AWS::EC2::TransitGatewayAttachment",
+          },
+        ],
+      }),
+    );
+    await screen.findByText("Connected Resources");
+
+    expect(typeNextTo("tgw-attach-0abc")).toBe(
+      "Transit Gateway Attachment (EC2)",
+    );
+  });
+
+  test("an Azure subnet and a Google Cloud subnetwork read as subnets too", async () => {
+    listSpy.mockResolvedValue({ data: [], count: 0, skip: 0, limit: 2000 });
+
+    await renderCards(
+      instance({
+        cloudProvider: "azure",
+        cloudResourceType: "Microsoft.Compute/virtualMachines",
+        cloudRelationships: [
+          {
+            kind: CloudRelationshipKind.RunsIn,
+            target:
+              "/subscriptions/0000/resourceGroups/rg/providers/Microsoft.Network/virtualNetworks/vnet/subnets/default",
+            targetType: "Microsoft.Network/virtualNetworks/subnets",
+          },
+        ],
+      }),
+    );
+    await screen.findByText("Connected Resources");
+
+    expect(
+      typeNextTo(
+        "/subscriptions/0000/resourceGroups/rg/providers/Microsoft.Network/virtualNetworks/vnet/subnets/default",
+      ),
+    ).toBe("Subnet");
+    cleanup();
+
+    await renderCards(
+      instance({
+        cloudProvider: "gcp",
+        cloudResourceType: "gce_instance",
+        cloudRelationships: [
+          {
+            kind: CloudRelationshipKind.RunsIn,
+            target:
+              "//compute.googleapis.com/projects/p/regions/us-central1/subnetworks/default",
+            targetType: "compute.googleapis.com/Subnetwork",
+          },
+        ],
+      }),
+    );
+    await screen.findByText("Connected Resources");
+
+    expect(
+      typeNextTo(
+        "//compute.googleapis.com/projects/p/regions/us-central1/subnetworks/default",
+      ),
+    ).toBe("Subnet");
+  });
+});
+
 describe("a resource no connection lists", () => {
   test("draws none of it, and reads nothing it does not need", async () => {
     const unlisted: CloudResource = instance();
