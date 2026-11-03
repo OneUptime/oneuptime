@@ -1398,7 +1398,8 @@ updateCheck:
 # version it runs, so OneUptime knows which installations still run a release
 # with a security issue and can reach the admins who registered them. Nothing
 # about your users, projects or monitoring data is sent.
-# Set disabled to true to make no call at all.
+# Set disabled to true to make no call at all. The sign-up form then no longer
+# offers release emails from oneuptime.com either, so nothing reports to it.
 instanceCheckIn:
   disabled: false
 
