@@ -40414,5 +40414,13 @@
   "{{count}} changes through {{servers}}._one": "{{count}} modification via {{servers}}.",
   "{{count}} command on {{targets}}.": "{{count}} commande sur {{targets}}.",
   "{{count}} commands on {{targets}}.": "{{count}} commandes sur {{targets}}.",
-  "{{count}} commands on {{targets}}._one": "{{count}} commande sur {{targets}}."
+  "{{count}} commands on {{targets}}._one": "{{count}} commande sur {{targets}}.",
+  "Clear default": "Supprimer la valeur par défaut",
+  "Default Network Topology Layout": "Disposition par défaut de la topologie du réseau",
+  "Each map opens on its own default again: Automatic for all devices, By network layer for a site.": "Chaque carte s'ouvre de nouveau sur sa propre disposition par défaut : Automatique pour tous les appareils, Par couche réseau pour un site.",
+  "Every network map in this project will open on this layout. People can still switch while they look.": "Toutes les cartes réseau de ce projet s'ouvriront sur cette disposition. Chacun peut toujours en changer pendant la consultation.",
+  "Everyone in this project opens network maps on this layout.": "Tout le monde dans ce projet ouvre les cartes réseau sur cette disposition.",
+  "Make default for everyone": "Définir par défaut pour tout le monde",
+  "Save and reuse log explorer views, including the current filters, columns, sorting, and page size. Each view is listed on the page it was saved on: the Logs page, or one resource's Logs tab.": "Save and reuse log explorer views, including the current filters, columns, sorting, and page size. Each view is listed on the page it was saved on: the Logs page, or one resource's Logs tab.",
+  "We couldn't change the default layout. Try again.": "Impossible de modifier la disposition par défaut. Réessayez."
 }

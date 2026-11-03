@@ -961,6 +961,12 @@ Para o mapa se preencher:
 
 Clique em um par não gerenciado e **Add to Monitoring** o registra como dispositivo consultado pela sonda. Ele assume a sonda em que os vizinhos dele concordam, então recebe ping desde a primeira sondagem, e você pode adicionar credenciais depois se ele tiver SNMP.
 
+### Escolher o layout com que o mapa abre
+
+**Map options → Arrange the map** organiza o mapa como **Automático**, **By network layer**, **Concentric**, **Hub and spoke** ou **Parent and child**. O mapa abre no layout marcado como **Padrão**: **Automático** para todos os dispositivos e **By network layer** para um site, a menos que o seu projeto tenha escolhido um layout para todos. Qualquer pessoa pode trocar de layout enquanto olha o mapa; na próxima vez, ele abre de novo no padrão.
+
+Proprietários e administradores do projeto escolhem o padrão: mude para um layout e selecione **Make default for everyone**. A partir daí, toda visão do mapa de dispositivos abre nele: **Topologia do dispositivo**, um site no **Mapa** e a aba **Rede** de **Topologia**. No layout padrão, **Clear default** devolve cada mapa ao seu próprio padrão. As posições arrastadas são salvas para cada layout no seu navegador, então o mapa abre com o arranjo que você fez nesse layout.
+
 ### Exportar o mapa em PDF
 
 **Exportar PDF**, no topo do mapa, baixa o mapa que você está vendo como um PDF que você pode anexar a uma avaliação, a uma solicitação de mudança ou a uma revisão de incidente, ou ler offline. Toda visão do mapa de dispositivos tem essa opção: **Topologia do dispositivo**, um site no **Mapa** e a aba **Rede** de **Topologia**.

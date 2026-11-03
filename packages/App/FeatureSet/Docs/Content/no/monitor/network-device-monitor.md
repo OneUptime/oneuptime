@@ -961,6 +961,12 @@ For at kartet skal fylles ut:
 
 Klikk på en ikke-administrert peer, så registrerer **Add to Monitoring** den som en sondepollet enhet. Den tar sonden naboene er enige om, så den pinges fra første polling, og du kan legge til påloggingsinformasjon senere hvis den viser seg å ha SNMP.
 
+### Velg oppsettet kartet åpner med
+
+**Map options → Arrange the map** legger ut kartet som **Automatisk**, **By network layer**, **Concentric**, **Hub and spoke** eller **Parent and child**. Kartet åpner med oppsettet som er merket **Standard**: **Automatisk** for alle enheter og **By network layer** for en lokasjon, med mindre prosjektet ditt har valgt et oppsett for alle. Alle kan bytte oppsett mens de ser på kartet; neste gang åpner det med standarden igjen.
+
+Prosjekteiere og prosjektadministratorer velger standarden: bytt til et oppsett og velg **Make default for everyone**. Deretter åpner hver visning av enhetskartet med det: **Enhetstopologi**, en lokasjon på **Kart** og fanen **Nettverk** under **Topologi**. På standardoppsettet sender **Clear default** hvert kart tilbake til sin egen standard. Flyttede posisjoner lagres for hvert oppsett i nettleseren din, så kartet åpner med plasseringen du laget i det oppsettet.
+
 ### Eksporter kartet som PDF
 
 **Eksporter PDF**, øverst på kartet, laster ned kartet du ser på som en PDF du kan legge ved en vurdering, en endringsforespørsel eller en hendelsesgjennomgang, eller lese frakoblet. Hver visning av enhetskartet har den: **Enhetstopologi**, en lokasjon på **Kart** og fanen **Nettverk** under **Topologi**.
