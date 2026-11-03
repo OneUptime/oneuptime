@@ -69,7 +69,7 @@ Under **Fler fält** ställer du in **Datasäkerhet** på **Endast konfiguration
 | AWS | AWS S3 Bucket, AWS RDS Instance, AWS Aurora Cluster, AWS RDS Snapshot, AWS DynamoDB Table, AWS Redshift Cluster, AWS DocumentDB Cluster, AWS OpenSearch Domain, AWS ElastiCache Cluster, AWS EFS File System | AWS S3 Bucket |
 | Azure | Azure Storage Account, Azure SQL Database, Azure Cosmos DB Account, Azure PostgreSQL Server, Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket, Google Cloud SQL Instance, Google BigQuery Dataset, Google Firestore Database, Google Spanner Instance, Google Bigtable Instance | Google Cloud Storage Bucket, Google BigQuery Dataset |
-| Databaser som du driver | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch | PostgreSQL, MySQL |
+| Databaser som du driver | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake | PostgreSQL, MySQL |
 | OneUptime | Loggar, spår, undantag, sessionsuppspelningar, AI-konversationer | Loggar, spår, undantag, sessionsuppspelningar, AI-konversationer |
 
 Varje datalager får de kontroller som gäller för dess sort. Ett datalager vars innehåll inte kan provtas kontrolleras ändå: en offentlig bucket eller en okrypterad databas är ett problem oavsett vad den innehåller.

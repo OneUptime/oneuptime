@@ -4,14 +4,14 @@ Un avviso segnala al vostro team un problema da esaminare prima che gli utenti s
 
 :::cards
 - [Avvisi e incidenti](#avvisi-e-incidenti): Che cosa dovrebbe essere un problema, e come i due si collegano.
-- [Da dove arrivano gli avvisi](#da-dove-arrivano-gli-avvisi): Monitor, SLO, chat, l'API o a mano.
+- [Da dove arrivano gli avvisi](#da-dove-arrivano-gli-avvisi): Monitor, SLO, chat, Chiedi all'IA, l'API o a mano.
 - [Creare un avviso a mano](#creare-un-avviso-a-mano): Due passaggi nella dashboard.
 - [Rispondere a un avviso](#rispondere-a-un-avviso): Riconoscerlo, risolverlo o dichiarare un incidente.
 :::
 
 ## Come funziona
 
-La maggior parte degli avvisi viene sollevata da un monitor i cui criteri corrispondono. Alcuni arrivano da uno SLO che consuma il suo budget di errori, da una regola di sicurezza, da una chiamata inviata da Slack o Microsoft Teams, o da una persona. Comunque arrivi, un avviso è sempre lo stesso record, e su di esso girano le stesse regole.
+La maggior parte degli avvisi viene sollevata da un monitor i cui criteri corrispondono. Alcuni arrivano da uno SLO che consuma il suo budget di errori, da una regola di sicurezza, da una chiamata inviata da Slack o Microsoft Teams, da Chiedi all'IA, o da una persona. Comunque arrivi, un avviso è sempre lo stesso record, e su di esso girano le stesse regole.
 
 ```mermaid title="Da un segnale alle persone che lo gestiscono"
 flowchart TB
@@ -44,6 +44,7 @@ Sollevate un avviso quando il vostro team deve guardare prima che qualcuno all'e
 
 - **I criteri di un monitor.** Nelle **Azioni** di un criterio, attivate **Quando i filtri corrispondono, crea un avviso.** e compilate l'avviso che crea: **Titolo dell'avviso** e **Gravità**, poi, ciascuno compresso, **Descrizione**, **Proprietà ed etichette**, **Reperibilità** e **Altri campi**, che contiene **Risoluzione automatica dell'avviso**, **Avviso privato** e **Note di rimedio**. Un criterio mantiene un solo avviso aperto alla volta, uno per serie su un monitor che raggruppa per un campo, e **Risoluzione automatica dell'avviso** lo risolve quando il criterio smette di corrispondere. Vedere [Creare un monitor](/docs/monitor/create-monitor) e [Modelli di incidenti e avvisi](/docs/monitor/incident-alert-templating).
 - **A mano.** Fate clic su **Crea avviso** nell'elenco degli avvisi, o nella scheda **Avvisi** di un monitor, di un host, di un dispositivo di rete o di un'altra risorsa, che sceglie quella risorsa per voi. Vedere [Creare un avviso a mano](#creare-un-avviso-a-mano).
+- **Chiedi all'IA.** In [Chiedi all'IA](/docs/ai/ask-ai), chiedete un avviso: lo crea a vostro nome, collegato alla risorsa dalla cui pagina avete chiesto, come quella di un host. Per registrare un problema di cui qualcuno si sta già occupando, o che è già finito, chiedetelo già riconosciuto o risolto: parte da quello stato e non chiama nessuno. Vedere [Creato già riconosciuto o risolto](#creato-già-riconosciuto-o-risolto).
 - **Il tasso di consumo di uno SLO.** Una regola sul tasso di consumo può creare un avviso quando uno SLO spende il suo budget di errori troppo in fretta. Vedere [Avvisi e incidenti di tasso di consumo](/docs/slo/burn-rate-alerts).
 - **Siti di rete ed eventi di sicurezza.** Un sito di rete impostato per avvisare quando non è in salute apre un avviso quando il suo riepilogo smette di essere operativo, e anche le vostre regole di rilevamento degli eventi di sicurezza aprono avvisi. Vedere [Siti di rete (riepilogo dello stato e uptime)](/docs/monitor/network-sites) e [Eventi di sicurezza (SIEM)](/docs/telemetry/security-events).
 - **Una chiamata.** `/oneuptime page` in Slack o Microsoft Teams, ovunque tranne nel canale proprio di un incidente o di un avviso, apre un avviso il cui titolo è il vostro messaggio, e chiama le persone che indicate. I blocchi di chiamata di un workflow fanno lo stesso con il titolo e il messaggio che fornite loro. Vedere [Chiamare qualcuno da Slack](/docs/workspace-connections/slack#chiamare-qualcuno-da-slack) e [Paging](/docs/workflows/components#paging).
@@ -94,7 +95,7 @@ Lasciate vuoto **Stato iniziale** e l'avviso parte da dove parte ogni nuovo avvi
 
 Nel momento in cui un avviso viene creato, OneUptime esegue questi passaggi, in quest'ordine:
 
-1. **Riceve un numero e uno stato.** Il numero dell'avviso viene da un contatore per progetto ed è mostrato con il vostro prefisso (`ALT-42`). L'avviso parte dal vostro stato di creazione, a meno che il modulo, l'API o un workflow non ne abbia scelto un altro.
+1. **Riceve un numero e uno stato.** Il numero dell'avviso viene da un contatore per progetto ed è mostrato con il vostro prefisso (`ALT-42`). L'avviso parte dal vostro stato di creazione, a meno che il modulo, l'API, un workflow o Chiedi all'IA non ne abbia scelto un altro.
 2. **Le regole di privacy girano per prime**, così tutto ciò che viene dopo sa se l'avviso è privato.
 3. **Il feed e i vostri strumenti di chat lo vengono a sapere.** Una voce **Avviso creato** viene scritta in **Avviso Feed**, e i canali indicati dalle vostre regole di Slack e Microsoft Teams vengono informati; una regola può creare un canale per l'avviso.
 4. **Vengono aggiunti proprietari ed etichette**: quelli indicati dai criteri del monitor o dalla richiesta, poi quelli delle regole del proprietario e delle etichette che corrispondono.

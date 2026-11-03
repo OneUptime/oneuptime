@@ -160,12 +160,16 @@ export function getTokenAccount(account: string): string {
   return account.toUpperCase().split(".")[0]!;
 }
 
-/*
- * The fingerprint Snowflake keeps of the user's public key: SHA256:<base64>.
- * The public key is derived from the private key's PEM itself.
- */
+// The fingerprint Snowflake keeps of the user's public key: SHA256:<base64>.
 export function getPublicKeyFingerprint(privateKeyPem: string): string {
-  const publicKey: crypto.KeyObject = crypto.createPublicKey(privateKeyPem);
+  /*
+   * The public half of the user's private key, derived through its PKCS#8
+   * export (this @types/node does not type createPublicKey(KeyObject)).
+   */
+  const privateKey: crypto.KeyObject = crypto.createPrivateKey(privateKeyPem);
+  const publicKey: crypto.KeyObject = crypto.createPublicKey(
+    privateKey.export({ type: "pkcs8", format: "pem" }),
+  );
   const der: Buffer = publicKey.export({ type: "spki", format: "der" });
 
   return `SHA256:${crypto.createHash("sha256").update(der).digest("base64")}`;

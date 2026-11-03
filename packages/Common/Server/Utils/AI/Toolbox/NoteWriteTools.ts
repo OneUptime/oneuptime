@@ -20,11 +20,19 @@ import {
   ToolExecutionResult,
 } from "./ToolTypes";
 import {
+  AI_ACTION_CARD_FACTS,
+  AI_ACTION_CARD_KINDS,
+  AI_ACTION_CARD_LINES,
   AI_ACTION_TITLES,
+  aiActionCardFact,
+  AIActionCardWords,
   AIActionSentence,
   aiActionSentence,
+  aiActionTerm,
 } from "../../../../Types/AI/AIActionWords";
 import {
+  getAlertNumberText,
+  getIncidentNumberText,
   getRecordTitleName,
   prepareRecordNamesInTitle,
   RecordNames,
@@ -100,6 +108,22 @@ function previewOf(note: string): string {
 }
 
 /*
+ * The card a note leaves: the record it is on, that the note is private
+ * to the team, and its start - in the reader's language
+ * (WidgetBuilder.actionCard).
+ */
+function describeNoteCard(data: {
+  kind: string;
+  note: string;
+}): AIActionCardWords {
+  return {
+    kind: aiActionTerm(data.kind),
+    line: [aiActionSentence(AI_ACTION_CARD_LINES.privateNoteAdded)],
+    facts: [aiActionCardFact(AI_ACTION_CARD_FACTS.note, previewOf(data.note))],
+  };
+}
+
+/*
  * ---------------------------------------------------------------------------
  * create_incident_note — private internal note on an incident.
  * ---------------------------------------------------------------------------
@@ -165,7 +189,12 @@ export const CreateIncidentNoteTool: ObservabilityTool = {
     // Visibility check under the user's RBAC before writing anything.
     const incident: Incident | null = await IncidentService.findOneById({
       id: incidentId,
-      select: { _id: true, incidentNumber: true, title: true },
+      select: {
+        _id: true,
+        incidentNumber: true,
+        incidentNumberWithPrefix: true,
+        title: true,
+      },
       props: ctx.props,
     });
     if (!incident) {
@@ -212,12 +241,10 @@ export const CreateIncidentNoteTool: ObservabilityTool = {
       },
       redactionCount: serialized.redactionCount,
       isTruncated: false,
-      widget: WidgetBuilder.resourceCard({
+      widget: WidgetBuilder.actionCard({
         title: "Internal note added",
-        resourceType: "Incident",
-        heading: `#${incident.incidentNumber} · ${incident.title}`,
-        subheading: "Private — team members only",
-        fields: [{ label: "Note", value: previewOf(note) }],
+        heading: `${getIncidentNumberText(incident)} · ${incident.title}`,
+        words: describeNoteCard({ kind: AI_ACTION_CARD_KINDS.incident, note }),
         link: {
           type: AIChatCitationTargetType.IncidentView,
           params: { incidentId: incidentIdString },
@@ -290,7 +317,12 @@ export const CreateAlertNoteTool: ObservabilityTool = {
     // Visibility check under the user's RBAC before writing anything.
     const alert: Alert | null = await AlertService.findOneById({
       id: alertId,
-      select: { _id: true, alertNumber: true, title: true },
+      select: {
+        _id: true,
+        alertNumber: true,
+        alertNumberWithPrefix: true,
+        title: true,
+      },
       props: ctx.props,
     });
     if (!alert) {
@@ -337,12 +369,10 @@ export const CreateAlertNoteTool: ObservabilityTool = {
       },
       redactionCount: serialized.redactionCount,
       isTruncated: false,
-      widget: WidgetBuilder.resourceCard({
+      widget: WidgetBuilder.actionCard({
         title: "Internal note added",
-        resourceType: "Alert",
-        heading: `#${alert.alertNumber} · ${alert.title}`,
-        subheading: "Private — team members only",
-        fields: [{ label: "Note", value: previewOf(note) }],
+        heading: `${getAlertNumberText(alert)} · ${alert.title}`,
+        words: describeNoteCard({ kind: AI_ACTION_CARD_KINDS.alert, note }),
         link: {
           type: AIChatCitationTargetType.AlertView,
           params: { alertId: alertIdString },

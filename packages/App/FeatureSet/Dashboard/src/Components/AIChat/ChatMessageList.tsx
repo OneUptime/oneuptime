@@ -27,6 +27,7 @@ import ChatActivityFeed, {
 } from "./ChatActivityFeed";
 import SafeChatMarkdown from "./SafeChatMarkdown";
 import ToolApprovalCard, { ToolDecision } from "./ToolApprovalCard";
+import { getShownToolActions } from "./ToolActionWords";
 import WidgetRenderer from "./Widgets/WidgetRenderer";
 import { ChatMessageFeedback } from "./useAiChat";
 
@@ -545,7 +546,14 @@ const ChatMessageList: FunctionComponent<ComponentProps> = (
     isWaiting: boolean,
   ): ReactElement => {
     const widgets: Array<AIChatWidget> = message.widgets || [];
-    const toolActions: Array<AIChatToolAction> = message.toolActions || [];
+    /*
+     * An action that ran and left a card above is that card: its own
+     * "Executed" line is not drawn again under it.
+     */
+    const toolActions: Array<AIChatToolAction> = getShownToolActions(
+      message.toolActions || [],
+      widgets,
+    );
 
     return (
       <div className="space-y-4">

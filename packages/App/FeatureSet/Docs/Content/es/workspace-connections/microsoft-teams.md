@@ -173,7 +173,7 @@ Escribe al bot en un chat personal, o menciona a OneUptime con @ en un canal o u
 | `maintenance [title]` | Abre el formulario de mantenimiento programado, con el título rellenado. |
 | `oncall` | Lista quién está de guardia ahora mismo en cada programación de guardia que puedes ver, hasta cuándo y quién va después. |
 | `page [who] [message]` | Avisa a las personas que mencionas con @ sobre tu mensaje, o envía una tarjeta para elegir a quién avisar. Consulta [Avisar a alguien desde Microsoft Teams](#avisar-a-alguien-desde-microsoft-teams). |
-| `ask [question]`, o cualquier pregunta en lenguaje natural | OneUptime AI responde sobre tus registros, trazas, métricas, incidentes y monitores, por ejemplo "¿Qué monitores están caídos ahora mismo?". Las respuestas solo leen. |
+| `ask [question]`, o cualquier pregunta en lenguaje natural | OneUptime AI responde sobre tus registros, trazas, métricas, incidentes y monitores, por ejemplo "¿Qué monitores están caídos ahora mismo?". Las respuestas solo leen: si le pides un cambio, dice cómo hacerlo aquí, por ejemplo con `incident` o con los botones de las tarjetas de OneUptime, o enlaza a Preguntar a la IA para todo lo demás. En el canal propio de un incidente o de una alerta, responde sobre ese incidente o esa alerta. |
 | `show active incidents`, `show active alerts` | Lista lo que está abierto ahora. |
 | `show scheduled maintenance`, `show ongoing maintenance` | Lista los eventos de mantenimiento próximos, o en curso. |
 

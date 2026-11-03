@@ -284,7 +284,7 @@ flowchart TB
 
 ### 宣告時即已確認或已解決
 
-選擇一個更後面的 **初始狀態**——在表單上、透過範本的 **初始事件狀態**，或透過 API、Terraform 或工作流程的 `currentIncidentStateId`——記錄的是一個已經有人在處理或已經結束的事件。它不會被當作新的緊急情況：
+選擇一個更後面的 **初始狀態**——在表單上、透過範本的 **初始事件狀態**、透過 API、Terraform 或工作流程的 `currentIncidentStateId`，或請 [詢問 AI](/docs/ai/ask-ai) 宣告一個已確認或已解決的事件——記錄的是一個已經有人在處理或已經結束的事件。它不會被當作新的緊急情況：
 
 ```mermaid title="新事件會引發什麼，取決於它的起始狀態"
 flowchart TB

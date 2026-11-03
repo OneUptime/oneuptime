@@ -2983,6 +2983,88 @@ describe("InvestigationConversation — in the reader's language", () => {
     expect(actions).not.toHaveTextContent("Acknowledge incident");
   });
 
+  /*
+   * #5349's reviewer: under a card that says what an action made or
+   * changed, the action's own line only said it again. One that names the
+   * card it left (widgetId) is not listed - while the card is drawn for the
+   * viewer: another asker's cards are not, so their line still is.
+   */
+  test("an action that left a card the viewer sees is the card: its line is not listed again", async () => {
+    routeResponses({
+      thread: () => {
+        return threadResponse({
+          messages: [
+            answer({
+              content: "Acknowledged.",
+              userId: SAM,
+              name: "Sam Lee",
+              widgets: [
+                {
+                  id: "W1",
+                  type: "ResourceCard",
+                  title: "Incident acknowledged",
+                  data: { heading: "INC-42 · Checkout down" },
+                },
+              ],
+              toolActions: [
+                {
+                  ...acknowledgeAction(AIChatToolActionStatus.Executed),
+                  widgetId: "W1",
+                },
+              ],
+            }),
+          ],
+        });
+      },
+    });
+
+    renderConversation();
+    await flush();
+
+    expect(screen.getByTestId("answer-widgets")).toBeVisible();
+    expect(
+      screen.queryByTestId("investigation-conversation-actions"),
+    ).toBeNull();
+  });
+
+  test("another asker's card is not drawn for the viewer, so the action's line still says what it did", async () => {
+    routeResponses({
+      thread: () => {
+        return threadResponse({
+          messages: [
+            answer({
+              content: "Acknowledged.",
+              userId: PRIYA,
+              name: "Priya Shah",
+              widgets: [
+                {
+                  id: "W1",
+                  type: "ResourceCard",
+                  title: "Incident acknowledged",
+                  data: { heading: "INC-42 · Checkout down" },
+                },
+              ],
+              toolActions: [
+                {
+                  ...acknowledgeAction(AIChatToolActionStatus.Executed),
+                  widgetId: "W1",
+                },
+              ],
+            }),
+          ],
+        });
+      },
+    });
+
+    renderConversation();
+    await flush();
+
+    expect(screen.queryByTestId("answer-widgets")).toBeNull();
+    expect(
+      screen.getByTestId("investigation-conversation-actions"),
+    ).toHaveTextContent(`${GERMAN_TITLE} · ${GERMAN["Done"]}`);
+  });
+
   test("an action saved before its words reads the English it stores", async () => {
     const saved: JSONObject = acknowledgeAction(
       AIChatToolActionStatus.Executed,
