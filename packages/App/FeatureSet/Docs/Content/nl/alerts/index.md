@@ -4,14 +4,14 @@ Een waarschuwing wijst je team op een probleem dat bekeken moet worden voordat j
 
 :::cards
 - [Waarschuwingen en incidenten](#waarschuwingen-en-incidenten): Wat een probleem moet zijn, en hoe de twee samenhangen.
-- [Waar waarschuwingen vandaan komen](#waar-waarschuwingen-vandaan-komen): Monitors, SLO's, chat, de API of met de hand.
+- [Waar waarschuwingen vandaan komen](#waar-waarschuwingen-vandaan-komen): Monitors, SLO's, chat, AI vragen, de API of met de hand.
 - [Een waarschuwing met de hand aanmaken](#een-waarschuwing-met-de-hand-aanmaken): Twee stappen in het dashboard.
 - [Op een waarschuwing reageren](#op-een-waarschuwing-reageren): Bevestig haar, los haar op of meld een incident.
 :::
 
 ## Hoe het werkt
 
-De meeste waarschuwingen worden aangemaakt door een monitor waarvan de criteria overeenkomen. Andere komen van een SLO die zijn foutbudget verbruikt, een beveiligingsregel, een oproep vanuit Slack of Microsoft Teams, of een persoon. Hoe ze ook binnenkomt, een waarschuwing is altijd hetzelfde record, en dezelfde regels draaien erop.
+De meeste waarschuwingen worden aangemaakt door een monitor waarvan de criteria overeenkomen. Andere komen van een SLO die zijn foutbudget verbruikt, een beveiligingsregel, een oproep vanuit Slack of Microsoft Teams, AI vragen, of een persoon. Hoe ze ook binnenkomt, een waarschuwing is altijd hetzelfde record, en dezelfde regels draaien erop.
 
 ```mermaid title="Van een signaal naar de mensen die het oppakken"
 flowchart TB
@@ -44,6 +44,7 @@ Maak een waarschuwing aan wanneer je team moet kijken voordat iemand buiten het 
 
 - **De criteria van een monitor.** Zet onder de **Acties** van een criterium **Wanneer filters overeenkomen, maak een waarschuwing aan.** aan en vul de waarschuwing in die het aanmaakt: **Waarschuwingstitel** en **Ernst**, dan, elk ingeklapt, **Beschrijving**, **Eigendom & labels**, **Bereikbaarheid** en **Meer velden**, met daarin **Waarschuwing automatisch oplossen**, **Privéwaarschuwing** en **Herstelnotities**. Een criterium houdt één open waarschuwing tegelijk aan, één per reeks bij een monitor die op een veld groepeert, en **Waarschuwing automatisch oplossen** lost haar op zodra het criterium niet meer overeenkomt. Zie [Een monitor maken](/docs/monitor/create-monitor) en [Incident- en waarschuwingstemplates](/docs/monitor/incident-alert-templating).
 - **Met de hand.** Klik op **Waarschuwing maken** in de lijst met waarschuwingen, of op het tabblad **Waarschuwingen** van een monitor, host, netwerkapparaat of andere resource, dat die resource voor je kiest. Zie [Een waarschuwing met de hand aanmaken](#een-waarschuwing-met-de-hand-aanmaken).
+- **AI vragen.** Vraag in [AI vragen](/docs/ai/ask-ai) om een waarschuwing: het maakt die als jou aan, gekoppeld aan de resource op wiens pagina je het vroeg, zoals die van een host. Om een probleem vast te leggen dat iemand al afhandelt, of dat al voorbij is, vraag je haar al bevestigd of opgelost: ze begint in die status en roept niemand op. Zie [Al bevestigd of opgelost aangemaakt](#al-bevestigd-of-opgelost-aangemaakt).
 - **De verbruikssnelheid van een SLO.** Een regel voor de verbruikssnelheid kan een waarschuwing aanmaken wanneer een SLO zijn foutbudget te snel verbruikt. Zie [Waarschuwingen en incidenten voor verbruikssnelheid](/docs/slo/burn-rate-alerts).
 - **Netwerklocaties en beveiligingsgebeurtenissen.** Een netwerklocatie die is ingesteld om te waarschuwen wanneer ze ongezond is, opent een waarschuwing zodra haar overzicht niet meer operationeel is, en je detectieregels voor beveiligingsgebeurtenissen openen ook waarschuwingen. Zie [Netwerklocaties (gezondheidsoverzicht en uptime)](/docs/monitor/network-sites) en [Beveiligingsgebeurtenissen (SIEM)](/docs/telemetry/security-events).
 - **Een oproep.** `/oneuptime page` in Slack of Microsoft Teams, overal behalve in het eigen kanaal van een incident of een waarschuwing, opent een waarschuwing met je bericht als titel en roept de mensen op die je noemt. De oproepblokken van een workflow doen hetzelfde met de titel en het bericht die je ze meegeeft. Zie [Iemand oproepen vanuit Slack](/docs/workspace-connections/slack#iemand-oproepen-vanuit-slack) en [Paging](/docs/workflows/components#paging).
@@ -94,7 +95,7 @@ Laat je **Initiële status** leeg, dan begint de waarschuwing waar elke nieuwe w
 
 Zodra een waarschuwing wordt aangemaakt, doorloopt OneUptime deze stappen, in deze volgorde:
 
-1. **Ze krijgt een nummer en een status.** Het waarschuwingsnummer komt van een teller per project en wordt met je voorvoegsel getoond (`ALT-42`). De waarschuwing begint in je aanmaakstatus, tenzij het formulier, de API of een workflow een andere koos.
+1. **Ze krijgt een nummer en een status.** Het waarschuwingsnummer komt van een teller per project en wordt met je voorvoegsel getoond (`ALT-42`). De waarschuwing begint in je aanmaakstatus, tenzij het formulier, de API, een workflow of AI vragen een andere koos.
 2. **Privacyregels draaien eerst**, zodat alles daarna weet of de waarschuwing privé is.
 3. **De feed en je chattools horen ervan.** Een vermelding **Waarschuwing aangemaakt** wordt in **Waarschuwing Feed** geschreven, en de kanalen die je Slack- en Microsoft Teams-regels noemen, worden ingelicht; een regel kan een kanaal voor de waarschuwing aanmaken.
 4. **Eigenaren en labels worden toegevoegd**: die welke de criteria van de monitor of het verzoek noemen, daarna die van overeenkomende eigenaars- en labelregels.

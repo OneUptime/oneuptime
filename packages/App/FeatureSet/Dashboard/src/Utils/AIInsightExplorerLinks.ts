@@ -53,8 +53,9 @@ import {
  *   MetricHistogramBuckets    the hour it was read in - or, for metric names
  *                             with ids in them, the metric list searched for
  *                             them in the service
- *   MetricMissingMetrics   -> traces explorer: the service's spans of the
- *                             hour, the operations its metrics would measure
+ *   MetricMissingMetrics / -> traces explorer: the service's spans of the
+ *   MetricMissingRequestMetrics hour, the operations (the requests) its
+ *                             metrics would measure
  *
  * Everything here is pure (no network, no React) so App/Tests/Dashboard can
  * exercise the whole matrix in plain Node; the caller resolves service
@@ -291,6 +292,7 @@ export const getInsightDetectionWindow: GetInsightDetectionWindowFunction =
       case AIInsightType.MetricHighCardinality:
       case AIInsightType.MetricHistogramBuckets:
       case AIInsightType.MetricMissingMetrics:
+      case AIInsightType.MetricMissingRequestMetrics:
         windowMinutes = METRIC_INSIGHT_WINDOW_MINUTES;
         break;
       case AIInsightType.DeployRegression:
@@ -691,8 +693,10 @@ export function getMetricNamePatternSearch(
  * The explorer a Metrics finding is proven or disproven in: the metric in
  * the metric explorer, for the service and the hour it was read in; for
  * metric names with ids in them, the metric list searched for those names
- * in the service; and for a service that sends no metrics, its spans of
- * the hour - the operations its metrics would measure.
+ * in the service; and for a service that sends no metrics, or none for its
+ * requests, its spans of the hour - the operations its metrics would
+ * measure (the traces explorer lists the spans where work enters a
+ * service: its requests).
  */
 function buildMetricFindingLink(
   input: AIInsightExplorerLinkInput,
@@ -705,7 +709,10 @@ function buildMetricFindingLink(
     });
   const serviceScope: InsightServiceScope = buildServiceScope(input);
 
-  if (input.insightType === AIInsightType.MetricMissingMetrics) {
+  if (
+    input.insightType === AIInsightType.MetricMissingMetrics ||
+    input.insightType === AIInsightType.MetricMissingRequestMetrics
+  ) {
     const serialized: CrossSignalQueryParams = toTracesExplorerQueryParams({
       serviceIds: serviceScope.serviceIds,
       attributes: serviceScope.attributes,
@@ -1064,7 +1071,8 @@ export const buildInsightInvestigationLink: BuildInsightInvestigationLinkFunctio
 
       case AIInsightType.MetricHighCardinality:
       case AIInsightType.MetricHistogramBuckets:
-      case AIInsightType.MetricMissingMetrics: {
+      case AIInsightType.MetricMissingMetrics:
+      case AIInsightType.MetricMissingRequestMetrics: {
         return buildMetricFindingLink(input);
       }
 

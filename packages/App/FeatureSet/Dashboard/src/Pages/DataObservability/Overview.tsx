@@ -2,7 +2,10 @@ import PageComponentProps from "../PageComponentProps";
 import AppLink from "../../Components/AppLink/AppLink";
 import ConnectDatabaseModal from "../../Components/DataObservability/ConnectDatabaseModal";
 import DataObservabilityApi from "../../Components/DataObservability/DataObservabilityApi";
-import { formatOverdue } from "../../Components/DataObservability/DataObservabilityFormat";
+import {
+  formatOverdue,
+  formatSize,
+} from "../../Components/DataObservability/DataObservabilityFormat";
 import EventStatBar from "../../Components/EventView/EventStatBar";
 import EventStatTile from "../../Components/EventView/EventStatTile";
 import PageMap from "../../Utils/PageMap";
@@ -216,6 +219,37 @@ const DataObservabilityOverviewPage: FunctionComponent<
           }
         />
       </EventStatBar>
+
+      {overview.unusedAssetCount > 0 ? (
+        <Card
+          title="Unused Tables"
+          description="Tables nobody has read for 90 days: candidates to archive or drop."
+        >
+          <div className="flex flex-wrap items-center justify-between gap-3 px-6 pb-6">
+            <p className="text-sm text-gray-700">
+              {translator.translatePlural(
+                {
+                  one: "{{count}} table nobody has read for 90 days holds {{size}}.",
+                  other:
+                    "{{count}} tables nobody has read for 90 days hold {{size}}.",
+                },
+                overview.unusedAssetCount,
+                { size: formatSize(overview.unusedSizeInBytes) },
+              )}
+            </p>
+            <AppLink
+              to={RouteUtil.populateRouteParams(
+                RouteMap[PageMap.DATA_OBSERVABILITY_TABLES_UNUSED] as Route,
+              )}
+              className="text-sm font-medium text-indigo-600 hover:underline"
+            >
+              <span>{translator.translateText("See them")}</span>
+            </AppLink>
+          </div>
+        </Card>
+      ) : (
+        <></>
+      )}
 
       <CardGrid columns={2}>
         <Card

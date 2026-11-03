@@ -6,7 +6,7 @@ Elke opdracht van de CLI `oneuptime`, met zijn argumenten, opties en standaardwa
 - [Globale opties](#globale-opties): De opties die elke opdracht neemt.
 - [Inloggen en contexten](#inloggen-en-contexten): login en de context-opdrachten.
 - [Bronopdrachten](#opdrachten-voor-bronnen): De bewerkingen, velden en acties van elke bron.
-- [Andere opdrachten](#andere-opdrachten): deploy, whoami, resources, version en help.
+- [Andere opdrachten](#andere-opdrachten): deploy, dbt upload, whoami, resources, version en help.
 :::
 
 ## De opdrachten
@@ -19,6 +19,8 @@ flowchart LR
     O --> R["incident, monitor<br/>en elke bron"]
     R --> R1["list<br/>get<br/>create<br/>update<br/>delete<br/>count<br/>fields"]
     R --> R2["acknowledge<br/>resolve<br/>start<br/>end<br/>add-note"]
+    O --> D["dbt"]
+    D --> D1["upload"]
     O --> U["deploy<br/>whoami<br/>resources<br/>version<br/>help"]
 ```
 
@@ -303,6 +305,22 @@ oneuptime deploy [--service <name>] [--service-version <version>] [--previous-ve
 | `--type <type>` | Nee | Het soort wijziging, zoals `config-change` of `rollback` | `deployment` |
 | `--time <time>` | Nee | Wanneer het gebeurde, zoals `2026-10-19T10:00:00Z` | Nu |
 | `--attribute <key=value...>` | Nee | Meer attributen, als `key=value`, een of meer | |
+| `--ingestion-key <key>` | Nee | Een telemetrie-ingestiesleutel van het project | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
+
+### `oneuptime dbt upload`
+
+Stuurt de artefacten van een dbt-project na een build, vanuit CI of een dbt Cloud-job, naar Data Observability. De modellen ervan verschijnen bij de tabellen die ze bouwen, met hun herkomst, de tests ervan verschijnen naast de controles van OneUptime en kunnen waarschuwingen aanmaken, en elke build is een uitvoering van de pipeline van het project. Hij leest `manifest.json` en `run_results.json` uit de doelmap van dbt, stuurt alleen wat Data Observability ervan leest en schrijft met een telemetrie-ingestiesleutel, niet met een API-sleutel. De pagina Documentatie van Data Observability, in je dashboard, toont hem in een CI-job.
+
+```bash
+oneuptime dbt upload [--target-path <dir>] [--manifest <file>] [--run-results <file>] [--project <name>] [--ingestion-key <key>]
+```
+
+| Optie | Verplicht | Wat het is | Standaard |
+| --- | --- | --- | --- |
+| `--target-path <dir>` | Nee | De map waarin dbt zijn artefacten heeft geschreven | `target` |
+| `--manifest <file>` | Nee | Het manifest dat wordt verstuurd | `manifest.json` in de doelmap |
+| `--run-results <file>` | Nee | De uitvoeringsresultaten die worden verstuurd | `run_results.json` in de doelmap |
+| `--project <name>` | Nee | De naam van het dbt-project, alleen nodig als er geen manifest wordt verstuurd | Het project van het manifest |
 | `--ingestion-key <key>` | Nee | Een telemetrie-ingestiesleutel van het project | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
 
 ### `oneuptime whoami`

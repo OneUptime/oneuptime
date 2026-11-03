@@ -101,6 +101,7 @@ oneuptime resources
 | `oneuptime context list`, `use`, `current`, `delete` | Выводит, переключает, показывает и удаляет сохранённые контексты | [Аутентификация](/docs/cli/authentication#контексты) |
 | `oneuptime whoami` | Показывает URL и API-ключ, которые использует следующая команда, а с `--check` — принимает ли OneUptime ключ | [Аутентификация](/docs/cli/authentication#проверьте-что-будет-использовать-cli) |
 | `oneuptime deploy` | Записывает развёртывание или другое изменение для графиков и OneUptime AI | [Развёртывания и изменения](/docs/telemetry/change-events) |
+| `oneuptime dbt upload` | Отправляет артефакты проекта dbt после сборки в «Наблюдаемость данных» | [Справочник команд](/docs/cli/command-reference#oneuptime-dbt-upload) |
 | `oneuptime <resource> list`, `get`, `create`, `update`, `delete`, `count` | Работает с одним видом записей | [Операции с ресурсами](/docs/cli/resource-operations) |
 | `oneuptime <resource> fields` | Выводит поля ресурса и флаги, которые их задают | [Операции с ресурсами](/docs/cli/resource-operations#поля-ресурса) |
 | `oneuptime <resource> acknowledge`, `resolve`, `start`, `end`, `add-note` | Делает то же, что кнопки панели управления для инцидентов, оповещений и плановых обслуживаний | [Операции с ресурсами](/docs/cli/resource-operations#подтвердить-устранить-и-добавить-заметки) |

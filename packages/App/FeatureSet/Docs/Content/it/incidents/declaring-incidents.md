@@ -284,7 +284,7 @@ Da lì l'incidente è attivo: conta per il badge **Incidenti attivi** nel menu l
 
 ### Dichiarato già riconosciuto o risolto
 
-Scegliere uno **Stato iniziale** successivo — nel modulo, tramite lo **Stato iniziale dell'incidente** di un modello, oppure con `currentIncidentStateId` dall'API, da Terraform o da un workflow — registra un incidente di cui qualcuno si sta già occupando, o che è già finito. Non viene trattato come una nuova emergenza:
+Scegliere uno **Stato iniziale** successivo — nel modulo, tramite lo **Stato iniziale dell'incidente** di un modello, con `currentIncidentStateId` dall'API, da Terraform o da un workflow, oppure chiedendo a [Chiedi all'IA](/docs/ai/ask-ai) un incidente già riconosciuto o risolto — registra un incidente di cui qualcuno si sta già occupando, o che è già finito. Non viene trattato come una nuova emergenza:
 
 ```mermaid title="Che cosa mette in moto un nuovo incidente, in base allo stato in cui parte"
 flowchart TB

@@ -101,6 +101,7 @@ The list shows every kind of record you can work with, and its command, such as 
 | `oneuptime context list`, `use`, `current`, `delete` | Lists, switches, shows and deletes saved contexts | [Authentication](/docs/cli/authentication#contexts) |
 | `oneuptime whoami` | Shows the URL and API key the next command will use, and with `--check` whether OneUptime takes the key | [Authentication](/docs/cli/authentication#check-what-the-cli-will-use) |
 | `oneuptime deploy` | Records a deploy, or another change, for charts and OneUptime AI | [Deploys and Changes](/docs/telemetry/change-events) |
+| `oneuptime dbt upload` | Sends a dbt project's artifacts after a build to Data Observability | [Command Reference](/docs/cli/command-reference#oneuptime-dbt-upload) |
 | `oneuptime <resource> list`, `get`, `create`, `update`, `delete`, `count` | Works with one kind of record | [Resource Operations](/docs/cli/resource-operations) |
 | `oneuptime <resource> fields` | Lists a resource's fields, and the flags that set them | [Resource Operations](/docs/cli/resource-operations#see-a-resources-fields) |
 | `oneuptime <resource> acknowledge`, `resolve`, `start`, `end`, `add-note` | Does what the dashboard's buttons do on incidents, alerts and scheduled maintenance | [Resource Operations](/docs/cli/resource-operations#acknowledge-resolve-and-add-notes) |

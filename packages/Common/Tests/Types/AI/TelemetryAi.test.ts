@@ -330,9 +330,10 @@ describe("the Metric lane", () => {
     AIInsightType.MetricHighCardinality,
     AIInsightType.MetricHistogramBuckets,
     AIInsightType.MetricMissingMetrics,
+    AIInsightType.MetricMissingRequestMetrics,
   ];
 
-  test("files high cardinality, histogram buckets that do not fit and missing metrics, decided by metric AI rules, switched by its own column", () => {
+  test("files high cardinality, histogram buckets that do not fit, missing metrics and missing request metrics, decided by metric AI rules, switched by its own column", () => {
     expect(TELEMETRY_AI_LANES[TelemetryAiLane.Metric]).toEqual({
       lane: TelemetryAiLane.Metric,
       triggerEntityType: AutoRemediationTriggerEntity.Metric,

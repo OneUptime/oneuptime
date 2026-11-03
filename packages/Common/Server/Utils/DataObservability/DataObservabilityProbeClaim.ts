@@ -5,11 +5,11 @@ import { SubscriptionStatusUtil } from "../../../Types/Billing/SubscriptionStatu
 import OneUptimeDate from "../../../Types/Date";
 import { DataStoreProvider } from "../../../Types/DataSecurity/DataStoreKind";
 import ObjectID from "../../../Types/ObjectID";
+import { isValidProbeConnectionVariable } from "../DataSecurity/DataSecurityProbeScan";
 import {
-  getDatabaseEngineOfKind,
-  isValidProbeConnectionVariable,
-  PROBE_SCANNABLE_KINDS,
-} from "../DataSecurity/DataSecurityProbeScan";
+  DATA_OBSERVABILITY_KINDS,
+  getCollectorEngineOfKind,
+} from "./DataObservabilityEngines";
 import {
   DataObservabilityProbeStoreWork,
   TABLE_HEALTH_CLAIM_IN_MINUTES,
@@ -91,7 +91,7 @@ export async function claimDueTableHealthStoresForProbe(data: {
         [
           data.probeId.toString(),
           DataStoreProvider.SelfManaged,
-          [...PROBE_SCANNABLE_KINDS],
+          [...DATA_OBSERVABILITY_KINDS],
           now,
           SubscriptionStatusUtil.getActiveSubscriptionStatuses(),
           Math.floor(data.limit),
@@ -119,8 +119,8 @@ export function buildProbeCollectWork(
   store: DataStore,
   checks: Array<PlannedDataCheck> = [],
 ): DataObservabilityProbeStoreWork | null {
-  const engine: ReturnType<typeof getDatabaseEngineOfKind> =
-    getDatabaseEngineOfKind(store.kind);
+  const engine: ReturnType<typeof getCollectorEngineOfKind> =
+    getCollectorEngineOfKind(store.kind);
 
   if (
     !store.id ||

@@ -5,6 +5,7 @@ import {
 } from "Common/Types/AI/AIChatTypes";
 import { JSONObject } from "Common/Types/JSON";
 import IconProp from "Common/Types/Icon/IconProp";
+import { createTranslator } from "Common/Types/Translator";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -17,7 +18,11 @@ import React, {
 } from "react";
 import ToolActionSentence, { ToolActionSentences } from "./ToolActionSentence";
 import {
+  ActionArgumentOptions,
+  ActionArgumentPart,
   DrawnActionSentence,
+  getActionArgumentParts,
+  getToolActionDescribedArguments,
   getToolActionDescription,
   getToolActionNamedArguments,
   getToolActionShownValues,
@@ -38,66 +43,25 @@ export interface ComponentProps {
   onRespond: (decisions: Array<ToolDecision>) => void;
 }
 
-/*
- * Whether the action's title already shows this argument in full: "Create
- * alert: <title>" ends with the title the alert takes.
- */
-function isShownByTitle(value: string, title: string): boolean {
-  const shown: string = value.trim();
-  const titleShown: string = title.trim();
-
-  return (
-    shown.length > 0 &&
-    (titleShown === shown || titleShown.endsWith(`: ${shown}`))
-  );
-}
+// What goes between two arguments when they are written on one line.
+const ARGUMENT_SEPARATOR: string = "  ·  ";
 
 /*
- * The action's arguments in one line. An action whose description names
- * what its lists stand for (the resources it links, by name) leaves those
- * lists out here: their IDs would only repeat the description, unreadably.
- * An argument the action's title shows is left out too: the line is cut at
- * two lines, and repeating the title there pushed what only this line says
- * - the description an alert will carry - out of sight. The title's own
- * values say which (shownValues), in every language; for an action saved
- * before its title had values, the title ending with the argument does.
+ * The action's arguments in one line, as text (ToolActionWords
+ * getActionArgumentParts): each named in the reader's words - English by
+ * default - a list by how many it holds, yes or no in words. The card
+ * draws the same arguments a line each.
  */
 export function argsPreview(
   args: JSONObject,
-  options?: {
-    leaveOutLists?: boolean | undefined;
-    title?: string | undefined;
-    shownValues?: Array<string> | undefined;
-    // Arguments the title names by name (an incident's ID, as "INC-42").
-    namedArguments?: Array<string> | undefined;
-  },
+  options?: ActionArgumentOptions | undefined,
+  translator: Translator = createTranslator(undefined),
 ): string {
-  const parts: Array<string> = [];
-  for (const key of Object.keys(args)) {
-    const value: unknown = args[key];
-    if (value === undefined || value === null || value === "") {
-      continue;
-    }
-    if (options?.namedArguments?.includes(key)) {
-      continue;
-    }
-    if (options?.leaveOutLists && typeof value === "object") {
-      continue;
-    }
-    if (
-      typeof value === "string" &&
-      ((options?.title && isShownByTitle(value, options.title)) ||
-        options?.shownValues?.includes(value.trim()))
-    ) {
-      continue;
-    }
-    const valueString: string =
-      typeof value === "object" ? JSON.stringify(value) : String(value);
-    parts.push(
-      `${key}: ${valueString.length > 80 ? `${valueString.substring(0, 80)}…` : valueString}`,
-    );
-  }
-  return parts.join("  ·  ");
+  return getActionArgumentParts(args, options || {}, translator)
+    .map((part: ActionArgumentPart): string => {
+      return `${part.label}: ${part.value}`;
+    })
+    .join(ARGUMENT_SEPARATOR);
 }
 
 const statusChipTone: { [key in AIChatToolActionStatus]: string } = {
@@ -258,12 +222,19 @@ const ToolApprovalCard: FunctionComponent<ComponentProps> = (
               );
               const description: Array<DrawnActionSentence> =
                 getToolActionDescription(action, translator);
-              const preview: string = argsPreview(action.arguments, {
-                leaveOutLists: description.length > 0,
-                title: action.title,
-                shownValues: getToolActionShownValues(action),
-                namedArguments: getToolActionNamedArguments(action),
-              });
+              const argumentParts: Array<ActionArgumentPart> =
+                getActionArgumentParts(
+                  action.arguments,
+                  {
+                    leaveOutLists: description.length > 0,
+                    title: action.title,
+                    shownValues: getToolActionShownValues(action),
+                    namedArguments: getToolActionNamedArguments(action),
+                    describedArguments: getToolActionDescribedArguments(action),
+                    toolName: action.toolName,
+                  },
+                  translator,
+                );
               /*
                * Allow and Skip sit beside the action where the card has
                * room for both, and under it where it has not: beside it
@@ -313,21 +284,45 @@ const ToolApprovalCard: FunctionComponent<ComponentProps> = (
                           <ToolActionSentences sentences={description} />
                         </div>
                       )}
-                      {preview && (
-                        <div
+                      {/*
+                       * What else it runs with, an argument a line: its
+                       * name in the reader's words ("Note", "Files") and
+                       * its value, the model's own text an isolate read the
+                       * way most of its letters are, in the card's own
+                       * face - a note is prose, not code. Each wraps to
+                       * four lines of its own: run together on one line
+                       * cut at two, a status update's "Notify subscribers:
+                       * Yes" fell off the end on a phone, and its note was
+                       * cut mid-sentence, before anyone approved it.
+                       */}
+                      {argumentParts.length > 0 && (
+                        <dl
                           data-testid="tool-approval-arguments"
-                          className="mt-1 line-clamp-2 font-mono text-[10.5px] leading-relaxed text-gray-600"
+                          className="mt-1.5 space-y-0.5 text-[11px] leading-[1.125rem]"
                         >
-                          {/*
-                           * In the line's own monospace: every page's
-                           * `* { font-family: Inter }` would otherwise
-                           * reach the isolate.
-                           */}
-                          <IsolatedText
-                            text={preview}
-                            className="[font-family:inherit]"
-                          />
-                        </div>
+                          {argumentParts.map((part: ActionArgumentPart) => {
+                            return (
+                              <div
+                                key={part.key}
+                                data-testid="tool-approval-argument"
+                                className="line-clamp-4 break-words"
+                              >
+                                <dt
+                                  data-testid="tool-approval-argument-label"
+                                  className="inline font-medium text-gray-500"
+                                >
+                                  {part.label}:
+                                </dt>{" "}
+                                <dd
+                                  data-testid="tool-approval-argument-value"
+                                  className="inline text-gray-700"
+                                >
+                                  <IsolatedText text={part.value} />
+                                </dd>
+                              </div>
+                            );
+                          })}
+                        </dl>
                       )}
                     </div>
                     {props.interactive && (

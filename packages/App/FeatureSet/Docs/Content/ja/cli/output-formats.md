@@ -43,6 +43,8 @@ error: option '-o, --output <format>' argument 'yaml' is invalid. Allowed choice
 ├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
 │ change-event               │ Change Event               │ Change Events               │ analytics │ /change-events              │
 ├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
+│ cloud-cost                 │ Cloud Cost                 │ Cloud Costs                 │ analytics │ /cloud-cost                 │
+├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
 │ exception-instance         │ Exception Instance         │ Exception Instances         │ analytics │ /exceptions                 │
 ├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
 │ kubernetes-cost-allocation │ Kubernetes Cost Allocation │ Kubernetes Cost Allocations │ analytics │ /kubernetes-cost-allocation │
@@ -68,7 +70,7 @@ error: option '-o, --output <format>' argument 'yaml' is invalid. Allowed choice
 │ threat-intel-indicator     │ Threat Intel Indicator     │ Threat Intel Indicators     │ analytics │ /threat-intel-indicators    │
 └────────────────────────────┴────────────────────────────┴─────────────────────────────┴───────────┴─────────────────────────────┘
 
-Total: 14 resources
+Total: 15 resources
 ```
 
 レコードの一覧の場合、表には最大 6 列が表示されます。まず `_id`、`name`、`title`、`status`、`createdAt`、`updatedAt` のうちレコードにあるもの、次にレコードの残りのフィールドが順に並びます。列は最初のレコードから取られます。60 文字を超える値は先頭の 57 文字に切り詰められ、その後に `...` が付きます。

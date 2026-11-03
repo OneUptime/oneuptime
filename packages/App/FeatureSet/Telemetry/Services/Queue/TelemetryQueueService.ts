@@ -40,6 +40,34 @@ export type ProbeIngestJobType =
   | "snmp-trap"
   | "network-device-walk";
 
+/*
+ * Every kind of probe ingest this release processes. A kind a newer release
+ * queues is then one this release cannot process, and is handed back to the
+ * queue for a worker of that release (ProcessTelemetry), instead of being
+ * read as a probe's monitor response. A Record, so a kind added to the type
+ * above and not here does not compile.
+ */
+const PROBE_INGEST_JOB_TYPES: Record<ProbeIngestJobType, true> = {
+  "probe-response": true,
+  "monitor-test": true,
+  "incoming-email": true,
+  "snmp-trap": true,
+  "network-device-walk": true,
+};
+
+export function isKnownProbeIngestJobType(
+  jobType: unknown,
+): jobType is ProbeIngestJobType {
+  return (
+    typeof jobType === "string" &&
+    Object.prototype.hasOwnProperty.call(PROBE_INGEST_JOB_TYPES, jobType)
+  );
+}
+
+export function isKnownTelemetryType(type: unknown): type is TelemetryType {
+  return Object.values(TelemetryType).includes(type as TelemetryType);
+}
+
 export interface IncomingEmailJobData {
   /*
    * Which monitor or workflow the mail is for, read from the recipient

@@ -175,7 +175,7 @@ export interface ResumeToolDecision {
  */
 type PreparedActionWords = Pick<
   PreparedMutation,
-  "title" | "description" | "namedArguments"
+  "title" | "description" | "namedArguments" | "describedArguments"
 >;
 
 /*
@@ -834,11 +834,22 @@ export default class ChatAgentRunner {
           content: resultText,
         });
 
-        await this.emitEvent(request, state, {
-          eventType: AIRunEventType.ActionExecuted,
-          toolName: toolCall.name,
-          toolArguments: toolCall.arguments,
-        });
+        /*
+         * Only an action that ran is an executed action: one that was
+         * refused or failed left its failed step (ToolCallFailed), and an
+         * "executed" line after it read as done - "Declared an incident"
+         * under a refused declare, in the activity and in the evidence.
+         */
+        if (
+          this.getToolActionStatus(state, toolCall.id) ===
+          AIChatToolActionStatus.Executed
+        ) {
+          await this.emitEvent(request, state, {
+            eventType: AIRunEventType.ActionExecuted,
+            toolName: toolCall.name,
+            toolArguments: toolCall.arguments,
+          });
+        }
       } else {
         this.setToolActionStatus(
           state,
@@ -1468,6 +1479,12 @@ export default class ChatAgentRunner {
         prepared.namedArguments.length > 0
           ? { namedArguments: prepared.namedArguments }
           : {}),
+        ...(prepared.description &&
+        prepared.description.length > 0 &&
+        prepared.describedArguments &&
+        prepared.describedArguments.length > 0
+          ? { describedArguments: prepared.describedArguments }
+          : {}),
       };
     } catch (error) {
       logger.error(
@@ -1522,6 +1539,11 @@ export default class ChatAgentRunner {
           ...(words?.title && words.namedArguments
             ? { namedArguments: words.namedArguments }
             : {}),
+          ...(descriptionSentences.length > 0 &&
+          words?.describedArguments &&
+          words.describedArguments.length > 0
+            ? { describedArguments: words.describedArguments }
+            : {}),
         }
       : undefined;
     // A tool with no title of its own is named by its name, as written.
@@ -1569,6 +1591,8 @@ export default class ChatAgentRunner {
     toolCallId: string,
     status: AIChatToolActionStatus,
     resultSummary?: string,
+    // The card the action left once it ran (its widget's id).
+    widgetId?: string | undefined,
   ): void {
     const action: AIChatToolAction | undefined = state.toolActions.find(
       (item: AIChatToolAction) => {
@@ -1580,7 +1604,20 @@ export default class ChatAgentRunner {
       if (resultSummary !== undefined) {
         action.resultSummary = resultSummary;
       }
+      if (widgetId) {
+        action.widgetId = widgetId;
+      }
     }
+  }
+
+  // Where an action of the turn stands; undefined for no such action.
+  private static getToolActionStatus(
+    state: TurnState,
+    toolCallId: string,
+  ): AIChatToolActionStatus | undefined {
+    return state.toolActions.find((item: AIChatToolAction) => {
+      return item.id === toolCallId;
+    })?.status;
   }
 
   private static async executeToolCall(
@@ -1610,7 +1647,10 @@ export default class ChatAgentRunner {
       await this.emitEvent(request, state, {
         eventType: AIRunEventType.ToolCallFailed,
         toolName: toolCall.name,
-        resultSummary: { errorMessage: toolCall.argumentsParseError },
+        resultSummary: {
+          errorMessage: toolCall.argumentsParseError,
+          ...(isMutation ? { isAction: true } : {}),
+        },
       });
 
       return `Error calling ${toolCall.name}: ${toolCall.argumentsParseError} Emit the tool call again with valid JSON arguments.`;
@@ -1642,6 +1682,11 @@ export default class ChatAgentRunner {
         );
       }
 
+      /*
+       * Why it was refused, when it was, and whether it was an action: the
+       * activity says a refused call or a failed action was not done,
+       * rather than that it is being tried again.
+       */
       await this.emitEvent(request, state, {
         eventType: AIRunEventType.ToolCallFailed,
         toolName: toolCall.name,
@@ -1649,6 +1694,8 @@ export default class ChatAgentRunner {
         resultSummary: {
           durationInMs,
           errorMessage: outcome.errorMessage,
+          ...(outcome.refusal ? { refusal: outcome.refusal } : {}),
+          ...(isMutation ? { isAction: true } : {}),
         },
       });
 
@@ -1672,19 +1719,27 @@ export default class ChatAgentRunner {
     });
 
     // Attach the tool's widget (if any) to the message, tied to this citation.
+    let widgetId: string | undefined = undefined;
+
     if (outcome.result.widget) {
       const widget: AIChatWidget = outcome.result.widget;
       widget.id = `W${state.widgets.length + 1}`;
       widget.citationId = citationId;
       state.widgets.push(widget);
+      widgetId = widget.id;
     }
 
     if (isMutation) {
+      /*
+       * The card it left says what it made or changed: the action's own
+       * line is not drawn again under it (widgetId).
+       */
       this.setToolActionStatus(
         state,
         toolCall.id,
         AIChatToolActionStatus.Executed,
         outcome.result.citationLabel,
+        widgetId,
       );
     }
 

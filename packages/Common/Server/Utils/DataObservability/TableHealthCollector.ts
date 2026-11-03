@@ -23,6 +23,15 @@ import {
   STATEMENT_TIMEOUT_IN_MS,
 } from "../DataSecurity/Content/DatabaseSampler";
 import { readConnectionTarget, TableHealthTarget } from "./TableHealthTarget";
+import SnowflakeSqlApi, {
+  readSnowflakeConnection,
+  SnowflakeConnection,
+} from "./SnowflakeSqlApi";
+import BigQueryApi, {
+  BigQueryConnection,
+  readBigQueryConnection,
+} from "./BigQueryApi";
+import { JSONObject } from "../../../Types/JSON";
 import {
   DataCheckRunResult,
   MAX_CHECK_ERROR_LENGTH,
@@ -40,19 +49,23 @@ import {
  * thousands of tables is a handful of statements:
  *
  *  - PostgreSQL: pg_class and pg_stat_user_tables give each relation's kind,
- *    live rows, total size and its insert, update and delete counters; the
- *    counters say a table changed when they move between collections.
+ *    live rows, total size, its insert, update and delete counters and its
+ *    scan counters; the counters say a table changed, or was read, when they
+ *    move between collections, and pg_stat_database how long they have
+ *    counted for.
  *    pg_attribute gives the columns. Partitions are folded into their
  *    partitioned table.
  *  - MySQL and MariaDB: information_schema.TABLES gives rows, size and
  *    UPDATE_TIME (MySQL 8 caches those for a day unless the session says
  *    otherwise, so it does); performance_schema's table I/O counters, where
- *    the login may read them, back UPDATE_TIME up.
+ *    the login may read them, back UPDATE_TIME up and count reads, since the
+ *    server started (its Uptime).
  *    information_schema.COLUMNS gives the columns.
  *  - SQL Server: sys.objects and sys.partitions give tables, views and rows;
  *    sys.dm_db_partition_stats and sys.dm_db_index_usage_stats give size,
- *    last update and an update counter where the login has VIEW DATABASE
- *    STATE. INFORMATION_SCHEMA.COLUMNS gives the columns.
+ *    last update and last read, with their counters, where the login has VIEW
+ *    DATABASE STATE, since the server started (sys.dm_os_sys_info).
+ *    INFORMATION_SCHEMA.COLUMNS gives the columns.
  *
  * Times are taken as "seconds ago" by the database's own clock, so neither
  * its time zone nor its clock's drift from OneUptime's matters.
@@ -94,6 +107,13 @@ export interface CollectedTable {
   writeCount: number | null;
   // How long ago the engine says the table last changed; null when it does not say.
   secondsSinceChange: number | null;
+  /*
+   * A counter that grows with every scan or index read since the engine's
+   * statistics were last reset; null when the login cannot read one.
+   */
+  readCount?: number | null | undefined;
+  // How long ago the engine says the table was last read; null when it does not say.
+  secondsSinceRead?: number | null | undefined;
   // Null when the collection could not read all of them (the column list was cut).
   columns: Array<DataAssetColumn> | null;
 }
@@ -109,6 +129,11 @@ export interface TableHealthSnapshot {
   target?: TableHealthTarget | null | undefined;
   // What each due data check read, or why it could not run.
   checkResults?: Array<DataCheckRunResult> | undefined;
+  /*
+   * How long the engine's read and write counters have counted for: since
+   * its statistics were reset or the server started. Null when unknown.
+   */
+  secondsSinceStatsReset?: number | null | undefined;
 }
 
 export interface TableHealthCollectOptions {
@@ -134,6 +159,8 @@ interface RawTable {
   sizeInBytes: number | null;
   writeCount: number | null;
   secondsSinceChange: number | null;
+  readCount: number | null;
+  secondsSinceRead: number | null;
 }
 
 interface RawColumn {
@@ -146,6 +173,7 @@ interface CatalogRead {
   tables: Array<RawTable>;
   columns: Array<RawColumn>;
   warnings: Array<string>;
+  secondsSinceStatsReset: number | null;
 }
 
 interface CatalogSession {
@@ -363,7 +391,17 @@ class PostgresCatalog implements CatalogSession {
           WHEN c.relkind IN ('r', 'm') AND s.relid IS NOT NULL
             THEN COALESCE(s.n_tup_ins, 0) + COALESCE(s.n_tup_upd, 0) + COALESCE(s.n_tup_del, 0)
           ELSE NULL
-        END::bigint AS write_count
+        END::bigint AS write_count,
+        CASE
+          WHEN c.relkind = 'p' THEN (
+            SELECT SUM(COALESCE(cs.seq_scan, 0) + COALESCE(cs.idx_scan, 0))
+            FROM pg_catalog.pg_inherits i
+            JOIN pg_catalog.pg_stat_user_tables cs ON cs.relid = i.inhrelid
+            WHERE i.inhparent = c.oid)
+          WHEN c.relkind IN ('r', 'm') AND s.relid IS NOT NULL
+            THEN COALESCE(s.seq_scan, 0) + COALESCE(s.idx_scan, 0)
+          ELSE NULL
+        END::bigint AS read_count
       FROM pg_catalog.pg_class c
       JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
       LEFT JOIN pg_catalog.pg_stat_user_tables s ON s.relid = c.oid
@@ -404,7 +442,28 @@ class PostgresCatalog implements CatalogSession {
         sizeInBytes: readCount(row["size_bytes"]),
         writeCount: readCount(row["write_count"]),
         secondsSinceChange: null,
+        readCount: readCount(row["read_count"]),
+        secondsSinceRead: null,
       });
+    }
+
+    let secondsSinceStatsReset: number | null = null;
+
+    try {
+      /*
+       * The counters count since the database's statistics were reset; a
+       * restart before PostgreSQL 15 lost them too, so the later of the two.
+       */
+      const [epoch] = await this.rows(
+        `SELECT EXTRACT(EPOCH FROM (now() - GREATEST(COALESCE(d.stats_reset, pg_catalog.pg_postmaster_start_time()), pg_catalog.pg_postmaster_start_time())))::bigint AS seconds
+          FROM pg_catalog.pg_stat_database d WHERE d.datname = pg_catalog.current_database()`,
+        [],
+      );
+      secondsSinceStatsReset = readCount(epoch?.["seconds"]);
+    } catch (error) {
+      warnings.push(
+        `How long the read counters have counted for was left out: ${describeError(error).slice(0, 200)}`,
+      );
     }
 
     const columnRows: Array<Record<string, unknown>> = await this.rows(
@@ -429,6 +488,7 @@ class PostgresCatalog implements CatalogSession {
           return column !== null;
         }),
       warnings,
+      secondsSinceStatsReset,
     };
   }
 
@@ -566,12 +626,15 @@ class MySqlCatalog implements CatalogSession {
       );
 
     const writeCounts: Map<string, number> = new Map();
+    const readCounts: Map<string, number> = new Map();
+    let secondsSinceStatsReset: number | null = null;
 
     try {
       const counterRows: Array<Record<string, unknown>> =
         await this.inReadOnlyTransaction(
           `SELECT OBJECT_SCHEMA AS table_schema, OBJECT_NAME AS table_name,
-            COUNT_INSERT + COUNT_UPDATE + COUNT_DELETE AS write_count
+            COUNT_INSERT + COUNT_UPDATE + COUNT_DELETE AS write_count,
+            COUNT_READ AS read_count
           FROM performance_schema.table_io_waits_summary_by_table
           WHERE OBJECT_TYPE = 'TABLE'
             AND OBJECT_SCHEMA ${MySqlCatalog.SCHEMA_FILTER}
@@ -580,18 +643,28 @@ class MySqlCatalog implements CatalogSession {
         );
 
       for (const row of counterRows) {
+        const key: string = keyOf(
+          String(row["table_schema"] ?? ""),
+          String(row["table_name"] ?? ""),
+        );
         const count: number | null = readCount(row["write_count"]);
+        const reads: number | null = readCount(row["read_count"]);
 
         if (count !== null) {
-          writeCounts.set(
-            keyOf(
-              String(row["table_schema"] ?? ""),
-              String(row["table_name"] ?? ""),
-            ),
-            count,
-          );
+          writeCounts.set(key, count);
+        }
+
+        if (reads !== null) {
+          readCounts.set(key, reads);
         }
       }
+
+      // performance_schema counts since the server started.
+      const [uptime] = await this.inReadOnlyTransaction(
+        `SELECT VARIABLE_VALUE AS seconds FROM performance_schema.global_status WHERE VARIABLE_NAME = 'Uptime'`,
+        [],
+      );
+      secondsSinceStatsReset = readCount(uptime?.["seconds"]);
     } catch (error) {
       warnings.push(
         `Write counters were left out (performance_schema could not be read): ${describeError(error).slice(0, 200)}`,
@@ -624,6 +697,8 @@ class MySqlCatalog implements CatalogSession {
         secondsSinceChange: isTable
           ? readCount(row["seconds_since_change"])
           : null,
+        readCount: readCounts.get(keyOf(schema, name)) ?? null,
+        secondsSinceRead: null,
       });
     }
 
@@ -647,6 +722,7 @@ class MySqlCatalog implements CatalogSession {
           return column !== null;
         }),
       warnings,
+      secondsSinceStatsReset,
     };
   }
 
@@ -759,8 +835,11 @@ class SqlServerCatalog implements CatalogSession {
         sizeInBytes: number | null;
         secondsSinceChange: number | null;
         writeCount: number | null;
+        readCount: number | null;
+        secondsSinceRead: number | null;
       }
     > = new Map();
+    let secondsSinceStatsReset: number | null = null;
 
     try {
       const statisticRows: Array<Record<string, unknown>> = await this.run(
@@ -770,7 +849,13 @@ class SqlServerCatalog implements CatalogSession {
           (SELECT DATEDIFF(SECOND, MAX(u.last_user_update), GETDATE()) FROM sys.dm_db_index_usage_stats u
             WHERE u.database_id = DB_ID() AND u.object_id = o.object_id) AS seconds_since_change,
           (SELECT SUM(u.user_updates) FROM sys.dm_db_index_usage_stats u
-            WHERE u.database_id = DB_ID() AND u.object_id = o.object_id) AS write_count
+            WHERE u.database_id = DB_ID() AND u.object_id = o.object_id) AS write_count,
+          (SELECT SUM(u.user_seeks + u.user_scans + u.user_lookups) FROM sys.dm_db_index_usage_stats u
+            WHERE u.database_id = DB_ID() AND u.object_id = o.object_id) AS read_count,
+          (SELECT DATEDIFF(SECOND, MAX(r.last_read), GETDATE())
+            FROM sys.dm_db_index_usage_stats u
+            CROSS APPLY (VALUES (u.last_user_seek), (u.last_user_scan), (u.last_user_lookup)) AS r(last_read)
+            WHERE u.database_id = DB_ID() AND u.object_id = o.object_id) AS seconds_since_read
         FROM sys.objects o
         JOIN sys.schemas s ON s.schema_id = o.schema_id
         WHERE o.type = 'U' AND o.is_ms_shipped = 0
@@ -788,6 +873,8 @@ class SqlServerCatalog implements CatalogSession {
             sizeInBytes: readCount(row["size_bytes"]),
             secondsSinceChange: readCount(row["seconds_since_change"]),
             writeCount: readCount(row["write_count"]),
+            readCount: readCount(row["read_count"]),
+            secondsSinceRead: readCount(row["seconds_since_read"]),
           },
         );
       }
@@ -817,6 +904,8 @@ class SqlServerCatalog implements CatalogSession {
             sizeInBytes: number | null;
             secondsSinceChange: number | null;
             writeCount: number | null;
+            readCount: number | null;
+            secondsSinceRead: number | null;
           }
         | undefined = statistics.get(keyOf(schema, name));
 
@@ -828,7 +917,20 @@ class SqlServerCatalog implements CatalogSession {
         sizeInBytes: statistic?.sizeInBytes ?? null,
         writeCount: statistic?.writeCount ?? null,
         secondsSinceChange: statistic?.secondsSinceChange ?? null,
+        readCount: statistic?.readCount ?? null,
+        secondsSinceRead: statistic?.secondsSinceRead ?? null,
       });
+    }
+
+    try {
+      // The usage statistics count since the server started.
+      const [started] = await this.run(
+        `SELECT DATEDIFF(SECOND, sqlserver_start_time, GETDATE()) AS seconds FROM sys.dm_os_sys_info`,
+        [],
+      );
+      secondsSinceStatsReset = readCount(started?.["seconds"]);
+    } catch {
+      // Needs VIEW SERVER STATE: last reads are still known, only "never read since" is not.
     }
 
     const columnRows: Array<Record<string, unknown>> = await this.run(
@@ -853,6 +955,7 @@ class SqlServerCatalog implements CatalogSession {
           return column !== null;
         }),
       warnings,
+      secondsSinceStatsReset,
     };
   }
 
@@ -865,12 +968,628 @@ class SqlServerCatalog implements CatalogSession {
   }
 }
 
+// Redshift's table type, as a data asset kind.
+export function readRedshiftKind(tableType: unknown): DataAssetKind | null {
+  switch (String(tableType ?? "").toUpperCase()) {
+    case "BASE TABLE":
+      return DataAssetKind.Table;
+    case "VIEW":
+      return DataAssetKind.View;
+    default:
+      return null;
+  }
+}
+
+// Redshift counts a table's size in 1 MB blocks.
+export function readRedshiftSize(blocks: unknown): number | null {
+  const count: number | null = readCount(blocks);
+
+  return count === null ? null : count * 1024 * 1024;
+}
+
+/*
+ * Amazon Redshift, over the PostgreSQL protocol with its own catalog:
+ * svv_tables and svv_columns give tables, views and columns; svv_table_info
+ * rows and size (1 MB blocks); stl_insert, stl_delete and stl_scan the last
+ * write and read, kept a few days. svv_table_info and the stl views show
+ * every user's work only to a login with SYSLOG ACCESS UNRESTRICTED (or a
+ * superuser); without it, rows changing still say when a table changed.
+ * Redshift has no lock timeout, and a cluster restart does not mark its
+ * counters, so read times are kept, never "unread since".
+ */
+class RedshiftCatalog implements CatalogSession {
+  public readonly engine: DatabaseEngine = "redshift";
+  private readonly client: Client;
+
+  private constructor(client: Client) {
+    this.client = client;
+  }
+
+  public static async open(connectionString: string): Promise<RedshiftCatalog> {
+    const client: Client = new Client({
+      connectionString: connectionString.replace(
+        /^redshift:\/\//i,
+        "postgresql://",
+      ),
+      connectionTimeoutMillis: CONNECT_TIMEOUT_IN_MS,
+      query_timeout: STATEMENT_TIMEOUT_IN_MS + 5_000,
+      application_name: APPLICATION_NAME,
+    });
+    const session: RedshiftCatalog = new RedshiftCatalog(client);
+
+    try {
+      await client.connect();
+      await client.query(
+        `SET statement_timeout TO ${wholeMilliseconds(STATEMENT_TIMEOUT_IN_MS)}`,
+      );
+    } catch (error) {
+      await session.close();
+      throw error;
+    }
+
+    return session;
+  }
+
+  private async rows(
+    sql: string,
+    values: Array<unknown>,
+  ): Promise<Array<Record<string, unknown>>> {
+    await this.client.query("BEGIN READ ONLY");
+
+    try {
+      const result: { rows: Array<Record<string, unknown>> } =
+        await this.client.query(sql, values);
+
+      await this.client.query("COMMIT");
+      return result.rows || [];
+    } catch (error) {
+      try {
+        await this.client.query("ROLLBACK");
+      } catch {
+        // The connection is gone: nothing to roll back.
+      }
+
+      throw error;
+    }
+  }
+
+  public async readAggregate(
+    sql: string,
+    params: Array<string>,
+  ): Promise<Array<Record<string, unknown>>> {
+    return await this.rows(sql, params);
+  }
+
+  private static readonly SCHEMA_FILTER: string = `NOT IN ('pg_catalog', 'information_schema', 'pg_internal', 'pg_automv', 'catalog_history')`;
+
+  private tablesSql(withInfo: boolean): string {
+    return withInfo
+      ? `SELECT t.table_schema, t.table_name, t.table_type,
+          i.estimated_visible_rows AS estimated_rows, i.size AS size_blocks
+        FROM svv_tables t
+        LEFT JOIN svv_table_info i ON i."schema" = t.table_schema AND i."table" = t.table_name
+        WHERE t.table_catalog = current_database()
+          AND t.table_schema ${RedshiftCatalog.SCHEMA_FILTER}
+          AND t.table_schema NOT LIKE 'pg\\_temp\\_%'
+          AND t.table_type IN ('BASE TABLE', 'VIEW')
+        ORDER BY t.table_schema, t.table_name
+        LIMIT $1`
+      : `SELECT t.table_schema, t.table_name, t.table_type,
+          NULL::bigint AS estimated_rows, NULL::bigint AS size_blocks
+        FROM svv_tables t
+        WHERE t.table_catalog = current_database()
+          AND t.table_schema ${RedshiftCatalog.SCHEMA_FILTER}
+          AND t.table_schema NOT LIKE 'pg\\_temp\\_%'
+          AND t.table_type IN ('BASE TABLE', 'VIEW')
+        ORDER BY t.table_schema, t.table_name
+        LIMIT $1`;
+  }
+
+  // Seconds since each table's last write or read in the stl views, by table.
+  private async lastTimes(sql: string): Promise<Map<string, number> | null> {
+    try {
+      const times: Map<string, number> = new Map();
+
+      for (const row of await this.rows(sql, [])) {
+        const seconds: number | null = readCount(row["seconds"]);
+
+        if (seconds !== null) {
+          times.set(
+            keyOf(
+              String(row["table_schema"] ?? ""),
+              String(row["table_name"] ?? ""),
+            ),
+            seconds,
+          );
+        }
+      }
+
+      return times;
+    } catch {
+      return null;
+    }
+  }
+
+  public async read(options: TableHealthCollectOptions): Promise<CatalogRead> {
+    const warnings: Array<string> = [];
+    let tableRows: Array<Record<string, unknown>>;
+
+    try {
+      tableRows = await this.rows(this.tablesSql(true), [options.maxTables]);
+    } catch (error) {
+      warnings.push(
+        `Row counts and sizes were left out (svv_table_info needs SYSLOG ACCESS UNRESTRICTED): ${describeError(error).slice(0, 200)}`,
+      );
+      tableRows = await this.rows(this.tablesSql(false), [options.maxTables]);
+    }
+
+    const writes: Map<string, number> | null = await this.lastTimes(
+      `SELECT n.nspname AS table_schema, c.relname AS table_name,
+        DATEDIFF(second, MAX(s.endtime), GETDATE()) AS seconds
+      FROM (SELECT tbl, endtime FROM stl_insert UNION ALL SELECT tbl, endtime FROM stl_delete) s
+      JOIN pg_class c ON c.oid = s.tbl
+      JOIN pg_namespace n ON n.oid = c.relnamespace
+      GROUP BY n.nspname, c.relname`,
+    );
+    const reads: Map<string, number> | null = await this.lastTimes(
+      `SELECT n.nspname AS table_schema, c.relname AS table_name,
+        DATEDIFF(second, MAX(s.endtime), GETDATE()) AS seconds
+      FROM stl_scan s
+      JOIN pg_class c ON c.oid = s.tbl
+      JOIN pg_namespace n ON n.oid = c.relnamespace
+      WHERE s.userid > 1
+      GROUP BY n.nspname, c.relname`,
+    );
+
+    if (!writes || !reads) {
+      warnings.push(
+        "Last writes and reads were left out: the stl views need SYSLOG ACCESS UNRESTRICTED.",
+      );
+    }
+
+    const tables: Array<RawTable> = [];
+
+    for (const row of tableRows) {
+      const kind: DataAssetKind | null = readRedshiftKind(row["table_type"]);
+      const schema: string = readText(
+        row["table_schema"],
+        MAX_IDENTIFIER_LENGTH,
+      );
+      const name: string = readText(row["table_name"], MAX_IDENTIFIER_LENGTH);
+
+      if (!kind || !name) {
+        continue;
+      }
+
+      const isTable: boolean = kind === DataAssetKind.Table;
+      const key: string = keyOf(schema, name);
+
+      tables.push({
+        schema,
+        name,
+        kind,
+        estimatedRows: isTable ? readCount(row["estimated_rows"]) : null,
+        sizeInBytes: isTable ? readRedshiftSize(row["size_blocks"]) : null,
+        writeCount: null,
+        secondsSinceChange: writes?.get(key) ?? null,
+        readCount: null,
+        secondsSinceRead: reads?.get(key) ?? null,
+      });
+    }
+
+    const columnRows: Array<Record<string, unknown>> = await this.rows(
+      `SELECT table_schema, table_name, column_name, data_type, is_nullable, ordinal_position
+        FROM svv_columns
+        WHERE table_catalog = current_database()
+          AND table_schema ${RedshiftCatalog.SCHEMA_FILTER}
+        ORDER BY table_schema, table_name, ordinal_position
+        LIMIT $1`,
+      [options.maxColumns],
+    );
+
+    return {
+      tables,
+      columns: columnRows
+        .map(readColumnRow)
+        .filter((column: RawColumn | null): column is RawColumn => {
+          return column !== null;
+        }),
+      warnings,
+      secondsSinceStatsReset: null,
+    };
+  }
+
+  public async close(): Promise<void> {
+    try {
+      await this.client.end();
+    } catch {
+      // Already closed, or never opened.
+    }
+  }
+}
+
+const SNOWFLAKE_BARE_NAME: RegExp = /^[A-Za-z_][A-Za-z0-9_$]*$/;
+
+// A Snowflake name as a statement writes it: bare when it can be, else quoted.
+export function snowflakeIdentifier(name: string): string {
+  return SNOWFLAKE_BARE_NAME.test(name)
+    ? name
+    : `"${name.replace(/"/g, '""')}"`;
+}
+
+// A SHOW TABLES row's kind; a temporary table is a session's, never watched.
+export function readSnowflakeTableKind(
+  row: Record<string, unknown>,
+): DataAssetKind | null {
+  const kind: string = String(row["kind"] ?? "TABLE").toUpperCase();
+
+  if (kind === "TEMPORARY" || String(row["is_external"] ?? "N") === "Y") {
+    return null;
+  }
+
+  return DataAssetKind.Table;
+}
+
+// A SHOW COLUMNS row's type, as Snowflake writes it: NUMBER(38,0), VARCHAR(255).
+export function readSnowflakeColumnType(dataType: unknown): {
+  dataType: string;
+  isNullable: boolean;
+} {
+  let parsed: JSONObject = {};
+
+  try {
+    parsed =
+      typeof dataType === "string" ? (JSON.parse(dataType) as JSONObject) : {};
+  } catch {
+    parsed = {};
+  }
+
+  const type: string = String(parsed["type"] || "").toUpperCase();
+  const isNullable: boolean = parsed["nullable"] !== false;
+
+  if (type === "FIXED") {
+    return {
+      dataType: `NUMBER(${String(parsed["precision"] ?? 38)},${String(parsed["scale"] ?? 0)})`,
+      isNullable,
+    };
+  }
+
+  if (type === "TEXT") {
+    return {
+      dataType: parsed["length"]
+        ? `VARCHAR(${String(parsed["length"])})`
+        : "VARCHAR",
+      isNullable,
+    };
+  }
+
+  if (type === "REAL") {
+    return { dataType: "FLOAT", isNullable };
+  }
+
+  return { dataType: type || "UNKNOWN", isNullable };
+}
+
+/*
+ * Snowflake, over its SQL API (SnowflakeSqlApi). The catalog is read with
+ * SHOW - tables with their rows and bytes, views, columns schema by schema
+ * (SHOW returns at most 10,000 rows) - which needs no warehouse, so a
+ * collection costs no credits. SHOW says no table's last change, so a table
+ * changed when its rows or bytes moved. A data check reads a table's rows,
+ * so it runs on the connection's warehouse.
+ */
+class SnowflakeCatalog implements CatalogSession {
+  public readonly engine: DatabaseEngine = "snowflake";
+  private readonly api: SnowflakeSqlApi;
+  private readonly database: string;
+
+  private constructor(api: SnowflakeSqlApi, database: string) {
+    this.api = api;
+    this.database = database;
+  }
+
+  public static async open(
+    connectionString: string,
+  ): Promise<SnowflakeCatalog> {
+    const connection: SnowflakeConnection =
+      readSnowflakeConnection(connectionString);
+    const session: SnowflakeCatalog = new SnowflakeCatalog(
+      new SnowflakeSqlApi({ connection }),
+      connection.database,
+    );
+
+    // A connection that cannot list its database's schemas cannot collect.
+    await session.api.query({
+      statement: `SHOW SCHEMAS IN DATABASE ${snowflakeIdentifier(connection.database)} LIMIT 1`,
+    });
+
+    return session;
+  }
+
+  public async readAggregate(
+    sql: string,
+    params: Array<string>,
+  ): Promise<Array<Record<string, unknown>>> {
+    return await this.api.query({
+      statement: sql,
+      bindings: params,
+      useWarehouse: true,
+    });
+  }
+
+  public async read(options: TableHealthCollectOptions): Promise<CatalogRead> {
+    const warnings: Array<string> = [];
+    const database: string = snowflakeIdentifier(this.database);
+    const limit: number = Math.min(options.maxTables, 10_000);
+    const tables: Array<RawTable> = [];
+
+    for (const row of await this.api.query({
+      statement: `SHOW TABLES IN DATABASE ${database} LIMIT ${limit}`,
+    })) {
+      const kind: DataAssetKind | null = readSnowflakeTableKind(row);
+      const schema: string = readText(
+        row["schema_name"],
+        MAX_IDENTIFIER_LENGTH,
+      );
+      const name: string = readText(row["name"], MAX_IDENTIFIER_LENGTH);
+
+      if (!kind || !name || schema === "INFORMATION_SCHEMA") {
+        continue;
+      }
+
+      tables.push({
+        schema,
+        name,
+        kind,
+        estimatedRows: readCount(row["rows"]),
+        sizeInBytes: readCount(row["bytes"]),
+        writeCount: null,
+        secondsSinceChange: null,
+        readCount: null,
+        secondsSinceRead: null,
+      });
+    }
+
+    try {
+      for (const row of await this.api.query({
+        statement: `SHOW VIEWS IN DATABASE ${database} LIMIT ${limit}`,
+      })) {
+        const schema: string = readText(
+          row["schema_name"],
+          MAX_IDENTIFIER_LENGTH,
+        );
+        const name: string = readText(row["name"], MAX_IDENTIFIER_LENGTH);
+
+        if (!name || schema === "INFORMATION_SCHEMA") {
+          continue;
+        }
+
+        tables.push({
+          schema,
+          name,
+          kind:
+            String(row["is_materialized"] ?? "false") === "true"
+              ? DataAssetKind.MaterializedView
+              : DataAssetKind.View,
+          estimatedRows: null,
+          sizeInBytes: null,
+          writeCount: null,
+          secondsSinceChange: null,
+          readCount: null,
+          secondsSinceRead: null,
+        });
+      }
+    } catch (error) {
+      warnings.push(
+        `Views were left out: ${describeError(error).slice(0, 200)}`,
+      );
+    }
+
+    const columns: Array<RawColumn> = [];
+    const schemas: Array<string> = Array.from(
+      new Set(
+        tables.map((table: RawTable): string => {
+          return table.schema;
+        }),
+      ),
+    ).sort();
+
+    for (const schema of schemas) {
+      if (columns.length >= options.maxColumns) {
+        break;
+      }
+
+      try {
+        const positions: Map<string, number> = new Map();
+
+        for (const row of await this.api.query({
+          statement: `SHOW COLUMNS IN SCHEMA ${database}.${snowflakeIdentifier(schema)}`,
+        })) {
+          const table: string = readText(
+            row["table_name"],
+            MAX_IDENTIFIER_LENGTH,
+          );
+          const name: string = readText(
+            row["column_name"],
+            MAX_IDENTIFIER_LENGTH,
+          );
+
+          if (!table || !name || columns.length >= options.maxColumns) {
+            continue;
+          }
+
+          // SHOW lists a table's columns in their order.
+          const position: number = (positions.get(table) || 0) + 1;
+          const type: { dataType: string; isNullable: boolean } =
+            readSnowflakeColumnType(row["data_type"]);
+
+          positions.set(table, position);
+          columns.push({
+            schema,
+            table,
+            column: {
+              name,
+              dataType: type.dataType,
+              isNullable: type.isNullable,
+              position,
+            },
+          });
+        }
+      } catch (error) {
+        warnings.push(
+          `The columns of ${schema} were left out: ${describeError(error).slice(0, 200)}`,
+        );
+      }
+    }
+
+    return {
+      tables: tables
+        .sort((a: RawTable, b: RawTable) => {
+          return keyOf(a.schema, a.name).localeCompare(keyOf(b.schema, b.name));
+        })
+        .slice(0, options.maxTables),
+      columns,
+      warnings,
+      secondsSinceStatsReset: null,
+    };
+  }
+
+  public async close(): Promise<void> {
+    // Each statement is its own request: nothing is held open.
+  }
+}
+
+// A __TABLES__ type, as a data asset kind: 1 a table, 2 a view.
+export function readBigQueryKind(type: unknown): DataAssetKind | null {
+  switch (String(type ?? "")) {
+    case "1":
+      return DataAssetKind.Table;
+    case "2":
+      return DataAssetKind.View;
+    default:
+      return null;
+  }
+}
+
+/*
+ * Google BigQuery, a dataset at a time (BigQueryApi): __TABLES__ gives each
+ * table and view with its rows, bytes and last change; the dataset's
+ * INFORMATION_SCHEMA.COLUMNS its columns. A data check runs as a query job
+ * of the dataset's project, its names in backticks and its values bound by
+ * position.
+ */
+class BigQueryCatalog implements CatalogSession {
+  public readonly engine: DatabaseEngine = "bigquery";
+  private readonly api: BigQueryApi;
+  private readonly connection: BigQueryConnection;
+
+  private constructor(api: BigQueryApi, connection: BigQueryConnection) {
+    this.api = api;
+    this.connection = connection;
+  }
+
+  public static async open(connectionString: string): Promise<BigQueryCatalog> {
+    const connection: BigQueryConnection =
+      readBigQueryConnection(connectionString);
+
+    return new BigQueryCatalog(new BigQueryApi({ connection }), connection);
+  }
+
+  public async readAggregate(
+    sql: string,
+    params: Array<string>,
+  ): Promise<Array<Record<string, unknown>>> {
+    return await this.api.query({ statement: sql, params });
+  }
+
+  private datasetReference(): string {
+    return `\`${this.connection.projectId}\`.\`${this.connection.dataset}\``;
+  }
+
+  public async read(options: TableHealthCollectOptions): Promise<CatalogRead> {
+    const warnings: Array<string> = [];
+    const dataset: string = this.connection.dataset;
+    const tables: Array<RawTable> = [];
+
+    for (const row of await this.api.query({
+      statement: `SELECT table_id, type, row_count, size_bytes,
+          TIMESTAMP_DIFF(CURRENT_TIMESTAMP(), TIMESTAMP_MILLIS(last_modified_time), SECOND) AS seconds_since_change
+        FROM ${this.datasetReference()}.__TABLES__
+        ORDER BY table_id
+        LIMIT ${options.maxTables}`,
+    })) {
+      const kind: DataAssetKind | null = readBigQueryKind(row["type"]);
+      const name: string = readText(row["table_id"], MAX_IDENTIFIER_LENGTH);
+
+      if (!kind || !name) {
+        continue;
+      }
+
+      const isTable: boolean = kind === DataAssetKind.Table;
+
+      tables.push({
+        schema: dataset,
+        name,
+        kind,
+        estimatedRows: isTable ? readCount(row["row_count"]) : null,
+        sizeInBytes: isTable ? readCount(row["size_bytes"]) : null,
+        writeCount: null,
+        secondsSinceChange: isTable
+          ? readCount(row["seconds_since_change"])
+          : null,
+        readCount: null,
+        secondsSinceRead: null,
+      });
+    }
+
+    let columns: Array<RawColumn> = [];
+
+    try {
+      columns = (
+        await this.api.query({
+          statement: `SELECT table_name, column_name, data_type, is_nullable, ordinal_position
+            FROM ${this.datasetReference()}.INFORMATION_SCHEMA.COLUMNS
+            ORDER BY table_name, ordinal_position
+            LIMIT ${options.maxColumns}`,
+        })
+      )
+        .map((row: Record<string, unknown>): RawColumn | null => {
+          return readColumnRow({ ...row, table_schema: dataset });
+        })
+        .filter((column: RawColumn | null): column is RawColumn => {
+          return column !== null;
+        });
+    } catch (error) {
+      warnings.push(
+        `Columns were left out (INFORMATION_SCHEMA.COLUMNS could not be read): ${describeError(error).slice(0, 200)}`,
+      );
+    }
+
+    return {
+      tables,
+      columns,
+      warnings,
+      secondsSinceStatsReset: null,
+    };
+  }
+
+  public async close(): Promise<void> {
+    // Each query is its own request: nothing is held open.
+  }
+}
+
 async function openCatalog(
   connection: DatabaseConnection,
 ): Promise<CatalogSession> {
   switch (connection.engine) {
     case "postgresql":
       return await PostgresCatalog.open(connection.connectionString);
+    case "bigquery":
+      return await BigQueryCatalog.open(connection.connectionString);
+    case "redshift":
+      return await RedshiftCatalog.open(connection.connectionString);
+    case "snowflake":
+      return await SnowflakeCatalog.open(connection.connectionString);
     case "mysql":
       return await MySqlCatalog.open(connection.connectionString);
     case "sqlserver":
@@ -983,6 +1702,7 @@ export function assembleSnapshot(data: {
     tables,
     isComplete: data.read.tables.length < data.options.maxTables,
     warnings: warnings.slice(0, MAX_COLLECTION_WARNINGS),
+    secondsSinceStatsReset: data.read.secondsSinceStatsReset,
   };
 }
 

@@ -4,14 +4,14 @@ Um alerta avisa sua equipe sobre um problema que deve ser examinado antes que se
 
 :::cards
 - [Alertas e incidentes](#alertas-e-incidentes): O que um problema deve ser e como os dois se relacionam.
-- [De onde vêm os alertas](#de-onde-vêm-os-alertas): Monitores, SLOs, chat, a API ou manualmente.
+- [De onde vêm os alertas](#de-onde-vêm-os-alertas): Monitores, SLOs, chat, Pergunte à IA, a API ou manualmente.
 - [Criar um alerta manualmente](#criar-um-alerta-manualmente): Duas etapas no painel.
 - [Responder a um alerta](#responder-a-um-alerta): Confirme, resolva ou declare um incidente.
 :::
 
 ## Como funciona
 
-A maioria dos alertas é gerada por um monitor cujos critérios correspondem. Alguns vêm de um SLO consumindo seu orçamento de erros, de uma regra de segurança, de um acionamento enviado pelo Slack ou pelo Microsoft Teams, ou de uma pessoa. Seja qual for a origem, um alerta é sempre o mesmo registro, e as mesmas regras são executadas nele.
+A maioria dos alertas é gerada por um monitor cujos critérios correspondem. Alguns vêm de um SLO consumindo seu orçamento de erros, de uma regra de segurança, de um acionamento enviado pelo Slack ou pelo Microsoft Teams, do Pergunte à IA, ou de uma pessoa. Seja qual for a origem, um alerta é sempre o mesmo registro, e as mesmas regras são executadas nele.
 
 ```mermaid title="De um sinal às pessoas que cuidam dele"
 flowchart TB
@@ -44,6 +44,7 @@ Gere um alerta quando sua equipe deve olhar antes que alguém de fora perceba, e
 
 - **Os critérios de um monitor.** Em **Ações** de um critério, ative **Quando os filtros corresponderem, criar um alerta.** e preencha o alerta que ele cria: **Título do alerta** e **Gravidade**, depois, cada um recolhido, **Descrição**, **Propriedade e rótulos**, **Plantão** e **Mais campos**, que contém **Resolver alerta automaticamente**, **Alerta privado** e **Notas de remediação**. Um critério mantém um alerta aberto por vez, um por série em um monitor que agrupa por um campo, e **Resolver alerta automaticamente** o resolve quando o critério deixa de corresponder. Veja [Criar um monitor](/docs/monitor/create-monitor) e [Modelos de incidentes e alertas](/docs/monitor/incident-alert-templating).
 - **Manualmente.** Clique em **Criar alerta** na lista de alertas, ou na aba **Alertas** de um monitor, host, dispositivo de rede ou outro recurso, que escolhe esse recurso para você. Veja [Criar um alerta manualmente](#criar-um-alerta-manualmente).
+- **Pergunte à IA.** No [Pergunte à IA](/docs/ai/ask-ai), peça um alerta: ele o cria como você, vinculado ao recurso de cuja página você perguntou, como a de um host. Para registrar um problema de que alguém já está cuidando, ou que já acabou, peça-o confirmado ou resolvido: ele começa nesse estado e não aciona ninguém. Veja [Criado já confirmado ou resolvido](#criado-já-confirmado-ou-resolvido).
 - **A taxa de consumo de um SLO.** Uma regra de taxa de consumo pode criar um alerta quando um SLO gasta seu orçamento de erros rápido demais. Veja [Alertas e incidentes de taxa de consumo](/docs/slo/burn-rate-alerts).
 - **Sites de rede e eventos de segurança.** Um site de rede configurado para alertar quando não está saudável abre um alerta quando seu resumo deixa de estar operacional, e suas regras de detecção de eventos de segurança também abrem alertas. Veja [Sites de rede (resumo de saúde e tempo de atividade)](/docs/monitor/network-sites) e [Eventos de segurança (SIEM)](/docs/telemetry/security-events).
 - **Um acionamento.** `/oneuptime page` no Slack ou no Microsoft Teams, em qualquer lugar menos no canal próprio de um incidente ou de um alerta, abre um alerta cujo título é a sua mensagem e aciona as pessoas que você indicar. Os blocos de acionamento de um workflow fazem o mesmo com o título e a mensagem que você fornecer. Veja [Acionar alguém pelo Slack](/docs/workspace-connections/slack#acionar-alguém-pelo-slack) e [Paging](/docs/workflows/components#paging).
@@ -94,7 +95,7 @@ Se você deixar **Estado Inicial** vazio, o alerta começa onde todo alerta novo
 
 No momento em que um alerta é criado, o OneUptime percorre estas etapas, nesta ordem:
 
-1. **Ele recebe um número e um estado.** O número do alerta vem de um contador por projeto e é exibido com o seu prefixo (`ALT-42`). O alerta começa no seu estado de criação, a menos que o formulário, a API ou um workflow tenha escolhido outro.
+1. **Ele recebe um número e um estado.** O número do alerta vem de um contador por projeto e é exibido com o seu prefixo (`ALT-42`). O alerta começa no seu estado de criação, a menos que o formulário, a API, um workflow ou o Pergunte à IA tenha escolhido outro.
 2. **As regras de privacidade são executadas primeiro**, para que tudo o que vem depois saiba se o alerta é privado.
 3. **O feed e suas ferramentas de chat ficam sabendo.** Uma entrada **Alerta criado** é escrita em **Alerta Feed**, e os canais indicados por suas regras do Slack e do Microsoft Teams são avisados; uma regra pode criar um canal para o alerta.
 4. **Proprietários e rótulos são adicionados**: os que os critérios do monitor ou a solicitação indicam, depois os das regras de proprietário e de rótulos correspondentes.

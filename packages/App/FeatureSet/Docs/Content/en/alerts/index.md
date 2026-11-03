@@ -4,14 +4,14 @@ An alert tells your team about a problem to look into before your users notice i
 
 :::cards
 - [Alerts and incidents](#alerts-and-incidents): Which one a problem should be, and how the two connect.
-- [Where alerts come from](#where-alerts-come-from): Monitors, SLOs, chat, the API, or by hand.
+- [Where alerts come from](#where-alerts-come-from): Monitors, SLOs, chat, Ask AI, the API, or by hand.
 - [Create an alert by hand](#create-an-alert-by-hand): Two steps in the dashboard.
 - [Respond to an alert](#respond-to-an-alert): Acknowledge it, resolve it, or declare an incident.
 :::
 
 ## How it works
 
-Most alerts are raised by a monitor whose criteria match. Some come from an SLO burning its error budget, a security rule, a page sent from Slack or Microsoft Teams, or a person. Whichever way it arrives, an alert is the same record, and the same rules run on it.
+Most alerts are raised by a monitor whose criteria match. Some come from an SLO burning its error budget, a security rule, a page sent from Slack or Microsoft Teams, Ask AI, or a person. Whichever way it arrives, an alert is the same record, and the same rules run on it.
 
 ```mermaid title="From a signal to the people who handle it"
 flowchart TB
@@ -44,6 +44,7 @@ Raise an alert when your team should look before anyone outside notices, and dec
 
 - **A monitor's criteria.** Under a criteria's **Actions**, turn on **When filters match, create an alert.** and fill in the alert it creates: **Alert Title** and **Severity**, then, each folded, **Description**, **Ownership & Labels**, **On-Call** and **More fields**, which holds **Auto Resolve Alert**, **Private Alert** and **Remediation Notes**. A criteria keeps one open alert at a time, one per series on a monitor that groups by a field, and **Auto Resolve Alert** resolves it once the criteria stops matching. See [Creating a Monitor](/docs/monitor/create-monitor) and [Incident & Alert Templating](/docs/monitor/incident-alert-templating).
 - **By hand.** Click **Create Alert** on the alerts list, or on the **Alerts** tab of a monitor, a host, a network device or another resource, which picks that resource for you. See [Create an alert by hand](#create-an-alert-by-hand).
+- **Ask AI.** In [Ask AI](/docs/ai/ask-ai), ask for an alert: it raises one as you, linked to the resource whose page you asked on, such as a host's. To write up a problem someone is already handling, or one that is already over, ask for it acknowledged or resolved: it starts in that state and pages nobody. See [Created already acknowledged or resolved](#created-already-acknowledged-or-resolved).
 - **An SLO's burn rate.** A burn rate rule can create an alert when an SLO spends its error budget too fast. See [Burn Rate Alerts and Incidents](/docs/slo/burn-rate-alerts).
 - **Network sites and security events.** A network site set to alert when it is unhealthy opens an alert when its rollup stops being operational, and your security detection rules open alerts too. See [Network Sites (Health Rollup & Uptime)](/docs/monitor/network-sites) and [Security Events](/docs/telemetry/security-events).
 - **A page.** `/oneuptime page` in Slack or Microsoft Teams, anywhere but an incident's or an alert's own channel, opens an alert whose title is your message, and pages the people you name. A workflow's paging blocks do the same with the title and message you give them. See [Paging someone from Slack](/docs/workspace-connections/slack#paging-someone-from-slack) and [Paging](/docs/workflows/components#paging).
@@ -94,7 +95,7 @@ Leave **Initial State** empty and the alert starts where every new alert does: y
 
 The moment an alert is created, OneUptime works through these steps, in this order:
 
-1. **It gets a number and a state.** The alert number comes from a per-project counter, shown with your prefix (`ALT-42`). The alert starts in your created state unless the form, the API or a workflow picked another.
+1. **It gets a number and a state.** The alert number comes from a per-project counter, shown with your prefix (`ALT-42`). The alert starts in your created state unless the form, the API, a workflow or Ask AI picked another.
 2. **Privacy rules run first**, so everything after them sees whether the alert is private.
 3. **The feed and your chat tools hear of it.** An **Alert Created** entry is written to the **Alert Feed**, and the channels your Slack and Microsoft Teams rules name are told; a rule can create a channel for the alert.
 4. **Owners and labels are added**: the ones the monitor's criteria or the request names, then those of matching owner and label rules.

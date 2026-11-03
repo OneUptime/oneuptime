@@ -58,6 +58,39 @@ GRANT VIEW DEFINITION TO oneuptime_reader;
 GRANT VIEW DATABASE STATE TO oneuptime_reader;
 \`\`\`
 
+Amazon Redshift: connect with a PostgreSQL connection string to the cluster or workgroup endpoint, for example \`postgres://oneuptime_reader:...@cluster.abc123.us-east-1.redshift.amazonaws.com:5439/dev?sslmode=require\`. \`SYSLOG ACCESS UNRESTRICTED\` lets OneUptime read row counts and sizes (\`svv_table_info\`), and the last writes and reads of every user's queries (\`stl_insert\`, \`stl_delete\`, \`stl_scan\`, kept a few days). Without it, a table's rows changing still says when it changed.
+
+\`\`\`sql
+CREATE USER oneuptime_reader PASSWORD '...';
+GRANT USAGE ON SCHEMA public TO oneuptime_reader;
+ALTER USER oneuptime_reader SYSLOG ACCESS UNRESTRICTED;
+\`\`\`
+
+Snowflake: create a user with a key pair (no password), and connect with JSON naming the account identifier, user, private key (unencrypted PKCS#8), database, and a warehouse for checks:
+
+\`\`\`json
+{ "account": "myorg-myaccount", "user": "ONEUPTIME_READER", "privateKey": "-----BEGIN PRIVATE KEY-----\\n...\\n-----END PRIVATE KEY-----", "database": "ANALYTICS", "warehouse": "CHECKS_WH", "role": "ONEUPTIME_READER" }
+\`\`\`
+
+Collection reads the catalog with SHOW, which needs no warehouse, so it costs no credits. Only data checks run on the warehouse, at the schedule you give them. Snowflake says no table's last change, so a table changed when its rows or bytes moved.
+
+\`\`\`sql
+CREATE ROLE ONEUPTIME_READER;
+GRANT USAGE ON DATABASE ANALYTICS TO ROLE ONEUPTIME_READER;
+GRANT USAGE ON ALL SCHEMAS IN DATABASE ANALYTICS TO ROLE ONEUPTIME_READER;
+GRANT REFERENCES ON ALL TABLES IN DATABASE ANALYTICS TO ROLE ONEUPTIME_READER;
+GRANT USAGE ON WAREHOUSE CHECKS_WH TO ROLE ONEUPTIME_READER;
+-- Checks read rows: SELECT on the tables they check.
+CREATE USER ONEUPTIME_READER DEFAULT_ROLE = ONEUPTIME_READER RSA_PUBLIC_KEY = 'MIIBIjANBgkqh...';
+GRANT ROLE ONEUPTIME_READER TO USER ONEUPTIME_READER;
+\`\`\`
+
+Google BigQuery: every dataset your Google Cloud connection found is watched already, with that connection's service account, nothing to connect. Give the service account **BigQuery Metadata Viewer** and **BigQuery Job User** on the project, and **BigQuery Data Viewer** on the tables your checks read. Each collection reads the dataset's \`__TABLES__\` (rows, bytes and last change, at no cost) and its \`INFORMATION_SCHEMA.COLUMNS\` (billed at BigQuery's 10 MB minimum). To connect a dataset without a Google Cloud connection, choose **Google BigQuery** and give JSON with a service account key:
+
+\`\`\`json
+{ "projectId": "my-project", "dataset": "analytics", "location": "US", "serviceAccountJson": { "type": "service_account", "...": "..." } }
+\`\`\`
+
 ## Metrics every table writes
 
 Each collection writes these for every table, so you can chart them, put them on dashboards and alert on them like any other metric:
@@ -154,6 +187,46 @@ They read these metrics, each tagged with \`oneuptime.data.pipeline.id\` and \`o
 - \`oneuptime.data.pipeline.run_duration\`: seconds, as each run ends.
 - \`oneuptime.data.pipeline.run_duration_ratio\`: the run's time over the typical run's (counted as at least a minute), as each run ends and every five minutes while it runs.
 - \`oneuptime.data.pipeline.overdue_seconds\`: how long past its schedule the next run is, every five minutes; 0 while on time.
+
+## dbt
+
+After \`dbt build\` (or run, test, seed or snapshot), send the project's artifacts with the CLI and a telemetry ingestion key. It reads \`target/manifest.json\` and \`target/run_results.json\` and sends only what Data Observability reads of them:
+
+\`\`\`bash
+npm install -g @oneuptime/cli
+export ONEUPTIME_URL=https://oneuptime.com
+export ONEUPTIME_TELEMETRY_INGESTION_KEY=<ingestion key>
+dbt build
+oneuptime dbt upload
+\`\`\`
+
+In CI, run \`oneuptime dbt upload\` as the step after the build, even when the build fails, so failed tests are recorded. For a dbt Cloud job, download its artifacts with dbt Cloud's API, then upload them with \`--manifest\` and \`--run-results\`. Or post them yourself: \`POST /telemetry/dbt/v1/artifacts\` with \`{ "manifest": ..., "run_results": ... }\` and the key in \`x-oneuptime-token\`.
+
+What each upload does:
+- **Tables:** each model, seed, snapshot and source that is a table OneUptime watches gets a **dbt** card on its Overview: the node, its materialization, owner, tags and last build. Its dbt description fills the table's description when that is empty. A table is matched by its database, schema and name, for PostgreSQL, MySQL and SQL Server. dbt does not know the host, so when two watched databases share a name, their tables are left unmatched.
+- **Lineage:** what each model is built from becomes lineage on the table's **Lineage** tab, through the project's pipeline.
+- **Tests:** each test of a watched table shows on its **Checks** tab, with its last result and the rows it found failing. Click **Alert on Failures** to have a failing test open an alert.
+- **Builds:** each build is a run of the project's pipeline under **Pipelines** (namespace \`dbt\`). A build with an error or a failed test is a failed run, so the pipeline alerts work on dbt builds too: failed, unusually long and late.
+
+## Unused tables
+
+Every engine counts the reads of each table in its own statistics:
+- PostgreSQL: its scans.
+- MySQL: performance_schema's reads.
+- SQL Server: its seeks, scans and lookups, with the time of the last.
+
+Each collection compares the counter with the last one kept, so a table's **Last Read** is known to the hour, and so is the time since which it has had none. A counter of 0 at a table's first collection means it has not been read since the engine's statistics started, so an unused table shows as unused from the start, not after months of watching. A read seen in a service's database spans counts too.
+
+**Unused Tables** lists the tables nobody has read for 90 days, biggest first, with when each was last written: a table still written but never read costs its writes and its storage. The Overview shows how many there are and what they hold. Views keep no counters of their own, so they are never listed. When the database login cannot read the counters, a table's last read is not known.
+
+## One issue per cause
+
+When a table goes stale, every table built from it goes stale too. Before a data alert opens, OneUptime looks up lineage for an alert already open on what its table or pipeline is built from: the tables upstream, the pipelines that write them, and the databases they live in, up to five steps up. When it finds one, the new alert is that alert's consequence:
+- It starts **acknowledged**, so nobody is paged twice for one problem. It recovers on its own once its data does.
+- Its feed says which alert caused it, and so does its **Data** card.
+- It joins the cause's episode, when the cause is in one.
+
+The cause's **Data** card lists its **Downstream Impact**: every alert it caused. A table alert's card also shows the services that write the table, with their failed writes, and their deploys and other changes in the day before the alert.
 
 ## Services that use each table
 

@@ -4,14 +4,14 @@ Et varsel gjør teamet ditt oppmerksom på et problem som bør undersøkes før 
 
 :::cards
 - [Varsler og hendelser](#varsler-og-hendelser): Hva et problem bør være, og hvordan de to henger sammen.
-- [Hvor varsler kommer fra](#hvor-varsler-kommer-fra): Monitorer, SLO-er, chat, API-et eller manuelt.
+- [Hvor varsler kommer fra](#hvor-varsler-kommer-fra): Monitorer, SLO-er, chat, Spør AI, API-et eller manuelt.
 - [Opprett et varsel manuelt](#opprett-et-varsel-manuelt): To trinn i dashbordet.
 - [Svar på et varsel](#svar-på-et-varsel): Bekreft det, løs det eller erklær en hendelse.
 :::
 
 ## Slik fungerer det
 
-De fleste varsler utløses av en monitor der kriteriene samsvarer. Noen kommer fra en SLO som bruker opp feilbudsjettet sitt, en sikkerhetsregel, en tilkalling sendt fra Slack eller Microsoft Teams, eller en person. Uansett hvordan det kommer inn, er et varsel den samme posten, og de samme reglene kjører på det.
+De fleste varsler utløses av en monitor der kriteriene samsvarer. Noen kommer fra en SLO som bruker opp feilbudsjettet sitt, en sikkerhetsregel, en tilkalling sendt fra Slack eller Microsoft Teams, Spør AI, eller en person. Uansett hvordan det kommer inn, er et varsel den samme posten, og de samme reglene kjører på det.
 
 ```mermaid title="Fra et signal til menneskene som håndterer det"
 flowchart TB
@@ -44,6 +44,7 @@ Utløs et varsel når teamet ditt bør se på noe før noen utenfor merker det, 
 
 - **Kriteriene til en monitor.** Under **Handlinger** for et kriterium slår du på **Når filtre samsvarer, opprett et varsel.** og fyller ut varselet det oppretter: **Varseltittel** og **Alvorlighetsgrad**, deretter, hver for seg sammenfoldet, **Beskrivelse**, **Eierskap og etiketter**, **Vakt** og **Flere felt**, som inneholder **Løs varsel automatisk**, **Privat varsel** og **Utbedringsnotater**. Et kriterium holder ett åpent varsel om gangen, ett per serie på en monitor som grupperer etter et felt, og **Løs varsel automatisk** løser det når kriteriet slutter å samsvare. Se [Opprett en monitor](/docs/monitor/create-monitor) og [Hendelse- og varslingsmaler](/docs/monitor/incident-alert-templating).
 - **Manuelt.** Klikk på **Opprett varsel** i varsellisten, eller på fanen **Varsler** for en monitor, en vert, en nettverksenhet eller en annen ressurs, som velger den ressursen for deg. Se [Opprett et varsel manuelt](#opprett-et-varsel-manuelt).
+- **Spør AI.** Be om et varsel i [Spør AI](/docs/ai/ask-ai): den oppretter det som deg, knyttet til ressursen du spurte fra siden til, for eksempel en verts. For å registrere et problem som noen allerede tar seg av, eller som allerede er over, ber du om det bekreftet eller løst: det starter i den tilstanden og tilkaller ingen. Se [Opprettet allerede bekreftet eller løst](#opprettet-allerede-bekreftet-eller-løst).
 - **Forbruksraten til en SLO.** En forbruksrateregel kan opprette et varsel når en SLO bruker feilbudsjettet sitt for raskt. Se [Forbruksratevarsler og -hendelser](/docs/slo/burn-rate-alerts).
 - **Nettverkslokasjoner og sikkerhetshendelser.** En nettverkslokasjon som er satt til å varsle når den er usunn, åpner et varsel når den samlede helsestatusen ikke lenger er operativ, og deteksjonsreglene dine for sikkerhetshendelser åpner også varsler. Se [Nettverkslokasjoner (samlet helsestatus og oppetid)](/docs/monitor/network-sites) og [Sikkerhetshendelser (SIEM)](/docs/telemetry/security-events).
 - **En tilkalling.** `/oneuptime page` i Slack eller Microsoft Teams, overalt unntatt i en hendelses eller et varsels egen kanal, åpner et varsel med meldingen din som tittel og tilkaller personene du nevner. Tilkallingsblokkene i en arbeidsflyt gjør det samme med tittelen og meldingen du gir dem. Se [Tilkall noen fra Slack](/docs/workspace-connections/slack#tilkall-noen-fra-slack) og [Paging](/docs/workflows/components#paging).
@@ -94,7 +95,7 @@ Lar du **Innledende tilstand** stå tom, starter varselet der alle nye varsler g
 
 I det øyeblikket et varsel opprettes, går OneUptime gjennom disse trinnene, i denne rekkefølgen:
 
-1. **Det får et nummer og en tilstand.** Varselnummeret kommer fra en teller per prosjekt og vises med prefikset ditt (`ALT-42`). Varselet starter i opprettelsestilstanden din, med mindre skjemaet, API-et eller en arbeidsflyt valgte en annen.
+1. **Det får et nummer og en tilstand.** Varselnummeret kommer fra en teller per prosjekt og vises med prefikset ditt (`ALT-42`). Varselet starter i opprettelsestilstanden din, med mindre skjemaet, API-et, en arbeidsflyt eller Spør AI valgte en annen.
 2. **Personvernregler kjører først**, slik at alt etter dem vet om varselet er privat.
 3. **Feeden og chatverktøyene dine får vite om det.** En oppføring **Varsel opprettet** skrives i **Varsel Feed**, og kanalene som Slack- og Microsoft Teams-reglene dine nevner, får beskjed; en regel kan opprette en kanal for varselet.
 4. **Eiere og etiketter legges til**: de som monitorens kriterier eller forespørselen nevner, deretter de fra samsvarende eier- og etikettregler.

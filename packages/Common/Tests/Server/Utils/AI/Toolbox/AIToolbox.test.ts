@@ -7,6 +7,7 @@ import ObjectID from "../../../../../Types/ObjectID";
 import Permission from "../../../../../Types/Permission";
 import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
 import PaymentRequiredException from "../../../../../Types/Exception/PaymentRequiredException";
+import { AIToolRefusal } from "../../../../../Types/AI/AIChatTypes";
 
 /*
  * The toolbox is the authorization gate for everything the AI can do with a
@@ -923,4 +924,138 @@ describe("AIToolbox.executeTool and the person a change is made as", () => {
       expect(outcome.textForLlm).not.toContain("Adjust the arguments");
     },
   );
+});
+
+/*
+ * WHY A CALL WAS REFUSED, FOR THE RUN'S ACTIVITY (#5315's follow-up).
+ *
+ * A refused call is never tried again, but its step in the chat said
+ * "did not succeed - retrying differently". The toolbox now says why it
+ * refused, as a kind the Dashboard words in the reader's language: the
+ * person's role, a team's block, the project's plan, or a change that is
+ * not theirs to make here. A call that failed for any other reason - an
+ * argument the model can fix - carries none.
+ */
+describe("AIToolbox.executeTool says why it refused a call", () => {
+  afterEach(() => {
+    lookupBehaviour = async (): Promise<JSONObject> => {
+      return {};
+    };
+  });
+
+  test("a role that grants none of the permissions it needs: the person's role", async () => {
+    const outcome: ToolCallOutcome = await AIToolbox.executeTool({
+      name: "lookup_context",
+      args: { type: "services" },
+      ctx: contextFor({ allow: [Permission.Viewer] }),
+    });
+
+    expect(outcome.success).toBe(false);
+    expect(outcome.refusal).toBe(AIToolRefusal.Permission);
+  });
+
+  test("a permission it needs, held but blocked by a team: the team's block", async () => {
+    const outcome: ToolCallOutcome = await AIToolbox.executeTool({
+      name: "lookup_context",
+      args: { type: "services" },
+      ctx: contextFor({
+        allow: [Permission.ProjectOwner],
+        block: [Permission.ProjectOwner],
+      }),
+    });
+
+    expect(outcome.success).toBe(false);
+    expect(outcome.refusal).toBe(AIToolRefusal.TeamBlock);
+  });
+
+  test("a change the service refuses as not theirs to make, and one the plan does not include", async () => {
+    lookupBehaviour = async (): Promise<JSONObject> => {
+      throw new NotAuthorizedException("You may not change this incident.");
+    };
+
+    expect(
+      (
+        await AIToolbox.executeTool({
+          name: "lookup_context",
+          args: { type: "services" },
+          ctx: contextFor({ allow: [Permission.ProjectOwner] }),
+        })
+      ).refusal,
+    ).toBe(AIToolRefusal.NotAllowed);
+
+    lookupBehaviour = async (): Promise<JSONObject> => {
+      throw new PaymentRequiredException("Please upgrade your plan to Growth.");
+    };
+
+    expect(
+      (
+        await AIToolbox.executeTool({
+          name: "lookup_context",
+          args: { type: "services" },
+          ctx: contextFor({ allow: [Permission.ProjectOwner] }),
+        })
+      ).refusal,
+    ).toBe(AIToolRefusal.Plan);
+  });
+
+  test.each(mismatchedContexts())(
+    "%s: not theirs to make here",
+    async (_name: string, ctx: ToolContext) => {
+      const outcome: ToolCallOutcome = await AIToolbox.executeTool({
+        name: "lookup_context",
+        args: { type: "services" },
+        ctx,
+      });
+
+      expect(outcome.success).toBe(false);
+      expect(outcome.refusal).toBe(AIToolRefusal.NotAllowed);
+    },
+  );
+
+  test("a change for nobody signed in: not theirs to make", async () => {
+    const outcome: ToolCallOutcome = await AIToolbox.executeTool({
+      name: "acknowledge_incident",
+      args: { incidentId: ObjectID.generate().toString() },
+      ctx: contextFor({ isRoot: true }),
+    });
+
+    expect(outcome.success).toBe(false);
+    expect(outcome.refusal).toBe(AIToolRefusal.NotAllowed);
+  });
+
+  test("a call that failed for another reason - an unknown tool, arguments that are not an object, an error - is no refusal", async () => {
+    expect(
+      (
+        await AIToolbox.executeTool({
+          name: "no_such_tool",
+          args: {},
+          ctx: contextFor({ allow: [Permission.ProjectOwner] }),
+        })
+      ).refusal,
+    ).toBeUndefined();
+
+    expect(
+      (
+        await AIToolbox.executeTool({
+          name: "lookup_context",
+          args: [] as unknown as JSONObject,
+          ctx: contextFor({ allow: [Permission.ProjectOwner] }),
+        })
+      ).refusal,
+    ).toBeUndefined();
+
+    lookupBehaviour = async (): Promise<JSONObject> => {
+      throw new Error("type must be one of services, metrics");
+    };
+
+    const failed: ToolCallOutcome = await AIToolbox.executeTool({
+      name: "lookup_context",
+      args: { type: "nope" },
+      ctx: contextFor({ allow: [Permission.ProjectOwner] }),
+    });
+
+    expect(failed.success).toBe(false);
+    expect(failed.refusal).toBeUndefined();
+    expect(failed.textForLlm).toContain("Adjust the arguments");
+  });
 });

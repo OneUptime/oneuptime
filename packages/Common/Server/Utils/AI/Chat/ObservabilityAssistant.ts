@@ -12,7 +12,12 @@ import { LLMMessage, LLMToolDefinition } from "../../LLM/LLMService";
 import AIToolbox, { ToolCallOutcome } from "../Toolbox/Index";
 import { ToolContext } from "../Toolbox/ToolTypes";
 import AIChatPermissionMode from "../../../../Types/AI/AIChatPermissionMode";
-import { buildObservabilityChatSystemPrompt } from "./ObservabilityChatPrompt";
+import { AIChatPageContext } from "../../../../Types/AI/AIChatPageContext";
+import {
+  buildObservabilityChatSystemPrompt,
+  ObservabilityChatApp,
+  ObservabilityChatSurface,
+} from "./ObservabilityChatPrompt";
 import {
   escapeToolResultContent,
   stripFabricatedCitationMarkers,
@@ -95,6 +100,20 @@ export interface ObservabilityAssistantRequest {
   llmProviderId?: ObjectID | undefined;
   // Label recorded on LlmLog, e.g. "Slack ChatOps".
   feature: string;
+  /*
+   * The chat app the answer is posted to - Slack or Microsoft Teams - with
+   * its commands and the link to Ask AI in the Dashboard: asked to change
+   * something, the model says how to from there (ObservabilityChatPrompt).
+   * Left out, the run is an autonomous one, with nobody to tell.
+   */
+  chatApp?: ObservabilityChatApp | undefined;
+  /*
+   * What the question is about: the incident or alert of the chat channel
+   * it was asked in (WorkspacePageAbout.findChannelRecord), read as the
+   * person - as Ask AI opened on that record's page knows it. Never a
+   * permission: every read is still the person's own.
+   */
+  pageContext?: AIChatPageContext | undefined;
   /*
    * Extra instructions appended to the base observability system prompt — used
    * to give an autonomous run (e.g. AI incident investigation) a distinct
@@ -238,6 +257,7 @@ export default class ObservabilityAssistant {
       ...(request.codeRepositoryAllowance
         ? { codeRepositoryAllowance: request.codeRepositoryAllowance }
         : {}),
+      ...(request.pageContext ? { pageContext: request.pageContext } : {}),
     };
 
     /*
@@ -263,6 +283,12 @@ export default class ObservabilityAssistant {
        * surface stays strictly read-only.
        */
       permissionMode: AIChatPermissionMode.ReadOnly,
+      // Asked in a chat app, it says how to act from there; else a run's own.
+      surface: request.chatApp
+        ? ObservabilityChatSurface.ChatApp
+        : ObservabilityChatSurface.AutonomousRun,
+      chatApp: request.chatApp,
+      pageContext: request.pageContext,
     });
 
     if (request.systemInstructions) {

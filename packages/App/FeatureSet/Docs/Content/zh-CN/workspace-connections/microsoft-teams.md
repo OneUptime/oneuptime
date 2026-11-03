@@ -173,7 +173,7 @@ flowchart TB
 | `maintenance [title]` | 打开已填好标题的计划维护表单。 |
 | `oncall` | 列出您能看到的每个值班计划中当前由谁值班、值班到何时，以及下一位是谁。 |
 | `page [who] [message]` | 就您的消息呼叫您 @提及的人，或发送一张卡片来选择要呼叫的人。请参阅 [从 Microsoft Teams 呼叫他人](#从-microsoft-teams-呼叫他人)。 |
-| `ask [question]`，或任何日常语言的问题 | OneUptime AI 回答有关日志、追踪、指标、事件和监视器的问题，例如"现在有哪些监视器宕机了？"。回答只读取数据。 |
+| `ask [question]`，或任何日常语言的问题 | OneUptime AI 回答有关日志、追踪、指标、事件和监视器的问题，例如"现在有哪些监视器宕机了？"。回答只读取数据：请求更改时，它会告诉你如何在这里完成，例如使用 `incident` 或 OneUptime 卡片上的按钮，其他更改则给出询问 AI 的链接。在事件或警报自己的频道中，它会回答关于该事件或警报的问题。 |
 | `show active incidents`、 `show active alerts` | 列出当前未关闭的内容。 |
 | `show scheduled maintenance`、 `show ongoing maintenance` | 列出即将进行或正在进行的维护活动。 |
 

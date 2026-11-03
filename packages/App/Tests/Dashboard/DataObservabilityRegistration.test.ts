@@ -283,6 +283,119 @@ describe("Data Observability registry wiring", () => {
     );
   });
 
+  test("dbt artifacts - migration, ingest route and CLI command - are wired", () => {
+    const migrations: string = readSquashed(
+      "Common/Server/Infrastructure/Postgres/SchemaMigrations/Index.ts",
+    );
+
+    expect(migrations).toContain(
+      'import { AddDbtArtifacts1808991700000 } from "./1808991700000-AddDbtArtifacts";',
+    );
+    expect(migrations.indexOf("AddDbtArtifacts1808991700000,")).toBeGreaterThan(
+      migrations.indexOf("AddDataPipelineSchedule1808991600000,"),
+    );
+
+    const migration: string = readSquashed(
+      "Common/Server/Infrastructure/Postgres/SchemaMigrations/1808991700000-AddDbtArtifacts.ts",
+    );
+
+    expect(migration).toContain('ALTER TABLE "DataAsset" ADD "dbtNode" jsonb');
+    expect(migration).toContain(
+      'ALTER TABLE "DataCheck" ADD "externalId" character varying(500)',
+    );
+
+    const telemetry: string = readSquashed("App/FeatureSet/Telemetry/Index.ts");
+
+    expect(telemetry).toContain(
+      'import DbtArtifactsIngestAPI from "./API/DbtArtifactsIngest"',
+    );
+    expect(telemetry).toContain(
+      "app.use(TELEMETRY_PREFIXES, DbtArtifactsIngestAPI)",
+    );
+
+    const cli: string = readSquashed("CLI/Program.ts");
+
+    expect(cli).toContain(
+      'import { registerDbtCommands } from "./Commands/DbtCommands";',
+    );
+    expect(cli).toContain("registerDbtCommands(program);");
+  });
+
+  test("data alerts - model, service, migration and CRUD API - are wired, and the monitor records them", () => {
+    expect(readSquashed("Common/Models/DatabaseModels/Index.ts")).toContain(
+      "DataAlert,",
+    );
+    expect(readSquashed("Common/Server/Services/Index.ts")).toContain(
+      "DataAlertService,",
+    );
+    expect(readSquashed("App/FeatureSet/BaseAPI/Index.ts")).toMatch(
+      /new BaseAPI<\s*DataAlert,\s*DataAlertServiceType\s*>\(\s*DataAlert,\s*DataAlertService,?\s*\)/,
+    );
+
+    const migrations: string = readSquashed(
+      "Common/Server/Infrastructure/Postgres/SchemaMigrations/Index.ts",
+    );
+
+    expect(migrations).toContain(
+      'import { AddDataAlerts1808991800000 } from "./1808991800000-AddDataAlerts";',
+    );
+    expect(migrations.indexOf("AddDataAlerts1808991800000,")).toBeGreaterThan(
+      migrations.indexOf("AddDbtArtifacts1808991700000,"),
+    );
+    expect(
+      readSquashed(
+        "Common/Server/Infrastructure/Postgres/SchemaMigrations/1808991800000-AddDataAlerts.ts",
+      ),
+    ).toContain('CREATE TABLE "DataAlert"');
+
+    // The cause is looked for before the alert is created, and recorded after.
+    const monitorAlert: string = readSquashed(
+      "Common/Server/Utils/Monitor/MonitorAlert.ts",
+    );
+
+    expect(
+      monitorAlert.indexOf("await DataAlertCause.findCause({"),
+    ).toBeLessThan(
+      monitorAlert.indexOf(
+        "const createdAlert: Alert = await AlertService.create({",
+      ),
+    );
+    expect(
+      monitorAlert.indexOf("await DataAlertCause.record({"),
+    ).toBeGreaterThan(
+      monitorAlert.indexOf(
+        "const createdAlert: Alert = await AlertService.create({",
+      ),
+    );
+    expect(
+      readSquashed("App/FeatureSet/Dashboard/src/Pages/Alerts/View/Index.tsx"),
+    ).toContain("<DataAlertLineage alertId={modelId} />");
+  });
+
+  test("a table's reads - its migration - are wired", () => {
+    const migrations: string = readSquashed(
+      "Common/Server/Infrastructure/Postgres/SchemaMigrations/Index.ts",
+    );
+
+    expect(migrations).toContain(
+      'import { AddDataAssetReads1808991900000 } from "./1808991900000-AddDataAssetReads";',
+    );
+    expect(
+      migrations.indexOf("AddDataAssetReads1808991900000,"),
+    ).toBeGreaterThan(migrations.indexOf("AddDataAlerts1808991800000,"));
+
+    const migration: string = readSquashed(
+      "Common/Server/Infrastructure/Postgres/SchemaMigrations/1808991900000-AddDataAssetReads.ts",
+    );
+
+    expect(migration).toContain(
+      'ALTER TABLE "DataAsset" ADD "lastReadAt" TIMESTAMP WITH TIME ZONE',
+    );
+    expect(migration).toContain(
+      'ALTER TABLE "DataAsset" ADD "unreadSince" TIMESTAMP WITH TIME ZONE',
+    );
+  });
+
   test("the Workers import its jobs, and the probe ingest mounts its routes", () => {
     expect(readSquashed("App/FeatureSet/Workers/Index.ts")).toContain(
       'import "./Jobs/DataObservability/DataObservabilityJobs"',

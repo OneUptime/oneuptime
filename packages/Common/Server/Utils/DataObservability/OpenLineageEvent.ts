@@ -220,6 +220,9 @@ const SCHEME_KINDS: Readonly<Record<string, DataStoreKind>> = {
   mariadb: DataStoreKind.MySql,
   sqlserver: DataStoreKind.SqlServer,
   mssql: DataStoreKind.SqlServer,
+  redshift: DataStoreKind.AwsRedshiftCluster,
+  snowflake: DataStoreKind.Snowflake,
+  bigquery: DataStoreKind.GcpBigQueryDataset,
 };
 
 /*

@@ -198,7 +198,7 @@ Når noen legger til OneUptime i en kanal, publiserer den en hilsen der: hvordan
 
 ## Spør OneUptime AI fra Slack
 
-Spør om logger, traces, målinger, hendelser og monitorer på vanlig språk. Nevn OneUptime med @ i en kanal, eller send den en direktemelding, så svarer den i tråden. `/oneuptime ask which monitors are down?` publiserer svaret i kanalen. Begge krever at din egen Slack-konto er koblet til, og at AI er slått på for prosjektet. Svar i Slack leser bare: bruk knappene for å endre noe. Se [Spør AI](/docs/ai/ask-ai).
+Spør om logger, traces, målinger, hendelser og monitorer på vanlig språk. Nevn OneUptime med @ i en kanal, eller send den en direktemelding, så svarer den i tråden. `/oneuptime ask which monitors are down?` publiserer svaret i kanalen. Begge krever at din egen Slack-konto er koblet til, og at AI er slått på for prosjektet. Svar i Slack leser bare: ber du om en endring, sier OneUptime AI hvordan du gjør den fra Slack, for eksempel med `/oneuptime incident` eller knappene på OneUptimes meldinger, eller lenker til Spør AI for alt annet. Spurt i en hendelses eller et varsels egen kanal svarer den om den hendelsen eller det varselet. Se [Spør AI](/docs/ai/ask-ai).
 
 OneUptime svarer bare på det som er rettet til den.
 

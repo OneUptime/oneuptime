@@ -6,7 +6,7 @@
 - [گزینه‌های سراسری](#گزینههای-سراسری): گزینه‌هایی که هر دستور می‌پذیرد.
 - [ورود و زمینه‌ها](#ورود-و-زمینهها): login و دستورهای context.
 - [دستورهای منبع](#دستورهای-منابع): عملیات، فیلدها و کنش‌های هر منبع.
-- [دستورهای دیگر](#دستورهای-دیگر): deploy، whoami، resources، version و help.
+- [دستورهای دیگر](#دستورهای-دیگر): deploy، dbt upload، whoami، resources، version و help.
 :::
 
 ## دستورها
@@ -19,6 +19,8 @@ flowchart LR
     O --> R["incident، monitor<br/>و هر منبع دیگر"]
     R --> R1["list<br/>get<br/>create<br/>update<br/>delete<br/>count<br/>fields"]
     R --> R2["acknowledge<br/>resolve<br/>start<br/>end<br/>add-note"]
+    O --> D["dbt"]
+    D --> D1["upload"]
     O --> U["deploy<br/>whoami<br/>resources<br/>version<br/>help"]
 ```
 
@@ -303,6 +305,22 @@ oneuptime deploy [--service <name>] [--service-version <version>] [--previous-ve
 | `--type <type>` | خیر | نوع تغییر، مانند `config-change` یا `rollback` | `deployment` |
 | `--time <time>` | خیر | زمان رخ دادن آن، مانند `2026-10-19T10:00:00Z` | اکنون |
 | `--attribute <key=value...>` | خیر | ویژگی‌های بیشتر، به‌صورت `key=value`، یک یا چند تا | |
+| `--ingestion-key <key>` | خیر | یک کلید دریافت دادهٔ تله‌متری پروژه | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
+
+### `oneuptime dbt upload`
+
+پس از یک ساخت، از CI یا یک جاب dbt Cloud، آرتیفکت‌های یک پروژهٔ dbt را به مشاهده‌پذیری داده می‌فرستد. مدل‌های آن همراه با تبارشان روی جدول‌هایی که می‌سازند نشان داده می‌شوند، آزمون‌های آن کنار بررسی‌های OneUptime نشان داده می‌شوند و می‌توانند هشدار ایجاد کنند، و هر ساخت یک اجرای خط لولهٔ پروژه است. `manifest.json` و `run_results.json` را از پوشهٔ هدف dbt می‌خواند، تنها آنچه را مشاهده‌پذیری داده از آن‌ها می‌خواند می‌فرستد، و با یک کلید دریافت دادهٔ تله‌متری می‌نویسد، نه با کلید API. صفحهٔ مستندات مشاهده‌پذیری داده، در داشبورد شما، آن را در یک جاب CI نشان می‌دهد.
+
+```bash
+oneuptime dbt upload [--target-path <dir>] [--manifest <file>] [--run-results <file>] [--project <name>] [--ingestion-key <key>]
+```
+
+| گزینه | الزامی | چیست | پیش‌فرض |
+| --- | --- | --- | --- |
+| `--target-path <dir>` | خیر | پوشه‌ای که dbt آرتیفکت‌هایش را در آن نوشته است | `target` |
+| `--manifest <file>` | خیر | مانیفستی که فرستاده می‌شود | `manifest.json` در پوشهٔ هدف |
+| `--run-results <file>` | خیر | نتایج اجرایی که فرستاده می‌شوند | `run_results.json` در پوشهٔ هدف |
+| `--project <name>` | خیر | نام پروژهٔ dbt، که تنها وقتی لازم است که هیچ مانیفستی فرستاده نشود | پروژهٔ مانیفست |
 | `--ingestion-key <key>` | خیر | یک کلید دریافت دادهٔ تله‌متری پروژه | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
 
 ### `oneuptime whoami`
