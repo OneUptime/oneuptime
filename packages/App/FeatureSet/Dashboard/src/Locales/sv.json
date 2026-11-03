@@ -41554,5 +41554,22 @@
   "The ones you may add user overrides on. Untick any it should leave alone.": "De du får lägga till användaråsidosättningar på. Avmarkera dem som det ska låta vara.",
   "This applies to the on-call policies you tick. To end it early, delete it on each policy's User Overrides page, under Advanced.": "Detta gäller de jourpolicyer du markerar. Ta bort det på varje policys sida Användaråsidosättningar, under Avancerad, för att avsluta det tidigare.",
   "This applies to the on-call policy {{policy}}. To end it early, delete it on that policy's User Overrides page, under Advanced.": "Detta gäller jourpolicyn {{policy}}. Ta bort det på den policyns sida Användaråsidosättningar, under Avancerad, för att avsluta det tidigare.",
-  "Tick at least one on-call policy.": "Markera minst en jourpolicy."
+  "Tick at least one on-call policy.": "Markera minst en jourpolicy.",
+  "Add the span metrics connector": "Lägg till connectorn för span-mätvärden",
+  "Do your services send straight to OneUptime? Put a collector in front of them first.": "Skickar dina tjänster direkt till OneUptime? Sätt först en collector framför dem.",
+  "Every hour OneUptime looks for metrics that record too many values, histograms whose buckets do not fit, and busy services that send no metrics for their requests. It files what it finds here with the evidence. OneUptime AI looks into each finding and opens a pull request to fix it, as your AI settings say.": "Varje timme letar OneUptime efter mätvärden som registrerar för många värden, histogram vars buckets inte passar och hårt belastade tjänster som inte skickar några mätvärden för sina förfrågningar. Det den hittar registrerar den här med bevisen. OneUptime AI undersöker varje fynd och öppnar en pull request för att åtgärda det, enligt dina AI-inställningar.",
+  "Found request metrics the code should add": "Hittade saknade förfrågningsmätvärden i koden",
+  "How the span metrics connector works": "Så fungerar connectorn för span-mätvärden",
+  "Missing Request Metrics": "Saknade förfrågningsmätvärden",
+  "OneUptime AI opens a pull request that adds request metrics to this service, for you to review.": "OneUptime AI öppnar en pull request som lägger till förfrågningsmätvärden i den här tjänsten, för dig att granska.",
+  "Record request metrics from traces": "Registrera förfrågningsmätvärden från spår",
+  "Restart the collector": "Starta om collectorn",
+  "Send through an OpenTelemetry Collector": "Skicka via en OpenTelemetry Collector",
+  "Show the collector step": "Visa collector-steget",
+  "Without changing code": "Utan att ändra kod",
+  "Every hour OneUptime files a finding when a metric records too many values, a histogram's buckets do not fit, or a service's requests have no metrics.": "Varje timme registrerar OneUptime ett fynd när ett mätvärde registrerar för många värden, ett histograms buckets inte passar eller en tjänsts förfrågningar saknar mätvärden.",
+  "Add these lines to your collector's config. Only {{connector}} is new: where they say {{receiver}}, {{processor}} or {{exporter}}, keep the names your config already uses.": "Lägg till de här raderna i collectorns konfiguration. Bara {{connector}} är nytt: där det står {{receiver}}, {{processor}} eller {{exporter}} behåller du de namn som din konfiguration redan använder.",
+  "Your OpenTelemetry Collector records them from the spans passing through it, for every service at once. No code changes.": "Din OpenTelemetry Collector registrerar dem från spannen som passerar genom den, för alla tjänster på en gång. Utan att ändra kod.",
+  "An OpenTelemetry Collector can record this service's request metrics from its traces.": "En OpenTelemetry Collector kan registrera tjänstens förfrågningsmätvärden från dess spår.",
+  "Within a few minutes each service sends {{calls}} and {{duration}}. Then resolve this finding.": "Inom några minuter skickar varje tjänst {{calls}} och {{duration}}. Lös sedan det här fyndet."
 }

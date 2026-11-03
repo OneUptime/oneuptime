@@ -41554,5 +41554,22 @@
   "The ones you may add user overrides on. Untick any it should leave alone.": "ユーザーオーバーライドを追加できるポリシーです。対象にしないもののチェックを外してください。",
   "This applies to the on-call policies you tick. To end it early, delete it on each policy's User Overrides page, under Advanced.": "これはチェックしたオンコールポリシーに適用されます。早めに終えるには、各ポリシーの 詳細 > ユーザーオーバーライド ページで削除してください。",
   "This applies to the on-call policy {{policy}}. To end it early, delete it on that policy's User Overrides page, under Advanced.": "これはオンコールポリシー {{policy}} に適用されます。早めに終えるには、そのポリシーの 詳細 > ユーザーオーバーライド ページで削除してください。",
-  "Tick at least one on-call policy.": "オンコールポリシーを少なくとも 1 つチェックしてください。"
+  "Tick at least one on-call policy.": "オンコールポリシーを少なくとも 1 つチェックしてください。",
+  "Add the span metrics connector": "スパンメトリクスのコネクターを追加する",
+  "Do your services send straight to OneUptime? Put a collector in front of them first.": "サービスが OneUptime に直接送信していますか？まずサービスの前段にコレクターを置いてください。",
+  "Every hour OneUptime looks for metrics that record too many values, histograms whose buckets do not fit, and busy services that send no metrics for their requests. It files what it finds here with the evidence. OneUptime AI looks into each finding and opens a pull request to fix it, as your AI settings say.": "OneUptime は 1 時間ごとに、記録する値が多すぎるメトリクス、バケットが合っていないヒストグラム、リクエストのメトリクスを送っていない利用の多いサービスを探します。見つかったものは根拠とともにここに記録されます。OneUptime AI は AI 設定に従って各検出結果を調べ、修正のプルリクエストを開きます。",
+  "Found request metrics the code should add": "コードに足りないリクエストメトリクスが見つかりました",
+  "How the span metrics connector works": "スパンメトリクスのコネクターの仕組み",
+  "Missing Request Metrics": "リクエストメトリクスの不足",
+  "OneUptime AI opens a pull request that adds request metrics to this service, for you to review.": "OneUptime AI がこのサービスにリクエストメトリクスを追加するプルリクエストを作成します。内容を確認してください。",
+  "Record request metrics from traces": "トレースからリクエストメトリクスを記録する",
+  "Restart the collector": "コレクターを再起動する",
+  "Send through an OpenTelemetry Collector": "OpenTelemetry Collector 経由で送信する",
+  "Show the collector step": "コレクターのステップを表示",
+  "Without changing code": "コードを変更せずに",
+  "Every hour OneUptime files a finding when a metric records too many values, a histogram's buckets do not fit, or a service's requests have no metrics.": "OneUptime は 1 時間ごとに、メトリクスが記録する値が多すぎる場合、ヒストグラムのバケットが合っていない場合、またはサービスのリクエストにメトリクスがない場合に検出結果を記録します。",
+  "Add these lines to your collector's config. Only {{connector}} is new: where they say {{receiver}}, {{processor}} or {{exporter}}, keep the names your config already uses.": "これらの行をコレクターの設定に追加します。新しいのは {{connector}} だけです。{{receiver}}、{{processor}}、{{exporter}} と書かれている箇所は、設定ですでに使っている名前のままにしてください。",
+  "Your OpenTelemetry Collector records them from the spans passing through it, for every service at once. No code changes.": "OpenTelemetry Collector は、通過するスパンからそれらをすべてのサービスについて一度に記録します。コードの変更は不要です。",
+  "An OpenTelemetry Collector can record this service's request metrics from its traces.": "OpenTelemetry Collector は、このサービスのトレースからリクエストメトリクスを記録できます。",
+  "Within a few minutes each service sends {{calls}} and {{duration}}. Then resolve this finding.": "数分以内に各サービスが {{calls}} と {{duration}} を送信します。その後、この検出結果を解決してください。"
 }

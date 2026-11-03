@@ -345,18 +345,19 @@ export interface MetricInsightAttributeEvidence {
 
 /*
  * Evidence for the Metrics product's insights (MetricHighCardinality,
- * MetricHistogramBuckets, MetricMissingMetrics): one service's metric - or
- * the service itself, for missing metrics - over the hour it was read in,
- * and what was found. `kind` says which of the three it is; `shape` says,
- * for a high-cardinality metric, whether an attribute or the metric names
- * carry the values (Utils/Metrics/MetricInsight). No attribute value is
- * ever stored: only its key, how many values it took and what they look
- * like - the values are whatever the code put there, ids and addresses
- * among them.
+ * MetricHistogramBuckets, MetricMissingMetrics,
+ * MetricMissingRequestMetrics): one service's metric - or the service
+ * itself, for missing metrics and missing request metrics - over the hour
+ * it was read in, and what was found. `kind` says which of the four it is;
+ * `shape` says, for a high-cardinality metric, whether an attribute or the
+ * metric names carry the values (Utils/Metrics/MetricInsight). No
+ * attribute value is ever stored: only its key, how many values it took
+ * and what they look like - the values are whatever the code put there,
+ * ids and addresses among them.
  */
 export interface MetricInsightEvidence {
   serviceId: string;
-  // "HighCardinality", "HistogramBuckets" or "MissingMetrics".
+  // "HighCardinality", "HistogramBuckets", "MissingMetrics" or "MissingRequestMetrics".
   kind: string;
   // HighCardinality only: "Attribute" or "Name".
   shape?: string | undefined;
@@ -405,13 +406,33 @@ export interface MetricInsightEvidence {
   // The smallest and largest values recorded, when the SDK sent them.
   minValue?: number | undefined;
   maxValue?: number | undefined;
-  // MissingMetrics: the service's spans in the hour, and its failed ones.
+  /*
+   * MissingMetrics and MissingRequestMetrics: the service's spans in the
+   * hour, and its failed ones.
+   */
   spanCount?: number | undefined;
   failedSpanCount?: number | undefined;
-  // MissingMetrics: its busiest operations, to start the metrics from.
+  /*
+   * MissingMetrics: its busiest operations, to start the metrics from.
+   * MissingRequestMetrics: its busiest requests - the spans where work
+   * enters it.
+   */
   topOperations?: Array<{ name: string; spanCount: number }> | undefined;
-  // MissingMetrics: the language its telemetry SDK reported, when it did.
+  // Both: the language its telemetry SDK reported, when it did.
   sdkLanguage?: string | undefined;
+  /*
+   * MissingRequestMetrics: what its requests are, as its entry spans say -
+   * "Http", "Rpc" or "Messaging" (MetricServedProtocol), in that order -
+   * and so which request metrics it lacks.
+   */
+  servedProtocols?: Array<string> | undefined;
+  /*
+   * MissingRequestMetrics: the metrics it sent in the hour - its busiest
+   * few by name, and how many there were when the hour's read held them
+   * all - so its metrics reach OneUptime, only none for its requests.
+   */
+  sentMetricNames?: Array<string> | undefined;
+  sentMetricCount?: number | undefined;
 }
 
 export interface AIInsightEvidence {

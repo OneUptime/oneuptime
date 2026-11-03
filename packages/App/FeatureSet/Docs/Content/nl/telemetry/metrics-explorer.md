@@ -112,15 +112,16 @@ Het tabblad **Inzichten** telt de metrieken in een tijdsbereik: **Actieve metrie
 
 ## Metrieken verbeteren en ontbrekende toevoegen met AI
 
-Elk uur doorzoekt OneUptime de metrieken die uw services in het afgelopen uur hebben verstuurd op metrieken die te veel waarden vastleggen, histogrammen waarvan de buckets niet passen en drukke services die geen metrieken versturen. Wat het vindt, legt het vast als AI-inzichten, met het bewijs. Daarna onderzoekt OneUptime AI elk ervan en opent een pull request die het oplost. Er wordt nooit iets samengevoegd: uw team beoordeelt elke pull request.
+Elk uur doorzoekt OneUptime de metrieken die uw services in het afgelopen uur hebben verstuurd op metrieken die te veel waarden vastleggen, histogrammen waarvan de buckets niet passen en drukke services die geen metrieken voor hun verzoeken versturen. Wat het vindt, legt het vast als AI-inzichten, met het bewijs. Daarna onderzoekt OneUptime AI elk ervan en opent een pull request die het oplost. Er wordt nooit iets samengevoegd: uw team beoordeelt elke pull request.
 
-OneUptime leest de 10 metrieken waarvoor uw services in dat uur de meeste datapunten verstuurden nauwkeurig, elk met minstens 1.000 datapunten, en legt drie soorten bevindingen vast:
+OneUptime leest de 10 metrieken waarvoor uw services in dat uur de meeste datapunten verstuurden nauwkeurig, elk met minstens 1.000 datapunten, en legt vier soorten bevindingen vast:
 
 | Bevinding | Wanneer OneUptime die vastlegt | De pull request |
 | --- | --- | --- |
 | **Hoge cardinaliteit** | Een attribuut dat de code op een van die metrieken zet, kreeg in het uur 1.000 of meer waarden, zoals gebruikers-ID's of volledige URL's, zodat elke waarde een eigen reeks is. Of 50 of meer metrieknamen van een service zijn één naam met telkens een andere ID erin. | Legt de waarde niet meer vast op de metriek, of haalt de ID's uit de namen. |
 | **Verkeerde histogram-buckets** | Een van die metrieken is een histogram dat 1.000 of meer waarden vastlegde, waarvan 90% of meer in de kleinste bucket viel of boven de grootste, of het heeft geen buckets, zodat de percentielen niet van elkaar te onderscheiden zijn. | Geeft het histogram buckets die bij de waarden passen, of corrigeert de eenheid. |
 | **Ontbrekende metrieken** | Een service verstuurde in het uur 1.000 of meer spans en heeft nog nooit een metriek verstuurd. | Voegt het aantal verzoeken, de fouten en de duur van de drukste bewerkingen toe als metrieken. |
+| **Ontbrekende verzoekmetrieken** | Een service verstuurde in het uur 1.000 of meer spans, en ook metrieken, maar heeft nog nooit een verzoekmetriek verstuurd voor de HTTP-verzoeken, RPC-aanroepen of berichten die ze afhandelt, zoals `http.server.request.duration`. | Voegt die verzoekmetrieken toe, met de OpenTelemetry-instrumentatie van haar framework. |
 
 Een bevinding slaat nooit de waarden van een attribuut op: alleen de naam van het attribuut, hoeveel waarden het kreeg en hoe ze eruitzien.
 
@@ -144,9 +145,34 @@ Onder **Meer velden** kiest een regel de coderepositories, de MCP-servers en de 
 
 ### Zien wat het deed
 
-- **Metrieken → AI → Inzichten** toont wat OneUptime vond, elke bevinding met haar bewijs en **Openen in Metrieken**, dat haar metriek voor haar service opent, uit het uur waarin ze werd gevonden. Een service zonder metrieken biedt in plaats daarvan **Openen in Traces** aan: de spans die haar metrieken zouden meten.
+- **Metrieken → AI → Inzichten** toont wat OneUptime vond, elke bevinding met haar bewijs en **Openen in Metrieken**, dat haar metriek voor haar service opent, uit het uur waarin ze werd gevonden. Een service zonder metrieken, of zonder metrieken voor haar verzoeken, biedt in plaats daarvan **Openen in Traces** aan: de spans die haar metrieken zouden meten.
 - **Metrieken → AI → Logboeken** toont elk onderzoek en elke pull request, nieuwste eerst, met hoe elk ervoor staat en wat elk onderzoek vond.
 - In Code zegt de taak dat OneUptime haar startte, met een link naar haar bevinding, en de pull request zegt waarom hij werd geopend.
+
+### Verzoekmetrieken vastleggen zonder code te wijzigen
+
+Een bevinding **Ontbrekende metrieken** of **Ontbrekende verzoekmetrieken** biedt naast **Oplossen met AI** ook **Zonder code te wijzigen** aan: de OpenTelemetry Collector waar uw traces doorheen gaan, legt er de verzoekmetrieken uit vast. **Collectorstap tonen** geeft de regels die u toevoegt, `spanmetrics` als exporter van de traces-pipeline en als receiver van de metrics-pipeline:
+
+```yaml title="otel-collector-config.yaml"
+connectors:
+  spanmetrics:
+    histogram:
+      unit: s
+    aggregation_temporality: AGGREGATION_TEMPORALITY_DELTA
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlphttp, spanmetrics]
+    metrics:
+      receivers: [otlp, spanmetrics]
+      processors: [batch]
+      exporters: [otlphttp]
+```
+
+Start de collector opnieuw. Elke service waarvan de traces erdoorheen gaan, verstuurt dan `traces.span.metrics.calls` en `traces.span.metrics.duration` (in seconden) per bewerking, spansoort en status, en OneUptime vindt het probleem niet meer, dus los de bevinding op. De connector telt elke span die de collector ontvangt, ook spans die een sampler later laat vallen. Een service die rechtstreeks naar OneUptime stuurt, heeft eerst een collector ervoor nodig: zie [Via een OpenTelemetry Collector sturen](/docs/telemetry/open-telemetry#via-een-opentelemetry-collector-sturen).
 
 ## Wat er met metrieken gebeurt als ze binnenkomen
 
