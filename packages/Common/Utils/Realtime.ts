@@ -17,4 +17,25 @@ export default class RealtimeUtil {
 
     return roomId;
   }
+
+  /*
+   * A record's own room: where a page that shows one record (a task's
+   * conversation, say) hears about that record alone - every change of it,
+   * created, changed or deleted - rather than about every record of its
+   * model in the project. The server sends each event of a record to it
+   * (Realtime.deliver), to the listeners who may read the record; the name
+   * has always carried Create, whatever the kind of change.
+   */
+  public static getRecordRoomId(
+    tenantId: string | ObjectID,
+    modelName: string,
+    modelId: string | ObjectID,
+  ): string {
+    return RealtimeUtil.getRoomId(
+      tenantId,
+      modelName,
+      ModelEventType.Create,
+      modelId,
+    );
+  }
 }

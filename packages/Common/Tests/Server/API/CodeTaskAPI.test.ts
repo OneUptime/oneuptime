@@ -415,6 +415,7 @@ describe("every route is for a member of the project", () => {
       { repositoryId: REPOSITORY_ID.toString() },
     ],
     ["/code-task/get/:taskId", { taskId: TASK_ID.toString() }],
+    ["/code-task/progress/:taskId", { taskId: TASK_ID.toString() }],
     [
       "/code-task/branches/:repositoryId",
       { repositoryId: REPOSITORY_ID.toString() },
@@ -492,6 +493,8 @@ describe("every route acts as a signed-in person", () => {
       // A repository's branches, for the branch a task starts from.
       "/code-task/branches/:repositoryId",
       "/code-task/get/:taskId",
+      // A working turn's new steps, as each is announced (CodeTaskLive).
+      "/code-task/progress/:taskId",
       "/code-task/create",
       "/code-task/reply/:taskId",
       "/code-task/retry/:taskId",
@@ -1068,6 +1071,137 @@ describe("reading a task", () => {
 
     expect(result?.["canReadLogContent"]).toBe(true);
   });
+});
+
+/*
+ * What a task's conversation reads as each step of its working turn is
+ * announced: how the turn stands and its new steps, read as the task is.
+ */
+describe("reading a working turn's new steps", () => {
+  const route: string = "/code-task/progress/:taskId";
+  const RUN_ID: string = "6f2a5c4b-8d9e-4f0a-9b1c-3d4e5f6a7b8c";
+
+  type ProgressSpy = jest.SpiedFunction<
+    typeof CodeTaskPresenter.getTurnProgress
+  >;
+
+  let progress: ProgressSpy;
+
+  beforeEach(() => {
+    progress = jest
+      .spyOn(CodeTaskPresenter, "getTurnProgress")
+      .mockResolvedValue({
+        runId: RUN_ID,
+        status: AIRunStatus.Running,
+        state: CodeTaskState.Working,
+        isQueued: false,
+        steps: [],
+        hasMore: false,
+      });
+  });
+
+  test("someone who may read the task reads its turn's progress, after the step they have", async () => {
+    const { next, result } = await call(route, {
+      params: { taskId: TASK_ID.toString() },
+      body: { runId: RUN_ID, afterSequence: 12 },
+    });
+
+    expect(next).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      runId: RUN_ID,
+      status: AIRunStatus.Running,
+      state: CodeTaskState.Working,
+      isQueued: false,
+      steps: [],
+      hasMore: false,
+    });
+
+    const asked: {
+      projectId: ObjectID;
+      task: AIRun;
+      runId: ObjectID;
+      afterSequence: number;
+    } = progress.mock.calls[0]![0] as never;
+
+    expect(asked.projectId).toEqual(PROJECT_ID);
+    expect(asked.task.id?.toString()).toBe(TASK_ID.toString());
+    expect(asked.runId.toString()).toBe(RUN_ID);
+    expect(asked.afterSequence).toBe(12);
+  });
+
+  test("a read-only member reads it too: reading a task takes reading its repository", async () => {
+    world.props = VIEWER;
+
+    const { next, result } = await call(route, {
+      params: { taskId: TASK_ID.toString() },
+      body: { runId: RUN_ID, afterSequence: 0 },
+    });
+
+    expect(next).not.toHaveBeenCalled();
+    expect(result?.["state"]).toBe(CodeTaskState.Working);
+  });
+
+  test("a task whose repository the caller may not read is not found, and nothing of it is read", async () => {
+    world.repositoryReadable = false;
+
+    const { next } = await call(route, {
+      params: { taskId: TASK_ID.toString() },
+      body: { runId: RUN_ID, afterSequence: 0 },
+    });
+
+    expect(refusal(next)).toBeInstanceOf(NotFoundException);
+    expect(refusal(next).message).toBe(CODE_TASK_NOT_FOUND_MESSAGE);
+    expect(progress).not.toHaveBeenCalled();
+  });
+
+  test("a run that is not one of the task's turns is not found", async () => {
+    progress.mockResolvedValue(null);
+
+    const { next } = await call(route, {
+      params: { taskId: TASK_ID.toString() },
+      body: { runId: RUN_ID, afterSequence: 0 },
+    });
+
+    expect(refusal(next)).toBeInstanceOf(NotFoundException);
+    expect(refusal(next).message).toBe(CODE_TASK_NOT_FOUND_MESSAGE);
+  });
+
+  test("a turn that is not an id is refused before anything is read", async () => {
+    const { next } = await call(route, {
+      params: { taskId: TASK_ID.toString() },
+      body: { runId: "turn-1", afterSequence: 0 },
+    });
+
+    expect(refusal(next)).toBeInstanceOf(BadDataException);
+    expect(refusal(next).message).toBe("A valid turn ID is required.");
+    expect(progress).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    ["no step yet", undefined, -1],
+    ["a step", 41, 41],
+    ["below none", -40, -1],
+    ["a fraction", 7.9, 7],
+    ["not a number", "12", -1],
+  ])(
+    "the step the page has: %s",
+    async (_case: string, afterSequence: unknown, read: number) => {
+      await call(route, {
+        params: { taskId: TASK_ID.toString() },
+        body: {
+          runId: RUN_ID,
+          ...(afterSequence !== undefined
+            ? { afterSequence: afterSequence as number }
+            : {}),
+        },
+      });
+
+      expect(
+        (progress.mock.calls[0]![0] as { afterSequence: number })
+          .afterSequence,
+      ).toBe(read);
+    },
+  );
 });
 
 describe("listing a repository's tasks", () => {

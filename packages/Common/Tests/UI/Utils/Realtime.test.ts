@@ -325,6 +325,182 @@ describe("Realtime (UI) subscriptions", () => {
     });
   });
 
+  /*
+   * A page that shows one record (a task's conversation in Code) asks for
+   * that record alone: the server sends every change of it to the record's
+   * own room, and nothing of the model's other records.
+   */
+  describe("one record", () => {
+    const RECORD_ID: ObjectID = new ObjectID(MODEL_ID);
+
+    test("asks for the record's own room and hears every change of the record there - and nothing of the model's room", () => {
+      Realtime.init();
+      mockSocket.acceptConnection();
+
+      const received: Array<string> = [];
+
+      Realtime.listenToModelEvent(
+        {
+          modelType: Incident,
+          eventType: ModelEventType.Update,
+          tenantId: TENANT_ID,
+          modelId: RECORD_ID,
+        },
+        (modelId: ObjectID) => {
+          received.push(modelId.toString());
+        },
+      );
+
+      expect(mockSocket.listenRequests()).toEqual([
+        {
+          ...requestFor("Incident", ModelEventType.Update),
+          modelId: MODEL_ID,
+        },
+      ]);
+
+      const recordRoom: string = RealtimeUtil.getRecordRoomId(
+        TENANT_ID,
+        "Incident",
+        MODEL_ID,
+      );
+
+      // The room's name is the server's, whatever kind of change was asked for.
+      expect(recordRoom).toBe(
+        RealtimeUtil.getRoomId(
+          TENANT_ID,
+          "Incident",
+          ModelEventType.Create,
+          MODEL_ID,
+        ),
+      );
+
+      mockSocket.deliver(
+        RealtimeUtil.getRoomId(TENANT_ID, "Incident", ModelEventType.Update),
+        { modelId: "cccccccc-cccc-4ccc-8ccc-cccccccccccc" },
+      );
+      mockSocket.deliver(recordRoom, { modelId: MODEL_ID });
+
+      expect(received).toEqual([MODEL_ID]);
+    });
+
+    test("is asked for again on every reconnect, record and all, beside the model-wide subscriptions", () => {
+      Realtime.init();
+      mockSocket.acceptConnection();
+
+      Realtime.listenToModelEvent(
+        {
+          modelType: Incident,
+          eventType: ModelEventType.Update,
+          tenantId: TENANT_ID,
+          modelId: RECORD_ID,
+        },
+        () => {},
+      );
+      Realtime.listenToModelEvent(
+        {
+          modelType: Incident,
+          eventType: ModelEventType.Update,
+          tenantId: TENANT_ID,
+        },
+        () => {},
+      );
+
+      mockSocket.disconnect();
+      mockSocket.clearEmitted();
+      mockSocket.acceptConnection();
+
+      expect(mockSocket.listenRequests()).toEqual([
+        {
+          ...requestFor("Incident", ModelEventType.Update),
+          modelId: MODEL_ID,
+        },
+        requestFor("Incident", ModelEventType.Update),
+      ]);
+    });
+
+    test("stopping it removes its handler from the record's room only", () => {
+      Realtime.init();
+      mockSocket.acceptConnection();
+
+      const recordRoom: string = RealtimeUtil.getRecordRoomId(
+        TENANT_ID,
+        "Incident",
+        MODEL_ID,
+      );
+
+      let heard: number = 0;
+
+      const stop: () => void = Realtime.listenToModelEvent(
+        {
+          modelType: Incident,
+          eventType: ModelEventType.Update,
+          tenantId: TENANT_ID,
+          modelId: RECORD_ID,
+        },
+        () => {
+          heard++;
+        },
+      );
+
+      expect(mockSocket.listenerCount(recordRoom)).toBe(1);
+
+      stop();
+
+      expect(mockSocket.listenerCount(recordRoom)).toBe(0);
+      mockSocket.deliver(recordRoom, { modelId: MODEL_ID });
+      expect(heard).toBe(0);
+
+      // And it is not asked for again.
+      mockSocket.disconnect();
+      mockSocket.clearEmitted();
+      mockSocket.acceptConnection();
+      expect(mockSocket.listenRequests()).toEqual([]);
+    });
+
+    test("an analytics record is asked for, and listened for, the same way", () => {
+      Realtime.init();
+      mockSocket.acceptConnection();
+
+      Realtime.listenToAnalyticsModelEvent(
+        {
+          modelType: Log,
+          eventType: ModelEventType.Create,
+          tenantId: TENANT_ID,
+          modelId: RECORD_ID,
+        },
+        () => {},
+      );
+
+      expect(mockSocket.listenRequests()).toEqual([
+        {
+          ...requestFor(
+            "Log",
+            ModelEventType.Create,
+            TENANT_ID,
+            DatabaseType.AnalyticsDatabase,
+          ),
+          modelId: MODEL_ID,
+        },
+      ]);
+
+      // On the room the server sends the record's changes to, and no other.
+      expect(
+        mockSocket.listenerCount(
+          RealtimeUtil.getRecordRoomId(TENANT_ID, "Log", MODEL_ID),
+        ),
+      ).toBe(1);
+      expect(
+        mockSocket.listenerCount(
+          RealtimeUtil.getRoomId(
+            TENANT_ID,
+            "Log",
+            ModelEventType.Create,
+          ),
+        ),
+      ).toBe(0);
+    });
+  });
+
   describe("reconnecting", () => {
     test("every registered subscription, database and analytics, is sent again on reconnect", () => {
       Realtime.init();
