@@ -1,0 +1,83 @@
+/*
+ * WHAT A DATA CHECK MEASURES.
+ *
+ * Each check reads one number from a table - per segment when it has one -
+ * and writes it as the oneuptime.data.check.value metric, so it is charted,
+ * baselined and alerted on like every other metric. Only that number leaves
+ * the database: every statement is an aggregate.
+ */
+export enum DataCheckType {
+  // Percent of rows whose column is empty (NULL).
+  NullPercent = "Null Percent",
+  // Percent of non-empty values that repeat another row's.
+  DuplicatePercent = "Duplicate Percent",
+  // How many different values the column holds.
+  DistinctCount = "Distinct Count",
+  Minimum = "Minimum",
+  Maximum = "Maximum",
+  Average = "Average",
+  // Percent of non-empty values outside an accepted list.
+  InvalidPercent = "Invalid Percent",
+  // Percent of non-empty values that do not match a pattern.
+  FormatMismatchPercent = "Format Mismatch Percent",
+  // Rows whose value has no match in another table's column.
+  OrphanCount = "Orphan Count",
+  // Rows in the table: per segment, the volume each tenant or region sends.
+  RowCount = "Row Count",
+  // The number a read-only query returns.
+  CustomSql = "Custom SQL",
+}
+
+export const DATA_CHECK_TYPES: ReadonlyArray<DataCheckType> =
+  Object.values(DataCheckType);
+
+// The checks that read one column, and so need one named.
+export const COLUMN_CHECK_TYPES: ReadonlyArray<DataCheckType> = [
+  DataCheckType.NullPercent,
+  DataCheckType.DuplicatePercent,
+  DataCheckType.DistinctCount,
+  DataCheckType.Minimum,
+  DataCheckType.Maximum,
+  DataCheckType.Average,
+  DataCheckType.InvalidPercent,
+  DataCheckType.FormatMismatchPercent,
+  DataCheckType.OrphanCount,
+];
+
+export function isColumnCheckType(type: DataCheckType): boolean {
+  return COLUMN_CHECK_TYPES.includes(type);
+}
+
+// The most accepted values one check compares against.
+export const MAX_ACCEPTED_VALUES: number = 200;
+
+// The most segments one run reports: the largest, by rows.
+export const MAX_SEGMENTS_PER_CHECK: number = 100;
+
+// How often a check may run, in minutes.
+export const DATA_CHECK_INTERVALS_IN_MINUTES: ReadonlyArray<number> = [
+  15, 60, 360, 1440,
+];
+
+export const DEFAULT_DATA_CHECK_INTERVAL_IN_MINUTES: number = 60;
+
+// When a check's value alerts: against its own learned baseline, or a threshold.
+export enum DataCheckAlertCondition {
+  UnusuallyHigh = "Unusually High",
+  UnusuallyLow = "Unusually Low",
+  Above = "Above",
+  Below = "Below",
+}
+
+export const DATA_CHECK_ALERT_CONDITIONS: ReadonlyArray<DataCheckAlertCondition> =
+  Object.values(DataCheckAlertCondition);
+
+// Whether a condition compares with a threshold, which it then needs.
+export function doesAlertConditionNeedThreshold(
+  condition: DataCheckAlertCondition,
+): boolean {
+  return (
+    condition === DataCheckAlertCondition.Above ||
+    condition === DataCheckAlertCondition.Below
+  );
+}

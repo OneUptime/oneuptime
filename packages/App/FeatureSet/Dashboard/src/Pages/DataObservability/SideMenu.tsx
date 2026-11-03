@@ -37,6 +37,13 @@ const DataObservabilitySideMenu: FunctionComponent = (): ReactElement => {
         />
         <SideMenuItem
           link={{
+            title: "Checks",
+            to: routeOf(PageMap.DATA_OBSERVABILITY_CHECKS),
+          }}
+          icon={IconProp.CheckCircle}
+        />
+        <SideMenuItem
+          link={{
             title: "Schema Changes",
             to: routeOf(PageMap.DATA_OBSERVABILITY_SCHEMA_CHANGES),
           }}
