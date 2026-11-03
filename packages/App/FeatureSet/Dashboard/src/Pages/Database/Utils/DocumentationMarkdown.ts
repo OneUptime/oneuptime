@@ -848,6 +848,7 @@ DATABASE_USERNAME=${usernameFor(data.engine)}
 DATABASE_PASSWORD=${passwordLineFor(data.engine)}
 DATABASE_TLS_INSECURE=true
 DATABASE_TLS_INSECURE_SKIP_VERIFY=false
+DATABASE_TLS_SSLMODE=disable
 DATABASE_COLLECTION_INTERVAL=30s
 DATABASE_QUERY_EVENTS=false
 DATABASE_SERVER_ID=${data.identity.databaseId}`;
@@ -923,6 +924,8 @@ spec:
               value: "true"
             - name: DATABASE_TLS_INSECURE_SKIP_VERIFY
               value: "false"
+            - name: DATABASE_TLS_SSLMODE
+              value: "disable"
             - name: DATABASE_COLLECTION_INTERVAL
               value: "30s"
             - name: DATABASE_QUERY_EVENTS
@@ -1266,6 +1269,7 @@ const ENVIRONMENT_VARIABLES_TABLE: string = `| Variable | Required | Description
 | \`DATABASE_PASSWORD\` | PostgreSQL, SQL Server, Oracle | Its password (single-quoted in \`.env\`, every \`$\` written as \`$$\`) |
 | \`DATABASE_TLS_INSECURE\` | No | \`true\` (default) connects without TLS, \`false\` turns TLS on |
 | \`DATABASE_TLS_INSECURE_SKIP_VERIFY\` | No | \`true\` accepts a certificate the collector image does not trust |
+| \`DATABASE_TLS_SSLMODE\` | No | PostgreSQL: the two settings above as libpq's \`sslmode\`, for the config's own SQL checks - \`disable\` while \`DATABASE_TLS_INSECURE\` is \`true\`, \`require\` when \`DATABASE_TLS_INSECURE_SKIP_VERIFY\` is \`true\`, \`verify-full\` otherwise (install.sh writes it) |
 | \`DATABASE_COLLECTION_INTERVAL\` | No | How often statistics are read. Default \`30s\` |
 | \`DATABASE_QUERY_EVENTS\` | No | \`true\` ships query samples and top queries as logs (they contain query text) |
 | \`DATABASE_SERVER_ID\` | No | The id of a database OneUptime already shows; the data then joins it directly |`;

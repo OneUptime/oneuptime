@@ -1040,6 +1040,103 @@ export default class DatabaseServer extends BaseModel {
   })
   public agentVersion?: string = undefined;
 
+  /*
+   * What the engine last reported, as its recommended alerts read it: each
+   * alert template query worked out from the latest batch of each reporting
+   * agent (DatabaseEngineReadings, written by the metrics ingest through
+   * DatabaseServerService.recordEngineReadings). The Databases list, a
+   * database's Overview and its Needs attention judge it by the templates'
+   * lines (DatabaseHealth) without asking ClickHouse once per row.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadDatabaseServer,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Engine Readings",
+    description:
+      "The engine's latest readings of the queries its recommended alerts read, per reporting agent. Set by the server.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public engineReadings?: JSONObject = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadDatabaseServer,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "Engine Readings At",
+    description:
+      "When the engine's latest readings were written. Set by the server.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public engineReadingsAt?: Date = undefined;
+
+  /*
+   * What the rules make of those readings - "healthy", "degraded" or
+   * "unhealthy" - stored with them, so a list of the databases that need
+   * attention is a query rather than a judgement of every row. Read with
+   * engineReadingsAt: a verdict whose readings went stale is no verdict.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadDatabaseServer,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Engine Health",
+    description:
+      "healthy, degraded or unhealthy: the engine's latest readings against its recommended alerts' lines. Set by the server.",
+    example: "healthy",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public engineHealth?: string = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: [

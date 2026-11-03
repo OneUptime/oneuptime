@@ -302,6 +302,10 @@ import AlertOnCallRuleService, {
   Service as AlertOnCallRuleServiceType,
 } from "Common/Server/Services/AlertOnCallRuleService";
 
+import AlertIncidentRuleService, {
+  Service as AlertIncidentRuleServiceType,
+} from "Common/Server/Services/AlertIncidentRuleService";
+
 import AlertOwnerRuleService, {
   Service as AlertOwnerRuleServiceType,
 } from "Common/Server/Services/AlertOwnerRuleService";
@@ -1444,6 +1448,7 @@ import AlertEpisodeOwnerUser from "Common/Models/DatabaseModels/AlertEpisodeOwne
 import AlertEpisodeStateTimeline from "Common/Models/DatabaseModels/AlertEpisodeStateTimeline";
 import AlertGroupingRule from "Common/Models/DatabaseModels/AlertGroupingRule";
 import AlertOnCallRule from "Common/Models/DatabaseModels/AlertOnCallRule";
+import AlertIncidentRule from "Common/Models/DatabaseModels/AlertIncidentRule";
 import AlertOwnerRule from "Common/Models/DatabaseModels/AlertOwnerRule";
 import AlertPrivacyRule from "Common/Models/DatabaseModels/AlertPrivacyRule";
 import AlertLabelRule from "Common/Models/DatabaseModels/AlertLabelRule";
@@ -2912,6 +2917,14 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<AlertOnCallRule, AlertOnCallRuleServiceType>(
         AlertOnCallRule,
         AlertOnCallRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<AlertIncidentRule, AlertIncidentRuleServiceType>(
+        AlertIncidentRule,
+        AlertIncidentRuleService,
       ).getRouter(),
     );
 

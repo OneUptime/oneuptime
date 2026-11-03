@@ -5,6 +5,7 @@
 :::cards
 - [Database Agent](#database-agent): Motormetrikker for PostgreSQL, MySQL, SQL Server, Oracle, Redis, MongoDB, Elasticsearch og Memcached.
 - [Slik oppdages databaser](#slik-oppdages-databaser): Fra spor, Kubernetes, Docker, Podman og collectorer.
+- [Se hvilke databaser som krever oppmerksomhet](#se-hvilke-databaser-som-krever-oppmerksomhet): Tilstanden vurdert etter tersklene i hver motors anbefalte varsler.
 - [Varsler for en database](#varsler-for-en-database): Anbefalte monitorer og monitorer du bygger selv.
 - [Feilsøking](#feilsøking): Et diagnoseskript, og de vanlige problemene.
 :::
@@ -28,7 +29,7 @@ flowchart LR
     agent["Database Agent<br/>eller en collector"] -->|"motormetrikker,<br/>spørringshendelser"| db
 ```
 
-Motormetrikker kommer bare fra en collector som snakker med selve databasen (eller, for en administrert skydatabase, med leverandørens overvåkings-API). Spor og containerinventarer forteller OneUptime at en database finnes og hvordan den brukes, men ikke hvordan den har det innvendig; statusen **Engine metrics** på hver database viser om den delen er tilkoblet.
+Motormetrikker kommer bare fra en collector som snakker med selve databasen (eller, for en administrert skydatabase, med leverandørens overvåkings-API). Spor og containerinventarer forteller OneUptime at en database finnes og hvordan den brukes, men ikke hvordan den har det innvendig; statusen **Motormetrikker** på hver database viser om den delen er tilkoblet.
 
 Du kan også legge til en database manuelt: **Databaser → Opprett Database** med motor, adresse og port. For en helsesjekk fra en probe som ikke trenger noen agent i det hele tatt, se [Databasehelse-overvåking](/docs/monitor/database-health-monitor).
 
@@ -136,7 +137,7 @@ De vanlige andre stavemåtene godtas også: `postgres` og `pg`, `mssql` og `sqls
 
 ## Slik oppdages databaser
 
-Hver database husker kilden som opprettet den (kolonnen **Discovered from**), og det første elementet i **Feed** sier hva som fant den: Kubernetes-arbeidslasten og klyngen dens, Docker- eller Podman-containeren (eller Compose- eller Swarm-tjenesten) og verten dens, endepunktet applikasjonene kalte, eller Database Agent (med versjon) eller collectoren som rapporterte den. Senere kilder legger til i den samme databasen i stedet for å opprette en ny, så lenge de beskriver samme endepunkt (se [Endepunkter](#endepunkter-og-regelen-om-én-eier)).
+Hver database husker kilden som opprettet den (kolonnen **Oppdaget via**), og det første elementet i **Feed** sier hva som fant den: Kubernetes-arbeidslasten og klyngen dens, Docker- eller Podman-containeren (eller Compose- eller Swarm-tjenesten) og verten dens, endepunktet applikasjonene kalte, eller Database Agent (med versjon) eller collectoren som rapporterte den. Senere kilder legger til i den samme databasen i stedet for å opprette en ny, så lenge de beskriver samme endepunkt (se [Endepunkter](#endepunkter-og-regelen-om-én-eier)).
 
 ### Fra applikasjonsspor
 
@@ -341,6 +342,7 @@ DATABASE_USERNAME=oneuptime_monitor
 DATABASE_PASSWORD='a-strong-password'
 DATABASE_TLS_INSECURE=true
 DATABASE_TLS_INSECURE_SKIP_VERIFY=false
+DATABASE_TLS_SSLMODE=disable
 DATABASE_COLLECTION_INTERVAL=30s
 DATABASE_QUERY_EVENTS=false
 DATABASE_SERVER_ID=
@@ -355,7 +357,7 @@ docker compose up -d
 
 ### Finn databasen i OneUptime
 
-Etter den første innsamlingen vises databasen under **Databaser**, eller, hvis OneUptime allerede hadde oppdaget den fra spor eller containere på samme adresse, endres statusen **Engine metrics** til Tilkoblet. For en privat IP eller et navn som bare løses opp i nettverket ditt (`db.prod.internal`, et klyngelokalt navn), oppretter du først databasen eller setter `DATABASE_SERVER_ID` (se [Fra Database Agent eller din egen collector](#fra-database-agent-eller-din-egen-collector)).
+Etter den første innsamlingen vises databasen under **Databaser**, eller, hvis OneUptime allerede hadde oppdaget den fra spor eller containere på samme adresse, endres statusen **Motormetrikker** til Tilkoblet. For en privat IP eller et navn som bare løses opp i nettverket ditt (`db.prod.internal`, et klyngelokalt navn), oppretter du først databasen eller setter `DATABASE_SERVER_ID` (se [Fra Database Agent eller din egen collector](#fra-database-agent-eller-din-egen-collector)).
 :::
 
 ### Miljøvariabler
@@ -375,6 +377,7 @@ Etter den første innsamlingen vises databasen under **Databaser**, eller, hvis 
 | `DATABASE_PASSWORD` | PostgreSQL, SQL Server, Oracle | Passordet. I `.env` setter du det i enkle anførselstegn og skriver hver `$` som `$$` (`install.sh` gjør begge deler for deg) |
 | `DATABASE_TLS_INSECURE` | Nei | `true` (standard) kobler til uten TLS; `false` slår på TLS |
 | `DATABASE_TLS_INSECURE_SKIP_VERIFY` | Nei | `true` godtar et sertifikat som collectorimaget ikke stoler på (selvsignert, privat CA). Standard er `false` |
+| `DATABASE_TLS_SSLMODE` | Nei | PostgreSQL: de to innstillingene over som libpqs `sslmode`, for konfigurasjonens egne SQL-sjekker: `disable` så lenge `DATABASE_TLS_INSECURE` er `true`, `require` når `DATABASE_TLS_INSECURE_SKIP_VERIFY` er `true`, ellers `verify-full`. `install.sh` skriver den. Standard er `disable` |
 | `DATABASE_COLLECTION_INTERVAL` | Nei | Hvor ofte motorens statistikk leses. Standard er `30s` |
 | `DATABASE_QUERY_EVENTS` | Nei | `true` sender spørringsprøver og toppspørringer som logger (PostgreSQL, MySQL, MongoDB, SQL Server og Oracle). De inneholder spørringstekst. Standard er `false` |
 | `DATABASE_SERVER_ID` | Nei | Id-en til en database som OneUptime allerede viser (fanen **Dokumentasjon** har den, allerede utfylt). Dataene havner da direkte i den databasen og vises på sidene dens, uansett hvilken adresse de rapporterer (eller ingen); det er veien å gå i Kubernetes og for private IP-er. Det må være en database i prosjektet som inntaksnøkkelen tilhører |
@@ -393,6 +396,8 @@ Etter den første innsamlingen vises databasen under **Databaser**, eller, hvis 
 | Memcached | `memcached`: tilkoblinger, kommandoer, treff og bom, evictions, elementer, byte, nettverk, tråder, CPU (alle slått på som standard) | — | — |
 
 PostgreSQL-receiverens feature gate `postgresqlreceiver.preciselagmetrics`, som er slått på som standard, registrerer replikeringsforsinkelsen i tid som `postgresql.wal.delay` i stedet for `postgresql.wal.lag`, og den metrikken er slått av upstream; derfor slår agenten den på. Hver konfigurasjon lister flere valgfrie metrikker i en kommentar; slå dem på på samme måte. Seksjonen **Engine metrics** på oversikten til en database viser et utvalgt sett for hver motor i denne tabellen (for Elasticsearch / OpenSearch klyngehelse, noder, ikke-tildelte shards, ventende oppgaver, JVM-heap, ledig disk, søk og indeksering; for Memcached tilkoblinger, minne, elementer, get-treff og -bom, kommandoer og evictions), og fanen **Målinger** har alt. Der viser en metrikk som oversikten viser, oversiktens verdi (seriene kombinert på samme måte, en teller som rate per sekund) med en bildetekst som sier hvordan (_total of series_, _per second, all series_); alle andre rader viser gjennomsnittet av seriene sine, og det gjør også alle rader mens du filtrerer listen etter et attributt. MariaDB rapporterer `mysql.buffer_pool.limit` som antall sider i buffer poolen i stedet for byte, som receiveren oppgir, så på en MariaDB-database leses den raden og grafen i sider. MariaDB har ingen `Innodb_rows_*`-statustellere, så receiveren sender ingen `mysql.row_operations` for den, og en MariaDB-oversikt har ingen graf **Row operations**; **Handler operations** viser radlesingene og -skrivingene.
+
+PostgreSQL-konfigurasjonen stiller også selv serveren fire spørsmål med collectorens `sqlquery`-receiver med samme intervall: hvor lenge den har kjørt (`postgresql.uptime`, fra `pg_postmaster_start_time()`), alderen på dens eldste transaksjons-ID (`postgresql.xid.oldest_age`, den største `age(datfrozenxid)` i `pg_database`), hvor lenge dens eldste åpne transaksjon har vært åpen (`postgresql.transaction.longest_duration`), og hvor mange økter som venter på en lås (`postgresql.sessions.waiting_on_lock`), de to siste fra `pg_stat_activity`. `postgresql`-receiveren rapporterer ingen av dem, og det er de som viser en omstart, en transaksjon som er blitt stående åpen, en kø av låseventende og at wraparound av transaksjons-ID-ene nærmer seg: PostgreSQL slutter å ta imot skriving nær en alder på 2,1 milliarder, så tilstanden bør sjekkes fra 1 milliard og er kritisk fra 1,5 milliarder. `pg_monitor` dekker dem. Spørringen kobler til med `DATABASE_TLS_SSLMODE` og kan ikke logge på med et passord som inneholder et mellomrom (den sender det som `+`), noe `install.sh` advarer om. Med en egen collector kopierer du receiveren `sqlquery/oneuptime` fra `configs/postgresql.yaml` inn i dens `metrics`-pipeline.
 
 **Versjon** for databasen kommer fra receiveren der den rapporterer en: `db.system.version` (MySQL / MariaDB, MongoDB), `redis.version` (Redis, KeyDB), `oracle.db.version` (Oracle) og `elasticsearch.node.version` (Elasticsearch / OpenSearch). Receiverne for PostgreSQL, SQL Server og Memcached rapporterer ingen, så med bare agenten viser disse databasene ingen versjon; en som også kjører i Kubernetes, Docker eller Podman, viser versjonen til containerimaget sitt.
 
@@ -418,7 +423,7 @@ Enheten forutsetter `/opt/oneuptime-database-agent` (installasjonsskriptets stan
 
 Kjør `install.sh` på nytt: det gjenbruker alle verdier i den eksisterende `.env`, erstatter `docker-compose.yml`, `otel-collector-config.yaml` og systemd-enheten med de gjeldende versjonene og gjenoppretter agentens container slik at den nye konfigurasjonen trer i kraft. En fil du hadde redigert (`network_mode: host`, en `filelog`-receiver og monteringen dens, ekstra metrikker), beholdes ved siden av den nye som `<file>.bak.<timestamp>`, og skriptet lister den opp til slutt slik at du kan bruke endringen på nytt. Bruk alle endringer i `.env` eller `otel-collector-config.yaml` med `docker compose up -d --force-recreate`: collectoren leser konfigurasjonen sin bare ved oppstart, og en vanlig `docker compose up -d` lar den kjørende containeren være når bare konfigurasjonsfilen er endret. Skriptet registrerer i `.agent-files.sha256` hva det har installert, så en fil ingen har redigert, erstattes uten kopi, uansett hvor mye den nye versjonen har endret seg; i en mappe uten den registreringen (en du har satt opp manuelt) beholdes hver fil som avviker fra den nye versjonen, siden den kan inneholde endringer. For å fjerne agenten: `cd /opt/oneuptime-database-agent && docker compose down`, og slett deretter overvåkingsbrukeren (og AI-agentens egen innlogging, hvis du opprettet en).
 
-Agenten rapporterer collectorversjonen som filene låser, som sin **Agentversjon**. Når den er eldre enn versjonen denne OneUptime-utgivelsen låser, vises et varseltegn ved siden av den på databasens **Oversikt**. Velg det for å se hvordan du oppgraderer: med installasjonsskriptet, med Docker Compose eller, for en database i Kubernetes, med Deploymenten fra oppsettsveiledningen.
+Agenten rapporterer versjonen av filene sine som sin **Agentversjon**: collectorversjonen filene låser, med det siste tallet økt hver gang filene endres på den collectoren. Når den er eldre enn versjonen denne OneUptime-utgivelsen låser, vises et varseltegn ved siden av den på databasens **Oversikt**. Velg det for å se hvordan du oppgraderer: med installasjonsskriptet, med Docker Compose eller, for en database i Kubernetes, med Deploymenten fra oppsettsveiledningen.
 
 ## AI-agent
 
@@ -521,6 +526,8 @@ spec:
               value: "true"
             - name: DATABASE_TLS_INSECURE_SKIP_VERIFY
               value: "false"
+            - name: DATABASE_TLS_SSLMODE
+              value: "disable"
             - name: DATABASE_COLLECTION_INTERVAL
               value: "30s"
             - name: DATABASE_QUERY_EVENTS
@@ -594,13 +601,44 @@ Et endepunkt er en `host:port` som en database svarer på. Fanen **Endepunkter**
 
 Navnet til en database er som standard motoren og endepunktet (`PostgreSQL db.example.com:5432`) eller, for en database som er oppdaget fra containerne sine, motoren og arbeidslasten: `<namespace>/<workload>` i Kubernetes (`PostgreSQL data/postgres`), og på Docker eller Podman navnet på containeren, Compose-tjenesten (`<project>-<service>`) eller Swarm-tjenesten. Det kan endres fritt; navnet er ikke identiteten. Den standarden gjør etikett- og eierregler etter navn enkle: et navnemønster `^PostgreSQL` treffer alle PostgreSQL-databaser, og `^MariaDB` alle MariaDB-databaser.
 
+## Se hvilke databaser som krever oppmerksomhet
+
+Listen **Databaser** starter med **Krever oppmerksomhet**: hver database forbi en terskel i motorens anbefalte varsler og hver database der motormetrikkene har stoppet, den mest presserende først, hver med årsaken og ett steg til siden sin. Når ingenting krever oppmerksomhet, er det ikke noe kort.
+
+Under det sier hver databases **Status** hvordan motoren har det, med årsaken under:
+
+| Status | Når |
+| --- | --- |
+| **Feilfri** | Motormetrikkene kommer frem, og ingen er forbi en terskel i motorens anbefalte varsler. |
+| **Redusert** | En varselsterskel er krysset, fra tabellen nedenfor. |
+| **Ikke feilfri** | En kritisk terskel er krysset, fra tabellen nedenfor. |
+| **Motormetrikker stoppet** | Feltet **Motormetrikker** viser _Frakoblet_: en agent eller collector rapporterte og stoppet så (se [Livssyklus](#livssyklus-arkivering-og-oppbevaring)). Det den rapporterte sist, stemmer ikke lenger, så raden sier i stedet når den sist rapporterte. |
+| **Ingen motormetrikker** | Ingen Database Agent eller collector har rapportert for den ennå (se [Database Agent](#database-agent)). |
+| **Rapporterer** | Motormetrikkene kommer frem, men ingen av målingene som motorens terskler vurderer, har kommet de siste 15 minuttene, eller OneUptime anbefaler ingen varsler for motoren. |
+
+Tersklene er de [anbefalte monitorenes](#anbefalte-monitorer) egne (metrikkene, formelen og terskelen for hver), vurdert ut fra det motoren sist rapporterte, som OneUptime lagrer på databasen omtrent én gang i minuttet. Siden sier det så snart en måling krysser en terskel; monitoren venter ut tidsvinduet sitt før den åpner et varsel. En monitor du har endret etter at du opprettet den, beholder sin egen terskel, og tilstanden den anbefalte. En database som flere agenter rapporterer for (for eksempel én per medlem av et replica set), vurderes slik monitoren vurderer den: tilkoblingene lagt sammen, forsinkelsen til replikaen som ligger lengst bak.
+
+| Motor | Ikke feilfri | Redusert |
+| --- | --- | --- |
+| PostgreSQL | Tilkoblinger på 95 % av `max_connections`; transaksjons-ID-er nær wraparound | Tilkoblinger på 80 % av `max_connections`; transaksjons-ID-er som eldes mot wraparound; en replika 30 sekunder bak med replay; en replika 1 GB WAL bak; en omstart; en transaksjon som har vært åpen i en time; en økt som venter på en lås; en database på 500 GB eller mer |
+| MySQL / MariaDB | — | 136 tilkoblinger; 50 kjørende tråder; 75 % av bufferpoolen skitten; en replika 30 sekunder bak; en omstart |
+| SQL Server | — | En buffer cache hit ratio under 90 %; en page life expectancy under 300 sekunder; en blokkert økt; en spørring som venter på minne |
+| Oracle | Et tablespace 90 % fullt | — |
+| Redis / Valkey / KeyDB / Dragonfly | — | Minne på 90 % av `maxmemory`; et fragmenteringsforhold på 1,5 med 256 MB brukt; 9 000 klienter; en omstart |
+| MongoDB | Tilkoblinger på 90 % av grensen | En omstart |
+| Elasticsearch / OpenSearch | Klyngetilstand rød | Klyngetilstand gul; 10 ventende klyngeoppgaver; en JVM-heap 85 % full |
+| Memcached | — | 900 tilkoblinger |
+| CouchDB | — | Forespørsler på i snitt 1 000 ms |
+
+En databases **Oversikt** sier det samme: tilstanden i toppfeltet (_Tilstand ukjent_ så lenge motormetrikkene har stoppet, ingen før noen har kommet frem), deretter **Krever oppmerksomhet**, én rad for hver type terskel som er krysset (**Tilkoblinger**, **Replikering**, **Minne** og resten), som hver åpner fanen **Målinger** eller, når motormetrikkene har stoppet, fanen **Dokumentasjon** med oppsettsveiledningen og diagnoseskriptet. **Databasevarsler** viser hvilke av motorens anbefalte varsler som overvåker den, og knappen åpner **Anbefalinger** med resten valgt.
+
 ## Varsler for en database
 
 Fanene **Varsler** og **Hendelser** for en database viser hva monitorene som navngir den, har åpnet. Mens databasen er i et pågående vindu for planlagt vedlikehold, åpner disse monitorene ingen nye hendelser eller varsler, med mindre de også navngir en ressurs utenfor vinduet. Statusen deres oppdateres fortsatt, og det de åpnet før vinduet, løses fortsatt. Databaser kan også knyttes manuelt til hendelser, varsler og planlagt vedlikehold, som alle andre ressurser: oppretter du en fra databasens egen fane **Hendelser**, **Varsler** eller **Planlagt vedlikehold**, er databasen allerede valgt.
 
 ### Anbefalte monitorer
 
-Fanen **Anbefalinger** for databasen tilbyr ferdige metrikkmonitorer for motoren (tilkoblinger nær grensen, replikeringsforsinkelse, press på minne og hurtigbuffer, blokkerte økter, fulle tablespaces, klyngehelse, omstarter og en sjekk **Engine Metrics Stopped** som utløses når motorens metrikker slutter å komme) for disse motorene: PostgreSQL, MySQL, MariaDB, SQL Server, Oracle, Redis, Valkey, KeyDB, Dragonfly, Memcached, MongoDB, CouchDB, Elasticsearch og OpenSearch. De leser metrikkene som motorens receiver i collectoren rapporterer, så de tilbys når en av disse metrikkene har kommet inn merket med databasens `oneuptime.database.server.id` de siste 30 dagene (loggene dens, en annen receiver, som `mongodbatlas`-receiveren for en MongoDB Atlas-klynge, eller en eksportør teller ikke, og inntil da forklarer fanen hvorfor den er tom), og hver av dem filtrerer på databasens `oneuptime.database.server.id`. Merket ved siden av fanen teller dem som ikke er opprettet ennå.
+Fanen **Anbefalinger** for databasen tilbyr ferdige metrikkmonitorer for motoren (tilkoblinger nær grensen, replikeringsforsinkelse, press på minne og hurtigbuffer, blokkerte økter, fulle tablespaces, klyngehelse, omstarter og en sjekk **Engine Metrics Stopped** som utløses når motorens metrikker slutter å komme) for disse motorene: PostgreSQL, MySQL, MariaDB, SQL Server, Oracle, Redis, Valkey, KeyDB, Dragonfly, Memcached, MongoDB, CouchDB, Elasticsearch og OpenSearch. De leser metrikkene som motorens receiver i collectoren rapporterer, så de tilbys når en av disse metrikkene har kommet inn merket med databasens `oneuptime.database.server.id` de siste 30 dagene (loggene dens, en annen receiver, som `mongodbatlas`-receiveren for en MongoDB Atlas-klynge, eller en eksportør teller ikke, og inntil da forklarer fanen hvorfor den er tom), og hver av dem filtrerer på databasens `oneuptime.database.server.id`. Merket ved siden av fanen teller dem som ikke er opprettet ennå. PostgreSQL-monitorene for omstarter, transaksjons-ID-er, åpne transaksjoner og låseventing leser Database Agents egne SQL-sjekker (se [Hva som samles inn](#hva-som-samles-inn)), så med en egen collector forblir de stille til den kjører den samme `sqlquery`-receiveren.
 
 Dokumentasjonen til en receiver lister hva den kan rapportere, ikke hva som kommer fra hvert oppsett, så monitorene for SQL Server og Oracle leser bare metrikker som er sett komme fra Database Agents egne konfigurasjoner. Derfor har SQL Server ingen monitor for transaksjonslogg eller låseventetid (bare Windows-ytelsestellere rapporterer dem, og agenten kobler til direkte) og Oracle ingen for grensen for økter eller prosesser (en tilkobling til en pluggable database rapporterer dem ikke).
 
@@ -643,7 +681,7 @@ For en probe som sjekker en database uten noen agent, se [Databasehelse-overvåk
 ## Livssyklus, arkivering og oppbevaring
 
 - **Sist sett** oppdateres av alle kilder, og merket i databasens topptekst leser det: _Sett nylig_ så lenge en kilde har sett databasen de siste 30 minuttene, _Ikke sett nylig_ etter det, og _Aldri sett_ før noen kilde har sett den. Det sier ingenting om motormetrikker, som har sin egen status.
-- **Engine metrics** viser _Tilkoblet_ så lenge collectordata fortsetter å komme, _Frakoblet_ når en collector som har rapportert, stopper i 15 minutter, og _Ikke tilkoblet_ når ingen Database Agent eller collector noen gang har rapportert. De 15 minuttene er et minimum: OneUptime registrerer en collectors heartbeat bare omtrent hvert 5. minutt mens data flyter, så den venter 7 minutter i tillegg, regnet fra det sist registrerte heartbeatet, og sjekker hvert 5. minutt; en collector som stopper, viser _Frakoblet_ mellom 15 og omtrent 27 minutter etter det siste datapunktet. Listens filter **Engine metrics** tilbyr alle tre.
+- **Motormetrikker** viser _Tilkoblet_ så lenge collectordata fortsetter å komme, _Frakoblet_ når en collector som har rapportert, stopper i 15 minutter, og _Ikke tilkoblet_ når ingen Database Agent eller collector noen gang har rapportert. De 15 minuttene er et minimum: OneUptime registrerer en collectors heartbeat bare omtrent hvert 5. minutt mens data flyter, så den venter 7 minutter i tillegg, regnet fra det sist registrerte heartbeatet, og sjekker hvert 5. minutt; en collector som stopper, viser _Frakoblet_ mellom 15 og omtrent 27 minutter etter det siste datapunktet. Listens filter **Motormetrikker** tilbyr alle tre.
 - **Arkiver for å avvise.** Å slette en oppdaget database fjerner den bare til en kilde ser den igjen: det neste spanet eller den neste poden bringer den tilbake som en ny database. For å avvise en for godt **arkiverer** du den: en arkivert database beholder endepunktene sine, så alt som passer til dem, forblir knyttet til den arkiverte databasen i stedet for å opprette en ny.
 - **Databaser opprettet for porten til en klient.** En database som applikasjonsspor opprettet for en port fra 32768 og oppover (annen enn motorens standardport), slettes, ikke arkiveres, hvis ingen har investert i den, omdøpt den, beskrevet den, arkivert den eller gjenopprettet den. Oppdagelsen oppretter dem ikke lenger (se [Én database per tilkobling](#én-database-per-tilkobling-hver-på-en-annen-høy-port)), og en slettet en kommer ikke tilbake.
 - **Automatisk arkivering.** En oppdaget database som ingen kilde har sett på 7 dager, arkiveres automatisk, med mindre noen har investert i den: etiketter eller eiere som en person har lagt til, en hendelse, et varsel eller planlagt vedlikehold, et endepunkt som en person har lagt til, eller en oppbevaringsinnstilling. Etiketter og eiere som etikett- eller eierregler eller `oneuptime.label.*`-attributter har knyttet til av seg selv, teller ikke (ellers ville en generell regel holdt på alle databaser for alltid) før en person lagrer dem på databasen. Databaser i en Kubernetes-klynge eller på en Docker- eller Podman-vert som selv har blitt stille, arkiveres ikke så lenge den er taus: en database regnes bare som usett når den sluttet å bli sett godt før klyngen eller verten sin.
@@ -692,7 +730,7 @@ Inne i agentens container er `localhost` selve containeren. Bruk `host.docker.in
 - `ORA-12514` eller `ORA-12505`: Oracle-lytteren svarer (så tilkoblingssjekken går gjennom), men kjenner ikke tjenesten `DATABASE_ORACLE_SERVICE` navngir; `lsnrctl services` på databaseverten lister dem den kjenner.
 - `ORA-28000` eller `ORA-28001`: Oracle-overvåkingsbrukeren er låst, eller passordet er utløpt.
 - `failed to explain` på PostgreSQL-toppspørringer er ikke en manglende rettighet: utførelsesplaner krever `SELECT` på tabellene dine, som `pg_monitor` med vilje ikke gir. Metrikker og toppspørringer påvirkes ikke; bare planene forblir tomme.
-- `SSL is not enabled on the server`: sett `DATABASE_TLS_INSECURE=true`. En server som krever TLS: `DATABASE_TLS_INSECURE=false`, pluss `DATABASE_TLS_INSECURE_SKIP_VERIFY=true` for et sertifikat imaget ikke stoler på. For Elasticsearch / OpenSearch avgjør `http://` eller `https://` i `DATABASE_ENDPOINT` det.
+- `SSL is not enabled on the server`: sett `DATABASE_TLS_INSECURE=true`. En server som krever TLS: `DATABASE_TLS_INSECURE=false`, pluss `DATABASE_TLS_INSECURE_SKIP_VERIFY=true` for et sertifikat imaget ikke stoler på. For Elasticsearch / OpenSearch avgjør `http://` eller `https://` i `DATABASE_ENDPOINT` det. For PostgreSQL setter du `DATABASE_TLS_SSLMODE` slik at den passer (`disable`, `require` eller `verify-full`, slik `install.sh` gjør), ellers kan ikke konfigurasjonens egne SQL-sjekker koble til.
 - Feil med `pg_stat_statements`: opprett utvidelsen, eller sett `DATABASE_QUERY_EVENTS=false`.
 - For alle andre receiverfeil skriver diagnoseskriptet ut den hyppigste, slik databasedriveren formulerte den (med passordet sladdet).
 
@@ -728,6 +766,10 @@ Spanene mangler `db.system.name` / `db.system` eller `server.address`, eller de 
 ### Engine metrics viser Frakoblet eller Ikke tilkoblet
 
 _Ikke tilkoblet_: ingen Database Agent eller collector har noen gang rapportert for denne databasen; installer agenten fra fanen **Dokumentasjon**. _Frakoblet_: en har rapportert og har ikke sendt noe på minst 15 minutter (se [Livssyklus](#livssyklus-arkivering-og-oppbevaring)); kjør [diagnoseskriptet](#kjør-diagnoseskriptet-først) der den kjører. Anbefalte monitorer vises på fanen **Anbefalinger** når motorreceiverens egne metrikker har kommet inn.
+
+### Status viser Rapporterer i stedet for Feilfri
+
+**Rapporterer** betyr at motormetrikker kommer frem, men ingen av målingene motorens terskler vurderer: en egen collector som utelater de metrikkene, målinger som har stoppet mens andre data fortsatt kommer frem, eller en motor OneUptime ikke anbefaler varsler for. Fanen **Målinger** viser hva som faktisk kommer frem; sammenlign det med [Hva som samles inn](#hva-som-samles-inn).
 
 ### Varslene fra en monitor vises ikke på databasen
 

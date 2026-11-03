@@ -16,6 +16,9 @@ import CloudAccountFeed, {
 import CloudResourceFeed, {
   CloudResourceFeedEventType,
 } from "../../../../Models/DatabaseModels/CloudResourceFeed";
+import DataAssetFeed, {
+  DataAssetFeedEventType,
+} from "../../../../Models/DatabaseModels/DataAssetFeed";
 import DataSecurityIssueFeed, {
   DataSecurityIssueFeedEventType,
 } from "../../../../Models/DatabaseModels/DataSecurityIssueFeed";
@@ -208,6 +211,14 @@ const FEED_MODELS: Array<FeedModelEntry> = [
     eventTypes: Object.values(CloudResourceFeedEventType),
     resourceIdColumn: "cloudResourceId",
     eventTypeColumn: "cloudResourceFeedEventType",
+  },
+  {
+    file: "DataAssetFeed",
+    enumName: "DataAssetFeedEventType",
+    modelType: DataAssetFeed,
+    eventTypes: Object.values(DataAssetFeedEventType),
+    resourceIdColumn: "dataAssetId",
+    eventTypeColumn: "dataAssetFeedEventType",
   },
   {
     file: "DataSecurityIssueFeed",

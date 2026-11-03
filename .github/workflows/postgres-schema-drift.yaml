@@ -1751,6 +1751,25 @@ jobs:
           Tests/Server/Services/StatusPagePrivateUserSessionLengthPostgres.test.ts
           --forceExit
 
+      # Clones the migrated status page and private user tables into an
+      # isolated schema: a private user's sign-in link signs in once, and
+      # exactly one of many requests racing with it; an expired link, another
+      # page's, a removed user's and a token that is not the link sign nobody
+      # in; a newer link replaces the older; every page takes links unless its
+      # team turns them off (AddStatusPageMagicLinkLogin).
+      - name: Test status page sign-in links on migrated Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_STATUS_PAGE_MAGIC_LINK_TESTS: "true"
+          STATUS_PAGE_MAGIC_LINK_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          STATUS_PAGE_MAGIC_LINK_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          STATUS_PAGE_MAGIC_LINK_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/StatusPagePrivateUserMagicLinkPostgres.test.ts
+          --forceExit
+
       # Clones the migrated UserSession and GlobalConfig tables into an
       # isolated schema: a master admin's session length or idle timeout
       # (Admin Dashboard > Settings > Session Length) ends, at once and by

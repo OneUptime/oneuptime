@@ -2789,4 +2789,41 @@ export default class Alert extends BaseModel {
     nullable: true,
   })
   public reminderNotificationSentCount?: number = undefined;
+
+  /*
+   * When OneUptime checks the project's alert incident rules for this alert
+   * again: set while the rule that matched it waits for the alert to stay
+   * unresolved before declaring an incident from it ("Declare After",
+   * AlertIncidentRule.declareAfterInMinutes), cleared once the check has
+   * run. Workers/Jobs/AlertIncidentRules/DeclareIncidentsWhenWaitIsUp reads
+   * the alerts whose time has come (AlertIncidentRuleEngineService).
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
+      Permission.ReadAlert,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.Date,
+    required: false,
+    isDefaultValueColumn: false,
+    title: "Next Incident Rule Check At",
+    description:
+      "When OneUptime next checks whether an incident should be declared from this alert: set while an alert incident rule that matched it waits for the alert to stay unresolved, and empty otherwise. Set by OneUptime; it cannot be written.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public nextIncidentRuleCheckAt?: Date = undefined;
 }

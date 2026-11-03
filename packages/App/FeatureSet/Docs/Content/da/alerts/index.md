@@ -59,7 +59,7 @@ Udløs en advarsel, når dit team bør kigge, før nogen udenfor opdager noget, 
 | **Episoder** | **Alle episoder** og **Aktive episoder**: relaterede advarsler samlet i ét problem at arbejde på. |
 | **AI**            | **Indsigter**, **Protokoller** og **Indstillinger**: hvad OneUptime AI har lært af dine advarsler, alt, hvad den har gjort, og hvad den må gøre. |
 | **Arbejdsområde** | **Slack** og **Microsoft Teams**, alt efter hvad projektet har forbundet, eller **Forbind Slack eller Teams**, når det har ingen af dem. |
-| **Regler**        | **Grupperingsregler**, **Vagtregler**, **Ejerregler**, **Runbook-regler**, **Privatlivsregler**, **Etiketregler**, **Påmindelsesregler**. |
+| **Regler**        | **Grupperingsregler**, **Vagtregler**, **Hændelsesregler**, **Ejerregler**, **Runbook-regler**, **Privatlivsregler**, **Etiketregler**, **Påmindelsesregler**. |
 | **Indstillinger** | **Advarselsstatus**, **Advarselsalvor**, **Noteskabeloner**, **Brugerdefinerede felter**, **Målinger**, **Medlemskab af episoder**, **Nummerering**. |
 
 **Advarsler** og **Episoder** er åbne; **AI**, **Arbejdsområde**, **Regler**, **Indstillinger** og **Udvikler** er foldet sammen fra start, og en sektion åbner af sig selv, når du er på en af dens sider. Konfigurationen af advarsler ligger her, ikke i **Projektindstillinger**.
@@ -99,7 +99,7 @@ I det øjeblik en advarsel oprettes, gennemgår OneUptime disse trin i denne ræ
 3. **Feedet og dine chatværktøjer hører om den.** En post **Advarsel oprettet** skrives i **Advarsel Feed**, og de kanaler, dine Slack- og Microsoft Teams-regler nævner, får besked; en regel kan oprette en kanal til advarslen.
 4. **Ejere og etiketter tilføjes**: dem, monitorens kriterier eller forespørgslen nævner, derefter dem fra matchende ejer- og etiketregler.
 5. **Vagtregler tilføjer deres politikker**, derefter starter runbook-regler de runbooks, der matcher.
-6. **Vagtpolitikker kører.** Hver politik på advarslen tilkalder sine personer parallelt; at én fejler, stopper ikke de andre.
+6. **Vagtpolitikker kører.** Hver politik på advarslen tilkalder sine personer parallelt; at én fejler, stopper ikke de andre. Derefter erklærer den første matchende hændelsesregel en hændelse ud fra advarslen, med det samme eller når dens ventetid er gået.
 7. **Grupperingsregler lægger den i en episode**, når en af dem matcher. Se [Advarselsepisoder og grupperingsregler](/docs/alerts/episodes).
 8. **Påmindelser planlægges**, når en påmindelsesregel matcher, og **OneUptime AI** undersøger advarslen, når **Undersøg nye advarsler** er slået til under **Advarsler → AI → Indstillinger**, og retter den, når **Ret nye advarsler automatisk** er slået til. Se [AI SRE](/docs/ai/ai-sre).
 
@@ -110,7 +110,7 @@ Et baggrundsjob giver advarslens ejere besked inden for et minut, og workflow-ud
 En advarsel, der starter i en senere tilstand, registrerer et problem, som nogen allerede tager sig af, så den behandles ikke som en ny nødsituation:
 
 - **I eller efter din bekræftede tilstand** kører ingen vagtpolitik. Advarslen beholder sine politikker, og dens feed siger på én linje, hvorfor ingen blev tilkaldt. Den kan slutte sig til en åben episode, men åbner aldrig en, for det ville tilkalde via episodens politikker.
-- **I eller efter din løste tilstand** er advarslen overstået: Den grupperes ikke i en episode, ingen runbook eller automatisk afhjælpning handler på den, OneUptime AI undersøger den ikke, og der oprettes ingen Slack- eller Microsoft Teams-kanal til den.
+- **I eller efter din løste tilstand** er advarslen overstået: Den grupperes ikke i en episode, ingen runbook, automatisk afhjælpning eller hændelsesregel handler på den, OneUptime AI undersøger den ikke, og der oprettes ingen Slack- eller Microsoft Teams-kanal til den.
 
 Dens regler, dens ejere, dens feed og dens første tilstand sker stadig i begge tilfælde. Hændelser følger samme regel: se [Erklæret allerede bekræftet eller løst](/docs/incidents/declaring-incidents#erklæret-allerede-bekræftet-eller-løst).
 

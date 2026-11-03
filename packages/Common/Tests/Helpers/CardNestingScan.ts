@@ -116,14 +116,14 @@ const CARD_DOORS: ReadonlyArray<string> = ["EnterprisePluginPage"];
  * whole card given there sits next to the element's cards, as the page's
  * own card does. Everything else it is given is still read as inside it.
  * ResourceOverview (Components/TelemetryResource/ResourceOverview.tsx) draws
- * connectionGuide under its hero and charts between its tiles and its
- * Details card; its controls are drawn inside the hero's frame. The guard
- * holds the component to this (CardInCardGuard).
+ * connectionGuide and needsAttention under its hero and charts between its
+ * tiles and its Details card; its controls are drawn inside the hero's
+ * frame. The guard holds the component to this (CardInCardGuard).
  */
 export const PROPS_DRAWN_BESIDE: Readonly<
   Record<string, ReadonlyArray<string>>
 > = {
-  ResourceOverview: ["connectionGuide", "charts"],
+  ResourceOverview: ["connectionGuide", "needsAttention", "charts"],
 };
 
 const CARD_TABLES: ReadonlyArray<string> = [

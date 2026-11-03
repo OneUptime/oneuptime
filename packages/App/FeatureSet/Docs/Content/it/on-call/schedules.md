@@ -86,7 +86,7 @@ Mentre è assente:
 
 Se invece scegli qualcuno in **Chi sostituisce?**, quella persona riceve tutti i suoi avvisi, da ogni pianificazione e da ogni policy, invece che la rotazione prenda i suoi turni.
 
-Un'assenza aggiunta così vale per tutte le policy di reperibilità. È elencata in **Reperibilità** > **Avanzato** > **Sostituzioni utente**, dove puoi eliminarla per farla rientrare prima. Per saltare qualcuno in una sola policy, aggiungi la sostituzione nella pagina **Sostituzioni utente** di quella policy e lascia **Chi sostituisce?** com'è. Vedi [Sostituzioni utente](/docs/on-call/user-overrides).
+Un'assenza aggiunta così vale per tutte le policy di reperibilità, quindi richiede il permesso per le sostituzioni sull'intero progetto: se il ruolo del tuo team è limitato alle sue policy o ad alcune etichette, **Salta fino a…** è bloccato e dice perché. È elencata in **Reperibilità** > **Avanzato** > **Sostituzioni utente**, dove puoi eliminarla per farla rientrare prima. Per saltare qualcuno in una sola policy, aggiungi la sostituzione nella pagina **Sostituzioni utente** di quella policy e lascia **Chi sostituisce?** com'è. Vedi [Sostituzioni utente](/docs/on-call/user-overrides).
 
 Con l'API, una sostituzione utente (`/api/on-call-duty-policy-user-override`) creata senza `routeAlertsToUserId` salta la persona in `overrideUserId` da `startsAt` a `endsAt`.
 

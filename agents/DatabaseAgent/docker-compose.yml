@@ -5,10 +5,12 @@ services:
     # install.sh downloads next to this file from configs/<receiver>.yaml.
     # The native postgresql / mysql / redis / mongodb / sqlserver / oracledb
     # / elasticsearch / memcached receivers talk to the database directly,
-    # so no exporter sidecar is needed. This is the
-    # version Tests/Ops/validate-collector-configs.sh validates the configs
-    # against; bump the two together (and oneuptime.agent.version in every
-    # configs/*.yaml).
+    # so no exporter sidecar is needed (the PostgreSQL config also runs
+    # the collector's sqlquery receiver for what its receiver does not
+    # report). This is the version Tests/Ops/validate-collector-configs.sh
+    # validates the configs against; bump the two together. The
+    # oneuptime.agent.version every configs/*.yaml stamps is this release,
+    # its last number raised each time the files change on it.
     image: otel/opentelemetry-collector-contrib:0.161.0
     # Deliberately no container_name: one agent monitors ONE database, so a
     # machine watching several databases runs several copies of this file
@@ -72,6 +74,10 @@ services:
       # certificate the collector image does not trust.
       - DATABASE_TLS_INSECURE=${DATABASE_TLS_INSECURE:-true}
       - DATABASE_TLS_INSECURE_SKIP_VERIFY=${DATABASE_TLS_INSECURE_SKIP_VERIFY:-false}
+      # The same two switches as a libpq sslmode - disable, require or
+      # verify-full - for the PostgreSQL config's SQL checks (install.sh
+      # works it out from them).
+      - DATABASE_TLS_SSLMODE=${DATABASE_TLS_SSLMODE:-disable}
       # How often the database is queried for its statistics.
       - DATABASE_COLLECTION_INTERVAL=${DATABASE_COLLECTION_INTERVAL:-30s}
       # true ships query samples and top queries (PostgreSQL, MySQL,

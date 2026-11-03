@@ -175,6 +175,16 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           },
           icon: IconProp.Call,
         },
+        // Which alerts have an incident declared from them.
+        {
+          link: {
+            title: "Incident Rules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.ALERTS_SETTINGS_INCIDENT_RULES] as Route,
+            ),
+          },
+          icon: IconProp.ArrowTrendingUp,
+        },
         {
           link: {
             title: "Owner Rules",

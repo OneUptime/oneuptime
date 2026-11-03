@@ -1,6 +1,7 @@
 import React from "react";
 import { StyleSheet } from "react-native";
 import {
+  act,
   render,
   screen,
   fireEvent,
@@ -10,12 +11,22 @@ import {
   describe,
   expect,
   test,
+  afterEach,
   beforeEach,
   jest as jestGlobal,
 } from "@jest/globals";
 import CreateOnCallOverrideScreen, {
   readPrefilledWindow,
 } from "./CreateOnCallOverrideScreen";
+import {
+  clearAllProjectPermissions,
+  recordProjectPermissions,
+} from "../api/projectPermissions";
+import {
+  GLOBAL_OVERRIDE_LIMITED_REASON,
+  GLOBAL_OVERRIDE_NOT_ALLOWED_REASON,
+} from "../oncall/globalOverrideAccess";
+import * as keychain from "../storage/keychain";
 import { ThemeProvider } from "../theme";
 import { darkColors, lightColors } from "../theme/colors";
 import { getScreenBottomPadding } from "../theme/layout";
@@ -831,6 +842,256 @@ describe("CreateOnCallOverrideScreen form layout", () => {
     } finally {
       mockColorScheme = "light";
     }
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Cover arranged here applies to every on-call policy, which takes a
+ * permission to add overrides over the whole project (issue #5617). For
+ * someone whose permission covers only some policies, or none, the sheet
+ * says why in place of the form - before anything is chosen - instead of
+ * refusing it on Confirm. What they hold comes from the server: the rows
+ * every answer about the project carries (api/projectPermissions).
+ * ---------------------------------------------------------------------------
+ */
+
+const LIMITED_TO_TEAM_LABEL: Record<string, unknown> = {
+  _type: "UserPermission",
+  permission: "OnCallMember",
+  labelIds: [{ _type: "ObjectID", value: "label-team-a" }],
+  scope: "Labels",
+  isBlockPermission: false,
+};
+
+const LIMITED_TO_OWNED: Record<string, unknown> = {
+  _type: "UserPermission",
+  permission: "OnCallMember",
+  labelIds: [],
+  scope: "Owned",
+  isBlockPermission: false,
+};
+
+const OVER_THE_WHOLE_PROJECT: Record<string, unknown> = {
+  _type: "UserPermission",
+  permission: "OnCallMember",
+  labelIds: [],
+  scope: "All",
+  isBlockPermission: false,
+};
+
+const ONLY_READS: Record<string, unknown> = {
+  _type: "UserPermission",
+  permission: "Viewer",
+  labelIds: [],
+  scope: "All",
+  isBlockPermission: false,
+};
+
+// The server's answer about `projectId` says the person holds `rows` there.
+function holding(
+  projectId: string,
+  rows: Array<Record<string, unknown>>,
+): void {
+  recordProjectPermissions(projectId, {
+    "project-permissions": JSON.stringify({
+      _type: "UserTenantAccessPermission",
+      projectId: { _type: "ObjectID", value: projectId },
+      permissions: rows,
+    }),
+  });
+}
+
+// A token whose payload says what `claims` say; the app never checks its signature.
+function tokenWith(claims: Record<string, unknown>): string {
+  const encode: (value: Record<string, unknown>) => string = (
+    value: Record<string, unknown>,
+  ): string => {
+    return Buffer.from(JSON.stringify(value)).toString("base64url");
+  };
+
+  return `${encode({ alg: "HS256", typ: "JWT" })}.${encode(claims)}.signature`;
+}
+
+describe("CreateOnCallOverrideScreen for someone limited to some policies", () => {
+  beforeEach(() => {
+    mockCreateOverride.mockClear();
+    mockGoBack.mockClear();
+    mockUsersError.current = false;
+    mockProjects.current = PROJECTS;
+    mockUsers.current = USERS;
+    mockUserId.current = ME;
+    mockRouteParams.current = undefined;
+    clearAllProjectPermissions();
+  });
+
+  afterEach(() => {
+    clearAllProjectPermissions();
+    jestGlobal.restoreAllMocks();
+  });
+
+  function expectNoForm(): void {
+    expect(screen.queryByTestId("open-user-picker")).toBeNull();
+    expect(screen.queryByTestId("duration-4")).toBeNull();
+    expect(screen.queryByTestId("override-preview")).toBeNull();
+    expect(screen.queryByTestId("submit-override")).toBeNull();
+    expect(screen.queryByText("I'll take over")).toBeNull();
+  }
+
+  test("a role limited to the team's label: the sheet says why in place of the form, and sends nothing", async (): Promise<void> => {
+    holding("project-1", [LIMITED_TO_TEAM_LABEL]);
+
+    await render(<CreateOnCallOverrideScreen />);
+
+    const locked: HostElement = screen.getByTestId("override-locked");
+    expect(
+      within(locked).getByText(GLOBAL_OVERRIDE_LIMITED_REASON),
+    ).toBeTruthy();
+    expect(
+      within(locked).getByText("Cover can't be arranged here"),
+    ).toBeTruthy();
+    // No promise of a handoff the sheet cannot make.
+    expect(
+      screen.queryByText("A clear handoff, for exactly as long as you need."),
+    ).toBeNull();
+    expectNoForm();
+    expect(mockCreateOverride).not.toHaveBeenCalled();
+  });
+
+  test("a role limited to what the team owns: locked the same way", async (): Promise<void> => {
+    holding("project-1", [LIMITED_TO_OWNED]);
+
+    await render(<CreateOnCallOverrideScreen />);
+
+    expect(
+      within(screen.getByTestId("override-locked")).getByText(
+        GLOBAL_OVERRIDE_LIMITED_REASON,
+      ),
+    ).toBeTruthy();
+    expectNoForm();
+  });
+
+  test("someone who may not add overrides at all is told that instead", async (): Promise<void> => {
+    holding("project-1", [ONLY_READS]);
+
+    await render(<CreateOnCallOverrideScreen />);
+
+    expect(
+      within(screen.getByTestId("override-locked")).getByText(
+        GLOBAL_OVERRIDE_NOT_ALLOWED_REASON,
+      ),
+    ).toBeTruthy();
+    expectNoForm();
+  });
+
+  test("someone over the whole project arranges cover as before", async (): Promise<void> => {
+    holding("project-1", [OVER_THE_WHOLE_PROJECT]);
+
+    await render(<CreateOnCallOverrideScreen />);
+
+    expect(screen.queryByTestId("override-locked")).toBeNull();
+
+    await pickTeammate();
+    await fireEvent.press(screen.getByTestId("submit-override"));
+
+    expect(mockCreateOverride).toHaveBeenCalledTimes(1);
+    expect(lastCreateInput().routeAlertsToUserId).toBe(TEAMMATE);
+    expect("onCallDutyPolicyId" in lastCreateInput()).toBe(false);
+  });
+
+  test("before the server has said anything, the form shows as before: the server decides", async (): Promise<void> => {
+    await render(<CreateOnCallOverrideScreen />);
+
+    expect(screen.queryByTestId("override-locked")).toBeNull();
+    expect(screen.getByTestId("submit-override")).toBeTruthy();
+  });
+
+  test("rows of another project do not lock this one", async (): Promise<void> => {
+    holding("project-2", [LIMITED_TO_TEAM_LABEL]);
+    holding("project-1", [OVER_THE_WHOLE_PROJECT]);
+
+    await render(<CreateOnCallOverrideScreen />);
+
+    expect(screen.queryByTestId("override-locked")).toBeNull();
+    expect(screen.getByTestId("submit-override")).toBeTruthy();
+  });
+
+  test("the sheet follows the rows as an answer about the project brings them", async (): Promise<void> => {
+    await render(<CreateOnCallOverrideScreen />);
+
+    expect(screen.getByTestId("submit-override")).toBeTruthy();
+
+    await act(async (): Promise<void> => {
+      holding("project-1", [LIMITED_TO_TEAM_LABEL]);
+    });
+
+    expect(screen.getByTestId("override-locked")).toBeTruthy();
+    expectNoForm();
+
+    await act(async (): Promise<void> => {
+      holding("project-1", [OVER_THE_WHOLE_PROJECT]);
+    });
+
+    expect(screen.queryByTestId("override-locked")).toBeNull();
+    expect(screen.getByTestId("submit-override")).toBeTruthy();
+  });
+
+  test("a master admin arranges cover whatever their rows say", async (): Promise<void> => {
+    jestGlobal
+      .spyOn(keychain, "getCachedAccessToken")
+      .mockReturnValue(tokenWith({ userId: ME, isMasterAdmin: true }));
+    holding("project-1", [LIMITED_TO_TEAM_LABEL]);
+
+    await render(<CreateOnCallOverrideScreen />);
+
+    expect(screen.queryByTestId("override-locked")).toBeNull();
+
+    await pickTeammate();
+    await fireEvent.press(screen.getByTestId("submit-override"));
+
+    expect(mockCreateOverride).toHaveBeenCalledTimes(1);
+  });
+
+  test("a token that does not say master admin changes nothing", async (): Promise<void> => {
+    jestGlobal
+      .spyOn(keychain, "getCachedAccessToken")
+      .mockReturnValue(tokenWith({ userId: ME, isMasterAdmin: false }));
+    holding("project-1", [LIMITED_TO_TEAM_LABEL]);
+
+    await render(<CreateOnCallOverrideScreen />);
+
+    expect(screen.getByTestId("override-locked")).toBeTruthy();
+  });
+
+  test("Get cover on a shift: the shift stays in view, with the reason in place of the form", async (): Promise<void> => {
+    mockProjects.current = [PROJECTS[1]!];
+    mockRouteParams.current = prefill();
+    holding("project-2", [LIMITED_TO_TEAM_LABEL]);
+
+    await render(<CreateOnCallOverrideScreen />);
+
+    expect(screen.getByTestId("prefilled-shift")).toBeTruthy();
+    expect(
+      within(screen.getByTestId("override-locked")).getByText(
+        GLOBAL_OVERRIDE_LIMITED_REASON,
+      ),
+    ).toBeTruthy();
+    expectNoForm();
+  });
+
+  test("a shift that exists only inside one policy is covered on that policy: not a global override, so the form stays", async (): Promise<void> => {
+    mockProjects.current = [PROJECTS[1]!];
+    mockRouteParams.current = prefill({ policyId: "policy-1" });
+    holding("project-2", [LIMITED_TO_TEAM_LABEL]);
+
+    await render(<CreateOnCallOverrideScreen />);
+
+    expect(screen.queryByTestId("override-locked")).toBeNull();
+
+    await pickTeammate();
+    await fireEvent.press(screen.getByTestId("submit-override"));
+
+    expect(lastCreateInput().onCallDutyPolicyId).toBe("policy-1");
   });
 });
 

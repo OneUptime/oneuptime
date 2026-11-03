@@ -74,8 +74,8 @@ const AGENT_FILES: Array<AgentFilesPin> = [
     kind: AgentKind.DatabaseAgent,
     directory: "DatabaseAgent",
     files: ["docker-compose.yml", "configs"],
-    version: "0.161.0",
-    digest: "23a1aef320358ef7c4fbfd362204ffdd5949e7617c2f1991989f0ac6dda3089f",
+    version: "0.161.1",
+    digest: "03a336458eab1688ffa833d375092de98694da046ccc09314857c72ea71acbcc",
   },
   {
     kind: AgentKind.ProxmoxAgent,
@@ -297,7 +297,6 @@ describe("the Docker Swarm agent after #5076's config change, the task labels an
 
   test("the other pinned-collector agents' files did not change: they report their collector's version", () => {
     for (const version of [
-      DATABASE_AGENT_VERSION,
       CEPH_AGENT_VERSION,
       VMWARE_AGENT_VERSION,
       STORAGE_ARRAY_AGENT_VERSION,
@@ -358,6 +357,54 @@ describe("the Proxmox agent after #5428 read every node", () => {
       expect(
         getAgentVersionState({
           kind: AgentKind.ProxmoxAgent,
+          agentVersion: "0.161.1",
+          serverVersion: serverVersion,
+        }).status,
+      ).toBe(AgentVersionStatus.UpToDate);
+    }
+  });
+});
+
+/*
+ * The Database agent's PostgreSQL config gained SQL checks of its own on
+ * the same collector - a restart, transaction ID wraparound, long
+ * transactions and lock waits, which the postgresql receiver does not
+ * report - so an agent still running the old files reads none of them and
+ * must show a sign (0.161.1). Every engine's config stamps the agent's one
+ * version.
+ */
+describe("the Database agent after its PostgreSQL SQL checks", () => {
+  test("its files report 0.161.1 and still run collector 0.161.0", () => {
+    expect(DATABASE_AGENT_VERSION).toBe("0.161.1");
+    expect(AGENT_KINDS[AgentKind.DatabaseAgent].collectorVersion).toBe(
+      "0.161.0",
+    );
+    expect(
+      fs.readFileSync(
+        path.join(REPO_ROOT, "agents", "DatabaseAgent", "docker-compose.yml"),
+        "utf8",
+      ),
+    ).toContain("image: otel/opentelemetry-collector-contrib:0.161.0");
+  });
+
+  test("an agent on the older files - 0.161.0 - is told to upgrade", () => {
+    expect(
+      getAgentVersionState({
+        kind: AgentKind.DatabaseAgent,
+        agentVersion: "0.161.0",
+        serverVersion: "14.0.105",
+      }),
+    ).toEqual({
+      status: AgentVersionStatus.Outdated,
+      latestVersion: "0.161.1",
+    });
+  });
+
+  test("an agent on the new files is up to date, whatever version OneUptime runs", () => {
+    for (const serverVersion of ["14.0.105", "15.0.0", ""]) {
+      expect(
+        getAgentVersionState({
+          kind: AgentKind.DatabaseAgent,
           agentVersion: "0.161.1",
           serverVersion: serverVersion,
         }).status,

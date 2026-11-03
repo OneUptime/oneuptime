@@ -6,8 +6,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * which ties their spans to its tables. A new table: its indexes and foreign
  * keys are made with it, before it holds a row.
  */
-export class AddDataAssetUsage1808990000000 implements MigrationInterface {
-  public name: string = "AddDataAssetUsage1808990000000";
+export class AddDataAssetUsage1808991300000 implements MigrationInterface {
+  public name: string = "AddDataAssetUsage1808991300000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

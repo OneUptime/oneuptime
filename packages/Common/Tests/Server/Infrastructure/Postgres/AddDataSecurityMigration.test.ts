@@ -3,7 +3,7 @@ import { AddSecurityHunts1808450000000 } from "../../../../Server/Infrastructure
 import { AddDataSecurityIdentities1808791000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808791000000-AddDataSecurityIdentities";
 import { AddDataSecurityFieldSuggestions1808792000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808792000000-AddDataSecurityFieldSuggestions";
 import { AddDataObservability1808910000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808910000000-AddDataObservability";
-import { AddDataAssetUsage1808990000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808990000000-AddDataAssetUsage";
+import { AddDataAssetUsage1808991300000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808991300000-AddDataAssetUsage";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DataSecurityCheckSetting from "../../../../Models/DatabaseModels/DataSecurityCheckSetting";
@@ -140,7 +140,7 @@ const ADDED_LATER: ReadonlyArray<[string, string, MigrationClass]> = [
     AddDataObservability1808910000000,
   ],
   // The database a collection read, which ties services' spans to its tables.
-  ["DataStore", "tableHealthTarget", AddDataAssetUsage1808990000000],
+  ["DataStore", "tableHealthTarget", AddDataAssetUsage1808991300000],
 ];
 
 function addedLater(table: string): Array<string> {

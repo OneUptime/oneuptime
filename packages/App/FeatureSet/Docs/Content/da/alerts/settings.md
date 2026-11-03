@@ -17,6 +17,7 @@ Konfigurationen af advarsler ligger under **Advarsler**, ikke i **Projektindstil
 | --------------------- | ---------------------------------------------------------------------------------------------- |
 | **Grupperingsregler** | Samler relaterede advarsler i episoder. Se [Advarselsepisoder og grupperingsregler](/docs/alerts/episodes). |
 | **Vagtregler**        | Kører vagtpolitikker for matchende advarsler og episoder.                                      |
+| **Hændelsesregler** | Erklærer en hændelse ud fra matchende advarsler, med det samme eller når en advarsel forbliver uløst. |
 | **Ejerregler**        | Tilføjer ejere til matchende advarsler og episoder.                                            |
 | **Runbook-regler**    | Starter runbooks for matchende advarsler.                                                      |
 | **Privatlivsregler**  | Gør matchende advarsler og episoder private.                                                   |
@@ -54,7 +55,7 @@ flowchart TB
 
 Reglerne adskiller sig i, hvordan flere match afgøres:
 
-- **Grupperingsregler** og **Påmindelsesregler** kontrolleres oppefra og ned i deres liste, og det første match vinder. Træk en regel for at ændre dens plads; en ny regel kommer sidst.
+- **Grupperingsregler**, **Hændelsesregler** og **Påmindelsesregler** kontrolleres oppefra og ned i deres liste, og det første match vinder. Træk en regel for at ændre dens plads; en ny regel kommer sidst.
 - **Vagtregler**, **Ejerregler**, **Etiketregler**, **Privatlivsregler** og **Runbook-regler** handler alle, når de matcher. Vagtpolitikker, ejere og etiketter, som flere regler tilføjer, tilføjes én gang.
 
 **Vagtregler**, **Ejerregler**, **Etiketregler** og **Privatlivsregler** har to faner: **Alert Rules** for advarsler og **Episode Rules**, som handler på samme måde på hver ny advarselsepisode. En ny regel starter aktiveret; slå **Aktiveret** fra på dens redigeringsformular for at sætte den på pause, og listen viser et grønt **Aktiveret** eller et rødt **Deaktiveret** for hver regel.
@@ -89,6 +90,22 @@ Under **Vagtpolitikker** vælger du de **Vagtpolitikker**, reglen tilkalder. Den
 En alvorsgrad tilkalder ingen af sig selv: En vagtregel, der matcher på **Advarsel Alvorligheder**, er måden at sætte "tilkald databaseteamet ved hver High-advarsel" op på. For at se, hvad der kørte for én advarsel, åbner du dens side **Vagtudførelser**. Hver person nås derefter på den måde, de har sat op under **Brugerindstillinger → Vagtregler** på fanen **Advarsler**; se [Eskaleringsregler](/docs/on-call/escalation-rules).
 
 En regel tilkalder, så snart en advarsel matcher den. For at lade den vente på arbejdstiden i stedet, svarer du **Kun i arbejdstiden** på **Hvornår skal denne regel tilkalde?** under **Flere felter**. **Arbejdstid** starter som mandag til fredag, 09:00 til 17:00, i din egen tidszone: vælg andre dage, et andet **Starttidspunkt** eller **Sluttidspunkt** eller en anden **Tidszone**, og en sætning under valget fortæller, hvad der sker. På listen viser reglen sin arbejdstid under navnet. En advarsel, der matcher uden for de tider, får en kørsel, der venter og ikke tilkalder nogen; når arbejdstiden begynder, tilkalder politikken sin første eskaleringsregel og eskalerer som normalt. Bliver advarslen bekræftet eller løst først, bliver ingen tilkaldt. Ændrer advarslen sig, mens den venter, så den nu matcher en regel, der tilkalder med det samme, for eksempel fordi dens alvorlighed hæves, begynder kørslen at tilkalde straks, og advarslens feed fortæller hvorfor. To regler, der tilkalder den samme politik, tilkalder den, så snart en af dem tillader det: en regel for dine højeste alvorligheder, der tilkalder med det samme, ved siden af en regel for resten, der venter på arbejdstiden, holder nætterne rolige.
+
+## Hændelsesregler
+
+**Advarsler → Regler → Hændelsesregler** gør selv advarsler til hændelser. Den første regel, der matcher en ny advarsel, oppefra og ned i listen, erklærer en hændelse ud fra den, som **Erklær hændelse** på advarslens side ville gøre, og knytter advarslen til den.
+
+:::steps
+### Udvælg advarslerne
+
+Under **Match** matcher **Alle advarsler**, som en ny regel starter med, hver ny advarsel. For at indsnævre den skal du vælge **Kun advarsler, der opfylder betingelserne** og tilføje de betingelser, en advarsel skal opfylde.
+
+### Beskriv hændelsen
+
+Under **Hændelse** vælger du **Hændelsesalvor**, eller lader feltet stå tomt for at give hver hændelse den alvor, der svarer til dens advarsels. Sæt **Declare After (Minutes)** over 0 for kun at erklære hændelsen, hvis advarslen stadig er uløst til den tid. Reglens **Navn** følger alvoren, for eksempel "Declare SEV1 incidents", indtil du skriver dit eget. Opret derefter reglen.
+:::
+
+Hændelsen får advarslens titel, beskrivelse, monitor, berørte ressourcer og etiketter og er privat, når advarslen er det. Derefter kører hændelsens egne regler som for enhver ny hændelse, så dens vagtregler afgør, hvem der tilkaldes. En advarsel, der løses, før ventetiden er gået, bliver aldrig en hændelse, og en advarsel, der allerede er knyttet til en hændelse, lades være. **Vis på statussider**, under **Flere felter**, afgør, om hændelsen vises på de statussider, der viser dens monitor.
 
 ## Ejer- og etiketregler
 

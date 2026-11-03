@@ -451,6 +451,7 @@ describe("the .env file", () => {
       "DATABASE_PASSWORD='a-strong-password'",
       "DATABASE_TLS_INSECURE=true",
       "DATABASE_TLS_INSECURE_SKIP_VERIFY=false",
+      "DATABASE_TLS_SSLMODE=disable",
       "DATABASE_COLLECTION_INTERVAL=30s",
       "DATABASE_QUERY_EVENTS=false",
       `DATABASE_SERVER_ID=${DATABASE_ID}`,

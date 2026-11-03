@@ -59,7 +59,7 @@ Abra **Alertas** no menu **Produtos** da barra superior. A lista de alertas fica
 | **Episódios** | **Todos os episódios** e **Episódios ativos**: alertas relacionados, agrupados em um único problema para trabalhar. |
 | **IA**                 | **Insights**, **Registros** e **Configurações**: o que o OneUptime AI aprendeu com seus alertas, tudo o que fez e o que pode fazer. |
 | **Espaço de trabalho** | **Slack** e **Microsoft Teams**, conforme o que o projeto conectou, ou **Conectar Slack ou Teams** quando não tem nenhum dos dois. |
-| **Regras**             | **Regras de agrupamento**, **Regras de Plantão**, **Regras de proprietário**, **Regras de runbook**, **Regras de privacidade**, **Regras de Rótulos**, **Regras de lembrete**. |
+| **Regras**             | **Regras de agrupamento**, **Regras de Plantão**, **Regras de incidentes**, **Regras de proprietário**, **Regras de runbook**, **Regras de privacidade**, **Regras de Rótulos**, **Regras de lembrete**. |
 | **Configurações**      | **Estado do alerta**, **Severidade do alerta**, **Modelos de notas**, **Campos personalizados**, **Medições**, **Participação em episódios**, **Numeração**. |
 
 **Alertas** e **Episódios** ficam abertas; **IA**, **Espaço de trabalho**, **Regras**, **Configurações** e **Desenvolvedores** começam recolhidas, e uma seção se abre sozinha quando você está em uma de suas páginas. A configuração dos alertas fica aqui, não em **Configurações do projeto**.
@@ -99,7 +99,7 @@ No momento em que um alerta é criado, o OneUptime percorre estas etapas, nesta 
 3. **O feed e suas ferramentas de chat ficam sabendo.** Uma entrada **Alerta criado** é escrita em **Alerta Feed**, e os canais indicados por suas regras do Slack e do Microsoft Teams são avisados; uma regra pode criar um canal para o alerta.
 4. **Proprietários e rótulos são adicionados**: os que os critérios do monitor ou a solicitação indicam, depois os das regras de proprietário e de rótulos correspondentes.
 5. **As regras de plantão adicionam suas políticas**, depois as regras de runbook iniciam os runbooks correspondentes.
-6. **As políticas de plantão são executadas.** Cada política do alerta aciona suas pessoas em paralelo; a falha de uma não interrompe as outras.
+6. **As políticas de plantão são executadas.** Cada política do alerta aciona suas pessoas em paralelo; a falha de uma não interrompe as outras. Depois, a primeira regra de incidentes que corresponde declara um incidente a partir do alerta, na hora ou quando a espera dela termina.
 7. **As regras de agrupamento o colocam em um episódio**, quando alguma corresponde. Veja [Episódios de alertas e regras de agrupamento](/docs/alerts/episodes).
 8. **Os lembretes são agendados**, quando uma regra de lembrete corresponde, e o **OneUptime AI** investiga o alerta quando **Investigar novos alertas** está ativado em **Alertas → IA → Configurações**, e o corrige quando **Corrigir novos alertas automaticamente** está ativado. Veja [AI SRE](/docs/ai/ai-sre).
 
@@ -110,7 +110,7 @@ Um job em segundo plano avisa os proprietários do alerta em até um minuto, e o
 Um alerta que começa em um estado posterior registra um problema do qual alguém já está cuidando, então não é tratado como uma nova emergência:
 
 - **No seu estado confirmado ou depois dele**, nenhuma política de plantão é executada. O alerta mantém suas políticas, e seu feed diz em uma linha por que ninguém foi acionado. Ele pode entrar em um episódio aberto, mas nunca abre um, porque isso acionaria pelas políticas do episódio.
-- **No seu estado resolvido ou depois dele**, o alerta terminou: não é agrupado em um episódio, nenhum runbook ou remediação automática atua sobre ele, o OneUptime AI não o investiga e nenhum canal do Slack ou do Microsoft Teams é criado para ele.
+- **No seu estado resolvido ou depois dele**, o alerta terminou: não é agrupado em um episódio, nenhum runbook, remediação automática ou regra de incidentes atua sobre ele, o OneUptime AI não o investiga e nenhum canal do Slack ou do Microsoft Teams é criado para ele.
 
 Suas regras, seus proprietários, seu feed e seu primeiro estado acontecem mesmo assim nos dois casos. Os incidentes seguem a mesma regra: veja [Declarado já confirmado ou resolvido](/docs/incidents/declaring-incidents#declarado-já-confirmado-ou-resolvido).
 
