@@ -146,6 +146,7 @@ import TelemetryType from "Common/Types/Telemetry/TelemetryType";
 import { shouldAdoptTimeRangeOverride } from "../../Utils/SharedTelemetryTimeCursor";
 import { writeTelemetryViewerUrlState } from "../../Utils/TelemetryViewerUrlState";
 import {
+  doesHostOwnLogsView,
   InitialSavedViewResolution,
   mayApplyInitialSavedView,
   resolveInitialSavedView,
@@ -822,9 +823,11 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
    * not own it: its default is a view saved on that very tab (issue #5549),
    * so it opens there as the Logs page's opens on the Logs page.
    */
-  const hostOwnsView: boolean = Boolean(
-    pinnedTimeRange || props.timeRangeOverride || !offersSavedViews,
-  );
+  const hostOwnsView: boolean = doesHostOwnLogsView({
+    hasPinnedTimeRange: Boolean(pinnedTimeRange),
+    hasTimeRangeOverride: Boolean(props.timeRangeOverride),
+    savedViewScope: props.savedViewScope,
+  });
 
   /*
    * Whether the list, the chart and the facets wait for the saved views
