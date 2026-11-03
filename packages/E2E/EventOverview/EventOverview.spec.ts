@@ -19227,10 +19227,10 @@ test.describe("an action linking what a record is about waits for approval (issu
           "utf8",
         ),
       ) as Record<string, string>;
-      const sentence: (key: string, values: Record<string, string>) => string = (
+      const sentence: (
         key: string,
         values: Record<string, string>,
-      ): string => {
+      ) => string = (key: string, values: Record<string, string>): string => {
         let text: string = words[key]!;
         for (const name of Object.keys(values)) {
           text = text.split(`{{${name}}}`).join(values[name]!);
