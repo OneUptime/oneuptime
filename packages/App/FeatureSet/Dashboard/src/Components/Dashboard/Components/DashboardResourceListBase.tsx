@@ -192,8 +192,24 @@ const DashboardResourceListBase: FunctionComponent<
   }
 
   if (props.error) {
-    // Its kind's icon and why - a public dashboard's own word among them.
-    return <WidgetPlaceholder icon={props.emptyIcon} message={props.error} />;
+    /*
+     * Its title, as the other widgets keep theirs, then its kind's icon and
+     * why - a public dashboard's own word among them - in the room left.
+     */
+    return (
+      <div className="flex h-full flex-col overflow-hidden">
+        {props.title && (
+          <div className="mb-2 px-1">
+            <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">
+              {props.title}
+            </span>
+          </div>
+        )}
+        <div className="min-h-0 flex-1">
+          <WidgetPlaceholder icon={props.emptyIcon} message={props.error} />
+        </div>
+      </div>
+    );
   }
 
   return (

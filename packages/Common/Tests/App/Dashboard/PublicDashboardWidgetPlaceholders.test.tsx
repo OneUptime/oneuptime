@@ -318,6 +318,42 @@ describe("on a public dashboard, every widget it cannot draw shows one placehold
     });
   }
 
+  /*
+   * A widget keeps its title above the placeholder, so a visitor knows which
+   * widget is not drawn there - a list too, whose error state used to be the
+   * icon and the sentence alone.
+   */
+  for (const widget of WIDGETS.filter((candidate: WidgetUnderTest): boolean => {
+    return candidate.name !== "Data Source Chart";
+  })) {
+    test(`${widget.name}: its title stays, above the placeholder`, async () => {
+      enterPublicBoard();
+
+      const component: DashboardBaseComponent = widget.component();
+
+      component.arguments = {
+        ...(component.arguments as Record<string, unknown>),
+        title: "Checkout watch",
+      } as DashboardBaseComponent["arguments"];
+
+      render(widget.element(buildBaseProps(), component));
+
+      await screen.findByText(widget.sentence);
+
+      const title: HTMLElement = screen.getByText("Checkout watch");
+      const placeholder: HTMLElement = screen.getByTestId(
+        WIDGET_PLACEHOLDER_TEST_ID,
+      );
+
+      expect(placeholder).not.toContainElement(title);
+      // Above it: the title comes first in the widget.
+      expect(
+        title.compareDocumentPosition(placeholder) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    });
+  }
+
   test("the placeholders are one look: the same box and the same words, whatever the widget", async () => {
     const looks: Array<string> = [];
 
