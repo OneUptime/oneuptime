@@ -1438,7 +1438,7 @@ describe("the confirmation's words", () => {
   });
 
   test("what was picked and not linked, of the incident: one, many, none", () => {
-    const subject: MarkdownText = mdText`**Incident INC-43**`;
+    const subject: MarkdownText = mdText`The incident **INC-43**`;
 
     expect(
       WorkspaceAffectedResources.getNotLinkedLine({ subject, count: 0 }),
@@ -1449,7 +1449,7 @@ describe("the confirmation's words", () => {
         count: 1,
       })?.toString(),
     ).toBe(
-      "**Incident INC-43** is not linked to 1 resource you picked: it was deleted or archived, or you may no longer view it.",
+      "The incident **INC-43** is not linked to 1 resource you picked: it was deleted or archived, or you may no longer view it.",
     );
     expect(
       WorkspaceAffectedResources.getNotLinkedLine({
@@ -1457,7 +1457,7 @@ describe("the confirmation's words", () => {
         count: 3,
       })?.toString(),
     ).toBe(
-      "**Incident INC-43** is not linked to 3 resources you picked: they were deleted or archived, or you may no longer view them.",
+      "The incident **INC-43** is not linked to 3 resources you picked: they were deleted or archived, or you may no longer view them.",
     );
   });
 });

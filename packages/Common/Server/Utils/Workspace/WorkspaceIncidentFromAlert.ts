@@ -14,6 +14,7 @@ import AlertService from "../../Services/AlertService";
 import IncidentAlertService, {
   PRIVATE_ALERTS_TO_LINK_MESSAGE,
 } from "../../Services/IncidentAlertService";
+import IncidentService from "../../Services/IncidentService";
 import { OnCallPageRecordType } from "../../Services/OnCallPageService";
 import { LinkedAffectedResource } from "../AI/Toolbox/AffectedResourceLinks";
 import logger from "../Logger";
@@ -109,16 +110,25 @@ export interface WorkspaceAlertNotLinked {
 // The kind word a form's value names an alert by (WorkspacePageAbout.toValue).
 const ALERT_VALUE_PREFIX: string = "alert:";
 
-// What a form and an answer add for a private alert's incident.
-const PRIVATE_LIKE_THE_ALERT: string = "It will be private, as the alert is.";
-const PRIVATE_AS_THE_ALERT_IS: string = "It is private, as the alert is.";
+/*
+ * What a form and an answer add for a private alert's incident: "Like the
+ * alert" says which of the two "it" is, whatever sentence comes before.
+ */
+const PRIVATE_LIKE_THE_ALERT: string = "Like the alert, it will be private.";
+const PRIVATE_AS_THE_ALERT_IS: string = "Like the alert, it is private.";
 
 /*
  * The one alert a chat form links, refused for being private: said of it,
  * rather than of "some of the alerts" a declaration from many links.
  */
 const PRIVATE_ALERT_NOT_LINKABLE: string =
-  "It is private, and none of your teams that own it may link it to an incident.";
+  "The alert is private, and none of your teams that own it may link it to an incident.";
+
+// The incident an answer is about: its number ("INC-43"), and its link.
+export interface WorkspaceDeclaredIncident {
+  number: string;
+  link: string | null;
+}
 
 // Whether the member may link an alert: the ids to link, or why not.
 type AlertLinkCheck = { alertIds: Array<ObjectID> } | { reason: string };
@@ -319,21 +329,29 @@ export default class WorkspaceIncidentFromAlert {
    * from the confirmation (a direct message), and each part's reason in a
    * sentence of its own:
    *
-   *   **[Incident INC-43](link)** is not linked to 2 resources you picked:
-   *   they were deleted or archived, or you may no longer view them.
+   *   The incident **[INC-43](link)** is not linked to 2 resources you
+   *   picked: they were deleted or archived, or you may no longer view
+   *   them.
+   *
    *   It is not linked to **[Alert ALT-3](link)** either. You do not have
-   *   permission to link alerts to incidents in this project. It is
-   *   private, as the alert is.
+   *   permission to link alerts to incidents in this project. Like the
+   *   alert, it is private.
+   *
+   * It opens with words: Microsoft Teams puts the person's mention before
+   * it, which would run into a link or a number.
    */
   public static getNotLinkedAnswer(data: {
-    incident: WorkspaceRecordName;
+    incident: WorkspaceDeclaredIncident | null;
     notLinkedCount: number;
     alertNotLinked: WorkspaceAlertNotLinked | null;
   }): WorkspaceAnswer | null {
     const lines: Array<MarkdownText> = [];
-    let subject: MarkdownText = WorkspaceActionAnswers.getRecordMarkdown(
-      data.incident,
-    );
+    let subject: MarkdownText = data.incident
+      ? mdText`The incident ${WorkspaceActionAnswers.getRecordMarkdown({
+          label: data.incident.number,
+          link: data.incident.link,
+        })}`
+      : mdText`The incident`;
 
     const resourcesLine: MarkdownText | null =
       WorkspaceAffectedResources.getNotLinkedLine({
@@ -377,9 +395,9 @@ export default class WorkspaceIncidentFromAlert {
   }
 
   /*
-   * getNotLinkedAnswer for an incident a chat just declared, named and
-   * linked as its answers name records - or null, without reading anything,
-   * when everything was linked.
+   * getNotLinkedAnswer for an incident a chat just declared, by its number
+   * and linked - or null, without reading anything, when everything was
+   * linked.
    */
   @CaptureSpan()
   public static async readNotLinkedAnswer(data: {
@@ -392,19 +410,30 @@ export default class WorkspaceIncidentFromAlert {
       return null;
     }
 
-    const incident: WorkspaceRecordName = data.incident.id
-      ? await WorkspaceActionAnswers.getRecordName({
-          type: WorkspaceEventType.Incident,
-          id: data.incident.id,
-          projectId: data.projectId,
-          currentStateId: undefined,
-          number: data.incident.incidentNumber ?? null,
-          numberWithPrefix: data.incident.incidentNumberWithPrefix || null,
-        })
-      : { label: "The incident", link: null };
+    const number: string | null =
+      data.incident.incidentNumberWithPrefix ||
+      (typeof data.incident.incidentNumber === "number"
+        ? `#${data.incident.incidentNumber}`
+        : null);
+    let link: string | null = null;
+
+    if (data.incident.id) {
+      try {
+        link = (
+          await IncidentService.getIncidentLinkInDashboard(
+            data.projectId,
+            data.incident.id,
+          )
+        ).toString();
+      } catch (error) {
+        logger.debug(
+          `Could not build the link to an incident declared from a chat: ${error}`,
+        );
+      }
+    }
 
     return this.getNotLinkedAnswer({
-      incident: incident,
+      incident: number ? { number: number, link: link } : null,
       notLinkedCount: data.notLinkedCount,
       alertNotLinked: data.alertNotLinked,
     });

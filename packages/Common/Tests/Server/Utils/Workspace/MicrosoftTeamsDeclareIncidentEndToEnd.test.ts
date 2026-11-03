@@ -818,7 +818,7 @@ describe("Teams' Create New Incident card and its typeahead, as Teams sees them"
 
     const reply: JSONObject = cardOf(posts[1]);
     expect((reply["body"] as Array<JSONObject>)[0]!["text"]).toBe(
-      `<at>Jane Doe</at> **[Incident INC-43](${incidentUrl})** is not linked to 1 resource you picked: it was deleted or archived, or you may no longer view it.`,
+      `<at>Jane Doe</at> The incident **[INC-43](${incidentUrl})** is not linked to 1 resource you picked: it was deleted or archived, or you may no longer view it.`,
     );
     expect(
       ((reply["msteams"] as JSONObject)["entities"] as Array<JSONObject>)[0],
@@ -829,7 +829,7 @@ describe("Teams' Create New Incident card and its typeahead, as Teams sees them"
     });
     // A notification of it says the same, as text.
     expect(posts[1]?.activity?.["summary"]).toBe(
-      "Incident INC-43 is not linked to 1 resource you picked: it was deleted or archived, or you may no longer view it.",
+      "The incident INC-43 is not linked to 1 resource you picked: it was deleted or archived, or you may no longer view it.",
     );
   });
 });

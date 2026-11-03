@@ -1429,12 +1429,12 @@ describe("declaring an incident from Slack, linked to what it is about", () => {
       expect(postedTo("https://slack.com/api/chat.postMessage")[0]!.text).toBe(
         `*Incident INC-43* created successfully. <${INCIDENT_URL}|View Incident>\nLinked to *api-2* (Host).\n`,
       );
-      // The incident it names first: it may be read away from the confirmation.
+      // It names the incident: it may be read away from the confirmation.
       expect(postedTo("https://slack.com/api/chat.postEphemeral")).toEqual([
         {
           channel: OPS_CHANNEL_ID,
           user: SLACK_USER_ID,
-          text: `*<${INCIDENT_URL}|Incident INC-43>* is not linked to 2 resources you picked: they were deleted or archived, or you may no longer view them.\n`,
+          text: `The incident *<${INCIDENT_URL}|INC-43>* is not linked to 2 resources you picked: they were deleted or archived, or you may no longer view them.\n`,
         },
       ]);
     });
@@ -1529,7 +1529,7 @@ describe("declaring an incident from Slack, linked to what it is about", () => {
       slackCalls = [];
 
       expect(textOf([(view["blocks"] as Array<JSONObject>)[0]])).toBe(
-        `This incident will be linked to *<${ALERT_URL}|Alert ALT-3>*. It will be private, as the alert is.\n`,
+        `This incident will be linked to *<${ALERT_URL}|Alert ALT-3>*. Like the alert, it will be private.\n`,
       );
 
       await submit({
@@ -1568,7 +1568,7 @@ describe("declaring an incident from Slack, linked to what it is about", () => {
         {
           channel: ALERT_CHANNEL_ID,
           user: SLACK_USER_ID,
-          text: `*<${INCIDENT_URL}|Incident INC-43>* is not linked to *<${ALERT_URL}|Alert ALT-3>*. You do not have permission to link alerts to incidents in this project.\n`,
+          text: `The incident *<${INCIDENT_URL}|INC-43>* is not linked to *<${ALERT_URL}|Alert ALT-3>*. You do not have permission to link alerts to incidents in this project.\n`,
         },
       ]);
     });
@@ -1609,7 +1609,7 @@ describe("declaring an incident from Slack, linked to what it is about", () => {
       slackCalls = [];
 
       expect(textOf([(view["blocks"] as Array<JSONObject>)[0]])).toBe(
-        `This incident will not be linked to *<${ALERT_URL}|Alert ALT-3>*. You do not have permission to link alerts to incidents in this project. It will be private, as the alert is.\n`,
+        `This incident will not be linked to *<${ALERT_URL}|Alert ALT-3>*. You do not have permission to link alerts to incidents in this project. Like the alert, it will be private.\n`,
       );
 
       await submit({
@@ -1629,7 +1629,7 @@ describe("declaring an incident from Slack, linked to what it is about", () => {
         {
           channel: ALERT_CHANNEL_ID,
           user: SLACK_USER_ID,
-          text: `*<${INCIDENT_URL}|Incident INC-43>* is not linked to *<${ALERT_URL}|Alert ALT-3>*. You do not have permission to link alerts to incidents in this project. It is private, as the alert is.\n`,
+          text: `The incident *<${INCIDENT_URL}|INC-43>* is not linked to *<${ALERT_URL}|Alert ALT-3>*. You do not have permission to link alerts to incidents in this project. Like the alert, it is private.\n`,
         },
       ]);
     });

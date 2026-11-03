@@ -283,7 +283,7 @@ describe("the card", () => {
       });
 
     expect(bodyOf(card)[1]!["text"]).toBe(
-      `This incident will not be linked to **[Alert ALT-3](${ALERT_LINK})**. You do not have permission to link alerts to incidents in this project. It will be private, as the alert is.`,
+      `This incident will not be linked to **[Alert ALT-3](${ALERT_LINK})**. You do not have permission to link alerts to incidents in this project. Like the alert, it will be private.`,
     );
     expect(submitDataOf(card)["declaredFrom"]).toBe(
       `alert:${ALERT_ID.toString()}`,
@@ -690,8 +690,8 @@ describe("the submit", () => {
       },
       {
         kind: "answer",
-        // The incident named first: a mention never runs into a number.
-        text: `<at>Jane Doe</at> **[Incident INC-43](${INCIDENT_LINK})** is not linked to 1 resource you picked: it was deleted or archived, or you may no longer view it.`,
+        // It opens with words: the mention never runs into a link or a number.
+        text: `<at>Jane Doe</at> The incident **[INC-43](${INCIDENT_LINK})** is not linked to 1 resource you picked: it was deleted or archived, or you may no longer view it.`,
       },
     ]);
   });
@@ -745,7 +745,7 @@ describe("the submit", () => {
       },
       {
         kind: "answer",
-        text: `<at>Jane Doe</at> **[Incident INC-43](${INCIDENT_LINK})** is not linked to **[Alert ALT-3](${ALERT_LINK})**. You do not have permission to link alerts to incidents in this project.`,
+        text: `<at>Jane Doe</at> The incident **[INC-43](${INCIDENT_LINK})** is not linked to **[Alert ALT-3](${ALERT_LINK})**. You do not have permission to link alerts to incidents in this project.`,
       },
     ]);
   });
@@ -755,7 +755,7 @@ describe("the submit", () => {
     alertLink = {
       name: { label: "Alert ALT-3", link: ALERT_LINK },
       reason:
-        "It is private, and none of your teams that own it may link it to an incident.",
+        "The alert is private, and none of your teams that own it may link it to an incident.",
       isPrivate: true,
     };
 
@@ -765,7 +765,7 @@ describe("the submit", () => {
     expect(created[0]!.data.isPrivate).toBe(true);
     expect(sent[1]).toEqual({
       kind: "answer",
-      text: `<at>Jane Doe</at> **[Incident INC-43](${INCIDENT_LINK})** is not linked to **[Alert ALT-3](${ALERT_LINK})**. It is private, and none of your teams that own it may link it to an incident. It is private, as the alert is.`,
+      text: `<at>Jane Doe</at> The incident **[INC-43](${INCIDENT_LINK})** is not linked to **[Alert ALT-3](${ALERT_LINK})**. The alert is private, and none of your teams that own it may link it to an incident. Like the alert, it is private.`,
     });
   });
 

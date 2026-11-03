@@ -13,6 +13,8 @@ import AlertService from "../../../../Server/Services/AlertService";
 import IncidentAlertService, {
   PRIVATE_ALERTS_TO_LINK_MESSAGE,
 } from "../../../../Server/Services/IncidentAlertService";
+import IncidentService from "../../../../Server/Services/IncidentService";
+import URL from "../../../../Types/API/URL";
 import { OnCallPageRecordType } from "../../../../Server/Services/OnCallPageService";
 import { LinkedAffectedResource } from "../../../../Server/Utils/AI/Toolbox/AffectedResourceLinks";
 import logger from "../../../../Server/Utils/Logger";
@@ -24,6 +26,7 @@ import WorkspaceAffectedResources from "../../../../Server/Utils/Workspace/Works
 import WorkspaceIncidentFromAlert, {
   WORKSPACE_DECLARED_FROM_FIELD,
   WorkspaceAlertNotLinked,
+  WorkspaceDeclaredIncident,
   WorkspaceAlertToLink,
   WorkspaceDeclaringAlert,
 } from "../../../../Server/Utils/Workspace/WorkspaceIncidentFromAlert";
@@ -103,7 +106,6 @@ type GetStanding = typeof WorkspaceMemberActions.getStanding;
 type ReadAlertResources = typeof WorkspaceAffectedResources.readAlertResources;
 type ValidateAlertIds =
   typeof IncidentAlertService.validateAlertIdsForNewIncident;
-type GetRecordName = typeof WorkspaceActionAnswers.getRecordName;
 
 let channelOwner: { type: OnCallPageRecordType; id: ObjectID } | null;
 let alertRead: Alert | Error;
@@ -112,7 +114,6 @@ let findChannelRecordSpy: SpyInstance<FindChannelRecord>;
 let readEventSpy: SpyInstance<ReadEventForMember>;
 let readAlertResourcesSpy: SpyInstance<ReadAlertResources>;
 let validateSpy: SpyInstance<ValidateAlertIds>;
-let getRecordNameSpy: SpyInstance<GetRecordName>;
 
 function alertOf(data: { title?: string; isPrivate?: boolean }): Alert {
   const alert: Alert = new Alert();
@@ -167,7 +168,7 @@ beforeEach(() => {
         isComplete: false,
       };
     }) as GetStanding);
-  getRecordNameSpy = jest
+  jest
     .spyOn(WorkspaceActionAnswers, "getRecordName")
     .mockResolvedValue(ALERT_NAME);
   readAlertResourcesSpy = jest
@@ -282,7 +283,7 @@ describe("the alert a form is declared from: the open alert of its own channel, 
       expect.objectContaining({
         isPrivate: true,
         linkRefusal:
-          "It is private, and none of your teams that own it may link it to an incident.",
+          "The alert is private, and none of your teams that own it may link it to an incident.",
       }),
     );
   });
@@ -395,7 +396,7 @@ describe("what the form says", () => {
         declaringAlert({ isPrivate: true }),
       ).toString(),
     ).toBe(
-      `This incident will be linked to **[Alert ALT-3](${ALERT_LINK})**. It will be private, as the alert is.`,
+      `This incident will be linked to **[Alert ALT-3](${ALERT_LINK})**. Like the alert, it will be private.`,
     );
   });
 
@@ -423,11 +424,11 @@ describe("what the form says", () => {
         declaringAlert({
           isPrivate: true,
           linkRefusal:
-            "It is private, and none of your teams that own it may link it to an incident.",
+            "The alert is private, and none of your teams that own it may link it to an incident.",
         }),
       ).toString(),
     ).toBe(
-      `This incident will not be linked to **[Alert ALT-3](${ALERT_LINK})**. It is private, and none of your teams that own it may link it to an incident. It will be private, as the alert is.`,
+      `This incident will not be linked to **[Alert ALT-3](${ALERT_LINK})**. The alert is private, and none of your teams that own it may link it to an incident. Like the alert, it will be private.`,
     );
   });
 
@@ -600,7 +601,7 @@ describe("linking the alert a submission names, as whoever submits it", () => {
     await expect(checkLink()).resolves.toEqual({
       name: ALERT_NAME,
       reason:
-        "It is private, and none of your teams that own it may link it to an incident.",
+        "The alert is private, and none of your teams that own it may link it to an incident.",
       isPrivate: true,
     });
   });
@@ -618,8 +619,8 @@ describe("linking the alert a submission names, as whoever submits it", () => {
 
 describe("what the person who declared it is told was not linked", () => {
   const INCIDENT_LINK: string = `https://oneuptime.test/dashboard/${PROJECT_ID.toString()}/incidents/${INCIDENT_ID.toString()}`;
-  const INCIDENT_NAME: WorkspaceRecordName = {
-    label: "Incident INC-43",
+  const INCIDENT: WorkspaceDeclaredIncident = {
+    number: "INC-43",
     link: INCIDENT_LINK,
   };
   const MAY_NOT_LINK: string =
@@ -630,7 +631,7 @@ describe("what the person who declared it is told was not linked", () => {
     alertNotLinked?: WorkspaceAlertNotLinked | null;
   }): WorkspaceAnswer | null {
     return WorkspaceIncidentFromAlert.getNotLinkedAnswer({
-      incident: INCIDENT_NAME,
+      incident: INCIDENT,
       notLinkedCount: data.notLinkedCount || 0,
       alertNotLinked: data.alertNotLinked || null,
     });
@@ -642,11 +643,11 @@ describe("what the person who declared it is told was not linked", () => {
 
   test("picks not linked, of the incident it names - never a sentence that opens with a number, which a Teams mention would run into", () => {
     expect(answer({ notLinkedCount: 1 })).toEqual({
-      markdown: `**[Incident INC-43](${INCIDENT_LINK})** is not linked to 1 resource you picked: it was deleted or archived, or you may no longer view it.`,
-      text: "Incident INC-43 is not linked to 1 resource you picked: it was deleted or archived, or you may no longer view it.",
+      markdown: `The incident **[INC-43](${INCIDENT_LINK})** is not linked to 1 resource you picked: it was deleted or archived, or you may no longer view it.`,
+      text: "The incident INC-43 is not linked to 1 resource you picked: it was deleted or archived, or you may no longer view it.",
     });
     expect(answer({ notLinkedCount: 2 })?.markdown).toBe(
-      `**[Incident INC-43](${INCIDENT_LINK})** is not linked to 2 resources you picked: they were deleted or archived, or you may no longer view them.`,
+      `The incident **[INC-43](${INCIDENT_LINK})** is not linked to 2 resources you picked: they were deleted or archived, or you may no longer view them.`,
     );
   });
 
@@ -660,8 +661,8 @@ describe("what the person who declared it is told was not linked", () => {
         },
       }),
     ).toEqual({
-      markdown: `**[Incident INC-43](${INCIDENT_LINK})** is not linked to **[Alert ALT-3](${ALERT_LINK})**. ${MAY_NOT_LINK}`,
-      text: `Incident INC-43 is not linked to Alert ALT-3. ${MAY_NOT_LINK}`,
+      markdown: `The incident **[INC-43](${INCIDENT_LINK})** is not linked to **[Alert ALT-3](${ALERT_LINK})**. ${MAY_NOT_LINK}`,
+      text: `The incident INC-43 is not linked to Alert ALT-3. ${MAY_NOT_LINK}`,
     });
   });
 
@@ -675,7 +676,7 @@ describe("what the person who declared it is told was not linked", () => {
         },
       })?.markdown,
     ).toBe(
-      `**[Incident INC-43](${INCIDENT_LINK})** is not linked to this channel's alert. You may not read this alert.`,
+      `The incident **[INC-43](${INCIDENT_LINK})** is not linked to this channel's alert. You may not read this alert.`,
     );
   });
 
@@ -689,7 +690,7 @@ describe("what the person who declared it is told was not linked", () => {
         },
       })?.markdown,
     ).toBe(
-      `**[Incident INC-43](${INCIDENT_LINK})** is not linked to **[Alert ALT-3](${ALERT_LINK})**. ${MAY_NOT_LINK} It is private, as the alert is.`,
+      `The incident **[INC-43](${INCIDENT_LINK})** is not linked to **[Alert ALT-3](${ALERT_LINK})**. ${MAY_NOT_LINK} Like the alert, it is private.`,
     );
   });
 
@@ -704,11 +705,11 @@ describe("what the person who declared it is told was not linked", () => {
     });
 
     expect(both?.markdown).toBe(
-      `**[Incident INC-43](${INCIDENT_LINK})** is not linked to 2 resources you picked: they were deleted or archived, or you may no longer view them.\n\nIt is not linked to **[Alert ALT-3](${ALERT_LINK})** either. ${MAY_NOT_LINK}`,
+      `The incident **[INC-43](${INCIDENT_LINK})** is not linked to 2 resources you picked: they were deleted or archived, or you may no longer view them.\n\nIt is not linked to **[Alert ALT-3](${ALERT_LINK})** either. ${MAY_NOT_LINK}`,
     );
     // A notification says the first of them.
     expect(both?.text).toBe(
-      "Incident INC-43 is not linked to 2 resources you picked: they were deleted or archived, or you may no longer view them.",
+      "The incident INC-43 is not linked to 2 resources you picked: they were deleted or archived, or you may no longer view them.",
     );
   });
 
@@ -726,8 +727,24 @@ describe("what the person who declared it is told was not linked", () => {
     expect(markdown).not.toContain("[click](");
   });
 
-  test("for an incident just declared: named and linked as the chats' answers name records - and nothing read when everything was linked", async () => {
-    getRecordNameSpy.mockResolvedValue(INCIDENT_NAME);
+  test("no number known: the incident all the same, never a bare link", () => {
+    expect(
+      WorkspaceIncidentFromAlert.getNotLinkedAnswer({
+        incident: null,
+        notLinkedCount: 1,
+        alertNotLinked: null,
+      })?.markdown,
+    ).toBe(
+      "The incident is not linked to 1 resource you picked: it was deleted or archived, or you may no longer view it.",
+    );
+  });
+
+  test("for an incident just declared: by its number, linked - and nothing read when everything was linked", async () => {
+    const linkSpy: SpyInstance<
+      typeof IncidentService.getIncidentLinkInDashboard
+    > = jest
+      .spyOn(IncidentService, "getIncidentLinkInDashboard")
+      .mockResolvedValue(URL.fromString(INCIDENT_LINK));
 
     const incident: Incident = new Incident();
     incident.id = INCIDENT_ID;
@@ -742,7 +759,7 @@ describe("what the person who declared it is told was not linked", () => {
         alertNotLinked: null,
       }),
     ).resolves.toBeNull();
-    expect(getRecordNameSpy).not.toHaveBeenCalled();
+    expect(linkSpy).not.toHaveBeenCalled();
 
     await expect(
       WorkspaceIncidentFromAlert.readNotLinkedAnswer({
@@ -752,13 +769,29 @@ describe("what the person who declared it is told was not linked", () => {
         alertNotLinked: null,
       }),
     ).resolves.toEqual(answer({ notLinkedCount: 1 }));
-    expect(getRecordNameSpy).toHaveBeenCalledWith({
-      type: WorkspaceEventType.Incident,
-      id: INCIDENT_ID,
-      projectId: PROJECT_ID,
-      currentStateId: undefined,
-      number: 43,
-      numberWithPrefix: "INC-43",
-    });
+    expect(linkSpy).toHaveBeenCalledWith(PROJECT_ID, INCIDENT_ID);
+  });
+
+  test("a project with no number prefix: #43; a link that cannot be built: the number in bold", async () => {
+    jest
+      .spyOn(IncidentService, "getIncidentLinkInDashboard")
+      .mockRejectedValue(new Error("no dashboard address"));
+
+    const incident: Incident = new Incident();
+    incident.id = INCIDENT_ID;
+    incident.incidentNumber = 43;
+
+    expect(
+      (
+        await WorkspaceIncidentFromAlert.readNotLinkedAnswer({
+          projectId: PROJECT_ID,
+          incident: incident,
+          notLinkedCount: 1,
+          alertNotLinked: null,
+        })
+      )?.markdown,
+    ).toBe(
+      "The incident **#43** is not linked to 1 resource you picked: it was deleted or archived, or you may no longer view it.",
+    );
   });
 });
