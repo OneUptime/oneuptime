@@ -40775,5 +40775,7 @@
   "Workspace Home Choice": "Startsidevalg for arbejdsområdet",
   "Workspace Home Choices": "Startsidevalg for arbejdsområdet",
   "Workspace User ID": "Bruger-ID i arbejdsområdet",
-  "We couldn't change the default layout. Try again.": "We couldn't change the default layout. Try again."
+  "We couldn't change the default layout. Try again.": "We couldn't change the default layout. Try again.",
+  "Page on-call policy {{policy}} for incident {{incident}}": "Tilkald via vagtpolitikken {{policy}} om hændelse {{incident}}",
+  "Run runbook {{runbook}} for incident {{incident}}": "Kør runbook {{runbook}} for hændelse {{incident}}"
 }

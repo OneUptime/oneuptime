@@ -40775,5 +40775,7 @@
   "Workspace Home Choice": "Escolha de Início do espaço de trabalho",
   "Workspace Home Choices": "Escolhas de Início do espaço de trabalho",
   "Workspace User ID": "ID do Usuário no espaço de trabalho",
-  "We couldn't change the default layout. Try again.": "We couldn't change the default layout. Try again."
+  "We couldn't change the default layout. Try again.": "We couldn't change the default layout. Try again.",
+  "Page on-call policy {{policy}} for incident {{incident}}": "Acionar a política de plantão {{policy}} para o incidente {{incident}}",
+  "Run runbook {{runbook}} for incident {{incident}}": "Executar o runbook {{runbook}} para o incidente {{incident}}"
 }

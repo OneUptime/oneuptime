@@ -321,15 +321,19 @@ describe("every card says sentences the Dashboard words", () => {
       expect(title).not.toContain(RECORD_ID);
     }
 
+    /*
+     * A number bare, a name in quotes - and a page or a run names the
+     * incident it is for too.
+     */
     expect(titles).toEqual(
       expect.arrayContaining([
         "Acknowledge incident INC-42",
         "Resolve alert ALR-7",
         "Link incident INC-42 to affected resources",
-        "Page on-call policy Checkout on-call",
-        "Run runbook Restart checkout",
+        'Page on-call policy "Checkout on-call" for incident INC-42',
+        'Run runbook "Restart checkout" for incident INC-42',
         "Add a note to security case CASE-3",
-        "Run playbook Contain host on security case CASE-3",
+        'Run playbook "Contain host" on security case CASE-3',
       ]),
     );
   });

@@ -40775,5 +40775,7 @@
   "Workspace Home Choice": "워크스페이스 홈 선택",
   "Workspace Home Choices": "워크스페이스 홈 선택",
   "Workspace User ID": "워크스페이스 사용자 ID",
-  "We couldn't change the default layout. Try again.": "We couldn't change the default layout. Try again."
+  "We couldn't change the default layout. Try again.": "We couldn't change the default layout. Try again.",
+  "Page on-call policy {{policy}} for incident {{incident}}": "인시던트 {{incident}}에 대해 온콜 정책 {{policy}}(으)로 호출",
+  "Run runbook {{runbook}} for incident {{incident}}": "인시던트 {{incident}}에 대해 런북 {{runbook}} 실행"
 }

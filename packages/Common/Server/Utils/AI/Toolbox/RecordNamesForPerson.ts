@@ -24,9 +24,9 @@ import { PreparedMutation, ToolArgs, ToolContext } from "./ToolTypes";
  * nothing, in any language. So before the card is shown, the action's
  * prepare (ObservabilityTool.prepareMutation) reads the record the way the
  * person knows it - an incident by its number ("INC-42", or "#42" with no
- * prefix), a runbook or a policy by its name - with the person's own
- * props, and the card names it so (Types/AI/AIActionWords: data in the
- * sentence, never a sentence of its own).
+ * prefix), a runbook or a policy by its name, in quotes - with the
+ * person's own props, and the card names it so (Types/AI/AIActionWords:
+ * data in the sentence, never a sentence of its own).
  *
  * Every reader answers null when the call names no record, when the
  * person may not read it, or when the read fails: the card then keeps the
@@ -179,9 +179,10 @@ export async function getSecurityPlaybookNameForPerson(data: {
 
 /*
  * What a call names, the way the person knows each: the record behind each
- * of `keys` it names by a real ID ("incidentId" -> "INC-42"), read with the
- * person's props. A key it does not name, or names a record the person
- * may not read, is left out.
+ * of `keys` it names by a real ID ("incidentId" -> "INC-42", "runbookId"
+ * -> '"Restart checkout"', a name in quotes), read with the person's
+ * props. A key it does not name, or names a record the person may not
+ * read, is left out.
  */
 export type RecordNameKey =
   | "incidentId"
@@ -219,7 +220,18 @@ export async function getRecordNamesForPerson(data: {
   return names;
 }
 
-function readRecordName(data: {
+/*
+ * A name in a title, in quotes - 'Run runbook "Restart checkout"' - as the
+ * card's line writes a resource's (aiActionResourceByName): a name runs on
+ * into the sentence otherwise ("Run runbook Restart checkout"), in every
+ * language. Written as a JSON string, so a quote in the name can never
+ * read as its end. A number ("INC-42") needs none.
+ */
+export function quoteRecordName(name: string | null): string | null {
+  return name ? JSON.stringify(name) : null;
+}
+
+async function readRecordName(data: {
   key: RecordNameKey;
   id: ObjectID;
   ctx: ToolContext;
@@ -235,17 +247,23 @@ function readRecordName(data: {
         ctx: data.ctx,
       });
     case "onCallDutyPolicyId":
-      return getOnCallPolicyNameForPerson({
-        onCallDutyPolicyId: data.id,
-        ctx: data.ctx,
-      });
+      return quoteRecordName(
+        await getOnCallPolicyNameForPerson({
+          onCallDutyPolicyId: data.id,
+          ctx: data.ctx,
+        }),
+      );
     case "runbookId":
-      return getRunbookNameForPerson({ runbookId: data.id, ctx: data.ctx });
+      return quoteRecordName(
+        await getRunbookNameForPerson({ runbookId: data.id, ctx: data.ctx }),
+      );
     case "securityPlaybookId":
-      return getSecurityPlaybookNameForPerson({
-        securityPlaybookId: data.id,
-        ctx: data.ctx,
-      });
+      return quoteRecordName(
+        await getSecurityPlaybookNameForPerson({
+          securityPlaybookId: data.id,
+          ctx: data.ctx,
+        }),
+      );
   }
 }
 

@@ -40775,5 +40775,7 @@
   "Workspace Home Choice": "वर्कस्पेस होम का चुनाव",
   "Workspace Home Choices": "वर्कस्पेस होम के चुनाव",
   "Workspace User ID": "वर्कस्पेस उपयोगकर्ता ID",
-  "We couldn't change the default layout. Try again.": "We couldn't change the default layout. Try again."
+  "We couldn't change the default layout. Try again.": "We couldn't change the default layout. Try again.",
+  "Page on-call policy {{policy}} for incident {{incident}}": "घटना {{incident}} के लिए ऑन-कॉल नीति {{policy}} से कॉल करें",
+  "Run runbook {{runbook}} for incident {{incident}}": "घटना {{incident}} के लिए रनबुक {{runbook}} चलाएं"
 }

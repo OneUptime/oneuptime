@@ -40775,5 +40775,7 @@
   "Workspace Home Choice": "Workspace Home Choice",
   "Workspace Home Choices": "Workspace Home Choices",
   "Workspace User ID": "Workspace User ID",
-  "We couldn't change the default layout. Try again.": "We couldn't change the default layout. Try again."
+  "We couldn't change the default layout. Try again.": "We couldn't change the default layout. Try again.",
+  "Page on-call policy {{policy}} for incident {{incident}}": "Page on-call policy {{policy}} for incident {{incident}}",
+  "Run runbook {{runbook}} for incident {{incident}}": "Run runbook {{runbook}} for incident {{incident}}"
 }

@@ -40775,5 +40775,7 @@
   "Workspace Home Choice": "Startpaginakeuze van de werkruimte",
   "Workspace Home Choices": "Startpaginakeuzes van de werkruimte",
   "Workspace User ID": "Gebruikers-ID in de werkruimte",
-  "We couldn't change the default layout. Try again.": "We couldn't change the default layout. Try again."
+  "We couldn't change the default layout. Try again.": "We couldn't change the default layout. Try again.",
+  "Page on-call policy {{policy}} for incident {{incident}}": "Bereikbaarheidsbeleid {{policy}} oproepen voor incident {{incident}}",
+  "Run runbook {{runbook}} for incident {{incident}}": "Runbook {{runbook}} uitvoeren voor incident {{incident}}"
 }

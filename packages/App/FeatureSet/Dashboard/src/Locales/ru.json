@@ -40775,5 +40775,7 @@
   "Workspace Home Choice": "Выбор главной страницы рабочего пространства",
   "Workspace Home Choices": "Записи о выборе главной страницы рабочего пространства",
   "Workspace User ID": "ID пользователя в рабочем пространстве",
-  "We couldn't change the default layout. Try again.": "We couldn't change the default layout. Try again."
+  "We couldn't change the default layout. Try again.": "We couldn't change the default layout. Try again.",
+  "Page on-call policy {{policy}} for incident {{incident}}": "Вызвать дежурных по политике {{policy}} по инциденту {{incident}}",
+  "Run runbook {{runbook}} for incident {{incident}}": "Запустить сценарий {{runbook}} для инцидента {{incident}}"
 }

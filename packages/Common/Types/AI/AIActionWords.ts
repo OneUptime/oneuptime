@@ -119,8 +119,10 @@ export const AI_ACTION_TITLES: {
   linkAlert: string;
   linkThisAlert: string;
   pageOnCallPolicy: string;
+  pageOnCallPolicyForIncident: string;
   pageOnCallPolicyUnnamed: string;
   runRunbook: string;
+  runRunbookForIncident: string;
   runRunbookUnnamed: string;
   postIncidentStatusUpdate: string;
   postIncidentStatusUpdateUnnamed: string;
@@ -156,8 +158,18 @@ export const AI_ACTION_TITLES: {
   linkAlert: translationKey("Link alert {{alert}} to affected resources"),
   linkThisAlert: translationKey("Link this alert to affected resources"),
   pageOnCallPolicy: translationKey("Page on-call policy {{policy}}"),
+  /*
+   * The incident a page or a run is for, by its number: without it, the
+   * card's line of arguments showed the incident's ID.
+   */
+  pageOnCallPolicyForIncident: translationKey(
+    "Page on-call policy {{policy}} for incident {{incident}}",
+  ),
   pageOnCallPolicyUnnamed: translationKey("Page on-call policy"),
   runRunbook: translationKey("Run runbook {{runbook}}"),
+  runRunbookForIncident: translationKey(
+    "Run runbook {{runbook}} for incident {{incident}}",
+  ),
   runRunbookUnnamed: translationKey("Run runbook"),
   postIncidentStatusUpdate: translationKey(
     "Post public status update on incident {{incident}}",

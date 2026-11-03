@@ -139,12 +139,29 @@ describe("the server's English is the English it always wrote", () => {
       "Change incident #12 severity to SEV1",
     ],
     [
+      // A name as the server writes it, in quotes (RecordNamesForPerson).
       "a playbook on a case",
       aiActionSentence(AI_ACTION_TITLES.runSecurityPlaybook, {
-        playbook: "Contain host",
+        playbook: '"Contain host"',
         securityCase: "CASE-3",
       }),
-      "Run playbook Contain host on security case CASE-3",
+      'Run playbook "Contain host" on security case CASE-3',
+    ],
+    [
+      "a page for an incident",
+      aiActionSentence(AI_ACTION_TITLES.pageOnCallPolicyForIncident, {
+        policy: '"Checkout on-call"',
+        incident: "INC-42",
+      }),
+      'Page on-call policy "Checkout on-call" for incident INC-42',
+    ],
+    [
+      "a run for an incident",
+      aiActionSentence(AI_ACTION_TITLES.runRunbookForIncident, {
+        runbook: '"Restart checkout"',
+        incident: "INC-42",
+      }),
+      'Run runbook "Restart checkout" for incident INC-42',
     ],
     [
       "a pull request",

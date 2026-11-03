@@ -40775,5 +40775,7 @@
   "Workspace Home Choice": "工作區首頁選擇",
   "Workspace Home Choices": "工作區首頁選擇",
   "Workspace User ID": "工作區使用者 ID",
-  "We couldn't change the default layout. Try again.": "We couldn't change the default layout. Try again."
+  "We couldn't change the default layout. Try again.": "We couldn't change the default layout. Try again.",
+  "Page on-call policy {{policy}} for incident {{incident}}": "為事件 {{incident}} 透過待命策略 {{policy}} 呼叫",
+  "Run runbook {{runbook}} for incident {{incident}}": "為事件 {{incident}} 執行操作手冊 {{runbook}}"
 }

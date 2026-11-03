@@ -40775,5 +40775,7 @@
   "Workspace Home Choice": "Startsideval för arbetsytan",
   "Workspace Home Choices": "Startsideval för arbetsytan",
   "Workspace User ID": "Användar-ID i arbetsytan",
-  "We couldn't change the default layout. Try again.": "We couldn't change the default layout. Try again."
+  "We couldn't change the default layout. Try again.": "We couldn't change the default layout. Try again.",
+  "Page on-call policy {{policy}} for incident {{incident}}": "Larma via jourpolicyn {{policy}} om incident {{incident}}",
+  "Run runbook {{runbook}} for incident {{incident}}": "Kör runbook {{runbook}} för incident {{incident}}"
 }

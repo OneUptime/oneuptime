@@ -57,6 +57,11 @@ import FeedMarkdown from "../../../../Utils/Markdown/FeedMarkdown";
 /*
  * The cards' titles: each record by the name or the number the person
  * knows it by, once the prepare read it, else by the call's ID.
+ *
+ * A page and a run name the incident they are for too, once the person's
+ * read named it ("Page on-call policy "Checkout" for incident INC-42"):
+ * the card's line of arguments otherwise showed its ID. An incident the
+ * prepare could not name stays on that line, as the call names it.
  */
 function buildPageOnCallPolicyTitle(
   args: JSONObject,
@@ -68,9 +73,16 @@ function buildPageOnCallPolicyTitle(
     "onCallDutyPolicyId",
   );
 
-  return policy
-    ? aiActionSentence(AI_ACTION_TITLES.pageOnCallPolicy, { policy })
-    : aiActionSentence(AI_ACTION_TITLES.pageOnCallPolicyUnnamed);
+  if (!policy) {
+    return aiActionSentence(AI_ACTION_TITLES.pageOnCallPolicyUnnamed);
+  }
+
+  return names.incidentId
+    ? aiActionSentence(AI_ACTION_TITLES.pageOnCallPolicyForIncident, {
+        policy,
+        incident: names.incidentId,
+      })
+    : aiActionSentence(AI_ACTION_TITLES.pageOnCallPolicy, { policy });
 }
 
 function buildRunRunbookTitle(
@@ -83,9 +95,16 @@ function buildRunRunbookTitle(
     "runbookId",
   );
 
-  return runbook
-    ? aiActionSentence(AI_ACTION_TITLES.runRunbook, { runbook })
-    : aiActionSentence(AI_ACTION_TITLES.runRunbookUnnamed);
+  if (!runbook) {
+    return aiActionSentence(AI_ACTION_TITLES.runRunbookUnnamed);
+  }
+
+  return names.incidentId
+    ? aiActionSentence(AI_ACTION_TITLES.runRunbookForIncident, {
+        runbook,
+        incident: names.incidentId,
+      })
+    : aiActionSentence(AI_ACTION_TITLES.runRunbook, { runbook });
 }
 
 function buildPostIncidentStatusUpdateTitle(
@@ -205,9 +224,9 @@ export const PageOnCallPolicyTool: ObservabilityTool = {
   buildActionTitle: (args: JSONObject): AIActionSentence => {
     return buildPageOnCallPolicyTitle(args, {});
   },
-  // The policy by its name, as the person knows it.
+  // The policy by its name and the incident by its number, as the person knows them.
   prepareMutation: prepareRecordNamesInTitle({
-    keys: ["onCallDutyPolicyId"],
+    keys: ["onCallDutyPolicyId", "incidentId"],
     buildTitle: buildPageOnCallPolicyTitle,
   }),
   execute: async (
@@ -380,9 +399,12 @@ export const RunRunbookTool: ObservabilityTool = {
   buildActionTitle: (args: JSONObject): AIActionSentence => {
     return buildRunRunbookTitle(args, {});
   },
-  // The runbook by its name, as the person knows it.
+  /*
+   * The runbook by its name and, when the run is for one, the incident by
+   * its number, as the person knows them.
+   */
   prepareMutation: prepareRecordNamesInTitle({
-    keys: ["runbookId"],
+    keys: ["runbookId", "incidentId"],
     buildTitle: buildRunRunbookTitle,
   }),
   execute: async (

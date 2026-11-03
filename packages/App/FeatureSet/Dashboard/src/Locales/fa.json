@@ -40775,5 +40775,7 @@
   "Workspace Home Choice": "انتخاب صفحه اصلی فضای کاری",
   "Workspace Home Choices": "انتخاب‌های صفحه اصلی فضای کاری",
   "Workspace User ID": "شناسه کاربر در فضای کاری",
-  "We couldn't change the default layout. Try again.": "We couldn't change the default layout. Try again."
+  "We couldn't change the default layout. Try again.": "We couldn't change the default layout. Try again.",
+  "Page on-call policy {{policy}} for incident {{incident}}": "فراخوانی با سیاست آنکال {{policy}} برای حادثه {{incident}}",
+  "Run runbook {{runbook}} for incident {{incident}}": "اجرای رانبوک {{runbook}} برای حادثه {{incident}}"
 }

@@ -40775,5 +40775,7 @@
   "Workspace Home Choice": "Startseiten-Auswahl des Arbeitsbereichs",
   "Workspace Home Choices": "Startseiten-Auswahlen des Arbeitsbereichs",
   "Workspace User ID": "Benutzer-ID im Arbeitsbereich",
-  "We couldn't change the default layout. Try again.": "Das Standardlayout konnte nicht geändert werden. Versuchen Sie es erneut."
+  "We couldn't change the default layout. Try again.": "Das Standardlayout konnte nicht geändert werden. Versuchen Sie es erneut.",
+  "Page on-call policy {{policy}} for incident {{incident}}": "Bereitschaftsrichtlinie {{policy}} zu Vorfall {{incident}} alarmieren",
+  "Run runbook {{runbook}} for incident {{incident}}": "Runbook {{runbook}} für Vorfall {{incident}} ausführen"
 }
