@@ -90,6 +90,19 @@ list opens at its first row, and one that could not load shows why at once
 | --------------------------------------------- | -------------------------------------------------- | ------------------------------------------------------ |
 | ![Divider handle](foldables-flat-divider.png) | ![Divider moved](foldables-flat-divider-moved.png) | ![Dark tabletop](foldables-tabletop-incident-dark.png) |
 
+Home and Settings split on a tabletop fold too: what needs the reader above
+it, the rows to tap below it, each half scrolling on its own. Sheets rise
+over the half on the table and stop at the band around the fold. From a
+keyboard, the divider's handle shows a ring while the arrow keys move it.
+
+| Home on a table                               | Settings on a table                                   | A sheet on a table                                          |
+| --------------------------------------------- | ----------------------------------------------------- | ----------------------------------------------------------- |
+| ![Tabletop Home](foldables-tabletop-home.png) | ![Tabletop Settings](foldables-tabletop-settings.png) | ![Note sheet on a table](foldables-tabletop-note-sheet.png) |
+
+| Home on a Flip                                 | Dark: Home on a table                                   | The divider from a keyboard                                     |
+| ---------------------------------------------- | ------------------------------------------------------- | --------------------------------------------------------------- |
+| ![Flip Home](foldables-tabletop-flip-home.png) | ![Dark tabletop Home](foldables-tabletop-home-dark.png) | ![Divider from a keyboard](foldables-flat-divider-keyboard.png) |
+
 Regenerate every set from a fresh export with
 `UPDATE_SCREENSHOTS=1 npm run test-ui`, or one of them with
 `-- --project=foldables`, `-- --project=tablets` or `-- --project=iphone-size`.
