@@ -1098,7 +1098,7 @@ describe("what the mobile app keeps and shows", () => {
 
     // Its own group, in the one scroll or below a tabletop fold.
     expect(settings).toMatch(
-      /biometric\.isAvailable \? \( <ListGroup title="Security"[^>]*> <ListItem title="Biometrics Login"/,
+      /biometric\.isAvailable \? \( <ListGroup title="Security"[^>]{0,200}> <ListItem title="Biometrics Login"/,
     );
     expect(settings.split("{security}").length - 1).toBe(2);
     expect(biometric).toContain(
