@@ -1,5 +1,6 @@
 import URL from "Common/Types/API/URL";
 import IconProp from "Common/Types/Icon/IconProp";
+import { getReadingDirection } from "Common/Types/ReadingDirection";
 import Button, {
   ButtonSize,
   ButtonStyleType,
@@ -8,8 +9,12 @@ import CodeBlock from "Common/UI/Components/CodeBlock/CodeBlock";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import { DOCS_URL } from "Common/UI/Config";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  getSentenceLanguage,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   SEND_THROUGH_COLLECTOR_DOCS_PATH,
@@ -21,6 +26,7 @@ import InsightPanel from "../AIInsights/InsightPanel";
 import SetupGuideSteps from "../SetupGuide/SetupGuideSteps";
 import {
   SPAN_METRICS_STEP_COPY,
+  SPAN_METRICS_STEP_NAMES,
   SPAN_METRICS_STEP_TEST_IDS,
 } from "./SpanMetricsStepCopy";
 
@@ -41,6 +47,50 @@ import {
 const LINK_CLASS_NAME: string =
   "inline-flex items-center gap-1 font-medium text-indigo-600 hover:text-indigo-500 hover:underline";
 
+/*
+ * A name from the collector's lines inside a sentence - spanmetrics, otlp,
+ * traces.span.metrics.calls - drawn as the code it is, as a code task's
+ * steps draw a file's name (CodeTaskSteps).
+ */
+export const SPAN_METRICS_STEP_NAME_CLASS_NAME: string =
+  "rounded bg-gray-100 px-1 py-0.5 font-mono text-xs text-gray-700";
+
+/*
+ * A step's sentence in the reader's language, with the collector's names in
+ * it drawn as code and never translated (TranslatedSentence): drawn as
+ * SetupGuideSteps draws a step's description, and read the way the sentence
+ * came out - an English sentence a locale lacks reads left to right on a
+ * Persian page, as a description by most of its letters does there.
+ */
+const StepSentence: FunctionComponent<{
+  template: string;
+  names: Readonly<Record<string, string>>;
+  dataTestId: string;
+}> = (props: {
+  template: string;
+  names: Readonly<Record<string, string>>;
+  dataTestId: string;
+}): ReactElement => {
+  const translator: Translator = useTranslator();
+  const slots: Record<string, ReactElement> = {};
+
+  for (const [slot, name] of Object.entries(props.names)) {
+    slots[slot] = (
+      <code className={SPAN_METRICS_STEP_NAME_CLASS_NAME}>{name}</code>
+    );
+  }
+
+  return (
+    <p
+      dir={getReadingDirection(getSentenceLanguage(translator, props.template))}
+      className="mb-3 mt-0.5 text-sm leading-relaxed text-gray-500"
+      data-testid={props.dataTestId}
+    >
+      <TranslatedSentence template={props.template} slots={slots} />
+    </p>
+  );
+};
+
 const SpanMetricsStepPanel: FunctionComponent = (): ReactElement => {
   const translator: Translator = useTranslator();
   const [isShown, setIsShown] = useState<boolean>(false);
@@ -55,7 +105,11 @@ const SpanMetricsStepPanel: FunctionComponent = (): ReactElement => {
         <div className="flex flex-col items-stretch md:items-start">
           <Button
             title={SPAN_METRICS_STEP_COPY.showStep}
-            icon={IconProp.Code}
+            /*
+             * The lines of a config file, not code: the panel's whole point
+             * is that no code changes, and a </> said otherwise.
+             */
+            icon={IconProp.DocumentText}
             buttonStyle={ButtonStyleType.OUTLINE}
             buttonSize={ButtonSize.Small}
             dataTestId={SPAN_METRICS_STEP_TEST_IDS.show}
@@ -74,6 +128,14 @@ const SpanMetricsStepPanel: FunctionComponent = (): ReactElement => {
           description={SPAN_METRICS_STEP_COPY.modalDescription}
           modalWidth={ModalWidth.Medium}
           closeButtonText={SPAN_METRICS_STEP_COPY.close}
+          /*
+           * A dialog to read and copy from. Its first link opens the docs in
+           * a new tab, and a dialog that started on it - the Enter that
+           * opened it, held a moment too long - would open them, its focus
+           * ring on a link the reader never asked for: it starts on itself,
+           * and Tab reaches the links and the copy button.
+           */
+          isInitialFocusOnDialog={true}
           onClose={() => {
             setIsShown(false);
           }}
@@ -119,20 +181,24 @@ const SpanMetricsStepPanel: FunctionComponent = (): ReactElement => {
                     translator.translateText(
                       SPAN_METRICS_STEP_COPY.addStepTitle,
                     ) || SPAN_METRICS_STEP_COPY.addStepTitle,
-                  description: translator.translateText(
-                    SPAN_METRICS_STEP_COPY.addStepDescription,
-                  ),
                   content: (
-                    // Code reads left to right in every language.
-                    <div
-                      dir="ltr"
-                      data-testid={SPAN_METRICS_STEP_TEST_IDS.code}
-                    >
-                      <CodeBlock
-                        code={SPAN_METRICS_COLLECTOR_STEP}
-                        language="yaml"
+                    <>
+                      <StepSentence
+                        template={SPAN_METRICS_STEP_COPY.addStepDescription}
+                        names={SPAN_METRICS_STEP_NAMES.addStep}
+                        dataTestId={SPAN_METRICS_STEP_TEST_IDS.addSentence}
                       />
-                    </div>
+                      {/* Code reads left to right in every language. */}
+                      <div
+                        dir="ltr"
+                        data-testid={SPAN_METRICS_STEP_TEST_IDS.code}
+                      >
+                        <CodeBlock
+                          code={SPAN_METRICS_COLLECTOR_STEP}
+                          language="yaml"
+                        />
+                      </div>
+                    </>
                   ),
                 },
                 {
@@ -140,10 +206,13 @@ const SpanMetricsStepPanel: FunctionComponent = (): ReactElement => {
                     translator.translateText(
                       SPAN_METRICS_STEP_COPY.restartTitle,
                     ) || SPAN_METRICS_STEP_COPY.restartTitle,
-                  description: translator.translateText(
-                    SPAN_METRICS_STEP_COPY.restartDescription,
+                  content: (
+                    <StepSentence
+                      template={SPAN_METRICS_STEP_COPY.restartDescription}
+                      names={SPAN_METRICS_STEP_NAMES.restart}
+                      dataTestId={SPAN_METRICS_STEP_TEST_IDS.restartSentence}
+                    />
                   ),
-                  content: <></>,
                 },
               ]}
             />

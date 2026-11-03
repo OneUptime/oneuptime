@@ -41555,11 +41555,11 @@
   "This applies to the on-call policies you tick. To end it early, delete it on each policy's User Overrides page, under Advanced.": "Это действует для политик дежурства, которые вы отметите. Чтобы завершить досрочно, удалите его на странице Пользовательские переопределения каждой политики, в разделе Расширенный.",
   "This applies to the on-call policy {{policy}}. To end it early, delete it on that policy's User Overrides page, under Advanced.": "Это действует для политики дежурства {{policy}}. Чтобы завершить досрочно, удалите его на странице Пользовательские переопределения этой политики, в разделе Расширенный.",
   "Tick at least one on-call policy.": "Отметьте хотя бы одну политику дежурства.",
-  "Add the span metrics step": "Добавьте шаг метрик спанов",
+  "Add the span metrics connector": "Добавьте коннектор метрик спанов",
   "Do your services send straight to OneUptime? Put a collector in front of them first.": "Ваши сервисы отправляют данные прямо в OneUptime? Сначала поставьте перед ними коллектор.",
   "Every hour OneUptime looks for metrics that record too many values, histograms whose buckets do not fit, and busy services that send no metrics for their requests. It files what it finds here with the evidence. OneUptime AI looks into each finding and opens a pull request to fix it, as your AI settings say.": "Каждый час OneUptime ищет метрики, которые записывают слишком много значений, гистограммы, чьи корзины не подходят, и загруженные сервисы, которые не отправляют метрик своих запросов. Найденное сохраняется здесь вместе с доказательствами. OneUptime AI изучает каждую находку и открывает пул-реквест с исправлением, как указано в ваших настройках ИИ.",
   "Found request metrics the code should add": "Найдены недостающие метрики запросов в коде",
-  "How the span metrics step works": "Как работает шаг метрик спанов",
+  "How the span metrics connector works": "Как работает коннектор метрик спанов",
   "Missing Request Metrics": "Недостающие метрики запросов",
   "OneUptime AI opens a pull request that adds request metrics to this service, for you to review.": "OneUptime AI откроет пул-реквест, который добавит метрики запросов в этот сервис, — вам на проверку.",
   "Record request metrics from traces": "Запись метрик запросов по трассировкам",
@@ -41568,8 +41568,8 @@
   "Show the collector step": "Показать шаг коллектора",
   "Without changing code": "Без изменения кода",
   "Every hour OneUptime files a finding when a metric records too many values, a histogram's buckets do not fit, or a service's requests have no metrics.": "Каждый час OneUptime регистрирует находку, когда метрика записывает слишком много значений, корзины гистограммы не подходят или у запросов сервиса нет метрик.",
-  "Add spanmetrics to the collector's config: as an exporter of the traces pipeline, and as a receiver of the metrics pipeline. Keep your own receivers, processors and OneUptime exporter, named otlphttp here.": "Добавьте spanmetrics в конфигурацию коллектора: как exporter конвейера трассировок и как receiver конвейера метрик. Оставьте свои receivers, processors и exporter для OneUptime, здесь он называется otlphttp.",
+  "Add these lines to your collector's config. Only {{connector}} is new: where they say {{receiver}}, {{processor}} or {{exporter}}, keep the names your config already uses.": "Добавьте эти строки в конфигурацию коллектора. Новый здесь только {{connector}}: там, где указаны {{receiver}}, {{processor}} или {{exporter}}, оставьте имена, которые уже используются в вашей конфигурации.",
   "Your OpenTelemetry Collector records them from the spans passing through it, for every service at once. No code changes.": "Ваш OpenTelemetry Collector записывает их по спанам, проходящим через него, сразу для всех сервисов. Без изменения кода.",
   "An OpenTelemetry Collector can record this service's request metrics from its traces.": "OpenTelemetry Collector может записывать метрики запросов этого сервиса по его трассировкам.",
-  "Within a few minutes each service sends traces.span.metrics.calls and traces.span.metrics.duration. Then resolve this finding.": "Через несколько минут каждый сервис начнёт отправлять traces.span.metrics.calls и traces.span.metrics.duration. Затем устраните эту находку."
+  "Within a few minutes each service sends {{calls}} and {{duration}}. Then resolve this finding.": "Через несколько минут каждый сервис начнёт отправлять {{calls}} и {{duration}}. Затем устраните эту находку."
 }

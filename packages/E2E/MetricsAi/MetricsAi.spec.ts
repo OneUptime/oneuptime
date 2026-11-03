@@ -995,6 +995,11 @@ test.describe("Metrics → AI → a finding", () => {
         await expect(dialog.getByTestId("modal-title")).toHaveText(
           "Record request metrics from traces",
         );
+        /*
+         * A dialog to read: it starts on itself, never on its first link,
+         * which an Enter held a moment too long would open.
+         */
+        await expect(dialog).toBeFocused();
         await expect(dialog.getByTestId("modal-description")).toHaveText(
           "Your OpenTelemetry Collector records them from the spans passing through it, for every service at once. No code changes.",
         );
@@ -1029,11 +1034,23 @@ test.describe("Metrics → AI → a finding", () => {
 
         // The two steps, in order, and the lines to add exactly as written.
         await expect(dialog.getByTestId("setup-guide-step-1")).toContainText(
-          "Add the span metrics step",
+          "Add the span metrics connector",
         );
+        // The collector's own names in the steps' sentences, drawn as code.
+        await expect(
+          dialog.getByTestId("span-metrics-step-add-sentence").locator("code"),
+        ).toHaveText(["spanmetrics", "otlp", "batch", "otlphttp"]);
         await expect(dialog.getByTestId("setup-guide-step-2")).toContainText(
           "Restart the collector",
         );
+        await expect(
+          dialog
+            .getByTestId("span-metrics-step-restart-sentence")
+            .locator("code"),
+        ).toHaveText([
+          "traces.span.metrics.calls",
+          "traces.span.metrics.duration",
+        ]);
         await expect(dialog.getByTestId("setup-guide-step-2")).toContainText(
           "Then resolve this finding.",
         );
@@ -1047,7 +1064,7 @@ test.describe("Metrics → AI → a finding", () => {
 
         const docs: Locator = dialog.getByTestId("span-metrics-step-docs");
 
-        await expect(docs).toHaveText("How the span metrics step works");
+        await expect(docs).toHaveText("How the span metrics connector works");
         await expect(docs).toHaveAttribute("target", "_blank");
         expect(
           new URL((await docs.getAttribute("href")) || "", page.url()).hash,

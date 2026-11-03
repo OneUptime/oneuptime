@@ -41555,11 +41555,11 @@
   "This applies to the on-call policies you tick. To end it early, delete it on each policy's User Overrides page, under Advanced.": "Dit geldt voor het bereikbaarheidsbeleid dat u aanvinkt. Verwijder het op de pagina Gebruikersoverschrijvingen van elk beleid, onder Geavanceerd, om het eerder te beëindigen.",
   "This applies to the on-call policy {{policy}}. To end it early, delete it on that policy's User Overrides page, under Advanced.": "Dit geldt voor het bereikbaarheidsbeleid {{policy}}. Verwijder het op de pagina Gebruikersoverschrijvingen van dat beleid, onder Geavanceerd, om het eerder te beëindigen.",
   "Tick at least one on-call policy.": "Vink minstens één bereikbaarheidsbeleid aan.",
-  "Add the span metrics step": "De stap voor spanmetrieken toevoegen",
+  "Add the span metrics connector": "De connector voor spanmetrieken toevoegen",
   "Do your services send straight to OneUptime? Put a collector in front of them first.": "Sturen uw diensten rechtstreeks naar OneUptime? Zet er dan eerst een collector voor.",
   "Every hour OneUptime looks for metrics that record too many values, histograms whose buckets do not fit, and busy services that send no metrics for their requests. It files what it finds here with the evidence. OneUptime AI looks into each finding and opens a pull request to fix it, as your AI settings say.": "Elk uur zoekt OneUptime naar metrieken die te veel waarden vastleggen, histogrammen waarvan de buckets niet passen en drukke diensten die geen metrieken voor hun verzoeken sturen. Wat het vindt, legt het hier vast met het bewijs. OneUptime AI onderzoekt elke bevinding en opent een pull request om die op te lossen, zoals uw AI-instellingen aangeven.",
   "Found request metrics the code should add": "Ontbrekende verzoekmetrieken in de code gevonden",
-  "How the span metrics step works": "Zo werkt de stap voor spanmetrieken",
+  "How the span metrics connector works": "Zo werkt de connector voor spanmetrieken",
   "Missing Request Metrics": "Ontbrekende verzoekmetrieken",
   "OneUptime AI opens a pull request that adds request metrics to this service, for you to review.": "OneUptime AI opent een pull request die verzoekmetrieken aan deze dienst toevoegt, zodat u die kunt beoordelen.",
   "Record request metrics from traces": "Verzoekmetrieken uit traces vastleggen",
@@ -41568,8 +41568,8 @@
   "Show the collector step": "Collectorstap tonen",
   "Without changing code": "Zonder code te wijzigen",
   "Every hour OneUptime files a finding when a metric records too many values, a histogram's buckets do not fit, or a service's requests have no metrics.": "Elk uur legt OneUptime een bevinding vast als een metriek te veel waarden vastlegt, de buckets van een histogram niet passen of de verzoeken van een dienst geen metrieken hebben.",
-  "Add spanmetrics to the collector's config: as an exporter of the traces pipeline, and as a receiver of the metrics pipeline. Keep your own receivers, processors and OneUptime exporter, named otlphttp here.": "Voeg spanmetrics toe aan de configuratie van de collector: als exporter van de traces-pipeline en als receiver van de metrics-pipeline. Behoud uw eigen receivers, processors en OneUptime-exporter, hier otlphttp genoemd.",
+  "Add these lines to your collector's config. Only {{connector}} is new: where they say {{receiver}}, {{processor}} or {{exporter}}, keep the names your config already uses.": "Voeg deze regels toe aan de configuratie van uw collector. Alleen {{connector}} is nieuw: waar {{receiver}}, {{processor}} of {{exporter}} staat, behoudt u de namen die uw configuratie al gebruikt.",
   "Your OpenTelemetry Collector records them from the spans passing through it, for every service at once. No code changes.": "Uw OpenTelemetry Collector legt ze vast uit de spans die erdoorheen gaan, voor alle diensten tegelijk. Zonder code te wijzigen.",
   "An OpenTelemetry Collector can record this service's request metrics from its traces.": "Een OpenTelemetry Collector kan de verzoekmetrieken van deze dienst vastleggen uit de traces van de dienst.",
-  "Within a few minutes each service sends traces.span.metrics.calls and traces.span.metrics.duration. Then resolve this finding.": "Binnen enkele minuten stuurt elke dienst traces.span.metrics.calls en traces.span.metrics.duration. Los deze bevinding daarna op."
+  "Within a few minutes each service sends {{calls}} and {{duration}}. Then resolve this finding.": "Binnen enkele minuten stuurt elke dienst {{calls}} en {{duration}}. Los deze bevinding daarna op."
 }

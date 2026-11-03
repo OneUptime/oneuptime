@@ -41555,11 +41555,11 @@
   "This applies to the on-call policies you tick. To end it early, delete it on each policy's User Overrides page, under Advanced.": "Vale per le policy di reperibilità che selezioni. Per terminarla prima, eliminala nella pagina Sostituzioni utente di ogni policy, in Avanzato.",
   "This applies to the on-call policy {{policy}}. To end it early, delete it on that policy's User Overrides page, under Advanced.": "Vale per la policy di reperibilità {{policy}}. Per terminarla prima, eliminala nella pagina Sostituzioni utente di quella policy, in Avanzato.",
   "Tick at least one on-call policy.": "Seleziona almeno una policy di reperibilità.",
-  "Add the span metrics step": "Aggiungi il passaggio delle metriche degli span",
+  "Add the span metrics connector": "Aggiungi il connettore delle metriche degli span",
   "Do your services send straight to OneUptime? Put a collector in front of them first.": "I tuoi servizi inviano direttamente a OneUptime? Metti prima un collector davanti a loro.",
   "Every hour OneUptime looks for metrics that record too many values, histograms whose buckets do not fit, and busy services that send no metrics for their requests. It files what it finds here with the evidence. OneUptime AI looks into each finding and opens a pull request to fix it, as your AI settings say.": "Ogni ora OneUptime cerca metriche che registrano troppi valori, istogrammi i cui bucket non sono adatti e servizi molto usati che non inviano metriche per le loro richieste. Registra qui ciò che trova, con le prove. OneUptime AI analizza ogni rilevamento e apre una pull request per correggerlo, come indicano le tue impostazioni IA.",
   "Found request metrics the code should add": "Trovate metriche delle richieste mancanti nel codice",
-  "How the span metrics step works": "Come funziona il passaggio delle metriche degli span",
+  "How the span metrics connector works": "Come funziona il connettore delle metriche degli span",
   "Missing Request Metrics": "Metriche delle richieste mancanti",
   "OneUptime AI opens a pull request that adds request metrics to this service, for you to review.": "OneUptime AI apre una pull request che aggiunge metriche delle richieste a questo servizio, da rivedere.",
   "Record request metrics from traces": "Registra le metriche delle richieste dalle tracce",
@@ -41568,8 +41568,8 @@
   "Show the collector step": "Mostra il passaggio del collector",
   "Without changing code": "Senza modificare il codice",
   "Every hour OneUptime files a finding when a metric records too many values, a histogram's buckets do not fit, or a service's requests have no metrics.": "Ogni ora OneUptime registra un rilevamento quando una metrica registra troppi valori, i bucket di un istogramma non sono adatti o le richieste di un servizio non hanno metriche.",
-  "Add spanmetrics to the collector's config: as an exporter of the traces pipeline, and as a receiver of the metrics pipeline. Keep your own receivers, processors and OneUptime exporter, named otlphttp here.": "Aggiungi spanmetrics alla configurazione del collector: come exporter della pipeline delle tracce e come receiver della pipeline delle metriche. Mantieni i tuoi receiver, i processor e l'exporter di OneUptime, qui chiamato otlphttp.",
+  "Add these lines to your collector's config. Only {{connector}} is new: where they say {{receiver}}, {{processor}} or {{exporter}}, keep the names your config already uses.": "Aggiungi queste righe alla configurazione del tuo collector. Solo {{connector}} è nuovo: dove compaiono {{receiver}}, {{processor}} o {{exporter}}, mantieni i nomi che la tua configurazione usa già.",
   "Your OpenTelemetry Collector records them from the spans passing through it, for every service at once. No code changes.": "Il tuo OpenTelemetry Collector le registra dagli span che lo attraversano, per tutti i servizi insieme. Senza modificare il codice.",
   "An OpenTelemetry Collector can record this service's request metrics from its traces.": "Un OpenTelemetry Collector può registrare le metriche delle richieste di questo servizio dalle sue tracce.",
-  "Within a few minutes each service sends traces.span.metrics.calls and traces.span.metrics.duration. Then resolve this finding.": "Entro pochi minuti ogni servizio invia traces.span.metrics.calls e traces.span.metrics.duration. Poi risolvi questo rilevamento."
+  "Within a few minutes each service sends {{calls}} and {{duration}}. Then resolve this finding.": "Entro pochi minuti ogni servizio invia {{calls}} e {{duration}}. Poi risolvi questo rilevamento."
 }

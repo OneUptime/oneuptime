@@ -41555,11 +41555,11 @@
   "This applies to the on-call policies you tick. To end it early, delete it on each policy's User Overrides page, under Advanced.": "선택한 온콜 정책에 적용됩니다. 일찍 끝내려면 각 정책의 고급 > 사용자 재정의 페이지에서 삭제하세요.",
   "This applies to the on-call policy {{policy}}. To end it early, delete it on that policy's User Overrides page, under Advanced.": "온콜 정책 {{policy}}에 적용됩니다. 일찍 끝내려면 해당 정책의 고급 > 사용자 재정의 페이지에서 삭제하세요.",
   "Tick at least one on-call policy.": "온콜 정책을 하나 이상 선택하세요.",
-  "Add the span metrics step": "스팬 메트릭 단계 추가",
+  "Add the span metrics connector": "스팬 메트릭 커넥터 추가",
   "Do your services send straight to OneUptime? Put a collector in front of them first.": "서비스가 OneUptime으로 직접 보내나요? 먼저 서비스 앞에 컬렉터를 두세요.",
   "Every hour OneUptime looks for metrics that record too many values, histograms whose buckets do not fit, and busy services that send no metrics for their requests. It files what it finds here with the evidence. OneUptime AI looks into each finding and opens a pull request to fix it, as your AI settings say.": "OneUptime은 매시간 너무 많은 값을 기록하는 메트릭, 버킷이 맞지 않는 히스토그램, 요청 메트릭을 보내지 않는 바쁜 서비스를 찾습니다. 발견한 내용은 근거와 함께 여기에 기록됩니다. OneUptime AI는 AI 설정에 따라 각 발견 사항을 살펴보고 수정하는 풀 리퀘스트를 엽니다.",
   "Found request metrics the code should add": "코드에 빠진 요청 메트릭을 찾았습니다",
-  "How the span metrics step works": "스팬 메트릭 단계의 작동 방식",
+  "How the span metrics connector works": "스팬 메트릭 커넥터의 작동 방식",
   "Missing Request Metrics": "누락된 요청 메트릭",
   "OneUptime AI opens a pull request that adds request metrics to this service, for you to review.": "OneUptime AI가 이 서비스에 요청 메트릭을 추가하는 풀 리퀘스트를 열고 검토를 요청합니다.",
   "Record request metrics from traces": "트레이스에서 요청 메트릭 기록",
@@ -41568,8 +41568,8 @@
   "Show the collector step": "컬렉터 단계 보기",
   "Without changing code": "코드 변경 없이",
   "Every hour OneUptime files a finding when a metric records too many values, a histogram's buckets do not fit, or a service's requests have no metrics.": "OneUptime은 매시간 메트릭이 너무 많은 값을 기록하거나, 히스토그램의 버킷이 맞지 않거나, 서비스의 요청에 메트릭이 없으면 발견 사항을 기록합니다.",
-  "Add spanmetrics to the collector's config: as an exporter of the traces pipeline, and as a receiver of the metrics pipeline. Keep your own receivers, processors and OneUptime exporter, named otlphttp here.": "컬렉터 구성에 spanmetrics를 traces 파이프라인의 exporter이자 metrics 파이프라인의 receiver로 추가하세요. 기존 receiver, processor와 OneUptime exporter(여기서는 otlphttp)는 그대로 두세요.",
+  "Add these lines to your collector's config. Only {{connector}} is new: where they say {{receiver}}, {{processor}} or {{exporter}}, keep the names your config already uses.": "이 줄을 컬렉터 구성에 추가하세요. 새로 추가되는 것은 {{connector}}뿐입니다. {{receiver}}, {{processor}}, {{exporter}}로 적힌 곳은 구성에서 이미 쓰고 있는 이름을 그대로 두세요.",
   "Your OpenTelemetry Collector records them from the spans passing through it, for every service at once. No code changes.": "OpenTelemetry Collector가 자신을 통과하는 스팬에서 모든 서비스의 요청 메트릭을 한 번에 기록합니다. 코드 변경이 필요 없습니다.",
   "An OpenTelemetry Collector can record this service's request metrics from its traces.": "OpenTelemetry Collector가 이 서비스의 트레이스에서 요청 메트릭을 기록할 수 있습니다.",
-  "Within a few minutes each service sends traces.span.metrics.calls and traces.span.metrics.duration. Then resolve this finding.": "몇 분 안에 각 서비스가 traces.span.metrics.calls와 traces.span.metrics.duration을 보냅니다. 그런 다음 이 발견 사항을 해결하세요."
+  "Within a few minutes each service sends {{calls}} and {{duration}}. Then resolve this finding.": "몇 분 안에 각 서비스가 {{calls}}와 {{duration}}을 보냅니다. 그런 다음 이 발견 사항을 해결하세요."
 }

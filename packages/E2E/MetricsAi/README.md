@@ -44,8 +44,10 @@ The suite covers, on a laptop and on a phone, light and dark:
   under Fix with AI on a Missing Metrics or Missing Request Metrics finding
   (and on no other), its dialog with the collector's span metrics step - the
   lines to add exactly as Common's SpanMetricsCollectorStep has them, left
-  to right, the docs it links, what a service that sends straight to
-  OneUptime does first - fitting a phone, and Close;
+  to right, the collector's names in the steps' sentences drawn as code, the
+  docs it links, what a service that sends straight to OneUptime does
+  first - starting on itself rather than its first link, fitting a phone,
+  and Close;
 - Logs: every investigation and pull request, newest first, a page at a
   time, nothing yet and a read that failed;
 - the names a large estate has (`?names=long`): titles and names in code

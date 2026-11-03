@@ -21,17 +21,27 @@ import i18next from "i18next";
 import path from "path";
 import React from "react";
 import { initReactI18next } from "react-i18next";
-import SpanMetricsStepPanel from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryAi/SpanMetricsStepPanel";
+import SpanMetricsStepPanel, {
+  SPAN_METRICS_STEP_NAME_CLASS_NAME,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryAi/SpanMetricsStepPanel";
 import {
   SPAN_METRICS_STEP_COPY,
+  SPAN_METRICS_STEP_NAMES,
   SPAN_METRICS_STEP_TEST_IDS,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryAi/SpanMetricsStepCopy";
 import { DOCS_URL } from "../../../UI/Config";
 import {
   SEND_THROUGH_COLLECTOR_DOCS_PATH,
+  SPAN_METRICS_CALLS_METRIC,
   SPAN_METRICS_COLLECTOR_STEP,
+  SPAN_METRICS_CONNECTOR,
   SPAN_METRICS_DOCS_PATH,
+  SPAN_METRICS_DURATION_METRIC,
+  SPAN_METRICS_ONEUPTIME_EXPORTER,
+  SPAN_METRICS_PROCESSOR,
+  SPAN_METRICS_RECEIVER,
 } from "../../../Utils/Metrics/SpanMetricsCollectorStep";
+import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 
 /*
  * "Without changing code" on a Missing Metrics or Missing Request Metrics
@@ -56,6 +66,59 @@ function readLocale(locale: string): Record<string, string> {
 
 const GERMAN: Record<string, string> = readLocale("de");
 const PERSIAN: Record<string, string> = readLocale("fa");
+
+// Every language the Dashboard is translated into.
+const JSON_EXTENSION: string = ".json";
+const LANGUAGES: Array<string> = fs
+  .readdirSync(LOCALES_DIR)
+  .filter((file: string): boolean => {
+    return file.endsWith(JSON_EXTENSION) && file !== "en.json";
+  })
+  .map((file: string): string => {
+    return file.slice(0, -JSON_EXTENSION.length);
+  });
+
+// A step's sentence, the template with the names it draws as code, by slot.
+type StepSentenceCase = [string, Readonly<Record<string, string>>, string];
+
+const STEP_SENTENCES: Array<StepSentenceCase> = [
+  [
+    SPAN_METRICS_STEP_COPY.addStepDescription,
+    SPAN_METRICS_STEP_NAMES.addStep,
+    SPAN_METRICS_STEP_TEST_IDS.addSentence,
+  ],
+  [
+    SPAN_METRICS_STEP_COPY.restartDescription,
+    SPAN_METRICS_STEP_NAMES.restart,
+    SPAN_METRICS_STEP_TEST_IDS.restartSentence,
+  ],
+];
+
+/*
+ * A step's sentence as it reads with its names in it - what the dialog
+ * draws, the names as code - from the template in a language's words.
+ */
+function filled(
+  template: string,
+  names: Readonly<Record<string, string>>,
+): string {
+  let sentence: string = template;
+
+  for (const [slot, name] of Object.entries(names)) {
+    sentence = sentence.split(`{{${slot}}}`).join(name);
+  }
+
+  return sentence;
+}
+
+// The names a sentence draws as code, in the order it draws them.
+function codeNames(sentence: HTMLElement): Array<string> {
+  return Array.from(sentence.querySelectorAll("code")).map(
+    (code: Element): string => {
+      return code.textContent || "";
+    },
+  );
+}
 
 // The panel's words, and the dialog's, as the reader's language has them.
 const WORDS: Array<string> = [
@@ -169,6 +232,29 @@ describe("the panel in a finding's rail", () => {
       /no longer finds/u,
     );
   });
+
+  test("names the steps for what they add, never a step inside a step", () => {
+    // "Step 1: Add the span metrics step" said step twice.
+    expect(SPAN_METRICS_STEP_COPY.addStepTitle).toBe(
+      "Add the span metrics connector",
+    );
+    expect(SPAN_METRICS_STEP_COPY.learnMore).toBe(
+      "How the span metrics connector works",
+    );
+
+    for (const words of [
+      SPAN_METRICS_STEP_COPY.addStepTitle,
+      SPAN_METRICS_STEP_COPY.addStepDescription,
+      SPAN_METRICS_STEP_COPY.restartTitle,
+      SPAN_METRICS_STEP_COPY.restartDescription,
+      SPAN_METRICS_STEP_COPY.learnMore,
+    ]) {
+      expect(words).not.toMatch(/\bstep\b/iu);
+    }
+
+    // The lines add a connector, as they say.
+    expect(SPAN_METRICS_COLLECTOR_STEP.split("\n")[0]).toBe("connectors:");
+  });
 });
 
 describe("the collector step's dialog", () => {
@@ -190,9 +276,19 @@ describe("the collector step's dialog", () => {
       within(dialog).getByTestId("setup-guide-step-2");
 
     expect(first).toHaveTextContent(SPAN_METRICS_STEP_COPY.addStepTitle);
-    expect(first).toHaveTextContent(SPAN_METRICS_STEP_COPY.addStepDescription);
+    expect(first).toHaveTextContent(
+      filled(
+        SPAN_METRICS_STEP_COPY.addStepDescription,
+        SPAN_METRICS_STEP_NAMES.addStep,
+      ),
+    );
     expect(second).toHaveTextContent(SPAN_METRICS_STEP_COPY.restartTitle);
-    expect(second).toHaveTextContent(SPAN_METRICS_STEP_COPY.restartDescription);
+    expect(second).toHaveTextContent(
+      filled(
+        SPAN_METRICS_STEP_COPY.restartDescription,
+        SPAN_METRICS_STEP_NAMES.restart,
+      ),
+    );
     expect(
       within(dialog).queryByTestId("setup-guide-step-3"),
     ).not.toBeInTheDocument();
@@ -204,6 +300,87 @@ describe("the collector step's dialog", () => {
     expect(
       within(second).queryByTestId(SPAN_METRICS_STEP_TEST_IDS.code),
     ).not.toBeInTheDocument();
+  });
+
+  test("each step's sentence draws the collector's own names as code, as the lines to add write them", () => {
+    render(<SpanMetricsStepPanel />);
+
+    const dialog: HTMLElement = openDialog();
+    const add: HTMLElement = within(dialog).getByTestId(
+      SPAN_METRICS_STEP_TEST_IDS.addSentence,
+    );
+    const restart: HTMLElement = within(dialog).getByTestId(
+      SPAN_METRICS_STEP_TEST_IDS.restartSentence,
+    );
+
+    // Only the connector is new: the receiver, processor and exporter are the reader's own.
+    expect(codeNames(add)).toEqual([
+      SPAN_METRICS_CONNECTOR,
+      SPAN_METRICS_RECEIVER,
+      SPAN_METRICS_PROCESSOR,
+      SPAN_METRICS_ONEUPTIME_EXPORTER,
+    ]);
+    expect(codeNames(restart)).toEqual([
+      SPAN_METRICS_CALLS_METRIC,
+      SPAN_METRICS_DURATION_METRIC,
+    ]);
+
+    // Each name the first sentence draws is one the lines write.
+    for (const name of codeNames(add)) {
+      expect(SPAN_METRICS_COLLECTOR_STEP).toContain(name);
+    }
+
+    for (const sentence of [add, restart]) {
+      for (const code of Array.from(sentence.querySelectorAll("code"))) {
+        expect(code.className).toBe(SPAN_METRICS_STEP_NAME_CLASS_NAME);
+      }
+    }
+
+    // Each sentence is its step's, the first one before the lines to add.
+    expect(within(dialog).getByTestId("setup-guide-step-1")).toContainElement(
+      add,
+    );
+    expect(within(dialog).getByTestId("setup-guide-step-2")).toContainElement(
+      restart,
+    );
+    expect(
+      add.compareDocumentPosition(
+        within(dialog).getByTestId(SPAN_METRICS_STEP_TEST_IDS.code),
+      ) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test("it opens on itself, not on its first link, and Tab still reaches the links and the copy button", () => {
+    render(<SpanMetricsStepPanel />);
+
+    const show: HTMLElement = screen.getByTestId(
+      SPAN_METRICS_STEP_TEST_IDS.show,
+    );
+
+    show.focus();
+    fireEvent.click(show);
+
+    /*
+     * The Enter that opened it, held a moment too long, would otherwise
+     * open its first link's docs in a new tab.
+     */
+    const collectorDocs: HTMLElement = screen.getByTestId(
+      SPAN_METRICS_STEP_TEST_IDS.collectorDocs,
+    );
+
+    expect(screen.getByRole("dialog")).toHaveFocus();
+    expect(collectorDocs).not.toHaveFocus();
+
+    for (const reachable of [
+      collectorDocs,
+      within(screen.getByTestId(SPAN_METRICS_STEP_TEST_IDS.code)).getByRole(
+        "button",
+        { name: /copy/iu },
+      ),
+      screen.getByTestId(SPAN_METRICS_STEP_TEST_IDS.docs),
+    ]) {
+      expect(reachable).not.toHaveAttribute("tabindex", "-1");
+    }
   });
 
   test("the lines to add are the step exactly, left to right, with a copy button", () => {
@@ -330,15 +507,25 @@ describe("in the reader's language", () => {
     for (const words of [
       SPAN_METRICS_STEP_COPY.modalTitle,
       SPAN_METRICS_STEP_COPY.addStepTitle,
-      SPAN_METRICS_STEP_COPY.addStepDescription,
       SPAN_METRICS_STEP_COPY.restartTitle,
-      SPAN_METRICS_STEP_COPY.restartDescription,
       SPAN_METRICS_STEP_COPY.noCollector,
       SPAN_METRICS_STEP_COPY.noCollectorLink,
       SPAN_METRICS_STEP_COPY.learnMore,
     ]) {
       expect(document.body).toHaveTextContent(GERMAN[words]!);
       expect(document.body).not.toHaveTextContent(words);
+    }
+
+    // The sentences read German, the collector's names in them as written.
+    for (const [template, names, testId] of STEP_SENTENCES) {
+      const sentence: HTMLElement = within(dialog).getByTestId(testId);
+
+      expect(sentence).toHaveTextContent(filled(GERMAN[template]!, names));
+      expect(sentence).not.toHaveTextContent(filled(template, names));
+      expect([...codeNames(sentence)].sort()).toEqual(
+        Object.values(names).sort(),
+      );
+      expect(sentence).toHaveAttribute("dir", "ltr");
     }
 
     expect(
@@ -363,21 +550,91 @@ describe("in the reader's language", () => {
 
     const dialog: HTMLElement = openDialog();
 
-    for (const step of [1, 2]) {
-      const description: HTMLElement = within(dialog)
-        .getByTestId(`setup-guide-step-${step}`)
-        .querySelector("p") as HTMLElement;
+    STEP_SENTENCES.forEach(
+      ([template, names, testId]: StepSentenceCase, index: number): void => {
+        const sentence: HTMLElement = within(dialog).getByTestId(testId);
 
-      // Its metric names are Latin letters, most of its letters Persian.
-      expect(description).toHaveAttribute("dir", "rtl");
-    }
+        // Each step's first paragraph is its sentence, read right to left.
+        expect(
+          within(dialog)
+            .getByTestId(`setup-guide-step-${index + 1}`)
+            .querySelector("p"),
+        ).toBe(sentence);
+        expect(sentence).toHaveAttribute("dir", "rtl");
+        expect(withoutIsolateMarks(sentence.textContent || "")).toBe(
+          filled(PERSIAN[template]!, names),
+        );
 
-    expect(within(dialog).getByTestId("setup-guide-step-2")).toHaveTextContent(
-      PERSIAN[SPAN_METRICS_STEP_COPY.restartDescription]!,
+        /*
+         * Its Latin names are set apart from the Persian words around them,
+         * so no comma or full stop jumps across one.
+         */
+        expect(sentence.textContent).not.toBe(
+          withoutIsolateMarks(sentence.textContent || ""),
+        );
+        expect([...codeNames(sentence)].sort()).toEqual(
+          Object.values(names).sort(),
+        );
+      },
     );
+
     expect(screen.getByTestId(SPAN_METRICS_STEP_TEST_IDS.code)).toHaveAttribute(
       "dir",
       "ltr",
     );
+  });
+
+  test("a sentence a right-to-left language has no words for yet reads English, left to right", async () => {
+    // Arabic reads right to left, and the Dashboard has no words of its own in it.
+    i18next.addResourceBundle("ar", "translation", {}, true, true);
+    await readIn("ar");
+    render(
+      <div dir="rtl">
+        <SpanMetricsStepPanel />
+      </div>,
+    );
+
+    const dialog: HTMLElement = openDialog();
+
+    for (const [template, names, testId] of STEP_SENTENCES) {
+      const sentence: HTMLElement = within(dialog).getByTestId(testId);
+
+      expect(sentence).toHaveAttribute("dir", "ltr");
+      expect(withoutIsolateMarks(sentence.textContent || "")).toBe(
+        filled(template, names),
+      );
+    }
+  });
+
+  test("every language keeps each name of a step's sentence once, or its reader would get English", () => {
+    expect(LANGUAGES).toHaveLength(16);
+
+    for (const language of LANGUAGES) {
+      const locale: Record<string, string> = readLocale(language);
+
+      for (const [template, names] of STEP_SENTENCES) {
+        const translated: string = locale[template] || "";
+
+        expect([language, translated.length > 0]).toEqual([language, true]);
+        expect([language, translated === template]).toEqual([language, false]);
+
+        for (const slot of Object.keys(names)) {
+          expect([
+            language,
+            slot,
+            translated.split(`{{${slot}}}`).length,
+          ]).toEqual([language, slot, 2]);
+        }
+
+        // No name is written into the words in place of its placeholder.
+        for (const name of Object.values(names)) {
+          expect([language, name, translated.includes(name)]).toEqual([
+            language,
+            name,
+            false,
+          ]);
+        }
+      }
+    }
   });
 });
