@@ -1,6 +1,11 @@
 import Email from "../Types/Email";
 import { JSONObject, JSONValue } from "../Types/JSON";
-import posthog from "posthog-js";
+/*
+ * Type-only: the class loads posthog-js itself once analytics starts
+ * (loadPostHog), so the library stays out of what a page downloads before it
+ * can draw.
+ */
+import type { PostHog } from "posthog-js";
 import { COOKIE_CONSENT_STORAGE_KEY } from "../Types/Analytics/CookieConsent";
 import {
   GoogleAnalyticsEventParameters,
@@ -60,6 +65,26 @@ const GA4_EVENT_NAME_FALLBACK: string = "event";
 // GA4 requires the first character of an event name to be a letter.
 const GA4_EVENT_NAME_LEADING_LETTER: RegExp = /^[a-z]/;
 
+// The part of PostHog this class calls.
+export type PostHogClient = Pick<
+  PostHog,
+  "init" | "identify" | "reset" | "capture"
+>;
+
+export type PostHogLoader = () => Promise<PostHogClient>;
+
+/*
+ * posthog-js, in a file of its own: the bundler splits out a module that is
+ * only imported with import(). It is about 160 KB of script that every page
+ * - the sign-in page among them - used to download and parse before it
+ * could draw (issue #5619). A page whose analytics is off never fetches it.
+ */
+const loadPostHog: PostHogLoader = async (): Promise<PostHogClient> => {
+  return (await import("posthog-js")).default;
+};
+
+type PostHogCall = (posthog: PostHogClient) => void;
+
 export default class Analytics {
   private _isInitialized: boolean = false;
   public get isInitialized(): boolean {
@@ -69,11 +94,70 @@ export default class Analytics {
     this._isInitialized = v;
   }
 
-  public constructor(apiHost: string, apiKey: string) {
+  // PostHog, once it has loaded and been set up.
+  private posthog: PostHogClient | null = null;
+
+  /*
+   * What was asked of PostHog before it loaded - who signed in, what they
+   * did, a sign-out - handed to it in that order as soon as it has.
+   */
+  private waitingCalls: Array<PostHogCall> = [];
+
+  private postHogLoaded: Promise<void> = Promise.resolve();
+
+  public constructor(
+    apiHost: string,
+    apiKey: string,
+    loadPostHogModule: PostHogLoader = loadPostHog,
+  ) {
     if (apiHost && apiKey && Analytics.isProductAnalyticsAllowed()) {
-      posthog.init(apiKey, { api_host: apiHost, autocapture: false });
       this.isInitialized = true;
+      this.postHogLoaded = loadPostHogModule().then(
+        (posthog: PostHogClient): void => {
+          posthog.init(apiKey, { api_host: apiHost, autocapture: false });
+          this.posthog = posthog;
+
+          for (const call of this.waitingCalls.splice(0)) {
+            try {
+              call(posthog);
+            } catch {
+              // One call PostHog refused does not hold back the ones after it.
+            }
+          }
+        },
+        (): void => {
+          /*
+           * It did not load: an ad blocker, a lost connection, a file a
+           * deploy has since replaced. This page measures nothing, and what
+           * waited is let go rather than kept for as long as the page is.
+           */
+          this.isInitialized = false;
+          this.waitingCalls = [];
+        },
+      );
     }
+  }
+
+  /**
+   * Settles once PostHog has loaded and been handed what waited for it, once
+   * it has failed to load, or at once where analytics never started.
+   */
+  public whenPostHogLoaded(): Promise<void> {
+    return this.postHogLoaded;
+  }
+
+  // Hands PostHog a call now if it has loaded, or once it does.
+  private callPostHog(call: PostHogCall): void {
+    if (!this.isInitialized) {
+      return;
+    }
+
+    if (this.posthog) {
+      call(this.posthog);
+      return;
+    }
+
+    this.waitingCalls.push(call);
   }
 
   /**
@@ -167,10 +251,11 @@ export default class Analytics {
   }
 
   public userAuth(email: Email): void {
-    if (!this.isInitialized) {
-      return;
-    }
-    posthog.identify(email.toString());
+    const distinctId: string = email.toString();
+
+    this.callPostHog((posthog: PostHogClient): void => {
+      posthog.identify(distinctId);
+    });
   }
 
   /**
@@ -285,11 +370,16 @@ export default class Analytics {
     });
   }
 
+  /*
+   * PostHog forgets the person. A sign-out before PostHog has loaded clears
+   * what it keeps in the browser anyway (UserUtil.logout empties local
+   * storage and cookies, its ph_* key included), so a call still waiting
+   * when the page navigates away loses nothing.
+   */
   public logout(): void {
-    if (!this.isInitialized) {
-      return;
-    }
-    posthog.reset();
+    this.callPostHog((posthog: PostHogClient): void => {
+      posthog.reset();
+    });
   }
 
   public captureRevenueEvent(
@@ -339,10 +429,16 @@ export default class Analytics {
   }
 
   public capture(eventName: string, data?: JSONObject): void {
-    // PostHog tracking. The original, un-normalised name is used here.
-    if (this.isInitialized) {
-      posthog.capture(eventName, data);
-    }
+    /*
+     * PostHog tracking. The original, un-normalised name is used here. The
+     * properties are copied: a call that waits for PostHog sends them as
+     * they were when the event happened.
+     */
+    const properties: JSONObject | undefined = data ? { ...data } : data;
+
+    this.callPostHog((posthog: PostHogClient): void => {
+      posthog.capture(eventName, properties);
+    });
 
     const page: MeasurementWindow | null = measurementWindow();
 

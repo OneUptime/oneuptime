@@ -2,6 +2,8 @@ import Email from "../../Types/Email";
 import { JSONObject } from "../../Types/JSON";
 import Analytics, {
   COOKIE_CONSENT_STORAGE_KEY,
+  PostHogClient,
+  PostHogLoader,
   PurchaseData,
 } from "../../Utils/Analytics";
 import { describe, expect, it } from "@jest/globals";
@@ -33,8 +35,12 @@ describe("Analytics Class", () => {
     jest.clearAllMocks();
   });
 
-  it("should initialize the Analytics class", () => {
+  it("should initialize the Analytics class", async () => {
     const analytics: Analytics = new Analytics(apiHost, apiKey);
+
+    expect(analytics.isInitialized).toBe(true);
+
+    await analytics.whenPostHogLoaded();
 
     expect(posthog.init).toHaveBeenCalledWith(apiKey, {
       api_host: apiHost,
@@ -43,53 +49,60 @@ describe("Analytics Class", () => {
     expect(analytics.isInitialized).toBe(true);
   });
 
-  it("should not initialize if apiHost and apiKey are not provided", () => {
+  it("should not initialize if apiHost and apiKey are not provided", async () => {
     const analytics: Analytics = new Analytics("", "");
+
+    await analytics.whenPostHogLoaded();
 
     expect(posthog.init).not.toHaveBeenCalled();
     expect(analytics.isInitialized).toBe(false);
   });
 
-  it("should authenticate a user", () => {
+  it("should authenticate a user", async () => {
     const analytics: Analytics = new Analytics(apiHost, apiKey);
     const email: Email = new Email("test@example.com");
 
     analytics.userAuth(email);
+    await analytics.whenPostHogLoaded();
     expect(posthog.identify).toHaveBeenCalledWith(email.toString());
   });
 
-  it("should not authenticate a user if not initialized", () => {
+  it("should not authenticate a user if not initialized", async () => {
     const analytics: Analytics = new Analytics("", "");
     const email: Email = new Email("test@example.com");
 
     analytics.userAuth(email);
+    await analytics.whenPostHogLoaded();
     expect(posthog.identify).not.toHaveBeenCalled();
   });
 
-  it("should reset the user session on logout", () => {
+  it("should reset the user session on logout", async () => {
     const analytics: Analytics = new Analytics(apiHost, apiKey);
 
     analytics.logout();
+    await analytics.whenPostHogLoaded();
     expect(posthog.reset).toHaveBeenCalled();
   });
 
-  it("should not reset the user session if not initialized", () => {
+  it("should not reset the user session if not initialized", async () => {
     const analytics: Analytics = new Analytics("", "");
 
     analytics.logout();
+    await analytics.whenPostHogLoaded();
     expect(posthog.reset).not.toHaveBeenCalled();
   });
 
-  it("should capture an event with optional data", () => {
+  it("should capture an event with optional data", async () => {
     const analytics: Analytics = new Analytics(apiHost, apiKey);
     const eventName: string = "testEvent";
     const data: JSONObject = { key: "value" };
 
     analytics.capture(eventName, data);
+    await analytics.whenPostHogLoaded();
     expect(posthog.capture).toHaveBeenCalledWith(eventName, data);
   });
 
-  it("should capture a versioned revenue event", () => {
+  it("should capture a versioned revenue event", async () => {
     const analytics: Analytics = new Analytics(apiHost, apiKey);
 
     analytics.captureRevenueEvent(RevenueEventName.WorkspaceCreated, {
@@ -97,6 +110,7 @@ describe("Analytics Class", () => {
       project_id: "project-123",
     });
 
+    await analytics.whenPostHogLoaded();
     expect(posthog.capture).toHaveBeenCalledWith(
       RevenueEventName.WorkspaceCreated,
       {
@@ -107,11 +121,279 @@ describe("Analytics Class", () => {
     );
   });
 
-  it("should not capture an event if not initialized", () => {
+  it("should not capture an event if not initialized", async () => {
     const analytics: Analytics = new Analytics("", "");
 
     analytics.capture("testEvent");
+    await analytics.whenPostHogLoaded();
     expect(posthog.capture).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * PostHog is loaded with import() once analytics starts (issue #5619). It
+ * used to be a static import: about 160 KB of script every page, the sign-in
+ * page among them, downloaded and parsed before it could draw. What a page
+ * asks of PostHog before it arrives waits for it, and reaches it in order,
+ * after init.
+ */
+describe("PostHog, loaded once analytics starts", () => {
+  type Call = Array<unknown>;
+
+  interface ControlledLoad {
+    loadPostHog: PostHogLoader;
+    // How many times the page asked for posthog-js.
+    loads: () => number;
+    arrive: (client: PostHogClient) => Promise<void>;
+    fail: () => Promise<void>;
+  }
+
+  // A PostHog that writes down every call made to it, init included.
+  const recordingPostHog: (
+    calls: Array<Call>,
+    overrides?: Partial<Record<keyof PostHogClient, () => void>>,
+  ) => PostHogClient = (
+    calls: Array<Call>,
+    overrides?: Partial<Record<keyof PostHogClient, () => void>>,
+  ): PostHogClient => {
+    const record: (name: keyof PostHogClient) => (...args: Call) => void = (
+      name: keyof PostHogClient,
+    ): ((...args: Call) => void) => {
+      return (...args: Call): void => {
+        calls.push([name, ...args]);
+        overrides?.[name]?.();
+      };
+    };
+
+    return {
+      init: record("init"),
+      identify: record("identify"),
+      reset: record("reset"),
+      capture: record("capture"),
+    } as unknown as PostHogClient;
+  };
+
+  // posthog-js arriving when the test says, as a slow network would have it.
+  const controlledLoad: () => ControlledLoad = (): ControlledLoad => {
+    let count: number = 0;
+    let resolveLoad: (client: PostHogClient) => void = (): void => {};
+    let rejectLoad: (error: Error) => void = (): void => {};
+    const loaded: Promise<PostHogClient> = new Promise(
+      (
+        resolve: (client: PostHogClient) => void,
+        reject: (error: Error) => void,
+      ) => {
+        resolveLoad = resolve;
+        rejectLoad = reject;
+      },
+    );
+
+    return {
+      loadPostHog: (): Promise<PostHogClient> => {
+        count++;
+        return loaded;
+      },
+      loads: (): number => {
+        return count;
+      },
+      arrive: async (client: PostHogClient): Promise<void> => {
+        resolveLoad(client);
+        await loaded;
+      },
+      fail: async (): Promise<void> => {
+        rejectLoad(new Error("Blocked by the browser"));
+        await loaded.catch((): void => {});
+      },
+    };
+  };
+
+  afterEach(() => {
+    delete (window as any).dataLayer;
+    jest.clearAllMocks();
+  });
+
+  it("fetches posthog-js once, as analytics starts", () => {
+    const load: ControlledLoad = controlledLoad();
+    const analytics: Analytics = new Analytics(
+      apiHost,
+      apiKey,
+      load.loadPostHog,
+    );
+
+    analytics.capture("accounts/login");
+    analytics.userAuth(new Email("test@example.com"));
+
+    expect(load.loads()).toBe(1);
+    expect(analytics.isInitialized).toBe(true);
+  });
+
+  it("holds what the page asks before PostHog arrives, and hands it over in order after init", async () => {
+    const load: ControlledLoad = controlledLoad();
+    const analytics: Analytics = new Analytics(
+      apiHost,
+      apiKey,
+      load.loadPostHog,
+    );
+    const calls: Array<Call> = [];
+
+    analytics.capture("accounts/login", { method: "password" });
+    analytics.userAuth(new Email("test@example.com"));
+    analytics.capture("FORM SUBMIT: Login");
+    analytics.logout();
+
+    expect(calls).toEqual([]);
+
+    await load.arrive(recordingPostHog(calls));
+    await analytics.whenPostHogLoaded();
+
+    expect(calls).toEqual([
+      ["init", apiKey, { api_host: apiHost, autocapture: false }],
+      ["capture", "accounts/login", { method: "password" }],
+      ["identify", "test@example.com"],
+      ["capture", "FORM SUBMIT: Login", undefined],
+      ["reset"],
+    ]);
+  });
+
+  it("hands what it asks later straight to PostHog", async () => {
+    const load: ControlledLoad = controlledLoad();
+    const analytics: Analytics = new Analytics(
+      apiHost,
+      apiKey,
+      load.loadPostHog,
+    );
+    const calls: Array<Call> = [];
+
+    await load.arrive(recordingPostHog(calls));
+    await analytics.whenPostHogLoaded();
+
+    analytics.capture("dashboard/home");
+
+    // Synchronously: nothing waits once PostHog is there.
+    expect(calls).toEqual([
+      ["init", apiKey, { api_host: apiHost, autocapture: false }],
+      ["capture", "dashboard/home", undefined],
+    ]);
+  });
+
+  it("sends an event's properties as they were when it happened", async () => {
+    const load: ControlledLoad = controlledLoad();
+    const analytics: Analytics = new Analytics(
+      apiHost,
+      apiKey,
+      load.loadPostHog,
+    );
+    const calls: Array<Call> = [];
+    const data: JSONObject = { plan_name: "growth" };
+
+    analytics.capture("dashboard/billing/plan-changed", data);
+    data["plan_name"] = "scale";
+
+    await load.arrive(recordingPostHog(calls));
+    await analytics.whenPostHogLoaded();
+
+    expect(calls[1]).toEqual([
+      "capture",
+      "dashboard/billing/plan-changed",
+      { plan_name: "growth" },
+    ]);
+  });
+
+  it("keeps handing over what waited after a call PostHog refuses", async () => {
+    const load: ControlledLoad = controlledLoad();
+    const analytics: Analytics = new Analytics(
+      apiHost,
+      apiKey,
+      load.loadPostHog,
+    );
+    const calls: Array<Call> = [];
+
+    analytics.userAuth(new Email("test@example.com"));
+    analytics.capture("accounts/login");
+
+    await load.arrive(
+      recordingPostHog(calls, {
+        identify: (): void => {
+          throw new Error("PostHog refused the call");
+        },
+      }),
+    );
+    await expect(analytics.whenPostHogLoaded()).resolves.toBeUndefined();
+
+    expect(calls.slice(1)).toEqual([
+      ["identify", "test@example.com"],
+      ["capture", "accounts/login", undefined],
+    ]);
+  });
+
+  it("measures nothing, and lets what waited go, when posthog-js cannot load", async () => {
+    const load: ControlledLoad = controlledLoad();
+    const analytics: Analytics = new Analytics(
+      apiHost,
+      apiKey,
+      load.loadPostHog,
+    );
+
+    analytics.capture("accounts/login");
+
+    await load.fail();
+    // Settles rather than rejects: nothing waits on it with a catch.
+    await expect(analytics.whenPostHogLoaded()).resolves.toBeUndefined();
+
+    expect(analytics.isInitialized).toBe(false);
+    expect(() => {
+      analytics.capture("dashboard/home");
+      analytics.userAuth(new Email("test@example.com"));
+      analytics.logout();
+    }).not.toThrow();
+    // Nothing is fetched again, and nothing is called on the mocked module.
+    expect(load.loads()).toBe(1);
+    expect(posthog.capture).not.toHaveBeenCalled();
+  });
+
+  it("does not hold Google's events back while PostHog loads", () => {
+    const dataLayer: Array<JSONObject> = [];
+    (window as any).dataLayer = dataLayer;
+    const load: ControlledLoad = controlledLoad();
+    const analytics: Analytics = new Analytics(
+      apiHost,
+      apiKey,
+      load.loadPostHog,
+    );
+
+    analytics.capture("accounts/login");
+
+    expect(dataLayer).toEqual([
+      {
+        event: "accounts_login",
+        eventCategory: "analytics",
+        eventAction: "accounts/login",
+      },
+    ]);
+  });
+
+  it("is loaded at once where analytics never starts", async () => {
+    const load: ControlledLoad = controlledLoad();
+    const analytics: Analytics = new Analytics("", "", load.loadPostHog);
+
+    await expect(analytics.whenPostHogLoaded()).resolves.toBeUndefined();
+    expect(load.loads()).toBe(0);
+  });
+
+  it("loads the real posthog-js module by default", async () => {
+    const analytics: Analytics = new Analytics(apiHost, apiKey);
+
+    analytics.capture("accounts/register");
+
+    expect(posthog.capture).not.toHaveBeenCalled();
+
+    await analytics.whenPostHogLoaded();
+
+    expect(posthog.init).toHaveBeenCalledTimes(1);
+    expect(posthog.capture).toHaveBeenCalledWith(
+      "accounts/register",
+      undefined,
+    );
   });
 });
 
@@ -217,11 +499,12 @@ describe("Analytics dataLayer (GA4) branch", () => {
     jest.clearAllMocks();
   });
 
-  it("pushes a normalised event name while PostHog keeps the original", () => {
+  it("pushes a normalised event name while PostHog keeps the original", async () => {
     const analytics: Analytics = new Analytics(apiHost, apiKey);
 
     analytics.capture("Page View: Project > Home");
 
+    await analytics.whenPostHogLoaded();
     expect(posthog.capture).toHaveBeenCalledWith(
       "Page View: Project > Home",
       undefined,
@@ -234,11 +517,12 @@ describe("Analytics dataLayer (GA4) branch", () => {
     });
   });
 
-  it("pushes to the dataLayer even when PostHog is not initialized", () => {
+  it("pushes to the dataLayer even when PostHog is not initialized", async () => {
     const analytics: Analytics = new Analytics("", "");
 
     analytics.capture("FORM SUBMIT: Register");
 
+    await analytics.whenPostHogLoaded();
     expect(posthog.capture).not.toHaveBeenCalled();
     expect(dataLayer).toHaveLength(1);
     expect(dataLayer[0]).toMatchObject({
@@ -290,7 +574,7 @@ describe("Analytics dataLayer (GA4) branch", () => {
     });
   });
 
-  it("does not throw when window.dataLayer is not defined", () => {
+  it("does not throw when window.dataLayer is not defined", async () => {
     delete (window as any).dataLayer;
 
     const analytics: Analytics = new Analytics(apiHost, apiKey);
@@ -298,6 +582,7 @@ describe("Analytics dataLayer (GA4) branch", () => {
     expect(() => {
       analytics.capture("accounts/login");
     }).not.toThrow();
+    await analytics.whenPostHogLoaded();
     expect(posthog.capture).toHaveBeenCalledWith("accounts/login", undefined);
   });
 });
@@ -341,22 +626,41 @@ describe("when product analytics may start", () => {
     expect(new Analytics(apiHost, apiKey).isInitialized).toBe(true);
   });
 
-  it("never starts on a page that measures nothing for OneUptime", () => {
+  it("never starts on a page that measures nothing for OneUptime", async () => {
     measurementWindow()["oneUptimeProductAnalyticsDisabled"] = true;
 
-    const analytics: Analytics = new Analytics(apiHost, apiKey);
+    const loadPostHog: ReturnType<typeof jest.fn> = jest.fn();
+    const analytics: Analytics = new Analytics(
+      apiHost,
+      apiKey,
+      loadPostHog as unknown as PostHogLoader,
+    );
 
-    expect(posthog.init).not.toHaveBeenCalled();
     expect(analytics.isInitialized).toBe(false);
 
     analytics.capture("Page View: Status Page");
+    await analytics.whenPostHogLoaded();
+
+    // Not even downloaded: a status page carries no PostHog at all.
+    expect(loadPostHog).not.toHaveBeenCalled();
+    expect(posthog.init).not.toHaveBeenCalled();
     expect(posthog.capture).not.toHaveBeenCalled();
   });
 
-  it('does not start for a visitor who pressed "Reject all"', () => {
+  it('does not start for a visitor who pressed "Reject all"', async () => {
     window.localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, "false");
 
-    expect(new Analytics(apiHost, apiKey).isInitialized).toBe(false);
+    const loadPostHog: ReturnType<typeof jest.fn> = jest.fn();
+    const analytics: Analytics = new Analytics(
+      apiHost,
+      apiKey,
+      loadPostHog as unknown as PostHogLoader,
+    );
+
+    await analytics.whenPostHogLoaded();
+
+    expect(analytics.isInitialized).toBe(false);
+    expect(loadPostHog).not.toHaveBeenCalled();
     expect(posthog.init).not.toHaveBeenCalled();
   });
 
@@ -530,11 +834,12 @@ describe("Analytics with Google Analytics and no container", () => {
     expect(dataLayer).toEqual([]);
   });
 
-  it("still gives PostHog every event, under its original name", () => {
+  it("still gives PostHog every event, under its original name", async () => {
     const analytics: Analytics = new Analytics(apiHost, apiKey);
 
     analytics.capture("Page View: Project > Home");
 
+    await analytics.whenPostHogLoaded();
     expect(posthog.capture).toHaveBeenCalledWith(
       "Page View: Project > Home",
       undefined,
