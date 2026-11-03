@@ -262,6 +262,27 @@ export interface NetworkControllerReadResult {
   nextState: NetworkControllerPullState;
 }
 
+/*
+ * The organization's device list on its own, as Add devices reads it
+ * (NetworkControllerDeviceAddRunner): every device, cleaned as a read
+ * cleans it, and whether the list is whole.
+ */
+export interface NetworkControllerDeviceListing {
+  organizationName: string;
+  devices: Array<NetworkControllerDevice>;
+  isDeviceListComplete: boolean;
+  // API calls the listing made: what it cost the organization's budget.
+  requestCount: number;
+  warnings: Array<string>;
+}
+
+export interface NetworkControllerListOptions
+  extends NetworkControllerCallOptions {
+  // Bounds on one listing: a listing that reaches one throws.
+  maxRequests: number;
+  maxDurationMs: number;
+}
+
 export interface NetworkControllerConnector {
   provider: NetworkControllerProvider;
   /*
@@ -281,6 +302,14 @@ export interface NetworkControllerConnector {
     settings: NetworkControllerSettings,
     options: NetworkControllerReadOptions,
   ): Promise<NetworkControllerReadResult>;
+  /*
+   * The organization's devices and nothing else. Throws LlmProviderError
+   * when it cannot list them.
+   */
+  listDevices(
+    settings: NetworkControllerSettings,
+    options: NetworkControllerListOptions,
+  ): Promise<NetworkControllerDeviceListing>;
 }
 
 export function readPullState(value: unknown): NetworkControllerPullState {

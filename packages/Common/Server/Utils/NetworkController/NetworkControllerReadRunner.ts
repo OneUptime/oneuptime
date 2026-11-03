@@ -1,5 +1,6 @@
 import NetworkControllerConnection from "../../../Models/DatabaseModels/NetworkControllerConnection";
 import { JSONObject } from "../../../Types/JSON";
+import { NetworkControllerUnaddedDeviceCount } from "../../../Types/NetworkController/NetworkControllerDeviceAdd";
 import { LlmConnectionFailureKind } from "../../../Types/LlmObservability/LlmConnectionTest";
 import { readNetworkControllerConfig } from "../../../Types/NetworkController/NetworkControllerConnectionSettings";
 import {
@@ -10,6 +11,7 @@ import {
 } from "../../../Types/NetworkController/NetworkControllerReadSummary";
 import ObjectID from "../../../Types/ObjectID";
 import NetworkControllerConnectionService from "../../Services/NetworkControllerConnectionService";
+import NetworkDeviceService from "../../Services/NetworkDeviceService";
 import NetworkTrafficUsageAggregationService from "../../Services/NetworkTrafficUsageAggregationService";
 import NetworkTrafficUsageService from "../../Services/NetworkTrafficUsageService";
 import DataSourceHttpFetch from "../DataSource/HttpFetch";
@@ -17,6 +19,13 @@ import LlmConnectionPullRunner from "../LlmObservability/LlmConnectionPullRunner
 import LlmProviderError from "../LlmObservability/LlmProviderError";
 import logger from "../Logger";
 import NetworkControllerConnectorRegistry from "./NetworkControllerConnectorRegistry";
+import {
+  ControllerIdentityHolder,
+  ControllerIdentityLookup,
+  countUnaddedControllerDevices,
+  getControllerIdentityLookup,
+  judgeControllerDevices,
+} from "./NetworkControllerDeviceAdd";
 import NetworkControllerDeviceMatcher, {
   FindDevicesFunction,
   NetworkControllerDeviceMatches,
@@ -24,6 +33,7 @@ import NetworkControllerDeviceMatcher, {
 import NetworkControllerInventory, {
   ControllerInventoryOutcome,
   FindControllerCandidatesFunction,
+  MAX_INVENTORY_CANDIDATES,
   MergeControllerReadingsFunction,
   MirrorRefreshedDeviceFunction,
 } from "./NetworkControllerInventory";
@@ -75,7 +85,12 @@ import { BACKFILL_MS } from "./Meraki/MerakiTrafficReader";
  *      worked out about which device is which: the clients on their switch
  *      ports and the devices' links (NetworkControllerTopology). A failure
  *      there is a warning too;
- *   7. records the outcome on the connection: when it read, what it found,
+ *   7. counts the organization's devices that are no network device here,
+ *      by kind and by whether Add devices can add them
+ *      (NetworkControllerDeviceAdd), from the same matching and one more
+ *      lookup: what the connection's row offers to add. A failure there
+ *      keeps the last read's counts;
+ *   8. records the outcome on the connection: when it read, what it found,
  *      the error with the key removed, where it got to and when it reads
  *      next. The cursor moves only once the rows are stored.
  *
@@ -205,6 +220,14 @@ export interface NetworkControllerReadDependencies {
   findControllerCandidates?: FindControllerCandidatesFunction | undefined;
   mergeControllerReadings?: MergeControllerReadingsFunction | undefined;
   mirrorRefreshedDevice?: MirrorRefreshedDeviceFunction | undefined;
+  // Test seam for the devices here that hold the list's identities.
+  findIdentityHolders?:
+    | ((data: {
+        projectId: ObjectID;
+        lookup: ControllerIdentityLookup;
+        limit: number;
+      }) => Promise<Array<ControllerIdentityHolder>>)
+    | undefined;
   // Test seams for the clients and links the map takes from a read.
   findClientCandidates?: FindClientCandidatesFunction | undefined;
   upsertControllerClients?: UpsertControllerClientsFunction | undefined;
@@ -481,6 +504,59 @@ export default class NetworkControllerReadRunner {
         }
       }
 
+      /*
+       * What Add devices would add: the organization's devices that are no
+       * device here, by kind. From the matching Inventory just did, and
+       * every device here - archived ones too - holding one of the list's
+       * serial numbers, MACs or addresses. The last read's counts stand
+       * when this cannot be worked out.
+       */
+      let unaddedDevices:
+        | Array<NetworkControllerUnaddedDeviceCount>
+        | undefined = previous?.unaddedDevices;
+
+      if (inventory) {
+        try {
+          const holders: Array<ControllerIdentityHolder> = await (
+            dependencies.findIdentityHolders ||
+            (async (query: {
+              projectId: ObjectID;
+              lookup: ControllerIdentityLookup;
+              limit: number;
+            }): Promise<Array<ControllerIdentityHolder>> => {
+              return await NetworkDeviceService.findControllerIdentityHolders(
+                {
+                  projectId: query.projectId,
+                  serials: query.lookup.serials,
+                  macs: query.lookup.macs,
+                  addresses: query.lookup.addresses,
+                  limit: query.limit,
+                },
+              );
+            })
+          )({
+            projectId: connection.projectId,
+            lookup: getControllerIdentityLookup(read.devices),
+            limit: MAX_INVENTORY_CANDIDATES,
+          });
+
+          unaddedDevices = countUnaddedControllerDevices({
+            devices: read.devices,
+            verdicts: judgeControllerDevices({
+              devices: read.devices,
+              matches: inventory.matches,
+              holders,
+            }),
+          });
+        } catch (error) {
+          logger.error(
+            `Network controller connection ${connection.id!.toString()}: the devices that are not network devices could not be counted: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+          );
+        }
+      }
+
       const status: NetworkControllerReadStatus = read.complete
         ? "success"
         : "partial";
@@ -523,6 +599,7 @@ export default class NetworkControllerReadRunner {
           : previous?.linkedDeviceCount !== undefined
             ? { linkedDeviceCount: previous.linkedDeviceCount }
             : {}),
+        ...(unaddedDevices ? { unaddedDevices } : {}),
         uplinkWindows: read.uplinkWindows,
         ...(read.newestUplinkAt
           ? { newestUplinkAt: read.newestUplinkAt.toISOString() }
@@ -595,6 +672,9 @@ export default class NetworkControllerReadRunner {
           : {}),
         ...(previous?.linkedDeviceCount !== undefined
           ? { linkedDeviceCount: previous.linkedDeviceCount }
+          : {}),
+        ...(previous?.unaddedDevices
+          ? { unaddedDevices: previous.unaddedDevices }
           : {}),
         uplinkWindows: 0,
         ...(previous?.newestUplinkAt

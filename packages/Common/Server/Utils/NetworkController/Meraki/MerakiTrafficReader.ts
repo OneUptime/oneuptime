@@ -11,7 +11,9 @@ import {
   NetworkControllerAppliance,
   NetworkControllerClient,
   NetworkControllerDevice,
+  NetworkControllerDeviceListing,
   NetworkControllerLink,
+  NetworkControllerListOptions,
   NetworkControllerPullState,
   NetworkControllerReadOptions,
   NetworkControllerReadResult,
@@ -462,6 +464,15 @@ interface ReadProgress {
   analyticsDue: number;
 }
 
+// What a read's first step lists: the organization, its networks and devices.
+interface OrganizationDevices {
+  organizationName: string;
+  networks: Array<MerakiNetwork>;
+  networkNames: Map<string, string>;
+  devices: Array<NetworkControllerDevice>;
+  isDeviceListComplete: boolean;
+}
+
 export default class MerakiTrafficReader {
   public static async read(
     settings: NetworkControllerSettings,
@@ -528,58 +539,21 @@ export default class MerakiTrafficReader {
      * 1. The organization, its networks and its appliances. A failure here
      * fails the read: without them nothing below can be read or named.
      */
-    const organization: MerakiPage = await progress.client.get(
-      progress.orgPath,
-      "",
-      "organization",
-    );
-    const organizationName: string = cleanText(
-      asObject(organization.body)?.["name"],
-      TEXT_LIMITS.networkName,
-    );
-
-    const networkList: MerakiList = await progress.client.getAll(
-      `${progress.orgPath}/networks`,
-      buildMerakiQuery([["perPage", LIST_PAGE_SIZE]]),
-      "list of networks",
-      MAX_LIST_PAGES,
-    );
-    const networks: Array<MerakiNetwork> = readNetworks(networkList.items);
-
-    if (networkList.isTruncated) {
-      progress.warnings.add(
-        `The organization has more than ${(LIST_PAGE_SIZE * MAX_LIST_PAGES).toLocaleString("en-US")} networks: only the first ${(LIST_PAGE_SIZE * MAX_LIST_PAGES).toLocaleString("en-US")} are read.`,
-      );
-    }
-
-    const networkNames: Map<string, string> = new Map(
-      networks.map((network: MerakiNetwork): [string, string] => {
-        return [network.id, network.name];
-      }),
-    );
-
-    /*
-     * Every device, not only the appliances: Inventory takes what Meraki
-     * says about each from the same listing (MerakiDeviceList), and the
-     * appliances among them are what the uplinks are named by.
-     */
-    const deviceList: MerakiList = await progress.client.getAll(
-      `${progress.orgPath}/devices`,
-      buildMerakiQuery([["perPage", LIST_PAGE_SIZE]]),
-      "list of devices",
-      MAX_LIST_PAGES,
-    );
-    const devices: Array<NetworkControllerDevice> = readMerakiDevices(
-      deviceList.items,
+    const {
+      organizationName,
+      networks,
       networkNames,
+      devices,
+      isDeviceListComplete,
+    }: OrganizationDevices = await MerakiTrafficReader.readOrganizationDevices(
+      progress.client,
+      progress.orgPath,
+      progress.warnings,
     );
     let appliances: Array<NetworkControllerAppliance> =
       getMerakiAppliances(devices);
 
-    if (deviceList.isTruncated) {
-      progress.warnings.add(
-        `The organization has more than ${(LIST_PAGE_SIZE * MAX_LIST_PAGES).toLocaleString("en-US")} devices: only the first ${(LIST_PAGE_SIZE * MAX_LIST_PAGES).toLocaleString("en-US")} have their details read.`,
-      );
+    if (!isDeviceListComplete) {
 
       /*
        * The appliances past the cut still carry uplinks: they are listed on
@@ -657,7 +631,7 @@ export default class MerakiTrafficReader {
       networkCount: networks.length,
       appliances,
       devices,
-      isDeviceListComplete: !deviceList.isTruncated,
+      isDeviceListComplete,
       clients: progress.clients,
       links: progress.links,
       linkNetworkIds: progress.linkNetworkIds,
@@ -675,6 +649,126 @@ export default class MerakiTrafficReader {
       warnings: progress.warnings.list(),
       complete: progress.complete,
       nextState: progress.state,
+    };
+  }
+
+  /*
+   * The organization's device list on its own, for Add devices
+   * (NetworkControllerDeviceAddRunner): the organization, its networks -
+   * what each device's network is called - and every device, through the
+   * same client, pacing and refusals as a read, and nothing else. An
+   * organization of up to 1,000 networks and 1,000 devices is three calls.
+   * Throws as a read's first step throws: the key refused, the
+   * organization not readable.
+   */
+  public static async listDevices(
+    settings: NetworkControllerSettings,
+    options: NetworkControllerListOptions,
+  ): Promise<NetworkControllerDeviceListing> {
+    const clock: () => Date =
+      options.now ||
+      ((): Date => {
+        return new Date();
+      });
+    const organizationId: string = settings.config.organizationId;
+
+    if (!organizationId) {
+      throw new LlmProviderError({
+        message:
+          "The connection names no Meraki organization. Edit it and pick one.",
+        kind: LlmConnectionFailureKind.Settings,
+      });
+    }
+
+    const client: MerakiApiClient = new MerakiApiClient({
+      apiKey: settings.apiKey,
+      region: getMerakiRegionOrDefault(settings.config.region),
+      transport: options.transport,
+      now: clock,
+      sleep: options.sleep,
+      maxRequests: options.maxRequests,
+      deadlineMs: clock().getTime() + options.maxDurationMs,
+      requestTimeoutInMs: options.requestTimeoutInMs,
+    });
+    const warnings: Warnings = new Warnings();
+
+    const listing: OrganizationDevices =
+      await MerakiTrafficReader.readOrganizationDevices(
+        client,
+        `/organizations/${encodeURIComponent(organizationId)}`,
+        warnings,
+      );
+
+    return {
+      organizationName: listing.organizationName,
+      devices: listing.devices,
+      isDeviceListComplete: listing.isDeviceListComplete,
+      requestCount: client.getRequestCount(),
+      warnings: warnings.list(),
+    };
+  }
+
+  /*
+   * The organization, its networks and every device of it - not only the
+   * appliances: Inventory takes what Meraki says about each from the same
+   * listing (MerakiDeviceList), and the appliances among them are what the
+   * uplinks are named by. A listing cut short at its pages says so in the
+   * warnings, and the devices past the cut are not in it.
+   */
+  private static async readOrganizationDevices(
+    client: MerakiApiClient,
+    orgPath: string,
+    warnings: Warnings,
+  ): Promise<OrganizationDevices> {
+    const organization: MerakiPage = await client.get(
+      orgPath,
+      "",
+      "organization",
+    );
+    const organizationName: string = cleanText(
+      asObject(organization.body)?.["name"],
+      TEXT_LIMITS.networkName,
+    );
+
+    const networkList: MerakiList = await client.getAll(
+      `${orgPath}/networks`,
+      buildMerakiQuery([["perPage", LIST_PAGE_SIZE]]),
+      "list of networks",
+      MAX_LIST_PAGES,
+    );
+    const networks: Array<MerakiNetwork> = readNetworks(networkList.items);
+
+    if (networkList.isTruncated) {
+      warnings.add(
+        `The organization has more than ${(LIST_PAGE_SIZE * MAX_LIST_PAGES).toLocaleString("en-US")} networks: only the first ${(LIST_PAGE_SIZE * MAX_LIST_PAGES).toLocaleString("en-US")} are read.`,
+      );
+    }
+
+    const networkNames: Map<string, string> = new Map(
+      networks.map((network: MerakiNetwork): [string, string] => {
+        return [network.id, network.name];
+      }),
+    );
+
+    const deviceList: MerakiList = await client.getAll(
+      `${orgPath}/devices`,
+      buildMerakiQuery([["perPage", LIST_PAGE_SIZE]]),
+      "list of devices",
+      MAX_LIST_PAGES,
+    );
+
+    if (deviceList.isTruncated) {
+      warnings.add(
+        `The organization has more than ${(LIST_PAGE_SIZE * MAX_LIST_PAGES).toLocaleString("en-US")} devices: only the first ${(LIST_PAGE_SIZE * MAX_LIST_PAGES).toLocaleString("en-US")} have their details read.`,
+      );
+    }
+
+    return {
+      organizationName,
+      networks,
+      networkNames,
+      devices: readMerakiDevices(deviceList.items, networkNames),
+      isDeviceListComplete: !deviceList.isTruncated,
     };
   }
 
