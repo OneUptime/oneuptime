@@ -181,6 +181,8 @@ describe("the sensitive-URL-token partial", () => {
       "unsubscribe",
       // Its manage link, with the same credential: .../update-subscription/<id>-<token>.
       "update-subscription",
+      // A status page private user's sign-in link: .../magic-link-login/<token>.
+      "magic-link-login",
     ];
 
     expect(routeListOf(PARTIAL_PATH)).toEqual(expectedRoutes);
@@ -492,6 +494,46 @@ describe("status page: manage subscription links", () => {
     );
     expect(page.window.location.href).not.toContain(CREDENTIAL);
     expect(page.window.sessionStorage.getItem(STORAGE_KEY)).toBe(CREDENTIAL);
+
+    page.window.close();
+  });
+
+  it("a private user's sign-in link leaves the address bar before the page's code runs, on a custom domain and on the page's own address", () => {
+    /*
+     * The link signs its holder in (Types/StatusPage/StatusPageMagicLink):
+     * nothing on the page may read it from the address, and the page that
+     * signs in with it reads it from the stash.
+     */
+    for (const [url, cleanedPath] of [
+      [`https://status.example/magic-link-login/${TOKEN}`, "/magic-link-login"],
+      [
+        `https://oneuptime.com/status-page/${TOKEN}/magic-link-login/${TOKEN}`,
+        `/status-page/${TOKEN}/magic-link-login`,
+      ],
+    ] as Array<[string, string]>) {
+      const page: JSDOM = loadPage(statusPage, url);
+
+      expect(page.window.location.pathname).toBe(cleanedPath);
+      expect(page.window.location.pathname).not.toContain(
+        `magic-link-login/${TOKEN}`,
+      );
+      expect(page.window.sessionStorage.getItem(STORAGE_KEY)).toBe(TOKEN);
+      expect(
+        (page.window as any).__ONEUPTIME_SENSITIVE_URL_TOKEN_PENDING__,
+      ).toBe(false);
+
+      page.window.close();
+    }
+  });
+
+  it("keeps where the reader was going, in the query, when it strips a sign-in link", () => {
+    const page: JSDOM = loadPage(
+      statusPage,
+      `https://status.example/magic-link-login/${TOKEN}?redirectUrl=%2Fincidents`,
+    );
+
+    expect(page.window.location.pathname).toBe("/magic-link-login");
+    expect(page.window.location.search).toBe("?redirectUrl=%2Fincidents");
 
     page.window.close();
   });

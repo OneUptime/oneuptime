@@ -28,7 +28,16 @@ export interface ComponentProps {
   darkThemeLogoFileId?: ObjectID | undefined;
   forceSSO: boolean;
   hasEnabledSSOConfig: boolean;
+  /*
+   * Whether the page offers sign-in links (the master-page answer's
+   * enableMagicLinkLogin, Types/StatusPage/StatusPageMagicLink): a private
+   * user can then ask for one instead of typing their password.
+   */
+  enableMagicLinkLogin?: boolean | undefined;
 }
+
+// The way to ask for a sign-in link, under Login.
+export const MAGIC_LINK_SIGN_IN_OPTION_TEST_ID: string = "magic-link-login";
 
 const LoginPage: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -192,31 +201,51 @@ const LoginPage: FunctionComponent<ComponentProps> = (
             maxPrimaryButtonWidth={true}
             footer={
               /*
-               * Single sign-on, where the page has a provider turned on: an
-               * outlined button under "or", as wide and as tall as Login,
-               * named like the page it opens - the way OneUptime's own
-               * sign-in page offers it (SignInOptionStyle). It was a small
-               * text link.
+               * The other ways in, each an outlined button under "or", as
+               * wide and as tall as Login, named like the page it opens -
+               * the way OneUptime's own sign-in page offers them
+               * (SignInOptionStyle): single sign-on, where the page has a
+               * provider turned on (it was a small text link), and a
+               * sign-in link emailed to the private user, where the page
+               * offers them. Both keep where the visitor was going.
                */
-              props.hasEnabledSSOConfig ? (
+              props.hasEnabledSSOConfig || props.enableMagicLinkLogin ? (
                 <div data-testid="sign-in-options">
                   <LabelledDivider
                     label={t("accounts.login.or")}
                     className="my-5"
                     dataTestId="sign-in-options-divider"
                   />
-                  <SignInOptionLink
-                    to={StatusPageUtil.getSignInRoute({
-                      path: StatusPageUtil.isPreviewPage()
-                        ? `/status-page/${StatusPageUtil.getStatusPageId()?.toString()}/sso`
-                        : "/sso",
-                      redirectUrl: StatusPageUtil.getSafeRedirectUrl(),
-                    })}
-                    id="sso-login"
-                    dataTestId="sso-login"
-                    icon={IconProp.ShieldCheck}
-                    title={t("accounts.login.logInWithSso")}
-                  />
+                  <div className="space-y-3">
+                    {props.hasEnabledSSOConfig && (
+                      <SignInOptionLink
+                        to={StatusPageUtil.getSignInRoute({
+                          path: StatusPageUtil.isPreviewPage()
+                            ? `/status-page/${StatusPageUtil.getStatusPageId()?.toString()}/sso`
+                            : "/sso",
+                          redirectUrl: StatusPageUtil.getSafeRedirectUrl(),
+                        })}
+                        id="sso-login"
+                        dataTestId="sso-login"
+                        icon={IconProp.ShieldCheck}
+                        title={t("accounts.login.logInWithSso")}
+                      />
+                    )}
+                    {props.enableMagicLinkLogin && (
+                      <SignInOptionLink
+                        to={StatusPageUtil.getSignInRoute({
+                          path: StatusPageUtil.isPreviewPage()
+                            ? `/status-page/${StatusPageUtil.getStatusPageId()?.toString()}/magic-link`
+                            : "/magic-link",
+                          redirectUrl: StatusPageUtil.getSafeRedirectUrl(),
+                        })}
+                        id={MAGIC_LINK_SIGN_IN_OPTION_TEST_ID}
+                        dataTestId={MAGIC_LINK_SIGN_IN_OPTION_TEST_ID}
+                        icon={IconProp.Email}
+                        title={t("accounts.login.emailSignInLink")}
+                      />
+                    )}
+                  </div>
                 </div>
               ) : (
                 <></>

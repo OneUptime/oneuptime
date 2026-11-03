@@ -130,7 +130,7 @@ describe("every Add Role uses the one role field", () => {
       expect(table).toContain("isMoreFieldsShownFor: isScopeShownFor,");
       expect(table).toContain('return isScopeShownFor(values["permission"]);');
       expect(table).toContain(
-        'import { getPermissionScopeFields, isScopeShownFor, } from "../Permission/PermissionScopeChoice";',
+        'import { getPermissionScopeFields, getPermissionScopes, getRoleScopes, getScopeKeptOnPermissionChange, isScopeShownFor, isScopeShownForPermission, } from "../Permission/PermissionScopeChoice";',
       );
     },
   );

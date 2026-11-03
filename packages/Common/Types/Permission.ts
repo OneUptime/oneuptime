@@ -1777,6 +1777,14 @@ enum Permission {
   EditDatabaseServer = "EditDatabaseServer",
   ReadDatabaseServer = "ReadDatabaseServer",
 
+  // Data Observability: the tables of connected data stores and their timelines.
+  CreateDataAsset = "CreateDataAsset",
+  DeleteDataAsset = "DeleteDataAsset",
+  EditDataAsset = "EditDataAsset",
+  ReadDataAsset = "ReadDataAsset",
+  CreateDataAssetFeed = "CreateDataAssetFeed",
+  ReadDataAssetFeed = "ReadDataAssetFeed",
+
   CreateProxmoxClusterOwnerTeam = "CreateProxmoxClusterOwnerTeam",
   CreateDockerSwarmClusterOwnerTeam = "CreateDockerSwarmClusterOwnerTeam",
   DeleteProxmoxClusterOwnerTeam = "DeleteProxmoxClusterOwnerTeam",
@@ -11167,6 +11175,67 @@ export class PermissionHelper {
           "This permission can read databases of this project, including their endpoints.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
+        permission: Permission.CreateDataAsset,
+        title: "Create Data Asset",
+        description:
+          "This permission can create data assets (the tables and views of connected data stores) in this project. OneUptime finds them on its own; this is for adding one by hand.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteDataAsset,
+        title: "Delete Data Asset",
+        description:
+          "This permission can delete data assets of this project, with their history.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditDataAsset,
+        title: "Edit Data Asset",
+        description:
+          "This permission can edit data assets of this project: their descriptions and how they are watched.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadDataAsset,
+        title: "Read Data Asset",
+        description:
+          "This permission can read data assets of this project: each table's columns, row count, size and when it last changed.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.CreateDataAssetFeed,
+        title: "Create Data Asset Feed",
+        description:
+          "This permission can add entries to the timelines of data assets of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadDataAssetFeed,
+        title: "Read Data Asset Feed",
+        description:
+          "This permission can read the timelines of data assets of this project: schema changes, tables dropped and restored.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.Telemetry,
       },

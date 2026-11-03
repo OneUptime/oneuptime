@@ -98,7 +98,7 @@ Chaque limite par réseau compte aussi ensemble les adresses d'un même IPv6 /64
 
 **Ce que votre équipe envoie compte aussi.** Rien ne limite la vitesse à laquelle votre équipe ajoute des abonnés, dans le tableau de bord, en masse, via l'API ou par un workflow. Mais le message qu'un abonné ajouté reçoit, l'e-mail qui lui demande de confirmer ou le message qui dit qu'il est abonné, compte dans les 10 inscriptions par heure de ce contact, et au-delà cet ajout est refusé avec `429`. Un abonné ajouté sans message n'est jamais compté : **Les abonner maintenant** pour une adresse e-mail, ou **Envoyer un message de bienvenue** désactivé pour les autres canaux. Si le limiteur de débit est injoignable, les ajouts de votre équipe continuent sans être comptés.
 
-Un utilisateur privé qui demande un lien de réinitialisation du mot de passe sur la page de connexion de la page de statut est limité de la même façon : 5 e-mails de réinitialisation vers une adresse en une heure, sur toutes les pages de statut ensemble, et 30 depuis un réseau en 15 minutes. Une invitation, à une page de statut privée ou à un projet, est elle aussi comptée par adresse : 10 vers une adresse en une heure, les deux types ensemble.
+Un utilisateur privé qui demande un lien de réinitialisation du mot de passe sur la page de connexion de la page de statut est limité de la même façon : 5 e-mails de réinitialisation vers une adresse en une heure, sur toutes les pages de statut ensemble, et 30 depuis un réseau en 15 minutes. Une invitation, à une page de statut privée ou à un projet, est elle aussi comptée par adresse : 10 vers une adresse en une heure, les deux types ensemble. Demander un lien de connexion sur la page de connexion est limité aussi, et compté que l'adresse soit ou non celle d'un utilisateur privé de la page : 10 e-mails vers une adresse en une heure, sur toutes les pages de statut ensemble, et 30 depuis un réseau en 15 minutes.
 
 Sur une installation auto-hébergée, ces variables d'environnement de l'application OneUptime changent les limites :
 
@@ -113,6 +113,8 @@ Sur une installation auto-hébergée, ces variables d'environnement de l'applica
 | `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_CONTACT` | `5` | Liens de gestion pour un contact par fenêtre. |
 | `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_IP` | `30` | Réinitialisations de mot de passe d'utilisateurs privés demandées depuis une adresse par fenêtre. |
 | `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_CONTACT` | `5` | E-mails de réinitialisation de mot de passe d'utilisateurs privés vers une adresse par fenêtre. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MAGIC_LINKS_PER_IP` | `30` | Liens de connexion d'utilisateurs privés demandés depuis une adresse par fenêtre. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MAGIC_LINKS_PER_CONTACT` | `10` | E-mails de lien de connexion d'utilisateurs privés vers une adresse par fenêtre. |
 | `PUBLIC_MESSAGE_RATE_LIMIT_INVITATIONS_PER_CONTACT` | `10` | Invitations vers une adresse par fenêtre, aux pages de statut privées et aux projets ensemble. |
 
 Ni `config.env` ni les valeurs du chart Helm ne les transmettent : ajoutez-les vous-même à l'environnement du conteneur `app`, avec `app.extraEnv`, ou le `extraEnv` global du chart, dans le chart Helm, ou dans un `docker-compose.override.yml` pour Docker Compose. `TRUSTED_PROXY_HOPS` décide quelle adresse comptent les limites par réseau.

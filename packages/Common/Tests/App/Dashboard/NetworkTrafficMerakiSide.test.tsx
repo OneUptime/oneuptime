@@ -733,7 +733,7 @@ describe("the Meraki side", () => {
     ).toBeNull();
   });
 
-  test("on a device's page, Review goes to the network's page, where the connections are", async () => {
+  test("on a device's page, Review goes to the network's page, on its Meraki side, at the connections", async () => {
     answerUsage(() => {
       return usage({ connections: [FAILING] });
     });
@@ -743,9 +743,10 @@ describe("the Meraki side", () => {
     const review: HTMLElement = screen.getByTestId(
       "meraki-connection-line-review",
     );
+    // The card brings itself into view when the page opens there.
     expect(review.closest("a")).toHaveAttribute(
       "href",
-      "/dashboard/10000000-0000-4000-8000-000000000001/network-devices/traffic",
+      "/dashboard/10000000-0000-4000-8000-000000000001/network-devices/traffic?source=meraki#traffic-meraki-connections",
     );
   });
 

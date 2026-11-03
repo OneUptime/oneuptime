@@ -25,12 +25,15 @@ const STORAGE_KEY: string = "oneuptime-sensitive-url-token";
  * "unsubscribe" is a status page subscriber's unsubscribe link and
  * "update-subscription" its manage link; the last segment of both is
  * <subscriberId>-<token> (Common/Types/StatusPage/StatusPageSubscriberUnsubscribe).
+ * "magic-link-login" is a status page private user's sign-in link
+ * (Common/Types/StatusPage/StatusPageMagicLink).
  */
 const TOKEN_ROUTES: Array<string> = [
   "reset-password",
   "verify-email",
   "unsubscribe",
   "update-subscription",
+  "magic-link-login",
 ];
 
 interface HandoffWindow extends Window {

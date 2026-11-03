@@ -98,7 +98,7 @@ Hver grense per nettverk teller også adressene i ett IPv6 /64 sammen, med ti ga
 
 **Det teamet ditt sender, teller også.** Ingenting begrenser hvor raskt teamet ditt legger til abonnenter, på dashbordet, i bulk, via API-et eller med en arbeidsflyt. Men meldingen en tillagt abonnent får, e-posten som ber om bekreftelse eller meldingen om at den abonnerer, teller med i kontaktens 10 påmeldinger i timen, og utover dem avvises tillegget med `429`. En abonnent som legges til uten melding, telles aldri: **Abonner dem nå** for en e-postadresse, eller **Send en velkomstmelding** slått av for de andre kanalene. Hvis hastighetsbegrenseren ikke kan nås, fortsetter teamets tillegg uten å telles.
 
-En privat bruker som ber om en lenke for å tilbakestille passordet på statussidens påloggingsside, er begrenset på samme måte: 5 tilbakestillings-e-poster til én adresse på en time, på alle statussider til sammen, og 30 fra ett nettverk på 15 minutter. En invitasjon, til en privat statusside eller til et prosjekt, telles også per adresse: 10 til én adresse på en time, begge typer til sammen.
+En privat bruker som ber om en lenke for å tilbakestille passordet på statussidens påloggingsside, er begrenset på samme måte: 5 tilbakestillings-e-poster til én adresse på en time, på alle statussider til sammen, og 30 fra ett nettverk på 15 minutter. En invitasjon, til en privat statusside eller til et prosjekt, telles også per adresse: 10 til én adresse på en time, begge typer til sammen. Å be om en innloggingslenke på påloggingssiden er også begrenset, og telles enten adressen tilhører en privat bruker av siden eller ikke: 10 e-poster til én adresse på en time, på alle statussider til sammen, og 30 fra ett nettverk på 15 minutter.
 
 På en selvdriftet installasjon endrer disse miljøvariablene i OneUptime-appen grensene:
 
@@ -113,6 +113,8 @@ På en selvdriftet installasjon endrer disse miljøvariablene i OneUptime-appen 
 | `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_CONTACT` | `5` | Administrasjonslenker for én kontakt per tidsvindu. |
 | `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_IP` | `30` | Tilbakestillinger av passord for private brukere som bes om fra én adresse per tidsvindu. |
 | `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_CONTACT` | `5` | Tilbakestillings-e-poster for private brukere til én adresse per tidsvindu. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MAGIC_LINKS_PER_IP` | `30` | Innloggingslenker for private brukere som bes om fra én adresse per tidsvindu. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MAGIC_LINKS_PER_CONTACT` | `10` | Innloggingslenke-e-poster for private brukere til én adresse per tidsvindu. |
 | `PUBLIC_MESSAGE_RATE_LIMIT_INVITATIONS_PER_CONTACT` | `10` | Invitasjoner til én adresse per vindu, til private statussider og prosjekter til sammen. |
 
 Verken `config.env` eller Helm-chartets verdier sender dem videre: legg dem selv til i miljøet til containeren `app`, med `app.extraEnv`, eller den felles `extraEnv` for hele chartet, i Helm-chartet, eller i en `docker-compose.override.yml` for Docker Compose. `TRUSTED_PROXY_HOPS` bestemmer hvilken adresse grensene per nettverk teller.

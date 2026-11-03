@@ -26,7 +26,11 @@ import { RoleReach } from "../Permission/RoleCatalog";
 import { getRolePickerFormField } from "../Permission/RolePickerFormField";
 import {
   getPermissionScopeFields,
+  getPermissionScopes,
+  getRoleScopes,
+  getScopeKeptOnPermissionChange,
   isScopeShownFor,
+  isScopeShownForPermission,
 } from "../Permission/PermissionScopeChoice";
 import PermissionScopeCell from "../Permission/PermissionScopeCell";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -53,6 +57,10 @@ import React, {
  * (Permission/RolePicker); Add Permission picks one permission from the
  * full list. A new team created with Choose permissions later lands here
  * with nothing, so the empty table repeats Add Role as the way forward.
+ *
+ * Either way the Scope waits under More fields: a role's three answers, one
+ * permission's answers that narrow it, and a block's never "Only resources
+ * they own" (PermissionScopeChoice).
  */
 
 export enum PermissionType {
@@ -273,11 +281,14 @@ const TeamPermissionTable: FunctionComponent<ComponentProps> = (
               }),
               /*
                * Scope: three plain answers, All first, and the labels the
-               * third one asks for (PermissionScopeChoice).
+               * third one asks for (PermissionScopeChoice) - a block's two.
                */
               ...getPermissionScopeFields<TeamPermission>({
                 isScopeShown: (values: FormValues<TeamPermission>): boolean => {
                   return isScopeShownFor(values["permission"]);
+                },
+                getScopes: (): Array<PermissionScope> => {
+                  return getRoleScopes({ isBlock: isBlock });
                 },
               }),
             ]
@@ -286,18 +297,21 @@ const TeamPermissionTable: FunctionComponent<ComponentProps> = (
                 field: {
                   permission: true,
                 },
-                onChange: async (value: any): Promise<void> => {
+                onChange: async (
+                  value: unknown,
+                  currentValues: FormValues<TeamPermission>,
+                ): Promise<void> => {
                   await formRef.current.setFieldValue("labels", [], true);
-                  if (
-                    value &&
-                    !PermissionHelper.isScopeApplicable(value as Permission)
-                  ) {
-                    await formRef.current.setFieldValue(
-                      "scope",
-                      PermissionScope.All,
-                      true,
-                    );
-                  }
+                  // An answer the new permission does not offer goes back to All.
+                  await formRef.current.setFieldValue(
+                    "scope",
+                    getScopeKeptOnPermissionChange({
+                      permission: value,
+                      heldScope: currentValues?.["scope"],
+                      options: { isBlock: isBlock },
+                    }),
+                    true,
+                  );
                 },
                 title: "Permission",
                 description: "One permission, for exactly what the team needs.",
@@ -327,20 +341,21 @@ const TeamPermissionTable: FunctionComponent<ComponentProps> = (
                 },
               },
               /*
-               * Only a permission labels can narrow takes a scope: the
-               * others reach the whole project by definition.
+               * Only a permission a scope narrows takes one, and only the
+               * answers that narrow it are offered: Create Workflow is
+               * scoped as much as Read Workflow (issue #5602), and Create
+               * Team, the same for everyone, takes none.
                */
               ...getPermissionScopeFields<TeamPermission>({
                 isScopeShown: (values: FormValues<TeamPermission>): boolean => {
-                  return (
-                    Boolean(values["permission"]) &&
-                    PermissionHelper.isAccessControlPermission(
-                      values["permission"] as Permission,
-                    ) &&
-                    PermissionHelper.isScopeApplicable(
-                      values["permission"] as Permission,
-                    )
-                  );
+                  return isScopeShownForPermission(values["permission"]);
+                },
+                getScopes: (
+                  values: FormValues<TeamPermission>,
+                ): Array<PermissionScope> => {
+                  return getPermissionScopes(values["permission"], {
+                    isBlock: isBlock,
+                  });
                 },
               }),
             ]

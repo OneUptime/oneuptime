@@ -31,6 +31,8 @@ enum EmailTemplateType {
   ManageExistingStatusPageSubscriberSubscription = "ManageExistingStatusPageSubscriberSubscription.hbs",
   SubscriberScheduledMaintenanceEventStateChanged = "SubscriberScheduledMaintenanceEventStateChanged.hbs",
   StatusPageForgotPassword = "StatusPageForgotPassword.hbs",
+  // A private user's sign-in link (Types/StatusPage/StatusPageMagicLink).
+  StatusPageMagicLink = "StatusPageMagicLink.hbs",
   StatusPagePasswordChanged = "StatusPagePasswordChanged.hbs",
   StatusPageWelcomeEmail = "StatusPageWelcomeEmail.hbs",
   SubscriberScheduledMaintenanceEventNoteCreated = "SubscriberScheduledMaintenanceEventNoteCreated.hbs",

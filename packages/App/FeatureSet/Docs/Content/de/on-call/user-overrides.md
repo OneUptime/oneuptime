@@ -70,6 +70,8 @@ Verlässt jemand das Projekt, wird jede Überschreibung gelöscht, die ihn nennt
 
 **Projektinhaber**, **Projektadministrator**, **Projektmitglied**, **Bereitschafts-Administrator** und **Bereitschafts-Mitglied** dürfen Überschreibungen hinzufügen und löschen; **Betrachter** und **Bereitschafts-Betrachter** dürfen sie sehen. In einer eigenen Rolle heißen die Berechtigungen **Create On-Call Duty Policy User Override**, **Delete On-Call Duty Policy User Override** und **Read On-Call Duty Policy User Override**. Auf der **Zeitachse der Bereitschaftspläne** sehen nur Personen, die Überschreibungen lesen dürfen, wessen Schicht vertreten wird.
 
+Eine Überschreibung in einer Richtlinie folgt dem Geltungsbereich der Richtlinie. Geben Sie einem Team **Bereitschafts-Mitglied**, beschränkt auf die Richtlinien, die ihm gehören, oder auf sein Label, dann fügen seine Mitglieder Überschreibungen nur in diesen Richtlinien hinzu und löschen sie nur dort. Eine globale Überschreibung gilt für jede Richtlinie, auch für die eines anderen Teams; sie hinzuzufügen oder zu löschen braucht deshalb die Berechtigung für Überschreibungen über das ganze Projekt. Mit einer engeren sind **Benutzervertretung hinzufügen** und **Löschen** unter **Bereitschaftsdienst → Erweitert → Benutzerüberschreibungen** gesperrt und sagen, warum, und das Team fügt seine Überschreibungen auf der eigenen Seite **Benutzerüberschreibungen** jeder Richtlinie hinzu. Dasselbe gilt für die API: Eine Überschreibung ohne `onCallDutyPolicyId` wird für eine Berechtigung abgelehnt, die auf Labels oder auf eigene Richtlinien beschränkt ist.
+
 In OneUptime Cloud brauchen Benutzerüberschreibungen den Plan **Growth**.
 
 ## API
@@ -111,7 +113,7 @@ Sie wird über ihre eigenen persönlichen Bereitschaftsregeln und verifizierten 
 :::
 
 :::details Ich kann keine Überschreibung hinzufügen
-Dafür braucht es eine der Rollen oben, und in OneUptime Cloud den Plan **Growth**.
+Dafür braucht es eine der Rollen oben, und in OneUptime Cloud den Plan **Growth**. Eine globale Überschreibung braucht die Rolle über das ganze Projekt: Ist die Rolle Ihres Teams auf seine eigenen Richtlinien oder auf einige Labels beschränkt, fügen Sie die Überschreibung auf der eigenen Seite **Benutzerüberschreibungen** der Richtlinie hinzu.
 :::
 
 ## Nächste Schritte
