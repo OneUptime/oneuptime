@@ -186,10 +186,10 @@ Status" workflow checks every place after each release and every day; its run su
 
 ### Iron Bank
 
-The App's Community Edition image is also packaged for Iron Bank, the US Department of Defense's registry of hardened
+The App's Enterprise Edition image is also packaged for Iron Bank, the US Department of Defense's registry of hardened
 images (registry1.dso.mil), from `IronBank/App`. Iron Bank's pipeline does not build the App: that project's Dockerfile
-copies `/usr/src` out of a release's `oneuptime/app` image onto Iron Bank's Node.js 26 image, and sets again what the
-runtime and community stages of `packages/App/Dockerfile.tpl` set. So when you change one of those stages' start command,
+copies `/usr/src` out of a release's `oneuptime/app:enterprise-<version>` image onto Iron Bank's Node.js 26 image, and sets
+again what the runtime and enterprise stages of `packages/App/Dockerfile.tpl` set. So when you change one of those stages' start command,
 user, environment, labels, Alpine packages or what it copies, `Tests/Ops/IronBankApp.test.js` fails until
 `IronBank/App/Dockerfile` does the same. Before changing anything in `IronBank/`, `Scripts/IronBank/` or
 `.github/workflows/iron-bank.yml` (the "Iron Bank Preflight" workflow), read [the Iron Bank guide](IronBank/README.md).

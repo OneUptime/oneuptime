@@ -12,7 +12,7 @@ projects:
 
 | Folder | Image | Repo1 project |
 | --- | --- | --- |
-| [App](App) | the App, Community Edition | `dsop/oneuptime/app` (Iron Bank's onboarding team picks the final path) |
+| [App](App) | the App, Enterprise Edition | `dsop/oneuptime/app` (Iron Bank's onboarding team picks the final path) |
 
 [Justifications](Justifications) is not pushed to Repo1. It records the
 findings OneUptime has justified in VAT.
@@ -24,15 +24,22 @@ from one of Iron Bank's own images, and anything else the build reads must be a
 resource that `hardening_manifest.yaml` pins by digest or checksum. Iron Bank's
 pipeline can still reach Alpine's package repositories through its proxy.
 
-So the App is not built from source here. The manifest pins the Community
-Edition image of a OneUptime release (`oneuptime/app:<version>` on Docker Hub,
-linux/amd64) by digest. The Dockerfile copies its `/usr/src` onto Iron Bank's
-Node.js 26 image (`ironbank/opensource/nodejs/nodejs26`), installs `bash` and
-`curl`, and sets the release's environment, user and start command again. Both
-images are Node.js 26 on Alpine 3.24, so the native modules the release built
-load unchanged. `Tests/Ops/IronBankApp.test.js` holds the Dockerfile to the
-community stage of `packages/App/Dockerfile.tpl`. When the App's Dockerfile
+So the App is not built from source here. The manifest pins the Enterprise
+Edition image of a OneUptime release (`oneuptime/app:enterprise-<version>` on
+Docker Hub, linux/amd64) by digest. The Dockerfile copies its `/usr/src` onto
+Iron Bank's Node.js 26 image (`ironbank/opensource/nodejs/nodejs26`). It
+installs `bash`, `curl` and the PostgreSQL clients that backups use, and sets
+the release's environment, user and start command again. Both images are
+Node.js 26 on Alpine 3.24, so the native modules the release built load
+unchanged. `Tests/Ops/IronBankApp.test.js` holds the Dockerfile to the
+enterprise stage of `packages/App/Dockerfile.tpl`. When the App's Dockerfile
 changes what its image sets, that suite says what to change here.
+
+Only the Enterprise Edition is on Iron Bank, as a "commercial" image. Production
+use of it needs an Enterprise license (`ee/LICENSE`). Without one it runs a
+14-day trial, for evaluation. After that, SCIM and audit logging stop and
+enterprise configuration becomes read-only, while core monitoring carries on.
+Activating a license turns the enterprise features back on without a restart.
 
 `Scripts/IronBank/PinRelease.js` moves the project to another release. It
 updates the tag, the version label, the resource's digest, the release stage,
@@ -60,7 +67,7 @@ known before a merge request reaches Repo1:
 4. With Registry1 credentials, it also:
    - fetches the manifest's resources as Iron Bank's pipeline does;
    - builds the image on Iron Bank's base image with the manifest's labels;
-   - checks it is the Community Edition;
+   - checks it is the Enterprise Edition;
    - boots it with PostgreSQL, ClickHouse and Valkey
      (`Tests/Ops/AppImageRuntime.test.js`);
    - scans the image and its base image with Grype and Trivy, and its files
