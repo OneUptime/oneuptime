@@ -31,11 +31,18 @@ import { CloudAccountRow } from "./UseCloudAccounts";
  * never read as one that costs nothing, or has nothing to save.
  */
 
-export const COST_GAPS_TITLE: string = translationKey(
-  "Accounts whose costs are not read",
-);
+/*
+ * Under figures: the accounts they leave out - one whose costs are not read,
+ * or one billed in another currency, whose costs are read but never summed
+ * in - so the title says left out, not "not read".
+ */
+export const COST_GAPS_TITLE: string = translationKey("Accounts left out");
 export const COST_GAPS_DESCRIPTION: string = translationKey(
-  "Their costs are left out of the figures above until they are.",
+  "Their costs are not in the figures above. Each says why.",
+);
+// Before any account's are read: none is left out of figures, none are read.
+export const COST_GAPS_NONE_READ_TITLE: string = translationKey(
+  "Accounts whose costs are not read",
 );
 export const SAVINGS_GAPS_TITLE: string = translationKey(
   "Accounts whose recommendations are not read",
@@ -137,6 +144,17 @@ export interface ComponentProps {
   isNothingRead?: boolean | undefined;
 }
 
+export function getCloudCostGapsTitle(data: {
+  kind: CloudCostGapKind;
+  isNothingRead: boolean;
+}): string {
+  if (data.kind === "savings") {
+    return SAVINGS_GAPS_TITLE;
+  }
+
+  return data.isNothingRead ? COST_GAPS_NONE_READ_TITLE : COST_GAPS_TITLE;
+}
+
 export function getCloudCostGapsDescription(data: {
   kind: CloudCostGapKind;
   isNothingRead: boolean;
@@ -173,7 +191,10 @@ const CloudCostGapsCard: FunctionComponent<ComponentProps> = (
 
   return (
     <Card
-      title={props.kind === "costs" ? COST_GAPS_TITLE : SAVINGS_GAPS_TITLE}
+      title={getCloudCostGapsTitle({
+        kind: props.kind,
+        isNothingRead: Boolean(props.isNothingRead),
+      })}
       description={getCloudCostGapsDescription({
         kind: props.kind,
         isNothingRead: Boolean(props.isNothingRead),

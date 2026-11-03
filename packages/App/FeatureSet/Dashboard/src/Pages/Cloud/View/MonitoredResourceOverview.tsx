@@ -75,11 +75,12 @@ import ProjectUtil from "Common/UI/Utils/Project";
  *
  * Its health leads: the hero's pill says how it is by its type's rules
  * (CloudResourceHealth) - Healthy, Degraded, Unhealthy, Reporting or Not
- * reporting - "This resource" under it says why when it needs attention,
- * and for the common types the tiles show the few numbers people read
- * first (CloudHeadlineTiles), all from what the last read kept on the
- * resource. A type with no headline numbers has no tiles: the Metrics card
- * lists everything it reports.
+ * reporting - "This resource" right under it says why when it needs
+ * attention, and for the common types the tiles show the few numbers
+ * people read first (CloudHeadlineTiles), all from what the last read kept
+ * on the resource. A type with no headline numbers has no tiles: the
+ * Metrics card lists everything it reports. What it costs, and how it
+ * could cost less, follows its numbers, before its Details.
  */
 
 /*
@@ -371,7 +372,37 @@ const CloudMonitoredResourceOverview: FunctionComponent<
         lastSeenAt={r.lastSeenAt}
         description={r.description as string}
         chips={chips}
+        /*
+         * Why it needs attention, when it does, straight under the pill it
+         * explains and before any number - as a host's and a cluster's
+         * Overview lead with theirs: "This resource" and its reasons, the
+         * same rows the Overview's Needs attention lists. Nothing is drawn
+         * while nothing needs a look.
+         */
+        connectionGuide={
+          <NeedsAttentionCard
+            testId="cloud-resource-attention"
+            items={getCloudResourceOwnAttentionItems({ resource: r, now })}
+            current={CLOUD_RESOURCE_ATTENTION_CURRENT}
+            showKind={false}
+          />
+        }
         tiles={headlineTiles}
+        /*
+         * What it costs and how it could cost less, when its cloud says,
+         * under its numbers and before its Details: nothing is drawn for a
+         * resource with neither.
+         */
+        charts={
+          ProjectUtil.getCurrentProjectId() && r.providerResourceId ? (
+            <CloudResourceCostCard
+              projectId={ProjectUtil.getCurrentProjectId()!}
+              resourceRecordId={modelId}
+              provider={provider}
+              providerResourceId={r.providerResourceId}
+            />
+          ) : undefined
+        }
         detailRows={detailRows}
         detailsDescription={translationKey(
           "What its cloud says it is, where it is, and how OneUptime reads it.",
@@ -380,32 +411,6 @@ const CloudMonitoredResourceOverview: FunctionComponent<
         settingsRoute={populate(PageMap.CLOUD_RESOURCE_VIEW_SETTINGS)}
         labels={r.labels}
       />
-
-      {/*
-       * Why it needs attention, when it does: "This resource" and its
-       * reasons, the same rows the Overview's Needs attention lists.
-       */}
-      <NeedsAttentionCard
-        testId="cloud-resource-attention"
-        items={getCloudResourceOwnAttentionItems({ resource: r, now })}
-        current={CLOUD_RESOURCE_ATTENTION_CURRENT}
-        showKind={false}
-      />
-
-      {/*
-       * What it costs and how it could cost less, when its cloud says:
-       * nothing is drawn for a resource with neither.
-       */}
-      {ProjectUtil.getCurrentProjectId() && r.providerResourceId ? (
-        <CloudResourceCostCard
-          projectId={ProjectUtil.getCurrentProjectId()!}
-          resourceRecordId={modelId}
-          provider={provider}
-          providerResourceId={r.providerResourceId}
-        />
-      ) : (
-        <></>
-      )}
 
       <div className="mt-6">
         <ResourceActivityCards

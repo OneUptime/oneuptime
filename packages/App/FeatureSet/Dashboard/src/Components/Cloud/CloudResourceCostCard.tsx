@@ -50,6 +50,30 @@ export const RESOURCE_COST_DESCRIPTION: string = translationKey(
   "From its cloud's own billing, and the ways its cloud's recommender says it could cost less.",
 );
 
+/*
+ * A resource its cloud does not bill by name (AWS Cost Explorer says the
+ * service and Region only) has no figure of its own: its card is only its
+ * ways to spend less, and is called that rather than "What it costs".
+ */
+export const RESOURCE_SAVINGS_TITLE: string =
+  translationKey("Ways to spend less");
+export const RESOURCE_SAVINGS_DESCRIPTION: string = translationKey(
+  "What its cloud's own recommender says could be saved.",
+);
+
+// The card's title and description: what it costs, or only how to spend less.
+export function getCloudResourceCostCardHeading(cost: { hasCosts: boolean }): {
+  title: string;
+  description: string;
+} {
+  return cost.hasCosts
+    ? { title: RESOURCE_COST_TITLE, description: RESOURCE_COST_DESCRIPTION }
+    : {
+        title: RESOURCE_SAVINGS_TITLE,
+        description: RESOURCE_SAVINGS_DESCRIPTION,
+      };
+}
+
 export interface CloudResourceCost {
   currency: string;
   monthToDate: number;
@@ -225,9 +249,15 @@ const CloudResourceCostCard: FunctionComponent<ComponentProps> = (
     });
   };
 
+  const heading: { title: string; description: string } =
+    getCloudResourceCostCardHeading(cost);
+
   return (
-    <Card title={RESOURCE_COST_TITLE} description={RESOURCE_COST_DESCRIPTION}>
-      <div data-testid="cloud-resource-cost">
+    <Card title={heading.title} description={heading.description}>
+      <div
+        data-testid="cloud-resource-cost"
+        data-state={cost.hasCosts ? "costs" : "savings-only"}
+      >
         {cost.hasCosts ? (
           <div className="[container-type:inline-size]">
             <dl className="grid grid-cols-1 gap-4 [@container(min-width:20rem)]:grid-cols-2">

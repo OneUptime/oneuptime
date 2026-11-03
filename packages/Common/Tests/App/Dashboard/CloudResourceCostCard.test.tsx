@@ -21,7 +21,12 @@ import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import { getJestSpyOn } from "../../Spy";
 import CloudResourceCostCard, {
   CloudResourceCost,
+  RESOURCE_COST_DESCRIPTION,
+  RESOURCE_COST_TITLE,
+  RESOURCE_SAVINGS_DESCRIPTION,
+  RESOURCE_SAVINGS_TITLE,
   fetchCloudResourceCost,
+  getCloudResourceCostCardHeading,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudResourceCostCard";
 
 /*
@@ -213,9 +218,22 @@ describe("the card", () => {
     expect(savings).toHaveTextContent("Resize");
     expect(savings).toHaveTextContent("Standard_D8s_v5 → Standard_D4s_v5");
     expect(savings).toHaveTextContent("€140.00");
+
+    // Called what it shows: what it costs, and how it could cost less.
+    expect(screen.getByTestId("cloud-resource-cost")).toHaveAttribute(
+      "data-state",
+      "costs",
+    );
+    expect(screen.getByText(RESOURCE_COST_TITLE)).toBeInTheDocument();
+    expect(screen.getByText(RESOURCE_COST_DESCRIPTION)).toBeInTheDocument();
   });
 
-  test("only recommendations: no figures", async () => {
+  /*
+   * A resource its cloud does not bill by name (AWS Cost Explorer says the
+   * service and Region only) has no figure: its card is only its ways to
+   * spend less, and says so - not "What it costs" over no cost.
+   */
+  test("only recommendations: no figures, and called Ways to spend less", async () => {
     monthRows = [];
     thirtyDayRows = [];
 
@@ -225,6 +243,25 @@ describe("the card", () => {
       await screen.findByTestId("cloud-resource-savings"),
     ).toBeInTheDocument();
     expect(screen.queryByTestId("cloud-resource-cost-month")).toBeNull();
+    expect(screen.getByTestId("cloud-resource-cost")).toHaveAttribute(
+      "data-state",
+      "savings-only",
+    );
+    expect(screen.getByText(RESOURCE_SAVINGS_TITLE)).toBeInTheDocument();
+    expect(screen.getByText(RESOURCE_SAVINGS_DESCRIPTION)).toBeInTheDocument();
+    expect(screen.queryByText(RESOURCE_COST_TITLE)).toBeNull();
+  });
+
+  test("its heading follows what it holds", () => {
+    expect(getCloudResourceCostCardHeading({ hasCosts: true })).toEqual({
+      title: "What it costs",
+      description:
+        "From its cloud's own billing, and the ways its cloud's recommender says it could cost less.",
+    });
+    expect(getCloudResourceCostCardHeading({ hasCosts: false })).toEqual({
+      title: "Ways to spend less",
+      description: "What its cloud's own recommender says could be saved.",
+    });
   });
 
   test("neither costs nor recommendations, or a read that fails: nothing", async () => {

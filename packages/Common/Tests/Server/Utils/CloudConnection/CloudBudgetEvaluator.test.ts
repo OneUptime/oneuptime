@@ -78,6 +78,7 @@ function spend(overrides: Partial<CloudBudgetSpend>): CloudBudgetSpend {
   return {
     spent: 0,
     projected: 0,
+    topServices: [],
     accountsCounted: 1,
     accountsInOtherCurrencies: 0,
     ...overrides,
@@ -106,7 +107,49 @@ describe("what a budget counts", () => {
       projected: 770,
       accountsCounted: 2,
       accountsInOtherCurrencies: 1,
+      topServices: [],
     });
+  });
+
+  test("where the money went: the counted accounts' services summed by name, the costliest three first", () => {
+    const counted: CloudBudgetSpend = CloudBudgetEvaluator.computeSpend({
+      currency: "USD",
+      summaries: [
+        summary({
+          monthToDate: 700,
+          topServices: [
+            { service: "Amazon EC2", amount: 300.004 },
+            { service: "Amazon S3", amount: 120 },
+            { service: "AWS Lambda", amount: 20 },
+          ],
+        }),
+        summary({
+          monthToDate: 300,
+          topServices: [
+            { service: "Amazon EC2", amount: 100 },
+            { service: "Amazon RDS", amount: 150 },
+            // Nothing spent on it: never named.
+            { service: "Amazon SQS", amount: 0 },
+          ],
+        }),
+        // Another currency, and last month's read: not counted, nor their services.
+        summary({
+          currency: "EUR",
+          topServices: [{ service: "Virtual Machines", amount: 9000 }],
+        }),
+        summary({
+          readAt: "2026-10-31T23:00:00.000Z",
+          topServices: [{ service: "Compute Engine", amount: 9000 }],
+        }),
+      ],
+      now: NOW,
+    });
+
+    expect(counted.topServices).toEqual([
+      { service: "Amazon EC2", amount: 400 },
+      { service: "Amazon RDS", amount: 150 },
+      { service: "Amazon S3", amount: 120 },
+    ]);
   });
 });
 
@@ -288,6 +331,55 @@ describe("what a budget does", () => {
     );
     expect(projection.description).toContain("on course for €1,100.00");
     expect(projection.description).toContain("with 1 day to go");
+
+    // No service named: no root cause, never the description again.
+    expect(threshold.rootCause).toBeUndefined();
+    expect(projection.rootCause).toBeUndefined();
+  });
+
+  test("its root cause is where the money went: the services that cost the most this month", () => {
+    const words: { rootCause?: string | undefined; description: string } =
+      CloudBudgetEvaluator.describe({
+        budgetName: "Production",
+        scope: "every cloud account of the project",
+        amount: 1000,
+        currency: "USD",
+        spend: spend({
+          spent: 812.5,
+          projected: 1240,
+          topServices: [
+            { service: "Amazon EC2", amount: 437.87 },
+            { service: "Amazon S3", amount: 272.74 },
+            { service: "AWS Lambda", amount: 34.84 },
+          ],
+        }),
+        alert: { kind: "threshold", threshold: 80 },
+        now: NOW,
+      });
+
+    expect(words.rootCause).toBe(
+      "What cost the most this month: Amazon EC2 ($437.87), Amazon S3 ($272.74) and AWS Lambda ($34.84).",
+    );
+    expect(words.rootCause).not.toBe(words.description);
+
+    expect(
+      CloudBudgetEvaluator.describeTopServices(
+        [{ service: "Virtual Machines", amount: 80 }],
+        "EUR",
+      ),
+    ).toBe("What cost the most this month: Virtual Machines (€80.00).");
+    expect(
+      CloudBudgetEvaluator.describeTopServices(
+        [
+          { service: "Compute Engine", amount: 12 },
+          { service: "BigQuery", amount: 3.5 },
+        ],
+        "USD",
+      ),
+    ).toBe(
+      "What cost the most this month: Compute Engine ($12.00) and BigQuery ($3.50).",
+    );
+    expect(CloudBudgetEvaluator.describeTopServices([], "USD")).toBeUndefined();
   });
 
   test("a stored state and an amount read back and written as alerts say them", () => {
@@ -439,6 +531,9 @@ describe("a budget's check", () => {
         return policy.id?.toString();
       }),
     ).toEqual([POLICY_ID.toString()]);
+    // The account named no service: no root cause, not the description again.
+    expect(created[0]!.rootCause).toBeUndefined();
+    expect(created[0]!.description).toContain("$850.00 of the $1,000.00");
 
     expect(updates).toHaveLength(1);
     expect(updates[0]).toMatchObject({
@@ -462,6 +557,32 @@ describe("a budget's check", () => {
       "10000000-0000-4000-8000-000000000001",
       "10000000-0000-4000-8000-000000000002",
     ]);
+  });
+
+  test("an alert names where the money went as its root cause, apart from its description", async () => {
+    accounts = [
+      makeAccount(
+        summary({
+          monthToDate: 850,
+          projectedMonth: 1200,
+          topServices: [
+            { service: "Amazon EC2", amount: 500 },
+            { service: "Amazon RDS", amount: 250 },
+          ],
+        }),
+      ),
+    ];
+
+    await CloudBudgetEvaluator.evaluateBudgetById(BUDGET_ID);
+
+    expect(created).toHaveLength(2);
+
+    for (const alert of created) {
+      expect(alert.rootCause).toBe(
+        "What cost the most this month: Amazon EC2 ($500.00) and Amazon RDS ($250.00).",
+      );
+      expect(alert.rootCause).not.toBe(alert.description);
+    }
   });
 
   test("an alert of the same fingerprint open already is not raised again", async () => {

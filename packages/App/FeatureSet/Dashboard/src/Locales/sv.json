@@ -40514,7 +40514,6 @@
   "Running tasks out of the tasks this service wants, such as 2 of 3 running, from the latest inventory snapshot. Red when none run, amber when some are missing and no rolling update explains it, grey when it is scaled to zero or a job that ran to completion.": "Körande uppgifter av de uppgifter som den här tjänsten vill ha, till exempel 2 av 3 körs, från den senaste ögonblicksbilden av inventariet. Röd när ingen körs, gul när några saknas och ingen rullande uppdatering förklarar det, grå när den är skalad till noll eller är ett jobb som har körts klart.",
   "SNAT ports at {{percent}}": "SNAT-portar på {{percent}}",
   "SQS queue · oldest message waiting 2 hours": "SQS-kö · äldsta meddelandet har väntat 2 timmar",
-  "Saves a Month": "Sparar per månad",
   "Savings": "Besparingar",
   "Savings Summary": "Besparingsöversikt",
   "Savings available": "Möjliga besparingar",
@@ -40566,7 +40565,6 @@
   "The tasks (containers) of this swarm's services, with their state and what each one uses.": "Uppgifterna (containrarna) för tjänsterna i den här swarmen, med deras tillstånd och vad var och en använder.",
   "The tasks Swarm placed on this node, with their state and what each one uses.": "Uppgifterna Swarm placerade på den här noden, med deras tillstånd och vad var och en använder.",
   "The tasks Swarm runs for this service, with their state, their node and what each one uses.": "Uppgifterna Swarm kör för den här tjänsten, med deras tillstånd, deras nod och vad var och en använder.",
-  "Their costs are left out of the figures above until they are.": "Deras kostnader är utelämnade från siffrorna ovan tills de läses.",
   "Their ways to spend less are left out until they are.": "Deras sätt att spendera mindre är utelämnade tills de läses.",
   "This Month": "Den här månaden",
   "This month": "Den här månaden",
@@ -40899,5 +40897,12 @@
   "Workspace Home Choices": "Startsideval för arbetsytan",
   "Workspace User ID": "Användar-ID i arbetsytan",
   "Why each account's costs are not read yet, and what to do.": "Varför varje kontos kostnader inte läses än, och vad du kan göra.",
-  "Why each account's recommendations are not read yet, and what to do.": "Varför varje kontos rekommendationer inte läses än, och vad du kan göra."
+  "Why each account's recommendations are not read yet, and what to do.": "Varför varje kontos rekommendationer inte läses än, och vad du kan göra.",
+  "Accounts left out": "Utelämnade konton",
+  "Pick your cloud and run one command in its terminal. Its costs, and the ways to spend less, show here once they are read.": "Välj ditt moln och kör ett kommando i dess terminal. Dess kostnader och sätt att spendera mindre visas här så snart de har lästs.",
+  "Still being reported": "Rapporteras fortfarande",
+  "Their costs are not in the figures above. Each says why.": "Deras kostnader finns inte med i siffrorna ovan. Vid varje står varför.",
+  "What it cost this month so far, from its cloud's own billing, before credits and refunds.": "Vad det har kostat hittills den här månaden, från dess molns egen fakturering, före krediter och återbetalningar.",
+  "What its cloud's own recommender says could be saved.": "Vad dess molns rekommendationstjänst säger kan sparas.",
+  "Write each as a percent of the budget from 1 to 1000, such as 80, 100.": "Skriv var och en som en procentandel av budgeten från 1 till 1000, till exempel 80, 100."
 }

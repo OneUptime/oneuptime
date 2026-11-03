@@ -18,10 +18,14 @@ import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { Gray500, Green, Red, Yellow } from "Common/Types/BrandColors";
-import { CLOUD_BUDGET_DEFAULT_THRESHOLDS } from "Common/Types/Cloud/CloudCost";
+import {
+  CLOUD_BUDGET_DEFAULT_THRESHOLDS,
+  isCloudBudgetThresholdsText,
+} from "Common/Types/Cloud/CloudCost";
 import Color from "Common/Types/Color";
 import ObjectID from "Common/Types/ObjectID";
 import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
@@ -54,6 +58,27 @@ export const SPENT_OF_BUDGET: string = translationKey(
 export const ON_COURSE_FOR_AMOUNT: string = translationKey(
   "On course for {{amount}}",
 );
+/*
+ * Alert At that is not a list of percents: said before it is saved, rather
+ * than the budget quietly alerting at 80% and 100% instead.
+ */
+export const ALERT_AT_NOT_PERCENTS: string = translationKey(
+  "Write each as a percent of the budget from 1 to 1000, such as 80, 100.",
+);
+
+// Alert At's problem as the form shows it, or null when it reads.
+export function getAlertAtProblem(
+  value: unknown,
+  translator: Translator,
+): string | null {
+  if (typeof value === "string" && isCloudBudgetThresholdsText(value)) {
+    return null;
+  }
+
+  return (
+    translator.translateText(ALERT_AT_NOT_PERCENTS) || ALERT_AT_NOT_PERCENTS
+  );
+}
 
 export const CLOUD_BUDGET_TONE_COLORS: Readonly<
   Record<CloudBudgetTone, Color>
@@ -81,6 +106,10 @@ const CloudBudgets: FunctionComponent<
   const moreFields: FormFieldCollapsibleSection<CloudBudget> =
     getAdvancedFormSection<CloudBudget>();
 
+  /*
+   * A budget's figures: its amount as it was set ("$500", not "$500.00"),
+   * nothing spent as "$0", any other spend to the cent.
+   */
   const money: (
     amount: number,
     budgetCurrency: string | undefined,
@@ -92,6 +121,7 @@ const CloudBudgets: FunctionComponent<
       amount,
       currency: budgetCurrency || currency,
       translator,
+      wholeWhenRound: true,
     });
   };
 
@@ -369,6 +399,11 @@ const CloudBudgets: FunctionComponent<
           placeholder: "80,100",
           description:
             "The shares of the budget to alert at, in percent, separated by commas: an alert as the month's spend passes each.",
+          customValidation: (
+            values: FormValues<CloudBudget>,
+          ): string | null => {
+            return getAlertAtProblem(values.alertThresholds, translator);
+          },
         },
         {
           field: { alertOnProjection: true },

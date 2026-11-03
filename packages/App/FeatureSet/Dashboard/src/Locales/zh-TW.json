@@ -40514,7 +40514,6 @@
   "Running tasks out of the tasks this service wants, such as 2 of 3 running, from the latest inventory snapshot. Red when none run, amber when some are missing and no rolling update explains it, grey when it is scaled to zero or a job that ran to completion.": "根據最新清單快照，此服務需要的任務中正在執行的數量，例如 3 個中有 2 個在執行。沒有任何任務執行時為紅色；缺少部分任務且無法以滾動更新解釋時為琥珀色；服務縮減到零或是已執行完成的作業時為灰色。",
   "SNAT ports at {{percent}}": "SNAT 連接埠 {{percent}}",
   "SQS queue · oldest message waiting 2 hours": "SQS 佇列 · 最早的訊息已等待 2 小時",
-  "Saves a Month": "每月節省",
   "Savings": "節省",
   "Savings Summary": "節省摘要",
   "Savings available": "可節省金額",
@@ -40566,7 +40565,6 @@
   "The tasks (containers) of this swarm's services, with their state and what each one uses.": "此 swarm 中各服務的任務（容器），以及它們的狀態和各自的用量。",
   "The tasks Swarm placed on this node, with their state and what each one uses.": "Swarm 放在此節點上的任務，以及它們的狀態和各自的用量。",
   "The tasks Swarm runs for this service, with their state, their node and what each one uses.": "Swarm 為此服務執行的任務，以及它們的狀態、所在節點和各自的用量。",
-  "Their costs are left out of the figures above until they are.": "在讀取之前，這些帳戶的成本不計入上方金額。",
   "Their ways to spend less are left out until they are.": "在讀取之前，這些帳戶的節省方式不計入。",
   "This Month": "本月",
   "This month": "本月",
@@ -40899,5 +40897,12 @@
   "Workspace Home Choices": "工作區首頁選擇",
   "Workspace User ID": "工作區使用者 ID",
   "Why each account's costs are not read yet, and what to do.": "每個帳戶的成本尚未讀取的原因，以及該怎麼做。",
-  "Why each account's recommendations are not read yet, and what to do.": "每個帳戶的建議尚未讀取的原因，以及該怎麼做。"
+  "Why each account's recommendations are not read yet, and what to do.": "每個帳戶的建議尚未讀取的原因，以及該怎麼做。",
+  "Accounts left out": "未計入的帳戶",
+  "Pick your cloud and run one command in its terminal. Its costs, and the ways to spend less, show here once they are read.": "選擇你的雲端，並在其終端機中執行一個指令。讀取後，它的成本和減少支出的方式會顯示在這裡。",
+  "Still being reported": "仍在統計中",
+  "Their costs are not in the figures above. Each says why.": "這些帳戶的成本未計入上方金額，每個帳戶都註明了原因。",
+  "What it cost this month so far, from its cloud's own billing, before credits and refunds.": "本月至今的成本，來自其所在雲端的帳單，抵免額和退款之前。",
+  "What its cloud's own recommender says could be saved.": "其所在雲端的建議服務認為可節省的金額。",
+  "Write each as a percent of the budget from 1 to 1000, such as 80, 100.": "請將每個值寫成預算的百分比，範圍 1 到 1000，例如 80, 100。"
 }

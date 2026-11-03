@@ -41,9 +41,13 @@ import { CloudAccountRow } from "../../../../App/FeatureSet/Dashboard/src/Compon
 import {
   COST_GAPS_DESCRIPTION,
   COST_GAPS_NONE_READ_DESCRIPTION,
+  COST_GAPS_NONE_READ_TITLE,
+  COST_GAPS_TITLE,
   SAVINGS_GAPS_DESCRIPTION,
   SAVINGS_GAPS_NONE_READ_DESCRIPTION,
+  SAVINGS_GAPS_TITLE,
   getCloudCostGapsDescription,
+  getCloudCostGapsTitle,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudCostGapsCard";
 
 /*
@@ -468,6 +472,12 @@ describe("the accounts left out", () => {
     );
     // Left out of the figures above, which there are.
     expect(screen.getByText(COST_GAPS_DESCRIPTION)).toBeInTheDocument();
+    /*
+     * Left out, not "not read": eu-shop's costs are read, in euros, and
+     * only kept out of figures in dollars.
+     */
+    expect(screen.getByText(COST_GAPS_TITLE)).toBeInTheDocument();
+    expect(screen.queryByText(COST_GAPS_NONE_READ_TITLE)).toBeNull();
 
     expect(gaps[1]).toHaveTextContent(
       "Permission bigquery.jobs.create denied.",
@@ -538,10 +548,30 @@ describe("before any cost is read", () => {
       screen.getByText(COST_GAPS_NONE_READ_DESCRIPTION),
     ).toBeInTheDocument();
     expect(screen.queryByText(COST_GAPS_DESCRIPTION)).toBeNull();
+    expect(screen.getByText(COST_GAPS_NONE_READ_TITLE)).toBeInTheDocument();
+    expect(screen.queryByText(COST_GAPS_TITLE)).toBeNull();
   });
 });
 
 describe("the left-out accounts card's words", () => {
+  test("its title: accounts left out of figures, or not read when nothing is", () => {
+    expect(getCloudCostGapsTitle({ kind: "costs", isNothingRead: false })).toBe(
+      "Accounts left out",
+    );
+    expect(getCloudCostGapsTitle({ kind: "costs", isNothingRead: true })).toBe(
+      "Accounts whose costs are not read",
+    );
+    // An account's recommendations are left out only when not read.
+    for (const isNothingRead of [true, false]) {
+      expect(getCloudCostGapsTitle({ kind: "savings", isNothingRead })).toBe(
+        SAVINGS_GAPS_TITLE,
+      );
+    }
+    expect(COST_GAPS_DESCRIPTION).toBe(
+      "Their costs are not in the figures above. Each says why.",
+    );
+  });
+
   test("say the figures above only when there are some", () => {
     expect(
       getCloudCostGapsDescription({ kind: "costs", isNothingRead: false }),

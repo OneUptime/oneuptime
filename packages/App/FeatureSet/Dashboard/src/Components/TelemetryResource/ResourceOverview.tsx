@@ -121,7 +121,9 @@ export interface ResourceOverviewProps {
   /*
    * Drawn straight under the hero, beside the status pill it explains: the
    * "how do I connect this?" card (ResourceConnectionGuideCard), which draws
-   * nothing once the resource is connected.
+   * nothing once the resource is connected - or, for a resource read from
+   * its cloud, what needs attention on it (NeedsAttentionCard), before any
+   * number, as a host's and a cluster's Overview lead with theirs.
    */
   connectionGuide?: ReactElement | undefined;
   /*

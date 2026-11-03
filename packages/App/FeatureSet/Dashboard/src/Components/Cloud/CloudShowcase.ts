@@ -78,11 +78,14 @@ const CLOUD_SHOWCASE: ResourceShowcase = {
       { label: translationKey("Spend this month"), value: "$4,120" },
       { label: translationKey("Savings available"), value: "$310" },
     ],
+    // A day's spend a bar would show: lower at weekends, a little up a week.
     chart: {
       label: translationKey("Daily spend"),
+      range: translationKey("Last 30 days"),
       values: [
         131, 128, 136, 134, 140, 122, 118, 138, 142, 139, 145, 141, 126, 121,
-        143, 147, 144, 150, 146, 129, 124, 149, 152, 148,
+        143, 147, 144, 150, 146, 129, 124, 149, 152, 148, 154, 151, 133, 128,
+        153, 156,
       ],
     },
     rows: [

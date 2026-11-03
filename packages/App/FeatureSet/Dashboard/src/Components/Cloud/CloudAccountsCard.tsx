@@ -24,6 +24,7 @@ import {
   SO_FAR_THIS_MONTH,
   formatCloudMoney,
 } from "./CloudCostWords";
+import { COSTS_NOT_READ_YET } from "./CloudOverviewTiles";
 import { CloudCardFooterLink } from "./CloudSpendCard";
 import CloudConnectionLogo from "./Connect/CloudConnectionLogo";
 import { CloudAccountRow } from "./UseCloudAccounts";
@@ -188,6 +189,18 @@ const CloudAccountsCard: FunctionComponent<ComponentProps> = (
                       {translator.translateText(
                         COST_STATE_LABELS[summary.state],
                       )}
+                    </span>
+                  ) : account.hasConnection ? (
+                    /*
+                     * Read by a connection that has not read its costs yet:
+                     * said so, never an empty end that could read as
+                     * costing nothing.
+                     */
+                    <span
+                      className="text-xs text-gray-500"
+                      data-state="waiting"
+                    >
+                      {translator.translateText(COSTS_NOT_READ_YET)}
                     </span>
                   ) : (
                     <></>

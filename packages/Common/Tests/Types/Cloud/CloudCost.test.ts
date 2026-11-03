@@ -19,12 +19,14 @@ import {
   getCloudCostWindow,
   getMostCommonCloudCurrency,
   getPassedCloudBudgetThresholds,
+  isCloudBudgetThresholdsText,
   isCloudSavingKind,
   projectCloudMonthCost,
   readCloudAccountCostSummary,
   readCloudAccountSavingsSummary,
   readCloudBudgetThresholds,
   roundCost,
+  splitCloudBudgetThresholds,
   startOfUtcDay,
   startOfUtcMonth,
   summarizeCloudAccountCosts,
@@ -34,6 +36,7 @@ import {
   totalCloudCosts,
   totalCloudSavings,
 } from "../../../Types/Cloud/CloudCost";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * What a cloud account costs and how to spend less, as the server keeps it
@@ -678,5 +681,65 @@ describe("a budget's thresholds", () => {
     // The defaults are a copy: changing one read leaves the next alone.
     readCloudBudgetThresholds(null).push(5);
     expect(readCloudBudgetThresholds(null)).toEqual([80, 100]);
+  });
+
+  /*
+   * A budget's Alert At as people type it. "50%, 90%" used to read as no
+   * percent at all - Number("50%") is not a number - and the budget alerted
+   * at 80% and 100% instead, with nothing said.
+   */
+  test("read as people write them: percent signs, spaces and semicolons, and Persian, Arabic and full-width digits and commas", () => {
+    expect(readCloudBudgetThresholds("50%, 90%")).toEqual([50, 90]);
+    expect(readCloudBudgetThresholds("50 % ,90 %")).toEqual([50, 90]);
+    expect(readCloudBudgetThresholds("75; 100")).toEqual([75, 100]);
+    expect(readCloudBudgetThresholds("60 120")).toEqual([60, 120]);
+    // Persian: its digits, its comma and its percent sign.
+    expect(
+      readCloudBudgetThresholds("\u06F5\u06F0\u066A\u060C \u06F9\u06F0\u066A"),
+    ).toEqual([50, 90]);
+    // Arabic-Indic digits and semicolon.
+    expect(
+      readCloudBudgetThresholds("\u0668\u0660\u061B\u0661\u0660\u0660"),
+    ).toEqual([80, 100]);
+    // Full-width digits, comma and percent sign, and the Japanese comma.
+    expect(
+      readCloudBudgetThresholds(
+        "\uFF18\uFF10\uFF05\uFF0C\uFF11\uFF10\uFF10\u3001120",
+      ),
+    ).toEqual([80, 100, 120]);
+
+    expect(splitCloudBudgetThresholds("50%, 90 ,,100")).toEqual([
+      "50",
+      "90",
+      "100",
+    ]);
+    expect(splitCloudBudgetThresholds(" , ")).toEqual([]);
+  });
+
+  test("Alert At reads when every share in it is a percent from 1 to 1000, and there is one", () => {
+    for (const written of ["80,100", "50%, 90%", "1", "1000", "75;100"]) {
+      expect(isCloudBudgetThresholdsText(written)).toBe(true);
+    }
+
+    for (const written of ["", " , ", "abc", "80, ninety", "0", "1001", "-5"]) {
+      expect(isCloudBudgetThresholdsText(written)).toBe(false);
+    }
+  });
+
+  test("a long Alert At is read in one pass", () => {
+    // Read a character at a time, with no pattern: as fast as its length.
+    const long: string = "80%, ".repeat(80000);
+    const read: FastestRun<boolean> = fastestRun({
+      run: (): boolean => {
+        return (
+          readCloudBudgetThresholds(long).length === 1 &&
+          isCloudBudgetThresholdsText(long)
+        );
+      },
+      limitInMs: 2000,
+    });
+
+    expect(read.result).toBe(true);
+    expect(read.inMs).toBeLessThan(2000);
   });
 });

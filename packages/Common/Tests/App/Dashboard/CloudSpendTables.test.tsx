@@ -57,6 +57,7 @@ import CloudSavingsTable, {
   getSavingChangeText,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudSavingsTable";
 import CloudBudgets, {
+  ALERT_AT_NOT_PERCENTS,
   ALL_ACCOUNTS,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/Budgets";
 import CloudSavings from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/Savings";
@@ -67,6 +68,7 @@ interface CapturedColumn<T> {
   title: string;
   field: Record<string, unknown>;
   getElement?: (item: T) => React.ReactElement;
+  isHiddenByDefault?: boolean;
 }
 
 interface CapturedFormField {
@@ -74,6 +76,7 @@ interface CapturedFormField {
   stepId?: string;
   required?: boolean;
   collapsibleSection?: unknown;
+  customValidation?: (values: Record<string, unknown>) => string | null;
 }
 
 const ACCOUNT_ROW: string = "10000000-0000-4000-8000-0000000000b1";
@@ -201,15 +204,43 @@ describe("the ways to spend less, as a table", () => {
       sortOrder: SortOrder.Descending,
       query: {},
     });
-    expect(titles("columns")).toEqual(
-      expect.arrayContaining([
-        "Recommendation",
-        "Kind",
-        "Saves a Month",
-        "Account",
-        "Change",
-      ]),
-    );
+    /*
+     * Read left to right as a person says it: what to do (and what it
+     * changes), to which resource, what it saves, in which account. The kind
+     * only said the action's word again: it waits in the column picker, and
+     * stays a filter.
+     */
+    expect(titles("columns")).toEqual([
+      "Recommendation",
+      "Resource",
+      "Monthly Savings",
+      "Account",
+      "Kind",
+      "Source",
+      "Effort",
+    ]);
+    expect(titles("columns")).not.toContain("Change");
+    expect(titles("columns")).not.toContain("Saves a Month");
+    for (const hidden of ["Kind", "Source", "Effort"]) {
+      expect(column<CloudCostRecommendation>(hidden).isHiddenByDefault).toBe(
+        true,
+      );
+    }
+    for (const shown of [
+      "Recommendation",
+      "Resource",
+      "Monthly Savings",
+      "Account",
+    ]) {
+      expect(
+        column<CloudCostRecommendation>(shown).isHiddenByDefault,
+      ).toBeFalsy();
+    }
+    // What it changes is read with the row, for the Recommendation cell.
+    expect(lastTable()["selectMoreFields"]).toMatchObject({
+      currentConfiguration: true,
+      recommendedConfiguration: true,
+    });
     expect(titles("filters")).toEqual([
       "Kind",
       "Account",
@@ -237,26 +268,53 @@ describe("the ways to spend less, as a table", () => {
     expect(titles("filters")).toEqual(["Kind", "Resource", "Region"]);
   });
 
-  test("a row: what to do, to which resource (its page), where, and what it saves in its own currency", async () => {
+  test("a row: what to do and what it changes, to which resource (its page), where, and what it saves in its own currency", async () => {
     await act(async () => {
       render(<CloudSavingsTable id="savings" currency="EUR" />);
     });
 
-    const row: HTMLElement = drawn(
+    // What to do, and under it what it changes - a phone shows both.
+    const what: HTMLElement = drawn(
       column<CloudCostRecommendation>("Recommendation").getElement!(
         recommendation(),
       ),
     );
-    expect(row).toHaveTextContent("Rightsize");
-    expect(within(row).getByRole("link", { name: "web-1" })).toHaveAttribute(
+    expect(what).toHaveTextContent("Rightsize");
+    expect(within(what).getByTestId("cloud-saving-change")).toHaveTextContent(
+      "m5.2xlarge → m5.xlarge",
+    );
+    // The resource is a column of its own, not in this cell.
+    expect(within(what).queryByRole("link")).toBeNull();
+    expect(what).not.toHaveTextContent("web-1");
+
+    // Nothing to change said: the action alone.
+    const idle: HTMLElement = drawn(
+      column<CloudCostRecommendation>("Recommendation").getElement!(
+        recommendation({
+          action: "Delete",
+          currentConfiguration: "",
+          recommendedConfiguration: "",
+        }),
+      ),
+    );
+    expect(idle).toHaveTextContent("Delete");
+    expect(within(idle).queryByTestId("cloud-saving-change")).toBeNull();
+
+    // To which resource: its page, its type and Region under it.
+    const resource: HTMLElement = drawn(
+      column<CloudCostRecommendation>("Resource").getElement!(recommendation()),
+    );
+    expect(
+      within(resource).getByRole("link", { name: "web-1" }),
+    ).toHaveAttribute(
       "href",
       expect.stringContaining(`/cloud/${RESOURCE_ROW}`),
     );
-    expect(row).toHaveTextContent("EC2 instance · us-east-1");
+    expect(resource).toHaveTextContent("EC2 instance · us-east-1");
 
     // A resource OneUptime does not hold: its name, not a link.
     const unheld: HTMLElement = drawn(
-      column<CloudCostRecommendation>("Recommendation").getElement!(
+      column<CloudCostRecommendation>("Resource").getElement!(
         recommendation({ cloudResourceId: undefined, resourceName: "vm-9" }),
       ),
     );
@@ -265,7 +323,7 @@ describe("the ways to spend less, as a table", () => {
 
     expect(
       drawn(
-        column<CloudCostRecommendation>("Saves a Month").getElement!(
+        column<CloudCostRecommendation>("Monthly Savings").getElement!(
           recommendation(),
         ),
       ),
@@ -273,7 +331,7 @@ describe("the ways to spend less, as a table", () => {
     // A row that names no currency is in the page's.
     expect(
       drawn(
-        column<CloudCostRecommendation>("Saves a Month").getElement!(
+        column<CloudCostRecommendation>("Monthly Savings").getElement!(
           recommendation({ currency: undefined }),
         ),
       ),
@@ -570,5 +628,58 @@ describe("Cloud > Budgets", () => {
     expect(
       drawn(column<CloudBudget>("This Month").getElement!(budget)),
     ).not.toHaveTextContent("On course for");
+  });
+
+  test("a budget's amount reads as it was set, and nothing spent as nothing: $0 of $500, not $0.00 of $500.00", async () => {
+    await openBudgets();
+
+    const budget: CloudBudget = new CloudBudget();
+    Object.assign(budget, {
+      _id: "10000000-0000-4000-8000-0000000000d2",
+      name: "Sandbox",
+      monthlyAmount: 500,
+      currency: "USD",
+      spentThisMonth: 0,
+      projectedThisMonth: 0,
+      alertThresholds: "80,100",
+      isEnabled: true,
+    });
+
+    const nothing: HTMLElement = drawn(
+      column<CloudBudget>("This Month").getElement!(budget),
+    );
+    expect(nothing).toHaveTextContent("$0 of $500");
+    expect(nothing).not.toHaveTextContent(".00");
+
+    // A spend in cents keeps them; a budget with cents keeps its own.
+    Object.assign(budget, { spentThisMonth: 203.69, monthlyAmount: 237.5 });
+    expect(
+      drawn(column<CloudBudget>("This Month").getElement!(budget)),
+    ).toHaveTextContent("$203.69 of $237.50");
+  });
+
+  test("Alert At says when it is not a list of percents, rather than the budget alerting at 80% and 100% instead", async () => {
+    await openBudgets();
+
+    const alertAt: CapturedFormField = (
+      lastTable()["formFields"] as Array<CapturedFormField>
+    ).find((field: CapturedFormField): boolean => {
+      return field.title === "Alert At";
+    })!;
+    expect(alertAt.customValidation).toBeDefined();
+
+    // As people write them: commas, spaces, percent signs.
+    for (const written of ["80,100", "50%, 90%", " 75 ; 100 ", "120"]) {
+      expect(alertAt.customValidation!({ alertThresholds: written })).toBe(
+        null,
+      );
+    }
+
+    // Not a percent, out of 1 to 1000, or nothing at all: said.
+    for (const written of ["abc", "80, ninety", "0", "1500", " , ", ""]) {
+      expect(alertAt.customValidation!({ alertThresholds: written })).toBe(
+        ALERT_AT_NOT_PERCENTS,
+      );
+    }
   });
 });

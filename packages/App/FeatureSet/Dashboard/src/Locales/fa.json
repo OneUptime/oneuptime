@@ -40514,7 +40514,6 @@
   "Running tasks out of the tasks this service wants, such as 2 of 3 running, from the latest inventory snapshot. Red when none run, amber when some are missing and no rolling update explains it, grey when it is scaled to zero or a job that ran to completion.": "وظایف در حال اجرا از وظایفی که این سرویس می‌خواهد، مثل ۲ از ۳ در حال اجرا، از آخرین تصویر لحظه‌ای موجودی. قرمز وقتی هیچ‌کدام اجرا نمی‌شود، کهربایی وقتی برخی کم هستند و هیچ به‌روزرسانی تدریجی‌ای آن را توضیح نمی‌دهد، خاکستری وقتی تا صفر کوچک شده یا کاری است که تا پایان اجرا شده.",
   "SNAT ports at {{percent}}": "پورت‌های SNAT در {{percent}}",
   "SQS queue · oldest message waiting 2 hours": "صف SQS · قدیمی‌ترین پیام ۲ ساعت در انتظار",
-  "Saves a Month": "صرفه‌جویی ماهانه",
   "Savings": "صرفه‌جویی‌ها",
   "Savings Summary": "خلاصه صرفه‌جویی",
   "Savings available": "صرفه‌جویی ممکن",
@@ -40566,7 +40565,6 @@
   "The tasks (containers) of this swarm's services, with their state and what each one uses.": "وظایف (کانتینرهای) سرویس‌های این swarm، همراه با وضعیتشان و آنچه هر کدام مصرف می‌کند.",
   "The tasks Swarm placed on this node, with their state and what each one uses.": "وظایفی که Swarm روی این گره گذاشته، همراه با وضعیتشان و آنچه هر کدام مصرف می‌کند.",
   "The tasks Swarm runs for this service, with their state, their node and what each one uses.": "وظایفی که Swarm برای این سرویس اجرا می‌کند، همراه با وضعیتشان، گره‌شان و آنچه هر کدام مصرف می‌کند.",
-  "Their costs are left out of the figures above until they are.": "تا خوانده نشوند، هزینه‌هایشان در مبالغ بالا نیست.",
   "Their ways to spend less are left out until they are.": "تا خوانده نشوند، راه‌های کمتر خرج کردنشان در نظر گرفته نمی‌شود.",
   "This Month": "این ماه",
   "This month": "این ماه",
@@ -40899,5 +40897,12 @@
   "Workspace Home Choices": "انتخاب‌های صفحه اصلی فضای کاری",
   "Workspace User ID": "شناسه کاربر در فضای کاری",
   "Why each account's costs are not read yet, and what to do.": "چرا هزینه‌های هر حساب هنوز خوانده نمی‌شود و چه باید کرد.",
-  "Why each account's recommendations are not read yet, and what to do.": "چرا توصیه‌های هر حساب هنوز خوانده نمی‌شود و چه باید کرد."
+  "Why each account's recommendations are not read yet, and what to do.": "چرا توصیه‌های هر حساب هنوز خوانده نمی‌شود و چه باید کرد.",
+  "Accounts left out": "حساب‌های کنارگذاشته‌شده",
+  "Pick your cloud and run one command in its terminal. Its costs, and the ways to spend less, show here once they are read.": "ابر خود را انتخاب کنید و یک فرمان در ترمینال آن اجرا کنید. هزینه‌هایش و راه‌های کمتر خرج کردن، همین که خوانده شوند، اینجا نمایش داده می‌شوند.",
+  "Still being reported": "هنوز در حال گزارش",
+  "Their costs are not in the figures above. Each says why.": "هزینه‌هایشان در مبالغ بالا نیست. کنار هر کدام دلیلش آمده است.",
+  "What it cost this month so far, from its cloud's own billing, before credits and refunds.": "هزینه‌اش تا اینجای این ماه، از صورت‌حساب ابر خودش، پیش از اعتبارها و بازپرداخت‌ها.",
+  "What its cloud's own recommender says could be saved.": "آنچه سرویس توصیه ابرش می‌گوید صرفه‌جویی می‌شود.",
+  "Write each as a percent of the budget from 1 to 1000, such as 80, 100.": "هر کدام را به صورت درصدی از بودجه بین ۱ تا ۱۰۰۰ بنویسید، مثلاً ۸۰، ۱۰۰."
 }

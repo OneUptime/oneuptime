@@ -40514,7 +40514,6 @@
   "Running tasks out of the tasks this service wants, such as 2 of 3 running, from the latest inventory snapshot. Red when none run, amber when some are missing and no rolling update explains it, grey when it is scaled to zero or a job that ran to completion.": "최신 인벤토리 스냅샷 기준으로, 이 서비스가 원하는 작업 중 실행 중인 작업의 수입니다(예: 3개 중 2개 실행 중). 하나도 실행되지 않으면 빨간색, 일부가 없고 롤링 업데이트로 설명되지 않으면 주황색, 0으로 스케일되었거나 끝까지 실행된 잡이면 회색입니다.",
   "SNAT ports at {{percent}}": "SNAT 포트 {{percent}}",
   "SQS queue · oldest message waiting 2 hours": "SQS 대기열 · 가장 오래된 메시지가 2시간째 대기 중",
-  "Saves a Month": "월 절감액",
   "Savings": "절감",
   "Savings Summary": "절감 요약",
   "Savings available": "가능한 절감액",
@@ -40566,7 +40565,6 @@
   "The tasks (containers) of this swarm's services, with their state and what each one uses.": "이 Swarm 서비스의 작업(컨테이너)으로, 각 작업의 상태와 사용량을 함께 보여 줍니다.",
   "The tasks Swarm placed on this node, with their state and what each one uses.": "Swarm이 이 노드에 배치한 작업으로, 각 작업의 상태와 사용량을 함께 보여 줍니다.",
   "The tasks Swarm runs for this service, with their state, their node and what each one uses.": "Swarm이 이 서비스를 위해 실행하는 작업으로, 각 작업의 상태, 노드, 사용량을 함께 보여 줍니다.",
-  "Their costs are left out of the figures above until they are.": "읽을 때까지 해당 비용은 위 금액에서 빠집니다.",
   "Their ways to spend less are left out until they are.": "읽을 때까지 해당 절감 방법은 빠집니다.",
   "This Month": "이번 달",
   "This month": "이번 달",
@@ -40899,5 +40897,12 @@
   "Workspace Home Choices": "워크스페이스 홈 선택",
   "Workspace User ID": "워크스페이스 사용자 ID",
   "Why each account's costs are not read yet, and what to do.": "각 계정의 비용을 아직 읽지 못하는 이유와 해야 할 일입니다.",
-  "Why each account's recommendations are not read yet, and what to do.": "각 계정의 권장 사항을 아직 읽지 못하는 이유와 해야 할 일입니다."
+  "Why each account's recommendations are not read yet, and what to do.": "각 계정의 권장 사항을 아직 읽지 못하는 이유와 해야 할 일입니다.",
+  "Accounts left out": "제외된 계정",
+  "Pick your cloud and run one command in its terminal. Its costs, and the ways to spend less, show here once they are read.": "클라우드를 선택하고 해당 터미널에서 명령 하나를 실행하세요. 비용과 지출을 줄이는 방법은 읽히는 대로 여기에 표시됩니다.",
+  "Still being reported": "집계 중",
+  "Their costs are not in the figures above. Each says why.": "해당 비용은 위 금액에 포함되지 않습니다. 각 계정에 이유가 나와 있습니다.",
+  "What it cost this month so far, from its cloud's own billing, before credits and refunds.": "이번 달 지금까지 든 비용. 해당 클라우드 자체 결제 기준이며 크레딧과 환불 전 금액입니다.",
+  "What its cloud's own recommender says could be saved.": "해당 클라우드 추천 서비스가 말하는 절감 가능액.",
+  "Write each as a percent of the budget from 1 to 1000, such as 80, 100.": "각 값을 예산의 1~1000 퍼센트로 입력하세요(예: 80, 100)."
 }

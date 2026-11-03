@@ -40514,7 +40514,6 @@
   "Running tasks out of the tasks this service wants, such as 2 of 3 running, from the latest inventory snapshot. Red when none run, amber when some are missing and no rolling update explains it, grey when it is scaled to zero or a job that ran to completion.": "इस सेवा को जितने कार्य चाहिए उनमें से चल रहे कार्य, जैसे 3 में से 2 चल रहे हैं, नवीनतम इन्वेंटरी स्नैपशॉट से। जब कोई नहीं चल रहा तो लाल, जब कुछ कम हैं और कोई रोलिंग अपडेट इसकी वजह नहीं है तो एम्बर, जब इसे शून्य तक स्केल किया गया है या यह पूरा चल चुका जॉब है तो धूसर।",
   "SNAT ports at {{percent}}": "SNAT पोर्ट {{percent}}",
   "SQS queue · oldest message waiting 2 hours": "SQS कतार · सबसे पुराना संदेश 2 घंटे से प्रतीक्षा में",
-  "Saves a Month": "मासिक बचत",
   "Savings": "बचत",
   "Savings Summary": "बचत सारांश",
   "Savings available": "संभावित बचत",
@@ -40566,7 +40565,6 @@
   "The tasks (containers) of this swarm's services, with their state and what each one uses.": "इस swarm की सेवाओं के कार्य (कंटेनर), उनकी स्थिति और हर एक के उपयोग के साथ।",
   "The tasks Swarm placed on this node, with their state and what each one uses.": "Swarm ने इस नोड पर जो कार्य रखे, उनकी स्थिति और हर एक के उपयोग के साथ।",
   "The tasks Swarm runs for this service, with their state, their node and what each one uses.": "Swarm इस सेवा के लिए जो कार्य चलाता है, उनकी स्थिति, उनके नोड और हर एक के उपयोग के साथ।",
-  "Their costs are left out of the figures above until they are.": "जब तक पढ़ी न जाएँ, उनकी लागत ऊपर की राशियों में शामिल नहीं है।",
   "Their ways to spend less are left out until they are.": "जब तक पढ़े न जाएँ, उनके कम खर्च करने के तरीक़े शामिल नहीं हैं।",
   "This Month": "यह महीना",
   "This month": "यह महीना",
@@ -40899,5 +40897,12 @@
   "Workspace Home Choices": "वर्कस्पेस होम के चुनाव",
   "Workspace User ID": "वर्कस्पेस उपयोगकर्ता ID",
   "Why each account's costs are not read yet, and what to do.": "हर खाते की लागत अभी क्यों नहीं पढ़ी जा रही, और क्या करें।",
-  "Why each account's recommendations are not read yet, and what to do.": "हर खाते की सिफ़ारिशें अभी क्यों नहीं पढ़ी जा रहीं, और क्या करें।"
+  "Why each account's recommendations are not read yet, and what to do.": "हर खाते की सिफ़ारिशें अभी क्यों नहीं पढ़ी जा रहीं, और क्या करें।",
+  "Accounts left out": "छोड़े गए खाते",
+  "Pick your cloud and run one command in its terminal. Its costs, and the ways to spend less, show here once they are read.": "अपना क्लाउड चुनें और उसके टर्मिनल में एक कमांड चलाएँ। उसकी लागत और कम खर्च करने के तरीक़े पढ़े जाते ही यहाँ दिखते हैं।",
+  "Still being reported": "अभी अधूरा",
+  "Their costs are not in the figures above. Each says why.": "उनकी लागत ऊपर की राशियों में शामिल नहीं है। हर खाते के साथ कारण दिया गया है।",
+  "What it cost this month so far, from its cloud's own billing, before credits and refunds.": "इस महीने अब तक की लागत, इसके क्लाउड की अपनी बिलिंग से, क्रेडिट और रिफ़ंड से पहले।",
+  "What its cloud's own recommender says could be saved.": "इसके क्लाउड की सिफ़ारिश सेवा के अनुसार कितना बचाया जा सकता है।",
+  "Write each as a percent of the budget from 1 to 1000, such as 80, 100.": "हर एक को बजट के प्रतिशत के रूप में 1 से 1000 तक लिखें, जैसे 80, 100।"
 }

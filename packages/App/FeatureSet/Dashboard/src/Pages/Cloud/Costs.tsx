@@ -2,7 +2,9 @@ import PageComponentProps from "../PageComponentProps";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import CloudCostsView from "../../Components/Cloud/CloudCostsView";
-import CloudConnectCallout from "../../Components/Cloud/Connect/CloudConnectCallout";
+import CloudConnectCallout, {
+  CLOUD_CONNECT_CALLOUT_SPEND_DESCRIPTION,
+} from "../../Components/Cloud/Connect/CloudConnectCallout";
 import useCloudAccounts, {
   CloudAccountsRead,
 } from "../../Components/Cloud/UseCloudAccounts";
@@ -32,7 +34,11 @@ const CloudCosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
   }
 
   if (!projectId || read.accounts.length === 0) {
-    return <CloudConnectCallout />;
+    return (
+      <CloudConnectCallout
+        description={CLOUD_CONNECT_CALLOUT_SPEND_DESCRIPTION}
+      />
+    );
   }
 
   return (

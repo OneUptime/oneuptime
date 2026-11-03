@@ -851,21 +851,108 @@ export function getPassedCloudBudgetThresholds(data: {
 }
 
 // A budget's thresholds as stored, read back: whole percents from 1 to 1000.
+// The lowest and highest share of a budget an alert may be raised at.
+export const CLOUD_BUDGET_THRESHOLD_MIN: number = 1;
+export const CLOUD_BUDGET_THRESHOLD_MAX: number = 1000;
+
+/*
+ * What a person may write between the shares, in any language: a comma
+ * (Persian's and Japanese's too), a semicolon or a space. A percent sign
+ * after a share is how many write one, and is dropped.
+ */
+const THRESHOLD_SEPARATORS: ReadonlySet<string> = new Set<string>([
+  ",",
+  "\u060C",
+  "\u3001",
+  "\uFF0C",
+  ";",
+  "\u061B",
+  " ",
+  "\t",
+  "\n",
+  "\r",
+]);
+const PERCENT_SIGNS: ReadonlySet<string> = new Set<string>([
+  "%",
+  "\u066A",
+  "\uFF05",
+]);
+
+// A digit as Latin: Persian, Arabic-Indic and full-width digits are read too.
+function toLatinDigit(character: string): string {
+  const code: number = character.codePointAt(0) || 0;
+
+  for (const zero of [0x06f0, 0x0660, 0xff10]) {
+    if (code >= zero && code <= zero + 9) {
+      return String(code - zero);
+    }
+  }
+
+  return character;
+}
+
+/*
+ * The shares written in a budget's Alert At, as text, one per entry:
+ * "50%, 90 ,100" is ["50", "90", "100"], and Persian "۵۰٪، ۹۰٪" the same.
+ * One pass over the text, a character at a time.
+ */
+export function splitCloudBudgetThresholds(text: string): Array<string> {
+  const entries: Array<string> = [];
+  let current: string = "";
+
+  for (const character of text) {
+    if (THRESHOLD_SEPARATORS.has(character)) {
+      if (current) {
+        entries.push(current);
+      }
+      current = "";
+      continue;
+    }
+
+    if (!PERCENT_SIGNS.has(character)) {
+      current += toLatinDigit(character);
+    }
+  }
+
+  if (current) {
+    entries.push(current);
+  }
+
+  return entries;
+}
+
+// A share as written, as a whole percent - or null when it is not one.
+function readCloudBudgetThreshold(entry: unknown): number | null {
+  if (typeof entry !== "number" && typeof entry !== "string") {
+    return null;
+  }
+
+  const text: string = String(entry).trim();
+  const value: number = Math.round(Number(text));
+
+  return text !== "" &&
+    Number.isFinite(value) &&
+    value >= CLOUD_BUDGET_THRESHOLD_MIN &&
+    value <= CLOUD_BUDGET_THRESHOLD_MAX
+    ? value
+    : null;
+}
+
 export function readCloudBudgetThresholds(value: unknown): Array<number> {
   const raw: Array<unknown> = Array.isArray(value)
     ? value
     : typeof value === "string"
-      ? value.split(",")
+      ? splitCloudBudgetThresholds(value)
       : [];
 
   const thresholds: Array<number> = Array.from(
     new Set(
       raw
-        .map((entry: unknown): number => {
-          return Math.round(Number(entry));
+        .map((entry: unknown): number | null => {
+          return readCloudBudgetThreshold(entry);
         })
-        .filter((entry: number): boolean => {
-          return Number.isFinite(entry) && entry >= 1 && entry <= 1000;
+        .filter((entry: number | null): entry is number => {
+          return entry !== null;
         }),
     ),
   ).sort((a: number, b: number): number => {
@@ -875,4 +962,20 @@ export function readCloudBudgetThresholds(value: unknown): Array<number> {
   return thresholds.length > 0
     ? thresholds
     : [...CLOUD_BUDGET_DEFAULT_THRESHOLDS];
+}
+
+/*
+ * Whether every share in a budget's Alert At, as typed, is a percent from 1
+ * to 1000 - and there is one. The form says so before it is saved, rather
+ * than the budget alerting at the defaults instead.
+ */
+export function isCloudBudgetThresholdsText(text: string): boolean {
+  const entries: Array<string> = splitCloudBudgetThresholds(text);
+
+  return (
+    entries.length > 0 &&
+    entries.every((entry: string): boolean => {
+      return readCloudBudgetThreshold(entry) !== null;
+    })
+  );
 }

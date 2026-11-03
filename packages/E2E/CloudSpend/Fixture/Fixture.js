@@ -666,12 +666,22 @@ const RESOURCES = EMPTY
         cloudReadings: { "aws/elasticache/cpuutilization": reading(99) },
         healthSeverity: "warning",
       }),
+      /*
+       * A Compute Engine instance, as Cloud Asset Inventory lists it under
+       * its Cloud Monitoring type: well, and billed by name in the detailed
+       * billing export, so its page says what it costs.
+       */
       resource(ETL_RUNNER, {
         name: "etl-runner-1",
         cloudProvider: "gcp",
-        cloudResourceType: "compute.googleapis.com/Instance",
+        cloudResourceType: "gce_instance",
         cloudRegion: "europe-west1",
         cloudAccountId: "acme-analytics",
+        providerResourceId:
+          "//compute.googleapis.com/projects/acme-analytics/zones/europe-west1-b/instances/etl-runner-1",
+        cloudReadings: {
+          "compute.googleapis.com/instance/cpu/utilization": reading(0.41),
+        },
       }),
       {
         _id: uuid("84000000", 1),
@@ -1007,8 +1017,22 @@ function rowsOf(modelType, query) {
   });
 }
 
-// The tables the pages read that the fixture keeps empty, as a new project's are.
-const EMPTY_TABLES = ["Label", "Team", "User", "ProjectUser", "TableView"];
+/*
+ * The tables the pages read that the fixture keeps empty, as a new
+ * project's are: a resource's page counts the open incidents and alerts
+ * linked to it, by the states that are not resolved.
+ */
+const EMPTY_TABLES = [
+  "Label",
+  "Team",
+  "User",
+  "ProjectUser",
+  "TableView",
+  "Incident",
+  "Alert",
+  "IncidentState",
+  "AlertState",
+];
 
 function isModelled(modelType) {
   const name = tableName(modelType);
@@ -1295,9 +1319,67 @@ AnalyticsModelAPI.count = async () => {
   return 0;
 };
 
+/*
+ * What a resource's page and an account's Overview ask the server beyond
+ * the models, answered as for a project that uses neither: Security
+ * Events found nothing about the resource, and no Cloud AI agent is
+ * connected to the account.
+ */
+function answerApi(method, url, body) {
+  if (method === "POST" && url.endsWith("/security-case/resource-security")) {
+    return {
+      kind: body.kind,
+      id: body.id,
+      name: "",
+      isInUse: false,
+      windowDays: 7,
+      values: [],
+      isSearchedByLogs: false,
+      entity: null,
+      eventCount: 0,
+      findingCount: 0,
+      maxSeverityId: 0,
+      lastSeen: null,
+      openCases: null,
+    };
+  }
+
+  if (method === "POST" && url.endsWith("/resource-ai-access/status")) {
+    return {
+      resourceType: "AwsAccount",
+      resourceId: String(body.resourceId),
+      resourceName: "",
+      isAiInvestigationEnabled: true,
+      aiRemediationMode: "Disabled",
+      aiSettingsSource: "oneuptime",
+      aiCommandAllowlist: [],
+      agent: null,
+      gaps: [
+        {
+          code: "ai_agent_not_connected",
+          title: "No Cloud AI agent is connected",
+          nextStep:
+            "To let OneUptime AI fix problems in this account, use \"Let AI fix problems\" on the account's Overview and run the command it shows in the cloud's own shell.",
+          blocksInvestigation: false,
+          blocksRemediation: true,
+        },
+      ],
+      isInvestigationReady: true,
+      isRemediationReady: false,
+      automaticRemediation: { incidents: false, alerts: false },
+    };
+  }
+
+  return null;
+}
+
 async function handleApi(method, options) {
   const url = new URL(options.url.toString(), window.location.origin);
   fixture.apiRequests.push({ method, url: url.pathname });
+  const answer = answerApi(method, url.pathname, options.data || {});
+  if (answer) {
+    return new HTTPResponse(200, answer, {});
+  }
   fixture.unhandled.push({ kind: "api", method, url: url.pathname });
   return new HTTPErrorResponse(404, { message: "Not modelled." }, {});
 }

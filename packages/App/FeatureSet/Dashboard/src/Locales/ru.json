@@ -40514,7 +40514,6 @@
   "Running tasks out of the tasks this service wants, such as 2 of 3 running, from the latest inventory snapshot. Red when none run, amber when some are missing and no rolling update explains it, grey when it is scaled to zero or a job that ran to completion.": "Сколько задач работает из тех, что нужны этому сервису, например 2 из 3, по последнему снимку инвентаризации. Красный, когда не работает ни одна, жёлтый, когда некоторых не хватает и это не объясняется скользящим обновлением, серый, когда сервис масштабирован до нуля или это задание, которое выполнено до конца.",
   "SNAT ports at {{percent}}": "Порты SNAT {{percent}}",
   "SQS queue · oldest message waiting 2 hours": "Очередь SQS · самое старое сообщение ждёт 2 часа",
-  "Saves a Month": "Экономия в месяц",
   "Savings": "Экономия",
   "Savings Summary": "Сводка экономии",
   "Savings available": "Возможная экономия",
@@ -40566,7 +40565,6 @@
   "The tasks (containers) of this swarm's services, with their state and what each one uses.": "Задачи (контейнеры) сервисов этого swarm с их состоянием и тем, что использует каждая из них.",
   "The tasks Swarm placed on this node, with their state and what each one uses.": "Задачи, которые Swarm разместил на этом узле, с их состоянием и тем, что использует каждая из них.",
   "The tasks Swarm runs for this service, with their state, their node and what each one uses.": "Задачи, которые Swarm выполняет для этого сервиса, с их состоянием, узлом и тем, что использует каждая из них.",
-  "Their costs are left out of the figures above until they are.": "Их затраты не входят в суммы выше, пока не будут прочитаны.",
   "Their ways to spend less are left out until they are.": "Их способы тратить меньше не учитываются, пока не будут прочитаны.",
   "This Month": "Этот месяц",
   "This month": "Этот месяц",
@@ -40899,5 +40897,12 @@
   "Workspace Home Choices": "Записи о выборе главной страницы рабочего пространства",
   "Workspace User ID": "ID пользователя в рабочем пространстве",
   "Why each account's costs are not read yet, and what to do.": "Почему затраты каждого аккаунта пока не читаются и что делать.",
-  "Why each account's recommendations are not read yet, and what to do.": "Почему рекомендации каждого аккаунта пока не читаются и что делать."
+  "Why each account's recommendations are not read yet, and what to do.": "Почему рекомендации каждого аккаунта пока не читаются и что делать.",
+  "Accounts left out": "Неучтённые аккаунты",
+  "Pick your cloud and run one command in its terminal. Its costs, and the ways to spend less, show here once they are read.": "Выберите облако и выполните одну команду в его терминале. Его затраты и способы тратить меньше появятся здесь, как только будут прочитаны.",
+  "Still being reported": "Данные ещё поступают",
+  "Their costs are not in the figures above. Each says why.": "Их затраты не входят в суммы выше. У каждого указана причина.",
+  "What it cost this month so far, from its cloud's own billing, before credits and refunds.": "Сколько он стоил с начала месяца, по биллингу его облака, без учёта кредитов и возвратов.",
+  "What its cloud's own recommender says could be saved.": "Сколько, по мнению службы рекомендаций его облака, можно сэкономить.",
+  "Write each as a percent of the budget from 1 to 1000, such as 80, 100.": "Укажите каждое значение в процентах от бюджета, от 1 до 1000, например 80, 100."
 }

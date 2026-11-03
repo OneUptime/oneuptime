@@ -35,12 +35,18 @@ import { formatCloudMoney } from "./CloudCostWords";
 /*
  * The ways to spend less, as a table: every recommendation your clouds'
  * own recommenders make - AWS Cost Optimization Hub, Azure Advisor, Google
- * Cloud's Recommender - the largest saving first, each with what it would
- * change and the resource it is about (its page, when OneUptime holds it).
- * On Cloud > Savings for every account, and on an account's Costs for it.
- * The recommendations are the server's (CloudCostRecommendation is read
- * only), read again every day: one done or dismissed in the cloud's console
- * goes away on the next read.
+ * Cloud's Recommender - the largest saving first. A row reads left to
+ * right as a person says it: what to do and what it changes ("Rightsize",
+ * "m5.2xlarge → m5.xlarge"), to which resource (its page, when OneUptime
+ * holds it), what it saves a month and in which account. What it changes
+ * sits under what to do, so a phone - where a table keeps its first few
+ * columns - shows it too. The kind (a smaller size, an idle resource, a
+ * commitment) is the strip's and the Kind filter's: a column of it only
+ * said the action's word again ("Rightsize", "Rightsize"), so it waits in
+ * the table's column picker. On Cloud > Savings for every account, and on
+ * an account's Costs for it. The recommendations are the server's
+ * (CloudCostRecommendation is read only), read again every day: one done
+ * or dismissed in the cloud's console goes away on the next read.
  */
 
 export const SAVINGS_TABLE_TITLE: string = translationKey("Ways to spend less");
@@ -126,6 +132,7 @@ const CloudSavingsTable: FunctionComponent<ComponentProps> = (
         resourceType: true,
         cloudResourceId: true,
         cloudAccountId: true,
+        currentConfiguration: true,
         recommendedConfiguration: true,
         region: true,
         provider: true,
@@ -178,6 +185,33 @@ const CloudSavingsTable: FunctionComponent<ComponentProps> = (
           isNotCustomizable: true,
           wrapContent: true,
           getElement: (item: CloudCostRecommendation): ReactElement => {
+            const change: string = getSavingChangeText(item);
+
+            return (
+              <div className="min-w-0" data-testid="cloud-saving-row">
+                <div className="break-words text-sm font-medium text-gray-900">
+                  {item.action || ""}
+                </div>
+                {change ? (
+                  <div
+                    className="mt-0.5 break-words text-xs text-gray-500"
+                    data-testid="cloud-saving-change"
+                  >
+                    <bdi>{change}</bdi>
+                  </div>
+                ) : (
+                  <></>
+                )}
+              </div>
+            );
+          },
+        },
+        {
+          field: { resourceName: true },
+          title: "Resource",
+          type: FieldType.Element,
+          wrapContent: true,
+          getElement: (item: CloudCostRecommendation): ReactElement => {
             const resource: string = item.resourceName || item.resourceId || "";
             const where: string = [item.resourceType || "", item.region || ""]
               .filter((part: string): boolean => {
@@ -186,12 +220,9 @@ const CloudSavingsTable: FunctionComponent<ComponentProps> = (
               .join(" · ");
 
             return (
-              <div className="min-w-0" data-testid="cloud-saving-row">
-                <div className="break-words text-sm font-medium text-gray-900">
-                  {item.action || ""}
-                </div>
+              <div className="min-w-0" data-testid="cloud-saving-resource">
                 {resource ? (
-                  <div className="mt-0.5 break-all text-xs">
+                  <div className="break-all text-sm">
                     {item.cloudResourceId ? (
                       <AppLink
                         to={RouteUtil.populateRouteParams(
@@ -207,7 +238,7 @@ const CloudSavingsTable: FunctionComponent<ComponentProps> = (
                         <bdi>{resource}</bdi>
                       </AppLink>
                     ) : (
-                      <bdi className="text-gray-700">{resource}</bdi>
+                      <bdi className="text-gray-900">{resource}</bdi>
                     )}
                   </div>
                 ) : (
@@ -225,24 +256,8 @@ const CloudSavingsTable: FunctionComponent<ComponentProps> = (
           },
         },
         {
-          field: { kind: true },
-          title: "Kind",
-          type: FieldType.Element,
-          getElement: (item: CloudCostRecommendation): ReactElement => {
-            const kind: CloudSavingKind =
-              (item.kind as CloudSavingKind) || CloudSavingKind.Other;
-
-            return (
-              <Pill
-                text={CLOUD_SAVING_KIND_LABELS[kind]}
-                color={CLOUD_SAVING_KIND_COLORS[kind]}
-              />
-            );
-          },
-        },
-        {
           field: { monthlySavings: true },
-          title: "Saves a Month",
+          title: "Monthly Savings",
           type: FieldType.Element,
           getElement: (item: CloudCostRecommendation): ReactElement => {
             return (
@@ -291,19 +306,20 @@ const CloudSavingsTable: FunctionComponent<ComponentProps> = (
               },
             ]),
         {
-          field: { currentConfiguration: true },
-          title: "Change",
+          field: { kind: true },
+          title: "Kind",
           type: FieldType.Element,
           hideOnMobile: true,
-          wrapContent: true,
-          disableSort: true,
+          isHiddenByDefault: true,
           getElement: (item: CloudCostRecommendation): ReactElement => {
-            const change: string = getSavingChangeText(item);
+            const kind: CloudSavingKind =
+              (item.kind as CloudSavingKind) || CloudSavingKind.Other;
 
-            return change ? (
-              <bdi className="break-words text-xs text-gray-700">{change}</bdi>
-            ) : (
-              <></>
+            return (
+              <Pill
+                text={CLOUD_SAVING_KIND_LABELS[kind]}
+                color={CLOUD_SAVING_KIND_COLORS[kind]}
+              />
             );
           },
         },

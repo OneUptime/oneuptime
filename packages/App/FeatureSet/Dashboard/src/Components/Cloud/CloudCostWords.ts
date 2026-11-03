@@ -107,9 +107,17 @@ export function formatCloudMoney(data: {
   translator: Translator;
   // Always whole: a tile with room for few characters.
   whole?: boolean | undefined;
+  /*
+   * Whole when it has no cents: an amount a person set - a budget of
+   * "$500", not "$500.00" - and nothing spent yet ("$0").
+   */
+  wholeWhenRound?: boolean | undefined;
 }): string {
   const amount: number = Number.isFinite(data.amount) ? data.amount : 0;
-  const isWhole: boolean = data.whole === true || Math.abs(amount) >= 1000;
+  const isWhole: boolean =
+    data.whole === true ||
+    Math.abs(amount) >= 1000 ||
+    (data.wholeWhenRound === true && Number.isInteger(amount));
 
   try {
     return new Intl.NumberFormat(data.translator.language || "en", {

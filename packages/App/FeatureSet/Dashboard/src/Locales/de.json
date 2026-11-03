@@ -40514,10 +40514,9 @@
   "Running tasks out of the tasks this service wants, such as 2 of 3 running, from the latest inventory snapshot. Red when none run, amber when some are missing and no rolling update explains it, grey when it is scaled to zero or a job that ran to completion.": "Laufende Tasks von den Tasks, die dieser Dienst will, etwa 2 von 3 laufen, aus dem letzten Inventar-Snapshot. Rot, wenn keiner läuft, gelb, wenn einige fehlen und kein Rolling Update das erklärt, grau, wenn er auf null skaliert ist oder ein Job, der abgeschlossen ist.",
   "SNAT ports at {{percent}}": "SNAT-Ports bei {{percent}}",
   "SQS queue · oldest message waiting 2 hours": "SQS-Warteschlange · älteste Nachricht wartet seit 2 Stunden",
-  "Saves a Month": "Einsparung pro Monat",
   "Savings": "Einsparungen",
   "Savings Summary": "Einsparungsübersicht",
-  "Savings available": "Mögliche Einsparungen",
+  "Savings available": "Sparpotenzial",
   "See every resource in your cloud, how it is doing and what it costs": "Sehen Sie jede Ressource in Ihrer Cloud, ihren Zustand und was sie kostet",
   "Server load": "Serverlast",
   "Server load at {{percent}}": "Serverlast bei {{percent}}",
@@ -40566,7 +40565,6 @@
   "The tasks (containers) of this swarm's services, with their state and what each one uses.": "Die Tasks (Container) der Dienste dieses Swarms, mit ihrem Zustand und dem, was jeder verbraucht.",
   "The tasks Swarm placed on this node, with their state and what each one uses.": "Die Tasks, die Swarm diesem Knoten zugewiesen hat, mit ihrem Zustand und dem, was jeder verbraucht.",
   "The tasks Swarm runs for this service, with their state, their node and what each one uses.": "Die Tasks, die Swarm für diesen Dienst ausführt, mit ihrem Zustand, ihrem Knoten und dem, was jeder verbraucht.",
-  "Their costs are left out of the figures above until they are.": "Ihre Kosten fehlen in den Zahlen oben, bis sie gelesen werden.",
   "Their ways to spend less are left out until they are.": "Ihre Sparmöglichkeiten fehlen, bis sie gelesen werden.",
   "This Month": "Dieser Monat",
   "This month": "Dieser Monat",
@@ -40899,5 +40897,12 @@
   "Workspace Home Choices": "Startseiten-Auswahlen des Arbeitsbereichs",
   "Workspace User ID": "Benutzer-ID im Arbeitsbereich",
   "Why each account's costs are not read yet, and what to do.": "Warum die Kosten jedes Kontos noch nicht gelesen werden und was zu tun ist.",
-  "Why each account's recommendations are not read yet, and what to do.": "Warum die Empfehlungen jedes Kontos noch nicht gelesen werden und was zu tun ist."
+  "Why each account's recommendations are not read yet, and what to do.": "Warum die Empfehlungen jedes Kontos noch nicht gelesen werden und was zu tun ist.",
+  "Accounts left out": "Ausgelassene Konten",
+  "Pick your cloud and run one command in its terminal. Its costs, and the ways to spend less, show here once they are read.": "Wähle deine Cloud und führe einen Befehl in ihrem Terminal aus. Ihre Kosten und Sparmöglichkeiten erscheinen hier, sobald sie gelesen sind.",
+  "Still being reported": "Wird noch gemeldet",
+  "Their costs are not in the figures above. Each says why.": "Ihre Kosten fehlen in den Zahlen oben. Bei jedem steht, warum.",
+  "What it cost this month so far, from its cloud's own billing, before credits and refunds.": "Was es diesen Monat bisher gekostet hat, aus der Abrechnung seiner Cloud, vor Gutschriften und Erstattungen.",
+  "What its cloud's own recommender says could be saved.": "Was sich laut dem Empfehlungsdienst seiner Cloud sparen ließe.",
+  "Write each as a percent of the budget from 1 to 1000, such as 80, 100.": "Gib jeden Wert als Prozent des Budgets von 1 bis 1000 an, zum Beispiel 80, 100."
 }

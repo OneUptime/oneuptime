@@ -431,6 +431,48 @@ describe("with accounts connected", () => {
     );
   });
 
+  /*
+   * An account its connection reads whose costs are not read yet says so at
+   * its row's end - never an empty end, which reads as costing nothing. One
+   * no connection reads (a collector's) has no costs to wait for.
+   */
+  test("Accounts: one whose costs are not read yet says so; one no connection reads says nothing", async () => {
+    accountsForTest = [
+      webAccount(),
+      dataAccount({ costSummary: undefined }),
+      dataAccount({
+        _id: "10000000-0000-4000-8000-0000000000b9",
+        name: "collector-only",
+        accountId: "555555555555",
+        cloudConnectionId: undefined,
+        costSummary: undefined,
+      }),
+    ];
+
+    await openPage();
+
+    const ends: Array<HTMLElement> = screen.getAllByTestId(
+      "cloud-accounts-card-spend",
+    );
+    const rows: Array<HTMLElement> = screen.getAllByTestId(
+      "cloud-accounts-card-row",
+    );
+    // The costly first, then by name.
+    expect(rows[0]).toHaveTextContent("web-prod");
+    expect(ends[0]).toHaveTextContent("$3,000");
+
+    expect(rows[1]).toHaveTextContent("collector-only");
+    expect(ends[1]).toHaveTextContent("");
+    expect(ends[1]!.textContent).toBe("");
+
+    expect(rows[2]).toHaveTextContent("data-lake");
+    expect(ends[2]).toHaveTextContent(COSTS_NOT_READ_YET);
+    expect(within(ends[2]!).getByText(COSTS_NOT_READ_YET)).toHaveAttribute(
+      "data-state",
+      "waiting",
+    );
+  });
+
   test("App Platforms: the environments in these accounts and their apps, linked there", async () => {
     await openPage();
 

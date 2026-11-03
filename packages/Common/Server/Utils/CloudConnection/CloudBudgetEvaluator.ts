@@ -78,7 +78,15 @@ export interface CloudBudgetSpend {
   accountsCounted: number;
   // Accounts read in another currency, left out.
   accountsInOtherCurrencies: number;
+  /*
+   * The services that cost the most this month in the accounts counted, the
+   * most first: what an alert names as where the money went.
+   */
+  topServices: Array<{ service: string; amount: number }>;
 }
+
+// How many services an alert names as where the money went.
+export const CLOUD_BUDGET_ALERT_SERVICES: number = 3;
 
 export interface CloudBudgetDecision {
   raise: Array<CloudBudgetAlertKind>;
@@ -155,7 +163,9 @@ export default class CloudBudgetEvaluator {
       projected: 0,
       accountsCounted: 0,
       accountsInOtherCurrencies: 0,
+      topServices: [],
     };
+    const services: Map<string, number> = new Map();
 
     for (const summary of data.summaries) {
       if (
@@ -175,10 +185,38 @@ export default class CloudBudgetEvaluator {
       spend.accountsCounted++;
       spend.spent += summary.monthToDate;
       spend.projected += summary.projectedMonth;
+
+      for (const entry of summary.topServices) {
+        services.set(
+          entry.service,
+          (services.get(entry.service) || 0) + entry.amount,
+        );
+      }
     }
 
     spend.spent = Math.round(spend.spent * 100) / 100;
     spend.projected = Math.round(spend.projected * 100) / 100;
+    spend.topServices = Array.from(services.entries())
+      .map(
+        ([service, amount]: [string, number]): {
+          service: string;
+          amount: number;
+        } => {
+          return { service, amount: Math.round(amount * 100) / 100 };
+        },
+      )
+      .filter((entry: { service: string; amount: number }): boolean => {
+        return entry.service.length > 0 && entry.amount >= 0.01;
+      })
+      .sort(
+        (
+          a: { service: string; amount: number },
+          b: { service: string; amount: number },
+        ): number => {
+          return b.amount - a.amount || a.service.localeCompare(b.service);
+        },
+      )
+      .slice(0, CLOUD_BUDGET_ALERT_SERVICES);
 
     return spend;
   }
@@ -266,7 +304,13 @@ export default class CloudBudgetEvaluator {
     }`;
   }
 
-  // What an alert says: its title and its description, in English.
+  /*
+   * What an alert says, in English: its title, its description - what was
+   * spent, of what, and where the month is heading - and its root cause,
+   * where the money went: the services that cost the most this month. An
+   * alert whose accounts named no service has no root cause, rather than
+   * its description said a second time under it.
+   */
   public static describe(data: {
     budgetName: string;
     scope: string;
@@ -275,7 +319,7 @@ export default class CloudBudgetEvaluator {
     spend: CloudBudgetSpend;
     alert: CloudBudgetAlertKind;
     now: Date;
-  }): { title: string; description: string } {
+  }): { title: string; description: string; rootCause?: string | undefined } {
     const amount: string = formatCloudBudgetAmount(data.amount, data.currency);
     const spent: string = formatCloudBudgetAmount(
       data.spend.spent,
@@ -292,17 +336,52 @@ export default class CloudBudgetEvaluator {
       daysInUtcMonth(data.now) - data.now.getUTCDate(),
     );
 
+    const rootCause: string | undefined =
+      CloudBudgetEvaluator.describeTopServices(
+        data.spend.topServices,
+        data.currency,
+      );
+
     if (data.alert.kind === "threshold") {
       return {
         title: `Cloud budget "${data.budgetName}" passed ${data.alert.threshold}%`,
         description: `This month's cloud spend for ${data.scope} is ${spent} of the ${amount} budget (${percent}%), with ${daysLeft} day${daysLeft === 1 ? "" : "s"} of the month to go. At the pace of the last full week, the month is on course for ${projected}.`,
+        rootCause,
       };
     }
 
     return {
       title: `Cloud budget "${data.budgetName}" is on course to be passed`,
       description: `At the pace of the last full week, this month's cloud spend for ${data.scope} is on course for ${projected}, over the ${amount} budget. ${spent} (${percent}%) is spent so far, with ${daysLeft} day${daysLeft === 1 ? "" : "s"} to go.`,
+      rootCause,
     };
+  }
+
+  /*
+   * Where the money went, as an alert's root cause: "What cost the most this
+   * month: Amazon EC2 ($437.87), Amazon S3 ($272.74) and AWS Lambda
+   * ($34.84)." Nothing when no service was named.
+   */
+  public static describeTopServices(
+    services: Array<{ service: string; amount: number }>,
+    currency: string,
+  ): string | undefined {
+    const named: Array<string> = services.map(
+      (entry: { service: string; amount: number }): string => {
+        return `${entry.service} (${formatCloudBudgetAmount(entry.amount, currency)})`;
+      },
+    );
+
+    if (named.length === 0) {
+      return undefined;
+    }
+
+    const list: string =
+      named.length === 1
+        ? named[0]!
+        : `${named.slice(0, -1).join(", ")} and ${named[named.length - 1]}`;
+
+    return `What cost the most this month: ${list}.`;
   }
 
   @CaptureSpan()
@@ -552,22 +631,29 @@ export default class CloudBudgetEvaluator {
       return null;
     }
 
-    const words: { title: string; description: string } =
-      CloudBudgetEvaluator.describe({
-        budgetName: data.budget.name || "Cloud budget",
-        scope: data.scope,
-        amount: data.amount,
-        currency: data.currency,
-        spend: data.spend,
-        alert: data.alert,
-        now: data.now,
-      });
+    const words: {
+      title: string;
+      description: string;
+      rootCause?: string | undefined;
+    } = CloudBudgetEvaluator.describe({
+      budgetName: data.budget.name || "Cloud budget",
+      scope: data.scope,
+      amount: data.amount,
+      currency: data.currency,
+      spend: data.spend,
+      alert: data.alert,
+      now: data.now,
+    });
 
     const alert: Alert = new Alert();
     alert.projectId = projectId;
     alert.title = words.title;
     alert.description = words.description;
-    alert.rootCause = words.description;
+
+    // Where the money went; never the description a second time.
+    if (words.rootCause) {
+      alert.rootCause = words.rootCause;
+    }
     alert.alertSeverityId = severityId;
     alert.seriesFingerprint = fingerprint;
     alert.isCreatedAutomatically = true;

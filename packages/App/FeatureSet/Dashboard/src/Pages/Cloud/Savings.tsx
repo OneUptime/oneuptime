@@ -9,7 +9,9 @@ import CloudCostSetupSteps, {
 import { getCloudSavingsTiles } from "../../Components/Cloud/CloudOverviewTiles";
 import CloudSavingsTable from "../../Components/Cloud/CloudSavingsTable";
 import CloudStatStrip from "../../Components/Cloud/CloudStatStrip";
-import CloudConnectCallout from "../../Components/Cloud/Connect/CloudConnectCallout";
+import CloudConnectCallout, {
+  CLOUD_CONNECT_CALLOUT_SPEND_DESCRIPTION,
+} from "../../Components/Cloud/Connect/CloudConnectCallout";
 import useCloudAccounts, {
   CloudAccountsRead,
 } from "../../Components/Cloud/UseCloudAccounts";
@@ -52,7 +54,11 @@ const CloudSavings: FunctionComponent<
   }
 
   if (read.accounts.length === 0) {
-    return <CloudConnectCallout />;
+    return (
+      <CloudConnectCallout
+        description={CLOUD_CONNECT_CALLOUT_SPEND_DESCRIPTION}
+      />
+    );
   }
 
   const gaps: Array<CloudCostGapRow> = getCloudCostGapRows({

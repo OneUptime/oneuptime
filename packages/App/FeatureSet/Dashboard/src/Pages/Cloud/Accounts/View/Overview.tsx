@@ -19,6 +19,18 @@ import CloudAiAgentCard from "../../../../Components/Cloud/CloudAiAgentCard";
 import CloudAttentionCard from "../../../../Components/Cloud/CloudAttentionCard";
 import { getCloudAccountResourcesQuery } from "../../../../Components/Cloud/CloudAccountScope";
 import { readCloudProvider } from "../../../../Components/Cloud/CloudAiAgentSetup";
+import {
+  COST_STATE_LABELS,
+  SO_FAR_THIS_MONTH,
+  SPEND_THIS_MONTH,
+  formatCloudMoney,
+} from "../../../../Components/Cloud/CloudCostWords";
+import { COSTS_NOT_READ_YET } from "../../../../Components/Cloud/CloudOverviewTiles";
+import {
+  CloudAccountCostSummary,
+  CloudCostState,
+  readCloudAccountCostSummary,
+} from "Common/Types/Cloud/CloudCost";
 import ChangeEvent from "Common/Models/AnalyticsModels/ChangeEvent";
 import CloudAccount from "Common/Models/DatabaseModels/CloudAccount";
 import Route from "Common/Types/API/Route";
@@ -58,14 +70,49 @@ import React, {
 
 /*
  * A cloud account's Overview: which cloud and account it is, the
- * connection that reads it and when it last did, how many resources it
- * holds and how much changed in it lately, and what it holds - its
- * resources by type and by Region, side by side, as the server last
- * counted them (CloudAccount.resourceSummary).
+ * connection that reads it and when it last did, what needs attention in
+ * it, how many resources it holds, what it cost this month and how much
+ * changed in it lately, and what it holds - its resources by type and by
+ * Region, side by side, as the server last counted them
+ * (CloudAccount.resourceSummary).
  */
 
 // The rows of a count card drawn before "Show more": the most common first.
 export const CLOUD_ACCOUNT_COUNTS_SHOWN: number = 8;
+
+export const ACCOUNT_SPEND_TILE_DESCRIPTION: string = translationKey(
+  "What it cost this month so far, from its cloud's own billing, before credits and refunds.",
+);
+
+/*
+ * The account's month so far, as its tile says it: its spend in the
+ * currency it is billed in, or why there is none - never a "$0" that would
+ * read as costing nothing.
+ */
+export function getCloudAccountSpendTile(data: {
+  costSummary: unknown;
+  translator: Translator;
+}): { value: string; sublabel: string } {
+  const summary: CloudAccountCostSummary | null = readCloudAccountCostSummary(
+    data.costSummary,
+  );
+
+  if (summary && summary.state === CloudCostState.Reading) {
+    return {
+      value: formatCloudMoney({
+        amount: summary.monthToDate,
+        currency: summary.currency,
+        translator: data.translator,
+      }),
+      sublabel: SO_FAR_THIS_MONTH,
+    };
+  }
+
+  return {
+    value: "—",
+    sublabel: summary ? COST_STATE_LABELS[summary.state] : COSTS_NOT_READ_YET,
+  };
+}
 
 // How many changes the account recorded lately: unknown while it is read.
 interface RecentChanges {
@@ -167,6 +214,7 @@ const CloudAccountOverview: FunctionComponent<
           resourceCount: true,
           regionCount: true,
           resourceSummary: true,
+          costSummary: true,
           lastSeenAt: true,
           inventoryListedAt: true,
           cloudConnectionId: true,
@@ -274,10 +322,17 @@ const CloudAccountOverview: FunctionComponent<
     });
   }
 
+  const spend: { value: string; sublabel: string } = getCloudAccountSpendTile({
+    costSummary: account.costSummary,
+    translator,
+  });
+
   /*
    * Four tiles, a row of them: what it holds - its resources (the way to
-   * them), in how many Regions and of how many types - and how much
-   * changed in it in the last day (the way to its Changes).
+   * them) and in how many Regions - what it cost this month (the way to its
+   * Costs: the Cloud Overview's account row says the same figure, and leads
+   * here) and how much changed in it in the last day (the way to its
+   * Changes). Its types are the card below.
    */
   const tiles: Array<ResourceOverviewTile> = [
     {
@@ -296,10 +351,13 @@ const CloudAccountOverview: FunctionComponent<
       iconColor: "sky",
     },
     {
-      title: "Resource Types",
-      value: translator.formatNumber(summary.types.length),
-      icon: IconProp.Cube,
+      title: SPEND_THIS_MONTH,
+      value: spend.value,
+      sublabel: spend.sublabel,
+      icon: IconProp.Billing,
       iconColor: "violet",
+      to: populate(PageMap.CLOUD_ACCOUNT_VIEW_COSTS),
+      description: ACCOUNT_SPEND_TILE_DESCRIPTION,
     },
     {
       title: "Changes",
@@ -379,6 +437,24 @@ const CloudAccountOverview: FunctionComponent<
         lastSeenAt={account.lastSeenAt}
         description={account.description as string}
         chips={chips}
+        /*
+         * What needs someone in the account now, straight under its hero and
+         * before any number - as a cluster's Overview leads with its own:
+         * its resources whose key metrics show something wrong, the most
+         * urgent first. Nothing is drawn while nothing does.
+         */
+        connectionGuide={
+          projectId ? (
+            <CloudAttentionCard
+              testId="cloud-account-attention"
+              query={getCloudAccountResourcesQuery({
+                projectId,
+                provider,
+                accountId: (account.accountId as string) || "",
+              })}
+            />
+          ) : undefined
+        }
         tiles={tiles}
         detailRows={detailRows}
         detailsDescription={translationKey(
@@ -388,24 +464,6 @@ const CloudAccountOverview: FunctionComponent<
         settingsRoute={populate(PageMap.CLOUD_ACCOUNT_VIEW_SETTINGS)}
         labels={account.labels}
       />
-
-      {/*
-       * What needs someone in the account now: its resources whose key
-       * metrics show something wrong, the most urgent first. Nothing is
-       * drawn while nothing does.
-       */}
-      {projectId ? (
-        <CloudAttentionCard
-          testId="cloud-account-attention"
-          query={getCloudAccountResourcesQuery({
-            projectId,
-            provider,
-            accountId: (account.accountId as string) || "",
-          })}
-        />
-      ) : (
-        <></>
-      )}
 
       {/*
        * What it holds, side by side while the page is wide enough: a short

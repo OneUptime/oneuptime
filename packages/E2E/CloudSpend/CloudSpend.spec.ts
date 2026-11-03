@@ -44,6 +44,8 @@ const WEB_PROD_COSTS: string = `${CLOUD}/accounts/${WEB_PROD_ID}/costs`;
 const WEB_1_ID: string = "82000000-0000-4000-8000-000000000001";
 const ORDERS_DB_ID: string = "82000000-0000-4000-8000-000000000002";
 const CACHE_ID: string = "82000000-0000-4000-8000-000000000003";
+// A Compute Engine instance its billing export names: well, with a cost.
+const ETL_RUNNER_ID: string = "82000000-0000-4000-8000-000000000004";
 
 const LAPTOP: { width: number; height: number } = { width: 1280, height: 900 };
 const PHONE: { width: number; height: number } = { width: 390, height: 844 };
@@ -289,6 +291,30 @@ async function breakdownRows(page: Page): Promise<Array<[string, string]>> {
 
 function breakdownTotal(page: Page): Locator {
   return page.getByTestId("cloud-cost-breakdown-total");
+}
+
+/*
+ * The daily chart's drawn bars: a finished day's, and the lighter one of a
+ * day its cloud is still reporting. The two are stacked series, and each
+ * day is in one of them only: the other's bar that day has no height.
+ */
+async function dailyBars(
+  page: Page,
+): Promise<{ finished: number; partlyReported: number }> {
+  const chart: Locator = page.getByTestId("cloud-daily-spend-chart");
+  await expect(chart.locator(".recharts-bar")).toHaveCount(2);
+  const drawn: Array<number> = await chart
+    .locator(".recharts-bar")
+    .evaluateAll((layers: Array<Element>): Array<number> => {
+      return layers.map((layer: Element): number => {
+        return Array.from(
+          layer.querySelectorAll(".recharts-bar-rectangle path"),
+        ).filter((bar: Element): boolean => {
+          return bar.getBoundingClientRect().height > 0;
+        }).length;
+      });
+    });
+  return { finished: drawn[0] || 0, partlyReported: drawn[1] || 0 };
 }
 
 // The breakdown's choices: by what, and over which period.
@@ -850,6 +876,19 @@ test.describe("the Overview", () => {
     await expect(page.getByTestId("cloud-savings-card")).not.toContainText(
       "$0.00",
     );
+    /*
+     * An account its connection reads whose costs are not read yet says so
+     * at its row's end: never an empty end, which reads as costing nothing.
+     */
+    const accountEnd: (name: string) => Locator = (name: string): Locator => {
+      return page
+        .getByTestId("cloud-accounts-card-row")
+        .filter({ hasText: name })
+        .getByTestId("cloud-accounts-card-spend");
+    };
+    await expect(accountEnd("data-lake")).toHaveText("Costs not read yet");
+    await expect(accountEnd("eu-shop")).toHaveText("Costs not read yet");
+    await expect(accountEnd("core-prod")).toHaveText("Needs permission");
     await screenshot(page, "cloud-overview-1280-unread");
 
     // Costs says what each cloud of the accounts needs, with its guide.
@@ -939,12 +978,16 @@ test.describe("Costs", () => {
       SAVINGS,
     );
 
-    // Daily spend: a bar for each of the last 30 days.
+    /*
+     * Daily spend: a bar for each of the last 30 days - the newest, which
+     * its cloud is still reporting, lighter and named in the legend.
+     */
+    expect(await dailyBars(page)).toEqual({ finished: 29, partlyReported: 1 });
     await expect(
       page
         .getByTestId("cloud-daily-spend-chart")
-        .locator(".recharts-bar-rectangle"),
-    ).toHaveCount(30);
+        .locator(".recharts-legend-wrapper"),
+    ).toContainText("Still being reported");
 
     /*
      * Where the money goes, this month by service: the month so far in
@@ -1037,8 +1080,13 @@ test.describe("Costs", () => {
     /*
      * The accounts left out of these figures, with why: one may not read
      * its costs (the cloud's own words, and what to do), one is billed in
-     * euros.
+     * euros - read, so the card says left out, not "not read".
      */
+    await expect(
+      page
+        .getByTestId("card")
+        .filter({ has: page.getByTestId("cloud-costs-gaps") }),
+    ).toContainText("Accounts left out");
     const gaps: Locator = page
       .getByTestId("cloud-costs-gaps")
       .getByTestId("cloud-cost-gap");
@@ -1104,11 +1152,7 @@ test.describe("Costs", () => {
     expect(await tileValue(page, "cloud-costs-strip", "savings")).toBe(
       "$1,028",
     );
-    await expect(
-      page
-        .getByTestId("cloud-daily-spend-chart")
-        .locator(".recharts-bar-rectangle"),
-    ).toHaveCount(30);
+    expect(await dailyBars(page)).toEqual({ finished: 29, partlyReported: 1 });
     await expect(breakdownTotal(page)).toHaveText(`${accountSpend} in all`);
 
     // One account: no breakdown by account.
@@ -1163,7 +1207,7 @@ test.describe("Costs", () => {
     await screenshot(page, "cloud-costs-1280-failed");
 
     await daily.getByTestId("refresh-button").click();
-    await expect(daily.locator(".recharts-bar-rectangle")).toHaveCount(30);
+    expect(await dailyBars(page)).toEqual({ finished: 29, partlyReported: 1 });
     await breakdown.getByTestId("refresh-button").click();
     expect((await breakdownRows(page)).length).toBeGreaterThan(0);
   });
@@ -1176,11 +1220,7 @@ test.describe("Costs", () => {
     await page.setViewportSize(PHONE);
     await open(page, COSTS);
 
-    await expect(
-      page
-        .getByTestId("cloud-daily-spend-chart")
-        .locator(".recharts-bar-rectangle"),
-    ).toHaveCount(30);
+    expect(await dailyBars(page)).toEqual({ finished: 29, partlyReported: 1 });
     const [chart, card] = await boxesInOneFrame([
       page.getByTestId("cloud-daily-spend-chart"),
       page.getByTestId("cloud-daily-spend"),
@@ -1241,9 +1281,22 @@ test.describe("Savings", () => {
     ).map(amountOf);
     expect(amounts).toEqual([410.5, 300, 280.32, 190.44, 54.1, 36.8, 7.3]);
 
-    // A row: what to do, to which resource (its page), where, in what way.
+    /*
+     * A row: what to do and what it changes, to which resource (its page),
+     * what it saves, in which account. The kind is the strip's, and the
+     * Kind filter's: no column of it says the action's word again.
+     */
+    await expect(page.getByRole("columnheader", { name: "Kind" })).toHaveCount(
+      0,
+    );
+    await expect(
+      page.getByRole("columnheader", { name: "Monthly Savings" }),
+    ).toBeVisible();
     const first: Locator = rows.nth(0);
     await expect(first).toContainText("Rightsize");
+    await expect(first.getByTestId("cloud-saving-change")).toHaveText(
+      "db.r6g.2xlarge → db.r6g.xlarge",
+    );
     await expect(
       first.getByRole("link", { name: "orders-db" }),
     ).toHaveAttribute("href", `${CLOUD}/${ORDERS_DB_ID}`);
@@ -1370,10 +1423,21 @@ test.describe("Budgets", () => {
     await dialog.getByRole("button", { name: "Next", exact: true }).click();
 
     // The second: when it alerts - 80% and 100% already there.
-    await expect(dialog.getByLabel("Alert At", { exact: true })).toHaveValue(
-      "80,100",
-    );
+    const alertAt: Locator = dialog.getByLabel("Alert At", { exact: true });
+    await expect(alertAt).toHaveValue("80,100");
     await screenshot(page, "cloud-budgets-1280-create-2");
+
+    /*
+     * What is not a list of percents is said before the budget is saved -
+     * not taken as 80% and 100% without a word.
+     */
+    await alertAt.fill("eighty, 100");
+    await dialog.getByTestId("modal-footer-submit-button").click();
+    await expect(dialog).toContainText(
+      "Write each as a percent of the budget from 1 to 1000, such as 80, 100.",
+    );
+    expect((await recorded(page)).creates).toHaveLength(0);
+    await alertAt.fill("80,100");
     await dialog.getByTestId("modal-footer-submit-button").click();
     await expect(dialog).toBeHidden();
 
@@ -1402,8 +1466,9 @@ test.describe("Budgets", () => {
     await expect(staging.getByTestId("cloud-budget-status")).toHaveText(
       "Not checked yet",
     );
+    // Nothing spent yet, of the amount as it was set.
     await expect(staging.getByTestId("cloud-budget-month")).toContainText(
-      "$0.00 of $2,500",
+      "$0 of $2,500",
     );
   });
 
@@ -1446,6 +1511,140 @@ test.describe("Budgets", () => {
     await expect(production.getByTestId("cloud-budget-status")).toHaveText(
       "Paused",
     );
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * A resource's page and an account's Overview
+ * ---------------------------------------------------------------------------
+ */
+test.describe("a resource's page and an account's Overview", () => {
+  /*
+   * What needs someone first, right under the hero and before any number -
+   * as a host's and a cluster's Overview lead with theirs - then its
+   * numbers, then what it costs and how it could cost less, then its
+   * Details.
+   */
+  test("a resource's page leads with what needs attention, then its numbers and its ways to spend less, before its Details", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(LAPTOP);
+    await open(page, `${CLOUD}/${ORDERS_DB_ID}`);
+
+    const attention: Locator = page.getByTestId("cloud-resource-attention");
+    await expect(attention).toContainText("This resource");
+    await expect(attention).toContainText("92% full");
+    await expect(attention).toContainText("CPU at 97%");
+
+    // AWS bills it under its service and Region only: no figure of its own.
+    const cost: Locator = page.getByTestId("cloud-resource-cost");
+    await expect(cost).toHaveAttribute("data-state", "savings-only");
+    const costCard: Locator = page.getByTestId("card").filter({ has: cost });
+    await expect(costCard).toContainText("Ways to spend less");
+    await expect(costCard).not.toContainText("What it costs");
+    await expect(cost).toContainText("db.r6g.2xlarge → db.r6g.xlarge");
+
+    const [hero, why, tiles, savings, details] = await boxesInOneFrame([
+      page.getByTestId("resource-overview-title-block"),
+      attention,
+      page.getByTestId("resource-overview-tiles"),
+      cost,
+      page.getByTestId("resource-overview-details"),
+    ]);
+    expect(why!.y).toBeGreaterThan(hero!.y);
+    expect(tiles!.y).toBeGreaterThan(why!.y + why!.height);
+    expect(savings!.y).toBeGreaterThan(tiles!.y + tiles!.height);
+    expect(details!.y).toBeGreaterThan(savings!.y + savings!.height);
+    await screenshot(page, "cloud-resource-1280");
+
+    await page.setViewportSize(PHONE);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "cloud-resource-390");
+  });
+
+  test("a resource its cloud bills by name says what it cost this month and in the last 30 days", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(LAPTOP);
+    await open(page, `${CLOUD}/${ETL_RUNNER_ID}`);
+
+    // Well: nothing needs attention, so no card says so.
+    await expect(page.getByTestId("resource-overview-tiles")).toContainText(
+      "41%",
+    );
+    await expect(page.getByTestId("cloud-resource-attention")).toHaveCount(0);
+
+    const cost: Locator = page.getByTestId("cloud-resource-cost");
+    await expect(cost).toHaveAttribute("data-state", "costs");
+    await expect(page.getByTestId("card").filter({ has: cost })).toContainText(
+      "What it costs",
+    );
+    const figure: (testId: string) => Promise<string> = async (
+      testId: string,
+    ): Promise<string> => {
+      return (
+        (await cost.getByTestId(testId).locator("dd").textContent()) || ""
+      ).trim();
+    };
+    const month: string = await figure("cloud-resource-cost-month");
+    const lastThirtyDays: string = await figure("cloud-resource-cost-30-days");
+    expect(month).toMatch(ENGLISH_DOLLARS);
+    expect(lastThirtyDays).toMatch(ENGLISH_DOLLARS);
+    // Thirty days of it cost more than the month's first days.
+    expect(amountOf(lastThirtyDays)).toBeGreaterThan(amountOf(month));
+    await expect(cost).toContainText("n2-standard-16 → n2-standard-8");
+  });
+
+  test("an account's Overview leads with what needs attention, and its month's spend is a click from its Costs", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(LAPTOP);
+    await open(page, `${CLOUD}/accounts/${WEB_PROD_ID}`);
+
+    const attention: Locator = page.getByTestId("cloud-account-attention");
+    await expect(attention).toContainText("web-1");
+
+    const [hero, why, tiles, details] = await boxesInOneFrame([
+      page.getByTestId("resource-overview-title-block"),
+      attention,
+      page.getByTestId("resource-overview-tiles"),
+      page.getByTestId("resource-overview-details"),
+    ]);
+    expect(why!.y).toBeGreaterThan(hero!.y);
+    expect(tiles!.y).toBeGreaterThan(why!.y + why!.height);
+    expect(details!.y).toBeGreaterThan(tiles!.y + tiles!.height);
+
+    // The month so far, as the Cloud Overview's row for it says, and the way to its Costs.
+    const spend: Locator = page
+      .getByTestId("resource-overview-tiles")
+      .locator("> *")
+      .filter({ hasText: "Spend this month" });
+    await expect(spend).toContainText("So far this month");
+    const tileFigure: string = (
+      (await spend.locator(".text-2xl").textContent()) || ""
+    ).trim();
+    expect(tileFigure).toMatch(ENGLISH_DOLLARS);
+    await spend.getByRole("link").click();
+    await expect(page).toHaveURL(WEB_PROD_COSTS);
+    expect(await tileValue(page, "cloud-costs-strip", "spend")).toBe(
+      tileFigure,
+    );
+
+    // One whose costs it may not read says why, never $0.
+    await open(page, `${CLOUD}/accounts/${CORE_PROD_ID}`);
+    const blocked: Locator = page
+      .getByTestId("resource-overview-tiles")
+      .locator("> *")
+      .filter({ hasText: "Spend this month" });
+    await expect(blocked).toContainText("Needs permission");
+    await expect(blocked).not.toContainText("$0");
   });
 });
 
