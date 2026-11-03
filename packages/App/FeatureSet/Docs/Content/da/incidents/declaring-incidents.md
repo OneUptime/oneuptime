@@ -284,7 +284,7 @@ Derfra er hændelsen live: den tæller med i mærket **Aktive hændelser** i Hæ
 
 ### Erklæret allerede bekræftet eller løst
 
-At vælge en senere **Indledende tilstand** — på formularen, via en skabelons **Indledende hændelsestilstand** eller med `currentIncidentStateId` fra API'et, Terraform eller et workflow — registrerer en hændelse, som nogen allerede håndterer, eller som allerede er overstået. Den behandles ikke som en ny nødsituation:
+At vælge en senere **Indledende tilstand** — på formularen, via en skabelons **Indledende hændelsestilstand**, med `currentIncidentStateId` fra API'et, Terraform eller et workflow, eller ved at bede [Spørg AI](/docs/ai/ask-ai) om en hændelse, der allerede er bekræftet eller løst — registrerer en hændelse, som nogen allerede håndterer, eller som allerede er overstået. Den behandles ikke som en ny nødsituation:
 
 ```mermaid title="Hvad en ny hændelse sætter i gang, efter den tilstand den starter i"
 flowchart TB

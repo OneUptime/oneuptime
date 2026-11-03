@@ -284,7 +284,7 @@ Ab da ist der Vorfall live: Er zählt zum Badge **Aktive Vorfälle** im Seitenme
 
 ### Bereits bestätigt oder behoben gemeldet
 
-Ein späterer **Anfangsstatus** – im Formular, über den **Anfänglicher Vorfallstatus** einer Vorlage oder mit `currentIncidentStateId` aus der API, aus Terraform oder einem Workflow – erfasst einen Vorfall, um den sich schon jemand kümmert oder der schon vorbei ist. Er wird nicht wie ein neuer Notfall behandelt:
+Ein späterer **Anfangsstatus** – im Formular, über den **Anfänglicher Vorfallstatus** einer Vorlage, mit `currentIncidentStateId` aus der API, aus Terraform oder einem Workflow oder mit der Bitte an [KI fragen](/docs/ai/ask-ai) um einen bereits bestätigten oder behobenen Vorfall – erfasst einen Vorfall, um den sich schon jemand kümmert oder der schon vorbei ist. Er wird nicht wie ein neuer Notfall behandelt:
 
 ```mermaid title="Was ein neuer Vorfall auslöst, je nach dem Status, in dem er beginnt"
 flowchart TB

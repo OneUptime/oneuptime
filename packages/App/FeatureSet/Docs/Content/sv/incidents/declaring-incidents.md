@@ -284,7 +284,7 @@ Därifrån är incidenten live: den räknas in i märket **Aktiva incidenter** i
 
 ### Deklarerad redan bekräftad eller löst
 
-Att välja ett senare **Inledande tillstånd** — på formuläret, via en malls **Inledande incidenttillstånd** eller med `currentIncidentStateId` från API:t, Terraform eller ett arbetsflöde — registrerar en incident som någon redan hanterar, eller som redan är över. Den behandlas inte som en ny nödsituation:
+Att välja ett senare **Inledande tillstånd** — på formuläret, via en malls **Inledande incidenttillstånd**, med `currentIncidentStateId` från API:t, Terraform eller ett arbetsflöde, eller genom att be [Fråga AI](/docs/ai/ask-ai) om en incident som redan är bekräftad eller löst — registrerar en incident som någon redan hanterar, eller som redan är över. Den behandlas inte som en ny nödsituation:
 
 ```mermaid title="Vad en ny incident sätter igång, efter tillståndet den börjar i"
 flowchart TB
