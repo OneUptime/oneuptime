@@ -4,9 +4,11 @@ import HeldPermissionsUtil, {
   HeldPermissions,
   HeldPermissionsOptions,
 } from "../../Types/HeldPermissions";
+import ObjectID from "../../Types/ObjectID";
 import Permission, {
   PermissionHelper,
   PermissionProps,
+  UserTenantAccessPermission,
 } from "../../Types/Permission";
 import { ColumnAccessControl } from "../../Types/BaseDatabase/AccessControl";
 import PermissionUtil from "./Permission";
@@ -301,6 +303,32 @@ export default class PermissionGate {
       blocked: rows.blocked,
       blockedForSomeLabels: rows.blockedForSomeLabels,
     };
+  }
+
+  /*
+   * What the user holds in one project, for a page that lists records of
+   * several projects at once (Upcoming shifts): the snapshot this browser
+   * keeps for that project (Utils/Permission keeps each project's apart),
+   * with the user's global permissions - or null while it keeps none, as
+   * for a project no tab has opened yet. Nothing honest can be said about
+   * that project until its snapshot lands, and its own pages read it as
+   * they open.
+   */
+  public static getHeldPermissionsInProject(
+    projectId: ObjectID | string | null | undefined,
+  ): HeldPermissions | null {
+    const projectPermissions: UserTenantAccessPermission | null =
+      projectId ? PermissionUtil.getProjectPermissions(projectId) : null;
+
+    if (!projectPermissions) {
+      return null;
+    }
+
+    return HeldPermissionsUtil.fromRows({
+      rows: projectPermissions.permissions || [],
+      globalPermissions:
+        PermissionUtil.getGlobalPermissions()?.globalPermissions || [],
+    });
   }
 
   /*
