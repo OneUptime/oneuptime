@@ -1092,10 +1092,7 @@ import MonitorTimelineStatusService, {
   Service as MonitorTimelineStatusServiceType,
 } from "Common/Server/Services/MonitorStatusTimelineService";
 // user override
-import OnCallDutyPolicyUserOverrideService, {
-  Service as OnCallDutyPolicyUserOverrideServiceType,
-} from "Common/Server/Services/OnCallDutyPolicyUserOverrideService";
-import OnCallDutyPolicyUserOverride from "Common/Models/DatabaseModels/OnCallDutyPolicyUserOverride";
+import OnCallDutyPolicyUserOverrideAPI from "Common/Server/API/OnCallDutyPolicyUserOverrideAPI";
 import OnCallDutyPolicyCustomFieldService, {
   Service as OnCallDutyPolicyCustomFieldServiceType,
 } from "Common/Server/Services/OnCallDutyPolicyCustomFieldService";
@@ -2677,16 +2674,10 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
-    // user override
+    // user override, and where the caller may add one (add-access)
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<
-        OnCallDutyPolicyUserOverride,
-        OnCallDutyPolicyUserOverrideServiceType
-      >(
-        OnCallDutyPolicyUserOverride,
-        OnCallDutyPolicyUserOverrideService,
-      ).getRouter(),
+      new OnCallDutyPolicyUserOverrideAPI().getRouter(),
     );
 
     app.use(

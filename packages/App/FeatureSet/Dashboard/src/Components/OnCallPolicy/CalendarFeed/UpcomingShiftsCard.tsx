@@ -17,19 +17,34 @@ import UpcomingShiftRow from "./UpcomingShiftRow";
 import {
   UpcomingShiftSpan,
   buildUpcomingShiftSpans,
+  getCoverWindowForSpan,
   getUpcomingShiftsFold,
   isUpcomingShiftsFoldable,
   shouldShowLayerName,
   shouldShowProjectNames,
 } from "./UpcomingShiftSpans";
+import {
+  GlobalUserOverrideShortcutKind,
+  getGlobalUserOverrideShortcut,
+} from "../UserOverrides/GlobalUserOverrideLock";
+import {
+  UserOverridePolicy,
+  fetchUserOverrideAddAccess,
+  getDistinctPolicies,
+  getShiftPolicies,
+} from "../UserOverrides/UserOverridePolicies";
 import OneUptimeDate from "Common/Types/Date";
+import Dictionary from "Common/Types/Dictionary";
+import { HeldPermissions } from "Common/Types/HeldPermissions";
 import IconProp from "Common/Types/Icon/IconProp";
+import { UserOverrideAddAccess } from "Common/Types/OnCallDutyPolicy/UserOverrideAddAccess";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Card from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import { FeedClock, getFeedClock } from "Common/UI/Components/Feed/FeedTime";
 import Icon from "Common/UI/Components/Icon/Icon";
 import API from "Common/UI/Utils/API/API";
+import PermissionGate from "Common/UI/Utils/PermissionGate";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
@@ -42,6 +57,78 @@ import React, {
   useRef,
   useState,
 } from "react";
+
+// What Get cover asks the server about one project: see getCoverQuestions.
+export interface CoverQuestion {
+  projectId: string;
+  onCallDutyPolicyIds: Array<string>;
+  // The question as one string: an answer is kept by it.
+  key: string;
+}
+
+/*
+ * The questions Get cover asks the server (UserOverridePolicies): for each
+ * project where the reader's permission to add overrides covers only some
+ * policies, which of the policies that page through their shifts there
+ * they may cover - the shifts Get cover would add a global override for,
+ * with time left to cover. One question per project, about every such
+ * policy at once; none for a project this browser has no permissions of
+ * yet, where Get cover links as before.
+ */
+export const getCoverQuestions: (
+  spans: Array<UpcomingShiftSpan>,
+  now: Date,
+) => Array<CoverQuestion> = (
+  spans: Array<UpcomingShiftSpan>,
+  now: Date,
+): Array<CoverQuestion> => {
+  const policiesByProject: Map<string, Array<UserOverridePolicy>> = new Map<
+    string,
+    Array<UserOverridePolicy>
+  >();
+
+  for (const span of spans) {
+    if (span.policyVariant || !getCoverWindowForSpan(span, now)) {
+      continue;
+    }
+
+    const held: HeldPermissions | null =
+      PermissionGate.getHeldPermissionsInProject(span.projectId);
+
+    if (
+      !held ||
+      getGlobalUserOverrideShortcut({ held: held }).kind !==
+        GlobalUserOverrideShortcutKind.SomePolicies
+    ) {
+      continue;
+    }
+
+    policiesByProject.set(span.projectId, [
+      ...(policiesByProject.get(span.projectId) || []),
+      ...getShiftPolicies(span.shifts),
+    ]);
+  }
+
+  const questions: Array<CoverQuestion> = [];
+
+  for (const [projectId, policies] of policiesByProject) {
+    const onCallDutyPolicyIds: Array<string> = getDistinctPolicies(policies)
+      .map((policy: UserOverridePolicy): string => {
+        return policy.id;
+      })
+      .sort();
+
+    if (onCallDutyPolicyIds.length > 0) {
+      questions.push({
+        projectId: projectId,
+        onCallDutyPolicyIds: onCallDutyPolicyIds,
+        key: `${projectId}:${onCallDutyPolicyIds.join(",")}`,
+      });
+    }
+  }
+
+  return questions;
+};
 
 /*
  * "Upcoming shifts", from the same materializer the feed is rendered from, so
@@ -175,6 +262,87 @@ const UpcomingShiftsCard: FunctionComponent<ComponentProps> = (
   const showProjectNames: boolean = shouldShowProjectNames(spans);
 
   /*
+   * Get cover for a reader whose permission covers only some policies: the
+   * server's answers, by question (getCoverQuestions). Each question is
+   * asked once; a question that failed is answered with nothing, and Get
+   * cover stays locked there.
+   */
+  const coverQuestions: Array<CoverQuestion> = getCoverQuestions(spans, now);
+
+  const coverQuestionsKey: string = coverQuestions
+    .map((question: CoverQuestion): string => {
+      return question.key;
+    })
+    .join("|");
+
+  const [coverAnswers, setCoverAnswers] = useState<
+    Dictionary<UserOverrideAddAccess>
+  >({});
+
+  const askedCoverQuestions: MutableRefObject<Set<string>> = useRef<
+    Set<string>
+  >(new Set<string>());
+
+  const isMounted: MutableRefObject<boolean> = useRef<boolean>(true);
+
+  useEffect(() => {
+    isMounted.current = true;
+
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    const keepAnswer: (key: string, access: UserOverrideAddAccess) => void = (
+      key: string,
+      access: UserOverrideAddAccess,
+    ): void => {
+      if (!isMounted.current) {
+        return;
+      }
+
+      setCoverAnswers((answers: Dictionary<UserOverrideAddAccess>) => {
+        return { ...answers, [key]: access };
+      });
+    };
+
+    for (const question of coverQuestions) {
+      if (askedCoverQuestions.current.has(question.key)) {
+        continue;
+      }
+
+      askedCoverQuestions.current.add(question.key);
+
+      fetchUserOverrideAddAccess({
+        projectId: question.projectId,
+        onCallDutyPolicyIds: question.onCallDutyPolicyIds,
+      })
+        .then((access: UserOverrideAddAccess) => {
+          keepAnswer(question.key, access);
+        })
+        .catch(() => {
+          // Not knowing which, Get cover offers none there: it stays locked.
+          keepAnswer(question.key, { global: false, onCallDutyPolicyIds: [] });
+        });
+    }
+  }, [coverQuestionsKey]);
+
+  const getCoverAccess: (
+    span: UpcomingShiftSpan,
+  ) => UserOverrideAddAccess | undefined = (
+    span: UpcomingShiftSpan,
+  ): UserOverrideAddAccess | undefined => {
+    const question: CoverQuestion | undefined = coverQuestions.find(
+      (candidate: CoverQuestion): boolean => {
+        return candidate.projectId === span.projectId;
+      },
+    );
+
+    return question ? coverAnswers[question.key] : undefined;
+  };
+
+  /*
    * The read failed: the server's reason, and a way to try again without
    * reloading the page. Shifts already on screen stay under it.
    */
@@ -249,6 +417,7 @@ const UpcomingShiftsCard: FunctionComponent<ComponentProps> = (
                   clock={clock}
                   showLayerName={shouldShowLayerName(span, spans)}
                   showProjectName={showProjectNames}
+                  coverAccess={getCoverAccess(span)}
                 />
               );
             })}
