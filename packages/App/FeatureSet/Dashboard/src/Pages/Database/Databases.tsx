@@ -82,8 +82,10 @@ import {
   getDatabaseEngineMetricsStatusOptions,
   getDatabaseEndpointLabel,
   getDatabaseEngineOptions,
+  getDatabaseRuntimePlatform,
   translateDatabaseOptions,
 } from "./Utils/DatabaseServerPresentation";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * Width caps for the two cells whose text can be long. With them, and with
@@ -528,7 +530,17 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
               );
               const subtitle: string = getDatabaseEndpointLabel(item);
               return (
-                <div className="min-w-0" data-testid="database-name">
+                <div
+                  /*
+                   * A grid of one column its lines shrink in, as a cell with
+                   * values folded under it is (TableFoldedValues): the
+                   * endpoint, on one line, would otherwise hold the column
+                   * at its 14rem cap however narrow the table needs it - in
+                   * German the list ran 59px past its card.
+                   */
+                  className="grid min-w-0 grid-cols-1 justify-items-start [&>*]:min-w-0 [&>*]:max-w-full"
+                  data-testid="database-name"
+                >
                   <AppLink
                     to={route}
                     className="text-sm font-medium text-gray-900 break-words hover:underline"
@@ -634,6 +646,13 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
             wrapContent: true,
             wrapMaxWidthClassName: DATABASE_RUNS_ON_COLUMN_MAX_WIDTH_CLASS,
             getElement: (item: DatabaseServer): ReactElement => {
+              /*
+               * The table's quiet dash when it runs on nothing OneUptime
+               * knows: folded under the name, it draws no line of its own.
+               */
+              if (!getDatabaseRuntimePlatform(item)) {
+                return <TableEmptyValue />;
+              }
               // Links to the cluster / host page when the database runs on one.
               return <DatabaseRunsOnLink source={item} />;
             },

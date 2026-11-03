@@ -264,6 +264,9 @@ function busyFleet(loadedAt) {
           dbVersion: "8.0.36",
           serverAddress: "catalog-mysql.prod.internal",
           serverPort: 3306,
+          // On a Kubernetes cluster: its Runs On names it, linked to its page.
+          kubernetesClusterId: uuid("75000000", 1),
+          kubernetesCluster: { name: "prod-eu" },
         },
         loadedAt,
       ),
@@ -362,12 +365,26 @@ function calmFleet(loadedAt) {
   const rows = [
     ["ordersDb", "orders-db", "postgresql", "16.4", 5432, "postgresql"],
     ["catalogMysql", "catalog-mysql", "mysql", "8.0.36", 3306, "mysql"],
-    ["ledgerMssql", "ledger-mssql", "microsoft.sql_server", "16.0", 1433, "sqlserver"],
+    [
+      "ledgerMssql",
+      "ledger-mssql",
+      "microsoft.sql_server",
+      "16.0",
+      1433,
+      "sqlserver",
+    ],
     ["billingOracle", "billing-oracle", "oracle.db", "23.4", 1521, "oracle"],
     ["sessionsRedis", "sessions-redis", "redis", "7.2.4", 6379, "redis"],
     ["analyticsMongo", "analytics-mongo", "mongodb", "7.0.8", 27017, "mongodb"],
     ["searchEs", "search-es", "elasticsearch", "8.13.0", 9200, "elasticsearch"],
-    ["cacheMemcached", "cache-memcached", "memcached", "1.6.27", 11211, "memcached"],
+    [
+      "cacheMemcached",
+      "cache-memcached",
+      "memcached",
+      "1.6.27",
+      11211,
+      "memcached",
+    ],
     ["docsCouch", "docs-couch", "couchdb", "3.3.3", 5984, "couchdb"],
   ];
   return rows.map(([key, name, dbSystem, dbVersion, port, family]) => {

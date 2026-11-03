@@ -516,6 +516,24 @@ test.describe("the Databases list", () => {
     expect(headers).toEqual(
       expect.arrayContaining(["Name", "Status", "Engine", "Last Seen"]),
     );
+    expect(headers).not.toContain("Runs On");
+    /*
+     * Folded under the name, Runs On is a line for a database on a cluster,
+     * linked to it, and no line - not a dash - for one on nothing OneUptime
+     * knows.
+     */
+    const runsOn: (name: string) => Locator = (name: string): Locator => {
+      return tableRow(page, name)
+        .getByTestId("table-folded-value")
+        .filter({ hasText: "Runs On" });
+    };
+    await expect(runsOn("catalog-mysql")).toBeVisible();
+    await expect(runsOn("catalog-mysql").getByRole("link")).toHaveText(
+      "Kubernetes · prod-eu",
+    );
+    for (const name of ["orders-db", "payments-pg", "analytics-mongo"]) {
+      await expect(runsOn(name)).toBeHidden();
+    }
     // Its Status stands in for the Engine Metrics column the list had.
     expect(headers).not.toContain("Engine metrics");
     expect(headers).not.toContain("Engine Metrics");

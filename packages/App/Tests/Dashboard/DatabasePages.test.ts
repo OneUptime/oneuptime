@@ -558,6 +558,20 @@ describe("the Databases list", () => {
     expect(code).not.toContain('title: "Discovered from"');
     // Runs on links to the cluster / host page.
     expect(code).toContain("<DatabaseRunsOnLink source={item} />");
+    /*
+     * On nothing OneUptime knows, the table's quiet dash: folded under the
+     * name, it draws no line of its own, where the link's own grey dash did.
+     */
+    expect(code).toContain("if (!getDatabaseRuntimePlatform(item)) {");
+    expect(code).toContain("return <TableEmptyValue />;");
+    /*
+     * The name and its endpoint shrink in a grid of one column, so the
+     * endpoint never holds the column at its cap with nothing folded under
+     * it: in German the list ran 59px past its card.
+     */
+    expect(code).toContain(
+      'className="grid min-w-0 grid-cols-1 justify-items-start [&>*]:min-w-0 [&>*]:max-w-full"',
+    );
     expect(code).toContain("getDatabaseEndpointLabel(item)");
   });
 
