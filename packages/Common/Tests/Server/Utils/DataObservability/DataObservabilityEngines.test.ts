@@ -21,6 +21,7 @@ describe("DataObservabilityEngines", () => {
       DataStoreKind.SqlServer,
       DataStoreKind.AwsRedshiftCluster,
       DataStoreKind.Snowflake,
+      DataStoreKind.GcpBigQueryDataset,
     ]);
   });
 
@@ -34,6 +35,9 @@ describe("DataObservabilityEngines", () => {
       "redshift",
     );
     expect(getCollectorEngineOfKind(DataStoreKind.Snowflake)).toBe("snowflake");
+    expect(getCollectorEngineOfKind(DataStoreKind.GcpBigQueryDataset)).toBe(
+      "bigquery",
+    );
     expect(getCollectorEngineOfKind(DataStoreKind.AwsS3Bucket)).toBe(null);
   });
 
@@ -42,6 +46,9 @@ describe("DataObservabilityEngines", () => {
       null,
     );
     expect(getDatabaseEngineOfKind(DataStoreKind.Snowflake)).toBe(null);
+    expect(getDatabaseEngineOfKind(DataStoreKind.GcpBigQueryDataset)).toBe(
+      null,
+    );
   });
 
   test("a probe's snapshot may come from any engine collected", () => {

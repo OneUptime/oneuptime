@@ -85,6 +85,8 @@ const EXTRA_SYSTEM_KINDS: Readonly<Record<string, DataStoreKind>> = {
   redshift: DataStoreKind.AwsRedshiftCluster,
   "aws.redshift": DataStoreKind.AwsRedshiftCluster,
   snowflake: DataStoreKind.Snowflake,
+  bigquery: DataStoreKind.GcpBigQueryDataset,
+  "gcp.bigquery": DataStoreKind.GcpBigQueryDataset,
 };
 
 // The schema a table is in when a statement names it alone.

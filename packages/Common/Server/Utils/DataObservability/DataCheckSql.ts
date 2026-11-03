@@ -63,6 +63,8 @@ export function quoteIdentifier(engine: DatabaseEngine, name: string): string {
   switch (engine) {
     case "mysql":
       return `\`${name.replace(/`/g, "``")}\``;
+    case "bigquery":
+      return `\`${name.replace(/[`\\]/g, "\\$&")}\``;
     case "sqlserver":
       return `[${name.replace(/\]/g, "]]")}]`;
     default:
@@ -83,9 +85,10 @@ function tableReference(
 
 function placeholder(engine: DatabaseEngine, index: number): string {
   switch (engine) {
-    // MySQL, and Snowflake's SQL API (SnowflakeSqlApi), bind by position.
+    // MySQL, Snowflake's SQL API and BigQuery's bind by position.
     case "mysql":
     case "snowflake":
+    case "bigquery":
       return "?";
     case "sqlserver":
       // The session binds @p0, @p1, ... (TableHealthCollector).
@@ -101,6 +104,8 @@ function asText(engine: DatabaseEngine, expression: string): string {
       return `CAST(${expression} AS CHAR)`;
     case "sqlserver":
       return `CAST(${expression} AS NVARCHAR(4000))`;
+    case "bigquery":
+      return `CAST(${expression} AS STRING)`;
     default:
       return `CAST(${expression} AS TEXT)`;
   }
@@ -112,6 +117,8 @@ function asNumber(engine: DatabaseEngine, expression: string): string {
       return `(${expression}) + 0`;
     case "sqlserver":
       return `CAST(${expression} AS FLOAT)`;
+    case "bigquery":
+      return `CAST(${expression} AS FLOAT64)`;
     default:
       return `CAST(${expression} AS DOUBLE PRECISION)`;
   }
@@ -196,7 +203,9 @@ function valueExpression(
           : engine === "snowflake"
             ? // REGEXP_LIKE matches the whole value; the others search it.
               `REGEXP_INSTR(${asText(engine, column)}, ${placeholder(engine, params.length)}) = 0`
-            : `${asText(engine, column)} !~ ${placeholder(engine, params.length)}`;
+            : engine === "bigquery"
+              ? `NOT REGEXP_CONTAINS(${asText(engine, column)}, ${placeholder(engine, params.length)})`
+              : `${asText(engine, column)} !~ ${placeholder(engine, params.length)}`;
 
       return `100.0 * SUM(CASE WHEN ${column} IS NOT NULL AND ${mismatch} THEN 1 ELSE 0 END) / NULLIF(COUNT(${column}), 0)`;
     }

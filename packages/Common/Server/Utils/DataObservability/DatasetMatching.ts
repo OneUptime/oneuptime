@@ -28,6 +28,7 @@ const KIND_SYSTEMS: Readonly<Partial<Record<DataStoreKind, string>>> = {
   [DataStoreKind.SqlServer]: "mssql",
   [DataStoreKind.AwsRedshiftCluster]: "redshift",
   [DataStoreKind.Snowflake]: "snowflake",
+  [DataStoreKind.GcpBigQueryDataset]: "bigquery",
 };
 
 export function matchDataset(data: {
@@ -56,16 +57,40 @@ export function matchDataset(data: {
     stores: data.stores,
   });
 
-  if (!store) {
-    return null;
+  const collection: { schema: string | null; table: string } = {
+    schema: parsed.schema ? parsed.schema.toLowerCase() : null,
+    table: parsed.table.toLowerCase(),
+  };
+
+  if (store) {
+    return findUsageAsset({ store, collection, assets: data.assets });
   }
 
-  return findUsageAsset({
-    store,
-    collection: {
-      schema: parsed.schema ? parsed.schema.toLowerCase() : null,
-      table: parsed.table.toLowerCase(),
-    },
-    assets: data.assets,
-  });
+  /*
+   * Several stores of the engine hold that database - BigQuery's datasets
+   * of one project, each a store - and the dataset names no host to choose
+   * by: the table decides, when exactly one of them holds it.
+   */
+  const database: string = (parsed.database || "").toLowerCase();
+  const candidates: Array<UsageStore> = database
+    ? data.stores.filter((candidate: UsageStore) => {
+        return (
+          candidate.kind === parsed.kind &&
+          (candidate.databaseName || "").toLowerCase() === database
+        );
+      })
+    : [];
+  const found: Array<UsageAsset> = candidates
+    .map((candidate: UsageStore): UsageAsset | null => {
+      return findUsageAsset({
+        store: candidate,
+        collection,
+        assets: data.assets,
+      });
+    })
+    .filter((asset: UsageAsset | null): asset is UsageAsset => {
+      return asset !== null;
+    });
+
+  return found.length === 1 ? found[0]! : null;
 }

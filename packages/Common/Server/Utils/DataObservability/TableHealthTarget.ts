@@ -8,6 +8,7 @@ import {
   readSnowflakeConnection,
   SnowflakeConnection,
 } from "./SnowflakeSqlApi";
+import { BigQueryConnection, readBigQueryConnection } from "./BigQueryApi";
 
 /*
  * WHICH DATABASE A COLLECTION READ: ITS NAME, HOST AND PORT.
@@ -102,6 +103,21 @@ export function readConnectionTarget(
 
   if (!value) {
     return null;
+  }
+
+  // BigQuery's: the project, as OpenLineage and dbt name it first. Never the key.
+  if (connection.engine === "bigquery") {
+    try {
+      const bigquery: BigQueryConnection = readBigQueryConnection(value);
+
+      return {
+        databaseName: readName(bigquery.projectId),
+        host: null,
+        port: null,
+      };
+    } catch {
+      return null;
+    }
   }
 
   // Snowflake's connection is its account and database: never its key.

@@ -222,6 +222,7 @@ const SCHEME_KINDS: Readonly<Record<string, DataStoreKind>> = {
   mssql: DataStoreKind.SqlServer,
   redshift: DataStoreKind.AwsRedshiftCluster,
   snowflake: DataStoreKind.Snowflake,
+  bigquery: DataStoreKind.GcpBigQueryDataset,
 };
 
 /*
