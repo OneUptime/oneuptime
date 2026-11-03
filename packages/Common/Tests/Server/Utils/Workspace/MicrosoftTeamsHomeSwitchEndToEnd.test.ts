@@ -925,7 +925,9 @@ describe("a switch that cannot be made draws nothing of the project it names", (
       message("home", { from: NITIN, where: "group" }),
     );
 
-    expect(textOfCard(postsOf(typed)[0])).toBe(`<at>Nitin</at> ${CONNECT_FIRST}`);
+    expect(textOfCard(postsOf(typed)[0])).toBe(
+      `<at>Nitin</at> ${CONNECT_FIRST}`,
+    );
     expect(membersRead).toEqual([]);
     expect(homesRead).toEqual([]);
     expect(homeChoices.rows).toEqual([]);

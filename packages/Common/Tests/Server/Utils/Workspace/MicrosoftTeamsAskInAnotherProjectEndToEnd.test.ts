@@ -787,7 +787,9 @@ describe("'Ask in another project'", () => {
     );
 
     expect(postsOf(said)).toHaveLength(1);
-    expect(textOfCard(postsOf(said)[0])).toBe(`<at>Priya</at> ${CONNECT_FIRST}`);
+    expect(textOfCard(postsOf(said)[0])).toBe(
+      `<at>Priya</at> ${CONNECT_FIRST}`,
+    );
     expect(asked).toEqual([]);
   });
 
