@@ -34,6 +34,12 @@ import { useOnCallCalendarFeedAvailability } from "../hooks/useOnCallCalendarFee
 import { useScreenPadding } from "../hooks/useScreenPadding";
 import { useContentGutters } from "../layout/WindowLayout";
 import type { ContentGutters } from "../layout/windowLayout";
+import type { FoldSplit } from "../layout/foldSplit";
+import {
+  FoldPaneScrollView,
+  FoldSplitView,
+  useFoldSplit,
+} from "../layout/FoldSplitView";
 import { getServerUrl } from "../storage/serverUrl";
 import AppText from "../components/AppText";
 import Card from "../components/Card";
@@ -380,6 +386,8 @@ export default function SettingsScreen(): React.JSX.Element {
   const { selectionFeedback } = useHaptics();
   const paddingBottom: number = useScreenPadding();
   const gutters: ContentGutters = useContentGutters();
+  // Half open on a table: where the fold splits Settings, or null for one scroll.
+  const foldSplit: FoldSplit | null = useFoldSplit();
   const [serverUrl, setServerUrlState] = useState("");
 
   useEffect(() => {
@@ -433,6 +441,245 @@ export default function SettingsScreen(): React.JSX.Element {
       : getCriticalAlertSoundOption(alarmSoundChoice.sound).title
     : undefined;
 
+  const accountCard: React.JSX.Element = (
+    <Card testID="settings-account-identity">
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: spacing.md + 2,
+        }}
+      >
+        <View
+          testID="settings-account-avatar"
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          style={{
+            width: 56,
+            height: 56,
+            borderRadius: 28,
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: theme.colors.actionPrimary,
+          }}
+        >
+          {initials ? (
+            <AppText variant="title3" weight="700" tone="inverse">
+              {initials}
+            </AppText>
+          ) : (
+            <Ionicons name="person" size={26} color={theme.colors.textInverse} />
+          )}
+        </View>
+        <View style={{ flex: 1, minWidth: 0, gap: spacing.xxs }}>
+          <AppText variant="title3" numberOfLines={2}>
+            {user?.name || "Your account"}
+          </AppText>
+          <AppText variant="subhead" tone="secondary" selectable>
+            {user?.email || "Signed in to OneUptime"}
+          </AppText>
+        </View>
+      </View>
+    </Card>
+  );
+
+  const workspace: React.JSX.Element = (
+    <ListGroup title="Workspace" testID="settings-workspace-section">
+      <ListItem
+        title="Manage Projects"
+        subtitle="Project access and single sign-on"
+        icon="grid-outline"
+        onPress={() => {
+          navigation.navigate("ProjectsList");
+        }}
+      />
+      <ListItem
+        title="Server URL"
+        value={serverUrl || "Loading server…"}
+        icon="globe-outline"
+        selectableValue
+      />
+    </ListGroup>
+  );
+
+  const appearance: React.JSX.Element = (
+    <ListGroup
+      title="Appearance"
+      testID="settings-section-appearance"
+      footer="System follows your device's light or dark setting."
+    >
+      <AppearancePicker onChange={selectionFeedback} />
+    </ListGroup>
+  );
+
+  const notifications: React.JSX.Element | null = criticalAlerts.isSupported ? (
+    <View testID="settings-section-notifications" style={{ gap: spacing.sm }}>
+      <ListGroup title="Notifications">
+        <ListItem
+          title="Critical On-Call Alerts"
+          icon="notifications-outline"
+          subtitle="Only urgent on-call notifications override silent mode or Do Not Disturb."
+          trailing={
+            <Switch
+              accessibilityLabel="Critical On-Call Alerts"
+              accessibilityHint="Allow urgent on-call notifications to override silent mode."
+              value={criticalAlerts.isEnabled}
+              onValueChange={handleCriticalAlertsToggle}
+              disabled={criticalAlerts.isBusy}
+              {...getSwitchColors(theme, criticalAlerts.isEnabled)}
+            />
+          }
+        />
+        {criticalAlerts.isEnabled ? (
+          <ListItem
+            testID="settings-row-alarm-sound"
+            title="Alarm sound"
+            value={alarmSoundSummary}
+            icon="musical-notes-outline"
+            accessibilityHint="Choose the sound critical on-call pages play on this phone."
+            onPress={() => {
+              navigation.navigate("CriticalAlertSound");
+            }}
+          />
+        ) : null}
+      </ListGroup>
+      {criticalAlerts.error ? (
+        <GroupFootnote
+          testID="settings-critical-alerts-error"
+          tone="danger"
+          icon="alert-circle"
+          isAlert
+        >
+          {criticalAlerts.error}
+        </GroupFootnote>
+      ) : criticalAlerts.offInPhoneSettings ? (
+        <GroupFootnote
+          testID="settings-critical-alerts-off-in-phone-settings"
+          tone={criticalAlerts.offInPhoneSettings.tone}
+          icon={
+            criticalAlerts.offInPhoneSettings.tone === "danger"
+              ? "alert-circle"
+              : "warning"
+          }
+          title={criticalAlerts.offInPhoneSettings.title}
+          actionLabel={phoneSettingsActionLabel(
+            criticalAlerts.offInPhoneSettings.place,
+          )}
+          onAction={() => {
+            void criticalAlerts.openPhoneSettings();
+          }}
+        >
+          {criticalAlerts.offInPhoneSettings.message}
+        </GroupFootnote>
+      ) : criticalAlerts.isEnabled && criticalAlerts.statusMessage ? (
+        <GroupFootnote
+          testID="settings-critical-alerts-status"
+          tone="success"
+          icon="checkmark-circle"
+        >
+          {criticalAlerts.statusMessage}
+        </GroupFootnote>
+      ) : null}
+    </View>
+  ) : null;
+
+  const security: React.JSX.Element | null = biometric.isAvailable ? (
+    <ListGroup title="Security" testID="settings-section-security">
+      <ListItem
+        title="Biometrics Login"
+        subtitle="Require biometrics to unlock the app"
+        icon="finger-print-outline"
+        trailing={
+          <Switch
+            accessibilityLabel="Biometrics Login"
+            accessibilityHint="Require your fingerprint, face, or device passcode when opening OneUptime."
+            value={biometric.isEnabled}
+            onValueChange={handleBiometricToggle}
+            {...getSwitchColors(theme, biometric.isEnabled)}
+          />
+        }
+      />
+    </ListGroup>
+  ) : null;
+
+  const onCall: React.JSX.Element | null = calendarFeed.isAvailable ? (
+    <ListGroup title="On-Call" testID="settings-section-oncall">
+      <ListItem
+        testID="settings-row-calendar-feed"
+        title="Calendar feed"
+        subtitle="Subscribe to your on-call shifts from Google, Outlook or Apple Calendar"
+        icon="calendar-outline"
+        onPress={() => {
+          navigation.navigate("OnCallCalendarFeed");
+        }}
+      />
+    </ListGroup>
+  ) : null;
+
+  const account: React.JSX.Element = (
+    <ListGroup title="Account" testID="settings-section-account">
+      <ListItem
+        title="Log Out"
+        subtitle="Sign out of this device."
+        icon="log-out-outline"
+        onPress={confirmLogout}
+        destructive
+      />
+    </ListGroup>
+  );
+
+  const footer: React.JSX.Element = (
+    <View
+      testID="settings-footer"
+      style={{ alignItems: "center", gap: spacing.xs }}
+    >
+      <AppText variant="footnote" tone="secondary" align="center">
+        OneUptime · Version {Constants.expoConfig?.version || "unknown"}
+      </AppText>
+      <AppText variant="footnote" tone="tertiary" align="center">
+        Built with care by the open source community.
+      </AppText>
+    </View>
+  );
+
+  /*
+   * Half open on a table: who is signed in and to which OneUptime stand above
+   * the fold, where they read as they do on a phone's lock screen; the
+   * settings to change lie below it, under the hand. Each half scrolls on its
+   * own, so no row or switch sits in the crease. Half a screen has no room
+   * for the screen's title: the tab says this is Settings.
+   */
+  if (foldSplit) {
+    return (
+      <FoldSplitView
+        split={foldSplit}
+        testID="settings-fold"
+        above={
+          <FoldPaneScrollView
+            testID="settings-above-fold"
+            contentInsetAdjustmentBehavior="automatic"
+          >
+            {accountCard}
+            {workspace}
+          </FoldPaneScrollView>
+        }
+        below={
+          <FoldPaneScrollView
+            testID="settings-below-fold"
+            contentInsetAdjustmentBehavior="automatic"
+          >
+            {appearance}
+            {notifications}
+            {security}
+            {onCall}
+            {account}
+            {footer}
+          </FoldPaneScrollView>
+        }
+      />
+    );
+  }
+
   return (
     <ScrollView
       testID="settings-scroll"
@@ -451,204 +698,14 @@ export default function SettingsScreen(): React.JSX.Element {
         compact
         style={{ marginBottom: 0 }}
       />
-
-      <Card testID="settings-account-identity">
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            gap: spacing.md + 2,
-          }}
-        >
-          <View
-            testID="settings-account-avatar"
-            accessibilityElementsHidden
-            importantForAccessibility="no-hide-descendants"
-            style={{
-              width: 56,
-              height: 56,
-              borderRadius: 28,
-              alignItems: "center",
-              justifyContent: "center",
-              backgroundColor: theme.colors.actionPrimary,
-            }}
-          >
-            {initials ? (
-              <AppText variant="title3" weight="700" tone="inverse">
-                {initials}
-              </AppText>
-            ) : (
-              <Ionicons
-                name="person"
-                size={26}
-                color={theme.colors.textInverse}
-              />
-            )}
-          </View>
-          <View style={{ flex: 1, minWidth: 0, gap: spacing.xxs }}>
-            <AppText variant="title3" numberOfLines={2}>
-              {user?.name || "Your account"}
-            </AppText>
-            <AppText variant="subhead" tone="secondary" selectable>
-              {user?.email || "Signed in to OneUptime"}
-            </AppText>
-          </View>
-        </View>
-      </Card>
-
-      <ListGroup title="Workspace" testID="settings-workspace-section">
-        <ListItem
-          title="Manage Projects"
-          subtitle="Project access and single sign-on"
-          icon="grid-outline"
-          onPress={() => {
-            navigation.navigate("ProjectsList");
-          }}
-        />
-        <ListItem
-          title="Server URL"
-          value={serverUrl || "Loading server…"}
-          icon="globe-outline"
-          selectableValue
-        />
-      </ListGroup>
-
-      <ListGroup
-        title="Appearance"
-        testID="settings-section-appearance"
-        footer="System follows your device's light or dark setting."
-      >
-        <AppearancePicker onChange={selectionFeedback} />
-      </ListGroup>
-
-      {criticalAlerts.isSupported ? (
-        <View
-          testID="settings-section-notifications"
-          style={{ gap: spacing.sm }}
-        >
-          <ListGroup title="Notifications">
-            <ListItem
-              title="Critical On-Call Alerts"
-              icon="notifications-outline"
-              subtitle="Only urgent on-call notifications override silent mode or Do Not Disturb."
-              trailing={
-                <Switch
-                  accessibilityLabel="Critical On-Call Alerts"
-                  accessibilityHint="Allow urgent on-call notifications to override silent mode."
-                  value={criticalAlerts.isEnabled}
-                  onValueChange={handleCriticalAlertsToggle}
-                  disabled={criticalAlerts.isBusy}
-                  {...getSwitchColors(theme, criticalAlerts.isEnabled)}
-                />
-              }
-            />
-            {criticalAlerts.isEnabled ? (
-              <ListItem
-                testID="settings-row-alarm-sound"
-                title="Alarm sound"
-                value={alarmSoundSummary}
-                icon="musical-notes-outline"
-                accessibilityHint="Choose the sound critical on-call pages play on this phone."
-                onPress={() => {
-                  navigation.navigate("CriticalAlertSound");
-                }}
-              />
-            ) : null}
-          </ListGroup>
-          {criticalAlerts.error ? (
-            <GroupFootnote
-              testID="settings-critical-alerts-error"
-              tone="danger"
-              icon="alert-circle"
-              isAlert
-            >
-              {criticalAlerts.error}
-            </GroupFootnote>
-          ) : criticalAlerts.offInPhoneSettings ? (
-            <GroupFootnote
-              testID="settings-critical-alerts-off-in-phone-settings"
-              tone={criticalAlerts.offInPhoneSettings.tone}
-              icon={
-                criticalAlerts.offInPhoneSettings.tone === "danger"
-                  ? "alert-circle"
-                  : "warning"
-              }
-              title={criticalAlerts.offInPhoneSettings.title}
-              actionLabel={phoneSettingsActionLabel(
-                criticalAlerts.offInPhoneSettings.place,
-              )}
-              onAction={() => {
-                void criticalAlerts.openPhoneSettings();
-              }}
-            >
-              {criticalAlerts.offInPhoneSettings.message}
-            </GroupFootnote>
-          ) : criticalAlerts.isEnabled && criticalAlerts.statusMessage ? (
-            <GroupFootnote
-              testID="settings-critical-alerts-status"
-              tone="success"
-              icon="checkmark-circle"
-            >
-              {criticalAlerts.statusMessage}
-            </GroupFootnote>
-          ) : null}
-        </View>
-      ) : null}
-
-      {biometric.isAvailable ? (
-        <ListGroup title="Security" testID="settings-section-security">
-          <ListItem
-            title="Biometrics Login"
-            subtitle="Require biometrics to unlock the app"
-            icon="finger-print-outline"
-            trailing={
-              <Switch
-                accessibilityLabel="Biometrics Login"
-                accessibilityHint="Require your fingerprint, face, or device passcode when opening OneUptime."
-                value={biometric.isEnabled}
-                onValueChange={handleBiometricToggle}
-                {...getSwitchColors(theme, biometric.isEnabled)}
-              />
-            }
-          />
-        </ListGroup>
-      ) : null}
-
-      {calendarFeed.isAvailable ? (
-        <ListGroup title="On-Call" testID="settings-section-oncall">
-          <ListItem
-            testID="settings-row-calendar-feed"
-            title="Calendar feed"
-            subtitle="Subscribe to your on-call shifts from Google, Outlook or Apple Calendar"
-            icon="calendar-outline"
-            onPress={() => {
-              navigation.navigate("OnCallCalendarFeed");
-            }}
-          />
-        </ListGroup>
-      ) : null}
-
-      <ListGroup title="Account" testID="settings-section-account">
-        <ListItem
-          title="Log Out"
-          subtitle="Sign out of this device."
-          icon="log-out-outline"
-          onPress={confirmLogout}
-          destructive
-        />
-      </ListGroup>
-
-      <View
-        testID="settings-footer"
-        style={{ alignItems: "center", gap: spacing.xs }}
-      >
-        <AppText variant="footnote" tone="secondary" align="center">
-          OneUptime · Version {Constants.expoConfig?.version || "unknown"}
-        </AppText>
-        <AppText variant="footnote" tone="tertiary" align="center">
-          Built with care by the open source community.
-        </AppText>
-      </View>
+      {accountCard}
+      {workspace}
+      {appearance}
+      {notifications}
+      {security}
+      {onCall}
+      {account}
+      {footer}
     </ScrollView>
   );
 }
