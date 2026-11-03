@@ -148,6 +148,24 @@ describe("learnUpdateInterval", () => {
   });
 });
 
+describe("detectChangeTime without a write counter", () => {
+  test("Redshift and Snowflake keep no write counter: bytes that moved say it changed", () => {
+    expect(
+      detectChangeTime(
+        previous({ writeCount: null }),
+        table({ writeCount: null, sizeInBytes: 70000 }),
+        COLLECTED_AT,
+      ),
+    ).toEqual(COLLECTED_AT);
+  });
+
+  test("with a write counter, bytes alone (a vacuum) say nothing", () => {
+    expect(
+      detectChangeTime(previous(), table({ sizeInBytes: 70000 }), COLLECTED_AT),
+    ).toBe(null);
+  });
+});
+
 describe("planAssetUpdate", () => {
   test("a read counter of 0 at first sight marks the table unread since the statistics started", () => {
     const plan: AssetPlan = planAssetUpdate(

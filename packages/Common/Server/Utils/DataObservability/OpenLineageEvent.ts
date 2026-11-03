@@ -221,6 +221,7 @@ const SCHEME_KINDS: Readonly<Record<string, DataStoreKind>> = {
   sqlserver: DataStoreKind.SqlServer,
   mssql: DataStoreKind.SqlServer,
   redshift: DataStoreKind.AwsRedshiftCluster,
+  snowflake: DataStoreKind.Snowflake,
 };
 
 /*

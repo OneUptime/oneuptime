@@ -48,6 +48,7 @@ const KIND_OPTIONS: Array<DropdownOption> = [
   { value: DataStoreKind.MySql, label: "MySQL or MariaDB" },
   { value: DataStoreKind.SqlServer, label: "SQL Server" },
   { value: DataStoreKind.AwsRedshiftCluster, label: "Amazon Redshift" },
+  { value: DataStoreKind.Snowflake, label: "Snowflake" },
 ];
 
 /*
@@ -177,7 +178,7 @@ const ConnectDatabaseModal: FunctionComponent<ComponentProps> = (
             title: "Connection String",
             stepId: CONNECTION_STEP_ID,
             description:
-              "For example postgres://reader:password@db.internal:5432/orders, or for Redshift postgres://reader:password@cluster.abc123.us-east-1.redshift.amazonaws.com:5439/dev?sslmode=require.",
+              'For example postgres://reader:password@db.internal:5432/orders. For Redshift, its endpoint: postgres://reader:password@cluster.abc123.us-east-1.redshift.amazonaws.com:5439/dev?sslmode=require. For Snowflake, JSON with its key pair: {"account": "myorg-myaccount", "user": "ONEUPTIME_READER", "privateKey": "-----BEGIN PRIVATE KEY-----...", "database": "ANALYTICS", "warehouse": "CHECKS_WH", "role": "ONEUPTIME_READER"}.',
             fieldType: FormFieldSchemaType.Password,
             required: (values: FormValues<JSONObject>): boolean => {
               return (

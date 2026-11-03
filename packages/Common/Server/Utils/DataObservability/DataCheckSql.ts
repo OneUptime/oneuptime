@@ -83,7 +83,9 @@ function tableReference(
 
 function placeholder(engine: DatabaseEngine, index: number): string {
   switch (engine) {
+    // MySQL, and Snowflake's SQL API (SnowflakeSqlApi), bind by position.
     case "mysql":
+    case "snowflake":
       return "?";
     case "sqlserver":
       // The session binds @p0, @p1, ... (TableHealthCollector).
@@ -191,7 +193,10 @@ function valueExpression(
       const mismatch: string =
         engine === "mysql"
           ? `${asText(engine, column)} NOT REGEXP ${placeholder(engine, params.length)}`
-          : `${asText(engine, column)} !~ ${placeholder(engine, params.length)}`;
+          : engine === "snowflake"
+            ? // REGEXP_LIKE matches the whole value; the others search it.
+              `REGEXP_INSTR(${asText(engine, column)}, ${placeholder(engine, params.length)}) = 0`
+            : `${asText(engine, column)} !~ ${placeholder(engine, params.length)}`;
 
       return `100.0 * SUM(CASE WHEN ${column} IS NOT NULL AND ${mismatch} THEN 1 ELSE 0 END) / NULLIF(COUNT(${column}), 0)`;
     }

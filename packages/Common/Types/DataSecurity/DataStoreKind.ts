@@ -40,6 +40,7 @@ export enum DataStoreKind {
   Oracle = "Oracle",
   Redis = "Redis",
   Elasticsearch = "Elasticsearch",
+  Snowflake = "Snowflake",
   TelemetryLogs = "Logs",
   TelemetryTraces = "Traces",
   TelemetryExceptions = "Exceptions",
@@ -182,6 +183,7 @@ export const DATA_STORE_KINDS: ReadonlyArray<DataStoreKindInfo> = [
   kind(K.Oracle, P.SelfManaged, F.Database),
   kind(K.Redis, P.SelfManaged, F.Cache),
   kind(K.Elasticsearch, P.SelfManaged, F.Search),
+  kind(K.Snowflake, P.SelfManaged, F.Warehouse),
   kind(K.TelemetryLogs, P.OneUptime, F.Telemetry, {
     contentScannable: true,
     icon: IconProp.Logs,

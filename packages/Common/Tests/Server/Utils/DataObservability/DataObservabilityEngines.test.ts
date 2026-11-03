@@ -9,17 +9,18 @@ import { getDatabaseEngineOfKind } from "../../../../Server/Utils/DataSecurity/D
 
 /*
  * Data Observability collects every database Data Security samples, and
- * Amazon Redshift, which Data Security does not sample: its own mapping is
- * left as it is.
+ * the warehouses Data Security does not sample - Amazon Redshift and
+ * Snowflake: its own mapping is left as it is.
  */
 
 describe("DataObservabilityEngines", () => {
-  test("the databases Data Security samples, and Redshift", () => {
+  test("the databases Data Security samples, and the warehouses", () => {
     expect(DATA_OBSERVABILITY_KINDS).toEqual([
       DataStoreKind.PostgreSql,
       DataStoreKind.MySql,
       DataStoreKind.SqlServer,
       DataStoreKind.AwsRedshiftCluster,
+      DataStoreKind.Snowflake,
     ]);
   });
 
@@ -32,6 +33,7 @@ describe("DataObservabilityEngines", () => {
     expect(getCollectorEngineOfKind(DataStoreKind.AwsRedshiftCluster)).toBe(
       "redshift",
     );
+    expect(getCollectorEngineOfKind(DataStoreKind.Snowflake)).toBe("snowflake");
     expect(getCollectorEngineOfKind(DataStoreKind.AwsS3Bucket)).toBe(null);
   });
 
@@ -39,6 +41,7 @@ describe("DataObservabilityEngines", () => {
     expect(getDatabaseEngineOfKind(DataStoreKind.AwsRedshiftCluster)).toBe(
       null,
     );
+    expect(getDatabaseEngineOfKind(DataStoreKind.Snowflake)).toBe(null);
   });
 
   test("a probe's snapshot may come from any engine collected", () => {
