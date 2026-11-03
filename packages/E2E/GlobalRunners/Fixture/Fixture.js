@@ -38,6 +38,12 @@
  *                            (the default: the bundled one) or 2
  *   - gstatus=disconnected   the global Runners last heard from hours ago;
  *                            never: never heard from
+ *   - gfix=0                 the global Runners take no AI code fixes (an
+ *                            older release, or turned off on their host),
+ *                            as /runner/global-runners says it
+ *   - fix=0                  prod-eu-west-1's host turned AI code fixes off
+ *                            (ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false), as
+ *                            it said on its last heartbeat
  *   - custom=<n>             how many Runners of its own the project has
  *                            (0 by default, at most 2)
  *   - default=<n>            which of them is the project's default Runner:
@@ -121,6 +127,8 @@ const globalCount = Math.min(2, Math.max(0, Number(params.get("global") ?? 1)));
 const customCount = Math.min(2, Math.max(0, Number(params.get("custom") ?? 0)));
 const usesGlobalRunners = params.get("uses") !== "0";
 const globalStatus = params.get("gstatus") || "connected";
+const globalTakesCodeFixes = params.get("gfix") !== "0";
+const prodTakesCodeFixes = params.get("fix") !== "0";
 const isMasterAdmin = params.get("admin") === "1";
 const role = params.get("role") || "owner";
 const delay = Math.max(0, Number(params.get("delay") || 0));
@@ -241,6 +249,8 @@ const GLOBAL_RUNNERS = [
     isGlobalRunner: true,
     canRunRunbooks: true,
     lastAlive: lastAliveFor(globalStatus),
+    // As the server counts it (RunnerService.findGlobalRunners).
+    takesCodeFixes: globalTakesCodeFixes,
   }),
   record(Runner, {
     _id: SECOND_GLOBAL_RUNNER_ID,
@@ -249,6 +259,7 @@ const GLOBAL_RUNNERS = [
     isGlobalRunner: true,
     canRunRunbooks: true,
     lastAlive: lastAliveFor(globalStatus),
+    takesCodeFixes: globalTakesCodeFixes,
   }),
 ].slice(0, globalCount);
 
@@ -266,6 +277,8 @@ const CUSTOM_RUNNERS = [
     canRunAiCommands: false,
     isProjectDefault: defaultRunnerIndex === 1,
     lastAlive: lastAliveFor("connected"),
+    // What it said on its last heartbeat (fix=0: its host refuses them).
+    takesCodeFixes: prodTakesCodeFixes,
     labels: [PRODUCTION],
   }),
   record(Runner, {

@@ -40373,5 +40373,16 @@
   "What people do most with the {{singular}} \"{{name}}\" from the command line, filled in with this project's own records.": "What people do most with the {{singular}} \"{{name}}\" from the command line, filled in with this project's own records.",
   "What people do most with this {{singular}} from the command line, filled in with this project's own records.": "What people do most with this {{singular}} from the command line, filled in with this project's own records.",
   "npm": "npm",
-  "CLI documentation": "Documentación de la CLI"
+  "CLI documentation": "Documentación de la CLI",
+  "No global Runner on this server takes AI code fixes: pick one of your Runners for this repository.": "Ningún Runner global de este servidor acepta correcciones de código con IA: elige uno de tus Runners para este repositorio.",
+  "No global Runner online takes AI code fixes, so none can work in this repository. Pick one of your Runners for it, or ask your OneUptime administrator to let a global Runner take them.": "Ningún Runner global en línea acepta correcciones de código con IA, así que ninguno puede trabajar en este repositorio. Elige uno de tus Runners para él o pide a tu administrador de OneUptime que deje que un Runner global las acepte.",
+  "None: no global Runner takes AI code fixes": "Ninguno: ningún Runner global acepta correcciones de código con IA",
+  "Runners OneUptime runs for every project. By default they run JavaScript steps, in an internet-only sandbox, and AI code fixes.": "Runners que OneUptime ejecuta para todos los proyectos. De forma predeterminada ejecutan los pasos de JavaScript, en un entorno aislado que solo llega a internet, y las correcciones de código con IA.",
+  "Runners OneUptime runs for every project. JavaScript steps and AI code fixes run on them when you pick Global Runner.": "Runners que OneUptime ejecuta para todos los proyectos. Los pasos de JavaScript y las correcciones de código con IA se ejecutan en ellos cuando eliges el Runner global.",
+  "Takes AI Code Fixes": "Acepta correcciones de código con IA",
+  "Takes no AI code fixes: its host turned them off.": "No acepta correcciones de código con IA: su host las desactivó.",
+  "The Runner this repository works on does not take AI code fixes: {{setting}} is set on its host. Remove that setting and restart the Runner, or pick another Runner.": "El Runner en el que trabaja este repositorio no acepta correcciones de código con IA: su host tiene {{setting}}. Quita ese ajuste y reinicia el Runner, o elige otro Runner.",
+  "The Runner this repository works on, {{runner}}, does not take AI code fixes: {{setting}} is set on its host. Remove that setting and restart the Runner, or pick another Runner.": "El Runner en el que trabaja este repositorio, {{runner}}, no acepta correcciones de código con IA: su host tiene {{setting}}. Quita ese ajuste y reinicia el Runner, o elige otro Runner.",
+  "This Runner takes no AI code fixes: {{setting}} is set on its host. Remove that setting and restart the Runner, or pick another Runner.": "Este Runner no acepta correcciones de código con IA: su host tiene {{setting}}. Quita ese ajuste y reinicia el Runner, o elige otro Runner.",
+  "Takes no AI code fixes": "No acepta correcciones de código con IA"
 }

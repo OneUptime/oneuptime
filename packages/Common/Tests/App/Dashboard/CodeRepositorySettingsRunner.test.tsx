@@ -4,7 +4,7 @@ import "@testing-library/jest-dom";
  * the global jest.SpiedFunction annotations here do not accept.
  */
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import React, { ReactElement } from "react";
 
 /*
@@ -73,6 +73,7 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeRepositoryRunner";
 import RunnerCodeRepositoryList, {
   MAX_LISTED_CODE_REPOSITORIES,
+  RUNNER_CODE_REPOSITORIES_TAKES_NO_CODE_FIXES_TEST_ID,
   RUNNER_CODE_REPOSITORIES_TEST_ID,
   RunnerCodeRepositoriesCopy,
   RunnerCodeRepositoryRow,
@@ -83,7 +84,12 @@ import RunnerChoicesLoader, {
   RunnerChoices,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Runner/RunnerChoices";
 import { CODE_REPOSITORY_RUNNER_CHOICE_FIELD_KEY } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeRepositoryRunnerChoice";
-import { GLOBAL_RUNNER_PICK_VALUE } from "../../../../App/FeatureSet/Dashboard/src/Components/Runner/RunnerPickerModel";
+import {
+  CODE_RUNNER_TAKES_NO_CODE_FIXES_TEXT,
+  GLOBAL_RUNNER_PICK_VALUE,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Runner/RunnerPickerModel";
+import { RUNNER_CODE_FIXES_OFF_SETTING } from "../../../Types/Runner/RunnerCodeFixes";
+import { RUNNER_CODE_FIXES_OFF_SETTING_TEST_ID } from "../../../UI/Components/Runner/RunnerCodeFixesOffSetting";
 import CodeRepository from "../../../Models/DatabaseModels/CodeRepository";
 import CodeRepositoryType from "../../../Types/CodeRepository/CodeRepositoryType";
 import IsNull from "../../../Types/BaseDatabase/IsNull";
@@ -541,6 +547,92 @@ describe("a Runner's page: the repositories that pick it", () => {
     expect(
       screen.queryByTestId(`${RUNNER_CODE_REPOSITORIES_TEST_ID}-empty`),
     ).toBeNull();
+  });
+
+  /*
+   * A Runner whose host turned AI code fixes off (it says so on every
+   * heartbeat) gets none of these repositories' work done: the row says so
+   * under them, in amber, in the words their own Runner settings use - the
+   * setting drawn as code, and the two ways on.
+   */
+  test("a Runner whose host turned AI code fixes off: said under the repositories that work on it", () => {
+    render(
+      <RunnerCodeRepositoryList
+        repositories={[{ id: REPOSITORY_ID, name: "checkout" }]}
+        takesNoCodeFixes={true}
+      />,
+    );
+
+    const line: HTMLElement = screen.getByTestId(
+      RUNNER_CODE_REPOSITORIES_TAKES_NO_CODE_FIXES_TEST_ID,
+    );
+
+    expect(line).toHaveTextContent(
+      CODE_RUNNER_TAKES_NO_CODE_FIXES_TEXT.replace(
+        "{{setting}}",
+        RUNNER_CODE_FIXES_OFF_SETTING,
+      ),
+    );
+    expect(line.className).toContain("text-amber-700");
+    expect(
+      within(line).getByTestId(RUNNER_CODE_FIXES_OFF_SETTING_TEST_ID).tagName,
+    ).toBe("CODE");
+
+    // After the repositories it is about, which are still linked.
+    const list: HTMLElement = screen.getByTestId(
+      RUNNER_CODE_REPOSITORIES_TEST_ID,
+    );
+    expect(
+      list.compareDocumentPosition(line) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      screen.getByTestId(`${RUNNER_CODE_REPOSITORIES_TEST_ID}-link`),
+    ).toHaveTextContent("checkout");
+  });
+
+  test("a Runner that takes them, or one no repository works on: no such line", () => {
+    const view: ReturnType<typeof render> = render(
+      <RunnerCodeRepositoryList
+        repositories={[{ id: REPOSITORY_ID, name: "checkout" }]}
+      />,
+    );
+
+    expect(
+      screen.queryByTestId(
+        RUNNER_CODE_REPOSITORIES_TAKES_NO_CODE_FIXES_TEST_ID,
+      ),
+    ).toBeNull();
+
+    // Nothing waits on it: the picker's menu says it when someone picks it.
+    view.rerender(
+      <RunnerCodeRepositoryList repositories={[]} takesNoCodeFixes={true} />,
+    );
+
+    expect(
+      screen.queryByTestId(
+        RUNNER_CODE_REPOSITORIES_TAKES_NO_CODE_FIXES_TEST_ID,
+      ),
+    ).toBeNull();
+    expect(
+      screen.getByTestId(`${RUNNER_CODE_REPOSITORIES_TEST_ID}-empty`),
+    ).toHaveTextContent(RunnerCodeRepositoriesCopy.empty);
+  });
+
+  test("the Runner's page reads what the Runner said, and asks the shared rule", () => {
+    const source: string = fs.readFileSync(
+      path.join(
+        __dirname,
+        "../../../../App/FeatureSet/Dashboard/src/Pages/Runbook/Runners/RunnerView.tsx",
+      ),
+      "utf8",
+    );
+
+    expect(source).toContain(
+      "selectMoreFields: { hostInfo: true, takesCodeFixes: true }",
+    );
+    expect(source).toContain(
+      "takesNoCodeFixes={!doesRunnerTakeCodeFixes(item)}",
+    );
   });
 
   test("none: one short line says so, and where a repository picks its Runner", () => {

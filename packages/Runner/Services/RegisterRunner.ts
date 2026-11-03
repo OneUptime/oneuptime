@@ -799,6 +799,11 @@ export default class Register {
         agentId: RUNNER_ID.toString(),
         agentKey: RUNNER_KEY.toString(),
         agentVersion: RUNNER_VERSION,
+        /*
+         * Whether it takes AI code fixes, from the first contact on, as
+         * every heartbeat says it (Jobs/Heartbeat).
+         */
+        takesCodeFixes: RunnerCapabilities.takesCodeFixes(),
       },
       options: RunnerAPIRequest.getDefaultRequestOptions(),
     });

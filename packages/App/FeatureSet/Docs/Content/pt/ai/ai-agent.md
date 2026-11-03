@@ -327,7 +327,7 @@ Uma execução cujo heartbeat está em silêncio há mais de 12 minutos é encer
 :::
 
 :::details Nenhum Runner assume a tarefa
-Uma tarefa que espera mais de 30 minutos enquanto o Runner que deve assumi-la não está conectado - o que o repositório dela escolhe, o Runner padrão do projeto para um repositório que não escolhe nenhum, ou um Runner global - falha, com uma mensagem que diz qual, então ela nunca aparece em andamento para sempre. Quando um Runner está online mas ocupado, as tarefas na fila esperam a vez delas. Um Runner anterior a Código nunca recebe um pedido de Código: atualize um Runner que você mesmo executa junto com o servidor.
+Uma tarefa que espera mais de 30 minutos enquanto o Runner que deve assumi-la não está conectado - o que o repositório dela escolhe, o Runner padrão do projeto para um repositório que não escolhe nenhum, ou um Runner global - falha, com uma mensagem que diz qual, então ela nunca aparece em andamento para sempre. Um Runner que não assume correções de código conta como não conectado: um iniciado com `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false`, ou um Runner global anterior a 14.0.94. O Código diz isso antes de você pedir uma tarefa. Quando um Runner está online mas ocupado, as tarefas na fila esperam a vez delas. Um Runner anterior a Código nunca recebe um pedido de Código: atualize um Runner que você mesmo executa junto com o servidor.
 :::
 
 ## Privacidade

@@ -1,5 +1,6 @@
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import { GLOBAL_RUNNER_MAX_EXECUTION_TIMEOUT_IN_MS } from "Common/Types/Runner/GlobalRunnerWork";
+import { RUNNER_TAKES_NO_CODE_FIXES_LABEL } from "./RunnerPickerModel";
 
 /*
  * What Runbooks -> Runners says about global Runners - the Runners OneUptime
@@ -16,14 +17,28 @@ import { GLOBAL_RUNNER_MAX_EXECUTION_TIMEOUT_IN_MS } from "Common/Types/Runner/G
 
 export const GlobalRunnersCopy: {
   globalCardTitle: string;
+  /*
+   * What global Runners run for the project: its JavaScript steps, and the
+   * AI code fixes of its code repositories, that pick no Runner of the
+   * project's own (Common/Types/Runner/GlobalRunnerWork).
+   */
   globalCardDescription: string;
   /*
-   * When the project has a default Runner: steps that pick no Runner run on
-   * it, so a global Runner runs the ones that pick Global Runner.
+   * When the project has a default Runner: steps and code repositories that
+   * pick no Runner run on it, so a global Runner runs the ones that pick
+   * Global Runner.
    */
   globalCardDescriptionWithDefault: string;
   // When the project turned global Runners off.
   globalCardDescriptionWhenOff: string;
+  /*
+   * Under a global Runner's status when it takes no AI code fixes - one of
+   * a release from before global Runners took them, or one whose host
+   * turned them off (the server says which only to a master admin, on the
+   * Admin Dashboard's Global Runners): connected, it still runs JavaScript
+   * steps, but no repository's fix.
+   */
+  globalRunnerTakesNoCodeFixes: string;
   /*
    * The Global Runners table with no rows: drawn only when the server stops
    * running them while the page is open (with none, there is no table).
@@ -73,14 +88,15 @@ export const GlobalRunnersCopy: {
   globalCardTitle: translationKey("Global Runners"),
   // One line across the card, as Global Probes' is.
   globalCardDescription: translationKey(
-    "Runners OneUptime runs for every project. JavaScript steps run on them by default, in a sandbox that reaches the internet only.",
+    "Runners OneUptime runs for every project. By default they run JavaScript steps, in an internet-only sandbox, and AI code fixes.",
   ),
   globalCardDescriptionWithDefault: translationKey(
-    "Runners OneUptime runs for every project. Steps that pick Global Runner run on them, in a sandbox that reaches the internet only.",
+    "Runners OneUptime runs for every project. JavaScript steps and AI code fixes run on them when you pick Global Runner.",
   ),
   globalCardDescriptionWhenOff: translationKey(
     "Runners OneUptime runs for every project. This project does not use them, so steps and code repositories run on yours.",
   ),
+  globalRunnerTakesNoCodeFixes: RUNNER_TAKES_NO_CODE_FIXES_LABEL,
   globalEmptyMessage: translationKey(
     "Global Runners appear here when OneUptime runs one.",
   ),

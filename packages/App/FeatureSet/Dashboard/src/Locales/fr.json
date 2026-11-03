@@ -40373,5 +40373,16 @@
   "What people do most with the {{singular}} \"{{name}}\" from the command line, filled in with this project's own records.": "What people do most with the {{singular}} \"{{name}}\" from the command line, filled in with this project's own records.",
   "What people do most with this {{singular}} from the command line, filled in with this project's own records.": "What people do most with this {{singular}} from the command line, filled in with this project's own records.",
   "npm": "npm",
-  "CLI documentation": "Documentation de la CLI"
+  "CLI documentation": "Documentation de la CLI",
+  "No global Runner on this server takes AI code fixes: pick one of your Runners for this repository.": "Aucun agent Runbook global de ce serveur ne prend les corrections de code par IA : choisissez l'un de vos agents Runbook pour ce dépôt.",
+  "No global Runner online takes AI code fixes, so none can work in this repository. Pick one of your Runners for it, or ask your OneUptime administrator to let a global Runner take them.": "Aucun agent Runbook global en ligne ne prend les corrections de code par IA : aucun ne peut donc travailler dans ce dépôt. Choisissez-lui l'un de vos agents Runbook, ou demandez à votre administrateur OneUptime de les confier à un agent Runbook global.",
+  "None: no global Runner takes AI code fixes": "Aucun : aucun agent Runbook global ne prend les corrections de code par IA",
+  "Runners OneUptime runs for every project. By default they run JavaScript steps, in an internet-only sandbox, and AI code fixes.": "Des agents Runbook que OneUptime exécute pour chaque projet. Par défaut, ils exécutent les étapes JavaScript, dans un bac à sable qui n'accède qu'à Internet, et les corrections de code par IA.",
+  "Runners OneUptime runs for every project. JavaScript steps and AI code fixes run on them when you pick Global Runner.": "Des agents Runbook que OneUptime exécute pour chaque projet. Les étapes JavaScript et les corrections de code par IA s'y exécutent quand vous choisissez l'agent Runbook global.",
+  "Takes AI Code Fixes": "Prend les corrections de code par IA",
+  "Takes no AI code fixes: its host turned them off.": "Ne prend pas les corrections de code par IA : son hôte les a désactivées.",
+  "The Runner this repository works on does not take AI code fixes: {{setting}} is set on its host. Remove that setting and restart the Runner, or pick another Runner.": "L'agent Runbook de ce dépôt ne prend pas les corrections de code par IA : {{setting}} est défini sur son hôte. Retirez ce réglage et redémarrez l'agent Runbook, ou choisissez un autre agent Runbook.",
+  "The Runner this repository works on, {{runner}}, does not take AI code fixes: {{setting}} is set on its host. Remove that setting and restart the Runner, or pick another Runner.": "L'agent Runbook de ce dépôt, {{runner}}, ne prend pas les corrections de code par IA : {{setting}} est défini sur son hôte. Retirez ce réglage et redémarrez l'agent Runbook, ou choisissez un autre agent Runbook.",
+  "This Runner takes no AI code fixes: {{setting}} is set on its host. Remove that setting and restart the Runner, or pick another Runner.": "Cet agent Runbook ne prend pas les corrections de code par IA : {{setting}} est défini sur son hôte. Retirez ce réglage et redémarrez l'agent Runbook, ou choisissez un autre agent Runbook.",
+  "Takes no AI code fixes": "Ne prend pas les corrections de code par IA"
 }

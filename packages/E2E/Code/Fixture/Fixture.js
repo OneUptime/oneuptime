@@ -97,7 +97,13 @@
  *                       project's default Runner
  *   - uses=0            the project turned global Runners off
  *   - global=0          the server runs no global Runner for code;
- *                       gstatus=disconnected: it is not heard from
+ *                       gstatus=disconnected: it is not heard from;
+ *                       gfix=0: it takes no AI code fixes (an older
+ *                       release, or turned off on its host), as the server
+ *                       says it on /runner/global-runners
+ *   - prodfix=0         prod-eu-west-1's host turned AI code fixes off
+ *                       (ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false), as it
+ *                       said on its last heartbeat
  *   - delay=<ms>        how long each request takes
  *   - lang=de|ja        the Dashboard's German or Japanese words
  *   - theme=dark        dark mode (server.js)
@@ -270,6 +276,8 @@ const usesGlobalRunners = params.get("uses") !== "0";
 const globalCodeRunnerStatus =
   params.get("gstatus") === "disconnected" ? "disconnected" : "connected";
 const hasGlobalCodeRunner = params.get("global") !== "0";
+const doesGlobalRunnerTakeCodeFixes = params.get("gfix") !== "0";
+const doesProdTakeCodeFixes = params.get("prodfix") !== "0";
 const reposParam = params.get("repos") || "some";
 const isGitHubGone = params.get("connected") === "none";
 const hasNoTasks = params.get("tasks") === "none";
@@ -771,6 +779,10 @@ const PROJECT_RUNNERS = [
   runnerModel(RUNNER_IDS.prod, "prod-eu-west-1", minutesAgo(0.5)),
 ];
 
+// What prod-eu-west-1 said on its last heartbeat (prodfix=0: its host refuses them).
+PROJECT_RUNNERS[PROJECT_RUNNERS.length - 1].takesCodeFixes =
+  doesProdTakeCodeFixes;
+
 /*
  * The global Runners, as /runner/global-runners lists them: the bundled one,
  * heard from a moment ago (or long ago, gstatus=disconnected), or none on a
@@ -790,6 +802,8 @@ const GLOBAL_RUNNERS = hasGlobalCodeRunner
             ? minutesAgo(180)
             : minutesAgo(0.5);
         model.canRunRunbooks = true;
+        // As the server counts it (RunnerService.findGlobalRunners).
+        model.takesCodeFixes = doesGlobalRunnerTakeCodeFixes;
         return model;
       })(),
     ]
@@ -2279,6 +2293,10 @@ const BLOCKER_MESSAGES = {
     'The Runner "prod-eu-west-1" this repository picks is not online. Check that its container is running, or pick another Runner in the repository\'s settings in Code.',
   [CodeTaskBlockerType.GlobalRunnersOff]:
     "This project does not use global Runners, and this repository picks no Runner of its own. Pick one of your Runners for it in the repository's settings in Code, or turn global Runners on under Runbooks → Runners.",
+  [CodeTaskBlockerType.GlobalRunnersTakeNoCodeFixes]:
+    "No global Runner online takes AI code fixes, so none can work in this repository: each runs an older release or has code fixes turned off. Pick one of your Runners for it in the repository's settings in Code, or ask your OneUptime administrator to let a global Runner take them.",
+  [CodeTaskBlockerType.RunnerTakesNoCodeFixes]:
+    'The Runner "prod-eu-west-1" this repository picks does not take AI code fixes: ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false is set on its host. Remove that setting and restart the Runner, or pick another Runner in the repository\'s settings in Code.',
   [CodeTaskBlockerType.RepositoryTokenRefused]:
     "GitLab refused this repository's access token, so AI cannot work in it. It may have expired: replace it on the repository's Settings page in Code.",
   [CodeTaskBlockerType.RepositoryNeedsOwnRunner]:
@@ -2300,8 +2318,14 @@ function blockerFor(repository) {
     };
   }
   if (blockerParam && BLOCKER_MESSAGES[blockerParam]) {
-    // The server names the Runner a repository picks when it is offline.
-    if (blockerParam === CodeTaskBlockerType.RunnerNotOnline) {
+    /*
+     * The server names the Runner a repository picks when it is offline,
+     * or when it takes no AI code fixes.
+     */
+    if (
+      blockerParam === CodeTaskBlockerType.RunnerNotOnline ||
+      blockerParam === CodeTaskBlockerType.RunnerTakesNoCodeFixes
+    ) {
       return {
         type: blockerParam,
         message: BLOCKER_MESSAGES[blockerParam],

@@ -16,6 +16,7 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import { RunnerChoices } from "./RunnerChoices";
 import { GLOBAL_RUNNER_MAX_MINUTES } from "./GlobalRunnersCopy";
+import RunnerTakesNoCodeFixesText from "./RunnerTakesNoCodeFixesText";
 import {
   CODE_GLOBAL_RUNNERS_OFF_HELPER_TEXT,
   CODE_GLOBAL_RUNNER_CHOICE_DESCRIPTION,
@@ -23,7 +24,9 @@ import {
   CODE_GLOBAL_RUNNER_NOT_CONNECTED_TEXT,
   CODE_HIDDEN_RUNNER_HELPER_TEXT,
   CODE_HIDDEN_RUNNER_LABEL,
+  CODE_NO_CODE_FIX_GLOBAL_RUNNER_HELPER_TEXT,
   CODE_NO_GLOBAL_RUNNER_HELPER_TEXT,
+  CODE_RUNNER_TAKES_NO_CODE_FIXES_OPTION_TEXT,
   CODE_PROJECT_DEFAULT_RUNNER_HELPER_TEXT,
   CodeRepositoryRunnerWords,
   GLOBAL_RUNNERS_OFF_HELPER_TEXT,
@@ -55,6 +58,7 @@ import {
   STEP_NO_GLOBAL_RUNNER_HELPER_TEXT,
   buildRunnerPickerModel,
   getRuleRunnerLine,
+  getRunnerTakingNoCodeFixes,
   getWaitingProjectRunner,
   hasPickableOption,
   isGlobalRunnerChoiceWaiting,
@@ -159,6 +163,21 @@ const RunnerPicker: FunctionComponent<ComponentProps> = (
   });
 
   /*
+   * In a code repository's menu, a project Runner whose host turned AI code
+   * fixes off says so under its name: picked, the repository would get none
+   * of its work done.
+   */
+  const getCodeFixesDescription: (
+    option: RunnerPickerOption,
+  ) => Pick<DropdownOption, "description"> = (
+    option: RunnerPickerOption,
+  ): Pick<DropdownOption, "description"> => {
+    return isForCodeRepository && option.takesNoCodeFixes
+      ? { description: CODE_RUNNER_TAKES_NO_CODE_FIXES_OPTION_TEXT }
+      : {};
+  };
+
+  /*
    * Dropdown translates a label as one whole string, so a composed "name ·
    * status" can never match a key: the parts are translated here, each on
    * its own, and then joined - the status words are the three the status
@@ -228,6 +247,7 @@ const RunnerPicker: FunctionComponent<ComponentProps> = (
         label: `${option.name} · ${translator.translateText(PROJECT_DEFAULT_TAG)} · ${getStatusText(option)}`,
         // The Runner's own name, drawn as named.
         isUserContent: true,
+        ...getCodeFixesDescription(option),
       };
     }
 
@@ -255,6 +275,7 @@ const RunnerPicker: FunctionComponent<ComponentProps> = (
     return {
       value: option.value,
       label: `${option.name} · ${getStatusText(option)}`,
+      ...getCodeFixesDescription(option),
     };
   };
 
@@ -480,12 +501,35 @@ const RunnerPicker: FunctionComponent<ComponentProps> = (
       );
     }
 
-    // A repository that picked none, on a server with no global Runner.
+    /*
+     * A repository that picked none, on a server with no global Runner -
+     * or none that takes AI code fixes, said as that.
+     */
     if (
       isForCodeRepository &&
       model.outcome === RunnerPickerOutcome.NoGlobalRunner
     ) {
-      return translator.translateText(CODE_NO_GLOBAL_RUNNER_HELPER_TEXT);
+      return translator.translateText(
+        props.choices.globalRunnersTakeNoCodeFixes
+          ? CODE_NO_CODE_FIX_GLOBAL_RUNNER_HELPER_TEXT
+          : CODE_NO_GLOBAL_RUNNER_HELPER_TEXT,
+      );
+    }
+
+    /*
+     * A repository on one of the project's own Runners - its pick, or the
+     * default it follows - whose host turned AI code fixes off: what does
+     * it, and the two ways on, in place of what AI would do there.
+     */
+    if (isForCodeRepository && getRunnerTakingNoCodeFixes(model)) {
+      return (
+        <span
+          className="text-amber-700 break-words"
+          data-testid={`${dataTestId}-takes-no-code-fixes`}
+        >
+          <RunnerTakesNoCodeFixesText />
+        </span>
+      );
     }
 
     /*

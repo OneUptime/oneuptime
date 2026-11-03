@@ -255,6 +255,7 @@ import { AddUserSessionLengths1808840000000 } from "./1808840000000-AddUserSessi
 import { AddSecurityCaseCustomFieldsNoteTemplatesAndNumbering1808871270000 } from "./1808871270000-AddSecurityCaseCustomFieldsNoteTemplatesAndNumbering";
 import { AddGoogleAdsCampaignFields1808850000000 } from "./1808850000000-AddGoogleAdsCampaignFields";
 import { AddVMwareDatacenterHostStates1808870000000 } from "./1808870000000-AddVMwareDatacenterHostStates";
+import { AddRunnerTakesCodeFixes1808872000000 } from "./1808872000000-AddRunnerTakesCodeFixes";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1712,4 +1713,5 @@ export default [
   AddGoogleAdsCampaignFields1808850000000,
   AddVMwareDatacenterHostStates1808870000000,
   AddSecurityCaseCustomFieldsNoteTemplatesAndNumbering1808871270000,
+  AddRunnerTakesCodeFixes1808872000000,
 ];

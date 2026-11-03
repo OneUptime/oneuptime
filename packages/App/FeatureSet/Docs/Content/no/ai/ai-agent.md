@@ -327,7 +327,7 @@ En kjøring der heartbeat har vært stille i mer enn 12 minutter, avsluttes med 
 :::
 
 :::details Ingen Runner plukker opp oppgaven
-En oppgave som venter i mer enn 30 minutter mens Runneren som skal ta den, ikke er tilkoblet - den repositoriet velger, prosjektets standard-Runner for et repositorium som ikke velger noen, eller en global Runner - feiler med en melding som sier hvilken, slik at den aldri vises som pågående for alltid. Når en Runner er tilkoblet, men opptatt, venter oppgaver i kø på tur. En Runner som er eldre enn Kode, får aldri en forespørsel fra Kode: oppdater en Runner du kjører selv, sammen med serveren.
+En oppgave som venter i mer enn 30 minutter mens Runneren som skal ta den, ikke er tilkoblet - den repositoriet velger, prosjektets standard-Runner for et repositorium som ikke velger noen, eller en global Runner - feiler med en melding som sier hvilken, slik at den aldri vises som pågående for alltid. En Runner som ikke tar koderettinger, regnes som ikke tilkoblet: en som er startet med `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false`, eller en global Runner som er eldre enn 14.0.94. Kode sier det før du ber om en oppgave. Når en Runner er tilkoblet, men opptatt, venter oppgaver i kø på tur. En Runner som er eldre enn Kode, får aldri en forespørsel fra Kode: oppdater en Runner du kjører selv, sammen med serveren.
 :::
 
 ## Personvern

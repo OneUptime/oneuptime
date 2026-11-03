@@ -1,13 +1,17 @@
 import AIAgentService from "../../../Server/Services/AIAgentService";
-import RunnerService from "../../../Server/Services/RunnerService";
 import QueryHelper from "../../../Server/Types/Database/QueryHelper";
+import RunnerService, {
+  GLOBAL_RUNNER_CODE_FIX_SELECT,
+} from "../../../Server/Services/RunnerService";
 import AIAgent, {
   AIAgentConnectionStatus,
 } from "../../../Models/DatabaseModels/AIAgent";
+import Runner from "../../../Models/DatabaseModels/Runner";
 import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
-import PositiveNumber from "../../../Types/PositiveNumber";
 import { RUNNER_ALIVE_WINDOW_IN_MINUTES } from "../../../Types/Runner/RunnerLiveStatus";
+import { GlobalRunnerCodeFixAvailability } from "../../../Types/Runner/RunnerCodeFixes";
+import Version from "../../../Types/Version";
 import { afterEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -46,12 +50,28 @@ interface FindCall {
   props: Record<string, unknown>;
 }
 
+// A global Runner heartbeating now, of a release that says what it takes or not.
+function onlineGlobalRunner(data: {
+  takesCodeFixes?: boolean | undefined;
+  agentVersion?: string | undefined;
+}): Runner {
+  const row: Runner = new Runner();
+  row.id = ObjectID.generate();
+  row.isGlobalRunner = true;
+  row.lastAlive = OneUptimeDate.getCurrentDate();
+  row.agentVersion = new Version(data.agentVersion || "14.0.102");
+  if (data.takesCodeFixes !== undefined) {
+    row.takesCodeFixes = data.takesCodeFixes;
+  }
+  return row;
+}
+
 describe("the Runners of repositories that pick none", () => {
   afterEach(() => {
     jest.restoreAllMocks();
   });
 
-  test("a global Runner is online while one has heartbeated within the Runner window, counted as OneUptime", async () => {
+  test("a global Runner is online while one that takes code fixes has heartbeated within the Runner window, read as OneUptime", async () => {
     const since: Array<Date> = [];
     jest
       .spyOn(QueryHelper, "greaterThan")
@@ -59,35 +79,81 @@ describe("the Runners of repositories that pick none", () => {
         since.push(value as Date);
         return { greaterThan: value } as never;
       });
-    const count: jest.SpyInstance = jest
-      .spyOn(RunnerService, "countBy")
-      .mockResolvedValue(new PositiveNumber(1) as never);
+    const takesFixes: Runner = onlineGlobalRunner({ takesCodeFixes: true });
+    const find: jest.SpyInstance = jest
+      .spyOn(RunnerService, "findBy")
+      .mockResolvedValue([takesFixes] as never);
 
     const before: number = OneUptimeDate.getSomeMinutesAgo(
       RUNNER_ALIVE_WINDOW_IN_MINUTES,
     ).getTime();
 
-    expect(await RunnerService.hasOnlineGlobalRunner()).toBe(true);
+    expect(await RunnerService.getGlobalRunnerCodeFixAvailability()).toBe(
+      GlobalRunnerCodeFixAvailability.Online,
+    );
 
     const after: number = OneUptimeDate.getSomeMinutesAgo(
       RUNNER_ALIVE_WINDOW_IN_MINUTES,
     ).getTime();
 
-    const call: { query: Record<string, unknown>; props: unknown } = count.mock
-      .calls[0]![0] as { query: Record<string, unknown>; props: unknown };
+    const call: FindCall = find.mock.calls[0]![0] as FindCall;
 
     expect(call.query).toEqual({
       isGlobalRunner: true,
       lastAlive: { greaterThan: since[0] },
     });
+    // What says whether each takes code fixes - never its key or host.
+    expect(call.select).toBe(GLOBAL_RUNNER_CODE_FIX_SELECT);
+    expect(Object.keys(call.select).sort()).toEqual([
+      "_id",
+      "agentVersion",
+      "isGlobalRunner",
+      "lastAlive",
+      "takesCodeFixes",
+    ]);
     expect(call.props).toEqual({ isRoot: true });
     expect(since).toHaveLength(1);
     expect(since[0]!.getTime()).toBeGreaterThanOrEqual(before);
     expect(since[0]!.getTime()).toBeLessThanOrEqual(after);
 
-    count.mockResolvedValue(new PositiveNumber(0) as never);
+    find.mockResolvedValue([] as never);
 
-    expect(await RunnerService.hasOnlineGlobalRunner()).toBe(false);
+    expect(await RunnerService.getGlobalRunnerCodeFixAvailability()).toBe(
+      GlobalRunnerCodeFixAvailability.Offline,
+    );
+  });
+
+  test("global Runners online that take no code fixes are not counted: an older release, or turned off on their host", async () => {
+    jest
+      .spyOn(RunnerService, "findBy")
+      .mockResolvedValue([
+        onlineGlobalRunner({ takesCodeFixes: false, agentVersion: "14.0.102" }),
+        onlineGlobalRunner({ agentVersion: "14.0.93" }),
+      ] as never);
+
+    expect(await RunnerService.getGlobalRunnerCodeFixAvailability()).toBe(
+      GlobalRunnerCodeFixAvailability.OnlineButNoneTakesCodeFixes,
+    );
+  });
+
+  test("a global Runner of a release that says nothing counts from the first release that takes code fixes", async () => {
+    const find: jest.SpyInstance = jest
+      .spyOn(RunnerService, "findBy")
+      .mockResolvedValue([
+        onlineGlobalRunner({ agentVersion: "14.0.94" }),
+      ] as never);
+
+    expect(await RunnerService.getGlobalRunnerCodeFixAvailability()).toBe(
+      GlobalRunnerCodeFixAvailability.Online,
+    );
+
+    find.mockResolvedValue([
+      onlineGlobalRunner({ agentVersion: "14.0.93" }),
+    ] as never);
+
+    expect(await RunnerService.getGlobalRunnerCodeFixAvailability()).toBe(
+      GlobalRunnerCodeFixAvailability.OnlineButNoneTakesCodeFixes,
+    );
   });
 
   test("a global AI agent is no Runner for code any more: the agent service offers none of those lookups", () => {

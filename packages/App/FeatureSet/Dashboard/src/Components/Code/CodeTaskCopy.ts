@@ -379,6 +379,16 @@ export const CODE_TASK_BLOCKER_SENTENCES: Partial<
   [CodeTaskBlockerType.GlobalRunnersOff]: translationKey(
     "This project does not use global Runners, so this repository needs one of your Runners.",
   ),
+  [CodeTaskBlockerType.GlobalRunnersTakeNoCodeFixes]: translationKey(
+    "No global Runner online takes AI code fixes, so none can work in this repository. Pick one of your Runners for it, or ask your OneUptime administrator to let a global Runner take them.",
+  ),
+  /*
+   * {{setting}} is the setting itself (RUNNER_CODE_FIXES_OFF_SETTING), drawn
+   * as code: CodeBlockerNotice fills it in.
+   */
+  [CodeTaskBlockerType.RunnerTakesNoCodeFixes]: translationKey(
+    "The Runner this repository works on does not take AI code fixes: {{setting}} is set on its host. Remove that setting and restart the Runner, or pick another Runner.",
+  ),
 };
 
 /*
@@ -403,6 +413,23 @@ export const CODE_TASK_CONNECT_REPOSITORIES: string = translationKey(
 export const CODE_TASK_RUNNER_NOT_ONLINE_NAMED: string = translationKey(
   "The Runner this repository picks, {{runner}}, is not online. Check that its container is running, or pick another Runner.",
 );
+
+/*
+ * RunnerTakesNoCodeFixes when the server names the Runner: which one takes
+ * no AI code fixes, in the sentence above's words - {{runner}} its name in
+ * bold, {{setting}} the setting as code.
+ */
+export const CODE_TASK_RUNNER_TAKES_NO_CODE_FIXES_NAMED: string =
+  translationKey(
+    "The Runner this repository works on, {{runner}}, does not take AI code fixes: {{setting}} is set on its host. Remove that setting and restart the Runner, or pick another Runner.",
+  );
+
+/*
+ * The blockers whose sentence names the setting that turns a Runner's AI
+ * code fixes off, as a {{setting}} drawn as code.
+ */
+export const CODE_TASK_BLOCKERS_NAMING_THE_SETTING: ReadonlyArray<CodeTaskBlockerType> =
+  [CodeTaskBlockerType.RunnerTakesNoCodeFixes];
 
 /*
  * What fixes each thing that stops AI working in a repository: the page and
@@ -484,6 +511,21 @@ export const CODE_TASK_BLOCKER_FIXES: Partial<
     title: translationKey("Pick a Runner"),
     setting: CodeRepositorySetting.Runner,
   },
+  /*
+   * Picking one of the project's own Runners is the fix in the project's
+   * hands: the global Runners are their administrator's, and a Runner's
+   * host setting is on that host.
+   */
+  [CodeTaskBlockerType.GlobalRunnersTakeNoCodeFixes]: {
+    pageMap: PageMap.CODE_REPOSITORY_VIEW_SETTINGS,
+    title: translationKey("Pick a Runner"),
+    setting: CodeRepositorySetting.Runner,
+  },
+  [CodeTaskBlockerType.RunnerTakesNoCodeFixes]: {
+    pageMap: PageMap.CODE_REPOSITORY_VIEW_SETTINGS,
+    title: translationKey("Pick a Runner"),
+    setting: CodeRepositorySetting.Runner,
+  },
 };
 
 // The fixes that open the repository's own settings, which need its id.
@@ -493,6 +535,8 @@ export const CODE_TASK_REPOSITORY_SETTINGS_FIXES: Array<CodeTaskBlockerType> = [
   CodeTaskBlockerType.NoAgent,
   CodeTaskBlockerType.RunnerNotOnline,
   CodeTaskBlockerType.GlobalRunnersOff,
+  CodeTaskBlockerType.GlobalRunnersTakeNoCodeFixes,
+  CodeTaskBlockerType.RunnerTakesNoCodeFixes,
 ];
 
 /*
@@ -522,6 +566,12 @@ export const CODE_TASK_BLOCKER_WHO_CAN_FIX: Partial<
     "A project admin can pick this repository's Runner in its settings.",
   ),
   [CodeTaskBlockerType.GlobalRunnersOff]: translationKey(
+    "A project admin can pick this repository's Runner in its settings.",
+  ),
+  [CodeTaskBlockerType.GlobalRunnersTakeNoCodeFixes]: translationKey(
+    "A project admin can pick this repository's Runner in its settings.",
+  ),
+  [CodeTaskBlockerType.RunnerTakesNoCodeFixes]: translationKey(
     "A project admin can pick this repository's Runner in its settings.",
   ),
 };

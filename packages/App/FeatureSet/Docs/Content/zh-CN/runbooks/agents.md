@@ -73,6 +73,8 @@ Runner 只保存自己的 ID 和密钥。其余一切都随它领取的任务一
 
 全局 Runner 还负责 OneUptime AI 的代码修复，覆盖每个在 **全局 Runner** 上工作的代码存储库。它编写每个修复并打开拉取请求，但不运行任何命令，连存储库的设置、构建和测试命令也不运行，因此拉取请求会说明其验证已跳过。它只通过 HTTPS 访问互联网上的 Git 服务器；但在自托管的 OneUptime 上，它还可以访问服务器本身可以访问的私有 Git 服务器。它只为自己接手的修复工作，并且只在为某个存储库处理修复期间获得该存储库的令牌。GitHub 存储库的令牌只能访问那一个存储库，并会在修复结束时被撤销。
 
+早于 14.0.94 的全局 Runner，或以 `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false` 启动的全局 Runner，不接受代码修复，OneUptime 也不会把它计入。此时，在 **全局 Runner** 上工作的存储库会提示没有在线的全局 Runner 接受 AI 代码修复，而 Admin Dashboard 的 **全局 Runner** 页面会在该 Runner 的状态下方说明原因。
+
 对于需要访问你的网络的步骤，或者要让步骤留在你掌控的主机上，请为它选择你自己的 Runner。要让每个步骤都在你自己的 Runner 上运行，请在 **运行手册 → Runbook 代理** 底部关闭 **使用全局 Runner** 。之后，未选择 Runner 的 JavaScript 步骤会在项目默认 Runner 上运行；如果没有设置默认 Runner，它会失败并说明原因，直到它选择你的某个 Runner；选择了你的某个 Runner 的步骤无论如何都会保留它。在代码的设置中没有选择 Runner 的代码存储库同样在项目默认 Runner 上工作，没有设置默认 Runner 时在全局 Runner 上工作，而在关闭该开关时需要你的某个 Runner；参见 [代码](/docs/ai/ai-agent#选择存储库的-runner)。
 
 ### 全局 Runner 从哪里来
@@ -256,7 +258,7 @@ Runner 在启动时读取以下变量：
 | `ONEUPTIME_RUNNER_JOB_HEARTBEAT_INTERVAL_MS` | 否 | `10000` | Runner 为正在运行的作业续租的频率。低于 `1000` 的值会回退为默认值。 |
 | `ONEUPTIME_RUNNER_CONCURRENCY` | 否 | `1` | 此 Runner 上同时运行的最大作业数。 |
 | `ONEUPTIME_RUNNER_ENABLE_RUNBOOKS` | 否 | — | 设为 `false` 可让此 Runner 停止领取 Runbook 步骤，无论仪表板如何设置。它只能关闭该功能。 |
-| `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES` | 否 | — | 设为 `false` 可让此 Runner 停止领取 AI 代码修复，即使是选择了它的代码存储库。 |
+| `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES` | 否 | — | 设为 `false` 可让此 Runner 停止领取 AI 代码修复，即使是选择了它的代码存储库。此时存储库会提示此 Runner 不接受任何代码修复。 |
 | `ONEUPTIME_RUNNER_ENABLE_AI_COMMANDS` | 否 | — | 设为 `false` 可让此 Runner 停止运行 AI 补救命令，无论仪表板如何设置。 |
 
 ## 轮换代理密钥

@@ -327,7 +327,7 @@ Ein Lauf, dessen Heartbeat länger als 12 Minuten ausbleibt, wird mit einem Fehl
 :::
 
 :::details Kein Runner übernimmt die Aufgabe
-Eine Aufgabe, die länger als 30 Minuten wartet, während der Runner, der sie übernehmen soll, nicht verbunden ist - der, den ihr Repository auswählt, der Standard-Runner des Projekts für ein Repository, das keinen auswählt, oder ein globaler Runner -, schlägt mit einem Hinweis fehl, der sagt, welcher, sodass sie nie für immer als laufend angezeigt wird. Ist ein Runner online, aber beschäftigt, warten eingereihte Aufgaben, bis sie an der Reihe sind. Ein Runner, der älter als Code ist, bekommt nie eine Anfrage aus Code: Aktualisieren Sie einen selbst betriebenen Runner zusammen mit dem Server.
+Eine Aufgabe, die länger als 30 Minuten wartet, während der Runner, der sie übernehmen soll, nicht verbunden ist - der, den ihr Repository auswählt, der Standard-Runner des Projekts für ein Repository, das keinen auswählt, oder ein globaler Runner -, schlägt mit einem Hinweis fehl, der sagt, welcher, sodass sie nie für immer als laufend angezeigt wird. Ein Runner, der keine Codekorrekturen übernimmt, gilt als nicht verbunden: einer, der mit `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false` gestartet wurde, oder ein globaler Runner, der älter als 14.0.94 ist. Code sagt das, bevor Sie eine Aufgabe anfragen. Ist ein Runner online, aber beschäftigt, warten eingereihte Aufgaben, bis sie an der Reihe sind. Ein Runner, der älter als Code ist, bekommt nie eine Anfrage aus Code: Aktualisieren Sie einen selbst betriebenen Runner zusammen mit dem Server.
 :::
 
 ## Datenschutz

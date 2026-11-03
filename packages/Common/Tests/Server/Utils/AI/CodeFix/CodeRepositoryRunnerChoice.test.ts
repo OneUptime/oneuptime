@@ -19,6 +19,7 @@ import {
   CodeRepositoryRunnerChoiceKind,
   CodeWorkerKind,
 } from "../../../../../Types/Runner/CodeRepositoryRunner";
+import { GlobalRunnerCodeFixAvailability } from "../../../../../Types/Runner/RunnerCodeFixes";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { FindOperator } from "typeorm";
 
@@ -58,12 +59,17 @@ function runnerRow(data: {
   lastAlive?: Date | undefined;
   name?: string | undefined;
   inCluster?: boolean | undefined;
+  // What it said on its last heartbeat; left out, it said nothing.
+  takesCodeFixes?: boolean | undefined;
 }): Runner {
   const runner: Runner = new Runner();
   runner.id = data.id || RUNNER_ID;
   runner.name = data.name || "office-runner";
   if (data.lastAlive) {
     runner.lastAlive = data.lastAlive;
+  }
+  if (data.takesCodeFixes !== undefined) {
+    runner.takesCodeFixes = data.takesCodeFixes;
   }
   if (data.inCluster) {
     runner.hostInfo = {
@@ -133,8 +139,8 @@ describe("CodeRepositoryRunnerChoice", () => {
       .spyOn(AIAgentService, "getOnlineProjectAIAgent")
       .mockResolvedValue(null);
     globalOnline = jest
-      .spyOn(RunnerService, "hasOnlineGlobalRunner")
-      .mockResolvedValue(true);
+      .spyOn(RunnerService, "getGlobalRunnerCodeFixAvailability")
+      .mockResolvedValue(GlobalRunnerCodeFixAvailability.Online);
   });
 
   afterEach(() => {
@@ -649,6 +655,136 @@ describe("CodeRepositoryRunnerChoice", () => {
       ).toBe(false);
     });
 
+    test("a picked Runner is read with what it says about code fixes", async () => {
+      const find: jest.SpyInstance = jest
+        .spyOn(RunnerService, "findOneBy")
+        .mockResolvedValue(
+          runnerRow({ lastAlive: OneUptimeDate.getCurrentDate() }),
+        );
+
+      await CodeRepositoryRunnerChoice.getStatusForRepository(
+        facts({ runnerId: RUNNER_ID }),
+      );
+
+      expect(find).toHaveBeenCalledWith(
+        expect.objectContaining({
+          select: expect.objectContaining({
+            lastAlive: true,
+            hostInfo: true,
+            takesCodeFixes: true,
+          }),
+        }),
+      );
+    });
+
+    test("a picked Runner that heartbeats but whose host turned code fixes off is not online, by its name, and says why - no agent covers for it", async () => {
+      projectAgent.mockResolvedValue(new AIAgent());
+      jest.spyOn(RunnerService, "findOneBy").mockResolvedValue(
+        runnerRow({
+          lastAlive: OneUptimeDate.getCurrentDate(),
+          takesCodeFixes: false,
+        }),
+      );
+
+      expect(
+        await CodeRepositoryRunnerChoice.getStatusForRepository(
+          facts({ runnerId: RUNNER_ID }),
+        ),
+      ).toEqual({
+        decision: {
+          kind: CodeRepositoryRunnerChoiceKind.Custom,
+          runnerId: RUNNER_ID.toString(),
+        },
+        runnerName: "office-runner",
+        isOnline: false,
+        takesNoCodeFixes: true,
+      });
+      expect(globalOnline).not.toHaveBeenCalled();
+    });
+
+    test("a picked Runner that says it takes code fixes, or says nothing (an older release), is online", async () => {
+      for (const takesCodeFixes of [true, undefined]) {
+        jest.spyOn(RunnerService, "findOneBy").mockResolvedValue(
+          runnerRow({
+            lastAlive: OneUptimeDate.getCurrentDate(),
+            takesCodeFixes,
+          }),
+        );
+
+        expect(
+          await CodeRepositoryRunnerChoice.getStatusForRepository(
+            facts({ runnerId: RUNNER_ID }),
+          ),
+        ).toEqual({
+          decision: {
+            kind: CodeRepositoryRunnerChoiceKind.Custom,
+            runnerId: RUNNER_ID.toString(),
+          },
+          runnerName: "office-runner",
+          isOnline: true,
+        });
+      }
+    });
+
+    test("a picked Runner that is offline is just offline: what its host said about code fixes is not the reason", async () => {
+      jest.spyOn(RunnerService, "findOneBy").mockResolvedValue(
+        runnerRow({
+          lastAlive: OneUptimeDate.getSomeMinutesAgo(30),
+          takesCodeFixes: false,
+        }),
+      );
+
+      expect(
+        await CodeRepositoryRunnerChoice.getStatusForRepository(
+          facts({ runnerId: RUNNER_ID }),
+        ),
+      ).toEqual({
+        decision: {
+          kind: CodeRepositoryRunnerChoiceKind.Custom,
+          runnerId: RUNNER_ID.toString(),
+        },
+        runnerName: "office-runner",
+        isOnline: false,
+      });
+    });
+
+    test("following the project's default whose host turned code fixes off: not online, by its name, and says why - unless an agent of the project's own is online", async () => {
+      projectDefault.mockResolvedValue(DEFAULT_RUNNER_ID.toString());
+      jest.spyOn(RunnerService, "findOneBy").mockResolvedValue(
+        runnerRow({
+          id: DEFAULT_RUNNER_ID,
+          name: "build-box",
+          lastAlive: OneUptimeDate.getCurrentDate(),
+          takesCodeFixes: false,
+        }),
+      );
+
+      expect(
+        await CodeRepositoryRunnerChoice.getStatusForRepository(facts()),
+      ).toEqual({
+        decision: {
+          kind: CodeRepositoryRunnerChoiceKind.ProjectDefault,
+          runnerId: DEFAULT_RUNNER_ID.toString(),
+        },
+        runnerName: "build-box",
+        isOnline: false,
+        takesNoCodeFixes: true,
+      });
+
+      projectAgent.mockResolvedValue(new AIAgent());
+
+      expect(
+        await CodeRepositoryRunnerChoice.getStatusForRepository(facts()),
+      ).toEqual({
+        decision: {
+          kind: CodeRepositoryRunnerChoiceKind.ProjectDefault,
+          runnerId: DEFAULT_RUNNER_ID.toString(),
+        },
+        runnerName: "build-box",
+        isOnline: true,
+      });
+    });
+
     test("following the project's default: online while that Runner heartbeats, by its name", async () => {
       projectDefault.mockResolvedValue(DEFAULT_RUNNER_ID.toString());
       const find: jest.SpyInstance = jest
@@ -720,12 +856,14 @@ describe("CodeRepositoryRunnerChoice", () => {
         isOnline: true,
       });
 
-      globalOnline.mockResolvedValue(false);
+      globalOnline.mockResolvedValue(GlobalRunnerCodeFixAvailability.Offline);
 
       expect(
-        (await CodeRepositoryRunnerChoice.getStatusForRepository(none))
-          .isOnline,
-      ).toBe(false);
+        await CodeRepositoryRunnerChoice.getStatusForRepository(none),
+      ).toEqual({
+        decision: { kind: CodeRepositoryRunnerChoiceKind.Global },
+        isOnline: false,
+      });
 
       projectAgent.mockResolvedValue(new AIAgent());
 
@@ -733,6 +871,47 @@ describe("CodeRepositoryRunnerChoice", () => {
         (await CodeRepositoryRunnerChoice.getStatusForRepository(none))
           .isOnline,
       ).toBe(true);
+    });
+
+    test("no pick and no default, while the global Runners online take no code fixes: not online, and says why - unless an agent of the project's own is", async () => {
+      globalOnline.mockResolvedValue(
+        GlobalRunnerCodeFixAvailability.OnlineButNoneTakesCodeFixes,
+      );
+      const none: CodeRepositoryRunnerFactsRow = facts();
+
+      expect(
+        await CodeRepositoryRunnerChoice.getStatusForRepository(none),
+      ).toEqual({
+        decision: { kind: CodeRepositoryRunnerChoiceKind.Global },
+        isOnline: false,
+        takesNoCodeFixes: true,
+      });
+
+      projectAgent.mockResolvedValue(new AIAgent());
+
+      expect(
+        await CodeRepositoryRunnerChoice.getStatusForRepository(none),
+      ).toEqual({
+        decision: { kind: CodeRepositoryRunnerChoiceKind.Global },
+        isOnline: true,
+      });
+    });
+
+    test("picked the Global Runner beside a default, while the global Runners online take no code fixes: not online, and says why", async () => {
+      projectDefault.mockResolvedValue(DEFAULT_RUNNER_ID.toString());
+      globalOnline.mockResolvedValue(
+        GlobalRunnerCodeFixAvailability.OnlineButNoneTakesCodeFixes,
+      );
+
+      expect(
+        await CodeRepositoryRunnerChoice.getStatusForRepository(
+          facts({ picksGlobalRunner: true }),
+        ),
+      ).toEqual({
+        decision: { kind: CodeRepositoryRunnerChoiceKind.Global },
+        isOnline: false,
+        takesNoCodeFixes: true,
+      });
     });
 
     test("picked the Global Runner beside a default: online while a global Runner is", async () => {
@@ -808,6 +987,59 @@ describe("CodeRepositoryRunnerChoice", () => {
           PROJECT_ID,
         ),
       ).toBe(false);
+    });
+
+    test("global Runners online that take no code fixes do not count", async () => {
+      jest.spyOn(CodeRepositoryService, "findBy").mockResolvedValue([]);
+      jest
+        .spyOn(CodeRepositoryService, "countBy")
+        .mockResolvedValue(new PositiveNumber(0));
+      globalOnline.mockResolvedValue(
+        GlobalRunnerCodeFixAvailability.OnlineButNoneTakesCodeFixes,
+      );
+
+      expect(
+        await CodeRepositoryRunnerChoice.isAnyRunnerOnlineForProject(
+          PROJECT_ID,
+        ),
+      ).toBe(false);
+    });
+
+    test("a Runner a repository picks, online, counts only while it takes code fixes", async () => {
+      usesGlobalRunners.mockResolvedValue(false);
+      jest
+        .spyOn(CodeRepositoryService, "findBy")
+        .mockResolvedValue([repository(RUNNER_ID)]);
+      jest
+        .spyOn(CodeRepositoryService, "countBy")
+        .mockResolvedValue(new PositiveNumber(0));
+      const find: jest.SpyInstance = jest.spyOn(RunnerService, "findOneBy");
+
+      find.mockResolvedValue(
+        runnerRow({
+          lastAlive: OneUptimeDate.getCurrentDate(),
+          takesCodeFixes: false,
+        }),
+      );
+
+      expect(
+        await CodeRepositoryRunnerChoice.isAnyRunnerOnlineForProject(
+          PROJECT_ID,
+        ),
+      ).toBe(false);
+
+      find.mockResolvedValue(
+        runnerRow({
+          lastAlive: OneUptimeDate.getCurrentDate(),
+          takesCodeFixes: true,
+        }),
+      );
+
+      expect(
+        await CodeRepositoryRunnerChoice.isAnyRunnerOnlineForProject(
+          PROJECT_ID,
+        ),
+      ).toBe(true);
     });
 
     test("otherwise, a Runner one of its repositories picks, online", async () => {
