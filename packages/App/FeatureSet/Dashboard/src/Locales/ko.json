@@ -41571,5 +41571,19 @@
   "Add these lines to your collector's config. Only {{connector}} is new: where they say {{receiver}}, {{processor}} or {{exporter}}, keep the names your config already uses.": "이 줄을 컬렉터 구성에 추가하세요. 새로 추가되는 것은 {{connector}}뿐입니다. {{receiver}}, {{processor}}, {{exporter}}로 적힌 곳은 구성에서 이미 쓰고 있는 이름을 그대로 두세요.",
   "Your OpenTelemetry Collector records them from the spans passing through it, for every service at once. No code changes.": "OpenTelemetry Collector가 자신을 통과하는 스팬에서 모든 서비스의 요청 메트릭을 한 번에 기록합니다. 코드 변경이 필요 없습니다.",
   "An OpenTelemetry Collector can record this service's request metrics from its traces.": "OpenTelemetry Collector가 이 서비스의 트레이스에서 요청 메트릭을 기록할 수 있습니다.",
-  "Within a few minutes each service sends {{calls}} and {{duration}}. Then resolve this finding.": "몇 분 안에 각 서비스가 {{calls}}와 {{duration}}을 보냅니다. 그런 다음 이 발견 사항을 해결하세요."
+  "Within a few minutes each service sends {{calls}} and {{duration}}. Then resolve this finding.": "몇 분 안에 각 서비스가 {{calls}}와 {{duration}}을 보냅니다. 그런 다음 이 발견 사항을 해결하세요.",
+  "Alert on Failures": "Alert on Failures",
+  "Alerts on failures": "Alerts on failures",
+  "Every test your dbt projects run on your tables, from their uploaded artifacts, failing first.": "Every test your dbt projects run on your tables, from their uploaded artifacts, failing first.",
+  "Failing Rows": "Failing Rows",
+  "Last Result": "Last Result",
+  "No dbt test on this table. Upload your dbt project's artifacts after a build, as Documentation shows, and its tests appear here.": "No dbt test on this table. Upload your dbt project's artifacts after a build, as Documentation shows, and its tests appear here.",
+  "No dbt test yet. Upload your dbt project's artifacts after a build, as Documentation shows.": "No dbt test yet. Upload your dbt project's artifacts after a build, as Documentation shows.",
+  "Stop Alerting": "Stop Alerting",
+  "The tests your dbt project runs on this table, from its uploaded artifacts: how each last ran, and the rows it found failing.": "The tests your dbt project runs on this table, from its uploaded artifacts: how each last ran, and the rows it found failing.",
+  "Warned": "Warned",
+  "What your dbt project says of this table, from the last artifacts it uploaded.": "What your dbt project says of this table, from the last artifacts it uploaded.",
+  "dbt": "dbt",
+  "dbt Node": "dbt Node",
+  "dbt Tests": "dbt Tests"
 }

@@ -41571,5 +41571,19 @@
   "Add these lines to your collector's config. Only {{connector}} is new: where they say {{receiver}}, {{processor}} or {{exporter}}, keep the names your config already uses.": "将这些行添加到 Collector 的配置中。只有 {{connector}} 是新增的：写着 {{receiver}}、{{processor}} 或 {{exporter}} 的地方，请保留您的配置中已在使用的名称。",
   "Your OpenTelemetry Collector records them from the spans passing through it, for every service at once. No code changes.": "您的 OpenTelemetry Collector 会根据经过它的跨度记录这些指标，一次覆盖所有服务。无需更改代码。",
   "An OpenTelemetry Collector can record this service's request metrics from its traces.": "OpenTelemetry Collector 可以根据此服务的追踪数据记录其请求指标。",
-  "Within a few minutes each service sends {{calls}} and {{duration}}. Then resolve this finding.": "几分钟内，每个服务都会发送 {{calls}} 和 {{duration}}。然后请解决此发现。"
+  "Within a few minutes each service sends {{calls}} and {{duration}}. Then resolve this finding.": "几分钟内，每个服务都会发送 {{calls}} 和 {{duration}}。然后请解决此发现。",
+  "Alert on Failures": "Alert on Failures",
+  "Alerts on failures": "Alerts on failures",
+  "Every test your dbt projects run on your tables, from their uploaded artifacts, failing first.": "Every test your dbt projects run on your tables, from their uploaded artifacts, failing first.",
+  "Failing Rows": "Failing Rows",
+  "Last Result": "Last Result",
+  "No dbt test on this table. Upload your dbt project's artifacts after a build, as Documentation shows, and its tests appear here.": "No dbt test on this table. Upload your dbt project's artifacts after a build, as Documentation shows, and its tests appear here.",
+  "No dbt test yet. Upload your dbt project's artifacts after a build, as Documentation shows.": "No dbt test yet. Upload your dbt project's artifacts after a build, as Documentation shows.",
+  "Stop Alerting": "Stop Alerting",
+  "The tests your dbt project runs on this table, from its uploaded artifacts: how each last ran, and the rows it found failing.": "The tests your dbt project runs on this table, from its uploaded artifacts: how each last ran, and the rows it found failing.",
+  "Warned": "Warned",
+  "What your dbt project says of this table, from the last artifacts it uploaded.": "What your dbt project says of this table, from the last artifacts it uploaded.",
+  "dbt": "dbt",
+  "dbt Node": "dbt Node",
+  "dbt Tests": "dbt Tests"
 }
