@@ -1,0 +1,544 @@
+import "@testing-library/jest-dom";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
+import { act, cleanup, render, screen, within } from "@testing-library/react";
+import * as React from "react";
+import { MemoryRouter } from "react-router-dom";
+
+/*
+ * The lists of Cloud's Spend section - Savings' ways to spend less and
+ * Budgets - with ModelTable captured instead of rendered, so what each
+ * hands it is under test:
+ *
+ *   - Savings: read only, the largest saving first, over every account or
+ *     one; each row says what to do, to what (its resource's page when
+ *     OneUptime holds it), what would change and what it saves a month in
+ *     its own currency; the strip above, or what each cloud needs before
+ *     any is read; the accounts whose recommendations are not read.
+ *   - Budgets: created in two steps (what a month may cost and for which
+ *     account; when to alert), the currency most accounts are billed in
+ *     and 80% and 100% to start with; each row says what the month has
+ *     cost against it, where it is heading and how it is doing.
+ */
+
+const mockCapturedTableProps: Array<Record<string, unknown>> = [];
+
+jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
+  return {
+    __esModule: true,
+    default: (props: Record<string, unknown>): null => {
+      mockCapturedTableProps.push(props);
+      return null;
+    },
+  };
+});
+
+import CloudAccount from "../../../Models/DatabaseModels/CloudAccount";
+import CloudBudget from "../../../Models/DatabaseModels/CloudBudget";
+import CloudCostRecommendation from "../../../Models/DatabaseModels/CloudCostRecommendation";
+import Route from "../../../Types/API/Route";
+import SortOrder from "../../../Types/BaseDatabase/SortOrder";
+import {
+  CloudCostState,
+  CloudSavingKind,
+} from "../../../Types/Cloud/CloudCost";
+import ObjectID from "../../../Types/ObjectID";
+import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import ProjectUtil from "../../../UI/Utils/Project";
+import { getJestSpyOn } from "../../Spy";
+import { PROJECT_ID, goTo } from "./SideMenuHarness";
+import CloudSavingsTable, {
+  getSavingChangeText,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudSavingsTable";
+import CloudBudgets, {
+  ALL_ACCOUNTS,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/Budgets";
+import CloudSavings from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/Savings";
+import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
+
+interface CapturedColumn<T> {
+  title: string;
+  field: Record<string, unknown>;
+  getElement?: (item: T) => React.ReactElement;
+}
+
+interface CapturedFilter {
+  title: string;
+}
+
+interface CapturedFormField {
+  title: string;
+  stepId?: string;
+  required?: boolean;
+  collapsibleSection?: unknown;
+}
+
+const ACCOUNT_ROW: string = "10000000-0000-4000-8000-0000000000b1";
+const RESOURCE_ROW: string = "10000000-0000-4000-8000-0000000000c1";
+
+const pageProps: PageComponentProps = {
+  pageRoute: new Route(`/dashboard/${PROJECT_ID}/cloud/savings`),
+  currentProject: null,
+  hasPaymentMethod: true,
+};
+
+let accountsForTest: Array<CloudAccount> = [];
+
+function account(overrides: Partial<CloudAccount> = {}): CloudAccount {
+  const model: CloudAccount = new CloudAccount();
+  Object.assign(model, {
+    _id: ACCOUNT_ROW,
+    name: "web-prod",
+    provider: "aws",
+    accountId: "123456789012",
+    lastSeenAt: new Date(),
+    cloudConnectionId: new ObjectID(ACCOUNT_ROW),
+    costSummary: {
+      state: CloudCostState.Reading,
+      currency: "EUR",
+      monthToDate: 100,
+      lastMonth: 0,
+      lastMonthToDate: 0,
+      projectedMonth: 0,
+      last30Days: 0,
+      topServices: [],
+      readAt: new Date().toISOString(),
+    },
+    ...overrides,
+  });
+  return model;
+}
+
+beforeEach(() => {
+  mockCapturedTableProps.length = 0;
+  goTo(`/dashboard/${PROJECT_ID}/cloud/savings`);
+  accountsForTest = [account()];
+
+  getJestSpyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(
+    new ObjectID(PROJECT_ID),
+  );
+  getJestSpyOn(ModelAPI, "getList").mockImplementation(
+    async (): Promise<unknown> => {
+      return {
+        data: accountsForTest,
+        count: accountsForTest.length,
+        skip: 0,
+        limit: 100,
+      };
+    },
+  );
+});
+
+afterEach(() => {
+  cleanup();
+  jest.restoreAllMocks();
+});
+
+function lastTable(): Record<string, unknown> {
+  return mockCapturedTableProps[mockCapturedTableProps.length - 1]!;
+}
+
+function column<T>(title: string): CapturedColumn<T> {
+  return (lastTable()["columns"] as Array<CapturedColumn<T>>).find(
+    (entry: CapturedColumn<T>): boolean => {
+      return entry.title === title;
+    },
+  )!;
+}
+
+function titles(key: "columns" | "filters" | "formFields"): Array<string> {
+  return (lastTable()[key] as Array<{ title: string }>).map(
+    (entry: { title: string }): string => {
+      return entry.title;
+    },
+  );
+}
+
+function drawn(element: React.ReactElement): HTMLElement {
+  return render(<MemoryRouter>{element}</MemoryRouter>).container;
+}
+
+function recommendation(
+  overrides: Partial<CloudCostRecommendation> = {},
+): CloudCostRecommendation {
+  const model: CloudCostRecommendation = new CloudCostRecommendation();
+  Object.assign(model, {
+    _id: "10000000-0000-4000-8000-0000000000f1",
+    action: "Rightsize",
+    kind: CloudSavingKind.Rightsize,
+    resourceName: "web-1",
+    resourceType: "EC2 instance",
+    region: "us-east-1",
+    currentConfiguration: "m5.2xlarge",
+    recommendedConfiguration: "m5.xlarge",
+    monthlySavings: 61.33,
+    currency: "USD",
+    cloudResourceId: new ObjectID(RESOURCE_ROW),
+    cloudAccountId: new ObjectID(ACCOUNT_ROW),
+    cloudAccount: { name: "web-prod" },
+    ...overrides,
+  });
+  return model;
+}
+
+describe("the ways to spend less, as a table", () => {
+  test("read only, the largest saving first, every account's", async () => {
+    await act(async () => {
+      render(<CloudSavingsTable id="savings" currency="USD" />);
+    });
+
+    expect(lastTable()).toMatchObject({
+      modelType: CloudCostRecommendation,
+      isCreateable: false,
+      isEditable: false,
+      isDeleteable: false,
+      sortBy: "monthlySavings",
+      sortOrder: SortOrder.Descending,
+      query: {},
+    });
+    expect(titles("columns")).toEqual(
+      expect.arrayContaining([
+        "Recommendation",
+        "Kind",
+        "Saves a Month",
+        "Account",
+        "Change",
+      ]),
+    );
+    expect(titles("filters")).toEqual([
+      "Kind",
+      "Account",
+      "Cloud",
+      "Resource",
+      "Region",
+    ]);
+  });
+
+  test("one account's: its own, without its name in every row", async () => {
+    await act(async () => {
+      render(
+        <CloudSavingsTable
+          id="savings"
+          currency="USD"
+          cloudAccountId={new ObjectID(ACCOUNT_ROW)}
+        />,
+      );
+    });
+
+    expect(lastTable()["query"]).toEqual({
+      cloudAccountId: new ObjectID(ACCOUNT_ROW),
+    });
+    expect(titles("columns")).not.toContain("Account");
+    expect(titles("filters")).toEqual(["Kind", "Resource", "Region"]);
+  });
+
+  test("a row: what to do, to which resource (its page), where, and what it saves in its own currency", async () => {
+    await act(async () => {
+      render(<CloudSavingsTable id="savings" currency="EUR" />);
+    });
+
+    const row: HTMLElement = drawn(
+      column<CloudCostRecommendation>("Recommendation").getElement!(
+        recommendation(),
+      ),
+    );
+    expect(row).toHaveTextContent("Rightsize");
+    expect(within(row).getByRole("link", { name: "web-1" })).toHaveAttribute(
+      "href",
+      expect.stringContaining(`/cloud/${RESOURCE_ROW}`),
+    );
+    expect(row).toHaveTextContent("EC2 instance · us-east-1");
+
+    // A resource OneUptime does not hold: its name, not a link.
+    const unheld: HTMLElement = drawn(
+      column<CloudCostRecommendation>("Recommendation").getElement!(
+        recommendation({ cloudResourceId: undefined, resourceName: "vm-9" }),
+      ),
+    );
+    expect(within(unheld).queryByRole("link")).toBeNull();
+    expect(unheld).toHaveTextContent("vm-9");
+
+    expect(
+      drawn(
+        column<CloudCostRecommendation>("Saves a Month").getElement!(
+          recommendation(),
+        ),
+      ),
+    ).toHaveTextContent("$61.33");
+    // A row that names no currency is in the page's.
+    expect(
+      drawn(
+        column<CloudCostRecommendation>("Saves a Month").getElement!(
+          recommendation({ currency: undefined }),
+        ),
+      ),
+    ).toHaveTextContent("€61.33");
+    expect(
+      drawn(
+        column<CloudCostRecommendation>("Kind").getElement!(recommendation()),
+      ),
+    ).toHaveTextContent("Rightsize");
+    expect(
+      within(
+        drawn(
+          column<CloudCostRecommendation>("Account").getElement!(
+            recommendation(),
+          ),
+        ),
+      ).getByRole("link", { name: "web-prod" }),
+    ).toHaveAttribute(
+      "href",
+      expect.stringContaining(`/cloud/accounts/${ACCOUNT_ROW}/costs`),
+    );
+  });
+
+  test("what would change, as the recommender says it", () => {
+    expect(getSavingChangeText(recommendation())).toBe(
+      "m5.2xlarge → m5.xlarge",
+    );
+    expect(
+      getSavingChangeText(
+        recommendation({
+          recommendedConfiguration: " ",
+          currentConfiguration: "Idle for 14 days",
+        }),
+      ),
+    ).toBe("Idle for 14 days");
+    expect(
+      getSavingChangeText(
+        recommendation({
+          currentConfiguration: "",
+          recommendedConfiguration: "",
+        }),
+      ),
+    ).toBe("");
+  });
+});
+
+describe("Cloud > Savings", () => {
+  test("what could be saved, by way, over the table - in the currency the costs are in", async () => {
+    accountsForTest = [
+      account({
+        savingsSummary: {
+          state: CloudCostState.Reading,
+          count: 4,
+          monthlySavings: 420,
+          byKind: {
+            [CloudSavingKind.Idle]: { count: 4, monthlySavings: 420 },
+          },
+          currency: "EUR",
+          readAt: new Date().toISOString(),
+        },
+      }),
+    ];
+
+    await act(async () => {
+      render(
+        <MemoryRouter>
+          <CloudSavings {...pageProps} />
+        </MemoryRouter>,
+      );
+    });
+
+    const strip: HTMLElement = await screen.findByTestId("cloud-savings-strip");
+    expect(strip).toHaveTextContent("€420.00");
+    expect(strip).toHaveTextContent("4 recommendations");
+    expect(screen.queryByTestId("cloud-savings-not-read")).toBeNull();
+    expect(lastTable()).toMatchObject({ id: "cloud-savings-table" });
+    expect(screen.queryByTestId("cloud-savings-gaps")).toBeNull();
+  });
+
+  test("before any is read: what each cloud needs, and the account waiting for its first read", async () => {
+    await act(async () => {
+      render(
+        <MemoryRouter>
+          <CloudSavings {...pageProps} />
+        </MemoryRouter>,
+      );
+    });
+
+    const steps: HTMLElement = await screen.findByTestId(
+      "cloud-savings-not-read",
+    );
+    expect(steps).toHaveTextContent("Cost Optimization Hub");
+    expect(screen.queryByTestId("cloud-savings-strip")).toBeNull();
+
+    const gaps: Array<HTMLElement> = within(
+      screen.getByTestId("cloud-savings-gaps"),
+    ).getAllByTestId("cloud-cost-gap");
+    expect(gaps).toHaveLength(1);
+    expect(gaps[0]).toHaveAttribute("data-reason", "waiting");
+  });
+
+  test("one not allowed to read them says so, with what to do", async () => {
+    accountsForTest = [
+      account({
+        savingsSummary: {
+          state: CloudCostState.NotAllowed,
+          message:
+            "User is not authorized to perform cost-optimization-hub:ListRecommendations",
+          count: 0,
+          monthlySavings: 0,
+          byKind: {},
+          currency: "USD",
+          readAt: new Date().toISOString(),
+        },
+      }),
+    ];
+
+    await act(async () => {
+      render(
+        <MemoryRouter>
+          <CloudSavings {...pageProps} />
+        </MemoryRouter>,
+      );
+    });
+
+    const gap: HTMLElement = await screen.findByTestId("cloud-cost-gap");
+    expect(gap).toHaveAttribute("data-reason", CloudCostState.NotAllowed);
+    expect(gap).toHaveTextContent("cost-optimization-hub:ListRecommendations");
+    expect(gap).toHaveTextContent("Cost Optimization Hub");
+  });
+});
+
+describe("Cloud > Budgets", () => {
+  async function openBudgets(): Promise<void> {
+    await act(async () => {
+      render(
+        <MemoryRouter>
+          <CloudBudgets {...pageProps} />
+        </MemoryRouter>,
+      );
+    });
+  }
+
+  test("created in two steps, in the currency most accounts are billed in, alerting at 80% and 100%", async () => {
+    await openBudgets();
+
+    expect(lastTable()).toMatchObject({
+      modelType: CloudBudget,
+      id: "cloud-budgets-table",
+      isCreateable: true,
+      isEditable: true,
+      isDeleteable: true,
+      rowSwitch: { column: "isEnabled" },
+      createInitialValues: {
+        currency: "EUR",
+        alertThresholds: "80,100",
+        alertOnProjection: true,
+        isEnabled: true,
+      },
+    });
+    expect(
+      (lastTable()["formSteps"] as Array<{ id: string }>).map(
+        (step: { id: string }) => {
+          return step.id;
+        },
+      ),
+    ).toEqual(["budget", "alerts"]);
+
+    const fields: Array<CapturedFormField> = lastTable()[
+      "formFields"
+    ] as Array<CapturedFormField>;
+    const byStep: (stepId: string) => Array<string> = (
+      stepId: string,
+    ): Array<string> => {
+      return fields
+        .filter((field: CapturedFormField): boolean => {
+          return field.stepId === stepId;
+        })
+        .map((field: CapturedFormField): string => {
+          return field.title;
+        });
+    };
+
+    expect(byStep("budget")).toEqual([
+      "Name",
+      "Monthly Amount",
+      "Account",
+      "Currency",
+      "Description",
+    ]);
+    expect(byStep("alerts")).toEqual([
+      "Alert At",
+      "Alert When On Course To Pass",
+      "Alert Severity",
+      "On-Call Policies",
+    ]);
+    // The currency and a description wait under More fields.
+    expect(
+      fields
+        .filter((field: CapturedFormField): boolean => {
+          return Boolean(field.collapsibleSection);
+        })
+        .map((field: CapturedFormField): string => {
+          return field.title;
+        }),
+    ).toEqual(["Currency", "Description"]);
+    expect(titles("columns")).toEqual([
+      "Name",
+      "Applies To",
+      "This Month",
+      "Status",
+    ]);
+  });
+
+  test("a row: what the month has cost against it, where it is heading, how it is doing", async () => {
+    await openBudgets();
+
+    const budget: CloudBudget = new CloudBudget();
+    Object.assign(budget, {
+      _id: "10000000-0000-4000-8000-0000000000d1",
+      name: "Production",
+      monthlyAmount: 5000,
+      currency: "USD",
+      spentThisMonth: 4100,
+      projectedThisMonth: 6200,
+      alertThresholds: "80,100",
+      lastCheckedAt: new Date(),
+      isEnabled: true,
+    });
+
+    const month: HTMLElement = drawn(
+      column<CloudBudget>("This Month").getElement!(budget),
+    );
+    expect(month).toHaveTextContent("$4,100 of $5,000");
+    expect(month).toHaveTextContent("On course for $6,200");
+
+    const status: HTMLElement = drawn(
+      column<CloudBudget>("Status").getElement!(budget),
+    );
+    expect(within(status).getByTestId("cloud-budget-status")).toHaveAttribute(
+      "data-tone",
+      "warning",
+    );
+    expect(status).toHaveTextContent("Passed 80%");
+
+    expect(
+      drawn(column<CloudBudget>("Applies To").getElement!(budget)),
+    ).toHaveTextContent(ALL_ACCOUNTS);
+
+    budget.cloudAccountId = new ObjectID(ACCOUNT_ROW);
+    budget.cloudAccount = { name: "web-prod" } as CloudAccount;
+    expect(
+      within(
+        drawn(column<CloudBudget>("Applies To").getElement!(budget)),
+      ).getByRole("link", { name: "web-prod" }),
+    ).toHaveAttribute(
+      "href",
+      expect.stringContaining(`/cloud/accounts/${ACCOUNT_ROW}/costs`),
+    );
+
+    // Not checked yet: nothing said of where it is heading.
+    budget.lastCheckedAt = undefined;
+    expect(
+      drawn(column<CloudBudget>("This Month").getElement!(budget)),
+    ).not.toHaveTextContent("On course for");
+  });
+});

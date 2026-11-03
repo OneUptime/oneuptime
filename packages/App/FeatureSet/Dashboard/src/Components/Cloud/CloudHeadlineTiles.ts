@@ -54,25 +54,27 @@ export interface CloudHeadlineTile {
   iconColor: "blue" | "violet" | "amber" | "emerald" | "slate" | "sky" | "rose";
 }
 
-const ICONS: Record<string, { icon: IconProp; color: CloudHeadlineTile["iconColor"] }> =
-  {
-    [HEADLINE_CPU]: { icon: IconProp.CPUChip, color: "blue" },
-    [HEADLINE_MEMORY]: { icon: IconProp.Server, color: "violet" },
-    [HEADLINE_STORAGE_USED]: { icon: IconProp.Database, color: "amber" },
-    [HEADLINE_FREE_STORAGE]: { icon: IconProp.Database, color: "amber" },
-    [HEADLINE_CONNECTIONS]: { icon: IconProp.Signal, color: "sky" },
-    [HEADLINE_REQUESTS]: { icon: IconProp.Activity, color: "blue" },
-    [HEADLINE_INVOCATIONS]: { icon: IconProp.Bolt, color: "blue" },
-    [HEADLINE_ERRORS]: { icon: IconProp.Alert, color: "rose" },
-    [HEADLINE_LATENCY]: { icon: IconProp.Clock, color: "emerald" },
-    [HEADLINE_RESPONSE_TIME]: { icon: IconProp.Clock, color: "emerald" },
-    [HEADLINE_DURATION]: { icon: IconProp.Clock, color: "emerald" },
-    [HEADLINE_MESSAGES_WAITING]: { icon: IconProp.InboxStack, color: "sky" },
-    [HEADLINE_OLDEST_MESSAGE]: { icon: IconProp.Clock, color: "amber" },
-    [HEADLINE_UNHEALTHY_HOSTS]: { icon: IconProp.Server, color: "rose" },
-    [HEADLINE_AVAILABILITY]: { icon: IconProp.Heart, color: "emerald" },
-    [HEADLINE_SERVER_LOAD]: { icon: IconProp.Scale, color: "violet" },
-  };
+const ICONS: Record<
+  string,
+  { icon: IconProp; color: CloudHeadlineTile["iconColor"] }
+> = {
+  [HEADLINE_CPU]: { icon: IconProp.CPUChip, color: "blue" },
+  [HEADLINE_MEMORY]: { icon: IconProp.Server, color: "violet" },
+  [HEADLINE_STORAGE_USED]: { icon: IconProp.Database, color: "amber" },
+  [HEADLINE_FREE_STORAGE]: { icon: IconProp.Database, color: "amber" },
+  [HEADLINE_CONNECTIONS]: { icon: IconProp.Signal, color: "sky" },
+  [HEADLINE_REQUESTS]: { icon: IconProp.Activity, color: "blue" },
+  [HEADLINE_INVOCATIONS]: { icon: IconProp.Bolt, color: "blue" },
+  [HEADLINE_ERRORS]: { icon: IconProp.Alert, color: "rose" },
+  [HEADLINE_LATENCY]: { icon: IconProp.Clock, color: "emerald" },
+  [HEADLINE_RESPONSE_TIME]: { icon: IconProp.Clock, color: "emerald" },
+  [HEADLINE_DURATION]: { icon: IconProp.Clock, color: "emerald" },
+  [HEADLINE_MESSAGES_WAITING]: { icon: IconProp.InboxStack, color: "sky" },
+  [HEADLINE_OLDEST_MESSAGE]: { icon: IconProp.Clock, color: "amber" },
+  [HEADLINE_UNHEALTHY_HOSTS]: { icon: IconProp.Server, color: "rose" },
+  [HEADLINE_AVAILABILITY]: { icon: IconProp.Heart, color: "emerald" },
+  [HEADLINE_SERVER_LOAD]: { icon: IconProp.Scale, color: "violet" },
+};
 
 const BYTE_UNITS: ReadonlyArray<string> = [
   "B",
@@ -83,8 +85,11 @@ const BYTE_UNITS: ReadonlyArray<string> = [
   "PiB",
 ];
 
-// A size as the Hosts pages write one: "12.4 GiB".
-export function formatCloudBytes(bytes: number, translator: Translator): string {
+// A size in binary units: one decimal under 10 ("9.6 GiB"), whole from 10 ("12 GiB").
+export function formatCloudBytes(
+  bytes: number,
+  translator: Translator,
+): string {
   let value: number = Math.max(0, bytes);
   let index: number = 0;
 
@@ -103,7 +108,10 @@ export function formatCloudBytes(bytes: number, translator: Translator): string 
  * A number for a tile: whole from 100, one decimal under it, two under one
  * - "1,240", "37.5", "0.42" - in the reader's numerals.
  */
-export function formatCloudAmount(value: number, translator: Translator): string {
+export function formatCloudAmount(
+  value: number,
+  translator: Translator,
+): string {
   const magnitude: number = Math.abs(value);
   const rounded: number =
     magnitude >= 100
@@ -116,7 +124,10 @@ export function formatCloudAmount(value: number, translator: Translator): string
 }
 
 // A time from seconds: milliseconds under one second ("230 ms"), else "1.8 s".
-export function formatCloudSeconds(seconds: number, translator: Translator): string {
+export function formatCloudSeconds(
+  seconds: number,
+  translator: Translator,
+): string {
   if (Math.abs(seconds) < 1) {
     return `${translator.formatNumber(Math.round(seconds * 1000))} ms`;
   }

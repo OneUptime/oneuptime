@@ -86,6 +86,9 @@ export const SAVING_RECOMMENDATIONS: PluralTemplate = {
   other: "{{count}} recommendations",
 };
 export const NO_RECOMMENDATIONS: string = translationKey("No recommendations");
+// No account's recommendations read: not "nothing to save".
+export const RECOMMENDATIONS_NOT_READ_YET: string =
+  translationKey("Not read yet");
 
 // What the Needs attention tile counts: null while the resources are read.
 export interface CloudAttentionCounts {
@@ -246,6 +249,9 @@ export function getCloudCostTiles(data: {
       translator,
     },
   );
+  // Some account's recommendations read, or some found.
+  const isSavingsRead: boolean =
+    data.savings.accountsRead > 0 || data.savings.count > 0;
 
   return [
     {
@@ -284,13 +290,17 @@ export function getCloudCostTiles(data: {
       key: "savings",
       title: SAVINGS_AVAILABLE,
       description: SAVINGS_TILE_DESCRIPTION,
-      value: formatCloudMoney({
-        amount: data.savings.monthlySavings,
-        currency: data.savings.currency,
-        translator,
-      }),
-      sublabel:
-        data.savings.count > 0
+      value: isSavingsRead
+        ? formatCloudMoney({
+            amount: data.savings.monthlySavings,
+            currency: data.savings.currency,
+            translator,
+          })
+        : "—",
+      sublabel: !isSavingsRead
+        ? translator.translateText(RECOMMENDATIONS_NOT_READ_YET) ||
+          RECOMMENDATIONS_NOT_READ_YET
+        : data.savings.count > 0
           ? translator.translatePlural(
               SAVING_RECOMMENDATIONS,
               data.savings.count,
