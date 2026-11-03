@@ -519,25 +519,65 @@ const isDangerStyle: (style: ButtonStyleType) => boolean = (
   );
 };
 
-const BulkUpdateForm: <T extends GenericObject>(
-  props: ComponentProps<T>,
-) => ReactElement = <T extends GenericObject>(
-  props: ComponentProps<T>,
-): ReactElement => {
+/*
+ * A BULK RUN'S PROGRESS AND RESULT, AS A DIALOG.
+ *
+ * What a table's Bulk Actions show while one of them runs and once it has
+ * ended, in a hook of its own, so bulk work that does not start from a
+ * table's selection reads and works the same - Add in Bulk on a status
+ * page's subscriber lists, say. getActionProps hands runBulkAction what a
+ * table's bar hands an action's onClick: the dialog opens when the run
+ * starts, counts it down with the time left and Stop, says once it has
+ * ended what happened to every item, and goes when the person closes it.
+ * While a run goes on, the browser asks before the page goes.
+ */
+export interface BulkActionProgressOptions<T extends GenericObject> {
+  // The items' names in the dialog's sentences: "12 of 4,594 Alerts".
+  singularLabel: string;
+  pluralLabel: string;
+  // An item's name in the result's lists.
+  itemToString?: ((item: T) => string) | undefined;
+  // When a run starts.
+  onActionStart?: (() => void) | undefined;
+  // When the person closes the result.
+  onActionEnd?: (() => void) | undefined;
+}
+
+/*
+ * A run's own words for its result, where it has better ones than
+ * "succeeded" and "failed" (resultLabels), and what it draws last in the
+ * result (resultDetails) - an action's, on a table.
+ */
+export type BulkRunWords<T extends GenericObject> = Pick<
+  BulkActionButtonSchema<T>,
+  "resultLabels" | "resultDetails"
+>;
+
+export interface BulkActionProgress<T extends GenericObject> {
+  /*
+   * The props a run over these items reports through (runBulkAction), with
+   * a Stop of its own.
+   */
+  getActionProps: (
+    items: Array<T>,
+    words?: BulkRunWords<T> | undefined,
+  ) => BulkActionOnClickProps<T>;
+  // The progress and the result, while there is one to show.
+  dialog: ReactElement;
+  isRunning: boolean;
+}
+
+export const useBulkActionProgress: <T extends GenericObject>(
+  options: BulkActionProgressOptions<T>,
+) => BulkActionProgress<T> = <T extends GenericObject>(
+  options: BulkActionProgressOptions<T>,
+): BulkActionProgress<T> => {
   const translator: Translator = useTranslator();
-  // The bar writes the table's labels as given: "2 Monitors succeeded".
-  const itemTerm: TranslatableTerm = translatableTerm(props.singularLabel);
-  const itemsTerm: TranslatableTerm = translatableTerm(props.pluralLabel);
+  const itemTerm: TranslatableTerm = translatableTerm(options.singularLabel);
+  const itemsTerm: TranslatableTerm = translatableTerm(options.pluralLabel);
   const tx: (text: string) => string = (text: string): string => {
     return translator.translateText(text) || text;
   };
-
-  const [confirmModalProps, setConfirmModalProps] =
-    React.useState<ConfirmModalProps | null>(null);
-
-  // The confirmation's action, held while its details are read.
-  const [isConfirmSubmitHeld, setIsConfirmSubmitHeld] =
-    React.useState<boolean>(false);
 
   const [progressInfo, setProgressInfo] =
     React.useState<ProgressInfo<T> | null>(null);
@@ -547,9 +587,9 @@ const BulkUpdateForm: <T extends GenericObject>(
   const [actionInProgress, setActionInProgress] =
     React.useState<boolean>(false);
 
-  // The action whose run the progress dialog reports, for its words.
-  const [runningAction, setRunningAction] =
-    React.useState<BulkActionButtonSchema<T> | null>(null);
+  // The words of the run the dialog reports (the action's, on a table).
+  const [runningWords, setRunningWords] =
+    React.useState<BulkRunWords<T> | null>(null);
 
   // Whether the run can be stopped, and whether the person asked it to.
   const [isStoppable, setIsStoppable] = React.useState<boolean>(false);
@@ -558,42 +598,6 @@ const BulkUpdateForm: <T extends GenericObject>(
   // The run's Stop: aborted by the dialog's Stop button.
   const stopControllerRef: React.MutableRefObject<AbortController | null> =
     React.useRef<AbortController | null>(null);
-
-  /*
-   * The Row's offer of every match, pressed from the keyboard. It keeps the
-   * focus while it reads - busy, not disabled, since a disabled button
-   * drops the focus to the page - and once it has done its work and is
-   * gone, the focus moves on to Bulk Actions, the next thing to do, not
-   * back to the top of the page.
-   */
-  const rowActionsRef: React.MutableRefObject<HTMLDivElement | null> =
-    React.useRef<HTMLDivElement | null>(null);
-  const offerElementRef: React.MutableRefObject<HTMLButtonElement | null> =
-    React.useRef<HTMLButtonElement | null>(null);
-
-  const onOfferElement: (element: HTMLButtonElement | null) => void =
-    React.useCallback((element: HTMLButtonElement | null): void => {
-      const leaving: HTMLButtonElement | null = offerElementRef.current;
-      offerElementRef.current = element;
-
-      // Called as it leaves, while it is still on the page.
-      if (element || !leaving || leaving !== document.activeElement) {
-        return;
-      }
-
-      window.setTimeout((): void => {
-        const active: Element | null = document.activeElement;
-
-        // Somewhere else took the focus meanwhile: leave it there.
-        if (active && active !== document.body) {
-          return;
-        }
-
-        rowActionsRef.current
-          ?.querySelector<HTMLButtonElement>("button")
-          ?.focus();
-      }, 0);
-    }, []);
 
   /*
    * A bulk action runs in this page, so closing or reloading it part-way
@@ -620,129 +624,43 @@ const BulkUpdateForm: <T extends GenericObject>(
     };
   }, [actionInProgress]);
 
-  if (props.selectedItems.length === 0) {
-    return <></>;
-  }
-
-  const visibleButtons: Array<BulkActionButtonSchema<T>> = (
-    props.buttons || []
-  ).filter((button: BulkActionButtonSchema<T>) => {
-    if (button.isVisible) {
-      return button.isVisible(props.selectedItems) !== false;
-    }
-    return true;
-  });
-
-  const safeButtons: Array<BulkActionButtonSchema<T>> = visibleButtons.filter(
-    (b: BulkActionButtonSchema<T>) => {
-      return !isDangerStyle(b.buttonStyleType);
-    },
-  );
-
-  const dangerButtons: Array<BulkActionButtonSchema<T>> = visibleButtons.filter(
-    (b: BulkActionButtonSchema<T>) => {
-      return isDangerStyle(b.buttonStyleType);
-    },
-  );
-
-  const triggerButtonClick: (button: BulkActionButtonSchema<T>) => void = (
-    button: BulkActionButtonSchema<T>,
-  ): void => {
-    if (button.disabled) {
-      return;
-    }
-
+  const getActionProps: (
+    items: Array<T>,
+    words?: BulkRunWords<T> | undefined,
+  ) => BulkActionOnClickProps<T> = (
+    items: Array<T>,
+    words?: BulkRunWords<T> | undefined,
+  ): BulkActionOnClickProps<T> => {
     // A Stop of its own for every run.
     const stopController: AbortController = new AbortController();
     stopControllerRef.current = stopController;
 
-    const buttonClickObject: BulkActionOnClickProps<T> = {
-      items: props.selectedItems,
+    return {
+      items: items,
       stopSignal: stopController.signal,
       onProgressInfo: (info: ProgressInfo<T>) => {
         setProgressInfo(info);
       },
-      onBulkActionStart: (options?: BulkActionStartOptions | undefined) => {
-        setRunningAction(button);
-        setIsStoppable(Boolean(options?.isStoppable));
+      onBulkActionStart: (
+        startOptions?: BulkActionStartOptions | undefined,
+      ) => {
+        setRunningWords(words || null);
+        setIsStoppable(Boolean(startOptions?.isStoppable));
         setIsStopping(false);
         setShowProgressInfoModal(true);
         setProgressInfo({
-          inProgressItems: props.selectedItems,
+          inProgressItems: items,
           successItems: [],
           failed: [],
-          totalItems: props.selectedItems,
+          totalItems: items,
         });
         setActionInProgress(true);
-        if (props.onActionStart) {
-          props.onActionStart();
-        }
+        options.onActionStart?.();
       },
       onBulkActionEnd: () => {
         setActionInProgress(false);
       },
     };
-
-    if (button.confirmMessage) {
-      // A fresh dialog starts free; its details hold it if they need to.
-      setIsConfirmSubmitHeld(false);
-      setConfirmModalProps({
-        title: button.confirmTitle
-          ? button.confirmTitle(props.selectedItems)
-          : tx("Confirm"),
-        description: button.confirmMessage(props.selectedItems),
-        children: button.confirmDetails?.(props.selectedItems, {
-          setIsSubmitHeld: setIsConfirmSubmitHeld,
-        }),
-        submitButtonType: button.confirmButtonStyleType,
-        submitButtonText: button.title,
-        onClose: () => {
-          setConfirmModalProps(null);
-        },
-        onSubmit: async () => {
-          await button.onClick(buttonClickObject);
-        },
-      });
-      return;
-    }
-
-    if (button.onClick) {
-      void button.onClick(buttonClickObject);
-    }
-  };
-
-  const renderMenuItem: (
-    button: BulkActionButtonSchema<T>,
-    index: number,
-  ) => ReactElement = (
-    button: BulkActionButtonSchema<T>,
-    index: number,
-  ): ReactElement => {
-    const isDanger: boolean = isDangerStyle(button.buttonStyleType);
-    const isDisabled: boolean = Boolean(button.disabled);
-
-    let itemClassName: string = "";
-    let iconClassName: string = "";
-
-    if (!isDisabled && isDanger) {
-      itemClassName = "text-red-700 hover:text-red-800 hover:bg-red-50";
-      iconClassName = "text-red-400 group-hover:text-red-500";
-    }
-
-    return (
-      <MoreMenuItem
-        key={`bulk-action-${index}`}
-        text={button.title}
-        icon={button.icon}
-        className={itemClassName}
-        iconClassName={iconClassName}
-        isDisabled={isDisabled}
-        tooltip={button.tooltip}
-        onClick={() => {
-          triggerButtonClick(button);
-        }}
-      />
-    );
   };
 
   const showProgressInfo: GetReactElementFunction = (): ReactElement => {
@@ -768,7 +686,7 @@ const BulkUpdateForm: <T extends GenericObject>(
         liveCounts.push({
           key: "succeeded",
           text: translator.translatePlural(
-            runningAction?.resultLabels?.succeeded || BULK_SUCCEEDED_COUNT,
+            runningWords?.resultLabels?.succeeded || BULK_SUCCEEDED_COUNT,
             progressInfo.successItems.length,
             {
               count: translator.formatNumber(progressInfo.successItems.length),
@@ -784,7 +702,7 @@ const BulkUpdateForm: <T extends GenericObject>(
         liveCounts.push({
           key: "unchanged",
           text: translator.translatePlural(
-            runningAction?.resultLabels?.unchanged || BULK_UNCHANGED_COUNT,
+            runningWords?.resultLabels?.unchanged || BULK_UNCHANGED_COUNT,
             unchangedItems.length,
             {
               count: translator.formatNumber(unchangedItems.length),
@@ -800,7 +718,7 @@ const BulkUpdateForm: <T extends GenericObject>(
         liveCounts.push({
           key: "failed",
           text: translator.translatePlural(
-            runningAction?.resultLabels?.failed || BULK_FAILED_COUNT,
+            runningWords?.resultLabels?.failed || BULK_FAILED_COUNT,
             progressInfo.failed.length,
             {
               count: translator.formatNumber(progressInfo.failed.length),
@@ -832,7 +750,7 @@ const BulkUpdateForm: <T extends GenericObject>(
               unchangedItems.length
             }
             totalCount={progressInfo.totalItems.length}
-            suffix={props.pluralLabel}
+            suffix={options.pluralLabel}
             size={ProgressBarSize.Small}
           />
           {liveCounts.length > 0 || timeLeft ? (
@@ -887,7 +805,7 @@ const BulkUpdateForm: <T extends GenericObject>(
       const hasUnchanged: boolean = unchangedItems.length > 0;
       const notStartedItems: Array<T> = progressInfo.notStartedItems || [];
       const resultDetails: ReactElement | undefined =
-        runningAction?.resultDetails?.();
+        runningWords?.resultDetails?.();
 
       return (
         <div className="space-y-4">
@@ -905,7 +823,7 @@ const BulkUpdateForm: <T extends GenericObject>(
                   data-testid="bulk-action-succeeded-count"
                 >
                   {translator.translatePlural(
-                    runningAction?.resultLabels?.succeeded ||
+                    runningWords?.resultLabels?.succeeded ||
                       BULK_SUCCEEDED_COUNT,
                     progressInfo.successItems.length,
                     {
@@ -931,7 +849,7 @@ const BulkUpdateForm: <T extends GenericObject>(
                   data-testid="bulk-action-failed-count"
                 >
                   {translator.translatePlural(
-                    runningAction?.resultLabels?.failed || BULK_FAILED_COUNT,
+                    runningWords?.resultLabels?.failed || BULK_FAILED_COUNT,
                     progressInfo.failed.length,
                     {
                       count: translator.formatNumber(
@@ -975,8 +893,7 @@ const BulkUpdateForm: <T extends GenericObject>(
               />
               <div className="ml-2 text-sm font-medium text-gray-800">
                 {translator.translatePlural(
-                  runningAction?.resultLabels?.unchanged ||
-                    BULK_UNCHANGED_COUNT,
+                  runningWords?.resultLabels?.unchanged || BULK_UNCHANGED_COUNT,
                   unchangedItems.length,
                   {
                     count: translator.formatNumber(unchangedItems.length),
@@ -1058,7 +975,7 @@ const BulkUpdateForm: <T extends GenericObject>(
     const groups: Array<BulkItemGroup> = groupItemsByReason(
       entries.map((entry: { item: T; message: string | ReactElement }) => {
         return {
-          name: props.itemToString ? props.itemToString(entry.item) : "",
+          name: options.itemToString ? options.itemToString(entry.item) : "",
           message: entry.message,
         };
       }),
@@ -1158,6 +1075,211 @@ const BulkUpdateForm: <T extends GenericObject>(
     return isStopping ? "Stopping…" : "Stop";
   };
 
+  const dialog: ReactElement =
+    showProgressInfoModal && progressInfo ? (
+      <ConfirmModal
+        title={getProgressTitle()}
+        description={<div>{showProgressInfo()}</div>}
+        submitButtonType={ButtonStyleType.NORMAL}
+        /*
+         * While a run goes on, its one button is Stop - a run that cannot
+         * stop keeps Close, unavailable until it ends - and once it has
+         * ended, Close.
+         */
+        disableSubmitButton={actionInProgress && (!isStoppable || isStopping)}
+        submitButtonText={getProgressButtonText()}
+        /*
+         * The focus starts on the dialog, not on Stop: the Enter that
+         * confirmed the action, held a moment too long, or one pressed to
+         * get on, must not stop the run it just started.
+         */
+        isInitialFocusOnDialog={true}
+        onSubmit={() => {
+          if (actionInProgress) {
+            if (isStoppable && !isStopping) {
+              setIsStopping(true);
+              stopControllerRef.current?.abort();
+            }
+            return;
+          }
+
+          setShowProgressInfoModal(false);
+          options.onActionEnd?.();
+        }}
+      />
+    ) : (
+      <></>
+    );
+
+  return {
+    getActionProps: getActionProps,
+    dialog: dialog,
+    isRunning: actionInProgress,
+  };
+};
+
+const BulkUpdateForm: <T extends GenericObject>(
+  props: ComponentProps<T>,
+) => ReactElement = <T extends GenericObject>(
+  props: ComponentProps<T>,
+): ReactElement => {
+  const translator: Translator = useTranslator();
+  // The bar writes the table's labels as given: "2 Monitors succeeded".
+  const itemTerm: TranslatableTerm = translatableTerm(props.singularLabel);
+  const itemsTerm: TranslatableTerm = translatableTerm(props.pluralLabel);
+  const tx: (text: string) => string = (text: string): string => {
+    return translator.translateText(text) || text;
+  };
+
+  const [confirmModalProps, setConfirmModalProps] =
+    React.useState<ConfirmModalProps | null>(null);
+
+  // The confirmation's action, held while its details are read.
+  const [isConfirmSubmitHeld, setIsConfirmSubmitHeld] =
+    React.useState<boolean>(false);
+
+  // The progress and the result of a run, as every bulk run shows them.
+  const progress: BulkActionProgress<T> = useBulkActionProgress<T>({
+    singularLabel: props.singularLabel,
+    pluralLabel: props.pluralLabel,
+    itemToString: props.itemToString,
+    onActionStart: props.onActionStart,
+    onActionEnd: props.onActionEnd,
+  });
+
+  /*
+   * The Row's offer of every match, pressed from the keyboard. It keeps the
+   * focus while it reads - busy, not disabled, since a disabled button
+   * drops the focus to the page - and once it has done its work and is
+   * gone, the focus moves on to Bulk Actions, the next thing to do, not
+   * back to the top of the page.
+   */
+  const rowActionsRef: React.MutableRefObject<HTMLDivElement | null> =
+    React.useRef<HTMLDivElement | null>(null);
+  const offerElementRef: React.MutableRefObject<HTMLButtonElement | null> =
+    React.useRef<HTMLButtonElement | null>(null);
+
+  const onOfferElement: (element: HTMLButtonElement | null) => void =
+    React.useCallback((element: HTMLButtonElement | null): void => {
+      const leaving: HTMLButtonElement | null = offerElementRef.current;
+      offerElementRef.current = element;
+
+      // Called as it leaves, while it is still on the page.
+      if (element || !leaving || leaving !== document.activeElement) {
+        return;
+      }
+
+      window.setTimeout((): void => {
+        const active: Element | null = document.activeElement;
+
+        // Somewhere else took the focus meanwhile: leave it there.
+        if (active && active !== document.body) {
+          return;
+        }
+
+        rowActionsRef.current
+          ?.querySelector<HTMLButtonElement>("button")
+          ?.focus();
+      }, 0);
+    }, []);
+
+  if (props.selectedItems.length === 0) {
+    return <></>;
+  }
+
+  const visibleButtons: Array<BulkActionButtonSchema<T>> = (
+    props.buttons || []
+  ).filter((button: BulkActionButtonSchema<T>) => {
+    if (button.isVisible) {
+      return button.isVisible(props.selectedItems) !== false;
+    }
+    return true;
+  });
+
+  const safeButtons: Array<BulkActionButtonSchema<T>> = visibleButtons.filter(
+    (b: BulkActionButtonSchema<T>) => {
+      return !isDangerStyle(b.buttonStyleType);
+    },
+  );
+
+  const dangerButtons: Array<BulkActionButtonSchema<T>> = visibleButtons.filter(
+    (b: BulkActionButtonSchema<T>) => {
+      return isDangerStyle(b.buttonStyleType);
+    },
+  );
+
+  const triggerButtonClick: (button: BulkActionButtonSchema<T>) => void = (
+    button: BulkActionButtonSchema<T>,
+  ): void => {
+    if (button.disabled) {
+      return;
+    }
+
+    const buttonClickObject: BulkActionOnClickProps<T> =
+      progress.getActionProps(props.selectedItems, button);
+
+    if (button.confirmMessage) {
+      // A fresh dialog starts free; its details hold it if they need to.
+      setIsConfirmSubmitHeld(false);
+      setConfirmModalProps({
+        title: button.confirmTitle
+          ? button.confirmTitle(props.selectedItems)
+          : tx("Confirm"),
+        description: button.confirmMessage(props.selectedItems),
+        children: button.confirmDetails?.(props.selectedItems, {
+          setIsSubmitHeld: setIsConfirmSubmitHeld,
+        }),
+        submitButtonType: button.confirmButtonStyleType,
+        submitButtonText: button.title,
+        onClose: () => {
+          setConfirmModalProps(null);
+        },
+        onSubmit: async () => {
+          await button.onClick(buttonClickObject);
+        },
+      });
+      return;
+    }
+
+    if (button.onClick) {
+      void button.onClick(buttonClickObject);
+    }
+  };
+
+  const renderMenuItem: (
+    button: BulkActionButtonSchema<T>,
+    index: number,
+  ) => ReactElement = (
+    button: BulkActionButtonSchema<T>,
+    index: number,
+  ): ReactElement => {
+    const isDanger: boolean = isDangerStyle(button.buttonStyleType);
+    const isDisabled: boolean = Boolean(button.disabled);
+
+    let itemClassName: string = "";
+    let iconClassName: string = "";
+
+    if (!isDisabled && isDanger) {
+      itemClassName = "text-red-700 hover:text-red-800 hover:bg-red-50";
+      iconClassName = "text-red-400 group-hover:text-red-500";
+    }
+
+    return (
+      <MoreMenuItem
+        key={`bulk-action-${index}`}
+        text={button.title}
+        icon={button.icon}
+        className={itemClassName}
+        iconClassName={iconClassName}
+        isDisabled={isDisabled}
+        tooltip={button.tooltip}
+        onClick={() => {
+          triggerButtonClick(button);
+        }}
+      />
+    );
+  };
+
   const menuChildren: Array<ReactElement> = [];
 
   safeButtons.forEach((button: BulkActionButtonSchema<T>, index: number) => {
@@ -1217,40 +1339,7 @@ const BulkUpdateForm: <T extends GenericObject>(
         />
       )}
 
-      {showProgressInfoModal && progressInfo && (
-        <ConfirmModal
-          title={getProgressTitle()}
-          description={<div>{showProgressInfo()}</div>}
-          submitButtonType={ButtonStyleType.NORMAL}
-          /*
-           * While a run goes on, its one button is Stop - a run that cannot
-           * stop keeps Close, unavailable until it ends - and once it has
-           * ended, Close.
-           */
-          disableSubmitButton={actionInProgress && (!isStoppable || isStopping)}
-          submitButtonText={getProgressButtonText()}
-          /*
-           * The focus starts on the dialog, not on Stop: the Enter that
-           * confirmed the action, held a moment too long, or one pressed to
-           * get on, must not stop the run it just started.
-           */
-          isInitialFocusOnDialog={true}
-          onSubmit={() => {
-            if (actionInProgress) {
-              if (isStoppable && !isStopping) {
-                setIsStopping(true);
-                stopControllerRef.current?.abort();
-              }
-              return;
-            }
-
-            setShowProgressInfoModal(false);
-            if (props.onActionEnd) {
-              props.onActionEnd();
-            }
-          }}
-        />
-      )}
+      {progress.dialog}
     </>
   );
 

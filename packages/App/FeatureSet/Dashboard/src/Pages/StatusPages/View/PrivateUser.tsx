@@ -1,5 +1,13 @@
 import PageComponentProps from "../../PageComponentProps";
-import { Green, Red, Yellow } from "Common/Types/BrandColors";
+import useStatusPageBulkAdd, {
+  StatusPageBulkAdd,
+} from "../../../Components/StatusPage/useStatusPageBulkAdd";
+import {
+  getBulkEmailEntries,
+  hasBulkAddEntryToAdd,
+  StatusPageBulkAddEntry,
+} from "../../../Components/StatusPage/StatusPageBulkAddEntries";
+import { Green, Yellow } from "Common/Types/BrandColors";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import Email from "Common/Types/Email";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -7,15 +15,9 @@ import ObjectID from "Common/Types/ObjectID";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import Icon from "Common/UI/Components/Icon/Icon";
-import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
-import ProgressBar, {
-  ProgressBarSize,
-} from "Common/UI/Components/ProgressBar/ProgressBar";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
@@ -29,8 +31,6 @@ import React, {
   useState,
 } from "react";
 import ProjectUtil from "Common/UI/Utils/Project";
-import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -65,7 +65,6 @@ export const hasPrivateUserJoined: (user: StatusPagePrivateUser) => boolean = (
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
-  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
   /*
    * Whether visitors enter the master password instead of signing in: the
@@ -76,63 +75,25 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
   const [fetchError, setFetchError] = useState<string | null>(null);
 
   const [showBulkAddModal, setShowBulkAddModal] = useState<boolean>(false);
-  const [showProgressModal, setShowProgressModal] = useState<boolean>(false);
-  const [bulkActionInProgress, setBulkActionInProgress] =
-    useState<boolean>(false);
-  const [bulkProgress, setBulkProgress] = useState<{
-    completed: number;
-    total: number;
-    succeeded: number;
-    failed: Array<{ email: string; error: string }>;
-    skippedInvalid: Array<string>;
-  }>({
-    completed: 0,
-    total: 0,
-    succeeded: 0,
-    failed: [],
-    skippedInvalid: [],
-  });
   const [refreshToggle, setRefreshToggle] = useState<string>(
     Date.now().toString(),
   );
+  /*
+   * Add in Bulk: the shared bulk runner and its progress dialog - several
+   * at once, the time left and Stop, and what happened to every entry
+   * (useStatusPageBulkAdd). The list is read again once it ends.
+   */
+  const bulkAdd: StatusPageBulkAdd = useStatusPageBulkAdd({
+    singularLabel: PRIVATE_USER_SINGULAR_NAME,
+    pluralLabel: PRIVATE_USER_PLURAL_NAME,
+    onFinished: (): void => {
+      setRefreshToggle(Date.now().toString());
+    },
+  });
   // Whether sign-in links are on, once read: undefined until then.
   const [isMagicLinkOn, setIsMagicLinkOn] = useState<boolean | undefined>(
     undefined,
   );
-
-  const parseBulkEmails: (input: string) => {
-    valid: Array<string>;
-    invalid: Array<string>;
-  } = (input: string) => {
-    const tokens: Array<string> = (input || "")
-      .split(/[\s,;]+/)
-      .map((t: string) => {
-        return t.trim();
-      })
-      .filter((t: string) => {
-        return t.length > 0;
-      });
-
-    const seen: Set<string> = new Set<string>();
-    const valid: Array<string> = [];
-    const invalid: Array<string> = [];
-
-    for (const token of tokens) {
-      const normalized: string = token.toLowerCase();
-      if (seen.has(normalized)) {
-        continue;
-      }
-      seen.add(normalized);
-
-      if (Email.isValid(normalized)) {
-        valid.push(normalized);
-      } else {
-        invalid.push(token);
-      }
-    }
-
-    return { valid, invalid };
-  };
 
   interface BulkAddFormData {
     emails: string;
@@ -145,35 +106,26 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
       throw new BadDataException("Project ID cannot be null");
     }
 
-    const { valid, invalid } = parseBulkEmails(data.emails);
+    const entries: Array<StatusPageBulkAddEntry> = getBulkEmailEntries(
+      data.emails,
+    );
 
-    if (valid.length === 0) {
+    if (!hasBulkAddEntryToAdd(entries)) {
       throw new BadDataException(
         "No valid email addresses found. Please enter one email per line.",
       );
     }
 
+    // The form goes; the progress dialog takes over.
     setShowBulkAddModal(false);
-    setShowProgressModal(true);
-    setBulkActionInProgress(true);
-    setBulkProgress({
-      completed: 0,
-      total: valid.length,
-      succeeded: 0,
-      failed: [],
-      skippedInvalid: invalid,
-    });
 
     const projectId: ObjectID = new ObjectID(props.currentProject._id);
-    let succeeded: number = 0;
-    const failed: Array<{ email: string; error: string }> = [];
 
-    for (let i: number = 0; i < valid.length; i++) {
-      const emailStr: string = valid[i]!;
-
-      try {
+    await bulkAdd.run(
+      entries,
+      async (entry: StatusPageBulkAddEntry): Promise<void> => {
         const privateUser: StatusPagePrivateUser = new StatusPagePrivateUser();
-        privateUser.email = new Email(emailStr);
+        privateUser.email = new Email(entry.value);
         privateUser.statusPageId = modelId;
         privateUser.projectId = projectId;
 
@@ -181,25 +133,8 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
           model: privateUser,
           modelType: StatusPagePrivateUser,
         });
-        succeeded++;
-      } catch (err) {
-        failed.push({
-          email: emailStr,
-          error: API.getFriendlyMessage(err),
-        });
-      }
-
-      setBulkProgress({
-        completed: i + 1,
-        total: valid.length,
-        succeeded,
-        failed: [...failed],
-        skippedInvalid: invalid,
-      });
-    }
-
-    setBulkActionInProgress(false);
-    setRefreshToggle(Date.now().toString());
+      },
+    );
   };
 
   useEffect(() => {
@@ -398,127 +333,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         />
       )}
 
-      {showProgressModal && (
-        <ConfirmModal
-          title={
-            bulkActionInProgress
-              ? "Adding Private Users..."
-              : "Bulk Add Complete"
-          }
-          description={
-            <div>
-              {bulkActionInProgress ? (
-                <div className="space-y-4">
-                  <p className="text-sm text-gray-500">
-                    {translator.translateText(
-                      "Please wait while private users are being added. This may take a moment.",
-                    )}
-                  </p>
-                  <ProgressBar
-                    count={bulkProgress.completed}
-                    totalCount={bulkProgress.total}
-                    suffix="users"
-                    size={ProgressBarSize.Small}
-                  />
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="flex flex-col space-y-3">
-                    {bulkProgress.succeeded > 0 && (
-                      <div className="flex items-center rounded-lg bg-green-50 p-3">
-                        <Icon
-                          className="h-5 w-5 flex-shrink-0"
-                          icon={IconProp.CheckCircle}
-                          color={Green}
-                        />
-                        <div className="ml-2 text-sm font-medium text-green-800">
-                          {translator.translatePlural(
-                            {
-                              one: "{{count}} private user added successfully",
-                              other:
-                                "{{count}} private users added successfully",
-                            },
-                            bulkProgress.succeeded,
-                          )}
-                        </div>
-                      </div>
-                    )}
-                    {bulkProgress.failed.length > 0 && (
-                      <div className="flex items-center rounded-lg bg-red-50 p-3">
-                        <Icon
-                          className="h-5 w-5 flex-shrink-0"
-                          icon={IconProp.Close}
-                          color={Red}
-                        />
-                        <div className="ml-2 text-sm font-medium text-red-800">
-                          {translator.translatePlural(
-                            {
-                              one: "{{count}} private user failed",
-                              other: "{{count}} private users failed",
-                            },
-                            bulkProgress.failed.length,
-                          )}
-                        </div>
-                      </div>
-                    )}
-                    {bulkProgress.skippedInvalid.length > 0 && (
-                      <div className="flex items-center rounded-lg bg-yellow-50 p-3">
-                        <Icon
-                          className="h-5 w-5 flex-shrink-0"
-                          icon={IconProp.Alert}
-                          color={Yellow}
-                        />
-                        <div className="ml-2 text-sm font-medium text-yellow-800">
-                          {translator.translatePlural(
-                            {
-                              one: "{{count}} invalid email skipped",
-                              other: "{{count}} invalid emails skipped",
-                            },
-                            bulkProgress.skippedInvalid.length,
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {bulkProgress.failed.length > 0 && (
-                    <div className="rounded-lg border border-gray-200 overflow-hidden">
-                      <div className="max-h-64 overflow-y-auto divide-y divide-gray-200">
-                        {bulkProgress.failed.map(
-                          (
-                            failedItem: {
-                              email: string;
-                              error: string;
-                            },
-                            i: number,
-                          ) => {
-                            return (
-                              <div className="px-4 py-3 text-sm" key={i}>
-                                <div className="font-medium text-gray-900">
-                                  {failedItem.email}
-                                </div>
-                                <div className="text-gray-500 mt-0.5">
-                                  {failedItem.error}
-                                </div>
-                              </div>
-                            );
-                          },
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          }
-          submitButtonType={ButtonStyleType.NORMAL}
-          disableSubmitButton={bulkActionInProgress}
-          submitButtonText="Close"
-          onSubmit={() => {
-            setShowProgressModal(false);
-          }}
-        />
-      )}
+      {bulkAdd.dialog}
     </Fragment>
   );
 };

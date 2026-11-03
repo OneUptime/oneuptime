@@ -258,6 +258,13 @@ const LEDGER: Record<string, Array<Choice>> = {
         why: "Unsubscribe: one subscriber's unsubscribing touches nothing another's does.",
       },
     ],
+  "packages/App/FeatureSet/Dashboard/src/Components/StatusPage/useStatusPageBulkAdd.tsx":
+    [
+      {
+        expression: SEVERAL,
+        why: "Add in Bulk on a status page's subscriber lists and private users: each is a row of its own; a contact already on the page and the Free plan's subscriber limit are decided with each INSERT under a lock, the list holds each address once, and the message limits count each contact, never the team.",
+      },
+    ],
   "packages/App/FeatureSet/Dashboard/src/Pages/NetworkDevice/Archived.tsx": [
     {
       expression: "1",

@@ -1,18 +1,23 @@
 import PageComponentProps from "../../PageComponentProps";
+import useStatusPageBulkAdd, {
+  StatusPageBulkAdd,
+} from "../../../Components/StatusPage/useStatusPageBulkAdd";
+import {
+  getBulkEmailEntries,
+  hasBulkAddEntryToAdd,
+  StatusPageBulkAddEntry,
+} from "../../../Components/StatusPage/StatusPageBulkAddEntries";
 import useSubscriberBulkActions, {
   useSubscriberRowActions,
   getSubscriberName,
 } from "../../../Components/StatusPage/useSubscriberBulkActions";
 import NotNull from "Common/Types/BaseDatabase/NotNull";
-import { Green, Red, Yellow } from "Common/Types/BrandColors";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
 import Email from "Common/Types/Email";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import Icon from "Common/UI/Components/Icon/Icon";
 import { CategoryCheckboxOptionsAndCategories } from "Common/UI/Components/CategoryCheckbox/Index";
-import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
@@ -21,9 +26,6 @@ import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import IconProp from "Common/Types/Icon/IconProp";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
-import ProgressBar, {
-  ProgressBarSize,
-} from "Common/UI/Components/ProgressBar/ProgressBar";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -160,59 +162,21 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
   >([]);
 
   const [showBulkAddModal, setShowBulkAddModal] = useState<boolean>(false);
-  const [showProgressModal, setShowProgressModal] = useState<boolean>(false);
-  const [bulkActionInProgress, setBulkActionInProgress] =
-    useState<boolean>(false);
-  const [bulkProgress, setBulkProgress] = useState<{
-    completed: number;
-    total: number;
-    succeeded: number;
-    failed: Array<{ email: string; error: string }>;
-    skippedInvalid: Array<string>;
-  }>({
-    completed: 0,
-    total: 0,
-    succeeded: 0,
-    failed: [],
-    skippedInvalid: [],
-  });
   const [refreshToggle, setRefreshToggle] = useState<string>(
     Date.now().toString(),
   );
-
-  const parseBulkEmails: (input: string) => {
-    valid: Array<string>;
-    invalid: Array<string>;
-  } = (input: string) => {
-    const tokens: Array<string> = (input || "")
-      .split(/[\s,;]+/)
-      .map((t: string) => {
-        return t.trim();
-      })
-      .filter((t: string) => {
-        return t.length > 0;
-      });
-
-    const seen: Set<string> = new Set<string>();
-    const valid: Array<string> = [];
-    const invalid: Array<string> = [];
-
-    for (const token of tokens) {
-      const normalized: string = token.toLowerCase();
-      if (seen.has(normalized)) {
-        continue;
-      }
-      seen.add(normalized);
-
-      if (Email.isValid(normalized)) {
-        valid.push(normalized);
-      } else {
-        invalid.push(token);
-      }
-    }
-
-    return { valid, invalid };
-  };
+  /*
+   * Add in Bulk: the shared bulk runner and its progress dialog - several
+   * at once, the time left and Stop, and what happened to every entry
+   * (useStatusPageBulkAdd). The list is read again once it ends.
+   */
+  const bulkAdd: StatusPageBulkAdd = useStatusPageBulkAdd({
+    singularLabel: "Subscriber",
+    pluralLabel: "Subscribers",
+    onFinished: (): void => {
+      setRefreshToggle(Date.now().toString());
+    },
+  });
 
   interface BulkAddFormData {
     emails: string;
@@ -231,40 +195,30 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
       throw new BadDataException("Project ID cannot be null");
     }
 
-    const { valid, invalid } = parseBulkEmails(data.emails);
+    const entries: Array<StatusPageBulkAddEntry> = getBulkEmailEntries(
+      data.emails,
+    );
 
-    if (valid.length === 0) {
+    if (!hasBulkAddEntryToAdd(entries)) {
       throw new BadDataException(
         "No valid email addresses found. Please enter one email per line.",
       );
     }
 
-    // Close the form modal and show the progress modal
+    // The form goes; the progress dialog takes over.
     setShowBulkAddModal(false);
-    setShowProgressModal(true);
-    setBulkActionInProgress(true);
-    setBulkProgress({
-      completed: 0,
-      total: valid.length,
-      succeeded: 0,
-      failed: [],
-      skippedInvalid: invalid,
-    });
 
     const projectId: ObjectID = new ObjectID(props.currentProject._id);
     const addChoiceColumns: {
       isSubscriptionConfirmed: boolean;
       sendYouHaveSubscribedMessage: boolean;
     } = getSubscriberAddChoiceColumns(data.subscriberAddChoice);
-    let succeeded: number = 0;
-    const failed: Array<{ email: string; error: string }> = [];
 
-    for (let i: number = 0; i < valid.length; i++) {
-      const emailStr: string = valid[i]!;
-
-      try {
+    await bulkAdd.run(
+      entries,
+      async (entry: StatusPageBulkAddEntry): Promise<void> => {
         const subscriber: StatusPageSubscriber = new StatusPageSubscriber();
-        subscriber.subscriberEmail = new Email(emailStr);
+        subscriber.subscriberEmail = new Email(entry.value);
         subscriber.statusPageId = modelId;
         subscriber.projectId = projectId;
         subscriber.isSubscriptionConfirmed =
@@ -306,25 +260,8 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
           model: subscriber,
           modelType: StatusPageSubscriber,
         });
-        succeeded++;
-      } catch (err) {
-        failed.push({
-          email: emailStr,
-          error: API.getFriendlyMessage(err),
-        });
-      }
-
-      setBulkProgress({
-        completed: i + 1,
-        total: valid.length,
-        succeeded,
-        failed: [...failed],
-        skippedInvalid: invalid,
-      });
-    }
-
-    setBulkActionInProgress(false);
-    setRefreshToggle(Date.now().toString());
+      },
+    );
   };
 
   useEffect(() => {
@@ -747,127 +684,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             />
           )}
 
-          {showProgressModal && (
-            <ConfirmModal
-              title={
-                bulkActionInProgress
-                  ? "Adding Subscribers..."
-                  : "Bulk Add Complete"
-              }
-              description={
-                <div>
-                  {bulkActionInProgress ? (
-                    <div className="space-y-4">
-                      <p className="text-sm text-gray-500">
-                        {translator.translateText(
-                          "Please wait while subscribers are being added. This may take a moment.",
-                        )}
-                      </p>
-                      <ProgressBar
-                        count={bulkProgress.completed}
-                        totalCount={bulkProgress.total}
-                        suffix="subscribers"
-                        size={ProgressBarSize.Small}
-                      />
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      <div className="flex flex-col space-y-3">
-                        {bulkProgress.succeeded > 0 && (
-                          <div className="flex items-center rounded-lg bg-green-50 p-3">
-                            <Icon
-                              className="h-5 w-5 flex-shrink-0"
-                              icon={IconProp.CheckCircle}
-                              color={Green}
-                            />
-                            <div className="ml-2 text-sm font-medium text-green-800">
-                              {translator.translatePlural(
-                                {
-                                  one: "{{count}} subscriber added successfully",
-                                  other:
-                                    "{{count}} subscribers added successfully",
-                                },
-                                bulkProgress.succeeded,
-                              )}
-                            </div>
-                          </div>
-                        )}
-                        {bulkProgress.failed.length > 0 && (
-                          <div className="flex items-center rounded-lg bg-red-50 p-3">
-                            <Icon
-                              className="h-5 w-5 flex-shrink-0"
-                              icon={IconProp.Close}
-                              color={Red}
-                            />
-                            <div className="ml-2 text-sm font-medium text-red-800">
-                              {translator.translatePlural(
-                                {
-                                  one: "{{count}} subscriber failed",
-                                  other: "{{count}} subscribers failed",
-                                },
-                                bulkProgress.failed.length,
-                              )}
-                            </div>
-                          </div>
-                        )}
-                        {bulkProgress.skippedInvalid.length > 0 && (
-                          <div className="flex items-center rounded-lg bg-yellow-50 p-3">
-                            <Icon
-                              className="h-5 w-5 flex-shrink-0"
-                              icon={IconProp.Alert}
-                              color={Yellow}
-                            />
-                            <div className="ml-2 text-sm font-medium text-yellow-800">
-                              {translator.translatePlural(
-                                {
-                                  one: "{{count}} invalid email skipped",
-                                  other: "{{count}} invalid emails skipped",
-                                },
-                                bulkProgress.skippedInvalid.length,
-                              )}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      {bulkProgress.failed.length > 0 && (
-                        <div className="rounded-lg border border-gray-200 overflow-hidden">
-                          <div className="max-h-64 overflow-y-auto divide-y divide-gray-200">
-                            {bulkProgress.failed.map(
-                              (
-                                failedItem: {
-                                  email: string;
-                                  error: string;
-                                },
-                                i: number,
-                              ) => {
-                                return (
-                                  <div className="px-4 py-3 text-sm" key={i}>
-                                    <div className="font-medium text-gray-900">
-                                      {failedItem.email}
-                                    </div>
-                                    <div className="text-gray-500 mt-0.5">
-                                      {failedItem.error}
-                                    </div>
-                                  </div>
-                                );
-                              },
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              }
-              submitButtonType={ButtonStyleType.NORMAL}
-              disableSubmitButton={bulkActionInProgress}
-              submitButtonText="Close"
-              onSubmit={() => {
-                setShowProgressModal(false);
-              }}
-            />
-          )}
+          {bulkAdd.dialog}
         </>
       ) : (
         <></>
