@@ -317,7 +317,10 @@ function scope(overrides) {
   };
 }
 
-const jane = { identifiedUserKey: janeKey, identifiedUserLabel: "jane@example.com" };
+const jane = {
+  identifiedUserKey: janeKey,
+  identifiedUserLabel: "jane@example.com",
+};
 
 function scopedResponse(filters) {
   if (
@@ -342,16 +345,10 @@ function scopedResponse(filters) {
     );
   }
   if (filters.identifiedUserKey === hiddenKey) {
-    return journeysOf(
-      [hiddenSession],
-      scope({ identifiedUserKey: hiddenKey }),
-    );
+    return journeysOf([hiddenSession], scope({ identifiedUserKey: hiddenKey }));
   }
   if (filters.visitorId === visitorId) {
-    return journeysOf(
-      [visitorSession],
-      scope({ kind: "visitor", visitorId }),
-    );
+    return journeysOf([visitorSession], scope({ kind: "visitor", visitorId }));
   }
   if (filters.identifiedUserRef || filters.identifiedUserKey) {
     return journeysOf(

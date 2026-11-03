@@ -131,14 +131,12 @@ window.__labelRuleFixture = {
   projectId,
   labelIds: labels.map((label) => label._id),
 };
-await i18next
-  .use(initReactI18next)
-  .init({
-    lng: "en",
-    fallbackLng: "en",
-    resources: { en: { translation: {} } },
-    interpolation: { escapeValue: false },
-  });
+await i18next.use(initReactI18next).init({
+  lng: "en",
+  fallbackLng: "en",
+  resources: { en: { translation: {} } },
+  interpolation: { escapeValue: false },
+});
 function Fixture() {
   Navigation.setNavigateHook(useNavigate());
   Navigation.setLocation(useLocation());
