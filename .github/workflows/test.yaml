@@ -44,3 +44,76 @@ jobs:
         with:
           working-directory: packages/Home
       - run: cd packages/Home && npm run test
+
+  # Lighthouse's accessibility, best practices and SEO audits on the
+  # marketing site, the docs and the API reference: a page for each template,
+  # on a phone and on a laptop, held to what
+  # packages/E2E/Lighthouse/Baseline.json recorded (Lighthouse/README.md).
+  # Both services run from the checkout with no datastore, behind a proxy
+  # that routes their paths as Nginx does on oneuptime.com. Performance is
+  # not scanned: a shared runner's speed varies too much for its numbers to
+  # hold to a threshold.
+  #
+  # In the Playwright image, as App Test's browser jobs are
+  # (Tests/Ops/PlaywrightImage): Lighthouse drives the image's Chromium.
+  lighthouse:
+    name: Lighthouse (website, docs, API reference)
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
+      options: --user 1001 --ipc=host
+    defaults:
+      run:
+        shell: bash -e {0}
+    steps:
+      - uses: actions/checkout@v4
+      # Core is the Community Edition by construction: the site, the docs and
+      # the reference must render without ee/ in the checkout.
+      - name: Remove the Enterprise Edition (core runs without ee/)
+        run: rm -rf ee
+      - uses: ./.github/actions/runner-fonts
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: npm
+          cache-dependency-path: '**/package-lock.json'
+      - name: Install Common dependencies
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/Common
+      - name: Install Home dependencies
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/Home
+      - name: Install App dependencies
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/App
+      - name: Install browser test dependencies
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/E2E
+          # Skip the preinstall hook that downloads every browser: the
+          # image has them.
+          args: --ignore-scripts
+      # What the Home and App images build before they start: the site's
+      # stylesheet, and the mermaid the docs draw their diagrams with.
+      - name: Build the site's stylesheet and the docs' mermaid
+        timeout-minutes: 5
+        run: |
+          (cd packages/Home && npm run build:css)
+          node packages/Common/Scripts/build-mermaid-browser.js
+      - name: Run Lighthouse
+        working-directory: packages/E2E
+        timeout-minutes: 20
+        run: npm run test-lighthouse
+      - name: Upload the Lighthouse reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-${{ github.run_attempt }}
+          path: |
+            output/playwright/lighthouse/reports
+            output/playwright/lighthouse/test-results
+          retention-days: 7
