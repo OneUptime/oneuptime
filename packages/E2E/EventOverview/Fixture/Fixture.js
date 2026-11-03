@@ -432,6 +432,14 @@ import {
   AIChatToolActionStatus,
   AIChatWidgetType,
 } from "Common/Types/AI/AIChatTypes";
+import {
+  AI_ACTION_LINES,
+  AI_ACTION_TITLES,
+  aiActionList,
+  aiActionResourceByName,
+  aiActionSentence,
+  describeAIActionWords,
+} from "Common/Types/AI/AIActionWords";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Includes from "Common/Types/BaseDatabase/Includes";
@@ -6325,6 +6333,57 @@ function threadRunEvents(runId, startedAt, options) {
 const THREAD_ANSWER_TO_SENT_QUESTION =
   "checkout-api is still the only service above its latency threshold: its p95 is back under 500 ms since 18:12 and no other monitor has changed state [C1].";
 
+/*
+ * An action's card as the server stores it: its title and line as
+ * sentences (Common/Types/AI/AIActionWords), which the card says in the
+ * reader's language, the record by its number and the host by its name as
+ * data - beside their English, which the model and the exports read.
+ */
+function storedActionWords(words) {
+  const english = describeAIActionWords(words);
+
+  return {
+    title: english.title,
+    ...(english.description ? { description: english.description } : {}),
+    words,
+  };
+}
+
+// Acknowledging the thread's incident or alert, named by its number.
+function acknowledgeWords(kind, number) {
+  return storedActionWords({
+    title:
+      kind === "alert"
+        ? aiActionSentence(AI_ACTION_TITLES.acknowledgeAlert, {
+            alert: `#${number}`,
+          })
+        : aiActionSentence(AI_ACTION_TITLES.acknowledgeIncident, {
+            incident: `#${number}`,
+          }),
+    namedArguments: [`${kind}Id`],
+  });
+}
+
+// Linking it to host checkout-api-7f9c, as its prepare names both.
+function linkWords(kind, number) {
+  return storedActionWords({
+    title:
+      kind === "alert"
+        ? aiActionSentence(AI_ACTION_TITLES.linkAlert, { alert: `#${number}` })
+        : aiActionSentence(AI_ACTION_TITLES.linkIncident, {
+            incident: `#${number}`,
+          }),
+    description: [
+      aiActionSentence(AI_ACTION_LINES.adds, {
+        resources: aiActionList([
+          aiActionResourceByName({ noun: "host", name: "checkout-api-7f9c" }),
+        ]),
+      }),
+    ],
+    namedArguments: [`${kind}Id`],
+  });
+}
+
 function seedThread(kind, number) {
   const subject = `${kind} #${number}`;
   const messages = [];
@@ -6403,7 +6462,8 @@ function seedThread(kind, number) {
           {
             id: "call_acknowledge",
             toolName: `acknowledge_${kind}`,
-            title: `Acknowledge ${subject}`,
+            // "Acknowledge incident #1042", and its sentence.
+            ...acknowledgeWords(kind, number),
             arguments: { [`${kind}Number`]: number },
             isMutation: true,
             requiresApproval: false,
@@ -6524,7 +6584,8 @@ function seedThread(kind, number) {
         {
           id: "call_acknowledge",
           toolName: `acknowledge_${kind}`,
-          title: `Acknowledge ${subject}`,
+          // "Acknowledge incident #1042", and its sentence.
+          ...acknowledgeWords(kind, number),
           arguments: { [`${kind}Number`]: number },
           isMutation: true,
           requiresApproval: true,
@@ -6562,8 +6623,12 @@ function seedThread(kind, number) {
         {
           id: "call_link",
           toolName: `add_${kind}_affected_resources`,
-          title: `Link ${kind} #${number} to affected resources`,
-          description: 'Adds host "checkout-api-7f9c".',
+          /*
+           * "Link incident #1042 to affected resources" and 'Adds host
+           * "checkout-api-7f9c".', and their sentences: the title names
+           * the record, so the card leaves its ID out of the arguments.
+           */
+          ...linkWords(kind, number),
           arguments: {
             [`${kind}Id`]:
               kind === "incident" ? ID.incident(number) : ID.alert(number),
