@@ -8,6 +8,8 @@ import ResourceAiAccessSettings, {
   ResourceAiAccessWriteCarryForward,
 } from "../../../../../Server/Utils/AI/ResourceAccess/ResourceAiAccessSettings";
 import DatabaseService from "../../../../../Server/Services/DatabaseService";
+import AutoRemediationRuleEngineService from "../../../../../Server/Services/AutoRemediationRuleEngineService";
+import { AutoRemediationDecisionLane } from "../../../../../Types/AutoRemediation/AutoRemediationDecision";
 import ResourceAiAgentService from "../../../../../Server/Services/ResourceAiAgentService";
 import UserService from "../../../../../Server/Services/UserService";
 import { OnUpdate } from "../../../../../Server/Types/Database/Hooks";
@@ -1351,5 +1353,150 @@ describe("ResourceAiAccessSettings.describeChanges", () => {
       "AI remediation set to **Ask for approval**",
       "AI command allowlist changed to 2 patterns",
     ]);
+  });
+});
+
+/*
+ * #5303's follow-up: a resource's Fixes turned on decides again about the
+ * open incidents and alerts OneUptime AI found them off for
+ * (AutoRemediationRuleEngineService.onFixesTurnedOn). Every resource
+ * service's onUpdateSuccess calls afterUpdate, so it hands the write over
+ * here - an operator's, and the server's own for the resource's AI agent's
+ * configuration (a root write, which carries nothing forward) - never
+ * awaited, and with the project each resource belongs to.
+ */
+describe("ResourceAiAccessSettings.afterUpdate hands Fixes turned on to the engine", () => {
+  let service: FakeService;
+  let handedOver: jest.SpyInstance;
+
+  beforeEach(() => {
+    service = fakeService();
+    handedOver = jest
+      .spyOn(AutoRemediationRuleEngineService, "onFixesSettingWritten")
+      .mockResolvedValue(0);
+    jest
+      .spyOn(UserService, "getUserMarkdownString")
+      .mockResolvedValue(FeedMarkdown.asMarkdown("[Jane](https://x)"));
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  async function after(
+    data: Record<string, unknown>,
+    carryForward: unknown,
+    props: DatabaseCommonInteractionProps,
+  ): Promise<void> {
+    await ResourceAiAccessSettings.afterUpdate({
+      service: asService(service),
+      onUpdate: { updateBy: updateBy(data, props), carryForward },
+      updatedItemIds: [RESOURCE_ID],
+      getResourceMarkdownLink: jest
+        .fn()
+        .mockResolvedValue(FeedMarkdown.asMarkdown("[Host](https://x)")),
+      createFeedItem: jest.fn().mockResolvedValue(undefined),
+    });
+  }
+
+  function handed(): {
+    lane: AutoRemediationDecisionLane;
+    written: unknown;
+    updatedIds: Array<ObjectID>;
+    readProjectId: (id: ObjectID) => Promise<ObjectID | null | undefined>;
+  } {
+    expect(handedOver).toHaveBeenCalledTimes(1);
+    return handedOver.mock.calls[0]![0];
+  }
+
+  it("an operator's write turning Fixes on: the resource lane, what it wrote, the rows it wrote, and the project as it stood", async () => {
+    const data: Record<string, unknown> = {
+      aiRemediationMode: ResourceAiRemediationMode.RequireApproval,
+    };
+
+    await after(
+      data,
+      {
+        resourceType: AiResourceType.Host,
+        previousResourceAiAccessSettings: {
+          [RESOURCE_ID.toString()]: snapshot({ projectId: OTHER_PROJECT_ID }),
+        },
+      },
+      userProps([permissionRow(Permission.ProjectAdmin)]),
+    );
+
+    const call: ReturnType<typeof handed> = handed();
+    expect(call.lane).toBe(AutoRemediationDecisionLane.Resource);
+    expect(call.written).toBe(data);
+    expect(call.updatedIds).toEqual([RESOURCE_ID]);
+    // The project the write found the resource in: no second read.
+    expect((await call.readProjectId(RESOURCE_ID))?.toString()).toBe(
+      OTHER_PROJECT_ID.toString(),
+    );
+    expect(service.findOneById).not.toHaveBeenCalled();
+  });
+
+  it("the server's write for the agent's configuration hands it over too, its project read as OneUptime", async () => {
+    await after(
+      { aiRemediationMode: ResourceAiRemediationMode.Automatic },
+      null,
+      { isRoot: true },
+    );
+
+    const call: ReturnType<typeof handed> = handed();
+    expect((await call.readProjectId(RESOURCE_ID))?.toString()).toBe(
+      PROJECT_ID.toString(),
+    );
+    expect(service.findOneById).toHaveBeenCalledWith({
+      id: RESOURCE_ID,
+      select: { projectId: true },
+      props: { isRoot: true },
+    });
+    // A root write is not an operator's: nothing is marked or recorded.
+    expect(service.updateBy).not.toHaveBeenCalled();
+  });
+
+  it("a resource that cannot be found has no project to decide in", async () => {
+    service.findOneById.mockResolvedValue(null);
+
+    await after(
+      { aiRemediationMode: ResourceAiRemediationMode.RequireApproval },
+      null,
+      { isRoot: true },
+    );
+
+    expect(await handed().readProjectId(RESOURCE_ID)).toBeUndefined();
+  });
+
+  it.each([
+    [{ aiRemediationMode: ResourceAiRemediationMode.Disabled }],
+    [{ isAiInvestigationEnabled: true }],
+    [{ aiCommandAllowlist: ["systemctl restart nginx"] }],
+    [{ lastSeenAt: new Date("2026-11-03T10:00:00.000Z") }],
+  ])("%j hands nothing over", async (data: Record<string, unknown>) => {
+    await after(data, null, { isRoot: true });
+
+    expect(handedOver).not.toHaveBeenCalled();
+  });
+
+  it("a hand-over that fails never fails the save", async () => {
+    handedOver.mockRejectedValue(new Error("Valkey went away"));
+    const errors: jest.SpyInstance = jest
+      .spyOn(logger, "error")
+      .mockImplementation((): void => {});
+
+    await expect(
+      after(
+        { aiRemediationMode: ResourceAiRemediationMode.BypassApproval },
+        null,
+        { isRoot: true },
+      ),
+    ).resolves.toBeUndefined();
+
+    // Not awaited: the failure is logged once it lands.
+    await new Promise<void>((resolve: () => void) => {
+      setTimeout(resolve, 0);
+    });
+    expect(errors).toHaveBeenCalled();
   });
 });

@@ -25,7 +25,7 @@ import { DataSource, Logger } from "typeorm";
  * WHICH PROJECT A SLACK OR TEAMS HOME OPENS ON, AGAINST A MIGRATED POSTGRES.
  *
  * WorkspaceHomeChoice keeps the project somebody last chose in their Home's
- * Switch project menu (1808880000000-AddWorkspaceHomeChoice). The unit tests
+ * Switch project menu (1808887613000-AddWorkspaceHomeChoice). The unit tests
  * (WorkspaceHomeProject.test.ts) fake every read and write; what only a
  * database shows is that the service's SQL holds: a choice written again
  * stays one row, two choices of one project at once leave one row and throw

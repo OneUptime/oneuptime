@@ -6,6 +6,18 @@ import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import ObjectID from "../../../Types/ObjectID";
+import OneUptimeDate from "../../../Types/Date";
+import { AiAffectedResourceRef } from "../../../Types/AI/AiAffectedResources";
+import { SecurityEntity } from "../../../Types/SecurityCase/SecurityEntity";
+import {
+  SecurityConnectionWindow,
+  getEventConnectionWindow,
+} from "../../../Utils/SecurityCase/SecurityConnectionMatch";
+import {
+  getDistinctAffectedResources,
+  setAffectedResourcesOnNewRecord,
+} from "../AffectedResources/AffectedResourceLists";
+import { loadSecurityConnections } from "./Connections/ConnectionsLoader";
 import AlertService from "../../Services/AlertService";
 import AlertStateService from "../../Services/AlertStateService";
 import IncidentStateService from "../../Services/IncidentStateService";
@@ -29,7 +41,14 @@ import logger from "../Logger";
  *    user-visible incident numbers);
  *  - severity precedence: explicit id (validated to belong to the
  *    project), else name match on the source's severity label, else rank
- *    (severe sources get the project's most severe, others the least).
+ *    (severe sources get the project's most severe, others the least);
+ *  - every alert and incident opened is linked to what its match is about
+ *    (readMatchAffectedResources): the host, cluster, device, cloud resource
+ *    or service its entities name exactly, the one the logs behind its
+ *    events were sent under, and what the source knows it comes from. So
+ *    its investigation reaches it, auto-remediation can fix it, its owners'
+ *    rules apply and it shows on its page - a detection opened linked to
+ *    nothing left OneUptime AI nothing to fix (#5303's follow-up).
  */
 
 export interface AlertableMatch {
@@ -38,6 +57,63 @@ export interface AlertableMatch {
   title: string;
   description: string;
   rootCause: string;
+  /*
+   * What the match comes from, as the source knows it without a read: a
+   * Data Security issue's store - the cloud resource it was found in, the
+   * database server it is, the service whose telemetry it is.
+   */
+  affectedResources?: Array<AiAffectedResourceRef> | undefined;
+  /*
+   * The entities the match names - the users, hosts and addresses its case
+   * holds. The records they name exactly, and the records the logs behind
+   * its events were sent under, are linked too; a possible match never is.
+   */
+  entities?: Array<SecurityEntity> | undefined;
+}
+
+/*
+ * What an alert or incident opened for this match is linked to: what the
+ * match comes from, and what its entities name exactly, read as OneUptime
+ * (SecurityConnections.readEntityLinks) in the window its events are in.
+ * Enrichment: when what its entities name cannot be read, it is linked to
+ * what it comes from, and the read is logged - a detection is never held up
+ * by it.
+ */
+export async function readMatchAffectedResources(data: {
+  projectId: ObjectID;
+  match: AlertableMatch;
+  // The window the match's events are in. Default: the half hour up to now.
+  eventWindow?: SecurityConnectionWindow | undefined;
+  logLabel: string;
+}): Promise<Array<AiAffectedResourceRef>> {
+  const refs: Array<AiAffectedResourceRef> = [
+    ...(data.match.affectedResources || []),
+  ];
+  const entities: Array<SecurityEntity> = data.match.entities || [];
+
+  if (entities.length > 0) {
+    try {
+      const connections: ReturnType<typeof loadSecurityConnections> =
+        loadSecurityConnections();
+      const now: Date = OneUptimeDate.getCurrentDate();
+
+      refs.push(
+        ...connections.getConnectedRecordAffectedResources(
+          await connections.default.readEntityLinks({
+            projectId: data.projectId,
+            entities,
+            window: data.eventWindow || getEventConnectionWindow(now, now),
+          }),
+        ),
+      );
+    } catch (error) {
+      logger.error(
+        `${data.logLabel}: what a match names could not be read; its record is linked only to what it comes from: ${error}`,
+      );
+    }
+  }
+
+  return getDistinctAffectedResources(refs);
 }
 
 /*
@@ -63,6 +139,8 @@ export async function openDedupedAlerts(data: {
   logLabel: string;
   // Told the alert each match has now, opened or already open.
   onOutcome?: DedupedRecordOutcomeHandler | undefined;
+  // The window the matches' events are in: the run's, for a detection.
+  eventWindow?: SecurityConnectionWindow | undefined;
 }): Promise<number> {
   const fingerprints: Array<string> = data.matches.map(
     (match: AlertableMatch): string => {
@@ -130,6 +208,17 @@ export async function openDedupedAlerts(data: {
     alert.isCreatedAutomatically = true;
     alert.rootCause = match.rootCause;
 
+    // Read only for a match that opens one: an open alert keeps its links.
+    setAffectedResourcesOnNewRecord(
+      alert,
+      await readMatchAffectedResources({
+        projectId: data.projectId,
+        match,
+        eventWindow: data.eventWindow,
+        logLabel: data.logLabel,
+      }),
+    );
+
     try {
       const opened: Alert = await AlertService.create({
         data: alert,
@@ -169,6 +258,8 @@ export async function openDedupedIncidents(data: {
   logLabel: string;
   // Told the incident each match has now, declared or already open.
   onOutcome?: DedupedRecordOutcomeHandler | undefined;
+  // The window the matches' events are in: the run's, for a detection.
+  eventWindow?: SecurityConnectionWindow | undefined;
 }): Promise<number> {
   const fingerprints: Array<string> = data.matches.map(
     (match: AlertableMatch): string => {
@@ -237,6 +328,17 @@ export async function openDedupedIncidents(data: {
     incident.seriesFingerprint = match.fingerprint;
     incident.isCreatedAutomatically = true;
     incident.rootCause = match.rootCause;
+
+    // Read only for a match that declares one: an open incident keeps its links.
+    setAffectedResourcesOnNewRecord(
+      incident,
+      await readMatchAffectedResources({
+        projectId: data.projectId,
+        match,
+        eventWindow: data.eventWindow,
+        logLabel: data.logLabel,
+      }),
+    );
 
     try {
       const declared: Incident = await IncidentService.create({

@@ -28,8 +28,10 @@ import {
   isRemovedSshCommand,
 } from "Common/Types/AutoRemediation/AiRemediationCommandPlan";
 import {
+  ExternalMcpToolCall,
   ExternalMcpToolCallPlan,
   ExternalMcpToolCallPlanUtil,
+  ExternalMcpToolCallStatus,
 } from "Common/Types/AutoRemediation/ExternalMcpToolCallPlan";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -45,6 +47,7 @@ import Button, {
   ButtonSize,
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
+import Icon from "Common/UI/Components/Icon/Icon";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
@@ -52,6 +55,8 @@ import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import {
+  composedValue,
+  formatList,
   getGlobalTranslator,
   translationKey,
   Translator,
@@ -83,6 +88,12 @@ import RemediationFixFact, {
   RemediationFixFactVisual,
 } from "./RemediationFixFact";
 import {
+  REMEDIATION_FIX_CHANGES_SENTENCE,
+  REMEDIATION_FIX_COMMANDS_SENTENCE,
+  REMEDIATION_FIX_FAILED_COUNT,
+  REMEDIATION_FIX_HIDE_DETAILS,
+  REMEDIATION_FIX_REVIEW_AND_APPROVE,
+  REMEDIATION_FIX_SHOW_DETAILS,
   REMEDIATION_STEP_NOT_TRIED,
   REMEDIATION_STEP_STATUS_LABEL,
   REMEDIATION_STEP_TITLE,
@@ -152,7 +163,7 @@ export interface ComponentProps {
   investigationStage: AIInvestigationStage;
   /*
    * The record is resolved now: OneUptime AI does not try to fix it again,
-   * so Try again is not offered.
+   * so Try again is not offered, and no line says it tries again.
    */
   isRecordResolved?: boolean | undefined;
   /*
@@ -399,47 +410,187 @@ export function getCommandProgramChip(
   return firstWord === program ? null : program;
 }
 
+// Each name once, in the order it first came; an empty one is left out.
+function getDistinctNames(names: Array<string>): Array<string> {
+  return Array.from(
+    new Set<string>(
+      names.filter((name: string): boolean => {
+        return Boolean(name);
+      }),
+    ),
+  );
+}
+
+// The last two names of a list a sentence reads: "a, b and c".
+const NAMES_AND_LAST: string = translationKey("{{items}} and {{last}}");
+
 /*
- * Said over the fixes while one of them waits for approval: what pressing
- * Approve & Run does. It was the Remediation card's description, which also
- * listed every kind of fix there is ("kubectl on a cluster, commands on a
- * Runner, or a runbook ... for this signal"); inside the step each fix
- * says what it is, so only the part that matters before the press is left,
- * and only while there is something to press.
+ * Names as a sentence lists them, each once, in the words of the sentence's
+ * language: "prod-east", "Feature flags and Status page", "a, b and c" - a
+ * clause, so the last two are joined as the language joins them, not by a
+ * comma alone. Each is set apart where it could move the words around it (a
+ * name in Latin letters in a Persian sentence), so the list reads in its
+ * order right to left too. A name that is not known reads "(unknown)".
+ */
+function getNamesInSentence(
+  names: Array<string>,
+  sentenceTranslator: Translator,
+): string {
+  const unknownName: string =
+    sentenceTranslator.translateText("(unknown)") || "(unknown)";
+  const distinct: Array<string> = getDistinctNames(
+    names.map((name: string): string => {
+      return name || unknownName;
+    }),
+  );
+
+  if (distinct.length <= 1) {
+    return distinct[0] || unknownName;
+  }
+
+  return sentenceTranslator.translateTemplate(
+    NAMES_AND_LAST,
+    {
+      items: formatList(distinct.slice(0, -1), sentenceTranslator),
+      last: distinct[distinct.length - 1]!,
+    },
+    { setsValuesApart: true },
+  );
+}
+
+/*
+ * A fix of commands or changes, folded to its sentence: how many commands
+ * it runs and where - "2 commands on cluster prod-eu-west-1." - or how many
+ * changes it makes and through which MCP servers ("... through Feature
+ * flags and Status page."). Where it stands is the fact beside its title,
+ * so the sentence says the same whether it waits, ran or was dismissed.
+ * Null for a fix with nothing to fold: a runbook, one still being worked
+ * out, one whose commands cannot be read (its own line says so).
+ */
+export function getRemediationFixSentence(data: {
+  plan: AiRemediationCommandPlan | null;
+  mcpPlan: ExternalMcpToolCallPlan | null;
+  translator?: Translator | undefined;
+}): string | null {
+  const translator: Translator = data.translator || getGlobalTranslator();
+
+  if (data.plan && data.plan.commands.length > 0) {
+    const commands: Array<AiRemediationCommand> = data.plan.commands;
+
+    return translator.translatePlural(
+      REMEDIATION_FIX_COMMANDS_SENTENCE,
+      commands.length,
+      {
+        // Where they run, each once, in the words of the sentence's language.
+        targets: composedValue((sentenceTranslator: Translator): string => {
+          return getNamesInSentence(
+            commands.map((command: AiRemediationCommand): string => {
+              return getCommandTargetLabel(command, sentenceTranslator);
+            }),
+            sentenceTranslator,
+          );
+        }),
+      },
+      { setsValuesApart: true },
+    );
+  }
+
+  if (data.mcpPlan && data.mcpPlan.calls.length > 0) {
+    const calls: Array<ExternalMcpToolCall> = data.mcpPlan.calls;
+
+    return translator.translatePlural(
+      REMEDIATION_FIX_CHANGES_SENTENCE,
+      calls.length,
+      {
+        // The servers, each once, by the names the project gave them.
+        servers: composedValue((sentenceTranslator: Translator): string => {
+          return getNamesInSentence(
+            calls.map((call: ExternalMcpToolCall): string => {
+              return call.serverNameSnapshot;
+            }),
+            sentenceTranslator,
+          );
+        }),
+      },
+      { setsValuesApart: true },
+    );
+  }
+
+  return null;
+}
+
+/*
+ * How many of a fix's commands or changes failed: a command, or its undo,
+ * that failed, and a change a server did not make. Said in red beside where
+ * the fix stands, so a fix folded to its sentence never hides a failure.
+ */
+export function getRemediationFixFailedCount(data: {
+  plan: AiRemediationCommandPlan | null;
+  mcpPlan: ExternalMcpToolCallPlan | null;
+}): number {
+  const failedCommands: number = (data.plan?.commands || []).filter(
+    (command: AiRemediationCommand): boolean => {
+      return (
+        command.execution?.status ===
+          AiRemediationCommandExecutionStatus.Failed ||
+        command.rollbackExecution?.status ===
+          AiRemediationCommandExecutionStatus.Failed
+      );
+    },
+  ).length;
+  const failedChanges: number = (data.mcpPlan?.calls || []).filter(
+    (call: ExternalMcpToolCall): boolean => {
+      return call.status === ExternalMcpToolCallStatus.Failed;
+    },
+  ).length;
+
+  return failedCommands + failedChanges;
+}
+
+// The red fact of a fix's failures: "1 failed".
+const FIX_FAILED_VISUAL: RemediationFixFactVisual = {
+  label: translationKey("Failed"),
+  dot: "bg-rose-500",
+  isAlarming: true,
+};
+
+/*
+ * What pressing Approve & Run does, said right over it - inside the fix,
+ * under the commands it runs (or the runbook it names), and only while it
+ * is offered. It was the Remediation card's description, which also listed
+ * every kind of fix there is ("kubectl on a cluster, commands on a Runner,
+ * or a runbook ... for this signal"); inside the step each fix says what it
+ * is, so only the part that matters before the press is left. Over the
+ * fixes it read "exactly what is shown" while every fix was folded to its
+ * sentence and nothing was shown.
  */
 export const REMEDIATION_APPROVAL_NOTE: string = translationKey(
   "Approving runs exactly what is shown, under your name.",
 );
 
 /*
- * Whether a fix waits for the reader's approval - one Approve & Run can
- * run: waiting for approval, and not a plan that can no longer be approved
- * (an SSH command from before runbook credentials were removed).
+ * Whether the reader can approve a fix: it waits for approval, and it is
+ * not a plan that can no longer be approved (an SSH command from before
+ * runbook credentials were removed). Its Approve & Run is offered beside
+ * what it runs - its opened commands or changes, or a runbook's name - with
+ * what approving does right over it (REMEDIATION_APPROVAL_NOTE).
  */
-export function isRemediationApprovalNoteShown(
-  suggestions: Array<
-    Pick<AutoRemediationSuggestion, "status" | "suggestionType" | "commandPlan">
+export function isRemediationFixApprovable(
+  suggestion: Pick<
+    AutoRemediationSuggestion,
+    "status" | "suggestionType" | "commandPlan"
   >,
 ): boolean {
-  return suggestions.some(
-    (
-      suggestion: Pick<
-        AutoRemediationSuggestion,
-        "status" | "suggestionType" | "commandPlan"
-      >,
-    ): boolean => {
-      if (suggestion.status !== AutoRemediationSuggestionStatus.Suggested) {
-        return false;
-      }
+  if (suggestion.status !== AutoRemediationSuggestionStatus.Suggested) {
+    return false;
+  }
 
-      const plan: AiRemediationCommandPlan | null =
-        suggestion.suggestionType === AutoRemediationSuggestionType.CommandPlan
-          ? AiRemediationCommandPlanUtil.parse(suggestion.commandPlan || null)
-          : null;
+  const plan: AiRemediationCommandPlan | null =
+    suggestion.suggestionType === AutoRemediationSuggestionType.CommandPlan
+      ? AiRemediationCommandPlanUtil.parse(suggestion.commandPlan || null)
+      : null;
 
-      return !hasRemovedSshCommand(plan);
-    },
-  );
+  return !hasRemovedSshCommand(plan);
 }
 
 /*
@@ -1038,6 +1189,8 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
    */
   const [tryAgainAnswerCount, setTryAgainAnswerCount] = useState<number>(0);
   const tryAgainButtonId: string = useId();
+  // What each folded fix's Review and approve opens is named after this.
+  const fixDetailsIdPrefix: string = useId();
   const stepHeadingRef: React.RefObject<HTMLHeadingElement> =
     useRef<HTMLHeadingElement>(null);
   // The fix in the code the investigation recommends, once read.
@@ -1566,12 +1719,17 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
     isFixingOn: laneSwitches.states.fix,
   };
 
+  /*
+   * A resolved record's lines say what happened: OneUptime AI decides about
+   * it again only while it is open, so none of them says it tries again.
+   */
   const decisionLines: Array<RemediationDecisionLine> = decision
     ? getRemediationDecisionLines({
         decision,
         signal,
         translator,
         switchesNow,
+        isRecordResolved: Boolean(props.isRecordResolved),
       })
     : [];
 
@@ -1735,10 +1893,31 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
         (translator.translateText("AI remediation") as string);
     }
 
+    /*
+     * A fix of commands or changes is folded to its sentence, with where it
+     * stands beside its title (#5413's UI review: a lighter fixes block).
+     * One press - Review and approve, or Show details - opens its
+     * reasoning, its commands or changes, and Approve & Run, its dry run
+     * and Dismiss under them: approving runs exactly what is shown, so it
+     * is offered only beside what it runs. A runbook, a fix still being
+     * worked out and one whose commands cannot be read have nothing to fold.
+     */
+    const fixSentence: string | null = getRemediationFixSentence({
+      plan,
+      mcpPlan,
+      translator,
+    });
+    const detailsKey: string = `${suggestionId}:details`;
+    const isFolded: boolean =
+      Boolean(fixSentence) && !expandedIds.has(detailsKey);
+    const detailsRegionId: string = `${fixDetailsIdPrefix}-details-${suggestionId}`;
+    const failedCount: number = getRemediationFixFailedCount({
+      plan,
+      mcpPlan,
+    });
+
     // What can be done with the fix now.
-    const canApprove: boolean =
-      status === AutoRemediationSuggestionStatus.Suggested &&
-      !isUnapprovablePlan;
+    const canApprove: boolean = isRemediationFixApprovable(suggestion);
     const canDismiss: boolean =
       status === AutoRemediationSuggestionStatus.Suggested ||
       status === AutoRemediationSuggestionStatus.Planning;
@@ -1749,8 +1928,21 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
         suggestion.runbookId &&
         suggestion.runbookExecutionId,
     );
+    // Approve & Run and the dry run are beside the commands they run.
+    const isApproveShown: boolean = canApprove && !isFolded;
+    const isDryRunShown: boolean = Boolean(dryRunTitle) && !isFolded;
+    /*
+     * A fix that waits for the reader is decided with its commands in
+     * sight: folded, it offers one thing, Review and approve, which opens
+     * them with Approve & Run and Dismiss under them (Dismiss alone under a
+     * folded fix was the one button the reader saw, heavier than the press
+     * that opens it). A fix that cannot be approved - an SSH plan - has only
+     * Dismiss to offer, so it stays in sight; so does a fix still being
+     * worked out, which has nothing to fold.
+     */
+    const isDismissShown: boolean = canDismiss && !(canApprove && isFolded);
     const hasActions: boolean =
-      canApprove || Boolean(dryRunTitle) || canDismiss || canViewExecution;
+      isApproveShown || isDryRunShown || isDismissShown || canViewExecution;
 
     return (
       <div
@@ -1799,6 +1991,18 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
             ) : (
               <></>
             )}
+            {failedCount > 0 ? (
+              <RemediationFixFact
+                visual={FIX_FAILED_VISUAL}
+                words={translator.translatePlural(
+                  REMEDIATION_FIX_FAILED_COUNT,
+                  failedCount,
+                )}
+                testId="remediation-fix-failed-count"
+              />
+            ) : (
+              <></>
+            )}
           </div>
         </div>
 
@@ -1820,272 +2024,353 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
           <></>
         )}
 
-        {suggestion.rationaleMarkdown ? (
-          <div className="mt-3">
+        {/*
+          The fix folded to its sentence, and the one press that opens it:
+          Review and approve while it waits for the reader, Show details
+          otherwise. The sentence reads in its own direction (dir="auto"): a
+          locale that has not worded it yet reads it in English, full stop
+          at its end, on a right-to-left page too.
+        */}
+        {fixSentence ? (
+          <div
+            data-testid="remediation-fix-summary"
+            className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1"
+          >
+            <p
+              dir="auto"
+              data-testid="remediation-fix-sentence"
+              className="min-w-0 break-words text-sm leading-6 text-gray-700"
+            >
+              {fixSentence}
+            </p>
             <button
               type="button"
-              className="rounded text-xs font-medium text-indigo-600 hover:text-indigo-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-              aria-expanded={isExpanded}
+              data-testid="remediation-fix-details-toggle"
+              aria-expanded={!isFolded}
+              // Names what it opens while that is drawn.
+              aria-controls={!isFolded ? detailsRegionId : undefined}
               onClick={() => {
-                toggleExpanded(suggestionId);
+                toggleExpanded(detailsKey);
               }}
+              className="inline-flex items-center gap-1 rounded text-sm font-medium text-indigo-600 hover:text-indigo-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
             >
-              {translator.translateText(
-                isExpanded ? "Hide reasoning" : "Show reasoning",
-              )}
+              <span>
+                {translator.translateText(
+                  !isFolded
+                    ? REMEDIATION_FIX_HIDE_DETAILS
+                    : canApprove
+                      ? REMEDIATION_FIX_REVIEW_AND_APPROVE
+                      : REMEDIATION_FIX_SHOW_DETAILS,
+                )}
+              </span>
+              <Icon
+                icon={isFolded ? IconProp.ChevronDown : IconProp.ChevronUp}
+                className="h-4 w-4 flex-shrink-0"
+              />
             </button>
-            {isExpanded ? (
-              <div dir="auto" className="mt-2 text-sm text-gray-700">
+          </div>
+        ) : (
+          <></>
+        )}
+
+        {!isFolded ? (
+          <div id={detailsRegionId} data-testid="remediation-fix-details">
+            {/*
+              Opened from its sentence, a fix shows why OneUptime AI proposes
+              it first, then what it runs: the reasoning is part of what is
+              reviewed, never one more press inside the opened fix. A fix
+              with nothing to fold (a runbook) keeps it behind Show
+              reasoning.
+            */}
+            {suggestion.rationaleMarkdown && fixSentence ? (
+              <div
+                dir="auto"
+                data-testid="remediation-fix-reasoning"
+                className="mt-1 text-sm text-gray-700"
+              >
                 <MarkdownViewer
                   text={suggestion.rationaleMarkdown}
                   safeMode={true}
                 />
               </div>
+            ) : suggestion.rationaleMarkdown ? (
+              <div className="mt-3">
+                <button
+                  type="button"
+                  className="rounded text-xs font-medium text-indigo-600 hover:text-indigo-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                  aria-expanded={isExpanded}
+                  onClick={() => {
+                    toggleExpanded(suggestionId);
+                  }}
+                >
+                  {translator.translateText(
+                    isExpanded ? "Hide reasoning" : "Show reasoning",
+                  )}
+                </button>
+                {isExpanded ? (
+                  <div dir="auto" className="mt-2 text-sm text-gray-700">
+                    <MarkdownViewer
+                      text={suggestion.rationaleMarkdown}
+                      safeMode={true}
+                    />
+                  </div>
+                ) : (
+                  <></>
+                )}
+              </div>
             ) : (
               <></>
             )}
-          </div>
-        ) : (
-          <></>
-        )}
 
-        {plan ? (
-          <div className="mt-3">
-            <ol className="flex flex-col gap-4">
-              {plan.commands.map(
-                (command: AiRemediationCommand): ReactElement => {
-                  const commandKey: string = `${suggestionId}:command:${command.sequence}`;
-                  const isOutputExpanded: boolean = expandedIds.has(commandKey);
-                  const commandPillKind: CommandApprovalPillKind | null =
-                    getCommandApprovalPillKind(command, status);
-                  /*
-                   * Nothing in a plan that can't be approved waits for an
-                   * approval: only its SSH command's "no longer runs" is
-                   * said.
-                   */
-                  const approvalPillKind: CommandApprovalPillKind | null =
-                    isUnapprovablePlan &&
-                    commandPillKind === CommandApprovalPillKind.NeedsApproval
-                      ? null
-                      : commandPillKind;
-                  const programChip: string | null =
-                    getCommandProgramChip(command);
+            {plan ? (
+              <div className="mt-3">
+                <ol className="flex flex-col gap-4">
+                  {plan.commands.map(
+                    (command: AiRemediationCommand): ReactElement => {
+                      const commandKey: string = `${suggestionId}:command:${command.sequence}`;
+                      const isOutputExpanded: boolean =
+                        expandedIds.has(commandKey);
+                      const commandPillKind: CommandApprovalPillKind | null =
+                        getCommandApprovalPillKind(command, status);
+                      /*
+                       * Nothing in a plan that can't be approved waits for an
+                       * approval: only its SSH command's "no longer runs" is
+                       * said.
+                       */
+                      const approvalPillKind: CommandApprovalPillKind | null =
+                        isUnapprovablePlan &&
+                        commandPillKind ===
+                          CommandApprovalPillKind.NeedsApproval
+                          ? null
+                          : commandPillKind;
+                      const programChip: string | null =
+                        getCommandProgramChip(command);
 
-                  return (
-                    <li
-                      key={commandKey}
-                      data-testid="remediation-command"
-                      className="border-l-2 border-gray-200 pl-3"
-                    >
-                      {/*
+                      return (
+                        <li
+                          key={commandKey}
+                          data-testid="remediation-command"
+                          className="border-l-2 border-gray-200 pl-3"
+                        >
+                          {/*
                         Where it runs and the program it runs, then what
                         the policy says of it and how it went: words with a
                         dot, which wrap as words do on a phone.
                       */}
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                        <span className="inline-flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-                          <span className="text-xs font-medium text-gray-500">
-                            {command.sequence}.
-                          </span>
-                          <span className="break-words text-xs font-medium text-gray-900">
-                            {getCommandTargetLabel(command, translator)}
-                          </span>
-                          {programChip ? (
-                            <code
-                              data-testid="remediation-command-program"
-                              className="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-xs text-gray-700"
-                            >
-                              {programChip}
-                            </code>
-                          ) : (
-                            <></>
-                          )}
-                        </span>
-                        {command.kubectlTier ? (
-                          <KubectlTierFact tier={command.kubectlTier} />
-                        ) : command.stepType ===
-                            RunbookStepType.ResourceCommand &&
-                          command.resourceCommandTier ? (
-                          <ResourceCommandTierFact
-                            tier={command.resourceCommandTier}
-                          />
-                        ) : (
-                          <></>
-                        )}
-                        {approvalPillKind ? (
-                          <CommandApprovalFact kind={approvalPillKind} />
-                        ) : (
-                          <></>
-                        )}
-                        {command.execution ? (
-                          <CommandExecutionFact
-                            status={command.execution.status}
-                          />
-                        ) : (
-                          <></>
-                        )}
-                      </div>
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                            <span className="inline-flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                              <span className="text-xs font-medium text-gray-500">
+                                {command.sequence}.
+                              </span>
+                              <span className="break-words text-xs font-medium text-gray-900">
+                                {getCommandTargetLabel(command, translator)}
+                              </span>
+                              {programChip ? (
+                                <code
+                                  data-testid="remediation-command-program"
+                                  className="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-xs text-gray-700"
+                                >
+                                  {programChip}
+                                </code>
+                              ) : (
+                                <></>
+                              )}
+                            </span>
+                            {command.kubectlTier ? (
+                              <KubectlTierFact tier={command.kubectlTier} />
+                            ) : command.stepType ===
+                                RunbookStepType.ResourceCommand &&
+                              command.resourceCommandTier ? (
+                              <ResourceCommandTierFact
+                                tier={command.resourceCommandTier}
+                              />
+                            ) : (
+                              <></>
+                            )}
+                            {approvalPillKind ? (
+                              <CommandApprovalFact kind={approvalPillKind} />
+                            ) : (
+                              <></>
+                            )}
+                            {command.execution ? (
+                              <CommandExecutionFact
+                                status={command.execution.status}
+                              />
+                            ) : (
+                              <></>
+                            )}
+                          </div>
 
-                      <CloudChangeWordsLine command={command} />
+                          <CloudChangeWordsLine command={command} />
 
-                      <pre className="mt-2 overflow-x-auto rounded-md bg-gray-50 px-3 py-2 font-mono text-xs text-gray-800">
-                        {command.command}
-                      </pre>
+                          <pre className="mt-2 overflow-x-auto rounded-md bg-gray-50 px-3 py-2 font-mono text-xs text-gray-800">
+                            {command.command}
+                          </pre>
 
-                      <div
-                        dir="auto"
-                        data-testid="remediation-command-rationale"
-                        className="mt-2 text-xs text-gray-600"
-                      >
-                        {command.rationale}
-                      </div>
-                      {/*
+                          <div
+                            dir="auto"
+                            data-testid="remediation-command-rationale"
+                            className="mt-2 text-xs text-gray-600"
+                          >
+                            {command.rationale}
+                          </div>
+                          {/*
                         What OneUptime AI expects, in its own words, set
                         apart from the label (TranslatedSentence): on a
                         Persian page an English effect kept its full stop
                         at the start of its last line.
                       */}
-                      <div
-                        data-testid="remediation-command-expected-effect"
-                        className="mt-1 text-xs text-gray-500"
-                      >
-                        <TranslatedSentence
-                          template="Expected effect: {{effect}}"
-                          slots={{}}
-                          values={{ effect: command.expectedEffect }}
-                        />
-                      </div>
+                          <div
+                            data-testid="remediation-command-expected-effect"
+                            className="mt-1 text-xs text-gray-500"
+                          >
+                            <TranslatedSentence
+                              template="Expected effect: {{effect}}"
+                              slots={{}}
+                              values={{ effect: command.expectedEffect }}
+                            />
+                          </div>
 
-                      {/*
+                          {/*
                         How the same change went the last times it ran
                         on this cluster or resource, while it waits for
                         approval: what the person approving weighs.
                       */}
-                      {command.trackRecord && !command.execution ? (
-                        <RemediationTrackRecordLine
-                          record={command.trackRecord}
-                        />
-                      ) : (
-                        <></>
-                      )}
-
-                      <CommandGitOpsNote command={command} />
-
-                      <CloudCommandNote command={command} />
-
-                      {command.rollbackCommand ? (
-                        <div className="mt-1 text-xs text-gray-500">
-                          <TranslatedSentence
-                            template="Rollback: {{command}}"
-                            slots={{
-                              /*
-                               * Code, which reads left to right in every
-                               * language (Theme.css).
-                               */
-                              command: (
-                                <code className="font-mono text-gray-700">
-                                  {command.rollbackCommand}
-                                </code>
-                              ),
-                            }}
-                          />
-                        </div>
-                      ) : (
-                        <></>
-                      )}
-
-                      {command.execution ? (
-                        <CommandExecutionDetails
-                          execution={command.execution}
-                          isOutputExpanded={isOutputExpanded}
-                          onToggleOutput={() => {
-                            toggleExpanded(commandKey);
-                          }}
-                        />
-                      ) : (
-                        <></>
-                      )}
-
-                      {/*
-                       * The undo's own outcome, when the rollback arm ran
-                       * (or skipped) it for this command: "Rollback status"
-                       * below the plan says how the rollback as a whole
-                       * ended, this says what happened to each undo.
-                       */}
-                      {command.rollbackExecution ? (
-                        <div
-                          className="mt-2 border-l-2 border-gray-200 pl-2"
-                          data-testid="remediation-rollback-outcome"
-                        >
-                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                            <span className="text-xs font-medium text-gray-700">
-                              {translator.translateText("Rollback result")}
-                            </span>
-                            <CommandExecutionFact
-                              status={command.rollbackExecution.status}
-                              testId="remediation-rollback-execution"
+                          {command.trackRecord && !command.execution ? (
+                            <RemediationTrackRecordLine
+                              record={command.trackRecord}
                             />
-                          </div>
-                          {command.rollbackExecution.status ===
-                            AiRemediationCommandExecutionStatus.Skipped &&
-                          !command.rollbackExecution.errorMessage ? (
+                          ) : (
+                            <></>
+                          )}
+
+                          <CommandGitOpsNote command={command} />
+
+                          <CloudCommandNote command={command} />
+
+                          {command.rollbackCommand ? (
                             <div className="mt-1 text-xs text-gray-500">
-                              {translator.translateText(
-                                "The undo did not run — undo this change by hand if it is still needed.",
-                              )}
+                              <TranslatedSentence
+                                template="Rollback: {{command}}"
+                                slots={{
+                                  /*
+                                   * Code, which reads left to right in every
+                                   * language (Theme.css).
+                                   */
+                                  command: (
+                                    <code className="font-mono text-gray-700">
+                                      {command.rollbackCommand}
+                                    </code>
+                                  ),
+                                }}
+                              />
                             </div>
                           ) : (
                             <></>
                           )}
-                          <CommandExecutionDetails
-                            execution={command.rollbackExecution}
-                            isOutputExpanded={expandedIds.has(
-                              `${commandKey}:rollback`,
-                            )}
-                            onToggleOutput={() => {
-                              toggleExpanded(`${commandKey}:rollback`);
-                            }}
-                          />
-                        </div>
-                      ) : (
-                        <></>
-                      )}
-                    </li>
-                  );
-                },
-              )}
-            </ol>
-            {plan.executionStatus ? (
-              <div className="mt-3 text-xs text-gray-500">
-                {translator.translateTemplate("Plan execution: {{status}}", {
-                  status: translator.translateText(
-                    PLAN_EXECUTION_LABELS[plan.executionStatus] ||
-                      plan.executionStatus,
-                  ) as string,
-                })}
+
+                          {command.execution ? (
+                            <CommandExecutionDetails
+                              execution={command.execution}
+                              isOutputExpanded={isOutputExpanded}
+                              onToggleOutput={() => {
+                                toggleExpanded(commandKey);
+                              }}
+                            />
+                          ) : (
+                            <></>
+                          )}
+
+                          {/*
+                           * The undo's own outcome, when the rollback arm ran
+                           * (or skipped) it for this command: "Rollback status"
+                           * below the plan says how the rollback as a whole
+                           * ended, this says what happened to each undo.
+                           */}
+                          {command.rollbackExecution ? (
+                            <div
+                              className="mt-2 border-l-2 border-gray-200 pl-2"
+                              data-testid="remediation-rollback-outcome"
+                            >
+                              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                                <span className="text-xs font-medium text-gray-700">
+                                  {translator.translateText("Rollback result")}
+                                </span>
+                                <CommandExecutionFact
+                                  status={command.rollbackExecution.status}
+                                  testId="remediation-rollback-execution"
+                                />
+                              </div>
+                              {command.rollbackExecution.status ===
+                                AiRemediationCommandExecutionStatus.Skipped &&
+                              !command.rollbackExecution.errorMessage ? (
+                                <div className="mt-1 text-xs text-gray-500">
+                                  {translator.translateText(
+                                    "The undo did not run — undo this change by hand if it is still needed.",
+                                  )}
+                                </div>
+                              ) : (
+                                <></>
+                              )}
+                              <CommandExecutionDetails
+                                execution={command.rollbackExecution}
+                                isOutputExpanded={expandedIds.has(
+                                  `${commandKey}:rollback`,
+                                )}
+                                onToggleOutput={() => {
+                                  toggleExpanded(`${commandKey}:rollback`);
+                                }}
+                              />
+                            </div>
+                          ) : (
+                            <></>
+                          )}
+                        </li>
+                      );
+                    },
+                  )}
+                </ol>
+                {plan.executionStatus ? (
+                  <div className="mt-3 text-xs text-gray-500">
+                    {translator.translateTemplate(
+                      "Plan execution: {{status}}",
+                      {
+                        status: translator.translateText(
+                          PLAN_EXECUTION_LABELS[plan.executionStatus] ||
+                            plan.executionStatus,
+                        ) as string,
+                      },
+                    )}
+                  </div>
+                ) : (
+                  <></>
+                )}
+                {plan.rollbackStatus ? (
+                  <div className="mt-1 text-xs text-gray-500">
+                    {translator.translateTemplate(
+                      "Rollback status: {{status}}",
+                      {
+                        status: translator.translateText(
+                          ROLLBACK_STATUS_LABELS[plan.rollbackStatus] ||
+                            plan.rollbackStatus,
+                        ) as string,
+                      },
+                    )}
+                  </div>
+                ) : (
+                  <></>
+                )}
               </div>
             ) : (
               <></>
             )}
-            {plan.rollbackStatus ? (
-              <div className="mt-1 text-xs text-gray-500">
-                {translator.translateTemplate("Rollback status: {{status}}", {
-                  status: translator.translateText(
-                    ROLLBACK_STATUS_LABELS[plan.rollbackStatus] ||
-                      plan.rollbackStatus,
-                  ) as string,
-                })}
-              </div>
+
+            {mcpPlan ? (
+              <McpToolCallList plan={mcpPlan} suggestionId={suggestionId} />
             ) : (
               <></>
             )}
           </div>
-        ) : (
-          <></>
-        )}
-
-        {mcpPlan ? (
-          <McpToolCallList plan={mcpPlan} suggestionId={suggestionId} />
         ) : (
           <></>
         )}
@@ -2115,6 +2400,21 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
         )}
 
         {/*
+          What approving does, right over Approve & Run: it runs exactly
+          what the opened fix shows, under the reader's name.
+        */}
+        {isApproveShown ? (
+          <p
+            data-testid="remediation-approval-note"
+            className="mt-3 text-xs leading-5 text-gray-500"
+          >
+            {translator.translateText(REMEDIATION_APPROVAL_NOTE)}
+          </p>
+        ) : (
+          <></>
+        )}
+
+        {/*
           What the reader can do with the fix, each button as wide as its
           words: a Button fills the row below md, which made Approve & Run a
           bar of its own over the others on a phone. A refused press says
@@ -2123,9 +2423,11 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
         {hasActions ? (
           <div
             data-testid="remediation-fix-actions"
-            className="mt-3 flex flex-wrap items-center gap-2 [&>button]:ml-0 [&>button]:w-auto [&>button]:md:ml-0"
+            className={`${
+              isApproveShown ? "mt-2" : "mt-3"
+            } flex flex-wrap items-center gap-2 [&>button]:ml-0 [&>button]:w-auto [&>button]:md:ml-0`}
           >
-            {canApprove ? (
+            {isApproveShown ? (
               <Button
                 title="Approve & Run"
                 icon={IconProp.Check}
@@ -2144,7 +2446,7 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
               <></>
             )}
 
-            {dryRunTitle ? (
+            {isDryRunShown && dryRunTitle ? (
               <Button
                 title={dryRunTitle}
                 icon={IconProp.Search}
@@ -2166,7 +2468,7 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
               <></>
             )}
 
-            {canDismiss ? (
+            {isDismissShown ? (
               <Button
                 title="Dismiss"
                 icon={IconProp.Close}
@@ -2362,19 +2664,10 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
       {suggestions.length > 0 ? (
         <div data-testid="remediation-fixes">
           {/*
-            While a fix waits for approval: what approving it does. It runs
-            exactly what is shown, under the approver's name.
+            What approving does is said inside each fix, right over its
+            Approve & Run (REMEDIATION_APPROVAL_NOTE): folded to their
+            sentences, the fixes show nothing it could be about.
           */}
-          {isRemediationApprovalNoteShown(suggestions) ? (
-            <p
-              data-testid="remediation-approval-note"
-              className="mb-4 text-xs leading-5 text-gray-500"
-            >
-              {translator.translateText(REMEDIATION_APPROVAL_NOTE)}
-            </p>
-          ) : (
-            <></>
-          )}
           <div className="divide-y divide-gray-200">
             {suggestions.map(
               (suggestion: AutoRemediationSuggestion): ReactElement => {

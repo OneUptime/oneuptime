@@ -99,7 +99,7 @@ The buttons at the top of the exception's page, its **Settings** page and the �
 
 **Settings** shows who last resolved or archived the exception, and when. Its buttons read **Mark as Resolved** or **Mark as Unresolved**, and **Archive** or **Unarchive**.
 
-To change several at once, tick their rows in the list, or the box above the rows for every exception on the page, and use the same actions under **Bulk Actions**. It says which exceptions it changed, which it left as they were, and why.
+To change several at once, tick their rows in the list, or the box above the rows for every exception on the page, and use the same actions under **Bulk Actions**. Once every exception on the page is ticked, the line above the rows offers to select every exception that matches the list's search and filters, on every page, up to 10,000 at a time; an action on them then asks before it changes them. It says which exceptions it changed, which it left as they were, and why.
 
 **Assign** in the exception's header gives it to one person or one team, and removing them unassigns it. Each row shows who owns it, its ⋯ menu offers **Assign to me**, and **Assign to…** under **Bulk Actions** assigns several at once. The person it is assigned to, or each member of the team, gets a notification as the **Exception assigned to me** row of their [Notification Settings](/docs/notifications/notification-settings) says; whoever assigned it does not.
 

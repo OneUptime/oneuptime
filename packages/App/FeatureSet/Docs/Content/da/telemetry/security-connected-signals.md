@@ -94,7 +94,7 @@ Under posterne søger Forbundne signaler i dine protokoller og spor, i det samme
 
 ## Hændelser, som en sag erklærer
 
-**Erklær hændelse** på en sag, eller et playbook-trin, der erklærer en, knytter hændelsen til de værter, Docker- og Podman-værter, Kubernetes-klynger, cloud-ressourcer og tjenester, som sagen er præcist forbundet med. Hændelsen vises på deres sider, og deres ejeres regler gælder for den, og dens feed nævner sagen, og hvad den blev knyttet til. Et muligt match knyttes aldrig, og det gør en monitor heller ikke: en hændelse på en monitor kan ændre dens status og vises på dens statussider.
+**Erklær hændelse** på en sag, eller et playbook-trin, der erklærer en, knytter hændelsen til de værter, Docker- og Podman-værter, Kubernetes-klynger, netværksenheder, cloud-ressourcer og tjenester, som sagen er præcist forbundet med. Et playbook-trin, der tilkalder vagten, knytter den advarsel, det åbner, på samme måde; hver advarsel og hændelse, som en detektionsregel eller et threat intelligence-match åbner, knyttes til det, matchet præcist nævner, og hver, som Data Security åbner, til det datalager, den drejer sig om. Hændelsen vises på deres sider, og deres ejeres regler gælder for den, og dens feed nævner sagen, og hvad den blev knyttet til. Et muligt match knyttes aldrig, og det gør en monitor heller ikke: en hændelse på en monitor kan ændre dens status og vises på dens statussider.
 
 ## OneUptime AI
 

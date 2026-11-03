@@ -108,7 +108,7 @@ Ouvrez **Vues enregistrées** et cliquez sur **+ Enregistrer la vue actuelle**. 
 Choisissez la vue dans **Vues enregistrées** pour l'appliquer, et **Effacer la vue** pour revenir à la dernière heure sans filtre. Pointez une vue de la liste pour la **Modifier** ou la **Supprimer**, ou, tant qu'elle est appliquée, pour la **Mettre à jour** avec vos changements.
 :::
 
-Les vues enregistrées appartiennent au projet : tout le monde y voit la même liste. Une plage glissante comme la dernière heure reste glissante : la vue montre l'heure qui précède son ouverture, pas l'heure où vous l'avez enregistrée. Tant que le projet n'a pas de vue par défaut, la prochaine vue enregistrée le devient, et un projet n'a qu'une vue par défaut à la fois.
+Les vues enregistrées appartiennent au projet, tout le monde y voit donc les mêmes vues, et chaque vue reste sur la page où elle a été enregistrée : une vue enregistrée sur la page Journaux s'affiche sur la page Journaux, et une vue enregistrée dans l'onglet Journaux d'une ressource, comme celui d'un cluster Kubernetes ou d'un hôte, ne s'affiche que dans cet onglet. Une plage glissante comme la dernière heure reste glissante : la vue montre l'heure qui précède son ouverture, pas l'heure où vous l'avez enregistrée. Tant qu'une page n'a pas de vue par défaut, la prochaine vue enregistrée sur cette page le devient, et chaque page n'a qu'une vue par défaut à la fois.
 
 ## Représenter vos journaux en graphiques
 

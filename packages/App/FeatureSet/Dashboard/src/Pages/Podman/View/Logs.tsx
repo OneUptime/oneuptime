@@ -16,6 +16,10 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import DashboardLogsViewer from "../../../Components/Logs/LogsViewer";
+import {
+  buildSavedViewScope,
+  SavedViewScopeKind,
+} from "Common/Utils/Telemetry/SavedViewScope";
 import Query from "Common/Types/BaseDatabase/Query";
 import Log from "Common/Models/AnalyticsModels/Log";
 
@@ -97,6 +101,10 @@ const PodmanHostLogs: FunctionComponent<
        */}
       <DashboardLogsViewer
         id={`podman-host-logs-${modelId.toString()}`}
+        savedViewScope={buildSavedViewScope(
+          SavedViewScopeKind.PodmanHost,
+          modelId,
+        )}
         logQuery={logQuery}
         attributeFilterDisplayKeys={{
           "resource.host.name": "Podman Host",

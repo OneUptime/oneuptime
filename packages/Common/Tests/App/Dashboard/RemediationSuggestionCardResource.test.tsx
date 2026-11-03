@@ -42,6 +42,7 @@ import { ResourceCommandTier } from "../../../Types/ResourceAiAgent/ResourceAiAc
 import ObjectID from "../../../Types/ObjectID";
 import RunbookStepType from "../../../Types/Runbook/RunbookStepType";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import { openRemediationFixes } from "./RemediationFixHarness";
 
 /*
  * The remediation card for a RESOURCE round — AI fixes on a Docker or
@@ -123,6 +124,8 @@ async function renderCard(
   render(
     <RemediationStep investigationStage="reported" incidentId={INCIDENT_ID} />,
   );
+  // Folded to its sentence: opened, as a reader does.
+  await openRemediationFixes();
   const command: HTMLElement = await screen.findByText(commandText);
   const commandRow: HTMLElement | null = command.closest("li");
 

@@ -68,9 +68,18 @@ function run(command, args, options = {}) {
   return result;
 }
 
-// A workflow step's `run`, as the runner runs it: bash with -e.
+// A workflow step's `run`, as the runner runs it: bash with -e, from a file of
+// its own. No text read from the repository becomes a `bash -c` argument
+// (code scanning's js/shell-command-injection-from-environment).
 function runStepScript(script, options = {}) {
-  return run("bash", ["-e", "-c", script], options);
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "plugin-step-"));
+  try {
+    const file = path.join(directory, "step.sh");
+    fs.writeFileSync(file, script);
+    return run("bash", ["-e", file], options);
+  } finally {
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
 }
 
 function hasShellcheck() {

@@ -74,6 +74,7 @@ import SecurityCaseIngest, {
 } from "../../SecurityCase/SecurityCaseIngest";
 import SecurityDetectionSource from "../../../../Types/SecurityCase/SecurityDetectionSource";
 import {
+  SecurityEntity,
   entitiesFromObservables,
   mergeSecurityEntities,
 } from "../../../../Types/SecurityCase/SecurityEntity";
@@ -471,6 +472,7 @@ export default class ThreatIntelMatcher {
         projectId,
         alertSeverityId,
         logLabel: `ThreatIntelMatcher: feed ${feed.id?.toString()}`,
+        eventWindow: { start: data.startTime, end: data.endTime },
         matches: groups.map(
           (matchGroup: IndicatorMatchGroup): AlertableMatch => {
             return this.buildAlertableMatch({
@@ -520,6 +522,7 @@ export default class ThreatIntelMatcher {
         projectId,
         incidentSeverityId,
         logLabel: `ThreatIntelMatcher: feed ${feed.id?.toString()}`,
+        eventWindow: { start: data.startTime, end: data.endTime },
         matches: groups.map(
           (matchGroup: IndicatorMatchGroup): AlertableMatch => {
             return this.buildAlertableMatch({
@@ -575,10 +578,7 @@ export default class ThreatIntelMatcher {
           severity: ocsfSeverityForConfidence(matchGroup.confidence),
           eventCount: matchGroup.matchCount,
           groupValue: matchGroup.indicatorValue,
-          entities: mergeSecurityEntities(
-            entitiesFromObservables([matchGroup.indicatorValue]),
-            entitiesFromObservables(matchGroup.sampleObservables),
-          ),
+          entities: this.getMatchGroupEntities(matchGroup),
           mitreTactics: [],
           mitreTechniques: [],
           ruleName: feed.name || undefined,
@@ -761,6 +761,21 @@ export default class ThreatIntelMatcher {
     return eventUids;
   }
 
+  /*
+   * What a matched indicator is about: its value - the address, domain or
+   * hash the events touched - and the events' sample observables, the hosts
+   * and addresses they name. Its case holds them, and the alert or incident
+   * it opens is linked to the records they name exactly.
+   */
+  public static getMatchGroupEntities(
+    matchGroup: IndicatorMatchGroup,
+  ): Array<SecurityEntity> {
+    return mergeSecurityEntities(
+      entitiesFromObservables([matchGroup.indicatorValue]),
+      entitiesFromObservables(matchGroup.sampleObservables),
+    );
+  }
+
   private static buildAlertableMatch(data: {
     feed: ThreatIntelFeed;
     matchGroup: IndicatorMatchGroup;
@@ -775,6 +790,8 @@ export default class ThreatIntelMatcher {
       description: this.buildMatchDescription(data),
       rootCause:
         mdText`Threat intel feed "${feed.name}" indicator matched security events.`.toString(),
+      // What it is about, as its case reads it: linked to the alert.
+      entities: this.getMatchGroupEntities(matchGroup),
     };
   }
 

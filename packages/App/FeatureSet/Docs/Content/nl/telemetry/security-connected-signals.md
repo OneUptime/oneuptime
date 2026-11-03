@@ -94,7 +94,7 @@ Onder de records doorzoekt Verbonden signalen uw logboeken en traces, over hetze
 
 ## Incidenten die een zaak meldt
 
-**Incident melden** op een zaak, of de stap van een playbook die er een meldt, koppelt het incident aan de hosts, Docker- en Podman-hosts, Kubernetes-clusters, cloud-resources en services waarmee de zaak exact verbonden is. Het incident verschijnt op hun pagina's, de regels van hun eigenaren gelden ervoor, en de feed ervan noemt de zaak en waaraan het is gekoppeld. Een mogelijke overeenkomst wordt nooit gekoppeld, en een monitor ook niet: een incident op een monitor kan zijn status veranderen en op zijn statuspagina's verschijnen.
+**Incident melden** op een zaak, of de stap van een playbook die er een meldt, koppelt het incident aan de hosts, Docker- en Podman-hosts, Kubernetes-clusters, netwerkapparaten, cloud-resources en services waarmee de zaak exact verbonden is. De stap van een playbook die de dienstdoende oproept, koppelt de waarschuwing die hij opent op dezelfde manier; elke waarschuwing en elk incident dat een detectieregel of een treffer van threat intelligence opent, wordt gekoppeld aan wat de treffer exact noemt, en elk dat Data Security opent aan de gegevensopslag waar het om gaat. Het incident verschijnt op hun pagina's, de regels van hun eigenaren gelden ervoor, en de feed ervan noemt de zaak en waaraan het is gekoppeld. Een mogelijke overeenkomst wordt nooit gekoppeld, en een monitor ook niet: een incident op een monitor kan zijn status veranderen en op zijn statuspagina's verschijnen.
 
 ## OneUptime AI
 

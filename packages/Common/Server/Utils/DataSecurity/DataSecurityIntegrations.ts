@@ -35,6 +35,10 @@ import DataSecurityIssue from "../../../Models/DatabaseModels/DataSecurityIssue"
 import Includes from "../../../Types/BaseDatabase/Includes";
 import EmailTemplateType from "../../../Types/Email/EmailTemplateType";
 import ObjectID from "../../../Types/ObjectID";
+import {
+  AiAffectedResourceKind,
+  AiAffectedResourceRef,
+} from "../../../Types/AI/AiAffectedResources";
 import SecuritySeverity from "../../../Types/SecuritySeverity";
 import OcsfSeverity from "../../../Types/SecurityEvent/OcsfSeverity";
 import SecurityDetectionSource from "../../../Types/SecurityCase/SecurityDetectionSource";
@@ -86,6 +90,52 @@ export interface OpenedIssueForIntegrations {
   dataStoreKey: string;
   dataStoreKind?: string | undefined;
   sensitivity: DataSensitivity;
+  /*
+   * What the store is in OneUptime, when it was found there: the cloud
+   * resource it was discovered from, the database server it is, the service
+   * whose telemetry it is. The alert or incident raised for the issue is
+   * linked to them, so its investigation reaches them and auto-remediation
+   * can fix them through their AI agents.
+   */
+  cloudResourceId?: ObjectID | undefined;
+  databaseServerId?: ObjectID | undefined;
+  serviceId?: ObjectID | undefined;
+}
+
+/*
+ * What an alert or incident for an issue is about: the store's records in
+ * OneUptime (OpenedIssueForIntegrations), each one it has.
+ */
+export function getIssueAffectedResources(
+  issue: Pick<
+    OpenedIssueForIntegrations,
+    "cloudResourceId" | "databaseServerId" | "serviceId"
+  >,
+): Array<AiAffectedResourceRef> {
+  const refs: Array<AiAffectedResourceRef> = [];
+
+  if (issue.cloudResourceId) {
+    refs.push({
+      kind: AiAffectedResourceKind.CloudResource,
+      id: issue.cloudResourceId.toString(),
+    });
+  }
+
+  if (issue.databaseServerId) {
+    refs.push({
+      kind: AiAffectedResourceKind.DatabaseServer,
+      id: issue.databaseServerId.toString(),
+    });
+  }
+
+  if (issue.serviceId) {
+    refs.push({
+      kind: AiAffectedResourceKind.Service,
+      id: issue.serviceId.toString(),
+    });
+  }
+
+  return refs;
 }
 
 const OCSF_SEVERITY: Readonly<Record<SecuritySeverity, OcsfSeverity>> = {
@@ -422,6 +472,7 @@ export default class DataSecurityIntegrations {
         mdText`${issue.dataStoreName} holds ${issue.sensitivity} data and failed a Data Security check: ${issue.title}. [Open the issue](${link.toString()}).`.toString(),
       rootCause:
         mdText`The Data Security check "${issue.checkId}" failed on ${issue.dataStoreName}.`.toString(),
+      affectedResources: getIssueAffectedResources(issue),
     };
   }
 

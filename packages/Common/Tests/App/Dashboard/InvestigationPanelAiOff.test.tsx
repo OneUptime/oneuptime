@@ -249,6 +249,7 @@ function renderPanel(data: {
   subjectType?: InvestigationSubjectType;
   remediationState?: RemediationFoldState | undefined;
   withConversation?: boolean;
+  isRecordResolved?: boolean;
 }): Rendered {
   const subjectType: InvestigationSubjectType = data.subjectType || "incident";
 
@@ -261,6 +262,9 @@ function renderPanel(data: {
       <InvestigationPanel
         subjectType={subjectType}
         subjectId={props.subjectId}
+        {...(data.isRecordResolved !== undefined
+          ? { isRecordResolved: data.isRecordResolved }
+          : {})}
         renderConversation={
           data.withConversation === false
             ? undefined
@@ -388,7 +392,9 @@ describe.each<[InvestigationSubjectType]>([["incident"], ["alert"]])(
         expect(
           screen.queryByRole("heading", { name: "OneUptime AI" }),
         ).toBeNull();
-        expect(screen.queryByLabelText("Investigation status")).toBeNull();
+        expect(
+          screen.queryByTestId("ai-card-step-investigation-pill"),
+        ).toBeNull();
         expect(screen.queryByTestId("card-header")).toBeNull();
         expect(screen.getAllByTestId("card")).toHaveLength(1);
         // The full card's explanation is folded away with it.
@@ -445,9 +451,9 @@ describe.each<[InvestigationSubjectType]>([["incident"], ["alert"]])(
       expect(
         screen.getByRole("heading", { level: 2, name: "OneUptime AI" }),
       ).toBeVisible();
-      expect(screen.getByLabelText("Investigation status")).toHaveTextContent(
-        "Not investigated",
-      );
+      expect(
+        screen.getByTestId("ai-card-step-investigation-pill"),
+      ).toHaveTextContent("Not investigated");
       expect(
         screen.getByText("Server title for automatic_investigation_disabled"),
       ).toBeVisible();
@@ -526,9 +532,9 @@ describe.each<[InvestigationSubjectType]>([["incident"], ["alert"]])(
       await flush();
 
       expect(screen.queryByTestId("ai-off-summary")).toBeNull();
-      expect(screen.getByLabelText("Investigation status")).toHaveTextContent(
-        "Queued",
-      );
+      expect(
+        screen.getByTestId("ai-card-step-investigation-pill"),
+      ).toHaveTextContent("Queued");
       expect(lastAiCardFold()).toBe("full");
       // A card that cannot fold never reads the switches.
       expect(getItemMock).not.toHaveBeenCalled();
@@ -543,9 +549,9 @@ describe.each<[InvestigationSubjectType]>([["incident"], ["alert"]])(
       await flush();
 
       expect(screen.queryByTestId("ai-off-summary")).toBeNull();
-      expect(screen.getByLabelText("Investigation status")).toHaveTextContent(
-        "Waiting",
-      );
+      expect(
+        screen.getByTestId("ai-card-step-investigation-pill"),
+      ).toHaveTextContent("Waiting");
       expect(lastAiCardFold()).toBe("full");
     });
 
@@ -646,6 +652,8 @@ describe.each<[InvestigationSubjectType]>([["incident"], ["alert"]])(
       renderPanel({
         subjectType,
         remediationState: FIXING_OFF,
+        // Open, with fixing on now, it is drawn whole (see below).
+        isRecordResolved: true,
       });
       await flush();
 
@@ -816,9 +824,9 @@ describe("the folded card follows what changes", () => {
     await advance(30_000);
 
     expect(screen.queryByTestId("ai-off-summary")).toBeNull();
-    expect(screen.getByLabelText("Investigation status")).toHaveTextContent(
-      "Queued",
-    );
+    expect(
+      screen.getByTestId("ai-card-step-investigation-pill"),
+    ).toHaveTextContent("Queued");
     expect(lastAiCardFold()).toBe("full");
     // The same conversation, in the same place: its text survived.
     expect(screen.getByLabelText("Stub question")).toHaveValue("What changed?");
@@ -878,9 +886,124 @@ describe("the folded card follows what changes", () => {
     await flush();
 
     expect(screen.queryByTestId("ai-off-summary")).toBeNull();
-    expect(screen.getByLabelText("Investigation status")).toHaveTextContent(
-      "Unable to check",
-    );
+    expect(
+      screen.getByTestId("ai-card-step-investigation-pill"),
+    ).toHaveTextContent("Unable to check");
     expect(lastAiCardFold()).toBe("full");
+  });
+});
+
+/*
+ * #5413's follow-up: folded into the one line, the Remediation step of a
+ * record whose fixing switch was off then and is on now had no way to
+ * decide again. Fixing is not off for an open record once its switch is
+ * on: the card is drawn whole then, and its Remediation step says the switch
+ * is on now and offers Try again. A resolved record, a switch still off,
+ * and fixing that stopped at the AI rules keep the one line.
+ */
+describe("an open record whose fixing switch is on now", () => {
+  function switchesNow(data: { investigate: boolean; fix: boolean }): void {
+    getItemMock.mockResolvedValue(
+      Object.assign(new Project(), {
+        enableAutomaticIncidentInvestigation: data.investigate,
+        enableAutomaticIncidentRemediation: data.fix,
+        enableAutomaticAlertInvestigation: data.investigate,
+        enableAutomaticAlertRemediation: data.fix,
+      }),
+    );
+  }
+
+  test("is drawn whole, both steps, its Remediation step given the whole card: Try again is one press away", async () => {
+    switchesNow({ investigate: false, fix: true });
+    postMock.mockResolvedValue(noRun("automatic_investigation_disabled"));
+    renderPanel({ remediationState: FIXING_OFF, isRecordResolved: false });
+    await flush();
+    await flush();
+
+    expect(lastAiCardFold()).toBe("full");
+    expect(screen.queryByTestId("ai-off-summary")).toBeNull();
+    expect(screen.getByTestId("ai-card-step-investigation")).toBeVisible();
+    // The step is told the card is whole, so it draws itself.
+    expect(lastRemediationStepProps()?.aiCardFold).toBe("full");
+    expect(lastRemediationStepProps()?.isRecordResolved).toBe(false);
+  });
+
+  test("AI off for the project then, AI and fixing on now: drawn whole too", async () => {
+    switchesNow({ investigate: true, fix: true });
+    postMock.mockResolvedValue(noRun("ai_disabled"));
+    renderPanel({
+      remediationState: { kind: "off", reason: "ai_off" },
+      isRecordResolved: false,
+    });
+    await flush();
+    await flush();
+
+    expect(lastAiCardFold()).toBe("full");
+    expect(screen.queryByTestId("ai-off-summary")).toBeNull();
+  });
+
+  test.each([
+    [
+      "resolved, whatever is on now",
+      { investigate: true, fix: true },
+      FIXING_OFF,
+      true,
+    ],
+    [
+      "its fixing switch still off",
+      { investigate: true, fix: false },
+      FIXING_OFF,
+      false,
+    ],
+    [
+      "AI on now, its fixing switch still off",
+      { investigate: true, fix: false },
+      { kind: "off", reason: "ai_off" } as RemediationFoldState,
+      false,
+    ],
+    [
+      "stopped at the AI rules, the switches on",
+      { investigate: true, fix: true },
+      { kind: "off", reason: "no_rule_matched" } as RemediationFoldState,
+      false,
+    ],
+  ] as Array<
+    [
+      string,
+      { investigate: boolean; fix: boolean },
+      RemediationFoldState,
+      boolean,
+    ]
+  >)(
+    "%s: the one line",
+    async (
+      _how: string,
+      switches: { investigate: boolean; fix: boolean },
+      remediationState: RemediationFoldState,
+      isRecordResolved: boolean,
+    ) => {
+      switchesNow(switches);
+      postMock.mockResolvedValue(noRun("automatic_investigation_disabled"));
+      renderPanel({ remediationState, isRecordResolved });
+      await flush();
+      await flush();
+
+      expect(lastAiCardFold()).toBe("folded");
+      expect(screen.getByTestId("ai-off-summary")).toBeVisible();
+    },
+  );
+
+  test("Enable AI off now keeps the line, even with the fixing switch on: nothing can be fixed", async () => {
+    isAiOn(false);
+    switchesNow({ investigate: true, fix: true });
+    postMock.mockResolvedValue(noRun("ai_disabled"));
+    renderPanel({
+      remediationState: { kind: "off", reason: "ai_off" },
+      isRecordResolved: false,
+    });
+    await flush();
+    await flush();
+
+    expect(lastAiCardFold()).toBe("folded");
   });
 });

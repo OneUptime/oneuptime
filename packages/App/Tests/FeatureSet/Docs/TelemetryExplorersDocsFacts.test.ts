@@ -51,6 +51,7 @@ import ErrorClass, {
 } from "Common/Types/Telemetry/ErrorClass";
 import TimeRange from "Common/Types/Time/TimeRange";
 import { EXCEPTION_DIGEST_WINDOW_HOURS } from "Common/Types/Telemetry/ExceptionAIDigest";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { MAX_SIMILAR_EXCEPTIONS } from "Common/Types/Telemetry/SimilarExceptions";
 import { EXCEPTION_TREND_BUCKET_COUNT } from "Common/Types/Telemetry/ExceptionListStats";
 import {
@@ -907,7 +908,7 @@ describe("Logs Explorer (telemetry/logs-explorer)", () => {
     );
   });
 
-  it("saves a view's search, chips, range, columns, sort and page size, and makes a project's first view its default", () => {
+  it("saves a view's search, chips, range, columns, sort and page size, and makes a page's first view its default", () => {
     const save: string = between(
       dashboardViewer,
       'submitButtonText="Save View"',
@@ -952,7 +953,44 @@ describe("Logs Explorer (telemetry/logs-explorer)", () => {
       "A saved view keeps a search, its filter chips, the time range, the columns, the sort and the page size, under a name.",
     );
     expect(page).toContain(
-      "While the project has no default view, the next view saved becomes the default, and a project has one default at a time.",
+      "While a page has no default view, the next view saved on it becomes its default, and each page has one default at a time.",
+    );
+  });
+
+  /*
+   * Issue #5549: a view is listed on the page it was saved on - the Logs
+   * page, or one resource's Logs tab - and each page has its own default.
+   */
+  it("keeps each saved view on the page it was saved on, with a default per page", () => {
+    const service: string = readCommonSource(
+      "Server/Services/LogSavedViewService.ts",
+    );
+
+    // The viewer asks for, and saves to, its own page.
+    expect(dashboardViewer).toContain(
+      "scope: getSavedViewScopeQueryValue(props.savedViewScope),",
+    );
+    expect(dashboardViewer).toContain("savedView.scope = scope;");
+    // The Logs page has its views; a cluster's and a host's tab have theirs.
+    expect(readDashboardSource("Pages/Logs/Index.tsx")).toContain(
+      "savedViewScope={EXPLORER_SAVED_VIEW_SCOPE}",
+    );
+    expect(readDashboardSource("Pages/Kubernetes/View/Logs.tsx")).toContain(
+      "SavedViewScopeKind.KubernetesCluster,",
+    );
+    expect(readDashboardSource("Pages/Host/View/Logs.tsx")).toContain(
+      "SavedViewScopeKind.Host,",
+    );
+    // A page's default is taken only from that page's views.
+    expect(service).toContain(
+      'const DEFAULT_GROUP_COLUMNS: Array<string> = ["scope"];',
+    );
+    expect(service).toContain(
+      "scope: scope === null ? QueryHelper.isNull() : scope,",
+    );
+
+    expect(page).toContain(
+      "Saved views belong to the project, so everyone in it sees the same views, and each view stays on the page it was saved on: a view saved on the Logs page is listed on the Logs page, and a view saved on a resource's Logs tab, such as a Kubernetes cluster's or a host's, is listed on that tab alone.",
     );
   });
 
@@ -2044,12 +2082,40 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
     expect(viewer).toContain("actionButtons={exceptionRowActions}");
 
     expect(triage).toContain(
-      "To change several at once, tick their rows in the list, or the box above the rows for every exception on the page, and use the same actions under **Bulk Actions**. It says which exceptions it changed, which it left as they were, and why.",
+      "To change several at once, tick their rows in the list, or the box above the rows for every exception on the page, and use the same actions under **Bulk Actions**. Once every exception on the page is ticked, the line above the rows offers to select every exception that matches the list's search and filters, on every page, up to 10,000 at a time; an action on them then asks before it changes them. It says which exceptions it changed, which it left as they were, and why.",
     );
     // The rows' boxes and the page's box are the shared list's.
     expect(viewer).toContain("buttons: exceptionBulkActions,");
     expect(telemetryViewer).toContain(
       'translateTemplate("Select all {{itemsName}} on this page"',
+    );
+    /*
+     * Every match: offered once the page's box is ticked, read with the
+     * list's own query up to the ceiling the page names, and a quick move
+     * over it asks first (BulkSelectAll).
+     */
+    const listRead: string = readDashboardSource(
+      "Components/Exceptions/ExceptionListRead.ts",
+    );
+    const selectAll: string = readCommonSource(
+      "UI/Components/BulkUpdate/BulkSelectAll.ts",
+    );
+
+    expect(viewer).toContain("selectAllMatching: {");
+    expect(viewer).toContain("query: query,");
+    expect(listRead).toContain(
+      "return await readEveryMatch<TelemetryException>({",
+    );
+    expect(selectAll).toContain(
+      "export const BULK_SELECT_ALL_LIMIT: number = LIMIT_PER_PROJECT;",
+    );
+    expect(LIMIT_PER_PROJECT.toLocaleString("en-US")).toBe("10,000");
+    expect(triage).toContain(
+      `up to ${LIMIT_PER_PROJECT.toLocaleString("en-US")} at a time`,
+    );
+    expect(telemetryViewer).toContain("isPageSelected:");
+    expect(telemetryViewer).toContain(
+      "return askBeforeActingAcrossPages(button, {",
     );
     // The same four, in the row's order, each saying why it left one alone.
     expect(actions).toContain("return EXCEPTION_ROW_TRIAGE_ORDER.map(");

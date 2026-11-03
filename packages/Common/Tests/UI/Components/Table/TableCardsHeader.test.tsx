@@ -10,12 +10,17 @@ import {
 import { Mock } from "jest-mock";
 import * as React from "react";
 import TableCardsHeader, {
+  TABLE_CARDS_BULK_LINE_TEST_ID,
   TABLE_CARDS_HEADER_TEST_ID,
   TABLE_CARDS_HEADER_TEXT,
   TABLE_CARDS_SORT_TEST_ID,
   getSortableCardColumns,
 } from "../../../../UI/Components/Table/TableCardsHeader";
-import { TABLE_CARDS_HEADER_CLASS_NAME } from "../../../../UI/Components/Table/TableLayout";
+import {
+  TABLE_CARDS_BOX_SLOT_CLASS_NAME,
+  TABLE_CARDS_BULK_LINE_CLASS_NAME,
+  TABLE_CARDS_HEADER_CLASS_NAME,
+} from "../../../../UI/Components/Table/TableLayout";
 import Columns from "../../../../UI/Components/Table/Types/Columns";
 import FieldType from "../../../../UI/Components/Types/FieldType";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
@@ -71,6 +76,8 @@ interface DrawProps {
   isSomeItemsOnThePageSelected?: boolean;
   onAllItemsOnThePageSelected?: () => void;
   onAllItemsDeselected?: () => void;
+  hasBulkSelection?: boolean;
+  bulkLineRef?: (element: HTMLElement | null) => void;
 }
 
 const draw: (props?: DrawProps) => void = (props?: DrawProps): void => {
@@ -86,6 +93,8 @@ const draw: (props?: DrawProps) => void = (props?: DrawProps): void => {
       isSomeItemsOnThePageSelected={props?.isSomeItemsOnThePageSelected}
       onAllItemsOnThePageSelected={props?.onAllItemsOnThePageSelected}
       onAllItemsDeselected={props?.onAllItemsDeselected}
+      hasBulkSelection={props?.hasBulkSelection}
+      bulkLineRef={props?.bulkLineRef}
     />,
   );
 };
@@ -307,5 +316,82 @@ describe("a band with nothing to do", () => {
 
     expect(screen.queryByTestId(TABLE_CARDS_HEADER_TEST_ID)).toBeNull();
     expect(document.querySelector(".border-t.border-gray-200")).not.toBeNull();
+  });
+});
+
+/*
+ * While cards are ticked, the band's line after its box is the table's
+ * Bulk Actions (BulkUpdateForm's Row, drawn into the element the band hands
+ * the table): a phone drew a bar of its own over the band - three lines,
+ * some 170px - that pushed every card down under the finger that ticked one.
+ */
+describe("the band's Bulk Actions line", () => {
+  test("is handed to the table where the order sits, and holds nothing while nothing is ticked", () => {
+    const lines: Array<HTMLElement | null> = [];
+
+    draw({
+      isBulkActionsEnabled: true,
+      bulkLineRef: (element: HTMLElement | null): void => {
+        lines.push(element);
+      },
+    });
+
+    const line: HTMLElement = screen.getByTestId(TABLE_CARDS_BULK_LINE_TEST_ID);
+
+    expect(lines[lines.length - 1]).toBe(line);
+    expect(screen.getByTestId(TABLE_CARDS_HEADER_TEST_ID)).toContainElement(
+      line,
+    );
+    // Nothing ticked: no room taken, and the order where it always was.
+    expect(line).toHaveClass("hidden");
+    expect(screen.getByTestId(TABLE_CARDS_SORT_TEST_ID)).toBeVisible();
+  });
+
+  test("while cards are ticked, takes the rest of the band, and the order steps aside", () => {
+    draw({
+      isBulkActionsEnabled: true,
+      hasBulkSelection: true,
+      isSomeItemsOnThePageSelected: true,
+      bulkLineRef: (): void => {},
+    });
+
+    const line: HTMLElement = screen.getByTestId(TABLE_CARDS_BULK_LINE_TEST_ID);
+
+    expect(line.className).toBe(TABLE_CARDS_BULK_LINE_CLASS_NAME);
+    expect(TABLE_CARDS_BULK_LINE_CLASS_NAME.split(" ")).toEqual(
+      expect.arrayContaining(["flex-1", "min-w-0"]),
+    );
+    expect(screen.queryByTestId(TABLE_CARDS_SORT_TEST_ID)).toBeNull();
+  });
+
+  test("is not there on a list whose rows cannot be selected", () => {
+    draw({ isBulkActionsEnabled: false, bulkLineRef: (): void => {} });
+
+    expect(screen.queryByTestId(TABLE_CARDS_BULK_LINE_TEST_ID)).toBeNull();
+    expect(screen.getByTestId(TABLE_CARDS_SORT_TEST_ID)).toBeVisible();
+  });
+
+  test("the box sits at the band's start, level with its first line, with no room kept for words it has none of", () => {
+    draw({ isBulkActionsEnabled: true, bulkLineRef: (): void => {} });
+
+    const band: HTMLElement = screen.getByTestId(TABLE_CARDS_HEADER_TEST_ID);
+    const slot: HTMLElement = band.firstElementChild as HTMLElement;
+    const box: HTMLElement = screen.getByRole("checkbox", {
+      name: TABLE_CARDS_HEADER_TEXT.selectAll,
+    });
+
+    expect(slot.className).toBe(TABLE_CARDS_BOX_SLOT_CLASS_NAME);
+    expect(slot).toContainElement(box);
+    // The box's own words' slot takes no room: the count follows the box.
+    expect(slot.querySelector(".relative.flex")).toHaveClass(
+      "[&>div:last-child]:ml-0",
+    );
+    // 30px - Bulk Actions' height - inside the band's 36: it never grows.
+    expect(TABLE_CARDS_BOX_SLOT_CLASS_NAME.split(" ")).toEqual(
+      expect.arrayContaining(["h-[1.875rem]", "self-start", "flex-none"]),
+    );
+    expect(TABLE_CARDS_HEADER_CLASS_NAME.split(" ")).toEqual(
+      expect.arrayContaining(["min-h-[2.25rem]", "py-0.5"]),
+    );
   });
 });

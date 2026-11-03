@@ -26,7 +26,7 @@ flowchart TB
     monitors --> act
 ```
 
-Open **Producten → Beveiligingsgebeurtenissen**, onder **Observability**. Het menu heeft een sectie voor elk deel van beveiliging, en een eigen pagina voor alles daarin:
+Open **Producten → Beveiligingsgebeurtenissen**, onder **Beveiliging**. Het menu heeft een sectie voor elk deel van beveiliging, en een eigen pagina voor alles daarin:
 
 | Pagina | Sectie | Waarvoor het dient |
 | --- | --- | --- |

@@ -6,6 +6,7 @@ import {
   KUBERNETES_LOGS_ATTRIBUTE_DISPLAY_KEYS,
   buildKubernetesLogsAttributeDisplayValues,
   buildKubernetesLogsAttributeFilters,
+  buildKubernetesLogsSavedViewScope,
 } from "./KubernetesLogsScope";
 
 export interface ComponentProps {
@@ -58,6 +59,25 @@ const KubernetesLogsTab: FunctionComponent<ComponentProps> = (
     });
   }, [props.clusterIdentifier, props.clusterName]);
 
+  // This pod's, container's or workload's own saved views.
+  const savedViewScope: string = useMemo(() => {
+    return buildKubernetesLogsSavedViewScope({
+      clusterIdentifier: props.clusterIdentifier,
+      podName: props.podName,
+      containerName: props.containerName,
+      namespace: props.namespace,
+      workloadKind: props.workloadKind,
+      workloadName: props.workloadName,
+    });
+  }, [
+    props.clusterIdentifier,
+    props.podName,
+    props.containerName,
+    props.namespace,
+    props.workloadKind,
+    props.workloadName,
+  ]);
+
   return (
     <DashboardLogsViewer
       id={
@@ -65,6 +85,7 @@ const KubernetesLogsTab: FunctionComponent<ComponentProps> = (
           ? `k8s-logs-${props.podName}`
           : `k8s-logs-${(props.workloadKind || "").toLowerCase()}-${props.workloadName || ""}`
       }
+      savedViewScope={savedViewScope}
       logQuery={logQuery}
       attributeFilterDisplayKeys={KUBERNETES_LOGS_ATTRIBUTE_DISPLAY_KEYS}
       attributeFilterDisplayValues={attributeFilterDisplayValues}

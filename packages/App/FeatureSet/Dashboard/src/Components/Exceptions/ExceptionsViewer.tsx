@@ -189,6 +189,11 @@ import {
   getExceptionListSortOrder,
   readExceptionListSort,
 } from "../../Utils/ExceptionAssignment";
+import {
+  EXCEPTION_LIST_SELECT,
+  readEveryMatchingException,
+} from "./ExceptionListRead";
+import { EveryMatch } from "Common/UI/Components/BulkUpdate/BulkSelectAll";
 import { writeTelemetryViewerUrlState } from "../../Utils/TelemetryViewerUrlState";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import { TelemetryEntityNameMap } from "Common/UI/Utils/Telemetry/TelemetryEntityNames";
@@ -1712,28 +1717,8 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
           query,
           limit: pageSize,
           skip: (page - 1) * pageSize,
-          select: {
-            fingerprint: true,
-            exceptionType: true,
-            message: true,
-            occuranceCount: true,
-            firstSeenAt: true,
-            lastSeenAt: true,
-            isResolved: true,
-            isArchived: true,
-            primaryEntityId: true,
-            environment: true,
-            // The row's Regressed, New and Unhandled badges.
-            regressedAt: true,
-            unhandled: true,
-            // Resolve in next release, in the row's menu and Bulk Actions.
-            lastSeenInRelease: true,
-            // Who owns it: the row's chip and Assign to me.
-            assignToUserId: true,
-            assignToTeamId: true,
-            assignToUser: { name: true, email: true },
-            assignToTeam: { name: true },
-          },
+          // The columns a row draws and its menus read (ExceptionListRead).
+          select: EXCEPTION_LIST_SELECT,
           sort: getExceptionListSortOrder(sort) as never,
         });
       setExceptions(result.data || []);
@@ -2855,6 +2840,14 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
   ];
 
   /*
+   * What decides which exceptions match - the list's query, not its page or
+   * its order: a selection of every match is let go when it changes.
+   */
+  const exceptionMatchKey: string = useMemo((): string => {
+    return JSON.stringify(query);
+  }, [query]);
+
+  /*
    * The same four on the rows a person ticks (Bulk Actions), the list and
    * its chart read again once a run ends.
    */
@@ -2905,6 +2898,23 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
         onActionEnd: (): void => {
           void fetchExceptions();
           void fetchHistogram();
+        },
+        /*
+         * Every exception the search, the filters and the window match, not
+         * only the page's: read with the list's own query and columns, up
+         * to the most one selection holds (ExceptionListRead).
+         */
+        selectAllMatching: {
+          matchKey: exceptionMatchKey,
+          read: async (options: {
+            isSuperseded: () => boolean;
+          }): Promise<EveryMatch<TelemetryException> | null> => {
+            return await readEveryMatchingException({
+              query: query,
+              sort: sort,
+              isSuperseded: options.isSuperseded,
+            });
+          },
         },
       }}
       renderRow={(exception: TelemetryException): ReactElement => {

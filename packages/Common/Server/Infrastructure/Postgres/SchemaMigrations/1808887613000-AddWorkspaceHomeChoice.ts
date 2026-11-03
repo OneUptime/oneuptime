@@ -12,8 +12,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * Existing installations start with none: each Home opens on the first of
  * the person's projects until they choose one again.
  */
-export class AddWorkspaceHomeChoice1808880000000 implements MigrationInterface {
-  public name: string = "AddWorkspaceHomeChoice1808880000000";
+export class AddWorkspaceHomeChoice1808887613000 implements MigrationInterface {
+  public name: string = "AddWorkspaceHomeChoice1808887613000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

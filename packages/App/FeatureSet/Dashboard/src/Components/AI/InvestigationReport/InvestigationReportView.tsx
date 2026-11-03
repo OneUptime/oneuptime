@@ -341,8 +341,16 @@ const InvestigationReportView: FunctionComponent<ComponentProps> = (
                     aria-labelledby={headingId}
                     data-section-kind={entry.section.kind}
                   >
+                    {/*
+                      The section's title is the report's own, as OneUptime
+                      AI wrote it ("Most likely root cause"): it reads in its
+                      own direction, as its body does (MarkdownViewer), so an
+                      English section on a Persian page keeps its title over
+                      its text, not at the far edge.
+                    */}
                     <h3
                       id={headingId}
+                      dir="auto"
                       className={REPORT_SECTION_HEADING_CLASS_NAME}
                     >
                       {entry.section.title}

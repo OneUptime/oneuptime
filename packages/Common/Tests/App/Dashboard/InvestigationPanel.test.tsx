@@ -1527,9 +1527,9 @@ describe("InvestigationPanel verdict control", () => {
     renderPanel();
     await flush();
 
-    expect(screen.getByLabelText("Investigation status")).toHaveTextContent(
-      "Completed",
-    );
+    expect(
+      screen.getByTestId("ai-card-step-investigation-pill"),
+    ).toHaveTextContent("Completed");
   });
 });
 
@@ -1738,9 +1738,9 @@ describe("InvestigationPanel rating availability", () => {
     renderPanel();
     await flush();
 
-    expect(screen.getByLabelText("Investigation status")).toHaveTextContent(
-      "Completed",
-    );
+    expect(
+      screen.getByTestId("ai-card-step-investigation-pill"),
+    ).toHaveTextContent("Completed");
     expect(
       screen.getByText("No investigation report was published."),
     ).toBeVisible();
@@ -1786,7 +1786,9 @@ describe("InvestigationPanel rating availability", () => {
       renderPanel();
       await flush();
 
-      expect(screen.getByLabelText("Investigation status")).toBeVisible();
+      expect(
+        screen.getByTestId("ai-card-step-investigation-pill"),
+      ).toBeVisible();
       expectNoRating();
       expect(actionsFrame()).toBeNull();
       expect(isCodeFixHandedOn()).toBe(false);
@@ -4641,7 +4643,9 @@ describe("InvestigationPanel as one flat card", () => {
       renderPanel();
       await flush();
 
-      const badge: HTMLElement = screen.getByLabelText("Investigation status");
+      const badge: HTMLElement = screen.getByTestId(
+        "ai-card-step-investigation-pill",
+      );
       expect(badge).toHaveTextContent(text);
       expect(badge).toHaveAttribute("data-indicator", indicator);
       // The pill itself never changes colour with the state.
@@ -4789,10 +4793,9 @@ describe("InvestigationPanel as one flat card", () => {
     expect(screen.getByTestId("card-description")).toHaveTextContent(
       AI_CARD_DESCRIPTION,
     );
-    expect(screen.getByLabelText("Investigation status")).toHaveAttribute(
-      "data-indicator",
-      "live",
-    );
+    expect(
+      screen.getByTestId("ai-card-step-investigation-pill"),
+    ).toHaveAttribute("data-indicator", "live");
     view.unmount();
 
     postMock.mockReset();
@@ -4811,10 +4814,9 @@ describe("InvestigationPanel as one flat card", () => {
     expect(screen.getByTestId("card-description")).toHaveTextContent(
       AI_CARD_DESCRIPTION,
     );
-    expect(screen.getByLabelText("Investigation status")).toHaveAttribute(
-      "data-indicator",
-      "failed",
-    );
+    expect(
+      screen.getByTestId("ai-card-step-investigation-pill"),
+    ).toHaveAttribute("data-indicator", "failed");
   });
 
   test("tells a live run's story without a frame or a progress bar of its own", async () => {
@@ -5114,9 +5116,9 @@ describe("InvestigationPanel conversation slot", () => {
       renderWithConversation();
       await flush();
 
-      expect(screen.getByLabelText("Investigation status")).toHaveTextContent(
-        state.badge,
-      );
+      expect(
+        screen.getByTestId("ai-card-step-investigation-pill"),
+      ).toHaveTextContent(state.badge);
 
       // One card, one titled header, one region: never a second card.
       const cards: Array<HTMLElement> = screen.getAllByTestId("card");
@@ -5272,9 +5274,9 @@ describe("InvestigationPanel conversation slot", () => {
 
       for (const badge of ["Queued", "Investigating…", "Completed"]) {
         await advanceFastPolls();
-        expect(screen.getByLabelText("Investigation status")).toHaveTextContent(
-          badge,
-        );
+        expect(
+          screen.getByTestId("ai-card-step-investigation-pill"),
+        ).toHaveTextContent(badge);
         // The very same element, with what was typed still in it.
         expect(draft()).toBe(element);
         expect(draft().value).toBe("Which deploy changed the pool size?");
@@ -5523,9 +5525,9 @@ describe("InvestigationPanel folds a finished investigation", () => {
     expect(markdownViewerMock).not.toHaveBeenCalled();
 
     // The step says it is done, and step 2 follows it.
-    expect(screen.getByLabelText("Investigation status")).toHaveTextContent(
-      "Completed",
-    );
+    expect(
+      screen.getByTestId("ai-card-step-investigation-pill"),
+    ).toHaveTextContent("Completed");
     expect(
       screen
         .getByTestId("ai-card-step-investigation")

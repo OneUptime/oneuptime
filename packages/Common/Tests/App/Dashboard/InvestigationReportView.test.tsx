@@ -450,6 +450,13 @@ describe("InvestigationReportView report section", () => {
     expect(nextStepsHeading.className).toBe(rootCauseHeading.className);
     expect(rootCauseHeading).not.toHaveClass("uppercase");
     expect(rootCauseHeading.className).not.toMatch(/amber/);
+    /*
+     * #5413's follow-up: a section's title is the report's own words, as
+     * OneUptime AI wrote it, and reads in its own direction like its body:
+     * an English section on a Persian page kept its title at the far edge.
+     */
+    expect(rootCauseHeading).toHaveAttribute("dir", "auto");
+    expect(nextStepsHeading).toHaveAttribute("dir", "auto");
   });
 
   /*

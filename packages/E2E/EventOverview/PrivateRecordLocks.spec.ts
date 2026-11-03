@@ -380,7 +380,11 @@ test.describe("a private incident a view-only team of the reader's owns (?privat
       "Draft a status update",
     ]);
     // The Remediation step is drawn, saying nothing was tried.
-    await expect(page.getByLabel("Remediation status")).toHaveText("Not tried");
+    await expect(
+      page
+        .getByTestId("ai-card-step-remediation-pill")
+        .getByTestId("status-badge-words"),
+    ).toHaveText("Not tried");
     await expect(page.getByTestId("remediation-try-again")).toHaveCount(0);
   });
 

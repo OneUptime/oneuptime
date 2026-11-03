@@ -381,6 +381,90 @@ describe("DashboardCommandPalette navigation keyword search", () => {
     },
   );
 
+  /*
+   * The palette files products under the products menu's categories:
+   * Security Events and Data Security under Security (#5550), the section
+   * right after Observability.
+   */
+  test("browsing lists Security Events and Data Security under Security, right after Observability", () => {
+    navigationTranslations = {
+      "navbar.categories.observability": "Observability",
+      "navbar.categories.security": "Security",
+    };
+    getCurrentProjectIdMock.mockReturnValue(new ObjectID("project-a"));
+    render(<DashboardCommandPalette />);
+    pressChord({ key: "k", metaKey: true });
+
+    const security: HTMLElement = screen.getByTestId(
+      "command-palette-section-security",
+    );
+    expect(security).toHaveAttribute("aria-label", "Security");
+    expect(
+      Array.from(
+        security.querySelectorAll('[data-testid^="command-palette-option-"]'),
+      ).map((option: Element): string => {
+        return option.getAttribute("data-testid") || "";
+      }),
+    ).toEqual([
+      "command-palette-option-nav-dashboard-projectid-security-events",
+      "command-palette-option-nav-dashboard-projectid-data-security",
+    ]);
+
+    const observability: HTMLElement = screen.getByTestId(
+      "command-palette-section-observability",
+    );
+    expect(observability).not.toContainElement(
+      screen.getByTestId(
+        "command-palette-option-nav-dashboard-projectid-security-events",
+      ),
+    );
+    expect(observability).not.toContainElement(
+      screen.getByTestId(
+        "command-palette-option-nav-dashboard-projectid-data-security",
+      ),
+    );
+
+    const sections: Array<string> = Array.from(
+      document.querySelectorAll('[data-testid^="command-palette-section-"]'),
+    ).map((section: Element): string => {
+      return section.getAttribute("data-testid") || "";
+    });
+    expect(sections.indexOf("command-palette-section-security")).toBe(
+      sections.indexOf("command-palette-section-observability") + 1,
+    );
+  });
+
+  test.each(["dspm", "gdpr", "data classification"])(
+    "%s finds Data Security under Security, which opens on its overview",
+    (query: string) => {
+      navigationTranslations = {
+        "navbar.categories.security": "Security",
+      };
+      getCurrentProjectIdMock.mockReturnValue(new ObjectID("project-a"));
+      render(<DashboardCommandPalette />);
+      pressChord({ key: "k", metaKey: true });
+
+      fireEvent.change(screen.getByTestId("command-palette-input"), {
+        target: { value: query },
+      });
+
+      const option: HTMLElement = screen.getByTestId(
+        "command-palette-option-nav-dashboard-projectid-data-security",
+      );
+      expect(option).toHaveTextContent("Data Security");
+      expect(
+        screen.getByTestId("command-palette-section-security"),
+      ).toContainElement(option);
+      fireEvent.click(option);
+
+      expect(navigateMock).toHaveBeenCalledTimes(1);
+      expect(navigateMock).toHaveBeenCalledWith(
+        new Route("/dashboard/project-a/data-security/overview"),
+      );
+      expect(palette()).not.toBeInTheDocument();
+    },
+  );
+
   test("Enter opens the Kubernetes keyword result", () => {
     getCurrentProjectIdMock.mockReturnValue(new ObjectID("project-a"));
     render(<DashboardCommandPalette />);
