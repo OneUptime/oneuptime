@@ -21,7 +21,19 @@ import { slugifyMarkdownHeading } from "./MarkdownSlugify";
 
 // The fence's run is taken whole, so a line is read once (see FENCE_LINE_PATTERN in FeedMarkdown).
 export const FENCE: RegExp = /^ {0,3}(`{3,}(?!`)|~{3,}(?!~))(.*)$/;
-const HEADING: RegExp = /^(#{1,6})[ \t]+(.+?)[ \t]*#*[ \t]*$/;
+
+/*
+ * A heading line: one to six "#", a space or a tab, then its text to the
+ * line's end. The text is read whole, so a line is read once. It was read
+ * as the fewest characters before a closing run of "#" between white space,
+ * which tried every split of a long run of white space with a line
+ * separator after it, in time with the run's length to the fourth power.
+ * The closing run needs no taking off: white space and "#" at a heading's
+ * end make no part of its anchor (MarkdownSlugify), so every heading has
+ * the anchor it had (MarkdownHeadings.test.ts reads every docs page both
+ * ways).
+ */
+const HEADING: RegExp = /^(#{1,6})[ \t](.+)$/;
 
 export interface MarkdownHeading {
   // The heading's id on the page (MarkdownSlugify).

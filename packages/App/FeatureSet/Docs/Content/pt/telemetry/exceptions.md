@@ -56,7 +56,7 @@ Cada linha mostra também quantos usuários a exceção afetou no intervalo esco
 
 ### Escolher o que conta como problema
 
-**Problemas**, o padrão, oculta erros de usuário e negações esperadas, para que a lista mostre o que precisa de correção. **User errors** mostra só esses, e **Todos** mostra todas as exceções.
+**Problemas**, o padrão, oculta erros de usuário e negações esperadas, para que a lista mostre o que precisa de correção. **Erros do usuário** mostra só esses, e **Todos** mostra todas as exceções.
 
 ### Pesquisar e filtrar
 
