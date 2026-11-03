@@ -101,7 +101,12 @@ const OKTA_AND_KUBERNETES: Array<AggregatedModel> = [
 function huntOf(libraryHuntId: string | null, id: string): SecurityHunt {
   const hunt: SecurityHunt = new SecurityHunt();
   hunt._id = id;
-  hunt.libraryHuntId = libraryHuntId || undefined;
+
+  // A hunt of the team's own keeps no starter.
+  if (libraryHuntId) {
+    hunt.libraryHuntId = libraryHuntId;
+  }
+
   return hunt;
 }
 

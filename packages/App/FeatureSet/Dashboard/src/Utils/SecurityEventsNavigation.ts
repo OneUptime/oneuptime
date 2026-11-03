@@ -18,10 +18,10 @@ import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/
  *                    open again, or run on a schedule that tells people
  *                    what they find), the Hunt Library (ready-made hunts,
  *                    one click from being the project's own), Campaigns
- *                    (who is attacking, and
- *                    whether any of it got through), Entity Risk (every
- *                    user, host and address scored by everything found
- *                    about it, and a lookup for any value) and Correlate
+ *                    (who is attacking, and whether any of it got
+ *                    through), Entity Risk (every user, host and address
+ *                    scored by everything found about it, and a lookup
+ *                    for any value) and Correlate
  *   Detections       what finds threats in them: Detection Rules, the
  *                    Rule Exceptions they skip, the Watchlists they match
  *                    against, the Rule Library, Threat Intel and ATT&CK
