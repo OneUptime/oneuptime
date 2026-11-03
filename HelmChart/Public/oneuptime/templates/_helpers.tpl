@@ -142,11 +142,21 @@ limit so the two never drift apart. Unsuffixed input is treated as bytes.
   {{- end -}}
 {{- end -}}
 
+{{/*
+global.imageRegistry, without a trailing slash: the registry every image the
+chart builds a reference for comes from, in place of Docker Hub. Empty when it
+is not set.
+*/}}
+{{- define "oneuptime.globalImageRegistry" -}}
+  {{- trimSuffix "/" (toString ((((.Values).global).imageRegistry) | default "")) -}}
+{{- end -}}
+
 {{- define "oneuptime.image" -}}
   {{- $values := .Values -}}
   {{- $service := .ServiceName -}}
   {{- $imageName := default $service .ImageName -}}
-  {{- $default := printf "%s/%s/%s:%s" $values.image.registry $values.image.repository $imageName (include "oneuptime.image.tag" (dict "Values" $values)) -}}
+  {{- $registry := include "oneuptime.globalImageRegistry" (dict "Values" $values) | default $values.image.registry -}}
+  {{- $default := printf "%s/%s/%s:%s" $registry $values.image.repository $imageName (include "oneuptime.image.tag" (dict "Values" $values)) -}}
   {{- include "oneuptime.imageReference" (dict "Values" $values "Key" $imageName "Default" $default) -}}
 {{- end -}}
 
@@ -162,6 +172,14 @@ nothing replaces it:
                               registry and rewrites these values at install.
   image.overrides.<key>       a full reference, as the Google Cloud Marketplace
                               deployer passes its images.
+
+Both are used exactly as written. Otherwise the reference is `Default`, with
+global.imageRegistry in front of it when that is set and `Default` does not
+already name a registry: "postgres:15" becomes
+"registry.example.com/postgres:15", while "ghcr.io/cloudnative-pg/postgresql:17"
+or a repository someone wrote with their own registry in it stays as it is. A
+first path segment names a registry when it holds a "." or a ":" or is
+"localhost", as Docker reads an image name.
 
 Usage:
   image: {{`{{ include "oneuptime.imageReference" (dict "Values" .Values "Key" "postgres" "Default" "postgres:15") }}`}}
@@ -191,7 +209,14 @@ Usage:
   {{- else if and $override (kindIs "string" $override) -}}
     {{- $override -}}
   {{- else -}}
-    {{- .Default -}}
+    {{- $registry := include "oneuptime.globalImageRegistry" (dict "Values" .Values) -}}
+    {{- $first := first (splitList "/" .Default) -}}
+    {{- $namesRegistry := and (contains "/" .Default) (or (contains "." $first) (contains ":" $first) (eq $first "localhost")) -}}
+    {{- if and $registry (not $namesRegistry) -}}
+      {{- printf "%s/%s" $registry .Default -}}
+    {{- else -}}
+      {{- .Default -}}
+    {{- end -}}
   {{- end -}}
 {{- end -}}
 

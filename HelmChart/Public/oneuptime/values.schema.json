@@ -16,6 +16,13 @@
                         "string",
                         "null"
                     ]
+                },
+                "imageRegistry": {
+                    "type": [
+                        "string",
+                        "null"
+                    ],
+                    "description": "One registry for every image the chart runs, in place of Docker Hub. Repositories that already name a registry, image.overrides and global.azure.images are used as written."
                 }
             }
         },
