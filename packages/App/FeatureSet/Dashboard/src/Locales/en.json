@@ -37,6 +37,7 @@
     "categories": {
       "essentials": "Essentials",
       "observability": "Observability",
+      "security": "Security",
       "ai": "AI",
       "code": "Code",
       "resources": "Resources",

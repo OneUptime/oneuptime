@@ -37,6 +37,7 @@
     "categories": {
       "essentials": "필수",
       "observability": "관측 가능성",
+      "security": "보안",
       "ai": "AI",
       "code": "코드",
       "resources": "리소스",
