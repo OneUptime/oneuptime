@@ -50,7 +50,6 @@ export type ContainerHostMetric =
   | "topMemoryConsumers"
   | "containerCpu"
   | "containerMemory"
-  | "containerMemoryPercent"
   | "containerNetworkRx"
   | "containerNetworkTx"
   | "hostHealth"
@@ -113,10 +112,7 @@ export const CONTAINER_HOST_METRIC_DESCRIPTIONS: Record<
     "CPU this container was using at its latest reading, taken within the last 5 minutes. 100% is one full CPU core, so a container using several cores can show more than 100%.",
   ),
   containerMemory: translationKey(
-    "Memory this container was using at its latest reading, taken within the last 5 minutes. File cache the system has not used recently, and can free on demand, is not counted.",
-  ),
-  containerMemoryPercent: translationKey(
-    "Memory in use at the latest reading, as a percent of this container's memory limit. If the container has no memory limit, it is a percent of the host's total memory instead.",
+    "Memory in use at the latest reading, taken within the last 5 minutes, as a percent of this container's memory limit or, without one, of the host's total memory; the amount is under it. File cache the system has not used recently is not counted.",
   ),
   containerNetworkRx: translationKey(
     "Total data this container has received over the network since it last started, at its latest reading. It is a running total, not a current speed; for a container on several networks it may count only one of them.",

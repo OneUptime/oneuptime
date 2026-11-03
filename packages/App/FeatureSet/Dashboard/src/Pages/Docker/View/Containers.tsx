@@ -41,6 +41,7 @@ import {
 } from "../../../Utils/ClientTableSort";
 import { CONTAINER_HOST_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/ContainerHostMetricDescriptions";
 import ResourceStatusCell from "../../../Components/Infrastructure/ResourceStatusCell";
+import BreakableName from "Common/UI/Components/BreakableName/BreakableName";
 import {
   RESOURCE_COLUMN_TONE_CLASS_NAMES,
   ResourceColumnTone,
@@ -63,12 +64,9 @@ type ContainerSortKey =
   | "composeProject"
   | "containerImage"
   | "cpuPercent"
-  | "memoryUsage"
   | "memoryPercent"
   | "restarts"
-  | "startedAtMs"
-  | "networkRx"
-  | "networkTx";
+  | "startedAtMs";
 
 type DockerContainerSort = ClientSort<ContainerSortKey>;
 
@@ -76,9 +74,10 @@ const PAGE_SIZE: number = 25;
 
 /*
  * Every column sorts, by the value behind its cell. The readings open busiest
- * first, the name and image A to Z, the status most urgent first and Started
- * the newest first (a container that just restarted); a missing reading or
- * image sorts last either way.
+ * first (Memory by its share of the limit, the amount under it), the name
+ * and image A to Z, the status most urgent first and Last Started the
+ * newest first (a container that just restarted); a missing reading or image
+ * sorts last either way. A container's network totals are on its own page.
  */
 const SORT_COLUMNS: ClientSortColumns<ContainerHostRow, ContainerSortKey> = {
   containerName: { firstSortOrder: SortOrder.Ascending },
@@ -86,12 +85,9 @@ const SORT_COLUMNS: ClientSortColumns<ContainerHostRow, ContainerSortKey> = {
   composeProject: { firstSortOrder: SortOrder.Ascending },
   containerImage: { firstSortOrder: SortOrder.Ascending },
   cpuPercent: { firstSortOrder: SortOrder.Descending },
-  memoryUsage: { firstSortOrder: SortOrder.Descending },
   memoryPercent: { firstSortOrder: SortOrder.Descending },
   restarts: { firstSortOrder: SortOrder.Descending },
   startedAtMs: { firstSortOrder: SortOrder.Descending },
-  networkRx: { firstSortOrder: SortOrder.Descending },
-  networkTx: { firstSortOrder: SortOrder.Descending },
 };
 
 const DEFAULT_SORT: DockerContainerSort = {
@@ -261,13 +257,22 @@ const DockerHostContainers: FunctionComponent<
         title: "Container Name",
         type: FieldType.Element,
         key: "containerName",
+        /*
+         * The name is what a reader scans for: drawn whole, breaking after
+         * its own dots and dashes on a narrow line, never cut short.
+         */
+        wrapContent: true,
+        wrapMaxWidthClassName: "max-w-[16rem]",
+        contentClassName: "min-w-[9rem]",
         getElement: (row: ContainerHostRow): ReactElement => {
           return (
             <Link
               to={getContainerDetailRoute(row)}
               className="font-medium text-gray-900 hover:text-indigo-600 hover:underline [overflow-wrap:anywhere]"
             >
-              <bdi>{row.containerName}</bdi>
+              <bdi>
+                <BreakableName text={row.containerName} breaksFromLength={0} />
+              </bdi>
             </Link>
           );
         },
@@ -309,11 +314,21 @@ const DockerHostContainers: FunctionComponent<
     columns.push(
       {
         title: "Image",
-        type: FieldType.Text,
+        type: FieldType.Element,
         key: "containerImage",
-        noValueMessage: "unknown",
         hideBelowLargeScreen: true,
         foldInto: "containerName",
+        wrapContent: true,
+        wrapMaxWidthClassName: "max-w-[16rem]",
+        getElement: (row: ContainerHostRow): ReactElement => {
+          return row.containerImage ? (
+            <bdi className="[overflow-wrap:anywhere]">
+              <BreakableName text={row.containerImage} />
+            </bdi>
+          ) : (
+            <span>unknown</span>
+          );
+        },
       },
       {
         title: "CPU",
@@ -330,22 +345,30 @@ const DockerHostContainers: FunctionComponent<
       {
         title: "Memory",
         type: FieldType.Element,
-        key: "memoryUsage",
-        headerTooltip: CONTAINER_HOST_METRIC_DESCRIPTIONS.containerMemory,
-        getElement: (row: ContainerHostRow): ReactElement => {
-          return <span>{formatReadingBytes(row.memoryUsage)}</span>;
-        },
-      },
-      {
-        title: "Memory %",
-        type: FieldType.Element,
         key: "memoryPercent",
-        headerTooltip:
-          CONTAINER_HOST_METRIC_DESCRIPTIONS.containerMemoryPercent,
+        headerTooltip: CONTAINER_HOST_METRIC_DESCRIPTIONS.containerMemory,
+        /*
+         * Of its limit, or of the host's memory: the share a reader sorts by
+         * to find a container near its limit, with the amount under it.
+         */
         getElement: (row: ContainerHostRow): ReactElement => {
-          return renderReading(
-            formatReadingPercent(row.memoryPercent),
-            row.memoryTone,
+          if (row.memoryPercent === null && row.memoryUsage === null) {
+            return <span>—</span>;
+          }
+          return (
+            <div className="flex flex-col">
+              {renderReading(
+                formatReadingPercent(row.memoryPercent),
+                row.memoryTone,
+              )}
+              {row.memoryUsage !== null ? (
+                <span className="text-xs text-gray-500">
+                  {formatReadingBytes(row.memoryUsage)}
+                </span>
+              ) : (
+                <></>
+              )}
+            </div>
           );
         },
       },
@@ -382,30 +405,6 @@ const DockerHostContainers: FunctionComponent<
               })}
             </span>
           );
-        },
-      },
-      {
-        title: "Network RX (total)",
-        type: FieldType.Element,
-        key: "networkRx",
-        headerTooltip: CONTAINER_HOST_METRIC_DESCRIPTIONS.containerNetworkRx,
-        hideBelowLargeScreen: true,
-        foldInto: "memoryUsage",
-        showTitleWhenFolded: true,
-        getElement: (row: ContainerHostRow): ReactElement => {
-          return <span>{formatReadingBytes(row.networkRx)}</span>;
-        },
-      },
-      {
-        title: "Network TX (total)",
-        type: FieldType.Element,
-        key: "networkTx",
-        headerTooltip: CONTAINER_HOST_METRIC_DESCRIPTIONS.containerNetworkTx,
-        hideBelowLargeScreen: true,
-        foldInto: "memoryUsage",
-        showTitleWhenFolded: true,
-        getElement: (row: ContainerHostRow): ReactElement => {
-          return <span>{formatReadingBytes(row.networkTx)}</span>;
         },
       },
       {

@@ -144,7 +144,15 @@ export function getContainerHostRow(
       status: assessment.status.label,
       statusTone: assessment.status.tone,
       statusText: { text: assessment.status.label },
-      statusReasons: assessment.reasons,
+      /*
+       * Why, under the word: a reason that is the word itself ("Stopped
+       * reporting" under Stopped reporting) would only say it twice.
+       */
+      statusReasons: assessment.reasons.filter(
+        (reason: ContainerHostAssessment["reasons"][number]): boolean => {
+          return reason.text !== assessment.status.label;
+        },
+      ),
     },
     cpuTone: getContainerCpuTone(cpuPercent),
     memoryTone: getContainerMemoryTone(memoryPercent),

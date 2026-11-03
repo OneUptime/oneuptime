@@ -190,6 +190,25 @@ const ContainerHostContainerOverview: FunctionComponent<ComponentProps> = (
     });
   }
 
+  // Running totals since it started: the network columns of `docker stats`.
+  if (isRunning && container.networkRxBytes !== null) {
+    detailRows.push({
+      key: "network-rx",
+      label: "Network RX (total)",
+      value: formatBytes(container.networkRxBytes),
+      description: CONTAINER_HOST_METRIC_DESCRIPTIONS.containerNetworkRx,
+    });
+  }
+
+  if (isRunning && container.networkTxBytes !== null) {
+    detailRows.push({
+      key: "network-tx",
+      label: "Network TX (total)",
+      value: formatBytes(container.networkTxBytes),
+      description: CONTAINER_HOST_METRIC_DESCRIPTIONS.containerNetworkTx,
+    });
+  }
+
   if (isRunning && container.startedAt) {
     detailRows.push({
       key: "started",

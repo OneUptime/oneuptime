@@ -141,11 +141,8 @@ const COLUMN_KEYS: Array<[string, ContainerHostMetric]> = [
   ["Compose Project", "containerComposeProject"],
   ["CPU", "containerCpu"],
   ["Memory", "containerMemory"],
-  ["Memory %", "containerMemoryPercent"],
   ["Restarts (15 min)", "containerRestarts"],
   ["Last Started", "containerUptime"],
-  ["Network RX (total)", "containerNetworkRx"],
-  ["Network TX (total)", "containerNetworkTx"],
 ];
 
 // The shared pieces both runtimes' pages draw (Components/ContainerHost).

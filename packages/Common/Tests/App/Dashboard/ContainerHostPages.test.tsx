@@ -42,6 +42,9 @@ interface MockContainer {
   cpu?: number;
   memoryPercent?: number;
   memoryBytes?: number;
+  // Its network running totals, since it started.
+  rx?: number;
+  tx?: number;
   // Seconds since its last reading; past the 5-minute window it has none.
   readSecondsAgo?: number;
   // Seconds since its current run started (its inventory row).
@@ -66,6 +69,8 @@ function readingPoints(metricName: string): Array<Record<string, unknown>> {
     "container.cpu.utilization": "cpu",
     "container.memory.percent": "memoryPercent",
     "container.memory.usage.total": "memoryBytes",
+    "container.network.io.usage.rx_bytes": "rx",
+    "container.network.io.usage.tx_bytes": "tx",
   };
   const key: keyof MockContainer | undefined = field[metricName];
   return mockContainers
@@ -637,6 +642,8 @@ describe.each(RUNTIMES)(
           cpu: 12,
           memoryPercent: 30,
           restarts: 0,
+          rx: 1000,
+          tx: 3072,
           // Two and a half hours: "2 hours ago", whatever the read's timing.
           startedSecondsAgo: 9000,
           image: "acme/shop-api:2.4.1",
@@ -664,6 +671,11 @@ describe.each(RUNTIMES)(
       expect(details).toHaveTextContent(FULL_ID);
       expect(details).toHaveTextContent("shop");
       expect(details).toHaveTextContent("api");
+      // Its network running totals: the list leaves them to this page.
+      expect(details).toHaveTextContent("Network RX (total)");
+      expect(details).toHaveTextContent("1000 B");
+      expect(details).toHaveTextContent("Network TX (total)");
+      expect(details).toHaveTextContent("3.0 KB");
       expect(within(details).getByText("web-01").closest("a")).toHaveAttribute(
         "href",
         `/dashboard/${PROJECT_ID}/${runtime.slug}/${HOST_ID}`,

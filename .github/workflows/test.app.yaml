@@ -1244,6 +1244,12 @@ jobs:
           # MonitorSecurityCard.spec.ts joined Monitor Overview the same day
           # (11 tests, 52 seconds locally, about half of them in this half; see
           # group 3): about 20.
+          # Container Host Pages (25 tests, 1.5 minutes locally plus its
+          # bundle, Chromium only: a Docker and a Podman host's Overview - its
+          # health and what needs attention by the containers' rules - its
+          # Containers list and a container's page, at 1280, 1024, 768 and 390
+          # pixels, dark, German and Persian) joined them on 2026-11-03:
+          # about 22.
           - group: 16
             monitor_overview_shard: 2/2
             suites: >-
@@ -1251,6 +1257,7 @@ jobs:
               test-navigation-search-ui
               test-discovery-ui
               test-ask-ai-ui
+              test-container-host-pages-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
@@ -1516,4 +1523,6 @@ jobs:
             output/playwright/kubernetes-pages-ui/test-results
             output/playwright/host-pages-ui/*.png
             output/playwright/host-pages-ui/test-results
+            output/playwright/container-host-pages-ui/*.png
+            output/playwright/container-host-pages-ui/test-results
           retention-days: 7

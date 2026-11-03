@@ -133,7 +133,8 @@ const D: Record<ContainerHostMetric, string> =
 
 const SENTENCE_END_PATTERN: RegExp = /[.!?](?:\s|$)/;
 const PAST_100_PATTERN: RegExp = /above 100%|more than 100%/;
-const HOST_MEMORY_PATTERN: RegExp = /host's total memory|host memory/;
+const HOST_MEMORY_PATTERN: RegExp =
+  /host's total memory|host's memory|host memory/;
 const RUNTIME_NAME_PATTERN: RegExp = /docker|podman/i;
 const SLOT_WORD_PATTERN: RegExp = /\bslots?\b/;
 
@@ -175,11 +176,8 @@ const COLUMN_TITLES: Array<[string, ContainerHostMetric]> = [
   ["Status", "containerStatus"],
   ["CPU", "containerCpu"],
   ["Memory", "containerMemory"],
-  ["Memory %", "containerMemoryPercent"],
   ["Restarts (15 min)", "containerRestarts"],
   ["Last Started", "containerUptime"],
-  ["Network RX (total)", "containerNetworkRx"],
-  ["Network TX (total)", "containerNetworkTx"],
 ];
 
 // Drawn only on a host whose containers Compose created.
@@ -193,12 +191,14 @@ const HERO_TITLES: Array<[string, ContainerHostMetric]> = [
   ["Host health", "hostHealth"],
 ];
 
-// A container's own page: its tiles.
+// A container's own page: its tiles, and its network totals in its details.
 const CONTAINER_PAGE_TITLES: Array<[string, ContainerHostMetric]> = [
   ["CPU", "containerCpuTile"],
   ["Memory", "containerMemoryTile"],
   ["Restarts", "containerRestartsTile"],
   ["Last Started", "containerUptimeTile"],
+  ["Network RX (total)", "containerNetworkRx"],
+  ["Network TX (total)", "containerNetworkTx"],
 ];
 
 const ALL_TITLES: Array<[string, ContainerHostMetric]> = [
@@ -234,7 +234,8 @@ const MEMORY_PERCENT_KEYS: Array<ContainerHostMetric> = [
   "avgMemoryChart",
   "peakMemoryChart",
   "topMemoryConsumers",
-  "containerMemoryPercent",
+  "containerMemory",
+  "containerMemoryTile",
 ];
 
 describe("container host metric descriptions", () => {
@@ -424,7 +425,7 @@ describe("container host metric descriptions", () => {
     });
 
     test("the table's texts speak of the last 5 minutes before now - that page has no time picker", () => {
-      for (const [, key] of COLUMN_TITLES) {
+      for (const [, key] of [...COLUMN_TITLES, ...CONTAINER_PAGE_TITLES]) {
         expect(D[key]).not.toContain("selected range");
       }
 
@@ -1407,42 +1408,30 @@ describe.each(RUNTIME_CASES)(
       const api: Array<string> = cellsOf("api");
 
       /*
-       * Name, status, image, CPU, memory, memory %, restarts, started, RX,
-       * TX, actions. No restart counts and no inventory are served: both
-       * read as missing, never as 0.
+       * Name, status, image, CPU, memory (its share, the amount under it),
+       * restarts, last started, actions. No restart counts and no inventory
+       * are served: both read as missing, never as 0.
        */
-      expect(api.slice(1, 8)).toEqual([
+      expect(api.slice(1, 7)).toEqual([
         "Running",
         "api:latest",
         "250.00%",
-        "1.5 GB",
-        "37.50%",
+        "37.50%1.5 GB",
         "—",
         "—",
       ]);
-      expect(cellsOf("worker").slice(3, 6)).toEqual([
-        "12.35%",
-        "50.0 MB",
-        "2.25%",
-      ]);
+      expect(cellsOf("worker").slice(3, 5)).toEqual(["12.35%", "2.25%50.0 MB"]);
     });
 
-    test("the network columns are one interface's running total, as their text warns", async () => {
+    test("the network totals are a container's page's, not the list's", async () => {
       serveHost(runtimeCase);
       serveLists();
 
       await renderPage(runtimeCase.Containers);
 
-      const api: Array<string> = cellsOf("api");
-
-      /*
-       * api has eth0 (1000 B) and eth1 (5000 B). The cell is eth0's counter
-       * alone - not the 5.9 KB the two add up to, and not a per-second rate.
-       */
-      expect(api[8]).toBe("1000 B");
-      expect(api[8]).not.toBe("5.9 KB");
-      expect(api[9]).toBe("3.0 KB");
-      expect(cellsOf("worker")[8]).toBe("2.0 KB");
+      const header: HTMLElement = screen.getAllByRole("rowgroup")[0]!;
+      expect(within(header).queryByText("Network RX (total)")).toBeNull();
+      expect(within(header).queryByText("Network TX (total)")).toBeNull();
     });
   },
 );

@@ -413,8 +413,9 @@ const CONTAINER_LISTS: Array<ContainerList> = [
 ];
 
 /*
- * Name, status, image, CPU, memory, memory %, restarts, started, RX, TX,
- * then the actions.
+ * Name, status, image, CPU, memory (its share, the amount under it),
+ * restarts, last started, then the actions. A container's network totals
+ * are on its own page.
  */
 const CONTAINER_COLUMN_INDEX: Record<string, number> = {
   "Container Name": 0,
@@ -422,11 +423,8 @@ const CONTAINER_COLUMN_INDEX: Record<string, number> = {
   Image: 2,
   CPU: 3,
   Memory: 4,
-  "Memory %": 5,
-  "Restarts (15 min)": 6,
-  "Last Started": 7,
-  "Network RX (total)": 8,
-  "Network TX (total)": 9,
+  "Restarts (15 min)": 5,
+  "Last Started": 6,
 };
 
 interface ExpectedOrder {
@@ -452,48 +450,32 @@ const METRIC_COLUMN_CASES: Array<MetricColumnCase> = [
       cells: ["0.50%", "9.00%", "12.35%", "250.00%", "—"],
     },
   },
+  /*
+   * By its share of its limit (or of the host's memory), the amount under
+   * it: as a share 1.5 GB of a large limit is lighter than 900 MB of a small
+   * one. cache sent an amount but no share: last either way.
+   */
   {
     title: "Memory",
     busiestFirst: {
-      names: ["api", "batch-9", "cache", "batch-10", "web"],
-      cells: ["1.5 GB", "900 MB", "300 MB", "50.0 MB", "—"],
-    },
-    quietestFirst: {
-      names: ["batch-10", "cache", "batch-9", "api", "web"],
-      cells: ["50.0 MB", "300 MB", "900 MB", "1.5 GB", "—"],
-    },
-  },
-  {
-    title: "Memory %",
-    busiestFirst: {
       names: ["batch-9", "api", "web", "batch-10", "cache"],
-      cells: ["80.00%", "37.50%", "12.00%", "2.25%", "—"],
+      cells: [
+        "80.00%900 MB",
+        "37.50%1.5 GB",
+        "12.00%",
+        "2.25%50.0 MB",
+        "—300 MB",
+      ],
     },
     quietestFirst: {
       names: ["batch-10", "web", "api", "batch-9", "cache"],
-      cells: ["2.25%", "12.00%", "37.50%", "80.00%", "—"],
-    },
-  },
-  {
-    title: "Network RX (total)",
-    busiestFirst: {
-      names: ["batch-10", "batch-9", "api", "web", "cache"],
-      cells: ["5.0 GB", "2.0 KB", "1000 B", "0 B", "—"],
-    },
-    quietestFirst: {
-      names: ["web", "api", "batch-9", "batch-10", "cache"],
-      cells: ["0 B", "1000 B", "2.0 KB", "5.0 GB", "—"],
-    },
-  },
-  {
-    title: "Network TX (total)",
-    busiestFirst: {
-      names: ["cache", "web", "api", "batch-10", "batch-9"],
-      cells: ["100 MB", "1.0 MB", "3.0 KB", "512 B", "—"],
-    },
-    quietestFirst: {
-      names: ["batch-10", "api", "web", "cache", "batch-9"],
-      cells: ["512 B", "3.0 KB", "1.0 MB", "100 MB", "—"],
+      cells: [
+        "2.25%50.0 MB",
+        "12.00%",
+        "37.50%1.5 GB",
+        "80.00%900 MB",
+        "—300 MB",
+      ],
     },
   },
 ];
@@ -527,11 +509,8 @@ describe.each(CONTAINER_LISTS)(
         Image: "none",
         CPU: "none",
         Memory: "none",
-        "Memory %": "none",
         "Restarts (15 min)": "none",
         "Last Started": "none",
-        "Network RX (total)": "none",
-        "Network TX (total)": "none",
       });
     });
 
@@ -542,7 +521,7 @@ describe.each(CONTAINER_LISTS)(
       const after: Record<string, string | null> =
         await clickEverySortableHeader(list.tableId);
 
-      expect(Object.keys(after)).toHaveLength(10);
+      expect(Object.keys(after)).toHaveLength(7);
 
       for (const [title, ariaSort] of Object.entries(after)) {
         expect({ title, ariaSort }).toEqual({
@@ -583,10 +562,10 @@ describe.each(CONTAINER_LISTS)(
 
       expect(ariaSortOf(list.tableId, "CPU")).toBe("ascending");
 
-      // ...and Memory % still opens on the heaviest user, not the lightest.
-      await clickHeader(list.tableId, "Memory %");
+      // ...and Memory still opens on the heaviest user, not the lightest.
+      await clickHeader(list.tableId, "Memory");
 
-      expect(ariaSortOf(list.tableId, "Memory %")).toBe("descending");
+      expect(ariaSortOf(list.tableId, "Memory")).toBe("descending");
       expect(ariaSortOf(list.tableId, "CPU")).toBe("none");
       expect(visibleNames()).toEqual([
         "batch-9",
@@ -755,21 +734,29 @@ describe.each(CONTAINER_LISTS)(
       await renderPage(list.Page);
       await clickHeader(list.tableId, "Memory");
 
-      expect(visibleNames()[0]).toBe("api");
+      expect(visibleNames()[0]).toBe("batch-9");
 
-      // api restarted and is light again; cache took the memory.
+      // batch-9 restarted and is light again; cache took the memory.
       serveContainers(
         FIVE_CONTAINERS.map((container: ContainerFixture): ContainerFixture => {
-          if (container.name === "api") {
+          if (container.name === "batch-9") {
             return {
               ...container,
-              readings: { ...container.readings, [MEMORY_METRIC]: 10 * MB },
+              readings: {
+                ...container.readings,
+                [MEMORY_METRIC]: 10 * MB,
+                [MEMORY_PERCENT_METRIC]: 1,
+              },
             };
           }
           if (container.name === "cache") {
             return {
               ...container,
-              readings: { ...container.readings, [MEMORY_METRIC]: 2 * GB },
+              readings: {
+                ...container.readings,
+                [MEMORY_METRIC]: 2 * GB,
+                [MEMORY_PERCENT_METRIC]: 95,
+              },
             };
           }
           return container;
@@ -780,17 +767,17 @@ describe.each(CONTAINER_LISTS)(
       expect(ariaSortOf(list.tableId, "Memory")).toBe("descending");
       expect(visibleNames()).toEqual([
         "cache",
-        "batch-9",
-        "batch-10",
         "api",
         "web",
+        "batch-10",
+        "batch-9",
       ]);
       expect(visibleCells("Memory")).toEqual([
-        "2.0 GB",
-        "900 MB",
-        "50.0 MB",
-        "10.0 MB",
-        "—",
+        "95.00%2.0 GB",
+        "37.50%1.5 GB",
+        "12.00%",
+        "2.25%50.0 MB",
+        "1.00%10.0 MB",
       ]);
     });
   },
