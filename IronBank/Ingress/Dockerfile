@@ -54,11 +54,14 @@ COPY --from=release /usr/local/lib/node_modules /usr/local/lib/node_modules
 # without the libraries the official image installs with them. Iron Bank's
 # pipeline reaches Alpine's package repositories through its proxy and
 # nothing else, so everything that is not an Alpine package comes from the
-# release.
+# release. /etc/nginx/conf.d: run.sh renders the configuration into it, and
+# Iron Bank's image has none (it copies the official image's /etc/nginx/*,
+# which takes conf.d's contents and leaves the directory behind).
 RUN apk upgrade --no-cache \
     && apk add --no-cache bash curl openssl libstdc++ libatomic libxml2 \
     && ln -s /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
-    && ln -s /usr/local/lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx
+    && ln -s /usr/local/lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx \
+    && mkdir -p /etc/nginx/conf.d
 
 COPY --from=release /etc/nginx/envsubst-on-templates.sh /etc/nginx/envsubst-on-templates.sh
 COPY --from=release /etc/nginx/templates/default.conf.template /etc/nginx/templates/default.conf.template
