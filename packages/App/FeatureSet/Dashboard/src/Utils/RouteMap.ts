@@ -941,6 +941,23 @@ export const DataSecurityRoutePath: Dictionary<string> = {
   [PageMap.DATA_SECURITY_DOCUMENTATION]: "documentation",
 };
 
+// Data Observability product routes
+export const DataObservabilityRoutePath: Dictionary<string> = {
+  [PageMap.DATA_OBSERVABILITY]: "",
+  [PageMap.DATA_OBSERVABILITY_OVERVIEW]: "overview",
+  [PageMap.DATA_OBSERVABILITY_TABLES]: "tables",
+  [PageMap.DATA_OBSERVABILITY_TABLES_DROPPED]: "tables/dropped",
+  [PageMap.DATA_OBSERVABILITY_TABLE_VIEW]: `tables/${RouteParams.ModelID}`,
+  [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_COLUMNS]: `tables/${RouteParams.ModelID}/columns`,
+  [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_METRICS]: `tables/${RouteParams.ModelID}/metrics`,
+  [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_TIMELINE]: `tables/${RouteParams.ModelID}/timeline`,
+  [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_SETTINGS]: `tables/${RouteParams.ModelID}/settings`,
+  [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_DELETE]: `tables/${RouteParams.ModelID}/delete`,
+  [PageMap.DATA_OBSERVABILITY_STORES]: "stores",
+  [PageMap.DATA_OBSERVABILITY_SCHEMA_CHANGES]: "schema-changes",
+  [PageMap.DATA_OBSERVABILITY_DOCUMENTATION]: "documentation",
+};
+
 // Metrics product routes
 export const MetricsRoutePath: Dictionary<string> = {
   [PageMap.METRICS]: "",
@@ -7715,6 +7732,87 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.DATA_SECURITY_DOCUMENTATION]: new Route(
     `/dashboard/${RouteParams.ProjectID}/data-security/${
       DataSecurityRoutePath[PageMap.DATA_SECURITY_DOCUMENTATION]
+    }`,
+  ),
+
+  // Data Observability Product Routes
+  [PageMap.DATA_OBSERVABILITY_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/*`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_OVERVIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_OVERVIEW]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_TABLES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_TABLES]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_TABLES_DROPPED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_TABLES_DROPPED]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_TABLE_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_TABLE_VIEW]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_COLUMNS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_TABLE_VIEW_COLUMNS]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_METRICS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_TABLE_VIEW_METRICS]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_TIMELINE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_TABLE_VIEW_TIMELINE]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_TABLE_VIEW_SETTINGS]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_TABLE_VIEW_DELETE]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_STORES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_STORES]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_SCHEMA_CHANGES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_SCHEMA_CHANGES]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_DOCUMENTATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_DOCUMENTATION]
     }`,
   ),
 

@@ -73,7 +73,7 @@ export class Service extends ProjectReferencesService<DataAssetFeed> {
       feed.postedAt = data.postedAt || OneUptimeDate.getCurrentDate();
 
       if (data.userId) {
-        feed.createdByUserId = data.userId;
+        feed.userId = data.userId;
       }
 
       if (data.moreInformationInMarkdown) {
