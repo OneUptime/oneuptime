@@ -123,12 +123,12 @@ describe("Data Observability registry wiring", () => {
     );
 
     expect(migrations).toContain(
-      'import { AddDataAssetUsage1808990000000 } from "./1808990000000-AddDataAssetUsage";',
+      'import { AddDataAssetUsage1808991300000 } from "./1808991300000-AddDataAssetUsage";',
     );
-    expect(migrations).toContain("AddDataAssetUsage1808990000000,");
+    expect(migrations).toContain("AddDataAssetUsage1808991300000,");
     expect(
       readSquashed(
-        "Common/Server/Infrastructure/Postgres/SchemaMigrations/1808990000000-AddDataAssetUsage.ts",
+        "Common/Server/Infrastructure/Postgres/SchemaMigrations/1808991300000-AddDataAssetUsage.ts",
       ),
     ).toContain('CREATE TABLE "DataAssetUsage"');
 
