@@ -10,6 +10,16 @@ import {
   read,
   relative,
 } from "./KubernetesAiAgentDocsSupport";
+import {
+  METRIC_INSIGHT_REQUEST_METRIC_PREFIXES,
+  isRequestMetricName,
+} from "Common/Utils/Metrics/MetricInsight";
+import {
+  SPAN_METRICS_CALLS_METRIC,
+  SPAN_METRICS_COLLECTOR_STEP,
+  SPAN_METRICS_DURATION_METRIC,
+  SPAN_METRICS_NAMESPACE,
+} from "Common/Utils/Metrics/SpanMetricsCollectorStep";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -30,8 +40,10 @@ import path from "path";
  * docs language, and the Dashboard's in-app guide. No copy may promise
  * request or response sizes, which this feature never sent.
  *
- * The upgrade notes also tell operators that OneUptime's own pages do not
- * read these metrics. The last test keeps that true.
+ * The README's upgrade note also says what in OneUptime reads these metrics:
+ * Metrics AI alone, which counts them under the old names and the new as a
+ * service's request metrics, so the upgrade changes nothing there. The last
+ * tests keep that true.
  */
 
 const CONTENT_DIR: string = path.resolve(
@@ -245,20 +257,30 @@ describe("kubernetes-agent chart copy: eBPF span metrics under their new names",
     ]);
     expect(upgrading).toContain("`application_span_otel`");
     expect(upgrading).toContain("`application_span_sizes`");
-    // Kept true by the last test in this file.
+    // Kept true by the last tests in this file.
     expect(upgrading).toContain(
-      "OneUptime's own pages and the service map do not read these metrics.",
+      "Within OneUptime, only Metrics AI reads these metrics: it counts them, under any of these names, as a service's request metrics, so the upgrade does not make it report **Missing Request Metrics**. OneUptime's pages and the service map do not read them.",
     );
+    expect(upgrading).not.toContain("do not read these metrics");
   });
 });
 
 /*
- * No product code may read a span-metrics family by name, under the old
- * names, the new ones, or the ones OBI before v0.11 used. A feature that
- * starts reading one has to follow the rename (and the upgrade notes have
- * to stop saying OneUptime reads neither).
+ * Product code reads a span-metrics family in one place: Metrics AI's
+ * request metrics (Common/Utils/Metrics/MetricInsight). A service that sends
+ * the series - under the new names, the old ones, or the ones OBI before
+ * v0.11 used - records its request metrics, so Metrics AI files no Missing
+ * Request Metrics for it, before the upgrade or after: the rename changes
+ * nothing there, as the README's upgrade note says. Metrics AI's collector
+ * step (Common/Utils/Metrics/SpanMetricsCollectorStep) names what the
+ * collector's span metrics connector records - its default namespace,
+ * traces.span.metrics, which OBI's application_span_otel uses too - and the
+ * Dashboard draws those names in the step's sentences: neither reads a
+ * metric. Anything else that starts naming one, or reads these names for
+ * something more, fails here: it has to follow the rename, and the upgrade
+ * notes have to say what the rename does to it.
  */
-describe("OneUptime reads no eBPF span-metrics family", () => {
+describe("OneUptime reads the eBPF span-metrics families only as Metrics AI's request metrics", () => {
   const SCAN_DIRS: Array<string> = [
     path.join(PACKAGES_ROOT, "App", "FeatureSet"),
     path.join(PACKAGES_ROOT, "Common", "Models"),
@@ -279,8 +301,49 @@ describe("OneUptime reads no eBPF span-metrics family", () => {
 
   const SOURCE_EXTENSIONS: Array<string> = [".ts", ".tsx", ".js", ".mjs"];
 
-  const SPAN_METRICS_NAME: RegExp =
-    /traces_spanmetrics_|traces\.span\.metrics\.|traces_span_metrics_/;
+  // Every form of the families' names, the namespace on its own included.
+  const SPAN_METRICS_NAME: RegExp = /traces[._]span[._]?metrics/i;
+
+  const METRIC_INSIGHT: string = path.join(
+    PACKAGES_ROOT,
+    "Common/Utils/Metrics/MetricInsight.ts",
+  );
+  const COLLECTOR_STEP: string = path.join(
+    PACKAGES_ROOT,
+    "Common/Utils/Metrics/SpanMetricsCollectorStep.ts",
+  );
+  const METRIC_PROBLEM_DETECTOR: string = path.join(
+    PACKAGES_ROOT,
+    "Common/Server/Utils/AI/SRE/Insights/Detectors/MetricProblemDetector.ts",
+  );
+  const STEP_PANEL: string = path.join(
+    PACKAGES_ROOT,
+    "App/FeatureSet/Dashboard/src/Components/TelemetryAi/SpanMetricsStepPanel.tsx",
+  );
+  const STEP_COPY: string = path.join(
+    PACKAGES_ROOT,
+    "App/FeatureSet/Dashboard/src/Components/TelemetryAi/SpanMetricsStepCopy.ts",
+  );
+
+  // What Metrics AI reads the families through, and what draws their names.
+  const READER_NAMES: Array<string> = [
+    "METRIC_INSIGHT_REQUEST_METRIC_PREFIXES",
+    "isRequestMetricName",
+    "SPAN_METRICS_NAMESPACE",
+    "SPAN_METRICS_CALLS_METRIC",
+    "SPAN_METRICS_DURATION_METRIC",
+  ];
+
+  // Every name the chart's spanMetrics has sent the series under (README).
+  const CHART_SERIES_NAMES: Array<string> = [
+    OLD_CALLS,
+    OLD_LATENCY,
+    NEW_CALLS,
+    NEW_DURATION,
+    // OBI before v0.11.
+    "traces_span_metrics_calls_total",
+    "traces_span_metrics_duration",
+  ];
 
   function listSourceFiles(directory: string): Array<string> {
     const files: Array<string> = [];
@@ -304,17 +367,199 @@ describe("OneUptime reads no eBPF span-metrics family", () => {
     return files;
   }
 
-  test("in any TypeScript or JavaScript source outside the docs", () => {
-    const offenders: Array<string> = SCAN_DIRS.flatMap(listSourceFiles)
-      .filter((file: string): boolean => {
-        // The in-app guide documents the metrics; it reads nothing.
-        return file !== DASHBOARD_GUIDE;
-      })
-      .filter((file: string): boolean => {
-        return SPAN_METRICS_NAME.test(read(file));
-      })
-      .map(relative);
+  let sources: Map<string, string> | null = null;
 
-    expect(offenders).toEqual([]);
+  /*
+   * The product's sources that name a span-metrics family or one of the
+   * reader names, by path, with their text: each source is read once. The
+   * in-app guide is left out: it documents the metrics, and reads nothing.
+   */
+  function namingSources(): Map<string, string> {
+    if (sources) {
+      return sources;
+    }
+
+    sources = new Map<string, string>();
+
+    for (const file of SCAN_DIRS.flatMap(listSourceFiles)) {
+      if (file === DASHBOARD_GUIDE) {
+        continue;
+      }
+
+      const text: string = read(file);
+
+      if (
+        SPAN_METRICS_NAME.test(text) ||
+        READER_NAMES.some((name: string): boolean => {
+          return text.includes(name);
+        })
+      ) {
+        sources.set(file, text);
+      }
+    }
+
+    return sources;
+  }
+
+  // A source's code: its comments removed (a comment reads nothing).
+  function codeOf(text: string): string {
+    return text
+      .replace(/\/\*[\s\S]*?\*\//g, " ")
+      .replace(/(^|\s)\/\/.*$/gm, " ")
+      .replace(/\s+/g, " ");
+  }
+
+  // The same with no whitespace left, so Prettier can reflow it freely.
+  function denseCodeOf(file: string): string {
+    return codeOf(read(file)).replace(/\s+/g, "");
+  }
+
+  type TextFunction = (text: string) => string;
+
+  // The sources whose text matches, as repository paths, sorted.
+  function sourcesMatching(
+    pattern: RegExp,
+    textOf: TextFunction = (text: string): string => {
+      return text;
+    },
+  ): Array<string> {
+    return Array.from(namingSources().entries())
+      .filter(([, text]: [string, string]): boolean => {
+        return pattern.test(textOf(text));
+      })
+      .map(([file]: [string, string]): string => {
+        return relative(file);
+      })
+      .sort();
+  }
+
+  function repositoryPaths(files: Array<string>): Array<string> {
+    return files.map(relative).sort();
+  }
+
+  type CountFunction = (text: string, part: string) => number;
+
+  const countOf: CountFunction = (text: string, part: string): number => {
+    return text.split(part).length - 1;
+  };
+
+  test("are named only by Metrics AI's request metrics and its collector step, comments included", () => {
+    expect(sourcesMatching(SPAN_METRICS_NAME)).toEqual(
+      repositoryPaths([METRIC_INSIGHT, COLLECTOR_STEP, STEP_PANEL]),
+    );
+  });
+
+  test("are named in code only as request-metric prefixes and as the connector's namespace", () => {
+    expect(sourcesMatching(SPAN_METRICS_NAME, codeOf)).toEqual(
+      repositoryPaths([METRIC_INSIGHT, COLLECTOR_STEP]),
+    );
+
+    /*
+     * The collector step, once: the connector's namespace, which the step's
+     * lines leave at its default.
+     */
+    const step: string = codeOf(read(COLLECTOR_STEP));
+
+    expect(step.match(new RegExp(SPAN_METRICS_NAME.source, "gi"))).toEqual([
+      SPAN_METRICS_NAMESPACE,
+    ]);
+    expect(denseCodeOf(COLLECTOR_STEP)).toContain(
+      'exportconstSPAN_METRICS_NAMESPACE:string="traces.span.metrics";',
+    );
+    expect(SPAN_METRICS_COLLECTOR_STEP).not.toContain("namespace");
+
+    // Metric insights: only in the names a request metric goes by.
+    const insight: string = denseCodeOf(METRIC_INSIGHT);
+    const listStart: string =
+      "exportconstMETRIC_INSIGHT_REQUEST_METRIC_PREFIXES:ReadonlyArray<string>=[";
+    const listAt: number = insight.indexOf(listStart);
+    const listEnd: number = insight.indexOf("];", listAt);
+
+    expect(listAt).toBeGreaterThan(-1);
+    expect(listEnd).toBeGreaterThan(listAt);
+    expect(
+      SPAN_METRICS_NAME.test(insight.slice(0, listAt) + insight.slice(listEnd)),
+    ).toBe(false);
+  });
+
+  test("count the series under every name the chart has sent it as a service's request metrics, so the upgrade changes nothing there", () => {
+    // The new names, through Prometheus too, and the old ones.
+    expect(
+      METRIC_INSIGHT_REQUEST_METRIC_PREFIXES.filter(
+        (prefix: string): boolean => {
+          return SPAN_METRICS_NAME.test(prefix);
+        },
+      ),
+    ).toEqual([
+      "traces.span.metrics.",
+      "traces_span_metrics_",
+      "traces.spanmetrics.",
+      "traces_spanmetrics_",
+    ]);
+
+    // What OBI's application_span_otel and the collector's connector record.
+    expect(SPAN_METRICS_NAMESPACE).toBe("traces.span.metrics");
+    expect([SPAN_METRICS_CALLS_METRIC, SPAN_METRICS_DURATION_METRIC]).toEqual([
+      NEW_CALLS,
+      NEW_DURATION,
+    ]);
+
+    for (const name of CHART_SERIES_NAMES) {
+      expect({ name, requestMetric: isRequestMetricName(name) }).toEqual({
+        name,
+        requestMetric: true,
+      });
+    }
+  });
+
+  test("read them for nothing else: the prefixes only tell a request metric, and the connector's names are only drawn", () => {
+    function users(name: string): Array<string> {
+      return sourcesMatching(new RegExp(`\\b${name}\\b`), codeOf);
+    }
+
+    /*
+     * The names a request metric goes by: the check of a service's metrics
+     * in the hour, and the metric catalog's question whether it ever sent
+     * one. Nothing charts, counts or alerts on them.
+     */
+    expect(users("METRIC_INSIGHT_REQUEST_METRIC_PREFIXES")).toEqual(
+      repositoryPaths([METRIC_INSIGHT, METRIC_PROBLEM_DETECTOR]),
+    );
+    expect(users("isRequestMetricName")).toEqual(
+      repositoryPaths([METRIC_INSIGHT]),
+    );
+
+    const insight: string = denseCodeOf(METRIC_INSIGHT);
+    const detector: string = denseCodeOf(METRIC_PROBLEM_DETECTOR);
+
+    expect(countOf(insight, "METRIC_INSIGHT_REQUEST_METRIC_PREFIXES")).toBe(2);
+    expect(insight).toContain(
+      "METRIC_INSIGHT_REQUEST_METRIC_PREFIXES.some((prefix:string):boolean=>{returnlowered.startsWith(prefix);})",
+    );
+    expect(countOf(insight, "isRequestMetricName(")).toBe(2);
+    expect(insight).toContain("returnisRequestMetricName(reading.metricName);");
+    expect(countOf(detector, "METRIC_INSIGHT_REQUEST_METRIC_PREFIXES")).toBe(2);
+    expect(detector).toContain(
+      "name:QueryHelper.startsWithAnyOf([...METRIC_INSIGHT_REQUEST_METRIC_PREFIXES,]),",
+    );
+
+    /*
+     * The connector's names: built in the collector step, read as prefixes
+     * by metric insights, and drawn in the step's restart sentence.
+     */
+    expect(users("SPAN_METRICS_NAMESPACE")).toEqual(
+      repositoryPaths([COLLECTOR_STEP, METRIC_INSIGHT]),
+    );
+
+    for (const name of [
+      "SPAN_METRICS_CALLS_METRIC",
+      "SPAN_METRICS_DURATION_METRIC",
+    ]) {
+      expect(users(name)).toEqual(repositoryPaths([COLLECTOR_STEP, STEP_COPY]));
+    }
+
+    expect(denseCodeOf(STEP_COPY)).toContain(
+      "restart:{calls:SPAN_METRICS_CALLS_METRIC,duration:SPAN_METRICS_DURATION_METRIC,},",
+    );
   });
 });
