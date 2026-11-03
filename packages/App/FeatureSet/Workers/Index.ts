@@ -364,6 +364,7 @@ import "./Jobs/IoT/CleanupStaleResources";
 import "./Jobs/Cloud/CleanupStaleResources";
 import "./Jobs/Cloud/ReadCloudConnections";
 import "./Jobs/DataSecurity/DataSecurityJobs";
+import "./Jobs/DataObservability/DataObservabilityJobs";
 // Network controller connections (Meraki): traffic read on a schedule.
 import "./Jobs/Network/ReadNetworkControllerConnections";
 
