@@ -26,7 +26,7 @@ flowchart TB
     monitors --> act
 ```
 
-Öppna **Produkter → Säkerhetshändelser**, under **Observerbarhet**. Dess meny har ett avsnitt för varje del av säkerheten, och en egen sida för varje sak i den:
+Öppna **Produkter → Säkerhetshändelser**, under **Säkerhet**. Dess meny har ett avsnitt för varje del av säkerheten, och en egen sida för varje sak i den:
 
 | Sida | Avsnitt | Vad den används till |
 | --- | --- | --- |

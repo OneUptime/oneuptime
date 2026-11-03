@@ -26,7 +26,7 @@ flowchart TB
     monitors --> act
 ```
 
-Åbn **Produkter → Sikkerhedshændelser** under **Observabilitet**. Menuen har en sektion for hver del af sikkerheden og en side for sig for hver ting i den:
+Åbn **Produkter → Sikkerhedshændelser** under **Sikkerhed**. Menuen har en sektion for hver del af sikkerheden og en side for sig for hver ting i den:
 
 | Side | Sektion | Hvad den bruges til |
 | --- | --- | --- |

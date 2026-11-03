@@ -26,7 +26,7 @@ flowchart TB
     monitors --> act
 ```
 
-Apri **Prodotti → Eventi di sicurezza**, sotto **Osservabilità**. Il suo menu ha una sezione per ogni parte della sicurezza, e una pagina a sé per ogni cosa che contiene:
+Apri **Prodotti → Eventi di sicurezza**, sotto **Sicurezza**. Il suo menu ha una sezione per ogni parte della sicurezza, e una pagina a sé per ogni cosa che contiene:
 
 | Pagina | Sezione | A cosa serve |
 | --- | --- | --- |

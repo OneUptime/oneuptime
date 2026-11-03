@@ -26,7 +26,7 @@ flowchart TB
     monitors --> act
 ```
 
-Öffnen Sie **Produkte → Sicherheitsereignisse**, unter **Observability**. Sein Menü hat einen Abschnitt für jeden Teil der Sicherheit und für jede Sache darin eine eigene Seite:
+Öffnen Sie **Produkte → Sicherheitsereignisse**, unter **Sicherheit**. Sein Menü hat einen Abschnitt für jeden Teil der Sicherheit und für jede Sache darin eine eigene Seite:
 
 | Seite | Abschnitt | Wofür sie da ist |
 | --- | --- | --- |

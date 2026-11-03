@@ -37,6 +37,7 @@
     "categories": {
       "essentials": "Основные",
       "observability": "Наблюдаемость",
+      "security": "Безопасность",
       "ai": "ИИ",
       "code": "Код",
       "resources": "Ресурсы",

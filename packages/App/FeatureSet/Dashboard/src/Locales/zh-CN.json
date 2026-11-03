@@ -37,6 +37,7 @@
     "categories": {
       "essentials": "基础",
       "observability": "可观测性",
+      "security": "安全",
       "ai": "AI",
       "code": "代码",
       "resources": "资源",
