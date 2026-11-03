@@ -2155,7 +2155,11 @@ test.describe("in Persian", () => {
     } = await action.evaluate(
       (
         element: Element,
-      ): { directions: Array<string>; titleRight: number; lineRight: number } => {
+      ): {
+        directions: Array<string>;
+        titleRight: number;
+        lineRight: number;
+      } => {
         const title: HTMLElement = element.querySelector(
           '[data-testid="tool-approval-title"] bdi',
         ) as HTMLElement;
@@ -2313,7 +2317,9 @@ test.describe("in Persian", () => {
       // Under the title, at the side the page reads from: the right.
       expect(
         Math.abs(
-          boxes.choice.x + boxes.choice.width - (boxes.title.x + boxes.title.width),
+          boxes.choice.x +
+            boxes.choice.width -
+            (boxes.title.x + boxes.title.width),
         ),
       ).toBeLessThanOrEqual(2);
 

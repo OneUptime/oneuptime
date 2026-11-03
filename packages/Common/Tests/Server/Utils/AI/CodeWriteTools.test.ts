@@ -754,14 +754,18 @@ describe("permission-mode gating", () => {
 
   test("the approval card names the action concretely", () => {
     expect(
-      actionTitleText(OpenCodePullRequestTool.buildActionTitle!({ title: "Fix charge bug" })),
+      actionTitleText(
+        OpenCodePullRequestTool.buildActionTitle!({ title: "Fix charge bug" }),
+      ),
     ).toBe("Open pull request: Fix charge bug");
 
     expect(
-      actionTitleText(CommitCodeToBranchTool.buildActionTitle!({
-        branchName: "feature/x",
-        changes: [{ filePath: "a.ts", content: "" }],
-      })),
+      actionTitleText(
+        CommitCodeToBranchTool.buildActionTitle!({
+          branchName: "feature/x",
+          changes: [{ filePath: "a.ts", content: "" }],
+        }),
+      ),
     ).toBe("Commit 1 file to feature/x");
   });
 });

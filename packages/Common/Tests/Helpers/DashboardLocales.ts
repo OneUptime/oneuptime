@@ -90,7 +90,10 @@ function readSameAsEnglish(language: string): ReadonlyArray<string> {
   }
 
   const global: Array<string> = JSON.parse(
-    fs.readFileSync(path.join(DASHBOARD_DIR, "i18n/SameAsEnglish.json"), "utf8"),
+    fs.readFileSync(
+      path.join(DASHBOARD_DIR, "i18n/SameAsEnglish.json"),
+      "utf8",
+    ),
   ) as Array<string>;
   const progress: { sameAsEnglish?: Array<string> } = JSON.parse(
     fs.readFileSync(

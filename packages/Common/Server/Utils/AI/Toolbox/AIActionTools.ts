@@ -114,10 +114,7 @@ function buildChangeIncidentSeverityTitle(
     names,
     "incidentId",
   );
-  const severity: string | undefined = ToolArgs.getString(
-    args,
-    "severityName",
-  );
+  const severity: string | undefined = ToolArgs.getString(args, "severityName");
 
   return incident && severity
     ? aiActionSentence(AI_ACTION_TITLES.changeIncidentSeverity, {

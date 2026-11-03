@@ -65,7 +65,11 @@ export interface AIActionList {
  * What fills a sentence's {{placeholder}}: data as written, a number, a
  * term, or a list.
  */
-export type AIActionSentenceValue = string | number | AIActionTerm | AIActionList;
+export type AIActionSentenceValue =
+  | string
+  | number
+  | AIActionTerm
+  | AIActionList;
 
 export interface AIActionSentence {
   /*
@@ -573,9 +577,7 @@ export function getAIActionSentenceDirection(
   sentence: AIActionSentence,
   translator: Translator,
 ): ReadingDirection {
-  return getReadingDirection(
-    getAIActionSentenceLanguage(sentence, translator),
-  );
+  return getReadingDirection(getAIActionSentenceLanguage(sentence, translator));
 }
 
 // A full stop that needs no space after it: Chinese and Japanese.

@@ -665,41 +665,49 @@ describe("the words", () => {
 
   test("the approval card names what an action links", () => {
     expect(
-      actionLineText(AffectedResourceLinks.describeForPerson({
-        linked: [linked(AiAffectedResourceKind.Host, HOST_ID, "test01")],
-        hasNotLinked: false,
-        verb: "Linked to",
-      })),
+      actionLineText(
+        AffectedResourceLinks.describeForPerson({
+          linked: [linked(AiAffectedResourceKind.Host, HOST_ID, "test01")],
+          hasNotLinked: false,
+          verb: "Linked to",
+        }),
+      ),
     ).toBe('Linked to host "test01".');
 
     expect(
-      actionLineText(AffectedResourceLinks.describeForPerson({
-        linked: [
-          linked(AiAffectedResourceKind.Host, HOST_ID, "test01"),
-          linked(AiAffectedResourceKind.Service, SERVICE_ID, "checkout"),
-        ],
-        hasNotLinked: true,
-        verb: "Adds",
-      })),
+      actionLineText(
+        AffectedResourceLinks.describeForPerson({
+          linked: [
+            linked(AiAffectedResourceKind.Host, HOST_ID, "test01"),
+            linked(AiAffectedResourceKind.Service, SERVICE_ID, "checkout"),
+          ],
+          hasNotLinked: true,
+          verb: "Adds",
+        }),
+      ),
     ).toBe(
       'Adds host "test01", service "checkout". Some of the other resources named will not be linked.',
     );
 
     expect(
-      actionLineText(AffectedResourceLinks.describeForPerson({
-        linked: [],
-        hasNotLinked: true,
-        verb: "Linked to",
-      })),
+      actionLineText(
+        AffectedResourceLinks.describeForPerson({
+          linked: [],
+          hasNotLinked: true,
+          verb: "Linked to",
+        }),
+      ),
     ).toBe("The resources named will not be linked.");
 
     // Nothing named: no line at all.
     expect(
-      actionLineText(AffectedResourceLinks.describeForPerson({
-        linked: [],
-        hasNotLinked: false,
-        verb: "Linked to",
-      })),
+      actionLineText(
+        AffectedResourceLinks.describeForPerson({
+          linked: [],
+          hasNotLinked: false,
+          verb: "Linked to",
+        }),
+      ),
     ).toBeUndefined();
   });
 

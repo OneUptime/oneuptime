@@ -2892,10 +2892,9 @@ describe("InvestigationConversation — in the reader's language", () => {
     };
   }
 
-  const GERMAN_TITLE: string = GERMAN["Acknowledge incident {{incident}}"]!.replace(
-    "{{incident}}",
-    "INC-42",
-  );
+  const GERMAN_TITLE: string = GERMAN[
+    "Acknowledge incident {{incident}}"
+  ]!.replace("{{incident}}", "INC-42");
 
   beforeAll(async () => {
     await i18next.use(initReactI18next).init({
@@ -2976,7 +2975,9 @@ describe("InvestigationConversation — in the reader's language", () => {
   });
 
   test("an action saved before its words reads the English it stores", async () => {
-    const saved: JSONObject = acknowledgeAction(AIChatToolActionStatus.Executed);
+    const saved: JSONObject = acknowledgeAction(
+      AIChatToolActionStatus.Executed,
+    );
     delete saved["words"];
 
     routeResponses({

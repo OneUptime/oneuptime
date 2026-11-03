@@ -559,7 +559,9 @@ export default class AffectedResourceLinks {
     if (data.linked.length > 0) {
       sentences.push(
         aiActionSentence(
-          data.verb === "Adds" ? AI_ACTION_LINES.adds : AI_ACTION_LINES.linkedTo,
+          data.verb === "Adds"
+            ? AI_ACTION_LINES.adds
+            : AI_ACTION_LINES.linkedTo,
           {
             resources: aiActionList(
               data.linked.map(

@@ -392,7 +392,9 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
            * What it was, in the reader's language (ToolActionWords), then
            * how it ended.
            */}
-          <ToolActionSentence sentence={getToolActionTitle(action, translator)} />
+          <ToolActionSentence
+            sentence={getToolActionTitle(action, translator)}
+          />
           <span className="text-gray-500">
             {" "}
             · {translator.translateText(outcome.label)}

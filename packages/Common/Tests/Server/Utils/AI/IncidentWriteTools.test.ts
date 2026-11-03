@@ -280,7 +280,9 @@ describe("create_incident", () => {
 
   test("buildActionTitle names the incident, or says Untitled", () => {
     expect(
-      actionTitleText(CreateIncidentTool.buildActionTitle!({ title: "Checkout down" })),
+      actionTitleText(
+        CreateIncidentTool.buildActionTitle!({ title: "Checkout down" }),
+      ),
     ).toBe("Create incident: Checkout down");
     expect(actionTitleText(CreateIncidentTool.buildActionTitle!({}))).toBe(
       "Create incident: Untitled",
@@ -467,9 +469,13 @@ describe.each(stateCases)(
 
     test("buildActionTitle names the incident, and stays tidy with no id", () => {
       expect(
-        actionTitleText(tool.buildActionTitle!({ incidentId: INCIDENT_ID.toString() })),
+        actionTitleText(
+          tool.buildActionTitle!({ incidentId: INCIDENT_ID.toString() }),
+        ),
       ).toBe(`${actionTitlePrefix} ${INCIDENT_ID.toString()}`);
-      expect(actionTitleText(tool.buildActionTitle!({}))).toBe(actionTitlePrefix);
+      expect(actionTitleText(tool.buildActionTitle!({}))).toBe(
+        actionTitlePrefix,
+      );
     });
 
     test("is a mutation that needs what the dashboard's state panel needs: to change the incident's state", () => {

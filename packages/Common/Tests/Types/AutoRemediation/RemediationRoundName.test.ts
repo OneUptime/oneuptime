@@ -61,9 +61,9 @@ describe("the names the server writes are the names it always wrote", () => {
   });
 
   test("a resource's rounds, by the server's noun for each type", () => {
-    expect(getResourceRoundNameSnapshot(AiResourceType.DockerHost, "web-1", 1)).toBe(
-      'AI remediation for Docker host "web-1"',
-    );
+    expect(
+      getResourceRoundNameSnapshot(AiResourceType.DockerHost, "web-1", 1),
+    ).toBe('AI remediation for Docker host "web-1"');
     expect(getResourceRoundNameSnapshot(AiResourceType.Host, "web-2", 2)).toBe(
       'AI remediation for host "web-2" (round 2)',
     );
@@ -94,22 +94,27 @@ describe("the names the server writes are the names it always wrote", () => {
 });
 
 describe("a round's name read back", () => {
-  test.each(NAMES)("a cluster round named %p, its name and its round", (name: string) => {
-    for (const round of [1, 2, 12]) {
-      expect(
-        parseClusterRoundNameSnapshot(getClusterRoundNameSnapshot(name, round)),
-      ).toEqual({ clusterName: name });
-      // English, as the server writes it, its values set apart for the page.
-      expect(
-        withoutIsolateMarks(
-          describeRemediationRoundName({
-            ruleNameSnapshot: getClusterRoundNameSnapshot(name, round),
-            isClusterRound: true,
-          }) || "",
-        ),
-      ).toBe(getClusterRoundNameSnapshot(name, round));
-    }
-  });
+  test.each(NAMES)(
+    "a cluster round named %p, its name and its round",
+    (name: string) => {
+      for (const round of [1, 2, 12]) {
+        expect(
+          parseClusterRoundNameSnapshot(
+            getClusterRoundNameSnapshot(name, round),
+          ),
+        ).toEqual({ clusterName: name });
+        // English, as the server writes it, its values set apart for the page.
+        expect(
+          withoutIsolateMarks(
+            describeRemediationRoundName({
+              ruleNameSnapshot: getClusterRoundNameSnapshot(name, round),
+              isClusterRound: true,
+            }) || "",
+          ),
+        ).toBe(getClusterRoundNameSnapshot(name, round));
+      }
+    },
+  );
 
   test.each(ALL_AI_RESOURCE_TYPES)(
     "a %s round, by every name and round",
@@ -155,12 +160,17 @@ describe("a round's name read back", () => {
         AiResourceType.Host,
       ),
     ).toBeNull();
-    expect(parseResourceRoundName("Restart web pods", AiResourceType.Host)).toBeNull();
+    expect(
+      parseResourceRoundName("Restart web pods", AiResourceType.Host),
+    ).toBeNull();
     expect(parseResourceRoundName(undefined, AiResourceType.Host)).toBeNull();
     expect(parseResourceRoundName(42, AiResourceType.Host)).toBeNull();
     // The name never closed its quote.
     expect(
-      parseResourceRoundName('AI remediation for host "web', AiResourceType.Host),
+      parseResourceRoundName(
+        'AI remediation for host "web',
+        AiResourceType.Host,
+      ),
     ).toBeNull();
   });
 
@@ -186,7 +196,9 @@ describe("a round's name read back", () => {
   test("a resource round is never read as a cluster's, nor a cluster round as a resource's", () => {
     for (const type of ALL_AI_RESOURCE_TYPES) {
       expect(
-        parseClusterRoundNameSnapshot(getResourceRoundNameSnapshot(type, "x", 2)),
+        parseClusterRoundNameSnapshot(
+          getResourceRoundNameSnapshot(type, "x", 2),
+        ),
       ).toBeNull();
       expect(
         describeRemediationRoundName({
@@ -275,9 +287,9 @@ describe("the Remediation step says a round in the reader's language", () => {
           sentence,
           worded: isWordedInDashboardLocale(sentence, language),
         }).toEqual({ sentence, worded: true });
-        expect(placeholdersOf(readDashboardLocale(language)[sentence]!)).toEqual(
-          placeholdersOf(sentence),
-        );
+        expect(
+          placeholdersOf(readDashboardLocale(language)[sentence]!),
+        ).toEqual(placeholdersOf(sentence));
       }
 
       for (const noun of Object.values(REMEDIATION_ROUND_RESOURCE_NOUNS)) {

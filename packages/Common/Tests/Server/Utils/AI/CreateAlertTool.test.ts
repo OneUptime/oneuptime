@@ -864,7 +864,9 @@ describe("the approval card's line for create_alert", () => {
 
   test("says the severity alone when nothing is linked", () => {
     expect(
-      actionLineText(describeAlertForPerson({ severityName: "Low", linked: [] })),
+      actionLineText(
+        describeAlertForPerson({ severityName: "Low", linked: [] }),
+      ),
     ).toBe("Severity: Low.");
   });
 
@@ -883,7 +885,9 @@ describe("the approval card's line for create_alert", () => {
     expect(describeAlertForPerson({ severityName: null, linked: [] })).toEqual(
       [],
     );
-    expect(describeAlertForPerson({ severityName: "", linked: [] })).toEqual([]);
+    expect(describeAlertForPerson({ severityName: "", linked: [] })).toEqual(
+      [],
+    );
   });
 
   test("keeps a project's own severity name as it is written", () => {
@@ -975,9 +979,11 @@ describe("create_alert as a tool", () => {
 
   test("buildActionTitle names the alert by its title, or says Untitled", () => {
     expect(
-      actionTitleText(CreateAlertTool.buildActionTitle!({
-        title: "High memory usage on test01",
-      })),
+      actionTitleText(
+        CreateAlertTool.buildActionTitle!({
+          title: "High memory usage on test01",
+        }),
+      ),
     ).toBe("Create alert: High memory usage on test01");
     expect(actionTitleText(CreateAlertTool.buildActionTitle!({}))).toBe(
       "Create alert: Untitled",

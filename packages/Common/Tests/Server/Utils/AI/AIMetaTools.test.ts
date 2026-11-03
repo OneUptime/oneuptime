@@ -667,14 +667,18 @@ describe("start_investigation", () => {
 
   test("buildActionTitle names the subject from validated args", () => {
     expect(
-      actionTitleText(StartInvestigationTool.buildActionTitle?.({
-        incidentId: INCIDENT_ID.toString(),
-      })),
+      actionTitleText(
+        StartInvestigationTool.buildActionTitle?.({
+          incidentId: INCIDENT_ID.toString(),
+        }),
+      ),
     ).toBe(`Start AI investigation for incident ${INCIDENT_ID.toString()}`);
     expect(
-      actionTitleText(StartInvestigationTool.buildActionTitle?.({
-        alertId: ALERT_ID.toString(),
-      })),
+      actionTitleText(
+        StartInvestigationTool.buildActionTitle?.({
+          alertId: ALERT_ID.toString(),
+        }),
+      ),
     ).toBe(`Start AI investigation for alert ${ALERT_ID.toString()}`);
   });
 

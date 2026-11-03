@@ -172,9 +172,11 @@ describe("create_incident_note", () => {
 
   test("buildActionTitle names the incident from validated args", () => {
     expect(
-      actionTitleText(CreateIncidentNoteTool.buildActionTitle!({
-        incidentId: INCIDENT_ID.toString(),
-      })),
+      actionTitleText(
+        CreateIncidentNoteTool.buildActionTitle!({
+          incidentId: INCIDENT_ID.toString(),
+        }),
+      ),
     ).toBe(`Add private internal note to incident ${INCIDENT_ID.toString()}`);
   });
 
@@ -256,9 +258,11 @@ describe("create_alert_note", () => {
 
   test("buildActionTitle names the alert from validated args", () => {
     expect(
-      actionTitleText(CreateAlertNoteTool.buildActionTitle!({
-        alertId: ALERT_ID.toString(),
-      })),
+      actionTitleText(
+        CreateAlertNoteTool.buildActionTitle!({
+          alertId: ALERT_ID.toString(),
+        }),
+      ),
     ).toBe(`Add private internal note to alert ${ALERT_ID.toString()}`);
   });
 

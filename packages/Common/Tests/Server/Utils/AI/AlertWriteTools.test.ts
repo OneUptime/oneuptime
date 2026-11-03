@@ -246,11 +246,15 @@ describe.each(cases)(
     });
 
     test("buildActionTitle names the alert, and stays tidy with no id", () => {
-      expect(actionTitleText(tool.buildActionTitle!({ alertId: ALERT_ID.toString() }))).toBe(
-        `${actionTitlePrefix} ${ALERT_ID.toString()}`,
-      );
+      expect(
+        actionTitleText(
+          tool.buildActionTitle!({ alertId: ALERT_ID.toString() }),
+        ),
+      ).toBe(`${actionTitlePrefix} ${ALERT_ID.toString()}`);
       // No trailing space when the model calls it before it has an id.
-      expect(actionTitleText(tool.buildActionTitle!({}))).toBe(actionTitlePrefix);
+      expect(actionTitleText(tool.buildActionTitle!({}))).toBe(
+        actionTitlePrefix,
+      );
     });
 
     test("is a mutation that needs what the dashboard's state panel needs: to change the alert's state", () => {

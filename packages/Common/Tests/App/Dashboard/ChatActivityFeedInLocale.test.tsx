@@ -144,9 +144,7 @@ describe.each<[string, Record<string, string>]>([
       "add_incident_affected_resources",
     ]) {
       expect(
-        screen.getByText(
-          word(words, getKnownEvidenceTool(tool)!.description),
-        ),
+        screen.getByText(word(words, getKnownEvidenceTool(tool)!.description)),
       ).toBeInTheDocument();
     }
 

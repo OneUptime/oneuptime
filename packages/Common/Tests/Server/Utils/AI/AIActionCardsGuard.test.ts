@@ -171,6 +171,17 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
+const LETTER: RegExp = /\p{L}/u;
+const PLACEHOLDER: RegExp = /\{\{[^}]*\}\}/g;
+
+/*
+ * Whether a template has words of its own: one that has none ("{{kind}}
+ * {{name}}") takes the reader's words for its values, in every language.
+ */
+function hasWordsOfItsOwn(template: string): boolean {
+  return LETTER.test(template.replace(PLACEHOLDER, ""));
+}
+
 // Every sentence a card says, the ones inside a list's items included.
 function everySentenceOf(sentence: AIActionSentence): Array<AIActionSentence> {
   const sentences: Array<AIActionSentence> = [sentence];
@@ -337,8 +348,7 @@ describe("every sentence and word a card is made of is worded in every Dashboard
 
   const sentenceKeys: Array<[string, string]> = [
     ...AI_ACTION_SENTENCES.filter((template: string): boolean => {
-      // A template with no words of its own takes the reader's words for its values.
-      return /\p{L}/u.test(template.replace(/\{\{[^}]*\}\}/g, ""));
+      return hasWordsOfItsOwn(template);
     }).map((template: string): [string, string] => {
       return [template, template];
     }),
@@ -368,9 +378,10 @@ describe("every sentence and word a card is made of is worded in every Dashboard
     test.each(sentenceKeys)(
       "words %s, with its placeholders",
       (key: string, value: string) => {
-        expect({ key, worded: isWordedInDashboardLocale(key, language) }).toEqual(
-          { key, worded: true },
-        );
+        expect({
+          key,
+          worded: isWordedInDashboardLocale(key, language),
+        }).toEqual({ key, worded: true });
         expect(placeholdersOf(words[key]!)).toEqual(placeholdersOf(value));
       },
     );
@@ -386,7 +397,7 @@ describe("every sentence and word a card is made of is worded in every Dashboard
     for (const entry of await everyCardSentence()) {
       for (const sentence of everySentenceOf(entry.sentence)) {
         for (const key of keysOf(sentence)) {
-          if (/\p{L}/u.test(key.replace(/\{\{[^}]*\}\}/g, ""))) {
+          if (hasWordsOfItsOwn(key)) {
             expect(declared.has(key)).toBe(true);
           }
         }

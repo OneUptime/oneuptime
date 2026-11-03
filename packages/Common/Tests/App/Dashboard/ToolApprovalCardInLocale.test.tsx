@@ -350,17 +350,25 @@ describe("in German", () => {
     renderCard([
       stored(
         {
-          title: aiActionPluralSentence(AI_ACTION_PLURAL_TITLES.commitFiles, 1, {
-            branch: "fix/checkout",
-          }),
+          title: aiActionPluralSentence(
+            AI_ACTION_PLURAL_TITLES.commitFiles,
+            1,
+            {
+              branch: "fix/checkout",
+            },
+          ),
         },
         { id: "call-commit-1", toolName: "commit_code_to_branch" },
       ),
       stored(
         {
-          title: aiActionPluralSentence(AI_ACTION_PLURAL_TITLES.commitFiles, 3, {
-            branch: aiActionTerm(AI_ACTION_TERMS.aBranch),
-          }),
+          title: aiActionPluralSentence(
+            AI_ACTION_PLURAL_TITLES.commitFiles,
+            3,
+            {
+              branch: aiActionTerm(AI_ACTION_TERMS.aBranch),
+            },
+          ),
         },
         { id: "call-commit-3", toolName: "commit_code_to_branch" },
       ),

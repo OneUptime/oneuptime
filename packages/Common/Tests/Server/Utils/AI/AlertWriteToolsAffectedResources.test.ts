@@ -190,7 +190,9 @@ describe("add_alert_affected_resources", () => {
         { resourceType: "DockerHost", resourceId: DOCKER_HOST_ID },
       ],
     });
-    expect(actionLineText(prepared.description)).toBe('Adds Docker host "web-1".');
+    expect(actionLineText(prepared.description)).toBe(
+      'Adds Docker host "web-1".',
+    );
   });
 
   test("one linked already is not written again", async () => {
@@ -302,7 +304,9 @@ describe("add_alert_affected_resources", () => {
       );
 
     expect(prepared.arguments["alertId"]).toBe(ALERT_ID);
-    expect(actionTitleText(prepared.title)).toBe("Link alert ALR-7 to affected resources");
+    expect(actionTitleText(prepared.title)).toBe(
+      "Link alert ALR-7 to affected resources",
+    );
     expect(actionTitleText(prepared.title)).not.toContain(ALERT_ID);
     expect(actionLineText(prepared.description)).toBe('Adds host "test01".');
     const args: { id: ObjectID; props: unknown } = read.mock.calls[0]![0] as {
@@ -351,11 +355,13 @@ describe("add_alert_affected_resources", () => {
     expect(AddAlertAffectedResourcesTool.requiredPermissions).toEqual(
       new Alert().getUpdatePermissions(),
     );
-    expect(actionTitleText(AddAlertAffectedResourcesTool.buildActionTitle!({}))).toBe(
-      "Link this alert to affected resources",
-    );
     expect(
-      actionTitleText(AddAlertAffectedResourcesTool.buildActionTitle!({ alertId: ALERT_ID })),
+      actionTitleText(AddAlertAffectedResourcesTool.buildActionTitle!({})),
+    ).toBe("Link this alert to affected resources");
+    expect(
+      actionTitleText(
+        AddAlertAffectedResourcesTool.buildActionTitle!({ alertId: ALERT_ID }),
+      ),
     ).toBe(`Link alert ${ALERT_ID} to affected resources`);
   });
 });

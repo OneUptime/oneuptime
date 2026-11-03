@@ -309,7 +309,9 @@ describe("create_incident, prepared for approval", () => {
       title: "High memory usage",
       affectedResources: [{ resourceType: "Host", resourceId: HOST_ID }],
     });
-    expect(actionLineText(prepared.description)).toBe('Linked to host "test01".');
+    expect(actionLineText(prepared.description)).toBe(
+      'Linked to host "test01".',
+    );
   });
 
   test("a call's own list is kept as named, and named on the card", async () => {
@@ -690,7 +692,9 @@ describe("add_incident_affected_resources", () => {
         ctx,
       );
 
-    expect(actionTitleText(prepared.title)).toBe("Link incident INC-12 to affected resources");
+    expect(actionTitleText(prepared.title)).toBe(
+      "Link incident INC-12 to affected resources",
+    );
     expect(actionTitleText(prepared.title)).not.toContain(INCIDENT_ID);
     const args: { id: ObjectID; props: unknown } = read.mock.calls[0]![0] as {
       id: ObjectID;
@@ -719,7 +723,9 @@ describe("add_incident_affected_resources", () => {
         context(HOST_PAGE),
       );
 
-    expect(actionTitleText(prepared.title)).toBe("Link incident #12 to affected resources");
+    expect(actionTitleText(prepared.title)).toBe(
+      "Link incident #12 to affected resources",
+    );
   });
 
   test("prepared for an incident the person may not read, or that cannot be read, no title is offered", async () => {
@@ -762,12 +768,14 @@ describe("add_incident_affected_resources", () => {
 
   test("buildActionTitle names the incident, and stays tidy with none", () => {
     expect(
-      actionTitleText(AddIncidentAffectedResourcesTool.buildActionTitle!({
-        incidentId: INCIDENT_ID,
-      })),
+      actionTitleText(
+        AddIncidentAffectedResourcesTool.buildActionTitle!({
+          incidentId: INCIDENT_ID,
+        }),
+      ),
     ).toBe(`Link incident ${INCIDENT_ID} to affected resources`);
-    expect(actionTitleText(AddIncidentAffectedResourcesTool.buildActionTitle!({}))).toBe(
-      "Link this incident to affected resources",
-    );
+    expect(
+      actionTitleText(AddIncidentAffectedResourcesTool.buildActionTitle!({})),
+    ).toBe("Link this incident to affected resources");
   });
 });

@@ -107,7 +107,10 @@ describe("the title", () => {
   test("is the stored English for words that are not the module's", () => {
     const tampered: AIChatToolAction = action({
       words: {
-        title: { template: "Drop the database {{name}}", values: { name: "x" } },
+        title: {
+          template: "Drop the database {{name}}",
+          values: { name: "x" },
+        },
       } as unknown as AIActionWords,
     });
 

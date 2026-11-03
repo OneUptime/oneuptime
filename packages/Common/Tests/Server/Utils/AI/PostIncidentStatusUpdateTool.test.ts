@@ -490,9 +490,11 @@ describe("post_incident_status_update - tool metadata", () => {
 
   test("buildActionTitle names the incident from args", () => {
     expect(
-      actionTitleText(PostIncidentStatusUpdateTool.buildActionTitle!({
-        incidentId: INCIDENT_ID.toString(),
-      })),
+      actionTitleText(
+        PostIncidentStatusUpdateTool.buildActionTitle!({
+          incidentId: INCIDENT_ID.toString(),
+        }),
+      ),
     ).toBe(`Post public status update on incident ${INCIDENT_ID.toString()}`);
   });
 });

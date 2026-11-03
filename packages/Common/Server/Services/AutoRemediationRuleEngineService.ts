@@ -354,7 +354,6 @@ export type ResourceBreakerState = ClusterBreakerState;
 export type ResourceRoundReference = ClusterRoundReference;
 export type ResourceRoundHold = ClusterRoundHold;
 
-
 /*
  * Does a resource on this mode run this round of a signal unattended?
  * Bypass approval runs every round unattended; Automatic runs only the

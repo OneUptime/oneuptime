@@ -57,7 +57,10 @@ import {
  * skips either fails here, not on a reader's screen.
  */
 
-const SERVER_AI_DIR: string = path.resolve(__dirname, "../../../Server/Utils/AI");
+const SERVER_AI_DIR: string = path.resolve(
+  __dirname,
+  "../../../Server/Utils/AI",
+);
 
 /*
  * The tools a run adds beside the toolbox, by the constant each is named
@@ -236,27 +239,34 @@ describe("every tool says what it does while it runs and what it did once it ran
 describe("every step label and evidence line is the Dashboard's English", () => {
   const english: Record<string, string> = readDashboardLocale("en");
 
-  test.each(EVERY_TOOL)("%s's words are keys English holds as themselves", (tool: string) => {
-    for (const words of [stepLabel(tool)!, evidenceLine(tool)!]) {
-      expect({ key: words, english: english[words] }).toEqual({
-        key: words,
-        english: words,
-      });
-    }
-  });
+  test.each(EVERY_TOOL)(
+    "%s's words are keys English holds as themselves",
+    (tool: string) => {
+      for (const words of [stepLabel(tool)!, evidenceLine(tool)!]) {
+        expect({ key: words, english: english[words] }).toEqual({
+          key: words,
+          english: words,
+        });
+      }
+    },
+  );
 });
 
 describe.each(DASHBOARD_LANGUAGES)("in %s", (language: string) => {
   const words: Record<string, string> = readDashboardLocale(language);
 
-  test.each(EVERY_TOOL)("%s's step and evidence line are worded", (tool: string) => {
-    for (const key of [stepLabel(tool)!, evidenceLine(tool)!]) {
-      expect({ key, worded: isWordedInDashboardLocale(key, language) }).toEqual(
-        { key, worded: true },
-      );
-      expect(placeholdersOf(words[key]!)).toEqual(placeholdersOf(key));
-    }
-  });
+  test.each(EVERY_TOOL)(
+    "%s's step and evidence line are worded",
+    (tool: string) => {
+      for (const key of [stepLabel(tool)!, evidenceLine(tool)!]) {
+        expect({
+          key,
+          worded: isWordedInDashboardLocale(key, language),
+        }).toEqual({ key, worded: true });
+        expect(placeholdersOf(words[key]!)).toEqual(placeholdersOf(key));
+      }
+    },
+  );
 
   test("the live line says each step in the reader's words, never the tool's name", () => {
     const translator: Translator = dashboardTranslator(language);

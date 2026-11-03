@@ -412,7 +412,10 @@ describe("a stored sentence is trusted only when it is one of the module's", () 
     ["an array", []],
     ["another template", { template: "Drop database {{name}}" }],
     ["no template", { values: {} }],
-    ["a plural with no count", { template: AI_ACTION_PLURAL_TITLES.commitFiles.other }],
+    [
+      "a plural with no count",
+      { template: AI_ACTION_PLURAL_TITLES.commitFiles.other },
+    ],
     [
       "a plural whose count is no number",
       { template: AI_ACTION_PLURAL_TITLES.commitFiles.other, count: "3" },
@@ -444,7 +447,9 @@ describe("a stored sentence is trusted only when it is one of the module's", () 
       "a term whose case is no boolean",
       {
         template: AI_ACTION_TITLES.createIncident,
-        values: { title: { term: AI_ACTION_TERMS.untitled, inSentence: "yes" } },
+        values: {
+          title: { term: AI_ACTION_TERMS.untitled, inSentence: "yes" },
+        },
       },
     ],
     [
@@ -562,9 +567,9 @@ describe("the pieces a card reads besides its words", () => {
     expect(getAIActionSentenceSeparator("Severity: High.")).toBe(" ");
     expect(getAIActionSentenceSeparator("重大度: 高。")).toBe("");
     expect(getAIActionSentenceSeparator("真的吗？")).toBe("");
-    expect(joinAIActionSentences(["重大度: 高。", "ホストにリンクします。"])).toBe(
-      "重大度: 高。ホストにリンクします。",
-    );
+    expect(
+      joinAIActionSentences(["重大度: 高。", "ホストにリンクします。"]),
+    ).toBe("重大度: 高。ホストにリンクします。");
     expect(joinAIActionSentences(["A.", "", "B."])).toBe("A. B.");
   });
 
@@ -593,6 +598,9 @@ describe("the pieces a card reads besides its words", () => {
     });
     expect(
       aiActionPluralSentence(AI_ACTION_PLURAL_TITLES.commitFiles, 2),
-    ).toEqual({ template: AI_ACTION_PLURAL_TITLES.commitFiles.other, count: 2 });
+    ).toEqual({
+      template: AI_ACTION_PLURAL_TITLES.commitFiles.other,
+      count: 2,
+    });
   });
 });
