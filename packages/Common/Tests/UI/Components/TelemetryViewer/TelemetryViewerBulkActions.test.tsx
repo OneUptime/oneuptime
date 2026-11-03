@@ -841,7 +841,7 @@ describe("a telemetry list offering every row that matches", () => {
     });
 
     // Busy while it reads, saying so, and not to be pressed twice.
-    expect(offer()).toBeDisabled();
+    expect(offer()).toHaveAttribute("aria-disabled", "true");
     expect(offer()).toHaveAttribute("aria-busy", "true");
     expect(offer()).toHaveTextContent(/^Selecting 6 exceptions…$/);
 
@@ -904,7 +904,7 @@ describe("a telemetry list offering every row that matches", () => {
 
     expect(reads.isSuperseded[0]!()).toBe(true);
     // Not busy any more: the offer is there to read the new search.
-    expect(offer()).not.toBeDisabled();
+    expect(offer()).not.toHaveAttribute("aria-disabled");
   });
 
   test("a read that fails says why under the line, keeps the page's selection, and can be tried again", async () => {
@@ -939,7 +939,7 @@ describe("a telemetry list offering every row that matches", () => {
       "The search took too long.",
     );
     expect(selectedCount()).toBe("3 selected");
-    expect(offer()).not.toBeDisabled();
+    expect(offer()).not.toHaveAttribute("aria-disabled");
 
     fails = false;
     await act(async () => {

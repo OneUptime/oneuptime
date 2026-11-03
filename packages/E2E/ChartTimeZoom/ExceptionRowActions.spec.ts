@@ -43,6 +43,8 @@ interface SpecWindow {
   __chartTimeZoomFixture: {
     requests: Array<RecordedRequest>;
     unhandled: Array<Record<string, unknown>>;
+    // Holds the list reads of `tables` until delivered (Fixture.js).
+    listGate: { mode: string; tables: Array<string>; deliver: () => number };
   };
 }
 
@@ -727,6 +729,52 @@ test.describe("every exception that matches, not only the page's", () => {
       0,
     );
     await expect(selectedCount(page)).toHaveCount(0);
+  });
+
+  test("keyboard: the offer keeps the focus while it reads, saying so, then hands it to Bulk Actions", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openTwoAPage(page, 1440);
+
+    await page.getByTestId("telemetry-viewer-select-page").check();
+    await expect(offer(page)).toHaveText("Select all 5 exceptions");
+
+    // The read of every match waits, so the moment it takes can be read.
+    await page.evaluate((): void => {
+      const gate: SpecWindow["__chartTimeZoomFixture"]["listGate"] = (
+        window as unknown as SpecWindow
+      ).__chartTimeZoomFixture.listGate;
+      gate.mode = "manual";
+      gate.tables = ["TelemetryException"];
+    });
+
+    await offer(page).focus();
+    await page.keyboard.press("Enter");
+
+    /*
+     * Busy, saying so - and still where the keyboard is: a disabled button
+     * drops the focus to the page, and the next Tab started from the top.
+     */
+    await expect(offer(page)).toHaveText("Selecting 5 exceptions…");
+    await expect(offer(page)).toHaveAttribute("aria-busy", "true");
+    await expect(offer(page)).toBeFocused();
+
+    await page.evaluate((): void => {
+      const gate: SpecWindow["__chartTimeZoomFixture"]["listGate"] = (
+        window as unknown as SpecWindow
+      ).__chartTimeZoomFixture.listGate;
+      gate.mode = "immediate";
+      gate.deliver();
+    });
+
+    await expect(selectedCount(page)).toHaveText("All 5 selected");
+    await expect(offer(page)).toHaveCount(0);
+    // The next thing to do has the focus.
+    await expect(
+      page.getByRole("button", { name: "Bulk Actions" }),
+    ).toBeFocused();
   });
 
   test("a changed status lets every match go: back on Unresolved, nothing is ticked", async ({

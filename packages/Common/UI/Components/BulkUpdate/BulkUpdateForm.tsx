@@ -560,6 +560,42 @@ const BulkUpdateForm: <T extends GenericObject>(
     React.useRef<AbortController | null>(null);
 
   /*
+   * The Row's offer of every match, pressed from the keyboard. It keeps the
+   * focus while it reads - busy, not disabled, since a disabled button
+   * drops the focus to the page - and once it has done its work and is
+   * gone, the focus moves on to Bulk Actions, the next thing to do, not
+   * back to the top of the page.
+   */
+  const rowActionsRef: React.MutableRefObject<HTMLDivElement | null> =
+    React.useRef<HTMLDivElement | null>(null);
+  const offerElementRef: React.MutableRefObject<HTMLButtonElement | null> =
+    React.useRef<HTMLButtonElement | null>(null);
+
+  const onOfferElement: (element: HTMLButtonElement | null) => void =
+    React.useCallback((element: HTMLButtonElement | null): void => {
+      const leaving: HTMLButtonElement | null = offerElementRef.current;
+      offerElementRef.current = element;
+
+      // Called as it leaves, while it is still on the page.
+      if (element || !leaving || leaving !== document.activeElement) {
+        return;
+      }
+
+      window.setTimeout((): void => {
+        const active: Element | null = document.activeElement;
+
+        // Somewhere else took the focus meanwhile: leave it there.
+        if (active && active !== document.body) {
+          return;
+        }
+
+        rowActionsRef.current
+          ?.querySelector<HTMLButtonElement>("button")
+          ?.focus();
+      }, 0);
+    }, []);
+
+  /*
    * A bulk action runs in this page, so closing or reloading it part-way
    * leaves the rest undone. While one runs, the browser asks before the
    * page goes.
@@ -1329,17 +1365,19 @@ const BulkUpdateForm: <T extends GenericObject>(
         {offerWords ? (
           <div className={BULK_ROW_SELECT_ALL_SLOT_CLASS_NAME}>
             <button
+              ref={onOfferElement}
               type="button"
               /*
                * Busy, its spinner beside the words, while it reads: the
-               * shared look of a hand-drawn button that is busy.
+               * shared look of a hand-drawn button that is busy. Not
+               * disabled, so a keyboard keeps its place on it.
                */
-              className={getHandDrawnLookClassName({
+              className={`${getHandDrawnLookClassName({
                 className: BULK_ROW_SELECT_ALL_CLASS_NAME,
                 isBusy: isReadingEveryMatch,
-              })}
+              })}${isReadingEveryMatch ? " cursor-default" : ""}`}
               data-testid={BULK_ROW_SELECT_ALL_TEST_ID}
-              disabled={isReadingEveryMatch}
+              aria-disabled={isReadingEveryMatch ? "true" : undefined}
               aria-busy={isReadingEveryMatch ? "true" : undefined}
               onClick={() => {
                 if (isReadingEveryMatch) {
@@ -1371,6 +1409,7 @@ const BulkUpdateForm: <T extends GenericObject>(
          */}
         {menuChildren.length > 0 ? (
           <div
+            ref={rowActionsRef}
             className="ml-auto flex flex-none items-center"
             data-testid={BULK_ROW_ACTIONS_TEST_ID}
           >

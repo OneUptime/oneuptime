@@ -403,7 +403,12 @@ describe("a list's header line, offering every row that matches", () => {
 
     const button: HTMLElement = offer() as HTMLElement;
 
-    expect(button).toBeDisabled();
+    /*
+     * Busy, not disabled: a disabled button drops a keyboard's focus to the
+     * page, so it says it cannot be pressed and ignores a press instead.
+     */
+    expect(button).not.toBeDisabled();
+    expect(button).toHaveAttribute("aria-disabled", "true");
     expect(button).toHaveAttribute("aria-busy", "true");
     expect(button.querySelector("svg")).not.toBeNull();
     expect(button).toHaveTextContent(/^Selecting 4,213 exceptions…$/);
@@ -449,6 +454,91 @@ describe("a list's header line, offering every row that matches", () => {
       ]),
     );
     expect(classes).not.toContain("px-1.5");
+  });
+
+  test("pressed from the keyboard, the offer keeps the focus while it reads, then hands it to Bulk Actions", async () => {
+    const props: ComponentProps<Row> = {
+      selectedItems: ROWS,
+      isAllItemsSelected: false,
+      onSelectAllClick: () => {},
+      onClearSelectionClick: () => {},
+      singularLabel: "Exception",
+      pluralLabel: "Exceptions",
+      buttons: [ARCHIVE],
+      itemToString: (row: Row): string => {
+        return row.name;
+      },
+      layout: BulkUpdateBarLayout.Row,
+      selectAllMatching: { isPageSelected: true, matchingCount: 4213 },
+    };
+
+    const view: RenderResult = render(<BulkUpdateForm<Row> {...props} />);
+
+    offer()!.focus();
+    expect(document.activeElement).toBe(offer());
+
+    // Reading: still the offer that has the focus.
+    view.rerender(
+      <BulkUpdateForm<Row> {...props} isSelectingAllItems={true} />,
+    );
+    expect(document.activeElement).toBe(offer());
+
+    // Every match selected: the offer is gone, and Bulk Actions is next.
+    view.rerender(
+      <BulkUpdateForm<Row>
+        {...props}
+        isSelectingAllItems={false}
+        isAllItemsSelected={true}
+        totalMatchingItemsCount={3}
+        selectAllMatching={{ isPageSelected: true, matchingCount: 3 }}
+      />,
+    );
+    expect(offer()).toBeNull();
+
+    await waitFor(() => {
+      expect(document.activeElement).toBe(
+        screen.getByRole("button", { name: "Bulk Actions" }),
+      );
+    });
+  });
+
+  test("an offer that goes while the focus is elsewhere moves nothing", async () => {
+    const props: ComponentProps<Row> = {
+      selectedItems: ROWS,
+      isAllItemsSelected: false,
+      onSelectAllClick: () => {},
+      onClearSelectionClick: () => {},
+      singularLabel: "Exception",
+      pluralLabel: "Exceptions",
+      buttons: [ARCHIVE],
+      itemToString: (row: Row): string => {
+        return row.name;
+      },
+      layout: BulkUpdateBarLayout.Row,
+      selectAllMatching: { isPageSelected: true, matchingCount: 4213 },
+    };
+
+    const view: RenderResult = render(<BulkUpdateForm<Row> {...props} />);
+
+    // A row's box was unticked: the focus is on it, not on the offer.
+    const clear: HTMLElement = screen.getByTestId(BULK_ROW_CLEAR_TEST_ID);
+    clear.focus();
+
+    view.rerender(
+      <BulkUpdateForm<Row>
+        {...props}
+        selectAllMatching={{ isPageSelected: false, matchingCount: 4213 }}
+      />,
+    );
+    expect(offer()).toBeNull();
+
+    await act(async () => {
+      await new Promise<void>((resolve: () => void) => {
+        setTimeout(resolve, 10);
+      });
+    });
+
+    expect(document.activeElement).toBe(clear);
   });
 
   test("once every match is selected, the count says so and the offer is gone", () => {
