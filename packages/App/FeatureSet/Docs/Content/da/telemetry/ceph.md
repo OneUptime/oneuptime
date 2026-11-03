@@ -133,7 +133,7 @@ Agenten sender alt, hvad mgr-modulet `prometheus` eksporterer. OneUptimes Ceph-s
 
 | Kategori | Metrikker |
 | --- | --- |
-| Klyngetilstand | `ceph_health_status` (0 = OK, 1 = WARN, 2 = ERR), `ceph_health_detail` (én serie pr. sundhedstjek, 1 mens det er aktivt og 0, når det er ryddet, med labels `name` og `severity`, fra Quincy og frem; bag advarselsskabelonerne for sundhedstjek og oversigtens **Active Health Checks**), `ceph_healthcheck_slow_ops`, `ceph_daemon_health_metrics` (pr. daemon, efter `type`), `ceph_mon_quorum_status`, `ceph_mon_metadata`, `ceph_cluster_total_bytes`, `ceph_cluster_total_used_bytes` |
+| Klyngetilstand | `ceph_health_status` (0 = OK, 1 = WARN, 2 = ERR), `ceph_health_detail` (én serie pr. sundhedstjek, 1 mens det er aktivt og 0, når det er ryddet, med labels `name` og `severity`, fra Quincy og frem; bag advarselsskabelonerne for sundhedstjek og de tjek, oversigtens **Kræver opmærksomhed** viser), `ceph_healthcheck_slow_ops`, `ceph_daemon_health_metrics` (pr. daemon, efter `type`), `ceph_mon_quorum_status`, `ceph_mon_metadata`, `ceph_cluster_total_bytes`, `ceph_cluster_total_used_bytes` |
 | OSD | `ceph_osd_up`, `ceph_osd_in`, `ceph_osd_apply_latency_ms`, `ceph_osd_commit_latency_ms`, `ceph_osd_stat_bytes`, `ceph_osd_stat_bytes_used`, `ceph_osd_numpg`, `ceph_osd_metadata`, pr. OSD via labelet `ceph_daemon` (fx `osd.3`) |
 | Pool | `ceph_pool_stored`, `ceph_pool_max_avail`, `ceph_pool_objects`, `ceph_pool_rd`, `ceph_pool_wr`, `ceph_pool_rd_bytes`, `ceph_pool_wr_bytes`, `ceph_pool_metadata`. Dataserierne bærer kun et label `pool_id`; poolens navn står på `ceph_pool_metadata`. |
 | Placement groups | `ceph_pg_total`, `ceph_pg_active`, `ceph_pg_clean`, `ceph_pg_degraded`, `ceph_pg_undersized` (alle pr. pool, efter `pool_id`), `ceph_num_objects_degraded`, `ceph_num_objects_misplaced` |
@@ -147,6 +147,19 @@ mgr-modulet dækker klyngens tilstand og kapacitet. For et nærmere kig kan du t
 - **`node_exporter`.** Den sædvanlige ledsager til hver Ceph-værts CPU-, hukommelses-, disk- og netværksmetrikker, som standard på port `9100`.
 
 Begge får ressourceattributten `ceph.cluster.name` fra den medfølgende processor `resource`, så de lander på den samme klynge i OneUptime.
+
+## Hvad klyngens sider viser
+
+Klyngens **Oversigt** siger dens tilstand, **Sund**, **Forringet** eller **Usund**, ud fra hvad der kræver opmærksomhed, og viser det under **Kræver opmærksomhed**, det mest presserende først:
+
+- **Selve klyngen.** Cephs eget `HEALTH_WARN` eller `HEALTH_ERR`, med de tjek, Ceph har rejst, navngivet som Ceph navngiver dem, såsom `OSD_DOWN` eller `PG_DEGRADED`, og rå kapacitet over 85 % (kritisk over 95 %), hvor advarslerne Cluster Near Full og Cluster Full udløses.
+- **OSD'er.** En OSD, der er nede, men stadig i klyngen, er kritisk: dens placement groups mangler en kopi. En, der er nede og ude, eller oppe, men ude, bør tjekkes, ligesom en over Cephs nearfull-grænse (85 %) eller backfillfull-grænse (90 %), eller med en apply-latens over 100 ms. Over full-grænsen (95 %) afviser den skrivninger, hvilket er kritisk.
+- **Monitorer.** En monitor uden for quorum er kritisk.
+- **Pools.** En pool over 85 % af sin skrivbare plads, stored ÷ (stored + max avail), bør tjekkes, og over 95 % er den kritisk. Forringede eller underbemandede placement groups bør tjekkes; inaktive, hvis I/O hænger, er kritiske.
+
+Listerne **OSD'er**, **Pools** og **Daemoner** viser hver dels tilstand efter de samme regler, med årsagen under. En OSD's og en pools egen side siger, hvad ved den der kræver opmærksomhed, hvad der er åbent på den, og hvilke af klyngens advarsler der overvåger den, med ét trin til at slå resten til. En manager, metadataserver eller object gateway, som Ceph ikke længere viser, viser **Rapporterer ikke længere**, i gråt: Ceph rejser et tjek for en, der svigter, såsom `RECENT_CRASH` eller `MDS_ALL_DOWN`, som klyngens række viser. Mens agenten er afbrudt, viser tilstanden **Tilstand ukendt**: klyngens seneste rapport er ikke længere sand.
+
+OSD-grænserne er Cephs standardværdier. En klynge, der er sat til andre, rejser sine egne tjek `OSD_NEARFULL`, `OSD_BACKFILLFULL` og `OSD_FULL` ved sine egne grænser, som klyngens række viser.
 
 ## Valgfrit — Send Ceph-klyngeloggen
 

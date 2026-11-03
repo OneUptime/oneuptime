@@ -133,7 +133,7 @@ AI 에이전트 자체의 설정은 [AI 에이전트](#ai-에이전트)에 있�
 
 | 범주 | 메트릭 |
 | --- | --- |
-| 클러스터 상태 | `ceph_health_status`(0 = OK, 1 = WARN, 2 = ERR), `ceph_health_detail`(상태 점검마다 하나의 시리즈(활성인 동안 1, 해제된 뒤 0), `name`과 `severity` 레이블 포함, Quincy부터; 상태 점검 알림 템플릿과 개요의 **Active Health Checks**의 바탕), `ceph_healthcheck_slow_ops`, `ceph_daemon_health_metrics`(데몬별, `type`으로 구분), `ceph_mon_quorum_status`, `ceph_mon_metadata`, `ceph_cluster_total_bytes`, `ceph_cluster_total_used_bytes` |
+| 클러스터 상태 | `ceph_health_status`(0 = OK, 1 = WARN, 2 = ERR), `ceph_health_detail`(상태 점검마다 하나의 시리즈(활성인 동안 1, 해제된 뒤 0), `name`과 `severity` 레이블 포함, Quincy부터; 상태 점검 알림 템플릿과 개요의 **확인 필요**에 표시되는 점검의 바탕), `ceph_healthcheck_slow_ops`, `ceph_daemon_health_metrics`(데몬별, `type`으로 구분), `ceph_mon_quorum_status`, `ceph_mon_metadata`, `ceph_cluster_total_bytes`, `ceph_cluster_total_used_bytes` |
 | OSD | `ceph_osd_up`, `ceph_osd_in`, `ceph_osd_apply_latency_ms`, `ceph_osd_commit_latency_ms`, `ceph_osd_stat_bytes`, `ceph_osd_stat_bytes_used`, `ceph_osd_numpg`, `ceph_osd_metadata`, OSD별로 `ceph_daemon` 레이블(예: `osd.3`)로 구분 |
 | 풀 | `ceph_pool_stored`, `ceph_pool_max_avail`, `ceph_pool_objects`, `ceph_pool_rd`, `ceph_pool_wr`, `ceph_pool_rd_bytes`, `ceph_pool_wr_bytes`, `ceph_pool_metadata`. 데이터 시리즈에는 `pool_id` 레이블만 있고, 풀 이름은 `ceph_pool_metadata`에 있습니다. |
 | 배치 그룹 | `ceph_pg_total`, `ceph_pg_active`, `ceph_pg_clean`, `ceph_pg_degraded`, `ceph_pg_undersized`(모두 풀별, `pool_id`로 구분), `ceph_num_objects_degraded`, `ceph_num_objects_misplaced` |
@@ -147,6 +147,19 @@ mgr 모듈은 클러스터의 상태와 용량을 다룹니다. 더 자세히 �
 - **`node_exporter`.** 각 Ceph 호스트의 CPU, 메모리, 디스크, 네트워크 메트릭을 위한 흔한 동반자로, 기본 포트는 `9100`입니다.
 
 둘 다 함께 제공되는 `resource` 프로세서에서 `ceph.cluster.name` 리소스 속성을 받으므로, OneUptime의 같은 클러스터로 들어갑니다.
+
+## 클러스터 페이지에 표시되는 내용
+
+클러스터의 **개요**는 주의가 필요한 항목에 따라 상태를 **정상**, **저하됨** 또는 **비정상**으로 나타내고, 그 항목을 **확인 필요**에 가장 급한 것부터 나열합니다:
+
+- **클러스터 자체.** Ceph 자체의 `HEALTH_WARN` 또는 `HEALTH_ERR`와, Ceph가 올린 점검을 Ceph가 부르는 이름 그대로(`OSD_DOWN`, `PG_DEGRADED` 등), 그리고 85%를 넘은 원시 용량(95%를 넘으면 심각)입니다. 여기서 Cluster Near Full과 Cluster Full 알림이 발생합니다.
+- **OSD.** 다운되었지만 아직 클러스터에 포함된 OSD는 심각합니다. 그 Placement Group에 복사본이 하나 부족합니다. 다운되고 제외되었거나, 업이지만 제외된 OSD는 확인이 필요하며, Ceph의 nearfull 비율(85%)이나 backfillfull 비율(90%)을 넘었거나 적용 지연 시간이 100 ms를 넘은 OSD도 마찬가지입니다. full 비율(95%)을 넘으면 쓰기를 거부하므로 심각합니다.
+- **모니터.** 쿼럼을 이탈한 모니터는 심각합니다.
+- **풀.** 쓰기 가능한 공간의 85%를 넘은 풀(stored ÷ (stored + max avail))은 확인이 필요하고, 95%를 넘으면 심각합니다. 저하되었거나 복사본이 부족한 Placement Group은 확인이 필요하고, I/O가 멈추는 비활성 Placement Group은 심각합니다.
+
+**OSD**, **풀**, **데몬** 목록은 같은 규칙으로 각 부분의 상태를 보여 주며 그 아래에 이유가 표시됩니다. OSD와 풀의 개별 페이지는 주의가 필요한 항목, 열린 항목, 그리고 그것을 감시하는 클러스터 알림을 보여 주며, 나머지를 켜는 것도 한 단계면 됩니다. Ceph가 더 이상 나열하지 않는 매니저, 메타데이터 서버 또는 오브젝트 게이트웨이는 회색의 **보고 중단됨**으로 표시됩니다. 고장 난 것에 대해서는 Ceph가 `RECENT_CRASH`나 `MDS_ALL_DOWN` 같은 점검을 올리며, 클러스터 행에 표시됩니다. 에이전트 연결이 끊긴 동안 상태는 **상태: 알 수 없음**으로 표시됩니다. 클러스터의 마지막 보고가 더 이상 사실이 아니기 때문입니다.
+
+OSD 비율은 Ceph의 기본값입니다. 다른 값으로 설정된 클러스터는 자체 기준에서 `OSD_NEARFULL`, `OSD_BACKFILLFULL`, `OSD_FULL` 점검을 올리며, 클러스터 행에 표시됩니다.
 
 ## 선택 사항 — Ceph 클러스터 로그 보내기
 

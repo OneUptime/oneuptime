@@ -154,6 +154,16 @@ De metrics en logs van elke container worden opgeslagen onder een service die na
 
 [Podman-monitor](/docs/monitor/podman-monitor#verzamelde-metrieken) toont elke metric en wat die betekent.
 
+## Wat de pagina's van de host tonen
+
+De pagina's van de host beoordelen elke container volgens dezelfde regels, zodat het overzicht, de containerlijst en de eigen pagina van een container het altijd eens zijn:
+
+- **Overzicht**: de gezondheid van de host naast zijn verbinding, en **Vraagt aandacht**: de containers die kapot zijn of aandacht nodig hebben, de dringendste eerst, elk met de reden. Een container die zijn herstartbeleid in 15 minuten meer dan 3 keer heeft herstart, zit in een herstartlus; een die herstart is, meer dan 85% van zijn geheugen gebruikt of 10 minuten of langer draaide en daarna niet meer rapporteert, heeft aandacht nodig.
+- **Containers**: de status van elke container in dezelfde woorden en kleuren, met de reden, zijn herstarts van de afgelopen 15 minuten en wanneer hij voor het laatst is gestart. Een gestopte container blijft 15 minuten na zijn laatste meting in de lijst: **Rapporteert niet meer** voor een die 10 minuten of langer draaide, **Rapporteert niet** in grijs voor een taak of eenmalige uitvoering die klaar is.
+- De eigen pagina van een container: wat er aan hem aandacht nodig heeft, zijn CPU, geheugen en herstarts, wat er op hem openstaat, de containerwaarschuwingen met één stap om ze in te schakelen, en wat de agent over hem rapporteert.
+
+De agent leest alleen draaiende containers, dus een container die al gestopt was toen de agent startte, een exitcode en het oordeel van een healthcheck worden niet getoond.
+
 ## Containerlogs hebben de logdriver k8s-file nodig
 
 De agent volgt `/var/lib/containers/storage/overlay-containers/*/userdata/ctr.log`, de bestanden die de logdriver `k8s-file` van Podman schrijft (`json-file` is in Podman dezelfde driver). De standaarddriver van rootful Podman is `journald`, die geen bestand achterlaat om te lezen, en dat geldt ook voor een externe driver zoals `syslog`. De metrics van zo'n container komen nog steeds binnen; zijn logs niet.

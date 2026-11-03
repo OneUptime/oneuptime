@@ -10,6 +10,7 @@ import MonitorRecommendationCatalog from "Common/Types/Monitor/Recommendation/Mo
 import MonitorRecommendationUtil from "Common/Types/Monitor/Recommendation/MonitorRecommendationUtil";
 import {
   MonitorRecommendation,
+  MonitorRecommendationContext,
   MonitorRecommendationResourceType,
 } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
 import ObjectID from "Common/Types/ObjectID";
@@ -44,9 +45,17 @@ export function getResourcePartAlertRecommendations(data: {
   resourceType: MonitorRecommendationResourceType;
   // The template ids that watch this kind of part, in the order to list them.
   templateIds: Array<string>;
+  /*
+   * What the resource's recommendations depend on, as its Recommendations
+   * page passes it: a storage array's platform.
+   */
+  context?: MonitorRecommendationContext | undefined;
 }): Array<MonitorRecommendation> {
   const recommendations: Array<MonitorRecommendation> =
-    MonitorRecommendationCatalog.getRecommendations(data.resourceType);
+    MonitorRecommendationCatalog.getRecommendations(
+      data.resourceType,
+      data.context,
+    );
 
   return data.templateIds
     .map((templateId: string): MonitorRecommendation | undefined => {
@@ -71,11 +80,13 @@ export async function loadResourcePartAlertCoverage(data: {
   resourceId: ObjectID;
   // What the resource's monitors are matched on (its name).
   resourceIdentifier: string;
+  context?: MonitorRecommendationContext | undefined;
 }): Promise<Array<RecommendationViewModel>> {
   const recommendations: Array<MonitorRecommendation> =
     getResourcePartAlertRecommendations({
       resourceType: data.resourceType,
       templateIds: data.templateIds,
+      context: data.context,
     });
 
   if (recommendations.length === 0) {

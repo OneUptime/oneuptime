@@ -142,6 +142,8 @@ const MOMENT_PANELS: Record<string, string> = {
     "an incident's or alert's telemetry snapshot",
   [path.join("Components", "Telemetry", "TelemetryCompanionSignalTabs.tsx")]:
     "the logs beside another signal's snapshot",
+  [path.join("Pages", "DockerSwarm", "View", "TaskDetail.tsx")]:
+    "one Swarm task's container, which a new task with a new id replaces each time it fails or its service updates",
 };
 
 const LOGS_PAGE: string = path.join("Pages", "Logs", "Index.tsx");

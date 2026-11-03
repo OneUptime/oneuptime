@@ -28,3 +28,7 @@ container_security_dir
 /greenlock.d/config.json
 /greenlock.d/config.json.bak
 /.greenlockrc
+# The docs' and the API reference's built Tailwind stylesheets
+# (npm run build-docs-css, Utils/DocsTailwind.ts).
+/FeatureSet/Docs/build/
+/FeatureSet/APIReference/build/

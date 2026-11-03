@@ -82,6 +82,17 @@
     .docs-content img { max-width: 100%; height: auto; }
     nav[data-docs-nav] { width: 100%; }
 </style>
+<%
+/*
+ * The docs' Tailwind stylesheet, when the App image built one
+ * (Utils/DocsTailwind.ts): it is linked at the end of this head, where the
+ * runtime's styles used to land. Without one (npm run dev), the Tailwind
+ * runtime generates them in the browser, with the config below - the one
+ * the build uses too.
+ */
+var builtTailwindStylesheet = typeof tailwindStylesheetHref !== 'undefined' && tailwindStylesheetHref ? tailwindStylesheetHref : null;
+-%>
+<% if (!builtTailwindStylesheet) { -%>
 <!-- Tailwind, served from this install - load synchronously before compiled CSS so both are ready at first paint -->
 <link rel="preload" href="/oneuptime-assets/tailwind/tailwind-3.4.5.js" as="script">
 <script src="/oneuptime-assets/tailwind/tailwind-3.4.5.js"></script>
@@ -107,6 +118,7 @@
         }
     }
 </script>
+<% } -%>
 <!-- Compiled CSS: Tailwind build plus the hand-written docs design layer -->
 <link rel="stylesheet" href="/docs/static/css/style.css" crossorigin data-precedence="next">
 <%
@@ -401,3 +413,7 @@ var metaDescription = typeof pageDescription !== 'undefined' && pageDescription 
 <%- include('../../../../../Common/Server/Views/Partials/AnalyticsConsent', {
     enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
 }) -%>
+<% if (builtTailwindStylesheet) { -%>
+<!-- Tailwind, built with the image: last in the head, where the runtime put its styles -->
+<link rel="stylesheet" href="<%= builtTailwindStylesheet %>">
+<% } -%>

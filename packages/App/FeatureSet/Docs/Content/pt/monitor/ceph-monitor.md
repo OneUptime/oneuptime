@@ -64,7 +64,7 @@ Em **Ceph Monitor Configuration**, escolha o cluster em **Cluster Ceph**. Todo c
 Um monitor novo começa com **Cluster Stopped Reporting**, em **Sobre o que alertar**. Para vigiar outra coisa:
 
 - **Alterar** — escolha outro [modelo](#modelos-de-alerta-prontos). Ele define as métricas, os filtros, a agregação, o intervalo de tempo e os limites, e substitui os critérios abaixo pelos seus. Você ainda pode mudar o **Intervalo de tempo**.
-- **Custom Metric** (em **Mais campos**) — escolha uma métrica em **Ceph Metric** e depois defina **Agregação** e **Intervalo de tempo**. **OSD** e **Pool ID** restringem a um daemon ou a um pool. Uma métrica mantida por pool ou por daemon é avaliada pool a pool ou daemon a daemon, com um incidente para cada um.
+- **Custom Metric** (em **Mais campos**) — escolha uma métrica em **Ceph Metric** e depois defina **Agregação** e **Intervalo de tempo**. **OSD** e **ID do pool** restringem a um daemon ou a um pool. Uma métrica mantida por pool ou por daemon é avaliada pool a pool ou daemon a daemon, com um incidente para cada um.
 - **Avançado** (em **Mais campos**) — monte você mesmo consultas e fórmulas em **Selecionar Métricas**, por exemplo uma razão de capacidade usada a partir de `ceph_cluster_total_used_bytes / ceph_cluster_total_bytes`. Use **Agrupar por** `ceph_daemon` ou `pool_id` para avaliar cada daemon ou pool separadamente.
 
 ### Conferir os critérios
@@ -85,7 +85,7 @@ Clique em **Criar monitor**. O OneUptime abre a página do monitor e o avalia a 
 | --- | --- | --- |
 | **Cluster Ceph** | Todas | Obrigatório. Restringe cada consulta a `resource.ceph.cluster.name`. |
 | **OSD** | Custom Metric, Avançado | Opcional. Correspondência exata com o rótulo `ceph_daemon`, por exemplo `osd.3`. |
-| **Pool ID** | Custom Metric, Avançado | Opcional. Correspondência exata com o rótulo `pool_id`, por exemplo `2`. |
+| **ID do pool** | Custom Metric, Avançado | Opcional. Correspondência exata com o rótulo `pool_id`, por exemplo `2`. |
 | **Ceph Metric** | Custom Metric | Uma métrica do [catálogo](#métricas-coletadas). |
 | **Agregação** | Custom Metric | Como as amostras são combinadas: **Média**, **Máximo** ou **Mínimo**. Começa pela agregação habitual da métrica. Uma soma ou uma contagem somaria todas as coletas de um minuto, então ficam para o **Avançado**. |
 | **Intervalo de tempo** | Todas | A janela móvel que a consulta lê, de **Past 1 Minute** a **Past 365 Days**. Um monitor novo começa em **Past 1 Minute**; os modelos definem o próprio. |

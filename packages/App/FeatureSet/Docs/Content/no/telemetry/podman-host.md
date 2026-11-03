@@ -154,6 +154,16 @@ Metrikkene og loggene til hver container lagres under en tjeneste oppkalt etter 
 
 [Podman-overvåking](/docs/monitor/podman-monitor#innsamlede-metrikker) lister hver metrikk og hva den betyr.
 
+## Hva vertens sider viser
+
+Vertens sider vurderer hver container etter de samme reglene, så oversikten, containerlisten og en containers egen side alltid er enige:
+
+- **Oversikt**: vertens tilstand ved siden av tilkoblingen, og **Krever oppmerksomhet**: containerne som er ødelagt eller trenger en titt, de mest presserende først, hver med grunnen. En container som omstartspolicyen har startet på nytt mer enn 3 ganger på 15 minutter, er i en omstartsløyfe; en som har startet på nytt, bruker mer enn 85 % av minnet sitt eller kjørte i 10 minutter eller mer og så sluttet å rapportere, trenger en titt.
+- **Containere**: hver containers tilstand med de samme ordene og fargene, med grunnen, omstartene de siste 15 minuttene og når den sist ble startet. En container som har stoppet, står i listen i 15 minutter etter siste måling: **Rapporterer ikke lenger** for en som kjørte i 10 minutter eller mer, **Rapporterer ikke** i grått for en jobb eller en engangskjøring som er ferdig.
+- En containers egen side: det ved den som trenger en titt, CPU, minne og omstarter, det som er åpent på den, containervarslene med ett steg for å slå dem på, og det agenten rapporterer om den.
+
+Agenten leser bare containere som kjører, så en container som allerede var stoppet da agenten startet, en avslutningskode og en helsesjekks dom vises ikke.
+
 ## Containerlogger trenger loggdriveren k8s-file
 
 Agenten følger `/var/lib/containers/storage/overlay-containers/*/userdata/ctr.log`, filene loggdriveren `k8s-file` i Podman skriver (`json-file` er den samme driveren i Podman). Standarddriveren for rootful Podman er `journald`, som ikke etterlater noen fil å lese, og det gjør heller ikke en ekstern driver som `syslog`. Metrikkene til en slik container kommer fortsatt inn; loggene gjør det ikke.
