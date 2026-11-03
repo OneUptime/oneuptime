@@ -20,12 +20,15 @@ import URL from "Common/Types/API/URL";
  * Playwright's request context follows redirects, so an unauthenticated
  * /dashboard that bounces to the accounts login still lands on an SPA shell —
  * the assertion holds across the redirect.
+ *
+ * The Status Page app is /status-page/, with the slash: with billing enabled
+ * the bare /status-page is the marketing site's, an HTML page of Home's.
  */
 
 const SPA_ROUTES: Array<string> = [
   "/dashboard", // Dashboard SPA
   "/accounts", // Accounts / auth SPA
-  "/status-page", // Status Page app
+  "/status-page/", // Status Page app
   "/public-dashboard", // Public Dashboard app
 ];
 

@@ -111,7 +111,10 @@ bash "$scriptDir/endpoint-status.sh" "Public Dashboard" "$HOST_TO_CHECK/public-d
 
 bash "$scriptDir/endpoint-status.sh" "Accounts" "$HOST_TO_CHECK/accounts"
 
-bash "$scriptDir/endpoint-status.sh" "Status Page" "$HOST_TO_CHECK/status-page"
+# With the slash: when billing is enabled the bare /status-page is the
+# marketing site's address for /product/status-page, and only /status-page/...
+# reaches the status page app.
+bash "$scriptDir/endpoint-status.sh" "Status Page" "$HOST_TO_CHECK/status-page/"
 
 # Each check above stops at the first HTTP 200, which is a weaker claim than it
 # looks: nginx serves the static bundles and answers /status/ready as soon as
