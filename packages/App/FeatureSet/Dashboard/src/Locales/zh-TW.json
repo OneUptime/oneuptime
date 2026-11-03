@@ -40484,5 +40484,6 @@
   "Choose the watchlist each filter reads.": "請為每個篩選選擇要讀取的監看清單。",
   "Enter a whole address, with https and the host name.": "請輸入完整的位址，包含 https 和主機名稱。",
   "Enter the https address of the file to read.": "請輸入要讀取的檔案的 https 位址。",
-  "The address starts with https.": "位址以 https 開頭。"
+  "The address starts with https.": "位址以 https 開頭。",
+  "The field is on a watchlist": "該欄位在某份監看清單中"
 }

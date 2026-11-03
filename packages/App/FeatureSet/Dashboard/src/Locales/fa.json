@@ -40484,5 +40484,6 @@
   "Choose the watchlist each filter reads.": "فهرست پایشی را که هر فیلتر می‌خواند انتخاب کنید.",
   "Enter a whole address, with https and the host name.": "یک نشانی کامل، همراه با https و نام میزبان، وارد کنید.",
   "Enter the https address of the file to read.": "نشانی https فایلی را که باید خوانده شود وارد کنید.",
-  "The address starts with https.": "نشانی با https شروع می‌شود."
+  "The address starts with https.": "نشانی با https شروع می‌شود.",
+  "The field is on a watchlist": "فیلد در یک فهرست پایش هست"
 }

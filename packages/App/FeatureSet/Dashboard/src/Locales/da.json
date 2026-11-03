@@ -40484,5 +40484,6 @@
   "Choose the watchlist each filter reads.": "Vælg den overvågningsliste, hvert filter læser.",
   "Enter a whole address, with https and the host name.": "Angiv en hel adresse med https og værtsnavnet.",
   "Enter the https address of the file to read.": "Angiv https-adressen på den fil, der skal læses.",
-  "The address starts with https.": "Adressen begynder med https."
+  "The address starts with https.": "Adressen begynder med https.",
+  "The field is on a watchlist": "Feltet står på en overvågningsliste"
 }

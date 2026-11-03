@@ -40484,5 +40484,6 @@
   "Choose the watchlist each filter reads.": "Выберите список отслеживания для каждого фильтра.",
   "Enter a whole address, with https and the host name.": "Введите полный адрес: с https и именем хоста.",
   "Enter the https address of the file to read.": "Введите https-адрес файла, который нужно читать.",
-  "The address starts with https.": "Адрес начинается с https."
+  "The address starts with https.": "Адрес начинается с https.",
+  "The field is on a watchlist": "Поле есть в списке отслеживания"
 }

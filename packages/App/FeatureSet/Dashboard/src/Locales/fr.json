@@ -40484,5 +40484,6 @@
   "Choose the watchlist each filter reads.": "Choisissez la liste de surveillance que lit chaque filtre.",
   "Enter a whole address, with https and the host name.": "Saisissez une adresse complète, avec https et le nom d'hôte.",
   "Enter the https address of the file to read.": "Saisissez l'adresse https du fichier à lire.",
-  "The address starts with https.": "L'adresse commence par https."
+  "The address starts with https.": "L'adresse commence par https.",
+  "The field is on a watchlist": "Le champ est sur une liste de surveillance"
 }

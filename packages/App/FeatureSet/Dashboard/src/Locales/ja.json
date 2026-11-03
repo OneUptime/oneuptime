@@ -40484,5 +40484,6 @@
   "Choose the watchlist each filter reads.": "各フィルターが読み取るウォッチリストを選択してください。",
   "Enter a whole address, with https and the host name.": "https とホスト名を含む完全なアドレスを入力してください。",
   "Enter the https address of the file to read.": "読み取るファイルの https アドレスを入力してください。",
-  "The address starts with https.": "アドレスは https で始まります。"
+  "The address starts with https.": "アドレスは https で始まります。",
+  "The field is on a watchlist": "項目がウォッチリストにある"
 }

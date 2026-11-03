@@ -40484,5 +40484,6 @@
   "Choose the watchlist each filter reads.": "Kies de volglijst die elk filter leest.",
   "Enter a whole address, with https and the host name.": "Voer een volledig adres in, met https en de hostnaam.",
   "Enter the https address of the file to read.": "Voer het https-adres in van het bestand dat gelezen moet worden.",
-  "The address starts with https.": "Het adres begint met https."
+  "The address starts with https.": "Het adres begint met https.",
+  "The field is on a watchlist": "Het veld staat op een volglijst"
 }

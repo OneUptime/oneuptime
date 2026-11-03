@@ -40484,5 +40484,6 @@
   "Choose the watchlist each filter reads.": "हर फ़िल्टर जो वॉचलिस्ट पढ़ता है, उसे चुनें।",
   "Enter a whole address, with https and the host name.": "https और होस्ट नाम के साथ पूरा पता दर्ज करें।",
   "Enter the https address of the file to read.": "पढ़ी जाने वाली फ़ाइल का https पता दर्ज करें।",
-  "The address starts with https.": "पता https से शुरू होता है।"
+  "The address starts with https.": "पता https से शुरू होता है।",
+  "The field is on a watchlist": "फ़ील्ड किसी वॉचलिस्ट में है"
 }
