@@ -98,7 +98,7 @@ Each limit per network also counts the addresses of one IPv6 /64 together, at te
 
 **What your team sends counts too.** Nothing limits how fast your team adds subscribers, on the dashboard, in bulk, through the API or by a workflow. But the message an added subscriber is sent, the email asking it to confirm or the message saying it is subscribed, counts toward that contact's 10 signups in an hour, and past them that add is refused with `429`. A subscriber added without a message is never counted: **Subscribe them now** for an email address, or **Send a welcome message** turned off for the other channels. If the rate limiter cannot be reached, your team's adds go on uncounted.
 
-A private user asking for a password reset link on the status page's sign-in page is limited the same way: 5 reset emails to one address in an hour, on all status pages together, and 30 from one network in 15 minutes. An invitation, to a private status page or to a project, is counted per address too: 10 to one address in an hour, both kinds together.
+A private user asking for a password reset link on the status page's sign-in page is limited the same way: 5 reset emails to one address in an hour, on all status pages together, and 30 from one network in 15 minutes. Asking for a sign-in link on the sign-in page is limited too, and counted whether or not the address is a private user of the page: 10 emails to one address in an hour, on all status pages together, and 30 from one network in 15 minutes. An invitation, to a private status page or to a project, is counted per address too: 10 to one address in an hour, both kinds together.
 
 On a self-hosted installation, these environment variables of the OneUptime app change the limits:
 
@@ -113,6 +113,8 @@ On a self-hosted installation, these environment variables of the OneUptime app 
 | `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_CONTACT` | `5` | Management links for one contact per window. |
 | `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_IP` | `30` | Private user password resets asked for from one address per window. |
 | `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_CONTACT` | `5` | Private user password reset emails to one address per window. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MAGIC_LINKS_PER_IP` | `30` | Private user sign-in links asked for from one address per window. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MAGIC_LINKS_PER_CONTACT` | `10` | Private user sign-in link emails to one address per window. |
 | `PUBLIC_MESSAGE_RATE_LIMIT_INVITATIONS_PER_CONTACT` | `10` | Invitations to one address per window, to private status pages and projects together. |
 
 Neither `config.env` nor the Helm chart's values pass them on: add them to the environment of the `app` container yourself, with `app.extraEnv`, or the chart-wide `extraEnv`, in the Helm chart, or in a `docker-compose.override.yml` for Docker Compose. `TRUSTED_PROXY_HOPS` decides which address the limits per network count.

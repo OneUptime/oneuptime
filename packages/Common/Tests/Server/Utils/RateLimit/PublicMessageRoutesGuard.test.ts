@@ -12,13 +12,15 @@ import ts from "typescript";
  *
  * The routes anyone can call without signing in that send a message to a
  * contact the request names - a status page sign-up, a status page manage
- * link, a status page private user's password reset, an account's password
- * reset, the emails an account sign-up sends, and the verification link a
- * sign-in to an address not verified yet sends - are each limited per
- * caller and per contact by PublicMessageRateLimit.assertMaySend. The route
- * suites drive each one (StatusPageSubscriberMessageLimits.test.ts here; in
- * App, PasswordResetAndSignUpEmailLimits.test.ts and
- * StatusPagePasswordResetLimits.test.ts); this guard holds the wiring
+ * link, a status page private user's password reset and sign-in link, an
+ * account's password reset, the emails an account sign-up sends, and the
+ * verification link a sign-in to an address not verified yet sends - are
+ * each limited per caller and per contact by
+ * PublicMessageRateLimit.assertMaySend. The route suites drive each one
+ * (StatusPageSubscriberMessageLimits.test.ts here; in App,
+ * PasswordResetAndSignUpEmailLimits.test.ts,
+ * StatusPagePasswordResetLimits.test.ts and StatusPageMagicLink.test.ts);
+ * this guard holds the wiring
  * itself, read from the code with its comments removed:
  *
  *  - each branch of a route that sends or creates something asks first, with
@@ -111,6 +113,23 @@ const PUBLIC_MESSAGE_ROUTES: Array<PublicMessageRoute> = [
     kind: PublicMessageKind.StatusPagePasswordReset,
     branches: [
       ["StatusPagePrivateUserService.updateOneBy(", "MailService.sendMail("],
+    ],
+  },
+  {
+    /*
+     * A private user's sign-in link. Asked before the address is even
+     * looked up - counted whether or not it is a private user, so that a
+     * refusal says nothing about who may sign in.
+     */
+    file: STATUS_PAGE_AUTHENTICATION,
+    routePath: "/send-magic-link",
+    kind: PublicMessageKind.StatusPageMagicLink,
+    branches: [
+      [
+        "StatusPagePrivateUserService.findOneBy(",
+        "StatusPagePrivateUserService.updateOneBy(",
+        "MailService.sendMail(",
+      ],
     ],
   },
 ];

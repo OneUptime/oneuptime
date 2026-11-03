@@ -389,13 +389,70 @@ export default class StatusPagePrivateUser extends BaseModel {
   })
   public resetPasswordExpires?: Date = undefined;
 
+  /*
+   * The latest sign-in link emailed to this user (Types/StatusPage/
+   * StatusPageMagicLink): the hash of its token, never the token, which is
+   * only ever mailed - like resetPasswordToken. Cleared by the sign-in that
+   * uses it, and replaced by the next link asked for.
+   */
   @ColumnAccessControl({
     create: [],
     read: [],
-
     update: [],
   })
-  @TableColumn({ type: TableColumnType.Date })
+  @TableColumn({
+    secret: true,
+    type: TableColumnType.ShortText,
+    hideColumnInDocumentation: true,
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+    unique: false,
+  })
+  public magicLinkToken?: string = undefined;
+
+  // When the sign-in link in magicLinkToken stops working.
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({ type: TableColumnType.Date, hideColumnInDocumentation: true })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+    unique: false,
+  })
+  public magicLinkExpires?: Date = undefined;
+
+  /*
+   * When this user last signed in - with a password, a sign-in link or SSO
+   * (StatusPagePrivateUserSessionService.recordSuccessfulSignIn). Readable by
+   * whoever can read the user, so the Private Users list can tell somebody
+   * who signs in without a password from somebody who never accepted their
+   * invitation; only sign-in writes it.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
+      Permission.ReadStatusPagePrivateUser,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Date,
+    title: "Last Signed In",
+    description: "When this private user last signed in to the status page.",
+  })
   @Column({
     type: ColumnType.Date,
     nullable: true,

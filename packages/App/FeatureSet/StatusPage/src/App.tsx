@@ -66,6 +66,20 @@ const Sso: React.LazyExoticComponent<AllPagesModule["Sso"]> = lazy(() => {
     return { default: m.Sso };
   });
 });
+const MagicLink: React.LazyExoticComponent<AllPagesModule["MagicLink"]> = lazy(
+  () => {
+    return import("./Pages/AllPages").then((m: AllPagesModule) => {
+      return { default: m.MagicLink };
+    });
+  },
+);
+const MagicLinkLogin: React.LazyExoticComponent<
+  AllPagesModule["MagicLinkLogin"]
+> = lazy(() => {
+  return import("./Pages/AllPages").then((m: AllPagesModule) => {
+    return { default: m.MagicLinkLogin };
+  });
+});
 const AnnouncementDetail: React.LazyExoticComponent<
   AllPagesModule["AnnouncementDetail"]
 > = lazy(() => {
@@ -268,6 +282,9 @@ const App: () => JSX.Element = () => {
 
   const [hasEnabledSSO, setHasEnabledSSO] = useState<boolean>(false);
   const [forceSSO, setForceSSO] = useState<boolean>(false);
+  // Whether private users may ask for a sign-in link (StatusPageMagicLink).
+  const [enableMagicLinkLogin, setEnableMagicLinkLogin] =
+    useState<boolean>(false);
 
   const [javascript, setJavaScript] = useState<string | null>(null);
   const [allowStatusPageCustomizations, setAllowStatusPageCustomizations] =
@@ -445,6 +462,14 @@ const App: () => JSX.Element = () => {
             "statusPage.requireSsoForLogin",
           ) as boolean,
         );
+
+        // Worked out by the server, by the rule it signs in with.
+        setEnableMagicLinkLogin(
+          JSONFunctions.getJSONValueInPath(
+            masterpage || {},
+            "statusPage.enableMagicLinkLogin",
+          ) === true,
+        );
       }}
     >
       <Suspense fallback={<RouteFallbackSkeleton />}>
@@ -485,6 +510,54 @@ const App: () => JSX.Element = () => {
                 }
                 forceSSO={forceSSO}
                 hasEnabledSSOConfig={hasEnabledSSO}
+                enableMagicLinkLogin={enableMagicLinkLogin}
+              />
+            }
+          />
+
+          <PageRoute
+            path={RouteMap[PageMap.MAGIC_LINK]?.toString() || ""}
+            element={
+              <MagicLink
+                statusPageName={statusPageName}
+                logoFileId={new ObjectID(statusPageLogoFileId)}
+                darkThemeLogoFileId={
+                  new ObjectID(statusPageDarkThemeLogoFileId)
+                }
+                forceSSO={forceSSO}
+                enableMagicLinkLogin={enableMagicLinkLogin}
+              />
+            }
+          />
+
+          <PageRoute
+            path={tokenFreeRoute(
+              RouteMap[PageMap.MAGIC_LINK_LOGIN]?.toString() || "",
+            )}
+            element={
+              <MagicLinkLogin
+                statusPageName={statusPageName}
+                logoFileId={new ObjectID(statusPageLogoFileId)}
+                darkThemeLogoFileId={
+                  new ObjectID(statusPageDarkThemeLogoFileId)
+                }
+                forceSSO={forceSSO}
+                enableMagicLinkLogin={enableMagicLinkLogin}
+              />
+            }
+          />
+
+          <PageRoute
+            path={RouteMap[PageMap.MAGIC_LINK_LOGIN]?.toString() || ""}
+            element={
+              <MagicLinkLogin
+                statusPageName={statusPageName}
+                logoFileId={new ObjectID(statusPageLogoFileId)}
+                darkThemeLogoFileId={
+                  new ObjectID(statusPageDarkThemeLogoFileId)
+                }
+                forceSSO={forceSSO}
+                enableMagicLinkLogin={enableMagicLinkLogin}
               />
             }
           />
@@ -1189,6 +1262,54 @@ const App: () => JSX.Element = () => {
                 }
                 forceSSO={forceSSO}
                 hasEnabledSSOConfig={hasEnabledSSO}
+                enableMagicLinkLogin={enableMagicLinkLogin}
+              />
+            }
+          />
+
+          <PageRoute
+            path={RouteMap[PageMap.PREVIEW_MAGIC_LINK]?.toString() || ""}
+            element={
+              <MagicLink
+                statusPageName={statusPageName}
+                logoFileId={new ObjectID(statusPageLogoFileId)}
+                darkThemeLogoFileId={
+                  new ObjectID(statusPageDarkThemeLogoFileId)
+                }
+                forceSSO={forceSSO}
+                enableMagicLinkLogin={enableMagicLinkLogin}
+              />
+            }
+          />
+
+          <PageRoute
+            path={tokenFreeRoute(
+              RouteMap[PageMap.PREVIEW_MAGIC_LINK_LOGIN]?.toString() || "",
+            )}
+            element={
+              <MagicLinkLogin
+                statusPageName={statusPageName}
+                logoFileId={new ObjectID(statusPageLogoFileId)}
+                darkThemeLogoFileId={
+                  new ObjectID(statusPageDarkThemeLogoFileId)
+                }
+                forceSSO={forceSSO}
+                enableMagicLinkLogin={enableMagicLinkLogin}
+              />
+            }
+          />
+
+          <PageRoute
+            path={RouteMap[PageMap.PREVIEW_MAGIC_LINK_LOGIN]?.toString() || ""}
+            element={
+              <MagicLinkLogin
+                statusPageName={statusPageName}
+                logoFileId={new ObjectID(statusPageLogoFileId)}
+                darkThemeLogoFileId={
+                  new ObjectID(statusPageDarkThemeLogoFileId)
+                }
+                forceSSO={forceSSO}
+                enableMagicLinkLogin={enableMagicLinkLogin}
               />
             }
           />

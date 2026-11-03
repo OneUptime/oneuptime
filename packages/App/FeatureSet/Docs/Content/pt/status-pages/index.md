@@ -118,7 +118,7 @@ A página pública é um aplicativo próprio, com um pequeno conjunto de rotas:
 - `/subscribe/email`, `/subscribe/sms`, `/subscribe/slack`, `/subscribe/microsoft-teams`, `/subscribe/webhooks`.
 - `/confirm-subscription/:id`, `/update-subscription/:token` e `/unsubscribe/:token`: os links das mensagens que os assinantes recebem.
 - `/rss`: o feed.
-- `/login`, `/sso` e `/master-password`: relevantes apenas em uma página privada.
+- `/login`, `/sso`, `/magic-link`, `/magic-link-login/:token` e `/master-password`: relevantes apenas em uma página privada.
 
 A barra de navegação superior sempre mostra **Visão geral**; o resto só aparece quando está ligado. **Incidentes**, **Anúncios** e **Eventos agendados** precisam cada um do seu interruptor; **Inscrever-se** precisa tanto de **Mostrar página de assinantes** quanto de pelo menos um canal de inscrição ligado. Uma página privada também tem um item **Sair**.
 
@@ -194,6 +194,8 @@ Escolher uma opção pede confirmação, dizendo o que muda para os visitantes, 
 Adicione as pessoas que podem entrar em **Páginas de status → sua página → Segurança → Usuários privados**. Há uma ação **Adicionar em massa**: cole uma lista de endereços de e-mail e cada um recebe um e-mail de convite. Os usuários privados têm seu próprio fluxo de senha esquecida e de redefinição, separado das contas do seu projeto OneUptime.
 
 **Usuários privados e senha não se somam.** Enquanto **Qualquer pessoa com a senha** for a escolha, os usuários privados não conseguem entrar (eles também digitam a senha), e a tela **Usuários privados** diz isso, com um link de volta para **Acesso**.
+
+**Links de acesso.** Em uma página em que os visitantes entram, a página de login também oferece **Enviar um link de acesso por e-mail**: um usuário privado informa seu endereço de e-mail e recebe um link que o faz entrar sem a senha. O link funciona uma vez, por 15 minutos, e pedir outro o substitui. Ele abre uma página em que o usuário pressiona **Entrar**, para que filtros de e-mail que abrem cada link para analisá-lo não o gastem antes. A página responde da mesma forma, seja o endereço de um de seus usuários privados ou não, então pedir um link não revela a ninguém quem pode entrar. Os links ficam ativados em todas as páginas; para manter os usuários privados nas senhas, desative **Links de acesso** em **Mais configurações** em **Usuários privados** (quem já entrou com um link continua conectado). Eles nunca são oferecidos enquanto **Exigir SSO para login** estiver ativado ou **Qualquer pessoa com a senha** for a escolha.
 
 ### SSO e OIDC
 
