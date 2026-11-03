@@ -324,9 +324,17 @@ describe("finding the product", () => {
 describe("old Cloud addresses still arrive", () => {
   const cloudRoutes: string = readCode("Routes/CloudResourceRoutes.tsx");
 
-  test("Cloud's own address, which was the environments list, opens Cloud's accounts", () => {
+  /*
+   * Cloud's own address was the environments list, then its accounts
+   * (#5488); since cloud-10x it is Cloud's Overview, over every account -
+   * still a Cloud page, never an App Platforms one.
+   */
+  test("Cloud's own address, which was the environments list, opens Cloud's Overview", () => {
     expect(cloudRoutes).toContain(
-      "<PageRoute index element={<MovedPageRedirect pageMap={PageMap.CLOUD_ACCOUNTS} />}",
+      "<PageRoute index element={<CloudOverview {...props} pageRoute={RouteMap[PageMap.CLOUD_OVERVIEW] as Route} />}",
+    );
+    expect(cloudRoutes).not.toContain(
+      "<PageRoute index element={<MovedPageRedirect",
     );
   });
 
