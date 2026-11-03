@@ -78,6 +78,7 @@ const BROWSER_JOBS = [
   "test.ee.yaml enterprise-ui",
   "test.mobile-app.yaml expo-web-export",
   "test.probe.yaml test",
+  "test.yaml lighthouse",
 ];
 
 // The jobs that install their browsers, and why they do not use the image.
