@@ -45,14 +45,27 @@ export const GLOBAL_USER_OVERRIDE_HELD_OPTIONS: Readonly<HeldPermissionsOptions>
   };
 
 /*
- * Why a global override is not added or deleted. Plain English: the server
- * answers in it, and the dashboard looks each up in the reader's language.
+ * Marks an English sentence as a key of the Dashboard's locales - the same
+ * marker as Common/UI/Utils/TranslateTemplate's translationKey, kept here so
+ * this file stays free of the UI. It returns the text unchanged. The
+ * Dashboard's locale extractor reads this file for what it marks (a "keys"
+ * root of App/FeatureSet/Dashboard/scripts/i18n/ExtractStrings.ts).
  */
-export const GLOBAL_USER_OVERRIDE_ADD_REFUSAL: string =
-  "A global user override applies to every on-call policy in the project, and your permission to add user overrides covers only some of them. Add the override on the policy's own User Overrides page instead.";
+const translationKey: (text: string) => string = (text: string): string => {
+  return text;
+};
 
-export const GLOBAL_USER_OVERRIDE_DELETE_REFUSAL: string =
-  "A global user override applies to every on-call policy in the project, and your permission to delete user overrides covers only some of them. Someone whose permission covers every policy can delete it.";
+/*
+ * Why a global override is not added or deleted. The server answers in
+ * English; the dashboard looks each up in the reader's language.
+ */
+export const GLOBAL_USER_OVERRIDE_ADD_REFUSAL: string = translationKey(
+  "A global user override applies to every on-call policy in the project, and your permission to add user overrides covers only some of them. Add the override on the policy's own User Overrides page instead.",
+);
+
+export const GLOBAL_USER_OVERRIDE_DELETE_REFUSAL: string = translationKey(
+  "A global user override applies to every on-call policy in the project, and your permission to delete user overrides covers only some of them. Someone whose permission covers every policy can delete it.",
+);
 
 export default class GlobalUserOverrideAccess {
   /*

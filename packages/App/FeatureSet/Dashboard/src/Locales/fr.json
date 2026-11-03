@@ -40422,5 +40422,12 @@
   "Everyone in this project opens network maps on this layout.": "Tout le monde dans ce projet ouvre les cartes réseau sur cette disposition.",
   "Make default for everyone": "Définir par défaut pour tout le monde",
   "Save and reuse log explorer views, including the current filters, columns, sorting, and page size. Each view is listed on the page it was saved on: the Logs page, or one resource's Logs tab.": "Save and reuse log explorer views, including the current filters, columns, sorting, and page size. Each view is listed on the page it was saved on: the Logs page, or one resource's Logs tab.",
-  "We couldn't change the default layout. Try again.": "Impossible de modifier la disposition par défaut. Réessayez."
+  "We couldn't change the default layout. Try again.": "Impossible de modifier la disposition par défaut. Réessayez.",
+  "A global user override applies to every on-call policy in the project, and your permission to add user overrides covers only some of them. Add the override on the policy's own User Overrides page instead.": "A global user override applies to every on-call policy in the project, and your permission to add user overrides covers only some of them. Add the override on the policy's own User Overrides page instead.",
+  "A global user override applies to every on-call policy in the project, and your permission to delete user overrides covers only some of them. Someone whose permission covers every policy can delete it.": "A global user override applies to every on-call policy in the project, and your permission to delete user overrides covers only some of them. Someone whose permission covers every policy can delete it.",
+  "Chosen At": "Chosen At",
+  "Internal record of the project a person last chose for their Slack or Microsoft Teams Home, in a workspace connected to several projects.": "Internal record of the project a person last chose for their Slack or Microsoft Teams Home, in a workspace connected to several projects.",
+  "Workspace Home Choice": "Workspace Home Choice",
+  "Workspace Home Choices": "Workspace Home Choices",
+  "Workspace User ID": "Workspace User ID"
 }
