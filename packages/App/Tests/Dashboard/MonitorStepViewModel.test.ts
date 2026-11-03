@@ -2075,3 +2075,60 @@ describe("MonitorStepViewModel.translateRowValue", () => {
     ).toBeUndefined();
   });
 });
+
+/*
+ * A Security Events monitor's watchlist filters (#5391): read on its page as
+ * the Events search writes them, the same in every language, as a rule's
+ * YAML is; none, no row.
+ */
+describe("MonitorStepViewModel.getRows — a Security Events monitor's watchlist filters", () => {
+  function watchlistRow(
+    watchlistFilters: unknown,
+  ): MonitorStepViewRow | undefined {
+    const step: MonitorStep = buildStepForMonitorType(
+      MonitorType.SecurityEvents,
+    );
+    const data: MonitorStepType = step.data as MonitorStepType;
+
+    data.securityEventsMonitor = {
+      ...data.securityEventsMonitor!,
+      watchlistFilters: watchlistFilters as never,
+    };
+
+    return MonitorStepViewModel.getRows({
+      monitorStep: step,
+      monitorType: MonitorType.SecurityEvents,
+    }).find((row: MonitorStepViewRow) => {
+      return row.key === "securityEventWatchlistFilters";
+    });
+  }
+
+  it("names each filter as the Events search writes it, a minus for one that keeps what is not on the list", () => {
+    const row: MonitorStepViewRow | undefined = watchlistRow([
+      { field: "principalUser", watchlist: "vip_users" },
+      { field: "principalIp", watchlist: "admin_addresses", isNotOnList: true },
+    ]);
+
+    expect(row).toBeDefined();
+    expect(row!.title).toBe("Filter by Watchlists");
+    expect(row!.valueType).toBe(MonitorStepViewValueType.ArrayOfText);
+    expect(row!.value).toEqual([
+      "principalUser:%vip_users%",
+      "-principalIp:%admin_addresses%",
+    ]);
+  });
+
+  it("a row left unfinished is not named", () => {
+    expect(
+      watchlistRow([
+        { field: "principalUser", watchlist: "" },
+        { field: "principalHost", watchlist: "critical_hosts" },
+      ])!.value,
+    ).toEqual(["principalHost:%critical_hosts%"]);
+  });
+
+  it("a monitor that reads no watchlist shows no row for them", () => {
+    expect(watchlistRow([])).toBeUndefined();
+    expect(watchlistRow(undefined)).toBeUndefined();
+  });
+});

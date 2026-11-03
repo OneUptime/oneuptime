@@ -522,6 +522,7 @@ export const SECURITY_HUNT_RUN_ERRORS: {
   schedulerCannotRead: { message: string };
   timedOut: { message: string };
   searchFailed: { message: string };
+  watchlistMissing: { message: string };
 } = {
   schedulerCannotRead: {
     message:
@@ -533,5 +534,9 @@ export const SECURITY_HUNT_RUN_ERRORS: {
   },
   searchFailed: {
     message: "Its search could not be run. Open the hunt to check it.",
+  },
+  watchlistMissing: {
+    message:
+      "Its search reads a watchlist this project no longer has. Open the hunt to fix its search.",
   },
 };

@@ -15,6 +15,7 @@ import MonitorLog from "../../../Models/AnalyticsModels/MonitorLog";
 import { mockRouter } from "./Helpers";
 import { getJestSpyOn } from "../../Spy";
 import AggregationType from "../../../Types/BaseDatabase/AggregationType";
+import OnWatchlist from "../../../Types/BaseDatabase/OnWatchlist";
 import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
 import Dictionary from "../../../Types/Dictionary";
@@ -793,5 +794,48 @@ describe("BaseAnalyticsAPI aggregate cache authorization", () => {
     expect(cacheRead.mock.calls[1]![1]).not.toBe(firstKey);
     expect(result.sentBody).toEqual(LIVE_BODY);
     expect(monitorLogService.aggregateBy).toHaveBeenCalledTimes(2);
+  });
+
+  /*
+   * A security event search that reads a watchlist (#5391): the list's
+   * values, and whether the caller may read the list, are read with the
+   * aggregate itself - a cached answer would skip both, and would go on
+   * counting a list's old values for the cache's lifetime.
+   */
+  test("a query that reads a watchlist is answered live: the cache is neither read nor written", async () => {
+    const tenantPermissions: Dictionary<UserTenantAccessPermission> = {
+      [PROJECT_ID.toString()]: buildTenantPermissions(PROJECT_ID, [
+        grant(Permission.ProjectMember),
+      ]),
+    };
+
+    const result: CallResult = await callAggregateRoute({
+      uri: "/monitor-log/aggregate",
+      req: buildMemberRequest({
+        body: buildAggregateBody({
+          aggregateColumnName: "time",
+          query: {
+            projectId: PROJECT_ID,
+            attributes: { "src.user": new OnWatchlist("vip_users") },
+          } as unknown as JSONObject,
+        }),
+        tenantPermissions,
+      }),
+    });
+
+    expect(result.thrownToNext).toBeUndefined();
+    expect(result.sentBody).toEqual(LIVE_BODY);
+    expect(cacheRead).not.toHaveBeenCalled();
+    expect(cacheWrite).not.toHaveBeenCalled();
+
+    // The list's name reaches the service as the operator it was sent as.
+    const query: JSONObject = (
+      (monitorLogService.aggregateBy as unknown as jest.Mock).mock
+        .calls[0]![0] as { query: JSONObject }
+    ).query;
+
+    expect((query["attributes"] as JSONObject)["src.user"]).toBeInstanceOf(
+      OnWatchlist,
+    );
   });
 });

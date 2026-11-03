@@ -603,6 +603,7 @@ const ID = {
   evidence: (n) => uuid("2e000000", n),
   watchlist: (n) => uuid("2f000000", n),
   watchlistValue: (n) => uuid("3a000000", n),
+  monitor: (n) => uuid("3e000000", n),
   hunt: (n) => uuid("3b000000", n),
   event: (n) => uuid("3c000000", n),
   source: (n) => uuid("3d000000", n),
@@ -4282,6 +4283,12 @@ async function handleApi(method, options) {
   }
   if (method === "POST" && path.endsWith("/security-watchlist/import")) {
     const answer = watchlists.importValues(options.data);
+    return answer.status === 200
+      ? new HTTPResponse(200, answer.body, {})
+      : new HTTPErrorResponse(answer.status, answer.body, {});
+  }
+  if (method === "POST" && path.endsWith("/security-watchlist/read-now")) {
+    const answer = watchlists.readNow(options.data);
     return answer.status === 200
       ? new HTTPResponse(200, answer.body, {})
       : new HTTPErrorResponse(answer.status, answer.body, {});

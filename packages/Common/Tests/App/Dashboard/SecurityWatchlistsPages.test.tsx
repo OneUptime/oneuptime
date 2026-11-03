@@ -24,15 +24,17 @@ import type { SpyInstance } from "jest-mock";
  * SECURITY EVENTS > DETECTIONS > WATCHLISTS, and one watchlist's page.
  *
  * The list: the project's lists by name, each with what it holds, its
- * values and the rules that read it; created from the table (a name and
- * what it holds, opening the new list's page) or from a common list to
- * start with; deleted one or many at a time; edited only on a list's page,
- * which knows where its values come from.
+ * values and the rules, monitors and hunts that read it; created from the
+ * table (a name and what it holds, opening the new list's page) or from a
+ * common list to start with; deleted one or many at a time; edited only on
+ * a list's page, which knows where its values come from.
  *
  * A list's page, the important thing first: its settings (edited there)
- * with the rules that read it, its values - added, edited, deleted and
- * imported for a list the team keeps, or the feed's, for one that follows a
- * threat intel feed - and Use It in a Rule last. Its trail names the list.
+ * with what reads it, for a list read from an address how its reads stand,
+ * its values - added, edited, deleted, imported and exported for a list the
+ * team keeps, each perhaps for a while; read-only for one read from an
+ * address; or the feed's, for one that follows a threat intel feed - and
+ * Use This List last. Its trail names the list.
  *
  * Beside the side menu at a laptop's width the list fits in three columns;
  * below lg what Holds and Read By say folds under the name, and a value's
@@ -117,6 +119,7 @@ type CapturedTable = {
   formFields?: Array<{
     field: Record<string, unknown>;
     customValidation?: (values: Record<string, unknown>) => string | null;
+    getCustomElement?: unknown;
   }>;
   filters: Array<{
     field: Record<string, unknown>;
@@ -172,9 +175,14 @@ jest.mock("../../../UI/Components/ModelDetail/CardModelDetail", () => {
 });
 
 import SecurityWatchlistsPage from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Watchlists";
-import SecurityWatchlistViewPage from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/WatchlistView";
+import SecurityWatchlistViewPage, {
+  exportWatchlistValues,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/WatchlistView";
 import {
+  EXPIRES_FIELD_TITLE,
+  EXPORT_VALUES,
   IMPORT_VALUES,
+  URL_VALUES_EMPTY_TITLE,
   VALUES_TABLE_DESCRIPTION,
   VALUES_TABLE_DESCRIPTION_HASH,
   VALUES_TABLE_DESCRIPTION_IP,
@@ -185,6 +193,7 @@ import {
   WATCHLISTS_TEST_IDS,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Watchlists/WatchlistsCopy";
 import { getWatchlistHoldsDropdownOptions } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Watchlists/WatchlistFormFields";
+import { renderWatchlistSourceChoice } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Watchlists/WatchlistSourceRadio";
 import {
   WATCHLIST_CREATE_PARAM,
   getWatchlistsRoute,
@@ -195,16 +204,27 @@ import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import { RouteUtil } from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import DetectionRule from "../../../Models/DatabaseModels/DetectionRule";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import Monitor from "../../../Models/DatabaseModels/Monitor";
 import Project from "../../../Models/DatabaseModels/Project";
 import Reseller from "../../../Models/DatabaseModels/Reseller";
 import SecurityWatchlist from "../../../Models/DatabaseModels/SecurityWatchlist";
+import SecurityHunt from "../../../Models/DatabaseModels/SecurityHunt";
 import SecurityWatchlistItem from "../../../Models/DatabaseModels/SecurityWatchlistItem";
 import Route from "../../../Types/API/Route";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import IconProp from "../../../Types/Icon/IconProp";
 import ObjectID from "../../../Types/ObjectID";
 import { SecurityEntityType } from "../../../Types/SecurityCase/SecurityEntity";
-import { SecurityWatchlistSource } from "../../../Types/SecurityEvent/SecurityWatchlist";
+import MonitorStep from "../../../Types/Monitor/MonitorStep";
+import { MonitorStepSecurityEventsMonitorUtil } from "../../../Types/Monitor/MonitorStepSecurityEventsMonitor";
+import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
+import MonitorType from "../../../Types/Monitor/MonitorType";
+import {
+  SECURITY_WATCHLIST_MESSAGES,
+  SecurityWatchlistImportSchedule,
+  SecurityWatchlistSource,
+} from "../../../Types/SecurityEvent/SecurityWatchlist";
+import TableColumnsToCsv from "../../../UI/Utils/TableColumnsToCsv";
 import { ModalTableBulkDefaultActions } from "../../../UI/Components/ModelTable/BaseModelTable";
 import Page from "../../../UI/Components/Page/Page";
 import {
@@ -252,6 +272,38 @@ const RULES: Array<DetectionRule> = [
     "admin_addresses",
   ),
 ];
+
+// A Security Events monitor whose watchlist filter reads a list.
+function securityMonitor(id: string, name: string, list: string): Monitor {
+  const item: Monitor = new Monitor();
+  item._id = id;
+  item.name = name;
+  item.monitorType = MonitorType.SecurityEvents;
+
+  const step: MonitorStep = new MonitorStep();
+  step.setSecurityEventsMonitor({
+    ...MonitorStepSecurityEventsMonitorUtil.getDefault(),
+    watchlistFilters: [{ field: "principalUser", watchlist: list }],
+  });
+
+  const steps: MonitorSteps = new MonitorSteps();
+  steps.setMonitorStepsInstanceArray([step]);
+  item.monitorSteps = steps;
+  return item;
+}
+
+// A hunt whose search reads a list.
+function hunt(id: string, name: string, searchQuery: string): SecurityHunt {
+  const item: SecurityHunt = new SecurityHunt();
+  item._id = id;
+  item.name = name;
+  item.searchQuery = searchQuery;
+  return item;
+}
+
+// What else reads the project's lists; none unless a test says so.
+let monitors: Array<Monitor> = [];
+let hunts: Array<SecurityHunt> = [];
 
 let saved: SecurityWatchlist | null = null;
 let ruleReads: number = 0;
@@ -330,6 +382,8 @@ beforeEach(() => {
   detail = null;
   saved = list({});
   ruleReads = 0;
+  monitors = [];
+  hunts = [];
 
   jest
     .spyOn(ProjectUtil, "getCurrentProjectId")
@@ -347,6 +401,14 @@ beforeEach(() => {
     if (model instanceof DetectionRule) {
       ruleReads++;
       return { data: RULES, count: RULES.length, skip: 0, limit: 200 };
+    }
+
+    if (model instanceof Monitor) {
+      return { data: monitors, count: monitors.length, skip: 0, limit: 200 };
+    }
+
+    if (model instanceof SecurityHunt) {
+      return { data: hunts, count: hunts.length, skip: 0, limit: 200 };
     }
 
     // The project's lists, as the starters read them: none yet.
@@ -557,7 +619,24 @@ describe("Security Events > Watchlists", () => {
       "description",
       "source",
       "threatIntelFeed",
+      "importUrl",
+      "importSchedule",
     ]);
+  });
+
+  test("Create Watchlist draws where a new list's values come from as the radio whose choices follow what it holds", async () => {
+    await renderList();
+
+    const source:
+      | { field: Record<string, unknown>; getCustomElement?: unknown }
+      | undefined = table(LIST_TABLE).formFields!.find(
+      (field: { field: Record<string, unknown> }): boolean => {
+        return Object.keys(field.field)[0] === "source";
+      },
+    );
+
+    // The fields stay free of React; the page hands the radio in.
+    expect(source?.getCustomElement).toBe(renderWatchlistSourceChoice);
   });
 
   test("a new list opens its page, ready for its values", async () => {
@@ -629,10 +708,39 @@ describe("Security Events > Watchlists", () => {
 
     expect(
       flat(draw(LIST_TABLE, "Read By", list({ name: "critical_hosts" }))),
-    ).toBe("No rule reads it yet");
+    ).toBe("Nothing reads it yet");
 
     // One read of the project's rules for every row.
     expect(ruleReads).toBe(1);
+  });
+
+  test("Read By names the Security Events monitors and hunts that read a list too, each saying what it is", async () => {
+    monitors = [
+      securityMonitor(
+        "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb1",
+        "VIP failures",
+        "admin_addresses",
+      ),
+    ];
+    hunts = [
+      hunt(
+        "cccccccc-cccc-4ccc-8ccc-ccccccccccc1",
+        "Weekly admin review",
+        "-ip:%ADMIN_ADDRESSES% severity:High",
+      ),
+    ];
+
+    await renderList();
+
+    const row: SecurityWatchlist = list({ name: "admin_addresses" });
+
+    expect(flat(draw(LIST_TABLE, "Read By", row))).toBe(
+      "Admin from outsideVIP failures (Monitor)and 1 more",
+    );
+    // A file names every one of them.
+    expect(columnTitled(LIST_TABLE, "Read By").getExportValue!(row)).toBe(
+      "Admin from outside, VIP failures (Monitor), Weekly admin review (Hunt)",
+    );
   });
 
   test("a list that follows a feed names the feed in its values", async () => {
@@ -781,7 +889,55 @@ describe("a watchlist's page", () => {
     ).toEqual(["name", "description"]);
   });
 
-  test("Use It in a Rule: the selection that reads it, after the values", async () => {
+  test("its settings name every monitor and hunt that reads it, each opening its own page", async () => {
+    monitors = [
+      securityMonitor(
+        "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb1",
+        "VIP failures",
+        "vip_users",
+      ),
+    ];
+    hunts = [
+      hunt(
+        "cccccccc-cccc-4ccc-8ccc-ccccccccccc1",
+        "Weekly VIP review",
+        "user:%vip_users%",
+      ),
+    ];
+
+    await renderView();
+
+    const readBy: {
+      getElement?: ((item: unknown) => React.ReactElement) | undefined;
+    } = detail!.modelDetailProps.fields.find((field: { title: string }) => {
+      return field.title === "Read By";
+    })!;
+    const { container } = render(
+      <MemoryRouter>{readBy.getElement!(saved)}</MemoryRouter>,
+    );
+
+    expect(flat(container)).toBe(
+      "VIP sign-in from a new country, VIP MFA reset, VIP failures (Monitor), Weekly VIP review (Hunt)",
+    );
+    expect(
+      within(container).getByText("VIP failures").closest("a"),
+    ).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/monitors/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb1`,
+    );
+    expect(
+      within(container).getByText("Weekly VIP review").closest("a"),
+    ).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/security-events/hunts/cccccccc-cccc-4ccc-8ccc-ccccccccccc1`,
+    );
+    // A rule has no page of its own to open.
+    expect(
+      within(container).getByText("VIP MFA reset").closest("a"),
+    ).toBeNull();
+  });
+
+  test("Use This List: the selection that reads it, after the values", async () => {
     await renderView();
 
     const snippet: HTMLElement = screen.getByTestId(
@@ -840,6 +996,7 @@ describe("a watchlist's page", () => {
     expect(values.selectMoreFields).toEqual({
       createdAt: true,
       createdByUser: { name: true, email: true },
+      expiresAt: true,
     });
 
     const item: SecurityWatchlistItem = new SecurityWatchlistItem();
@@ -1035,7 +1192,7 @@ describe("a watchlist's page", () => {
       buttons.map((button: { title: string }) => {
         return button.title;
       }),
-    ).toEqual([IMPORT_VALUES]);
+    ).toEqual([IMPORT_VALUES, EXPORT_VALUES]);
 
     await act(async () => {
       buttons[0]!.onClick!();
@@ -1046,19 +1203,213 @@ describe("a watchlist's page", () => {
     ).toBeInTheDocument();
   });
 
-  test("a role that cannot add values is offered no import", async () => {
+  test("a role that cannot add values is offered no import, and still exports what it reads", async () => {
     jest.spyOn(PermissionGate, "check").mockImplementation(((
       model: unknown,
+      action: unknown,
     ) => {
-      return model instanceof SecurityWatchlistItem
+      return model instanceof SecurityWatchlistItem && action !== "read"
         ? { isAllowed: false }
         : { isAllowed: true };
     }) as never);
 
     await renderView();
 
-    expect(table(VALUES_TABLE).cardProps!.buttons).toEqual([]);
+    expect(
+      table(VALUES_TABLE).cardProps!.buttons!.map(
+        (button: { title: string }) => {
+          return button.title;
+        },
+      ),
+    ).toEqual([EXPORT_VALUES]);
     expect(table(VALUES_TABLE).emptyState!.actions).toEqual([]);
+  });
+
+  test("an empty list has nothing to export", async () => {
+    saved = list({ valueCount: 0 });
+
+    await renderView();
+
+    expect(
+      table(VALUES_TABLE).cardProps!.buttons!.map(
+        (button: { title: string }) => {
+          return button.title;
+        },
+      ),
+    ).toEqual([IMPORT_VALUES]);
+  });
+
+  test("Export Values downloads the values still on the list as a file Import Values reads back", async () => {
+    let downloaded: { csv: string; filename: string } | null = null;
+
+    jest.spyOn(TableColumnsToCsv, "downloadCsv").mockImplementation(((file: {
+      csv: string;
+      filename: string;
+    }) => {
+      downloaded = file;
+    }) as never);
+
+    const reads: Array<Record<string, unknown>> = [];
+    const values: Array<SecurityWatchlistItem> = [
+      Object.assign(new SecurityWatchlistItem(), {
+        value: "alice@example.com",
+        note: "CFO",
+        expiresAt: new Date("2099-12-31T00:00:00.000Z"),
+      }),
+      Object.assign(new SecurityWatchlistItem(), {
+        value: "=bob@example.com",
+        note: "Assistant, finance",
+      }),
+      // Its moment to leave has come: it is not on the list any more.
+      Object.assign(new SecurityWatchlistItem(), {
+        value: "carol@example.com",
+        note: "",
+        expiresAt: new Date("2020-01-01T00:00:00.000Z"),
+      }),
+    ];
+
+    jest.spyOn(ModelAPI, "getList").mockImplementation((async (
+      options: Record<string, unknown>,
+    ) => {
+      reads.push(options);
+      return { data: values, count: values.length, skip: 0, limit: 200 };
+    }) as never);
+
+    await exportWatchlistValues({
+      projectId: new ObjectID(PROJECT_ID),
+      watchlistId: new ObjectID(WATCHLIST_ID),
+      name: "vip_users",
+    });
+
+    expect(reads).toHaveLength(1);
+    expect(reads[0]).toMatchObject({
+      modelType: SecurityWatchlistItem,
+      query: {
+        projectId: new ObjectID(PROJECT_ID),
+        securityWatchlistId: new ObjectID(WATCHLIST_ID),
+      },
+      select: { value: true, note: true, expiresAt: true },
+    });
+    expect(downloaded).not.toBeNull();
+    expect(downloaded!.filename).toBe("vip_users.csv");
+    expect(downloaded!.csv.split("\r\n")).toEqual([
+      "value,note,expires",
+      "alice@example.com,CFO,2099-12-31T00:00:00.000Z",
+      '\'=bob@example.com,"Assistant, finance",',
+      "",
+    ]);
+  });
+
+  test("Add Value asks when a value leaves the list, checked as the API checks it", async () => {
+    await renderView();
+
+    const expires: {
+      field: Record<string, unknown>;
+      customValidation?: (values: Record<string, unknown>) => string | null;
+    } = table(VALUES_TABLE).formFields!.find(
+      (field: { field: Record<string, unknown> }) => {
+        return Object.keys(field.field)[0] === "expiresAt";
+      },
+    )!;
+
+    expect((expires as unknown as { title: string }).title).toBe(
+      EXPIRES_FIELD_TITLE,
+    );
+    expect(expires.customValidation!({})).toBeNull();
+    expect(
+      expires.customValidation!({ expiresAt: "2099-01-01T00:00:00.000Z" }),
+    ).toBeNull();
+    expect(
+      expires.customValidation!({ expiresAt: "2020-01-01T00:00:00.000Z" }),
+    ).toBe(SECURITY_WATCHLIST_MESSAGES.expiryPassed.message);
+
+    // A value kept for a while says when it leaves, under its note.
+    const item: SecurityWatchlistItem = new SecurityWatchlistItem();
+    item.value = "contractor@example.com";
+    item.expiresAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000 + 60000);
+
+    expect(
+      flat(
+        within(draw(VALUES_TABLE, "Note", item)).getByTestId(
+          WATCHLISTS_TEST_IDS.expiresLine,
+        ),
+      ),
+    ).toBe("Expires in 3 days");
+  });
+
+  test("a list read from an address: how its reads stand, its values its file's, never changed by hand", async () => {
+    saved = list({
+      source: SecurityWatchlistSource.Url,
+      importUrl: "https://hr.example.com/vip-users.csv",
+      importSchedule: SecurityWatchlistImportSchedule.EverySixHours,
+      lastImportAt: new Date(),
+      lastImportSucceededAt: new Date(),
+      lastImportLinesLeftOut: 2,
+      valueCount: 3,
+    });
+
+    await renderView();
+
+    const card: HTMLElement = screen.getByTestId(WATCHLISTS_TEST_IDS.urlCard);
+
+    expect(
+      within(card).getByTestId(WATCHLISTS_TEST_IDS.urlAddress),
+    ).toHaveAttribute("href", "https://hr.example.com/vip-users.csv");
+    expect(card).toHaveTextContent("Every 6 Hours");
+    expect(
+      within(card).getByTestId(WATCHLISTS_TEST_IDS.urlStatus),
+    ).toHaveTextContent("2 lines of the file were left out.");
+
+    const values: CapturedTable = table(VALUES_TABLE);
+
+    expect(values).toMatchObject({
+      isCreateable: false,
+      isEditable: false,
+      isDeleteable: false,
+    });
+    expect(values.bulkActions?.buttons).toEqual([]);
+    // Its values export; nothing imports into a list its file keeps.
+    expect(
+      values.cardProps!.buttons!.map((button: { title: string }) => {
+        return button.title;
+      }),
+    ).toEqual([EXPORT_VALUES]);
+    expect(values.emptyState).toMatchObject({ title: URL_VALUES_EMPTY_TITLE });
+    expect(values.emptyState!.actions).toBeUndefined();
+
+    // Each value was put there by a read of the address.
+    const item: SecurityWatchlistItem = new SecurityWatchlistItem();
+    item.value = "alice@example.com";
+    item.createdAt = new Date(Date.now() - 2 * 60 * 60 * 1000);
+
+    expect(
+      flat(
+        within(draw(VALUES_TABLE, "Note", item)).getByTestId(
+          WATCHLISTS_TEST_IDS.addedLine,
+        ),
+      ),
+    ).toBe("Read from its address 2 hours ago");
+
+    // Its settings: where its values come from, and Edit changes the address.
+    const valuesField: {
+      getElement?: ((item: unknown) => React.ReactElement) | undefined;
+    } = detail!.modelDetailProps.fields.find((field: { title: string }) => {
+      return field.title === "Values";
+    })!;
+    const { container } = render(valuesField.getElement!(saved));
+
+    expect(flat(container)).toBe("3 values from hr.example.com");
+    expect(
+      detail!.formFields.map((field: { field: Record<string, unknown> }) => {
+        return Object.keys(field.field)[0];
+      }),
+    ).toEqual(["name", "importUrl", "importSchedule", "description"]);
+  });
+
+  test("a list kept by hand or following a feed has no address card", async () => {
+    await renderView();
+
+    expect(screen.queryByTestId(WATCHLISTS_TEST_IDS.urlCard)).toBeNull();
   });
 
   test("a list that follows a feed shows the feed's values, never a table of its own", async () => {

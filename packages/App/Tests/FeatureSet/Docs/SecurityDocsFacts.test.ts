@@ -20,6 +20,7 @@ import {
   TAXII_SIGN_IN_FIELD_TITLE,
   getSecurityMatchRaises,
 } from "../../../FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityMatchRaises";
+import { WATCHLIST_FILTERS_TITLE } from "../../../FeatureSet/Dashboard/src/Components/SecurityEvents/Watchlists/WatchlistsCopy";
 import {
   DETECTION_FINDING_MONITOR_WINDOW_SECONDS,
   buildDetectionRuleMonitorPrefill,
@@ -55,6 +56,7 @@ import ThreatIntelFeedPoller, {
 import Includes from "Common/Types/BaseDatabase/Includes";
 import NotEqual from "Common/Types/BaseDatabase/NotEqual";
 import NotNull from "Common/Types/BaseDatabase/NotNull";
+import OnWatchlist from "Common/Types/BaseDatabase/OnWatchlist";
 import Query from "Common/Types/BaseDatabase/Query";
 import Search from "Common/Types/BaseDatabase/Search";
 import Wildcard from "Common/Types/BaseDatabase/Wildcard";
@@ -1181,6 +1183,13 @@ describe("the Security Events page", () => {
           new Search("ransom"),
         );
       },
+      // The list's name only: the server reads its values as the search runs.
+      "user:%vip_users%": (filters: SecurityEventSearchFilters): void => {
+        expect(filters.fields).toEqual({
+          principalUser: new OnWatchlist("vip_users"),
+        });
+        expect(filters.fields["principalUser"]).toBeInstanceOf(OnWatchlist);
+      },
     };
     const examples: Array<string> = rows.map((row: Array<string>): string => {
       return codeSpans(row[2] as string)[0] as string;
@@ -1930,11 +1939,17 @@ describe("the Security Events page", () => {
       expect(boldSpans(page)).toContain(title);
     }
 
+    // The watchlist filters' title is the watchlists' own word.
+    expect(form).toContain("title: WATCHLIST_FILTERS_TITLE,");
+    expect(WATCHLIST_FILTERS_TITLE).toBe("Filter by Watchlists");
+    expect(boldSpans(page)).toContain(WATCHLIST_FILTERS_TITLE);
+
     expect(options[0]).toBe("Last 5 seconds");
     expect(options[options.length - 1]).toBe("Last 24 hours");
+    // Telemetry service, attributes and watchlists fold under More fields.
     expect(
       form.split("collapsibleSection: MORE_SECURITY_EVENT_FILTERS,").length - 1,
-    ).toBe(2);
+    ).toBe(3);
     expect(source("foldTitles")).toContain('translationKey("More fields")');
     expect(CheckOn.SecurityEventCount).toBe("Security Event Count");
     expect(MonitorType.SecurityEvents).toBe("Security Events");
@@ -1945,7 +1960,7 @@ describe("the Security Events page", () => {
       rowNamed(rowsOf(page, "Security Events monitors"), "Window")[2],
     ).toBe("Rolling: the last 5 seconds to 24 hours");
     expect(page).toContain(
-      "**Filter by Telemetry Service** and **Filter by Attributes** wait under **More fields**",
+      "**Filter by Telemetry Service**, **Filter by Attributes** and **Filter by Watchlists** wait under **More fields**, whose header shows the ones a monitor uses. **Filter by Watchlists** keeps the events whose field is, or is not, on one of your [watchlists](#watchlists).",
     );
     expect(page).toContain("Its criteria check **Security Event Count**.");
   });

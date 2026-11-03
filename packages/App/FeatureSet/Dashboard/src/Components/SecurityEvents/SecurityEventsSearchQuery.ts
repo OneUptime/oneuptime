@@ -144,6 +144,16 @@ export const SECURITY_EVENT_SEARCH_HELP_ROWS: ReadonlyArray<SearchHelpRow> = [
     description: "Attribute contains",
     example: "@finding_info.title:~ransom",
   },
+  /*
+   * A watchlist, read as a rule's `expand` reads it: the server reads the
+   * list (SecurityWatchlistQueryBinder). A minus in front, as on any
+   * filter, keeps what is not on it.
+   */
+  {
+    syntax: "<field>:%<watchlist>%",
+    description: "The field is on a watchlist",
+    example: "user:%vip_users%",
+  },
   {
     syntax: "-<filter>",
     description: "Negate any filter",

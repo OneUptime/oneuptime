@@ -256,6 +256,7 @@ Die Suchleiste spricht dieselbe Sprache wie die anderen Telemetrie-Explorer (sie
 | `<field>:a*` | `*` ist beliebiger Text, `?` ein Zeichen | `host:web-*` |
 | `@<attribute>:*` | Das Attribut ist vorhanden | `@threat.indicator_id:*` |
 | `@<attribute>:~text` | Das Attribut enthält den Text | `@finding_info.title:~ransom` |
+| `<field>:%<watchlist>%` | Das Feld steht auf einer [Beobachtungsliste](#beobachtungslisten) | `user:%vip_users%` |
 
 Ein Feld ist entweder ein Kurzname (`severity`, `class`, `category`, `activity`, `status`, `vendor`, `product`, `rule`, `user`, `host`, `ip`, `targetuser`, `targethost`, `targetip`, `processname`, `commandline`, `parentprocessname`, `observable`, `tactic`, `technique`, `requestoutcome`, `trace`, `session`) oder der eigene Name des Felds, etwa `severityName` oder `principalHost`. Jeder andere Name wird als Quellattribut gelesen. `observable:<value>` findet jedes Ereignis, das einen Wert erwähnt, egal auf welcher Seite der Aktivität er stand.
 
@@ -281,7 +282,7 @@ Eine Bedrohungssuche ist eine Suche über Ihre Sicherheitsereignisse, unter eine
 
 ### Eine Suche als Bedrohungssuche speichern
 
-Suchen und filtern Sie unter **Ereignisse**, bis die Liste zeigt, was Sie suchen, öffnen Sie dann **Bedrohungssuchen** in der Werkzeugleiste und wählen Sie **Als Bedrohungssuche speichern**. Geben Sie ihr einen Namen, wählen Sie, ob sie nach einem Zeitplan läuft, und ihre Seite öffnet sich. **Ereignisse → Bedrohungssuchen** listet die Bedrohungssuchen des Projekts, jede mit ihrer Suche, wie oft sie läuft, wen sie benachrichtigt und was ihr letzter Lauf gefunden hat; **Bedrohungssuche erstellen** nimmt dort die Suche so, wie Sie sie unter **Ereignisse** eingeben würden. Ein Projekt bewahrt bis zu 200 Bedrohungssuchen auf.
+Suchen und filtern Sie unter **Ereignisse**, bis die Liste zeigt, was Sie suchen, öffnen Sie dann **Bedrohungssuchen** in der Werkzeugleiste und wählen Sie **Als Bedrohungssuche speichern**. Geben Sie ihr einen Namen, wählen Sie, ob sie nach einem Zeitplan läuft, und ihre Seite öffnet sich. **Ereignisse → Bedrohungssuchen** listet die Bedrohungssuchen des Projekts, jede mit ihrer Suche, wie oft sie läuft, wen sie benachrichtigt und was ihr letzter Lauf gefunden hat; **Bedrohungssuche erstellen** nimmt dort die Suche so, wie Sie sie unter **Ereignisse** eingeben würden. Ein Projekt bewahrt bis zu 200 Bedrohungssuchen auf. Eine Suche kann eine [Beobachtungsliste](#beobachtungslisten) lesen, wie `user:%vip_users%` es tut, und eine Bedrohungssuche, die eine Liste liest, die das Projekt nicht hat, wird beim Speichern abgelehnt.
 
 Die Seite einer Bedrohungssuche ist ihre Suche, im Explorer für Ereignisse geöffnet. Ändern Sie dort die Suche oder die Filter, dann bietet der Kopf der Bedrohungssuche **Änderungen speichern** und **Änderungen verwerfen** an. **Bearbeiten** ändert ihren Namen, ihre Suche, wie weit sie zurückblickt, ihren Zeitplan und wen sie benachrichtigt, und **Bedrohungssuche löschen** steht in ihrem Menü. Ab Security Member können Bedrohungssuchen gespeichert, geändert und gelöscht werden, und ein Security Viewer kann sie öffnen.
 
@@ -511,7 +512,7 @@ Eine Ausnahme ist etwas, das eine Regel auslässt, weil Sie es erwarten, etwa ei
 
 ### Beobachtungslisten
 
-Eine Beobachtungsliste ist eine Liste, die Ihr Team einmal pflegt und die jede Regel lesen kann, etwa VIP-Benutzer, kritische Hosts, bekannte schädliche Datei-Hashes oder die Adressen, von denen sich Admins anmelden dürfen. Jede Liste steht unter **Produkte → Sicherheitsereignisse → Erkennungen → Beobachtungslisten**: Erstellen Sie dort eine mit **Beobachtungsliste erstellen**, das nach ihrem Namen und ihrem Inhalt fragt, oder fügen Sie eine gängige unter **Mit einer gängigen Liste beginnen** hinzu. Die Seite einer Liste zeigt ihre Werte, und **In einer Regel verwenden** gibt eine Selektion, die die Liste liest, zum Kopieren in eine Regel.
+Eine Beobachtungsliste ist eine Liste, die Ihr Team einmal pflegt und die jede Regel lesen kann, etwa VIP-Benutzer, kritische Hosts, bekannte schädliche Datei-Hashes oder die Adressen, von denen sich Admins anmelden dürfen. Jede Liste steht unter **Produkte → Sicherheitsereignisse → Erkennungen → Beobachtungslisten**: Erstellen Sie dort eine mit **Beobachtungsliste erstellen**, das nach ihrem Namen und ihrem Inhalt fragt, oder fügen Sie eine gängige unter **Mit einer gängigen Liste beginnen** hinzu. Die Seite einer Liste zeigt ihre Werte, und **Diese Liste verwenden** gibt eine Selektion, die die Liste liest, zum Kopieren in eine Regel, und die Suche, die sie unter **Ereignisse** oder in einer Bedrohungssuche liest.
 
 Eine Regel liest eine Liste mit `expand` und dem Namen der Liste zwischen zwei `%`-Zeichen. Diese Regel löst aus, wenn sich ein Admin von einer Adresse anmeldet, die nicht auf der erlaubten Liste steht:
 
@@ -529,10 +530,14 @@ level: high
 
 - Eine Liste enthält Benutzer, Hosts, IP-Adressen, Datei-Hashes, Domains, URLs, Prozesse oder andere Werte, gewählt beim Erstellen. Ein Wert passt unabhängig von Groß- und Kleinschreibung, und `*` steht für eine beliebige Zeichenfolge: `svc-*` passt auf jedes Dienstkonto. Eine Liste von IP-Adressen nimmt auch Bereiche wie `10.20.0.0/16` an, und eine Liste von Datei-Hashes MD5-, SHA-1-, SHA-256- und SHA-512-Hashes.
 - Fügen Sie Werte einzeln mit **Wert hinzufügen** hinzu oder viele auf einmal mit **Werte importieren**: Fügen Sie sie ein oder wählen Sie eine `.txt`- oder `.csv`-Datei, ein Wert pro Zeile, mit einer optionalen Notiz nach einem Komma. **Zur Liste hinzufügen** behält die Werte, die schon darauf stehen, und **Liste ersetzen** entfernt die, die der Import nicht enthält.
+- Ein Wert kann ein **Läuft ab am** haben: Ab dann liest ihn keine Regel, kein Monitor, keine Bedrohungssuche und keine Suche mehr, und OneUptime entfernt ihn innerhalb einer Minute von der Liste. Bleibt das Feld leer, bleibt der Wert, bis jemand ihn entfernt.
+- **Werte exportieren** lädt die Werte einer Liste als CSV-Datei mit den Spalten `value`, `note` und `expires` herunter, die **Werte importieren** wieder einliest. Eine Datei, deren erste Zeile diese Spalten nennt, gibt jedem Wert seine Notiz und seinen Ablauf: ein Datum wie `2026-12-31` oder ein Datum mit Uhrzeit in UTC.
+- Eine Liste kann stattdessen aus einer Datei unter einer https-Adresse gelesen werden, erneut **Jede Stunde**, **Alle 6 Stunden** oder **Jeden Tag**: Wählen Sie beim Erstellen **Eine Datei unter einer Adresse** unter **Weitere Felder**. Jeder Lesevorgang macht die Liste zu dem, was die Datei enthält, gelesen wie bei einem Import. Ein fehlgeschlagener Lesevorgang ändert keinen Wert, und die Seite der Liste sagt, warum; **Jetzt lesen** liest sie sofort.
 - Statt Werte zu pflegen, kann eine Liste von IP-Adressen, Datei-Hashes, Domains oder URLs einem Threat-Intel-Feed folgen: Ihre Werte sind dann die aktiven Indikatoren des Feeds von der Art der Liste, aktuell gehalten, während der Feed gelesen wird.
-- `expand` wird allein verwendet, da die Werte der Liste bestimmen, wie sie passen. Ein Feld mit mehreren Werten, etwa `observables`, passt, wenn einer davon auf der Liste steht. **Gelesen von** nennt die Regeln, die jede Liste lesen, und unter dem YAML einer Regel nennt ihr Formular die Listen, die die Regel liest.
-- Eine Regel nennt eine Liste unabhängig von Groß- und Kleinschreibung. Eine Regel, die eine Liste nennt, die das Projekt nicht hat, wird beim Speichern abgelehnt, und eine Liste, die Regeln lesen, lässt sich erst umbenennen oder löschen, wenn keine Regel sie mehr liest.
+- `expand` wird allein verwendet, da die Werte der Liste bestimmen, wie sie passen. Ein Feld mit mehreren Werten, etwa `observables`, passt, wenn einer davon auf der Liste steht. **Gelesen von** nennt die Regeln, Monitore für Sicherheitsereignisse und Bedrohungssuchen, die jede Liste lesen, und unter dem YAML einer Regel nennt ihr Formular die Listen, die die Regel liest.
+- Eine Regel nennt eine Liste unabhängig von Groß- und Kleinschreibung. Eine Regel, ein Monitor oder eine Bedrohungssuche, die eine Liste nennen, die das Projekt nicht hat, werden beim Speichern abgelehnt, und eine Liste, die einer von ihnen liest, lässt sich erst umbenennen oder löschen, wenn nichts sie mehr liest.
 - Eine Änderung an einer Liste erreicht jede Regel, die sie liest, bei deren nächstem Lauf. Auch Korrelationsregeln und **Auf vergangene Ereignisse anwenden** lesen Listen.
+- Ein Monitor für Sicherheitsereignisse liest Listen unter **Nach Beobachtungslisten filtern**, und eine Suche unter **Ereignisse** oder in einer Bedrohungssuche liest eine als `user:%vip_users%`. Ein Minus davor, wie in `-ip:%admin_addresses%`, behält die Ereignisse, deren Feld nicht auf der Liste steht.
 - Eine Liste enthält höchstens 5.000 Werte, davon höchstens 100 mit `*` und 100 Bereiche, und ein Projekt hat höchstens 200 Listen: Für eine längere Liste folgen Sie einem Threat-Intel-Feed. Wer Erkennungsregeln erstellen, bearbeiten oder löschen darf, darf dasselbe mit Listen tun, und wer Erkennungsregeln bearbeiten darf, fügt ihre Werte hinzu, ändert und entfernt sie. Jede Sicherheitsrolle kann sie lesen, und jede Änderung steht im Audit-Log des Projekts.
 
 ### Auf vergangene Ereignisse anwenden
@@ -549,11 +554,11 @@ level: high
 
 Ein Monitor für Sicherheitsereignisse zählt die Ereignisse, die auf seine Filter passen, über ein gleitendes Fenster und wendet die üblichen Monitorkriterien auf die Zählung an: Er ändert den Status des Monitors, öffnet Warnungen oder Vorfälle und alarmiert die Bereitschaft. Erstellen Sie einen unter **Monitore → Monitor erstellen**, mit **Sicherheitsereignisse** als Typ; dort wird er mit Ihren anderen Monitoren aufgeführt.
 
-Sein Formular zeigt **Ereignisse überwachen, die diesen Text enthalten**, **Sicherheitsereignisse überwachen für (Zeit)**, **Ereignisschweregrad** und **Ereignisklasse**. **Nach Telemetrie-Dienst filtern** und **Nach Attributen filtern** warten unter **Weitere Felder**, dessen Kopf die zeigt, die ein Monitor nutzt. Seine Kriterien prüfen **Security Event Count**.
+Sein Formular zeigt **Ereignisse überwachen, die diesen Text enthalten**, **Sicherheitsereignisse überwachen für (Zeit)**, **Ereignisschweregrad** und **Ereignisklasse**. **Nach Telemetrie-Dienst filtern**, **Nach Attributen filtern** und **Nach Beobachtungslisten filtern** warten unter **Weitere Felder**, dessen Kopf die zeigt, die ein Monitor nutzt. **Nach Beobachtungslisten filtern** behält die Ereignisse, deren Feld auf einer Ihrer [Beobachtungslisten](#beobachtungslisten) steht oder nicht steht. Seine Kriterien prüfen **Security Event Count**.
 
 | | Erkennungsregel | Monitor für Sicherheitsereignisse |
 | --- | --- | --- |
-| Passt auf | Eine Sigma-Regel | Filter auf Schweregrad, Klasse, Nachricht, Dienst und Attribute |
+| Passt auf | Eine Sigma-Regel | Filter auf Schweregrad, Klasse, Nachricht, Dienst, Attribute und Beobachtungslisten |
 | Fenster | Lückenlos hintereinander, eines pro Lauf | Gleitend: die letzten 5 Sekunden bis 24 Stunden |
 | Zählt pro Gruppe | Ja, mit **Nach Feld gruppieren** | Nein: eine Zählung für alles, was passt |
 | Öffnet | Warnungen, Vorfälle und Befunde | Einen Status, Warnungen und Vorfälle |
@@ -610,11 +615,15 @@ Prüfen Sie ihren **Status** in **Regelausnahmen**: Eine Ausnahme mit dem Status
 :::
 
 :::details Eine Regel, die eine Beobachtungsliste liest, trifft nicht
-Öffnen Sie die Liste und prüfen Sie ihre Werte: Ein Wert ohne `*` muss dem ganzen Feld entsprechen, unabhängig von Groß- und Kleinschreibung, und eine Liste, die einem Threat-Intel-Feed folgt, enthält nur die aktiven Indikatoren des Feeds von ihrer Art. Prüfen Sie, ob die Regel das Feld liest, das Ihre Ereignisse füllen: **In einer Regel verwenden** beginnt mit dem Feld, in dem eine Liste ihrer Art meist steht. Eine Änderung an einer Liste erreicht eine Regel bei deren nächstem Lauf.
+Öffnen Sie die Liste und prüfen Sie ihre Werte: Ein Wert ohne `*` muss dem ganzen Feld entsprechen, unabhängig von Groß- und Kleinschreibung, und eine Liste, die einem Threat-Intel-Feed folgt, enthält nur die aktiven Indikatoren des Feeds von ihrer Art. Prüfen Sie, ob die Regel das Feld liest, das Ihre Ereignisse füllen: **Diese Liste verwenden** beginnt mit dem Feld, in dem eine Liste ihrer Art meist steht. Eine Änderung an einer Liste erreicht eine Regel bei deren nächstem Lauf.
 :::
 
 :::details Eine Beobachtungsliste lässt sich nicht umbenennen oder löschen
-Regeln lesen sie noch über ihren Namen, und die Meldung nennt sie. Ändern Sie den Namen in diesen Regeln oder nehmen Sie die Liste aus ihnen heraus, und benennen Sie sie dann um oder löschen Sie sie.
+Regeln, Monitore oder Bedrohungssuchen lesen sie noch über ihren Namen, und die Meldung nennt sie. Ändern Sie den Namen darin oder nehmen Sie die Liste aus ihnen heraus, und benennen Sie sie dann um oder löschen Sie sie.
+:::
+
+:::details Eine von einer Adresse gelesene Liste zeigt einen Fehler
+Ihre Seite sagt unter **Von einer Adresse gelesen**, warum, mit dem, was die Adresse geantwortet hat, und die Liste behält die Werte ihres letzten erfolgreichen Lesevorgangs. Die Adresse muss mit `https` beginnen, ohne Anmeldung aus dem Internet antworten und eine Text- oder CSV-Datei von höchstens 4 MB herunterladen, keine Webseite. Korrigieren Sie sie unter **Bearbeiten** und wählen Sie dann **Jetzt lesen**.
 :::
 
 :::details „Auf vergangene Ereignisse anwenden“ findet nichts

@@ -36,6 +36,7 @@ import AggregatedResult from "../../Types/BaseDatabase/AggregatedResult";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import GlobalCache from "../Infrastructure/GlobalCache";
 import logger from "../Utils/Logger";
+import { getWatchlistNamesInQuery } from "../../Types/SecurityEvent/SecurityWatchlistFilter";
 
 /*
  * Aggregate cache TTL. Dashboards typically auto-refresh every 30s+,
@@ -469,6 +470,17 @@ export default class BaseAnalyticsAPI<
     props: DatabaseCommonInteractionProps,
   ): Promise<string | null> {
     if (!props.tenantId) {
+      return null;
+    }
+
+    /*
+     * A query that reads a watchlist (a security event search's
+     * `user:%vip_users%`) is read fresh every time: the list's values are
+     * read with it, and whether the caller may read the list is asked by
+     * the read (SecurityWatchlistQueryBinder) - a cached answer would skip
+     * both.
+     */
+    if (getWatchlistNamesInQuery(aggregateBy.query).length > 0) {
       return null;
     }
 

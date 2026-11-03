@@ -15,6 +15,8 @@ import EndsWith from "./BaseDatabase/EndsWith";
 import NotContains from "./BaseDatabase/NotContains";
 import Wildcard from "./BaseDatabase/Wildcard";
 import NotWildcard from "./BaseDatabase/NotWildcard";
+import OnWatchlist from "./BaseDatabase/OnWatchlist";
+import NotOnWatchlist from "./BaseDatabase/NotOnWatchlist";
 import OwnedBy from "./BaseDatabase/OwnedBy";
 import IsNull from "./BaseDatabase/IsNull";
 import LessThan from "./BaseDatabase/LessThan";
@@ -177,6 +179,12 @@ const SerializableObjectDictionary: Dictionary<any> = {
   },
   get [ObjectType.NotWildcard](): any {
     return NotWildcard;
+  },
+  get [ObjectType.OnWatchlist](): any {
+    return OnWatchlist;
+  },
+  get [ObjectType.NotOnWatchlist](): any {
+    return NotOnWatchlist;
   },
   get [ObjectType.OwnedBy](): any {
     return OwnedBy;

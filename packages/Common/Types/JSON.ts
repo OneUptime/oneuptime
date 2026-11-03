@@ -15,6 +15,8 @@ import EndsWith from "./BaseDatabase/EndsWith";
 import NotContains from "./BaseDatabase/NotContains";
 import Wildcard from "./BaseDatabase/Wildcard";
 import NotWildcard from "./BaseDatabase/NotWildcard";
+import OnWatchlist from "./BaseDatabase/OnWatchlist";
+import NotOnWatchlist from "./BaseDatabase/NotOnWatchlist";
 import LessThan from "./BaseDatabase/LessThan";
 import LessThanOrEqual from "./BaseDatabase/LessThanOrEqual";
 import NotEqual from "./BaseDatabase/NotEqual";
@@ -89,6 +91,8 @@ export enum ObjectType {
   NotContains = "NotContains",
   Wildcard = "Wildcard",
   NotWildcard = "NotWildcard",
+  OnWatchlist = "OnWatchlist",
+  NotOnWatchlist = "NotOnWatchlist",
   OwnedBy = "OwnedBy",
   DashboardComponent = "DashboardComponent",
   DashboardViewConfig = "DashboardViewConfig",
@@ -193,6 +197,10 @@ export type JSONValue =
   | Array<Wildcard<string>>
   | NotWildcard<string>
   | Array<NotWildcard<string>>
+  | OnWatchlist
+  | Array<OnWatchlist>
+  | NotOnWatchlist
+  | Array<NotOnWatchlist>
   | DashboardViewConfig;
 
 export interface JSONObject {

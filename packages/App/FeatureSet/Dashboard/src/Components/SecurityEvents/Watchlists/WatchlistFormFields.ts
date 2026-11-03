@@ -8,27 +8,34 @@ import {
   HOLDS_FIELD_DESCRIPTION,
   HOLDS_FIELD_PLACEHOLDER,
   HOLDS_FIELD_TITLE,
+  IMPORT_SCHEDULE_FIELD_DESCRIPTION,
+  IMPORT_SCHEDULE_FIELD_TITLE,
+  IMPORT_URL_FIELD_DESCRIPTION,
+  IMPORT_URL_FIELD_PLACEHOLDER,
+  IMPORT_URL_FIELD_TITLE,
   NAME_FIELD_DESCRIPTION,
   NAME_FIELD_PLACEHOLDER,
   NAME_FIELD_TITLE,
-  SOURCE_FEED_DESCRIPTION,
-  SOURCE_FEED_TITLE,
   SOURCE_FIELD_TITLE,
-  SOURCE_VALUES_DESCRIPTION,
-  SOURCE_VALUES_TITLE,
 } from "./WatchlistsCopy";
 import {
   WatchlistHoldsOption,
+  WatchlistSourceChoice,
   canChooseWatchlistSource,
   getWatchlistHoldsOptions,
+  getWatchlistSourceChoicesFor,
   isFeedWatchlist,
+  isUrlWatchlist,
 } from "./WatchlistsModel";
 import SecurityWatchlist from "Common/Models/DatabaseModels/SecurityWatchlist";
 import ThreatIntelFeed from "Common/Models/DatabaseModels/ThreatIntelFeed";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { SecurityEntityType } from "Common/Types/SecurityCase/SecurityEntity";
 import {
+  DEFAULT_SECURITY_WATCHLIST_IMPORT_SCHEDULE,
+  SECURITY_WATCHLIST_IMPORT_SCHEDULES,
   SecurityWatchlistFormField,
+  SecurityWatchlistImportSchedule,
   SecurityWatchlistShape,
   SecurityWatchlistSource,
   getSecurityWatchlistProblems,
@@ -46,18 +53,24 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
  * THE CREATE WATCHLIST FORM, AND A LIST'S EDIT.
  *
  * Creating a list asks for what most lists need and nothing else: its name
- * (what rules write) and what it holds. A description, and - for a kind a
- * threat intel feed carries - following a feed in place of keeping values,
- * wait under More fields: most teams keep their lists, and one page of two
- * fields is quicker to read than a choice they rarely need.
+ * (what rules write) and what it holds. A description, and where its values
+ * come from in place of keeping them - a file at an address read on a
+ * schedule, or (for a kind a threat intel feed carries) a feed - wait under
+ * More fields: most teams keep their lists, and one page of two fields is
+ * quicker to read than a choice they rarely need.
  *
  * A list's Edit (on its page, which knows where its values come from)
- * changes its name, its description, and the feed it follows. What a list
- * holds and where its values come from are chosen once - every value on the
- * list was checked against them - so Edit leaves them out.
+ * changes its name, its description, the feed it follows, and the address
+ * it is read from and how often. What a list holds and where its values
+ * come from are chosen once - every value on the list was checked against
+ * them - so Edit leaves them out.
  *
  * Each field shows the shared rules' problem with it, in the reader's
  * language (getSecurityWatchlistProblems): the API checks the same rules.
+ *
+ * React-free, as App's tests read these fields (the docs' facts): where a
+ * new list's values come from is drawn by WatchlistSourceRadio, which the
+ * page hands in (renderWatchlistSourceChoice).
  */
 
 const advancedSection: FormFieldCollapsibleSection<SecurityWatchlist> =
@@ -71,20 +84,28 @@ export function getWatchlistHoldsDropdownOptions(): Array<DropdownOption> {
   );
 }
 
-// Where a list's values come from, as the form offers it.
-export function getWatchlistSourceChoices(): Array<RadioButton> {
-  return [
-    {
-      value: SecurityWatchlistSource.Values,
-      title: SOURCE_VALUES_TITLE,
-      description: SOURCE_VALUES_DESCRIPTION,
+// Where a list of this kind's values come from, as the form offers it.
+export function getWatchlistSourceChoices(
+  entityType?: unknown,
+): Array<RadioButton> {
+  return getWatchlistSourceChoicesFor(entityType).map(
+    (choice: WatchlistSourceChoice): RadioButton => {
+      return {
+        value: choice.value,
+        title: choice.title,
+        description: choice.description,
+      };
     },
-    {
-      value: SecurityWatchlistSource.ThreatIntelFeed,
-      title: SOURCE_FEED_TITLE,
-      description: SOURCE_FEED_DESCRIPTION,
+  );
+}
+
+// How often a list read from an address is read, as the form offers it.
+export function getWatchlistImportScheduleOptions(): Array<DropdownOption> {
+  return SECURITY_WATCHLIST_IMPORT_SCHEDULES.map(
+    (schedule: SecurityWatchlistImportSchedule): DropdownOption => {
+      return { label: schedule, value: schedule };
     },
-  ];
+  );
 }
 
 function readValues(
@@ -119,27 +140,64 @@ export function isNewWatchlistFollowingFeed(
   );
 }
 
+// Whether a new list is read from an address: chosen, for any kind.
+export function isNewWatchlistReadFromUrl(
+  values: FormValues<SecurityWatchlist>,
+): boolean {
+  return isUrlWatchlist(readValues(values)["source"]);
+}
+
 /*
- * A new list as it is saved. The form hides where values come from for a
- * kind no feed carries, and the feed for a list that keeps its own values;
- * a choice made before the kind changed still sits in the form, out of
- * sight. Such a list keeps its own values and follows no feed, so its save
- * is never refused over a field the reader cannot see.
+ * Where a new list's values come from, as the reader can see it: a feed
+ * chosen before the kind changed to one no feed carries is a list kept by
+ * hand - the choices on screen no longer offer it, and the list is saved
+ * that way (prepareNewWatchlist).
+ */
+export function getNewWatchlistSource(
+  values: FormValues<SecurityWatchlist>,
+): SecurityWatchlistSource {
+  if (isNewWatchlistReadFromUrl(values)) {
+    return SecurityWatchlistSource.Url;
+  }
+
+  if (isNewWatchlistFollowingFeed(values)) {
+    return SecurityWatchlistSource.ThreatIntelFeed;
+  }
+
+  return SecurityWatchlistSource.Values;
+}
+
+/*
+ * A new list as it is saved. The form hides the feed for a kind no feed
+ * carries, and the feed or the address for a list that keeps its own
+ * values; a choice made before the kind or the source changed still sits
+ * in the form, out of sight. Such a list is saved as what the reader can
+ * see, so its save is never refused over a field they cannot.
  */
 export function prepareNewWatchlist(
   item: SecurityWatchlist,
 ): SecurityWatchlist {
-  if (
-    isNewWatchlistFollowingFeed(
-      item as unknown as FormValues<SecurityWatchlist>,
-    )
-  ) {
+  const values: FormValues<SecurityWatchlist> =
+    item as unknown as FormValues<SecurityWatchlist>;
+
+  if (isNewWatchlistFollowingFeed(values)) {
+    delete item.importUrl;
+    delete item.importSchedule;
+    return item;
+  }
+
+  delete item.threatIntelFeed;
+  delete item.threatIntelFeedId;
+
+  if (isNewWatchlistReadFromUrl(values)) {
+    item.importSchedule =
+      item.importSchedule || DEFAULT_SECURITY_WATCHLIST_IMPORT_SCHEDULE;
     return item;
   }
 
   item.source = SecurityWatchlistSource.Values;
-  delete item.threatIntelFeed;
-  delete item.threatIntelFeedId;
+  delete item.importUrl;
+  delete item.importSchedule;
 
   return item;
 }
@@ -163,11 +221,10 @@ function problemWith(data: {
         ? data.saved.entityType
         : (form["entityType"] as string | undefined),
       description: form["description"] as string | undefined,
-      source: data.saved
-        ? data.saved.source
-        : (form["source"] as string | undefined) ||
-          SecurityWatchlistSource.Values,
+      source: data.saved ? data.saved.source : getNewWatchlistSource(values),
       threatIntelFeedId: getWatchlistFormFeedId(values),
+      importUrl: form["importUrl"] as string | undefined,
+      importSchedule: form["importSchedule"] as string | undefined,
     };
 
     const problem: string | undefined = getSecurityWatchlistProblems(
@@ -249,9 +306,65 @@ function feedField(data: {
   };
 }
 
+/*
+ * The address a list is read from, and how often. Create folds them with
+ * the other rare fields (the section is handed in where the form is
+ * built); Edit asks them in the open - they are what such a list is.
+ */
+function importFields(data: {
+  translator: Translator;
+  saved?: { entityType: string; source: string } | undefined;
+  showIf?: ((values: FormValues<SecurityWatchlist>) => boolean) | undefined;
+  collapsibleSection?:
+    | FormFieldCollapsibleSection<SecurityWatchlist>
+    | undefined;
+}): Array<ModelField<SecurityWatchlist>> {
+  return [
+    {
+      field: { importUrl: true },
+      title: IMPORT_URL_FIELD_TITLE,
+      description: IMPORT_URL_FIELD_DESCRIPTION,
+      fieldType: FormFieldSchemaType.URL,
+      placeholder: IMPORT_URL_FIELD_PLACEHOLDER,
+      ...(data.showIf ? { showIf: data.showIf } : {}),
+      required: data.showIf || true,
+      disableSpellCheck: true,
+      customValidation: problemWith({ ...data, field: "importUrl" }),
+      ...(data.collapsibleSection
+        ? { collapsibleSection: data.collapsibleSection }
+        : {}),
+      dataTestId: "watchlist-import-url",
+    },
+    {
+      field: { importSchedule: true },
+      title: IMPORT_SCHEDULE_FIELD_TITLE,
+      description: IMPORT_SCHEDULE_FIELD_DESCRIPTION,
+      fieldType: FormFieldSchemaType.Dropdown,
+      dropdownOptions: getWatchlistImportScheduleOptions(),
+      defaultValue: DEFAULT_SECURITY_WATCHLIST_IMPORT_SCHEDULE,
+      ...(data.showIf ? { showIf: data.showIf } : {}),
+      required: data.showIf || true,
+      customValidation: problemWith({ ...data, field: "importSchedule" }),
+      ...(data.collapsibleSection
+        ? { collapsibleSection: data.collapsibleSection }
+        : {}),
+      dataTestId: "watchlist-import-schedule",
+    },
+  ];
+}
+
+/*
+ * What draws where a new list's values come from: WatchlistSourceRadio,
+ * whose choices follow what the list holds (renderWatchlistSourceChoice).
+ */
+export type WatchlistSourceChoiceRenderer = NonNullable<
+  ModelField<SecurityWatchlist>["getCustomElement"]
+>;
+
 // Create Watchlist: a name and what it holds; the rest under More fields.
 export function getWatchlistCreateFields(options: {
   translator: Translator;
+  renderSourceChoice: WatchlistSourceChoiceRenderer;
 }): Array<ModelField<SecurityWatchlist>> {
   return [
     nameField({ translator: options.translator }),
@@ -273,27 +386,38 @@ export function getWatchlistCreateFields(options: {
     {
       field: { source: true },
       title: SOURCE_FIELD_TITLE,
-      fieldType: FormFieldSchemaType.RadioButton,
-      radioButtonOptions: getWatchlistSourceChoices(),
+      /*
+       * Its choices follow what the list holds (WatchlistSourceRadio): a
+       * file at an address for any kind, a feed only for a kind a feed
+       * carries.
+       */
+      fieldType: FormFieldSchemaType.CustomComponent,
       // Each choice says what it is; the API reader's column help would repeat them.
       hideColumnDescription: true,
       required: false,
-      // One of the two is always chosen (keeping values, by default): never "(Optional)".
+      // One is always chosen (keeping values, by default): never "(Optional)".
       hideOptionalLabel: true,
       defaultValue: SecurityWatchlistSource.Values,
-      showIf: (values: FormValues<SecurityWatchlist>): boolean => {
-        return canChooseWatchlistSource(readValues(values)["entityType"]);
-      },
       // Keeping values is what a new list does: nobody's setting.
       isAtDefault: (values: FormValues<SecurityWatchlist>): boolean => {
-        return !isFeedWatchlist(readValues(values)["source"]);
+        const source: unknown = readValues(values)["source"];
+        return !source || source === SecurityWatchlistSource.Values;
       },
+      customValidation: problemWith({
+        translator: options.translator,
+        field: "source",
+      }),
+      getCustomElement: options.renderSourceChoice,
       collapsibleSection: advancedSection,
-      dataTestId: "watchlist-source",
     },
     feedField({
       translator: options.translator,
       showIf: isNewWatchlistFollowingFeed,
+      collapsibleSection: advancedSection,
+    }),
+    ...importFields({
+      translator: options.translator,
+      showIf: isNewWatchlistReadFromUrl,
       collapsibleSection: advancedSection,
     }),
   ];
@@ -319,6 +443,10 @@ export function getWatchlistEditFields(options: {
 
   if (isFeedWatchlist(options.source)) {
     fields.push(feedField({ translator: options.translator, saved }));
+  }
+
+  if (isUrlWatchlist(options.source)) {
+    fields.push(...importFields({ translator: options.translator, saved }));
   }
 
   fields.push(descriptionField({ translator: options.translator, saved }));

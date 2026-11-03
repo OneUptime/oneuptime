@@ -1,13 +1,18 @@
 import {
   OPEN_DETECTION_RULES,
   USE_IN_RULE_DESCRIPTION,
+  USE_IN_RULE_LABEL,
   USE_IN_RULE_TITLE,
+  USE_IN_SEARCH_LABEL,
   WATCHLISTS_TEST_IDS,
 } from "./WatchlistsCopy";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
-import { getSecurityWatchlistRuleSnippet } from "Common/Types/SecurityEvent/SecurityWatchlist";
+import {
+  getSecurityWatchlistRuleSnippet,
+  getSecurityWatchlistSearchSnippet,
+} from "Common/Types/SecurityEvent/SecurityWatchlist";
 import Card from "Common/UI/Components/Card/Card";
 import CodeBlock from "Common/UI/Components/CodeBlock/CodeBlock";
 import Link from "Common/UI/Components/Link/Link";
@@ -21,11 +26,14 @@ export interface ComponentProps {
 }
 
 /*
- * USE IT IN A RULE: the selection that reads this list, to copy into a
+ * USE THIS LIST: the selection that reads this list, to copy into a
  * detection or correlation rule - matched against the field a list of its
- * kind is usually matched against (getSecurityWatchlistRuleSnippet) - and
- * the way to Detection Rules, where it goes. The rules that read the list
- * already are named in About This List, with its other facts.
+ * kind is usually matched against (getSecurityWatchlistRuleSnippet) - the
+ * search that reads it on Events or in a hunt
+ * (getSecurityWatchlistSearchSnippet), and the way to Detection Rules. A
+ * Security Events monitor picks the list in its own Filter by Watchlists.
+ * What reads the list already is named in About This List, with its other
+ * facts.
  */
 const WatchlistRuleSnippet: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -39,6 +47,9 @@ const WatchlistRuleSnippet: FunctionComponent<ComponentProps> = (
   return (
     <Card title={USE_IN_RULE_TITLE} description={USE_IN_RULE_DESCRIPTION}>
       <div className="space-y-3">
+        <p className="text-sm font-medium text-gray-700">
+          {translator.translateText(USE_IN_RULE_LABEL)}
+        </p>
         <div data-testid={WATCHLISTS_TEST_IDS.ruleSnippet} dir="ltr">
           <CodeBlock
             code={getSecurityWatchlistRuleSnippet({
@@ -52,6 +63,21 @@ const WatchlistRuleSnippet: FunctionComponent<ComponentProps> = (
              * on a phone its long lines wrap clear of the copy button,
              * rather than scrolling sideways under it.
              */
+            wrapLongLines={true}
+          />
+        </div>
+
+        <p className="text-sm font-medium text-gray-700">
+          {translator.translateText(USE_IN_SEARCH_LABEL)}
+        </p>
+        <div data-testid={WATCHLISTS_TEST_IDS.searchSnippet} dir="ltr">
+          <CodeBlock
+            code={getSecurityWatchlistSearchSnippet({
+              name: props.name,
+              entityType: props.entityType,
+            })}
+            language="text"
+            showCopyButton={true}
             wrapLongLines={true}
           />
         </div>
