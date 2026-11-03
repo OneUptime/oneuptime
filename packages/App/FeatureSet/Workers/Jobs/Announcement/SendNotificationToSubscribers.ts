@@ -56,7 +56,7 @@ import SubscriberMessageText, {
 } from "Common/Server/Utils/StatusPage/SubscriberMessageText";
 import { writeInLanguage } from "Common/Server/Utils/ServerTranslation";
 import { DEFAULT_READER_LANGUAGE } from "Common/Types/ReaderLanguage";
-import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+import { translationKey, Translator } from "Common/Types/Translator";
 
 /*
  * Two jobs share this send path: one tells subscribers about a new

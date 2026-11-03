@@ -74,7 +74,7 @@ import SubscriberMessageText, {
   SubscriberSmsText,
 } from "Common/Server/Utils/StatusPage/SubscriberMessageText";
 import { writeInLanguage } from "Common/Server/Utils/ServerTranslation";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator } from "Common/Types/Translator";
 
 // The status message of a 'created' notification that reached everyone.
 const SENT_MESSAGE: string =

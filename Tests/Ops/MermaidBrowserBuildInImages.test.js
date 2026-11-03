@@ -18,7 +18,7 @@ const path = require("path");
 const {
   render,
   parseStages,
-  ancestry,
+  buildOrder,
   instructions,
 } = require("./Utils/DockerfileTemplate");
 
@@ -54,7 +54,9 @@ function stagesOf(template, environment) {
 /*
  * What a build of the template ships, each as the instructions it runs from
  * its first stage to its last: the App's two edition targets, or the last
- * stage.
+ * stage. A target is made of the stages it is built FROM and of the build
+ * stages it copies /usr/src out of (the App's images start from a runtime
+ * stage and copy /usr/src, where the build lands, out of a pruned build).
  */
 function shippedInstructionLists(stages) {
   const targets = stages.filter((stage) => {
@@ -63,16 +65,13 @@ function shippedInstructionLists(stages) {
   const finals = targets.length > 0 ? targets : [stages[stages.length - 1]];
 
   return finals.map((stage) => {
-    const chain = stage.name ? ancestry(stages, stage.name) : [stage];
+    const chain = stage.name ? buildOrder(stages, stage.name) : [stage];
 
     return {
       target: stage.name || "(last stage)",
-      lines: chain
-        .slice()
-        .reverse()
-        .flatMap((link) => {
-          return link.instructions;
-        }),
+      lines: chain.flatMap((link) => {
+        return link.instructions;
+      }),
     };
   });
 }

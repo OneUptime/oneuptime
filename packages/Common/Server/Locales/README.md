@@ -39,10 +39,13 @@ reads exactly as written.
 - **The key is the English text**, as in the Dashboard's files: `en.json` maps
   `"[Incident] {{title}}"` to itself, `de.json` to `"[Vorfall] {{title}}"`.
 - `Common/Server/Utils/ServerTranslation.ts` builds a `Translator` - the same
-  one every frontend uses (`Common/UI/Utils/TranslateTemplate.ts`) - for a
-  language: `getServerTranslator(language)`. `writeInLanguage(language,
-  (translator) => ...)` also writes OneUptime's dates in that language while
-  it runs. It is synchronous: never wait on anything inside it.
+  one every frontend uses (`Common/Types/Translator.ts`, which the frontends'
+  `Common/UI/Utils/TranslateTemplate.ts` re-exports) - for a language:
+  `getServerTranslator(language)`. Server code imports the translator from
+  `Common/Types/Translator`, never from `UI/`: that would load i18next for
+  nothing. `writeInLanguage(language, (translator) => ...)` also writes
+  OneUptime's dates in that language while it runs. It is synchronous: never
+  wait on anything inside it.
 - **A sentence is translated whole, or not at all.** Values go in through
   `{{placeholders}}`; a sentence a language has not worded reads wholly in
   English, values and all.

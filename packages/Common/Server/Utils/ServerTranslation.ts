@@ -29,7 +29,7 @@ import {
   TemplateValue,
   TemplateValues,
   Translator,
-} from "../../UI/Utils/TranslateTemplate";
+} from "../../Types/Translator";
 
 /*
  * TEXT THE SERVER WRITES, IN ITS READER'S LANGUAGE.
@@ -41,7 +41,9 @@ import {
  * in a locale set of the server's own, Common/Server/Locales (README.md
  * there): one file per language, keyed by the English text, as the
  * Dashboard's are, so a sentence is translated whole and put together with
- * the same Translator every frontend uses (Common/UI/Utils/TranslateTemplate):
+ * the same Translator every frontend uses (Common/Types/Translator, which
+ * the frontends' Common/UI/Utils/TranslateTemplate re-exports beside their
+ * i18next instance; the server imports the pure half, and loads no i18next):
  * a sentence a language has not worded yet reads wholly in English, values
  * and all.
  *

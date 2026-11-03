@@ -20,7 +20,7 @@ const path = require("path");
 const yaml = require("js-yaml");
 const { spawnSync } = require("child_process");
 const {
-  ancestry,
+  buildOrder,
   instructions,
   parseStages,
   render,
@@ -80,15 +80,21 @@ function copiedToImage(relativePath) {
 }
 
 describe("the App's Dockerfile", () => {
-  test("the build stage both editions are made from exists", () => {
+  test("the build stage both editions are made from exists, and each copies /usr/src out of a build of it", () => {
     expect(BUILD_STAGE).toBeDefined();
 
     for (const target of ["community", "enterprise"]) {
       expect(
-        ancestry(STAGES, target).map((stage) => {
+        buildOrder(STAGES, target).map((stage) => {
           return stage.name;
         }),
       ).toContain("community-build");
+      const image = STAGES.find((stage) => {
+        return stage.name === target;
+      });
+      expect(instructions(image.body)).toContain(
+        `COPY --from=${target}-pruned /usr/src /usr/src`,
+      );
     }
   });
 

@@ -218,7 +218,29 @@ describe("the package root, and what is left out on purpose", () => {
     const pinned: Array<string> = Object.keys(PINNED_LEFT_OUT);
 
     // The build fails on any other set; npm run build-npm-package says which.
-    expect(pinned.length).toBeGreaterThan(10);
+    expect(pinned.length).toBeGreaterThan(0);
+    /*
+     * Published since fu-platform-next: the schemas no longer log through
+     * the server's logger, and the monitor and schedule wording imports the
+     * pure translator (Types/Translator), not the frontends' i18next one.
+     */
+    for (const published of [
+      "Utils/CronScheduleText",
+      "Utils/Monitor/MonitorCheckScheduleUtil",
+      "Utils/Monitor/MonitorOverviewFamily",
+      "Utils/Monitor/MonitorOverviewPresentationUtil",
+      "Utils/Monitor/MonitorOverviewProbeUtil",
+      "Utils/Monitor/MonitorStatusHistoryUtil",
+      "Utils/Monitor/MonitorUptimeSummaryUtil",
+      "Utils/Schema/AnalyticsModelSchema",
+      "Utils/Schema/BaseSchema",
+      "Utils/Schema/ModelSchema",
+    ]) {
+      expect({ published, pinned: pinned.includes(published) }).toEqual({
+        published,
+        pinned: false,
+      });
+    }
     expect(pinned).toEqual([...pinned].sort());
 
     for (const [id, why] of Object.entries(PINNED_LEFT_OUT)) {

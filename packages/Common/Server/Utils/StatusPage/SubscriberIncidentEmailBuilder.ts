@@ -38,10 +38,7 @@ import {
   DEFAULT_READER_LANGUAGE,
   toReaderLanguage,
 } from "../../../Types/ReaderLanguage";
-import {
-  translationKey,
-  Translator,
-} from "../../../UI/Utils/TranslateTemplate";
+import { translationKey, Translator } from "../../../Types/Translator";
 
 /*
  * The email a status page's subscribers get about an incident - its subject
