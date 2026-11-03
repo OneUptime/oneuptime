@@ -78,6 +78,7 @@ import {
   scoreComplianceFramework,
 } from "../../../Types/DataSecurity/ComplianceRequirementCatalog";
 import DataCategory from "../../../Types/DataSecurity/DataCategory";
+import DataConfidence from "../../../Types/DataSecurity/DataConfidence";
 import {
   DATA_SECURITY_API_ROUTES,
   DataSecurityComplianceFramework,
@@ -907,8 +908,8 @@ describe("A telemetry finding's records", () => {
     };
     tablePermissionSpy = jest
       .spyOn(AnalyticsModelPermission, "checkReadPermission")
-      .mockImplementation((async (modelType: unknown, query: unknown) => {
-        return { query, select: null };
+      .mockImplementation((async (...args: Array<unknown>) => {
+        return { query: args[1], select: null };
       }) as never);
     scopeSpy = jest
       .spyOn(TelemetryReadAccess, "getScope")
@@ -1513,7 +1514,7 @@ describe("Explain and Fix With AI on a telemetry issue", () => {
     row.dataTypeName = dataTypeId;
     row.location = location;
     row.locationKind = "Attribute";
-    row.confidence = "High" as DataStoreFinding["confidence"];
+    row.confidence = DataConfidence.High;
     row.matchCount = 40;
     row.isScrubbed = false;
     row.isConfirmed = false;
@@ -1531,7 +1532,7 @@ describe("Explain and Fix With AI on a telemetry issue", () => {
       finding("github-token", "attributes.config.token"),
       // Not counted, or not sure enough: none of them is named.
       finding("email-address", "attributes.user.email", {
-        confidence: "Low" as DataStoreFinding["confidence"],
+        confidence: DataConfidence.Low,
       }),
       finding("phone-number", "attributes.user.phone", {
         isAiSuggested: true,

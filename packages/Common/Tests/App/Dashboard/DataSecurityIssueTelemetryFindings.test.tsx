@@ -182,7 +182,7 @@ const SPAN: DataSecurityFindingOccurrence = {
 };
 
 let stored: Array<DataStoreFinding>;
-let listSpy: SpyInstance<typeof ModelAPI.getList>;
+let listSpy: ReturnType<typeof jest.spyOn>;
 let occurrencesSpy: SpyInstance<typeof DataSecurityApi.getFindingOccurrences>;
 let scrubSpy: SpyInstance<typeof DataSecurityApi.scrubFinding>;
 let onChanged: Mock<() => void>;
