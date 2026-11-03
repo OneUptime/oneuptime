@@ -5,7 +5,7 @@
  *
  * Iron Bank does not build OneUptime from source. Its pipeline builds
  * IronBank/App/Dockerfile from the files beside it, without internet access,
- * and that Dockerfile copies /usr/src out of the release's Community Edition
+ * and that Dockerfile copies /usr/src out of the release's Enterprise Edition
  * image, which hardening_manifest.yaml lists as a resource pinned by digest
  * (IronBank/README.md). So moving the Iron Bank image to another release
  * changes seven values in two files, and this changes them together:
@@ -15,12 +15,13 @@
  *   Dockerfile               the release stage's FROM, APP_VERSION, GIT_SHA
  *                            and the revision label
  *
- * The digest is the linux/amd64 image of the release's tag on Docker Hub.
- * APP_VERSION and GIT_SHA are read from that image's own environment, so the
- * Iron Bank image reports the version and commit the release does: a COPY
- * --from brings files and no environment, and without them the App says
- * "unknown" for both (packages/Common/Server/EnvironmentConfig.ts). The image
- * must also be the Community Edition: its com.oneuptime.edition label says so.
+ * The digest is the linux/amd64 image of the release's enterprise-<version> tag
+ * on Docker Hub. APP_VERSION and GIT_SHA are read from that image's own
+ * environment, so the Iron Bank image reports the version and commit the
+ * release does: a COPY --from brings files and no environment, and without them
+ * the App says "unknown" for both (packages/Common/Server/EnvironmentConfig.ts).
+ * The image must also be the Enterprise Edition: its com.oneuptime.edition
+ * label says so.
  *
  *   node Scripts/IronBank/PinRelease.js --version 14.0.101
  *   node Scripts/IronBank/PinRelease.js --version 14.0.101 --check
@@ -42,7 +43,9 @@ const REPO_ROOT = path.resolve(__dirname, "..", "..");
 const DEFAULT_DIRECTORY = path.join(REPO_ROOT, "IronBank", "App");
 
 const REPOSITORY = "oneuptime/app";
-const EDITION = "community";
+const EDITION = "enterprise";
+// The release workflow tags the Enterprise Edition image enterprise-<version>.
+const TAG_PREFIX = "enterprise-";
 const PLATFORM = { os: "linux", architecture: "amd64" };
 
 const VERSION = /^\d+\.\d+\.\d+$/;
@@ -85,7 +88,7 @@ const FIELDS = {
       pattern:
         /^( {2}- tag: )"oneuptime\/app:[^"\n]*"(\n {4}url: )"docker:\/\/docker\.io\/oneuptime\/app@sha256:[0-9a-f]{64}"$/m,
       replace: (groups, release) => {
-        return `${groups[1]}"${REPOSITORY}:${release.version}"${groups[2]}"docker://docker.io/${REPOSITORY}@${release.digest}"`;
+        return `${groups[1]}"${REPOSITORY}:${TAG_PREFIX}${release.version}"${groups[2]}"docker://docker.io/${REPOSITORY}@${release.digest}"`;
       },
     },
   ],
@@ -94,7 +97,7 @@ const FIELDS = {
       name: "the release stage",
       pattern: /^FROM oneuptime\/app:\S+ AS release$/m,
       replace: (groups, release) => {
-        return `FROM ${REPOSITORY}:${release.version} AS release`;
+        return `FROM ${REPOSITORY}:${TAG_PREFIX}${release.version} AS release`;
       },
     },
     {
@@ -196,7 +199,7 @@ function platformDigest(manifest, tagDigest) {
 
 /**
  * What an image's config says about the release it is: its commit, after
- * checking it is the Community Edition of that version for linux/amd64.
+ * checking it is the Enterprise Edition of that version for linux/amd64.
  * @param {object} config - The image's config blob
  * @param {string} version - The release it must be
  * @returns {{gitSha: string}}
@@ -288,7 +291,7 @@ async function readRelease(version) {
   const authorization = { Authorization: `Bearer ${token}` };
   const registry = `https://registry-1.docker.io/v2/${REPOSITORY}`;
 
-  const tag = await get(`${registry}/manifests/${version}`, {
+  const tag = await get(`${registry}/manifests/${TAG_PREFIX}${version}`, {
     ...authorization,
     Accept: [...INDEX_TYPES, ...MANIFEST_TYPES].join(", "),
   });
@@ -367,7 +370,7 @@ async function main(argv) {
   const stale = Object.keys(FILES).filter((file) => {
     return pinned[file] !== current[file];
   });
-  const summary = `${REPOSITORY}:${release.version} (${release.digest}, commit ${release.gitSha})`;
+  const summary = `${REPOSITORY}:${TAG_PREFIX}${release.version} (${release.digest}, commit ${release.gitSha})`;
 
   if (options.check) {
     if (stale.length > 0) {
