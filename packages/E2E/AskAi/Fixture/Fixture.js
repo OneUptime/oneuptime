@@ -79,11 +79,17 @@ import AIChatMessageRole from "Common/Types/AI/AIChatMessageRole";
 import AIChatMessageStatus from "Common/Types/AI/AIChatMessageStatus";
 import AIRunEventType from "Common/Types/AI/AIRunEventType";
 import {
+  AI_ACTION_CARD_FACTS,
+  AI_ACTION_CARD_KINDS,
+  AI_ACTION_CARD_LINES,
   AI_ACTION_LINES,
   AI_ACTION_TITLES,
+  aiActionCardFact,
   aiActionList,
   aiActionResourceByName,
   aiActionSentence,
+  aiActionTerm,
+  describeAIActionCardWords,
   describeAIActionWords,
 } from "Common/Types/AI/AIActionWords";
 import {
@@ -305,21 +311,46 @@ function latencyChart() {
   };
 }
 
-// The card an alert Ask AI raised leaves: its facts said once.
+/*
+ * What the server stores for the card create_alert leaves
+ * (WidgetBuilder.actionCard): its kind, its line and its facts as terms and
+ * sentences of Common/Types/AI/AIActionWords, which the card says in the
+ * reader's language, and the same words in English beside them.
+ */
+const ALERT_CARD_WORDS = {
+  kind: aiActionTerm(AI_ACTION_CARD_KINDS.alert),
+  line: [aiActionSentence(AI_ACTION_CARD_LINES.severity, { severity: "High" })],
+  facts: [
+    aiActionCardFact(
+      AI_ACTION_CARD_FACTS.affectedResources,
+      aiActionList([aiActionResourceByName({ noun: "host", name: "test01" })]),
+    ),
+  ],
+};
+
+/*
+ * The card an alert Ask AI raised leaves: its facts said once. With
+ * ?words=none it is a card saved before cards had words: its English only.
+ */
 function alertCard() {
+  const english = describeAIActionCardWords(ALERT_CARD_WORDS);
+
   return {
     id: "W1",
     type: AIChatWidgetType.ResourceCard,
     title: "Alert created",
     data: {
-      resourceType: "Alert",
+      resourceType: isSavedBeforeWords ? "Alert" : english.kind,
       heading: "ALT-12 · High memory usage on test01",
-      subheading: "Severity: High",
-      fields: [
-        { label: "Number", value: "ALT-12" },
-        { label: "Severity", value: "High" },
-        { label: "Affected resources", value: 'host "test01"' },
-      ],
+      subheading: isSavedBeforeWords ? "Severity: High" : english.line,
+      fields: isSavedBeforeWords
+        ? [
+            { label: "Number", value: "ALT-12" },
+            { label: "Severity", value: "High" },
+            { label: "Affected resources", value: 'host "test01"' },
+          ]
+        : english.facts,
+      ...(isSavedBeforeWords ? {} : { words: ALERT_CARD_WORDS }),
       link: {
         type: AIChatCitationTargetType.AlertView,
         params: { alertId: "40000000-0000-4000-8000-000000000012" },
@@ -359,6 +390,14 @@ function alertAction(status) {
     // 'Severity: High. Linked to host "test01".'
     description: english.description,
     ...(isSavedBeforeWords ? {} : { words: ALERT_ACTION_WORDS }),
+    /*
+     * Once it ran, the card it left (W1), as the server records it: the
+     * answer's actions do not list it again under that card. An action
+     * saved before actions named their cards has none.
+     */
+    ...(status === AIChatToolActionStatus.Executed && !isSavedBeforeWords
+      ? { widgetId: "W1" }
+      : {}),
     arguments: {
       title: "High memory usage on test01",
       description: "Memory has been above 92% for 20 minutes.",

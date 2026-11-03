@@ -921,6 +921,12 @@ test.describe("an answer, written quietly", () => {
     // Said by the heading and the line under it, not again under them.
     await expect(card.getByText("Number", { exact: true })).toHaveCount(0);
     await expect(card.getByText("Severity", { exact: true })).toHaveCount(0);
+    /*
+     * The card says what the action made: the action's own "Executed" row
+     * is not drawn again under it (#5349's reviewer).
+     */
+    await expect(page.getByTestId("tool-approval-history")).toHaveCount(0);
+    await expect(dialog(page).getByText("Executed")).toHaveCount(0);
     await expect(
       card.getByRole("button", {
         name: "Open ALT-12 · High memory usage on test01",
@@ -1903,7 +1909,7 @@ test.describe("in German", () => {
    * stores it as sentences, and the card says them in German, the alert's
    * title, its severity and the host's name as written.
    */
-  test("an approval card says what the AI will do in German, and the row it leaves too", async ({
+  test("an approval card says what the AI will do in German, and the card it leaves too", async ({
     page,
   }: {
     page: Page;
@@ -1957,12 +1963,64 @@ test.describe("in German", () => {
       })
       .click();
 
-    // What ran stays as a German row: its status, and what it was.
+    /*
+     * What it made is the card under the answer, in German: its kind, its
+     * severity and the host it is linked to in German words, the alert's
+     * number, title and the host's name as written (#5623's follow-up) -
+     * and no row of the action under it, which only said it again.
+     */
+    const card: Locator = page.getByTestId("ai-chat-resource-card");
+    await expect(card).toBeVisible();
+    await expect(card.getByTestId("ai-chat-resource-card-kind")).toHaveText(
+      words["Alert"]!,
+    );
+    await expect(card.getByTestId("ai-chat-resource-card-heading")).toHaveText(
+      "ALT-12 · High memory usage on test01",
+    );
+    await expect(card.getByTestId("ai-chat-resource-card-line")).toHaveText(
+      filled(words, "Severity: {{severity}}", { severity: "High" }),
+    );
+    await expect(
+      card.getByTestId("ai-chat-resource-card-fact-label"),
+    ).toHaveText([words["Affected resources"]!]);
+    await expect(
+      card.getByTestId("ai-chat-resource-card-fact-value"),
+    ).toHaveText(`${words["host"]} "test01"`);
+    for (const english of ["Severity:", "Affected resources", "ALERT"]) {
+      await expect(card).not.toContainText(english);
+    }
+    await expect(page.getByTestId("tool-approval-history")).toHaveCount(0);
+    await screenshot(page, "approval-done-1280-de");
+  });
+
+  test("an action saved before cards had words still leaves its row, and its card reads its English", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const words: Record<string, string> = dashboardWords("de");
+
+    await load(page, "lang=de&thread=approval&words=none");
+    await expect(dialog(page)).toBeVisible();
+    await settle(page);
+
+    await page
+      .getByRole("button", {
+        name: filled(words, "Run {{count}} actions_one", { count: "1" }),
+      })
+      .click();
+
+    // Saved before actions named their cards: what ran is still a row.
     await expect(page.getByTestId("tool-approval-history-title")).toHaveText(
-      title,
+      "Create alert: High memory usage on test01",
     );
     await expect(dialog(page).getByText(words["Executed"]!)).toBeVisible();
-    await screenshot(page, "approval-done-1280-de");
+    // Its card is the English it stores, each fact once.
+    const card: Locator = page.getByTestId("ai-chat-resource-card");
+    await expect(card.getByTestId("ai-chat-resource-card-line")).toHaveText(
+      "Severity: High",
+    );
+    await expect(card.getByText("Number", { exact: true })).toHaveCount(0);
   });
 
   test.describe("on a phone", () => {
@@ -2017,14 +2075,19 @@ test.describe("in German", () => {
       await screenshot(page, "approval-390-de");
 
       /*
-       * What ran stays as a row, whole: cut at one line, a phone lost what
-       * it changed ("Warnung erstellen: High memory usage on te...").
+       * What did not run stays as a row, whole: cut at one line, a phone
+       * lost what it was ("Warnung erstellen: High memory usage on te...").
+       * Skipped, it leaves no card to say it instead.
        */
       await page
-        .getByRole("button", {
-          name: filled(words, "Run {{count}} actions_one", { count: "1" }),
+        .getByRole("group", {
+          name: filled(words, "Create alert: {{title}}", {
+            title: "High memory usage on test01",
+          }),
         })
+        .getByRole("button", { name: words["Skip"]! })
         .click();
+      await page.getByRole("button", { name: words["Skip all"]! }).click();
       const row: Locator = page.getByTestId("tool-approval-history-title");
       await expect(row).toHaveText(
         filled(words, "Create alert: {{title}}", {
