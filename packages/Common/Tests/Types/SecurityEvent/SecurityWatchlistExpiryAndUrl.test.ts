@@ -378,6 +378,30 @@ describe("exporting a list: a CSV an import reads back", () => {
     ).toBe("'=cmd,'@admin,");
   });
 
+  test("a cell that starts with an apostrophe before a formula's character, or another apostrophe, reads back as written", () => {
+    for (const text of ["'=x", "'+1", "'-", "'@a", "''", "''quoted"]) {
+      expect(guardSecurityWatchlistCsvCell(text)).toBe(`'${text}`);
+      expect(
+        unguardSecurityWatchlistCsvCell(guardSecurityWatchlistCsvCell(text)),
+      ).toBe(text);
+    }
+
+    const read: SecurityWatchlistImportResult = parseSecurityWatchlistImport({
+      text: writeSecurityWatchlistCsv([
+        { value: "'=not-a-formula", note: "''twice" },
+        { value: "'plain", note: "'" },
+      ]),
+      entityType: SecurityEntityType.Other,
+      now: NOW,
+    });
+
+    expect(read.problems).toEqual([]);
+    expect(read.values).toEqual([
+      { value: "'=not-a-formula", note: "''twice" },
+      { value: "'plain", note: "'" },
+    ]);
+  });
+
   test("anything else is written, and read, as it is", () => {
     for (const text of ["", "alice", "'quoted'", "'", "a=b", "x-1"]) {
       expect(guardSecurityWatchlistCsvCell(text)).toBe(text);

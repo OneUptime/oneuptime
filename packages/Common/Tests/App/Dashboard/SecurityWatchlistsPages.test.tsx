@@ -119,6 +119,7 @@ type CapturedTable = {
   formFields?: Array<{
     field: Record<string, unknown>;
     customValidation?: (values: Record<string, unknown>) => string | null;
+    getCustomElement?: unknown;
   }>;
   filters: Array<{
     field: Record<string, unknown>;
@@ -192,6 +193,7 @@ import {
   WATCHLISTS_TEST_IDS,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Watchlists/WatchlistsCopy";
 import { getWatchlistHoldsDropdownOptions } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Watchlists/WatchlistFormFields";
+import { renderWatchlistSourceChoice } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Watchlists/WatchlistSourceRadio";
 import {
   WATCHLIST_CREATE_PARAM,
   getWatchlistsRoute,
@@ -620,6 +622,21 @@ describe("Security Events > Watchlists", () => {
       "importUrl",
       "importSchedule",
     ]);
+  });
+
+  test("Create Watchlist draws where a new list's values come from as the radio whose choices follow what it holds", async () => {
+    await renderList();
+
+    const source:
+      | { field: Record<string, unknown>; getCustomElement?: unknown }
+      | undefined = table(LIST_TABLE).formFields!.find(
+      (field: { field: Record<string, unknown> }): boolean => {
+        return Object.keys(field.field)[0] === "source";
+      },
+    );
+
+    // The fields stay free of React; the page hands the radio in.
+    expect(source?.getCustomElement).toBe(renderWatchlistSourceChoice);
   });
 
   test("a new list opens its page, ready for its values", async () => {

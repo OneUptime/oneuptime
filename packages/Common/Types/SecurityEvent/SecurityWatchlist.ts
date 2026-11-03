@@ -1036,25 +1036,33 @@ export const SECURITY_WATCHLIST_EXPORT_HEADER: ReadonlyArray<string> = [
  * The characters a spreadsheet reads a cell as a formula by, when the cell
  * starts with one: =, +, - and @. An export writes such a cell with an
  * apostrophe in front, which a spreadsheet shows as text and an import
- * takes off again.
+ * takes off again. A cell that starts with an apostrophe already, before
+ * one of those or another apostrophe ('=x, ''), takes one more, so the
+ * import gives back what was written.
  */
 const FORMULA_START_CHARACTERS: ReadonlyArray<string> = ["=", "+", "-", "@"];
 const FORMULA_GUARD: string = "'";
 
+// Whether a cell starts with the guard before a formula's first character, or before another guard.
+function startsWithGuard(text: string): boolean {
+  return (
+    text.length > 1 &&
+    text[0] === FORMULA_GUARD &&
+    (FORMULA_START_CHARACTERS.includes(text[1]!) || text[1] === FORMULA_GUARD)
+  );
+}
+
 // A cell as an export writes it: guarded when a spreadsheet would read it as a formula.
 export function guardSecurityWatchlistCsvCell(text: string): string {
-  return text.length > 0 && FORMULA_START_CHARACTERS.includes(text[0]!)
+  return (text.length > 0 && FORMULA_START_CHARACTERS.includes(text[0]!)) ||
+    startsWithGuard(text)
     ? `${FORMULA_GUARD}${text}`
     : text;
 }
 
-// A cell as it was before an export guarded it: the apostrophe in front of a formula's first character taken off.
+// A cell as it was before an export guarded it: the apostrophe an export put in front taken off.
 export function unguardSecurityWatchlistCsvCell(text: string): string {
-  return text.length > 1 &&
-    text[0] === FORMULA_GUARD &&
-    FORMULA_START_CHARACTERS.includes(text[1]!)
-    ? text.slice(1)
-    : text;
+  return startsWithGuard(text) ? text.slice(1) : text;
 }
 
 // The byte order mark a file saved for Excel starts with: never part of a value.

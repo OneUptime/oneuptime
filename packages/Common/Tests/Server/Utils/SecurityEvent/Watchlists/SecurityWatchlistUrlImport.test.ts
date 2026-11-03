@@ -96,7 +96,7 @@ let importValues: Spy;
 let update: Spy;
 
 beforeEach(() => {
-  const mutex: object = {};
+  const mutex: Record<string, unknown> = {};
   lock = getJestSpyOn(Semaphore, "lock").mockResolvedValue(mutex as never);
   release = getJestSpyOn(Semaphore, "release").mockResolvedValue(
     undefined as never,
@@ -130,10 +130,13 @@ describe("downloading the file", () => {
     const requests: Array<DataSourceHttpRequest> = [];
 
     await expect(
-      SecurityWatchlistUrlImport.download(ADDRESS, async (request) => {
-        requests.push(request);
-        return { statusCode: 200, bodyText: "alice", bodyJson: undefined };
-      }),
+      SecurityWatchlistUrlImport.download(
+        ADDRESS,
+        async (request: DataSourceHttpRequest) => {
+          requests.push(request);
+          return { statusCode: 200, bodyText: "alice", bodyJson: undefined };
+        },
+      ),
     ).resolves.toBe("alice");
 
     expect(requests).toEqual([
@@ -277,7 +280,9 @@ describe("one read of one list", () => {
     expect(args.fromUrl).toBe(true);
     expect(args.now).toBe(NOW);
     expect(
-      args.parsed.values.map((value: { value: string }) => value.value),
+      args.parsed.values.map((value: { value: string }): string => {
+        return value.value;
+      }),
     ).toEqual(["alice", "bob", "not ok"]);
 
     expect(recorded()).toEqual({

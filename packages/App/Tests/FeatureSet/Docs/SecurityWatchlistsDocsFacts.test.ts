@@ -535,6 +535,10 @@ describe("the Security Events page on watchlists", () => {
     const fields: Array<ModelField<SecurityWatchlist>> =
       getWatchlistCreateFields({
         translator: createTranslator(undefined, "en"),
+        // Only the fields' folds are read here: nothing is drawn.
+        renderSourceChoice: (): never => {
+          throw new Error("Create Watchlist is not drawn in App's tests.");
+        },
       });
 
     for (const name of ["source", "importUrl", "importSchedule"]) {

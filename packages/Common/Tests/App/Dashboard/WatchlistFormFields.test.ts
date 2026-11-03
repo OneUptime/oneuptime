@@ -28,7 +28,9 @@ import {
   SOURCE_URL_TITLE,
   SOURCE_VALUES_TITLE,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Watchlists/WatchlistsCopy";
-import WatchlistSourceRadio from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Watchlists/WatchlistSourceRadio";
+import WatchlistSourceRadio, {
+  renderWatchlistSourceChoice,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Watchlists/WatchlistSourceRadio";
 import { getWatchlistHoldsKey } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Watchlists/WatchlistsModel";
 import SecurityWatchlist from "../../../Models/DatabaseModels/SecurityWatchlist";
 import ThreatIntelFeed from "../../../Models/DatabaseModels/ThreatIntelFeed";
@@ -112,6 +114,7 @@ function showIf(field: Field, data: Record<string, unknown>): boolean {
 describe("Create Watchlist", () => {
   const fields: Array<Field> = getWatchlistCreateFields({
     translator: ENGLISH,
+    renderSourceChoice: renderWatchlistSourceChoice,
   });
 
   test("asks for a name and what it holds; the rest waits under More fields", () => {
@@ -181,7 +184,10 @@ describe("Create Watchlist", () => {
 
   test("a field's problem is in the reader's language", () => {
     const name: Field = byColumn(
-      getWatchlistCreateFields({ translator: GERMAN }),
+      getWatchlistCreateFields({
+        translator: GERMAN,
+        renderSourceChoice: renderWatchlistSourceChoice,
+      }),
       "name",
     );
 
@@ -354,7 +360,10 @@ describe("Create Watchlist", () => {
 
   test("an address's problem is in the reader's language", () => {
     const address: Field = byColumn(
-      getWatchlistCreateFields({ translator: GERMAN }),
+      getWatchlistCreateFields({
+        translator: GERMAN,
+        renderSourceChoice: renderWatchlistSourceChoice,
+      }),
       "importUrl",
     );
 

@@ -16,6 +16,7 @@ import {
   screen,
   within,
 } from "@testing-library/react";
+import type { Mock, SpyInstance } from "jest-mock";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 
@@ -498,8 +499,9 @@ describe("Read From an Address", () => {
   });
 
   test("Read Now reads it at once, says what it did, and has the page read the list again", async () => {
-    const readNow: jest.SpiedFunction<typeof SecurityCaseApi.readWatchlistNow> =
-      jest.spyOn(SecurityCaseApi, "readWatchlistNow").mockResolvedValue({
+    const readNow: SpyInstance<typeof SecurityCaseApi.readWatchlistNow> = jest
+      .spyOn(SecurityCaseApi, "readWatchlistNow")
+      .mockResolvedValue({
         error: null,
         errorDetail: null,
         added: 3,
@@ -508,7 +510,7 @@ describe("Read From an Address", () => {
         problemCount: 0,
         valueCount: 5,
       });
-    const onRead: jest.Mock<() => void> = jest.fn<() => void>();
+    const onRead: Mock<() => void> = jest.fn<() => void>();
 
     renderCard({ lastImportSucceededAt: new Date() }, onRead);
 
@@ -535,7 +537,7 @@ describe("Read From an Address", () => {
       error: SECURITY_WATCHLIST_MESSAGES.urlNotRead.message,
       errorDetail: "getaddrinfo ENOTFOUND",
     });
-    const onRead: jest.Mock<() => void> = jest.fn<() => void>();
+    const onRead: Mock<() => void> = jest.fn<() => void>();
 
     renderCard({ lastImportSucceededAt: new Date() }, onRead);
 

@@ -27,7 +27,6 @@ import {
   isFeedWatchlist,
   isUrlWatchlist,
 } from "./WatchlistsModel";
-import WatchlistSourceRadio from "./WatchlistSourceRadio";
 import SecurityWatchlist from "Common/Models/DatabaseModels/SecurityWatchlist";
 import ThreatIntelFeed from "Common/Models/DatabaseModels/ThreatIntelFeed";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -43,16 +42,12 @@ import {
 } from "Common/Types/SecurityEvent/SecurityWatchlist";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
-import {
-  CustomElementProps,
-  FormFieldCollapsibleSection,
-} from "Common/UI/Components/Forms/Types/Field";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import { RadioButton } from "Common/UI/Components/RadioButtons/GroupRadioButtons";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
-import React, { ReactElement } from "react";
 
 /*
  * THE CREATE WATCHLIST FORM, AND A LIST'S EDIT.
@@ -72,6 +67,10 @@ import React, { ReactElement } from "react";
  *
  * Each field shows the shared rules' problem with it, in the reader's
  * language (getSecurityWatchlistProblems): the API checks the same rules.
+ *
+ * React-free, as App's tests read these fields (the docs' facts): where a
+ * new list's values come from is drawn by WatchlistSourceRadio, which the
+ * page hands in (renderWatchlistSourceChoice).
  */
 
 const advancedSection: FormFieldCollapsibleSection<SecurityWatchlist> =
@@ -354,9 +353,18 @@ function importFields(data: {
   ];
 }
 
+/*
+ * What draws where a new list's values come from: WatchlistSourceRadio,
+ * whose choices follow what the list holds (renderWatchlistSourceChoice).
+ */
+export type WatchlistSourceChoiceRenderer = NonNullable<
+  ModelField<SecurityWatchlist>["getCustomElement"]
+>;
+
 // Create Watchlist: a name and what it holds; the rest under More fields.
 export function getWatchlistCreateFields(options: {
   translator: Translator;
+  renderSourceChoice: WatchlistSourceChoiceRenderer;
 }): Array<ModelField<SecurityWatchlist>> {
   return [
     nameField({ translator: options.translator }),
@@ -399,24 +407,7 @@ export function getWatchlistCreateFields(options: {
         translator: options.translator,
         field: "source",
       }),
-      getCustomElement: (
-        values: FormValues<SecurityWatchlist>,
-        customElementProps: CustomElementProps,
-      ): ReactElement => {
-        const data: Record<string, unknown> = readValues(values);
-
-        return React.createElement(WatchlistSourceRadio, {
-          entityType: data["entityType"],
-          value: getNewWatchlistSource(values),
-          onChange: (value: string): void => {
-            customElementProps.onChange?.(value);
-          },
-          ariaLabelledby: customElementProps.ariaLabelledby,
-          ariaDescribedby: customElementProps.ariaDescribedby,
-          error: customElementProps.error,
-          dataTestId: "watchlist-source",
-        });
-      },
+      getCustomElement: options.renderSourceChoice,
       collapsibleSection: advancedSection,
     },
     feedField({

@@ -1,7 +1,11 @@
+import { getNewWatchlistSource } from "./WatchlistFormFields";
 import {
   WatchlistSourceChoice,
   getWatchlistSourceChoicesFor,
 } from "./WatchlistsModel";
+import SecurityWatchlist from "Common/Models/DatabaseModels/SecurityWatchlist";
+import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import Radio, {
   RadioOption,
   RadioValue,
@@ -58,5 +62,30 @@ const WatchlistSourceRadio: FunctionComponent<ComponentProps> = (
     />
   );
 };
+
+/*
+ * Create Watchlist's "Values come from", drawn as this radio: the choices
+ * of what the list holds so far, with the source the list would be saved
+ * with chosen (getNewWatchlistSource). The page hands it to the form's
+ * fields (getWatchlistCreateFields), which stay free of React.
+ */
+export function renderWatchlistSourceChoice(
+  values: FormValues<SecurityWatchlist>,
+  customElementProps: CustomElementProps,
+): ReactElement {
+  return (
+    <WatchlistSourceRadio
+      entityType={(values as Record<string, unknown>)["entityType"]}
+      value={getNewWatchlistSource(values)}
+      onChange={(value: string) => {
+        customElementProps.onChange?.(value);
+      }}
+      ariaLabelledby={customElementProps.ariaLabelledby}
+      ariaDescribedby={customElementProps.ariaDescribedby}
+      error={customElementProps.error}
+      dataTestId="watchlist-source"
+    />
+  );
+}
 
 export default WatchlistSourceRadio;

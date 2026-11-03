@@ -63,7 +63,10 @@ import {
   getSecurityWatchlistValueProblem,
   parseSecurityWatchlistImport,
 } from "../../../Types/SecurityEvent/SecurityWatchlist";
-import { WatchlistReaderKind } from "../../../Types/SecurityEvent/SecurityWatchlistFilter";
+import {
+  WatchlistReader,
+  WatchlistReaderKind,
+} from "../../../Types/SecurityEvent/SecurityWatchlistFilter";
 import { getRulesReadingWatchlists } from "../../../Utils/SecurityEvent/Sigma/SigmaWatchlists";
 import {
   Translator,
@@ -569,7 +572,7 @@ describe("what reads a list", () => {
   });
 
   test("a list's readers are found by its name, whatever the case", () => {
-    const readers: Map<
+    const rules: Map<
       string,
       Array<{ id: string; name: string }>
     > = getRulesReadingWatchlists([
@@ -601,8 +604,24 @@ describe("what reads a list", () => {
       },
     ]);
 
+    // Each rule as the readers hook keeps it: a reader of the rule kind.
+    const readers: Map<string, Array<WatchlistReader>> = new Map();
+
+    for (const [key, found] of rules) {
+      readers.set(
+        key,
+        found.map((rule: { id: string; name: string }): WatchlistReader => {
+          return { kind: WatchlistReaderKind.DetectionRule, ...rule };
+        }),
+      );
+    }
+
     expect(getWatchlistReaders(readers, "vip_users")).toEqual([
-      { id: "r1", name: "VIP sign-in" },
+      {
+        kind: WatchlistReaderKind.DetectionRule,
+        id: "r1",
+        name: "VIP sign-in",
+      },
     ]);
     expect(getWatchlistReaders(readers, "critical_hosts")).toEqual([]);
     expect(getWatchlistReaders(readers, undefined)).toEqual([]);

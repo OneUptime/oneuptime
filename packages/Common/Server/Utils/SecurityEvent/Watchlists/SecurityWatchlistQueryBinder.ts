@@ -3,6 +3,7 @@ import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/Datab
 import NotOnWatchlist from "../../../../Types/BaseDatabase/NotOnWatchlist";
 import QueryOperator from "../../../../Types/BaseDatabase/QueryOperator";
 import BadDataException from "../../../../Types/Exception/BadDataException";
+import GenericObject from "../../../../Types/GenericObject";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import { JSONObject, ObjectType } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
@@ -169,7 +170,7 @@ export default class SecurityWatchlistQueryBinder {
    * one given left as it was. A query that names none is handed back as it
    * is.
    */
-  public static async bind<TQuery extends object>(data: {
+  public static async bind<TQuery extends GenericObject>(data: {
     query: TQuery;
     props: DatabaseCommonInteractionProps;
   }): Promise<TQuery> {
@@ -215,7 +216,7 @@ export default class SecurityWatchlistQueryBinder {
   }
 
   // The query with each name in its list's place.
-  public static replace<TQuery extends object>(
+  public static replace<TQuery extends GenericObject>(
     query: TQuery,
     watchlists: ReadonlyMap<string, SigmaWatchlist>,
   ): TQuery {

@@ -23,6 +23,7 @@ import {
   getWatchlistHoldsDropdownOptions,
   prepareNewWatchlist,
 } from "../../Components/SecurityEvents/Watchlists/WatchlistFormFields";
+import { renderWatchlistSourceChoice } from "../../Components/SecurityEvents/Watchlists/WatchlistSourceRadio";
 import {
   describeWatchlistReader,
   describeWatchlistValues,
@@ -218,7 +219,10 @@ const SecurityWatchlistsPage: FunctionComponent<PageComponentProps> = (
             ...(nameToCreate ? { name: nameToCreate } : {}),
           } as FormValues<SecurityWatchlist>
         }
-        formFields={getWatchlistCreateFields({ translator })}
+        formFields={getWatchlistCreateFields({
+          translator,
+          renderSourceChoice: renderWatchlistSourceChoice,
+        })}
         // What the form hid is not sent: a list no feed can fill keeps its own values.
         onBeforeCreate={(
           item: SecurityWatchlist,

@@ -143,10 +143,11 @@ describe("what is not a list's name stays the value it always was", () => {
 
 describe("a search over a query", () => {
   test("puts the list on its field, and merges an attribute's into the attributes there", () => {
+    // Through unknown: a literal held to the query's whole type is too deep to check.
     const base: Query<SecurityEvent> = {
       projectId: PROJECT_ID,
       attributes: { env: "prod" },
-    } as Query<SecurityEvent>;
+    } as unknown as Query<SecurityEvent>;
 
     const query: Query<SecurityEvent> = applySecurityEventSearchToQuery({
       query: base,

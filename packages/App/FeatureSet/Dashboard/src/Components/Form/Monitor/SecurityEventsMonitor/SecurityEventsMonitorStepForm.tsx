@@ -9,7 +9,10 @@ import {
 } from "Common/Types/SecurityEvent/OcsfEventClass";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
+import {
+  CustomElementProps,
+  FormFieldCollapsibleSection,
+} from "Common/UI/Components/Forms/Types/Field";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
 import HorizontalRule from "Common/UI/Components/HorizontalRule/HorizontalRule";
@@ -25,7 +28,6 @@ import {
   getSecurityWatchlistFiltersProblem,
   readSecurityWatchlistFilters,
 } from "Common/Types/SecurityEvent/SecurityWatchlistFilter";
-import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
