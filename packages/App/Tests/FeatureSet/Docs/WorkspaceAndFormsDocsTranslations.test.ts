@@ -239,10 +239,21 @@ const SLACK_HOME_BUTTONS: Array<string> = ["Schedule maintenance"];
 const TEAMS_HOME_BUTTONS: Array<string> = ["Refresh"];
 
 /*
- * The menu of Slack's Home tab for somebody in several of a workspace's
- * projects, as the app draws it, in English (SLACK_HOME_PROJECT_MENU).
+ * The Home's project menu for somebody in several of a workspace's
+ * projects, as each app draws it, in English (WORKSPACE_HOME_TEXT): the
+ * select of Slack's Home tab (SLACK_HOME_PROJECT_MENU), and the Teams
+ * card's list with its Switch button.
  */
 const SLACK_HOME_MENU: Array<string> = ["Switch project"];
+const TEAMS_HOME_MENU: Array<string> = ["Switch project", "Switch"];
+
+/*
+ * What somebody in several of a Microsoft 365 organization's projects
+ * sends the bot - or presses by the compose box - to ask their last
+ * question in another of them, as the bot offers it, in English
+ * (MicrosoftTeamsProjectChoice.ASK_IN_ANOTHER_PROJECT_TEXT).
+ */
+const TEAMS_ASK_AGAIN: Array<string> = ["Ask in another project"];
 
 // Microsoft Teams' own menus and buttons, as Teams names them.
 const TEAMS_CONTROLS: Array<string> = [
@@ -364,6 +375,8 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
     ...PAGE_FORM,
     ...CHAT_HOME_BUTTONS,
     ...TEAMS_HOME_BUTTONS,
+    ...TEAMS_HOME_MENU,
+    ...TEAMS_ASK_AGAIN,
   ],
   [VIDEO]: [...PROVIDER_CONSOLES, ...BRANDS, ...CALL_MESSAGE_BUTTONS],
   [BUILDING]: [],
@@ -1266,6 +1279,8 @@ describe("the lists this test keeps", () => {
       ...SLACK_HOME_BUTTONS,
       ...SLACK_HOME_MENU,
       ...TEAMS_HOME_BUTTONS,
+      ...TEAMS_HOME_MENU,
+      ...TEAMS_ASK_AGAIN,
       ...PROVIDER_CONSOLES,
       ...BRANDS,
       ...CALL_MESSAGE_BUTTONS,

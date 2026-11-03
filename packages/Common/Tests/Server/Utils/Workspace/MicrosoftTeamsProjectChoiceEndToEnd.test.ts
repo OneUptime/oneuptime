@@ -105,6 +105,7 @@ import {
   ExpressRequest,
   ExpressResponse,
 } from "../../../../Server/Utils/Express";
+import { useInMemoryWorkspaceHomeChoices } from "../../../Helpers/InMemoryWorkspaceHomeChoices";
 import {
   CloudAdapter,
   ConfigurationBotFrameworkAuthentication,
@@ -861,7 +862,7 @@ describe("a form opened in the project Deane chose carries it, and is submitted 
       }),
     ).toEqual(["POST", "DELETE"]);
     expect(String(submitted.calls[0]!.activity["text"])).toBe(
-      `✅ Incident created successfully!\n\nView incident: ${DASHBOARD_URL}/${PLATFORM.toString()}/incidents/${created.id!.toString()}`,
+      `✅ Incident created successfully. [View incident](${DASHBOARD_URL}/${PLATFORM.toString()}/incidents/${created.id!.toString()})`,
     );
     expect(submitted.calls[1]!.activityId).toBe(form.messageId);
     expect(loggedErrors).toEqual([]);
@@ -1025,8 +1026,9 @@ describe("an answer from OneUptime AI in the project Deane chose says which", ()
   });
 });
 
-describe("the Home, drawn for the project Deane chose, keeps it on its buttons", () => {
-  test("'home': choose IRM Non-Prod, its Home's buttons name it, and Refresh draws it again there, in place, without asking", async () => {
+describe("the Home of somebody in both projects: never asked which - it switches", () => {
+  test("'home': IRM Platform's Home, with Switch to IRM Non-Prod; pressed, the card becomes IRM Non-Prod's Home in place, its buttons naming it, Refresh keeping it - and his next 'home' opens there", async () => {
+    useInMemoryWorkspaceHomeChoices();
     jest.spyOn(WorkspaceHome, "read").mockImplementation((async (data: {
       projectId: ObjectID;
     }) => {
@@ -1053,26 +1055,47 @@ describe("the Home, drawn for the project Deane chose, keeps it on its buttons",
       return view;
     }) as never);
 
-    const { question } = await ask("home");
-    const chosen: Delivery = await deliver(
-      press(buttonOf(question, "IRM Non-Prod"), question.messageId!),
+    const typed: Delivery = await deliver(message("home"));
+    const home: ConnectorCall = posts(typed)[0]!;
+
+    expect(posts(typed)).toHaveLength(1);
+    // His Home, not the question which project.
+    expect(textOf(home)).not.toContain("Which project is this for?");
+    expect(textOf(home)).toContain(
+      "Here's what is happening in **IRM Platform**.",
     );
-    const home: ConnectorCall = posts(chosen)[0]!;
 
-    expect(textOf(home)).toContain("IRM Non-Prod");
+    const switchButton: JSONObject = submitsOf(cardOf(home)).find(
+      (submit: JSONObject): boolean => {
+        return (
+          (submit["data"] as JSONObject)["action"] ===
+          MicrosoftTeamsHomeActionType.SwitchProject
+        );
+      },
+    )!;
 
-    const buttons: Array<JSONObject> = submitsOf(cardOf(home));
+    expect(switchButton["title"]).toBe("Switch to IRM Non-Prod");
+
+    const switchedTo: Delivery = await deliver(
+      press(switchButton["data"] as JSONObject, home.messageId!),
+    );
+
+    expect(
+      switchedTo.calls.map((call: ConnectorCall): unknown => {
+        return [call.method, call.activityId];
+      }),
+    ).toEqual([["PUT", home.messageId]]);
+    expect(textOf(switchedTo.calls[0])).toContain(
+      "Here's what is happening in **IRM Non-Prod**.",
+    );
+
+    const buttons: Array<JSONObject> = submitsOf(cardOf(switchedTo.calls[0]));
 
     expect(
       buttons.map((submit: JSONObject): unknown => {
-        return (submit["data"] as JSONObject)["action"];
+        return submit["title"];
       }),
-    ).toEqual(
-      expect.arrayContaining([
-        MicrosoftTeamsHomeActionType.DeclareIncident,
-        MicrosoftTeamsHomeActionType.Refresh,
-      ]),
-    );
+    ).toContain("Switch to IRM Platform");
 
     for (const submit of buttons) {
       expect((submit["data"] as JSONObject)[DRAWN_FOR_PROJECT_ID_FIELD]).toBe(
@@ -1095,12 +1118,14 @@ describe("the Home, drawn for the project Deane chose, keeps it on its buttons",
       }),
     ).toEqual([["PUT", home.messageId]]);
     expect(textOf(refreshed.calls[0])).toContain("IRM Non-Prod");
-    // Drawn again in place, its buttons still name the project.
-    for (const submit of submitsOf(cardOf(refreshed.calls[0]))) {
-      expect((submit["data"] as JSONObject)[DRAWN_FOR_PROJECT_ID_FIELD]).toBe(
-        NONPRD.toString(),
-      );
-    }
+
+    // Typed again later: his Home opens on the project he chose.
+    const again: Delivery = await deliver(message("home"));
+
+    expect(textOf(posts(again)[0])).toContain(
+      "Here's what is happening in **IRM Non-Prod**.",
+    );
+    expect(loggedErrors).toEqual([]);
   });
 });
 

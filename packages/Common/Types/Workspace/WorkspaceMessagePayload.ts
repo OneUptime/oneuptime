@@ -179,18 +179,21 @@ export interface WorkspacePayloadMarkdown extends WorkspaceMessageBlock {
   _type: "WorkspacePayloadMarkdown";
   text: string;
   /*
-   * A menu beside the text, that acts as soon as an option is chosen
-   * (WorkspacePayloadMenu): Slack draws it as the section's select. Only
-   * Slack draws one.
+   * A menu that goes with the text (WorkspacePayloadMenu): Slack draws it as
+   * the section's select, Microsoft Teams as a dropdown and a button under
+   * the text.
    */
   menu?: WorkspacePayloadMenu | undefined;
 }
 
 /*
- * A menu beside a line of Markdown that acts the moment one of its options
- * is chosen, with no button to press after: the Switch project menu of the
- * Slack app's Home (SlackHome). Slack draws it as a static select beside
- * the line; Microsoft Teams draws none, and nothing passes one there.
+ * A menu that goes with a line of Markdown: the Switch project menu of the
+ * app's Home, in Slack (SlackHome) and in Microsoft Teams
+ * (MicrosoftTeamsHome). Slack draws it as a static select beside the line,
+ * which acts the moment one of its options is chosen. A Microsoft Teams
+ * card's dropdown cannot act by itself, so Teams draws it under the line
+ * with a button that sends the choice (submitTitle) - or, with one option,
+ * as that one button: "Switch to Acme Staging".
  */
 export interface WorkspacePayloadMenu {
   actionId: string;
@@ -202,11 +205,20 @@ export interface WorkspacePayloadMenu {
    * redraw of the view keeps it only where the same menu is drawn again.
    */
   blockId?: string | undefined;
+  /*
+   * The button that sends the choice, in a chat whose menus do not act by
+   * themselves (Microsoft Teams): "Switch" beside the dropdown, or "Switch
+   * to <the one option>" in its place.
+   */
+  submitTitle?: string | undefined;
+  // What that button says when it is pressed with nothing chosen.
+  requiredMessage?: string | undefined;
 }
 
 export interface WorkspacePayloadMenuOption {
   // Plain text, as the menu shows it: never Markdown.
   label: string;
+  // Plain text: what a press names. Slack takes at most 150 characters.
   value: string;
 }
 

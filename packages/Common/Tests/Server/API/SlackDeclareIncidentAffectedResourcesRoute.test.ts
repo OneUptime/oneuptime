@@ -1403,6 +1403,48 @@ describe("declaring an incident from Slack, linked to what it is about", () => {
       ]);
     });
 
+    /*
+     * The app's Home tab has no channel: a form opened there - its Declare
+     * incident button - carries only its project. It used to be declared
+     * and confirmed nowhere; Simon is told, in his direct messages with the
+     * app, as what was not linked is told to him.
+     */
+    test("a form opened where there is no channel - the app's Home tab: confirmed to Simon alone, in his direct messages with the app", async () => {
+      const answer: RouteAnswer = await submit({
+        privateMetadata: JSON.stringify({
+          oneuptime: 1,
+          value: "",
+          projectId: PROJECT_ID.toString(),
+        }),
+        title: "Checkout is slow",
+        picks: [{ value: `Host:${API_1}`, text: "api-1" }],
+      });
+
+      expect(answer.status).toBe(200);
+      expect(answer.body).toEqual({ response_action: "clear" });
+
+      await slackCallsAfter(1);
+      await settle();
+
+      expect(created).toHaveLength(1);
+      // Posted to Simon himself: Slack opens his direct messages with the app.
+      expect(postedTo("https://slack.com/api/chat.postMessage")).toEqual([
+        {
+          channel: SLACK_USER_ID,
+          text: `*Incident INC-43* created successfully. <${INCIDENT_URL}|View Incident>\nLinked to *api-1* (Host).\n`,
+          user: undefined,
+        },
+      ]);
+
+      const dm: SlackCall = slackCalls.find((call: SlackCall): boolean => {
+        return call.url === "https://slack.com/api/chat.postMessage";
+      })!;
+
+      // What its notification says.
+      expect(dm.data["text"]).toBe("Incident INC-43 created successfully.");
+      expect(postedTo("https://slack.com/api/chat.postEphemeral")).toEqual([]);
+    });
+
     test("a pick that is not the project's, or archived since: declared without it, and only Simon is told", async () => {
       await command("incident");
       const view: JSONObject = await openedForm();
