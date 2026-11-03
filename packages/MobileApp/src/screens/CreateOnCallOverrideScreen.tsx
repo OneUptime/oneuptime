@@ -21,6 +21,7 @@ import { useActiveProject } from "../hooks/useProject";
 import { useProjectUsers } from "../hooks/useProjectUsers";
 import { useCurrentUserId } from "../hooks/useCurrentUserId";
 import { useOnCallOverrides } from "../hooks/useOnCallOverrides";
+import { useGlobalOverrideLock } from "../hooks/useGlobalOverrideLock";
 import GradientButton from "../components/GradientButton";
 import SegmentedControl from "../components/SegmentedControl";
 import SectionHeader from "../components/SectionHeader";
@@ -96,6 +97,11 @@ export function readPrefilledWindow(
  * usable - with one exception: "Get cover" on a shift card arrives here with
  * that shift's window already known, and then the sheet covers exactly that
  * shift (from now, if it has already started) and asks only who takes it.
+ *
+ * The cover it arranges applies to every on-call policy in the project,
+ * which takes a permission to add overrides over the whole project. For
+ * someone whose permission covers only some policies, or none, the sheet
+ * says why in place of the form, before anything is chosen.
  */
 export default function CreateOnCallOverrideScreen(): React.JSX.Element {
   const { theme } = useTheme();
@@ -127,6 +133,19 @@ export default function CreateOnCallOverrideScreen(): React.JSX.Element {
   const [durationHours, setDurationHours] = useState<number>(4);
   const [isPickerOpen, setIsPickerOpen] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+
+  /*
+   * Cover for a policy-variant shift names its policy. Every other cover
+   * arranged here is global - it applies to every on-call policy in the
+   * project - and takes a permission to add overrides over the whole
+   * project. For someone whose permission covers only some policies, or
+   * none, the server would refuse it on Confirm, so the sheet says why in
+   * place of the form (oncall/globalOverrideAccess).
+   */
+  const globalOverrideLock: string | null = useGlobalOverrideLock(projectId);
+  const lockReason: string | null = prefill?.policyId
+    ? null
+    : globalOverrideLock;
 
   const projectUsers: ReturnType<typeof useProjectUsers> =
     useProjectUsers(projectId);
@@ -191,6 +210,12 @@ export default function CreateOnCallOverrideScreen(): React.JSX.Element {
   const onSubmit: () => Promise<void> = async (): Promise<void> => {
     setError(null);
 
+    if (lockReason) {
+      setError(lockReason);
+      errorFeedback();
+      return;
+    }
+
     if (prefill && !prefilledWindow) {
       setError(
         "This shift's times could not be read. Return to On call and choose the shift again.",
@@ -243,6 +268,69 @@ export default function CreateOnCallOverrideScreen(): React.JSX.Element {
       )
     : null;
 
+  const prefilledShiftCard: React.JSX.Element | null = prefilledWindow ? (
+    <Card testID="prefilled-shift" variant="tinted">
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "flex-start",
+          gap: spacing.md,
+        }}
+      >
+        <IconBadge
+          name="calendar-outline"
+          color={theme.colors.actionPrimary}
+          background={theme.colors.backgroundElevated}
+        />
+        <View style={{ flex: 1, gap: spacing.xxs }}>
+          <AppText variant="footnote" tone="secondary">
+            Cover for my shift
+          </AppText>
+          <AppText variant="title3">
+            {prefill?.scheduleName ?? "On-call shift"}
+          </AppText>
+          {prefilledRange ? (
+            <AppText variant="subhead" tone="secondary">
+              {prefilledRange}
+            </AppText>
+          ) : null}
+        </View>
+      </View>
+    </Card>
+  ) : null;
+
+  /*
+   * Locked: the shift being covered, if there is one, and why it cannot be
+   * covered from here - nothing to choose, and nothing to confirm.
+   */
+  if (lockReason) {
+    return (
+      <ScrollView
+        testID="create-override-scroll"
+        contentInsetAdjustmentBehavior="automatic"
+        style={{ backgroundColor: theme.colors.backgroundPrimary }}
+        contentContainerStyle={{
+          padding: spacing.xl,
+          ...gutters,
+          paddingBottom: bottomPadding,
+        }}
+      >
+        <ScreenIntro
+          title={prefilledWindow ? "Cover this shift" : "Arrange coverage"}
+          description="A clear handoff, for exactly as long as you need."
+        />
+        {prefilledShiftCard}
+        <Banner
+          testID="override-locked"
+          tone="warning"
+          title="Cover can't be arranged here"
+          message={lockReason}
+          style={prefilledShiftCard ? { marginTop: spacing.xxl } : undefined}
+        />
+      </ScrollView>
+    );
+  }
+
   return (
     <>
       <ScrollView
@@ -261,36 +349,7 @@ export default function CreateOnCallOverrideScreen(): React.JSX.Element {
           description="A clear handoff, for exactly as long as you need."
         />
 
-        {prefilledWindow ? (
-          <Card testID="prefilled-shift" variant="tinted">
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "flex-start",
-                gap: spacing.md,
-              }}
-            >
-              <IconBadge
-                name="calendar-outline"
-                color={theme.colors.actionPrimary}
-                background={theme.colors.backgroundElevated}
-              />
-              <View style={{ flex: 1, gap: spacing.xxs }}>
-                <AppText variant="footnote" tone="secondary">
-                  Cover for my shift
-                </AppText>
-                <AppText variant="title3">
-                  {prefill?.scheduleName ?? "On-call shift"}
-                </AppText>
-                {prefilledRange ? (
-                  <AppText variant="subhead" tone="secondary">
-                    {prefilledRange}
-                  </AppText>
-                ) : null}
-              </View>
-            </View>
-          </Card>
-        ) : (
+        {prefilledShiftCard ?? (
           <View>
             <SectionHeader title="Coverage type" />
             <SegmentedControl<OverrideDirection>
