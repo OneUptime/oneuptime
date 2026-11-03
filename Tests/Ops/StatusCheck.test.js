@@ -42,7 +42,7 @@ const ENDPOINTS = [
   "/admin/env.js",
   "/public-dashboard",
   "/accounts",
-  "/status-page",
+  "/status-page/",
 ];
 
 /*

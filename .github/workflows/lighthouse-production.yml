@@ -1,0 +1,72 @@
+name: Lighthouse Production Scan
+# How fast oneuptime.com's live pages load, every night (issue #5609): home,
+# pricing, a docs page, the API reference, sign-in, sign-up and the status page,
+# on a phone and on a laptop, in all four of Lighthouse's categories, with the
+# real CDN, network, web fonts and Google Tag Manager. The pull request check
+# (the lighthouse job in test.yaml) cannot see any of that: it scans the
+# checkout, blocks third parties and leaves performance out, because a shared
+# runner's speed varies too much to hold a page to a threshold.
+#
+# This tracks and never judges. Each page's median of three runs is in the
+# run's summary table and its report in the lighthouse-production artifact; a
+# page fails the run only when it could not be scanned at all. When the
+# ONEUPTIME_LIGHTHOUSE_OTLP_TOKEN secret holds a OneUptime project's telemetry
+# ingestion key, the measures also go to that project as OpenTelemetry metrics
+# (packages/E2E/Lighthouse/README.md), to chart and alert on the trend.
+#
+# Every night, and by hand. It reads the live site and publishes nothing.
+
+on:
+  schedule:
+    - cron: "41 5 * * *"
+  workflow_dispatch:
+
+# Read-only: it checks out the code and scans public pages.
+permissions:
+  contents: read
+
+jobs:
+  # In the Playwright image, as the other browser jobs are
+  # (Tests/Ops/PlaywrightImage): Lighthouse drives the image's Chromium.
+  scan:
+    name: Scan oneuptime.com
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
+      options: --user 1001 --ipc=host
+    defaults:
+      run:
+        shell: bash -e {0}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/runner-fonts
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: npm
+          cache-dependency-path: '**/package-lock.json'
+      - name: Install browser test dependencies
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/E2E
+          # Skip the preinstall hook that downloads every browser: the
+          # image has them.
+          args: --ignore-scripts
+      # Fourteen pages and form factors, three runs each: about seven minutes.
+      - name: Scan oneuptime.com
+        working-directory: packages/E2E
+        timeout-minutes: 30
+        env:
+          ONEUPTIME_LIGHTHOUSE_OTLP_TOKEN: ${{ secrets.ONEUPTIME_LIGHTHOUSE_OTLP_TOKEN }}
+          ONEUPTIME_LIGHTHOUSE_OTLP_ENDPOINT: ${{ vars.ONEUPTIME_LIGHTHOUSE_OTLP_ENDPOINT }}
+        run: npm run test-lighthouse-production
+      - name: Upload the Lighthouse reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-production-${{ github.run_attempt }}
+          path: |
+            output/playwright/lighthouse-production/reports
+            output/playwright/lighthouse-production/test-results
+          retention-days: 30
