@@ -16,3 +16,4 @@ swapped in, not re-implemented. Times are from the first frame with widgets.
 | --- | --- |
 | `load-1280-before.png` | The empty board, "No widgets yet" and Add Widget, for 260 ms while the board is read; then every widget a few pixels across, their rows already in them 255 ms later, and their size only after that. |
 | `load-1280-after.png` | The loader while the board is read; then every widget at its own size from its first frame, its rows coming in where they stay. |
+| `public-phone-placeholders.png` | The PublicDashboardTheme fixture's "other" board on a 390px phone, the widgets a public dashboard cannot draw (log chart, trace chart, trace table, security events list and flow): before the UI review each kept its own rows (390px) with one line near its top, in two looks; after it, one placeholder (an icon and the sentence, in the middle) two rows tall (150px). |
