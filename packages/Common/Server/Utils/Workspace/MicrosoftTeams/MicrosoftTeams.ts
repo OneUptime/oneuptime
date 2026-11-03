@@ -4463,9 +4463,10 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
             projectId: projectId,
             question: input.text,
             chosenProjectName: chosenProjectName || undefined,
-            isInChosenProject: Boolean(
-              data.chosenProjectId || isInConversationProject,
-            ),
+            isInChosenProject:
+              data.chosenProjectId || isInConversationProject
+                ? true
+                : undefined,
           });
           return;
       }

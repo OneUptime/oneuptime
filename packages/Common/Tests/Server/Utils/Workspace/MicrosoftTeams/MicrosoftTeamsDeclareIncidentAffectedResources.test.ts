@@ -655,7 +655,7 @@ describe("the submit", () => {
     expect(sent).toEqual([
       {
         kind: "reply",
-        text: `✅ Incident created successfully!\n\nView incident: ${INCIDENT_LINK}\n\nLinked to **api-1** (Host) and **checkout** (Service).`,
+        text: `✅ **Incident INC-43** created successfully. [View incident](${INCIDENT_LINK})\n\nLinked to **api-1** (Host) and **checkout** (Service).`,
       },
     ]);
     expect(deleted).toEqual(["form-1"]);
@@ -670,7 +670,7 @@ describe("the submit", () => {
     expect(sent).toEqual([
       {
         kind: "reply",
-        text: `✅ Incident created successfully!\n\nView incident: ${INCIDENT_LINK}`,
+        text: `✅ **Incident INC-43** created successfully. [View incident](${INCIDENT_LINK})`,
       },
     ]);
   });
@@ -686,7 +686,7 @@ describe("the submit", () => {
     expect(sent).toEqual([
       {
         kind: "reply",
-        text: `✅ Incident created successfully!\n\nView incident: ${INCIDENT_LINK}\n\nLinked to **api-1** (Host).`,
+        text: `✅ **Incident INC-43** created successfully. [View incident](${INCIDENT_LINK})\n\nLinked to **api-1** (Host).`,
       },
       {
         kind: "answer",
@@ -713,7 +713,7 @@ describe("the submit", () => {
     expect(created[0]!.data.isPrivate).toBeUndefined();
     // The alert first, then the resources.
     expect(sent[0]!.text).toBe(
-      `✅ Incident created successfully!\n\nView incident: ${INCIDENT_LINK}\n\nLinked to **[Alert ALT-3](${ALERT_LINK})**, **api-1** (Host) and **checkout** (Service).`,
+      `✅ **Incident INC-43** created successfully. [View incident](${INCIDENT_LINK})\n\nLinked to **[Alert ALT-3](${ALERT_LINK})**, **api-1** (Host) and **checkout** (Service).`,
     );
   });
 
@@ -741,7 +741,7 @@ describe("the submit", () => {
     expect(sent).toEqual([
       {
         kind: "reply",
-        text: `✅ Incident created successfully!\n\nView incident: ${INCIDENT_LINK}`,
+        text: `✅ **Incident INC-43** created successfully. [View incident](${INCIDENT_LINK})`,
       },
       {
         kind: "answer",

@@ -571,7 +571,10 @@ describe("Slack: SubmitNewIncident", (): void => {
   function submit(viewValues: SlackRequest["viewValues"]): Promise<void> {
     return SlackIncidentActions.submitNewIncident({
       slackRequest: slackRequest(viewValues),
-      // No channel, so no confirmation message is posted back to Slack.
+      /*
+       * No channel - a form opened from the app's Home tab: the confirmation
+       * goes to the person, in their direct messages with the app.
+       */
       action: {
         actionType: SlackActionType.SubmitNewIncident,
         actionValue: "",
@@ -626,7 +629,11 @@ describe("Slack: SubmitNewIncident", (): void => {
     expect(incident.changeMonitorStatusToId?.toString()).toBe(OWN_STATUS_ID);
     // Credited by the create, from the member's props.
     expect(incident.createdByUserId).toBeUndefined();
-    expect(directMessages).not.toHaveBeenCalled();
+    // Confirmed to the person, with no channel to post in - and nothing refused.
+    expect(directMessages).toHaveBeenCalledTimes(1);
+    expect(directMessages.mock.calls[0]![0].text).toBe(
+      "Incident created successfully.",
+    );
   });
 
   test.each(INCIDENT_REFUSED_REFERENCES)(

@@ -328,16 +328,27 @@ export default class SlackScheduledMaintenanceActions {
       const slackChannelId: string =
         slackRequest.slackChannelId || data.action.actionValue || "";
 
-      const eventName: string =
+      // "SM-3", or "#3" in a project without a prefix; none without a number.
+      const eventName: string | null =
         createdEvent.scheduledMaintenanceNumberWithPrefix ||
-        "#" + createdEvent.scheduledMaintenanceNumber;
+        (createdEvent.scheduledMaintenanceNumber !== undefined &&
+        createdEvent.scheduledMaintenanceNumber !== null
+          ? `#${createdEvent.scheduledMaintenanceNumber}`
+          : null);
+
+      const eventLink: string = (
+        await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
+          slackRequest.projectId!,
+          createdEvent.id!,
+        )
+      ).toString();
 
       const confirmation: WorkspacePayloadMarkdown = {
         _type: "WorkspacePayloadMarkdown",
-        text: mdText`**Scheduled Event ${eventName}** created successfully. [View Event](${await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
-          slackRequest.projectId!,
-          createdEvent.id!,
-        )})`.toString(),
+        text: (eventName
+          ? mdText`**Scheduled Event ${eventName}** created successfully. [View Event](${eventLink})`
+          : mdText`Scheduled event created successfully. [View Event](${eventLink})`
+        ).toString(),
       };
 
       if (slackChannelId) {
@@ -366,7 +377,9 @@ export default class SlackScheduledMaintenanceActions {
           await SlackActionAnswer.answerWithBlocks({
             place: place,
             messageBlocks: [confirmation],
-            text: `Scheduled Event ${eventName} created successfully.`,
+            text: eventName
+              ? `Scheduled Event ${eventName} created successfully.`
+              : "Scheduled event created successfully.",
           });
         }
       }

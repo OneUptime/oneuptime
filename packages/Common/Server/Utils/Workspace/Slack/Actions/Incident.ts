@@ -358,15 +358,25 @@ export default class SlackIncidentActions {
           ? data.action.actionValue || ""
           : "");
 
-      const incidentName: string =
+      // "INC-43", or "#43" in a project without a prefix; none without a number.
+      const incidentName: string | null =
         createdIncident.incidentNumberWithPrefix ||
-        "#" + createdIncident.incidentNumber;
+        (createdIncident.incidentNumber !== undefined &&
+        createdIncident.incidentNumber !== null
+          ? `#${createdIncident.incidentNumber}`
+          : null);
 
-      const lines: Array<MarkdownText> = [
-        mdText`**Incident ${incidentName}** created successfully. [View Incident](${await IncidentService.getIncidentLinkInDashboard(
+      const incidentLink: string = (
+        await IncidentService.getIncidentLinkInDashboard(
           slackRequest.projectId!,
           createdIncident.id!,
-        )})`,
+        )
+      ).toString();
+
+      const lines: Array<MarkdownText> = [
+        incidentName
+          ? mdText`**Incident ${incidentName}** created successfully. [View Incident](${incidentLink})`
+          : mdText`Incident created successfully. [View Incident](${incidentLink})`,
       ];
 
       // What it is linked to, for everybody in the channel.
@@ -413,7 +423,9 @@ export default class SlackIncidentActions {
           await SlackActionAnswer.answerWithBlocks({
             place: place,
             messageBlocks: [confirmation],
-            text: `Incident ${incidentName} created successfully.`,
+            text: incidentName
+              ? `Incident ${incidentName} created successfully.`
+              : "Incident created successfully.",
           });
         }
       }
