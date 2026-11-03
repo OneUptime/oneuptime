@@ -333,6 +333,8 @@
     "{{count}} filter ({{condition}})",
     "{{count}} flow",
     "{{count}} flows",
+    "{{count}} hunt",
+    "{{count}} hunts",
     "{{count}} manager",
     "{{count}} match",
     "{{count}} mon",

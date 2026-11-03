@@ -265,10 +265,11 @@ export const RUN_HISTORY_TITLE: string = translationKey("Run History");
 export const RUN_HISTORY_DESCRIPTION: string = translationKey(
   "Each scheduled run, newest first: the events it searched and what it found. Runs are kept for 90 days.",
 );
-export const RUN_SINGULAR: string = translationKey("Run");
-export const RUN_PLURAL: string = translationKey("Runs");
-export const RUN_COLUMN_TITLE: string = translationKey("Run");
-export const RUN_FOUND_COLUMN_TITLE: string = translationKey("Found");
+// A run, as the list counts them: the model's own names ("Run" alone reads as the verb).
+export const RUN_SINGULAR: string = translationKey("Hunt Run");
+export const RUN_PLURAL: string = translationKey("Hunt Runs");
+export const RUN_COLUMN_TITLE: string = translationKey("Ran at");
+export const RUN_FOUND_COLUMN_TITLE: string = translationKey("Result");
 // Under when a run ran: the events it read.
 export const RUN_SEARCHED: string = translationKey(
   "Searched {{start}} to {{end}}",
