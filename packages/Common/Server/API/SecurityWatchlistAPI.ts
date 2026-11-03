@@ -175,13 +175,28 @@ export default class SecurityWatchlistAPI extends BaseAPI<
               props,
             });
 
+          /*
+           * What the read did, as an import answers it: the lines of the
+           * file it left out come back too (the first of them, each with
+           * its line and why), so the list's page can say which to fix.
+           */
           return Response.sendJsonObjectResponse(req, res, {
             error: outcome.error,
             errorDetail: outcome.errorDetail,
             added: outcome.summary?.added || 0,
             removed: outcome.summary?.removed || 0,
             unchanged: outcome.summary?.unchanged || 0,
+            duplicates: outcome.summary?.duplicates || 0,
             problemCount: outcome.summary?.problemCount || 0,
+            problems: (outcome.summary?.problems || []).map(
+              (problem: SecurityWatchlistImportProblem): JSONObject => {
+                return {
+                  line: problem.line,
+                  value: problem.value,
+                  message: problem.message,
+                };
+              },
+            ),
             valueCount: outcome.summary?.valueCount || 0,
           });
         } catch (error) {

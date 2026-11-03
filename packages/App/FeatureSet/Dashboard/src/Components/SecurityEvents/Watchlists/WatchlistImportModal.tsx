@@ -102,6 +102,102 @@ export function readWatchlistImportSummary(
   };
 }
 
+/*
+ * The lines an import or a read left out, as the API answers them (the
+ * first ones, each with its line, the value and why); anything else in
+ * the answer is left out of the list.
+ */
+export function readWatchlistImportProblems(
+  json: JSONObject,
+): Array<SecurityWatchlistImportProblem> {
+  const problems: unknown = json["problems"];
+
+  if (!Array.isArray(problems)) {
+    return [];
+  }
+
+  return problems
+    .filter((problem: unknown): boolean => {
+      if (!problem || typeof problem !== "object") {
+        return false;
+      }
+
+      const item: Record<string, unknown> = problem as Record<string, unknown>;
+
+      return (
+        Number.isFinite(Number(item["line"])) &&
+        typeof item["message"] === "string"
+      );
+    })
+    .map((problem: unknown): SecurityWatchlistImportProblem => {
+      const item: Record<string, unknown> = problem as Record<string, unknown>;
+
+      return {
+        line: Number(item["line"]),
+        value: typeof item["value"] === "string" ? item["value"] : "",
+        message: item["message"] as string,
+      };
+    });
+}
+
+/*
+ * The lines left out, one each - "Line 5: lee.park@... - The date this
+ * value leaves the list has passed." - the value as it is written, why in
+ * the reader's words, then how many more. Import Values' preview draws
+ * them, and so does what Read Now did.
+ */
+export const WatchlistImportProblemList: FunctionComponent<{
+  problems: ReadonlyArray<SecurityWatchlistImportProblem>;
+  // How many lines were left out in all: more than are listed says so.
+  problemCount: number;
+  dataTestId?: string | undefined;
+}> = (props: {
+  problems: ReadonlyArray<SecurityWatchlistImportProblem>;
+  problemCount: number;
+  dataTestId?: string | undefined;
+}): ReactElement => {
+  const translator: Translator = useTranslator();
+  const shown: ReadonlyArray<SecurityWatchlistImportProblem> =
+    props.problems.slice(0, WATCHLIST_IMPORT_PROBLEMS_SHOWN);
+  const more: number = Math.max(0, props.problemCount - shown.length);
+
+  if (shown.length === 0) {
+    return <></>;
+  }
+
+  return (
+    <ul
+      className="space-y-1 text-xs text-gray-600"
+      data-testid={props.dataTestId}
+    >
+      {shown.map((problem: SecurityWatchlistImportProblem): ReactElement => {
+        return (
+          <li key={problem.line} className="break-words">
+            <span className="font-medium text-gray-700">
+              {translator.translateTemplate(IMPORT_PROBLEM_LINE, {
+                line: translator.formatNumber(problem.line),
+              })}
+            </span>
+            {": "}
+            <IsolatedText text={problem.value} className="font-mono" />
+            {" - "}
+            {translator.translateText(problem.message) || problem.message}
+          </li>
+        );
+      })}
+      {more > 0 ? (
+        <li>
+          {translator.translatePlural(IMPORT_PROBLEMS_MORE, more, {
+            count: translator.formatNumber(more),
+          })}
+        </li>
+      ) : (
+        <></>
+      )}
+    </ul>
+  );
+};
+
 // The lines of what an import did, each in the reader's words.
 export function describeWatchlistImportSummary(
   translator: Translator,
@@ -262,9 +358,6 @@ const WatchlistImportModal: FunctionComponent<ComponentProps> = (
   }
 
   const count: number = preview.values.length;
-  const shownProblems: Array<SecurityWatchlistImportProblem> =
-    preview.problems.slice(0, WATCHLIST_IMPORT_PROBLEMS_SHOWN);
-  const moreProblems: number = preview.problems.length - shownProblems.length;
 
   return (
     <Modal
@@ -398,44 +491,14 @@ const WatchlistImportModal: FunctionComponent<ComponentProps> = (
             <p className="font-medium">
               {describeWatchlistImportPreview(translator, preview).join(" · ")}
             </p>
-            {shownProblems.length > 0 ? (
-              <ul
-                className="mt-2 space-y-1 text-xs text-gray-600"
-                data-testid={WATCHLISTS_TEST_IDS.importProblems}
-              >
-                {shownProblems.map(
-                  (problem: SecurityWatchlistImportProblem): ReactElement => {
-                    return (
-                      <li key={problem.line} className="break-words">
-                        <span className="font-medium text-gray-700">
-                          {translator.translateTemplate(IMPORT_PROBLEM_LINE, {
-                            line: translator.formatNumber(problem.line),
-                          })}
-                        </span>
-                        {": "}
-                        <IsolatedText
-                          text={problem.value}
-                          className="font-mono"
-                        />
-                        {" - "}
-                        {translator.translateText(problem.message) ||
-                          problem.message}
-                      </li>
-                    );
-                  },
-                )}
-                {moreProblems > 0 ? (
-                  <li>
-                    {translator.translatePlural(
-                      IMPORT_PROBLEMS_MORE,
-                      moreProblems,
-                      { count: translator.formatNumber(moreProblems) },
-                    )}
-                  </li>
-                ) : (
-                  <></>
-                )}
-              </ul>
+            {preview.problems.length > 0 ? (
+              <div className="mt-2">
+                <WatchlistImportProblemList
+                  problems={preview.problems}
+                  problemCount={preview.problems.length}
+                  dataTestId={WATCHLISTS_TEST_IDS.importProblems}
+                />
+              </div>
             ) : (
               <></>
             )}

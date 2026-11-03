@@ -10,6 +10,7 @@ import {
   WATCHLIST_FILTER_NO_LISTS,
   WATCHLIST_FILTER_OPEN_WATCHLISTS,
   WATCHLIST_FILTER_REMOVE,
+  WATCHLIST_FILTER_TRY_AGAIN,
   WATCHLIST_FILTER_WATCHLIST,
   WATCHLIST_FILTER_WATCHLIST_PLACEHOLDER,
 } from "../../../SecurityEvents/Watchlists/WatchlistsCopy";
@@ -40,6 +41,7 @@ import Dropdown, {
   DropdownValue,
 } from "Common/UI/Components/Dropdown/Dropdown";
 import FieldError from "Common/UI/Components/Forms/Fields/FieldError";
+import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -49,6 +51,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useRef,
   useState,
 } from "react";
 
@@ -171,7 +174,11 @@ export interface ComponentProps {
  * rule's `expand` matches it (Types/SecurityEvent/SecurityWatchlistFilter).
  * A row's list is picked from the project's lists by name; picking one on a
  * row with no field yet sets the field a list of its kind is usually in.
- * A project with no list yet is sent to Watchlists to make one.
+ * A project with no list yet is sent to Watchlists to make one - in a new
+ * tab, so the monitor being written stays as it is - and the lists are
+ * read again whenever the window comes back into focus, so one just made
+ * there is offered at once. Lists that could not be read say so, with Try
+ * again, and no row is added until they are.
  *
  * A row reads as a sentence - Principal User, is on the list, vip_users -
  * so its three choices are changed by picking another, never emptied: the
@@ -186,6 +193,24 @@ const SecurityEventsWatchlistFilters: FunctionComponent<ComponentProps> = (
   const [watchlists, setWatchlists] = useState<Array<SecurityWatchlist>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [loadError, setLoadError] = useState<boolean>(false);
+  // Bumped by Try again, and when the window comes back into focus: the lists are read again.
+  const [readVersion, setReadVersion] = useState<number>(0);
+  // Whether a read has worked: a later one that fails keeps what it read.
+  const hasReadRef: React.MutableRefObject<boolean> = useRef<boolean>(false);
+
+  useEffect(() => {
+    const onFocus: () => void = (): void => {
+      setReadVersion((current: number): number => {
+        return current + 1;
+      });
+    };
+
+    window.addEventListener("focus", onFocus);
+
+    return () => {
+      window.removeEventListener("focus", onFocus);
+    };
+  }, []);
 
   useEffect(() => {
     let isCurrent: boolean = true;
@@ -210,12 +235,14 @@ const SecurityEventsWatchlistFilters: FunctionComponent<ComponentProps> = (
     })
       .then((result: ListResult<SecurityWatchlist>) => {
         if (isCurrent) {
+          hasReadRef.current = true;
           setWatchlists(result.data);
           setLoadError(false);
         }
       })
       .catch(() => {
-        if (isCurrent) {
+        // A re-read that fails keeps the lists the form already offers.
+        if (isCurrent && !hasReadRef.current) {
           setLoadError(true);
         }
       })
@@ -228,7 +255,7 @@ const SecurityEventsWatchlistFilters: FunctionComponent<ComponentProps> = (
     return () => {
       isCurrent = false;
     };
-  }, []);
+  }, [readVersion]);
 
   const watchlistsRoute: Route = RouteUtil.populateRouteParams(
     RouteMap[PageMap.SECURITY_EVENTS_WATCHLISTS] as Route,
@@ -376,9 +403,33 @@ const SecurityEventsWatchlistFilters: FunctionComponent<ComponentProps> = (
       )}
 
       {loadError ? (
-        <p className="text-sm text-gray-500">
-          {translator.translateText(WATCHLIST_FILTER_LISTS_FAILED)}
-        </p>
+        // A div, as Icon draws one: a paragraph may hold none.
+        <div
+          className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm"
+          role="alert"
+        >
+          <span className="inline-flex items-center gap-1.5 text-red-700">
+            <Icon
+              icon={IconProp.Alert}
+              className="h-4 w-4 flex-shrink-0 text-red-500"
+            />
+            {translator.translateText(WATCHLIST_FILTER_LISTS_FAILED)}
+          </span>
+          <button
+            type="button"
+            className="rounded-sm font-medium text-indigo-600 hover:text-indigo-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+            data-testid={WATCHLISTS_TEST_IDS.monitorFiltersRetry}
+            onClick={() => {
+              setLoadError(false);
+              setIsLoading(true);
+              setReadVersion((current: number): number => {
+                return current + 1;
+              });
+            }}
+          >
+            {translator.translateText(WATCHLIST_FILTER_TRY_AGAIN)}
+          </button>
+        </div>
       ) : (
         <></>
       )}
@@ -388,6 +439,7 @@ const SecurityEventsWatchlistFilters: FunctionComponent<ComponentProps> = (
           {translator.translateText(WATCHLIST_FILTER_NO_LISTS)}{" "}
           <Link
             to={watchlistsRoute}
+            openInNewTab={true}
             className="font-medium text-indigo-600 hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
           >
             {translator.translateText(WATCHLIST_FILTER_OPEN_WATCHLISTS)}
@@ -397,7 +449,9 @@ const SecurityEventsWatchlistFilters: FunctionComponent<ComponentProps> = (
         <></>
       )}
 
-      {!hasNoLists && filters.length < SECURITY_WATCHLIST_FILTERS_MAX ? (
+      {!hasNoLists &&
+      !loadError &&
+      filters.length < SECURITY_WATCHLIST_FILTERS_MAX ? (
         // Level with Filter by Attributes' Add: past md a NORMAL button keeps a dialog footer's margin.
         <div className="md:-ml-3">
           <Button

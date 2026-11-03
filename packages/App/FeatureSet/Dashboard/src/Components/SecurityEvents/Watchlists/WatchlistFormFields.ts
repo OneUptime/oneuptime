@@ -382,7 +382,11 @@ export function getWatchlistCreateFields(options: {
       }),
       dataTestId: "watchlist-holds",
     },
-    descriptionField({ translator: options.translator }),
+    /*
+     * Under More fields, where the values come from first - it decides what
+     * the list is, and opens its own fields under it - and the description
+     * last, as a list's Edit asks it.
+     */
     {
       field: { source: true },
       title: SOURCE_FIELD_TITLE,
@@ -420,6 +424,7 @@ export function getWatchlistCreateFields(options: {
       showIf: isNewWatchlistReadFromUrl,
       collapsibleSection: advancedSection,
     }),
+    descriptionField({ translator: options.translator }),
   ];
 }
 

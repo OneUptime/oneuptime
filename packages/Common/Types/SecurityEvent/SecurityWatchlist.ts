@@ -166,6 +166,23 @@ export const SECURITY_WATCHLIST_SNIPPET_FIELDS: Readonly<
 
 export const SECURITY_WATCHLIST_DEFAULT_SNIPPET_FIELD: string = "observables";
 
+/*
+ * The same fields by the short names the Events search bar documents and
+ * its help shows (`user:<name>`): the search a list's page offers to copy
+ * is written with them - `user:%vip_users%`, as the search help's own
+ * example is - and is half as long on a phone's line. Each reads back as
+ * its field (a test parses every one with the search itself).
+ */
+export const SECURITY_WATCHLIST_SEARCH_FIELD_NAMES: Readonly<
+  Record<string, string>
+> = {
+  principalUser: "user",
+  principalHost: "host",
+  principalIp: "ip",
+  processName: "processname",
+  observables: "observable",
+};
+
 // The Sigma modifier a rule reads a watchlist with: `field|expand: '%name%'`.
 export const SECURITY_WATCHLIST_MODIFIER: string = "expand";
 
@@ -281,7 +298,7 @@ export const SECURITY_WATCHLIST_MESSAGES: {
   urlNotAnAddress: {
     message: "Enter a whole address, with https and the host name.",
   },
-  urlNotHttps: { message: "The address starts with https." },
+  urlNotHttps: { message: "Enter an address that starts with https." },
   urlHasCredentials: {
     message:
       "The address holds no user name or password: everyone who can read the list can read its address.",
@@ -490,16 +507,18 @@ export function getSecurityWatchlistRuleSnippet(data: {
 
 /*
  * The search that reads the watchlist on Events or in a hunt, to copy:
- * the list's usual field, the list's name between % signs -
- * `principalUser:%vip_users%`. A minus in front reads it as an allow list.
+ * the list's usual field by its short name, the list's name between %
+ * signs - `user:%vip_users%`. A minus in front reads it as an allow list.
  */
 export function getSecurityWatchlistSearchSnippet(data: {
   name: string;
   entityType: unknown;
 }): string {
-  return `${getSecurityWatchlistSnippetField(
-    data.entityType,
-  )}:${getSecurityWatchlistPlaceholder(data.name)}`;
+  const field: string = getSecurityWatchlistSnippetField(data.entityType);
+
+  return `${
+    SECURITY_WATCHLIST_SEARCH_FIELD_NAMES[field] || field
+  }:${getSecurityWatchlistPlaceholder(data.name)}`;
 }
 
 // A value as stored: trimmed, with no run of wildcards.

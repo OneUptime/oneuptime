@@ -23,14 +23,14 @@ import {
 export const WATCHLISTS_TABLE_TITLE: string = translationKey("Watchlists");
 
 export const WATCHLISTS_TABLE_DESCRIPTION: string = translationKey(
-  "Values your rules match against: VIP users, critical hosts, known-bad file hashes, allowed admin addresses. A rule reads a list by its name.",
+  "Values your rules, monitors and searches match against: VIP users, critical hosts, known-bad file hashes, allowed admin addresses. Each reads a list by its name.",
 );
 
 export const WATCHLISTS_EMPTY_TITLE: string =
   translationKey("No watchlists yet");
 
 export const WATCHLISTS_EMPTY_DESCRIPTION: string = translationKey(
-  "Keep a list once, and match it in any rule. Start with a common one, or create your own.",
+  "Keep a list once, and match it in any rule, monitor or search. Start with a common one, or create your own.",
 );
 
 // One row of the list: "Create Watchlist", "Showing 1-3 of 3 watchlists".
@@ -157,13 +157,16 @@ export const SOURCE_FEED_DESCRIPTION: string = translationKey(
 );
 export const SOURCE_URL_TITLE: string = translationKey("A file at an address");
 export const SOURCE_URL_DESCRIPTION: string = translationKey(
-  "Read again on a schedule from an https address: a text or CSV file, one value a line.",
+  "Read again on a schedule, so the list follows the file.",
 );
 
-// A list read from an address: where, and how often.
+/*
+ * A list read from an address: where, and how often. The choice above it
+ * says what such a list is; the field says what to enter.
+ */
 export const IMPORT_URL_FIELD_TITLE: string = translationKey("URL");
 export const IMPORT_URL_FIELD_DESCRIPTION: string = translationKey(
-  "The https address of a text or CSV file: one value a line, with an optional note after a comma. The list is what the file holds at its last read.",
+  "The https address of a text or CSV file, one value a line, with an optional note after a comma.",
 );
 export const IMPORT_URL_FIELD_PLACEHOLDER: string = translationKey(
   "https://example.com/vip-users.csv",
@@ -203,6 +206,8 @@ export const USE_IN_RULE_LABEL: string = translationKey(
 export const USE_IN_SEARCH_LABEL: string = translationKey(
   "In a search on Events or a hunt",
 );
+// Events, opened on the search that reads the list.
+export const SEARCH_EVENTS: string = translationKey("Search Events");
 export const READ_BY_LABEL: string = translationKey("Read by");
 export const OPEN_DETECTION_RULES: string = translationKey(
   "Open Detection Rules",
@@ -271,10 +276,8 @@ export const URL_CARD_DESCRIPTION: string = translationKey(
   "The list is what the file at this address holds at its last read. A read that fails changes no value.",
 );
 export const URL_LAST_READ: string = translationKey("Last read {{time}}");
-export const URL_LINES_LEFT_OUT: PluralTemplate = {
-  one: "{{count}} line of the file was left out.",
-  other: "{{count}} lines of the file were left out.",
-};
+// When the list is read next, by its schedule or, after a failure, to try again.
+export const URL_NEXT_READ: string = translationKey("Next read {{time}}");
 export const URL_WAITING: string = translationKey("Waiting for its first read");
 export const URL_WAITING_DESCRIPTION: string = translationKey(
   "OneUptime reads the file within a minute of the list being saved, or now with Read Now.",
@@ -282,14 +285,14 @@ export const URL_WAITING_DESCRIPTION: string = translationKey(
 export const URL_LAST_READ_FAILED: string = translationKey(
   "The last read failed {{time}}",
 );
+// Which read a failed list's values are from: why it failed already says it keeps them.
 export const URL_KEEPS_VALUES_FROM: string = translationKey(
-  "The list keeps the values it read {{time}}.",
+  "Its values are from the read {{time}}.",
 );
 export const URL_NO_GOOD_READ: string = translationKey(
   "The list holds no values until a read works.",
 );
 export const URL_READ_NOW: string = translationKey("Read Now");
-export const URL_READ_NOW_DONE: string = translationKey("Read just now");
 // A row's values: how many, and from where.
 export const URL_VALUES_FROM: PluralTemplate = {
   one: "{{count}} value from {{host}}",
@@ -298,9 +301,12 @@ export const URL_VALUES_FROM: PluralTemplate = {
 export const URL_READ_FAILED_SHORT: string = translationKey(
   "Its last read failed",
 );
-// Who put a value there: the list's reads.
+/*
+ * Who put a value there: a read of the file, as "Added by Maya Chen 2
+ * days ago" says of a person - when the value came onto the list.
+ */
 export const READ_FROM_ADDRESS: string = translationKey(
-  "Read from its address {{time}}",
+  "Added from the file {{time}}",
 );
 export const URL_VALUES_EMPTY_TITLE: string =
   translationKey("No values read yet");
@@ -331,14 +337,19 @@ export const WATCHLIST_FILTER_ADD: string = translationKey(
 );
 export const WATCHLIST_FILTER_REMOVE: string =
   translationKey("Remove this filter");
-export const WATCHLIST_FILTER_NO_LISTS: string = translationKey(
-  "No watchlists yet. Create one under Security Events > Detections > Watchlists.",
-);
+/*
+ * A project with no list yet: where to make one - Watchlists, in a new
+ * tab, so the monitor being written stays as it is.
+ */
+export const WATCHLIST_FILTER_NO_LISTS: string =
+  translationKey("No watchlists yet.");
 export const WATCHLIST_FILTER_LISTS_FAILED: string = translationKey(
   "Couldn't load the watchlists.",
 );
-export const WATCHLIST_FILTER_OPEN_WATCHLISTS: string =
-  translationKey("Open Watchlists");
+export const WATCHLIST_FILTER_TRY_AGAIN: string = translationKey("Try again");
+export const WATCHLIST_FILTER_OPEN_WATCHLISTS: string = translationKey(
+  "Create one in Watchlists",
+);
 // The step's summary on a monitor's page.
 export const WATCHLIST_FILTERS_SUMMARY_DESCRIPTION: string = translationKey(
   "Only events whose field is, or is not, on these watchlists.",
@@ -453,9 +464,11 @@ export const WATCHLISTS_TEST_IDS: {
   ruleWatchlists: string;
   ruleWatchlist: string;
   searchSnippet: string;
+  searchEvents: string;
   exportValues: string;
   urlCard: string;
   urlAddress: string;
+  urlSchedule: string;
   urlStatus: string;
   urlReadNow: string;
   urlReadNowResult: string;
@@ -465,6 +478,7 @@ export const WATCHLISTS_TEST_IDS: {
   monitorFilter: string;
   monitorFilterAdd: string;
   monitorFilterRemove: string;
+  monitorFiltersRetry: string;
 } = {
   table: "security-watchlists-table",
   nameCell: "watchlist-name-cell",
@@ -492,9 +506,11 @@ export const WATCHLISTS_TEST_IDS: {
   ruleWatchlists: "detection-rule-watchlists",
   ruleWatchlist: "detection-rule-watchlist",
   searchSnippet: "watchlist-search-snippet",
+  searchEvents: "watchlist-search-events",
   exportValues: "watchlist-export-values",
   urlCard: "watchlist-url-card",
   urlAddress: "watchlist-url-address",
+  urlSchedule: "watchlist-url-schedule",
   urlStatus: "watchlist-url-status",
   urlReadNow: "watchlist-url-read-now",
   urlReadNowResult: "watchlist-url-read-now-result",
@@ -504,4 +520,5 @@ export const WATCHLISTS_TEST_IDS: {
   monitorFilter: "security-events-watchlist-filter",
   monitorFilterAdd: "security-events-watchlist-filter-add",
   monitorFilterRemove: "security-events-watchlist-filter-remove",
+  monitorFiltersRetry: "security-events-watchlist-filters-retry",
 };

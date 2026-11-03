@@ -177,7 +177,11 @@ import {
   CASE_SETUP_SCENARIOS,
   createCaseSetupFixture,
 } from "./CaseSetupFixture";
-import { createWatchlistsFixture } from "./WatchlistsFixture";
+import {
+  WATCHLIST_READ_SCENARIOS,
+  WATCHLIST_READER_SCENARIOS,
+  createWatchlistsFixture,
+} from "./WatchlistsFixture";
 import { HUNT_SCENARIOS, createHuntsFixture } from "./HuntsFixture";
 import SecurityEventsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Index";
 import SecurityHuntsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Hunts";
@@ -422,6 +426,18 @@ const retrohuntScenario = RETROHUNT_SCENARIOS.includes(params.get("retrohunt"))
 const huntsScenario = HUNT_SCENARIOS.includes(params.get("hunts"))
   ? params.get("hunts")
   : null;
+// ?urlread=: how the reads of the list read from an address stand (WatchlistsFixture.js).
+const watchlistReadScenario = WATCHLIST_READ_SCENARIOS.includes(
+  params.get("urlread"),
+)
+  ? params.get("urlread")
+  : "";
+// ?readers=: what reads the lists (WatchlistsFixture.js).
+const watchlistReaderScenario = WATCHLIST_READER_SCENARIOS.includes(
+  params.get("readers"),
+)
+  ? params.get("readers")
+  : "";
 /*
  * ?sources=silent: the project's sources sent their last security event
  * three days ago and nothing since - a connection that stopped, as the
@@ -2516,6 +2532,8 @@ const watchlists = createWatchlistsFixture({
   ago,
   people,
   isEmpty,
+  readScenario: watchlistReadScenario,
+  readerScenario: watchlistReaderScenario,
 });
 watchlists.seed();
 

@@ -12,14 +12,19 @@
  *   contractors       Users, read every day from HR's file at an https
  *                     address: two contractors, one leaving the list in
  *                     twelve days; the last read, two hours ago, left a
- *                     line of the file out
+ *                     line of the file out. ?urlread=failed: its last read,
+ *                     ten minutes ago, failed (HR's server answered 503),
+ *                     and its values are from the read two days before;
+ *                     ?urlread=waiting: a list just saved, waiting for its
+ *                     first read, with no values yet
  *   lab_hosts         Hosts, kept by hand, with no values yet
  *
  * So the common lists still offered are Critical hosts and Known-bad file
  * hashes. "VIP sign-in from outside the office" (off, while it is tuned)
  * reads vip_users and admin_addresses; the Security Events monitor
  * "Contractor sign-ins" reads contractors in its Filter by Watchlists;
- * nothing reads the other two.
+ * nothing reads the other two. ?readers=many: vip_users is read by a
+ * second monitor and a hunt as well.
  *
  * The server's own bookkeeping is kept as the server keeps it: a list's
  * valueCount follows its values as they are added, imported and deleted,
@@ -37,11 +42,14 @@ import { MonitorStepSecurityEventsMonitorUtil } from "Common/Types/Monitor/Monit
 import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import { SecurityEntityType } from "Common/Types/SecurityCase/SecurityEntity";
+import SecurityHunt from "Common/Models/DatabaseModels/SecurityHunt";
 import {
+  SECURITY_WATCHLIST_MESSAGES,
   SecurityWatchlistImportMode,
   SecurityWatchlistImportSchedule,
   SecurityWatchlistSource,
   getNextSecurityWatchlistImportAt,
+  getSecurityWatchlistImportRetryAt,
   getSecurityWatchlistValueKey,
   normalizeSecurityWatchlistValue,
   parseSecurityWatchlistImport,
@@ -62,8 +70,37 @@ export const WATCHLIST_READING_MONITOR = "Contractor sign-ins";
 export const CONTRACTORS_URL =
   "https://hr.acme-commerce.example/exports/contractors.csv";
 
-// What the next read of HR's file finds: one more contractor.
-const NEXT_CONTRACTOR = "ana.ruiz@contractor.example";
+/*
+ * ?urlread=: how the reads of HR's file stand - failed (the last read
+ * could not download it) or waiting (a list just saved, waiting for its
+ * first read); none: the last read worked, two hours ago.
+ */
+export const WATCHLIST_READ_SCENARIOS = ["failed", "waiting"];
+
+// ?readers=many: vip_users is read by a second monitor and a hunt too.
+export const WATCHLIST_READER_SCENARIOS = ["many"];
+
+export const WATCHLIST_SECOND_MONITOR = "VIP failures";
+export const WATCHLIST_READING_HUNT = "VIP sign-ins at night";
+
+/*
+ * HR's file as the next read finds it: one more contractor than the last
+ * read did, and a contract that ended, which the read leaves out (its
+ * moment to leave the list has passed) - so Read Now says what it added,
+ * what was already there, and which line it left out and why.
+ */
+export const CONTRACTORS_FILE = [
+  "value,note,expires",
+  "jo.kim@contractor.example,Design agency,2026-10-26",
+  "sam.lee@contractor.example,,",
+  "ana.ruiz@contractor.example,Data migration,",
+  "lee.park@contractor.example,Contract ended,2026-09-30",
+  "",
+].join("\n");
+
+// What HR's server answers while it is down (?urlread=failed).
+export const CONTRACTORS_READ_FAILURE_DETAIL =
+  "Data source responded with HTTP 503: Service Unavailable";
 
 // A Security Events monitor whose watchlist filter reads a list.
 function securityEventsSteps(watchlist) {
@@ -93,6 +130,8 @@ detection:
 
 export function createWatchlistsFixture(options) {
   const { insert, table, ID, ago, people, isEmpty } = options;
+  const readScenario = options.readScenario || "";
+  const readerScenario = options.readerScenario || "";
 
   function tableName(modelType) {
     return new modelType().tableName;
@@ -128,6 +167,42 @@ export function createWatchlistsFixture(options) {
     for (const list of table(SecurityWatchlist)) {
       recount(list._id);
     }
+  }
+
+  // How the reads of HR's file stand, as the list records them (?urlread=).
+  function contractorsReads() {
+    if (readScenario === "waiting") {
+      return {
+        lastImportAt: null,
+        lastImportSucceededAt: null,
+        lastImportError: null,
+        lastImportErrorDetail: null,
+        lastImportLinesLeftOut: null,
+        // Due: a new list is read within a minute of its save.
+        nextImportAt: ago(0),
+      };
+    }
+
+    if (readScenario === "failed") {
+      return {
+        lastImportAt: ago(10 * MINUTE),
+        lastImportSucceededAt: ago(2 * DAY),
+        lastImportError: SECURITY_WATCHLIST_MESSAGES.urlNotRead.message,
+        lastImportErrorDetail: CONTRACTORS_READ_FAILURE_DETAIL,
+        lastImportLinesLeftOut: 1,
+        // A read that failed is tried again within the hour.
+        nextImportAt: ago(-50 * MINUTE),
+      };
+    }
+
+    return {
+      lastImportAt: ago(2 * HOUR),
+      lastImportSucceededAt: ago(2 * HOUR),
+      lastImportError: null,
+      lastImportErrorDetail: null,
+      lastImportLinesLeftOut: 1,
+      nextImportAt: ago(2 * HOUR - DAY),
+    };
   }
 
   function seed() {
@@ -186,14 +261,9 @@ export function createWatchlistsFixture(options) {
       source: SecurityWatchlistSource.Url,
       importUrl: CONTRACTORS_URL,
       importSchedule: SecurityWatchlistImportSchedule.EveryDay,
-      lastImportAt: ago(2 * HOUR),
-      lastImportSucceededAt: ago(2 * HOUR),
-      lastImportError: null,
-      lastImportErrorDetail: null,
-      lastImportLinesLeftOut: 1,
-      nextImportAt: ago(2 * HOUR - DAY),
+      ...contractorsReads(),
       createdByUserId: people.priya._id,
-      createdAt: ago(6 * DAY),
+      createdAt: ago(readScenario === "waiting" ? 1 * MINUTE : 6 * DAY),
     });
 
     const values = [
@@ -223,23 +293,27 @@ export function createWatchlistsFixture(options) {
       });
     }
 
-    // What HR's file held at its last read: nobody's hand put them there.
-    insert(SecurityWatchlistItem, {
-      _id: ID.watchlistValue(7),
-      securityWatchlistId: ID.watchlist(5),
-      value: "jo.kim@contractor.example",
-      note: "Design agency",
-      // Leaves the list when the contract ends.
-      expiresAt: ago(-12 * DAY),
-      createdAt: ago(2 * HOUR),
-    });
-    insert(SecurityWatchlistItem, {
-      _id: ID.watchlistValue(8),
-      securityWatchlistId: ID.watchlist(5),
-      value: "sam.lee@contractor.example",
-      note: "",
-      createdAt: ago(2 * HOUR),
-    });
+    // What HR's file held at its last read that worked: nobody's hand put them there.
+    if (readScenario !== "waiting") {
+      const readAt = readScenario === "failed" ? ago(2 * DAY) : ago(2 * HOUR);
+
+      insert(SecurityWatchlistItem, {
+        _id: ID.watchlistValue(7),
+        securityWatchlistId: ID.watchlist(5),
+        value: "jo.kim@contractor.example",
+        note: "Design agency",
+        // Leaves the list when the contract ends.
+        expiresAt: ago(-12 * DAY),
+        createdAt: readAt,
+      });
+      insert(SecurityWatchlistItem, {
+        _id: ID.watchlistValue(8),
+        securityWatchlistId: ID.watchlist(5),
+        value: "sam.lee@contractor.example",
+        note: "",
+        createdAt: readAt,
+      });
+    }
 
     insert(Monitor, {
       _id: ID.monitor(1),
@@ -248,6 +322,24 @@ export function createWatchlistsFixture(options) {
       monitorSteps: securityEventsSteps("contractors"),
       createdAt: ago(5 * DAY),
     });
+
+    if (readerScenario === "many") {
+      insert(Monitor, {
+        _id: ID.monitor(2),
+        name: WATCHLIST_SECOND_MONITOR,
+        monitorType: MonitorType.SecurityEvents,
+        monitorSteps: securityEventsSteps("vip_users"),
+        createdAt: ago(3 * DAY),
+      });
+      insert(SecurityHunt, {
+        _id: ID.hunt(9),
+        name: WATCHLIST_READING_HUNT,
+        searchQuery: "class:Authentication user:%vip_users%",
+        filters: {},
+        createdByUserId: people.maya._id,
+        createdAt: ago(1 * DAY),
+      });
+    }
 
     insert(DetectionRule, {
       _id: ID.rule(32),
@@ -428,8 +520,12 @@ export function createWatchlistsFixture(options) {
 
   /*
    * POST /security-watchlist/read-now: { status, body }, as the server
-   * answers it - the list read at once, HR's file now holding one more
-   * contractor, the read recorded on the list as a scheduled one is.
+   * answers it - the list read at once and made HR's file
+   * (CONTRACTORS_FILE), as an import with Replace reads it: its values,
+   * their notes and when each leaves, the line whose moment has passed
+   * left out with why. The read is recorded on the list as a scheduled
+   * one is. ?urlread=failed: HR's server is still down - the list keeps
+   * its values, and the failure is recorded, with its next try.
    */
   function readNow(body) {
     const request = body || {};
@@ -451,31 +547,93 @@ export function createWatchlistsFixture(options) {
       };
     }
 
-    const held = table(SecurityWatchlistItem).filter((item) => {
-      return listOf(item) === watchlistId;
-    });
-    const isNew = !held.some((item) => {
-      return (
-        getSecurityWatchlistValueKey(item.value) ===
-        getSecurityWatchlistValueKey(NEXT_CONTRACTOR)
-      );
-    });
+    const now = ago(0);
 
-    if (isNew) {
-      insert(SecurityWatchlistItem, {
-        securityWatchlistId: watchlistId,
-        value: NEXT_CONTRACTOR,
-        note: "",
-        createdAt: ago(0),
+    if (readScenario === "failed") {
+      list.lastImportAt = now;
+      list.lastImportError = SECURITY_WATCHLIST_MESSAGES.urlNotRead.message;
+      list.lastImportErrorDetail = CONTRACTORS_READ_FAILURE_DETAIL;
+      list.nextImportAt = getSecurityWatchlistImportRetryAt({
+        schedule: list.importSchedule,
+        now,
       });
+
+      return {
+        status: 200,
+        body: {
+          error: list.lastImportError,
+          errorDetail: list.lastImportErrorDetail,
+          added: 0,
+          removed: 0,
+          unchanged: 0,
+          duplicates: 0,
+          problemCount: 0,
+          problems: [],
+          valueCount: list.valueCount,
+        },
+      };
     }
 
-    const now = ago(0);
+    const parsed = parseSecurityWatchlistImport({
+      text: CONTRACTORS_FILE,
+      entityType: list.entityType,
+      now,
+    });
+    const fileKeys = new Set(
+      parsed.values.map((item) => {
+        return getSecurityWatchlistValueKey(item.value);
+      }),
+    );
+    const values = table(SecurityWatchlistItem);
+    let removed = 0;
+
+    for (let index = values.length - 1; index >= 0; index--) {
+      const item = values[index];
+
+      if (
+        listOf(item) === watchlistId &&
+        !fileKeys.has(getSecurityWatchlistValueKey(item.value))
+      ) {
+        values.splice(index, 1);
+        removed++;
+      }
+    }
+
+    let added = 0;
+    let unchanged = 0;
+
+    for (const item of parsed.values) {
+      const held = values.find((value) => {
+        return (
+          listOf(value) === watchlistId &&
+          getSecurityWatchlistValueKey(value.value) ===
+            getSecurityWatchlistValueKey(item.value)
+        );
+      });
+
+      // A read makes the list the file: notes and when each leaves included.
+      if (held) {
+        held.note = item.note;
+        held.expiresAt = item.expiresAt || null;
+        unchanged++;
+        continue;
+      }
+
+      insert(SecurityWatchlistItem, {
+        securityWatchlistId: watchlistId,
+        value: item.value,
+        note: item.note,
+        expiresAt: item.expiresAt || null,
+        createdAt: now,
+      });
+      added++;
+    }
+
     list.lastImportAt = now;
     list.lastImportSucceededAt = now;
     list.lastImportError = null;
     list.lastImportErrorDetail = null;
-    list.lastImportLinesLeftOut = 0;
+    list.lastImportLinesLeftOut = parsed.problems.length;
     list.nextImportAt = getNextSecurityWatchlistImportAt({
       schedule: list.importSchedule,
       now,
@@ -487,10 +645,12 @@ export function createWatchlistsFixture(options) {
       body: {
         error: null,
         errorDetail: null,
-        added: isNew ? 1 : 0,
-        removed: 0,
-        unchanged: held.length,
-        problemCount: 0,
+        added,
+        removed,
+        unchanged,
+        duplicates: parsed.duplicates,
+        problemCount: parsed.problems.length,
+        problems: parsed.problems.slice(0, PROBLEMS_SHOWN),
         valueCount: list.valueCount,
       },
     };

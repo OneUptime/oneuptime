@@ -6,6 +6,7 @@ import {
   READ_BY_UNKNOWN,
   READ_FROM_ADDRESS,
   URL_READ_FAILED_SHORT,
+  URL_VALUES_FROM,
   VALUE_EXPIRES,
   WATCHLISTS_TEST_IDS,
 } from "./WatchlistsCopy";
@@ -16,6 +17,7 @@ import {
   getWatchlistHoldsIcon,
   getWatchlistHoldsLabel,
   getWatchlistReaderKindKey,
+  getWatchlistUrlHost,
   isFeedWatchlist,
   isUrlWatchlist,
   splitWatchlistName,
@@ -128,10 +130,33 @@ export const WatchlistReaderKindWord: FunctionComponent<{
 };
 
 /*
+ * Where a list read from an address reads from: the address's host, as
+ * written, left to right in any sentence. It is never broken - not at a
+ * hyphen ("hr.acme-" / "commerce.example" read as two names) - but moves
+ * to a line of its own when the line has no room for it, and a host too
+ * long for its column ends in "..." with the whole address under the
+ * pointer.
+ */
+export const WatchlistUrlHostText: FunctionComponent<{
+  url: string | undefined;
+}> = (props: { url: string | undefined }): ReactElement => {
+  return (
+    <bdi
+      dir="ltr"
+      className="inline-block max-w-full truncate align-bottom"
+      title={(props.url || "").trim() || undefined}
+    >
+      {getWatchlistUrlHost(props.url)}
+    </bdi>
+  );
+};
+
+/*
  * A list's values in words, with no icon of their own: how many it keeps
- * ("12 values", "No values yet" in a quieter grey), or the feed it follows,
- * its name as written. The line under what a row holds, and the folded
- * row's facts.
+ * ("12 values", "No values yet" in a quieter grey), the feed it follows,
+ * its name as written, or how many a list read from an address read and
+ * from where ("2 values from hr.acme-commerce.example"). The line under
+ * what a row holds, and the folded row's facts.
  */
 export interface WatchlistValuesTextProps extends WatchlistValuesFacts {
   dataTestId?: string | undefined;
@@ -167,20 +192,39 @@ export const WatchlistValuesText: FunctionComponent<
     .filter(Boolean)
     .join(" ");
 
+  const count: number = Math.max(0, Number(props.valueCount) || 0);
+  // A list read from an address, once a read has worked: how many, from where.
+  const isReadFromHost: boolean =
+    isUrlWatchlist(props.source) &&
+    (count > 0 || Boolean(props.lastImportSucceededAt));
+
   return (
     <span className={className || undefined} data-testid={props.dataTestId}>
-      {describeWatchlistValues(translator, {
-        source: props.source,
-        valueCount: props.valueCount,
-        threatIntelFeedId: props.threatIntelFeedId,
-        feedName,
-        importUrl: props.importUrl,
-        lastImportSucceededAt: props.lastImportSucceededAt,
-      })}
+      {isReadFromHost ? (
+        <TranslatedSentence
+          template={URL_VALUES_FROM}
+          count={count}
+          values={{ count: translator.formatNumber(count) }}
+          slots={{ host: <WatchlistUrlHostText url={props.importUrl} /> }}
+        />
+      ) : (
+        describeWatchlistValues(translator, {
+          source: props.source,
+          valueCount: props.valueCount,
+          threatIntelFeedId: props.threatIntelFeedId,
+          feedName,
+          importUrl: props.importUrl,
+          lastImportSucceededAt: props.lastImportSucceededAt,
+        })
+      )}
       {/* A list whose last read failed says so, in red, wherever its values are named. */}
       {isUrlWatchlist(props.source) && props.lastImportError ? (
-        <span className="block text-red-700">
-          {translator.translateText(URL_READ_FAILED_SHORT)}
+        <span className="mt-0.5 flex items-center gap-1 text-red-700">
+          <Icon
+            icon={IconProp.Alert}
+            className="h-3.5 w-3.5 flex-shrink-0 text-red-500"
+          />
+          <span>{translator.translateText(URL_READ_FAILED_SHORT)}</span>
         </span>
       ) : (
         <></>
@@ -571,8 +615,8 @@ export const WatchlistValueExpiresLine: FunctionComponent<{
 /*
  * Why a value is on the list, with who added it and when under it, as a
  * rule exception's reason reads: "Added by Maya Chen 3 days ago", or
- * "Added through the API" when no person did - "Read from its address"
- * on a list read from one - and, for a value kept for a while, when it
+ * "Added through the API" when no person did - "Added from the file" on a
+ * list read from an address - and, for a value kept for a while, when it
  * leaves the list. A value with no note says only who added it. The note
  * reads the way it is written (IsolatedText); the date whole is under the
  * pointer.

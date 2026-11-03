@@ -212,6 +212,7 @@ const SecurityWatchlistViewPage: FunctionComponent<
             threatIntelFeed: { name: true },
             importUrl: true,
             importSchedule: true,
+            nextImportAt: true,
             lastImportAt: true,
             lastImportSucceededAt: true,
             lastImportError: true,

@@ -1,5 +1,6 @@
 import {
   OPEN_DETECTION_RULES,
+  SEARCH_EVENTS,
   USE_IN_RULE_DESCRIPTION,
   USE_IN_RULE_LABEL,
   USE_IN_RULE_TITLE,
@@ -25,15 +26,30 @@ export interface ComponentProps {
   entityType: unknown;
 }
 
+const LINK_CLASS_NAME: string =
+  "font-medium text-indigo-600 hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
+
+// Events, opened on a search: the search that reads a list, run at once.
+export function getWatchlistSearchEventsRoute(search: string): Route {
+  return (
+    RouteUtil.populateRouteParams(
+      RouteMap[PageMap.SECURITY_EVENTS] as Route,
+    ) as Route
+  ).addQueryParams({
+    search: encodeURIComponent(search),
+  });
+}
+
 /*
- * USE THIS LIST: the selection that reads this list, to copy into a
- * detection or correlation rule - matched against the field a list of its
- * kind is usually matched against (getSecurityWatchlistRuleSnippet) - the
- * search that reads it on Events or in a hunt
- * (getSecurityWatchlistSearchSnippet), and the way to Detection Rules. A
- * Security Events monitor picks the list in its own Filter by Watchlists.
- * What reads the list already is named in About This List, with its other
- * facts.
+ * USE THIS LIST, two ways, each with where it goes under it: the selection
+ * that reads this list, to copy into a detection or correlation rule -
+ * matched against the field a list of its kind is usually matched against
+ * (getSecurityWatchlistRuleSnippet) - with the way to Detection Rules; and
+ * the search that reads it on Events or in a hunt
+ * (getSecurityWatchlistSearchSnippet), with Search Events, which opens
+ * Events on that search. A Security Events monitor picks the list in its
+ * own Filter by Watchlists. What reads the list already is named in About
+ * This List, with its other facts.
  */
 const WatchlistRuleSnippet: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -43,53 +59,63 @@ const WatchlistRuleSnippet: FunctionComponent<ComponentProps> = (
   const detectionRules: Route = RouteUtil.populateRouteParams(
     RouteMap[PageMap.SECURITY_EVENTS_DETECTION_RULES] as Route,
   );
+  const search: string = getSecurityWatchlistSearchSnippet({
+    name: props.name,
+    entityType: props.entityType,
+  });
 
   return (
     <Card title={USE_IN_RULE_TITLE} description={USE_IN_RULE_DESCRIPTION}>
-      <div className="space-y-3">
-        <p className="text-sm font-medium text-gray-700">
-          {translator.translateText(USE_IN_RULE_LABEL)}
-        </p>
-        <div data-testid={WATCHLISTS_TEST_IDS.ruleSnippet} dir="ltr">
-          <CodeBlock
-            code={getSecurityWatchlistRuleSnippet({
-              name: props.name,
-              entityType: props.entityType,
-            })}
-            language="yaml"
-            showCopyButton={true}
-            /*
-             * A selection of a few lines to copy into a rule, read whole:
-             * on a phone its long lines wrap clear of the copy button,
-             * rather than scrolling sideways under it.
-             */
-            wrapLongLines={true}
-          />
-        </div>
+      <div className="space-y-6">
+        <section className="space-y-2">
+          <h3 className="text-sm font-medium text-gray-700">
+            {translator.translateText(USE_IN_RULE_LABEL)}
+          </h3>
+          <div data-testid={WATCHLISTS_TEST_IDS.ruleSnippet} dir="ltr">
+            <CodeBlock
+              code={getSecurityWatchlistRuleSnippet({
+                name: props.name,
+                entityType: props.entityType,
+              })}
+              language="yaml"
+              showCopyButton={true}
+              /*
+               * A selection of a few lines to copy into a rule, read whole:
+               * on a phone its long lines wrap clear of the copy button,
+               * rather than scrolling sideways under it.
+               */
+              wrapLongLines={true}
+            />
+          </div>
+          <p className="text-sm">
+            <Link to={detectionRules} className={LINK_CLASS_NAME}>
+              {translator.translateText(OPEN_DETECTION_RULES)}
+            </Link>
+          </p>
+        </section>
 
-        <p className="text-sm font-medium text-gray-700">
-          {translator.translateText(USE_IN_SEARCH_LABEL)}
-        </p>
-        <div data-testid={WATCHLISTS_TEST_IDS.searchSnippet} dir="ltr">
-          <CodeBlock
-            code={getSecurityWatchlistSearchSnippet({
-              name: props.name,
-              entityType: props.entityType,
-            })}
-            language="text"
-            showCopyButton={true}
-            wrapLongLines={true}
-          />
-        </div>
-
-        <p className="text-sm">
-          <Link
-            to={detectionRules}
-            className="font-medium text-indigo-600 hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-          >
-            {translator.translateText(OPEN_DETECTION_RULES)}
-          </Link>
-        </p>
+        <section className="space-y-2">
+          <h3 className="text-sm font-medium text-gray-700">
+            {translator.translateText(USE_IN_SEARCH_LABEL)}
+          </h3>
+          <div data-testid={WATCHLISTS_TEST_IDS.searchSnippet} dir="ltr">
+            <CodeBlock
+              code={search}
+              language="text"
+              showCopyButton={true}
+              wrapLongLines={true}
+            />
+          </div>
+          <p className="text-sm">
+            <Link
+              to={getWatchlistSearchEventsRoute(search)}
+              className={LINK_CLASS_NAME}
+              dataTestId={WATCHLISTS_TEST_IDS.searchEvents}
+            >
+              {translator.translateText(SEARCH_EVENTS)}
+            </Link>
+          </p>
+        </section>
       </div>
     </Card>
   );
