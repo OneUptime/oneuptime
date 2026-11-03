@@ -7,18 +7,21 @@ import { isMasterAdminToken } from "../auth/currentUser";
 import {
   getGlobalOverrideAccess,
   getGlobalOverrideLockReason,
+  type GlobalOverrideAccess,
   type ProjectPermissionRow,
 } from "../oncall/globalOverrideAccess";
 import { getCachedAccessToken } from "../storage/keychain";
 
 /**
- * Why the signed-in person cannot arrange cover for every policy in
- * `projectId` - their permission to add user overrides covers only some
- * policies, or none - or null when they can, and while the server has not
- * said yet (oncall/globalOverrideAccess). Follows the rows as each answer
- * about the project brings them (api/projectPermissions).
+ * Whether the signed-in person may arrange cover for every policy in
+ * `projectId` (oncall/globalOverrideAccess): allowed, limited to some
+ * policies, not allowed at all - or unknown while the server has not said
+ * yet. Follows the rows as each answer about the project brings them
+ * (api/projectPermissions).
  */
-export function useGlobalOverrideLock(projectId: string | null): string | null {
+export function useGlobalOverrideAccess(
+  projectId: string | null,
+): GlobalOverrideAccess {
   const rows: Array<ProjectPermissionRow> | null = useSyncExternalStore(
     subscribeToProjectPermissions,
     (): Array<ProjectPermissionRow> | null => {
@@ -26,10 +29,18 @@ export function useGlobalOverrideLock(projectId: string | null): string | null {
     },
   );
 
-  return getGlobalOverrideLockReason(
-    getGlobalOverrideAccess({
-      rows: rows,
-      isMasterAdmin: isMasterAdminToken(getCachedAccessToken()),
-    }),
-  );
+  return getGlobalOverrideAccess({
+    rows: rows,
+    isMasterAdmin: isMasterAdminToken(getCachedAccessToken()),
+  });
+}
+
+/**
+ * Why the signed-in person cannot arrange cover for every policy in
+ * `projectId` - their permission to add user overrides covers only some
+ * policies, or none - or null when they can, and while the server has not
+ * said yet (oncall/globalOverrideAccess).
+ */
+export function useGlobalOverrideLock(projectId: string | null): string | null {
+  return getGlobalOverrideLockReason(useGlobalOverrideAccess(projectId));
 }

@@ -967,6 +967,8 @@ export const DataObservabilityRoutePath: Dictionary<string> = {
   [PageMap.DATA_OBSERVABILITY_SCHEMA_CHANGES]: "schema-changes",
   [PageMap.DATA_OBSERVABILITY_CHECKS]: "checks",
   [PageMap.DATA_OBSERVABILITY_PIPELINES]: "pipelines",
+  [PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW]: `pipelines/${RouteParams.ModelID}`,
+  [PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_RECOMMENDATIONS]: `pipelines/${RouteParams.ModelID}/recommendations`,
   [PageMap.DATA_OBSERVABILITY_DOCUMENTATION]: "documentation",
 };
 
@@ -7892,6 +7894,20 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.DATA_OBSERVABILITY_SCHEMA_CHANGES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/data-observability/${
       DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_SCHEMA_CHANGES]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_RECOMMENDATIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[
+        PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_RECOMMENDATIONS
+      ]
     }`,
   ),
 

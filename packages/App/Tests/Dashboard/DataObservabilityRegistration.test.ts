@@ -247,6 +247,42 @@ describe("Data Observability registry wiring", () => {
     );
   });
 
+  test("a pipeline's schedule - its migration and five-minute check - is wired", () => {
+    const migrations: string = readSquashed(
+      "Common/Server/Infrastructure/Postgres/SchemaMigrations/Index.ts",
+    );
+
+    expect(migrations).toContain(
+      'import { AddDataPipelineSchedule1808991600000 } from "./1808991600000-AddDataPipelineSchedule";',
+    );
+    expect(
+      migrations.indexOf("AddDataPipelineSchedule1808991600000,"),
+    ).toBeGreaterThan(migrations.indexOf("AddDataPipelines1808991500000,"));
+
+    const migration: string = readSquashed(
+      "Common/Server/Infrastructure/Postgres/SchemaMigrations/1808991600000-AddDataPipelineSchedule.ts",
+    );
+
+    expect(migration).toContain(
+      'ALTER TABLE "DataPipeline" ADD "typicalRunDurationInSeconds" integer',
+    );
+    expect(migration).toContain(
+      'ALTER TABLE "DataPipeline" ADD "expectedRunIntervalInSeconds" integer',
+    );
+    expect(migration).toContain(
+      'ALTER TABLE "DataPipelineRun" ADD "scheduledAt" TIMESTAMP WITH TIME ZONE',
+    );
+
+    const jobs: string = readSquashed(
+      "App/FeatureSet/Workers/Jobs/DataObservability/DataObservabilityJobs.ts",
+    );
+
+    expect(jobs).toContain('"DataObservability:CheckPipelineSchedules"');
+    expect(jobs).toContain(
+      "await DataPipelineScheduleCheck.checkAll(OneUptimeDate.getCurrentDate());",
+    );
+  });
+
   test("the Workers import its jobs, and the probe ingest mounts its routes", () => {
     expect(readSquashed("App/FeatureSet/Workers/Index.ts")).toContain(
       'import "./Jobs/DataObservability/DataObservabilityJobs"',

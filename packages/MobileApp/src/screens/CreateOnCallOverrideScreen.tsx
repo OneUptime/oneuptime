@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { View, ScrollView, Pressable, type ViewStyle } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import {
@@ -21,7 +21,17 @@ import { useActiveProject } from "../hooks/useProject";
 import { useProjectUsers } from "../hooks/useProjectUsers";
 import { useCurrentUserId } from "../hooks/useCurrentUserId";
 import { useOnCallOverrides } from "../hooks/useOnCallOverrides";
-import { useGlobalOverrideLock } from "../hooks/useGlobalOverrideLock";
+import { useGlobalOverrideAccess } from "../hooks/useGlobalOverrideLock";
+import {
+  useCoverPolicies,
+  type CoverPoliciesState,
+} from "../hooks/useCoverPolicies";
+import {
+  GLOBAL_OVERRIDE_LIMITED_REASON,
+  getGlobalOverrideLockReason,
+  type GlobalOverrideAccess,
+} from "../oncall/globalOverrideAccess";
+import type { CoverPolicy } from "../api/onCallOverrides";
 import GradientButton from "../components/GradientButton";
 import SegmentedControl from "../components/SegmentedControl";
 import SectionHeader from "../components/SectionHeader";
@@ -36,6 +46,7 @@ import { getFriendlyErrorMessage } from "../utils/error";
 import {
   buildOverrideRequest,
   describeOverride,
+  describePolicyScope,
   DURATION_PRESETS,
   type BuildOverrideResult,
   type OverrideDirection,
@@ -100,8 +111,11 @@ export function readPrefilledWindow(
  *
  * The cover it arranges applies to every on-call policy in the project,
  * which takes a permission to add overrides over the whole project. For
- * someone whose permission covers only some policies, or none, the sheet
- * says why in place of the form, before anything is chosen.
+ * someone whose permission covers only some policies, the sheet offers the
+ * policies the server says they may cover instead, and arranges the cover
+ * on each one ticked. For someone who may cover none of them, or may add no
+ * override at all, it says why in place of the form, before anything is
+ * chosen.
  */
 export default function CreateOnCallOverrideScreen(): React.JSX.Element {
   const { theme } = useTheme();
@@ -138,14 +152,55 @@ export default function CreateOnCallOverrideScreen(): React.JSX.Element {
    * Cover for a policy-variant shift names its policy. Every other cover
    * arranged here is global - it applies to every on-call policy in the
    * project - and takes a permission to add overrides over the whole
-   * project. For someone whose permission covers only some policies, or
-   * none, the server would refuse it on Confirm, so the sheet says why in
-   * place of the form (oncall/globalOverrideAccess).
+   * project (oncall/globalOverrideAccess). For someone whose permission
+   * covers only some policies, the sheet asks the server which they may
+   * cover - of the shift's policies from Get cover, else of the project's -
+   * and offers those, one override on each (useCoverPolicies). Where it
+   * allows none, or cannot say (a server older than the question), and for
+   * someone who may add no override at all, the server would refuse the
+   * cover on Confirm, so the sheet says why in place of the form.
    */
-  const globalOverrideLock: string | null = useGlobalOverrideLock(projectId);
-  const lockReason: string | null = prefill?.policyId
-    ? null
-    : globalOverrideLock;
+  const globalOverrideAccess: GlobalOverrideAccess =
+    useGlobalOverrideAccess(projectId);
+  const isOnSomePolicies: boolean =
+    !prefill?.policyId && globalOverrideAccess === "limited";
+  const coverPolicies: CoverPoliciesState = useCoverPolicies({
+    projectId,
+    // A shift of another project is refused on Confirm, whatever it offers.
+    enabled: isOnSomePolicies && (!prefill || prefill.projectId === projectId),
+    shiftPolicies: prefill ? prefill.policies ?? [] : undefined,
+  });
+  const offeredPolicies: CoverPolicy[] =
+    coverPolicies.status === "offered" ? coverPolicies.policies : [];
+  const isCheckingPolicies: boolean =
+    isOnSomePolicies && coverPolicies.status === "checking";
+
+  let lockReason: string | null = null;
+
+  if (isOnSomePolicies) {
+    lockReason =
+      offeredPolicies.length > 0 || isCheckingPolicies
+        ? null
+        : GLOBAL_OVERRIDE_LIMITED_REASON;
+  } else if (!prefill?.policyId) {
+    lockReason = getGlobalOverrideLockReason(globalOverrideAccess);
+  }
+
+  // The offered policies unticked: every one is ticked to start with.
+  const [untickedPolicyIds, setUntickedPolicyIds] = useState<string[]>([]);
+  const pickedPolicies: CoverPolicy[] = offeredPolicies.filter(
+    (policy: CoverPolicy): boolean => {
+      return !untickedPolicyIds.includes(policy.policyId);
+    },
+  );
+
+  /*
+   * The policies a Confirm has arranged the cover on so far: one that
+   * failed part way, tried again, arranges the rest only.
+   */
+  const savedPolicyIds: React.MutableRefObject<Set<string>> = useRef<
+    Set<string>
+  >(new Set<string>());
 
   const projectUsers: ReturnType<typeof useProjectUsers> =
     useProjectUsers(projectId);
@@ -162,6 +217,8 @@ export default function CreateOnCallOverrideScreen(): React.JSX.Element {
     setCounterpart(null);
     setIsPickerOpen(false);
     setError(null);
+    setUntickedPolicyIds([]);
+    savedPolicyIds.current = new Set<string>();
   }, [projectId]);
 
   const counterpartName: string = counterpart
@@ -251,8 +308,30 @@ export default function CreateOnCallOverrideScreen(): React.JSX.Element {
       return;
     }
 
+    if (isOnSomePolicies && pickedPolicies.length === 0) {
+      setError("Tick at least one on-call policy.");
+      errorFeedback();
+      return;
+    }
+
     try {
-      await overrides.createOverride(result.input);
+      if (isOnSomePolicies) {
+        // One override on each policy ticked, one after another.
+        for (const policy of pickedPolicies) {
+          if (savedPolicyIds.current.has(policy.policyId)) {
+            continue;
+          }
+
+          await overrides.createOverride({
+            ...result.input,
+            onCallDutyPolicyId: policy.policyId,
+          });
+          savedPolicyIds.current.add(policy.policyId);
+        }
+      } else {
+        await overrides.createOverride(result.input);
+      }
+
       successFeedback();
       navigation.goBack();
     } catch (err: unknown) {
@@ -298,6 +377,36 @@ export default function CreateOnCallOverrideScreen(): React.JSX.Element {
       </View>
     </Card>
   ) : null;
+
+  /*
+   * Asking the server which policies they may cover: the shift being
+   * covered, if there is one, and a line saying so - nothing to choose yet.
+   */
+  if (isCheckingPolicies) {
+    return (
+      <ScrollView
+        testID="create-override-scroll"
+        contentInsetAdjustmentBehavior="automatic"
+        style={{ backgroundColor: theme.colors.backgroundPrimary }}
+        contentContainerStyle={{
+          padding: spacing.xl,
+          ...gutters,
+          paddingBottom: bottomPadding,
+        }}
+      >
+        <ScreenIntro
+          title={prefilledWindow ? "Cover this shift" : "Arrange coverage"}
+        />
+        {prefilledShiftCard}
+        <Banner
+          testID="override-checking-policies"
+          tone="info"
+          message="Checking which on-call policies you can arrange cover on…"
+          style={prefilledShiftCard ? { marginTop: spacing.xxl } : undefined}
+        />
+      </ScrollView>
+    );
+  }
 
   /*
    * Locked: the shift being covered, if there is one, and why it cannot be
@@ -505,6 +614,92 @@ export default function CreateOnCallOverrideScreen(): React.JSX.Element {
           ) : null}
         </View>
 
+        {isOnSomePolicies && offeredPolicies.length > 0 ? (
+          <View testID="cover-policies" style={{ marginTop: spacing.xxl }}>
+            <SectionHeader
+              title={
+                offeredPolicies.length === 1
+                  ? "On-call policy"
+                  : "On-call policies"
+              }
+            />
+            {offeredPolicies.length === 1 ? (
+              <Card testID="cover-policy-only" padding={spacing.md + 2}>
+                <AppText variant="headline">
+                  {offeredPolicies[0]!.policyName}
+                </AppText>
+              </Card>
+            ) : (
+              offeredPolicies.map((policy: CoverPolicy) => {
+                const isTicked: boolean = !untickedPolicyIds.includes(
+                  policy.policyId,
+                );
+
+                return (
+                  <Pressable
+                    key={policy.policyId}
+                    testID={`cover-policy-${policy.policyId}`}
+                    accessibilityRole="checkbox"
+                    accessibilityLabel={policy.policyName}
+                    accessibilityState={{ checked: isTicked }}
+                    aria-checked={isTicked}
+                    onPress={(): void => {
+                      selectionFeedback();
+                      setError(null);
+                      setUntickedPolicyIds((unticked: string[]): string[] => {
+                        return isTicked
+                          ? [...unticked, policy.policyId]
+                          : unticked.filter((id: string): boolean => {
+                              return id !== policy.policyId;
+                            });
+                      });
+                    }}
+                    style={({ pressed }: { pressed: boolean }): ViewStyle => {
+                      return {
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: spacing.md,
+                        minHeight: touchTarget,
+                        paddingHorizontal: spacing.lg,
+                        paddingVertical: spacing.sm,
+                        marginBottom: spacing.sm,
+                        borderRadius: radius.md,
+                        borderWidth: 1,
+                        borderColor: theme.colors.borderSubtle,
+                        backgroundColor: pressed
+                          ? theme.colors.backgroundTertiary
+                          : theme.colors.backgroundElevated,
+                      };
+                    }}
+                  >
+                    <Ionicons
+                      name={isTicked ? "checkbox" : "square-outline"}
+                      size={22}
+                      color={
+                        isTicked
+                          ? theme.colors.actionPrimary
+                          : theme.colors.textTertiary
+                      }
+                    />
+                    <AppText variant="subhead" weight="600" style={{ flex: 1 }}>
+                      {policy.policyName}
+                    </AppText>
+                  </Pressable>
+                );
+              })
+            )}
+            <AppText
+              variant="footnote"
+              tone="secondary"
+              style={{ marginTop: spacing.sm, marginHorizontal: spacing.xs }}
+            >
+              {offeredPolicies.length === 1
+                ? "Your permission to add user overrides covers only this policy, so the cover applies to it alone."
+                : "Your permission to add user overrides covers only these policies. The cover applies to each one ticked."}
+            </AppText>
+          </View>
+        ) : null}
+
         {!prefilledWindow ? (
           <View style={{ marginTop: spacing.xxl }}>
             <SectionHeader title="How long?" />
@@ -615,6 +810,20 @@ export default function CreateOnCallOverrideScreen(): React.JSX.Element {
           <AppText variant="title3" style={{ marginTop: spacing.sm }}>
             {previewSentence}
           </AppText>
+          {isOnSomePolicies && pickedPolicies.length > 0 ? (
+            <AppText
+              testID="override-preview-policies"
+              variant="subhead"
+              tone="secondary"
+              style={{ marginTop: spacing.xs }}
+            >
+              {describePolicyScope(
+                pickedPolicies.map((policy: CoverPolicy): string => {
+                  return policy.policyName;
+                }),
+              )}
+            </AppText>
+          ) : null}
           {endsAtLabel ? (
             <View
               style={{

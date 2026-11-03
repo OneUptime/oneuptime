@@ -18,9 +18,14 @@ import {
   buildPipelineMetricRow,
   getPipelineKey,
   isFinalState,
+  isRunningState,
   MAX_DATASETS_KEPT,
   mergeDatasetLabels,
 } from "../../../../Server/Utils/DataObservability/OpenLineageIngest";
+import {
+  getPipelineScheduleValues,
+  PipelineScheduleValue,
+} from "../../../../Server/Utils/DataObservability/DataPipelineScheduleCheck";
 import {
   UsageAsset,
   UsageStore,
@@ -63,6 +68,7 @@ describe("readOpenLineageEvent", () => {
       jobNamespace: "airflow://prod",
       jobName: "orders_daily.load_orders",
       errorMessage: null,
+      scheduledAt: null,
       inputs: [
         {
           namespace: "postgres://orders-db:5432",
@@ -91,6 +97,35 @@ describe("readOpenLineageEvent", () => {
         NOW,
       )?.errorMessage,
     ).toBe("relation does not exist");
+  });
+
+  test("a run's scheduled time comes from its nominalTime facet, never after the run", () => {
+    expect(
+      readOpenLineageEvent(
+        event({
+          run: {
+            runId: RUN_ID,
+            facets: {
+              nominalTime: { nominalStartTime: "2026-10-01T00:00:00Z" },
+            },
+          },
+        }),
+        NOW,
+      )?.scheduledAt,
+    ).toEqual(new Date("2026-10-01T00:00:00Z"));
+    expect(
+      readOpenLineageEvent(
+        event({
+          run: {
+            runId: RUN_ID,
+            facets: {
+              nominalTime: { nominalStartTime: "2026-11-04T00:00:00Z" },
+            },
+          },
+        }),
+        NOW,
+      )?.scheduledAt,
+    ).toBe(null);
   });
 
   test("no job name or namespace, or not an object, is no event", () => {
@@ -263,6 +298,9 @@ describe("OpenLineageIngest helpers", () => {
     expect(isFinalState("ABORT")).toBe(true);
     expect(isFinalState("RUNNING")).toBe(false);
     expect(isFinalState(undefined)).toBe(false);
+    expect(isRunningState("START")).toBe(true);
+    expect(isRunningState("RUNNING")).toBe(true);
+    expect(isRunningState("COMPLETE")).toBe(false);
   });
 
   test("dataset labels keep what they had, add what is new, bounded", () => {
@@ -309,5 +347,78 @@ describe("OpenLineageIngest helpers", () => {
       "oneuptime.data.pipeline.name": "load_orders",
       "oneuptime.data.pipeline.namespace": "airflow://prod",
     });
+  });
+});
+
+describe("getPipelineScheduleValues", () => {
+  function pipelineWith(data: Partial<DataPipeline>): DataPipeline {
+    const pipeline: DataPipeline = new DataPipeline();
+    pipeline.id = ObjectID.generate();
+    Object.assign(pipeline, data);
+    return pipeline;
+  }
+
+  test("a pipeline with a schedule writes how late it is, 0 while on time", () => {
+    expect(
+      getPipelineScheduleValues({
+        pipeline: pipelineWith({
+          lastRunState: "COMPLETE",
+          lastRunStartedAt: new Date(NOW.getTime() - 30 * 60 * 1000),
+          expectedRunIntervalInSeconds: 3600,
+        }),
+        now: NOW,
+      }),
+    ).toEqual([
+      { metricName: DataPipelineMetricName.OverdueSeconds, value: 0 },
+    ]);
+    expect(
+      getPipelineScheduleValues({
+        pipeline: pipelineWith({
+          lastRunState: "COMPLETE",
+          lastRunStartedAt: new Date(NOW.getTime() - 85 * 60 * 1000),
+          expectedRunIntervalInSeconds: 3600,
+        }),
+        now: NOW,
+      }),
+    ).toEqual([
+      { metricName: DataPipelineMetricName.OverdueSeconds, value: 600 },
+    ]);
+  });
+
+  test("a run still going writes how its time so far compares", () => {
+    const values: Array<PipelineScheduleValue> = getPipelineScheduleValues({
+      pipeline: pipelineWith({
+        lastRunState: "RUNNING",
+        lastRunStartedAt: new Date(NOW.getTime() - 25 * 60 * 1000),
+        typicalRunDurationInSeconds: 600,
+      }),
+      now: NOW,
+    });
+
+    expect(values).toEqual([
+      { metricName: DataPipelineMetricName.RunDurationRatio, value: 2.5 },
+    ]);
+  });
+
+  test("nothing is written before either is learned, or for a run long abandoned", () => {
+    expect(
+      getPipelineScheduleValues({
+        pipeline: pipelineWith({
+          lastRunState: "RUNNING",
+          lastRunStartedAt: new Date(NOW.getTime() - 60 * 1000),
+        }),
+        now: NOW,
+      }),
+    ).toEqual([]);
+    expect(
+      getPipelineScheduleValues({
+        pipeline: pipelineWith({
+          lastRunState: "RUNNING",
+          lastRunStartedAt: new Date(NOW.getTime() - 8 * 24 * 60 * 60 * 1000),
+          typicalRunDurationInSeconds: 600,
+        }),
+        now: NOW,
+      }),
+    ).toEqual([]);
   });
 });

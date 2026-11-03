@@ -70,7 +70,7 @@ When someone leaves the project, every override that names them and has not ende
 
 **Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** and **On-Call Member** can add and delete overrides; **Viewer** and **On-Call Viewer** can see them. In a custom role, the permissions are **Create On-Call Duty Policy User Override**, **Delete On-Call Duty Policy User Override** and **Read On-Call Duty Policy User Override**. On the **Schedule Timeline**, only people who can read overrides see whose shift is being covered.
 
-An override on a policy follows the policy's scope. Give a team **On-Call Member** limited to the policies it owns, or to its label, and its members add and delete overrides on those policies only. A global override applies to every policy, another team's included, so adding or deleting one takes the override permission over the whole project. With a narrower one, **Add User Override** and **Delete** on **On-Call Duty → Advanced → User Overrides** are locked and say why. So are **Skip until…** on a schedule's layers and **Get cover** on your upcoming shifts, which add global overrides, and the mobile app says why instead of arranging cover. The team adds its overrides on each policy's own **User Overrides** page. The same holds for the API: an override with no `onCallDutyPolicyId` is refused for a permission limited to labels or to owned policies.
+An override on a policy follows the policy's scope. Give a team **On-Call Member** limited to the policies it owns, or to its label, and its members add and delete overrides on those policies only. A global override applies to every policy, another team's included, so adding or deleting one takes the override permission over the whole project. With a narrower one, **Add User Override** and **Delete** on **On-Call Duty → Advanced → User Overrides** are locked and say why. **Skip until…** on a schedule's layers and **Get cover** on your upcoming shifts, which add global overrides, offer instead the policies you may cover, one override on each, and so does the mobile app's cover; where you may cover none of them, they are locked and say why. The team adds its overrides on each policy's own **User Overrides** page. The same holds for the API: an override with no `onCallDutyPolicyId` is refused for a permission limited to labels or to owned policies.
 
 On OneUptime Cloud, user overrides need the **Growth** plan.
 
@@ -113,7 +113,7 @@ They are reached through their own personal on-call rules and verified methods. 
 :::
 
 :::details I cannot add an override
-Adding one takes one of the roles above, and on OneUptime Cloud the **Growth** plan. A global override takes the role over the whole project: if your team's role is limited to its own policies or to some labels, add the override on the policy's own **User Overrides** page. That is also why **Skip until…** and **Get cover** are locked for you, and why the mobile app cannot arrange cover.
+Adding one takes one of the roles above, and on OneUptime Cloud the **Growth** plan. A global override takes the role over the whole project: if your team's role is limited to its own policies or to some labels, add the override on the policy's own **User Overrides** page. **Skip until…**, **Get cover** and the mobile app then offer only the policies you may cover, and are locked where you may cover none of them.
 :::
 
 ## Next steps
