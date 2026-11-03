@@ -53,7 +53,10 @@ import AiResourceType from "../../../Types/ResourceAiAgent/AiResourceType";
 import RunbookStepType from "../../../Types/Runbook/RunbookStepType";
 import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
-import { openRemediationFixes } from "./RemediationFixHarness";
+import {
+  findRemediationCommandLines,
+  openRemediationFixes,
+} from "./RemediationFixHarness";
 
 /*
  * The dry run of a fix's cloud changes on the Remediation card:
@@ -140,16 +143,10 @@ async function renderCard(
   render(
     <RemediationStep investigationStage="reported" incidentId={INCIDENT_ID} />,
   );
-  // Folded to its sentence: opened, as a reader does.
+  // Each step of the fix opened, as a reader does; the change as planned.
   await openRemediationFixes();
-  const command: HTMLElement = await screen.findByText(COMMAND);
-  const commandRow: HTMLElement | null = command.closest("li");
 
-  if (!commandRow) {
-    throw new Error("The command is not rendered inside a command row.");
-  }
-
-  return commandRow;
+  return (await findRemediationCommandLines(COMMAND)).plan;
 }
 
 beforeEach(() => {
