@@ -17,7 +17,9 @@ import MicrosoftTeamsAuthAction from "./Actions/Auth";
 import MicrosoftTeamsUtil, {
   MicrosoftTeamsTenantResolution,
 } from "./MicrosoftTeams";
-import { MICROSOFT_TEAMS_MAX_CHOICE_TITLE_LENGTH } from "./MicrosoftTeamsCardChoices";
+import MicrosoftTeamsCardChoices, {
+  MICROSOFT_TEAMS_MAX_CHOICE_TITLE_LENGTH,
+} from "./MicrosoftTeamsCardChoices";
 
 /*
  * MICROSOFT TEAMS' AFFECTED RESOURCES INPUT ON THE CREATE NEW INCIDENT CARD.
@@ -108,16 +110,12 @@ export default class MicrosoftTeamsAffectedResources {
         .join(",");
     }
 
+    // Why the field is there, in the card's small print.
     return [
       input,
-      {
-        type: "TextBlock",
-        text: WorkspaceAffectedResources.getHint(),
-        isSubtle: true,
-        size: "Small",
-        wrap: true,
-        spacing: "Small",
-      },
+      MicrosoftTeamsCardChoices.buildNoteElement(
+        WorkspaceAffectedResources.getHint(),
+      ),
     ];
   }
 
@@ -221,7 +219,9 @@ export default class MicrosoftTeamsAffectedResources {
     activity: JSONObject;
   }): Promise<MicrosoftTeamsInvokeResponse> {
     try {
-      return this.getSearchResponse(await this.search(data.activity));
+      return this.getSearchResponse(
+        await this.readSearchResults(data.activity),
+      );
     } catch (error) {
       logger.error(
         `Could not list the affected resources a Microsoft Teams card searched for: ${error}`,
@@ -230,7 +230,7 @@ export default class MicrosoftTeamsAffectedResources {
     }
   }
 
-  private static async search(
+  private static async readSearchResults(
     activity: JSONObject,
   ): Promise<Array<MicrosoftTeamsSearchResult>> {
     const value: JSONObject =

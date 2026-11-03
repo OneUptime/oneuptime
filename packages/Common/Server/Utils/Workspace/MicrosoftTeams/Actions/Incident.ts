@@ -1433,14 +1433,10 @@ export default class MicrosoftTeamsIncidentActions {
           isMultiSelect: true,
           choices: shown.monitors.choices,
         },
-        {
-          type: "TextBlock",
-          text: WORKSPACE_AFFECTED_RESOURCES_TEXT.monitorsHint,
-          isSubtle: true,
-          size: "Small",
-          wrap: true,
-          spacing: "Small",
-        },
+        // What a pick here does, right under the list.
+        MicrosoftTeamsCardChoices.buildNoteElement(
+          WORKSPACE_AFFECTED_RESOURCES_TEXT.monitorsHint,
+        ),
       );
     }
 
