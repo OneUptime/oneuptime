@@ -1080,6 +1080,8 @@
   "Completed": "已完成",
   "Stop": "停止",
   "Stopped": "已停止",
+  "{{count}} of {{total}} {{suffix}}": "{{suffix}}：{{count}} / {{total}}",
+  "Progress: {{count}} of {{total}} {{suffix}} ({{percent}}%)": "进度：{{suffix}} {{count}} / {{total}}（{{percent}}%）",
   "Delete {{count}} {{itemsName}}": "删除 {{count}} 个{{itemsName}}",
   "Delete {{count}} {{itemsName}}_one": "删除 {{count}} 个{{itemName}}",
   "Are you sure you want to delete {{count}} {{itemsName}}? This action cannot be undone.": "确定要删除 {{count}} 个{{itemsName}}吗？此操作无法撤消。",

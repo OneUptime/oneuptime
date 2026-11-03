@@ -521,6 +521,17 @@ describe("the words in every language", () => {
     [`${BULK_TIME_LEFT_HOURS.other}_one`, BULK_TIME_LEFT_HOURS.one],
     [BULK_NOT_STARTED_COUNT.other, BULK_NOT_STARTED_COUNT.other],
     [`${BULK_NOT_STARTED_COUNT.other}_one`, BULK_NOT_STARTED_COUNT.one],
+    /*
+     * The progress bar's count, and what it says to a screen reader: the
+     * Admin Dashboard drew "0 of 5 Users" in English in every language
+     * until fu-bulk-actions gave its locale files the ProgressBar's
+     * sentences.
+     */
+    ["{{count}} of {{total}} {{suffix}}", "{{count}} of {{total}} {{suffix}}"],
+    [
+      "Progress: {{count}} of {{total}} {{suffix}} ({{percent}}%)",
+      "Progress: {{count}} of {{total}} {{suffix}} ({{percent}}%)",
+    ],
   ];
 
   const PLACEHOLDER: RegExp = /{{\s*(\w+)\s*}}/g;

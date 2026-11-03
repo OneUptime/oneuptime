@@ -1080,6 +1080,8 @@
   "Completed": "Voltooid",
   "Stop": "Stoppen",
   "Stopped": "Gestopt",
+  "{{count}} of {{total}} {{suffix}}": "{{count}} van {{total}} {{suffix}}",
+  "Progress: {{count}} of {{total}} {{suffix}} ({{percent}}%)": "Voortgang: {{count}} van {{total}} {{suffix}} ({{percent}}%)",
   "Delete {{count}} {{itemsName}}": "{{count}} {{itemsName}} verwijderen",
   "Delete {{count}} {{itemsName}}_one": "{{count}} {{itemName}} verwijderen",
   "Are you sure you want to delete {{count}} {{itemsName}}? This action cannot be undone.": "Weet u zeker dat u {{count}} {{itemsName}} wilt verwijderen? Deze actie kan niet ongedaan worden gemaakt.",

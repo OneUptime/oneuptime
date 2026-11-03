@@ -1080,6 +1080,8 @@
   "Completed": "완료됨",
   "Stop": "중지",
   "Stopped": "중지됨",
+  "{{count}} of {{total}} {{suffix}}": "{{suffix}} {{total}}개 중 {{count}}개",
+  "Progress: {{count}} of {{total}} {{suffix}} ({{percent}}%)": "진행률: {{suffix}} {{total}}개 중 {{count}}개 ({{percent}}%)",
   "Delete {{count}} {{itemsName}}": "{{itemsName}} {{count}}개 삭제",
   "Delete {{count}} {{itemsName}}_one": "{{itemName}} {{count}}개 삭제",
   "Are you sure you want to delete {{count}} {{itemsName}}? This action cannot be undone.": "{{itemsName}} {{count}}개를 삭제하시겠습니까? 이 작업은 취소할 수 없습니다.",

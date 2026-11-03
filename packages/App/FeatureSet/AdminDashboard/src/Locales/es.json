@@ -1080,6 +1080,8 @@
   "Completed": "Completado",
   "Stop": "Detener",
   "Stopped": "Detenido",
+  "{{count}} of {{total}} {{suffix}}": "{{count}} de {{total}} {{suffix}}",
+  "Progress: {{count}} of {{total}} {{suffix}} ({{percent}}%)": "Progreso: {{count}} de {{total}} {{suffix}} ({{percent}} %)",
   "Delete {{count}} {{itemsName}}": "Eliminar {{count}} elementos ({{itemsName}})",
   "Delete {{count}} {{itemsName}}_one": "Eliminar {{count}} elemento ({{itemName}})",
   "Are you sure you want to delete {{count}} {{itemsName}}? This action cannot be undone.": "¿Está seguro de que desea eliminar {{count}} elementos ({{itemsName}})? Esta acción no se puede deshacer.",

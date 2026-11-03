@@ -1080,6 +1080,8 @@
   "Completed": "पूर्ण",
   "Stop": "रोकें",
   "Stopped": "रोका गया",
+  "{{count}} of {{total}} {{suffix}}": "{{total}} {{suffix}} में से {{count}}",
+  "Progress: {{count}} of {{total}} {{suffix}} ({{percent}}%)": "प्रगति: {{total}} {{suffix}} में से {{count}} ({{percent}}%)",
   "Delete {{count}} {{itemsName}}": "{{count}} {{itemsName}} हटाएँ",
   "Delete {{count}} {{itemsName}}_one": "{{count}} {{itemName}} हटाएँ",
   "Are you sure you want to delete {{count}} {{itemsName}}? This action cannot be undone.": "क्या आप वाकई {{count}} {{itemsName}} हटाना चाहते हैं? यह कार्रवाई पूर्ववत नहीं की जा सकती।",

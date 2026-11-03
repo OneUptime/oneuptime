@@ -1080,6 +1080,8 @@
   "Completed": "完了",
   "Stop": "停止",
   "Stopped": "停止",
+  "{{count}} of {{total}} {{suffix}}": "{{suffix}}: {{total}} 件中 {{count}} 件",
+  "Progress: {{count}} of {{total}} {{suffix}} ({{percent}}%)": "進捗: {{suffix}} {{total}} 件中 {{count}} 件 ({{percent}}%)",
   "Delete {{count}} {{itemsName}}": "{{itemsName}}を {{count}} 件削除",
   "Delete {{count}} {{itemsName}}_one": "{{itemName}}を {{count}} 件削除",
   "Are you sure you want to delete {{count}} {{itemsName}}? This action cannot be undone.": "{{itemsName}}を {{count}} 件削除してもよろしいですか？この操作は元に戻せません。",

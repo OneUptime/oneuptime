@@ -1080,6 +1080,8 @@
   "Completed": "Завершено",
   "Stop": "Остановить",
   "Stopped": "Остановлено",
+  "{{count}} of {{total}} {{suffix}}": "{{count}} из {{total}} ({{suffix}})",
+  "Progress: {{count}} of {{total}} {{suffix}} ({{percent}}%)": "Прогресс: {{count}} из {{total}} ({{suffix}}), {{percent}}%",
   "Delete {{count}} {{itemsName}}": "Удалить элементы ({{itemsName}}): {{count}}",
   "Delete {{count}} {{itemsName}}_one": "Удалить элемент ({{itemName}}): {{count}}",
   "Are you sure you want to delete {{count}} {{itemsName}}? This action cannot be undone.": "Вы уверены, что хотите удалить элементы ({{itemsName}}) в количестве {{count}}? Это действие нельзя отменить.",

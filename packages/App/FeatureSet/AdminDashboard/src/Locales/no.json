@@ -1080,6 +1080,8 @@
   "Completed": "Fullført",
   "Stop": "Stopp",
   "Stopped": "Stoppet",
+  "{{count}} of {{total}} {{suffix}}": "{{count}} av {{total}} {{suffix}}",
+  "Progress: {{count}} of {{total}} {{suffix}} ({{percent}}%)": "Fremdrift: {{count}} av {{total}} {{suffix}} ({{percent}} %)",
   "Delete {{count}} {{itemsName}}": "Slett {{count}} {{itemsName}}",
   "Delete {{count}} {{itemsName}}_one": "Slett {{count}} {{itemName}}",
   "Are you sure you want to delete {{count}} {{itemsName}}? This action cannot be undone.": "Er du sikker på at du vil slette {{count}} {{itemsName}}? Denne handlingen kan ikke angres.",
