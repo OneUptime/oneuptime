@@ -43,6 +43,11 @@ export interface ComponentProps {
   visual: RemediationFixFactVisual;
   // English that replaces the visual's own words (a plan's "No safe fix found").
   label?: string | undefined;
+  /*
+   * Words already in the reader's language, drawn as they are: a count
+   * ("2 failed"), which a plural template words.
+   */
+  words?: string | undefined;
   testId?: string | undefined;
 }
 
@@ -66,7 +71,8 @@ const RemediationFixFact: FunctionComponent<ComponentProps> = (
         className={`inline-block h-1.5 w-1.5 flex-none rounded-full ${props.visual.dot}`}
       />
       <span className="break-words">
-        {translator.translateText(props.label || props.visual.label)}
+        {props.words ||
+          translator.translateText(props.label || props.visual.label)}
       </span>
     </span>
   );

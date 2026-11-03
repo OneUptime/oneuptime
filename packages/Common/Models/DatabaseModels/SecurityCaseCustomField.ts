@@ -238,6 +238,7 @@ export default class SecurityCaseCustomField extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(CustomFieldMappingSourceResource),
     title: "Map Value From",
     description:
       "Related resource this field copies its value from. Empty means values are entered by hand.",

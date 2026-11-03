@@ -43,6 +43,7 @@ import {
 } from "./DocsPageShape";
 import {
   PRODUCTS_MENU_ITEM_KEYS,
+  drawnMenuGroup,
   drawnMenuItem,
   drawnPath,
   drawnPathSegment,
@@ -962,5 +963,22 @@ describe("the helpers, on these pages' shapes", () => {
     expect(expectedLink("en", THREAT_INTELLIGENCE, "#no-such-heading")).toBe(
       null,
     );
+  });
+});
+
+/*
+ * The Products menu lists Security Events under Security, beside Data
+ * Security (#5550); it was under Observability. Each page says so with the
+ * name its own language's menu gives the group (navbar.categories.security).
+ */
+describe.each(LANGUAGES)("%s Security Events page", (language: string) => {
+  it("names the Products menu group it is under as this language's menu does: Security, not Observability", () => {
+    const translated: string = readPage(language, SECURITY_EVENTS);
+    const security: string = drawnMenuGroup(language, "Security");
+    const observability: string = drawnMenuGroup(language, "Observability");
+
+    expect(security).not.toBe("Security");
+    expect(translated).toContain(`**${security}**`);
+    expect(translated).not.toContain(`**${observability}**`);
   });
 });

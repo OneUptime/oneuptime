@@ -108,7 +108,7 @@ Abra **Vistas guardadas** y haga clic en **+ Guardar vista actual**. Introduzca 
 Elija la vista en **Vistas guardadas** para aplicarla, y **Quitar vista** para volver a la última hora sin filtros. Apunte a una vista de la lista para **Editar** o **Eliminar**, o, mientras está aplicada, para **Actualizar** con sus cambios.
 :::
 
-Las vistas guardadas pertenecen al proyecto, así que todos en él ven la misma lista. Un intervalo móvil, como la última hora, sigue siendo móvil: la vista muestra la hora anterior a abrirla, no la hora en que la guardó. Mientras el proyecto no tenga vista predeterminada, la siguiente vista guardada pasa a serlo, y un proyecto tiene una sola predeterminada a la vez.
+Las vistas guardadas pertenecen al proyecto, así que todos en él ven las mismas vistas, y cada vista se queda en la página en la que se guardó: una vista guardada en la página Registros aparece en la página Registros, y una vista guardada en la pestaña Registros de un recurso, como la de un clúster de Kubernetes o la de un host, aparece solo en esa pestaña. Un intervalo móvil, como la última hora, sigue siendo móvil: la vista muestra la hora anterior a abrirla, no la hora en que la guardó. Mientras una página no tenga vista predeterminada, la siguiente vista guardada en ella pasa a ser su predeterminada, y cada página tiene una sola predeterminada a la vez.
 
 ## Representar sus registros en gráficos
 

@@ -108,7 +108,7 @@ Open **Saved Views** and click **+ Save Current View**. Enter a **Name**, tick *
 Pick the view from **Saved Views** to apply it, and **Clear view** to go back to the past hour with no filters. Point at a view in the list to **Edit** or **Delete** it, or, while it is applied, to **Update** it with your changes.
 :::
 
-Saved views belong to the project, so everyone in it sees the same list. A rolling range such as the past hour stays rolling: the view shows the hour before you open it, not the hour you saved. While the project has no default view, the next view saved becomes the default, and a project has one default at a time.
+Saved views belong to the project, so everyone in it sees the same views, and each view stays on the page it was saved on: a view saved on the Logs page is listed on the Logs page, and a view saved on a resource's Logs tab, such as a Kubernetes cluster's or a host's, is listed on that tab alone. A rolling range such as the past hour stays rolling: the view shows the hour before you open it, not the hour you saved. While a page has no default view, the next view saved on it becomes its default, and each page has one default at a time.
 
 ## Chart your logs
 

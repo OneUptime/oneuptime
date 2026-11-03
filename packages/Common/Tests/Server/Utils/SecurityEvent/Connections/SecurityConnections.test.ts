@@ -1,4 +1,5 @@
 import SecurityEvent from "../../../../../Models/AnalyticsModels/SecurityEvent";
+import Alert from "../../../../../Models/DatabaseModels/Alert";
 import Incident from "../../../../../Models/DatabaseModels/Incident";
 import AlertService from "../../../../../Server/Services/AlertService";
 import AlertStateService from "../../../../../Server/Services/AlertStateService";
@@ -18,13 +19,19 @@ import SecurityConnectedRecords, {
   SecurityConnectedRecordsResult,
 } from "../../../../../Server/Utils/SecurityEvent/Connections/SecurityConnectedRecords";
 import SecurityConnections, {
+  CONNECTION_KIND_AFFECTED_RESOURCES,
   MAX_CHANGES_READ,
   MAX_FACT_ROWS_READ,
   MONITOR_ALERTS_COLUMN,
   MONITOR_INCIDENTS_COLUMN,
+  MONITOR_RELATION_COLUMNS,
   RECORD_RELATION_COLUMNS,
+  alertRelation,
+  getConnectedRecordAffectedResources,
   hasRecentChanges,
-  linkIncidentToConnectedRecords,
+  incidentRelation,
+  linkRecordToConnectedRecords,
+  monitorRelation,
 } from "../../../../../Server/Utils/SecurityEvent/Connections/SecurityConnections";
 import TelemetryReadAccess from "../../../../../Server/Utils/Telemetry/TelemetryReadAccess";
 import { TelemetryServiceFilter } from "../../../../../Server/Utils/Telemetry/TelemetryReadScope";
@@ -41,6 +48,11 @@ import {
   SecurityConnectionsJson,
 } from "../../../../../Types/SecurityCase/SecurityConnection";
 import { SecurityEntityType } from "../../../../../Types/SecurityCase/SecurityEntity";
+import {
+  AI_AFFECTED_RESOURCE_KINDS,
+  AiAffectedResourceKind,
+  AiAffectedResourceKindInfo,
+} from "../../../../../Types/AI/AiAffectedResources";
 import {
   keyForHost,
   keyForKubernetesCluster,
@@ -727,11 +739,20 @@ describe("the incident a case declares", () => {
         now: NOW,
       });
 
+    /*
+     * The exact network device too: incidents and alerts list network
+     * devices since #5341. The possible host and the member never.
+     */
     expect(
       links.map((item: SecurityConnectedRecord): string => {
         return `${item.kind}:${item.name}`;
       }),
-    ).toEqual(["Host:web-1", "KubernetesCluster:prod-eu", "Service:checkout"]);
+    ).toEqual([
+      "Host:web-1",
+      "KubernetesCluster:prod-eu",
+      "Service:checkout",
+      "NetworkDevice:edge-fw",
+    ]);
     expect(resolveSpy.mock.calls[0]![0]).toMatchObject({
       props: { isRoot: true },
     });
@@ -747,10 +768,10 @@ describe("the incident a case declares", () => {
     expect(sources?.excludedServiceIds).toBeUndefined();
   });
 
-  test("linkIncidentToConnectedRecords: each relation of the incident, exact records only", () => {
+  test("linkRecordToConnectedRecords: each relation of the incident, exact records only", () => {
     const incident: Incident = new Incident();
 
-    linkIncidentToConnectedRecords(incident, [
+    linkRecordToConnectedRecords(incident, [
       connected(SecurityConnectionKind.Host, HOST_ID, "web-1"),
       connected(SecurityConnectionKind.Host, HOST_ID, "web-1"),
       connected(SecurityConnectionKind.KubernetesCluster, CLUSTER_ID, "prod"),
@@ -781,7 +802,7 @@ describe("the incident a case declares", () => {
     const MONITOR_ID: string = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
     const incident: Incident = new Incident();
 
-    linkIncidentToConnectedRecords(incident, [
+    linkRecordToConnectedRecords(incident, [
       connected(SecurityConnectionKind.CloudResource, CLOUD_ID, "checkout-alb"),
       connected(SecurityConnectionKind.Monitor, MONITOR_ID, "Checkout site"),
       connected(
@@ -1275,5 +1296,290 @@ describe("a cloud resource's facts", () => {
     expect(handler.monitors).toBeNull();
     expect(handler.recentChanges).toEqual([]);
     expect(incidentSpy).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * #5303's follow-up: what a case, a playbook or a detection opens - an
+ * incident, an alert - is linked to the records it names exactly, through
+ * the lists its Affected Resources show, so OneUptime AI can reach and fix
+ * them. A network device is one of them now (incidents and alerts list
+ * devices since #5341); a monitor, a serverless function and a member never.
+ */
+describe("what an incident or alert a case or a detection opens is linked to", () => {
+  const DEVICE_ID: string = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee";
+  const CLOUD_ID: string = "ffffffff-ffff-4fff-8fff-ffffffffffff";
+  const DOCKER_ID: string = "dddddddd-dddd-4ddd-8ddd-dddddddddddd";
+  const PODMAN_ID: string = "dddddddd-dddd-4ddd-8ddd-ddddddddddd1";
+
+  test("each kind that is linked is an affected resource of the same name, through the incident's and the alert's own list", () => {
+    expect(CONNECTION_KIND_AFFECTED_RESOURCES).toEqual({
+      [SecurityConnectionKind.Host]: AiAffectedResourceKind.Host,
+      [SecurityConnectionKind.DockerHost]: AiAffectedResourceKind.DockerHost,
+      [SecurityConnectionKind.PodmanHost]: AiAffectedResourceKind.PodmanHost,
+      [SecurityConnectionKind.KubernetesCluster]:
+        AiAffectedResourceKind.KubernetesCluster,
+      [SecurityConnectionKind.NetworkDevice]:
+        AiAffectedResourceKind.NetworkDevice,
+      [SecurityConnectionKind.CloudResource]:
+        AiAffectedResourceKind.CloudResource,
+      [SecurityConnectionKind.Service]: AiAffectedResourceKind.Service,
+    });
+
+    // The list each is read through is the list it is linked in.
+    for (const [kind, affectedKind] of Object.entries(
+      CONNECTION_KIND_AFFECTED_RESOURCES,
+    )) {
+      const info: AiAffectedResourceKindInfo | undefined =
+        AI_AFFECTED_RESOURCE_KINDS.find(
+          (item: AiAffectedResourceKindInfo): boolean => {
+            return item.kind === affectedKind;
+          },
+        );
+
+      expect(RECORD_RELATION_COLUMNS[kind as SecurityConnectionKind]).toBe(
+        info?.relation,
+      );
+      expect(incidentRelation(kind as SecurityConnectionKind)).toEqual({
+        column: info?.relation,
+        isList: true,
+      });
+      expect(alertRelation(kind as SecurityConnectionKind)).toEqual({
+        column: info?.relation,
+        isList: true,
+      });
+    }
+
+    // Never a monitor, a serverless function or a member.
+    for (const kind of [
+      SecurityConnectionKind.Monitor,
+      SecurityConnectionKind.ServerlessFunction,
+      SecurityConnectionKind.User,
+    ]) {
+      expect(CONNECTION_KIND_AFFECTED_RESOURCES[kind]).toBeUndefined();
+      expect(RECORD_RELATION_COLUMNS[kind]).toBeUndefined();
+    }
+  });
+
+  test("a monitor lists no network device, so a device's monitors are not read through a list", () => {
+    expect(MONITOR_RELATION_COLUMNS[SecurityConnectionKind.NetworkDevice]).toBe(
+      undefined,
+    );
+    expect(monitorRelation(SecurityConnectionKind.NetworkDevice)).toBeNull();
+    // Every other kind an incident lists, a monitor lists too, by the same name.
+    for (const [kind, column] of Object.entries(MONITOR_RELATION_COLUMNS)) {
+      expect(RECORD_RELATION_COLUMNS[kind as SecurityConnectionKind]).toBe(
+        column,
+      );
+    }
+    expect(Object.keys(MONITOR_RELATION_COLUMNS).length).toBe(
+      Object.keys(RECORD_RELATION_COLUMNS).length - 1,
+    );
+  });
+
+  test("getConnectedRecordAffectedResources: the exact records of a kind an incident lists, each once", () => {
+    expect(
+      getConnectedRecordAffectedResources([
+        connected(SecurityConnectionKind.Host, HOST_ID, "web-1"),
+        connected(SecurityConnectionKind.Host, HOST_ID.toUpperCase(), "web-1"),
+        connected(SecurityConnectionKind.NetworkDevice, DEVICE_ID, "edge-fw"),
+        connected(
+          SecurityConnectionKind.DockerHost,
+          DOCKER_ID,
+          "dock",
+          SecurityConnectionCertainty.Possible,
+        ),
+        connected(SecurityConnectionKind.Monitor, CLUSTER_ID, "Checkout"),
+        connected(SecurityConnectionKind.User, MEMBER_ID, "Kim"),
+      ]),
+    ).toEqual([
+      { kind: AiAffectedResourceKind.Host, id: HOST_ID },
+      { kind: AiAffectedResourceKind.NetworkDevice, id: DEVICE_ID },
+    ]);
+  });
+
+  test("an alert is linked the same way as an incident, network devices and cloud resources included", () => {
+    const alert: Alert = new Alert();
+
+    const linked: Array<{ kind: AiAffectedResourceKind; id: string }> =
+      linkRecordToConnectedRecords(alert, [
+        connected(SecurityConnectionKind.Host, HOST_ID, "web-1"),
+        connected(SecurityConnectionKind.NetworkDevice, DEVICE_ID, "edge-fw"),
+        connected(
+          SecurityConnectionKind.CloudResource,
+          CLOUD_ID,
+          "checkout-alb",
+        ),
+        connected(SecurityConnectionKind.PodmanHost, PODMAN_ID, "pod-1"),
+        connected(SecurityConnectionKind.Monitor, CLUSTER_ID, "Checkout site"),
+      ]);
+
+    expect(linked).toEqual([
+      { kind: AiAffectedResourceKind.Host, id: HOST_ID },
+      { kind: AiAffectedResourceKind.NetworkDevice, id: DEVICE_ID },
+      { kind: AiAffectedResourceKind.CloudResource, id: CLOUD_ID },
+      { kind: AiAffectedResourceKind.PodmanHost, id: PODMAN_ID },
+    ]);
+    expect(alert.hosts?.[0]?.id?.toString()).toBe(HOST_ID);
+    expect(alert.networkDevices?.[0]?.id?.toString()).toBe(DEVICE_ID);
+    expect(alert.cloudResources?.[0]?.id?.toString()).toBe(CLOUD_ID);
+    expect(alert.podmanHosts?.[0]?.id?.toString()).toBe(PODMAN_ID);
+    // An alert's monitor is never set from a security connection.
+    expect(alert.monitorId).toBeUndefined();
+    expect(alert.monitor).toBeUndefined();
+    expect(alert.kubernetesClusters).toBeUndefined();
+  });
+
+  test("a record linked to nothing keeps every list as it was", () => {
+    const incident: Incident = new Incident();
+
+    expect(
+      linkRecordToConnectedRecords(incident, [
+        connected(
+          SecurityConnectionKind.Host,
+          HOST_ID,
+          "web-1.staging",
+          SecurityConnectionCertainty.Possible,
+        ),
+      ]),
+    ).toEqual([]);
+    expect(incident.hosts).toBeUndefined();
+  });
+
+  test("readEntityLinks: what a detection's entities name exactly, and the records the logs behind its events were sent under, read as OneUptime in its window", async () => {
+    logResourcesSpy.mockResolvedValue([
+      { type: "Host", id: HOST_ID, eventCount: 12 },
+    ]);
+    resolveSpy.mockResolvedValue({
+      ...RESOLVED,
+      records: [
+        connected(SecurityConnectionKind.Host, HOST_ID, "web-1"),
+        connected(SecurityConnectionKind.NetworkDevice, DEVICE_ID, "edge-fw"),
+        connected(
+          SecurityConnectionKind.Host,
+          "dddddddd-dddd-4ddd-8ddd-ddddddddddd2",
+          "web-1.staging",
+          SecurityConnectionCertainty.Possible,
+        ),
+        connected(SecurityConnectionKind.Monitor, CLUSTER_ID, "Checkout site"),
+        connected(SecurityConnectionKind.User, MEMBER_ID, "Kim Morgan"),
+      ],
+    });
+
+    const window: { start: Date; end: Date } = {
+      start: new Date("2026-10-25T11:55:00.000Z"),
+      end: new Date("2026-10-25T12:00:00.000Z"),
+    };
+    const entities: Array<{ type: SecurityEntityType; value: string }> = [
+      { type: SecurityEntityType.Host, value: "web-1" },
+      { type: SecurityEntityType.IpAddress, value: "10.0.4.1" },
+    ];
+
+    const links: Array<SecurityConnectedRecord> =
+      await SecurityConnections.readEntityLinks({
+        projectId: PROJECT_ID,
+        entities,
+        window,
+      });
+
+    expect(
+      links.map((item: SecurityConnectedRecord): string => {
+        return `${item.kind}:${item.name}`;
+      }),
+    ).toEqual(["Host:web-1", "NetworkDevice:edge-fw"]);
+
+    // The logs behind every source's events, in the run's window, as OneUptime.
+    expect(logResourcesSpy.mock.calls[0]![0]).toMatchObject({
+      projectId: PROJECT_ID,
+      values: ["web-1", "10.0.4.1"],
+      startTime: window.start,
+      endTime: window.end,
+    });
+    expect(resolveSpy.mock.calls[0]![0]).toMatchObject({
+      projectId: PROJECT_ID,
+      entities,
+      logResources: [{ type: "Host", id: HOST_ID, eventCount: 12 }],
+      props: { isRoot: true },
+    });
+  });
+
+  test("readEntityLinks: a detection that names nothing reads nothing", async () => {
+    expect(
+      await SecurityConnections.readEntityLinks({
+        projectId: PROJECT_ID,
+        entities: [],
+        window: { start: NOW, end: NOW },
+      }),
+    ).toEqual([]);
+    expect(resolveSpy).not.toHaveBeenCalled();
+    expect(logResourcesSpy).not.toHaveBeenCalled();
+  });
+
+  test("readEntityLinks: at most as many records as a case's incident is linked to", async () => {
+    resolveSpy.mockResolvedValue({
+      ...RESOLVED,
+      records: Array.from(
+        { length: SECURITY_CONNECTION_MAX_RESOURCES + 3 },
+        (_value: unknown, index: number): SecurityConnectedRecord => {
+          return connected(
+            SecurityConnectionKind.Host,
+            `aaaaaaaa-aaaa-4aaa-8aaa-${String(index).padStart(12, "0")}`,
+            `web-${index}`,
+          );
+        },
+      ),
+    });
+
+    const links: Array<SecurityConnectedRecord> =
+      await SecurityConnections.readEntityLinks({
+        projectId: PROJECT_ID,
+        entities: [{ type: SecurityEntityType.Host, value: "web" }],
+        window: { start: NOW, end: NOW },
+      });
+
+    expect(links).toHaveLength(SECURITY_CONNECTION_MAX_RESOURCES);
+  });
+
+  test("a network device's active incidents and alerts are read through its list now, and no monitor is read for it", async () => {
+    caseRead();
+    resolveSpy.mockResolvedValue({
+      ...RESOLVED,
+      records: [
+        connected(SecurityConnectionKind.NetworkDevice, DEVICE_ID, "edge-fw"),
+      ],
+    });
+    incidentSpy.mockImplementation(async (args: unknown) => {
+      const query: Record<string, unknown> = (
+        args as { query: Record<string, unknown> }
+      ).query;
+
+      return query["networkDevices"]
+        ? [
+            {
+              id: new ObjectID(INCIDENT_ID),
+              title: "The edge firewall drops traffic",
+              incidentNumberWithPrefix: "INC-7",
+              networkDevices: [{ _id: DEVICE_ID }],
+            },
+          ]
+        : [];
+    });
+
+    const json: SecurityConnectionsJson = (await SecurityConnections.forCase({
+      projectId: PROJECT_ID,
+      securityCaseId: CASE_ID,
+      props: CALLER,
+      now: NOW,
+    }))!;
+    const device: SecurityConnectedResourceJson = resource(
+      json,
+      SecurityConnectionKind.NetworkDevice,
+    );
+
+    expect(device.activeIncidents?.count).toBe(1);
+    expect(device.activeAlerts).toEqual({ count: 0, items: [] });
+    // A monitor lists no device: its monitors are not known this way.
+    expect(device.monitors).toBeNull();
+    expect(monitorSpy).not.toHaveBeenCalled();
   });
 });

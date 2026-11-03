@@ -335,9 +335,9 @@ describe.each<[InvestigationSubjectType]>([["alert"], ["incident"]])(
         expect(panel).toHaveAttribute("id", AI_INVESTIGATION_PANEL_ID);
         expect(panel).toHaveAttribute("tabindex", "-1");
         expect(panel).toHaveAttribute("aria-busy", "false");
-        expect(screen.getByLabelText("Investigation status")).toHaveTextContent(
-          "Not investigated",
-        );
+        expect(
+          screen.getByTestId("ai-card-step-investigation-pill"),
+        ).toHaveTextContent("Not investigated");
         expect(
           screen.getByRole("heading", { name: example.title }),
         ).toBeVisible();
@@ -1300,7 +1300,9 @@ describe("the not-started card's layout", () => {
       renderPanel();
       await flush();
 
-      const badge: HTMLElement = screen.getByLabelText("Investigation status");
+      const badge: HTMLElement = screen.getByTestId(
+        "ai-card-step-investigation-pill",
+      );
       expect(badge).toHaveTextContent(text);
       expect(badge).toHaveAttribute("data-indicator", indicator);
       expect(badge).toHaveClass("bg-gray-50", "text-gray-700", "ring-gray-200");
@@ -1312,8 +1314,8 @@ describe("the not-started card's layout", () => {
     postMock.mockResolvedValue(noRunResponse());
     const view: ReturnType<typeof render> = renderPanel();
     await flush();
-    const notStartedClass: string = screen.getByLabelText(
-      "Investigation status",
+    const notStartedClass: string = screen.getByTestId(
+      "ai-card-step-investigation-pill",
     ).className;
     view.unmount();
 
@@ -1322,9 +1324,9 @@ describe("the not-started card's layout", () => {
     renderPanel();
     await flush();
 
-    expect(screen.getByLabelText("Investigation status").className).toBe(
-      notStartedClass,
-    );
+    expect(
+      screen.getByTestId("ai-card-step-investigation-pill").className,
+    ).toBe(notStartedClass);
   });
 
   test("lays the reason and what to do out as plain sections, one after the other", async () => {
@@ -1479,9 +1481,13 @@ describe("the not-started state is the card's body", () => {
       ) & Node.DOCUMENT_POSITION_PRECEDING,
     ).toBeTruthy();
     expect(within(body).queryByRole("heading", { level: 2 })).toBeNull();
-    expect(within(body).queryByLabelText("Investigation status")).toBeNull();
+    expect(
+      within(body).queryByTestId("ai-card-step-investigation-pill"),
+    ).toBeNull();
     expect(within(body).queryByTestId("card")).toBeNull();
-    expect(screen.getAllByLabelText("Investigation status")).toHaveLength(1);
+    expect(
+      screen.getAllByTestId("ai-card-step-investigation-pill"),
+    ).toHaveLength(1);
     expect(screen.getAllByTestId("card")).toHaveLength(1);
   });
 

@@ -1,6 +1,9 @@
 import "../TestingUtils/Init";
 import BaseAnalyticsAPI from "../../../Server/API/BaseAnalyticsAPI";
 import AnalyticsDatabaseService from "../../../Server/Services/AnalyticsDatabaseService";
+import ProjectService from "../../../Server/Services/ProjectService";
+import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
+import { getJestSpyOn } from "../../Spy";
 import { Statement } from "../../../Server/Utils/AnalyticsDatabase/Statement";
 import {
   ExpressRequest,
@@ -148,6 +151,20 @@ describe("BaseAnalyticsAPI create writes each value as its column's type", () =>
     jest.restoreAllMocks();
     jest.clearAllMocks();
     mockRouter.routes = [];
+    /*
+     * CI runs these with billing on (packages/Common/test-setup.sh), and a
+     * request then first asks the project's plan (CallerPlan, through
+     * ProjectService.getCurrentPlan) from Postgres, which this suite never
+     * starts. The project is on the plan that gates nothing, so only what
+     * this suite is about decides, with billing on or off.
+     */
+    getJestSpyOn(ProjectService, "getCurrentPlan").mockResolvedValue({
+      plan: PlanType.Enterprise,
+      isSubscriptionUnpaid: false,
+    });
+    getJestSpyOn(ProjectService, "updateLastActive").mockResolvedValue(
+      undefined,
+    );
 
     const service: AnalyticsDatabaseService<NetworkFlow> =
       new AnalyticsDatabaseService<NetworkFlow>({ modelType: NetworkFlow });

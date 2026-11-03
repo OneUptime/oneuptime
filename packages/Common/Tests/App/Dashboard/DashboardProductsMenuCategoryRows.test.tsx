@@ -50,6 +50,8 @@ const ORIGINAL_WIDTH: number = window.innerWidth;
 const CATEGORIES: Array<string> = [
   "Essentials",
   "Observability",
+  // Security Events and Data Security, filed under Observability until #5550.
+  "Security",
   "AI",
   "Code",
   "Resources",

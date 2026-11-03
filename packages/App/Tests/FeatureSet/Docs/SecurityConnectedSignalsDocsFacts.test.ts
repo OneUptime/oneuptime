@@ -498,11 +498,20 @@ describe("the Connected Signals page", () => {
       SecurityConnectionKind.DockerHost,
       SecurityConnectionKind.PodmanHost,
       SecurityConnectionKind.KubernetesCluster,
+      SecurityConnectionKind.NetworkDevice,
       SecurityConnectionKind.CloudResource,
       SecurityConnectionKind.Service,
     ]);
     expect(flat(section("Incidents a case declares"))).toContain(
-      "links the incident to the hosts, Docker and Podman hosts, Kubernetes clusters, cloud resources and services the case is exactly connected to.",
+      "links the incident to the hosts, Docker and Podman hosts, Kubernetes clusters, network devices, cloud resources and services the case is exactly connected to.",
+    );
+    /*
+     * The alert a playbook pages with, and what detections, threat intel
+     * and Data Security open, are linked the same way
+     * (SecurityEventAlerting, setAffectedResourcesOnNewRecord).
+     */
+    expect(flat(section("Incidents a case declares"))).toContain(
+      "A playbook's step that pages on-call links the alert it opens the same way; each alert and incident a detection rule or a threat intel match opens is linked to what its match names exactly, and each one Data Security opens to the data store it is about.",
     );
     // A monitor is never one of them.
     expect(linked).not.toContain(SecurityConnectionKind.Monitor);

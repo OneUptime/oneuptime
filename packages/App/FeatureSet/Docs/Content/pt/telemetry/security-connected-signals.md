@@ -94,7 +94,7 @@ Abaixo dos itens, Sinais conectados procura nos seus registros e traços, no mes
 
 ## Incidentes que um caso declara
 
-**Declarar incidente** num caso, ou a etapa de um playbook que declara um, vincula o incidente aos hosts, hosts do Docker e do Podman, clusters do Kubernetes, recursos de nuvem e serviços aos quais o caso está conectado de forma exata. O incidente aparece nas páginas deles e as regras dos seus proprietários se aplicam a ele, e o seu feed nomeia o caso e aquilo a que foi vinculado. Uma possível correspondência nunca é vinculada, nem um monitor: um incidente num monitor pode mudar o seu status e aparecer nas suas páginas de status.
+**Declarar incidente** num caso, ou a etapa de um playbook que declara um, vincula o incidente aos hosts, hosts do Docker e do Podman, clusters do Kubernetes, dispositivos de rede, recursos de nuvem e serviços aos quais o caso está conectado de forma exata. A etapa de um playbook que aciona o plantão vincula da mesma forma o alerta que abre; cada alerta e incidente que uma regra de detecção ou uma correspondência de inteligência de ameaças abre é vinculado ao que a correspondência nomeia de forma exata, e cada um que o Data Security abre, ao armazenamento de dados a que se refere. O incidente aparece nas páginas deles e as regras dos seus proprietários se aplicam a ele, e o seu feed nomeia o caso e aquilo a que foi vinculado. Uma possível correspondência nunca é vinculada, nem um monitor: um incidente num monitor pode mudar o seu status e aparecer nas suas páginas de status.
 
 ## OneUptime AI
 

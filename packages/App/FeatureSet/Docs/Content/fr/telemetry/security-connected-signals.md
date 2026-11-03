@@ -94,7 +94,7 @@ Sous les enregistrements, Signaux connectés cherche dans vos journaux et traces
 
 ## Incidents qu'un dossier déclare
 
-**Déclarer un incident** sur un dossier, ou l'étape d'un playbook qui en déclare un, lie l'incident aux hôtes, hôtes Docker et Podman, clusters Kubernetes, ressources cloud et services auxquels le dossier est connecté de façon exacte. L'incident apparaît sur leurs pages et les règles de leurs propriétaires s'y appliquent, et son fil nomme le dossier et ce à quoi il a été lié. Une correspondance possible n'est jamais liée, et un moniteur non plus : un incident sur un moniteur peut changer son statut et apparaître sur ses pages de statut.
+**Déclarer un incident** sur un dossier, ou l'étape d'un playbook qui en déclare un, lie l'incident aux hôtes, hôtes Docker et Podman, clusters Kubernetes, équipements réseau, ressources cloud et services auxquels le dossier est connecté de façon exacte. L'étape d'un playbook qui alerte l'astreinte lie de la même façon l'alerte qu'elle ouvre ; chaque alerte et chaque incident qu'ouvre une règle de détection ou une correspondance de renseignement sur les menaces est lié à ce que sa correspondance nomme de façon exacte, et chacun de ceux qu'ouvre Data Security au magasin de données qu'il concerne. L'incident apparaît sur leurs pages et les règles de leurs propriétaires s'y appliquent, et son fil nomme le dossier et ce à quoi il a été lié. Une correspondance possible n'est jamais liée, et un moniteur non plus : un incident sur un moniteur peut changer son statut et apparaître sur ses pages de statut.
 
 ## OneUptime AI
 

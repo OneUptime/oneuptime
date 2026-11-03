@@ -6,6 +6,11 @@
  * be unit-tested directly — the App suite runs in plain Node.
  */
 
+import {
+  buildSavedViewScope,
+  SavedViewScopeKind,
+} from "Common/Utils/Telemetry/SavedViewScope";
+
 export const KUBERNETES_CLUSTER_NAME_ATTRIBUTE: string =
   "resource.k8s.cluster.name";
 export const KUBERNETES_POD_NAME_ATTRIBUTE: string = "resource.k8s.pod.name";
@@ -163,4 +168,44 @@ export const buildKubernetesLogsAttributeDisplayValues: BuildKubernetesLogsAttri
     return {
       [KUBERNETES_CLUSTER_NAME_ATTRIBUTE]: displayName,
     };
+  };
+
+type BuildKubernetesLogsSavedViewScopeFunction = (
+  input: KubernetesLogsScopeInput,
+) => string;
+
+/**
+ * The page the tab's saved views belong to (issue #5549): a pod's, a
+ * container's, or a workload's or node's, inside its cluster. It is named by
+ * the values the tab's filter pins, so a view saved on one pod's Logs tab is
+ * listed there and not on the cluster's Logs page, another pod's tab or the
+ * Logs page.
+ */
+export const buildKubernetesLogsSavedViewScope: BuildKubernetesLogsSavedViewScopeFunction =
+  (input: KubernetesLogsScopeInput): string => {
+    if (hasValue(input.podName)) {
+      return buildSavedViewScope(
+        SavedViewScopeKind.KubernetesPod,
+        input.clusterIdentifier,
+        input.namespace || "",
+        input.podName!,
+        ...(hasValue(input.containerName) ? [input.containerName!] : []),
+      );
+    }
+
+    if (input.workloadKind && hasValue(input.workloadName)) {
+      return buildSavedViewScope(
+        SavedViewScopeKind.KubernetesWorkload,
+        input.clusterIdentifier,
+        input.workloadKind,
+        input.namespace || "",
+        input.workloadName!,
+      );
+    }
+
+    return buildSavedViewScope(
+      SavedViewScopeKind.KubernetesContainer,
+      input.clusterIdentifier,
+      input.containerName || "",
+    );
   };

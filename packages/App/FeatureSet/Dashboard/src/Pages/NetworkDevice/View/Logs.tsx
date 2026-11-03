@@ -1,6 +1,10 @@
 import PageComponentProps from "../../PageComponentProps";
 import AppLink from "../../../Components/AppLink/AppLink";
 import DashboardLogsViewer from "../../../Components/Logs/LogsViewer";
+import {
+  buildSavedViewScope,
+  SavedViewScopeKind,
+} from "Common/Utils/Telemetry/SavedViewScope";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -113,6 +117,10 @@ const NetworkDeviceLogs: FunctionComponent<
     <Fragment>
       <DashboardLogsViewer
         id={`network-device-logs-${modelId.toString()}`}
+        savedViewScope={buildSavedViewScope(
+          SavedViewScopeKind.NetworkDevice,
+          modelId,
+        )}
         logQuery={logQuery}
         attributeFilterDisplayKeys={LOG_ATTRIBUTE_DISPLAY_KEYS}
         attributeFilterDisplayValues={attributeFilterDisplayValues}

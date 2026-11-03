@@ -51,6 +51,7 @@ import RunbookStepType from "../../../Types/Runbook/RunbookStepType";
 import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import { goTo, PROJECT_ID } from "./SideMenuHarness";
+import { openRemediationFixes } from "./RemediationFixHarness";
 
 /*
  * A FIX ON THE AI CARD'S REMEDIATION STEP READS AS LINES (block 43's UI
@@ -205,7 +206,16 @@ async function renderStep(
     );
   });
 
-  return await screen.findByTestId("ai-card-step-remediation");
+  const step: HTMLElement = await screen.findByTestId(
+    "ai-card-step-remediation",
+  );
+
+  // Each fix of commands is folded to its sentence: open it, as a reader does.
+  if (fixes.length > 0) {
+    await openRemediationFixes();
+  }
+
+  return step;
 }
 
 function fixElements(): Array<HTMLElement> {
@@ -371,6 +381,16 @@ describe("a fix on the Remediation step", () => {
     expect(within(fix).getByTestId("remediation-fix-status")).toHaveAttribute(
       "data-alarming",
       "false",
+    );
+
+    // How many of its commands failed, in red beside where it stands.
+    const failed: HTMLElement = within(fix).getByTestId(
+      "remediation-fix-failed-count",
+    );
+    expect(failed).toHaveTextContent(/^1 failed$/);
+    expect(failed).toHaveAttribute("data-alarming", "true");
+    expect(within(fix).getByTestId("remediation-fix-facts")).toContainElement(
+      failed,
     );
   });
 
