@@ -536,20 +536,26 @@ describe("the Databases list", () => {
     expect(hook).not.toContain("discoverySource");
   });
 
-  test("columns cover identity, engine, platform, source, engine metrics, recency, labels and owners", () => {
+  test("columns cover identity, status, engine, platform, source, recency, labels and owners - in Title Case", () => {
     for (const title of [
       'title: "Name"',
+      'title: "Status"',
       'title: "Engine"',
-      'title: "Runs on"',
-      'title: "Discovered from"',
-      'title: "Engine metrics"',
+      'title: "Runs On"',
+      'title: "Discovered From"',
       'title: "Last Seen"',
       'title: "Labels"',
       'title: "Owners"',
     ]) {
       expect(code).toContain(title);
     }
-    expect(code).toContain("getDatabaseEngineMetricsStatus(item)");
+    /*
+     * Status says whether its engine metrics arrive too, so the Engine
+     * metrics column it stands in for is gone.
+     */
+    expect(code).not.toContain('title: "Engine metrics"');
+    expect(code).not.toContain('title: "Runs on"');
+    expect(code).not.toContain('title: "Discovered from"');
     // Runs on links to the cluster / host page.
     expect(code).toContain("<DatabaseRunsOnLink source={item} />");
     expect(code).toContain("getDatabaseEndpointLabel(item)");
@@ -561,7 +567,12 @@ describe("the Databases list", () => {
       'key: "otelCollectorStatus"',
       "const { getOwnersForResource,",
     );
-    expect(facet).toContain("options: ENGINE_METRICS_STATUS_OPTIONS");
+    expect(facet).toContain('label: "Engine Metrics"');
+    // Its options in the reader's language: the chip draws them as given.
+    expect(facet).toContain("options: engineMetricsStatusOptions");
+    expect(code).toContain(
+      "translateDatabaseOptions(ENGINE_METRICS_STATUS_OPTIONS, translator)",
+    );
     expect(facet).toContain(
       "computeDatabaseServerIdsForEngineMetricsStatuses(",
     );
@@ -629,11 +640,15 @@ describe("the Databases list", () => {
     expect(name).toContain(
       "wrapMaxWidthClassName: DATABASE_NAME_COLUMN_MAX_WIDTH_CLASS,",
     );
-    const runsOn: string = between(columns, 'title: "Runs on",', "getElement:");
+    const runsOn: string = between(columns, 'title: "Runs On",', "getElement:");
     expect(runsOn).toContain(
       "wrapMaxWidthClassName: DATABASE_RUNS_ON_COLUMN_MAX_WIDTH_CLASS,",
     );
-    for (const title of ["Discovered from", "Labels", "Owners"]) {
+    // Status wraps its reason inside a cap rather than widening the row.
+    expect(between(columns, 'title: "Status",', "getElement:")).toContain(
+      "contentClassName: DATABASE_STATUS_COLUMN_CLASS_NAME,",
+    );
+    for (const title of ["Discovered From", "Labels", "Owners"]) {
       expect(between(columns, `title: "${title}",`, "getElement:")).toContain(
         "isHiddenByDefault: !isWideTable,",
       );

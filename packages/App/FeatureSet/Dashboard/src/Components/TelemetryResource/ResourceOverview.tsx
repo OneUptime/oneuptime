@@ -31,6 +31,7 @@ import {
   RESOURCE_HERO_TOP_ROW_CLASS_NAME,
 } from "./ResourceHeroLayout";
 import { getReportedResourceOverviewDetailRows } from "./ResourceOverviewDetails";
+import { ResourceOverviewHealth } from "./ResourceOverviewHealth";
 
 export interface ResourceOverviewChip {
   icon: IconProp;
@@ -93,6 +94,13 @@ export interface ResourceOverviewTile {
 // The status pill's colour: green, amber or gray.
 export type ResourceOverviewStatusTone = "positive" | "warning" | "neutral";
 
+/*
+ * The resource's health, beside its status pill, by its product's own rules
+ * (a database's: the lines of its engine's recommended alerts) - the pill
+ * every infrastructure hero draws, for the Overviews drawn here.
+ */
+export type { ResourceOverviewHealth };
+
 export interface ResourceOverviewProps {
   icon: IconProp;
   title: string;
@@ -109,6 +117,8 @@ export interface ResourceOverviewProps {
   statusTone?: ResourceOverviewStatusTone | undefined;
   // What the pill means, as its hover text.
   statusDescription?: string | undefined;
+  // Its health beside the status pill; left out, no health pill.
+  health?: ResourceOverviewHealth | undefined;
   lastSeenAt: Date | undefined;
   /*
    * Drawn straight under the hero, beside the status pill it explains: the
@@ -116,6 +126,11 @@ export interface ResourceOverviewProps {
    * nothing once the resource is connected.
    */
   connectionGuide?: ReactElement | undefined;
+  /*
+   * What on the resource needs someone (NeedsAttentionCard), under the hero
+   * and before any number, as on every infrastructure Overview.
+   */
+  needsAttention?: ReactElement | undefined;
   /*
    * What the resource is, in its owner's words (its Settings): drawn under
    * its name in the hero, where it is read with the name at every width. It
@@ -225,6 +240,19 @@ const STATUS_TONE_CLASSES: Record<
   neutral: {
     badge: "bg-gray-50 text-gray-700 ring-gray-200",
     dot: "bg-gray-400",
+  },
+};
+
+const HEALTH_TONE_CLASSES: Record<
+  ResourceOverviewHealth["tone"],
+  { badge: string; dot: string }
+> = {
+  positive: STATUS_TONE_CLASSES.positive,
+  warning: STATUS_TONE_CLASSES.warning,
+  neutral: STATUS_TONE_CLASSES.neutral,
+  danger: {
+    badge: "bg-red-50 text-red-700 ring-red-200",
+    dot: "bg-red-500",
   },
 };
 
@@ -496,6 +524,35 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
                     />
                     {statusLabel}
                   </span>
+                  {props.health ? (
+                    <span className="inline-flex items-center gap-1">
+                      <span
+                        data-testid="resource-overview-health"
+                        data-health={props.health.state}
+                        className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${
+                          HEALTH_TONE_CLASSES[props.health.tone].badge
+                        }`}
+                      >
+                        <span
+                          className={`h-1.5 w-1.5 rounded-full ${
+                            HEALTH_TONE_CLASSES[props.health.tone].dot
+                          }`}
+                        />
+                        {translator.translateText(props.health.label) ||
+                          props.health.label}
+                      </span>
+                      {props.health.description ? (
+                        <InfoTooltip
+                          label={props.health.descriptionLabel || "Health"}
+                          text={props.health.description}
+                        />
+                      ) : (
+                        <></>
+                      )}
+                    </span>
+                  ) : (
+                    <></>
+                  )}
                 </div>
                 <ResourceHeroDescription text={props.description} />
                 {props.identifier ? (
@@ -544,6 +601,8 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
       </div>
 
       {props.connectionGuide ? props.connectionGuide : <></>}
+
+      {props.needsAttention ? props.needsAttention : <></>}
 
       {/* Golden metric tiles */}
       {props.tilesLoading && props.tiles.length === 0 ? (
