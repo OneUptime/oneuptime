@@ -118,6 +118,16 @@ const EXPECTED_WIRING: Array<WiredIngestRoute> = [
     surfaceMember: "DbtArtifacts",
   },
   {
+    file: `${TELEMETRY_API_DIRECTORY}/SyncWebhooksIngest.ts`,
+    routePath: "/fivetran/v1/webhook/:ingestionKeyId",
+    surfaceMember: "SyncWebhooks",
+  },
+  {
+    file: `${TELEMETRY_API_DIRECTORY}/SyncWebhooksIngest.ts`,
+    routePath: "/airbyte/v1/webhook/:ingestionKey",
+    surfaceMember: "SyncWebhooks",
+  },
+  {
     file: `${TELEMETRY_API_DIRECTORY}/SecurityEventsIngest.ts`,
     routePath: "/security-events/v1/ingest",
     surfaceMember: "SecurityEvents",
