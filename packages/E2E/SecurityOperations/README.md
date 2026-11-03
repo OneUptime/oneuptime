@@ -463,7 +463,8 @@ a hunt's Run History, opened from beside what its runs found (and from beside a 
 run newest first with what it found and its moments as every list writes a date ("Oct 14, 10:00
 AM", the whole date under the pointer), Show them closing it on that run's window, at 390 and in
 Persian; on a phone, Show them and Run history taking the line under what was found together, and
-a failed run's Run history after its last word, never under its icon; Edit drawing a hunt's chips
+a failed run's Run history after its last word, never under its icon, and in German who a hunt tells
+and when it runs next a line each, the next run's dot cut off at its line's start; Edit drawing a hunt's chips
 as Events does and a chip taken off saved as gone; the Hunt Library, opened from the Hunts list's
 menu and the side menu, every starter with its search and whether its events arrive, each row
 ending on one line - Try it (a link) and Add, or Open and Added in Add's place - narrowed by

@@ -331,6 +331,7 @@ export const HUNTS_TEST_IDS: {
   headerFacts: string;
   headerDescription: string;
   headerSchedule: string;
+  headerNextRun: string;
   lastFound: string;
   showThem: string;
   changed: string;
@@ -387,6 +388,8 @@ export const HUNTS_TEST_IDS: {
   headerFacts: "security-hunt-facts",
   headerDescription: "security-hunt-description",
   headerSchedule: "security-hunt-schedule-line",
+  // When it runs next, after who it tells: its dot is cut off at a line's start.
+  headerNextRun: "security-hunt-next-run",
   lastFound: "security-hunt-last-found-line",
   showThem: "security-hunt-show-them",
   changed: "security-hunt-changed",

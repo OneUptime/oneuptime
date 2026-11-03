@@ -104,6 +104,22 @@ export const HUNT_RUN_LINKS_CLASS_NAME: string =
   "inline-flex flex-none items-center gap-x-2";
 
 /*
+ * Who a scheduled hunt tells and when it runs next, a dot between the two
+ * while they share a line and none at a line's start or end: the next run
+ * carries its dot at its start, and the row is drawn a dot's room before
+ * the line's start and clipped there, so a fact that starts a line has its
+ * dot cut off. On a German phone the line ended on a dot ("Benachrichtigt
+ * Maya Chen, SOC Tier 2 ·"), the next run under it.
+ */
+export const HUNT_FACTS_CLASS_NAME: string = "overflow-hidden";
+// The dot's room: 8px each side of it, as the run line's links have (gap-x-2).
+export const HUNT_FACTS_ROW_CLASS_NAME: string =
+  "-ms-5 flex flex-wrap items-center gap-y-0.5";
+export const HUNT_FACT_CLASS_NAME: string = "relative min-w-0 ps-5";
+export const HUNT_FACT_DOT_CLASS_NAME: string =
+  "absolute start-2 text-gray-400";
+
+/*
  * The actions over a changed search, in the notice that says so: beside
  * its words on a wide header, at the line's end; under them where they do
  * not fit beside, still at the end, as the header's own buttons go under
@@ -352,14 +368,24 @@ const HuntHeader: FunctionComponent<ComponentProps> = (
              */}
             {isScheduled ? (
               <p
-                className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-gray-500"
+                className={`${HUNT_FACTS_CLASS_NAME} text-xs text-gray-500`}
                 data-testid={HUNTS_TEST_IDS.headerSchedule}
               >
-                <HuntRecipients names={getHuntRecipientNames(hunt)} />
-                {hunt.nextRunAt ? (
-                  <>
-                    <span aria-hidden="true">·</span>
-                    <span>
+                <span className={HUNT_FACTS_ROW_CLASS_NAME}>
+                  <span className={HUNT_FACT_CLASS_NAME}>
+                    <HuntRecipients names={getHuntRecipientNames(hunt)} />
+                  </span>
+                  {hunt.nextRunAt ? (
+                    <span
+                      className={HUNT_FACT_CLASS_NAME}
+                      data-testid={HUNTS_TEST_IDS.headerNextRun}
+                    >
+                      <span
+                        aria-hidden="true"
+                        className={HUNT_FACT_DOT_CLASS_NAME}
+                      >
+                        ·
+                      </span>
                       <TranslatedSentence
                         template={NEXT_RUN}
                         slots={{
@@ -372,10 +398,10 @@ const HuntHeader: FunctionComponent<ComponentProps> = (
                         }}
                       />
                     </span>
-                  </>
-                ) : (
-                  <></>
-                )}
+                  ) : (
+                    <></>
+                  )}
+                </span>
               </p>
             ) : (
               <></>

@@ -246,6 +246,12 @@ import {
   HUNT_FORM_STEPS,
   HUNT_TELL_FIELD_KEY,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Hunts/HuntFormFields";
+import {
+  HUNT_FACTS_CLASS_NAME,
+  HUNT_FACTS_ROW_CLASS_NAME,
+  HUNT_FACT_CLASS_NAME,
+  HUNT_FACT_DOT_CLASS_NAME,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Hunts/HuntHeader";
 import SecurityCaseApi from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseApi";
 import SecurityCaseEvidenceCell from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/Evidence/SecurityCaseEvidenceCell";
 import SecurityEvent from "../../../Models/AnalyticsModels/SecurityEvent";
@@ -862,6 +868,53 @@ describe("a hunt's page", () => {
     expect(seen(screen.getByTestId(HUNTS_TEST_IDS.lastFound))).toBe(
       "Its runs have found nothing yet. Run history",
     );
+  });
+
+  test("who it tells, then when it runs next: the next run carries the dot, cut off where it starts a line", async () => {
+    await renderHunt();
+
+    const line: HTMLElement = screen.getByTestId(HUNTS_TEST_IDS.headerSchedule);
+    const row: HTMLElement = line.firstElementChild as HTMLElement;
+    const nextRun: HTMLElement = within(line).getByTestId(
+      HUNTS_TEST_IDS.headerNextRun,
+    );
+    const dot: HTMLElement = nextRun.firstElementChild as HTMLElement;
+
+    /*
+     * The row is drawn a dot's room before the line's start and clipped
+     * there: a fact that starts a line - the next run, wrapped under who it
+     * tells on a phone - has its dot cut off, and no line ends on one.
+     */
+    expect(line).toHaveClass(...HUNT_FACTS_CLASS_NAME.split(" "));
+    expect(row).toHaveClass(...HUNT_FACTS_ROW_CLASS_NAME.split(" "));
+    expect(row.children).toHaveLength(2);
+
+    for (const fact of Array.from(row.children)) {
+      expect(fact).toHaveClass(...HUNT_FACT_CLASS_NAME.split(" "));
+    }
+
+    // Who it tells comes first and has no dot; the next run's is its own first child.
+    expect(row.firstElementChild).not.toContainElement(dot);
+    expect(dot).toHaveTextContent("·");
+    expect(dot).toHaveAttribute("aria-hidden", "true");
+    expect(dot).toHaveClass(...HUNT_FACT_DOT_CLASS_NAME.split(" "));
+    expect(flat(nextRun)).toBe("·Next run in 3 hours");
+    // The dot sits in the room the row is pulled back by, 8px each side of it.
+    expect(HUNT_FACTS_ROW_CLASS_NAME).toContain("-ms-5");
+    expect(HUNT_FACT_CLASS_NAME).toContain("ps-5");
+    expect(HUNT_FACT_DOT_CLASS_NAME).toContain("start-2");
+  });
+
+  test("a scheduled hunt with no next run says only who it tells, with no dot", async () => {
+    stored = hunt({ nextRunAt: undefined });
+
+    await renderHunt();
+
+    const line: HTMLElement = screen.getByTestId(HUNTS_TEST_IDS.headerSchedule);
+
+    expect(within(line).queryByTestId(HUNTS_TEST_IDS.headerNextRun)).toBeNull();
+    expect(line.textContent).not.toContain("·");
+    expect(flat(line)).toBe("Tells Maya Chen, SOC Tier 2");
   });
 
   test("the links after what the runs found are one group, a dot between two and none before the first", async () => {

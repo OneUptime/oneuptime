@@ -1084,6 +1084,33 @@ test.describe("a hunt's Run History", () => {
     expect(link!.x).toBeGreaterThan(why!.x - 1);
     await expect(failed).not.toContainText("·");
     await expectNoSidewaysScroll(page);
+
+    /*
+     * In German who it tells and when it runs next take a line each: the
+     * next run's dot is cut off at its line's start, and the line above
+     * ends on its last word ("Benachrichtigt Maya Chen, SOC Tier 2 ·" did).
+     */
+    await open(page, HUNT_PATH, { width: 390, height: 900, lang: "de" });
+
+    const schedule: Locator = page.getByTestId("security-hunt-schedule-line");
+    const [scheduleBox, tells, nextRun, dot] = await boxesInOneFrame([
+      schedule,
+      schedule.locator(":scope > span > span").first(),
+      schedule.getByTestId("security-hunt-next-run"),
+      schedule
+        .getByTestId("security-hunt-next-run")
+        .locator(":scope > span")
+        .first(),
+    ]);
+
+    expect(nextRun!.y).toBeGreaterThan(tells!.y + tells!.height / 2);
+    // The dot is in the room before the line's start, which the line clips.
+    expect(dot!.x + dot!.width).toBeLessThan(scheduleBox!.x + 0.5);
+    expect(
+      await schedule.evaluate((element: Element): string => {
+        return window.getComputedStyle(element).overflowX;
+      }),
+    ).toBe("hidden");
   });
 
   test("fits a phone, and reads in Persian, right to left", async ({
