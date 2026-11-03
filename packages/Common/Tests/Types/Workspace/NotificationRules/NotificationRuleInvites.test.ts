@@ -60,6 +60,8 @@ describe("NotificationRuleInvites.getInvitees", () => {
     ],
     // No owners, and no channel of its own: a case's rules post to channels that exist.
     [NotificationRuleEventType.SecurityCase, []],
+    // Nor a hunt's: what it finds is posted to channels that exist.
+    [NotificationRuleEventType.SecurityHunt, []],
   ] as Array<[NotificationRuleEventType, Array<NotificationRuleInvitee>]>)(
     "a %s rule can add %j, in the form's order",
     (
@@ -73,7 +75,10 @@ describe("NotificationRuleInvites.getInvitees", () => {
   test("every kind of record with owners is answered, and only records an on-call policy pages for have on-call responders", () => {
     for (const eventType of ALL_EVENT_TYPES.filter(
       (kind: NotificationRuleEventType): boolean => {
-        return kind !== NotificationRuleEventType.SecurityCase;
+        return (
+          kind !== NotificationRuleEventType.SecurityCase &&
+          kind !== NotificationRuleEventType.SecurityHunt
+        );
       },
     )) {
       const invitees: Array<NotificationRuleInvitee> =

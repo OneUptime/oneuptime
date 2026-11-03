@@ -384,6 +384,7 @@ import DetectionRuleExceptionService from "./DetectionRuleExceptionService";
 import SecurityWatchlistService from "./SecurityWatchlistService";
 import SecurityWatchlistItemService from "./SecurityWatchlistItemService";
 import SecurityHuntService from "./SecurityHuntService";
+import SecurityHuntRunService from "./SecurityHuntRunService";
 import SecurityEventConnectionService from "./SecurityEventConnectionService";
 import SecurityEventConnectionRunService from "./SecurityEventConnectionRunService";
 import SecurityEventDestinationService from "./SecurityEventDestinationService";
@@ -937,6 +938,7 @@ const services: Array<BaseService> = [
   SecurityWatchlistService,
   SecurityWatchlistItemService,
   SecurityHuntService,
+  SecurityHuntRunService,
   SecurityEventConnectionService,
   SecurityEventConnectionRunService,
   SecurityEventDestinationService,

@@ -614,6 +614,10 @@ import SecurityHunt from "Common/Models/DatabaseModels/SecurityHunt";
 import SecurityHuntService, {
   Service as SecurityHuntServiceType,
 } from "Common/Server/Services/SecurityHuntService";
+import SecurityHuntRun from "Common/Models/DatabaseModels/SecurityHuntRun";
+import SecurityHuntRunService, {
+  Service as SecurityHuntRunServiceType,
+} from "Common/Server/Services/SecurityHuntRunService";
 import DetectionRuleException from "Common/Models/DatabaseModels/DetectionRuleException";
 import DetectionRuleExceptionService, {
   Service as DetectionRuleExceptionServiceType,
@@ -4244,6 +4248,15 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<SecurityHunt, SecurityHuntServiceType>(
         SecurityHunt,
         SecurityHuntService,
+      ).getRouter(),
+    );
+
+    // Each scheduled run of a hunt, as its page's Run History lists them; written by OneUptime alone.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<SecurityHuntRun, SecurityHuntRunServiceType>(
+        SecurityHuntRun,
+        SecurityHuntRunService,
       ).getRouter(),
     );
 

@@ -30,6 +30,7 @@ import {
   isSecurityHuntTimeRange,
   readSecurityHuntFilters,
 } from "../../Types/SecurityEvent/SecurityHunt";
+import { isSecurityHuntLibraryId } from "../../Types/SecurityEvent/SecurityHuntLibrary";
 import {
   getSecurityHuntFiltersProblem,
   getSecurityHuntWatchlistNames,
@@ -175,6 +176,25 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
+   * A hunt added from the Hunt Library names one of its starters
+   * (Types/SecurityEvent/SecurityHuntLibrary); a hunt of the team's own
+   * names none.
+   */
+  public static assertLibraryHunt(
+    libraryHuntId: string | undefined | null,
+  ): void {
+    if (
+      libraryHuntId !== undefined &&
+      libraryHuntId !== null &&
+      !isSecurityHuntLibraryId(libraryHuntId)
+    ) {
+      throw new BadDataException(
+        SECURITY_HUNT_MESSAGES.unknownLibraryHunt.message,
+      );
+    }
+  }
+
+  /*
    * Who a schedule set now runs as: the person making the change. OneUptime
    * itself may set one with nobody to run as (a run then has no read access
    * to use, and says so); an API key may not, as no person stands behind it.
@@ -220,6 +240,11 @@ export class Service extends ProjectReferencesService<Model> {
 
     if (data["filters"] !== undefined) {
       data["filters"] = readSecurityHuntFilters(data["filters"]) as JSONObject;
+    }
+
+    // No starter named is none, not a starter called "".
+    if (typeof data["libraryHuntId"] === "string") {
+      data["libraryHuntId"] = data["libraryHuntId"].trim() || null;
     }
   }
 
@@ -271,6 +296,8 @@ export class Service extends ProjectReferencesService<Model> {
       userCount: countListed(data, "notifyUsers") || 0,
       teamCount: countListed(data, "notifyTeams") || 0,
     });
+
+    Service.assertLibraryHunt(createBy.data.libraryHuntId);
 
     this.createScheduleStarts.set(
       createBy,

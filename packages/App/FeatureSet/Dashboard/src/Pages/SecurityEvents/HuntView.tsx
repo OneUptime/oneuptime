@@ -2,6 +2,7 @@ import PageComponentProps from "../PageComponentProps";
 import { getSecurityEventsBreadcrumbs } from "../../Utils/Breadcrumbs";
 import { RouteUtil } from "../../Utils/RouteMap";
 import HuntHeader from "../../Components/SecurityEvents/Hunts/HuntHeader";
+import HuntRunHistory from "../../Components/SecurityEvents/Hunts/HuntRunHistory";
 import {
   DELETE_HUNT,
   DELETE_HUNT_CONFIRM,
@@ -67,7 +68,10 @@ import React, {
  *
  * The explorer is the hunt's editor: a change to its search or chips is a
  * change to the hunt, which the header offers to save or discard. Events
- * found here are kept on a case with Add to Case, naming the hunt.
+ * found here are kept on a case with Add to Case, naming the hunt. A hunt
+ * that has run opens its Run History from the header (HuntRunHistory):
+ * every run of the last 90 days, each one that found events a click from
+ * them on the explorer.
  *
  * Inside the Security Events menu, Hunts lit; its crumb names the hunt once
  * it is read (nameRecordInTrail, as a watchlist's does).
@@ -104,6 +108,7 @@ const HuntOnPage: FunctionComponent<{ huntId: ObjectID }> = (props: {
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
   const [deleteError, setDeleteError] = useState<string>("");
+  const [isRunHistoryOpen, setIsRunHistoryOpen] = useState<boolean>(false);
 
   const load: () => Promise<void> = useCallback(async (): Promise<void> => {
     try {
@@ -285,6 +290,9 @@ const HuntOnPage: FunctionComponent<{ huntId: ObjectID }> = (props: {
         onShowWindow={(window: SecurityHuntRunWindow) => {
           restartExplorer(window);
         }}
+        onShowRunHistory={() => {
+          setIsRunHistoryOpen(true);
+        }}
       />
 
       <SecurityEventsViewer
@@ -322,6 +330,25 @@ const HuntOnPage: FunctionComponent<{ huntId: ObjectID }> = (props: {
             formType: FormType.Update,
             steps: HUNT_FORM_STEPS,
             fields: getHuntFormFields({ translator }),
+          }}
+        />
+      ) : (
+        <></>
+      )}
+
+      {/*
+       * Every run of the last 90 days, beside the page: Show them closes it
+       * and opens the explorer on that run's window.
+       */}
+      {isRunHistoryOpen ? (
+        <HuntRunHistory
+          huntId={huntId}
+          onClose={() => {
+            setIsRunHistoryOpen(false);
+          }}
+          onShowWindow={(window: SecurityHuntRunWindow) => {
+            setIsRunHistoryOpen(false);
+            restartExplorer(window);
           }}
         />
       ) : (

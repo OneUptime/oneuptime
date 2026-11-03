@@ -1,4 +1,6 @@
-import SecurityHuntService from "../../../Server/Services/SecurityHuntService";
+import SecurityHuntService, {
+  Service as SecurityHuntServiceClass,
+} from "../../../Server/Services/SecurityHuntService";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
@@ -689,5 +691,59 @@ describe("a hunt that reads a watchlist (#5391)", () => {
     await update({ schedule: SecurityHuntSchedule.EveryHour });
 
     expect(assertProjectHas).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * A hunt added from the Hunt Library keeps the starter it came from
+ * (libraryHuntId): how the library says Added, however the hunt is renamed
+ * since. Only a starter the library offers is kept; a hunt of the team's
+ * own names none.
+ */
+describe("a hunt added from the Hunt Library", () => {
+  test("keeps the starter it was added from, opened by hand like any new hunt", async () => {
+    const data: JSONObject = await create(
+      newHunt({
+        description:
+          "PowerShell started with an encoded command, as attackers start what they would rather nobody read.",
+        libraryHuntId: "encoded-powershell",
+      }),
+    );
+
+    expect(data["libraryHuntId"]).toBe("encoded-powershell");
+    expect(data["schedule"]).toBe(SecurityHuntSchedule.NotScheduled);
+  });
+
+  test("keeps it trimmed, and a blank one as none", async () => {
+    expect(
+      (await create(newHunt({ libraryHuntId: "  encoded-powershell  " })))[
+        "libraryHuntId"
+      ],
+    ).toBe("encoded-powershell");
+    expect(
+      (await create(newHunt({ libraryHuntId: "   " })))["libraryHuntId"],
+    ).toBeNull();
+  });
+
+  test("is refused when it names a starter the library does not offer", async () => {
+    for (const libraryHuntId of [
+      "my-own-hunt",
+      "Encoded-PowerShell",
+      "constructor",
+    ]) {
+      await expect(create(newHunt({ libraryHuntId }))).rejects.toThrow(
+        new BadDataException(SECURITY_HUNT_MESSAGES.unknownLibraryHunt.message),
+      );
+    }
+  });
+
+  test("a hunt saved from a search of the team's own names no starter", async () => {
+    const data: JSONObject = await create(newHunt());
+
+    expect(data["libraryHuntId"]).toBeUndefined();
+    expect(() => {
+      SecurityHuntServiceClass.assertLibraryHunt(undefined);
+      SecurityHuntServiceClass.assertLibraryHunt(null);
+    }).not.toThrow();
   });
 });

@@ -38,6 +38,7 @@ Abre **Productos → Eventos de seguridad**, en **Seguridad**. Su menú tiene un
 | **Todos los casos** | Casos de seguridad | Cada caso, abierto o cerrado |
 | **Eventos** | Eventos | Buscar y filtrar todos los eventos, y abrir uno para ver todos sus campos |
 | **Cacerías** | Eventos | Búsquedas guardadas desde Eventos, abiertas de nuevo con un clic o ejecutadas según una programación que avisa a personas cuando encuentran algo |
+| **Biblioteca de cacerías** | Eventos | Cacerías listas para usar que puedes probar en Eventos o añadir a tus cacerías, cada una con los eventos que lee y si llegan |
 | **Campañas** | Eventos | Cada dirección que envió solicitudes de ataque, y si alguna de sus solicitudes pasó |
 | **Riesgo de entidades** | Eventos | Cada usuario, host y dirección, puntuado por lo encontrado sobre él esta semana, primero los de mayor riesgo |
 | **Correlacionar** | Eventos | Un grafo de los eventos que comparten un host, un usuario o una dirección IP |
@@ -286,6 +287,14 @@ En **Eventos**, busca y filtra hasta que la lista muestre lo que buscas, luego a
 
 La página de una cacería es su búsqueda, abierta en el explorador de eventos. Cambia ahí la búsqueda o los filtros, y la cabecera de la cacería ofrece **Guardar cambios** y **Descartar cambios**. **Editar** cambia su nombre, su búsqueda, hasta dónde mira hacia atrás, su programación y a quién avisa, y **Eliminar cacería** está en su menú. Desde Security Member se pueden guardar, cambiar y eliminar cacerías, y un Security Viewer puede abrirlas.
 
+Una cacería guardada con filtros de la barra lateral de Eventos los muestra en **Editar** bajo **Filtros**, como los dibuja Eventos, cada uno con una x para quitarlo. Añade filtros en la página de la cacería, desde la barra lateral.
+
+### Empezar desde la biblioteca de cacerías
+
+**Eventos → Biblioteca de cacerías** lista cacerías listas para usar para lo que más buscan los equipos de seguridad, como los inicios de sesión fallidos, PowerShell codificado, la cuenta root de AWS y las shells abiertas en pods de Kubernetes. Cada una muestra lo que encuentra, su búsqueda tal como la escribirías en **Eventos** y si llegan los eventos que lee, como hace la **Biblioteca de reglas** con sus reglas. Acótalas por **Categoría de cacería**, **Datos** y **Estado**, o búscalas.
+
+**Pruébalo** abre la búsqueda en **Eventos**, sobre la ventana de la cacería, y no guarda nada. **Añadir** la guarda al momento como una de las cacerías del proyecto, con nombre y descripción en tu idioma y sin programación, como toda cacería nueva. Después dice **Añadido**, y **Abrir** la abre, donde puedes darle una programación.
+
 ### Ejecutar una cacería según una programación
 
 | Programación | Se ejecuta |
@@ -303,9 +312,15 @@ Una ejecución no abre ningún caso ni lanza ninguna alerta: escribe lo que debe
 
 Una cacería programada se ejecuta con la persona que por última vez estableció su programación, cambió su búsqueda o la guardó con **Editar**. Una clave de API no puede establecer una programación. Cuando esa persona deja el proyecto o ya no puede leer eventos de seguridad, la cacería lo indica: abre **Editar** y guárdala para que se ejecute contigo.
 
+### Historial de ejecuciones
+
+Cada ejecución programada se guarda 90 días. **Historial de ejecuciones**, al final de la línea que dice lo que encontraron las ejecuciones de una cacería, las lista de la más reciente a la más antigua: cuándo se ejecutó cada una y los eventos que buscó, luego cuántos encontró, con **Mostrarlos** para abrir esos eventos en la página de la cacería; que no encontró nada; o por qué no pudo ejecutarse. Quien puede abrir una cacería puede leer sus ejecuciones.
+
 ### A quién se avisa
 
 La notificación **Una cacería encontró eventos de seguridad** nombra la cacería y su búsqueda, cuántos eventos encontró su ejecución y la ventana que leyó, y enlaza a la página de la cacería con esos eventos; no incluye ninguna palabra de los eventos. Todos la reciben por correo y push, y eligen sus canales en **Ajustes de usuario → Ajustes de notificaciones**. Como otros correos de rutina, puede retenerse en un [resumen de correos](/docs/emails/notification-rollup).
+
+Para publicar en Slack o Microsoft Teams lo que encuentran las cacerías, añade una regla a **Reglas de cacerías** en **Productos → Eventos de seguridad → Espacio de trabajo → Slack** (o **Microsoft Teams**), debajo de las reglas que publican los [casos de seguridad](/docs/telemetry/security-cases#publicar-en-canales-de-slack-y-microsoft-teams). Una regla nombra los canales en los que publicar (y, en Microsoft Teams, los chats) y, si quieres, las cacerías a las que se aplica, por **Nombre de la cacería**: un nombre que es tu texto, lo contiene, empieza o termina con él. Cada vez que una ejecución programada encuentra eventos, publica la cacería, su búsqueda, cuántos eventos y cuándo, con un enlace a ellos, y ninguna de las palabras propias de un evento. Una regla de cacerías la configura un rol que puede configurar playbooks de seguridad, como Project Owner, Project Admin o Security Admin.
 
 ### Guardar eventos en un caso
 
@@ -313,7 +328,7 @@ Selecciona eventos en **Eventos** o en la página de una cacería y elige **Acci
 
 OneUptime vuelve a leer cada evento como tú y lo guarda tal como era en la página **Evidencias** del caso, así que el caso lo sigue mostrando cuando termina la retención del evento. Un evento que no puedes leer no se guarda, y uno que el caso ya guarda se deja como está. Un evento encontrado desde una cacería nombra la cacería, y **Ver evento** lo abre tal como se guardó.
 
-Las cacerías tienen la misma API REST que el resto de OneUptime, en `/security-hunt`, y `POST /security-case-evidence/add-events` guarda eventos en un caso. Consulta la [referencia de la API](/docs/api-reference/api-reference).
+Las cacerías tienen la misma API REST que el resto de OneUptime, en `/security-hunt`, y `POST /security-case-evidence/add-events` guarda eventos en un caso. Las ejecuciones de una cacería se leen en `/security-hunt-run`. Consulta la [referencia de la API](/docs/api-reference/api-reference).
 
 ## Reglas de detección
 

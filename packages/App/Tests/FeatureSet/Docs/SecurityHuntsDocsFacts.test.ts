@@ -7,22 +7,46 @@ import {
   DELETE_HUNT,
   DISCARD_CHANGES,
   EDIT_HUNT,
+  FILTERS_FIELD_TITLE,
   HUNTS_MENU_SAVE_AS_HUNT,
   HUNTS_TABLE_TITLE,
+  HUNT_CATEGORY_FILTER_LABEL,
+  HUNT_LIBRARY_TITLE,
   HUNT_SINGULAR,
+  OPEN_HUNT,
+  RUN_HISTORY,
   SAVE_AS_HUNT,
   SAVE_CHANGES,
   SCHEDULE_LABELS,
+  SHOW_THEM,
   TELL_FIELD_TITLE,
+  TRY_IT,
   VIEW_EVENT,
 } from "../../../FeatureSet/Dashboard/src/Components/SecurityEvents/Hunts/HuntsCopy";
 import {
+  ADD,
+  ADDED,
+  DATA_FILTER_LABEL,
+  STATUS_FILTER_LABEL,
+} from "../../../FeatureSet/Dashboard/src/Components/SecurityEvents/RuleLibraryCopy";
+import { NOTIFICATION_RULES_CARD_TITLES } from "../../../FeatureSet/Dashboard/src/Components/Workspace/NotificationRuleForm/NotificationRuleCopy";
+import {
   SECURITY_EVENTS_MENU,
+  SECURITY_EVENTS_WORKSPACE_EVENT_TYPES,
   SecurityEventsMenuItem,
   SecurityEventsMenuSection,
 } from "../../../FeatureSet/Dashboard/src/Utils/SecurityEventsNavigation";
 import SecurityCaseEvidence from "Common/Models/DatabaseModels/SecurityCaseEvidence";
 import SecurityHunt from "Common/Models/DatabaseModels/SecurityHunt";
+import SecurityHuntRun from "Common/Models/DatabaseModels/SecurityHuntRun";
+import { SECURITY_HUNT_RULE_PERMISSION_MESSAGE } from "Common/Server/Services/WorkspaceNotificationRuleService";
+import { getSecurityHuntLibraryEntry } from "Common/Types/SecurityEvent/SecurityHuntLibrary";
+import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/EventType";
+import {
+  ConditionType,
+  NotificationRuleConditionCheckOn,
+  NotificationRuleConditionUtil,
+} from "Common/Types/Workspace/NotificationRules/NotificationRuleCondition";
 import OneUptimeDate from "Common/Types/Date";
 import {
   ROLLUP_CATEGORY_BY_EVENT_TYPE,
@@ -40,6 +64,7 @@ import {
   SECURITY_HUNT_RETRY_AFTER_FAILURE_IN_MINUTES,
   SECURITY_HUNT_RUN_DELAY_IN_SECONDS,
   SECURITY_HUNT_RUN_ERRORS,
+  SECURITY_HUNT_RUN_RETENTION_IN_DAYS,
   SECURITY_HUNT_SCHEDULES,
   SecurityHuntRunWindow,
   SecurityHuntSchedule,
@@ -75,6 +100,12 @@ const SOURCES: Record<string, string> = {
   addEventsToCase: `${DASHBOARD}/Components/SecurityEvents/Hunts/useAddEventsToCase.tsx`,
   huntsList: `${DASHBOARD}/Pages/SecurityEvents/Hunts.tsx`,
   huntHeader: `${DASHBOARD}/Components/SecurityEvents/Hunts/HuntHeader.tsx`,
+  huntFormFields: `${DASHBOARD}/Components/SecurityEvents/Hunts/HuntFormFields.ts`,
+  huntFormFilters: `${DASHBOARD}/Components/SecurityEvents/Hunts/HuntFormFilters.tsx`,
+  huntRunService: "Common/Server/Services/SecurityHuntRunService.ts",
+  huntLibraryModel: `${DASHBOARD}/Components/SecurityEvents/Hunts/HuntLibraryModel.ts`,
+  huntNotifications:
+    "Common/Server/Utils/SecurityEvent/Hunts/SecurityHuntNotifications.ts",
   notificationSettingService:
     "Common/Server/Services/UserNotificationSettingService.ts",
   evidenceApi: "Common/Server/API/SecurityCaseEvidenceAPI.ts",
@@ -458,9 +489,169 @@ describe("the Security Events page on hunts", () => {
     );
   });
 
+  it("says a hunt's filters show in Edit as Events draws them, each to take off", () => {
+    expect(FILTERS_FIELD_TITLE).toBe("Filters");
+    expect(source("huntFormFields")).toContain(
+      "title: FILTERS_FIELD_TITLE, description: FILTERS_FIELD_DESCRIPTION, fieldType: FormFieldSchemaType.CustomComponent,",
+    );
+    expect(source("huntFormFilters")).toContain("<TelemetryActiveFilterChips");
+    expect(hunts()).toContain(
+      `A hunt saved with filters from the Events sidebar shows them in **${EDIT_HUNT}** under **${FILTERS_FIELD_TITLE}**, as Events draws them, each with an x to take it off.`,
+    );
+  });
+
+  it("lists the Hunt Library under Events, after Hunts, and names its chips and buttons as the Dashboard draws them", () => {
+    const events: SecurityEventsMenuSection | undefined =
+      SECURITY_EVENTS_MENU.find(
+        (menuSection: SecurityEventsMenuSection): boolean => {
+          return menuSection.title === "Events";
+        },
+      );
+
+    expect(
+      (events?.items || [])
+        .map((item: SecurityEventsMenuItem): string => {
+          return item.title;
+        })
+        .slice(0, 3),
+    ).toEqual(["Events", HUNTS_TABLE_TITLE, HUNT_LIBRARY_TITLE]);
+
+    const page: string = englishPage(SECURITY_EVENTS);
+
+    expect(page).toContain(
+      `| **${HUNT_LIBRARY_TITLE}** | Events | Ready-made hunts to try on Events or add to your hunts, each with the events it reads and whether they arrive |`,
+    );
+
+    const text: string = hunts();
+
+    expect(text).toContain(
+      `**Events → ${HUNT_LIBRARY_TITLE}** lists ready-made hunts for what security teams look for most`,
+    );
+    expect(text).toContain(
+      `Narrow them by **${HUNT_CATEGORY_FILTER_LABEL}**, **${DATA_FILTER_LABEL}** and **${STATUS_FILTER_LABEL}**, or search them.`,
+    );
+    expect(text).toContain(
+      `**${TRY_IT}** opens the search on **Events**, over the hunt's window, and saves nothing.`,
+    );
+    expect(text).toContain(
+      `**${ADD}** saves it at once as one of the project's hunts,`,
+    );
+    expect(text).toContain(
+      `It then says **${ADDED}**, and **${OPEN_HUNT}** opens it, where you can give it a schedule.`,
+    );
+  });
+
+  it("names starters the library has, and says an added one is the reader's words and not scheduled", () => {
+    for (const id of [
+      "failed-sign-ins",
+      "encoded-powershell",
+      "aws-root-account-activity",
+      "kubernetes-pod-shells",
+    ]) {
+      expect({ id, found: Boolean(getSecurityHuntLibraryEntry(id)) }).toEqual({
+        id,
+        found: true,
+      });
+    }
+
+    // Add builds the hunt in the reader's words, opened by hand (HuntLibraryModel).
+    for (const written of [
+      "hunt.name = data.translator.translateText(data.entry.title) || data.entry.title;",
+      "hunt.description = data.translator.translateText(data.entry.description) || data.entry.description;",
+      "hunt.schedule = SecurityHuntSchedule.NotScheduled;",
+      "hunt.libraryHuntId = data.entry.id;",
+    ]) {
+      expect(source("huntLibraryModel")).toContain(written);
+    }
+    expect(hunts()).toContain(
+      "such as failed sign-ins, encoded PowerShell, the AWS root account and shells opened in Kubernetes pods.",
+    );
+    expect(hunts()).toContain(
+      "named and described in your language and not scheduled, as every new hunt is.",
+    );
+  });
+
+  it("says each run is kept as long as the rows are, and how Run history lists them", () => {
+    expect(SECURITY_HUNT_RUN_RETENTION_IN_DAYS).toBe(90);
+    expect(source("huntRunService")).toContain(
+      'this.hardDeleteItemsOlderThanInDays( "createdAt", SECURITY_HUNT_RUN_RETENTION_IN_DAYS, );',
+    );
+    expect(source("huntHeader")).toContain(
+      "data-testid={HUNTS_TEST_IDS.runHistoryLink} onClick={props.onShowRunHistory}",
+    );
+    // Read by whoever may read the hunt.
+    expect(new SecurityHuntRun().getReadPermissions()).toEqual(
+      new SecurityHunt().getReadPermissions(),
+    );
+
+    const text: string = hunts();
+
+    expect(text).toContain(
+      `Each scheduled run is kept for ${SECURITY_HUNT_RUN_RETENTION_IN_DAYS} days. **${RUN_HISTORY}**, at the end of the line that says what a hunt's runs found, lists them newest first:`,
+    );
+    expect(text).toContain(
+      `with **${SHOW_THEM}** to open those events on the hunt's page;`,
+    );
+    expect(text).toContain("Whoever can open a hunt can read its runs.");
+  });
+
+  it("posts what hunts find to Slack and Teams through the Hunt Rules card, by the hunt's name, set up by the playbook roles", () => {
+    expect(
+      NOTIFICATION_RULES_CARD_TITLES[NotificationRuleEventType.SecurityHunt],
+    ).toBe("Hunt Rules");
+    // Below the security case rules, on the same pages.
+    expect([...SECURITY_EVENTS_WORKSPACE_EVENT_TYPES]).toEqual([
+      NotificationRuleEventType.SecurityCase,
+      NotificationRuleEventType.SecurityHunt,
+    ]);
+    expect(
+      NotificationRuleConditionUtil.getCheckOnByEventType(
+        NotificationRuleEventType.SecurityHunt,
+      ),
+    ).toEqual([NotificationRuleConditionCheckOn.SecurityHuntName]);
+    expect(
+      NotificationRuleConditionUtil.getConditionTypeByCheckOn(
+        NotificationRuleConditionCheckOn.SecurityHuntName,
+      ),
+    ).toEqual(
+      expect.arrayContaining([
+        ConditionType.EqualTo,
+        ConditionType.Contains,
+        ConditionType.StartsWith,
+        ConditionType.EndsWith,
+      ]),
+    );
+    expect(SECURITY_HUNT_RULE_PERMISSION_MESSAGE).toContain(
+      "it takes a role that may set up security playbooks, such as Project Owner, Project Admin or Security Admin.",
+    );
+    // Posted by the shared rules, with none of an event's words.
+    expect(source("huntNotifications")).toContain(
+      "WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification({",
+    );
+
+    const text: string = hunts();
+
+    expect(text).toContain(
+      `To post what hunts find to Slack or Microsoft Teams, add a rule to **${NOTIFICATION_RULES_CARD_TITLES[NotificationRuleEventType.SecurityHunt]}** under **Products → Security Events → Workspace → Slack** (or **Microsoft Teams**),`,
+    );
+    expect(text).toContain(
+      `the hunts it is for by **${NotificationRuleConditionCheckOn.SecurityHuntName}**: a name that is, contains, starts with or ends with your text.`,
+    );
+    expect(text).toContain("and none of an event's own words.");
+    expect(text).toContain(
+      "A hunt rule is set up by a role that may set up security playbooks, such as Project Owner, Project Admin or Security Admin.",
+    );
+  });
+
   it("names the API's routes as the server serves them", () => {
     expect(new SecurityHunt().getCrudApiPath()?.toString()).toBe(
       "/security-hunt",
+    );
+    expect(new SecurityHuntRun().getCrudApiPath()?.toString()).toBe(
+      "/security-hunt-run",
+    );
+    expect(hunts()).toContain(
+      "A hunt's runs are read under `/security-hunt-run`.",
     );
     expect(new SecurityCaseEvidence().getCrudApiPath()?.toString()).toBe(
       "/security-case-evidence",
