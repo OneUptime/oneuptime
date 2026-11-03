@@ -40519,5 +40519,16 @@
   "Starting an AI investigation": "Starting an AI investigation",
   "The resources named will not be linked.": "The resources named will not be linked.",
   "a branch": "a branch",
-  "No rows": "No rows"
+  "No rows": "No rows",
+  "Data Security access": "Data Security access",
+  "Data security issue": "Data security issue",
+  "Data security issues": "Data security issues",
+  "Data store": "Data store",
+  "Data stores": "Data stores",
+  "Infrastructure resource": "Infrastructure resource",
+  "Infrastructure resources": "Infrastructure resources",
+  "On-call policy": "On-call policy",
+  "Scheduled maintenance event": "Scheduled maintenance event",
+  "Security cases": "Security cases",
+  "Status page": "Status page"
 }

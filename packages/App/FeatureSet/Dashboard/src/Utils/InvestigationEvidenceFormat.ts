@@ -820,50 +820,68 @@ export function describeEvidenceTool(
   };
 }
 
+/*
+ * The page each kind of evidence target opens, as "Open in {{page}}" names
+ * it: English keys, translated with the sentence.
+ */
 const TARGET_PAGE_NAMES: { [key in AIChatCitationTargetType]: string } = {
-  [AIChatCitationTargetType.Logs]: "Logs",
-  [AIChatCitationTargetType.Traces]: "Traces",
-  [AIChatCitationTargetType.TraceView]: "Trace",
-  [AIChatCitationTargetType.Metrics]: "Metrics",
-  [AIChatCitationTargetType.RumApplications]: "RUM applications",
-  [AIChatCitationTargetType.RumApplicationView]: "RUM application",
-  [AIChatCitationTargetType.TelemetryResources]: "Infrastructure resources",
-  [AIChatCitationTargetType.TelemetryResourceView]: "Infrastructure resource",
-  [AIChatCitationTargetType.ServiceView]: "Service",
-  [AIChatCitationTargetType.Profiles]: "Profiler",
-  [AIChatCitationTargetType.Exceptions]: "Exceptions",
-  [AIChatCitationTargetType.Incidents]: "Incidents",
-  [AIChatCitationTargetType.IncidentView]: "Incident",
-  [AIChatCitationTargetType.Alerts]: "Alerts",
-  [AIChatCitationTargetType.AlertView]: "Alert",
-  [AIChatCitationTargetType.Monitors]: "Monitors",
-  [AIChatCitationTargetType.MonitorView]: "Monitor",
-  [AIChatCitationTargetType.ScheduledMaintenanceEvents]:
+  [AIChatCitationTargetType.Logs]: translationKey("Logs"),
+  [AIChatCitationTargetType.Traces]: translationKey("Traces"),
+  [AIChatCitationTargetType.TraceView]: translationKey("Trace"),
+  [AIChatCitationTargetType.Metrics]: translationKey("Metrics"),
+  [AIChatCitationTargetType.RumApplications]:
+    translationKey("RUM applications"),
+  [AIChatCitationTargetType.RumApplicationView]:
+    translationKey("RUM application"),
+  [AIChatCitationTargetType.TelemetryResources]: translationKey(
+    "Infrastructure resources",
+  ),
+  [AIChatCitationTargetType.TelemetryResourceView]: translationKey(
+    "Infrastructure resource",
+  ),
+  [AIChatCitationTargetType.ServiceView]: translationKey("Service"),
+  [AIChatCitationTargetType.Profiles]: translationKey("Profiler"),
+  [AIChatCitationTargetType.Exceptions]: translationKey("Exceptions"),
+  [AIChatCitationTargetType.Incidents]: translationKey("Incidents"),
+  [AIChatCitationTargetType.IncidentView]: translationKey("Incident"),
+  [AIChatCitationTargetType.Alerts]: translationKey("Alerts"),
+  [AIChatCitationTargetType.AlertView]: translationKey("Alert"),
+  [AIChatCitationTargetType.Monitors]: translationKey("Monitors"),
+  [AIChatCitationTargetType.MonitorView]: translationKey("Monitor"),
+  [AIChatCitationTargetType.ScheduledMaintenanceEvents]: translationKey(
     "Scheduled maintenance",
-  [AIChatCitationTargetType.ScheduledMaintenanceView]:
+  ),
+  [AIChatCitationTargetType.ScheduledMaintenanceView]: translationKey(
     "Scheduled maintenance event",
-  [AIChatCitationTargetType.OnCallPolicies]: "On-call policies",
-  [AIChatCitationTargetType.OnCallPolicyView]: "On-call policy",
-  [AIChatCitationTargetType.StatusPages]: "Status pages",
-  [AIChatCitationTargetType.StatusPageView]: "Status page",
-  [AIChatCitationTargetType.Slos]: "SLOs",
-  [AIChatCitationTargetType.SloView]: "SLO",
-  [AIChatCitationTargetType.Runbooks]: "Runbooks",
-  [AIChatCitationTargetType.RunbookView]: "Runbook",
-  [AIChatCitationTargetType.Workflows]: "Workflows",
-  [AIChatCitationTargetType.WorkflowView]: "Workflow",
-  [AIChatCitationTargetType.Probes]: "Probes",
-  [AIChatCitationTargetType.Teams]: "Teams",
-  [AIChatCitationTargetType.SecurityEvents]: "Security events",
-  [AIChatCitationTargetType.SecurityCases]: "Security cases",
-  [AIChatCitationTargetType.SecurityCaseView]: "Security case",
-  [AIChatCitationTargetType.ThreatIntel]: "Threat Intel",
-  [AIChatCitationTargetType.SecurityPlaybooks]: "Playbooks",
-  [AIChatCitationTargetType.DataStores]: "Data stores",
-  [AIChatCitationTargetType.DataStoreView]: "Data store",
-  [AIChatCitationTargetType.DataSecurityIssues]: "Data security issues",
-  [AIChatCitationTargetType.DataSecurityIssueView]: "Data security issue",
-  [AIChatCitationTargetType.DataSecurityAccess]: "Data Security access",
+  ),
+  [AIChatCitationTargetType.OnCallPolicies]: translationKey("On-call policies"),
+  [AIChatCitationTargetType.OnCallPolicyView]: translationKey("On-call policy"),
+  [AIChatCitationTargetType.StatusPages]: translationKey("Status pages"),
+  [AIChatCitationTargetType.StatusPageView]: translationKey("Status page"),
+  [AIChatCitationTargetType.Slos]: translationKey("SLOs"),
+  [AIChatCitationTargetType.SloView]: translationKey("SLO"),
+  [AIChatCitationTargetType.Runbooks]: translationKey("Runbooks"),
+  [AIChatCitationTargetType.RunbookView]: translationKey("Runbook"),
+  [AIChatCitationTargetType.Workflows]: translationKey("Workflows"),
+  [AIChatCitationTargetType.WorkflowView]: translationKey("Workflow"),
+  [AIChatCitationTargetType.Probes]: translationKey("Probes"),
+  [AIChatCitationTargetType.Teams]: translationKey("Teams"),
+  [AIChatCitationTargetType.SecurityEvents]: translationKey("Security events"),
+  [AIChatCitationTargetType.SecurityCases]: translationKey("Security cases"),
+  [AIChatCitationTargetType.SecurityCaseView]: translationKey("Security case"),
+  [AIChatCitationTargetType.ThreatIntel]: translationKey("Threat Intel"),
+  [AIChatCitationTargetType.SecurityPlaybooks]: translationKey("Playbooks"),
+  [AIChatCitationTargetType.DataStores]: translationKey("Data stores"),
+  [AIChatCitationTargetType.DataStoreView]: translationKey("Data store"),
+  [AIChatCitationTargetType.DataSecurityIssues]: translationKey(
+    "Data security issues",
+  ),
+  [AIChatCitationTargetType.DataSecurityIssueView]: translationKey(
+    "Data security issue",
+  ),
+  [AIChatCitationTargetType.DataSecurityAccess]: translationKey(
+    "Data Security access",
+  ),
 };
 
 // The page an evidence target opens, for "Open in <page>".

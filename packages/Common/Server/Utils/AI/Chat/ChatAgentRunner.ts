@@ -29,8 +29,7 @@ import {
 import {
   AIActionSentence,
   AIActionWords,
-  describeAIActionSentence,
-  joinAIActionSentences,
+  describeAIActionWords,
 } from "../../../../Types/AI/AIActionWords";
 import AIService, { AILogResponse } from "../../../Services/AIService";
 import AIConversationMessageService from "../../../Services/AIConversationMessageService";
@@ -1514,17 +1513,6 @@ export default class ChatAgentRunner {
           : undefined;
     const descriptionSentences: Array<AIActionSentence> =
       words?.description || [];
-    const title: string = titleSentence
-      ? describeAIActionSentence(titleSentence)
-      : toolCall.name;
-    const description: string | undefined =
-      descriptionSentences.length > 0
-        ? joinAIActionSentences(
-            descriptionSentences.map((sentence: AIActionSentence): string => {
-              return describeAIActionSentence(sentence);
-            }),
-          )
-        : undefined;
     const actionWords: AIActionWords | undefined = titleSentence
       ? {
           title: titleSentence,
@@ -1536,6 +1524,16 @@ export default class ChatAgentRunner {
             : {}),
         }
       : undefined;
+    // A tool with no title of its own is named by its name, as written.
+    const english: { title: string; description?: string | undefined } =
+      describeAIActionWords(
+        actionWords || {
+          title: { template: toolCall.name },
+          description: descriptionSentences,
+        },
+      );
+    const title: string = english.title;
+    const description: string | undefined = english.description;
 
     const existing: AIChatToolAction | undefined = state.toolActions.find(
       (action: AIChatToolAction) => {

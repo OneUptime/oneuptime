@@ -611,6 +611,27 @@ export function joinAIActionSentences(texts: Array<string>): string {
 }
 
 /*
+ * A card's title and line, in the translator's language - English, as the
+ * action stores them for the model and the exports, by default. No line
+ * when the card has none.
+ */
+export function describeAIActionWords(
+  words: AIActionWords,
+  translator: Translator = getEnglishTranslator(),
+): { title: string; description?: string | undefined } {
+  const description: string = joinAIActionSentences(
+    (words.description || []).map((sentence: AIActionSentence): string => {
+      return describeAIActionSentence(sentence, translator);
+    }),
+  );
+
+  return {
+    title: describeAIActionSentence(words.title, translator),
+    ...(description ? { description } : {}),
+  };
+}
+
+/*
  * The data a sentence shows itself - the title it quotes, the number it
  * names - so a line listing the action's arguments need not repeat it.
  */
