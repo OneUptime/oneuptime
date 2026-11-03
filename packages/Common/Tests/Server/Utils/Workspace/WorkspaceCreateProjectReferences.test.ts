@@ -735,6 +735,55 @@ describe("Slack: SubmitNewScheduledMaintenance", (): void => {
     ]);
     expect(relationIds(scheduledMaintenance.labels)).toEqual([OWN_LABEL_ID]);
     expect(scheduledMaintenance.createdByUserId).toBeUndefined();
+    /*
+     * No channel - a form opened from the app's Home tab: confirmed to the
+     * person, in their direct messages with the app - and nothing refused.
+     */
+    expect(directMessages).toHaveBeenCalledTimes(1);
+    expect(directMessages.mock.calls[0]![0].text).toBe(
+      "Scheduled event created successfully.",
+    );
+  });
+
+  test("an event with a number is confirmed by it, with a link to it - in the person's direct messages, with no channel", async (): Promise<void> => {
+    const event: ScheduledMaintenance = createdScheduledMaintenance();
+    event.scheduledMaintenanceNumber = 3;
+    event.scheduledMaintenanceNumberWithPrefix = "SM-3";
+    jest.spyOn(ScheduledMaintenanceService, "create").mockResolvedValue(event);
+
+    await submit({ ...OWN_CHOICE, monitors: OWN_MONITOR_ID });
+
+    expect(directMessages).toHaveBeenCalledTimes(1);
+    expect(directMessages.mock.calls[0]![0].text).toBe(
+      "Scheduled Event SM-3 created successfully.",
+    );
+    const markdown: string = String(
+      (
+        directMessages.mock.calls[0]![0].messageBlocks[0] as {
+          text?: string;
+        }
+      ).text,
+    );
+    expect(markdown).toContain("**Scheduled Event SM-3** created successfully.");
+    expect(markdown).toContain("[View Event](");
+    expect(markdown).toContain(
+      `/scheduled-maintenance-events/${CREATED_ID.toString()}`,
+    );
+  });
+
+  test("a number without the project's prefix reads '#3'; never '#undefined'", async (): Promise<void> => {
+    const event: ScheduledMaintenance = createdScheduledMaintenance();
+    event.scheduledMaintenanceNumber = 3;
+    jest.spyOn(ScheduledMaintenanceService, "create").mockResolvedValue(event);
+
+    await submit({ ...OWN_CHOICE, monitors: OWN_MONITOR_ID });
+
+    expect(directMessages.mock.calls[0]![0].text).toBe(
+      "Scheduled Event #3 created successfully.",
+    );
+    expect(JSON.stringify(directMessages.mock.calls)).not.toContain(
+      "undefined",
+    );
   });
 
   test.each(SCHEDULED_MAINTENANCE_REFUSED_REFERENCES)(

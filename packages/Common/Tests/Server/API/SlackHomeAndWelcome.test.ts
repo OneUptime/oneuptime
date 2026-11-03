@@ -135,6 +135,8 @@ const PROPS: DatabaseCommonInteractionProps = {
 interface SlackCall {
   method: string;
   data: JSONObject;
+  // What Slack answered it.
+  answer: JSONObject;
 }
 
 let app: RunningApp;
@@ -171,7 +173,17 @@ let incidentReads: Array<JSONObject> = [];
 // The projects people chose for their Homes (WorkspaceHomeChoice), in memory.
 let homeChoices: InMemoryWorkspaceHomeChoices;
 
-function answerSlack(method: string): JSONObject {
+/*
+ * Each person's Home view as Slack keeps it: its hash, new with every
+ * views.publish. A publish that names a hash Slack no longer has - the view
+ * was drawn again since - is refused with hash_conflict, as Slack's
+ * views.publish documents ("Error returned when the provided hash doesn't
+ * match the current stored value").
+ */
+let homeViewHashes: Map<string, string> = new Map();
+let homeViewVersion: number = 0;
+
+function answerSlack(method: string, data: JSONObject): JSONObject {
   const refusal: string | undefined = refusals.get(method);
 
   if (refusal) {
@@ -180,6 +192,20 @@ function answerSlack(method: string): JSONObject {
 
   if (method === "chat.postMessage") {
     return { ok: true, channel: OPS, ts: "1760000000.000900" };
+  }
+
+  if (method === "views.publish") {
+    const user: string = String(data["user_id"]);
+    const hash: unknown = data["hash"];
+
+    if (hash !== undefined && hash !== homeViewHashes.get(user)) {
+      return { ok: false, error: "hash_conflict" };
+    }
+
+    const next: string = `1760000000.${String(++homeViewVersion).padStart(6, "0")}`;
+    homeViewHashes.set(user, next);
+
+    return { ok: true, view: { id: "V0HOME", type: "home", hash: next } };
   }
 
   return { ok: true };
@@ -245,14 +271,36 @@ function homeButton(actionId: string, user: string = ALICE): JSONObject {
   };
 }
 
-function openHome(user: string, tab: string = "home"): JSONObject {
-  return eventCallback({
+/*
+ * app_home_opened. `withView`: with the Home's view as Slack has it now -
+ * Slack sends it once the app has published one for the person.
+ */
+function openHome(
+  user: string,
+  tab: string = "home",
+  withView: boolean = false,
+): JSONObject {
+  const event: JSONObject = {
     type: "app_home_opened",
     user: user,
     channel: `D${user.substring(1)}`,
     tab: tab,
     event_ts: "1760000000.000100",
-  });
+  };
+
+  const hash: string | undefined = homeViewHashes.get(user);
+
+  if (withView && hash) {
+    event["view"] = {
+      id: "V0HOME",
+      type: "home",
+      blocks: [],
+      private_metadata: "",
+      hash: hash,
+    };
+  }
+
+  return eventCallback(event);
 }
 
 async function until(
@@ -324,6 +372,7 @@ afterAll(async () => {
 beforeEach(() => {
   slackCalls = [];
   refusals = new Map();
+  homeViewHashes = new Map();
   linked = new Map([[ALICE, ALICE_ID]]);
   workspaceConnected = true;
   errorLines = [];
@@ -446,8 +495,9 @@ beforeEach(() => {
     data: JSONObject;
   }) => {
     const method: string = options.url.toString().split("/api/").pop() || "";
-    slackCalls.push({ method: method, data: options.data });
-    return new HTTPResponse<JSONObject>(200, answerSlack(method), {});
+    const answer: JSONObject = answerSlack(method, options.data);
+    slackCalls.push({ method: method, data: options.data, answer: answer });
+    return new HTTPResponse<JSONObject>(200, answer, {});
   }) as never);
 
   jest.spyOn(logger, "debug").mockImplementation((() => {
@@ -1358,6 +1408,7 @@ describe("a person in several of the workspace's projects: Switch project", () =
   }
 
   beforeEach(() => {
+    heldHomeRead = null;
     connectionsByTeam = {
       // In the order they were connected: Production first.
       [TEAM_ID]: [PRODUCTION, STAGING, SANDBOX, FINANCE],
@@ -1451,6 +1502,12 @@ describe("a person in several of the workspace's projects: Switch project", () =
         userId: ObjectID;
         projectId: ObjectID;
       }) => {
+        // A Home read held back, to be slow (holdNextHomeRead).
+        if (heldHomeRead && !heldHomeRead.isTaken) {
+          heldHomeRead.isTaken = true;
+          await heldHomeRead.released;
+        }
+
         memberPropsReads.push(data.projectId.toString());
 
         if (
@@ -1506,10 +1563,58 @@ describe("a person in several of the workspace's projects: Switch project", () =
       .mockResolvedValue(null);
   });
 
-  function openHomeIn(teamId: string, user: string): JSONObject {
-    const event: JSONObject = openHome(user);
+  function openHomeIn(
+    teamId: string,
+    user: string,
+    withView: boolean = false,
+  ): JSONObject {
+    const event: JSONObject = openHome(user, "home", withView);
     event["team_id"] = teamId;
     return event;
+  }
+
+  /*
+   * The next Home read - the member read every Home drawn starts with -
+   * waits until released: a Home slow to draw.
+   */
+  interface HeldHomeRead {
+    isTaken: boolean;
+    released: Promise<void>;
+    release: () => void;
+  }
+
+  let heldHomeRead: HeldHomeRead | null = null;
+
+  function holdNextHomeRead(): HeldHomeRead {
+    let release: () => void = (): void => {
+      return undefined;
+    };
+    const released: Promise<void> = new Promise<void>((resolve: () => void) => {
+      release = resolve;
+    });
+
+    heldHomeRead = { isTaken: false, released: released, release: release };
+
+    return heldHomeRead;
+  }
+
+  // The Home Slack shows the person: the last drawing it accepted.
+  function shownHome(user: string = ALICE): JSONObject {
+    const accepted: Array<SlackCall> = calls("views.publish").filter(
+      (call: SlackCall): boolean => {
+        return (
+          call.answer["ok"] === true && String(call.data["user_id"]) === user
+        );
+      },
+    );
+
+    return accepted[accepted.length - 1]!.data["view"] as JSONObject;
+  }
+
+  function projectOfView(view: JSONObject): string {
+    return String(
+      JSON.parse(view["private_metadata"] as string)["projectId"],
+    );
   }
 
   /*
@@ -1749,6 +1854,107 @@ describe("a person in several of the workspace's projects: Switch project", () =
 
   const REFUSED: string =
     "⚠️ You can't switch to that project: you're no longer a member of it, or your Slack account isn't connected there.\n";
+
+  /*
+   * Slack tells of an opening before the Home is drawn, and drawing it reads
+   * the project: a switch made in that moment drew its Home first, and the
+   * opening's drawing landed after it, so the Home flipped back. An opening
+   * now draws only over the view Slack said was there (views.publish's
+   * hash); a switch, the person's latest word, over anything.
+   */
+  test("a slow opening never draws over a switch made meanwhile: Slack refuses the opening's view as stale, the switch stands, and nothing is logged as an error", async () => {
+    await opened();
+    later();
+
+    const viewBefore: string = homeViewHashes.get(ALICE)!;
+    const held: HeldHomeRead = holdNextHomeRead();
+    const count: number = calls("views.publish").length;
+
+    // She opens the Home - its drawing slow - and switches to Acme Staging.
+    expect((await deliverEvent(openHomeIn(TEAM_ID, ALICE, true))).status).toBe(
+      200,
+    );
+    await until((): boolean => {
+      return held.isTaken;
+    }, "the opening reading her Home");
+
+    const switchedTo: DrawnHome = await switched({
+      value: STAGING.toString(),
+      shown: PRODUCTION,
+    });
+
+    expect(switchedTo.projectId).toBe(STAGING.toString());
+
+    held.release();
+    await until((): boolean => {
+      return calls("views.publish").length === count + 2;
+    }, "the opening's drawing");
+
+    const [switchPublish, openingPublish] = calls("views.publish").slice(count);
+
+    // The switch named no view; the opening named the one it was told of.
+    expect(switchPublish!.data["hash"]).toBeUndefined();
+    expect(switchPublish!.answer["ok"]).toBe(true);
+    expect(openingPublish!.data["hash"]).toBe(viewBefore);
+    expect(openingPublish!.answer).toEqual({
+      ok: false,
+      error: "hash_conflict",
+    });
+
+    // What Slack shows her: the project she switched to.
+    expect(projectOfView(shownHome())).toBe(STAGING.toString());
+    expect(errorLines).toEqual([]);
+
+    // And her next opening, too.
+    later();
+    expect((await opened()).projectId).toBe(STAGING.toString());
+  });
+
+  test("an opening that is drawn first, and a switch after it: the switch is the last word", async () => {
+    await opened();
+    later();
+
+    expect((await opened(ALICE)).projectId).toBe(PRODUCTION.toString());
+    expect(
+      (await switched({ value: SANDBOX.toString(), shown: PRODUCTION }))
+        .projectId,
+    ).toBe(SANDBOX.toString());
+    expect(projectOfView(shownHome())).toBe(SANDBOX.toString());
+  });
+
+  test("an opening with the view Slack had, and nothing drawn since: drawn over that view, naming it", async () => {
+    await opened();
+    later();
+
+    const viewBefore: string = homeViewHashes.get(ALICE)!;
+    const count: number = calls("views.publish").length;
+
+    expect((await deliverEvent(openHomeIn(TEAM_ID, ALICE, true))).status).toBe(
+      200,
+    );
+    await until((): boolean => {
+      return calls("views.publish").length === count + 1;
+    }, "the Home drawn");
+
+    const publish: SlackCall = calls("views.publish")[count]!;
+
+    expect(publish.data["hash"]).toBe(viewBefore);
+    expect(publish.answer["ok"]).toBe(true);
+    expect(homeViewHashes.get(ALICE)).not.toBe(viewBefore);
+  });
+
+  test("an opening Slack sends no view with - nothing published for her yet - names none", async () => {
+    const count: number = calls("views.publish").length;
+
+    expect(
+      (await deliverEvent(openHomeIn(TEAM_ID, ALICE, true))).status,
+    ).toBe(200);
+    await until((): boolean => {
+      return calls("views.publish").length === count + 1;
+    }, "the Home drawn");
+
+    expect(calls("views.publish")[count]!.data["hash"]).toBeUndefined();
+  });
 
   test("Alice, a member in three of the four projects: the first one's Home, with Switch project beside its name, listing her other two - never the one she is not connected in", async () => {
     const home: DrawnHome = await opened();

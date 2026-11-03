@@ -1302,3 +1302,363 @@ describe("an answer given in a project chosen for its conversation says which", 
     expect(await MicrosoftTeamsProjectChoice.getProjectName(NONPRD)).toBeNull();
   });
 });
+
+/*
+ * "Ask in another project": what an answer given in a chosen project offers
+ * (a Teams suggested action, which says these words for the person), the
+ * words themselves, the question a conversation keeps to ask again, and
+ * the card that asks which of the others.
+ */
+describe("Ask in another project", () => {
+  test("its words, said in any case, with a full stop, '!' or '?' after them - and nothing else", () => {
+    for (const said of [
+      "Ask in another project",
+      "ask in another project",
+      "  ASK IN ANOTHER PROJECT  ",
+      "Ask in another project?",
+      "Ask in another project.",
+      "Ask in another project!?",
+      "Ask in another project ?",
+    ]) {
+      expect({
+        said,
+        is: MicrosoftTeamsProjectChoice.isAskInAnotherProject(said),
+      }).toEqual({ said, is: true });
+    }
+
+    for (const said of [
+      "ask in another project why checkout is slow",
+      "can you ask in another project",
+      "ask in another",
+      "Ask in another project, please",
+      "",
+      "?",
+    ]) {
+      expect({
+        said,
+        is: MicrosoftTeamsProjectChoice.isAskInAnotherProject(said),
+      }).toEqual({ said, is: false });
+    }
+  });
+
+  test("the suggested action says those very words for the person (imBack), as its own title", () => {
+    const action: JSONObject =
+      MicrosoftTeamsProjectChoice.getAskInAnotherProjectAction();
+
+    expect(action).toEqual({
+      type: "imBack",
+      title: "Ask in another project",
+      value: "Ask in another project",
+    });
+    expect(
+      MicrosoftTeamsProjectChoice.isAskInAnotherProject(
+        String(action["value"]),
+      ),
+    ).toBe(true);
+  });
+
+  test("what it is told with nothing to ask again, or nowhere else to ask it", () => {
+    expect(MicrosoftTeamsProjectChoice.getNoQuestionAnswer()).toEqual({
+      markdown:
+        "There's no recent question of yours here to ask in another project. Ask it again, and I'll ask which project it's for.",
+      text: "There's no recent question of yours here to ask in another project. Ask it again, and I'll ask which project it's for.",
+    });
+    expect(MicrosoftTeamsProjectChoice.getNoOtherProjectAnswer()).toEqual({
+      markdown:
+        "You're not a member of another project of this Microsoft 365 organization, so there's nowhere else to ask it.",
+      text: "You're not a member of another project of this Microsoft 365 organization, so there's nowhere else to ask it.",
+    });
+  });
+
+  test("the card that asks which of the others: which project to ask it in, and the question asked where", () => {
+    expect(
+      MicrosoftTeamsProjectChoice.getAskAgainWording({
+        question: "which monitors are down?",
+        answeredIn: "IRM Non-Prod",
+      }).question,
+    ).toBe("Which project should I ask it in?");
+    expect(
+      MicrosoftTeamsProjectChoice.getAskAgainWording({
+        question: "which monitors are down?",
+        answeredIn: "IRM Non-Prod",
+      }).reason.toString(),
+    ).toBe('You asked "which monitors are down?" in **IRM Non-Prod**.');
+    expect(
+      MicrosoftTeamsProjectChoice.getAskAgainWording({
+        question: "which monitors are down?",
+        answeredIn: null,
+      }).reason.toString(),
+    ).toBe('You asked "which monitors are down?".');
+  });
+
+  test("the question quoted on one line, cut with '…' past 80 characters - and Markdown in it, or in a name, shown as typed", () => {
+    const long: string = "why is " + "checkout ".repeat(20) + "slow?";
+    const quoted: string = MicrosoftTeamsProjectChoice.getAskAgainWording({
+      question: long,
+      answeredIn: "IRM",
+    }).reason.toString();
+    const inner: string = quoted.substring(
+      quoted.indexOf('"') + 1,
+      quoted.lastIndexOf('"'),
+    );
+
+    // Cut before the 80th character, never with a space before the "…".
+    expect(inner.length).toBeLessThanOrEqual(80);
+    expect(inner.length).toBeGreaterThan(70);
+    expect(inner.endsWith("…")).toBe(true);
+    expect(inner.endsWith(" …")).toBe(false);
+    expect(long.startsWith(inner.slice(0, -1))).toBe(true);
+    expect(
+      MicrosoftTeamsProjectChoice.getAskAgainWording({
+        question: "which\n\n  monitors\tare down?",
+        answeredIn: "IRM",
+      }).reason.toString(),
+    ).toBe('You asked "which monitors are down?" in **IRM**.');
+
+    const markdown: string = MicrosoftTeamsProjectChoice.getAskAgainWording({
+      question: "why is **checkout** [down](https://x.test)?",
+      answeredIn: "*Prod*",
+    }).reason.toString();
+
+    // Escaped, as every text a chat writes is: no bold, and no link.
+    expect(markdown).toBe(
+      'You asked "why is \\*\\*checkout\\*\\* \\[down\\](https://x.test)?" in **\\*Prod\\***.',
+    );
+  });
+
+  test("the card asks in those words, offering the projects given, and its notification says them", async () => {
+    const activity: JSONObject = message("which monitors are down?");
+    const turn: FakeTurn = turnOf(activity);
+
+    expect(
+      await MicrosoftTeamsProjectChoice.offer({
+        turnContext: turn.turnContext,
+        activity: activity,
+        resolution: resolution([PLATFORM, NONPRD, OTHER]),
+        kind: MicrosoftTeamsProjectChoiceKind.Message,
+        isQuestion: true,
+        projectIds: [PLATFORM, OTHER],
+        wording: MicrosoftTeamsProjectChoice.getAskAgainWording({
+          question: "which monitors are down?",
+          answeredIn: "IRM Non-Prod",
+        }),
+      }),
+    ).toBe(true);
+
+    const card: JSONObject = cardOf(turn.sent[0]);
+
+    expect(textOf(card)).toBe(
+      "<at>Deane Barker</at> **Which project should I ask it in?**",
+    );
+    expect(reasonOf(card)).toMatchObject({
+      text: 'You asked "which monitors are down?" in **IRM Non-Prod**.',
+      isSubtle: true,
+      spacing: "Small",
+    });
+    expect(
+      buttonsOf(card).map((button: JSONObject): unknown => {
+        return button["title"];
+      }),
+    ).toEqual(["IRM Platform", "Sandbox"]);
+    expect(turn.sent[0]!.summary).toBe(
+      "Which project should I ask it in: IRM Platform or Sandbox?",
+    );
+
+    // A press of one of them is the request kept: the question, asked again there.
+    const taken: WorkspaceProjectChoiceTaken<MicrosoftTeamsProjectChoiceRequest> =
+      await takeWith(choiceValue(pressesOf(card)[1]!));
+
+    expect(taken.isTaken).toBe(true);
+
+    if (taken.isTaken) {
+      expect(taken.choice.projectId.toString()).toBe(OTHER.toString());
+      expect(taken.record.request.isQuestion).toBe(true);
+      expect(taken.record.request.activity["text"]).toBe(
+        "which monitors are down?",
+      );
+    }
+  });
+
+  test("a project the card was not given is never one of its buttons, nor spends its request", async () => {
+    const activity: JSONObject = message("which monitors are down?");
+    const turn: FakeTurn = turnOf(activity);
+
+    await MicrosoftTeamsProjectChoice.offer({
+      turnContext: turn.turnContext,
+      activity: activity,
+      resolution: resolution([PLATFORM, NONPRD, OTHER]),
+      kind: MicrosoftTeamsProjectChoiceKind.Message,
+      isQuestion: true,
+      projectIds: [PLATFORM, OTHER],
+    });
+
+    const card: JSONObject = cardOf(turn.sent[0]);
+    const edited: WorkspaceProjectChoicePress = {
+      ...pressesOf(card)[0]!,
+      projectId: NONPRD,
+    };
+
+    expect(refusalOf(await takeWith(choiceValue(edited)))).toBe(
+      WorkspaceProjectChoiceRefusal.NotOffered,
+    );
+  });
+});
+
+describe("the question a conversation keeps, to ask it again", () => {
+  test("kept for the conversation and its person, an hour like its project - under a key that names neither", async () => {
+    await MicrosoftTeamsProjectChoice.rememberConversationQuestion({
+      activity: message("which monitors are down?"),
+    });
+
+    const kept: JSONObject | null =
+      await MicrosoftTeamsProjectChoice.getConversationQuestion(
+        message("Ask in another project"),
+      );
+
+    expect(kept?.["text"]).toBe("which monitors are down?");
+    expect((kept?.["from"] as JSONObject)["aadObjectId"]).toBe(DEANE_AAD);
+
+    // Another conversation, or another person in it: none.
+    expect(
+      await MicrosoftTeamsProjectChoice.getConversationQuestion(
+        message("Ask in another project", { where: "channel" }),
+      ),
+    ).toBeNull();
+    expect(
+      await MicrosoftTeamsProjectChoice.getConversationQuestion(
+        message("Ask in another project", { from: NITIN }),
+      ),
+    ).toBeNull();
+
+    const [key, entry] = Array.from(cache().store.entries())[0]!;
+
+    expect(
+      key.startsWith("microsoft-teams-project-choice-conversation-question-"),
+    ).toBe(true);
+
+    for (const named of [TENANT, PERSONAL_CHAT, DEANE_AAD]) {
+      expect(key).not.toContain(named);
+    }
+
+    expect(entry.expiresAt - Date.now()).toBeGreaterThan(59 * 60 * 1000);
+    expect(entry.expiresAt - Date.now()).toBeLessThanOrEqual(60 * 60 * 1000);
+
+    entry.expiresAt = Date.now() - 1;
+
+    expect(
+      await MicrosoftTeamsProjectChoice.getConversationQuestion(
+        message("Ask in another project"),
+      ),
+    ).toBeNull();
+  });
+
+  test("what is kept is what asking it again reads - nothing of its attachments or form inputs", async () => {
+    const activity: JSONObject = {
+      ...message("which monitors are down?"),
+      attachments: [{ contentType: "text/html", content: "<b>secret</b>" }],
+      value: { incidentTitle: "typed into a form", action: "x" },
+    };
+
+    await MicrosoftTeamsProjectChoice.rememberConversationQuestion({
+      activity: activity,
+    });
+
+    const kept: JSONObject | null =
+      await MicrosoftTeamsProjectChoice.getConversationQuestion(activity);
+
+    expect(kept).toEqual(MicrosoftTeamsProjectChoice.getKeptActivity(activity));
+    expect(JSON.stringify(kept)).not.toContain("secret");
+    expect(JSON.stringify(kept)).not.toContain("typed into a form");
+  });
+
+  test("a newer question replaces it", async () => {
+    await MicrosoftTeamsProjectChoice.rememberConversationQuestion({
+      activity: message("which monitors are down?"),
+    });
+    await MicrosoftTeamsProjectChoice.rememberConversationQuestion({
+      activity: message("and why is checkout slow?"),
+    });
+
+    expect(
+      (
+        await MicrosoftTeamsProjectChoice.getConversationQuestion(
+          message("Ask in another project"),
+        )
+      )?.["text"],
+    ).toBe("and why is checkout slow?");
+  });
+
+  test("anything it did not keep is none: not JSON, another person's, no text", async () => {
+    await MicrosoftTeamsProjectChoice.rememberConversationQuestion({
+      activity: message("which monitors are down?"),
+    });
+
+    const entry: { value: string } = Array.from(cache().store.values())[0]!;
+
+    for (const stored of [
+      "not json",
+      JSON.stringify([]),
+      JSON.stringify(
+        MicrosoftTeamsProjectChoice.getKeptActivity(
+          message("which monitors are down?", { from: NITIN }),
+        ),
+      ),
+      JSON.stringify({
+        ...MicrosoftTeamsProjectChoice.getKeptActivity(
+          message("which monitors are down?"),
+        ),
+        text: "",
+      }),
+    ]) {
+      entry.value = stored;
+
+      expect(
+        await MicrosoftTeamsProjectChoice.getConversationQuestion(
+          message("Ask in another project"),
+        ),
+      ).toBeNull();
+    }
+  });
+
+  test("a cache that cannot be read or written keeps nothing, and nothing throws; nothing is kept of an activity that names no conversation", async () => {
+    jest
+      .spyOn(GlobalCache, "setString")
+      .mockRejectedValueOnce(new Error("connection refused"));
+
+    await expect(
+      MicrosoftTeamsProjectChoice.rememberConversationQuestion({
+        activity: message("which monitors are down?"),
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(cache().store.size).toBe(0);
+
+    await MicrosoftTeamsProjectChoice.rememberConversationQuestion({
+      activity: message("which monitors are down?"),
+    });
+
+    jest
+      .spyOn(GlobalCache, "getString")
+      .mockRejectedValueOnce(new Error("connection refused"));
+
+    expect(
+      await MicrosoftTeamsProjectChoice.getConversationQuestion(
+        message("Ask in another project"),
+      ),
+    ).toBeNull();
+
+    cache().store.clear();
+
+    const nobody: JSONObject = message("which monitors are down?");
+    delete nobody["from"];
+
+    await MicrosoftTeamsProjectChoice.rememberConversationQuestion({
+      activity: nobody,
+    });
+
+    expect(cache().store.size).toBe(0);
+    expect(
+      await MicrosoftTeamsProjectChoice.getConversationQuestion(nobody),
+    ).toBeNull();
+  });
+});

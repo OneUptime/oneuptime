@@ -518,3 +518,51 @@ describe("what a press of the menu names", () => {
     expect(SlackHome.readProjectSwitch(undefined)).toBeNull();
   });
 });
+
+/*
+ * The view an app_home_opened event says was there: its hash, which the
+ * opening's drawing names, so it never draws over a switch made while it
+ * was read (SlackHome.handleHomeOpened).
+ */
+describe("the view an opening of the Home names", () => {
+  test("the hash of the view Slack sends with the event", () => {
+    expect(
+      SlackHome.readViewHash({
+        type: "app_home_opened",
+        view: { id: "V0HOME", type: "home", hash: "1760000000.000123" },
+      }),
+    ).toBe("1760000000.000123");
+  });
+
+  test("none for an event with no view - the first opening, before anything was published - or with no hash", () => {
+    for (const event of [
+      { type: "app_home_opened" },
+      { type: "app_home_opened", view: null },
+      { type: "app_home_opened", view: [] },
+      { type: "app_home_opened", view: "V0HOME" },
+      { type: "app_home_opened", view: { id: "V0HOME" } },
+    ] as Array<JSONObject>) {
+      expect(SlackHome.readViewHash(event)).toBeUndefined();
+    }
+
+    expect(SlackHome.readViewHash(undefined)).toBeUndefined();
+  });
+
+  test("none for anything that is not a view's hash: not text, empty, or far too long to be one", () => {
+    for (const hash of [42, true, "", "x".repeat(201), { hash: "x" }]) {
+      expect(
+        SlackHome.readViewHash({
+          type: "app_home_opened",
+          view: { hash: hash },
+        } as JSONObject),
+      ).toBeUndefined();
+    }
+
+    expect(
+      SlackHome.readViewHash({
+        type: "app_home_opened",
+        view: { hash: "x".repeat(200) },
+      }),
+    ).toBe("x".repeat(200));
+  });
+});
