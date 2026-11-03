@@ -276,7 +276,9 @@ import { AddDataChecks1808991400000 } from "./1808991400000-AddDataChecks";
 import { AddDataPipelines1808991500000 } from "./1808991500000-AddDataPipelines";
 import { AddDataPipelineSchedule1808991600000 } from "./1808991600000-AddDataPipelineSchedule";
 import { AddDbtArtifacts1808991700000 } from "./1808991700000-AddDbtArtifacts";
-import { AddSecurityHuntRunHistory1808991800000 } from "./1808991800000-AddSecurityHuntRunHistory";
+import { AddDataAlerts1808991800000 } from "./1808991800000-AddDataAlerts";
+import { AddDataAssetReads1808991900000 } from "./1808991900000-AddDataAssetReads";
+import { AddSecurityHuntRunHistory1808992040000 } from "./1808992040000-AddSecurityHuntRunHistory";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1755,5 +1757,7 @@ export default [
   AddDataPipelines1808991500000,
   AddDataPipelineSchedule1808991600000,
   AddDbtArtifacts1808991700000,
-  AddSecurityHuntRunHistory1808991800000,
+  AddDataAlerts1808991800000,
+  AddDataAssetReads1808991900000,
+  AddSecurityHuntRunHistory1808992040000,
 ];

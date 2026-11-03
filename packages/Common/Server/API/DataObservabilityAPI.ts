@@ -18,6 +18,7 @@ import {
   DataAssetFreshnessResult,
   getDataAssetFreshness,
 } from "../../Types/DataObservability/DataAssetFreshness";
+import { isDataAssetUnused } from "../../Types/DataObservability/DataAssetReads";
 import {
   DATA_OBSERVABILITY_API_ROUTES,
   DataObservabilityCollector,
@@ -44,10 +45,8 @@ import { queueTableHealthCollection } from "../Utils/DataObservability/DataObser
 import DataCheckAlerts from "../Utils/DataObservability/DataCheckAlerts";
 import DataCheck from "../../Models/DatabaseModels/DataCheck";
 import DataCheckService from "../Services/DataCheckService";
-import {
-  isValidProbeConnectionVariable,
-  PROBE_SCANNABLE_KINDS,
-} from "../Utils/DataSecurity/DataSecurityProbeScan";
+import { isValidProbeConnectionVariable } from "../Utils/DataSecurity/DataSecurityProbeScan";
+import { DATA_OBSERVABILITY_KINDS } from "../Utils/DataObservability/DataObservabilityEngines";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -106,7 +105,7 @@ const CONNECT_PERMISSIONS: Array<Permission> = [
 
 // The kinds Data Observability collects today.
 export const COLLECTABLE_KINDS: ReadonlyArray<DataStoreKind> = [
-  ...PROBE_SCANNABLE_KINDS,
+  ...DATA_OBSERVABILITY_KINDS,
 ];
 
 const MAX_STORES: number = 500;
@@ -338,6 +337,8 @@ export default class DataObservabilityAPI extends BaseAPI<
     const lateAssets: Array<DataObservabilityOverviewAsset> = [];
     let assetCount: number = 0;
     let droppedAssetCount: number = 0;
+    let unusedAssetCount: number = 0;
+    let unusedSizeInBytes: number = 0;
 
     for (const asset of assets) {
       if (asset.isDropped) {
@@ -346,6 +347,11 @@ export default class DataObservabilityAPI extends BaseAPI<
       }
 
       assetCount++;
+
+      if (isDataAssetUnused({ unreadSince: asset.unreadSince, now })) {
+        unusedAssetCount++;
+        unusedSizeInBytes += asset.sizeInBytes || 0;
+      }
 
       const result: DataAssetFreshnessResult = getDataAssetFreshness({
         kind: asset.assetKind,
@@ -434,6 +440,8 @@ export default class DataObservabilityAPI extends BaseAPI<
       assetCount,
       lateAssetCount: lateAssets.length,
       droppedAssetCount,
+      unusedAssetCount,
+      unusedSizeInBytes,
       schemaChangeCount,
       failingStoreCount: stores.filter(
         (store: DataObservabilityStoreSummary) => {
@@ -554,6 +562,8 @@ export default class DataObservabilityAPI extends BaseAPI<
         lastChangedAt: true,
         updateIntervalInSeconds: true,
         isDropped: true,
+        unreadSince: true,
+        sizeInBytes: true,
       },
       skip: 0,
       limit: MAX_ASSETS_READ,

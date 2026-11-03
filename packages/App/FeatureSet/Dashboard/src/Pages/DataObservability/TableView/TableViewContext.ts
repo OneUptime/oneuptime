@@ -30,6 +30,8 @@ export const TABLE_VIEW_SELECT: {
   isDropped: true;
   droppedAt: true;
   dbtNode: true;
+  lastReadAt: true;
+  unreadSince: true;
 } = {
   _id: true,
   assetKey: true,
@@ -51,6 +53,8 @@ export const TABLE_VIEW_SELECT: {
   isDropped: true,
   droppedAt: true,
   dbtNode: true,
+  lastReadAt: true,
+  unreadSince: true,
 };
 
 export interface TableViewOutletContext {

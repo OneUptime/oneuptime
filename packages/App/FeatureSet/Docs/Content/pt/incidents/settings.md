@@ -603,7 +603,7 @@ As regras de agrupamento, de SLA, de lembrete e de IA também agem sobre o novo 
 > [!IMPORTANT]
 > **A semântica de ordem não é uniforme.** As regras de agrupamento, as regras de SLA e as Reminder Rules são avaliadas em ordem, e as listas delas são ordenadas arrastando: uma regra nova é adicionada no fim. As regras de plantão não — toda regra que corresponde dispara. Não suponha que um mesmo modelo vale para as nove.
 
-As páginas **Regras de Plantão**, **Regras de proprietário**, **Regras de Rótulos** e **Regras de privacidade** têm abas — uma aba **Incident Rules** e uma aba **Episode Rules**, cada uma com sua própria tabela. Configure a aba **Incident Rules** a menos que você esteja falando especificamente de episódios. **Regras de agrupamento**, **Regras de runbook**, **Regras de IA**, **Regras de SLA** e **Regras de lembrete** são tabelas únicas.
+As páginas **Regras de Plantão**, **Regras de proprietário**, **Regras de Rótulos** e **Regras de privacidade** têm abas — uma aba **Regras de incidentes** e uma aba **Episode Rules**, cada uma com sua própria tabela. Configure a aba **Regras de incidentes** a menos que você esteja falando especificamente de episódios. **Regras de agrupamento**, **Regras de runbook**, **Regras de IA**, **Regras de SLA** e **Regras de lembrete** são tabelas únicas.
 
 As regras de proprietário, de rótulos e de privacidade só agem sobre os incidentes e episódios criados depois que a regra existe. Para aplicar uma delas aos incidentes que já existem, use **Executar agora** na linha da regra, na página dela ou nas ações em massa da tabela — veja [Executar regras em recursos existentes](/docs/configuration/run-rules-now). As regras de plantão, de runbook, de IA, de agrupamento, de SLA e de lembrete não podem ser executadas em incidentes existentes.
 
@@ -649,7 +649,7 @@ As regras salvas antes de o formulário perguntar pelos proprietários ainda pod
 
 ## Regras de plantão de incidente
 
-**Incidentes → Regras → Regras de Plantão** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) é onde você torna o acionamento automático. O cartão, **Regras de plantão de incidente**, diz o que elas fazem: acionar políticas de plantão automaticamente para novos incidentes que corresponderem. A página tem duas abas: **Incident Rules** e **Episode Rules**.
+**Incidentes → Regras → Regras de Plantão** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) é onde você torna o acionamento automático. O cartão, **Regras de plantão de incidente**, diz o que elas fazem: acionar políticas de plantão automaticamente para novos incidentes que corresponderem. A página tem duas abas: **Regras de incidentes** e **Episode Rules**.
 
 O formulário de criação tem duas etapas:
 

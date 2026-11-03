@@ -64,9 +64,11 @@ import { afterEach, describe, expect, test } from "@jest/globals";
  * create_incident took no resources, so the investigation never reached
  * test01 and auto-remediation said there was nothing to fix. Now:
  *
- *   - the action is prepared before it is shown: the page's host is written
- *     into the arguments the person approves, and the approval card says
- *     "Linked to host "test01"." under the action's title;
+ *   - the action is prepared before it is shown: the page's host and the
+ *     severity the incident takes are written into the arguments the person
+ *     approves, and the approval card says 'Severity: SEV2. Linked to host
+ *     "test01".' under the action's title, as create_alert's says its
+ *     alert's (#5315's follow-up);
  *   - what was approved is what runs: resumed after approval, the incident
  *     is created linked to test01, as the person who approved;
  *   - in Auto-run the same arguments run at once;
@@ -296,10 +298,14 @@ describe("Ask AI on a host's page declares an incident linked to the host (issue
     expect(actions[0]!.status).toBe(AIChatToolActionStatus.Pending);
     expect(actions[0]!.requiresApproval).toBe(true);
     expect(actions[0]!.title).toBe("Create incident: High memory usage");
-    expect(actions[0]!.description).toBe('Linked to host "test01".');
+    expect(actions[0]!.description).toBe(
+      'Severity: SEV2. Linked to host "test01".',
+    );
+    // The severity it takes, by its name in the project, is approved too.
     expect(actions[0]!.arguments).toEqual({
       ...DECLARE_CALL.arguments,
       affectedResources: [{ resourceType: "Host", resourceId: HOST_ID }],
+      severityName: "SEV2",
     });
 
     // The host was read as the person asking, to name it - never as root.
@@ -369,7 +375,9 @@ describe("Ask AI on a host's page declares an incident linked to the host (issue
     expect(hostIdsOf(incident)).toEqual([HOST_ID]);
 
     const actions: Array<AIChatToolAction> = lastToolActions(spies);
-    expect(actions[0]!.description).toBe('Linked to host "test01".');
+    expect(actions[0]!.description).toBe(
+      'Severity: SEV2. Linked to host "test01".',
+    );
     expect(actions[0]!.status).toBe(AIChatToolActionStatus.Executed);
   });
 
@@ -391,7 +399,8 @@ describe("Ask AI on a host's page declares an incident linked to the host (issue
 
     const actions: Array<AIChatToolAction> = lastToolActions(spies);
     expect(actions[0]!.arguments["affectedResources"]).toEqual([]);
-    expect(actions[0]!.description).toBeUndefined();
+    // Linked to nothing: the line says only the severity it takes.
+    expect(actions[0]!.description).toBe("Severity: SEV2.");
     expect(spies.hostFindBy).not.toHaveBeenCalled();
   });
 
@@ -464,7 +473,7 @@ describe("Ask AI on a host's page declares an incident linked to the host (issue
     await ChatAgentRunner.runTurn(buildRequest({ pageContext: undefined }));
 
     expect(lastToolActions(spies)[0]!.description).toBe(
-      'Linked to host "test01".',
+      'Severity: SEV2. Linked to host "test01".',
     );
   });
 });
@@ -561,11 +570,20 @@ describe("the card's words are stored as sentences beside their English", () => 
     },
   );
 
+  /*
+   * The severity the incident takes first, then the host it is linked to -
+   * and the severity's argument named as said by the line, so the card's
+   * argument line does not say it again.
+   */
   const DECLARE_WORDS: AIActionWords = {
     title: aiActionSentence(AI_ACTION_TITLES.createIncident, {
       title: "High memory usage",
     }),
-    description: [LINKED_TO_TEST01],
+    description: [
+      aiActionSentence(AI_ACTION_LINES.severity, { severity: "SEV2" }),
+      LINKED_TO_TEST01,
+    ],
+    describedArguments: ["severityName"],
   };
 
   function expectSameEnglish(action: AIChatToolAction): void {

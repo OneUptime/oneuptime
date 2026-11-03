@@ -472,6 +472,38 @@ export default class DataAsset extends BaseModel {
 
   @ColumnAccessControl(serverWrittenColumnAccess)
   @TableColumn({
+    type: TableColumnType.Date,
+    required: false,
+    computed: true,
+    canReadOnRelationQuery: true,
+    title: "Last Read At",
+    description:
+      "When the table was last seen read, to the hour: by the engine's read counters, or by a service's database spans.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public lastReadAt?: Date = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Date,
+    required: false,
+    computed: true,
+    canReadOnRelationQuery: true,
+    title: "Unread Since",
+    description:
+      "The time from which the table is known to have had no read: its last read, or when the engine's read counters started when it has had none since. Empty when that cannot be said.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public unreadSince?: Date = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
     type: TableColumnType.Number,
     required: false,
     computed: true,

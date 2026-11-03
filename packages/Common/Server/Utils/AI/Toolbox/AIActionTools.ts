@@ -42,11 +42,17 @@ import {
   ToolExecutionResult,
 } from "./ToolTypes";
 import {
+  AI_ACTION_CARD_FACTS,
+  AI_ACTION_CARD_KINDS,
+  AI_ACTION_CARD_LINES,
   AI_ACTION_TITLES,
+  aiActionCardFact,
   AIActionSentence,
   aiActionSentence,
+  aiActionTerm,
 } from "../../../../Types/AI/AIActionWords";
 import {
+  getIncidentNumberText,
   getRecordTitleName,
   prepareRecordNamesInTitle,
   RecordNames,
@@ -278,7 +284,12 @@ export const PageOnCallPolicyTool: ObservabilityTool = {
 
     const incident: Incident | null = await IncidentService.findOneById({
       id: incidentId,
-      select: { _id: true, incidentNumber: true, title: true },
+      select: {
+        _id: true,
+        incidentNumber: true,
+        incidentNumberWithPrefix: true,
+        title: true,
+      },
       props: ctx.props,
     });
     if (!incident) {
@@ -320,15 +331,18 @@ export const PageOnCallPolicyTool: ObservabilityTool = {
       },
       redactionCount: serialized.redactionCount,
       isTruncated: false,
-      widget: WidgetBuilder.resourceCard({
+      // The policy by its name, and the incident it paged for by its number.
+      widget: WidgetBuilder.actionCard({
         title: "On-call paged",
-        resourceType: "OnCallDutyPolicy",
         heading: policy.name || "On-call policy",
-        subheading: `Incident #${incident.incidentNumber}`,
-        fields: [
-          { label: "Policy", value: policy.name || "—" },
-          { label: "Incident", value: `#${incident.incidentNumber ?? ""}` },
-        ],
+        words: {
+          kind: aiActionTerm(AI_ACTION_CARD_KINDS.onCallPolicy),
+          line: [
+            aiActionSentence(AI_ACTION_CARD_LINES.pagedForIncident, {
+              incident: getIncidentNumberText(incident),
+            }),
+          ],
+        },
         link: {
           type: AIChatCitationTargetType.IncidentView,
           params: { incidentId: incidentIdString },
@@ -475,14 +489,18 @@ export const RunRunbookTool: ObservabilityTool = {
      * cross-tenant id and one the user has no access to — so the tool cannot
      * be used to staple another project's incident onto an execution.
      */
+    let linkedIncident: Incident | null = null;
+
     if (incidentId) {
-      const linkedIncident: Incident | null = await IncidentService.findOneById(
-        {
-          id: incidentId,
-          select: { _id: true },
-          props: ctx.props,
+      linkedIncident = await IncidentService.findOneById({
+        id: incidentId,
+        select: {
+          _id: true,
+          incidentNumber: true,
+          incidentNumberWithPrefix: true,
         },
-      );
+        props: ctx.props,
+      });
       if (!linkedIncident) {
         throw new BadDataException(
           "Incident not found (or you do not have access to it).",
@@ -528,14 +546,21 @@ export const RunRunbookTool: ObservabilityTool = {
       citationLabel: `Started ${runbookLabel}`,
       redactionCount: serialized.redactionCount,
       isTruncated: false,
-      widget: WidgetBuilder.resourceCard({
+      // The runbook by its name, and the incident its run is for.
+      widget: WidgetBuilder.actionCard({
         title: "Runbook started",
-        resourceType: "Runbook",
         heading: runbookName || "Runbook",
-        subheading: "Execution scheduled",
-        fields: [
-          { label: "Runbook", value: runbookName || runbookId.toString() },
-        ],
+        words: {
+          kind: aiActionTerm(AI_ACTION_CARD_KINDS.runbook),
+          line: [
+            linkedIncident
+              ? aiActionSentence(
+                  AI_ACTION_CARD_LINES.runbookStartedForIncident,
+                  { incident: getIncidentNumberText(linkedIncident) },
+                )
+              : aiActionSentence(AI_ACTION_CARD_LINES.runbookStarted),
+          ],
+        },
       }),
     };
 
@@ -621,6 +646,7 @@ export const PostIncidentStatusUpdateTool: ObservabilityTool = {
       select: {
         _id: true,
         incidentNumber: true,
+        incidentNumberWithPrefix: true,
         title: true,
         shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: true,
         isPrivate: true,
@@ -692,19 +718,25 @@ export const PostIncidentStatusUpdateTool: ObservabilityTool = {
       },
       redactionCount: serialized.redactionCount,
       isTruncated: false,
-      widget: WidgetBuilder.resourceCard({
+      widget: WidgetBuilder.actionCard({
         title: "Status update posted",
-        resourceType: "Incident",
-        heading: `#${incident.incidentNumber} · ${incident.title}`,
-        subheading: notifySubscribers
-          ? "Subscribers notified"
-          : "Subscribers not notified",
-        fields: [
-          {
-            label: "Update",
-            value: note.length > 200 ? `${note.substring(0, 200)}…` : note,
-          },
-        ],
+        heading: `${getIncidentNumberText(incident)} · ${incident.title}`,
+        words: {
+          kind: aiActionTerm(AI_ACTION_CARD_KINDS.incident),
+          line: [
+            aiActionSentence(
+              notifySubscribers
+                ? AI_ACTION_CARD_LINES.statusUpdatePostedSubscribersNotified
+                : AI_ACTION_CARD_LINES.statusUpdatePostedQuietly,
+            ),
+          ],
+          facts: [
+            aiActionCardFact(
+              AI_ACTION_CARD_FACTS.statusUpdate,
+              note.length > 200 ? `${note.substring(0, 200)}…` : note,
+            ),
+          ],
+        },
         link: {
           type: AIChatCitationTargetType.IncidentView,
           params: { incidentId: incidentIdString },
@@ -773,7 +805,12 @@ export const ChangeIncidentSeverityTool: ObservabilityTool = {
 
     const incident: Incident | null = await IncidentService.findOneById({
       id: incidentId,
-      select: { _id: true, incidentNumber: true, title: true },
+      select: {
+        _id: true,
+        incidentNumber: true,
+        incidentNumberWithPrefix: true,
+        title: true,
+      },
       props: ctx.props,
     });
     if (!incident) {
@@ -851,13 +888,18 @@ export const ChangeIncidentSeverityTool: ObservabilityTool = {
       },
       redactionCount: serialized.redactionCount,
       isTruncated: false,
-      widget: WidgetBuilder.resourceCard({
+      // The heading and the line under it say the number and the severity.
+      widget: WidgetBuilder.actionCard({
         title: "Severity changed",
-        resourceType: "Incident",
-        heading: `#${incident.incidentNumber} · ${incident.title}`,
-        subheading: `Severity: ${severity.name}`,
-        // The heading and the line under it say the number and the severity.
-        fields: [],
+        heading: `${getIncidentNumberText(incident)} · ${incident.title}`,
+        words: {
+          kind: aiActionTerm(AI_ACTION_CARD_KINDS.incident),
+          line: [
+            aiActionSentence(AI_ACTION_CARD_LINES.severity, {
+              severity: severity.name || "",
+            }),
+          ],
+        },
         link: {
           type: AIChatCitationTargetType.IncidentView,
           params: { incidentId: incidentIdString },

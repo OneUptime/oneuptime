@@ -431,6 +431,7 @@ import DataCheckService from "./DataCheckService";
 import DataPipelineService from "./DataPipelineService";
 import DataPipelineRunService from "./DataPipelineRunService";
 import DataAssetLineageService from "./DataAssetLineageService";
+import DataAlertService from "./DataAlertService";
 import SecurityProtectedEntityService from "./SecurityProtectedEntityService";
 import SecurityEntityRiskService from "./SecurityEntityRiskService";
 import SecurityEntityCriticalityService from "./SecurityEntityCriticalityService";
@@ -985,6 +986,7 @@ const services: Array<BaseService> = [
   DataPipelineService,
   DataPipelineRunService,
   DataAssetLineageService,
+  DataAlertService,
   SecurityProtectedEntityService,
   SecurityEntityRiskService,
   SecurityEntityCriticalityService,

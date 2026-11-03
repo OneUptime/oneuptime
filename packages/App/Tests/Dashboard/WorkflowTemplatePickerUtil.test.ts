@@ -524,12 +524,19 @@ describe("what a search matches", () => {
     expect(new Set(searchIds("jira"))).toEqual(new Set(ids(JIRA_TEMPLATES)));
   });
 
-  test("a search for alert finds the alert templates: the two Alerts ones, then the eight Jira ones, then the six Dynamics 365 ones, then the three Zabbix ones - and last the one that pages about a new alert", () => {
+  test("a search for alert finds the alert templates: the two Alerts ones, then the eight Jira ones, the six Dynamics 365 ones, the three Zabbix ones, the Datadog and the New Relic one - and last the one that pages about a new alert", () => {
     expect(searchIds("alert")).toEqual([
       ...ids(getTemplatesInView(WorkflowTemplateCategory.Alerts)),
       ...ALERT_JIRA_IDS,
       ...ALERT_DYNAMICS_IDS,
       ...ALERT_ZABBIX_IDS,
+      /*
+       * Datadog calls a monitor's notification an alert too, so the
+       * incident versions say "monitor" and "issue" instead: only the
+       * versions that make OneUptime alerts are found.
+       */
+      "datadog-create-alert-from-monitor",
+      "new-relic-create-alert-from-issue",
       // Its page opens an alert, which its description says: found, after the templates named for alerts.
       "webhook-page-users",
     ]);
@@ -573,6 +580,51 @@ describe("what a search matches", () => {
       "zabbix-message-from-incident-private-note",
       "zabbix-message-from-alert-private-note",
     ]);
+  });
+
+  test("a search for datadog finds the two Datadog templates and nothing else, the incident one first", () => {
+    expect(searchIds("datadog")).toEqual([
+      "datadog-declare-incident-from-monitor",
+      "datadog-create-alert-from-monitor",
+    ]);
+    expect(searchIds("Datadog")).toEqual(searchIds("datadog"));
+  });
+
+  test.each(["new relic", "relic", "New Relic"])(
+    "a search for %p finds the two New Relic templates and nothing else, the incident one first",
+    (search: string) => {
+      expect(searchIds(search)).toEqual([
+        "new-relic-declare-incident-from-issue",
+        "new-relic-create-alert-from-issue",
+      ]);
+    },
+  );
+
+  test("searching for what each tool calls it finds the workflow for the record named", () => {
+    expect(searchIds("datadog monitor")[0]).toBe(
+      "datadog-declare-incident-from-monitor",
+    );
+    expect(searchIds("datadog incident")[0]).toBe(
+      "datadog-declare-incident-from-monitor",
+    );
+    expect(searchIds("datadog alert")[0]).toBe(
+      "datadog-create-alert-from-monitor",
+    );
+    expect(searchIds("new relic issue")[0]).toBe(
+      "new-relic-declare-incident-from-issue",
+    );
+    expect(searchIds("new relic alert")[0]).toBe(
+      "new-relic-create-alert-from-issue",
+    );
+  });
+
+  test("a search for incident finds the Datadog and New Relic incident templates, and never their alert ones", () => {
+    const results: Array<string> = searchIds("incident");
+
+    expect(results).toContain("datadog-declare-incident-from-monitor");
+    expect(results).toContain("new-relic-declare-incident-from-issue");
+    expect(results).not.toContain("datadog-create-alert-from-monitor");
+    expect(results).not.toContain("new-relic-create-alert-from-issue");
   });
 
   /*

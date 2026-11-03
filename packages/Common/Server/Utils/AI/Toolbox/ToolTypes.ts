@@ -80,6 +80,12 @@ export interface PreparedMutation {
    * IDs would only repeat the title, unreadably.
    */
   namedArguments?: Array<string> | undefined;
+  /*
+   * The arguments the description says in words - the severity a new
+   * incident takes, where it starts - which the card's line of arguments
+   * then leaves out: it would only say them again.
+   */
+  describedArguments?: Array<string> | undefined;
 }
 
 export interface ToolExecutionResult {

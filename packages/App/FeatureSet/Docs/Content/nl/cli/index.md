@@ -101,6 +101,7 @@ De lijst toont elk soort record waarmee je kunt werken, en de opdracht ervan, zo
 | `oneuptime context list`, `use`, `current`, `delete` | Toont, wisselt, laat zien en verwijdert opgeslagen contexten | [Authenticatie](/docs/cli/authentication#contexten) |
 | `oneuptime whoami` | Toont de URL en API-sleutel die de volgende opdracht gebruikt, en met `--check` of OneUptime de sleutel aanneemt | [Authenticatie](/docs/cli/authentication#controleren-wat-de-cli-gaat-gebruiken) |
 | `oneuptime deploy` | Legt een deploy, of een andere wijziging, vast voor grafieken en OneUptime AI | [Deploys en wijzigingen](/docs/telemetry/change-events) |
+| `oneuptime dbt upload` | Stuurt de artefacten van een dbt-project na een build naar Data Observability | [Opdrachtreferentie](/docs/cli/command-reference#oneuptime-dbt-upload) |
 | `oneuptime <resource> list`, `get`, `create`, `update`, `delete`, `count` | Werkt met één soort record | [Bewerkingen op bronnen](/docs/cli/resource-operations) |
 | `oneuptime <resource> fields` | Toont de velden van een bron en de vlaggen die ze instellen | [Bewerkingen op bronnen](/docs/cli/resource-operations#de-velden-van-een-bron-bekijken) |
 | `oneuptime <resource> acknowledge`, `resolve`, `start`, `end`, `add-note` | Doet wat de knoppen van het dashboard doen bij incidenten, waarschuwingen en gepland onderhoud | [Bewerkingen op bronnen](/docs/cli/resource-operations#bevestigen-oplossen-en-notities-toevoegen) |

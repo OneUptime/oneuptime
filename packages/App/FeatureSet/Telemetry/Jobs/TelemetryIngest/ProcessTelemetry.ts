@@ -1,6 +1,8 @@
 import {
   TelemetryIngestJobData,
   TelemetryType,
+  isKnownProbeIngestJobType,
+  isKnownTelemetryType,
 } from "../../Services/Queue/TelemetryQueueService";
 import OtelLogsIngestService from "../../Services/OtelLogsIngestService";
 import OtelTracesIngestService from "../../Services/OtelTracesIngestService";
@@ -24,6 +26,7 @@ import logger from "Common/Server/Utils/Logger";
 import { QueueJob, QueueName } from "Common/Server/Infrastructure/Queue";
 import { runWithInsertDedup } from "Common/Server/Services/AnalyticsDatabaseService";
 import QueueWorker from "Common/Server/Infrastructure/QueueWorker";
+import UnknownQueueJob from "Common/Server/Infrastructure/UnknownQueueJob";
 import { DisableQueueWorkers } from "Common/Server/EnvironmentConfig";
 import ObjectID from "Common/Types/ObjectID";
 import { isNonActionableIngestError } from "../../Utils/NonActionableIngestError";
@@ -255,6 +258,36 @@ async function withSessionReplaySlot(fn: () => Promise<void>): Promise<void> {
 }
 
 /*
+ * What in a telemetry job this release cannot process, or null when it can
+ * process all of it: a type of telemetry, or a kind of probe ingest, that a
+ * newer release added. Ingest runs on the app servers and this queue on the
+ * workers, so while they run different releases (a rolling upgrade, a
+ * rollout that stalled) a worker gets such jobs. Failing them, as it used
+ * to ("Unknown telemetry type"), lost the telemetry; they are handed back to
+ * the queue for a worker of the release that queued them (#5546). A probe
+ * ingest job with no kind is processed as before.
+ */
+export function describeUnknownTelemetryJob(
+  jobData: TelemetryIngestJobData | undefined,
+): string | null {
+  if (!isKnownTelemetryType(jobData?.type)) {
+    return `telemetry of type "${String(jobData?.type)}"`;
+  }
+
+  const probeIngestJobType: unknown = jobData?.probeIngest?.jobType;
+
+  if (
+    jobData?.type === TelemetryType.ProbeIngest &&
+    probeIngestJobType !== undefined &&
+    !isKnownProbeIngestJobType(probeIngestJobType)
+  ) {
+    return `probe ingest of kind "${String(probeIngestJobType)}"`;
+  }
+
+  return null;
+}
+
+/*
  * Set up the unified worker for processing the telemetry queue. Skipped in
  * the "api" role (DISABLE_QUEUE_WORKERS=true) so the heavy protobuf decode +
  * per-span/log transform + ClickHouse writes run only in the dedicated
@@ -267,11 +300,24 @@ if (DisableQueueWorkers) {
 } else {
   QueueWorker.getWorker(
     QueueName.Telemetry,
-    async (job: QueueJob): Promise<void> => {
+    async (job: QueueJob, token?: string): Promise<void> => {
       logger.debug(`Processing telemetry ingestion job: ${job.name}`);
 
       const jobData: TelemetryIngestJobData =
         job.data as TelemetryIngestJobData;
+
+      const unknownToThisRelease: string | null =
+        describeUnknownTelemetryJob(jobData);
+
+      if (unknownToThisRelease) {
+        // Its body stays in Redis for the worker that processes it.
+        await UnknownQueueJob.handBack({
+          job,
+          token,
+          queueName: QueueName.Telemetry,
+          what: unknownToThisRelease,
+        });
+      }
 
       /*
        * Whether this job's ClickHouse writes carry deterministic per-job

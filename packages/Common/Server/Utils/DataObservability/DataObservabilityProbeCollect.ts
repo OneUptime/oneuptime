@@ -6,10 +6,8 @@ import {
   readDataAssetColumns,
 } from "../../../Types/DataObservability/DataAssetColumn";
 import { JSONObject } from "../../../Types/JSON";
-import {
-  DATABASE_ENGINES,
-  DatabaseEngine,
-} from "../DataSecurity/Content/DatabaseSampler";
+import { DatabaseEngine } from "../DataSecurity/Content/DatabaseSampler";
+import { isCollectorEngine } from "./DataObservabilityEngines";
 import { isValidProbeConnectionVariable } from "../DataSecurity/DataSecurityProbeScan";
 import {
   CollectedTable,
@@ -206,11 +204,9 @@ const MAX_EXCLUSIONS: number = 200;
 const MAX_ERROR_LENGTH: number = 1_000;
 const MAX_WARNING_LENGTH: number = 300;
 
+// Every engine Data Observability collects, Redshift among them (DataObservabilityEngines).
 function isDatabaseEngine(value: unknown): value is DatabaseEngine {
-  return (
-    typeof value === "string" &&
-    (DATABASE_ENGINES as ReadonlyArray<string>).includes(value)
-  );
+  return isCollectorEngine(value);
 }
 
 function boundedWholeNumber(
@@ -322,6 +318,8 @@ function readCollectedTable(value: unknown): CollectedTable | null {
     sizeInBytes: readCount(item["sizeInBytes"]),
     writeCount: readCount(item["writeCount"]),
     secondsSinceChange: readCount(item["secondsSinceChange"]),
+    readCount: readCount(item["readCount"]),
+    secondsSinceRead: readCount(item["secondsSinceRead"]),
     columns:
       columns === null
         ? null
@@ -385,6 +383,7 @@ export function readTableHealthSnapshot(
       : now.toISOString(),
     tables,
     isComplete: item["isComplete"] === true,
+    secondsSinceStatsReset: readCount(item["secondsSinceStatsReset"]),
     target: readTableHealthTarget(item["target"]),
     checkResults: readCheckResults(item["checkResults"]),
     warnings: Array.isArray(item["warnings"])

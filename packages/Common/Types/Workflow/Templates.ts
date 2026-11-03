@@ -72,6 +72,8 @@ export enum WorkflowTemplateCategory {
   Dynamics365 = "Dynamics 365",
   Huntress = "Huntress",
   Zabbix = "Zabbix",
+  Datadog = "Datadog",
+  NewRelic = "New Relic",
   Integrations = "Integrations",
 }
 
@@ -89,6 +91,8 @@ export const WorkflowTemplateCategories: Array<WorkflowTemplateCategory> = [
   WorkflowTemplateCategory.Dynamics365,
   WorkflowTemplateCategory.Huntress,
   WorkflowTemplateCategory.Zabbix,
+  WorkflowTemplateCategory.Datadog,
+  WorkflowTemplateCategory.NewRelic,
   WorkflowTemplateCategory.Integrations,
 ];
 
@@ -202,6 +206,20 @@ const WORKFLOW_TEMPLATE_CATEGORY_INFO: Record<
     description:
       "Open incidents or alerts for Zabbix problems, and keep both sides in step.",
     icon: IconProp.ServerStack,
+  },
+  [WorkflowTemplateCategory.Datadog]: {
+    category: WorkflowTemplateCategory.Datadog,
+    label: "Datadog",
+    description:
+      "Open an incident or alert when a Datadog monitor triggers, and resolve it on recovery.",
+    icon: IconProp.ChartBar,
+  },
+  [WorkflowTemplateCategory.NewRelic]: {
+    category: WorkflowTemplateCategory.NewRelic,
+    label: "New Relic",
+    description:
+      "Open an incident or alert for each New Relic issue, and resolve it when the issue closes.",
+    icon: IconProp.Activity,
   },
   [WorkflowTemplateCategory.Integrations]: {
     category: WorkflowTemplateCategory.Integrations,
@@ -5382,13 +5400,16 @@ return {
 
 type ZabbixTemplateFunction = (kind: TemplateRecordKind) => TemplateDefinition;
 
-type ZabbixPageArgsFunction = (
+type RecordPageArgsFunction = (
   kind: TemplateRecordKind,
   recordIdReference: string,
 ) => JSONObject;
 
-// A Page step about the record a problem opened: the incident, or the alert.
-const zabbixPageArgs: ZabbixPageArgsFunction = (
+/*
+ * A Page step about the record another tool's problem opened: the incident,
+ * or the alert. The Zabbix, Datadog and New Relic templates page with it.
+ */
+const recordPageArgs: RecordPageArgsFunction = (
   kind: TemplateRecordKind,
   recordIdReference: string,
 ): JSONObject => {
@@ -5488,7 +5509,7 @@ const zabbixProblemTemplate: ZabbixTemplateFunction = (
       metadataId: ComponentID.PageOnCallPolicy,
       componentType: ComponentType.Component,
       from: "yes",
-      args: zabbixPageArgs(
+      args: recordPageArgs(
         kind,
         `{{local.components.${step}.returnValues.${FROM_ANOTHER_TOOL_RETURN_VALUE_IDS.record}._id}}`,
       ),
@@ -5736,6 +5757,762 @@ const zabbixTemplatesForKind: ZabbixTemplatesForKindFunction = (
 const ZABBIX_TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
   ...zabbixTemplatesForKind(INCIDENT_KIND),
   ...zabbixTemplatesForKind(ALERT_KIND),
+];
+
+/* ------------------------- Datadog and New Relic ------------------------- */
+
+/*
+ * DATADOG MONITORS AND NEW RELIC ISSUES, ONE WORKFLOW EACH.
+ *
+ * Datadog and New Relic tell other tools about an alert by posting JSON to
+ * a URL - Datadog through its Webhooks integration, New Relic through a
+ * workflow's webhook destination - and both close their own alerts when the
+ * signal recovers. So each gets the shape of the first Zabbix template, and
+ * nothing more: the Webhook the tool posts to, a Check With JavaScript that
+ * reads what it posted (read-event-1), Incident (or Alert) From Another
+ * Tool, which keeps one record per alert by the tool's own ID for it, and,
+ * for a new record, the Page step. Four or five steps, and nothing to fill
+ * in: the URL is the trigger's, and who to page is picked in the wizard.
+ *
+ *   Datadog    Triggered, Re-Triggered      open the record, once per alert
+ *              Recovered                    resolve it
+ *              Warn, No Data (and Re-)      add a private note to it
+ *              Renotify, anything else      nothing
+ *
+ *   New Relic  ACTIVATED (or CREATED)       open the record, once per issue
+ *              ACTIVATED and acknowledged   acknowledge it
+ *              CLOSED                       resolve it
+ *
+ * The ID a record keeps in its custom fields is new for each alert, which
+ * the From Another Tool step needs (it opens one record per ID, ever):
+ * Datadog's alert cycle key, the same from the moment an alert triggers
+ * until it recovers and new the next time it triggers, and New Relic's
+ * issue ID.
+ *
+ * Who is paged. Datadog says how urgent a monitor is with its priority, P1
+ * to P5, so the Datadog templates page for P1 and P2 monitors, behind an
+ * If / Else, and for a monitor with no priority, which nothing says is less
+ * urgent. A New Relic issue is CRITICAL or HIGH by the threshold that opened
+ * it, and New Relic raises it from HIGH to CRITICAL in place, on the same
+ * issue: an If / Else on CRITICAL would never page for an issue that opened
+ * at HIGH and got worse. So the New Relic templates page for every issue
+ * they open, and the New Relic workflow's filter decides which issues reach
+ * them.
+ *
+ * Nothing is written back to either tool: both resolve their own alerts
+ * when the signal recovers, and that is what resolves the record here.
+ *
+ * Each script starts with how to set the tool up - what to paste into
+ * Datadog's webhook, which fields New Relic's payload keeps - since that is
+ * where someone who opens the workflow in the Builder looks for it.
+ */
+
+/** The custom field an incident or alert opened for a Datadog alert keeps the alert's cycle key in. */
+export const DATADOG_ALERT_CYCLE_KEY_CUSTOM_FIELD: string =
+  "datadogAlertCycleKey";
+
+/** Starts every note, and every state change's cause, that OneUptime writes from a Datadog notification. */
+export const ONEUPTIME_SYNCED_FROM_DATADOG_MARKER: string =
+  "Synced from Datadog";
+
+/** What a notification is about, as Datadog's $ALERT_TRANSITION says it. */
+export enum DatadogTransition {
+  Triggered = "Triggered",
+  ReTriggered = "Re-Triggered",
+  Recovered = "Recovered",
+  Warn = "Warn",
+  ReWarn = "Re-Warn",
+  NoData = "No Data",
+  ReNoData = "Re-No Data",
+  Renotify = "Renotify",
+}
+
+/** A Datadog monitor's priorities, most urgent first. A monitor can have none. */
+export const DATADOG_PRIORITIES: ReadonlyArray<string> = [
+  "P1",
+  "P2",
+  "P3",
+  "P4",
+  "P5",
+];
+
+/*
+ * The least urgent priority that pages on-call: P2. P1 pages too, and so
+ * does a monitor with no priority, which the read step numbers 0.
+ */
+export const DATADOG_PAGE_UP_TO_PRIORITY: number = 2;
+
+/*
+ * What to paste as the payload of the webhook in Datadog's Webhooks
+ * integration. Each value is one of Datadog's template variables, which it
+ * fills in for every notification. The keys the Datadog guide's payload has
+ * too - transition, title, body, host and link - mean the same here. Its
+ * priority, Datadog's $PRIORITY (normal or low), is not read: a monitor's
+ * priority is alert_priority.
+ */
+export const DATADOG_WEBHOOK_PAYLOAD: Readonly<Record<string, string>> = {
+  alert_cycle_key: "$ALERT_CYCLE_KEY",
+  transition: "$ALERT_TRANSITION",
+  alert_priority: "$ALERT_PRIORITY",
+  title: "$EVENT_TITLE",
+  body: "$TEXT_ONLY_MSG",
+  host: "$HOSTNAME",
+  scope: "$ALERT_SCOPE",
+  link: "$LINK",
+};
+
+/** Where a link to Datadog may go: its sites, such as app.datadoghq.com and app.datadoghq.eu. */
+export const DATADOG_LINK_HOSTS: ReadonlyArray<string> = [
+  "datadoghq.com",
+  "datadoghq.eu",
+  "ddog-gov.com",
+];
+
+/** The custom field an incident or alert opened for a New Relic issue keeps the issue's ID in. */
+export const NEW_RELIC_ISSUE_ID_CUSTOM_FIELD: string = "newRelicIssueId";
+
+/** Starts every state change's cause that OneUptime writes from a New Relic notification. */
+export const ONEUPTIME_SYNCED_FROM_NEW_RELIC_MARKER: string =
+  "Synced from New Relic";
+
+/** A New Relic issue's state, as the state of its webhook payload says it. */
+export enum NewRelicIssueState {
+  Created = "CREATED",
+  Activated = "ACTIVATED",
+  Closed = "CLOSED",
+}
+
+/*
+ * A New Relic issue's priorities, most urgent first. An alert condition's
+ * critical threshold opens a CRITICAL issue, and its warning threshold a
+ * HIGH one.
+ */
+export const NEW_RELIC_PRIORITIES: ReadonlyArray<string> = [
+  "CRITICAL",
+  "HIGH",
+  "MEDIUM",
+  "LOW",
+];
+
+/*
+ * The fields of a New Relic webhook's payload the templates read, and the
+ * New Relic variable each is filled from. All but isAcknowledged are in the
+ * payload New Relic fills in by default. isAcknowledged is one line more:
+ * without it a record is not acknowledged with its issue.
+ */
+export const NEW_RELIC_WEBHOOK_PAYLOAD_FIELDS: Readonly<
+  Record<string, string>
+> = {
+  id: "issueId",
+  issueUrl: "issuePageUrl",
+  title: "annotations.title.[0]",
+  priority: "priority",
+  state: "state",
+  isAcknowledged: "isAcknowledged",
+  impactedEntities: "entitiesData.names",
+  alertPolicyNames: "accumulations.policyName",
+  alertConditionNames: "accumulations.conditionName",
+};
+
+/** Where a link to New Relic may go: its sites, such as one.newrelic.com and one.eu.newrelic.com. */
+export const NEW_RELIC_LINK_HOSTS: ReadonlyArray<string> = ["newrelic.com"];
+
+// The component id of the Datadog and New Relic templates' Webhook trigger.
+const ALERTING_TOOL_WEBHOOK_COMPONENT_ID: string = "webhook-1";
+
+/*
+ * What the Datadog and New Relic scripts say differently: the tool's name,
+ * how its notes and causes start, where a link to it may go, and how to set
+ * it up.
+ */
+interface AlertingTool {
+  // "Datadog", "New Relic".
+  name: string;
+  // The constant the scripts call the marker by: FROM_DATADOG.
+  markerConstant: string;
+  marker: string;
+  // What the tool calls the ID a record keeps: "alert cycle key", "issue ID".
+  idName: string;
+  linkHosts: ReadonlyArray<string>;
+  // How to set the tool up, as the lines of a comment, without their slashes.
+  setUp: (kind: TemplateRecordKind) => Array<string>;
+}
+
+const DATADOG_TOOL: AlertingTool = {
+  name: "Datadog",
+  markerConstant: "FROM_DATADOG",
+  marker: ONEUPTIME_SYNCED_FROM_DATADOG_MARKER,
+  idName: "alert cycle key",
+  linkHosts: DATADOG_LINK_HOSTS,
+  setUp: (): Array<string> => {
+    return [
+      "In Datadog, open the Webhooks integration tile and add a webhook:",
+      "  - Name: oneuptime. A monitor notifies it when its message mentions @webhook-oneuptime.",
+      "  - URL: this workflow's URL. Open the Webhook trigger and click Copy URL.",
+      "  - Payload: this, as it is:",
+      ...JSON.stringify(DATADOG_WEBHOOK_PAYLOAD, null, 2)
+        .split("\n")
+        .map((line: string): string => {
+          return `      ${line}`;
+        }),
+      "Then add @webhook-oneuptime to the message of each monitor that should reach OneUptime.",
+    ];
+  },
+};
+
+const NEW_RELIC_TOOL: AlertingTool = {
+  name: "New Relic",
+  markerConstant: "FROM_NEW_RELIC",
+  marker: ONEUPTIME_SYNCED_FROM_NEW_RELIC_MARKER,
+  idName: "issue ID",
+  linkHosts: NEW_RELIC_LINK_HOSTS,
+  setUp: (kind: TemplateRecordKind): Array<string> => {
+    return [
+      "In New Relic, go to Alerts → Destinations and add a Webhook destination. Its endpoint URL is",
+      "this workflow's URL: open the Webhook trigger and click Copy URL.",
+      "Then, in a workflow under Alerts → Workflows, notify that destination when an issue is",
+      "activated, acknowledged and closed. Its filter decides which issues reach OneUptime, such as",
+      "only CRITICAL ones.",
+      "Keep the payload New Relic fills in. This step reads its fields id, state, title, priority,",
+      "issueUrl, impactedEntities, alertPolicyNames and alertConditionNames. To acknowledge the",
+      `${kind.noun} when someone acknowledges the issue in New Relic, add one more field to it, named`,
+      "isAcknowledged and filled from New Relic's isAcknowledged variable with the json helper.",
+    ];
+  },
+};
+
+type AlertingToolScriptFunction = (data: {
+  tool: AlertingTool;
+  kind: TemplateRecordKind;
+  body: string;
+}) => string;
+
+/*
+ * Every Datadog and New Relic script starts with how to set the tool up,
+ * then the same helper block, so each can be read and edited on its own.
+ * They keep the rules of the Jira ones (see jiraScript): no double braces
+ * anywhere in the source; text that came from the tool is defused before it
+ * is returned; and text from the tool that goes into OneUptime - a record's
+ * title and description - is placed with asWritten()
+ * (OUTSIDE_TEXT_HELPERS). A link to the tool is the template's own words:
+ * written only for an https address on one of the tool's sites, with
+ * nothing in it that could end a Markdown link or start anything in it.
+ */
+const alertingToolScript: AlertingToolScriptFunction = (data: {
+  tool: AlertingTool;
+  kind: TemplateRecordKind;
+  body: string;
+}): string => {
+  const tool: AlertingTool = data.tool;
+  const setUp: string = tool
+    .setUp(data.kind)
+    .map((line: string): string => {
+      return `// ${line}`;
+    })
+    .join("\n");
+  const helpers: string = String.raw`// ---- Set up in ${tool.name} ----
+${setUp}
+
+// ---- Shared by the ${tool.name} templates ----
+const ${tool.markerConstant} = ${JSON.stringify(tool.marker)};
+// ${tool.name}'s ${tool.idName}, as this step takes one: letters and digits, with dots, colons,
+// dashes and underscores.
+const OUTSIDE_ID = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$/;
+// The sites a link to ${tool.name} may go to, and the hosts under them.
+const LINK_HOSTS = ${JSON.stringify(tool.linkHosts)};
+const LONGEST_LINK = 1000;
+const HOST_CHARACTERS = 'abcdefghijklmnopqrstuvwxyz0123456789.-';
+const LINK_CHARACTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~%&+,;=:@/?#';
+// A value that is still the name of a variable, such as "$ALERT_PRIORITY", is no value.
+const VARIABLE_NAME = /^\$[A-Z][A-Z0-9_]{0,63}$/;
+
+// Another step's output quoted into the arguments arrives as JSON text.
+const readJson = (value) => {
+  if (typeof value !== 'string') return value === undefined ? null : value;
+  try { return JSON.parse(value); } catch (error) { return null; }
+};
+const asText = (value) => (typeof value === 'string' ? value : typeof value === 'number' ? String(value) : '');
+// Drops the control characters JSON rejects, keeping tabs and line breaks.
+const clean = (value) => Array.from(asText(value)).filter((c) => {
+  const code = c.charCodeAt(0);
+  return code === 9 || code === 10 || (code >= 32 && code !== 127);
+}).join('');
+const oneLine = (value) => clean(value).replace(/\s+/g, ' ').trim();
+const limit = (value, max) => (value.length > max ? value.slice(0, max - 1) + '…' : value);
+// Breaks up double braces so a later step cannot read the text as a reference.
+const defuse = (value) => {
+  let text = value;
+  while (text.indexOf('{' + '{') !== -1) text = text.split('{' + '{').join('{ {');
+  while (text.indexOf('}' + '}') !== -1) text = text.split('}' + '}').join('} }');
+  return text;
+};
+// Reasons can quote ${tool.name}'s text, so they are defused like everything else.
+const skip = (reason) => ({ proceed: false, reason: defuse(asText(reason)) });
+// A value ${tool.name} sent, on one line: '' for none.
+const given = (value) => {
+  const text = oneLine(value);
+  return VARIABLE_NAME.test(text) ? '' : text;
+};
+// The same, for text of several lines.
+const givenText = (value) => {
+  const text = clean(value).trim();
+  return VARIABLE_NAME.test(text) ? '' : text;
+};
+// A link to ${tool.name}, or '': an https address on one of LINK_HOSTS, or a host under one, holding
+// only characters that can neither end a Markdown link nor start anything in it.
+const linkOf = (value) => {
+  const text = asText(value).trim();
+  if (text.length > LONGEST_LINK || text.slice(0, 8).toLowerCase() !== 'https://') return '';
+  const rest = text.slice(8);
+  let hostEnd = 0;
+  while (hostEnd < rest.length && '/?#'.indexOf(rest.charAt(hostEnd)) === -1) hostEnd++;
+  const host = rest.slice(0, hostEnd).toLowerCase();
+  if (!host || Array.from(host).some((c) => HOST_CHARACTERS.indexOf(c) === -1)) return '';
+  if (!LINK_HOSTS.some((site) => host === site || host.slice(-site.length - 1) === '.' + site)) return '';
+  const path = rest.slice(hostEnd);
+  if (Array.from(path).some((c) => LINK_CHARACTERS.indexOf(c) === -1)) return '';
+  return 'https://' + host + path;
+};
+`;
+
+  return `${helpers}\n${OUTSIDE_TEXT_HELPERS}\n// ---- What this step does ----\n${data.body.trim()}\n`;
+};
+
+type AlertingToolKindScriptFunction = (kind: TemplateRecordKind) => string;
+
+/*
+ * Datadog -> OneUptime: reads what Datadog's Webhooks integration posted
+ * for a monitor, works out what it means for the record, and shapes what
+ * the From Another Tool step does with it - a new record's title,
+ * description and severity, a note, why the record is resolved.
+ */
+const datadogReadEventScript: AlertingToolKindScriptFunction = (
+  kind: TemplateRecordKind,
+): string => {
+  const r: string = kind.noun;
+  const opens: string = kind.noun === ALERT_KIND.noun ? "creates" : "opens";
+
+  return alertingToolScript({
+    tool: DATADOG_TOOL,
+    kind: kind,
+    body: String.raw`
+// Reads a notification Datadog posted for a monitor. The next step ${opens} the ${r} when the monitor
+// triggers, resolves it when the monitor recovers, and adds a Warn or No Data notification to it
+// as a private note - all by the alert's cycle key, which Datadog keeps from the moment an alert
+// triggers until it recovers.
+// Datadog priority to OneUptime severity, by where it sits among your ${r} severities: P1 and P2
+// go to your most severe, P3 to the middle one, and P4 and P5 to your least severe.
+const PRIORITY_PLACE = { P1: 'most severe', P2: 'most severe', P3: 'middle', P4: 'least severe', P5: 'least severe' };
+// A monitor with no priority opens at your most severe.
+const NO_PRIORITY_PLACE = 'most severe';
+// To open one priority at one of your severities by name, list it here, for example
+// { P3: 'Minor Incident' }. Names listed here win over the places above.
+const SEVERITY_BY_NAME = {};
+const PRIORITIES = ${JSON.stringify(DATADOG_PRIORITIES)};
+// What each transition does, read in lower case with dashes as spaces: Re-Triggered is
+// "re triggered". A note says what the monitor's state is now.
+const OPENS = ['triggered', 're triggered'];
+const RESOLVES = ['recovered'];
+const NOTES = { 'warn': 'is at Warn', 're warn': 'is at Warn again', 'no data': 'has no data', 're no data': 'still has no data' };
+const REMINDERS = ['renotify', 're notify'];
+
+// Every value the next steps read, so each is there: a value with no key here would reach them
+// as written, braces and all.
+const NOTHING = { whatHappened: '', alertCycleKey: '', title: '', description: '', severity: '', priority: '', priorityNumber: 0, note: '', reason: '' };
+const event = (values) => Object.assign({}, NOTHING, values, { proceed: true });
+
+const payload = readJson(args.payload) || {};
+const transition = given(payload.transition);
+if (!transition) {
+  return skip('Datadog named no transition, so the request was ignored. Check that the webhook in Datadog has the payload the first lines of this step give.');
+}
+const said = transition.toLowerCase().split('-').join(' ');
+
+const alertCycleKey = given(payload.alert_cycle_key);
+if (!OUTSIDE_ID.test(alertCycleKey)) {
+  return skip('Datadog named no alert cycle key, so the notification was ignored. Add "alert_cycle_key": "$ALERT_CYCLE_KEY" to the payload of the webhook in Datadog.');
+}
+
+// A link to the alert in Datadog: the template's own words, linked only to a Datadog site.
+const link = linkOf(payload.link);
+const inDatadog = link ? ' ([open it in Datadog](' + link + '))' : '';
+
+// The monitor recovered: the ${r} is resolved, with why on its timeline.
+if (RESOLVES.indexOf(said) !== -1) {
+  return event({
+    whatHappened: 'resolve',
+    alertCycleKey: alertCycleKey,
+    reason: defuse(FROM_DATADOG + ': the monitor recovered' + inDatadog + '.'),
+  });
+}
+
+if (Object.prototype.hasOwnProperty.call(NOTES, said)) {
+  return event({
+    whatHappened: 'note',
+    alertCycleKey: alertCycleKey,
+    note: defuse(FROM_DATADOG + ': the monitor ' + NOTES[said] + inDatadog + '.'),
+  });
+}
+
+if (REMINDERS.indexOf(said) !== -1) {
+  return skip('Datadog reminded that alert cycle ' + alertCycleKey + ' is still open, so nothing changed.');
+}
+
+if (OPENS.indexOf(said) === -1) {
+  return skip('Datadog sent ' + limit(transition, 100) + ' for alert cycle ' + alertCycleKey + ': only Triggered, Recovered, Warn and No Data change the ${r}, so nothing changed.');
+}
+
+// The monitor triggered: a new ${r}'s severity, title and description.
+// A monitor's priority is P1 to P5, or none. Any other value is read as none.
+const givenPriority = given(payload.alert_priority).toUpperCase();
+const priority = PRIORITIES.indexOf(givenPriority) !== -1 ? givenPriority : '';
+// P1 is 1 and P5 is 5. No priority is 0, so it pages with P1 and P2.
+const priorityNumber = priority ? PRIORITIES.indexOf(priority) + 1 : 0;
+
+// Datadog starts a notification's title with the monitor's priority and what happened, such as
+// "[P1] [Triggered on {host:web-1}] High CPU". The ${r}'s title is what follows them.
+const title = given(payload.title);
+let name = title;
+if (/^\[P[1-5]\]/.test(name)) name = name.slice(4).trim();
+const opening = name.slice(0, 16).toLowerCase();
+if (opening.indexOf('[triggered') === 0 || opening.indexOf('[re-triggered') === 0) {
+  const end = name.indexOf(']');
+  name = end === -1 ? name : name.slice(end + 1).trim();
+}
+
+// The title, host, scope and message are Datadog's text, placed as written (asWritten). The link
+// is the template's own.
+const host = given(payload.host);
+const scope = given(payload.scope);
+const message = givenText(payload.body);
+const lines = ['${kind.Created} from a Datadog monitor alert' + inDatadog + '.', ''];
+lines.push('- Priority in Datadog: ' + (priority || 'none'));
+if (host) lines.push('- Host: ' + asWritten(limit(host, 300)));
+if (scope) lines.push('- Scope: ' + asWritten(limit(scope, 2000)));
+if (message) lines.push('', asWritten(limit(message, 10000)));
+
+return event({
+  whatHappened: 'open',
+  alertCycleKey: alertCycleKey,
+  title: limit(defuse('Datadog: ' + asWritten(limit(name || title || 'Monitor alert ' + alertCycleKey, 500))), 500),
+  description: limit(defuse(lines.join('\n')), 20000),
+  severity: defuse(oneLine(SEVERITY_BY_NAME[priority])) || (priority ? PRIORITY_PLACE[priority] : NO_PRIORITY_PLACE),
+  priority: priority,
+  priorityNumber: priorityNumber,
+});
+`,
+  });
+};
+
+/*
+ * New Relic -> OneUptime: reads what a New Relic workflow posted for an
+ * issue, works out what it means for the record, and shapes what the From
+ * Another Tool step does with it - a new record's title, description and
+ * severity, why the record is acknowledged or resolved.
+ */
+const newRelicReadEventScript: AlertingToolKindScriptFunction = (
+  kind: TemplateRecordKind,
+): string => {
+  const r: string = kind.noun;
+  const opens: string = kind.noun === ALERT_KIND.noun ? "creates" : "opens";
+
+  return alertingToolScript({
+    tool: NEW_RELIC_TOOL,
+    kind: kind,
+    body: String.raw`
+// Reads a notification a New Relic workflow posted for an issue. The next step ${opens} the ${r} when
+// the issue is activated, acknowledges it when someone acknowledges the issue in New Relic, and
+// resolves it when the issue closes - all by the issue's ID.
+// New Relic priority to OneUptime severity, by where it sits among your ${r} severities: an issue
+// from a critical threshold is CRITICAL and goes to your most severe, one from a warning threshold
+// is HIGH and goes to the middle one, and MEDIUM and LOW go to your least severe.
+const PRIORITY_PLACE = { CRITICAL: 'most severe', HIGH: 'middle', MEDIUM: 'least severe', LOW: 'least severe' };
+// An issue whose priority New Relic did not send opens at your most severe.
+const NO_PRIORITY_PLACE = 'most severe';
+// To open one priority at one of your severities by name, list it here, for example
+// { HIGH: 'Major Incident' }. Names listed here win over the places above.
+const SEVERITY_BY_NAME = {};
+const PRIORITIES = ${JSON.stringify(NEW_RELIC_PRIORITIES)};
+
+// Every value the next steps read, so each is there: a value with no key here would reach them
+// as written, braces and all.
+const NOTHING = { whatHappened: '', issueId: '', title: '', description: '', severity: '', priority: '', reason: '' };
+const event = (values) => Object.assign({}, NOTHING, values, { proceed: true });
+// Names New Relic sends as a list - impacted entities, policies, conditions - on one line: at
+// most the first 50.
+const namesOf = (value) => (Array.isArray(value) ? value.slice(0, 50) : [])
+  .map((entry) => given(entry))
+  .filter((entry) => entry !== '')
+  .join(', ');
+
+const payload = readJson(args.payload) || {};
+const issueId = given(payload.id);
+if (!OUTSIDE_ID.test(issueId)) {
+  return skip('New Relic named no issue ID, so the request was ignored. Check that the payload of the webhook in New Relic keeps its id field.');
+}
+
+// A link to the issue in New Relic: the template's own words, linked only to a New Relic site.
+const link = linkOf(payload.issueUrl);
+const inNewRelic = link ? ' ([open it in New Relic](' + link + '))' : '';
+const state = given(payload.state).toUpperCase();
+
+// The issue closed: the ${r} is resolved, with why on its timeline.
+if (state === 'CLOSED') {
+  return event({
+    whatHappened: 'resolve',
+    issueId: issueId,
+    reason: defuse(FROM_NEW_RELIC + ': the issue was closed' + inNewRelic + '.'),
+  });
+}
+
+if (state !== 'ACTIVATED' && state !== 'CREATED') {
+  return skip('New Relic issue ' + issueId + ' is ' + (limit(state, 100) || 'in no state') + ': only an activated, acknowledged or closed issue changes the ${r}, so nothing changed.');
+}
+
+// isAcknowledged is true once someone acknowledges the issue in New Relic. The payload New Relic
+// fills in by default has no such field: the first lines of this step say how to add it.
+const acknowledged = payload.isAcknowledged === true || given(payload.isAcknowledged).toLowerCase() === 'true';
+if (acknowledged) {
+  return event({
+    whatHappened: 'acknowledge',
+    issueId: issueId,
+    reason: defuse(FROM_NEW_RELIC + ': the issue was acknowledged' + inNewRelic + '.'),
+  });
+}
+
+// The issue is new: a new ${r}'s severity, title and description.
+// An issue's priority is CRITICAL, HIGH, MEDIUM or LOW. Any other value is read as none.
+const givenPriority = given(payload.priority).toUpperCase();
+const priority = PRIORITIES.indexOf(givenPriority) !== -1 ? givenPriority : '';
+
+// The title and the names are New Relic's text, placed as written (asWritten). The link is the
+// template's own.
+const title = given(payload.title);
+const entities = namesOf(payload.impactedEntities);
+const policies = namesOf(payload.alertPolicyNames);
+const conditions = namesOf(payload.alertConditionNames);
+const lines = ['${kind.Created} from a New Relic issue' + inNewRelic + '.', ''];
+lines.push('- Priority in New Relic: ' + (priority || 'not sent'));
+if (entities) lines.push('- Entities: ' + asWritten(limit(entities, 2000)));
+if (policies) lines.push('- Policies: ' + asWritten(limit(policies, 2000)));
+if (conditions) lines.push('- Conditions: ' + asWritten(limit(conditions, 2000)));
+
+return event({
+  whatHappened: 'open',
+  issueId: issueId,
+  title: limit(defuse('New Relic: ' + asWritten(limit(title || 'Issue ' + issueId, 500))), 500),
+  description: limit(defuse(lines.join('\n')), 20000),
+  severity: defuse(oneLine(SEVERITY_BY_NAME[priority])) || (priority ? PRIORITY_PLACE[priority] : NO_PRIORITY_PLACE),
+  priority: priority,
+});
+`,
+  });
+};
+
+type AlertingToolEventValueFunction = (key: string) => string;
+
+// A value read-event-1 returns: what happened, the tool's ID, a new record's title, a note.
+const alertingToolEventValue: AlertingToolEventValueFunction = (
+  key: string,
+): string => {
+  return `{{local.components.read-event-1.returnValues.returnValue.${key}}}`;
+};
+
+type AlertingToolTemplateFunction = (
+  kind: TemplateRecordKind,
+) => TemplateDefinition;
+
+/*
+ * Five steps, one under the other: the Webhook Datadog notifies, the step
+ * that reads what it sent (read-event-1), the step that keeps one record
+ * per alert by its cycle key (opens it, resolves it or notes it), and, for
+ * a new record from a P1 or P2 monitor or one with no priority, an If /
+ * Else and the Page step. Nobody picked to page in the wizard leaves the
+ * last two out.
+ */
+const datadogMonitorTemplate: AlertingToolTemplateFunction = (
+  kind: TemplateRecordKind,
+): TemplateDefinition => {
+  const r: string = kind.noun;
+  const step: string = fromAnotherToolStepId(kind);
+  const ids: typeof FROM_ANOTHER_TOOL_ARGUMENT_IDS =
+    FROM_ANOTHER_TOOL_ARGUMENT_IDS;
+
+  return {
+    id: `datadog-${kind.create}-${r}-from-monitor`,
+    name: `${kind.Create} an ${r} when a Datadog monitor triggers`,
+    description: `Pages on-call for P1 and P2 monitors, adds warnings as private notes, and resolves the ${r} when the monitor recovers.`,
+    teaches:
+      "How one step follows a Datadog monitor from the moment it triggers until it recovers. Open the trigger for its URL, and the step after it for what to paste into Datadog.",
+    whoToPage: [
+      {
+        componentId: "page-on-call-policy-1",
+        title: "Who to page for P1 and P2 monitors",
+        description: `The on-call policies paged for a new ${r} from a P1 or P2 monitor, or one with no priority. Leave it empty to page nobody.`,
+        required: false,
+        leftOutWhenNobody: ["if-page-1"],
+      },
+    ],
+    category: WorkflowTemplateCategory.Datadog,
+    icon: IconProp.ChartBar,
+    workflowName: `Datadog monitors to ${kind.plural}`,
+    /*
+     * What the workflow does, for as long as it exists: how to set it up
+     * is said where it is done (the read step's first lines).
+     */
+    workflowDescription: `${kind.Create}s an ${r}${kind.quietCreateText} when a Datadog monitor that notifies this workflow's URL triggers, and pages the on-call policy you pick for P1 and P2 monitors and monitors with no priority. Warn and No Data notifications become private notes, and the monitor's recovery resolves the ${r}.`,
+    variables: [],
+    graph: columnGraph([
+      {
+        componentId: ALERTING_TOOL_WEBHOOK_COMPONENT_ID,
+        metadataId: ComponentID.Webhook,
+        componentType: ComponentType.Trigger,
+      },
+      {
+        componentId: "read-event-1",
+        metadataId: ComponentID.JavaScriptCheck,
+        componentType: ComponentType.Component,
+        from: "out",
+        args: {
+          code: datadogReadEventScript(kind),
+          arguments: jsonText({
+            payload: `{{local.components.${ALERTING_TOOL_WEBHOOK_COMPONENT_ID}.returnValues.request-body}}`,
+          }),
+        },
+      },
+      {
+        componentId: step,
+        metadataId: fromAnotherToolMetadataId(kind),
+        componentType: ComponentType.Component,
+        from: JAVASCRIPT_CHECK_PORT_IDS.yes,
+        args: {
+          [ids.whatHappened]: alertingToolEventValue("whatHappened"),
+          [ids.outsideId]: alertingToolEventValue("alertCycleKey"),
+          [ids.outsideIdField]: DATADOG_ALERT_CYCLE_KEY_CUSTOM_FIELD,
+          [ids.title]: alertingToolEventValue("title"),
+          [ids.description]: alertingToolEventValue("description"),
+          [ids.severity]: alertingToolEventValue("severity"),
+          [ids.note]: alertingToolEventValue("note"),
+          [ids.reason]: alertingToolEventValue("reason"),
+        },
+      },
+      {
+        componentId: "if-page-1",
+        metadataId: ComponentID.IfElse,
+        componentType: ComponentType.Component,
+        from: FROM_ANOTHER_TOOL_PORT_IDS.opened,
+        args: {
+          "input-1-type": ConditionValueType.Number,
+          "input-1": alertingToolEventValue("priorityNumber"),
+          operator: ConditionOperator.LessThanOrEqualTo,
+          "input-2-type": ConditionValueType.Number,
+          "input-2": String(DATADOG_PAGE_UP_TO_PRIORITY),
+        },
+      },
+      {
+        componentId: "page-on-call-policy-1",
+        metadataId: ComponentID.PageOnCallPolicy,
+        componentType: ComponentType.Component,
+        from: "yes",
+        args: recordPageArgs(
+          kind,
+          `{{local.components.${step}.returnValues.${FROM_ANOTHER_TOOL_RETURN_VALUE_IDS.record}._id}}`,
+        ),
+      },
+    ]),
+  };
+};
+
+/*
+ * Four steps, one under the other: the Webhook New Relic notifies, the step
+ * that reads what it sent (read-event-1), the step that keeps one record
+ * per issue by its ID (opens it, acknowledges it or resolves it), and, for
+ * a new record, the Page step. Nobody picked to page in the wizard leaves
+ * the last one out.
+ */
+const newRelicIssueTemplate: AlertingToolTemplateFunction = (
+  kind: TemplateRecordKind,
+): TemplateDefinition => {
+  const r: string = kind.noun;
+  const step: string = fromAnotherToolStepId(kind);
+  const ids: typeof FROM_ANOTHER_TOOL_ARGUMENT_IDS =
+    FROM_ANOTHER_TOOL_ARGUMENT_IDS;
+
+  return {
+    id: `new-relic-${kind.create}-${r}-from-issue`,
+    name: `${kind.Create} an ${r} for each New Relic issue`,
+    description: `Pages on-call for each new issue, acknowledges the ${r} when the issue is acknowledged, and resolves it when the issue closes.`,
+    teaches:
+      "How one step follows a New Relic issue from start to end, by its ID. Open the trigger for its URL, and the step after it for how to set up New Relic.",
+    whoToPage: [
+      {
+        componentId: "page-on-call-policy-1",
+        title: "Who to page for new New Relic issues",
+        description: `The on-call policies paged for each new ${r} from a New Relic issue. Leave it empty to page nobody.`,
+        required: false,
+      },
+    ],
+    category: WorkflowTemplateCategory.NewRelic,
+    icon: IconProp.Activity,
+    workflowName: `New Relic issues to ${kind.plural}`,
+    workflowDescription: `${kind.Create}s an ${r}${kind.quietCreateText} for each New Relic issue sent to this workflow's URL, and pages the on-call policy you pick. Acknowledging the issue in New Relic acknowledges the ${r}, and closing it resolves the ${r}.`,
+    variables: [],
+    graph: columnGraph([
+      {
+        componentId: ALERTING_TOOL_WEBHOOK_COMPONENT_ID,
+        metadataId: ComponentID.Webhook,
+        componentType: ComponentType.Trigger,
+      },
+      {
+        componentId: "read-event-1",
+        metadataId: ComponentID.JavaScriptCheck,
+        componentType: ComponentType.Component,
+        from: "out",
+        args: {
+          code: newRelicReadEventScript(kind),
+          arguments: jsonText({
+            payload: `{{local.components.${ALERTING_TOOL_WEBHOOK_COMPONENT_ID}.returnValues.request-body}}`,
+          }),
+        },
+      },
+      {
+        componentId: step,
+        metadataId: fromAnotherToolMetadataId(kind),
+        componentType: ComponentType.Component,
+        from: JAVASCRIPT_CHECK_PORT_IDS.yes,
+        args: {
+          [ids.whatHappened]: alertingToolEventValue("whatHappened"),
+          [ids.outsideId]: alertingToolEventValue("issueId"),
+          [ids.outsideIdField]: NEW_RELIC_ISSUE_ID_CUSTOM_FIELD,
+          [ids.title]: alertingToolEventValue("title"),
+          [ids.description]: alertingToolEventValue("description"),
+          [ids.severity]: alertingToolEventValue("severity"),
+          [ids.reason]: alertingToolEventValue("reason"),
+        },
+      },
+      {
+        componentId: "page-on-call-policy-1",
+        metadataId: ComponentID.PageOnCallPolicy,
+        componentType: ComponentType.Component,
+        from: FROM_ANOTHER_TOOL_PORT_IDS.opened,
+        args: recordPageArgs(
+          kind,
+          `{{local.components.${step}.returnValues.${FROM_ANOTHER_TOOL_RETURN_VALUE_IDS.record}._id}}`,
+        ),
+      },
+    ]),
+  };
+};
+
+// The incident version first, then the alert one, in each tool's category.
+const DATADOG_TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
+  datadogMonitorTemplate(INCIDENT_KIND),
+  datadogMonitorTemplate(ALERT_KIND),
+];
+
+const NEW_RELIC_TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
+  newRelicIssueTemplate(INCIDENT_KIND),
+  newRelicIssueTemplate(ALERT_KIND),
 ];
 
 /*
@@ -7943,6 +8720,12 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
 
   /* ------------------------------- Zabbix ------------------------------- */
   ...ZABBIX_TEMPLATE_DEFINITIONS,
+
+  /* ------------------------------- Datadog ------------------------------- */
+  ...DATADOG_TEMPLATE_DEFINITIONS,
+
+  /* ------------------------------ New Relic ------------------------------ */
+  ...NEW_RELIC_TEMPLATE_DEFINITIONS,
 
   /* --------------------------- Integrations --------------------------- */
   {

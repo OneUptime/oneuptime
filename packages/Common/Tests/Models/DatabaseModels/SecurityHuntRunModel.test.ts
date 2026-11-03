@@ -1,5 +1,5 @@
 import SchemaMigrations from "../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { AddSecurityHuntRunHistory1808991800000 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1808991800000-AddSecurityHuntRunHistory";
+import { AddSecurityHuntRunHistory1808992040000 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1808992040000-AddSecurityHuntRunHistory";
 import Project from "../../../Models/DatabaseModels/Project";
 import SecurityHunt from "../../../Models/DatabaseModels/SecurityHunt";
 import SecurityHuntRun from "../../../Models/DatabaseModels/SecurityHuntRun";
@@ -129,8 +129,8 @@ describe("the starter a hunt was added from", () => {
 });
 
 describe("the migration", () => {
-  const migration: AddSecurityHuntRunHistory1808991800000 =
-    new AddSecurityHuntRunHistory1808991800000();
+  const migration: AddSecurityHuntRunHistory1808992040000 =
+    new AddSecurityHuntRunHistory1808992040000();
 
   test("makes the runs table, read by hunt and newest first, cleared by age, deleted with its hunt or project", async () => {
     const { runner, statements } = makeQueryRunner();
@@ -185,7 +185,7 @@ describe("the migration", () => {
   });
 
   test("is named after its class, and registered after every migration before it", () => {
-    expect(migration.name).toBe("AddSecurityHuntRunHistory1808991800000");
+    expect(migration.name).toBe("AddSecurityHuntRunHistory1808992040000");
 
     const names: Array<string> = (
       SchemaMigrations as unknown as Array<new () => MigrationInterface>
@@ -193,7 +193,7 @@ describe("the migration", () => {
       return type.name;
     });
     const index: number = names.indexOf(
-      "AddSecurityHuntRunHistory1808991800000",
+      "AddSecurityHuntRunHistory1808992040000",
     );
 
     expect(index).toBeGreaterThan(-1);
@@ -201,7 +201,7 @@ describe("the migration", () => {
     for (const name of names.slice(0, index)) {
       const timestamp: number = Number(name.match(/(\d{13})$/)?.[1] || 0);
 
-      expect({ name, before: timestamp < 1808991800000 }).toEqual({
+      expect({ name, before: timestamp < 1808992040000 }).toEqual({
         name,
         before: true,
       });
