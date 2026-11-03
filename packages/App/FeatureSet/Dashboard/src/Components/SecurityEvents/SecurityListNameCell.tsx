@@ -22,8 +22,13 @@ import React, {
  * The column wraps (Column.wrapContent): a long name takes a second line
  * rather than an ellipsis, up to SECURITY_LIST_NAME_COLUMN_MAX_WIDTH, and
  * the column is never narrower than the table's floor for a column that
- * wraps (10rem). The line under it wraps between its parts, never inside
- * one ("Google SecOps ·" / "Alerts only").
+ * wraps (10rem). The line under it wraps between its parts where it can
+ * ("Google SecOps ·" / "Alerts only"), and inside a part only when the part
+ * alone is wider than the column (SECURITY_LIST_NAME_DETAIL_PART_CLASS_NAME):
+ * a part that never broke held the column at its own width, "Microsoft
+ * Defender XDR" kept Your security tools' names 25px wider than they had
+ * to be at 1280, and the table found that room by cutting the Health pills
+ * beside them to "Last poll succ..." - the one word the row is read for.
  *
  * A row may lead with a mark (a security tool's product logo, on its
  * tile): it sits before the name, as far from it as a SIEM's tile from its
@@ -37,6 +42,15 @@ export const SECURITY_LIST_NAME_COLUMN_MAX_WIDTH_CLASS_NAME: string =
 // What the row is, under its name: smaller and quieter than the name.
 export const SECURITY_LIST_NAME_DETAIL_CLASS_NAME: string =
   "block whitespace-normal text-xs font-normal leading-5 text-gray-500";
+
+/*
+ * One part of that line: kept on one line where the column has the room -
+ * the line breaks between parts first - and broken between its own words
+ * where it alone is wider than the column, so it never holds the column
+ * wider than the table can give it.
+ */
+export const SECURITY_LIST_NAME_DETAIL_PART_CLASS_NAME: string =
+  "inline-block max-w-full whitespace-normal";
 
 export interface ComponentProps {
   name: string;
@@ -89,7 +103,7 @@ const SecurityListNameCell: FunctionComponent<ComponentProps> = (
 
             return (
               <Fragment key={index}>
-                <span className="whitespace-nowrap">
+                <span className={SECURITY_LIST_NAME_DETAIL_PART_CLASS_NAME}>
                   {isLast ? part : `${part} ·`}
                 </span>
                 {isLast ? "" : " "}

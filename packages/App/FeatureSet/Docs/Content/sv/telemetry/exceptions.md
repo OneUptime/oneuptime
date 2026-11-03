@@ -99,7 +99,7 @@ Knapparna högst upp på undantagets sida, dess sida **Inställningar** och meny
 
 **Inställningar** visar vem som senast löste eller arkiverade undantaget, och när. Knapparna där heter **Markera som löst** eller **Markera som olöst**, och **Arkivera** eller **Avarkivera**.
 
-Om du vill ändra flera på en gång markerar du deras rader i listan, eller rutan ovanför raderna för alla undantag på sidan, och använder samma åtgärder under **Massåtgärder**. Resultatet visar vilka undantag som ändrades, vilka som lämnades som de var och varför.
+Om du vill ändra flera på en gång markerar du deras rader i listan, eller rutan ovanför raderna för alla undantag på sidan, och använder samma åtgärder under **Massåtgärder**. När alla undantag på sidan är markerade erbjuder fältet ovanför raderna att markera alla undantag som matchar listans sökning och filter, på alla sidor, upp till 10 000 åt gången; en åtgärd frågar då innan den ändrar dem. Resultatet visar vilka undantag som ändrades, vilka som lämnades som de var och varför.
 
 **Tilldela** i undantagets rubrik ger det till en person eller ett team, och tar du bort valet upphävs tilldelningen. Varje rad visar vem den tillhör, dess meny ⋯ erbjuder **Tilldela mig**, och **Tilldela till…** under **Massåtgärder** tilldelar flera på en gång. Personen det tilldelas, eller varje medlem i teamet, får en avisering som raden **Undantag tilldelat mig** i deras [Aviseringsinställningar](/docs/notifications/notification-settings) säger; den som tilldelade det får ingen.
 
