@@ -559,8 +559,12 @@ if (window.location.pathname !== target) {
   window.history.replaceState(null, "", target + window.location.search);
 }
 
+/*
+ * Navigates as the Dashboard does (its src/Index.tsx): each navigation renders
+ * at once, not in a React transition (Tests/Ops/E2EFixtureRouters).
+ */
 createRoot(document.getElementById("root")).render(
-  <BrowserRouter>
+  <BrowserRouter useTransitions={false}>
     <Routes>
       <PageRoute
         path="/dashboard/:projectId/on-call-duty/schedules"

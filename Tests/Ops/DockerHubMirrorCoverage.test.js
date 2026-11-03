@@ -68,6 +68,10 @@ const MIRRORED_JOBS = {
   // The same warm-up, then `npm run dev` brings up postgres, valkey and
   // clickhouse (app and ingress are built from source).
   "terraform-provider-e2e.yml: terraform-e2e-tests": "warm_base_images.sh",
+  // The same warm-up, then the App image it builds is started with the
+  // postgres, valkey and clickhouse docker-compose.yml runs
+  // (AppImageRuntime.test.js).
+  "build.yml: docker-build-app": "warm_base_images.sh",
 };
 
 /*

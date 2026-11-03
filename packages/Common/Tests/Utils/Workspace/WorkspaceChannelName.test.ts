@@ -915,11 +915,25 @@ describe("what the rule form's preview is told", () => {
       ].sort(),
     );
 
+    /*
+     * Every kind with a number prefix, but a security case's: a case gets
+     * no channel of its own (NotificationRuleEventType.SecurityCase), so
+     * no rule names one after its number.
+     */
     expect(Object.values(NUMBER_PREFIX_COLUMN_BY_EVENT_TYPE).sort()).toEqual(
       NUMBER_PREFIX_COLUMNS.map((column: { column: string }): string => {
         return column.column;
-      }).sort(),
+      })
+        .filter((column: string): boolean => {
+          return column !== "securityCaseNumberPrefix";
+        })
+        .sort(),
     );
+    expect(
+      WorkspaceChannelName.isNumberedRecord(
+        NotificationRuleEventType.SecurityCase,
+      ),
+    ).toBe(false);
   });
 
   test.each(ALL_EVENT_TYPES)(

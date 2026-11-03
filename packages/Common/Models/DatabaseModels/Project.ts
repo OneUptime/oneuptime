@@ -32,6 +32,7 @@ import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import Phone from "../../Types/Phone";
 import PositiveNumber from "../../Types/PositiveNumber";
+import { SECURITY_CASE_NUMBER_PREFIX } from "../../Types/SecurityCase/SecurityCaseNumber";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 @EnableDocumentation({
@@ -427,7 +428,10 @@ export default class Project extends TenantModel {
     ],
     update: [],
   })
-  @TableColumn({ type: TableColumnType.ShortText })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    allowedValues: Object.values(SubscriptionStatus),
+  })
   @Column({
     type: ColumnType.ShortText,
     length: ColumnLength.ShortText,
@@ -452,7 +456,10 @@ export default class Project extends TenantModel {
     ],
     update: [],
   })
-  @TableColumn({ type: TableColumnType.ShortText })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    allowedValues: Object.values(SubscriptionStatus),
+  })
   @Column({
     type: ColumnType.ShortText,
     length: ColumnLength.ShortText,
@@ -478,7 +485,11 @@ export default class Project extends TenantModel {
     ],
     update: [],
   })
-  @TableColumn({ type: TableColumnType.ShortText })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    description:
+      "The promotion code the project's subscription was started with.",
+  })
   @Column({
     type: ColumnType.ShortText,
     length: ColumnLength.ShortText,
@@ -741,6 +752,8 @@ export default class Project extends TenantModel {
     type: TableColumnType.Boolean,
     isDefaultValueColumn: true,
     defaultValue: false,
+    description:
+      "When on, the project's members sign in to it with the project's SSO only.",
   })
   @Column({
     type: ColumnType.Boolean,
@@ -791,7 +804,11 @@ export default class Project extends TenantModel {
     read: [],
     update: [],
   })
-  @TableColumn({ type: TableColumnType.Number })
+  @TableColumn({
+    type: TableColumnType.Number,
+    description:
+      "The most monitors the project may have active, from a plan bought from a reseller. Empty means the plan's own limit.",
+  })
   @Column({
     type: ColumnType.Number,
     nullable: true,
@@ -804,7 +821,11 @@ export default class Project extends TenantModel {
     read: [],
     update: [],
   })
-  @TableColumn({ type: TableColumnType.Number })
+  @TableColumn({
+    type: TableColumnType.Number,
+    description:
+      "The most members the project may have, from a plan bought from a reseller. Empty or 0 means no limit.",
+  })
   @Column({
     type: ColumnType.Number,
     nullable: true,
@@ -1043,6 +1064,47 @@ export default class Project extends TenantModel {
     nullable: true,
   })
   public scheduledMaintenanceNumberPrefix?: string = undefined;
+
+  /*
+   * The text in front of security case numbers (Utils/Project/NumberPrefix).
+   * Cases were numbered CASE-1, CASE-2, ... in every project before a project
+   * could choose, so the column starts at CASE- - its database default - for
+   * the projects from before it too, and no case's number changes until
+   * someone changes the prefix. Cleared, a case number reads #42, as the
+   * other kinds' do.
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProject,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    required: false,
+    title: "Security Case Number Prefix",
+    description:
+      "Custom prefix for security case numbers (e.g., 'CASE-', the default). If empty, '#' is used. Up to 20 letters, numbers or - _ . / : #, not ending in a digit. Changing it does not renumber security cases that already exist.",
+    defaultValue: SECURITY_CASE_NUMBER_PREFIX,
+    example: "SOC-",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+    default: SECURITY_CASE_NUMBER_PREFIX,
+  })
+  public securityCaseNumberPrefix?: string = undefined;
 
   @ColumnAccessControl({
     create: [Permission.User],
@@ -1288,6 +1350,44 @@ export default class Project extends TenantModel {
     nullable: true,
   })
   public scheduledMaintenanceNumbersStartAt?: number = undefined;
+
+  /*
+   * Where security case numbers start (Utils/Project/NextNumber): the next
+   * security case gets the higher of this and the one after the highest
+   * number given out (securityCaseCounter), so it moves the numbers on only
+   * while no security case has reached it. Set from Security Events >
+   * Settings > Numbering's Next Number card, the API or Terraform - a team
+   * moving from another SOAR carries on from its case numbers.
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProject,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    required: false,
+    title: "Security Case Numbers Start At",
+    description:
+      "Where security case numbers start: the next security case gets this number if no security case has reached it yet, and later ones count up from it. Use it to carry on from another tool's numbers. A new value must be higher than every security case number used so far, so a number is never used twice. Empty: numbers carry on from the highest one used. Existing security cases keep their numbers.",
+    example: 1000,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public securityCaseNumbersStartAt?: number = undefined;
 
   @ColumnAccessControl({
     create: [],
@@ -3467,6 +3567,7 @@ export default class Project extends TenantModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(PlanType),
     title: "Plan Name",
     description: "Name of the plan this project is subscribed to.",
     canReadOnRelationQuery: true,
@@ -3652,7 +3753,10 @@ export default class Project extends TenantModel {
     read: [],
     update: [],
   })
-  @TableColumn({ type: TableColumnType.LongText })
+  @TableColumn({
+    type: TableColumnType.LongText,
+    description: "The utm_content of the link the project was signed up from.",
+  })
   @Column({
     type: ColumnType.LongText,
     length: ColumnLength.LongText,
@@ -3728,6 +3832,46 @@ export default class Project extends TenantModel {
     unique: false,
   })
   public utmMarketingTactic?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.LongText,
+    hideColumnInDocumentation: true,
+    title: "Google Ads Source",
+    description:
+      "gad_source copied from the user who created this project: which of Google's surfaces showed the ad they clicked.",
+  })
+  @Column({
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+    nullable: true,
+    unique: false,
+  })
+  public gadSource?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.LongText,
+    hideColumnInDocumentation: true,
+    title: "Google Ads Campaign ID",
+    description:
+      "gad_campaignid copied from the user who created this project: the Google Ads campaign of the ad they clicked.",
+  })
+  @Column({
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+    nullable: true,
+    unique: false,
+  })
+  public gadCampaignId?: string = undefined;
 
   @ColumnAccessControl({
     create: [Permission.User],
@@ -4007,6 +4151,7 @@ export default class Project extends TenantModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(CloudMarketplace),
     title: "Billing Marketplace",
     description:
       "The cloud marketplace that bills this project (AWS, Azure or GoogleCloud). Empty when the project is billed by a card on file.",

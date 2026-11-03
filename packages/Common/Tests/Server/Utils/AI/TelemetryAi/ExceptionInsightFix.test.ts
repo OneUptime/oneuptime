@@ -923,6 +923,60 @@ describe("ExceptionInsightFix.getReadinessBlocker - the exception's own checklis
     ).toBe(CodeTaskBlockerType.RepositoryNotConnected);
   });
 
+  /*
+   * The Runner check says which of Code's blockers it is: the Fix with AI
+   * strip draws it as Code's notice, so it must not say "no global Runner is
+   * online" about a picked Runner that is offline, or about global Runners
+   * that are online but take no AI code fixes.
+   */
+  test("a failed Runner check that names Code's blocker is that blocker, in the check's words", () => {
+    expect(
+      ExceptionInsightFix.getReadinessBlocker({
+        ready: false,
+        checks: [
+          { id: "llmProvider", ok: true, title: "LLM provider", detail: "" },
+          {
+            id: "agentAvailable",
+            ok: false,
+            title: "Runner online",
+            detail: "No global Runner online takes AI code fixes.",
+            blocker: {
+              type: CodeTaskBlockerType.GlobalRunnersTakeNoCodeFixes,
+              message: "No global Runner online takes AI code fixes.",
+            },
+          },
+        ],
+      }),
+    ).toEqual({
+      type: CodeTaskBlockerType.GlobalRunnersTakeNoCodeFixes,
+      message: "No global Runner online takes AI code fixes.",
+    });
+
+    expect(
+      ExceptionInsightFix.getReadinessBlocker({
+        ready: false,
+        checks: [
+          {
+            id: "agentAvailable",
+            ok: false,
+            title: "Runner online",
+            detail: 'The Runner "office-runner" this repository picks is off.',
+            blocker: {
+              type: CodeTaskBlockerType.RunnerTakesNoCodeFixes,
+              message:
+                'The Runner "office-runner" this repository picks is off.',
+              runnerName: "office-runner",
+            },
+          },
+        ],
+      }),
+    ).toEqual({
+      type: CodeTaskBlockerType.RunnerTakesNoCodeFixes,
+      message: 'The Runner "office-runner" this repository picks is off.',
+      runnerName: "office-runner",
+    });
+  });
+
   test("every check passing: nothing in the way", () => {
     expect(ExceptionInsightFix.getReadinessBlocker(ready())).toBeNull();
   });

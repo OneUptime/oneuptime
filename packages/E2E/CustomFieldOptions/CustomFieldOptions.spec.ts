@@ -1,4 +1,5 @@
 import { Locator, Page, TestInfo, expect, test } from "@playwright/test";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * A dropdown custom field's option editor in a real browser, with the app's
@@ -555,14 +556,7 @@ test.describe("how it looks", () => {
       .getByRole("button", { name: "Remove" })
       .click();
 
-    const overflow: number = await page.evaluate((): number => {
-      return (
-        document.documentElement.scrollWidth -
-        document.documentElement.clientWidth
-      );
-    });
-
-    expect(overflow).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
 
     const dialog: Box = await boxOf(page.getByRole("dialog"));
 

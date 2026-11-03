@@ -153,6 +153,12 @@ const CASES: Array<ServiceCase> = [
             vmTemplateCount: 1 + i,
             datastoreCount: 2 + i,
             clusterCount: 1 + i,
+            notRespondingHostCount: i,
+            standbyHostCount: i,
+            criticalHostCount: i,
+            warningHostCount: i,
+            criticalVmCount: i,
+            criticalClusterCount: i,
             observedAt: OBSERVED_AT,
           };
         }),

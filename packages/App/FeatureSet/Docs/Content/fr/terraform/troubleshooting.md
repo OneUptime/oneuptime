@@ -30,6 +30,7 @@ Cherchez dans le tableau ci-dessous le message que Terraform a affiché, ou ce q
 | `has been renamed to` | Renommez le type de ressource, avec un bloc `moved` : voir [Un type de ressource renommé](#un-type-de-ressource-renommé) |
 | Un moniteur créé avec Terraform n'affiche jamais ses vérifications | Mettez à jour OneUptime : voir [Moniteurs créés avant les ID d'étapes](#moniteurs-créés-avant-les-id-détapes) |
 | `must contain at least 1 elements` | Omettez l'attribut au lieu de le laisser vide : voir [Valeurs vides](#valeurs-vides) |
+| `Not an ID` | Faites référence à l'enregistrement au lieu de le nommer : voir [Un nom à la place d'un ID](#un-nom-à-la-place-dun-id) |
 | Du JSON du tableau de bord dans un fichier `.tf` | Écrivez-le en HCL : voir [Le JSON du tableau de bord](#le-json-du-tableau-de-bord) |
 | `no available releases match the given constraints` | Utilisez une plage de versions, pas une seule version exacte : voir [Une version jamais publiée](#une-version-jamais-publiée) |
 | `x509: certificate signed by unknown authority` | Faites confiance à votre autorité de certification : voir [Certificats](#certificats) |
@@ -172,6 +173,16 @@ Attribute monitor_steps list must contain at least 1 elements, got: 0
 ```
 
 Omettez plutôt l'attribut : un attribut absent n'est pas défini. [Étapes du moniteur](/docs/terraform/monitor-steps) indique ce que prend chaque partie.
+
+### Un nom à la place d'un ID
+
+Un attribut qui contient l'ID d'un autre enregistrement, comme `team_id` ou les `labels` d'un moniteur, prend l'ID de cet enregistrement : un UUID. Un nom ou un slug à cet endroit arrête le plan :
+
+```text
+"sre" is not the ID of a oneuptime_team: OneUptime IDs are UUIDs, such as 550e8400-e29b-41d4-a716-446655440000. Refer to the resource instead (oneuptime_team.<name>.id), or read the ID with the oneuptime_team data source.
+```
+
+Faites référence à la ressource de l'enregistrement, comme `team_id = oneuptime_team.sre.id`, ou lisez l'enregistrement avec une [source de données](/docs/terraform/complete-guide#lire-ce-qui-existe-déjà). Si l'attribut désigne une personne, indiquez son adresse e-mail dans l'attribut voisin, comme `user_email`.
 
 ### Le JSON du tableau de bord
 

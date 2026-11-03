@@ -231,7 +231,7 @@ export default class ProxmoxClusterOwnerTeam extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "Team ID",
-    description: "ID of your OneUptime Team in which this object belongs",
+    description: "ID of the team that owns the Proxmox cluster",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -310,8 +310,7 @@ export default class ProxmoxClusterOwnerTeam extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "Proxmox Cluster ID",
-    description:
-      "ID of your OneUptime Proxmox Cluster in which this object belongs",
+    description: "ID of the Proxmox cluster the team owns",
   })
   @Column({
     type: ColumnType.ObjectID,

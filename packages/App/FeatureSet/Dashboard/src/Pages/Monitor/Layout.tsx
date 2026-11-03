@@ -33,7 +33,7 @@ const monitorPageMaps: Array<string> = [
   PageMap.MONITORS_SETTINGS_LABEL_RULES,
   PageMap.MONITORS_SETTINGS_PROBES,
   PageMap.MONITORS_SETTINGS_PROBE_VIEW,
-  // The menu's Developer pages (Terraform, API, AI Assistants).
+  // The menu's Developer pages (Terraform, API, CLI, AI Assistants).
   ...getDeveloperDocsChildPages(PageMap.MONITORS).map(
     (child: DeveloperDocsChildPage): string => {
       return child.key;

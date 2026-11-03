@@ -136,7 +136,7 @@ Mientras trabajas en ella, anota lo que vayas aprendiendo como **Notas privadas*
 | **Equipo** | **Ejecuciones de guardia** y **Propietarios**: a quién se avisó por la alerta y quién es su propietario |
 | **Notificaciones**            | **Registros de notificación** y **Registros de IA**: cada mensaje enviado sobre la alerta y todo lo que la IA hizo por ella |
 | **Notas**      | **Notas privadas**                                                                                          |
-| **Desarrolladores**      | **Terraform**, **API** y **Asistentes de IA**: la alerta gestionada desde código                           |
+| **Desarrolladores**      | **Terraform**, **API**, **CLI** y **Asistentes de IA**: la alerta gestionada desde código                  |
 | **Avanzado** | **Campos personalizados**, **Ajustes**, **Registros de auditoría**, **Eliminar alerta** |
 
 **Vista general**, **Investigación**, **Equipo** y **Notas** están abiertas; las demás secciones empiezan plegadas hasta que haces clic en ellas.

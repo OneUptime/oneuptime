@@ -46,7 +46,7 @@ En retningslinje som flere regler legger til, kjører én gang. En alvorlighetsg
 | --- | --- |
 | **Grunnleggende** | **Oversikt**, **Eskaleringsregler** og **Eiere** |
 | **Logger** | **Utførelseslogger** og **Varsellogger** |
-| **Utvikler** | **Terraform**, **API** og **AI-assistenter** |
+| **Utvikler** | **Terraform**, **API**, **CLI** og **AI-assistenter** |
 | **Avansert** | **Brukeroverstyringer**, **Egendefinerte felt**, **Innstillinger**, **Revisjonslogger** og **Slett retningslinjer** |
 
 **Grunnleggende** er åpen; de andre seksjonene starter sammenslått til du klikker på dem.

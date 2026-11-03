@@ -244,9 +244,15 @@ export class HeartbeatLoop {
         return;
       }
 
+      /*
+       * Whether this Runner takes AI code fixes rides on every heartbeat:
+       * the server counts a Runner as there to take a repository's fixes
+       * only while it says it does (Common/Types/Runner/RunnerCodeFixes).
+       */
       const result: HeartbeatResult = await AgentClient.heartbeat({
         agentVersion: RUNNER_VERSION,
         hostInfo,
+        takesCodeFixes: RunnerCapabilities.takesCodeFixes(),
       });
 
       if (!result.ok) {

@@ -94,7 +94,7 @@ Debajo de los elementos, Señales conectadas busca en sus registros y trazas, en
 
 ## Incidentes que declara un caso
 
-**Declarar incidente** en un caso, o el paso de un playbook que declara uno, vincula el incidente con los hosts, hosts de Docker y Podman, clústeres de Kubernetes, recursos en la nube y servicios con los que el caso está conectado de forma exacta. El incidente aparece en sus páginas y se le aplican las reglas de sus propietarios, y su feed nombra el caso y aquello con lo que se vinculó. Una posible coincidencia nunca se vincula, y un monitor tampoco: un incidente en un monitor puede cambiar su estado y aparecer en sus páginas de estado.
+**Declarar incidente** en un caso, o el paso de un playbook que declara uno, vincula el incidente con los hosts, hosts de Docker y Podman, clústeres de Kubernetes, dispositivos de red, recursos en la nube y servicios con los que el caso está conectado de forma exacta. El paso de un playbook que avisa a la guardia vincula de la misma forma la alerta que abre; cada alerta e incidente que abre una regla de detección o una coincidencia de inteligencia de amenazas se vincula con lo que su coincidencia nombra de forma exacta, y cada uno que abre Data Security, con el almacén de datos al que se refiere. El incidente aparece en sus páginas y se le aplican las reglas de sus propietarios, y su feed nombra el caso y aquello con lo que se vinculó. Una posible coincidencia nunca se vincula, y un monitor tampoco: un incidente en un monitor puede cambiar su estado y aparecer en sus páginas de estado.
 
 ## OneUptime AI
 

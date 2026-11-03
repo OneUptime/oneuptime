@@ -94,10 +94,15 @@ export interface ProviderType {
   legacyName: string | null;
   canBeImported: boolean;
   /*
-   * A membership imported by what it joins and who - `<team_id>/<email>` -
-   * as well as by its own ID: the attribute of what it joins (`team_id`).
+   * A row imported by what it joins and who or what joins it -
+   * `<team_id>/<email>`, `<monitor_id>/<team_id>` - as well as by its own
+   * ID: the attribute of what it joins (`team_id`).
    */
   importsByParent: string | null;
+  // The attribute after the slash (`user_id`, `team_id`).
+  importsByMember: string | null;
+  // Whether the part after the slash may be the person's email address.
+  importsByEmail: boolean;
   attributes: Map<string, ProviderAttribute>;
 }
 
@@ -126,7 +131,13 @@ interface TerraformResource {
   name: string;
   legacyName?: string | undefined;
   operations: { read?: unknown };
-  membershipImport?: { parentAttribute: string } | undefined;
+  membershipImport?:
+    | {
+        parentAttribute: string;
+        personAttribute: string;
+        personEmailAttribute?: string | undefined;
+      }
+    | undefined;
   schema: Record<string, TerraformAttribute>;
   // What the read operation answers with: the attributes a read maps back.
   operationSchemas?:
@@ -251,6 +262,10 @@ export function readProvider(): Promise<ProviderSchema> {
           legacyName: resource.legacyName || null,
           canBeImported: Boolean(resource.operations.read),
           importsByParent: resource.membershipImport?.parentAttribute || null,
+          importsByMember: resource.membershipImport?.personAttribute || null,
+          importsByEmail: Boolean(
+            resource.membershipImport?.personEmailAttribute,
+          ),
           attributes: attributes,
         });
       }
@@ -274,6 +289,8 @@ export function readProvider(): Promise<ProviderSchema> {
           legacyName: dataSource.legacyName || null,
           canBeImported: false,
           importsByParent: null,
+          importsByMember: null,
+          importsByEmail: false,
           attributes: attributes,
         });
       }

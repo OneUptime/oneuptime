@@ -30,6 +30,7 @@ Terraform が表示したメッセージ、または起きたことを下の表�
 | `has been renamed to` | `moved` ブロックを使ってリソースタイプの名前を変えます: [名前が変わったリソースタイプ](#名前が変わったリソースタイプ) を参照 |
 | Terraform で作成したモニターにチェックが表示されない | OneUptime をアップグレードします: [ステップ ID より前に作られたモニター](#ステップ-id-より前に作られたモニター) を参照 |
 | `must contain at least 1 elements` | 空にするのではなく、属性を省略します: [空の値](#空の値) を参照 |
+| `Not an ID` | 名前ではなくレコードを参照します: [ID の代わりに名前を書いた](#id-の代わりに名前を書いた) を参照 |
 | ダッシュボードの JSON が `.tf` ファイルにある | HCL で書き直します: [ダッシュボードの JSON](#ダッシュボードの-json) を参照 |
 | `no available releases match the given constraints` | 単一の正確なバージョンではなく、バージョンの範囲を使います: [公開されなかったバージョン](#公開されなかったバージョン) を参照 |
 | `x509: certificate signed by unknown authority` | 自分の認証局を信頼させます: [証明書](#証明書) を参照 |
@@ -172,6 +173,16 @@ Attribute monitor_steps list must contain at least 1 elements, got: 0
 ```
 
 代わりに属性を省略してください。存在しない属性は未設定として扱われます。各部分に何を指定できるかは [モニターステップ](/docs/terraform/monitor-steps) に載っています。
+
+### ID の代わりに名前を書いた
+
+`team_id` やモニターの `labels` のように、ほかのレコードの ID を持つ属性は、そのレコードの ID、つまり UUID を取ります。そこに名前やスラッグを書くと、プランが止まります。
+
+```text
+"sre" is not the ID of a oneuptime_team: OneUptime IDs are UUIDs, such as 550e8400-e29b-41d4-a716-446655440000. Refer to the resource instead (oneuptime_team.<name>.id), or read the ID with the oneuptime_team data source.
+```
+
+`team_id = oneuptime_team.sre.id` のようにレコードのリソースを参照するか、[データソース](/docs/terraform/complete-guide#すでにあるものを読み取る) でレコードを読み取ります。属性が人を指す場合は、`user_email` のような隣の属性にその人のメールアドレスを書きます。
 
 ### ダッシュボードの JSON
 

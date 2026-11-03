@@ -408,6 +408,7 @@ export default class McpOAuthGrant extends BaseModel {
   })
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(SsoProviderType),
     required: false,
     computed: true,
     canReadOnRelationQuery: false,

@@ -1,4 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
+import { INHERITED_PROPERTY_NAME_SPELLINGS } from "../../Helpers/InheritedNames";
 import { JSONObject } from "../../../Types/JSON";
 import NormalizedSecurityEvent from "../../../Types/SecurityEvent/NormalizedSecurityEvent";
 import SecurityEventFormat from "../../../Types/SecurityEvent/SecurityEventFormat";
@@ -168,5 +169,20 @@ describe("SecurityEventNormalizer", () => {
       expect(result?.className).toBe("Detection Finding");
       expect(result?.ruleName).toBe("R1");
     });
+  });
+});
+
+describe("SecurityEventNormalizer: words named after what every object inherits", () => {
+  test("a format named after one is no format", () => {
+    for (const name of INHERITED_PROPERTY_NAME_SPELLINGS) {
+      expect({
+        name,
+        format: SecurityEventNormalizer.parseFormat(name),
+      }).toEqual({ name, format: null });
+    }
+
+    expect(SecurityEventNormalizer.parseFormat(" Google-SecOps ")).toBe(
+      SecurityEventFormat.Udm,
+    );
   });
 });

@@ -197,6 +197,7 @@ export default class DataSecurityCustomDataType extends BaseModel {
   @ColumnAccessControl(editableColumnAccess)
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(DataCategory),
     required: true,
     canReadOnRelationQuery: true,
     title: "Category",
@@ -212,6 +213,7 @@ export default class DataSecurityCustomDataType extends BaseModel {
   @ColumnAccessControl(editableColumnAccess)
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(DataSensitivity),
     required: true,
     canReadOnRelationQuery: true,
     title: "Sensitivity",

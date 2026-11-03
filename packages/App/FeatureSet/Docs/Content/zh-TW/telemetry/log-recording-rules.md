@@ -54,7 +54,7 @@ flowchart TB
 
 ### 拆分結果並儲存
 
-可以選擇新增 **分組依據** 屬性與 **Unit**。檢查編輯器底部的那一行，然後儲存。幾分鐘內，規則清單就會顯示 **Computed Until** 時間。
+可以選擇新增 **分組依據** 屬性與 **單位**。檢查編輯器底部的那一行，然後儲存。幾分鐘內，規則清單就會顯示 **Computed Until** 時間。
 :::
 
 | 欄位 | 作用 |
@@ -139,7 +139,7 @@ flowchart TB
 - **Which Logs：** 屬性篩選器 `log_type` = `SD-WAN` 與 `log_component` = `SLA`
 - **彙總：** 平均，**Numeric Attribute：** `latency`
 - **分組依據：** `gw_name` 與 `profile_name`
-- **Unit：** `ms`
+- **單位：** `ms`
 
 透過 API、MCP 或 Terraform 建立時，同一規則的 **定義** 為：
 

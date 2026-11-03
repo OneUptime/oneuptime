@@ -44,6 +44,25 @@ Test" workflow provides both:
   which does the same with its ClickHouse and Valkey (they publish no port).
   The workflow sets it on the jest step, and the first suite checks that it
   does.
+- **docker, the App image, and the datastore images.**
+  `RUN_APP_IMAGE_RUNTIME_TESTS=1` with `APP_IMAGE_TAG=<tag>` turns on
+  `AppImageRuntime.test.js`, which starts `oneuptime/app:<tag>` from
+  `docker-compose.yml` with its PostgreSQL, ClickHouse and Valkey (a project of
+  its own, removed with its volumes) and has it serve its frontends, the docs,
+  the API reference, an install script and an API flow. The Build workflow's
+  App job tags the Community image it built `oneuptime/app:ci-runtime` and runs
+  it so, and the suite checks that it does.
+- **docker, and the Runner image.** `RUN_RUNNER_IMAGE_RUNTIME_TESTS=1` with
+  `RUNNER_IMAGE=<tag>` turns on `RunnerImageRuntime.test.js`, which starts
+  the built Runner image against a stand-in OneUptime server and has it run a
+  JavaScript and a Bash step. The Build workflow's Runner job builds the image
+  as `oneuptime-runner:ci` and runs it so, and the suite checks that it does.
+- **packages/Common's and packages/Nginx's packages.**
+  `PruneUnreachablePackages.test.js` walks the real certificate sidecar's
+  imports, as the ingress image's build does, only where both are installed
+  (`npm ci` in each). The workflow's `ingress-prune` job installs them and
+  sets `RUN_REAL_SIDECAR_PRUNE_TESTS=1`, under which those tests fail rather
+  than skip when the packages are missing; the suite checks the job does.
 
 or from the repo root:
 
@@ -1137,8 +1156,54 @@ What keeps the images free of the rest of what scanners reported, for every
   package) in the layer that installs it;
 - the Nginx base and its node donor are pinned to the same Alpine release, and
   only the nginx modules `nginx.conf` never loads are removed;
+- the Nginx and Runner images install, type-check and prune in a build stage
+  that does not ship, and the image copies only `/usr/src` out of it: the
+  Runner's build toolchain is installed in that stage alone; each App edition
+  starts from a runtime stage that installs nothing and copies `/usr/src` out
+  of a build pruned from the App's entry, `Migrate.ts`, the external
+  calendar's worker and (Enterprise) ee/'s entry;
 - the collector version is the same everywhere the container agents run it or
   it is validated.
+
+### `PruneUnreachablePackages.test.js`
+
+`Scripts/Docker/PruneUnreachablePackages.js`, which the Nginx, Runner and
+App images' build stages run: it walks a program's imports with esbuild, from
+every `--entry`, refuses what it cannot follow in the program's own files (a
+`require()` of a computed name, a worker thread's `new Worker()`, a `fork()`)
+unless the file doing it is an `--entry-loader` whose code is another entry,
+and prunes the package to what the walk reached with `npm prune --omit=dev
+--offline`. With real esbuild, TypeScript and npm on fixture programs, and
+the real sidecar's, Runner's and App's walks where their packages are
+installed (a developer's checkout; the image build is the check elsewhere).
+
+### `AppImageRuntime.test.js`
+
+Opt-in (`RUN_APP_IMAGE_RUNTIME_TESTS=1`, `APP_IMAGE_TAG=<tag>`): starts
+`oneuptime/app:<tag>` as Docker Compose starts it, and through curl inside
+its container checks that it boots (`/status/ready`), serves each frontend's
+page and bundle, the docs and the mermaid build, the API reference and an
+agent's install script, signs up the first account, creates a project and a
+monitor and reads it back, and that the external calendar's worker thread
+(the one code that alone loads `ical.js`) expands a calendar; and that its log
+names no missing module.
+
+### `RunnerImageRuntime.test.js`
+
+Opt-in (`RUN_RUNNER_IMAGE_RUNTIME_TESTS=1`, `RUNNER_IMAGE=<tag>`): starts the
+built Runner image with its own command, on the host's network, against a
+stand-in for the OneUptime server on a free port, and checks that it
+registers, runs a runbook's JavaScript step in its isolated-vm sandbox and a
+Bash step with the run's inputs, reports both, answers `/status/live` and logs
+no missing module. A package the prune took that the Runner needs fails it.
+
+### `HostPostgresPortScripts.test.js`
+
+`npm run ai-eval` and the Postgres schema drift check reach PostgreSQL at
+`DATABASE_PUBLISHED_PORT` (5400 by default) once `config.env` is loaded, and
+`DATABASE_MIGRATIONS_PORT` wins for the drift check: the package.json script
+line runs under every POSIX shell on the machine with a stand-in `node`, and
+the drift check's own lines under bash.
 
 ### `lint-app-dockerfile.sh`
 
@@ -1288,6 +1353,27 @@ status function. The tags, the charts, the npm packages, the Terraform
 provider, the draft and the four agents' builds say so themselves; the builds
 and e2e jobs behind the release still run for any branch.
 
+### `ReleaseE2eImages.test.js`
+
+release.yml's e2e jobs run each image's `-amd64` tag, as test-release.yaml's
+do (`TestReleaseE2eImages.test.js`): they need the builds of the images they
+waited for and no merge, which took the merges' runner queue (8 to 21
+minutes on the releases #5328 measured) off the release's critical path. The
+suite holds each job the same way - the tag it boots, the same in every step
+that names it, to the tags its stack's amd64 build legs push
+(`Scripts/GHA/build_docker_images.sh` run with a fake `docker`), and no step
+or env naming a tag a merge pushes (`<version>`, `enterprise-<version>`) -
+with the helpers in `Utils/E2eStack.js`. Since the release publishes the
+merged tags, `push-release-tags` still needs every merge and every e2e job,
+and runs `Scripts/GHA/check_tested_digests.sh` before the step that moves
+the tags, over the same images and version, with nothing letting the move run
+after it fails: the suite runs both steps for real against a fake registry,
+and holds the check to reading exactly the merged tags the move step moves
+`release` from, and each one's `-amd64` tag, from which its merge job
+(`merge_docker_manifests.sh`, run for real) builds it. The check itself (which
+image it compares, the attestation entries it skips, retries, a tag nobody
+pushed) is `Scripts/GHA/Tests/check_tested_digests_test.sh`'s.
+
 ### `ReleaseNotes.test.js`
 
 `Scripts/Release/GenerateReleaseNotes.js`, which writes the notes of every
@@ -1341,6 +1427,42 @@ their licence; and its `install.sh`, run here with stand-ins for `fc-cache`
 and `fc-match`, copies them into the user's fonts, builds their cache, and
 fails unless fontconfig answers DejaVu for each family.
 
+### `ProbeAptCache.test.js`
+
+The Probe's suite runs Chromium and Firefox, under strace too, and compiles a
+shim with gcc, so its job cannot run in the Playwright image: the browsers'
+system packages and fonts and strace come from apt, and the runner's Ubuntu
+mirror serves some runners at a few dozen kB/s. `Scripts/GHA/apt_archive_cache.sh`
+keeps what apt fetched in the Actions cache, keyed on the runner image, the
+Probe's lockfile and the workflow, and the next run on that image installs it
+with no package source at all (its own tests:
+`Scripts/GHA/Tests/apt_archive_cache_test.sh`). The suite holds the job to the
+wiring: the image named and the cache restored before anything installs; the
+cache's packages installed only on a hit, without failing the job when that
+install does not work; every install from the mirror run when it did not, after
+apt is told to keep its downloads; on a miss, what apt kept copied out and saved
+under the restore's key; on a hit, the browsers alone, without `--with-deps`;
+the suite last, either way; and a job limit that holds every step's.
+
+### `DashboardOfflineUiBudget.test.js`
+
+Every Dashboard Offline UI group fits its run step with room for a slow runner.
+A runner has taken 1.45 times the minutes of another, suite for suite, and the
+run step stops at 35 minutes, so a group is planned at 22 minutes on a runner
+of median speed. Planned by hand from each group's comment, the groups drifted:
+on 2026-11-02's six finished App Test runs group 14's suites took 30.5 minutes
+at median speed (32.3 on its slowest run), group 13's 26.1, and four more
+groups' between 23.4 and 25. `DashboardOfflineUiMinutes.json` holds each
+suite's minutes - each half's, `<suite> <i>/<n>`, for a suite run in halves -
+the median over the runs it
+names, and the suite holds every suite a group runs to having its minutes there
+(and nothing there that no group runs), every group's suites to summing to at
+most 22, naming a group past it with its sum, its suites and the groups with
+the most room, and the run step's limit to 22 x 1.45. A new suite's minutes
+come from a local run (CI=1, its bundle built, nothing else running) until App
+Test's runs measure it. Re-measure from finished runs (each group job's log,
+from one `▶ npm run` to the next) when the groups are moved again.
+
 ### `DashboardOfflineUiShards.test.js`
 
 App Test runs Event Overview and the Workflow Builder suite in halves, one per
@@ -1352,6 +1474,45 @@ that runs that suite and sets its key, with one count of halves; the env to
 naming the config's own variable, empty where a group sets none (the whole
 suite, as before); and each config to sharding by that variable with
 Playwright's own shard, never lists of its own.
+
+### `E2EFixtureRouters.test.js`
+
+React Router 7 runs every navigation of a bare `<BrowserRouter>` as a React
+transition, which other updates may interrupt. The Dashboard mounts
+`<BrowserRouter useTransitions={false}>` (its `src/Index.tsx`), and the offline
+fixtures that drew Dashboard pages with a bare one navigated differently from
+it: Security Operations' case side menu lit the page being left beside the page
+arrived at (14.0.95's gate). The suite reads each frontend's `src/Index.tsx`
+and every file under packages/E2E that mounts a router, with TypeScript's
+parser (`Utils/JsxRouters.js`): a fixture mounts a `BrowserRouter`, as a JSX
+element whose props can be read (another router, a data router or
+`React.createElement` needs a rule here first), and turns transitions off
+exactly when the frontend it draws does - the Dashboard's when it draws a
+Dashboard page or only Common's shells, otherwise the one frontend (Status
+Page, Accounts, Admin Dashboard, Public Dashboard) whose pages it draws.
+
+### `E2EPageFitReads.test.js`
+
+A page that fits its window can draw a frame that does not (a table fits its
+columns to its card a frame after it paints, a chart keeps its old width until
+its ResizeObserver runs), so a check that read the page's width once could fail
+a page that fits on a slow runner. Every browser suite reads whether a page
+scrolls sideways through `packages/E2E/SuiteHelpers/PageFit.ts`, which reads it
+until it fits; the suite fails any other TypeScript file under packages/E2E
+that reads `document.documentElement.scrollWidth` or `document.body.scrollWidth`
+(an element's own `scrollWidth` is left alone), and checks that the helper
+still polls.
+
+### `E2EBoxesInOneFrame.test.js`
+
+Each `locator.boundingBox()` is a round trip of its own, so boxes read one
+after the other come from two moments, and while the page moves (a panel
+sliding in, a dialog growing in, a table fitting its columns a frame after it
+paints) a gap or an alignment between them is off by however far things moved.
+`packages/E2E/SuiteHelpers/Frames.ts`'s `boxesInOneFrame` reads every box in one
+evaluate. The suite fails any spec under packages/E2E with two or more
+statements in a row that each await one locator's `boundingBox()`; a box read
+alone, or after an action, is left alone.
 
 ### `CompileWorkflow.test.js`
 

@@ -47,7 +47,7 @@ function databaseColumnOf(propertyName: string): ColumnMetadataArgs {
 }
 
 describe("the kinds of numbered record", () => {
-  test("are the five kinds a project numbers, each once", () => {
+  test("are the six kinds a project numbers, each once", () => {
     expect(
       KINDS.map((info: NumberedRecordKindInfo): NumberedRecordKind => {
         return info.kind;
@@ -58,6 +58,7 @@ describe("the kinds of numbered record", () => {
       NumberedRecordKind.Alert,
       NumberedRecordKind.AlertEpisode,
       NumberedRecordKind.ScheduledMaintenance,
+      NumberedRecordKind.SecurityCase,
     ]);
     expect(Object.values(NumberedRecordKind).sort()).toEqual(
       KINDS.map((info: NumberedRecordKindInfo): string => {
@@ -148,6 +149,7 @@ describe("the kinds of numbered record", () => {
       ["Alert Numbers Start At", "alert"],
       ["Alert Episode Numbers Start At", "alert episode"],
       ["Scheduled Maintenance Numbers Start At", "scheduled maintenance event"],
+      ["Security Case Numbers Start At", "security case"],
     ]);
   });
 

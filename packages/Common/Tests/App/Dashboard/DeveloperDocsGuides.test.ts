@@ -775,6 +775,7 @@ describe.each(PARENT_PAGES)(
     test.each([
       DeveloperDocsPageType.Terraform,
       DeveloperDocsPageType.Api,
+      DeveloperDocsPageType.Cli,
       DeveloperDocsPageType.AiAssistants,
     ])(
       "%s builds, with no 'a' before a vowel sound",
@@ -794,11 +795,12 @@ describe.each(PARENT_PAGES)(
       ["this project's records", getFixtureLiveData],
       ["an empty project", getEmptyFixtureLiveData],
     ])(
-      "its Terraform and API pages read right from %s: no unfilled names or broken values",
+      "its Terraform, API and CLI pages read right from %s: no unfilled names or broken values",
       (_source: string, getLive: () => DeveloperDocsLiveData) => {
         for (const page of [
           DeveloperDocsPageType.Terraform,
           DeveloperDocsPageType.Api,
+          DeveloperDocsPageType.Cli,
         ]) {
           const text: string = allText(
             getDeveloperDocsGuide(page, { ...guideContext, live: getLive() }),
@@ -833,6 +835,11 @@ describe("the card's own words", () => {
     ).toContain("filled in from this project");
     expect(
       DEVELOPER_DOCS_GUIDE_COPY[DeveloperDocsPageType.Api][
+        DeveloperDocsScope.List
+      ].description,
+    ).toContain("filled in from this project");
+    expect(
+      DEVELOPER_DOCS_GUIDE_COPY[DeveloperDocsPageType.Cli][
         DeveloperDocsScope.List
       ].description,
     ).toContain("filled in from this project");

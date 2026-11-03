@@ -119,7 +119,7 @@ import {
   DEFAULT_READER_LANGUAGE,
   READER_LANGUAGE_CODES,
 } from "../../Types/ReaderLanguage";
-import { createTranslator, Translator } from "../../UI/Utils/TranslateTemplate";
+import { createTranslator, Translator } from "../../Types/Translator";
 
 /*
  * For an UPDATE ... RETURNING, the postgres driver hands TypeORM's

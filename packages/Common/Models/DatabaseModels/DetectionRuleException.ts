@@ -179,6 +179,7 @@ export default class DetectionRuleException extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(DetectionRuleExceptionKind),
     canReadOnRelationQuery: true,
     title: "Kind",
     description:
@@ -195,6 +196,7 @@ export default class DetectionRuleException extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(SecurityEntityType),
     canReadOnRelationQuery: true,
     title: "Entity Type",
     description:

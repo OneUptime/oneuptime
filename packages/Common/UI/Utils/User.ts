@@ -8,6 +8,7 @@ import Dictionary from "../../Types/Dictionary";
 import Email from "../../Types/Email";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject, JSONValue } from "../../Types/JSON";
+import { UtmPropertyKeys } from "../../Types/Marketing/Attribution";
 import Name from "../../Types/Name";
 import ObjectID from "../../Types/ObjectID";
 import Timezone from "../../Types/Timezone";
@@ -166,15 +167,6 @@ export default class UserUtil {
     LocalStorage.setItem("initialUrl", url);
   }
 
-  // TODO: Fix project type
-  public static setProject(project: JSONObject): void {
-    LocalStorage.setItem("project", project);
-  }
-
-  public static getProject(): JSONObject {
-    return LocalStorage.getItem("project") as JSONObject;
-  }
-
   // Forgets the person, not the browser: KeptAfterSignOut.ts has what stays.
   public static clear(): void {
     LocalStorage.clearExcept(KEYS_KEPT_AFTER_SIGN_OUT);
@@ -245,7 +237,11 @@ export default class UserUtil {
         continue;
       }
 
-      if (key.startsWith("utm")) {
+      /*
+       * Every utm* key, and the campaign keys the marketing site stores
+       * without that prefix: Google Ads' gadSource and gadCampaignId.
+       */
+      if (key.startsWith("utm") || UtmPropertyKeys.includes(key)) {
         result[key] = value;
       }
     }

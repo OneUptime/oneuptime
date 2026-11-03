@@ -1,3 +1,8 @@
+import {
+  CliAction,
+  CliOperation,
+} from "Common/Utils/DeveloperDocs/CliCommands";
+
 export interface CLIContext {
   name: string;
   apiUrl: string;
@@ -15,6 +20,12 @@ export enum OutputFormat {
   Wide = "wide",
 }
 
+/*
+ * A resource command: one per resource of the OneUptime API, with a
+ * subcommand for each request the API takes for it (operations) and for
+ * each button the dashboard has on it (actions). Worked out from the models
+ * by Common/Utils/DeveloperDocs/CliResources.
+ */
 export interface ResourceInfo {
   name: string;
   singularName: string;
@@ -22,6 +33,8 @@ export interface ResourceInfo {
   apiPath: string;
   tableName: string;
   modelType: "database" | "analytics";
+  operations: Array<CliOperation>;
+  actions: Array<CliAction>;
 }
 
 export interface ResolvedCredentials {

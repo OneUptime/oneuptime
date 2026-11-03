@@ -1,4 +1,5 @@
 import Alert from "../../../Models/DatabaseModels/Alert";
+import { AiAffectedResourceKind } from "../../../Types/AI/AiAffectedResources";
 import { AlertFeedEventType } from "../../../Models/DatabaseModels/AlertFeed";
 import { IncidentFeedEventType } from "../../../Models/DatabaseModels/IncidentFeed";
 import OnCallDutyPolicyExecutionLog from "../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
@@ -1699,6 +1700,48 @@ describe("OnCallPageService.page", () => {
       expect(alertAsked().rootCause).toBe(
         "Created by **Jane Doe** from Slack to page people.",
       );
+    });
+
+    /*
+     * #5303's follow-up: a page that knows what its new alert is about - a
+     * security playbook's, about its case - links the alert to it, so its
+     * investigation reaches it and OneUptime AI can fix it. A page that
+     * names nothing links nothing, as every page did.
+     */
+    test("an alert a page names its resources for is linked to them, each in its list", async () => {
+      const HOST: string = "ab000000-0000-4000-8000-000000000001";
+      const DEVICE: string = "ab000000-0000-4000-8000-000000000002";
+
+      await pageAboutSomethingNew({
+        newAlert: {
+          affectedResources: [
+            { kind: AiAffectedResourceKind.Host, id: HOST },
+            { kind: AiAffectedResourceKind.NetworkDevice, id: DEVICE },
+            { kind: AiAffectedResourceKind.Host, id: HOST },
+          ],
+        },
+      });
+
+      const alert: Alert = alertAsked();
+
+      expect(
+        (alert.hosts || []).map((row: { id?: ObjectID | null }) => {
+          return row.id?.toString();
+        }),
+      ).toEqual([HOST]);
+      expect(alert.networkDevices?.[0]?.id?.toString()).toBe(DEVICE);
+      // Never a monitor: the page does not stop anything's checks.
+      expect(alert.monitorId).toBeUndefined();
+    });
+
+    test("a page that names no resources leaves every list of its alert as it was", async () => {
+      await pageAboutSomethingNew();
+
+      const alert: Alert = alertAsked();
+
+      expect(alert.hosts).toBeUndefined();
+      expect(alert.networkDevices).toBeUndefined();
+      expect(alert.kubernetesClusters).toBeUndefined();
     });
 
     test("a root cause the page names wins over the workflow's", async () => {

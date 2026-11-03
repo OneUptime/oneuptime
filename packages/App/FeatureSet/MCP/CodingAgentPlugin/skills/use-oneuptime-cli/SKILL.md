@@ -1,11 +1,11 @@
 ---
 name: use-oneuptime-cli
-description: Use the OneUptime CLI (@oneuptime/cli) in scripts and CI pipelines, with ONEUPTIME_API_KEY and ONEUPTIME_URL, where no MCP client is available. Use when someone wants a pipeline, cron job or shell script to read or change OneUptime records, stop a deploy while an incident is open, or record a deploy.
+description: Use the OneUptime CLI (@oneuptime/cli) in scripts and CI pipelines, with ONEUPTIME_API_KEY and ONEUPTIME_URL, where no MCP client is available. Use when someone wants a pipeline, cron job or shell script to read or change OneUptime records, acknowledge or resolve an incident, stop a deploy while an incident is open, or record a deploy.
 ---
 
 # Use the OneUptime CLI in scripts and CI
 
-The `oneuptime` command works with the same records as the MCP server, with a project API key instead of a sign-in. Use it where nobody is there to sign in.
+The `oneuptime` command does what the OneUptime API does, with a project API key instead of a sign-in: every resource of the API is a command. Use it where nobody is there to sign in.
 
 The person's own instructions come before these steps: where they ask for something else, do what they ask.
 
@@ -26,42 +26,52 @@ Set both variables from the CI system's secrets. Nothing else is needed: no `one
 
 Do not pass the key with `--api-key` in a script: it lands in the shell history and the process list. Do not write the key into a file you commit.
 
-`oneuptime whoami` shows what the next command will use without calling OneUptime, so it does not prove that the key works. `oneuptime incident count` does.
+`oneuptime whoami --check` asks OneUptime whether it takes the key, and shows the key's project and the versions of OneUptime and the CLI. A key it refuses stops it with exit code `2`. Without `--check`, `whoami` only shows what the next command will use.
 
-## Commands
+## Find what to run
 
-Every kind of record is a command: `oneuptime <resource> <operation>`. `oneuptime resources` lists them.
+Every resource is a command: `oneuptime <resource> <subcommand>`. A resource takes the subcommands the API takes for it: `list`, `get` and `count` to read it, and `create`, `update` and `delete` to change it. The ones OneUptime writes itself, such as an email log, are read only.
 
-| Operation                 | Records | Telemetry |
-| ------------------------- | ------- | --------- |
-| `list`, `count`, `create` | Yes     | Yes       |
-| `get`, `update`, `delete` | Yes     | No        |
+| Command                                    | What it shows                                                   |
+| ------------------------------------------ | --------------------------------------------------------------- |
+| `oneuptime resources --json`               | Every resource, with its subcommands                            |
+| `oneuptime <resource> fields --json`       | Its fields: which ones a create needs, and the flag of each one |
+| `oneuptime <resource> <subcommand> --help` | A subcommand's options                                          |
 
-`delete` takes effect at once: it does not ask, and there is no undo.
+## Read and change records
 
 ```bash
-oneuptime incident list --limit 20 -o json
-oneuptime incident get <incident-id> -o json
-oneuptime monitor create --data '{"name":"Checkout API","monitorType":"Manual"}' -o json
-oneuptime monitor create --file monitors/checkout-api.json
-oneuptime monitor update <monitor-id> --data '{"name":"Checkout API (EU)"}'
+oneuptime incident list --limit 20 --json
+oneuptime incident list --all --fields title,currentIncidentState.name,createdAt --json
+oneuptime incident get <incident-id> --json
 oneuptime incident count --query '{"currentIncidentState":{"isResolvedState":false}}'
+oneuptime monitor create --name "Checkout API" --monitor-type Manual --json
+oneuptime monitor create --file monitors/checkout-api.json --json
+oneuptime monitor update <monitor-id> --name "Checkout API (EU)"
 ```
 
+- Add `--json` to every command in a script. A command that answers with a sentence, such as `delete`, answers in JSON with it. In JSON, dates are objects: `.createdAt.value`.
+- `create` and `update` take a flag for each field. `--data` takes the fields as JSON instead, and `--file` reads them from a file; flags go on top of either. The project comes from the key.
+- A field that names a person by user ID takes an email address too: `--user-email` beside `--user-id`, `--owner-user-emails` beside `--owner-users`. The CLI looks for them among the members of the key's project and the people invited to it.
 - `--query` takes a filter: `{"title":"Checkout is down"}` matches a value exactly, and `{"title":{"_type":"Search","value":"checkout"}}` compares.
 - `--sort` takes `{"createdAt":"ASC"}` or `"DESC"`. The default is newest first.
-- `--limit` defaults to 10. To read everything, raise `--skip` by `--limit` until a page comes back empty.
-- Write `-o json` in scripts. In JSON, dates are objects: `.createdAt.value`.
+- `--limit` defaults to 10. `--all` reads every page of records, up to 100,000 of them. `--fields` names the fields to return, and after a dot a field of a related record: `currentIncidentState.name`.
 - Wrap JSON in single quotes in Bash and zsh.
+- An update answers with an empty object. Run `get` to see the result.
+- `delete` takes effect at once: it does not ask, and there is no undo.
 
-To move an incident along, as the dashboard's buttons do, update its state. A state before its current one is refused.
+## Acknowledge, resolve and add notes
+
+These do what the dashboard's buttons do, so a script needs no state IDs:
 
 ```bash
-RESOLVED=$(oneuptime incident-state list --query '{"isResolvedState":true}' --sort '{"order":"ASC"}' --limit 1 -o json | jq -r '.[0]._id')
-oneuptime incident update <incident-id> --data "{\"currentIncidentStateId\":\"$RESOLVED\"}"
+oneuptime incident acknowledge <incident-id> --json
+oneuptime incident resolve <incident-id> --json
+oneuptime incident add-note <incident-id> --note "Rolled back the 14:05 deploy."
+oneuptime incident add-note <incident-id> --note "A fix is rolling out." --public
 ```
 
-An update answers with an empty object. Run `get` to see the result. To add a note, use `incident-internal-note create` or, for the status page, `incident-public-note create`, with `incidentId` and `note`.
+Alerts and the episodes of incidents and alerts take the same three, and a scheduled maintenance event takes `start`, `end` and `add-note`. A record already in the state is left as it is, and the command still exits with `0`: in JSON, `changed` says whether it moved. A note is for the team, unless `--public` posts it on the status pages, which tells their subscribers. Alerts and their episodes have no public notes.
 
 ## Exit codes
 
@@ -72,7 +82,18 @@ An update answers with an empty object. Run `get` to see the result. To add a no
 | `2`  | No usable API key: none set, invalid, or a key below its plan               |
 | `3`  | Not found: no such record, or the key may not read it                       |
 
-Errors go to standard error, so standard output holds only the answer.
+Errors go to standard error, so standard output holds only the answer. With `--json`, an error is one JSON object, with what to do about it:
+
+```json
+{
+  "error": {
+    "message": "API error (404): Incident not found.",
+    "status": 404,
+    "exitCode": 3,
+    "hint": "`oneuptime incident list` shows the ones this key may read."
+  }
+}
+```
 
 ## Stop a deploy while an incident is open
 
@@ -106,4 +127,3 @@ oneuptime deploy --service checkout --service-version 2.3.1 --commit "$GIT_SHA" 
 
 - Each run of `create` makes new records. To keep monitors and status pages in step with files, use the Terraform provider.
 - A command reaches only what the key's permissions allow. A `422` names the permissions that would let the request in.
-- There is no command for putting a monitor on a status page, or for creating an ingestion key. Both are done in the dashboard.

@@ -97,7 +97,7 @@ export function getInventoryBreadcrumbs(path: string): Array<Link> | undefined {
       PageMap.INVENTORY_VIEW_AUDIT_LOGS,
       "Audit Logs",
     ),
-    // An item's Developer pages (Terraform, API, AI Assistants).
+    // An item's Developer pages (Terraform, API, CLI, AI Assistants).
     ...getDeveloperDocsChildPages(PageMap.INVENTORY_VIEW).reduce(
       (
         links: Dictionary<Array<Link>>,

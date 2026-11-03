@@ -220,8 +220,8 @@ const KEYS_BY_PAGE: Record<string, Array<HostMetric>> = {
     "memoryChart",
     "diskSpaceChart",
     "networkChart",
-    "processCountCached",
     "booted",
+    "processCountCached",
   ],
   "ProcessView.tsx": [
     "processCpu",
@@ -359,7 +359,12 @@ describe("Host overview", () => {
   });
 
   test("the Details card says when the host booted, with its caption", () => {
-    const field: string = between(code, 'key: "bootedAt",', "fieldType:");
+    // A Details fact is named by its model field (#5535's one Details card).
+    const field: string = between(
+      code,
+      "field: { bootedAt: true, },",
+      "fieldType:",
+    );
 
     expect(field).toContain('title: "Booted"');
     expect(field).toContain("description: HOST_METRIC_DESCRIPTIONS.booted,");
@@ -461,7 +466,7 @@ describe("Host overview", () => {
   test("the cached process count carries its caption", () => {
     const field: string = between(
       code,
-      'key: "processCount",',
+      "field: { processCount: true, },",
       "fieldType: FieldType.Number,",
     );
 

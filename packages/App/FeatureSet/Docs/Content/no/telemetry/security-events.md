@@ -57,6 +57,9 @@ flowchart TB
 | **Saksprioriteter** | Innstillinger | Hvor mye en sak haster: prosjektets egne prioriteter, den som haster mest først |
 | **Responsmål** | Innstillinger | Hvor raskt en sak med hver prioritet må tas og begrenses |
 | **Saksstatuser** | Innstillinger | Trinnene en sak går gjennom, og hva en sak i hvert trinn teller som |
+| **Egendefinerte felt** | Innstillinger | Feltene teamet ditt fyller ut i hver sak, for eksempel forretningsenheten den gjelder |
+| **Notatmaler** | Innstillinger | Ferdig tekst til notatene teamet ditt skriver på sakene sine |
+| **Nummerering** | Innstillinger | Teksten foran saksnumrene, og nummeret den neste saken får |
 | **Risikovurdering** | Innstillinger | Om risikoen for en entitet åpner en sak, ved hvilken risiko, og hvor mye hver entitet betyr |
 
 **Deteksjoner**, **KI**, **Tilkoblinger** og **Innstillinger**, som settes opp én gang, er slått sammen til du åpner dem. Ny med sikkerhet? [Kom i gang med sikkerhet](/docs/telemetry/security-getting-started) setter det opp med to klikk.

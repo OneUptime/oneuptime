@@ -5,7 +5,7 @@ Chaque commande de la CLI `oneuptime`, avec ses arguments, ses options et ses va
 :::cards
 - [Options globales](#options-globales): Les options que prend chaque commande.
 - [Connexion et contextes](#connexion-et-contextes): login et les commandes context.
-- [Commandes des ressources](#commandes-des-ressources): list, get, create, update, delete et count.
+- [Commandes des ressources](#commandes-des-ressources): Les opérations, les champs et les actions de chaque ressource.
 - [Autres commandes](#autres-commandes): deploy, whoami, resources, version et help.
 :::
 
@@ -17,7 +17,8 @@ flowchart LR
     O --> C["context"]
     C --> C1["list<br/>use<br/>current<br/>delete"]
     O --> R["incident, monitor<br/>et chaque ressource"]
-    R --> R1["list<br/>get<br/>create<br/>update<br/>delete<br/>count"]
+    R --> R1["list<br/>get<br/>create<br/>update<br/>delete<br/>count<br/>fields"]
+    R --> R2["acknowledge<br/>resolve<br/>start<br/>end<br/>add-note"]
     O --> U["deploy<br/>whoami<br/>resources<br/>version<br/>help"]
 ```
 
@@ -29,11 +30,14 @@ flowchart LR
 | `--url <url>` | L'adresse de votre OneUptime pour cette commande | `ONEUPTIME_URL`, puis l'URL du contexte |
 | `--context <name>` | Le contexte enregistré à utiliser pour cette commande | Le contexte actuel |
 | `-o, --output <format>` | `json`, `table` ou `wide` | `table` dans un terminal, `json` dans un pipe |
+| `--json` | Équivaut à `-o json` | |
 | `--no-color` | Affiche sans couleurs | Des couleurs, sauf si `NO_COLOR` est défini |
 | `-V, --version` | Affiche la version de la CLI | |
 | `-h, --help` | Affiche l'aide d'une commande | |
 
 Les options se placent avant ou après la commande : `oneuptime --context staging incident list` et `oneuptime incident list --context staging` font la même chose.
+
+Chaque commande accepte `-o` et `--json` : les tableaux ci-dessous les omettent donc. Une commande dont la réponse est une phrase, comme `delete`, affiche la phrase, sauf si `-o json` ou `--json` demande du JSON : voir [Formats de sortie](/docs/cli/output-formats#json).
 
 ## Connexion et contextes
 
@@ -53,15 +57,11 @@ oneuptime login <api-key> <instance-url> [--context-name <name>]
 
 ### `oneuptime context list`
 
-Liste les contextes enregistrés ; `*` marque l'actuel. Les clés API ne sont jamais listées.
+Liste les contextes enregistrés ; `*` marque le contexte actuel. Les clés API ne sont jamais listées : le JSON donne pour chaque contexte `name`, `apiUrl` et `isCurrent`.
 
 ```bash
-oneuptime context list [-o <format>]
+oneuptime context list
 ```
-
-| Option | Obligatoire | Ce que c'est |
-| --- | --- | --- |
-| `-o, --output <format>` | Non | `json`, `table` ou `wide`. Le JSON donne le `name`, l'`apiUrl` et le `isCurrent` de chaque contexte |
 
 ### `oneuptime context use`
 
@@ -97,14 +97,14 @@ oneuptime context delete <name>
 
 ## Commandes des ressources
 
-`<resource>` est la commande d'un type d'enregistrement, tirée des tableaux [Ressources](#ressources), comme `incident` ou `monitor`. Voir [Opérations sur les ressources](/docs/cli/resource-operations) pour des exemples.
+`<resource>` est la commande d'un type d'enregistrement, tirée du tableau [Ressources](#ressources), comme `incident` ou `monitor`. Une ressource a les opérations que l'API accepte pour elle, la plupart les six, et `oneuptime <resource> --help` liste les siennes. Voir [Opérations sur les ressources](/docs/cli/resource-operations) pour des exemples.
 
 ### `oneuptime <resource> list`
 
 Liste des enregistrements, les plus récents d'abord. Les étiquettes sont plutôt listées par nom, les étiquettes numérotées d'abord (`2. Team` avant `10. Owner`).
 
 ```bash
-oneuptime <resource> list [--query <json>] [--limit <n>] [--skip <n>] [--sort <json>] [-o <format>]
+oneuptime <resource> list [--query <json>] [--limit <n>] [--skip <n>] [--sort <json>] [--fields <names>] [--all]
 ```
 
 | Option | Ce qu'elle fait | Par défaut |
@@ -113,52 +113,56 @@ oneuptime <resource> list [--query <json>] [--limit <n>] [--skip <n>] [--sort <j
 | `--limit <n>` | Le nombre maximal d'enregistrements à renvoyer, jusqu'à 10 000 | `10` |
 | `--skip <n>` | Combien d'enregistrements passer d'abord | `0` |
 | `--sort <json>` | L'ordre, en JSON : `{"<field>":"ASC"}` ou `{"<field>":"DESC"}` | Les plus récents d'abord |
-| `-o, --output <format>` | `json`, `table` ou `wide` | `table` dans un terminal, `json` dans un pipe |
+| `--fields <names>` | Les champs à renvoyer, séparés par des virgules ; un champ d'un enregistrement lié après un point, comme dans `currentIncidentState.name` | Chaque champ que la clé peut lire |
+| `--all` | Chaque enregistrement qui correspond, 100 à la fois, jusqu'à 100 000, à la place de `--limit` et `--skip`. Enregistrements seulement : la télémétrie n'a pas de `--all` | |
 
 ### `oneuptime <resource> get`
 
-Lit un enregistrement. Enregistrements seulement : la télémétrie n'a pas de `get`.
+Lit un enregistrement.
 
 ```bash
-oneuptime <resource> get <id> [-o <format>]
+oneuptime <resource> get <id> [--fields <names>]
 ```
 
 | Argument ou option | Obligatoire | Ce que c'est |
 | --- | --- | --- |
 | `<id>` | Oui | L'ID de l'enregistrement, un UUID |
-| `-o, --output <format>` | Non | `json`, `table` ou `wide` |
+| `--fields <names>` | Non | Les champs à renvoyer, séparés par des virgules. Par défaut : chaque champ que la clé peut lire |
 
 ### `oneuptime <resource> create`
 
 Crée un enregistrement et l'affiche.
 
 ```bash
-oneuptime <resource> create (--data <json> | --file <path>) [-o <format>]
+oneuptime <resource> create [--<field> <value>]... [--data <json>] [--file <path>]
 ```
 
 | Option | Obligatoire | Ce que c'est |
 | --- | --- | --- |
-| `--data <json>` | L'une des deux | L'enregistrement, en JSON |
-| `--file <path>` | L'une des deux | Un fichier JSON contenant l'enregistrement. Donné avec `--data`, c'est le fichier qui est utilisé |
-| `-o, --output <format>` | Non | `json`, `table` ou `wide` |
+| `--<field> <value>` | Les champs qu'une création doit donner | La valeur d'un champ : `--title <text>`, `--incident-severity-id <id>`, `--labels <ids>`. `oneuptime <resource> create --help` les liste. Enregistrements seulement |
+| `--data <json>` | Non | L'enregistrement, en JSON |
+| `--file <path>` | Non | Un fichier JSON contenant l'enregistrement. Donné avec `--data`, c'est le fichier qui est utilisé |
+
+Les options s'ajoutent à `--data` ou `--file`. Un champ qui nomme une personne par son ID d'utilisateur a aussi une option qui la nomme par son adresse e-mail : `--user-email` à côté de `--user-id`.
 
 ### `oneuptime <resource> update`
 
-Modifie les champs que vous donnez. Enregistrements seulement : la télémétrie n'a pas d'`update`.
+Modifie les champs que vous donnez.
 
 ```bash
-oneuptime <resource> update <id> --data <json> [-o <format>]
+oneuptime <resource> update <id> [--<field> <value>]... [--data <json>] [--file <path>]
 ```
 
 | Argument ou option | Obligatoire | Ce que c'est |
 | --- | --- | --- |
 | `<id>` | Oui | L'ID de l'enregistrement |
-| `--data <json>` | Oui | Les champs à modifier, en JSON |
-| `-o, --output <format>` | Non | `json`, `table` ou `wide` |
+| `--<field> <value>` | Non | Un champ à modifier : `oneuptime <resource> update --help` les liste. Enregistrements seulement |
+| `--data <json>` | Non | Les champs à modifier, en JSON |
+| `--file <path>` | Non | Un fichier JSON contenant les champs à modifier. Donné avec `--data`, c'est le fichier qui est utilisé |
 
 ### `oneuptime <resource> delete`
 
-Supprime un enregistrement immédiatement, sans demander. Enregistrements seulement : la télémétrie n'a pas de `delete`.
+Supprime un enregistrement immédiatement, sans demander.
 
 ```bash
 oneuptime <resource> delete <id> [--force]
@@ -174,37 +178,88 @@ oneuptime <resource> delete <id> [--force]
 Compte des enregistrements et affiche le nombre.
 
 ```bash
-oneuptime <resource> count [--query <json>] [-o <format>]
+oneuptime <resource> count [--query <json>]
 ```
 
 | Option | Obligatoire | Ce que c'est |
 | --- | --- | --- |
 | `--query <json>` | Non | Un filtre, en JSON. Sans filtre, chaque enregistrement que la clé peut lire |
-| `-o, --output <format>` | Non | `json`, `table` ou `wide` |
+
+### `oneuptime <resource> fields`
+
+Liste les champs de la ressource : le rôle de chacun, son type, si une création doit le donner, et l'option qui le définit. Elle les lit dans la CLI elle-même, sans clé API ni requête.
+
+```bash
+oneuptime <resource> fields
+```
+
+### `oneuptime <resource> acknowledge`
+
+Fait passer un incident, une alerte ou un épisode de l'un d'eux à l'état pris en compte de votre projet, comme le fait le bouton du tableau de bord. Un enregistrement déjà pris en compte, ou au-delà, reste tel quel.
+
+```bash
+oneuptime <resource> acknowledge <id>
+```
+
+| Argument | Obligatoire | Ce que c'est |
+| --- | --- | --- |
+| `<id>` | Oui | L'ID de l'enregistrement |
+
+### `oneuptime <resource> resolve`
+
+Fait passer un incident, une alerte ou un épisode de l'un d'eux à l'état résolu de votre projet.
+
+```bash
+oneuptime <resource> resolve <id>
+```
+
+| Argument | Obligatoire | Ce que c'est |
+| --- | --- | --- |
+| `<id>` | Oui | L'ID de l'enregistrement |
+
+### `oneuptime <resource> start`
+
+Fait passer un événement de maintenance planifiée à l'état en cours de votre projet.
+
+```bash
+oneuptime <resource> start <id>
+```
+
+| Argument | Obligatoire | Ce que c'est |
+| --- | --- | --- |
+| `<id>` | Oui | L'ID de l'événement |
+
+### `oneuptime <resource> end`
+
+Fait passer un événement de maintenance planifiée à l'état terminé de votre projet.
+
+```bash
+oneuptime <resource> end <id>
+```
+
+| Argument | Obligatoire | Ce que c'est |
+| --- | --- | --- |
+| `<id>` | Oui | L'ID de l'événement |
+
+### `oneuptime <resource> add-note`
+
+Ajoute une note à un incident, une alerte, un épisode de l'un d'eux ou un événement de maintenance planifiée.
+
+```bash
+oneuptime <resource> add-note <id> --note <markdown> [--public]
+```
+
+| Argument ou option | Obligatoire | Ce que c'est |
+| --- | --- | --- |
+| `<id>` | Oui | L'ID de l'enregistrement |
+| `--note <markdown>` | Oui | La note, en Markdown |
+| `--public` | Non | La publie sur les pages de statut de l'enregistrement, où ses abonnés sont prévenus. Incidents, leurs épisodes et maintenances planifiées seulement |
 
 ### Ressources
 
-Les enregistrements prennent `list`, `get`, `create`, `update`, `delete` et `count` :
+Chaque ressource de l'API de OneUptime est une commande, avec les opérations que l'API accepte pour elle, `fields`, et les actions des enregistrements qui en ont :
 
-| Domaine | Commandes |
-| --- | --- |
-| Surveillance | `monitor`, `monitor-status`, `monitor-status-event` |
-| Incidents | `incident`, `incident-state`, `incident-severity`, `incident-state-timeline`, `incident-public-note`, `incident-internal-note`, `incident-alert`, `postmortem-status` |
-| Alertes | `alert`, `alert-state`, `alert-severity`, `alert-state-timeline`, `alert-internal-note` |
-| Pages de statut | `status-page`, `status-page-announcement` |
-| Maintenance planifiée | `scheduled-maintenance-event`, `scheduled-maintenance-state`, `scheduled-maintenance-state-timeline` |
-| Équipes et astreinte | `team`, `on-call-policy` |
-| Sécurité | `security-case`, `security-case-evidence`, `security-case-note`, `security-case-priority`, `security-case-status`, `security-case-task`, `security-detection`, `security-playbook` |
-| Sécurité des données | `data-store`, `data-store-finding`, `data-store-access-entry`, `data-security-identity`, `data-flow`, `data-security-issue`, `data-security-scan`, `custom-data-type`, `check-setting`, `residency-rule`, `data-security-setting` |
-| Libellés | `label` |
-
-La télémétrie prend `list`, `create` et `count` :
-
-| Domaine | Commandes |
-| --- | --- |
-| Observabilité | `log`, `metric`, `span`, `exception-instance`, `monitor-log` |
-| Sécurité | `security-event`, `threat-intel-indicator` |
-| Changements et coûts | `change-event`, `kubernetes-cost-allocation` |
+{{CLI_RESOURCE_COMMANDS}}
 
 La CLI sort en même temps que OneUptime : `oneuptime resources` liste donc les commandes de la version que vous avez installée.
 
@@ -220,6 +275,8 @@ Chaque opération est une requête à l'API, avec la clé dans l'en-tête `APIKe
 | `update` | `PUT /api/<path>/<id>/` | `{"data": ...}` |
 | `delete` | `DELETE /api/<path>/<id>/` | Aucun |
 | `count` | `POST /api/<path>/count` | `query` |
+
+Une action lit les états de votre projet et l'enregistrement, puis crée une ligne de la chronologie des états de l'enregistrement, comme le fait le bouton du tableau de bord : `acknowledge` sur un incident crée un `incident-state-timeline`. `add-note` crée un `incident-internal-note`, ou avec `--public` un `incident-public-note`. Une option d'e-mail liste d'abord les membres d'équipe du projet qui ont cette adresse. Quand OneUptime refuse un champ que la clé ne peut pas lire, une liste ou une lecture redemande sans lui.
 
 ## Autres commandes
 
@@ -250,24 +307,27 @@ oneuptime deploy [--service <name>] [--service-version <version>] [--previous-ve
 
 ### `oneuptime whoami`
 
-Affiche l'URL et la clé API que la prochaine commande utilisera, la clé masquée, et le contexte dont elles viennent. Elle n'appelle pas OneUptime. Voir [Vérifier ce que la CLI va utiliser](/docs/cli/authentication#vérifier-ce-que-la-cli-va-utiliser).
+Affiche l'URL et la clé API que la prochaine commande utilisera, avec la clé masquée, et le contexte d'où elles viennent. Sans `--check`, elle n'appelle pas OneUptime. Voir [Vérifier ce que la CLI va utiliser](/docs/cli/authentication#vérifier-ce-que-la-cli-va-utiliser).
 
 ```bash
-oneuptime whoami
+oneuptime whoami [--check]
 ```
+
+| Option | Obligatoire | Ce que c'est |
+| --- | --- | --- |
+| `--check` | Non | Demande à OneUptime s'il accepte la clé, et affiche le projet de la clé, la version de votre OneUptime et celle de la CLI |
 
 ### `oneuptime resources`
 
-Liste chaque type d'enregistrement pour lequel la CLI a une commande : sa commande, ses noms au singulier et au pluriel, son type et son chemin d'API, et le total.
+Liste chaque type d'enregistrement pour lequel la CLI a une commande : sa commande, ses noms au singulier et au pluriel, son type et son chemin d'API, et le total. Le JSON donne pour chacun `name`, `singularName`, `pluralName`, `modelType`, `apiPath`, `operations` et `actions`.
 
 ```bash
-oneuptime resources [--type <type>] [-o <format>]
+oneuptime resources [--type <type>]
 ```
 
 | Option | Obligatoire | Ce que c'est | Par défaut |
 | --- | --- | --- | --- |
 | `--type <type>` | Non | `database` pour les enregistrements, `analytics` pour la télémétrie | Les deux |
-| `-o, --output <format>` | Non | `json`, `table` ou `wide`. Le JSON donne le `name`, le `singularName`, le `pluralName`, le `modelType` et l'`apiPath` de chacun | `table` dans un terminal, `json` dans un pipe |
 
 ### `oneuptime version`
 

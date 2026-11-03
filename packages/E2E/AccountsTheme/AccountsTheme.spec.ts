@@ -6,6 +6,7 @@ import {
   test,
   TestInfo,
 } from "@playwright/test";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * The sign-in pages in the person's theme, in a real browser, on the real
@@ -390,14 +391,6 @@ const faintWords: (page: Page) => Promise<Array<string>> = async (
     }
 
     return found;
-  });
-};
-
-const widerThanTheScreen: (page: Page) => Promise<boolean> = async (
-  page: Page,
-): Promise<boolean> => {
-  return page.evaluate((): boolean => {
-    return document.documentElement.scrollWidth > window.innerWidth + 1;
   });
 };
 
@@ -887,7 +880,7 @@ test.describe("every page in the dark theme", () => {
       await page.setViewportSize(PHONE);
       await settle(page);
       expect(await lightBoxes(page)).toEqual([]);
-      expect(await widerThanTheScreen(page)).toBe(false);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
       await shoot(page, testInfo, `${visit.name}-dark-390`);
     });
   }
@@ -913,7 +906,7 @@ test.describe("every page in the light theme, as before", () => {
 
       await page.setViewportSize(PHONE);
       await settle(page);
-      expect(await widerThanTheScreen(page)).toBe(false);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
       await shoot(page, testInfo, `${visit.name}-light-390`);
     });
   }
@@ -945,7 +938,7 @@ test.describe("in a long language and one read right to left", () => {
         await expectScheme(page, "dark");
         expect(await lightBoxes(page)).toEqual([]);
         expect(await faintWords(page)).toEqual([]);
-        expect(await widerThanTheScreen(page)).toBe(false);
+        await expectNoSidewaysScroll(page, { tolerance: 1 });
         await shoot(page, testInfo, `${visit.name}-${language}-dark-390`);
 
         await page.setViewportSize(LAPTOP);

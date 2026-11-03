@@ -16,6 +16,7 @@ import PermissionScope from "Common/Types/Database/AccessControl/PermissionScope
 import ObjectID from "Common/Types/ObjectID";
 import Permission, { UserPermission } from "Common/Types/Permission";
 import PermissionUtil from "Common/UI/Utils/Permission";
+import { showProjectInTab } from "Common/Tests/Helpers/TabProjectPermissions";
 import UserUtil from "Common/UI/Utils/User";
 
 /*
@@ -64,6 +65,8 @@ function block(permission: Permission): UserPermission {
 }
 
 function signIn(rows: Array<UserPermission>): void {
+  // The Settings > SCIM tab shows the project these rows are for.
+  showProjectInTab(PROJECT_ID);
   PermissionUtil.setProjectPermissions({
     _type: "UserTenantAccessPermission",
     projectId: PROJECT_ID,

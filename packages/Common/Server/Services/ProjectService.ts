@@ -746,6 +746,8 @@ export class ProjectService extends ProjectReferencesService<Model> {
         utmSourcePlatform: true,
         utmCreativeFormat: true,
         utmMarketingTactic: true,
+        gadSource: true,
+        gadCampaignId: true,
         utmUrl: true,
         clickIds: true,
         firstTouchAttribution: true,
@@ -932,7 +934,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
 
     /*
      * A new project starts with a prefix for each kind of number (INC-, IE-,
-     * ALT-, AE-, SM-) unless the create request set one itself.
+     * ALT-, AE-, SM-, CASE-) unless the create request set one itself.
      */
     const newProject: Record<string, unknown> = data.data as unknown as Record<
       string,
@@ -1991,6 +1993,8 @@ export class ProjectService extends ProjectReferencesService<Model> {
         utmSourcePlatform: true,
         utmCreativeFormat: true,
         utmMarketingTactic: true,
+        gadSource: true,
+        gadCampaignId: true,
         utmUrl: true,
         clickIds: true,
         firstTouchAttribution: true,
@@ -5733,45 +5737,19 @@ export class ProjectService extends ProjectReferencesService<Model> {
   }
 
   /*
-   * Allocate the next security case number for a project. Like AI task
-   * numbers there is no prefix column: cases are numbered CASE-1, CASE-2, ...
-   * in every project (SECURITY_CASE_NUMBER_PREFIX).
+   * The next security case number for a project, with the prefix it is
+   * written with (securityCaseNumberPrefix, CASE- unless the project chose
+   * another): taken as every other kind's is, in one statement, from where
+   * the project chose its numbers to start when that is higher.
    */
   @CaptureSpan()
   public async incrementAndGetSecurityCaseCounter(
     projectId: ObjectID,
-  ): Promise<number> {
-    const mutex: SemaphoreMutex = await Semaphore.lock({
-      key: projectId.toString(),
-      namespace: "ProjectService.securityCaseCounter",
-    });
-
-    try {
-      await this.atomicIncrementColumnValueByOne({
-        id: projectId,
-        columnName: "securityCaseCounter",
-      });
-
-      const project: Model | null = await this.findOneById({
-        id: projectId,
-        select: {
-          securityCaseCounter: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-      if (!project || project.securityCaseCounter === undefined) {
-        throw new BadDataException(
-          `Could not read securityCaseCounter for project ${projectId.toString()}`,
-        );
-      }
-
-      return project.securityCaseCounter;
-    } finally {
-      await Semaphore.release(mutex);
-    }
+  ): Promise<{ counter: number; prefix: string | undefined }> {
+    return await this.takeNextNumber(
+      projectId,
+      NumberedRecordKind.SecurityCase,
+    );
   }
 
   /*

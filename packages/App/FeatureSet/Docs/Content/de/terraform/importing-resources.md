@@ -28,6 +28,8 @@ Schreiben Sie den `resource`-Block so, dass er sagt, was der Datensatz bereits i
 
 Jede Ressource des Providers lässt sich über ihre ID importieren, außer `oneuptime_file`: Die OneUptime-API kann eine Datei nicht zurücklesen, also antwortet der Provider mit `Import Not Supported`. Datenquellen werden nie importiert. Um einen Datensatz in Ihrer Konfiguration zu verwenden, ohne ihn zu verwalten, lesen Sie ihn stattdessen mit einer [Datenquelle](/docs/terraform/complete-guide#lesen-was-schon-existiert).
 
+Zeilen, die zwei Datensätze verbinden, etwa die Mitglieder eines Teams, die Eigentümer eines Monitors und die Personen einer Ebene eines Bereitschaftsplans, haben IDs, die kein Bildschirm zeigt. Sie lassen sich auch über das importieren, was sie verbinden: die ID des Datensatzes, zu dem sie gehören, ein Schrägstrich und die E-Mail-Adresse der Person oder die ID des anderen Datensatzes, etwa `68a1b2c3-d4e5-4f6a-8b9c-0d1e2f3a4b01/bob@example.com`. Siehe [Vorhandene Mitglieder importieren](/docs/terraform/people-and-teams#vorhandene-mitglieder-importieren).
+
 ## Bevor Sie beginnen
 
 - **Terraform 1.5 oder neuer, oder OpenTofu 1.6 oder neuer.** Die `import`-Blöcke auf dieser Seite brauchen diese Versionen. Ein älteres Terraform importiert über die [Befehlszeile](#über-die-befehlszeile-importieren).
@@ -181,6 +183,7 @@ Der Plan sagt, dass das Team nicht mehr von Terraform verwaltet wird, und zerst�
 ## Gut zu wissen
 
 - **Ein Import ändert nichts, das nächste Apply aber schon.** Wer einen Plan anwendet, der neben einem Import eine Änderung zeigt, ändert den Datensatz in OneUptime. Sorgen Sie zuerst dafür, dass der Plan nur den Import zeigt.
+- **Derselbe Wert, anders geschrieben, ist keine Änderung.** OneUptime speichert einen Zeitstempel in UTC mit Millisekunden, eine Zahl als 64-Bit-Gleitkommazahl und JSON und Monitorschritte mit den Schlüsseln, die es selbst ausfüllt. Direkt nach einem Import zeigt der Plan einer Konfiguration, die dasselbe auf ihre Weise sagt, keine Änderung.
 - **Geheimnisse werden nicht zurückgelesen.** Ein Geheimnis, das OneUptime nie zurücksendet, etwa das `secret_value` eines Monitorgeheimnisses, ist nach einem Import nicht im State. Setzt Ihre Konfiguration es, zeigt der erste Plan es als Änderung, und das Anwenden schreibt das Geheimnis erneut.
 - **Eine Konfiguration für jeden Datensatz.** Ein Datensatz, der in zwei Konfigurationen importiert wurde, wird bei jedem Apply auf das zurückgesetzt, was die jeweilige sagt.
 - **Importierte Datensätze sind verwaltete Datensätze.** `terraform destroy` löscht sie aus OneUptime, wie die Datensätze, die Terraform angelegt hat.

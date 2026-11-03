@@ -7,6 +7,7 @@ import FakeAxiosServer, {
 import BaseAPI from "../../UI/Utils/API/API";
 import { IDENTITY_URL } from "../../UI/Config";
 import Navigation from "../../UI/Utils/Navigation";
+import PermissionUtil from "../../UI/Utils/Permission";
 import User from "../../UI/Utils/User";
 import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
 import HTTPMethod from "../../Types/API/HTTPMethod";
@@ -18,6 +19,7 @@ import Route from "../../Types/API/Route";
 import URL from "../../Types/API/URL";
 import APIException from "../../Types/Exception/ApiException";
 import { JSONObject } from "../../Types/JSON";
+import ObjectID from "../../Types/ObjectID";
 import API, { APIRequestOptions, AuthRetryContext } from "../../Utils/API";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import axios from "axios";
@@ -181,15 +183,39 @@ describe("A BaseAPI instance refreshes a lapsed session like BaseAPI does", () =
   });
 
   test("BaseAPI's own headers go out on instance requests", async () => {
-    localStorage.setItem("project-permissions-hash", "hash-123");
+    const projectId: string = "6a000000-0000-4000-8000-000000000001";
+
+    PermissionUtil.setGlobalPermissions(
+      {
+        _type: "UserGlobalAccessPermission",
+        globalPermissions: [],
+        projectIds: [new ObjectID(projectId)],
+      },
+      { hash: "global-hash-123" },
+    );
+    PermissionUtil.setProjectPermissions(
+      {
+        _type: "UserTenantAccessPermission",
+        projectId: new ObjectID(projectId),
+        permissions: [],
+      },
+      { hash: "hash-123" },
+    );
 
     server.on(HTTPMethod.GET, RESOURCE_URL, [{ status: 200 }]);
 
     await new BaseAPI(
       Protocol.HTTPS,
       new Hostname("oneuptime.example.com"),
-    ).get({ url: URL.fromString(RESOURCE_URL) });
+    ).get({
+      url: URL.fromString(RESOURCE_URL),
+      headers: { tenantid: projectId },
+    });
 
+    expect(server.sent[0]!.headers["global-permissions-hash"]).toBe(
+      "global-hash-123",
+    );
+    // The hash of the project the request names (UI/Utils/Permission).
     expect(server.sent[0]!.headers["project-permissions-hash"]).toBe(
       "hash-123",
     );

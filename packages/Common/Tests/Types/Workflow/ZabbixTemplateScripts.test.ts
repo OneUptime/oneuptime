@@ -1066,12 +1066,17 @@ describe("time", () => {
   );
 
   test("a Zabbix URL setting of 400,000 characters is refused before any pattern reads it", async () => {
-    const started: number = Date.now();
-    const result: JSONObject = await read(INCIDENT, event(), {
-      zabbixUrl: `https://${"a".repeat(LONG)}`,
+    const timed: FastestRun<JSONObject> = await fastestRunAsync({
+      run: (): Promise<JSONObject> => {
+        return read(INCIDENT, event(), {
+          zabbixUrl: `https://${"a".repeat(LONG)}`,
+        });
+      },
+      limitInMs: 2000,
     });
+    const result: JSONObject = timed.result;
 
-    expect(Date.now() - started).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
     expect(String(result["description"]).split("\n")[0]).toBe(
       `Declared from Zabbix problem ${EVENT_ID}.`,
     );

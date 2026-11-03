@@ -38,6 +38,7 @@ import {
   ToolContext,
   ToolExecutionResult,
 } from "./ToolTypes";
+import { translationKey } from "../../../../Types/Translator";
 
 /*
  * Merged activity timelines for incidents and alerts. Each tool stitches the
@@ -125,10 +126,10 @@ export const formatTimelineEntryCount: (count: number) => string = (
 };
 
 const timelineWidgetColumns: Array<AIChatWidgetColumn> = [
-  { key: "at", title: "When", type: "date" },
-  { key: "type", title: "Type" },
-  { key: "author", title: "By" },
-  { key: "entry", title: "Entry" },
+  { key: "at", title: translationKey("When"), type: "date" },
+  { key: "type", title: translationKey("Type") },
+  { key: "author", title: translationKey("By") },
+  { key: "entry", title: translationKey("Entry") },
 ];
 
 export const GetIncidentTimelineTool: ObservabilityTool = {

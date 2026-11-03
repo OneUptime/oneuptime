@@ -51,6 +51,7 @@ import ErrorClass, {
 } from "Common/Types/Telemetry/ErrorClass";
 import TimeRange from "Common/Types/Time/TimeRange";
 import { EXCEPTION_DIGEST_WINDOW_HOURS } from "Common/Types/Telemetry/ExceptionAIDigest";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { MAX_SIMILAR_EXCEPTIONS } from "Common/Types/Telemetry/SimilarExceptions";
 import { EXCEPTION_TREND_BUCKET_COUNT } from "Common/Types/Telemetry/ExceptionListStats";
 import {
@@ -649,7 +650,7 @@ describe("Service Catalog (telemetry/services)", () => {
     }
 
     expect(page).toContain(
-      "| **Developer** | **Terraform**, **API** and **AI Assistants**: the service managed from code. It starts collapsed. |",
+      "| **Developer** | **Terraform**, **API**, **CLI** and **AI Assistants**: the service managed from code. It starts collapsed. |",
     );
     expect(page).toContain("**Advanced** starts collapsed: expand it first.");
   });
@@ -2044,12 +2045,40 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
     expect(viewer).toContain("actionButtons={exceptionRowActions}");
 
     expect(triage).toContain(
-      "To change several at once, tick their rows in the list, or the box above the rows for every exception on the page, and use the same actions under **Bulk Actions**. It says which exceptions it changed, which it left as they were, and why.",
+      "To change several at once, tick their rows in the list, or the box above the rows for every exception on the page, and use the same actions under **Bulk Actions**. Once every exception on the page is ticked, the line above the rows offers to select every exception that matches the list's search and filters, on every page, up to 10,000 at a time; an action on them then asks before it changes them. It says which exceptions it changed, which it left as they were, and why.",
     );
     // The rows' boxes and the page's box are the shared list's.
     expect(viewer).toContain("buttons: exceptionBulkActions,");
     expect(telemetryViewer).toContain(
       'translateTemplate("Select all {{itemsName}} on this page"',
+    );
+    /*
+     * Every match: offered once the page's box is ticked, read with the
+     * list's own query up to the ceiling the page names, and a quick move
+     * over it asks first (BulkSelectAll).
+     */
+    const listRead: string = readDashboardSource(
+      "Components/Exceptions/ExceptionListRead.ts",
+    );
+    const selectAll: string = readCommonSource(
+      "UI/Components/BulkUpdate/BulkSelectAll.ts",
+    );
+
+    expect(viewer).toContain("selectAllMatching: {");
+    expect(viewer).toContain("query: query,");
+    expect(listRead).toContain(
+      "return await readEveryMatch<TelemetryException>({",
+    );
+    expect(selectAll).toContain(
+      "export const BULK_SELECT_ALL_LIMIT: number = LIMIT_PER_PROJECT;",
+    );
+    expect(LIMIT_PER_PROJECT.toLocaleString("en-US")).toBe("10,000");
+    expect(triage).toContain(
+      `up to ${LIMIT_PER_PROJECT.toLocaleString("en-US")} at a time`,
+    );
+    expect(telemetryViewer).toContain("isPageSelected:");
+    expect(telemetryViewer).toContain(
+      "return askBeforeActingAcrossPages(button, {",
     );
     // The same four, in the row's order, each saying why it left one alone.
     expect(actions).toContain("return EXCEPTION_ROW_TRIAGE_ORDER.map(");

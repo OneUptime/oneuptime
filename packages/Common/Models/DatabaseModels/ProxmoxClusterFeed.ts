@@ -462,6 +462,7 @@ export default class ProxmoxClusterFeed extends BaseModel {
   })
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(ProxmoxClusterFeedEventType),
     required: true,
     title: "Proxmox Cluster Feed Event",
     description: "Proxmox Cluster Feed Event",

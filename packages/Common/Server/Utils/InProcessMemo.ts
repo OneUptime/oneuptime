@@ -1,3 +1,5 @@
+import OldestKeyMap from "../../Utils/OldestKeyMap";
+
 /*
  * Bounded, TTL-bearing in-process memo — the L1 layer in front of a Redis
  * (GlobalCache) or Postgres lookup on a hot path.
@@ -56,7 +58,7 @@ interface MemoEntry<TValue> {
 }
 
 export default class InProcessMemo<TValue> {
-  private entries: Map<string, MemoEntry<TValue>> = new Map<
+  private entries: OldestKeyMap<string, MemoEntry<TValue>> = new OldestKeyMap<
     string,
     MemoEntry<TValue>
   >();
@@ -110,7 +112,7 @@ export default class InProcessMemo<TValue> {
        */
       this.entries.delete(key);
     } else if (this.entries.size >= this.maxEntries) {
-      const oldestKey: string | undefined = this.entries.keys().next().value;
+      const oldestKey: string | undefined = this.entries.oldestKey();
       if (oldestKey !== undefined) {
         this.entries.delete(oldestKey);
       }

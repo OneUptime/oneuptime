@@ -299,6 +299,45 @@ export const CODE_GLOBAL_RUNNER_NOT_CONNECTED_TEXT: string = translationKey(
 );
 
 /*
+ * Under a code repository's picker that picked none, on a server whose
+ * global Runners all take no AI code fixes - each of a release from before
+ * global Runners took them, or turned off on its host
+ * (Common/Types/Runner/RunnerCodeFixes): none is offered, and the line says
+ * why, never that the server runs none.
+ */
+export const CODE_NO_CODE_FIX_GLOBAL_RUNNER_HELPER_TEXT: string =
+  translationKey(
+    "No global Runner on this server takes AI code fixes: pick one of your Runners for this repository.",
+  );
+
+/*
+ * Under a project Runner's name in a code repository's menu, when its host
+ * turned AI code fixes off: a repository on it gets none of its work done.
+ */
+export const CODE_RUNNER_TAKES_NO_CODE_FIXES_OPTION_TEXT: string =
+  translationKey("Takes no AI code fixes: its host turned them off.");
+
+/*
+ * A Runner that takes no AI code fixes, said as short as a status: under a
+ * global Runner's status on Runbooks -> Runners, and after the name of the
+ * Runner a repository picks in its folded More settings ("Runner:
+ * prod-eu-west-1 · Takes no AI code fixes"), as "· Disconnected" is.
+ */
+export const RUNNER_TAKES_NO_CODE_FIXES_LABEL: string = translationKey(
+  "Takes no AI code fixes",
+);
+
+/*
+ * Under a code repository's picker - and its settings card, and the Code
+ * Repositories of the Runner's own page - on one of the project's own
+ * Runners whose host turned AI code fixes off: the setting that does it
+ * ({{setting}}, drawn as code), and the two ways on.
+ */
+export const CODE_RUNNER_TAKES_NO_CODE_FIXES_TEXT: string = translationKey(
+  "This Runner takes no AI code fixes: {{setting}} is set on its host. Remove that setting and restart the Runner, or pick another Runner.",
+);
+
+/*
  * A repository's pick that is not among the Runners the reader was shown.
  * A repository can only pick one of its project's own Runners, and one that
  * is deleted leaves the repository on Global Runner (SET NULL), so such a
@@ -401,6 +440,11 @@ export interface RunnerPickerRunner {
    * rule.
    */
   isProjectDefault?: boolean | undefined;
+  /*
+   * Its host turned AI code fixes off, as it said on its last heartbeat
+   * (Common/Types/Runner/RunnerCodeFixes). Read for a code repository only.
+   */
+  takesNoCodeFixes?: boolean | undefined;
 }
 
 export interface RunnerPickerFacts {
@@ -468,6 +512,11 @@ export interface RunnerPickerOption {
   runnerId?: string | undefined;
   // Why the Global Runner cannot be picked (GlobalUnavailable only).
   unavailableReason?: GlobalRunnerUnavailableReason | undefined;
+  /*
+   * A code repository's picker: the project Runner it stands for takes no
+   * AI code fixes (RunnerPickerRunner.takesNoCodeFixes).
+   */
+  takesNoCodeFixes?: boolean | undefined;
 }
 
 // What the step runs on as it is now, for the line under the picker.
@@ -609,6 +658,20 @@ function toProjectOption(runner: RunnerPickerRunner): RunnerPickerOption {
     liveStatus: runner.liveStatus,
     runnerId: runner.id,
   };
+}
+
+/*
+ * A code repository's option for a project Runner, marked when the Runner
+ * takes no AI code fixes: the repository would get none of its work done
+ * there.
+ */
+function withCodeFixes(
+  option: RunnerPickerOption,
+  runner: RunnerPickerRunner,
+): RunnerPickerOption {
+  return runner.takesNoCodeFixes
+    ? { ...option, takesNoCodeFixes: true }
+    : option;
 }
 
 /*
@@ -757,13 +820,16 @@ function buildRepositoryModel(facts: RunnerPickerFacts): RunnerPickerModel {
 
   // The first choice: the project's default, or the global Runners.
   const defaultOption: RunnerPickerOption | undefined = defaultRunner
-    ? {
-        value: PROJECT_DEFAULT_CHOICE_VALUE,
-        kind: RunnerPickerOptionKind.ProjectDefault,
-        name: defaultRunner.name,
-        liveStatus: defaultRunner.liveStatus,
-        runnerId: defaultRunner.id,
-      }
+    ? withCodeFixes(
+        {
+          value: PROJECT_DEFAULT_CHOICE_VALUE,
+          kind: RunnerPickerOptionKind.ProjectDefault,
+          name: defaultRunner.name,
+          liveStatus: defaultRunner.liveStatus,
+          runnerId: defaultRunner.id,
+        },
+        defaultRunner,
+      )
     : isGlobalOffered
       ? {
           value: PROJECT_DEFAULT_CHOICE_VALUE,
@@ -795,7 +861,9 @@ function buildRepositoryModel(facts: RunnerPickerFacts): RunnerPickerModel {
     .filter((runner: RunnerPickerRunner): boolean => {
       return runner !== defaultRunner;
     })
-    .map(toProjectOption);
+    .map((runner: RunnerPickerRunner): RunnerPickerOption => {
+      return withCodeFixes(toProjectOption(runner), runner);
+    });
 
   const pickedRunnerId: string = picksGlobalRunner ? "" : currentRunnerId;
 
@@ -1334,6 +1402,25 @@ export function isGlobalRunnerChoiceWaiting(model: RunnerPickerModel): boolean {
     model.outcome === RunnerPickerOutcome.GlobalRunner &&
     model.selected?.liveStatus !== RunnerLiveStatus.Connected
   );
+}
+
+/*
+ * The project Runner a code repository works on - its pick, or the
+ * project's default it follows - when that Runner takes no AI code fixes:
+ * the line under the picker and the settings card say so. Undefined
+ * otherwise.
+ */
+export function getRunnerTakingNoCodeFixes(
+  model: RunnerPickerModel,
+): RunnerPickerOption | undefined {
+  if (
+    model.outcome !== RunnerPickerOutcome.ProjectRunner &&
+    model.outcome !== RunnerPickerOutcome.ProjectDefaultRunner
+  ) {
+    return undefined;
+  }
+
+  return model.selected?.takesNoCodeFixes ? model.selected : undefined;
 }
 
 /*

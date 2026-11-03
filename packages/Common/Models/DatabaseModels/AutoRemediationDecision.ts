@@ -229,6 +229,7 @@ export default class AutoRemediationDecision extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(AutoRemediationDecisionStage),
     title: "Stage",
     description:
       "WaitingForInvestigation while remediation waits for the signal's AI investigation to finish, Evaluated once every fix path was evaluated.",

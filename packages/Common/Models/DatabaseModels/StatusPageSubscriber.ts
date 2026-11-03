@@ -370,6 +370,7 @@ export default class StatusPageSubscriber extends BaseModel {
     ],
   })
   @TableColumn({
+    secret: true,
     required: false,
     type: TableColumnType.ShortURL,
     title: "Webhook",
@@ -397,6 +398,7 @@ export default class StatusPageSubscriber extends BaseModel {
     update: [],
   })
   @TableColumn({
+    secret: true,
     required: false,
     type: TableColumnType.ShortURL,
     title: "Slack Incoming Webhook URL",
@@ -467,6 +469,7 @@ export default class StatusPageSubscriber extends BaseModel {
     update: [],
   })
   @TableColumn({
+    secret: true,
     required: false,
     type: TableColumnType.LongURL,
     title: "Microsoft Teams Incoming Webhook URL",
@@ -762,6 +765,7 @@ export default class StatusPageSubscriber extends BaseModel {
     update: [],
   })
   @TableColumn({
+    secret: true,
     isDefaultValueColumn: false,
     type: TableColumnType.ShortText,
     title: "Subscription Confirmation Token",
@@ -877,6 +881,7 @@ export default class StatusPageSubscriber extends BaseModel {
     update: [],
   })
   @TableColumn({
+    secret: true,
     computed: true,
     hideColumnInDocumentation: true,
     required: false,

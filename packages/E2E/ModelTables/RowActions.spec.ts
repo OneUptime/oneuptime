@@ -1,6 +1,8 @@
 import { expect, Locator, Page, test } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 /*
  * Each row's ⋯ menu on the lists the row actions audit gave their everyday
@@ -166,16 +168,6 @@ async function submit(dialog: Locator): Promise<void> {
   await expect(dialog).toBeHidden();
 }
 
-// Whether the page is wider than its viewport anywhere (a sideways scroll).
-async function scrollsSideways(page: Page): Promise<boolean> {
-  return await page.evaluate((): boolean => {
-    return (
-      document.documentElement.scrollWidth >
-      document.documentElement.clientWidth + 1
-    );
-  });
-}
-
 test.describe("an incident's row", () => {
   for (const [width, theme] of [
     [1280, "light"],
@@ -204,7 +196,7 @@ test.describe("an incident's row", () => {
       // The menu opens inside the screen, on a phone too.
       expect(box!.x).toBeGreaterThanOrEqual(0);
       expect(box!.x + box!.width).toBeLessThanOrEqual(width);
-      expect(await scrollsSideways(page)).toBe(false);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
 
       await page.keyboard.press("Escape");
 
@@ -495,7 +487,7 @@ test.describe("an incident's row", () => {
       expect(box).not.toBeNull();
       expect(box!.x).toBeGreaterThanOrEqual(0);
       expect(box!.x + box!.width).toBeLessThanOrEqual(390);
-      expect(await scrollsSideways(page)).toBe(false);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
       await screenshot(dialog, `acknowledge-390-${theme}`);
 
       await dialog.getByTestId("modal-footer-close-button").click();
@@ -514,7 +506,7 @@ test.describe("an incident's row", () => {
         await severity.boundingBox();
 
       expect(severityBox!.x + severityBox!.width).toBeLessThanOrEqual(390);
-      expect(await scrollsSideways(page)).toBe(false);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
       await screenshot(severity, `change-severity-390-${theme}`);
 
       // Open, its list fits the screen: the row's own severity, Current.
@@ -770,12 +762,10 @@ async function spaceBetween(
   above: string,
   below: string,
 ): Promise<number> {
-  const top: { y: number; height: number } | null = await menu
-    .getByRole("menuitem", { name: above, exact: true })
-    .boundingBox();
-  const bottom: { y: number } | null = await menu
-    .getByRole("menuitem", { name: below, exact: true })
-    .boundingBox();
+  const [top, bottom] = await boxesInOneFrame([
+    menu.getByRole("menuitem", { name: above, exact: true }),
+    menu.getByRole("menuitem", { name: below, exact: true }),
+  ]);
 
   return bottom!.y - (top!.y + top!.height);
 }
@@ -904,10 +894,10 @@ test.describe("a row's question is drawn over the whole page", () => {
 
       expect(sentence.scroll).toBeLessThanOrEqual(sentence.client);
 
-      const dialogBox: { x: number; width: number } | null =
-        await dialog.boundingBox();
-      const sentenceBox: { x: number; width: number } | null =
-        await consequence.boundingBox();
+      const [dialogBox, sentenceBox] = await boxesInOneFrame([
+        dialog,
+        consequence,
+      ]);
 
       expect(sentenceBox!.x + sentenceBox!.width).toBeLessThanOrEqual(
         dialogBox!.x + dialogBox!.width,

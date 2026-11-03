@@ -327,6 +327,7 @@ export default class DataSecurityFlow extends BaseModel {
   @ColumnAccessControl(serverWrittenColumnAccess)
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(DataSensitivity),
     required: true,
     computed: true,
     canReadOnRelationQuery: true,

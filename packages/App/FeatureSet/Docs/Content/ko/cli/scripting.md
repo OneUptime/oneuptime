@@ -63,7 +63,7 @@ case $? in
 esac
 ```
 
-오류 메시지는 표준 오류로 가므로 `incident.json`에는 응답만 담깁니다.
+오류 메시지는 표준 오류로 가므로 `incident.json`에는 응답만 담깁니다. `-o json`이면 오류도 종료 코드를 담은 JSON입니다. [JSON](/docs/cli/output-formats#json)을 참조하세요.
 
 ## jq로 응답 읽기
 
@@ -74,13 +74,16 @@ esac
 oneuptime incident list -o json | jq -r '.[].title'
 
 # The ID of a new monitor
-MONITOR_ID=$(oneuptime monitor create --data '{"name":"Checkout API","monitorType":"Manual"}' -o json | jq -r '._id')
+MONITOR_ID=$(oneuptime monitor create --name "Checkout API" --monitor-type Manual -o json | jq -r '._id')
 
 # When each incident was created: dates come as objects
 oneuptime incident list -o json | jq -r '.[] | "\(.createdAt.value)  \(.title)"'
 
 # The newest 100 incidents as CSV
 oneuptime incident list --limit 100 -o json | jq -r '.[] | [._id, .title, .createdAt.value] | @csv'
+
+# Every incident, page after page, with only the two fields the script reads
+oneuptime incident list --all --fields title,createdAt -o json | jq -r '.[] | "\(.createdAt.value)  \(.title)"'
 ```
 
 개수 세기는 숫자 하나만 출력하므로 바로 비교할 수 있습니다.

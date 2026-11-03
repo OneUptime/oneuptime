@@ -12,6 +12,7 @@ import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import TraceDropFilterAction from "../../Types/Trace/TraceDropFilterAction";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import ListOrderColumn from "../../Types/Database/ListOrderColumn";
@@ -276,6 +277,7 @@ export default class TraceDropFilter extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(TraceDropFilterAction),
     canReadOnRelationQuery: true,
     title: "Action",
     description:

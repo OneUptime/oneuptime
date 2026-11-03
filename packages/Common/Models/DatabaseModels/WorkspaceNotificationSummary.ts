@@ -285,6 +285,7 @@ class WorkspaceNotificationSummary extends BaseModel {
     required: true,
     unique: false,
     type: TableColumnType.LongText,
+    allowedValues: Object.values(WorkspaceType),
     canReadOnRelationQuery: true,
   })
   @Column({
@@ -330,6 +331,7 @@ class WorkspaceNotificationSummary extends BaseModel {
     required: true,
     unique: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(WorkspaceNotificationSummaryType),
     canReadOnRelationQuery: true,
   })
   @Column({
@@ -712,6 +714,7 @@ class WorkspaceNotificationSummary extends BaseModel {
     required: false,
     unique: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(FilterCondition),
   })
   @Column({
     type: ColumnType.ShortText,

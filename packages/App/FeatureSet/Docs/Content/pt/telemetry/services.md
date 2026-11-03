@@ -64,7 +64,7 @@ O menu lateral de um serviço tem cinco seções:
 | **Básico** | **Visão geral**: requisições, taxa de erros e latência p95 dos spans dele, gráficos e detalhes. **Recomendações**: monitores prontos para o serviço, escolhidos de acordo com a linguagem dele. **Proprietários**: as pessoas e as equipes responsáveis por ele. **Feed**: tudo o que aconteceu com ele, desde como foi criado até cada mudança desde então. |
 | **Telemetria** | Os **Registros**, **Traços**, **Métricas**, **Perfis de desempenho**, **Exceções** e **Source maps** dele, já filtrados para este serviço. |
 | **Atividade** | Os **Incidentes**, os **Alertas** e os eventos de **Manutenção programada** que o afetam. |
-| **Desenvolvedores** | **Terraform**, **API** e **Assistentes de IA**: o serviço gerenciado por código. Começa recolhida. |
+| **Desenvolvedores** | **Terraform**, **API**, **CLI** e **Assistentes de IA**: o serviço gerenciado por código. Começa recolhida. |
 | **Avançado** | **Configurações**, **Registros de auditoria** e **Excluir serviço**. **Avançado** começa recolhido: expanda-o primeiro. |
 
 Os proprietários importam além da página: uma função cujo escopo é Owned lê a telemetria dos serviços que pertencem a você ou às suas equipes. Veja [Telemetria](/docs/permissions/index#telemetria).

@@ -7,6 +7,7 @@ import {
 } from "@playwright/test";
 import fs from "fs";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * A PRIVATE INCIDENT OWNED BY A VIEW-ONLY TEAM (block 33), on the real
@@ -219,13 +220,6 @@ async function tooltipOf(page: Page, target: Locator): Promise<string> {
   return text;
 }
 
-async function expectNoHorizontalOverflow(page: Page): Promise<void> {
-  const overflow: number = await page.evaluate((): number => {
-    return document.documentElement.scrollWidth - window.innerWidth;
-  });
-  expect(overflow, "page scrolls sideways").toBeLessThanOrEqual(1);
-}
-
 async function screenshot(locator: Locator, name: string): Promise<void> {
   fs.mkdirSync(SCREENSHOTS, { recursive: true });
   await locator.scrollIntoViewIfNeeded();
@@ -386,7 +380,11 @@ test.describe("a private incident a view-only team of the reader's owns (?privat
       "Draft a status update",
     ]);
     // The Remediation step is drawn, saying nothing was tried.
-    await expect(page.getByLabel("Remediation status")).toHaveText("Not tried");
+    await expect(
+      page
+        .getByTestId("ai-card-step-remediation-pill")
+        .getByTestId("status-badge-words"),
+    ).toHaveText("Not tried");
     await expect(page.getByTestId("remediation-try-again")).toHaveCount(0);
   });
 
@@ -498,7 +496,7 @@ for (const look of LOOKS) {
         look.language === "en" ? "" : why("en"),
       );
       await expectStateButtonsLocked(page, stateReason(look.language));
-      await expectNoHorizontalOverflow(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
 
       const name: string = `private-incident-locked-header-${look.width}-${look.theme}-${look.language}`;
       await screenshot(hero(page), name);

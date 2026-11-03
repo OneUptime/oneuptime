@@ -278,6 +278,7 @@ export default class StatusPageSubscriberNotificationTemplate extends BaseModel 
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(StatusPageSubscriberNotificationEventType),
     title: "Event Type",
     description:
       "The type of event this template is for (e.g., Incident Created, Announcement Created)",
@@ -322,6 +323,7 @@ export default class StatusPageSubscriberNotificationTemplate extends BaseModel 
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(StatusPageSubscriberNotificationMethod),
     title: "Notification Method",
     description:
       "The notification method this template is for (Email, SMS, Slack, Microsoft Teams, Webhook)",

@@ -49,6 +49,22 @@ const EVENT_TYPES: Record<string, Record<string, string>> = {
   },
 };
 
+/*
+ * The type Google files an event under, read among the names listed above
+ * only - an event named "constructor" is filed as "other", as Google files
+ * any event this fixture does not list, never as Object's constructor.
+ */
+function eventType(application: string, eventName: string): string {
+  const types: Record<string, string> | undefined =
+    Object.prototype.hasOwnProperty.call(EVENT_TYPES, application)
+      ? EVENT_TYPES[application]
+      : undefined;
+
+  return types && Object.prototype.hasOwnProperty.call(types, eventName)
+    ? types[eventName]!
+    : "other";
+}
+
 export function googleWorkspaceActivity(
   application: string,
   eventName: string,
@@ -72,7 +88,7 @@ export function googleWorkspaceActivity(
     ipAddress: "203.0.113.7",
     events: [
       {
-        type: EVENT_TYPES[application]?.[eventName] || "other",
+        type: eventType(application, eventName),
         name: eventName,
         parameters: parameters as Array<JSONValue>,
       },

@@ -241,7 +241,7 @@ export default class AIAgentOwnerUser extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "User ID",
-    description: "ID of your OneUptime User in which this object belongs",
+    description: "ID of the user who owns the AI agent",
     example: "e5f6a7b8-c9d0-1234-ef56-ab78cd901234",
   })
   @Column({
@@ -321,7 +321,7 @@ export default class AIAgentOwnerUser extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "AI Agent ID",
-    description: "ID of your OneUptime AI Agent in which this object belongs",
+    description: "ID of the AI agent the user owns",
     example: "b2c3d4e5-f6a7-8901-bc23-de45fa678901",
   })
   @Column({

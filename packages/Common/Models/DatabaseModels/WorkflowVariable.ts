@@ -455,6 +455,7 @@ export default class WorkflowVariable extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(WorkflowVariableType),
     canReadOnRelationQuery: true,
     title: "Variable Type",
     description:
@@ -500,6 +501,7 @@ export default class WorkflowVariable extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(OAuth2GrantType),
     title: "OAuth Grant Type",
     description:
       "OAuth 2.0 variables only. Client Credentials for machine-to-machine access, or Refresh Token to keep delegated access alive with a refresh token you obtained once.",
@@ -768,6 +770,7 @@ export default class WorkflowVariable extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(OAuth2ClientAuthenticationMethod),
     title: "OAuth Client Authentication",
     description:
       "OAuth 2.0 variables only. How the client ID and secret are sent: in an HTTP Basic header (client_secret_basic, the default) or in the request body (client_secret_post).",

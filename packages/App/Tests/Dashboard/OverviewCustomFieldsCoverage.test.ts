@@ -124,6 +124,15 @@ const findResourcesWithCustomFields: FindResourcesFunction =
 const RESOURCES: Array<ResourceWithCustomFields> =
   findResourcesWithCustomFields();
 
+/*
+ * The resources whose pages are handed their record by their layout rather
+ * than reading it from the route, by the expression each page passes as the
+ * card's modelId.
+ */
+const RECORD_FROM_LAYOUT: Record<string, string> = {
+  "SecurityEvents/CaseView": "view.caseId",
+};
+
 type ReadFunction = (filePath: string) => string;
 
 const read: ReadFunction = (filePath: string): string => {
@@ -164,6 +173,7 @@ describe("custom fields are shown on every resource overview", () => {
       "Monitor/View",
       "OnCallDuty/OnCallDutyPolicy",
       "ScheduledMaintenanceEvents/View",
+      "SecurityEvents/CaseView",
       "StatusPages/View",
       "Teams/View",
       "Users/View",
@@ -249,7 +259,9 @@ describe("custom fields are shown on every resource overview", () => {
    * quietly show the wrong record's values.
    */
   test.each(
-    RESOURCES.map((resource: ResourceWithCustomFields) => {
+    RESOURCES.filter((resource: ResourceWithCustomFields) => {
+      return !RECORD_FROM_LAYOUT[resource.label];
+    }).map((resource: ResourceWithCustomFields) => {
       return [resource.label, resource] as const;
     }),
   )(
@@ -259,6 +271,37 @@ describe("custom fields are shown on every resource overview", () => {
 
       expect(overview).toContain("Navigation.getLastParamAsObjectID()");
       expect(overview).not.toContain("Navigation.getLastParamAsObjectID(1)");
+    },
+  );
+
+  /*
+   * A security case's pages read no route param at all: the case's layout
+   * reads the case once and hands every page its id (SecurityCaseViewContext),
+   * so the overview card and the sub-page take the same one from there.
+   */
+  test.each(
+    Object.entries(RECORD_FROM_LAYOUT).map(
+      ([label, expression]: [string, string]) => {
+        return [label, expression] as const;
+      },
+    ),
+  )(
+    "%s takes the record id its layout hands every page",
+    (label: string, expression: string) => {
+      const resource: ResourceWithCustomFields | undefined = RESOURCES.find(
+        (candidate: ResourceWithCustomFields): boolean => {
+          return candidate.label === label;
+        },
+      );
+
+      expect(resource).toBeDefined();
+
+      for (const page of [resource!.overviewPath, resource!.subPagePath]) {
+        const source: string = read(page);
+
+        expect(source).toContain(`modelId={${expression}}`);
+        expect(source).not.toContain("Navigation.getLastParamAsObjectID");
+      }
     },
   );
 });

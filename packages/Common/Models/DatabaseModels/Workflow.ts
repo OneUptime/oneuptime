@@ -698,8 +698,7 @@ export default class Workflow extends BaseModel {
     type: TableColumnType.EntityArray,
     modelType: Label,
     title: "Labels",
-    description:
-      "Relation to Labels Array where this object is categorized in.",
+    description: "Labels to group and filter by.",
   })
   @ManyToMany(
     () => {
@@ -791,6 +790,7 @@ export default class Workflow extends BaseModel {
     ],
   })
   @TableColumn({
+    secret: true,
     isDefaultValueColumn: false,
     required: false,
     type: TableColumnType.LongText,
@@ -837,6 +837,7 @@ export default class Workflow extends BaseModel {
     ],
   })
   @TableColumn({
+    secret: true,
     isDefaultValueColumn: false,
     required: false,
     unique: true,

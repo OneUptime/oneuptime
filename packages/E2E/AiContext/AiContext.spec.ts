@@ -1,5 +1,6 @@
 import { expect, Locator, Page, test } from "@playwright/test";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * The AI context (issue #5198), end to end in a browser, on the real pages
@@ -142,14 +143,7 @@ function lengthLine(scope: Locator): Locator {
 async function expectNothingOffScreen(page: Page): Promise<void> {
   await atRest(page);
 
-  const overflow: number = await page.evaluate(() => {
-    return (
-      document.documentElement.scrollWidth -
-      document.documentElement.clientWidth
-    );
-  });
-
-  expect(overflow).toBeLessThanOrEqual(0);
+  await expectNoSidewaysScroll(page);
 }
 
 // A box's right edge stays inside the screen.

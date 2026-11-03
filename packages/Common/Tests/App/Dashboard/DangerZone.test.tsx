@@ -298,7 +298,63 @@ describe("Settings > Danger Zone", () => {
     });
 
     expect(ProjectUtil.clearCurrentProject).toHaveBeenCalled();
-    expect(PermissionUtil.clearProjectPermissions).toHaveBeenCalled();
+    // The deleted project's snapshot, by its id: never whichever project another tab shows.
+    expect(PermissionUtil.clearProjectPermissions).toHaveBeenCalledTimes(1);
+    expect(PermissionUtil.clearProjectPermissions).toHaveBeenCalledWith(
+      PROJECT_ID,
+    );
+  });
+
+  /*
+   * The browser keeps a permission snapshot per project, and another tab may
+   * be showing another project: deleting this one forgets only its own, so
+   * the other tab keeps its buttons as they were (UI/Utils/Permission).
+   */
+  it("forgets the deleted project's permissions only, not those of a project another tab shows", async () => {
+    const otherProjectId: string = "22222222-2222-4222-8222-222222222222";
+
+    localStorage.clear();
+
+    (
+      PermissionUtil.clearProjectPermissions as unknown as jest.SpyInstance
+    ).mockRestore();
+
+    PermissionUtil.setProjectPermissions(
+      {
+        _type: "UserTenantAccessPermission",
+        projectId: PROJECT_ID,
+        permissions: [],
+      },
+      { hash: "deleted-project-hash" },
+    );
+    PermissionUtil.setProjectPermissions(
+      {
+        _type: "UserTenantAccessPermission",
+        projectId: new ObjectID(otherProjectId),
+        permissions: [],
+      },
+      { hash: "other-project-hash" },
+    );
+
+    const calls: PageCalls = renderPage();
+
+    openConfirmation();
+    await confirm();
+
+    await waitFor(() => {
+      expect(calls.projectDeleted).toBe(1);
+    });
+
+    expect(PermissionUtil.getProjectPermissions(PROJECT_ID)).toBeNull();
+    expect(PermissionUtil.getProjectPermissionsHash(PROJECT_ID)).toBeNull();
+    expect(
+      PermissionUtil.getProjectPermissions(
+        otherProjectId,
+      )?.projectId?.toString(),
+    ).toBe(otherProjectId);
+    expect(PermissionUtil.getProjectPermissionsHash(otherProjectId)).toBe(
+      "other-project-hash",
+    );
   });
 
   /*

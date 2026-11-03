@@ -1,4 +1,5 @@
 import SqlDatabaseType from "Common/Types/Monitor/SqlDatabaseType";
+import OldestKeyMap from "Common/Utils/OldestKeyMap";
 
 /*
  * THE PREVIOUS CHECK'S COUNTERS, PER DATABASE MONITOR.
@@ -95,10 +96,8 @@ export function pickDatabaseRatioCounters(
 }
 
 export default class DatabaseCounterHistory {
-  private readonly readings: Map<string, DatabaseCounterReading> = new Map<
-    string,
-    DatabaseCounterReading
-  >();
+  private readonly readings: OldestKeyMap<string, DatabaseCounterReading> =
+    new OldestKeyMap<string, DatabaseCounterReading>();
 
   private readonly maxEntries: number;
 
@@ -125,7 +124,7 @@ export default class DatabaseCounterHistory {
     this.readings.set(key, reading);
 
     while (this.readings.size > this.maxEntries) {
-      const oldest: string | undefined = this.readings.keys().next().value;
+      const oldest: string | undefined = this.readings.oldestKey();
 
       if (oldest === undefined) {
         break;

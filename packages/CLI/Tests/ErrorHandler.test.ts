@@ -1,4 +1,9 @@
-import { handleError, ExitCode } from "../Core/ErrorHandler";
+import {
+  DescribedError,
+  describeError,
+  handleError,
+  ExitCode,
+} from "../Core/ErrorHandler";
 import * as OutputFormatter from "../Core/OutputFormatter";
 
 describe("ErrorHandler", () => {
@@ -135,6 +140,141 @@ describe("ErrorHandler", () => {
     handleError(42);
     expect(printErrorSpy).toHaveBeenCalledWith("Error: 42");
     expect(exitSpy).toHaveBeenCalledWith(ExitCode.GeneralError);
+  });
+
+  it("prints the error once, then what to do, and exits once", () => {
+    const hintSpy: jest.SpyInstance = jest
+      .spyOn(OutputFormatter, "printHint")
+      .mockImplementation(() => {
+        // no-op
+      });
+
+    handleError(new Error("API error (404): Incident not found."), {
+      resource: "incident",
+      operation: "get",
+    });
+
+    expect(printErrorSpy).toHaveBeenCalledTimes(1);
+    expect(hintSpy).toHaveBeenCalledWith(
+      "`oneuptime incident list` shows the ones this key may read.",
+    );
+    expect(exitSpy).toHaveBeenCalledTimes(1);
+    hintSpy.mockRestore();
+  });
+
+  /*
+   * Errors that say what to do: each line the CLI always printed stays as
+   * it was - scripts and the docs quote it - and a hint follows it.
+   */
+  describe("what an error says to do", () => {
+    const cases: Array<{
+      error: string;
+      context?: { resource?: string; operation?: string };
+      exitCode: ExitCode;
+      status: number | null;
+      hint: string | null;
+    }> = [
+      {
+        error:
+          "No credentials found. Run `oneuptime login` or set ONEUPTIME_API_KEY and ONEUPTIME_URL environment variables.",
+        exitCode: ExitCode.AuthError,
+        status: null,
+        // The message says it already.
+        hint: null,
+      },
+      {
+        error: "API error (400): Invalid API Key",
+        exitCode: ExitCode.AuthError,
+        status: 400,
+        hint: "Copy the key again from Project Settings → Advanced → API Keys, and check its Expires date there. Then run `oneuptime login` again, or set ONEUPTIME_API_KEY.",
+      },
+      {
+        error:
+          "API error (400): API Key not found in the request header. Please provide a valid API Key in the request header.",
+        exitCode: ExitCode.AuthError,
+        status: 400,
+        hint: "Pass --api-key, set ONEUPTIME_API_KEY, or run `oneuptime login <api-key> <instance-url>`.",
+      },
+      {
+        error:
+          "API error (402): API keys need the Growth plan. This project's plan does not include them, so its API keys stopped working.",
+        exitCode: ExitCode.AuthError,
+        status: 402,
+        hint: "Upgrade the project to the plan the message names: the same key works again once it is on it.",
+      },
+      {
+        error: "API error (404): Monitor not found.",
+        context: { resource: "monitor", operation: "get" },
+        exitCode: ExitCode.NotFound,
+        status: 404,
+        hint: "`oneuptime monitor list` shows the ones this key may read.",
+      },
+      {
+        error: "API error (404): Not found.",
+        exitCode: ExitCode.NotFound,
+        status: 404,
+        hint: "Check the ID, and that the key may read it.",
+      },
+      {
+        error:
+          "API error (422): You do not have permissions to create Monitor. You need one of these permissions: Project Admin.",
+        exitCode: ExitCode.GeneralError,
+        status: 422,
+        hint: "Give the API key one of the permissions the message names, in Project Settings → Advanced → API Keys.",
+      },
+      {
+        error: "API error (400): Invalid data.",
+        context: { resource: "monitor", operation: "create" },
+        exitCode: ExitCode.GeneralError,
+        status: 400,
+        hint: "`oneuptime monitor fields` lists every field, and the flag that sets it.",
+      },
+      {
+        error: "API error (400): Invalid data.",
+        context: { resource: "monitor", operation: "list" },
+        exitCode: ExitCode.GeneralError,
+        status: 400,
+        hint: null,
+      },
+      {
+        error: "Invalid JSON: {name: x}",
+        exitCode: ExitCode.GeneralError,
+        status: null,
+        hint: "In Bash and zsh, wrap JSON in single quotes. Or put it in a file and use --file.",
+      },
+      {
+        error:
+          "Request failed to https://oneuptime.example.com/api/incident/get-list",
+        exitCode: ExitCode.GeneralError,
+        status: null,
+        hint: "Check the address with `oneuptime whoami`: it is the one you open OneUptime at, such as https://oneuptime.com.",
+      },
+      {
+        error: 'Context "staging" does not exist.',
+        exitCode: ExitCode.GeneralError,
+        status: null,
+        hint: "`oneuptime context list` shows the saved contexts.",
+      },
+    ];
+
+    it.each(cases)("$error", (item: (typeof cases)[number]) => {
+      const described: DescribedError = describeError(
+        new Error(item.error),
+        item.context || {},
+      );
+
+      expect({
+        exitCode: described.exitCode,
+        status: described.status,
+        hint: described.hint,
+        message: described.message,
+      }).toEqual({
+        exitCode: item.exitCode,
+        status: item.status,
+        hint: item.hint,
+        message: item.error,
+      });
+    });
   });
 
   describe("ExitCode enum", () => {

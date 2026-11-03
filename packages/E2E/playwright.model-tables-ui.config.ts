@@ -14,9 +14,10 @@ import path from "path";
  * shape puts its description under its title, in RowActions.spec.ts,
  * what each row's ⋯ menu offers and does on the incidents, alerts, monitors
  * and runbooks lists, in LiveLists.spec.ts, that the incidents and alerts
- * lists keep themselves current as the server announces changes, and in
+ * lists keep themselves current as the server announces changes, in
  * ColumnResize.spec.ts, a column's edge dragged, double-clicked, keyed,
- * reset, on a tablet and right to left.
+ * reset, on a tablet and right to left, and in CardsBulkLine.spec.ts, a
+ * phone's Bulk Actions in the band over a table's cards.
  */
 const port: string = process.env["MODEL_TABLES_FIXTURE_PORT"] || "4319";
 
@@ -47,6 +48,7 @@ export default defineConfig({
     "RowActions.spec.ts",
     "LiveLists.spec.ts",
     "ColumnResize.spec.ts",
+    "CardsBulkLine.spec.ts",
   ],
   // By test when halved, as Event Overview is: its tests are independent.
   fullyParallel: shard !== null,

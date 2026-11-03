@@ -16,7 +16,7 @@ import {
   translatableTerm,
   translationKey,
   Translator,
-} from "../../UI/Utils/TranslateTemplate";
+} from "../../Types/Translator";
 import MonitorCheckScheduleUtil, {
   MonitorCheckFreshness,
   MonitorCheckFreshnessResult,

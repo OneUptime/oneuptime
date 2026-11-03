@@ -30,6 +30,7 @@ import {
   getAiOffSummary,
   InvestigationConversationFold,
   isAiOffInvestigationReason,
+  isFixingDecidableAgainNow,
   RemediationFoldState,
 } from "./AiOffSummaryData";
 import useAiLaneSwitchStates, {
@@ -286,6 +287,16 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
   const [startInvestigationError, setStartInvestigationError] = useState<
     string | null
   >(null);
+  /*
+   * How many times Investigate now has had its answer, and the card read
+   * where it stands since: the keyboard is put back on the step then (see
+   * the effect below startInvestigationNow).
+   */
+  const [investigateNowAnswerCount, setInvestigateNowAnswerCount] =
+    useState<number>(0);
+  const investigateNowButtonId: string = `investigate-now-${useId()}`;
+  const investigationHeadingRef: React.RefObject<HTMLHeadingElement> =
+    useRef<HTMLHeadingElement>(null);
   const [hasFetchError, setHasFetchError] = useState<boolean>(false);
   const [hasSuccessfulResponse, setHasSuccessfulResponse] =
     useState<boolean>(false);
@@ -1153,6 +1164,16 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
     offReason,
     remediation: remediationState,
     areSwitchesRead: laneSwitches.isRead,
+    /*
+     * The fixing switch is on now for an open record it stopped: the card
+     * is whole, and its Remediation step offers Try again.
+     */
+    isFixingDecidableAgain: isFixingDecidableAgainNow({
+      remediation: remediationState,
+      isAiOn: isAiOffered,
+      switches: laneSwitches.states,
+      isRecordResolved: Boolean(props.isRecordResolved),
+    }),
   });
   const isFolded: boolean = cardFold === "folded";
   /*
@@ -1263,11 +1284,55 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
 
         setIsStartingInvestigation(false);
         // Started or not, the card reads where it stands now.
-        fetchDataSequentially().catch(() => {
-          // handled inside fetchData
-        });
+        fetchDataSequentially()
+          .catch(() => {
+            // handled inside fetchData
+          })
+          .finally(() => {
+            if (
+              isMountedRef.current &&
+              activeSubjectKeyRef.current === startedForSubjectKey
+            ) {
+              setInvestigateNowAnswerCount((count: number): number => {
+                return count + 1;
+              });
+            }
+          });
       });
   };
+
+  /*
+   * Once Investigate now has its answer, the keyboard stays on the step, as
+   * it does after the Remediation step's Try again. The button is locked
+   * while it works, which takes the focus off it, and a run that started
+   * takes the button away altogether: the focus fell to the top of the
+   * page, and a screen reader said nothing of what changed. It goes back to
+   * Investigate now while it is offered (a refusal, under it), else to the
+   * step's title, so the run's progress is read from there. A reader who
+   * has moved on meanwhile keeps their place.
+   */
+  useEffect(() => {
+    if (investigateNowAnswerCount === 0) {
+      return;
+    }
+
+    const active: Element | null = document.activeElement;
+
+    if (active && active !== document.body) {
+      return;
+    }
+
+    const button: HTMLElement | null = document.getElementById(
+      investigateNowButtonId,
+    );
+
+    if (button) {
+      button.focus();
+      return;
+    }
+
+    investigationHeadingRef.current?.focus();
+  }, [investigateNowAnswerCount, investigateNowButtonId]);
 
   const refreshStatus: () => void = (): void => {
     setIsRefreshing(true);
@@ -1601,6 +1666,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
           onStartNow={startInvestigationNow}
           isStarting={isStartingInvestigation}
           startError={startInvestigationError}
+          startNowButtonId={investigateNowButtonId}
         />
       );
     }
@@ -1920,6 +1986,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
               statusLabel={INVESTIGATION_STEP_STATUS_LABEL}
               isLast={!isRemediationStepDrawn}
               testId="ai-card-step-investigation"
+              headingRef={investigationHeadingRef}
             >
               {hasRun && isFailed && errorMessage ? (
                 <InvestigationNotice

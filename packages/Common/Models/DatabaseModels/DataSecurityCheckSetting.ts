@@ -194,6 +194,7 @@ export default class DataSecurityCheckSetting extends BaseModel {
   @ColumnAccessControl(editableColumnAccess)
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(SecuritySeverity),
     required: false,
     canReadOnRelationQuery: true,
     title: "Severity",

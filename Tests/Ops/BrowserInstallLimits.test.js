@@ -26,7 +26,10 @@
  * Since 2026-10-27 the browser jobs run in the Playwright image instead,
  * which has the browsers and their packages (Tests/Ops/PlaywrightImage), and
  * fetch nothing from the mirror. The Probe's job still installs its own: its
- * suite needs strace and gcc from apt as well.
+ * suite needs strace and gcc from apt as well. Since 2026-11-02 it installs
+ * them from the Actions cache on a runner image the cache has seen, and from
+ * the mirror, under these limits, only on one it has not
+ * (Tests/Ops/ProbeAptCache).
  */
 
 const fs = require("fs");

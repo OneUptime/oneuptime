@@ -57,6 +57,9 @@ Abre **Productos → Eventos de seguridad**, en **Seguridad**. Su menú tiene un
 | **Prioridades de casos** | Ajustes | Lo urgente que es un caso: las prioridades propias del proyecto, la más urgente primero |
 | **Objetivos de respuesta** | Ajustes | Lo rápido que hay que hacerse cargo de un caso de cada prioridad y contenerlo |
 | **Estados de casos** | Ajustes | Los pasos por los que pasa un caso, y qué cuenta un caso en cada uno |
+| **Campos personalizados** | Ajustes | Los campos que tu equipo rellena en cada caso, como la unidad de negocio a la que se refiere |
+| **Plantillas de notas** | Ajustes | Texto listo para usar en las notas que tu equipo escribe en sus casos |
+| **Numeración** | Ajustes | El texto delante de los números de caso y el número que recibe el próximo caso |
 | **Puntuación de riesgo** | Ajustes | Si el riesgo de una entidad abre un caso, con qué riesgo, y cuánto importa cada entidad |
 
 **Detecciones**, **IA**, **Conexiones** y **Ajustes**, que se configuran una vez, quedan plegadas hasta que las abres. ¿Empieza con la seguridad? [Primeros pasos con la seguridad](/docs/telemetry/security-getting-started) la configura en dos clics.

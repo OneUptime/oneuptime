@@ -116,9 +116,10 @@ export default class GoogleAnalyticsMeasurementProtocol {
 
   /*
    * The campaign the purchase is credited to: the row's last-touch campaign,
-   * or google / cpc for a Google Ads click that carried no campaign
-   * parameters (auto-tagging adds only the click ID). Null when there is
-   * neither.
+   * or google / cpc for a Google Ads click that carried no UTMs (Google Ads
+   * adds its click ID and its gad_* parameters, nothing else). Google Ads
+   * names the campaign on its clicks, so gad_campaignid is the campaign_id
+   * whenever the ad's own UTMs give none. Null when there is no campaign.
    */
   public static getCampaignDetails(
     source: AttributionSource,
@@ -136,21 +137,42 @@ export default class GoogleAnalyticsMeasurementProtocol {
       }
     }
 
-    if (Object.keys(campaignDetails).length > 0) {
-      return campaignDetails;
+    if (Object.keys(campaignDetails).length === 0) {
+      if (!this.isGoogleAdsClick(source)) {
+        return null;
+      }
+
+      campaignDetails["source"] = "google";
+      campaignDetails["medium"] = "cpc";
     }
 
-    const clickIds: JSONObject = source.clickIds || {};
+    const googleAdsCampaignId: unknown = row["gadCampaignId"];
 
     if (
-      GOOGLE_AD_CLICK_ID_KEYS.some((key: string): boolean => {
-        return Boolean(clickIds[key]);
-      })
+      !campaignDetails["campaign_id"] &&
+      typeof googleAdsCampaignId === "string" &&
+      googleAdsCampaignId
     ) {
-      return { source: "google", medium: "cpc" };
+      campaignDetails["campaign_id"] = googleAdsCampaignId.slice(
+        0,
+        MAX_PARAMETER_VALUE_LENGTH,
+      );
     }
 
-    return null;
+    return campaignDetails;
+  }
+
+  // A click Google Ads tagged: one of its click IDs, or a gad_* parameter.
+  private static isGoogleAdsClick(source: AttributionSource): boolean {
+    const clickIds: JSONObject = source.clickIds || {};
+
+    return (
+      GOOGLE_AD_CLICK_ID_KEYS.some((key: string): boolean => {
+        return Boolean(clickIds[key]);
+      }) ||
+      Boolean(source.gadSource) ||
+      Boolean(source.gadCampaignId)
+    );
   }
 
   /*

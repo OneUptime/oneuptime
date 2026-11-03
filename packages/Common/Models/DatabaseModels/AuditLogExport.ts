@@ -192,6 +192,7 @@ export default class AuditLogExport extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(AuditLogExportDestinationType),
     canReadOnRelationQuery: true,
     title: "Destination",
     description:

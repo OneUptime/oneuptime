@@ -5,6 +5,8 @@ import {
 } from "Common/UI/Components/Card/CardGridLayout";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 /*
  * Renders the real exception detail pages against the offline fixture
@@ -162,13 +164,6 @@ function card(page: Page, heading: string): Locator {
   return page
     .getByTestId("card")
     .filter({ has: page.getByRole("heading", { name: heading, exact: true }) });
-}
-
-async function expectNoHorizontalOverflow(page: Page): Promise<void> {
-  const overflow: number = await page.evaluate((): number => {
-    return document.documentElement.scrollWidth - window.innerWidth;
-  });
-  expect(overflow).toBeLessThanOrEqual(1);
 }
 
 /*
@@ -533,7 +528,7 @@ test.describe("navigation", () => {
     })) {
       await open(page, detailPage.suffix);
       await page.waitForTimeout(500);
-      await expectNoHorizontalOverflow(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
     }
   });
 });
@@ -651,7 +646,7 @@ test.describe("overview", () => {
           ]).toEqual([label, CARD_GRID_GAP_IN_PX, 0, 0, 0, 0]);
         }
 
-        await expectNoHorizontalOverflow(page);
+        await expectNoSidewaysScroll(page, { tolerance: 1 });
       }
     }
 
@@ -1495,10 +1490,10 @@ test.describe("Create monitor on an exception", () => {
         actions.getByTestId("exception-create-monitor"),
       ).toBeVisible();
 
-      const messageBox: { x: number; y: number; width: number } | null =
-        await message.boundingBox();
-      const actionsBox: { x: number; y: number; height: number } | null =
-        await actions.boundingBox();
+      const [messageBox, actionsBox] = await boxesInOneFrame([
+        message,
+        actions,
+      ]);
       expect(messageBox).not.toBeNull();
       expect(actionsBox).not.toBeNull();
 
@@ -1551,7 +1546,7 @@ test.describe("Create monitor on an exception", () => {
         ).toBeLessThan(2);
       }
 
-      await expectNoHorizontalOverflow(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
     }
 
     await page.setViewportSize({ width: 1024, height: 1000 });

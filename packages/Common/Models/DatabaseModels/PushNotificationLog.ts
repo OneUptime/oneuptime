@@ -265,10 +265,11 @@ export default class PushNotificationLog extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(PushStatus),
     title: "Status",
     description: "Status of the push notification",
     canReadOnRelationQuery: false,
-    example: "Sent",
+    example: "Success",
   })
   @Column({
     nullable: false,

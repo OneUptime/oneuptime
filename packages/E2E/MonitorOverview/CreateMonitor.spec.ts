@@ -7,6 +7,8 @@ import {
 } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 /*
  * CREATE MONITOR, IN A REAL BROWSER.
@@ -277,13 +279,7 @@ test.describe("Create Monitor's first step", () => {
     expect(Math.abs(api.x - website.x)).toBeLessThan(2);
     expect(api.y).toBeGreaterThan(website.y);
 
-    const overflow: number = await page.evaluate((): number => {
-      return (
-        document.documentElement.scrollWidth -
-        document.documentElement.clientWidth
-      );
-    });
-    expect(overflow).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
 
     await screenshot(page, "create-monitor-phone");
   });
@@ -488,15 +484,6 @@ async function chevronTurn(page: Page): Promise<number> {
         Math.abs((Math.atan2(matrix.b, matrix.a) * 180) / Math.PI),
       );
     });
-}
-
-async function sidewaysOverflow(page: Page): Promise<number> {
-  return page.evaluate((): number => {
-    return (
-      document.documentElement.scrollWidth -
-      document.documentElement.clientWidth
-    );
-  });
 }
 
 // Waits until no finite animation or transition is running.
@@ -745,11 +732,7 @@ test.describe("More monitor types folds the rest away again", () => {
     expect(named.y).toBeGreaterThan(title.y + title.height - 2);
     expect(Math.abs(named.x - title.x)).toBeLessThan(2);
     expect(named.height).toBeLessThanOrEqual(lineHeight + 1);
-    await expect
-      .poll(() => {
-        return sidewaysOverflow(page);
-      })
-      .toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
 
     await atRest(page);
     await screenshot(page, "create-monitor-more-folded-selection-de-phone");
@@ -787,11 +770,7 @@ test.describe("More monitor types folds the rest away again", () => {
 
     await more(page).click();
     await expect(more(page)).toHaveAttribute("aria-expanded", "true");
-    await expect
-      .poll(() => {
-        return sidewaysOverflow(page);
-      })
-      .toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
 
     // One type a line, as the common rows are.
     const ip: { x: number; y: number } = await boxOf(option(page, "IP"));
@@ -808,11 +787,7 @@ test.describe("More monitor types folds the rest away again", () => {
 
     await expect(more(page)).toHaveAttribute("aria-expanded", "false");
     await expect(more(page)).toBeInViewport();
-    await expect
-      .poll(() => {
-        return sidewaysOverflow(page);
-      })
-      .toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     expect(await shownTypes(page)).toEqual(COMMON_TYPES);
   });
 
@@ -914,11 +889,7 @@ test.describe("More monitor types folds the rest away again", () => {
         return chevronTurn(page);
       })
       .toBe(180);
-    await expect
-      .poll(() => {
-        return sidewaysOverflow(page);
-      })
-      .toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
 
     await atRest(page);
     await screenshot(page, "create-monitor-more-open-fa-phone");
@@ -1053,11 +1024,7 @@ test.describe("A monitor template's More monitor types", () => {
 
     await toggle.click();
     await expect(toggle).toHaveAttribute("aria-expanded", "true");
-    await expect
-      .poll(() => {
-        return sidewaysOverflow(page);
-      })
-      .toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
 
     await atRest(page);
     await screenshot(page, "monitor-template-more-open-phone");
@@ -1589,14 +1556,7 @@ test.describe("Quick Setup's alert templates", () => {
     // On a phone Change goes under the words, which keep the frame's width.
     expect(change.y).toBeGreaterThan(picked.y + 40);
     expect(summaryLine.width).toBeGreaterThan(picked.width - 40);
-    expect(
-      await page.evaluate((): boolean => {
-        return (
-          document.documentElement.scrollWidth >
-          document.documentElement.clientWidth + 1
-        );
-      }),
-    ).toBe(false);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
 
     await screenshot(page, "create-monitor-alert-templates-phone");
   });
@@ -2055,10 +2015,10 @@ test.describe("Create Monitor's plainer fields", () => {
     await expect(target).toHaveCount(1);
     await expect(target.getByTestId("monitor-step-more-fields")).toHaveCount(1);
 
-    const url: { y: number } | null = await target
-      .getByPlaceholder("https://example.com")
-      .boundingBox();
-    const line: { y: number } | null = await moreFields.boundingBox();
+    const [url, line] = await boxesInOneFrame([
+      target.getByPlaceholder("https://example.com"),
+      moreFields,
+    ]);
     expect(line!.y).toBeGreaterThan(url!.y);
 
     const header: Locator = moreFields.getByTestId("folded-section-header");
@@ -2347,13 +2307,7 @@ test.describe("Create Monitor at the plan's monitor limit", () => {
 
     await expect(notice(page)).toBeVisible();
 
-    const overflow: number = await page.evaluate((): number => {
-      return (
-        document.documentElement.scrollWidth -
-        document.documentElement.clientWidth
-      );
-    });
-    expect(overflow).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
 
     const box: { x: number; width: number } = await boxOf(notice(page));
     expect(box.x).toBeGreaterThanOrEqual(0);

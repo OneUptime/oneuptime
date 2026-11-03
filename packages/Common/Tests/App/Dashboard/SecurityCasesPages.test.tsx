@@ -193,7 +193,9 @@ import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import SecurityCase from "../../../Models/DatabaseModels/SecurityCase";
+import SecurityCaseCustomField from "../../../Models/DatabaseModels/SecurityCaseCustomField";
 import Team from "../../../Models/DatabaseModels/Team";
+import CustomFieldType from "../../../Types/CustomField/CustomFieldType";
 import Route from "../../../Types/API/Route";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import IsNull from "../../../Types/BaseDatabase/IsNull";
@@ -262,6 +264,8 @@ function statusOf(stage: SecurityCaseStage): SecurityCaseStatus {
 
 // The rows the list is answered with, when a test gives it any.
 let listedRows: Array<SecurityCase> = [];
+// The project's own case fields (Security Events > Settings > Custom Fields).
+let caseFields: Array<SecurityCaseCustomField> = [];
 let listRequests: Array<{ query: Record<string, unknown>; sort: unknown }> = [];
 
 function viewOf(key: SecurityCaseQueueViewKey): SecurityCaseQueueView {
@@ -398,7 +402,10 @@ function bodyRowTexts(): Array<string> {
 beforeEach(() => {
   capturedTables = [];
   listedRows = [];
+  caseFields = [];
   listRequests = [];
+  // Each test's own case fields, never the last test's.
+  ModelListCache.invalidateAll();
   goTo(`/dashboard/${PROJECT_ID}/security-events/cases`);
   window.localStorage.clear();
   // The project's priorities and statuses: a new project's.
@@ -426,7 +433,11 @@ beforeEach(() => {
           listRequests.push({ query: options.query, sort: options.sort });
         }
 
-        const data: Array<BaseModel> = isCases ? listedRows : [];
+        const data: Array<BaseModel> = isCases
+          ? listedRows
+          : options.modelType === SecurityCaseCustomField
+            ? caseFields
+            : [];
 
         return {
           data,
@@ -1550,6 +1561,104 @@ describe("the list a person sees", () => {
       expect([tableMounts, tableUnmounts]).toEqual([2, 1]);
     });
     expect(screen.getAllByTestId("captured-model-table")).toHaveLength(1);
+  });
+});
+
+/*
+ * The real way into Customize Columns: the card header's More options (⋯)
+ * menu, the first of the page's, then Columns.
+ */
+async function openColumnsPicker(): Promise<HTMLElement> {
+  await act(async () => {
+    fireEvent.click(
+      screen.getAllByRole("button", { name: "More options" })[0]!,
+    );
+  });
+  await act(async () => {
+    fireEvent.click(screen.getByText("Columns"));
+  });
+
+  return await screen.findByTestId("column-customization-modal");
+}
+
+/*
+ * The project's own case fields (Security Events > Settings > Custom
+ * Fields) are columns of the queue, as an incident's are of the incidents
+ * list: off until someone picks one in Columns, then each case's value.
+ */
+describe("the project's own case fields", () => {
+  test("every case page offers them as columns", async () => {
+    for (const view of SECURITY_CASE_QUEUE_VIEWS) {
+      const table: CapturedTable = await capture(view.key);
+
+      expect(table["customFieldsModelType"]).toBe(SecurityCaseCustomField);
+    }
+  });
+
+  test("a field is off until it is picked in Columns, then each case shows its value", async () => {
+    const businessUnit: SecurityCaseCustomField = new SecurityCaseCustomField();
+    businessUnit._id = "60000000-0000-4000-8000-000000000001";
+    businessUnit.name = "Business Unit";
+    businessUnit.customFieldType = CustomFieldType.Text;
+    caseFields = [businessUnit];
+
+    const row: SecurityCase = unassignedCase(
+      "20000000-0000-4000-8000-000000000160",
+      "CASE-160",
+      "Impossible travel for a finance admin",
+      undefined,
+    );
+    row.customFields = { "Business Unit": "Payments" };
+    listedRows = [row];
+
+    await drawTable(await capture("open"));
+    await screen.findByText("Impossible travel for a finance admin");
+
+    // Off by default: the field is no column yet, and its value is not drawn.
+    expect(screen.queryByText("Payments")).toBeNull();
+
+    const picker: HTMLElement = await openColumnsPicker();
+    const toggle: HTMLElement = await within(picker).findByTestId(
+      "column-toggle-customFields.Business Unit",
+    );
+
+    expect(toggle).not.toBeChecked();
+
+    await act(async () => {
+      fireEvent.click(toggle);
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+    });
+
+    expect(
+      await screen.findByRole("columnheader", { name: /Business Unit/ }),
+    ).toBeInTheDocument();
+    expect(await screen.findByText("Payments")).toBeVisible();
+  });
+
+  test("a project with no case fields offers none", async () => {
+    listedRows = [
+      unassignedCase(
+        "20000000-0000-4000-8000-000000000161",
+        "CASE-161",
+        "Mass file download from a shared drive",
+        undefined,
+      ),
+    ];
+
+    await drawTable(await capture("open"));
+    await screen.findByText("Mass file download from a shared drive");
+
+    const picker: HTMLElement = await openColumnsPicker();
+
+    // The queue's own columns are there; no field of the project's is.
+    expect(
+      picker.querySelectorAll('[data-testid^="column-toggle-"]').length,
+    ).toBeGreaterThan(1);
+    expect(
+      picker.querySelectorAll('[data-testid^="column-toggle-customFields."]'),
+    ).toHaveLength(0);
   });
 });
 

@@ -60,7 +60,7 @@ Ankündigungen werden unter [Abonnenten & Ankündigungen](/docs/status-pages/sub
 | **Regeln**    | **Eigentümerregeln**, **Runbook-Regeln**, **Beschriftungsregeln**, **Erinnerungsregeln**.                                   |
 | **Einstellungen** | **Ereignisstatus**, **Ereignis-Vorlagen**, **Notiz-Vorlagen**, **Benutzerdefinierte Felder**, **Messungen**, **Kalendereinstellungen**, **Nummerierung**. |
 
-**Übersicht** und **Kalender** sind geöffnet; **Arbeitsbereich**, **Regeln**, **Einstellungen** und **Entwickler** sind zunächst eingeklappt, und ein Abschnitt öffnet sich von selbst, wenn Sie auf einer seiner Seiten sind. **Entwickler** enthält **Terraform**, **API** und **KI-Assistenten**, um die Wartung per Code zu verwalten. Alles zur Wartung liegt hier, nicht in den **Projekteinstellungen**.
+**Übersicht** und **Kalender** sind geöffnet; **Arbeitsbereich**, **Regeln**, **Einstellungen** und **Entwickler** sind zunächst eingeklappt, und ein Abschnitt öffnet sich von selbst, wenn Sie auf einer seiner Seiten sind. **Entwickler** enthält **Terraform**, **API**, **CLI** und **KI-Assistenten**, um die Wartung per Code zu verwalten. Alles zur Wartung liegt hier, nicht in den **Projekteinstellungen**.
 
 Die Liste zeigt **Nummer der geplanten Wartung**, **Titel**, **Aktueller Status**, **Betroffene Ressourcen**, **Auf Statusseite angezeigt**, **Beginnt am**, **Dauer**, **Endet am**, **Beschriftungen** und **Eigentümer**. Wählen Sie Ereignisse aus, um mehrere auf einmal zu bearbeiten: **Als {{state}} markieren**, **Status ändern**, **Mir zuweisen**, **Eigentümer hinzufügen**, **Eigentümer entfernen**, **Beschriftungen hinzufügen**, **Beschriftungen entfernen** oder **Löschen**. Das Menü **⋯** am Ende der Zeile jedes Ereignisses tut dasselbe für dieses eine Ereignis: die Schritte **Als {{state}} markieren**, solange das Ereignis sie machen kann, **Status ändern**, **Mir zuweisen**, bis Sie sein Eigentümer sind, und **Eigentümer hinzufügen**.
 
@@ -87,7 +87,7 @@ Solange ein Ereignis läuft, behandelt OneUptime den geplanten Ausfall als erwar
 | **Team** | **Eigentümer** |
 | **Benachrichtigungen**    | **Benachrichtigungsprotokolle** und **KI-Protokolle**: jede Nachricht über das Ereignis und alles, was die KI dafür getan hat |
 | **Notizen**       | **Private Notizen** und **Öffentliche Notizen**                                                |
-| **Entwickler**    | **Terraform**, **API** und **KI-Assistenten**: das Ereignis per Code verwaltet                  |
+| **Entwickler**    | **Terraform**, **API**, **CLI** und **KI-Assistenten**: das Ereignis per Code verwaltet         |
 | **Erweitert**     | **Benutzerdefinierte Felder**, **Einstellungen**, **Audit-Protokolle**, **Ereignis löschen**    |
 
 **Übersicht**, **Team** und **Notizen** sind geöffnet; die anderen Abschnitte bleiben eingeklappt, bis Sie sie anklicken.

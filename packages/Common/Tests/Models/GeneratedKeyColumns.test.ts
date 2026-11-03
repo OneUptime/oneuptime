@@ -5,11 +5,14 @@ import {
 } from "@asteasolutions/zod-to-openapi";
 import { getMetadataArgsStorage } from "typeorm";
 import { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
+import AIAgent from "../../Models/DatabaseModels/AIAgent";
 import AlertMeasurement from "../../Models/DatabaseModels/AlertMeasurement";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import IncidentMeasurement from "../../Models/DatabaseModels/IncidentMeasurement";
 import LogRecordingRule from "../../Models/DatabaseModels/LogRecordingRule";
 import MetricRecordingRule from "../../Models/DatabaseModels/MetricRecordingRule";
+import Probe from "../../Models/DatabaseModels/Probe";
+import Runner from "../../Models/DatabaseModels/Runner";
 import ScheduledMaintenanceMeasurement from "../../Models/DatabaseModels/ScheduledMaintenanceMeasurement";
 import TraceRecordingRule from "../../Models/DatabaseModels/TraceRecordingRule";
 import { ColumnAccessControl } from "../../Types/BaseDatabase/AccessControl";
@@ -30,6 +33,13 @@ import { ModelSchema } from "../../Utils/Schema/ModelSchema";
  * A measurement's key stays immutable after create (no update access): it
  * is part of the metric name every point is written under. A recording
  * rule's output metric can still be renamed.
+ *
+ * And the columns the server fills in some other way when a create leaves
+ * them out: a probe's, an AI agent's and a Runner's key, which it
+ * generates, and a probe's and an AI agent's version, which it starts at
+ * 1.0.0 (KeysFilledInOnCreate holds the services to it). Terraform asked
+ * for all of them: a probe could not be made from its name alone, and its
+ * key - a secret - had to be written into the configuration.
  */
 
 type ModelType = { new (): BaseModel };
@@ -38,30 +48,81 @@ interface GeneratedColumn {
   model: ModelType;
   column: string;
   canChangeAfterCreate: boolean;
+  // What its description says happens when a create leaves it out.
+  leftOutMeans: RegExp;
 }
 
+const MADE_FROM_THE_NAME: RegExp = /Leave it out and it is made from the/;
+const GENERATED: RegExp = /Leave it out and OneUptime generates one\./;
+const STARTS_AT_1_0_0: RegExp = /Leave it out and it is 1\.0\.0\./;
+
 const GENERATED_COLUMNS: Array<GeneratedColumn> = [
-  { model: IncidentMeasurement, column: "key", canChangeAfterCreate: false },
-  { model: AlertMeasurement, column: "key", canChangeAfterCreate: false },
+  {
+    model: IncidentMeasurement,
+    column: "key",
+    canChangeAfterCreate: false,
+    leftOutMeans: MADE_FROM_THE_NAME,
+  },
+  {
+    model: AlertMeasurement,
+    column: "key",
+    canChangeAfterCreate: false,
+    leftOutMeans: MADE_FROM_THE_NAME,
+  },
   {
     model: ScheduledMaintenanceMeasurement,
     column: "key",
     canChangeAfterCreate: false,
+    leftOutMeans: MADE_FROM_THE_NAME,
   },
   {
     model: MetricRecordingRule,
     column: "outputMetricName",
     canChangeAfterCreate: true,
+    leftOutMeans: MADE_FROM_THE_NAME,
   },
   {
     model: TraceRecordingRule,
     column: "outputMetricName",
     canChangeAfterCreate: true,
+    leftOutMeans: MADE_FROM_THE_NAME,
   },
   {
     model: LogRecordingRule,
     column: "outputMetricName",
     canChangeAfterCreate: true,
+    leftOutMeans: MADE_FROM_THE_NAME,
+  },
+  // A key can be reset, and a version label changed.
+  {
+    model: Probe,
+    column: "key",
+    canChangeAfterCreate: true,
+    leftOutMeans: GENERATED,
+  },
+  {
+    model: Probe,
+    column: "probeVersion",
+    canChangeAfterCreate: true,
+    leftOutMeans: STARTS_AT_1_0_0,
+  },
+  {
+    model: AIAgent,
+    column: "key",
+    canChangeAfterCreate: true,
+    leftOutMeans: GENERATED,
+  },
+  {
+    model: AIAgent,
+    column: "aiAgentVersion",
+    canChangeAfterCreate: true,
+    leftOutMeans: STARTS_AT_1_0_0,
+  },
+  {
+    model: Runner,
+    column: "key",
+    canChangeAfterCreate: true,
+    leftOutMeans: GENERATED,
   },
 ];
 
@@ -112,9 +173,9 @@ describe.each(
     expect(required).not.toContain(entry.column);
   });
 
-  test("tells API readers that it is made from the name when left out", () => {
+  test("tells API readers what happens when it is left out", () => {
     expect(model.getTableColumnMetadata(entry.column).description).toMatch(
-      /Leave it out and it is made from the/,
+      entry.leftOutMeans,
     );
   });
 

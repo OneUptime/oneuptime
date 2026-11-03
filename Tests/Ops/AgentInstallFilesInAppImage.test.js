@@ -20,7 +20,7 @@ const path = require("path");
 const yaml = require("js-yaml");
 const { spawnSync } = require("child_process");
 const {
-  ancestry,
+  buildOrder,
   instructions,
   parseStages,
   render,
@@ -46,7 +46,14 @@ const IMAGE_ROOT = "/usr/src";
 
 const COPY = /^COPY\s+((?:--\S+\s+)*)(\S+)\s+(\S+)$/;
 
-// The COPY instructions of the build stage that take something from agents/ or HelmChart/.
+/*
+ * Where the served folders live in the repository: the agents', the
+ * Kubernetes agent's chart, and the CLI's installer (packages/CLI/Install).
+ */
+const SERVED_SOURCE =
+  /^\.\/(?:agents|HelmChart|packages\/CLI\/Install)(?:\/|$)/;
+
+// The COPY instructions of the build stage that take a served folder or file.
 function agentCopies() {
   return instructions(BUILD_STAGE.body)
     .map((line) => {
@@ -56,7 +63,7 @@ function agentCopies() {
         : null;
     })
     .filter((copy) => {
-      return copy && /^\.\/(?:agents|HelmChart)\//.test(copy.source);
+      return copy && SERVED_SOURCE.test(copy.source);
     });
 }
 
@@ -73,15 +80,21 @@ function copiedToImage(relativePath) {
 }
 
 describe("the App's Dockerfile", () => {
-  test("the build stage both editions are made from exists", () => {
+  test("the build stage both editions are made from exists, and each copies /usr/src out of a build of it", () => {
     expect(BUILD_STAGE).toBeDefined();
 
     for (const target of ["community", "enterprise"]) {
       expect(
-        ancestry(STAGES, target).map((stage) => {
+        buildOrder(STAGES, target).map((stage) => {
           return stage.name;
         }),
       ).toContain("community-build");
+      const image = STAGES.find((stage) => {
+        return stage.name === target;
+      });
+      expect(instructions(image.body)).toContain(
+        `COPY --from=${target}-pruned /usr/src /usr/src`,
+      );
     }
   });
 

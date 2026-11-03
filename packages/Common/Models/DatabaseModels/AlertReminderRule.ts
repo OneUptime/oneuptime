@@ -363,6 +363,7 @@ export default class AlertReminderRule extends RelationOnlyRuleBaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(ReminderStopState),
     title: "Stop Reminders When",
     description:
       "Stop sending reminders once the alert reaches this state. Select Acknowledged to stop reminders when the alert is acknowledged, or Resolved to keep reminding until the alert is resolved.",

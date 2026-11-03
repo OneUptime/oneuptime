@@ -431,6 +431,48 @@ const vcenterStoppedReportingTemplate: VMwareAlertTemplate = {
 
 // --- Host (ESXi) templates ---
 
+/*
+ * vCenter reports a host's memory and CPU use only while the host is
+ * connected. For a host it lost contact with - crashed, lost power or its
+ * management network, disconnected - and for one powered off or put in
+ * standby, the vcenter receiver records 0 MiB (govmomi reads the missing
+ * number as 0, and the probe sends the same), while a running ESXi host
+ * always uses memory of its own. So "no memory in use" names the very host
+ * that is down, where Datacenter Hosts Not Responding can only count it.
+ */
+export const VMWARE_HOST_NOT_RESPONDING_TEMPLATE_ID: string =
+  "vmware-host-not-responding";
+
+const hostNotRespondingTemplate: VMwareAlertTemplate = buildThresholdTemplate({
+  id: VMWARE_HOST_NOT_RESPONDING_TEMPLATE_ID,
+  name: "Host Not Responding",
+  summary: "vCenter reports no memory in use on an ESXi host for 5 minutes.",
+  description:
+    "Alert when vCenter reports no memory in use on an ESXi host for 5 minutes (vcenter.host.memory.usage at 0, one incident per host). vCenter reports a host's usage only while the host is connected, and a running ESXi host always uses memory: a host at 0 crashed, lost power or its management network, was disconnected, or was powered off or put in standby.",
+  category: "Host",
+  severity: "Critical",
+  metricName: "vcenter.host.memory.usage",
+  metricAlias: "host_memory_in_use",
+  /*
+   * Max per host - a single collection that reports memory in use is a
+   * host that answers, so the breach is a window in which none did.
+   */
+  aggregationType: MetricsAggregationType.Max,
+  rollingTime: RollingTime.Past5Minutes,
+  groupByAttributeKey: VMwareGroupByKey.Host,
+  fireFilterType: FilterType.LessThanOrEqualTo,
+  fireValue: 0,
+  recoverFilterType: FilterType.GreaterThan,
+  incidentTitle: (args: VMwareAlertTemplateArgs): string => {
+    return `[VMware] CRITICAL: Host Not Responding - ${args.monitorName}`;
+  },
+  incidentDescription:
+    "vCenter has reported no memory in use on an ESXi host for the whole evaluation window, so the host is not connected to vCenter or not running. Every VM that ran on it is down unless vSphere HA restarted it elsewhere. See the affected resource on this alert for the host name, then find the host in vCenter (Hosts and Clusters shows it Not Responding, Disconnected, powered off or in standby), check its out-of-band management (iDRAC / iLO / BMC) for a power or hardware fault and its management network, and confirm whether HA restarted its VMs. A host powered off or put in standby on purpose resolves this once it is back.",
+  criteriaName: "Host Not Responding - Memory in use = 0",
+  criteriaDescription:
+    "Triggers when an ESXi host reports no memory in use for every minute of the monitoring window.",
+});
+
 const hostCpuSaturationTemplate: VMwareAlertTemplate = buildThresholdTemplate({
   id: "vmware-host-cpu-saturation",
   name: "Host CPU Saturation",
@@ -1143,6 +1185,7 @@ const resourcePoolMemorySwappedTemplate: VMwareAlertTemplate =
 export function getAllVMwareAlertTemplates(): Array<VMwareAlertTemplate> {
   return [
     vcenterStoppedReportingTemplate,
+    hostNotRespondingTemplate,
     hostCpuSaturationTemplate,
     hostMemorySaturationTemplate,
     hostDiskLatencyHighTemplate,

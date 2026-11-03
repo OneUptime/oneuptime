@@ -7,6 +7,7 @@ import {
 } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * Ask AI on the main stage, in real Chromium, against the offline fixture
@@ -110,6 +111,10 @@ interface Box {
 
 // A monospace family, as the Dashboard writes code.
 const MONOSPACE: RegExp = /mono|Menlo|Consolas|Courier/i;
+
+// A table's date under the pointer: the whole of it, and how long ago it was.
+const WHOLE_DATE_UNDER_THE_POINTER: RegExp =
+  /^Oct 27 2026, 02:57 PM \S+ · 3 minutes ago$/;
 
 const pageErrors: Map<Page, Array<string>> = new Map();
 
@@ -289,24 +294,25 @@ async function screenshot(page: Page, name: string): Promise<void> {
   await page.screenshot({ path: path.join(SCREENSHOTS, `${name}.png`) });
 }
 
-// Nothing is wider than the screen: no sideways scroll, in the dialog or the page.
-async function expectNoSidewaysScroll(page: Page): Promise<void> {
-  const widths: { page: number; dialog: number; viewport: number } =
-    await page.evaluate(
-      (): { page: number; dialog: number; viewport: number } => {
-        const root: HTMLElement | null = document.querySelector(
-          '[data-testid="ask-ai-dialog"]',
-        );
-        return {
-          page: document.documentElement.scrollWidth,
-          dialog: root ? root.scrollWidth - root.clientWidth : 0,
-          viewport: window.innerWidth,
-        };
+/*
+ * Nothing is wider than the screen: no sideways scroll, in the page or the
+ * dialog - each read until it has settled.
+ */
+async function expectNothingScrollsSideways(page: Page): Promise<void> {
+  await expectNoSidewaysScroll(page);
+  await expect
+    .poll(
+      (): Promise<number> => {
+        return page.evaluate((): number => {
+          const root: HTMLElement | null = document.querySelector(
+            '[data-testid="ask-ai-dialog"]',
+          );
+          return root ? root.scrollWidth - root.clientWidth : 0;
+        });
       },
-    );
-
-  expect(widths.page).toBeLessThanOrEqual(widths.viewport);
-  expect(widths.dialog).toBeLessThanOrEqual(0);
+      { message: "how many pixels the Ask AI dialog scrolls sideways" },
+    )
+    .toBeLessThanOrEqual(0);
 }
 
 /*
@@ -1087,6 +1093,103 @@ test.describe("what an answer carries fits where it is drawn", () => {
     await screenshot(page, "rich-table-390");
   });
 
+  /*
+   * A tool's table wrote each date whole - "Oct 27 2026, 02:57 PM UTC · 3
+   * minutes ago" - which took a third of the chat's column, its year and
+   * zone the same on every row, and named its columns in English in every
+   * language. A date is short now, as every table writes one, and whole
+   * under the pointer with how long ago it was; a column's name reads in
+   * the reader's language.
+   */
+  for (const view of [
+    { width: 1280, lang: "" },
+    { width: 768, lang: "" },
+    { width: 768, lang: "de" },
+  ]) {
+    test(`a table's dates are short in their cells and whole under the pointer, its column names in the reader's language (${view.width}${view.lang ? `, ${view.lang}` : ""})`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width: view.width, height: 900 });
+      await load(page, `thread=rich${view.lang ? `&lang=${view.lang}` : ""}`);
+      await expect(dialog(page)).toBeVisible();
+
+      const table: Locator = page
+        .locator("table")
+        .filter({ has: page.locator("time") });
+      await table.scrollIntoViewIfNeeded();
+      await settle(page);
+
+      const headers: Array<string> = (
+        await table.locator("th").allTextContents()
+      ).map((text: string): string => {
+        return text.trim();
+      });
+      expect(headers).toEqual(
+        view.lang === "de"
+          ? ["Zeit", "Schweregrad", "Ereignis", "Host"]
+          : ["Time", "Severity", "Event", "Host"],
+      );
+
+      // The first row's date, read in one go once the table has settled.
+      const date: {
+        text: string;
+        title: string;
+        lines: number;
+        cellWidth: number;
+        tableWidth: number;
+      } = await table.evaluate(
+        (
+          element: Element,
+        ): {
+          text: string;
+          title: string;
+          lines: number;
+          cellWidth: number;
+          tableWidth: number;
+        } => {
+          const time: Element = element.querySelector("time")!;
+          const cell: Element = time.closest("td")!;
+          const range: Range = document.createRange();
+          range.selectNodeContents(cell);
+
+          return {
+            text: time.textContent || "",
+            title: cell.getAttribute("title") || "",
+            lines: new Set(
+              Array.from(range.getClientRects()).map(
+                (rect: DOMRect): number => {
+                  return Math.round(rect.top);
+                },
+              ),
+            ).size,
+            cellWidth: cell.getBoundingClientRect().width,
+            tableWidth: element.getBoundingClientRect().width,
+          };
+        },
+      );
+
+      expect(date.lines).toBe(1);
+      expect(date.cellWidth).toBeLessThan(date.tableWidth / 4);
+      expect(date.text).not.toContain("2026");
+      expect(date.title).toContain("2026");
+
+      if (view.lang === "de") {
+        expect(date.text).toContain("Okt.");
+        expect(date.title).toContain("vor 3 Minuten");
+      } else {
+        expect(date.text).toBe("Oct 27, 2:57 PM");
+        expect(date.title).toMatch(WHOLE_DATE_UNDER_THE_POINTER);
+      }
+
+      await screenshot(
+        page,
+        `rich-table-dates-${view.width}${view.lang ? `-${view.lang}` : ""}`,
+      );
+    });
+  }
+
   for (const viewport of [
     { width: 1280, rows: 1 },
     { width: 390, rows: 2 },
@@ -1495,7 +1598,7 @@ test.describe("on a tablet", () => {
     const box: Box = await boxOf(dialog(page));
     expect(Math.round(box.x)).toBe(24);
     expect(Math.round(box.width)).toBe(768 - 48);
-    await expectNoSidewaysScroll(page);
+    await expectNothingScrollsSideways(page);
     await screenshot(page, "answer-768");
   });
 });
@@ -1518,7 +1621,7 @@ test.describe("on a phone", () => {
         return window.getComputedStyle(element).borderTopLeftRadius;
       }),
     ).toBe("0px");
-    await expectNoSidewaysScroll(page);
+    await expectNothingScrollsSideways(page);
     await screenshot(page, "start-incident-390");
   });
 
@@ -1535,7 +1638,7 @@ test.describe("on a phone", () => {
     expect(844 - (box.y + box.height)).toBeLessThanOrEqual(16);
     // A phone has no pointer to point with: the newest answer's actions show.
     await expect(page.getByTestId("ai-chat-copy-answer")).toBeVisible();
-    await expectNoSidewaysScroll(page);
+    await expectNothingScrollsSideways(page);
     await screenshot(page, "answer-390");
   });
 
@@ -1736,12 +1839,12 @@ test.describe("in German", () => {
       await expect(dialog(page)).toBeVisible();
       await settle(page);
 
-      await expectNoSidewaysScroll(page);
+      await expectNothingScrollsSideways(page);
       await screenshot(page, "answer-390-de");
 
       await load(page, "lang=de");
       await openAskAi(page);
-      await expectNoSidewaysScroll(page);
+      await expectNothingScrollsSideways(page);
       await screenshot(page, "start-incident-390-de");
     });
   });
@@ -1935,7 +2038,7 @@ test.describe("in Persian", () => {
       await expect(dialog(page)).toBeVisible();
       await settle(page);
 
-      await expectNoSidewaysScroll(page);
+      await expectNothingScrollsSideways(page);
       await screenshot(page, "answer-390-fa");
     });
   });
@@ -2094,7 +2197,7 @@ test.describe("on a resolved incident", () => {
         await openAskAi(page);
 
         await expect(page.getByTestId("ai-chat-suggestion")).toHaveCount(4);
-        await expectNoSidewaysScroll(page);
+        await expectNothingScrollsSideways(page);
         await screenshot(page, `start-resolved-incident-390-${lang}`);
       }
     });

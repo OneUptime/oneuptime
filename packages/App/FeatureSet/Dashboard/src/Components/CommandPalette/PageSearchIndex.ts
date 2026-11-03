@@ -2279,6 +2279,39 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             ],
           },
           {
+            page: PageMap.SECURITY_EVENTS_SETTINGS_CUSTOM_FIELDS,
+            title: "Custom Fields",
+            icon: IconProp.ViewColumns,
+            keywords: [
+              "security case custom fields",
+              "case fields",
+              "case custom field",
+              "business unit",
+            ],
+          },
+          {
+            page: PageMap.SECURITY_EVENTS_SETTINGS_NOTE_TEMPLATES,
+            title: "Note Templates",
+            icon: IconProp.Pencil,
+            keywords: [
+              "security case note templates",
+              "case note template",
+              "triage template",
+              "containment checklist",
+            ],
+          },
+          {
+            page: PageMap.SECURITY_EVENTS_SETTINGS_NUMBERING,
+            title: "Numbering",
+            icon: IconProp.Hashtag,
+            keywords: [
+              "case number prefix",
+              "case-",
+              "next case number",
+              "case numbers",
+            ],
+          },
+          {
             page: PageMap.SECURITY_EVENTS_SETTINGS_RISK_SCORING,
             title: "Risk Scoring",
             icon: IconProp.Gauge,
@@ -3694,11 +3727,12 @@ const DEVELOPER_PAGE_KEYWORDS: Readonly<
     "iac",
   ],
   [DeveloperDocsPageType.Api]: ["rest api", "api reference", "curl"],
+  [DeveloperDocsPageType.Cli]: ["command line", "terminal", "bash", "script"],
   [DeveloperDocsPageType.AiAssistants]: ["mcp", "claude", "cursor"],
 };
 
 /*
- * The Developer pages (Terraform, API, AI Assistants) of the resources an
+ * The Developer pages (Terraform, API, CLI, AI Assistants) of the resources an
  * area lists, from the same list the menus draw their Developer section
  * from, so a resource that gets them is searchable without a line here.
  */

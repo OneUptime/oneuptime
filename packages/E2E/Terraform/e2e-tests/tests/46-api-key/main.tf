@@ -20,8 +20,10 @@ provider "oneuptime" {
 resource "oneuptime_api_key" "key" {
   name        = "terraform-e2e-api-key"
   description = "API key created by Terraform E2E tests"
-  # Fixed future timestamp: the provider must round-trip this without drift.
-  expires_at = "2031-01-01T00:00:00.000Z"
+  # Fixed future timestamp, without milliseconds: OneUptime keeps it as
+  # "2031-01-01T00:00:00.000Z", the same instant, which must be no drift and
+  # no change after the import round trip.
+  expires_at = "2031-01-01T00:00:00Z"
 }
 
 resource "oneuptime_api_key_permission" "permission" {

@@ -1,4 +1,8 @@
-import { executeApiRequest, ApiRequestOptions } from "../Core/ApiClient";
+import {
+  executeApiRequest,
+  getServerVersion,
+  ApiRequestOptions,
+} from "../Core/ApiClient";
 import API from "Common/Utils/API";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import { JSONValue } from "Common/Types/JSON";
@@ -8,6 +12,7 @@ jest.mock("Common/Utils/API", () => {
   const mockPost: jest.Mock = jest.fn();
   const mockPut: jest.Mock = jest.fn();
   const mockDelete: jest.Mock = jest.fn();
+  const mockGet: jest.Mock = jest.fn();
 
   function MockAPI(
     this: { protocol: string; hostname: string },
@@ -22,6 +27,7 @@ jest.mock("Common/Utils/API", () => {
   MockAPI.post = mockPost;
   MockAPI.put = mockPut;
   MockAPI.delete = mockDelete;
+  MockAPI.get = mockGet;
 
   return {
     __esModule: true,
@@ -384,6 +390,60 @@ describe("ApiClient", () => {
       expect(callArgs.headers["APIKey"]).toBe("test-api-key");
       expect(callArgs.headers["Content-Type"]).toBe("application/json");
       expect(callArgs.headers["Accept"]).toBe("application/json");
+    });
+  });
+
+  /*
+   * GET /api/version answers {"version":"14.0.101","commit":"..."}, and a
+   * OneUptime built without a release answers "unknown": whoami --check
+   * compares only a release with the CLI's.
+   */
+  describe("the server's version", () => {
+    let mockGet: jest.Mock;
+
+    beforeEach(() => {
+      mockGet = API.get as jest.Mock;
+      mockGet.mockReset();
+    });
+
+    it("asks /api/version of the address, with no key", async () => {
+      mockGet.mockResolvedValue(
+        createSuccessResponse({ version: "14.0.101", commit: "abc123" }),
+      );
+
+      expect(await getServerVersion("https://oneuptime.example.com")).toBe(
+        "14.0.101",
+      );
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const callArgs: any = mockGet.mock.calls[0][0];
+      expect(callArgs.url.toString()).toBe(
+        "https://oneuptime.example.com/api/version",
+      );
+      expect(callArgs.headers["APIKey"]).toBeUndefined();
+    });
+
+    it.each([
+      [{ version: " 14.0.101 " }, "14.0.101"],
+      [{ version: "1.0.0" }, "1.0.0"],
+      [{ version: "unknown", commit: "unknown" }, null],
+      [{ version: "" }, null],
+      [{ version: "14.0" }, null],
+      [{ version: 14 }, null],
+      [{}, null],
+    ])(
+      "reads %j as %s",
+      async (data: Record<string, unknown>, expected: string | null) => {
+        mockGet.mockResolvedValue(createSuccessResponse(data));
+
+        expect(await getServerVersion("https://oneuptime.com")).toBe(expected);
+      },
+    );
+
+    it("is null when the address answers an error", async () => {
+      mockGet.mockResolvedValue(createErrorResponse(404, "Not Found"));
+
+      expect(await getServerVersion("https://oneuptime.com")).toBeNull();
     });
   });
 

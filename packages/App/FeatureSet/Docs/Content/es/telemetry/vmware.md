@@ -244,22 +244,40 @@ El receptor no envía ninguna métrica de estado de encendido para una VM. Enví
 
 ![La vista general del vCenter con los recuentos de datacenters, clústeres, hosts ESXi, máquinas virtuales y datastores junto a la CPU y la memoria de los hosts, el uso de los datastores y el CPU ready de las VM](/docs/static/images/VMwareVCenterOverview.png)
 
-La página **Vista general** responde primero a "¿está sano este vCenter?": los hosts efectivos, la CPU y la memoria de los hosts ponderadas por capacidad, el datastore más lleno y el peor tiempo de CPU ready de una VM. Cuando algo está degradado, nombra el objeto responsable, para que no tengas que buscarlo.
+La página **Vista general** responde primero a "¿está sano este vCenter?". Su cabecera dice si llegan datos y cómo está el vCenter: **En buen estado**, **Degradado** mientras algo necesita una revisión, **Con problemas** mientras algo necesita a alguien ya, o **Salud desconocida** mientras el vCenter está desconectado, ya que su último informe ha dejado de ser la verdad. Sus chips cuentan los centros de datos, los clústeres, los hosts ESXi que vCenter alcanza de todos ellos, las VM encendidas de todas ellas, las plantillas y los datastores, y todos salvo los centros de datos abren su lista.
+
+Después viene **Requiere atención**: todo lo que necesita a alguien, lo más urgente primero, cada cosa con el motivo y a un paso de su página. Un host ESXi que vCenter no alcanza, un datastore lleno en más del 90 % y una VM cuya memoria su host pasa a disco son críticos. Un host ocupado en más del 90 %, un datastore lleno en más del 80 %, una VM que espera una CPU libre o a la que el host le quita memoria, un clúster con hosts que no son efectivos o sin la memoria para perder uno, y las alarmas que vCenter cuenta en cada centro de datos necesitan una revisión. Cada umbral es aquel en el que se activa su [plantilla de alerta](/docs/monitor/vmware-monitor#plantillas-de-alerta-predefinidas). Cuando nada requiere atención, no hay tarjeta.
+
+Debajo están los hosts efectivos, la CPU y la memoria de los hosts ponderadas por capacidad, el datastore más lleno y el peor tiempo de CPU ready de una VM, con sus gráficos; **Hosts ESXi**, el estado y la carga de cada host a un paso de su página; y los mayores consumidores.
+
+### Qué dice el estado de un host
+
+vCenter informa del uso de CPU y memoria de un host solo mientras el host está conectado y en marcha, y un host ESXi en marcha siempre usa memoria. Un host que no informa de ningún uso está, por tanto, caído, y lo que cuenta su centro de datos (hosts con los que vCenter ha perdido el contacto, hosts apagados y hosts en espera) dice de qué forma:
+
+| Estado | Cuándo |
+| --- | --- |
+| **Conectado** | vCenter lo alcanza y el host informa de lo que usa. Necesita una revisión mientras su CPU o su memoria están ocupadas en más del 90 %. |
+| **No responde** | vCenter ha perdido el contacto con él: falló, se quedó sin corriente o sin su red de administración, o se desconectó. Crítico: sus VM muestran **Desconectado** y están caídas, salvo que vSphere HA las haya reiniciado en otro lugar. |
+| **Apagado** | Alguien lo apagó desde vCenter. No es un problema por sí mismo. |
+| **En espera** | vSphere DPM lo puso en espera para ahorrar energía, y lo despierta cuando el clúster lo necesita. No es un problema por sí mismo. |
+| **Apagado o en espera** | No informa de ningún uso, y su centro de datos tiene hosts apagados y otros en espera. |
+| **No se informa uso** | No informa de ningún uso, y lo que cuenta su centro de datos no dice por qué. Necesita una revisión. |
+| **Sin informar** | vCenter no ha informado de él en más de 15 minutos. |
 
 ### Hosts ESXi
 
 ![La página de hosts con cada host ESXi y su clúster, datacenter y utilización de CPU y memoria](/docs/static/images/VMwareHosts.png)
 
-Selecciona un host para abrir su página. Responde lo que responde la página de un host fuera de VMware, con lo que vCenter sabe de un hipervisor:
+La lista **Hosts** da el estado de cada host, con el motivo por el que necesita una revisión debajo, y su CPU y su memoria, en ámbar por encima del 90 %. Selecciona un host para abrir su página. Responde lo que responde la página de un host fuera de VMware, con lo que vCenter sabe de un hipervisor:
 
-- **Vista general**: la CPU, la memoria, la latencia del disco más lento y el rendimiento de red en el intervalo de tiempo que elijas, en mosaicos y gráficos (arrastra sobre un gráfico para acercarte); los incidentes y alertas abiertos en el host; sus máquinas virtuales con más carga, marcadas las que esperan una CPU física; sus adaptadores de red físicos y dispositivos de almacenamiento, marcados los errores de paquetes y los discos lentos; qué alertas del host están activadas; y los detalles del host.
+- **Vista general**: **Requiere atención** para el host y las VM que ejecuta; la CPU, la memoria, la latencia del disco más lento y el rendimiento de red en el intervalo de tiempo que elijas, en mosaicos y gráficos (arrastra sobre un gráfico para acercarte); los incidentes y alertas abiertos en el host; sus máquinas virtuales con más carga, marcadas las que esperan una CPU física; sus adaptadores de red físicos y dispositivos de almacenamiento, marcados los errores de paquetes y los discos lentos; qué alertas del host están activadas; y los detalles del host.
 - **Máquinas virtuales**: las VM y plantillas del host, con su estado, pool de recursos, CPU ready, CPU y memoria.
 - **Métricas**: las series de CPU, memoria, red y disco del host en gráficos, por adaptador de red y dispositivo de almacenamiento, cada uno de los cuales se abre en el explorador de métricas.
 - **Registros**: el syslog del propio host, en cuanto lo envía (consulta [Enviar el syslog de ESXi](#opcional-enviar-el-syslog-de-esxi)). Hasta entonces, la pestaña da los comandos que dirigen este host, o todo su clúster, al agente. Un vCenter que recopila una sonda no tiene syslog, porque una sonda no lo recibe.
 
 Cuando vCenter deja de informar de un host, la página lo dice encima de sus pestañas, con cuándo informó vCenter de él por última vez. Tras 15 minutos sin informes, el host sale del inventario: su página lo dice entonces y sigue mostrando sus métricas anteriores.
 
-Las cinco alertas del host (saturación de CPU y de memoria, latencia de disco alta, errores de paquetes de red y paquetes descartados) vigilan cada una todos los hosts del vCenter y se activan para cada host que supera su umbral. La tarjeta **Alertas del host** de la página de un host muestra cuáles están activadas, y su botón abre las **Recomendaciones** del vCenter con las que faltan ya seleccionadas: créalas allí, una vez, para todos los hosts.
+Las seis alertas del host (un host que no responde, saturación de CPU y de memoria, latencia de disco alta, errores de paquetes de red y paquetes descartados) vigilan cada una todos los hosts del vCenter y se activan para cada host que supera su umbral. La tarjeta **Alertas del host** de la página de un host muestra cuáles están activadas, y su botón abre las **Recomendaciones** del vCenter con las que faltan ya seleccionadas: créalas allí, una vez, para todos los hosts.
 
 ### Máquinas virtuales
 
@@ -267,9 +285,19 @@ Las cinco alertas del host (saturación de CPU y de memoria, latencia de disco a
 
 Las máquinas virtuales apagadas y las plantillas también aparecen. vCenter solo informa de contadores de CPU para las VM encendidas, así que sus columnas de CPU muestran N/A en lugar de un cero engañoso.
 
+La página de una VM dice qué está haciendo (**En ejecución**, **Apagado**, **Plantilla** o **Desconectado** mientras vCenter no alcanza su host) y dónde se ejecuta, con su host y su clúster a un paso. Su **Vista general** tiene **Requiere atención** para la VM, su CPU, su CPU ready, su memoria y su disco, los incidentes y alertas abiertos en ella, cuáles de las siete alertas de VM están activadas, y sus detalles. **Métricas** tiene sus gráficos.
+
 ### Datastores
 
 ![La página de datastores con cada datastore, su capacidad usada y total y una barra de utilización](/docs/static/images/VMwareDatastores.png)
+
+La página de un datastore dice cuán lleno está, en rojo por encima del 90 % y en ámbar por encima del 80 %, cuánto queda libre y, mientras crece, cuántos días faltan para que se llene. Muestra los incidentes y alertas abiertos en él, y cuáles de sus dos alertas de capacidad están activadas.
+
+### Clústeres
+
+La página de un clúster dice si está **En buen estado**, **Degradado** o **Con problemas**: cuántos de sus hosts son efectivos, cuánto de su CPU y su memoria efectivas usan sus hosts, y si sus otros hosts podrían asumir las VM de su host más grande (**Fallo de host**). Su **Requiere atención** incluye sus hosts y las VM de estos, sus pestañas **Hosts ESXi** y **Máquinas virtuales** los listan, y **Alertas del clúster** muestra cuáles de sus tres alertas están activadas.
+
+Una página cuyos datos no se pueden leer lo dice, con **Volver a intentar**, y una lista lo dice en su tabla, con **Actualizar**.
 
 ## Opcional — Enviar el syslog de ESXi
 
@@ -459,6 +487,10 @@ El rol Read-Only se asignó en el objeto vCenter sin **Propagate to children**, 
 
 :::details Todas las VM aparecen apagadas
 El estado de encendido de una VM se deduce de los puntos de datos `vcenter.vm.cpu.*` que llegan en la misma recopilación que sus puntos de datos de memoria y disco (consulta [Estado de encendido de las VM](#estado-de-encendido-de-las-vm)). Si cambiaste el procesador `batch` y añadiste un `send_batch_max_size`, un inventario grande se reparte entre varias exportaciones y los puntos de datos de CPU llegan en otra solicitud distinta del resto: vuelve a poner los ajustes de batch incluidos.
+:::
+
+:::details Un host muestra No responde o No se informa uso
+vCenter no informa de ningún uso de CPU ni de memoria del host, así que no está conectado a vCenter o no está en marcha (consulta [Qué dice el estado de un host](#qué-dice-el-estado-de-un-host)). Ante **No responde**, revisa la gestión fuera de banda del host (iDRAC, iLO o BMC) en busca de un fallo de alimentación o de hardware, y su red de administración, y luego si vSphere HA reinició sus VM. **No se informa uso** significa que su centro de datos ha perdido el contacto con un host y tiene otros apagados o en espera, o que sus recuentos aún no han llegado: la vista **Hosts and Clusters** de vCenter dice cuál es el caso de este host.
 :::
 
 :::details Inventarios grandes: recopilaciones lentas, errores de vpxd.stats.maxQueryMetrics

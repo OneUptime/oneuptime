@@ -70,8 +70,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   singularName: "Schedule's On-Call Duty Escalation Rule",
   pluralName: "Schedule's On-Call Duty Escalation Rules",
   icon: IconProp.Calendar,
-  tableDescription:
-    "Manage schedules for on-call duty policy escalation rules.",
+  tableDescription: "Add on-call schedules to your escalation rules.",
 })
 export default class OnCallDutyPolicyEscalationRuleSchedule extends BaseModel {
   @ColumnAccessControl({
@@ -222,8 +221,7 @@ export default class OnCallDutyPolicyEscalationRuleSchedule extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "On-Call Policy ID",
-    description:
-      "ID of your On-Call Policy where this escalation rule belongs.",
+    description: "ID of the on-call policy the escalation rule is in",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -299,7 +297,8 @@ export default class OnCallDutyPolicyEscalationRuleSchedule extends BaseModel {
   @TableColumn({
     type: TableColumnType.ObjectID,
     title: "On Call Duty Policy Schedule ID",
-    description: "ID of the on call schedule which is in this escalation rule.",
+    description:
+      "ID of the on-call schedule the escalation rule pages: whoever is on call in it",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -379,8 +378,7 @@ export default class OnCallDutyPolicyEscalationRuleSchedule extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "On-Call Policy Escalation Rule ID",
-    description:
-      "ID of your On-Call Policy Escalation Rule where this user belongs.",
+    description: "ID of the escalation rule that pages the schedule",
   })
   @Column({
     type: ColumnType.ObjectID,

@@ -103,6 +103,12 @@ export interface VMwareResourceLatestMetric {
   vmTemplateCount: number | null;
   datastoreCount: number | null;
   clusterCount: number | null;
+  notRespondingHostCount: number | null;
+  standbyHostCount: number | null;
+  criticalHostCount: number | null;
+  warningHostCount: number | null;
+  criticalVmCount: number | null;
+  criticalClusterCount: number | null;
   observedAt: Date;
 }
 
@@ -446,6 +452,9 @@ export class Service extends DatabaseService<Model> {
             `$${paramIndex++}::integer, $${paramIndex++}::integer, $${paramIndex++}::integer, ` + // hostCnt, effHostCnt, onHostCnt
             `$${paramIndex++}::integer, $${paramIndex++}::integer, $${paramIndex++}::integer, ` + // vmCnt, onVmCnt, tmplCnt
             `$${paramIndex++}::integer, $${paramIndex++}::integer, ` + // dsCnt, clCnt
+            `$${paramIndex++}::integer, $${paramIndex++}::integer, ` + // notRespHostCnt, standbyHostCnt
+            `$${paramIndex++}::integer, $${paramIndex++}::integer, ` + // critHostCnt, warnHostCnt
+            `$${paramIndex++}::integer, $${paramIndex++}::integer, ` + // critVmCnt, critClCnt
             `$${paramIndex++}::timestamptz` + // observedAt
             `)`,
         );
@@ -474,6 +483,12 @@ export class Service extends DatabaseService<Model> {
           integerOrNull(m.vmTemplateCount),
           integerOrNull(m.datastoreCount),
           integerOrNull(m.clusterCount),
+          integerOrNull(m.notRespondingHostCount),
+          integerOrNull(m.standbyHostCount),
+          integerOrNull(m.criticalHostCount),
+          integerOrNull(m.warningHostCount),
+          integerOrNull(m.criticalVmCount),
+          integerOrNull(m.criticalClusterCount),
           m.observedAt,
         );
       }
@@ -503,6 +518,12 @@ export class Service extends DatabaseService<Model> {
           "vmTemplateCount" = COALESCE(v."tmplCnt", p."vmTemplateCount"),
           "datastoreCount" = COALESCE(v."dsCnt", p."datastoreCount"),
           "clusterCount" = COALESCE(v."clCnt", p."clusterCount"),
+          "notRespondingHostCount" = COALESCE(v."notRespHostCnt", p."notRespondingHostCount"),
+          "standbyHostCount" = COALESCE(v."standbyHostCnt", p."standbyHostCount"),
+          "criticalHostCount" = COALESCE(v."critHostCnt", p."criticalHostCount"),
+          "warningHostCount" = COALESCE(v."warnHostCnt", p."warningHostCount"),
+          "criticalVmCount" = COALESCE(v."critVmCnt", p."criticalVmCount"),
+          "criticalClusterCount" = COALESCE(v."critClCnt", p."criticalClusterCount"),
           "metricsUpdatedAt" = v."observedAt",
           "updatedAt" = now()
         FROM (VALUES ${valueFragments.join(", ")})
@@ -514,6 +535,8 @@ export class Service extends DatabaseService<Model> {
             "cpuReady", "balloon", "swap",
             "hostCnt", "effHostCnt", "onHostCnt",
             "vmCnt", "onVmCnt", "tmplCnt", "dsCnt", "clCnt",
+            "notRespHostCnt", "standbyHostCnt", "critHostCnt", "warnHostCnt",
+            "critVmCnt", "critClCnt",
             "observedAt"
           )
         WHERE

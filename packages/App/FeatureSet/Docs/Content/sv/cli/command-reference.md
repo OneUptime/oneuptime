@@ -5,7 +5,7 @@ Varje kommando i CLI:n `oneuptime`, med dess argument, alternativ och standardv�
 :::cards
 - [Globala alternativ](#globala-alternativ): Alternativen som varje kommando tar.
 - [Inloggning och kontexter](#inloggning-och-kontexter): login och context-kommandona.
-- [Resurskommandon](#resurskommandon): list, get, create, update, delete och count.
+- [Resurskommandon](#resurskommandon): Varje resurs operationer, fält och åtgärder.
 - [Andra kommandon](#andra-kommandon): deploy, whoami, resources, version och help.
 :::
 
@@ -17,7 +17,8 @@ flowchart LR
     O --> C["context"]
     C --> C1["list<br/>use<br/>current<br/>delete"]
     O --> R["incident, monitor<br/>och varje resurs"]
-    R --> R1["list<br/>get<br/>create<br/>update<br/>delete<br/>count"]
+    R --> R1["list<br/>get<br/>create<br/>update<br/>delete<br/>count<br/>fields"]
+    R --> R2["acknowledge<br/>resolve<br/>start<br/>end<br/>add-note"]
     O --> U["deploy<br/>whoami<br/>resources<br/>version<br/>help"]
 ```
 
@@ -29,11 +30,14 @@ flowchart LR
 | `--url <url>` | Adressen till ditt OneUptime för det här kommandot | `ONEUPTIME_URL`, sedan kontextens URL |
 | `--context <name>` | Den sparade kontexten som används för det här kommandot | Den aktuella kontexten |
 | `-o, --output <format>` | `json`, `table` eller `wide` | `table` i en terminal, `json` i en pipe |
+| `--json` | Samma som `-o json` | |
 | `--no-color` | Skriver ut utan färger | Färger, om inte `NO_COLOR` är satt |
 | `-V, --version` | Skriver ut CLI:ns version | |
 | `-h, --help` | Visar hjälpen för ett kommando | |
 
 Alternativen står före eller efter kommandot: `oneuptime --context staging incident list` och `oneuptime incident list --context staging` gör samma sak.
+
+Varje kommando tar `-o` och `--json`, så tabellerna nedan utelämnar dem. Ett kommando vars svar är en mening, till exempel `delete`, skriver ut meningen om inte `-o json` eller `--json` ber om JSON: se [Utdataformat](/docs/cli/output-formats#json).
 
 ## Inloggning och kontexter
 
@@ -53,15 +57,11 @@ oneuptime login <api-key> <instance-url> [--context-name <name>]
 
 ### `oneuptime context list`
 
-Listar de sparade kontexterna; `*` markerar den aktuella. API-nycklar listas aldrig.
+Listar de sparade kontexterna; `*` markerar den aktuella. API-nycklar listas aldrig: JSON ger varje kontexts `name`, `apiUrl` och `isCurrent`.
 
 ```bash
-oneuptime context list [-o <format>]
+oneuptime context list
 ```
-
-| Alternativ | Krävs | Vad det är |
-| --- | --- | --- |
-| `-o, --output <format>` | Nej | `json`, `table` eller `wide`. JSON ger varje kontexts `name`, `apiUrl` och `isCurrent` |
 
 ### `oneuptime context use`
 
@@ -97,14 +97,14 @@ oneuptime context delete <name>
 
 ## Resurskommandon
 
-`<resource>` är kommandot för en sorts post, från tabellerna under [Resurser](#resurser), till exempel `incident` eller `monitor`. Se [Resursoperationer](/docs/cli/resource-operations) för exempel.
+`<resource>` är kommandot för en sorts post, från tabellen under [Resurser](#resurser), till exempel `incident` eller `monitor`. En resurs har de operationer som API:et tar för den, de flesta alla sex, och `oneuptime <resource> --help` listar dess egna. Se [Resursoperationer](/docs/cli/resource-operations) för exempel.
 
 ### `oneuptime <resource> list`
 
 Listar poster, de nyaste först. Etiketter listas i stället efter namn, numrerade etiketter först (`2. Team` före `10. Owner`).
 
 ```bash
-oneuptime <resource> list [--query <json>] [--limit <n>] [--skip <n>] [--sort <json>] [-o <format>]
+oneuptime <resource> list [--query <json>] [--limit <n>] [--skip <n>] [--sort <json>] [--fields <names>] [--all]
 ```
 
 | Alternativ | Vad det gör | Standard |
@@ -113,52 +113,56 @@ oneuptime <resource> list [--query <json>] [--limit <n>] [--skip <n>] [--sort <j
 | `--limit <n>` | Det högsta antalet poster att returnera, upp till 10 000 | `10` |
 | `--skip <n>` | Hur många poster som hoppas över först | `0` |
 | `--sort <json>` | Ordningen, som JSON: `{"<field>":"ASC"}` eller `{"<field>":"DESC"}` | De nyaste först |
-| `-o, --output <format>` | `json`, `table` eller `wide` | `table` i en terminal, `json` i en pipe |
+| `--fields <names>` | Fälten som ska returneras, åtskilda av kommatecken; ett fält i en kopplad post efter en punkt, som i `currentIncidentState.name` | Varje fält som nyckeln får läsa |
+| `--all` | Varje post som matchar, 100 åt gången, upp till 100 000, i stället för `--limit` och `--skip`. Bara poster: telemetri har ingen `--all` | |
 
 ### `oneuptime <resource> get`
 
-Läser en post. Bara poster: telemetri har ingen `get`.
+Läser en post.
 
 ```bash
-oneuptime <resource> get <id> [-o <format>]
+oneuptime <resource> get <id> [--fields <names>]
 ```
 
 | Argument eller alternativ | Krävs | Vad det är |
 | --- | --- | --- |
 | `<id>` | Ja | Postens ID, ett UUID |
-| `-o, --output <format>` | Nej | `json`, `table` eller `wide` |
+| `--fields <names>` | Nej | Fälten som ska returneras, åtskilda av kommatecken. Standard: varje fält som nyckeln får läsa |
 
 ### `oneuptime <resource> create`
 
 Skapar en post och skriver ut den.
 
 ```bash
-oneuptime <resource> create (--data <json> | --file <path>) [-o <format>]
+oneuptime <resource> create [--<field> <value>]... [--data <json>] [--file <path>]
 ```
 
 | Alternativ | Krävs | Vad det är |
 | --- | --- | --- |
-| `--data <json>` | Ett av de två | Posten, som JSON |
-| `--file <path>` | Ett av de två | En JSON-fil med posten. Anges den tillsammans med `--data` används filen |
-| `-o, --output <format>` | Nej | `json`, `table` eller `wide` |
+| `--<field> <value>` | De fält som ett skapande måste ange | Ett fälts värde: `--title <text>`, `--incident-severity-id <id>`, `--labels <ids>`. `oneuptime <resource> create --help` listar dem. Bara poster |
+| `--data <json>` | Nej | Posten som JSON |
+| `--file <path>` | Nej | En JSON-fil med posten. Anges den tillsammans med `--data` används filen |
+
+Flaggorna läggs ovanpå `--data` eller `--file`. Ett fält som nämner en person med användar-ID har även en flagga som nämner personen med e-postadress: `--user-email` bredvid `--user-id`.
 
 ### `oneuptime <resource> update`
 
-Ändrar de fält du anger. Bara poster: telemetri har ingen `update`.
+Ändrar de fält du anger.
 
 ```bash
-oneuptime <resource> update <id> --data <json> [-o <format>]
+oneuptime <resource> update <id> [--<field> <value>]... [--data <json>] [--file <path>]
 ```
 
 | Argument eller alternativ | Krävs | Vad det är |
 | --- | --- | --- |
 | `<id>` | Ja | Postens ID |
-| `--data <json>` | Ja | Fälten som ska ändras, som JSON |
-| `-o, --output <format>` | Nej | `json`, `table` eller `wide` |
+| `--<field> <value>` | Nej | Ett fält som ska ändras: `oneuptime <resource> update --help` listar dem. Bara poster |
+| `--data <json>` | Nej | De fält som ska ändras, som JSON |
+| `--file <path>` | Nej | En JSON-fil med de fält som ska ändras. Anges den tillsammans med `--data` används filen |
 
 ### `oneuptime <resource> delete`
 
-Tar bort en post direkt, utan att fråga. Bara poster: telemetri har ingen `delete`.
+Tar bort en post direkt, utan att fråga.
 
 ```bash
 oneuptime <resource> delete <id> [--force]
@@ -174,37 +178,88 @@ oneuptime <resource> delete <id> [--force]
 Räknar poster och skriver ut talet.
 
 ```bash
-oneuptime <resource> count [--query <json>] [-o <format>]
+oneuptime <resource> count [--query <json>]
 ```
 
 | Alternativ | Krävs | Vad det är |
 | --- | --- | --- |
 | `--query <json>` | Nej | Ett filter, som JSON. Utan filter varje post som nyckeln får läsa |
-| `-o, --output <format>` | Nej | `json`, `table` eller `wide` |
+
+### `oneuptime <resource> fields`
+
+Listar resursens fält: vad varje används till, dess typ, om ett skapande måste ange det, och den flagga som sätter det. Det läser dem från själva CLI:n, utan API-nyckel och utan begäran.
+
+```bash
+oneuptime <resource> fields
+```
+
+### `oneuptime <resource> acknowledge`
+
+Flyttar en incident, ett larm eller en episod av något av dem till ditt projekts bekräftad-tillstånd, som knappen i instrumentpanelen gör. En post som redan är bekräftad, eller förbi det, lämnas som den är.
+
+```bash
+oneuptime <resource> acknowledge <id>
+```
+
+| Argument | Krävs | Vad det är |
+| --- | --- | --- |
+| `<id>` | Ja | Postens ID |
+
+### `oneuptime <resource> resolve`
+
+Flyttar en incident, ett larm eller en episod av något av dem till ditt projekts löst-tillstånd.
+
+```bash
+oneuptime <resource> resolve <id>
+```
+
+| Argument | Krävs | Vad det är |
+| --- | --- | --- |
+| `<id>` | Ja | Postens ID |
+
+### `oneuptime <resource> start`
+
+Flyttar en schemalagd underhållshändelse till ditt projekts pågående tillstånd.
+
+```bash
+oneuptime <resource> start <id>
+```
+
+| Argument | Krävs | Vad det är |
+| --- | --- | --- |
+| `<id>` | Ja | Händelsens ID |
+
+### `oneuptime <resource> end`
+
+Flyttar en schemalagd underhållshändelse till ditt projekts avslutad-tillstånd.
+
+```bash
+oneuptime <resource> end <id>
+```
+
+| Argument | Krävs | Vad det är |
+| --- | --- | --- |
+| `<id>` | Ja | Händelsens ID |
+
+### `oneuptime <resource> add-note`
+
+Lägger till en anteckning på en incident, ett larm, en episod av något av dem eller en schemalagd underhållshändelse.
+
+```bash
+oneuptime <resource> add-note <id> --note <markdown> [--public]
+```
+
+| Argument eller alternativ | Krävs | Vad det är |
+| --- | --- | --- |
+| `<id>` | Ja | Postens ID |
+| `--note <markdown>` | Ja | Anteckningen i Markdown |
+| `--public` | Nej | Publicerar den på postens statussidor, där dess prenumeranter får besked. Bara incidenter, deras episoder och schemalagt underhåll |
 
 ### Resurser
 
-Poster tar `list`, `get`, `create`, `update`, `delete` och `count`:
+Varje resurs i OneUptimes API är ett kommando, med de operationer som API:et tar för den, `fields` och åtgärderna för de poster som har sådana:
 
-| Område | Kommandon |
-| --- | --- |
-| Övervakning | `monitor`, `monitor-status`, `monitor-status-event` |
-| Incidenter | `incident`, `incident-state`, `incident-severity`, `incident-state-timeline`, `incident-public-note`, `incident-internal-note`, `incident-alert`, `postmortem-status` |
-| Larm | `alert`, `alert-state`, `alert-severity`, `alert-state-timeline`, `alert-internal-note` |
-| Statussidor | `status-page`, `status-page-announcement` |
-| Planerat underhåll | `scheduled-maintenance-event`, `scheduled-maintenance-state`, `scheduled-maintenance-state-timeline` |
-| Team och jour | `team`, `on-call-policy` |
-| Säkerhet | `security-case`, `security-case-evidence`, `security-case-note`, `security-case-priority`, `security-case-status`, `security-case-task`, `security-detection`, `security-playbook` |
-| Datasäkerhet | `data-store`, `data-store-finding`, `data-store-access-entry`, `data-security-identity`, `data-flow`, `data-security-issue`, `data-security-scan`, `custom-data-type`, `check-setting`, `residency-rule`, `data-security-setting` |
-| Etiketter | `label` |
-
-Telemetri tar `list`, `create` och `count`:
-
-| Område | Kommandon |
-| --- | --- |
-| Observerbarhet | `log`, `metric`, `span`, `exception-instance`, `monitor-log` |
-| Säkerhet | `security-event`, `threat-intel-indicator` |
-| Ändringar och kostnader | `change-event`, `kubernetes-cost-allocation` |
+{{CLI_RESOURCE_COMMANDS}}
 
 CLI:n släpps tillsammans med OneUptime, så `oneuptime resources` listar kommandona i den version du har installerat.
 
@@ -220,6 +275,8 @@ Varje operation är en begäran till API:et, med nyckeln i headern `APIKey`. `<p
 | `update` | `PUT /api/<path>/<id>/` | `{"data": ...}` |
 | `delete` | `DELETE /api/<path>/<id>/` | Ingen |
 | `count` | `POST /api/<path>/count` | `query` |
+
+En åtgärd läser ditt projekts tillstånd och posten och skapar sedan en rad i postens tillståndstidslinje, som knappen i instrumentpanelen gör: `acknowledge` på en incident skapar en `incident-state-timeline`. `add-note` skapar en `incident-internal-note`, eller med `--public` en `incident-public-note`. En e-postflagga listar först projektets teammedlemmar med den adressen. När OneUptime avvisar ett fält som nyckeln inte får läsa frågar en lista eller en läsning igen utan fältet.
 
 ## Andra kommandon
 
@@ -250,24 +307,27 @@ oneuptime deploy [--service <name>] [--service-version <version>] [--previous-ve
 
 ### `oneuptime whoami`
 
-Visar URL:en och API-nyckeln som nästa kommando kommer att använda, med nyckeln maskerad, och kontexten de kommer från. Den anropar inte OneUptime. Se [Kontrollera vad CLI:n kommer att använda](/docs/cli/authentication#kontrollera-vad-clin-kommer-att-använda).
+Visar URL:en och API-nyckeln som nästa kommando kommer att använda, med nyckeln maskerad, och kontexten de kommer från. Utan `--check` anropar det inte OneUptime. Se [Kontrollera vad CLI:n kommer att använda](/docs/cli/authentication#kontrollera-vad-clin-kommer-att-använda).
 
 ```bash
-oneuptime whoami
+oneuptime whoami [--check]
 ```
+
+| Alternativ | Krävs | Vad det är |
+| --- | --- | --- |
+| `--check` | Nej | Frågar OneUptime om den godtar nyckeln, och visar nyckelns projekt, ditt OneUptimes version och CLI:ns |
 
 ### `oneuptime resources`
 
-Listar varje sorts post som CLI:n har ett kommando för: dess kommando, namn i singular och plural, typ och API-sökväg, samt totalen.
+Listar varje sorts post som CLI:n har ett kommando för: dess kommando, namn i singular och plural, typ och API-sökväg, och totalen. JSON ger för var och en `name`, `singularName`, `pluralName`, `modelType`, `apiPath`, `operations` och `actions`.
 
 ```bash
-oneuptime resources [--type <type>] [-o <format>]
+oneuptime resources [--type <type>]
 ```
 
 | Alternativ | Krävs | Vad det är | Standard |
 | --- | --- | --- | --- |
 | `--type <type>` | Nej | `database` för poster, `analytics` för telemetri | Båda |
-| `-o, --output <format>` | Nej | `json`, `table` eller `wide`. JSON ger var och ens `name`, `singularName`, `pluralName`, `modelType` och `apiPath` | `table` i en terminal, `json` i en pipe |
 
 ### `oneuptime version`
 

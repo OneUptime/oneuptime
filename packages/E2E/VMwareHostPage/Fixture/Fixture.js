@@ -395,15 +395,17 @@ if (OPEN === "1") {
  * would have saved.
  */
 const HOST_ALERT_IDS = [
+  "vmware-host-not-responding",
   "vmware-host-cpu-saturation",
   "vmware-host-memory-saturation",
   "vmware-host-disk-latency-high",
   "vmware-host-network-packet-errors",
   "vmware-host-network-packet-drops",
 ];
+// Some: the two saturation alerts, as a vCenter set up before Host Not Responding.
 const coveredAlertIds =
   ALERTS === "some"
-    ? HOST_ALERT_IDS.slice(0, 2)
+    ? HOST_ALERT_IDS.slice(1, 3)
     : ALERTS === "all"
       ? HOST_ALERT_IDS
       : [];
@@ -1137,8 +1139,12 @@ function FixtureApp() {
   );
 }
 
+/*
+ * Navigates as the Dashboard does (its src/Index.tsx): each navigation renders
+ * at once, not in a React transition (Tests/Ops/E2EFixtureRouters).
+ */
 createRoot(document.getElementById("root")).render(
-  <BrowserRouter>
+  <BrowserRouter useTransitions={false}>
     <FixtureApp />
   </BrowserRouter>,
 );

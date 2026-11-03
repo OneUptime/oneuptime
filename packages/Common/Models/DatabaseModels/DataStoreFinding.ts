@@ -288,6 +288,7 @@ export default class DataStoreFinding extends BaseModel {
   @ColumnAccessControl(serverWrittenColumnAccess)
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(DataCategory),
     required: false,
     computed: true,
     canReadOnRelationQuery: true,
@@ -304,6 +305,7 @@ export default class DataStoreFinding extends BaseModel {
   @ColumnAccessControl(serverWrittenColumnAccess)
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(DataSensitivity),
     required: false,
     computed: true,
     canReadOnRelationQuery: true,
@@ -354,6 +356,7 @@ export default class DataStoreFinding extends BaseModel {
   @ColumnAccessControl(serverWrittenColumnAccess)
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(DataConfidence),
     required: true,
     computed: true,
     canReadOnRelationQuery: true,

@@ -10,6 +10,9 @@
     "!**/Tests/**",
     "!Index.ts"
   ],
+  "globalSetup": "<rootDir>/Tests/Setup/GlobalSetup.ts",
+  "globalTeardown": "<rootDir>/Tests/Setup/GlobalTeardown.ts",
+  "setupFiles": ["<rootDir>/Tests/Setup/ThrowawayHome.ts"],
   "setupFilesAfterEnv": [],
   "testTimeout": 30000,
   "modulePathIgnorePatterns": ["<rootDir>/build/"],

@@ -272,6 +272,7 @@ export default class RunbookExecution extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(RunbookExecutionStatus),
     title: "Status",
     description: "Current status of this runbook execution.",
   })
@@ -659,6 +660,7 @@ export default class RunbookExecution extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(RunbookTriggerType),
     title: "Trigger",
     description:
       'What started this run: "Manual" (a person, or the API), "Rule" (a runbook rule), "AutoRemediation", "AI" (OneUptime AI), "Schedule" (the runbook\'s schedule) or "Webhook" (a call to the runbook\'s webhook URL). Empty for runs started before it was recorded.',

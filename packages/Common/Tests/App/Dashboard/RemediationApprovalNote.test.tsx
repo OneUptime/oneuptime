@@ -22,7 +22,7 @@ jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownViewer", () => {
 
 import RemediationStep, {
   REMEDIATION_APPROVAL_NOTE,
-  isRemediationApprovalNoteShown,
+  isRemediationFixApprovable,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationStep";
 import AutoRemediationSuggestion from "../../../Models/DatabaseModels/AutoRemediationSuggestion";
 import AutoRemediationSuggestionStatus from "../../../Types/AutoRemediation/AutoRemediationSuggestionStatus";
@@ -33,17 +33,21 @@ import ObjectID from "../../../Types/ObjectID";
 import AiResourceType from "../../../Types/ResourceAiAgent/AiResourceType";
 import RunbookStepType from "../../../Types/Runbook/RunbookStepType";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import { openRemediationFixes } from "./RemediationFixHarness";
 
 /*
- * WHAT APPROVING A FIX DOES, OVER THE FIXES OF THE AI CARD'S REMEDIATION
- * STEP (block 43): "Approving runs exactly what is shown, under your name."
+ * WHAT APPROVING A FIX DOES, RIGHT OVER ITS APPROVE & RUN (block 43):
+ * "Approving runs exactly what is shown, under your name."
  *
  * It was the Remediation card's description, which also listed every kind
  * of fix there is ("Fixes OneUptime AI proposed or applied for this signal
  * - kubectl on a cluster, commands through a resource's AI agent, commands
  * on a Runner, or a runbook ...") above every fix, whatever it was. In the
  * step each fix says what it is, so only the sentence that matters before
- * the press is left, and only while a fix waits for one.
+ * the press is left. Since a fix folds to its sentence (fu-ai-remediation),
+ * it is said inside the fix, right over Approve & Run and under what it
+ * runs, and only while Approve & Run is there: over folded fixes, "what is
+ * shown" was about nothing in sight.
  */
 
 const INCIDENT_ID: ObjectID = new ObjectID(
@@ -161,7 +165,7 @@ function sshPlan(): AutoRemediationSuggestion {
   });
 }
 
-describe("isRemediationApprovalNoteShown", () => {
+describe("isRemediationFixApprovable", () => {
   test("a fix of any kind that waits for approval: kubectl, a resource's AI agent, a Runner, a runbook, MCP servers", () => {
     for (const fix of [
       clusterRound(),
@@ -170,7 +174,7 @@ describe("isRemediationApprovalNoteShown", () => {
       runbookPick(),
       mcpFix(),
     ]) {
-      expect(isRemediationApprovalNoteShown([fix])).toBe(true);
+      expect(isRemediationFixApprovable(fix)).toBe(true);
     }
   });
 
@@ -182,33 +186,22 @@ describe("isRemediationApprovalNoteShown", () => {
       AutoRemediationSuggestionStatus.Dismissed,
       AutoRemediationSuggestionStatus.NoneApplicable,
     ]) {
-      expect(
-        isRemediationApprovalNoteShown([
-          clusterRound({ status }),
-          runbookPick({ status }),
-          mcpFix({ status }),
-        ]),
-      ).toBe(false);
+      for (const fix of [
+        clusterRound({ status }),
+        runbookPick({ status }),
+        mcpFix({ status }),
+      ]) {
+        expect(isRemediationFixApprovable(fix)).toBe(false);
+      }
     }
-    expect(isRemediationApprovalNoteShown([])).toBe(false);
   });
 
-  test("a plan that can no longer be approved says nothing about approving", () => {
-    expect(isRemediationApprovalNoteShown([sshPlan()])).toBe(false);
-  });
-
-  test("one fix waiting among others that ran is enough", () => {
-    expect(
-      isRemediationApprovalNoteShown([
-        runbookPick({ status: AutoRemediationSuggestionStatus.Approved }),
-        clusterRound(),
-        mcpFix({ status: AutoRemediationSuggestionStatus.AutoExecuted }),
-      ]),
-    ).toBe(true);
+  test("a plan that can no longer be approved is not", () => {
+    expect(isRemediationFixApprovable(sshPlan())).toBe(false);
   });
 });
 
-describe("RemediationStep: what approving does", () => {
+describe("RemediationStep: what approving does, right over Approve & Run", () => {
   let getListSpy: ReturnType<typeof jest.spyOn>;
 
   beforeEach(() => {
@@ -238,39 +231,77 @@ describe("RemediationStep: what approving does", () => {
     return await screen.findByTestId("remediation-fixes");
   }
 
-  test("over the fixes while one waits for approval: one sentence, before the first fix", async () => {
+  test("a fix folded to its sentence shows nothing, so nothing says approving runs what is shown; opened, the note is over Approve & Run, under what it runs", async () => {
     const fixes: HTMLElement = await renderStep([resourceRound()]);
 
-    const note: HTMLElement = within(fixes).getByTestId(
+    // Folded: one press, Review and approve, and no note over nothing.
+    expect(within(fixes).queryByTestId("remediation-approval-note")).toBeNull();
+    expect(within(fixes).queryByText("Approve & Run")).toBeNull();
+
+    await openRemediationFixes();
+
+    const fix: HTMLElement = within(fixes).getByTestId("remediation-fix");
+    const note: HTMLElement = within(fix).getByTestId(
       "remediation-approval-note",
     );
     expect(note).toHaveTextContent(REMEDIATION_APPROVAL_NOTE);
     expect(REMEDIATION_APPROVAL_NOTE).toBe(
       "Approving runs exactly what is shown, under your name.",
     );
-    // It heads the fixes: the first fix follows it.
-    const firstFix: HTMLElement =
-      within(fixes).getAllByTestId("remediation-fix")[0]!;
+    // Under the commands it runs, right over the buttons.
+    const details: HTMLElement = within(fix).getByTestId(
+      "remediation-fix-details",
+    );
+    const actions: HTMLElement = within(fix).getByTestId(
+      "remediation-fix-actions",
+    );
     expect(
-      note.compareDocumentPosition(firstFix) & Node.DOCUMENT_POSITION_FOLLOWING,
+      details.compareDocumentPosition(note) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+    expect(note.nextElementSibling).toBe(actions);
+    expect(within(actions).getByText("Approve & Run")).toBeInTheDocument();
+  });
+
+  test("a runbook that waits for approval has nothing to fold: its note is over its Approve & Run straight away", async () => {
+    const fixes: HTMLElement = await renderStep([runbookPick()]);
+
+    const note: HTMLElement = await within(fixes).findByTestId(
+      "remediation-approval-note",
+    );
+    expect(note.nextElementSibling).toBe(
+      within(fixes).getByTestId("remediation-fix-actions"),
+    );
     expect(within(fixes).getByText("Approve & Run")).toBeInTheDocument();
   });
 
-  test("no list of every kind of fix there is, whatever the fixes are", async () => {
+  test("each opened fix that waits says it over its own Approve & Run, and no list of every kind of fix there is", async () => {
     await renderStep([clusterRound(), resourceRound(), mcpFix()]);
+    await openRemediationFixes();
 
+    const fixes: Array<HTMLElement> = screen.getAllByTestId("remediation-fix");
+    expect(fixes).toHaveLength(3);
+    for (const fix of fixes) {
+      const notes: Array<HTMLElement> = within(fix).getAllByTestId(
+        "remediation-approval-note",
+      );
+      expect(notes).toHaveLength(1);
+      expect(within(fix).getByTestId("remediation-approve-button")).toBe(
+        within(notes[0]!.nextElementSibling as HTMLElement).getByTestId(
+          "remediation-approve-button",
+        ),
+      );
+    }
     expect(
       screen.queryByText(OLD_DESCRIPTION_START, { exact: false }),
     ).not.toBeInTheDocument();
     expect(screen.queryByText(OLD_DESCRIPTION_WORDS)).not.toBeInTheDocument();
-    expect(screen.getAllByTestId("remediation-approval-note")).toHaveLength(1);
   });
 
-  test("a fix that ran on its own says nothing about approving", async () => {
+  test("a fix that ran on its own says nothing about approving, opened or not", async () => {
     await renderStep([
       clusterRound({ status: AutoRemediationSuggestionStatus.AutoExecuted }),
     ]);
+    await openRemediationFixes();
 
     expect(
       screen.queryByTestId("remediation-approval-note"),
@@ -280,6 +311,7 @@ describe("RemediationStep: what approving does", () => {
 
   test("a plan that can no longer be approved: its own note, and nothing about approving", async () => {
     await renderStep([sshPlan()]);
+    await openRemediationFixes();
 
     expect(
       await screen.findByTestId("remediation-removed-ssh-note"),

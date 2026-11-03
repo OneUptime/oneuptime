@@ -46,6 +46,7 @@ import EntityType from "../../Types/Telemetry/EntityType";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
 import logger, { LogAttributes } from "../Utils/Logger";
+import OldestKeyMap from "../../Utils/OldestKeyMap";
 
 const MAX_GROUP_BY_ATTRIBUTE_KEYS: number = 10;
 const MAX_GROUP_BY_ATTRIBUTE_KEY_LENGTH: number = 256;
@@ -124,10 +125,10 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
    * and use the count-weighted expressions instead. Bounded + TTL'd so
    * a tenant churning metric names can't grow it without limit.
    */
-  private metricPointTypeCache: Map<
+  private metricPointTypeCache: OldestKeyMap<
     string,
     { pointType: string | null; expiresAt: number }
-  > = new Map();
+  > = new OldestKeyMap();
 
   /*
    * Point-type hint per aggregateBy call. toAggregateStatement is a
@@ -161,10 +162,10 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
    * refresh fires one aggregate per metric name, all for the same
    * service, and each would otherwise hit Postgres.
    */
-  private serviceEntityKeysCache: Map<
+  private serviceEntityKeysCache: OldestKeyMap<
     string,
     { keys: Array<string>; expiresAt: number }
-  > = new Map();
+  > = new OldestKeyMap();
 
   private inFlightServiceEntityKeyLookups: Map<string, Promise<Array<string>>> =
     new Map();
@@ -438,9 +439,8 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     while (
       this.serviceEntityKeysCache.size >= SERVICE_ENTITY_KEYS_CACHE_MAX_ENTRIES
     ) {
-      const oldestKey: string | undefined = this.serviceEntityKeysCache
-        .keys()
-        .next().value;
+      const oldestKey: string | undefined =
+        this.serviceEntityKeysCache.oldestKey();
       if (oldestKey === undefined) {
         break;
       }
@@ -590,9 +590,8 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
      * re-issuing its lookup at once.
      */
     while (this.metricPointTypeCache.size >= POINT_TYPE_CACHE_MAX_ENTRIES) {
-      const oldestKey: string | undefined = this.metricPointTypeCache
-        .keys()
-        .next().value;
+      const oldestKey: string | undefined =
+        this.metricPointTypeCache.oldestKey();
       if (oldestKey === undefined) {
         break;
       }

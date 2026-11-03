@@ -206,6 +206,7 @@ export default class RunnerJob extends BaseModel {
   @Index()
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(RunnerJobOrigin),
     required: true,
     isDefaultValueColumn: true,
     title: "Origin",
@@ -367,6 +368,7 @@ export default class RunnerJob extends BaseModel {
   @Index()
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(AiResourceType),
     required: false,
     canReadOnRelationQuery: true,
     title: "Resource Type",
@@ -453,6 +455,7 @@ export default class RunnerJob extends BaseModel {
   })
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(RunbookStepType),
     required: true,
     title: "Step Type",
     description:
@@ -763,6 +766,7 @@ export default class RunnerJob extends BaseModel {
   @Index()
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(RunnerJobStatus),
     required: true,
     title: "Status",
     description: "Lifecycle status of this job.",

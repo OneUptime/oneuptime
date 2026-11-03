@@ -7,6 +7,7 @@ import {
 } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * THE PROBE STATUS MONITOR, IN A REAL BROWSER.
@@ -187,16 +188,6 @@ function probeRows(scope: Page | Locator): Locator {
   return scope.getByTestId("probe-status-monitor-probe-row");
 }
 
-async function noSidewaysScroll(page: Page): Promise<void> {
-  const overflow: number = await page.evaluate((): number => {
-    return (
-      document.documentElement.scrollWidth -
-      document.documentElement.clientWidth
-    );
-  });
-  expect(overflow, "the page does not scroll sideways").toBeLessThanOrEqual(0);
-}
-
 test.describe("a Probe Status monitor's overview", () => {
   test("every probe connected: Operational, its latest result, what it watches, evaluated every minute", async ({
     page,
@@ -358,7 +349,7 @@ test.describe("a Probe Status monitor's overview", () => {
     await page.setViewportSize({ width: 390, height: 900 });
     await openOverview(page, "&state=offline");
     await expect(probeRows(page)).toHaveCount(2, { timeout: 30000 });
-    await noSidewaysScroll(page);
+    await expectNoSidewaysScroll(page);
     await screenshot(page, "probe-status-overview-phone");
 
     await page.setViewportSize({ width: 1440, height: 1000 });
@@ -681,7 +672,7 @@ test.describe("Create Monitor: Probe Status", () => {
         return pickedProbes(page);
       })
       .toHaveLength(3);
-    await noSidewaysScroll(page);
+    await expectNoSidewaysScroll(page);
     await screenshot(page, "probe-status-create-phone");
   });
 });

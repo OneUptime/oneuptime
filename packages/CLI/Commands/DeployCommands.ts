@@ -10,7 +10,14 @@ import {
   getResolvedInstanceUrl,
 } from "../Core/ConfigManager";
 import { handleError } from "../Core/ErrorHandler";
-import { printSuccess } from "../Core/OutputFormatter";
+import {
+  createJsonOption,
+  createOutputOption,
+  formatOutput,
+  isJsonOutputRequested,
+  printSuccess,
+  resolveOutputFormat,
+} from "../Core/OutputFormatter";
 
 /*
  * oneuptime deploy: record a deploy - or another change - from a pipeline,
@@ -194,7 +201,9 @@ export function registerDeployCommands(program: Command): void {
       "--ingestion-key <key>",
       "A telemetry ingestion key (default: ONEUPTIME_TELEMETRY_INGESTION_KEY)",
     )
-    .action(async (options: DeployOptions) => {
+    .addOption(createOutputOption())
+    .addOption(createJsonOption())
+    .action(async (options: DeployOptions, cmd: Command) => {
       try {
         const globals: Record<string, unknown> = program.opts();
         const instanceUrl: string = getResolvedInstanceUrl({
@@ -214,6 +223,17 @@ export function registerDeployCommands(program: Command): void {
 
         if (Number(result["ingested"] || 0) < 1) {
           throw new Error("OneUptime did not record the change.");
+        }
+
+        if (isJsonOutputRequested(cmd)) {
+          // eslint-disable-next-line no-console
+          console.log(
+            formatOutput(
+              { ingested: Number(result["ingested"]), event },
+              resolveOutputFormat(cmd),
+            ),
+          );
+          return;
         }
 
         printSuccess(describeRecorded(event));

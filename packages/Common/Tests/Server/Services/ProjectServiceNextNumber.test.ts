@@ -675,6 +675,9 @@ describe("ProjectService: where numbers start", () => {
           scheduledMaintenanceCounter: 3,
           scheduledMaintenanceNumbersStartAt: 4,
           scheduledMaintenanceNumberPrefix: "",
+          securityCaseCounter: 142,
+          securityCaseNumbersStartAt: null,
+          securityCaseNumberPrefix: "CASE-",
         }) as never,
       );
 
@@ -716,6 +719,13 @@ describe("ProjectService: where numbers start", () => {
           highestNumber: 3,
           nextNumber: 4,
           numbersStartAt: 4,
+        },
+        {
+          kind: NumberedRecordKind.SecurityCase,
+          prefix: "CASE-",
+          highestNumber: 142,
+          nextNumber: 143,
+          numbersStartAt: null,
         },
       ]);
 

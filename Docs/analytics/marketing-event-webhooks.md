@@ -143,6 +143,8 @@ Every event has the same shape:
     "utmSourcePlatform": "google_ads",
     "utmCreativeFormat": "video",
     "utmMarketingTactic": "prospecting",
+    "gadSource": "1",
+    "gadCampaignId": "22334455",
     "utmUrl": "https://oneuptime.com/enterprise/demo?gclid=abc",
     "clickIds": { "gclid": "abc" },
     "firstTouch": {
@@ -162,7 +164,7 @@ Every event has the same shape:
 | `occurredAt`    | string  | ISO 8601 UTC. When the conversion happened, not when it was sent.                                                             |
 | `email`         | string? | Plaintext address. Absent when OneUptime has none.                                                                            |
 | `emailHash`     | string? | SHA-256 hex of the trimmed, lowercased address.                                                                               |
-| `attribution`   | object  | Campaign the converting visitor carried. All fields optional; `clickIds` and `firstTouch` are always objects, possibly empty. UTM keys are exactly `UtmWireKeyToPropertyKey` in `packages/Common/Types/Marketing/Attribution.ts`, in camelCase. |
+| `attribution`   | object  | Campaign the converting visitor carried. All fields optional; `clickIds` and `firstTouch` are always objects, possibly empty. Campaign keys are exactly `UtmWireKeyToPropertyKey` in `packages/Common/Types/Marketing/Attribution.ts`, in camelCase: the UTM parameters, and `gadSource` and `gadCampaignId`, the `gad_source` and `gad_campaignid` Google Ads adds to its ad clicks. |
 | `data`          | object  | Event-specific detail — see each event below.                                                                                 |
 
 ### Two things the envelope does not give you
@@ -305,8 +307,8 @@ moment `subscription_started` could only promise.
 }
 ```
 
-`data` also carries the campaign as `utm_*` keys and `click_ids`, as PostHog's
-`server/first_payment` does.
+`data` also carries the campaign as `utm_*` and `gad_*` keys and `click_ids`, as
+PostHog's `server/first_payment` does.
 
 **What counts as the first payment.** The first invoice on the project's Stripe
 customer whose `amount_paid` is above zero, in the order the invoices were paid
@@ -338,7 +340,7 @@ nobody is present to send when a trial converts.
 
 - `transaction_id` is this event's `eventId`, which GA4 deduplicates purchases on. `value` and `currency` are as above, and the plan is the one item.
 - It is sent only for a project whose row carries a campaign: a UTM value, a click ID or a first touch. The signup form and Sign in with Microsoft hand one over only while measurement is allowed, so it is the server's one evidence that whoever started the trial allowed Google Analytics — and a campaign is what the purchase is there to be credited to. A converted trial with no campaign on its project is not sent, so GA4's trial revenue counts campaign-attributed conversions only.
-- The campaign travels with the purchase, as a `campaign_details` event ahead of it (source, medium, campaign, campaign_id, term and content from the row's last touch, or `google / cpc` for a Google Ads click that carried only a `gclid`). GA4 applies it to the events after it; there is no browser session left for the purchase to join.
+- The campaign travels with the purchase, as a `campaign_details` event ahead of it (source, medium, campaign, campaign_id, term and content from the row's last touch, or `google / cpc` for a Google Ads click that carried no UTMs; campaign_id falls back to the `gad_campaignid` Google Ads put on the click). GA4 applies it to the events after it; there is no browser session left for the purchase to join.
 - It is keyed on the creator's internal user ID — the `user_id` the Dashboard gives GA4 on every signed-in page — and a client ID derived from it. The server does not know the browser's own client ID. Consent is sent as granted, which is what the page signalled when that person allowed measurement.
 
 For **Google Ads bidding**, do not count on this purchase reaching Google Ads
@@ -375,8 +377,8 @@ ended without ever being paid for.
 }
 ```
 
-`data` also carries the campaign as `utm_*` keys and `click_ids`, as PostHog's
-`server/subscription_ended` does.
+`data` also carries the campaign as `utm_*` and `gad_*` keys and `click_ids`, as
+PostHog's `server/subscription_ended` does.
 
 | `reason`             | Meaning                                                                                                                                 |
 | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |

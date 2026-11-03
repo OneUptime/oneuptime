@@ -17,6 +17,8 @@ import { MITRE_TACTIC_TECHNIQUES } from "Common/Types/SecurityEvent/MitreAttack"
 import { escapeRegExp } from "Common/Utils/RegExpEscape";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 /*
  * The Security Events SOC pages - the overview, the case queue's pages, a
@@ -457,16 +459,7 @@ async function screenshot(
   });
 }
 
-// How far the page, or an element, scrolls sideways.
-async function pageOverflow(page: Page): Promise<number> {
-  return page.evaluate((): number => {
-    return (
-      document.documentElement.scrollWidth -
-      document.documentElement.clientWidth
-    );
-  });
-}
-
+// How far an element scrolls sideways.
 async function overflowOf(locator: Locator): Promise<number> {
   return locator.evaluate((element: Element): number => {
     return element.scrollWidth - element.clientWidth;
@@ -935,7 +928,11 @@ test.describe("the overview", () => {
 
     await page.getByTestId("security-getting-started-done").click();
     await expect(gettingStarted(page)).toHaveCount(0);
-    await expect(stage(page, "sources")).toContainText("1 source");
+    /*
+     * Your logs, and your other OneUptime data beside them: traces, network
+     * flows and session replays (the audit log is OneUptime Enterprise's).
+     */
+    await expect(stage(page, "sources")).toContainText("4 sources");
     await expect(stage(page, "detections")).toContainText(
       `${RECOMMENDED_RULES} rules on`,
     );
@@ -1089,7 +1086,7 @@ test.describe("the overview", () => {
       const box: Box = await boxOf(problems);
       expect(box.x).toBeGreaterThanOrEqual(card.x);
       expect(box.x + box.width).toBeLessThanOrEqual(card.x + card.width + 0.5);
-      expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
       expect(await overflowOf(problems)).toBeLessThanOrEqual(0);
 
       // The dark theme draws the box dark, never a light amber tile on slate.
@@ -1146,13 +1143,12 @@ test.describe("the overview", () => {
     await open(page, OVERVIEW_PATH, { empty: true, width: 390 });
     await expect(gettingStarted(page)).toBeVisible();
     // The two buttons stack under the text, each the card's width.
-    const turnOn: { width: number } | null = await page
-      .getByTestId("security-turn-on-recommended")
-      .boundingBox();
-    const card: { width: number } | null =
-      await gettingStarted(page).boundingBox();
+    const [turnOn, card] = await boxesInOneFrame([
+      page.getByTestId("security-turn-on-recommended"),
+      gettingStarted(page),
+    ]);
     expect(turnOn!.width).toBeGreaterThan(card!.width * 0.75);
-    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     // The main button is on the first screen of a phone, nothing above the card.
     const turnOnTop: { y: number } | null = await page
       .getByTestId("security-turn-on-recommended")
@@ -1413,7 +1409,7 @@ test.describe("the overview's rows of cards", () => {
             previousBottom = grid.bottom;
           }
 
-          expect([label, await pageOverflow(page)]).toEqual([label, 0]);
+          await expectNoSidewaysScroll(page, { message: label });
         }
       }
 
@@ -1515,7 +1511,7 @@ test.describe("the overview's top card", () => {
           });
         }),
       ).toEqual(["security-status-headline", "security-pipeline"]);
-      expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
       expect(await overflowOf(topCard(page))).toBeLessThanOrEqual(0);
 
       const card: Box = await boxOf(topCard(page));
@@ -1683,7 +1679,7 @@ test.describe("the overview's top card", () => {
           expect(await overflowOf(label)).toBeLessThanOrEqual(0);
         }
 
-        expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+        await expectNoSidewaysScroll(page, { tolerance: 1 });
 
         if (lang === "de" && (width === 1088 || width === 390)) {
           await screenshot(page, `overview-pipeline-${width}-de`, {
@@ -2141,9 +2137,10 @@ test.describe("the case queue", () => {
         await expect(page.getByText(text).first()).toBeVisible({
           timeout: 30000,
         });
-        expect(await pageOverflow(page), `${name} at 1280`).toBeLessThanOrEqual(
-          1,
-        );
+        await expectNoSidewaysScroll(page, {
+          tolerance: 1,
+          message: `${name} at 1280`,
+        });
         await screenshot(page, `${name}-1280-${theme || "light"}`);
       }
 
@@ -2151,7 +2148,10 @@ test.describe("the case queue", () => {
       await expect(page.getByText(text).first()).toBeVisible({
         timeout: 30000,
       });
-      expect(await pageOverflow(page), `${name} at 390`).toBeLessThanOrEqual(1);
+      await expectNoSidewaysScroll(page, {
+        tolerance: 1,
+        message: `${name} at 390`,
+      });
       await screenshot(page, `${name}-390-light`);
     }
   });
@@ -2217,7 +2217,7 @@ test.describe("the case queue", () => {
       },
     );
 
-    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     /*
      * The table's own box. It scrolls (overflow-x-auto) only while its rows
      * are wider than the card, so it is found by its test id.
@@ -2280,9 +2280,10 @@ test.describe("the case queue", () => {
           await overflowOf(scroller),
           `${lang} ${name}: the table scrolls sideways`,
         ).toBeLessThanOrEqual(1);
-        expect(await pageOverflow(page), `${lang} ${name}`).toBeLessThanOrEqual(
-          1,
-        );
+        await expectNoSidewaysScroll(page, {
+          tolerance: 1,
+          message: `${lang} ${name}`,
+        });
       }
     }
 
@@ -2385,9 +2386,10 @@ test.describe("the case queue", () => {
         await overflowOf(scroller),
         `${lang} ${name}: the table scrolls sideways`,
       ).toBeLessThanOrEqual(1);
-      expect(await pageOverflow(page), `${lang} ${name}`).toBeLessThanOrEqual(
-        1,
-      );
+      await expectNoSidewaysScroll(page, {
+        tolerance: 1,
+        message: `${lang} ${name}`,
+      });
 
       // Cut at its own end, an ellipsis where its column ends.
       expect(
@@ -2502,14 +2504,13 @@ test.describe("the case queue", () => {
         timeout: 30000,
       });
 
-      expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
 
       const card: Locator = cardTitled(page, "Open Cases");
-      const cardBox: { x: number; width: number } | null =
-        await card.boundingBox();
-      const search: { x: number; width: number } | null = await page
-        .getByRole("button", { name: "Open search" })
-        .boundingBox();
+      const [cardBox, search] = await boxesInOneFrame([
+        card,
+        page.getByRole("button", { name: "Open search" }),
+      ]);
       expect(cardBox).not.toBeNull();
       expect(search).not.toBeNull();
       expect(search!.x, "search starts inside the card").toBeGreaterThanOrEqual(
@@ -2618,6 +2619,17 @@ const CASE_PAGES: ReadonlyArray<CasePage> = [
     segment: "/notes",
     text: "Approving the suspend.",
     slug: "notes",
+  },
+  {
+    section: "Advanced",
+    title: "Custom Fields",
+    segment: "/custom-fields",
+    text: "INC-48213",
+    slug: "custom-fields",
+    // The Overview shows the same values, in a card of its own name.
+    ready: (page: Page): Locator => {
+      return cardTitled(page, "Case Custom Fields");
+    },
   },
   {
     section: "Advanced",
@@ -3424,10 +3436,10 @@ test.describe("working cases from the queue", () => {
         const menuBox: Box = await boxOf(menu);
         expect(menuBox.x, `row menu at ${name}`).toBeGreaterThanOrEqual(0);
         expect(menuBox.x + menuBox.width).toBeLessThanOrEqual(width);
-        expect(
-          await pageOverflow(page),
-          `row menu at ${name}`,
-        ).toBeLessThanOrEqual(1);
+        await expectNoSidewaysScroll(page, {
+          tolerance: 1,
+          message: `row menu at ${name}`,
+        });
         await screenshot(page, `cases-row-menu-${name}`, { fullPage: false });
 
         // Assign to Someone Else: the dialog inside the screen.
@@ -3473,10 +3485,10 @@ test.describe("working cases from the queue", () => {
         const bulkBox: Box = await boxOf(bulk);
         expect(bulkBox.x).toBeGreaterThanOrEqual(0);
         expect(bulkBox.x + bulkBox.width).toBeLessThanOrEqual(width);
-        expect(
-          await pageOverflow(page),
-          `bulk bar at ${name}`,
-        ).toBeLessThanOrEqual(1);
+        await expectNoSidewaysScroll(page, {
+          tolerance: 1,
+          message: `bulk bar at ${name}`,
+        });
         await screenshot(page, `cases-bulk-actions-${name}`, {
           fullPage: false,
         });
@@ -3549,7 +3561,7 @@ test.describe("a case", () => {
       await expect(page.getByText(text, { exact: false })).toHaveCount(0);
     }
 
-    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshot(page, "case-desktop");
   });
 
@@ -3598,14 +3610,23 @@ test.describe("a case", () => {
       );
     }
 
-    // Read once, for every page: no page read the case again.
+    /*
+     * Read once, for every page: no page read the case again. The project's
+     * own fields are read by their card, as every record's are - only the
+     * case's customFields, on the two pages that show them: the Overview and
+     * Custom Fields.
+     */
     expect(
       (await fixture(page)).listRequests.length,
       "pages listed what they show",
     ).toBeGreaterThan(0);
-    const caseReads: number = (
+    const caseReads: Array<{ select: Array<string> }> = (
       (await fixture(page)) as unknown as {
-        getItemRequests: Array<{ modelName: string; id: string }>;
+        getItemRequests: Array<{
+          modelName: string;
+          id: string;
+          select: Array<string>;
+        }>;
       }
     ).getItemRequests.filter(
       (request: { modelName: string; id: string }): boolean => {
@@ -3613,8 +3634,14 @@ test.describe("a case", () => {
           request.modelName === "SecurityCase" && request.id === SPRAY_CASE_ID
         );
       },
-    ).length;
-    expect(caseReads).toBe(1);
+    );
+    const fieldReads: Array<{ select: Array<string> }> = caseReads.filter(
+      (request: { select: Array<string> }): boolean => {
+        return request.select.join(",") === "customFields";
+      },
+    );
+    expect(caseReads.length - fieldReads.length).toBe(1);
+    expect(fieldReads).toHaveLength(2);
 
     // The case's crumb opens its Overview.
     await page
@@ -3670,7 +3697,7 @@ test.describe("a case", () => {
       await overflowOf(detectionsTable),
       "detections table scrolls sideways",
     ).toBeLessThanOrEqual(1);
-    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
   });
 
   test("the Entities page: each entity the case is about, with its week across every security event", async ({
@@ -3767,7 +3794,7 @@ test.describe("a case", () => {
         return element.scrollWidth - element.clientWidth;
       }),
     ).toBeLessThanOrEqual(1);
-    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
   });
 
   /*
@@ -3803,7 +3830,7 @@ test.describe("a case", () => {
       await expect(
         cardTitled(page, "Playbooks").getByTestId("card-description"),
       ).toHaveCount(0);
-      expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
     }
 
     await screenshot(page, "case-playbooks-empty-de", { fullPage: false });
@@ -3886,7 +3913,7 @@ test.describe("a case", () => {
     await expect(enrich).toContainText(
       "Added the triage checklist to the case.",
     );
-    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
 
     await screenshot(page, "case-playbooks-folded", { fullPage: false });
   });
@@ -4040,7 +4067,7 @@ test.describe("a case", () => {
           return request.body;
         }),
     ).toContainEqual({ caseId: CASE_ID(141) });
-    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshot(page, "case-impact-desktop");
 
     // On a phone in the dark, the records read inside the card.
@@ -4053,7 +4080,7 @@ test.describe("a case", () => {
       .getByRole("button", { name: "Show the records at risk", exact: true })
       .click({ timeout: 30000 });
     await expect(runner).toBeVisible();
-    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshot(page, "case-impact-390-dark");
 
     /*
@@ -4124,7 +4151,7 @@ test.describe("a case", () => {
       "href",
       `/dashboard/${PROJECT_ID}/data-security/access/41000000-0000-4000-8000-000000000001`,
     );
-    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshot(page, "case-data-at-risk-desktop");
 
     // On a phone, the identity's key stays beside its line as the line wraps.
@@ -4139,7 +4166,7 @@ test.describe("a case", () => {
 
     expect(Math.abs(keyBox.y - lineBox.y)).toBeLessThan(8);
     expect(keyBox.x + keyBox.width).toBeLessThanOrEqual(lineBox.x + 1);
-    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
 
     // A case whose people reach no data says nothing of it.
     await open(page, DOMAIN_CASE_PATH);
@@ -4598,7 +4625,7 @@ test.describe("a case", () => {
         expect(rowsOf(figureBoxes)).toBe(2);
       }
 
-      expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
     }
   });
 
@@ -4668,7 +4695,7 @@ test.describe("a case", () => {
         ).toBeLessThanOrEqual(1);
       }
 
-      expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
       await screenshot(page, `case-header-390-${theme || "light"}`, {
         fullPage: false,
       });
@@ -4733,9 +4760,9 @@ test.describe("a case", () => {
     page: Page;
   }) => {
     /*
-     * Thirteen pages since Evidence and Tasks, three looks at each and two
-     * more on a phone in the dark: 41 pages drawn and shot, past the
-     * config's two minutes on a busy machine.
+     * Fourteen pages since Custom Fields, three looks at each and two more
+     * on a phone in the dark: 44 pages drawn and shot, past the config's
+     * two minutes on a busy machine.
      */
     test.setTimeout(300000);
 
@@ -4767,10 +4794,10 @@ test.describe("a case", () => {
           ).toHaveAttribute("aria-expanded", "true");
         }
 
-        expect(
-          await pageOverflow(page),
-          `${casePage.title} at ${width} ${theme || "light"}`,
-        ).toBeLessThanOrEqual(1);
+        await expectNoSidewaysScroll(page, {
+          tolerance: 1,
+          message: `${casePage.title} at ${width} ${theme || "light"}`,
+        });
         await screenshot(
           page,
           `case-${casePage.slug}-${width === 390 ? 390 : 1280}-${theme || "light"}`,
@@ -4812,7 +4839,7 @@ test.describe("playbooks", () => {
       0,
     );
 
-    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     const scroller: Locator = page
       .locator("table")
       .locator("xpath=ancestor::div[@data-testid='table-scroll'][1]");
@@ -5265,7 +5292,7 @@ test.describe("playbooks", () => {
     await expect(
       runs.nth(1).getByTestId("security-playbook-run-step-2-run-if"),
     ).toBeVisible();
-    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshot(page, "playbook-branch-runs-phone");
   });
 
@@ -5453,7 +5480,7 @@ test.describe("playbooks", () => {
     expect(
       phoneCard.x + phoneCard.width - (phoneApprove.x + phoneApprove.width),
     ).toBeLessThan(24);
-    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
   });
 
   test("the runs pages in both themes, and on a phone", async ({
@@ -5475,7 +5502,10 @@ test.describe("playbooks", () => {
       await expect(
         page.getByTestId("security-playbook-run-card").first(),
       ).toBeVisible({ timeout: 30000 });
-      expect(await pageOverflow(page), `${name} at 390`).toBeLessThanOrEqual(1);
+      await expectNoSidewaysScroll(page, {
+        tolerance: 1,
+        message: `${name} at 390`,
+      });
       await screenshot(page, `${name}-390-light`);
     }
   });
@@ -5543,7 +5573,7 @@ test.describe("detections", () => {
     // No tactic is open, and nothing scrolls sideways: the matrix waits behind its switch.
     await expect(page.getByTestId("attack-tactic-techniques")).toHaveCount(0);
     await expect(page.getByTestId("attack-coverage-matrix")).toHaveCount(0);
-    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
 
     // The next step: what the Rule Library covers that the rules do not.
     const gap: Locator = page.getByTestId("attack-coverage-gap");
@@ -5646,7 +5676,7 @@ test.describe("detections", () => {
         };
       });
     expect(sizes.scrollHeight).toBeGreaterThan(sizes.clientHeight);
-    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshot(page, "attack-coverage-matrix");
 
     // A reload keeps the matrix.
@@ -5666,7 +5696,7 @@ test.describe("detections", () => {
         .getByTestId("attack-tactic-TA0006")
         .getByTestId("attack-tactic-techniques"),
     ).toBeVisible({ timeout: 30000 });
-    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshot(page, "attack-coverage-phone");
 
     await open(page, ATTACK_COVERAGE_PATH, {
@@ -5854,7 +5884,7 @@ test.describe("detections", () => {
       "data-overflowing",
       "false",
     );
-    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshot(page, "rule-library-desktop", { fullPage: false });
   });
 
@@ -5923,7 +5953,7 @@ test.describe("detections", () => {
         ),
       );
       expect(add.x + add.width).toBeLessThanOrEqual(card.x + card.width);
-      expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
 
       await screenshot(page, `rule-library-${width}${lang ? `-${lang}` : ""}`, {
         fullPage: false,
@@ -6031,7 +6061,7 @@ test.describe("detections", () => {
       await expect(chipButton(page, CATEGORY_CHIP)).toHaveText(
         "Rule category · Kubernetes",
       );
-      expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
       await screenshot(
         page,
         `rule-library-filtered-${width}-${theme || "light"}`,
@@ -6185,7 +6215,7 @@ test.describe("detections", () => {
           name: "Add Rule",
         }),
       ).toBeVisible();
-      expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
       await screenshot(
         page,
         `rule-library-details-${width}-${theme || "light"}`,
@@ -6581,10 +6611,10 @@ test.describe("detections", () => {
       await expect(
         page.getByTestId(`rule-library-data-status-${BRUTE_FORCE_RULE.id}`),
       ).toHaveText(receiving);
-      expect(
-        await pageOverflow(page),
-        `${lang} at ${width}`,
-      ).toBeLessThanOrEqual(1);
+      await expectNoSidewaysScroll(page, {
+        tolerance: 1,
+        message: `${lang} at ${width}`,
+      });
       if (width >= 1088) {
         /*
          * The longer words wrap in their columns, and the rule's gives way
@@ -6947,7 +6977,7 @@ test.describe("detections", () => {
     const ranking: Box = await boxOf(cardTitled(page, "Entity Risk"));
     const lookup: Box = await boxOf(cardTitled(page, "Look Up an Entity"));
     expect(ranking.y).toBeLessThan(lookup.y);
-    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     // Look Up sits beside its box, at the box's own height.
     const box: Box = await boxOf(
       page.getByRole("textbox", { name: "Look Up an Entity" }),
@@ -7037,7 +7067,7 @@ test.describe("detections", () => {
     await expect(
       page.getByRole("textbox", { name: "Look Up an Entity" }),
     ).toBeVisible({ timeout: 30000 });
-    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     // Under the value and its counts, as wide as the result's room.
     await page
       .getByRole("textbox", { name: "Look Up an Entity" })
@@ -7054,7 +7084,7 @@ test.describe("detections", () => {
     );
     expect(phoneCorrelate.y).toBeGreaterThan(phoneFacts.y + phoneFacts.height);
     expect(Math.abs(phoneCorrelate.x - phoneFacts.x)).toBeLessThanOrEqual(1);
-    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshot(page, "entity-risk-lookup-phone");
   });
 });
@@ -7140,7 +7170,7 @@ test.describe("detection rules and threat intel", () => {
     ).toBeVisible();
     await page.keyboard.press("Escape");
 
-    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshot(page, "detection-rules-desktop", { fullPage: false });
   });
 
@@ -7278,7 +7308,7 @@ test.describe("detection rules and threat intel", () => {
     await expect(
       rowNamed(page, FIRST_SEEN_RULE).getByTestId("relative-time-cell"),
     ).toHaveText("Never");
-    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
   });
 
   test("a correlation pasted into the form is said in a sentence, and the single rule's counting fields leave", async ({
@@ -7437,7 +7467,7 @@ test.describe("detection rules and threat intel", () => {
       ends.push(box.y + box.height / 2);
     }
     expect(Math.max(...ends) - Math.min(...ends)).toBeLessThanOrEqual(2);
-    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshot(page, "threat-intel-desktop", { fullPage: false });
   });
 
@@ -7524,7 +7554,7 @@ test.describe("detection rules and threat intel", () => {
     await expect(
       page.getByRole("heading", { name: "Free Lists", exact: true }),
     ).toHaveCount(0);
-    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
   });
 
   /*
@@ -7668,9 +7698,10 @@ test.describe("detection rules and threat intel", () => {
           `${lang || "en"}: a table scrolls sideways`,
         ).toBeLessThanOrEqual(1);
       }
-      expect(await pageOverflow(page), `${lang || "en"}`).toBeLessThanOrEqual(
-        1,
-      );
+      await expectNoSidewaysScroll(page, {
+        tolerance: 1,
+        message: `${lang || "en"}`,
+      });
     }
 
     // English, as a laptop shows it: Valid Until says how far off.
@@ -7829,7 +7860,10 @@ test.describe("detection rules and threat intel", () => {
       await expect(page.getByText(text).first()).toBeVisible({
         timeout: 30000,
       });
-      expect(await pageOverflow(page), `${name} at 390`).toBeLessThanOrEqual(1);
+      await expectNoSidewaysScroll(page, {
+        tolerance: 1,
+        message: `${name} at 390`,
+      });
       await screenshot(page, `${name}-phone`);
     }
   });
@@ -7900,7 +7934,7 @@ test.describe("OneUptime AI on the Security pages", () => {
     expect(figures.y).toBeLessThan(cardBox.y);
     expect(cardBox.y).toBeLessThan(attack.y);
 
-    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshot(page, "case-ai-desktop");
   });
 
@@ -8077,7 +8111,7 @@ test.describe("OneUptime AI on the Security pages", () => {
         .filter({ hasText: "CASE-141" })
         .getByTestId("security-case-row-ai-verdict"),
     ).toHaveCount(0);
-    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshot(page, "cases-ai-desktop", { fullPage: false });
   });
 
@@ -8187,7 +8221,7 @@ test.describe("OneUptime AI on the Security pages", () => {
       await expect(
         page.getByTestId("ai-switch-enableAutomaticSecurityCaseTriage"),
       ).toBeVisible({ timeout: 30000 });
-      expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
       await screenshot(page, theme ? "ai-settings-dark" : "ai-settings-phone");
     }
   });
@@ -8207,7 +8241,7 @@ test.describe("OneUptime AI on the Security pages", () => {
     await expect(
       aiCard(page).getByTestId("security-case-ai-triaged"),
     ).toBeVisible({ timeout: 30000 });
-    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     expect(await overflowOf(aiCard(page))).toBeLessThanOrEqual(1);
     // The suggested playbook is named in full, beside or above its run's status.
     const playbookName: Locator = aiCard(page)
@@ -8228,7 +8262,7 @@ test.describe("OneUptime AI on the Security pages", () => {
     await expect(
       aiCard(page).getByTestId("security-case-ai-triaged"),
     ).toBeVisible({ timeout: 30000 });
-    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshot(page, "case-ai-phone-dark");
   });
 
@@ -8370,7 +8404,7 @@ test.describe("OneUptime AI when a triage cannot run, or was steered", () => {
     await expect(card.getByTestId("security-case-ai-reason")).toBeVisible({
       timeout: 30000,
     });
-    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     expect(await overflowOf(card)).toBeLessThanOrEqual(1);
   });
 
@@ -8510,7 +8544,7 @@ test.describe("OneUptime AI when a triage cannot run, or was steered", () => {
     await expect(
       card.getByTestId("security-case-ai-prompt-injection"),
     ).toBeVisible({ timeout: 30000 });
-    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshot(page, "case-ai-injection-phone-dark");
   });
 
@@ -8868,7 +8902,7 @@ test.describe("the project's case priorities and statuses", () => {
       "Showing 1-7 of 7 case statuses",
     );
 
-    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshot(page, "case-statuses-1280-light");
   });
 
@@ -8940,7 +8974,7 @@ test.describe("the project's case priorities and statuses", () => {
     // Nothing is archived: no folded section.
     await expect(page.getByTestId("archived-values-section")).toHaveCount(0);
 
-    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshot(page, "case-priorities-1280-light");
   });
 
@@ -9044,10 +9078,10 @@ test.describe("the project's case priorities and statuses", () => {
         await expect(
           page.getByText(first, { exact: true }).first(),
         ).toBeVisible({ timeout: 30000 });
-        expect(
-          await pageOverflow(page),
-          `${name} at ${width} ${theme || "light"}`,
-        ).toBeLessThanOrEqual(1);
+        await expectNoSidewaysScroll(page, {
+          tolerance: 1,
+          message: `${name} at ${width} ${theme || "light"}`,
+        });
         // Each name on screen, none cut short.
         const cut: Array<string> = await page
           .getByTestId("state-settings-name")
@@ -9097,7 +9131,7 @@ test.describe("the project's case priorities and statuses", () => {
         statusSteps(page).locator('[aria-current="step"]'),
       ).toContainText("Eradicating");
       expect(await cutSteps(page), `steps at ${width}`).toEqual([]);
-      expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
 
       await statusSteps(page).scrollIntoViewIfNeeded();
       await screenshot(
@@ -9297,10 +9331,10 @@ test.describe("every page fits the screen", () => {
         await expect(page.getByText(text).first(), name).toBeVisible({
           timeout: 30000,
         });
-        expect(
-          await pageOverflow(page),
-          `${name} at ${width}`,
-        ).toBeLessThanOrEqual(1);
+        await expectNoSidewaysScroll(page, {
+          tolerance: 1,
+          message: `${name} at ${width}`,
+        });
       }
     });
   }
@@ -9564,7 +9598,7 @@ test.describe("the Overview's Riskiest Entities", () => {
       page.getByTestId("security-overview-status"),
     );
     expect(Math.abs(card.width - status.width)).toBeLessThanOrEqual(1);
-    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshot(page, "overview-riskiest-entities-risk-only");
   });
 
@@ -9625,7 +9659,7 @@ test.describe("the Overview's Riskiest Entities", () => {
       "k.morgan@acme-commerce.example",
       { timeout: 30000 },
     );
-    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     // A long value is cut short to its line, never wider than the card.
     const card: Box = await boxOf(riskiestCard(page));
     for (const link of await riskiestCard(page).getByRole("link").all()) {
@@ -9764,7 +9798,7 @@ test.describe("the Overview's Riskiest Entities", () => {
       } else {
         expect(cut).toEqual([]);
       }
-      expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
       await screenshot(page, `overview-riskiest-entities-fa-${width}`);
     });
   }

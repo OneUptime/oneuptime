@@ -1,11 +1,11 @@
 # 출력 형식
 
-CLI는 터미널에서 응답을 읽을 때는 표를, 스크립트나 다른 프로그램이 읽을 때는 JSON을 출력합니다. 어떤 명령이든 `-o` 또는 `--output`으로 형식을 고를 수 있습니다.
+CLI는 터미널에서 응답을 읽을 때는 표를, 스크립트나 다른 프로그램이 읽을 때는 JSON을 출력합니다. 어떤 명령이든 `-o` 또는 `--output`으로 형식을 고르거나, `--json`으로 JSON을 요청할 수 있습니다.
 
 :::cards
 - [형식이 정해지는 방식](#형식이-정해지는-방식): 터미널은 표를, 파이프는 JSON을 받습니다.
 - [표](#표): 6개 열, 각 값은 60자에서 잘림.
-- [JSON](#json): 모든 필드를 자르지 않고, 스크립트와 jq를 위해.
+- [JSON](#json): 모든 필드를 온전하게. 스크립트, jq, AI 에이전트용.
 - [와이드](#와이드): 모든 열이 있는 표.
 :::
 
@@ -25,7 +25,7 @@ flowchart TB
 | `json` | OneUptime이 보낸 그대로의 응답을 공백 두 칸으로 들여씀 | 스크립트, `jq`, 파일 |
 | `wide` | 필드마다 열이 있는 표 | 많은 필드를 한눈에 비교 |
 
-`-o`는 레코드를 출력하는 모든 명령, 즉 리소스의 `list`, `get`, `create`, `update`, `count`와 `oneuptime resources`, `oneuptime context list`에서 작동합니다. 명령줄 어디에 써도 됩니다. 다른 값은 요청을 보내기 전에 거부됩니다.
+`-o`와 `--json`은 모든 명령에서, 명령줄 어디에 써도 작동합니다. 레코드를 출력하는 명령은 다이어그램처럼 형식을 고릅니다. `delete`나 `acknowledge`처럼 응답이 문장인 명령은 `-o json`이나 `--json`으로 JSON을 요청하지 않는 한 터미널에서도 파이프에서도 문장을 출력합니다. `-o`의 다른 값은 요청을 보내기 전에 거부됩니다.
 
 ```text
 error: option '-o, --output <format>' argument 'yaml' is invalid. Allowed choices are json, table, wide.
@@ -39,26 +39,36 @@ error: option '-o, --output <format>' argument 'yaml' is invalid. Allowed choice
 ┌────────────────────────────┬────────────────────────────┬─────────────────────────────┬───────────┬─────────────────────────────┐
 │ Command                    │ Singular                   │ Plural                      │ Type      │ API Path                    │
 ├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
-│ log                        │ Log                        │ Logs                        │ analytics │ /logs                       │
+│ audit-log                  │ Audit Log                  │ Audit Logs                  │ analytics │ /audit-log                  │
 ├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
-│ span                       │ Span                       │ Spans                       │ analytics │ /span                       │
-├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
-│ metric                     │ Metric                     │ Metrics                     │ analytics │ /metrics                    │
+│ change-event               │ Change Event               │ Change Events               │ analytics │ /change-events              │
 ├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
 │ exception-instance         │ Exception Instance         │ Exception Instances         │ analytics │ /exceptions                 │
 ├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
+│ kubernetes-cost-allocation │ Kubernetes Cost Allocation │ Kubernetes Cost Allocations │ analytics │ /kubernetes-cost-allocation │
+├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
+│ log                        │ Log                        │ Logs                        │ analytics │ /logs                       │
+├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
+│ metric                     │ Metric                     │ Metrics                     │ analytics │ /metrics                    │
+├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
 │ monitor-log                │ Monitor Log                │ Monitor Logs                │ analytics │ /monitor-log                │
 ├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
-│ kubernetes-cost-allocation │ Kubernetes Cost Allocation │ Kubernetes Cost Allocations │ analytics │ /kubernetes-cost-allocation │
+│ network-flow               │ Network Flow               │ Network Flows               │ analytics │ /network-flow               │
+├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
+│ profile                    │ Profile                    │ Profiles                    │ analytics │ /profile                    │
+├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
+│ profile-sample             │ ProfileSample              │ ProfileSamples              │ analytics │ /profile-sample             │
 ├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
 │ security-event             │ Security Event             │ Security Events             │ analytics │ /security-events            │
 ├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
-│ change-event               │ Change Event               │ Change Events               │ analytics │ /change-events              │
+│ slo-history                │ SLO History                │ SLO History                 │ analytics │ /slo-history                │
+├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
+│ span                       │ Span                       │ Spans                       │ analytics │ /span                       │
 ├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
 │ threat-intel-indicator     │ Threat Intel Indicator     │ Threat Intel Indicators     │ analytics │ /threat-intel-indicators    │
 └────────────────────────────┴────────────────────────────┴─────────────────────────────┴───────────┴─────────────────────────────┘
 
-Total: 9 resources
+Total: 14 resources
 ```
 
 레코드 목록의 경우 표에는 최대 6개 열이 나옵니다. 먼저 `_id`, `name`, `title`, `status`, `createdAt`, `updatedAt` 중 레코드에 있는 것이, 그다음 레코드의 나머지 필드가 순서대로 나옵니다. 열은 첫 번째 레코드에서 가져옵니다. 60자보다 긴 값은 앞의 57자로 잘리고 뒤에 `...`이 붙습니다.
@@ -100,6 +110,16 @@ oneuptime incident list -o json | jq -r '.[] | "\(.createdAt.value)  \(.title)"'
 
 `oneuptime incident list | jq '.[].title'`처럼 출력이 터미널이 아니면, CLI는 `-o json` 없이도 JSON을 출력합니다. 그래도 스크립트에는 `-o json`을 써서 이 동작에 기대지 않도록 하세요.
 
+`--json`은 `-o json`과 같습니다. 응답이 문장인 명령은 대신 객체로 응답합니다. `delete`는 레코드의 `_id`와 `"deleted": true`로, `acknowledge`는 레코드가 있는 `state`로 응답합니다. JSON을 요청하면 오류는 표준 오류에 나오는 객체 하나이며, 키는 늘 같고, `exitCode`는 명령의 종료 코드입니다.
+
+```bash
+oneuptime incident get 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 --json
+```
+
+```json
+{"error":{"message":"API error (404): Incident not found.","status":404,"exitCode":3,"hint":"`oneuptime incident list` shows the ones this key may read."}}
+```
+
 ## 와이드
 
 `-o wide`는 레코드의 필드마다 열이 있는 표입니다. 각 값은 여전히 60자에서 잘리고 레코드에는 필드가 많아서, 와이드 표는 아주 넓습니다. `less -S`로 넘겨 보세요.
@@ -110,7 +130,7 @@ oneuptime incident list -o wide | less -S
 
 ## 색
 
-표 머리글은 청록색이고, 메시지는 성공하면 초록색, 정보는 파란색, 오류는 빨간색입니다. `--no-color`를 쓰거나 `NO_COLOR`에 아무 값이나 설정하면 색이 꺼집니다.
+표 머리글은 청록색이고, 메시지는 성공하면 초록색, 정보는 파란색, 경고와 오류 대처 방법은 노란색, 오류는 빨간색입니다. `--no-color`를 쓰거나 `NO_COLOR`에 아무 값이나 설정하면 색이 꺼집니다.
 
 ```bash
 oneuptime incident list --no-color
@@ -119,7 +139,7 @@ NO_COLOR=1 oneuptime incident list
 
 ## 명령별 출력
 
-레코드와 개수는 표준 출력으로, 오류는 표준 오류로 가므로 파이프는 응답만 읽습니다.
+레코드와 개수는 표준 출력으로, 오류와 경고는 표준 오류로 가므로 파이프는 응답만 읽습니다.
 
 | 명령 | 표일 때 | JSON일 때 |
 | --- | --- | --- |
@@ -127,7 +147,9 @@ NO_COLOR=1 oneuptime incident list
 | `get` 또는 `create` | 필드마다 한 행 | 레코드 |
 | `count` | 숫자 | 숫자 |
 | `update` | 빈 줄 | `{}` |
-| `delete` | `Monitor <id> deleted successfully.` | 같은 줄 |
+| `delete` | `Monitor <id> deleted successfully.` | 레코드의 `_id`와 `"deleted": true` |
+| `acknowledge`, `resolve`, `start`, `end` | `Incident <id> acknowledged: it is in Acknowledged now.` | 레코드의 `_id`, `action`, 바뀌었는지를 나타내는 `changed`, `state` |
+| 오류 | 오류와 그 대처 방법 | 표준 오류의 `{"error": {...}}` |
 
 ## 다음 단계
 

@@ -30,6 +30,7 @@ Terraform이 출력한 메시지나 겪은 일을 아래 표에서 찾으세요.
 | `has been renamed to` | `moved` 블록으로 리소스 유형의 이름을 바꾸세요: [이름이 바뀐 리소스 유형](#이름이-바뀐-리소스-유형) 참고 |
 | Terraform으로 만든 모니터에 확인 항목이 표시되지 않음 | OneUptime을 업그레이드하세요: [단계 ID 이전에 만든 모니터](#단계-id-이전에-만든-모니터) 참고 |
 | `must contain at least 1 elements` | 비워 두는 대신 속성을 생략하세요: [빈 값](#빈-값) 참고 |
+| `Not an ID` | 이름 대신 레코드를 참조하세요: [ID 자리에 이름을 쓴 경우](#id-자리에-이름을-쓴-경우) 참고 |
 | `.tf` 파일 안의 대시보드 JSON | HCL로 작성하세요: [대시보드의 JSON](#대시보드의-json) 참고 |
 | `no available releases match the given constraints` | 정확한 버전 하나가 아니라 버전 범위를 사용하세요: [게시된 적 없는 버전](#게시된-적-없는-버전) 참고 |
 | `x509: certificate signed by unknown authority` | 인증 기관을 신뢰하도록 설정하세요: [인증서](#인증서) 참고 |
@@ -172,6 +173,16 @@ Attribute monitor_steps list must contain at least 1 elements, got: 0
 ```
 
 대신 속성을 생략하세요. 없는 속성은 설정되지 않은 것입니다. 각 부분이 무엇을 받는지는 [모니터 단계](/docs/terraform/monitor-steps)에 나와 있습니다.
+
+### ID 자리에 이름을 쓴 경우
+
+`team_id`나 모니터의 `labels`처럼 다른 레코드의 ID를 담는 속성은 그 레코드의 ID, 즉 UUID를 받습니다. 그 자리에 이름이나 슬러그를 쓰면 플랜이 멈춥니다.
+
+```text
+"sre" is not the ID of a oneuptime_team: OneUptime IDs are UUIDs, such as 550e8400-e29b-41d4-a716-446655440000. Refer to the resource instead (oneuptime_team.<name>.id), or read the ID with the oneuptime_team data source.
+```
+
+`team_id = oneuptime_team.sre.id`처럼 레코드의 리소스를 참조하거나, [데이터 소스](/docs/terraform/complete-guide#이미-있는-것-읽기)로 레코드를 읽으세요. 속성이 사람을 가리키면 `user_email` 같은 옆 속성에 그 사람의 이메일 주소를 쓰세요.
 
 ### 대시보드의 JSON
 

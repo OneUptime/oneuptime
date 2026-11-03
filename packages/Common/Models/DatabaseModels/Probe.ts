@@ -170,9 +170,12 @@ export default class Probe extends BaseModel {
     ],
   })
   @TableColumn({
-    required: true,
+    secret: true,
+    required: false,
     unique: true,
     type: TableColumnType.ShortText,
+    description:
+      "The secret the probe connects with, its PROBE_KEY. Leave it out and OneUptime generates one.",
   })
   @Column({
     type: ColumnType.ShortText,
@@ -205,6 +208,7 @@ export default class Probe extends BaseModel {
     type: TableColumnType.Name,
     canReadOnRelationQuery: true,
     example: "US East Coast Probe",
+    description: "Any friendly name of this object",
   })
   @Column({
     nullable: false,
@@ -236,6 +240,7 @@ export default class Probe extends BaseModel {
     required: false,
     type: TableColumnType.Name,
     example: "Monitors services from the US East Coast region",
+    description: "Friendly description that will help you remember",
   })
   @Column({
     nullable: true,
@@ -284,7 +289,11 @@ export default class Probe extends BaseModel {
       Permission.EditProjectProbe,
     ],
   })
-  @TableColumn({ required: true, type: TableColumnType.Version })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Version,
+    description: "A version label for the probe. Leave it out and it is 1.0.0.",
+  })
   @Column({
     nullable: false,
     type: ColumnType.Version,
@@ -310,6 +319,7 @@ export default class Probe extends BaseModel {
     required: false,
     type: TableColumnType.Date,
     canReadOnRelationQuery: true,
+    description: "When the probe last checked in. Set by OneUptime.",
   })
   @Column({
     nullable: true,
@@ -439,6 +449,8 @@ export default class Probe extends BaseModel {
     required: false,
     canReadOnRelationQuery: true,
     example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
+    description:
+      "ID of the project the probe belongs to. A global probe belongs to none.",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -605,6 +617,7 @@ export default class Probe extends BaseModel {
     title: "Connection Status",
     description: "Connection Status of the Probe",
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(ProbeConnectionStatus),
     canReadOnRelationQuery: true,
   })
   @Column({
@@ -669,8 +682,7 @@ export default class Probe extends BaseModel {
     type: TableColumnType.EntityArray,
     modelType: Label,
     title: "Labels",
-    description:
-      "Relation to Labels Array where this object is categorized in.",
+    description: "Labels to group and filter by.",
   })
   @ManyToMany(
     () => {

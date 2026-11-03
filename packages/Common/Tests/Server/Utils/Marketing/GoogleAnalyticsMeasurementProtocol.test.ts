@@ -222,6 +222,80 @@ describe("GoogleAnalyticsMeasurementProtocol", () => {
       });
     });
 
+    /*
+     * Google Ads adds gad_source and gad_campaignid to its ad clicks, beside
+     * the click ID, so a click with no UTMs still says which campaign won it.
+     */
+    test("credits a Google Ads click with no UTMs to the campaign Google Ads named on it", async () => {
+      await GoogleAnalyticsMeasurementProtocol.sendPurchase(
+        purchase({
+          attributionSource: {
+            gadSource: "1",
+            gadCampaignId: "23145678901",
+            clickIds: { gclid: "gclid_auto_tagged" },
+          },
+        }),
+      );
+
+      expect(postedEvents()[0]).toEqual({
+        name: "campaign_details",
+        params: {
+          source: "google",
+          medium: "cpc",
+          campaign_id: "23145678901",
+        },
+      });
+    });
+
+    // gad_source comes with auto-tagging off too, when there is no click ID.
+    test("credits a click carrying only Google Ads' own parameters to google / cpc", async () => {
+      await GoogleAnalyticsMeasurementProtocol.sendPurchase(
+        purchase({ attributionSource: { gadSource: "1" } }),
+      );
+
+      expect(postedEvents()[0]).toEqual({
+        name: "campaign_details",
+        params: { source: "google", medium: "cpc" },
+      });
+    });
+
+    test("takes the campaign ID from Google Ads when the ad's UTMs carry none", async () => {
+      await GoogleAnalyticsMeasurementProtocol.sendPurchase(
+        purchase({
+          attributionSource: {
+            utmSource: "google",
+            utmMedium: "cpc",
+            utmCampaign: "status-page-uk",
+            gadCampaignId: "23145678901",
+            clickIds: { gclid: "gclid_abc123" },
+          },
+        }),
+      );
+
+      expect(postedEvents()[0]).toEqual({
+        name: "campaign_details",
+        params: {
+          source: "google",
+          medium: "cpc",
+          campaign: "status-page-uk",
+          campaign_id: "23145678901",
+        },
+      });
+    });
+
+    test("keeps the campaign ID the ad's own utm_id gives", async () => {
+      await GoogleAnalyticsMeasurementProtocol.sendPurchase(
+        purchase({
+          attributionSource: {
+            ...purchase().attributionSource,
+            gadCampaignId: "99999999999",
+          },
+        }),
+      );
+
+      expect(postedEvents()[0]!.params["campaign_id"]).toBe("2233445566");
+    });
+
     test("sends the purchase alone when the campaign names no source Google Analytics knows", async () => {
       await GoogleAnalyticsMeasurementProtocol.sendPurchase(
         purchase({

@@ -288,9 +288,12 @@ describe("the analytics view's Span Type", () => {
     expect(
       screen.queryByRole("button", { name: "About Span Type" }),
     ).toBeNull();
-    // The other controls keep their caption right before their select.
-    expect(screen.getByRole("combobox", { name: "Chart" })).toBe(
-      screen.getByText("Chart").nextElementSibling,
+    /*
+     * The other controls keep their caption right before their select, which
+     * sits in a box of its own with its chevron.
+     */
+    expect(screen.getByText("Chart").nextElementSibling).toContainElement(
+      screen.getByRole("combobox", { name: "Chart" }),
     );
   });
 });

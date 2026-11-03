@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40050,
-    "untranslated": 3793
+    "keys": 40302,
+    "untranslated": 3789
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -129,6 +129,7 @@
     "Clients",
     "Cloud",
     "Cluster",
+    "Cluster {{cluster}}",
     "Code",
     "Code Challenge",
     "Collector",
@@ -396,6 +397,7 @@
     "Podman Compose",
     "Pods",
     "Pool",
+    "Pool {{name}}",
     "Pools",
     "Port",
     "Ports",
@@ -569,6 +571,7 @@
     "Version {{number}}",
     "Vertical Pod Autoscalers",
     "Viewport",
+    "Vital",
     "Vitals",
     "Volume",
     "Volumes",
@@ -643,8 +646,11 @@
     "orders",
     "orders-prod",
     "out",
+    "p90 (ms)",
     "p95",
+    "p95 (ms)",
     "p95 {{latency}}",
+    "p99 (ms)",
     "payment-.*",
     "prod, staging",
     "prod-.*",
@@ -677,6 +683,7 @@
     "unit-1042-*",
     "user1@example.com\nuser2@example.com\nuser3@example.com",
     "user@company.com",
+    "vApp {{name}}",
     "vCenter",
     "vSphere Client",
     "var(--ou-danger-text, #b91c1c)",

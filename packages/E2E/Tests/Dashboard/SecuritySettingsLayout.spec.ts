@@ -12,6 +12,7 @@ import {
   expect,
   test,
 } from "@playwright/test";
+import { expectNoSidewaysScroll } from "../../SuiteHelpers/PageFit";
 
 interface SecurityPage {
   route: string;
@@ -277,15 +278,10 @@ test.describe("Security settings card layout", () => {
             await expect(
               page.getByText(/They continue to work as before/),
             ).toHaveCount(0);
-            expect(
-              await page.evaluate((): boolean => {
-                return (
-                  document.documentElement.scrollWidth <=
-                  document.documentElement.clientWidth + 1
-                );
-              }),
-              `No page overflow at ${viewport.width}px`,
-            ).toBe(true);
+            await expectNoSidewaysScroll(page, {
+              tolerance: 1,
+              message: `No page overflow at ${viewport.width}px`,
+            });
 
             await test.info().attach(`${settings.route}-${viewport.width}px`, {
               body: await page.screenshot({ fullPage: true }),

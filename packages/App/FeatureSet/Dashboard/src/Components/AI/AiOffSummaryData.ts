@@ -240,6 +240,33 @@ export interface InvestigationConversationFold {
 }
 
 /*
+ * Whether fixing can be decided again for the record now, though it was
+ * off for it by a switch: the record is open, Enable AI is on, and the
+ * record kind's fixing switch - off then, or off with all of AI - is on
+ * now. Fixing is not off for it any more: its Remediation step says the
+ * switch is on now, and Try again decides it again (#5413's follow-up).
+ * Folded into the one line, nothing offered a way to. Fixing that stopped
+ * at the AI rules stays folded: whether a rule matches now is not known
+ * here, and the line says how to make one match.
+ */
+export function isFixingDecidableAgainNow(input: {
+  remediation: RemediationFoldState | undefined;
+  // Enable AI, now (useAiOffered).
+  isAiOn: boolean;
+  switches: AiLaneSwitchStates;
+  isRecordResolved: boolean;
+}): boolean {
+  return Boolean(
+    !input.isRecordResolved &&
+      input.isAiOn &&
+      input.switches.fix === true &&
+      input.remediation?.kind === "off" &&
+      (input.remediation.reason === "fixing_off" ||
+        input.remediation.reason === "ai_off"),
+  );
+}
+
+/*
  * Whether the AI card is the one-line summary: the record was not
  * investigated for a reason the project chose, and fixing did nothing for
  * one either. "checking" while the Remediation card is still reading.
@@ -249,13 +276,17 @@ export interface InvestigationConversationFold {
  * It also waits for the record's switches as they are now
  * (areSwitchesRead: read, or found unreadable): the line's title and steps
  * say what is on now, so it is drawn once, in its final words, never as
- * "AI investigation is off" that a moment later says it was.
+ * "AI investigation is off" that a moment later says it was. Once they say
+ * fixing can be decided again for an open record
+ * (isFixingDecidableAgain, isFixingDecidableAgainNow), fixing is not off
+ * any more, and the card is whole: its Remediation step offers Try again.
  */
 export function getAiCardFold(input: {
   isInvestigationLoaded: boolean;
   offReason: InvestigationNotStartedReason | null;
   remediation: RemediationFoldState | undefined;
   areSwitchesRead: boolean;
+  isFixingDecidableAgain?: boolean | undefined;
 }): AiCardFold {
   if (!input.isInvestigationLoaded) {
     return "checking";
@@ -273,7 +304,11 @@ export function getAiCardFold(input: {
     return "full";
   }
 
-  return input.areSwitchesRead ? "folded" : "checking";
+  if (!input.areSwitchesRead) {
+    return "checking";
+  }
+
+  return input.isFixingDecidableAgain ? "full" : "folded";
 }
 
 /*

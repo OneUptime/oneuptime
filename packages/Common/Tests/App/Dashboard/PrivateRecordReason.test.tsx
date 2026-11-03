@@ -28,6 +28,7 @@ import {
   Translator,
 } from "../../../UI/Utils/TranslateTemplate";
 import UserUtil from "../../../UI/Utils/User";
+import { keepProjectPermissionsInTab } from "../../Helpers/TabProjectPermissions";
 
 /*
  * WHY A CHANGE IS LOCKED ON A PRIVATE RECORD, in the reader's words: after
@@ -322,7 +323,7 @@ describe("getPrivateRecordScope", () => {
       globalPermissions: [Permission.Public, Permission.User],
       projectIds: [new ObjectID(PROJECT_ID)],
     });
-    PermissionUtil.setProjectPermissions({
+    keepProjectPermissionsInTab({
       _type: "UserTenantAccessPermission",
       projectId: new ObjectID(PROJECT_ID),
       permissions: rows,

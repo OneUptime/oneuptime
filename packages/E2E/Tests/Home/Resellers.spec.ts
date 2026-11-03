@@ -1,6 +1,7 @@
 import { BASE_URL, IS_BILLING_ENABLED } from "../../Config";
 import { APIResponse, Locator, Page, expect, test } from "@playwright/test";
 import URL from "Common/Types/API/URL";
+import { expectNoSidewaysScroll } from "../../SuiteHelpers/PageFit";
 
 /*
  * The Resellers page (Home/Views/resellers.ejs) and the address its form
@@ -137,14 +138,7 @@ test.describe("Home: Resellers", () => {
 
     // On a phone, every listing's button stays on the screen.
     await page.setViewportSize({ width: 390, height: 844 });
-    expect(
-      await page.evaluate((): number => {
-        return (
-          document.documentElement.scrollWidth -
-          document.documentElement.clientWidth
-        );
-      }),
-    ).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
 
     for (const listing of listings) {
       await listing.scrollIntoViewIfNeeded();

@@ -46,6 +46,7 @@ import ObjectID from "../../../Types/ObjectID";
 import AiResourceType from "../../../Types/ResourceAiAgent/AiResourceType";
 import RunbookStepType from "../../../Types/Runbook/RunbookStepType";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import { openRemediationFixes } from "./RemediationFixHarness";
 import { goTo, PROJECT_ID } from "./SideMenuHarness";
 
 /*
@@ -177,6 +178,8 @@ async function renderCommandRow(
   render(
     <RemediationStep investigationStage="reported" incidentId={INCIDENT_ID} />,
   );
+  // Folded to its sentence: opened, as a reader does.
+  await openRemediationFixes();
 
   const shown: HTMLElement = await screen.findByText(command);
   const commandRow: HTMLElement | null = shown.closest("li");

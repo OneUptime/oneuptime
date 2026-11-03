@@ -327,7 +327,7 @@ Een run waarvan de heartbeat langer dan 12 minuten stil is, wordt met een fout b
 :::
 
 :::details Geen Runner pakt de taak op
-Een taak die langer dan 30 minuten wacht terwijl de Runner die hem moet oppakken niet verbonden is - die zijn repository kiest, de standaard-Runner van het project voor een repository die er geen kiest, of een globale Runner - mislukt met een melding die zegt welke, zodat hij nooit eeuwig als bezig wordt getoond. Is een Runner online maar bezet, dan wachten taken in de wachtrij op hun beurt. Een Runner die ouder is dan Code krijgt nooit een verzoek uit Code: werk een Runner die je zelf draait samen met de server bij.
+Een taak die langer dan 30 minuten wacht terwijl de Runner die hem moet oppakken niet verbonden is - die zijn repository kiest, de standaard-Runner van het project voor een repository die er geen kiest, of een globale Runner - mislukt met een melding die zegt welke, zodat hij nooit eeuwig als bezig wordt getoond. Een Runner die geen codecorrecties oppakt, telt als niet verbonden: een die is gestart met `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false`, of een globale Runner die ouder is dan 14.0.94. Code meldt dat voordat je om een taak vraagt. Is een Runner online maar bezet, dan wachten taken in de wachtrij op hun beurt. Een Runner die ouder is dan Code krijgt nooit een verzoek uit Code: werk een Runner die je zelf draait samen met de server bij.
 :::
 
 ## Privacy

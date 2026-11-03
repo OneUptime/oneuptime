@@ -256,7 +256,7 @@ export default class IncidentTemplateOwnerUser extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "User ID",
-    description: "ID of your OneUptime User in which this object belongs",
+    description: "ID of the user who owns the incident template",
     example: "b8c9d0e1-f2a3-4b4c-5d6e-7f8a9b0c1d2e",
   })
   @Column({
@@ -346,8 +346,7 @@ export default class IncidentTemplateOwnerUser extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "IncidentTemplate ID",
-    description:
-      "ID of your OneUptime IncidentTemplate in which this object belongs",
+    description: "ID of the incident template the user owns",
     example: "a7b8c9d0-e1f2-4a3b-4c5d-6e7f8a9b0c1d",
   })
   @Column({

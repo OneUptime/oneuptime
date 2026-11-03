@@ -425,3 +425,60 @@ func TestPeopleAlreadyInvitedHint(t *testing.T) {
 type errorString string
 
 func (e errorString) Error() string { return string(e) }
+
+// A row whose member is no person - an owner team, an escalation rule's
+// team or schedule - is imported by both IDs, and an address in its place
+// says how to write it instead.
+func TestMembershipImportOfARowWithoutAPerson(t *testing.T) {
+	ownerTeam := membershipImport{
+		listPath:        "/monitor-owner-team/get-list",
+		parentField:     "monitorId",
+		parentAttribute: "monitor_id",
+		parentNoun:      "monitor",
+		personField:     "teamId",
+		personAttribute: "team_id",
+		byEmail:         false,
+		kind:            membershipKindOwner,
+	}
+
+	if got := ownerTeam.importForm(); got != "<monitor_id>/<team_id>" {
+		t.Fatalf("importForm = %q", got)
+	}
+	if got := ownerTeam.notFound("a-team", "a-monitor"); got != `a-team is not an owner of the monitor "a-monitor".` {
+		t.Fatalf("notFound = %q", got)
+	}
+
+	var diags diag.Diagnostics
+	if _, _, ok := importIDOfMembership(context.Background(), &Client{}, "a-monitor/sre@example.com", ownerTeam, &diags); ok {
+		t.Fatalf("an email address in place of a team imported")
+	}
+	if !diags.HasError() || !strings.Contains(diags[0].Detail(), "import it as <monitor_id>/<team_id>") {
+		t.Fatalf("an email address in place of a team says %v", diags)
+	}
+
+	onCall := ownerTeam
+	onCall.kind = membershipKindOnCall
+	onCall.parentNoun = "escalation rule"
+	if got := onCall.notFound("a-team", "a-rule"); got != `a-team is not on the escalation rule "a-rule".` {
+		t.Fatalf("notFound = %q", got)
+	}
+
+	member := ownerTeam
+	member.kind = membershipKindMember
+	member.parentNoun = ""
+	member.parentAttribute = "team_id"
+	member.byEmail = true
+	if got := member.importForm(); got != "<team_id>/<email address or user id>" {
+		t.Fatalf("importForm = %q", got)
+	}
+	// With no noun, the parent's attribute says what it is.
+	if got := member.notFound("alice@example.com", "a-team"); got != `alice@example.com is not a member of the team "a-team", nor invited to it.` {
+		t.Fatalf("notFound = %q", got)
+	}
+
+	// An ID with no "/" is the row's own.
+	id, email, ok := importIDOfMembership(context.Background(), nil, "5a0e0000-0000-4000-8000-000000000001", ownerTeam, &diags)
+	if !ok || id != "5a0e0000-0000-4000-8000-000000000001" || email != "" {
+		t.Fatalf("an ID of its own imported as %q, %q, %t", id, email, ok)
+	}
+}

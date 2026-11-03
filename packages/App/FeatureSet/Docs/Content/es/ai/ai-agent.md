@@ -327,7 +327,7 @@ Una ejecución cuyo heartbeat lleva más de 12 minutos en silencio se marca como
 :::
 
 :::details Ningún Runner toma la tarea
-Una tarea que espera más de 30 minutos mientras el Runner que debe tomarla no está conectado - el que elige su repositorio, el Runner predeterminado del proyecto para un repositorio que no elige ninguno, o un Runner global - falla, con un mensaje que dice cuál, así que nunca aparece en curso para siempre. Cuando un Runner está en línea pero ocupado, las tareas en cola esperan su turno. Un Runner anterior a Código nunca recibe una petición de Código: actualiza un Runner que ejecutes tú mismo junto con el servidor.
+Una tarea que espera más de 30 minutos mientras el Runner que debe tomarla no está conectado - el que elige su repositorio, el Runner predeterminado del proyecto para un repositorio que no elige ninguno, o un Runner global - falla, con un mensaje que dice cuál, así que nunca aparece en curso para siempre. Un Runner que no toma correcciones de código cuenta como no conectado: uno iniciado con `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false`, o un Runner global anterior a 14.0.94. Código lo dice antes de que pidas una tarea. Cuando un Runner está en línea pero ocupado, las tareas en cola esperan su turno. Un Runner anterior a Código nunca recibe una petición de Código: actualiza un Runner que ejecutes tú mismo junto con el servidor.
 :::
 
 ## Privacidad

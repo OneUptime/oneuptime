@@ -1,7 +1,11 @@
 import { Command } from "commander";
 import { buildProgram } from "../Program";
-import { discoverResources } from "../Commands/ResourceCommands";
+import {
+  addResourceSubcommands,
+  discoverResources,
+} from "../Commands/ResourceCommands";
 import { ResourceInfo } from "../Types/CLITypes";
+import { CliOperation } from "Common/Utils/DeveloperDocs/CliCommands";
 import * as fs from "fs";
 import { isBuiltin } from "module";
 import * as os from "os";
@@ -215,6 +219,43 @@ function respond(request: RecordedRequest): Answer {
   }
 
   return { body: { _id: RECORD_ID, name: `The answer to ${request.path}` } };
+}
+
+/*
+ * The resources whose list and count the packed CLI runs: every one that
+ * reads (456 runs of the packed CLI, twice, took six minutes of a CI
+ * runner), but a sample - every resource of the main products'
+ * Developer pages and their records, and one in six of the rest, by
+ * name, so a resource of every kind is among them. The bundle compiles
+ * every model the same way, and Tests/BundleBuild holds every column of
+ * every model to naming its type; this is where the requests show it.
+ */
+const ALWAYS_SAMPLED: ReadonlyArray<string> = [
+  "alert",
+  "incident",
+  "incident-severity",
+  "incident-state",
+  "label",
+  "log",
+  "metric",
+  "monitor",
+  "on-call-policy",
+  "scheduled-maintenance-event",
+  "span",
+  "status-page",
+  "team",
+  "team-member",
+];
+
+function sampledResources(): Array<ResourceInfo> {
+  return discoverResources().filter(
+    (resource: ResourceInfo, index: number): boolean => {
+      return (
+        resource.operations.includes(CliOperation.List) &&
+        (ALWAYS_SAMPLED.includes(resource.name) || index % 6 === 0)
+      );
+    },
+  );
 }
 
 function nextKey(prefix: string): string {
@@ -454,7 +495,7 @@ describe("the CLI installed from it", () => {
   it("prints the same help as the sources, every resource command included", async () => {
     const source: Command = buildProgram();
     // A pipe has no width: commander lays the help out for 80 columns then.
-    source.configureHelp({ helpWidth: 80 });
+    source.configureHelp({ ...source.configureHelp(), helpWidth: 80 });
 
     const result: RunResult = await Smoke.runCli(installation, ["--help"]);
 
@@ -470,7 +511,9 @@ describe("the CLI installed from it", () => {
         return command.name() === "incident";
       },
     ) as Command;
-    incident.configureHelp({ helpWidth: 80 });
+    // Made as the program dispatches to it, as the installed CLI makes them.
+    addResourceSubcommands(incident);
+    incident.configureHelp({ ...incident.configureHelp(), helpWidth: 80 });
 
     const result: RunResult = await Smoke.runCli(installation, [
       "incident",
@@ -497,6 +540,8 @@ describe("the CLI installed from it", () => {
           pluralName: resource.pluralName,
           modelType: resource.modelType,
           apiPath: resource.apiPath,
+          operations: resource.operations,
+          actions: resource.actions,
         };
       }),
     );
@@ -508,7 +553,7 @@ describe("the CLI installed from it", () => {
    * decorator would show.
    */
   it("sends the request the sources send, and prints what they print, for a list and a count of every resource", async () => {
-    const resources: Array<ResourceInfo> = discoverResources();
+    const resources: Array<ResourceInfo> = sampledResources();
     const commands: Array<Array<string>> = resources.flatMap(
       (resource: ResourceInfo): Array<Array<string>> => {
         return [
@@ -518,7 +563,7 @@ describe("the CLI installed from it", () => {
       },
     );
 
-    expect(resources.length).toBeGreaterThan(20);
+    expect(resources.length).toBeGreaterThan(60);
 
     const packedRuns: Array<{ key: string; result: RunResult }> =
       await eachAtOnce(
@@ -644,6 +689,95 @@ describe("the CLI installed from it", () => {
         status: 0,
       });
       expect(requestsWithKey(packedKey)).toHaveLength(1);
+      expect({ label, asked: asked(requestsWithKey(packedKey)) }).toEqual({
+        label,
+        asked: asked(requestsWithKey(sourceKey)),
+      });
+      expect({ label, printed: packedResult.stdout }).toEqual({
+        label,
+        printed: `${source.printed.join("\n")}\n`,
+      });
+    }
+  }, 300000);
+
+  /*
+   * What this release added, through the bundle: field flags (their lazy
+   * options, people by email), the fields subcommand, the dashboard's
+   * buttons, --fields and --all, and --json on a command whose answer is
+   * a sentence. Each sends exactly the requests the sources send - some
+   * send several, or none - and prints what they print.
+   */
+  it("sends what the sources send for field flags, people by email, fields, actions, --fields and --all", async () => {
+    const commands: Array<Array<string>> = [
+      [
+        "incident",
+        "create",
+        "--title",
+        "Checkout is slow",
+        "--incident-severity-id",
+        RECORD_ID,
+        "--monitors",
+        `${RECORD_ID},${RECORD_ID}`,
+        "--is-visible-on-status-page",
+        "false",
+        "--json",
+      ],
+      [
+        "incident",
+        "update",
+        RECORD_ID,
+        "--title",
+        "Checkout is fast",
+        "--json",
+      ],
+      [
+        "incident",
+        "get",
+        RECORD_ID,
+        "--fields",
+        "title,currentIncidentState",
+        "--json",
+      ],
+      ["incident", "acknowledge", RECORD_ID, "--json"],
+      ["incident", "add-note", RECORD_ID, "--note", "Rolled back.", "--public"],
+      ["monitor", "list", "--all", "--json"],
+      ["incident", "fields", "--json"],
+      [
+        "team-member",
+        "create",
+        "--team-id",
+        RECORD_ID,
+        "--user-email",
+        "alice@example.com",
+        "--json",
+      ],
+      ["incident", "delete", RECORD_ID, "--json"],
+    ];
+
+    for (const command of commands) {
+      const packedKey: string = nextKey("sk-packed");
+      const sourceKey: string = nextKey("sk-source");
+      const packedResult: RunResult = await Smoke.runCli(installation, [
+        ...command,
+        "--url",
+        api.url,
+        "--api-key",
+        packedKey,
+      ]);
+      const source: SourceRun = await runSources([
+        ...command,
+        "--url",
+        api.url,
+        "--api-key",
+        sourceKey,
+      ]);
+      const label: string = command.slice(0, 2).join(" ");
+
+      expect({ label, status: packedResult.status }).toEqual({
+        label,
+        status: 0,
+      });
+      expect(source.exitCode).toBeUndefined();
       expect({ label, asked: asked(requestsWithKey(packedKey)) }).toEqual({
         label,
         asked: asked(requestsWithKey(sourceKey)),

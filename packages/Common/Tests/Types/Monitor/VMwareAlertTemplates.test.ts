@@ -112,6 +112,36 @@ const EXPECTED_TEMPLATES: Array<TemplateExpectation> = [
     },
   },
   {
+    /*
+     * A host vCenter reports no memory in use for: not connected, or not
+     * running. Max per minute, so one collection with memory in use is a
+     * host that answers.
+     */
+    id: "vmware-host-not-responding",
+    category: "Host",
+    severity: "Critical",
+    rollingTime: RollingTime.Past5Minutes,
+    queries: [
+      {
+        metricName: "vcenter.host.memory.usage",
+        aggregation: MetricsAggregationType.Max,
+        attributes: {},
+        legendUnit: undefined,
+      },
+    ],
+    groupBy: HOST,
+    fire: {
+      alias: "host_memory_in_use",
+      filterType: FilterType.LessThanOrEqualTo,
+      value: 0,
+    },
+    recover: {
+      alias: "host_memory_in_use",
+      filterType: FilterType.GreaterThan,
+      value: 0,
+    },
+  },
+  {
     id: "vmware-host-cpu-saturation",
     category: "Host",
     severity: "Warning",
@@ -814,10 +844,12 @@ describe("VMwareAlertTemplates - registry", () => {
     );
   });
 
-  test("ships the 23 per-object templates the design spec lists, and the heartbeat first", () => {
-    expect(PER_OBJECT_TEMPLATES).toHaveLength(23);
-    expect(ALL_TEMPLATES).toHaveLength(24);
+  test("ships the 24 per-object templates the design spec lists, and the heartbeat first", () => {
+    expect(PER_OBJECT_TEMPLATES).toHaveLength(24);
+    expect(ALL_TEMPLATES).toHaveLength(25);
     expect(ALL_TEMPLATES[0]!.id).toBe(STOPPED_REPORTING_ID);
+    // The host that is down comes first among the hosts' templates.
+    expect(ALL_TEMPLATES[1]!.id).toBe("vmware-host-not-responding");
   });
 
   test("every template id carries the vmware- prefix", () => {
@@ -1707,6 +1739,101 @@ describe("VMwareAlertTemplates - datacenter counts recover once their series is 
       ).toEqual({ breached: false, healthy: true });
     },
   );
+});
+
+describe("VMwareAlertTemplates - Host Not Responding", () => {
+  /*
+   * vCenter reports a host's memory in use only while the host is
+   * connected; for one it lost contact with, powered off or put in standby
+   * the receiver records 0 MiB. A running ESXi host never uses none.
+   */
+  const template: VMwareAlertTemplate = getTemplate(
+    "vmware-host-not-responding",
+  );
+  const alias: string = "host_memory_in_use";
+
+  test("is a critical host template, one incident per host, named in its title", () => {
+    expect(template.category).toBe("Host");
+    expect(template.severity).toBe("Critical");
+    expect(template.name).toBe("Host Not Responding");
+    expect(template.summary.length).toBeLessThanOrEqual(80);
+
+    const step: MonitorStep = template.getMonitorStep(buildArgs());
+    const monitor: MonitorStepVMwareMonitor = getVMwareMonitor(step);
+    const query: any = monitor.metricViewConfig.queryConfigs[0]!;
+
+    expect(query.metricQueryData.filterData.metricName).toBe(
+      "vcenter.host.memory.usage",
+    );
+    expect(query.metricQueryData.groupByAttributeKeys).toEqual([HOST]);
+    expect(
+      getCriteriaInstances(step)[0]!.data?.incidents?.[0]?.title || "",
+    ).toContain("CRITICAL: Host Not Responding");
+  });
+
+  test("fires when every minute of the window reports no memory in use", async () => {
+    const step: MonitorStep = template.getMonitorStep(buildArgs());
+    const monitor: MonitorStepVMwareMonitor = getVMwareMonitor(step);
+
+    expect(
+      await evaluateTemplateCriteria({
+        step: step,
+        viewConfig: monitor.metricViewConfig,
+        samplesByAlias: { [alias]: [0, 0, 0, 0, 0] },
+        windowMinutes: 5,
+      }),
+    ).toEqual({ breached: true, healthy: false });
+  });
+
+  test("a host that reported memory in use once in the window does not fire", async () => {
+    const step: MonitorStep = template.getMonitorStep(buildArgs());
+    const monitor: MonitorStepVMwareMonitor = getVMwareMonitor(step);
+
+    expect(
+      (
+        await evaluateTemplateCriteria({
+          step: step,
+          viewConfig: monitor.metricViewConfig,
+          samplesByAlias: { [alias]: [0, 0, 8192, 0, 0] },
+          windowMinutes: 5,
+        })
+      ).breached,
+    ).toBe(false);
+  });
+
+  test("a running host recovers it, and a quiet window (the vCenter stopped reporting) never fires it", async () => {
+    const step: MonitorStep = template.getMonitorStep(buildArgs());
+    const monitor: MonitorStepVMwareMonitor = getVMwareMonitor(step);
+
+    expect(
+      await evaluateTemplateCriteria({
+        step: step,
+        viewConfig: monitor.metricViewConfig,
+        samplesByAlias: { [alias]: [16384, 16384, 16390, 16402, 16410] },
+        windowMinutes: 5,
+      }),
+    ).toEqual({ breached: false, healthy: true });
+
+    // No data at all is vCenter Stopped Reporting's to say, not this one's.
+    expect(
+      (
+        await evaluateTemplateCriteria({
+          step: step,
+          viewConfig: monitor.metricViewConfig,
+          samplesByAlias: { [alias]: [] },
+          windowMinutes: 5,
+        })
+      ).breached,
+    ).toBe(false);
+  });
+
+  test("its words say what a host at 0 is, the planned cases included", () => {
+    expect(template.summary).toBe(
+      "vCenter reports no memory in use on an ESXi host for 5 minutes.",
+    );
+    expect(template.description).toContain("vcenter.host.memory.usage at 0");
+    expect(template.description).toContain("powered off or put in standby");
+  });
 });
 
 describe("VMwareAlertTemplates - Datacenter Hosts Not Responding (regression)", () => {

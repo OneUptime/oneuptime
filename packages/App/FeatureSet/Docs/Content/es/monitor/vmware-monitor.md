@@ -4,7 +4,7 @@ Un monitor de VMware vigila un vCenter - sus centros de datos, clústeres, hosts
 
 :::cards
 - [Crear el monitor](#crear-un-monitor-de-vmware): Seis pasos en el panel.
-- [Plantillas](#plantillas-de-alerta-predefinidas): Veinticuatro alertas listas para usar, un incidente por host, VM o almacén de datos.
+- [Plantillas](#plantillas-de-alerta-predefinidas): Veinticinco alertas listas para usar, un incidente por host, VM o almacén de datos.
 - [Atributos de identidad](#atributos-de-identidad): Cómo apuntar a un host, una VM o un almacén de datos.
 - [Métricas](#métricas-recogidas): Cada serie `vcenter.*` sobre la que el monitor puede alertar.
 :::
@@ -106,14 +106,15 @@ En los filtros del monitor y en las claves de agrupación, los atributos de recu
 
 ## Plantillas de alerta predefinidas
 
-OneUptime incluye 24 plantillas para problemas comunes de VMware, y la lista de **Sobre qué alertar** las ofrece todas. Cada una construye un monitor completo: la consulta de la métrica, sus filtros de atributos, una agrupación por el atributo de identidad propio del objeto, un criterio que dispara y otro que recupera. Los umbrales son puntos de partida que puede editar.
+OneUptime incluye 25 plantillas para problemas comunes de VMware, y la lista de **Sobre qué alertar** las ofrece todas. Cada una construye un monitor completo: la consulta de la métrica, sus filtros de atributos, una agrupación por el atributo de identidad propio del objeto, un criterio que dispara y otro que recupera. Los umbrales son puntos de partida que puede editar.
 
 Las plantillas leen los últimos 5 minutos salvo que la tabla diga otra cosa. Un criterio solo dispara cuando la condición se cumple en cada minuto de su ventana, y un criterio de umbral se recupera un 10 % más allá de su umbral, así que un valor que oscila en la línea no parpadea.
 
 | Plantilla | Categoría | Gravedad | Vigila | Dispara cuando | Se recupera cuando |
 | --- | --- | --- | --- | --- | --- |
 | vCenter Stopped Reporting | Disponibilidad | Crítico | `vcenter.datacenter.cpu.limit`, Count sobre todo el vCenter, **últimos 10 minutos** | Sin datos durante toda la ventana: el agente o la sonda dejó de funcionar, o vCenter ya no le responde | Vuelven a llegar datos |
-| Host CPU Saturation | Host | Advertencia | `vcenter.host.cpu.utilization`, Avg por `resource.vcenter.host.name` | Por encima del 90 %: cada VM del host compite por los núcleos y muestra tiempo de CPU ready | En el 81 % o menos |
+| Host Not Responding | Host | Crítico | `vcenter.host.memory.usage`, Max por `resource.vcenter.host.name` | En 0, sin memoria en uso: vCenter ha perdido el contacto con el host (falló, se quedó sin corriente o sin su red de administración, o se desconectó), o está apagado o en espera. Donde vSphere DPM pone hosts en espera, usa **Datacenter Hosts Not Responding**, que los deja fuera | Por encima de 0 |
+| Host CPU Saturation | Host | Advertencia | `vcenter.host.cpu.utilization`, Avg por host | Por encima del 90 %: cada VM del host compite por los núcleos y muestra tiempo de CPU ready | En el 81 % o menos |
 | Host Memory Saturation | Host | Advertencia | `vcenter.host.memory.utilization`, Avg por host | Por encima del 90 %: el host empieza a recuperar memoria con ballooning, compresión y swapping | En el 81 % o menos |
 | Host Disk Latency High | Host | Advertencia | `vcenter.host.disk.latency.max`, Max por host | Por encima de 50 ms: cada VM cuyos discos están en esa ruta espera al almacenamiento. Necesita el nivel de contadores de rendimiento 3 | En 45 ms o menos |
 | Host Network Packet Errors | Host | Advertencia | `vcenter.host.network.packet.error.rate`, Max por host | Por encima de 0: casi siempre un fallo de cable, SFP o puerto de switch | En 0 |
@@ -142,6 +143,7 @@ Las plantillas leen los últimos 5 minutos salvo que la tabla diga otra cosa. Un
 - **Las plantillas de utilización usan Avg:** el receptor informa un porcentaje real de 0 a 100 para cada objeto, así que el promedio en un minuto es la utilización sostenida.
 - **Las plantillas de latencia usan Max:** la métrica ya es la peor latencia entre los discos del objeto, así que su muestra más alta es la honesta.
 - **Las plantillas de recuento y de estado usan Max**, así que una sola recogida que muestre la condición las dispara: errores de paquetes, ballooning, swapping, estado rojo y amarillo, hosts no efectivos, congestión.
+- **Host Not Responding usa Max y se activa en 0:** un host ESXi en marcha siempre usa memoria, así que una recogida que informa de memoria en uso es un host que responde, y solo una ventana en la que ninguna lo hizo la activa.
 - **Cada plantilla agrupa por el atributo de identidad propio del objeto**, así que se dispara un incidente por cada objeto afectado, y el incidente lo nombra. La excepción es **vCenter Stopped Reporting**, que vigila todo el vCenter: cuando los datos dejan de llegar, las demás plantillas no tienen nada que comparar y mantienen su último estado, así que esta es la que le avisa.
 - **Los umbrales están fijados en su unidad** (`%`, `ms`, `us`), así que conservan su significado sea cual sea la unidad que muestre un gráfico.
 

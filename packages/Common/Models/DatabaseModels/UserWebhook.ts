@@ -187,6 +187,7 @@ class UserWebhook extends BaseModel {
   // The HMAC signing key. Reading it is forging requests.
   @OwnerOnlyColumn()
   @TableColumn({
+    secret: true,
     title: "Signing Secret",
     required: false,
     unique: false,

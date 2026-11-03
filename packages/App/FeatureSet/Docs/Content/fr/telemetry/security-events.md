@@ -57,6 +57,9 @@ Ouvrez **Produits → Événements de sécurité**, sous **Sécurité**. Son men
 | **Priorités des dossiers** | Paramètres | L'urgence d'un dossier : les priorités propres au projet, la plus urgente en premier |
 | **Objectifs de réponse** | Paramètres | La rapidité avec laquelle un dossier de chaque priorité doit être pris en compte et confiné |
 | **Statuts des dossiers** | Paramètres | Les étapes par lesquelles passe un dossier, et ce que compte un dossier dans chacune |
+| **Champs personnalisés** | Paramètres | Les champs que votre équipe remplit dans chaque dossier, comme l'unité commerciale qu'il concerne |
+| **Modèles de notes** | Paramètres | Du texte prêt à l'emploi pour les notes que votre équipe rédige sur ses dossiers |
+| **Numérotation** | Paramètres | Le texte placé devant les numéros de dossier, et le numéro que reçoit le prochain dossier |
 | **Notation du risque** | Paramètres | Si le risque d'une entité ouvre un dossier, à quel risque, et l'importance de chaque entité |
 
 **Détections**, **IA**, **Connexions** et **Paramètres**, qu'on configure une fois, restent repliées jusqu'à ce que vous les ouvriez. Nouveau dans la sécurité ? [Bien démarrer avec la sécurité](/docs/telemetry/security-getting-started) la met en place en deux clics.

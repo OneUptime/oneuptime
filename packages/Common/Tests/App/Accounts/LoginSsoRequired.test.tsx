@@ -34,7 +34,9 @@ import i18n from "../../../../App/FeatureSet/Accounts/src/Utils/i18n";
 import english from "../../../../App/FeatureSet/Accounts/src/Locales/en.json";
 import german from "../../../../App/FeatureSet/Accounts/src/Locales/de.json";
 import LoginPage from "../../../../App/FeatureSet/Accounts/src/Pages/Login";
-import LoginWithSSOPage from "../../../../App/FeatureSet/Accounts/src/Pages/LoginWithSSO";
+import LoginWithSSOPage, {
+  SSO_SUBTITLE_TEST_ID,
+} from "../../../../App/FeatureSet/Accounts/src/Pages/LoginWithSSO";
 import RegisterPage from "../../../../App/FeatureSet/Accounts/src/Pages/Register";
 
 /*
@@ -403,6 +405,49 @@ describe("the sign-in page while the server requires SSO", () => {
     // The lookup's button is the filled one; the provider is outlined beside it.
     expect(providerButtons()[0]!.className).toBe(
       getSignInOptionClassName("ready"),
+    );
+    expectNothingButSso();
+  });
+
+  /*
+   * The line under "Sign in to your account" says why only SSO is offered,
+   * as the master admins' page says it. It said "Sign in with your
+   * organization's single sign-on (SSO).", right over the providers' own
+   * heading, "Sign in with your organization" (fu-platform-next's review).
+   */
+  test("providers beside the email lookup: the line under the heading says why only SSO is offered, and the providers' heading is said once", async () => {
+    signInMethodsAnswer = required([OKTA, GOOGLE], true);
+
+    await renderPage(<LoginPage />);
+
+    const line: HTMLElement = screen.getByTestId(SSO_SUBTITLE_TEST_ID);
+
+    expect(line).toHaveTextContent(
+      "This server requires single sign-on (SSO).",
+    );
+    expect(line.textContent).toBe(english.sso.requiredSubtitle);
+    expect(
+      english.adminLogin.subtitle.startsWith(english.sso.requiredSubtitle),
+    ).toBe(true);
+    expect(line.textContent || "").not.toContain(
+      english.sso.globalProvidersTitle,
+    );
+    expect(
+      screen.getAllByText(english.sso.globalProvidersTitle, { exact: false }),
+    ).toHaveLength(1);
+    expectNothingButSso();
+  });
+
+  test("nothing to sign in with yet: the line says why, and the card what is missing", async () => {
+    signInMethodsAnswer = required([]);
+
+    await renderPage(<RegisterPage />);
+
+    expect(screen.getByTestId(SSO_SUBTITLE_TEST_ID)).toHaveTextContent(
+      english.sso.requiredSubtitle,
+    );
+    expect(screen.getByTestId("sso-not-set-up")).toHaveTextContent(
+      english.sso.requiredNotSetUp,
     );
     expectNothingButSso();
   });

@@ -157,7 +157,7 @@ En episode du oppretter, har ingen grupperingsregel, så listen viser **Grupperi
 | **Team** | **Eiere** |
 | **Varsler** | **Medlemsvarsler** |
 | **Notater** | **Private notater** |
-| **Utvikler** | **Terraform**, **API**, **AI-assistenter** |
+| **Utvikler** | **Terraform**, **API**, **CLI**, **AI-assistenter** |
 | **Avansert** | **Revisjonslogger**, **Slett episode** |
 
 **Utvikler** og **Avansert** starter sammenfoldet. På **Oversikt** nevner toppen episodens **Eiere**, team først, og den første ruten, **Opprettet**, sier når episoden ble opprettet — **Automatisk**, når en grupperingsregel åpnet den. Kortet **Hva som skjedde** står øverst på siden — episodens beskrivelse og **Rotårsak** — deretter **Alerts in this episode** og **Episodefeed**, ved siden av kortet **Episodedetaljer**: nummer, tilstand, alvorlighetsgrad, antall varsler, grupperingsregel og vaktpolicyer. Toppen har **Bekreft** og **Løs**, og **Flytt episode til** i menyen **⋯**.

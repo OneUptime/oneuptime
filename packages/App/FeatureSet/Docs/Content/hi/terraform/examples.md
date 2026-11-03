@@ -534,7 +534,7 @@ resource "oneuptime_escalation_rule" "first_line" {
   escalate_after_in_minutes = 5
 }
 
-resource "oneuptime_team_on_call_duty_escalation_rule" "sre" {
+resource "oneuptime_escalation_rule_team" "sre" {
   on_call_duty_policy_id                 = oneuptime_on_call_policy.primary.id
   on_call_duty_policy_escalation_rule_id = oneuptime_escalation_rule.first_line.id
   team_id                                = oneuptime_team.sre.id
@@ -606,26 +606,23 @@ resource "oneuptime_scheduled_maintenance_event" "database_upgrade" {
 
 ## प्रोब
 
-आपका अपना प्रोब आपके नेटवर्क से जाँच चलाता है। उसकी कुंजी वह सीक्रेट है जिससे प्रोब साइन इन करता है, इसलिए उसे एक वेरिएबल में दें:
+आपका अपना प्रोब आपके नेटवर्क से जाँच चलाता है। उसे एक नाम दें, और OneUptime उसकी `key` बनाता है, वह सीक्रेट जिससे प्रोब साइन इन करता है। Terraform कुंजी को प्लान और लॉग से बाहर रखता है, और उसका कोई आउटपुट सेंसिटिव चिह्नित होना चाहिए:
 
 ```hcl
-variable "probe_key" {
-  description = "The key the probe signs in with"
-  type        = string
-  sensitive   = true
-}
-
 resource "oneuptime_probe" "eu_west" {
-  key           = var.probe_key
-  name          = "EU West"
-  description   = "Probe in our eu-west-1 network"
-  probe_version = "1.0.0"
+  name        = "EU West"
+  description = "Probe in our eu-west-1 network"
 
   should_auto_enable_probe_on_new_monitors = true
 }
+
+output "eu_west_probe_key" {
+  value     = oneuptime_probe.eu_west.key
+  sensitive = true
+}
 ```
 
-प्रोब को `PROBE_ID` को प्रोब के `id` पर और `PROBE_KEY` को कुंजी पर सेट करके चलाएँ: [कस्टम प्रोब](/docs/probe/custom-probe) देखें। एंड-टू-एंड टेस्ट `23-probe-crud` प्रोब लागू करता है।
+प्रोब को `PROBE_ID` को प्रोब के `id` पर और `PROBE_KEY` को कुंजी पर सेट करके चलाएँ, जिसे `terraform output -raw eu_west_probe_key` प्रिंट करता है: [कस्टम प्रोब](/docs/probe/custom-probe) देखें। कुंजी खुद चुनने के लिए, `key` को किसी सेंसिटिव वेरिएबल से सेट करें। एंड-टू-एंड टेस्ट `23-probe-crud` और `61-name-only-and-choices` प्रोब लागू करते हैं।
 
 ## अगले कदम
 

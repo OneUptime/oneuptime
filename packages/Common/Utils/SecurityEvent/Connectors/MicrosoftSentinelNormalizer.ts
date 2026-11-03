@@ -5,6 +5,10 @@ import OcsfSeverity, {
   normalizeOcsfSeverity,
 } from "../../../Types/SecurityEvent/OcsfSeverity";
 import { ocsfCategoryForClassUid } from "../../../Types/SecurityEvent/OcsfEventClass";
+import {
+  findMitreTacticIdByName,
+  getMitreTacticNameKey,
+} from "../../../Types/SecurityEvent/MitreAttack";
 import SecurityEventConnectorProvider from "../../../Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
 import {
   SecurityEventConnectorDefinition,
@@ -47,28 +51,16 @@ export const MICROSOFT_SENTINEL_INCIDENT_RESOURCE_TYPE: string =
  * Sentinel reports tactics by their ATT&CK name (the `AttackTactic` enum
  * on the incidents API), while NormalizedSecurityEvent.mitreTactics
  * stores ATT&CK ids ("TA0003") so rows from every source join on the same
- * key. Enterprise ATT&CK ids for the fourteen enterprise tactics; the two
- * ICS tactics carry their ICS ids; PreAttack has no id in the current
- * matrix and keeps its name, which is still searchable.
+ * key. Enterprise ATT&CK ids for the enterprise tactics, as every
+ * connector reads them (findMitreTacticIdByName); the two ICS tactics,
+ * which only Sentinel names, carry their ICS ids; PreAttack has no id in
+ * the current matrix and keeps its name, which is still searchable.
  */
-export const MICROSOFT_SENTINEL_TACTIC_IDS: Record<string, string> = {
-  reconnaissance: "TA0043",
-  resourcedevelopment: "TA0042",
-  initialaccess: "TA0001",
-  execution: "TA0002",
-  persistence: "TA0003",
-  privilegeescalation: "TA0004",
-  defenseevasion: "TA0005",
-  credentialaccess: "TA0006",
-  discovery: "TA0007",
-  lateralmovement: "TA0008",
-  collection: "TA0009",
-  exfiltration: "TA0010",
-  commandandcontrol: "TA0011",
-  impact: "TA0040",
-  impairprocesscontrol: "TA0106",
-  inhibitresponsefunction: "TA0107",
-};
+export const MICROSOFT_SENTINEL_ICS_TACTIC_IDS: ReadonlyMap<string, string> =
+  new Map<string, string>([
+    ["impairprocesscontrol", "TA0106"],
+    ["inhibitresponsefunction", "TA0107"],
+  ]);
 
 function definition(): SecurityEventConnectorDefinition {
   const found: SecurityEventConnectorDefinition | undefined =
@@ -103,9 +95,11 @@ function lastPathSegment(value: string): string {
 }
 
 function mapTactic(name: string): string {
-  const key: string = name.replace(/[^A-Za-z]/g, "").toLowerCase();
-
-  return MICROSOFT_SENTINEL_TACTIC_IDS[key] || name.trim();
+  return (
+    findMitreTacticIdByName(name) ||
+    MICROSOFT_SENTINEL_ICS_TACTIC_IDS.get(getMitreTacticNameKey(name)) ||
+    name.trim()
+  );
 }
 
 function uniqueNonEmpty(values: Array<string>): Array<string> {

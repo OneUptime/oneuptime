@@ -46,6 +46,7 @@ export enum CloudResourceViewTab {
   Delete = "delete",
   DeveloperTerraform = "developer-terraform",
   DeveloperApi = "developer-api",
+  DeveloperCli = "developer-cli",
   DeveloperAiAssistants = "developer-ai-assistants",
 }
 
@@ -73,6 +74,7 @@ export const CLOUD_RESOURCE_VIEW_TAB_PATHS: Readonly<
   [CloudResourceViewTab.Delete]: "delete",
   [CloudResourceViewTab.DeveloperTerraform]: "developer/terraform",
   [CloudResourceViewTab.DeveloperApi]: "developer/api",
+  [CloudResourceViewTab.DeveloperCli]: "developer/cli",
   [CloudResourceViewTab.DeveloperAiAssistants]: "developer/ai-assistants",
 };
 
@@ -111,6 +113,10 @@ export const ENVIRONMENT_VIEW_PAGES: Readonly<
     PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW,
     DeveloperDocsPageType.Api,
   ),
+  [CloudResourceViewTab.DeveloperCli]: getDeveloperDocsPageKey(
+    PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW,
+    DeveloperDocsPageType.Cli,
+  ),
   [CloudResourceViewTab.DeveloperAiAssistants]: getDeveloperDocsPageKey(
     PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW,
     DeveloperDocsPageType.AiAssistants,
@@ -143,6 +149,10 @@ export const RESOURCE_VIEW_PAGES: Readonly<
   [CloudResourceViewTab.DeveloperApi]: getDeveloperDocsPageKey(
     PageMap.CLOUD_RESOURCE_VIEW,
     DeveloperDocsPageType.Api,
+  ),
+  [CloudResourceViewTab.DeveloperCli]: getDeveloperDocsPageKey(
+    PageMap.CLOUD_RESOURCE_VIEW,
+    DeveloperDocsPageType.Cli,
   ),
   [CloudResourceViewTab.DeveloperAiAssistants]: getDeveloperDocsPageKey(
     PageMap.CLOUD_RESOURCE_VIEW,

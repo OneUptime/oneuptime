@@ -18,9 +18,9 @@ import React, {
 } from "react";
 import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
-import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import { VMWARE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/VMwareMetricDescriptions";
+import { getVMwareResourcePoolMemoryTone } from "../../../Components/VMware/VMwareResourceColumns";
 
 /*
  * Resource pools are list-only (no detail page): the receiver reports a
@@ -38,6 +38,7 @@ const VMwareVCenterResourcePools: FunctionComponent<
 
   const fetchData: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
+    setError("");
     try {
       /*
        * Postgres inventory read (VMwareResource, kind=ResourcePool). The
@@ -67,10 +68,6 @@ const VMwareVCenterResourcePools: FunctionComponent<
     return <PageLoader isVisible={true} />;
   }
 
-  if (error) {
-    return <ErrorMessage message={error} />;
-  }
-
   const readNumber: (
     resource: InfrastructureResource,
     key: string,
@@ -88,6 +85,7 @@ const VMwareVCenterResourcePools: FunctionComponent<
 
   return (
     <ResourceTable
+      error={error}
       onRefreshClick={() => {
         fetchData().catch(() => {});
       }}
@@ -136,6 +134,8 @@ const VMwareVCenterResourcePools: FunctionComponent<
           key: "memoryBalloonedBytes",
           description:
             VMWARE_METRIC_DESCRIPTIONS.resourcePoolListBalloonedSwapped,
+          // Amber once the host swaps the pool's memory, as Needs attention.
+          getTone: getVMwareResourcePoolMemoryTone,
           getValue: (resource: InfrastructureResource): string => {
             const ballooned: number | null = readNumber(
               resource,

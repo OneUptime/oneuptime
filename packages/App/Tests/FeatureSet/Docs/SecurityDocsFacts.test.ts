@@ -617,19 +617,19 @@ describe("the Security Events page", () => {
       "Security Viewer",
     ]);
     expect(permissionTitled("Security Admin").description).toContain(
-      "Full control over security operations: security events, cases with their detections, notes, tasks and evidence, response playbooks and their runs, Sigma detection rules, threat intelligence feeds and their indicators, and security event connections",
+      "Full control over security operations: security events, cases with their detections, notes, tasks and evidence, the cases' custom fields and note templates, response playbooks and their runs, Sigma detection rules, threat intelligence feeds and their indicators, and security event connections",
     );
     expect(rowNamed(rows, "Security Admin")[1]).toBe(
       "Everything: events, cases, playbooks, detection rules, threat intel feeds and connections",
     );
     expect(permissionTitled("Security Member").description).toContain(
-      "works security cases (opens, assigns, changes and closes them, writes their notes, works their tasks and adds evidence), runs playbooks and approves their steps, and creates, changes and deletes detection rules and threat intel feeds. Cannot configure playbooks or security event connections, or delete security data.",
+      "works security cases (opens, assigns, changes and closes them, fills in their custom fields, writes their notes, works their tasks and adds evidence), runs playbooks and approves their steps, and creates, changes and deletes detection rules and threat intel feeds. Cannot configure playbooks, security event connections or the cases' settings, or delete security data.",
     );
     expect(rowNamed(rows, "Security Member")[1]).toBe(
       "Read events and threat intel, work cases, run playbooks and approve their steps, and create, change and delete detection rules and feeds. It can't set up playbooks or connections, or delete security data.",
     );
     expect(permissionTitled("Security Viewer").description).toBe(
-      "Read-only access to security events, cases with their detections, notes, tasks and evidence, playbooks and their runs, detection rules, threat intelligence feeds and indicators, and security event connections.",
+      "Read-only access to security events, cases with their detections, notes, tasks and evidence, the cases' custom fields and note templates, playbooks and their runs, detection rules, threat intelligence feeds and indicators, and security event connections.",
     );
     expect(rowNamed(rows, "Security Viewer")[1]).toBe(
       "Read events, cases, playbooks, rules, feeds, indicators and connections",

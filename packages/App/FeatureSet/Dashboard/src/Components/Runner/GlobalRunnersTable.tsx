@@ -8,6 +8,8 @@ import {
 } from "Common/Types/Runner/RunnerLiveStatus";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
@@ -17,7 +19,15 @@ import React, { FunctionComponent, ReactElement } from "react";
  * their name, what they are for and whether they are connected. Nobody in a
  * project creates, edits or deletes one; a master admin does, under Admin
  * Dashboard -> Settings -> Global Runners.
+ *
+ * The card says they run AI code fixes, so one that takes none says so
+ * under its status (the boolean the server works out, RunnerService
+ * .findGlobalRunners): connected, it runs JavaScript steps, but no
+ * repository on the Global Runner gets its fix done there.
  */
+
+export const GLOBAL_RUNNER_ROW_TAKES_NO_CODE_FIXES_TEST_ID: string =
+  "global-runner-row-takes-no-code-fixes";
 
 export interface ComponentProps {
   // Whether the project uses them (Project.useGlobalRunners), for the description.
@@ -34,6 +44,8 @@ export const GLOBAL_RUNNERS_TABLE_ID: string = "global-runners-table";
 const GlobalRunnersTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
   return (
     <ModelTable<Runner>
       modelType={Runner}
@@ -59,6 +71,8 @@ const GlobalRunnersTable: FunctionComponent<ComponentProps> = (
       selectMoreFields={{
         // The Status cell renders from lastAlive.
         lastAlive: true,
+        // And says when it takes no AI code fixes.
+        takesCodeFixes: true,
       }}
       noItemsMessage={GlobalRunnersCopy.globalEmptyMessage}
       filters={[]}
@@ -85,7 +99,23 @@ const GlobalRunnersTable: FunctionComponent<ComponentProps> = (
             );
           },
           getElement: (item: Runner): ReactElement => {
-            return <RunnerStatusElement runner={item} />;
+            if (item.takesCodeFixes !== false) {
+              return <RunnerStatusElement runner={item} />;
+            }
+
+            return (
+              <div>
+                <RunnerStatusElement runner={item} />
+                <p
+                  className="mt-1 text-xs text-amber-700"
+                  data-testid={GLOBAL_RUNNER_ROW_TAKES_NO_CODE_FIXES_TEST_ID}
+                >
+                  {translator.translateText(
+                    GlobalRunnersCopy.globalRunnerTakesNoCodeFixes,
+                  )}
+                </p>
+              </div>
+            );
           },
         },
       ]}

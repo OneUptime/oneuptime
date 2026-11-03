@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40050,
-    "untranslated": 12611
+    "keys": 40302,
+    "untranslated": 12581
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -29,6 +29,7 @@
     "Chat",
     "Chats",
     "Cluster",
+    "Cluster {{cluster}}",
     "Clusters",
     "Configs",
     "Console",
@@ -53,6 +54,7 @@
     "Failover",
     "Feed",
     "Gateway",
+    "Global",
     "Google SecOps",
     "Goroutines",
     "HA: {{state}}",
@@ -118,6 +120,7 @@
     "Pod · production",
     "Pods",
     "Pool",
+    "Pool {{name}}",
     "Pools",
     "Portugal (+351)",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
@@ -175,6 +178,7 @@
     "VMs",
     "VMware vCenter",
     "Visual",
+    "Vital",
     "Volume",
     "Volumes",
     "Web",
@@ -203,8 +207,11 @@
     "main",
     "message",
     "name",
+    "p90 (ms)",
     "p95",
+    "p95 (ms)",
     "p95 {{latency}}",
+    "p99 (ms)",
     "prod, staging",
     "prod-.*",
     "prod-vcenter",
@@ -218,6 +225,7 @@
     "syslog",
     "timeout|connection refused",
     "total",
+    "vApp {{name}}",
     "vCenter",
     "vCenters",
     "vSphere Client",
