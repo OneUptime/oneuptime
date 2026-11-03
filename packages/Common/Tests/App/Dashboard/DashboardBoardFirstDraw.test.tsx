@@ -10,6 +10,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 import React, { ReactElement } from "react";
 
 /*
@@ -115,6 +116,7 @@ jest.mock(
 import DashboardCanvas, {
   DASHBOARD_BOARD_MEASURING_TEST_ID,
   DASHBOARD_BOARD_TEST_ID,
+  DASHBOARD_BOARD_WIDTH_PROBE_TEST_ID,
   EDITED_BOARD_HEIGHT_TRANSITION,
   getWidgetBoxTransition,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Canvas/Index";
@@ -390,6 +392,16 @@ function renderAt(
   return render(canvas({ isEditMode }));
 }
 
+// The same, drawn into a container the test watches from before the board is.
+function renderInto(
+  container: HTMLElement,
+  outerWidth: number,
+  isEditMode: boolean = false,
+): ReturnType<typeof render> {
+  boardClientWidth = outerWidth;
+  return render(canvas({ isEditMode }), { container });
+}
+
 function resizeTo(outerWidth: number): void {
   boardClientWidth = outerWidth;
   act(() => {
@@ -532,8 +544,7 @@ describe("the board measures its width before it draws a widget", () => {
     document.body.appendChild(container);
     const styles: ReturnType<typeof watchStyles> = watchStyles(container);
 
-    boardClientWidth = 1216;
-    render(canvas(), { container });
+    renderInto(container, 1216);
 
     for (const key of Object.keys(ID)) {
       expect(styles.styleChangesOf(wrapper(key))).toBe(0);
@@ -549,8 +560,7 @@ describe("the board measures its width before it draws a widget", () => {
       const styles: ReturnType<typeof watchStyles> = watchStyles(container);
 
       // A wide board's rows are as tall as its units are wide: taller than 70px.
-      boardClientWidth = 1216;
-      render(canvas({ isEditMode }), { container });
+      renderInto(container, 1216, isEditMode);
 
       const unit: number = (1200 - 110) / 12;
       // Editing keeps 4 empty rows under the lowest widget, 12 at least.
@@ -634,6 +644,100 @@ describe("viewing, a widget takes its new size at once; editing, it glides", () 
   });
 });
 
+/*
+ * A board's width can change after it is first measured and before the
+ * browser paints it - the Tailwind runtime styles the margins of a card
+ * the board opens in a moment after they are added - and at any time
+ * after. Its ResizeObserver reports the new width after the browser lays
+ * it out and before it paints it, and the widgets take it there and then.
+ */
+describe("the board follows a new width in the frame it comes in", () => {
+  test("its observer watches a box of no height across the board, which only a new width resizes", () => {
+    renderAt(1216);
+
+    expect(observed).toHaveLength(1);
+
+    const probe: Element = observed[0]!;
+
+    expect(probe).toHaveAttribute(
+      "data-testid",
+      DASHBOARD_BOARD_WIDTH_PROBE_TEST_ID,
+    );
+    expect((probe as HTMLElement).style.height).toBe("0px");
+    expect(probe).toHaveAttribute("aria-hidden", "true");
+    // Across the board itself, before its padding and its widgets.
+    expect(probe.parentElement).toBe(board());
+    expect(board().firstElementChild).toBe(probe);
+  });
+
+  test("a new width is laid out inside the observer's own callback, not left for React to draw a frame later", () => {
+    renderAt(1216);
+
+    const sizes: Record<string, DrawnSize> = sizesOnABoardOf(1184);
+
+    act(() => {
+      boardClientWidth = 1184;
+
+      for (const notify of [...observers]) {
+        notify();
+      }
+
+      // Before the callback's work is over: the widgets already have it.
+      for (const key of Object.keys(ID)) {
+        expect(wrapper(key).style.width).toBe(`${sizes[key]!.width}px`);
+      }
+    });
+  });
+
+  test("the card a board opens in styled a moment late: the widgets take the board's new width before it is painted", () => {
+    // Measured before the card's margins and padding are styled: 32px wider.
+    renderAt(1248);
+
+    expect(wrapper("title").style.width).toBe(
+      `${sizesOnABoardOf(1248)["title"]!.width}px`,
+    );
+
+    // The runtime styles the card; the browser lays the board out again.
+    resizeTo(1216);
+
+    const sizes: Record<string, DrawnSize> = sizesOnABoardOf(1216);
+
+    for (const key of Object.keys(ID)) {
+      expect(wrapper(key).style.width).toBe(`${sizes[key]!.width}px`);
+      expect(mounts[ID[key]!]).toBe(1);
+    }
+  });
+
+  test("a stand-in observer that reports inside observe() is measured as the layout effect measures, with no warning from React", () => {
+    reportsInsideObserve = true;
+
+    const errors: Array<string> = [];
+    const errorSpy: SpyInstance<typeof console.error> = jest
+      .spyOn(console, "error")
+      .mockImplementation((...args: Array<unknown>): void => {
+        errors.push(args.map(String).join(" "));
+      });
+
+    try {
+      renderAt(1216);
+    } finally {
+      errorSpy.mockRestore();
+    }
+
+    expect(
+      errors.filter((error: string) => {
+        return error.includes("flushSync");
+      }),
+    ).toEqual([]);
+
+    const sizes: Record<string, DrawnSize> = sizesOnABoardOf(1216);
+
+    for (const key of Object.keys(ID)) {
+      expect(renders[ID[key]!]![0]!.width).toBeCloseTo(sizes[key]!.width, 6);
+    }
+  });
+});
+
 describe("a board measured again", () => {
   test("emptied while editing and given a widget again, it is measured again before that widget is drawn", () => {
     const view: ReturnType<typeof render> = renderAt(1216, true);
@@ -647,9 +751,7 @@ describe("a board measured again", () => {
     boardAtMeasures.splice(0, boardAtMeasures.length);
     delete renders[ID["title"]!];
 
-    view.rerender(
-      canvas({ isEditMode: true, components: [COMPONENTS[0]!] }),
-    );
+    view.rerender(canvas({ isEditMode: true, components: [COMPONENTS[0]!] }));
 
     expect(boardAtMeasures[0]).toEqual({ widgets: 0, isMeasuringBox: true });
 
@@ -679,10 +781,7 @@ describe("a board measured again", () => {
     for (const key of Object.keys(ID)) {
       const drawn: Array<DrawnSize> = renders[ID[key]!]!;
 
-      expect(drawn[drawn.length - 1]!.width).toBeCloseTo(
-        sizes[key]!.width,
-        6,
-      );
+      expect(drawn[drawn.length - 1]!.width).toBeCloseTo(sizes[key]!.width, 6);
       expect(wrapper(key).style.transition).toBe("none");
       expect(mounts[ID[key]!]).toBe(1);
     }
@@ -702,10 +801,7 @@ describe("a board measured again", () => {
       const drawn: Array<DrawnSize> = renders[ID[key]!]!;
 
       expect(drawn[0]!.width).toBeCloseTo(sizes[key]!.width, 6);
-      expect(drawn[drawn.length - 1]!.width).toBeCloseTo(
-        sizes[key]!.width,
-        6,
-      );
+      expect(drawn[drawn.length - 1]!.width).toBeCloseTo(sizes[key]!.width, 6);
     }
   });
 });

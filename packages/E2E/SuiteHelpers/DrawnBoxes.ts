@@ -225,7 +225,9 @@ export const waitForFrames: WaitForFramesFunction = async (
   });
 
   await page.waitForFunction((target: number): boolean => {
-    return Boolean(window.__drawnBoxes) && window.__drawnBoxes!.frames >= target;
+    return (
+      Boolean(window.__drawnBoxes) && window.__drawnBoxes!.frames >= target
+    );
   }, from + frames);
 };
 

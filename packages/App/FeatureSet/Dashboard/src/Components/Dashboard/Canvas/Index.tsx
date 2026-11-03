@@ -661,9 +661,7 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
                * Common/UI/Utils/DashboardStackingLayers.
                */
               isolation: DASHBOARD_CANVAS_ISOLATION,
-              width: layout.isWiderThanBoard
-                ? `${layout.widthInPx}px`
-                : "100%",
+              width: layout.isWiderThanBoard ? `${layout.widthInPx}px` : "100%",
               // Stacked, the widgets one under another make the board's height.
               display: isStacked ? "flex" : undefined,
               flexDirection: isStacked ? "column" : undefined,
