@@ -805,6 +805,9 @@ export interface AirGappedTopicContent extends AirGappedTopicPage {
     pagePath: string;
     steps: Array<{ key: string; title: string }>;
     email: string;
+    // The docs page with every step, and the hub's evidence section.
+    installationDocs: string;
+    evidencePath: string;
   };
   icons: typeof AirGappedIcons;
   related: Array<AirGappedTopicCard>;
@@ -827,6 +830,8 @@ export const getAirGappedTopicContent: (
         },
       ),
       email: AirGappedPlanCall.email,
+      installationDocs: AirGappedDocs.installation,
+      evidencePath: `${AIR_GAPPED_PAGE_PATH}#evidence`,
     },
     icons: AirGappedIcons,
     related: page.relatedSlugs.map(getAirGappedTopicCard),
