@@ -961,6 +961,12 @@ Om de kaart te laten vollopen:
 
 Klik op een onbeheerde peer en **Add to Monitoring** registreert hem als door een sonde gepold apparaat. Hij neemt de sonde waarover zijn buren het eens zijn, dus hij wordt vanaf zijn eerste poll gepingd, en je kunt later inloggegevens toevoegen als hij SNMP blijkt te hebben.
 
+### De indeling kiezen waarmee de kaart opent
+
+**Map options → Arrange the map** deelt de kaart in als **Automatisch**, **By network layer**, **Concentric**, **Hub and spoke** of **Parent and child**. De kaart opent met de indeling die als **Standaard** is gemarkeerd: **Automatisch** voor alle apparaten en **By network layer** voor een locatie, tenzij je project een indeling voor iedereen heeft gekozen. Iedereen kan tijdens het bekijken van indeling wisselen; de volgende keer opent de kaart weer met de standaard.
+
+Projecteigenaren en projectbeheerders kiezen de standaard: wissel naar een indeling en selecteer **Make default for everyone**. Daarna opent elke weergave van de apparaatkaart ermee: **Apparaattopologie**, een locatie op de **Kaart**, en het tabblad **Netwerk** van **Topologie**. Op de standaardindeling zet **Clear default** elke kaart terug op haar eigen standaard. Versleepte posities worden per indeling in je browser opgeslagen, zodat de kaart opent met de schikking die je in die indeling hebt gemaakt.
+
 ### De kaart als pdf exporteren
 
 **PDF exporteren**, bovenaan de kaart, downloadt de kaart die je bekijkt als een pdf die je aan een assessment, een wijzigingsverzoek of een incidentreview kunt toevoegen, of offline kunt lezen. Elke weergave van de apparaatkaart heeft het: **Apparaattopologie**, een locatie op de **Kaart**, en het tabblad **Netwerk** van **Topologie**.

@@ -961,6 +961,12 @@ För att kartan ska fyllas i:
 
 Klicka på en ohanterad peer så registrerar **Add to Monitoring** den som en sondavsökt enhet. Den tar den sond som dess grannar är överens om, så den pingas från sin första avsökning, och du kan lägga till autentiseringsuppgifter senare om den visar sig ha SNMP.
 
+### Välj layouten som kartan öppnas med
+
+**Map options → Arrange the map** ordnar kartan som **Automatiskt**, **By network layer**, **Concentric**, **Hub and spoke** eller **Parent and child**. Kartan öppnas med layouten som är märkt **Standard**: **Automatiskt** för alla enheter och **By network layer** för en plats, om inte ditt projekt har valt en layout för alla. Alla kan byta layout medan de tittar; nästa gång öppnas kartan med standarden igen.
+
+Projektägare och projektadministratörer väljer standarden: byt till en layout och välj **Make default for everyone**. Därefter öppnas varje vy av enhetskartan med den: **Enhetstopologi**, en plats på **Karta** och fliken **Nätverk** under **Topologi**. På standardlayouten skickar **Clear default** tillbaka varje karta till dess egen standard. Flyttade positioner sparas för varje layout i din webbläsare, så kartan öppnas med den placering du gjorde i den layouten.
+
 ### Exportera kartan som PDF
 
 **Exportera PDF**, överst på kartan, laddar ner kartan som du tittar på som en PDF som du kan bifoga en bedömning, en ändringsbegäran eller en incidentgenomgång, eller läsa offline. Varje vy av enhetskartan har den: **Enhetstopologi**, en plats på **Karta** och fliken **Nätverk** under **Topologi**.

@@ -32,6 +32,7 @@ import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import Phone from "../../Types/Phone";
 import PositiveNumber from "../../Types/PositiveNumber";
+import { NETWORK_TOPOLOGY_LAYOUTS } from "../../Types/NetworkDevice/NetworkTopologyLayout";
 import { SECURITY_CASE_NUMBER_PREFIX } from "../../Types/SecurityCase/SecurityCaseNumber";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
@@ -2616,6 +2617,46 @@ export default class Project extends TenantModel {
     type: ColumnType.Boolean,
   })
   public limitAlertsToOneEpisode?: boolean = undefined;
+
+  /*
+   * The layout every network topology map in the project opens on (issue
+   * #5378): one of the ids in Types/NetworkDevice/NetworkTopologyLayout. A
+   * Project Owner or Admin sets it from the map itself (Map options ->
+   * Arrange the map -> Make default for everyone); anyone may still switch
+   * layouts while they look, and the map opens on this one again next time.
+   * Empty: each map opens on its own default, as it always did - Automatic
+   * for every device, By network layer for one site. Free text, refused by
+   * ProjectService unless it names a layout, and read through
+   * NetworkTopologyLayoutUtil.parse.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    allowedValues: NETWORK_TOPOLOGY_LAYOUTS,
+    title: "Default Network Topology Layout",
+    description:
+      "The layout network topology maps open on: force, tiered, radial, star or parentChild. Empty: Automatic for all devices, By network layer for a site.",
+    example: "parentChild",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public defaultNetworkTopologyLayout?: string = undefined;
 
   @ColumnAccessControl({
     create: [Permission.User],

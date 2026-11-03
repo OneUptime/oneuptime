@@ -961,6 +961,12 @@ For the map to fill in:
 
 Click an unmanaged peer and **Add to Monitoring** registers it as a probe-polled device. It takes the probe its neighbours agree on, so it is pinged from its first poll, and you can add credentials later if it turns out to have SNMP.
 
+### Choose the layout the map opens on
+
+**Map options → Arrange the map** lays the map out as **Automatic**, **By network layer**, **Concentric**, **Hub and spoke** or **Parent and child**. The map opens on the layout tagged **Default**: **Automatic** for all devices and **By network layer** for a site, unless your project has chosen a layout for everyone. Anyone can switch layouts while they look; the map opens on the default again next time.
+
+Project Owners and Project Admins choose the default: switch to a layout and select **Make default for everyone**. Every view of the device map then opens on it: **Device Topology**, a site on the **Map**, and the **Network** tab of **Topology**. On the default layout, **Clear default** returns each map to its own default. Dragged positions are saved for each layout in your browser, so the map opens with the arrangement you made in that layout.
+
 ### Export the map as a PDF
 
 **Export PDF**, at the top of the map, downloads the map you are looking at as a PDF you can attach to an assessment, a change request or an incident review, or read offline. Every view of the device map has it: **Device Topology**, a site on the **Map**, and the **Network** tab of **Topology**.

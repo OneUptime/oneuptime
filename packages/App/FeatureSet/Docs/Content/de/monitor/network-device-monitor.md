@@ -961,6 +961,12 @@ Damit sich die Karte füllt:
 
 Klicken Sie auf einen nicht verwalteten Partner, und **Zur Überwachung hinzufügen** registriert ihn als sondenabgefragtes Gerät. Es übernimmt die Sonde, auf die sich seine Nachbarn einigen, wird also ab seiner ersten Abfrage angepingt, und Sie können später Anmeldedaten hinzufügen, wenn sich herausstellt, dass es SNMP hat.
 
+### Das Layout wählen, mit dem die Karte öffnet
+
+**Kartenoptionen → Karte anordnen** ordnet die Karte als **Automatisch**, **Nach Netzwerkschicht**, **Konzentrisch**, **Hub-and-Spoke** oder **Eltern und Kind** an. Die Karte öffnet mit dem Layout, das als **Standard** markiert ist: **Automatisch** für alle Geräte und **Nach Netzwerkschicht** für einen Standort, es sei denn, Ihr Projekt hat ein Layout für alle gewählt. Jeder kann beim Ansehen das Layout wechseln; beim nächsten Mal öffnet die Karte wieder mit dem Standard.
+
+Projektinhaber und Projektadministratoren wählen den Standard: Wechseln Sie zu einem Layout und wählen Sie **Für alle als Standard festlegen**. Danach öffnet jede Ansicht der Gerätekarte damit: **Gerätetopologie**, ein Standort auf der **Karte** und der Tab **Netzwerk** von **Topologie**. Im Standardlayout setzt **Standard entfernen** jede Karte auf ihren eigenen Standard zurück. Verschobene Positionen werden für jedes Layout in Ihrem Browser gespeichert, sodass die Karte mit der Anordnung öffnet, die Sie in diesem Layout erstellt haben.
+
 ### Die Karte als PDF exportieren
 
 **PDF exportieren**, oben auf der Karte, lädt die Karte, die Sie gerade sehen, als PDF herunter, das Sie an eine Bewertung, einen Änderungsantrag oder eine Vorfallnachbesprechung anhängen oder offline lesen können. Jede Ansicht der Gerätekarte hat es: **Gerätetopologie**, ein Standort auf der **Karte** und der Tab **Netzwerk** von **Topologie**.

@@ -961,6 +961,12 @@ For at kortet fyldes ud:
 
 Klik på en ikke-administreret peer, og **Add to Monitoring** registrerer den som en sonde-pollet enhed. Den tager den sonde, som dens naboer er enige om, så den pinges fra sin første polling, og du kan tilføje loginoplysninger senere, hvis den viser sig at have SNMP.
 
+### Vælg det layout, kortet åbner med
+
+**Map options → Arrange the map** lægger kortet ud som **Automatisk**, **By network layer**, **Concentric**, **Hub and spoke** eller **Parent and child**. Kortet åbner med det layout, der er mærket **Standard**: **Automatisk** for alle enheder og **By network layer** for en lokation, medmindre dit projekt har valgt et layout for alle. Alle kan skifte layout, mens de kigger; næste gang åbner kortet igen med standarden.
+
+Projektejere og projektadministratorer vælger standarden: skift til et layout, og vælg **Make default for everyone**. Derefter åbner hver visning af enhedskortet med det: **Enhedstopologi**, en lokation på **Kort** og fanen **Netværk** under **Topologi**. På standardlayoutet sender **Clear default** hvert kort tilbage til dets egen standard. Flyttede positioner gemmes for hvert layout i din browser, så kortet åbner med den opstilling, du lavede i det layout.
+
 ### Eksportér kortet som PDF
 
 **Eksportér PDF**, øverst på kortet, downloader det kort, du kigger på, som en PDF, du kan vedhæfte en vurdering, en ændringsanmodning eller en hændelsesgennemgang, eller læse offline. Hver visning af enhedskortet har den: **Enhedstopologi**, en lokation på **Kort** og fanen **Netværk** under **Topologi**.
