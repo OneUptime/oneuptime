@@ -189,6 +189,18 @@ They read these metrics, each tagged with \`oneuptime.data.pipeline.id\` and \`o
 - \`oneuptime.data.pipeline.overdue_seconds\`: how long past its schedule the next run is, every five minutes; 0 while on time.
 
 
+
+## Fivetran and Airbyte syncs
+
+Fivetran and Airbyte load your raw tables, and send no OpenLineage events, but their webhooks say when each sync starts and ends. Each Fivetran connector and Airbyte connection becomes a pipeline under **Pipelines**, and each sync a run, with the same run history, learned duration and schedule, and alerts as any pipeline: a failed run, an unusually long one, and a late one. **Pipelines > Connect Fivetran or Airbyte** fills in the URLs below with one of your ingestion keys.
+
+- **Fivetran:** create a webhook with Fivetran's REST API, for your account or one destination group, with the events \`sync_start\` and \`sync_end\`. Its URL is \`https://oneuptime.com/telemetry/fivetran/v1/webhook/<ingestion key ID>\`, and its secret is that ingestion key. Fivetran signs every delivery with the secret, so the key itself never travels in the URL, and a delivery that is not signed with it is refused.
+- **Airbyte:** in your workspace's notification settings, set the webhook to \`https://oneuptime.com/telemetry/airbyte/v1/webhook/<ingestion key>\`, and turn it on for failed syncs and successful syncs. Airbyte signs nothing, so its URL carries the key: give Airbyte a key of its own.
+
+A pipeline is named as the tool names the connector or connection, under \`fivetran://<destination group>\` or \`airbyte://<workspace>\`. A failed sync's run shows the tool's error. A Fivetran sync that is rescheduled at an API's rate limit ends as **Rescheduled**: it is not a failure, so it pages no one, and its time teaches no duration.
+
+A Fivetran connector loads the schema of its destination that is named after it. When exactly one watched database has that schema, its tables record the connector as their writer: a table that goes stale points at the sync that should have loaded it, and a failed sync's alert is the cause of the tables' alerts (see One issue per cause). Airbyte names no tables.
+
 ## Lineage the databases say
 
 Lineage does not need a pipeline that sends OpenLineage. Each database says some of it itself, and OneUptime reads it with the database's collection:

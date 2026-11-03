@@ -20,6 +20,13 @@ export enum OpenLineageRunState {
   Abort = "ABORT",
   Fail = "FAIL",
   Other = "OTHER",
+  /*
+   * OneUptime's own, never OpenLineage's: a run its tool stopped to finish
+   * later (a Fivetran sync rescheduled at an API's rate limit). It ended,
+   * neither a success nor a failure, so it pages no one and teaches no
+   * duration.
+   */
+  Rescheduled = "RESCHEDULED",
 }
 
 // The states a run ends in.
@@ -27,6 +34,23 @@ export const FINAL_RUN_STATES: ReadonlyArray<OpenLineageRunState> = [
   OpenLineageRunState.Complete,
   OpenLineageRunState.Abort,
   OpenLineageRunState.Fail,
+  OpenLineageRunState.Rescheduled,
+];
+
+// The states a run fails in: what the Pipeline Run Failed alert counts.
+export const FAILED_RUN_STATES: ReadonlyArray<OpenLineageRunState> = [
+  OpenLineageRunState.Abort,
+  OpenLineageRunState.Fail,
+];
+
+// The states an OpenLineage producer may send: the spec's own.
+const OPENLINEAGE_EVENT_TYPES: ReadonlyArray<string> = [
+  OpenLineageRunState.Start,
+  OpenLineageRunState.Running,
+  OpenLineageRunState.Complete,
+  OpenLineageRunState.Abort,
+  OpenLineageRunState.Fail,
+  OpenLineageRunState.Other,
 ];
 
 export interface OpenLineageDataset {
@@ -46,6 +70,12 @@ export interface OpenLineageRunEvent {
   scheduledAt: Date | null;
   inputs: Array<OpenLineageDataset>;
   outputs: Array<OpenLineageDataset>;
+  /*
+   * Watched tables the run wrote, by id, when its producer named them some
+   * other way than a dataset (a Fivetran connector's schema). Never read
+   * from an OpenLineage event.
+   */
+  outputDataAssetIds?: Array<string> | undefined;
 }
 
 export const MAX_EVENTS_PER_REQUEST: number = 500;
@@ -134,9 +164,9 @@ export function readOpenLineageEvent(
       ? run["runId"].toLowerCase()
       : null;
   const typeValue: string = String(item["eventType"] || "").toUpperCase();
-  const eventType: OpenLineageRunState = (
-    Object.values(OpenLineageRunState) as Array<string>
-  ).includes(typeValue)
+  const eventType: OpenLineageRunState = OPENLINEAGE_EVENT_TYPES.includes(
+    typeValue,
+  )
     ? (typeValue as OpenLineageRunState)
     : OpenLineageRunState.Other;
   const parsedTime: number = Date.parse(String(item["eventTime"] || ""));

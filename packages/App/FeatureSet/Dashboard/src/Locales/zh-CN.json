@@ -41640,5 +41640,18 @@
   "Seen By": "执行者",
   "Seen In": "发现于",
   "The tables this table is built from, and the pipelines that write it: seen in a pipeline's run, with how its latest run went, in the database's query history, or in a view's definition.": "The tables this table is built from, and the pipelines that write it: seen in a pipeline's run, with how its latest run went, in the database's query history, or in a view's definition.",
-  "View definition": "视图定义"
+  "View definition": "视图定义",
+  "A connector loads the schema of its destination named after it. When exactly one watched database has that schema, its tables record the connector as their writer, so a table that goes stale points at the sync that should have loaded it.": "A connector loads the schema of its destination named after it. When exactly one watched database has that schema, its tables record the connector as their writer, so a table that goes stale points at the sync that should have loaded it.",
+  "Airbyte": "Airbyte",
+  "Airbyte signs nothing, so this URL carries the ingestion key itself. Give Airbyte a key of its own, which you can delete to cut it off.": "Airbyte signs nothing, so this URL carries the ingestion key itself. Give Airbyte a key of its own, which you can delete to cut it off.",
+  "Connect Fivetran or Airbyte": "连接 Fivetran 或 Airbyte",
+  "Create a webhook with Fivetran's REST API, for your account or for one destination group, with this URL and the ingestion key as its secret. Fivetran signs every delivery with the secret, so the key itself never travels in the URL.": "Create a webhook with Fivetran's REST API, for your account or for one destination group, with this URL and the ingestion key as its secret. Fivetran signs every delivery with the secret, so the key itself never travels in the URL.",
+  "Each Fivetran connector and Airbyte connection becomes a pipeline, and each sync a run, with the same alerts as any pipeline: a failed run, an unusually long one, and a late one.": "Each Fivetran connector and Airbyte connection becomes a pipeline, and each sync a run, with the same alerts as any pipeline: a failed run, an unusually long one, and a late one.",
+  "Every job that sends OpenLineage events - Airflow, Dagster, Spark, dbt, Flink - and every Fivetran connector and Airbyte connection that sends its syncs, with how its latest run went.": "Every job that sends OpenLineage events - Airflow, Dagster, Spark, dbt, Flink - and every Fivetran connector and Airbyte connection that sends its syncs, with how its latest run went.",
+  "Fivetran": "Fivetran",
+  "In Airbyte, open your workspace's notification settings, paste this URL as the webhook, and turn on the webhook for failed syncs and for successful syncs.": "In Airbyte, open your workspace's notification settings, paste this URL as the webhook, and turn on the webhook for failed syncs and for successful syncs.",
+  "No pipeline yet. Point your scheduler's OpenLineage integration, or Fivetran's or Airbyte's webhooks, at OneUptime, as Documentation shows, and each job appears with its first run.": "No pipeline yet. Point your scheduler's OpenLineage integration, or Fivetran's or Airbyte's webhooks, at OneUptime, as Documentation shows, and each job appears with its first run.",
+  "Rescheduled": "已重新安排",
+  "Sync tool": "同步工具",
+  "Sync webhooks key": "同步 Webhook 密钥"
 }
