@@ -132,6 +132,39 @@ const TableOverviewPage: FunctionComponent<
         </dl>
       </Card>
 
+      {dataAsset.dbtNode ? (
+        <Card
+          title="dbt"
+          description="What your dbt project says of this table, from the last artifacts it uploaded."
+        >
+          <dl className="grid grid-cols-1 gap-4 px-6 pb-6 sm:grid-cols-2 lg:grid-cols-3">
+            {fact("dbt Node", dataAsset.dbtNode.uniqueId)}
+            {fact("Project", dataAsset.dbtNode.projectName)}
+            {fact("Materialized", dataAsset.dbtNode.materialized || "")}
+            {fact("Owner", dataAsset.dbtNode.owner || "")}
+            {fact("Tags", (dataAsset.dbtNode.tags || []).join(", "))}
+            {fact("File", dataAsset.dbtNode.path || "")}
+            {fact(
+              "Last Build",
+              dataAsset.dbtNode.lastRun
+                ? translator.translateTemplate("{{status}} {{time}}", {
+                    status: dataAsset.dbtNode.lastRun.status,
+                    time: dataAsset.dbtNode.lastRun.completedAt
+                      ? OneUptimeDate.fromNow(
+                          OneUptimeDate.fromString(
+                            dataAsset.dbtNode.lastRun.completedAt,
+                          ),
+                        )
+                      : "",
+                  })
+                : "",
+            )}
+          </dl>
+        </Card>
+      ) : (
+        <></>
+      )}
+
       <Card
         title="Description"
         description="What this table holds and who relies on it. Edit it on Settings."

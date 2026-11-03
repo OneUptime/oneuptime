@@ -43,6 +43,8 @@ A table is the default in a terminal. `oneuptime resources --type analytics`, fo
 ├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
 │ change-event               │ Change Event               │ Change Events               │ analytics │ /change-events              │
 ├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
+│ cloud-cost                 │ Cloud Cost                 │ Cloud Costs                 │ analytics │ /cloud-cost                 │
+├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
 │ exception-instance         │ Exception Instance         │ Exception Instances         │ analytics │ /exceptions                 │
 ├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
 │ kubernetes-cost-allocation │ Kubernetes Cost Allocation │ Kubernetes Cost Allocations │ analytics │ /kubernetes-cost-allocation │
@@ -68,7 +70,7 @@ A table is the default in a terminal. `oneuptime resources --type analytics`, fo
 │ threat-intel-indicator     │ Threat Intel Indicator     │ Threat Intel Indicators     │ analytics │ /threat-intel-indicators    │
 └────────────────────────────┴────────────────────────────┴─────────────────────────────┴───────────┴─────────────────────────────┘
 
-Total: 14 resources
+Total: 15 resources
 ```
 
 For a list of records, a table shows up to six columns: `_id`, `name`, `title`, `status`, `createdAt` and `updatedAt` first, those of them the records have, then the records' next fields in order. The columns are taken from the first record. A value longer than 60 characters is cut to its first 57, followed by `...`.
