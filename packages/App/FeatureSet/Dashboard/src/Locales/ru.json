@@ -40392,5 +40392,17 @@
   "Select the first {{limit}} of {{count}} {{itemsName}}": "Выбрать первые {{limit}} из {{count}} ({{itemsName}})",
   "Select the first {{limit}} of {{count}} {{itemsName}}_one": "Выбрать первые {{limit}} из {{count}} ({{itemName}})",
   "This changes all {{count}} selected {{itemsName}}, including those on other pages.": "Это изменит все выбранные элементы ({{itemsName}}): {{count}}, включая те, что на других страницах.",
-  "This changes all {{count}} selected {{itemsName}}, including those on other pages._one": "Это изменит все выбранные элементы ({{itemName}}): {{count}}, включая те, что на других страницах."
+  "This changes all {{count}} selected {{itemsName}}, including those on other pages._one": "Это изменит все выбранные элементы ({{itemName}}): {{count}}, включая те, что на других страницах.",
+  "Archive {{count}} {{itemsName}}": "Архивировать элементы ({{itemsName}}): {{count}}",
+  "Archive {{count}} {{itemsName}}_one": "Архивировать элемент ({{itemName}}): {{count}}",
+  "Reopen {{count}} {{itemsName}}": "Открыть снова элементы ({{itemsName}}): {{count}}",
+  "Reopen {{count}} {{itemsName}}_one": "Открыть снова элемент ({{itemName}}): {{count}}",
+  "Resolve {{count}} {{itemsName}} in next release": "Устранить в следующем релизе элементы ({{itemsName}}): {{count}}",
+  "Resolve {{count}} {{itemsName}} in next release_one": "Устранить в следующем релизе элемент ({{itemName}}): {{count}}",
+  "Selecting {{count}} {{itemsName}}…": "Выбор элементов ({{itemsName}}): {{count}}…",
+  "Selecting {{count}} {{itemsName}}…_one": "Выбор элемента ({{itemName}}): {{count}}…",
+  "Unarchive {{count}} {{itemsName}}": "Извлечь из архива элементы ({{itemsName}}): {{count}}",
+  "Unarchive {{count}} {{itemsName}}_one": "Извлечь из архива элемент ({{itemName}}): {{count}}",
+  "{{count}} of {{total}} selected": "Выбрано: {{count}} из {{total}}",
+  "{{count}} of {{total}} selected_one": "Выбрано: {{count}} из {{total}}"
 }

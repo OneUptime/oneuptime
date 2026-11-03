@@ -40392,5 +40392,17 @@
   "Select the first {{limit}} of {{count}} {{itemsName}}": "Markera de första {{limit}} av {{count}} {{itemsName}}",
   "Select the first {{limit}} of {{count}} {{itemsName}}_one": "Markera de första {{limit}} av {{count}} {{itemName}}",
   "This changes all {{count}} selected {{itemsName}}, including those on other pages.": "Detta ändrar alla {{count}} valda {{itemsName}}, även de på andra sidor.",
-  "This changes all {{count}} selected {{itemsName}}, including those on other pages._one": "Detta ändrar {{count}} vald {{itemName}}, även på andra sidor."
+  "This changes all {{count}} selected {{itemsName}}, including those on other pages._one": "Detta ändrar {{count}} vald {{itemName}}, även på andra sidor.",
+  "Archive {{count}} {{itemsName}}": "Arkivera {{count}} {{itemsName}}",
+  "Archive {{count}} {{itemsName}}_one": "Arkivera {{count}} {{itemName}}",
+  "Reopen {{count}} {{itemsName}}": "Öppna {{count}} {{itemsName}} igen",
+  "Reopen {{count}} {{itemsName}}_one": "Öppna {{count}} {{itemName}} igen",
+  "Resolve {{count}} {{itemsName}} in next release": "Lös {{count}} {{itemsName}} i nästa version",
+  "Resolve {{count}} {{itemsName}} in next release_one": "Lös {{count}} {{itemName}} i nästa version",
+  "Selecting {{count}} {{itemsName}}…": "Väljer {{count}} {{itemsName}}…",
+  "Selecting {{count}} {{itemsName}}…_one": "Väljer {{count}} {{itemName}}…",
+  "Unarchive {{count}} {{itemsName}}": "Avarkivera {{count}} {{itemsName}}",
+  "Unarchive {{count}} {{itemsName}}_one": "Avarkivera {{count}} {{itemName}}",
+  "{{count}} of {{total}} selected": "{{count}} av {{total}} valda",
+  "{{count}} of {{total}} selected_one": "{{count}} av {{total}} vald"
 }

@@ -40392,5 +40392,17 @@
   "Select the first {{limit}} of {{count}} {{itemsName}}": "{{itemsName}} {{count}}개 중 처음 {{limit}}개 선택",
   "Select the first {{limit}} of {{count}} {{itemsName}}_one": "{{itemName}} {{count}}개 중 처음 {{limit}}개 선택",
   "This changes all {{count}} selected {{itemsName}}, including those on other pages.": "선택한 {{itemsName}} {{count}}개를 모두 변경합니다. 다른 페이지에 있는 항목도 포함됩니다.",
-  "This changes all {{count}} selected {{itemsName}}, including those on other pages._one": "선택한 {{itemName}} {{count}}개를 모두 변경합니다. 다른 페이지에 있는 항목도 포함됩니다."
+  "This changes all {{count}} selected {{itemsName}}, including those on other pages._one": "선택한 {{itemName}} {{count}}개를 모두 변경합니다. 다른 페이지에 있는 항목도 포함됩니다.",
+  "Archive {{count}} {{itemsName}}": "{{itemsName}} {{count}}개 보관",
+  "Archive {{count}} {{itemsName}}_one": "{{itemName}} {{count}}개 보관",
+  "Reopen {{count}} {{itemsName}}": "{{itemsName}} {{count}}개 다시 열기",
+  "Reopen {{count}} {{itemsName}}_one": "{{itemName}} {{count}}개 다시 열기",
+  "Resolve {{count}} {{itemsName}} in next release": "{{itemsName}} {{count}}개 다음 릴리스에서 해결",
+  "Resolve {{count}} {{itemsName}} in next release_one": "{{itemName}} {{count}}개 다음 릴리스에서 해결",
+  "Selecting {{count}} {{itemsName}}…": "{{itemsName}} {{count}}개 선택 중…",
+  "Selecting {{count}} {{itemsName}}…_one": "{{itemName}} {{count}}개 선택 중…",
+  "Unarchive {{count}} {{itemsName}}": "{{itemsName}} {{count}}개 보관 취소",
+  "Unarchive {{count}} {{itemsName}}_one": "{{itemName}} {{count}}개 보관 취소",
+  "{{count}} of {{total}} selected": "{{total}}개 중 {{count}}개 선택됨",
+  "{{count}} of {{total}} selected_one": "{{total}}개 중 {{count}}개 선택됨"
 }

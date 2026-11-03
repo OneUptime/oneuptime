@@ -40392,5 +40392,17 @@
   "Select the first {{limit}} of {{count}} {{itemsName}}": "Seleziona le prime {{limit}} di {{count}} corrispondenze ({{itemsName}})",
   "Select the first {{limit}} of {{count}} {{itemsName}}_one": "Seleziona le prime {{limit}} di {{count}} corrispondenze ({{itemName}})",
   "This changes all {{count}} selected {{itemsName}}, including those on other pages.": "Questo modifica tutti i {{count}} elementi selezionati ({{itemsName}}), compresi quelli nelle altre pagine.",
-  "This changes all {{count}} selected {{itemsName}}, including those on other pages._one": "Questo modifica {{count}} elemento selezionato ({{itemName}}), anche nelle altre pagine."
+  "This changes all {{count}} selected {{itemsName}}, including those on other pages._one": "Questo modifica {{count}} elemento selezionato ({{itemName}}), anche nelle altre pagine.",
+  "Archive {{count}} {{itemsName}}": "Archivia {{count}} elementi ({{itemsName}})",
+  "Archive {{count}} {{itemsName}}_one": "Archivia {{count}} elemento ({{itemName}})",
+  "Reopen {{count}} {{itemsName}}": "Riapri {{count}} elementi ({{itemsName}})",
+  "Reopen {{count}} {{itemsName}}_one": "Riapri {{count}} elemento ({{itemName}})",
+  "Resolve {{count}} {{itemsName}} in next release": "Risolvi {{count}} elementi ({{itemsName}}) nella prossima release",
+  "Resolve {{count}} {{itemsName}} in next release_one": "Risolvi {{count}} elemento ({{itemName}}) nella prossima release",
+  "Selecting {{count}} {{itemsName}}…": "Selezione di {{count}} elementi ({{itemsName}})…",
+  "Selecting {{count}} {{itemsName}}…_one": "Selezione di {{count}} elemento ({{itemName}})…",
+  "Unarchive {{count}} {{itemsName}}": "Annulla l'archiviazione di {{count}} elementi ({{itemsName}})",
+  "Unarchive {{count}} {{itemsName}}_one": "Annulla l'archiviazione di {{count}} elemento ({{itemName}})",
+  "{{count}} of {{total}} selected": "{{count}} di {{total}} selezionati",
+  "{{count}} of {{total}} selected_one": "{{count}} di {{total}} selezionato"
 }

@@ -63,6 +63,7 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 });
 
 import {
+  EXCEPTION_ACROSS_PAGES_TITLES,
   EXCEPTION_ALREADY_ASSIGNED,
   EXCEPTION_ALREADY_THERE,
   EXCEPTION_ASSIGN_RESULT_LABELS,
@@ -88,6 +89,8 @@ import {
   BulkActionOnClickProps,
   ProgressInfo,
 } from "../../../UI/Components/BulkUpdate/BulkUpdateForm";
+import { askBeforeActingAcrossPages } from "../../../UI/Components/BulkUpdate/BulkSelectAll";
+import { createTranslator } from "../../../Types/Translator";
 import ObjectID from "../../../Types/ObjectID";
 import { ActionMenuGroup } from "../../../UI/Components/ActionButton/ActionMenuGroup";
 import ActionButtonSchema, {
@@ -599,6 +602,52 @@ describe("Bulk Actions on the exceptions list", () => {
       expect(action.confirmMessage).toBeUndefined();
       expect(action.opensItsOwnDialog).toBeFalsy();
     }
+  });
+
+  test("over every match, each asks first under what it does and to how many - as an incidents list's Resolve is titled", () => {
+    const actions: Array<BulkActionButtonSchema<TelemetryException>> =
+      getExceptionBulkActions();
+    const selection: Array<TelemetryException> = Array.from(
+      { length: 4213 },
+      (): TelemetryException => {
+        return exception({ isResolved: false, isArchived: false });
+      },
+    );
+
+    const titles: Array<string | undefined> = actions.map(
+      (action: BulkActionButtonSchema<TelemetryException>) => {
+        return askBeforeActingAcrossPages(action, {
+          translator: createTranslator(undefined, "en"),
+          singularLabel: "Exception",
+          pluralLabel: "Exceptions",
+        }).confirmTitle?.(selection);
+      },
+    );
+
+    expect(titles).toEqual([
+      "Resolve 4,213 Exceptions",
+      "Resolve 4,213 Exceptions in next release",
+      "Reopen 4,213 Exceptions",
+      "Archive 4,213 Exceptions",
+      "Unarchive 4,213 Exceptions",
+    ]);
+
+    // Each move's own, in the row's order; Resolve's an incident list's words.
+    expect(
+      actions.map((action: BulkActionButtonSchema<TelemetryException>) => {
+        return action.titleWithCount;
+      }),
+    ).toEqual(
+      EXCEPTION_ROW_TRIAGE_ORDER.map((id: string) => {
+        return EXCEPTION_ACROSS_PAGES_TITLES[
+          id as keyof typeof EXCEPTION_ACROSS_PAGES_TITLES
+        ];
+      }),
+    );
+    expect(EXCEPTION_ACROSS_PAGES_TITLES.resolve).toEqual({
+      one: "Resolve {{count}} {{itemName}}",
+      other: "Resolve {{count}} {{itemsName}}",
+    });
   });
 
   test("someone who may update exceptions finds all five unlocked", () => {

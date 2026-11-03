@@ -40392,5 +40392,17 @@
   "Select the first {{limit}} of {{count}} {{itemsName}}": "Selecionar as primeiras {{limit}} de {{count}} correspondências ({{itemsName}})",
   "Select the first {{limit}} of {{count}} {{itemsName}}_one": "Selecionar as primeiras {{limit}} de {{count}} correspondências ({{itemName}})",
   "This changes all {{count}} selected {{itemsName}}, including those on other pages.": "Isso altera todos os {{count}} itens selecionados ({{itemsName}}), incluindo os de outras páginas.",
-  "This changes all {{count}} selected {{itemsName}}, including those on other pages._one": "Isso altera {{count}} item selecionado ({{itemName}}), incluindo outras páginas."
+  "This changes all {{count}} selected {{itemsName}}, including those on other pages._one": "Isso altera {{count}} item selecionado ({{itemName}}), incluindo outras páginas.",
+  "Archive {{count}} {{itemsName}}": "Arquivar {{count}} itens ({{itemsName}})",
+  "Archive {{count}} {{itemsName}}_one": "Arquivar {{count}} item ({{itemName}})",
+  "Reopen {{count}} {{itemsName}}": "Reabrir {{count}} itens ({{itemsName}})",
+  "Reopen {{count}} {{itemsName}}_one": "Reabrir {{count}} item ({{itemName}})",
+  "Resolve {{count}} {{itemsName}} in next release": "Resolver {{count}} itens ({{itemsName}}) na próxima versão",
+  "Resolve {{count}} {{itemsName}} in next release_one": "Resolver {{count}} item ({{itemName}}) na próxima versão",
+  "Selecting {{count}} {{itemsName}}…": "Selecionando {{count}} itens ({{itemsName}})…",
+  "Selecting {{count}} {{itemsName}}…_one": "Selecionando {{count}} item ({{itemName}})…",
+  "Unarchive {{count}} {{itemsName}}": "Desarquivar {{count}} itens ({{itemsName}})",
+  "Unarchive {{count}} {{itemsName}}_one": "Desarquivar {{count}} item ({{itemName}})",
+  "{{count}} of {{total}} selected": "{{count}} de {{total}} selecionados",
+  "{{count}} of {{total}} selected_one": "{{count}} de {{total}} selecionado"
 }

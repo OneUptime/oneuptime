@@ -28,7 +28,6 @@ import {
   BULK_ROW_ACTIONS_TEST_ID,
   BULK_ROW_CLEAR_TEST_ID,
   BULK_ROW_COUNT_TEST_ID,
-  BULK_ROW_LIMIT_TEST_ID,
   BULK_ROW_SELECT_ALL_TEST_ID,
   BULK_ROW_TEST_ID,
   BulkActionButtonSchema,
@@ -841,9 +840,10 @@ describe("a telemetry list offering every row that matches", () => {
       fireEvent.click(offer()!);
     });
 
-    // Busy while it reads, and not to be pressed twice.
+    // Busy while it reads, saying so, and not to be pressed twice.
     expect(offer()).toBeDisabled();
     expect(offer()).toHaveAttribute("aria-busy", "true");
+    expect(offer()).toHaveTextContent(/^Selecting 6 exceptions…$/);
 
     fireEvent.click(clearSelectionButton()!);
     expect(reads.isSuperseded[0]!()).toBe(true);
@@ -980,10 +980,17 @@ describe("a telemetry list offering every row that matches", () => {
       fireEvent.click(offer()!);
     });
 
-    expect(selectedCount()).toBe("6 selected");
-    expect(screen.getByTestId(BULK_ROW_LIMIT_TEST_ID)).toHaveTextContent(
-      "Selected 6 of 12,345 matching exceptions.",
-    );
+    // How many of how many: what Bulk Actions acts on.
+    expect(selectedCount()).toBe("6 of 12,345 selected");
+    /*
+     * Every row on the page is still ticked and 12,345 still match, but the
+     * first of them are taken: nothing to offer, where the same offer stayed
+     * beside the count to read the same rows again.
+     */
+    expect(offer()).toBeNull();
+    expect(reads.count).toBe(1);
+    // It holds from page to page, as every match does.
+    expect(pageBox().checked).toBe(true);
   });
 
   test("a quick move over every match asks first, naming how many, and changes every one of them", async () => {

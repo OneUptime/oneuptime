@@ -40392,5 +40392,17 @@
   "Select the first {{limit}} of {{count}} {{itemsName}}": "{{count}} 件の{{itemsName}}のうち最初の {{limit}} 件を選択",
   "Select the first {{limit}} of {{count}} {{itemsName}}_one": "{{count}} 件の{{itemName}}のうち最初の {{limit}} 件を選択",
   "This changes all {{count}} selected {{itemsName}}, including those on other pages.": "選択した {{count}} 件の{{itemsName}}をすべて変更します。他のページにあるものも含まれます。",
-  "This changes all {{count}} selected {{itemsName}}, including those on other pages._one": "選択した {{count}} 件の{{itemName}}をすべて変更します。他のページにあるものも含まれます。"
+  "This changes all {{count}} selected {{itemsName}}, including those on other pages._one": "選択した {{count}} 件の{{itemName}}をすべて変更します。他のページにあるものも含まれます。",
+  "Archive {{count}} {{itemsName}}": "{{itemsName}}を {{count}} 件アーカイブする",
+  "Archive {{count}} {{itemsName}}_one": "{{itemName}}を {{count}} 件アーカイブする",
+  "Reopen {{count}} {{itemsName}}": "{{itemsName}}を {{count}} 件再オープンする",
+  "Reopen {{count}} {{itemsName}}_one": "{{itemName}}を {{count}} 件再オープンする",
+  "Resolve {{count}} {{itemsName}} in next release": "{{itemsName}}を {{count}} 件、次のリリースで解決する",
+  "Resolve {{count}} {{itemsName}} in next release_one": "{{itemName}}を {{count}} 件、次のリリースで解決する",
+  "Selecting {{count}} {{itemsName}}…": "{{itemsName}}を {{count}} 件選択しています…",
+  "Selecting {{count}} {{itemsName}}…_one": "{{itemName}}を {{count}} 件選択しています…",
+  "Unarchive {{count}} {{itemsName}}": "{{itemsName}}を {{count}} 件アーカイブ解除する",
+  "Unarchive {{count}} {{itemsName}}_one": "{{itemName}}を {{count}} 件アーカイブ解除する",
+  "{{count}} of {{total}} selected": "{{total}} 件中 {{count}} 件選択",
+  "{{count}} of {{total}} selected_one": "{{total}} 件中 {{count}} 件選択"
 }

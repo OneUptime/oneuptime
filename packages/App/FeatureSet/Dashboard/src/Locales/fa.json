@@ -40392,5 +40392,17 @@
   "Select the first {{limit}} of {{count}} {{itemsName}}": "انتخاب {{limit}} مورد اول از {{count}} مورد ({{itemsName}})",
   "Select the first {{limit}} of {{count}} {{itemsName}}_one": "انتخاب {{limit}} مورد اول از {{count}} مورد ({{itemName}})",
   "This changes all {{count}} selected {{itemsName}}, including those on other pages.": "این کار هر {{count}} مورد انتخاب‌شده ({{itemsName}}) را تغییر می‌دهد، از جمله موارد صفحه‌های دیگر.",
-  "This changes all {{count}} selected {{itemsName}}, including those on other pages._one": "این کار {{count}} مورد انتخاب‌شده ({{itemName}}) را تغییر می‌دهد، از جمله در صفحه‌های دیگر."
+  "This changes all {{count}} selected {{itemsName}}, including those on other pages._one": "این کار {{count}} مورد انتخاب‌شده ({{itemName}}) را تغییر می‌دهد، از جمله در صفحه‌های دیگر.",
+  "Archive {{count}} {{itemsName}}": "بایگانی {{count}} مورد ({{itemsName}})",
+  "Archive {{count}} {{itemsName}}_one": "بایگانی {{count}} مورد ({{itemName}})",
+  "Reopen {{count}} {{itemsName}}": "بازگشایی {{count}} مورد ({{itemsName}})",
+  "Reopen {{count}} {{itemsName}}_one": "بازگشایی {{count}} مورد ({{itemName}})",
+  "Resolve {{count}} {{itemsName}} in next release": "رفع {{count}} مورد ({{itemsName}}) در نسخهٔ بعدی",
+  "Resolve {{count}} {{itemsName}} in next release_one": "رفع {{count}} مورد ({{itemName}}) در نسخهٔ بعدی",
+  "Selecting {{count}} {{itemsName}}…": "در حال انتخاب {{count}} مورد ({{itemsName}})…",
+  "Selecting {{count}} {{itemsName}}…_one": "در حال انتخاب {{count}} مورد ({{itemName}})…",
+  "Unarchive {{count}} {{itemsName}}": "خروج {{count}} مورد ({{itemsName}}) از بایگانی",
+  "Unarchive {{count}} {{itemsName}}_one": "خروج {{count}} مورد ({{itemName}}) از بایگانی",
+  "{{count}} of {{total}} selected": "{{count}} مورد از {{total}} مورد انتخاب شد",
+  "{{count}} of {{total}} selected_one": "{{count}} مورد از {{total}} مورد انتخاب شد"
 }

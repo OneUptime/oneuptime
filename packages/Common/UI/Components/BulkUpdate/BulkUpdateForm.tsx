@@ -192,6 +192,17 @@ export const BULK_ALL_SELECTED_SHORT_COUNT: PluralTemplate = {
   other: "All {{count}} selected",
 };
 
+/*
+ * ...or, where more rows match than one selection holds, how many of them
+ * it holds: "10,000 of 12,345 selected" - what the offer said it would take
+ * ("Select the first 10,000 of 12,345 exceptions"), and what Bulk Actions
+ * acts on. The count is the selection's, the total the match's.
+ */
+export const BULK_SELECTED_OF_MATCHING_SHORT_COUNT: PluralTemplate = {
+  one: "{{count}} of {{total}} selected",
+  other: "{{count}} of {{total}} selected",
+};
+
 // The Row's parts, for the tests that hold its shape.
 export const BULK_ROW_TEST_ID: string = "bulk-update-row";
 export const BULK_ROW_COUNT_TEST_ID: string = "bulk-update-selected-count";
@@ -199,19 +210,29 @@ export const BULK_ROW_CLEAR_TEST_ID: string = "bulk-update-clear-selection";
 export const BULK_ROW_ACTIONS_TEST_ID: string = "bulk-update-actions";
 export const BULK_ROW_SELECT_ALL_TEST_ID: string =
   "bulk-update-select-all-matching";
-export const BULK_ROW_LIMIT_TEST_ID: string = "bulk-update-selection-limit";
+export const BULK_ROW_ERROR_TEST_ID: string = "bulk-update-select-all-error";
 
 /*
  * The Row's offer to select every row that matches: a link-like button in
- * the line's small type, indigo as the count chip it grows. On a phone it
- * takes a line of its own under the count and Bulk Actions, so those two
- * stay where they were.
+ * the line's small type, indigo as the count chip it grows, and as tall:
+ * its box is the chip's - the same border, kept clear, and padding at its
+ * start - so where it takes a line of its own, on a phone, under the count
+ * and Bulk Actions (which stay where they were), its words start where the
+ * chip's do.
  */
 export const BULK_ROW_SELECT_ALL_SLOT_CLASS_NAME: string =
   "flex min-w-0 items-center max-sm:order-1 max-sm:basis-full";
 
 export const BULK_ROW_SELECT_ALL_CLASS_NAME: string =
-  "inline-flex min-w-0 items-center gap-1 rounded px-1.5 py-1 text-start text-xs font-medium text-indigo-700 transition-colors hover:bg-indigo-50 hover:text-indigo-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
+  "inline-flex min-w-0 items-center gap-1.5 rounded-md border border-transparent px-2 py-1 text-start text-xs font-medium text-indigo-700 transition-colors hover:bg-indigo-50 hover:text-indigo-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
+
+/*
+ * A read of every match that failed: under the line, in its small type and
+ * red, with the offer still there to try again - a box of its own here
+ * would weigh more than the line it belongs to.
+ */
+export const BULK_ROW_ERROR_CLASS_NAME: string =
+  "order-3 flex min-w-0 basis-full items-start gap-1.5 text-xs text-red-700";
 
 /*
  * The Row's count chip: an active filter's chip (TelemetryActiveFilterChips)
@@ -394,6 +415,15 @@ export interface BulkActionButtonSchema<T extends GenericObject> {
    * (BulkSelectAll's askBeforeActingAcrossPages).
    */
   opensItsOwnDialog?: boolean | undefined;
+  /*
+   * The action's name with how many it acts on - "Resolve 4,213
+   * Exceptions", with {{count}}, {{itemName}} and {{itemsName}} - for the
+   * question it asks before it changes rows the page does not show
+   * (askBeforeActingAcrossPages), as a selection's Resolve on an incidents
+   * list is titled. Left out, the question is titled with the action's
+   * name alone.
+   */
+  titleWithCount?: PluralTemplate | undefined;
   /*
    * The result's words for what happened to each item, when this action has
    * better ones than "succeeded" and "failed": a Delete says "2 Monitors
@@ -1201,12 +1231,24 @@ const BulkUpdateForm: <T extends GenericObject>(
     const selectedCount: number = props.selectedItems.length;
 
     /*
-     * Every row that matches is selected: what a select-all read, still
-     * whole - a row unticked since leaves a selection of some of them.
+     * A select-all that stopped at the most one selection holds: it took
+     * the first of the rows that match, as its offer said it would.
+     */
+    const isStoppedAtCeiling: boolean = Boolean(
+      props.isAllItemsSelected && props.isSelectionTruncated,
+    );
+
+    /*
+     * Every row that matches is selected - or, past the most one selection
+     * holds, as many as it holds: what a select-all read, still whole. A
+     * row unticked since leaves a selection of some of them. Either way
+     * there is nothing more to offer: the first 10,000 of 12,345 offered
+     * again would read the same 10,000.
      */
     const isEveryMatchSelected: boolean =
       props.isAllItemsSelected &&
-      (props.totalMatchingItemsCount === undefined ||
+      (isStoppedAtCeiling ||
+        props.totalMatchingItemsCount === undefined ||
         selectedCount >= props.totalMatchingItemsCount);
 
     const offer: SelectAllMatchingOffer = props.selectAllMatching
@@ -1219,23 +1261,41 @@ const BulkUpdateForm: <T extends GenericObject>(
         })
       : { kind: SelectAllMatchingOfferKind.None };
 
+    const isReadingEveryMatch: boolean = Boolean(props.isSelectingAllItems);
+
+    // While it reads them, it says so: "Selecting 4,213 exceptions…".
     const offerWords: string | undefined = getSelectAllMatchingWords({
       offer: offer,
       translator: translator,
       singularLabel: props.singularLabel,
       pluralLabel: props.pluralLabel,
+      isSelecting: isReadingEveryMatch,
     });
 
-    // "All 4,213 selected" once every match is, not stopped at the ceiling.
-    const countWords: string = translator.translatePlural(
-      isEveryMatchSelected && !showLimitWarning
-        ? BULK_ALL_SELECTED_SHORT_COUNT
-        : BULK_SELECTED_SHORT_COUNT,
-      selectedCount,
-      {
-        count: translator.formatNumber(selectedCount),
-      },
-    );
+    /*
+     * "All 4,213 selected" once every match is; "10,000 of 12,345 selected"
+     * once the first of them are, stopped at the ceiling - the count says
+     * what Bulk Actions acts on, where a note under the line said it in
+     * three sentences.
+     */
+    const countWords: string = isStoppedAtCeiling
+      ? translator.translatePlural(
+          BULK_SELECTED_OF_MATCHING_SHORT_COUNT,
+          selectedCount,
+          {
+            count: translator.formatNumber(selectedCount),
+            total: translator.formatNumber(totalMatchingItemsCount),
+          },
+        )
+      : translator.translatePlural(
+          isEveryMatchSelected
+            ? BULK_ALL_SELECTED_SHORT_COUNT
+            : BULK_SELECTED_SHORT_COUNT,
+          selectedCount,
+          {
+            count: translator.formatNumber(selectedCount),
+          },
+        );
 
     const line: ReactElement = (
       <div
@@ -1264,7 +1324,7 @@ const BulkUpdateForm: <T extends GenericObject>(
         {/*
          * Every row that matches, once the page's are all ticked: after the
          * count, which it grows; on a phone on a line of its own under it.
-         * Busy, with its spinner, while it reads them.
+         * Busy while it reads them: its spinner, and words that say so.
          */}
         {offerWords ? (
           <div className={BULK_ROW_SELECT_ALL_SLOT_CLASS_NAME}>
@@ -1276,13 +1336,13 @@ const BulkUpdateForm: <T extends GenericObject>(
                */
               className={getHandDrawnLookClassName({
                 className: BULK_ROW_SELECT_ALL_CLASS_NAME,
-                isBusy: props.isSelectingAllItems,
+                isBusy: isReadingEveryMatch,
               })}
               data-testid={BULK_ROW_SELECT_ALL_TEST_ID}
-              disabled={props.isSelectingAllItems}
-              aria-busy={props.isSelectingAllItems ? "true" : undefined}
+              disabled={isReadingEveryMatch}
+              aria-busy={isReadingEveryMatch ? "true" : undefined}
               onClick={() => {
-                if (props.isSelectingAllItems) {
+                if (isReadingEveryMatch) {
                   // The read is paged, so it must not be re-entrant.
                   return;
                 }
@@ -1290,7 +1350,7 @@ const BulkUpdateForm: <T extends GenericObject>(
                 props.onSelectAllClick();
               }}
             >
-              {props.isSelectingAllItems ? (
+              {isReadingEveryMatch ? (
                 <Icon
                   icon={IconProp.Spinner}
                   className="h-3 w-3 flex-none animate-spin"
@@ -1354,40 +1414,26 @@ const BulkUpdateForm: <T extends GenericObject>(
         )}
 
         {/*
-         * More rows match than one selection holds: the offer said it took
-         * the first of them, and this says what Bulk Actions will act on.
+         * A read of every match that failed, and why: under the line, with
+         * the offer still there to try again. The page's selection is as it
+         * was. The why is the server's, often in English: read the way it
+         * is written (IsolatedText), its full stop at its end on a Persian
+         * page too.
          */}
-        {showLimitWarning ? (
+        {props.errorMessage ? (
           <div
-            className="order-2 basis-full text-xs text-gray-500"
-            data-testid={BULK_ROW_LIMIT_TEST_ID}
+            role="alert"
+            className={BULK_ROW_ERROR_CLASS_NAME}
+            data-testid={BULK_ROW_ERROR_TEST_ID}
           >
-            {translator.translatePlural(
-              BULK_SELECTION_LIMIT,
-              totalMatchingItemsCount,
-              {
-                selected: translator.formatNumber(selectedCount),
-                limit: translator.formatNumber(LIMIT_PER_PROJECT),
-                itemName: translatableTerm(props.singularLabel, {
-                  inSentence: true,
-                }),
-                itemsName: translatableTerm(props.pluralLabel, {
-                  inSentence: true,
-                }),
-              },
-            )}
+            <Icon
+              icon={IconProp.Alert}
+              className="mt-px h-3.5 w-3.5 flex-none text-red-500"
+            />
+            <IsolatedText className="min-w-0" text={props.errorMessage} />
           </div>
         ) : (
           <></>
-        )}
-
-        {props.errorMessage && (
-          <div
-            role="alert"
-            className="order-3 basis-full rounded-lg bg-red-50 p-3 text-sm text-red-800"
-          >
-            {props.errorMessage}
-          </div>
         )}
       </div>
     );
@@ -1557,7 +1603,8 @@ const BulkUpdateForm: <T extends GenericObject>(
               role="alert"
               className="mt-2 rounded-lg bg-red-50 p-3 text-sm text-red-800"
             >
-              {props.errorMessage}
+              {/* The server's words, read the way they are written. */}
+              <IsolatedText text={props.errorMessage} />
             </div>
           )}
         </div>

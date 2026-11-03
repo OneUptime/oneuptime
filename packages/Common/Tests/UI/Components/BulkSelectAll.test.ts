@@ -5,6 +5,7 @@ import {
   BULK_SELECT_ALL_MATCHING,
   BULK_SELECT_ALL_PAGE_SIZE,
   BULK_SELECT_FIRST_MATCHING,
+  BULK_SELECTING_MATCHING,
   EveryMatch,
   MatchingPage,
   SelectAllMatchingOffer,
@@ -460,6 +461,79 @@ describe("the offer's words", () => {
     expect(wordsFor({ kind: SelectAllMatchingOfferKind.None })).toBeUndefined();
   });
 
+  /*
+   * While it reads them the offer says so, naming how many it is reading -
+   * not "Select all 4,213 exceptions" beside a spinner, which reads as a
+   * button still to press.
+   */
+  describe("while it reads them", () => {
+    const busyWordsFor: (
+      offer: SelectAllMatchingOffer,
+      translator?: Translator,
+    ) => string | undefined = (
+      offer: SelectAllMatchingOffer,
+      translator: Translator = english,
+    ): string | undefined => {
+      return getSelectAllMatchingWords({
+        offer: offer,
+        translator: translator,
+        singularLabel: "Exception",
+        pluralLabel: "Exceptions",
+        isSelecting: true,
+      });
+    };
+
+    test("say they are selecting every match, and how many", () => {
+      expect(
+        busyWordsFor({ kind: SelectAllMatchingOfferKind.All, count: 4213 }),
+      ).toBe("Selecting 4,213 exceptions…");
+      expect(BULK_SELECTING_MATCHING).toEqual({
+        one: "Selecting {{count}} {{itemName}}…",
+        other: "Selecting {{count}} {{itemsName}}…",
+      });
+    });
+
+    test("past the ceiling, name the first of them they are reading, not the whole match", () => {
+      expect(
+        busyWordsFor({
+          kind: SelectAllMatchingOfferKind.First,
+          count: 12345,
+          limit: 10000,
+        }),
+      ).toBe("Selecting 10,000 exceptions…");
+    });
+
+    test("without a count, are a table's own words while its Select All reads", () => {
+      expect(busyWordsFor({ kind: SelectAllMatchingOfferKind.Unknown })).toBe(
+        "Selecting All Exceptions...",
+      );
+      expect(
+        busyWordsFor({ kind: SelectAllMatchingOfferKind.None }),
+      ).toBeUndefined();
+    });
+
+    test("read in the reader's language, the numbers in the reader's way", () => {
+      const german: Record<string, string> = {
+        [BULK_SELECTING_MATCHING.other]:
+          "{{count}} {{itemsName}} werden ausgewählt…",
+        Exceptions: "Ausnahmen",
+      };
+      const translator: Translator = createTranslator(
+        (key: string): string | undefined => {
+          return german[key];
+        },
+        "de",
+      );
+
+      expect(
+        busyWordsFor(
+          { kind: SelectAllMatchingOfferKind.All, count: 4213 },
+          translator,
+        ),
+      ).toBe("4.213 Ausnahmen werden ausgewählt…");
+    });
+  });
+
   test("read in the reader's language, the numbers in the reader's way", () => {
     const german: Record<string, string> = {
       [BULK_SELECT_ALL_MATCHING.other]:
@@ -525,6 +599,64 @@ describe("askBeforeActingAcrossPages", () => {
     expect(asking.onClick).toBe(resolve.onClick);
     // The action itself is left as it was, for the page's own selections.
     expect(resolve.confirmMessage).toBeUndefined();
+  });
+
+  test("an action that names itself with a count is titled with it: what it does, and to how many", () => {
+    const asking: BulkActionButtonSchema<Row> = askBeforeActingAcrossPages(
+      {
+        ...resolve,
+        titleWithCount: {
+          one: "Resolve {{count}} {{itemName}}",
+          other: "Resolve {{count}} {{itemsName}}",
+        },
+      },
+      {
+        translator: english,
+        singularLabel: "Exception",
+        pluralLabel: "Exceptions",
+      },
+    );
+
+    // A title's capitals, as a selection's Resolve on an incidents list.
+    expect(asking.confirmTitle?.(rows(4213))).toBe("Resolve 4,213 Exceptions");
+    expect(asking.confirmTitle?.(rows(1))).toBe("Resolve 1 Exception");
+    // The sentence under it, and the button, are as before.
+    expect(asking.confirmMessage?.(rows(4213))).toBe(
+      "This changes all 4,213 selected exceptions, including those on other pages.",
+    );
+    expect(asking.title).toBe("Resolve");
+  });
+
+  test("the counted title is the reader's language's, numbers in the reader's way", () => {
+    const translator: Translator = createTranslator(
+      (key: string): string | undefined => {
+        return (
+          {
+            "Resolve {{count}} {{itemsName}}":
+              "{{count}} {{itemsName}} beheben",
+            Exceptions: "Ausnahmen",
+          } as Record<string, string>
+        )[key];
+      },
+      "de",
+    );
+
+    const asking: BulkActionButtonSchema<Row> = askBeforeActingAcrossPages(
+      {
+        ...resolve,
+        titleWithCount: {
+          one: "Resolve {{count}} {{itemName}}",
+          other: "Resolve {{count}} {{itemsName}}",
+        },
+      },
+      {
+        translator: translator,
+        singularLabel: "Exception",
+        pluralLabel: "Exceptions",
+      },
+    );
+
+    expect(asking.confirmTitle?.(rows(1500))).toBe("1.500 Ausnahmen beheben");
   });
 
   test("an action that asks its own question asks that, and one with a dialog of its own opens it", () => {

@@ -286,19 +286,37 @@ export const BULK_SELECT_ALL_UNCOUNTED: string = translationKey(
 );
 
 /*
- * The offer, in the reader's words: undefined when there is none. Numbers
- * in the reader's digits.
+ * While the offer reads them, it says so, naming how many it is reading -
+ * every match, or past the ceiling the first of them: "Selecting 4,213
+ * exceptions…", "Selecting 10,000 exceptions…". Without a count, the
+ * table's own Select All words while it reads (BulkUpdateForm's Card).
+ */
+export const BULK_SELECTING_MATCHING: PluralTemplate = {
+  one: "Selecting {{count}} {{itemName}}…",
+  other: "Selecting {{count}} {{itemsName}}…",
+};
+
+export const BULK_SELECTING_ALL_UNCOUNTED: string = translationKey(
+  "Selecting All {{itemsName}}...",
+);
+
+/*
+ * The offer, in the reader's words - or, while it reads them (isSelecting),
+ * what it is doing: undefined when there is none. Numbers in the reader's
+ * digits.
  */
 export const getSelectAllMatchingWords: (data: {
   offer: SelectAllMatchingOffer;
   translator: Translator;
   singularLabel: string;
   pluralLabel: string;
+  isSelecting?: boolean | undefined;
 }) => string | undefined = (data: {
   offer: SelectAllMatchingOffer;
   translator: Translator;
   singularLabel: string;
   pluralLabel: string;
+  isSelecting?: boolean | undefined;
 }): string | undefined => {
   const itemTerm: TranslatableTerm = translatableTerm(data.singularLabel, {
     inSentence: true,
@@ -306,6 +324,36 @@ export const getSelectAllMatchingWords: (data: {
   const itemsTerm: TranslatableTerm = translatableTerm(data.pluralLabel, {
     inSentence: true,
   });
+
+  if (data.isSelecting) {
+    switch (data.offer.kind) {
+      case SelectAllMatchingOfferKind.All:
+      case SelectAllMatchingOfferKind.First: {
+        // Every match, or past the ceiling the first of them.
+        const reading: number =
+          data.offer.kind === SelectAllMatchingOfferKind.First
+            ? data.offer.limit || 0
+            : data.offer.count || 0;
+
+        return data.translator.translatePlural(
+          BULK_SELECTING_MATCHING,
+          reading,
+          {
+            count: data.translator.formatNumber(reading),
+            itemName: itemTerm,
+            itemsName: itemsTerm,
+          },
+        );
+      }
+      case SelectAllMatchingOfferKind.Unknown:
+        return data.translator.translateTemplate(BULK_SELECTING_ALL_UNCOUNTED, {
+          itemsName: translatableTerm(data.pluralLabel),
+        });
+      case SelectAllMatchingOfferKind.None:
+      default:
+        return undefined;
+    }
+  }
 
   switch (data.offer.kind) {
     case SelectAllMatchingOfferKind.All:
@@ -346,7 +394,9 @@ export const getSelectAllMatchingWords: (data: {
  * Resolve or Archive - asks nothing before it moves the ticked rows of a
  * page. Once every match is selected, a click would move rows the reader
  * cannot see - thousands of them - so the action asks first, naming how
- * many: the action's own words over the dialog, then the count. An action
+ * many: over the dialog the action's name with the count ("Resolve 4,213
+ * Exceptions", its titleWithCount) - or its name alone, for an action
+ * that has none - and under it that this reaches past the page. An action
  * that asks a question of its own (confirmMessage) asks that, and one that
  * opens a dialog of its own (opensItsOwnDialog: Assign to…, which names how
  * many it assigns) opens it.
@@ -378,8 +428,23 @@ export const askBeforeActingAcrossPages: <T extends GenericObject>(
 
   return {
     ...button,
-    // The action's own words over the dialog, and on its button.
-    confirmTitle: (): string => {
+    /*
+     * The action's name with the count over the dialog - or its name alone
+     * - and its name on the dialog's button.
+     */
+    confirmTitle: (items: Array<T>): string => {
+      if (button.titleWithCount) {
+        return data.translator.translatePlural(
+          button.titleWithCount,
+          items.length,
+          {
+            count: data.translator.formatNumber(items.length),
+            itemName: translatableTerm(data.singularLabel),
+            itemsName: translatableTerm(data.pluralLabel),
+          },
+        );
+      }
+
       return data.translator.translateText(button.title) || button.title;
     },
     confirmMessage: (items: Array<T>): string => {

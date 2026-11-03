@@ -40392,5 +40392,17 @@
   "Select the first {{limit}} of {{count}} {{itemsName}}": "選取 {{count}} 個{{itemsName}}中的前 {{limit}} 個",
   "Select the first {{limit}} of {{count}} {{itemsName}}_one": "選取 {{count}} 個{{itemName}}中的前 {{limit}} 個",
   "This changes all {{count}} selected {{itemsName}}, including those on other pages.": "這將變更所有 {{count}} 個已選取的{{itemsName}}，包括其他頁面上的。",
-  "This changes all {{count}} selected {{itemsName}}, including those on other pages._one": "這將變更所有 {{count}} 個已選取的{{itemName}}，包括其他頁面上的。"
+  "This changes all {{count}} selected {{itemsName}}, including those on other pages._one": "這將變更所有 {{count}} 個已選取的{{itemName}}，包括其他頁面上的。",
+  "Archive {{count}} {{itemsName}}": "封存 {{count}} 個{{itemsName}}",
+  "Archive {{count}} {{itemsName}}_one": "封存 {{count}} 個{{itemName}}",
+  "Reopen {{count}} {{itemsName}}": "重新開啟 {{count}} 個{{itemsName}}",
+  "Reopen {{count}} {{itemsName}}_one": "重新開啟 {{count}} 個{{itemName}}",
+  "Resolve {{count}} {{itemsName}} in next release": "在下一版本中解決 {{count}} 個{{itemsName}}",
+  "Resolve {{count}} {{itemsName}} in next release_one": "在下一版本中解決 {{count}} 個{{itemName}}",
+  "Selecting {{count}} {{itemsName}}…": "正在選取 {{count}} 個{{itemsName}}…",
+  "Selecting {{count}} {{itemsName}}…_one": "正在選取 {{count}} 個{{itemName}}…",
+  "Unarchive {{count}} {{itemsName}}": "取消封存 {{count}} 個{{itemsName}}",
+  "Unarchive {{count}} {{itemsName}}_one": "取消封存 {{count}} 個{{itemName}}",
+  "{{count}} of {{total}} selected": "已選取 {{count}} 項（共 {{total}} 項）",
+  "{{count}} of {{total}} selected_one": "已選取 {{count}} 項（共 {{total}} 項）"
 }

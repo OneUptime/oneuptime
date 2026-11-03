@@ -692,6 +692,10 @@ test.describe("every exception that matches, not only the page's", () => {
       .click();
 
     const question: Locator = page.getByRole("dialog");
+    // What it does and to how many, as an incidents list's Resolve says.
+    await expect(question.getByTestId("modal-title")).toHaveText(
+      "Resolve 5 Exceptions",
+    );
     await expect(question).toContainText(
       "This changes all 5 selected exceptions, including those on other pages.",
     );
@@ -777,6 +781,8 @@ test.describe("every exception that matches, not only the page's", () => {
         actions: { y: number; height: number; x: number; width: number };
         offer: { y: number; x: number; width: number };
         header: { x: number; width: number };
+        countWords: { x: number };
+        offerWords: { x: number };
       }
 
       // Read in one frame.
@@ -795,6 +801,10 @@ test.describe("every exception that matches, not only the page's", () => {
           actions: rectOf("[data-testid=bulk-update-actions] button"),
           offer: rectOf("[data-testid=bulk-update-select-all-matching]"),
           header: rectOf("[data-testid=telemetry-viewer-bulk]"),
+          countWords: rectOf("[data-testid=bulk-update-selected-count] > span"),
+          offerWords: rectOf(
+            "[data-testid=bulk-update-select-all-matching] > span",
+          ),
         };
       });
 
@@ -819,6 +829,10 @@ test.describe("every exception that matches, not only the page's", () => {
       expect(line.offer.x + line.offer.width).toBeLessThanOrEqual(
         line.header.x + line.header.width,
       );
+      // Its words start where the count's do, a line under them.
+      expect(
+        Math.abs(line.offerWords.x - line.countWords.x),
+      ).toBeLessThanOrEqual(1);
       expect(await scrollsSideways(page)).toBe(false);
 
       await page.getByTestId("telemetry-viewer-list").screenshot({

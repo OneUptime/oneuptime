@@ -40392,5 +40392,17 @@
   "Select the first {{limit}} of {{count}} {{itemsName}}": "Die ersten {{limit}} von {{count}} {{itemsName}} auswählen",
   "Select the first {{limit}} of {{count}} {{itemsName}}_one": "Die ersten {{limit}} von {{count}} {{itemName}} auswählen",
   "This changes all {{count}} selected {{itemsName}}, including those on other pages.": "Dies ändert alle {{count}} ausgewählten {{itemsName}}, auch die auf anderen Seiten.",
-  "This changes all {{count}} selected {{itemsName}}, including those on other pages._one": "Dies ändert die Auswahl ({{count}} {{itemName}}), auch auf anderen Seiten."
+  "This changes all {{count}} selected {{itemsName}}, including those on other pages._one": "Dies ändert die Auswahl ({{count}} {{itemName}}), auch auf anderen Seiten.",
+  "Archive {{count}} {{itemsName}}": "{{count}} {{itemsName}} archivieren",
+  "Archive {{count}} {{itemsName}}_one": "{{count}} {{itemName}} archivieren",
+  "Reopen {{count}} {{itemsName}}": "{{count}} {{itemsName}} wieder öffnen",
+  "Reopen {{count}} {{itemsName}}_one": "{{count}} {{itemName}} wieder öffnen",
+  "Resolve {{count}} {{itemsName}} in next release": "{{count}} {{itemsName}} im nächsten Release beheben",
+  "Resolve {{count}} {{itemsName}} in next release_one": "{{count}} {{itemName}} im nächsten Release beheben",
+  "Selecting {{count}} {{itemsName}}…": "{{count}} {{itemsName}} werden ausgewählt…",
+  "Selecting {{count}} {{itemsName}}…_one": "{{count}} {{itemName}} wird ausgewählt…",
+  "Unarchive {{count}} {{itemsName}}": "{{count}} {{itemsName}} aus dem Archiv entfernen",
+  "Unarchive {{count}} {{itemsName}}_one": "{{count}} {{itemName}} aus dem Archiv entfernen",
+  "{{count}} of {{total}} selected": "{{count}} von {{total}} ausgewählt",
+  "{{count}} of {{total}} selected_one": "{{count}} von {{total}} ausgewählt"
 }

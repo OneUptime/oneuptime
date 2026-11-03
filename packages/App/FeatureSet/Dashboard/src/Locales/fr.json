@@ -40392,5 +40392,17 @@
   "Select the first {{limit}} of {{count}} {{itemsName}}": "Sélectionner les {{limit}} premiers sur {{count}} ({{itemsName}})",
   "Select the first {{limit}} of {{count}} {{itemsName}}_one": "Sélectionner les {{limit}} premiers sur {{count}} ({{itemName}})",
   "This changes all {{count}} selected {{itemsName}}, including those on other pages.": "Cela modifie les {{count}} éléments sélectionnés ({{itemsName}}), y compris ceux des autres pages.",
-  "This changes all {{count}} selected {{itemsName}}, including those on other pages._one": "Cela modifie {{count}} élément sélectionné ({{itemName}}), y compris sur les autres pages."
+  "This changes all {{count}} selected {{itemsName}}, including those on other pages._one": "Cela modifie {{count}} élément sélectionné ({{itemName}}), y compris sur les autres pages.",
+  "Archive {{count}} {{itemsName}}": "Archiver {{count}} éléments ({{itemsName}})",
+  "Archive {{count}} {{itemsName}}_one": "Archiver {{count}} élément ({{itemName}})",
+  "Reopen {{count}} {{itemsName}}": "Rouvrir {{count}} éléments ({{itemsName}})",
+  "Reopen {{count}} {{itemsName}}_one": "Rouvrir {{count}} élément ({{itemName}})",
+  "Resolve {{count}} {{itemsName}} in next release": "Résoudre {{count}} éléments ({{itemsName}}) dans la prochaine version",
+  "Resolve {{count}} {{itemsName}} in next release_one": "Résoudre {{count}} élément ({{itemName}}) dans la prochaine version",
+  "Selecting {{count}} {{itemsName}}…": "Sélection de {{count}} éléments ({{itemsName}})…",
+  "Selecting {{count}} {{itemsName}}…_one": "Sélection de {{count}} élément ({{itemName}})…",
+  "Unarchive {{count}} {{itemsName}}": "Désarchiver {{count}} éléments ({{itemsName}})",
+  "Unarchive {{count}} {{itemsName}}_one": "Désarchiver {{count}} élément ({{itemName}})",
+  "{{count}} of {{total}} selected": "{{count}} sur {{total}} sélectionnés",
+  "{{count}} of {{total}} selected_one": "{{count}} sur {{total}} sélectionné"
 }

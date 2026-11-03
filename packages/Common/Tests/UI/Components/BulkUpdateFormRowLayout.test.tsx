@@ -19,11 +19,13 @@ import BulkUpdateForm, {
   BULK_ROW_CLEAR_TEST_ID,
   BULK_ROW_COUNT_CHIP_CLASS_NAME,
   BULK_ROW_COUNT_TEST_ID,
-  BULK_ROW_LIMIT_TEST_ID,
+  BULK_ROW_ERROR_CLASS_NAME,
+  BULK_ROW_ERROR_TEST_ID,
   BULK_ROW_SELECT_ALL_CLASS_NAME,
   BULK_ROW_SELECT_ALL_SLOT_CLASS_NAME,
   BULK_ROW_SELECT_ALL_TEST_ID,
   BULK_ROW_TEST_ID,
+  BULK_SELECTED_OF_MATCHING_SHORT_COUNT,
   BULK_SELECTED_SHORT_COUNT,
   BulkActionButtonSchema,
   BulkActionOnClickProps,
@@ -390,7 +392,7 @@ describe("a list's header line, offering every row that matches", () => {
     expect(offer()).toHaveTextContent("Select All Exceptions");
   });
 
-  test("while it reads them, the offer is busy, with a spinner, and cannot start a second read", () => {
+  test("while it reads them, the offer is busy - a spinner, and words that say so - and cannot start a second read", () => {
     const onSelectAll: MockFunction = getJestMockFunction();
 
     renderBar({
@@ -404,11 +406,49 @@ describe("a list's header line, offering every row that matches", () => {
     expect(button).toBeDisabled();
     expect(button).toHaveAttribute("aria-busy", "true");
     expect(button.querySelector("svg")).not.toBeNull();
-    expect(button).toHaveTextContent("Select all 4,213 exceptions");
+    expect(button).toHaveTextContent(/^Selecting 4,213 exceptions…$/);
 
     fireEvent.click(button);
 
     expect(onSelectAll).not.toHaveBeenCalled();
+  });
+
+  test("past the ceiling, while it reads, it names the first of them it is reading", () => {
+    renderBar({
+      isSelectingAllItems: true,
+      selectAllMatching: { isPageSelected: true, matchingCount: 12345 },
+    });
+
+    expect(offer()).toHaveTextContent(/^Selecting 10,000 exceptions…$/);
+  });
+
+  test("a list that only knows more rows follow says it is selecting them all, in a table's own words", () => {
+    renderBar({
+      isSelectingAllItems: true,
+      selectAllMatching: { isPageSelected: true, hasMore: true },
+    });
+
+    expect(offer()).toHaveTextContent(/^Selecting All Exceptions\.\.\.$/);
+  });
+
+  test("its box is the count chip's - border, start padding, corners - so its words line up under the chip's on a phone", () => {
+    const classes: Array<string> = BULK_ROW_SELECT_ALL_CLASS_NAME.split(" ");
+    const chip: Array<string> = BULK_ROW_COUNT_CHIP_CLASS_NAME.split(" ");
+
+    // The chip: a 1px border, 8px before its words, rounded-md.
+    expect(chip).toEqual(
+      expect.arrayContaining(["border", "pl-2", "rounded-md"]),
+    );
+    // The offer: the same border, kept clear, and the same 8px.
+    expect(classes).toEqual(
+      expect.arrayContaining([
+        "border",
+        "border-transparent",
+        "px-2",
+        "rounded-md",
+      ]),
+    );
+    expect(classes).not.toContain("px-1.5");
   });
 
   test("once every match is selected, the count says so and the offer is gone", () => {
@@ -422,7 +462,7 @@ describe("a list's header line, offering every row that matches", () => {
       "All 3 selected",
     );
     expect(offer()).toBeNull();
-    expect(screen.queryByTestId(BULK_ROW_LIMIT_TEST_ID)).toBeNull();
+    expect(screen.queryByText(/of 3 selected/)).toBeNull();
     expect(BULK_ALL_SELECTED_SHORT_COUNT).toEqual({
       one: "All {{count}} selected",
       other: "All {{count}} selected",
@@ -441,7 +481,7 @@ describe("a list's header line, offering every row that matches", () => {
     );
   });
 
-  test("stopped at the ceiling: a count, and a note under the line of what Bulk Actions will act on", () => {
+  test("stopped at the ceiling: the count says how many of how many, with no note under the line", () => {
     renderBar({
       isAllItemsSelected: true,
       isSelectionTruncated: true,
@@ -449,16 +489,53 @@ describe("a list's header line, offering every row that matches", () => {
     });
 
     expect(screen.getByTestId(BULK_ROW_COUNT_TEST_ID)).toHaveTextContent(
-      /^3 selected$/,
+      /^3 of 12,345 selected$/,
     );
+    // The three sentences that said it under the line are gone from it.
+    expect(
+      screen.queryByText(/You can only select/, { exact: false }),
+    ).toBeNull();
+    expect(BULK_SELECTED_OF_MATCHING_SHORT_COUNT).toEqual({
+      one: "{{count}} of {{total}} selected",
+      other: "{{count}} of {{total}} selected",
+    });
+  });
 
-    const note: HTMLElement = screen.getByTestId(BULK_ROW_LIMIT_TEST_ID);
+  test("stopped at the ceiling, the first of them are not offered again (a regression: the same read again)", () => {
+    const onSelectAll: MockFunction = getJestMockFunction();
 
-    expect(note).toHaveTextContent(
-      "Selected 3 of 12,345 matching exceptions. You can only select 10,000 exceptions at a time, for performance reasons, so bulk actions will apply to the selected 3 only.",
+    /*
+     * "Select the first 10,000 of 12,345 exceptions" taken: every row on
+     * the page is still ticked and 12,345 still match - and the offer stayed
+     * beside "10,000 selected", to read the same 10,000 again.
+     */
+    renderBar({
+      onSelectAllClick: onSelectAll,
+      isAllItemsSelected: true,
+      isSelectionTruncated: true,
+      totalMatchingItemsCount: 12345,
+      selectAllMatching: { isPageSelected: true, matchingCount: 12345 },
+    });
+
+    expect(offer()).toBeNull();
+    expect(screen.queryByText(/Select the first/, { exact: false })).toBeNull();
+    expect(onSelectAll).not.toHaveBeenCalled();
+  });
+
+  test("a table's selection stopped at the ceiling, a row unticked since: still how many of how many, nothing offered", () => {
+    // A table keeps its select-all's state while rows are unticked.
+    renderBar({
+      selectedItems: ROWS.slice(0, 2),
+      isAllItemsSelected: true,
+      isSelectionTruncated: true,
+      totalMatchingItemsCount: 12345,
+      selectAllMatching: { isPageSelected: true, matchingCount: 12345 },
+    });
+
+    expect(screen.getByTestId(BULK_ROW_COUNT_TEST_ID)).toHaveTextContent(
+      /^2 of 12,345 selected$/,
     );
-    expect(note).toHaveClass("basis-full", "text-xs", "text-gray-500");
-    expect(screen.getByTestId(BULK_ROW_TEST_ID)).toContainElement(note);
+    expect(offer()).toBeNull();
   });
 
   test("on a phone the offer takes a line of its own under the count, and Bulk Actions keeps the first line's end", () => {
@@ -481,14 +558,43 @@ describe("a list's header line, offering every row that matches", () => {
     expect(screen.getByRole("alert")).toHaveClass("order-3");
   });
 
-  test("the note of what Bulk Actions will act on sits after the offer's line too", () => {
+  test("a read that failed says why under the line, in its small type, with the offer still there to try again", () => {
+    const onSelectAll: MockFunction = getJestMockFunction();
+
     renderBar({
-      isAllItemsSelected: true,
-      isSelectionTruncated: true,
-      totalMatchingItemsCount: 12345,
+      onSelectAllClick: onSelectAll,
+      selectAllMatching: { isPageSelected: true, matchingCount: 4213 },
+      errorMessage:
+        "Error connecting to server. Please try again in few minutes.",
     });
 
-    expect(screen.getByTestId(BULK_ROW_LIMIT_TEST_ID)).toHaveClass("order-2");
+    const alert: HTMLElement = screen.getByRole("alert");
+
+    expect(alert).toBe(screen.getByTestId(BULK_ROW_ERROR_TEST_ID));
+    expect(alert).toHaveTextContent(
+      "Error connecting to server. Please try again in few minutes.",
+    );
+    expect(alert.className).toBe(BULK_ROW_ERROR_CLASS_NAME);
+    // A line of the line's own small type, not a box heavier than the line.
+    expect(BULK_ROW_ERROR_CLASS_NAME.split(" ")).toEqual(
+      expect.arrayContaining(["basis-full", "text-xs", "text-red-700"]),
+    );
+    for (const heavy of ["rounded-lg", "bg-red-50", "p-3", "text-sm"]) {
+      expect(BULK_ROW_ERROR_CLASS_NAME.split(" ")).not.toContain(heavy);
+    }
+    // Marked with the alert icon, beside the words.
+    expect(alert.querySelector("svg")).not.toBeNull();
+    expect(screen.getByTestId(BULK_ROW_TEST_ID)).toContainElement(alert);
+    /*
+     * The server's words, often English, read the way they are written:
+     * on a Persian page their full stop stays at their end.
+     */
+    expect(alert.querySelector("bdi")).toHaveAttribute("dir", "ltr");
+
+    // The offer is still there, and tries again.
+    fireEvent.click(offer()!);
+
+    expect(onSelectAll).toHaveBeenCalledTimes(1);
   });
 });
 

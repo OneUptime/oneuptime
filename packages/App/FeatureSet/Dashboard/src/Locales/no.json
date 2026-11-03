@@ -40392,5 +40392,17 @@
   "Select the first {{limit}} of {{count}} {{itemsName}}": "Velg de første {{limit}} av {{count}} {{itemsName}}",
   "Select the first {{limit}} of {{count}} {{itemsName}}_one": "Velg de første {{limit}} av {{count}} {{itemName}}",
   "This changes all {{count}} selected {{itemsName}}, including those on other pages.": "Dette endrer alle {{count}} valgte {{itemsName}}, også de på andre sider.",
-  "This changes all {{count}} selected {{itemsName}}, including those on other pages._one": "Dette endrer {{count}} valgt {{itemName}}, også på andre sider."
+  "This changes all {{count}} selected {{itemsName}}, including those on other pages._one": "Dette endrer {{count}} valgt {{itemName}}, også på andre sider.",
+  "Archive {{count}} {{itemsName}}": "Arkiver {{count}} {{itemsName}}",
+  "Archive {{count}} {{itemsName}}_one": "Arkiver {{count}} {{itemName}}",
+  "Reopen {{count}} {{itemsName}}": "Gjenåpne {{count}} {{itemsName}}",
+  "Reopen {{count}} {{itemsName}}_one": "Gjenåpne {{count}} {{itemName}}",
+  "Resolve {{count}} {{itemsName}} in next release": "Løs {{count}} {{itemsName}} i neste utgivelse",
+  "Resolve {{count}} {{itemsName}} in next release_one": "Løs {{count}} {{itemName}} i neste utgivelse",
+  "Selecting {{count}} {{itemsName}}…": "Velger {{count}} {{itemsName}}…",
+  "Selecting {{count}} {{itemsName}}…_one": "Velger {{count}} {{itemName}}…",
+  "Unarchive {{count}} {{itemsName}}": "Fjern {{count}} {{itemsName}} fra arkiv",
+  "Unarchive {{count}} {{itemsName}}_one": "Fjern {{count}} {{itemName}} fra arkiv",
+  "{{count}} of {{total}} selected": "{{count}} av {{total}} valgt",
+  "{{count}} of {{total}} selected_one": "{{count}} av {{total}} valgt"
 }

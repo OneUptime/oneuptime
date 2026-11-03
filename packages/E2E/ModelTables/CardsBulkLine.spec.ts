@@ -58,6 +58,9 @@ interface BandReading {
   count: Box | null;
   actions: Box | null;
   offer: Box | null;
+  // The words in the count's chip and in the offer, where they start.
+  countWords: Box | null;
+  offerWords: Box | null;
   greyBars: number;
   sideways: number;
 }
@@ -153,6 +156,16 @@ async function readBand(page: Page): Promise<BandReading> {
       offer: boxOf(
         bandElement.querySelector(
           "[data-testid=bulk-update-select-all-matching]",
+        ),
+      ),
+      countWords: boxOf(
+        bandElement.querySelector(
+          "[data-testid=bulk-update-selected-count] > span",
+        ),
+      ),
+      offerWords: boxOf(
+        bandElement.querySelector(
+          "[data-testid=bulk-update-select-all-matching] > span",
         ),
       ),
       greyBars: document.querySelectorAll(
@@ -253,6 +266,10 @@ test.describe("on a phone, a table's Bulk Actions are the band over its cards", 
     expect(
       Math.abs(centerOf(ticked.actions!) - centerOf(ticked.count!)),
     ).toBeLessThanOrEqual(2);
+    // Its words start where the count's do, a line under them.
+    expect(
+      Math.abs(ticked.offerWords!.x - ticked.countWords!.x),
+    ).toBeLessThanOrEqual(1);
     expect(ticked.sideways).toBeLessThanOrEqual(0);
 
     await screenshot(page, "monitors-band-page-ticked-390");
@@ -320,6 +337,16 @@ test.describe("on a phone, a table's Bulk Actions are the band over its cards", 
       expect(ticked.offer!.x + ticked.offer!.width).toBeLessThanOrEqual(
         ticked.band.x + ticked.band.width + 0.5,
       );
+      /*
+       * Its words start where the count's do - at the right in Persian,
+       * which reads from there.
+       */
+      const startOf: (words: Box) => number = (words: Box): number => {
+        return variant.name === "fa" ? words.x + words.width : words.x;
+      };
+      expect(
+        Math.abs(startOf(ticked.offerWords!) - startOf(ticked.countWords!)),
+      ).toBeLessThanOrEqual(1);
 
       await screenshot(page, `monitors-band-page-ticked-390-${variant.name}`);
     });

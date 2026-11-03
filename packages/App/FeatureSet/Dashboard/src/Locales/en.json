@@ -40392,5 +40392,17 @@
   "Select the first {{limit}} of {{count}} {{itemsName}}": "Select the first {{limit}} of {{count}} {{itemsName}}",
   "Select the first {{limit}} of {{count}} {{itemsName}}_one": "Select the first {{limit}} of {{count}} {{itemName}}",
   "This changes all {{count}} selected {{itemsName}}, including those on other pages.": "This changes all {{count}} selected {{itemsName}}, including those on other pages.",
-  "This changes all {{count}} selected {{itemsName}}, including those on other pages._one": "This changes all {{count}} selected {{itemName}}, including those on other pages."
+  "This changes all {{count}} selected {{itemsName}}, including those on other pages._one": "This changes all {{count}} selected {{itemName}}, including those on other pages.",
+  "Archive {{count}} {{itemsName}}": "Archive {{count}} {{itemsName}}",
+  "Archive {{count}} {{itemsName}}_one": "Archive {{count}} {{itemName}}",
+  "Reopen {{count}} {{itemsName}}": "Reopen {{count}} {{itemsName}}",
+  "Reopen {{count}} {{itemsName}}_one": "Reopen {{count}} {{itemName}}",
+  "Resolve {{count}} {{itemsName}} in next release": "Resolve {{count}} {{itemsName}} in next release",
+  "Resolve {{count}} {{itemsName}} in next release_one": "Resolve {{count}} {{itemName}} in next release",
+  "Selecting {{count}} {{itemsName}}…": "Selecting {{count}} {{itemsName}}…",
+  "Selecting {{count}} {{itemsName}}…_one": "Selecting {{count}} {{itemName}}…",
+  "Unarchive {{count}} {{itemsName}}": "Unarchive {{count}} {{itemsName}}",
+  "Unarchive {{count}} {{itemsName}}_one": "Unarchive {{count}} {{itemName}}",
+  "{{count}} of {{total}} selected": "{{count}} of {{total}} selected",
+  "{{count}} of {{total}} selected_one": "{{count}} of {{total}} selected"
 }

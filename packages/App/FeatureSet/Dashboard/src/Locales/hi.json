@@ -40392,5 +40392,17 @@
   "Select the first {{limit}} of {{count}} {{itemsName}}": "{{count}} {{itemsName}} में से पहले {{limit}} चुनें",
   "Select the first {{limit}} of {{count}} {{itemsName}}_one": "{{count}} {{itemName}} में से पहले {{limit}} चुनें",
   "This changes all {{count}} selected {{itemsName}}, including those on other pages.": "यह सभी {{count}} चयनित {{itemsName}} को बदल देगा, जिनमें अन्य पृष्ठों पर मौजूद भी शामिल हैं।",
-  "This changes all {{count}} selected {{itemsName}}, including those on other pages._one": "यह {{count}} चयनित {{itemName}} को बदल देगा, अन्य पृष्ठों पर भी।"
+  "This changes all {{count}} selected {{itemsName}}, including those on other pages._one": "यह {{count}} चयनित {{itemName}} को बदल देगा, अन्य पृष्ठों पर भी।",
+  "Archive {{count}} {{itemsName}}": "{{count}} {{itemsName}} संग्रहित करें",
+  "Archive {{count}} {{itemsName}}_one": "{{count}} {{itemName}} संग्रहित करें",
+  "Reopen {{count}} {{itemsName}}": "{{count}} {{itemsName}} फिर से खोलें",
+  "Reopen {{count}} {{itemsName}}_one": "{{count}} {{itemName}} फिर से खोलें",
+  "Resolve {{count}} {{itemsName}} in next release": "{{count}} {{itemsName}} अगली रिलीज़ में सुलझाएं",
+  "Resolve {{count}} {{itemsName}} in next release_one": "{{count}} {{itemName}} अगली रिलीज़ में सुलझाएं",
+  "Selecting {{count}} {{itemsName}}…": "{{count}} {{itemsName}} चुने जा रहे हैं…",
+  "Selecting {{count}} {{itemsName}}…_one": "{{count}} {{itemName}} चुना जा रहा है…",
+  "Unarchive {{count}} {{itemsName}}": "{{count}} {{itemsName}} अनसंग्रहीत करें",
+  "Unarchive {{count}} {{itemsName}}_one": "{{count}} {{itemName}} अनसंग्रहीत करें",
+  "{{count}} of {{total}} selected": "{{total}} में से {{count}} चयनित",
+  "{{count}} of {{total}} selected_one": "{{total}} में से {{count}} चयनित"
 }
