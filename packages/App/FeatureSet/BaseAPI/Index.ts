@@ -302,6 +302,10 @@ import AlertOnCallRuleService, {
   Service as AlertOnCallRuleServiceType,
 } from "Common/Server/Services/AlertOnCallRuleService";
 
+import AlertIncidentRuleService, {
+  Service as AlertIncidentRuleServiceType,
+} from "Common/Server/Services/AlertIncidentRuleService";
+
 import AlertOwnerRuleService, {
   Service as AlertOwnerRuleServiceType,
 } from "Common/Server/Services/AlertOwnerRuleService";
@@ -718,6 +722,9 @@ import DataSecuritySettingService, {
 import DataAssetFeedService, {
   Service as DataAssetFeedServiceType,
 } from "Common/Server/Services/DataAssetFeedService";
+import DataAssetUsageService, {
+  Service as DataAssetUsageServiceType,
+} from "Common/Server/Services/DataAssetUsageService";
 import SecurityEntityCriticalityService, {
   Service as SecurityEntityCriticalityServiceType,
 } from "Common/Server/Services/SecurityEntityCriticalityService";
@@ -1441,6 +1448,7 @@ import AlertEpisodeOwnerUser from "Common/Models/DatabaseModels/AlertEpisodeOwne
 import AlertEpisodeStateTimeline from "Common/Models/DatabaseModels/AlertEpisodeStateTimeline";
 import AlertGroupingRule from "Common/Models/DatabaseModels/AlertGroupingRule";
 import AlertOnCallRule from "Common/Models/DatabaseModels/AlertOnCallRule";
+import AlertIncidentRule from "Common/Models/DatabaseModels/AlertIncidentRule";
 import AlertOwnerRule from "Common/Models/DatabaseModels/AlertOwnerRule";
 import AlertPrivacyRule from "Common/Models/DatabaseModels/AlertPrivacyRule";
 import AlertLabelRule from "Common/Models/DatabaseModels/AlertLabelRule";
@@ -1782,6 +1790,7 @@ import DataSecurityCheckSetting from "Common/Models/DatabaseModels/DataSecurityC
 import DataSecurityResidencyRule from "Common/Models/DatabaseModels/DataSecurityResidencyRule";
 import DataSecuritySetting from "Common/Models/DatabaseModels/DataSecuritySetting";
 import DataAssetFeed from "Common/Models/DatabaseModels/DataAssetFeed";
+import DataAssetUsage from "Common/Models/DatabaseModels/DataAssetUsage";
 import SecurityEntityCriticality from "Common/Models/DatabaseModels/SecurityEntityCriticality";
 import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePriority";
 import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus";
@@ -2908,6 +2917,14 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<AlertOnCallRule, AlertOnCallRuleServiceType>(
         AlertOnCallRule,
         AlertOnCallRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<AlertIncidentRule, AlertIncidentRuleServiceType>(
+        AlertIncidentRule,
+        AlertIncidentRuleService,
       ).getRouter(),
     );
 
@@ -4523,6 +4540,14 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<DataAssetFeed, DataAssetFeedServiceType>(
         DataAssetFeed,
         DataAssetFeedService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DataAssetUsage, DataAssetUsageServiceType>(
+        DataAssetUsage,
+        DataAssetUsageService,
       ).getRouter(),
     );
 

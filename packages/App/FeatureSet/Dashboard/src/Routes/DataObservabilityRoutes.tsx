@@ -25,6 +25,7 @@ import TableOverviewPage from "../Pages/DataObservability/TableView/Overview";
 import TableColumnsPage from "../Pages/DataObservability/TableView/Columns";
 import TableMetricsPage from "../Pages/DataObservability/TableView/Metrics";
 import TableTimelinePage from "../Pages/DataObservability/TableView/Timeline";
+import TableServicesPage from "../Pages/DataObservability/TableView/Services";
 import TableSettingsPage from "../Pages/DataObservability/TableView/Settings";
 import TableDeletePage from "../Pages/DataObservability/TableView/Delete";
 
@@ -162,6 +163,21 @@ const DataObservabilityRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[
                   PageMap.DATA_OBSERVABILITY_TABLE_VIEW_TIMELINE
+                ] as Route
+              }
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.DATA_OBSERVABILITY_TABLE_VIEW_SERVICES,
+          )}
+          element={
+            <TableServicesPage
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.DATA_OBSERVABILITY_TABLE_VIEW_SERVICES
                 ] as Route
               }
             />

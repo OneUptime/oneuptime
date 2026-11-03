@@ -87,6 +87,12 @@ On **Databases**, choose **Recommended Alerts** for a database. Each recommendat
 
 Pick severities, on-call policies, owners and labels when you create them. They are ordinary monitors from then on: edit, mute or put them on a status page like any other.
 
+## Services that use each table
+
+A table's **Services** tab lists the services seen writing and reading it, with the statements each ran, its calls and failures in the last hour, and when it was last seen. It comes from the database spans your services already send with OpenTelemetry: a client span with \`db.system.name\`, \`db.namespace\` and \`db.collection.name\` (or \`db.sql.table\`, or a span named like \`INSERT orders\`). Nothing extra to install. It is updated every 15 minutes.
+
+A span is tied to a table only when its database is the one a collection read, and when two databases share a name, only when its \`server.address\` is one of theirs. When it is not sure, it leaves the span out.
+
 These metrics are OneUptime's own operational data and are not billed as telemetry.
 `;
 

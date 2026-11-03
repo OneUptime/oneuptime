@@ -54,6 +54,20 @@ export const RULE_CRITERIA_FIELDS_BY_MODEL: Readonly<
     "monitorNamePattern",
     "monitorDescriptionPattern",
   ],
+  /*
+   * Which alerts have an incident declared from them: the first enabled
+   * rule that matches decides (AlertIncidentRuleEngineService).
+   */
+  AlertIncidentRule: [
+    "monitors",
+    "alertSeverities",
+    "alertLabels",
+    "monitorLabels",
+    "alertTitlePattern",
+    "alertDescriptionPattern",
+    "monitorNamePattern",
+    "monitorDescriptionPattern",
+  ],
   AlertLabelRule: [
     "monitors",
     "alertSeverities",

@@ -955,6 +955,7 @@ export const DataObservabilityRoutePath: Dictionary<string> = {
   [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_COLUMNS]: `tables/${RouteParams.ModelID}/columns`,
   [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_METRICS]: `tables/${RouteParams.ModelID}/metrics`,
   [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_TIMELINE]: `tables/${RouteParams.ModelID}/timeline`,
+  [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_SERVICES]: `tables/${RouteParams.ModelID}/services`,
   [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_SETTINGS]: `tables/${RouteParams.ModelID}/settings`,
   [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_DELETE]: `tables/${RouteParams.ModelID}/delete`,
   [PageMap.DATA_OBSERVABILITY_STORES]: "stores",
@@ -1277,6 +1278,7 @@ export const AlertsRoutePath: Dictionary<string> = {
   [PageMap.ALERTS_SETTINGS_CUSTOM_FIELDS]: "settings/custom-fields",
   [PageMap.ALERTS_SETTINGS_GROUPING_RULES]: "settings/grouping-rules",
   [PageMap.ALERTS_SETTINGS_ON_CALL_RULES]: "settings/on-call-rules",
+  [PageMap.ALERTS_SETTINGS_INCIDENT_RULES]: "settings/incident-rules",
   [PageMap.ALERTS_SETTINGS_OWNER_RULES]: "settings/owner-rules",
   [PageMap.ALERTS_SETTINGS_EPISODE_OWNER_RULE_VIEW]: `settings/owner-rules/episodes/${RouteParams.ModelID}`,
   [PageMap.ALERTS_SETTINGS_OWNER_RULE_VIEW]: `settings/owner-rules/${RouteParams.ModelID}`,
@@ -1952,6 +1954,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.ALERTS_SETTINGS_ON_CALL_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/alerts/${
       AlertsRoutePath[PageMap.ALERTS_SETTINGS_ON_CALL_RULES]
+    }`,
+  ),
+
+  [PageMap.ALERTS_SETTINGS_INCIDENT_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERTS_SETTINGS_INCIDENT_RULES]
     }`,
   ),
 
@@ -7818,6 +7826,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_TIMELINE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/data-observability/${
       DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_TABLE_VIEW_TIMELINE]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_SERVICES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_TABLE_VIEW_SERVICES]
     }`,
   ),
 

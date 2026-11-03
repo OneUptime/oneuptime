@@ -61,6 +61,8 @@ import AlertSettingsGroupingRules from "../Pages/Alerts/Settings/AlertGroupingRu
 
 import AlertSettingsOnCallRules from "../Pages/Alerts/Settings/AlertOnCallRules";
 
+import AlertSettingsIncidentRules from "../Pages/Alerts/Settings/AlertIncidentRules";
+
 import AlertSettingsOwnerRules from "../Pages/Alerts/Settings/AlertOwnerRules";
 import AlertSettingsRunbookRules from "../Pages/Alerts/Settings/AlertRunbookRules";
 
@@ -360,6 +362,18 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.ALERTS_SETTINGS_ON_CALL_RULES] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={AlertsRoutePath[PageMap.ALERTS_SETTINGS_INCIDENT_RULES] || ""}
+          element={
+            <AlertSettingsIncidentRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.ALERTS_SETTINGS_INCIDENT_RULES] as Route
               }
             />
           }

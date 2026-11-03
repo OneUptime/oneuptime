@@ -91,6 +91,7 @@ export const RULE_CRITERIA_SUBJECT_BY_MODEL: Readonly<
   AlertEpisodeOwnerRule: RuleCriteriaSubject.AlertEpisodes,
   AlertEpisodePrivacyRule: RuleCriteriaSubject.AlertEpisodes,
   AlertGroupingRule: RuleCriteriaSubject.Alerts,
+  AlertIncidentRule: RuleCriteriaSubject.Alerts,
   AlertLabelRule: RuleCriteriaSubject.Alerts,
   AlertOnCallRule: RuleCriteriaSubject.Alerts,
   AlertOwnerRule: RuleCriteriaSubject.Alerts,

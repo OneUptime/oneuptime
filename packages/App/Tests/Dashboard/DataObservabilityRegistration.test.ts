@@ -110,6 +110,45 @@ describe("Data Observability registry wiring", () => {
     expect(new Set(paths).size).toBe(paths.length);
   });
 
+  test("table usage - its model, service, migration, CRUD API and discovery job - is wired", () => {
+    expect(readSquashed("Common/Models/DatabaseModels/Index.ts")).toContain(
+      "DataAssetUsage,",
+    );
+    expect(readSquashed("Common/Server/Services/Index.ts")).toContain(
+      "DataAssetUsageService,",
+    );
+
+    const migrations: string = readSquashed(
+      "Common/Server/Infrastructure/Postgres/SchemaMigrations/Index.ts",
+    );
+
+    expect(migrations).toContain(
+      'import { AddDataAssetUsage1808990000000 } from "./1808990000000-AddDataAssetUsage";',
+    );
+    expect(migrations).toContain("AddDataAssetUsage1808990000000,");
+    expect(
+      readSquashed(
+        "Common/Server/Infrastructure/Postgres/SchemaMigrations/1808990000000-AddDataAssetUsage.ts",
+      ),
+    ).toContain('CREATE TABLE "DataAssetUsage"');
+
+    expect(readSquashed("App/FeatureSet/BaseAPI/Index.ts")).toMatch(
+      /new BaseAPI<\s*DataAssetUsage,\s*DataAssetUsageServiceType\s*>\(\s*DataAssetUsage,\s*DataAssetUsageService,?\s*\)/,
+    );
+
+    const jobs: string = readSquashed(
+      "App/FeatureSet/Workers/Jobs/DataObservability/DataObservabilityJobs.ts",
+    );
+
+    expect(jobs).toContain(
+      "for (const projectId of await TableUsageDiscovery.getProjectIds())",
+    );
+    expect(jobs).toContain(
+      "JobDictionary.setJobFunction( DATA_OBSERVABILITY_DISCOVER_TABLE_USAGE_JOB,",
+    );
+    expect(jobs).toContain("await TableUsageDiscovery.discoverProject({");
+  });
+
   test("the Workers import its jobs, and the probe ingest mounts its routes", () => {
     expect(readSquashed("App/FeatureSet/Workers/Index.ts")).toContain(
       'import "./Jobs/DataObservability/DataObservabilityJobs"',
