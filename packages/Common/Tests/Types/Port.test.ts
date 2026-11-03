@@ -63,6 +63,12 @@ describe("Testing class port", () => {
       expect(transformer.to(65535)).toBe(65535);
     });
 
+    test("reads a stored port of 0 back as port 0", () => {
+      expect(transformer.from(0)?.toNumber()).toBe(0);
+      expect(transformer.from("0")?.toNumber()).toBe(0);
+      expect(Port.fromJSON(new Port(0).toJSON()).toNumber()).toBe(0);
+    });
+
     test("keeps undefined distinct from null so a column DEFAULT applies", () => {
       expect(transformer.to(undefined)).toBeUndefined();
       expect(transformer.to(null)).toBeNull();
