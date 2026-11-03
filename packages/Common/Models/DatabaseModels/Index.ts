@@ -472,6 +472,7 @@ import AlertEpisodeInternalNote from "./AlertEpisodeInternalNote";
 import AlertEpisodeFeed from "./AlertEpisodeFeed";
 import AlertGroupingRule from "./AlertGroupingRule";
 import AlertOnCallRule from "./AlertOnCallRule";
+import AlertIncidentRule from "./AlertIncidentRule";
 import AlertOwnerRule from "./AlertOwnerRule";
 import AlertPrivacyRule from "./AlertPrivacyRule";
 import AlertLabelRule from "./AlertLabelRule";
@@ -765,6 +766,7 @@ const AllModelTypes: Array<{
   AlertEpisodeFeed,
   AlertGroupingRule,
   AlertOnCallRule,
+  AlertIncidentRule,
   AlertOwnerRule,
   AlertPrivacyRule,
   AlertLabelRule,

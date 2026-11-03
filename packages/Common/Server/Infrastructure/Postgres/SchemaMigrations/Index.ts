@@ -269,6 +269,8 @@ import { AddCloudResourceHealthSeverityIndex1808960000000 } from "./180896000000
 import { AddSecurityWatchlistExpiryAndUrlReads1808970000000 } from "./1808970000000-AddSecurityWatchlistExpiryAndUrlReads";
 import { AddSecurityWatchlistExpiryAndUrlReadIndexes1808980000000 } from "./1808980000000-AddSecurityWatchlistExpiryAndUrlReadIndexes";
 import { AddDatabaseServerEngineReadings1808990000000 } from "./1808990000000-AddDatabaseServerEngineReadings";
+import { AddAlertIncidentRules1808991210000 } from "./1808991210000-AddAlertIncidentRules";
+import { AddAlertIncidentRuleCheckIndex1808991220000 } from "./1808991220000-AddAlertIncidentRuleCheckIndex";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1740,4 +1742,6 @@ export default [
   AddSecurityWatchlistExpiryAndUrlReads1808970000000,
   AddSecurityWatchlistExpiryAndUrlReadIndexes1808980000000,
   AddDatabaseServerEngineReadings1808990000000,
+  AddAlertIncidentRules1808991210000,
+  AddAlertIncidentRuleCheckIndex1808991220000,
 ];

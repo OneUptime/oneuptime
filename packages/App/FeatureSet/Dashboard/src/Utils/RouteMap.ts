@@ -1277,6 +1277,7 @@ export const AlertsRoutePath: Dictionary<string> = {
   [PageMap.ALERTS_SETTINGS_CUSTOM_FIELDS]: "settings/custom-fields",
   [PageMap.ALERTS_SETTINGS_GROUPING_RULES]: "settings/grouping-rules",
   [PageMap.ALERTS_SETTINGS_ON_CALL_RULES]: "settings/on-call-rules",
+  [PageMap.ALERTS_SETTINGS_INCIDENT_RULES]: "settings/incident-rules",
   [PageMap.ALERTS_SETTINGS_OWNER_RULES]: "settings/owner-rules",
   [PageMap.ALERTS_SETTINGS_EPISODE_OWNER_RULE_VIEW]: `settings/owner-rules/episodes/${RouteParams.ModelID}`,
   [PageMap.ALERTS_SETTINGS_OWNER_RULE_VIEW]: `settings/owner-rules/${RouteParams.ModelID}`,
@@ -1952,6 +1953,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.ALERTS_SETTINGS_ON_CALL_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/alerts/${
       AlertsRoutePath[PageMap.ALERTS_SETTINGS_ON_CALL_RULES]
+    }`,
+  ),
+
+  [PageMap.ALERTS_SETTINGS_INCIDENT_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERTS_SETTINGS_INCIDENT_RULES]
     }`,
   ),
 

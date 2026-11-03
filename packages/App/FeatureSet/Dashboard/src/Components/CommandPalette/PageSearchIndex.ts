@@ -1181,6 +1181,16 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             icon: IconProp.Call,
             keywords: ["who gets paged", "paging", "page on-call"],
           },
+          {
+            page: PageMap.ALERTS_SETTINGS_INCIDENT_RULES,
+            title: "Incident Rules",
+            icon: IconProp.ArrowTrendingUp,
+            keywords: [
+              "escalate to incident",
+              "declare incident automatically",
+              "alert to incident",
+            ],
+          },
           ownerRules(PageMap.ALERTS_SETTINGS_OWNER_RULES),
           {
             page: PageMap.ALERTS_SETTINGS_RUNBOOK_RULES,

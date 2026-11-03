@@ -59,7 +59,7 @@ Open **Alerts** from the **Products** menu in the top bar. The alerts list is at
 | **Episodes** | **All Episodes** and **Active Episodes**: related alerts grouped into one problem to work on. |
 | **AI**        | **Insights**, **Logs** and **Settings**: what OneUptime AI learned from your alerts, everything it did, and what it may do. |
 | **Workspace** | **Slack** and **Microsoft Teams**, whichever the project has connected, or **Connect Slack or Teams** when it has neither. |
-| **Rules**     | **Grouping Rules**, **On-Call Rules**, **Owner Rules**, **Runbook Rules**, **Privacy Rules**, **Label Rules**, **Reminder Rules**. |
+| **Rules**     | **Grouping Rules**, **On-Call Rules**, **Incident Rules**, **Owner Rules**, **Runbook Rules**, **Privacy Rules**, **Label Rules**, **Reminder Rules**. |
 | **Settings**  | **Alert State**, **Alert Severity**, **Note Templates**, **Custom Fields**, **Measurements**, **Episode Membership**, **Numbering**.                |
 
 **Alerts** and **Episodes** are open; **AI**, **Workspace**, **Rules**, **Settings** and **Developer** start folded, and a section opens by itself when you are on one of its pages. Alert configuration lives here, not in **Project Settings**.
@@ -99,7 +99,7 @@ The moment an alert is created, OneUptime works through these steps, in this ord
 3. **The feed and your chat tools hear of it.** An **Alert Created** entry is written to the **Alert Feed**, and the channels your Slack and Microsoft Teams rules name are told; a rule can create a channel for the alert.
 4. **Owners and labels are added**: the ones the monitor's criteria or the request names, then those of matching owner and label rules.
 5. **On-call rules add their policies**, then runbook rules start the runbooks that match.
-6. **On-call policies run.** Every policy on the alert pages its people in parallel; one failing does not stop the others.
+6. **On-call policies run.** Every policy on the alert pages its people in parallel; one failing does not stop the others. Then the first incident rule that matches declares an incident from the alert, right away or once its wait is up.
 7. **Grouping rules put it into an episode**, when one matches. See [Alert Episodes & Grouping Rules](/docs/alerts/episodes).
 8. **Reminders are scheduled**, when a reminder rule matches, and **OneUptime AI** investigates the alert when **Investigate new alerts** is on at **Alerts → AI → Settings**, and fixes it when **Fix new alerts automatically** is on. See [AI SRE](/docs/ai/ai-sre).
 
@@ -110,7 +110,7 @@ A background job tells the alert's owners within a minute, and the **On Create A
 An alert that starts in a later state is a record of a problem someone is already on, so it is not treated as a new emergency:
 
 - **At or past your acknowledged state**, no on-call policy runs. The alert keeps its policies, and its feed says in one line why nobody was paged. It can join an open episode, but never opens one, which would page through the episode's policies.
-- **At or past your resolved state**, the alert is over: it is not grouped into an episode, no runbook or auto-remediation acts on it, OneUptime AI does not investigate it, and no Slack or Microsoft Teams channel is created for it.
+- **At or past your resolved state**, the alert is over: it is not grouped into an episode, no runbook, auto-remediation or incident rule acts on it, OneUptime AI does not investigate it, and no Slack or Microsoft Teams channel is created for it.
 
 Its rules, its owners, its feed and its first state still happen either way. Incidents follow the same rule: see [Declared already acknowledged or resolved](/docs/incidents/declaring-incidents#declared-already-acknowledged-or-resolved).
 

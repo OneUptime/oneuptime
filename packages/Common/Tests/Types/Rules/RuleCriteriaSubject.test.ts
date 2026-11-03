@@ -62,10 +62,12 @@ const SHORTER_NAMES: Record<string, string> = {
 
 /*
  * Rule models whose name does not end in the record they are about: a
- * postmortem rule decides about resolved incidents.
+ * postmortem rule decides about resolved incidents, and an alert incident
+ * rule about alerts - the incident is what it declares from them.
  */
 const RECORD_MODEL_OF_RULE: Record<string, string> = {
   AIPostmortemRule: "Incident",
+  AlertIncidentRule: "Alert",
 };
 
 function recordModelOf(ruleModel: string): string {

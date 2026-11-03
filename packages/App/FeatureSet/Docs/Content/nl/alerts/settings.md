@@ -17,6 +17,7 @@ Open **Waarschuwingen** via het menu **Producten** in de bovenste balk. De secti
 | --------------------------- | ---------------------------------------------------------------------------------------------- |
 | **Groeperingsregels**       | Brengt samenhangende waarschuwingen onder in episodes. Zie [Waarschuwingsepisoden en groeperingsregels](/docs/alerts/episodes). |
 | **Bereikbaarheidsregels**   | Voert bereikbaarheidsbeleid uit voor overeenkomende waarschuwingen en episodes.                |
+| **Incidentregels** | Meldt een incident vanuit overeenkomende waarschuwingen, meteen of zodra een waarschuwing onopgelost blijft. |
 | **Eigenaarsregels**         | Voegt eigenaren toe aan overeenkomende waarschuwingen en episodes.                             |
 | **Runbook-regels**          | Start runbooks voor overeenkomende waarschuwingen.                                             |
 | **Privacyregels**           | Maakt overeenkomende waarschuwingen en episodes privé.                                         |
@@ -54,7 +55,7 @@ flowchart TB
 
 De regels verschillen in hoe meerdere overeenkomsten worden afgehandeld:
 
-- **Groeperingsregels** en **Herinneringsregels** worden van boven naar beneden in hun lijst gecontroleerd, en de eerste overeenkomst wint. Sleep een regel om haar plek te wijzigen; een nieuwe regel komt aan het einde.
+- **Groeperingsregels**, **Incidentregels** en **Herinneringsregels** worden van boven naar beneden in hun lijst gecontroleerd, en de eerste overeenkomst wint. Sleep een regel om haar plek te wijzigen; een nieuwe regel komt aan het einde.
 - **Bereikbaarheidsregels**, **Eigenaarsregels**, **Labelregels**, **Privacyregels** en **Runbook-regels** werken allemaal wanneer ze overeenkomen. Bereikbaarheidsbeleid, eigenaren en labels die meerdere regels toevoegen, worden één keer toegevoegd.
 
 **Bereikbaarheidsregels**, **Eigenaarsregels**, **Labelregels** en **Privacyregels** hebben twee tabbladen: **Alert Rules**, voor waarschuwingen, en **Episode Rules**, die op dezelfde manier op elke nieuwe waarschuwingsepisode werken. Een nieuwe regel begint ingeschakeld; zet **Ingeschakeld** uit in haar bewerkformulier om haar te pauzeren, en de lijst toont per regel een groen **Ingeschakeld** of een rood **Uitgeschakeld**.
@@ -89,6 +90,22 @@ Kies bij **Bereikbaarheidsbeleid** het **Bereikbaarheidsbeleid** dat de regel op
 Een ernstniveau roept op zichzelf niemand op: een bereikbaarheidsregel die op **Waarschuwing Ernsten** matcht, is de manier om "roep het databaseteam op bij elke High-waarschuwing" in te stellen. Om te zien wat er voor één waarschuwing draaide, open je haar pagina **Bereikbaarheidsuitvoeringen**. Elke persoon wordt daarna bereikt zoals die het heeft ingesteld onder **Gebruikersinstellingen → Bereikbaarheidsregels**, op het tabblad **Waarschuwingen**; zie [Escalatieregels](/docs/on-call/escalation-rules).
 
 Een regel roept op zodra een waarschuwing erop past. Om de regel in plaats daarvan op werktijden te laten wachten, beantwoord je **Wanneer moet deze regel oproepen?** onder **Meer velden** met **Alleen tijdens werktijden**. De **Werktijden** beginnen op maandag tot en met vrijdag, 09:00 tot 17:00, in je eigen tijdzone: kies andere dagen, een andere **Starttijd** of **Eindtijd**, of een andere **Tijdzone**, en een zin onder de keuze zegt wat er gebeurt. In de lijst toont de regel zijn tijden onder zijn naam. Een waarschuwing die buiten die tijden past, krijgt een uitvoering die wacht en niemand oproept; zodra de werktijden beginnen, roept het beleid zijn eerste escalatieregel op en escaleert het zoals gewoonlijk. Wordt de waarschuwing eerst bevestigd of opgelost, dan wordt niemand opgeroepen. Verandert de waarschuwing terwijl ze wacht en past ze nu op een regel die direct oproept, bijvoorbeeld omdat haar ernstniveau is verhoogd, dan begint de uitvoering meteen met oproepen, en de feed van de waarschuwing zegt waarom. Twee regels die hetzelfde beleid oproepen, roepen het op zodra een van beide het toelaat: een regel voor je hoogste ernstniveaus die direct oproept, naast een regel voor de rest die op werktijden wacht, houdt de nachten rustig.
+
+## Incidentregels
+
+**Waarschuwingen → Regels → Incidentregels** maakt vanzelf incidenten van waarschuwingen. De eerste regel die bij een nieuwe waarschuwing past, van boven naar beneden in de lijst, meldt er een incident uit, zoals **Incident melden** op de pagina van de waarschuwing zou doen, en koppelt de waarschuwing eraan.
+
+:::steps
+### De waarschuwingen kiezen
+
+Onder **Overeenkomst** past **Alle waarschuwingen**, waarmee een nieuwe regel begint, op elke nieuwe waarschuwing. Om die te beperken kies je **Alleen waarschuwingen die aan de voorwaarden voldoen** en voeg je de voorwaarden toe waaraan een waarschuwing moet voldoen.
+
+### Het incident beschrijven
+
+Kies onder **Incident** de **Ernst van incident**, of laat die leeg om elk incident de ernst te geven die bij die van zijn waarschuwing past. Zet **Declare After (Minutes)** boven 0 om het incident alleen te melden als de waarschuwing dan nog steeds niet is opgelost. De **Naam** van de regel volgt de ernst, zoals "Declare SEV1 incidents", totdat je een eigen naam typt. Maak daarna de regel aan.
+:::
+
+Het incident neemt de titel, beschrijving, monitor, getroffen resources en labels van de waarschuwing over, en is privé als de waarschuwing dat is. Daarna draaien de eigen regels van het incident zoals bij elk nieuw incident, dus de bereikbaarheidsregels van het incident bepalen wie wordt opgeroepen. Een waarschuwing die is opgelost voordat de wachttijd om is, wordt nooit een incident, en een waarschuwing die al aan een incident is gekoppeld, blijft zoals ze is. **Tonen op statuspagina's**, onder **Meer velden**, bepaalt of het incident verschijnt op de statuspagina's die zijn monitor tonen.
 
 ## Eigenaars- en labelregels
 

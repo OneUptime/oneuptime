@@ -230,6 +230,12 @@ export function getAlertsBreadcrumbs(path: string): Array<Link> | undefined {
       "Rules",
       "On-Call Rules",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.ALERTS_SETTINGS_INCIDENT_RULES, [
+      "Project",
+      "Alerts",
+      "Rules",
+      "Incident Rules",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.ALERTS_SETTINGS_OWNER_RULES, [
       "Project",
       "Alerts",

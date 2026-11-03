@@ -48,6 +48,8 @@ export enum AlertFeedEventType {
   OwnerRuleExecuted = "OwnerRuleExecuted",
   PrivacyRuleExecuted = "PrivacyRuleExecuted",
   OnCallRuleExecuted = "OnCallRuleExecuted",
+  // An alert incident rule declared an incident from the alert.
+  IncidentRuleExecuted = "IncidentRuleExecuted",
   AutoRemediation = "AutoRemediation",
   VideoCallStarted = "VideoCallStarted",
   VideoCallFailed = "VideoCallFailed",

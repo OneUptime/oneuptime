@@ -368,6 +368,7 @@ import ScheduledMaintenanceTemplateOwnerUserService from "./ScheduledMaintenance
 // Alert Services
 import AlertStateService from "./AlertStateService";
 import AlertOnCallRuleService from "./AlertOnCallRuleService";
+import AlertIncidentRuleService from "./AlertIncidentRuleService";
 import AlertPrivacyRuleService from "./AlertPrivacyRuleService";
 import AlertLabelRuleService from "./AlertLabelRuleService";
 import AlertService from "./AlertService";
@@ -914,6 +915,7 @@ const services: Array<BaseService> = [
 
   AlertStateService,
   AlertOnCallRuleService,
+  AlertIncidentRuleService,
   AlertPrivacyRuleService,
   AlertLabelRuleService,
   AlertService,

@@ -59,7 +59,7 @@ Lösen Sie eine Warnung aus, wenn Ihr Team nachsehen sollte, bevor jemand außer
 | **Episoden** | **Alle Episoden** und **Aktive Episoden**: zusammengehörige Warnungen, gebündelt zu einem Problem, an dem Sie arbeiten. |
 | **KI**        | **Einblicke**, **Protokolle** und **Einstellungen**: was OneUptime AI aus Ihren Warnungen gelernt hat, alles, was es getan hat, und was es darf. |
 | **Arbeitsbereich** | **Slack** und **Microsoft Teams**, je nachdem, was das Projekt verbunden hat, oder **Slack oder Teams verbinden**, wenn es keines hat. |
-| **Regeln**    | **Gruppierungsregeln**, **Bereitschaftsregeln**, **Eigentümerregeln**, **Runbook-Regeln**, **Datenschutzregeln**, **Beschriftungsregeln**, **Erinnerungsregeln**. |
+| **Regeln**    | **Gruppierungsregeln**, **Bereitschaftsregeln**, **Vorfallsregeln**, **Eigentümerregeln**, **Runbook-Regeln**, **Datenschutzregeln**, **Beschriftungsregeln**, **Erinnerungsregeln**. |
 | **Einstellungen** | **Warnungsstatus**, **Warnungsschweregrad**, **Notiz-Vorlagen**, **Benutzerdefinierte Felder**, **Messungen**, **Episodenzugehörigkeit**, **Nummerierung**. |
 
 **Warnungen** und **Episoden** sind geöffnet; **KI**, **Arbeitsbereich**, **Regeln**, **Einstellungen** und **Entwickler** sind zunächst eingeklappt, und ein Bereich öffnet sich von selbst, wenn Sie auf einer seiner Seiten sind. Die Konfiguration von Warnungen liegt hier, nicht in den **Projekteinstellungen**.
@@ -99,7 +99,7 @@ Sobald eine Warnung erstellt wird, arbeitet OneUptime diese Schritte in dieser R
 3. **Der Feed und Ihre Chat-Werkzeuge erfahren davon.** Ein Eintrag **Warnung erstellt** wird in den **Warnungs-Feed** geschrieben, und die Kanäle, die Ihre Slack- und Microsoft-Teams-Regeln nennen, werden informiert; eine Regel kann einen Kanal für die Warnung anlegen.
 4. **Eigentümer und Beschriftungen kommen hinzu**: die, die die Kriterien des Monitors oder die Anfrage nennen, dann die passender Eigentümer- und Beschriftungsregeln.
 5. **Bereitschaftsregeln fügen ihre Richtlinien hinzu**, dann starten Runbook-Regeln die passenden Runbooks.
-6. **Bereitschaftsrichtlinien laufen.** Jede Richtlinie der Warnung alarmiert ihre Personen gleichzeitig; scheitert eine, hält das die anderen nicht auf.
+6. **Bereitschaftsrichtlinien laufen.** Jede Richtlinie der Warnung alarmiert ihre Personen gleichzeitig; scheitert eine, hält das die anderen nicht auf. Danach meldet die erste passende Vorfallsregel einen Vorfall aus der Warnung, sofort oder sobald ihre Wartezeit um ist.
 7. **Gruppierungsregeln fügen sie einer Episode hinzu**, wenn eine zutrifft. Siehe [Warnungsepisoden & Gruppierungsregeln](/docs/alerts/episodes).
 8. **Erinnerungen werden geplant**, wenn eine Erinnerungsregel zutrifft, und **OneUptime AI** untersucht die Warnung, wenn **Neue Warnungen untersuchen** unter **Warnungen → KI → Einstellungen** eingeschaltet ist, und behebt sie, wenn **Neue Warnungen automatisch beheben** eingeschaltet ist. Siehe [AI SRE](/docs/ai/ai-sre).
 
@@ -110,7 +110,7 @@ Ein Hintergrundjob informiert die Eigentümer der Warnung innerhalb einer Minute
 Eine Warnung, die in einem späteren Status beginnt, hält ein Problem fest, um das sich schon jemand kümmert, und wird deshalb nicht als neuer Notfall behandelt:
 
 - **In Ihrem bestätigten Status oder danach** läuft keine Bereitschaftsrichtlinie. Die Warnung behält ihre Richtlinien, und ihr Feed sagt in einer Zeile, warum niemand alarmiert wurde. Sie kann einer offenen Episode beitreten, öffnet aber nie eine, denn die würde über die Richtlinien der Episode alarmieren.
-- **In Ihrem behobenen Status oder danach** ist die Warnung vorbei: Sie wird keiner Episode zugeordnet, kein Runbook und keine automatische Behebung greift, OneUptime AI untersucht sie nicht, und es wird kein Slack- oder Microsoft-Teams-Kanal für sie angelegt.
+- **In Ihrem behobenen Status oder danach** ist die Warnung vorbei: Sie wird keiner Episode zugeordnet, kein Runbook, keine automatische Behebung und keine Vorfallsregel greift, OneUptime AI untersucht sie nicht, und es wird kein Slack- oder Microsoft-Teams-Kanal für sie angelegt.
 
 Ihre Regeln, ihre Eigentümer, ihr Feed und ihr erster Status passieren in beiden Fällen trotzdem. Für Vorfälle gilt dieselbe Regel: siehe [Bereits bestätigt oder behoben gemeldet](/docs/incidents/declaring-incidents#bereits-bestätigt-oder-behoben-gemeldet).
 

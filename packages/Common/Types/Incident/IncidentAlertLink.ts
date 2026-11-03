@@ -34,6 +34,22 @@ export const INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY: string =
   "acknowledgeAlertsToLink";
 
 /*
+ * An incident an alert incident rule declares from an alert
+ * (AlertIncidentRuleEngineService) names the rule in its one "Declared from
+ * 1 alert" feed entry, and so in the post to its Slack / Microsoft Teams
+ * channels: `miscDataProps[INCIDENT_DECLARED_BY_ALERT_INCIDENT_RULE_KEY]`
+ * is the rule's name, sent along with INCIDENT_ALERT_IDS_TO_LINK_KEY.
+ * Honoured for root callers only - misc data is whatever an API request's
+ * body says, and an API client must not be able to put a rule's name on an
+ * incident it declared itself.
+ */
+export const INCIDENT_DECLARED_BY_ALERT_INCIDENT_RULE_KEY: string =
+  "declaredByAlertIncidentRule";
+
+// How the feeds name an alert incident rule: "Alert Incident Rule executed".
+export const ALERT_INCIDENT_RULE_KIND: string = "Alert Incident Rule";
+
+/*
  * The create-incident page reads the alerts to declare an incident from out of
  * this query string parameter, as a comma separated list of alert ids.
  */
