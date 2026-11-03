@@ -226,7 +226,7 @@ describe("which devices", () => {
       "Add Meraki devices",
     );
     expect(screen.getByTestId("modal-description")).toHaveTextContent(
-      "Adds the devices of Acme Retail that are not network devices here yet, at their management addresses. Meraki fills in their model, serial number and firmware.",
+      "Adds the devices of Acme Retail that are not here yet, at their management addresses. Meraki fills in their model, serial number and firmware.",
     );
     // Security appliances are not listed: none of them can be added.
     expect(kinds()).toEqual([

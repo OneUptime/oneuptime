@@ -56,8 +56,9 @@ export const NOT_ADDED_DEVICES_NOTE: PluralTemplate = {
   other: "{{count}} Meraki devices are not network devices here yet.",
 };
 
+// A dialog's description: at most 150 characters (ShortDescriptionsGuard).
 export const ADD_DEVICES_DESCRIPTION: string = translationKey(
-  "Adds the devices of {{organization}} that are not network devices here yet, at their management addresses. Meraki fills in their model, serial number and firmware.",
+  "Adds the devices of {{organization}} that are not here yet, at their management addresses. Meraki fills in their model, serial number and firmware.",
 );
 
 export const DEVICE_KINDS_LABEL: string = translationKey("Devices to add");
@@ -101,8 +102,9 @@ export const SITES_ON_VALUE: string = translationKey(
 );
 export const PROBE_LABEL: string = translationKey("Probe");
 export const NO_PROBE: string = translationKey("No probe");
+// A field's description: at most 150 characters (ShortDescriptionsGuard).
 export const PROBE_HELP: string = translationKey(
-  "Pings each device, and walks it over SNMP once it has credentials. With no probe, the devices show what Meraki says about them, unless their site has a default probe.",
+  "Pings each device, and walks it over SNMP once it has credentials. With none, a device shows what Meraki says, unless its site has a default probe.",
 );
 
 export const ADD_COUNT_BUTTON: PluralTemplate = {

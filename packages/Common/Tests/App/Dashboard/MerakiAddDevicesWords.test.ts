@@ -387,7 +387,7 @@ describe("every sentence, in every language", () => {
 
     expect(sentence).toContain(isolated("Acme Retail"));
     expect(withoutIsolateMarks(sentence)).toBe(
-      "دستگاه‌هایی از Acme Retail را که هنوز اینجا دستگاه شبکه نیستند، با نشانی مدیریتشان اضافه می‌کند. مدل، شماره سریال و فریم‌ور آن‌ها را Meraki تکمیل می‌کند.",
+      "دستگاه‌هایی از Acme Retail را که هنوز اینجا نیستند، با نشانی مدیریتشان اضافه می‌کند. مدل، شماره سریال و فریم‌ور آن‌ها را Meraki تکمیل می‌کند.",
     );
   });
 
