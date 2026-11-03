@@ -165,6 +165,9 @@ ENV_ARGS=(
   -e "DATABASE_PASSWORD=validate-only"
   -e "DATABASE_TLS_INSECURE=true"
   -e "DATABASE_TLS_INSECURE_SKIP_VERIFY=false"
+  # libpq's sslmode for the PostgreSQL config's SQL checks, as install.sh
+  # works it out from the two switches above.
+  -e "DATABASE_TLS_SSLMODE=disable"
   -e "DATABASE_COLLECTION_INTERVAL=30s"
   -e "DATABASE_QUERY_EVENTS=true"
   # The optional link to an existing database is EMPTY in a default install,

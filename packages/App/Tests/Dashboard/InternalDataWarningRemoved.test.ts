@@ -280,9 +280,18 @@ describe("the 'Internal data' warning stays removed", () => {
       return !isLookedUpAnywhere(text);
     });
 
-    test("today nothing looks up any of the removed strings", () => {
-      expect(unused).toEqual([
-        REMOVED_TITLE,
+    test("today nothing looks up either warning's text", () => {
+      /*
+       * The title came back for another feature, as foreseen above: the
+       * legend of a data store's map (Data Security, StoreDataPaths, #5644)
+       * names its blue arrows "Internal data". So it is only in `unused`
+       * while nothing looks it up; the warnings' texts must always be.
+       */
+      expect(
+        unused.filter((text: string): boolean => {
+          return text !== REMOVED_TITLE;
+        }),
+      ).toEqual([
         REMOVED_NOTE_TEMPLATE_WARNING,
         REMOVED_SUBSCRIBER_TEMPLATE_WARNING,
       ]);

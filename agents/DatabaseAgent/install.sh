@@ -316,7 +316,8 @@ ENV_NAMES="ONEUPTIME_URL ONEUPTIME_TELEMETRY_INGESTION_KEY DATABASE_SYSTEM \
 DATABASE_ENDPOINT DATABASE_ENDPOINT_HOST DATABASE_ENDPOINT_PORT \
 DATABASE_ORACLE_SERVICE DATABASE_SERVER_ADDRESS DATABASE_SERVER_PORT \
 DATABASE_USERNAME DATABASE_PASSWORD DATABASE_TLS_INSECURE \
-DATABASE_TLS_INSECURE_SKIP_VERIFY DATABASE_COLLECTION_INTERVAL \
+DATABASE_TLS_INSECURE_SKIP_VERIFY DATABASE_TLS_SSLMODE \
+DATABASE_COLLECTION_INTERVAL \
 DATABASE_QUERY_EVENTS DATABASE_SERVER_ID \
 ONEUPTIME_AI_INVESTIGATION ONEUPTIME_AI_FIXES \
 ONEUPTIME_AI_ALLOW_WRITES ONEUPTIME_AI_WRITE_TARGETS \
@@ -622,6 +623,30 @@ if ! [[ "$DATABASE_COLLECTION_INTERVAL" =~ ^[0-9]+(ms|s|m|h)$ ]]; then
     echo "Error: DATABASE_COLLECTION_INTERVAL must be a duration such as 30s or 1m (got '$DATABASE_COLLECTION_INTERVAL')."
     exit 1
 fi
+
+# The two TLS switches as libpq's sslmode, for the PostgreSQL config's SQL
+# checks (its sqlquery receiver takes no TLS block): no TLS, TLS without
+# verifying the certificate, or TLS verified against the image's CAs - the
+# same three choices the receiver's own TLS settings make. Always worked out
+# again, so a changed switch in .env carries over on the next run.
+if [ "$DATABASE_TLS_INSECURE" = "false" ]; then
+    if [ "$DATABASE_TLS_INSECURE_SKIP_VERIFY" = "true" ]; then
+        DATABASE_TLS_SSLMODE="require"
+    else
+        DATABASE_TLS_SSLMODE="verify-full"
+    fi
+else
+    DATABASE_TLS_SSLMODE="disable"
+fi
+
+# The SQL checks' receiver builds its connection address from the login and
+# reads a space in the password as a "+": that one receiver cannot log in.
+# Everything else still arrives, so warn rather than refuse.
+if [ "$AGENT_CONFIG" = "postgresql" ] && [[ "$DATABASE_PASSWORD" == *" "* ]]; then
+    echo "Warning: the password contains a space. The engine metrics still arrive, but the agent's"
+    echo "SQL checks (restarts, transaction ID wraparound, long transactions, lock waits) cannot log in."
+    echo "Give the monitoring login a password without a space to get them too."
+fi
 # A private IP, a single-label name, a cluster-local name or a .internal /
 # .local name never registers a database on its own (the same name means a
 # different server in another network), so without DATABASE_SERVER_ID the
@@ -805,6 +830,7 @@ DATABASE_USERNAME=$(compose_env_quote "$(collector_env_escape "$DATABASE_USERNAM
 DATABASE_PASSWORD=$(compose_env_quote "$(collector_env_escape "$DATABASE_PASSWORD")")
 DATABASE_TLS_INSECURE=$DATABASE_TLS_INSECURE
 DATABASE_TLS_INSECURE_SKIP_VERIFY=$DATABASE_TLS_INSECURE_SKIP_VERIFY
+DATABASE_TLS_SSLMODE=$DATABASE_TLS_SSLMODE
 DATABASE_COLLECTION_INTERVAL=$DATABASE_COLLECTION_INTERVAL
 DATABASE_QUERY_EVENTS=$DATABASE_QUERY_EVENTS
 DATABASE_SERVER_ID=$(compose_env_quote "$DATABASE_SERVER_ID")

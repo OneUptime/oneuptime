@@ -116,6 +116,13 @@ import Host from "Common/Models/DatabaseModels/Host";
 import { extractOneuptimeLabelNames } from "Common/Server/Utils/Telemetry/OneuptimeLabel";
 import { HEARTBEAT_MAX_BACKDATE_MS } from "Common/Utils/Telemetry/HeartbeatAvailability";
 import { normalizeHostIpAddresses } from "Common/Utils/Telemetry/HostIpAddresses";
+import DatabaseServerService from "Common/Server/Services/DatabaseServerService";
+import {
+  DatabaseEngineReadingAccumulators,
+  accumulateDatabaseEngineReadings,
+  finishDatabaseEngineReadings,
+  getDatabaseEngineReadingsInstanceFromAttributes,
+} from "Common/Server/Utils/Telemetry/DatabaseEngineReadingsScan";
 import {
   HostReadings,
   hasHostReadings,
@@ -189,6 +196,12 @@ type MetricTimestamp = {
   db: string;
   date: Date;
 };
+
+// By database id, then by reporting agent: a batch's engine readings so far.
+type DatabaseEngineReadingsBuffer = Map<
+  string,
+  Map<string, DatabaseEngineReadingAccumulators>
+>;
 
 /*
  * ------------------------------------------------------------------
@@ -1093,6 +1106,14 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
        * the metric names imply — see flushStorageArraySnapshotBuffers.
        */
       const storageArrayDeclaredSystems: Map<string, string> = new Map();
+      /*
+       * Per database, per reporting agent: this batch's datapoints of the
+       * queries the database's alert templates read
+       * (DatabaseEngineReadingsScan), stored on the database once the rows
+       * have landed (flushDatabaseEngineReadings).
+       */
+      const databaseEngineReadingsBuffer: DatabaseEngineReadingsBuffer =
+        new Map();
       const iotResourceMetricsBuffer: Map<
         string,
         Map<string, IoTDeviceBufferEntry>
@@ -1276,6 +1297,16 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                 declaredStorageSystem,
               );
             }
+          }
+
+          // What a database's engine reports, as its alert templates read it.
+          if (databaseServerId) {
+            this.bufferDatabaseEngineReadings({
+              buffer: databaseEngineReadingsBuffer,
+              databaseServerId: databaseServerId,
+              resourceAttributes: resourceAttributes_raw,
+              scopeMetrics: scopeMetricsForScan,
+            });
           }
 
           /*
@@ -2235,6 +2266,10 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         projectId,
         resourceBuffer: iotResourceMetricsBuffer,
         fleetBuffer: iotFleetSnapshotBuffer,
+      });
+
+      await this.flushDatabaseEngineReadings({
+        buffer: databaseEngineReadingsBuffer,
       });
 
       /*
@@ -4398,6 +4433,78 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
    * never drift. Failures are logged and swallowed: snapshots are
    * best-effort and must never affect ClickHouse ingest.
    */
+  /*
+   * One resource of a database's engine telemetry, read for the queries its
+   * alert templates read (DatabaseEngineReadingsScan) and added to the
+   * database's readings for this batch - per reporting agent, so the
+   * members of a replica set that share one DATABASE_SERVER_ID each keep
+   * their own. A resource that carries none of those metrics adds nothing.
+   */
+  private static bufferDatabaseEngineReadings(data: {
+    buffer: DatabaseEngineReadingsBuffer;
+    databaseServerId: ObjectID;
+    resourceAttributes: JSONArray;
+    scopeMetrics: JSONArray;
+  }): void {
+    const databaseServerId: string = data.databaseServerId.toString();
+    const instance: string = getDatabaseEngineReadingsInstanceFromAttributes(
+      data.resourceAttributes,
+    );
+    const byInstance: Map<string, DatabaseEngineReadingAccumulators> =
+      data.buffer.get(databaseServerId) ||
+      new Map<string, DatabaseEngineReadingAccumulators>();
+    const accumulators: DatabaseEngineReadingAccumulators =
+      byInstance.get(instance) || new Map();
+
+    const read: number = accumulateDatabaseEngineReadings({
+      accumulators: accumulators,
+      scopeMetrics: data.scopeMetrics,
+    });
+
+    if (read === 0) {
+      return;
+    }
+
+    byInstance.set(instance, accumulators);
+    data.buffer.set(databaseServerId, byInstance);
+  }
+
+  /*
+   * Each database's readings of this batch, stored on the database
+   * (DatabaseServerService.recordEngineReadings: at most once a minute per
+   * database and agent, judged by its engine's alert template lines on the
+   * way). Best-effort like the snapshot buffers: readings describe a batch
+   * whose rows already landed, and must never fail it.
+   */
+  private static async flushDatabaseEngineReadings(data: {
+    buffer: DatabaseEngineReadingsBuffer;
+  }): Promise<void> {
+    for (const [databaseServerId, byInstance] of data.buffer) {
+      for (const [instance, accumulators] of byInstance) {
+        const values: Record<string, number> =
+          finishDatabaseEngineReadings(accumulators);
+
+        if (Object.keys(values).length === 0) {
+          continue;
+        }
+
+        try {
+          await DatabaseServerService.recordEngineReadings({
+            databaseServerId: new ObjectID(databaseServerId),
+            instance: instance,
+            values: values,
+          });
+        } catch (error) {
+          logger.warn(
+            `Database engine readings for ${databaseServerId} failed (best-effort): ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+          );
+        }
+      }
+    }
+  }
+
   private static async flushIoTSnapshotBuffers(data: {
     projectId: ObjectID;
     resourceBuffer: Map<string, Map<string, IoTDeviceBufferEntry>>;

@@ -5,7 +5,10 @@ import GlobalUserOverrideAccess, {
   GLOBAL_USER_OVERRIDE_DELETE_REFUSAL,
 } from "Common/Types/OnCallDutyPolicy/GlobalUserOverrideAccess";
 import Permission from "Common/Types/Permission";
-import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
+import PermissionGate, {
+  ModelAction,
+  PermissionGateResult,
+} from "Common/UI/Utils/PermissionGate";
 import User from "Common/UI/Utils/User";
 
 /*
@@ -19,6 +22,10 @@ import User from "Common/UI/Utils/User";
  * otherwise fill in Add User Override and be refused on save. The page
  * locks Add, and each row's Delete, for them instead, saying why and where
  * their overrides go: on each policy's own User Overrides page.
+ *
+ * The shortcuts that add a global override lock the same way, with the same
+ * words (getGlobalUserOverrideShortcutLock): "Skip until..." on a person in
+ * a schedule layer, and "Get cover" on an upcoming shift.
  *
  * React-free, so its tests read the snapshot they hand it.
  */
@@ -71,4 +78,35 @@ export const getGlobalUserOverrideLock: (
   return action === ModelAction.Create
     ? GLOBAL_USER_OVERRIDE_ADD_REFUSAL
     : GLOBAL_USER_OVERRIDE_DELETE_REFUSAL;
+};
+
+/*
+ * Why a shortcut that adds a global override is locked for the reader -
+ * "Skip until..." on a person in a schedule layer, "Get cover" on an
+ * upcoming shift - or null when it is not. Each opens a form that saves an
+ * override naming no policy, so where the save would be refused the
+ * shortcut is locked up front: for a reader who holds no permission to add
+ * overrides at all, with the permission it takes (PermissionGate), and for
+ * one whose permission covers only some policies, with the global page's
+ * reason (getGlobalUserOverrideLock). There is no shortcut to the policies
+ * they do cover: the server alone weighs which policies a permission
+ * limited to labels or to owned policies reaches. Null as well while the
+ * snapshot has not landed: the server decides then, as before.
+ */
+export const getGlobalUserOverrideShortcutLock: (
+  options?: GlobalUserOverrideLockOptions,
+) => string | null = (
+  options?: GlobalUserOverrideLockOptions,
+): string | null => {
+  const gate: PermissionGateResult = PermissionGate.check(
+    new OnCallDutyPolicyUserOverride(),
+    ModelAction.Create,
+    { held: options?.held },
+  );
+
+  if (!gate.isAllowed) {
+    return gate.disabledReason || null;
+  }
+
+  return getGlobalUserOverrideLock(ModelAction.Create, options);
 };

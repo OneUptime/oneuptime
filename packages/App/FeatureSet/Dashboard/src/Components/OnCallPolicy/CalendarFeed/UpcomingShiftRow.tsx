@@ -12,20 +12,28 @@ import {
   getShiftLength,
   isSameShiftDay,
 } from "./UpcomingShiftTime";
+import { getGlobalUserOverrideShortcutLock } from "../UserOverrides/GlobalUserOverrideLock";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap from "../../../Utils/RouteMap";
 import RouteParams from "../../../Utils/RouteParams";
 import Route from "Common/Types/API/Route";
+import { HeldPermissions } from "Common/Types/HeldPermissions";
 import {
   UserOverrideCoverWindow,
   getUserOverrideCoverQueryParams,
 } from "Common/Types/OnCallDutyPolicy/UserOverrideCoverRequest";
+import {
+  getHandDrawnButtonStateClassName,
+  getRestingClassName,
+} from "Common/UI/Components/Button/ButtonStates";
 import { FeedClock } from "Common/UI/Components/Feed/FeedTime";
 import Link from "Common/UI/Components/Link/Link";
+import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import PermissionGate from "Common/UI/Utils/PermissionGate";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, useId } from "react";
 
 /*
  * One stretch on call in the Upcoming shifts list.
@@ -132,6 +140,14 @@ export const UPCOMING_SHIFT_COVER_CLASS_NAME: string =
   "whitespace-nowrap rounded-sm text-sm font-medium leading-6 text-indigo-600 hover:text-indigo-500 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2";
 
 /*
+ * Get cover, locked: the link's look at rest, faded, with the not-allowed
+ * cursor (ButtonStates), as every control that cannot be pressed looks.
+ */
+export const UPCOMING_SHIFT_LOCKED_COVER_CLASS_NAME: string = `${getRestingClassName(
+  UPCOMING_SHIFT_COVER_CLASS_NAME,
+)} ${getHandDrawnButtonStateClassName({ isLocked: true })}`;
+
+/*
  * The dot between two facts. Its spaces are inside it, so a line that has
  * to break can: a separator drawn with margins and no spaces glued the
  * facts on both sides into one unbreakable word, which ran past a 320px
@@ -191,6 +207,7 @@ const UpcomingShiftRow: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  const coverLockedReasonId: string = useId();
   const span: UpcomingShiftSpan = props.span;
   const clock: FeedClock = props.clock;
   const now: Date = clock.now;
@@ -207,11 +224,32 @@ const UpcomingShiftRow: FunctionComponent<ComponentProps> = (
     now,
   );
 
+  const policyId: string | undefined = span.policyVariant?.policyId;
+
   let coverRoute: Route | null = null;
 
-  if (coverWindow) {
-    const policyId: string | undefined = span.policyVariant?.policyId;
+  /*
+   * Cover for any other span is a global override, which takes a permission
+   * to add overrides over the whole project, read from the snapshot of the
+   * span's own project - the list holds every project's shifts. For a
+   * reader whose permission covers only some policies (or who may not add
+   * overrides at all), Get cover stays on the row, locked, and says why
+   * (GlobalUserOverrideLock) instead of opening a form they cannot save.
+   * Before this browser has that project's snapshot, it links as before:
+   * the page it opens says so too.
+   */
+  let coverLockedReason: string | null = null;
 
+  if (coverWindow && !policyId) {
+    const held: HeldPermissions | null =
+      PermissionGate.getHeldPermissionsInProject(span.projectId);
+
+    coverLockedReason = held
+      ? getGlobalUserOverrideShortcutLock({ held: held })
+      : null;
+  }
+
+  if (coverWindow) {
     coverRoute = new Route(
       (
         RouteMap[
@@ -470,7 +508,7 @@ const UpcomingShiftRow: FunctionComponent<ComponentProps> = (
           >
             {lengthText}
           </span>
-          {coverRoute && (
+          {coverRoute && !coverLockedReason && (
             <Link to={coverRoute} className={UPCOMING_SHIFT_COVER_CLASS_NAME}>
               <span>{translator.translateText("Get cover")}</span>
               {/*
@@ -485,6 +523,43 @@ const UpcomingShiftRow: FunctionComponent<ComponentProps> = (
                 {` (${spokenWhen})`}
               </span>
             </Link>
+          )}
+          {coverRoute && coverLockedReason && (
+            <>
+              {/*
+               * Locked, it is a button that goes nowhere: reached with Tab
+               * and named as the link is, it says why on hover, focus or a
+               * press, and a screen reader hears the reason as its
+               * description.
+               */}
+              <Tooltip
+                text={coverLockedReason}
+                isShownOnPress={true}
+                isTriggerAlreadyDescribed={true}
+              >
+                <button
+                  type="button"
+                  className={UPCOMING_SHIFT_LOCKED_COVER_CLASS_NAME}
+                  aria-disabled={true}
+                  aria-describedby={coverLockedReasonId}
+                  data-testid="upcoming-shift-cover-locked"
+                  onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
+                    event.preventDefault();
+                  }}
+                >
+                  <span>{translator.translateText("Get cover")}</span>
+                  <span
+                    className="sr-only"
+                    data-testid="upcoming-shift-cover-context"
+                  >
+                    {` (${spokenWhen})`}
+                  </span>
+                </button>
+              </Tooltip>
+              <span id={coverLockedReasonId} hidden={true}>
+                {translator.translateText(coverLockedReason)}
+              </span>
+            </>
           )}
         </div>
       </div>

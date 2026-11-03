@@ -297,6 +297,10 @@ const DATABASE_SERVER_ROOT_ONLY_COLUMNS: Array<string> = [
   "aiAccessLastVerifiedAt",
   "aiAccessLastError",
   "aiAccessConfiguredAt",
+  // Written by the metrics ingest: each engine template's latest readings and their verdict.
+  "engineReadings",
+  "engineReadingsAt",
+  "engineHealth",
 ];
 
 const PERMISSION_PROPS: Array<PermissionProps> =

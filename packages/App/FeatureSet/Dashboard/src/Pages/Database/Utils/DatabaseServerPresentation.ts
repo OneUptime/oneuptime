@@ -13,6 +13,10 @@ import {
   getDatabaseSystemDisplayName,
   normalizeDatabaseSystem,
 } from "Common/Types/DatabaseServer/DatabaseSystem";
+import {
+  DatabaseEngineMetricsState,
+  getDatabaseEngineMetricsState,
+} from "Common/Types/DatabaseServer/DatabaseHealth";
 
 /*
  * How the Databases pages describe a DatabaseServer row: its engine-metrics
@@ -26,6 +30,25 @@ import {
 export interface DatabaseOption {
   label: string;
   value: string;
+}
+
+/*
+ * Options in the reader's language. The filter chips draw an option's
+ * label exactly as they are given it, and a discovery source or an
+ * engine-metrics status is the product's own word ("Application traces",
+ * "Not connected"), so a German list read them in English. An engine's
+ * name ("PostgreSQL (postgresql)") has no translation and stays as it is.
+ */
+export function translateDatabaseOptions(
+  options: ReadonlyArray<DatabaseOption>,
+  translator: { translateText: (text: string) => string | undefined },
+): Array<DatabaseOption> {
+  return options.map((option: DatabaseOption): DatabaseOption => {
+    return {
+      value: option.value,
+      label: translator.translateText(option.label) || option.label,
+    };
+  });
 }
 
 // ---- engine -----------------------------------------------------------
@@ -108,20 +131,27 @@ function isValidTimestamp(value: Date | string | null | undefined): boolean {
 export function getDatabaseEngineMetricsStatus(
   source: DatabaseEngineMetricsStatusSource | null | undefined,
 ): DatabaseEngineMetricsStatus {
-  const status: string = (source?.otelCollectorStatus || "")
-    .toString()
-    .trim()
-    .toLowerCase();
+  /*
+   * The one rule, shared with a database's health (DatabaseHealth), so the
+   * Engine Metrics chip and filter never disagree with the Status column.
+   */
+  const state: DatabaseEngineMetricsState = getDatabaseEngineMetricsState(
+    source
+      ? {
+          otelCollectorStatus: source.otelCollectorStatus,
+          collectorLastSeenAt: source.collectorLastSeenAt,
+        }
+      : null,
+  );
 
-  if (status === "connected") {
-    return DatabaseEngineMetricsStatus.Connected;
+  switch (state) {
+    case "connected":
+      return DatabaseEngineMetricsStatus.Connected;
+    case "disconnected":
+      return DatabaseEngineMetricsStatus.Disconnected;
+    default:
+      return DatabaseEngineMetricsStatus.NotConnected;
   }
-
-  if (isValidTimestamp(source?.collectorLastSeenAt)) {
-    return DatabaseEngineMetricsStatus.Disconnected;
-  }
-
-  return DatabaseEngineMetricsStatus.NotConnected;
 }
 
 /*
