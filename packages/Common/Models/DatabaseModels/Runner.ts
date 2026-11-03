@@ -531,6 +531,45 @@ export default class Runner extends BaseModel {
   public canRunAiCommands?: boolean = undefined;
 
   /*
+   * Whether the Runner takes OneUptime AI's code fixes, as it said on its
+   * last heartbeat: false while its host turns them off
+   * (ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false), and for the in-cluster
+   * Runner the Kubernetes agent chart installed, which never runs them.
+   * Empty for a Runner of a release that does not say: OneUptime then goes
+   * by its release (Types/Runner/RunnerCodeFixes, the one reader of this
+   * column), so a repository is never told a Runner is there to take its
+   * fixes when it is not. Written by the heartbeat alone (RunnerIngress), never
+   * by anyone in a project: the server's grant (the heartbeat's capability)
+   * is the switch; this is what the Runner's own side does with it.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.RunbookAdmin,
+      Permission.RunbookMember,
+      Permission.RunbookViewer,
+      Permission.ReadRunner,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Boolean,
+    title: "Takes AI Code Fixes",
+    description:
+      "Whether this Runner takes OneUptime AI's code fixes, as it said on its last heartbeat. Empty for a Runner of a release that does not say.",
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: true,
+  })
+  public takesCodeFixes?: boolean = undefined;
+
+  /*
    * A global Runner: one the OneUptime server runs for every project, with
    * no project of its own (projectId is empty). A master admin creates it
    * under Admin Dashboard -> Settings -> Global Runners and starts the

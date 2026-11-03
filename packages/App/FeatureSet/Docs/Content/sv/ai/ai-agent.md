@@ -327,7 +327,7 @@ En körning vars heartbeat har varit tyst i mer än 12 minuter avslutas med ett 
 :::
 
 :::details Ingen Runner plockar upp uppgiften
-En uppgift som väntar mer än 30 minuter medan den Runner som ska ta den inte är ansluten - den som dess repository väljer, projektets standard-Runner för ett repository som inte väljer någon, eller en global Runner - fallerar, med ett meddelande som säger vilken, så att den aldrig visas som pågående för alltid. När en Runner är online men upptagen väntar köade uppgifter på sin tur. En Runner som är äldre än Kod får aldrig en begäran från Kod: uppdatera en Runner som du kör själv tillsammans med servern.
+En uppgift som väntar mer än 30 minuter medan den Runner som ska ta den inte är ansluten - den som dess repository väljer, projektets standard-Runner för ett repository som inte väljer någon, eller en global Runner - fallerar, med ett meddelande som säger vilken, så att den aldrig visas som pågående för alltid. En Runner som inte tar kodkorrigeringar räknas som inte ansluten: en som startats med `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false`, eller en global Runner som är äldre än 14.0.94. Kod säger det innan du ber om en uppgift. När en Runner är online men upptagen väntar köade uppgifter på sin tur. En Runner som är äldre än Kod får aldrig en begäran från Kod: uppdatera en Runner som du kör själv tillsammans med servern.
 :::
 
 ## Integritet

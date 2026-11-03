@@ -40373,5 +40373,16 @@
   "What people do most with the {{singular}} \"{{name}}\" from the command line, filled in with this project's own records.": "What people do most with the {{singular}} \"{{name}}\" from the command line, filled in with this project's own records.",
   "What people do most with this {{singular}} from the command line, filled in with this project's own records.": "What people do most with this {{singular}} from the command line, filled in with this project's own records.",
   "npm": "npm",
-  "CLI documentation": "CLI-dokumentation"
+  "CLI documentation": "CLI-dokumentation",
+  "No global Runner on this server takes AI code fixes: pick one of your Runners for this repository.": "Ingen global Runner på denne server tager AI-koderettelser: vælg en af dine Runnere til dette repositorium.",
+  "No global Runner online takes AI code fixes, so none can work in this repository. Pick one of your Runners for it, or ask your OneUptime administrator to let a global Runner take them.": "Ingen global Runner, der er online, tager AI-koderettelser, så ingen kan arbejde i dette repositorium. Vælg en af dine Runnere til det, eller bed din OneUptime-administrator om at lade en global Runner tage dem.",
+  "None: no global Runner takes AI code fixes": "Ingen: ingen global Runner tager AI-koderettelser",
+  "Runners OneUptime runs for every project. By default they run JavaScript steps, in an internet-only sandbox, and AI code fixes.": "Runnere, som OneUptime kører for alle projekter. Som standard kører de JavaScript-trin i en sandkasse, der kun når internettet, og AI-koderettelser.",
+  "Runners OneUptime runs for every project. JavaScript steps and AI code fixes run on them when you pick Global Runner.": "Runnere, som OneUptime kører for alle projekter. JavaScript-trin og AI-koderettelser kører på dem, når du vælger Global Runner.",
+  "Takes AI Code Fixes": "Tager AI-koderettelser",
+  "Takes no AI code fixes: its host turned them off.": "Tager ikke AI-koderettelser: dens vært har slået dem fra.",
+  "The Runner this repository works on does not take AI code fixes: {{setting}} is set on its host. Remove that setting and restart the Runner, or pick another Runner.": "Den Runner, dette repositorium arbejder på, tager ikke AI-koderettelser: {{setting}} er sat på dens vært. Fjern den indstilling, og genstart Runneren, eller vælg en anden Runner.",
+  "The Runner this repository works on, {{runner}}, does not take AI code fixes: {{setting}} is set on its host. Remove that setting and restart the Runner, or pick another Runner.": "Den Runner, dette repositorium arbejder på, {{runner}}, tager ikke AI-koderettelser: {{setting}} er sat på dens vært. Fjern den indstilling, og genstart Runneren, eller vælg en anden Runner.",
+  "This Runner takes no AI code fixes: {{setting}} is set on its host. Remove that setting and restart the Runner, or pick another Runner.": "Denne Runner tager ikke AI-koderettelser: {{setting}} er sat på dens vært. Fjern den indstilling, og genstart Runneren, eller vælg en anden Runner.",
+  "Takes no AI code fixes": "Tager ikke AI-koderettelser"
 }

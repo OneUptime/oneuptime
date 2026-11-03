@@ -1,5 +1,6 @@
 import {
   CODE_TASK_ADD_AI_CREDITS,
+  CODE_TASK_BLOCKERS_NAMING_THE_SETTING,
   CODE_TASK_BLOCKER_FIXES,
   CODE_TASK_BLOCKER_SENTENCES,
   CODE_TASK_BLOCKER_WHO_CAN_FIX,
@@ -7,6 +8,7 @@ import {
   CODE_TASK_REPOSITORY_CONNECTION_GONE,
   CODE_TASK_REPOSITORY_SETTINGS_FIXES,
   CODE_TASK_RUNNER_NOT_ONLINE_NAMED,
+  CODE_TASK_RUNNER_TAKES_NO_CODE_FIXES_NAMED,
   CodeTaskBlockerFix,
 } from "./CodeTaskCopy";
 import { CodeHost } from "Common/Types/CodeRepository/CodeHost";
@@ -28,6 +30,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Permission from "Common/Types/Permission";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
+import RunnerCodeFixesOffSetting from "Common/UI/Components/Runner/RunnerCodeFixesOffSetting";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import PermissionGate, {
   ModelAction,
@@ -179,6 +182,8 @@ export const getBlockerFixAccess: (
     case CodeTaskBlockerType.NoAgent:
     case CodeTaskBlockerType.RunnerNotOnline:
     case CodeTaskBlockerType.GlobalRunnersOff:
+    case CodeTaskBlockerType.GlobalRunnersTakeNoCodeFixes:
+    case CodeTaskBlockerType.RunnerTakesNoCodeFixes:
     case CodeTaskBlockerType.RepositoryNeedsOwnRunner:
       return toAccess(
         PermissionGate.check(new CodeRepository(), ModelAction.Update),
@@ -227,6 +232,27 @@ const CodeBlockerNotice: FunctionComponent<ComponentProps> = (
   const isPermission: boolean =
     props.blocker.type === CodeTaskBlockerType.NoPermission;
   const sentence: string | undefined = copy.sentence;
+  /*
+   * A blocker about the one Runner the repository works on, when the server
+   * names it: its sentence with the Runner's name in bold.
+   */
+  const namedRunnerTemplate: string | undefined = props.blocker.runnerName
+    ? props.blocker.type === CodeTaskBlockerType.RunnerNotOnline
+      ? CODE_TASK_RUNNER_NOT_ONLINE_NAMED
+      : props.blocker.type === CodeTaskBlockerType.RunnerTakesNoCodeFixes
+        ? CODE_TASK_RUNNER_TAKES_NO_CODE_FIXES_NAMED
+        : undefined
+    : undefined;
+  /*
+   * A sentence that names the setting turning a Runner's AI code fixes off
+   * has it as a value, drawn as code that breaks only after its underscores
+   * - never at the letter that fills a phone's line - and that no
+   * translation changes.
+   */
+  const namesTheSetting: boolean =
+    CODE_TASK_BLOCKERS_NAMING_THE_SETTING.includes(props.blocker.type);
+  const template: string | undefined =
+    namedRunnerTemplate || (namesTheSetting ? sentence : undefined);
   /*
    * GitHub connected from here, rather than on Repositories - only for a
    * repository on GitHub.
@@ -317,20 +343,27 @@ const CodeBlockerNotice: FunctionComponent<ComponentProps> = (
         }`}
       />
       <div className="min-w-0 flex-1">
-        <p className="leading-6">
-          {props.blocker.type === CodeTaskBlockerType.RunnerNotOnline &&
-          props.blocker.runnerName ? (
+        {/* A Runner's long name wraps inside the notice, never past its edge. */}
+        <p className="leading-6 break-words">
+          {template ? (
             <TranslatedSentence
-              template={CODE_TASK_RUNNER_NOT_ONLINE_NAMED}
+              template={template}
               slots={{
-                runner: (
-                  <span
-                    className="break-words font-semibold"
-                    data-testid="code-blocker-runner"
-                  >
-                    {props.blocker.runnerName}
-                  </span>
-                ),
+                ...(namedRunnerTemplate
+                  ? {
+                      runner: (
+                        <span
+                          className="break-words font-semibold"
+                          data-testid="code-blocker-runner"
+                        >
+                          {props.blocker.runnerName}
+                        </span>
+                      ),
+                    }
+                  : {}),
+                ...(namesTheSetting
+                  ? { setting: <RunnerCodeFixesOffSetting /> }
+                  : {}),
               }}
             />
           ) : sentence ? (

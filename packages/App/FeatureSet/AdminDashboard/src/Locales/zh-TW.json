@@ -1617,5 +1617,7 @@
   "No valid Enterprise license: session lengths become read-only when the trial or grace period ends.": "沒有有效的 Enterprise 授權：試用期或寬限期結束後，工作階段長度將變為唯讀。",
   "The lengths already set still sign people out, and you can still remove them. Activate or renew the Enterprise license in the Admin Dashboard to change this again.": "已設定的時間仍會讓使用者登出，您仍可以將其移除。若要再次變更，請在管理儀表板中啟用或續訂 Enterprise 授權。",
   "The lengths already set still sign people out, and you can still remove them. Activate a license that includes it in the Admin Dashboard to change this again.": "已設定的時間仍會讓使用者登出，您仍可以將其移除。若要再次變更，請在管理儀表板中啟用包含此功能的授權。",
-  "Everything here can be changed during the 14-day trial of an installation with no license, or the 30-day grace period after a license expires. When it ends: The lengths already set still sign people out, and you can still remove them.": "在沒有授權的安裝的 14 天試用期內，或授權到期後的 30 天寬限期內，這裡的所有設定都可以變更。結束後：已設定的時間仍會讓使用者登出，您仍可以將其移除。"
+  "Everything here can be changed during the 14-day trial of an installation with no license, or the 30-day grace period after a license expires. When it ends: The lengths already set still sign people out, and you can still remove them.": "在沒有授權的安裝的 14 天試用期內，或授權到期後的 30 天寬限期內，這裡的所有設定都可以變更。結束後：已設定的時間仍會讓使用者登出，您仍可以將其移除。",
+  "Takes no AI code fixes: update it to this server's version.": "不接受 AI 程式碼修正：請將其更新至此伺服器的版本。",
+  "Takes no AI code fixes: remove {{setting}} from its host and restart it.": "不接受 AI 程式碼修正：請從它的主機上移除 {{setting}} 並重新啟動它。"
 }

@@ -164,6 +164,8 @@ const KINDS_NEEDING_SETUP_GUIDE: Array<string> = [
 const NOT_DRAWN: Record<string, string> = {
   "packages/App/FeatureSet/Dashboard/src/Components/SessionReplay/RumInstrumentation.ts":
     "Reads the SDK version only to tell whether the RUM SDK ever reported; it draws nothing.",
+  "packages/App/FeatureSet/AdminDashboard/src/Pages/Settings/GlobalRunners/Index.tsx":
+    "Reads a global Runner's release only to tell whether it takes AI code fixes (Common/Types/Runner/RunnerCodeFixes); it draws why it takes none, not the version.",
 };
 
 const AGENT_KIND_SOURCE: string = fs.readFileSync(

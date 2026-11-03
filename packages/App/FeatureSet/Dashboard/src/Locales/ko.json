@@ -40373,5 +40373,16 @@
   "What people do most with the {{singular}} \"{{name}}\" from the command line, filled in with this project's own records.": "What people do most with the {{singular}} \"{{name}}\" from the command line, filled in with this project's own records.",
   "What people do most with this {{singular}} from the command line, filled in with this project's own records.": "What people do most with this {{singular}} from the command line, filled in with this project's own records.",
   "npm": "npm",
-  "CLI documentation": "CLI 문서"
+  "CLI documentation": "CLI 문서",
+  "No global Runner on this server takes AI code fixes: pick one of your Runners for this repository.": "이 서버의 글로벌 Runner 중 AI 코드 수정을 받는 Runner가 없습니다. 이 저장소에 사용할 내 Runner를 하나 선택하세요.",
+  "No global Runner online takes AI code fixes, so none can work in this repository. Pick one of your Runners for it, or ask your OneUptime administrator to let a global Runner take them.": "온라인 상태인 글로벌 Runner 중 AI 코드 수정을 받는 Runner가 없어, 이 저장소에서 작업할 수 있는 Runner가 없습니다. 이 저장소에 내 Runner 중 하나를 선택하거나, 글로벌 Runner가 AI 코드 수정을 받도록 OneUptime 관리자에게 요청하세요.",
+  "None: no global Runner takes AI code fixes": "없음: AI 코드 수정을 받는 글로벌 Runner가 없습니다",
+  "Runners OneUptime runs for every project. By default they run JavaScript steps, in an internet-only sandbox, and AI code fixes.": "OneUptime이 모든 프로젝트를 위해 실행하는 Runner입니다. 기본적으로 JavaScript 단계를 인터넷에만 닿는 샌드박스에서 실행하고, AI 코드 수정도 맡습니다.",
+  "Runners OneUptime runs for every project. JavaScript steps and AI code fixes run on them when you pick Global Runner.": "OneUptime이 모든 프로젝트를 위해 실행하는 Runner입니다. 글로벌 Runner를 선택하면 JavaScript 단계와 AI 코드 수정이 여기에서 실행됩니다.",
+  "Takes AI Code Fixes": "AI 코드 수정 받기",
+  "Takes no AI code fixes: its host turned them off.": "AI 코드 수정을 받지 않습니다. 호스트에서 꺼져 있습니다.",
+  "The Runner this repository works on does not take AI code fixes: {{setting}} is set on its host. Remove that setting and restart the Runner, or pick another Runner.": "이 저장소가 사용하는 Runner는 AI 코드 수정을 받지 않습니다. 호스트에 {{setting}}가 설정되어 있습니다. 이 설정을 제거하고 Runner를 다시 시작하거나 다른 Runner를 선택하세요.",
+  "The Runner this repository works on, {{runner}}, does not take AI code fixes: {{setting}} is set on its host. Remove that setting and restart the Runner, or pick another Runner.": "이 저장소가 사용하는 Runner({{runner}})는 AI 코드 수정을 받지 않습니다. 호스트에 {{setting}}가 설정되어 있습니다. 이 설정을 제거하고 Runner를 다시 시작하거나 다른 Runner를 선택하세요.",
+  "This Runner takes no AI code fixes: {{setting}} is set on its host. Remove that setting and restart the Runner, or pick another Runner.": "이 Runner는 AI 코드 수정을 받지 않습니다. 호스트에 {{setting}}가 설정되어 있습니다. 이 설정을 제거하고 Runner를 다시 시작하거나 다른 Runner를 선택하세요.",
+  "Takes no AI code fixes": "AI 코드 수정을 받지 않습니다"
 }
