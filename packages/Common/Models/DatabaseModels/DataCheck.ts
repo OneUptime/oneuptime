@@ -584,6 +584,22 @@ export default class DataCheck extends BaseModel {
   })
   public nextRunAt?: Date = undefined;
 
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.LongText,
+    required: false,
+    computed: true,
+    title: "External ID",
+    description:
+      "For a dbt test, the test's unique id in the dbt project, which each upload of its artifacts is matched by.",
+  })
+  @Column({
+    type: ColumnType.LongText,
+    nullable: true,
+    length: ColumnLength.LongText,
+  })
+  public externalId?: string = undefined;
+
   @ColumnAccessControl(createOnlyColumnAccess)
   @TableColumn({
     manyToOneRelationColumn: "createdByUserId",

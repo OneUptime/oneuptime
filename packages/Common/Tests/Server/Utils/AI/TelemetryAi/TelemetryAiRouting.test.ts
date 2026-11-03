@@ -819,7 +819,7 @@ describe("TelemetryAiRouting.sweepLane - the Metric lane", () => {
     expect(findProblems).not.toHaveBeenCalled();
   });
 
-  test("reads Metrics' three kinds of finding, and starts Metrics' own fix", async () => {
+  test("reads Metrics' four kinds of finding, and starts Metrics' own fix", async () => {
     const result: TelemetryAiSweepResult = await sweep();
 
     const query: JSONObject = (
@@ -830,6 +830,7 @@ describe("TelemetryAiRouting.sweepLane - the Metric lane", () => {
       AIInsightType.MetricHighCardinality,
       AIInsightType.MetricHistogramBuckets,
       AIInsightType.MetricMissingMetrics,
+      AIInsightType.MetricMissingRequestMetrics,
     ]) {
       expect(JSON.stringify(query["insightType"])).toContain(type);
     }
@@ -853,14 +854,17 @@ describe("TelemetryAiRouting.sweepLane - the Metric lane", () => {
       metricProblem(),
       metricProblem({ insightType: AIInsightType.MetricHistogramBuckets }),
       metricProblem({ insightType: AIInsightType.MetricMissingMetrics }),
+      metricProblem({
+        insightType: AIInsightType.MetricMissingRequestMetrics,
+      }),
     ];
 
     const result: TelemetryAiSweepResult = await sweep();
 
-    expect(triage).toHaveBeenCalledTimes(3);
-    expect(startMetricFix).toHaveBeenCalledTimes(3);
-    expect(result.investigationsStarted).toBe(3);
-    expect(result.fixesStarted).toBe(3);
+    expect(triage).toHaveBeenCalledTimes(4);
+    expect(startMetricFix).toHaveBeenCalledTimes(4);
+    expect(result.investigationsStarted).toBe(4);
+    expect(result.fixesStarted).toBe(4);
     expect(result.waitingForVerdict).toBe(0);
   });
 

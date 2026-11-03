@@ -227,6 +227,9 @@ const VERDICT_BUCKETS_TO_CHANGE: string = translationKey(
 const VERDICT_METRICS_TO_ADD: string = translationKey(
   "Found metrics the code should add",
 );
+const VERDICT_REQUEST_METRICS_TO_ADD: string = translationKey(
+  "Found request metrics the code should add",
+);
 
 /*
  * An error's verdicts: a fault of the code, an expected error (invalid
@@ -645,28 +648,30 @@ export const TELEMETRY_AI_LANE_COPY: Readonly<
   },
   /*
    * Metrics: metrics that record too many values, histograms whose buckets
-   * do not fit, and busy services that send no metrics at all
-   * (Common/Utils/Metrics/MetricInsight) - "problems in your metrics" where
-   * all three are meant. The switch is named for what the maintainer asked
-   * for: improve metrics, and add the ones that do not exist yet. No fix
-   * waits for a verdict, but a fix may find nothing to change, so no line
-   * promises a pull request for every problem.
+   * do not fit, and busy services that send no metrics for their requests -
+   * none at all, or only other metrics (Common/Utils/Metrics/MetricInsight)
+   * - "problems in your metrics" where all four are meant. The intro and
+   * the empty state say the last two as one: a service with no metrics at
+   * all sends none for its requests either. The switch is named for what
+   * the maintainer asked for: improve metrics, and add the ones that do not
+   * exist yet. No fix waits for a verdict, but a fix may find nothing to
+   * change, so no line promises a pull request for every problem.
    */
   [TelemetryAiLane.Metric]: {
     noticeContext: ProjectAiNoticeContext.Metrics,
     ruleCriteriaSubject: RuleCriteriaSubject.Services,
 
     /*
-     * The three kinds side by side, one sentence each part: "for ones that
-     * record too many values ..., and for busy services that send none, and
-     * files ..." read as one run-on list of and-clauses.
+     * The kinds side by side, one sentence each part: "for ones that record
+     * too many values ..., and for busy services that send none, and files
+     * ..." read as one run-on list of and-clauses.
      */
     insightsIntro: translationKey(
-      "Every hour OneUptime looks for metrics that record too many values, histograms whose buckets do not fit, and busy services that send no metrics. It files what it finds here with the evidence. OneUptime AI looks into each finding and opens a pull request to fix it, as your AI settings say.",
+      "Every hour OneUptime looks for metrics that record too many values, histograms whose buckets do not fit, and busy services that send no metrics for their requests. It files what it finds here with the evidence. OneUptime AI looks into each finding and opens a pull request to fix it, as your AI settings say.",
     ),
     insightsEmptyTitle: translationKey("No metric problems found"),
     insightsEmptyDescription: translationKey(
-      "Every hour OneUptime files a finding when a metric records too many values, a histogram's buckets do not fit, or a busy service sends no metrics.",
+      "Every hour OneUptime files a finding when a metric records too many values, a histogram's buckets do not fit, or a service's requests have no metrics.",
     ),
     insightsOffEmptyTitle: translationKey(
       "OneUptime is not looking for metric problems",
@@ -700,6 +705,9 @@ export const TELEMETRY_AI_LANE_COPY: Readonly<
       ),
       [AIInsightType.MetricMissingMetrics]: getChangeVerdicts(
         VERDICT_METRICS_TO_ADD,
+      ),
+      [AIInsightType.MetricMissingRequestMetrics]: getChangeVerdicts(
+        VERDICT_REQUEST_METRICS_TO_ADD,
       ),
     },
 

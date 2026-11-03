@@ -288,6 +288,8 @@ describe("the gates", () => {
       [MetricInsightKind.HistogramBuckets]:
         AIInsightType.MetricHistogramBuckets,
       [MetricInsightKind.MissingMetrics]: AIInsightType.MetricMissingMetrics,
+      [MetricInsightKind.MissingRequestMetrics]:
+        AIInsightType.MetricMissingRequestMetrics,
     });
     expect(isMetricInsightKind("HighCardinality")).toBe(true);
     expect(isMetricInsightKind("highcardinality")).toBe(false);
