@@ -58,6 +58,7 @@ import {
   describeNewRecordForPerson,
   describeSeverityNotFound,
   describeStartForModel,
+  getDescribedNewRecordArguments,
   getInitialStateArgumentSchema,
   getInvalidStartMessage,
   INITIAL_STATE_ARGUMENT_NAME,
@@ -380,8 +381,13 @@ export const CreateAlertTool: ObservabilityTool = {
       ctx,
     });
 
+    const preparedArguments: JSONObject = severityName
+      ? { ...prepared, severityName }
+      : prepared;
+
     return {
-      arguments: severityName ? { ...prepared, severityName } : prepared,
+      arguments: preparedArguments,
+      describedArguments: getDescribedNewRecordArguments(preparedArguments),
       description: describeAlertForPerson({
         severityName,
         start: readRequestedStart(prepared).start,

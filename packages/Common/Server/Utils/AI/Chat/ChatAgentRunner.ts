@@ -175,7 +175,7 @@ export interface ResumeToolDecision {
  */
 type PreparedActionWords = Pick<
   PreparedMutation,
-  "title" | "description" | "namedArguments"
+  "title" | "description" | "namedArguments" | "describedArguments"
 >;
 
 /*
@@ -1479,6 +1479,12 @@ export default class ChatAgentRunner {
         prepared.namedArguments.length > 0
           ? { namedArguments: prepared.namedArguments }
           : {}),
+        ...(prepared.description &&
+        prepared.description.length > 0 &&
+        prepared.describedArguments &&
+        prepared.describedArguments.length > 0
+          ? { describedArguments: prepared.describedArguments }
+          : {}),
       };
     } catch (error) {
       logger.error(
@@ -1532,6 +1538,11 @@ export default class ChatAgentRunner {
             : {}),
           ...(words?.title && words.namedArguments
             ? { namedArguments: words.namedArguments }
+            : {}),
+          ...(descriptionSentences.length > 0 &&
+          words?.describedArguments &&
+          words.describedArguments.length > 0
+            ? { describedArguments: words.describedArguments }
             : {}),
         }
       : undefined;

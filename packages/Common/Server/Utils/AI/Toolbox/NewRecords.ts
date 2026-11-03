@@ -180,6 +180,25 @@ export function pickStartState<T>(data: {
       });
 }
 
+/*
+ * The prepared arguments the approval card's line says in words - the
+ * severity it takes ("Severity: High."), and where it starts - which its
+ * argument line then leaves out (PreparedMutation.describedArguments).
+ */
+export function getDescribedNewRecordArguments(
+  prepared: JSONObject,
+): Array<string> {
+  return [
+    ...(typeof prepared["severityName"] === "string" &&
+    prepared["severityName"].trim()
+      ? ["severityName"]
+      : []),
+    ...(readRequestedStart(prepared).start
+      ? [INITIAL_STATE_ARGUMENT_NAME]
+      : []),
+  ];
+}
+
 // The approval card's sentence about where it starts; none for a new record.
 export function describeStartForPerson(
   start: NewRecordStart | null,

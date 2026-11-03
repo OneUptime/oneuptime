@@ -94,6 +94,12 @@ export interface AIActionWords {
    * "INC-42" - so the card's line of arguments need not repeat their IDs.
    */
   namedArguments?: Array<string> | undefined;
+  /*
+   * The arguments the line under the title says in words - the severity
+   * a new incident takes ("Severity: High."), where it starts - so the
+   * card's line of arguments need not say them again.
+   */
+  describedArguments?: Array<string> | undefined;
 }
 
 /*
@@ -637,7 +643,19 @@ export function isKnownAIActionWords(value: unknown): value is AIActionWords {
   }
 
   const description: unknown = value["description"];
-  const namedArguments: unknown = value["namedArguments"];
+
+  const isNameList: (names: unknown) => boolean = (
+    names: unknown,
+  ): boolean => {
+    return (
+      names === undefined ||
+      (Array.isArray(names) &&
+        names.length <= MAX_SENTENCE_VALUES &&
+        names.every((name: unknown): boolean => {
+          return typeof name === "string";
+        }))
+    );
+  };
 
   return (
     (description === undefined ||
@@ -646,12 +664,8 @@ export function isKnownAIActionWords(value: unknown): value is AIActionWords {
         description.every((sentence: unknown): boolean => {
           return isKnownAIActionSentence(sentence);
         }))) &&
-    (namedArguments === undefined ||
-      (Array.isArray(namedArguments) &&
-        namedArguments.length <= MAX_SENTENCE_VALUES &&
-        namedArguments.every((name: unknown): boolean => {
-          return typeof name === "string";
-        })))
+    isNameList(value["namedArguments"]) &&
+    isNameList(value["describedArguments"])
   );
 }
 
