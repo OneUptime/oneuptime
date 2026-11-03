@@ -43,6 +43,7 @@ import path from "path";
 import {
   NETWORK_CONTROLLER_CONNECTION_PATH,
   NETWORK_TRAFFIC_USAGE_SUMMARY_PATH,
+  addNetworkControllerDevices,
   fetchNetworkTrafficUsage,
   parseNetworkTrafficUsageSummary,
   readNetworkControllerConnectionNow,
@@ -56,6 +57,7 @@ import {
   MERAKI_CONNECTIONS_ANCHOR,
   MERAKI_URL_PARAMS,
   TrafficSide,
+  getMerakiConnectionsRoute,
   getMerakiFilterChips,
   isMerakiApplianceUplinkActive,
   pickTrafficSide,
@@ -135,6 +137,8 @@ import { formatTrafficProtocolPort } from "../../FeatureSet/Dashboard/src/Compon
 import { Gray500, Green, Red, Yellow } from "Common/Types/BrandColors";
 import NetworkControllerConnection from "Common/Models/DatabaseModels/NetworkControllerConnection";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import Route from "Common/Types/API/Route";
+import { NetworkControllerDeviceAddState } from "Common/Types/NetworkController/NetworkControllerDeviceAdd";
 import { JSONObject } from "Common/Types/JSON";
 import { LlmConnectionFailureKind } from "Common/Types/LlmObservability/LlmConnectionTest";
 import {
@@ -226,6 +230,30 @@ describe("which side a page opens on", () => {
       );
     },
   );
+});
+
+describe("a link to the connections from another page", () => {
+  test("the network's Traffic page, on its Meraki side, at the connections card", () => {
+    expect(
+      getMerakiConnectionsRoute(
+        new Route(
+          "/dashboard/10000000-0000-4000-8000-000000000001/network-devices/traffic",
+        ),
+      ).toString(),
+    ).toBe(
+      `/dashboard/10000000-0000-4000-8000-000000000001/network-devices/traffic?source=meraki#${MERAKI_CONNECTIONS_ANCHOR}`,
+    );
+  });
+
+  test("a route with a query keeps it, and one with a place of its own is sent to the connections instead", () => {
+    expect(
+      getMerakiConnectionsRoute(
+        new Route("/dashboard/p/network-devices/traffic?range=1h#top"),
+      ).toString(),
+    ).toBe(
+      `/dashboard/p/network-devices/traffic?range=1h&source=meraki#${MERAKI_CONNECTIONS_ANCHOR}`,
+    );
+  });
 });
 
 describe("what the URL keeps", () => {
@@ -1621,6 +1649,75 @@ describe("the calls", () => {
     ).toBe(
       `https://oneuptime.example.com/api${NETWORK_CONTROLLER_CONNECTION_PATH}/test`,
     );
+  });
+
+  test("Add devices posts the kinds, the sites and the probe to the connection's own path, and reads back the ask", async () => {
+    postMock.mockResolvedValueOnce({
+      data: {
+        lastDeviceAdd: {
+          status: "queued",
+          request: { productTypes: ["switch"], groupBySite: true },
+          requestedAt: "2026-11-03T10:00:00.000Z",
+          requestedByUserId: "33333333-3333-4333-8333-333333333333",
+        },
+      },
+    });
+    const id: ObjectID = new ObjectID(DEVICE_ID);
+
+    const state: NetworkControllerDeviceAddState | undefined =
+      await addNetworkControllerDevices(id, {
+        productTypes: ["switch", "wireless"],
+        groupBySite: false,
+        probeId: "44444444-4444-4444-8444-444444444444",
+      });
+
+    const request: { url: { toString: () => string }; data: JSONObject } =
+      postMock.mock.calls[postMock.mock.calls.length - 1]![0];
+    expect(request.url.toString()).toBe(
+      `https://oneuptime.example.com/api${NETWORK_CONTROLLER_CONNECTION_PATH}/${DEVICE_ID}/add-devices`,
+    );
+    expect(request.data).toEqual({
+      productTypes: ["switch", "wireless"],
+      groupBySite: false,
+      probeId: "44444444-4444-4444-8444-444444444444",
+    });
+    expect(state?.status).toBe("queued");
+    expect(state?.requestedAt).toBe("2026-11-03T10:00:00.000Z");
+  });
+
+  test("Add devices with no probe sends none; an answer it cannot read is none", async () => {
+    postMock.mockResolvedValueOnce({ data: { queued: true } });
+
+    const state: NetworkControllerDeviceAddState | undefined =
+      await addNetworkControllerDevices(new ObjectID(DEVICE_ID), {
+        productTypes: ["camera"],
+        groupBySite: true,
+      });
+
+    expect(
+      postMock.mock.calls[postMock.mock.calls.length - 1]![0].data,
+    ).toEqual({ productTypes: ["camera"], groupBySite: true });
+    expect(state).toBeUndefined();
+  });
+
+  test("an Add devices the server refused is thrown, for the dialog to say", async () => {
+    postMock.mockResolvedValueOnce(
+      new HTTPErrorResponse(
+        400,
+        {
+          message:
+            "This connection is turned off. Turn it on to add its devices.",
+        },
+        {},
+      ),
+    );
+
+    await expect(
+      addNetworkControllerDevices(new ObjectID(DEVICE_ID), {
+        productTypes: ["switch"],
+        groupBySite: true,
+      }),
+    ).rejects.toBeInstanceOf(HTTPErrorResponse);
   });
 
   test("Read now posts to the connection's own path", async () => {

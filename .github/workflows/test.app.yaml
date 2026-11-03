@@ -330,10 +330,13 @@ jobs:
           # seconds locally, the suite 1.6 minutes with its bundle): about 21.
           # SNMP Walk (1.9 minutes on both of the last two runs) moved to the
           # new group 17 on 2026-11-03: about 22.5.
+          # Trace Detail (2.5) joined it from group 3 the same day, when
+          # Meraki Traffic grew there: about 20.2.
           - group: 1
             event_overview_shard: 1/2
             suites: >-
               test-event-overview-ui
+              test-trace-detail-ui
           # The Alerts suite also runs in Firefox, and so do Code Editor (the
           # editor's text layers must line up in both) and Diagrams. Diagrams
           # and Navigation Search (about 8 minutes together) moved here from
@@ -467,12 +470,18 @@ jobs:
           # on 2026-11-03, when the last two runs (master's of 2026-11-02
           # 23:47 and 14.0.102's first gate run) took this group 23.9 and
           # 24.8: about 21.5.
+          # Meraki Traffic grew to about 4.8 the same day with #5392's Add
+          # Meraki devices tests (the row's offer, the dialog and its ask, the
+          # row following the worker job, what went wrong, a refused key, a
+          # member, German, dark: about 1.4 minutes locally), which would have
+          # taken this group to 22.7; group 17, where it was going, took Ceph
+          # Pages and Storage Array Pages (19.9) first, so Trace Detail (2.5)
+          # moved to group 1 instead: about 20.2.
           - group: 3
             monitor_overview_shard: 1/2
             suites: >-
               test-monitor-overview-ui
               test-event-notes-ui
-              test-trace-detail-ui
               test-label-rule-transfer-ui
               test-meraki-traffic-ui
               test-security-events-empty-states-ui

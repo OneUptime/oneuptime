@@ -195,7 +195,7 @@ Hvert sted, der viser en enhed — listen Enheder, en lokations Enheder-side, ov
 | Tilføjelse | Vises når | Hvad du gør |
 | --- | --- | --- |
 | **Forældet** | Der er ikke forsøgt nogen polling i et godt stykke længere end enhedens interval. | Kontrollér, at enhedens sonde er online og følger med sin flåde. |
-| **No probe** | Enheden polles af en sonde, men har ingen, eller dens polling er slået fra. | Tildel en sonde, der kan nå den; indtil da poller intet den. |
+| **Ingen sonde** | Enheden polles af en sonde, men har ingen, eller dens polling er slået fra. | Tildel en sonde, der kan nå den; indtil da poller intet den. |
 | **Ingen overvågning** | Enheden bruger [tilsidesættelsen med bundet monitor](#tilsidesættelsen-med-bundet-monitor), og intet er bundet. | Bind en monitor, eller skift den tilbage til polling med sonde. |
 | **SNMP failing** | Oppe på ping, men det seneste SNMP-walk fejlede. | Kontrollér loginoplysningerne, SNMP-agenten eller en ACL. |
 
@@ -518,7 +518,7 @@ De gemmes ved siden af enhedens egne felter, skrives aldrig ind i dem, og hver s
 
 En Meraki-switch, et Meraki-adgangspunkt eller en Meraki-appliance giver hverken serienummer eller firmware over SNMP: når enheden polles direkte, svarer den på systemgruppen og interfacetabellerne, som giver dens model og dens MAC-adresse, og intet andet. Når en [Meraki-forbindelse](/docs/monitor/network-traffic#cisco-meraki-uden-netflow) læser dens organisation, henter enheden dem, og alt andet, dens polling lader stå tomt, fra Meraki-dashboardet, og dens kort **Inventar** nævner forbindelsen i en række **Meraki**.
 
-For at læse en enhed igen nu trykker du på **Opdater** på dens kort **Inventar**. Dens sonde poller den inden for et minut, og dens Meraki-forbindelse læser organisationen igen. Kortet fortæller, hvornår den nye aflæsning er landet, eller at sonden ikke kunne nå enheden. **Opdater** findes for dem, der må redigere netværksenheder, på en enhed, som en sonde poller, eller som en Meraki-forbindelse beskriver.
+For at læse en enhed igen nu trykker du på **Opdater** på dens kort **Inventar**. Dens sonde poller den inden for et minut, og dens Meraki-forbindelse læser organisationen igen. Kortet fortæller, hvornår den nye aflæsning er landet, eller at sonden ikke kunne nå enheden. **Opdater** findes for dem, der må redigere netværksenheder, på en enhed, som en sonde poller, eller som en Meraki-forbindelse beskriver. Når den nye aflæsning er landet, viser enhedens tilstand og dens kort **Enhedsoplysninger** den også. Hvis kun Meraki-dashboardet stadig ikke er læst tre minutter senere, siger kortet det, med et link til Meraki-forbindelsen på netværkets side **Trafik**, hvis række fortæller hvorfor.
 
 ## Find enheder med en netværksscanning
 
@@ -1029,7 +1029,7 @@ Enhedens oversigt har et kort **Forbundet til**, der nævner switchen, porten og
 :::details En enhed bliver ved med at stå som Afventer
 En enhed viser **Afventer**, så længe intet har rapporteret om den endnu. Læs tilføjelsen ved siden af statussen:
 
-- **No probe**: tildel en sonde, eller slå **Polling Enabled** til igen. Intet poller enheden, før du gør det.
+- **Ingen sonde**: tildel en sonde, eller slå **Polling Enabled** til igen. Intet poller enheden, før du gør det.
 - **Ingen overvågning**: enheden er på [tilsidesættelsen med bundet monitor](#tilsidesættelsen-med-bundet-monitor) uden noget bundet. Bind en monitor, eller brug **Switch to Probe Polling** for at få dens sonde til at pinge den.
 - Ingen tilføjelse overhovedet: enheden har en sonde og venter på sin første polling. På en stor flåde deler en sonde et begrænset antal enheder ud pr. cyklus, så den første polling kan tage længere tid end enhedens interval.
 
