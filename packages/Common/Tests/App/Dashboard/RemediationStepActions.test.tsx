@@ -211,7 +211,7 @@ function renderStep(
 }
 
 function statusPill(): HTMLElement {
-  return screen.getByLabelText("Remediation status");
+  return screen.getByTestId("ai-card-step-remediation-pill");
 }
 
 function tryAgainButton(): HTMLElement | null {

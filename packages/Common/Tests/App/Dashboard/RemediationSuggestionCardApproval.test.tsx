@@ -322,9 +322,9 @@ describe("RemediationStep approval pill", () => {
     expect(
       within(screen.getByTestId("remediation-fix")).getByText("Dismissed"),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText("Remediation status")).toHaveTextContent(
-      "Dismissed",
-    );
+    expect(
+      screen.getByTestId("ai-card-step-remediation-pill"),
+    ).toHaveTextContent("Dismissed");
   });
 });
 

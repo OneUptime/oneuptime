@@ -956,6 +956,22 @@ const STEP_TITLES_AND_PILLS: ReadonlyArray<AiCardStepNames> = [
   },
 ];
 
+/*
+ * A step's status pill (InvestigationStatusBadge), by its test id: its name
+ * - "Investigation status" - is words a screen reader hears first, hidden
+ * on screen, never an aria-label a plain div cannot carry. stepPillWords is
+ * what everyone reads on it.
+ */
+type AiCardStepKey = "investigation" | "remediation";
+
+function stepPill(scope: Page | Locator, step: AiCardStepKey): Locator {
+  return scope.getByTestId(`ai-card-step-${step}-pill`);
+}
+
+function stepPillWords(scope: Page | Locator, step: AiCardStepKey): Locator {
+  return stepPill(scope, step).getByTestId("status-badge-words");
+}
+
 function stepTitle(page: Page, step: AiCardStepNames): Locator {
   return page
     .getByTestId(step.testId)
@@ -1355,7 +1371,7 @@ test.describe("AI investigation report", () => {
     await openReady(page, INCIDENT_PAGE);
 
     const investigation: Locator = investigationCard(page);
-    await expect(investigation.getByLabel("Investigation status")).toHaveText(
+    await expect(stepPillWords(investigation, "investigation")).toHaveText(
       "Completed",
     );
     await expect(investigation).toContainText(
@@ -1637,7 +1653,7 @@ test.describe("AI investigation report", () => {
      */
     await expect(card(page, "Incident Feed")).toBeVisible();
     await expect(
-      investigationCard(page).getByLabel("Investigation status"),
+      stepPillWords(investigationCard(page), "investigation"),
     ).toHaveText("Not investigated");
     await expect(summarySection(page)).toHaveCount(0);
     await expect(reportSection(page)).toHaveCount(0);
@@ -2197,7 +2213,7 @@ test.describe("AI investigation report", () => {
     await expect(
       codeFix.getByRole("link", { name: "View progress" }),
     ).toHaveAttribute("href", new RegExp(`${FIX_TASK_ID}$`));
-    await expect(remediation.getByLabel("Remediation status")).toHaveText(
+    await expect(stepPillWords(remediation, "remediation")).toHaveText(
       "Fixing…",
     );
     const requests: Array<RecordedApiRequest> = await apiRequestsTo(
@@ -2576,7 +2592,7 @@ test.describe("investigation details", () => {
     await open(page, INCIDENT_PATH, "ai=pending");
 
     const investigation: Locator = investigationCard(page);
-    await expect(investigation.getByLabel("Investigation status")).toHaveText(
+    await expect(stepPillWords(investigation, "investigation")).toHaveText(
       "Preparing report…",
       { timeout: 30000 },
     );
@@ -3333,7 +3349,7 @@ test.describe("investigation states", () => {
       await open(page, INCIDENT_PATH, `ai=${scenario.ai}`);
 
       const investigation: Locator = investigationCard(page);
-      await expect(investigation.getByLabel("Investigation status")).toHaveText(
+      await expect(stepPillWords(investigation, "investigation")).toHaveText(
         scenario.badge,
         { timeout: 30000 },
       );
@@ -3405,7 +3421,7 @@ test.describe("investigation states", () => {
 
     const investigation: Locator = investigationCard(page);
     await expect(investigation).toHaveCount(1);
-    await expect(investigation.getByLabel("Investigation status")).toHaveText(
+    await expect(stepPillWords(investigation, "investigation")).toHaveText(
       "Not investigated",
       { timeout: 30000 },
     );
@@ -3476,7 +3492,7 @@ async function openWaiting(
 ): Promise<Locator> {
   await open(page, pagePath, query);
   await expect(
-    investigationCard(page).getByLabel("Investigation status"),
+    stepPillWords(investigationCard(page), "investigation"),
   ).toHaveText("Waiting", { timeout: 30000 });
   return waitingBody(page);
 }
@@ -3530,7 +3546,7 @@ test.describe("an investigation rule's wait (issue #5074)", () => {
 
     await waiting.getByRole("button", { name: "Investigate now" }).click();
 
-    await expect(investigation.getByLabel("Investigation status")).toHaveText(
+    await expect(stepPillWords(investigation, "investigation")).toHaveText(
       "Queued",
       { timeout: 30000 },
     );
@@ -3568,7 +3584,7 @@ test.describe("an investigation rule's wait (issue #5074)", () => {
       waiting.getByRole("button", { name: "Investigate now" }),
     ).toBeEnabled();
     await expect(
-      investigationCard(page).getByLabel("Investigation status"),
+      stepPillWords(investigationCard(page), "investigation"),
     ).toHaveText("Waiting");
   });
 
@@ -3654,7 +3670,7 @@ test.describe("an investigation rule's wait (issue #5074)", () => {
     await waiting.getByRole("button", { name: "Investigate now" }).click();
 
     await expect(
-      investigationCard(page).getByLabel("Investigation status"),
+      stepPillWords(investigationCard(page), "investigation"),
     ).toHaveText("Queued", { timeout: 30000 });
     expect(
       (await apiRequestsTo(page, "/ai-investigation/investigate-now")).map(
@@ -3833,7 +3849,7 @@ test.describe("a page OneUptime AI holds (#5351)", () => {
           }),
       ).toBe("ai-hold-notice");
       await expect(
-        investigationCard(page).getByLabel("Investigation status"),
+        stepPillWords(investigationCard(page), "investigation"),
       ).toHaveText("Completed", { timeout: 30000 });
 
       /*
@@ -3902,7 +3918,7 @@ test.describe("a page OneUptime AI holds (#5351)", () => {
     await open(page, ALERT_PATH, `${HOLD_QUERY}&role=alert-member`);
     // The card has drawn what it reads on its own.
     await expect(
-      investigationCard(page).getByLabel("Investigation status"),
+      stepPillWords(investigationCard(page), "investigation"),
     ).toHaveText("Completed", { timeout: 30000 });
     await afterNextPaint(page);
 
@@ -4007,7 +4023,7 @@ test.describe("a page OneUptime AI holds (#5351)", () => {
       `${HOLD_QUERY}&theme=dark`,
     );
     await expect(
-      investigationCard(page).getByLabel("Investigation status"),
+      stepPillWords(investigationCard(page), "investigation"),
     ).toHaveText("Completed", { timeout: 30000 });
 
     const look: {
@@ -4338,7 +4354,7 @@ const CARD_STATES: ReadonlyArray<CardState> = [
 async function openCardState(page: Page, state: CardState): Promise<Locator> {
   await open(page, INCIDENT_PATH, state.query);
   const investigation: Locator = investigationCard(page);
-  await expect(investigation.getByLabel("Investigation status")).toHaveText(
+  await expect(stepPillWords(investigation, "investigation")).toHaveText(
     state.badge,
     { timeout: 30000 },
   );
@@ -4445,9 +4461,8 @@ test.describe("one flat AI investigation card", () => {
     for (const state of CARD_STATES) {
       const investigation: Locator = await openCardState(page, state);
       looks.push(
-        await investigation
-          .getByLabel("Investigation status")
-          .evaluate((element: Element): string => {
+        await stepPill(investigation, "investigation").evaluate(
+          (element: Element): string => {
             const style: CSSStyleDeclaration = window.getComputedStyle(element);
             return [
               style.backgroundColor,
@@ -4455,7 +4470,8 @@ test.describe("one flat AI investigation card", () => {
               style.boxShadow,
               style.borderRadius,
             ].join(" | ");
-          }),
+          },
+        ),
       );
     }
 
@@ -5015,12 +5031,14 @@ test.describe("one AI card: the investigation and the conversation", () => {
       "default",
     );
     await expect(
-      investigation.getByTestId("card-header").getByLabel(/status$/),
+      investigation
+        .getByTestId("card-header")
+        .getByTestId("status-badge-label"),
     ).toHaveCount(0);
 
     for (const step of STEP_TITLES_AND_PILLS) {
       const pill: Box = await documentBox(
-        page.getByTestId(step.testId).getByLabel(step.pill, { exact: true }),
+        page.getByTestId(`${step.testId}-pill`),
       );
       const title: Box = await documentBox(stepTitle(page, step));
       // Beside the step's title, on its line.
@@ -6332,7 +6350,7 @@ test.describe("one AI card: the investigation and the conversation", () => {
         stepTitle(page, STEP_TITLES_AND_PILLS[0]!),
       );
       let pill: Box = await documentBox(
-        investigation.getByLabel("Investigation status"),
+        stepPill(investigation, "investigation"),
       );
       let section: Box = await documentBox(conversation(page));
 
@@ -6350,9 +6368,7 @@ test.describe("one AI card: the investigation and the conversation", () => {
        */
       investigation = await openCardState(page, CARD_STATES[7]!);
       title = await documentBox(stepTitle(page, STEP_TITLES_AND_PILLS[0]!));
-      pill = await documentBox(
-        investigation.getByLabel("Investigation status"),
-      );
+      pill = await documentBox(stepPill(investigation, "investigation"));
       section = await documentBox(conversation(page));
 
       // The title is never the one that gives way.
@@ -6493,7 +6509,7 @@ test.describe("one AI card: the investigation and the conversation", () => {
     await expect(page).toHaveURL(new RegExp(`${incidentPath(1017)}`));
     // #1017 was never investigated and nobody has asked about it.
     await expect(
-      investigationCard(page).getByLabel("Investigation status"),
+      stepPillWords(investigationCard(page), "investigation"),
     ).toHaveText("Not investigated", { timeout: 30000 });
     await expect(questions(page)).toHaveCount(0);
     await expect(composerBox(page)).toHaveValue("");
@@ -6857,8 +6873,8 @@ test.describe("the AI card as one line when AI was off for the record (?ai=off-*
           exact: true,
         }),
       ).toHaveCount(0);
-      await expect(page.getByLabel("Investigation status")).toHaveCount(0);
-      await expect(page.getByLabel("Remediation status")).toHaveCount(0);
+      await expect(stepPill(page, "investigation")).toHaveCount(0);
+      await expect(stepPill(page, "remediation")).toHaveCount(0);
       await expect(page.getByTestId("investigation-not-started")).toHaveCount(
         0,
       );
@@ -7228,7 +7244,7 @@ test.describe("the AI card as one line when AI was off for the record (?ai=off-*
     await open(page, INCIDENT_PATH, "ai=off-switch&fixing=acted");
 
     const investigation: Locator = investigationCard(page);
-    await expect(investigation.getByLabel("Investigation status")).toHaveText(
+    await expect(stepPillWords(investigation, "investigation")).toHaveText(
       "Not investigated",
       { timeout: 30000 },
     );
@@ -19856,10 +19872,6 @@ const TRY_AGAIN_HINT: string =
 const TOO_SOON: string =
   "OneUptime AI has just checked this incident. Try again in a moment.";
 
-function stepPill(step: Locator, label: string): Locator {
-  return step.getByLabel(label, { exact: true });
-}
-
 // Opens a record and waits for its AI card to have drawn both steps.
 async function openTwoSteps(
   page: Page,
@@ -19871,9 +19883,10 @@ async function openTwoSteps(
   const investigation: Locator = investigationStep(page);
   const remediation: Locator = remediationStep(page);
   await expect(remediation).toBeVisible({ timeout: 30000 });
-  await expect(
-    stepPill(remediation, STEP_TITLES_AND_PILLS[1]!.pill),
-  ).toHaveText(remediationPill, { timeout: 30000 });
+  await expect(stepPillWords(remediation, "remediation")).toHaveText(
+    remediationPill,
+    { timeout: 30000 },
+  );
   await expectWhatHappenedSettled(page);
   return { investigation, remediation };
 }
@@ -19902,9 +19915,9 @@ test.describe("the AI card in two steps: Investigation, then Remediation (block 
 
     // Step 1: its title and pill on one line, its mark a check: it reported.
     await expect(stepTitle(page, STEP_TITLES_AND_PILLS[0]!)).toBeVisible();
-    await expect(
-      stepPill(investigation, STEP_TITLES_AND_PILLS[0]!.pill),
-    ).toHaveText("Completed");
+    await expect(stepPillWords(investigation, "investigation")).toHaveText(
+      "Completed",
+    );
     await expect(investigation).toHaveAttribute("data-indicator", "done");
     await expect(investigation).toHaveAttribute("data-step", "1");
     await expect(
@@ -19995,9 +20008,9 @@ test.describe("the AI card in two steps: Investigation, then Remediation (block 
       "Waiting",
     );
 
-    await expect(
-      stepPill(investigation, STEP_TITLES_AND_PILLS[0]!.pill),
-    ).toHaveText("Investigating…");
+    await expect(stepPillWords(investigation, "investigation")).toHaveText(
+      "Investigating…",
+    );
     await expect(investigation).toHaveAttribute("data-indicator", "live");
     await expect(
       remediation.getByTestId("remediation-decision-line"),
@@ -20049,9 +20062,9 @@ test.describe("the AI card in two steps: Investigation, then Remediation (block 
     await tryAgain.getByRole("button", { name: "Try again" }).click();
 
     // Decided again, now: OneUptime AI started a fix, read at once.
-    await expect(
-      stepPill(remediation, STEP_TITLES_AND_PILLS[1]!.pill),
-    ).toHaveText("Fixing…");
+    await expect(stepPillWords(remediation, "remediation")).toHaveText(
+      "Fixing…",
+    );
     await expect(remediation.getByTestId("remediation-decision")).toContainText(
       '"prod-eu-west-1"',
     );
@@ -20259,9 +20272,7 @@ test.describe("the AI card in two steps: Investigation, then Remediation (block 
         );
 
         for (const step of STEP_TITLES_AND_PILLS) {
-          const pill: Locator = page
-            .getByTestId(step.testId)
-            .getByLabel(step.pill, { exact: true });
+          const pill: Locator = page.getByTestId(`${step.testId}-pill`);
           expect(await isOverflowing(pill), `${step.pill} is cut off`).toBe(
             false,
           );
@@ -20331,7 +20342,10 @@ test.describe("the AI card in two steps: Investigation, then Remediation (block 
         name: "Untersuchung",
       }),
     ).toBeVisible();
-    await expect(remediation.getByLabel("Behebungsstatus")).toHaveText("Aus");
+    await expect(stepPillWords(remediation, "remediation")).toHaveText("Aus");
+    await expect(
+      stepPill(remediation, "remediation").getByTestId("status-badge-label"),
+    ).toHaveText("Behebungsstatus, ");
     await expect(reportToggle(page)).toHaveText(
       "Vollständigen Bericht anzeigen",
     );
@@ -20482,9 +20496,9 @@ test.describe("a busy incident's fixes on the Remediation step read as lines (?f
     await openManyFixes(page);
     const remediation: Locator = remediationStep(page);
 
-    await expect(
-      stepPill(remediation, STEP_TITLES_AND_PILLS[1]!.pill),
-    ).toHaveText("Needs your approval");
+    await expect(stepPillWords(remediation, "remediation")).toHaveText(
+      "Needs your approval",
+    );
     await expect(
       remediation.getByTestId("remediation-approval-note"),
     ).toHaveText(APPROVAL_NOTE);
@@ -20665,7 +20679,7 @@ test.describe("a busy incident's fixes on the Remediation step read as lines (?f
       remediationStep(page).getByTestId("remediation-approval-note"),
     ).toHaveCount(0);
     await expect(
-      stepPill(remediationStep(page), STEP_TITLES_AND_PILLS[1]!.pill),
+      stepPillWords(remediationStep(page), "remediation"),
     ).toHaveText("Fixed");
     const approvals: Array<RecordedApiRequest> = await apiRequestsTo(
       page,

@@ -364,9 +364,15 @@ const CompletedSummaryNotice: FunctionComponent<CompletedSummaryNoticeProps> = (
         />
       </button>
       <div className={AI_HEADER_SUMMARY_LINE_CLASS_NAME}>
+        {/*
+          OneUptime AI's answer reads in its own direction (dir="auto"), as
+          the AI card's TL;DR does: an English answer on a Persian page put
+          its full stop at the start of its line.
+        */}
         <p
           ref={summaryRef}
           id={summaryId}
+          dir="auto"
           className={`${AI_HEADER_SUMMARY_TEXT_CLASS_NAME} ${
             isRejected ? "text-gray-600" : "text-gray-900"
           } ${isExpanded ? "" : "line-clamp-3"}`}

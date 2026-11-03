@@ -142,21 +142,26 @@ beforeEach(() => {
   alertFindSpy = getJestSpyOn(AlertService, "findBy").mockResolvedValue(
     [] as never,
   );
-  alertCreateSpy = getJestSpyOn(AlertService, "create").mockImplementation((async (
-    data: { data: Alert },
-  ) => {
-    const created: Alert = new Alert(ObjectID.generate());
-    created.seriesFingerprint = data.data.seriesFingerprint;
-    return created;
-  }) as never);
+  alertCreateSpy = getJestSpyOn(AlertService, "create").mockImplementation(
+    (async (data: { data: Alert }) => {
+      const created: Alert = new Alert(ObjectID.generate());
+
+      if (data.data.seriesFingerprint) {
+        created.seriesFingerprint = data.data.seriesFingerprint;
+      }
+
+      return created;
+    }) as never,
+  );
   incidentFindSpy = getJestSpyOn(IncidentService, "findBy").mockResolvedValue(
     [] as never,
   );
-  incidentCreateSpy = getJestSpyOn(IncidentService, "create").mockImplementation(
-    (async () => {
-      return new Incident(ObjectID.generate());
-    }) as never,
-  );
+  incidentCreateSpy = getJestSpyOn(
+    IncidentService,
+    "create",
+  ).mockImplementation((async () => {
+    return new Incident(ObjectID.generate());
+  }) as never);
   entityLinksSpy = getJestSpyOn(
     SecurityConnections,
     "readEntityLinks",
@@ -461,8 +466,8 @@ describe("readMatchAffectedResources", () => {
       connected(SecurityConnectionKind.User, DEVICE_ID, "Kim"),
     ] as never);
 
-    const refs: Array<AiAffectedResourceRef> =
-      await readMatchAffectedResources({
+    const refs: Array<AiAffectedResourceRef> = await readMatchAffectedResources(
+      {
         projectId: PROJECT_ID,
         match: match("fp-1", {
           entities: ENTITIES,
@@ -472,7 +477,8 @@ describe("readMatchAffectedResources", () => {
         }),
         eventWindow: WINDOW,
         logLabel: "test",
-      });
+      },
+    );
 
     expect(refs).toEqual([
       { kind: AiAffectedResourceKind.CloudResource, id: CLOUD_ID },
@@ -507,6 +513,8 @@ describe("the connections are read through the loader", () => {
       'import { loadSecurityConnections } from "./Connections/ConnectionsLoader";',
     );
     expect(source).not.toContain('from "./Connections/SecurityConnections"');
-    expect(source).not.toContain('from "./Connections/SecurityConnectedRecords"');
+    expect(source).not.toContain(
+      'from "./Connections/SecurityConnectedRecords"',
+    );
   });
 });
