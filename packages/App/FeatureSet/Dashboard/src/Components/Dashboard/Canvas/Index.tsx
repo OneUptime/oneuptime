@@ -35,6 +35,7 @@ import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
 import { TimeRangeZoomProvider } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
+import { isWidgetDrawnHere } from "../Utils/PublicDashboardContext";
 
 export interface ComponentProps {
   dashboardViewConfig: DashboardViewConfig;
@@ -375,6 +376,7 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
           return {
             heightInUnits: committedRects[index]?.height ?? 1,
             componentType: component.componentType,
+            drawsNoChart: !isWidgetDrawnHere(component.componentType),
           };
         }),
       )
@@ -447,6 +449,11 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
           height: DashboardBoardLayoutUtil.getStackedHeightInPx({
             heightInUnits: rect.height,
             componentType: component.componentType,
+            /*
+             * A public dashboard's log or trace chart says, in a line,
+             * that it is not available there: no chart's floor for it.
+             */
+            drawsNoChart: !isWidgetDrawnHere(component.componentType),
           }),
         }
       : DashboardBoardLayoutUtil.getGridBox(rect, layout);

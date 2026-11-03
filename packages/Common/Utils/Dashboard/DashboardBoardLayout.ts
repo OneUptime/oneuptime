@@ -127,6 +127,13 @@ export interface DashboardBoardBox {
 export interface DashboardStackedWidget {
   heightInUnits: number;
   componentType?: DashboardComponentType | string | undefined;
+  /*
+   * The widget says in words, where its chart would be, that it cannot be
+   * drawn here: a log, trace or Data Source chart on a public dashboard,
+   * which reads none of those. It keeps its own height - a chart's floor
+   * is room for a plot it does not draw.
+   */
+  drawsNoChart?: boolean | undefined;
 }
 
 export default class DashboardBoardLayoutUtil {
@@ -260,7 +267,8 @@ export default class DashboardBoardLayoutUtil {
   /*
    * A widget's height when the board stacks its widgets: the height it has
    * on the narrowest grid - its rows, and the gaps between them - and a
-   * chart at least DASHBOARD_STACKED_CHART_MIN_HEIGHT_IN_PX.
+   * chart at least DASHBOARD_STACKED_CHART_MIN_HEIGHT_IN_PX, unless it
+   * draws no chart there (drawsNoChart).
    */
   public static getStackedHeightInPx(widget: DashboardStackedWidget): number {
     const rows: number =
@@ -274,7 +282,8 @@ export default class DashboardBoardLayoutUtil {
       DASHBOARD_BOARD_GAP_IN_PX,
     );
 
-    return DashboardBoardLayoutUtil.isChart(widget.componentType)
+    return DashboardBoardLayoutUtil.isChart(widget.componentType) &&
+      !widget.drawsNoChart
       ? Math.max(heightInPx, DASHBOARD_STACKED_CHART_MIN_HEIGHT_IN_PX)
       : heightInPx;
   }

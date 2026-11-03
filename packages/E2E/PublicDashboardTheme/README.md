@@ -37,7 +37,8 @@ error pages are under `output/playwright/public-dashboard-theme-ui`.
 On a phone the page is the screen's width: the dashboard's name has the header's row,
 the toolbar sits under it, and nothing scrolls sideways - the board shows its widgets
 one under another, each the screen's width, in the order its grid is read, and a chart
-tall enough for its plot. At a tablet's 768px the widgets keep the grid's arrangement
+tall enough for its plot - but a log or trace chart, which a public dashboard cannot
+draw and says so, only as tall as its rows. At a tablet's 768px the widgets keep the grid's arrangement
 in the screen's width. The spec's `press` explains how it reaches a control the visitor
 scrolls to.
 

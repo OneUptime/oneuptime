@@ -323,6 +323,50 @@ describe("a phone: the widgets one under another", () => {
     }
   });
 
+  /*
+   * A public dashboard reads no logs, traces or external data sources, so
+   * those charts say so in their place: a line of words, which kept a
+   * chart's 400px on a phone - a tall empty card.
+   */
+  test("a chart drawn as a message in its place keeps its own height", () => {
+    for (const componentType of DASHBOARD_CHART_COMPONENT_TYPES) {
+      expect(
+        DashboardBoardLayoutUtil.getStackedHeightInPx({
+          heightInUnits: 3,
+          componentType,
+          drawsNoChart: true,
+        }),
+      ).toBe(3 * 70 + 2 * 10);
+      expect(
+        DashboardBoardLayoutUtil.getStackedHeightInPx({
+          heightInUnits: 3,
+          componentType,
+          drawsNoChart: false,
+        }),
+      ).toBe(400);
+    }
+
+    // A widget that is no chart has no floor to give up.
+    expect(
+      DashboardBoardLayoutUtil.getStackedHeightInPx({
+        heightInUnits: 2,
+        componentType: DashboardComponentType.Table,
+        drawsNoChart: true,
+      }),
+    ).toBe(150);
+
+    expect(
+      DashboardBoardLayoutUtil.getStackedHeightOfBoardInPx([
+        { heightInUnits: 3, componentType: DashboardComponentType.Chart },
+        {
+          heightInUnits: 3,
+          componentType: DashboardComponentType.LogChart,
+          drawsNoChart: true,
+        },
+      ]),
+    ).toBe(400 + 230 + 10);
+  });
+
   test("the charts are the widgets that draw a chart over time, and only those", () => {
     expect([...DASHBOARD_CHART_COMPONENT_TYPES].sort()).toEqual(
       [

@@ -1560,6 +1560,43 @@ test.describe("the page at a phone's width", () => {
     }
   });
 
+  /*
+   * A public dashboard reads no logs and no traces: their charts say so in
+   * a line, in their place. On a phone they are as tall as their rows - five
+   * rows of 70px and the gaps between them, 390px - and no longer take a
+   * chart's 400px for a line of words (#5453's follow-up).
+   */
+  test("a chart the dashboard cannot draw is as tall as its rows on a phone, not a chart's 400px", async ({
+    page,
+  }: { page: Page }, testInfo: TestInfo) => {
+    test.skip(!testInfo.project.use.isMobile, "A phone's width.");
+
+    await openDashboard(page, "light", "board=other");
+
+    for (const sentence of [
+      "Log charts are not available on public dashboards.",
+      "Trace charts are not available on public dashboards.",
+    ]) {
+      await expect(page.getByText(sentence)).toBeVisible();
+
+      const height: number = await page.evaluate((words: string): number => {
+        const widget: HTMLElement | undefined = Array.from(
+          document.querySelectorAll<HTMLElement>(
+            '[id^="dashboard-component-"]',
+          ),
+        ).find((element: HTMLElement): boolean => {
+          return element.innerText.indexOf(words) >= 0;
+        });
+
+        return widget ? widget.getBoundingClientRect().height : 0;
+      }, sentence);
+
+      expect([sentence, height]).toEqual([sentence, 5 * 70 + 4 * 10]);
+    }
+
+    await shoot(page, testInfo, "phone-undrawn-charts");
+  });
+
   test("a real tap on the toolbar opens its menus: they are on the screen now", async ({
     page,
   }: { page: Page }, testInfo: TestInfo) => {
