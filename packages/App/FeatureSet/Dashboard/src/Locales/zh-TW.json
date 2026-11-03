@@ -40648,5 +40648,10 @@
   "Bytes read and written per second across the array.": "整個陣列每秒讀取和寫入的位元組數。",
   "How long a read and a write take on average, per operation, as hosts see them.": "主機看到的每次讀取和寫入操作的平均耗時。",
   "Read and write operations per second across the array.": "整個陣列每秒的讀取和寫入操作數。",
-  "Share of the array's usable capacity in use. Pure raises its own capacity alerts at 80%, 90% and 100%.": "陣列可用容量中已使用的比例。Pure 會在 80%、90% 和 100% 時發出自己的容量警示。"
+  "Share of the array's usable capacity in use. Pure raises its own capacity alerts at 80%, 90% and 100%.": "陣列可用容量中已使用的比例。Pure 會在 80%、90% 和 100% 時發出自己的容量警示。",
+  "Chosen At": "選擇於",
+  "Internal record of the project a person last chose for their Slack or Microsoft Teams Home, in a workspace connected to several projects.": "內部紀錄：在連接多個專案的工作區中，某人最近一次為 Slack 或 Microsoft Teams 首頁選擇的專案。",
+  "Workspace Home Choice": "工作區首頁選擇",
+  "Workspace Home Choices": "工作區首頁選擇",
+  "Workspace User ID": "工作區使用者 ID"
 }

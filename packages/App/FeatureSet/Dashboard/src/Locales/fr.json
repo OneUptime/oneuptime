@@ -40648,5 +40648,10 @@
   "Bytes read and written per second across the array.": "Octets lus et écrits par seconde sur toute la baie.",
   "How long a read and a write take on average, per operation, as hosts see them.": "Durée moyenne d'une lecture et d'une écriture, par opération, telle que les hôtes la voient.",
   "Read and write operations per second across the array.": "Opérations de lecture et d'écriture par seconde sur toute la baie.",
-  "Share of the array's usable capacity in use. Pure raises its own capacity alerts at 80%, 90% and 100%.": "Part de la capacité utilisable de la baie en cours d'utilisation. Pure lève ses propres alertes de capacité à 80 %, 90 % et 100 %."
+  "Share of the array's usable capacity in use. Pure raises its own capacity alerts at 80%, 90% and 100%.": "Part de la capacité utilisable de la baie en cours d'utilisation. Pure lève ses propres alertes de capacité à 80 %, 90 % et 100 %.",
+  "Chosen At": "Choisi le",
+  "Internal record of the project a person last chose for their Slack or Microsoft Teams Home, in a workspace connected to several projects.": "Enregistrement interne du projet qu'une personne a choisi en dernier pour son accueil dans Slack ou Microsoft Teams, dans un espace de travail relié à plusieurs projets.",
+  "Workspace Home Choice": "Choix d'accueil de l'espace de travail",
+  "Workspace Home Choices": "Choix d'accueil de l'espace de travail",
+  "Workspace User ID": "ID utilisateur de l'espace de travail"
 }

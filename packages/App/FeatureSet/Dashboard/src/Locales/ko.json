@@ -40648,5 +40648,10 @@
   "Bytes read and written per second across the array.": "어레이 전체에서 초당 읽고 쓴 바이트입니다.",
   "How long a read and a write take on average, per operation, as hosts see them.": "호스트가 보는 읽기와 쓰기 한 번의 작업당 평균 시간입니다.",
   "Read and write operations per second across the array.": "어레이 전체의 초당 읽기 및 쓰기 작업 수입니다.",
-  "Share of the array's usable capacity in use. Pure raises its own capacity alerts at 80%, 90% and 100%.": "어레이의 사용 가능 용량 중 사용 중인 비율입니다. Pure는 80%, 90%, 100%에서 자체 용량 알림을 발생시킵니다."
+  "Share of the array's usable capacity in use. Pure raises its own capacity alerts at 80%, 90% and 100%.": "어레이의 사용 가능 용량 중 사용 중인 비율입니다. Pure는 80%, 90%, 100%에서 자체 용량 알림을 발생시킵니다.",
+  "Chosen At": "선택일",
+  "Internal record of the project a person last chose for their Slack or Microsoft Teams Home, in a workspace connected to several projects.": "여러 프로젝트에 연결된 워크스페이스에서 사용자가 Slack 또는 Microsoft Teams 홈에 마지막으로 선택한 프로젝트의 내부 기록입니다.",
+  "Workspace Home Choice": "워크스페이스 홈 선택",
+  "Workspace Home Choices": "워크스페이스 홈 선택",
+  "Workspace User ID": "워크스페이스 사용자 ID"
 }

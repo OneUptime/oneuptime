@@ -40648,5 +40648,10 @@
   "Bytes read and written per second across the array.": "Bytes read and written per second across the array.",
   "How long a read and a write take on average, per operation, as hosts see them.": "How long a read and a write take on average, per operation, as hosts see them.",
   "Read and write operations per second across the array.": "Read and write operations per second across the array.",
-  "Share of the array's usable capacity in use. Pure raises its own capacity alerts at 80%, 90% and 100%.": "Share of the array's usable capacity in use. Pure raises its own capacity alerts at 80%, 90% and 100%."
+  "Share of the array's usable capacity in use. Pure raises its own capacity alerts at 80%, 90% and 100%.": "Share of the array's usable capacity in use. Pure raises its own capacity alerts at 80%, 90% and 100%.",
+  "Chosen At": "Chosen At",
+  "Internal record of the project a person last chose for their Slack or Microsoft Teams Home, in a workspace connected to several projects.": "Internal record of the project a person last chose for their Slack or Microsoft Teams Home, in a workspace connected to several projects.",
+  "Workspace Home Choice": "Workspace Home Choice",
+  "Workspace Home Choices": "Workspace Home Choices",
+  "Workspace User ID": "Workspace User ID"
 }
