@@ -50,6 +50,7 @@ import IncidentInternalNote from "../../../Models/DatabaseModels/IncidentInterna
 import IncidentStateTimeline from "../../../Models/DatabaseModels/IncidentStateTimeline";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../Types/Permission";
+import { keepProjectPermissionsInTab } from "../../Helpers/TabProjectPermissions";
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "7e000000-0000-4000-8000-000000000001",
@@ -104,14 +105,14 @@ const MAINTAINERS_ROWS: Array<UserPermission> = [
 
 type StoreFunction = (rows: Array<UserPermission>) => void;
 
-// What the API's permission headers leave in storage for this project.
+// What the API's permission headers leave in storage for this project, in its tab.
 const store: StoreFunction = (rows: Array<UserPermission>): void => {
   PermissionUtil.setGlobalPermissions({
     _type: "UserGlobalAccessPermission",
     globalPermissions: GLOBAL_PERMISSIONS,
     projectIds: [PROJECT_ID],
   });
-  PermissionUtil.setProjectPermissions({
+  keepProjectPermissionsInTab({
     _type: "UserTenantAccessPermission",
     projectId: PROJECT_ID,
     permissions: rows,

@@ -138,6 +138,7 @@ import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import Phone from "../../../Types/Phone";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
+import { getProjectPermissionsStorageKey } from "../../../UI/Utils/Permission";
 
 const USER_ID: string = "aaaaaaaa-1111-4111-8111-111111111111";
 const PROJECT_ID: string = "dddddddd-4444-4444-8444-444444444444";
@@ -248,8 +249,9 @@ const signIn: (permissions: Array<Permission>) => void = (
       ],
     }),
   );
+  // The snapshot the browser keeps for the project the tab shows.
   localStorage.setItem(
-    "project_permissions",
+    getProjectPermissionsStorageKey(PROJECT_ID)!,
     JSON.stringify({
       projectId: PROJECT_ID,
       permissions: permissions.map((permission: Permission) => {

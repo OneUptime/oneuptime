@@ -167,15 +167,6 @@ export default class UserUtil {
     LocalStorage.setItem("initialUrl", url);
   }
 
-  // TODO: Fix project type
-  public static setProject(project: JSONObject): void {
-    LocalStorage.setItem("project", project);
-  }
-
-  public static getProject(): JSONObject {
-    return LocalStorage.getItem("project") as JSONObject;
-  }
-
   // Forgets the person, not the browser: KeptAfterSignOut.ts has what stays.
   public static clear(): void {
     LocalStorage.clearExcept(KEYS_KEPT_AFTER_SIGN_OUT);

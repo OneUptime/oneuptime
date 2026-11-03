@@ -54,6 +54,17 @@ describe("the list", () => {
     expect(INSTALL_SCRIPTS_ROUTE).toBe("/install");
   });
 
+  // The /install 404 lists them, and a licence can rename the product.
+  test("a title says what it installs, never the product's name", () => {
+    for (const installEntry of INSTALL_SCRIPTS) {
+      expect({
+        name: installEntry.name,
+        namesTheProduct: /oneuptime/i.test(installEntry.title),
+      }).toEqual({ name: installEntry.name, namesTheProduct: false });
+      expect(installEntry.title.trim()).not.toBe("");
+    }
+  });
+
   test("each agent with an installer installs with install.sh, one of its own files", () => {
     for (const item of INSTALL_SCRIPTS) {
       if (item.script === null) {
@@ -149,7 +160,7 @@ describe("the list", () => {
 
     expect(cli).toEqual({
       name: "cli",
-      title: "OneUptime CLI",
+      title: "CLI",
       sourceDirectory: "packages/CLI/Install",
       script: INSTALL_SCRIPT_FILE,
       files: [INSTALL_SCRIPT_FILE],

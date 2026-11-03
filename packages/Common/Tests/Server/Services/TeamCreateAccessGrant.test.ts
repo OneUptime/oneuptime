@@ -78,6 +78,7 @@ import PermissionGate from "../../../UI/Utils/PermissionGate";
 import UserUtil from "../../../UI/Utils/User";
 import { getJestSpyOn } from "../../Spy";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import { keepProjectPermissionsInTab } from "../../Helpers/TabProjectPermissions";
 
 /*
  * The records these tests name are their project's own: the services check
@@ -330,7 +331,8 @@ function signInToDashboard(caller: Caller): void {
     projectIds: [PROJECT_ID],
     globalPermissions: [Permission.Public, Permission.User],
   });
-  PermissionUtil.setProjectPermissions({
+  // In the tab that shows the project, as the Dashboard reads it.
+  keepProjectPermissionsInTab({
     _type: "UserTenantAccessPermission",
     projectId: PROJECT_ID,
     permissions: caller.rows,

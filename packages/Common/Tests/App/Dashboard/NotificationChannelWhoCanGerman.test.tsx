@@ -33,6 +33,7 @@ import englishLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/en.j
 import germanLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/de.json";
 import IconProp from "../../../Types/Icon/IconProp";
 import Permission from "../../../Types/Permission";
+import { getProjectPermissionsStorageKey } from "../../../UI/Utils/Permission";
 
 /*
  * Who can turn a channel on, in German, from the real locale files.
@@ -82,8 +83,9 @@ const signInAs: (permissions: Array<Permission>) => void = (
       ],
     }),
   );
+  // The snapshot the browser keeps for the project the tab shows.
   localStorage.setItem(
-    "project_permissions",
+    getProjectPermissionsStorageKey(PROJECT_ID)!,
     JSON.stringify({
       projectId: PROJECT_ID,
       permissions: permissions.map((permission: Permission) => {

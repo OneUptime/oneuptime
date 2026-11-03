@@ -74,6 +74,7 @@ import Permission, { UserPermission } from "../../../../Types/Permission";
 import ListResult from "../../../../Types/BaseDatabase/ListResult";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
+import { keepProjectPermissionsInTab } from "../../../Helpers/TabProjectPermissions";
 
 type Row = {
   _id: string;
@@ -110,7 +111,7 @@ const GLOBAL_PERMISSIONS: Array<Permission> = [
 
 type GivenSnapshotFunction = (rows: Array<UserPermission>) => void;
 
-// The snapshot as API.ts stores it from the response headers.
+// The snapshot as API.ts stores it from the response headers, in the project's tab.
 const givenSnapshot: GivenSnapshotFunction = (
   rows: Array<UserPermission>,
 ): void => {
@@ -121,7 +122,7 @@ const givenSnapshot: GivenSnapshotFunction = (
     globalPermissions: GLOBAL_PERMISSIONS,
     projectIds: [projectId],
   });
-  PermissionUtil.setProjectPermissions({
+  keepProjectPermissionsInTab({
     _type: "UserTenantAccessPermission",
     projectId: projectId,
     permissions: rows,

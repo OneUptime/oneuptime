@@ -306,9 +306,10 @@ export default class PermissionGate {
   /*
    * Whether the permission snapshot has landed - it arrives on an API
    * response header, so it is empty for the first paint after a fresh login
-   * and for a moment after the project is switched. Until it lands there is
-   * nothing honest to say about what the user may do. Always true for a
-   * master admin, who may do everything.
+   * and for a moment after opening a project this browser has no snapshot
+   * of yet (each project's is kept apart: Utils/Permission). Until it lands
+   * there is nothing honest to say about what the user may do. Always true
+   * for a master admin, who may do everything.
    */
   public static hasPermissionSnapshot(
     options?: PermissionGateOptions | undefined,
@@ -399,9 +400,10 @@ export default class PermissionGate {
 
     /*
      * The permission snapshot arrives on a response header, so it is empty for
-     * the first paint after a fresh login and for a moment after the project is
-     * switched. Telling somebody they need a permission they actually hold is
-     * worse than briefly not offering the button, so this case stays hidden.
+     * the first paint after a fresh login and for a moment after opening a
+     * project this browser has no snapshot of yet. Telling somebody they need
+     * a permission they actually hold is worse than briefly not offering the
+     * button, so this case stays hidden.
      */
     if (!this.isLoaded(held)) {
       return { isAllowed: false };
