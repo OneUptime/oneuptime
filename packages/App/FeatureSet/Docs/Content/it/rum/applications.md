@@ -104,7 +104,7 @@ La telemetria di un'applicazione e le sue registrazioni vengono conservate per t
 | Dati | Conservati per | Si imposta in |
 | --- | --- | --- |
 | Log, metriche, tracce e profili | La conservazione del progetto, a meno che l'applicazione non la sostituisca | La pagina **Impostazioni** dell'applicazione |
-| Registrazioni della riproduzione delle sessioni | 7 giorni per impostazione predefinita, oppure 1, 14, 30 o 90 giorni | **Replay Policy**, con **Modifica policy → Limiti** |
+| Registrazioni della riproduzione delle sessioni | 7 giorni per impostazione predefinita, oppure 1, 14, 30 o 90 giorni | **Policy di riproduzione**, con **Modifica policy → Limiti** |
 
 ### Conservazione della telemetria
 
@@ -119,7 +119,7 @@ Su un piano Cloud inferiore, una sostituzione lasciata da una prova continua ad 
 
 ### Conservazione della riproduzione delle sessioni
 
-Le registrazioni hanno una conservazione propria, impostata nella pagina **Replay Policy** dell'applicazione con **Modifica policy → Limiti**: 7 giorni per impostazione predefinita, oppure 1, 14, 30 o 90 giorni. È breve di proposito, perché una registrazione è molto più sensibile, e molto più grande, di uno span. La scheda **Conservazione della riproduzione delle sessioni**, in **Altre impostazioni** della pagina **Impostazioni**, la mostra (_Session replays are kept for 7 days._), e il suo pulsante **Modifica in Replay Policy** apre la policy.
+Le registrazioni hanno una conservazione propria, impostata nella pagina **Policy di riproduzione** dell'applicazione con **Modifica policy → Limiti**: 7 giorni per impostazione predefinita, oppure 1, 14, 30 o 90 giorni. È breve di proposito, perché una registrazione è molto più sensibile, e molto più grande, di uno span. La scheda **Conservazione della riproduzione delle sessioni**, in **Altre impostazioni** della pagina **Impostazioni**, la mostra (_Session replays are kept for 7 days._), e il suo pulsante **Modifica in Replay Policy** apre la policy.
 
 Una conservazione della telemetria più lunga non conserva le registrazioni più a lungo. I conteggi, i segnali e il dispositivo di una sessione scadono con le sue immagini; solo i log, gli span e le eccezioni della sessione seguono la conservazione della telemetria. Vedi [Conservazione ed eliminazione](/docs/telemetry/session-replay#conservazione-ed-eliminazione).
 

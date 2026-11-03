@@ -16,7 +16,7 @@ OneUptime으로 흔한 세 가지 환경을 처음부터 끝까지 모니터링�
 flowchart TB
     Device["방화벽, 스위치 또는<br/>액세스 포인트"]
     Probe["프로브"]
-    Snmp["벤더 템플릿:<br/>헬스 OID와 SNMP 테이블"]
+    Snmp["벤더 템플릿:<br/>상태 OID와 SNMP 테이블"]
     Syslog["Syslog: 로그 파이프라인,<br/>로그 모니터, 기록 규칙"]
     Monitor["권장 알림이 있는<br/>Network Device 모니터"]
     Incident["인시던트와 알림"]
@@ -29,7 +29,7 @@ flowchart TB
     Syslog --> Incident
 ```
 
-- 장비마다 하나의 [네트워크 디바이스](/docs/monitor/network-device-monitor). 도달할 수 있는 프로브가 폴링하며, 알맞은 헬스 OID와 [SNMP 테이블](/docs/monitor/network-device-monitor#snmp-테이블)을 가져오는 벤더 템플릿을 씁니다.
+- 장비마다 하나의 [네트워크 디바이스](/docs/monitor/network-device-monitor). 도달할 수 있는 프로브가 폴링하며, 알맞은 상태 OID와 [SNMP 테이블](/docs/monitor/network-device-monitor#snmp-테이블)을 가져오는 벤더 템플릿을 씁니다.
 - 알림을 위한 디바이스마다 하나의 Network Device 모니터. 디바이스 페이지에서 만들면, 정상이 무엇인지 아는 테이블마다 행별 알림 하나를 포함한 [권장 알림](/docs/monitor/network-device-monitor#권장-알림-팩)이 채워집니다. 여러 디바이스에는 [알림 정책](/docs/monitor/network-device-monitor#알림-정책)이 모든 디바이스에 모니터를 하나씩 유지합니다.
 - 벤더가 로그로만 보고하는 것을 위해: 프로브로 보내는 syslog(OneUptime이 알아서 [네트워크 이벤트](/docs/monitor/network-events)로 읽습니다), 터널이나 게이트웨이마다 한 번씩 알리는 [Group By를 쓰는 로그 모니터](/docs/monitor/logs-monitor#그룹별-알림group-by), 그 로그의 숫자를 차트로 그리는 [로그 기록 규칙](/docs/telemetry/log-recording-rules).
 

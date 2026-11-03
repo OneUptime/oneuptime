@@ -16,7 +16,7 @@ OneUptime से तीन आम नेटवर्क को शुरू स�
 flowchart TB
     Device["फ़ायरवॉल, स्विच या<br/>एक्सेस पॉइंट"]
     Probe["प्रोब"]
-    Snmp["वेंडर टेम्पलेट:<br/>हेल्थ OID और SNMP टेबल"]
+    Snmp["वेंडर टेम्पलेट:<br/>स्वास्थ्य OID और SNMP टेबल"]
     Syslog["Syslog: लॉग पाइपलाइन,<br/>लॉग मॉनिटर, रिकॉर्डिंग नियम"]
     Monitor["अनुशंसित अलर्ट वाला<br/>Network Device मॉनिटर"]
     Incident["घटनाएँ और अलर्ट"]
@@ -29,7 +29,7 @@ flowchart TB
     Syslog --> Incident
 ```
 
-- हर बॉक्स के लिए एक [नेटवर्क डिवाइस](/docs/monitor/network-device-monitor), जिसे उस तक पहुँच सकने वाला प्रोब पोल करता है, एक ऐसे वेंडर टेम्पलेट के साथ जो सही हेल्थ OID और [SNMP टेबल](/docs/monitor/network-device-monitor#snmp-टेबल) लाता है।
+- हर बॉक्स के लिए एक [नेटवर्क डिवाइस](/docs/monitor/network-device-monitor), जिसे उस तक पहुँच सकने वाला प्रोब पोल करता है, एक ऐसे वेंडर टेम्पलेट के साथ जो सही स्वास्थ्य OID और [SNMP टेबल](/docs/monitor/network-device-monitor#snmp-टेबल) लाता है।
 - अलर्टिंग के लिए हर डिवाइस का एक Network Device मॉनिटर। इसे डिवाइस के पेज से बनाएँ ताकि [अनुशंसित अलर्ट](/docs/monitor/network-device-monitor#अनुशंसित-अलर्ट-पैक) आपके लिए भर जाएँ, जिनमें हर उस टेबल के लिए एक हर-पंक्ति अलर्ट शामिल है जो जानती है कि स्वस्थ होना कैसा दिखता है। बेड़े के लिए, एक [अलर्ट नीति](/docs/monitor/network-device-monitor#अलर्ट-नीतियाँ) हर डिवाइस पर एक मॉनिटर बनाए रखती है।
 - उन चीज़ों के लिए जो वेंडर केवल अपने लॉग में बताता है: प्रोब को syslog, जिसे OneUptime ख़ुद [नेटवर्क इवेंट](/docs/monitor/network-events) के रूप में पढ़ता है, हर टनल या गेटवे पर एक बार अलर्ट के लिए [Group By वाले लॉग मॉनिटर](/docs/monitor/logs-monitor#समूह-के-अनुसार-अलर्ट-group-by), और उन लॉग की संख्याओं के चार्ट के लिए [लॉग रिकॉर्डिंग नियम](/docs/telemetry/log-recording-rules)।
 

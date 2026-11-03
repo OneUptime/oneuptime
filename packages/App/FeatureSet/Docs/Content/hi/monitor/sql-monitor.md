@@ -280,7 +280,7 @@ WHERE status = 'CANCELLED'
 ## अगले कदम
 
 :::cards
-- [डेटाबेस हेल्थ मॉनिटर](/docs/monitor/database-health-monitor): SQL लिखे बिना कनेक्शन, locks और replication पर नज़र रखें।
+- [डेटाबेस स्वास्थ्य मॉनिटर](/docs/monitor/database-health-monitor): SQL लिखे बिना कनेक्शन, locks और replication पर नज़र रखें।
 - [मॉनिटर रहस्य](/docs/monitor/monitor-secrets): डेटाबेस पासवर्ड को एन्क्रिप्टेड रखें।
 - [JavaScript अभिव्यक्तियाँ](/docs/monitor/javascript-expression): कई मानों को जोड़ने वाले मानदंड लिखें।
 - [कस्टम प्रोब](/docs/probe/custom-probe): अपने नेटवर्क के अंदर से जाँचें चलाएँ।

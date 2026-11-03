@@ -43,7 +43,7 @@ Sessionsafspilning er slået til som standard. Dens indstillinger findes tre ste
 
 | Hvor | Hvad der er der |
 | --- | --- |
-| Applikationens side **Replay Policy** | Politikken (optagelse, maskering, samtykke, sporing og grænser), et resumé af **Optagelsens tilstand**, kortet **Hvad en optagelse indeholder**, panelet **Test your installation** og **Record a specific user's next session**. |
+| Applikationens side **Afspilningspolitik** | Politikken (optagelse, maskering, samtykke, sporing og grænser), et resumé af **Optagelsens tilstand**, kortet **Hvad en optagelse indeholder**, panelet **Test your installation** og **Record a specific user's next session**. |
 | Applikationens side **Sundhed** | Om optagelser kommer ind, og hvorfor ikke, når de ikke gør. Se [Optagelsesstatus](#optagelsesstatus). |
 | **Overvågning af reelle brugere → Indstillinger → Sessionsafspilning** | Kontakten for hele projektet, der stopper alle applikationer på én gang, og en skrivebeskyttet liste over hver applikations politik. |
 
@@ -290,7 +290,7 @@ copy(JSON.stringify(OneUptimeReplay.getDiagnostics(), null, 2));
 
 ## Privatliv
 
-**Maskering sker ved optagelsen, på slutbrugerens enhed, før noget uploades.** Serveren modtager aldrig det, der blev maskeret, så en maskeringsbeslutning kan ikke fortrydes bagefter og heller ikke anvendes med tilbagevirkende kraft. På web afhænger det, der maskeres, af tilstanden; React Native sender altid den strengere wireframe-struktur, der er beskrevet i [Privatliv og maskering i React Native](#privatliv-og-maskering-i-react-native). Kortet **Hvad en optagelse indeholder** på applikationens side **Replay Policy** omformulerer disse beslutninger til almindelige sætninger for det, du har konfigureret.
+**Maskering sker ved optagelsen, på slutbrugerens enhed, før noget uploades.** Serveren modtager aldrig det, der blev maskeret, så en maskeringsbeslutning kan ikke fortrydes bagefter og heller ikke anvendes med tilbagevirkende kraft. På web afhænger det, der maskeres, af tilstanden; React Native sender altid den strengere wireframe-struktur, der er beskrevet i [Privatliv og maskering i React Native](#privatliv-og-maskering-i-react-native). Kortet **Hvad en optagelse indeholder** på applikationens side **Afspilningspolitik** omformulerer disse beslutninger til almindelige sætninger for det, du har konfigureret.
 
 Politikkens privatlivsindstillinger, med det navn, **Rediger politik** giver dem:
 
@@ -333,7 +333,7 @@ Sessionsafspilning virker fra starten med en tom liste over tilladte oprindelser
 Dit indtagelsestoken leveres til klienten — i sidens JavaScript eller i mobilappens binære fil — så der er to gates, og de kombineres:
 
 - **På nøglen.** Opret indtagelsesnøglen med **Browser** som **Nøgletype**. For web skal du angive dens **Tilladte oprindelser** (`https://app.example.com`, eller `https://*.example.com` for ét underdomæneniveau). For React Native skal du tilføje den præcise appidentitet som `app://com.example.storefront`. Giv også nøglen en **Udløber den**: så holder et kopieret token op med at virke på en dato, du vælger, i stedet for aldrig.
-- **På applikationen.** **Replay Policy → Tilladte oprindelser** begrænser, hvem der kan skrive optagelser til denne applikation, uanset hvilken nøgle der præsenteres. Tilføj de samme weboprindelser og de præcise mobile `app://`-identiteter her.
+- **På applikationen.** **Afspilningspolitik → Tilladte oprindelser** begrænser, hvem der kan skrive optagelser til denne applikation, uanset hvilken nøgle der præsenteres. Tilføj de samme weboprindelser og de præcise mobile `app://`-identiteter her.
 
 En `app://`-post er det bogstavelige præfiks plus det normaliserede Android-application-id eller den iOS-bundle-identifier, der leveres som `mobileAppIdentifier`. Sammenligningen skelner ikke mellem store og små bogstaver, efter at mellemrum er fjernet, og en gyldig reverse-DNS-identifikator er gjort til små bogstaver. Mobile identiteter accepterer **ikke** jokertegn: `app://*.example.com` er ugyldig. Mobil-SDK'et sender ingen browser-`Origin`; det sender sin optagertype og appidentiteten i egne headere. Hvis en forespørgsel bærer en rigtig `Origin`, vinder den oprindelse altid — de mobile headere kan aldrig bruges til at omgå browserens oprindelsestjek.
 
@@ -370,7 +370,7 @@ Maskerede værdier bevarer ikke længden. Et maskeret felt er en pladsholder med
 <div class="oneuptime-ignore">...</div>
 ```
 
-Du kan også tilføje **Ekstra maskeringsselektorer** og **Blokeringsselektorer** på din applikations side **Replay Policy** uden at ændre din markup. Med standardtilstanden for maskering er de det primære værktøj til at beskytte indhold, som din markup ikke erklærer følsomt.
+Du kan også tilføje **Ekstra maskeringsselektorer** og **Blokeringsselektorer** på din applikations side **Afspilningspolitik** uden at ændre din markup. Med standardtilstanden for maskering er de det primære værktøj til at beskytte indhold, som din markup ikke erklærer følsomt.
 
 ### Hvad dine egne forespørgsler bærer
 
@@ -387,7 +387,7 @@ tracestate:  oneuptime=sid:<32 hex session id>;p:<16 hex parent id>
 - **Hvad det kæder sammen.** Et backend-span, en log eller en undtagelse, der nævner brugeren (en attribut `enduser.id`, en e-mailadresse i en loglinje), er nu ét klik fra optagelsen, selv med **Registrér slutbrugerens identitet** slået fra: den kontakt afgør, hvad optagelsen gemmer, ikke hvad din backend logger. Hvis optagelser ikke må kunne kædes sammen med, hvem brugeren var, så slå også **Sporvideregivelse fra samme oprindelse** fra.
 - **Hvem der kan påstå det.** Som al sporingskontekst skrives medlemmet af klienten. En, der kendte et sessions-id, kunne sende det til dit API og få spans fra sine egne forespørgsler arkiveret under den session. Sessions-id'er er tilfældige værdier på 128 bit, så vedkommende ville først skulle bruge id'et. Det samme gælder det spor, en klient nævner: en forespørgsel, der sender en `traceparent` fra et spor, den kender, sammen med sin egen sessions medlem, trækker det spors backend-rækker ind i sin sessions panel og inden for rækkevidden af den sessions sletning. Sletning fjerner kun et helt spor, når det udelukkende tilhører de slettede sessioner; fra et spor, der deles med andre sessioner, fjerner den kun de rækker, der er markeret med de slettede id'er (se [Slet sessioner](#slet-sessioner)).
 
-Slå det fra pr. applikation med **Sporvideregivelse fra samme oprindelse** på siden **Replay Policy**; se [Slå automatisk sammenkædning fra](#slå-automatisk-sammenkædning-fra).
+Slå det fra pr. applikation med **Sporvideregivelse fra samme oprindelse** på siden **Afspilningspolitik**; se [Slå automatisk sammenkædning fra](#slå-automatisk-sammenkædning-fra).
 
 ### Samtykke
 
@@ -438,7 +438,7 @@ Hvis du selv hoster OneUptime, så brug din egen vært i stedet.
 
 Endnu en ting, der har med CSP at gøre, og som handler om typografiark snarere end om din politik: optageren kan kun gemme et typografiark, som den kan læse. Et typografiark fra en anden oprindelse kan kun læses, når dets server sender en header `Access-Control-Allow-Origin`, der tillader dit site, **og** dit `<link>` bærer `crossorigin="anonymous"`. Ellers gemmer optagelsen kun dets adresse, og afspilningen indlæser det derfra i seerens browser; se [Billeder, typografi og skrifttyper under afspilning](#billeder-typografi-og-skrifttyper-under-afspilning). Tilføj kun attributten, når headeren er på plads: `crossorigin` uden headeren får din egen side til at afvise typografiarket.
 
-Brug panelet **Test your installation** på applikationens side **Replay Policy** til at bekræfte tokenet, politikkens kontakter og listerne over tilladte oprindelser fra serversiden. Det kan ikke tjekke din CSP: en CSP er en header, som dit eget site sender til dine egne besøgende, og intet på serversiden ser den nogensinde. En CSP-blokering viser sig kun indirekte der: `script-src` blokerer optageren, så panelets række _Recorder loaded on your site_ bliver ved med at vente; `connect-src` blokerer upload, så den række består, mens rækken for den modtagne optagelse under den bliver ved med at vente. I begge tilfælde logger browserkonsollen på den blokerede side afvisningen, og det er det eneste positive bevis.
+Brug panelet **Test your installation** på applikationens side **Afspilningspolitik** til at bekræfte tokenet, politikkens kontakter og listerne over tilladte oprindelser fra serversiden. Det kan ikke tjekke din CSP: en CSP er en header, som dit eget site sender til dine egne besøgende, og intet på serversiden ser den nogensinde. En CSP-blokering viser sig kun indirekte der: `script-src` blokerer optageren, så panelets række _Recorder loaded on your site_ bliver ved med at vente; `connect-src` blokerer upload, så den række består, mens rækken for den modtagne optagelse under den bliver ved med at vente. I begge tilfælde logger browserkonsollen på den blokerede side afvisningen, og det er det eneste positive bevis.
 
 ## Korrelér med resten af din telemetri
 
@@ -466,7 +466,7 @@ Afspillerens faner **Protokoller**, **Spor** og **Fejl** viser så de rækker p�
 
 ### API'er på en anden oprindelse
 
-En forespørgsel til en anden oprindelse får som standard intet: at tilføje en hvilken som helst header gør en simpel forespørgsel på tværs af oprindelser til en med preflight, og et API, der ikke tillader headeren, ville begynde at fejle, fordi du har installeret en optager. For at kæde en sammen skal du tilføje dens oprindelse til **Oprindelser for sporvideregivelse** på siden **Replay Policy**, på trinnet **Ydeevne og sporing** i **Rediger politik**. Angiv kun en oprindelse, hvis API tillader `traceparent` i `Access-Control-Allow-Headers`; det er hele grunden til, at det er en eksplicit liste.
+En forespørgsel til en anden oprindelse får som standard intet: at tilføje en hvilken som helst header gør en simpel forespørgsel på tværs af oprindelser til en med preflight, og et API, der ikke tillader headeren, ville begynde at fejle, fordi du har installeret en optager. For at kæde en sammen skal du tilføje dens oprindelse til **Oprindelser for sporvideregivelse** på siden **Afspilningspolitik**, på trinnet **Ydeevne og sporing** i **Rediger politik**. Angiv kun en oprindelse, hvis API tillader `traceparent` i `Access-Control-Allow-Headers`; det er hele grunden til, at det er en eksplicit liste.
 
 Forespørgsler til en oprindelse på listen får kun en `traceparent`, ingen `tracestate` og derfor intet sessions-id, og deres backend-telemetri matches med optagelsen **via sporings-id** gennem de sporings-id'er, optagelsen observerede. Forespørgsler, der allerede bærer en `traceparent`, og `fetch`-kald med et `Request`-objekt i stedet for en URL, berøres ikke på denne vej.
 
@@ -519,7 +519,7 @@ Et spor, som din backend så smider væk, når aldrig OneUptime, så det kædes 
 
 ### Slå automatisk sammenkædning fra
 
-**Sporvideregivelse fra samme oprindelse**, på siden **Replay Policy** ved siden af **Oprindelser for sporvideregivelse**, er slået til som standard for hver applikation. Slået fra tilføjer optageren intet til forespørgsler til samme oprindelse fra næste sideindlæsning, og **Oprindelser for sporvideregivelse** fortsætter med at virke som før for hver oprindelse, den indeholder. Så hvis du har sat din egen oprindelse der (tidligere versioner af denne side sagde, at du skulle), så fjern den også, ellers får dine egne forespørgsler stadig en `traceparent`. Med diagnostik slået til siger optageren ved start, hvilken der gælder: `same-origin-propagation`, med `enabled` og en `reason` (se [Fejlfinding af sessionsafspilning](/docs/rum/session-replay-troubleshooting#koder)).
+**Sporvideregivelse fra samme oprindelse**, på siden **Afspilningspolitik** ved siden af **Oprindelser for sporvideregivelse**, er slået til som standard for hver applikation. Slået fra tilføjer optageren intet til forespørgsler til samme oprindelse fra næste sideindlæsning, og **Oprindelser for sporvideregivelse** fortsætter med at virke som før for hver oprindelse, den indeholder. Så hvis du har sat din egen oprindelse der (tidligere versioner af denne side sagde, at du skulle), så fjern den også, ellers får dine egne forespørgsler stadig en `traceparent`. Med diagnostik slået til siger optageren ved start, hvilken der gælder: `same-origin-propagation`, med `enabled` og en `reason` (se [Fejlfinding af sessionsafspilning](/docs/rum/session-replay-troubleshooting#koder)).
 
 ### Omdirigeringer til en anden oprindelse
 
@@ -781,12 +781,12 @@ Tryk på `?` i afspilleren for denne liste. Genveje udløses aldrig, mens du skr
 
 ## Optagelsesstatus
 
-Applikationens side **Sundhed**, i sektionen **Sessionsafspilning** i dens sidemenu, besvarer fra serversiden spørgsmålet «bliver noget optaget, og hvis ikke, hvorfor?», og siden **Replay Policy** gentager dens diagnose på én linje over politikken. Diagnosen nævner én årsag, sætter tal på den og tilbyder én handling; den siger aldrig «disconnected» uden en grund. Tilstandene i den rækkefølge, de tjekkes:
+Applikationens side **Sundhed**, i sektionen **Sessionsafspilning** i dens sidemenu, besvarer fra serversiden spørgsmålet «bliver noget optaget, og hvis ikke, hvorfor?», og siden **Afspilningspolitik** gentager dens diagnose på én linje over politikken. Diagnosen nævner én årsag, sætter tal på den og tilbyder én handling; den siger aldrig «disconnected» uden en grund. Tilstandene i den rækkefølge, de tjekkes:
 
 | Tilstand | Hvad den betyder | Hvad du gør |
 | --- | --- | --- |
 | `disabled-project` | Hovedkontakten for hele projektet er slået fra. | Slå den til under **Overvågning af reelle brugere → Indstillinger → Sessionsafspilning**. |
-| `disabled-app` | Sessionsafspilning er slået fra for denne applikation. | Slå den til under **Replay Policy**. |
+| `disabled-app` | Sessionsafspilning er slået fra for denne applikation. | Slå den til under **Afspilningspolitik**. |
 | `budget-paused` | Applikationens månedlige budget eller deploymentets daglige bytegrænse er brugt op; aktive optagere har fået besked på at stoppe. | Hæv budgettet, eller vent til næste dag / måned. Opsæt [alarmer for lagerbudgettet](#alarmer-for-lagerbudgettet) for at høre om det, før det sker. |
 | `refusing` | Uploads ankommer og afvises — diagnosen siger den vigtigste årsag og antallet de seneste 24 timer, for eksempel `origin-not-allowed` (212 uploads fra en oprindelse, der ikke er blandt dine tilladte oprindelser) eller `not-sampled`. | Følg årsagen: redigér de tilladte oprindelser, hæv samplingsprocenten og så videre. |
 | `never-loaded` | Ingen browser har nogensinde hentet denne applikations politik. Script-tagget er ikke på siden, eller identifikatoren matcher ikke. | Opsætningsvejledningen på applikationens side **Dokumentation**, i dens sektion **Sessionsafspilning**, fører dig igennem det. |
@@ -811,7 +811,7 @@ De to lagerbudgetter — projektets daglige uploadgrænse og en applikations val
 | **Session Replay Monthly Budget Nearly Spent** | Advarsel | Applikationen har brugt 80 % af sit månedlige budget. |
 | **Session Replay Monthly Budget Spent** | Kritisk | Applikationens månedlige budget er brugt op: dens optagere har fået besked på at stoppe indtil den 1. i næste måned (UTC), eller indtil budgettet bliver hævet. |
 
-Så længe sessionsafspilning er slået til for applikationen, tilbydes det daglige par, så snart den har optaget en afspilning, og det månedlige par, så snart den også har et **Månedligt budget (GB)** på sin side **Replay Policy**; mangler et af dem på en applikation, hvor du bruger sessionsafspilning, siger fanen hvorfor. Så snart det daglige par tilbydes, åbner **Opsæt advarsler** i panelet **Storage budget** på siden **Sundhed** fanen filtreret på budgetalarmerne, også dem, du allerede har oprettet. Hver alarm, du opretter, er en almindelig Metrik-monitor på applikationen, og den hændelse og alarm, den åbner, siger, hvad du skal gøre. For at få et budget til at holde længere skal du sænke **Stikprøveprocent**, kun uploade _On error or frustration_ eller indsnævre **Tilladte oprindelser** på **Replay Policy** — hver af dem stopper en upload, før den tælles — eller hæve **Månedligt budget (GB)**. Den daglige grænse kan ikke hæves fra dashboardet; på en selvhostet installation er den `SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY` (se [Noter om selvhosting](#noter-om-selvhosting)).
+Så længe sessionsafspilning er slået til for applikationen, tilbydes det daglige par, så snart den har optaget en afspilning, og det månedlige par, så snart den også har et **Månedligt budget (GB)** på sin side **Afspilningspolitik**; mangler et af dem på en applikation, hvor du bruger sessionsafspilning, siger fanen hvorfor. Så snart det daglige par tilbydes, åbner **Opsæt advarsler** i panelet **Storage budget** på siden **Sundhed** fanen filtreret på budgetalarmerne, også dem, du allerede har oprettet. Hver alarm, du opretter, er en almindelig Metrik-monitor på applikationen, og den hændelse og alarm, den åbner, siger, hvad du skal gøre. For at få et budget til at holde længere skal du sænke **Stikprøveprocent**, kun uploade _On error or frustration_ eller indsnævre **Tilladte oprindelser** på **Afspilningspolitik** — hver af dem stopper en upload, før den tælles — eller hæve **Månedligt budget (GB)**. Den daglige grænse kan ikke hæves fra dashboardet; på en selvhostet installation er den `SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY` (se [Noter om selvhosting](#noter-om-selvhosting)).
 
 **Én daglig monitor dækker projektet.** Den daglige grænse tilhører projektet, ikke en applikation: alle dens applikationer bruger af den sammen, og hver applikation, der optager, bærer projektets tal, så det daglige par tilbydes på hver af dem, og en daglig monitor på en hvilken som helst af dem dækker dem alle. Opret det daglige par på én applikation, en, der beholder sessionsafspilning slået til (dens monitor ser kun de punkter, der er skrevet for den applikation), og afvis de daglige kort på de andre; ellers giver én opbrugt dag én alarm pr. applikation. Det månedlige par er hver applikations eget: opret det overalt, hvor du sætter et budget.
 
@@ -840,7 +840,7 @@ Det daglige par bærer kun `projectId`: dets tal er projektets, og intet i et da
 
 - Ingen upload er talt endnu i dag, eller denne måned for det månedlige par — for eksempel mellem 00:00 UTC og dagens første upload.
 - Forbrugstællerne kan ikke læses fra Valkey. Et ukendt tal skrives aldrig som 0, ligesom siden Health viser **ukendt** i stedet for 0. Åbne alarmer løses, så snart deres vindue ikke indeholder noget punkt, og åbner igen, med en ny underretning, når tællerne kan læses, og budgettet stadig er over tærsklen.
-- Sessionsafspilning er slået fra for applikationen (**Replay Policy**) eller for hele projektet (**Overvågning af reelle brugere → Indstillinger → Sessionsafspilning**).
+- Sessionsafspilning er slået fra for applikationen (**Afspilningspolitik**) eller for hele projektet (**Overvågning af reelle brugere → Indstillinger → Sessionsafspilning**).
 - Applikationen har aldrig optaget en afspilning.
 - Applikationen har intet månedligt budget: intet tælles mod et budget, der ikke er sat, så der er slet intet månedligt par. At fjerne budgettet gør dets månedlige monitorer tavse, og det månedlige tal tæller kun uploads, der foretages, mens et budget er sat: et, der sættes første gang midt i måneden, tæller fra det øjeblik, ikke fra den 1., mens et, der fjernes og sættes igen i den samme måned, fortsætter månedens tidligere optælling.
 
@@ -859,7 +859,7 @@ Det daglige par bærer kun `projectId`: dets tal er projektets, og intet i et da
 
 ## Ydelsesudløsere for optagelse
 
-Under standardudløseren _Always_ uploades hver samplet session, så disse budgetter ændrer intet ved, hvad der optages — de markerer kun de hændelser, der overskred dem, på tidslinjen og på fanen **Ydeevne**. Når udløseren er _On error or frustration_, udvider de udløserne til sessioner, der blot var *langsomme*. Sæt dem på siden **Replay Policy**, på trinnet **Ydeevne og sporing** i **Rediger politik**:
+Under standardudløseren _Always_ uploades hver samplet session, så disse budgetter ændrer intet ved, hvad der optages — de markerer kun de hændelser, der overskred dem, på tidslinjen og på fanen **Ydeevne**. Når udløseren er _On error or frustration_, udvider de udløserne til sessioner, der blot var *langsomme*. Sæt dem på siden **Afspilningspolitik**, på trinnet **Ydeevne og sporing** i **Rediger politik**:
 
 | Budget | Går af, når | Foreslået udgangspunkt |
 | --- | --- | --- |
@@ -888,7 +888,7 @@ Når en navngiven kunde rapporterer et problem, du ikke kan genskabe, så aktiv�
 :::steps
 ### Åbn politikken
 
-Åbn applikationens side **Replay Policy**, og find **Record a specific user's next session**.
+Åbn applikationens side **Afspilningspolitik**, og find **Record a specific user's next session**.
 
 ### Aktivér målet
 
@@ -1069,7 +1069,7 @@ Under standardudløseren _Always_ sender en fungerende side en chunk omtrent hve
 
 To ting fortæller dig, hvilken af dem du har foran dig:
 
-- **Fra serversiden** applikationens side **Sundhed** (se [Optagelsesstatus](#optagelsesstatus)) og panelet **Test your installation** på **Replay Policy**.
+- **Fra serversiden** applikationens side **Sundhed** (se [Optagelsesstatus](#optagelsesstatus)) og panelet **Test your installation** på **Afspilningspolitik**.
 - **Fra browsersiden** optagerens egen diagnostik. Slå den til, og genindlæs:
 
   ```js

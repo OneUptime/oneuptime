@@ -43,7 +43,7 @@ Sessionsuppspelning är påslagen som standard. Dess inställningar finns på tr
 
 | Var | Vad som finns där |
 | --- | --- |
-| Applikationens sida **Replay Policy** | Policyn (inspelning, maskering, samtycke, spårning och gränser), en sammanfattning av **Inspelningens hälsa**, kortet **Vad en inspelning innehåller**, panelen **Test your installation** och **Record a specific user's next session**. |
+| Applikationens sida **Uppspelningspolicy** | Policyn (inspelning, maskering, samtycke, spårning och gränser), en sammanfattning av **Inspelningens hälsa**, kortet **Vad en inspelning innehåller**, panelen **Test your installation** och **Record a specific user's next session**. |
 | Applikationens sida **Hälsa** | Om inspelningar kommer in, och varför inte när de inte gör det. Se [Inspelningsstatus](#inspelningsstatus). |
 | **Övervakning av verkliga användare → Inställningar → Sessionsuppspelning** | Brytaren för hela projektet som stoppar alla applikationer på en gång, och en skrivskyddad lista över varje applikations policy. |
 
@@ -290,7 +290,7 @@ copy(JSON.stringify(OneUptimeReplay.getDiagnostics(), null, 2));
 
 ## Integritet
 
-**Maskering sker vid inspelningen, på slutanvändarens enhet, innan något laddas upp.** Servern tar aldrig emot det som maskerades, så ett maskeringsbeslut kan inte ångras i efterhand och inte heller tillämpas retroaktivt. På webben beror det som maskeras på läget; React Native skickar alltid den striktare trådmodellsstrukturen som beskrivs i [Integritet och maskering i React Native](#integritet-och-maskering-i-react-native). Kortet **Vad en inspelning innehåller** på applikationens sida **Replay Policy** formulerar om de här besluten till vanliga meningar för det du har konfigurerat.
+**Maskering sker vid inspelningen, på slutanvändarens enhet, innan något laddas upp.** Servern tar aldrig emot det som maskerades, så ett maskeringsbeslut kan inte ångras i efterhand och inte heller tillämpas retroaktivt. På webben beror det som maskeras på läget; React Native skickar alltid den striktare trådmodellsstrukturen som beskrivs i [Integritet och maskering i React Native](#integritet-och-maskering-i-react-native). Kortet **Vad en inspelning innehåller** på applikationens sida **Uppspelningspolicy** formulerar om de här besluten till vanliga meningar för det du har konfigurerat.
 
 Policyns integritetsinställningar, med det namn som **Redigera policy** ger dem:
 
@@ -333,7 +333,7 @@ Sessionsuppspelning fungerar direkt med en tom lista över tillåtna ursprung, s
 Din intagningstoken lämnas ut till klienten — i sidans JavaScript eller i mobilappens binärfil — så det finns två grindar, och de kombineras:
 
 - **På nyckeln.** Skapa intagningsnyckeln med **Webbläsare** som **Nyckeltyp**. För webben anger du dess **Tillåtna ursprung** (`https://app.example.com`, eller `https://*.example.com` för en underdomännivå). För React Native lägger du till appens exakta identitet som `app://com.example.storefront`. Ge också nyckeln ett **Upphör**: då slutar en kopierad token att fungera på ett datum som du väljer, i stället för aldrig.
-- **På applikationen.** **Replay Policy → Tillåtna ursprung** begränsar vem som kan skriva inspelningar till den här applikationen, oavsett vilken nyckel som visas. Lägg till samma webbursprung och de exakta mobila `app://`-identiteterna här.
+- **På applikationen.** **Uppspelningspolicy → Tillåtna ursprung** begränsar vem som kan skriva inspelningar till den här applikationen, oavsett vilken nyckel som visas. Lägg till samma webbursprung och de exakta mobila `app://`-identiteterna här.
 
 En `app://`-post är det bokstavliga prefixet plus det normaliserade Android-applikations-ID:t eller den iOS-bundle-identifierare som tillhandahålls som `mobileAppIdentifier`. Jämförelsen skiljer inte på stora och små bokstäver, efter att blanksteg har tagits bort och en giltig reverse-DNS-identifierare har gjorts om till gemener. Mobila identiteter accepterar **inte** jokertecken: `app://*.example.com` är ogiltigt. Mobil-SDK:t skickar inget webbläsar-`Origin`; det skickar sin inspelartyp och appens identitet i egna huvuden. Om en förfrågan bär ett riktigt `Origin` vinner alltid det ursprunget — de mobila huvudena kan aldrig användas för att kringgå webbläsarens ursprungskontroll.
 
@@ -370,7 +370,7 @@ Maskerade värden bevarar inte längden. Ett maskerat fält är en platshållare
 <div class="oneuptime-ignore">...</div>
 ```
 
-Du kan också lägga till **Ytterligare maskeringsväljare** och **Blockeringsväljare** på din applikations sida **Replay Policy**, utan att ändra din markup. Med standardläget för maskering är de det främsta verktyget för att skydda innehåll som din markup inte deklarerar som känsligt.
+Du kan också lägga till **Ytterligare maskeringsväljare** och **Blockeringsväljare** på din applikations sida **Uppspelningspolicy**, utan att ändra din markup. Med standardläget för maskering är de det främsta verktyget för att skydda innehåll som din markup inte deklarerar som känsligt.
 
 ### Vad dina egna förfrågningar bär
 
@@ -387,7 +387,7 @@ tracestate:  oneuptime=sid:<32 hex session id>;p:<16 hex parent id>
 - **Vad det kopplar.** Ett span, en logg eller ett undantag från backend som nämner användaren (ett attribut `enduser.id`, en e-postadress i en loggrad) är nu ett klick från inspelningen, även med **Registrera slutanvändarens identitet** avstängd: den brytaren avgör vad inspelningen behåller, inte vad din backend loggar. Om inspelningar inte får kunna kopplas till vem användaren var stänger du också av **Spårvidarebefordran från samma ursprung**.
 - **Vem som kan påstå det.** Som all spårningskontext skrivs medlemmen av klienten. Någon som kände till ett sessions-ID skulle kunna skicka det till ditt API och få spans från sina egna förfrågningar arkiverade under den sessionen. Sessions-ID:n är slumpmässiga värden på 128 bitar, så hen skulle först behöva ID:t. Detsamma gäller spåret som en klient nämner: en förfrågan som skickar en `traceparent` från ett spår som den känner till, tillsammans med medlemmen för sin egen session, drar in det spårets backend-rader i sin sessions panel och inom räckvidden för den sessionens radering. Radering tar bara bort ett helt spår när det enbart tillhör de raderade sessionerna; från ett spår som delas med andra sessioner tar den bara bort de rader som är märkta med de raderade ID:na (se [Radera sessioner](#radera-sessioner)).
 
-Stäng av det per applikation med **Spårvidarebefordran från samma ursprung** på sidan **Replay Policy**; se [Stäng av automatisk koppling](#stäng-av-automatisk-koppling).
+Stäng av det per applikation med **Spårvidarebefordran från samma ursprung** på sidan **Uppspelningspolicy**; se [Stäng av automatisk koppling](#stäng-av-automatisk-koppling).
 
 ### Samtycke
 
@@ -438,7 +438,7 @@ Om du driftar OneUptime själv använder du din egen värd i stället.
 
 En sak till som hör ihop med CSP, och som gäller formatmallar och inte din policy: inspelaren kan bara behålla en formatmall som den kan läsa. En formatmall från ett annat ursprung kan bara läsas när dess server skickar ett huvud `Access-Control-Allow-Origin` som tillåter din webbplats, **och** din `<link>` bär `crossorigin="anonymous"`. Annars behåller inspelningen bara adressen, och uppspelningen laddar den därifrån i tittarens webbläsare; se [Bilder, stilar och typsnitt under uppspelning](#bilder-stilar-och-typsnitt-under-uppspelning). Lägg bara till attributet när huvudet finns på plats: `crossorigin` utan huvudet får din egen sida att avvisa formatmallen.
 
-Använd panelen **Test your installation** på applikationens sida **Replay Policy** för att bekräfta token, policyns brytare och listorna över tillåtna ursprung från serversidan. Den kan inte kontrollera din CSP: en CSP är ett huvud som din egen webbplats skickar till dina egna besökare, och ingenting på serversidan ser den någonsin. En CSP-blockering visar sig där bara indirekt: `script-src` blockerar inspelaren, så panelens rad _Recorder loaded on your site_ fortsätter att vänta; `connect-src` blockerar uppladdningen, så den raden godkänns medan raden för den mottagna inspelningen under den fortsätter att vänta. I båda fallen loggar webbläsarkonsolen på den blockerade sidan avvisningen, och det är det enda positiva beviset.
+Använd panelen **Test your installation** på applikationens sida **Uppspelningspolicy** för att bekräfta token, policyns brytare och listorna över tillåtna ursprung från serversidan. Den kan inte kontrollera din CSP: en CSP är ett huvud som din egen webbplats skickar till dina egna besökare, och ingenting på serversidan ser den någonsin. En CSP-blockering visar sig där bara indirekt: `script-src` blockerar inspelaren, så panelens rad _Recorder loaded on your site_ fortsätter att vänta; `connect-src` blockerar uppladdningen, så den raden godkänns medan raden för den mottagna inspelningen under den fortsätter att vänta. I båda fallen loggar webbläsarkonsolen på den blockerade sidan avvisningen, och det är det enda positiva beviset.
 
 ## Korrelera med resten av din telemetri
 
@@ -466,7 +466,7 @@ Spelarens flikar **Loggar**, **Spår** och **Fel** visar sedan de raderna på in
 
 ### API:er på ett annat ursprung
 
-En förfrågan till ett annat ursprung får ingenting som standard: att lägga till ett huvud, vilket som helst, gör en enkel förfrågan mellan ursprung till en med preflight, och ett API som inte tillåter huvudet skulle börja misslyckas för att du installerade en inspelare. För att koppla ett lägger du till ursprunget i **Ursprung för spårvidarebefordran** på sidan **Replay Policy**, i steget **Prestanda och spårning** i **Redigera policy**. Ange bara ett ursprung vars API tillåter `traceparent` i `Access-Control-Allow-Headers`; det är hela anledningen till att det är en uttrycklig lista.
+En förfrågan till ett annat ursprung får ingenting som standard: att lägga till ett huvud, vilket som helst, gör en enkel förfrågan mellan ursprung till en med preflight, och ett API som inte tillåter huvudet skulle börja misslyckas för att du installerade en inspelare. För att koppla ett lägger du till ursprunget i **Ursprung för spårvidarebefordran** på sidan **Uppspelningspolicy**, i steget **Prestanda och spårning** i **Redigera policy**. Ange bara ett ursprung vars API tillåter `traceparent` i `Access-Control-Allow-Headers`; det är hela anledningen till att det är en uttrycklig lista.
 
 Förfrågningar till ett ursprung på listan får bara en `traceparent`, ingen `tracestate` och därför inget sessions-ID, och deras backend-telemetri matchas med inspelningen **via spår-ID**, genom de spår-ID:n som inspelningen observerade. Förfrågningar som redan bär en `traceparent`, och `fetch`-anrop med ett `Request`-objekt i stället för en URL, påverkas inte på den här vägen.
 
@@ -519,7 +519,7 @@ Ett spår som din backend sedan kastar når aldrig OneUptime, så det kopplas in
 
 ### Stäng av automatisk koppling
 
-**Spårvidarebefordran från samma ursprung**, på sidan **Replay Policy** bredvid **Ursprung för spårvidarebefordran**, är påslagen som standard för varje applikation. Avstängd lägger inspelaren inte till något i förfrågningar till samma ursprung från nästa sidladdning, och **Ursprung för spårvidarebefordran** fortsätter att fungera som tidigare för varje ursprung som den innehåller. Så om du har lagt ditt eget ursprung där (tidigare versioner av den här sidan sa att du skulle göra det) tar du bort det också, annars fortsätter dina egna förfrågningar att få en `traceparent`. Med diagnostik påslagen säger inspelaren vid start vilken som gäller: `same-origin-propagation`, med `enabled` och en `reason` (se [Felsökning av sessionsuppspelning](/docs/rum/session-replay-troubleshooting#koder)).
+**Spårvidarebefordran från samma ursprung**, på sidan **Uppspelningspolicy** bredvid **Ursprung för spårvidarebefordran**, är påslagen som standard för varje applikation. Avstängd lägger inspelaren inte till något i förfrågningar till samma ursprung från nästa sidladdning, och **Ursprung för spårvidarebefordran** fortsätter att fungera som tidigare för varje ursprung som den innehåller. Så om du har lagt ditt eget ursprung där (tidigare versioner av den här sidan sa att du skulle göra det) tar du bort det också, annars fortsätter dina egna förfrågningar att få en `traceparent`. Med diagnostik påslagen säger inspelaren vid start vilken som gäller: `same-origin-propagation`, med `enabled` och en `reason` (se [Felsökning av sessionsuppspelning](/docs/rum/session-replay-troubleshooting#koder)).
 
 ### Omdirigeringar till ett annat ursprung
 
@@ -781,12 +781,12 @@ Tryck på `?` i spelaren för den här listan. Kortkommandon utlöses aldrig med
 
 ## Inspelningsstatus
 
-Applikationens sida **Hälsa**, i avsnittet **Sessionsuppspelning** i sidomenyn, svarar från serversidan på «spelas något in, och om inte, varför?», och sidan **Replay Policy** upprepar diagnosen på en rad ovanför policyn. Diagnosen nämner en orsak, sätter en siffra på den och erbjuder en åtgärd; den säger aldrig «disconnected» utan en anledning. Tillstånden, i den ordning som de kontrolleras:
+Applikationens sida **Hälsa**, i avsnittet **Sessionsuppspelning** i sidomenyn, svarar från serversidan på «spelas något in, och om inte, varför?», och sidan **Uppspelningspolicy** upprepar diagnosen på en rad ovanför policyn. Diagnosen nämner en orsak, sätter en siffra på den och erbjuder en åtgärd; den säger aldrig «disconnected» utan en anledning. Tillstånden, i den ordning som de kontrolleras:
 
 | Tillstånd | Vad det betyder | Vad du gör |
 | --- | --- | --- |
 | `disabled-project` | Huvudbrytaren för hela projektet är avstängd. | Slå på den under **Övervakning av verkliga användare → Inställningar → Sessionsuppspelning**. |
-| `disabled-app` | Sessionsuppspelning är avstängd för den här applikationen. | Slå på den under **Replay Policy**. |
+| `disabled-app` | Sessionsuppspelning är avstängd för den här applikationen. | Slå på den under **Uppspelningspolicy**. |
 | `budget-paused` | Applikationens månadsbudget eller driftsättningens dagliga bytegräns är förbrukad; aktiva inspelare har fått besked om att stoppa. | Höj budgeten, eller vänta till nästa dag / månad. Ställ in [aviseringar för lagringsbudgeten](#aviseringar-för-lagringsbudgeten) för att få veta det innan det händer. |
 | `refusing` | Uppladdningar kommer in och avvisas — diagnosen anger den viktigaste orsaken och antalet under de senaste 24 timmarna, till exempel `origin-not-allowed` (212 uppladdningar från ett ursprung som inte finns bland dina tillåtna ursprung) eller `not-sampled`. | Följ orsaken: redigera de tillåtna ursprungen, höj samplingsprocenten och så vidare. |
 | `never-loaded` | Ingen webbläsare har någonsin hämtat den här applikationens policy. Skripttaggen finns inte på sidan, eller så stämmer inte identifieraren. | Installationsguiden på applikationens sida **Dokumentation**, i avsnittet **Sessionsuppspelning**, leder dig igenom det. |
@@ -811,7 +811,7 @@ De två lagringsbudgetarna — projektets dagliga uppladdningsgräns och en appl
 | **Session Replay Monthly Budget Nearly Spent** | Varning | Applikationen har använt 80 % av sin månadsbudget. |
 | **Session Replay Monthly Budget Spent** | Kritisk | Applikationens månadsbudget är förbrukad: inspelarna har fått besked om att stoppa till den 1:a nästa månad (UTC) eller tills budgeten höjs. |
 
-Så länge sessionsuppspelning är påslagen för applikationen erbjuds det dagliga paret så snart den har spelat in en uppspelning, och månadsparet så snart den också har en **Månadsbudget (GB)** på sidan **Replay Policy**; saknas något av dem på en applikation där du använder sessionsuppspelning säger fliken varför. Så snart det dagliga paret erbjuds öppnar **Konfigurera larm** i panelen **Storage budget** på sidan **Hälsa** fliken filtrerad på budgetaviseringarna, inklusive de som du redan har skapat. Varje avisering som du skapar är en vanlig metrikövervakning på applikationen, och incidenten och aviseringen som den öppnar säger vad du ska göra. För att få en budget att räcka längre sänker du **Samplingsprocent**, laddar bara upp _On error or frustration_ eller begränsar **Tillåtna ursprung** på **Replay Policy** — var och en av dem stoppar en uppladdning innan den räknas — eller höjer **Månadsbudget (GB)**. Den dagliga gränsen kan inte höjas från instrumentpanelen; på en installation i egen drift är den `SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY` (se [Anteckningar om egen drift](#anteckningar-om-egen-drift)).
+Så länge sessionsuppspelning är påslagen för applikationen erbjuds det dagliga paret så snart den har spelat in en uppspelning, och månadsparet så snart den också har en **Månadsbudget (GB)** på sidan **Uppspelningspolicy**; saknas något av dem på en applikation där du använder sessionsuppspelning säger fliken varför. Så snart det dagliga paret erbjuds öppnar **Konfigurera larm** i panelen **Storage budget** på sidan **Hälsa** fliken filtrerad på budgetaviseringarna, inklusive de som du redan har skapat. Varje avisering som du skapar är en vanlig metrikövervakning på applikationen, och incidenten och aviseringen som den öppnar säger vad du ska göra. För att få en budget att räcka längre sänker du **Samplingsprocent**, laddar bara upp _On error or frustration_ eller begränsar **Tillåtna ursprung** på **Uppspelningspolicy** — var och en av dem stoppar en uppladdning innan den räknas — eller höjer **Månadsbudget (GB)**. Den dagliga gränsen kan inte höjas från instrumentpanelen; på en installation i egen drift är den `SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY` (se [Anteckningar om egen drift](#anteckningar-om-egen-drift)).
 
 **En daglig övervakning täcker projektet.** Den dagliga gränsen tillhör projektet, inte en applikation: alla applikationer använder av den tillsammans, och varje applikation som spelar in bär projektets siffra, så det dagliga paret erbjuds på var och en av dem, och en daglig övervakning på vilken som helst av dem täcker dem alla. Skapa det dagliga paret på en applikation, en som håller sessionsuppspelning påslagen (dess övervakning ser bara de punkter som skrivs för den applikationen), och avfärda de dagliga korten på de andra; annars ger en förbrukad dag en avisering per applikation. Månadsparet tillhör varje applikation: skapa det överallt där du sätter en budget.
 
@@ -840,7 +840,7 @@ Det dagliga paret bär bara `projectId`: siffran är projektets, och ingenting i
 
 - Ingen uppladdning har räknats än i dag, eller den här månaden för månadsparet — till exempel mellan 00:00 UTC och dagens första uppladdning.
 - Användningsräknarna kan inte läsas från Valkey. En okänd siffra skrivs aldrig som 0, precis som sidan Health visar **okänd** i stället för 0. Öppna aviseringar löses så snart deras fönster inte innehåller någon punkt, och öppnas igen, med ny avisering, när räknarna kan läsas och budgeten fortfarande är över tröskeln.
-- Sessionsuppspelning är avstängd för applikationen (**Replay Policy**) eller för hela projektet (**Övervakning av verkliga användare → Inställningar → Sessionsuppspelning**).
+- Sessionsuppspelning är avstängd för applikationen (**Uppspelningspolicy**) eller för hela projektet (**Övervakning av verkliga användare → Inställningar → Sessionsuppspelning**).
 - Applikationen har aldrig spelat in en uppspelning.
 - Applikationen har ingen månadsbudget: ingenting räknas mot en budget som inte är satt, så det finns inget månadspar alls. Att ta bort budgeten gör månadsövervakningarna tysta, och månadssiffran räknar bara uppladdningar som görs medan en budget är satt: en som sätts för första gången mitt i månaden räknar från det ögonblicket, inte från den 1:a, medan en som tas bort och sätts igen under samma månad fortsätter månadens tidigare räkning.
 
@@ -859,7 +859,7 @@ Det dagliga paret bär bara `projectId`: siffran är projektets, och ingenting i
 
 ## Prestandautlösare för inspelning
 
-Under standardutlösaren _Always_ laddas varje samplad session upp, så de här budgetarna ändrar ingenting i vad som spelas in — de markerar bara händelserna som överskred dem, på tidslinjen och på fliken **Prestanda**. När utlösaren är _On error or frustration_ utvidgar de utlösarna till sessioner som bara var *långsamma*. Ställ in dem på sidan **Replay Policy**, i steget **Prestanda och spårning** i **Redigera policy**:
+Under standardutlösaren _Always_ laddas varje samplad session upp, så de här budgetarna ändrar ingenting i vad som spelas in — de markerar bara händelserna som överskred dem, på tidslinjen och på fliken **Prestanda**. När utlösaren är _On error or frustration_ utvidgar de utlösarna till sessioner som bara var *långsamma*. Ställ in dem på sidan **Uppspelningspolicy**, i steget **Prestanda och spårning** i **Redigera policy**:
 
 | Budget | Slår till när | Föreslagen utgångspunkt |
 | --- | --- | --- |
@@ -888,7 +888,7 @@ När en namngiven kund rapporterar ett problem som du inte kan återskapa aktive
 :::steps
 ### Öppna policyn
 
-Öppna applikationens sida **Replay Policy** och leta upp **Record a specific user's next session**.
+Öppna applikationens sida **Uppspelningspolicy** och leta upp **Record a specific user's next session**.
 
 ### Aktivera målet
 
@@ -1069,7 +1069,7 @@ Under standardutlösaren _Always_ skickar en fungerande sida en chunk ungefär v
 
 Två saker säger vilken av dem du har framför dig:
 
-- **Från serversidan** applikationens sida **Hälsa** (se [Inspelningsstatus](#inspelningsstatus)) och panelen **Test your installation** på **Replay Policy**.
+- **Från serversidan** applikationens sida **Hälsa** (se [Inspelningsstatus](#inspelningsstatus)) och panelen **Test your installation** på **Uppspelningspolicy**.
 - **Från webbläsarsidan** inspelarens egen diagnostik. Slå på den och ladda om:
 
   ```js
