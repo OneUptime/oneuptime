@@ -4,6 +4,8 @@ import {
   assembleSnapshot,
   readCount,
   readMySqlKind,
+  readRedshiftKind,
+  readRedshiftSize,
   readPostgresKind,
   readSqlServerKind,
   TableHealthSnapshot,
@@ -91,6 +93,18 @@ describe("kind readers", () => {
     expect(readSqlServerKind("U ")).toBe(DataAssetKind.Table);
     expect(readSqlServerKind("V")).toBe(DataAssetKind.View);
     expect(readSqlServerKind("P")).toBeNull();
+  });
+
+  test("Redshift's tables and views; external tables and the rest are not watched", () => {
+    expect(readRedshiftKind("BASE TABLE")).toBe(DataAssetKind.Table);
+    expect(readRedshiftKind("view")).toBe(DataAssetKind.View);
+    expect(readRedshiftKind("EXTERNAL TABLE")).toBeNull();
+  });
+
+  test("Redshift counts sizes in 1 MB blocks", () => {
+    expect(readRedshiftSize(3)).toBe(3 * 1024 * 1024);
+    expect(readRedshiftSize("12")).toBe(12 * 1024 * 1024);
+    expect(readRedshiftSize(null)).toBeNull();
   });
 });
 

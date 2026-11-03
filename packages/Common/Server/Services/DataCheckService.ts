@@ -17,7 +17,7 @@ import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
-import { getDatabaseEngineOfKind } from "../Utils/DataSecurity/DataSecurityProbeScan";
+import { getCollectorEngineOfKind } from "../Utils/DataObservability/DataObservabilityEngines";
 import {
   DataCheckDraft,
   validateDataCheck,
@@ -217,7 +217,7 @@ export class Service extends ProjectReferencesService<Model> {
       select: { _id: true, kind: true },
       props: { isRoot: true },
     });
-    const engine: string = getDatabaseEngineOfKind(store?.kind) || "";
+    const engine: string = getCollectorEngineOfKind(store?.kind) || "";
     const referenced: Map<string, Array<DataAssetColumn>> = new Map();
 
     if (draft.referenceTableKey) {

@@ -387,6 +387,7 @@ const ADAPTER_SCHEMES: Readonly<Record<string, string>> = {
   mysql: "mysql",
   mariadb: "mysql",
   sqlserver: "sqlserver",
+  redshift: "redshift",
 };
 
 /*

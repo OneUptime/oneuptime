@@ -15,7 +15,6 @@ import {
   DataAssetReadTracking,
   noteObservedRead,
 } from "../../../Types/DataObservability/DataAssetReads";
-import { DataStoreKind } from "../../../Types/DataSecurity/DataStoreKind";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import ServiceType from "../../../Types/Telemetry/ServiceType";
@@ -34,6 +33,7 @@ import {
 import { getClickhouseDatabaseName } from "../AnalyticsDatabase/ClusterConfig";
 import logger from "../Logger";
 import { readTableHealthTarget, TableHealthTarget } from "./TableHealthTarget";
+import { DATA_OBSERVABILITY_KINDS } from "./DataObservabilityEngines";
 import {
   matchSpanTableUsage,
   SpanTableUsageRow,
@@ -277,11 +277,7 @@ export default class TableUsageDiscovery {
         projectId,
         isArchived: false,
         isTableHealthEnabled: true,
-        kind: new Includes([
-          DataStoreKind.PostgreSql,
-          DataStoreKind.MySql,
-          DataStoreKind.SqlServer,
-        ]),
+        kind: new Includes([...DATA_OBSERVABILITY_KINDS]),
       },
       select: { _id: true, kind: true, tableHealthTarget: true },
       skip: 0,

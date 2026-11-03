@@ -47,6 +47,7 @@ const KIND_OPTIONS: Array<DropdownOption> = [
   { value: DataStoreKind.PostgreSql, label: "PostgreSQL" },
   { value: DataStoreKind.MySql, label: "MySQL or MariaDB" },
   { value: DataStoreKind.SqlServer, label: "SQL Server" },
+  { value: DataStoreKind.AwsRedshiftCluster, label: "Amazon Redshift" },
 ];
 
 /*
@@ -176,7 +177,7 @@ const ConnectDatabaseModal: FunctionComponent<ComponentProps> = (
             title: "Connection String",
             stepId: CONNECTION_STEP_ID,
             description:
-              "For example postgres://reader:password@db.internal:5432/orders.",
+              "For example postgres://reader:password@db.internal:5432/orders, or for Redshift postgres://reader:password@cluster.abc123.us-east-1.redshift.amazonaws.com:5439/dev?sslmode=require.",
             fieldType: FormFieldSchemaType.Password,
             required: (values: FormValues<JSONObject>): boolean => {
               return (
