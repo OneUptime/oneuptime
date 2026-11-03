@@ -164,6 +164,9 @@ const SecurityEventsRoutes: LazyRoutes = lazy(() => {
 const DataSecurityRoutes: LazyRoutes = lazy(() => {
   return import("./Routes/DataSecurityRoutes");
 });
+const DataObservabilityRoutes: LazyRoutes = lazy(() => {
+  return import("./Routes/DataObservabilityRoutes");
+});
 const MetricsRoutes: LazyRoutes = lazy(() => {
   return import("./Routes/MetricsRoutes");
 });
@@ -815,6 +818,12 @@ const App: () => JSX.Element = () => {
             <PageRoute
               path={RouteMap[PageMap.DATA_SECURITY_ROOT]?.toString() || ""}
               element={<DataSecurityRoutes {...commonPageProps} />}
+            />
+
+            {/* Data Observability */}
+            <PageRoute
+              path={RouteMap[PageMap.DATA_OBSERVABILITY_ROOT]?.toString() || ""}
+              element={<DataObservabilityRoutes {...commonPageProps} />}
             />
 
             {/* Metrics */}

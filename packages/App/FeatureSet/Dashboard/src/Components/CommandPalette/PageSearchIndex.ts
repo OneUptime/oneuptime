@@ -2488,6 +2488,72 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
     ],
   },
   {
+    id: "data-observability",
+    title: "Data Observability",
+    productPage: PageMap.DATA_OBSERVABILITY_OVERVIEW,
+    icon: IconProp.TableCells,
+    iconColor: "cyan",
+    // The menu's sections and their pages. A table's pages need the record, so they are not here.
+    sections: [
+      {
+        title: "Data Observability",
+        pages: [
+          {
+            page: PageMap.DATA_OBSERVABILITY_OVERVIEW,
+            title: "Overview",
+            icon: IconProp.Home,
+            keywords: ["data health", "late tables", "stale data"],
+          },
+          {
+            page: PageMap.DATA_OBSERVABILITY_TABLES,
+            title: "Tables",
+            icon: IconProp.TableCells,
+            keywords: [
+              "data catalog",
+              "row counts",
+              "table sizes",
+              "freshness",
+            ],
+          },
+          {
+            page: PageMap.DATA_OBSERVABILITY_SCHEMA_CHANGES,
+            title: "Schema Changes",
+            icon: IconProp.List,
+            keywords: ["columns added", "columns removed", "schema drift"],
+          },
+          {
+            page: PageMap.DATA_OBSERVABILITY_STORES,
+            title: "Databases",
+            icon: IconProp.Database,
+            keywords: ["connect a database", "collect now"],
+          },
+        ],
+      },
+      {
+        title: "Help",
+        pages: [
+          {
+            page: PageMap.DATA_OBSERVABILITY_DOCUMENTATION,
+            title: "Documentation",
+            icon: IconProp.Book,
+            keywords: ["read-only login", "probe", "metrics"],
+          },
+        ],
+      },
+      {
+        title: "Advanced",
+        pages: [
+          {
+            page: PageMap.DATA_OBSERVABILITY_TABLES_DROPPED,
+            title: "Dropped Tables",
+            icon: IconProp.Archive,
+            keywords: ["deleted tables", "gone tables"],
+          },
+        ],
+      },
+    ],
+  },
+  {
     id: "ai-insights",
     title: "Insights",
     productPage: PageMap.AI_INSIGHTS,
