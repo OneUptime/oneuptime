@@ -1018,6 +1018,25 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Utils/Workspace/MicrosoftTeamsGroupChatNamesPostgres.test.ts --forceExit
 
+      # Clones the migrated WorkspaceHomeChoice table (with its unique index)
+      # into an isolated schema and runs WorkspaceHomeChoiceService against
+      # it: the project somebody last chose for their Slack or Microsoft
+      # Teams Home. A choice made again stays one row, choices of one project
+      # made at once leave one row and throw nothing, the newest choice is
+      # read among the projects asked about, chats and accounts are kept
+      # apart - and the migrated table is removed with its project.
+      - name: Test the chat Homes' project choices on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_WORKSPACE_HOME_CHOICE_TESTS: "true"
+          WORKSPACE_HOME_CHOICE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          WORKSPACE_HOME_CHOICE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          WORKSPACE_HOME_CHOICE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/WorkspaceHomeChoicePostgres.test.ts --forceExit
+
       # Clones the migrated TeamComplianceSetting table and its two severity
       # join tables (with their migrated foreign keys) into an isolated schema.
       # Rules scoped by severity and channel must land as join rows whatever
