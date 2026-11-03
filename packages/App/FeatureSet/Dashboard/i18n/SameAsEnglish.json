@@ -53,6 +53,7 @@
   "DaemonSet",
   "DaemonSets",
   "Debian / Ubuntu",
+  "DeploymentConfig",
   "Docker",
   "Docker Swarm",
   "Docker {{version}}",

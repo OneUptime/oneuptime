@@ -38,6 +38,47 @@ import {
   ToolExecutionResult,
 } from "./ToolTypes";
 import { translationKey } from "../../../../Types/Translator";
+import {
+  AI_ACTION_TITLES,
+  AIActionSentence,
+  aiActionSentence,
+} from "../../../../Types/AI/AIActionWords";
+import {
+  getRecordTitleName,
+  prepareRecordNamesInTitle,
+  RecordNames,
+} from "./RecordNamesForPerson";
+
+/*
+ * start_investigation's card title: its incident or alert by its number
+ * once read, else by its ID.
+ */
+function buildStartInvestigationTitle(
+  args: JSONObject,
+  names: RecordNames,
+): AIActionSentence {
+  const incident: string | undefined = getRecordTitleName(
+    args,
+    names,
+    "incidentId",
+  );
+
+  if (incident) {
+    return aiActionSentence(AI_ACTION_TITLES.startIncidentInvestigation, {
+      incident,
+    });
+  }
+
+  const alert: string | undefined = getRecordTitleName(args, names, "alertId");
+
+  if (alert) {
+    return aiActionSentence(AI_ACTION_TITLES.startAlertInvestigation, {
+      alert,
+    });
+  }
+
+  return aiActionSentence(AI_ACTION_TITLES.startInvestigation);
+}
 
 /*
  * AI meta tools — make the chat aware of OneUptime's OTHER AI lanes.
@@ -756,22 +797,14 @@ export const StartInvestigationTool: ObservabilityTool = {
     return resolveStartInvestigationPermissions();
   },
   isMutation: true,
-  buildActionTitle: (args: JSONObject): string => {
-    const incidentId: string | undefined = ToolArgs.getString(
-      args,
-      "incidentId",
-    );
-    if (incidentId) {
-      return `Start AI investigation for incident ${incidentId}`;
-    }
-
-    const alertId: string | undefined = ToolArgs.getString(args, "alertId");
-    if (alertId) {
-      return `Start AI investigation for alert ${alertId}`;
-    }
-
-    return "Start AI investigation";
+  buildActionTitle: (args: JSONObject): AIActionSentence => {
+    return buildStartInvestigationTitle(args, {});
   },
+  // The incident or alert by its number, as the person knows it.
+  prepareMutation: prepareRecordNamesInTitle({
+    keys: ["incidentId", "alertId"],
+    buildTitle: buildStartInvestigationTitle,
+  }),
   execute: async (
     args: JSONObject,
     ctx: ToolContext,
