@@ -189,7 +189,9 @@ describe("which metrics are request metrics", () => {
   test("every metric a finding asks for, and the collector step records, ends the finding", () => {
     for (const protocol of METRIC_INSIGHT_SERVED_PROTOCOLS) {
       expect(
-        isRequestMetricName(METRIC_INSIGHT_REQUEST_METRIC_BY_PROTOCOL[protocol]),
+        isRequestMetricName(
+          METRIC_INSIGHT_REQUEST_METRIC_BY_PROTOCOL[protocol],
+        ),
       ).toBe(true);
     }
 
@@ -272,9 +274,9 @@ describe("what a service serves", () => {
     expect(METRIC_INSIGHT_MIN_SERVED_SPANS).toBe(100);
     expect(METRIC_INSIGHT_SERVED_SPAN_SAMPLE_SIZE).toBe(1000);
 
-    expect(readServedProtocols(served({ httpServerSpanCount: 100 }))).toEqual(
-      [MetricServedProtocol.Http],
-    );
+    expect(readServedProtocols(served({ httpServerSpanCount: 100 }))).toEqual([
+      MetricServedProtocol.Http,
+    ]);
     expect(readServedProtocols(served({ httpServerSpanCount: 99 }))).toEqual(
       [],
     );
@@ -406,7 +408,11 @@ describe("pickServicesMissingRequestMetrics", () => {
         volume("job.8812.duration", CHECKOUT, 900),
         volume("job.8813.duration", CHECKOUT, 800),
         volume("Runtime.Uptime", CHECKOUT, 60),
-        volume("job.6f1c2d3e-4a5b-4c6d-8e7f-001122334455.duration", CHECKOUT, 10),
+        volume(
+          "job.6f1c2d3e-4a5b-4c6d-8e7f-001122334455.duration",
+          CHECKOUT,
+          10,
+        ),
       ],
     });
 
@@ -690,7 +696,10 @@ describe("the Missing Request Metrics finding", () => {
 
   test("what OneUptime asks the AI for: the request metrics, their attributes, and leave to change nothing", () => {
     expect(
-      getMetricFixRequestTitle({ evidence: evidence(), serviceName: "checkout" }),
+      getMetricFixRequestTitle({
+        evidence: evidence(),
+        serviceName: "checkout",
+      }),
     ).toBe("Add request metrics to checkout");
     expect(
       getMetricFixRequestTitle({ evidence: evidence(), serviceName: "" }),

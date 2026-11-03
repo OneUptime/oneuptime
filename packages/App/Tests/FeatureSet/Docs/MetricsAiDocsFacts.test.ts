@@ -549,7 +549,9 @@ describe("the Metrics Explorer page's section on improving metrics and adding mi
       const [docsPage, anchor] = SEND_THROUGH_COLLECTOR_DOCS_PATH.split("#");
 
       expect(docsPage).toBe("/telemetry/open-telemetry");
-      expect(openTelemetry).toContain("\n## Send through an OpenTelemetry Collector\n");
+      expect(openTelemetry).toContain(
+        "\n## Send through an OpenTelemetry Collector\n",
+      );
       expect(anchor).toBe(
         slugifyMarkdownHeading("Send through an OpenTelemetry Collector"),
       );

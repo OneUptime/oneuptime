@@ -455,9 +455,9 @@ describe("a service with no request metrics, in German", () => {
     );
 
     expect(GERMAN[LABEL]).toBe("Fehlende Anfragemetriken");
-    expect(screen.getAllByText("Fehlende Anfragemetriken").length).toBeGreaterThan(
-      0,
-    );
+    expect(
+      screen.getAllByText("Fehlende Anfragemetriken").length,
+    ).toBeGreaterThan(0);
     expect(screen.queryByText(LABEL)).not.toBeInTheDocument();
   });
 
@@ -488,9 +488,9 @@ describe("a service with no request metrics, in German", () => {
       expect(panel).not.toHaveTextContent(words);
     }
 
-    expect(screen.getAllByText("Fehlende Anfragemetriken").length).toBeGreaterThan(
-      0,
-    );
+    expect(
+      screen.getAllByText("Fehlende Anfragemetriken").length,
+    ).toBeGreaterThan(0);
   });
 
   test("in English, the same page reads as it was written", async () => {

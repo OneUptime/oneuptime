@@ -391,9 +391,7 @@ describe("MetricInsightFix.start - OneUptime on its own", () => {
     expect(messages[1]).toContain(
       "Set up the OpenTelemetry metrics SDK in this service",
     );
-    expect(messages[2]!.split("\n")[0]).toBe(
-      "Add request metrics to checkout",
-    );
+    expect(messages[2]!.split("\n")[0]).toBe("Add request metrics to checkout");
     expect(messages[2]).toContain(
       "This service already exports metrics to OneUptime, but none for its requests.",
     );

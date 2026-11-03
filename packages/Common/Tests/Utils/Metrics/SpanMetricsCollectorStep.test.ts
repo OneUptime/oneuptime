@@ -39,10 +39,9 @@ function readStep(): JSONObject {
 }
 
 function readPipelines(): Record<string, Pipeline> {
-  return (readStep()["service"] as JSONObject)["pipelines"] as unknown as Record<
-    string,
-    Pipeline
-  >;
+  return (readStep()["service"] as JSONObject)[
+    "pipelines"
+  ] as unknown as Record<string, Pipeline>;
 }
 
 describe("the span metrics step", () => {

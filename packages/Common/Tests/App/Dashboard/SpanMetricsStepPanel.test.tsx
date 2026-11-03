@@ -95,9 +95,11 @@ let consoleErrors: Array<string> = [];
 
 beforeEach(() => {
   consoleErrors = [];
-  jest.spyOn(console, "error").mockImplementation((...parts: Array<unknown>) => {
-    consoleErrors.push(parts.map(String).join(" "));
-  });
+  jest
+    .spyOn(console, "error")
+    .mockImplementation((...parts: Array<unknown>) => {
+      consoleErrors.push(parts.map(String).join(" "));
+    });
 });
 
 afterEach(async () => {
@@ -190,9 +192,7 @@ describe("the collector step's dialog", () => {
     expect(first).toHaveTextContent(SPAN_METRICS_STEP_COPY.addStepTitle);
     expect(first).toHaveTextContent(SPAN_METRICS_STEP_COPY.addStepDescription);
     expect(second).toHaveTextContent(SPAN_METRICS_STEP_COPY.restartTitle);
-    expect(second).toHaveTextContent(
-      SPAN_METRICS_STEP_COPY.restartDescription,
-    );
+    expect(second).toHaveTextContent(SPAN_METRICS_STEP_COPY.restartDescription);
     expect(
       within(dialog).queryByTestId("setup-guide-step-3"),
     ).not.toBeInTheDocument();
@@ -319,12 +319,8 @@ describe("in the reader's language", () => {
       SPAN_METRICS_STEP_TEST_IDS.panel,
     );
 
-    expect(GERMAN[SPAN_METRICS_STEP_COPY.panelTitle]).toBe(
-      "Ohne Codeänderung",
-    );
-    expect(panel).toHaveTextContent(
-      GERMAN[SPAN_METRICS_STEP_COPY.panelTitle]!,
-    );
+    expect(GERMAN[SPAN_METRICS_STEP_COPY.panelTitle]).toBe("Ohne Codeänderung");
+    expect(panel).toHaveTextContent(GERMAN[SPAN_METRICS_STEP_COPY.panelTitle]!);
     expect(panel).toHaveTextContent(
       GERMAN[SPAN_METRICS_STEP_COPY.panelDescription]!,
     );
@@ -376,9 +372,9 @@ describe("in the reader's language", () => {
       expect(description).toHaveAttribute("dir", "rtl");
     }
 
-    expect(
-      within(dialog).getByTestId("setup-guide-step-2"),
-    ).toHaveTextContent(PERSIAN[SPAN_METRICS_STEP_COPY.restartDescription]!);
+    expect(within(dialog).getByTestId("setup-guide-step-2")).toHaveTextContent(
+      PERSIAN[SPAN_METRICS_STEP_COPY.restartDescription]!,
+    );
     expect(screen.getByTestId(SPAN_METRICS_STEP_TEST_IDS.code)).toHaveAttribute(
       "dir",
       "ltr",

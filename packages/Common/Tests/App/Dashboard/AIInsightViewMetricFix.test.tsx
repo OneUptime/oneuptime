@@ -457,9 +457,7 @@ describe("the way past a missing metrics finding that changes no code", () => {
       );
 
       expect(panel).toHaveTextContent(SPAN_METRICS_STEP_COPY.panelTitle);
-      expect(panel).toHaveTextContent(
-        SPAN_METRICS_STEP_COPY.panelDescription,
-      );
+      expect(panel).toHaveTextContent(SPAN_METRICS_STEP_COPY.panelDescription);
       expect(
         screen.getByTestId(SPAN_METRICS_STEP_TEST_IDS.show),
       ).toHaveTextContent(SPAN_METRICS_STEP_COPY.showStep);
@@ -470,8 +468,7 @@ describe("the way past a missing metrics finding that changes no code", () => {
       );
 
       expect(
-        strip.compareDocumentPosition(panel) &
-          Node.DOCUMENT_POSITION_FOLLOWING,
+        strip.compareDocumentPosition(panel) & Node.DOCUMENT_POSITION_FOLLOWING,
       ).toBeTruthy();
     },
   );

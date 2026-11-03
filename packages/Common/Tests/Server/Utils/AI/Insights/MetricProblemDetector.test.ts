@@ -972,8 +972,7 @@ describe("MetricProblemDetector", () => {
     const catalogRead: JSONObject = readCatalog.mock.calls.find(
       (call: Array<unknown>): boolean => {
         return (
-          ((call[0] as JSONObject)["query"] as JSONObject)["name"] !==
-          undefined
+          ((call[0] as JSONObject)["query"] as JSONObject)["name"] !== undefined
         );
       },
     )![0] as unknown as JSONObject;
@@ -1263,7 +1262,9 @@ describe("MetricProblemDetector", () => {
   }
 
   test("the catalog is asked about the 20 busiest services missing their metrics at most a look", async () => {
-    const ids: Array<string> = busyServices(METRIC_INSIGHT_MAX_CATALOG_READS + 5);
+    const ids: Array<string> = busyServices(
+      METRIC_INSIGHT_MAX_CATALOG_READS + 5,
+    );
 
     volumes = [volume("http.server.duration", HOST, 900)];
 
@@ -1294,7 +1295,9 @@ describe("MetricProblemDetector", () => {
   });
 
   test("the catalog is asked about the 20 busiest services missing their request metrics at most a look", async () => {
-    const ids: Array<string> = busyServices(METRIC_INSIGHT_MAX_CATALOG_READS + 5);
+    const ids: Array<string> = busyServices(
+      METRIC_INSIGHT_MAX_CATALOG_READS + 5,
+    );
 
     volumes = ids.map((id: string): MetricVolumeReading => {
       return volume("jvm.memory.used", id, 60);

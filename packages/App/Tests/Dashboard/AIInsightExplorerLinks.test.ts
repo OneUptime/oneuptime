@@ -1335,11 +1335,7 @@ describe("buildInsightInvestigationLink — Metrics' findings", () => {
         input({
           insightType: AIInsightType.MetricMissingRequestMetrics,
           serviceId: SERVICE_ID,
-          metric: {
-            kind: "MissingRequestMetrics",
-            ...METRIC_WINDOW,
-            servedProtocols: ["Http"],
-          },
+          metric: { kind: "MissingRequestMetrics", ...METRIC_WINDOW },
         }),
       );
 

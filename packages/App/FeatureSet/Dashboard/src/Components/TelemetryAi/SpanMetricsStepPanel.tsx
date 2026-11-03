@@ -115,15 +115,19 @@ const SpanMetricsStepPanel: FunctionComponent = (): ReactElement => {
             <SetupGuideSteps
               steps={[
                 {
-                  title: translator.translateText(
-                    SPAN_METRICS_STEP_COPY.addStepTitle,
-                  ),
+                  title:
+                    translator.translateText(
+                      SPAN_METRICS_STEP_COPY.addStepTitle,
+                    ) || SPAN_METRICS_STEP_COPY.addStepTitle,
                   description: translator.translateText(
                     SPAN_METRICS_STEP_COPY.addStepDescription,
                   ),
                   content: (
                     // Code reads left to right in every language.
-                    <div dir="ltr" data-testid={SPAN_METRICS_STEP_TEST_IDS.code}>
+                    <div
+                      dir="ltr"
+                      data-testid={SPAN_METRICS_STEP_TEST_IDS.code}
+                    >
                       <CodeBlock
                         code={SPAN_METRICS_COLLECTOR_STEP}
                         language="yaml"
@@ -132,9 +136,10 @@ const SpanMetricsStepPanel: FunctionComponent = (): ReactElement => {
                   ),
                 },
                 {
-                  title: translator.translateText(
-                    SPAN_METRICS_STEP_COPY.restartTitle,
-                  ),
+                  title:
+                    translator.translateText(
+                      SPAN_METRICS_STEP_COPY.restartTitle,
+                    ) || SPAN_METRICS_STEP_COPY.restartTitle,
                   description: translator.translateText(
                     SPAN_METRICS_STEP_COPY.restartDescription,
                   ),

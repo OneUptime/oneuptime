@@ -763,9 +763,9 @@ test.describe("Metrics → AI → a finding", () => {
       await expect(item).toHaveCount(1);
 
       for (const name of names) {
-        await expect(item.locator("code").filter({ hasText: name })).toHaveCount(
-          1,
-        );
+        await expect(
+          item.locator("code").filter({ hasText: name }),
+        ).toHaveCount(1);
       }
     }
 
@@ -960,10 +960,10 @@ test.describe("Metrics → AI → a finding", () => {
         );
 
         // Right under Fix with AI, the code fix it is the other way to.
-        const [fixBox, panelBox] = (await boxesInOneFrame([
-          strip,
-          panel,
-        ])) as [FrameBox, FrameBox];
+        const [fixBox, panelBox] = (await boxesInOneFrame([strip, panel])) as [
+          FrameBox,
+          FrameBox,
+        ];
 
         expect(panelBox.y).toBeGreaterThanOrEqual(fixBox.y + fixBox.height);
         expect(Math.abs(panelBox.x - fixBox.x)).toBeLessThanOrEqual(0.5);
