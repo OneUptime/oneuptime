@@ -33,6 +33,15 @@ import {
 } from "../../Types/SecurityEvent/SecurityAttackCampaign";
 import { WEB_ATTACK_KIND_ATTRIBUTE } from "../../Utils/SecurityEvent/LogParsers/WebAttackLogParser";
 import { assertDetectionReadFits } from "../Utils/SecurityEvent/Watchlists/SecurityWatchlistMatch";
+import SecurityWatchlistQueryBinder from "../Utils/SecurityEvent/Watchlists/SecurityWatchlistQueryBinder";
+import AggregateBy from "../Types/AnalyticsDatabase/AggregateBy";
+import CountBy from "../Types/AnalyticsDatabase/CountBy";
+import ExistsBy from "../Types/AnalyticsDatabase/ExistsBy";
+import FindBy from "../Types/AnalyticsDatabase/FindBy";
+import { OnFind } from "../Types/AnalyticsDatabase/Hooks";
+import Query from "../Types/AnalyticsDatabase/Query";
+import AggregatedResult from "../../Types/BaseDatabase/AggregatedResult";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 
 export interface DetectionMatchGroup {
   groupValue: string;
@@ -188,6 +197,86 @@ export interface FindArrivedEventsData {
 export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent> {
   public constructor(clickhouseDatabase?: ClickhouseDatabase | undefined) {
     super({ modelType: SecurityEvent, database: clickhouseDatabase });
+  }
+
+  /*
+   * READS THAT MATCH A WATCHLIST. A search, a Security Events monitor or a
+   * hunt names a list on a field (OnWatchlist, NotOnWatchlist); every read
+   * of the table reads the lists its query names first - as the caller, in
+   * the caller's project - and puts them in place
+   * (SecurityWatchlistQueryBinder), so the list, its count, its chart and
+   * its facets all match the same values. A query that names none is read
+   * as it always was.
+   */
+  private async bindWatchlists(
+    query: Query<SecurityEvent>,
+    props: DatabaseCommonInteractionProps,
+  ): Promise<Query<SecurityEvent>> {
+    return await SecurityWatchlistQueryBinder.bind<Query<SecurityEvent>>({
+      query,
+      props,
+    });
+  }
+
+  // A list or one event: findBy and findOneBy both pass here.
+  protected override async onBeforeFind(
+    findBy: FindBy<SecurityEvent>,
+  ): Promise<OnFind<SecurityEvent>> {
+    const onFind: OnFind<SecurityEvent> = await super.onBeforeFind(findBy);
+
+    return {
+      ...onFind,
+      findBy: {
+        ...onFind.findBy,
+        query: await this.bindWatchlists(
+          onFind.findBy.query,
+          onFind.findBy.props,
+        ),
+      },
+    };
+  }
+
+  protected override async onBeforeCount(
+    countBy: CountBy<SecurityEvent>,
+  ): Promise<CountBy<SecurityEvent>> {
+    const prepared: CountBy<SecurityEvent> = await super.onBeforeCount(countBy);
+
+    return {
+      ...prepared,
+      query: await this.bindWatchlists(prepared.query, prepared.props),
+    };
+  }
+
+  // A chart, or a facet's counts.
+  public override async aggregateBy(
+    aggregateBy: AggregateBy<SecurityEvent>,
+  ): Promise<AggregatedResult> {
+    return await super.aggregateBy({
+      ...aggregateBy,
+      query: await this.bindWatchlists(aggregateBy.query, aggregateBy.props),
+    });
+  }
+
+  // A monitor's rule preview: its query's count in each window.
+  public override async countPerWindow(data: {
+    query: Query<SecurityEvent>;
+    timeColumnName: string;
+    windowInSeconds: number;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Array<{ time: Date; count: number }>> {
+    return await super.countPerWindow({
+      ...data,
+      query: await this.bindWatchlists(data.query, data.props),
+    });
+  }
+
+  public override async existsBy(
+    existsBy: ExistsBy<SecurityEvent>,
+  ): Promise<boolean> {
+    return await super.existsBy({
+      ...existsBy,
+      query: await this.bindWatchlists(existsBy.query, existsBy.props),
+    });
   }
 
   // Its resource's retention for security events, as on ingest.

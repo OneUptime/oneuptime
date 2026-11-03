@@ -304,6 +304,7 @@ import "./Jobs/SecurityEvents/ForwardSecurityEvents";
 import "./Jobs/SecurityEvents/EntityRisk";
 import "./Jobs/SecurityEvents/RunScheduledHunts";
 import "./Jobs/SecurityEvents/SendSecurityHuntNotification";
+import "./Jobs/SecurityEvents/SecurityWatchlists";
 import "./Jobs/ThreatIntel/PollThreatIntelFeeds";
 import "./Jobs/ThreatIntel/MatchThreatIntelIndicators";
 import "./Jobs/SecurityPlaybooks/RunSecurityPlaybook";

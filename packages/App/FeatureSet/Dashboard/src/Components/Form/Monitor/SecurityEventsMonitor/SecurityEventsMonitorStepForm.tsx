@@ -15,10 +15,25 @@ import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
 import HorizontalRule from "Common/UI/Components/HorizontalRule/HorizontalRule";
 import SecurityEventsMonitorPreview from "../../../Monitor/SecurityEventsMonitor/SecurityEventsMonitorPreview";
 import SecurityEventAttributeUtil from "../../../SecurityEvents/SecurityEventAttributeUtil";
+import SecurityEventsWatchlistFilters from "./SecurityEventsWatchlistFilters";
+import {
+  WATCHLIST_FILTERS_DESCRIPTION,
+  WATCHLIST_FILTERS_TITLE,
+} from "../../../SecurityEvents/Watchlists/WatchlistsCopy";
+import {
+  SecurityWatchlistFilter,
+  getSecurityWatchlistFiltersProblem,
+  readSecurityWatchlistFilters,
+} from "Common/Types/SecurityEvent/SecurityWatchlistFilter";
+import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 /*
  * The filters that narrow a security event monitor down further - telemetry
- * service and attributes - fold under the same More fields section as the
+ * service, attributes and watchlists - fold under the same More fields
+ * section as the
  * rarely needed fields of every other form, instead of the Show / Hide
  * Advanced Options link this form had of its own. Severity and class stay
  * on screen (issue #3398). Folded, the section's header names its filters
@@ -42,6 +57,7 @@ export interface ComponentProps {
 const SecurityEventsMonitorStepForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [
     monitorStepSecurityEventsMonitor,
     setMonitorStepSecurityEventsMonitor,
@@ -227,6 +243,53 @@ const SecurityEventsMonitorStepForm: FunctionComponent<ComponentProps> = (
               "You can filter the security events based on the attributes that are attached to them.",
             hideOptionalLabel: true,
             collapsibleSection: MORE_SECURITY_EVENT_FILTERS,
+          },
+          /*
+           * Only the events whose field is - or is not - on one of the
+           * project's watchlists, as a detection rule reads them: VIP users'
+           * sign-ins, sign-ins from outside the admin addresses.
+           */
+          {
+            field: {
+              watchlistFilters: true,
+            },
+            fieldType: FormFieldSchemaType.CustomComponent,
+            title: WATCHLIST_FILTERS_TITLE,
+            description: WATCHLIST_FILTERS_DESCRIPTION,
+            hideOptionalLabel: true,
+            collapsibleSection: MORE_SECURITY_EVENT_FILTERS,
+            customValidation: (
+              values: FormValues<MonitorStepSecurityEventsMonitor>,
+            ): string | null => {
+              const problem: string | null =
+                getSecurityWatchlistFiltersProblem(
+                  readSecurityWatchlistFilters(
+                    (values as Record<string, unknown>)["watchlistFilters"],
+                  ),
+                );
+
+              return problem
+                ? translator.translateText(problem) || problem
+                : null;
+            },
+            getCustomElement: (
+              values: FormValues<MonitorStepSecurityEventsMonitor>,
+              customElementProps: CustomElementProps,
+            ): ReactElement => {
+              return (
+                <SecurityEventsWatchlistFilters
+                  value={readSecurityWatchlistFilters(
+                    (values as Record<string, unknown>)["watchlistFilters"],
+                  )}
+                  onChange={(filters: Array<SecurityWatchlistFilter>) => {
+                    customElementProps.onChange?.(filters);
+                  }}
+                  ariaLabelledby={customElementProps.ariaLabelledby}
+                  ariaDescribedby={customElementProps.ariaDescribedby}
+                  error={customElementProps.error}
+                />
+              );
+            },
           },
         ]}
       />

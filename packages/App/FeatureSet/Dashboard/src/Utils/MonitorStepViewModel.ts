@@ -28,6 +28,10 @@ import {
 } from "Common/Types/Monitor/NtpMonitor/NtpMonitorUtil";
 import RollingTime from "Common/Types/RollingTime/RollingTime";
 import OcsfSeverity from "Common/Types/SecurityEvent/OcsfSeverity";
+import {
+  describeSecurityWatchlistFilters,
+  readSecurityWatchlistFilters,
+} from "Common/Types/SecurityEvent/SecurityWatchlistFilter";
 import { formatDictionaryValueForDisplay } from "Common/UI/Components/Dictionary/DictionaryFilterOperator";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import { PROBE_DEFAULT_RETRY_COUNT_LABEL } from "./MonitorRetryHelpText";
@@ -1276,6 +1280,22 @@ export default class MonitorStepViewModel {
         valueType: MonitorStepViewValueType.DictionaryOfStrings,
         value: toAttributeFilters(securityEventsMonitor?.attributes),
         placeholder: "No attributes entered",
+      }),
+      /*
+       * Its watchlist filters, as the Events search writes them -
+       * principalUser:%vip_users%, a minus in front for "is not on" - the
+       * same in every language, as a rule's YAML is.
+       */
+      optional({
+        key: "securityEventWatchlistFilters",
+        title: "Filter by Watchlists",
+        description:
+          "Only events whose field is, or is not, on these watchlists.",
+        valueType: MonitorStepViewValueType.ArrayOfText,
+        value: describeSecurityWatchlistFilters(
+          readSecurityWatchlistFilters(securityEventsMonitor?.watchlistFilters),
+        ),
+        placeholder: "No watchlists entered",
       }),
       optional({
         key: "securityEventTelemetryServices",
