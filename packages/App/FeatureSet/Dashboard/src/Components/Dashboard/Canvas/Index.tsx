@@ -7,6 +7,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { flushSync } from "react-dom";
 import BlankCanvasElement from "./BlankCanvas";
 import DashboardViewConfig from "Common/Types/Dashboard/DashboardViewConfig";
 import DashboardBaseComponent from "Common/Types/Dashboard/DashboardComponents/DashboardBaseComponent";
@@ -34,6 +35,7 @@ import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
 import { TimeRangeZoomProvider } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
+import { isWidgetDrawnHere } from "../Utils/PublicDashboardContext";
 
 export interface ComponentProps {
   dashboardViewConfig: DashboardViewConfig;
@@ -123,8 +125,39 @@ const EDIT_MODE_MIN_ROWS: number = 12;
  */
 const BOARD_PADDING_IN_PX: number = 8;
 
+// How the board's height follows its rows while it is edited.
+export const EDITED_BOARD_HEIGHT_TRANSITION: string =
+  "height 0.22s cubic-bezier(0.2, 0, 0, 1)";
+
+/*
+ * How a widget's box moves to a new place or size on the grid: only while
+ * the board is edited. There a dropped widget glides into its cell and its
+ * neighbours glide out of its way (Common/UI/Utils/UseDashboardGridDnd);
+ * the widget being dragged follows the pointer itself, so it has none.
+ *
+ * Viewing, nobody moves a widget. Its box changes only when the board's
+ * width does - a window resized, Full Screen, a playlist's next turn - and
+ * it takes its new size in that frame, as the rest of a page reflows,
+ * rather than every widget on the board growing or shrinking for a
+ * quarter of a second, its chart drawn again on each frame of it.
+ */
+export function getWidgetBoxTransition(data: {
+  isEditMode: boolean;
+  isActive: boolean;
+}): string {
+  return data.isEditMode && !data.isActive ? GRID_ITEM_TRANSITION : "none";
+}
+
 // The board: data-arrangement says how its widgets are laid out.
 export const DASHBOARD_BOARD_TEST_ID: string = "dashboard-board";
+
+// What the board holds while its width is being measured: no widget yet.
+export const DASHBOARD_BOARD_MEASURING_TEST_ID: string =
+  "dashboard-board-measuring";
+
+// The box of no height across the board that its ResizeObserver watches.
+export const DASHBOARD_BOARD_WIDTH_PROBE_TEST_ID: string =
+  "dashboard-board-width-probe";
 
 const DashboardCanvas: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -146,43 +179,161 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
    * board scrolls sideways.
    *
    * The positioner is the coordinate space widgets live in.
+   *
+   * The width is null until the board's box is measured, and the widgets
+   * are drawn only once it is (isBoardMeasured, below). They used to be
+   * drawn before it, laid out for a board of no width - every widget a few
+   * pixels across - and reading the box's width made the browser style
+   * them at that size; their measured size then came in through their
+   * transition, so on every load each widget grew from a sliver to its
+   * size with its rows already in it (the 14.0.95 gate's trace). The
+   * board's width itself never changed after it was first drawn.
    */
   const boardRef: React.RefObject<HTMLDivElement> =
     useRef<HTMLDivElement>(null);
+  // A box of no height across the board: only a new width resizes it.
+  const widthProbeRef: React.RefObject<HTMLDivElement> =
+    useRef<HTMLDivElement>(null);
   const positionerRef: React.RefObject<HTMLDivElement> =
     useRef<HTMLDivElement>(null);
-  const [boardWidthInPx, setBoardWidthInPx] = useState<number>(0);
+  const [boardWidthInPx, setBoardWidthInPx] = useState<number | null>(null);
 
+  /*
+   * A layout effect runs after the board's box is on the page and before
+   * the browser paints it, and the width it sets is drawn in the same
+   * frame: the board is never seen without its widgets.
+   */
   useLayoutEffect(() => {
     const element: HTMLDivElement | null = boardRef.current;
-    if (!element) {
+    const widthProbe: HTMLDivElement | null = widthProbeRef.current;
+    if (!element || !widthProbe) {
+      /*
+       * The empty board (BlankCanvas) has no box to measure. Its width is
+       * forgotten, so the board that comes back with a first widget is
+       * measured again before that widget is drawn - the window may have
+       * changed in between.
+       */
+      setBoardWidthInPx(null);
       return undefined;
     }
 
-    const measure: () => void = (): void => {
-      setBoardWidthInPx(
-        Math.max(element.clientWidth - 2 * BOARD_PADDING_IN_PX, 0),
-      );
+    const readWidth: () => number = (): number => {
+      return Math.max(element.clientWidth - 2 * BOARD_PADDING_IN_PX, 0);
     };
 
-    measure();
+    // The width the widgets are laid out in.
+    let laidOutWidth: number = readWidth();
+    setBoardWidthInPx(laidOutWidth);
 
-    if (typeof ResizeObserver === "undefined") {
-      return undefined;
-    }
+    /*
+     * The board's width can change before the browser first paints it, and
+     * at any time after: the Tailwind runtime styles classes new to the
+     * page a moment after they are added (the margins of the card a board
+     * opens in, when it opens with the page), the first layout adds or
+     * takes away the window's scrollbar, the window is resized, Full
+     * Screen, the side menu beside it comes or goes. follow lays the
+     * widgets out to the board's width there and then (flushSync), before
+     * the browser paints it: no frame shows them at a width the board does
+     * not have. Left to React's own time, they were drawn at the old width
+     * for a frame or more - 32px past the board's edge, when a board opened
+     * before its card's margins were styled.
+     */
+    const follow: () => void = (): void => {
+      const width: number = readWidth();
 
-    const observer: ResizeObserver = new ResizeObserver(() => {
-      measure();
+      if (width === laidOutWidth) {
+        return;
+      }
+
+      laidOutWidth = width;
+      flushSync(() => {
+        setBoardWidthInPx(width);
+      });
+    };
+
+    /*
+     * Read again before the browser lays a frame out: in the board's first
+     * frame (the card's late styles are in by then, and the scrollbar the
+     * board's first layout adds or takes away), and when the window is
+     * resized - Full Screen too - whose resize event comes first.
+     */
+    let firstFrame: number | null = window.requestAnimationFrame((): void => {
+      firstFrame = null;
+      follow();
     });
-    observer.observe(element);
+
+    window.addEventListener("resize", follow);
+
+    /*
+     * Anything else - the side menu beside the board coming or going, a
+     * scrollbar that comes later, a board that was not shown and is - is
+     * reported by a ResizeObserver once the browser has laid the frame out,
+     * before it paints it. The widgets are laid out to it there, but the
+     * board keeps the height it has until the next frame: a box another
+     * observer watches that changes size inside an observer's call cannot
+     * be reported in that frame, and the page got "ResizeObserver loop
+     * completed with undelivered notifications" (the side menu watches the
+     * page's body) whenever a new width changed the board's height. For
+     * that one frame its widgets end short of its bottom edge, or run past
+     * it; never past its sides.
+     *
+     * It watches the width probe, a box of no height across the board,
+     * which only a new width resizes.
+     */
+    let heldFrame: number | null = null;
+
+    const holdHeightUntilNextFrame: () => void = (): void => {
+      element.style.height = `${element.getBoundingClientRect().height}px`;
+
+      if (heldFrame === null) {
+        heldFrame = window.requestAnimationFrame((): void => {
+          heldFrame = null;
+          element.style.height = "";
+        });
+      }
+    };
+
+    const observer: ResizeObserver | null =
+      typeof ResizeObserver === "undefined"
+        ? null
+        : new ResizeObserver((): void => {
+            if (readWidth() === laidOutWidth) {
+              return;
+            }
+
+            holdHeightUntilNextFrame();
+            follow();
+          });
+
+    observer?.observe(widthProbe);
 
     return () => {
-      observer.disconnect();
+      observer?.disconnect();
+      window.removeEventListener("resize", follow);
+
+      if (firstFrame !== null) {
+        window.cancelAnimationFrame(firstFrame);
+      }
+
+      if (heldFrame !== null) {
+        window.cancelAnimationFrame(heldFrame);
+        element.style.height = "";
+      }
     };
   }, [components.length === 0]);
 
+  /*
+   * Whether the board's width is known. Before it is, the board is drawn
+   * as its box alone - that is what is measured - and its widgets and the
+   * positioner that holds them come with the width, so their first size is
+   * their real one. A box measured 0 wide (the board is not shown) counts
+   * as known: it is laid out as a board of no width, as before, and drawn
+   * again when its observer reports a width.
+   */
+  const isBoardMeasured: boolean = boardWidthInPx !== null;
+
   const layout: DashboardBoardLayout = DashboardBoardLayoutUtil.getLayout({
-    boardWidthInPx,
+    boardWidthInPx: boardWidthInPx ?? 0,
     isEditMode: props.isEditMode,
   });
 
@@ -277,6 +428,7 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
           return {
             heightInUnits: committedRects[index]?.height ?? 1,
             componentType: component.componentType,
+            isPlaceholder: !isWidgetDrawnHere(component.componentType),
           };
         }),
       )
@@ -349,6 +501,11 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
           height: DashboardBoardLayoutUtil.getStackedHeightInPx({
             heightInUnits: rect.height,
             componentType: component.componentType,
+            /*
+             * A public dashboard's log, trace or security widget says, in a
+             * line, that it is not available there: the room that takes.
+             */
+            isPlaceholder: !isWidgetDrawnHere(component.componentType),
           }),
         }
       : DashboardBoardLayoutUtil.getGridBox(rect, layout);
@@ -382,7 +539,10 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
                 width: `${widthInPx}px`,
                 height: `${heightInPx}px`,
                 transform: `translate(${box.left}px, ${box.top}px)`,
-                transition: isActive ? "none" : GRID_ITEM_TRANSITION,
+                transition: getWidgetBoxTransition({
+                  isEditMode: props.isEditMode,
+                  isActive,
+                }),
                 zIndex:
                   isSelected && !isActive
                     ? DashboardStackingLayers.canvasSelectedComponent
@@ -523,6 +683,12 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
       data-arrangement={layout.arrangement}
     >
       <div
+        ref={widthProbeRef}
+        aria-hidden="true"
+        style={{ height: 0 }}
+        data-testid={DASHBOARD_BOARD_WIDTH_PROBE_TEST_ID}
+      />
+      <div
         style={{
           padding: `${BOARD_PADDING_IN_PX}px`,
           width: layout.isWiderThanBoard
@@ -530,52 +696,79 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
             : undefined,
         }}
       >
-        <div
-          ref={positionerRef}
-          onClick={(event: React.MouseEvent) => {
-            // Only clicks on the empty canvas itself unselect.
-            if (event.target === event.currentTarget) {
-              props.onComponentUnselected();
-            }
-          }}
-          style={{
-            position: "relative",
-            /*
-             * Widgets live in their own layer stack. Without this the raise a
-             * selected or dragged tile asks for is measured against the whole
-             * page, and it wins - that is issue #3660, where a clicked tile
-             * covered the toolbar's auto-refresh menu. See
-             * Common/UI/Utils/DashboardStackingLayers.
-             */
-            isolation: DASHBOARD_CANVAS_ISOLATION,
-            width: layout.isWiderThanBoard ? `${layout.widthInPx}px` : "100%",
-            // Stacked, the widgets one under another make the board's height.
-            display: isStacked ? "flex" : undefined,
-            flexDirection: isStacked ? "column" : undefined,
-            gap: isStacked ? `${gap}px` : undefined,
-            height: isStacked ? undefined : `${containerHeightInPx}px`,
-            borderRadius: "12px",
-            transition: isStacked
-              ? undefined
-              : "height 0.22s cubic-bezier(0.2, 0, 0, 1)",
-            backgroundImage: props.isEditMode
-              ? "radial-gradient(circle, rgba(148, 163, 184, 0.4) 1.5px, transparent 1.5px)"
-              : undefined,
-            backgroundSize: props.isEditMode
-              ? `${columnCellInPx}px ${rowCellInPx}px`
-              : undefined,
-            backgroundPosition: props.isEditMode
-              ? `${-gap / 2 - layout.columnWidthInPx / 2}px ${
-                  -gap / 2 - layout.rowHeightInPx / 2
-                }px`
-              : undefined,
-          }}
-        >
-          {renderPlaceholder()}
-          {drawnComponents.map((component: DashboardBaseComponent) => {
-            return renderComponent(component);
-          })}
-        </div>
+        {isBoardMeasured ? (
+          /*
+           * Keyed apart from the measuring box, so React adds it as a box
+           * of its own at its real height - not that box, restyled.
+           */
+          <div
+            key="positioner"
+            ref={positionerRef}
+            onClick={(event: React.MouseEvent) => {
+              // Only clicks on the empty canvas itself unselect.
+              if (event.target === event.currentTarget) {
+                props.onComponentUnselected();
+              }
+            }}
+            style={{
+              position: "relative",
+              /*
+               * Widgets live in their own layer stack. Without this the raise a
+               * selected or dragged tile asks for is measured against the whole
+               * page, and it wins - that is issue #3660, where a clicked tile
+               * covered the toolbar's auto-refresh menu. See
+               * Common/UI/Utils/DashboardStackingLayers.
+               */
+              isolation: DASHBOARD_CANVAS_ISOLATION,
+              width: layout.isWiderThanBoard ? `${layout.widthInPx}px` : "100%",
+              // Stacked, the widgets one under another make the board's height.
+              display: isStacked ? "flex" : undefined,
+              flexDirection: isStacked ? "column" : undefined,
+              gap: isStacked ? `${gap}px` : undefined,
+              height: isStacked ? undefined : `${containerHeightInPx}px`,
+              borderRadius: "12px",
+              /*
+               * While editing, the board grows and shrinks with the rows a
+               * dragged widget reaches. Viewing, its height changes only
+               * with its width, and is taken at once, as its widgets'
+               * sizes are (getWidgetBoxTransition).
+               */
+              transition:
+                props.isEditMode && !isStacked
+                  ? EDITED_BOARD_HEIGHT_TRANSITION
+                  : undefined,
+              backgroundImage: props.isEditMode
+                ? "radial-gradient(circle, rgba(148, 163, 184, 0.4) 1.5px, transparent 1.5px)"
+                : undefined,
+              backgroundSize: props.isEditMode
+                ? `${columnCellInPx}px ${rowCellInPx}px`
+                : undefined,
+              backgroundPosition: props.isEditMode
+                ? `${-gap / 2 - layout.columnWidthInPx / 2}px ${
+                    -gap / 2 - layout.rowHeightInPx / 2
+                  }px`
+                : undefined,
+            }}
+          >
+            {renderPlaceholder()}
+            {drawnComponents.map((component: DashboardBaseComponent) => {
+              return renderComponent(component);
+            })}
+          </div>
+        ) : (
+          /*
+           * The board before its width is known: its box, measured in the
+           * layout effect above and never painted like this. As tall as its
+           * rows at their least, so the page is about as long as it will
+           * be - whether the window shows a scrollbar, which takes from
+           * the board's width, is decided as it will be with the widgets.
+           */
+          <div
+            key="measuring"
+            style={{ height: `${containerHeightInPx}px` }}
+            data-testid={DASHBOARD_BOARD_MEASURING_TEST_ID}
+          />
+        )}
       </div>
       {props.selectedComponentId && props.isEditMode && (
         <ComponentSettingsModal

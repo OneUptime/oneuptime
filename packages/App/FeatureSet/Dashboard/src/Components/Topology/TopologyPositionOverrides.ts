@@ -1,5 +1,6 @@
 import { TopologyPoint } from "../NetworkDevice/TopologyGraphUtil";
 import { MAX_WORLD_COORDINATE, clampWorldPoint } from "./TopologyViewport";
+import NetworkTopologyLayout from "Common/Types/NetworkDevice/NetworkTopologyLayout";
 
 /*
  * User-arranged node positions — what a drag produces and what survives
@@ -19,12 +20,12 @@ import { MAX_WORLD_COORDINATE, clampWorldPoint } from "./TopologyViewport";
 
 export type PositionOverrides = ReadonlyMap<string, TopologyPoint>;
 
-export type TopologyLayoutMode =
-  | "force"
-  | "tiered"
-  | "radial"
-  | "star"
-  | "parentChild";
+/*
+ * The layouts' ids live in Common (NetworkTopologyLayout) because the
+ * project's default layout is stored by them and checked on the server; the
+ * map, its saved arrangements and that default all name a layout the same way.
+ */
+export type TopologyLayoutMode = NetworkTopologyLayout;
 
 export const PERSISTED_OVERRIDES_VERSION: number = 1;
 /*

@@ -257,7 +257,8 @@ import { AddGoogleAdsCampaignFields1808850000000 } from "./1808850000000-AddGoog
 import { AddVMwareDatacenterHostStates1808870000000 } from "./1808870000000-AddVMwareDatacenterHostStates";
 import { AddRunnerTakesCodeFixes1808872000000 } from "./1808872000000-AddRunnerTakesCodeFixes";
 import { AddScopeToLogSavedView1808880000000 } from "./1808880000000-AddScopeToLogSavedView";
-import { AddWorkspaceHomeChoice1808887613000 } from "./1808887613000-AddWorkspaceHomeChoice";
+import { AddProjectDefaultNetworkTopologyLayout1808890000000 } from "./1808890000000-AddProjectDefaultNetworkTopologyLayout";
+import { AddWorkspaceHomeChoice1808891613000 } from "./1808891613000-AddWorkspaceHomeChoice";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1717,5 +1718,6 @@ export default [
   AddSecurityCaseCustomFieldsNoteTemplatesAndNumbering1808871270000,
   AddRunnerTakesCodeFixes1808872000000,
   AddScopeToLogSavedView1808880000000,
-  AddWorkspaceHomeChoice1808887613000,
+  AddProjectDefaultNetworkTopologyLayout1808890000000,
+  AddWorkspaceHomeChoice1808891613000,
 ];

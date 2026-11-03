@@ -64,7 +64,9 @@ declare global {
   }
 }
 
-const PORT: string = "4427";
+// The fixture's port, as its config and server read it.
+const PORT: string =
+  process.env["DASHBOARD_VALUE_WIDGET_FIXTURE_PORT"] || "4427";
 
 const PROJECT_ID: string = "10000000-0000-4000-8000-0000000000f7";
 const DASHBOARD_ID: string = "db000000-0000-4000-8000-0000000000f7";

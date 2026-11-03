@@ -1560,6 +1560,74 @@ test.describe("the page at a phone's width", () => {
     }
   });
 
+  /*
+   * A public dashboard reads no logs, traces or security events: those
+   * widgets say so in their place, with an icon. On a phone each takes two
+   * rows - 150px, room for an icon and two lines of words - rather than a
+   * chart's 400px or its own five rows (390px) for a line of words (#5453's
+   * follow-up), and its words sit in the middle of it.
+   */
+  test("a widget the dashboard cannot draw takes two rows on a phone, its words in the middle", async ({
+    page,
+  }: { page: Page }, testInfo: TestInfo) => {
+    test.skip(!testInfo.project.use.isMobile, "A phone's width.");
+
+    await openDashboard(page, "light", "board=other");
+
+    const SECURITY: string =
+      "Security event widgets are not available on public dashboards.";
+
+    for (const [sentence, widgets] of [
+      ["Log charts are not available on public dashboards.", 1],
+      ["Trace charts are not available on public dashboards.", 1],
+      ["Trace tables are not available on public dashboards.", 1],
+      // The security events list and its flow.
+      [SECURITY, 2],
+    ] as Array<[string, number]>) {
+      await expect(page.getByText(sentence).first()).toBeVisible();
+
+      // Each widget and its words, read in one frame.
+      const drawn: Array<{ height: number; wordsOffCentre: number }> =
+        await page.evaluate((words: string) => {
+          return Array.from(
+            document.querySelectorAll<HTMLElement>(
+              '[id^="dashboard-component-"]',
+            ),
+          )
+            .filter((element: HTMLElement): boolean => {
+              return element.innerText.indexOf(words) >= 0;
+            })
+            .map((element: HTMLElement) => {
+              const box: DOMRect = element.getBoundingClientRect();
+              const text: HTMLElement = Array.from(
+                element.querySelectorAll<HTMLElement>("p"),
+              ).find((paragraph: HTMLElement): boolean => {
+                return paragraph.innerText.trim() === words;
+              })!;
+              const textBox: DOMRect = text.getBoundingClientRect();
+
+              return {
+                height: box.height,
+                // How far the words' middle is from the widget's, down it.
+                wordsOffCentre: Math.abs(
+                  textBox.top + textBox.height / 2 - (box.top + box.height / 2),
+                ),
+              };
+            });
+        }, sentence);
+
+      expect([sentence, drawn.length]).toEqual([sentence, widgets]);
+
+      for (const widget of drawn) {
+        expect([sentence, widget.height]).toEqual([sentence, 2 * 70 + 10]);
+        // Under the icon, so a little below the middle; never at the top.
+        expect(widget.wordsOffCentre).toBeLessThan(40);
+      }
+    }
+
+    await shoot(page, testInfo, "phone-undrawn-widgets");
+  });
+
   test("a real tap on the toolbar opens its menus: they are on the screen now", async ({
     page,
   }: { page: Page }, testInfo: TestInfo) => {
