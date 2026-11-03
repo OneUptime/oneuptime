@@ -7,9 +7,12 @@
 # The App is booted with its datastores by Tests/Ops/AppImageRuntime.test.js
 # instead, so it has nothing here.
 #
-#   Ingress  nginx loads its configuration and modules (njs links libxml2,
-#            which Iron Bank's nginx image does not install), and Node.js, npm,
-#            bash, envsubst and openssl run: run.sh needs them all.
+#   Ingress  nginx loads nginx.conf and its modules (njs links libxml2, which
+#            Iron Bank's nginx image does not install). nginx.conf includes
+#            conf.d/default.conf, which run.sh renders from a template and the
+#            deployment's settings at start, so an empty one stands in for it.
+#            And the certificate sidecar's TypeScript loader resolves, and
+#            Node.js, npm, bash, envsubst and openssl run: run.sh needs them.
 #   Runner   the runner's TypeScript loader resolves, kubectl, git, ssh and
 #            tini run, and it is the node user.
 #   Probe    the checks the release's own Dockerfile ends with (the SQL Server
@@ -56,7 +59,8 @@ App)
 	echo "The App is booted with its datastores by Tests/Ops/AppImageRuntime.test.js."
 	;;
 Ingress)
-	run nginx -t
+	run sh -c 'touch /etc/nginx/conf.d/default.conf && nginx -t'
+	run node -e 'require.resolve("ts-node/register"); console.log("ts-node resolves")'
 	run node --version
 	run npm --version
 	run bash -c 'command -v envsubst && openssl version'

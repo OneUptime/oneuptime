@@ -33,6 +33,14 @@ ARG BASE_TAG=26.13.0-npm12-yarn4-slim
 # pulls it by digest and gives it this name before it builds.
 FROM oneuptime/app:enterprise-14.0.102 AS release
 
+# The release without its tests, which no image runs: one of Common's test
+# fixtures (an SVG data URI with a script in it) is what ClamAV calls
+# phishing, and Iron Bank's pipeline fails an image on any ClamAV detection.
+# Removed in a stage of its own, so that no layer of this image carries them.
+FROM release AS shipped
+USER root
+RUN rm -rf /usr/src/Common/Tests /usr/src/app/Tests
+
 FROM ${BASE_REGISTRY}/${BASE_IMAGE}:${BASE_TAG}
 
 USER root
@@ -58,7 +66,7 @@ RUN apk upgrade --no-cache \
     && chown 1000:1000 /tmp/npm \
     && npm config set cache /tmp/npm --global
 
-COPY --from=release /usr/src /usr/src
+COPY --from=shipped /usr/src /usr/src
 
 # The release's labels that Iron Bank's schema does not let
 # hardening_manifest.yaml carry. Scripts/GHA/check_app_image_edition.sh reads

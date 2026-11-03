@@ -236,6 +236,7 @@ describe.each(NAMES)("IronBank/%s follows Iron Bank's rules", (name) => {
       }),
     ).toEqual([
       ["release", tag],
+      ["shipped", "release"],
       [null, "${base_registry}/${base_image}:${base_tag}"],
     ]);
     expect(environment["APP_VERSION"]).toBe(version);
@@ -349,6 +350,26 @@ describe.each(NAMES)("IronBank/%s follows Iron Bank's rules", (name) => {
     expect(offenders).toEqual([]);
     expect(all(project.finalInstructions, "ADD")).toEqual([]);
     expect(all(instructions(project.releaseStage.body), "RUN")).toEqual([]);
+  });
+
+  test("the release's files reach it without the release's tests, in no layer of the image", () => {
+    // One of Common's test fixtures is what ClamAV calls phishing, and Iron
+    // Bank's pipeline fails an image on any ClamAV detection.
+    const shipped = project.stages.find((stage) => {
+      return stage.name === "shipped";
+    });
+
+    expect(instructions(shipped.body)).toEqual([
+      "USER root",
+      "RUN rm -rf /usr/src/Common/Tests /usr/src/app/Tests",
+    ]);
+    expect(
+      copies(project.finalInstructions).filter((copy) => {
+        return copy.destination === "/usr/src";
+      }),
+    ).toEqual([
+      { from: "shipped", sources: ["/usr/src"], destination: "/usr/src" },
+    ]);
   });
 
   test(`it runs as ${ROOT.includes(name) ? "root, as its release does" : "node"}, from an absolute WORKDIR`, () => {
@@ -545,8 +566,9 @@ describe.each(Object.keys(RELEASES))(
     });
 
     test("every path the release copies or builds in, copied out of the release to the same place", () => {
+      // The shipped stage is the release without its tests.
       const fromRelease = copies(ours).filter((copy) => {
-        return copy.from === "release";
+        return copy.from === "release" || copy.from === "shipped";
       });
       const destinations = fromRelease.map((copy) => {
         return copy.destination;

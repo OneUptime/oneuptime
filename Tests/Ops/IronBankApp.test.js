@@ -62,7 +62,7 @@ describe("IronBank/App runs the image the release runs", () => {
       project.stages.map((stage) => {
         return stage.name;
       }),
-    ).toEqual(["release", null]);
+    ).toEqual(["release", "shipped", null]);
     expect(runtimeStage).toBeDefined();
     expect(enterpriseStage).toBeDefined();
     expect(enterpriseStage.from).toBe("runtime");
@@ -156,7 +156,7 @@ describe("IronBank/App runs the image the release runs", () => {
         }),
     ).toEqual(["/usr/src /usr/src"]);
     expect(all(finalInstructions, "COPY")).toEqual([
-      "COPY --from=release /usr/src /usr/src",
+      "COPY --from=shipped /usr/src /usr/src",
     ]);
   });
 });

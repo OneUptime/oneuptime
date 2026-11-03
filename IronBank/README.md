@@ -39,6 +39,12 @@ copies what that image adds onto an Iron Bank base image of the same
 distribution. It then installs the same Alpine or Debian packages and sets the
 release's environment, user, entrypoint and start command again. Because the
 distributions match, what the release compiled runs unchanged.
+
+`/usr/src` is copied from a `shipped` stage: the release with its test
+directories (`/usr/src/Common/Tests`, `/usr/src/app/Tests`) removed, so that no
+layer of the image carries them. No image runs its tests, and one of Common's
+test fixtures (an SVG data URI with a script in it) is what ClamAV calls
+phishing. Iron Bank's pipeline fails an image on any ClamAV detection.
 `Tests/Ops/IronBankApp.test.js` and `IronBankProjects.test.js` hold each
 Dockerfile to the Dockerfile its release is built from
 (`packages/<Service>/Dockerfile.tpl`). When one of those changes what its image

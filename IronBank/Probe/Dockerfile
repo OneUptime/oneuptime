@@ -36,6 +36,14 @@ ARG BASE_TAG=12-slim
 # pulls it by digest and gives it this name before it builds.
 FROM oneuptime/probe:14.0.102 AS release
 
+# The release without its tests, which no image runs: one of Common's test
+# fixtures (an SVG data URI with a script in it) is what ClamAV calls
+# phishing, and Iron Bank's pipeline fails an image on any ClamAV detection.
+# Removed in a stage of its own, so that no layer of this image carries them.
+FROM release AS shipped
+USER root
+RUN rm -rf /usr/src/Common/Tests /usr/src/app/Tests
+
 FROM ${BASE_REGISTRY}/${BASE_IMAGE}:${BASE_TAG}
 
 # The probe runs as root, as the release does: ping, traceroute and tcpdump
@@ -49,7 +57,7 @@ COPY msodbcsql18.deb /tmp/msodbcsql18.deb
 COPY --from=release /usr/local/bin/node /usr/local/bin/node
 COPY --from=release /usr/local/lib/node_modules /usr/local/lib/node_modules
 COPY --from=release /usr/local/share/ca-certificates /usr/local/share/ca-certificates
-COPY --from=release /usr/src /usr/src
+COPY --from=shipped /usr/src /usr/src
 COPY --from=release /ms-playwright-browsers /ms-playwright-browsers
 COPY --from=release /usr/lib/oneuptime-probe /usr/lib/oneuptime-probe
 
@@ -79,7 +87,8 @@ RUN apt-get update \
     && npm config set fetch-retry-mintimeout 20000 \
     && npm config set fetch-retry-maxtimeout 60000 \
     && apt-get clean \
-    && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/* /tmp/msodbcsql18.deb
+    && rm -rf /var/cache/apt/archives/* /tmp/msodbcsql18.deb \
+    && rm -rf /var/lib/apt/lists/*
 
 SHELL ["/bin/bash", "-c"]
 
