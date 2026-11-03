@@ -17,6 +17,8 @@ import ObjectID from "Common/Types/ObjectID";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Link from "Common/UI/Components/Link/Link";
+import SignInOptionLink from "Common/UI/Components/SignInOption/SignInOptionLink";
+import IconProp from "Common/Types/Icon/IconProp";
 import Navigation from "Common/UI/Utils/Navigation";
 import SensitiveUrlToken from "Common/UI/Utils/SensitiveUrlToken";
 import React, { FunctionComponent, useEffect, useState } from "react";
@@ -223,14 +225,18 @@ const MagicLinkLoginPage: FunctionComponent<ComponentProps> = (
             />
           )}
 
+          {/*
+           * A new link, drawn as the sign-in page draws its other ways in:
+           * an outlined button, as wide as the card, that is still a link.
+           */}
           {!canSignIn && props.enableMagicLinkLogin && (
-            <Link
+            <SignInOptionLink
               to={newLinkRoute}
+              id={MAGIC_LINK_LOGIN_NEW_LINK_TEST_ID}
               dataTestId={MAGIC_LINK_LOGIN_NEW_LINK_TEST_ID}
-              className="flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-            >
-              {t("accounts.magicLinkLogin.requestNewLink")}
-            </Link>
+              icon={IconProp.Email}
+              title={t("accounts.magicLinkLogin.requestNewLink")}
+            />
           )}
         </div>
 

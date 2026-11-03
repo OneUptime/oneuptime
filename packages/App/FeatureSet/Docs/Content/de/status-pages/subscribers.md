@@ -98,7 +98,7 @@ Jede Grenze pro Netzwerk zählt außerdem die Adressen eines IPv6-/64 zusammen, 
 
 **Auch was Ihr Team sendet, zählt.** Nichts begrenzt, wie schnell Ihr Team Abonnenten hinzufügt, im Dashboard, in großen Mengen, über die API oder per Workflow. Aber die Nachricht, die ein hinzugefügter Abonnent erhält, die E-Mail mit der Bitte um Bestätigung oder die Nachricht, dass er abonniert ist, zählt zu den 10 Anmeldungen dieses Kontakts in einer Stunde, und darüber hinaus wird das Hinzufügen mit `429` abgelehnt. Ein Abonnent, der ohne Nachricht hinzugefügt wird, wird nie gezählt: **Jetzt abonnieren** für eine E-Mail-Adresse, oder **Willkommensnachricht senden** ausgeschaltet für die anderen Kanäle. Ist die Ratenbegrenzung nicht erreichbar, gehen die Hinzufügungen Ihres Teams ungezählt weiter.
 
-Ein privater Benutzer, der auf der Anmeldeseite der Statusseite einen Link zum Zurücksetzen des Passworts anfordert, ist genauso begrenzt: 5 Rücksetz-E-Mails an eine Adresse in einer Stunde, auf allen Statusseiten zusammen, und 30 aus einem Netzwerk in 15 Minuten. Eine Einladung, zu einer privaten Statusseite oder zu einem Projekt, wird ebenfalls pro Adresse gezählt: 10 an eine Adresse in einer Stunde, beide Arten zusammen.
+Ein privater Benutzer, der auf der Anmeldeseite der Statusseite einen Link zum Zurücksetzen des Passworts anfordert, ist genauso begrenzt: 5 Rücksetz-E-Mails an eine Adresse in einer Stunde, auf allen Statusseiten zusammen, und 30 aus einem Netzwerk in 15 Minuten. Eine Einladung, zu einer privaten Statusseite oder zu einem Projekt, wird ebenfalls pro Adresse gezählt: 10 an eine Adresse in einer Stunde, beide Arten zusammen. Das Anfordern eines Anmeldelinks auf der Anmeldeseite ist ebenfalls begrenzt und wird gezählt, ob die Adresse zu einem privaten Benutzer der Seite gehört oder nicht: 10 E-Mails an eine Adresse in einer Stunde, auf allen Statusseiten zusammen, und 30 aus einem Netzwerk in 15 Minuten.
 
 Auf einer selbst gehosteten Installation ändern diese Umgebungsvariablen der OneUptime-App die Grenzen:
 
@@ -113,6 +113,8 @@ Auf einer selbst gehosteten Installation ändern diese Umgebungsvariablen der On
 | `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_CONTACT` | `5` | Verwaltungslinks für einen Kontakt pro Zeitfenster. |
 | `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_IP` | `30` | Passwort-Zurücksetzungen privater Benutzer, die von einer Adresse pro Zeitfenster angefordert werden. |
 | `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_CONTACT` | `5` | Rücksetz-E-Mails privater Benutzer an eine Adresse pro Zeitfenster. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MAGIC_LINKS_PER_IP` | `30` | Anmeldelinks privater Benutzer, die von einer Adresse pro Zeitfenster angefordert werden. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MAGIC_LINKS_PER_CONTACT` | `10` | Anmeldelink-E-Mails privater Benutzer an eine Adresse pro Zeitfenster. |
 | `PUBLIC_MESSAGE_RATE_LIMIT_INVITATIONS_PER_CONTACT` | `10` | Einladungen an eine Adresse pro Zeitfenster, zu privaten Statusseiten und Projekten zusammen. |
 
 Weder `config.env` noch die Werte des Helm-Charts reichen sie weiter: Fügen Sie sie selbst der Umgebung des Containers `app` hinzu, im Helm-Chart mit `app.extraEnv` oder dem chartweiten `extraEnv`, oder bei Docker Compose in einer `docker-compose.override.yml`. `TRUSTED_PROXY_HOPS` entscheidet, welche Adresse die Grenzen pro Netzwerk zählen.

@@ -98,7 +98,7 @@ Ogni limite per rete conta anche insieme gli indirizzi di uno stesso IPv6 /64, c
 
 **Conta anche ciò che invia il vostro team.** Niente limita la velocità con cui il vostro team aggiunge iscritti, nella dashboard, in blocco, tramite l'API o con un workflow. Ma il messaggio che riceve un iscritto aggiunto, l'email che gli chiede di confermare o il messaggio che dice che è iscritto, conta nelle 10 iscrizioni all'ora di quel contatto, e oltre quelle l'aggiunta viene rifiutata con `429`. Un iscritto aggiunto senza messaggio non viene mai contato: **Iscrivili ora** per un indirizzo email, oppure **Invia un messaggio di benvenuto** disattivato per gli altri canali. Se il limitatore di frequenza non è raggiungibile, le aggiunte del vostro team proseguono senza essere contate.
 
-Un utente privato che chiede un link per reimpostare la password nella pagina di accesso della pagina di stato è limitato allo stesso modo: 5 email di reimpostazione a un indirizzo in un'ora, su tutte le pagine di stato insieme, e 30 da una rete in 15 minuti. Anche un invito, a una pagina di stato privata o a un progetto, viene contato per indirizzo: 10 a un indirizzo in un'ora, i due tipi insieme.
+Un utente privato che chiede un link per reimpostare la password nella pagina di accesso della pagina di stato è limitato allo stesso modo: 5 email di reimpostazione a un indirizzo in un'ora, su tutte le pagine di stato insieme, e 30 da una rete in 15 minuti. Anche un invito, a una pagina di stato privata o a un progetto, viene contato per indirizzo: 10 a un indirizzo in un'ora, i due tipi insieme. Anche chiedere un link di accesso nella pagina di accesso è limitato, e viene contato che l'indirizzo sia o no di un utente privato della pagina: 10 email a un indirizzo in un'ora, su tutte le pagine di stato insieme, e 30 da una rete in 15 minuti.
 
 In un'installazione self-hosted, queste variabili d'ambiente dell'app OneUptime cambiano i limiti:
 
@@ -113,6 +113,8 @@ In un'installazione self-hosted, queste variabili d'ambiente dell'app OneUptime 
 | `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_CONTACT` | `5` | Link di gestione per un contatto per finestra. |
 | `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_IP` | `30` | Reimpostazioni della password di utenti privati chieste da un indirizzo per finestra. |
 | `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_CONTACT` | `5` | Email di reimpostazione della password di utenti privati a un indirizzo per finestra. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MAGIC_LINKS_PER_IP` | `30` | Link di accesso di utenti privati chiesti da un indirizzo per finestra. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MAGIC_LINKS_PER_CONTACT` | `10` | Email con link di accesso di utenti privati a un indirizzo per finestra. |
 | `PUBLIC_MESSAGE_RATE_LIMIT_INVITATIONS_PER_CONTACT` | `10` | Inviti a un indirizzo per finestra, a pagine di stato private e progetti insieme. |
 
 Né `config.env` né i valori del chart Helm le trasmettono: aggiungetele voi all'ambiente del container `app`, con `app.extraEnv`, o con l'`extraEnv` dell'intero chart, nel chart Helm, oppure in un `docker-compose.override.yml` per Docker Compose. `TRUSTED_PROXY_HOPS` decide quale indirizzo contano i limiti per rete.

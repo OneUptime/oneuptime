@@ -97,6 +97,7 @@ const ALL_KINDS: Array<PublicMessageKind> = [
   PublicMessageKind.StatusPageSignUp,
   PublicMessageKind.StatusPageManageLink,
   PublicMessageKind.StatusPagePasswordReset,
+  PublicMessageKind.StatusPageMagicLink,
   PublicMessageKind.PasswordReset,
   PublicMessageKind.SignUpEmail,
 ];
@@ -214,6 +215,11 @@ describe("the limits in force", () => {
         perClientLimit: 30,
         perContactLimit: 5,
       },
+      // A link works once, so a reader on two devices asks twice.
+      [PublicMessageKind.StatusPageMagicLink]: {
+        perClientLimit: 30,
+        perContactLimit: 10,
+      },
       [PublicMessageKind.PasswordReset]: {
         perClientLimit: 30,
         perContactLimit: 5,
@@ -272,6 +278,18 @@ describe("the limits in force", () => {
         config: PublicMessageRateLimitConfig,
       ): number => {
         return config.kinds[PublicMessageKind.StatusPagePasswordReset]
+          .perContactLimit;
+      },
+      STATUS_PAGE_MAGIC_LINKS_PER_IP: (
+        config: PublicMessageRateLimitConfig,
+      ): number => {
+        return config.kinds[PublicMessageKind.StatusPageMagicLink]
+          .perClientLimit;
+      },
+      STATUS_PAGE_MAGIC_LINKS_PER_CONTACT: (
+        config: PublicMessageRateLimitConfig,
+      ): number => {
+        return config.kinds[PublicMessageKind.StatusPageMagicLink]
           .perContactLimit;
       },
       PASSWORD_RESETS_PER_IP: (
