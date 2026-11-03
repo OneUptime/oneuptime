@@ -262,6 +262,7 @@ import { AddWorkspaceHomeChoice1808891613000 } from "./1808891613000-AddWorkspac
 import { AddNetworkControllerConnectionLastDeviceAdd1808900000000 } from "./1808900000000-AddNetworkControllerConnectionLastDeviceAdd";
 import { AddDataObservability1808910000000 } from "./1808910000000-AddDataObservability";
 import { AddDataObservabilityStoreIndex1808910100000 } from "./1808910100000-AddDataObservabilityStoreIndex";
+import { AddDataAssetFeedUser1808920000000 } from "./1808920000000-AddDataAssetFeedUser";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1726,4 +1727,5 @@ export default [
   AddNetworkControllerConnectionLastDeviceAdd1808900000000,
   AddDataObservability1808910000000,
   AddDataObservabilityStoreIndex1808910100000,
+  AddDataAssetFeedUser1808920000000,
 ];
