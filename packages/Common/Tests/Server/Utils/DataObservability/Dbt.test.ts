@@ -312,7 +312,11 @@ describe("matching a dbt table to a watched one", () => {
   test("a warehouse OneUptime does not read, or another database, matches nothing", () => {
     const orders: DbtTable = manifest().tables.get("model.jaffle_shop.orders")!;
 
-    expect(getDbtDataset("snowflake", orders)).toBe(null);
+    expect(getDbtDataset("bigquery", orders)).toBe(null);
+    expect(getDbtDataset("snowflake", orders)).toEqual({
+      namespace: "snowflake://",
+      name: "jaffle.public.orders_v2",
+    });
     expect(matched("postgres", { ...orders, database: "other" })).toBe(null);
     expect(matched("mysql", orders)).toBe(null);
   });

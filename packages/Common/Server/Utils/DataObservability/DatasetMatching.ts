@@ -26,6 +26,8 @@ const KIND_SYSTEMS: Readonly<Partial<Record<DataStoreKind, string>>> = {
   [DataStoreKind.PostgreSql]: "postgresql",
   [DataStoreKind.MySql]: "mysql",
   [DataStoreKind.SqlServer]: "mssql",
+  [DataStoreKind.AwsRedshiftCluster]: "redshift",
+  [DataStoreKind.Snowflake]: "snowflake",
 };
 
 export function matchDataset(data: {

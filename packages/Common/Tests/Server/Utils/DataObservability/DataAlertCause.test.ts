@@ -12,6 +12,11 @@ import MonitorStep from "../../../../Types/Monitor/MonitorStep";
 import MonitorSteps from "../../../../Types/Monitor/MonitorSteps";
 import MonitorType from "../../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../../Types/ObjectID";
+import { htmlAsText } from "../../../Helpers/HtmlText";
+import {
+  hrefsOf,
+  renderAsDashboard,
+} from "../../../Utils/Markdown/DashboardMarkdownRenderer";
 
 /*
  * A data alert is about what its monitor is scoped to: a store's tables
@@ -138,5 +143,18 @@ describe("describeConsequence", () => {
     ).toBe(
       "**Caused upstream.** Alert #41 Table Is Late - public.raw_orders is open on what this alert's table or pipeline is built from, so this alert started acknowledged: nobody is paged twice for one problem. It recovers on its own once its data does.",
     );
+  });
+
+  test("shows the cause's title as it was written: its Markdown makes no link and no bold", () => {
+    const title: string = "Table Is Late - [Pay here](/billing) **now**";
+
+    const html: string = renderAsDashboard([
+      describeConsequence({ title: title, alertNumberWithPrefix: "#41" }),
+    ])[0]!;
+
+    expect(hrefsOf(html)).toEqual([]);
+    // Only the line's own "Caused upstream." is bold.
+    expect(html.split("<strong>").length - 1).toBe(1);
+    expect(htmlAsText(html)).toContain(`Alert #41 ${title} is open`);
   });
 });
