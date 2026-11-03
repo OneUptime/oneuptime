@@ -113,9 +113,16 @@ const MagicLinkPage: FunctionComponent<ComponentProps> = (
     redirectUrl: StatusPageUtil.getSafeRedirectUrl(),
   });
 
-  // A page that does not offer sign-in links has only its password form.
-  if (!props.enableMagicLinkLogin && !props.forceSSO) {
-    Navigation.navigate(loginRoute);
+  /*
+   * A page that does not offer sign-in links has only its password form -
+   * or, when it requires SSO, only its SSO page, where the effect above
+   * sends the reader.
+   */
+  if (!props.enableMagicLinkLogin) {
+    if (!props.forceSSO) {
+      Navigation.navigate(loginRoute);
+    }
+
     return <></>;
   }
 

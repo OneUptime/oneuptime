@@ -517,10 +517,13 @@ describe("'Log in with a link': the address, then 'Check your email'", () => {
     ).not.toBeInTheDocument();
   });
 
-  test("a page that requires SSO sends the reader to its SSO page", async () => {
+  test("a page that requires SSO sends the reader to its SSO page, drawing no form on the way", async () => {
     await renderMagicLink({ enableMagicLinkLogin: false, forceSSO: true });
 
-    expect(navigatedTo()).toContain("/sso");
+    expect(navigatedTo()).toEqual(["/sso"]);
+    expect(
+      screen.queryByTestId(MAGIC_LINK_FORM_TEST_ID),
+    ).not.toBeInTheDocument();
   });
 
   test("a page behind its master password asks for that first", async () => {
@@ -779,11 +782,17 @@ describe("the page a sign-in link opens", () => {
     expect(posts).toEqual([]);
   });
 
-  test("on a page that requires SSO: the link is dropped and the reader sent to SSO", async () => {
+  test("on a page that requires SSO: the link is dropped and the reader sent to SSO, with nothing drawn on the way", async () => {
     await renderLanding({ enableMagicLinkLogin: false, forceSSO: true });
 
-    expect(navigatedTo()).toContain("/sso");
+    expect(navigatedTo()).toEqual(["/sso"]);
     expect(window.sessionStorage.getItem(SENSITIVE_URL_TOKEN_KEY)).toBeNull();
+    expect(
+      screen.queryByTestId(MAGIC_LINK_LOGIN_ERROR_TEST_ID),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId(MAGIC_LINK_LOGIN_BUTTON_TEST_ID),
+    ).not.toBeInTheDocument();
   });
 
   test("a reader already signed in: the link is dropped and the page opens", async () => {

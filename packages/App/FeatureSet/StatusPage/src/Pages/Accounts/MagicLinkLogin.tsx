@@ -103,6 +103,11 @@ const MagicLinkLoginPage: FunctionComponent<ComponentProps> = (
     return <></>;
   }
 
+  // Only SSO signs anybody in here: the effect above sends the reader there.
+  if (props.forceSSO) {
+    return <></>;
+  }
+
   // Already signed in to this page: the link is not needed.
   if (UserUtil.isLoggedIn(statusPageId)) {
     SensitiveUrlToken.clear();
