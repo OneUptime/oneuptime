@@ -204,7 +204,7 @@ describe("Add devices' lookup of the identities devices here hold", () => {
     expect(sql).toContain('WHERE nd."projectId" = $1');
     expect(sql).toContain('AND nd."deletedAt" IS NULL');
     // An archived box is never added again: it is looked up too.
-    expect(sql).not.toContain("isArchived\" = false");
+    expect(sql).not.toContain('isArchived" = false');
     expect(sql).toContain('upper(btrim(nd."serialNumber")) = ANY($2::text[])');
     expect(sql).toContain('lower(nd."macAddress") = ANY($3::text[])');
     expect(sql).toContain(

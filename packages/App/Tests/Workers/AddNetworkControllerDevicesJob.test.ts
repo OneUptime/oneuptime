@@ -38,7 +38,8 @@ jest.mock(
   () => {
     return {
       __esModule: true,
-      NETWORK_CONTROLLER_DEVICE_ADD_JOB: "NetworkControllerConnection:AddDevices",
+      NETWORK_CONTROLLER_DEVICE_ADD_JOB:
+        "NetworkControllerConnection:AddDevices",
       NETWORK_CONTROLLER_DEVICE_ADD_JOB_TIMEOUT_MS: 60 * 60 * 1000,
       default: { run: mockRun },
     };

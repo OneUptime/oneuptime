@@ -63,7 +63,8 @@ const CONNECTIONS_CARD: string = `${DASHBOARD_APP}/Components/NetworkTraffic/Mer
 const ADD_DEVICES_DIALOG: string = `${DASHBOARD_APP}/Components/NetworkTraffic/Meraki/MerakiAddDevicesModal.tsx`;
 const DEVICE_ADD_RUNNER: string =
   "Common/Server/Utils/NetworkController/NetworkControllerDeviceAddRunner.ts";
-const CONNECTION_API: string = "Common/Server/API/NetworkControllerConnectionAPI.ts";
+const CONNECTION_API: string =
+  "Common/Server/API/NetworkControllerConnectionAPI.ts";
 
 // The section's paragraphs, in a language.
 function paragraphs(language: string): Array<string> {
@@ -117,9 +118,7 @@ describe("Network Traffic: Add devices, held to the code", () => {
     expect(readRepoFile(CONNECTIONS_CARD)).toContain(
       'data-testid="meraki-connection-add-devices"',
     );
-    expect(readRepoFile(CONNECTIONS_CARD)).toContain(
-      'key="add-devices"',
-    );
+    expect(readRepoFile(CONNECTIONS_CARD)).toContain('key="add-devices"');
 
     const add: string = englishParagraph(ADD_PARAGRAPH);
     expect(add).toContain(
@@ -160,18 +159,22 @@ describe("Network Traffic: Add devices, held to the code", () => {
   });
 
   it("puts each in the site named after its Meraki network by default - the project's own, or a new one - under More fields", () => {
-    expect(DEFAULT_NETWORK_CONTROLLER_DEVICE_ADD_REQUEST.groupBySite).toBe(true);
+    expect(DEFAULT_NETWORK_CONTROLLER_DEVICE_ADD_REQUEST.groupBySite).toBe(
+      true,
+    );
     expect(MORE_FIELDS_SECTION_TITLE).toBe("More fields");
     expect(readRepoFile(ADD_DEVICES_DIALOG)).toContain(
       "title={MORE_FIELDS_SECTION_TITLE}",
     );
 
-    const existing: ReturnType<typeof planControllerSites> = planControllerSites(
-      {
-        devices: [device(), device({ serial: "Q2", networkName: "Store 0101" })],
+    const existing: ReturnType<typeof planControllerSites> =
+      planControllerSites({
+        devices: [
+          device(),
+          device({ serial: "Q2", networkName: "Store 0101" }),
+        ],
         existingSiteNames: new Set<string>(["store 0660"]),
-      },
-    );
+      });
     expect(existing.sitesToCreate).toEqual([
       { name: "Store 0101", address: "" },
     ]);
@@ -189,9 +192,9 @@ describe("Network Traffic: Add devices, held to the code", () => {
       return probe;
     };
 
-    expect(getDefaultProbeId([own("30000000-0000-4000-8000-000000000001")])).toBe(
-      "30000000-0000-4000-8000-000000000001",
-    );
+    expect(
+      getDefaultProbeId([own("30000000-0000-4000-8000-000000000001")]),
+    ).toBe("30000000-0000-4000-8000-000000000001");
     expect(
       getDefaultProbeId([
         own("30000000-0000-4000-8000-000000000001"),
@@ -209,9 +212,21 @@ describe("Network Traffic: Add devices, held to the code", () => {
     const verdicts: Map<string, ControllerDeviceAddVerdict> =
       judgeControllerDevices({
         devices: [
-          device({ serial: "S-1", lanIp: "10.0.0.1", mac: "aa:bb:cc:00:00:01" }),
-          device({ serial: "S-2", lanIp: "10.0.0.2", mac: "aa:bb:cc:00:00:02" }),
-          device({ serial: "S-3", lanIp: "10.0.0.3", mac: "aa:bb:cc:00:00:03" }),
+          device({
+            serial: "S-1",
+            lanIp: "10.0.0.1",
+            mac: "aa:bb:cc:00:00:01",
+          }),
+          device({
+            serial: "S-2",
+            lanIp: "10.0.0.2",
+            mac: "aa:bb:cc:00:00:02",
+          }),
+          device({
+            serial: "S-3",
+            lanIp: "10.0.0.3",
+            mac: "aa:bb:cc:00:00:03",
+          }),
           device({
             serial: "S-4",
             lanIp: "",
@@ -241,14 +256,18 @@ describe("Network Traffic: Add devices, held to the code", () => {
     expect(nothingTwice).toContain(
       "A security appliance (MX or Z) lists no address in Meraki, so add it by hand at the address your probe reaches it at, and Meraki fills in the rest.",
     );
-    expect(nothingTwice).toContain("The dialog says how many it leaves out, and why.");
+    expect(nothingTwice).toContain(
+      "The dialog says how many it leaves out, and why.",
+    );
   });
 
   it("adds them on the server, as the person who asked, up to 5,000 at a time, and keeps a deleted device deleted", () => {
     expect(MAX_DEVICES_PER_CONTROLLER_DEVICE_ADD).toBe(5000);
 
     const runner: string = readRepoFile(DEVICE_ADD_RUNNER);
-    expect(runner).toContain("WorkspaceActionAuthorization.getProjectMemberProps");
+    expect(runner).toContain(
+      "WorkspaceActionAuthorization.getProjectMemberProps",
+    );
     // Once per ask: nothing in a read adds a device.
     expect(
       readRepoFile(

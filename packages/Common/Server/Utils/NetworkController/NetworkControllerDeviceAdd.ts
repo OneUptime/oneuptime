@@ -167,7 +167,10 @@ function emptyHeld(): HeldIdentities {
   };
 }
 
-function holdInto(held: HeldIdentities, holder: ControllerIdentityHolder): void {
+function holdInto(
+  held: HeldIdentities,
+  holder: ControllerIdentityHolder,
+): void {
   const serial: string = toSerialKey(holder.serialNumber);
 
   if (serial) {
@@ -233,38 +236,39 @@ export function judgeControllerDevices(data: {
       continue;
     }
 
-    const verdict: ControllerDeviceAddVerdict = ((): ControllerDeviceAddVerdict => {
-      if (!isAddableControllerProductType(device.productType)) {
-        return ControllerDeviceAddVerdict.NotOffered;
-      }
+    const verdict: ControllerDeviceAddVerdict =
+      ((): ControllerDeviceAddVerdict => {
+        if (!isAddableControllerProductType(device.productType)) {
+          return ControllerDeviceAddVerdict.NotOffered;
+        }
 
-      if (matched.has(serial)) {
-        return ControllerDeviceAddVerdict.AlreadyHere;
-      }
+        if (matched.has(serial)) {
+          return ControllerDeviceAddVerdict.AlreadyHere;
+        }
 
-      if (
-        archived.serials.has(serial) ||
-        (device.mac && archived.macs.has(device.mac))
-      ) {
-        return ControllerDeviceAddVerdict.Archived;
-      }
+        if (
+          archived.serials.has(serial) ||
+          (device.mac && archived.macs.has(device.mac))
+        ) {
+          return ControllerDeviceAddVerdict.Archived;
+        }
 
-      if (!device.lanIp) {
-        return ControllerDeviceAddVerdict.WithoutAddress;
-      }
+        if (!device.lanIp) {
+          return ControllerDeviceAddVerdict.WithoutAddress;
+        }
 
-      if (
-        live.serials.has(serial) ||
-        (device.mac && live.macs.has(device.mac)) ||
-        live.addresses.has(device.lanIp) ||
-        archived.addresses.has(device.lanIp) ||
-        claimed.has(device.lanIp)
-      ) {
-        return ControllerDeviceAddVerdict.Taken;
-      }
+        if (
+          live.serials.has(serial) ||
+          (device.mac && live.macs.has(device.mac)) ||
+          live.addresses.has(device.lanIp) ||
+          archived.addresses.has(device.lanIp) ||
+          claimed.has(device.lanIp)
+        ) {
+          return ControllerDeviceAddVerdict.Taken;
+        }
 
-      return ControllerDeviceAddVerdict.Addable;
-    })();
+        return ControllerDeviceAddVerdict.Addable;
+      })();
 
     if (verdict === ControllerDeviceAddVerdict.Addable) {
       claimed.add(device.lanIp);
@@ -423,7 +427,10 @@ export function planControllerDeviceAdd(data: {
     (a: NetworkControllerDevice, b: NetworkControllerDevice): number => {
       return (
         compareText(a.networkName, b.networkName) ||
-        compareText(getControllerDeviceBaseName(a), getControllerDeviceBaseName(b)) ||
+        compareText(
+          getControllerDeviceBaseName(a),
+          getControllerDeviceBaseName(b),
+        ) ||
         compareText(a.serial, b.serial)
       );
     },
@@ -451,9 +458,7 @@ export function getControllerDeviceBaseName(
 ): string {
   const name: string =
     readText(device.name) ||
-    [readText(device.model), readText(device.serial)]
-      .filter(Boolean)
-      .join(" ");
+    [readText(device.model), readText(device.serial)].filter(Boolean).join(" ");
 
   return cut(name || readText(device.serial), MAX_ADDED_DEVICE_NAME_LENGTH);
 }

@@ -554,7 +554,6 @@ export default class MerakiTrafficReader {
       getMerakiAppliances(devices);
 
     if (!isDeviceListComplete) {
-
       /*
        * The appliances past the cut still carry uplinks: they are listed on
        * their own, as the read listed them before it read every device.

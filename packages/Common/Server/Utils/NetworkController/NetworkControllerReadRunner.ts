@@ -524,15 +524,13 @@ export default class NetworkControllerReadRunner {
               lookup: ControllerIdentityLookup;
               limit: number;
             }): Promise<Array<ControllerIdentityHolder>> => {
-              return await NetworkDeviceService.findControllerIdentityHolders(
-                {
-                  projectId: query.projectId,
-                  serials: query.lookup.serials,
-                  macs: query.lookup.macs,
-                  addresses: query.lookup.addresses,
-                  limit: query.limit,
-                },
-              );
+              return await NetworkDeviceService.findControllerIdentityHolders({
+                projectId: query.projectId,
+                serials: query.lookup.serials,
+                macs: query.lookup.macs,
+                addresses: query.lookup.addresses,
+                limit: query.limit,
+              });
             })
           )({
             projectId: connection.projectId,

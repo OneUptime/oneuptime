@@ -150,10 +150,34 @@ function state(
 }
 
 const COUNTS: Array<NetworkControllerUnaddedDeviceCount> = [
-  { productType: "switch", addable: 40, withoutAddress: 0, taken: 2, archived: 0 },
-  { productType: "wireless", addable: 70, withoutAddress: 0, taken: 0, archived: 1 },
-  { productType: "appliance", addable: 0, withoutAddress: 8, taken: 0, archived: 0 },
-  { productType: "camera", addable: 12, withoutAddress: 0, taken: 3, archived: 0 },
+  {
+    productType: "switch",
+    addable: 40,
+    withoutAddress: 0,
+    taken: 2,
+    archived: 0,
+  },
+  {
+    productType: "wireless",
+    addable: 70,
+    withoutAddress: 0,
+    taken: 0,
+    archived: 1,
+  },
+  {
+    productType: "appliance",
+    addable: 0,
+    withoutAddress: 8,
+    taken: 0,
+    archived: 0,
+  },
+  {
+    productType: "camera",
+    addable: 12,
+    withoutAddress: 0,
+    taken: 3,
+    archived: 0,
+  },
 ];
 
 describe("where an ask stands, as the row draws it", () => {
@@ -189,7 +213,9 @@ describe("where an ask stands, as the row draws it", () => {
   });
 
   test("done or failed: said for a day, then not at all", () => {
-    const finishedAt: string = new Date(NOW.getTime() - 60 * 1000).toISOString();
+    const finishedAt: string = new Date(
+      NOW.getTime() - 60 * 1000,
+    ).toISOString();
 
     expect(
       getDeviceAddStanding(
@@ -219,7 +245,9 @@ describe("where an ask stands, as the row draws it", () => {
 
 describe("what the row offers, and what the dialog lists", () => {
   test("the row offers the addable devices of the kinds an ask starts with", () => {
-    expect(getOfferedDeviceCount({ counts: COUNTS, last: undefined })).toBe(110);
+    expect(getOfferedDeviceCount({ counts: COUNTS, last: undefined })).toBe(
+      110,
+    );
     expect(
       getOfferedDeviceCount({
         counts: COUNTS,
@@ -234,7 +262,11 @@ describe("what the row offers, and what the dialog lists", () => {
   });
 
   test("the dialog lists the kinds with something to add; every kind when nothing was counted", () => {
-    expect(getDialogDeviceKinds(COUNTS)).toEqual(["switch", "wireless", "camera"]);
+    expect(getDialogDeviceKinds(COUNTS)).toEqual([
+      "switch",
+      "wireless",
+      "camera",
+    ]);
     expect(getDialogDeviceKinds(undefined)).toEqual([
       ...ADDABLE_CONTROLLER_PRODUCT_TYPES,
     ]);
@@ -243,7 +275,10 @@ describe("what the row offers, and what the dialog lists", () => {
 
   test("what is not added, of the kinds picked - and a kind with nothing to add, whatever is picked", () => {
     expect(
-      getNotAddedCounts({ counts: COUNTS, productTypes: ["switch", "wireless"] }),
+      getNotAddedCounts({
+        counts: COUNTS,
+        productTypes: ["switch", "wireless"],
+      }),
     ).toEqual({ withoutAddress: 8, taken: 2, archived: 1 });
     expect(
       getNotAddedCounts({ counts: COUNTS, productTypes: ["camera"] }),
@@ -258,9 +293,13 @@ describe("what the row offers, and what the dialog lists", () => {
       expect(DEVICE_KIND_NAMES[kind]).toBeTruthy();
     }
 
-    expect(Object.keys(DEVICE_KIND_PRODUCT_LINES).sort()).toEqual(
-      ["appliance", "camera", "cellularGateway", "switch", "wireless"],
-    );
+    expect(Object.keys(DEVICE_KIND_PRODUCT_LINES).sort()).toEqual([
+      "appliance",
+      "camera",
+      "cellularGateway",
+      "switch",
+      "wireless",
+    ]);
   });
 });
 

@@ -61,10 +61,7 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import { BILLING_ENABLED } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
-import {
-  SentenceOptions,
-  Translator,
-} from "Common/UI/Utils/TranslateTemplate";
+import { SentenceOptions, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
@@ -141,8 +138,7 @@ const MerakiAddDevicesModal: FunctionComponent<ComponentProps> = (
     });
   })();
 
-  const [productTypes, setProductTypes] =
-    useState<Array<string>>(initialKinds);
+  const [productTypes, setProductTypes] = useState<Array<string>>(initialKinds);
   const [groupBySite, setGroupBySite] = useState<boolean>(
     last ? last.request.groupBySite : true,
   );
@@ -327,7 +323,12 @@ const MerakiAddDevicesModal: FunctionComponent<ComponentProps> = (
       onClose={props.onClose}
       submitButtonText={
         addCount > 0
-          ? translator.translatePlural(ADD_COUNT_BUTTON, addCount, {}, IN_SENTENCE)
+          ? translator.translatePlural(
+              ADD_COUNT_BUTTON,
+              addCount,
+              {},
+              IN_SENTENCE,
+            )
           : ADD_DEVICES_ACTION
       }
       onSubmit={() => {
@@ -403,9 +404,7 @@ const MerakiAddDevicesModal: FunctionComponent<ComponentProps> = (
 
                           return isChecked
                             ? kinds.filter((listed: string): boolean => {
-                                return (
-                                  listed === kind || next.includes(listed)
-                                );
+                                return listed === kind || next.includes(listed);
                               })
                             : next;
                         });

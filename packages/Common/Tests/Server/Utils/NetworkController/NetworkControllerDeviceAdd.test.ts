@@ -150,11 +150,15 @@ describe("judgeControllerDevices: one verdict for each Meraki device", () => {
       devices: [SWITCH, ACCESS_POINT, CAMERA],
     });
 
-    expect(verdicts.get(SWITCH.serial)).toBe(ControllerDeviceAddVerdict.Addable);
+    expect(verdicts.get(SWITCH.serial)).toBe(
+      ControllerDeviceAddVerdict.Addable,
+    );
     expect(verdicts.get(ACCESS_POINT.serial)).toBe(
       ControllerDeviceAddVerdict.Addable,
     );
-    expect(verdicts.get(CAMERA.serial)).toBe(ControllerDeviceAddVerdict.Addable);
+    expect(verdicts.get(CAMERA.serial)).toBe(
+      ControllerDeviceAddVerdict.Addable,
+    );
   });
 
   test("a sensor, a Systems Manager endpoint and a kind Meraki did not name are never offered", () => {
@@ -295,7 +299,9 @@ describe("judgeControllerDevices: one verdict for each Meraki device", () => {
       devices: [SWITCH, twin],
     });
 
-    expect(verdicts.get(SWITCH.serial)).toBe(ControllerDeviceAddVerdict.Addable);
+    expect(verdicts.get(SWITCH.serial)).toBe(
+      ControllerDeviceAddVerdict.Addable,
+    );
     expect(verdicts.get(twin.serial)).toBe(ControllerDeviceAddVerdict.Taken);
   });
 
@@ -385,7 +391,13 @@ describe("countUnaddedControllerDevices: what a read keeps on the connection", (
         taken: 0,
         archived: 0,
       },
-      { productType: "camera", addable: 1, withoutAddress: 0, taken: 0, archived: 0 },
+      {
+        productType: "camera",
+        addable: 1,
+        withoutAddress: 0,
+        taken: 0,
+        archived: 0,
+      },
     ]);
   });
 
@@ -411,7 +423,13 @@ describe("countUnaddedControllerDevices: what a read keeps on the connection", (
         verdicts,
       }),
     ).toEqual([
-      { productType: "switch", addable: 1, withoutAddress: 0, taken: 0, archived: 0 },
+      {
+        productType: "switch",
+        addable: 1,
+        withoutAddress: 0,
+        taken: 0,
+        archived: 0,
+      },
     ]);
   });
 
@@ -551,9 +569,9 @@ describe("planControllerDeviceAdd: what one ask adds", () => {
 describe("the names devices are added under", () => {
   test("what Meraki calls a device; a device nobody named is its model and serial number", () => {
     expect(getControllerDeviceBaseName(SWITCH)).toBe("Store 0660 core");
-    expect(
-      getControllerDeviceBaseName(controllerDevice({ name: "  " })),
-    ).toBe("MS225-48LP Q2HP-SWCH-0001");
+    expect(getControllerDeviceBaseName(controllerDevice({ name: "  " }))).toBe(
+      "MS225-48LP Q2HP-SWCH-0001",
+    );
     expect(
       getControllerDeviceBaseName(controllerDevice({ name: "", model: "" })),
     ).toBe("Q2HP-SWCH-0001");
@@ -689,7 +707,9 @@ describe("planControllerSites: the site each device goes into", () => {
       existingSiteNames: new Set<string>(),
     });
 
-    expect(plan.sitesToCreate[0]!.name).toHaveLength(MAX_ADDED_SITE_NAME_LENGTH);
+    expect(plan.sitesToCreate[0]!.name).toHaveLength(
+      MAX_ADDED_SITE_NAME_LENGTH,
+    );
     expect(plan.sitesToCreate[0]!.address).toHaveLength(
       MAX_ADDED_SITE_ADDRESS_LENGTH,
     );
@@ -697,7 +717,12 @@ describe("planControllerSites: the site each device goes into", () => {
 
   test("the names looked up are each network's once", () => {
     expect(
-      getControllerSiteNames([SWITCH, ACCESS_POINT, MX, controllerDevice({ networkName: "" })]),
+      getControllerSiteNames([
+        SWITCH,
+        ACCESS_POINT,
+        MX,
+        controllerDevice({ networkName: "" }),
+      ]),
     ).toEqual(["Store 0660"]);
   });
 });

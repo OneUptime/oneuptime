@@ -231,9 +231,9 @@ function isDeviceAddStatus(
 ): value is NetworkControllerDeviceAddStatus {
   return (
     typeof value === "string" &&
-    (ALL_NETWORK_CONTROLLER_DEVICE_ADD_STATUSES as ReadonlyArray<string>).includes(
-      value,
-    )
+    (
+      ALL_NETWORK_CONTROLLER_DEVICE_ADD_STATUSES as ReadonlyArray<string>
+    ).includes(value)
   );
 }
 

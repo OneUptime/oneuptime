@@ -138,7 +138,8 @@ export const FAILED_DEVICES_NOTE: PluralTemplate = {
 };
 export const REMAINING_DEVICES_NOTE: PluralTemplate = {
   one: "{{count}} more device is left to add. Add devices again to add it.",
-  other: "{{count}} more devices are left to add. Add devices again to add them.",
+  other:
+    "{{count}} more devices are left to add. Add devices again to add them.",
 };
 export const ADD_FAILED_NOTE: string = translationKey(
   "Devices could not be added from Meraki: {{reason}}",

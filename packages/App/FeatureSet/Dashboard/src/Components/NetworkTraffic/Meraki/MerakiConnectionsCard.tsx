@@ -84,10 +84,7 @@ import {
   markPageAnchorLanded,
 } from "Common/UI/Utils/PageAnchor";
 import ProjectUtil from "Common/UI/Utils/Project";
-import {
-  SentenceOptions,
-  Translator,
-} from "Common/UI/Utils/TranslateTemplate";
+import { SentenceOptions, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
@@ -1470,9 +1467,7 @@ const MerakiConnectionsCard: FunctionComponent<ComponentProps> = (
                     (
                       connection: NetworkControllerConnection,
                     ): NetworkControllerConnection => {
-                      if (
-                        connection.id?.toString() === asked.id?.toString()
-                      ) {
+                      if (connection.id?.toString() === asked.id?.toString()) {
                         connection.lastDeviceAdd =
                           toNetworkControllerDeviceAddStateJson(state);
                       }

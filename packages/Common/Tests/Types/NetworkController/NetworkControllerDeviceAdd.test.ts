@@ -199,7 +199,9 @@ describe("the state an ask keeps on the connection", () => {
       takenCount: 2,
       archivedCount: 1,
       remainingCount: 0,
-      failures: [{ name: "AP-1", reason: "Another network device has this name." }],
+      failures: [
+        { name: "AP-1", reason: "Another network device has this name." },
+      ],
     };
 
     const json: JSONObject = JSON.parse(
@@ -341,9 +343,27 @@ describe("isNetworkControllerDeviceAddUnderWay: an ask still going, never a lost
 
 describe("the counts every read keeps", () => {
   const counts: Array<NetworkControllerUnaddedDeviceCount> = [
-    { productType: "switch", addable: 4, withoutAddress: 0, taken: 1, archived: 0 },
-    { productType: "appliance", addable: 0, withoutAddress: 3, taken: 0, archived: 0 },
-    { productType: "camera", addable: 7, withoutAddress: 0, taken: 0, archived: 2 },
+    {
+      productType: "switch",
+      addable: 4,
+      withoutAddress: 0,
+      taken: 1,
+      archived: 0,
+    },
+    {
+      productType: "appliance",
+      addable: 0,
+      withoutAddress: 3,
+      taken: 0,
+      archived: 0,
+    },
+    {
+      productType: "camera",
+      addable: 7,
+      withoutAddress: 0,
+      taken: 0,
+      archived: 2,
+    },
   ];
 
   test("read back in the order the kinds are listed, known kinds only, once each, rows with nothing dropped", () => {
@@ -368,7 +388,13 @@ describe("the counts every read keeps", () => {
         { productType: "switch", addable: "4", taken: -1, archived: 1.5 },
       ]),
     ).toEqual([
-      { productType: "switch", addable: 4, withoutAddress: 0, taken: 0, archived: 1 },
+      {
+        productType: "switch",
+        addable: 4,
+        withoutAddress: 0,
+        taken: 0,
+        archived: 1,
+      },
     ]);
   });
 

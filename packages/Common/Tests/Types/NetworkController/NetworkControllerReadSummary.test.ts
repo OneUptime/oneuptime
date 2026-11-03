@@ -77,8 +77,20 @@ describe("what a read counted for Add devices", () => {
         ],
       })?.unaddedDevices,
     ).toEqual([
-      { productType: "switch", addable: 5, withoutAddress: 0, taken: 1, archived: 0 },
-      { productType: "camera", addable: 2, withoutAddress: 0, taken: 0, archived: 0 },
+      {
+        productType: "switch",
+        addable: 5,
+        withoutAddress: 0,
+        taken: 1,
+        archived: 0,
+      },
+      {
+        productType: "camera",
+        addable: 2,
+        withoutAddress: 0,
+        taken: 0,
+        archived: 0,
+      },
     ]);
   });
 

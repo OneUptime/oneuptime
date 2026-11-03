@@ -298,7 +298,9 @@ function createdNames(): Array<string> {
 beforeEach(() => {
   clock = createTestClock(START);
   api = createFakeMerakiApi({
-    organizations: [organization([SWITCH, ACCESS_POINT, CAMERA, OTHER_STORE_AP])],
+    organizations: [
+      organization([SWITCH, ACCESS_POINT, CAMERA, OTHER_STORE_AP]),
+    ],
     now: clock.now,
   });
   states = [];
@@ -453,7 +455,12 @@ describe("an ask that works", () => {
   });
 
   test("devices that are here already, archived or at a taken address are not added, and are counted", async () => {
-    candidates = [{ id: "40000000-0000-4000-8000-000000000001", serialNumber: SWITCH.serial }];
+    candidates = [
+      {
+        id: "40000000-0000-4000-8000-000000000001",
+        serialNumber: SWITCH.serial,
+      },
+    ];
     holders = [
       { serialNumber: SWITCH.serial },
       { macAddress: ACCESS_POINT.mac, isArchived: true },
@@ -536,7 +543,9 @@ describe("what it cannot add, it says", () => {
     await run({
       createDevice: async (data: { device: NetworkDevice }) => {
         if (data.device.serialNumber === SWITCH.serial) {
-          throw new BadDataException("Probe not found or it does not belong to this project.");
+          throw new BadDataException(
+            "Probe not found or it does not belong to this project.",
+          );
         }
 
         created.push(data.device);
@@ -607,7 +616,9 @@ describe("what it cannot add, it says", () => {
   test("a site that cannot be added is looked up again; its devices are added without one when it is still not there", async () => {
     await run({
       createSite: async () => {
-        throw new BadDataException("Network Site with the same name already exists.");
+        throw new BadDataException(
+          "Network Site with the same name already exists.",
+        );
       },
     });
 
@@ -761,7 +772,9 @@ describe("ask: recorded and queued once", () => {
       }) as never);
   });
 
-  async function askNow(at: Date = START): Promise<NetworkControllerDeviceAddState> {
+  async function askNow(
+    at: Date = START,
+  ): Promise<NetworkControllerDeviceAddState> {
     return await NetworkControllerDeviceAddRunner.ask({
       connectionId: CONNECTION,
       projectId: PROJECT,

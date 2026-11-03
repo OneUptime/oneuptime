@@ -1080,10 +1080,34 @@ describe("a project without a connection", () => {
 
 describe("the organization's devices that are not network devices here", () => {
   const COUNTS: Array<JSONObject> = [
-    { productType: "switch", addable: 40, withoutAddress: 0, taken: 0, archived: 0 },
-    { productType: "wireless", addable: 70, withoutAddress: 0, taken: 0, archived: 0 },
-    { productType: "appliance", addable: 0, withoutAddress: 8, taken: 0, archived: 0 },
-    { productType: "camera", addable: 12, withoutAddress: 0, taken: 0, archived: 0 },
+    {
+      productType: "switch",
+      addable: 40,
+      withoutAddress: 0,
+      taken: 0,
+      archived: 0,
+    },
+    {
+      productType: "wireless",
+      addable: 70,
+      withoutAddress: 0,
+      taken: 0,
+      archived: 0,
+    },
+    {
+      productType: "appliance",
+      addable: 0,
+      withoutAddress: 8,
+      taken: 0,
+      archived: 0,
+    },
+    {
+      productType: "camera",
+      addable: 12,
+      withoutAddress: 0,
+      taken: 0,
+      archived: 0,
+    },
   ];
 
   function counted(
@@ -1295,7 +1319,10 @@ describe("the organization's devices that are not network devices here", () => {
           failedCount: 5,
           failures: [
             { name: "Core", reason: "Another network device has this name." },
-            { name: "Lobby", reason: "Probe not found or it does not belong to this project." },
+            {
+              name: "Lobby",
+              reason: "Probe not found or it does not belong to this project.",
+            },
             { name: "Till", reason: "Something went wrong." },
             { name: "Back office", reason: "Something went wrong." },
           ],

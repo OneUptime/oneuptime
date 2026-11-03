@@ -236,7 +236,9 @@ describe("a link to the connections from another page", () => {
   test("the network's Traffic page, on its Meraki side, at the connections card", () => {
     expect(
       getMerakiConnectionsRoute(
-        new Route("/dashboard/10000000-0000-4000-8000-000000000001/network-devices/traffic"),
+        new Route(
+          "/dashboard/10000000-0000-4000-8000-000000000001/network-devices/traffic",
+        ),
       ).toString(),
     ).toBe(
       `/dashboard/10000000-0000-4000-8000-000000000001/network-devices/traffic?source=meraki#${MERAKI_CONNECTIONS_ANCHOR}`,
@@ -1702,7 +1704,10 @@ describe("the calls", () => {
     postMock.mockResolvedValueOnce(
       new HTTPErrorResponse(
         400,
-        { message: "This connection is turned off. Turn it on to add its devices." },
+        {
+          message:
+            "This connection is turned off. Turn it on to add its devices.",
+        },
         {},
       ),
     );

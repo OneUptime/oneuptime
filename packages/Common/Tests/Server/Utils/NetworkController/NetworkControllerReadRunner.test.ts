@@ -1100,7 +1100,13 @@ describe("what Add devices would add, counted on every read", () => {
 
     expect(outcome.status).toBe("success");
     expect(outcome.summary?.unaddedDevices).toEqual([
-      { productType: "switch", addable: 7, withoutAddress: 0, taken: 0, archived: 0 },
+      {
+        productType: "switch",
+        addable: 7,
+        withoutAddress: 0,
+        taken: 0,
+        archived: 0,
+      },
     ]);
   });
 
@@ -1129,7 +1135,13 @@ describe("what Add devices would add, counted on every read", () => {
 
     expect(outcome.status).toBe("failed");
     expect(outcome.summary?.unaddedDevices).toEqual([
-      { productType: "wireless", addable: 2, withoutAddress: 0, taken: 0, archived: 0 },
+      {
+        productType: "wireless",
+        addable: 2,
+        withoutAddress: 0,
+        taken: 0,
+        archived: 0,
+      },
     ]);
   });
 });

@@ -442,13 +442,16 @@ export default class NetworkControllerDeviceAddRunner {
     }
 
     const projectId: ObjectID = connection.projectId;
-    const write: (state: NetworkControllerDeviceAddState) => Promise<void> =
-      async (state: NetworkControllerDeviceAddState): Promise<void> => {
-        await NetworkControllerDeviceAddRunner.writeState(
-          { connectionId, state },
-          dependencies,
-        );
-      };
+    const write: (
+      state: NetworkControllerDeviceAddState,
+    ) => Promise<void> = async (
+      state: NetworkControllerDeviceAddState,
+    ): Promise<void> => {
+      await NetworkControllerDeviceAddRunner.writeState(
+        { connectionId, state },
+        dependencies,
+      );
+    };
 
     const state: NetworkControllerDeviceAddState = {
       ...queued,
@@ -552,7 +555,8 @@ export default class NetworkControllerDeviceAddRunner {
           : new Map<string, string>();
 
         const roleIds: Map<string, string> = await (
-          dependencies.findRoleIds || NetworkControllerDeviceAddRunner.findRoleIds
+          dependencies.findRoleIds ||
+          NetworkControllerDeviceAddRunner.findRoleIds
         )(projectId);
 
         const names: Map<string, string> = planControllerDeviceNames({

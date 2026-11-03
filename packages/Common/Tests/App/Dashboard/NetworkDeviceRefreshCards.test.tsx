@@ -823,7 +823,9 @@ describe("the device's Inventory card: Refresh, and what Meraki says", () => {
 
 describe("Meraki has not read the device again: the line leads to its connection", () => {
   // A switch only its Meraki connection reads: no probe polls it.
-  function merakiOnlySwitch(fields: Record<string, unknown> = {}): NetworkDevice {
+  function merakiOnlySwitch(
+    fields: Record<string, unknown> = {},
+  ): NetworkDevice {
     return polledSwitch({
       probeId: undefined,
       isPollingEnabled: false,
@@ -843,8 +845,16 @@ describe("Meraki has not read the device again: the line leads to its connection
   }
 
   test.each([
-    ["Inventory's Asset Details card", "inventory-asset-details-refresh", "inventory-asset-details-refresh-status"],
-    ["the device's Inventory card", "device-inventory-refresh", "device-inventory-refresh-status"],
+    [
+      "Inventory's Asset Details card",
+      "inventory-asset-details-refresh",
+      "inventory-asset-details-refresh-status",
+    ],
+    [
+      "the device's Inventory card",
+      "device-inventory-refresh",
+      "device-inventory-refresh-status",
+    ],
   ])(
     "on %s: the sentence, then a link to the Meraki connections on the network's Traffic page",
     async (_card: string, button: string, status: string) => {

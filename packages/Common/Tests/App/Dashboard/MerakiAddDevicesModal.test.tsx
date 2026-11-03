@@ -101,10 +101,34 @@ import {
 import ObjectID from "../../../Types/ObjectID";
 
 const COUNTS: Array<NetworkControllerUnaddedDeviceCount> = [
-  { productType: "switch", addable: 40, withoutAddress: 0, taken: 2, archived: 0 },
-  { productType: "wireless", addable: 70, withoutAddress: 0, taken: 0, archived: 1 },
-  { productType: "appliance", addable: 0, withoutAddress: 8, taken: 0, archived: 0 },
-  { productType: "camera", addable: 12, withoutAddress: 0, taken: 0, archived: 0 },
+  {
+    productType: "switch",
+    addable: 40,
+    withoutAddress: 0,
+    taken: 2,
+    archived: 0,
+  },
+  {
+    productType: "wireless",
+    addable: 70,
+    withoutAddress: 0,
+    taken: 0,
+    archived: 1,
+  },
+  {
+    productType: "appliance",
+    addable: 0,
+    withoutAddress: 8,
+    taken: 0,
+    archived: 0,
+  },
+  {
+    productType: "camera",
+    addable: 12,
+    withoutAddress: 0,
+    taken: 0,
+    archived: 0,
+  },
 ];
 
 function connection(
@@ -356,9 +380,7 @@ describe("which devices", () => {
       }),
     );
 
-    expect(
-      screen.getByTestId("meraki-add-devices-nothing"),
-    ).toHaveTextContent(
+    expect(screen.getByTestId("meraki-add-devices-nothing")).toHaveTextContent(
       "Every Meraki device that can be added is a network device here already.",
     );
     expect(screen.queryByTestId("meraki-add-devices-kinds")).toBeNull();
@@ -392,8 +414,9 @@ describe("More fields: the sites and the probe", () => {
     await renderModal();
 
     expect(
-      within(screen.getByTestId("meraki-add-devices-more"))
-        .getAllByTestId("folded-section-item")[1],
+      within(screen.getByTestId("meraki-add-devices-more")).getAllByTestId(
+        "folded-section-item",
+      )[1],
     ).toHaveTextContent("Probe: No probe");
   });
 
@@ -452,7 +475,9 @@ describe("More fields: the sites and the probe", () => {
     };
 
     await renderModal(
-      connection({ lastDeviceAdd: toNetworkControllerDeviceAddStateJson(last) }),
+      connection({
+        lastDeviceAdd: toNetworkControllerDeviceAddStateJson(last),
+      }),
     );
 
     expect(kinds()).toEqual([
