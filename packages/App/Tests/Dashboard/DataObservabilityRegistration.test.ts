@@ -283,6 +283,44 @@ describe("Data Observability registry wiring", () => {
     );
   });
 
+  test("dbt artifacts - migration, ingest route and CLI command - are wired", () => {
+    const migrations: string = readSquashed(
+      "Common/Server/Infrastructure/Postgres/SchemaMigrations/Index.ts",
+    );
+
+    expect(migrations).toContain(
+      'import { AddDbtArtifacts1808991700000 } from "./1808991700000-AddDbtArtifacts";',
+    );
+    expect(migrations.indexOf("AddDbtArtifacts1808991700000,")).toBeGreaterThan(
+      migrations.indexOf("AddDataPipelineSchedule1808991600000,"),
+    );
+
+    const migration: string = readSquashed(
+      "Common/Server/Infrastructure/Postgres/SchemaMigrations/1808991700000-AddDbtArtifacts.ts",
+    );
+
+    expect(migration).toContain('ALTER TABLE "DataAsset" ADD "dbtNode" jsonb');
+    expect(migration).toContain(
+      'ALTER TABLE "DataCheck" ADD "externalId" character varying(500)',
+    );
+
+    const telemetry: string = readSquashed("App/FeatureSet/Telemetry/Index.ts");
+
+    expect(telemetry).toContain(
+      'import DbtArtifactsIngestAPI from "./API/DbtArtifactsIngest"',
+    );
+    expect(telemetry).toContain(
+      "app.use(TELEMETRY_PREFIXES, DbtArtifactsIngestAPI)",
+    );
+
+    const cli: string = readSquashed("CLI/Program.ts");
+
+    expect(cli).toContain(
+      'import { registerDbtCommands } from "./Commands/DbtCommands";',
+    );
+    expect(cli).toContain("registerDbtCommands(program);");
+  });
+
   test("the Workers import its jobs, and the probe ingest mounts its routes", () => {
     expect(readSquashed("App/FeatureSet/Workers/Index.ts")).toContain(
       'import "./Jobs/DataObservability/DataObservabilityJobs"',

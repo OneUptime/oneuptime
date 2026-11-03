@@ -1,5 +1,6 @@
 import PageComponentProps from "../../PageComponentProps";
 import DataCheckTable from "../../../Components/DataObservability/DataCheckTable";
+import DbtTestTable from "../../../Components/DataObservability/DbtTestTable";
 import SuggestedDataChecks from "../../../Components/DataObservability/SuggestedDataChecks";
 import { useTableViewContext } from "./TableViewContext";
 import {
@@ -10,7 +11,8 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
 
 /*
  * The checks on what this table holds, with its own columns to choose from,
- * under the checks its columns call for (SuggestedDataChecks).
+ * under the checks its columns call for (SuggestedDataChecks) - then, for a
+ * table a dbt project builds or reads, the tests dbt runs on it.
  */
 const TableChecksPage: FunctionComponent<
   PageComponentProps
@@ -43,6 +45,7 @@ const TableChecksPage: FunctionComponent<
         columns={columns}
         refreshToggle={String(addedCount)}
       />
+      {dataAsset?.dbtNode ? <DbtTestTable dataAssetId={dataAssetId} /> : <></>}
     </div>
   );
 };
