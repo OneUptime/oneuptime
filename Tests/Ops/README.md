@@ -1294,6 +1294,27 @@ status function. The tags, the charts, the npm packages, the Terraform
 provider, the draft and the four agents' builds say so themselves; the builds
 and e2e jobs behind the release still run for any branch.
 
+### `ReleaseE2eImages.test.js`
+
+release.yml's e2e jobs run each image's `-amd64` tag, as test-release.yaml's
+do (`TestReleaseE2eImages.test.js`): they need the builds of the images they
+waited for and no merge, which took the merges' runner queue (8 to 21
+minutes on the releases #5328 measured) off the release's critical path. The
+suite holds each job the same way - the tag it boots, the same in every step
+that names it, to the tags its stack's amd64 build legs push
+(`Scripts/GHA/build_docker_images.sh` run with a fake `docker`), and no step
+or env naming a tag a merge pushes (`<version>`, `enterprise-<version>`) -
+with the helpers in `Utils/E2eStack.js`. Since the release publishes the
+merged tags, `push-release-tags` still needs every merge and every e2e job,
+and runs `Scripts/GHA/check_tested_digests.sh` before the step that moves
+the tags, over the same images and version, with nothing letting the move run
+after it fails: the suite runs both steps for real against a fake registry,
+and holds the check to reading exactly the merged tags the move step moves
+`release` from, and each one's `-amd64` tag, from which its merge job
+(`merge_docker_manifests.sh`, run for real) builds it. The check itself (which
+image it compares, the attestation entries it skips, retries, a tag nobody
+pushed) is `Scripts/GHA/Tests/check_tested_digests_test.sh`'s.
+
 ### `ReleaseNotes.test.js`
 
 `Scripts/Release/GenerateReleaseNotes.js`, which writes the notes of every
