@@ -324,6 +324,45 @@ export default class DataAssetFeed extends BaseModel {
 
   @ColumnAccessControl(columnAccess)
   @TableColumn({
+    manyToOneRelationColumn: "userId",
+    type: TableColumnType.Entity,
+    modelType: User,
+    title: "User",
+    description:
+      "Relation to the user this entry is about or was done by (if a person was involved)",
+    example: "d4e5f6a7-c8d9-0123-4567-890123def012",
+  })
+  @ManyToOne(
+    () => {
+      return User;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "userId" })
+  public user?: User = undefined;
+
+  @ColumnAccessControl(columnAccess)
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    title: "User ID",
+    description:
+      "ID of the user this entry is about or was done by (if a person was involved)",
+    example: "d4e5f6a7-c8d9-0123-4567-890123def012",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public userId?: ObjectID = undefined;
+
+  @ColumnAccessControl(columnAccess)
+  @TableColumn({
     title: "Feed Posted At",
     description: "Date and time when the feed was posted",
     type: TableColumnType.Date,

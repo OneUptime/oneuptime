@@ -291,6 +291,31 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       category: observabilityCategory,
     },
     {
+      title: t("navbar.items.dataObservabilityTitle", "Data Observability"),
+      keywords: [
+        "data quality",
+        "data freshness",
+        "stale tables",
+        "row count",
+        "schema changes",
+        "table health",
+        "data pipelines",
+        "data catalog",
+      ],
+      description: t(
+        "navbar.items.dataObservabilityDescription",
+        "Know when a table goes stale, shrinks or changes shape - and which tables in your databases are late.",
+      ),
+      // The overview opens the product; every Data Observability page keeps it lit.
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.DATA_OBSERVABILITY_OVERVIEW] as Route,
+      ),
+      activeRoute: RouteMap[PageMap.DATA_OBSERVABILITY],
+      icon: IconProp.TableCells,
+      iconColor: "cyan",
+      category: observabilityCategory,
+    },
+    {
       title: t("navbar.items.topologyTitle"),
       keywords: [
         "service map",
