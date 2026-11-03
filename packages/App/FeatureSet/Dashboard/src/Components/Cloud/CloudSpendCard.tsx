@@ -66,8 +66,16 @@ export const CloudCostFigure: FunctionComponent<{
 }): ReactElement => {
   const translator: Translator = useTranslator();
 
+  /*
+   * Its label at the top and its figure at the foot of the row's height, so
+   * three figures side by side line up when one label takes two lines -
+   * German's "Bisher in diesem Monat" beside "Voraussichtlich".
+   */
   return (
-    <div className="min-w-0" data-testid={props.testId}>
+    <div
+      className="flex min-w-0 flex-col justify-between"
+      data-testid={props.testId}
+    >
       <dt className="text-xs font-medium text-gray-500">
         {translator.translateText(props.label)}
       </dt>
