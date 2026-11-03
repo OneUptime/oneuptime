@@ -30,7 +30,7 @@ jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownViewer", () => {
 import RemediationStep, {
   REMEDIATION_APPROVAL_NOTE,
   isMcpFixInProgress,
-  isRemediationApprovalNoteShown,
+  isRemediationFixApprovable,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationStep";
 import { MCP_TOOL_CALL_STATUS_VISUAL } from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/McpToolCallList";
 import {
@@ -175,22 +175,34 @@ describe("the Remediation card", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("Rule: Fix the API")).toBeInTheDocument();
     expect(screen.getByText("Waiting for approval")).toBeInTheDocument();
-    // What approving does, over the fix that waits for it.
-    expect(screen.getByTestId("remediation-approval-note")).toHaveTextContent(
-      REMEDIATION_APPROVAL_NOTE,
-    );
 
     /*
      * Folded to its sentence - how many changes, through which servers -
      * with its changes and Approve & Run one press away: Review and approve
-     * (#5413's UI review).
+     * (#5413's UI review). Nothing is shown yet, so nothing says approving
+     * runs what is shown.
      */
     expect(screen.getByTestId("remediation-fix-sentence")).toHaveTextContent(
       /^2 changes through AWS\.$/,
     );
     expect(screen.queryByTestId("remediation-mcp-tool-call")).toBeNull();
     expect(screen.queryByTestId("remediation-approve-button")).toBeNull();
+    expect(screen.queryByTestId("remediation-approval-note")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Review and approve" }));
+
+    // What approving does, right over Approve & Run, under the changes.
+    const note: HTMLElement = screen.getByTestId("remediation-approval-note");
+    expect(note).toHaveTextContent(REMEDIATION_APPROVAL_NOTE);
+    expect(
+      screen
+        .getByTestId("remediation-fix-details")
+        .compareDocumentPosition(note) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      note.compareDocumentPosition(
+        screen.getByTestId("remediation-approve-button"),
+      ) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
 
     const rows: Array<HTMLElement> = screen.getAllByTestId(
       "remediation-mcp-tool-call",
@@ -378,13 +390,13 @@ describe("the Remediation card", () => {
     ).toBe(false);
   });
 
-  test("what approving does is said while a fix through MCP servers waits for approval, and only then", () => {
+  test("a fix through MCP servers can be approved while it waits for approval, and only then", () => {
     expect(
-      isRemediationApprovalNoteShown([
+      isRemediationFixApprovable(
         mcpFix(AutoRemediationSuggestionStatus.Suggested, [
           call(1, ExternalMcpToolCallStatus.Proposed),
         ]),
-      ]),
+      ),
     ).toBe(true);
     for (const status of [
       AutoRemediationSuggestionStatus.AutoExecuted,
@@ -392,9 +404,9 @@ describe("the Remediation card", () => {
       AutoRemediationSuggestionStatus.Dismissed,
     ]) {
       expect(
-        isRemediationApprovalNoteShown([
+        isRemediationFixApprovable(
           mcpFix(status, [call(1, ExternalMcpToolCallStatus.Succeeded)]),
-        ]),
+        ),
       ).toBe(false);
     }
   });

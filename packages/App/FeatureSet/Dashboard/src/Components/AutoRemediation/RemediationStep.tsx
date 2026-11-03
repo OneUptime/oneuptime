@@ -421,14 +421,51 @@ function getDistinctNames(names: Array<string>): Array<string> {
   );
 }
 
+// The last two names of a list a sentence reads: "a, b and c".
+const NAMES_AND_LAST: string = translationKey("{{items}} and {{last}}");
+
+/*
+ * Names as a sentence lists them, each once, in the words of the sentence's
+ * language: "prod-east", "Feature flags and Status page", "a, b and c" - a
+ * clause, so the last two are joined as the language joins them, not by a
+ * comma alone. Each is set apart where it could move the words around it (a
+ * name in Latin letters in a Persian sentence), so the list reads in its
+ * order right to left too. A name that is not known reads "(unknown)".
+ */
+function getNamesInSentence(
+  names: Array<string>,
+  sentenceTranslator: Translator,
+): string {
+  const unknownName: string =
+    sentenceTranslator.translateText("(unknown)") || "(unknown)";
+  const distinct: Array<string> = getDistinctNames(
+    names.map((name: string): string => {
+      return name || unknownName;
+    }),
+  );
+
+  if (distinct.length <= 1) {
+    return distinct[0] || unknownName;
+  }
+
+  return sentenceTranslator.translateTemplate(
+    NAMES_AND_LAST,
+    {
+      items: formatList(distinct.slice(0, -1), sentenceTranslator),
+      last: distinct[distinct.length - 1]!,
+    },
+    { setsValuesApart: true },
+  );
+}
+
 /*
  * A fix of commands or changes, folded to its sentence: how many commands
  * it runs and where - "2 commands on cluster prod-eu-west-1." - or how many
- * changes it makes and through which MCP servers. Where it stands is the
- * fact beside its title, so the sentence says the same whether it waits,
- * ran or was dismissed. Null for a fix with nothing to fold: a runbook, one
- * still being worked out, one whose commands cannot be read (its own line
- * says so).
+ * changes it makes and through which MCP servers ("... through Feature
+ * flags and Status page."). Where it stands is the fact beside its title,
+ * so the sentence says the same whether it waits, ran or was dismissed.
+ * Null for a fix with nothing to fold: a runbook, one still being worked
+ * out, one whose commands cannot be read (its own line says so).
  */
 export function getRemediationFixSentence(data: {
   plan: AiRemediationCommandPlan | null;
@@ -446,19 +483,10 @@ export function getRemediationFixSentence(data: {
       {
         // Where they run, each once, in the words of the sentence's language.
         targets: composedValue((sentenceTranslator: Translator): string => {
-          const unknownName: string = sentenceTranslator.translateText(
-            "(unknown)",
-          ) as string;
-
-          return formatList(
-            getDistinctNames(
-              commands.map((command: AiRemediationCommand): string => {
-                return (
-                  getCommandTargetLabel(command, sentenceTranslator) ||
-                  unknownName
-                );
-              }),
-            ),
+          return getNamesInSentence(
+            commands.map((command: AiRemediationCommand): string => {
+              return getCommandTargetLabel(command, sentenceTranslator);
+            }),
             sentenceTranslator,
           );
         }),
@@ -476,12 +504,10 @@ export function getRemediationFixSentence(data: {
       {
         // The servers, each once, by the names the project gave them.
         servers: composedValue((sentenceTranslator: Translator): string => {
-          return formatList(
-            getDistinctNames(
-              calls.map((call: ExternalMcpToolCall): string => {
-                return call.serverNameSnapshot;
-              }),
-            ),
+          return getNamesInSentence(
+            calls.map((call: ExternalMcpToolCall): string => {
+              return call.serverNameSnapshot;
+            }),
             sentenceTranslator,
           );
         }),
@@ -529,46 +555,42 @@ const FIX_FAILED_VISUAL: RemediationFixFactVisual = {
 };
 
 /*
- * Said over the fixes while one of them waits for approval: what pressing
- * Approve & Run does. It was the Remediation card's description, which also
- * listed every kind of fix there is ("kubectl on a cluster, commands on a
- * Runner, or a runbook ... for this signal"); inside the step each fix
- * says what it is, so only the part that matters before the press is left,
- * and only while there is something to press.
+ * What pressing Approve & Run does, said right over it - inside the fix,
+ * under the commands it runs (or the runbook it names), and only while it
+ * is offered. It was the Remediation card's description, which also listed
+ * every kind of fix there is ("kubectl on a cluster, commands on a Runner,
+ * or a runbook ... for this signal"); inside the step each fix says what it
+ * is, so only the part that matters before the press is left. Over the
+ * fixes it read "exactly what is shown" while every fix was folded to its
+ * sentence and nothing was shown.
  */
 export const REMEDIATION_APPROVAL_NOTE: string = translationKey(
   "Approving runs exactly what is shown, under your name.",
 );
 
 /*
- * Whether a fix waits for the reader's approval - one Approve & Run can
- * run: waiting for approval, and not a plan that can no longer be approved
- * (an SSH command from before runbook credentials were removed).
+ * Whether the reader can approve a fix: it waits for approval, and it is
+ * not a plan that can no longer be approved (an SSH command from before
+ * runbook credentials were removed). Its Approve & Run is offered beside
+ * what it runs - its opened commands or changes, or a runbook's name - with
+ * what approving does right over it (REMEDIATION_APPROVAL_NOTE).
  */
-export function isRemediationApprovalNoteShown(
-  suggestions: Array<
-    Pick<AutoRemediationSuggestion, "status" | "suggestionType" | "commandPlan">
+export function isRemediationFixApprovable(
+  suggestion: Pick<
+    AutoRemediationSuggestion,
+    "status" | "suggestionType" | "commandPlan"
   >,
 ): boolean {
-  return suggestions.some(
-    (
-      suggestion: Pick<
-        AutoRemediationSuggestion,
-        "status" | "suggestionType" | "commandPlan"
-      >,
-    ): boolean => {
-      if (suggestion.status !== AutoRemediationSuggestionStatus.Suggested) {
-        return false;
-      }
+  if (suggestion.status !== AutoRemediationSuggestionStatus.Suggested) {
+    return false;
+  }
 
-      const plan: AiRemediationCommandPlan | null =
-        suggestion.suggestionType === AutoRemediationSuggestionType.CommandPlan
-          ? AiRemediationCommandPlanUtil.parse(suggestion.commandPlan || null)
-          : null;
+  const plan: AiRemediationCommandPlan | null =
+    suggestion.suggestionType === AutoRemediationSuggestionType.CommandPlan
+      ? AiRemediationCommandPlanUtil.parse(suggestion.commandPlan || null)
+      : null;
 
-      return !hasRemovedSshCommand(plan);
-    },
-  );
+  return !hasRemovedSshCommand(plan);
 }
 
 /*
@@ -1874,11 +1896,11 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
     /*
      * A fix of commands or changes is folded to its sentence, with where it
      * stands beside its title (#5413's UI review: a lighter fixes block).
-     * One press - Review and approve, or Show details - opens its commands
-     * or changes, its reasoning, and Approve & Run and its dry run under
-     * them: approving runs exactly what is shown, so it is offered only
-     * beside what it runs. A runbook, a fix still being worked out and one
-     * whose commands cannot be read have nothing to fold.
+     * One press - Review and approve, or Show details - opens its
+     * reasoning, its commands or changes, and Approve & Run, its dry run
+     * and Dismiss under them: approving runs exactly what is shown, so it
+     * is offered only beside what it runs. A runbook, a fix still being
+     * worked out and one whose commands cannot be read have nothing to fold.
      */
     const fixSentence: string | null = getRemediationFixSentence({
       plan,
@@ -1895,9 +1917,7 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
     });
 
     // What can be done with the fix now.
-    const canApprove: boolean =
-      status === AutoRemediationSuggestionStatus.Suggested &&
-      !isUnapprovablePlan;
+    const canApprove: boolean = isRemediationFixApprovable(suggestion);
     const canDismiss: boolean =
       status === AutoRemediationSuggestionStatus.Suggested ||
       status === AutoRemediationSuggestionStatus.Planning;
@@ -1911,8 +1931,18 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
     // Approve & Run and the dry run are beside the commands they run.
     const isApproveShown: boolean = canApprove && !isFolded;
     const isDryRunShown: boolean = Boolean(dryRunTitle) && !isFolded;
+    /*
+     * A fix that waits for the reader is decided with its commands in
+     * sight: folded, it offers one thing, Review and approve, which opens
+     * them with Approve & Run and Dismiss under them (Dismiss alone under a
+     * folded fix was the one button the reader saw, heavier than the press
+     * that opens it). A fix that cannot be approved - an SSH plan - has only
+     * Dismiss to offer, so it stays in sight; so does a fix still being
+     * worked out, which has nothing to fold.
+     */
+    const isDismissShown: boolean = canDismiss && !(canApprove && isFolded);
     const hasActions: boolean =
-      isApproveShown || isDryRunShown || canDismiss || canViewExecution;
+      isApproveShown || isDryRunShown || isDismissShown || canViewExecution;
 
     return (
       <div
@@ -2045,7 +2075,25 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
 
         {!isFolded ? (
           <div id={detailsRegionId} data-testid="remediation-fix-details">
-            {suggestion.rationaleMarkdown ? (
+            {/*
+              Opened from its sentence, a fix shows why OneUptime AI proposes
+              it first, then what it runs: the reasoning is part of what is
+              reviewed, never one more press inside the opened fix. A fix
+              with nothing to fold (a runbook) keeps it behind Show
+              reasoning.
+            */}
+            {suggestion.rationaleMarkdown && fixSentence ? (
+              <div
+                dir="auto"
+                data-testid="remediation-fix-reasoning"
+                className="mt-1 text-sm text-gray-700"
+              >
+                <MarkdownViewer
+                  text={suggestion.rationaleMarkdown}
+                  safeMode={true}
+                />
+              </div>
+            ) : suggestion.rationaleMarkdown ? (
               <div className="mt-3">
                 <button
                   type="button"
@@ -2352,6 +2400,21 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
         )}
 
         {/*
+          What approving does, right over Approve & Run: it runs exactly
+          what the opened fix shows, under the reader's name.
+        */}
+        {isApproveShown ? (
+          <p
+            data-testid="remediation-approval-note"
+            className="mt-3 text-xs leading-5 text-gray-500"
+          >
+            {translator.translateText(REMEDIATION_APPROVAL_NOTE)}
+          </p>
+        ) : (
+          <></>
+        )}
+
+        {/*
           What the reader can do with the fix, each button as wide as its
           words: a Button fills the row below md, which made Approve & Run a
           bar of its own over the others on a phone. A refused press says
@@ -2360,7 +2423,9 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
         {hasActions ? (
           <div
             data-testid="remediation-fix-actions"
-            className="mt-3 flex flex-wrap items-center gap-2 [&>button]:ml-0 [&>button]:w-auto [&>button]:md:ml-0"
+            className={`${
+              isApproveShown ? "mt-2" : "mt-3"
+            } flex flex-wrap items-center gap-2 [&>button]:ml-0 [&>button]:w-auto [&>button]:md:ml-0`}
           >
             {isApproveShown ? (
               <Button
@@ -2403,7 +2468,7 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
               <></>
             )}
 
-            {canDismiss ? (
+            {isDismissShown ? (
               <Button
                 title="Dismiss"
                 icon={IconProp.Close}
@@ -2599,19 +2664,10 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
       {suggestions.length > 0 ? (
         <div data-testid="remediation-fixes">
           {/*
-            While a fix waits for approval: what approving it does. It runs
-            exactly what is shown, under the approver's name.
+            What approving does is said inside each fix, right over its
+            Approve & Run (REMEDIATION_APPROVAL_NOTE): folded to their
+            sentences, the fixes show nothing it could be about.
           */}
-          {isRemediationApprovalNoteShown(suggestions) ? (
-            <p
-              data-testid="remediation-approval-note"
-              className="mb-4 text-xs leading-5 text-gray-500"
-            >
-              {translator.translateText(REMEDIATION_APPROVAL_NOTE)}
-            </p>
-          ) : (
-            <></>
-          )}
           <div className="divide-y divide-gray-200">
             {suggestions.map(
               (suggestion: AutoRemediationSuggestion): ReactElement => {
