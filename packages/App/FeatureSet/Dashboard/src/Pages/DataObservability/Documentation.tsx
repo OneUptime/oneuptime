@@ -87,6 +87,32 @@ On **Databases**, choose **Recommended Alerts** for a database. Each recommendat
 
 Pick severities, on-call policies, owners and labels when you create them. They are ordinary monitors from then on: edit, mute or put them on a status page like any other.
 
+## Checks on a table's values
+
+Table health says whether a table changes. A **check** says whether what it holds is right. Add one on a table's **Checks** tab:
+
+| Check | What it reads |
+| --- | --- |
+| **Null Percent** | Percent of rows whose column is empty |
+| **Duplicate Percent** | Percent of values that repeat another row's |
+| **Distinct Count** | How many different values the column holds |
+| **Minimum**, **Maximum**, **Average** | Of a numeric column |
+| **Invalid Percent** | Percent of values outside a list you give |
+| **Format Mismatch Percent** | Percent of values that do not match a regular expression (PostgreSQL and MySQL) |
+| **Orphan Count** | Rows whose value has no match in another table's column |
+| **Row Count** | Rows in the table, most useful with **Segment By** |
+| **Custom SQL** | The number one read-only SELECT of yours returns |
+
+**Segment By** runs a check once per value of a column, such as a tenant or a region: one series and one alert each, for the largest 100 segments. A segmented Row Count alerts when one tenant stops sending data.
+
+Checks run with the database's collection, by OneUptime or by its probe, every 15 minutes, hour, 6 hours or day. Each runs as one aggregate statement in a read-only transaction with a statement timeout: only the number leaves the database, never a row. The value is written as \`oneuptime.data.check.value\`, with \`oneuptime.data.check.id\`, \`oneuptime.data.check.name\` and \`oneuptime.data.check.segment\`.
+
+Set **Alert When** to alert on a check:
+- **Unusually High** or **Unusually Low** compares each value with its own learned baseline for that hour of the week.
+- **Above** or **Below** compares it with a threshold.
+
+Saving the check makes a Metrics monitor for it, as you, with your permissions. Clearing the condition removes the monitor.
+
 ## Services that use each table
 
 A table's **Services** tab lists the services seen writing and reading it, with the statements each ran, its calls and failures in the last hour, and when it was last seen. It comes from the database spans your services already send with OpenTelemetry: a client span with \`db.system.name\`, \`db.namespace\` and \`db.collection.name\` (or \`db.sql.table\`, or a span named like \`INSERT orders\`). Nothing extra to install. It is updated every 15 minutes.

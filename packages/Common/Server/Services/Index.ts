@@ -426,6 +426,7 @@ import DataSecuritySettingService from "./DataSecuritySettingService";
 import DataAssetService from "./DataAssetService";
 import DataAssetFeedService from "./DataAssetFeedService";
 import DataAssetUsageService from "./DataAssetUsageService";
+import DataCheckService from "./DataCheckService";
 import SecurityProtectedEntityService from "./SecurityProtectedEntityService";
 import SecurityEntityRiskService from "./SecurityEntityRiskService";
 import SecurityEntityCriticalityService from "./SecurityEntityCriticalityService";
@@ -975,6 +976,7 @@ const services: Array<BaseService> = [
   DataAssetService,
   DataAssetFeedService,
   DataAssetUsageService,
+  DataCheckService,
   SecurityProtectedEntityService,
   SecurityEntityRiskService,
   SecurityEntityCriticalityService,

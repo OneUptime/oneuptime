@@ -9,6 +9,7 @@ import {
   readProbeCollectError,
   readProbeCollectWork,
   readTableHealthSnapshot,
+  readPlannedChecks,
 } from "../../../../Server/Utils/DataObservability/DataObservabilityProbeCollect";
 import {
   MAX_IDENTIFIER_LENGTH,
@@ -56,11 +57,14 @@ describe("readProbeCollectWork", () => {
       maxTables: 100,
       maxColumns: 1000,
       exclusions: ["audit", "public.tmp"],
+      // An item from a server with no due checks carries none.
+      checks: [],
     });
     expect(buildProbeCollectOptions(work!)).toEqual({
       maxTables: 100,
       maxColumns: 1000,
       exclusions: ["audit", "public.tmp"],
+      checks: [],
     });
   });
 
@@ -249,6 +253,72 @@ describe("readTableHealthSnapshot", () => {
 
   test("an older probe's snapshot, with no target, has none", () => {
     expect(readTableHealthSnapshot(snapshotOf([]), NOW)?.target).toBe(null);
+  });
+
+  test("check results are read strictly: known ids, finite numbers, bounded text", () => {
+    const checkId: string = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+
+    expect(
+      readTableHealthSnapshot(
+        snapshotOf([], {
+          checkResults: [
+            {
+              checkId,
+              values: [
+                { segment: "eu", value: "12.5" },
+                { segment: null, value: 3 },
+                { segment: "bad", value: "NaN" },
+              ],
+              error: null,
+            },
+            { checkId: "not-an-id", values: [], error: null },
+            { checkId, values: [], error: "x".repeat(900) },
+          ],
+        }),
+        NOW,
+      )?.checkResults,
+    ).toEqual([
+      {
+        checkId,
+        values: [
+          { segment: "eu", value: 12.5 },
+          { segment: null, value: 3 },
+        ],
+        error: null,
+      },
+      { checkId, values: [], error: "x".repeat(500) },
+    ]);
+  });
+});
+
+describe("readPlannedChecks", () => {
+  test("a probe runs only well-formed checks the server built", () => {
+    const checkId: string = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+
+    expect(
+      readPlannedChecks([
+        {
+          checkId,
+          type: "Null Percent",
+          isSegmented: false,
+          sql: "SELECT 1 AS value",
+          params: [],
+        },
+        { checkId, type: "Drop Everything", sql: "x", params: [] },
+        { checkId: "nope", type: "Row Count", sql: "x", params: [] },
+        { checkId, type: "Row Count", sql: "", params: [] },
+        { checkId, type: "Row Count", sql: "x", params: [1] },
+      ]),
+    ).toEqual([
+      {
+        checkId,
+        type: "Null Percent",
+        isSegmented: false,
+        sql: "SELECT 1 AS value",
+        params: [],
+      },
+    ]);
+    expect(readPlannedChecks("nope")).toEqual([]);
   });
 });
 

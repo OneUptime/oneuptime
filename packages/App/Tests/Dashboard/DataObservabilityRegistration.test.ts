@@ -149,6 +149,52 @@ describe("Data Observability registry wiring", () => {
     expect(jobs).toContain("await TableUsageDiscovery.discoverProject({");
   });
 
+  test("data checks - model, service, migration, CRUD API and their own routes - are wired", () => {
+    expect(readSquashed("Common/Models/DatabaseModels/Index.ts")).toContain(
+      "DataCheck,",
+    );
+    expect(readSquashed("Common/Server/Services/Index.ts")).toContain(
+      "DataCheckService,",
+    );
+
+    const migrations: string = readSquashed(
+      "Common/Server/Infrastructure/Postgres/SchemaMigrations/Index.ts",
+    );
+
+    expect(migrations).toContain(
+      'import { AddDataChecks1808991400000 } from "./1808991400000-AddDataChecks";',
+    );
+    expect(migrations).toContain("AddDataChecks1808991400000,");
+    expect(
+      readSquashed(
+        "Common/Server/Infrastructure/Postgres/SchemaMigrations/1808991400000-AddDataChecks.ts",
+      ),
+    ).toContain('CREATE TABLE "DataCheck"');
+
+    expect(readSquashed("App/FeatureSet/BaseAPI/Index.ts")).toMatch(
+      /new BaseAPI<\s*DataCheck,\s*DataCheckServiceType\s*>\(\s*DataCheck,\s*DataCheckService,?\s*\)/,
+    );
+
+    const api: string = readSquashed(
+      "Common/Server/API/DataObservabilityAPI.ts",
+    );
+
+    expect(api).toContain('DATA_OBSERVABILITY_API_ROUTES.checkAlert(":id")');
+    expect(api).toContain('DATA_OBSERVABILITY_API_ROUTES.checkRunNow(":id")');
+
+    // Checks run with their store's collection, on a worker or a probe.
+    expect(
+      readSquashed(
+        "Common/Server/Utils/DataObservability/DataObservabilityRunner.ts",
+      ),
+    ).toContain("checks: plan.planned,");
+    expect(
+      readSquashed(
+        "App/FeatureSet/Telemetry/API/ProbeIngest/DataObservability.ts",
+      ),
+    ).toContain("buildProbeCollectWork(store, plan.planned)");
+  });
+
   test("the Workers import its jobs, and the probe ingest mounts its routes", () => {
     expect(readSquashed("App/FeatureSet/Workers/Index.ts")).toContain(
       'import "./Jobs/DataObservability/DataObservabilityJobs"',

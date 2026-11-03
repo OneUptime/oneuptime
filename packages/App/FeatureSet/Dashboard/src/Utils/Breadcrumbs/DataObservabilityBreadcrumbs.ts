@@ -59,6 +59,10 @@ export function getDataObservabilityBreadcrumbs(
       ["Project", "Data Observability", "Tables", "View Table", "Services"],
     ),
     ...BuildBreadcrumbLinksByTitles(
+      PageMap.DATA_OBSERVABILITY_TABLE_VIEW_CHECKS,
+      ["Project", "Data Observability", "Tables", "View Table", "Checks"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
       PageMap.DATA_OBSERVABILITY_TABLE_VIEW_SETTINGS,
       ["Project", "Data Observability", "Tables", "View Table", "Settings"],
     ),
@@ -91,6 +95,11 @@ export function getDataObservabilityBreadcrumbs(
         "Recommendations",
       ],
     ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.DATA_OBSERVABILITY_CHECKS, [
+      "Project",
+      "Data Observability",
+      "Checks",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.DATA_OBSERVABILITY_SCHEMA_CHANGES, [
       "Project",
       "Data Observability",
