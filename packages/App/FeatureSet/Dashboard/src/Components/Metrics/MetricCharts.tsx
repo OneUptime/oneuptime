@@ -40,6 +40,7 @@ import ChartTimeReferenceLineProps from "Common/UI/Components/Charts/Types/TimeR
 import ChartReferenceRegionProps from "Common/UI/Components/Charts/Types/ReferenceRegionProps";
 import ExemplarPoint from "Common/UI/Components/Charts/Types/ExemplarPoint";
 import ValueFormatter from "Common/Utils/ValueFormatter";
+import { getUnitNameInLanguage } from "Common/UI/Components/Charts/Utils/UnitNames";
 import {
   AvailableChartColorsKeys,
   ChartColorValue,
@@ -2938,7 +2939,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
         makeResolveColor,
         hasColorCustomization,
         unitLabel: unit
-          ? ValueFormatter.getReadableUnit(unit, formatterOptions)
+          ? getUnitNameInLanguage(unit, translator, formatterOptions)
           : "",
         valueFormatter: seriesValueFormatter,
         onShowAllToggled: (nextShowAll: boolean): void => {
@@ -3393,7 +3394,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
             },
             hasColorCustomization: Boolean(formulaConfig.color),
             unitLabel: formulaUnit
-              ? ValueFormatter.getReadableUnit(formulaUnit)
+              ? getUnitNameInLanguage(formulaUnit, translator)
               : "",
             valueFormatter: (value: number): string => {
               return ValueFormatter.formatValue(value, formulaUnit);

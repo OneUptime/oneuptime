@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 41515,
-    "untranslated": 12185
+    "keys": 41553,
+    "untranslated": 12129
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -27,6 +27,7 @@
     "Budget",
     "CPU Ready",
     "CPU Ready {{percent}}",
+    "Celsius",
     "CloudWatch Metric Streams",
     "Commit",
     "Container",
@@ -50,6 +51,7 @@
     "Embedding",
     "Endpoint",
     "Export",
+    "Fahrenheit",
     "Failover",
     "Feed",
     "Filter",
@@ -58,12 +60,14 @@
     "Finland (+358)",
     "Frustration",
     "Gateway",
+    "Gigahertz",
     "Global",
     "Golden Signals",
     "Google SecOps",
     "Goroutines",
     "HA: {{state}}",
     "Hello world",
+    "Hertz",
     "Hunt",
     "Hunts",
     "ICMP (ping)",
@@ -86,6 +90,8 @@
     "IoT",
     "Israel (+972)",
     "Japan (+81)",
+    "Kelvin",
+    "Kilohertz",
     "LXC 201 · pve3",
     "Live",
     "Log4Shell",
@@ -97,6 +103,7 @@
     "Markdown",
     "Max",
     "Median (P50)",
+    "Megahertz",
     "Merge request !{{number}}",
     "Merge request {{label}}",
     "Mesh / VPN",

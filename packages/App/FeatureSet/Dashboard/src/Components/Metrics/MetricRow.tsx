@@ -7,6 +7,7 @@ import React, {
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import Service from "Common/Models/DatabaseModels/Service";
 import ValueFormatter from "Common/Utils/ValueFormatter";
+import { getUnitNameInLanguage } from "Common/UI/Components/Charts/Utils/UnitNames";
 import OneUptimeDate from "Common/Types/Date";
 import MetricSparkline, { SparklinePoint } from "./MetricSparkline";
 import ObjectID from "Common/Types/ObjectID";
@@ -99,8 +100,10 @@ const MetricRow: FunctionComponent<MetricRowProps> = (
   const formatterOptions: { metricName: string } = {
     metricName: metric.name || "",
   };
-  const readableUnit: string = ValueFormatter.getReadableUnit(
+  // The unit's name in the reader's language ("Millisekunden").
+  const readableUnit: string = getUnitNameInLanguage(
     rawUnit,
+    translator,
     formatterOptions,
   );
 

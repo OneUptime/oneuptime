@@ -50,7 +50,7 @@ flowchart TB
 
 ### 플릿 선택
 
-**IoT Monitor Configuration** 에서 **IoT Fleet** 으로 플릿을 선택합니다. 데이터를 보낸 적이 있는 모든 플릿이 목록에 있습니다. 고르고 나면 필드 아래 줄에 데이터가 들어오는지 표시됩니다. **IoT 플릿 추가** 는 키가 채워진 설정 단계를 열고, 첫 데이터를 기다립니다.
+**IoT Monitor Configuration** 에서 **IoT 플릿** 으로 플릿을 선택합니다. 데이터를 보낸 적이 있는 모든 플릿이 목록에 있습니다. 고르고 나면 필드 아래 줄에 데이터가 들어오는지 표시됩니다. **IoT 플릿 추가** 는 키가 채워진 설정 단계를 열고, 첫 데이터를 기다립니다.
 
 ### 감시할 대상 선택
 
@@ -76,7 +76,7 @@ flowchart TB
 
 | 필드 | 탭 | 하는 일 |
 | --- | --- | --- |
-| **IoT Fleet** | 모두 | 필수. 모든 쿼리를 `resource.iot.fleet.name` 으로 한정합니다. |
+| **IoT 플릿** | 모두 | 필수. 모든 쿼리를 `resource.iot.fleet.name` 으로 한정합니다. |
 | **Device ID** | Custom Metric, 고급 | 선택 사항. `device.id` 로 기기 하나(예: `sensor-001`). |
 | **디바이스 유형** | Custom Metric, 고급 | 선택 사항. 이 `iot.device.type` 을 보고하는 기기(예: `sensor`, `gateway`). |
 | **IoT Metric** | Custom Metric | [카탈로그](#수집되는-메트릭)의 메트릭 하나. |

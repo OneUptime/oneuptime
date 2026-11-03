@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 41515,
-    "untranslated": 12193
+    "keys": 41553,
+    "untranslated": 12137
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -28,6 +28,7 @@
     "CPU Ready",
     "CPU Ready {{percent}}",
     "Canada (+1)",
+    "Celsius",
     "Chat",
     "CloudWatch Metric Streams",
     "Commit",
@@ -53,6 +54,7 @@
     "Edge",
     "Embedding",
     "Endpoint",
+    "Fahrenheit",
     "Failover",
     "Feed",
     "Filter",
@@ -62,11 +64,13 @@
     "Flat",
     "Gateway",
     "Gemini for Google Workspace",
+    "Gigahertz",
     "Global",
     "Golden Signals",
     "Google SecOps",
     "Goroutines",
     "HA: {{state}}",
+    "Hertz",
     "Hunt",
     "Hunts",
     "ICMP (ping)",
@@ -78,6 +82,8 @@
     "IoT",
     "Israel (+972)",
     "Japan (+81)",
+    "Kelvin",
+    "Kilohertz",
     "LXC 201 · pve3",
     "Link-local",
     "Log4Shell",
@@ -89,6 +95,7 @@
     "Markdown",
     "Median (P50)",
     "Mediator",
+    "Megahertz",
     "Merge request !{{number}}",
     "Merge request {{label}}",
     "Mesh / VPN",

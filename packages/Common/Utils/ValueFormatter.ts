@@ -815,6 +815,22 @@ export default class ValueFormatter {
    * When `metricName` ends in `.utilization` and the unit is "1", returns
    * "Percent" so axis legends and badges match the formatted values.
    */
+  /*
+   * Every name getReadableUnit gives a unit it knows ("Bytes",
+   * "Milliseconds", "Percent"), once each: the charts draw them in the
+   * reader's language (Common/UI/Components/Charts/Utils/UnitNames), and a
+   * test holds that list to this one.
+   */
+  public static getReadableUnitNames(): Array<string> {
+    return Array.from(
+      new Set<string>(
+        Object.values(readableUnitMap).filter((name: string): boolean => {
+          return name.length > 0;
+        }),
+      ),
+    );
+  }
+
   public static getReadableUnit(
     unit: string,
     options?: { metricName?: string },

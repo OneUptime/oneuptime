@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 41515,
-    "untranslated": 12202
+    "keys": 41553,
+    "untranslated": 12146
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -34,6 +34,7 @@
     "CPU Ready",
     "CPU Ready {{percent}}",
     "Canada (+1)",
+    "Celsius",
     "Chat",
     "Chats",
     "Cloud",
@@ -70,6 +71,7 @@
     "Edge",
     "Embedding",
     "Endpoint",
+    "Fahrenheit",
     "Failover",
     "Feed",
     "Filter",
@@ -79,6 +81,7 @@
     "Finland (+358)",
     "Frustration",
     "Gateway",
+    "Gigahertz",
     "Global",
     "Golden Signals",
     "Google SecOps",
@@ -86,6 +89,7 @@
     "HA: {{state}}",
     "Hardware",
     "Hello world",
+    "Hertz",
     "Hunt",
     "Hunts",
     "ICMP (ping)",
@@ -102,6 +106,8 @@
     "Israel (+972)",
     "Japan (+81)",
     "Job",
+    "Kelvin",
+    "Kilohertz",
     "LXC 201 · pve3",
     "Link",
     "Link-local",
@@ -119,6 +125,7 @@
     "Matrix",
     "Median (P50)",
     "Mediator",
+    "Megahertz",
     "Merge request !{{number}}",
     "Merge request {{label}}",
     "Mesh / VPN",
@@ -222,6 +229,7 @@
     "Tokens",
     "Top",
     "Top P",
+    "Top {{count}}",
     "Total",
     "Trigger",
     "Tunnel",

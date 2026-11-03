@@ -50,7 +50,7 @@ flowchart TB
 
 ### 選擇機群
 
-在 **IoT Monitor Configuration** 下，從 **IoT Fleet** 中選擇機群。每個傳送過資料的機群都在清單中。選好後，欄位下方的一行會顯示是否有資料傳入。**新增 IoT 裝置群** 會開啟已填好你的金鑰的設定步驟，並等待第一批資料。
+在 **IoT Monitor Configuration** 下，從 **IoT 裝置群** 中選擇機群。每個傳送過資料的機群都在清單中。選好後，欄位下方的一行會顯示是否有資料傳入。**新增 IoT 裝置群** 會開啟已填好你的金鑰的設定步驟，並等待第一批資料。
 
 ### 選擇要監看的內容
 
@@ -76,7 +76,7 @@ flowchart TB
 
 | 欄位 | 索引標籤 | 作用 |
 | --- | --- | --- |
-| **IoT Fleet** | 全部 | 必填。把每個查詢限定到 `resource.iot.fleet.name`。 |
+| **IoT 裝置群** | 全部 | 必填。把每個查詢限定到 `resource.iot.fleet.name`。 |
 | **Device ID** | Custom Metric、進階 | 選填。一個裝置，依其 `device.id`，例如 `sensor-001`。 |
 | **裝置類型** | Custom Metric、進階 | 選填。回報該 `iot.device.type` 的裝置，例如 `sensor` 或 `gateway`。 |
 | **IoT Metric** | Custom Metric | [目錄](#收集的指標) 中的一個指標。 |

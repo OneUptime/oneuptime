@@ -50,7 +50,7 @@ Klicka på **Fler monitortyper** under **Monitortyp** och välj **IoT-enhet** un
 
 ### Välj flottan
 
-Välj flottan i **IoT Fleet** under **IoT Monitor Configuration**. Varje flotta som har skickat data finns i listan. När du har valt visar en rad under fältet om data kommer in. **Lägg till IoT-flotta** öppnar installationssteg med dina nycklar ifyllda, som väntar tills data kommer in.
+Välj flottan i **IoT-flotta** under **IoT Monitor Configuration**. Varje flotta som har skickat data finns i listan. När du har valt visar en rad under fältet om data kommer in. **Lägg till IoT-flotta** öppnar installationssteg med dina nycklar ifyllda, som väntar tills data kommer in.
 
 ### Välj vad som ska bevakas
 
@@ -76,7 +76,7 @@ Klicka på **Skapa monitor**. OneUptime öppnar monitorns sida och utvärderar d
 
 | Fält | Flik | Vad det gör |
 | --- | --- | --- |
-| **IoT Fleet** | Alla | Krävs. Begränsar varje fråga till `resource.iot.fleet.name`. |
+| **IoT-flotta** | Alla | Krävs. Begränsar varje fråga till `resource.iot.fleet.name`. |
 | **Device ID** | Custom Metric, Avancerad | Valfritt. En enhet, via `device.id`, som `sensor-001`. |
 | **Enhetstyp** | Custom Metric, Avancerad | Valfritt. Enheterna som rapporterar denna `iot.device.type`, som `sensor` eller `gateway`. |
 | **IoT Metric** | Custom Metric | Ett mätvärde från [katalogen](#insamlade-mätvärden). |

@@ -50,7 +50,7 @@ Klik under **Monitortype** på **Flere monitortyper**, og vælg **IoT-enhed** un
 
 ### Vælg flåden
 
-Vælg under **IoT Monitor Configuration** flåden i **IoT Fleet**. Hver flåde, der har sendt data, står på listen. Når du har valgt, viser en linje under feltet, om der kommer data. **Tilføj IoT-flåde** åbner opsætningstrin med dine nøgler udfyldt, som venter på de første data.
+Vælg under **IoT Monitor Configuration** flåden i **IoT-flåde**. Hver flåde, der har sendt data, står på listen. Når du har valgt, viser en linje under feltet, om der kommer data. **Tilføj IoT-flåde** åbner opsætningstrin med dine nøgler udfyldt, som venter på de første data.
 
 ### Vælg, hvad der skal overvåges
 
@@ -76,7 +76,7 @@ Klik på **Opret monitor**. OneUptime åbner monitorens side og evaluerer den hv
 
 | Felt | Fane | Hvad det gør |
 | --- | --- | --- |
-| **IoT Fleet** | Alle | Påkrævet. Begrænser hver forespørgsel til `resource.iot.fleet.name`. |
+| **IoT-flåde** | Alle | Påkrævet. Begrænser hver forespørgsel til `resource.iot.fleet.name`. |
 | **Device ID** | Custom Metric, Avanceret | Valgfrit. Én enhed, via dens `device.id`, som `sensor-001`. |
 | **Enhedstype** | Custom Metric, Avanceret | Valgfrit. De enheder, der rapporterer dette `iot.device.type`, som `sensor` eller `gateway`. |
 | **IoT Metric** | Custom Metric | Én metrik fra [kataloget](#indsamlede-metrikker). |

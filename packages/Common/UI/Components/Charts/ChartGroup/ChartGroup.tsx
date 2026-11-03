@@ -1,6 +1,6 @@
 import Text from "../../../../Types/Text";
 import Dictionary from "../../../../Types/Dictionary";
-import ValueFormatter from "../../../../Utils/ValueFormatter";
+import { getUnitNameInLanguage } from "../Utils/UnitNames";
 import LineChart, { ComponentProps as LineChartProps } from "../Line/LineChart";
 import BarChartElement, {
   ComponentProps as BarChartProps,
@@ -275,7 +275,7 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
      * and hide the row entirely for truly dimensionless counts.
      */
     const displayUnit: string = metricInfoModalChart.unit
-      ? ValueFormatter.getReadableUnit(metricInfoModalChart.unit, {
+      ? getUnitNameInLanguage(metricInfoModalChart.unit, translator, {
           metricName: metricInfoModalChart.metricName,
         })
       : "";

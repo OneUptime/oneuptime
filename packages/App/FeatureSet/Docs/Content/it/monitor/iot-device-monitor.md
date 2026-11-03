@@ -50,7 +50,7 @@ In **Tipo di monitor**, fai clic su **Altri tipi di monitor** e scegli **Disposi
 
 ### Scegliere la flotta
 
-In **IoT Monitor Configuration**, scegli la flotta da **IoT Fleet**. Ogni flotta che ha inviato dati è nell'elenco. Una volta scelto, una riga sotto il campo dice se arrivano dati. **Aggiungi flotta IoT** apre i passi di configurazione con le tue chiavi già inserite, che attendono i primi dati.
+In **IoT Monitor Configuration**, scegli la flotta da **Flotta IoT**. Ogni flotta che ha inviato dati è nell'elenco. Una volta scelto, una riga sotto il campo dice se arrivano dati. **Aggiungi flotta IoT** apre i passi di configurazione con le tue chiavi già inserite, che attendono i primi dati.
 
 ### Scegliere cosa osservare
 
@@ -76,7 +76,7 @@ Fai clic su **Crea monitor**. OneUptime apre la pagina del monitor e lo valuta o
 
 | Campo | Scheda | Cosa fa |
 | --- | --- | --- |
-| **IoT Fleet** | Tutte | Obbligatorio. Limita ogni query a `resource.iot.fleet.name`. |
+| **Flotta IoT** | Tutte | Obbligatorio. Limita ogni query a `resource.iot.fleet.name`. |
 | **Device ID** | Custom Metric, Avanzato | Facoltativo. Un dispositivo, tramite il suo `device.id`, come `sensor-001`. |
 | **Tipo di dispositivo** | Custom Metric, Avanzato | Facoltativo. I dispositivi che segnalano questo `iot.device.type`, come `sensor` o `gateway`. |
 | **IoT Metric** | Custom Metric | Una metrica del [catalogo](#metriche-raccolte). |
