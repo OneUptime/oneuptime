@@ -32,6 +32,7 @@ import JSONFunctions from "../../../../Types/JSONFunctions";
 import ListResult from "../../../../Types/BaseDatabase/ListResult";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission, {
+  UserGlobalAccessPermission,
   UserTenantAccessPermission,
 } from "../../../../Types/Permission";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
@@ -141,6 +142,21 @@ const VIEWER_HEADERS: Dictionary<string> = permissionHeaders(
   [Permission.Viewer],
   VIEWED_HASH,
 );
+
+// The person's global snapshot, the same in every tab.
+const GLOBAL_SNAPSHOT: UserGlobalAccessPermission = {
+  _type: "UserGlobalAccessPermission",
+  globalPermissions: [Permission.CurrentUser],
+  projectIds: [new ObjectID(OWNED_PROJECT_ID), new ObjectID(VIEWED_PROJECT_ID)],
+};
+
+// The `global-permissions` header and its hash, as the server writes them.
+const GLOBAL_HEADERS: Dictionary<string> = {
+  "global-permissions": JSON.stringify(
+    JSONFunctions.serialize(GLOBAL_SNAPSHOT as JSONObject),
+  ),
+  "global-permissions-hash": GLOBAL_HASH,
+};
 
 type OpenTabFunction = (projectId: string) => void;
 
@@ -418,6 +434,128 @@ describe("an answer's project snapshot", () => {
   });
 });
 
+/*
+ * The person's global snapshot is kept by the same rule as a project's: its
+ * hash only beside it. A hash kept without it tells the server the browser
+ * has a snapshot it does not have, so the server never sends it again.
+ */
+describe("an answer's global snapshot", () => {
+  type GlobalHashesSentFunction = () => Array<string | undefined>;
+
+  const globalHashesSent: GlobalHashesSentFunction = (): Array<
+    string | undefined
+  > => {
+    return server.sent.map((request: SentRequest): string | undefined => {
+      return request.headers["global-permissions-hash"];
+    });
+  };
+
+  test("is kept with its hash, which the next request sends", async () => {
+    openTab(OWNED_PROJECT_ID);
+    server.on(HTTPMethod.POST, LABELS_URL, [
+      {
+        status: 200,
+        data: EMPTY_LIST,
+        headers: { ...GLOBAL_HEADERS, ...OWNER_HEADERS },
+      },
+      { status: 200, data: EMPTY_LIST },
+    ]);
+
+    await listLabels();
+    await listLabels();
+
+    expect(PermissionUtil.getGlobalPermissions()?.globalPermissions).toEqual([
+      Permission.CurrentUser,
+    ]);
+    expect(globalHashesSent()).toEqual([undefined, GLOBAL_HASH]);
+  });
+
+  test("a global hash with no snapshot beside it is not kept, so the next request asks for the snapshot", async () => {
+    openTab(OWNED_PROJECT_ID);
+    server.on(HTTPMethod.POST, LABELS_URL, [
+      {
+        status: 200,
+        data: EMPTY_LIST,
+        headers: { "global-permissions-hash": GLOBAL_HASH },
+      },
+      { status: 200, data: EMPTY_LIST },
+    ]);
+
+    await listLabels();
+    await listLabels();
+
+    expect(globalHashesSent()).toEqual([undefined, undefined]);
+    expect(localStorage.getItem("global-permissions-hash")).toBeNull();
+  });
+
+  test("a global snapshot that cannot be read keeps no hash", async () => {
+    openTab(OWNED_PROJECT_ID);
+    server.on(HTTPMethod.POST, LABELS_URL, [
+      {
+        status: 200,
+        data: EMPTY_LIST,
+        headers: {
+          "global-permissions": "{not json",
+          "global-permissions-hash": GLOBAL_HASH,
+        },
+      },
+      { status: 200, data: EMPTY_LIST },
+    ]);
+
+    await listLabels();
+    await listLabels();
+
+    expect(PermissionUtil.getGlobalPermissions()).toBeNull();
+    expect(globalHashesSent()).toEqual([undefined, undefined]);
+  });
+
+  test("a global snapshot the storage refuses leaves no hash, and no older snapshot, so the next request asks for it again", async () => {
+    PermissionUtil.setGlobalPermissions(
+      {
+        _type: "UserGlobalAccessPermission",
+        globalPermissions: [Permission.CurrentUser, Permission.User],
+        projectIds: [],
+      },
+      { hash: "an-older-global-hash" },
+    );
+
+    openTab(OWNED_PROJECT_ID);
+    server.on(HTTPMethod.POST, LABELS_URL, [
+      {
+        status: 200,
+        data: EMPTY_LIST,
+        headers: { ...GLOBAL_HEADERS, ...OWNER_HEADERS },
+      },
+      { status: 200, data: EMPTY_LIST },
+    ]);
+
+    const realSetItem: typeof LocalStorage.setItem = LocalStorage.setItem;
+
+    jest
+      .spyOn(LocalStorage, "setItem")
+      .mockImplementation((key: string, value: unknown): void => {
+        // Too big to keep, however much room is made.
+        if (key === "global_permissions") {
+          throw new Error("QuotaExceededError");
+        }
+
+        realSetItem(key, value as never);
+      });
+
+    const result: ListResult<Label> = await listLabels();
+    await listLabels();
+
+    expect(result.count).toBe(0);
+    expect(PermissionUtil.getGlobalPermissions()).toBeNull();
+    // The first read sent the older hash; the second sends none, so the server sends the snapshot.
+    expect(globalHashesSent()).toEqual(["an-older-global-hash", undefined]);
+    // The project's snapshot of the same answer is kept all the same.
+    expect(PermissionUtil.getProjectPermissionsHash(OWNED_PROJECT_ID)).toBe(
+      OWNED_HASH,
+    );
+  });
+});
+
 describe("the hash a request sends", () => {
   test("is the hash of the project its tenantid names, in each tab", async () => {
     server.on(HTTPMethod.POST, LABELS_URL, [
@@ -517,7 +655,7 @@ describe("the hash a request sends", () => {
       } as UserTenantAccessPermission,
       { hash: OWNED_HASH },
     );
-    PermissionUtil.setGlobalPermissionsHash(GLOBAL_HASH);
+    PermissionUtil.setGlobalPermissions(GLOBAL_SNAPSHOT, { hash: GLOBAL_HASH });
 
     openTab(OWNED_PROJECT_ID);
     server.on(HTTPMethod.GET, RESOURCE_URL, [{ status: 200, data: {} }]);

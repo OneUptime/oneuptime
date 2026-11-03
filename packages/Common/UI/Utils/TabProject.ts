@@ -29,9 +29,9 @@ export const LAST_ACCESSED_PROJECT_ID_STORAGE_KEY: string =
  * Kept apart from ProjectUtil, which brings the Project model, the request
  * client and telemetry with it: the permission snapshot is read on the way
  * of every request, and the sign-in pages and status pages make requests
- * too, with none of those.
- *
- * React-free.
+ * too, with none of those. It reads the address through Navigation, which
+ * imports react-router-dom: not a module for code that must load without
+ * React (App's tests install none).
  */
 export default class TabProject {
   /**

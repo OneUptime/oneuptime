@@ -43,6 +43,9 @@ import Permission, {
  * The global snapshot stays one name for every tab, on purpose: it is the
  * person's own - the permissions they hold everywhere and the projects they
  * belong to - and every tab of this browser is signed in as the same person.
+ * A hash, global or a project's, is kept and sent only with its snapshot:
+ * a hash without one would tell the server the browser has a snapshot it
+ * does not, and the server would never send it again.
  *
  * This is what the browser shows and offers, not what is allowed: the
  * server decides every request from its own copy of the person's
@@ -115,8 +118,22 @@ function removeStored(key: string): void {
   }
 }
 
-// Every project snapshot this browser keeps, but the one for `keepId`.
-function forgetOtherProjectsPermissions(keepId: string): void {
+// The project a project snapshot's name (or its hash's) ends in, or null.
+function projectIdOfStorageKey(key: string): string | null {
+  for (const prefix of [
+    PROJECT_PERMISSIONS_STORAGE_KEY_PREFIX,
+    PROJECT_PERMISSIONS_HASH_STORAGE_KEY_PREFIX,
+  ]) {
+    if (key.startsWith(prefix)) {
+      return key.slice(prefix.length);
+    }
+  }
+
+  return null;
+}
+
+// Every project snapshot this browser keeps, and its hash, but those of `keepIds`.
+function forgetOtherProjectsPermissions(keepIds: Array<string | null>): void {
   let keys: Array<string> = [];
 
   try {
@@ -126,32 +143,30 @@ function forgetOtherProjectsPermissions(keepId: string): void {
   }
 
   for (const key of keys) {
-    const isProjectSnapshot: boolean =
-      key.startsWith(PROJECT_PERMISSIONS_STORAGE_KEY_PREFIX) ||
-      key.startsWith(PROJECT_PERMISSIONS_HASH_STORAGE_KEY_PREFIX);
+    const id: string | null = projectIdOfStorageKey(key);
 
-    if (isProjectSnapshot && !key.endsWith(keepId)) {
+    if (id !== null && !keepIds.includes(id)) {
       removeStored(key);
     }
   }
 }
 
 /*
- * Writes one project's snapshot, or its hash. A browser whose storage is
- * full makes room by forgetting the other projects' snapshots - the server
- * sends each of them again with that project's next answer - and tries
- * once more.
+ * Writes a permission snapshot, or its hash. A browser whose storage is full
+ * makes room by forgetting the snapshots of every project but `keepIds` -
+ * the server sends each of them again with that project's next answer -
+ * and tries once more. False when it is still not kept.
  */
-function writeProjectStored(
-  projectId: string,
+function writeMakingRoom(
   key: string,
   value: JSONValue,
+  keepIds: Array<string | null>,
 ): boolean {
   try {
     LocalStorage.setItem(key, value);
     return true;
   } catch {
-    forgetOtherProjectsPermissions(projectId);
+    forgetOtherProjectsPermissions(keepIds);
   }
 
   try {
@@ -162,12 +177,9 @@ function writeProjectStored(
   }
 }
 
-function writeStored(key: string, value: JSONValue): void {
-  try {
-    LocalStorage.setItem(key, value);
-  } catch {
-    // Not kept: the server sends it again with the next answer.
-  }
+// The hash the server sent beside a snapshot, or null for none.
+function toHash(hash: string | null | undefined): string | null {
+  return typeof hash === "string" && hash ? hash : null;
 }
 
 /*
@@ -280,7 +292,17 @@ export default class PermissionUtil {
     return typeof hash === "string" && hash ? hash : null;
   }
 
+  /*
+   * The hash of the person's global snapshot, by the same rule: only while
+   * the global snapshot itself is kept too. A hash kept without it would
+   * tell the server the browser has a snapshot it does not have, and the
+   * server would never send it again.
+   */
   public static getGlobalPermissionsHash(): string | null {
+    if (!this.getGlobalPermissions()) {
+      return null;
+    }
+
     const hash: JSONValue = readStored(GLOBAL_PERMISSIONS_HASH_STORAGE_KEY);
 
     return typeof hash === "string" && hash ? hash : null;
@@ -317,14 +339,36 @@ export default class PermissionUtil {
     return groups;
   }
 
+  /*
+   * Keeps the person's global snapshot with the hash the server sent beside
+   * it, as a project's is kept (setProjectPermissions): a full storage makes
+   * room by forgetting the snapshots of projects other than the one this
+   * tab shows; a snapshot that still cannot be kept leaves neither the one
+   * before nor its hash, so the server sends it again; and without a hash,
+   * any hash kept before goes.
+   */
   public static setGlobalPermissions(
     permissions: UserGlobalAccessPermission,
+    options?: { hash?: string | null | undefined } | undefined,
   ): void {
-    writeStored(GLOBAL_PERMISSIONS_STORAGE_KEY, permissions);
-  }
+    const keepIds: Array<string | null> = [this.getTabProjectId()];
 
-  public static setGlobalPermissionsHash(hash: string): void {
-    writeStored(GLOBAL_PERMISSIONS_HASH_STORAGE_KEY, hash);
+    if (
+      !writeMakingRoom(GLOBAL_PERMISSIONS_STORAGE_KEY, permissions, keepIds)
+    ) {
+      removeStored(GLOBAL_PERMISSIONS_STORAGE_KEY);
+      removeStored(GLOBAL_PERMISSIONS_HASH_STORAGE_KEY);
+      return;
+    }
+
+    const hash: string | null = toHash(options?.hash);
+
+    if (
+      !hash ||
+      !writeMakingRoom(GLOBAL_PERMISSIONS_HASH_STORAGE_KEY, hash, keepIds)
+    ) {
+      removeStored(GLOBAL_PERMISSIONS_HASH_STORAGE_KEY);
+    }
   }
 
   /*
@@ -333,7 +377,10 @@ export default class PermissionUtil {
    * it - with the hash the server sent beside it. A snapshot that names no
    * project is not kept: there is no telling whose it is. Without a hash,
    * any hash kept for the project goes, so the server sends the snapshot
-   * again rather than trusting one it may not match.
+   * again rather than trusting one it may not match. A full storage makes
+   * room by forgetting other projects' snapshots, never this project's nor
+   * the one this tab shows (a page that reads several projects keeps their
+   * snapshots too).
    */
   public static setProjectPermissions(
     permissions: UserTenantAccessPermission,
@@ -349,16 +396,17 @@ export default class PermissionUtil {
       return;
     }
 
-    if (!writeProjectStored(id, key, permissions)) {
+    const keepIds: Array<string | null> = [id, this.getTabProjectId()];
+
+    if (!writeMakingRoom(key, permissions, keepIds)) {
       // Not kept: nothing stale stays in its place, and the server sends it again.
       this.clearProjectPermissions(id);
       return;
     }
 
-    const hash: string | null =
-      typeof options?.hash === "string" && options.hash ? options.hash : null;
+    const hash: string | null = toHash(options?.hash);
 
-    if (!hash || !writeProjectStored(id, hashKey, hash)) {
+    if (!hash || !writeMakingRoom(hashKey, hash, keepIds)) {
       removeStored(hashKey);
     }
   }

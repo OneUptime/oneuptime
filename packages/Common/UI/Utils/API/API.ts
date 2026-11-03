@@ -75,8 +75,10 @@ class BaseAPI extends API {
    * The permission snapshots an answer carries (Common/UI/Utils/Permission
    * says where they are kept). A project's snapshot is kept for the project
    * it names, with the hash sent beside it - whichever tab's request it
-   * answered, and whichever project that tab shows. A header that cannot
-   * be read is left out: it never fails the request it came on.
+   * answered, and whichever project that tab shows - and the person's
+   * global snapshot with its own hash. A hash is kept only with its
+   * snapshot. A header that cannot be read is left out: it never fails the
+   * request it came on.
    */
   protected static override async onResponseSuccessHeaders(
     headers: Dictionary<string>,
@@ -98,14 +100,10 @@ class BaseAPI extends API {
         );
 
       if (globalPermissions) {
-        PermissionUtil.setGlobalPermissions(globalPermissions);
+        PermissionUtil.setGlobalPermissions(globalPermissions, {
+          hash: headers["global-permissions-hash"],
+        });
       }
-    }
-
-    if (headers && headers["global-permissions-hash"]) {
-      PermissionUtil.setGlobalPermissionsHash(
-        headers["global-permissions-hash"],
-      );
     }
 
     if (headers && headers["project-permissions"]) {

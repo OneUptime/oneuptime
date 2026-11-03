@@ -346,15 +346,17 @@ describe("two projects open in two tabs", () => {
 
   test("the person's global permissions stay one snapshot for every tab, on purpose: they are the person's own", () => {
     openTab(OWNED_PROJECT_ID);
-    PermissionUtil.setGlobalPermissions({
-      _type: "UserGlobalAccessPermission",
-      globalPermissions: [Permission.CurrentUser],
-      projectIds: [
-        new ObjectID(OWNED_PROJECT_ID),
-        new ObjectID(VIEWED_PROJECT_ID),
-      ],
-    });
-    PermissionUtil.setGlobalPermissionsHash("global-hash");
+    PermissionUtil.setGlobalPermissions(
+      {
+        _type: "UserGlobalAccessPermission",
+        globalPermissions: [Permission.CurrentUser],
+        projectIds: [
+          new ObjectID(OWNED_PROJECT_ID),
+          new ObjectID(VIEWED_PROJECT_ID),
+        ],
+      },
+      { hash: "global-hash" },
+    );
 
     openTab(VIEWED_PROJECT_ID);
 
@@ -949,19 +951,220 @@ describe("a storage that refuses (a private window, blocked or full site data)",
     ).toBeNull();
   });
 
-  test("the global snapshot and its hash are kept as well as storage allows, and never throw", () => {
+  test("room made for another project's answer never takes the snapshot of the project this tab shows", () => {
+    PermissionUtil.setProjectPermissions(VIEWER_SNAPSHOT(), {
+      hash: VIEWED_HASH,
+    });
+    PermissionUtil.setProjectPermissions(
+      snapshot(THIRD_PROJECT_ID, [Permission.ProjectAdmin]),
+    );
+    openTab(VIEWED_PROJECT_ID, "home");
+
+    const realSetItem: typeof LocalStorage.setItem = LocalStorage.setItem;
+    let refusals: number = 0;
+
+    jest
+      .spyOn(LocalStorage, "setItem")
+      .mockImplementation((key: string, value: unknown): void => {
+        // Full until a project's snapshot is gone.
+        if (
+          localStorage.getItem(
+            getProjectPermissionsStorageKey(THIRD_PROJECT_ID)!,
+          ) !== null
+        ) {
+          refusals++;
+          throw new Error("QuotaExceededError");
+        }
+
+        realSetItem(key, value as never);
+      });
+
+    // My On-Call Policies, in the Viewer's tab, reads the owned project.
+    PermissionUtil.setProjectPermissions(OWNER_SNAPSHOT(), {
+      hash: OWNED_HASH,
+    });
+
+    expect(refusals).toBe(1);
+    expect(PermissionUtil.getProjectPermissionsHash(OWNED_PROJECT_ID)).toBe(
+      OWNED_HASH,
+    );
+    // The tab's own role and hash stay: its buttons do not hide.
+    expect(heldInTab()).toEqual([Permission.Viewer, Permission.ProjectUser]);
+    expect(PermissionUtil.getProjectPermissionsHash(VIEWED_PROJECT_ID)).toBe(
+      VIEWED_HASH,
+    );
+    expect(PermissionUtil.getProjectPermissions(THIRD_PROJECT_ID)).toBeNull();
+  });
+
+  test("a full storage makes room for the person's global snapshot by forgetting other projects' snapshots, never the one this tab shows", () => {
+    PermissionUtil.setProjectPermissions(OWNER_SNAPSHOT(), {
+      hash: OWNED_HASH,
+    });
+    PermissionUtil.setProjectPermissions(VIEWER_SNAPSHOT(), {
+      hash: VIEWED_HASH,
+    });
+    openTab(OWNED_PROJECT_ID);
+
+    const realSetItem: typeof LocalStorage.setItem = LocalStorage.setItem;
+    let refusals: number = 0;
+
+    jest
+      .spyOn(LocalStorage, "setItem")
+      .mockImplementation((key: string, value: unknown): void => {
+        if (
+          localStorage.getItem(
+            getProjectPermissionsStorageKey(VIEWED_PROJECT_ID)!,
+          ) !== null
+        ) {
+          refusals++;
+          throw new Error("QuotaExceededError");
+        }
+
+        realSetItem(key, value as never);
+      });
+
+    PermissionUtil.setGlobalPermissions(
+      {
+        _type: "UserGlobalAccessPermission",
+        globalPermissions: [Permission.CurrentUser],
+        projectIds: [new ObjectID(OWNED_PROJECT_ID)],
+      },
+      { hash: "global-hash" },
+    );
+
+    expect(refusals).toBe(1);
+    expect(PermissionUtil.getGlobalPermissions()?.globalPermissions).toEqual([
+      Permission.CurrentUser,
+    ]);
+    expect(PermissionUtil.getGlobalPermissionsHash()).toBe("global-hash");
+    expect(heldInTab()).toEqual([
+      Permission.ProjectOwner,
+      Permission.ProjectUser,
+    ]);
+    expect(PermissionUtil.getProjectPermissionsHash(OWNED_PROJECT_ID)).toBe(
+      OWNED_HASH,
+    );
+    expect(PermissionUtil.getProjectPermissions(VIEWED_PROJECT_ID)).toBeNull();
+  });
+
+  test("a global snapshot that cannot be kept at all leaves neither the one before nor its hash, and does not throw", () => {
+    PermissionUtil.setGlobalPermissions(
+      {
+        _type: "UserGlobalAccessPermission",
+        globalPermissions: [Permission.CurrentUser, Permission.User],
+        projectIds: [],
+      },
+      { hash: "an-older-global-hash" },
+    );
+
     jest.spyOn(LocalStorage, "setItem").mockImplementation((): void => {
       throw new Error("QuotaExceededError");
     });
 
     expect(() => {
-      PermissionUtil.setGlobalPermissions({
+      PermissionUtil.setGlobalPermissions(
+        {
+          _type: "UserGlobalAccessPermission",
+          globalPermissions: [Permission.CurrentUser],
+          projectIds: [],
+        },
+        { hash: "global-hash" },
+      );
+    }).not.toThrow();
+
+    // Nothing stale is trusted: the next request asks the server for it again.
+    expect(PermissionUtil.getGlobalPermissions()).toBeNull();
+    expect(PermissionUtil.getGlobalPermissionsHash()).toBeNull();
+    expect(localStorage.getItem(GLOBAL_PERMISSIONS_HASH_STORAGE_KEY)).toBe(
+      null,
+    );
+  });
+
+  test("a global hash that cannot be kept beside its snapshot leaves no older one behind", () => {
+    PermissionUtil.setGlobalPermissions(
+      {
         _type: "UserGlobalAccessPermission",
         globalPermissions: [Permission.CurrentUser],
         projectIds: [],
+      },
+      { hash: "an-older-global-hash" },
+    );
+
+    const realSetItem: typeof LocalStorage.setItem = LocalStorage.setItem;
+
+    jest
+      .spyOn(LocalStorage, "setItem")
+      .mockImplementation((key: string, value: unknown): void => {
+        if (key === GLOBAL_PERMISSIONS_HASH_STORAGE_KEY) {
+          throw new Error("QuotaExceededError");
+        }
+
+        realSetItem(key, value as never);
       });
-      PermissionUtil.setGlobalPermissionsHash("global-hash");
-    }).not.toThrow();
+
+    PermissionUtil.setGlobalPermissions(
+      {
+        _type: "UserGlobalAccessPermission",
+        globalPermissions: [Permission.CurrentUser, Permission.User],
+        projectIds: [],
+      },
+      { hash: "global-hash" },
+    );
+
+    expect(PermissionUtil.getGlobalPermissions()?.globalPermissions).toEqual([
+      Permission.CurrentUser,
+      Permission.User,
+    ]);
+    expect(PermissionUtil.getGlobalPermissionsHash()).toBeNull();
+  });
+});
+
+describe("the person's global snapshot and its hash", () => {
+  test("its hash is sent only while the global snapshot is kept too", () => {
+    // A hash with no snapshot beside it, as a refused write could leave one.
+    localStorage.setItem(GLOBAL_PERMISSIONS_HASH_STORAGE_KEY, "global-hash");
+
+    expect(PermissionUtil.getGlobalPermissionsHash()).toBeNull();
+
+    PermissionUtil.setGlobalPermissions(
+      {
+        _type: "UserGlobalAccessPermission",
+        globalPermissions: [Permission.CurrentUser],
+        projectIds: [],
+      },
+      { hash: "global-hash" },
+    );
+
+    expect(PermissionUtil.getGlobalPermissionsHash()).toBe("global-hash");
+
+    localStorage.removeItem(GLOBAL_PERMISSIONS_STORAGE_KEY);
+
+    expect(PermissionUtil.getGlobalPermissionsHash()).toBeNull();
+  });
+
+  test("a global snapshot kept without a hash forgets the hash kept before, so the server sends it again", () => {
+    PermissionUtil.setGlobalPermissions(
+      {
+        _type: "UserGlobalAccessPermission",
+        globalPermissions: [Permission.CurrentUser],
+        projectIds: [],
+      },
+      { hash: "global-hash" },
+    );
+    PermissionUtil.setGlobalPermissions({
+      _type: "UserGlobalAccessPermission",
+      globalPermissions: [Permission.CurrentUser, Permission.User],
+      projectIds: [],
+    });
+
+    expect(PermissionUtil.getGlobalPermissions()?.globalPermissions).toEqual([
+      Permission.CurrentUser,
+      Permission.User,
+    ]);
+    expect(PermissionUtil.getGlobalPermissionsHash()).toBeNull();
+    expect(localStorage.getItem(GLOBAL_PERMISSIONS_HASH_STORAGE_KEY)).toBe(
+      null,
+    );
   });
 });
 

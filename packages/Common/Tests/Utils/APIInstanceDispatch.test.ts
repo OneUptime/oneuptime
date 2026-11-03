@@ -185,7 +185,14 @@ describe("A BaseAPI instance refreshes a lapsed session like BaseAPI does", () =
   test("BaseAPI's own headers go out on instance requests", async () => {
     const projectId: string = "6a000000-0000-4000-8000-000000000001";
 
-    PermissionUtil.setGlobalPermissionsHash("global-hash-123");
+    PermissionUtil.setGlobalPermissions(
+      {
+        _type: "UserGlobalAccessPermission",
+        globalPermissions: [],
+        projectIds: [new ObjectID(projectId)],
+      },
+      { hash: "global-hash-123" },
+    );
     PermissionUtil.setProjectPermissions(
       {
         _type: "UserTenantAccessPermission",
