@@ -43,6 +43,11 @@ import React, {
 
 export interface ComponentProps {
   modelId: ObjectID;
+  /*
+   * Bumped by the page once the device was read again (Refresh on its
+   * Inventory card): the hero reads it again, in place, with no skeleton.
+   */
+  refreshKey?: number | undefined;
 }
 
 export interface DeviceHeroTileTitleProps {
@@ -129,6 +134,20 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
       setIsLoading(false);
     });
   }, []);
+
+  /*
+   * Read again after a refresh. A read that fails keeps what the hero
+   * shows: the page's details are still the last good ones.
+   */
+  useEffect(() => {
+    if (!props.refreshKey) {
+      return;
+    }
+
+    fetchDevice().catch(() => {
+      // fetchDevice says why itself.
+    });
+  }, [props.refreshKey]);
 
   if (isLoading) {
     return (

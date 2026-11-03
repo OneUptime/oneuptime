@@ -1,14 +1,20 @@
 import IconProp from "Common/Types/Icon/IconProp";
+import Route from "Common/Types/API/Route";
 import Icon, { SizeProp } from "Common/UI/Components/Icon/Icon";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 import {
+  RefreshStatusLinkKind,
   RefreshStatusTone,
   RefreshStatusWords,
   getRefreshStatusWords,
 } from "./NetworkDeviceRefreshWords";
 import { UseNetworkDeviceRefreshResult } from "./useNetworkDeviceRefresh";
+import AppLink from "../AppLink/AppLink";
+import { getMerakiConnectionsRoute } from "../NetworkTraffic/Meraki/MerakiUrlState";
+import PageMap from "../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 
 /*
  * One line under a card's header, while a device is read again and once it
@@ -17,7 +23,24 @@ import { UseNetworkDeviceRefreshResult } from "./useNetworkDeviceRefresh";
  * amber when its probe could not reach it or has not read it, red when the
  * refresh could not be asked for. Announced to a screen reader as it
  * changes. Nothing at all before anyone presses Refresh.
+ *
+ * A line that says Meraki has not read the device yet ends with a link to
+ * the Meraki connection, on the network's Traffic page: its status says
+ * why (a refused key, a connection turned off), and its row has the way on.
  */
+
+// Where a status line's link goes.
+function getRefreshStatusLinkRoute(kind: RefreshStatusLinkKind): Route {
+  switch (kind) {
+    case RefreshStatusLinkKind.MerakiConnections:
+    default:
+      return getMerakiConnectionsRoute(
+        RouteUtil.populateRouteParams(
+          RouteMap[PageMap.NETWORK_TRAFFIC] as Route,
+        ),
+      );
+  }
+}
 
 export interface ComponentProps {
   refresh: UseNetworkDeviceRefreshResult;
@@ -87,6 +110,21 @@ const NetworkDeviceRefreshStatus: FunctionComponent<ComponentProps> = (
       />
       <span className="min-w-0 break-words">
         {translator.translateTemplate(words.template, words.values)}
+        {words.link ? (
+          <>
+            {" "}
+            <AppLink
+              to={getRefreshStatusLinkRoute(words.link.kind)}
+              className="font-medium text-indigo-600 underline-offset-2 hover:text-indigo-700 hover:underline focus:outline-none focus-visible:underline"
+            >
+              <span data-testid={`${testId}-link`}>
+                {translator.translateText(words.link.title)}
+              </span>
+            </AppLink>
+          </>
+        ) : (
+          <></>
+        )}
       </span>
     </div>
   );

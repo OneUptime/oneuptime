@@ -57,7 +57,7 @@ export const NOT_ADDED_DEVICES_NOTE: PluralTemplate = {
 };
 
 export const ADD_DEVICES_DESCRIPTION: string = translationKey(
-  "Adds the devices of {{organization}} that are not network devices here yet, at the address Meraki manages each one at. Meraki fills in their model, serial number and firmware, and the map places their clients.",
+  "Adds the devices of {{organization}} that are not network devices here yet, at their management addresses. Meraki fills in their model, serial number and firmware.",
 );
 
 export const DEVICE_KINDS_LABEL: string = translationKey("Devices to add");
@@ -72,9 +72,9 @@ export const NOTHING_LEFT_TO_ADD: string = translationKey(
 
 // Why some devices of the kinds picked are not added.
 export const WITHOUT_ADDRESS_NOTE: PluralTemplate = {
-  one: "{{count}} has no address in Meraki, so there is nothing to poll it at. A security appliance lists none: add it by hand at the address your probe reaches it at, and Meraki fills in the rest.",
+  one: "{{count}} has no address in Meraki (a security appliance lists none). Add it by hand at the address your probe reaches it at, and Meraki fills in the rest.",
   other:
-    "{{count}} have no address in Meraki, so there is nothing to poll them at. A security appliance lists none: add it by hand at the address your probe reaches it at, and Meraki fills in the rest.",
+    "{{count}} have no address in Meraki (a security appliance lists none). Add one by hand at the address your probe reaches it at, and Meraki fills in the rest.",
 };
 
 export const TAKEN_NOTE: PluralTemplate = {
@@ -94,7 +94,7 @@ export const SITES_CHECKBOX: string = translationKey(
   "Put each device in a site named after its Meraki network",
 );
 export const SITES_HELP: string = translationKey(
-  "The project's site of that name, or a new one. Without, your site rules place each device, as they place any new one.",
+  "Uses the project's site of that name, or adds one. Unticked, your site rules place each device.",
 );
 export const SITES_ON_VALUE: string = translationKey(
   "Named after their networks",
@@ -102,7 +102,7 @@ export const SITES_ON_VALUE: string = translationKey(
 export const PROBE_LABEL: string = translationKey("Probe");
 export const NO_PROBE: string = translationKey("No probe");
 export const PROBE_HELP: string = translationKey(
-  "Pings each device, and walks it over SNMP once it has credentials. With no probe, a device shows what Meraki says about it, and a site with a default probe gives it that probe.",
+  "Pings each device, and walks it over SNMP once it has credentials. With no probe, the devices show what Meraki says about them, unless their site has a default probe.",
 );
 
 export const ADD_COUNT_BUTTON: PluralTemplate = {

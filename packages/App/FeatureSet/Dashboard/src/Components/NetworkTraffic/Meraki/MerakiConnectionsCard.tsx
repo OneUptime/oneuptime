@@ -78,6 +78,11 @@ import PermissionGate, {
   PermissionGateOptions,
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
+import {
+  bringPageAnchorIntoView,
+  getPageAnchor,
+  markPageAnchorLanded,
+} from "Common/UI/Utils/PageAnchor";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -226,6 +231,9 @@ const MerakiConnectionsCard: FunctionComponent<ComponentProps> = (
   const firstReadsWatched: MutableRefObject<Set<string>> = useRef<Set<string>>(
     new Set<string>(),
   );
+  const cardRef: MutableRefObject<HTMLDivElement | null> =
+    useRef<HTMLDivElement | null>(null);
+  const hasConnections: boolean = connections.length > 0;
 
   const model: NetworkControllerConnection = new NetworkControllerConnection();
   const gateOptions: PermissionGateOptions = {
@@ -305,6 +313,33 @@ const MerakiConnectionsCard: FunctionComponent<ComponentProps> = (
       isCurrent = false;
     };
   }, [props.refreshKey, reloadKey]);
+
+  /*
+   * Opened at the connections (#traffic-meraki-connections) - from a
+   * device's or a site's Traffic page, or a device Meraki has not read: the
+   * card is brought into view once it is drawn, under the page's header,
+   * and kept there while the traffic above it loads, and marked for a
+   * moment (Utils/PageAnchor).
+   */
+  useEffect(() => {
+    if (
+      !isLoaded ||
+      !hasConnections ||
+      !cardRef.current ||
+      getPageAnchor() !== MERAKI_CONNECTIONS_ANCHOR
+    ) {
+      return;
+    }
+
+    const element: HTMLDivElement = cardRef.current;
+    const stopBringingIntoView: () => void = bringPageAnchorIntoView(element);
+    const unmark: () => void = markPageAnchorLanded(element);
+
+    return () => {
+      stopBringingIntoView();
+      unmark();
+    };
+  }, [isLoaded, hasConnections]);
 
   // A connection never read yet is watched once, quietly, until it is.
   useEffect(() => {
@@ -884,7 +919,7 @@ const MerakiConnectionsCard: FunctionComponent<ComponentProps> = (
   const now: Date = new Date();
 
   return (
-    <div id={MERAKI_CONNECTIONS_ANCHOR} className="scroll-mt-4">
+    <div id={MERAKI_CONNECTIONS_ANCHOR} ref={cardRef} className="scroll-mt-4">
       <Card
         title="Meraki"
         description="The Meraki organizations OneUptime reads traffic and device details from, through the Meraki dashboard API."
