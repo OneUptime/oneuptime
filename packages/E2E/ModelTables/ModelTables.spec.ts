@@ -1,6 +1,7 @@
 import { BrowserContext, expect, Locator, Page, test } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * Tables (ModelTable -> BaseModelTable -> Table) in real Chromium, against
@@ -626,14 +627,7 @@ test.describe("the Alerts list of the screenshot", () => {
       "data-overflowing",
       "false",
     );
-    expect(
-      await page.evaluate((): number => {
-        return (
-          document.documentElement.scrollWidth -
-          document.documentElement.clientWidth
-        );
-      }),
-    ).toBe(0);
+    await expectNoSidewaysScroll(page);
   });
 
   test("on a screen wide enough every column is its own: Severity, Duration, Labels and Owners too", async ({
@@ -761,14 +755,7 @@ test.describe("the Alerts list of the screenshot", () => {
       firstCard.getByText(FIRST_MONITOR, { exact: true }),
     ).toHaveCount(1);
 
-    expect(
-      await page.evaluate((): number => {
-        return (
-          document.documentElement.scrollWidth -
-          document.documentElement.clientWidth
-        );
-      }),
-    ).toBe(0);
+    await expectNoSidewaysScroll(page);
 
     await screenshot(page, "alerts-390");
   });
@@ -888,14 +875,7 @@ test.describe("the Alerts list of the screenshot", () => {
     expect(layout.isCutShort).toBe(false);
     expect(layout.lineLefts.length).toBeGreaterThanOrEqual(3);
     expect(layout.itemRight).toBeLessThanOrEqual(390);
-    expect(
-      await page.evaluate((): number => {
-        return (
-          document.documentElement.scrollWidth -
-          document.documentElement.clientWidth
-        );
-      }),
-    ).toBe(0);
+    await expectNoSidewaysScroll(page);
 
     await screenshot(page, "alerts-long-390");
   });
@@ -957,14 +937,7 @@ test.describe("the Alerts list of the screenshot", () => {
     expect(chipBox.x + chipBox.width).toBeLessThanOrEqual(
       barBox.x + barBox.width + 1,
     );
-    expect(
-      await page.evaluate((): number => {
-        return (
-          document.documentElement.scrollWidth -
-          document.documentElement.clientWidth
-        );
-      }),
-    ).toBe(0);
+    await expectNoSidewaysScroll(page);
 
     // Its words: the chip's name and the monitor, cut short at the bar's end.
     const words: Locator = chip.locator("span.truncate").first();
@@ -1059,15 +1032,6 @@ test.describe("the Alerts list of the screenshot", () => {
       });
   }
 
-  async function sidewaysScroll(page: Page): Promise<number> {
-    return await page.evaluate((): number => {
-      return (
-        document.documentElement.scrollWidth -
-        document.documentElement.clientWidth
-      );
-    });
-  }
-
   test("on a phone, the chips fold behind Filter and the first alert is on the first screen; Filter opens them and folds them again", async ({
     page,
   }: {
@@ -1094,7 +1058,7 @@ test.describe("the Alerts list of the screenshot", () => {
     // The first alert's card starts on the first screen, its number and title in sight.
     const foldedCard: Box = await box(firstCard);
     expect(foldedCard.y + 120).toBeLessThan(900);
-    expect(await sidewaysScroll(page)).toBe(0);
+    await expectNoSidewaysScroll(page);
     await screenshot(page, "alerts-filters-folded-390");
 
     await filter.click();
@@ -1109,7 +1073,7 @@ test.describe("the Alerts list of the screenshot", () => {
     // Opened, the chips take two lines more at least, and the cards move down.
     const openCard: Box = await box(firstCard);
     expect(openCard.y - foldedCard.y).toBeGreaterThanOrEqual(2 * button.height);
-    expect(await sidewaysScroll(page)).toBe(0);
+    await expectNoSidewaysScroll(page);
     await screenshot(page, "alerts-filters-open-390");
 
     await filter.click();
@@ -1170,7 +1134,7 @@ test.describe("the Alerts list of the screenshot", () => {
     expect((await box(bar)).height).toBeLessThan(
       filterBox.height + chipBox.height + 20,
     );
-    expect(await sidewaysScroll(page)).toBe(0);
+    await expectNoSidewaysScroll(page);
     await screenshot(page, "alerts-filters-folded-filtered-390");
 
     // The chip's own clear still works folded.
@@ -1880,13 +1844,7 @@ test.describe("a row's labels, one under another, in natural order", () => {
     await expect(card.getByTestId("table-labels-less")).toHaveText("Show less");
 
     // Nothing past the screen's edge, and the tap opened nothing else.
-    const sideways: number = await page.evaluate((): number => {
-      return (
-        document.documentElement.scrollWidth -
-        document.documentElement.clientWidth
-      );
-    });
-    expect(sideways).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     expect((await fixture(page)).navigations).toEqual([]);
 
     await screenshot(page, "gallery-labels-open-390");
@@ -2000,14 +1958,7 @@ test.describe("a value too long for its column", () => {
     }
 
     // And nothing reaches past the page.
-    expect(
-      await page.evaluate((): number => {
-        return (
-          document.documentElement.scrollWidth -
-          document.documentElement.clientWidth
-        );
-      }),
-    ).toBe(0);
+    await expectNoSidewaysScroll(page);
   });
 
   test("a resource's name in a list ends in an ellipsis, its icon beside it", async ({
@@ -2198,14 +2149,7 @@ test.describe("a row's name uses the room its row has", () => {
     // The band over the cards: the select-all box, and the list's order.
     await expect(page.getByTestId("table-cards-header")).toBeVisible();
 
-    expect(
-      await page.evaluate((): number => {
-        return (
-          document.documentElement.scrollWidth -
-          document.documentElement.clientWidth
-        );
-      }),
-    ).toBe(0);
+    await expectNoSidewaysScroll(page);
 
     await screenshot(page, "status-pages-long-790");
   });
@@ -2547,14 +2491,7 @@ test.describe("a table gives way before its rows scroll", () => {
     }
 
     await expectRowButtonsOnTheCard(page);
-    await expect(
-      page.evaluate((): number => {
-        return (
-          document.documentElement.scrollWidth -
-          document.documentElement.clientWidth
-        );
-      }),
-    ).resolves.toBe(0);
+    await expectNoSidewaysScroll(page);
     await screenshot(page, "gallery-give-1002");
   });
 
@@ -2706,14 +2643,7 @@ test.describe("a table gives way before its rows scroll", () => {
 
     await expect(page.locator("#gallery-give-body > div")).toHaveCount(4);
     await expect(page.locator("table")).toHaveCount(0);
-    expect(
-      await page.evaluate((): number => {
-        return (
-          document.documentElement.scrollWidth -
-          document.documentElement.clientWidth
-        );
-      }),
-    ).toBe(0);
+    await expectNoSidewaysScroll(page);
   });
 
   /*
@@ -2962,14 +2892,7 @@ test.describe("a table wider than its card", () => {
     ).toEqual({ position: "sticky", borderLeftWidth: "1px" });
 
     // The page itself never scrolls sideways.
-    expect(
-      await page.evaluate((): number => {
-        return (
-          document.documentElement.scrollWidth -
-          document.documentElement.clientWidth
-        );
-      }),
-    ).toBe(0);
+    await expectNoSidewaysScroll(page);
 
     await scroller.evaluate((element: Element): void => {
       element.scrollLeft = 200;
@@ -3346,14 +3269,7 @@ test.describe("on a phone", () => {
         }),
     ).toBe("500");
 
-    expect(
-      await page.evaluate((): number => {
-        return (
-          document.documentElement.scrollWidth -
-          document.documentElement.clientWidth
-        );
-      }),
-    ).toBe(0);
+    await expectNoSidewaysScroll(page);
 
     await screenshot(page, "incidents-rich-390");
   });
@@ -3478,14 +3394,7 @@ test.describe("on a phone", () => {
     const ticked: Box = await box(cards.first());
     expect(Math.round(ticked.width)).toBe(Math.round(card.width) - 2);
 
-    expect(
-      await page.evaluate((): number => {
-        return (
-          document.documentElement.scrollWidth -
-          document.documentElement.clientWidth
-        );
-      }),
-    ).toBe(0);
+    await expectNoSidewaysScroll(page);
 
     await screenshot(page, "monitors-rich-ticked-390");
   });
@@ -3531,14 +3440,7 @@ test.describe("on a phone", () => {
     expect(Math.abs(search.x + search.width - textRight)).toBeLessThanOrEqual(
       1,
     );
-    expect(
-      await page.evaluate((): number => {
-        return (
-          document.documentElement.scrollWidth -
-          document.documentElement.clientWidth
-        );
-      }),
-    ).toBe(0);
+    await expectNoSidewaysScroll(page);
 
     await screenshot(page, "monitors-search-open-390");
   });
@@ -3622,14 +3524,7 @@ test.describe("the header's search, opened on a wide screen", () => {
         );
       }),
     ).toBe(false);
-    expect(
-      await page.evaluate((): number => {
-        return (
-          document.documentElement.scrollWidth -
-          document.documentElement.clientWidth
-        );
-      }),
-    ).toBe(0);
+    await expectNoSidewaysScroll(page);
   });
 });
 
@@ -4389,14 +4284,7 @@ test.describe("a member who may read none of a list", () => {
 
     expect(drawn.x).toBeGreaterThanOrEqual(0);
     expect(drawn.x + drawn.width).toBeLessThanOrEqual(390);
-    expect(
-      await page.evaluate((): number => {
-        return (
-          document.documentElement.scrollWidth -
-          document.documentElement.clientWidth
-        );
-      }),
-    ).toBe(0);
+    await expectNoSidewaysScroll(page);
 
     await screenshot(page, "no-access-monitors-390-de-dark");
   });

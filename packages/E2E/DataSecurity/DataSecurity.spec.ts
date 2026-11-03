@@ -8,6 +8,8 @@ import {
 import { escapeRegExp } from "Common/Utils/RegExpEscape";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 /*
  * Walks Data Security's real pages - the product's Overview, its data
@@ -198,16 +200,6 @@ async function screenshot(page: Page, name: string): Promise<void> {
   });
 }
 
-// How far the page scrolls sideways: 0 when everything fits its width.
-async function sidewaysScroll(page: Page): Promise<number> {
-  return page.evaluate((): number => {
-    return (
-      document.documentElement.scrollWidth -
-      document.documentElement.clientWidth
-    );
-  });
-}
-
 function responsePanel(page: Page): Locator {
   return page.getByTestId("data-security-issue-response");
 }
@@ -259,10 +251,10 @@ test.describe("the Overview", () => {
     );
     await expect(description).toBeVisible();
 
-    const titleBox: { y: number; height: number } | null =
-      await title.boundingBox();
-    const descriptionBox: { width: number; y: number } | null =
-      await description.boundingBox();
+    const [titleBox, descriptionBox] = await boxesInOneFrame([
+      title,
+      description,
+    ]);
     // Beside two buttons it was squeezed to a word or two a line.
     expect(descriptionBox!.width).toBeGreaterThan(300);
     expect(descriptionBox!.y).toBeGreaterThanOrEqual(
@@ -464,7 +456,7 @@ test.describe("what a Critical issue started", () => {
     await expect(
       card.getByTestId("data-security-alert-severity"),
     ).toContainText("Alert Severity");
-    expect(await sidewaysScroll(page)).toBe(0);
+    await expectNoSidewaysScroll(page);
 
     await screenshot(page, "scanning-when-an-issue-opens-1280");
   });
@@ -522,7 +514,7 @@ test.describe("on a phone", () => {
       await expect(page.locator("h1, h2").first()).toBeVisible();
       // Let the page's reads settle before it is measured.
       await page.waitForLoadState("networkidle");
-      expect(await sidewaysScroll(page)).toBeLessThanOrEqual(0);
+      await expectNoSidewaysScroll(page);
       await screenshot(page, `${name}-390`);
     });
   }
@@ -583,7 +575,7 @@ test.describe("German and Persian", () => {
     await expect(page.locator("html")).toHaveAttribute("lang", "fa");
     await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
     await page.waitForLoadState("networkidle");
-    expect(await sidewaysScroll(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     await screenshot(page, "issue-fa-dark-390");
   });
 
@@ -595,7 +587,7 @@ test.describe("German and Persian", () => {
     await open(page, PATHS["overview"]!, { lang: "fa" });
     await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
     await page.waitForLoadState("networkidle");
-    expect(await sidewaysScroll(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     await screenshot(page, "overview-fa-1280");
   });
 });
@@ -722,7 +714,7 @@ test.describe("who can reach the data", () => {
       reach.getByRole("columnheader", { name: "Access Level" }),
     ).toBeVisible();
     await page.waitForLoadState("networkidle");
-    expect(await sidewaysScroll(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     await screenshot(page, "identity-1280");
   });
 
@@ -785,7 +777,7 @@ test.describe("who can reach the data", () => {
       page.getByTestId("data-security-identity-about"),
     ).toBeVisible();
     await page.waitForLoadState("networkidle");
-    expect(await sidewaysScroll(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     await screenshot(page, "identity-390-dark");
 
     await open(page, IDENTITY_PATH, { lang: "fa" });
@@ -794,7 +786,7 @@ test.describe("who can reach the data", () => {
       page.getByTestId("data-security-identity-about"),
     ).toBeVisible();
     await page.waitForLoadState("networkidle");
-    expect(await sidewaysScroll(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     await screenshot(page, "identity-fa-1280");
   });
 
@@ -980,7 +972,7 @@ test.describe("OneUptime AI's suggestions on What's Inside", () => {
       findingRow(page, "geb_datum").getByTestId("data-store-finding-ai-reason"),
     ).toBeVisible();
     await page.waitForLoadState("networkidle");
-    expect(await sidewaysScroll(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     await screenshot(page, "inside-suggestions-de-1280");
   });
 });

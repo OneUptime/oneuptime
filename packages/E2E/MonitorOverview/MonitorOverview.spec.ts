@@ -8,6 +8,7 @@ import {
 import { escapeRegExp } from "Common/Utils/RegExpEscape";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * Renders the real monitor overview page (Pages/Monitor/View/Layout and
@@ -565,13 +566,6 @@ function luminance(rgb: string): number {
     0.7152 * (channels[1] || 0) +
     0.0722 * (channels[2] || 0)
   );
-}
-
-async function expectNoHorizontalOverflow(page: Page): Promise<void> {
-  const overflow: number = await page.evaluate((): number => {
-    return document.documentElement.scrollWidth - window.innerWidth;
-  });
-  expect(overflow, "page scrolls sideways").toBeLessThanOrEqual(1);
 }
 
 const MIN_PLOT_HEIGHT: number = 150;
@@ -2494,7 +2488,7 @@ test.describe("the hero's actions", () => {
         ).toBeGreaterThanOrEqual(0.6);
       }
 
-      await expectNoHorizontalOverflow(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
 
       if (width === 1280 || width === 390) {
         await screenshot(page, `monitor-overview-hero-actions-${width}`, {
@@ -2782,7 +2776,7 @@ test.describe("the hero's actions", () => {
     const menu: Box = await documentBox(page.getByRole("menu"));
     expect(menu.x).toBeGreaterThanOrEqual(0);
     expect(menu.x + menu.width).toBeLessThanOrEqual(390);
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshot(page, "monitor-overview-change-status-menu-390", {
       fullPage: false,
     });
@@ -2796,7 +2790,7 @@ test.describe("the hero's actions", () => {
     );
     expect(dialog.x).toBeGreaterThanOrEqual(0);
     expect(dialog.x + dialog.width).toBeLessThanOrEqual(390);
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshot(page, "monitor-overview-change-status-dialog-390", {
       fullPage: false,
     });
@@ -3011,7 +3005,7 @@ test.describe("monitoring logs", () => {
     await expect(
       page.getByText("Payroll run 2026-09-20 completed"),
     ).toBeVisible();
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshot(page, "monitor-logs-email-mobile");
   });
 
@@ -3057,7 +3051,7 @@ test.describe("responsive", () => {
     await openReady(page);
     await expectSettled(page);
 
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
 
     // The strip scrolls inside its card and starts at today.
     const strip: Locator = page.getByTestId("monitor-uptime-strip");
@@ -3148,7 +3142,7 @@ test.describe("responsive", () => {
       await page.setViewportSize({ width: 390, height: 844 });
       await openReady(page, { type, query });
       await expectSettled(page);
-      await expectNoHorizontalOverflow(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
     });
   }
 
@@ -3216,7 +3210,7 @@ test.describe("responsive", () => {
         box.x + box.width,
         "setup detail ends on screen",
       ).toBeLessThanOrEqual(391);
-      await expectNoHorizontalOverflow(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
 
       if (scenario.type === "incoming-email") {
         await expect(
@@ -3238,7 +3232,7 @@ test.describe("responsive", () => {
     await openReady(page);
     await expectSettled(page);
 
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
 
     // The stat bar is 2 x 2.
     const cells: Locator = statBar(page).locator(":scope > div");
@@ -3282,7 +3276,7 @@ test.describe("responsive", () => {
     await openReady(page);
     await expectSettled(page);
 
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     const main: Box = await documentBox(mainColumn(page));
     const side: Box = await documentBox(sideColumn(page));
     // Two thirds and one third, side by side.

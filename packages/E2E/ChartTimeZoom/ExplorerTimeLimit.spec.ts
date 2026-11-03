@@ -5,6 +5,7 @@ import {
   Route as PlaywrightRoute,
   test,
 } from "@playwright/test";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * Issue #4707 in a real browser: a search that runs into the query time
@@ -398,15 +399,7 @@ test.describe("Logs explorer: a search past the query time limit", () => {
     expect(box!.x).toBeGreaterThanOrEqual(0);
     expect(box!.x + box!.width).toBeLessThanOrEqual(390);
 
-    const sideways: { scroll: number; client: number } = await page.evaluate(
-      (): { scroll: number; client: number } => {
-        return {
-          scroll: document.documentElement.scrollWidth,
-          client: document.documentElement.clientWidth,
-        };
-      },
-    );
-    expect(sideways.scroll).toBeLessThanOrEqual(sideways.client);
+    await expectNoSidewaysScroll(page);
   });
 });
 

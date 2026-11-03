@@ -317,7 +317,10 @@ function scope(overrides) {
   };
 }
 
-const jane = { identifiedUserKey: janeKey, identifiedUserLabel: "jane@example.com" };
+const jane = {
+  identifiedUserKey: janeKey,
+  identifiedUserLabel: "jane@example.com",
+};
 
 function scopedResponse(filters) {
   if (
@@ -342,16 +345,10 @@ function scopedResponse(filters) {
     );
   }
   if (filters.identifiedUserKey === hiddenKey) {
-    return journeysOf(
-      [hiddenSession],
-      scope({ identifiedUserKey: hiddenKey }),
-    );
+    return journeysOf([hiddenSession], scope({ identifiedUserKey: hiddenKey }));
   }
   if (filters.visitorId === visitorId) {
-    return journeysOf(
-      [visitorSession],
-      scope({ kind: "visitor", visitorId }),
-    );
+    return journeysOf([visitorSession], scope({ kind: "visitor", visitorId }));
   }
   if (filters.identifiedUserRef || filters.identifiedUserKey) {
     return journeysOf(
@@ -568,8 +565,12 @@ function FixtureLayout() {
   return <Layout />;
 }
 
+/*
+ * Navigates as the Dashboard does (its src/Index.tsx): each navigation renders
+ * at once, not in a React transition (Tests/Ops/E2EFixtureRouters).
+ */
 createRoot(document.getElementById("root")).render(
-  <BrowserRouter>
+  <BrowserRouter useTransitions={false}>
     <header className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 bg-white px-6 py-4">
       <div className="flex items-center gap-5">
         <span className="text-lg font-semibold text-gray-900">OneUptime</span>

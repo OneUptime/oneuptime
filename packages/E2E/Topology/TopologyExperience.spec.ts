@@ -7,6 +7,8 @@ import {
 } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 const pageErrors: Map<Page, Array<string>> = new Map();
 
@@ -493,12 +495,10 @@ test("infrastructure draws the traffic between the pods on a node, with its metr
   await expect(
     backendToBlob.locator("path.react-flow__edge-path"),
   ).toHaveAttribute("d", / C /);
-  const integration: { y: number; height: number } | null = await page
-    .locator(".react-flow__node", { hasText: "wb-ims-integration-edh-" })
-    .boundingBox();
-  const blobLabel: { y: number; height: number } | null = await backendToBlob
-    .locator(".react-flow__edge-textwrapper")
-    .boundingBox();
+  const [integration, blobLabel] = await boxesInOneFrame([
+    page.locator(".react-flow__node", { hasText: "wb-ims-integration-edh-" }),
+    backendToBlob.locator(".react-flow__edge-textwrapper"),
+  ]);
   expect(integration).not.toBeNull();
   expect(blobLabel).not.toBeNull();
   const overlaps: boolean =
@@ -902,16 +902,10 @@ test("all views fit a phone and topology tabs support keyboard navigation", asyn
         true,
       );
     }
-    await expect
-      .poll(
-        async (): Promise<number> => {
-          return page.evaluate((): number => {
-            return document.documentElement.scrollWidth - window.innerWidth;
-          });
-        },
-        { message: `${name} must fit the viewport` },
-      )
-      .toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, {
+      tolerance: 1,
+      message: `${name} must fit the viewport`,
+    });
   }
   await page.getByRole("tab", { name: "Network", exact: true }).focus();
   await page.keyboard.press("Home");

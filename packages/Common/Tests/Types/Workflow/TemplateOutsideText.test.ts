@@ -122,6 +122,7 @@ import {
   zabbixPostedBody,
 } from "./ZabbixTemplateFixtures";
 import { beforeAll, describe, expect, jest, test } from "@jest/globals";
+import { FastestRun, fastestRunAsync } from "../../Helpers/FastestRun";
 import { Token, marked } from "marked";
 
 // The sandbox boots a fresh isolate per run, which is far slower than plain JS.
@@ -2598,35 +2599,53 @@ describe("time", () => {
   test.each(SHAPES)(
     "every script places a long value of %s in linear time",
     async (_case: string, value: string) => {
-      const started: number = Date.now();
-
-      const issue: JSONObject = await recordFromIssue(
-        INCIDENT,
-        jiraIssueCreatedEvent({ summary: value, description: value }),
-      );
-      const comment: JSONObject = await noteFromComment(
-        ALERT,
-        jiraCommentEvent({ body: value }),
-      );
-      const changes: JSONObject = await noteFromChanges(INCIDENT, [
-        changelogItem({ field: "summary", fromString: value, toString: value }),
-      ]);
-      const cause: JSONObject = await causeFromIssue(ALERT, {
-        jiraStatus: value,
-        changedBy: value,
+      const timed: FastestRun<
+        [JSONObject, JSONObject, JSONObject, JSONObject, JSONObject, JSONObject]
+      > = await fastestRunAsync({
+        run: async (): Promise<
+          [
+            JSONObject,
+            JSONObject,
+            JSONObject,
+            JSONObject,
+            JSONObject,
+            JSONObject,
+          ]
+        > => {
+          return [
+            await recordFromIssue(
+              INCIDENT,
+              jiraIssueCreatedEvent({ summary: value, description: value }),
+            ),
+            await noteFromComment(ALERT, jiraCommentEvent({ body: value })),
+            await noteFromChanges(INCIDENT, [
+              changelogItem({
+                field: "summary",
+                fromString: value,
+                toString: value,
+              }),
+            ]),
+            await causeFromIssue(ALERT, {
+              jiraStatus: value,
+              changedBy: value,
+            }),
+            await recordFromCase(
+              INCIDENT,
+              caseRow({ title: value, description: value }),
+            ),
+            await causeFromCase(ALERT, {
+              caseNumber: value,
+              caseStatusText: value,
+              changedBy: value,
+            }),
+          ];
+        },
+        limitInMs: 6 * LIMIT_IN_MS,
       });
-      const record: JSONObject = await recordFromCase(
-        INCIDENT,
-        caseRow({ title: value, description: value }),
-      );
-      const caseCause: JSONObject = await causeFromCase(ALERT, {
-        caseNumber: value,
-        caseStatusText: value,
-        changedBy: value,
-      });
+      const [issue, comment, changes, cause, record, caseCause] = timed.result;
 
       // Six sandbox runs, each well inside the limit.
-      expect(Date.now() - started).toBeLessThan(6 * LIMIT_IN_MS);
+      expect(timed.inMs).toBeLessThan(6 * LIMIT_IN_MS);
 
       for (const text of [
         textOf(issue, "title"),

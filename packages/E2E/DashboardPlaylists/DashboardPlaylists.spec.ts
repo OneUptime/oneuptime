@@ -1,4 +1,6 @@
 import { expect, Locator, Page, Route, test, TestInfo } from "@playwright/test";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 /*
  * Dashboard playlists (issue #5235) in a real browser: Dashboards ->
@@ -959,12 +961,10 @@ test.describe("when there is nothing to play", () => {
     );
 
     // In the middle of the stage, where a wall is looked at.
-    const stage: { y: number; height: number } | null = await page
-      .getByTestId("playlist-player-stage")
-      .boundingBox();
-    const message: { y: number; height: number } | null = await page
-      .locator("#playlist-player-error")
-      .boundingBox();
+    const [stage, message] = await boxesInOneFrame([
+      page.getByTestId("playlist-player-stage"),
+      page.locator("#playlist-player-error"),
+    ]);
     expect(
       Math.abs(
         message!.y + message!.height / 2 - (stage!.y + stage!.height / 2),
@@ -1060,13 +1060,12 @@ test.describe("Dashboards -> Playlists", () => {
 
       for (let index: number = 0; index < count; index++) {
         const row: Locator = rows.nth(index);
-        const phrase: { x: number; width: number } | null = await row
-          .getByTestId("playlist-summary")
-          .boundingBox();
-        const play: { x: number } | null = await row
-          .getByRole("button")
-          .filter({ hasText: view.query ? "Abspielen" : "Play" })
-          .boundingBox();
+        const [phrase, play] = await boxesInOneFrame([
+          row.getByTestId("playlist-summary"),
+          row
+            .getByRole("button")
+            .filter({ hasText: view.query ? "Abspielen" : "Play" }),
+        ]);
 
         expect({
           width: view.width,
@@ -1117,16 +1116,11 @@ test.describe("Dashboards -> Playlists", () => {
     ).toBeVisible();
 
     // The order and the link each have a row of the card to themselves.
-    const card: { width: number } | null = await page
-      .locator("#model-detail-dashboard-playlist")
-      .boundingBox();
-    const order: { width: number } | null = await page
-      .getByTestId("playlist-dashboard-list")
-      .boundingBox();
-    const linkRow: { width: number } | null = await page
-      .getByTestId("playlist-player-link")
-      .locator("..")
-      .boundingBox();
+    const [card, order, linkRow] = await boxesInOneFrame([
+      page.locator("#model-detail-dashboard-playlist"),
+      page.getByTestId("playlist-dashboard-list"),
+      page.getByTestId("playlist-player-link").locator(".."),
+    ]);
     expect(order!.width).toBeGreaterThan(card!.width * 0.9);
     expect(linkRow!.width).toBeGreaterThan(card!.width * 0.9);
 
@@ -1399,11 +1393,10 @@ test.describe("in the reader's language and theme", () => {
 
     // The bar starts at the right.
     const bar: Locator = page.getByTestId("playlist-player-bar");
-    const title: { x: number; width: number } | null =
-      await barTitle(page).boundingBox();
-    const controls: { x: number; width: number } | null = await bar
-      .getByRole("toolbar")
-      .boundingBox();
+    const [title, controls] = await boxesInOneFrame([
+      barTitle(page),
+      bar.getByRole("toolbar"),
+    ]);
     expect(title!.x).toBeGreaterThan(controls!.x);
 
     await shoot(page, testInfo, "player-fa");
@@ -1470,11 +1463,7 @@ test.describe("at a phone's width", () => {
     await expectOnScreen(page, OVERVIEW);
 
     // Nothing wider than the screen.
-    expect(
-      await page.evaluate((): number => {
-        return document.documentElement.scrollWidth;
-      }),
-    ).toBeLessThanOrEqual(390);
+    await expectNoSidewaysScroll(page);
 
     await page.getByRole("button", { name: "Next dashboard" }).tap();
     await expectOnScreen(page, CLUSTERS);
@@ -1509,11 +1498,10 @@ test.describe("at a phone's width", () => {
     await openPlayer(page, DRAFT);
     await expect(player(page)).toHaveAttribute("data-status", "Empty");
 
-    const title: { y: number; height: number } | null =
-      await barTitle(page).boundingBox();
-    const exit: { y: number; height: number } | null = await page
-      .getByRole("button", { name: "Exit the player" })
-      .boundingBox();
+    const [title, exit] = await boxesInOneFrame([
+      barTitle(page),
+      page.getByRole("button", { name: "Exit the player" }),
+    ]);
 
     // One line: the button's middle is level with the name's.
     expect(

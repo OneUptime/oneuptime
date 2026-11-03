@@ -7,6 +7,7 @@ import {
 } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * Connected Signals: what a security case names in the rest of OneUptime -
@@ -331,15 +332,6 @@ async function litEntries(page: Page): Promise<Array<string>> {
         ).trim();
       });
     });
-}
-
-async function pageOverflow(page: Page): Promise<number> {
-  return page.evaluate((): number => {
-    return (
-      document.documentElement.scrollWidth -
-      document.documentElement.clientWidth
-    );
-  });
 }
 
 /*
@@ -826,10 +818,10 @@ test.describe("a case's Connected Signals", () => {
         await waitForRecords(page);
         await expect(record(page, name)).toBeVisible();
 
-        expect(
-          await pageOverflow(page),
-          `${target} at ${width}`,
-        ).toBeLessThanOrEqual(1);
+        await expectNoSidewaysScroll(page, {
+          tolerance: 1,
+          message: `${target} at ${width}`,
+        });
         expect(
           await partsOutsideTheCard(page),
           `${target} at ${width}`,
@@ -968,7 +960,7 @@ test.describe("a case's Connected Signals", () => {
       await expect(
         page.getByTestId("security-connected-not-found"),
       ).toContainText("kiosk-17");
-      expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
       expect(await partsOutsideTheCard(page)).toEqual([]);
       await screenshot(
         page,
@@ -1144,7 +1136,7 @@ test.describe("a case's Connected Signals", () => {
       ).toBeLessThanOrEqual(2);
       expect(row.labelText.left).toBeGreaterThan(row.items[0]!.left + 8);
     }
-    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     expect(await partsOutsideTheCard(page)).toEqual([]);
     await screenshot(page, "case-connected-signals-busy-fa-390");
   });
@@ -1171,7 +1163,7 @@ test.describe("a case's Connected Signals", () => {
     await expect(
       page.getByTestId("security-connected-not-found"),
     ).toContainText("Kein passender Datensatz");
-    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     expect(await partsOutsideTheCard(page)).toEqual([]);
     await screenshot(page, "case-connected-signals-de");
   });
@@ -1220,7 +1212,7 @@ test.describe("a case's Connected Signals", () => {
       expect(icon.right).toBeGreaterThan(nameBox.right);
       expect(card.right - icon.right).toBeLessThan(card.right - card.left);
 
-      expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
       expect(await partsOutsideTheCard(page)).toEqual([]);
       await screenshot(page, `case-connected-signals-fa-${width}`);
     });
@@ -1311,7 +1303,7 @@ test.describe("a member's own page", () => {
     await expect(
       card.getByTestId("resource-security-case").first(),
     ).toBeVisible({ timeout: 30000 });
-    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     const outside: Array<string> = await card.evaluate(
       (root: Element): Array<string> => {
         const box: DOMRect = root.getBoundingClientRect();
@@ -1402,7 +1394,7 @@ test.describe("an entity's page", () => {
         theme,
       });
       await waitForRecords(page);
-      expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
       expect(await partsOutsideTheCard(page)).toEqual([]);
       await screenshot(
         page,
@@ -2038,7 +2030,7 @@ test.describe("In your logs and traces", () => {
         }
       }
 
-      expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
       expect(await telemetryPartsOutside(page)).toEqual([]);
       await telemetry(page).screenshot({
         path: path.join(
@@ -2120,7 +2112,7 @@ test.describe("In your logs and traces", () => {
        */
       expect(await valueLinesOffTheStart(page)).toEqual([]);
 
-      expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
       expect(await telemetryPartsOutside(page)).toEqual([]);
       await screenshot(page, `case-telemetry-mentions-fa-${width}`);
     });
@@ -2215,7 +2207,7 @@ test.describe("In your logs and traces", () => {
       expect(section.top - entry.bottom).toBeLessThan(48);
       expect(Math.abs(entry.left - firstValue.left)).toBeLessThanOrEqual(1);
 
-      expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
       await connected(page).screenshot({
         path: path.join(
           SCREENSHOTS,

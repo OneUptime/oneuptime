@@ -712,12 +712,12 @@ describe("MonitorRecommendations seeds its selection from the URL", () => {
     expect(initialSelection.trimStart()).toMatch(/^\(\): Set<string> => \{/);
   });
 
-  test("the first ticked card is brought into view once the list is drawn, once", () => {
+  test("the first ticked card is brought into view once the list is drawn, once, and kept there while the page settles", () => {
     /*
      * The page opened at the scroll position the link was clicked from (an
      * ESXi host's "Turn on N alerts" sits far down the host's page), with
-     * the ticked cards out of sight. The browser suite VMwareHostPage checks
-     * the card is in view; this pins how.
+     * the ticked cards out of sight. The browser suites VMwareHostPage and
+     * KubernetesEvents check the card is in view; this pins how.
      */
     const effect: string = PAGE_CODE.split(
       "const hasShownLinkedSelection",
@@ -733,7 +733,38 @@ describe("MonitorRecommendations seeds its selection from the URL", () => {
     expect(effect).toContain(
       "const linked: Set<string> = selectedRecommendationIds;",
     );
-    expect(effect).toContain('firstCard.scrollIntoView({ block: "center" });');
+    /*
+     * Kept in view while the page settles, not scrolled to once: the list
+     * is drawn before the styles of its grid and its cards arrive, and a
+     * card at the end of the list (a cluster's Warning Events) ended under
+     * the window's bottom edge once they did.
+     */
+    expect(PAGE_CODE).toContain(
+      squash(
+        'import { bringPageAnchorIntoView, givePageAnchorFocus, } from "Common/UI/Utils/PageAnchor";',
+      ),
+    );
+    expect(effect).toContain(
+      squash(
+        'stopShowingLinkedSelection.current = bringPageAnchorIntoView(firstCard, { block: "center", });',
+      ),
+    );
+    expect(effect).not.toContain(".scrollIntoView(");
+    /*
+     * And given the keyboard's focus when nothing holds it: Tab goes on
+     * from the ticked card, not from the top of the page. The card takes
+     * it, never its select button (a Space meant to scroll would untick
+     * it), and it is not tinted: being ticked is its mark.
+     */
+    expect(effect).toContain("givePageAnchorFocus(firstCard);");
+    expect(effect).not.toContain("markPageAnchorLanded(");
+    expect(effect).not.toContain(".focus(");
+    // And let go of when the page goes away.
+    expect(effect).toContain(
+      squash(
+        "useEffect(() => { return () => { stopShowingLinkedSelection.current?.(); stopShowingLinkedSelection.current = null; }; }, []);",
+      ),
+    );
     expect(effect).toContain("}, [isLoading]);");
     /*
      * Cards are matched by comparing their own ids: no selector is built

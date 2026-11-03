@@ -1,3 +1,5 @@
+import OldestKeyMap from "../../../Utils/OldestKeyMap";
+
 /*
  * THE ANSWERS OF RECENT ATTRIBUTE VALUE LOOKUPS, KEPT FOR A FEW MINUTES
  * (issue #4708).
@@ -46,7 +48,8 @@ interface StoredEntry {
 export default class AttributeValueSuggestionCache {
   private readonly options: AttributeValueSuggestionCacheOptions;
   // Map keeps insertion order: the first entry is the one used longest ago.
-  private readonly entries: Map<string, StoredEntry> = new Map();
+  private readonly entries: OldestKeyMap<string, StoredEntry> =
+    new OldestKeyMap();
   private characters: number = 0;
 
   public constructor(options: AttributeValueSuggestionCacheOptions) {
@@ -126,7 +129,7 @@ export default class AttributeValueSuggestionCache {
       (this.entries.size >= this.options.maxEntries ||
         this.characters + characters > this.options.maxCharacters)
     ) {
-      const oldest: string = this.entries.keys().next().value as string;
+      const oldest: string = this.entries.oldestKey() as string;
       this.remove(oldest);
     }
 

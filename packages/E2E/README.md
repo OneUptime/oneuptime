@@ -312,13 +312,36 @@ when its words fit one line, and balances its lines when they wrap. See
   in, More fields scrolling its fields into view, a menu opening - come from
   two moments, and a gap or an alignment between them can be off by a hundred
   pixels. Compare boxes read with it. An element that is not displayed fails
-  the read, naming it, where `boundingBox()` would answer null.
+  the read, naming it, where `boundingBox()` would answer null. Two boxes read
+  one after the other with `boundingBox()` fail
+  `Tests/Ops/E2EBoxesInOneFrame`: read them with this instead.
+- `PageFit.ts`: `expectNoSidewaysScroll(page)` holds a page to its window's
+  width, reading it until it fits for as long as an expect waits: a table
+  fits its columns to its card a frame after it paints (and on a phone turns
+  into cards a moment later), a chart keeps its old width until its
+  ResizeObserver runs, so a single read right after a resize or a click can
+  catch a frame that does not fit. A page that really runs past its window
+  still fails, saying by how many pixels. `{ tolerance: 1 }` allows a pixel
+  of rounding, `{ soft: true }` reports and goes on (a loop over languages),
+  and `settledSidewaysScrollOf(page)` answers the settled number for a test
+  that collects what is wrong. Suites never read
+  `document.documentElement.scrollWidth` themselves
+  (Tests/Ops/E2EPageFitReads). `npm run test-suite-helpers-ui` holds this
+  helper and `boxesInOneFrame` to their jobs, on pages the spec writes.
 - `Edition.ts`: `readFixtureEdition(request)` asks a fixture which edition it
   bundled (`/edition.json`), and `skipUnlessEnterprise(edition, reason)` skips
   an Enterprise spec where `ee/` is not checked out - or fails it where
   `E2E_REQUIRE_ENTERPRISE` is set, as the Enterprise Edition Test workflow's
   Enterprise UI job sets it, so a fixture that stops finding `ee/` cannot pass
   there by skipping.
+
+A fixture navigates as the frontend it draws: one that draws Dashboard pages
+mounts `<BrowserRouter useTransitions={false}>`, as the Dashboard's
+`src/Index.tsx` does, so a click renders its page at once rather than in a
+React transition that other updates may interrupt (with transitions, a side
+menu could light the page being left beside the page arrived at). A fixture of
+Status Page, Accounts or Admin Dashboard pages keeps their bare
+`<BrowserRouter>`. `Tests/Ops/E2EFixtureRouters` holds every fixture to this.
 
 ## Workflow builder UI regression tests
 

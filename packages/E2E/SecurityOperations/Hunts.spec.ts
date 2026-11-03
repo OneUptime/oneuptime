@@ -7,6 +7,7 @@ import {
 } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * Hunts on the Security Operations fixture's synthetic month
@@ -204,16 +205,6 @@ async function expectPath(page: Page, pathname: string): Promise<void> {
     .toBe(pathname);
 }
 
-// How far the page scrolls sideways.
-async function pageOverflow(page: Page): Promise<number> {
-  return page.evaluate((): number => {
-    return (
-      document.documentElement.scrollWidth -
-      document.documentElement.clientWidth
-    );
-  });
-}
-
 function sideMenu(page: Page): Locator {
   return page.locator('aside[role="navigation"]');
 }
@@ -344,7 +335,7 @@ test.describe("Security Events > Events > Hunts", () => {
     ).toHaveAttribute("data-state", "failed");
     await expect(failing.getByText("Couldn't run")).toBeVisible();
 
-    expect(await pageOverflow(page)).toBe(0);
+    await expectNoSidewaysScroll(page);
     await screenshot(page, "hunts-list-1440");
   });
 
@@ -365,7 +356,7 @@ test.describe("Security Events > Events > Hunts", () => {
     await expect(facts.filter({ hasText: "3 events" })).toContainText(
       "Every Day",
     );
-    expect(await pageOverflow(page)).toBe(0);
+    await expectNoSidewaysScroll(page);
     await screenshot(page, "hunts-list-390");
   });
 
@@ -664,7 +655,7 @@ test.describe("a hunt's page", () => {
     const notice: Locator = page.getByTestId("security-hunt-changed");
 
     await expect(notice).toBeVisible();
-    expect(await pageOverflow(page)).toBe(0);
+    await expectNoSidewaysScroll(page);
 
     /*
      * Read in one frame, once the notice has drawn. The saved search is
@@ -806,7 +797,7 @@ test.describe("a hunt's page", () => {
     expect(persian.direction).toBe("ltr");
     expect(persian.textAlign).toBe("right");
     expect(Math.abs(persian.searchRight - persian.labelRight)).toBeLessThan(2);
-    expect(await pageOverflow(page)).toBe(0);
+    await expectNoSidewaysScroll(page);
   });
 
   test("a hunt whose last run failed says why, and Delete Hunt goes back to the list", async ({
@@ -844,7 +835,7 @@ test.describe("a hunt's page", () => {
     page: Page;
   }) => {
     await open(page, HUNT_PATH, { width: 390, height: 900 });
-    expect(await pageOverflow(page)).toBe(0);
+    await expectNoSidewaysScroll(page);
 
     /*
      * The hunt's description takes two lines, and Show more opens the
@@ -883,7 +874,7 @@ test.describe("a hunt's page", () => {
     await expect(page.getByTestId("security-hunt-header")).toContainText(
       "شکار",
     );
-    expect(await pageOverflow(page)).toBe(0);
+    await expectNoSidewaysScroll(page);
     await screenshot(page, "hunts-hunt-fa-1440");
 
     /*

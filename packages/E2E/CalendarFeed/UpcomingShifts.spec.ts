@@ -1,5 +1,6 @@
 import { expect, Locator, Page, test } from "@playwright/test";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * The Upcoming shifts card on User Settings > Calendar Feed, end to end in a
@@ -108,12 +109,6 @@ async function box(locator: Locator): Promise<Box> {
   expect(found).not.toBeNull();
 
   return found as Box;
-}
-
-async function horizontalOverflow(page: Page): Promise<number> {
-  return await page.evaluate(() => {
-    return document.documentElement.scrollWidth - window.innerWidth;
-  });
 }
 
 /*
@@ -247,7 +242,7 @@ test.describe("the maintainer's month on a wide screen", () => {
       listBox.x + listBox.width,
     );
     expect(coverBox.x - (whenBox.x + whenBox.width)).toBeLessThan(560);
-    expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
 
     await screenshot(page, "daily-1600");
   });
@@ -424,7 +419,7 @@ test.describe("a phone", () => {
       await open(page, "shifts=mixed", width);
 
       await expect(rows(page)).toHaveCount(8);
-      expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
+      await expectNoSidewaysScroll(page);
 
       /*
        * Every whole part of a row's times sits on one line: the time left
@@ -480,7 +475,7 @@ test.describe("a phone", () => {
     );
 
     await expect(rows(page)).toHaveCount(8);
-    expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     await expect(
       rows(page).first().getByTestId("upcoming-shift-length"),
     ).toHaveText("Noch 5 Stunden");
@@ -521,7 +516,7 @@ test.describe("a phone", () => {
         query,
         past: [],
       });
-      expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
+      await expectNoSidewaysScroll(page);
     }
 
     await screenshot(page, "mixed-de-320");
@@ -535,7 +530,7 @@ test.describe("a phone", () => {
     await open(page, "shifts=long", 390);
 
     await expect(rows(page)).toHaveCount(2);
-    expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
 
     const cardBox: Box = await box(card(page));
 
@@ -629,7 +624,7 @@ test.describe("between a phone and a laptop", () => {
         width,
         past: [],
       });
-      expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
+      await expectNoSidewaysScroll(page);
 
       if (width === 768 && query === "shifts=mixed") {
         await screenshot(page, "mixed-768");
@@ -668,7 +663,7 @@ test.describe("between a phone and a laptop", () => {
       expect(Math.abs(length.x - when.x)).toBeLessThanOrEqual(1);
     }
 
-    expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
   });
 });
 
@@ -1005,7 +1000,7 @@ test.describe("in other languages", () => {
       await expect(
         rows(page).nth(1).getByTestId("upcoming-shift-length"),
       ).toHaveText("8 часов");
-      expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
+      await expectNoSidewaysScroll(page);
 
       await screenshot(page, "weekdays-ru-390");
     });

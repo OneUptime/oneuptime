@@ -45,6 +45,7 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import ServiceType from "../../../Types/Telemetry/ServiceType";
 import { toExceptionGroupFingerprints } from "../../../Types/Telemetry/ExceptionGroupFingerprints";
+import OldestKeyMap from "../../../Utils/OldestKeyMap";
 
 /*
  * Bespoke ClickHouse reads for session-replay playback.
@@ -1331,10 +1332,8 @@ interface ActivitySummaryCacheEntry {
   expiresAt: number;
 }
 
-const activitySummaryCache: Map<string, ActivitySummaryCacheEntry> = new Map<
-  string,
-  ActivitySummaryCacheEntry
->();
+const activitySummaryCache: OldestKeyMap<string, ActivitySummaryCacheEntry> =
+  new OldestKeyMap<string, ActivitySummaryCacheEntry>();
 
 /*
  * Where the published recorder version comes from. The recorder manifest
@@ -3799,9 +3798,7 @@ export default class SessionReplayReadService {
       activitySummaryCache.size >= MAX_ACTIVITY_SUMMARY_CACHE_ENTRIES &&
       !activitySummaryCache.has(cacheKey)
     ) {
-      const oldest: string | undefined = activitySummaryCache
-        .keys()
-        .next().value;
+      const oldest: string | undefined = activitySummaryCache.oldestKey();
 
       if (oldest !== undefined) {
         activitySummaryCache.delete(oldest);

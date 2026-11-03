@@ -9,7 +9,11 @@ import SqlMonitorResponse from "Common/Types/Monitor/SqlMonitor/SqlMonitorRespon
 import MonitorStepSqlMonitor from "Common/Types/Monitor/MonitorStepSqlMonitor";
 import SqlDatabaseType from "Common/Types/Monitor/SqlDatabaseType";
 import { generatedTexts } from "Common/Tests/Helpers/GeneratedTexts";
-import { fastestRun } from "Common/Tests/Helpers/FastestRun";
+import {
+  FastestRun,
+  fastestRun,
+  fastestRunAsync,
+} from "Common/Tests/Helpers/FastestRun";
 import { describe, expect, it } from "@jest/globals";
 
 /*
@@ -87,13 +91,16 @@ describe("a query is checked in time in line with its length", () => {
         query: query + " ; DROP TABLE accounts",
       } as MonitorStepSqlMonitor;
 
-      const startedAt: number = Date.now();
-      const response: SqlMonitorResponse | null = await SqlMonitor.execute(
-        config,
-        {},
-      );
+      const timed: FastestRun<SqlMonitorResponse | null> =
+        await fastestRunAsync({
+          run: (): Promise<SqlMonitorResponse | null> => {
+            return SqlMonitor.execute(config, {});
+          },
+          limitInMs: 2000,
+        });
+      const response: SqlMonitorResponse | null = timed.result;
 
-      expect(Date.now() - startedAt).toBeLessThan(2000);
+      expect(timed.inMs).toBeLessThan(2000);
       expect(response?.queryError).toBe(
         "Multiple SQL statements are not allowed. Provide a single read-only query.",
       );

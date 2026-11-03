@@ -67,6 +67,7 @@ import {
   scriptOf,
 } from "./JiraTemplateFixtures";
 import { beforeAll, describe, expect, jest, test } from "@jest/globals";
+import { FastestRun, fastestRunAsync } from "../../Helpers/FastestRun";
 import { Token, marked } from "marked";
 
 // The sandbox boots a fresh isolate per run, which is far slower than plain JS.
@@ -992,12 +993,17 @@ describe("time", () => {
   ])(
     "reads a note of %s in linear time",
     async (_case: string, notetext: string) => {
-      const started: number = Date.now();
-      const result: JSONObject = await noteFor(INCIDENT, {
-        notetext: notetext,
+      const timed: FastestRun<JSONObject> = await fastestRunAsync({
+        run: (): Promise<JSONObject> => {
+          return noteFor(INCIDENT, {
+            notetext: notetext,
+          });
+        },
+        limitInMs: LIMIT_IN_MS,
       });
+      const result: JSONObject = timed.result;
 
-      expect(Date.now() - started).toBeLessThan(LIMIT_IN_MS);
+      expect(timed.inMs).toBeLessThan(LIMIT_IN_MS);
       /*
        * The note is cut at MAX_NOTE_LENGTH and ends in "…": a "<" the cut
        * leaves last is followed by that, which starts nothing.

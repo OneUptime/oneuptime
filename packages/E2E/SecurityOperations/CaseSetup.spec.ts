@@ -7,6 +7,7 @@ import {
 } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * A project's own case setup on the Security Operations fixture
@@ -189,16 +190,6 @@ async function screenshot(
     path: path.join(SCREENSHOTS, `${name}-synthetic.png`),
     fullPage: options.fullPage !== false,
     animations: "disabled",
-  });
-}
-
-// How far the page scrolls sideways.
-async function pageOverflow(page: Page): Promise<number> {
-  return page.evaluate((): number => {
-    return (
-      document.documentElement.scrollWidth -
-      document.documentElement.clientWidth
-    );
   });
 }
 
@@ -407,7 +398,7 @@ test.describe("Security Events > Settings", () => {
       return tops.size;
     });
     expect(lines).toBe(1);
-    expect(await pageOverflow(page)).toBe(0);
+    await expectNoSidewaysScroll(page);
     await screenshot(page, "case-custom-fields-settings-de-1024");
   });
 });
@@ -831,7 +822,7 @@ test.describe("a project with no case fields or note templates yet", () => {
       await expect(
         page.getByRole("button", { name: "Edit Fields" }),
       ).toHaveCount(0);
-      expect(await pageOverflow(page), `at ${width}`).toBe(0);
+      await expectNoSidewaysScroll(page, { message: `at ${width}` });
       await screenshot(page, `case-custom-fields-none-${width}-light`);
     }
 
@@ -976,7 +967,7 @@ test.describe("a case's Custom Fields card on a phone", () => {
         expect(
           Math.abs(geometry.firstField!.x - geometry.title.x),
         ).toBeLessThanOrEqual(1);
-        expect(await pageOverflow(page)).toBe(0);
+        await expectNoSidewaysScroll(page);
       }
       await screenshot(page, `case-overview-custom-fields-390-${theme}`, {
         fullPage: false,
@@ -1074,7 +1065,9 @@ test.describe("every page fits", () => {
           await expect(
             page.getByRole("heading", { name: heading }).first(),
           ).toBeVisible({ timeout: 30000 });
-          expect(await pageOverflow(page), `${name} at ${width}`).toBe(0);
+          await expectNoSidewaysScroll(page, {
+            message: `${name} at ${width}`,
+          });
           if (width === 390 || width === 1024 || theme === "dark") {
             await screenshot(page, `${name}-${width}-${theme}`);
           }
@@ -1095,7 +1088,9 @@ test.describe("every page fits", () => {
           await expect(page.getByTestId("synthetic-banner")).toBeVisible();
           await expect(page.locator("main, #root").first()).toBeVisible();
           await page.waitForLoadState("networkidle");
-          expect(await pageOverflow(page), `${name} at ${width}`).toBe(0);
+          await expectNoSidewaysScroll(page, {
+            message: `${name} at ${width}`,
+          });
           await screenshot(page, `${name}-${lang}-${width}`);
         }
       }

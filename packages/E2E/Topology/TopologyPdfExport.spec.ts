@@ -8,6 +8,7 @@ import {
 import fs from "fs/promises";
 import path from "path";
 import zlib from "zlib";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * Issue #4616: Export PDF on the network topology map, in a real browser,
@@ -431,14 +432,8 @@ test("Export PDF fits on a phone", async ({ page }: { page: Page }) => {
   expect(box).not.toBeNull();
   expect(box!.x).toBeGreaterThanOrEqual(0);
   expect(box!.x + box!.width).toBeLessThanOrEqual(390);
-  await expect
-    .poll(
-      async (): Promise<number> => {
-        return page.evaluate((): number => {
-          return document.documentElement.scrollWidth - window.innerWidth;
-        });
-      },
-      { message: "The map and its header fit the phone" },
-    )
-    .toBeLessThanOrEqual(1);
+  await expectNoSidewaysScroll(page, {
+    tolerance: 1,
+    message: "The map and its header fit the phone",
+  });
 });

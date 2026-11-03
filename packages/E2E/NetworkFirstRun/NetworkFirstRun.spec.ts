@@ -11,6 +11,8 @@ import {
 } from "Common/UI/Components/Card/CardGridLayout";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 /*
  * The first-run path of the Network Overview, in a real browser: the real
@@ -158,16 +160,6 @@ async function screenshot(page: Page, name: string): Promise<void> {
   await page.screenshot({
     path: path.join(SCREENSHOTS, `${name}.png`),
     fullPage: true,
-  });
-}
-
-// Whether the page scrolls sideways: it must not, at any width.
-async function scrollsSideways(page: Page): Promise<boolean> {
-  return page.evaluate((): boolean => {
-    return (
-      document.documentElement.scrollWidth >
-      document.documentElement.clientWidth + 1
-    );
   });
 }
 
@@ -583,14 +575,14 @@ test("the path and the dialog fit a phone", async ({
   await page.setViewportSize({ width: 390, height: 844 });
   await openFirstRun(page, "connectAfter=never");
 
-  expect(await scrollsSideways(page)).toBe(false);
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
   await expect(page.getByTestId("network-first-run-add-probe")).toBeVisible();
   await screenshot(page, "network-first-run-phone");
 
   await page.getByTestId("network-first-run-add-probe").click();
   await page.getByTestId("modal-footer-submit-button").click();
   await expect(dialog(page).getByTestId("add-probe-command")).toBeVisible();
-  expect(await scrollsSideways(page)).toBe(false);
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
 
   // The command scrolls inside its own box, never the page.
   const box: { width: number } | null = await dialog(page)
@@ -808,14 +800,14 @@ test("the plan note fits a phone and reads in the dark theme", async ({
   await openFirstRun(page, "plan=free&theme=dark");
 
   await expect(planNote(page)).toBeVisible();
-  expect(await scrollsSideways(page)).toBe(false);
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
   await expectReadable(planNote(page).getByText("Adding a probe needs"));
   await expectReadable(planNote(page).getByRole("link"));
   await screenshot(page, "network-first-run-free-plan-phone-dark");
 
   await open(page, "plan=free&open=add-probe&theme=dark");
   await expectReadable(dialog(page).getByTestId("add-probe-plan-needed"));
-  expect(await scrollsSideways(page)).toBe(false);
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
   await settledDialog(page);
   await page.screenshot({
     path: path.join(SCREENSHOTS, "network-add-probe-free-plan-phone-dark.png"),
@@ -985,7 +977,7 @@ test("a busy network's four lists end on one line two by two, and one above the 
         }
       }
 
-      expect(await scrollsSideways(page)).toBe(false);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
     }
   }
 
@@ -999,15 +991,13 @@ test("a busy network's four lists end on one line two by two, and one above the 
       exact: true,
     }),
   });
-  const card: { y: number; height: number } | null = await scans.boundingBox();
-  const header: { y: number; height: number } | null = await scans
-    .getByTestId("card-header")
-    .boundingBox();
-  const words: { y: number; height: number } | null = await scans
-    .getByText(
+  const [card, header, words] = await boxesInOneFrame([
+    scans,
+    scans.getByTestId("card-header"),
+    scans.getByText(
       "No scans yet. Scan a subnet to find the devices on it, then pick the ones to add.",
-    )
-    .boundingBox();
+    ),
+  ]);
   const room: number =
     (header!.y + header!.height + card!.y + card!.height) / 2;
   expect(Math.abs(words!.y + words!.height / 2 - room)).toBeLessThanOrEqual(24);

@@ -53,7 +53,11 @@ import TraceScrubAction from "Common/Types/Trace/TraceScrubAction";
 import TraceScrubField from "Common/Types/Trace/TraceScrubField";
 import TraceScrubPatternType from "Common/Types/Trace/TraceScrubPatternType";
 import { describe, expect, jest, test } from "@jest/globals";
-import { FastestRun, fastestRun } from "Common/Tests/Helpers/FastestRun";
+import {
+  FastestRun,
+  fastestRun,
+  fastestRunAsync,
+} from "Common/Tests/Helpers/FastestRun";
 
 /*
  * ---------------------------------------------------------------------------
@@ -93,12 +97,14 @@ function timed<T>(work: () => T): T {
 }
 
 async function timedAsync<T>(work: () => Promise<T>): Promise<T> {
-  const startedAt: number = Date.now();
-  const result: T = await work();
+  const run: FastestRun<T> = await fastestRunAsync({
+    run: work,
+    limitInMs: BUDGET_IN_MS,
+  });
 
-  expect(Date.now() - startedAt).toBeLessThan(BUDGET_IN_MS);
+  expect(run.inMs).toBeLessThan(BUDGET_IN_MS);
 
-  return result;
+  return run.result;
 }
 
 type GetRegexForPattern = (

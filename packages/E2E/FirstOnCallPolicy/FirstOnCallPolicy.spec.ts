@@ -7,6 +7,7 @@ import {
 } from "@playwright/test";
 import fs from "fs";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * A new project's first on-call policy, in a browser, against the offline
@@ -429,13 +430,7 @@ test.describe("the switch's row, wherever it is drawn", () => {
     // The switch keeps its size beside two lines of words.
     expect(Math.round(toggleBox.width)).toBe(44);
 
-    const overflow: number = await page.evaluate((): number => {
-      return (
-        document.documentElement.scrollWidth -
-        document.documentElement.clientWidth
-      );
-    });
-    expect(overflow).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
 
     await screenshot(page, "first-policy-dialog-390");
   });

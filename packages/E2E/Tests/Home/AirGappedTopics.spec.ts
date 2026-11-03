@@ -9,6 +9,7 @@ import {
   test,
 } from "@playwright/test";
 import URL from "Common/Types/API/URL";
+import { expectNoSidewaysScroll } from "../../SuiteHelpers/PageFit";
 
 /*
  * The air-gapped product pages (Home/Views/air-gapped-topic.ejs,
@@ -96,15 +97,6 @@ function addressOn(path: string): string {
   return URL.fromString(BASE_URL.toString()).addRoute(path).toString();
 }
 
-async function horizontalOverflow(page: Page): Promise<number> {
-  return await page.evaluate((): number => {
-    return (
-      document.documentElement.scrollWidth -
-      document.documentElement.clientWidth
-    );
-  });
-}
-
 test.describe("Home: Air-gapped product pages", () => {
   test.skip(
     !IS_BILLING_ENABLED,
@@ -174,7 +166,7 @@ test.describe("Home: Air-gapped product pages", () => {
           await expect(planButton).toBeHidden();
         }
 
-        expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
+        await expectNoSidewaysScroll(page);
       }
     });
   }

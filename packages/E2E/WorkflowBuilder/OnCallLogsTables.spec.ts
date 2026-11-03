@@ -1,4 +1,5 @@
 import { expect, Locator, Page, test } from "@playwright/test";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * The Dashboard's on-call logs with a direct page in them, in a browser.
@@ -598,16 +599,7 @@ test.describe("On-call logs: direct pages among a policy's runs", () => {
       card.x + card.width + 0.5,
     );
 
-    const widths: { page: number; window: number } = await page.evaluate(
-      (): { page: number; window: number } => {
-        return {
-          page: document.documentElement.scrollWidth,
-          window: document.documentElement.clientWidth,
-        };
-      },
-    );
-
-    expect(widths.page).toBeLessThanOrEqual(widths.window);
+    await expectNoSidewaysScroll(page);
   });
 
   test("the label is a quiet grey that reads in the light theme and the dark one, and is not a status colour", async ({
@@ -789,16 +781,7 @@ test.describe("On-call logs: the timeline of a direct page", () => {
 
     await openTimeline(page);
 
-    const widths: { page: number; window: number } = await page.evaluate(
-      (): { page: number; window: number } => {
-        return {
-          page: document.documentElement.scrollWidth,
-          window: document.documentElement.clientWidth,
-        };
-      },
-    );
-
-    expect(widths.page).toBeLessThanOrEqual(widths.window);
+    await expectNoSidewaysScroll(page);
   });
 });
 
@@ -918,16 +901,7 @@ test.describe("On-call logs: a run that paged the next person in a rotation", ()
 
     await openNextInRotationTimeline(page);
 
-    const widths: { page: number; window: number } = await page.evaluate(
-      (): { page: number; window: number } => {
-        return {
-          page: document.documentElement.scrollWidth,
-          window: document.documentElement.clientWidth,
-        };
-      },
-    );
-
-    expect(widths.page).toBeLessThanOrEqual(widths.window);
+    await expectNoSidewaysScroll(page);
   });
 });
 
@@ -1052,15 +1026,6 @@ test.describe("On-call logs: a run that passed levels with nobody to page", () =
 
     await openEmptyLevelsTimeline(page);
 
-    const widths: { page: number; window: number } = await page.evaluate(
-      (): { page: number; window: number } => {
-        return {
-          page: document.documentElement.scrollWidth,
-          window: document.documentElement.clientWidth,
-        };
-      },
-    );
-
-    expect(widths.page).toBeLessThanOrEqual(widths.window);
+    await expectNoSidewaysScroll(page);
   });
 });

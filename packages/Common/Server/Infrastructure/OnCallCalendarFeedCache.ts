@@ -3,6 +3,7 @@ import GlobalCache from "./GlobalCache";
 import logger from "../Utils/Logger";
 import { RENDER_CONCURRENCY } from "../../Types/OnCallDutyPolicy/CalendarFeedWindow";
 import { createHash } from "crypto";
+import OldestKeyMap from "../../Utils/OldestKeyMap";
 
 /*
  * Caches for the on-call calendar feeds.
@@ -171,7 +172,7 @@ interface MemoryEntry {
  * same reason).
  */
 class MemoryStringStore {
-  private store: Map<string, MemoryEntry> = new Map();
+  private store: OldestKeyMap<string, MemoryEntry> = new OldestKeyMap();
   private bytes: number = 0;
 
   public constructor(
@@ -204,7 +205,7 @@ class MemoryStringStore {
       (this.store.size + 1 > this.maxEntries ||
         this.bytes + bytes > this.maxBytes)
     ) {
-      const oldest: string | undefined = this.store.keys().next().value;
+      const oldest: string | undefined = this.store.oldestKey();
 
       if (oldest === undefined) {
         break;

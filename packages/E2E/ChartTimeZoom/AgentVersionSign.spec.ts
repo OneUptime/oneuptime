@@ -5,6 +5,7 @@ import {
   Route as PlaywrightRoute,
   test,
 } from "@playwright/test";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * "If the agent version is outdated, can you please show the sign beside the
@@ -197,14 +198,7 @@ test.describe("an outdated agent version", () => {
     expect(box!.x).toBeGreaterThanOrEqual(0);
     expect(box!.x + box!.width).toBeLessThanOrEqual(390 + 0.5);
 
-    const scroll: { scrollWidth: number; innerWidth: number } =
-      await page.evaluate(() => {
-        return {
-          scrollWidth: document.documentElement.scrollWidth,
-          innerWidth: window.innerWidth,
-        };
-      });
-    expect(scroll.scrollWidth).toBeLessThanOrEqual(scroll.innerWidth);
+    await expectNoSidewaysScroll(page);
   });
 });
 

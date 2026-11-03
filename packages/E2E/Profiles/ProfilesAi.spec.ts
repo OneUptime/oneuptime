@@ -1,6 +1,8 @@
 import { expect, Locator, Page, test, TestInfo } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 /*
  * The Profiler's AI section - Profiler → AI → Insights, Logs and Settings -
@@ -95,16 +97,6 @@ async function fixture(page: Page): Promise<FixtureState> {
       ),
     ) as FixtureState;
   });
-}
-
-async function expectNoSidewaysScroll(page: Page): Promise<void> {
-  const overflow: number = await page.evaluate((): number => {
-    return (
-      document.documentElement.scrollWidth -
-      document.documentElement.clientWidth
-    );
-  });
-  expect(overflow).toBeLessThanOrEqual(0);
 }
 
 // Every check of a page, in light and then in dark.
@@ -702,10 +694,7 @@ test.describe("Profiler → AI → Insights", () => {
 
     await expect(picker).toBeVisible({ timeout: 60000 });
 
-    const pickerBox: { y: number; height: number } | null =
-      await picker.boundingBox();
-    const buttonBox: { y: number; height: number } | null =
-      await button.boundingBox();
+    const [pickerBox, buttonBox] = await boxesInOneFrame([picker, button]);
 
     expect(pickerBox).not.toBeNull();
     expect(buttonBox).not.toBeNull();

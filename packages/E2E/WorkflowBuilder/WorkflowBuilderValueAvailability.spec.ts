@@ -1,4 +1,5 @@
 import { expect, Locator, Page, test } from "@playwright/test";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * What a step can use, told from what it cannot, in the real workflow
@@ -348,14 +349,7 @@ async function expectNothingOffTheSide(
       return element.scrollWidth <= element.clientWidth;
     }),
   ).toBe(true);
-  expect(
-    await page.evaluate((): boolean => {
-      return (
-        document.documentElement.scrollWidth <=
-        document.documentElement.clientWidth
-      );
-    }),
-  ).toBe(true);
+  await expectNoSidewaysScroll(page);
 }
 
 test.describe("Workflow builder: a record's fields its step does not pass on", () => {

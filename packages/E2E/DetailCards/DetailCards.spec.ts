@@ -7,6 +7,7 @@ import {
 } from "Common/UI/Components/Card/CardGridLayout";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * Detail cards (CardModelDetail -> ModelDetail -> Detail) in real Chromium,
@@ -348,12 +349,9 @@ async function measureValueLines(card: Locator): Promise<Array<ValueLine>> {
 }
 
 async function expectNothingRunsOff(page: Page, where: string): Promise<void> {
-  expect(
-    await page.evaluate((): boolean => {
-      return document.documentElement.scrollWidth <= window.innerWidth;
-    }),
-    `${where}: the page does not scroll sideways`,
-  ).toBe(true);
+  await expectNoSidewaysScroll(page, {
+    message: `${where}: the page does not scroll sideways`,
+  });
 }
 
 // The fields' left edge is the card title's.

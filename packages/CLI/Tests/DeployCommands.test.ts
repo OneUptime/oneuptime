@@ -25,6 +25,7 @@ import * as path from "path";
  * OneUptime AI's investigations.
  */
 
+// In this file's throwaway home (Tests/Setup/ThrowawayHome.ts).
 const CONFIG_FILE: string = path.join(
   os.homedir(),
   ".oneuptime",
@@ -361,25 +362,10 @@ describe("sendChangeEvents over HTTP", () => {
 });
 
 describe("oneuptime deploy", () => {
-  let savedConfig: string | null = null;
   let post: jest.SpyInstance;
   let logSpy: jest.SpyInstance;
   let errorSpy: jest.SpyInstance;
   let exitSpy: jest.SpyInstance;
-
-  beforeAll(() => {
-    savedConfig = fs.existsSync(CONFIG_FILE)
-      ? fs.readFileSync(CONFIG_FILE, "utf-8")
-      : null;
-  });
-
-  afterAll(() => {
-    if (savedConfig !== null) {
-      fs.writeFileSync(CONFIG_FILE, savedConfig, { mode: 0o600 });
-    } else if (fs.existsSync(CONFIG_FILE)) {
-      fs.unlinkSync(CONFIG_FILE);
-    }
-  });
 
   beforeEach(() => {
     if (fs.existsSync(CONFIG_FILE)) {

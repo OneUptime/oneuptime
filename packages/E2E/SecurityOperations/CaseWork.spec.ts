@@ -7,6 +7,8 @@ import {
 } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 /*
  * A security case's response targets, tasks and evidence on the Security
@@ -190,16 +192,6 @@ async function screenshot(
   });
 }
 
-// How far the page scrolls sideways.
-async function pageOverflow(page: Page): Promise<number> {
-  return page.evaluate((): number => {
-    return (
-      document.documentElement.scrollWidth -
-      document.documentElement.clientWidth
-    );
-  });
-}
-
 function sideMenu(page: Page): Locator {
   return page.locator('aside[role="navigation"]');
 }
@@ -371,11 +363,10 @@ test.describe("a case's tasks", () => {
     const mayaName: Locator = maya
       .getByTestId("security-case-task-assignee")
       .getByText("Maya Chen", { exact: true });
-    const titleBox: { y: number; height: number } | null = await maya
-      .getByTestId("security-case-task-title")
-      .boundingBox();
-    const nameBox: { y: number; height: number } | null =
-      await mayaName.boundingBox();
+    const [titleBox, nameBox] = await boxesInOneFrame([
+      maya.getByTestId("security-case-task-title"),
+      mayaName,
+    ]);
     // One line, level with the task's first line.
     expect(nameBox!.height).toBeLessThanOrEqual(21);
     expect(
@@ -400,18 +391,16 @@ test.describe("a case's tasks", () => {
     ).toBeLessThanOrEqual(3);
 
     // The add line: the text box and Add Task level, the same height.
-    const addBox: { y: number; height: number } | null = await page
-      .getByTestId("security-case-task-add-input")
-      .boundingBox();
-    const addButtonBox: { y: number; height: number } | null = await page
-      .getByTestId("security-case-task-add")
-      .boundingBox();
+    const [addBox, addButtonBox] = await boxesInOneFrame([
+      page.getByTestId("security-case-task-add-input"),
+      page.getByTestId("security-case-task-add"),
+    ]);
     expect(Math.abs(addBox!.y - addButtonBox!.y)).toBeLessThanOrEqual(1);
     expect(Math.abs(addBox!.height - addButtonBox!.height)).toBeLessThanOrEqual(
       1,
     );
 
-    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshot(page, "case-tasks-1280-light");
   });
 
@@ -631,10 +620,10 @@ test.describe("a case's tasks", () => {
         theme,
       });
       await expect(taskRows(page)).toHaveCount(3, { timeout: 30000 });
-      expect(
-        await pageOverflow(page),
-        `tasks at ${width} ${theme || "light"}`,
-      ).toBeLessThanOrEqual(1);
+      await expectNoSidewaysScroll(page, {
+        tolerance: 1,
+        message: `tasks at ${width} ${theme || "light"}`,
+      });
 
       /*
        * Who has each task: a column of its own where the list has room, a
@@ -802,7 +791,7 @@ test.describe("a case's evidence", () => {
       page.getByRole("button", { name: "Open Link", exact: true }),
     ).toHaveCount(1);
 
-    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshot(page, "case-evidence-1280-light");
   });
 
@@ -956,10 +945,10 @@ test.describe("a case's evidence", () => {
         theme,
       });
       await expect(names(page).first()).toBeVisible({ timeout: 30000 });
-      expect(
-        await pageOverflow(page),
-        `evidence at ${width} ${theme || "light"}`,
-      ).toBeLessThanOrEqual(1);
+      await expectNoSidewaysScroll(page, {
+        tolerance: 1,
+        message: `evidence at ${width} ${theme || "light"}`,
+      });
 
       // Each piece of evidence says who added it and when, at every width.
       expect(await addedLines(page), `added lines at ${width}`).toEqual([
@@ -1024,9 +1013,10 @@ test.describe("a case with nothing on it yet", () => {
       if (width === 1280) {
         expect(await menuCount(page, "Tasks")).toBe("");
       }
-      expect(await pageOverflow(page), `tasks at ${label}`).toBeLessThanOrEqual(
-        1,
-      );
+      await expectNoSidewaysScroll(page, {
+        tolerance: 1,
+        message: `tasks at ${label}`,
+      });
       await screenshot(page, `case-tasks-empty-${width}-${theme || "light"}`);
 
       await open(page, `${QUIET_CASE_PATH}/evidence`, {
@@ -1052,10 +1042,10 @@ test.describe("a case with nothing on it yet", () => {
       await expect(page.getByTestId("security-case-evidence-name")).toHaveCount(
         0,
       );
-      expect(
-        await pageOverflow(page),
-        `evidence at ${label}`,
-      ).toBeLessThanOrEqual(1);
+      await expectNoSidewaysScroll(page, {
+        tolerance: 1,
+        message: `evidence at ${label}`,
+      });
       await screenshot(
         page,
         `case-evidence-empty-${width}-${theme || "light"}`,
@@ -1146,7 +1136,7 @@ test.describe("response targets", () => {
     expect(rows[3]).toContain("7 days");
     expect(rows[4]).toContain("No target");
 
-    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshot(page, "response-targets-1280-light");
   });
 
@@ -1195,12 +1185,10 @@ test.describe("response targets", () => {
     const fields: Locator = dialog.getByTestId("response-target-duration");
     await expect(fields).toHaveCount(2);
     for (const field of await fields.all()) {
-      const amount: { y: number; height: number } | null = await field
-        .getByTestId("response-target-duration-amount")
-        .boundingBox();
-      const unit: { y: number; height: number } | null = await field
-        .locator(".ou-select__control")
-        .boundingBox();
+      const [amount, unit] = await boxesInOneFrame([
+        field.getByTestId("response-target-duration-amount"),
+        field.locator(".ou-select__control"),
+      ]);
       expect(Math.abs(amount!.y - unit!.y)).toBeLessThanOrEqual(1);
       expect(Math.abs(amount!.height - unit!.height)).toBeLessThanOrEqual(1);
       expect(
@@ -1277,10 +1265,10 @@ test.describe("response targets", () => {
         body.getByText("Informational", { exact: true }),
       ).toBeVisible({ timeout: 30000 });
       await expect(body.getByText("No target", { exact: true })).toHaveCount(2);
-      expect(
-        await pageOverflow(page),
-        `response targets at ${width} ${theme || "light"}`,
-      ).toBeLessThanOrEqual(1);
+      await expectNoSidewaysScroll(page, {
+        tolerance: 1,
+        message: `response targets at ${width} ${theme || "light"}`,
+      });
       await screenshot(page, `response-targets-${width}-${theme || "light"}`);
     }
 
@@ -1308,7 +1296,7 @@ test.describe("response targets", () => {
         dialogBox!.x + dialogBox!.width + 1,
       );
     }
-    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshot(page, "response-targets-edit-390-light", {
       fullPage: false,
     });
@@ -1418,7 +1406,7 @@ test.describe("response targets", () => {
         true,
       );
     }
-    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshot(page, "cases-due-lines-1280-light");
 
     await open(page, OPEN_CASES_PATH, {
@@ -1427,7 +1415,7 @@ test.describe("response targets", () => {
       height: 844,
     });
     await expect(lines.first()).toBeVisible({ timeout: 30000 });
-    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshot(page, "cases-due-lines-390-light");
 
     await open(page, OPEN_CASES_PATH);
@@ -1501,10 +1489,10 @@ test.describe("in German and Persian", () => {
           await expect(
             page.getByText(entry.words[lang]).filter({ visible: true }).first(),
           ).toBeVisible({ timeout: 30000 });
-          expect(
-            await pageOverflow(page),
-            `${entry.slug} at ${width} in ${lang}`,
-          ).toBeLessThanOrEqual(1);
+          await expectNoSidewaysScroll(page, {
+            tolerance: 1,
+            message: `${entry.slug} at ${width} in ${lang}`,
+          });
           await screenshot(page, `${entry.slug}-${width}-${lang}`);
         }
       }

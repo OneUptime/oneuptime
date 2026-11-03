@@ -5,7 +5,11 @@ import IncomingEmailMonitorAddress, {
   IncomingEmailRecipientKind,
 } from "../../../../Utils/Monitor/IncomingEmailMonitorAddress";
 import { describe, expect, test } from "@jest/globals";
-import { FastestRun, fastestRun } from "../../../Helpers/FastestRun";
+import {
+  FastestRun,
+  fastestRun,
+  fastestRunAsync,
+} from "../../../Helpers/FastestRun";
 
 /*
  * ---------------------------------------------------------------------------
@@ -47,16 +51,19 @@ describe("an inbound email's headers are read in time in line with their length"
   test.each(HEADER_WORST_CASES)(
     "From and To of %s",
     async (_label: string, header: string) => {
-      const startedAt: number = Date.now();
-
-      await provider.parseInboundEmail({
-        from: header,
-        to: header,
-        subject: "s",
-        text: "t",
+      const timed: FastestRun<unknown> = await fastestRunAsync({
+        run: (): Promise<unknown> => {
+          return provider.parseInboundEmail({
+            from: header,
+            to: header,
+            subject: "s",
+            text: "t",
+          });
+        },
+        limitInMs: 2000,
       });
 
-      expect(Date.now() - startedAt).toBeLessThan(2000);
+      expect(timed.inMs).toBeLessThan(2000);
     },
   );
 
