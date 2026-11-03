@@ -166,12 +166,21 @@ export interface NewRelicNotificationProps {
 export function newRelicPostedBody(
   props: NewRelicNotificationProps = {},
 ): JSONObject {
+  // A list given as null is posted as null: only a list left out takes the default.
+  const listOr: (given: JSONValue | undefined, list: Array<string>) => JSONValue =
+    (given: JSONValue | undefined, list: Array<string>): JSONValue => {
+      return given === undefined ? list : given;
+    };
+
   return {
     id: props.issueId ?? ISSUE_ID,
     issueUrl: props.issueUrl ?? NEW_RELIC_LINK,
     title: props.title ?? "High CPU on checkout-service",
     priority: props.priority ?? "CRITICAL",
-    impactedEntities: props.entities ?? ["checkout-service", "checkout-db"],
+    impactedEntities: listOr(props.entities, [
+      "checkout-service",
+      "checkout-db",
+    ]),
     totalIncidents: 1,
     state: props.state ?? NewRelicIssueState.Activated,
     trigger: "STATE_CHANGE",
@@ -179,8 +188,8 @@ export function newRelicPostedBody(
     createdAt: 1730000000000,
     updatedAt: 1730000060000,
     sources: ["newrelic"],
-    alertPolicyNames: props.policies ?? ["Production"],
-    alertConditionNames: props.conditions ?? ["CPU above 90%"],
+    alertPolicyNames: listOr(props.policies, ["Production"]),
+    alertConditionNames: listOr(props.conditions, ["CPU above 90%"]),
     workflowName: "OneUptime",
     ...(props.isAcknowledged !== undefined
       ? { isAcknowledged: props.isAcknowledged }
