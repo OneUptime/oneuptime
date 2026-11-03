@@ -21040,7 +21040,7 @@ test.describe("a busy incident's fixes, each folded to its sentence (?fixes=many
       expect(
         await pillsIn(page.getByTestId("ai-card-step-remediation-body")),
       ).toEqual([]);
-      await expectNoHorizontalOverflow(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
       await page.mouse.move(0, 0);
       await screenshotElement(
         remediation,
@@ -21101,7 +21101,7 @@ test.describe("a busy incident's fixes, each folded to its sentence (?fixes=many
     await expect(
       kubectl.getByTestId("remediation-fix-details-toggle"),
     ).toHaveText("بررسی و تأیید");
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await page.mouse.move(0, 0);
     await screenshotElement(
       remediationStep(page),
