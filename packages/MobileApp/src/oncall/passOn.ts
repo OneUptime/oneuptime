@@ -38,6 +38,25 @@ export const PASS_ON_TEXT: Readonly<{
 };
 
 /*
+ * A PAGE AGAIN on a detail screen (the policy's acknowledgement timeout ran
+ * out with the record still acknowledged and not resolved). The record was
+ * acknowledged all along, so its own Acknowledge is not offered; the person
+ * paged again gets "Acknowledge again" of their own, first, beside Escalate.
+ * It answers their page in one step, as its link, a call's 1 or a text
+ * does: their notifications stop, and the policy counts its time again. The
+ * Dashboard's words (PassOnPage's PAGE_AGAIN_TEXT).
+ */
+export const PAGE_AGAIN_TEXT: Readonly<{
+  button: string;
+  failedTitle: string;
+  failed: string;
+}> = {
+  button: "Acknowledge again",
+  failedTitle: "Could not acknowledge",
+  failed: "You are still being paged. Please try again.",
+};
+
+/*
  * What the question and the answer call the record, by its kind. Both kinds
  * of episode are an "episode", as on the Dashboard.
  */

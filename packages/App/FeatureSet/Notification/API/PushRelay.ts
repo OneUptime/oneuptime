@@ -14,6 +14,7 @@ import logger from "Common/Server/Utils/Logger";
 import Response from "Common/Server/Utils/Response";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
+import { isPushNotificationCategory } from "Common/Types/PushNotification/PushNotificationCategory";
 import PushNotificationService, {
   ExpoDeviceNotRegisteredError,
   ExpoInterruptionLevel,
@@ -351,6 +352,17 @@ export function parseRelayInterruptionLevel(
 }
 
 /*
+ * The category a relayed push is shown with: the actions the On-Call app
+ * draws under it (an on-call page's Acknowledge and Escalate). Only a
+ * category this server knows is passed on; anything else - unknown, or not
+ * text - is left out rather than refused, so the page still goes out, only
+ * without buttons: refusing would drop a page over a button.
+ */
+export function parseRelayCategoryId(raw: unknown): string | undefined {
+  return isPushNotificationCategory(raw) ? raw : undefined;
+}
+
+/*
  * The receipt ids a server asks the relay about: the ids the relay answered
  * its sends with. A list of 1 to MAX_EXPO_PUSH_RECEIPT_IDS_PER_REQUEST
  * receipt ids (Expo's own chunk size, one request to Expo), each asked for
@@ -431,6 +443,9 @@ router.post(
       const sound: ExpoPushSound | undefined = parseRelaySound(body["sound"]);
       const interruptionLevel: ExpoInterruptionLevel | undefined =
         parseRelayInterruptionLevel(body["interruptionLevel"]);
+      const categoryId: string | undefined = parseRelayCategoryId(
+        body["categoryId"],
+      );
 
       const receiptId: string | undefined =
         await PushNotificationService.sendRelayPushNotification({
@@ -442,6 +457,7 @@ router.post(
           priority: (body["priority"] as string) || "high",
           channelId: (body["channelId"] as string) || "default",
           ...(interruptionLevel ? { interruptionLevel } : {}),
+          ...(categoryId ? { categoryId } : {}),
         });
 
       /*

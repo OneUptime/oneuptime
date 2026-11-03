@@ -1,5 +1,11 @@
 import React from "react";
-import { fireEvent, render, screen } from "@testing-library/react-native";
+import { Platform, StyleSheet, type ViewStyle } from "react-native";
+import {
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react-native";
 import {
   afterEach,
   beforeEach,
@@ -8,11 +14,12 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { ThemeProvider, touchTarget } from "../theme";
+import { ThemeProvider, lightColors, touchTarget } from "../theme";
 import PaneDivider, {
   DIVIDER_HANDLE_TOUCH_HEIGHT,
   DIVIDER_HANDLE_TOUCH_WIDTH,
   DOUBLE_TAP_INTERVAL_MS,
+  isKeyboardFocus,
   type PaneDividerProps,
 } from "./PaneDivider";
 import { DIVIDER_STEP } from "../layout/paneDivider";
@@ -25,6 +32,10 @@ import { DIVIDER_STEP } from "../layout/paneDivider";
  */
 
 const RANGE: PaneDividerProps["range"] = { min: 320, max: 444 };
+
+function flat(style: unknown): ViewStyle {
+  return (StyleSheet.flatten(style as ViewStyle) ?? {}) as ViewStyle;
+}
 const ON_THE_FOLD: number = 362;
 
 interface Handlers {
@@ -315,5 +326,191 @@ describe("The divider with a screen reader", () => {
 
     expect(onCommit).not.toHaveBeenCalled();
     expect(onCancel).not.toHaveBeenCalled();
+  });
+});
+describe("The divider from a keyboard", () => {
+  /*
+   * A Chromebook's, a tablet's or the web build's keyboard: the handle is a
+   * tab stop, the arrow keys move it a step at a time, Home and End take it
+   * to either end, Enter puts it back - and while the keys move it, a ring
+   * and the divider's line show what they move.
+   */
+  async function key(name: string): Promise<jest.Mock<() => void>> {
+    const preventDefault: jest.Mock<() => void> = jest.fn();
+    await fireEvent(screen.getByTestId("pane-divider"), "keyDown", {
+      nativeEvent: { key: name },
+      preventDefault,
+    });
+    return preventDefault;
+  }
+
+  test("is a tab stop", async () => {
+    await renderDivider();
+
+    expect(screen.getByTestId("pane-divider").props.focusable).toBe(true);
+  });
+
+  test("an arrow moves it one step, stopping on the fold's line, and keeps the page from scrolling", async () => {
+    const handlers: Handlers = await renderDivider(400);
+
+    const right: jest.Mock<() => void> = await key("ArrowRight");
+    expect(handlers.onCommit).toHaveBeenLastCalledWith(400 + DIVIDER_STEP);
+    expect(right).toHaveBeenCalledTimes(1);
+
+    await key("ArrowLeft");
+    expect(handlers.onCommit).toHaveBeenLastCalledWith(null);
+  });
+
+  test("up and down do what right and left do", async () => {
+    const handlers: Handlers = await renderDivider(380);
+
+    await key("ArrowUp");
+    expect(handlers.onCommit).toHaveBeenLastCalledWith(380 + DIVIDER_STEP);
+    await key("ArrowDown");
+    expect(handlers.onCommit).toHaveBeenLastCalledWith(null);
+  });
+
+  test("Home and End take it to the narrowest and widest list; Enter puts it back", async () => {
+    const handlers: Handlers = await renderDivider(400);
+
+    await key("Home");
+    expect(handlers.onCommit).toHaveBeenLastCalledWith(RANGE.min);
+    await key("End");
+    expect(handlers.onCommit).toHaveBeenLastCalledWith(RANGE.max);
+    await key("Enter");
+    expect(handlers.onCommit).toHaveBeenLastCalledWith(null);
+  });
+
+  test("every other key is left to do what it does: Tab moves on, nothing is committed", async () => {
+    const handlers: Handlers = await renderDivider(400);
+
+    for (const name of ["Tab", "a", " ", "Escape"]) {
+      const preventDefault: jest.Mock<() => void> = await key(name);
+      expect(preventDefault).not.toHaveBeenCalled();
+    }
+    expect(handlers.onCommit).not.toHaveBeenCalled();
+  });
+
+  test("a key with no name - an event from elsewhere - does nothing", async () => {
+    const handlers: Handlers = await renderDivider(400);
+
+    await fireEvent(screen.getByTestId("pane-divider"), "keyDown", {});
+    expect(handlers.onCommit).not.toHaveBeenCalled();
+  });
+
+  test("focused from the keyboard, a ring surrounds it and the divider's line shows", async () => {
+    await renderDivider();
+    expect(screen.queryByTestId("pane-divider-line")).toBeNull();
+
+    await fireEvent(screen.getByTestId("pane-divider"), "focus", {});
+
+    expect(screen.getByTestId("pane-divider-line")).toBeTruthy();
+    expect(screen.getByTestId("pane-divider-ring")).toHaveStyle({
+      borderColor: lightColors.actionPrimary,
+    });
+    expect(screen.getByTestId("pane-divider-pill")).toHaveStyle({
+      backgroundColor: lightColors.actionPrimary,
+    });
+
+    await fireEvent(screen.getByTestId("pane-divider"), "blur", {});
+
+    expect(screen.queryByTestId("pane-divider-line")).toBeNull();
+    expect(screen.getByTestId("pane-divider-ring")).toHaveStyle({
+      borderColor: "transparent",
+    });
+  });
+
+  test("the ring hugs the pill a few points clear of it, never the whole touch target", async () => {
+    /*
+     * Around the 48 by 96 touch target, the ring ran into the cards on
+     * either side of the divider. Around the pill it is a slim capsule on
+     * the divider itself, as a focused control's ring is anywhere else.
+     */
+    await renderDivider();
+    await fireEvent(screen.getByTestId("pane-divider"), "focus", {});
+
+    const handle: ViewStyle = flat(
+      screen.getByTestId("pane-divider").props.style,
+    );
+    expect(handle.borderWidth ?? 0).toBe(0);
+
+    const ring: ReturnType<typeof screen.getByTestId> =
+      screen.getByTestId("pane-divider-ring");
+    expect(within(ring).getByTestId("pane-divider-pill")).toBeTruthy();
+    const ringStyle: ViewStyle = flat(ring.props.style);
+    const pill: ViewStyle = flat(
+      screen.getByTestId("pane-divider-pill").props.style,
+    );
+    const borderWidth: number = Number(ringStyle.borderWidth);
+    const padding: number = Number(ringStyle.padding);
+    expect(borderWidth).toBeGreaterThanOrEqual(2);
+    // A gap between the pill and its ring, so the two never read as one bar.
+    expect(padding).toBeGreaterThanOrEqual(2);
+    const ringWidth: number = Number(pill.width) + 2 * (padding + borderWidth);
+    expect(ringWidth).toBeLessThanOrEqual(16);
+    // Rounded at its ends: a capsule, like the pill inside it.
+    expect(Number(ringStyle.borderRadius)).toBe(ringWidth / 2);
+  });
+
+  test("a key pressed with the handle focused some other way shows the ring all the same", async () => {
+    await renderDivider(400);
+
+    await key("ArrowRight");
+
+    expect(screen.getByTestId("pane-divider-line")).toBeTruthy();
+  });
+});
+
+describe("Whether the handle took focus from a keyboard", () => {
+  /*
+   * On a phone or a tablet a touch never focuses it - only a keyboard does.
+   * A browser focuses it on a click too, so there the browser's own rule for
+   * showing focus decides.
+   */
+  const realOS: string = Platform.OS;
+
+  afterEach(() => {
+    (Platform as unknown as { OS: string }).OS = realOS;
+  });
+
+  test("on a phone, any focus is the keyboard's", () => {
+    (Platform as unknown as { OS: string }).OS = "android";
+    expect(isKeyboardFocus({})).toBe(true);
+    expect(isKeyboardFocus(null)).toBe(true);
+  });
+
+  test("in a browser, :focus-visible says", () => {
+    (Platform as unknown as { OS: string }).OS = "web";
+    const matches: jest.Mock<(selector: string) => boolean> = jest.fn(
+      (selector: string): boolean => {
+        return selector === ":focus-visible";
+      },
+    );
+
+    expect(isKeyboardFocus({ target: { matches } })).toBe(true);
+    expect(
+      isKeyboardFocus({
+        target: {
+          matches: (): boolean => {
+            return false;
+          },
+        },
+      }),
+    ).toBe(false);
+  });
+
+  test("in a browser that cannot say, the ring shows rather than hides", () => {
+    (Platform as unknown as { OS: string }).OS = "web";
+
+    expect(isKeyboardFocus({ target: {} })).toBe(true);
+    expect(
+      isKeyboardFocus({
+        target: {
+          matches: (): boolean => {
+            throw new Error("unsupported selector");
+          },
+        },
+      }),
+    ).toBe(true);
   });
 });

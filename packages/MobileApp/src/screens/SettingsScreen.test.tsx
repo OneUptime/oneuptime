@@ -1,5 +1,5 @@
 import React from "react";
-import { Alert, Appearance, type AlertButton } from "react-native";
+import { Alert, Appearance, StyleSheet, type AlertButton } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   act,
@@ -10,9 +10,26 @@ import {
   within,
 } from "@testing-library/react-native";
 import { SafeAreaInsetsContext } from "react-native-safe-area-context";
+import { HeaderHeightContext } from "@react-navigation/elements";
 import SettingsScreen from "./SettingsScreen";
 import { ThemeProvider } from "../theme";
 import { darkColors, lightColors } from "../theme/colors";
+import { WindowLayoutProvider } from "../layout/WindowLayout";
+import { TABLETOP_FOLD_GAP } from "../layout/windowLayout";
+import { getScreenBottomPadding } from "../theme/layout";
+import {
+  createTestPostureSource,
+  bookReport,
+  flatReport,
+  tabletopReport,
+  type TestPostureSource,
+} from "../__tests__/postureTestSource";
+import type { FoldReport } from "../layout/windowPosture";
+import {
+  TEST_WINDOWS,
+  resetWindowSize,
+  setWindowSize,
+} from "../__tests__/windowSize";
 
 const mockNavigate: jest.Mock = jest.fn();
 const mockLogout: jest.Mock = jest.fn();
@@ -857,5 +874,160 @@ describe("Appearance", () => {
         "Alex Morgan",
       ),
     ).toHaveStyle({ color: darkColors.textPrimary });
+  });
+});
+describe("Settings half open on a table", () => {
+  /*
+   * Who is signed in, and to which OneUptime, stand above the fold where they
+   * read at a glance; the settings to change lie below it, under the hand.
+   * Each half scrolls on its own, so no row or switch sits in the crease. In
+   * every other posture Settings is the one scroll it always was.
+   */
+  const BAR: number = 56;
+  const SIZE: { width: number; height: number } =
+    TEST_WINDOWS.innerScreenOnItsSide;
+
+  afterEach(() => {
+    resetWindowSize();
+  });
+
+  async function renderFolded(
+    source: TestPostureSource,
+    size: { width: number; height: number } = SIZE,
+  ): Promise<void> {
+    setWindowSize(size);
+    await render(
+      <SafeAreaInsetsContext.Provider
+        value={{ top: 0, bottom: 0, left: 0, right: 0 }}
+      >
+        <WindowLayoutProvider postureSource={source}>
+          <HeaderHeightContext.Provider value={BAR}>
+            <SettingsScreen />
+          </HeaderHeightContext.Provider>
+        </WindowLayoutProvider>
+      </SafeAreaInsetsContext.Provider>,
+    );
+  }
+
+  test("the account and the workspace above the fold, everything to change below it", async () => {
+    await renderFolded(createTestPostureSource(tabletopReport(SIZE, 442)));
+
+    expect(
+      StyleSheet.flatten(screen.getByTestId("settings-fold-above").props.style),
+    ).toMatchObject({ height: 442 - TABLETOP_FOLD_GAP / 2 - BAR });
+    expect(screen.getByTestId("settings-fold-fold-line")).toBeTruthy();
+
+    const above: ReturnType<typeof within> = within(
+      screen.getByTestId("settings-above-fold"),
+    );
+    const below: ReturnType<typeof within> = within(
+      screen.getByTestId("settings-below-fold"),
+    );
+    expect(above.getByTestId("settings-account-identity")).toBeTruthy();
+    expect(above.getByTestId("settings-workspace-section")).toBeTruthy();
+    for (const id of [
+      "settings-section-appearance",
+      "settings-section-notifications",
+      "settings-section-security",
+      "settings-section-oncall",
+      "settings-section-account",
+      "settings-footer",
+    ]) {
+      expect(below.getByTestId(id)).toBeTruthy();
+      expect(above.queryByTestId(id)).toBeNull();
+    }
+    // No title in half a screen: the tab says this is Settings.
+    expect(screen.queryByTestId("settings-scroll")).toBeNull();
+    expect(
+      screen.queryByText("Your account, workspace and preferences."),
+    ).toBeNull();
+  });
+
+  test("the rows below the fold still do what they do", async () => {
+    await renderFolded(createTestPostureSource(tabletopReport(SIZE, 442)));
+
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Manage Projects" }),
+    );
+    expect(mockNavigate).toHaveBeenCalledWith("ProjectsList");
+    await fireEvent(
+      screen.getByLabelText("Biometrics Login"),
+      "valueChange",
+      true,
+    );
+    expect(mockSetBiometric).toHaveBeenCalledWith(true);
+    expect(await screen.findByText("https://team.example.com")).toBeTruthy();
+  });
+
+  test("only the half below the fold makes room for the tab bar", async () => {
+    await renderFolded(createTestPostureSource(tabletopReport(SIZE, 442)));
+
+    expect(
+      StyleSheet.flatten(
+        screen.getByTestId("settings-above-fold").props.contentContainerStyle,
+      ),
+    ).toMatchObject({ paddingBottom: getScreenBottomPadding(0, false) });
+    expect(
+      StyleSheet.flatten(
+        screen.getByTestId("settings-below-fold").props.contentContainerStyle,
+      ),
+    ).toMatchObject({ paddingBottom: getScreenBottomPadding(0, true) });
+  });
+
+  test("a Galaxy Z Flip half open splits the same way, at a phone's gutters", async () => {
+    const flip: { width: number; height: number } = { width: 412, height: 914 };
+    await renderFolded(
+      createTestPostureSource(tabletopReport(flip, 457)),
+      flip,
+    );
+
+    expect(
+      within(screen.getByTestId("settings-above-fold")).getByTestId(
+        "settings-account-identity",
+      ),
+    ).toBeTruthy();
+    expect(
+      StyleSheet.flatten(
+        screen.getByTestId("settings-below-fold").props.contentContainerStyle,
+      ),
+    ).toMatchObject({ paddingLeft: 20, paddingRight: 20 });
+  });
+
+  test.each([
+    ["lying flat", flatReport(TEST_WINDOWS.innerScreenOnItsSide)],
+    [
+      "half open like a book",
+      bookReport(TEST_WINDOWS.innerScreenOnItsSide, 552),
+    ],
+    ["with nothing reporting a posture", null],
+  ])(
+    "%s, Settings is the one scroll it always was",
+    async (_name: string, report: FoldReport | null) => {
+      await renderFolded(createTestPostureSource(report));
+
+      expect(screen.getByTestId("settings-scroll")).toBeTruthy();
+      expect(
+        screen.getByText("Your account, workspace and preferences."),
+      ).toBeTruthy();
+      expect(screen.queryByTestId("settings-fold")).toBeNull();
+    },
+  );
+
+  test("half closing and opening flat again keeps every group, and the server's address", async () => {
+    const source: TestPostureSource = createTestPostureSource(flatReport(SIZE));
+    await renderFolded(source);
+    expect(await screen.findByText("https://team.example.com")).toBeTruthy();
+
+    await act(async () => {
+      source.emit(tabletopReport(SIZE, 442));
+    });
+    expect(screen.getByText("https://team.example.com")).toBeTruthy();
+    expect(screen.getByTestId("settings-section-account")).toBeTruthy();
+
+    await act(async () => {
+      source.emit(flatReport(SIZE));
+    });
+    expect(screen.getByTestId("settings-scroll")).toBeTruthy();
+    expect(screen.getByText("https://team.example.com")).toBeTruthy();
   });
 });

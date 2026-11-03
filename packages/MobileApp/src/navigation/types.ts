@@ -1,4 +1,14 @@
 import type { NavigatorScreenParams } from "@react-navigation/native";
+import type { PushPageActionRequest } from "../oncall/pushPageAction";
+
+/*
+ * A page's push opens its record with the action tapped under it -
+ * Acknowledge or Escalate (oncall/pushPageAction.ts) - which the record's
+ * screen does once, then takes out of its params.
+ */
+export interface PushPageActionParams {
+  pushAction?: PushPageActionRequest | undefined;
+}
 
 export type AuthStackParamList = {
   ServerUrl: undefined;
@@ -115,8 +125,14 @@ export type IncidentsStackParamList = {
         initialFilter?: "all" | "active" | "resolved";
       }
     | undefined;
-  IncidentDetail: { incidentId: string; projectId: string };
-  IncidentEpisodeDetail: { episodeId: string; projectId: string };
+  IncidentDetail: {
+    incidentId: string;
+    projectId: string;
+  } & PushPageActionParams;
+  IncidentEpisodeDetail: {
+    episodeId: string;
+    projectId: string;
+  } & PushPageActionParams;
 };
 
 export type AlertsStackParamList = {
@@ -126,8 +142,11 @@ export type AlertsStackParamList = {
         initialFilter?: "all" | "active" | "resolved";
       }
     | undefined;
-  AlertDetail: { alertId: string; projectId: string };
-  AlertEpisodeDetail: { episodeId: string; projectId: string };
+  AlertDetail: { alertId: string; projectId: string } & PushPageActionParams;
+  AlertEpisodeDetail: {
+    episodeId: string;
+    projectId: string;
+  } & PushPageActionParams;
 };
 
 /*

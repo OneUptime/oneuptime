@@ -90,6 +90,34 @@ list opens at its first row, and one that could not load shows why at once
 | --------------------------------------------- | -------------------------------------------------- | ------------------------------------------------------ |
 | ![Divider handle](foldables-flat-divider.png) | ![Divider moved](foldables-flat-divider-moved.png) | ![Dark tabletop](foldables-tabletop-incident-dark.png) |
 
+Home and Settings split on a tabletop fold too: what needs the reader above
+it, the rows to tap below it, each half scrolling on its own. Sheets rise
+over the half on the table and stop at the band around the fold. From a
+keyboard, the divider's handle shows a ring while the arrow keys move it.
+
+| Home on a table                               | Settings on a table                                   | A sheet on a table                                          |
+| --------------------------------------------- | ----------------------------------------------------- | ----------------------------------------------------------- |
+| ![Tabletop Home](foldables-tabletop-home.png) | ![Tabletop Settings](foldables-tabletop-settings.png) | ![Note sheet on a table](foldables-tabletop-note-sheet.png) |
+
+| Home on a Flip                                 | Dark: Home on a table                                   | The divider from a keyboard                                     |
+| ---------------------------------------------- | ------------------------------------------------------- | --------------------------------------------------------------- |
+| ![Flip Home](foldables-tabletop-flip-home.png) | ![Dark tabletop Home](foldables-tabletop-home-dark.png) | ![Divider from a keyboard](foldables-flat-divider-keyboard.png) |
+
+## Paged again
+
+The `-paged-again` images come from `tests/ui/paged-again.spec.js`: an
+acknowledged incident or alert still not resolved when its on-call policy's
+acknowledgement timeout ran out, so the policy pages the reader again.
+Acknowledge again comes first, filled across the card on a phone so the two
+words never break across lines, with Resolve and Escalate side by side under
+it - a row each on the smallest phones, and all three in one row on a
+tablet. Every viewport has an incident and an alert; the iPhone size also a
+dark one.
+
+| Paged again about an incident                                 | Paged again about an alert                              | Dark: paged again                                                       |
+| ------------------------------------------------------------- | ------------------------------------------------------- | ----------------------------------------------------------------------- |
+| ![Incident paged again](iphone-size-incident-paged-again.png) | ![Alert paged again](iphone-size-alert-paged-again.png) | ![Dark incident paged again](iphone-size-incident-paged-again-dark.png) |
+
 Regenerate every set from a fresh export with
 `UPDATE_SCREENSHOTS=1 npm run test-ui`, or one of them with
 `-- --project=foldables`, `-- --project=tablets` or `-- --project=iphone-size`.

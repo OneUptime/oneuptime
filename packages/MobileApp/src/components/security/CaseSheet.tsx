@@ -12,8 +12,13 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../theme";
 import { elevation, radius, spacing, typography } from "../../theme/tokens";
-import { useScreenPadding } from "../../hooks/useScreenPadding";
 import { SHEET_MAX_WIDTH } from "../../layout/windowLayout";
+import {
+  getSheetBackdropLayout,
+  getSheetCorners,
+  type SheetPlacement,
+} from "../../layout/sheetPlacement";
+import { useSheetPlacement } from "../../layout/useSheetPlacement";
 import IconBadge from "../IconBadge";
 import StatusPill, { type StatusTone } from "../StatusPill";
 
@@ -55,7 +60,9 @@ export default function CaseSheet({
   testID,
 }: CaseSheetProps): React.JSX.Element {
   const { theme } = useTheme();
-  const paddingBottom: number = useScreenPadding({ tabBar: false });
+  // Clear of a tabletop fold: over the half on the table, or above the fold while typing.
+  const placement: SheetPlacement = useSheetPlacement();
+  const paddingBottom: number = placement.paddingBottom;
 
   return (
     <Modal
@@ -68,10 +75,11 @@ export default function CaseSheet({
         testID={`${testID}-backdrop`}
         style={{
           flex: 1,
-          justifyContent: "flex-end",
+          ...getSheetBackdropLayout(placement),
           backgroundColor: theme.colors.overlay,
         }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
+        enabled={placement.avoidsKeyboard}
       >
         <Pressable
           testID={`${testID}-dismiss-area`}
@@ -91,12 +99,11 @@ export default function CaseSheet({
             width: "100%",
             maxWidth: SHEET_MAX_WIDTH,
             alignSelf: "center",
-            maxHeight: "92%",
-            borderTopLeftRadius: radius.xl,
-            borderTopRightRadius: radius.xl,
+            maxHeight: placement.maxHeight ?? "92%",
+            ...getSheetCorners(placement, radius.xl),
             backgroundColor: theme.colors.backgroundSecondary,
             borderWidth: theme.dark ? 1 : 0,
-            borderBottomWidth: 0,
+            borderBottomWidth: placement.anchor === "top" && theme.dark ? 1 : 0,
             borderColor: theme.colors.borderSubtle,
             ...elevation("overlay", theme.dark),
           }}
