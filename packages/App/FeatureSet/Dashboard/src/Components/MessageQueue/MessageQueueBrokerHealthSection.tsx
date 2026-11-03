@@ -16,6 +16,7 @@ import {
   formatMessageQueueMetricValue,
   getMessageQueueBrokerMetricCaption,
   getMessageQueueBrokerMetricChartTitle,
+  getMessageQueueBrokerMetricTitle,
   getMessageQueueBrokerMetricsGuidance,
   getMessageQueueBrokerMetricsNoDataDescription,
   getMessageQueueDocsRoute,
@@ -341,6 +342,10 @@ const MessageQueueBrokerHealthSection: FunctionComponent<ComponentProps> = (
       <div className="mb-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
         {charted.map((result: MessageQueueBrokerMetricResult): ReactElement => {
           const id: string = getMessageQueueMetricId(result.descriptor);
+          const title: string = getMessageQueueBrokerMetricTitle(
+            result.descriptor,
+            translator,
+          );
           return (
             <div
               key={`tile-${id}`}
@@ -350,10 +355,10 @@ const MessageQueueBrokerHealthSection: FunctionComponent<ComponentProps> = (
             >
               <div className="flex min-w-0 items-center gap-1">
                 <span className="truncate text-xs font-medium uppercase tracking-wider text-gray-500">
-                  {result.descriptor.title}
+                  {title}
                 </span>
                 <InfoTooltip
-                  label={result.descriptor.title}
+                  label={title}
                   text={result.descriptor.description}
                 />
               </div>
@@ -394,14 +399,20 @@ const MessageQueueBrokerHealthSection: FunctionComponent<ComponentProps> = (
               data-metric-id={id}
             >
               <ChartCard
-                title={getMessageQueueBrokerMetricChartTitle(result.descriptor)}
+                title={getMessageQueueBrokerMetricChartTitle(
+                  result.descriptor,
+                  translator,
+                )}
                 description={result.descriptor.description}
                 icon={IconProp.ChartBar}
                 iconColor="violet"
                 series={
                   [
                     {
-                      seriesName: result.descriptor.title,
+                      seriesName: getMessageQueueBrokerMetricTitle(
+                        result.descriptor,
+                        translator,
+                      ),
                       data: result.series,
                     },
                   ] as Array<SeriesPoint>

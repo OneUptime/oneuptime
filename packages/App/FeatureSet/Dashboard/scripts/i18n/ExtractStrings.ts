@@ -365,6 +365,36 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     directory: "packages/Common/Types/AutoRemediation/RemediationRoundName.ts",
     kind: "keys",
   },
+  /*
+   * The curated metrics' names: a database's engine charts and tiles, a
+   * queue's Broker health charts and tiles (with the unit words their
+   * titles add, "Buffer pool size (pages)"), and the storage array, Proxmox
+   * and Ceph metric pickers and Metrics tabs. Only the names the files mark
+   * are read: metric names, attribute keys and descriptions stay as
+   * written.
+   */
+  {
+    directory:
+      "packages/Common/Types/DatabaseServer/DatabaseServerMetricCatalog.ts",
+    kind: "keys",
+  },
+  {
+    directory:
+      "packages/Common/Types/MessageQueue/MessageQueueMetricCatalog.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/Monitor/StorageArrayMetricCatalog.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/Monitor/ProxmoxMetricCatalog.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/Monitor/CephMetricCatalog.ts",
+    kind: "keys",
+  },
 ];
 
 /*

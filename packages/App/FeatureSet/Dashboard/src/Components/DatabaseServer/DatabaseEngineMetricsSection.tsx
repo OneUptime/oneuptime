@@ -162,7 +162,9 @@ export const ENGINE_METRICS_CHECK_AGENT_LINK_LABEL: string = translationKey(
  * says the unit, once: a counter's "(per second)", and a gauge's unit word
  * in brackets unless its title already names it — "Connections" stays
  * "Connections", "Commands per second" in ops/s stays as it is, "Buffer
- * pool size" in pages reads "Buffer pool size (pages)".
+ * pool size" in pages reads "Buffer pool size (pages)". The title and the
+ * unit word are keys of the catalog, said in the reader's language and
+ * order. A title on its own is handed to ChartCard as its key.
  */
 const PER_SECOND_UNIT_PATTERN: RegExp = /\/s$/i;
 
@@ -186,7 +188,10 @@ export function getDatabaseEngineMetricChartTitle(
   ) {
     return definition.title;
   }
-  return `${definition.title} (${unitLabel})`;
+  return translator.translateTemplate("{{title}} ({{unit}})", {
+    title: translatableTerm(definition.title),
+    unit: translatableTerm(unitLabel),
+  });
 }
 
 /**
@@ -494,7 +499,10 @@ const DatabaseEngineMetricsSection: FunctionComponent<ComponentProps> = (
                     {translator.translateText(result.definition.title)}
                   </span>
                   <InfoTooltip
-                    label={result.definition.title}
+                    label={
+                      translator.translateText(result.definition.title) ||
+                      result.definition.title
+                    }
                     text={result.definition.description}
                   />
                 </div>

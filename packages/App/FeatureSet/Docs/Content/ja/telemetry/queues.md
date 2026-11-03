@@ -256,10 +256,10 @@ service:
 
 | メトリクス | 表示名 | 種類 |
 | --- | --- | --- |
-| `amazonaws.com/aws/sns/numberofmessagespublished` (JSON ストリーム: `numberofmessagespublished`) | Messages published | 期間ごとの件数 |
-| `amazonaws.com/aws/sns/numberofnotificationsdelivered` (JSON ストリーム: `numberofnotificationsdelivered`) | Notifications delivered | 期間ごとの件数 |
-| `amazonaws.com/aws/sns/numberofnotificationsfailed` (JSON ストリーム: `numberofnotificationsfailed`) | Notifications failed | 期間ごとの件数 |
-| `amazonaws.com/aws/sns/numberofnotificationsredriventodlq` (JSON ストリーム: `numberofnotificationsredriventodlq`) | Redriven to dead-letter queue | 期間ごとの件数 |
+| `amazonaws.com/aws/sns/numberofmessagespublished` (JSON ストリーム: `numberofmessagespublished`) | パブリッシュされたメッセージ | 期間ごとの件数 |
+| `amazonaws.com/aws/sns/numberofnotificationsdelivered` (JSON ストリーム: `numberofnotificationsdelivered`) | 配信された通知 | 期間ごとの件数 |
+| `amazonaws.com/aws/sns/numberofnotificationsfailed` (JSON ストリーム: `numberofnotificationsfailed`) | 失敗した通知 | 期間ごとの件数 |
+| `amazonaws.com/aws/sns/numberofnotificationsredriventodlq` (JSON ストリーム: `numberofnotificationsredriventodlq`) | デッドレターキューに再送 | 期間ごとの件数 |
 
 ### Amazon SQS
 
@@ -345,12 +345,12 @@ service:
 
 | メトリクス | 表示名 | 種類 |
 | --- | --- | --- |
-| `amazonaws.com/aws/sqs/approximatenumberofmessagesvisible` (JSON ストリーム: `approximatenumberofmessagesvisible`) | Messages visible | ゲージ |
-| `amazonaws.com/aws/sqs/approximateageofoldestmessage` (JSON ストリーム: `approximateageofoldestmessage`) | Oldest message age | ゲージ |
-| `amazonaws.com/aws/sqs/approximatenumberofmessagesnotvisible` (JSON ストリーム: `approximatenumberofmessagesnotvisible`) | Messages in flight | ゲージ |
-| `amazonaws.com/aws/sqs/numberofmessagessent` (JSON ストリーム: `numberofmessagessent`) | Messages sent | 期間ごとの件数 |
-| `amazonaws.com/aws/sqs/numberofmessagesreceived` (JSON ストリーム: `numberofmessagesreceived`) | Messages received | 期間ごとの件数 |
-| `amazonaws.com/aws/sqs/numberofmessagesdeleted` (JSON ストリーム: `numberofmessagesdeleted`) | Messages deleted | 期間ごとの件数 |
+| `amazonaws.com/aws/sqs/approximatenumberofmessagesvisible` (JSON ストリーム: `approximatenumberofmessagesvisible`) | 表示可能なメッセージ | ゲージ |
+| `amazonaws.com/aws/sqs/approximateageofoldestmessage` (JSON ストリーム: `approximateageofoldestmessage`) | 最も古いメッセージの経過時間 | ゲージ |
+| `amazonaws.com/aws/sqs/approximatenumberofmessagesnotvisible` (JSON ストリーム: `approximatenumberofmessagesnotvisible`) | 処理中のメッセージ | ゲージ |
+| `amazonaws.com/aws/sqs/numberofmessagessent` (JSON ストリーム: `numberofmessagessent`) | 送信されたメッセージ | 期間ごとの件数 |
+| `amazonaws.com/aws/sqs/numberofmessagesreceived` (JSON ストリーム: `numberofmessagesreceived`) | 受信されたメッセージ | 期間ごとの件数 |
+| `amazonaws.com/aws/sqs/numberofmessagesdeleted` (JSON ストリーム: `numberofmessagesdeleted`) | 削除されたメッセージ | 期間ごとの件数 |
 
 ### Apache ActiveMQ
 
@@ -384,14 +384,14 @@ java -jar opentelemetry-jmx-scraper.jar
 
 | メトリクス | 表示名 | 種類 |
 | --- | --- | --- |
-| `activemq.message.queue.size` | Queue size | ゲージ |
-| `activemq.message.current` | Queue size (legacy names) | ゲージ |
-| `activemq.message.enqueued` | Enqueued | カウンター (毎秒で表示) |
-| `activemq.message.dequeued` | Dequeued | カウンター (毎秒で表示) |
-| `activemq.message.expired` | Expired | カウンター (毎秒で表示) |
-| `activemq.consumer.count` | Consumers | ゲージ |
-| `activemq.message.enqueue.average_duration` | Average time in queue | ゲージ |
-| `activemq.message.wait_time.avg` | Average time in queue (legacy names) | ゲージ |
+| `activemq.message.queue.size` | キューのサイズ | ゲージ |
+| `activemq.message.current` | キューのサイズ (旧名称) | ゲージ |
+| `activemq.message.enqueued` | キューに追加 | カウンター (毎秒で表示) |
+| `activemq.message.dequeued` | キューから取り出し | カウンター (毎秒で表示) |
+| `activemq.message.expired` | 期限切れ | カウンター (毎秒で表示) |
+| `activemq.consumer.count` | コンシューマー | ゲージ |
+| `activemq.message.enqueue.average_duration` | キュー内の平均時間 | ゲージ |
+| `activemq.message.wait_time.avg` | キュー内の平均時間 (旧名称) | ゲージ |
 
 ### Apache Kafka
 
@@ -434,10 +434,10 @@ SASL または TLS を使うクラスターでは、`auth` と `tls` のコメ�
 
 | メトリクス | 表示名 | 種類 |
 | --- | --- | --- |
-| `kafka.consumer_group.lag_sum` | Consumer lag | ゲージ |
-| `kafka.consumer_group.lag` | Partition lag | ゲージ |
-| `kafka.consumer_group.offset_sum` | Consumed | カウンター (毎秒で表示) |
-| `kafka.partition.current_offset` | Produced | カウンター (毎秒で表示) |
+| `kafka.consumer_group.lag_sum` | コンシューマーラグ | ゲージ |
+| `kafka.consumer_group.lag` | パーティションのラグ | ゲージ |
+| `kafka.consumer_group.offset_sum` | コンシューム | カウンター (毎秒で表示) |
+| `kafka.partition.current_offset` | プロデュース | カウンター (毎秒で表示) |
 
 ### Apache Pulsar
 
@@ -486,11 +486,11 @@ service:
 
 | メトリクス | 表示名 | 種類 |
 | --- | --- | --- |
-| `pulsar_msg_backlog` | Backlog | ゲージ |
-| `pulsar_subscription_back_log` | Subscription backlog | ゲージ |
-| `pulsar_storage_backlog_age_seconds` | Backlog age | ゲージ |
-| `pulsar_in_messages_total` | Messages in | カウンター (毎秒で表示) |
-| `pulsar_out_messages_total` | Messages out | カウンター (毎秒で表示) |
+| `pulsar_msg_backlog` | バックログ | ゲージ |
+| `pulsar_subscription_back_log` | サブスクリプションのバックログ | ゲージ |
+| `pulsar_storage_backlog_age_seconds` | バックログの経過時間 | ゲージ |
+| `pulsar_in_messages_total` | 受信メッセージ | カウンター (毎秒で表示) |
+| `pulsar_out_messages_total` | 送信メッセージ | カウンター (毎秒で表示) |
 
 ### Apache RocketMQ
 
@@ -536,10 +536,10 @@ service:
 
 | メトリクス | 表示名 | 種類 |
 | --- | --- | --- |
-| `rocketmq_consumer_lag_messages` | Consumer lag | ゲージ |
-| `rocketmq_consumer_ready_messages` | Ready messages | ゲージ |
-| `rocketmq_send_to_dlq_messages_total` | Sent to dead-letter queue | カウンター (毎秒で表示) |
-| `rocketmq_messages_in_total` | Messages in | カウンター (毎秒で表示) |
+| `rocketmq_consumer_lag_messages` | コンシューマーラグ | ゲージ |
+| `rocketmq_consumer_ready_messages` | 準備完了のメッセージ | ゲージ |
+| `rocketmq_send_to_dlq_messages_total` | デッドレターキューに送信 | カウンター (毎秒で表示) |
+| `rocketmq_messages_in_total` | 受信メッセージ | カウンター (毎秒で表示) |
 
 ### Azure Event Grid
 
@@ -642,12 +642,12 @@ Azure Monitor には Event Hubs のコンシューマーラグのメトリクス
 
 | メトリクス | 表示名 | 種類 |
 | --- | --- | --- |
-| `azure_incomingmessages_total` | Incoming messages | 期間ごとの件数 |
-| `azure_outgoingmessages_total` | Outgoing messages | 期間ごとの件数 |
-| `azure_servererrors_total` | Server errors | 期間ごとの件数 |
-| `azure_usererrors_total` | User errors | 期間ごとの件数 |
-| `azure_quotaexceedederrors_total` | Quota exceeded errors | 期間ごとの件数 |
-| `azure_throttledrequests_total` | Throttled requests | 期間ごとの件数 |
+| `azure_incomingmessages_total` | 受信メッセージ | 期間ごとの件数 |
+| `azure_outgoingmessages_total` | 送信メッセージ | 期間ごとの件数 |
+| `azure_servererrors_total` | サーバーエラー | 期間ごとの件数 |
+| `azure_usererrors_total` | ユーザーエラー | 期間ごとの件数 |
+| `azure_quotaexceedederrors_total` | クォータ超過エラー | 期間ごとの件数 |
+| `azure_throttledrequests_total` | スロットリングされた要求 | 期間ごとの件数 |
 
 ### Azure Service Bus
 
@@ -711,15 +711,15 @@ service:
 
 | メトリクス | 表示名 | 種類 |
 | --- | --- | --- |
-| `azure_activemessages_average` | Active messages | ゲージ |
-| `azure_deadletteredmessages_average` | Dead-lettered messages | ゲージ |
-| `azure_incomingmessages_total` | Incoming messages | 期間ごとの件数 |
-| `azure_outgoingmessages_total` | Outgoing messages | 期間ごとの件数 |
-| `azure_completemessage_total` | Completed messages | 期間ごとの件数 |
-| `azure_abandonmessage_total` | Abandoned messages | 期間ごとの件数 |
-| `azure_servererrors_total` | Server errors | 期間ごとの件数 |
-| `azure_usererrors_total` | User errors | 期間ごとの件数 |
-| `azure_throttledrequests_total` | Throttled requests | 期間ごとの件数 |
+| `azure_activemessages_average` | アクティブなメッセージ | ゲージ |
+| `azure_deadletteredmessages_average` | デッドレターメッセージ | ゲージ |
+| `azure_incomingmessages_total` | 受信メッセージ | 期間ごとの件数 |
+| `azure_outgoingmessages_total` | 送信メッセージ | 期間ごとの件数 |
+| `azure_completemessage_total` | 完了したメッセージ | 期間ごとの件数 |
+| `azure_abandonmessage_total` | 破棄されたメッセージ | 期間ごとの件数 |
+| `azure_servererrors_total` | サーバーエラー | 期間ごとの件数 |
+| `azure_usererrors_total` | ユーザーエラー | 期間ごとの件数 |
+| `azure_throttledrequests_total` | スロットリングされた要求 | 期間ごとの件数 |
 
 ### BullMQ
 
@@ -837,11 +837,11 @@ service:
 
 | メトリクス | 表示名 | 種類 |
 | --- | --- | --- |
-| `pubsub.googleapis.com/subscription/num_undelivered_messages` | Undelivered messages | ゲージ |
-| `pubsub.googleapis.com/subscription/oldest_unacked_message_age` | Oldest unacked message age | ゲージ |
-| `pubsub.googleapis.com/subscription/dead_letter_message_count` | Dead-lettered messages | 期間ごとの件数 |
-| `pubsub.googleapis.com/subscription/ack_message_count` | Acknowledged messages | 期間ごとの件数 |
-| `pubsub.googleapis.com/topic/send_request_count` | Publish requests | 期間ごとの件数 |
+| `pubsub.googleapis.com/subscription/num_undelivered_messages` | 未配信のメッセージ | ゲージ |
+| `pubsub.googleapis.com/subscription/oldest_unacked_message_age` | 最も古い未確認メッセージの経過時間 | ゲージ |
+| `pubsub.googleapis.com/subscription/dead_letter_message_count` | デッドレターメッセージ | 期間ごとの件数 |
+| `pubsub.googleapis.com/subscription/ack_message_count` | 確認済みのメッセージ | 期間ごとの件数 |
+| `pubsub.googleapis.com/topic/send_request_count` | パブリッシュ要求 | 期間ごとの件数 |
 
 ### JMS
 
@@ -936,12 +936,12 @@ service:
 
 | メトリクス | 表示名 | 種類 |
 | --- | --- | --- |
-| `rabbitmq.message.current` | Queue depth | ゲージ |
-| `rabbitmq.message.published` | Published | カウンター (毎秒で表示) |
-| `rabbitmq.message.delivered` | Delivered | カウンター (毎秒で表示) |
-| `rabbitmq.message.acknowledged` | Acknowledged | カウンター (毎秒で表示) |
-| `rabbitmq.message.dropped` | Dropped | カウンター (毎秒で表示) |
-| `rabbitmq.consumer.count` | Consumers | ゲージ |
+| `rabbitmq.message.current` | キューの深さ | ゲージ |
+| `rabbitmq.message.published` | パブリッシュ | カウンター (毎秒で表示) |
+| `rabbitmq.message.delivered` | 配信済み | カウンター (毎秒で表示) |
+| `rabbitmq.message.acknowledged` | 確認済み | カウンター (毎秒で表示) |
+| `rabbitmq.message.dropped` | 破棄済み | カウンター (毎秒で表示) |
+| `rabbitmq.consumer.count` | コンシューマー | ゲージ |
 
 ## アラート
 

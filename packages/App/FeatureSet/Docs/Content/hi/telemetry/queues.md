@@ -256,10 +256,10 @@ service:
 
 | मेट्रिक | इस रूप में दिखती है | प्रकार |
 | --- | --- | --- |
-| `amazonaws.com/aws/sns/numberofmessagespublished` (JSON स्ट्रीम: `numberofmessagespublished`) | Messages published | हर अवधि की गिनती |
-| `amazonaws.com/aws/sns/numberofnotificationsdelivered` (JSON स्ट्रीम: `numberofnotificationsdelivered`) | Notifications delivered | हर अवधि की गिनती |
-| `amazonaws.com/aws/sns/numberofnotificationsfailed` (JSON स्ट्रीम: `numberofnotificationsfailed`) | Notifications failed | हर अवधि की गिनती |
-| `amazonaws.com/aws/sns/numberofnotificationsredriventodlq` (JSON स्ट्रीम: `numberofnotificationsredriventodlq`) | Redriven to dead-letter queue | हर अवधि की गिनती |
+| `amazonaws.com/aws/sns/numberofmessagespublished` (JSON स्ट्रीम: `numberofmessagespublished`) | प्रकाशित संदेश | हर अवधि की गिनती |
+| `amazonaws.com/aws/sns/numberofnotificationsdelivered` (JSON स्ट्रीम: `numberofnotificationsdelivered`) | डिलीवर की गई सूचनाएँ | हर अवधि की गिनती |
+| `amazonaws.com/aws/sns/numberofnotificationsfailed` (JSON स्ट्रीम: `numberofnotificationsfailed`) | विफल सूचनाएँ | हर अवधि की गिनती |
+| `amazonaws.com/aws/sns/numberofnotificationsredriventodlq` (JSON स्ट्रीम: `numberofnotificationsredriventodlq`) | डेड-लेटर क्यू में भेजे गए | हर अवधि की गिनती |
 
 ### Amazon SQS
 
@@ -345,12 +345,12 @@ service:
 
 | मेट्रिक | इस रूप में दिखती है | प्रकार |
 | --- | --- | --- |
-| `amazonaws.com/aws/sqs/approximatenumberofmessagesvisible` (JSON स्ट्रीम: `approximatenumberofmessagesvisible`) | Messages visible | गेज |
-| `amazonaws.com/aws/sqs/approximateageofoldestmessage` (JSON स्ट्रीम: `approximateageofoldestmessage`) | Oldest message age | गेज |
-| `amazonaws.com/aws/sqs/approximatenumberofmessagesnotvisible` (JSON स्ट्रीम: `approximatenumberofmessagesnotvisible`) | Messages in flight | गेज |
-| `amazonaws.com/aws/sqs/numberofmessagessent` (JSON स्ट्रीम: `numberofmessagessent`) | Messages sent | हर अवधि की गिनती |
-| `amazonaws.com/aws/sqs/numberofmessagesreceived` (JSON स्ट्रीम: `numberofmessagesreceived`) | Messages received | हर अवधि की गिनती |
-| `amazonaws.com/aws/sqs/numberofmessagesdeleted` (JSON स्ट्रीम: `numberofmessagesdeleted`) | Messages deleted | हर अवधि की गिनती |
+| `amazonaws.com/aws/sqs/approximatenumberofmessagesvisible` (JSON स्ट्रीम: `approximatenumberofmessagesvisible`) | दिखाई देने वाले संदेश | गेज |
+| `amazonaws.com/aws/sqs/approximateageofoldestmessage` (JSON स्ट्रीम: `approximateageofoldestmessage`) | सबसे पुराने संदेश की आयु | गेज |
+| `amazonaws.com/aws/sqs/approximatenumberofmessagesnotvisible` (JSON स्ट्रीम: `approximatenumberofmessagesnotvisible`) | प्रक्रिया में संदेश | गेज |
+| `amazonaws.com/aws/sqs/numberofmessagessent` (JSON स्ट्रीम: `numberofmessagessent`) | भेजे गए संदेश | हर अवधि की गिनती |
+| `amazonaws.com/aws/sqs/numberofmessagesreceived` (JSON स्ट्रीम: `numberofmessagesreceived`) | प्राप्त संदेश | हर अवधि की गिनती |
+| `amazonaws.com/aws/sqs/numberofmessagesdeleted` (JSON स्ट्रीम: `numberofmessagesdeleted`) | हटाए गए संदेश | हर अवधि की गिनती |
 
 ### Apache ActiveMQ
 
@@ -384,14 +384,14 @@ java -jar opentelemetry-jmx-scraper.jar
 
 | मेट्रिक | इस रूप में दिखती है | प्रकार |
 | --- | --- | --- |
-| `activemq.message.queue.size` | Queue size | गेज |
-| `activemq.message.current` | Queue size (legacy names) | गेज |
-| `activemq.message.enqueued` | Enqueued | काउंटर, प्रति सेकंड चार्ट |
-| `activemq.message.dequeued` | Dequeued | काउंटर, प्रति सेकंड चार्ट |
-| `activemq.message.expired` | Expired | काउंटर, प्रति सेकंड चार्ट |
-| `activemq.consumer.count` | Consumers | गेज |
-| `activemq.message.enqueue.average_duration` | Average time in queue | गेज |
-| `activemq.message.wait_time.avg` | Average time in queue (legacy names) | गेज |
+| `activemq.message.queue.size` | क्यू आकार | गेज |
+| `activemq.message.current` | क्यू आकार (पुराने नाम) | गेज |
+| `activemq.message.enqueued` | क्यू में डाले गए | काउंटर, प्रति सेकंड चार्ट |
+| `activemq.message.dequeued` | क्यू से निकाले गए | काउंटर, प्रति सेकंड चार्ट |
+| `activemq.message.expired` | समय-सीमा खत्म | काउंटर, प्रति सेकंड चार्ट |
+| `activemq.consumer.count` | कंज़्यूमर | गेज |
+| `activemq.message.enqueue.average_duration` | क्यू में औसत समय | गेज |
+| `activemq.message.wait_time.avg` | क्यू में औसत समय (पुराने नाम) | गेज |
 
 ### Apache Kafka
 
@@ -434,10 +434,10 @@ SASL या TLS वाले क्लस्टर के लिए, `auth` औ�
 
 | मेट्रिक | इस रूप में दिखती है | प्रकार |
 | --- | --- | --- |
-| `kafka.consumer_group.lag_sum` | Consumer lag | गेज |
-| `kafka.consumer_group.lag` | Partition lag | गेज |
-| `kafka.consumer_group.offset_sum` | Consumed | काउंटर, प्रति सेकंड चार्ट |
-| `kafka.partition.current_offset` | Produced | काउंटर, प्रति सेकंड चार्ट |
+| `kafka.consumer_group.lag_sum` | कंज़्यूमर लैग | गेज |
+| `kafka.consumer_group.lag` | पार्टिशन लैग | गेज |
+| `kafka.consumer_group.offset_sum` | उपभोग किए गए | काउंटर, प्रति सेकंड चार्ट |
+| `kafka.partition.current_offset` | उत्पादित | काउंटर, प्रति सेकंड चार्ट |
 
 ### Apache Pulsar
 
@@ -486,11 +486,11 @@ service:
 
 | मेट्रिक | इस रूप में दिखती है | प्रकार |
 | --- | --- | --- |
-| `pulsar_msg_backlog` | Backlog | गेज |
-| `pulsar_subscription_back_log` | Subscription backlog | गेज |
-| `pulsar_storage_backlog_age_seconds` | Backlog age | गेज |
-| `pulsar_in_messages_total` | Messages in | काउंटर, प्रति सेकंड चार्ट |
-| `pulsar_out_messages_total` | Messages out | काउंटर, प्रति सेकंड चार्ट |
+| `pulsar_msg_backlog` | बैकलॉग | गेज |
+| `pulsar_subscription_back_log` | सब्सक्रिप्शन बैकलॉग | गेज |
+| `pulsar_storage_backlog_age_seconds` | बैकलॉग की आयु | गेज |
+| `pulsar_in_messages_total` | आने वाले संदेश | काउंटर, प्रति सेकंड चार्ट |
+| `pulsar_out_messages_total` | जाने वाले संदेश | काउंटर, प्रति सेकंड चार्ट |
 
 ### Apache RocketMQ
 
@@ -536,10 +536,10 @@ service:
 
 | मेट्रिक | इस रूप में दिखती है | प्रकार |
 | --- | --- | --- |
-| `rocketmq_consumer_lag_messages` | Consumer lag | गेज |
-| `rocketmq_consumer_ready_messages` | Ready messages | गेज |
-| `rocketmq_send_to_dlq_messages_total` | Sent to dead-letter queue | काउंटर, प्रति सेकंड चार्ट |
-| `rocketmq_messages_in_total` | Messages in | काउंटर, प्रति सेकंड चार्ट |
+| `rocketmq_consumer_lag_messages` | कंज़्यूमर लैग | गेज |
+| `rocketmq_consumer_ready_messages` | तैयार संदेश | गेज |
+| `rocketmq_send_to_dlq_messages_total` | डेड-लेटर क्यू में भेजे गए | काउंटर, प्रति सेकंड चार्ट |
+| `rocketmq_messages_in_total` | आने वाले संदेश | काउंटर, प्रति सेकंड चार्ट |
 
 ### Azure Event Grid
 
@@ -642,12 +642,12 @@ Azure Monitor में Event Hubs के लिए कोई कंज़्य
 
 | मेट्रिक | इस रूप में दिखती है | प्रकार |
 | --- | --- | --- |
-| `azure_incomingmessages_total` | Incoming messages | हर अवधि की गिनती |
-| `azure_outgoingmessages_total` | Outgoing messages | हर अवधि की गिनती |
-| `azure_servererrors_total` | Server errors | हर अवधि की गिनती |
-| `azure_usererrors_total` | User errors | हर अवधि की गिनती |
-| `azure_quotaexceedederrors_total` | Quota exceeded errors | हर अवधि की गिनती |
-| `azure_throttledrequests_total` | Throttled requests | हर अवधि की गिनती |
+| `azure_incomingmessages_total` | आने वाले संदेश | हर अवधि की गिनती |
+| `azure_outgoingmessages_total` | जाने वाले संदेश | हर अवधि की गिनती |
+| `azure_servererrors_total` | सर्वर त्रुटियाँ | हर अवधि की गिनती |
+| `azure_usererrors_total` | उपयोगकर्ता त्रुटियाँ | हर अवधि की गिनती |
+| `azure_quotaexceedederrors_total` | कोटा पार होने की त्रुटियाँ | हर अवधि की गिनती |
+| `azure_throttledrequests_total` | थ्रॉटल किए गए अनुरोध | हर अवधि की गिनती |
 
 ### Azure Service Bus
 
@@ -711,15 +711,15 @@ service:
 
 | मेट्रिक | इस रूप में दिखती है | प्रकार |
 | --- | --- | --- |
-| `azure_activemessages_average` | Active messages | गेज |
-| `azure_deadletteredmessages_average` | Dead-lettered messages | गेज |
-| `azure_incomingmessages_total` | Incoming messages | हर अवधि की गिनती |
-| `azure_outgoingmessages_total` | Outgoing messages | हर अवधि की गिनती |
-| `azure_completemessage_total` | Completed messages | हर अवधि की गिनती |
-| `azure_abandonmessage_total` | Abandoned messages | हर अवधि की गिनती |
-| `azure_servererrors_total` | Server errors | हर अवधि की गिनती |
-| `azure_usererrors_total` | User errors | हर अवधि की गिनती |
-| `azure_throttledrequests_total` | Throttled requests | हर अवधि की गिनती |
+| `azure_activemessages_average` | सक्रिय संदेश | गेज |
+| `azure_deadletteredmessages_average` | डेड-लेटर संदेश | गेज |
+| `azure_incomingmessages_total` | आने वाले संदेश | हर अवधि की गिनती |
+| `azure_outgoingmessages_total` | जाने वाले संदेश | हर अवधि की गिनती |
+| `azure_completemessage_total` | पूर्ण संदेश | हर अवधि की गिनती |
+| `azure_abandonmessage_total` | छोड़े गए संदेश | हर अवधि की गिनती |
+| `azure_servererrors_total` | सर्वर त्रुटियाँ | हर अवधि की गिनती |
+| `azure_usererrors_total` | उपयोगकर्ता त्रुटियाँ | हर अवधि की गिनती |
+| `azure_throttledrequests_total` | थ्रॉटल किए गए अनुरोध | हर अवधि की गिनती |
 
 ### BullMQ
 
@@ -837,11 +837,11 @@ service:
 
 | मेट्रिक | इस रूप में दिखती है | प्रकार |
 | --- | --- | --- |
-| `pubsub.googleapis.com/subscription/num_undelivered_messages` | Undelivered messages | गेज |
-| `pubsub.googleapis.com/subscription/oldest_unacked_message_age` | Oldest unacked message age | गेज |
-| `pubsub.googleapis.com/subscription/dead_letter_message_count` | Dead-lettered messages | हर अवधि की गिनती |
-| `pubsub.googleapis.com/subscription/ack_message_count` | Acknowledged messages | हर अवधि की गिनती |
-| `pubsub.googleapis.com/topic/send_request_count` | Publish requests | हर अवधि की गिनती |
+| `pubsub.googleapis.com/subscription/num_undelivered_messages` | डिलीवर न किए गए संदेश | गेज |
+| `pubsub.googleapis.com/subscription/oldest_unacked_message_age` | सबसे पुराने अस्वीकृत संदेश की आयु | गेज |
+| `pubsub.googleapis.com/subscription/dead_letter_message_count` | डेड-लेटर संदेश | हर अवधि की गिनती |
+| `pubsub.googleapis.com/subscription/ack_message_count` | स्वीकार किए गए संदेश | हर अवधि की गिनती |
+| `pubsub.googleapis.com/topic/send_request_count` | प्रकाशन अनुरोध | हर अवधि की गिनती |
 
 ### JMS
 
@@ -936,12 +936,12 @@ service:
 
 | मेट्रिक | इस रूप में दिखती है | प्रकार |
 | --- | --- | --- |
-| `rabbitmq.message.current` | Queue depth | गेज |
-| `rabbitmq.message.published` | Published | काउंटर, प्रति सेकंड चार्ट |
-| `rabbitmq.message.delivered` | Delivered | काउंटर, प्रति सेकंड चार्ट |
-| `rabbitmq.message.acknowledged` | Acknowledged | काउंटर, प्रति सेकंड चार्ट |
-| `rabbitmq.message.dropped` | Dropped | काउंटर, प्रति सेकंड चार्ट |
-| `rabbitmq.consumer.count` | Consumers | गेज |
+| `rabbitmq.message.current` | क्यू गहराई | गेज |
+| `rabbitmq.message.published` | प्रकाशित | काउंटर, प्रति सेकंड चार्ट |
+| `rabbitmq.message.delivered` | डिलीवर किए गए | काउंटर, प्रति सेकंड चार्ट |
+| `rabbitmq.message.acknowledged` | स्वीकार किया गया | काउंटर, प्रति सेकंड चार्ट |
+| `rabbitmq.message.dropped` | छोड़े गए | काउंटर, प्रति सेकंड चार्ट |
+| `rabbitmq.consumer.count` | कंज़्यूमर | गेज |
 
 ## अलर्टिंग
 

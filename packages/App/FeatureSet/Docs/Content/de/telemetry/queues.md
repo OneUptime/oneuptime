@@ -256,10 +256,10 @@ Ein Topic wird von beiden Seiten gleich benannt: Spans melden seinen ARN oder se
 
 | Metrik | Angezeigt als | Typ |
 | --- | --- | --- |
-| `amazonaws.com/aws/sns/numberofmessagespublished` (JSON-Stream: `numberofmessagespublished`) | Messages published | Anzahl pro Zeitraum |
-| `amazonaws.com/aws/sns/numberofnotificationsdelivered` (JSON-Stream: `numberofnotificationsdelivered`) | Notifications delivered | Anzahl pro Zeitraum |
-| `amazonaws.com/aws/sns/numberofnotificationsfailed` (JSON-Stream: `numberofnotificationsfailed`) | Notifications failed | Anzahl pro Zeitraum |
-| `amazonaws.com/aws/sns/numberofnotificationsredriventodlq` (JSON-Stream: `numberofnotificationsredriventodlq`) | Redriven to dead-letter queue | Anzahl pro Zeitraum |
+| `amazonaws.com/aws/sns/numberofmessagespublished` (JSON-Stream: `numberofmessagespublished`) | Veröffentlichte Nachrichten | Anzahl pro Zeitraum |
+| `amazonaws.com/aws/sns/numberofnotificationsdelivered` (JSON-Stream: `numberofnotificationsdelivered`) | Zugestellte Benachrichtigungen | Anzahl pro Zeitraum |
+| `amazonaws.com/aws/sns/numberofnotificationsfailed` (JSON-Stream: `numberofnotificationsfailed`) | Fehlgeschlagene Benachrichtigungen | Anzahl pro Zeitraum |
+| `amazonaws.com/aws/sns/numberofnotificationsredriventodlq` (JSON-Stream: `numberofnotificationsredriventodlq`) | In die Dead-Letter-Warteschlange umgeleitet | Anzahl pro Zeitraum |
 
 ### Amazon SQS
 
@@ -345,12 +345,12 @@ Eine Dead-Letter-Warteschlange ist eine gewöhnliche SQS-Warteschlange mit eigen
 
 | Metrik | Angezeigt als | Typ |
 | --- | --- | --- |
-| `amazonaws.com/aws/sqs/approximatenumberofmessagesvisible` (JSON-Stream: `approximatenumberofmessagesvisible`) | Messages visible | Gauge |
-| `amazonaws.com/aws/sqs/approximateageofoldestmessage` (JSON-Stream: `approximateageofoldestmessage`) | Oldest message age | Gauge |
-| `amazonaws.com/aws/sqs/approximatenumberofmessagesnotvisible` (JSON-Stream: `approximatenumberofmessagesnotvisible`) | Messages in flight | Gauge |
-| `amazonaws.com/aws/sqs/numberofmessagessent` (JSON-Stream: `numberofmessagessent`) | Messages sent | Anzahl pro Zeitraum |
-| `amazonaws.com/aws/sqs/numberofmessagesreceived` (JSON-Stream: `numberofmessagesreceived`) | Messages received | Anzahl pro Zeitraum |
-| `amazonaws.com/aws/sqs/numberofmessagesdeleted` (JSON-Stream: `numberofmessagesdeleted`) | Messages deleted | Anzahl pro Zeitraum |
+| `amazonaws.com/aws/sqs/approximatenumberofmessagesvisible` (JSON-Stream: `approximatenumberofmessagesvisible`) | Sichtbare Nachrichten | Gauge |
+| `amazonaws.com/aws/sqs/approximateageofoldestmessage` (JSON-Stream: `approximateageofoldestmessage`) | Alter der ältesten Nachricht | Gauge |
+| `amazonaws.com/aws/sqs/approximatenumberofmessagesnotvisible` (JSON-Stream: `approximatenumberofmessagesnotvisible`) | Nachrichten in Bearbeitung | Gauge |
+| `amazonaws.com/aws/sqs/numberofmessagessent` (JSON-Stream: `numberofmessagessent`) | Gesendete Nachrichten | Anzahl pro Zeitraum |
+| `amazonaws.com/aws/sqs/numberofmessagesreceived` (JSON-Stream: `numberofmessagesreceived`) | Empfangene Nachrichten | Anzahl pro Zeitraum |
+| `amazonaws.com/aws/sqs/numberofmessagesdeleted` (JSON-Stream: `numberofmessagesdeleted`) | Gelöschte Nachrichten | Anzahl pro Zeitraum |
 
 ### Apache ActiveMQ
 
@@ -384,14 +384,14 @@ Die Metriken des Brokers kommen zu der Warteschlange, die die Spans ihrer JMS-Cl
 
 | Metrik | Angezeigt als | Typ |
 | --- | --- | --- |
-| `activemq.message.queue.size` | Queue size | Gauge |
-| `activemq.message.current` | Queue size (legacy names) | Gauge |
-| `activemq.message.enqueued` | Enqueued | Zähler, pro Sekunde dargestellt |
-| `activemq.message.dequeued` | Dequeued | Zähler, pro Sekunde dargestellt |
-| `activemq.message.expired` | Expired | Zähler, pro Sekunde dargestellt |
-| `activemq.consumer.count` | Consumers | Gauge |
-| `activemq.message.enqueue.average_duration` | Average time in queue | Gauge |
-| `activemq.message.wait_time.avg` | Average time in queue (legacy names) | Gauge |
+| `activemq.message.queue.size` | Warteschlangengröße | Gauge |
+| `activemq.message.current` | Warteschlangengröße (alte Namen) | Gauge |
+| `activemq.message.enqueued` | Eingereiht | Zähler, pro Sekunde dargestellt |
+| `activemq.message.dequeued` | Entnommen | Zähler, pro Sekunde dargestellt |
+| `activemq.message.expired` | Abgelaufen | Zähler, pro Sekunde dargestellt |
+| `activemq.consumer.count` | Consumer | Gauge |
+| `activemq.message.enqueue.average_duration` | Durchschnittliche Zeit in der Warteschlange | Gauge |
+| `activemq.message.wait_time.avg` | Durchschnittliche Zeit in der Warteschlange (alte Namen) | Gauge |
 
 ### Apache Kafka
 
@@ -434,10 +434,10 @@ Kommentieren Sie für einen Cluster mit SASL oder TLS `auth` und `tls` ein. Der 
 
 | Metrik | Angezeigt als | Typ |
 | --- | --- | --- |
-| `kafka.consumer_group.lag_sum` | Consumer lag | Gauge |
-| `kafka.consumer_group.lag` | Partition lag | Gauge |
-| `kafka.consumer_group.offset_sum` | Consumed | Zähler, pro Sekunde dargestellt |
-| `kafka.partition.current_offset` | Produced | Zähler, pro Sekunde dargestellt |
+| `kafka.consumer_group.lag_sum` | Consumer-Lag | Gauge |
+| `kafka.consumer_group.lag` | Partitions-Lag | Gauge |
+| `kafka.consumer_group.offset_sum` | Verbraucht | Zähler, pro Sekunde dargestellt |
+| `kafka.partition.current_offset` | Produziert | Zähler, pro Sekunde dargestellt |
 
 ### Apache Pulsar
 
@@ -486,11 +486,11 @@ service:
 
 | Metrik | Angezeigt als | Typ |
 | --- | --- | --- |
-| `pulsar_msg_backlog` | Backlog | Gauge |
-| `pulsar_subscription_back_log` | Subscription backlog | Gauge |
-| `pulsar_storage_backlog_age_seconds` | Backlog age | Gauge |
-| `pulsar_in_messages_total` | Messages in | Zähler, pro Sekunde dargestellt |
-| `pulsar_out_messages_total` | Messages out | Zähler, pro Sekunde dargestellt |
+| `pulsar_msg_backlog` | Rückstand | Gauge |
+| `pulsar_subscription_back_log` | Rückstand des Abonnements | Gauge |
+| `pulsar_storage_backlog_age_seconds` | Alter des Rückstands | Gauge |
+| `pulsar_in_messages_total` | Eingehende Nachrichten | Zähler, pro Sekunde dargestellt |
+| `pulsar_out_messages_total` | Ausgehende Nachrichten | Zähler, pro Sekunde dargestellt |
 
 ### Apache RocketMQ
 
@@ -536,10 +536,10 @@ Das ist der eingebaute Exporter von RocketMQ 5. RocketMQ 4 hat keinen; der separ
 
 | Metrik | Angezeigt als | Typ |
 | --- | --- | --- |
-| `rocketmq_consumer_lag_messages` | Consumer lag | Gauge |
-| `rocketmq_consumer_ready_messages` | Ready messages | Gauge |
-| `rocketmq_send_to_dlq_messages_total` | Sent to dead-letter queue | Zähler, pro Sekunde dargestellt |
-| `rocketmq_messages_in_total` | Messages in | Zähler, pro Sekunde dargestellt |
+| `rocketmq_consumer_lag_messages` | Consumer-Lag | Gauge |
+| `rocketmq_consumer_ready_messages` | Bereite Nachrichten | Gauge |
+| `rocketmq_send_to_dlq_messages_total` | An die Dead-Letter-Warteschlange gesendet | Zähler, pro Sekunde dargestellt |
+| `rocketmq_messages_in_total` | Eingehende Nachrichten | Zähler, pro Sekunde dargestellt |
 
 ### Azure Event Grid
 
@@ -642,12 +642,12 @@ Azure Monitor hat für Event Hubs keine Metrik für den Consumer-Lag: Sein `Cons
 
 | Metrik | Angezeigt als | Typ |
 | --- | --- | --- |
-| `azure_incomingmessages_total` | Incoming messages | Anzahl pro Zeitraum |
-| `azure_outgoingmessages_total` | Outgoing messages | Anzahl pro Zeitraum |
-| `azure_servererrors_total` | Server errors | Anzahl pro Zeitraum |
-| `azure_usererrors_total` | User errors | Anzahl pro Zeitraum |
-| `azure_quotaexceedederrors_total` | Quota exceeded errors | Anzahl pro Zeitraum |
-| `azure_throttledrequests_total` | Throttled requests | Anzahl pro Zeitraum |
+| `azure_incomingmessages_total` | Eingehende Nachrichten | Anzahl pro Zeitraum |
+| `azure_outgoingmessages_total` | Ausgehende Nachrichten | Anzahl pro Zeitraum |
+| `azure_servererrors_total` | Serverfehler | Anzahl pro Zeitraum |
+| `azure_usererrors_total` | Benutzerfehler | Anzahl pro Zeitraum |
+| `azure_quotaexceedederrors_total` | Fehler wegen überschrittenem Kontingent | Anzahl pro Zeitraum |
+| `azure_throttledrequests_total` | Gedrosselte Anforderungen | Anzahl pro Zeitraum |
 
 ### Azure Service Bus
 
@@ -711,15 +711,15 @@ service:
 
 | Metrik | Angezeigt als | Typ |
 | --- | --- | --- |
-| `azure_activemessages_average` | Active messages | Gauge |
-| `azure_deadletteredmessages_average` | Dead-lettered messages | Gauge |
-| `azure_incomingmessages_total` | Incoming messages | Anzahl pro Zeitraum |
-| `azure_outgoingmessages_total` | Outgoing messages | Anzahl pro Zeitraum |
-| `azure_completemessage_total` | Completed messages | Anzahl pro Zeitraum |
-| `azure_abandonmessage_total` | Abandoned messages | Anzahl pro Zeitraum |
-| `azure_servererrors_total` | Server errors | Anzahl pro Zeitraum |
-| `azure_usererrors_total` | User errors | Anzahl pro Zeitraum |
-| `azure_throttledrequests_total` | Throttled requests | Anzahl pro Zeitraum |
+| `azure_activemessages_average` | Aktive Nachrichten | Gauge |
+| `azure_deadletteredmessages_average` | Unzustellbare Nachrichten | Gauge |
+| `azure_incomingmessages_total` | Eingehende Nachrichten | Anzahl pro Zeitraum |
+| `azure_outgoingmessages_total` | Ausgehende Nachrichten | Anzahl pro Zeitraum |
+| `azure_completemessage_total` | Abgeschlossene Nachrichten | Anzahl pro Zeitraum |
+| `azure_abandonmessage_total` | Abgebrochene Nachrichten | Anzahl pro Zeitraum |
+| `azure_servererrors_total` | Serverfehler | Anzahl pro Zeitraum |
+| `azure_usererrors_total` | Benutzerfehler | Anzahl pro Zeitraum |
+| `azure_throttledrequests_total` | Gedrosselte Anforderungen | Anzahl pro Zeitraum |
 
 ### BullMQ
 
@@ -837,11 +837,11 @@ service:
 
 | Metrik | Angezeigt als | Typ |
 | --- | --- | --- |
-| `pubsub.googleapis.com/subscription/num_undelivered_messages` | Undelivered messages | Gauge |
-| `pubsub.googleapis.com/subscription/oldest_unacked_message_age` | Oldest unacked message age | Gauge |
-| `pubsub.googleapis.com/subscription/dead_letter_message_count` | Dead-lettered messages | Anzahl pro Zeitraum |
-| `pubsub.googleapis.com/subscription/ack_message_count` | Acknowledged messages | Anzahl pro Zeitraum |
-| `pubsub.googleapis.com/topic/send_request_count` | Publish requests | Anzahl pro Zeitraum |
+| `pubsub.googleapis.com/subscription/num_undelivered_messages` | Nicht zugestellte Nachrichten | Gauge |
+| `pubsub.googleapis.com/subscription/oldest_unacked_message_age` | Alter der ältesten unbestätigten Nachricht | Gauge |
+| `pubsub.googleapis.com/subscription/dead_letter_message_count` | Unzustellbare Nachrichten | Anzahl pro Zeitraum |
+| `pubsub.googleapis.com/subscription/ack_message_count` | Bestätigte Nachrichten | Anzahl pro Zeitraum |
+| `pubsub.googleapis.com/topic/send_request_count` | Veröffentlichungsanforderungen | Anzahl pro Zeitraum |
 
 ### JMS
 
@@ -936,12 +936,12 @@ service:
 
 | Metrik | Angezeigt als | Typ |
 | --- | --- | --- |
-| `rabbitmq.message.current` | Queue depth | Gauge |
-| `rabbitmq.message.published` | Published | Zähler, pro Sekunde dargestellt |
-| `rabbitmq.message.delivered` | Delivered | Zähler, pro Sekunde dargestellt |
-| `rabbitmq.message.acknowledged` | Acknowledged | Zähler, pro Sekunde dargestellt |
-| `rabbitmq.message.dropped` | Dropped | Zähler, pro Sekunde dargestellt |
-| `rabbitmq.consumer.count` | Consumers | Gauge |
+| `rabbitmq.message.current` | Warteschlangentiefe | Gauge |
+| `rabbitmq.message.published` | Veröffentlicht | Zähler, pro Sekunde dargestellt |
+| `rabbitmq.message.delivered` | Zugestellt | Zähler, pro Sekunde dargestellt |
+| `rabbitmq.message.acknowledged` | Bestätigt | Zähler, pro Sekunde dargestellt |
+| `rabbitmq.message.dropped` | Verworfen | Zähler, pro Sekunde dargestellt |
+| `rabbitmq.consumer.count` | Consumer | Gauge |
 
 ## Warnungen
 
