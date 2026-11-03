@@ -41435,6 +41435,7 @@
   "Show Incident on Status Pages": "Show Incident on Status Pages",
   "Show the incident on the status pages that list its monitor, and notify their subscribers.": "Show the incident on the status pages that list its monitor, and notify their subscribers.",
   "Which alerts become incidents, and when.": "Which alerts become incidents, and when.",
+  "e.g. Declare SEV1 incidents": "e.g. Declare SEV1 incidents",
   "Affected resources": "منابع تحت تأثیر",
   "Already linked": "از قبل پیوندشده",
   "Already linked to {{resources}}": "از قبل پیوند به {{resources}}",
