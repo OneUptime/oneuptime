@@ -41487,5 +41487,8 @@
   "The column of that table it refers to.": "The column of that table it refers to.",
   "The column the check reads.": "The column the check reads.",
   "The value an Above or Below alert compares with.": "The value an Above or Below alert compares with.",
-  "Turned off, the check stops running, and its alert goes quiet with it.": "Turned off, the check stops running, and its alert goes quiet with it."
+  "Turned off, the check stops running, and its alert goes quiet with it.": "Turned off, the check stops running, and its alert goes quiet with it.",
+  "Add All": "Add All",
+  "Checks this table's columns call for, from their names and types. No row was read to suggest them.": "Checks this table's columns call for, from their names and types. No row was read to suggest them.",
+  "Suggested Checks": "Suggested Checks"
 }

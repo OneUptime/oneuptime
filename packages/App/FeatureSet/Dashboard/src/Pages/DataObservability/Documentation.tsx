@@ -103,6 +103,15 @@ Table health says whether a table changes. A **check** says whether what it hold
 | **Row Count** | Rows in the table, most useful with **Segment By** |
 | **Custom SQL** | The number one read-only SELECT of yours returns |
 
+**Suggested Checks** on the same tab offer the checks a table's columns call for, from their names and types alone:
+- An id is unique.
+- A \`customer_id\` has a matching row in \`customers\`.
+- An email looks like one, and an amount is not negative.
+- A status keeps its usual values.
+- A table split by tenant is counted per tenant.
+
+Add one, add them all, or dismiss one for good.
+
 **Segment By** runs a check once per value of a column, such as a tenant or a region: one series and one alert each, for the largest 100 segments. A segmented Row Count alerts when one tenant stops sending data.
 
 Checks run with the database's collection, by OneUptime or by its probe, every 15 minutes, hour, 6 hours or day. Each runs as one aggregate statement in a read-only transaction with a statement timeout: only the number leaves the database, never a row. The value is written as \`oneuptime.data.check.value\`, with \`oneuptime.data.check.id\`, \`oneuptime.data.check.name\` and \`oneuptime.data.check.segment\`.
