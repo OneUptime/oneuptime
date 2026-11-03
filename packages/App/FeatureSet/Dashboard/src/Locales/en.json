@@ -41416,5 +41416,9 @@
   "Transaction IDs at {{percent}} of wraparound": "Transaction IDs at {{percent}} of wraparound",
   "{{count}} session waiting on a lock": "{{count}} session waiting on a lock",
   "{{count}} sessions waiting on locks": "{{count}} sessions waiting on locks",
-  "{{count}} sessions waiting on locks_one": "{{count}} session waiting on a lock"
+  "{{count}} sessions waiting on locks_one": "{{count}} session waiting on a lock",
+  "The ones you may add user overrides on. Untick any it should leave alone.": "The ones you may add user overrides on. Untick any it should leave alone.",
+  "This applies to the on-call policy {{policy}}. To end it early, delete it on that policy's User Overrides page, under Advanced.": "This applies to the on-call policy {{policy}}. To end it early, delete it on that policy's User Overrides page, under Advanced.",
+  "Tick at least one on-call policy.": "Tick at least one on-call policy.",
+  "This applies to the on-call policies you tick. To end it early, delete it on each policy's User Overrides page, under Advanced.": "This applies to the on-call policies you tick. To end it early, delete it on each policy's User Overrides page, under Advanced."
 }

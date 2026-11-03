@@ -41416,5 +41416,9 @@
   "Transaction IDs at {{percent}} of wraparound": "شناسه‌های تراکنش در {{percent}} مسیر تا wraparound",
   "{{count}} session waiting on a lock": "{{count}} نشست در انتظار قفل",
   "{{count}} sessions waiting on locks": "{{count}} نشست در انتظار قفل",
-  "{{count}} sessions waiting on locks_one": "{{count}} نشست در انتظار قفل"
+  "{{count}} sessions waiting on locks_one": "{{count}} نشست در انتظار قفل",
+  "The ones you may add user overrides on. Untick any it should leave alone.": "سیاست‌هایی که می‌توانید روی آن‌ها جایگزینی کاربر اضافه کنید. تیک هر موردی را که نباید شامل شود بردارید.",
+  "This applies to the on-call policy {{policy}}. To end it early, delete it on that policy's User Overrides page, under Advanced.": "این برای سیاست آنکال {{policy}} اعمال می‌شود. برای پایان زودتر، آن را در صفحه جایگزینی‌های کاربر همان سیاست، زیر پیشرفته، حذف کنید.",
+  "Tick at least one on-call policy.": "دست‌کم یک سیاست آنکال را تیک بزنید.",
+  "This applies to the on-call policies you tick. To end it early, delete it on each policy's User Overrides page, under Advanced.": "این برای سیاست‌های آنکالی که تیک می‌زنید اعمال می‌شود. برای پایان زودتر، آن را در صفحه جایگزینی‌های کاربر هر سیاست، زیر پیشرفته، حذف کنید."
 }

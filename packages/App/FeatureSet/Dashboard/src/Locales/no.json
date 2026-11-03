@@ -41416,5 +41416,9 @@
   "Transaction IDs at {{percent}} of wraparound": "Transaksjons-ID-er på {{percent}} av veien til wraparound",
   "{{count}} session waiting on a lock": "{{count}} økt venter på en lås",
   "{{count}} sessions waiting on locks": "{{count}} økter venter på låser",
-  "{{count}} sessions waiting on locks_one": "{{count}} økt venter på en lås"
+  "{{count}} sessions waiting on locks_one": "{{count}} økt venter på en lås",
+  "The ones you may add user overrides on. Untick any it should leave alone.": "De du kan legge til brukeroverstyringer på. Fjern krysset for dem det skal la være.",
+  "This applies to the on-call policy {{policy}}. To end it early, delete it on that policy's User Overrides page, under Advanced.": "Dette gjelder vaktpolicyen {{policy}}. For å avslutte det tidligere, slett det på siden Brukeroverstyringer for den policyen, under Avansert.",
+  "Tick at least one on-call policy.": "Kryss av for minst én vaktpolicy.",
+  "This applies to the on-call policies you tick. To end it early, delete it on each policy's User Overrides page, under Advanced.": "Dette gjelder vaktpolicyene du krysser av. For å avslutte det tidligere, slett det på siden Brukeroverstyringer for hver policy, under Avansert."
 }

@@ -41416,5 +41416,9 @@
   "Transaction IDs at {{percent}} of wraparound": "IDs de transação em {{percent}} do wraparound",
   "{{count}} session waiting on a lock": "{{count}} sessão aguardando um bloqueio",
   "{{count}} sessions waiting on locks": "{{count}} sessões aguardando bloqueios",
-  "{{count}} sessions waiting on locks_one": "{{count}} sessão aguardando um bloqueio"
+  "{{count}} sessions waiting on locks_one": "{{count}} sessão aguardando um bloqueio",
+  "The ones you may add user overrides on. Untick any it should leave alone.": "Aquelas em que você pode adicionar substituições de usuário. Desmarque as que devem ficar de fora.",
+  "This applies to the on-call policy {{policy}}. To end it early, delete it on that policy's User Overrides page, under Advanced.": "Isso vale para a política de plantão {{policy}}. Para encerrar antes, exclua na página Substituições de usuário dessa política, em Avançado.",
+  "Tick at least one on-call policy.": "Marque pelo menos uma política de plantão.",
+  "This applies to the on-call policies you tick. To end it early, delete it on each policy's User Overrides page, under Advanced.": "Isso vale para as políticas de plantão que você marcar. Para encerrar antes, exclua na página Substituições de usuário de cada política, em Avançado."
 }

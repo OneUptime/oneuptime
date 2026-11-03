@@ -41416,5 +41416,9 @@
   "Transaction IDs at {{percent}} of wraparound": "事务 ID 已达回卷上限的 {{percent}}",
   "{{count}} session waiting on a lock": "{{count}} 个会话正在等待锁",
   "{{count}} sessions waiting on locks": "{{count}} 个会话正在等待锁",
-  "{{count}} sessions waiting on locks_one": "{{count}} 个会话正在等待锁"
+  "{{count}} sessions waiting on locks_one": "{{count}} 个会话正在等待锁",
+  "The ones you may add user overrides on. Untick any it should leave alone.": "您可以添加用户覆盖的策略。取消勾选不应应用的策略。",
+  "This applies to the on-call policy {{policy}}. To end it early, delete it on that policy's User Overrides page, under Advanced.": "这适用于值班策略 {{policy}}。如需提前结束，请在该策略的 高级 > 用户覆盖 页面中删除。",
+  "Tick at least one on-call policy.": "请至少勾选一个值班策略。",
+  "This applies to the on-call policies you tick. To end it early, delete it on each policy's User Overrides page, under Advanced.": "这适用于您勾选的值班策略。如需提前结束，请在每个策略的 高级 > 用户覆盖 页面中删除。"
 }

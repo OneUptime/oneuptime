@@ -41416,5 +41416,9 @@
   "Transaction IDs at {{percent}} of wraparound": "ID de transacción al {{percent}} del reinicio (wraparound)",
   "{{count}} session waiting on a lock": "{{count}} sesión esperando un bloqueo",
   "{{count}} sessions waiting on locks": "{{count}} sesiones esperando bloqueos",
-  "{{count}} sessions waiting on locks_one": "{{count}} sesión esperando un bloqueo"
+  "{{count}} sessions waiting on locks_one": "{{count}} sesión esperando un bloqueo",
+  "The ones you may add user overrides on. Untick any it should leave alone.": "Aquellas en las que puede añadir sustituciones de usuarios. Desmarque las que deba dejar en paz.",
+  "This applies to the on-call policy {{policy}}. To end it early, delete it on that policy's User Overrides page, under Advanced.": "Esto se aplica a la política de guardia {{policy}}. Para terminarlo antes, elimínelo en la página Sustituciones de usuarios de esa política, en Avanzado.",
+  "Tick at least one on-call policy.": "Marque al menos una política de guardia.",
+  "This applies to the on-call policies you tick. To end it early, delete it on each policy's User Overrides page, under Advanced.": "Esto se aplica a las políticas de guardia que marque. Para terminarlo antes, elimínelo en la página Sustituciones de usuarios de cada política, en Avanzado."
 }

@@ -41416,5 +41416,9 @@
   "Transaction IDs at {{percent}} of wraparound": "Идентификаторы транзакций: {{percent}} до переполнения",
   "{{count}} session waiting on a lock": "{{count}} сеанс ждёт блокировки",
   "{{count}} sessions waiting on locks": "Сеансов в ожидании блокировок: {{count}}",
-  "{{count}} sessions waiting on locks_one": "{{count}} сеанс ждёт блокировки"
+  "{{count}} sessions waiting on locks_one": "{{count}} сеанс ждёт блокировки",
+  "The ones you may add user overrides on. Untick any it should leave alone.": "Политики, в которые вы можете добавлять пользовательские переопределения. Снимите отметку с тех, которых это не должно касаться.",
+  "This applies to the on-call policy {{policy}}. To end it early, delete it on that policy's User Overrides page, under Advanced.": "Это действует для политики дежурства {{policy}}. Чтобы завершить досрочно, удалите его на странице Пользовательские переопределения этой политики, в разделе Расширенный.",
+  "Tick at least one on-call policy.": "Отметьте хотя бы одну политику дежурства.",
+  "This applies to the on-call policies you tick. To end it early, delete it on each policy's User Overrides page, under Advanced.": "Это действует для политик дежурства, которые вы отметите. Чтобы завершить досрочно, удалите его на странице Пользовательские переопределения каждой политики, в разделе Расширенный."
 }

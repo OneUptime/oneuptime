@@ -41416,5 +41416,9 @@
   "Transaction IDs at {{percent}} of wraparound": "Transaktions-IDs bei {{percent}} bis zum Wraparound",
   "{{count}} session waiting on a lock": "{{count}} Sitzung wartet auf eine Sperre",
   "{{count}} sessions waiting on locks": "{{count}} Sitzungen warten auf Sperren",
-  "{{count}} sessions waiting on locks_one": "{{count}} Sitzung wartet auf eine Sperre"
+  "{{count}} sessions waiting on locks_one": "{{count}} Sitzung wartet auf eine Sperre",
+  "The ones you may add user overrides on. Untick any it should leave alone.": "Die Richtlinien, für die Sie Benutzerüberschreibungen hinzufügen dürfen. Entfernen Sie das Häkchen bei denen, die es in Ruhe lassen soll.",
+  "This applies to the on-call policy {{policy}}. To end it early, delete it on that policy's User Overrides page, under Advanced.": "Dies gilt für die Bereitschaftsrichtlinie {{policy}}. Um es früher zu beenden, löschen Sie es auf der Seite Benutzerüberschreibungen dieser Richtlinie, unter Erweitert.",
+  "Tick at least one on-call policy.": "Haken Sie mindestens eine Bereitschaftsrichtlinie an.",
+  "This applies to the on-call policies you tick. To end it early, delete it on each policy's User Overrides page, under Advanced.": "Dies gilt für die Bereitschaftsrichtlinien, die Sie anhaken. Um es früher zu beenden, löschen Sie es auf der Seite Benutzerüberschreibungen jeder Richtlinie, unter Erweitert."
 }

@@ -41416,5 +41416,9 @@
   "Transaction IDs at {{percent}} of wraparound": "트랜잭션 ID가 랩어라운드 한계의 {{percent}}",
   "{{count}} session waiting on a lock": "잠금을 기다리는 세션 {{count}}개",
   "{{count}} sessions waiting on locks": "잠금을 기다리는 세션 {{count}}개",
-  "{{count}} sessions waiting on locks_one": "잠금을 기다리는 세션 {{count}}개"
+  "{{count}} sessions waiting on locks_one": "잠금을 기다리는 세션 {{count}}개",
+  "The ones you may add user overrides on. Untick any it should leave alone.": "사용자 재정의를 추가할 수 있는 정책입니다. 적용하지 않을 정책은 선택을 해제하세요.",
+  "This applies to the on-call policy {{policy}}. To end it early, delete it on that policy's User Overrides page, under Advanced.": "온콜 정책 {{policy}}에 적용됩니다. 일찍 끝내려면 해당 정책의 고급 > 사용자 재정의 페이지에서 삭제하세요.",
+  "Tick at least one on-call policy.": "온콜 정책을 하나 이상 선택하세요.",
+  "This applies to the on-call policies you tick. To end it early, delete it on each policy's User Overrides page, under Advanced.": "선택한 온콜 정책에 적용됩니다. 일찍 끝내려면 각 정책의 고급 > 사용자 재정의 페이지에서 삭제하세요."
 }

@@ -41416,5 +41416,9 @@
   "Transaction IDs at {{percent}} of wraparound": "交易 ID 已達回繞上限的 {{percent}}",
   "{{count}} session waiting on a lock": "{{count}} 個工作階段正在等待鎖定",
   "{{count}} sessions waiting on locks": "{{count}} 個工作階段正在等待鎖定",
-  "{{count}} sessions waiting on locks_one": "{{count}} 個工作階段正在等待鎖定"
+  "{{count}} sessions waiting on locks_one": "{{count}} 個工作階段正在等待鎖定",
+  "The ones you may add user overrides on. Untick any it should leave alone.": "您可以新增使用者覆寫的策略。取消勾選不應套用的策略。",
+  "This applies to the on-call policy {{policy}}. To end it early, delete it on that policy's User Overrides page, under Advanced.": "這適用於待命策略 {{policy}}。如需提前結束，請在該策略的 進階 > 使用者覆寫 頁面中刪除。",
+  "Tick at least one on-call policy.": "請至少勾選一個待命策略。",
+  "This applies to the on-call policies you tick. To end it early, delete it on each policy's User Overrides page, under Advanced.": "這適用於您勾選的待命策略。如需提前結束，請在每個策略的 進階 > 使用者覆寫 頁面中刪除。"
 }

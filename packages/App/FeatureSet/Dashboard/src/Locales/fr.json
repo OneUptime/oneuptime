@@ -41416,5 +41416,9 @@
   "Transaction IDs at {{percent}} of wraparound": "ID de transaction à {{percent}} du rebouclage",
   "{{count}} session waiting on a lock": "{{count}} session en attente d'un verrou",
   "{{count}} sessions waiting on locks": "{{count}} sessions en attente de verrous",
-  "{{count}} sessions waiting on locks_one": "{{count}} session en attente d'un verrou"
+  "{{count}} sessions waiting on locks_one": "{{count}} session en attente d'un verrou",
+  "The ones you may add user overrides on. Untick any it should leave alone.": "Celles sur lesquelles vous pouvez ajouter des remplacements d'utilisateur. Décochez celles qu'il doit laisser tranquilles.",
+  "This applies to the on-call policy {{policy}}. To end it early, delete it on that policy's User Overrides page, under Advanced.": "Ceci s'applique à la politique d'astreinte {{policy}}. Pour y mettre fin plus tôt, supprimez-le sur la page Remplacements d'utilisateur de cette politique, sous Avancé.",
+  "Tick at least one on-call policy.": "Cochez au moins une politique d'astreinte.",
+  "This applies to the on-call policies you tick. To end it early, delete it on each policy's User Overrides page, under Advanced.": "Ceci s'applique aux politiques d'astreinte que vous cochez. Pour y mettre fin plus tôt, supprimez-le sur la page Remplacements d'utilisateur de chaque politique, sous Avancé."
 }
