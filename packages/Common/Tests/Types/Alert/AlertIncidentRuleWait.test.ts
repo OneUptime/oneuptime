@@ -87,9 +87,12 @@ describe("an alert incident rule's wait", () => {
       ["soon", 0],
       // Capped at a week.
       [100000, 7 * 24 * 60],
-    ] as Array<[unknown, number]>)("%p is %p minutes", (value: unknown, minutes: number) => {
-      expect(getAlertIncidentRuleWaitInMinutes(value)).toBe(minutes);
-    });
+    ] as Array<[unknown, number]>)(
+      "%p is %p minutes",
+      (value: unknown, minutes: number) => {
+        expect(getAlertIncidentRuleWaitInMinutes(value)).toBe(minutes);
+      },
+    );
 
     test("0 and nothing declare right away; any wait does not", () => {
       expect(doesAlertIncidentRuleDeclareRightAway(0)).toBe(true);
@@ -132,9 +135,12 @@ describe("an alert incident rule's wait", () => {
       [90, "If still unresolved after 1 hour 30 minutes"],
       [24 * 60, "If still unresolved after 1 day"],
       [2 * 24 * 60 + 61, "If still unresolved after 2 days 1 hour 1 minute"],
-    ] as Array<[number, string]>)("%p minutes: %p", (minutes: number, words: string) => {
-      expect(describeAlertIncidentRuleWait(minutes)).toBe(words);
-    });
+    ] as Array<[number, string]>)(
+      "%p minutes: %p",
+      (minutes: number, words: string) => {
+        expect(describeAlertIncidentRuleWait(minutes)).toBe(words);
+      },
+    );
 
     test("a wait on its own, largest unit first", () => {
       expect(formatAlertIncidentRuleWait(0)).toBe("0 minutes");

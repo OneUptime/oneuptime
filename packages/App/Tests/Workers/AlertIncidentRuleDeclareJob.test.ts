@@ -117,7 +117,9 @@ describe("alert incident rules whose wait is up - wired into the worker at all",
     });
 
     expect(indexSource).toMatch(
-      sideEffectImport("./Jobs/AlertIncidentRules/DeclareIncidentsWhenWaitIsUp"),
+      sideEffectImport(
+        "./Jobs/AlertIncidentRules/DeclareIncidentsWhenWaitIsUp",
+      ),
     );
   });
 });

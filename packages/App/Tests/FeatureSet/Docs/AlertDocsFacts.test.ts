@@ -2466,15 +2466,15 @@ describe("alert rules and settings", () => {
       'ALERT_INCIDENT_RULE_STATUS_PAGE_TITLE: string =\n  "Show on Status Pages"',
     );
     expect(steps).toContain('such as "Declare SEV1 incidents"');
-    expect(copy).toContain('translationKey(\n  "Declare {{severity}} incidents",\n)');
+    expect(copy).toContain(
+      'translationKey(\n  "Declare {{severity}} incidents",\n)',
+    );
 
     expect(steps).toContain(
       "The first rule that matches a new alert, from the top of the list down, declares an incident from it",
     );
     expect(engine).toContain("order: SortOrder.Ascending,");
-    expect(engine).toContain(
-      "private async findFirstMatchingRule(",
-    );
+    expect(engine).toContain("private async findFirstMatchingRule(");
     expect(page).toContain(
       "**Grouping Rules**, **Incident Rules** and **Reminder Rules** are checked from the top of their list down, and the first match wins.",
     );

@@ -782,14 +782,13 @@ class AlertIncidentRuleEngineServiceClass {
       }
     }
 
-    const liveIncidentSeverities: Array<SeverityForMapping> =
-      incidentSeverities
-        .filter((severity: IncidentSeverity): boolean => {
-          return !isArchivedValue(severity) && Boolean(severity._id);
-        })
-        .map((severity: IncidentSeverity): SeverityForMapping => {
-          return this.toSeverityForMapping(severity);
-        });
+    const liveIncidentSeverities: Array<SeverityForMapping> = incidentSeverities
+      .filter((severity: IncidentSeverity): boolean => {
+        return !isArchivedValue(severity) && Boolean(severity._id);
+      })
+      .map((severity: IncidentSeverity): SeverityForMapping => {
+        return this.toSeverityForMapping(severity);
+      });
 
     if (liveIncidentSeverities.length === 0) {
       return null;

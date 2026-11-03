@@ -19,8 +19,12 @@ import { describe, expect, test } from "@jest/globals";
  */
 
 interface ServiceHooks {
-  checkCreateBeforeReferences: (createBy: CreateBy<AlertIncidentRule>) => Promise<void>;
-  checkUpdateBeforeReferences: (updateBy: UpdateBy<AlertIncidentRule>) => Promise<void>;
+  checkCreateBeforeReferences: (
+    createBy: CreateBy<AlertIncidentRule>,
+  ) => Promise<void>;
+  checkUpdateBeforeReferences: (
+    updateBy: UpdateBy<AlertIncidentRule>,
+  ) => Promise<void>;
 }
 
 const hooks: ServiceHooks = AlertIncidentRuleService as unknown as ServiceHooks;
@@ -37,7 +41,9 @@ function createWith(wait: unknown): CreateBy<AlertIncidentRule> {
   return { data: rule, props: { isRoot: true } };
 }
 
-function updateWith(data: Record<string, unknown>): UpdateBy<AlertIncidentRule> {
+function updateWith(
+  data: Record<string, unknown>,
+): UpdateBy<AlertIncidentRule> {
   return {
     query: { _id: ObjectID.generate() },
     data: data as never,

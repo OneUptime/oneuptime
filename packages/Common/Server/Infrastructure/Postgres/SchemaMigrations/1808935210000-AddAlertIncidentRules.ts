@@ -161,36 +161,28 @@ export class AddAlertIncidentRules1808935210000 implements MigrationInterface {
     await queryRunner.query(
       `DROP INDEX "public"."IDX_1e87b8fbe3de940b9c6ff0aa9c"`,
     );
-    await queryRunner.query(
-      `DROP TABLE "AlertIncidentRuleMonitorLabel"`,
-    );
+    await queryRunner.query(`DROP TABLE "AlertIncidentRuleMonitorLabel"`);
     await queryRunner.query(
       `DROP INDEX "public"."IDX_f9dac1bb3bcd634970468485ce"`,
     );
     await queryRunner.query(
       `DROP INDEX "public"."IDX_547e6948a92f6fa8a1e1f3df4c"`,
     );
-    await queryRunner.query(
-      `DROP TABLE "AlertIncidentRuleAlertLabel"`,
-    );
+    await queryRunner.query(`DROP TABLE "AlertIncidentRuleAlertLabel"`);
     await queryRunner.query(
       `DROP INDEX "public"."IDX_9bfbd10e107f69613b59c0906b"`,
     );
     await queryRunner.query(
       `DROP INDEX "public"."IDX_c8f7d2947121b3f4c460137ad9"`,
     );
-    await queryRunner.query(
-      `DROP TABLE "AlertIncidentRuleAlertSeverity"`,
-    );
+    await queryRunner.query(`DROP TABLE "AlertIncidentRuleAlertSeverity"`);
     await queryRunner.query(
       `DROP INDEX "public"."IDX_4cff4a3fdcd90da94e503dc075"`,
     );
     await queryRunner.query(
       `DROP INDEX "public"."IDX_294d61029a66cc7d44b67cd344"`,
     );
-    await queryRunner.query(
-      `DROP TABLE "AlertIncidentRuleMonitor"`,
-    );
+    await queryRunner.query(`DROP TABLE "AlertIncidentRuleMonitor"`);
     await queryRunner.query(
       `DROP INDEX "public"."IDX_c60e1f0a273569c840577ceb21"`,
     );
@@ -206,8 +198,6 @@ export class AddAlertIncidentRules1808935210000 implements MigrationInterface {
     await queryRunner.query(
       `DROP INDEX "public"."IDX_2173814ff2cf27784628f754e9"`,
     );
-    await queryRunner.query(
-      `DROP TABLE "AlertIncidentRule"`,
-    );
+    await queryRunner.query(`DROP TABLE "AlertIncidentRule"`);
   }
 }

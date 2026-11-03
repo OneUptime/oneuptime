@@ -326,9 +326,10 @@ function stubAll(data: {
     createFeed: stub(AlertFeedService, "createAlertFeedItem").mockResolvedValue(
       undefined as never,
     ),
-    isResolved: stub(AlertStateService, "isResolvedAlertState").mockResolvedValue(
-      false as never,
-    ),
+    isResolved: stub(
+      AlertStateService,
+      "isResolvedAlertState",
+    ).mockResolvedValue(false as never),
     readMonitor: stub(MonitorService, "findOneById").mockResolvedValue(
       null as never,
     ),
@@ -651,9 +652,7 @@ describe("a new alert and the project's alert incident rules", () => {
       const stubs: Stubs = stubAll({
         rules: [newRule({ monitorNamePattern: "^PROD-" })],
       });
-      stubs.readMonitor.mockResolvedValue(
-        monitorWith([], "prod-db") as never,
-      );
+      stubs.readMonitor.mockResolvedValue(monitorWith([], "prod-db") as never);
 
       expect(
         (await AlertIncidentRuleEngineService.applyRulesToAlert(newAlert()))
@@ -1316,7 +1315,9 @@ describe("what the engine reads and writes", () => {
         incidentLink: "https://x.example/i/3",
         declareAfterInMinutes: 0,
       }).toString(),
-    ).toBe("Declared **[Incident #3](https://x.example/i/3)** from this alert.");
+    ).toBe(
+      "Declared **[Incident #3](https://x.example/i/3)** from this alert.",
+    );
 
     expect(
       getAlertIncidentRuleDeclaredSentence({

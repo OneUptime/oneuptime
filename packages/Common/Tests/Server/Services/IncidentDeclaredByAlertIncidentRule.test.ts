@@ -30,7 +30,8 @@ interface DeclaringRuleName {
   }) => string | null;
 }
 
-const service: DeclaringRuleName = IncidentService as unknown as DeclaringRuleName;
+const service: DeclaringRuleName =
+  IncidentService as unknown as DeclaringRuleName;
 
 const ALERT_ID: ObjectID = new ObjectID("7d000000-0000-4000-8000-0000000000a1");
 
@@ -67,7 +68,8 @@ describe("the rule an incident is declared by", () => {
           isRoot: true,
           miscDataProps: {
             [INCIDENT_ALERT_IDS_TO_LINK_KEY]: [ALERT_ID.toString()],
-            [INCIDENT_DECLARED_BY_ALERT_INCIDENT_RULE_KEY]: "  Critical alerts ",
+            [INCIDENT_DECLARED_BY_ALERT_INCIDENT_RULE_KEY]:
+              "  Critical alerts ",
           },
         }),
         alertIdsToLink: [ALERT_ID],
@@ -108,23 +110,26 @@ describe("the rule an incident is declared by", () => {
     ["a blank name", "   "],
     ["a name that is not text", 42],
     ["a name that is an object", { name: "Critical alerts" }],
-  ] as Array<[string, unknown]>)("is nothing for %s", (_name: string, value: unknown) => {
-    expect(
-      service.getDeclaringAlertIncidentRuleName({
-        createBy: createBy({
-          isRoot: true,
-          miscDataProps:
-            value === undefined
-              ? {}
-              : {
-                  [INCIDENT_DECLARED_BY_ALERT_INCIDENT_RULE_KEY]:
-                    value as never,
-                },
+  ] as Array<[string, unknown]>)(
+    "is nothing for %s",
+    (_name: string, value: unknown) => {
+      expect(
+        service.getDeclaringAlertIncidentRuleName({
+          createBy: createBy({
+            isRoot: true,
+            miscDataProps:
+              value === undefined
+                ? {}
+                : {
+                    [INCIDENT_DECLARED_BY_ALERT_INCIDENT_RULE_KEY]:
+                      value as never,
+                  },
+          }),
+          alertIdsToLink: [ALERT_ID],
         }),
-        alertIdsToLink: [ALERT_ID],
-      }),
-    ).toBeNull();
-  });
+      ).toBeNull();
+    },
+  );
 });
 
 describe("the incident's Declared from 1 alert entry", () => {
