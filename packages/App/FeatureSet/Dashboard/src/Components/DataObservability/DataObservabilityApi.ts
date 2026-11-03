@@ -5,6 +5,7 @@ import { JSONObject, JSONValue } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import {
   DATA_OBSERVABILITY_API_ROUTES,
+  DataObservabilityCheckAlertResponse,
   DataObservabilityConnectStoreRequest,
   DataObservabilityConnectStoreResponse,
   DataObservabilityOverview,
@@ -16,8 +17,8 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 
 /*
  * The Dashboard's side of Data Observability's own routes (Server/API/
- * DataObservabilityAPI.ts): the Overview, the watched stores, Collect Now
- * and Connect a Database. Every request goes through the refresh-aware
+ * DataObservabilityAPI.ts): the Overview, the watched stores, Collect Now,
+ * Connect a Database, and a data check's alert and Run Now. Every request goes through the refresh-aware
  * client with the project's headers, like every other page's.
  */
 
@@ -72,6 +73,21 @@ export default class DataObservabilityApi {
   public static async collectNow(dataStoreId: ObjectID): Promise<void> {
     await post(
       DATA_OBSERVABILITY_API_ROUTES.collectNow(dataStoreId.toString()),
+    );
+  }
+
+  // Makes a check's monitor match its alert condition: made, changed or removed.
+  public static async syncCheckAlert(
+    dataCheckId: ObjectID,
+  ): Promise<DataObservabilityCheckAlertResponse> {
+    return (await post(
+      DATA_OBSERVABILITY_API_ROUTES.checkAlert(dataCheckId.toString()),
+    )) as unknown as DataObservabilityCheckAlertResponse;
+  }
+
+  public static async runCheckNow(dataCheckId: ObjectID): Promise<void> {
+    await post(
+      DATA_OBSERVABILITY_API_ROUTES.checkRunNow(dataCheckId.toString()),
     );
   }
 

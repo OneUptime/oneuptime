@@ -12,6 +12,8 @@ export const DATA_OBSERVABILITY_API_ROUTES: {
   stores: string;
   connectStore: string;
   collectNow: (dataStoreId: string) => string;
+  checkAlert: (dataCheckId: string) => string;
+  checkRunNow: (dataCheckId: string) => string;
 } = {
   overview: "/data-observability/overview",
   stores: "/data-observability/stores",
@@ -19,7 +21,20 @@ export const DATA_OBSERVABILITY_API_ROUTES: {
   collectNow: (dataStoreId: string): string => {
     return `/data-observability/stores/${dataStoreId}/collect-now`;
   },
+  // Makes the check's monitor match its alert condition.
+  checkAlert: (dataCheckId: string): string => {
+    return `/data-observability/checks/${dataCheckId}/alert`;
+  },
+  // Runs the check at its store's very next collection.
+  checkRunNow: (dataCheckId: string): string => {
+    return `/data-observability/checks/${dataCheckId}/run-now`;
+  },
 };
+
+export interface DataObservabilityCheckAlertResponse {
+  // The check's monitor, or null when it has no alert.
+  monitorId: string | null;
+}
 
 export enum DataObservabilityCollector {
   // OneUptime's workers, with the connection string saved on the store.

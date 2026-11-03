@@ -725,6 +725,18 @@ import DataAssetFeedService, {
 import DataAssetUsageService, {
   Service as DataAssetUsageServiceType,
 } from "Common/Server/Services/DataAssetUsageService";
+import DataCheckService, {
+  Service as DataCheckServiceType,
+} from "Common/Server/Services/DataCheckService";
+import DataPipelineService, {
+  Service as DataPipelineServiceType,
+} from "Common/Server/Services/DataPipelineService";
+import DataPipelineRunService, {
+  Service as DataPipelineRunServiceType,
+} from "Common/Server/Services/DataPipelineRunService";
+import DataAssetLineageService, {
+  Service as DataAssetLineageServiceType,
+} from "Common/Server/Services/DataAssetLineageService";
 import SecurityEntityCriticalityService, {
   Service as SecurityEntityCriticalityServiceType,
 } from "Common/Server/Services/SecurityEntityCriticalityService";
@@ -1791,6 +1803,10 @@ import DataSecurityResidencyRule from "Common/Models/DatabaseModels/DataSecurity
 import DataSecuritySetting from "Common/Models/DatabaseModels/DataSecuritySetting";
 import DataAssetFeed from "Common/Models/DatabaseModels/DataAssetFeed";
 import DataAssetUsage from "Common/Models/DatabaseModels/DataAssetUsage";
+import DataCheck from "Common/Models/DatabaseModels/DataCheck";
+import DataPipeline from "Common/Models/DatabaseModels/DataPipeline";
+import DataPipelineRun from "Common/Models/DatabaseModels/DataPipelineRun";
+import DataAssetLineage from "Common/Models/DatabaseModels/DataAssetLineage";
 import SecurityEntityCriticality from "Common/Models/DatabaseModels/SecurityEntityCriticality";
 import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePriority";
 import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus";
@@ -4548,6 +4564,38 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<DataAssetUsage, DataAssetUsageServiceType>(
         DataAssetUsage,
         DataAssetUsageService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DataCheck, DataCheckServiceType>(
+        DataCheck,
+        DataCheckService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DataPipeline, DataPipelineServiceType>(
+        DataPipeline,
+        DataPipelineService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DataPipelineRun, DataPipelineRunServiceType>(
+        DataPipelineRun,
+        DataPipelineRunService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DataAssetLineage, DataAssetLineageServiceType>(
+        DataAssetLineage,
+        DataAssetLineageService,
       ).getRouter(),
     );
 

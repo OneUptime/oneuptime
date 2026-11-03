@@ -272,6 +272,8 @@ import { AddDatabaseServerEngineReadings1808990000000 } from "./1808990000000-Ad
 import { AddAlertIncidentRules1808991210000 } from "./1808991210000-AddAlertIncidentRules";
 import { AddAlertIncidentRuleCheckIndex1808991220000 } from "./1808991220000-AddAlertIncidentRuleCheckIndex";
 import { AddDataAssetUsage1808991300000 } from "./1808991300000-AddDataAssetUsage";
+import { AddDataChecks1808991400000 } from "./1808991400000-AddDataChecks";
+import { AddDataPipelines1808991500000 } from "./1808991500000-AddDataPipelines";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1746,4 +1748,6 @@ export default [
   AddAlertIncidentRules1808991210000,
   AddAlertIncidentRuleCheckIndex1808991220000,
   AddDataAssetUsage1808991300000,
+  AddDataChecks1808991400000,
+  AddDataPipelines1808991500000,
 ];
