@@ -844,7 +844,7 @@ describe("in every language the Dashboard ships", () => {
     const row: HTMLElement = categoryRow("Sicherheit");
     expect(row).toHaveAttribute("aria-expanded", "false");
     expect(row).toHaveAccessibleDescription(
-      expect.stringContaining("Sicherheitsereignisse, Datensicherheit"),
+      /Sicherheitsereignisse, Datensicherheit$/,
     );
     expect(
       within(productsMenu()).queryByRole("button", { name: "Security" }),
