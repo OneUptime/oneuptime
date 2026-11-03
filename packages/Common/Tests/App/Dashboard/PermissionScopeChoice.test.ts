@@ -8,12 +8,17 @@ import {
   PERMISSION_SCOPE_FIELD_DESCRIPTION,
   PERMISSION_SCOPE_FIELD_TITLE,
   PERMISSION_SCOPE_TITLES,
+  getOfferedPermissionScopeChoices,
   getPermissionScopeCell,
   getPermissionScopeChoices,
   getPermissionScopeFields,
+  getPermissionScopes,
+  getRoleScopes,
+  getScopeKeptOnPermissionChange,
   holdsPermissionLabels,
   isLabelsScopePicked,
   isScopeShownFor,
+  isScopeShownForPermission,
   readPermissionScope,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Permission/PermissionScopeChoice";
 import Permission, { PermissionHelper } from "../../../Types/Permission";
@@ -571,6 +576,317 @@ describe("one Scope for every permission table", () => {
       expect(source).not.toContain(
         "No restrictions has been applied to this permission.",
       );
+    },
+  );
+});
+
+/*
+ * ONE PERMISSION IS OFFERED THE ANSWERS THAT NARROW IT (issue #5602). A
+ * role reaches records of many kinds and keeps all three answers; one
+ * permission is offered All, then Owned where owners narrow it and Labels
+ * where labels do (PermissionScopeNarrowing) - and a block, which the
+ * server reads by its labels alone, never Owned.
+ */
+describe("one permission's Scope", () => {
+  // One permission from each of PermissionScopeNarrowing's lists, and one from none.
+  const BOTH: Permission = Permission.CreateWorkflow;
+  const LABELS_ONLY: Permission = Permission.ReadWorkflowOwnerTeam;
+  const OWNERS_ONLY: Permission = Permission.ReadSecurityCaseNote;
+  const NEITHER: Permission = Permission.CreateProjectTeam;
+
+  test("the answers can be some of the three, always in the form's order", () => {
+    expect(
+      getPermissionScopeChoices([
+        PermissionScope.Labels,
+        PermissionScope.All,
+      ]).map((choice: RadioButton): string => {
+        return choice.value as string;
+      }),
+    ).toEqual([PermissionScope.All, PermissionScope.Labels]);
+    expect(getPermissionScopeChoices()).toHaveLength(3);
+    expect(getPermissionScopeChoices([])).toEqual([]);
+  });
+
+  test("takes a Scope where a scope narrows the permission: Create Workflow, the issue's, and an override's", () => {
+    for (const permission of [
+      BOTH,
+      LABELS_ONLY,
+      OWNERS_ONLY,
+      Permission.CreateOnCallDutyPolicyUserOverride,
+      Permission.DeleteOnCallDutyPolicyUserOverride,
+    ]) {
+      expect({
+        permission,
+        shown: isScopeShownForPermission(permission),
+      }).toEqual({ permission, shown: true });
+    }
+  });
+
+  test("takes none where no scope narrows the permission, nothing is picked, or the role reaches the whole project", () => {
+    for (const permission of [
+      NEITHER,
+      Permission.ReadNetworkSiteType,
+      Permission.ProjectOwner,
+      Permission.SettingsAdmin,
+      undefined,
+      null,
+      "",
+    ]) {
+      expect({
+        permission,
+        shown: isScopeShownForPermission(permission),
+      }).toEqual({ permission, shown: false });
+    }
+  });
+
+  test.each([
+    [
+      "labels and owners",
+      BOTH,
+      [PermissionScope.All, PermissionScope.Owned, PermissionScope.Labels],
+    ],
+    ["labels only", LABELS_ONLY, [PermissionScope.All, PermissionScope.Labels]],
+    ["owners only", OWNERS_ONLY, [PermissionScope.All, PermissionScope.Owned]],
+    ["nothing", NEITHER, [PermissionScope.All]],
+    ["nothing yet: no permission picked", undefined, [PermissionScope.All]],
+  ])(
+    "a permission narrowed by %s is offered just those answers, All first",
+    (_kind: string, permission: unknown, expected: Array<PermissionScope>) => {
+      expect(getPermissionScopes(permission)).toEqual(expected);
+    },
+  );
+
+  test("a block is never offered Owned: the server reads a block by its labels alone", () => {
+    expect(getPermissionScopes(BOTH, { isBlock: true })).toEqual([
+      PermissionScope.All,
+      PermissionScope.Labels,
+    ]);
+    expect(getPermissionScopes(OWNERS_ONLY, { isBlock: true })).toEqual([
+      PermissionScope.All,
+    ]);
+    expect(getRoleScopes({ isBlock: true })).toEqual([
+      PermissionScope.All,
+      PermissionScope.Labels,
+    ]);
+  });
+
+  test("a role keeps all three answers: it reaches records of many kinds", () => {
+    expect(getRoleScopes()).toEqual([...PERMISSION_SCOPE_ANSWERS]);
+    expect(getRoleScopes({ isBlock: false })).toEqual([
+      ...PERMISSION_SCOPE_ANSWERS,
+    ]);
+  });
+
+  test("changing the permission keeps an answer the new one offers, and puts any other back to All", () => {
+    // From Create Workflow, Owned, to another permission owners narrow.
+    expect(
+      getScopeKeptOnPermissionChange({
+        permission: OWNERS_ONLY,
+        heldScope: PermissionScope.Owned,
+      }),
+    ).toBe(PermissionScope.Owned);
+
+    // To one owners narrow nothing of: Owned would reach everything.
+    expect(
+      getScopeKeptOnPermissionChange({
+        permission: LABELS_ONLY,
+        heldScope: PermissionScope.Owned,
+      }),
+    ).toBe(PermissionScope.All);
+    expect(
+      getScopeKeptOnPermissionChange({
+        permission: OWNERS_ONLY,
+        heldScope: PermissionScope.Labels,
+      }),
+    ).toBe(PermissionScope.All);
+    expect(
+      getScopeKeptOnPermissionChange({
+        permission: NEITHER,
+        heldScope: PermissionScope.Labels,
+      }),
+    ).toBe(PermissionScope.All);
+
+    // On a block, Owned is never kept.
+    expect(
+      getScopeKeptOnPermissionChange({
+        permission: BOTH,
+        heldScope: PermissionScope.Owned,
+        options: { isBlock: true },
+      }),
+    ).toBe(PermissionScope.All);
+
+    // Nothing held, or something that is no scope: All.
+    expect(
+      getScopeKeptOnPermissionChange({
+        permission: BOTH,
+        heldScope: undefined,
+      }),
+    ).toBe(PermissionScope.All);
+    expect(
+      getScopeKeptOnPermissionChange({ permission: BOTH, heldScope: "Mine" }),
+    ).toBe(PermissionScope.All);
+  });
+
+  test("the answers shown add the one a row holds when it is not offered, so Edit never hides what the row says", () => {
+    const offered: Array<PermissionScope> = [
+      PermissionScope.All,
+      PermissionScope.Labels,
+    ];
+
+    const valuesOf: (heldScope: unknown) => Array<string> = (
+      heldScope: unknown,
+    ): Array<string> => {
+      return getOfferedPermissionScopeChoices({
+        scopes: offered,
+        heldScope,
+      }).map((choice: RadioButton): string => {
+        return choice.value as string;
+      });
+    };
+
+    // An API or Terraform caller saved it with Owned: shown, in its place.
+    expect(valuesOf(PermissionScope.Owned)).toEqual([
+      PermissionScope.All,
+      PermissionScope.Owned,
+      PermissionScope.Labels,
+    ]);
+    // Offered already, or nothing held: just the answers offered.
+    expect(valuesOf(PermissionScope.Labels)).toEqual(offered);
+    expect(valuesOf(undefined)).toEqual(offered);
+    expect(valuesOf("Mine")).toEqual(offered);
+  });
+
+  test("the Scope field offers the answers for what the form holds, and keeps all three as its whole list", () => {
+    const [scope] = getPermissionScopeFields<TeamPermission>({
+      isScopeShown: SCOPE_SHOWN,
+      getScopes: (formValues: Values): Array<PermissionScope> => {
+        return getPermissionScopes(formValues["permission"]);
+      },
+    }) as [ModelField<TeamPermission>, ModelField<TeamPermission>];
+
+    // Its defaults are checked against the whole list, and a folded line reads it.
+    expect(scope.radioButtonOptions).toEqual(getPermissionScopeChoices());
+
+    const offeredFor: (record: Record<string, unknown>) => Array<string> = (
+      record: Record<string, unknown>,
+    ): Array<string> => {
+      return scope.getRadioButtonOptions!(values(record)).map(
+        (choice: RadioButton): string => {
+          return choice.value as string;
+        },
+      );
+    };
+
+    expect(offeredFor({ permission: BOTH })).toEqual([
+      PermissionScope.All,
+      PermissionScope.Owned,
+      PermissionScope.Labels,
+    ]);
+    expect(offeredFor({ permission: LABELS_ONLY })).toEqual([
+      PermissionScope.All,
+      PermissionScope.Labels,
+    ]);
+    expect(
+      offeredFor({ permission: LABELS_ONLY, scope: PermissionScope.Owned }),
+    ).toEqual([
+      PermissionScope.All,
+      PermissionScope.Owned,
+      PermissionScope.Labels,
+    ]);
+  });
+
+  test("without getScopes the Scope field offers its whole list, as before", () => {
+    const [scope] = fieldsFor(SCOPE_SHOWN);
+
+    expect(scope.getRadioButtonOptions).toBeUndefined();
+    expect(scope.radioButtonOptions).toEqual(getPermissionScopeChoices());
+  });
+
+  test("hundreds of permissions get a Scope that the flag the dialog read gave none", () => {
+    const newlyScoped: Array<Permission> =
+      PermissionHelper.getTenantPermissionProps()
+        .map((props: { permission: Permission }): Permission => {
+          return props.permission;
+        })
+        .filter((permission: Permission): boolean => {
+          return (
+            isScopeShownForPermission(permission) &&
+            !PermissionHelper.isAccessControlPermission(permission)
+          );
+        });
+
+    expect(newlyScoped).toContain(Permission.CreateWorkflow);
+    expect(newlyScoped).toContain(
+      Permission.CreateOnCallDutyPolicyUserOverride,
+    );
+    expect(newlyScoped.length).toBeGreaterThan(500);
+  });
+});
+
+describe("one permission's Scope in every permission table", () => {
+  const REPOSITORY_ROOT: string = path.resolve(__dirname, "../../../../..");
+
+  const read: (relative: string) => string = (relative: string): string => {
+    return fs.readFileSync(path.join(REPOSITORY_ROOT, relative), "utf8");
+  };
+
+  const TEAM_TABLE: string =
+    "packages/App/FeatureSet/Dashboard/src/Components/Team/TeamPermissionTable.tsx";
+  const API_KEY_TABLE: string =
+    "packages/App/FeatureSet/Dashboard/src/Components/ApiKey/ApiKeyPermissionTable.tsx";
+  const CUSTOM_ROLE_TABLE: string =
+    "ee/Dashboard/CustomRoles/CustomRolePermissionTable.tsx";
+
+  test("no table decides from the legacy flag, which marks little more than a resource's own read, edit and delete", () => {
+    for (const table of [TEAM_TABLE, API_KEY_TABLE]) {
+      expect({
+        table,
+        readsFlag: read(table).includes("isAccessControlPermission"),
+      }).toEqual({
+        table,
+        readsFlag: false,
+      });
+    }
+  });
+
+  test("a team's Add Permission asks what narrows the permission, for the Scope and for its answers", () => {
+    const source: string = read(TEAM_TABLE);
+
+    expect(source).toContain(
+      'return isScopeShownForPermission(values["permission"]);',
+    );
+    expect(source).toContain(
+      'return getPermissionScopes(values["permission"], {',
+    );
+    // A block is never offered Owned, a role's as much as a permission's.
+    expect(source).toContain("return getRoleScopes({ isBlock: isBlock });");
+  });
+
+  test("an API key's Add Permission asks for labels wherever labels narrow the permission", () => {
+    expect(read(API_KEY_TABLE)).toContain(
+      "PermissionScopeNarrowing.isNarrowedByLabels(",
+    );
+  });
+
+  // The Enterprise Edition's table: checked where ee/ is present.
+  const customRoleTest: typeof test = fs.existsSync(
+    path.join(REPOSITORY_ROOT, "ee"),
+  )
+    ? test
+    : test.skip;
+
+  customRoleTest(
+    "a custom role's Add Permission asks the same, and a role keeps its three answers",
+    () => {
+      const source: string = read(CUSTOM_ROLE_TABLE);
+
+      expect(source).toContain(
+        'return isScopeShownForPermission(values["permission"]);',
+      );
+      expect(source).toContain(
+        'return getPermissionScopes(values["permission"]);',
+      );
+      expect(source).toContain("return getRoleScopes();");
     },
   );
 });
