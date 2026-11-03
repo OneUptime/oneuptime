@@ -217,56 +217,108 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
       return undefined;
     }
 
-    const measure: () => void = (): void => {
-      setBoardWidthInPx(
-        Math.max(element.clientWidth - 2 * BOARD_PADDING_IN_PX, 0),
-      );
+    const readWidth: () => number = (): number => {
+      return Math.max(element.clientWidth - 2 * BOARD_PADDING_IN_PX, 0);
     };
 
-    measure();
-
-    if (typeof ResizeObserver === "undefined") {
-      return undefined;
-    }
+    // The width the widgets are laid out in.
+    let laidOutWidth: number = readWidth();
+    setBoardWidthInPx(laidOutWidth);
 
     /*
      * The board's width can change before the browser first paints it, and
-     * at any time after. The Tailwind runtime styles classes new to the
-     * page a moment after they are added - the margins of the card a board
-     * opens in, when it opens with the page - and a scrollbar comes or
-     * goes, the window is resized, Full Screen. A ResizeObserver reports
-     * the new width after the browser has laid it out and before it paints
-     * it, and the widgets are laid out to it there and then (flushSync):
-     * no frame shows them at a width the board does not have. Left to
-     * React's own time, they were drawn at the old width for a frame or
-     * more: 32px past the board's edge, when a board opened before its
-     * card's margins were styled.
-     *
-     * It watches the width probe rather than the board: the widgets' new
-     * layout changes the board's height, and a change to the box observed
-     * cannot be reported again in the same frame (the browser's
-     * "ResizeObserver loop" error).
+     * at any time after: the Tailwind runtime styles classes new to the
+     * page a moment after they are added (the margins of the card a board
+     * opens in, when it opens with the page), the first layout adds or
+     * takes away the window's scrollbar, the window is resized, Full
+     * Screen, the side menu beside it comes or goes. follow lays the
+     * widgets out to the board's width there and then (flushSync), before
+     * the browser paints it: no frame shows them at a width the board does
+     * not have. Left to React's own time, they were drawn at the old width
+     * for a frame or more - 32px past the board's edge, when a board opened
+     * before its card's margins were styled.
      */
-    let isObserving: boolean = false;
-    const observer: ResizeObserver = new ResizeObserver(() => {
-      if (isObserving) {
-        /*
-         * A stand-in that reports inside observe() itself, as no browser
-         * does: this layout effect is still running, so is React's commit.
-         */
-        measure();
+    const follow: () => void = (): void => {
+      const width: number = readWidth();
+
+      if (width === laidOutWidth) {
         return;
       }
 
-      flushSync(measure);
+      laidOutWidth = width;
+      flushSync(() => {
+        setBoardWidthInPx(width);
+      });
+    };
+
+    /*
+     * Read again before the browser lays a frame out: in the board's first
+     * frame (the card's late styles are in by then, and the scrollbar the
+     * board's first layout adds or takes away), and when the window is
+     * resized - Full Screen too - whose resize event comes first.
+     */
+    let firstFrame: number | null = window.requestAnimationFrame((): void => {
+      firstFrame = null;
+      follow();
     });
 
-    isObserving = true;
-    observer.observe(widthProbe);
-    isObserving = false;
+    window.addEventListener("resize", follow);
+
+    /*
+     * Anything else - the side menu beside the board coming or going, a
+     * scrollbar that comes later, a board that was not shown and is - is
+     * reported by a ResizeObserver once the browser has laid the frame out,
+     * before it paints it. The widgets are laid out to it there, but the
+     * board keeps the height it has until the next frame: a box another
+     * observer watches that changes size inside an observer's call cannot
+     * be reported in that frame, and the page got "ResizeObserver loop
+     * completed with undelivered notifications" (the side menu watches the
+     * page's body) whenever a new width changed the board's height. For
+     * that one frame its widgets end short of its bottom edge, or run past
+     * it; never past its sides.
+     *
+     * It watches the width probe, a box of no height across the board,
+     * which only a new width resizes.
+     */
+    let heldFrame: number | null = null;
+
+    const holdHeightUntilNextFrame: () => void = (): void => {
+      element.style.height = `${element.getBoundingClientRect().height}px`;
+
+      if (heldFrame === null) {
+        heldFrame = window.requestAnimationFrame((): void => {
+          heldFrame = null;
+          element.style.height = "";
+        });
+      }
+    };
+
+    const observer: ResizeObserver | null =
+      typeof ResizeObserver === "undefined"
+        ? null
+        : new ResizeObserver((): void => {
+            if (readWidth() === laidOutWidth) {
+              return;
+            }
+
+            holdHeightUntilNextFrame();
+            follow();
+          });
+
+    observer?.observe(widthProbe);
 
     return () => {
-      observer.disconnect();
+      observer?.disconnect();
+      window.removeEventListener("resize", follow);
+
+      if (firstFrame !== null) {
+        window.cancelAnimationFrame(firstFrame);
+      }
+
+      if (heldFrame !== null) {
+        window.cancelAnimationFrame(heldFrame);
+        element.style.height = "";
+      }
     };
   }, [components.length === 0]);
 

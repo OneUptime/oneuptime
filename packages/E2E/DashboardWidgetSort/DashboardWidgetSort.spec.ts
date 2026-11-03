@@ -2,6 +2,7 @@ import { expect, Locator, Page, Route, test, TestInfo } from "@playwright/test";
 import {
   DrawnBox,
   DrawnBoxes,
+  drawnBoxAt,
   drawnPlacesOf,
   readDrawnBoxes,
   recordDrawnBoxes,
@@ -55,6 +56,7 @@ interface FixtureRecord {
 declare global {
   interface Window {
     __dashboardWidgetSortFixture?: FixtureRecord | undefined;
+    __windowErrors?: Array<string> | undefined;
   }
 }
 
@@ -1122,11 +1124,42 @@ test.describe("each widget is drawn once, at its own size", () => {
     contentSelector: "tbody tr",
   };
 
+  /*
+   * An error event on the window that is no exception - "ResizeObserver
+   * loop completed with undelivered notifications" - reaches neither the
+   * console nor pageerror (ModelTables.spec.ts): recorded from the page's
+   * first script. The board raised it on a wide window's first frame and
+   * on every resize while it laid its widgets out inside its observer's
+   * call, where the side menu's observer of the page's body shared the
+   * frame.
+   */
+  const recordWindowErrors: (page: Page) => Promise<void> = async (
+    page: Page,
+  ): Promise<void> => {
+    await page.addInitScript((): void => {
+      const errors: Array<string> = [];
+
+      window.__windowErrors = errors;
+      window.addEventListener("error", (event: ErrorEvent): void => {
+        errors.push(String(event.message));
+      });
+    });
+  };
+
+  const windowErrors: (page: Page) => Promise<Array<string>> = async (
+    page: Page,
+  ): Promise<Array<string>> => {
+    return page.evaluate((): Array<string> => {
+      return window.__windowErrors || [];
+    });
+  };
+
   const openRecorded: (page: Page, path: string) => Promise<void> = async (
     page: Page,
     path: string,
   ): Promise<void> => {
     await recordDrawnBoxes(page, DRAWN);
+    await recordWindowErrors(page);
     await page.goto(path);
     await expect(
       page.getByTestId("dashboard-board").locator("tbody tr").first(),
@@ -1171,6 +1204,10 @@ test.describe("each widget is drawn once, at its own size", () => {
         "the empty board, drawn while a board with widgets opened",
       )
       .toBeUndefined();
+
+    expect
+      .soft(await windowErrors(page), "error events on the window")
+      .toEqual([]);
 
     for (const key of Object.keys(drawn)) {
       if (key === BLANK_BOARD) {
@@ -1230,10 +1267,108 @@ test.describe("each widget is drawn once, at its own size", () => {
     await expectEachDrawnOnce(page);
   });
 
+  test("in a wide window, where the grid's rows grow with the board", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    atDesktopOnly();
+    await page.setViewportSize({ width: 1600, height: 900 });
+    await openRecorded(page, APP_PATH);
+    await expectSquareGrid(page);
+    await expectEachDrawnOnce(page);
+  });
+
   test("on a public dashboard", async ({ page }: { page: Page }) => {
     atDesktopOnly();
     await openRecorded(page, PUBLIC_PATH);
     await expectEachDrawnOnce(page);
+  });
+
+  /*
+   * The frames in which the widgets do not end where the board's grid
+   * does: a widget drawn at a width the board no longer has (past its
+   * edge) or does not have yet (short of it). Each element is read where
+   * it was in that frame (drawnBoxAt); the fixture's board has widgets as
+   * wide as the grid, and each widget's place is inside the grid, which
+   * starts and ends 8px inside the board.
+   */
+  const framesOffTheGrid: (drawn: DrawnBoxes) => Array<string> = (
+    drawn: DrawnBoxes,
+  ): Array<string> => {
+    const board: Array<DrawnBox> = drawn["dashboard-board"] || [];
+    const widgets: Array<Array<DrawnBox>> = Object.keys(drawn)
+      .filter((key: string): boolean => {
+        return key.startsWith("dashboard-component-");
+      })
+      .map((key: string): Array<DrawnBox> => {
+        return drawn[key]!;
+      });
+    const frames: Array<number> = Array.from(
+      new Set<number>(
+        [board, ...widgets].flat().map((box: DrawnBox): number => {
+          return box.frame;
+        }),
+      ),
+    ).sort((a: number, b: number): number => {
+      return a - b;
+    });
+    const off: Array<string> = [];
+
+    for (const frame of frames) {
+      const boardBox: DrawnBox | null = drawnBoxAt(board, frame);
+      const ends: Array<number> = [];
+
+      for (const boxes of widgets) {
+        const box: DrawnBox | null = drawnBoxAt(boxes, frame);
+
+        if (box) {
+          ends.push(box.x + box.width);
+        }
+      }
+
+      if (!boardBox || ends.length < widgets.length) {
+        continue;
+      }
+
+      const gridEnd: number = boardBox.width - 16;
+      const widgetsEnd: number = Math.max(...ends);
+
+      if (Math.abs(widgetsEnd - gridEnd) > 1) {
+        off.push(
+          `frame ${frame}: the widgets end at ${Math.round(widgetsEnd)}px, the grid at ${Math.round(gridEnd)}px`,
+        );
+      }
+    }
+
+    return off;
+  };
+
+  test("a window resized while viewing: in every frame the widgets end where the board's grid does, and the page raises no error", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    atDesktopOnly();
+    await openRecorded(page, APP_PATH);
+    await waitForFrames(page, 10);
+
+    /*
+     * Narrower, wider, under the side menu's breakpoint and back over it:
+     * the side menu comes and goes a moment after the window is resized,
+     * and the board's width with it.
+     */
+    for (const width of [1100, 1440, 760, 1280]) {
+      await page.setViewportSize({ width, height: 900 });
+      await waitForFrames(page, 30);
+    }
+
+    const drawn: DrawnBoxes = await readDrawnBoxes(page);
+
+    // The board was drawn at each of those widths.
+    expect(drawnPlacesOf(drawn["dashboard-board"]!).length).toBeGreaterThan(4);
+    expect(framesOffTheGrid(drawn)).toEqual([]);
+    expect(await windowErrors(page)).toEqual([]);
   });
 
   test("on a phone, one widget under another", async ({

@@ -28,9 +28,10 @@ import React, { ReactElement } from "react";
  * frame (a layout effect, before the browser paints), and a widget's box
  * only moves with a transition while the board is edited. This suite pins
  * both, in jsdom: the board's outer box is as wide as the test says, the
- * ResizeObserver is one the test fires, and the widgets are stubs that
- * record every size the board hands them. Real frames, in a browser, are
- * checked by packages/E2E/DashboardWidgetSort ("each widget is drawn once").
+ * ResizeObserver is one the test fires, animation frames run when the test
+ * says, and the widgets are stubs that record every size the board hands
+ * them. Real frames, in a browser, are checked by
+ * packages/E2E/DashboardWidgetSort ("each widget is drawn once").
  */
 
 jest.setTimeout(120000);
@@ -138,6 +139,9 @@ const BOARD_PADDING: number = 8;
 
 let boardClientWidth: number = 0;
 
+// The board's outer box's height, as getBoundingClientRect reads it.
+let boardHeight: number = 0;
+
 /*
  * What the board held each time the canvas read its width: the widgets on
  * it then, and whether it was its measuring box.
@@ -200,6 +204,31 @@ const ORIGINAL_RESIZE_OBSERVER: unknown = (
 const ORIGINAL_CLIENT_WIDTH: PropertyDescriptor | undefined =
   Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientWidth");
 
+const ORIGINAL_BOUNDING_RECT: typeof HTMLElement.prototype.getBoundingClientRect =
+  HTMLElement.prototype.getBoundingClientRect;
+
+const ORIGINAL_REQUEST_FRAME: typeof window.requestAnimationFrame =
+  window.requestAnimationFrame;
+const ORIGINAL_CANCEL_FRAME: typeof window.cancelAnimationFrame =
+  window.cancelAnimationFrame;
+
+// Animation frames asked for, run when a test says (runFrames).
+const frames: Map<number, FrameRequestCallback> = new Map();
+let nextFrame: number = 1;
+
+// Runs the frames asked for so far, as a browser runs a frame's callbacks.
+function runFrames(): void {
+  act(() => {
+    const pending: Array<FrameRequestCallback> = Array.from(frames.values());
+
+    frames.clear();
+
+    for (const callback of pending) {
+      callback(0);
+    }
+  });
+}
+
 function widgetsOnThePage(): Array<HTMLElement> {
   return Array.from(
     document.querySelectorAll<HTMLElement>('[id^="dashboard-component-"]'),
@@ -235,6 +264,28 @@ beforeAll(() => {
       return boardClientWidth;
     },
   });
+
+  HTMLElement.prototype.getBoundingClientRect = function (
+    this: HTMLElement,
+  ): DOMRect {
+    if (this.getAttribute("data-testid") !== DASHBOARD_BOARD_TEST_ID) {
+      return ORIGINAL_BOUNDING_RECT.call(this);
+    }
+
+    return {
+      x: 0,
+      y: 0,
+      top: 0,
+      left: 0,
+      right: boardClientWidth,
+      bottom: boardHeight,
+      width: boardClientWidth,
+      height: boardHeight,
+      toJSON: (): Record<string, never> => {
+        return {};
+      },
+    };
+  };
 });
 
 afterAll(() => {
@@ -248,12 +299,26 @@ afterAll(() => {
       ORIGINAL_CLIENT_WIDTH,
     );
   }
+
+  HTMLElement.prototype.getBoundingClientRect = ORIGINAL_BOUNDING_RECT;
+  window.requestAnimationFrame = ORIGINAL_REQUEST_FRAME;
+  window.cancelAnimationFrame = ORIGINAL_CANCEL_FRAME;
 });
 
 beforeEach(() => {
   (globalThis as unknown as { ResizeObserver: unknown }).ResizeObserver =
     FakeResizeObserver;
   boardClientWidth = 0;
+  boardHeight = 0;
+  frames.clear();
+  window.requestAnimationFrame = (callback: FrameRequestCallback): number => {
+    const id: number = nextFrame++;
+    frames.set(id, callback);
+    return id;
+  };
+  window.cancelAnimationFrame = (id: number): void => {
+    frames.delete(id);
+  };
   boardAtMeasures.splice(0, boardAtMeasures.length);
   measuringBoxes.splice(0, measuringBoxes.length);
 
@@ -648,8 +713,14 @@ describe("viewing, a widget takes its new size at once; editing, it glides", () 
  * A board's width can change after it is first measured and before the
  * browser paints it - the Tailwind runtime styles the margins of a card
  * the board opens in a moment after they are added - and at any time
- * after. Its ResizeObserver reports the new width after the browser lays
- * it out and before it paints it, and the widgets take it there and then.
+ * after. The board reads it again before the browser lays a frame out: in
+ * its first frame, and in the window's resize event. Its ResizeObserver
+ * reports what else changes it, after the browser lays the frame out and
+ * before it paints it: the widgets take the new width there and then, and
+ * the board keeps its height until the next frame, so nothing outside it
+ * changes size inside the observer's call - the browser's "ResizeObserver
+ * loop completed with undelivered notifications", which the page raised
+ * when the side menu (it watches the page's body) shared the frame.
  */
 describe("the board follows a new width in the frame it comes in", () => {
   test("its observer watches a box of no height across the board, which only a new width resizes", () => {
@@ -689,7 +760,137 @@ describe("the board follows a new width in the frame it comes in", () => {
     });
   });
 
-  test("the card a board opens in styled a moment late: the widgets take the board's new width before it is painted", () => {
+  test("laid out inside the observer's call, the board keeps its height until the next frame: nothing outside it changes size in the call", () => {
+    renderAt(1216);
+    boardHeight = 712.5;
+    // The board's first frame: the width it was measured at.
+    runFrames();
+
+    const sizes: Record<string, DrawnSize> = sizesOnABoardOf(1184);
+
+    act(() => {
+      boardClientWidth = 1184;
+
+      for (const notify of [...observers]) {
+        notify();
+      }
+
+      // In the call: the widgets have the new width, the board its height.
+      expect(board().style.height).toBe("712.5px");
+
+      for (const key of Object.keys(ID)) {
+        expect(wrapper(key).style.width).toBe(`${sizes[key]!.width}px`);
+      }
+    });
+
+    // The next frame lets the height go, before the browser lays it out.
+    expect(frames.size).toBe(1);
+    runFrames();
+    expect(board().style.height).toBe("");
+
+    for (const key of Object.keys(ID)) {
+      expect(mounts[ID[key]!]).toBe(1);
+    }
+  });
+
+  test("a report of the width the widgets already have holds nothing and draws nothing again", () => {
+    renderAt(1216);
+    boardHeight = 712.5;
+    runFrames();
+
+    const drawnBefore: number = renders[ID["title"]!]!.length;
+
+    resizeTo(1216);
+
+    expect(board().style.height).toBe("");
+    expect(frames.size).toBe(0);
+    expect(renders[ID["title"]!]!).toHaveLength(drawnBefore);
+  });
+
+  test("a resized window is laid out in its resize event, before the frame is laid out: the board's height is never held", () => {
+    renderAt(1216);
+    boardHeight = 712.5;
+    runFrames();
+
+    const sizes: Record<string, DrawnSize> = sizesOnABoardOf(816);
+
+    act(() => {
+      boardClientWidth = 816;
+      window.dispatchEvent(new Event("resize"));
+
+      // In the event itself.
+      for (const key of Object.keys(ID)) {
+        expect(wrapper(key).style.width).toBe(`${sizes[key]!.width}px`);
+      }
+    });
+
+    expect(board().style.height).toBe("");
+
+    // The observer then reports the width the widgets have: nothing to do.
+    resizeTo(816);
+    expect(board().style.height).toBe("");
+
+    for (const key of Object.keys(ID)) {
+      expect(mounts[ID[key]!]).toBe(1);
+    }
+  });
+
+  test("the board reads its width again in its first frame, before the browser lays it out: a card styled a moment late", () => {
+    // Measured before the card's margins and padding are styled: 32px wider.
+    renderAt(1248);
+
+    expect(wrapper("title").style.width).toBe(
+      `${sizesOnABoardOf(1248)["title"]!.width}px`,
+    );
+
+    // The runtime styles the card before the frame; the frame reads it.
+    boardClientWidth = 1216;
+    runFrames();
+
+    const sizes: Record<string, DrawnSize> = sizesOnABoardOf(1216);
+
+    for (const key of Object.keys(ID)) {
+      expect(wrapper(key).style.width).toBe(`${sizes[key]!.width}px`);
+      expect(mounts[ID[key]!]).toBe(1);
+    }
+
+    // Read before the frame was laid out: no height to hold.
+    expect(board().style.height).toBe("");
+  });
+
+  test("gone, the board follows nothing: no frame of its own left, the window's resize unheard, a held height let go", () => {
+    const view: ReturnType<typeof render> = renderAt(1216);
+    boardHeight = 712.5;
+
+    act(() => {
+      boardClientWidth = 1184;
+
+      for (const notify of [...observers]) {
+        notify();
+      }
+    });
+
+    const element: HTMLElement = board();
+
+    expect(element.style.height).toBe("712.5px");
+
+    view.unmount();
+
+    expect(element.style.height).toBe("");
+    expect(frames.size).toBe(0);
+    expect(observers).toHaveLength(0);
+
+    const drawnBefore: number = renders[ID["title"]!]!.length;
+
+    act(() => {
+      boardClientWidth = 600;
+      window.dispatchEvent(new Event("resize"));
+    });
+
+    expect(renders[ID["title"]!]!).toHaveLength(drawnBefore);
+  });
+
+  test("the card a board opens in styled after its first frame: the widgets take the board's new width before it is painted", () => {
     // Measured before the card's margins and padding are styled: 32px wider.
     renderAt(1248);
 
@@ -787,7 +988,7 @@ describe("a board measured again", () => {
     }
   });
 
-  test("without a ResizeObserver, the board is measured once and its widgets drawn at that width", () => {
+  test("without a ResizeObserver, the board is measured once, its widgets drawn at that width, and it follows the window's resize", () => {
     (globalThis as unknown as { ResizeObserver: unknown }).ResizeObserver =
       undefined;
 
@@ -802,6 +1003,17 @@ describe("a board measured again", () => {
 
       expect(drawn[0]!.width).toBeCloseTo(sizes[key]!.width, 6);
       expect(drawn[drawn.length - 1]!.width).toBeCloseTo(sizes[key]!.width, 6);
+    }
+
+    act(() => {
+      boardClientWidth = 1216;
+      window.dispatchEvent(new Event("resize"));
+    });
+
+    const wider: Record<string, DrawnSize> = sizesOnABoardOf(1216);
+
+    for (const key of Object.keys(ID)) {
+      expect(wrapper(key).style.width).toBe(`${wider[key]!.width}px`);
     }
   });
 });

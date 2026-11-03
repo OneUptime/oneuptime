@@ -334,11 +334,13 @@ when its words fit one line, and balances its lines when they wrap. See
   drawn in every frame the page paints from its first - its size and place
   inside its parent, the animations running on it, and how many of its
   descendants `contentSelector` finds - read as the frame is about to be
-  painted, after the page's own ResizeObservers. `readDrawnBoxes(page)` reads
-  it, `waitForFrames(page, n)` lets the page draw n more frames, and
-  `drawnPlacesOf(boxes)` lists the sizes and places an element was drawn at,
-  in order, one for an element drawn once where it stays. A read once a page
-  has settled sees only how it ends; this holds a page to never drawing an
+  painted, after the page's own ResizeObservers, with the frame it was
+  drawn in. `readDrawnBoxes(page)` reads it, `waitForFrames(page, n)` lets
+  the page draw n more frames, `drawnPlacesOf(boxes)` lists the sizes and
+  places an element was drawn at, in order, one for an element drawn once
+  where it stays, and `drawnBoxAt(boxes, frame)` says where it was in a
+  frame, to compare elements painted together. A read once a page has
+  settled sees only how it ends; this holds a page to never drawing an
   element at a size it then leaves (DashboardWidgetSort's "each widget is
   drawn once").
 - `Edition.ts`: `readFixtureEdition(request)` asks a fixture which edition it

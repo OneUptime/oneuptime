@@ -54,10 +54,15 @@ public dashboard. Screenshots are under `output/playwright/dashboard-widget-sort
 Each widget is drawn once, at its own size: every frame the page paints is recorded
 from its first (`SuiteHelpers/DrawnBoxes`), and each widget and the board must be drawn
 at one size and in one place in all of them, with no animation on them, and the empty
-board ("No widgets yet") never - at 1280 beside the side menu (both boards), at 1440,
-on the public dashboard and on a phone. The board used to draw every widget a few pixels
-across and grow it to its size with its rows already in it, so the checks above that
-read a table as its rows show now read it once.
+board ("No widgets yet") never - at 1280 beside the side menu (both boards), at 1440, in
+a 1600px window, on the public dashboard and on a phone. The board used to draw every
+widget a few pixels across and grow it to its size with its rows already in it, so the
+checks above that read a table as its rows show now read it once. A window resized while
+viewing - narrower, wider, under the side menu's breakpoint and back - must draw the
+widgets ending where the board's grid ends in every frame. And the page must raise no
+error event on the window, "ResizeObserver loop completed with undelivered
+notifications" among them: the board once laid its widgets out inside its observer's
+call, where the side menu's observer of the page's body shared the frame.
 
 This checks real browser rendering and the widgets' handling of their sorts; the API,
 the database and the deployed app's routing are outside this fixture (the public

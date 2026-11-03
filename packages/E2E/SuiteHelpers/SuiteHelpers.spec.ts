@@ -2,6 +2,7 @@ import { expect, Locator, Page, Route, test } from "@playwright/test";
 import {
   DrawnBox,
   DrawnBoxes,
+  drawnBoxAt,
   drawnPlacesOf,
   readDrawnBoxes,
   recordDrawnBoxes,
@@ -328,6 +329,51 @@ test.describe("recordDrawnBoxes", () => {
         }),
       ),
     ).toBeGreaterThan(0);
+  });
+
+  test("each box says the frame it was drawn in, and drawnBoxAt reads where an element was in any frame", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await recordDrawnBoxes(page, { selector: "#still, #widget" });
+    // Two elements drawn together, one of them growing for a while.
+    await openPage(
+      page,
+      `<div id="still" style="width:40px;height:10px"></div>
+<div id="board"></div>
+<script>
+  const widget = document.createElement("div");
+  widget.id = "widget";
+  widget.style.cssText = "width:20px;height:30px;background:#999;transition:width 0.3s linear";
+  document.getElementById("board").appendChild(widget);
+  void widget.getBoundingClientRect().width;
+  widget.style.width = "300px";
+</script>`,
+    );
+    await waitForFrames(page, 40);
+
+    const drawn: DrawnBoxes = await readDrawnBoxes(page);
+    const still: Array<DrawnBox> = drawn["still"]!;
+    const grown: Array<DrawnBox> = drawn["widget"]!;
+
+    // Painted together, first.
+    expect(still[0]!.frame).toBe(grown[0]!.frame);
+
+    // A frame after another, as it grew.
+    for (let index: number = 1; index < grown.length; index++) {
+      expect(grown[index]!.frame).toBeGreaterThan(grown[index - 1]!.frame);
+    }
+
+    // Where it was in a frame: its last box drawn by then.
+    expect(drawnBoxAt(grown, grown[0]!.frame - 1)).toBeNull();
+    expect(drawnBoxAt(grown, grown[0]!.frame)).toBe(grown[0]);
+    expect(drawnBoxAt(grown, grown[1]!.frame)).toBe(grown[1]);
+    expect(drawnBoxAt(grown, grown[grown.length - 1]!.frame + 100)).toBe(
+      grown[grown.length - 1],
+    );
+    // The still one never moved: its first box, in every frame after.
+    expect(drawnBoxAt(still, grown[grown.length - 1]!.frame)).toBe(still[0]);
   });
 
   test("reads each frame as it is painted: a size a ResizeObserver corrects before the paint is never recorded", async ({

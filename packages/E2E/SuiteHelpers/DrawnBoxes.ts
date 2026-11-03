@@ -25,6 +25,11 @@ import { Page } from "@playwright/test";
 export interface DrawnBox {
   // Milliseconds after the page's first script ran.
   time: number;
+  /*
+   * The frame it was first drawn in, counted from the page's first: boxes
+   * of several elements with one frame were painted together.
+   */
+  frame: number;
   // Where the element is drawn inside its parent's box.
   x: number;
   y: number;
@@ -94,6 +99,7 @@ export const recordDrawnBoxes: RecordDrawnBoxesFunction = async (
           : null;
         const drawn: DrawnBox = {
           time: Math.round(performance.now() - start),
+          frame: record.frames,
           x: box.x - (parentBox ? parentBox.x : 0),
           y: box.y - (parentBox ? parentBox.y : 0),
           width: box.width,
@@ -229,6 +235,32 @@ export const waitForFrames: WaitForFramesFunction = async (
       Boolean(window.__drawnBoxes) && window.__drawnBoxes!.frames >= target
     );
   }, from + frames);
+};
+
+export type DrawnBoxAtFunction = (
+  boxes: Array<DrawnBox>,
+  frame: number,
+) => DrawnBox | null;
+
+/*
+ * Where an element was drawn in a frame: its last box drawn in that frame or
+ * before it - a box is kept only when it changes - or null before its first.
+ */
+export const drawnBoxAt: DrawnBoxAtFunction = (
+  boxes: Array<DrawnBox>,
+  frame: number,
+): DrawnBox | null => {
+  let found: DrawnBox | null = null;
+
+  for (const box of boxes) {
+    if (box.frame > frame) {
+      break;
+    }
+
+    found = box;
+  }
+
+  return found;
 };
 
 export type DrawnPlacesOfFunction = (boxes: Array<DrawnBox>) => Array<string>;
