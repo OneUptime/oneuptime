@@ -22,6 +22,21 @@ import {
   TableHealthSnapshot,
 } from "./TableHealthCollector";
 import { readTableHealthTarget } from "./TableHealthTarget";
+import {
+  DataCheckRunResult,
+  DataCheckSegmentValue,
+  MAX_CHECK_ERROR_LENGTH,
+  PlannedDataCheck,
+  readNumber,
+  readSegment,
+} from "./DataCheckResults";
+import {
+  DataCheckType,
+  MAX_ACCEPTED_VALUES,
+  MAX_SEGMENTS_PER_CHECK,
+} from "../../../Types/DataObservability/DataCheckType";
+import { MAX_CUSTOM_SQL_LENGTH } from "./DataCheckSql";
+import ObjectID from "../../../Types/ObjectID";
 
 /*
  * A DATABASE ONLY A CUSTOMER'S PROBE CAN REACH, COLLECTED FROM THAT PROBE.
@@ -66,6 +81,118 @@ export interface DataObservabilityProbeStoreWork {
   maxTables: number;
   maxColumns: number;
   exclusions: Array<string>;
+  // The store's due data checks, their statements built by the server.
+  checks?: Array<PlannedDataCheck> | undefined;
+}
+
+// The most checks one work item carries, and one report records.
+export const MAX_CHECKS_PER_WORK: number = 50;
+
+// The longest statement a check sends: a custom query, wrapped.
+const MAX_CHECK_SQL_LENGTH: number = MAX_CUSTOM_SQL_LENGTH + 200;
+
+// The checks a work item carries, read strictly: a probe runs only what the server built.
+export function readPlannedChecks(value: unknown): Array<PlannedDataCheck> {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const checks: Array<PlannedDataCheck> = [];
+
+  for (const raw of value.slice(0, MAX_CHECKS_PER_WORK)) {
+    if (!raw || typeof raw !== "object") {
+      continue;
+    }
+
+    const item: JSONObject = raw as JSONObject;
+    const checkId: unknown = item["checkId"];
+    const type: unknown = item["type"];
+    const sql: unknown = item["sql"];
+    const params: unknown = item["params"];
+
+    if (
+      typeof checkId !== "string" ||
+      !ObjectID.isValidUUID(checkId) ||
+      typeof type !== "string" ||
+      !Object.values(DataCheckType).includes(type as DataCheckType) ||
+      typeof sql !== "string" ||
+      sql.length === 0 ||
+      sql.length > MAX_CHECK_SQL_LENGTH ||
+      !Array.isArray(params) ||
+      params.length > MAX_ACCEPTED_VALUES + 1 ||
+      !params.every((param: unknown) => {
+        return typeof param === "string";
+      })
+    ) {
+      continue;
+    }
+
+    checks.push({
+      checkId,
+      type: type as DataCheckType,
+      isSegmented: item["isSegmented"] === true,
+      sql,
+      params: params as Array<string>,
+    });
+  }
+
+  return checks;
+}
+
+// What a report says each check read, read strictly: numbers, bounded text, known checks only.
+export function readCheckResults(value: unknown): Array<DataCheckRunResult> {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const results: Array<DataCheckRunResult> = [];
+
+  for (const raw of value.slice(0, MAX_CHECKS_PER_WORK)) {
+    if (!raw || typeof raw !== "object") {
+      continue;
+    }
+
+    const item: JSONObject = raw as JSONObject;
+    const checkId: unknown = item["checkId"];
+
+    if (typeof checkId !== "string" || !ObjectID.isValidUUID(checkId)) {
+      continue;
+    }
+
+    const values: Array<DataCheckSegmentValue> = [];
+
+    for (const entry of Array.isArray(item["values"])
+      ? (item["values"] as Array<unknown>).slice(0, MAX_SEGMENTS_PER_CHECK)
+      : []) {
+      if (!entry || typeof entry !== "object") {
+        continue;
+      }
+
+      const number: number | null = readNumber((entry as JSONObject)["value"]);
+      const segment: unknown = (entry as JSONObject)["segment"];
+
+      if (number !== null) {
+        values.push({
+          segment:
+            segment === null || segment === undefined
+              ? null
+              : readSegment(segment),
+          value: number,
+        });
+      }
+    }
+
+    results.push({
+      checkId,
+      values,
+      error:
+        typeof item["error"] === "string" && item["error"].length > 0
+          ? item["error"].slice(0, MAX_CHECK_ERROR_LENGTH)
+          : null,
+    });
+  }
+
+  return results;
 }
 
 export interface DataObservabilityProbeResultReport {
@@ -143,6 +270,7 @@ export function readProbeCollectWork(
           })
           .slice(0, MAX_EXCLUSIONS)
       : [],
+    checks: readPlannedChecks(item["checks"]),
   };
 }
 
@@ -153,6 +281,7 @@ export function buildProbeCollectOptions(
     maxTables: work.maxTables,
     maxColumns: work.maxColumns,
     exclusions: work.exclusions,
+    checks: work.checks || [],
   };
 }
 
@@ -257,6 +386,7 @@ export function readTableHealthSnapshot(
     tables,
     isComplete: item["isComplete"] === true,
     target: readTableHealthTarget(item["target"]),
+    checkResults: readCheckResults(item["checkResults"]),
     warnings: Array.isArray(item["warnings"])
       ? (item["warnings"] as Array<unknown>)
           .filter((warning: unknown): warning is string => {

@@ -133,6 +133,7 @@
     "Pattern {{number}}: {{problem}}",
     "Peer",
     "Perf",
+    "Pipeline",
     "Placement Groups",
     "Playbook",
     "Playlist",

@@ -18,8 +18,14 @@ import {
 } from "Common/Server/Utils/DataObservability/DataObservabilityProbeCollect";
 import { TableHealthSnapshot } from "Common/Server/Utils/DataObservability/TableHealthCollector";
 import TableHealthIngest, {
+  IngestStore,
   TableHealthIngestResult,
 } from "Common/Server/Utils/DataObservability/TableHealthIngest";
+import DataCheckIngest from "Common/Server/Utils/DataObservability/DataCheckIngest";
+import DataCheckPlanner, {
+  DataCheckPlan,
+} from "Common/Server/Utils/DataObservability/DataCheckPlanner";
+import { getDatabaseEngineOfKind } from "Common/Server/Utils/DataSecurity/DataSecurityProbeScan";
 import Express, {
   ExpressResponse,
   ExpressRouter,
@@ -111,6 +117,7 @@ router.post(
         select: {
           _id: true,
           projectId: true,
+          name: true,
           kind: true,
           probeConnectionVariable: true,
           scanExclusions: true,
@@ -127,8 +134,32 @@ router.post(
           continue;
         }
 
+        const engine: ReturnType<typeof getDatabaseEngineOfKind> =
+          getDatabaseEngineOfKind(store.kind);
+        // The store's due checks go with its collection; one that cannot run fails here.
+        const plan: DataCheckPlan = engine
+          ? await DataCheckPlanner.planDueChecks({
+              dataStoreId: store.id,
+              engine,
+              now: OneUptimeDate.getCurrentDate(),
+            })
+          : { planned: [], refused: [] };
+
+        if (plan.refused.length > 0 && store.projectId) {
+          await DataCheckIngest.recordResults({
+            store: {
+              id: store.id,
+              projectId: store.projectId,
+              name: store.name || "",
+              kind: store.kind || "",
+            },
+            results: plan.refused,
+            collectedAt: OneUptimeDate.getCurrentDate(),
+          });
+        }
+
         const storeWork: DataObservabilityProbeStoreWork | null =
-          buildProbeCollectWork(store);
+          buildProbeCollectWork(store, plan.planned);
 
         if (!storeWork) {
           await TableHealthIngest.recordFailure({
@@ -223,16 +254,24 @@ router.post(
         );
       }
 
+      const ingestStore: IngestStore = {
+        id: store.id,
+        projectId: store.projectId,
+        name: store.name || "",
+        kind: store.kind || "",
+      };
       const result: TableHealthIngestResult =
         await TableHealthIngest.recordSnapshot({
-          store: {
-            id: store.id,
-            projectId: store.projectId,
-            name: store.name || "",
-            kind: store.kind || "",
-          },
+          store: ingestStore,
           snapshot,
         });
+
+      // Only this store's checks are recorded (DataCheckIngest), whatever the report names.
+      await DataCheckIngest.recordResults({
+        store: ingestStore,
+        results: snapshot.checkResults || [],
+        collectedAt: OneUptimeDate.fromString(snapshot.collectedAt),
+      });
 
       logger.debug(
         `Data Observability collection of store ${store.id.toString()} by probe ${probeId.toString()}: ${snapshot.tables.length} table(s).`,

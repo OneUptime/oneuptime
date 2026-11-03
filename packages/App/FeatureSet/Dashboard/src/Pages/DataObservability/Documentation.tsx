@@ -87,6 +87,74 @@ On **Databases**, choose **Recommended Alerts** for a database. Each recommendat
 
 Pick severities, on-call policies, owners and labels when you create them. They are ordinary monitors from then on: edit, mute or put them on a status page like any other.
 
+## Checks on a table's values
+
+Table health says whether a table changes. A **check** says whether what it holds is right. Add one on a table's **Checks** tab:
+
+| Check | What it reads |
+| --- | --- |
+| **Null Percent** | Percent of rows whose column is empty |
+| **Duplicate Percent** | Percent of values that repeat another row's |
+| **Distinct Count** | How many different values the column holds |
+| **Minimum**, **Maximum**, **Average** | Of a numeric column |
+| **Invalid Percent** | Percent of values outside a list you give |
+| **Format Mismatch Percent** | Percent of values that do not match a regular expression (PostgreSQL and MySQL) |
+| **Orphan Count** | Rows whose value has no match in another table's column |
+| **Row Count** | Rows in the table, most useful with **Segment By** |
+| **Custom SQL** | The number one read-only SELECT of yours returns |
+
+**Suggested Checks** on the same tab offer the checks a table's columns call for, from their names and types alone:
+- An id is unique.
+- A \`customer_id\` has a matching row in \`customers\`.
+- An email looks like one, and an amount is not negative.
+- A status keeps its usual values.
+- A table split by tenant is counted per tenant.
+
+Add one, add them all, or dismiss one for good.
+
+**Segment By** runs a check once per value of a column, such as a tenant or a region: one series and one alert each, for the largest 100 segments. A segmented Row Count alerts when one tenant stops sending data.
+
+Checks run with the database's collection, by OneUptime or by its probe, every 15 minutes, hour, 6 hours or day. Each runs as one aggregate statement in a read-only transaction with a statement timeout: only the number leaves the database, never a row. The value is written as \`oneuptime.data.check.value\`, with \`oneuptime.data.check.id\`, \`oneuptime.data.check.name\` and \`oneuptime.data.check.segment\`.
+
+Set **Alert When** to alert on a check:
+- **Unusually High** or **Unusually Low** compares each value with its own learned baseline for that hour of the week.
+- **Above** or **Below** compares it with a threshold.
+
+Saving the check makes a Metrics monitor for it, as you, with your permissions. Clearing the condition removes the monitor.
+
+## Pipelines and lineage, from OpenLineage
+
+Airflow, Dagster, Spark, dbt and Flink describe every run of a job with [OpenLineage](https://openlineage.io) events. Send them to OneUptime, unchanged, with a telemetry ingestion key (Project Settings > Telemetry & APM > Ingestion Keys):
+
+- **URL:** \`https://oneuptime.com/telemetry/openlineage\` (on a self-hosted OneUptime, your own address)
+- **Endpoint:** \`api/v1/lineage\`, OpenLineage's default
+- **API key:** the ingestion key. It is sent as \`Authorization: Bearer\`, or set \`x-oneuptime-token\`.
+
+For Airflow's OpenLineage provider:
+
+\`\`\`bash
+AIRFLOW__OPENLINEAGE__TRANSPORT='{"type": "http", "url": "https://oneuptime.com/telemetry/openlineage", "endpoint": "api/v1/lineage", "auth": {"type": "api_key", "apiKey": "YOUR_INGESTION_KEY"}}'
+\`\`\`
+
+For any OpenLineage client, set \`OPENLINEAGE_URL\` and \`OPENLINEAGE_API_KEY\`.
+
+Each job appears under **Pipelines**, with its latest run: when it started and ended, how long it took, and the error of a failed run. A run that reads and writes tables OneUptime watches becomes **lineage**: a table's **Lineage** tab shows the tables it is built from, the pipelines that write it with their latest run, and the tables built from it.
+
+Datasets are matched to tables by the OpenLineage naming spec: \`postgres://host:5432\` with \`database.schema.table\`, \`mysql://host:3306\` with \`database.table\`, and \`sqlserver://host:1433\` with \`database.schema.table\`.
+
+Each pipeline learns from its own runs how long a run usually takes (the median of its last 20 completed runs) and how long it goes between runs on its schedule (the longest gap between its last 50 starts that is not a one-off). Both are known after five runs, and fit a job that runs every five minutes as well as one that runs nightly. When your scheduler sends OpenLineage's \`nominalTime\` facet, as Airflow does, a run's scheduled time stands for its start, so a backfill still reads as the schedule.
+
+A pipeline's page recommends three monitors, each created in one click:
+- **Pipeline Run Failed**: a run failed or was aborted.
+- **Pipeline Run Unusually Long**: a run has taken twice its typical time, or more. It is checked every five minutes while the run is going, so a run that hangs is seen before it ends.
+- **Pipeline Is Late**: no run has started for longer than the schedule allows, with a quarter of the interval and at least fifteen minutes of slack.
+
+They read these metrics, each tagged with \`oneuptime.data.pipeline.id\` and \`oneuptime.data.pipeline.name\`:
+- \`oneuptime.data.pipeline.run_failed\`: 1 or 0, as each run ends.
+- \`oneuptime.data.pipeline.run_duration\`: seconds, as each run ends.
+- \`oneuptime.data.pipeline.run_duration_ratio\`: the run's time over the typical run's (counted as at least a minute), as each run ends and every five minutes while it runs.
+- \`oneuptime.data.pipeline.overdue_seconds\`: how long past its schedule the next run is, every five minutes; 0 while on time.
+
 ## Services that use each table
 
 A table's **Services** tab lists the services seen writing and reading it, with the statements each ran, its calls and failures in the last hour, and when it was last seen. It comes from the database spans your services already send with OpenTelemetry: a client span with \`db.system.name\`, \`db.namespace\` and \`db.collection.name\` (or \`db.sql.table\`, or a span named like \`INSERT orders\`). Nothing extra to install. It is updated every 15 minutes.

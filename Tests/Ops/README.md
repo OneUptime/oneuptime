@@ -27,6 +27,12 @@ Test" workflow provides both:
   `kubernetes-agent` chart. Without helm on PATH its renders are skipped with
   the reason logged, except when `CI` is set: then they fail. GitHub's runners
   have helm.
+- **git.** `HomeBlogClone.test.js` runs `packages/Home/Scripts/CloneBlog.sh`,
+  the Home image's blog clone, with the real git against git's own
+  `http-backend` on 127.0.0.1 - a server that stalls a pack part-way, never
+  answers, or drips it out - so it needs git (with its `git-http-backend`) and
+  no network. It takes ~25 seconds: each stalled transfer waits out a
+  shortened low speed check.
 - **docker.** `RUN_ENTERPRISE_IMAGE_RUNTIME_TESTS=1` turns on the real-Docker
   check of what `COPY ./ee` ships through `.dockerignore` (it builds one tiny
   image from `public.ecr.aws/docker/library/node:26-alpine3.24`). With the

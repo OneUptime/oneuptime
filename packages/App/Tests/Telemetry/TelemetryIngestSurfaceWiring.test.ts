@@ -108,6 +108,11 @@ const EXPECTED_WIRING: Array<WiredIngestRoute> = [
     surfaceMember: "Pyroscope",
   },
   {
+    file: `${TELEMETRY_API_DIRECTORY}/OpenLineageIngest.ts`,
+    routePath: "/openlineage/api/v1/lineage",
+    surfaceMember: "OpenLineage",
+  },
+  {
     file: `${TELEMETRY_API_DIRECTORY}/SecurityEventsIngest.ts`,
     routePath: "/security-events/v1/ingest",
     surfaceMember: "SecurityEvents",
