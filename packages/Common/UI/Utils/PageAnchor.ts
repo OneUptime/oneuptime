@@ -323,15 +323,16 @@ export interface PageAnchorLandedOptions extends PageAnchorFocusOptions {
  * scrolled back to, and a screen reader reads where it landed. Focus
  * anywhere else - a field the person is typing in - is never taken.
  *
- * A place that cannot take focus takes it for as long as it holds it
- * (tabindex -1): no control of the place's is pressed by a Space meant to
- * scroll the page, which a focused place lets scroll. The focus moves
- * without scrolling: bringPageAnchorIntoView brings the place into view. A
- * link clicked with the mouse draws no ring; after the keyboard, Theme.css
- * rings the place inside its edge (PAGE_ANCHOR_FOCUSED_ATTRIBUTE).
+ * A place that cannot take the focus of its own takes it for as long as it
+ * holds it (tabindex -1). Give it the place, not a control inside it: a
+ * Space pressed to scroll the page then scrolls it, and presses nothing.
+ * The focus moves without scrolling: bringPageAnchorIntoView brings the
+ * place into view. A link clicked with the mouse draws no ring; after the
+ * keyboard, Theme.css rings the place inside its edge
+ * (PAGE_ANCHOR_FOCUSED_ATTRIBUTE).
  *
- * markPageAnchorLanded calls it; a page whose place is marked some other
- * way - Recommendations' ticked cards, ticked - calls it alone.
+ * markPageAnchorLanded calls it. A page whose place is marked some other
+ * way - a ticked recommendation card - calls it alone.
  */
 export function givePageAnchorFocus(
   element: HTMLElement,
