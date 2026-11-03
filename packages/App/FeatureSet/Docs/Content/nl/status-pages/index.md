@@ -93,7 +93,7 @@ Zodra u een statuspagina hebt geopend, is haar eigen linkermenu in tien secties 
 | **Huisstijl** | **Huisstijl** (logo, titel, favicon, links, voettekst, kleuren en talen, op één pagina), **Aangepaste domeinen**, **HTML, CSS & JavaScript**. |
 | **Beveiliging** | **Toegang** (wie de pagina mag zien), **Privégebruikers**, **SSO**, **OIDC**, **SCIM**. |
 | **AI** | **MCP**. |
-| **Ontwikkelaars** | **Terraform**, **API**, **AI-assistenten**: de pagina als code. |
+| **Ontwikkelaars** | **Terraform**, **API**, **CLI**, **AI-assistenten**: de pagina als code. |
 | **Geavanceerd** | **Ingesloten status**, **Rapporten**, **Aangepaste velden**, **Geavanceerde instellingen**, **Auditlogboeken**, **Statuspagina verwijderen**. |
 
 Alleen **Basis** en **Middelen**, wat de pagina toont, beginnen open. Alle andere secties beginnen ingeklapt, net als de weinig gebruikte secties van elk menu in OneUptime: klik op de titel van een sectie om haar pagina's te tonen. Een sectie gaat vanzelf open wanneer u op een van haar pagina's bent, zoals **Geavanceerde instellingen** of **E-mail-abonnees**.

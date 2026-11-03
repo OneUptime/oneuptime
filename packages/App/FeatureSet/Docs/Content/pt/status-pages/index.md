@@ -93,7 +93,7 @@ Depois de abrir uma página de status, o menu lateral esquerdo dela é agrupado 
 | **Marca** | **Marca** (logotipo, título, favicon, links, rodapé, cores e idiomas, em uma única página), **Domínios personalizados**, **HTML, CSS e JavaScript**. |
 | **Segurança** | **Acesso** (quem pode ver a página), **Usuários privados**, **SSO**, **OIDC**, **SCIM**. |
 | **IA** | **MCP**. |
-| **Desenvolvedores** | **Terraform**, **API**, **Assistentes de IA**: a página como código. |
+| **Desenvolvedores** | **Terraform**, **API**, **CLI**, **Assistentes de IA**: a página como código. |
 | **Avançado** | **Status incorporado**, **Relatórios**, **Campos personalizados**, **Configurações avançadas**, **Registros de auditoria**, **Excluir página de status**. |
 
 Apenas **Básico** e **Recursos**, o que a página mostra, começam abertas. Todas as outras seções começam recolhidas, como as seções pouco usadas de todos os menus da OneUptime: clique no título de uma seção para mostrar suas páginas. Uma seção se abre sozinha quando você está em uma das páginas dela, como **Configurações avançadas** ou **Assinantes de e-mail**.

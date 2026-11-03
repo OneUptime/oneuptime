@@ -93,7 +93,7 @@ Once a status page is open, its own left side menu is grouped into ten sections.
 | **Branding** | **Branding** (logo, title, favicon, links, footer, colors and languages, on one page), **Custom Domains**, **HTML, CSS & JavaScript**. |
 | **Security** | **Access** (who can see the page), **Private Users**, **SSO**, **OIDC**, **SCIM**. |
 | **AI** | **MCP**. |
-| **Developer** | **Terraform**, **API**, **AI Assistants** — the page as code. |
+| **Developer** | **Terraform**, **API**, **CLI**, **AI Assistants** — the page as code. |
 | **Advanced** | **Embedded Status**, **Reports**, **Custom Fields**, **Advanced Settings**, **Audit Logs**, **Delete Status Page**. |
 
 Only **Basic** and **Resources**, what the page shows, start open. Every other section starts collapsed, like the rarely used sections of every menu in OneUptime: click a section's title to show its pages. A section opens by itself whenever you are on one of its pages, such as **Advanced Settings** or **Email Subscribers**.

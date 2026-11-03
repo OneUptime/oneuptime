@@ -136,7 +136,7 @@ export const APPLICATION_SIDE_MENU: ReadonlyArray<{
     ],
   },
   { section: "Settings", items: ["Settings"] },
-  { section: "Developer", items: ["Terraform", "API", "AI Assistants"] },
+  { section: "Developer", items: ["Terraform", "API", "CLI", "AI Assistants"] },
   { section: "Advanced", items: ["Delete Application"] },
 ];
 

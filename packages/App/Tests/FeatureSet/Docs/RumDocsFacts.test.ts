@@ -468,7 +468,12 @@ describe("RUM Overview: where RUM lives in the Dashboard", () => {
       1,
     );
 
-    expect(developerItems).toEqual(["Terraform", "API", "AI Assistants"]);
+    expect(developerItems).toEqual([
+      "Terraform",
+      "API",
+      "CLI",
+      "AI Assistants",
+    ]);
 
     const sections: Array<{ section: string; items: Array<string> }> =
       menuSections(source("applicationSideMenu"), developerItems);

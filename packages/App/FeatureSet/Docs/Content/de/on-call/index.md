@@ -88,7 +88,7 @@ Die erste Richtlinie eines Projekts kann das schon beim Anlegen: Lassen Sie **Be
 | **Berichte** | **Bereitschaftszeit des Benutzers**: wie lange jede Person Bereitschaft hatte |
 | **Arbeitsbereich** | **Slack** und **Microsoft Teams**: Regeln, die Bereitschaftsereignisse in einem Kanal posten |
 | **Einstellungen** | **Benutzerdefinierte Felder**, **Beschriftungsregeln** und **Eigentümerregeln** |
-| **Entwickler** | **Terraform**, **API** und **KI-Assistenten**: Bereitschaft als Code einrichten |
+| **Entwickler** | **Terraform**, **API**, **CLI** und **KI-Assistenten**: Bereitschaft als Code einrichten |
 
 **Richtlinien**, **Zeitpläne** und **Eingehende Anrufe** sind geöffnet; die anderen Abschnitte starten eingeklappt, und ein Abschnitt öffnet sich von selbst, wenn Sie auf einer seiner Seiten sind. **Arbeitsbereich** listet die Chat-Werkzeuge, die das Projekt verbunden hat, oder **Slack oder Teams verbinden**, wenn es keines hat.
 

@@ -136,7 +136,7 @@ Terwijl je eraan werkt, leg je wat je leert vast als **Privénotities**, vul je 
 | **Team** | **Bereikbaarheidsuitvoeringen** en **Eigenaren**: wie er voor de waarschuwing werd opgeroepen, en wie haar eigenaar is |
 | **Meldingen**         | **Meldingslogboeken** en **AI-logboeken**: elk bericht dat over de waarschuwing is verstuurd, en alles wat AI ervoor deed |
 | **Notities** | **Privénotities**                                                                                      |
-| **Ontwikkelaars**     | **Terraform**, **API** en **AI-assistenten**: de waarschuwing vanuit code beheerd                          |
+| **Ontwikkelaars**     | **Terraform**, **API**, **CLI** en **AI-assistenten**: de waarschuwing vanuit code beheerd                 |
 | **Geavanceerd** | **Aangepaste velden**, **Instellingen**, **Auditlogboeken**, **Waarschuwing verwijderen** |
 
 **Overzicht**, **Onderzoek**, **Team** en **Notities** zijn open; de andere secties blijven ingeklapt tot je erop klikt.

@@ -108,7 +108,7 @@ Das Seitenmenü eines Runbooks gliedert seine Seiten so. Nur **Grundlegend** ist
 | **Protokolle** | **Ausführungen** |
 | **Eigentümer** | **Eigentümer** |
 | **Einstellungen** | **Auslöser**, **Variablen**, **Einstellungen** |
-| **Entwickler** | **Terraform**, **API**, **KI-Assistenten** |
+| **Entwickler** | **Terraform**, **API**, **CLI**, **KI-Assistenten** |
 | **Erweitert** | **Audit-Protokolle**, **Runbook löschen** |
 
 ## Ein durchgespieltes Beispiel
