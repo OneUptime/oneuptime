@@ -808,16 +808,19 @@ interface DaemonFixture {
   hostname?: string;
   version?: string;
   inQuorum?: boolean;
-  // How long ago it last reported; past 15 minutes it is Stale.
+  /*
+   * How long ago it last reported. The others report a minute ago, so one
+   * the reports have left out for more than 5 minutes is Stopped reporting.
+   */
   lastSeenSecondsAgo?: number;
 }
 
 const STALE: number = 30 * 60;
 
 /*
- * Out of quorum (red), stale (yellow) and healthy (green) daemons, on hosts
- * and versions whose numbers do not sort as text: as text ceph-node-10 comes
- * before ceph-node-3, and 18.2.10 before 18.2.4.
+ * Out of quorum (red), stopped reporting (grey) and healthy (green)
+ * daemons, on hosts and versions whose numbers do not sort as text: as text
+ * ceph-node-10 comes before ceph-node-3, and 18.2.10 before 18.2.4.
  */
 const EIGHT_DAEMONS: Array<DaemonFixture> = [
   {
@@ -893,6 +896,10 @@ function visibleDaemonCells(title: string): Array<string> {
 }
 
 describe("sorting the Ceph Daemons list", () => {
+  /*
+   * Each kind by Ceph's own name: Ceph Manager, Ceph Monitor, Metadata
+   * Server, Object Gateway.
+   */
   test("opens grouped by kind, each kind A to Z, and its header says so", async () => {
     serveDaemons(EIGHT_DAEMONS);
     await renderPage(CephClusterDaemons);
@@ -900,10 +907,10 @@ describe("sorting the Ceph Daemons list", () => {
     expect(visibleDaemons()).toEqual([
       "mgr.x",
       "mgr.y",
-      "mds.a",
       "mon.a",
       "mon.b",
       "mon.c",
+      "mds.a",
       "rgw.2",
       "rgw.10",
     ]);
@@ -977,16 +984,16 @@ describe("sorting the Ceph Daemons list", () => {
     expect(visibleDaemons()).toEqual([
       "rgw.2",
       "rgw.10",
+      "mds.a",
       "mon.a",
       "mon.b",
       "mon.c",
-      "mds.a",
       "mgr.x",
       "mgr.y",
     ]);
   });
 
-  test("Status puts the worst first - out of quorum, then stale, then healthy - not A to Z", async () => {
+  test("Status puts the worst first - out of quorum, then stopped reporting, then healthy - not A to Z", async () => {
     serveDaemons(EIGHT_DAEMONS);
     await renderPage(CephClusterDaemons);
 
@@ -996,8 +1003,8 @@ describe("sorting the Ceph Daemons list", () => {
     // Within a status, the order the list opens on: by kind, then name.
     expect(visibleDaemons()).toEqual([
       "mon.b",
-      "mds.a",
       "mon.c",
+      "mds.a",
       "mgr.x",
       "mgr.y",
       "mon.a",
@@ -1005,12 +1012,12 @@ describe("sorting the Ceph Daemons list", () => {
       "rgw.10",
     ]);
     expect(visibleDaemonCells("Status")).toEqual([
-      "Out of Quorum",
-      "Stale",
-      "Stale",
+      "Out of quorum",
+      "Stopped reporting",
+      "Stopped reporting",
       "Reporting",
       "Reporting",
-      "In Quorum",
+      "In quorum",
       "Reporting",
       "Reporting",
     ]);
@@ -1024,8 +1031,8 @@ describe("sorting the Ceph Daemons list", () => {
       "mon.a",
       "rgw.2",
       "rgw.10",
-      "mds.a",
       "mon.c",
+      "mds.a",
       "mon.b",
     ]);
   });
@@ -1040,8 +1047,8 @@ describe("sorting the Ceph Daemons list", () => {
     expect(visibleDaemons()).toEqual([
       "mgr.x",
       "mon.b",
-      "mds.a",
       "mon.a",
+      "mds.a",
       "mon.c",
       "rgw.2",
       "rgw.10",
@@ -1075,8 +1082,8 @@ describe("sorting the Ceph Daemons list", () => {
       "rgw.10",
       "mon.c",
       "rgw.2",
-      "mds.a",
       "mon.a",
+      "mds.a",
       "mgr.x",
       "mon.b",
       "mgr.y",
@@ -1129,7 +1136,7 @@ describe("sorting the Ceph Daemons list", () => {
   test("a sort spans every page, and starts the reader again from page one", async () => {
     /*
      * Thirty daemons, opening on managers, metadata servers, monitors and
-     * then 23 gateways - one of the gateways on page two has gone stale.
+     * then 23 gateways - one of the gateways on page two stopped reporting.
      */
     const thirty: Array<DaemonFixture> = [
       { name: "mgr.x" },
@@ -1162,6 +1169,6 @@ describe("sorting the Ceph Daemons list", () => {
 
     expect(pagingSummary()).toBe("Showing 1-25 of 30 daemons");
     expect(visibleDaemons().slice(0, 3)).toEqual(["rgw.20", "mgr.x", "mgr.y"]);
-    expect(visibleDaemonCells("Status")[0]).toBe("Stale");
+    expect(visibleDaemonCells("Status")[0]).toBe("Stopped reporting");
   });
 });

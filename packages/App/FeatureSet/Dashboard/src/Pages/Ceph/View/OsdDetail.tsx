@@ -1,53 +1,39 @@
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
-import CephCluster from "Common/Models/DatabaseModels/CephCluster";
-import CephResourceModel from "Common/Models/DatabaseModels/CephResource";
 import Card from "Common/UI/Components/Card/Card";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
-import React, {
-  FunctionComponent,
-  ReactElement,
-  useEffect,
-  useState,
-} from "react";
-import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
-import API from "Common/UI/Utils/API/API";
+import React, { FunctionComponent, ReactElement } from "react";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import { Tab } from "Common/UI/Components/Tabs/Tab";
-import ResourceOverviewTab, {
-  SummaryField,
-} from "../../../Components/Infrastructure/ResourceOverviewTab";
 import ResourceMetricsTab from "../../../Components/Infrastructure/ResourceMetricsTab";
-import StatusBadge, {
-  StatusBadgeType,
-} from "Common/UI/Components/StatusBadge/StatusBadge";
-import CephResourceUtils, {
-  getOsdPlacementText,
-} from "../Utils/CephResourceUtils";
-import { CEPH_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/CephMetricDescriptions";
+import ResourcePartReadError from "../../../Components/ResourcePart/ResourcePartReadError";
+import CephPartHero from "../../../Components/Ceph/Part/CephPartHero";
+import CephOsdOverview from "../../../Components/Ceph/Part/CephOsdOverview";
+import {
+  CephPartRoutes,
+  getCephPartRoutes,
+} from "../../../Components/Ceph/Part/CephPartRoutes";
+import useCephPart, {
+  CephPart,
+} from "../../../Components/Ceph/Part/UseCephPart";
+import { CephAssessment, assessCephOsd } from "../Utils/CephHealth";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
- * OSD detail page. The route param (subModelId) is the CephResource
- * externalId — the `ceph_daemon` datapoint label (e.g. `osd.3`) — not a
- * database id, mirroring the Kubernetes detail route contract
- * (Pages/Kubernetes/View/NodeDetail.tsx).
+ * An OSD's page: its hero (its state by the cluster's rules, whether Ceph
+ * places data on it, its device class, size and placement groups), then its
+ * Overview - what about it needs attention, how full it is and how fast it
+ * writes, what is open on it, the OSD alerts and its details - and its
+ * metrics over time.
+ *
+ * The route's part (subModelId) is the OSD's `ceph_daemon` name, osd.3 - not
+ * a database id - as the Kubernetes pages' routes carry a part's name.
  */
-
-const formatLatencyMs: (value: number | null) => string = (
-  value: number | null,
-): string => {
-  if (value === null || !Number.isFinite(value)) {
-    return "—";
-  }
-  return `${value.toFixed(0)} ms`;
-};
 const CephClusterOsdDetail: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -55,87 +41,32 @@ const CephClusterOsdDetail: FunctionComponent<
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(2);
   const osdName: string = Navigation.getLastParamAsString();
 
-  const [cluster, setCluster] = useState<CephCluster | null>(null);
-  const [resource, setResource] = useState<CephResourceModel | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [isLoadingResource, setIsLoadingResource] = useState<boolean>(true);
-  const [error, setError] = useState<string>("");
+  const part: CephPart = useCephPart({
+    clusterId: modelId,
+    kind: "Osd",
+    externalId: osdName,
+  });
 
-  const fetchCluster: PromiseVoidFunction = async (): Promise<void> => {
-    setIsLoading(true);
-    try {
-      const item: CephCluster | null = await ModelAPI.getItem({
-        modelType: CephCluster,
-        id: modelId,
-        select: {
-          name: true,
-        },
-      });
-      setCluster(item);
-    } catch (err) {
-      setError(API.getFriendlyMessage(err));
-    }
-    setIsLoading(false);
-  };
-
-  const fetchResource: PromiseVoidFunction = async (): Promise<void> => {
-    setIsLoadingResource(true);
-    try {
-      const result: ListResult<CephResourceModel> =
-        await ModelAPI.getList<CephResourceModel>({
-          modelType: CephResourceModel,
-          query: {
-            cephClusterId: modelId,
-            kind: "Osd",
-            externalId: osdName,
-          },
-          skip: 0,
-          limit: 1,
-          select: {
-            externalId: true,
-            hostname: true,
-            daemonVersion: true,
-            deviceClass: true,
-            isUp: true,
-            isIn: true,
-            statBytes: true,
-            statBytesUsed: true,
-            applyLatencyMs: true,
-            commitLatencyMs: true,
-            pgCount: true,
-            metricsUpdatedAt: true,
-            lastSeenAt: true,
-            createdAt: true,
-          },
-          sort: {},
-        });
-      setResource(result.data[0] || null);
-    } catch {
-      // Graceful degradation — overview tab shows the empty state.
-    }
-    setIsLoadingResource(false);
-  };
-
-  useEffect(() => {
-    fetchCluster().catch((err: Error) => {
-      setError(API.getFriendlyMessage(err));
-    });
-    fetchResource().catch(() => {});
-  }, []);
-
-  if (isLoading) {
+  if (part.isLoading) {
     return <PageLoader isVisible={true} />;
   }
 
-  if (error) {
-    return <ErrorMessage message={error} />;
+  if (part.error) {
+    return <ErrorMessage message={part.error} />;
   }
 
-  if (!cluster?.name) {
+  if (!part.cluster?.name) {
     return <ErrorMessage message="Cluster not found." />;
   }
 
-  const clusterName: string = cluster.name;
+  const clusterName: string = part.cluster.name;
+  const routes: CephPartRoutes = getCephPartRoutes(modelId);
+  const assessment: CephAssessment | null = part.row
+    ? assessCephOsd(part.row, {
+        now: part.readAt,
+        newestSeenAt: part.newestSeenAt,
+      })
+    : null;
 
   const buildOsdQuery: (args: {
     variable: string;
@@ -152,12 +83,13 @@ const CephClusterOsdDetail: FunctionComponent<
     legendUnit: string;
     metricName: string;
   }): MetricQueryConfigData => {
+    // The charts draw their titles and legends as they are given.
     return {
       metricAliasData: {
         metricVariable: args.variable,
-        title: args.title,
+        title: translator.translateText(args.title) || args.title,
         description: args.description,
-        legend: args.legend,
+        legend: translator.translateText(args.legend) || args.legend,
         legendUnit: args.legendUnit,
       },
       metricQueryData: {
@@ -182,7 +114,7 @@ const CephClusterOsdDetail: FunctionComponent<
         "Average time for {{osdName}} to apply an operation to its backing store (ms).",
         { osdName: osdName },
       ),
-      legend: "Apply",
+      legend: "Apply Latency",
       legendUnit: "ms",
       metricName: "ceph_osd_apply_latency_ms",
     }),
@@ -193,7 +125,7 @@ const CephClusterOsdDetail: FunctionComponent<
         "Average time for {{osdName}} to commit an operation to its journal (ms).",
         { osdName: osdName },
       ),
-      legend: "Commit",
+      legend: "Commit Latency",
       legendUnit: "ms",
       metricName: "ceph_osd_commit_latency_ms",
     }),
@@ -221,89 +153,27 @@ const CephClusterOsdDetail: FunctionComponent<
     }),
   ];
 
-  // Build overview summary fields from the inventory row.
-  const summaryFields: Array<SummaryField> = [
-    { title: "OSD", value: osdName },
-    { title: "Cluster", value: clusterName },
-  ];
-
-  if (resource) {
-    summaryFields.push(
-      {
-        title: "Status",
-        description: CEPH_METRIC_DESCRIPTIONS.osdStatus,
-        value: (
-          <StatusBadge
-            text={resource.isUp ? "Up" : "Down"}
-            type={
-              resource.isUp ? StatusBadgeType.Success : StatusBadgeType.Danger
-            }
-          />
-        ),
-      },
-      {
-        title: "Placement",
-        description: CEPH_METRIC_DESCRIPTIONS.osdPlacement,
-        value: (
-          <StatusBadge
-            text={getOsdPlacementText(resource.isIn)}
-            type={
-              resource.isIn ? StatusBadgeType.Success : StatusBadgeType.Warning
-            }
-          />
-        ),
-      },
-      { title: "Host", value: resource.hostname || "N/A" },
-      { title: "Device Class", value: resource.deviceClass || "N/A" },
-      {
-        title: "Used / Total",
-        description: CEPH_METRIC_DESCRIPTIONS.osdUsed,
-        value: `${CephResourceUtils.formatBytes(
-          CephResourceUtils.freshMetricValue(resource, resource.statBytesUsed),
-        )} / ${CephResourceUtils.formatBytes(
-          CephResourceUtils.freshMetricValue(resource, resource.statBytes),
-        )}`,
-      },
-      {
-        title: "Placement Groups",
-        description: CEPH_METRIC_DESCRIPTIONS.osdPlacementGroups,
-        value: CephResourceUtils.formatCount(
-          CephResourceUtils.freshMetricValue(resource, resource.pgCount),
-        ),
-      },
-      {
-        title: "Apply / Commit Latency",
-        description: CEPH_METRIC_DESCRIPTIONS.osdLatency,
-        value: `${formatLatencyMs(
-          CephResourceUtils.freshMetricValue(resource, resource.applyLatencyMs),
-        )} / ${formatLatencyMs(
-          CephResourceUtils.freshMetricValue(
-            resource,
-            resource.commitLatencyMs,
-          ),
-        )}`,
-      },
-      { title: "Version", value: resource.daemonVersion || "N/A" },
-      {
-        title: "Last Seen",
-        value: CephResourceUtils.formatLastSeen(resource.lastSeenAt),
-      },
-    );
-  }
-
   const tabs: Array<Tab> = [
     {
       name: "Overview",
-      children: (
-        <ResourceOverviewTab
-          summaryFields={resource ? summaryFields : []}
-          labels={{}}
-          annotations={{}}
-          isLoading={isLoadingResource}
-          emptyMessage={translator.translateTemplate(
-            "OSD {{osdName}} is not in the inventory yet. It appears here a few minutes after the Ceph agent starts sending metrics.",
-            { osdName: osdName },
-          )}
+      children: part.isLoadingRows ? (
+        <PageLoader isVisible={true} />
+      ) : part.rowError ? (
+        <ResourcePartReadError
+          testId="ceph-osd-read-error"
+          title="Couldn't load this OSD"
+          message={part.rowError}
+          onRetry={part.refresh}
+        />
+      ) : (
+        <CephOsdOverview
+          clusterId={modelId}
+          clusterName={clusterName}
+          externalId={osdName}
+          row={part.row}
+          newestSeenAt={part.newestSeenAt}
+          routes={routes}
+          now={part.readAt}
         />
       ),
     },
@@ -322,7 +192,20 @@ const CephClusterOsdDetail: FunctionComponent<
     },
   ];
 
-  return <Tabs tabs={tabs} onTabChange={() => {}} />;
+  return (
+    <div data-testid="ceph-osd-page">
+      <CephPartHero
+        kind="Osd"
+        row={part.row}
+        externalId={osdName}
+        assessment={assessment}
+        clusterName={clusterName}
+        clusterRoute={routes.clusterRoute}
+        now={part.readAt}
+      />
+      <Tabs tabs={tabs} wrap={true} onTabChange={() => {}} />
+    </div>
+  );
 };
 
 export default CephClusterOsdDetail;

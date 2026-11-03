@@ -9,7 +9,11 @@ import {
   CEPH_METRIC_DESCRIPTIONS,
   CephMetric,
 } from "../../FeatureSet/Dashboard/src/Components/MetricDescriptions/CephMetricDescriptions";
-import { escapeRegExp } from "Common/Utils/RegExpEscape";
+import {
+  CEPH_CLUSTER_FULL_PERCENT,
+  CEPH_CLUSTER_NEARFULL_PERCENT,
+  CEPH_READINGS_STALE_MS,
+} from "../../FeatureSet/Dashboard/src/Pages/Ceph/Utils/CephHealth";
 
 /*
  * Source-level pins for the (i) tooltips on the IoT and Ceph pages: every
@@ -92,7 +96,8 @@ function segment(code: string, marker: string, stop: string): string {
 /*
  * A detail page's summary fields, from their declaration on - so a chart
  * query config earlier in the file that happens to share a title ("Signal
- * Strength", "Objects") is never mistaken for the field.
+ * Strength", "Objects") is never mistaken for the field. (An OSD's and a
+ * pool's page draw theirs in Components/Ceph/Part, as tiles and details.)
  */
 function summaryFieldsCode(code: string): string {
   const start: number = code.indexOf(
@@ -119,6 +124,10 @@ const PAGES: Record<string, string> = {
   cephDaemons: "Pages/Ceph/View/Daemons.tsx",
   cephInsights: "Pages/Ceph/View/Insights.tsx",
   cephClusters: "Pages/Ceph/Clusters.tsx",
+  // An OSD's and a pool's page draw their tiles and details here.
+  cephPartHero: "Components/Ceph/Part/CephPartHero.tsx",
+  cephOsdOverview: "Components/Ceph/Part/CephOsdOverview.tsx",
+  cephPoolOverview: "Components/Ceph/Part/CephPoolOverview.tsx",
 };
 
 const IOT_PAGES: Array<string> = [
@@ -137,6 +146,9 @@ const CEPH_PAGES: Array<string> = [
   PAGES["cephDaemons"]!,
   PAGES["cephInsights"]!,
   PAGES["cephClusters"]!,
+  PAGES["cephPartHero"]!,
+  PAGES["cephOsdOverview"]!,
+  PAGES["cephPoolOverview"]!,
 ];
 
 describe("every description is used, and every reference exists", () => {
@@ -172,7 +184,7 @@ describe("every description is used, and every reference exists", () => {
       }
       if (references(code, CEPH_REFERENCE).length > 0) {
         expect(code).toMatch(
-          /import \{ CEPH_METRIC_DESCRIPTIONS \} from "(\.\.\/)+Components\/MetricDescriptions\/CephMetricDescriptions";/,
+          /import \{ CEPH_METRIC_DESCRIPTIONS \} from "(\.\.\/)+(Components\/)?MetricDescriptions\/CephMetricDescriptions";/,
         );
       }
       if (count(code, INFO_TOOLTIP) > 0) {
@@ -400,29 +412,29 @@ describe("Ceph cluster overview", () => {
     ["Capacity Used", "capacityUsed"],
     ["OSDs Up", "osdsUp"],
     ["Mons In Quorum", "monsInQuorum"],
-    ["Pools", "pools"],
     ["Problem PGs", "problemPgs"],
   ] as Array<[string, CephMetric]>)(
-    "the %s tile passes its description",
+    "the %s tile passes its description, its title in the reader's words",
     (title: string, key: CephMetric) => {
+      // The tile draws its title as it is given: the page looks it up.
       expect(code).toContain(
-        `<GoldenMetricTile title="${title}" description={CEPH_METRIC_DESCRIPTIONS.${key}}`,
+        `<GoldenMetricTile title={tx("${title}")} description={CEPH_METRIC_DESCRIPTIONS.${key}}`,
       );
     },
   );
 
+  // The pools' count is the hero's chip, which opens the Pools list.
   test("every golden tile on the page has a description", () => {
-    expect(count(code, GOLDEN_TILE)).toBe(5);
+    expect(count(code, GOLDEN_TILE)).toBe(4);
     expect(
       count(
         code,
-        /<GoldenMetricTile title="[^"]+" description=\{CEPH_METRIC_DESCRIPTIONS\.\w+\}/g,
+        /<GoldenMetricTile title=\{tx\("[^"]+"\)\} description=\{CEPH_METRIC_DESCRIPTIONS\.\w+\}/g,
       ),
-    ).toBe(5);
+    ).toBe(4);
   });
 
   test.each([
-    ["Active Health Checks", "activeHealthChecks"],
     ["OSD States", "osdStates"],
     ["Placement Group States", "pgStates"],
   ] as Array<[string, CephMetric]>)(
@@ -444,22 +456,38 @@ describe("Ceph cluster overview", () => {
   ] as Array<[string, string, CephMetric]>)(
     "the %s list passes its tooltip text",
     (title: string, description: string, key: CephMetric) => {
+      /*
+       * Its title and description as properties of the list, which the
+       * extractor gives to the translators, rather than bare arguments.
+       */
       expect(code).toContain(
-        `renderTopPoolList( "${title}", "${description}", CEPH_METRIC_DESCRIPTIONS.${key},`,
+        `renderTopPoolList({ title: "${title}", description: "${description}", tooltip: CEPH_METRIC_DESCRIPTIONS.${key},`,
       );
     },
   );
 
   test("the top pool lists render their title through CephMetricTitle", () => {
     expect(code).toContain(
-      "title={<CephMetricTitle title={title} description={tooltip} />}",
+      "title={ <CephMetricTitle title={list.title} description={list.tooltip} /> } description={list.description}",
     );
     expect(count(code, /renderTopPoolList\(/g)).toBe(2);
   });
 
+  // A Card looks up a title given as text, not one inside an element.
+  test("a CephMetricTitle draws its title in the reader's words", () => {
+    const title: string = segment(
+      code,
+      "export const CephMetricTitle",
+      "export interface OsdStateCell",
+    );
+    expect(title).toContain(
+      "{translator.translateText(props.title) || props.title} <InfoTooltip label={props.title} text={props.description} />",
+    );
+  });
+
   test("the health pill is followed by its (i)", () => {
     expect(code).toContain(
-      '{renderHealthPill(health)} <InfoTooltip label="Cluster health" text={CEPH_METRIC_DESCRIPTIONS.health} />',
+      '{healthLabel} </span> <InfoTooltip label="Cluster health" text={CEPH_METRIC_DESCRIPTIONS.health} />',
     );
   });
 
@@ -502,10 +530,10 @@ describe("Ceph cluster overview", () => {
     );
 
     expect(hero).toContain(
-      '{ one: "{{up}}/{{count}} OSD up", other: "{{up}}/{{count}} OSDs up" }, cluster.osdCount, { up: cluster.osdUpCount || 0 },',
+      '{ one: "{{up}}/{{count}} OSD up", other: "{{up}}/{{count}} OSDs up" }, cluster.osdCount, { up: formatCount(cluster.osdUpCount || 0) },',
     );
     expect(hero).toContain(
-      '{ one: "{{inQuorum}}/{{count}} mon in quorum", other: "{{inQuorum}}/{{count}} mons in quorum", }, monsTotal, { inQuorum: monsInQuorum || 0 },',
+      '{ one: "{{inQuorum}}/{{count}} mon in quorum", other: "{{inQuorum}}/{{count}} mons in quorum", }, monsTotal, { inQuorum: formatCount(monsInQuorum || 0) },',
     );
     expect(hero).toContain(
       '{ one: "{{count}} mon", other: "{{count}} mons" }, cluster.monCount,',
@@ -520,6 +548,18 @@ describe("Ceph cluster overview", () => {
     );
     expect(CEPH_METRIC_DESCRIPTIONS.inventoryCounts).toContain(
       "only the monitor count when quorum is not reported",
+    );
+  });
+
+  // Each count chip opens its list, as its text says.
+  test.each([
+    ["routes.osdsRoute", "ceph-hero-osds"],
+    ["routes.daemonsRoute", "ceph-hero-mons"],
+    ["routes.poolsRoute", "ceph-hero-pools"],
+  ])("a count chip opens its list: %s", (route: string, testId: string) => {
+    expect(code).toContain(`route: ${route}, testId: "${testId}",`);
+    expect(CEPH_METRIC_DESCRIPTIONS.inventoryCounts).toContain(
+      "Each opens its list",
     );
   });
 
@@ -544,8 +584,12 @@ describe("Ceph cluster overview", () => {
       "const CephClusterOverview",
     );
 
+    // Each word in the reader's language; the (i) names it as written.
     expect(cell).toContain(
-      "<span>{props.cell.label}</span> <InfoTooltip label={props.cell.label} text={props.cell.description} />",
+      "<span> {translator.translateText(props.cell.label) || props.cell.label} </span> <InfoTooltip label={props.cell.label} text={props.cell.description} />",
+    );
+    expect(cell).toContain(
+      "{translator.translateText(props.cell.sublabel) || props.cell.sublabel}",
     );
     expect(code).toContain(
       "const cells: Array<OsdStateCell> = buildOsdStateCells(osdMatrix);",
@@ -566,12 +610,25 @@ describe("Ceph cluster overview", () => {
     );
   });
 
-  test("the capacity tile's 85% and 24 hours are the page's own constants", () => {
+  /*
+   * The tile's bar turns at the Cluster Near Full and Cluster Full alerts'
+   * lines, the rules' own constants, and its projection counts down to
+   * the first of them.
+   */
+  test("the capacity tile's lines and 24 hours are the rules' and the page's own constants", () => {
     expect(code).toContain("const PROJECTION_WINDOW_HOURS: number = 24;");
-    expect(code).toContain("const NEARFULL_RATIO: number = 0.85;");
-    expect(code).toContain("thresholds={{ warn: 75, danger: 85 }}");
+    expect(code).toContain(
+      "const NEARFULL_RATIO: number = CEPH_CLUSTER_NEARFULL_PERCENT / 100;",
+    );
+    expect(code).toContain(
+      "thresholds={{ warn: CEPH_CLUSTER_NEARFULL_PERCENT, danger: CEPH_CLUSTER_FULL_PERCENT, }}",
+    );
+    expect(CEPH_CLUSTER_NEARFULL_PERCENT).toBe(85);
+    expect(CEPH_CLUSTER_FULL_PERCENT).toBe(95);
     expect(CEPH_METRIC_DESCRIPTIONS.capacityUsed).toContain("24 hours");
-    expect(CEPH_METRIC_DESCRIPTIONS.capacityUsed).toContain("85%");
+    expect(CEPH_METRIC_DESCRIPTIONS.capacityUsed).toContain(
+      "Amber past 85% and red past 95%",
+    );
   });
 
   test("Problem PGs adds the two states, as its text says", () => {
@@ -582,34 +639,38 @@ describe("Ceph cluster overview", () => {
   });
 
   /*
-   * One health text sits behind the overview pill ("Health Warning") and
-   * the Clusters list pill ("WARN"), so it has to name the states in the
-   * words both pills use. The overview pill's words are looked up in the
-   * reader's language (#5298's UI review), so they are translation keys.
+   * The overview's pill reads the cluster's rules, in getResourceHealthLabel's
+   * words (Health Unknown while the agent is disconnected); the Clusters
+   * list's pill reads Ceph's own verdict. Each has its own text.
    */
-  test("the health text names every state the overview and Clusters pills show", () => {
-    for (const label of ["OK", "Warning", "Error", "Unknown"]) {
-      expect(code).toContain(`label: translationKey("Health ${label}"),`);
-      expect(CEPH_METRIC_DESCRIPTIONS.health).toContain(label);
-    }
-
-    const clusters: string = readCode(PAGES["cephClusters"]!);
-
-    for (const label of ["OK", "WARN", "ERR", "Unknown"]) {
-      expect(clusters).toContain(`label: "${label}",`);
+  test("the overview's pill follows the rules, and its text names their states", () => {
+    expect(code).toContain(
+      "const clusterHealth: ResourceHealth = getCephHealth(attentionItems);",
+    );
+    expect(code).toContain(
+      "const healthLabel: string = getResourceHealthLabel({ translator: translator, health: clusterHealth, isConnected: isConnected, });",
+    );
+    for (const label of [
+      "Healthy",
+      "Degraded",
+      "Unhealthy",
+      "Health Unknown",
+    ]) {
       expect(CEPH_METRIC_DESCRIPTIONS.health).toContain(label);
     }
   });
 
-  test("Active Health Checks keeps each check's latest value in the last 10 minutes, as its text says", () => {
-    expect(code).toContain('"ceph_health_detail", "name", 10, );');
-    // Rows arrive newest first; only the first row per check is kept.
-    expect(code).toContain("sort: { time: SortOrder.Descending, },");
-    expect(code).toContain("if (!perKey.has(key)) {");
-    expect(code).toContain("if (entry.value >= 1) {");
-    expect(CEPH_METRIC_DESCRIPTIONS.activeHealthChecks).toContain(
-      "still raised in the latest data Ceph sent in the last 10 minutes",
+  test("the Clusters list's pill says Ceph's verdict, and its text names every state", () => {
+    const clusters: string = readCode(PAGES["cephClusters"]!);
+
+    for (const label of ["OK", "WARN", "ERR"]) {
+      expect(clusters).toContain(`label: "${label}",`);
+      expect(CEPH_METRIC_DESCRIPTIONS.clusterHealth).toContain(label);
+    }
+    expect(clusters).toContain(
+      'label: data.translator.translateText("Unknown") || "Unknown",',
     );
+    expect(CEPH_METRIC_DESCRIPTIONS.clusterHealth).toContain("Unknown");
   });
 });
 
@@ -708,36 +769,44 @@ describe("Ceph OSD list", () => {
 
   /*
    * The Used, PGs and latency texts all say a dash stands in for figures
-   * older than 15 minutes; each figure has to go through the stale cut-off.
+   * older than 15 minutes: every figure comes through the rules' readings,
+   * which blank a row's after the cleanup's cut-off.
    */
-  test.each([
-    ["row.statBytes", "osdUsedColumn"],
-    ["row.statBytesUsed", "osdUsedColumn"],
-    ["row.pgCount", "osdPgsColumn"],
-    ["row.applyLatencyMs", "osdLatencyColumn"],
-    ["row.commitLatencyMs", "osdLatencyColumn"],
-  ] as Array<[string, CephMetric]>)(
-    "%s is read through the 15-minute stale cut-off (%s)",
-    (field: string, key: CephMetric) => {
-      expect(code).toMatch(
-        new RegExp(
-          `CephResourceUtils\\.freshMetricValue\\( ?row, ${escapeRegExp(field)},? ?\\)`,
-        ),
-      );
+  test("every figure is read through the rules' 15-minute cut-off", () => {
+    expect(code).toContain(
+      "const readings: CephOsdReadings = getCephOsdReadings(row, now);",
+    );
+    expect(code).not.toMatch(/row\.(statBytes|pgCount|applyLatencyMs)\b/);
+    expect(CEPH_READINGS_STALE_MS).toBe(15 * 60 * 1000);
+    for (const key of [
+      "osdUsedColumn",
+      "osdPgsColumn",
+      "osdLatencyColumn",
+    ] as Array<CephMetric>) {
       expect(CEPH_METRIC_DESCRIPTIONS[key]).toContain(
         "has not reported in the last 15 minutes",
       );
-    },
-  );
+    }
+  });
+
+  // A row's status, and its cells' colours, are the rules'.
+  test("the status and the Used and latency colours are the rules'", () => {
+    expect(code).toContain(
+      "assessCephOsd(row, { now: now, newestSeenAt: newestSeenAt }),",
+    );
+    expect(code).toContain("return getCephOsdUsedTone(");
+    expect(code).toContain("return getCephOsdLatencyTone(");
+  });
 });
 
 describe("Ceph pool list", () => {
   const code: string = readCode(PAGES["cephPools"]!);
 
   test.each([
+    ['title: "Used", key: "usedPercent"', "poolUsedColumn"],
     ['title: "Stored", key: "stored"', "poolStoredColumn"],
     ['title: "Max Avail", key: "maxAvail"', "poolMaxAvailColumn"],
-    ['title: "Used", key: "usedPercent"', "poolUsedColumn"],
+    ['title: "PGs", key: "pgs"', "poolPgsColumn"],
     ['title: "Objects", key: "objects"', "poolObjectsColumn"],
     ['title: "Read IOPS", key: "readIops"', "poolReadIopsColumn"],
     ['title: "Write IOPS", key: "writeIops"', "poolWriteIopsColumn"],
@@ -750,114 +819,128 @@ describe("Ceph pool list", () => {
     },
   );
 
+  test("the built-in Status column is explained, and the list draws no Age", () => {
+    expect(code).toContain(
+      "builtInColumnDescriptions={{ status: CEPH_METRIC_DESCRIPTIONS.poolStatusColumn, }}",
+    );
+    expect(code).toContain("showAge={false}");
+  });
+
   test("the IOPS window its text names is the one the page uses", () => {
     expect(code).toContain("const IOPS_WINDOW_MINUTES: number = 15;");
     expect(CEPH_METRIC_DESCRIPTIONS.poolReadIopsColumn).toContain(
       "last 15 minutes",
     );
   });
+
+  test("a row's status reads its placement groups, and its Used colour is the rules'", () => {
+    expect(code).toContain(
+      "assessCephPool(row, { now: now, newestSeenAt: newestSeenAt, pgStates: pgStates, }),",
+    );
+    expect(code).toContain("loadCephPgStates(clusterName)");
+    expect(code).toContain("return getCephPoolUsedTone(");
+  });
 });
 
-describe("Ceph OSD detail", () => {
-  const fields: string = summaryFieldsCode(readCode(PAGES["cephOsdDetail"]!));
+describe("an OSD's page", () => {
+  const overview: string = readCode(PAGES["cephOsdOverview"]!);
+  const hero: string = readCode(PAGES["cephPartHero"]!);
 
   test.each([
-    ['title: "Status"', "osdStatus"],
-    ['title: "Placement",', "osdPlacement"],
-    ['title: "Used / Total"', "osdUsed"],
-    ['title: "Placement Groups"', "osdPlacementGroups"],
-    ['title: "Apply / Commit Latency"', "osdLatency"],
+    ["Used", "osdUsedTile"],
+    ["Apply Latency", "osdLatencyTile"],
+    ["Placement Groups", "osdPlacementGroups"],
   ] as Array<[string, CephMetric]>)(
-    "the %s summary field carries its description",
+    "the %s tile carries its description",
+    (title: string, key: CephMetric) => {
+      expect(segment(overview, `title={tx("${title}")}`, "/>")).toContain(
+        `description={CEPH_METRIC_DESCRIPTIONS.${key}}`,
+      );
+    },
+  );
+
+  test("the Placement detail carries its description; identity details carry none", () => {
+    expect(segment(overview, 'label: "Placement",', "});")).toContain(
+      "description: CEPH_METRIC_DESCRIPTIONS.osdPlacement,",
+    );
+    for (const label of [
+      "OSD",
+      "Host",
+      "Device Class",
+      "Version",
+      "Last report",
+    ]) {
+      expect(segment(overview, `label: "${label}",`, "});")).not.toContain(
+        "description:",
+      );
+    }
+  });
+
+  test("the hero's status says what it means", () => {
+    expect(hero).toContain(
+      'props.kind === "Osd" ? CEPH_METRIC_DESCRIPTIONS.osdStatus : CEPH_METRIC_DESCRIPTIONS.poolStatus,',
+    );
+  });
+
+  // A down OSD's readings are its last ones, not what it does now.
+  test("a down OSD draws no tiles", () => {
+    expect(overview).toContain(
+      "row.isUp === true ? getCephOsdReadings(row, props.now) : null;",
+    );
+  });
+});
+
+describe("a pool's page", () => {
+  const page: string = readCode(PAGES["cephPoolDetail"]!);
+  const overview: string = readCode(PAGES["cephPoolOverview"]!);
+
+  test.each([
+    ["Used", "poolUsedTile"],
+    ["Placement Groups", "poolPgsTile"],
+    ["Objects", "poolObjects"],
+  ] as Array<[string, CephMetric]>)(
+    "the %s tile carries its description",
+    (title: string, key: CephMetric) => {
+      expect(segment(overview, `title={tx("${title}")}`, "/>")).toContain(
+        `description={CEPH_METRIC_DESCRIPTIONS.${key}}`,
+      );
+    },
+  );
+
+  test.each([
+    ['label: "Stored",', "poolStored"],
+    ['label: "Max Available",', "poolMaxAvail"],
+    ['label: "Time to Full",', "poolGrowth"],
+  ] as Array<[string, CephMetric]>)(
+    "the %s detail carries its description",
     (marker: string, key: CephMetric) => {
-      expect(segment(fields, marker, "title:")).toContain(
+      expect(segment(overview, marker, "});")).toContain(
         `description: CEPH_METRIC_DESCRIPTIONS.${key},`,
       );
     },
   );
 
-  test("identity fields carry none", () => {
-    for (const marker of [
-      'title: "OSD"',
-      'title: "Cluster"',
-      'title: "Host"',
-      'title: "Device Class"',
-      'title: "Version"',
-      'title: "Last Seen"',
-    ]) {
-      expect(segment(fields, marker, "}")).not.toContain("description:");
-    }
-  });
-
-  test.each([
-    ['title: "Used / Total"', "resource.statBytesUsed", "osdUsed"],
-    ['title: "Used / Total"', "resource.statBytes)", "osdUsed"],
-    ['title: "Placement Groups"', "resource.pgCount", "osdPlacementGroups"],
-    [
-      'title: "Apply / Commit Latency"',
-      "resource.applyLatencyMs",
-      "osdLatency",
-    ],
-    [
-      'title: "Apply / Commit Latency"',
-      "resource.commitLatencyMs",
-      "osdLatency",
-    ],
-  ] as Array<[string, string, CephMetric]>)(
-    "the %s field reads %s through the 15-minute stale cut-off",
-    (marker: string, field: string, key: CephMetric) => {
-      expect(segment(fields, marker, 'title: "')).toMatch(
-        new RegExp(
-          `CephResourceUtils\\.freshMetricValue\\( ?resource, ${escapeRegExp(field)}`,
-        ),
-      );
-      expect(CEPH_METRIC_DESCRIPTIONS[key]).toContain(
-        "has not reported in the last 15 minutes",
-      );
-    },
-  );
-});
-
-describe("Ceph pool detail", () => {
-  const code: string = readCode(PAGES["cephPoolDetail"]!);
-  const fields: string = summaryFieldsCode(code);
-
-  test.each([
-    ['title: "Stored", value:', "poolStored"],
-    ['title: "Max Available", value:', "poolMaxAvail"],
-    ['title: "Used", value:', "poolUsed"],
-    ['title: "Growth"', "poolGrowth"],
-    ['title: "Objects", description:', "poolObjects"],
-  ] as Array<[string, CephMetric]>)(
-    "the %s summary field carries its description",
-    (marker: string, key: CephMetric) => {
-      expect(segment(fields, marker, "title:")).toContain(
-        `description: CEPH_METRIC_DESCRIPTIONS.${key}`,
-      );
-    },
-  );
-
   test("each rate chart has a header with the pool's own (i)", () => {
-    expect(count(code, RATE_CHART)).toBe(2);
-    expect(code).toContain(
+    expect(count(page, RATE_CHART)).toBe(2);
+    expect(page).toContain(
       '{translator.translateText("Client IOPS")} <InfoTooltip label="Client IOPS" text={CEPH_METRIC_DESCRIPTIONS.poolClientIops} />',
     );
-    expect(code).toContain(
+    expect(page).toContain(
       '{translator.translateText("Client Throughput")} <InfoTooltip label="Client Throughput" text={CEPH_METRIC_DESCRIPTIONS.poolClientThroughput} />',
     );
   });
 
   test("the Stored Bytes chart no longer says STORED is after replication", () => {
-    const stored: string = segment(code, 'variable: "pool_stored"', "}),");
+    const stored: string = segment(page, 'variable: "pool_stored"', "}),");
 
     expect(stored).not.toContain("after replication");
     expect(stored).toContain("before replication copies");
   });
 
   test("the growth window and confidence cut-off its text names are the page's own", () => {
-    expect(code).toContain("const PROJECTION_WINDOW_HOURS: number = 24;");
-    expect(code).toContain(
-      "const MIN_CONFIDENT_FIT_SPAN_MS: number = 2 * 60 * 60 * 1000;",
+    expect(page).toContain("const PROJECTION_WINDOW_HOURS: number = 24;");
+    expect(overview).toContain(
+      "export const CEPH_GROWTH_CONFIDENT_SPAN_MS: number = 2 * 60 * 60 * 1000;",
     );
     expect(CEPH_METRIC_DESCRIPTIONS.poolGrowth).toContain("24 hours");
     expect(CEPH_METRIC_DESCRIPTIONS.poolGrowth).toContain("2 hours");
@@ -888,7 +971,7 @@ describe("Ceph daemons, Insights and Clusters list", () => {
   });
 
   test.each([
-    ["Health", "health"],
+    ["Health", "clusterHealth"],
     ["OSDs", "clusterOsds"],
     ["Mons", "clusterMons"],
     ["Pools", "pools"],
@@ -902,14 +985,14 @@ describe("Ceph daemons, Insights and Clusters list", () => {
     },
   );
 
-  test("the Clusters list capacity thresholds are the ones its text names", () => {
+  test("the Clusters list capacity lines are the alerts' ones its text names", () => {
     const code: string = readCode(PAGES["cephClusters"]!);
 
     expect(code).toContain(
-      'pct >= 90 ? "bg-red-500" : pct >= 75 ? "bg-amber-500" : "bg-emerald-500"',
+      'pct > CEPH_CLUSTER_FULL_PERCENT ? "bg-red-500" : pct > CEPH_CLUSTER_NEARFULL_PERCENT ? "bg-amber-500" : "bg-emerald-500";',
     );
     expect(CEPH_METRIC_DESCRIPTIONS.clusterCapacity).toContain(
-      "amber at 75% and red at 90%",
+      "amber past 85% and red past 95%",
     );
     expect(count(code, /headerTooltip:/g)).toBe(5);
   });

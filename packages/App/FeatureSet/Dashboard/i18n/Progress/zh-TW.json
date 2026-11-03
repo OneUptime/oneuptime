@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40439,
-    "untranslated": 12196
+    "keys": 40496,
+    "untranslated": 12064
   },
   "sameAsEnglish": [
     "2xx",
@@ -10,6 +10,7 @@
     "4xx",
     "5xx",
     "AI / LLM",
+    "Active + Clean",
     "Apache Kafka · kafka-1:9092",
     "Brute force detected",
     "CPU Ready {{percent}}",
@@ -17,6 +18,8 @@
     "DE",
     "DeploymentConfigs",
     "Docker Compose",
+    "Down + In",
+    "Down + Out",
     "Edge",
     "Elasticsearch URL",
     "Gemini for Google Workspace",
@@ -61,6 +64,8 @@
     "TLS",
     "Top P",
     "UTC",
+    "Up + In",
+    "Up + Out",
     "VLAN",
     "VM 101 · pve1",
     "VM 102 · pve2",
@@ -89,6 +94,7 @@
     "main",
     "message",
     "name",
+    "ops/s",
     "p95",
     "p95 {{latency}}",
     "prod, staging",
@@ -107,6 +113,7 @@
     "{{count}} B",
     "{{count}} KB",
     "{{count}} MB",
+    "{{in}} in",
     "{{itemName}} ID"
   ]
 }

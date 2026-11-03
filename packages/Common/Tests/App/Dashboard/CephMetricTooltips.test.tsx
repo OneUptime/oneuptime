@@ -20,8 +20,8 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
  * The (i) tooltips on the Ceph cluster pages: the overview, the OSD and
- * pool lists and detail pages, the daemons table, the Insights rate charts
- * and the Clusters list.
+ * pool lists and an OSD's and a pool's own page, the daemons table, the
+ * Insights rate charts and the Clusters list.
  *
  * Each page is rendered for real, with only the network, the charts and
  * the heavy shared cards replaced, and every metric title is checked for an
@@ -364,7 +364,7 @@ const CLUSTER: Record<string, unknown> = {
   lastSeenAt: minutesAgo(1),
   cephVersion: "18.2.4",
   agentVersion: "1.2.3",
-  // HEALTH_WARN, so the Active Health Checks card is shown.
+  // HEALTH_WARN, so the cluster's own row is in Needs attention.
   healthStatus: 1,
   monCount: 3,
   osdCount: 4,
@@ -495,7 +495,10 @@ const MON_ROWS: Array<Row> = [
     lastSeenAt: minutesAgo(1),
   },
   {
-    // Last seen 20 minutes ago: Stale, whatever its quorum flag says.
+    /*
+     * Left out of the reports for 19 minutes, while the others are a
+     * minute old: Stopped reporting, whatever its quorum flag says.
+     */
     kind: "Mon",
     externalId: "mon.c",
     hostname: "node-c",
@@ -781,11 +784,9 @@ afterEach(() => {
 const OVERVIEW_TITLES: Array<[string, CephMetric]> = [
   ["Cluster inventory counts", "inventoryCounts"],
   ["Cluster health", "health"],
-  ["Active Health Checks", "activeHealthChecks"],
   ["Capacity Used", "capacityUsed"],
   ["OSDs Up", "osdsUp"],
   ["Mons In Quorum", "monsInQuorum"],
-  ["Pools", "pools"],
   ["Problem PGs", "problemPgs"],
   ["OSD States", "osdStates"],
   ["Up + In", "osdUpIn"],
@@ -808,33 +809,46 @@ const OSD_LIST_TITLES: Array<[string, CephMetric]> = [
   ["Age", "osdAgeColumn"],
 ];
 
+// An OSD's page: its tiles, then its Details card.
 const OSD_DETAIL_TITLES: Array<[string, CephMetric]> = [
-  ["Status", "osdStatus"],
-  ["Placement", "osdPlacement"],
-  ["Used / Total", "osdUsed"],
+  ["Used", "osdUsedTile"],
+  ["Apply Latency", "osdLatencyTile"],
   ["Placement Groups", "osdPlacementGroups"],
-  ["Apply / Commit Latency", "osdLatency"],
+  ["Placement", "osdPlacement"],
 ];
 
 const POOL_LIST_TITLES: Array<[string, CephMetric]> = [
+  ["Status", "poolStatusColumn"],
+  ["Used", "poolUsedColumn"],
   ["Stored", "poolStoredColumn"],
   ["Max Avail", "poolMaxAvailColumn"],
-  ["Used", "poolUsedColumn"],
+  ["PGs", "poolPgsColumn"],
   ["Objects", "poolObjectsColumn"],
   ["Read IOPS", "poolReadIopsColumn"],
   ["Write IOPS", "poolWriteIopsColumn"],
 ];
 
+// A pool's page: its tiles, then its Details card.
 const POOL_DETAIL_TITLES: Array<[string, CephMetric]> = [
+  ["Used", "poolUsedTile"],
+  ["Placement Groups", "poolPgsTile"],
+  ["Objects", "poolObjects"],
   ["Stored", "poolStored"],
   ["Max Available", "poolMaxAvail"],
-  ["Used", "poolUsed"],
-  ["Growth", "poolGrowth"],
-  ["Objects", "poolObjects"],
+  ["Time to Full", "poolGrowth"],
+];
+
+/*
+ * The status pill at the top of an OSD's and a pool's page says what it
+ * means on hover and to a screen reader, not in an (i).
+ */
+const PART_STATUS_TITLES: Array<[string, CephMetric]> = [
+  ["Status", "osdStatus"],
+  ["Status", "poolStatus"],
 ];
 
 const CLUSTER_LIST_TITLES: Array<[string, CephMetric]> = [
-  ["Health", "health"],
+  ["Health", "clusterHealth"],
   ["OSDs", "clusterOsds"],
   ["Mons", "clusterMons"],
   ["Pools", "pools"],
@@ -870,6 +884,7 @@ describe("CEPH_METRIC_DESCRIPTIONS", () => {
         ...OSD_DETAIL_TITLES,
         ...POOL_LIST_TITLES,
         ...POOL_DETAIL_TITLES,
+        ...PART_STATUS_TITLES,
         ...CLUSTER_LIST_TITLES,
         ["Status", "daemonStatus"],
         ["Client IOPS", "poolClientIops"],
@@ -942,15 +957,12 @@ describe("CEPH_METRIC_DESCRIPTIONS", () => {
     for (const key of [
       "largestPools",
       "osdUsedColumn",
-      "osdUsed",
       "poolStoredColumn",
       "poolStored",
-      "daemonStatus",
       // The OSD figures blank to a dash on the same cut-off.
       "osdPgsColumn",
       "osdLatencyColumn",
       "osdPlacementGroups",
-      "osdLatency",
     ] as Array<CephMetric>) {
       expect(CEPH_METRIC_DESCRIPTIONS[key]).toMatch(/15 minutes/);
     }
@@ -972,21 +984,29 @@ describe("CEPH_METRIC_DESCRIPTIONS", () => {
   });
 
   /*
-   * The health pill reads "Health OK / Warning / Error / Unknown" on the
-   * overview and "OK / WARN / ERR / Unknown" on the Clusters list; the one
-   * text behind both has to name every state either page can show.
+   * The overview's health pill reads the cluster's rules (Healthy,
+   * Degraded, Unhealthy, Health Unknown while disconnected); the Clusters
+   * list's column reads Ceph's own verdict (OK, WARN, ERR, Unknown). Each
+   * text names every state its pill can show.
    */
-  test("the health text names every state the pills can show", () => {
+  test("the overview's health text names every state its pill can show", () => {
     for (const state of [
-      /\bOK\b/,
-      /\bWarning\b/,
-      /\bWARN\b/,
-      /\bError\b/,
-      /\bERR\b/,
-      /\bUnknown\b/,
+      /\bHealthy\b/,
+      /\bDegraded\b/,
+      /\bUnhealthy\b/,
+      /\bHealth Unknown\b/,
+      /\bHEALTH_WARN\b/,
+      /\bHEALTH_ERR\b/,
     ]) {
       expect(CEPH_METRIC_DESCRIPTIONS.health).toMatch(state);
     }
+  });
+
+  test("the Clusters list's health text names every state its column can show", () => {
+    for (const state of [/\bOK\b/, /\bWARN\b/, /\bERR\b/, /\bUnknown\b/]) {
+      expect(CEPH_METRIC_DESCRIPTIONS.clusterHealth).toMatch(state);
+    }
+    expect(CEPH_METRIC_DESCRIPTIONS.clusterHealth).toMatch(/disconnected/);
   });
 
   test("the placement-group bar is described as approximate, since states overlap", () => {
@@ -994,12 +1014,6 @@ describe("CEPH_METRIC_DESCRIPTIONS", () => {
       /several states at once, so the segments are approximate/,
     );
     expect(CEPH_METRIC_DESCRIPTIONS.pgStates).toMatch(/Other is the rest/);
-  });
-
-  test("Active Health Checks are the checks still raised in the latest data, not every check seen", () => {
-    expect(CEPH_METRIC_DESCRIPTIONS.activeHealthChecks).toMatch(
-      /still raised in the latest data/,
-    );
   });
 });
 
@@ -1069,10 +1083,18 @@ describe("OSD state cells", () => {
 
 // ---------------------------------------------------------------- overview
 
+/*
+ * The page is drawn once the hero names the cluster (its Needs attention
+ * card names it too, on the cluster's own row).
+ */
 async function renderOverview(): Promise<void> {
   render(<CephClusterOverview {...PAGE_PROPS} />);
-  await screen.findByText("ceph-prod");
+  await screen.findByRole("heading", { level: 1, name: "ceph-prod" });
   await flush();
+}
+
+function attentionRows(): Array<HTMLElement> {
+  return screen.queryAllByTestId("ceph-needs-attention-item");
 }
 
 describe("Ceph cluster overview", () => {
@@ -1105,14 +1127,14 @@ describe("Ceph cluster overview", () => {
     expectNoNestedInfoButtons();
   });
 
-  test("the five golden tiles carry their (i) beside the title", async () => {
+  test("the four golden tiles carry their (i) beside the title", async () => {
     await renderOverview();
 
+    // The pools' count is the hero's chip, which opens the Pools list.
     for (const title of [
       "Capacity Used",
       "OSDs Up",
       "Mons In Quorum",
-      "Pools",
       "Problem PGs",
     ]) {
       const tile: HTMLElement = tileByTitle(title);
@@ -1153,15 +1175,18 @@ describe("Ceph cluster overview", () => {
     }
     expect(CEPH_METRIC_DESCRIPTIONS.problemPgs).toMatch(/last 10 minutes/);
     expect(CEPH_METRIC_DESCRIPTIONS.pgStates).toMatch(/last 10 minutes/);
-    expect(CEPH_METRIC_DESCRIPTIONS.activeHealthChecks).toMatch(
-      /last 10 minutes/,
-    );
   });
 
-  test("only checks that are raised show under Active Health Checks", async () => {
+  test("Needs attention's cluster row names the checks Ceph raised, as Ceph names them, and only those", async () => {
     await renderOverview();
 
-    expect(screen.getByText("OSD_DOWN")).toBeInTheDocument();
+    const clusterRow: HTMLElement = attentionRows().find((row: HTMLElement) => {
+      return row.getAttribute("data-key") === "Cluster";
+    }) as HTMLElement;
+    expect(clusterRow).toBeTruthy();
+    expect(within(clusterRow).getByText("ceph-prod")).toBeInTheDocument();
+    expect(within(clusterRow).getByText("OSD_DOWN")).toBeInTheDocument();
+    // MON_DOWN's latest reading is 0: no longer raised.
     expect(screen.queryByText("MON_DOWN")).not.toBeInTheDocument();
   });
 
@@ -1296,13 +1321,23 @@ describe("Ceph cluster overview", () => {
     ).toBeInTheDocument();
   });
 
-  test("a healthy cluster hides Active Health Checks and its (i) with it", async () => {
+  test("Ceph's HEALTH_OK leaves the cluster's own row out of Needs attention", async () => {
     modelGetItemMock.mockImplementation(async () => {
       return { ...CLUSTER, healthStatus: 0 };
     });
     await renderOverview();
 
-    expectNoInfo("Active Health Checks");
+    expect(
+      attentionRows().map((row: HTMLElement) => {
+        return row.getAttribute("data-key");
+      }),
+    ).not.toContain("Cluster");
+    // Its down OSD still is: Ceph's verdict is one finding among the rest.
+    expect(
+      attentionRows().map((row: HTMLElement) => {
+        return row.getAttribute("data-key");
+      }),
+    ).toContain("Osd:osd.3");
     expect(infoButton("Cluster health")).toBeInTheDocument();
   });
 
@@ -1566,7 +1601,7 @@ describe("Pool list", () => {
 });
 
 describe("Daemons table", () => {
-  test("the Status header explains quorum, Reporting and Stale", async () => {
+  test("the Status header explains quorum, Reporting and Stopped reporting", async () => {
     await renderAndSettle(<CephClusterDaemons {...PAGE_PROPS} />);
     await screen.findByText("mon.a");
 
@@ -1585,72 +1620,91 @@ describe("Daemons table", () => {
     };
     await screen.findByText("mon.a");
 
-    expect(within(row("mon.a")).getByText("In Quorum")).toBeInTheDocument();
-    // In quorum when last seen, but silent for 20 minutes now.
-    expect(within(row("mon.c")).getByText("Stale")).toBeInTheDocument();
+    expect(within(row("mon.a")).getByText("In quorum")).toBeInTheDocument();
+    // In quorum when last seen, but left out of the reports since.
+    expect(
+      within(row("mon.c")).getByText("Stopped reporting"),
+    ).toBeInTheDocument();
     expect(within(row("mgr.x")).getByText("Reporting")).toBeInTheDocument();
+    expect(CEPH_METRIC_DESCRIPTIONS.daemonStatus).toMatch(
+      /Stopped reporting, in grey/,
+    );
   });
 });
 
 // ----------------------------------------------------------------- details
 
 describe("OSD detail", () => {
-  test("each metric summary field has an (i) with its text; identity fields have none", async () => {
+  test("each tile and metric detail has an (i) with its text; identity details have none", async () => {
     mockLastParam = "osd.1";
     await renderAndSettle(<CephClusterOsdDetail {...PAGE_PROPS} />);
-    await screen.findByText("node-b");
+    await screen.findByTestId("ceph-osd-tiles");
+    await flush();
 
     for (const [title, key] of OSD_DETAIL_TITLES) {
       await expectExplained(title, key);
     }
     for (const title of [
       "OSD",
-      "Cluster",
       "Host",
       "Device Class",
       "Version",
-      "Last Seen",
+      "Last report",
     ]) {
       expectNoInfo(title);
     }
     expect(allInfoButtons()).toHaveLength(OSD_DETAIL_TITLES.length);
+    // The status says what it means where it is drawn.
+    expect(screen.getByTestId("ceph-osd-hero-status")).toHaveAttribute(
+      "title",
+      CEPH_METRIC_DESCRIPTIONS.osdStatus,
+    );
   });
 
-  test("a stale OSD keeps its Up/In state but blanks the figures", async () => {
+  test("a down OSD keeps its placement but shows no readings as its current ones", async () => {
     mockLastParam = "osd.3";
     await renderAndSettle(<CephClusterOsdDetail {...PAGE_PROPS} />);
-    await screen.findByText("node-d");
+    await screen.findByTestId("ceph-osd-overview");
 
-    expect(screen.getByText("Down")).toBeInTheDocument();
-    expect(screen.getByText("In cluster")).toBeInTheDocument();
-    // Used / Total and Apply / Commit Latency.
-    expect(screen.getAllByText("— / —")).toHaveLength(2);
+    expect(screen.getByTestId("ceph-osd-hero-status")).toHaveTextContent(
+      "Down",
+    );
+    expect(screen.getByTestId("ceph-osd-hero-badge")).toHaveTextContent(
+      "In cluster",
+    );
+    // Its 20-minute-old 95% and 900 ms are no readings of what it does now.
+    expect(screen.queryByTestId("ceph-osd-tiles")).not.toBeInTheDocument();
+    expect(screen.queryByText(/900/)).not.toBeInTheDocument();
   });
 });
 
 describe("Pool detail", () => {
-  test("each metric summary field has an (i) with its text; identity fields have none", async () => {
+  test("each tile and metric detail has an (i) with its text; identity details have none", async () => {
     mockLastParam = "1";
     await renderAndSettle(<CephClusterPoolDetail {...PAGE_PROPS} />);
-    await screen.findByText("Growth");
+    await screen.findByText("Time to Full");
     await flush();
 
     for (const [title, key] of POOL_DETAIL_TITLES) {
       await expectExplained(title, key);
     }
-    for (const title of ["Pool", "Pool ID", "Cluster", "Last Seen"]) {
+    for (const title of ["Pool", "Pool ID", "Last report"]) {
       expectNoInfo(title);
     }
+    expect(screen.getByTestId("ceph-pool-hero-status")).toHaveAttribute(
+      "title",
+      CEPH_METRIC_DESCRIPTIONS.poolStatus,
+    );
   });
 
-  test("Growth projects the 24-hour stored trend to Stored plus Max Available", async () => {
+  test("Time to Full projects the 24-hour stored trend to Stored plus Max Available", async () => {
     mockLastParam = "1";
     await renderAndSettle(<CephClusterPoolDetail {...PAGE_PROPS} />);
-    await screen.findByText("Growth");
+    await screen.findByText("Time to Full");
     await flush();
 
     expect(
-      screen.getByText(/^Full in ~\d+d at current growth$/),
+      screen.getByText(/^Full in about \d+ days? at this growth$/),
     ).toBeInTheDocument();
     const stored: Array<CapturedQuery> = queriesFor(
       analyticsAggregateMock,
@@ -1663,7 +1717,7 @@ describe("Pool detail", () => {
   test("the Metrics tab's rate charts carry the pool's own IOPS and throughput texts", async () => {
     mockLastParam = "1";
     await renderAndSettle(<CephClusterPoolDetail {...PAGE_PROPS} />);
-    await screen.findByText("Growth");
+    await screen.findByText("Time to Full");
 
     fireEvent.click(screen.getByRole("tab", { name: "Metrics" }));
     await flush();
@@ -1749,12 +1803,13 @@ describe("Clusters list", () => {
       return className;
     };
 
-    expect(barFor(74.9)).toContain("bg-emerald-500");
-    expect(barFor(75)).toContain("bg-amber-500");
-    expect(barFor(89.9)).toContain("bg-amber-500");
-    expect(barFor(90)).toContain("bg-red-500");
+    // The Cluster Near Full and Cluster Full alerts' lines.
+    expect(barFor(85)).toContain("bg-emerald-500");
+    expect(barFor(85.1)).toContain("bg-amber-500");
+    expect(barFor(95)).toContain("bg-amber-500");
+    expect(barFor(95.1)).toContain("bg-red-500");
     expect(CEPH_METRIC_DESCRIPTIONS.clusterCapacity).toMatch(
-      /amber at 75% and red at 90%/,
+      /amber past 85% and red past 95%/,
     );
   });
 

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40439,
-    "untranslated": 12199
+    "keys": 40496,
+    "untranslated": 12067
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -12,6 +12,7 @@
     "5xx",
     "AI / LLM",
     "AI: {{prompt}}",
+    "Active + Clean",
     "Apache Kafka · kafka-1:9092",
     "Brute force detected",
     "CPU Ready",
@@ -21,6 +22,8 @@
     "Deployment",
     "DeploymentConfigs",
     "Docker Compose",
+    "Down + In",
+    "Down + Out",
     "Down · In",
     "Edge",
     "Elasticsearch URL",
@@ -66,6 +69,8 @@
     "TLS",
     "Top P",
     "UTC",
+    "Up + In",
+    "Up + Out",
     "Up · In",
     "VLAN",
     "VM",
@@ -97,6 +102,7 @@
     "main",
     "message",
     "name",
+    "ops/s",
     "p90 (ms)",
     "p95",
     "p95 (ms)",
@@ -118,6 +124,7 @@
     "{{count}} B",
     "{{count}} KB",
     "{{count}} MB",
+    "{{in}} in",
     "{{itemName}} ID"
   ]
 }

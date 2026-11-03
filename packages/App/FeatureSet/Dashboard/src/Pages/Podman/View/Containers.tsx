@@ -326,7 +326,7 @@ const PodmanHostContainers: FunctionComponent<
               <BreakableName text={row.containerImage} />
             </bdi>
           ) : (
-            <span>unknown</span>
+            <span>{translator.translateText("unknown")}</span>
           );
         },
       },

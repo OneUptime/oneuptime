@@ -19,6 +19,9 @@
  *     cluster stays connected, a row missing from the data for 15 minutes is
  *     pruned (Workers/Jobs/Ceph/CleanupStaleResources) and re-created when
  *     the OSD returns, which restarts the clock.
+ *   - Health, statuses and colours are the cluster's rules'
+ *     (Pages/Ceph/Utils/CephHealth), at its alert templates' lines: say a
+ *     line here, and the rules' constant must say it too.
  *
  * Change the fetch, change the words.
  */
@@ -29,7 +32,6 @@ export type CephMetric =
   // Cluster overview (Pages/Ceph/View/Index.tsx), also the Clusters list
   | "inventoryCounts"
   | "health"
-  | "activeHealthChecks"
   | "capacityUsed"
   | "osdsUp"
   | "monsInQuorum"
@@ -52,23 +54,27 @@ export type CephMetric =
   | "osdPgsColumn"
   | "osdLatencyColumn"
   | "osdAgeColumn"
-  // OSD detail (Pages/Ceph/View/OsdDetail.tsx)
+  // An OSD's page (Components/Ceph/Part: its hero, tiles and details)
   | "osdStatus"
   | "osdPlacement"
-  | "osdUsed"
+  | "osdUsedTile"
   | "osdPlacementGroups"
-  | "osdLatency"
+  | "osdLatencyTile"
   // Pool list (Pages/Ceph/View/Pools.tsx)
+  | "poolStatusColumn"
   | "poolStoredColumn"
   | "poolMaxAvailColumn"
   | "poolUsedColumn"
+  | "poolPgsColumn"
   | "poolObjectsColumn"
   | "poolReadIopsColumn"
   | "poolWriteIopsColumn"
-  // Pool detail (Pages/Ceph/View/PoolDetail.tsx)
+  // A pool's page (Components/Ceph/Part: its hero, tiles and details)
+  | "poolStatus"
   | "poolStored"
   | "poolMaxAvail"
-  | "poolUsed"
+  | "poolUsedTile"
+  | "poolPgsTile"
   | "poolGrowth"
   | "poolObjects"
   | "poolClientIops"
@@ -76,22 +82,20 @@ export type CephMetric =
   // Daemons (Pages/Ceph/View/Daemons.tsx)
   | "daemonStatus"
   // Clusters list (Pages/Ceph/Clusters.tsx)
+  | "clusterHealth"
   | "clusterOsds"
   | "clusterMons"
   | "clusterCapacity";
 
 export const CEPH_METRIC_DESCRIPTIONS: Record<CephMetric, string> = {
   inventoryCounts: translationKey(
-    "Counts from the cluster's latest data, not a time range: OSDs (the daemons that store data) that are up out of all OSDs, monitors in quorum out of all known monitors (only the monitor count when quorum is not reported), and pools.",
+    "Counts from the cluster's latest data, not a time range: OSDs (the daemons that store data) that are up out of all OSDs, monitors in quorum out of all known monitors (only the monitor count when quorum is not reported), and pools. Each opens its list.",
   ),
   health: translationKey(
-    "Ceph's own health verdict from the cluster's latest data: OK, Warning (WARN) when something needs attention, or Error (ERR) when data availability or safety is at risk. Unknown means no health data has arrived yet.",
-  ),
-  activeHealthChecks: translationKey(
-    "The named problems, such as OSD_DOWN or PG_DEGRADED, that were still raised in the latest data Ceph sent in the last 10 minutes, with how serious each one is. They explain why the cluster's health is not OK.",
+    "Healthy, Degraded or Unhealthy by what needs attention: Ceph's own HEALTH_WARN or HEALTH_ERR, an OSD down or out, an OSD or a pool past its fill line, a monitor out of quorum or placement groups that are not clean. Health Unknown while the agent is disconnected.",
   ),
   capacityUsed: translationKey(
-    "Share of the cluster's raw disk space in use, counting every copy of your data, from the latest readings rather than the chart time range. The subtitle projects the last 24 hours' growth to 85%, Ceph's default nearfull warning level.",
+    "Share of the cluster's raw disk space in use, counting every copy of your data, from the latest readings rather than the chart time range. Amber past 85% and red past 95%, where the Cluster Near Full and Full alerts fire; the subtitle projects the last 24 hours' growth to 85%, the nearfull ratio.",
   ),
   osdsUp: translationKey(
     "OSDs are the daemons that store your data, usually one per disk. This shows how many are running (up) out of all OSDs, and below it how many Ceph is placing data on (in), from the cluster's latest data.",
@@ -136,7 +140,7 @@ export const CEPH_METRIC_DESCRIPTIONS: Record<CephMetric, string> = {
     "The five pools closest to full: data stored divided by data stored plus the space still writable (Max Avail). Max Avail allows for replication and the fullest OSDs, so a pool can fill before the cluster's raw space does.",
   ),
   osdStatusColumn: translationKey(
-    "Up means the OSD's daemon is running and answering the cluster; Down means it is not. Taken from the latest data Ceph reported for the OSD.",
+    "Up while the OSD's daemon runs; Down, in red, while it is down but still in the cluster, and Down and out or Out of cluster in amber. A running OSD turns amber past 85% used (Ceph's nearfull ratio) or 100 ms apply latency and red past 95% (full), with why under it.",
   ),
   osdInOutColumn: translationKey(
     "In means Ceph places data on this OSD. Out means it was taken out of data placement, by an admin or automatically after being down for a while, and its data lives on other OSDs.",
@@ -154,19 +158,22 @@ export const CEPH_METRIC_DESCRIPTIONS: Record<CephMetric, string> = {
     "How long ago OneUptime first saw this OSD in the data the Ceph agent sends, not how old the OSD or its disk is. It starts again from zero if the OSD was missing from that data for more than about 15 minutes.",
   ),
   osdStatus: translationKey(
-    "Up means this OSD's daemon is running and responding to the cluster; Down means it has stopped or cannot be reached. From the most recent data the cluster sent.",
+    "This OSD by the cluster's rules: Up while its daemon runs, Down in red while it is down but still in the cluster, amber when down and out or out of the cluster. A running OSD turns amber past 85% used or 100 ms apply latency, and red past 95%, Ceph's full ratio.",
   ),
   osdPlacement: translationKey(
     "In means Ceph is placing data on this OSD. Out means it has been removed from data placement, by an admin or automatically after being down, and its data is served from other OSDs.",
   ),
-  osdUsed: translationKey(
-    "Disk space used on this OSD's device compared with its total size, from its latest report. Shows a dash if the OSD has not reported in the last 15 minutes.",
+  osdUsedTile: translationKey(
+    "Disk space used on this OSD's device out of its size, from its latest report. Amber past 85%, Ceph's nearfull ratio, where the OSD Nearfull alert fires, and red past 95%, the full ratio, where the OSD refuses writes.",
   ),
   osdPlacementGroups: translationKey(
     "How many placement groups, the chunks Ceph splits pools into, this OSD holds according to its latest report; more groups usually means more data and more load. Shows a dash if the OSD has not reported in the last 15 minutes.",
   ),
-  osdLatency: translationKey(
-    "Latest apply and commit latency in milliseconds: how long this OSD takes to apply a write and to make it durable on disk, so high values mean slow writes for clients. Shows a dash if it has not reported in the last 15 minutes.",
+  osdLatencyTile: translationKey(
+    "How long this OSD takes to apply a write to its disk, from its latest report, with its commit latency under it. Amber past 100 ms, where the OSD High Latency alert fires: a slow or failing disk slows every placement group it holds.",
+  ),
+  poolStatusColumn: translationKey(
+    "Available while the pool reports; amber past 85% of its writable space or with degraded or undersized placement groups, red past 95% or with inactive ones, with why under it. Stopped reporting, in grey, for a pool Ceph no longer lists: it was deleted.",
   ),
   poolStoredColumn: translationKey(
     "Data stored in the pool, by Ceph's STORED figure: what clients wrote, before replication copies. Shows a dash if the pool has not reported in the last 15 minutes.",
@@ -177,6 +184,9 @@ export const CEPH_METRIC_DESCRIPTIONS: Record<CephMetric, string> = {
   poolUsedColumn: translationKey(
     "How full the pool is: Stored divided by Stored plus Max Avail. It can reach 100% before the cluster's raw disks are full, because Max Avail is limited by the fullest OSD.",
   ),
+  poolPgsColumn: translationKey(
+    "How many of the pool's placement groups, the chunks Ceph splits it into, are active and clean (every copy in place) out of all of them, from the last 10 minutes. A dash when Ceph sends no counts per pool, as releases before Nautilus do.",
+  ),
   poolObjectsColumn: translationKey(
     "Number of RADOS objects in the pool, the units Ceph stores data in. Large files and disk images are split into many objects, so this is not a count of your files.",
   ),
@@ -186,14 +196,20 @@ export const CEPH_METRIC_DESCRIPTIONS: Record<CephMetric, string> = {
   poolWriteIopsColumn: translationKey(
     "Average write operations per second (IOPS) on the pool over the last 15 minutes, worked out from Ceph's running per-pool counters.",
   ),
+  poolStatus: translationKey(
+    "This pool by the cluster's rules: Available while it reports, amber past 85% of its writable space (the Pool Near Full alert's line) or with degraded or undersized placement groups, and red past 95% or with inactive placement groups, whose I/O hangs.",
+  ),
   poolStored: translationKey(
     "Data stored in this pool, by Ceph's STORED figure: what clients wrote, before replication copies. From the pool's latest report; a dash if that is older than 15 minutes.",
   ),
   poolMaxAvail: translationKey(
     "How much more data Ceph estimates can still be written to this pool, allowing for replication and the fullest OSDs, from its latest report.",
   ),
-  poolUsed: translationKey(
-    "How full this pool is: Stored divided by Stored plus Max Available. Because Max Available is limited by the fullest OSD, a pool can reach 100% while the cluster still has raw space.",
+  poolUsedTile: translationKey(
+    "How full this pool is: Stored divided by Stored plus Max Available, from its latest report. Amber past 85%, where the Pool Near Full alert fires, and red past 95%; a pool can fill while the cluster has raw space left, as Max Available follows the fullest OSD.",
+  ),
+  poolPgsTile: translationKey(
+    "This pool's placement groups, the chunks Ceph splits it into, from the last 10 minutes: how many there are, and how many are not active and clean. Amber while some are degraded or undersized (missing copies), red while some are inactive (their I/O hangs).",
   ),
   poolGrowth: translationKey(
     "A rough estimate of when this pool fills up, from a straight-line trend of its stored data over the last 24 hours. Shown only while the pool is growing or full, and marked low confidence with under 2 hours of history.",
@@ -208,7 +224,10 @@ export const CEPH_METRIC_DESCRIPTIONS: Record<CephMetric, string> = {
     "Bytes per second read from and written to this pool, worked out for each interval of the selected time range from Ceph's running byte counters.",
   ),
   daemonStatus: translationKey(
-    "Monitors show In Quorum when they agree with the majority on the cluster map, and Out of Quorum when they do not. Other daemons show Reporting if seen in the last 15 minutes; any daemon silent for longer shows Stale.",
+    "Monitors read In quorum when they agree with the majority on the cluster map, and Out of quorum, in red, when they do not. Other daemons read Reporting while Ceph lists them, and Stopped reporting, in grey, once Ceph's latest reports leave one out.",
+  ),
+  clusterHealth: translationKey(
+    "Ceph's own verdict from the cluster's latest data: OK, WARN when something needs attention, or ERR when data is at risk. Unknown while no verdict has arrived, or while the agent is disconnected and the last one is no longer the truth.",
   ),
   clusterOsds: translationKey(
     "OSDs are the daemons that store data, usually one per disk. Shows how many are running (up), how many Ceph places data on (in) and the total, from the cluster's latest data; amber when any are down or out.",
@@ -217,6 +236,6 @@ export const CEPH_METRIC_DESCRIPTIONS: Record<CephMetric, string> = {
     "Number of monitor daemons, which keep the master copy of the cluster map, from the cluster's latest data. This is a count only; open the cluster to see how many are in quorum.",
   ),
   clusterCapacity: translationKey(
-    "Share of the cluster's raw disk space in use, counting every copy of your data, from its latest data. The bar turns amber at 75% and red at 90%.",
+    "Share of the cluster's raw disk space in use, counting every copy of your data, from its latest data. The bar turns amber past 85% and red past 95%, where the Cluster Near Full and Cluster Full alerts fire.",
   ),
 };

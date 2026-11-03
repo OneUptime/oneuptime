@@ -133,7 +133,7 @@ O agente envia tudo o que o módulo `prometheus` do mgr exporta. As páginas do 
 
 | Categoria | Métricas |
 | --- | --- |
-| Saúde do cluster | `ceph_health_status` (0 = OK, 1 = WARN, 2 = ERR), `ceph_health_detail` (uma série por verificação de saúde, 1 enquanto está ativa e 0 depois que se resolve, com os rótulos `name` e `severity`, a partir do Quincy; por trás dos modelos de alerta de verificações de saúde e das **Active Health Checks** da visão geral), `ceph_healthcheck_slow_ops`, `ceph_daemon_health_metrics` (por daemon, pela chave `type`), `ceph_mon_quorum_status`, `ceph_mon_metadata`, `ceph_cluster_total_bytes`, `ceph_cluster_total_used_bytes` |
+| Saúde do cluster | `ceph_health_status` (0 = OK, 1 = WARN, 2 = ERR), `ceph_health_detail` (uma série por verificação de saúde, 1 enquanto está ativa e 0 depois que se resolve, com os rótulos `name` e `severity`, a partir do Quincy; por trás dos modelos de alerta de verificações de saúde e das verificações que **Requer atenção** mostra na visão geral), `ceph_healthcheck_slow_ops`, `ceph_daemon_health_metrics` (por daemon, pela chave `type`), `ceph_mon_quorum_status`, `ceph_mon_metadata`, `ceph_cluster_total_bytes`, `ceph_cluster_total_used_bytes` |
 | OSD | `ceph_osd_up`, `ceph_osd_in`, `ceph_osd_apply_latency_ms`, `ceph_osd_commit_latency_ms`, `ceph_osd_stat_bytes`, `ceph_osd_stat_bytes_used`, `ceph_osd_numpg`, `ceph_osd_metadata`, por OSD pelo rótulo `ceph_daemon` (como `osd.3`) |
 | Pool | `ceph_pool_stored`, `ceph_pool_max_avail`, `ceph_pool_objects`, `ceph_pool_rd`, `ceph_pool_wr`, `ceph_pool_rd_bytes`, `ceph_pool_wr_bytes`, `ceph_pool_metadata`. As séries de dados trazem só um rótulo `pool_id`; o nome do pool fica em `ceph_pool_metadata`. |
 | Placement groups | `ceph_pg_total`, `ceph_pg_active`, `ceph_pg_clean`, `ceph_pg_degraded`, `ceph_pg_undersized` (todas por pool, pelo `pool_id`), `ceph_num_objects_degraded`, `ceph_num_objects_misplaced` |
@@ -147,6 +147,19 @@ O módulo do mgr cobre a saúde e a capacidade do cluster. Para olhar mais de pe
 - **`node_exporter`.** O companheiro habitual para as métricas de CPU, memória, disco e rede de cada host Ceph, na porta `9100` por padrão.
 
 Os dois recebem o atributo de recurso `ceph.cluster.name` do processador `resource` incluído, então chegam ao mesmo cluster no OneUptime.
+
+## O que as páginas do cluster mostram
+
+A **Visão geral** do cluster diz sua integridade, **Íntegro**, **Degradado** ou **Não íntegro**, pelo que precisa de atenção, e lista isso em **Requer atenção**, o mais urgente primeiro:
+
+- **O próprio cluster.** O `HEALTH_WARN` ou `HEALTH_ERR` do próprio Ceph, com as verificações que ele levantou como o Ceph as nomeia, como `OSD_DOWN` ou `PG_DEGRADED`, e a capacidade bruta acima de 85% (crítica acima de 95%), onde os alertas Cluster Near Full e Cluster Full disparam.
+- **OSDs.** Um OSD inoperante, mas ainda no cluster, é crítico: falta uma cópia aos seus placement groups. Um inoperante e fora, ou operacional mas fora, precisa de uma olhada, assim como um acima do limite nearfull do Ceph (85%) ou do limite backfillfull (90%), ou com latência de aplicação acima de 100 ms. Acima do limite full (95%) ele recusa gravações, o que é crítico.
+- **Monitores.** Um monitor fora do quórum é crítico.
+- **Pools.** Um pool acima de 85% do seu espaço gravável, stored ÷ (stored + max avail), precisa de uma olhada, e acima de 95% é crítico. Placement groups degradados ou subdimensionados precisam de uma olhada; os inativos, cuja E/S trava, são críticos.
+
+As listas **OSDs**, **Pools** e **Daemons** mostram o estado de cada parte pelas mesmas regras, com o motivo abaixo. A página de um OSD e a de um pool dizem o que precisa de atenção, o que está aberto nele e quais alertas do cluster o vigiam, com um passo para ativar os demais. Um gerenciador, servidor de metadados ou gateway de objetos que o Ceph não lista mais mostra **Parou de reportar**, em cinza: o Ceph levanta uma verificação para um que falha, como `RECENT_CRASH` ou `MDS_ALL_DOWN`, que a linha do cluster mostra. Enquanto o agente está desconectado, a integridade mostra **Integridade desconhecida**: o último relatório do cluster já não é verdade.
+
+Os limites dos OSDs são os padrões do Ceph. Um cluster configurado com outros levanta suas próprias verificações `OSD_NEARFULL`, `OSD_BACKFILLFULL` e `OSD_FULL` nos seus próprios limites, que a linha do cluster mostra.
 
 ## Opcional — Enviar o log do cluster Ceph
 

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40439,
-    "untranslated": 12502
+    "keys": 40496,
+    "untranslated": 12364
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -11,6 +11,7 @@
     "4xx",
     "5xx",
     "AI / LLM",
+    "Active + Clean",
     "Apache Kafka · kafka-1:9092",
     "Brute force detected",
     "CPU Ready",
@@ -20,6 +21,8 @@
     "DE",
     "DeploymentConfigs",
     "Docker Compose",
+    "Down + In",
+    "Down + Out",
     "Edge",
     "Elasticsearch URL",
     "Google SecOps",
@@ -44,10 +47,12 @@
     "OK",
     "OSD",
     "OpenShift",
+    "PGs",
     "PR #{{number}}",
     "PV",
     "PVC",
     "Passthrough",
+    "Placement Groups",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
     "Proxmox ID",
     "Re-encrypt",
@@ -62,6 +67,8 @@
     "TLS",
     "Top P",
     "UTC",
+    "Up + In",
+    "Up + Out",
     "VLAN",
     "VM",
     "VM 101 · pve1",
@@ -92,6 +99,7 @@
     "main",
     "message",
     "name",
+    "ops/s",
     "p90 (ms)",
     "p95",
     "p95 (ms)",
@@ -116,6 +124,7 @@
     "{{count}} KB",
     "{{count}} MB",
     "{{count}} VM",
-    "{{format}} JSON"
+    "{{format}} JSON",
+    "{{in}} in"
   ]
 }

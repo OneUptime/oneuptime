@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40439,
-    "untranslated": 7188
+    "keys": 40496,
+    "untranslated": 7092
   },
   "sameAsEnglish": [
     " incidents",
@@ -359,6 +359,8 @@
     "Perf",
     "Phase",
     "Pipelines",
+    "Placement",
+    "Placement Groups",
     "Playbook",
     "Playbooks",
     "Playlist",
@@ -427,6 +429,8 @@
     "Tunnel",
     "Type",
     "UTC",
+    "Up + In",
+    "Up + Out",
     "Up · In",
     "Uplink",
     "Uplink {{uplink}}",
@@ -480,6 +484,7 @@
     "main",
     "message",
     "name",
+    "ops/s",
     "p90 (ms)",
     "p95",
     "p95 (ms)",
@@ -531,10 +536,16 @@
     "{{count}} managers",
     "{{count}} minute",
     "{{count}} minutes",
+    "{{count}} mon",
+    "{{count}} mons",
     "{{count}} option",
     "{{count}} options",
+    "{{count}} placement group",
+    "{{count}} placement groups",
     "{{count}} pod",
     "{{count}} pods",
+    "{{count}} pool",
+    "{{count}} pools",
     "{{count}} rotation",
     "{{count}} rotations",
     "{{count}} service",
@@ -545,7 +556,9 @@
     "{{count}} spans",
     "{{count}} stack",
     "{{count}} stacks",
+    "{{in}} in",
     "{{minutes}} min",
-    "{{protocol}} port {{port}}"
+    "{{protocol}} port {{port}}",
+    "{{up}}/{{count}} OSD up"
   ]
 }

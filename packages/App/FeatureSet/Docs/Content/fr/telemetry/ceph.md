@@ -133,7 +133,7 @@ L'agent envoie tout ce qu'exporte le module `prometheus` du mgr. Les pages Ceph,
 
 | Catégorie | Métriques |
 | --- | --- |
-| Santé du cluster | `ceph_health_status` (0 = OK, 1 = WARN, 2 = ERR), `ceph_health_detail` (une série par contrôle de santé, 1 tant qu'il est actif et 0 une fois levé, avec les labels `name` et `severity`, depuis Quincy ; à la base des modèles d'alerte de contrôle de santé et des **Vérifications de santé actives** de la vue d'ensemble), `ceph_healthcheck_slow_ops`, `ceph_daemon_health_metrics` (par démon, indexé par `type`), `ceph_mon_quorum_status`, `ceph_mon_metadata`, `ceph_cluster_total_bytes`, `ceph_cluster_total_used_bytes` |
+| Santé du cluster | `ceph_health_status` (0 = OK, 1 = WARN, 2 = ERR), `ceph_health_detail` (une série par contrôle de santé, 1 tant qu'il est actif et 0 une fois levé, avec les labels `name` et `severity`, depuis Quincy ; à la base des modèles d'alerte de contrôle de santé et des contrôles que montre **Attention requise** dans la vue d'ensemble), `ceph_healthcheck_slow_ops`, `ceph_daemon_health_metrics` (par démon, indexé par `type`), `ceph_mon_quorum_status`, `ceph_mon_metadata`, `ceph_cluster_total_bytes`, `ceph_cluster_total_used_bytes` |
 | OSD | `ceph_osd_up`, `ceph_osd_in`, `ceph_osd_apply_latency_ms`, `ceph_osd_commit_latency_ms`, `ceph_osd_stat_bytes`, `ceph_osd_stat_bytes_used`, `ceph_osd_numpg`, `ceph_osd_metadata`, par OSD via le label `ceph_daemon` (comme `osd.3`) |
 | Pool | `ceph_pool_stored`, `ceph_pool_max_avail`, `ceph_pool_objects`, `ceph_pool_rd`, `ceph_pool_wr`, `ceph_pool_rd_bytes`, `ceph_pool_wr_bytes`, `ceph_pool_metadata`. Les séries de données ne portent qu'un label `pool_id` ; le nom du pool figure sur `ceph_pool_metadata`. |
 | Placement groups | `ceph_pg_total`, `ceph_pg_active`, `ceph_pg_clean`, `ceph_pg_degraded`, `ceph_pg_undersized` (tous par pool, via `pool_id`), `ceph_num_objects_degraded`, `ceph_num_objects_misplaced` |
@@ -147,6 +147,19 @@ Le module mgr couvre la santé et la capacité du cluster. Pour y regarder de pl
 - **`node_exporter`.** Le compagnon habituel pour les métriques CPU, mémoire, disque et réseau de chaque hôte Ceph, sur le port `9100` par défaut.
 
 Les deux reçoivent l'attribut de ressource `ceph.cluster.name` du processeur `resource` fourni, et arrivent donc sur le même cluster dans OneUptime.
+
+## Ce que montrent les pages du cluster
+
+La **Vue d'ensemble** du cluster indique sa santé, **Sain**, **Dégradé** ou **Défaillant**, d'après ce qui demande de l'attention, et le liste sous **Attention requise**, le plus urgent d'abord :
+
+- **Le cluster lui-même.** Le `HEALTH_WARN` ou le `HEALTH_ERR` de Ceph lui-même, avec les contrôles qu'il a levés, nommés comme Ceph les nomme, par exemple `OSD_DOWN` ou `PG_DEGRADED`, et la capacité brute au-delà de 85 % (critique au-delà de 95 %), là où les alertes Cluster Near Full et Cluster Full se déclenchent.
+- **OSD.** Un OSD arrêté mais toujours dans le cluster est critique : ses placement groups ont une copie en moins. Un OSD arrêté et sorti, ou en service mais sorti, mérite un coup d'œil, tout comme un OSD au-delà du seuil nearfull de Ceph (85 %) ou du seuil backfillfull (90 %), ou avec une latence d'application au-delà de 100 ms. Au-delà du seuil full (95 %), il refuse les écritures, ce qui est critique.
+- **Moniteurs.** Un moniteur hors du quorum est critique.
+- **Pools.** Un pool au-delà de 85 % de son espace inscriptible, stored ÷ (stored + max avail), mérite un coup d'œil, et au-delà de 95 % il est critique. Des placement groups dégradés ou sous-dimensionnés méritent un coup d'œil ; des placement groups inactifs, dont les E/S restent bloquées, sont critiques.
+
+Les listes **OSDs**, **Pools** et **Daemons** montrent l'état de chaque élément selon les mêmes règles, avec la raison en dessous. La page d'un OSD et celle d'un pool disent ce qui demande de l'attention, ce qui est ouvert dessus et quelles alertes du cluster le surveillent, avec un geste pour activer les autres. Un gestionnaire, un serveur de métadonnées ou une passerelle objet que Ceph ne liste plus affiche **A cessé de remonter des données**, en gris : Ceph lève un contrôle pour celui qui tombe en panne, par exemple `RECENT_CRASH` ou `MDS_ALL_DOWN`, que la ligne du cluster montre. Tant que l'agent est déconnecté, la santé affiche **Santé inconnue** : le dernier rapport du cluster n'est plus vrai.
+
+Les seuils des OSD sont ceux de Ceph par défaut. Un cluster réglé autrement lève ses propres contrôles `OSD_NEARFULL`, `OSD_BACKFILLFULL` et `OSD_FULL` à ses propres seuils, que la ligne du cluster montre.
 
 ## Facultatif — Envoyer le journal du cluster Ceph
 

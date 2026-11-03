@@ -918,6 +918,12 @@ jobs:
           # and Topology (about 2.8 each) moved to group 15. About 22.5.
           # Kubernetes Events (3.5) followed them when the second run took this
           # group 24.0: about 20.5.
+          # Ceph Pages (23 tests, 2.0 minutes locally plus its bundle, Chromium
+          # only: a Ceph cluster's Overview - its health and what needs
+          # attention by the cluster's rules, in German and Persian too - its
+          # OSDs, Pools and Daemons lists and an OSD's and a pool's page, at
+          # 1280, 1024, 768 and 390 pixels, dark, German and Persian) joined
+          # them on 2026-11-03: about 23.
           - group: 9
             workflow_builder_shard: 2/2
             suites: >-
@@ -927,6 +933,7 @@ jobs:
               test-runbooks-menu-ui
               test-postmortems-ui
               test-archivable-values-ui
+              test-ceph-pages-ui
           # Added on 2026-10-22 with the second half of Event Overview (about
           # 13 minutes on a slow runner) and Navigation Search from group 2
           # (2.9 to 3.5): about 18.5 with the setup. Chromium only. Owner
@@ -1525,4 +1532,6 @@ jobs:
             output/playwright/host-pages-ui/test-results
             output/playwright/container-host-pages-ui/*.png
             output/playwright/container-host-pages-ui/test-results
+            output/playwright/ceph-pages-ui/*.png
+            output/playwright/ceph-pages-ui/test-results
           retention-days: 7
