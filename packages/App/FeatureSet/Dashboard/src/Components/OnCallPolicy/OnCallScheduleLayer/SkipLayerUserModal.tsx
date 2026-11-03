@@ -34,7 +34,10 @@ import React, {
  * holiday is away from all of them. It is listed with the others under
  * On-Call Duty > Advanced > User Overrides, where it can be deleted to bring
  * them back early. Advanced is a folded section of that menu, so the way
- * there names it.
+ * there names it. So it takes a permission to add overrides over the whole
+ * project: for a reader whose permission covers only some policies, the
+ * page locks each row's button and says why, and this dialog never opens
+ * (GlobalUserOverrideLock).
  *
  * The dialog names the person "Who is away?" holds - "Skip Alex Kim" - and
  * follows it when it is changed, so the title and the button never name

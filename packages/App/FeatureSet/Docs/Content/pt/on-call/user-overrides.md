@@ -70,7 +70,7 @@ Quando alguém sai do projeto, cada substituição que nomeia essa pessoa e que 
 
 **Proprietário do projeto**, **Administrador do projeto**, **Membro do projeto**, **Administrador de plantão** e **Membro de plantão** podem adicionar e excluir substituições; **Visualizador** e **Visualizador de plantão** podem vê-las. Em uma função personalizada, as permissões são **Create On-Call Duty Policy User Override**, **Delete On-Call Duty Policy User Override** e **Read On-Call Duty Policy User Override**. Na **Linha do tempo de plantões**, só quem pode ler substituições vê de quem é o turno coberto.
 
-Uma substituição em uma política segue o escopo da política. Dê a uma equipe **Membro de plantão** limitado às políticas que ela possui, ou ao seu rótulo, e seus membros adicionam e excluem substituições só nessas políticas. Uma substituição global se aplica a todas as políticas, inclusive às de outra equipe, então adicioná-la ou excluí-la exige a permissão de substituições no projeto inteiro. Com uma mais restrita, **Adicionar: Substituição de usuário** e **Excluir** em **Plantão → Avançado → Substituições de usuário** ficam bloqueados e dizem por quê, e a equipe adiciona suas substituições na página **Substituições de usuário** de cada política. O mesmo vale para a API: uma substituição sem `onCallDutyPolicyId` é recusada para uma permissão limitada a rótulos ou a políticas próprias.
+Uma substituição em uma política segue o escopo da política. Dê a uma equipe **Membro de plantão** limitado às políticas que ela possui, ou ao seu rótulo, e seus membros adicionam e excluem substituições só nessas políticas. Uma substituição global se aplica a todas as políticas, inclusive às de outra equipe, então adicioná-la ou excluí-la exige a permissão de substituições no projeto inteiro. Com uma mais restrita, **Adicionar: Substituição de usuário** e **Excluir** em **Plantão → Avançado → Substituições de usuário** ficam bloqueados e dizem por quê. O mesmo acontece com **Pular até…** nas camadas de um agendamento e com **Obter cobertura** nos seus próximos turnos, que adicionam substituições globais, e o app para celular diz por quê em vez de providenciar cobertura. A equipe adiciona suas substituições na página **Substituições de usuário** de cada política. O mesmo vale para a API: uma substituição sem `onCallDutyPolicyId` é recusada para uma permissão limitada a rótulos ou a políticas próprias.
 
 No OneUptime Cloud, as substituições de usuário precisam do plano **Growth**.
 
@@ -113,7 +113,7 @@ Essa pessoa é contatada pelas suas próprias regras de plantão pessoais e mét
 :::
 
 :::details Não consigo adicionar uma substituição
-É preciso ter uma das funções acima e, no OneUptime Cloud, o plano **Growth**. Uma substituição global exige a função no projeto inteiro: se a função da sua equipe é limitada às próprias políticas ou a alguns rótulos, adicione a substituição na página **Substituições de usuário** da própria política.
+É preciso ter uma das funções acima e, no OneUptime Cloud, o plano **Growth**. Uma substituição global exige a função no projeto inteiro: se a função da sua equipe é limitada às próprias políticas ou a alguns rótulos, adicione a substituição na página **Substituições de usuário** da própria política. É também por isso que **Pular até…** e **Obter cobertura** ficam bloqueados para você, e que o app para celular não pode providenciar cobertura.
 :::
 
 ## Próximos passos

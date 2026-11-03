@@ -70,7 +70,7 @@ Når noen forlater prosjektet, slettes hver overstyring som nevner dem og ikke h
 
 **Prosjekteier**, **Prosjektadministrator**, **Prosjektmedlem**, **Vaktadministrator** og **Vaktmedlem** kan legge til og slette overstyringer; **Leser** og **Vaktleser** kan se dem. I en egendefinert rolle heter tillatelsene **Create On-Call Duty Policy User Override**, **Delete On-Call Duty Policy User Override** og **Read On-Call Duty Policy User Override**. På **Tidslinje for vaktplaner** ser bare folk som kan lese overstyringer, hvem sin vakt som dekkes.
 
-En overstyring på en retningslinje følger retningslinjens omfang. Gi et team **Vaktmedlem** begrenset til retningslinjene det eier, eller til etiketten sin, så legger medlemmene til og sletter overstyringer bare på de retningslinjene. En global overstyring gjelder for alle retningslinjer, også et annet teams, så å legge til eller slette en krever tillatelsen for overstyringer over hele prosjektet. Med en smalere tillatelse er **Legg til Brukeroverstyring** og **Slett** under **Vakttjeneste → Avansert → Brukeroverstyringer** låst og sier hvorfor, og teamet legger til overstyringene sine på hver retningslinjes egen side **Brukeroverstyringer**. Det samme gjelder for API-et: en overstyring uten `onCallDutyPolicyId` avvises for en tillatelse begrenset til etiketter eller til eide retningslinjer.
+En overstyring på en retningslinje følger retningslinjens omfang. Gi et team **Vaktmedlem** begrenset til retningslinjene det eier, eller til etiketten sin, så legger medlemmene til og sletter overstyringer bare på de retningslinjene. En global overstyring gjelder for alle retningslinjer, også et annet teams, så å legge til eller slette en krever tillatelsen for overstyringer over hele prosjektet. Med en smalere tillatelse er **Legg til Brukeroverstyring** og **Slett** under **Vakttjeneste → Avansert → Brukeroverstyringer** låst og sier hvorfor. Det gjelder også **Hopp over til…** i lagene til en vaktplan og **Finn avløser** på de kommende vaktene dine, som begge legger til globale overstyringer, og mobilappen sier hvorfor i stedet for å ordne avløsning. Teamet legger til overstyringene sine på hver retningslinjes egen side **Brukeroverstyringer**. Det samme gjelder for API-et: en overstyring uten `onCallDutyPolicyId` avvises for en tillatelse begrenset til etiketter eller til eide retningslinjer.
 
 I OneUptime Cloud krever brukeroverstyringer abonnementet **Growth**.
 
@@ -113,7 +113,7 @@ De nås gjennom sine egne personlige vaktregler og verifiserte metoder. Slå dem
 :::
 
 :::details Jeg kan ikke legge til en overstyring
-Det krever en av rollene over, og i OneUptime Cloud abonnementet **Growth**. En global overstyring krever rollen over hele prosjektet: er teamets rolle begrenset til egne retningslinjer eller til noen etiketter, legger du til overstyringen på retningslinjens egen side **Brukeroverstyringer**.
+Det krever en av rollene over, og i OneUptime Cloud abonnementet **Growth**. En global overstyring krever rollen over hele prosjektet: er teamets rolle begrenset til egne retningslinjer eller til noen etiketter, legger du til overstyringen på retningslinjens egen side **Brukeroverstyringer**. Det er også grunnen til at **Hopp over til…** og **Finn avløser** er låst for deg, og at mobilappen ikke kan ordne avløsning.
 :::
 
 ## Neste steg

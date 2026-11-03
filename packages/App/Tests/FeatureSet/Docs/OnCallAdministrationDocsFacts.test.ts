@@ -1881,6 +1881,44 @@ describe("user overrides", () => {
     );
   });
 
+  /*
+   * The shortcuts that add a global override lock by the same rule for a
+   * team whose role covers only some policies: Skip until... on a layer and
+   * Get cover on an upcoming shift (GlobalUserOverrideLock), and the mobile
+   * app's cover sheet, which says why in place of its form.
+   */
+  it("says Skip until…, Get cover and the mobile app's cover are locked for a narrower role, as their code locks them", () => {
+    const lock: string = readDashboardSource(
+      "Components/OnCallPolicy/UserOverrides/GlobalUserOverrideLock.ts",
+    );
+
+    expect(lock).toContain("export const getGlobalUserOverrideShortcutLock");
+    expect(
+      readDashboardSource(
+        "Components/OnCallPolicy/OnCallScheduleLayer/Layers.tsx",
+      ),
+    ).toContain(
+      "const skipLockedReason: string | null = getGlobalUserOverrideShortcutLock();",
+    );
+    expect(
+      readDashboardSource(
+        "Components/OnCallPolicy/CalendarFeed/UpcomingShiftRow.tsx",
+      ),
+    ).toContain("getGlobalUserOverrideShortcutLock({ held: held })");
+    expect(
+      readPackageFile("MobileApp/src/screens/CreateOnCallOverrideScreen.tsx"),
+    ).toContain("useGlobalOverrideLock(projectId)");
+
+    const page: string = english(USER_OVERRIDES);
+
+    expect(page).toContain(
+      "So are **Skip until…** on a schedule's layers and **Get cover** on your upcoming shifts, which add global overrides, and the mobile app says why instead of arranging cover.",
+    );
+    expect(page).toContain(
+      "That is also why **Skip until…** and **Get cover** are locked for you, and why the mobile app cannot arrange cover.",
+    );
+  });
+
   it("shows whose shift is covered on the Schedule Timeline only to people who can read overrides", () => {
     expect(
       readCommonSource("Server/API/OnCallScheduleTimelineAPI.ts"),
