@@ -41,6 +41,15 @@ Picked with query parameters on the page's address:
 - `devices=counted|one`: the connection's last read listed the organization's 6 devices, 5 of them
   network devices in OneUptime (or 1), so its row counts them and says so in a grey note. Without
   it, the read predates device counts and the row says nothing of devices.
+- `unadded=many|none`: what the last read counted of the organization's devices that are no
+  network device here, for Add devices: 8 switches and 12 access points to add, 3 cameras, 4
+  security appliances Meraki lists no address for, a switch at an address a device here has and
+  an access point archived here (`many`); or only the appliances, which cannot be added (`none`).
+  Without it, the read predates these counts.
+- `adding=progress|done|failed|stopped`: how the last Add devices went - 7 of 20 added so far; 18
+  added with 2 sites, 2 that could not be; Meraki refused the key; or its worker went quiet.
+- `probes=two`: the project has two probes of its own, so no probe is picked for the devices (one,
+  picked, is the default).
 - `source=flows|meraki`, `lang=de`, `theme=dark`. `mnet`, `mdev` and `mup` narrow the Meraki side
   as the page's own links do: to a network, an appliance and an uplink.
 
@@ -49,10 +58,12 @@ all the same, so the page's uplinks compare and a standby line shows; its traffi
 short of now, as the reads do.
 
 Every read and write is recorded on `window.__merakiTrafficFixture` (`usageRequests`,
-`flowRequests`, `tests`, `readNows`, `creates`, `updates`, `deletes`) with `unhandled` for anything
-the fixture does not model; the spec fails on an unhandled request, on an uncaught page error and
-on any request that leaves the fixture server. `finishRead()` ends the read a connection waits
-for, as the worker would, so a test can watch the page fill in by itself.
+`flowRequests`, `tests`, `readNows`, `creates`, `updates`, `deletes`, `deviceAdds`, `probeAsks`)
+with `unhandled` for anything the fixture does not model; the spec fails on an unhandled request,
+on an uncaught page error and on any request that leaves the fixture server. `finishRead()` ends
+the read a connection waits for, as the worker would, so a test can watch the page fill in by
+itself; `progressDeviceAdd(added, total)` and `finishDeviceAdd()` move an Add devices on, as its
+worker job would.
 
 Screenshots are written to `output/playwright/meraki-traffic-ui/`, one per project (`desktop`,
 1280 pixels, and `phone`, 390).

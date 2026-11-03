@@ -1137,7 +1137,7 @@ test("the devices Meraki knows that are not here: offered on the row, added in o
   await settledDialog(page);
   await expect(dialog(page)).toContainText("Add Meraki devices");
   await expect(dialog(page)).toContainText(
-    "Adds the devices of Acme Networks that are not network devices here yet, at their management addresses. Meraki fills in their model, serial number and firmware.",
+    "Adds the devices of Acme Networks that are not here yet, at their management addresses. Meraki fills in their model, serial number and firmware.",
   );
 
   // The kinds with a device to add, each with how many; cameras not ticked.
@@ -1674,6 +1674,43 @@ test("a device's menu lists its incidents and alerts under Activity, each on the
   await expect(activity.locator("span.tabular-nums")).toHaveCount(0);
 
   await screenshot(page, testInfo, "device-menu-activity", activity);
+});
+
+/*
+ * A device's page has no connections of its own: Review on its line opens
+ * the network's Traffic page on its Meraki side, at the connections - the
+ * card is brought into view under the page's header, whatever the traffic
+ * above it draws.
+ */
+test("Review on a device's page opens the network's Meraki side at the connections, in view", async ({
+  page,
+}: {
+  page: Page;
+}, testInfo: TestInfo) => {
+  await open(page, "state=failing", DEVICE_TRAFFIC);
+
+  const line: Locator = page.getByTestId("meraki-connection-line");
+  await expect(line).toHaveAttribute("data-status", "failing");
+  const review: Locator = line.getByRole("link", { name: "Review" });
+  await expect(review).toHaveAttribute(
+    "href",
+    `${TRAFFIC}?source=meraki#traffic-meraki-connections`,
+  );
+
+  await review.click();
+  await expect(page).toHaveURL(
+    /\/dashboard\/10000000-0000-4000-8000-000000000001\/network-devices\/traffic\?source=meraki#traffic-meraki-connections$/,
+  );
+  const connections: Locator = page.getByTestId("meraki-connections");
+  await expect(connections).toBeVisible();
+  await expect(connections).toBeInViewport();
+  // Landed on: the card takes the focus, so the keyboard starts there.
+  await expect(page.locator("#traffic-meraki-connections")).toBeFocused();
+  await expect(page.getByTestId("meraki-connection")).toHaveAttribute(
+    "data-status",
+    "failing",
+  );
+  await screenshot(page, testInfo, "device-review-lands");
 });
 
 test("a site's page: its networks, one click from narrowing to one", async ({
