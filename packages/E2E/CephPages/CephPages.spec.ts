@@ -2,6 +2,7 @@ import { expect, Locator, Page, Route, test } from "@playwright/test";
 import fs from "fs";
 import fsPromises from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * A Ceph cluster's pages, in a browser, against the offline fixture
@@ -119,19 +120,6 @@ async function screenshot(page: Page, name: string): Promise<void> {
 
 function withQuery(pagePath: string, query: string): string {
   return query ? `${pagePath}?${query}` : pagePath;
-}
-
-async function expectNoSidewaysScroll(page: Page): Promise<void> {
-  const widths: { page: number; window: number } = await page.evaluate(
-    (): { page: number; window: number } => {
-      return {
-        page: document.documentElement.scrollWidth,
-        window: window.innerWidth,
-      };
-    },
-  );
-
-  expect(widths.page).toBeLessThanOrEqual(widths.window);
 }
 
 // Whether an element's text is cut: wider than the box it is drawn in.

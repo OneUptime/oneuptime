@@ -8,8 +8,8 @@ host, pod and file system with why), the **Hosts**, **Replication**,
 **Hardware** and **File Systems** lists (each part's state with why, its
 cells coloured at its alerts' lines) and a volume's, a host's and a file
 system's own page (its state, where it sits, what about it needs attention,
-what is open on it, the alerts that watch it with Turn on N and its details)
-- each inside the production array layout and side menu
+what is open on it, the alerts that watch it with Turn on N and its details),
+each inside the production array layout and side menu
 (`packages/App/FeatureSet/Dashboard/src/Pages/StorageArray/View/{Layout,Index,Volumes,VolumeDetail,Hosts,HostDetail,Replication,Hardware,FileSystems,FileSystemDetail}.tsx`).
 It bundles the production pages with esbuild, replaces only the `ModelAPI` /
 `AnalyticsModelAPI` / `API` / `Realtime` data boundary, and serves them on
@@ -39,13 +39,13 @@ Any route not listed above renders a "Not modelled" stub
 
 Query parameters on any page:
 
-| Parameter   | Values                                                                                                                                                                                                                                                                       |
-| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Parameter   | Values                                                                                                                                                                                                                                                                                                                        |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `array`     | `trouble` (default): the FlashArray has a critical and a warning alert open, is 92% full and reads at 6.1 ms; the drive in bay 3 failed (its bay critical too), a fan is degraded, `esx-04` reaches it through one controller, `dr-pod` is 95 seconds behind; the FlashBlade's `scratch` has 5% left. `calm`: every part fine |
-| `collector` | `disconnected`: the arrays' agents stopped reporting three days ago                                                                                                                                                                                                         |
-| `fail`      | `inventory`: every inventory read fails                                                                                                                                                                                                                                      |
-| `lang`      | `de` reads the German locale file, `fa` the Persian one (right to left)                                                                                                                                                                                                      |
-| `theme`     | `dark` adds `html.dark` (server.js)                                                                                                                                                                                                                                          |
+| `collector` | `disconnected`: the arrays' agents stopped reporting three days ago                                                                                                                                                                                                                                                           |
+| `fail`      | `inventory`: every inventory read fails                                                                                                                                                                                                                                                                                       |
+| `lang`      | `de` reads the German locale file, `fa` the Persian one (right to left)                                                                                                                                                                                                                                                       |
+| `theme`     | `dark` adds `html.dark` (server.js)                                                                                                                                                                                                                                                                                           |
 
 ## What the fixture records
 

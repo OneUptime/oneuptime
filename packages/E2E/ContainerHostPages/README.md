@@ -35,13 +35,13 @@ Any route not listed above renders a "Not modelled" stub
 
 Query parameters on any page:
 
-| Parameter   | Values                                                                                     |
-| ----------- | ------------------------------------------------------------------------------------------ |
-| `host`      | `trouble` (default: the seven above), `calm` (every container fine), `empty` (none yet)    |
-| `collector` | `disconnected`: the host's agent stopped reporting three days ago                          |
-| `fail`      | `readings`: every latest-readings read fails                                               |
-| `lang`      | `de` reads the German locale file, `fa` the Persian one (right to left)                    |
-| `theme`     | `dark` adds `html.dark` (server.js)                                                        |
+| Parameter   | Values                                                                                  |
+| ----------- | --------------------------------------------------------------------------------------- |
+| `host`      | `trouble` (default: the seven above), `calm` (every container fine), `empty` (none yet) |
+| `collector` | `disconnected`: the host's agent stopped reporting three days ago                       |
+| `fail`      | `readings`: every latest-readings read fails                                            |
+| `lang`      | `de` reads the German locale file, `fa` the Persian one (right to left)                 |
+| `theme`     | `dark` adds `html.dark` (server.js)                                                     |
 
 ## What the fixture records
 

@@ -744,8 +744,12 @@ export function getStorageArrayAttentionItems(data: {
    * One physical part can be several rows under one name: a failed
    * FlashArray drive is its bay (Hardware, critical) and the drive in it
    * (Drive, failed); a controller is a Hardware and a Controller row. Each
-   * is one row here, named by its most specific kind, with every reason -
-   * the part the ingest counts once (StorageArraySnapshotScan).
+   * is one row here - the part the ingest counts once
+   * (StorageArraySnapshotScan) - named by its most specific kind, whose
+   * reasons say why. The other rows' reasons join only when they are the
+   * more urgent: a failed drive's bay reporting critical says nothing the
+   * drive's "Reports failed" does not, but a degraded drive in a bay the
+   * array calls critical is critical for the bay's reason.
    */
   const hardwareByName: Map<string, ResourceAttentionItem> = new Map();
   const hardwareKindOf: Map<string, StorageArrayPartKind> = new Map();
@@ -794,8 +798,13 @@ export function getStorageArrayAttentionItems(data: {
       HARDWARE_KIND_SPECIFICITY.indexOf(earlierKind);
     const first: ResourceAttentionItem = thisIsSpecific ? item : earlier;
     const second: ResourceAttentionItem = thisIsSpecific ? earlier : item;
+    const severity: ResourceAttentionSeverity =
+      mergeResourceAttentionSeverity([earlier.severity, item.severity]) ||
+      earlier.severity;
     const reasons: Array<ResourceAttentionText> = [...first.reasons];
-    for (const reason of second.reasons) {
+    const secondIsMoreUrgent: boolean =
+      second.severity === severity && first.severity !== severity;
+    for (const reason of secondIsMoreUrgent ? second.reasons : []) {
       const seen: boolean = reasons.some(
         (kept: ResourceAttentionText): boolean => {
           return (
@@ -813,9 +822,7 @@ export function getStorageArrayAttentionItems(data: {
       key: first.key,
       kind: first.kind,
       icon: first.icon,
-      severity:
-        mergeResourceAttentionSeverity([earlier.severity, item.severity]) ||
-        earlier.severity,
+      severity: severity,
       reasons: reasons,
       route: first.route || second.route,
     });

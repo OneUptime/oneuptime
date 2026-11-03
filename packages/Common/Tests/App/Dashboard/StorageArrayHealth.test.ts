@@ -531,6 +531,9 @@ describe("Needs attention", () => {
         // A fine controller row beside a degraded chassis entry: one row.
         part("Controller", { externalId: "CT0", status: "ready" }),
         part("Hardware", { externalId: "CT0", status: "degraded" }),
+        // A degraded drive in a bay the array calls critical.
+        part("Drive", { externalId: "CH0.BAY5", status: "degraded" }),
+        part("Hardware", { externalId: "CH0.BAY5", status: "critical" }),
       ],
       routeFor: routeFor,
     });
@@ -541,19 +544,25 @@ describe("Needs attention", () => {
       }),
     ).toEqual([
       ["Drive:CH0.BAY3", "Drive", "critical"],
+      ["Drive:CH0.BAY5", "Drive", "critical"],
       ["Hardware:CT0", "Hardware Component", "warning"],
       ["Controller:CT1", "Controller", "warning"],
     ]);
-    // The specific kind's reason first, then the rest, each once.
-    expect(texts(items[0]!.reasons)).toEqual([
-      "Reports failed",
+    /*
+     * The specific kind says why; the bay's "Reports critical" says nothing
+     * the drive's "Reports failed" does not, nor the chassis entry's
+     * "Reports degraded" anything the controller's "Reports not ready" does
+     * not.
+     */
+    expect(texts(items[0]!.reasons)).toEqual(["Reports failed"]);
+    expect(items[0]!.route?.toString()).toBe("/array/Drive/CH0.BAY3");
+    expect(texts(items[3]!.reasons)).toEqual(["Reports not ready"]);
+    // A more urgent row's reason joins: the drive is critical for its bay's.
+    expect(texts(items[1]!.reasons)).toEqual([
+      "Reports degraded",
       "Reports critical",
     ]);
-    expect(items[0]!.route?.toString()).toBe("/array/Drive/CH0.BAY3");
-    expect(texts(items[2]!.reasons)).toEqual([
-      "Reports not ready",
-      "Reports degraded",
-    ]);
+    expect(items[1]!.route?.toString()).toBe("/array/Drive/CH0.BAY5");
   });
 
   test("the array's health is the worst of what it lists", () => {
