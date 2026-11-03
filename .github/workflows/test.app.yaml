@@ -856,6 +856,15 @@ jobs:
           # locally: its open case and week, opening Security Events on the
           # name it answers on, a quiet week and no card without Security
           # Events): still about 21.
+          # Permissions Per Tab (5 tests, 16 seconds locally with its bundle,
+          # Chromium only: the real Labels and Danger Zone pages of two
+          # projects in two tabs of one browser, the person Project Owner of
+          # one and Viewer of the other, each tab keeping its own role while
+          # the other's answers come back, one tab moving between projects,
+          # and the name every project's permission snapshot shared ignored)
+          # joined it on 2026-11-03, when master's run of 2026-11-02 23:47 took
+          # this group 13.7 minutes, the lightest of the sixteen (group 7,
+          # where it was first placed, took 22.2): about 14.5.
           - group: 8
             suites: >-
               test-dashboard-time-range-ui
@@ -866,6 +875,7 @@ jobs:
               test-vmware-host-page-ui
               test-public-addresses-ui
               test-docker-swarm-pages-ui
+              test-permissions-per-tab-ui
           # Added on 2026-10-21, when every group took 20 to 26 minutes on one
           # run (groups 1 and 5 near 25) and Resource Topology would have
           # taken group 7 past 22: Code (6.4 minutes on that run, a laptop
@@ -1508,6 +1518,8 @@ jobs:
             output/playwright/docker-swarm-pages-ui/test-results
             output/playwright/side-by-side-pages-ui/*.png
             output/playwright/side-by-side-pages-ui/test-results
+            output/playwright/permissions-per-tab-ui/*.png
+            output/playwright/permissions-per-tab-ui/test-results
             output/playwright/resource-overviews-ui/*.png
             output/playwright/resource-overviews-ui/test-results
             output/playwright/proxmox-pages-ui/*.png

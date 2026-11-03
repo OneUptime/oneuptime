@@ -144,6 +144,7 @@ import ObjectID from "../../../Types/ObjectID";
 import Permission, { PermissionHelper } from "../../../Types/Permission";
 import { announceModelSwitchSaved } from "../../../UI/Components/ModelSwitch/ModelSwitchEvents";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
+import { getProjectPermissionsStorageKey } from "../../../UI/Utils/Permission";
 import { PROJECT_NOTIFICATION_CHANNEL_UPDATE_PERMISSIONS } from "../../../Utils/Project/NotificationChannels";
 
 const PROJECT_ID: string = "dddddddd-4444-4444-8444-444444444444";
@@ -198,8 +199,9 @@ const signIn: (session: Session) => void = (session: Session): void => {
     }),
   );
 
+  // The snapshot the browser keeps for the project the tab shows.
   localStorage.setItem(
-    "project_permissions",
+    getProjectPermissionsStorageKey(PROJECT_ID)!,
     JSON.stringify({
       projectId: PROJECT_ID,
       permissions: session.permissions.map((permission: Permission) => {
@@ -1153,7 +1155,7 @@ describe("who may turn the channels on", () => {
 
   test("nobody may while the permissions are still on their way: nothing is offered that could be refused", () => {
     localStorage.removeItem("global_permissions");
-    localStorage.removeItem("project_permissions");
+    localStorage.removeItem(getProjectPermissionsStorageKey(PROJECT_ID)!);
 
     expect(canChangeProjectNotificationChannels()).toBe(false);
   });
@@ -1229,7 +1231,7 @@ describe("who may turn the channels on", () => {
 
   test("while the permissions are on their way the answer is Unknown: neither offered the switch nor told who can", () => {
     localStorage.removeItem("global_permissions");
-    localStorage.removeItem("project_permissions");
+    localStorage.removeItem(getProjectPermissionsStorageKey(PROJECT_ID)!);
 
     expect(getProjectNotificationChannelsAccess()).toBe(
       ProjectNotificationChannelsAccess.Unknown,
@@ -1324,7 +1326,7 @@ describe("the Notification Channels card on Project Settings", () => {
 
   test("says nothing about who can while the permissions are still on their way", async () => {
     localStorage.removeItem("global_permissions");
-    localStorage.removeItem("project_permissions");
+    localStorage.removeItem(getProjectPermissionsStorageKey(PROJECT_ID)!);
     getItemMock.mockResolvedValue(projectWith(ALL_OFF) as never);
 
     await renderCard();

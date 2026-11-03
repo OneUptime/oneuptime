@@ -11,29 +11,25 @@ import SubscriptionStatus, {
   SubscriptionStatusUtil,
 } from "../../Types/Billing/SubscriptionStatus";
 import ModelListCache from "./ModelListCache";
-import Navigation from "./Navigation";
 import SessionStorage from "./SessionStorage";
+import TabProject, {
+  CURRENT_PROJECT_ID_STORAGE_KEY,
+  LAST_ACCESSED_PROJECT_ID_STORAGE_KEY,
+} from "./TabProject";
 import Telemetry from "./Telemetry/Telemetry";
 
-/**
- * Session storage key that pins a browser tab to the project it is showing.
- * Session storage (and not local storage) so two tabs can show two different
- * projects at the same time.
+/*
+ * Where a tab keeps the project it shows, and where the browser keeps the
+ * project it opened last (UI/Utils/TabProject, where the tab's project is
+ * read).
  */
-export const CURRENT_PROJECT_ID_STORAGE_KEY: string = "current_project_id";
-
-/**
- * Local storage key that remembers the last project the user opened on this
- * browser. Unlike {@link CURRENT_PROJECT_ID_STORAGE_KEY} this survives closing
- * the tab, which is what makes the dashboard reopen on the project the user
- * left off on instead of always falling back to the first project.
- */
-export const LAST_ACCESSED_PROJECT_ID_STORAGE_KEY: string =
-  "last_accessed_project_id";
+export { CURRENT_PROJECT_ID_STORAGE_KEY, LAST_ACCESSED_PROJECT_ID_STORAGE_KEY };
 
 export default class ProjectUtil {
   /**
-   * The project the user is currently looking at, resolved in priority order:
+   * The project the user is currently looking at, resolved in priority order
+   * (TabProject.getProjectId, where the tab's permission snapshot is read
+   * from too):
    *
    * 1. `/dashboard/:projectId/...` in the URL - the page the user actually
    *    opened, so a deep link always wins over anything we have cached.
@@ -45,21 +41,7 @@ export default class ProjectUtil {
    *    `/dashboard` reopens that project rather than the first one.
    */
   public static getCurrentProjectId(): ObjectID | null {
-    const projectIdInUrl: ObjectID | null = this.getProjectIdFromUrl();
-
-    if (projectIdInUrl) {
-      return projectIdInUrl;
-    }
-
-    const projectIdInSession: ObjectID | null = this.toProjectId(
-      SessionStorage.getItem(CURRENT_PROJECT_ID_STORAGE_KEY),
-    );
-
-    if (projectIdInSession) {
-      return projectIdInSession;
-    }
-
-    return this.getLastAccessedProjectId();
+    return TabProject.getProjectId();
   }
 
   /**
@@ -68,17 +50,7 @@ export default class ProjectUtil {
    * project id (`/dashboard`, `/dashboard/welcome`, ...).
    */
   public static getProjectIdFromUrl(): ObjectID | null {
-    if (Navigation.getFirstParam(1) !== "dashboard") {
-      return null;
-    }
-
-    const projectId: string | undefined = Navigation.getFirstParam(2);
-
-    if (!projectId || projectId.includes(":projectId")) {
-      return null;
-    }
-
-    return this.toProjectId(projectId);
+    return TabProject.getProjectIdFromUrl();
   }
 
   /**
@@ -87,9 +59,7 @@ export default class ProjectUtil {
    * of local storage) and when the project is deleted.
    */
   public static getLastAccessedProjectId(): ObjectID | null {
-    return this.toProjectId(
-      LocalStorage.getItem(LAST_ACCESSED_PROJECT_ID_STORAGE_KEY),
-    );
+    return TabProject.getLastAccessedProjectId();
   }
 
   public static setLastAccessedProjectId(
@@ -231,16 +201,22 @@ export default class ProjectUtil {
         data.paymentProviderSubscriptionStatus,
       );
 
-    // save this to local storage
-    LocalStorage.setItem(
-      currentProjectId?.toString() + "_isSubscriptionInactive",
-      isSubscriptionInactive,
-    );
+    /*
+     * Kept for the project, under names that end in its id. A tab that shows
+     * no project keeps nothing: one name for every such tab
+     * ("undefined_isSubscriptionInactive") would be every project's.
+     */
+    if (currentProjectId) {
+      LocalStorage.setItem(
+        currentProjectId.toString() + "_isSubscriptionInactive",
+        isSubscriptionInactive,
+      );
 
-    LocalStorage.setItem(
-      currentProjectId?.toString() + "_isSubscriptionOverdue",
-      isSubscriptionOverdue,
-    );
+      LocalStorage.setItem(
+        currentProjectId.toString() + "_isSubscriptionOverdue",
+        isSubscriptionOverdue,
+      );
+    }
 
     return isSubscriptionInactive || isSubscriptionOverdue;
   }
@@ -248,10 +224,15 @@ export default class ProjectUtil {
   public static isSubscriptionInactive(): boolean {
     const currentProjectId: string | undefined =
       this.getCurrentProjectId()?.toString();
+
+    if (!currentProjectId) {
+      return false;
+    }
+
     return (
       Boolean(
         LocalStorage.getItem(
-          currentProjectId?.toString() + "_isSubscriptionInactive",
+          currentProjectId.toString() + "_isSubscriptionInactive",
         ),
       ) || false
     );
@@ -358,12 +339,6 @@ export default class ProjectUtil {
   private static toProjectId(
     value: JSONValue | ObjectID | string | null | undefined,
   ): ObjectID | null {
-    const id: string | undefined = value?.toString();
-
-    if (id && ObjectID.isValidUUID(id)) {
-      return new ObjectID(id);
-    }
-
-    return null;
+    return TabProject.toProjectId(value);
   }
 }
