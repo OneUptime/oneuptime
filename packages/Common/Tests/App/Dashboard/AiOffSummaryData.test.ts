@@ -1554,9 +1554,12 @@ describe("whether fixing can be decided again for the record now", () => {
   test.each<[string, RemediationFoldState]>([
     ["its fixing switch was off", { kind: "off", reason: "fixing_off" }],
     ["all of AI was off", { kind: "off", reason: "ai_off" }],
-  ])("%s, and it is on now: yes", (_name: string, remediation) => {
-    expect(isFixingDecidableAgainNow({ ...OPEN_ON, remediation })).toBe(true);
-  });
+  ])(
+    "%s, and it is on now: yes",
+    (_name: string, remediation: RemediationFoldState) => {
+      expect(isFixingDecidableAgainNow({ ...OPEN_ON, remediation })).toBe(true);
+    },
+  );
 
   test.each<[string, Parameters<typeof isFixingDecidableAgainNow>[0]]>([
     [
@@ -1606,7 +1609,10 @@ describe("whether fixing can be decided again for the record now", () => {
     ["fixing did something", { ...OPEN_ON, remediation: { kind: "on" } }],
     ["still reading", { ...OPEN_ON, remediation: { kind: "loading" } }],
     ["not said", { ...OPEN_ON, remediation: undefined }],
-  ])("%s: no", (_name: string, input) => {
-    expect(isFixingDecidableAgainNow(input)).toBe(false);
-  });
+  ])(
+    "%s: no",
+    (_name: string, input: Parameters<typeof isFixingDecidableAgainNow>[0]) => {
+      expect(isFixingDecidableAgainNow(input)).toBe(false);
+    },
+  );
 });
