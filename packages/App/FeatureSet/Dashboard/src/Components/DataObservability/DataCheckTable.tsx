@@ -38,6 +38,8 @@ export interface ComponentProps {
   // One table's checks, with its columns to choose from; or every check of the project.
   dataAssetId?: ObjectID | undefined;
   columns?: Array<DataAssetColumn> | undefined;
+  // Changed when checks were added from elsewhere (suggestions), to read the list again.
+  refreshToggle?: string | undefined;
 }
 
 const TYPE_OPTIONS: Array<DropdownOption> = DATA_CHECK_TYPES.map(
@@ -149,6 +151,7 @@ const DataCheckTable: FunctionComponent<ComponentProps> = (
       <ModelTable<DataCheck>
         modelType={DataCheck}
         rowSwitch={{ column: "isEnabled" }}
+        refreshToggle={props.refreshToggle}
         id={
           isForOneTable
             ? "data-observability-table-checks"
