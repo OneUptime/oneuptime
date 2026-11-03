@@ -18,6 +18,11 @@ import MicrosoftTeamsReplies from "./MicrosoftTeamsReplies";
 import MicrosoftTeamsCommands from "./MicrosoftTeamsCommands";
 import MicrosoftTeamsTimezone from "./MicrosoftTeamsTimezone";
 import { mdText } from "../../../../Utils/Markdown/FeedMarkdown";
+import WorkspaceAffectedResources from "../WorkspaceAffectedResources";
+import AIService from "../../../Services/AIService";
+import WorkspaceIncidentFromAlert, {
+  WorkspaceDeclaringAlert,
+} from "../WorkspaceIncidentFromAlert";
 
 /*
  * "incident" and "maintenance" typed to the Microsoft Teams bot - or "create
@@ -99,12 +104,34 @@ export default class MicrosoftTeamsCreateCommands {
     }
 
     let choices: MicrosoftTeamsNewIncidentFormChoices;
+    let declaringAlert: WorkspaceDeclaringAlert | null = null;
+    let isAffectedResourcesOffered: boolean = false;
+    let isAiEnabled: boolean = false;
 
     try {
-      choices = await MicrosoftTeamsIncidentActions.getNewIncidentFormChoices(
-        projectId,
-        props,
-      );
+      /*
+       * The lists, whether the project has resources to offer under
+       * Affected Resources, and - in an alert's own channel - the alert it
+       * is declared from (WorkspaceIncidentFromAlert), read at once.
+       */
+      [choices, declaringAlert, isAffectedResourcesOffered, isAiEnabled] =
+        await Promise.all([
+          MicrosoftTeamsIncidentActions.getNewIncidentFormChoices(
+            projectId,
+            props,
+          ),
+          WorkspaceIncidentFromAlert.readChannelAlert({
+            projectId: projectId,
+            channelId: this.getChannelId(activity),
+            props: props,
+          }),
+          WorkspaceAffectedResources.isOffered({
+            projectId: projectId,
+            props: props,
+          }),
+          // Whether Affected Resources' hint may speak of OneUptime AI.
+          AIService.isProjectAIEnabled(projectId),
+        ]);
     } catch (error) {
       await this.replyFormCouldNotLoad({
         turnContext: turnContext,
@@ -150,9 +177,34 @@ export default class MicrosoftTeamsCreateCommands {
           budgetInBytes: budgetInBytes,
           initialTitle: data.initialTitle,
           createInOneUptimeUrl: createInOneUptimeUrl,
+          /*
+           * Left off for a member who may read no kind of resource, or a
+           * project with none of them to pick - but never when an alert's
+           * resources are picked already.
+           */
+          ...(isAffectedResourcesOffered || declaringAlert?.resources.length
+            ? {
+                affectedResources: {
+                  projectId: projectId,
+                  isAiEnabled: isAiEnabled,
+                },
+              }
+            : {}),
+          declaringAlert: declaringAlert,
         });
       },
     });
+  }
+
+  // The Teams channel a command was typed in; undefined in a chat.
+  private static getChannelId(activity: JSONObject): string | undefined {
+    const channel: JSONObject | undefined = (
+      activity["channelData"] as JSONObject | undefined
+    )?.["channel"] as JSONObject | undefined;
+
+    return typeof channel?.["id"] === "string"
+      ? (channel["id"] as string)
+      : undefined;
   }
 
   @CaptureSpan()

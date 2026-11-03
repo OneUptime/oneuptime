@@ -188,7 +188,8 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 - 它的監測器是該叢集的 Kubernetes 監測器；
 - 它的監測器在 **監測器 → 概覽 → 已連結的資源** 下與該叢集連結——這是將網站、API 或綜合監測器連結到為其檢查對象提供服務的叢集的方法；
 - 詢問 AI 在該叢集的頁面上宣告了它，或在被要求時將它連結到該叢集；
-- 有人在宣告時於 **其他受影響的資源** 下選擇了該叢集（選擇一個已連結的監測器會自動把它加到那裡）。
+- 有人在宣告時於 **其他受影響的資源** 下選擇了該叢集（選擇一個已連結的監測器會自動把它加到那裡）；
+- 有人從 [Slack](/docs/workspace-connections/slack) 或 [Microsoft Teams](/docs/workspace-connections/microsoft-teams) 宣告時選擇了該叢集。
 
 每個事件和警示都會在其 **OneUptime AI** 卡片的 **補救** 步驟中說明它是否關聯到某個叢集，以及叢集的修正做了什麼；請參閱 [自動補救做了什麼](#自動補救做了什麼)。基礎設施資源及其 AI 代理程式也是如此。
 

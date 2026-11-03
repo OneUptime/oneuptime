@@ -46,6 +46,7 @@ import {
   REMEDIATION_CHAT_WORDS,
 } from "Common/Server/Utils/AutoRemediation/RemediationChatWords";
 import SlackIncidentActions from "Common/Server/Utils/Workspace/Slack/Actions/Incident";
+import { WORKSPACE_AFFECTED_RESOURCES_TEXT } from "Common/Server/Utils/Workspace/WorkspaceAffectedResources";
 import WorkspaceActionAuthorization from "Common/Server/Utils/Workspace/WorkspaceActionAuthorization";
 import {
   FORM_FAVICON_NOT_FOUND_MESSAGE,
@@ -195,6 +196,15 @@ const INCIDENT_MESSAGE_BUTTONS: Array<string> = [
 const SEEDED_INCIDENT_ROLES: Array<string> = ["Incident Commander"];
 
 /*
+ * The fields of the chats' Declare Incident forms that the pages name, as
+ * the server writes them for Slack's modal and Microsoft Teams' card, in
+ * English (WORKSPACE_AFFECTED_RESOURCES_TEXT).
+ */
+const INCIDENT_FORM_FIELDS: Array<string> = [
+  WORKSPACE_AFFECTED_RESOURCES_TEXT.label,
+];
+
+/*
  * The Connect button the app answers a press from an unconnected account
  * with, as each chat shows it: in English, as the server writes it.
  */
@@ -332,6 +342,7 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
     ...CHAT_BUTTONS,
     ...FIX_MESSAGE_BUTTONS,
     ...INCIDENT_MESSAGE_BUTTONS,
+    ...INCIDENT_FORM_FIELDS,
     ...SEEDED_INCIDENT_ROLES,
     ...SLACK_CONNECT_BUTTON,
     ...SLACK_CONTROLS,
@@ -345,6 +356,7 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
     ...CHAT_BUTTONS,
     ...FIX_MESSAGE_BUTTONS,
     ...INCIDENT_MESSAGE_BUTTONS,
+    ...INCIDENT_FORM_FIELDS,
     ...SEEDED_INCIDENT_ROLES,
     ...TEAMS_CARD_BUTTONS,
     ...TEAMS_CONNECT_BUTTON,
@@ -517,6 +529,9 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "What the button connects.",
     "Who may use them.",
     "What a form offers.",
+    // The incident form's Affected Resources, and an alert's own channel.
+    "What the incident is about.",
+    "In an alert's own channel.",
     "What a form may name.",
     "Which records.",
     "What Change State offers.",
@@ -578,6 +593,9 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "What the button connects.",
     "Who may use them.",
     "What a form offers.",
+    // The incident card's Affected Resources, and an alert's own channel.
+    "What the incident is about.",
+    "In an alert's own channel.",
     "What a form may name.",
     "Which records.",
     "What Change State offers.",
@@ -1236,6 +1254,7 @@ describe("the lists this test keeps", () => {
       ...CHAT_BUTTONS,
       ...FIX_MESSAGE_BUTTONS,
       ...INCIDENT_MESSAGE_BUTTONS,
+      ...INCIDENT_FORM_FIELDS,
       ...SEEDED_INCIDENT_ROLES,
       ...SLACK_CONNECT_BUTTON,
       ...TEAMS_CONNECT_BUTTON,
