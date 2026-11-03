@@ -82,7 +82,7 @@ describe("a custom role's Add Role uses the one role field", () => {
 
   test("without Project Owner, opening on One area", () => {
     expect(table).toContain(
-      "getRolePickerFormField<CustomRolePermission>({ excludeRoles: PERMISSIONS_NEVER_IN_A_CUSTOM_ROLE, startOn: RoleReach.OneArea, onChange: onPermissionPicked, isMoreFieldsShownFor: isScopeShownFor, }),",
+      "getRolePickerFormField<CustomRolePermission>({ excludeRoles: PERMISSIONS_NEVER_IN_A_CUSTOM_ROLE, startOn: RoleReach.OneArea, onChange: onRolePicked, isMoreFieldsShownFor: isScopeShownFor, }),",
     );
   });
 
@@ -90,8 +90,24 @@ describe("a custom role's Add Role uses the one role field", () => {
     expect(table).toContain("isMoreFieldsShownFor: isScopeShownFor,");
     expect(table).toContain('return isScopeShownFor(values["permission"]);');
     expect(table).toContain(
-      'import { getPermissionScopeFields, isScopeShownFor, } from "@oneuptime/dashboard/Components/Permission/PermissionScopeChoice";',
+      'import { getPermissionScopeFields, getPermissionScopes, getRoleScopes, getScopeKeptOnPermissionChange, isScopeShownFor, isScopeShownForPermission, } from "@oneuptime/dashboard/Components/Permission/PermissionScopeChoice";',
     );
+  });
+
+  /*
+   * Add Permission offers one permission's Scope where a scope narrows it,
+   * with only the answers that do (issue #5602), and keeps an answer only
+   * while the new permission offers it.
+   */
+  test("its Add Permission asks what narrows the permission picked", () => {
+    expect(table).toContain(
+      'return isScopeShownForPermission(values["permission"]);',
+    );
+    expect(table).toContain(
+      'return getPermissionScopes(values["permission"]);',
+    );
+    expect(table).toContain("onChange: onPermissionPicked,");
+    expect(table).toContain("getScopeKeptOnPermissionChange({");
   });
 
   test("it builds no card grid of roles", () => {
