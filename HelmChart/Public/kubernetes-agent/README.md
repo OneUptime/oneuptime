@@ -809,7 +809,7 @@ Add any `--set` you need to either command: it overrides what the release had.
 > | `traces_spanmetrics_calls_total` (counter) | `traces.span.metrics.calls` (counter) |
 > | `traces_spanmetrics_latency` (histogram, seconds, no unit set) | `traces.span.metrics.duration` (histogram, unit `s`) |
 >
-> Data sent before the upgrade keeps its old name. This applies with `--reuse-values` too, whatever `ebpf.image.tag` the release keeps: every OBI release accepts `application_span_otel` (OBI before v0.11 names the series `traces_span_metrics_duration` and `traces_span_metrics_calls_total`). OneUptime's own pages and the service map do not read these metrics.
+> Data sent before the upgrade keeps its old name. This applies with `--reuse-values` too, whatever `ebpf.image.tag` the release keeps: every OBI release accepts `application_span_otel` (OBI before v0.11 names the series `traces_span_metrics_duration` and `traces_span_metrics_calls_total`). Within OneUptime, only Metrics AI reads these metrics: it counts them, under any of these names, as a service's request metrics, so the upgrade does not make it report **Missing Request Metrics**. OneUptime's pages and the service map do not read them.
 >
 > Earlier versions of this README said the feature also sent request and response sizes. It never did: those come from a separate OBI feature, `application_span_sizes`, which is deprecated too and which this chart has never turned on.
 

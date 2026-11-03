@@ -219,6 +219,16 @@ export function detectChangeTime(
     return collectedAt;
   }
 
+  // An engine with no write counter (Redshift, Snowflake): its bytes moved.
+  if (
+    table.writeCount === null &&
+    table.sizeInBytes !== null &&
+    previous.sizeInBytes !== null &&
+    table.sizeInBytes !== previous.sizeInBytes
+  ) {
+    return collectedAt;
+  }
+
   return null;
 }
 

@@ -21,7 +21,6 @@ import {
   RUNS_FOR_EXPECTED_INTERVAL,
   RUNS_FOR_TYPICAL_DURATION,
 } from "../../../Types/DataObservability/DataPipelineSchedule";
-import { DataStoreKind } from "../../../Types/DataSecurity/DataStoreKind";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import ServiceType from "../../../Types/Telemetry/ServiceType";
@@ -43,6 +42,7 @@ import {
 } from "./OpenLineageEvent";
 import { readTableHealthTarget, TableHealthTarget } from "./TableHealthTarget";
 import { UsageAsset, UsageStore } from "./TableUsageMatching";
+import { DATA_OBSERVABILITY_KINDS } from "./DataObservabilityEngines";
 
 /*
  * WHAT OPENLINEAGE EVENTS SAY, KEPT.
@@ -632,11 +632,7 @@ export default class OpenLineageIngest {
       query: {
         projectId,
         isArchived: false,
-        kind: new Includes([
-          DataStoreKind.PostgreSql,
-          DataStoreKind.MySql,
-          DataStoreKind.SqlServer,
-        ]),
+        kind: new Includes([...DATA_OBSERVABILITY_KINDS]),
       },
       select: { _id: true, name: true, kind: true, tableHealthTarget: true },
       limit: 1000,

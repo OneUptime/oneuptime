@@ -41642,5 +41642,7 @@
   "Unread Since": "Unread Since",
   "Unused Tables": "未使用的資料表",
   "{{count}} tables nobody has read for 90 days hold {{size}}.": "{{count}} tables nobody has read for 90 days hold {{size}}.",
-  "{{count}} tables nobody has read for 90 days hold {{size}}._one": "{{count}} table nobody has read for 90 days holds {{size}}."
+  "{{count}} tables nobody has read for 90 days hold {{size}}._one": "{{count}} table nobody has read for 90 days holds {{size}}.",
+  "Amazon Redshift": "Amazon Redshift",
+  "Snowflake": "Snowflake"
 }

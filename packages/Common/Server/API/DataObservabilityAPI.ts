@@ -45,10 +45,8 @@ import { queueTableHealthCollection } from "../Utils/DataObservability/DataObser
 import DataCheckAlerts from "../Utils/DataObservability/DataCheckAlerts";
 import DataCheck from "../../Models/DatabaseModels/DataCheck";
 import DataCheckService from "../Services/DataCheckService";
-import {
-  isValidProbeConnectionVariable,
-  PROBE_SCANNABLE_KINDS,
-} from "../Utils/DataSecurity/DataSecurityProbeScan";
+import { isValidProbeConnectionVariable } from "../Utils/DataSecurity/DataSecurityProbeScan";
+import { DATA_OBSERVABILITY_KINDS } from "../Utils/DataObservability/DataObservabilityEngines";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -107,7 +105,7 @@ const CONNECT_PERMISSIONS: Array<Permission> = [
 
 // The kinds Data Observability collects today.
 export const COLLECTABLE_KINDS: ReadonlyArray<DataStoreKind> = [
-  ...PROBE_SCANNABLE_KINDS,
+  ...DATA_OBSERVABILITY_KINDS,
 ];
 
 const MAX_STORES: number = 500;
