@@ -107,7 +107,7 @@ describe("loadDragAndDrop", () => {
     const library: Library = await first;
     const actual: Record<string, unknown> = jest.requireActual(
       "react-beautiful-dnd",
-    );
+    ) as Record<string, unknown>;
 
     expect(library.DragDropContext).toBe(actual["DragDropContext"]);
     expect(library.Droppable).toBe(actual["Droppable"]);
