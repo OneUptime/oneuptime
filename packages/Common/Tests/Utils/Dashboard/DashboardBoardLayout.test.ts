@@ -7,6 +7,7 @@ import DashboardBoardLayoutUtil, {
   DASHBOARD_SQUARE_GRID_MIN_WIDTH_IN_PX,
   DASHBOARD_STACKED_BELOW_WIDTH_IN_PX,
   DASHBOARD_STACKED_CHART_MIN_HEIGHT_IN_PX,
+  DASHBOARD_STACKED_PLACEHOLDER_MAX_ROWS,
   DashboardBoardArrangement,
   DashboardBoardBox,
   DashboardBoardLayout,
@@ -324,47 +325,68 @@ describe("a phone: the widgets one under another", () => {
   });
 
   /*
-   * A public dashboard reads no logs, traces or external data sources, so
-   * those charts say so in their place: a line of words, which kept a
-   * chart's 400px on a phone - a tall empty card.
+   * A public dashboard reads no logs, traces, security events or external
+   * data sources, so those widgets say so in their place: an icon and a
+   * line of words, which kept a chart's 400px on a phone, or their own
+   * five rows (390px) - a tall empty card each.
    */
-  test("a chart drawn as a message in its place keeps its own height", () => {
+  test("a widget drawn as a sentence in its place takes two rows at most, and no chart's floor", () => {
+    // Room for its title, an icon and two lines of words.
+    expect(DASHBOARD_STACKED_PLACEHOLDER_MAX_ROWS).toBe(2);
+
     for (const componentType of DASHBOARD_CHART_COMPONENT_TYPES) {
+      for (const heightInUnits of [3, 5, 8]) {
+        expect(
+          DashboardBoardLayoutUtil.getStackedHeightInPx({
+            heightInUnits,
+            componentType,
+            isPlaceholder: true,
+          }),
+        ).toBe(2 * 70 + 10);
+      }
+
       expect(
         DashboardBoardLayoutUtil.getStackedHeightInPx({
           heightInUnits: 3,
           componentType,
-          drawsNoChart: true,
-        }),
-      ).toBe(3 * 70 + 2 * 10);
-      expect(
-        DashboardBoardLayoutUtil.getStackedHeightInPx({
-          heightInUnits: 3,
-          componentType,
-          drawsNoChart: false,
+          isPlaceholder: false,
         }),
       ).toBe(400);
     }
 
-    // A widget that is no chart has no floor to give up.
+    // A widget that is no chart: two rows at most too, and fewer as it has.
     expect(
       DashboardBoardLayoutUtil.getStackedHeightInPx({
-        heightInUnits: 2,
-        componentType: DashboardComponentType.Table,
-        drawsNoChart: true,
+        heightInUnits: 5,
+        componentType: DashboardComponentType.TraceTable,
+        isPlaceholder: true,
       }),
     ).toBe(150);
+    expect(
+      DashboardBoardLayoutUtil.getStackedHeightInPx({
+        heightInUnits: 1,
+        componentType: DashboardComponentType.DataSourceValue,
+        isPlaceholder: true,
+      }),
+    ).toBe(70);
+    // Drawn, a table keeps its rows.
+    expect(
+      DashboardBoardLayoutUtil.getStackedHeightInPx({
+        heightInUnits: 5,
+        componentType: DashboardComponentType.TraceTable,
+      }),
+    ).toBe(5 * 70 + 4 * 10);
 
     expect(
       DashboardBoardLayoutUtil.getStackedHeightOfBoardInPx([
         { heightInUnits: 3, componentType: DashboardComponentType.Chart },
         {
-          heightInUnits: 3,
+          heightInUnits: 5,
           componentType: DashboardComponentType.LogChart,
-          drawsNoChart: true,
+          isPlaceholder: true,
         },
       ]),
-    ).toBe(400 + 230 + 10);
+    ).toBe(400 + 150 + 10);
   });
 
   test("the charts are the widgets that draw a chart over time, and only those", () => {

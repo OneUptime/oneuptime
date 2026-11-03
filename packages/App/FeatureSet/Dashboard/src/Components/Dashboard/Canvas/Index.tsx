@@ -428,7 +428,7 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
           return {
             heightInUnits: committedRects[index]?.height ?? 1,
             componentType: component.componentType,
-            drawsNoChart: !isWidgetDrawnHere(component.componentType),
+            isPlaceholder: !isWidgetDrawnHere(component.componentType),
           };
         }),
       )
@@ -502,10 +502,10 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
             heightInUnits: rect.height,
             componentType: component.componentType,
             /*
-             * A public dashboard's log or trace chart says, in a line,
-             * that it is not available there: no chart's floor for it.
+             * A public dashboard's log, trace or security widget says, in a
+             * line, that it is not available there: the room that takes.
              */
-            drawsNoChart: !isWidgetDrawnHere(component.componentType),
+            isPlaceholder: !isWidgetDrawnHere(component.componentType),
           }),
         }
       : DashboardBoardLayoutUtil.getGridBox(rect, layout);

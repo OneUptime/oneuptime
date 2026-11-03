@@ -73,8 +73,8 @@ export function isPublicDashboard(): boolean {
  * traces, no security events and no external data source, so each of them
  * says so in its place ("Log charts are not available on public
  * dashboards.", DataSourceWidgetPlaceholder). The board lays them out as
- * the words they are: on a phone, a chart among them keeps its own height
- * rather than a chart's (Canvas, DashboardBoardLayout drawsNoChart).
+ * the words they are: on a phone each takes two rows at most, and a chart
+ * among them no chart's floor (Canvas, DashboardBoardLayout isPlaceholder).
  */
 export const PUBLIC_DASHBOARD_UNDRAWN_WIDGET_TYPES: ReadonlyArray<DashboardComponentType> =
   [

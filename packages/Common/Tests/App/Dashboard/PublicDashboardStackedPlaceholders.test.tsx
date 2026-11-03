@@ -18,11 +18,13 @@ import React, { ReactElement } from "react";
  * On a phone a dashboard's board shows its widgets one under another, and a
  * chart there is at least 400px tall, so its plot has room under its title
  * and legend (Common/Utils/Dashboard/DashboardBoardLayout). A public
- * dashboard reads no logs, no traces and no external data source: a log, a
- * trace or a Data Source chart says so in its place, in a line of words -
- * and kept a chart's 400px for it, a tall empty card. It keeps its own
- * height there now; inside OneUptime, where it draws its chart, it keeps
- * the floor. Widgets are stubs that publish the size the board hands them.
+ * dashboard reads no logs, no traces, no security events and no external
+ * data source: those widgets say so in their place, an icon and a line of
+ * words (WidgetPlaceholder) - and kept a chart's 400px for it, or their
+ * own rows (390px for a log chart as Add Widget makes it), a tall empty
+ * card each. There they take two rows at most now (150px); inside
+ * OneUptime, where they draw their data, they keep their rows and a chart
+ * its floor. Widgets are stubs that publish the size the board hands them.
  */
 
 jest.setTimeout(120000);
@@ -72,6 +74,14 @@ jest.mock(
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardTextComponent",
   stubWidget("text"),
+);
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardTraceTableComponent",
+  stubWidget("trace-table"),
+);
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardSecurityEventsListComponent",
+  stubWidget("security-events"),
 );
 
 import DashboardCanvas, {
@@ -124,6 +134,8 @@ const ID: Record<string, string> = {
   traces: "66666666-6666-4666-8666-666666666663",
   dataSource: "66666666-6666-4666-8666-666666666664",
   title: "66666666-6666-4666-8666-666666666665",
+  traceTable: "66666666-6666-4666-8666-666666666666",
+  securityEvents: "66666666-6666-4666-8666-666666666667",
 };
 
 function widget(data: {
@@ -146,10 +158,13 @@ function widget(data: {
   };
 }
 
-// Every chart a board can hold, three rows high, and a one-row title.
+/*
+ * Every chart a board can hold, three rows high, a one-row title, and a
+ * trace table and a security events list five rows high.
+ */
 const CONFIG: DashboardViewConfig = {
   _type: ObjectType.DashboardViewConfig,
-  heightInDashboardUnits: 13,
+  heightInDashboardUnits: 23,
   components: [
     widget({
       id: ID["title"]!,
@@ -181,6 +196,18 @@ const CONFIG: DashboardViewConfig = {
       top: 10,
       height: 3,
     }),
+    widget({
+      id: ID["traceTable"]!,
+      type: DashboardComponentType.TraceTable,
+      top: 13,
+      height: 5,
+    }),
+    widget({
+      id: ID["securityEvents"]!,
+      type: DashboardComponentType.SecurityEventsList,
+      top: 18,
+      height: 5,
+    }),
   ],
 };
 
@@ -211,8 +238,11 @@ function wrapperHeight(key: string): string {
     .height;
 }
 
-// Three rows of 70px and the two gaps between them.
-const THREE_ROWS: number = 3 * 70 + 2 * 10;
+// Two rows of 70px and the gap between them: a placeholder's room.
+const TWO_ROWS: number = 2 * 70 + 10;
+
+// Five rows of 70px and the four gaps between them.
+const FIVE_ROWS: number = 5 * 70 + 4 * 10;
 
 beforeEach(() => {
   setPublicDashboardContext(null);
@@ -223,7 +253,7 @@ afterEach(() => {
   setPublicDashboardContext(null);
 });
 
-describe("a phone's public dashboard: a chart it cannot draw keeps its own height", () => {
+describe("a phone's public dashboard: a widget it cannot draw takes the room of its sentence", () => {
   beforeEach(() => {
     setPublicDashboardContext({
       dashboardId: new ObjectID("66666666-6666-4666-8666-666666666660"),
@@ -235,7 +265,7 @@ describe("a phone's public dashboard: a chart it cannot draw keeps its own heigh
     });
   });
 
-  test("the log, trace and Data Source charts, which say they are not available there, keep their three rows", () => {
+  test("the log, trace, security and Data Source widgets, which say they are not available there, take two rows - not a chart's 400px, not their own five", () => {
     renderBoard();
 
     expect(screen.getByTestId(DASHBOARD_BOARD_TEST_ID)).toHaveAttribute(
@@ -243,9 +273,15 @@ describe("a phone's public dashboard: a chart it cannot draw keeps its own heigh
       DashboardBoardArrangement.Stacked,
     );
 
-    for (const key of ["logs", "traces", "dataSource"]) {
-      expect(heightOf(key)).toBe(THREE_ROWS);
-      expect(wrapperHeight(key)).toBe(`${THREE_ROWS}px`);
+    for (const key of [
+      "logs",
+      "traces",
+      "dataSource",
+      "traceTable",
+      "securityEvents",
+    ]) {
+      expect([key, heightOf(key)]).toEqual([key, TWO_ROWS]);
+      expect([key, wrapperHeight(key)]).toEqual([key, `${TWO_ROWS}px`]);
     }
   });
 
@@ -259,12 +295,16 @@ describe("a phone's public dashboard: a chart it cannot draw keeps its own heigh
   });
 });
 
-describe("inside OneUptime, where every chart is drawn", () => {
-  test("every chart keeps a chart's 400px on a phone", () => {
+describe("inside OneUptime, where every widget is drawn", () => {
+  test("every chart keeps a chart's 400px on a phone, and a table or a list its rows", () => {
     renderBoard();
 
     for (const key of ["metrics", "logs", "traces", "dataSource"]) {
       expect(heightOf(key)).toBe(400);
+    }
+
+    for (const key of ["traceTable", "securityEvents"]) {
+      expect(heightOf(key)).toBe(FIVE_ROWS);
     }
   });
 });
@@ -299,6 +339,15 @@ describe("the widgets a public dashboard cannot draw", () => {
   // What a widget that declines on a public dashboard writes or draws there.
   const NOT_AVAILABLE_HERE: string = "not available on public dashboards";
   const DATA_SOURCE_PLACEHOLDER: string = "<DataSourceWidgetPlaceholder";
+
+  /*
+   * How it says so: the one placeholder (WidgetPlaceholder) - drawn on a
+   * public dashboard, or the lists' own error state, which draws it.
+   */
+  const PLACEHOLDER: string = "<WidgetPlaceholder";
+  const DATA_SOURCE_PLACEHOLDER_FILE: string =
+    "DataSourceWidgetPlaceholder.tsx";
+  const LIST_BASE_FILE: string = "DashboardResourceListBase.tsx";
 
   function widgetSourcesByType(): Map<string, string> {
     const registry: string = fs.readFileSync(
@@ -350,6 +399,32 @@ describe("the widgets a public dashboard cannot draw", () => {
         componentType,
         declines: declinesOnPublicDashboards(sources.get(componentType)!),
       }).toEqual({ componentType, declines: true });
+    }
+  });
+
+  test("and says so with the one placeholder, as the Data Source widgets and the lists do", () => {
+    const sources: Map<string, string> = widgetSourcesByType();
+
+    for (const componentType of PUBLIC_DASHBOARD_UNDRAWN_WIDGET_TYPES) {
+      const source: string = sources.get(componentType)!;
+      const saysItWithThePlaceholder: boolean =
+        source.includes(PLACEHOLDER) ||
+        source.includes(DATA_SOURCE_PLACEHOLDER) ||
+        source.includes("<DashboardResourceListBase");
+
+      expect({ componentType, saysItWithThePlaceholder }).toEqual({
+        componentType,
+        saysItWithThePlaceholder: true,
+      });
+    }
+
+    for (const file of [DATA_SOURCE_PLACEHOLDER_FILE, LIST_BASE_FILE]) {
+      expect([
+        file,
+        fs
+          .readFileSync(path.join(COMPONENTS_DIR, file), "utf8")
+          .includes(PLACEHOLDER),
+      ]).toEqual([file, true]);
     }
   });
 
