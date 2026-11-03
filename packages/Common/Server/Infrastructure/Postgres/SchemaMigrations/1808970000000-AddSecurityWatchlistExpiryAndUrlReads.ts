@@ -16,10 +16,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * already exist, are built online in
  * AddSecurityWatchlistExpiryAndUrlReadIndexes1808906000000.
  */
-export class AddSecurityWatchlistExpiryAndUrlReads1808950000000
+export class AddSecurityWatchlistExpiryAndUrlReads1808970000000
   implements MigrationInterface
 {
-  public name = "AddSecurityWatchlistExpiryAndUrlReads1808950000000";
+  public name = "AddSecurityWatchlistExpiryAndUrlReads1808970000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
