@@ -235,9 +235,7 @@ describe("RemediationStep: what approving does, right over Approve & Run", () =>
     const fixes: HTMLElement = await renderStep([resourceRound()]);
 
     // Folded: one press, Review and approve, and no note over nothing.
-    expect(
-      within(fixes).queryByTestId("remediation-approval-note"),
-    ).toBeNull();
+    expect(within(fixes).queryByTestId("remediation-approval-note")).toBeNull();
     expect(within(fixes).queryByText("Approve & Run")).toBeNull();
 
     await openRemediationFixes();

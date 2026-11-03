@@ -20966,12 +20966,12 @@ test.describe("a busy incident's fixes, each folded to its sentence (?fixes=many
      * is its one press, and Dismiss waits beside Approve & Run inside.
      */
     await expect(kubectl.getByRole("button")).toHaveCount(1);
-    await expect(
-      kubectl.getByRole("button", { name: "Dismiss" }),
-    ).toHaveCount(0);
-    await expect(
-      kubectl.getByTestId("remediation-approval-note"),
-    ).toHaveCount(0);
+    await expect(kubectl.getByRole("button", { name: "Dismiss" })).toHaveCount(
+      0,
+    );
+    await expect(kubectl.getByTestId("remediation-approval-note")).toHaveCount(
+      0,
+    );
 
     await expect(mcp.getByTestId("remediation-fix-sentence")).toHaveText(
       MCP_FIX_SENTENCE,
@@ -21117,17 +21117,18 @@ test.describe("a busy incident's fixes, each folded to its sentence (?fixes=many
     const stops: Array<{ isInFix: boolean; name: string }> = [];
     for (let stop: number = 0; stop < 12; stop++) {
       await page.keyboard.press("Tab");
-      const focused: { isInFix: boolean; name: string } = await kubectl.evaluate(
-        (fix: Element): { isInFix: boolean; name: string } => {
-          const active: Element | null = document.activeElement;
-          return {
-            isInFix: Boolean(active && fix.contains(active)),
-            name:
-              active?.getAttribute("data-testid") ||
-              (active?.textContent || "").trim(),
-          };
-        },
-      );
+      const focused: { isInFix: boolean; name: string } =
+        await kubectl.evaluate(
+          (fix: Element): { isInFix: boolean; name: string } => {
+            const active: Element | null = document.activeElement;
+            return {
+              isInFix: Boolean(active && fix.contains(active)),
+              name:
+                active?.getAttribute("data-testid") ||
+                (active?.textContent || "").trim(),
+            };
+          },
+        );
       stops.push(focused);
       if (focused.name === "remediation-approve-button") {
         break;
@@ -21140,7 +21141,9 @@ test.describe("a busy incident's fixes, each folded to its sentence (?fixes=many
       }),
     ).toBe(true);
     await page.keyboard.press("Tab");
-    await expect(kubectl.getByRole("button", { name: "Dismiss" })).toBeFocused();
+    await expect(
+      kubectl.getByRole("button", { name: "Dismiss" }),
+    ).toBeFocused();
 
     await toggle.focus();
     await page.keyboard.press("Enter");
