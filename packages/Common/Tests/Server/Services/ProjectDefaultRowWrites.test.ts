@@ -22,6 +22,12 @@ import Permission, {
 } from "../../../Types/Permission";
 import Phone from "../../../Types/Phone";
 import UserType from "../../../Types/UserType";
+import LogSavedView from "../../../Models/DatabaseModels/LogSavedView";
+import {
+  EXPLORER_SAVED_VIEW_SCOPE,
+  SavedViewScopeKind,
+  buildSavedViewScope,
+} from "../../../Utils/Telemetry/SavedViewScope";
 import {
   InMemoryTable,
   StoredRow,
@@ -614,5 +620,280 @@ describe("RunnerService: who creates a Runner as the project's default", () => {
     expect(defaultsOf(table, PROJECT_ID, RUNNER_DEFAULT_COLUMN)).toEqual([
       created.id!.toString(),
     ]);
+  });
+});
+
+/*
+ * A SAVED LOG VIEW IS THE DEFAULT OF ITS OWN PAGE (issue #5549).
+ *
+ * A log view is listed only on the page it was saved on - the Logs page, or
+ * one resource's Logs tab - so each page has a default of its own: the
+ * project's Logs page, each cluster's tab and each host's tab. Driven
+ * through the real create and updateOneById, permission checks included,
+ * over a table holding a default on the Logs page, on two clusters' tabs
+ * and on the first cluster's tab in another project.
+ */
+describe("LogSavedViewService: each page has a default of its own", () => {
+  const COLUMN: string = "isDefault";
+  const CLUSTER_SCOPE: string = buildSavedViewScope(
+    SavedViewScopeKind.KubernetesCluster,
+    "1b000000-0000-4000-8000-0000000000c1",
+  );
+  const OTHER_CLUSTER_SCOPE: string = buildSavedViewScope(
+    SavedViewScopeKind.KubernetesCluster,
+    "1b000000-0000-4000-8000-0000000000c2",
+  );
+  const HOST_SCOPE: string = buildSavedViewScope(
+    SavedViewScopeKind.Host,
+    "1b000000-0000-4000-8000-0000000000c3",
+  );
+
+  const LOGS_PAGE_DEFAULT_ID: string = "1b000000-0000-4000-8000-0000000000d1";
+  const LOGS_PAGE_SECOND_ID: string = "1b000000-0000-4000-8000-0000000000d2";
+  const CLUSTER_DEFAULT_ID: string = "1b000000-0000-4000-8000-0000000000d3";
+  const CLUSTER_SECOND_ID: string = "1b000000-0000-4000-8000-0000000000d4";
+  const OTHER_CLUSTER_DEFAULT_ID: string =
+    "1b000000-0000-4000-8000-0000000000d5";
+  const OTHER_PROJECT_CLUSTER_DEFAULT_ID: string =
+    "1b000000-0000-4000-8000-0000000000d6";
+
+  let table: InMemoryTable;
+
+  function viewRow(
+    id: string,
+    projectId: ObjectID,
+    scope: string | null,
+    isDefault: boolean,
+  ): StoredRow {
+    return {
+      _id: id,
+      projectId: projectId.toString(),
+      name: `View ${id.slice(-2)}`,
+      scope: scope,
+      [COLUMN]: isDefault,
+    };
+  }
+
+  // The defaults of one page of a project: `null` is the Logs page.
+  function defaultsOnPage(
+    projectId: ObjectID,
+    scope: string | null,
+  ): Array<string> {
+    return table.rows
+      .filter((row: StoredRow): boolean => {
+        const rowScope: string | null =
+          row["scope"] === undefined || row["scope"] === null
+            ? null
+            : String(row["scope"]);
+
+        return (
+          String(row["projectId"]).toLowerCase() ===
+            projectId.toString().toLowerCase() &&
+          rowScope === scope &&
+          row[COLUMN] === true
+        );
+      })
+      .map((row: StoredRow): string => {
+        return String(row["_id"]);
+      });
+  }
+
+  // Every page's defaults but the one named, as they started.
+  function expectOtherPagesUntouched(changed: string | null): void {
+    const startingDefaults: Array<[ObjectID, string | null, string]> = [
+      [PROJECT_ID, null, LOGS_PAGE_DEFAULT_ID],
+      [PROJECT_ID, CLUSTER_SCOPE, CLUSTER_DEFAULT_ID],
+      [PROJECT_ID, OTHER_CLUSTER_SCOPE, OTHER_CLUSTER_DEFAULT_ID],
+      [OTHER_PROJECT_ID, CLUSTER_SCOPE, OTHER_PROJECT_CLUSTER_DEFAULT_ID],
+    ];
+
+    for (const [projectId, scope, id] of startingDefaults) {
+      if (projectId === PROJECT_ID && scope === changed) {
+        continue;
+      }
+
+      expect({
+        projectId: projectId.toString(),
+        scope,
+        defaults: defaultsOnPage(projectId, scope),
+      }).toEqual({
+        projectId: projectId.toString(),
+        scope,
+        defaults: [id],
+      });
+    }
+  }
+
+  function newView(data: {
+    scope?: string | undefined;
+    isDefault?: boolean | undefined;
+  }): LogSavedView {
+    const view: LogSavedView = new LogSavedView();
+    view.name = "Errors in payments";
+    view.query = {};
+    view.columns = ["time", "body"];
+    view.pageSize = 100;
+
+    if (data.scope !== undefined) {
+      view.scope = data.scope;
+    }
+
+    if (data.isDefault !== undefined) {
+      view.isDefault = data.isDefault;
+    }
+
+    return view;
+  }
+
+  const telemetryMemberProps: () => DatabaseCommonInteractionProps =
+    (): DatabaseCommonInteractionProps => {
+      return memberProps([Permission.TelemetryMember]);
+    };
+
+  beforeEach(() => {
+    table = useInMemoryTable(
+      LogSavedViewService as unknown as DatabaseService<BaseModel>,
+      [
+        viewRow(LOGS_PAGE_DEFAULT_ID, PROJECT_ID, null, true),
+        viewRow(LOGS_PAGE_SECOND_ID, PROJECT_ID, null, false),
+        viewRow(CLUSTER_DEFAULT_ID, PROJECT_ID, CLUSTER_SCOPE, true),
+        viewRow(CLUSTER_SECOND_ID, PROJECT_ID, CLUSTER_SCOPE, false),
+        viewRow(
+          OTHER_CLUSTER_DEFAULT_ID,
+          PROJECT_ID,
+          OTHER_CLUSTER_SCOPE,
+          true,
+        ),
+        viewRow(
+          OTHER_PROJECT_CLUSTER_DEFAULT_ID,
+          OTHER_PROJECT_ID,
+          CLUSTER_SCOPE,
+          true,
+        ),
+      ],
+    );
+  });
+
+  describe("create", () => {
+    test("a view saved on a cluster's tab as its default leaves it that tab's only default, and every other page's default where it was", async () => {
+      const created: BaseModel = await LogSavedViewService.create({
+        data: newView({ scope: CLUSTER_SCOPE, isDefault: true }),
+        props: telemetryMemberProps(),
+      });
+
+      expect(table.get(created.id!)?.["scope"]).toBe(CLUSTER_SCOPE);
+      expect(defaultsOnPage(PROJECT_ID, CLUSTER_SCOPE)).toEqual([
+        created.id!.toString(),
+      ]);
+      expectOtherPagesUntouched(CLUSTER_SCOPE);
+    });
+
+    test("a view saved on the Logs page as its default takes no cluster tab's default", async () => {
+      const created: BaseModel = await LogSavedViewService.create({
+        data: newView({ isDefault: true }),
+        props: adminProps(),
+      });
+
+      expect(table.get(created.id!)?.["scope"] ?? null).toBeNull();
+      expect(defaultsOnPage(PROJECT_ID, null)).toEqual([
+        created.id!.toString(),
+      ]);
+      expectOtherPagesUntouched(null);
+    });
+
+    test("the first view saved on a page with no views becomes that page's default, though the project has defaults elsewhere", async () => {
+      const created: BaseModel = await LogSavedViewService.create({
+        data: newView({ scope: HOST_SCOPE }),
+        props: telemetryMemberProps(),
+      });
+
+      expect(table.get(created.id!)?.[COLUMN]).toBe(true);
+      expect(defaultsOnPage(PROJECT_ID, HOST_SCOPE)).toEqual([
+        created.id!.toString(),
+      ]);
+      expectOtherPagesUntouched(HOST_SCOPE);
+    });
+
+    test("the next view saved on a page that has a default is not the default", async () => {
+      const created: BaseModel = await LogSavedViewService.create({
+        data: newView({ scope: CLUSTER_SCOPE }),
+        props: telemetryMemberProps(),
+      });
+
+      expect(table.get(created.id!)?.[COLUMN]).toBe(false);
+      expectOtherPagesUntouched("none of them");
+      expect(table.updates).toEqual([]);
+    });
+
+    test("a view sent with the Logs page's own name is stored as the Logs page's, with no scope", async () => {
+      const created: BaseModel = await LogSavedViewService.create({
+        data: newView({ scope: EXPLORER_SAVED_VIEW_SCOPE, isDefault: true }),
+        props: adminProps(),
+      });
+
+      expect(table.get(created.id!)?.["scope"] ?? null).toBeNull();
+      expect(defaultsOnPage(PROJECT_ID, null)).toEqual([
+        created.id!.toString(),
+      ]);
+      expectOtherPagesUntouched(null);
+    });
+
+    test("a member who may only look cannot save a view on a page", async () => {
+      const error: unknown = await rejectionOf(
+        LogSavedViewService.create({
+          data: newView({ scope: CLUSTER_SCOPE, isDefault: true }),
+          props: viewerProps(),
+        }),
+      );
+
+      expect(error).toBeInstanceOf(NotAuthorizedException);
+      expect(table.inserts).toEqual([]);
+      expect(table.updates).toEqual([]);
+      expectOtherPagesUntouched("none of them");
+    });
+  });
+
+  describe("update", () => {
+    test("making a cluster tab's view its default moves that tab's default only", async () => {
+      await LogSavedViewService.updateOneById({
+        id: new ObjectID(CLUSTER_SECOND_ID),
+        data: { [COLUMN]: true } as never,
+        props: telemetryMemberProps(),
+      });
+
+      expect(defaultsOnPage(PROJECT_ID, CLUSTER_SCOPE)).toEqual([
+        CLUSTER_SECOND_ID,
+      ]);
+      expectOtherPagesUntouched(CLUSTER_SCOPE);
+    });
+
+    test("making a Logs page view its default moves the Logs page's default only", async () => {
+      await LogSavedViewService.updateOneById({
+        id: new ObjectID(LOGS_PAGE_SECOND_ID),
+        data: { [COLUMN]: true } as never,
+        props: adminProps(),
+      });
+
+      expect(defaultsOnPage(PROJECT_ID, null)).toEqual([LOGS_PAGE_SECOND_ID]);
+      expectOtherPagesUntouched(null);
+    });
+
+    test("a view stays on the page it was saved on: an update cannot move it", async () => {
+      const error: unknown = await rejectionOf(
+        LogSavedViewService.updateOneById({
+          id: new ObjectID(CLUSTER_SECOND_ID),
+          data: { scope: OTHER_CLUSTER_SCOPE } as never,
+          props: adminProps(),
+        }),
+      );
+
+      expect(error).toBeInstanceOf(ColumnWriteRefusedException);
+      expect((error as Error).message).toBe(
+        "User is not allowed to update on scope column of Log Saved View. No permission allows it: the column is changed by the server, not by a request.",
+      );
+      expect(table.updates).toEqual([]);
+      expect(table.get(CLUSTER_SECOND_ID)?.["scope"]).toBe(CLUSTER_SCOPE);
+      expectOtherPagesUntouched("none of them");
+    });
   });
 });

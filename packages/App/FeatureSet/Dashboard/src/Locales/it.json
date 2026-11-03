@@ -37,6 +37,7 @@
     "categories": {
       "essentials": "Essenziali",
       "observability": "Osservabilità",
+      "security": "Sicurezza",
       "ai": "IA",
       "code": "Codice",
       "resources": "Risorse",
@@ -40413,5 +40414,13 @@
   "{{count}} changes through {{servers}}._one": "{{count}} modifica tramite {{servers}}.",
   "{{count}} command on {{targets}}.": "{{count}} comando su {{targets}}.",
   "{{count}} commands on {{targets}}.": "{{count}} comandi su {{targets}}.",
-  "{{count}} commands on {{targets}}._one": "{{count}} comando su {{targets}}."
+  "{{count}} commands on {{targets}}._one": "{{count}} comando su {{targets}}.",
+  "Clear default": "Clear default",
+  "Default Network Topology Layout": "Default Network Topology Layout",
+  "Each map opens on its own default again: Automatic for all devices, By network layer for a site.": "Each map opens on its own default again: Automatic for all devices, By network layer for a site.",
+  "Every network map in this project will open on this layout. People can still switch while they look.": "Every network map in this project will open on this layout. People can still switch while they look.",
+  "Everyone in this project opens network maps on this layout.": "Everyone in this project opens network maps on this layout.",
+  "Make default for everyone": "Make default for everyone",
+  "Save and reuse log explorer views, including the current filters, columns, sorting, and page size. Each view is listed on the page it was saved on: the Logs page, or one resource's Logs tab.": "Save and reuse log explorer views, including the current filters, columns, sorting, and page size. Each view is listed on the page it was saved on: the Logs page, or one resource's Logs tab.",
+  "We couldn't change the default layout. Try again.": "We couldn't change the default layout. Try again."
 }

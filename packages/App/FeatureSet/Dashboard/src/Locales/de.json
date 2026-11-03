@@ -37,6 +37,7 @@
     "categories": {
       "essentials": "Grundlagen",
       "observability": "Observability",
+      "security": "Sicherheit",
       "ai": "KI",
       "code": "Code",
       "resources": "Ressourcen",
@@ -40413,5 +40414,13 @@
   "{{count}} changes through {{servers}}._one": "{{count}} Änderung über {{servers}}.",
   "{{count}} command on {{targets}}.": "{{count}} Befehl auf {{targets}}.",
   "{{count}} commands on {{targets}}.": "{{count}} Befehle auf {{targets}}.",
-  "{{count}} commands on {{targets}}._one": "{{count}} Befehl auf {{targets}}."
+  "{{count}} commands on {{targets}}._one": "{{count}} Befehl auf {{targets}}.",
+  "Clear default": "Standard entfernen",
+  "Default Network Topology Layout": "Standardlayout der Netzwerktopologie",
+  "Each map opens on its own default again: Automatic for all devices, By network layer for a site.": "Jede Karte öffnet wieder mit ihrem eigenen Standard: Automatisch für alle Geräte, Nach Netzwerkschicht für einen Standort.",
+  "Every network map in this project will open on this layout. People can still switch while they look.": "Jede Netzwerkkarte in diesem Projekt öffnet mit diesem Layout. Beim Ansehen kann weiterhin gewechselt werden.",
+  "Everyone in this project opens network maps on this layout.": "Alle in diesem Projekt öffnen Netzwerkkarten mit diesem Layout.",
+  "Make default for everyone": "Für alle als Standard festlegen",
+  "Save and reuse log explorer views, including the current filters, columns, sorting, and page size. Each view is listed on the page it was saved on: the Logs page, or one resource's Logs tab.": "Save and reuse log explorer views, including the current filters, columns, sorting, and page size. Each view is listed on the page it was saved on: the Logs page, or one resource's Logs tab.",
+  "We couldn't change the default layout. Try again.": "Das Standardlayout konnte nicht geändert werden. Versuchen Sie es erneut."
 }

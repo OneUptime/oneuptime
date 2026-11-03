@@ -32,6 +32,8 @@ import { APP_API_URL } from "Common/UI/Config";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import IconProp from "Common/Types/Icon/IconProp";
+import WidgetPlaceholder from "./WidgetPlaceholder";
 import { RangeStartAndEndDateTimeUtil } from "Common/Types/Time/RangeStartAndEndDateTime";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import JSONFunctions from "Common/Types/JSONFunctions";
@@ -439,7 +441,17 @@ const DashboardTraceChartComponentElement: FunctionComponent<ComponentProps> = (
             <ComponentLoader />
           </div>
         )}
-        {!isLoading && error && <ErrorMessage message={error} />}
+        {!isLoading &&
+          error &&
+          /*
+           * A public dashboard reads no traces: the widget says so, quietly,
+           * where its data would be - as every widget it cannot draw does.
+           */
+          (DashboardResourceList.isPublic() ? (
+            <WidgetPlaceholder icon={IconProp.Waterfall} message={error} />
+          ) : (
+            <ErrorMessage message={error} />
+          ))}
         {!isLoading && !error && pivotedData.length === 0 && (
           <div className="flex h-full items-center justify-center text-xs text-gray-400">
             {translator.translateText("No data for the selected time range")}

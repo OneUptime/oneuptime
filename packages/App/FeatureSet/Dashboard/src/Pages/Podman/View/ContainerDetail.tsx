@@ -23,6 +23,10 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import { Tab } from "Common/UI/Components/Tabs/Tab";
 import DashboardLogsViewer from "../../../Components/Logs/LogsViewer";
+import {
+  buildSavedViewScope,
+  SavedViewScopeKind,
+} from "Common/Utils/Telemetry/SavedViewScope";
 import Query from "Common/Types/BaseDatabase/Query";
 import Log from "Common/Models/AnalyticsModels/Log";
 import AnalyticsModelAPI, {
@@ -313,6 +317,11 @@ const PodmanHostContainerDetail: FunctionComponent<
         >
           <DashboardLogsViewer
             id={`podman-container-logs-${containerName}`}
+            savedViewScope={buildSavedViewScope(
+              SavedViewScopeKind.PodmanContainer,
+              modelId,
+              containerName,
+            )}
             logQuery={logQuery}
             attributeFilterDisplayKeys={LOG_ATTRIBUTE_DISPLAY_KEYS}
             attributeFilterDisplayValues={logAttributeDisplayValues}

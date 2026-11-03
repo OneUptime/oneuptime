@@ -15,6 +15,10 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import DashboardLogsViewer from "../../../Components/Logs/LogsViewer";
+import {
+  buildSavedViewScope,
+  SavedViewScopeKind,
+} from "Common/Utils/Telemetry/SavedViewScope";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 
 const RumApplicationLogs: FunctionComponent<
@@ -82,6 +86,10 @@ const RumApplicationLogs: FunctionComponent<
        */}
       <DashboardLogsViewer
         id={`rum-application-logs-${modelId.toString()}`}
+        savedViewScope={buildSavedViewScope(
+          SavedViewScopeKind.RumApplication,
+          modelId,
+        )}
         serviceIds={[modelId]}
         scopeEntityType={ServiceType.RealUserMonitor}
         showFilters={true}

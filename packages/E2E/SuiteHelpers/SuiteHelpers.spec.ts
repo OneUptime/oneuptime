@@ -1,4 +1,13 @@
-import { expect, Locator, Page, test } from "@playwright/test";
+import { expect, Locator, Page, Route, test } from "@playwright/test";
+import {
+  DrawnBox,
+  DrawnBoxes,
+  drawnBoxAt,
+  drawnPlacesOf,
+  readDrawnBoxes,
+  recordDrawnBoxes,
+  waitForFrames,
+} from "./DrawnBoxes";
 import { boxesInOneFrame, FrameBox } from "./Frames";
 import { expectNoSidewaysScroll, sidewaysScrollOf } from "./PageFit";
 
@@ -238,5 +247,264 @@ test.describe("boxesInOneFrame", () => {
     await page.setContent("<!doctype html><html><body></body></html>");
 
     expect(await boxesInOneFrame([])).toEqual([]);
+  });
+});
+
+/*
+ * recordDrawnBoxes keeps where elements are drawn in every frame, from the
+ * page's first. Its recorder is an init script, which a page written with
+ * setContent never runs in Chromium, so these pages are served at an
+ * address of their own (answered here, nothing leaves the browser).
+ */
+test.describe("recordDrawnBoxes", () => {
+  const HOST: string = "http://suite-helpers.test";
+
+  // A page of this body, opened at an address so init scripts run in it.
+  const openPage: (page: Page, body: string) => Promise<void> = async (
+    page: Page,
+    body: string,
+  ): Promise<void> => {
+    await page.route(`${HOST}/**`, async (route: Route) => {
+      await route.fulfill({
+        contentType: "text/html",
+        body: `<!doctype html><html><head><meta charset="utf-8"></head><body style="margin:0">${body}</body></html>`,
+      });
+    });
+    await page.goto(`${HOST}/page`);
+  };
+
+  test("an element drawn once, where it stays, has one place, and no animation", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await recordDrawnBoxes(page, { selector: "#box" });
+    await openPage(
+      page,
+      `<div style="padding:10px"><div id="box" style="width:120px;height:40px;background:#ccc"></div></div>`,
+    );
+    await waitForFrames(page, 10);
+
+    const boxes: Array<DrawnBox> = (await readDrawnBoxes(page))["box"]!;
+
+    expect(drawnPlacesOf(boxes)).toEqual(["120x40 at 10,10"]);
+    expect(boxes[0]!.animations).toBe(0);
+  });
+
+  test("an element grown into its size is drawn at every size it grew through, with the transition that grew it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await recordDrawnBoxes(page, { selector: "#widget" });
+    /*
+     * As the dashboard's board drew its widgets until November 2026: a
+     * sliver first, its width read (which styles it at that size), then
+     * its real width through a transition.
+     */
+    await openPage(
+      page,
+      `<div id="board"></div>
+<script>
+  const widget = document.createElement("div");
+  widget.id = "widget";
+  widget.style.cssText = "width:20px;height:30px;background:#999;transition:width 0.3s linear";
+  document.getElementById("board").appendChild(widget);
+  void widget.getBoundingClientRect().width;
+  widget.style.width = "300px";
+</script>`,
+    );
+    await waitForFrames(page, 40);
+
+    const boxes: Array<DrawnBox> = (await readDrawnBoxes(page))["widget"]!;
+    const places: Array<string> = drawnPlacesOf(boxes);
+
+    expect(places.length).toBeGreaterThan(2);
+    expect(places[places.length - 1]).toBe("300x30 at 0,0");
+    expect(boxes[0]!.width).toBeLessThan(300);
+    expect(
+      Math.max(
+        ...boxes.map((box: DrawnBox): number => {
+          return box.animations;
+        }),
+      ),
+    ).toBeGreaterThan(0);
+  });
+
+  test("each box says the frame it was drawn in, and drawnBoxAt reads where an element was in any frame", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await recordDrawnBoxes(page, { selector: "#still, #widget" });
+    // Two elements drawn together, one of them growing for a while.
+    await openPage(
+      page,
+      `<div id="still" style="width:40px;height:10px"></div>
+<div id="board"></div>
+<script>
+  const widget = document.createElement("div");
+  widget.id = "widget";
+  widget.style.cssText = "width:20px;height:30px;background:#999;transition:width 0.3s linear";
+  document.getElementById("board").appendChild(widget);
+  void widget.getBoundingClientRect().width;
+  widget.style.width = "300px";
+</script>`,
+    );
+    await waitForFrames(page, 40);
+
+    const drawn: DrawnBoxes = await readDrawnBoxes(page);
+    const still: Array<DrawnBox> = drawn["still"]!;
+    const grown: Array<DrawnBox> = drawn["widget"]!;
+
+    // Painted together, first.
+    expect(still[0]!.frame).toBe(grown[0]!.frame);
+
+    // A frame after another, as it grew.
+    for (let index: number = 1; index < grown.length; index++) {
+      expect(grown[index]!.frame).toBeGreaterThan(grown[index - 1]!.frame);
+    }
+
+    // Where it was in a frame: its last box drawn by then.
+    expect(drawnBoxAt(grown, grown[0]!.frame - 1)).toBeNull();
+    expect(drawnBoxAt(grown, grown[0]!.frame)).toBe(grown[0]);
+    expect(drawnBoxAt(grown, grown[1]!.frame)).toBe(grown[1]);
+    expect(drawnBoxAt(grown, grown[grown.length - 1]!.frame + 100)).toBe(
+      grown[grown.length - 1],
+    );
+    // The still one never moved: its first box, in every frame after.
+    expect(drawnBoxAt(still, grown[grown.length - 1]!.frame)).toBe(still[0]);
+  });
+
+  test("reads each frame as it is painted: a size a ResizeObserver corrects before the paint is never recorded", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await recordDrawnBoxes(page, { selector: "#widget" });
+    /*
+     * A widget laid out for a board 400px wide in a board that turns out
+     * 300px wide, put right by the page's ResizeObserver - after the frame
+     * is laid out, before it is painted - as the dashboard's board follows
+     * its width. Only the size painted is drawn.
+     */
+    await openPage(
+      page,
+      `<div id="board" style="width:300px"><div id="probe" style="height:0"></div><div id="widget" style="width:133px;height:30px;background:#999"></div></div>
+<script>
+  const widget = document.getElementById("widget");
+  new ResizeObserver(() => {
+    widget.style.width = "100px";
+  }).observe(document.getElementById("probe"));
+</script>`,
+    );
+    await waitForFrames(page, 10);
+
+    expect(drawnPlacesOf((await readDrawnBoxes(page))["widget"]!)).toEqual([
+      "100x30 at 0,0",
+    ]);
+  });
+
+  test("an element added later with a ResizeObserver of its own is read after that observer too", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await recordDrawnBoxes(page, { selector: "#first, #widget" });
+    /*
+     * The recorder is watching #first already when the widget comes, with
+     * the observer that puts its width right before it is painted - as a
+     * dashboard's board comes after the page around it.
+     */
+    await openPage(
+      page,
+      `<div id="first" style="width:50px;height:10px"></div><div id="board" style="width:300px"></div>
+<script>
+  setTimeout(() => {
+    const probe = document.createElement("div");
+    probe.style.height = "0";
+    const widget = document.createElement("div");
+    widget.id = "widget";
+    widget.style.cssText = "width:133px;height:30px;background:#999";
+    document.getElementById("board").append(probe, widget);
+    new ResizeObserver(() => {
+      widget.style.width = "100px";
+    }).observe(probe);
+    window.__widgetAdded = true;
+  }, 150);
+</script>`,
+    );
+    await page.waitForFunction((): boolean => {
+      return Boolean(
+        (window as unknown as { __widgetAdded?: boolean }).__widgetAdded,
+      );
+    });
+    await waitForFrames(page, 10);
+
+    const drawn: DrawnBoxes = await readDrawnBoxes(page);
+
+    expect(drawnPlacesOf(drawn["first"]!)).toEqual(["50x10 at 0,0"]);
+    expect(drawnPlacesOf(drawn["widget"]!)).toEqual(["100x30 at 0,0"]);
+  });
+
+  test("an element added later is recorded from the frame it is drawn in, with its content as it comes", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await recordDrawnBoxes(page, {
+      selector: "[data-testid='list']",
+      contentSelector: "li",
+    });
+    await openPage(
+      page,
+      `<div id="board"></div>
+<script>
+  setTimeout(() => {
+    const list = document.createElement("ul");
+    list.setAttribute("data-testid", "list");
+    list.style.cssText = "margin:0;padding:0;width:200px;height:90px";
+    document.getElementById("board").appendChild(list);
+    setTimeout(() => {
+      list.innerHTML = "<li>one</li><li>two</li><li>three</li>";
+      window.__listFilled = true;
+    }, 150);
+  }, 150);
+</script>`,
+    );
+    await page.waitForFunction((): boolean => {
+      return Boolean(
+        (window as unknown as { __listFilled?: boolean }).__listFilled,
+      );
+    });
+    await waitForFrames(page, 10);
+
+    const drawn: DrawnBoxes = await readDrawnBoxes(page);
+    const boxes: Array<DrawnBox> = drawn["list"]!;
+
+    expect(boxes[0]!.time).toBeGreaterThanOrEqual(150);
+    expect(boxes[0]!.content).toBe(0);
+    expect(boxes[boxes.length - 1]!.content).toBe(3);
+    // Its content came; its box never moved.
+    expect(drawnPlacesOf(boxes)).toEqual(["200x90 at 0,0"]);
+  });
+
+  test("reading a page nothing records fails, rather than finding nothing moved", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openPage(page, `<div id="box"></div>`);
+
+    const failure: string = await readDrawnBoxes(page).then(
+      (): string => {
+        return "it read a record";
+      },
+      (error: Error): string => {
+        return error.message;
+      },
+    );
+
+    expect(failure).toContain("nothing is recording");
   });
 });

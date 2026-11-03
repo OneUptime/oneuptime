@@ -5,9 +5,10 @@
  *
  * The saved view services make a project's first saved view its default
  * when the create does not say (LogSavedViewService and the Metric and Trace
- * ones), so a project that saves views has one that opens by default. A
- * Create form sends an untouched box as its column's off, and an explicit
- * off is saying: the project's first view would not be its default.
+ * ones; for logs, the first view saved on each page - the Logs page, or one
+ * resource's Logs tab), so a project that saves views has one that opens by
+ * default. A Create form sends an untouched box as its column's off, and an
+ * explicit off is saying: the project's first view would not be its default.
  */
 export function leaveSavedViewDefaultOutUnlessTicked<
   T extends { isDefault?: boolean | undefined },

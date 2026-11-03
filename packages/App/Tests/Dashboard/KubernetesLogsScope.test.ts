@@ -7,8 +7,14 @@ import {
   KUBERNETES_WORKLOAD_LOG_ATTRIBUTES,
   buildKubernetesLogsAttributeDisplayValues,
   buildKubernetesLogsAttributeFilters,
+  buildKubernetesLogsSavedViewScope,
   getKubernetesClusterDisplayName,
 } from "../../FeatureSet/Dashboard/src/Components/Kubernetes/KubernetesLogsScope";
+import {
+  EXPLORER_SAVED_VIEW_SCOPE,
+  SavedViewScopeKind,
+  buildSavedViewScope,
+} from "Common/Utils/Telemetry/SavedViewScope";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -407,5 +413,222 @@ describe("buildKubernetesLogsAttributeDisplayValues", () => {
     )) {
       expect(filterKeys).toContain(key);
     }
+  });
+});
+
+/*
+ * The page a Kubernetes Logs tab's saved views belong to (issue #5549): a
+ * pod's, a container's, a workload's or a node's tab, inside its cluster. A
+ * view saved on one of them is listed there alone - not on the cluster's own
+ * Logs page, the Logs page, another pod's tab or the same pod's in another
+ * cluster.
+ */
+describe("buildKubernetesLogsSavedViewScope", () => {
+  const POD_TAB: {
+    clusterIdentifier: string;
+    podName: string;
+    namespace: string;
+  } = {
+    clusterIdentifier: "prod-eks-01",
+    podName: "checkout-7d9f",
+    namespace: "payments",
+  };
+
+  test("a pod's tab is that pod's page, in its cluster and namespace", () => {
+    expect(buildKubernetesLogsSavedViewScope(POD_TAB)).toBe(
+      buildSavedViewScope(
+        SavedViewScopeKind.KubernetesPod,
+        "prod-eks-01",
+        "payments",
+        "checkout-7d9f",
+      ),
+    );
+    expect(buildKubernetesLogsSavedViewScope(POD_TAB)).toBe(
+      "kubernetes-pod:prod-eks-01:payments:checkout-7d9f",
+    );
+  });
+
+  test("the same pod name in another cluster, or another namespace, is another page", () => {
+    const scope: string = buildKubernetesLogsSavedViewScope(POD_TAB);
+
+    expect(
+      buildKubernetesLogsSavedViewScope({
+        ...POD_TAB,
+        clusterIdentifier: "prod-gke-02",
+      }),
+    ).not.toBe(scope);
+    expect(
+      buildKubernetesLogsSavedViewScope({ ...POD_TAB, namespace: "default" }),
+    ).not.toBe(scope);
+    expect(
+      buildKubernetesLogsSavedViewScope({ ...POD_TAB, podName: "checkout-x1" }),
+    ).not.toBe(scope);
+  });
+
+  test("the cluster's display name does not change the page: telemetry's identifier names it", () => {
+    expect(
+      buildKubernetesLogsSavedViewScope({
+        ...POD_TAB,
+        clusterName: "Production (EU)",
+      }),
+    ).toBe(buildKubernetesLogsSavedViewScope(POD_TAB));
+  });
+
+  test("a pod's tab that also pins a container is that container's page in the pod", () => {
+    expect(
+      buildKubernetesLogsSavedViewScope({
+        ...POD_TAB,
+        containerName: "server",
+      }),
+    ).toBe("kubernetes-pod:prod-eks-01:payments:checkout-7d9f:server");
+  });
+
+  test("a container's tab, which has no pod, is that container's page in its cluster", () => {
+    expect(
+      buildKubernetesLogsSavedViewScope({
+        clusterIdentifier: "prod-eks-01",
+        podName: "",
+        containerName: "server",
+      }),
+    ).toBe("kubernetes-container:prod-eks-01:server");
+  });
+
+  test.each([
+    ["Deployment", "checkout"],
+    ["StatefulSet", "postgres"],
+    ["DaemonSet", "node-exporter"],
+    ["Job", "migrate-42"],
+    ["CronJob", "nightly-report"],
+    ["DeploymentConfig", "legacy-api"],
+  ])(
+    "a %s's tab is that workload's page, in its namespace",
+    (kind: string, name: string) => {
+      expect(
+        buildKubernetesLogsSavedViewScope({
+          clusterIdentifier: "prod-eks-01",
+          namespace: "payments",
+          workloadKind: kind,
+          workloadName: name,
+        }),
+      ).toBe(
+        buildSavedViewScope(
+          SavedViewScopeKind.KubernetesWorkload,
+          "prod-eks-01",
+          kind,
+          "payments",
+          name,
+        ),
+      );
+    },
+  );
+
+  test("a node's tab is that node's page, with no namespace", () => {
+    expect(
+      buildKubernetesLogsSavedViewScope({
+        clusterIdentifier: "prod-eks-01",
+        workloadKind: "Node",
+        workloadName: "ip-10-0-1-23",
+      }),
+    ).toBe("kubernetes-workload:prod-eks-01:Node::ip-10-0-1-23");
+  });
+
+  test("a Deployment and a StatefulSet of the same name are two pages", () => {
+    const workload: {
+      clusterIdentifier: string;
+      namespace: string;
+      workloadName: string;
+    } = {
+      clusterIdentifier: "prod-eks-01",
+      namespace: "payments",
+      workloadName: "checkout",
+    };
+
+    expect(
+      buildKubernetesLogsSavedViewScope({
+        ...workload,
+        workloadKind: "Deployment",
+      }),
+    ).not.toBe(
+      buildKubernetesLogsSavedViewScope({
+        ...workload,
+        workloadKind: "StatefulSet",
+      }),
+    );
+  });
+
+  test("a pod's, a container's and a workload's tab of the same name are three pages", () => {
+    const scopes: Array<string> = [
+      buildKubernetesLogsSavedViewScope({
+        clusterIdentifier: "prod",
+        podName: "web",
+        namespace: "default",
+      }),
+      buildKubernetesLogsSavedViewScope({
+        clusterIdentifier: "prod",
+        podName: "",
+        containerName: "web",
+      }),
+      buildKubernetesLogsSavedViewScope({
+        clusterIdentifier: "prod",
+        namespace: "default",
+        workloadKind: "Deployment",
+        workloadName: "web",
+      }),
+    ];
+
+    expect(new Set(scopes).size).toBe(3);
+  });
+
+  test("no tab is the Logs page, nor its cluster's own Logs page", () => {
+    const clusterPage: string = buildSavedViewScope(
+      SavedViewScopeKind.KubernetesCluster,
+      "prod-eks-01",
+    );
+
+    for (const scope of [
+      buildKubernetesLogsSavedViewScope(POD_TAB),
+      buildKubernetesLogsSavedViewScope({
+        clusterIdentifier: "prod-eks-01",
+        podName: "",
+        containerName: "server",
+      }),
+      buildKubernetesLogsSavedViewScope({
+        clusterIdentifier: "prod-eks-01",
+        workloadKind: "Node",
+        workloadName: "ip-10-0-1-23",
+      }),
+    ]) {
+      expect(scope).not.toBe(EXPLORER_SAVED_VIEW_SCOPE);
+      expect(scope).not.toBe(clusterPage);
+    }
+  });
+
+  test("a value holding the separator cannot make two tabs one page", () => {
+    expect(
+      buildKubernetesLogsSavedViewScope({
+        clusterIdentifier: "prod:payments",
+        podName: "checkout",
+        namespace: "",
+      }),
+    ).not.toBe(
+      buildKubernetesLogsSavedViewScope({
+        clusterIdentifier: "prod",
+        podName: "checkout",
+        namespace: "payments",
+      }),
+    );
+  });
+
+  test("whitespace-only values count as absent, as they do for the filter", () => {
+    expect(
+      buildKubernetesLogsSavedViewScope({
+        clusterIdentifier: "prod",
+        podName: "  ",
+        containerName: "server",
+      }),
+    ).toBe("kubernetes-container:prod:server");
+    expect(
+      buildKubernetesLogsSavedViewScope({ ...POD_TAB, containerName: "   " }),
+    ).toBe(buildKubernetesLogsSavedViewScope(POD_TAB));
   });
 });

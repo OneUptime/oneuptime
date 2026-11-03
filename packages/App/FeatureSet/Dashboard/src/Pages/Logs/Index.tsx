@@ -2,6 +2,7 @@ import PageComponentProps from "../PageComponentProps";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import React, { FunctionComponent, ReactElement } from "react";
 import DashboardLogsViewer from "../../Components/Logs/LogsViewer";
+import { EXPLORER_SAVED_VIEW_SCOPE } from "Common/Utils/Telemetry/SavedViewScope";
 
 const LogsPage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -22,6 +23,8 @@ const LogsPage: FunctionComponent<PageComponentProps> = (
       limit={100}
       enableRealtime={true}
       id="logs"
+      // The Logs page's own saved views, none saved on a resource's Logs tab.
+      savedViewScope={EXPLORER_SAVED_VIEW_SCOPE}
       syncUrlState={true}
       // The product page: an empty explorer offers the setup guide.
       offersSetupWhenEmpty={true}
