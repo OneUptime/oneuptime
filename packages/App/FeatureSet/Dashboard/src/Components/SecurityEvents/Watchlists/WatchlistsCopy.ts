@@ -321,18 +321,16 @@ export const WATCHLIST_FILTER_FIELD_PLACEHOLDER: string =
   translationKey("Choose a field");
 export const WATCHLIST_FILTER_MATCH: string = translationKey("Match");
 export const WATCHLIST_FILTER_IS_ON: string = translationKey("Is on the list");
-export const WATCHLIST_FILTER_IS_NOT_ON: string = translationKey(
-  "Is not on the list",
-);
+export const WATCHLIST_FILTER_IS_NOT_ON: string =
+  translationKey("Is not on the list");
 export const WATCHLIST_FILTER_WATCHLIST: string = translationKey("Watchlist");
 export const WATCHLIST_FILTER_WATCHLIST_PLACEHOLDER: string =
   translationKey("Choose a watchlist");
 export const WATCHLIST_FILTER_ADD: string = translationKey(
   "Add a Watchlist Filter",
 );
-export const WATCHLIST_FILTER_REMOVE: string = translationKey(
-  "Remove this filter",
-);
+export const WATCHLIST_FILTER_REMOVE: string =
+  translationKey("Remove this filter");
 export const WATCHLIST_FILTER_NO_LISTS: string = translationKey(
   "No watchlists yet. Create one under Security Events > Detections > Watchlists.",
 );

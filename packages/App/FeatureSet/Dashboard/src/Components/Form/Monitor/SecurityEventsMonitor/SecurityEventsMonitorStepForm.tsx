@@ -33,9 +33,8 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 /*
  * The filters that narrow a security event monitor down further - telemetry
  * service, attributes and watchlists - fold under the same More fields
- * section as the
- * rarely needed fields of every other form, instead of the Show / Hide
- * Advanced Options link this form had of its own. Severity and class stay
+ * section as the rarely needed fields of every other form, instead of the
+ * Show / Hide Advanced Options link this form had of its own. Severity and class stay
  * on screen (issue #3398). Folded, the section's header names its filters
  * and shows each one a monitor uses as a chip ("Filter by Attributes: 1" on
  * a monitor created from a detection rule), so editing a monitor never
@@ -261,12 +260,11 @@ const SecurityEventsMonitorStepForm: FunctionComponent<ComponentProps> = (
             customValidation: (
               values: FormValues<MonitorStepSecurityEventsMonitor>,
             ): string | null => {
-              const problem: string | null =
-                getSecurityWatchlistFiltersProblem(
-                  readSecurityWatchlistFilters(
-                    (values as Record<string, unknown>)["watchlistFilters"],
-                  ),
-                );
+              const problem: string | null = getSecurityWatchlistFiltersProblem(
+                readSecurityWatchlistFilters(
+                  (values as Record<string, unknown>)["watchlistFilters"],
+                ),
+              );
 
               return problem
                 ? translator.translateText(problem) || problem

@@ -119,7 +119,9 @@ export class MonitorStepSecurityEventsMonitorUtil {
       classNames: monitor.classNames,
       telemetryServiceIds: ObjectID.toJSONArray(monitor.telemetryServiceIds),
       lastXSecondsOfEvents: monitor.lastXSecondsOfEvents,
-      watchlistFilters: toSecurityWatchlistFiltersJSON(monitor.watchlistFilters),
+      watchlistFilters: toSecurityWatchlistFiltersJSON(
+        monitor.watchlistFilters,
+      ),
     };
   }
 }

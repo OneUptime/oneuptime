@@ -474,6 +474,36 @@ export class Service extends ProjectReferencesService<Model> {
       })
       .filter(Boolean);
 
+    /*
+     * A list read from an address is changed by its reads alone: a value a
+     * person deleted would be back at the next read. OneUptime's own
+     * deletes - a read's replace, a value whose moment to leave has come -
+     * are the list's.
+     */
+    if (!deleteBy.props.isRoot && watchlistIds.length > 0) {
+      const watchlists: Array<SecurityWatchlist> =
+        await SecurityWatchlistService.findAllBy({
+          query: {
+            _id: new Includes(Array.from(new Set(watchlistIds))),
+          },
+          select: {
+            _id: true,
+            source: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+      for (const watchlist of watchlists) {
+        if (watchlist.source === SecurityWatchlistSource.Url) {
+          throw new BadDataException(
+            SECURITY_WATCHLIST_MESSAGES.keptByUrl.message,
+          );
+        }
+      }
+    }
+
     return { deleteBy, carryForward: watchlistIds };
   }
 
@@ -598,10 +628,12 @@ export class Service extends ProjectReferencesService<Model> {
     });
 
     // A read of an address leaves the list as the file is: notes and moments to leave included.
-    const toChange: Array<{ item: Model; value: SecurityWatchlistImportValue }> =
-      data.fromUrl
-        ? this.findValuesTheFileChanges({ kept, imported: parsed.values })
-        : [];
+    const toChange: Array<{
+      item: Model;
+      value: SecurityWatchlistImportValue;
+    }> = data.fromUrl
+      ? this.findValuesTheFileChanges({ kept, imported: parsed.values })
+      : [];
 
     // The list as the import leaves it, within its limits.
     const sizeProblem: string | null = getSecurityWatchlistSizeProblem(

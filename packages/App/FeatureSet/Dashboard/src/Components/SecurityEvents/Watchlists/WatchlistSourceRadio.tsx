@@ -2,7 +2,10 @@ import {
   WatchlistSourceChoice,
   getWatchlistSourceChoicesFor,
 } from "./WatchlistsModel";
-import Radio, { RadioOption, RadioValue } from "Common/UI/Components/Radio/Radio";
+import Radio, {
+  RadioOption,
+  RadioValue,
+} from "Common/UI/Components/Radio/Radio";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";

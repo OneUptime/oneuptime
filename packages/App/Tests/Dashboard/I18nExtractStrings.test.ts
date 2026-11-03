@@ -1271,6 +1271,8 @@ describe("the real source roots", () => {
       "ui packages/Common/Types/SecurityEvent/DetectionRuleException.ts",
       // What is wrong with a watchlist or one of its values.
       "ui packages/Common/Types/SecurityEvent/SecurityWatchlist.ts",
+      // What is wrong with a monitor's watchlist filters.
+      "ui packages/Common/Types/SecurityEvent/SecurityWatchlistFilter.ts",
       // What is wrong with a hunt, and why its scheduled run could not be made.
       "ui packages/Common/Types/SecurityEvent/SecurityHunt.ts",
       // What each span type is - its marked sentences, not its choices' names.

@@ -149,6 +149,26 @@ export function isNewWatchlistReadFromUrl(
 }
 
 /*
+ * Where a new list's values come from, as the reader can see it: a feed
+ * chosen before the kind changed to one no feed carries is a list kept by
+ * hand - the choices on screen no longer offer it, and the list is saved
+ * that way (prepareNewWatchlist).
+ */
+export function getNewWatchlistSource(
+  values: FormValues<SecurityWatchlist>,
+): SecurityWatchlistSource {
+  if (isNewWatchlistReadFromUrl(values)) {
+    return SecurityWatchlistSource.Url;
+  }
+
+  if (isNewWatchlistFollowingFeed(values)) {
+    return SecurityWatchlistSource.ThreatIntelFeed;
+  }
+
+  return SecurityWatchlistSource.Values;
+}
+
+/*
  * A new list as it is saved. The form hides the feed for a kind no feed
  * carries, and the feed or the address for a list that keeps its own
  * values; a choice made before the kind or the source changed still sits
@@ -202,10 +222,7 @@ function problemWith(data: {
         ? data.saved.entityType
         : (form["entityType"] as string | undefined),
       description: form["description"] as string | undefined,
-      source: data.saved
-        ? data.saved.source
-        : (form["source"] as string | undefined) ||
-          SecurityWatchlistSource.Values,
+      source: data.saved ? data.saved.source : getNewWatchlistSource(values),
       threatIntelFeedId: getWatchlistFormFeedId(values),
       importUrl: form["importUrl"] as string | undefined,
       importSchedule: form["importSchedule"] as string | undefined,
@@ -390,9 +407,7 @@ export function getWatchlistCreateFields(options: {
 
         return React.createElement(WatchlistSourceRadio, {
           entityType: data["entityType"],
-          value:
-            (data["source"] as string | undefined) ||
-            SecurityWatchlistSource.Values,
+          value: getNewWatchlistSource(values),
           onChange: (value: string): void => {
             customElementProps.onChange?.(value);
           },

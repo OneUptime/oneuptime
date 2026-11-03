@@ -296,9 +296,7 @@ export interface ShownWatchlistReader {
 
 // What reads one list, as its row shows it.
 export interface WatchlistReaders {
-  // The first readers, their names as written.
-  names: Array<string>;
-  // Each of them with what it is.
+  // The first readers: each one's name as written, and what it is.
   shown: Array<ShownWatchlistReader>;
   // How many more read it.
   more: number;
@@ -317,9 +315,6 @@ export function summarizeWatchlistReaders(
     });
 
   return {
-    names: shown.map((reader: ShownWatchlistReader): string => {
-      return reader.name;
-    }),
     shown,
     more: Math.max(0, all.length - WATCHLIST_READERS_SHOWN),
   };

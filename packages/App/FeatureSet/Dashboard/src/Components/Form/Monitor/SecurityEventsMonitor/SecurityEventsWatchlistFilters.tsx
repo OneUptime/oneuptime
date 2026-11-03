@@ -57,22 +57,26 @@ import React, {
  * (Principal User, Target IP, Observables...): English keys, which the
  * dropdown says in the reader's language.
  */
-export const WATCHLIST_FILTER_FIELD_LABELS: Readonly<Record<string, string>> =
-  {
-    principalUser: "Principal User",
-    principalHost: "Principal Host",
-    principalIp: "Principal IP",
-    targetUser: "Target User",
-    targetHost: "Target Host",
-    targetIp: "Target IP",
-    processName: "Process",
-    observables: "Observables",
-  };
+export const WATCHLIST_FILTER_FIELD_LABELS: Readonly<Record<string, string>> = {
+  principalUser: "Principal User",
+  principalHost: "Principal Host",
+  principalIp: "Principal IP",
+  targetUser: "Target User",
+  targetHost: "Target Host",
+  targetIp: "Target IP",
+  processName: "Process",
+  observables: "Observables",
+};
 
 export function getWatchlistFilterFieldOptions(): Array<DropdownOption> {
-  return SECURITY_WATCHLIST_FILTER_FIELDS.map((field: string): DropdownOption => {
-    return { value: field, label: WATCHLIST_FILTER_FIELD_LABELS[field] || field };
-  });
+  return SECURITY_WATCHLIST_FILTER_FIELDS.map(
+    (field: string): DropdownOption => {
+      return {
+        value: field,
+        label: WATCHLIST_FILTER_FIELD_LABELS[field] || field,
+      };
+    },
+  );
 }
 
 // Whether a filter keeps the events on the list, or those off it.

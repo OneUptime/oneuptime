@@ -191,11 +191,18 @@ export default class SecurityWatchlists {
       }),
     );
 
-    const missing: Array<string> = data.names.filter(
-      (name: string): boolean => {
-        return !found.has(getSecurityWatchlistNameKey(name));
-      },
-    );
+    // Each missing list named once, as it was first written.
+    const missing: Array<string> = [];
+    const named: Set<string> = new Set();
+
+    for (const name of data.names) {
+      const key: string = getSecurityWatchlistNameKey(name);
+
+      if (!found.has(key) && !named.has(key)) {
+        named.add(key);
+        missing.push(name);
+      }
+    }
 
     if (missing.length > 0) {
       throw new SecurityWatchlistMissingException(missing);

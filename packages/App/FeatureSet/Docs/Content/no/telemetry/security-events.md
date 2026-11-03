@@ -256,6 +256,7 @@ Søkefeltet snakker samme språk som de andre telemetriutforskerne (se [Søkesyn
 | `<field>:a*` | `*` er hvilken som helst tekst, `?` ett tegn | `host:web-*` |
 | `@<attribute>:*` | Attributtet finnes | `@threat.indicator_id:*` |
 | `@<attribute>:~text` | Attributtet inneholder teksten | `@finding_info.title:~ransom` |
+| `<field>:%<watchlist>%` | Feltet står på en [overvåkingsliste](#overvåkingslister) | `user:%vip_users%` |
 
 Et felt er enten et kort navn (`severity`, `class`, `category`, `activity`, `status`, `vendor`, `product`, `rule`, `user`, `host`, `ip`, `targetuser`, `targethost`, `targetip`, `processname`, `commandline`, `parentprocessname`, `observable`, `tactic`, `technique`, `requestoutcome`, `trace`, `session`) eller feltets eget navn, for eksempel `severityName` eller `principalHost`. Alle andre navn leses som et kildeattributt. `observable:<value>` finner hver hendelse som nevner en verdi, uansett hvilken side av aktiviteten den var på.
 
@@ -281,7 +282,7 @@ En hunt er et søk i sikkerhetshendelsene dine, lagret med et navn: teksten i s�
 
 ### Lagre et søk som en hunt
 
-Søk og filtrer under **Hendelser** til listen viser det du leter etter, åpne så **Hunts** på verktøylinjen og velg **Lagre som hunt**. Gi den et navn, velg om den kjører etter en tidsplan, og siden dens åpnes. **Hendelser → Hunts** viser prosjektets hunts, hver med søket sitt, hvor ofte den kjører, hvem den varsler og hva den siste kjøringen fant; **Opprett Hunt** tar der søket slik du ville skrevet det under **Hendelser**. Et prosjekt kan ha opptil 200 hunts.
+Søk og filtrer under **Hendelser** til listen viser det du leter etter, åpne så **Hunts** på verktøylinjen og velg **Lagre som hunt**. Gi den et navn, velg om den kjører etter en tidsplan, og siden dens åpnes. **Hendelser → Hunts** viser prosjektets hunts, hver med søket sitt, hvor ofte den kjører, hvem den varsler og hva den siste kjøringen fant; **Opprett Hunt** tar der søket slik du ville skrevet det under **Hendelser**. Et prosjekt kan ha opptil 200 hunts. Et søk kan lese en [overvåkingsliste](#overvåkingslister), slik `user:%vip_users%` gjør, og en hunt som leser en liste prosjektet ikke har, avvises når du lagrer den.
 
 Siden til en hunt er søket dens, åpnet i hendelsesutforskeren. Endre søket eller filtrene der, så tilbyr overskriften til hunten **Lagre endringer** og **Forkast endringer**. **Rediger** endrer navnet, søket, hvor langt tilbake den ser, tidsplanen og hvem den varsler, og **Slett hunt** ligger i menyen dens. Fra Security Member og oppover kan man lagre, endre og slette hunts, og en Security Viewer kan åpne dem.
 
@@ -511,7 +512,7 @@ Et unntak er noe en regel hopper over fordi du venter det, som en sårbarhetsska
 
 ### Overvåkingslister
 
-En overvåkingsliste er en liste teamet ditt holder én gang og som enhver regel kan lese, som VIP-brukere, kritiske verter, kjente ondsinnede filhasher eller adressene administratorer kan logge på fra. Alle lister ligger under **Produkter → Sikkerhetshendelser → Deteksjoner → Overvåkingslister**: Opprett en der med **Opprett Overvåkingsliste**, som spør om navnet og hva den inneholder, eller legg til en vanlig fra **Start med en vanlig liste**. Siden til en liste viser verdiene, og **Bruk den i en regel** gir en seleksjon som leser listen, til å kopiere inn i en regel.
+En overvåkingsliste er en liste teamet ditt holder én gang og som enhver regel kan lese, som VIP-brukere, kritiske verter, kjente ondsinnede filhasher eller adressene administratorer kan logge på fra. Alle lister ligger under **Produkter → Sikkerhetshendelser → Deteksjoner → Overvåkingslister**: Opprett en der med **Opprett Overvåkingsliste**, som spør om navnet og hva den inneholder, eller legg til en vanlig fra **Start med en vanlig liste**. Siden til en liste viser verdiene, og **Bruk denne listen** gir en seleksjon som leser listen, til å kopiere inn i en regel, og søket som leser den under **Hendelser** eller i en hunt.
 
 En regel leser en liste med `expand` og navnet på listen mellom to `%`-tegn. Denne regelen utløses når en administrator logger på fra en adresse som ikke står på den tillatte listen:
 
@@ -529,10 +530,14 @@ level: high
 
 - En liste inneholder brukere, verter, IP-adresser, filhasher, domener, URL-er, prosesser eller andre verdier, valgt når den opprettes. En verdi treffer uansett store og små bokstaver, og `*` står for en hvilken som helst rekke tegn: `svc-*` treffer alle tjenestekontoer. En liste med IP-adresser tar også områder som `10.20.0.0/16`, og en liste med filhasher MD5-, SHA-1-, SHA-256- og SHA-512-hasher.
 - Legg til verdier én og én med **Legg til Verdi**, eller mange samtidig med **Importer verdier**: lim dem inn, eller velg en `.txt`- eller `.csv`-fil, én verdi per linje, med et valgfritt notat etter et komma. **Legg til i listen** beholder verdiene som allerede står på den, og **Erstatt listen** fjerner dem importen ikke har.
+- En verdi kan ha en **Utløper**: Fra da av leser ingen regel, monitor, hunt eller søk den, og OneUptime fjerner den fra listen innen ett minutt. Står feltet tomt, blir verdien til noen fjerner den.
+- **Eksporter verdier** laster ned verdiene i en liste som en CSV-fil med kolonnene `value`, `note` og `expires`, som **Importer verdier** leser inn igjen. En fil der den første linjen nevner disse kolonnene, gir hver verdi sitt notat og når den utløper: en dato som `2026-12-31`, eller en dato og et klokkeslett i UTC.
+- En liste kan i stedet leses fra en fil på en https-adresse, på nytt **Hver time**, **Hver 6. time** eller **Hver dag**: Velg **En fil på en adresse** under **Flere felt** når du oppretter den. Hver lesing gjør listen til det filen inneholder, lest slik en import leser den. En mislykket lesing endrer ingen verdier, og siden til listen sier hvorfor, og **Les nå** leser den med en gang.
 - I stedet for å holde verdier kan en liste med IP-adresser, filhasher, domener eller URL-er følge en feed med trusselsinformasjon: Verdiene er da de aktive indikatorene i feeden av listens type, holdt oppdatert etter hvert som feeden leses.
-- `expand` brukes alene, siden verdiene i listen avgjør hvordan de treffer. Et felt med flere verdier, som `observables`, treffer når en av dem står på listen. **Leses av** nevner reglene som leser hver liste, og under YAML-en til en regel nevner skjemaet listene regelen leser.
-- En regel nevner en liste uansett store og små bokstaver. En regel som nevner en liste prosjektet ikke har, avvises når du lagrer den, og en liste som regler leser, kan ikke gis nytt navn eller slettes før ingen regel leser den.
+- `expand` brukes alene, siden verdiene i listen avgjør hvordan de treffer. Et felt med flere verdier, som `observables`, treffer når en av dem står på listen. **Leses av** nevner reglene, Security Events-monitorene og hunts som leser hver liste, og under YAML-en til en regel nevner skjemaet listene regelen leser.
+- En regel nevner en liste uansett store og små bokstaver. En regel, en monitor eller en hunt som nevner en liste prosjektet ikke har, avvises når du lagrer den, og en liste som en av dem leser, kan ikke gis nytt navn eller slettes før ingenting leser den.
 - En endring i en liste når alle regler som leser den, ved regelens neste kjøring. Korrelasjonsregler og **Kjør på tidligere hendelser** leser også lister.
+- En Security Events-monitor leser lister i sin **Filtrer etter overvåkingslister**, og et søk under **Hendelser** eller i en hunt leser en som `user:%vip_users%`. Et minus foran, som i `-ip:%admin_addresses%`, beholder hendelsene der feltet ikke står på listen.
 - En liste har høyst 5 000 verdier, av dem høyst 100 med `*` og 100 områder, og et prosjekt har høyst 200 lister: Følg en feed med trusselsinformasjon for en lengre liste. Den som kan opprette, redigere eller slette deteksjonsregler, kan gjøre det samme med lister, og den som kan redigere deteksjonsregler, legger til, endrer og fjerner verdiene deres. Alle Security-roller kan lese dem, og hver endring lagres i prosjektets revisjonslogg.
 
 ### Kjør på tidligere hendelser
@@ -549,11 +554,11 @@ level: high
 
 En monitor for sikkerhetshendelser teller hendelsene som treffer filtrene, over et glidende vindu, og kjører de vanlige monitorkriteriene på tellingen: den endrer monitorens status, åpner varsler eller hendelser (incidents), og varsler vakthavende. Opprett en under **Overvåkere → Opprett monitor**, med **Sikkerhetshendelser** som type; den vises der sammen med de andre monitorene dine.
 
-Skjemaet viser **Monitor events that include this text**, **Monitor Security Events for (time)**, **Event Severity** og **Hendelsesklasse**. **Filtrer etter telemetritjeneste** og **Filtrer etter attributter** venter under **Flere felt**, der overskriften viser hvilke en monitor bruker. Kriteriene sjekker **Security Event Count**.
+Skjemaet viser **Monitor events that include this text**, **Monitor Security Events for (time)**, **Event Severity** og **Hendelsesklasse**. **Filtrer etter telemetritjeneste**, **Filtrer etter attributter** og **Filtrer etter overvåkingslister** venter under **Flere felt**, der overskriften viser hvilke en monitor bruker. **Filtrer etter overvåkingslister** beholder hendelsene der feltet står eller ikke står på en av [overvåkingslistene](#overvåkingslister) dine. Kriteriene sjekker **Security Event Count**.
 
 | | Deteksjonsregel | Monitor for sikkerhetshendelser |
 | --- | --- | --- |
-| Treffer | En Sigma-regel | Filtre på alvorlighetsgrad, klasse, melding, tjeneste og attributter |
+| Treffer | En Sigma-regel | Filtre på alvorlighetsgrad, klasse, melding, tjeneste, attributter og overvåkingslister |
 | Vindu | Etter hverandre, ett per kjøring | Glidende: de siste 5 sekundene til 24 timer |
 | Teller per gruppe | Ja, med **Grupperingsfelt** | Nei: én telling for alt som treffer |
 | Åpner | Varsler, hendelser (incidents) og funn | En status, varsler og hendelser (incidents) |
@@ -610,11 +615,15 @@ Sjekk unntakets **Status** i **Regelunntak**: et unntak med status **Utløpt** h
 :::
 
 :::details En regel som leser en overvåkingsliste, treffer ikke
-Åpne listen og sjekk verdiene: En verdi uten `*` må være lik hele feltet, uansett store og små bokstaver, og en liste som følger en feed med trusselsinformasjon, inneholder bare de aktive indikatorene i feeden av sin type. Sjekk at regelen leser feltet hendelsene dine fyller: **Bruk den i en regel** begynner med feltet en liste av sin type vanligvis står i. En endring i en liste når en regel ved dens neste kjøring.
+Åpne listen og sjekk verdiene: En verdi uten `*` må være lik hele feltet, uansett store og små bokstaver, og en liste som følger en feed med trusselsinformasjon, inneholder bare de aktive indikatorene i feeden av sin type. Sjekk at regelen leser feltet hendelsene dine fyller: **Bruk denne listen** begynner med feltet en liste av sin type vanligvis står i. En endring i en liste når en regel ved dens neste kjøring.
 :::
 
 :::details En overvåkingsliste kan ikke gis nytt navn eller slettes
-Regler leser den fortsatt via navnet, og meldingen nevner dem. Endre navnet i de reglene, eller ta listen ut av dem, og gi den deretter nytt navn eller slett den.
+Regler, monitorer eller hunts leser den fortsatt via navnet, og meldingen nevner dem. Endre navnet i dem, eller ta listen ut av dem, og gi den deretter nytt navn eller slett den.
+:::
+
+:::details En liste som leses fra en adresse, viser en feil
+Siden sier hvorfor under **Lest fra en adresse**, med det adressen svarte, og listen beholder verdiene fra den siste vellykkede lesingen. Adressen må begynne med `https`, svare fra internett uten pålogging og laste ned en tekst- eller CSV-fil på høyst 4 MB, ikke en nettside. Rett den under **Rediger**, og velg deretter **Les nå**.
 :::
 
 :::details Å kjøre en regel på tidligere hendelser finner ingenting

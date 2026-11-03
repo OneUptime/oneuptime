@@ -277,15 +277,11 @@ export const SECURITY_WATCHLIST_MESSAGES: {
   },
   tooManyPatterns: { message: "A watchlist holds at most 100 values with *." },
   tooManyRanges: { message: "A watchlist holds at most 100 address ranges." },
-  enterUrl: {
-    message:
-      "Enter the address of the file to read, such as https://example.com/vip-users.csv.",
-  },
+  enterUrl: { message: "Enter the https address of the file to read." },
   urlNotAnAddress: {
-    message:
-      "Enter a whole address, such as https://example.com/vip-users.csv.",
+    message: "Enter a whole address, with https and the host name.",
   },
-  urlNotHttps: { message: "The address starts with https://." },
+  urlNotHttps: { message: "The address starts with https." },
   urlHasCredentials: {
     message:
       "The address holds no user name or password: everyone who can read the list can read its address.",
@@ -699,9 +695,7 @@ const DATE_TIME_REGEX: RegExp =
  * file's "12/31/2026" means one day in one country and another elsewhere -
  * so a line with anything else is left out, and says why.
  */
-export function readSecurityWatchlistImportExpiry(
-  text: string,
-): Date | null {
+export function readSecurityWatchlistImportExpiry(text: string): Date | null {
   const value: string = (text || "").trim();
 
   if (DATE_ONLY_REGEX.test(value)) {
@@ -1339,8 +1333,10 @@ export function parseSecurityWatchlistImport(data: {
       readImportLine(trimmed, layout);
 
     const value: string = normalizeSecurityWatchlistValue(read.value);
-    const expiry: { expiresAt?: Date | undefined; problem?: string | undefined } =
-      readImportExpiry(read.expires, now);
+    const expiry: {
+      expiresAt?: Date | undefined;
+      problem?: string | undefined;
+    } = readImportExpiry(read.expires, now);
     const problem: string | null =
       getSecurityWatchlistValueProblem({
         value,

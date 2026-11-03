@@ -67,6 +67,15 @@ export function getWatchlistUrlReadState(
     : WatchlistUrlReadState.Waiting;
 }
 
+// Whether an address may be a link: an https one, nothing a browser would run.
+export function isHttpsAddress(url: string): boolean {
+  try {
+    return new URL(url).protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 // How often the list is read, as the hunts' schedules say it: "Every Hour".
 export function getWatchlistUrlScheduleKey(schedule: unknown): string {
   return isSecurityWatchlistImportSchedule(schedule)
@@ -161,17 +170,31 @@ const WatchlistUrlCard: FunctionComponent<ComponentProps> = (
             icon={IconProp.Link}
             className="mt-0.5 h-4 w-4 flex-shrink-0 text-gray-400"
           />
-          {/* An address reads left to right on any page, and breaks anywhere rather than run past the card. */}
-          <a
-            href={url}
-            target="_blank"
-            rel="noopener noreferrer"
-            dir="ltr"
-            className="min-w-0 font-mono text-sm text-indigo-600 [overflow-wrap:anywhere] hover:text-indigo-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-            data-testid={WATCHLISTS_TEST_IDS.urlAddress}
-          >
-            {url}
-          </a>
+          {/*
+           * An address reads left to right on any page, and breaks anywhere
+           * rather than run past the card. Only an https address is a link:
+           * the API keeps no other, and the page never trusts that it did.
+           */}
+          {isHttpsAddress(url) ? (
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              dir="ltr"
+              className="min-w-0 font-mono text-sm text-indigo-600 [overflow-wrap:anywhere] hover:text-indigo-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+              data-testid={WATCHLISTS_TEST_IDS.urlAddress}
+            >
+              {url}
+            </a>
+          ) : (
+            <span
+              dir="ltr"
+              className="min-w-0 font-mono text-sm text-gray-700 [overflow-wrap:anywhere]"
+              data-testid={WATCHLISTS_TEST_IDS.urlAddress}
+            >
+              {url}
+            </span>
+          )}
         </div>
 
         <div className="flex items-center gap-2 text-gray-600">

@@ -370,6 +370,9 @@ export const WatchlistHoldsColumnCell: FunctionComponent<
           valueCount={props.valueCount}
           threatIntelFeedId={props.threatIntelFeedId}
           feedName={props.feedName}
+          importUrl={props.importUrl}
+          lastImportSucceededAt={props.lastImportSucceededAt}
+          lastImportError={props.lastImportError}
           dataTestId={WATCHLISTS_TEST_IDS.valuesCell}
         />
       </span>
@@ -553,9 +556,7 @@ export const WatchlistValueExpiresLine: FunctionComponent<{
     <span
       className="mt-0.5 flex items-center gap-1 text-xs text-amber-700"
       data-testid={WATCHLISTS_TEST_IDS.expiresLine}
-      title={OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-        expiresAt,
-      )}
+      title={OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(expiresAt)}
     >
       <Icon icon={IconProp.Clock} className="h-3.5 w-3.5 flex-shrink-0" />
       <span>

@@ -292,14 +292,14 @@ const SecurityWatchlistViewPage: FunctionComponent<
     isFeed || isUrl
       ? null
       : PermissionGate.gateCardButton(
-        {
-          title: IMPORT_VALUES,
-          buttonStyle: ButtonStyleType.OUTLINE,
-          icon: IconProp.Upload,
-          onClick: (): void => {
-            setIsImporting(true);
+          {
+            title: IMPORT_VALUES,
+            buttonStyle: ButtonStyleType.OUTLINE,
+            icon: IconProp.Upload,
+            onClick: (): void => {
+              setIsImporting(true);
+            },
           },
-        },
           new SecurityWatchlistItem(),
           ModelAction.Create,
         );

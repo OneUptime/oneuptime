@@ -183,12 +183,11 @@ export default class SecurityWatchlistQueryBinder {
 
     this.assertCallerReadsWatchlists(data.props, projectId);
 
-    const watchlists: Map<string, SigmaWatchlist> = await SecurityWatchlists.load(
-      {
+    const watchlists: Map<string, SigmaWatchlist> =
+      await SecurityWatchlists.load({
         projectId,
         names,
-      },
-    );
+      });
 
     const missing: Array<string> = names.filter((name: string): boolean => {
       return !watchlists.has(getSecurityWatchlistNameKey(name));
@@ -220,7 +219,9 @@ export default class SecurityWatchlistQueryBinder {
     query: TQuery,
     watchlists: ReadonlyMap<string, SigmaWatchlist>,
   ): TQuery {
-    const bindValue: (value: unknown) => unknown = (value: unknown): unknown => {
+    const bindValue: (value: unknown) => unknown = (
+      value: unknown,
+    ): unknown => {
       if (isWatchlistOperator(value)) {
         const watchlist: SigmaWatchlist | undefined = watchlists.get(
           getSecurityWatchlistNameKey(value.value),

@@ -91,7 +91,7 @@ export function isSecurityWatchlistFilterField(value: unknown): boolean {
 
 /*
  * The field a new filter of a list of this kind starts on: the field a
- * list of its kind is usually in, as Use It in a Rule's snippet starts
+ * list of its kind is usually in, as Use This List's snippets start
  * (User: principalUser; a kind with no field of its own: observables).
  */
 export function getDefaultSecurityWatchlistFilterField(
@@ -244,12 +244,11 @@ export interface WatchlistReader {
 }
 
 // What a refusal calls each kind of reader, after its name.
-const READER_KIND_WORDS: Readonly<Record<WatchlistReaderKind, string>> =
-  {
-    [WatchlistReaderKind.DetectionRule]: "rule",
-    [WatchlistReaderKind.Monitor]: "monitor",
-    [WatchlistReaderKind.Hunt]: "hunt",
-  };
+const READER_KIND_WORDS: Readonly<Record<WatchlistReaderKind, string>> = {
+  [WatchlistReaderKind.DetectionRule]: "rule",
+  [WatchlistReaderKind.Monitor]: "monitor",
+  [WatchlistReaderKind.Hunt]: "hunt",
+};
 
 /*
  * The readers of a list, named for a refusal: up to three, each with what

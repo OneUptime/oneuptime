@@ -16,9 +16,7 @@ import {
   getSecurityWatchlistImportUrlProblem,
   parseSecurityWatchlistImport,
 } from "../../../../Types/SecurityEvent/SecurityWatchlist";
-import Semaphore, {
-  SemaphoreMutex,
-} from "../../../Infrastructure/Semaphore";
+import Semaphore, { SemaphoreMutex } from "../../../Infrastructure/Semaphore";
 import SecurityWatchlistItemService, {
   SecurityWatchlistImportSummary,
 } from "../../../Services/SecurityWatchlistItemService";

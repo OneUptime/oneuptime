@@ -59,11 +59,13 @@ export function getWrittenThreatIntelFeedId(
  * checked as the form checks it, its name unique in the project whatever
  * the case, at most SECURITY_WATCHLISTS_PER_PROJECT_MAX of them.
  *
- * Rules read a list by its name, so a list a rule reads keeps it: it is
- * neither renamed nor deleted while a rule names it - the refusal says
- * which rules. What a list holds and where its values come from are chosen
- * when it is created (its values were checked against them); a list that
- * follows a feed may follow another feed.
+ * Rules, Security Events monitors and hunts read a list by its name, so a
+ * list one of them reads keeps it: it is neither renamed nor deleted while
+ * one names it - the refusal says which (SecurityWatchlists.findReaders).
+ * What a list holds and where its values come from are chosen when it is
+ * created (its values were checked against them); a list that follows a
+ * feed may follow another feed, and a list read from an address may be
+ * read from another, on another schedule.
  */
 export class Service extends ProjectReferencesService<Model> {
   /*
@@ -259,7 +261,10 @@ export class Service extends ProjectReferencesService<Model> {
       }
     }
 
-    if (writesSchedule && !isSecurityWatchlistImportSchedule(data["importSchedule"])) {
+    if (
+      writesSchedule &&
+      !isSecurityWatchlistImportSchedule(data["importSchedule"])
+    ) {
       throw new BadDataException(
         SECURITY_WATCHLIST_MESSAGES.chooseSchedule.message,
       );
@@ -357,8 +362,8 @@ export class Service extends ProjectReferencesService<Model> {
 
   /*
    * A new name, once the caller may make the update: unique in the project
-   * whatever the case, and only for a list no rule reads by its old name -
-   * every rule that names it would stop running.
+   * whatever the case, and only for a list nothing reads by its old name -
+   * every rule, monitor and hunt that names it would stop working.
    */
   @CaptureSpan()
   protected override async onBeforeUpdateUniqueCheck(
@@ -437,8 +442,8 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * A list no rule reads any more: deleting one a rule names would stop that
-   * rule, so the refusal says which rules still read it.
+   * A list nothing reads any more: deleting one a rule, a monitor or a hunt
+   * names would stop it, so the refusal says which still read it.
    */
   @CaptureSpan()
   protected override async onBeforeDelete(
