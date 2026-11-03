@@ -276,7 +276,9 @@ describe("argsPreview", () => {
         },
         { title: "Create alert: High memory usage on test01" },
       ),
-    ).toBe("Description: Memory in use on test01 is at 78%.  ·  Severity: High");
+    ).toBe(
+      "Description: Memory in use on test01 is at 78%.  ·  Severity: High",
+    );
   });
 
   test("leaves it out whatever the spaces around it, and when the title is the argument itself", () => {

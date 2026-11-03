@@ -198,42 +198,38 @@ const INCIDENT: Twin = {
     withoutResolved?: boolean;
     severityNames?: Array<string>;
   }) => {
-    const readSeverities: CallRecorder =
-      jest.fn((): unknown => {
-        return Promise.resolve(
-          severityRows(
-            (): IncidentSeverity => {
-              return new IncidentSeverity();
-            },
-            options?.severityNames || ["SEV1", "SEV2"],
-          ),
-        );
-      });
+    const readSeverities: CallRecorder = jest.fn((): unknown => {
+      return Promise.resolve(
+        severityRows(
+          (): IncidentSeverity => {
+            return new IncidentSeverity();
+          },
+          options?.severityNames || ["SEV1", "SEV2"],
+        ),
+      );
+    });
     jest
       .spyOn(IncidentSeverityService, "findBy")
       .mockImplementation(readSeverities as never);
 
-    const readStates: CallRecorder =
-      jest.fn((): unknown => {
-        return Promise.resolve(
-          states((): IncidentState => {
-            return new IncidentState();
-          }, options),
-        );
-      });
+    const readStates: CallRecorder = jest.fn((): unknown => {
+      return Promise.resolve(
+        states((): IncidentState => {
+          return new IncidentState();
+        }, options),
+      );
+    });
     jest
       .spyOn(IncidentStateService, "getAllIncidentStates")
       .mockImplementation(readStates as never);
 
-    const create: CallRecorder = jest.fn(
-      (createBy: unknown): unknown => {
-        const created: Incident = (createBy as { data: Incident }).data;
-        created._id = RECORD_ID;
-        created.incidentNumber = 42;
-        created.incidentNumberWithPrefix = "INC-42";
-        return Promise.resolve(created);
-      },
-    );
+    const create: CallRecorder = jest.fn((createBy: unknown): unknown => {
+      const created: Incident = (createBy as { data: Incident }).data;
+      created._id = RECORD_ID;
+      created.incidentNumber = 42;
+      created.incidentNumberWithPrefix = "INC-42";
+      return Promise.resolve(created);
+    });
     jest.spyOn(IncidentService, "create").mockImplementation(create as never);
 
     return { create, readStates, readSeverities };
@@ -253,42 +249,38 @@ const ALERT: Twin = {
     withoutResolved?: boolean;
     severityNames?: Array<string>;
   }) => {
-    const readSeverities: CallRecorder =
-      jest.fn((): unknown => {
-        return Promise.resolve(
-          severityRows(
-            (): AlertSeverity => {
-              return new AlertSeverity();
-            },
-            options?.severityNames || ["High", "Low"],
-          ),
-        );
-      });
+    const readSeverities: CallRecorder = jest.fn((): unknown => {
+      return Promise.resolve(
+        severityRows(
+          (): AlertSeverity => {
+            return new AlertSeverity();
+          },
+          options?.severityNames || ["High", "Low"],
+        ),
+      );
+    });
     jest
       .spyOn(AlertSeverityService, "findBy")
       .mockImplementation(readSeverities as never);
 
-    const readStates: CallRecorder =
-      jest.fn((): unknown => {
-        return Promise.resolve(
-          states((): AlertState => {
-            return new AlertState();
-          }, options),
-        );
-      });
+    const readStates: CallRecorder = jest.fn((): unknown => {
+      return Promise.resolve(
+        states((): AlertState => {
+          return new AlertState();
+        }, options),
+      );
+    });
     jest
       .spyOn(AlertStateService, "getAllAlertStates")
       .mockImplementation(readStates as never);
 
-    const create: CallRecorder = jest.fn(
-      (createBy: unknown): unknown => {
-        const created: Alert = (createBy as { data: Alert }).data;
-        created._id = RECORD_ID;
-        created.alertNumber = 12;
-        created.alertNumberWithPrefix = "ALT-12";
-        return Promise.resolve(created);
-      },
-    );
+    const create: CallRecorder = jest.fn((createBy: unknown): unknown => {
+      const created: Alert = (createBy as { data: Alert }).data;
+      created._id = RECORD_ID;
+      created.alertNumber = 12;
+      created.alertNumberWithPrefix = "ALT-12";
+      return Promise.resolve(created);
+    });
     jest.spyOn(AlertService, "create").mockImplementation(create as never);
 
     return { create, readStates, readSeverities };
@@ -311,251 +303,257 @@ function cardWords(result: ToolExecutionResult): AIActionCardWords {
   return (result.widget?.data as { words: AIActionCardWords }).words;
 }
 
-describe.each(TWINS)("%s: where the record starts", (_name: string, twin: Twin) => {
-  test("left out: where every new one starts - no state is picked, and none is read", async () => {
-    const stubs: ReturnType<Twin["stub"]> = twin.stub();
-
-    const result: ToolExecutionResult = await twin.tool.execute(
-      { title: "Checkout down" },
-      contextFor(),
-    );
-
-    expect(stubs.create).toHaveBeenCalledTimes(1);
-    expect(twin.createdStateId(createdData(stubs.create))).toBeUndefined();
-    expect(stubs.readStates).not.toHaveBeenCalled();
-    expect(result.dataForLlm).not.toContain("paged anyone");
-    expect(describeAIActionCardWords(cardWords(result)).line).toBe(
-      `Severity: ${twin.severityName}`,
-    );
-  });
-
-  test.each([
-    ["acknowledged", ACKNOWLEDGED_STATE_ID, "Started acknowledged"],
-    ["Resolved", RESOLVED_STATE_ID, "Started resolved"],
-  ])(
-    "%s: the project's own state of that kind, which pages nobody",
-    async (asked: string, stateId: string, cardLine: string) => {
+describe.each(TWINS)(
+  "%s: where the record starts",
+  (_name: string, twin: Twin) => {
+    test("left out: where every new one starts - no state is picked, and none is read", async () => {
       const stubs: ReturnType<Twin["stub"]> = twin.stub();
 
       const result: ToolExecutionResult = await twin.tool.execute(
-        { title: "Checkout down", initialState: asked },
+        { title: "Checkout down" },
         contextFor(),
       );
 
       expect(stubs.create).toHaveBeenCalledTimes(1);
-      expect(twin.createdStateId(createdData(stubs.create))).toBe(stateId);
+      expect(twin.createdStateId(createdData(stubs.create))).toBeUndefined();
+      expect(stubs.readStates).not.toHaveBeenCalled();
+      expect(result.dataForLlm).not.toContain("paged anyone");
+      expect(describeAIActionCardWords(cardWords(result)).line).toBe(
+        `Severity: ${twin.severityName}`,
+      );
+    });
 
-      // Which state that is, is the project's to say: read as OneUptime.
-      expect(stubs.readStates).toHaveBeenCalledWith({
-        projectId: PROJECT_ID,
-        props: { isRoot: true },
+    test.each([
+      ["acknowledged", ACKNOWLEDGED_STATE_ID, "Started acknowledged"],
+      ["Resolved", RESOLVED_STATE_ID, "Started resolved"],
+    ])(
+      "%s: the project's own state of that kind, which pages nobody",
+      async (asked: string, stateId: string, cardLine: string) => {
+        const stubs: ReturnType<Twin["stub"]> = twin.stub();
+
+        const result: ToolExecutionResult = await twin.tool.execute(
+          { title: "Checkout down", initialState: asked },
+          contextFor(),
+        );
+
+        expect(stubs.create).toHaveBeenCalledTimes(1);
+        expect(twin.createdStateId(createdData(stubs.create))).toBe(stateId);
+
+        // Which state that is, is the project's to say: read as OneUptime.
+        expect(stubs.readStates).toHaveBeenCalledWith({
+          projectId: PROJECT_ID,
+          props: { isRoot: true },
+        });
+
+        // The model is told it paged nobody, and why.
+        expect(result.dataForLlm).toContain("no on-call policy paged anyone");
+
+        // The card it leaves says where it started, after its severity.
+        expect(isKnownAIActionCardWords(cardWords(result))).toBe(true);
+        expect(describeAIActionCardWords(cardWords(result)).line).toBe(
+          `Severity: ${twin.severityName} · ${cardLine}`,
+        );
+        expect(cardWords(result).line?.[1]).toEqual(
+          aiActionSentence(
+            stateId === ACKNOWLEDGED_STATE_ID
+              ? AI_ACTION_CARD_LINES.startedAcknowledged
+              : AI_ACTION_CARD_LINES.startedResolved,
+          ),
+        );
+      },
+    );
+
+    test("a value that is neither is refused before anything is read or written", async () => {
+      const stubs: ReturnType<Twin["stub"]> = twin.stub();
+
+      await expect(
+        twin.tool.execute(
+          { title: "Checkout down", initialState: "investigating" },
+          contextFor(),
+        ),
+      ).rejects.toThrow(
+        `initialState must be "acknowledged" or "resolved". Leave it out for a new ${twin.noun} that pages its on-call policies.`,
+      );
+
+      expect(stubs.create).not.toHaveBeenCalled();
+      expect(stubs.readStates).not.toHaveBeenCalled();
+      expect(stubs.readSeverities).not.toHaveBeenCalled();
+    });
+
+    test("a project without the state asked for is told so, and nothing is created", async () => {
+      const stubs: ReturnType<Twin["stub"]> = twin.stub({
+        withoutResolved: true,
       });
 
-      // The model is told it paged nobody, and why.
-      expect(result.dataForLlm).toContain("no on-call policy paged anyone");
-
-      // The card it leaves says where it started, after its severity.
-      expect(isKnownAIActionCardWords(cardWords(result))).toBe(true);
-      expect(describeAIActionCardWords(cardWords(result)).line).toBe(
-        `Severity: ${twin.severityName} · ${cardLine}`,
-      );
-      expect(cardWords(result).line?.[1]).toEqual(
-        aiActionSentence(
-          stateId === ACKNOWLEDGED_STATE_ID
-            ? AI_ACTION_CARD_LINES.startedAcknowledged
-            : AI_ACTION_CARD_LINES.startedResolved,
+      await expect(
+        twin.tool.execute(
+          { title: "Checkout down", initialState: "resolved" },
+          contextFor(),
         ),
+      ).rejects.toThrow(`This project has no resolved ${twin.noun} state.`);
+
+      expect(stubs.create).not.toHaveBeenCalled();
+    });
+
+    test("the approval card says where it starts, and the start the person approves is written the one way", async () => {
+      twin.stub();
+
+      const prepared: PreparedMutation = await twin.tool.prepareMutation!(
+        { title: "Checkout down", initialState: " RESOLVED " },
+        contextFor(),
       );
-    },
-  );
 
-  test("a value that is neither is refused before anything is read or written", async () => {
-    const stubs: ReturnType<Twin["stub"]> = twin.stub();
+      expect(prepared.arguments["initialState"]).toBe("resolved");
+      expect(actionLineText(prepared.description)).toBe(
+        `Severity: ${twin.severityName}. Starts resolved, so it pages nobody.`,
+      );
+      // The line says the severity and the start: the argument line need not.
+      expect(prepared.describedArguments).toEqual([
+        "severityName",
+        "initialState",
+      ]);
+    });
 
-    await expect(
-      twin.tool.execute(
-        { title: "Checkout down", initialState: "investigating" },
+    test("a start that is neither says nothing of a start on the card: running it refuses", async () => {
+      twin.stub();
+
+      const prepared: PreparedMutation = await twin.tool.prepareMutation!(
+        { title: "Checkout down", initialState: "later" },
         contextFor(),
-      ),
-    ).rejects.toThrow(
-      `initialState must be "acknowledged" or "resolved". Leave it out for a new ${twin.noun} that pages its on-call policies.`,
-    );
+      );
 
-    expect(stubs.create).not.toHaveBeenCalled();
-    expect(stubs.readStates).not.toHaveBeenCalled();
-    expect(stubs.readSeverities).not.toHaveBeenCalled();
-  });
-
-  test("a project without the state asked for is told so, and nothing is created", async () => {
-    const stubs: ReturnType<Twin["stub"]> = twin.stub({
-      withoutResolved: true,
+      expect(prepared.arguments["initialState"]).toBe("later");
+      expect(actionLineText(prepared.description)).toBe(
+        `Severity: ${twin.severityName}.`,
+      );
+      expect(prepared.describedArguments).toEqual(["severityName"]);
     });
 
-    await expect(
-      twin.tool.execute(
-        { title: "Checkout down", initialState: "resolved" },
-        contextFor(),
-      ),
-    ).rejects.toThrow(`This project has no resolved ${twin.noun} state.`);
+    test("the model is offered the start, with when to use it and when never to", () => {
+      const schema: JSONObject = (
+        twin.tool.inputSchema["properties"] as Record<string, JSONObject>
+      )["initialState"]!;
 
-    expect(stubs.create).not.toHaveBeenCalled();
-  });
+      expect(schema["enum"]).toEqual(["acknowledged", "resolved"]);
+      expect(String(schema["description"])).toContain(
+        `Leave it out for a new ${twin.noun}`,
+      );
+      expect(String(schema["description"])).toContain(
+        "Never use it to keep people from being paged about a live problem.",
+      );
+    });
+  },
+);
 
-  test("the approval card says where it starts, and the start the person approves is written the one way", async () => {
-    twin.stub();
-
-    const prepared: PreparedMutation = await twin.tool.prepareMutation!(
-      { title: "Checkout down", initialState: " RESOLVED " },
-      contextFor(),
-    );
-
-    expect(prepared.arguments["initialState"]).toBe("resolved");
-    expect(actionLineText(prepared.description)).toBe(
-      `Severity: ${twin.severityName}. Starts resolved, so it pages nobody.`,
-    );
-    // The line says the severity and the start: the argument line need not.
-    expect(prepared.describedArguments).toEqual([
-      "severityName",
-      "initialState",
-    ]);
-  });
-
-  test("a start that is neither says nothing of a start on the card: running it refuses", async () => {
-    twin.stub();
-
-    const prepared: PreparedMutation = await twin.tool.prepareMutation!(
-      { title: "Checkout down", initialState: "later" },
-      contextFor(),
-    );
-
-    expect(prepared.arguments["initialState"]).toBe("later");
-    expect(actionLineText(prepared.description)).toBe(
-      `Severity: ${twin.severityName}.`,
-    );
-    expect(prepared.describedArguments).toEqual(["severityName"]);
-  });
-
-  test("the model is offered the start, with when to use it and when never to", () => {
-    const schema: JSONObject = (
-      twin.tool.inputSchema["properties"] as Record<string, JSONObject>
-    )["initialState"]!;
-
-    expect(schema["enum"]).toEqual(["acknowledged", "resolved"]);
-    expect(String(schema["description"])).toContain(
-      `Leave it out for a new ${twin.noun}`,
-    );
-    expect(String(schema["description"])).toContain(
-      "Never use it to keep people from being paged about a live problem.",
-    );
-  });
-});
-
-describe.each(TWINS)("%s: who may start it later", (name: string, twin: Twin) => {
-  test("without a start, the permission to create one is all it takes, as before", () => {
-    expect(twin.tool.getRequiredPermissionGroups!({ title: "x" })).toEqual([
-      twin.tool.requiredPermissions,
-    ]);
-  });
-
-  test("with a start - or a value that is neither - it takes the permission to change its state too", () => {
-    for (const initialState of ["acknowledged", "resolved", "later"]) {
-      const groups: Array<Array<Permission>> =
-        twin.tool.getRequiredPermissionGroups!({ title: "x", initialState });
-
-      expect(groups).toHaveLength(2);
-      expect(groups[0]).toEqual(twin.tool.requiredPermissions);
-      expect(groups[1]).toContain(twin.stateChange);
-      expect(groups[1]).not.toContain(twin.createOnly);
-    }
-  });
-
-  test("a member who may create one but not change its state is refused a start, at the gate, before anything is read", async () => {
-    const stubs: ReturnType<Twin["stub"]> = twin.stub();
-
-    const outcome: ToolCallOutcome = await AIToolbox.executeTool({
-      name,
-      args: { title: "Checkout down", initialState: "resolved" },
-      ctx: contextFor(member([twin.createOnly])),
+describe.each(TWINS)(
+  "%s: who may start it later",
+  (name: string, twin: Twin) => {
+    test("without a start, the permission to create one is all it takes, as before", () => {
+      expect(twin.tool.getRequiredPermissionGroups!({ title: "x" })).toEqual([
+        twin.tool.requiredPermissions,
+      ]);
     });
 
-    expect(outcome.success).toBe(false);
-    expect(outcome.refusal).toBe(AIToolRefusal.Permission);
-    expect(outcome.textForLlm).toContain("It needs one of these permissions:");
-    expect(outcome.textForLlm).toContain(
-      twin.noun === "incident"
-        ? "Create Incident State Timeline"
-        : "Create Alert State Timeline",
-    );
-    expect(stubs.create).not.toHaveBeenCalled();
-    expect(stubs.readStates).not.toHaveBeenCalled();
-  });
+    test("with a start - or a value that is neither - it takes the permission to change its state too", () => {
+      for (const initialState of ["acknowledged", "resolved", "later"]) {
+        const groups: Array<Array<Permission>> = twin.tool
+          .getRequiredPermissionGroups!({ title: "x", initialState });
 
-  test("the same member creates one that starts where every new one does", async () => {
-    const stubs: ReturnType<Twin["stub"]> = twin.stub();
-
-    const outcome: ToolCallOutcome = await AIToolbox.executeTool({
-      name,
-      args: { title: "Checkout down" },
-      ctx: contextFor(member([twin.createOnly])),
+        expect(groups).toHaveLength(2);
+        expect(groups[0]).toEqual(twin.tool.requiredPermissions);
+        expect(groups[1]).toContain(twin.stateChange);
+        expect(groups[1]).not.toContain(twin.createOnly);
+      }
     });
 
-    expect(outcome.refusal).toBeUndefined();
-    expect(outcome.success).toBe(true);
-    expect(stubs.create).toHaveBeenCalledTimes(1);
-  });
+    test("a member who may create one but not change its state is refused a start, at the gate, before anything is read", async () => {
+      const stubs: ReturnType<Twin["stub"]> = twin.stub();
 
-  test("a member who may do both starts it resolved, as themselves", async () => {
-    const stubs: ReturnType<Twin["stub"]> = twin.stub();
-    const props: DatabaseCommonInteractionProps = member([
-      twin.createOnly,
-      twin.stateChange,
-    ]);
+      const outcome: ToolCallOutcome = await AIToolbox.executeTool({
+        name,
+        args: { title: "Checkout down", initialState: "resolved" },
+        ctx: contextFor(member([twin.createOnly])),
+      });
 
-    const outcome: ToolCallOutcome = await AIToolbox.executeTool({
-      name,
-      args: { title: "Checkout down", initialState: "resolved" },
-      ctx: contextFor(props),
+      expect(outcome.success).toBe(false);
+      expect(outcome.refusal).toBe(AIToolRefusal.Permission);
+      expect(outcome.textForLlm).toContain(
+        "It needs one of these permissions:",
+      );
+      expect(outcome.textForLlm).toContain(
+        twin.noun === "incident"
+          ? "Create Incident State Timeline"
+          : "Create Alert State Timeline",
+      );
+      expect(stubs.create).not.toHaveBeenCalled();
+      expect(stubs.readStates).not.toHaveBeenCalled();
     });
 
-    expect(outcome.success).toBe(true);
-    expect(stubs.create).toHaveBeenCalledTimes(1);
-    expect(
-      (stubs.create.mock.calls[0]![0] as { props: unknown }).props,
-    ).toBe(props);
-    expect(twin.createdStateId(createdData(stubs.create))).toBe(
-      RESOLVED_STATE_ID,
-    );
-  });
+    test("the same member creates one that starts where every new one does", async () => {
+      const stubs: ReturnType<Twin["stub"]> = twin.stub();
 
-  test("a team's block on changing its state refuses a start, and says it is the team's", async () => {
-    const stubs: ReturnType<Twin["stub"]> = twin.stub();
+      const outcome: ToolCallOutcome = await AIToolbox.executeTool({
+        name,
+        args: { title: "Checkout down" },
+        ctx: contextFor(member([twin.createOnly])),
+      });
 
-    const outcome: ToolCallOutcome = await AIToolbox.executeTool({
-      name,
-      args: { title: "Checkout down", initialState: "acknowledged" },
-      ctx: contextFor(
-        member(
-          [twin.createOnly, twin.stateChange],
-          [twin.stateChange],
+      expect(outcome.refusal).toBeUndefined();
+      expect(outcome.success).toBe(true);
+      expect(stubs.create).toHaveBeenCalledTimes(1);
+    });
+
+    test("a member who may do both starts it resolved, as themselves", async () => {
+      const stubs: ReturnType<Twin["stub"]> = twin.stub();
+      const props: DatabaseCommonInteractionProps = member([
+        twin.createOnly,
+        twin.stateChange,
+      ]);
+
+      const outcome: ToolCallOutcome = await AIToolbox.executeTool({
+        name,
+        args: { title: "Checkout down", initialState: "resolved" },
+        ctx: contextFor(props),
+      });
+
+      expect(outcome.success).toBe(true);
+      expect(stubs.create).toHaveBeenCalledTimes(1);
+      expect((stubs.create.mock.calls[0]![0] as { props: unknown }).props).toBe(
+        props,
+      );
+      expect(twin.createdStateId(createdData(stubs.create))).toBe(
+        RESOLVED_STATE_ID,
+      );
+    });
+
+    test("a team's block on changing its state refuses a start, and says it is the team's", async () => {
+      const stubs: ReturnType<Twin["stub"]> = twin.stub();
+
+      const outcome: ToolCallOutcome = await AIToolbox.executeTool({
+        name,
+        args: { title: "Checkout down", initialState: "acknowledged" },
+        ctx: contextFor(
+          member([twin.createOnly, twin.stateChange], [twin.stateChange]),
         ),
-      ),
-    });
+      });
 
-    expect(outcome.success).toBe(false);
-    expect(outcome.refusal).toBe(AIToolRefusal.TeamBlock);
-    expect(outcome.textForLlm).toContain("a team they belong to blocks");
-    expect(stubs.create).not.toHaveBeenCalled();
-  });
-});
+      expect(outcome.success).toBe(false);
+      expect(outcome.refusal).toBe(AIToolRefusal.TeamBlock);
+      expect(outcome.textForLlm).toContain("a team they belong to blocks");
+      expect(stubs.create).not.toHaveBeenCalled();
+    });
+  },
+);
 
 describe("create_incident's card says the severity it takes, as create_alert's does", () => {
   test("the severity the call names, by the name the project gave it, first on the line", async () => {
     INCIDENT.stub({ severityNames: ["SEV1", "Major"] });
 
-    const prepared: PreparedMutation = await CreateIncidentTool.prepareMutation!(
-      { title: "Checkout down", severityName: "major" },
-      contextFor(),
-    );
+    const prepared: PreparedMutation =
+      await CreateIncidentTool.prepareMutation!(
+        { title: "Checkout down", severityName: "major" },
+        contextFor(),
+      );
 
     expect(prepared.arguments["severityName"]).toBe("Major");
     expect(actionLineText(prepared.description)).toBe("Severity: Major.");

@@ -122,26 +122,24 @@ const ResourceCardWidget: FunctionComponent<ComponentProps> = (
           )}
           {card.facts.length > 0 && (
             <dl className="mt-2.5 grid grid-cols-[auto,1fr] gap-x-3 gap-y-1">
-              {card.facts.map(
-                (fact: DrawnResourceCardFact, index: number) => {
-                  return (
-                    <React.Fragment key={index}>
-                      <dt
-                        data-testid="ai-chat-resource-card-fact-label"
-                        className="text-[11px] font-medium text-gray-400"
-                      >
-                        {fact.label}
-                      </dt>
-                      <dd
-                        data-testid="ai-chat-resource-card-fact-value"
-                        className="line-clamp-2 min-w-0 break-words text-[11px] text-gray-700"
-                      >
-                        <ToolActionSentence sentence={fact.value} />
-                      </dd>
-                    </React.Fragment>
-                  );
-                },
-              )}
+              {card.facts.map((fact: DrawnResourceCardFact, index: number) => {
+                return (
+                  <React.Fragment key={index}>
+                    <dt
+                      data-testid="ai-chat-resource-card-fact-label"
+                      className="text-[11px] font-medium text-gray-400"
+                    >
+                      {fact.label}
+                    </dt>
+                    <dd
+                      data-testid="ai-chat-resource-card-fact-value"
+                      className="line-clamp-2 min-w-0 break-words text-[11px] text-gray-700"
+                    >
+                      <ToolActionSentence sentence={fact.value} />
+                    </dd>
+                  </React.Fragment>
+                );
+              })}
             </dl>
           )}
         </div>

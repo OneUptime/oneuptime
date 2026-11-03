@@ -280,9 +280,9 @@ describe.each(cases)(
         ctx,
       );
 
-      expect(
-        (result.widget?.data as Record<string, unknown>)["heading"],
-      ).toBe("ALT-9 · High CPU on api-1");
+      expect((result.widget?.data as Record<string, unknown>)["heading"]).toBe(
+        "ALT-9 · High CPU on api-1",
+      );
     });
 
     test("buildActionTitle names the alert, and stays tidy with no id", () => {

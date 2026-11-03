@@ -336,7 +336,9 @@ export function getActionArgumentParts(
     parts.push({
       key,
       label,
-      value: cut(typeof value === "object" ? JSON.stringify(value) : String(value)),
+      value: cut(
+        typeof value === "object" ? JSON.stringify(value) : String(value),
+      ),
       isWritten: true,
     });
   }
@@ -363,7 +365,9 @@ export function getShownToolActions(
 ): Array<AIChatToolAction> {
   const cardIds: Array<string> = widgets
     .filter((widget: AIChatWidget): boolean => {
-      return widget.type === AIChatWidgetType.ResourceCard && Boolean(widget.id);
+      return (
+        widget.type === AIChatWidgetType.ResourceCard && Boolean(widget.id)
+      );
     })
     .map((widget: AIChatWidget): string => {
       return widget.id;

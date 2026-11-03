@@ -620,7 +620,6 @@ export default class AffectedResourceLinks {
     return linked.map(describeLinkedResource).join(", ");
   }
 
-
   // Whether any of these is something auto-remediation can fix.
   public static hasFixableResource(
     linked: Array<LinkedAffectedResource>,

@@ -647,9 +647,7 @@ export function isKnownAIActionWords(value: unknown): value is AIActionWords {
 
   const description: unknown = value["description"];
 
-  const isNameList: (names: unknown) => boolean = (
-    names: unknown,
-  ): boolean => {
+  const isNameList: (names: unknown) => boolean = (names: unknown): boolean => {
     return (
       names === undefined ||
       (Array.isArray(names) &&
@@ -716,7 +714,10 @@ const isKnownCardFactValue: (value: unknown) => boolean = (
 export function isKnownAIActionCardWords(
   value: unknown,
 ): value is AIActionCardWords {
-  if (!isPlainObject(value) || !isKnownCardTerm(value["kind"], CARD_KIND_TERMS)) {
+  if (
+    !isPlainObject(value) ||
+    !isKnownCardTerm(value["kind"], CARD_KIND_TERMS)
+  ) {
     return false;
   }
 

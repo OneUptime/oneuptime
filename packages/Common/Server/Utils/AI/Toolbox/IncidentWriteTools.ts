@@ -363,11 +363,10 @@ export const CreateIncidentTool: ObservabilityTool = {
         defaultsToPage: false,
       });
 
-    const severityName: string | null =
-      await getIncidentSeverityNameForPerson({
-        args: prepared,
-        ctx,
-      });
+    const severityName: string | null = await getIncidentSeverityNameForPerson({
+      args: prepared,
+      ctx,
+    });
 
     const preparedArguments: JSONObject = severityName
       ? { ...prepared, severityName }

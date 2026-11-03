@@ -55,9 +55,7 @@ export interface DrawnResourceCard {
 export function getKnownResourceCardWords(
   widget: AIChatWidget,
 ): AIActionCardWords | null {
-  return isKnownAIActionCardWords(widget.data.words)
-    ? widget.data.words
-    : null;
+  return isKnownAIActionCardWords(widget.data.words) ? widget.data.words : null;
 }
 
 // The stored English, read the way most of its letters are.

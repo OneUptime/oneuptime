@@ -239,7 +239,9 @@ describe("in German", () => {
     );
     expect(resources).toContain('"test01"');
     expect(resources).toContain('"prod"');
-    expect(resources).toContain(dashboardTranslator("de").translateTerm("host", { inSentence: true }));
+    expect(resources).toContain(
+      dashboardTranslator("de").translateTerm("host", { inSentence: true }),
+    );
 
     // The note the model wrote is data.
     expect(card).toHaveTextContent("Checkout was down for 20 minutes.");
@@ -294,9 +296,11 @@ describe("in German", () => {
 
       expect(drawn.isWorded).toBe(false);
       expect(drawn.kind).toBe("Incident");
-      expect(drawn.line.map((sentence: { text: string }): string => {
-        return sentence.text;
-      })).toEqual(["Severity: SEV2 · Started resolved"]);
+      expect(
+        drawn.line.map((sentence: { text: string }): string => {
+          return sentence.text;
+        }),
+      ).toEqual(["Severity: SEV2 · Started resolved"]);
     }
   });
 });

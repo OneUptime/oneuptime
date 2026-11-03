@@ -90,11 +90,13 @@ function builderCalls(file: string): Array<BuilderCall> {
         method: node.expression.name.text,
         properties:
           argument && ts.isObjectLiteralExpression(argument)
-            ? argument.properties.map((property: ts.ObjectLiteralElementLike) => {
-                return property.name && ts.isIdentifier(property.name)
-                  ? property.name.text
-                  : "";
-              })
+            ? argument.properties.map(
+                (property: ts.ObjectLiteralElementLike) => {
+                  return property.name && ts.isIdentifier(property.name)
+                    ? property.name.text
+                    : "";
+                },
+              )
             : [],
       });
     }
@@ -143,21 +145,24 @@ describe("the cards the toolbox builds", () => {
     WRITE_TOOL_FILES.map((file: string): [string] => {
       return [file];
     }),
-  )("%s leaves its cards as action cards, each with its words", (file: string) => {
-    const actionCards: Array<BuilderCall> = builderCalls(file).filter(
-      (call: BuilderCall): boolean => {
-        return call.method === "actionCard";
-      },
-    );
-
-    expect(actionCards.length).toBeGreaterThan(0);
-
-    for (const call of actionCards) {
-      expect(call.properties).toEqual(
-        expect.arrayContaining(["title", "heading", "words"]),
+  )(
+    "%s leaves its cards as action cards, each with its words",
+    (file: string) => {
+      const actionCards: Array<BuilderCall> = builderCalls(file).filter(
+        (call: BuilderCall): boolean => {
+          return call.method === "actionCard";
+        },
       );
-    }
-  });
+
+      expect(actionCards.length).toBeGreaterThan(0);
+
+      for (const call of actionCards) {
+        expect(call.properties).toEqual(
+          expect.arrayContaining(["title", "heading", "words"]),
+        );
+      }
+    },
+  );
 
   test("the write tools' files leave no card of free English", () => {
     for (const file of WRITE_TOOL_FILES) {

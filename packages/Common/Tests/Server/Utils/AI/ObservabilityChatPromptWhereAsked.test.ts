@@ -222,9 +222,9 @@ describe("asked in an incident's or an alert's own channel", () => {
   });
 
   test("the whole prompt carries the channel's record", () => {
-    expect(
-      promptFor({ chatApp: SLACK, pageContext: INCIDENT_PAGE }),
-    ).toContain("## Current channel context");
+    expect(promptFor({ chatApp: SLACK, pageContext: INCIDENT_PAGE })).toContain(
+      "## Current channel context",
+    );
   });
 });
 

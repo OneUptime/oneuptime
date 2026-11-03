@@ -505,9 +505,9 @@ describe.each(stateCases)(
         ctx,
       );
 
-      expect(
-        (result.widget?.data as Record<string, unknown>)["heading"],
-      ).toBe("INC-42 · Checkout down");
+      expect((result.widget?.data as Record<string, unknown>)["heading"]).toBe(
+        "INC-42 · Checkout down",
+      );
     });
 
     test("buildActionTitle names the incident, and stays tidy with no id", () => {

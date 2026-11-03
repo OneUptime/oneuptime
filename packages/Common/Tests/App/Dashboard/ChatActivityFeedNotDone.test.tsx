@@ -104,30 +104,30 @@ describe("what a failed step says, in English", () => {
   test.each([
     [AIToolRefusal.Permission, "not done — your role does not allow it"],
     [AIToolRefusal.TeamBlock, "not done — a team you belong to blocks it"],
-    [
-      AIToolRefusal.Plan,
-      "not done — the project's plan does not include it",
-    ],
+    [AIToolRefusal.Plan, "not done — the project's plan does not include it"],
     [AIToolRefusal.NotAllowed, "not done — you are not allowed to do this"],
-  ])("refused for %s: not done, and why", (refusal: AIToolRefusal, said: string) => {
-    expect(
-      describeFailedToolCall(
-        failedEvent({ refusal, isAction: true }),
-        dashboardTranslator("en"),
-      ),
-    ).toBe(said);
+  ])(
+    "refused for %s: not done, and why",
+    (refusal: AIToolRefusal, said: string) => {
+      expect(
+        describeFailedToolCall(
+          failedEvent({ refusal, isAction: true }),
+          dashboardTranslator("en"),
+        ),
+      ).toBe(said);
 
-    // A refused read is not done either: it is never tried again.
-    expect(
-      describeFailedToolCall(
-        failedCall({
-          toolName: "query_slos",
-          resultSummary: { refusal },
-        })[1]!,
-        dashboardTranslator("en"),
-      ),
-    ).toBe(said);
-  });
+      // A refused read is not done either: it is never tried again.
+      expect(
+        describeFailedToolCall(
+          failedCall({
+            toolName: "query_slos",
+            resultSummary: { refusal },
+          })[1]!,
+          dashboardTranslator("en"),
+        ),
+      ).toBe(said);
+    },
+  );
 
   test("an action that failed for another reason: not done - the answer says why", () => {
     expect(
@@ -209,9 +209,7 @@ describe("in German", () => {
       screen.getByText(DE[friendlyToolNames["create_incident"]!]!),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(
-        `· ${DE["not done — a team you belong to blocks it"]!}`,
-      ),
+      screen.getByText(`· ${DE["not done — a team you belong to blocks it"]!}`),
     ).toBeInTheDocument();
   });
 
@@ -246,9 +244,11 @@ describe("worded in every Dashboard language", () => {
     }
   });
 
-  test.each(DASHBOARD_LANGUAGES.map((language: string): [string] => {
-    return [language];
-  }))("%s words each of them", (language: string) => {
+  test.each(
+    DASHBOARD_LANGUAGES.map((language: string): [string] => {
+      return [language];
+    }),
+  )("%s words each of them", (language: string) => {
     for (const key of keys) {
       expect({ key, worded: isWordedInDashboardLocale(key, language) }).toEqual(
         { key, worded: true },

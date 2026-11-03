@@ -112,7 +112,10 @@ function previewOf(note: string): string {
  * to the team, and its start - in the reader's language
  * (WidgetBuilder.actionCard).
  */
-function describeNoteCard(data: { kind: string; note: string }): AIActionCardWords {
+function describeNoteCard(data: {
+  kind: string;
+  note: string;
+}): AIActionCardWords {
   return {
     kind: aiActionTerm(data.kind),
     line: [aiActionSentence(AI_ACTION_CARD_LINES.privateNoteAdded)],

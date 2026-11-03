@@ -642,7 +642,8 @@ describe("add_security_case_note (a write)", () => {
       facts: [
         {
           label: "Note",
-          value: "Checked: <img src=x onerror=alert(1)> the address is known-bad.",
+          value:
+            "Checked: <img src=x onerror=alert(1)> the address is known-bad.",
         },
       ],
     });

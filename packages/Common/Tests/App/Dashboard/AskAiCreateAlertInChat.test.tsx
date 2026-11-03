@@ -272,9 +272,9 @@ describe("the approval card for an alert Ask AI raises on host test01's page", (
      * The severity is said once, in words, by the line above: the
      * argument line does not say it again.
      */
-    expect(
-      screen.getByTestId("tool-approval-arguments"),
-    ).not.toHaveTextContent("High");
+    expect(screen.getByTestId("tool-approval-arguments")).not.toHaveTextContent(
+      "High",
+    );
     expect(card).not.toHaveTextContent("severityName");
     // The title is the card's own; the argument line does not repeat it.
     expect(card).not.toHaveTextContent("title: High memory usage on test01");

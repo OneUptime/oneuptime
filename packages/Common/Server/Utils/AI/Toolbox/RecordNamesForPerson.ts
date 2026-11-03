@@ -60,8 +60,7 @@ function numbered(
  */
 export function getIncidentNumberText(incident: Incident): string {
   return (
-    numbered(incident.incidentNumberWithPrefix, incident.incidentNumber) ||
-    "#"
+    numbered(incident.incidentNumberWithPrefix, incident.incidentNumber) || "#"
   );
 }
 

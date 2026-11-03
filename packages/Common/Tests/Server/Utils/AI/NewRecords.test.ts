@@ -341,12 +341,14 @@ describe("the severity a new record takes", () => {
   ];
 
   test("the one the call names, without regard to case or spaces", () => {
-    expect(
-      pickNamedSeverity({ severities, severityName: "major" }),
-    ).toEqual({ severity: severities[1], isNamed: true });
-    expect(
-      pickNamedSeverity({ severities, severityName: "  sev3 " }),
-    ).toEqual({ severity: severities[2], isNamed: true });
+    expect(pickNamedSeverity({ severities, severityName: "major" })).toEqual({
+      severity: severities[1],
+      isNamed: true,
+    });
+    expect(pickNamedSeverity({ severities, severityName: "  sev3 " })).toEqual({
+      severity: severities[2],
+      isNamed: true,
+    });
   });
 
   test("else the project's first, and it says it was not the one named", () => {
@@ -354,9 +356,10 @@ describe("the severity a new record takes", () => {
       severity: severities[0],
       isNamed: false,
     });
-    expect(
-      pickNamedSeverity({ severities, severityName: undefined }),
-    ).toEqual({ severity: severities[0], isNamed: false });
+    expect(pickNamedSeverity({ severities, severityName: undefined })).toEqual({
+      severity: severities[0],
+      isNamed: false,
+    });
   });
 
   test("a project with none gives none", () => {
@@ -449,10 +452,7 @@ describe("the card a new record leaves under the answer", () => {
 
     expect(words.line).toBeUndefined();
     expect(words.facts).toEqual([
-      aiActionCardFact(
-        AI_ACTION_CARD_FACTS.description,
-        `${"x".repeat(200)}…`,
-      ),
+      aiActionCardFact(AI_ACTION_CARD_FACTS.description, `${"x".repeat(200)}…`),
     ]);
   });
 });
@@ -469,9 +469,7 @@ describe("the card linking leaves", () => {
     expect(describeAIActionCardWords(words)).toEqual({
       kind: "Incident",
       line: 'Linked to host "test01"',
-      facts: [
-        { label: "Already linked", value: 'Kubernetes cluster "prod"' },
-      ],
+      facts: [{ label: "Already linked", value: 'Kubernetes cluster "prod"' }],
     });
   });
 

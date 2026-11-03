@@ -44,7 +44,10 @@ const SLACK: ObservabilityChatApp = {
   name: "Slack",
   incidentCommand: "/oneuptime incident",
   pageCommand: "/oneuptime page",
-  askAiUrl: "https://oneuptime.example.com/dashboard/" + PROJECT_ID.toString() + "/ai/chat",
+  askAiUrl:
+    "https://oneuptime.example.com/dashboard/" +
+    PROJECT_ID.toString() +
+    "/ai/chat",
 };
 
 const INCIDENT_CHANNEL: AIChatPageContext = {
@@ -94,11 +97,17 @@ describe("an answer read in Slack", () => {
     expect(prompt).toContain(
       "You are answering in Slack, where OneUptime AI only reads.",
     );
-    expect(prompt).toContain("declare an incident with `/oneuptime incident <title>`");
-    expect(prompt).toContain("`/oneuptime incident <number>`, which shows its buttons");
+    expect(prompt).toContain(
+      "declare an incident with `/oneuptime incident <title>`",
+    );
+    expect(prompt).toContain(
+      "`/oneuptime incident <number>`, which shows its buttons",
+    );
     expect(prompt).toContain("page a person or a team with `/oneuptime page`");
     expect(prompt).toContain(SLACK.askAiUrl);
-    expect(prompt).toContain("Slack has no modes: never tell them to switch modes.");
+    expect(prompt).toContain(
+      "Slack has no modes: never tell them to switch modes.",
+    );
     expect(prompt).not.toContain("switch modes to let you act");
     expect(prompt).not.toContain("permission mode");
   });
@@ -121,24 +130,22 @@ describe("an answer read in Slack", () => {
       .mockResolvedValue(response({ content: "It is down." }) as never);
 
     const contexts: Array<ToolContext> = [];
-    jest
-      .spyOn(AIToolbox, "executeTool")
-      .mockImplementation((async (data: {
-        ctx: ToolContext;
-      }): Promise<ToolCallOutcome> => {
-        contexts.push(data.ctx);
-        return {
-          success: true,
-          textForLlm: "INC-42 is open.",
-          result: {
-            dataForLlm: "INC-42 is open.",
-            rowCount: 1,
-            citationLabel: "INC-42",
-            redactionCount: 0,
-            isTruncated: false,
-          },
-        };
-      }) as never);
+    jest.spyOn(AIToolbox, "executeTool").mockImplementation((async (data: {
+      ctx: ToolContext;
+    }): Promise<ToolCallOutcome> => {
+      contexts.push(data.ctx);
+      return {
+        success: true,
+        textForLlm: "INC-42 is open.",
+        result: {
+          dataForLlm: "INC-42 is open.",
+          rowCount: 1,
+          citationLabel: "INC-42",
+          redactionCount: 0,
+          isTruncated: false,
+        },
+      };
+    }) as never);
 
     await ObservabilityAssistant.answerQuestion({
       projectId: PROJECT_ID,

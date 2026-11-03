@@ -54,7 +54,9 @@ beforeEach(() => {
   jest
     .spyOn(DatabaseConfig, "getDashboardUrl")
     .mockResolvedValue(URL.fromString(DASHBOARD_URL));
-  jest.spyOn(ProductBrandingText, "getProductName").mockReturnValue("OneUptime");
+  jest
+    .spyOn(ProductBrandingText, "getProductName")
+    .mockReturnValue("OneUptime");
   jest.spyOn(logger, "debug").mockImplementation((): void => {});
 });
 
@@ -104,12 +106,10 @@ describe("the chat app's ways to act", () => {
       askAiUrl: `${DASHBOARD_URL}/${PROJECT_ID.toString()}/ai/chat`,
     });
 
-    const unnamed: ObservabilityChatApp = await WorkspaceAiContext.getChatApp(
-      {
-        workspaceType: WorkspaceType.MicrosoftTeams,
-        projectId: PROJECT_ID,
-      },
-    );
+    const unnamed: ObservabilityChatApp = await WorkspaceAiContext.getChatApp({
+      workspaceType: WorkspaceType.MicrosoftTeams,
+      projectId: PROJECT_ID,
+    });
 
     expect(unnamed.commandNote).toBe(
       "typed to the OneUptime bot; in a channel or a group chat, mention it first",

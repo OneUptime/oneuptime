@@ -1301,12 +1301,10 @@ describe("OneUptime AI knows where in Slack it was asked", () => {
     const asked: Array<ObservabilityAssistantRequest> = askedWith();
     const findChannelRecord: SpyInstance<
       typeof WorkspacePageAbout.findChannelRecord
-    > = jest
-      .spyOn(WorkspacePageAbout, "findChannelRecord")
-      .mockResolvedValue({
-        type: OnCallPageRecordType.Incident,
-        id: INCIDENT_ID,
-      });
+    > = jest.spyOn(WorkspacePageAbout, "findChannelRecord").mockResolvedValue({
+      type: OnCallPageRecordType.Incident,
+      id: INCIDENT_ID,
+    });
     const incident: Incident = new Incident();
     incident._id = INCIDENT_ID.toString();
     incident.title = "Checkout is down";

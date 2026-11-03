@@ -207,9 +207,11 @@ function installSpies(data?: {
 
 // The events the run wrote, in order.
 function eventsOf(spies: Spies): Array<AIRunEvent> {
-  return spies.eventCreate.mock.calls.map((call: Array<unknown>): AIRunEvent => {
-    return (call[0] as { data: AIRunEvent }).data;
-  });
+  return spies.eventCreate.mock.calls.map(
+    (call: Array<unknown>): AIRunEvent => {
+      return (call[0] as { data: AIRunEvent }).data;
+    },
+  );
 }
 
 function eventsOfType(spies: Spies, type: AIRunEventType): Array<AIRunEvent> {
