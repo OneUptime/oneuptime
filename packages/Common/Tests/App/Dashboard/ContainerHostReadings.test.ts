@@ -8,6 +8,7 @@ import {
 } from "@jest/globals";
 import DockerResource from "../../../Models/DatabaseModels/DockerResource";
 import PodmanResource from "../../../Models/DatabaseModels/PodmanResource";
+import AggregatedModel from "../../../Types/BaseDatabase/AggregatedModel";
 import AggregationInterval from "../../../Types/BaseDatabase/AggregationInterval";
 import AggregationType from "../../../Types/BaseDatabase/AggregationType";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
@@ -314,15 +315,17 @@ describe("joining the reads", () => {
 
 describe("restart totals", () => {
   test("add up each container's increases; a name or value that cannot be read is left out", () => {
+    // The server's answer as it may come, so rows it should never send too.
+    const rows: Array<unknown> = [
+      { value: 2, attributes: { "resource.container.name": "api" } },
+      { value: 1, attributes: { "resource.container.name": "api" } },
+      { value: 0, attributes: { "resource.container.name": "web" } },
+      { value: "x", attributes: { "resource.container.name": "bad" } },
+      { value: 3, attributes: {} },
+      { value: 3 },
+    ];
     const totals: Map<string, number> | null = getContainerRestartTotals({
-      data: [
-        { value: 2, attributes: { "resource.container.name": "api" } },
-        { value: 1, attributes: { "resource.container.name": "api" } },
-        { value: 0, attributes: { "resource.container.name": "web" } },
-        { value: "x", attributes: { "resource.container.name": "bad" } },
-        { value: 3, attributes: {} },
-        { value: 3 },
-      ],
+      data: rows as Array<AggregatedModel>,
     });
     expect(totals).toEqual(
       new Map([

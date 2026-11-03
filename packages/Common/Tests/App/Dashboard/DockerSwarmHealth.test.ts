@@ -145,7 +145,7 @@ function task(name: string, init: RowInit = {}): DockerSwarmResource {
     externalId: `task/${name}-id`,
     name: name,
     state: "running",
-    serviceName: name.split(".")[0],
+    serviceName: name.split(".")[0] || name,
     nodeHostname: "worker-1",
     lastSeenAt: minutesBefore(1),
     ...init,

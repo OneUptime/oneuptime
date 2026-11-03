@@ -659,23 +659,28 @@ function serveHost(runtimeCase: RuntimeCase): void {
   });
 
   // The host's container inventory: none beyond what the readings say.
-  jest.spyOn(ModelAPI, "getList").mockImplementation((): Promise<unknown> => {
+  const inventorySpy: jest.SpyInstance = jest.spyOn(ModelAPI, "getList");
+  inventorySpy.mockImplementation((): Promise<unknown> => {
     return Promise.resolve({ data: [], count: 0, skip: 0, limit: 0 });
   });
 
   // No latest readings unless a test serves them (serveLists).
-  jest
-    .spyOn(AnalyticsModelAPI, "getList")
-    .mockImplementation((): Promise<unknown> => {
-      return Promise.resolve({ data: [], count: 0, skip: 0, limit: 500 });
-    });
+  const readingsSpy: jest.SpyInstance = jest.spyOn(
+    AnalyticsModelAPI,
+    "getList",
+  );
+  readingsSpy.mockImplementation((): Promise<unknown> => {
+    return Promise.resolve({ data: [], count: 0, skip: 0, limit: 500 });
+  });
 
   // No restart counts unless a test serves them (serveAggregates).
-  jest
-    .spyOn(AnalyticsModelAPI, "aggregate")
-    .mockImplementation((): Promise<unknown> => {
-      return Promise.resolve({ data: [] });
-    });
+  const restartsSpy: jest.SpyInstance = jest.spyOn(
+    AnalyticsModelAPI,
+    "aggregate",
+  );
+  restartsSpy.mockImplementation((): Promise<unknown> => {
+    return Promise.resolve({ data: [] });
+  });
 }
 
 function serveAggregates(fixture: Fixture | "never"): void {
