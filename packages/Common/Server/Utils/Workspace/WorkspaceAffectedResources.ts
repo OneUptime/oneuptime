@@ -709,10 +709,10 @@ export default class WorkspaceAffectedResources {
 
   /*
    * The sentence for picks that were not linked, of `subject` - the
-   * incident: "**[Incident INC-43](link)** is not linked to 2 resources
-   * you picked: they were deleted or archived, or you may no longer view
-   * them." - or null when every pick was. Nothing is known of a pick that
-   * cannot be read, so it names none.
+   * incident: "The incident **[INC-43](link)** is not linked to 2
+   * resources you picked: they were deleted or archived, or you may no
+   * longer view them." - or null when every pick was. Nothing is known of
+   * a pick that cannot be read, so it names none.
    */
   public static getNotLinkedLine(data: {
     subject: MarkdownText;
