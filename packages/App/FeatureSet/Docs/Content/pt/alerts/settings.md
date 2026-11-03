@@ -17,6 +17,7 @@ Abra **Alertas** no menu **Produtos** da barra superior. As seções **Regras** 
 | ---------------------------- | ---------------------------------------------------------------------------------------------- |
 | **Regras de agrupamento**    | Reúne alertas relacionados em episódios. Veja [Episódios de alertas e regras de agrupamento](/docs/alerts/episodes). |
 | **Regras de Plantão**        | Executa políticas de plantão para os alertas e episódios correspondentes.                      |
+| **Regras de incidentes** | Declara um incidente a partir dos alertas correspondentes, na hora ou quando um alerta continua sem resolução. |
 | **Regras de proprietário**   | Adiciona proprietários aos alertas e episódios correspondentes.                                |
 | **Regras de runbook**        | Inicia runbooks para os alertas correspondentes.                                               |
 | **Regras de privacidade**    | Torna privados os alertas e episódios correspondentes.                                         |
@@ -54,7 +55,7 @@ flowchart TB
 
 As regras diferem na forma como várias correspondências são resolvidas:
 
-- **Regras de agrupamento** e **Regras de lembrete** são verificadas de cima para baixo na lista, e a primeira correspondência vence. Arraste uma regra para mudar sua posição; uma regra nova vai para o fim.
+- **Regras de agrupamento**, **Regras de incidentes** e **Regras de lembrete** são verificadas de cima para baixo na lista, e a primeira correspondência vence. Arraste uma regra para mudar sua posição; uma regra nova vai para o fim.
 - **Regras de Plantão**, **Regras de proprietário**, **Regras de Rótulos**, **Regras de privacidade** e **Regras de runbook** atuam todas quando correspondem. Políticas de plantão, proprietários e rótulos que várias regras adicionam são adicionados uma única vez.
 
 **Regras de Plantão**, **Regras de proprietário**, **Regras de Rótulos** e **Regras de privacidade** têm duas abas: **Alert Rules**, para alertas, e **Episode Rules**, que atuam da mesma forma sobre cada novo episódio de alerta. Uma regra nova começa habilitada; desative **Habilitado** no formulário de edição para pausá-la, e a lista mostra um **Habilitado** verde ou um **Desabilitado** vermelho para cada regra.
@@ -89,6 +90,22 @@ Em **Políticas de plantão**, escolha as **Políticas de plantão** que a regra
 Uma gravidade sozinha não aciona ninguém: uma regra de plantão que corresponde a **Alerta Severidades** é a forma de configurar "acionar a equipe de banco de dados para cada alerta High". Para ver o que foi executado para um alerta, abra a página **Execuções de plantão** dele. Cada pessoa é então contatada do jeito que configurou em **Configurações do usuário → Regras de Plantão**, na aba **Alertas**; veja [Regras de escalonamento](/docs/on-call/escalation-rules).
 
 Uma regra aciona assim que um alerta corresponde a ela. Para que ela aguarde o horário comercial, responda **Quando esta regra deve acionar?** em **Mais campos** com **Somente em horário comercial**. O **Horário comercial** começa de segunda a sexta, das 09:00 às 17:00, no seu próprio fuso horário: escolha outros dias, outra **Hora de início** ou **Horário de término**, ou outro **Fuso horário**, e uma frase abaixo da opção diz o que vai acontecer. Na lista, a regra mostra o horário abaixo do nome. Um alerta que corresponde fora desse horário recebe uma execução que aguarda e não aciona ninguém; quando o horário começa, a política aciona sua primeira regra de escalonamento e escala como de costume. Se o alerta for confirmado ou resolvido antes, ninguém é acionado. Se o alerta mudar enquanto aguarda e passar a corresponder a uma regra que aciona imediatamente, por exemplo porque sua gravidade foi elevada, a execução começa a acionar na hora, e o feed do alerta diz por quê. Duas regras que acionam a mesma política a acionam assim que qualquer uma delas permitir: uma regra para as gravidades mais altas que aciona imediatamente, ao lado de uma regra para o resto que aguarda o horário comercial, mantém as noites tranquilas.
+
+## Regras de incidentes
+
+**Alertas → Regras → Regras de incidentes** transforma alertas em incidentes por conta própria. A primeira regra que corresponde a um alerta novo, de cima para baixo na lista, declara um incidente a partir dele, como faria **Declarar incidente** na página do alerta, e vincula o alerta a ele.
+
+:::steps
+### Escolher os alertas afetados
+
+Em **Corresponder**, **Todos os alertas**, por onde uma regra nova começa, corresponde a cada alerta novo. Para restringi-la, escolha **Somente os alertas que atendem às condições** e adicione as condições que um alerta precisa atender.
+
+### Descrever o incidente
+
+Em **Incidente**, escolha a **Severidade do incidente**, ou deixe-a vazia para dar a cada incidente a severidade que corresponde à do seu alerta. Defina **Declare After (Minutes)** acima de 0 para declarar o incidente apenas se o alerta ainda não estiver resolvido até lá. O **Nome** da regra acompanha a severidade, como "Declare SEV1 incidents", até você digitar um próprio. Depois crie a regra.
+:::
+
+O incidente recebe o título, a descrição, o monitor, os recursos afetados e os rótulos do alerta, e é privado quando o alerta é. Depois, as regras do próprio incidente são executadas como em qualquer incidente novo, então são as regras de plantão dele que decidem quem é acionado. Um alerta resolvido antes de a espera terminar nunca vira incidente, e um alerta já vinculado a um incidente é deixado como está. **Mostrar nas páginas de status**, em **Mais campos**, decide se o incidente aparece nas páginas de status que listam o monitor dele.
 
 ## Regras de proprietário e de rótulos
 

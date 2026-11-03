@@ -27,10 +27,11 @@ export const ALERT_INCIDENT_RULE_MAX_WAIT_IN_MINUTES: number = 7 * 24 * 60;
  * Why a value cannot be saved as a rule's wait, or null when it can: a
  * whole number of minutes from 0 (declare right away) to a week. A number
  * sent as text ("15") is the number it spells, as the database would store
- * it. Nothing at all is the column's default, 0, and is fine.
+ * it. Nothing at all - no value, or a form's emptied number box - is the
+ * column's default, 0, and is fine.
  */
 export function getAlertIncidentRuleWaitProblem(value: unknown): string | null {
-  if (value === undefined || value === null) {
+  if (isNoWait(value)) {
     return null;
   }
 
@@ -83,8 +84,9 @@ export function getAlertIncidentRuleDeclareAt(data: {
 }
 
 /*
- * "Right away", or "After 15 minutes unresolved": when a rule declares, as
- * the rules table and the rule's filled-in name say it.
+ * "Right away", or "If still unresolved after 15 minutes": when a rule
+ * declares, in English - for the API's and the server's own words. The
+ * Dashboard words it in the reader's language (AlertIncidentRuleCopy).
  */
 export function describeAlertIncidentRuleWait(value: unknown): string {
   const minutes: number = getAlertIncidentRuleWaitInMinutes(value);
@@ -93,7 +95,7 @@ export function describeAlertIncidentRuleWait(value: unknown): string {
     return "Right away";
   }
 
-  return `After ${formatWait(minutes)} unresolved`;
+  return `If still unresolved after ${formatWait(minutes)}`;
 }
 
 /*
@@ -124,6 +126,15 @@ function formatWait(totalMinutes: number): string {
   }
 
   return parts.join(" ");
+}
+
+// No value at all: nothing, or text of nothing but spaces.
+function isNoWait(value: unknown): boolean {
+  return (
+    value === undefined ||
+    value === null ||
+    (typeof value === "string" && value.trim().length === 0)
+  );
 }
 
 // A whole number of minutes from 0 up, or null.

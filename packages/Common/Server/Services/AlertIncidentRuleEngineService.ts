@@ -119,20 +119,6 @@ const RULE_SELECT: Select<AlertIncidentRule> = {
   showIncidentOnStatusPage: true,
 };
 
-// The match columns every alert rule offers, as the rule's legacy fields.
-const LEGACY_MATCH_FIELDS: ReadonlyArray<
-  Extract<keyof AlertIncidentRule, string>
-> = [
-  "monitors",
-  "alertSeverities",
-  "alertLabels",
-  "monitorLabels",
-  "alertTitlePattern",
-  "alertDescriptionPattern",
-  "monitorNamePattern",
-  "monitorDescriptionPattern",
-];
-
 /*
  * The lists of affected resources an incident takes from its alert: every
  * one the two models both carry (AffectedResourceRelations) and their
@@ -930,7 +916,16 @@ class AlertIncidentRuleEngineServiceClass {
   ): Promise<boolean> {
     return await RuleCriteriaMatcher.matchesWithLegacy({
       rule,
-      legacyFields: LEGACY_MATCH_FIELDS,
+      legacyFields: [
+        "monitors",
+        "alertSeverities",
+        "alertLabels",
+        "monitorLabels",
+        "alertTitlePattern",
+        "alertDescriptionPattern",
+        "monitorNamePattern",
+        "monitorDescriptionPattern",
+      ],
       emptyResult: true,
       matchesLegacyRule: async (
         legacyRule: AlertIncidentRule,
