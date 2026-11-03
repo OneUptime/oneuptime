@@ -1,8 +1,6 @@
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
-import CephCluster from "Common/Models/DatabaseModels/CephCluster";
-import CephResourceModel from "Common/Models/DatabaseModels/CephResource";
 import Card from "Common/UI/Components/Card/Card";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
@@ -13,7 +11,6 @@ import React, {
   useEffect,
   useState,
 } from "react";
-import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import Metric from "Common/Models/AnalyticsModels/Metric";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -22,21 +19,32 @@ import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
 import Dictionary from "Common/Types/Dictionary";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import { Tab } from "Common/UI/Components/Tabs/Tab";
-import ResourceOverviewTab, {
-  SummaryField,
-} from "../../../Components/Infrastructure/ResourceOverviewTab";
 import ResourceMetricsTab from "../../../Components/Infrastructure/ResourceMetricsTab";
+import ResourcePartReadError from "../../../Components/ResourcePart/ResourcePartReadError";
 import CephRateChart from "../../../Components/Ceph/CephRateChart";
+import CephPartHero from "../../../Components/Ceph/Part/CephPartHero";
+import CephPoolOverview from "../../../Components/Ceph/Part/CephPoolOverview";
+import {
+  CephPartRoutes,
+  getCephPartRoutes,
+} from "../../../Components/Ceph/Part/CephPartRoutes";
+import useCephPart, {
+  CephPart,
+} from "../../../Components/Ceph/Part/UseCephPart";
 import CephResourceUtils, {
   GrowthFitSample,
   GrowthProjection,
 } from "../Utils/CephResourceUtils";
+import {
+  CephAssessment,
+  CephPoolPgStates,
+  assessCephPool,
+} from "../Utils/CephHealth";
+import { CephPgStateReadings, loadCephPgStates } from "../Utils/CephReadings";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import { CEPH_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/CephMetricDescriptions";
 import TimeRangeZoomHint from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
@@ -44,26 +52,24 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
- * Pool detail page. The route param (subModelId) is the CephResource
- * externalId — the `pool_id` datapoint label (e.g. `2`) — not a database
- * id and not the pool name: pool DATA series carry only `pool_id`, so
- * every metric filter below stays valid even when the pool is renamed.
+ * A pool's page: its hero (its state by the cluster's rules, its id, what
+ * it stores and its objects), then its Overview - what about it needs
+ * attention, how full it is, its placement groups, what is open on it, the
+ * pool alerts and its details - and its metrics over time.
+ *
+ * The route's part (subModelId) is the pool's `pool_id` (2), not a database
+ * id and not its name: pool data series carry only `pool_id`, so every
+ * metric filter below stays valid when the pool is renamed.
  */
 
 const CLUSTER_ATTR: string = "resource.ceph.cluster.name";
 
 /*
- * Growth projection (WI-29): least-squares fit of ceph_pool_stored over
- * the last 24h against the pool's writable limit (stored + max_avail) —
- * the UI-only analog of the upstream CephPoolGrowthWarning mixin alert.
+ * Growth projection: a least-squares fit of ceph_pool_stored over the last
+ * 24 hours against the pool's writable limit (stored + max_avail) - the
+ * UI-only analog of the upstream CephPoolGrowthWarning mixin alert.
  */
 const PROJECTION_WINDOW_HOURS: number = 24;
-
-/*
- * Below this much observed history the projection is rendered with an
- * explicit low-confidence caveat instead of a confident "~N days".
- */
-const MIN_CONFIDENT_FIT_SPAN_MS: number = 2 * 60 * 60 * 1000;
 
 const CephClusterPoolDetail: FunctionComponent<
   PageComponentProps
@@ -72,69 +78,24 @@ const CephClusterPoolDetail: FunctionComponent<
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(2);
   const poolId: string = Navigation.getLastParamAsString();
 
-  const [cluster, setCluster] = useState<CephCluster | null>(null);
-  const [resource, setResource] = useState<CephResourceModel | null>(null);
+  const part: CephPart = useCephPart({
+    clusterId: modelId,
+    kind: "Pool",
+    externalId: poolId,
+  });
+
   const [growth, setGrowth] = useState<GrowthProjection | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [isLoadingResource, setIsLoadingResource] = useState<boolean>(true);
-  const [error, setError] = useState<string>("");
+  const [pgStates, setPgStates] = useState<CephPoolPgStates | null>(null);
 
-  const fetchCluster: PromiseVoidFunction = async (): Promise<void> => {
-    setIsLoading(true);
-    try {
-      const item: CephCluster | null = await ModelAPI.getItem({
-        modelType: CephCluster,
-        id: modelId,
-        select: {
-          name: true,
-        },
-      });
-      setCluster(item);
-    } catch (err) {
-      setError(API.getFriendlyMessage(err));
-    }
-    setIsLoading(false);
-  };
-
-  const fetchResource: PromiseVoidFunction = async (): Promise<void> => {
-    setIsLoadingResource(true);
-    try {
-      const result: ListResult<CephResourceModel> =
-        await ModelAPI.getList<CephResourceModel>({
-          modelType: CephResourceModel,
-          query: {
-            cephClusterId: modelId,
-            kind: "Pool",
-            externalId: poolId,
-          },
-          skip: 0,
-          limit: 1,
-          select: {
-            externalId: true,
-            name: true,
-            storedBytes: true,
-            maxAvailBytes: true,
-            objects: true,
-            metricsUpdatedAt: true,
-            lastSeenAt: true,
-            createdAt: true,
-          },
-          sort: {},
-        });
-      setResource(result.data[0] || null);
-    } catch {
-      // Graceful degradation — overview tab shows the empty state.
-    }
-    setIsLoadingResource(false);
-  };
+  const clusterName: string = part.cluster?.name || "";
 
   /*
-   * Pure client math on the already-stored metric series — no new
-   * metrics, no alerting (same fetch shape as the cluster Overview's
-   * capacity projection). Failures simply hide the growth row.
+   * Pure client math on the already-stored metric series - no new metrics,
+   * no alerting (the cluster Overview's capacity projection, per pool).
+   * Failures leave the growth row out.
    */
-  const fetchGrowthProjection: (clusterName: string) => Promise<void> = async (
-    clusterName: string,
+  const fetchGrowthProjection: (name: string) => Promise<void> = async (
+    name: string,
   ): Promise<void> => {
     try {
       const endDate: Date = OneUptimeDate.getCurrentDate();
@@ -157,7 +118,7 @@ const CephClusterPoolDetail: FunctionComponent<
                 time: new InBetween(startDate, endDate),
                 name: metricName,
                 attributes: {
-                  [CLUSTER_ATTR]: clusterName,
+                  [CLUSTER_ATTR]: name,
                   pool_id: poolId,
                 } as Dictionary<string | number | boolean>,
               },
@@ -203,9 +164,9 @@ const CephClusterPoolDetail: FunctionComponent<
       }
 
       /*
-       * The pool is full when stored reaches stored + max_avail — both
-       * taken from the latest samples so the target tracks replication
-       * and cluster-capacity changes.
+       * The pool is full when stored reaches stored + max_avail, both from
+       * the latest samples, so the target follows replication and
+       * cluster-capacity changes.
        */
       const latestStored: number = storedSamples[storedSamples.length - 1]!.v;
       const latestMaxAvail: number =
@@ -222,39 +183,52 @@ const CephClusterPoolDetail: FunctionComponent<
         ),
       );
     } catch {
-      // Best-effort — the growth projection row simply stays hidden.
+      // Best-effort: the growth row stays out.
     }
   };
 
-  useEffect(() => {
-    fetchCluster().catch((err: Error) => {
-      setError(API.getFriendlyMessage(err));
-    });
-    fetchResource().catch(() => {});
-  }, []);
+  // Its placement groups by state: best-effort, as the Pools list reads them.
+  const fetchPgStates: (name: string) => Promise<void> = async (
+    name: string,
+  ): Promise<void> => {
+    try {
+      const states: CephPgStateReadings = await loadCephPgStates(name);
+      setPgStates(states.byPool.get(poolId) || null);
+    } catch {
+      setPgStates(null);
+    }
+  };
 
-  // ClickHouse-backed projection loads once the cluster name is known.
+  // The metrics' reads wait for the cluster's name.
   useEffect(() => {
-    if (!cluster?.name) {
+    if (!clusterName) {
       return;
     }
-    fetchGrowthProjection(cluster.name).catch(() => {});
-  }, [cluster?.name]);
+    fetchGrowthProjection(clusterName).catch(() => {});
+    fetchPgStates(clusterName).catch(() => {});
+  }, [clusterName]);
 
-  if (isLoading) {
+  if (part.isLoading) {
     return <PageLoader isVisible={true} />;
   }
 
-  if (error) {
-    return <ErrorMessage message={error} />;
+  if (part.error) {
+    return <ErrorMessage message={part.error} />;
   }
 
-  if (!cluster?.name) {
+  if (!clusterName) {
     return <ErrorMessage message="Cluster not found." />;
   }
 
-  const clusterName: string = cluster.name;
-  const poolDisplayName: string = resource?.name || `pool ${poolId}`;
+  const routes: CephPartRoutes = getCephPartRoutes(modelId);
+  const poolDisplayName: string = part.row?.name || `pool ${poolId}`;
+  const assessment: CephAssessment | null = part.row
+    ? assessCephPool(part.row, {
+        now: part.readAt,
+        newestSeenAt: part.newestSeenAt,
+        pgStates: pgStates,
+      })
+    : null;
 
   const buildPoolQuery: (args: {
     variable: string;
@@ -271,12 +245,13 @@ const CephClusterPoolDetail: FunctionComponent<
     legendUnit: string;
     metricName: string;
   }): MetricQueryConfigData => {
+    // The charts draw their titles and legends as they are given.
     return {
       metricAliasData: {
         metricVariable: args.variable,
-        title: args.title,
+        title: translator.translateText(args.title) || args.title,
         description: args.description,
-        legend: args.legend,
+        legend: translator.translateText(args.legend) || args.legend,
         legendUnit: args.legendUnit,
       },
       metricQueryData: {
@@ -333,107 +308,29 @@ const CephClusterPoolDetail: FunctionComponent<
     }),
   ];
 
-  // Build overview summary fields from the inventory row.
-  const storedBytes: number | null = resource
-    ? CephResourceUtils.freshMetricValue(resource, resource.storedBytes)
-    : null;
-  const maxAvailBytes: number | null = resource
-    ? CephResourceUtils.freshMetricValue(resource, resource.maxAvailBytes)
-    : null;
-  const usedPercent: number | null =
-    storedBytes !== null &&
-    maxAvailBytes !== null &&
-    storedBytes + maxAvailBytes > 0
-      ? (storedBytes / (storedBytes + maxAvailBytes)) * 100
-      : null;
-
-  const summaryFields: Array<SummaryField> = [
-    { title: "Pool", value: poolDisplayName },
-    { title: "Pool ID", value: poolId },
-    { title: "Cluster", value: clusterName },
-  ];
-
-  /*
-   * WI-29: "pool ~full in N days" from the stored-bytes linear fit.
-   * Shown only when it carries signal (growing or already at capacity);
-   * an explicit caveat keeps it honest when under 2h of history backs
-   * the fit.
-   */
-  const growthValue: string | null = (() => {
-    if (!growth || growth.daysToTarget === null) {
-      return null;
-    }
-    if (growth.daysToTarget === 0) {
-      return "At capacity — no writable space left";
-    }
-    if (!Number.isFinite(growth.daysToTarget)) {
-      return null;
-    }
-    const caveat: string =
-      growth.sampleSpanMs < MIN_CONFIDENT_FIT_SPAN_MS
-        ? " (low confidence — under 2h of history)"
-        : "";
-    if (growth.daysToTarget > 365) {
-      return `Full in >1 year at current growth${caveat}`;
-    }
-    return `Full in ~${Math.max(1, Math.round(growth.daysToTarget))}d at current growth${caveat}`;
-  })();
-
-  if (resource) {
-    summaryFields.push(
-      {
-        title: "Stored",
-        value: CephResourceUtils.formatBytes(storedBytes),
-        description: CEPH_METRIC_DESCRIPTIONS.poolStored,
-      },
-      {
-        title: "Max Available",
-        value: CephResourceUtils.formatBytes(maxAvailBytes),
-        description: CEPH_METRIC_DESCRIPTIONS.poolMaxAvail,
-      },
-      {
-        title: "Used",
-        value: CephResourceUtils.formatPercent(usedPercent),
-        description: CEPH_METRIC_DESCRIPTIONS.poolUsed,
-      },
-    );
-    if (growthValue) {
-      summaryFields.push({
-        title: "Growth",
-        value: growthValue,
-        description: CEPH_METRIC_DESCRIPTIONS.poolGrowth,
-      });
-    }
-    summaryFields.push(
-      {
-        title: "Objects",
-        description: CEPH_METRIC_DESCRIPTIONS.poolObjects,
-        value: CephResourceUtils.formatCount(
-          resource
-            ? CephResourceUtils.freshMetricValue(resource, resource.objects)
-            : null,
-        ),
-      },
-      {
-        title: "Last Seen",
-        value: CephResourceUtils.formatLastSeen(resource.lastSeenAt),
-      },
-    );
-  }
-
   const tabs: Array<Tab> = [
     {
       name: "Overview",
-      children: (
-        <ResourceOverviewTab
-          summaryFields={resource ? summaryFields : []}
-          labels={{}}
-          annotations={{}}
-          isLoading={isLoadingResource}
-          emptyMessage={translator.translateTemplate(
-            "Pool {{poolId}} is not in the inventory yet. It appears here a few minutes after the Ceph agent starts sending metrics.",
-            { poolId: poolId },
-          )}
+      children: part.isLoadingRows ? (
+        <PageLoader isVisible={true} />
+      ) : part.rowError ? (
+        <ResourcePartReadError
+          testId="ceph-pool-read-error"
+          title="Couldn't load this pool"
+          message={part.rowError}
+          onRetry={part.refresh}
+        />
+      ) : (
+        <CephPoolOverview
+          clusterId={modelId}
+          clusterName={clusterName}
+          externalId={poolId}
+          row={part.row}
+          newestSeenAt={part.newestSeenAt}
+          pgStates={pgStates}
+          growth={growth}
+          routes={routes}
+          now={part.readAt}
         />
       ),
     },
@@ -519,7 +416,20 @@ const CephClusterPoolDetail: FunctionComponent<
     },
   ];
 
-  return <Tabs tabs={tabs} onTabChange={() => {}} />;
+  return (
+    <div data-testid="ceph-pool-page">
+      <CephPartHero
+        kind="Pool"
+        row={part.row}
+        externalId={poolId}
+        assessment={assessment}
+        clusterName={clusterName}
+        clusterRoute={routes.clusterRoute}
+        now={part.readAt}
+      />
+      <Tabs tabs={tabs} wrap={true} onTabChange={() => {}} />
+    </div>
+  );
 };
 
 export default CephClusterPoolDetail;

@@ -3,7 +3,6 @@ import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
 import DockerSwarmResourceModel from "Common/Models/DatabaseModels/DockerSwarmResource";
-import Card from "Common/UI/Components/Card/Card";
 import PageMap from "../../../Utils/PageMap";
 import AgentVersion from "../../../Components/AgentVersion/AgentVersion";
 import { AgentKind } from "../../../Components/AgentVersion/AgentKind";
@@ -13,28 +12,46 @@ import { getDockerSwarmClusterConnectionGuide } from "../../../Components/Resour
 import { getConfiguredOneUptimeUrl } from "../../../Components/SetupGuide/ConfiguredOneUptimeUrl";
 import ResourceAiAgentStatusSummaryCard from "../../../Components/ResourceAiAgent/ResourceAiAgentStatusSummaryCard";
 import { getResourceAiAgentDescriptor } from "../../../Components/ResourceAiAgent/ResourceAiAgentDescriptors";
+import ResourceActivityCards from "../../../Components/ResourceActivity/ResourceActivityCards";
+import ResourceRecordDetailsCard from "../../../Components/TelemetryResource/ResourceRecordDetailsCard";
+import NeedsAttentionCard from "../../../Components/ResourcePart/NeedsAttentionCard";
+import {
+  ResourceAttentionItem,
+  ResourceHealth,
+} from "../../../Components/ResourcePart/ResourceAttention";
+import DockerSwarmNodesCard from "../../../Components/DockerSwarm/DockerSwarmNodesCard";
+import {
+  DockerSwarmPartRoutes,
+  getDockerSwarmPartRoutes,
+} from "../../../Components/DockerSwarm/Part/DockerSwarmPartRoutes";
 import AiResourceType from "Common/Types/ResourceAiAgent/AiResourceType";
 import Route from "Common/Types/API/Route";
+import FieldType from "Common/UI/Components/Types/FieldType";
 import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import Link from "Common/UI/Components/Link/Link";
 import OneUptimeDate from "Common/Types/Date";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import { fetchDockerSwarmInventoryRows } from "../Utils/DockerSwarmResourceUtils";
 import {
-  fetchDockerSwarmInventoryRows,
-  routeParamFromExternalId,
-  displayNameForResource,
-} from "../Utils/DockerSwarmResourceUtils";
+  countDockerSwarmTasks,
+  getDockerSwarmAttentionItems,
+  getDockerSwarmHealth,
+  getDockerSwarmManagerQuorum,
+  DockerSwarmManagerQuorum,
+  DockerSwarmTaskCount,
+} from "../Utils/DockerSwarmHealth";
 import AutoRefreshControl from "../../../Components/TelemetryResource/AutoRefreshControl";
 import ResourceHeroDescription from "../../../Components/TelemetryResource/ResourceHeroDescription";
 import useAutoRefresh from "../../../Components/TelemetryResource/useAutoRefresh";
@@ -52,103 +69,76 @@ import {
 } from "../../../Components/TelemetryResource/ResourceHeroStatus";
 import { DOCKER_SWARM_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/DockerSwarmMetricDescriptions";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import {
-  translatableTerm,
-  translationKey,
-  Translator,
-} from "Common/UI/Utils/TranslateTemplate";
+import { formatRelativeTime } from "../../../Components/Home/HomeRelativeTime";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
-type ClusterHealth = "Healthy" | "Degraded" | "Unhealthy";
+/*
+ * A Docker Swarm cluster's Overview, what `docker node ls` and
+ * `docker service ls` would tell an administrator first:
+ *
+ *   - the hero: the agent's connection and the swarm's health by its rules
+ *     (DockerSwarmHealth), and counts that open their lists - nodes ready,
+ *     managers, services, tasks running, stacks;
+ *   - Needs attention: what is broken or needs a look, the most urgent
+ *     first, each with why and Docker's own words, one step from its page -
+ *     while the agent reports (a disconnected swarm's last snapshot is no
+ *     longer the truth, and the hero says Health Unknown instead);
+ *   - each node at a glance, the ones in trouble first;
+ *   - what is open on the cluster, its details, and its AI agent.
+ *
+ * Everything but the activity counts reads the DockerSwarmResource
+ * inventory - the same rows the side menu counts and the lists read - in
+ * one read, so a count, a list and a row here can never disagree.
+ */
 
 interface SpecChip {
   icon: IconProp;
   label: string;
-  /*
-   * Metric chips only: the chip's label is a sentence with numbers in it
-   * ("3/3 nodes ready"), so the (i) is named after `name` instead.
-   */
-  name?: string | undefined;
-  description?: string | undefined;
-}
-
-export interface SwarmCountTileProps {
-  label: string;
-  value: number;
-  subline: string | null;
-  // What the count means, shown in an (i) tooltip beside the label.
-  description?: string | undefined;
-  onOpen: () => void;
-}
-
-/*
- * One count on the overview strip; the whole tile opens that list. The
- * open control is laid over the card rather than wrapped around it, so the
- * (i) - itself a button - is never nested inside another button, and it is
- * lifted above the overlay so asking what a count means does not navigate.
- */
-export const SwarmCountTile: FunctionComponent<SwarmCountTileProps> = (
-  props: SwarmCountTileProps,
-): ReactElement => {
-  const translator: Translator = useTranslator();
-  return (
-    <div className="relative rounded-lg border border-gray-200 bg-white p-4 text-left shadow-sm transition hover:border-sky-300 hover:shadow">
-      <button
-        type="button"
-        onClick={props.onOpen}
-        className="absolute inset-0 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
-      >
-        <span className="sr-only">
-          {translator.translateTemplate("View {{label}}", {
-            label: translatableTerm(props.label),
-          })}
-        </span>
-      </button>
-      <div className="flex items-center gap-1">
-        <div className="text-xs font-medium uppercase tracking-wide text-gray-500">
-          {translator.translateText(props.label)}
-        </div>
-        <InfoTooltip
-          label={props.label}
-          text={props.description}
-          className="relative z-10"
-        />
-      </div>
-      <div className="mt-1 text-2xl font-semibold text-gray-900">
-        {props.value}
-      </div>
-      {props.subline && (
-        <div className="mt-0.5 text-xs text-gray-500">{props.subline}</div>
-      )}
-    </div>
-  );
-};
-
-interface DegradedItem {
-  kind: "Node" | "Service" | "Task";
-  // Detail-page link target externalId (empty = unclickable row).
-  externalId: string;
-  name: string;
-  reasons: Array<string>;
-  // true = drives Unhealthy (red), false = drives Degraded (amber).
-  isCritical: boolean;
+  route?: Route | undefined;
+  testId?: string | undefined;
 }
 
 interface InventorySummary {
+  rows: Array<DockerSwarmResourceModel>;
   nodesReady: number;
   nodesTotal: number;
-  servicesConverged: number;
   servicesTotal: number;
-  tasksRunning: number;
-  tasksTotal: number;
+  tasks: DockerSwarmTaskCount;
   stackCount: number;
-  networkCount: number;
-  secretCount: number;
-  configCount: number;
-  volumeCount: number;
-  managerCount: number;
-  degradedItems: Array<DegradedItem>;
-  health: ClusterHealth;
+  managers: DockerSwarmManagerQuorum | null;
 }
+
+function summarize(rows: Array<DockerSwarmResourceModel>): InventorySummary {
+  let nodesReady: number = 0;
+  let nodesTotal: number = 0;
+  let servicesTotal: number = 0;
+  let stackCount: number = 0;
+  for (const row of rows) {
+    if (row.kind === "Node") {
+      nodesTotal++;
+      if ((row.state || "").toLowerCase() === "ready") {
+        nodesReady++;
+      }
+    } else if (row.kind === "Service") {
+      servicesTotal++;
+    } else if (row.kind === "Stack") {
+      stackCount++;
+    }
+  }
+  return {
+    rows: rows,
+    nodesReady: nodesReady,
+    nodesTotal: nodesTotal,
+    servicesTotal: servicesTotal,
+    tasks: countDockerSwarmTasks(rows),
+    stackCount: stackCount,
+    managers: getDockerSwarmManagerQuorum(rows),
+  };
+}
+
+const CHIP_CLASS_NAME: string =
+  "inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-700";
+const CHIP_LINK_CLASS_NAME: string = `${CHIP_CLASS_NAME} hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500`;
 
 const DockerSwarmClusterOverview: FunctionComponent<
   PageComponentProps
@@ -164,144 +154,40 @@ const DockerSwarmClusterOverview: FunctionComponent<
   const [isInventoryLoading, setIsInventoryLoading] = useState<boolean>(true);
   const [inventoryError, setInventoryError] = useState<string>("");
   const [inventory, setInventory] = useState<InventorySummary | null>(null);
-
+  const [inventoryReadAt, setInventoryReadAt] = useState<Date>(
+    OneUptimeDate.getCurrentDate(),
+  );
+  // Only the newest inventory read lands (a refresh can overtake a slow one).
+  const inventorySeq: React.MutableRefObject<number> = useRef<number>(0);
   /*
-   * Inventory-derived summary — health, counts, and the "why degraded?"
-   * drill-down all come from the DockerSwarmResource Postgres table
-   * (instant; no ClickHouse), the same rows the sidebar badges and list
-   * pages use, so they can never drift.
+   * Toggled on every auto and manual refresh, so the details card re-reads
+   * the Docker and agent versions along with the rest of the page.
    */
-  const loadInventory: PromiseVoidFunction = async (): Promise<void> => {
-    setInventoryError("");
+  const [detailsRefresher, setDetailsRefresher] = useState<boolean>(false);
+
+  const loadInventory: () => Promise<void> = async (): Promise<void> => {
+    const seq: number = ++inventorySeq.current;
     try {
       const rows: Array<DockerSwarmResourceModel> =
         await fetchDockerSwarmInventoryRows({
           dockerSwarmClusterId: modelId,
         });
-
-      let nodesReady: number = 0;
-      let nodesTotal: number = 0;
-      let managerCount: number = 0;
-      let servicesConverged: number = 0;
-      let servicesTotal: number = 0;
-      let tasksRunning: number = 0;
-      let tasksTotal: number = 0;
-      let stackCount: number = 0;
-      let networkCount: number = 0;
-      let secretCount: number = 0;
-      let configCount: number = 0;
-      let volumeCount: number = 0;
-      const degradedItems: Array<DegradedItem> = [];
-
-      for (const row of rows) {
-        const name: string = displayNameForResource(row);
-        const externalId: string = row.externalId || "";
-
-        if (row.kind === "Node") {
-          nodesTotal++;
-          if (row.role === "manager") {
-            managerCount++;
-          }
-          if (row.isReady) {
-            nodesReady++;
-          } else if (row.isReady === false) {
-            degradedItems.push({
-              kind: "Node",
-              externalId,
-              name,
-              reasons: [row.state ? `Node ${row.state}` : "Node not ready"],
-              isCritical: true,
-            });
-          }
-        } else if (row.kind === "Service") {
-          servicesTotal++;
-          if (row.isReady) {
-            servicesConverged++;
-          } else if (row.isReady === false) {
-            const running: number = Number(row.runningReplicas ?? 0);
-            const desired: number | null =
-              row.desiredReplicas !== null && row.desiredReplicas !== undefined
-                ? Number(row.desiredReplicas)
-                : null;
-            degradedItems.push({
-              kind: "Service",
-              externalId,
-              name,
-              reasons: [
-                desired !== null
-                  ? `${running}/${desired} replicas running`
-                  : "Service not converged",
-              ],
-              isCritical: false,
-            });
-          }
-        } else if (row.kind === "Task") {
-          tasksTotal++;
-          const state: string = (row.state || "").toLowerCase();
-          if (state === "running") {
-            tasksRunning++;
-          } else if (
-            state === "failed" ||
-            state === "rejected" ||
-            state === "orphaned"
-          ) {
-            degradedItems.push({
-              kind: "Task",
-              externalId,
-              name,
-              reasons: [`Task ${row.state}`],
-              isCritical: false,
-            });
-          }
-        } else if (row.kind === "Stack") {
-          stackCount++;
-        } else if (row.kind === "Network") {
-          networkCount++;
-        } else if (row.kind === "Secret") {
-          secretCount++;
-        } else if (row.kind === "Config") {
-          configCount++;
-        } else if (row.kind === "Volume") {
-          volumeCount++;
-        }
+      if (seq !== inventorySeq.current) {
+        return;
       }
-
-      /*
-       * Health: Unhealthy when any node is not ready; Degraded when a
-       * service is not converged or a task has failed; Healthy otherwise.
-       */
-      let health: ClusterHealth = "Healthy";
-      if (
-        degradedItems.some((item: DegradedItem) => {
-          return item.isCritical;
-        })
-      ) {
-        health = "Unhealthy";
-      } else if (degradedItems.length > 0) {
-        health = "Degraded";
-      }
-
-      setInventory({
-        nodesReady,
-        nodesTotal,
-        servicesConverged,
-        servicesTotal,
-        tasksRunning,
-        tasksTotal,
-        stackCount,
-        networkCount,
-        secretCount,
-        configCount,
-        volumeCount,
-        managerCount,
-        degradedItems,
-        health,
-      });
+      setInventory(summarize(rows));
+      setInventoryError("");
+      setInventoryReadAt(OneUptimeDate.getCurrentDate());
     } catch (err) {
-      // Surface the failure instead of rendering misleading zero counts.
+      if (seq !== inventorySeq.current) {
+        return;
+      }
+      // Said as such, not as a swarm of no nodes.
       setInventoryError(API.getFriendlyMessage(err));
     } finally {
-      setIsInventoryLoading(false);
+      if (seq === inventorySeq.current) {
+        setIsInventoryLoading(false);
+      }
     }
   };
 
@@ -312,6 +198,9 @@ const DockerSwarmClusterOverview: FunctionComponent<
       setIsLoading(true);
     } else {
       setIsRefreshing(true);
+      setDetailsRefresher((value: boolean): boolean => {
+        return !value;
+      });
     }
     try {
       const item: DockerSwarmCluster | null = await ModelAPI.getItem({
@@ -341,7 +230,7 @@ const DockerSwarmClusterOverview: FunctionComponent<
       setIsRefreshing(false);
 
       if (item?.name) {
-        void loadInventory();
+        await loadInventory();
       } else {
         setIsInventoryLoading(false);
       }
@@ -384,49 +273,46 @@ const DockerSwarmClusterOverview: FunctionComponent<
     return <ErrorMessage message="Cluster not found." />;
   }
 
+  const routes: DockerSwarmPartRoutes = getDockerSwarmPartRoutes(modelId);
+
+  const status: string = (cluster.otelCollectorStatus as string) || "";
+  const isConnected: boolean =
+    status.toLowerCase() === "connected" || status.toLowerCase() === "active";
+
+  /*
+   * What needs attention, most urgent first (DockerSwarmHealth): the same
+   * rules the lists, the part pages and the Topology use, so the health
+   * pill, this list and a node's page can never disagree.
+   */
+  const attentionItems: Array<ResourceAttentionItem> = inventory
+    ? getDockerSwarmAttentionItems({
+        rows: inventory.rows,
+        clusterName: (cluster.name as string | undefined) || "",
+        routeFor: routes.getPartRoute,
+        now: inventoryReadAt,
+      })
+    : [];
+  const clusterHealth: ResourceHealth = getDockerSwarmHealth(attentionItems);
+
   // Inventory-first, cached snapshot columns as fallback.
-  const nodesTotal: number = inventory?.nodesTotal || cluster.nodeCount || 0;
+  const nodesTotal: number = inventory?.nodesTotal ?? (cluster.nodeCount || 0);
   const nodesReady: number = inventory
     ? inventory.nodesReady
     : cluster.readyNodeCount || 0;
-  const managerCount: number = inventory
-    ? inventory.managerCount
+  const managersTotal: number = inventory
+    ? inventory.managers?.total || 0
     : cluster.managerNodeCount || 0;
   const servicesTotal: number =
-    inventory?.servicesTotal || cluster.serviceCount || 0;
-  const tasksTotal: number = inventory?.tasksTotal || cluster.taskCount || 0;
+    inventory?.servicesTotal ?? (cluster.serviceCount || 0);
+  const tasksTotal: number = inventory
+    ? inventory.tasks.total
+    : cluster.taskCount || 0;
   const tasksRunning: number = inventory
-    ? inventory.tasksRunning
+    ? inventory.tasks.running
     : cluster.runningTaskCount || 0;
-  const stackCount: number = inventory?.stackCount || cluster.stackCount || 0;
-  const networkCount: number =
-    inventory?.networkCount || cluster.networkCount || 0;
-
-  const clusterHealth: ClusterHealth = inventory?.health || "Healthy";
-  const degradedItems: Array<DegradedItem> = inventory?.degradedItems || [];
-
-  const navigateToDetail: (item: DegradedItem) => void = (
-    item: DegradedItem,
-  ): void => {
-    if (!item.externalId) {
-      return;
-    }
-    const pageMap: PageMap =
-      item.kind === "Node"
-        ? PageMap.DOCKER_SWARM_CLUSTER_VIEW_NODE_DETAIL
-        : item.kind === "Service"
-          ? PageMap.DOCKER_SWARM_CLUSTER_VIEW_SERVICE_DETAIL
-          : PageMap.DOCKER_SWARM_CLUSTER_VIEW_TASK_DETAIL;
-    Navigation.navigate(
-      RouteUtil.populateRouteParams(RouteMap[pageMap] as Route, {
-        modelId: modelId,
-        subModelId: routeParamFromExternalId(item.externalId),
-      }),
-    );
-  };
+  const stackCount: number = inventory?.stackCount ?? (cluster.stackCount || 0);
 
   const renderHero: () => ReactElement = (): ReactElement => {
-    const status: string = (cluster.otelCollectorStatus as string) || "";
     const lastSeenAt: Date | undefined = cluster.lastSeenAt;
     /*
      * One whole sentence either way: an English "never" in a translated
@@ -434,12 +320,14 @@ const DockerSwarmClusterOverview: FunctionComponent<
      */
     const lastSeenText: string = lastSeenAt
       ? translator.translateTemplate("Last seen {{time}}", {
-          time: OneUptimeDate.fromNow(lastSeenAt),
+          // In the reader's language, as a part's page says it.
+          time: formatRelativeTime({
+            date: OneUptimeDate.fromString(lastSeenAt),
+            now: new Date(),
+            language: translator.language,
+          }),
         })
       : translator.translateText("Never seen") || "Never seen";
-
-    const isConnected: boolean =
-      status.toLowerCase() === "connected" || status.toLowerCase() === "active";
 
     const displayName: string =
       (cluster.name as string | undefined) || "Untitled Docker Swarm cluster";
@@ -484,59 +372,80 @@ const DockerSwarmClusterOverview: FunctionComponent<
           ? "bg-amber-500"
           : "bg-red-500";
 
+    /*
+     * The count chips open their list: the Overview's one step to the
+     * nodes, the services, the tasks and the stacks (the side menu has the
+     * rest).
+     */
     const specChips: Array<SpecChip> = [];
     if (nodesTotal > 0) {
       specChips.push({
-        icon: IconProp.ServerStack,
+        icon: IconProp.Server,
+        route: routes.nodesRoute,
+        testId: "docker-swarm-hero-nodes",
         label: translator.translatePlural(
           {
             one: "{{ready}}/{{count}} node ready",
             other: "{{ready}}/{{count}} nodes ready",
           },
           nodesTotal,
-          { ready: nodesReady },
+          // In the reader's digits, as the count beside it is.
+          { ready: translator.formatNumber(nodesReady) },
         ),
-        name: translationKey("Nodes ready"),
-        description: DOCKER_SWARM_METRIC_DESCRIPTIONS.nodes,
       });
     }
-    if (managerCount > 0) {
+    if (managersTotal > 0) {
       specChips.push({
         icon: IconProp.Star,
+        route: routes.nodesRoute,
+        testId: "docker-swarm-hero-managers",
         label: translator.translatePlural(
           { one: "{{count}} manager", other: "{{count}} managers" },
-          managerCount,
+          managersTotal,
         ),
-        name: translationKey("Managers"),
-        description: DOCKER_SWARM_METRIC_DESCRIPTIONS.managers,
       });
     }
     if (servicesTotal > 0) {
       specChips.push({
-        icon: IconProp.Cube,
+        icon: IconProp.SquareStack,
+        route: routes.servicesRoute,
+        testId: "docker-swarm-hero-services",
         label: translator.translatePlural(
           { one: "{{count}} service", other: "{{count}} services" },
           servicesTotal,
         ),
-        name: translationKey("Services"),
-        description: DOCKER_SWARM_METRIC_DESCRIPTIONS.services,
       });
     }
     if (tasksTotal > 0) {
       specChips.push({
-        icon: IconProp.List,
+        icon: IconProp.QueueList,
+        route: routes.tasksRoute,
+        testId: "docker-swarm-hero-tasks",
         label: translator.translatePlural(
           {
             one: "{{running}}/{{count}} task running",
             other: "{{running}}/{{count}} tasks running",
           },
           tasksTotal,
-          { running: tasksRunning },
+          { running: translator.formatNumber(tasksRunning) },
         ),
-        name: translationKey("Tasks running"),
-        description: DOCKER_SWARM_METRIC_DESCRIPTIONS.tasks,
       });
     }
+    if (stackCount > 0) {
+      specChips.push({
+        icon: IconProp.RectangleStack,
+        route: RouteUtil.populateRouteParams(
+          RouteMap[PageMap.DOCKER_SWARM_CLUSTER_VIEW_STACKS] as Route,
+          { modelId: modelId },
+        ),
+        testId: "docker-swarm-hero-stacks",
+        label: translator.translatePlural(
+          { one: "{{count}} stack", other: "{{count}} stacks" },
+          stackCount,
+        ),
+      });
+    }
+    const hasCountChips: boolean = specChips.length > 0;
     if (cluster.dockerVersion) {
       specChips.push({
         icon: IconProp.Info,
@@ -545,6 +454,15 @@ const DockerSwarmClusterOverview: FunctionComponent<
         }),
       });
     }
+
+    /*
+     * A swarm that has reported no node yet has no health to tell:
+     * "Healthy" there would be a guess.
+     */
+    const showsHealth: boolean =
+      !isInventoryLoading &&
+      !inventoryError &&
+      (inventory?.rows.length ?? 0) > 0;
 
     return (
       <div className="relative mb-6 rounded-xl border border-gray-200 bg-white shadow-sm">
@@ -580,6 +498,7 @@ const DockerSwarmClusterOverview: FunctionComponent<
                     {displayName}
                   </h1>
                   <span
+                    data-testid="docker-swarm-hero-connection"
                     className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${connectionBadgeClass}`}
                   >
                     <span
@@ -587,14 +506,22 @@ const DockerSwarmClusterOverview: FunctionComponent<
                     />
                     {connectionLabel}
                   </span>
-                  {!isInventoryLoading && !inventoryError && (
-                    <span
-                      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${healthBadgeClass}`}
-                    >
+                  {showsHealth && (
+                    <span className="inline-flex items-center gap-1">
                       <span
-                        className={`h-1.5 w-1.5 rounded-full ${healthDotClass}`}
+                        data-testid="docker-swarm-hero-health"
+                        data-health={isConnected ? clusterHealth : "Unknown"}
+                        className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${healthBadgeClass}`}
+                      >
+                        <span
+                          className={`h-1.5 w-1.5 rounded-full ${healthDotClass}`}
+                        />
+                        {healthLabel}
+                      </span>
+                      <InfoTooltip
+                        label="Swarm health"
+                        text={DOCKER_SWARM_METRIC_DESCRIPTIONS.clusterHealth}
                       />
-                      {healthLabel}
                     </span>
                   )}
                 </div>
@@ -621,68 +548,59 @@ const DockerSwarmClusterOverview: FunctionComponent<
           </div>
 
           {(specChips.length > 0 || Boolean(cluster.agentVersion)) && (
-            <div className="mt-4 flex flex-wrap gap-1.5">
+            <div
+              className="mt-4 flex flex-wrap items-center gap-1.5"
+              data-testid="docker-swarm-hero-chips"
+            >
               {specChips.map((chip: SpecChip, idx: number): ReactElement => {
-                return (
-                  <span
-                    key={`spec-${idx}`}
-                    className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-700"
-                  >
+                const content: ReactElement = (
+                  <>
                     <Icon icon={chip.icon} className="h-3 w-3 text-gray-500" />
                     <span className="font-medium">{chip.label}</span>
-                    <InfoTooltip
-                      label={chip.name || chip.label}
-                      text={chip.description}
-                      iconClassName="h-3 w-3"
-                    />
+                  </>
+                );
+                if (chip.route) {
+                  return (
+                    <Link
+                      key={`spec-${idx}`}
+                      to={chip.route}
+                      dataTestId={chip.testId}
+                      className={CHIP_LINK_CLASS_NAME}
+                    >
+                      {content}
+                    </Link>
+                  );
+                }
+                return (
+                  <span key={`spec-${idx}`} className={CHIP_CLASS_NAME}>
+                    {content}
                   </span>
                 );
               })}
               {/*
-               * The agent's version chip, last. A sign on it, when the
-               * agent is behind the collector this release pins, opens how
-               * to upgrade it.
+               * The agent's version chip. A sign on it, when the agent is
+               * behind the files this release ships, opens how to upgrade
+               * it.
                */}
               <AgentVersion
                 kind={AgentKind.DockerSwarmAgent}
                 version={cluster.agentVersion}
                 variant="chip"
               />
+              {/*
+               * Only the count chips need explaining; the version chips are
+               * metadata, so a row of versions alone gets no (i).
+               */}
+              {hasCountChips && (
+                <InfoTooltip
+                  label="Swarm inventory counts"
+                  text={DOCKER_SWARM_METRIC_DESCRIPTIONS.inventoryCounts}
+                />
+              )}
             </div>
           )}
         </div>
       </div>
-    );
-  };
-
-  const renderCountTile: (
-    label: string,
-    value: number,
-    subline: string | null,
-    pageMap: PageMap,
-    description?: string,
-  ) => ReactElement = (
-    label: string,
-    value: number,
-    subline: string | null,
-    pageMap: PageMap,
-    description?: string,
-  ): ReactElement => {
-    return (
-      <SwarmCountTile
-        key={label}
-        label={label}
-        value={value}
-        subline={subline}
-        description={description}
-        onOpen={() => {
-          Navigation.navigate(
-            RouteUtil.populateRouteParams(RouteMap[pageMap] as Route, {
-              modelId: modelId,
-            }),
-          );
-        }}
-      />
     );
   };
 
@@ -704,126 +622,107 @@ const DockerSwarmClusterOverview: FunctionComponent<
         )}
       />
 
-      {inventoryError && <ErrorMessage message={inventoryError} />}
+      {/*
+       * What needs someone, most urgent first - while the agent reports: a
+       * disconnected swarm's last snapshot is no longer the truth, and the
+       * hero says Health Unknown instead. A read that fails says so in the
+       * card's frame, with Refresh.
+       */}
+      {inventoryError ? (
+        <NeedsAttentionCard
+          testId="docker-swarm-needs-attention"
+          items={[]}
+          error={inventoryError}
+          onRetry={(): void => {
+            setIsInventoryLoading(true);
+            loadInventory().catch(() => {});
+          }}
+        />
+      ) : isConnected && !isInventoryLoading ? (
+        <NeedsAttentionCard
+          testId="docker-swarm-needs-attention"
+          items={attentionItems}
+        />
+      ) : (
+        <></>
+      )}
 
-      <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
-        {renderCountTile(
-          translationKey("Nodes"),
-          nodesTotal,
-          nodesTotal > 0
-            ? translator.translateTemplate("{{ready}}/{{total}} ready", {
-                ready: nodesReady,
-                total: nodesTotal,
-              })
-            : null,
-          PageMap.DOCKER_SWARM_CLUSTER_VIEW_NODES,
-          DOCKER_SWARM_METRIC_DESCRIPTIONS.nodes,
-        )}
-        {renderCountTile(
-          translationKey("Services"),
-          servicesTotal,
-          inventory && servicesTotal > 0
-            ? translator.translateTemplate(
-                "{{converged}}/{{total}} converged",
-                {
-                  converged: inventory.servicesConverged,
-                  total: servicesTotal,
-                },
-              )
-            : null,
-          PageMap.DOCKER_SWARM_CLUSTER_VIEW_SERVICES,
-          DOCKER_SWARM_METRIC_DESCRIPTIONS.services,
-        )}
-        {renderCountTile(
-          translationKey("Tasks"),
-          tasksTotal,
-          tasksTotal > 0
-            ? translator.translateTemplate("{{running}}/{{total}} running", {
-                running: tasksRunning,
-                total: tasksTotal,
-              })
-            : null,
-          PageMap.DOCKER_SWARM_CLUSTER_VIEW_TASKS,
-          DOCKER_SWARM_METRIC_DESCRIPTIONS.tasks,
-        )}
-        {renderCountTile(
-          translationKey("Stacks"),
-          stackCount,
-          null,
-          PageMap.DOCKER_SWARM_CLUSTER_VIEW_STACKS,
-          DOCKER_SWARM_METRIC_DESCRIPTIONS.stacks,
-        )}
-        {renderCountTile(
-          translationKey("Networks"),
-          networkCount,
-          null,
-          PageMap.DOCKER_SWARM_CLUSTER_VIEW_NETWORKS,
-          DOCKER_SWARM_METRIC_DESCRIPTIONS.networks,
-        )}
-        {renderCountTile(
-          translationKey("Volumes"),
-          inventory?.volumeCount || 0,
-          null,
-          PageMap.DOCKER_SWARM_CLUSTER_VIEW_VOLUMES,
-          DOCKER_SWARM_METRIC_DESCRIPTIONS.volumes,
-        )}
-      </div>
+      {/* Each node at a glance, the ones in trouble first */}
+      {inventory ? (
+        <DockerSwarmNodesCard
+          rows={inventory.rows}
+          getNodeRoute={(externalId: string): Route => {
+            return routes.getPartRoute("Node", externalId);
+          }}
+          nodesRoute={routes.nodesRoute}
+          now={inventoryReadAt}
+        />
+      ) : (
+        <></>
+      )}
 
-      <Card
-        title="Cluster Health"
-        description="Nodes, services and tasks that are not in a healthy steady state, derived from the latest inventory snapshot."
-      >
-        {isInventoryLoading ? (
-          <div className="h-24 animate-pulse rounded-md bg-gray-50" />
-        ) : degradedItems.length === 0 ? (
-          <div className="flex items-center gap-2 py-4 text-sm text-gray-500">
-            <Icon
-              icon={IconProp.CheckCircle}
-              className="h-4 w-4 text-emerald-500"
-            />
-            {translator.translateText(
-              "Everything looks healthy — all reported nodes, services and tasks are in a steady state.",
-            )}
-          </div>
-        ) : (
-          <ul className="divide-y divide-gray-100">
-            {degradedItems.map(
-              (item: DegradedItem, idx: number): ReactElement => {
-                return (
-                  <li
-                    key={`degraded-${idx}`}
-                    className={`flex items-start justify-between gap-3 py-3 ${
-                      item.externalId ? "cursor-pointer hover:bg-gray-50" : ""
-                    }`}
-                    onClick={() => {
-                      navigateToDetail(item);
-                    }}
-                  >
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`h-1.5 w-1.5 rounded-full ${
-                            item.isCritical ? "bg-red-500" : "bg-amber-500"
-                          }`}
-                        />
-                        <span className="text-sm font-medium text-gray-900">
-                          {item.name}
-                        </span>
-                        <span className="inline-flex rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-600">
-                          {translator.translateText(item.kind)}
-                        </span>
-                      </div>
-                      <div className="mt-0.5 ml-3.5 text-xs text-gray-500">
-                        {item.reasons.join(", ")}
-                      </div>
-                    </div>
-                  </li>
-                );
-              },
-            )}
-          </ul>
+      <ResourceActivityCards
+        modelId={modelId}
+        resourceQueryKey="dockerSwarmClusters"
+        refreshToken={lastRefreshedAt ? lastRefreshedAt.getTime() : undefined}
+        incidentsRoute={routes.incidentsRoute}
+        alertsRoute={routes.alertsRoute}
+        scheduledMaintenanceRoute={RouteUtil.populateRouteParams(
+          RouteMap[
+            PageMap.DOCKER_SWARM_CLUSTER_VIEW_SCHEDULED_MAINTENANCE
+          ] as Route,
+          { modelId: modelId },
         )}
-      </Card>
+      />
+
+      {/*
+       * What the swarm reported about itself, and only that
+       * (ResourceRecordDetailsCard): its name, description and when it was
+       * last seen are the hero's, its labels the header's. Edited on its
+       * Settings page, in the card of the same title.
+       */}
+      <ResourceRecordDetailsCard<DockerSwarmCluster>
+        modelType={DockerSwarmCluster}
+        modelId={modelId}
+        id="docker-swarm-cluster-overview"
+        title="Cluster Details"
+        refresher={detailsRefresher}
+        settingsRoute={RouteUtil.populateRouteParams(
+          RouteMap[PageMap.DOCKER_SWARM_CLUSTER_VIEW_SETTINGS] as Route,
+          { modelId: modelId },
+        )}
+        facts={[
+          {
+            field: {
+              swarmId: true,
+            },
+            title: "Swarm ID",
+            fieldType: FieldType.Text,
+          },
+          {
+            field: {
+              dockerVersion: true,
+            },
+            title: "Docker Version",
+            fieldType: FieldType.Text,
+          },
+          {
+            field: {
+              agentVersion: true,
+            },
+            title: "Agent Version",
+            fieldType: FieldType.Element,
+            getElement: (item: DockerSwarmCluster): ReactElement => {
+              return (
+                <AgentVersion
+                  kind={AgentKind.DockerSwarmAgent}
+                  version={item.agentVersion}
+                />
+              );
+            },
+          },
+        ]}
+      />
 
       {/*
        * Last on the page: the Docker Swarm AI agent's connection, whether AI

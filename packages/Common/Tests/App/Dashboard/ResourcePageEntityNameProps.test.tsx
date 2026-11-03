@@ -597,10 +597,14 @@ describe("Docker and Podman container detail", () => {
         hostIdentifier: "docker-node-7f3a",
         name: "Edge Node 7",
       });
+      // The container's latest reading names it, its id and its image.
       analyticsGetListMock.mockResolvedValue({
         data: [
           {
+            time: new Date(),
+            value: 12,
             attributes: {
+              "resource.container.name": CONTAINER_NAME,
               "resource.container.id": CONTAINER_ID,
               "resource.container.image.name": "checkout:1.2.3",
             },
@@ -664,7 +668,7 @@ describe("Docker and Podman container detail", () => {
   );
 
   test.each(CASES)(
-    "%s: the overview Host card shows the host's name",
+    "%s: the hero says the container runs on the host, by its name",
     async (_runtime: string, Page: PageComponent) => {
       getItemMock.mockResolvedValue({
         hostIdentifier: "docker-node-7f3a",
@@ -673,9 +677,9 @@ describe("Docker and Podman container detail", () => {
 
       renderPage(Page);
 
-      expect(await screen.findByTestId("info-card-Host")).toHaveTextContent(
-        "Edge Node 7",
-      );
+      expect(
+        await screen.findByTestId("container-host-container-hero"),
+      ).toHaveTextContent("Container on Edge Node 7");
     },
   );
 
@@ -686,9 +690,9 @@ describe("Docker and Podman container detail", () => {
 
       renderPage(Page);
 
-      expect(await screen.findByTestId("info-card-Host")).toHaveTextContent(
-        "docker-node-7f3a",
-      );
+      expect(
+        await screen.findByTestId("container-host-container-hero"),
+      ).toHaveTextContent("Container on docker-node-7f3a");
       expect(lastProps(logsViewerMock)["attributeFilterDisplayValues"]).toEqual(
         {
           "resource.host.name": "docker-node-7f3a",

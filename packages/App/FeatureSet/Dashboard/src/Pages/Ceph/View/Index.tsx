@@ -27,14 +27,11 @@ import { getResourceAiAgentDescriptor } from "../../../Components/ResourceAiAgen
 import AiResourceType from "Common/Types/ResourceAiAgent/AiResourceType";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
-import AnalyticsModelAPI, {
-  ListResult,
-} from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
+import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import Metric from "Common/Models/AnalyticsModels/Metric";
 import ProjectUtil from "Common/UI/Utils/Project";
 import OneUptimeDate from "Common/Types/Date";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
@@ -53,7 +50,9 @@ import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
-import CephResourceUtils from "../Utils/CephResourceUtils";
+import CephResourceUtils, {
+  getCephShortVersion,
+} from "../Utils/CephResourceUtils";
 import AutoRefreshControl from "../../../Components/TelemetryResource/AutoRefreshControl";
 import {
   RESOURCE_HERO_CONTROLS_CLASS_NAME,
@@ -63,7 +62,37 @@ import {
   RESOURCE_HERO_TOP_ROW_CLASS_NAME,
   RESOURCE_HERO_TOP_ROW_TEST_ID,
 } from "../../../Components/TelemetryResource/ResourceHeroLayout";
-import { getResourceConnectionLabel } from "../../../Components/TelemetryResource/ResourceHeroStatus";
+import {
+  getResourceConnectionLabel,
+  getResourceHealthLabel,
+} from "../../../Components/TelemetryResource/ResourceHeroStatus";
+import NeedsAttentionCard from "../../../Components/ResourcePart/NeedsAttentionCard";
+import { formatRelativeTime } from "../../../Components/Home/HomeRelativeTime";
+import {
+  ResourceAttentionItem,
+  ResourceHealth,
+} from "../../../Components/ResourcePart/ResourceAttention";
+import {
+  CephPartRoutes,
+  getCephPartRoutes,
+} from "../../../Components/Ceph/Part/CephPartRoutes";
+import {
+  CEPH_CLUSTER_FULL_PERCENT,
+  CEPH_CLUSTER_NEARFULL_PERCENT,
+  CephHealthCheck,
+  CephPoolPgStates,
+  getCephAttentionItems,
+  getCephHealth,
+  getCephPoolReadings,
+} from "../Utils/CephHealth";
+import {
+  CephHealthCheckReadings,
+  CephLatestPerLabel,
+  CephPgStateReadings,
+  loadCephHealthChecks,
+  loadCephLatestPerLabel,
+  loadCephPgStates,
+} from "../Utils/CephReadings";
 import useAutoRefresh from "../../../Components/TelemetryResource/useAutoRefresh";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import { CEPH_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/CephMetricDescriptions";
@@ -78,41 +107,37 @@ import React, {
   useState,
 } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
- * Ceph cluster overview hero (WI-8) — the Kubernetes View/Index.tsx
- * analog. Counts and health ride the CephCluster snapshot columns and
- * the CephResource Postgres inventory (single-source with the sidebar
- * badges); ClickHouse is only touched for the parts Postgres cannot
- * answer: the ceph_health_detail named-checks breakdown, the PG state
- * distribution, raw capacity bytes + the linear-fit growth projection,
- * and the golden charts. Each section has its own loader so a slow
- * ClickHouse never blanks the Postgres-served hero (K8s lesson: no
+ * A Ceph cluster's Overview, what `ceph status` and `ceph health detail`
+ * would tell an administrator first:
+ *
+ *   - the hero: the agent's connection and the cluster's health by its
+ *     rules (CephHealth: Ceph's own verdict, its OSDs, monitors and pools),
+ *     and counts that open their lists - OSDs up, monitors in quorum,
+ *     pools;
+ *   - Needs attention: what is broken or needs a look, the most urgent
+ *     first - Ceph's own checks on the cluster's row, as Ceph names them,
+ *     then each OSD, monitor and pool with why, one step from its page -
+ *     while the agent reports (a disconnected cluster's last picture is no
+ *     longer the truth, and the hero says Health Unknown instead);
+ *   - capacity, OSD and placement-group tiles at their alerts' lines, the
+ *     OSD up/in matrix, placement-group states, the golden charts, the
+ *     largest and fullest pools, its details and its AI agent.
+ *
+ * Counts and health ride the CephCluster snapshot columns and the
+ * CephResource Postgres inventory (single-source with the side menu's
+ * counts); ClickHouse is only read for what Postgres cannot answer: the
+ * checks Ceph raised, placement-group states, raw capacity bytes with the
+ * growth projection, and the charts. Each section has its own loader, so a
+ * slow ClickHouse never blanks the Postgres-served hero (K8s lesson: no
  * Promise.all gating across sections).
  */
 
 const CLUSTER_ATTR: string = "resource.ceph.cluster.name";
 
-/*
- * ceph_health_status / healthStatus column: 0 = HEALTH_OK,
- * 1 = HEALTH_WARN, 2 = HEALTH_ERR. null means no batch carried the
- * health series yet.
- */
-type HealthState = "ok" | "warning" | "error" | "unknown";
-
-interface HealthCheckRow {
-  name: string;
-  severity: string;
-}
-
-interface PgStats {
-  total: number | null;
-  active: number | null;
-  clean: number | null;
-  degraded: number | null;
-  undersized: number | null;
-}
+type PgStats = CephPoolPgStates;
 
 interface CapacityStats {
   totalBytes: number | null;
@@ -141,8 +166,21 @@ interface TopPoolRow {
   usedPercent: number | null;
 }
 
+/*
+ * One of the two lists of pools. Its title and description are English
+ * text, which the card and its title translate.
+ */
+interface TopPoolList {
+  title: string;
+  description: string;
+  tooltip: string;
+  rows: Array<TopPoolRow>;
+  renderValue: (row: TopPoolRow) => string;
+}
+
 const PROJECTION_WINDOW_HOURS: number = 24;
-const NEARFULL_RATIO: number = 0.85;
+// The Cluster Near Full alert's line, which the projection counts down to.
+const NEARFULL_RATIO: number = CEPH_CLUSTER_NEARFULL_PERCENT / 100;
 
 const formatPercent: (value: number | null) => string = (
   value: number | null,
@@ -162,21 +200,6 @@ const formatInt: (value: number | null) => string = (
   return Math.round(value).toString();
 };
 
-const healthStateFromStatus: (
-  healthStatus: number | undefined,
-) => HealthState = (healthStatus: number | undefined): HealthState => {
-  if (healthStatus === null || healthStatus === undefined) {
-    return "unknown";
-  }
-  if (healthStatus >= 2) {
-    return "error";
-  }
-  if (healthStatus >= 1) {
-    return "warning";
-  }
-  return "ok";
-};
-
 /*
  * A card or chart title followed by the (i) that says what its numbers
  * mean. Exported for the tooltip render tests.
@@ -189,9 +212,11 @@ export interface CephMetricTitleProps {
 export const CephMetricTitle: FunctionComponent<CephMetricTitleProps> = (
   props: CephMetricTitleProps,
 ): ReactElement => {
+  // A Card translates a title it is given as text, not one inside an element.
+  const translator: Translator = useTranslator();
   return (
     <span className="inline-flex items-center gap-1.5">
-      {props.title}
+      {translator.translateText(props.title) || props.title}
       <InfoTooltip label={props.title} text={props.description} />
     </span>
   );
@@ -245,16 +270,21 @@ export function buildOsdStateCells(matrix: OsdMatrix): Array<OsdStateCell> {
 export const OsdStateCellView: FunctionComponent<{
   cell: OsdStateCell;
 }> = (props: { cell: OsdStateCell }): ReactElement => {
+  const translator: Translator = useTranslator();
   return (
     <div className={`rounded-lg p-4 ring-1 ring-inset ${props.cell.className}`}>
       <div className="text-2xl font-semibold leading-none">
         {props.cell.count}
       </div>
       <div className="mt-1 flex items-center gap-1 text-sm font-medium">
-        <span>{props.cell.label}</span>
+        <span>
+          {translator.translateText(props.cell.label) || props.cell.label}
+        </span>
         <InfoTooltip label={props.cell.label} text={props.cell.description} />
       </div>
-      <div className="text-xs opacity-75">{props.cell.sublabel}</div>
+      <div className="text-xs opacity-75">
+        {translator.translateText(props.cell.sublabel) || props.cell.sublabel}
+      </div>
     </div>
   );
 };
@@ -263,6 +293,18 @@ const CephClusterOverview: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
+  const tx: (text: string) => string = (text: string): string => {
+    return translator.translateText(text) || text;
+  };
+  // A count in a sentence, as the reader's language writes numbers.
+  const formatCount: (value: number | null) => string = (
+    value: number | null,
+  ): string => {
+    if (value === null || !isFinite(value)) {
+      return "—";
+    }
+    return translator.formatNumber(Math.round(value));
+  };
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
   const [cluster, setCluster] = useState<CephCluster | null>(null);
@@ -277,6 +319,14 @@ const CephClusterOverview: FunctionComponent<
   const [detailsRefresher, setDetailsRefresher] = useState<boolean>(false);
 
   // Inventory-backed sections (Postgres, instant).
+  const [inventoryRows, setInventoryRows] = useState<Array<CephResourceModel>>(
+    [],
+  );
+  const [isInventoryLoading, setIsInventoryLoading] = useState<boolean>(true);
+  const [inventoryError, setInventoryError] = useState<string>("");
+  const [inventoryReadAt, setInventoryReadAt] = useState<Date>(
+    OneUptimeDate.getCurrentDate(),
+  );
   const [osdMatrix, setOsdMatrix] = useState<OsdMatrix | null>(null);
   const [monsInQuorum, setMonsInQuorum] = useState<number | null>(null);
   const [monsTotal, setMonsTotal] = useState<number | null>(null);
@@ -285,11 +335,18 @@ const CephClusterOverview: FunctionComponent<
   );
   const [topPoolsByUsed, setTopPoolsByUsed] = useState<Array<TopPoolRow>>([]);
 
-  // ClickHouse-backed sections (best-effort).
-  const [healthChecks, setHealthChecks] = useState<Array<HealthCheckRow>>([]);
-  const [healthChecksAvailable, setHealthChecksAvailable] =
-    useState<boolean>(false);
+  /*
+   * ClickHouse-backed sections (best-effort). The checks are null while
+   * unread, or when this Ceph exports none (older than Quincy): the
+   * cluster's row then says Ceph's verdict without them.
+   */
+  const [healthChecks, setHealthChecks] =
+    useState<Array<CephHealthCheck> | null>(null);
   const [pgStats, setPgStats] = useState<PgStats | null>(null);
+  const [pgStatesByPool, setPgStatesByPool] = useState<Map<
+    string,
+    CephPoolPgStates
+  > | null>(null);
   const [capacity, setCapacity] = useState<CapacityStats | null>(null);
 
   // Shared time range for the golden charts.
@@ -356,11 +413,23 @@ const CephClusterOverview: FunctionComponent<
   };
 
   const fetchInventory: PromiseVoidFunction = async (): Promise<void> => {
-    const rows: Array<CephResourceModel> =
-      await CephResourceUtils.fetchCephResources({
+    let rows: Array<CephResourceModel>;
+    try {
+      rows = await CephResourceUtils.fetchCephResources({
         cephClusterId: modelId,
         kinds: ["Osd", "Pool", "Mon"],
       });
+    } catch (err) {
+      // Said in Needs attention's frame, with Refresh; the rest stays.
+      setInventoryError(API.getFriendlyMessage(err));
+      setIsInventoryLoading(false);
+      return;
+    }
+    const readAt: Date = OneUptimeDate.getCurrentDate();
+    setInventoryRows(rows);
+    setInventoryReadAt(readAt);
+    setInventoryError("");
+    setIsInventoryLoading(false);
 
     const matrix: OsdMatrix = {
       upIn: 0,
@@ -391,25 +460,15 @@ const CephClusterOverview: FunctionComponent<
           quorum++;
         }
       } else if (row.kind === "Pool") {
-        const storedBytes: number | null = CephResourceUtils.freshMetricValue(
-          row,
-          row.storedBytes,
-        );
-        const maxAvailBytes: number | null = CephResourceUtils.freshMetricValue(
-          row,
-          row.maxAvailBytes,
-        );
-        const usedPercent: number | null =
-          storedBytes !== null &&
-          maxAvailBytes !== null &&
-          storedBytes + maxAvailBytes > 0
-            ? (storedBytes / (storedBytes + maxAvailBytes)) * 100
-            : null;
+        const readings: {
+          storedBytes: number | null;
+          usedPercent: number | null;
+        } = getCephPoolReadings(row, readAt);
         pools.push({
           poolId: row.externalId || "",
           poolName: row.name || `pool ${row.externalId || ""}`,
-          storedBytes: storedBytes,
-          usedPercent: usedPercent,
+          storedBytes: readings.storedBytes,
+          usedPercent: readings.usedPercent,
         });
       }
     }
@@ -439,114 +498,20 @@ const CephClusterOverview: FunctionComponent<
     );
   };
 
-  type LatestPerLabel = Map<
-    string,
-    { value: number; attrs: Record<string, unknown> }
-  >;
-
-  const fetchLatestSeries: (
-    clusterName: string,
-    metricName: string,
-    labelAttr: string,
-    windowMinutes: number,
-  ) => Promise<LatestPerLabel> = async (
-    clusterName: string,
-    metricName: string,
-    labelAttr: string,
-    windowMinutes: number,
-  ): Promise<LatestPerLabel> => {
-    const endDate: Date = OneUptimeDate.getCurrentDate();
-    const startDate: Date = OneUptimeDate.addRemoveMinutes(
-      endDate,
-      -windowMinutes,
-    );
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const queryOptions: any = {
-      modelType: Metric,
-      query: {
-        projectId: ProjectUtil.getCurrentProjectId()!.toString(),
-        name: metricName,
-        time: new InBetween<Date>(startDate, endDate),
-        attributes: {
-          [CLUSTER_ATTR]: clusterName,
-        },
-      },
-      limit: 500,
-      skip: 0,
-      select: {
-        time: true,
-        value: true,
-        attributes: true,
-      },
-      sort: {
-        time: SortOrder.Descending,
-      },
-      requestOptions: {},
-    };
-
-    const listResult: ListResult<Metric> =
-      await AnalyticsModelAPI.getList<Metric>(queryOptions);
-
-    /*
-     * Results are sorted time-descending, so the first row per label
-     * value is the most recent.
-     */
-    const perKey: LatestPerLabel = new Map();
-    for (const metric of listResult.data) {
-      const attrs: Record<string, unknown> =
-        (metric.attributes as Record<string, unknown>) || {};
-      const key: string = String(attrs[labelAttr] ?? "");
-      if (!key && labelAttr) {
-        continue;
-      }
-      if (!perKey.has(key)) {
-        const v: number = Number(metric.value);
-        if (Number.isFinite(v)) {
-          perKey.set(key, { value: v, attrs: attrs });
-        }
-      }
-    }
-    return perKey;
-  };
-
   const fetchHealthChecks: (clusterName: string) => Promise<void> = async (
     clusterName: string,
   ): Promise<void> => {
     try {
       /*
        * ceph_health_detail (one series per named check, value 1 while
-       * active) is exported by the mgr prometheus module on Quincy and
-       * newer — render gracefully when absent on older releases.
+       * raised) is exported by the mgr prometheus module on Quincy and
+       * newer; without it the cluster's row says Ceph's verdict alone.
        */
-      const perCheck: LatestPerLabel = await fetchLatestSeries(
-        clusterName,
-        "ceph_health_detail",
-        "name",
-        10,
-      );
-
-      const active: Array<HealthCheckRow> = [];
-      for (const [name, entry] of perCheck.entries()) {
-        if (entry.value >= 1) {
-          active.push({
-            name: name,
-            severity: String(entry.attrs["severity"] || ""),
-          });
-        }
-      }
-      active.sort((a: HealthCheckRow, b: HealthCheckRow) => {
-        // HEALTH_ERR sorts above HEALTH_WARN.
-        if (a.severity !== b.severity) {
-          return a.severity.includes("ERR") ? -1 : 1;
-        }
-        return a.name.localeCompare(b.name);
-      });
-
-      setHealthChecksAvailable(perCheck.size > 0);
-      setHealthChecks(active);
+      const readings: CephHealthCheckReadings =
+        await loadCephHealthChecks(clusterName);
+      setHealthChecks(readings.isExported ? readings.checks : null);
     } catch {
-      // Best-effort — the breakdown card simply stays hidden.
+      // Best-effort: the cluster's row says Ceph's verdict without them.
     }
   };
 
@@ -554,54 +519,15 @@ const CephClusterOverview: FunctionComponent<
     clusterName: string,
   ): Promise<void> => {
     try {
-      const metricNames: Array<string> = [
-        "ceph_pg_total",
-        "ceph_pg_active",
-        "ceph_pg_clean",
-        "ceph_pg_degraded",
-        "ceph_pg_undersized",
-      ];
-
       /*
-       * PG counts are exported per pool on recent releases (pool_id
-       * label) and cluster-wide on older ones — sum the latest per pool
-       * with a cluster-wide fallback when no pool label exists.
+       * Per pool on recent releases (pool_id label), cluster-wide on older
+       * ones (CephReadings sums the pools, or falls back).
        */
-      const sums: Array<number | null> = await Promise.all(
-        metricNames.map(async (metricName: string): Promise<number | null> => {
-          const perPool: LatestPerLabel = await fetchLatestSeries(
-            clusterName,
-            metricName,
-            "pool_id",
-            10,
-          );
-          if (perPool.size === 0) {
-            const clusterWide: LatestPerLabel = await fetchLatestSeries(
-              clusterName,
-              metricName,
-              "",
-              10,
-            );
-            const entry: { value: number } | undefined = clusterWide.get("");
-            return entry ? entry.value : null;
-          }
-          let sum: number = 0;
-          for (const entry of perPool.values()) {
-            sum += entry.value;
-          }
-          return sum;
-        }),
-      );
-
-      setPgStats({
-        total: sums[0] ?? null,
-        active: sums[1] ?? null,
-        clean: sums[2] ?? null,
-        degraded: sums[3] ?? null,
-        undersized: sums[4] ?? null,
-      });
+      const readings: CephPgStateReadings = await loadCephPgStates(clusterName);
+      setPgStats(readings.totals);
+      setPgStatesByPool(readings.byPool);
     } catch {
-      // Best-effort — the PG card simply stays hidden.
+      // Best-effort: the PG card stays hidden, the pools' rows say the rest.
     }
   };
 
@@ -655,12 +581,11 @@ const CephClusterOverview: FunctionComponent<
         return a.t - b.t;
       });
 
-      const latestTotal: LatestPerLabel = await fetchLatestSeries(
-        clusterName,
-        "ceph_cluster_total_bytes",
-        "",
-        10,
-      );
+      const latestTotal: CephLatestPerLabel = await loadCephLatestPerLabel({
+        clusterName: clusterName,
+        metricName: "ceph_cluster_total_bytes",
+        labelAttribute: "",
+      });
       const totalBytes: number | null = latestTotal.get("")?.value ?? null;
       const usedBytes: number | null =
         samples.length > 0 ? samples[samples.length - 1]!.v : null;
@@ -772,59 +697,49 @@ const CephClusterOverview: FunctionComponent<
     },
   });
 
-  const osdsRoute: Route = RouteUtil.populateRouteParams(
-    RouteMap[PageMap.CEPH_CLUSTER_VIEW_OSDS] as Route,
-    { modelId: modelId },
-  );
+  const routes: CephPartRoutes = getCephPartRoutes(modelId);
+  const osdsRoute: Route = routes.osdsRoute;
 
-  const renderHealthPill: (health: HealthState) => ReactElement = (
-    health: HealthState,
-  ): ReactElement => {
-    const pill: { label: string; badge: string; dot: string } = (() => {
-      switch (health) {
-        case "ok":
-          return {
-            label: translationKey("Health OK"),
-            badge: "bg-emerald-50 text-emerald-700 ring-emerald-200",
-            dot: "bg-emerald-500",
-          };
-        case "warning":
-          return {
-            label: translationKey("Health Warning"),
-            badge: "bg-amber-50 text-amber-700 ring-amber-200",
-            dot: "bg-amber-500",
-          };
-        case "error":
-          return {
-            label: translationKey("Health Error"),
-            badge: "bg-red-50 text-red-700 ring-red-200",
-            dot: "bg-red-500",
-          };
-        default:
-          return {
-            label: translationKey("Health Unknown"),
-            badge: "bg-gray-50 text-gray-600 ring-gray-200",
-            dot: "bg-gray-400",
-          };
-      }
-    })();
+  const collectorStatus: string =
+    (cluster?.otelCollectorStatus as string) || "";
+  const isConnected: boolean =
+    collectorStatus.toLowerCase() === "connected" ||
+    collectorStatus.toLowerCase() === "active";
 
-    return (
-      <span
-        className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${pill.badge}`}
-      >
-        <span className={`h-1.5 w-1.5 rounded-full ${pill.dot}`} />
-        {translator.translateText(pill.label)}
-      </span>
-    );
-  };
+  /*
+   * What needs attention, most urgent first (CephHealth): the same rules
+   * the lists, an OSD's and a pool's page and the Topology use, so the
+   * health pill, this list and a part's page can never disagree.
+   */
+  const attentionItems: Array<ResourceAttentionItem> = cluster
+    ? getCephAttentionItems({
+        rows: inventoryRows,
+        cluster: {
+          name: (cluster.name as string | undefined) || "",
+          healthStatus:
+            cluster.healthStatus === null || cluster.healthStatus === undefined
+              ? null
+              : Number(cluster.healthStatus),
+          checks: healthChecks,
+          capacityUsedPercent:
+            cluster.capacityUsedPercent === null ||
+            cluster.capacityUsedPercent === undefined
+              ? null
+              : Number(cluster.capacityUsedPercent),
+        },
+        pgStatesByPool: pgStatesByPool,
+        routeFor: routes.getPartRoute,
+        now: inventoryReadAt,
+      })
+    : [];
+  const clusterHealth: ResourceHealth = getCephHealth(attentionItems);
 
   const renderHero: () => ReactElement | null = (): ReactElement | null => {
     if (!cluster) {
       return null;
     }
 
-    const status: string = (cluster.otelCollectorStatus as string) || "";
+    const status: string = collectorStatus;
     const lastSeenAt: Date | undefined = cluster.lastSeenAt;
     /*
      * One whole sentence either way: an English "never" in a translated
@@ -832,48 +747,92 @@ const CephClusterOverview: FunctionComponent<
      */
     const lastSeenText: string = lastSeenAt
       ? translator.translateTemplate("Last seen {{time}}", {
-          time: OneUptimeDate.fromNow(lastSeenAt),
+          // In the reader's language, as a part's page says it.
+          time: formatRelativeTime({
+            date: OneUptimeDate.fromString(lastSeenAt),
+            now: new Date(),
+            language: translator.language,
+          }),
         })
       : translator.translateText("Never seen") || "Never seen";
 
-    const isConnected: boolean =
-      status.toLowerCase() === "connected" || status.toLowerCase() === "active";
-
     const displayName: string =
-      (cluster.name as string | undefined) || "Untitled Ceph cluster";
+      (cluster.name as string | undefined) || tx("Untitled Ceph cluster");
 
-    const health: HealthState = healthStateFromStatus(cluster.healthStatus);
+    /*
+     * The health is worked out from the cluster's last report, which goes
+     * stale once the agent disconnects: "Healthy" beside "Disconnected"
+     * would contradict it, so while the cluster is not connected the pill
+     * says Health Unknown, in grey. A cluster that has reported neither a
+     * verdict nor a part yet has no health to tell.
+     */
+    const showsHealth: boolean =
+      !isInventoryLoading &&
+      !inventoryError &&
+      (inventoryRows.length > 0 ||
+        (cluster.healthStatus !== null && cluster.healthStatus !== undefined));
+    const healthLabel: string = getResourceHealthLabel({
+      translator: translator,
+      health: clusterHealth,
+      isConnected: isConnected,
+    });
+    const healthBadgeClass: string = !isConnected
+      ? "bg-gray-50 text-gray-600 ring-gray-200"
+      : clusterHealth === "Healthy"
+        ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
+        : clusterHealth === "Degraded"
+          ? "bg-amber-50 text-amber-700 ring-amber-200"
+          : "bg-red-50 text-red-700 ring-red-200";
+    const healthDotClass: string = !isConnected
+      ? "bg-gray-400"
+      : clusterHealth === "Healthy"
+        ? "bg-emerald-500"
+        : clusterHealth === "Degraded"
+          ? "bg-amber-500"
+          : "bg-red-500";
 
+    /*
+     * The count chips open their list: the Overview's one step to the
+     * OSDs, the monitors (the Daemons list) and the pools.
+     */
     const specChips: Array<{
       icon: IconProp;
       label: string;
+      route?: Route | undefined;
+      testId?: string | undefined;
     }> = [];
 
     if (cluster.osdCount) {
       specChips.push({
-        icon: IconProp.Database,
+        icon: IconProp.Disc,
+        route: routes.osdsRoute,
+        testId: "ceph-hero-osds",
         label: translator.translatePlural(
           { one: "{{up}}/{{count}} OSD up", other: "{{up}}/{{count}} OSDs up" },
           cluster.osdCount,
-          { up: cluster.osdUpCount || 0 },
+          { up: formatCount(cluster.osdUpCount || 0) },
         ),
       });
     }
     if (monsTotal !== null) {
       specChips.push({
-        icon: IconProp.CheckCircle,
+        icon: IconProp.Eye,
+        route: routes.daemonsRoute,
+        testId: "ceph-hero-mons",
         label: translator.translatePlural(
           {
             one: "{{inQuorum}}/{{count}} mon in quorum",
             other: "{{inQuorum}}/{{count}} mons in quorum",
           },
           monsTotal,
-          { inQuorum: monsInQuorum || 0 },
+          { inQuorum: formatCount(monsInQuorum || 0) },
         ),
       });
     } else if (cluster.monCount) {
       specChips.push({
-        icon: IconProp.CheckCircle,
+        icon: IconProp.Eye,
+        route: routes.daemonsRoute,
+        testId: "ceph-hero-mons",
         label: translator.translatePlural(
           { one: "{{count}} mon", other: "{{count}} mons" },
           cluster.monCount,
@@ -882,7 +841,9 @@ const CephClusterOverview: FunctionComponent<
     }
     if (cluster.poolCount) {
       specChips.push({
-        icon: IconProp.SquareStack,
+        icon: IconProp.Database,
+        route: routes.poolsRoute,
+        testId: "ceph-hero-pools",
         label: translator.translatePlural(
           { one: "{{count}} pool", other: "{{count}} pools" },
           cluster.poolCount,
@@ -892,9 +853,10 @@ const CephClusterOverview: FunctionComponent<
     // Every chip so far is a count; the Ceph version below is metadata.
     const hasCountChips: boolean = specChips.length > 0;
     if (cluster.cephVersion) {
+      // The release, not the build's hash: the Details card has the rest.
       specChips.push({
         icon: IconProp.Info,
-        label: String(cluster.cephVersion),
+        label: getCephShortVersion(String(cluster.cephVersion)),
       });
     }
 
@@ -952,13 +914,26 @@ const CephClusterOverview: FunctionComponent<
                       />
                       {statusLabel}
                     </span>
-                    <span className="inline-flex items-center gap-1">
-                      {renderHealthPill(health)}
-                      <InfoTooltip
-                        label="Cluster health"
-                        text={CEPH_METRIC_DESCRIPTIONS.health}
-                      />
-                    </span>
+                    {showsHealth ? (
+                      <span className="inline-flex items-center gap-1">
+                        <span
+                          data-testid="ceph-hero-health"
+                          data-health={isConnected ? clusterHealth : "Unknown"}
+                          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${healthBadgeClass}`}
+                        >
+                          <span
+                            className={`h-1.5 w-1.5 rounded-full ${healthDotClass}`}
+                          />
+                          {healthLabel}
+                        </span>
+                        <InfoTooltip
+                          label="Cluster health"
+                          text={CEPH_METRIC_DESCRIPTIONS.health}
+                        />
+                      </span>
+                    ) : (
+                      <></>
+                    )}
                   </div>
                   {/*
                    * What the cluster is, in its owner's words: under its
@@ -998,19 +973,38 @@ const CephClusterOverview: FunctionComponent<
               <div className="mt-4 flex flex-wrap items-center gap-1.5">
                 {specChips.map(
                   (
-                    chip: { icon: IconProp; label: string },
+                    chip: {
+                      icon: IconProp;
+                      label: string;
+                      route?: Route | undefined;
+                      testId?: string | undefined;
+                    },
                     idx: number,
                   ): ReactElement => {
-                    return (
-                      <span
-                        key={`spec-${idx}`}
-                        className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-700"
-                      >
+                    const content: ReactElement = (
+                      <>
                         <Icon
                           icon={chip.icon}
                           className="h-3 w-3 text-gray-500"
                         />
                         <span className="font-medium">{chip.label}</span>
+                      </>
+                    );
+                    return chip.route ? (
+                      <Link
+                        key={`spec-${idx}`}
+                        to={chip.route}
+                        dataTestId={chip.testId}
+                        className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-700 hover:border-gray-300 hover:bg-gray-100"
+                      >
+                        {content}
+                      </Link>
+                    ) : (
+                      <span
+                        key={`spec-${idx}`}
+                        className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-700"
+                      >
+                        {content}
                       </span>
                     );
                   },
@@ -1033,71 +1027,6 @@ const CephClusterOverview: FunctionComponent<
     );
   };
 
-  /*
-   * "Why is this cluster unhealthy?" — active ceph_health_detail checks
-   * (e.g. OSD_DOWN, PG_DEGRADED) with their severity. Gracefully points
-   * at the metric's availability when the series is absent (pre-Quincy
-   * mgr modules don't export it).
-   */
-  const renderHealthChecks: () => ReactElement = (): ReactElement => {
-    const health: HealthState = healthStateFromStatus(cluster?.healthStatus);
-
-    if (health === "ok" || health === "unknown") {
-      return <Fragment />;
-    }
-
-    return (
-      <div className="mb-6">
-        <Card
-          title={
-            <CephMetricTitle
-              title="Active Health Checks"
-              description={CEPH_METRIC_DESCRIPTIONS.activeHealthChecks}
-            />
-          }
-          description="Named checks currently raised by the cluster — the reason behind the health state."
-        >
-          {healthChecks.length > 0 ? (
-            <div className="divide-y divide-gray-200">
-              {healthChecks.map((check: HealthCheckRow) => {
-                const isErr: boolean = check.severity.includes("ERR");
-                return (
-                  <div
-                    key={check.name}
-                    className="flex items-center justify-between py-3"
-                  >
-                    <div className="font-mono text-sm font-medium text-gray-900">
-                      {check.name}
-                    </div>
-                    <span
-                      className={`inline-flex px-2 py-0.5 text-xs font-medium rounded ${
-                        isErr
-                          ? "bg-red-50 text-red-700"
-                          : "bg-amber-50 text-amber-700"
-                      }`}
-                    >
-                      {check.severity || "HEALTH_WARN"}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="text-sm text-gray-500">
-              {healthChecksAvailable
-                ? translator.translateText(
-                    "No active checks reported in the last 10 minutes.",
-                  )
-                : translator.translateText(
-                    "Check details are unavailable — the ceph_health_detail metric is exported by the ceph-mgr prometheus module on Ceph Quincy and newer. Run `ceph health detail` on the cluster for the full breakdown.",
-                  )}
-            </div>
-          )}
-        </Card>
-      </div>
-    );
-  };
-
   const renderGoldenTiles: () => ReactElement = (): ReactElement => {
     if (!cluster) {
       return <Fragment />;
@@ -1110,6 +1039,11 @@ const CephClusterOverview: FunctionComponent<
         ? Number(cluster.capacityUsedPercent)
         : null);
 
+    /*
+     * How much of the raw capacity is used, and when the growth of the
+     * last 24 hours takes it past the Cluster Near Full alert's line: each
+     * one sentence in the reader's language.
+     */
     const capacitySublabel: string = (() => {
       if (
         capacity?.usedBytes !== null &&
@@ -1117,22 +1051,41 @@ const CephClusterOverview: FunctionComponent<
         capacity?.totalBytes !== null &&
         capacity?.totalBytes !== undefined
       ) {
-        const base: string = `${CephResourceUtils.formatBytes(capacity.usedBytes)} of ${CephResourceUtils.formatBytes(capacity.totalBytes)}`;
+        const amounts: { used: string; total: string; nearfull: string } = {
+          used: CephResourceUtils.formatBytes(capacity.usedBytes),
+          total: CephResourceUtils.formatBytes(capacity.totalBytes),
+          nearfull: `${CEPH_CLUSTER_NEARFULL_PERCENT}%`,
+        };
         if (capacity.daysToNearfull === null) {
-          return base;
+          return translator.translateTemplate("{{used}} of {{total}}", amounts);
         }
         if (capacity.daysToNearfull === 0) {
-          return `${base} — above 85% nearfull`;
+          return translator.translateTemplate(
+            "{{used}} of {{total}} — above {{nearfull}} nearfull",
+            amounts,
+          );
         }
         if (!Number.isFinite(capacity.daysToNearfull)) {
-          return `${base} — not growing`;
+          return translator.translateTemplate(
+            "{{used}} of {{total}} — not growing",
+            amounts,
+          );
         }
         if (capacity.daysToNearfull > 365) {
-          return `${base} — 85% in >1 year`;
+          return translator.translateTemplate(
+            "{{used}} of {{total}} — {{nearfull}} in >1 year",
+            amounts,
+          );
         }
-        return `${base} — 85% in ~${Math.max(1, Math.round(capacity.daysToNearfull))}d at current growth`;
+        return translator.translateTemplate(
+          "{{used}} of {{total}} — {{nearfull}} in ~{{days}}d at current growth",
+          {
+            ...amounts,
+            days: formatCount(Math.max(1, capacity.daysToNearfull)),
+          },
+        );
       }
-      return "of raw capacity";
+      return tx("of raw capacity");
     })();
 
     const osdTotal: number = cluster.osdCount || 0;
@@ -1145,34 +1098,39 @@ const CephClusterOverview: FunctionComponent<
         : (pgStats.degraded || 0) + (pgStats.undersized || 0);
 
     return (
-      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <GoldenMetricTile
-          title="Capacity Used"
+          title={tx("Capacity Used")}
           description={CEPH_METRIC_DESCRIPTIONS.capacityUsed}
           icon={IconProp.ChartBar}
           iconColor="blue"
           value={formatPercent(usedPercent)}
           sublabel={capacitySublabel}
           percent={usedPercent}
-          thresholds={{ warn: 75, danger: 85 }}
+          thresholds={{
+            warn: CEPH_CLUSTER_NEARFULL_PERCENT,
+            danger: CEPH_CLUSTER_FULL_PERCENT,
+          }}
         />
         <GoldenMetricTile
-          title="OSDs Up"
+          title={tx("OSDs Up")}
           description={CEPH_METRIC_DESCRIPTIONS.osdsUp}
           icon={IconProp.Database}
           iconColor="emerald"
           value={osdTotal > 0 ? `${osdUp}/${osdTotal}` : "—"}
           sublabel={
             osdTotal > 0
-              ? translator.translateTemplate("{{in}} in", { in: osdIn })
-              : "object storage daemons"
+              ? translator.translateTemplate("{{in}} in", {
+                  in: formatCount(osdIn),
+                })
+              : tx("object storage daemons")
           }
           percent={osdTotal > 0 ? (osdUp / osdTotal) * 100 : null}
           thresholds={{ warn: 100, danger: 90 }}
           higherIsBetter={true}
         />
         <GoldenMetricTile
-          title="Mons In Quorum"
+          title={tx("Mons In Quorum")}
           description={CEPH_METRIC_DESCRIPTIONS.monsInQuorum}
           icon={IconProp.CheckCircle}
           iconColor="sky"
@@ -1183,18 +1141,10 @@ const CephClusterOverview: FunctionComponent<
                 ? String(cluster.monCount)
                 : "—"
           }
-          sublabel="monitor daemons"
+          sublabel={tx("monitor daemons")}
         />
         <GoldenMetricTile
-          title="Pools"
-          description={CEPH_METRIC_DESCRIPTIONS.pools}
-          icon={IconProp.SquareStack}
-          iconColor="violet"
-          value={cluster.poolCount ? String(cluster.poolCount) : "—"}
-          sublabel="reporting"
-        />
-        <GoldenMetricTile
-          title="Problem PGs"
+          title={tx("Problem PGs")}
           description={CEPH_METRIC_DESCRIPTIONS.problemPgs}
           icon={IconProp.Alert}
           iconColor="amber"
@@ -1204,11 +1154,11 @@ const CephClusterOverview: FunctionComponent<
               ? translator.translateTemplate(
                   "{{degraded}} degraded, {{undersized}} undersized",
                   {
-                    degraded: formatInt(pgStats.degraded),
-                    undersized: formatInt(pgStats.undersized),
+                    degraded: formatCount(pgStats.degraded),
+                    undersized: formatCount(pgStats.undersized),
                   },
                 )
-              : "degraded + undersized"
+              : tx("degraded + undersized")
           }
         />
       </div>
@@ -1274,26 +1224,31 @@ const CephClusterOverview: FunctionComponent<
     const undersized: number = pgStats.undersized || 0;
     const other: number = Math.max(0, total - clean - degraded - undersized);
 
+    /*
+     * The bar draws its legend as it is given: the reader's words, and
+     * placement groups' words - a degraded group is missing copies, which
+     * the word on its own says of a slow service in some languages.
+     */
     const segments: Array<StackedProgressBarSegment> = [
       {
         value: clean,
         color: "bg-emerald-500",
-        label: "Active + Clean",
+        label: tx("Active + Clean"),
       },
       {
         value: degraded,
         color: "bg-amber-500",
-        label: "Degraded",
+        label: tx("Degraded PGs"),
       },
       {
         value: undersized,
         color: "bg-orange-500",
-        label: "Undersized",
+        label: tx("Undersized PGs"),
       },
       {
         value: other,
         color: "bg-gray-400",
-        label: "Other",
+        label: tx("Other"),
       },
     ];
 
@@ -1312,7 +1267,7 @@ const CephClusterOverview: FunctionComponent<
               other: "{{count}} placement groups ({{active}} active).",
             },
             Math.round(total),
-            { active: formatInt(pgStats.active) },
+            { active: formatCount(pgStats.active) },
           )}
         >
           <StackedProgressBar segments={segments} totalValue={total} />
@@ -1328,12 +1283,13 @@ const CephClusterOverview: FunctionComponent<
 
     const clusterName: string = cluster.name;
 
+    // The charts draw their titles and legends as they are given.
     const capacityQuery: MetricQueryConfigData = {
       metricAliasData: {
         metricVariable: "cluster_used_bytes",
-        title: "Capacity Used",
-        description: "Raw storage used across all OSDs (bytes).",
-        legend: "Used",
+        title: tx("Capacity Used"),
+        description: tx("Raw storage used across all OSDs (bytes)."),
+        legend: tx("Used"),
         legendUnit: "bytes",
       },
       metricQueryData: {
@@ -1351,9 +1307,9 @@ const CephClusterOverview: FunctionComponent<
     const latencyQuery: MetricQueryConfigData = {
       metricAliasData: {
         metricVariable: "osd_apply_latency",
-        title: "Average OSD Apply Latency",
-        description: "Apply latency averaged across all OSDs (ms).",
-        legend: "Apply",
+        title: tx("Average OSD Apply Latency"),
+        description: tx("Apply latency averaged across all OSDs (ms)."),
+        legend: tx("Apply Latency"),
         legendUnit: "ms",
       },
       metricQueryData: {
@@ -1371,9 +1327,9 @@ const CephClusterOverview: FunctionComponent<
     const commitLatencyQuery: MetricQueryConfigData = {
       metricAliasData: {
         metricVariable: "osd_commit_latency",
-        title: "Average OSD Commit Latency",
-        description: "Commit latency averaged across all OSDs (ms).",
-        legend: "Commit",
+        title: tx("Average OSD Commit Latency"),
+        description: tx("Commit latency averaged across all OSDs (ms)."),
+        legend: tx("Commit Latency"),
         legendUnit: "ms",
       },
       metricQueryData: {
@@ -1464,23 +1420,16 @@ const CephClusterOverview: FunctionComponent<
     );
   };
 
-  const renderTopPoolList: (
-    title: string,
-    description: string,
-    tooltip: string,
-    rows: Array<TopPoolRow>,
-    renderValue: (row: TopPoolRow) => string,
-  ) => ReactElement = (
-    title: string,
-    description: string,
-    tooltip: string,
-    rows: Array<TopPoolRow>,
-    renderValue: (row: TopPoolRow) => string,
+  const renderTopPoolList: (list: TopPoolList) => ReactElement = (
+    list: TopPoolList,
   ): ReactElement => {
+    const rows: Array<TopPoolRow> = list.rows;
     return (
       <Card
-        title={<CephMetricTitle title={title} description={tooltip} />}
-        description={description}
+        title={
+          <CephMetricTitle title={list.title} description={list.tooltip} />
+        }
+        description={list.description}
       >
         {rows.length === 0 ? (
           <div
@@ -1512,7 +1461,7 @@ const CephClusterOverview: FunctionComponent<
                     </Link>
                   </div>
                   <div className="text-sm font-semibold text-gray-900">
-                    {renderValue(row)}
+                    {list.renderValue(row)}
                   </div>
                 </div>
               );
@@ -1535,24 +1484,25 @@ const CephClusterOverview: FunctionComponent<
         className="!mb-6"
         dataTestId="ceph-top-pools"
       >
-        {renderTopPoolList(
-          "Largest Pools",
-          "Top pools by stored bytes.",
-          CEPH_METRIC_DESCRIPTIONS.largestPools,
-          topPoolsByStored,
-          (row: TopPoolRow) => {
+        {renderTopPoolList({
+          title: "Largest Pools",
+          description: "Top pools by stored bytes.",
+          tooltip: CEPH_METRIC_DESCRIPTIONS.largestPools,
+          rows: topPoolsByStored,
+          renderValue: (row: TopPoolRow): string => {
             return CephResourceUtils.formatBytes(row.storedBytes);
           },
-        )}
-        {renderTopPoolList(
-          "Fullest Pools",
-          "Top pools by used capacity (stored / (stored + max avail)).",
-          CEPH_METRIC_DESCRIPTIONS.fullestPools,
-          topPoolsByUsed,
-          (row: TopPoolRow) => {
+        })}
+        {renderTopPoolList({
+          title: "Fullest Pools",
+          description:
+            "Top pools by used capacity (stored / (stored + max avail)).",
+          tooltip: CEPH_METRIC_DESCRIPTIONS.fullestPools,
+          rows: topPoolsByUsed,
+          renderValue: (row: TopPoolRow): string => {
             return formatPercent(row.usedPercent);
           },
-        )}
+        })}
       </CardGrid>
     );
   };
@@ -1598,7 +1548,30 @@ const CephClusterOverview: FunctionComponent<
       ) : (
         <></>
       )}
-      {renderHealthChecks()}
+      {/*
+       * What needs someone, most urgent first - while the agent reports: a
+       * disconnected cluster's last picture is no longer the truth, and the
+       * hero says Health Unknown instead. A read that fails says so in the
+       * card's frame, with Refresh.
+       */}
+      {inventoryError ? (
+        <NeedsAttentionCard
+          testId="ceph-needs-attention"
+          items={[]}
+          error={inventoryError}
+          onRetry={(): void => {
+            setIsInventoryLoading(true);
+            fetchInventory().catch(() => {});
+          }}
+        />
+      ) : isConnected && !isInventoryLoading ? (
+        <NeedsAttentionCard
+          testId="ceph-needs-attention"
+          items={attentionItems}
+        />
+      ) : (
+        <></>
+      )}
       {renderGoldenTiles()}
       {renderOsdMatrix()}
       {renderPgDistribution()}

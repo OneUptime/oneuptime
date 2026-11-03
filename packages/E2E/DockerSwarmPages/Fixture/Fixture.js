@@ -1,10 +1,12 @@
 /*
- * Offline fixture for a Docker Swarm cluster's pages, where three follow-ups
- * of #5076 show: the production cluster layout (ModelPage, the cluster's
- * side menu) with its Overview (the agent version chip, and the sign beside
- * an agent whose files are behind), a task's page (its 64-character
- * Container ID in a summary card) and the Metrics tab (the metrics list's
- * rows on a phone) - under their real RouteMap patterns. Only the data
+ * Offline fixture for a Docker Swarm cluster's pages: the production
+ * cluster layout (ModelPage, the cluster's side menu) with its Overview (its
+ * health and Needs attention by the swarm's rules, each node at a glance,
+ * the agent version chip and the sign beside an agent whose files are
+ * behind), the Nodes, Services and Tasks lists, a node's, a service's and a
+ * task's page (a task's 64-character Container ID in its details) and the
+ * Metrics tab (the metrics list's rows on a phone) - under their real
+ * RouteMap patterns. Only the data
  * boundary (ModelAPI, AnalyticsModelAPI, API, Realtime) and the signed-in
  * user are replaced. Every record is fabricated for an "Acme Swarm"
  * workspace.
@@ -12,9 +14,13 @@
  * Scenarios are picked with query parameters, parsed once at load:
  *
  *   ?agent=   old (default: 0.161.0, the files before #5076's CPU fix) |
- *             current (0.161.2, the files this release ships) | none (an
+ *             current (0.161.3, the files this release ships) | none (an
  *             agent that reports no version)
- *   ?lang=    de reads the German locale file
+ *   ?swarm=   trouble: a worker down, a service short of a replica, one
+ *             whose tasks keep failing, a task near its memory limit, and an
+ *             alert open on the short service (default: all healthy)
+ *   ?lang=    de reads the German locale file, fa the Persian one (right to
+ *             left)
  *   ?theme=   dark adds html.dark (handled by server.js)
  *   ?description=  long gives the cluster a description of two lines'
  *             length, which the hero must wrap beside its controls
@@ -36,10 +42,17 @@ import {
 } from "react-router-dom";
 import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
+import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
 import en from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import de from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
+import fa from "../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
 import SwarmLayout from "../../../App/FeatureSet/Dashboard/src/Pages/DockerSwarm/View/Layout";
 import SwarmOverview from "../../../App/FeatureSet/Dashboard/src/Pages/DockerSwarm/View/Index";
+import SwarmNodes from "../../../App/FeatureSet/Dashboard/src/Pages/DockerSwarm/View/Nodes";
+import SwarmServices from "../../../App/FeatureSet/Dashboard/src/Pages/DockerSwarm/View/Services";
+import SwarmTasks from "../../../App/FeatureSet/Dashboard/src/Pages/DockerSwarm/View/Tasks";
+import SwarmNodeDetail from "../../../App/FeatureSet/Dashboard/src/Pages/DockerSwarm/View/NodeDetail";
+import SwarmServiceDetail from "../../../App/FeatureSet/Dashboard/src/Pages/DockerSwarm/View/ServiceDetail";
 import SwarmTaskDetail from "../../../App/FeatureSet/Dashboard/src/Pages/DockerSwarm/View/TaskDetail";
 import SwarmMetrics from "../../../App/FeatureSet/Dashboard/src/Pages/DockerSwarm/View/Metrics";
 import RouteMap from "../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
@@ -71,14 +84,20 @@ const params = new URLSearchParams(window.location.search);
 const AGENT = ["current", "none"].includes(params.get("agent"))
   ? params.get("agent")
   : "old";
-const LANGUAGE = params.get("lang") === "de" ? "de" : "en";
+const LANGUAGE = ["de", "fa"].includes(params.get("lang"))
+  ? params.get("lang")
+  : "en";
 const LONG_DESCRIPTION = params.get("description") === "long";
 // The swarm's agent stopped reporting three days ago.
 const DISCONNECTED = params.get("collector") === "disconnected";
+// A swarm with something broken and something to look at.
+const TROUBLE = params.get("swarm") === "trouble";
 
-if (params.get("dir") === "rtl") {
+// A Persian page reads right to left, as production lays it out.
+if (params.get("dir") === "rtl" || LANGUAGE === "fa") {
   document.documentElement.dir = "rtl";
 }
+document.documentElement.lang = LANGUAGE;
 
 const GLOBAL_PERMISSIONS = [
   Permission.Public,
@@ -105,7 +124,7 @@ const LOADED_AT = Date.now();
 const CLUSTER_ID = uuid("62000000", 1);
 const CLUSTER_NAME = "swarm-prod";
 
-const AGENT_VERSIONS = { old: "0.161.0", current: "0.161.2", none: "" };
+const AGENT_VERSIONS = { old: "0.161.0", current: "0.161.3", none: "" };
 
 const project = Object.assign(new Project(), {
   _id: PROJECT_ID,
@@ -153,6 +172,8 @@ function inventoryRow(fields) {
   };
 }
 
+const GIB = 1024 * 1024 * 1024;
+
 const inventory = [
   inventoryRow({
     number: 1,
@@ -162,7 +183,15 @@ const inventory = [
     role: "manager",
     state: "ready",
     isReady: true,
-    attributes: { availability: "active" },
+    attributes: {
+      availability: "active",
+      managerStatus: "Leader",
+      isLeader: true,
+      engineVersion: "28.5.1",
+      addr: "10.20.0.11",
+      cpus: 4,
+      memoryBytes: 8 * GIB,
+    },
   }),
   inventoryRow({
     number: 2,
@@ -172,7 +201,13 @@ const inventory = [
     role: "worker",
     state: "ready",
     isReady: true,
-    attributes: { availability: "active" },
+    attributes: {
+      availability: "active",
+      engineVersion: "28.5.1",
+      addr: "10.20.0.21",
+      cpus: 4,
+      memoryBytes: 8 * GIB,
+    },
   }),
   inventoryRow({
     number: 3,
@@ -211,10 +246,13 @@ const inventory = [
     stackName: "shop",
     latestCpuPercent: 3.42,
     latestMemoryBytes: 183500800,
+    latestMemoryPercent: 34.2,
     maxMemoryBytes: 536870912,
     attributes: {
       slot: "1",
       containerId: CONTAINER_ID,
+      desiredState: "running",
+      since: new Date(LOADED_AT - 26 * 60 * MINUTE).toISOString(),
       message: "started",
     },
   }),
@@ -227,7 +265,15 @@ const inventory = [
     isReady: true,
     serviceName: "shop_checkout",
     nodeHostname: "swarm-manager-01",
-    attributes: { slot: "2", containerId: "1a2b3c4d5e6f" },
+    latestCpuPercent: TROUBLE ? 46.5 : 2.1,
+    latestMemoryBytes: TROUBLE ? 493921239 : 160432128,
+    latestMemoryPercent: TROUBLE ? 92 : 29.9,
+    maxMemoryBytes: 536870912,
+    attributes: {
+      slot: "2",
+      containerId: "1a2b3c4d5e6f",
+      desiredState: "running",
+    },
   }),
   inventoryRow({
     number: 7,
@@ -238,7 +284,15 @@ const inventory = [
     isReady: true,
     serviceName: "shop_web",
     nodeHostname: "swarm-worker-01",
-    attributes: { slot: "1", containerId: "2b3c4d5e6f7a" },
+    latestCpuPercent: 1.4,
+    latestMemoryBytes: 98566144,
+    latestMemoryPercent: 18.4,
+    maxMemoryBytes: 536870912,
+    attributes: {
+      slot: "1",
+      containerId: "2b3c4d5e6f7a",
+      desiredState: "running",
+    },
   }),
   inventoryRow({
     number: 8,
@@ -254,6 +308,119 @@ const inventory = [
     driver: "overlay",
   }),
 ];
+
+/*
+ * The swarm in trouble: a worker the managers lost, shop_web short of the
+ * replica that ran there, shop_search crash-looping (Swarm replaces each
+ * failed task, so it reads full), and shop_checkout.2 near its memory
+ * limit.
+ */
+if (TROUBLE) {
+  const web = inventory.find((row) => {
+    return row.name === "shop_web";
+  });
+  web.desiredReplicas = 2;
+  web.runningReplicas = 1;
+  web.isReady = false;
+  web.attributes = {
+    lastTaskError: "task: non-zero exit (1)",
+    lastTaskState: "failed",
+    lastTaskExitCode: "1",
+    lastTaskErrorAt: new Date(LOADED_AT - 4 * MINUTE).toISOString(),
+    recentFailedTasks: 1,
+  };
+  inventory.push(
+    inventoryRow({
+      number: 10,
+      kind: "Node",
+      externalId: "node/n3",
+      name: "swarm-worker-02",
+      role: "worker",
+      state: "down",
+      isReady: false,
+      lastSeenAt: new Date(LOADED_AT - MINUTE),
+      attributes: {
+        availability: "active",
+        message: 'heartbeat failure for node in "unknown" state',
+        engineVersion: "28.5.1",
+        addr: "10.20.0.22",
+        cpus: 4,
+        memoryBytes: 8 * GIB,
+      },
+    }),
+    inventoryRow({
+      number: 11,
+      kind: "Service",
+      externalId: "service/s3",
+      name: "shop_search",
+      serviceMode: "replicated",
+      desiredReplicas: 1,
+      runningReplicas: 1,
+      isReady: true,
+      image: "registry.acme-swarm.example/shop/search:3.0.4",
+      stackName: "shop",
+      attributes: {
+        recentFailedTasks: 4,
+        lastTaskError: "task: non-zero exit (137)",
+        lastTaskState: "failed",
+        lastTaskExitCode: "137",
+        lastTaskErrorAt: new Date(LOADED_AT - 2 * MINUTE).toISOString(),
+      },
+    }),
+    inventoryRow({
+      number: 12,
+      kind: "Task",
+      externalId: "task/d5e6f7a8b9c0d1e2f3a4b5c6d",
+      name: "shop_search.1",
+      state: "running",
+      isReady: true,
+      serviceName: "shop_search",
+      nodeHostname: "swarm-worker-01",
+      latestCpuPercent: 12.2,
+      latestMemoryBytes: 241172480,
+      latestMemoryPercent: 44.9,
+      maxMemoryBytes: 536870912,
+      attributes: {
+        slot: "1",
+        containerId: "3c4d5e6f7a8b",
+        desiredState: "running",
+      },
+    }),
+    inventoryRow({
+      number: 13,
+      kind: "Task",
+      externalId: "task/e6f7a8b9c0d1e2f3a4b5c6d7e",
+      name: "shop_web.2",
+      state: "failed",
+      isReady: false,
+      serviceName: "shop_web",
+      nodeHostname: "swarm-worker-02",
+      attributes: {
+        slot: "2",
+        containerId: "4d5e6f7a8b9c",
+        desiredState: "running",
+        error: "task: non-zero exit (1)",
+        exitCode: "1",
+      },
+    }),
+  );
+}
+
+// An alert open on the short service, as the replicas template raises it.
+const openAlerts = TROUBLE
+  ? [
+      {
+        _id: uuid("61000000", 1),
+        title: "[Docker Swarm] Service Replicas Mismatch - swarm-prod",
+        alertNumber: 12,
+        createdAt: new Date(LOADED_AT - 9 * MINUTE),
+        currentAlertStateId: uuid("51000000", 1),
+        // What links an alert to its swarm (Alert.dockerSwarmClusters).
+        dockerSwarmClusters: CLUSTER_ID,
+        seriesLabels: { "resource.docker.swarm.service.name": "shop_web" },
+      },
+    ]
+  : [];
 
 /*
  * The metrics the swarm's agent sends, as the metric catalog holds them:
@@ -399,7 +566,7 @@ const store = {
     },
   ],
   Incident: [],
-  Alert: [],
+  Alert: openAlerts,
   ScheduledMaintenance: [],
   // What the Recommendations menu item reads: no monitors, nothing dismissed.
   Monitor: [],
@@ -614,12 +781,17 @@ async function handleApi(method, options) {
     method === "POST" &&
     parsed.pathname.includes("/docker-swarm-resource/inventory-summary/")
   ) {
+    const countOf = (kind) => {
+      return inventory.filter((row) => {
+        return row.kind === kind;
+      }).length;
+    };
     return ok({
-      nodeCount: 2,
-      serviceCount: 2,
-      taskCount: 3,
-      stackCount: 1,
-      networkCount: 1,
+      nodeCount: countOf("Node"),
+      serviceCount: countOf("Service"),
+      taskCount: countOf("Task"),
+      stackCount: countOf("Stack"),
+      networkCount: countOf("Network"),
       secretCount: 0,
       configCount: 0,
       volumeCount: 0,
@@ -701,9 +873,12 @@ await i18next.use(initReactI18next).init({
   resources: {
     en: { translation: en },
     de: { translation: de },
+    fa: { translation: fa },
   },
   interpolation: { escapeValue: false },
 });
+// Dates in the page's language, as the Dashboard's i18n start-up has them.
+followLanguageForDates(i18next);
 
 /*
  * ---------------------------------------------------------------------------
@@ -733,6 +908,11 @@ function withNavigation(Component, pageKey) {
 
 const PAGES = [
   [PageMap.DOCKER_SWARM_CLUSTER_VIEW, SwarmOverview],
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_NODES, SwarmNodes],
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_SERVICES, SwarmServices],
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_TASKS, SwarmTasks],
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_NODE_DETAIL, SwarmNodeDetail],
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_SERVICE_DETAIL, SwarmServiceDetail],
   [PageMap.DOCKER_SWARM_CLUSTER_VIEW_TASK_DETAIL, SwarmTaskDetail],
   [PageMap.DOCKER_SWARM_CLUSTER_VIEW_METRICS, SwarmMetrics],
 ].map(([pageKey, Component]) => {

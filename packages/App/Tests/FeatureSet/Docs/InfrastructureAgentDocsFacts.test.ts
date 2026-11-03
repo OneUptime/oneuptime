@@ -1727,13 +1727,13 @@ describe("the Ceph agent page, against the catalog and the inventory scan", () =
     ).toContain('title: "Daemons"');
   });
 
-  it("names the Overview card that lists the active health checks", () => {
+  it("names the Overview card whose cluster row lists the checks Ceph raised", () => {
     expect(
       repoFile(
         "packages/App/FeatureSet/Dashboard/src/Pages/Ceph/View/Index.tsx",
       ),
-    ).toContain('title="Active Health Checks"');
-    lineWith(CEPH_PAGE, "`ceph_health_detail`", "**Active Health Checks**");
+    ).toContain('testId="ceph-needs-attention"');
+    lineWith(CEPH_PAGE, "`ceph_health_detail`", "**Needs attention**");
   });
 
   it("scrapes every mgr every 30 seconds, keeping Ceph's labels, and defaults the name as the compose file does", () => {

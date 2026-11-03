@@ -1,11 +1,13 @@
 # Docker Swarm pages fixture
 
 An offline harness for a Docker Swarm cluster's pages on a phone (follow-up of
-#5076): the cluster's **Overview** (its hero, and the agent version chip with
-the sign beside an agent whose files are behind), a task's page (its
-64-character **Container ID** in a summary card) and the **Metrics** tab (the
+#5076): the cluster's **Overview** (its health and **Needs attention** by the
+swarm's rules, each node at a glance, and the agent version chip with the sign
+beside an agent whose files are behind), the **Nodes**, **Services** and
+**Tasks** lists, a node's, a service's and a task's page (a task's
+64-character **Container ID** in its details) and the **Metrics** tab (the
 metrics list's rows) - each inside the production cluster layout and side menu
-(`packages/App/FeatureSet/Dashboard/src/Pages/DockerSwarm/View/{Layout,Index,TaskDetail,Metrics}.tsx`).
+(`packages/App/FeatureSet/Dashboard/src/Pages/DockerSwarm/View/{Layout,Index,Nodes,Services,Tasks,NodeDetail,ServiceDetail,TaskDetail,Metrics}.tsx`).
 It bundles the production pages with esbuild, replaces only the `ModelAPI` /
 `AnalyticsModelAPI` / `API` / `Realtime` data boundary, and serves them on
 `127.0.0.1:4637` (`DOCKER_SWARM_PAGES_FIXTURE_PORT`). No Docker, no database,
@@ -34,14 +36,15 @@ stub (`data-testid="stub-page"`).
 
 Query parameters on any page:
 
-| Parameter     | Values                                                                                                                    |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `agent`       | `old` (default: `0.161.0`, the files before #5076's CPU fix), `current` (`0.161.2`, the files this release ships), `none` |
-| `lang`        | `de` reads the German locale file                                                                                         |
-| `theme`       | `dark` adds `html.dark` (server.js)                                                                                       |
-| `description` | `long` gives the cluster a description longer than two lines of its hero at a laptop's width                              |
-| `dir`         | `rtl` lays the page out right to left, as a Persian page is                                                               |
-| `collector`   | `disconnected`: the swarm's agent stopped reporting three days ago (the hero's pills say so, in the page's language)      |
+| Parameter     | Values                                                                                                                                                 |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `agent`       | `old` (default: `0.161.0`, the files before #5076's CPU fix), `current` (`0.161.3`, the files this release ships), `none`                              |
+| `swarm`       | `trouble`: a worker down, a service short of a replica, one whose tasks keep failing, a task near its memory limit, an alert open on the short service |
+| `lang`        | `de` reads the German locale file, `fa` the Persian one (right to left)                                                                                |
+| `theme`       | `dark` adds `html.dark` (server.js)                                                                                                                    |
+| `description` | `long` gives the cluster a description longer than two lines of its hero at a laptop's width                                                           |
+| `dir`         | `rtl` lays the page out right to left, as a Persian page is                                                                                            |
+| `collector`   | `disconnected`: the swarm's agent stopped reporting three days ago (the hero's pills say so, in the page's language)                                   |
 
 ## What the fixture records
 

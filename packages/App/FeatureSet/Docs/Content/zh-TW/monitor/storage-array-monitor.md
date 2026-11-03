@@ -32,7 +32,7 @@ flowchart TB
 ## 開始之前
 
 - **安裝 Storage Array Agent**，安裝在能透過 HTTPS 連線到陣列的位置，並使用擁有陣列 **readonly** 角色之使用者的 API 權杖。[Storage Array Agent 指南](/docs/telemetry/storage-arrays) 介紹了使用者、權杖和安裝，涉及 `ONEUPTIME_URL`、`ONEUPTIME_TELEMETRY_INGESTION_KEY`、`STORAGE_ARRAY_NAME`，以及陣列的位址和權杖(`PURE_FA_ENDPOINT` 和 `PURE_FA_API_TOKEN`，或 `PURE_FB_ENDPOINT` 和 `PURE_FB_API_TOKEN`)。
-- **確認陣列已註冊。** 在第一次收集後大約一分鐘，它會以代理程式的 `STORAGE_ARRAY_NAME` 命名，出現在 **產品 → 基礎設施 → 儲存陣列 → All Storage Arrays** 下。
+- **確認陣列已註冊。** 在第一次收集後大約一分鐘，它會以代理程式的 `STORAGE_ARRAY_NAME` 命名，出現在 **產品 → 基礎設施 → 儲存陣列 → 所有儲存陣列** 下。
 
 ## 建立儲存陣列監測器
 
@@ -77,7 +77,7 @@ flowchart TB
 | **磁碟區** | Custom Metric、進階 | 僅限 FlashArray。一個磁碟區，依 `name` 標籤，例如 `vol-db-01`。Pod 或磁碟區群組中的磁碟區命名為 `pod::volume` 或 `group/volume`。 |
 | **主機** | Custom Metric、進階 | 僅限 FlashArray。陣列所知的一台主機，依 `host` 標籤，例如 `esxi-01`。 |
 | **Pod** | Custom Metric、進階 | 僅限 FlashArray。一個 ActiveCluster 或 ActiveDR Pod，依 `name` 標籤，在複本連結序列上則依 `local_pod`。 |
-| **Hardware Component** | Custom Metric、進階 | 一個硬體元件，例如 `CH0.BAY1` 或 `CT0`：在 FlashArray 上是 `component_name` 標籤，在 FlashBlade 上是 `name`。 |
+| **硬體元件** | Custom Metric、進階 | 一個硬體元件，例如 `CH0.BAY1` 或 `CT0`：在 FlashArray 上是 `component_name` 標籤，在 FlashBlade 上是 `name`。 |
 | **檔案系統** | Custom Metric、進階 | 僅限 FlashBlade。一個檔案系統，依 `name` 標籤。 |
 | **儲存貯體** | Custom Metric、進階 | 僅限 FlashBlade。一個物件儲存貯體，依 `name` 標籤。 |
 | **Storage Array Metric** | Custom Metric | [目錄](#收集的指標) 中的一個指標。表單會加入賦予其意義的標籤篩選器，並依它描述的物件分組，因此每個磁碟區、主機或元件都會單獨判斷。 |

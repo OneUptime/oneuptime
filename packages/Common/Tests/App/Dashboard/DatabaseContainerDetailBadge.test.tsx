@@ -222,8 +222,19 @@ describe("'Open database' on a Compose container's page", () => {
         `/dashboard/${PROJECT_ID}/databases/${DATABASE_ID}`,
       );
 
-      const inventory: Array<ListArgs> = listCalls(data.resourceModel);
+      /*
+       * The badge's own lookup, by the container's name: one lean query. The
+       * page also reads the host's whole container inventory, for what the
+       * agent reports about each container (ContainerHostReadings).
+       */
+      const inventoryReads: Array<ListArgs> = listCalls(data.resourceModel);
+      const inventory: Array<ListArgs> = inventoryReads.filter(
+        (args: ListArgs): boolean => {
+          return args.query["name"] !== undefined;
+        },
+      );
       expect(inventory).toHaveLength(1);
+      expect(inventoryReads).toHaveLength(2);
       expect(
         (inventory[0]!.query[data.hostColumn] as ObjectID).toString(),
       ).toBe(HOST_ID);

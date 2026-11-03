@@ -154,6 +154,16 @@ Las métricas y los logs de cada contenedor se archivan en un servicio con el no
 
 [Monitor de Docker](/docs/monitor/docker-monitor#métricas-recopiladas) enumera cada métrica y lo que significa.
 
+## Lo que muestran las páginas del host
+
+Las páginas del host juzgan cada contenedor con las mismas reglas, así que la vista general, la lista de contenedores y la página de un contenedor siempre coinciden:
+
+- **Vista general**: el estado del host junto a su conexión, y **Requiere atención**: los contenedores que están rotos o necesitan revisión, los más urgentes primero, cada uno con el motivo. Un contenedor que su política de reinicio reinició más de 3 veces en 15 minutos está en un bucle de reinicios; uno que se reinició, usa más del 85 % de su memoria o estuvo en ejecución 10 minutos o más y luego dejó de informar necesita revisión.
+- **Contenedores**: el estado de cada contenedor con las mismas palabras y colores, con el motivo, sus reinicios de los últimos 15 minutos y cuándo se inició por última vez. Un contenedor que se detuvo sigue en la lista 15 minutos después de su última lectura: **Dejó de informar** para uno que estuvo en ejecución 10 minutos o más, **Sin informar** en gris para un trabajo o una ejecución puntual que terminó.
+- La página de un contenedor: lo que necesita revisión en él, su CPU, su memoria y sus reinicios, lo que está abierto en él, las alertas de contenedor con un paso para activarlas y lo que el agente informa sobre él.
+
+El agente solo lee los contenedores en ejecución, así que no aparecen un contenedor que ya estaba detenido cuando arrancó el agente, un código de salida ni el veredicto de una comprobación de estado.
+
 ## Los logs de contenedores necesitan el controlador json-file
 
 El agente sigue `/var/lib/docker/containers/*/*-json.log`, los archivos que escribe el controlador de logs `json-file` de Docker. Un contenedor que usa otro controlador no deja ningún archivo que leer: `local` escribe archivos binarios, y `journald`, `syslog`, `fluentd` y `gelf` envían los logs a otro sitio. Sus métricas siguen llegando; sus logs no.

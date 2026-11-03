@@ -6,7 +6,10 @@ import React, {
 } from "react";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
-import { MonitorRecommendationResourceType } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
+import {
+  MonitorRecommendationContext,
+  MonitorRecommendationResourceType,
+} from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
 import { useCardRuledListClassName } from "Common/UI/Components/Card/CardSurface";
@@ -51,6 +54,11 @@ export interface ComponentProps {
   templateIds: Array<string>;
   resourceId: ObjectID;
   resourceIdentifier: string;
+  /*
+   * What the resource's recommendations depend on: a storage array's
+   * platform (a FlashBlade is offered no FlashArray template).
+   */
+  context?: MonitorRecommendationContext | undefined;
   // The resource's Recommendations page, with the alerts to turn on ticked.
   getRecommendationsRoute: (recommendationIds: Array<string>) => Route;
   getMonitorRoute: (monitorId: ObjectID) => Route;
@@ -79,6 +87,7 @@ const ResourcePartAlertsCard: FunctionComponent<ComponentProps> = (
       templateIds: props.templateIds,
       resourceId: props.resourceId,
       resourceIdentifier: props.resourceIdentifier,
+      context: props.context,
     })
       .then((loaded: Array<RecommendationViewModel>) => {
         if (ignore) {
@@ -101,6 +110,7 @@ const ResourcePartAlertsCard: FunctionComponent<ComponentProps> = (
     props.resourceId.toString(),
     props.resourceIdentifier,
     props.templateIds.join(","),
+    JSON.stringify(props.context || {}),
     props.refreshToken,
   ]);
 
