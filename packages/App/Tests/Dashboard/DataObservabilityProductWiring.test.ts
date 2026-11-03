@@ -7,7 +7,7 @@ import path from "path";
  * layout (Overview, Tables, Schema Changes, Databases, Documentation,
  * Dropped Tables), a per-database layout (Overview, Tables,
  * Recommendations) and a per-table layout (Overview, Columns, Metrics,
- * Timeline, Settings, Delete). Every piece of that wiring fails silently:
+ * Timeline, Services, Settings, Delete). Every piece of that wiring fails silently:
  * a missing navbar entry hides the product, a route in PageMap that is never
  * mounted renders a blank page, a page with no trail renders without
  * breadcrumbs. The App suite cannot import the dashboard's route modules, so
@@ -41,6 +41,11 @@ const PAGE_KEYS: ReadonlyArray<string> = [
   "DATA_OBSERVABILITY_TABLE_VIEW_COLUMNS",
   "DATA_OBSERVABILITY_TABLE_VIEW_METRICS",
   "DATA_OBSERVABILITY_TABLE_VIEW_TIMELINE",
+  "DATA_OBSERVABILITY_TABLE_VIEW_SERVICES",
+  "DATA_OBSERVABILITY_TABLE_VIEW_CHECKS",
+  "DATA_OBSERVABILITY_CHECKS",
+  "DATA_OBSERVABILITY_TABLE_VIEW_LINEAGE",
+  "DATA_OBSERVABILITY_PIPELINES",
   "DATA_OBSERVABILITY_TABLE_VIEW_SETTINGS",
   "DATA_OBSERVABILITY_TABLE_VIEW_DELETE",
   "DATA_OBSERVABILITY_STORES",

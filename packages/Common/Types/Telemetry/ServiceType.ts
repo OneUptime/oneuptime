@@ -49,6 +49,12 @@ enum ServiceType {
    */
   DataStore = "DataStore",
   /*
+   * Data Observability's pipeline run rows (oneuptime.data.pipeline.*),
+   * from OpenLineage events: the pipeline whose runs they describe. Like
+   * table health, never billed as ingested telemetry.
+   */
+  DataPipeline = "DataPipeline",
+  /*
    * Telemetry that arrived without an OTel service.name and with no
    * host / docker / k8s resource signal. Instead of synthesising a
    * placeholder "Unknown Service" Postgres row (which collected every

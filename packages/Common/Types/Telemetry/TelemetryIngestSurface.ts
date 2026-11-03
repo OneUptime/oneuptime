@@ -29,6 +29,8 @@ enum TelemetryIngestSurface {
   Pyroscope = "pyroscope",
   KubernetesCost = "kubernetes-cost",
   ChangeEvents = "change-events",
+  // OpenLineage run events: Data Observability's pipelines and lineage.
+  OpenLineage = "openlineage",
   SecurityEvents = "security-events",
   Grpc = "grpc",
   Mqtt = "mqtt",
@@ -129,6 +131,7 @@ const INGEST_SURFACE_READABLE_NAMES: Record<TelemetryIngestSurface, string> = {
   [TelemetryIngestSurface.Pyroscope]: "Pyroscope profile ingest",
   [TelemetryIngestSurface.KubernetesCost]: "Kubernetes cost ingest",
   [TelemetryIngestSurface.ChangeEvents]: "change event ingest",
+  [TelemetryIngestSurface.OpenLineage]: "OpenLineage event ingest",
   [TelemetryIngestSurface.SecurityEvents]: "security event ingest",
   [TelemetryIngestSurface.Grpc]: "gRPC ingest",
   [TelemetryIngestSurface.Mqtt]: "MQTT ingest",

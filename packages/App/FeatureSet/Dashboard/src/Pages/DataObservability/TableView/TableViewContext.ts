@@ -15,6 +15,7 @@ export const TABLE_VIEW_SELECT: {
   name: true;
   schemaName: true;
   assetKind: true;
+  dataStoreId: true;
   dataStoreName: true;
   dataStoreKind: true;
   description: true;
@@ -34,6 +35,7 @@ export const TABLE_VIEW_SELECT: {
   name: true,
   schemaName: true,
   assetKind: true,
+  dataStoreId: true,
   dataStoreName: true,
   dataStoreKind: true,
   description: true,

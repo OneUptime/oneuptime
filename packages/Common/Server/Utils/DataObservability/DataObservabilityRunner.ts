@@ -10,12 +10,15 @@ import {
   PROBE_SCANNABLE_KINDS,
 } from "../DataSecurity/DataSecurityProbeScan";
 import { TABLE_HEALTH_CLAIM_IN_MINUTES } from "./DataObservabilityProbeCollect";
+import DataCheckIngest from "./DataCheckIngest";
+import DataCheckPlanner, { DataCheckPlan } from "./DataCheckPlanner";
 import {
   collectTableHealth,
   DEFAULT_COLLECT_OPTIONS,
   TableHealthSnapshot,
 } from "./TableHealthCollector";
 import TableHealthIngest, {
+  IngestStore,
   TableHealthIngestResult,
 } from "./TableHealthIngest";
 
@@ -125,11 +128,19 @@ export default class DataObservabilityRunner {
 
     let snapshot: TableHealthSnapshot;
 
+    // The store's checks that are due run in the same session.
+    const plan: DataCheckPlan = await DataCheckPlanner.planDueChecks({
+      dataStoreId: store.id,
+      engine,
+      now: OneUptimeDate.getCurrentDate(),
+    });
+
     try {
       snapshot = await collectTableHealth(
         { engine, connectionString: store.connectionString },
         {
           ...DEFAULT_COLLECT_OPTIONS,
+          checks: plan.planned,
           exclusions: (store.scanExclusions || []).filter(
             (exclusion: unknown): exclusion is string => {
               return typeof exclusion === "string";
@@ -151,14 +162,24 @@ export default class DataObservabilityRunner {
       return null;
     }
 
-    return await TableHealthIngest.recordSnapshot({
-      store: {
-        id: store.id,
-        projectId,
-        name: store.name || "",
-        kind: store.kind || "",
-      },
-      snapshot,
+    const ingestStore: IngestStore = {
+      id: store.id,
+      projectId,
+      name: store.name || "",
+      kind: store.kind || "",
+    };
+    const result: TableHealthIngestResult =
+      await TableHealthIngest.recordSnapshot({
+        store: ingestStore,
+        snapshot,
+      });
+
+    await DataCheckIngest.recordResults({
+      store: ingestStore,
+      results: [...plan.refused, ...(snapshot.checkResults || [])],
+      collectedAt: OneUptimeDate.fromString(snapshot.collectedAt),
     });
+
+    return result;
   }
 }
