@@ -281,13 +281,17 @@ describe("the Global Runners section of runbooks/agents", () => {
       "A repository on **Global Runner** then says that no global Runner online takes AI code fixes",
     );
 
-    // Where a master admin sees why: under the Runner's status.
-    expect(ADMIN_PAGE).toContain(
-      "pages.settings.globalRunners.takesNoCodeFixesOlderRelease",
-    );
-    expect(ADMIN_PAGE).toContain(
-      "pages.settings.globalRunners.takesNoCodeFixesTurnedOff",
-    );
+    /*
+     * Where a master admin sees why: under the Runner's status, in the
+     * Admin Dashboard's words, which every Admin locale holds.
+     */
+    for (const line of [
+      "Takes no AI code fixes: update it to this server's version.",
+      "Takes no AI code fixes: remove {{setting}} from its host and restart it.",
+    ]) {
+      expect(ADMIN_PAGE).toContain(`"${line}"`);
+      expect(ADMIN_LOCALE[line]).toBe(line);
+    }
     expect(SECTION).toContain(
       "the Admin Dashboard's **Global Runners** page says why under that Runner's status.",
     );

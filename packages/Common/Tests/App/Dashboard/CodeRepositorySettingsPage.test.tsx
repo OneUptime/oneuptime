@@ -1833,6 +1833,60 @@ describe("the settings' words and rules, as plain functions", () => {
     });
   });
 
+  /*
+   * A Runner of the project's own that is connected, but whose host turned
+   * AI code fixes off: folded, More settings says so after its name, as it
+   * says a Runner that is not connected - never the name alone, which
+   * reads as a Runner that works.
+   */
+  test("the Runner a repository picks, folded: one that takes no AI code fixes says so after its name", () => {
+    const refusing: RunnerChoices = choicesWith({
+      projectRunners: [
+        {
+          id: PROD_RUNNER_ID,
+          name: "prod-eu-west-1",
+          liveStatus: RunnerLiveStatus.Connected,
+          takesNoCodeFixes: true,
+        },
+        {
+          id: OFFICE_RUNNER_ID,
+          name: "office-runner",
+          liveStatus: RunnerLiveStatus.Disconnected,
+          takesNoCodeFixes: true,
+        },
+      ],
+    });
+    const runnerItem: (runnerId: string) => FoldedSectionItem = (
+      runnerId: string,
+    ): FoldedSectionItem => {
+      return getRepositoryMoreSettingsItems(
+        { runnerId },
+        english,
+        refusing,
+      )[2]!;
+    };
+
+    expect(runnerItem(PROD_RUNNER_ID)).toMatchObject({
+      key: "runner",
+      isSet: true,
+      value: "prod-eu-west-1 · Takes no AI code fixes",
+    });
+    // The name is shown as written: the item is never looked up whole.
+    expect(runnerItem(PROD_RUNNER_ID).translateValue).toBe(undefined);
+    // Not connected says that first: nothing takes its work either way.
+    expect(runnerItem(OFFICE_RUNNER_ID)).toMatchObject({
+      value: "office-runner · Disconnected",
+    });
+    // One that takes them: its name alone, as before.
+    expect(
+      getRepositoryMoreSettingsItems(
+        { runnerId: PROD_RUNNER_ID },
+        english,
+        choicesWith(),
+      )[2],
+    ).toMatchObject({ value: "prod-eu-west-1" });
+  });
+
   test("a blocked limit reads as None; commands as Configured", () => {
     const items: Array<FoldedSectionItem> = getRepositoryMoreSettingsItems(
       { maxOpenFixPullRequests: 0, testCommand: "go test ./..." },

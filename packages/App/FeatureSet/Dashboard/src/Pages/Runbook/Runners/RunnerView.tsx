@@ -61,6 +61,7 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import RunnerLiveStatus, {
   getRunnerLiveStatus,
 } from "Common/Types/Runner/RunnerLiveStatus";
+import { doesRunnerTakeCodeFixes } from "Common/Types/Runner/RunnerCodeFixes";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
@@ -337,8 +338,12 @@ const RunnerView: FunctionComponent<PageComponentProps> = (
           },
           modelType: Runner,
           id: "model-detail-runbook-agent",
-          // The posture: whether this is a Runner the Kubernetes agent chart installed.
-          selectMoreFields: { hostInfo: true },
+          /*
+           * The posture: whether this is a Runner the Kubernetes agent chart
+           * installed. And whether its host turned AI code fixes off, as it
+           * said on its last heartbeat: its Code Repositories say so.
+           */
+          selectMoreFields: { hostInfo: true, takesCodeFixes: true },
           fields: [
             {
               field: { _id: true },
@@ -391,10 +396,11 @@ const RunnerView: FunctionComponent<PageComponentProps> = (
                   !isKubernetesAgentRunnerRow(item)
                 );
               },
-              getElement: (): ReactElement => {
+              getElement: (item: Runner): ReactElement => {
                 return (
                   <RunnerCodeRepositoryList
                     repositories={codeRepositories || []}
+                    takesNoCodeFixes={!doesRunnerTakeCodeFixes(item)}
                   />
                 );
               },

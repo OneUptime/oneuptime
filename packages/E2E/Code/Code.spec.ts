@@ -244,6 +244,35 @@ async function expectNoSidewaysScroll(page: Page): Promise<void> {
   expect(overflow).toBeLessThanOrEqual(0);
 }
 
+/*
+ * The setting that turns a Runner's AI code fixes off, where a sentence
+ * names it: drawn as code that reads as written, and that breaks only after
+ * its underscores - each part between two of them on one line - never at
+ * the letter that fills a phone's line ("..._CODE_FIXES=fals" / "e").
+ */
+async function expectSettingWholeAsCode(container: Locator): Promise<void> {
+  const setting: Locator = container.getByTestId(
+    "runner-code-fixes-off-setting",
+  );
+
+  await expect(setting).toHaveText("ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false");
+  expect(
+    await setting.evaluate((element: Element): string => {
+      return element.tagName;
+    }),
+  ).toBe("CODE");
+
+  const linesPerPart: Array<number> = await setting
+    .locator("span")
+    .evaluateAll((parts: Array<Element>): Array<number> => {
+      return parts.map((part: Element): number => {
+        return part.getClientRects().length;
+      });
+    });
+
+  expect(linesPerPart).toEqual([1, 1, 1, 1, 1]);
+}
+
 async function addContext(page: Page, kind: string): Promise<Locator> {
   await page.getByTestId("code-add-context").click();
   await page.getByTestId(`code-add-context-${kind}`).click();
@@ -3505,6 +3534,12 @@ test.describe("a repository's Runner", () => {
     await expect(ownRunner).toHaveText("Runner: prod-eu-west-1");
     await expect(ownRunner).toHaveAttribute("data-item-set", "true");
     await expect(await runnerChip("uses=0")).toHaveText("Runner: None");
+    // Its host turned AI code fixes off: said after its name, folded too.
+    await expect(await runnerChip("runner=prod&prodfix=0")).toHaveText(
+      "Runner: prod-eu-west-1 · Takes no AI code fixes",
+    );
+    // No global Runner that takes them, and none picked: None.
+    await expect(await runnerChip("gfix=0")).toHaveText("Runner: None");
   });
 
   test("picking Global Runner again saves no Runner", async ({
@@ -3747,12 +3782,16 @@ test.describe("a repository's Runner", () => {
       "This Runner takes no AI code fixes: ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false is set on its host. Remove that setting and restart the Runner, or pick another Runner.",
     );
     await expect(takesNone).toHaveCSS("color", "rgb(180, 83, 9)");
+    await expectSettingWholeAsCode(takesNone);
 
     await openRunnerStep(page);
     await expect(
       page.getByTestId("code-repository-runner-picker-takes-no-code-fixes"),
     ).toHaveText(
       "This Runner takes no AI code fixes: ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false is set on its host. Remove that setting and restart the Runner, or pick another Runner.",
+    );
+    await expectSettingWholeAsCode(
+      page.getByTestId("code-repository-runner-picker-takes-no-code-fixes"),
     );
     // Not what AI would do on it.
     await expect(
@@ -3792,8 +3831,54 @@ test.describe("a repository's Runner", () => {
     await expect(notice.getByTestId("code-blocker-fix")).toHaveText(
       "Pick a Runner",
     );
+    await expectSettingWholeAsCode(notice);
     await expectNoSidewaysScroll(page);
     await screenshot(page, testInfo, "code-blocker-runner-host-refuses");
+  });
+
+  /*
+   * Global Runners online that take no AI code fixes: Code says so - never
+   * that no global Runner is online, which the Runners page would
+   * contradict - and links the way out in the project's hands, one of its
+   * own Runners. It names no setting: which one, and why, is the master
+   * admin's to see (Admin Dashboard -> Global Runners).
+   */
+  test("global Runners that take no AI code fixes: Code's notice says so, with Pick a Runner, and names no setting", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await openRepository(
+      page,
+      REPOSITORY.checkout,
+      "blocker=GlobalRunnersTakeNoCodeFixes&gfix=0",
+    );
+
+    const notice: Locator = page.getByTestId("code-blocker");
+    await expect(notice).toHaveAttribute(
+      "data-blocker",
+      "GlobalRunnersTakeNoCodeFixes",
+    );
+    await expect(notice).toContainText(
+      "No global Runner online takes AI code fixes, so none can work in this repository. Pick one of your Runners for it, or ask your OneUptime administrator to let a global Runner take them.",
+    );
+    await expect(notice).not.toContainText("No global Runner is online");
+    await expect(
+      notice.getByTestId("runner-code-fixes-off-setting"),
+    ).toHaveCount(0);
+    await expect(notice.getByTestId("code-blocker-runner")).toHaveCount(0);
+
+    const fix: Locator = notice.getByTestId("code-blocker-fix");
+    await expect(fix).toHaveText("Pick a Runner");
+    expect(await fix.getAttribute("href")).toBe(
+      `${repositoryPath(REPOSITORY.checkout)}/settings#runner`,
+    );
+    await expectNoSidewaysScroll(page);
+    await screenshot(
+      page,
+      testInfo,
+      "code-blocker-global-runners-take-no-code-fixes",
+    );
   });
 
   test("a blocker's Pick a Runner opens the repository's settings at its Runner, More settings open there", async ({

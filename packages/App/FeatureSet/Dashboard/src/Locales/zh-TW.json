@@ -40381,7 +40381,8 @@
   "Runners OneUptime runs for every project. JavaScript steps and AI code fixes run on them when you pick Global Runner.": "OneUptime 為所有專案執行的 Runner。選擇全域 Runner 時，JavaScript 步驟和 AI 程式碼修正會在其上執行。",
   "Takes AI Code Fixes": "接受 AI 程式碼修正",
   "Takes no AI code fixes: its host turned them off.": "不接受 AI 程式碼修正：它的主機已將其關閉。",
-  "The Runner this repository works on does not take AI code fixes: ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false is set on its host. Remove that setting and restart the Runner, or pick another Runner.": "此儲存庫所用的 Runner 不接受 AI 程式碼修正：它的主機上設定了 ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false。請移除該設定並重新啟動 Runner，或選擇其他 Runner。",
-  "The Runner this repository works on, {{runner}}, does not take AI code fixes: ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false is set on its host. Remove that setting and restart the Runner, or pick another Runner.": "此儲存庫所用的 Runner（{{runner}}）不接受 AI 程式碼修正：它的主機上設定了 ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false。請移除該設定並重新啟動 Runner，或選擇其他 Runner。",
-  "This Runner takes no AI code fixes: ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false is set on its host. Remove that setting and restart the Runner, or pick another Runner.": "此 Runner 不接受 AI 程式碼修正：它的主機上設定了 ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false。請移除該設定並重新啟動 Runner，或選擇其他 Runner。"
+  "The Runner this repository works on does not take AI code fixes: {{setting}} is set on its host. Remove that setting and restart the Runner, or pick another Runner.": "此儲存庫所用的 Runner 不接受 AI 程式碼修正：它的主機上設定了 {{setting}}。請移除該設定並重新啟動 Runner，或選擇其他 Runner。",
+  "The Runner this repository works on, {{runner}}, does not take AI code fixes: {{setting}} is set on its host. Remove that setting and restart the Runner, or pick another Runner.": "此儲存庫所用的 Runner（{{runner}}）不接受 AI 程式碼修正：它的主機上設定了 {{setting}}。請移除該設定並重新啟動 Runner，或選擇其他 Runner。",
+  "This Runner takes no AI code fixes: {{setting}} is set on its host. Remove that setting and restart the Runner, or pick another Runner.": "此 Runner 不接受 AI 程式碼修正：它的主機上設定了 {{setting}}。請移除該設定並重新啟動 Runner，或選擇其他 Runner。",
+  "Takes no AI code fixes": "不接受 AI 程式碼修正"
 }

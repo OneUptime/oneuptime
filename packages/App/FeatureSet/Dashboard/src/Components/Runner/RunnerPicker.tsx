@@ -16,6 +16,7 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import { RunnerChoices } from "./RunnerChoices";
 import { GLOBAL_RUNNER_MAX_MINUTES } from "./GlobalRunnersCopy";
+import RunnerTakesNoCodeFixesText from "./RunnerTakesNoCodeFixesText";
 import {
   CODE_GLOBAL_RUNNERS_OFF_HELPER_TEXT,
   CODE_GLOBAL_RUNNER_CHOICE_DESCRIPTION,
@@ -26,7 +27,6 @@ import {
   CODE_NO_CODE_FIX_GLOBAL_RUNNER_HELPER_TEXT,
   CODE_NO_GLOBAL_RUNNER_HELPER_TEXT,
   CODE_RUNNER_TAKES_NO_CODE_FIXES_OPTION_TEXT,
-  CODE_RUNNER_TAKES_NO_CODE_FIXES_TEXT,
   CODE_PROJECT_DEFAULT_RUNNER_HELPER_TEXT,
   CodeRepositoryRunnerWords,
   GLOBAL_RUNNERS_OFF_HELPER_TEXT,
@@ -527,7 +527,7 @@ const RunnerPicker: FunctionComponent<ComponentProps> = (
           className="text-amber-700 break-words"
           data-testid={`${dataTestId}-takes-no-code-fixes`}
         >
-          {translator.translateText(CODE_RUNNER_TAKES_NO_CODE_FIXES_TEXT)}
+          <RunnerTakesNoCodeFixesText />
         </span>
       );
     }

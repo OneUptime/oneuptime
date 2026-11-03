@@ -551,9 +551,7 @@
         "runnerIdLabel": "Runner ID:",
         "runnerKeyLabel": "Runner Key:",
         "commandLabel": "Run on your Docker host",
-        "neverConnected": "Never connected",
-        "takesNoCodeFixesOlderRelease": "Takes no AI code fixes: update it to this server's version.",
-        "takesNoCodeFixesTurnedOff": "Takes no AI code fixes: ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false is set on its host."
+        "neverConnected": "Never connected"
       },
       "dataRetention": {
         "logCardTitle": "Monitor Log Retention",
@@ -1619,5 +1617,7 @@
   "No valid Enterprise license: session lengths become read-only when the trial or grace period ends.": "No valid Enterprise license: session lengths become read-only when the trial or grace period ends.",
   "The lengths already set still sign people out, and you can still remove them. Activate or renew the Enterprise license in the Admin Dashboard to change this again.": "The lengths already set still sign people out, and you can still remove them. Activate or renew the Enterprise license in the Admin Dashboard to change this again.",
   "The lengths already set still sign people out, and you can still remove them. Activate a license that includes it in the Admin Dashboard to change this again.": "The lengths already set still sign people out, and you can still remove them. Activate a license that includes it in the Admin Dashboard to change this again.",
-  "Everything here can be changed during the 14-day trial of an installation with no license, or the 30-day grace period after a license expires. When it ends: The lengths already set still sign people out, and you can still remove them.": "Everything here can be changed during the 14-day trial of an installation with no license, or the 30-day grace period after a license expires. When it ends: The lengths already set still sign people out, and you can still remove them."
+  "Everything here can be changed during the 14-day trial of an installation with no license, or the 30-day grace period after a license expires. When it ends: The lengths already set still sign people out, and you can still remove them.": "Everything here can be changed during the 14-day trial of an installation with no license, or the 30-day grace period after a license expires. When it ends: The lengths already set still sign people out, and you can still remove them.",
+  "Takes no AI code fixes: update it to this server's version.": "Takes no AI code fixes: update it to this server's version.",
+  "Takes no AI code fixes: remove {{setting}} from its host and restart it.": "Takes no AI code fixes: remove {{setting}} from its host and restart it."
 }

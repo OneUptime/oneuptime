@@ -382,8 +382,12 @@ export const CODE_TASK_BLOCKER_SENTENCES: Partial<
   [CodeTaskBlockerType.GlobalRunnersTakeNoCodeFixes]: translationKey(
     "No global Runner online takes AI code fixes, so none can work in this repository. Pick one of your Runners for it, or ask your OneUptime administrator to let a global Runner take them.",
   ),
+  /*
+   * {{setting}} is the setting itself (RUNNER_CODE_FIXES_OFF_SETTING), drawn
+   * as code: CodeBlockerNotice fills it in.
+   */
   [CodeTaskBlockerType.RunnerTakesNoCodeFixes]: translationKey(
-    "The Runner this repository works on does not take AI code fixes: ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false is set on its host. Remove that setting and restart the Runner, or pick another Runner.",
+    "The Runner this repository works on does not take AI code fixes: {{setting}} is set on its host. Remove that setting and restart the Runner, or pick another Runner.",
   ),
 };
 
@@ -412,12 +416,20 @@ export const CODE_TASK_RUNNER_NOT_ONLINE_NAMED: string = translationKey(
 
 /*
  * RunnerTakesNoCodeFixes when the server names the Runner: which one takes
- * no AI code fixes, in the sentence above's words.
+ * no AI code fixes, in the sentence above's words - {{runner}} its name in
+ * bold, {{setting}} the setting as code.
  */
 export const CODE_TASK_RUNNER_TAKES_NO_CODE_FIXES_NAMED: string =
   translationKey(
-    "The Runner this repository works on, {{runner}}, does not take AI code fixes: ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false is set on its host. Remove that setting and restart the Runner, or pick another Runner.",
+    "The Runner this repository works on, {{runner}}, does not take AI code fixes: {{setting}} is set on its host. Remove that setting and restart the Runner, or pick another Runner.",
   );
+
+/*
+ * The blockers whose sentence names the setting that turns a Runner's AI
+ * code fixes off, as a {{setting}} drawn as code.
+ */
+export const CODE_TASK_BLOCKERS_NAMING_THE_SETTING: ReadonlyArray<CodeTaskBlockerType> =
+  [CodeTaskBlockerType.RunnerTakesNoCodeFixes];
 
 /*
  * What fixes each thing that stops AI working in a repository: the page and

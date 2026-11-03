@@ -16,6 +16,8 @@ import {
 } from "Common/Types/Runner/RunnerCodeFixes";
 import { getGlobalRunnerDockerCommand } from "Common/Types/Runner/RunnerContainer";
 import { ActionButtonPlacement } from "Common/UI/Components/ActionButton/ActionButtonSchema";
+import RunnerCodeFixesOffSetting from "Common/UI/Components/Runner/RunnerCodeFixesOffSetting";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import CodeBlock from "Common/UI/Components/CodeBlock/CodeBlock";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -25,6 +27,8 @@ import Page from "Common/UI/Components/Page/Page";
 import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { HOST, HTTP_PROTOCOL } from "Common/UI/Config";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import Runner from "Common/Models/DatabaseModels/Runner";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -32,6 +36,34 @@ import { useTranslation } from "react-i18next";
 // The line under a global Runner's status when it takes no AI code fixes.
 export const GLOBAL_RUNNER_TAKES_NO_CODE_FIXES_TEST_ID: string =
   "global-runner-takes-no-code-fixes";
+
+/*
+ * Why a global Runner takes no AI code fixes, said as what makes it take
+ * them, in whole sentences the locale files hold (English keys, as
+ * Health's visitor addresses have them): the setting its host turned them
+ * off with is the {{setting}} value, drawn as code.
+ */
+export const GLOBAL_RUNNER_CODE_FIXES_COPY: {
+  olderRelease: string;
+  turnedOff: string;
+} = {
+  olderRelease: "Takes no AI code fixes: update it to this server's version.",
+  turnedOff:
+    "Takes no AI code fixes: remove {{setting}} from its host and restart it.",
+};
+
+/*
+ * The Status column wraps (Column.wrapContent): its line is a sentence, and
+ * a cell that never wraps cut it off behind the row's buttons. Between a
+ * floor that keeps the line a few words wide (a table short of room gives a
+ * wrapping column its longest word, and the setting broke onto four lines)
+ * and a cap that keeps it a status, not a paragraph across the table.
+ */
+export const GLOBAL_RUNNER_STATUS_COLUMN_MIN_WIDTH_CLASS_NAME: string =
+  "min-w-[14rem]";
+
+export const GLOBAL_RUNNER_STATUS_COLUMN_MAX_WIDTH_CLASS_NAME: string =
+  "max-w-xs";
 
 /*
  * Settings -> Runbooks -> Global Runners: the Runners OneUptime runs for
@@ -50,6 +82,7 @@ export const GLOBAL_RUNNER_TAKES_NO_CODE_FIXES_TEST_ID: string =
  */
 const Settings: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
+  const translator: Translator = useTranslator();
   const [currentRunner, setCurrentRunner] = useState<Runner | null>(null);
 
   const renderLiveStatus: (item: Runner) => ReactElement = (
@@ -109,13 +142,16 @@ const Settings: FunctionComponent = (): ReactElement => {
       <div>
         {renderLiveStatus(item)}
         <p
-          className="mt-1 break-words text-xs text-amber-700"
+          className="mt-1 break-words text-xs leading-5 text-amber-700"
           data-testid={GLOBAL_RUNNER_TAKES_NO_CODE_FIXES_TEST_ID}
         >
-          {t(
-            refusal === RunnerCodeFixRefusal.OlderRelease
-              ? "pages.settings.globalRunners.takesNoCodeFixesOlderRelease"
-              : "pages.settings.globalRunners.takesNoCodeFixesTurnedOff",
+          {refusal === RunnerCodeFixRefusal.OlderRelease ? (
+            translator.translateText(GLOBAL_RUNNER_CODE_FIXES_COPY.olderRelease)
+          ) : (
+            <TranslatedSentence
+              template={GLOBAL_RUNNER_CODE_FIXES_COPY.turnedOff}
+              slots={{ setting: <RunnerCodeFixesOffSetting /> }}
+            />
           )}
         </p>
       </div>
@@ -265,6 +301,10 @@ const Settings: FunctionComponent = (): ReactElement => {
             title: "Status",
             type: FieldType.Element,
             disableSort: true,
+            wrapContent: true,
+            wrapMaxWidthClassName:
+              GLOBAL_RUNNER_STATUS_COLUMN_MAX_WIDTH_CLASS_NAME,
+            contentClassName: GLOBAL_RUNNER_STATUS_COLUMN_MIN_WIDTH_CLASS_NAME,
             getElement: renderStatus,
           },
         ]}

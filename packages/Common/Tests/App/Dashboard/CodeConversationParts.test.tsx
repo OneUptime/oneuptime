@@ -30,6 +30,8 @@ import {
 import Route from "../../../Types/API/Route";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
+import { RUNNER_CODE_FIXES_OFF_SETTING } from "../../../Types/Runner/RunnerCodeFixes";
+import { RUNNER_CODE_FIXES_OFF_SETTING_TEST_ID } from "../../../UI/Components/Runner/RunnerCodeFixesOffSetting";
 import PermissionUtil from "../../../UI/Utils/Permission";
 import User from "../../../UI/Utils/User";
 import englishLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/en.json";
@@ -2211,6 +2213,87 @@ describe("what stops AI working", () => {
     expect(within(notice).getByTestId("code-blocker-fix")).toHaveTextContent(
       "Pick a Runner",
     );
+
+    /*
+     * The setting is drawn as code, whole when copied, breaking only after
+     * its underscores - never at the letter that fills a phone's line.
+     */
+    const setting: HTMLElement = within(notice).getByTestId(
+      RUNNER_CODE_FIXES_OFF_SETTING_TEST_ID,
+    );
+    expect(setting.tagName).toBe("CODE");
+    expect(setting.textContent).toBe(RUNNER_CODE_FIXES_OFF_SETTING);
+    expect(setting.querySelectorAll("wbr")).toHaveLength(4);
+  });
+
+  test("RunnerTakesNoCodeFixes with no Runner named: the same words, the setting drawn as code", () => {
+    grant([Permission.ProjectUser, Permission.ProjectOwner]);
+    draw(
+      <CodeBlockerNotice
+        blocker={{
+          type: CodeTaskBlockerType.RunnerTakesNoCodeFixes,
+          message: "The server's words.",
+        }}
+        repositoryId={REPOSITORY_ID}
+      />,
+    );
+
+    const notice: HTMLElement = screen.getByTestId("code-blocker");
+
+    expect(notice).toHaveTextContent(
+      "The Runner this repository works on does not take AI code fixes: ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false is set on its host. Remove that setting and restart the Runner, or pick another Runner.",
+    );
+    expect(within(notice).queryByTestId("code-blocker-runner")).toBeNull();
+    expect(
+      within(notice).getByTestId(RUNNER_CODE_FIXES_OFF_SETTING_TEST_ID)
+        .textContent,
+    ).toBe(RUNNER_CODE_FIXES_OFF_SETTING);
+  });
+
+  test("RunnerTakesNoCodeFixes in German: the German sentence, with the Runner's name and the setting as written", () => {
+    grant([Permission.ProjectUser, Permission.ProjectOwner]);
+    drawInGerman(
+      <CodeBlockerNotice
+        blocker={{
+          type: CodeTaskBlockerType.RunnerTakesNoCodeFixes,
+          message: "The server's words.",
+          runnerName: "prod-eu-west-1",
+        }}
+        repositoryId={REPOSITORY_ID}
+      />,
+    );
+
+    const notice: HTMLElement = screen.getByTestId("code-blocker");
+
+    expect(notice).toHaveTextContent(
+      "Der Runner dieses Repositorys, prod-eu-west-1, übernimmt keine KI-Codekorrekturen: Auf seinem Host ist ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false gesetzt.",
+    );
+    expect(
+      within(notice).getByTestId(RUNNER_CODE_FIXES_OFF_SETTING_TEST_ID)
+        .textContent,
+    ).toBe(RUNNER_CODE_FIXES_OFF_SETTING);
+  });
+
+  test("negative control: no other blocker draws the setting", () => {
+    grant([Permission.ProjectUser, Permission.ProjectOwner]);
+
+    for (const type of [
+      CodeTaskBlockerType.RunnerNotOnline,
+      CodeTaskBlockerType.GlobalRunnersTakeNoCodeFixes,
+      CodeTaskBlockerType.NoAgent,
+    ]) {
+      draw(
+        <CodeBlockerNotice
+          blocker={{ type, message: "x", runnerName: "prod-eu-west-1" }}
+          repositoryId={REPOSITORY_ID}
+        />,
+      );
+
+      expect(
+        screen.queryByTestId(RUNNER_CODE_FIXES_OFF_SETTING_TEST_ID),
+      ).toBeNull();
+      cleanup();
+    }
   });
 
   test("global Runners that take no AI code fixes are never said to be offline, and name no Runner", () => {

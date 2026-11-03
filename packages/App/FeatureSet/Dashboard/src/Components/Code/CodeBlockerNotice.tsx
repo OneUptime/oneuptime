@@ -1,5 +1,6 @@
 import {
   CODE_TASK_ADD_AI_CREDITS,
+  CODE_TASK_BLOCKERS_NAMING_THE_SETTING,
   CODE_TASK_BLOCKER_FIXES,
   CODE_TASK_BLOCKER_SENTENCES,
   CODE_TASK_BLOCKER_WHO_CAN_FIX,
@@ -29,6 +30,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Permission from "Common/Types/Permission";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
+import RunnerCodeFixesOffSetting from "Common/UI/Components/Runner/RunnerCodeFixesOffSetting";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import PermissionGate, {
   ModelAction,
@@ -242,6 +244,16 @@ const CodeBlockerNotice: FunctionComponent<ComponentProps> = (
         : undefined
     : undefined;
   /*
+   * A sentence that names the setting turning a Runner's AI code fixes off
+   * has it as a value, drawn as code that breaks only after its underscores
+   * - never at the letter that fills a phone's line - and that no
+   * translation changes.
+   */
+  const namesTheSetting: boolean =
+    CODE_TASK_BLOCKERS_NAMING_THE_SETTING.includes(props.blocker.type);
+  const template: string | undefined =
+    namedRunnerTemplate || (namesTheSetting ? sentence : undefined);
+  /*
    * GitHub connected from here, rather than on Repositories - only for a
    * repository on GitHub.
    */
@@ -331,24 +343,27 @@ const CodeBlockerNotice: FunctionComponent<ComponentProps> = (
         }`}
       />
       <div className="min-w-0 flex-1">
-        {/*
-         * A sentence may name a setting with no break in it
-         * (ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false): it wraps inside the
-         * notice, never past a phone's edge.
-         */}
+        {/* A Runner's long name wraps inside the notice, never past its edge. */}
         <p className="leading-6 break-words">
-          {namedRunnerTemplate ? (
+          {template ? (
             <TranslatedSentence
-              template={namedRunnerTemplate}
+              template={template}
               slots={{
-                runner: (
-                  <span
-                    className="break-words font-semibold"
-                    data-testid="code-blocker-runner"
-                  >
-                    {props.blocker.runnerName}
-                  </span>
-                ),
+                ...(namedRunnerTemplate
+                  ? {
+                      runner: (
+                        <span
+                          className="break-words font-semibold"
+                          data-testid="code-blocker-runner"
+                        >
+                          {props.blocker.runnerName}
+                        </span>
+                      ),
+                    }
+                  : {}),
+                ...(namesTheSetting
+                  ? { setting: <RunnerCodeFixesOffSetting /> }
+                  : {}),
               }}
             />
           ) : sentence ? (

@@ -551,9 +551,7 @@
         "runnerIdLabel": "ID del Runner:",
         "runnerKeyLabel": "Chiave del Runner:",
         "commandLabel": "Da eseguire sul tuo host Docker",
-        "neverConnected": "Mai connesso",
-        "takesNoCodeFixesOlderRelease": "Non accetta correzioni di codice con l'IA: aggiornalo alla versione di questo server.",
-        "takesNoCodeFixesTurnedOff": "Non accetta correzioni di codice con l'IA: sul suo host è impostato ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false."
+        "neverConnected": "Mai connesso"
       },
       "dataRetention": {
         "logCardTitle": "Conservazione dei log di monitoraggio",
@@ -1619,5 +1617,7 @@
   "No valid Enterprise license: session lengths become read-only when the trial or grace period ends.": "Nessuna licenza Enterprise valida: le durate della sessione diventano di sola lettura al termine della prova o del periodo di tolleranza.",
   "The lengths already set still sign people out, and you can still remove them. Activate or renew the Enterprise license in the Admin Dashboard to change this again.": "Le durate già impostate continuano a disconnettere le persone e puoi ancora rimuoverle. Attiva o rinnova la licenza Enterprise nella dashboard di amministrazione per modificarle di nuovo.",
   "The lengths already set still sign people out, and you can still remove them. Activate a license that includes it in the Admin Dashboard to change this again.": "Le durate già impostate continuano a disconnettere le persone e puoi ancora rimuoverle. Attiva una licenza che le includa nella dashboard di amministrazione per modificarle di nuovo.",
-  "Everything here can be changed during the 14-day trial of an installation with no license, or the 30-day grace period after a license expires. When it ends: The lengths already set still sign people out, and you can still remove them.": "Qui puoi modificare tutto durante la prova di 14 giorni di un’installazione senza licenza o il periodo di tolleranza di 30 giorni dopo la scadenza di una licenza. Al termine: le durate già impostate continuano a disconnettere le persone e puoi ancora rimuoverle."
+  "Everything here can be changed during the 14-day trial of an installation with no license, or the 30-day grace period after a license expires. When it ends: The lengths already set still sign people out, and you can still remove them.": "Qui puoi modificare tutto durante la prova di 14 giorni di un’installazione senza licenza o il periodo di tolleranza di 30 giorni dopo la scadenza di una licenza. Al termine: le durate già impostate continuano a disconnettere le persone e puoi ancora rimuoverle.",
+  "Takes no AI code fixes: update it to this server's version.": "Non accetta correzioni di codice con l'IA: aggiornalo alla versione di questo server.",
+  "Takes no AI code fixes: remove {{setting}} from its host and restart it.": "Non accetta correzioni di codice con l'IA: rimuovi {{setting}} dal suo host e riavvialo."
 }

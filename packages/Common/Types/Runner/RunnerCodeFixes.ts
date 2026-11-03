@@ -47,6 +47,19 @@ import VersionUtil from "../../Utils/VersionUtil";
  */
 export const GLOBAL_RUNNER_CODE_FIXES_SINCE_VERSION: string = "14.0.94";
 
+/*
+ * The setting on a Runner's host that turns AI code fixes off (packages/Runner
+ * Config reads ONEUPTIME_RUNNER_ENABLE_CODE_FIXES), as every page that says a
+ * Runner takes none names it - Code's notice, a repository's Runner, the
+ * Runner picker, a Runner's own page and the Admin Dashboard's Global
+ * Runners: put in each sentence as a value (its {{setting}}), so a
+ * translation never changes it and the page draws it as code.
+ */
+export const RUNNER_CODE_FIXES_SETTING_NAME: string =
+  "ONEUPTIME_RUNNER_ENABLE_CODE_FIXES";
+
+export const RUNNER_CODE_FIXES_OFF_SETTING: string = `${RUNNER_CODE_FIXES_SETTING_NAME}=false`;
+
 // What the rule reads off a Runner row.
 export interface RunnerCodeFixFacts {
   isGlobalRunner?: boolean | null | undefined;

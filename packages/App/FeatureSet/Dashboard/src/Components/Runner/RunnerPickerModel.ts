@@ -318,12 +318,23 @@ export const CODE_RUNNER_TAKES_NO_CODE_FIXES_OPTION_TEXT: string =
   translationKey("Takes no AI code fixes: its host turned them off.");
 
 /*
- * Under a code repository's picker - and its settings card - on one of the
- * project's own Runners whose host turned AI code fixes off: the setting
- * that does it, and the two ways on.
+ * A Runner that takes no AI code fixes, said as short as a status: under a
+ * global Runner's status on Runbooks -> Runners, and after the name of the
+ * Runner a repository picks in its folded More settings ("Runner:
+ * prod-eu-west-1 · Takes no AI code fixes"), as "· Disconnected" is.
+ */
+export const RUNNER_TAKES_NO_CODE_FIXES_LABEL: string = translationKey(
+  "Takes no AI code fixes",
+);
+
+/*
+ * Under a code repository's picker - and its settings card, and the Code
+ * Repositories of the Runner's own page - on one of the project's own
+ * Runners whose host turned AI code fixes off: the setting that does it
+ * ({{setting}}, drawn as code), and the two ways on.
  */
 export const CODE_RUNNER_TAKES_NO_CODE_FIXES_TEXT: string = translationKey(
-  "This Runner takes no AI code fixes: ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false is set on its host. Remove that setting and restart the Runner, or pick another Runner.",
+  "This Runner takes no AI code fixes: {{setting}} is set on its host. Remove that setting and restart the Runner, or pick another Runner.",
 );
 
 /*

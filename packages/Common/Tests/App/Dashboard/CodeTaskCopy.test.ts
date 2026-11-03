@@ -2,6 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import CodeFixTaskType from "../../../Types/AI/CodeFixTaskType";
+import { RUNNER_CODE_FIXES_SETTING_NAME } from "../../../Types/Runner/RunnerCodeFixes";
 import {
   CodeTaskBlockerType,
   CodeTaskContextType,
@@ -20,6 +21,7 @@ import {
   CODE_TASK_BLOCKER_FIXES,
   CODE_TASK_BLOCKER_SENTENCES,
   CODE_TASK_BLOCKER_WHO_CAN_FIX,
+  CODE_TASK_BLOCKERS_NAMING_THE_SETTING,
   CODE_TASK_REPOSITORY_SETTINGS_FIXES,
   CODE_TASK_RUNNER_NOT_ONLINE_NAMED,
   CODE_TASK_RUNNER_TAKES_NO_CODE_FIXES_NAMED,
@@ -124,6 +126,7 @@ const SENTENCES: Array<string> = Array.from(
     ...Object.values(CODE_TASK_FILE_STATUS_LABELS),
     ...(Object.values(CODE_TASK_BLOCKER_SENTENCES) as Array<string>),
     CODE_TASK_RUNNER_NOT_ONLINE_NAMED,
+    CODE_TASK_RUNNER_TAKES_NO_CODE_FIXES_NAMED,
     ...Object.values(CODE_TASK_BLOCKER_FIXES).map(
       (fix: { title: string } | undefined): string => {
         return fix!.title;
@@ -429,8 +432,16 @@ describe("Code's words are complete", () => {
     ).toBe(
       CODE_TASK_BLOCKER_SENTENCES[CodeTaskBlockerType.RunnerTakesNoCodeFixes],
     );
-    expect(CODE_TASK_RUNNER_TAKES_NO_CODE_FIXES_NAMED).toContain(
-      "ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false",
+    /*
+     * The setting is the sentence's {{setting}} value, drawn as code: no
+     * translation writes it, so none can change it.
+     */
+    expect(placeholdersOf(CODE_TASK_RUNNER_TAKES_NO_CODE_FIXES_NAMED)).toEqual([
+      "runner",
+      "setting",
+    ]);
+    expect(CODE_TASK_RUNNER_TAKES_NO_CODE_FIXES_NAMED).not.toContain(
+      RUNNER_CODE_FIXES_SETTING_NAME,
     );
 
     for (const sentence of [
@@ -443,6 +454,27 @@ describe("Code's words are complete", () => {
       expect(sentence).toContain("AI code fixes");
       expect(sentence).not.toContain("is not online");
       expect(sentence).not.toContain("is online to work");
+    }
+  });
+
+  test("the blockers that name the setting are the ones whose sentence holds it, as a value", () => {
+    const naming: Array<CodeTaskBlockerType> = Object.values(
+      CodeTaskBlockerType,
+    ).filter((type: CodeTaskBlockerType): boolean => {
+      return Boolean(
+        CODE_TASK_BLOCKER_SENTENCES[type]?.includes("{{setting}}"),
+      );
+    });
+
+    expect([...CODE_TASK_BLOCKERS_NAMING_THE_SETTING].sort()).toEqual(
+      naming.sort(),
+    );
+    expect(CODE_TASK_BLOCKERS_NAMING_THE_SETTING).toEqual([
+      CodeTaskBlockerType.RunnerTakesNoCodeFixes,
+    ]);
+
+    for (const sentence of Object.values(CODE_TASK_BLOCKER_SENTENCES)) {
+      expect(sentence).not.toContain(RUNNER_CODE_FIXES_SETTING_NAME);
     }
   });
 

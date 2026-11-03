@@ -1,5 +1,6 @@
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import { GLOBAL_RUNNER_MAX_EXECUTION_TIMEOUT_IN_MS } from "Common/Types/Runner/GlobalRunnerWork";
+import { RUNNER_TAKES_NO_CODE_FIXES_LABEL } from "./RunnerPickerModel";
 
 /*
  * What Runbooks -> Runners says about global Runners - the Runners OneUptime
@@ -30,6 +31,14 @@ export const GlobalRunnersCopy: {
   globalCardDescriptionWithDefault: string;
   // When the project turned global Runners off.
   globalCardDescriptionWhenOff: string;
+  /*
+   * Under a global Runner's status when it takes no AI code fixes - one of
+   * a release from before global Runners took them, or one whose host
+   * turned them off (the server says which only to a master admin, on the
+   * Admin Dashboard's Global Runners): connected, it still runs JavaScript
+   * steps, but no repository's fix.
+   */
+  globalRunnerTakesNoCodeFixes: string;
   /*
    * The Global Runners table with no rows: drawn only when the server stops
    * running them while the page is open (with none, there is no table).
@@ -87,6 +96,7 @@ export const GlobalRunnersCopy: {
   globalCardDescriptionWhenOff: translationKey(
     "Runners OneUptime runs for every project. This project does not use them, so steps and code repositories run on yours.",
   ),
+  globalRunnerTakesNoCodeFixes: RUNNER_TAKES_NO_CODE_FIXES_LABEL,
   globalEmptyMessage: translationKey(
     "Global Runners appear here when OneUptime runs one.",
   ),

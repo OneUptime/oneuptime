@@ -42,7 +42,10 @@ import GlobalRunnersCopy, {
   ADMIN_GLOBAL_RUNNERS_ROUTE,
   USE_GLOBAL_RUNNERS_SWITCH_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Runner/GlobalRunnersCopy";
-import { GLOBAL_RUNNERS_TABLE_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/Runner/GlobalRunnersTable";
+import {
+  GLOBAL_RUNNERS_TABLE_ID,
+  GLOBAL_RUNNER_ROW_TAKES_NO_CODE_FIXES_TEST_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Runner/GlobalRunnersTable";
 import { GLOBAL_RUNNERS_ROUTE } from "../../../../App/FeatureSet/Dashboard/src/Components/Runner/RunnerChoices";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
@@ -107,6 +110,7 @@ let storedProject: Record<string, unknown> = {};
 interface ListCall {
   modelType: unknown;
   query: Record<string, unknown>;
+  select?: Record<string, unknown> | undefined;
   requestOptions?: { overrideRequestUrl?: unknown } | undefined;
 }
 
@@ -529,6 +533,118 @@ describe("Runbooks -> Runners, on a server with global Runners", () => {
         expect(words[description]).not.toBe(description);
         expect(words[description]).toContain("JavaScript");
       }
+    },
+  );
+
+  /*
+   * The card says global Runners run AI code fixes, so one that takes none
+   * - the server works it out (RunnerService.findGlobalRunners): an older
+   * release, or a host that turned them off - says so under its status,
+   * in amber. Connected, it still runs JavaScript steps.
+   */
+  test("a global Runner that takes no AI code fixes says so under its status; one that takes them says nothing more", async () => {
+    globalRows = [
+      Object.assign(makeRunner(GLOBAL_EU_ID, "global-eu", new Date()), {
+        takesCodeFixes: false,
+      }),
+      Object.assign(makeRunner(GLOBAL_US_ID, "global-us", new Date()), {
+        takesCodeFixes: true,
+      }),
+    ];
+
+    openRunnersPage();
+
+    await screen.findByText("global-eu", {}, { timeout: WAIT_TIMEOUT });
+
+    const globalCard: HTMLElement = cardTitled(
+      GlobalRunnersCopy.globalCardTitle,
+    );
+    const lines: Array<HTMLElement> = within(globalCard).getAllByTestId(
+      GLOBAL_RUNNER_ROW_TAKES_NO_CODE_FIXES_TEST_ID,
+    );
+
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toHaveTextContent(
+      GlobalRunnersCopy.globalRunnerTakesNoCodeFixes,
+    );
+    expect(lines[0]!.className).toContain("text-amber-700");
+
+    // Under global-eu's status, still Connected; nothing under global-us's.
+    const euRow: HTMLElement = within(globalCard)
+      .getByText("global-eu")
+      .closest("tr") as HTMLElement;
+    const usRow: HTMLElement = within(globalCard)
+      .getByText("global-us")
+      .closest("tr") as HTMLElement;
+
+    expect(euRow).toContainElement(lines[0]!);
+    expect(euRow).toHaveTextContent("Connected");
+    expect(usRow).not.toHaveTextContent(
+      GlobalRunnersCopy.globalRunnerTakesNoCodeFixes,
+    );
+
+    // The project's own Runners are not drawn with it.
+    expect(
+      within(cardTitled(GlobalRunnersCopy.customCardTitle)).queryByTestId(
+        GLOBAL_RUNNER_ROW_TAKES_NO_CODE_FIXES_TEST_ID,
+      ),
+    ).toBeNull();
+
+    // It asks for what the server says.
+    for (const call of listCalls.filter(readsGlobalRunners)) {
+      expect(call.select).toEqual(
+        expect.objectContaining({ takesCodeFixes: true, lastAlive: true }),
+      );
+    }
+  });
+
+  test("a server that does not say whether its global Runners take code fixes: nothing more under their status", async () => {
+    openRunnersPage();
+
+    await screen.findByText("global-eu", {}, { timeout: WAIT_TIMEOUT });
+
+    expect(
+      screen.queryByTestId(GLOBAL_RUNNER_ROW_TAKES_NO_CODE_FIXES_TEST_ID),
+    ).toBeNull();
+  });
+
+  test.each([
+    "de",
+    "fr",
+    "es",
+    "it",
+    "pt",
+    "nl",
+    "da",
+    "no",
+    "sv",
+    "ru",
+    "ja",
+    "ko",
+    "zh-CN",
+    "zh-TW",
+    "hi",
+    "fa",
+  ])(
+    "%s words the line under a global Runner that takes none",
+    (language: string) => {
+      const words: Record<string, string> = JSON.parse(
+        fs.readFileSync(
+          path.resolve(
+            __dirname,
+            `../../../../App/FeatureSet/Dashboard/src/Locales/${language}.json`,
+          ),
+          "utf8",
+        ),
+      ) as Record<string, string>;
+      const line: string = GlobalRunnersCopy.globalRunnerTakesNoCodeFixes;
+
+      expect(words[line]).toBeTruthy();
+      expect(words[line]).not.toBe(line);
+      // As the Runner picker's menu words it, before its reason.
+      expect(
+        words["Takes no AI code fixes: its host turned them off."],
+      ).toContain(words[line]!);
     },
   );
 

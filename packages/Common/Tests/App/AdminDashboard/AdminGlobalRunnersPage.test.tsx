@@ -16,6 +16,8 @@ import {
   within,
 } from "@testing-library/react";
 import React, { ReactElement, ReactNode } from "react";
+import fs from "fs";
+import path from "path";
 import englishLocale from "../../../../App/FeatureSet/AdminDashboard/src/Locales/en.json";
 
 /*
@@ -99,8 +101,13 @@ jest.mock("../../../UI/Utils/API/API", () => {
 });
 
 import SettingsGlobalRunners, {
+  GLOBAL_RUNNER_CODE_FIXES_COPY,
+  GLOBAL_RUNNER_STATUS_COLUMN_MAX_WIDTH_CLASS_NAME,
+  GLOBAL_RUNNER_STATUS_COLUMN_MIN_WIDTH_CLASS_NAME,
   GLOBAL_RUNNER_TAKES_NO_CODE_FIXES_TEST_ID,
 } from "../../../../App/FeatureSet/AdminDashboard/src/Pages/Settings/GlobalRunners/Index";
+import { RUNNER_CODE_FIXES_OFF_SETTING } from "../../../Types/Runner/RunnerCodeFixes";
+import { RUNNER_CODE_FIXES_OFF_SETTING_TEST_ID } from "../../../UI/Components/Runner/RunnerCodeFixesOffSetting";
 import PageMap from "../../../../App/FeatureSet/AdminDashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/AdminDashboard/src/Utils/RouteMap";
 import { ADMIN_GLOBAL_RUNNERS_ROUTE } from "../../../../App/FeatureSet/Dashboard/src/Components/Runner/GlobalRunnersCopy";
@@ -271,15 +278,80 @@ describe("Admin Dashboard -> Settings -> Global Runners", () => {
         GLOBAL_RUNNER_TAKES_NO_CODE_FIXES_TEST_ID,
       );
 
+      // What to do, with the setting where its {{setting}} stands.
       expect(line).toHaveTextContent(
-        translate("pages.settings.globalRunners.takesNoCodeFixesTurnedOff"),
+        "Takes no AI code fixes: remove ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false from its host and restart it.",
       );
       expect(line).toHaveTextContent(
-        "ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false",
+        GLOBAL_RUNNER_CODE_FIXES_COPY.turnedOff.replace(
+          "{{setting}}",
+          RUNNER_CODE_FIXES_OFF_SETTING,
+        ),
       );
+
+      // Drawn as code, breaking only after its underscores.
+      const setting: HTMLElement = within(line).getByTestId(
+        RUNNER_CODE_FIXES_OFF_SETTING_TEST_ID,
+      );
+      expect(setting.tagName).toBe("CODE");
+      expect(setting.textContent).toBe(RUNNER_CODE_FIXES_OFF_SETTING);
+      expect(setting.querySelectorAll("wbr")).toHaveLength(4);
+
       expect(line.className).toContain("text-amber-700");
       // Still connected: it runs JavaScript steps.
       expect(document.body).toHaveTextContent(translate("common.connected"));
+    });
+
+    /*
+     * The Status cell is a sentence now, not one word: a cell that never
+     * wraps (every table cell's default) cut the line off behind the row's
+     * buttons at every desktop width. It wraps, between a floor that keeps
+     * the setting from breaking onto four lines and a cap that keeps it a
+     * status.
+     */
+    test("its line wraps inside the Status column, never cut off behind the row's buttons", async () => {
+      rows = [
+        withCodeFixes({
+          takesCodeFixes: false,
+          agentVersion: "14.0.102",
+          lastAlive: new Date(),
+        }),
+      ];
+
+      await renderPage();
+
+      const line: HTMLElement = await screen.findByTestId(
+        GLOBAL_RUNNER_TAKES_NO_CODE_FIXES_TEST_ID,
+      );
+      const cell: HTMLElement | null = line.closest("td");
+
+      expect(cell).not.toBeNull();
+      expect(cell!.className).toContain("whitespace-normal");
+      expect(cell!.className).not.toContain("whitespace-nowrap");
+
+      // The cell's content box, between the line and the cell.
+      const boxes: Array<HTMLElement> = [];
+      let element: HTMLElement | null = line.parentElement;
+      while (element && element !== cell) {
+        boxes.push(element);
+        element = element.parentElement;
+      }
+      const content: HTMLElement | undefined = boxes.find(
+        (box: HTMLElement): boolean => {
+          return box.className
+            .split(" ")
+            .includes(GLOBAL_RUNNER_STATUS_COLUMN_MAX_WIDTH_CLASS_NAME);
+        },
+      );
+
+      expect(content).toBeDefined();
+      expect(content!.className.split(" ")).toContain(
+        GLOBAL_RUNNER_STATUS_COLUMN_MIN_WIDTH_CLASS_NAME,
+      );
+      // Not the one-line cell's ellipsis, which hid the rest.
+      for (const box of boxes) {
+        expect(box.className).not.toContain("text-ellipsis");
+      }
     });
 
     test("one of a release from before global Runners took them: update it", async () => {
@@ -289,11 +361,20 @@ describe("Admin Dashboard -> Settings -> Global Runners", () => {
 
       await renderPage();
 
-      expect(
-        await screen.findByTestId(GLOBAL_RUNNER_TAKES_NO_CODE_FIXES_TEST_ID),
-      ).toHaveTextContent(
-        translate("pages.settings.globalRunners.takesNoCodeFixesOlderRelease"),
+      const line: HTMLElement = await screen.findByTestId(
+        GLOBAL_RUNNER_TAKES_NO_CODE_FIXES_TEST_ID,
       );
+
+      expect(line).toHaveTextContent(
+        GLOBAL_RUNNER_CODE_FIXES_COPY.olderRelease,
+      );
+      expect(line).toHaveTextContent(
+        "Takes no AI code fixes: update it to this server's version.",
+      );
+      // No setting to remove: its release is what turns them off.
+      expect(
+        within(line).queryByTestId(RUNNER_CODE_FIXES_OFF_SETTING_TEST_ID),
+      ).toBeNull();
     });
 
     test("one that takes them, one of a release that does and says nothing, and one never started: nothing more", async () => {
@@ -333,6 +414,70 @@ describe("Admin Dashboard -> Settings -> Global Runners", () => {
         screen.queryByTestId(GLOBAL_RUNNER_TAKES_NO_CODE_FIXES_TEST_ID),
       ).toBeNull();
     });
+  });
+
+  /*
+   * Both lines are whole sentences each Admin Dashboard locale words, as
+   * English keys - the setting a value no translation writes out.
+   */
+  describe("the lines, in every language the Admin Dashboard speaks", () => {
+    const LOCALES: string = path.resolve(
+      __dirname,
+      "../../../../App/FeatureSet/AdminDashboard/src/Locales",
+    );
+    const LANGUAGES: Array<string> = fs
+      .readdirSync(LOCALES)
+      .filter((name: string): boolean => {
+        return name.endsWith(".json");
+      })
+      .map((name: string): string => {
+        return name.replace(".json", "");
+      });
+
+    function read(language: string): Record<string, unknown> {
+      return JSON.parse(
+        fs.readFileSync(path.join(LOCALES, `${language}.json`), "utf8"),
+      ) as Record<string, unknown>;
+    }
+
+    test("there are seventeen", () => {
+      expect(LANGUAGES).toHaveLength(17);
+    });
+
+    test.each(LANGUAGES)(
+      "%s words both, the setting as its value",
+      (language: string) => {
+        const words: Record<string, unknown> = read(language);
+
+        for (const sentence of Object.values(GLOBAL_RUNNER_CODE_FIXES_COPY)) {
+          const worded: unknown = words[sentence];
+
+          expect(typeof worded).toBe("string");
+
+          if (language === "en") {
+            expect(worded).toBe(sentence);
+          } else {
+            expect(worded).not.toBe(sentence);
+          }
+
+          expect((worded as string).split("{{setting}}").length).toBe(
+            sentence.split("{{setting}}").length,
+          );
+          expect(worded as string).not.toContain(RUNNER_CODE_FIXES_OFF_SETTING);
+        }
+
+        // The keys the lines had before are gone.
+        const runners: Record<string, unknown> = (
+          (words["pages"] as Record<string, unknown>)["settings"] as Record<
+            string,
+            unknown
+          >
+        )["globalRunners"] as Record<string, unknown>;
+
+        expect(runners["takesNoCodeFixesOlderRelease"]).toBeUndefined();
+        expect(runners["takesNoCodeFixesTurnedOff"]).toBeUndefined();
+      },
+    );
   });
 
   test("Show ID and Key is in the row's menu, and gives the ID, the key and the one command that starts it", async () => {

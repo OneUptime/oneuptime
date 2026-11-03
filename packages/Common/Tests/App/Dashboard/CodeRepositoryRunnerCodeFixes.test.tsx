@@ -55,6 +55,8 @@ import Runner from "../../../Models/DatabaseModels/Runner";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
 import ObjectID from "../../../Types/ObjectID";
 import RunnerLiveStatus from "../../../Types/Runner/RunnerLiveStatus";
+import { RUNNER_CODE_FIXES_OFF_SETTING } from "../../../Types/Runner/RunnerCodeFixes";
+import { RUNNER_CODE_FIXES_OFF_SETTING_TEST_ID } from "../../../UI/Components/Runner/RunnerCodeFixesOffSetting";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "../../../UI/Utils/Project";
 
@@ -79,6 +81,43 @@ import ProjectUtil from "../../../UI/Utils/Project";
  * A runbook step's picker is untouched: a global Runner that takes no code
  * fixes still runs JavaScript steps.
  */
+
+/*
+ * The line as a reader reads it: the sentence with the setting where its
+ * {{setting}} stands.
+ */
+const TAKES_NO_CODE_FIXES_LINE: string =
+  CODE_RUNNER_TAKES_NO_CODE_FIXES_TEXT.replace(
+    "{{setting}}",
+    RUNNER_CODE_FIXES_OFF_SETTING,
+  );
+
+/*
+ * The setting in the line is drawn as code, whole when copied, and may
+ * break only after its underscores: each part between two <wbr>s is kept
+ * on one line (whitespace-nowrap) and ends in one.
+ */
+function expectSettingAsCode(line: HTMLElement): void {
+  const setting: HTMLElement = within(line).getByTestId(
+    RUNNER_CODE_FIXES_OFF_SETTING_TEST_ID,
+  );
+
+  expect(setting.tagName).toBe("CODE");
+  expect(setting.textContent).toBe(RUNNER_CODE_FIXES_OFF_SETTING);
+  expect(setting.querySelectorAll("wbr")).toHaveLength(4);
+
+  const parts: Array<Element> = Array.from(setting.querySelectorAll("span"));
+
+  expect(
+    parts.map((part: Element): string => {
+      return part.textContent || "";
+    }),
+  ).toEqual(["ONEUPTIME_", "RUNNER_", "ENABLE_", "CODE_", "FIXES=false"]);
+
+  for (const part of parts) {
+    expect(part.className).toContain("whitespace-nowrap");
+  }
+}
 
 const PROJECT_ID: string = "dddddddd-0000-4000-8000-000000000003";
 const BASTION_ID: string = "aaaaaaaa-0000-4000-8000-000000000031";
@@ -499,7 +538,8 @@ describe("a repository's Runner picker, when what it works on takes no code fixe
       `${PICKER}-takes-no-code-fixes`,
     );
 
-    expect(line).toHaveTextContent(CODE_RUNNER_TAKES_NO_CODE_FIXES_TEXT);
+    expect(line).toHaveTextContent(TAKES_NO_CODE_FIXES_LINE);
+    expectSettingAsCode(line);
     expect(line.className).toContain("text-amber-700");
     expect(help()).not.toHaveTextContent(CODE_OWN_RUNNER_HELPER_TEXT);
   });
@@ -520,7 +560,7 @@ describe("a repository's Runner picker, when what it works on takes no code fixe
       }),
     });
 
-    expect(help()).toHaveTextContent(CODE_RUNNER_TAKES_NO_CODE_FIXES_TEXT);
+    expect(help()).toHaveTextContent(TAKES_NO_CODE_FIXES_LINE);
     expect(help()).not.toHaveTextContent(
       CODE_PROJECT_DEFAULT_RUNNER_HELPER_TEXT,
     );
@@ -541,8 +581,11 @@ describe("a repository's Runner picker, when what it works on takes no code fixe
     });
 
     expect(screen.getByTestId(PICKER)).not.toHaveTextContent(
-      CODE_RUNNER_TAKES_NO_CODE_FIXES_TEXT,
+      TAKES_NO_CODE_FIXES_LINE,
     );
+    expect(
+      screen.queryByTestId(RUNNER_CODE_FIXES_OFF_SETTING_TEST_ID),
+    ).toBeNull();
 
     for (const option of openMenu()) {
       expect(option).not.toHaveTextContent(
@@ -596,7 +639,8 @@ describe("a repository's Runner card, when what it works on takes no code fixes"
       CODE_REPOSITORY_RUNNER_TAKES_NO_CODE_FIXES_TEST_ID,
     );
 
-    expect(line).toHaveTextContent(CODE_RUNNER_TAKES_NO_CODE_FIXES_TEXT);
+    expect(line).toHaveTextContent(TAKES_NO_CODE_FIXES_LINE);
+    expectSettingAsCode(line);
     expect(line.className).toContain("text-amber-700");
   });
 
@@ -624,8 +668,8 @@ describe("a repository's Runner card, when what it works on takes no code fixes"
 
 /*
  * The words, in every language the Dashboard speaks: each locale words each
- * one (never the English left in), keeping {{runner}} and the setting's
- * name, which is the same in every language.
+ * one (never the English left in), keeping the setting as its {{setting}}
+ * value - drawn as code, the same in every language - never written out.
  */
 describe("the words, in every language", () => {
   const LOCALES: string = path.resolve(
@@ -679,10 +723,17 @@ describe("the words, in every language", () => {
 
       expect(worded).toBeTruthy();
       expect(worded).not.toBe(sentence);
-
-      if (sentence.includes("ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false")) {
-        expect(worded).toContain("ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false");
-      }
+      expect(worded).not.toContain(RUNNER_CODE_FIXES_OFF_SETTING);
+      expect(worded!.split("{{setting}}").length - 1).toBe(
+        sentence.split("{{setting}}").length - 1,
+      );
     }
+  });
+
+  test("the setting is a value of the sentence that names it, never its text", () => {
+    expect(CODE_RUNNER_TAKES_NO_CODE_FIXES_TEXT).toContain("{{setting}}");
+    expect(CODE_RUNNER_TAKES_NO_CODE_FIXES_TEXT).not.toContain(
+      RUNNER_CODE_FIXES_OFF_SETTING,
+    );
   });
 });

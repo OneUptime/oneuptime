@@ -1,9 +1,9 @@
 import RunnerPicker from "../Runner/RunnerPicker";
+import RunnerTakesNoCodeFixesText from "../Runner/RunnerTakesNoCodeFixesText";
 import RunnerChoicesLoader, { RunnerChoices } from "../Runner/RunnerChoices";
 import { RunnerLiveStatusBubble } from "../Runner/RunnerStatus";
 import {
   CODE_HIDDEN_RUNNER_LABEL,
-  CODE_RUNNER_TAKES_NO_CODE_FIXES_TEXT,
   CodeRepositoryRunnerWords,
   GLOBAL_RUNNER_CHOICE_LABEL,
   PROJECT_DEFAULT_TAG,
@@ -349,10 +349,10 @@ export const CodeRepositoryRunnerValueView: FunctionComponent<
         )}
         {takesNoCodeFixes ? (
           <p
-            className="mt-0.5 break-words text-xs text-amber-700"
+            className="mt-1 break-words text-xs leading-5 text-amber-700"
             data-testid={CODE_REPOSITORY_RUNNER_TAKES_NO_CODE_FIXES_TEST_ID}
           >
-            {translator.translateText(CODE_RUNNER_TAKES_NO_CODE_FIXES_TEXT)}
+            <RunnerTakesNoCodeFixesText />
           </p>
         ) : (
           <></>

@@ -551,9 +551,7 @@
         "runnerIdLabel": "Runner ID:",
         "runnerKeyLabel": "Runner 키:",
         "commandLabel": "Docker 호스트에서 실행",
-        "neverConnected": "연결된 적 없음",
-        "takesNoCodeFixesOlderRelease": "AI 코드 수정을 받지 않습니다. 이 서버의 버전으로 업데이트하세요.",
-        "takesNoCodeFixesTurnedOff": "AI 코드 수정을 받지 않습니다. 호스트에 ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false가 설정되어 있습니다."
+        "neverConnected": "연결된 적 없음"
       },
       "dataRetention": {
         "logCardTitle": "모니터 로그 보존",
@@ -1619,5 +1617,7 @@
   "No valid Enterprise license: session lengths become read-only when the trial or grace period ends.": "유효한 Enterprise 라이선스가 없습니다. 평가판 또는 유예 기간이 끝나면 세션 길이는 읽기 전용이 됩니다.",
   "The lengths already set still sign people out, and you can still remove them. Activate or renew the Enterprise license in the Admin Dashboard to change this again.": "이미 설정된 길이는 계속 사람들을 로그아웃시키며, 여전히 제거할 수 있습니다. 다시 변경하려면 관리 대시보드에서 Enterprise 라이선스를 활성화하거나 갱신하세요.",
   "The lengths already set still sign people out, and you can still remove them. Activate a license that includes it in the Admin Dashboard to change this again.": "이미 설정된 길이는 계속 사람들을 로그아웃시키며, 여전히 제거할 수 있습니다. 다시 변경하려면 관리 대시보드에서 이 기능이 포함된 라이선스를 활성화하세요.",
-  "Everything here can be changed during the 14-day trial of an installation with no license, or the 30-day grace period after a license expires. When it ends: The lengths already set still sign people out, and you can still remove them.": "라이선스가 없는 설치의 14일 평가판 기간이나 라이선스 만료 후 30일 유예 기간에는 여기서 모든 것을 변경할 수 있습니다. 기간이 끝나면 이미 설정된 길이는 계속 사람들을 로그아웃시키며, 여전히 제거할 수 있습니다."
+  "Everything here can be changed during the 14-day trial of an installation with no license, or the 30-day grace period after a license expires. When it ends: The lengths already set still sign people out, and you can still remove them.": "라이선스가 없는 설치의 14일 평가판 기간이나 라이선스 만료 후 30일 유예 기간에는 여기서 모든 것을 변경할 수 있습니다. 기간이 끝나면 이미 설정된 길이는 계속 사람들을 로그아웃시키며, 여전히 제거할 수 있습니다.",
+  "Takes no AI code fixes: update it to this server's version.": "AI 코드 수정을 받지 않습니다. 이 서버의 버전으로 업데이트하세요.",
+  "Takes no AI code fixes: remove {{setting}} from its host and restart it.": "AI 코드 수정을 받지 않습니다. 호스트에서 {{setting}}를 제거하고 다시 시작하세요."
 }
