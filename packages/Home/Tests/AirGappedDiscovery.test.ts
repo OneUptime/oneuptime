@@ -194,6 +194,7 @@ describe("/enterprise/air-gapped.md", () => {
       "What reaches out, and what to use instead",
       "OneUptime AI, on a model you run",
       "Compliance and data residency",
+      "Everything your security review asks for",
       "Questions buyers ask",
       "Plan your install",
       "Learn More",
@@ -244,7 +245,10 @@ describe("/enterprise/air-gapped.md", () => {
   test("keeps the page's code as markdown code: settings and commands between backticks", () => {
     const md: string = markdown();
 
-    expect(md).toContain("pin `image.tag` to the release you mirrored");
+    expect(md).toContain("Pin `image.tag` to the release you mirrored");
+    expect(md).toContain(
+      "`air-gap.sh save` writes every image a release's chart runs",
+    );
     expect(md).toContain("run `helm install`, as on any cluster");
     expect(md).toContain("| Update check (on by default) | `api.github.com` |");
     expect(md).toContain(

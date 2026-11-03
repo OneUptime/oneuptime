@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40610,
-    "untranslated": 3478
+    "keys": 41249,
+    "untranslated": 3511
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -163,6 +163,7 @@
     "Daemons",
     "Dashboard",
     "Dashboards",
+    "Data Observability",
     "Debug",
     "Definition",
     "DeploymentConfigs",

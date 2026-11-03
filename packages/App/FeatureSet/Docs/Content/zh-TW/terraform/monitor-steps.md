@@ -333,6 +333,7 @@ criteria = [
 | 伺服器處理程序 | `Is Executing`、`Is Not Executing` |
 | 指令碼 | `Evaluates To True` |
 | 異常偵測（用於指標、日誌和追蹤） | `Anomalously High`、`Anomalously Low`、`Anomalous` |
+| 預測（用於指標） | `Forecast Above`、`Forecast Below`（預測範圍是 `forecast.horizonInHours`，寫在 `metric_monitor_options` 中；省略時為一週） |
 
 一個在 SSL 憑證 14 天內到期時相符的篩選器：
 

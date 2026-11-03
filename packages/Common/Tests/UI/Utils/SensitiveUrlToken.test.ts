@@ -55,6 +55,22 @@ describe("SensitiveUrlToken.readFromPath", () => {
     }
   });
 
+  it("reads a private status page's sign-in link out of its path, with or without a preview prefix", () => {
+    const token: string = "6f1c7e4a-2b3d-4c5e-8f90-a1b2c3d4e5f6";
+
+    expect(SensitiveUrlToken.readFromPath(`/magic-link-login/${token}`)).toBe(
+      token,
+    );
+    expect(
+      SensitiveUrlToken.readFromPath(
+        `/status-page/6392f2a1/magic-link-login/${token}`,
+      ),
+    ).toBe(token);
+    // The page that asks for a link carries none.
+    expect(SensitiveUrlToken.readFromPath("/magic-link")).toBe("");
+    expect(SensitiveUrlToken.readFromPath("/magic-link-login")).toBe("");
+  });
+
   it("returns nothing for the cleaned form of the same route", () => {
     /*
      * This is the ordinary case after the bootstrap has run. Returning
@@ -173,6 +189,7 @@ describe("SensitiveUrlToken.isTokenRoute", () => {
       "verify-email",
       "unsubscribe",
       "update-subscription",
+      "magic-link-login",
     ]) {
       for (const path of [
         `/${route}/${CREDENTIAL}`,
@@ -205,6 +222,10 @@ describe("SensitiveUrlToken.isTokenRoute", () => {
       `/update-subscription/${CREDENTIAL}/more`,
       "/unsubscribe-later",
       "/my-update-subscription",
+      // Asking for a sign-in link carries no credential.
+      "/magic-link",
+      "/status-page/6392f2a1/magic-link",
+      "/login",
     ]) {
       expect([path, SensitiveUrlToken.isTokenRoute(path)]).toEqual([
         path,

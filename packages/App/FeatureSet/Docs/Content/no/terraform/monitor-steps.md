@@ -333,6 +333,7 @@ Et filter kan også bedømme et tidsvindu i stedet for den siste sjekken: angi `
 | Serverprosesser | `Is Executing`, `Is Not Executing` |
 | Skript | `Evaluates To True` |
 | Avvik, for metrikker, logger og spor | `Anomalously High`, `Anomalously Low`, `Anomalous` |
+| Prognoser, for metrikker | `Forecast Above`, `Forecast Below` (tidshorisonten er `forecast.horizonInHours` i `metric_monitor_options`: en uke hvis den utelates) |
 
 Et filter som stemmer når et SSL-sertifikat utløper om 14 dager eller mindre:
 

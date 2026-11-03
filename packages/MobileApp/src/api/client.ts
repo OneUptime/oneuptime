@@ -17,6 +17,7 @@ import {
   getCachedSsoTokens,
 } from "../storage/ssoTokens";
 import { clearProjectSsoDenial, markProjectSsoDenied } from "../sso/ssoDenials";
+import { recordProjectPermissions } from "./projectPermissions";
 
 /**
  * Recursively normalizes OneUptime API serialized types in response data.
@@ -211,6 +212,9 @@ apiClient.interceptors.response.use(
 
     if (tenantId) {
       clearProjectSsoDenial(tenantId);
+
+      // The person's permission rows in the project (api/projectPermissions).
+      recordProjectPermissions(tenantId, response.headers);
     }
 
     return response;
@@ -234,6 +238,18 @@ apiClient.interceptors.response.use(
 
       if (tenantId) {
         markProjectSsoDenied(tenantId);
+      }
+    }
+
+    /*
+     * A refusal about a project carries the person's rows there too, once
+     * the server knows who they are.
+     */
+    if (error.response) {
+      const tenantId: string = readTenantId(originalRequest);
+
+      if (tenantId) {
+        recordProjectPermissions(tenantId, error.response.headers);
       }
     }
 

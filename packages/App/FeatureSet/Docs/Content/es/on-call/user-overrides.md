@@ -70,6 +70,8 @@ Cuando alguien deja el proyecto, se elimina cada sustitución que lo nombra y qu
 
 **Propietario del proyecto**, **Administrador del proyecto**, **Miembro del proyecto**, **Administrador de guardias** y **Miembro de guardias** pueden añadir y eliminar sustituciones; **Visor** y **Visor de guardias** pueden verlas. En un rol personalizado, los permisos son **Create On-Call Duty Policy User Override**, **Delete On-Call Duty Policy User Override** y **Read On-Call Duty Policy User Override**. En la **Cronología de la programación**, solo quien puede leer sustituciones ve qué turno se está cubriendo.
 
+Una sustitución en una política sigue el alcance de la política. Da a un equipo **Miembro de guardias** limitado a las políticas que le pertenecen, o a su etiqueta, y sus miembros añaden y eliminan sustituciones solo en esas políticas. Una sustitución global se aplica a todas las políticas, incluidas las de otro equipo, así que añadirla o eliminarla requiere el permiso de sustituciones sobre todo el proyecto. Con uno más limitado, **Añadir Sustitución de usuario** y **Eliminar** en **Guardia → Avanzado → Sustituciones de usuarios** están bloqueados y dicen por qué. También lo están **Omitir hasta…** en las capas de una programación y **Buscar cobertura** en tus próximos turnos, que añaden sustituciones globales, y la aplicación móvil dice por qué en lugar de organizar una cobertura. El equipo añade sus sustituciones en la página **Sustituciones de usuarios** de cada política. Lo mismo vale para la API: una sustitución sin `onCallDutyPolicyId` se rechaza para un permiso limitado a etiquetas o a las políticas propias.
+
 En OneUptime Cloud, las sustituciones de usuarios necesitan el plan **Growth**.
 
 ## API
@@ -111,7 +113,7 @@ Se le avisa según sus propias reglas de guardia personales y sus métodos verif
 :::
 
 :::details No puedo añadir una sustitución
-Hace falta uno de los roles anteriores y, en OneUptime Cloud, el plan **Growth**.
+Hace falta uno de los roles anteriores y, en OneUptime Cloud, el plan **Growth**. Una sustitución global requiere el rol sobre todo el proyecto: si el rol de tu equipo está limitado a sus propias políticas o a algunas etiquetas, añade la sustitución en la página **Sustituciones de usuarios** de la propia política. Por eso también están bloqueados para ti **Omitir hasta…** y **Buscar cobertura**, y por eso la aplicación móvil no puede organizar una cobertura.
 :::
 
 ## Próximos pasos

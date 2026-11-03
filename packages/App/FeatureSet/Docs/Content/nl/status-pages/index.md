@@ -118,7 +118,7 @@ De openbare pagina is een eigen applicatie, met een kleine set routes:
 - `/subscribe/email`, `/subscribe/sms`, `/subscribe/slack`, `/subscribe/microsoft-teams`, `/subscribe/webhooks`.
 - `/confirm-subscription/:id`, `/update-subscription/:token` en `/unsubscribe/:token`: de links in de berichten die abonnees krijgen.
 - `/rss`: de feed.
-- `/login`, `/sso` en `/master-password`: alleen relevant op een privépagina.
+- `/login`, `/sso`, `/magic-link`, `/magic-link-login/:token` en `/master-password`: alleen relevant op een privépagina.
 
 De navigatiebalk bovenaan toont altijd **Overzicht**; de rest verschijnt alleen wanneer het aan staat. **Incidenten**, **Aankondigingen** en **Geplande gebeurtenissen** hebben elk hun eigen schakelaar nodig; **Abonneren** heeft zowel **Abonneepagina weergeven** als minstens één ingeschakeld abonnementskanaal nodig. Een privépagina heeft ook een item **Uitloggen**.
 
@@ -194,6 +194,8 @@ Een optie kiezen vraagt om bevestiging, met wat er voor bezoekers verandert, en 
 Voeg de mensen die mogen inloggen toe onder **Statuspagina's → uw pagina → Beveiliging → Privégebruikers**. Er is een actie **In bulk toevoegen**: plak een lijst e-mailadressen en elk adres krijgt een uitnodigingsmail. Privégebruikers hebben hun eigen proces voor een vergeten wachtwoord en het opnieuw instellen ervan, los van de accounts in uw OneUptime-project.
 
 **Privégebruikers en het wachtwoord tellen niet op.** Zolang **Iedereen met het wachtwoord** de keuze is, kunnen privégebruikers niet inloggen (ook zij voeren het wachtwoord in), en het scherm **Privégebruikers** vermeldt dat, met een link terug naar **Toegang**.
+
+**Inloglinks.** Op een pagina waarop bezoekers inloggen, biedt de inlogpagina ook **Stuur mij een inloglink**: een privégebruiker vult zijn e-mailadres in en krijgt een link toegestuurd waarmee hij zonder wachtwoord inlogt. De link werkt één keer, 15 minuten lang, en een nieuwe aanvragen vervangt hem. Hij opent een pagina waarop de gebruiker op **Inloggen** drukt, zodat mailfilters die elke link openen om hem te scannen hem niet eerst kunnen opmaken. De pagina antwoordt hetzelfde of het adres nu van een van haar privégebruikers is of niet, dus een link aanvragen verraadt niemand wie kan inloggen. Links staan op elke pagina aan; om privégebruikers bij hun wachtwoord te houden, zet u **Inloglinks** uit onder **Meer instellingen** op **Privégebruikers** (wie al met een link is ingelogd, blijft ingelogd). Ze worden nooit aangeboden zolang **SSO vereisen voor inloggen** aan staat of **Iedereen met het wachtwoord** de keuze is.
 
 ### SSO en OIDC
 

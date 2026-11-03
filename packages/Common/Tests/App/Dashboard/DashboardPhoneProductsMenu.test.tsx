@@ -58,6 +58,8 @@ const ESSENTIALS: Array<string> = [
 
 const FOLDED: Array<string> = [
   "Observability",
+  // Its own section since #5592, right after Observability.
+  "Security",
   "AI",
   "Code",
   "Resources",

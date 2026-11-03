@@ -4,6 +4,7 @@ import LayerCard from "./LayerCard";
 import { formatWindowSpan } from "./LayerSummary";
 import LayersPreview from "./LayersPreview";
 import SkipLayerUserModal from "./SkipLayerUserModal";
+import { getGlobalUserOverrideShortcutLock } from "../UserOverrides/GlobalUserOverrideLock";
 import { SCHEDULE_FINAL_SCHEDULE_DESCRIPTION } from "./ScheduleOverviewCopy";
 import {
   ScheduleOverrideResolution,
@@ -119,6 +120,16 @@ const Layers: FunctionComponent<ComponentProps> = (
   } | null>(null);
 
   const [overrideRefreshKey, setOverrideRefreshKey] = React.useState<number>(0);
+
+  /*
+   * Why "Skip until..." is locked for the reader, or null. The skip applies
+   * to every on-call policy, so it takes a permission to add overrides over
+   * the whole project (GlobalUserOverrideLock): a reader limited to some
+   * policies sees each row's button locked, saying why, and the dialog
+   * never opens for them. Read on every render: the snapshot can land
+   * after the page first draws.
+   */
+  const skipLockedReason: string | null = getGlobalUserOverrideShortcutLock();
 
   const hasInitialized: React.MutableRefObject<boolean> =
     React.useRef<boolean>(false);
@@ -945,8 +956,13 @@ const Layers: FunctionComponent<ComponentProps> = (
                 updateLayerUsers(layerId, users);
               }}
               onSkipUser={(person: { userId: string; name: string }) => {
+                if (skipLockedReason) {
+                  return;
+                }
+
                 setPersonToSkip(person);
               }}
+              skipLockedReason={skipLockedReason}
             />
           );
         })}
@@ -991,7 +1007,7 @@ const Layers: FunctionComponent<ComponentProps> = (
         </Card>
       </div>
 
-      {personToSkip && (
+      {personToSkip && !skipLockedReason && (
         <SkipLayerUserModal
           userId={personToSkip.userId}
           name={personToSkip.name}

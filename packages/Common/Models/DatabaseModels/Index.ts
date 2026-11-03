@@ -80,6 +80,8 @@ import ServerlessFunctionLabelRule from "./ServerlessFunctionLabelRule";
 import ServerlessFunctionOwnerRule from "./ServerlessFunctionOwnerRule";
 import CloudAccount from "./CloudAccount";
 import CloudAccountFeed from "./CloudAccountFeed";
+import CloudBudget from "./CloudBudget";
+import CloudCostRecommendation from "./CloudCostRecommendation";
 import CloudConnection from "./CloudConnection";
 import CloudResource from "./CloudResource";
 import CloudResourceOwnerTeam from "./CloudResourceOwnerTeam";
@@ -202,6 +204,9 @@ import DataSecurityCustomDataType from "./DataSecurityCustomDataType";
 import DataSecurityCheckSetting from "./DataSecurityCheckSetting";
 import DataSecurityResidencyRule from "./DataSecurityResidencyRule";
 import DataSecuritySetting from "./DataSecuritySetting";
+import DataAsset from "./DataAsset";
+import DataAssetFeed from "./DataAssetFeed";
+import DataAssetUsage from "./DataAssetUsage";
 import SecurityProtectedEntity from "./SecurityProtectedEntity";
 import SecurityEntityRisk from "./SecurityEntityRisk";
 import SecurityEntityCriticality from "./SecurityEntityCriticality";
@@ -468,6 +473,7 @@ import AlertEpisodeInternalNote from "./AlertEpisodeInternalNote";
 import AlertEpisodeFeed from "./AlertEpisodeFeed";
 import AlertGroupingRule from "./AlertGroupingRule";
 import AlertOnCallRule from "./AlertOnCallRule";
+import AlertIncidentRule from "./AlertIncidentRule";
 import AlertOwnerRule from "./AlertOwnerRule";
 import AlertPrivacyRule from "./AlertPrivacyRule";
 import AlertLabelRule from "./AlertLabelRule";
@@ -669,6 +675,9 @@ const AllModelTypes: Array<{
   DataSecurityCheckSetting,
   DataSecurityResidencyRule,
   DataSecuritySetting,
+  DataAsset,
+  DataAssetFeed,
+  DataAssetUsage,
   SecurityProtectedEntity,
   SecurityEntityRisk,
   SecurityEntityCriticality,
@@ -759,6 +768,7 @@ const AllModelTypes: Array<{
   AlertEpisodeFeed,
   AlertGroupingRule,
   AlertOnCallRule,
+  AlertIncidentRule,
   AlertOwnerRule,
   AlertPrivacyRule,
   AlertLabelRule,
@@ -1176,6 +1186,8 @@ const AllModelTypes: Array<{
   ServerlessFunctionOwnerRule,
   CloudAccount,
   CloudAccountFeed,
+  CloudBudget,
+  CloudCostRecommendation,
   CloudConnection,
   CloudResource,
   CloudResourceOwnerTeam,

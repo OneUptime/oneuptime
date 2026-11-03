@@ -2,6 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import {
   cloudDataStoreKey,
   databaseServerDataStoreKey,
+  readTelemetryDataStoreKeyOwnerId,
   telemetryDataStoreKey,
   tracedDatabaseDataStoreKey,
 } from "../../../Types/DataSecurity/DataStoreKey";
@@ -96,6 +97,42 @@ describe("telemetryDataStoreKey and databaseServerDataStoreKey", () => {
       }),
     );
     expect(databaseServerDataStoreKey("db-row-7")).toBe("database:db-row-7");
+  });
+});
+
+describe("readTelemetryDataStoreKeyOwnerId", () => {
+  test("reads back the service, or RUM application, a telemetry store's key names", () => {
+    for (const kind of [
+      DataStoreKind.TelemetryLogs,
+      DataStoreKind.TelemetrySessionReplays,
+      DataStoreKind.TelemetryAiConversations,
+    ]) {
+      expect(
+        readTelemetryDataStoreKeyOwnerId(
+          telemetryDataStoreKey({ serviceId: "owner-1", kind }),
+        ),
+      ).toBe("owner-1");
+    }
+  });
+
+  test("any other key, or none, names no owner", () => {
+    expect(
+      readTelemetryDataStoreKeyOwnerId(databaseServerDataStoreKey("db-1")),
+    ).toBe(null);
+    expect(
+      readTelemetryDataStoreKeyOwnerId(
+        cloudDataStoreKey({
+          provider: "aws",
+          kind: DataStoreKind.AwsS3Bucket,
+          providerResourceId: "arn:aws:s3:::a",
+        }),
+      ),
+    ).toBe(null);
+    expect(readTelemetryDataStoreKeyOwnerId("telemetry::Logs")).toBe(null);
+    expect(readTelemetryDataStoreKeyOwnerId("telemetry:a:b:c")).toBe(null);
+    expect(readTelemetryDataStoreKeyOwnerId("")).toBe(null);
+    expect(readTelemetryDataStoreKeyOwnerId(null)).toBe(null);
+    expect(readTelemetryDataStoreKeyOwnerId(undefined)).toBe(null);
   });
 });
 

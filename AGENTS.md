@@ -184,6 +184,16 @@ To check or follow up on a release of the agent (a winget pull request, the Page
 [agents/InfrastructureAgent/RELEASING.md](agents/InfrastructureAgent/RELEASING.md). The "Infrastructure Agent Release
 Status" workflow checks every place after each release and every day; its run summary is the release's record.
 
+### Iron Bank
+
+The App's Enterprise Edition image is also packaged for Iron Bank, the US Department of Defense's registry of hardened
+images (registry1.dso.mil), from `IronBank/App`. Iron Bank's pipeline does not build the App: that project's Dockerfile
+copies `/usr/src` out of a release's `oneuptime/app:enterprise-<version>` image onto Iron Bank's Node.js 26 image, and sets
+again what the runtime and enterprise stages of `packages/App/Dockerfile.tpl` set. So when you change one of those stages' start command,
+user, environment, labels, Alpine packages or what it copies, `Tests/Ops/IronBankApp.test.js` fails until
+`IronBank/App/Dockerfile` does the same. Before changing anything in `IronBank/`, `Scripts/IronBank/` or
+`.github/workflows/iron-bank.yml` (the "Iron Bank Preflight" workflow), read [the Iron Bank guide](IronBank/README.md).
+
 ### Commit frequently
 
 Committing frequently helps keep your changes small and manageable. It also makes it easier to identify which changes introduced a bug if something goes wrong. Aim to commit logically related changes together and write clear commit messages that describe the purpose of the change. It also costs less when the work session is interrupted and resumed later.

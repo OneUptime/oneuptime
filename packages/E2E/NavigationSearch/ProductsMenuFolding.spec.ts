@@ -34,6 +34,8 @@ const ESSENTIALS: Array<string> = [
 
 const FOLDED_SECTIONS: Array<string> = [
   "Observability",
+  // Security Events and Data Security, a section of their own since #5592.
+  "Security",
   "AI",
   "Code",
   "Resources",

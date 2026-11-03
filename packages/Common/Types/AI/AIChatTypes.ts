@@ -1,4 +1,5 @@
 import { JSONObject } from "../JSON";
+import { AIActionWords } from "./AIActionWords";
 import { AiContextActivity } from "./AiContext";
 import { LlmProviderActivity } from "./LlmProviderChoice";
 
@@ -215,8 +216,19 @@ export enum AIChatToolActionStatus {
 export interface AIChatToolAction {
   id: string; // equals the LLM tool call id
   toolName: string;
-  title: string; // human label, e.g. "Create incident: Checkout is down"
+  /*
+   * The card's title and line in English, as the model, the exports and
+   * conversations saved before `words` read them: "Create incident:
+   * Checkout is down", 'Linked to host "test01".'.
+   */
+  title: string;
   description?: string | undefined;
+  /*
+   * The same title and line as sentences (Types/AI/AIActionWords), which
+   * the card says in the reader's language. Absent from actions saved
+   * before it, and from a tool that has none: the English reads as is.
+   */
+  words?: AIActionWords | undefined;
   arguments: JSONObject;
   isMutation: boolean;
   requiresApproval: boolean;

@@ -1839,6 +1839,86 @@ describe("user overrides", () => {
     );
   });
 
+  /*
+   * Issue #5617: an override on a policy follows the policy's scope, and a
+   * global one - every policy - takes the override permission over the
+   * whole project. The service refuses it, and the global page locks Add
+   * and Delete, with the words the page says.
+   */
+  it("says a global override takes the override permission over the whole project, as the service and the page hold it", () => {
+    const service: string = readCommonSource(
+      "Server/Services/OnCallDutyPolicyUserOverrideService.ts",
+    );
+    const access: string = readCommonSource(
+      "Types/OnCallDutyPolicy/GlobalUserOverrideAccess.ts",
+    );
+
+    expect(service).toContain(
+      'this.checkGlobalOverrideAccess(createBy.props, "create");',
+    );
+    expect(service).toContain(
+      'this.checkGlobalOverrideAccess(deleteBy.props, "delete");',
+    );
+    expect(access).toContain("projectWideOnly: true,");
+    expect(USER_OVERRIDE_TABLE).toContain(
+      "createDisabledReason={addLock || undefined}",
+    );
+    expect(USER_OVERRIDE_TABLE).toContain("getDeleteDisabledReason={");
+
+    const page: string = english(USER_OVERRIDES);
+
+    expect(page).toContain(
+      "An override on a policy follows the policy's scope.",
+    );
+    expect(page).toContain(
+      "A global override applies to every policy, another team's included, so adding or deleting one takes the override permission over the whole project.",
+    );
+    expect(page).toContain(
+      "**Add User Override** and **Delete** on **On-Call Duty → Advanced → User Overrides** are locked and say why",
+    );
+    expect(page).toContain(
+      "an override with no `onCallDutyPolicyId` is refused for a permission limited to labels or to owned policies.",
+    );
+  });
+
+  /*
+   * The shortcuts that add a global override lock by the same rule for a
+   * team whose role covers only some policies: Skip until... on a layer and
+   * Get cover on an upcoming shift (GlobalUserOverrideLock), and the mobile
+   * app's cover sheet, which says why in place of its form.
+   */
+  it("says Skip until…, Get cover and the mobile app's cover are locked for a narrower role, as their code locks them", () => {
+    const lock: string = readDashboardSource(
+      "Components/OnCallPolicy/UserOverrides/GlobalUserOverrideLock.ts",
+    );
+
+    expect(lock).toContain("export const getGlobalUserOverrideShortcutLock");
+    expect(
+      readDashboardSource(
+        "Components/OnCallPolicy/OnCallScheduleLayer/Layers.tsx",
+      ),
+    ).toContain(
+      "const skipLockedReason: string | null = getGlobalUserOverrideShortcutLock();",
+    );
+    expect(
+      readDashboardSource(
+        "Components/OnCallPolicy/CalendarFeed/UpcomingShiftRow.tsx",
+      ),
+    ).toContain("getGlobalUserOverrideShortcutLock({ held: held })");
+    expect(
+      readPackageFile("MobileApp/src/screens/CreateOnCallOverrideScreen.tsx"),
+    ).toContain("useGlobalOverrideLock(projectId)");
+
+    const page: string = english(USER_OVERRIDES);
+
+    expect(page).toContain(
+      "So are **Skip until…** on a schedule's layers and **Get cover** on your upcoming shifts, which add global overrides, and the mobile app says why instead of arranging cover.",
+    );
+    expect(page).toContain(
+      "That is also why **Skip until…** and **Get cover** are locked for you, and why the mobile app cannot arrange cover.",
+    );
+  });
+
   it("shows whose shift is covered on the Schedule Timeline only to people who can read overrides", () => {
     expect(
       readCommonSource("Server/API/OnCallScheduleTimelineAPI.ts"),

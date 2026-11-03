@@ -333,6 +333,7 @@ criteria = [
 | 服务器进程 | `Is Executing`、`Is Not Executing` |
 | 脚本 | `Evaluates To True` |
 | 异常检测（用于指标、日志和追踪） | `Anomalously High`、`Anomalously Low`、`Anomalous` |
+| 预测（用于指标） | `Forecast Above`、`Forecast Below`（预测范围是 `forecast.horizonInHours`，写在 `metric_monitor_options` 中；省略时为一周） |
 
 一个在 SSL 证书 14 天内到期时匹配的筛选器：
 

@@ -56,6 +56,13 @@ export enum MonitorRecommendationResourceType {
    * ordinary Metrics monitors over the engine's collector-receiver metrics.
    */
   DatabaseServer = "DatabaseServer",
+  /*
+   * A data store whose tables Data Observability watches (the DataStore
+   * model). Its recommendations are Metrics monitors over the store's
+   * oneuptime.data.table.* metrics, one monitor per store alerting once per
+   * table; the set is a constant.
+   */
+  DataStore = "DataStore",
 }
 
 /*

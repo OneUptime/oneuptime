@@ -1777,6 +1777,14 @@ enum Permission {
   EditDatabaseServer = "EditDatabaseServer",
   ReadDatabaseServer = "ReadDatabaseServer",
 
+  // Data Observability: the tables of connected data stores and their timelines.
+  CreateDataAsset = "CreateDataAsset",
+  DeleteDataAsset = "DeleteDataAsset",
+  EditDataAsset = "EditDataAsset",
+  ReadDataAsset = "ReadDataAsset",
+  CreateDataAssetFeed = "CreateDataAssetFeed",
+  ReadDataAssetFeed = "ReadDataAssetFeed",
+
   CreateProxmoxClusterOwnerTeam = "CreateProxmoxClusterOwnerTeam",
   CreateDockerSwarmClusterOwnerTeam = "CreateDockerSwarmClusterOwnerTeam",
   DeleteProxmoxClusterOwnerTeam = "DeleteProxmoxClusterOwnerTeam",
@@ -2042,6 +2050,12 @@ enum Permission {
   DeleteAlertOnCallRule = "DeleteAlertOnCallRule",
   EditAlertOnCallRule = "EditAlertOnCallRule",
   ReadAlertOnCallRule = "ReadAlertOnCallRule",
+
+  // Alert Incident Rule Permissions
+  CreateAlertIncidentRule = "CreateAlertIncidentRule",
+  DeleteAlertIncidentRule = "DeleteAlertIncidentRule",
+  EditAlertIncidentRule = "EditAlertIncidentRule",
+  ReadAlertIncidentRule = "ReadAlertIncidentRule",
 
   // Alert Owner Rule Permissions
   CreateAlertOwnerRule = "CreateAlertOwnerRule",
@@ -11170,6 +11184,67 @@ export class PermissionHelper {
         isRolePermission: false,
         group: PermissionGroup.Telemetry,
       },
+
+      {
+        permission: Permission.CreateDataAsset,
+        title: "Create Data Asset",
+        description:
+          "This permission can create data assets (the tables and views of connected data stores) in this project. OneUptime finds them on its own; this is for adding one by hand.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteDataAsset,
+        title: "Delete Data Asset",
+        description:
+          "This permission can delete data assets of this project, with their history.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditDataAsset,
+        title: "Edit Data Asset",
+        description:
+          "This permission can edit data assets of this project: their descriptions and how they are watched.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadDataAsset,
+        title: "Read Data Asset",
+        description:
+          "This permission can read data assets of this project: each table's columns, row count, size and when it last changed.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.CreateDataAssetFeed,
+        title: "Create Data Asset Feed",
+        description:
+          "This permission can add entries to the timelines of data assets of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadDataAssetFeed,
+        title: "Read Data Asset Feed",
+        description:
+          "This permission can read the timelines of data assets of this project: schema changes, tables dropped and restored.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
     ];
 
     /*
@@ -16754,6 +16829,48 @@ export class PermissionHelper {
         title: "Read Alert On-Call Rule",
         description:
           "This permission can read Alert On-Call Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+
+      // Alert Incident Rule Permissions
+      {
+        permission: Permission.CreateAlertIncidentRule,
+        title: "Create Alert Incident Rule",
+        description:
+          "This permission can create Alert Incident Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+      {
+        permission: Permission.DeleteAlertIncidentRule,
+        title: "Delete Alert Incident Rule",
+        description:
+          "This permission can delete Alert Incident Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+      {
+        permission: Permission.EditAlertIncidentRule,
+        title: "Edit Alert Incident Rule",
+        description:
+          "This permission can edit Alert Incident Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+      {
+        permission: Permission.ReadAlertIncidentRule,
+        title: "Read Alert Incident Rule",
+        description:
+          "This permission can read Alert Incident Rules of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

@@ -333,6 +333,7 @@ Die `check_on`-Werte, die jeder Monitortyp am häufigsten nutzt. Der Kriterien-E
 | Serverprozesse | `Is Executing`, `Is Not Executing` |
 | Skripte | `Evaluates To True` |
 | Anomalien, für Metriken, Logs und Traces | `Anomalously High`, `Anomalously Low`, `Anomalous` |
+| Prognosen, für Metriken | `Forecast Above`, `Forecast Below` (der Prognosezeitraum steht als `forecast.horizonInHours` in `metric_monitor_options`: ohne Angabe eine Woche) |
 
 Ein Filter, der passt, wenn ein SSL-Zertifikat in 14 Tagen oder weniger abläuft:
 

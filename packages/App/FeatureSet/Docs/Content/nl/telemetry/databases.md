@@ -5,6 +5,7 @@
 :::cards
 - [De Database Agent](#de-database-agent): Engine-metrics voor PostgreSQL, MySQL, SQL Server, Oracle, Redis, MongoDB, Elasticsearch en Memcached.
 - [Hoe databases worden gedetecteerd](#hoe-databases-worden-gedetecteerd): Uit traces, Kubernetes, Docker, Podman en collectors.
+- [Zien welke databases aandacht vragen](#zien-welke-databases-aandacht-vragen): De gezondheid, beoordeeld op de drempels van de aanbevolen waarschuwingen van elke engine.
 - [Waarschuwingen voor een database](#waarschuwingen-voor-een-database): Aanbevolen monitors en monitors die je zelf bouwt.
 - [Problemen oplossen](#problemen-oplossen): Een diagnosescript, en de gebruikelijke problemen.
 :::
@@ -28,7 +29,7 @@ flowchart LR
     agent["Database Agent<br/>of een collector"] -->|"engine-metrics,<br/>query-events"| db
 ```
 
-Engine-metrics komen altijd van een collector die met de database zelf praat (of, bij een beheerde clouddatabase, met de monitoring-API van de provider). Traces en containerinventarissen vertellen OneUptime dat een database bestaat en hoe hij wordt gebruikt, maar niet hoe het er vanbinnen voor staat: de status **Engine metrics** van elke database laat zien of dat deel verbonden is.
+Engine-metrics komen altijd van een collector die met de database zelf praat (of, bij een beheerde clouddatabase, met de monitoring-API van de provider). Traces en containerinventarissen vertellen OneUptime dat een database bestaat en hoe hij wordt gebruikt, maar niet hoe het er vanbinnen voor staat: de status **Enginemetrics** van elke database laat zien of dat deel verbonden is.
 
 Je kunt een database ook met de hand toevoegen: **Databases → Database aanmaken** met de engine, het adres en de poort. Voor een gezondheidscontrole vanaf een probe die helemaal geen agent nodig heeft, zie de [Databasegezondheid-monitor](/docs/monitor/database-health-monitor).
 
@@ -136,7 +137,7 @@ Ook de gangbare andere spellingen worden geaccepteerd: `postgres` en `pg`, `mssq
 
 ## Hoe databases worden gedetecteerd
 
-Elke database onthoudt de bron die hem heeft aangemaakt (de kolom **Discovered from**), en het eerste item in zijn **Feed** zegt wat hem heeft gevonden: de Kubernetes-workload en zijn cluster, de Docker- of Podman-container (of Compose- of Swarm-service) en zijn host, het endpoint dat applicaties aanriepen, of de Database Agent (met zijn versie) of de collector die hem meldde. Latere bronnen vullen dezelfde database aan in plaats van een nieuwe aan te maken, zolang ze hetzelfde endpoint beschrijven (zie [Endpoints](#endpoints-en-de-regel-van-één-eigenaar)).
+Elke database onthoudt de bron die hem heeft aangemaakt (de kolom **Ontdekt via**), en het eerste item in zijn **Feed** zegt wat hem heeft gevonden: de Kubernetes-workload en zijn cluster, de Docker- of Podman-container (of Compose- of Swarm-service) en zijn host, het endpoint dat applicaties aanriepen, of de Database Agent (met zijn versie) of de collector die hem meldde. Latere bronnen vullen dezelfde database aan in plaats van een nieuwe aan te maken, zolang ze hetzelfde endpoint beschrijven (zie [Endpoints](#endpoints-en-de-regel-van-één-eigenaar)).
 
 ### Uit applicatietraces
 
@@ -341,6 +342,7 @@ DATABASE_USERNAME=oneuptime_monitor
 DATABASE_PASSWORD='a-strong-password'
 DATABASE_TLS_INSECURE=true
 DATABASE_TLS_INSECURE_SKIP_VERIFY=false
+DATABASE_TLS_SSLMODE=disable
 DATABASE_COLLECTION_INTERVAL=30s
 DATABASE_QUERY_EVENTS=false
 DATABASE_SERVER_ID=
@@ -355,7 +357,7 @@ docker compose up -d
 
 ### De database vinden in OneUptime
 
-Na de eerste verzameling verschijnt de database onder **Databases** of, als OneUptime hem al uit traces of containers op hetzelfde adres had gedetecteerd, springt zijn status **Engine metrics** op Verbonden. Voor een privé-IP of een naam die alleen binnen je netwerk resolvet (`db.prod.internal`, een clusterlokale naam), maak je eerst de database aan of stel je `DATABASE_SERVER_ID` in (zie [Uit de Database Agent of je eigen collector](#uit-de-database-agent-of-je-eigen-collector)).
+Na de eerste verzameling verschijnt de database onder **Databases** of, als OneUptime hem al uit traces of containers op hetzelfde adres had gedetecteerd, springt zijn status **Enginemetrics** op Verbonden. Voor een privé-IP of een naam die alleen binnen je netwerk resolvet (`db.prod.internal`, een clusterlokale naam), maak je eerst de database aan of stel je `DATABASE_SERVER_ID` in (zie [Uit de Database Agent of je eigen collector](#uit-de-database-agent-of-je-eigen-collector)).
 :::
 
 ### Omgevingsvariabelen
@@ -375,6 +377,7 @@ Na de eerste verzameling verschijnt de database onder **Databases** of, als OneU
 | `DATABASE_PASSWORD` | PostgreSQL, SQL Server, Oracle | Het wachtwoord daarvan. Zet het in `.env` tussen enkele aanhalingstekens en schrijf elke `$` als `$$` (`install.sh` doet beide voor je) |
 | `DATABASE_TLS_INSECURE` | Nee | `true` (standaard) verbindt zonder TLS; `false` zet TLS aan |
 | `DATABASE_TLS_INSECURE_SKIP_VERIFY` | Nee | `true` accepteert een certificaat dat de collectorimage niet vertrouwt (zelfondertekend, privé-CA). Standaard `false` |
+| `DATABASE_TLS_SSLMODE` | Nee | PostgreSQL: de twee instellingen hierboven als `sslmode` van libpq, voor de eigen SQL-controles van de configuratie: `disable` zolang `DATABASE_TLS_INSECURE` `true` is, `require` als `DATABASE_TLS_INSECURE_SKIP_VERIFY` `true` is, anders `verify-full`. `install.sh` schrijft hem. Standaard `disable` |
 | `DATABASE_COLLECTION_INTERVAL` | Nee | Hoe vaak de statistieken van de engine worden gelezen. Standaard `30s` |
 | `DATABASE_QUERY_EVENTS` | Nee | `true` verstuurt querysamples en topquery's als logs (PostgreSQL, MySQL, MongoDB, SQL Server en Oracle). Ze bevatten querytekst. Standaard `false` |
 | `DATABASE_SERVER_ID` | Nee | Het id van een database die OneUptime al toont (het tabblad **Documentatie** ervan bevat het, al ingevuld). De gegevens komen dan rechtstreeks bij die database terecht en verschijnen op de pagina's ervan, welk adres ze ook melden (of geen): de manier voor Kubernetes en voor privé-IP's. Het moet een database zijn in het project waartoe de ingestiesleutel behoort |
@@ -393,6 +396,8 @@ Na de eerste verzameling verschijnt de database onder **Databases** of, als OneU
 | Memcached | `memcached`: verbindingen, opdrachten, hits en misses, evictions, items, bytes, netwerk, threads, CPU (allemaal standaard aan) | — | — |
 
 De feature gate `postgresqlreceiver.preciselagmetrics` van de PostgreSQL-receiver, standaard aan, registreert de replicatievertraging in tijd als `postgresql.wal.delay` in plaats van `postgresql.wal.lag`, en die metric staat upstream uit; daarom zet de agent hem aan. Elke configuratie noemt in een commentaar nog meer optionele metrics; zet die op dezelfde manier aan. De sectie **Engine metrics** van het overzicht van een database toont een geselecteerde set voor elke engine in deze tabel (voor Elasticsearch / OpenSearch clustergezondheid, nodes, niet-toegewezen shards, wachtende taken, JVM-heap, vrije schijfruimte, zoekopdrachten en indexering; voor Memcached verbindingen, geheugen, items, get-hits en -misses, opdrachten en evictions), en het tabblad **Metrieken** heeft alles. Daar toont een metric die het overzicht weergeeft de waarde van het overzicht (de reeksen op dezelfde manier gecombineerd, een teller als snelheid per seconde) met een bijschrift dat zegt hoe (_total of series_, _per second, all series_); elke andere rij toont het gemiddelde van zijn reeksen, en dat doet ook elke rij zolang je de lijst op een attribuut filtert. MariaDB meldt `mysql.buffer_pool.limit` als het aantal pagina's van de buffer pool in plaats van de bytes die de receiver declareert, dus bij een MariaDB-database lezen die rij en de grafiek ervan in pagina's. MariaDB heeft geen `Innodb_rows_*`-statustellers, dus de receiver stuurt er geen `mysql.row_operations` voor en een MariaDB-overzicht heeft geen grafiek **Row operations**; **Handler operations** toont de rijreads en -writes ervan.
+
+De PostgreSQL-configuratie stelt de server daarnaast zelf vier vragen, met de `sqlquery`-receiver van de collector met hetzelfde interval: hoe lang hij al draait (`postgresql.uptime`, uit `pg_postmaster_start_time()`), hoe oud zijn oudste transactie-ID is (`postgresql.xid.oldest_age`, de grootste `age(datfrozenxid)` in `pg_database`), hoe lang zijn oudste open transactie al open staat (`postgresql.transaction.longest_duration`) en hoeveel sessies op een lock wachten (`postgresql.sessions.waiting_on_lock`), de laatste twee uit `pg_stat_activity`. De `postgresql`-receiver meldt geen van deze, en juist zij laten een herstart zien, een openstaand gelaten transactie, een rij wachtenden op locks en een naderende wraparound van de transactie-ID's: PostgreSQL accepteert vlak bij een leeftijd van 2,1 miljard geen schrijfacties meer, dus vraagt zijn gezondheid vanaf 1 miljard om een blik en is die vanaf 1,5 miljard kritiek. `pg_monitor` dekt ze. De query maakt verbinding met `DATABASE_TLS_SSLMODE` en kan niet inloggen met een wachtwoord dat een spatie bevat (hij stuurt die als `+`), waarvoor `install.sh` waarschuwt. Kopieer bij een eigen collector de receiver `sqlquery/oneuptime` uit `configs/postgresql.yaml` naar zijn `metrics`-pipeline.
 
 De **Versie** van de database komt van de receiver, waar die er een meldt: `db.system.version` (MySQL / MariaDB, MongoDB), `redis.version` (Redis, KeyDB), `oracle.db.version` (Oracle) en `elasticsearch.node.version` (Elasticsearch / OpenSearch). De receivers voor PostgreSQL, SQL Server en Memcached melden er geen, dus met alleen de agent tonen die databases geen versie; een database die ook in Kubernetes, Docker of Podman draait, toont die van zijn containerimage.
 
@@ -418,7 +423,7 @@ De unit gaat uit van `/opt/oneuptime-database-agent` (de standaard van het insta
 
 Voer `install.sh` opnieuw uit: het hergebruikt elke waarde in je bestaande `.env`, vervangt `docker-compose.yml`, `otel-collector-config.yaml` en de systemd-unit door de huidige versies en maakt de container van de agent opnieuw aan zodat de nieuwe configuratie van kracht wordt. Een bestand dat je had bewerkt (`network_mode: host`, een `filelog`-receiver en de mount ervan, extra metrics) wordt naast het nieuwe bewaard als `<file>.bak.<timestamp>`, en het script somt het aan het eind op zodat je de wijziging opnieuw kunt toepassen. Pas elke wijziging aan `.env` of `otel-collector-config.yaml` toe met `docker compose up -d --force-recreate`: de collector leest zijn configuratie alleen bij het starten, en een gewone `docker compose up -d` laat de draaiende container met rust als alleen het configuratiebestand is gewijzigd. Het script legt in `.agent-files.sha256` vast wat het heeft geïnstalleerd, zodat een bestand dat niemand heeft bewerkt zonder kopie wordt vervangen, hoeveel de nieuwe versie ook is veranderd; in een map zonder die registratie (een map die je met de hand hebt ingericht) wordt elk bestand dat afwijkt van de nieuwe versie bewaard, omdat er wijzigingen in kunnen staan. Om de agent te verwijderen: `cd /opt/oneuptime-database-agent && docker compose down`, en verwijder daarna de monitoringgebruiker (en de eigen login van de AI-agent, als je die hebt aangemaakt).
 
-De agent meldt de collectorversie die zijn bestanden vastleggen als zijn **Agentversie**. Als die ouder is dan de versie die deze OneUptime-release vastlegt, verschijnt er een waarschuwingsteken naast op de **Overzicht** van de database. Selecteer het om te zien hoe je bijwerkt: met het installatiescript, met Docker Compose of, voor een database in Kubernetes, met de Deployment uit de installatiehandleiding.
+De agent meldt de versie van zijn bestanden als zijn **Agentversie**: de collectorversie die ze vastleggen, met het laatste getal verhoogd telkens wanneer de bestanden op die collector veranderen. Als die ouder is dan de versie die deze OneUptime-release vastlegt, verschijnt er een waarschuwingsteken naast op de **Overzicht** van de database. Selecteer het om te zien hoe je bijwerkt: met het installatiescript, met Docker Compose of, voor een database in Kubernetes, met de Deployment uit de installatiehandleiding.
 
 ## AI-agent
 
@@ -521,6 +526,8 @@ spec:
               value: "true"
             - name: DATABASE_TLS_INSECURE_SKIP_VERIFY
               value: "false"
+            - name: DATABASE_TLS_SSLMODE
+              value: "disable"
             - name: DATABASE_COLLECTION_INTERVAL
               value: "30s"
             - name: DATABASE_QUERY_EVENTS
@@ -594,13 +601,44 @@ Een endpoint is een `host:port` waarop een database antwoordt. Het tabblad **End
 
 De standaardnaam van een database is de engine en zijn endpoint (`PostgreSQL db.example.com:5432`) of, voor een database die uit zijn containers is gedetecteerd, de engine en zijn workload: `<namespace>/<workload>` in Kubernetes (`PostgreSQL data/postgres`), en op Docker of Podman de naam van de container, zijn Compose-service (`<project>-<service>`) of zijn Swarm-service. Je kunt hem vrij hernoemen; de naam is niet de identiteit. Die standaard maakt label- en eigenaarsregels op naam eenvoudig: een naampatroon `^PostgreSQL` treft elke PostgreSQL-database, en `^MariaDB` elke MariaDB-database.
 
+## Zien welke databases aandacht vragen
+
+De lijst **Databases** begint met **Vraagt aandacht**: elke database voorbij een drempel van de aanbevolen waarschuwingen van zijn engine en elke database waarvan de enginemetrics zijn gestopt, de dringendste eerst, elk met de reden en één stap naar zijn pagina. Vraagt niets aandacht, dan is er geen kaart.
+
+Daaronder zegt de **Status** van elke database hoe het met zijn engine gaat, met de reden eronder:
+
+| Status | Wanneer |
+| --- | --- |
+| **Gezond** | Zijn enginemetrics komen binnen, en geen ervan is voorbij een drempel van de aanbevolen waarschuwingen van zijn engine. |
+| **Verminderd** | Een waarschuwingsdrempel is overschreden, uit de tabel hieronder. |
+| **Ongezond** | Een kritieke drempel is overschreden, uit de tabel hieronder. |
+| **Enginemetrics gestopt** | Zijn veld **Enginemetrics** toont _Verbinding verbroken_: een agent of collector meldde gegevens en stopte daarna (zie [Levenscyclus](#levenscyclus-archivering-en-bewaring)). Wat hij het laatst meldde, klopt niet meer, dus zegt de rij in plaats daarvan wanneer hij het laatst meldde. |
+| **Geen enginemetrics** | Er heeft nog geen Database Agent of collector voor hem gemeld (zie [De Database Agent](#de-database-agent)). |
+| **Rapporteert** | Zijn enginemetrics komen binnen, maar geen van de waarden die de drempels van zijn engine beoordelen is in de laatste 15 minuten binnengekomen, of OneUptime raadt voor zijn engine geen waarschuwingen aan. |
+
+De drempels zijn die van de [aanbevolen monitors](#aanbevolen-monitors) zelf (de metrics, de formule en de drempel van elk), beoordeeld op wat de engine het laatst meldde, dat OneUptime ongeveer eens per minuut bij de database bewaart. De pagina zegt het zodra een waarde een drempel overschrijdt; de monitor wacht zijn tijdvenster af voordat hij een waarschuwing opent. Een monitor die je na het aanmaken hebt gewijzigd, houdt zijn eigen drempel, en de gezondheid de aanbevolen drempel. Een database waarvoor meerdere agents melden (bijvoorbeeld één per lid van een replica set) wordt beoordeeld zoals de monitor hem beoordeelt: verbindingen opgeteld, de achterstand van de replica die het verst achterloopt.
+
+| Engine | Ongezond | Verminderd |
+| --- | --- | --- |
+| PostgreSQL | Verbindingen op 95% van `max_connections`; transactie-ID's dicht bij de wraparound | Verbindingen op 80% van `max_connections`; transactie-ID's die naar de wraparound verouderen; een replica die 30 seconden achterloopt met de replay; een replica die 1 GB WAL achterloopt; een herstart; een transactie die al een uur open staat; een sessie die op een lock wacht; een database van 500 GB of meer |
+| MySQL / MariaDB | — | 136 verbindingen; 50 actieve threads; 75% van de buffer pool vuil; een replica die 30 seconden achterloopt; een herstart |
+| SQL Server | — | Een buffer cache hit ratio onder 90%; een page life expectancy onder 300 seconden; een geblokkeerde sessie; een query die op geheugen wacht |
+| Oracle | Een tablespace voor 90% vol | — |
+| Redis / Valkey / KeyDB / Dragonfly | — | Geheugen op 90% van `maxmemory`; een fragmentatieverhouding van 1,5 bij 256 MB gebruikt; 9.000 clients; een herstart |
+| MongoDB | Verbindingen op 90% van de limiet | Een herstart |
+| Elasticsearch / OpenSearch | Clustergezondheid rood | Clustergezondheid geel; 10 openstaande clustertaken; een JVM-heap voor 85% vol |
+| Memcached | — | 900 verbindingen |
+| CouchDB | — | Verzoeken van gemiddeld 1.000 ms |
+
+Het **Overzicht** van een database zegt hetzelfde: zijn gezondheid in de kop (_Gezondheid onbekend_ zolang zijn enginemetrics zijn gestopt, geen voordat er een is binnengekomen), dan **Vraagt aandacht**, één rij voor elk soort overschreden drempel (**Verbindingen**, **Replicatie**, **Geheugen** en de rest), die elk het tabblad **Metrieken** opent of, als zijn enginemetrics zijn gestopt, het tabblad **Documentatie** met de installatiehandleiding en het diagnosescript. **Databasewaarschuwingen** toont welke van de aanbevolen waarschuwingen van zijn engine hem bewaken, en de knop ervan opent **Aanbevelingen** met de rest geselecteerd.
+
 ## Waarschuwingen voor een database
 
 De tabbladen **Waarschuwingen** en **Incidenten** van een database tonen wat de monitors die hem noemen hebben geopend. Zolang de database in een lopend venster voor gepland onderhoud zit, openen die monitors geen nieuwe incidenten of waarschuwingen, tenzij ze ook een resource noemen die buiten het venster valt. Hun status wordt nog steeds bijgewerkt, en wat ze vóór het venster openden, wordt nog steeds opgelost. Databases kunnen ook met de hand aan incidenten, waarschuwingen en gepland onderhoud worden gekoppeld, net als elke andere resource: als je er een aanmaakt vanaf het eigen tabblad **Incidenten**, **Waarschuwingen** of **Geplande onderhoud** van de database, is de database al geselecteerd.
 
 ### Aanbevolen monitors
 
-Het tabblad **Aanbevelingen** van de database biedt kant-en-klare metric-monitors voor zijn engine (verbindingen dicht bij hun limiet, replicatievertraging, geheugen- en cachedruk, geblokkeerde sessies, volle tablespaces, clustergezondheid, herstarts en een controle **Engine Metrics Stopped** die afgaat als de metrics van de engine niet meer binnenkomen) voor deze engines: PostgreSQL, MySQL, MariaDB, SQL Server, Oracle, Redis, Valkey, KeyDB, Dragonfly, Memcached, MongoDB, CouchDB, Elasticsearch en OpenSearch. Ze lezen de metrics die de receiver van de engine in de collector meldt, dus ze worden aangeboden zodra een van die metrics in de afgelopen 30 dagen is binnengekomen met de `oneuptime.database.server.id` van de database (de logs ervan, een andere receiver, zoals de `mongodbatlas`-receiver van een MongoDB Atlas-cluster, of een exporter tellen niet, en tot dan legt het tabblad uit waarom het leeg is), en elk ervan filtert op de `oneuptime.database.server.id` van de database. De badge naast het tabblad telt de monitors die nog niet zijn aangemaakt.
+Het tabblad **Aanbevelingen** van de database biedt kant-en-klare metric-monitors voor zijn engine (verbindingen dicht bij hun limiet, replicatievertraging, geheugen- en cachedruk, geblokkeerde sessies, volle tablespaces, clustergezondheid, herstarts en een controle **Engine Metrics Stopped** die afgaat als de metrics van de engine niet meer binnenkomen) voor deze engines: PostgreSQL, MySQL, MariaDB, SQL Server, Oracle, Redis, Valkey, KeyDB, Dragonfly, Memcached, MongoDB, CouchDB, Elasticsearch en OpenSearch. Ze lezen de metrics die de receiver van de engine in de collector meldt, dus ze worden aangeboden zodra een van die metrics in de afgelopen 30 dagen is binnengekomen met de `oneuptime.database.server.id` van de database (de logs ervan, een andere receiver, zoals de `mongodbatlas`-receiver van een MongoDB Atlas-cluster, of een exporter tellen niet, en tot dan legt het tabblad uit waarom het leeg is), en elk ervan filtert op de `oneuptime.database.server.id` van de database. De badge naast het tabblad telt de monitors die nog niet zijn aangemaakt. De PostgreSQL-monitors voor herstarts, transactie-ID's, open transacties en wachten op locks lezen de eigen SQL-controles van de Database Agent (zie [Wat er wordt verzameld](#wat-er-wordt-verzameld)), dus met een eigen collector blijven ze stil totdat die dezelfde `sqlquery`-receiver uitvoert.
 
 De documentatie van een receiver somt op wat hij kan melden, niet wat er uit elke opstelling binnenkomt, dus de monitors voor SQL Server en Oracle lezen alleen metrics die zijn waargenomen vanuit de eigen configuraties van de Database Agent. Daarom heeft SQL Server geen monitor voor het transactielog of de lockwachttijd (alleen Windows-prestatiemeteritems melden ze, en de agent verbindt direct) en Oracle geen voor zijn sessie- of proceslimiet (een verbinding met een pluggable database meldt ze niet).
 
@@ -643,7 +681,7 @@ Voor een probe die een database helemaal zonder agent controleert, zie de [Datab
 ## Levenscyclus, archivering en bewaring
 
 - **Laatst gezien** wordt door elke bron bijgewerkt, en het label in de kop van een database leest het: _Recent gezien_ zolang een bron de database in de afgelopen 30 minuten heeft gezien, daarna _Niet recent gezien_, en _Nooit gezien_ voordat een bron hem heeft gezien. Het zegt niets over engine-metrics, die een eigen status hebben.
-- **Engine metrics** toont _Verbonden_ zolang er collectorgegevens blijven binnenkomen, _Verbinding verbroken_ zodra een collector die gegevens stuurde 15 minuten stopt, en _Niet verbonden_ als nog nooit een Database Agent of collector iets heeft gemeld. De 15 minuten zijn een minimum: OneUptime legt de heartbeat van een collector maar ongeveer om de 5 minuten vast zolang er gegevens stromen, dus het wacht nog 7 minuten extra, gerekend vanaf de laatst vastgelegde heartbeat, en controleert elke 5 minuten; een collector die stopt, toont tussen 15 en ongeveer 27 minuten na zijn laatste datapunt _Verbinding verbroken_. Het filter **Engine metrics** van de lijst biedt alle drie.
+- **Enginemetrics** toont _Verbonden_ zolang er collectorgegevens blijven binnenkomen, _Verbinding verbroken_ zodra een collector die gegevens stuurde 15 minuten stopt, en _Niet verbonden_ als nog nooit een Database Agent of collector iets heeft gemeld. De 15 minuten zijn een minimum: OneUptime legt de heartbeat van een collector maar ongeveer om de 5 minuten vast zolang er gegevens stromen, dus het wacht nog 7 minuten extra, gerekend vanaf de laatst vastgelegde heartbeat, en controleert elke 5 minuten; een collector die stopt, toont tussen 15 en ongeveer 27 minuten na zijn laatste datapunt _Verbinding verbroken_. Het filter **Enginemetrics** van de lijst biedt alle drie.
 - **Archiveren om af te wijzen.** Een gedetecteerde database verwijderen haalt hem alleen weg tot een bron hem weer ziet: de volgende span of pod brengt hem terug als nieuwe database. Om er definitief een af te wijzen, **archiveer** je hem: een gearchiveerde database houdt zijn endpoints, dus alles wat erop past, blijft aan de gearchiveerde database gekoppeld in plaats van een nieuwe aan te maken.
 - **Databases die voor de poort van een client zijn aangemaakt.** Een database die applicatietraces hebben aangemaakt voor een poort vanaf 32768 (anders dan de standaardpoort van de engine), wordt verwijderd, niet gearchiveerd, als niemand erin heeft geïnvesteerd, hem heeft hernoemd, beschreven, gearchiveerd of hersteld. De detectie maakt die niet meer aan (zie [Eén database per verbinding](#eén-database-per-verbinding-elk-op-een-andere-hoge-poort)), en een verwijderde komt niet terug.
 - **Automatisch archiveren.** Een gedetecteerde database die geen enkele bron 7 dagen heeft gezien, wordt automatisch gearchiveerd, tenzij iemand erin heeft geïnvesteerd: labels of eigenaren die een persoon heeft toegevoegd, een incident, waarschuwing of gepland onderhoud, een endpoint dat een persoon heeft toegevoegd, of een bewaarinstelling. Labels en eigenaren die label- of eigenaarsregels, of `oneuptime.label.*`-attributen, vanzelf hebben gekoppeld, tellen niet (anders zou een algemene regel elke database voor altijd houden) tot een persoon ze op de database opslaat. Databases van een Kubernetes-cluster of een Docker- of Podman-host die zelf stil is gevallen, worden niet gearchiveerd zolang die stil is: een database telt alleen als ongezien als hij al ruim vóór zijn cluster of host niet meer werd gezien.
@@ -692,7 +730,7 @@ In de container van de agent is `localhost` de container zelf. Gebruik `host.doc
 - `ORA-12514` of `ORA-12505`: de Oracle-listener antwoordt (dus de verbindingscontrole slaagt), maar kent de service die `DATABASE_ORACLE_SERVICE` noemt niet; `lsnrctl services` op de databasehost somt de services op die hij wel kent.
 - `ORA-28000` of `ORA-28001`: de Oracle-monitoringgebruiker is vergrendeld of zijn wachtwoord is verlopen.
 - `failed to explain` bij PostgreSQL-topquery's is geen ontbrekend recht: uitvoeringsplannen hebben `SELECT` op je tabellen nodig, wat `pg_monitor` bewust niet geeft. Metrics en topquery's worden niet beïnvloed; alleen de plannen blijven leeg.
-- `SSL is not enabled on the server`: stel `DATABASE_TLS_INSECURE=true` in. Een server die TLS vereist: `DATABASE_TLS_INSECURE=false`, plus `DATABASE_TLS_INSECURE_SKIP_VERIFY=true` voor een certificaat dat de image niet vertrouwt. Voor Elasticsearch / OpenSearch beslist de `http://` of `https://` van `DATABASE_ENDPOINT`.
+- `SSL is not enabled on the server`: stel `DATABASE_TLS_INSECURE=true` in. Een server die TLS vereist: `DATABASE_TLS_INSECURE=false`, plus `DATABASE_TLS_INSECURE_SKIP_VERIFY=true` voor een certificaat dat de image niet vertrouwt. Voor Elasticsearch / OpenSearch beslist de `http://` of `https://` van `DATABASE_ENDPOINT`. Stel voor PostgreSQL `DATABASE_TLS_SSLMODE` daarop af (`disable`, `require` of `verify-full`, zoals `install.sh` doet), anders kunnen de eigen SQL-controles van de configuratie geen verbinding maken.
 - Fouten met `pg_stat_statements`: maak de extensie aan, of stel `DATABASE_QUERY_EVENTS=false` in.
 - Bij elke andere receiverfout toont het diagnosescript de meest voorkomende, zoals de databasedriver hem formuleerde (met het wachtwoord weggelakt).
 
@@ -728,6 +766,10 @@ De spans missen `db.system.name` / `db.system` of `server.address`, of ze gebrui
 ### Engine metrics toont Verbinding verbroken of Niet verbonden
 
 _Niet verbonden_: voor deze database heeft nog nooit een Database Agent of collector iets gemeld; installeer de agent vanaf het tabblad **Documentatie** ervan. _Verbinding verbroken_: er heeft er wel een gemeld, maar die heeft al minstens 15 minuten niets gestuurd (zie [Levenscyclus](#levenscyclus-archivering-en-bewaring)); voer het [diagnosescript](#eerst-het-diagnosescript-uitvoeren) uit waar die draait. Aanbevolen monitors verschijnen op het tabblad **Aanbevelingen** zodra de eigen metrics van de engine-receiver zijn binnengekomen.
+
+### Status toont Rapporteert in plaats van Gezond
+
+**Rapporteert** betekent dat er enginemetrics binnenkomen, maar geen van de waarden die de drempels van zijn engine beoordelen: een eigen collector die die metrics weglaat, waarden die zijn gestopt terwijl andere gegevens nog binnenkomen, of een engine waarvoor OneUptime geen waarschuwingen aanraadt. Het tabblad **Metrieken** toont wat er wel binnenkomt; vergelijk het met [Wat er wordt verzameld](#wat-er-wordt-verzameld).
 
 ### De waarschuwingen van een monitor verschijnen niet bij de database
 

@@ -9,8 +9,15 @@ import MonitorCriteriaInstance from "../MonitorCriteriaInstance";
 import { CriteriaIncident } from "../CriteriaIncident";
 import { CriteriaAlert } from "../CriteriaAlert";
 import { DATABASE_SERVER_ID_SCOPE_ATTRIBUTE } from "../DatabaseAlertTemplates";
+import { DATA_STORE_ID_SCOPE_ATTRIBUTE } from "../DataObservabilityAlertTemplates";
 import { KUBERNETES_CLUSTER_NAME_LOG_ATTRIBUTE } from "../KubernetesEventAlertTemplates";
 import { PROXMOX_CLUSTER_NAME_LOG_ATTRIBUTE } from "../ProxmoxNotificationAlertTemplates";
+
+// The query filters that name the one resource a metric step watches.
+const ATTRIBUTE_SCOPES: ReadonlyArray<string> = [
+  DATABASE_SERVER_ID_SCOPE_ATTRIBUTE,
+  DATA_STORE_ID_SCOPE_ATTRIBUTE,
+];
 
 /*
  * The log attributes that name the resource a recommended Logs monitor
@@ -522,7 +529,8 @@ export default class MonitorRecommendationUtil {
   /*
    * The resource a metric step is scoped to by an attribute FILTER rather than
    * by an identifier field or `telemetryServiceIds` — a database's metric
-   * monitors, which filter every query on `oneuptime.database.server.id`.
+   * monitors, which filter every query on `oneuptime.database.server.id`, and
+   * a data store's table monitors, which filter on `oneuptime.data.store.id`.
    *
    * The filter is already part of the fingerprint through `queryAttributes`,
    * so two databases' monitors never collide; this only makes the step's
@@ -544,12 +552,14 @@ export default class MonitorRecommendationUtil {
         continue;
       }
 
-      const value: unknown = (attributes as Record<string, unknown>)[
-        DATABASE_SERVER_ID_SCOPE_ATTRIBUTE
-      ];
+      for (const scopeAttribute of ATTRIBUTE_SCOPES) {
+        const value: unknown = (attributes as Record<string, unknown>)[
+          scopeAttribute
+        ];
 
-      if (typeof value === "string" && value.trim()) {
-        values.add(value.trim());
+        if (typeof value === "string" && value.trim()) {
+          values.add(value.trim());
+        }
       }
     }
 

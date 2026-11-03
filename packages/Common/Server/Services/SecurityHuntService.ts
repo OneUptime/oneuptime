@@ -30,7 +30,11 @@ import {
   isSecurityHuntTimeRange,
   readSecurityHuntFilters,
 } from "../../Types/SecurityEvent/SecurityHunt";
-import { getSecurityHuntFiltersProblem } from "../../Utils/SecurityEvent/SecurityHuntSearch";
+import {
+  getSecurityHuntFiltersProblem,
+  getSecurityHuntWatchlistNames,
+} from "../../Utils/SecurityEvent/SecurityHuntSearch";
+import SecurityWatchlists from "../Utils/SecurityEvent/Watchlists/SecurityWatchlists";
 
 /*
  * A project's hunts (Types/SecurityEvent/SecurityHunt): each checked as the
@@ -284,6 +288,12 @@ export class Service extends ProjectReferencesService<Model> {
 
     if (projectId) {
       await this.assertProjectHasRoom(projectId);
+
+      // The watchlists its search reads (`user:%vip_users%`) are the project's.
+      await SecurityWatchlists.assertProjectHas({
+        projectId,
+        names: getSecurityHuntWatchlistNames(createBy.data.searchQuery),
+      });
     }
 
     return { createBy, carryForward: null };
@@ -379,6 +389,7 @@ export class Service extends ProjectReferencesService<Model> {
       updateBy,
       {
         _id: true,
+        projectId: true,
         schedule: true,
         searchQuery: true,
         filters: true,
@@ -410,6 +421,14 @@ export class Service extends ProjectReferencesService<Model> {
           : readSecurityHuntFilters(row.filters);
 
       Service.assertSearch({ searchQuery, filters });
+
+      // A search changed to read a watchlist reads one the project has.
+      if (data["searchQuery"] !== undefined && row.projectId) {
+        await SecurityWatchlists.assertProjectHas({
+          projectId: row.projectId,
+          names: getSecurityHuntWatchlistNames(searchQuery),
+        });
+      }
 
       Service.assertRecipients({
         schedule,

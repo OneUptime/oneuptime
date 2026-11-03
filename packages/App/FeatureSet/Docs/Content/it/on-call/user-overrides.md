@@ -70,6 +70,8 @@ Quando qualcuno lascia il progetto, ogni sostituzione che lo nomina e che non è
 
 **Proprietario del progetto**, **Amministratore del progetto**, **Membro del progetto**, **Amministratore della reperibilità** e **Membro della reperibilità** possono aggiungere ed eliminare sostituzioni; **Visualizzatore** e **Visualizzatore della reperibilità** possono vederle. In un ruolo personalizzato, i permessi sono **Create On-Call Duty Policy User Override**, **Delete On-Call Duty Policy User Override** e **Read On-Call Duty Policy User Override**. Nella **Cronologia delle reperibilità**, solo chi può leggere le sostituzioni vede di chi è il turno sostituito.
 
+Una sostituzione su una policy segue l'ambito della policy. Date a un team **Membro della reperibilità** limitato alle policy di sua proprietà, o alla sua etichetta, e i suoi membri aggiungono ed eliminano sostituzioni solo su quelle policy. Una sostituzione globale si applica a ogni policy, comprese quelle di un altro team, quindi aggiungerla o eliminarla richiede il permesso per le sostituzioni sull'intero progetto. Con uno più ristretto, **Aggiungi: Sostituzione utente** ed **Elimina** in **Reperibilità → Avanzato → Sostituzioni utente** sono bloccati e dicono perché. Lo sono anche **Salta fino a…** nei livelli di una pianificazione e **Trova una copertura** sui vostri prossimi turni, che aggiungono sostituzioni globali, e l'app mobile dice perché invece di organizzare una copertura. Il team aggiunge le sue sostituzioni nella pagina **Sostituzioni utente** di ciascuna policy. Lo stesso vale per l'API: una sostituzione senza `onCallDutyPolicyId` viene rifiutata per un permesso limitato a etichette o alle policy possedute.
+
 Su OneUptime Cloud, le sostituzioni utente richiedono il piano **Growth**.
 
 ## API
@@ -111,7 +113,7 @@ Viene raggiunto tramite le sue regole di reperibilità personali e i suoi metodi
 :::
 
 :::details Non riesco ad aggiungere una sostituzione
-Serve uno dei ruoli qui sopra e, su OneUptime Cloud, il piano **Growth**.
+Serve uno dei ruoli qui sopra e, su OneUptime Cloud, il piano **Growth**. Una sostituzione globale richiede il ruolo sull'intero progetto: se il ruolo del vostro team è limitato alle sue policy o ad alcune etichette, aggiungete la sostituzione nella pagina **Sostituzioni utente** della policy stessa. È anche per questo che **Salta fino a…** e **Trova una copertura** sono bloccati per voi, e che l'app mobile non può organizzare una copertura.
 :::
 
 ## Passi successivi

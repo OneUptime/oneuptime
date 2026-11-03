@@ -93,13 +93,15 @@ describe("what a watchlist holds and where its values come from", () => {
     expect(isSecurityWatchlistEntityType(42)).toBe(false);
   });
 
-  test("values the team keeps, or a threat intel feed", () => {
+  test("values the team keeps, a threat intel feed, or a file at an address", () => {
     expect([...SECURITY_WATCHLIST_SOURCES]).toEqual([
       SecurityWatchlistSource.Values,
       SecurityWatchlistSource.ThreatIntelFeed,
+      SecurityWatchlistSource.Url,
     ]);
     expect(isSecurityWatchlistSource("Values")).toBe(true);
     expect(isSecurityWatchlistSource("Threat Intel Feed")).toBe(true);
+    expect(isSecurityWatchlistSource("URL")).toBe(true);
     expect(isSecurityWatchlistSource("CSV")).toBe(false);
   });
 

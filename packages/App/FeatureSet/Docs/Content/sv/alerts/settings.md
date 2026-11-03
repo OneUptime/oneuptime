@@ -17,6 +17,7 @@ Konfigurationen av larm finns i **Larm**, inte i **Projektinställningar**: regl
 | --------------------- | ---------------------------------------------------------------------------------------------- |
 | **Grupperingsregler** | Samlar relaterade larm i episoder. Se [Larmepisoder och grupperingsregler](/docs/alerts/episodes). |
 | **Jourregler**        | Kör jourpolicyer för matchande larm och episoder.                                              |
+| **Incidentregler** | Deklarerar en incident från matchande larm, direkt eller när ett larm förblir olöst. |
 | **Ägarregler**        | Lägger till ägare på matchande larm och episoder.                                              |
 | **Runbook-regler**    | Startar runbooks för matchande larm.                                                           |
 | **Sekretessregler**   | Gör matchande larm och episoder privata.                                                       |
@@ -54,7 +55,7 @@ flowchart TB
 
 Reglerna skiljer sig åt i hur flera matchningar avgörs:
 
-- **Grupperingsregler** och **Påminnelseregler** kontrolleras uppifrån och ned i sin lista, och den första matchningen vinner. Dra en regel för att ändra dess plats; en ny regel hamnar sist.
+- **Grupperingsregler**, **Incidentregler** och **Påminnelseregler** kontrolleras uppifrån och ned i sin lista, och den första matchningen vinner. Dra en regel för att ändra dess plats; en ny regel hamnar sist.
 - **Jourregler**, **Ägarregler**, **Etikettregler**, **Sekretessregler** och **Runbook-regler** verkar alla när de matchar. Jourpolicyer, ägare och etiketter som flera regler lägger till läggs till en gång.
 
 **Jourregler**, **Ägarregler**, **Etikettregler** och **Sekretessregler** har två flikar: **Alert Rules**, för larm, och **Episode Rules**, som verkar på samma sätt på varje ny larmepisod. En ny regel börjar aktiverad; slå av **Aktiverad** i dess redigeringsformulär för att pausa den, och listan visar en grön **Aktiverad** eller en röd **Inaktiverad** för varje regel.
@@ -89,6 +90,22 @@ I **Jourpolicyer** väljer du de **Jourpolicyer** som regeln larmar. Dess **Namn
 En allvarlighetsgrad larmar ingen på egen hand: En jourregel som matchar **Larm Allvarligheter** är sättet att ställa in "larma databasteamet för varje High-larm". För att se vad som kördes för ett larm öppnar du dess sida **Jourexekveringar**. Varje person nås sedan på det sätt som de har ställt in under **Användarinställningar → Jourregler**, på fliken **Larm**; se [Eskaleringsregler](/docs/on-call/escalation-rules).
 
 En regel larmar så snart ett larm matchar den. För att låta den vänta på arbetstid i stället svarar du **Endast under arbetstid** på **När ska den här regeln larma?** under **Fler fält**. **Arbetstid** börjar som måndag till fredag, 09:00 till 17:00, i din egen tidszon: välj andra dagar, en annan **Starttid** eller **Sluttid** eller en annan **Tidszon**, så säger en mening under valet vad som händer. I listan visar regeln sin arbetstid under namnet. Ett larm som matchar utanför de tiderna får en körning som väntar och inte larmar någon; när arbetstiden börjar larmar policyn sin första eskaleringsregel och eskalerar som vanligt. Bekräftas eller löses larmet först larmas ingen. Ändras larmet medan det väntar så att det nu matchar en regel som larmar direkt, till exempel för att dess allvarlighetsgrad höjs, börjar körningen larma genast, och larmets flöde säger varför. Två regler som larmar samma policy larmar den så snart någon av dem tillåter det: en regel för dina högsta allvarlighetsgrader som larmar direkt, bredvid en regel för resten som väntar på arbetstid, håller nätterna lugna.
+
+## Incidentregler
+
+**Larm → Regler → Incidentregler** gör själv om larm till incidenter. Den första regeln som matchar ett nytt larm, uppifrån och ned i listan, deklarerar en incident från det, som **Deklarera incident** på larmets sida skulle göra, och kopplar larmet till den.
+
+:::steps
+### Välj ut larmen
+
+Under **Matcha** matchar **Alla larm**, som en ny regel börjar med, varje nytt larm. För att begränsa den väljer du **Endast larm som uppfyller villkoren** och lägger till de villkor ett larm måste uppfylla.
+
+### Beskriv incidenten
+
+Under **Incident** väljer du **Incidentallvar**, eller lämnar fältet tomt för att ge varje incident det allvar som motsvarar larmets. Sätt **Declare After (Minutes)** över 0 för att bara deklarera incidenten om larmet fortfarande är olöst då. Regelns **Namn** följer allvaret, till exempel "Declare SEV1 incidents", tills du skriver ett eget. Skapa sedan regeln.
+:::
+
+Incidenten får larmets titel, beskrivning, monitor, berörda resurser och etiketter, och är privat när larmet är det. Sedan körs incidentens egna regler som för varje ny incident, så det är dess jourregler som avgör vem som larmas. Ett larm som löses innan väntetiden är slut blir aldrig en incident, och ett larm som redan är kopplat till en incident lämnas som det är. **Visa på statussidor**, under **Fler fält**, avgör om incidenten visas på de statussidor som listar dess monitor.
 
 ## Ägar- och etikettregler
 

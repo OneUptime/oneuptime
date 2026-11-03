@@ -28,7 +28,9 @@ interface CreateOnCallOverrideInput {
   /*
    * Omitted for a project-wide override, which is what the app creates.
    * Covering someone on one policy and leaving them paged by the rest is not
-   * what "cover for me" means to the person asking for it.
+   * what "cover for me" means to the person asking for it. The server takes
+   * a permission to add overrides over the whole project for one; the cover
+   * sheet does not offer it to anyone else (oncall/globalOverrideAccess).
    */
   onCallDutyPolicyId?: string;
 }

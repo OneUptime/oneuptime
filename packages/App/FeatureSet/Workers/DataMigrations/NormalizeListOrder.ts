@@ -1,5 +1,6 @@
 import DataMigrationBase from "./DataMigrationBase";
 import AIPostmortemRuleService from "Common/Server/Services/AIPostmortemRuleService";
+import AlertIncidentRuleService from "Common/Server/Services/AlertIncidentRuleService";
 import AlertGroupingRuleService from "Common/Server/Services/AlertGroupingRuleService";
 import AlertMeasurementService from "Common/Server/Services/AlertMeasurementService";
 import AlertReminderRuleService from "Common/Server/Services/AlertReminderRuleService";
@@ -96,6 +97,8 @@ export default class NormalizeListOrder extends DataMigrationBase {
       StatusPageHistoryChartBarColorRuleService,
       IncomingCallPolicyEscalationRuleService,
       AIPostmortemRuleService,
+      // A project's alert incident rules: the first that matches an alert decides.
+      AlertIncidentRuleService,
       // A project's Collector Configs: the first that matches a host wins.
       HostCollectorConfigService,
       /*

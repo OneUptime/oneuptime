@@ -81,6 +81,10 @@ import {
   VMwareAlertTemplate,
   getAllVMwareAlertTemplates,
 } from "../VMwareAlertTemplates";
+import {
+  DataObservabilityAlertTemplate,
+  getAllDataObservabilityAlertTemplates,
+} from "../DataObservabilityAlertTemplates";
 
 /*
  * A resource type's entry in the registry.
@@ -109,7 +113,8 @@ export interface MonitorRecommendationResourceTypeDefinition {
     | "arrayIdentifier"
     | "rumApplicationId"
     | "serviceId"
-    | "databaseServerId";
+    | "databaseServerId"
+    | "dataStoreId";
   icon: IconProp;
   /*
    * What to recommend for ONE resource of this type.
@@ -707,6 +712,29 @@ function getAllDatabaseRecommendations(): Array<MonitorRecommendation> {
   );
 }
 
+// A data store's tables: the same set for every store, whatever its engine.
+function getDataStoreRecommendations(): Array<MonitorRecommendation> {
+  return getAllDataObservabilityAlertTemplates().map(
+    (template: DataObservabilityAlertTemplate) => {
+      return normalize({
+        resourceType: MonitorRecommendationResourceType.DataStore,
+        monitorType: template.monitorType,
+        template: template,
+        getMonitorStep: (args: MonitorRecommendationArgs) => {
+          return template.getMonitorStep({
+            dataStoreId: args.resourceIdentifier,
+            onlineMonitorStatusId: args.onlineMonitorStatusId,
+            offlineMonitorStatusId: args.offlineMonitorStatusId,
+            defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+            defaultAlertSeverityId: args.defaultAlertSeverityId,
+            monitorName: args.monitorName,
+          });
+        },
+      });
+    },
+  );
+}
+
 const RESOURCE_TYPE_DEFINITIONS: Array<MonitorRecommendationResourceTypeDefinition> =
   [
     {
@@ -827,6 +855,14 @@ const RESOURCE_TYPE_DEFINITIONS: Array<MonitorRecommendationResourceTypeDefiniti
       icon: IconProp.Database,
       getRecommendations: getDatabaseRecommendations,
       getAllPossibleRecommendations: getAllDatabaseRecommendations,
+    },
+    {
+      resourceType: MonitorRecommendationResourceType.DataStore,
+      monitorTypes: [MonitorType.Metrics],
+      resourceLabel: "Data Store",
+      identifierFieldName: "dataStoreId",
+      icon: IconProp.TableCells,
+      getRecommendations: getDataStoreRecommendations,
     },
   ];
 

@@ -63,9 +63,9 @@ export const RESOURCE_SHOWCASE_EXAMPLE_DESCRIPTION: string = translationKey(
   "An example of what you see once one is connected.",
 );
 
-// The example's state, and the span of its chart.
+// The example's state, and the span of its chart when it names none.
 const CONNECTED_TEXT: string = translationKey("Connected");
-const CHART_RANGE_TEXT: string = translationKey("Last hour");
+export const SHOWCASE_CHART_RANGE_TEXT: string = translationKey("Last hour");
 
 /*
  * The showcase lays itself out by its own width, not the window's: a list
@@ -227,7 +227,7 @@ const ShowcasePreviewPanel: FunctionComponent<{
             <div className="flex items-center justify-between gap-3 text-[11px] font-medium text-gray-500">
               <span className="truncate">{translate(preview.chart.label)}</span>
               <span className="flex-shrink-0 text-gray-400">
-                {translate(CHART_RANGE_TEXT)}
+                {translate(preview.chart.range || SHOWCASE_CHART_RANGE_TEXT)}
               </span>
             </div>
             <svg

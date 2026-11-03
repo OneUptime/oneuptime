@@ -1298,6 +1298,7 @@ describe("what happens when an alert is created", () => {
           "AlertOnCallRuleEngineService.applyRulesToAlert",
           "RunbookRuleEngineService.applyRulesToAlert",
           "this.executeAlertOnCallDutyPoliciesAsync",
+          "AlertIncidentRuleEngineService.applyRulesToAlert",
           "AlertGroupingEngineService.processAlert",
           "this.refreshReminderSchedule",
           "AIAlertInvestigationRunner.investigateNewAlert",
@@ -1332,6 +1333,15 @@ describe("what happens when an alert is created", () => {
     );
   });
 
+  it("has the first incident rule that matches declare an incident once the alert's policies have run", () => {
+    expect(steps).toContain(
+      "await AlertIncidentRuleEngineService.applyRulesToAlert(createdItem);",
+    );
+    expect(list).toContain(
+      "Then the first incident rule that matches declares an incident from the alert, right away or once its wait is up.",
+    );
+  });
+
   it("pages nobody for an alert created acknowledged, and skips what answers a live problem for one created resolved", () => {
     const created: string = section(
       page,
@@ -1349,9 +1359,10 @@ describe("what happens when an alert is created", () => {
     );
     /*
      * A resolved one opens no channel, starts no runbook, is not grouped or
-     * remediated, and has OneUptime AI check no open incident again.
+     * remediated, has no incident declared from it by an alert incident
+     * rule, and has OneUptime AI check no open incident again.
      */
-    expect(steps.split("if (!isOngoing) {").length - 1).toBe(4);
+    expect(steps.split("if (!isOngoing) {").length - 1).toBe(5);
     expect(steps).toContain("await IncidentFollowUpCheck.onAlertOpened({");
     expect(steps).toContain(
       "if (createdItem.projectId && createdItem.id && isOngoing) {",
@@ -1362,7 +1373,7 @@ describe("what happens when an alert is created", () => {
       "It can join an open episode, but never opens one",
     );
     expect(created).toContain(
-      "it is not grouped into an episode, no runbook or auto-remediation acts on it, OneUptime AI does not investigate it, and no Slack or Microsoft Teams channel is created for it.",
+      "it is not grouped into an episode, no runbook, auto-remediation or incident rule acts on it, OneUptime AI does not investigate it, and no Slack or Microsoft Teams channel is created for it.",
     );
     expect(created).toContain(
       "(/docs/incidents/declaring-incidents#declared-already-acknowledged-or-resolved)",
@@ -2418,6 +2429,62 @@ describe("the episode lists send readers to these pages", () => {
 describe("alert rules and settings", () => {
   const page: string = english(ALERT_SETTINGS);
   const settingsDir: string = "Pages/Alerts/Settings";
+
+  /*
+   * Incident rules: the page names the menu path, the form's steps and
+   * fields as the form draws them, and says the first rule that matches
+   * decides, as the engine reads the rules - top of the list first, and
+   * the first match ends the search.
+   */
+  it("declares an incident from an alert with the incident rules form's own words", () => {
+    const steps: string = section(page, "## Incident rules");
+    const form: string = readDashboardSource(
+      `${settingsDir}/AlertIncidentRules.tsx`,
+    );
+    const copy: string = readDashboardSource(
+      "Components/AlertIncidentRule/AlertIncidentRuleCopy.ts",
+    );
+    const engine: string = readCommonSource(
+      "Server/Services/AlertIncidentRuleEngineService.ts",
+    );
+
+    expect(steps).toContain("**Alerts → Rules → Incident Rules**");
+    expect(form).toContain('{ title: "Match", id: "match-criteria" }');
+    expect(form).toContain('{ title: "Incident", id: "incident" }');
+    expect(steps).toContain(
+      "On **Incident**, pick the **Incident Severity**, or leave it empty",
+    );
+    expect(copy).toContain(
+      'ALERT_INCIDENT_RULE_SEVERITY_TITLE: string = "Incident Severity"',
+    );
+    expect(steps).toContain("Set **Declare After (Minutes)** above 0");
+    expect(copy).toContain(
+      'ALERT_INCIDENT_RULE_WAIT_TITLE: string = "Declare After (Minutes)"',
+    );
+    expect(steps).toContain("**Show on Status Pages**, under **More fields**");
+    expect(copy).toContain(
+      'ALERT_INCIDENT_RULE_STATUS_PAGE_TITLE: string =\n  "Show on Status Pages"',
+    );
+    expect(steps).toContain('such as "Declare SEV1 incidents"');
+    expect(copy).toContain(
+      'translationKey(\n  "Declare {{severity}} incidents",\n)',
+    );
+
+    expect(steps).toContain(
+      "The first rule that matches a new alert, from the top of the list down, declares an incident from it",
+    );
+    expect(engine).toContain("order: SortOrder.Ascending,");
+    expect(engine).toContain("private async findFirstMatchingRule(");
+    expect(page).toContain(
+      "**Grouping Rules**, **Incident Rules** and **Reminder Rules** are checked from the top of their list down, and the first match wins.",
+    );
+
+    expect(steps).toContain(
+      "An alert that resolves before the wait is up never becomes an incident, and an alert already linked to an incident is left alone.",
+    );
+    expect(engine).toContain("isResolvedAlertState");
+    expect(engine).toContain("private async isLinkedToAnIncident(");
+  });
 
   it("puts the On-Call, Owner, Label and Privacy rules on an Alert Rules tab and an Episode Rules tab", () => {
     for (const file of [

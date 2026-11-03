@@ -13,6 +13,7 @@ import AlertEpisodePrivacyRuleEngineService from "../../../Server/Services/Alert
 import AlertEpisodeService from "../../../Server/Services/AlertEpisodeService";
 import AlertFeedService from "../../../Server/Services/AlertFeedService";
 import AlertGroupingEngineService from "../../../Server/Services/AlertGroupingEngineService";
+import AlertIncidentRuleEngineService from "../../../Server/Services/AlertIncidentRuleEngineService";
 import AlertLabelRuleEngineService from "../../../Server/Services/AlertLabelRuleEngineService";
 import AlertOnCallRuleEngineService from "../../../Server/Services/AlertOnCallRuleEngineService";
 import AlertOwnerRuleEngineService from "../../../Server/Services/AlertOwnerRuleEngineService";
@@ -219,6 +220,11 @@ interface Probes {
    * checked for an outage - many records opening at once.
    */
   aiOutageChecks: Array<Record<string, unknown>>;
+  /*
+   * AlertIncidentRuleEngineService.applyRulesToAlert: a new alert matched
+   * against the rules that declare incidents from alerts.
+   */
+  incidentRules: Array<unknown>;
   sla: Array<Record<string, unknown>>;
   monitorStatus: Array<Array<unknown>>;
   monitoringPaused: Array<unknown>;
@@ -249,6 +255,7 @@ function newProbes(): Probes {
     investigationSkipped: [],
     followUpChecks: [],
     aiOutageChecks: [],
+    incidentRules: [],
     sla: [],
     monitorStatus: [],
     monitoringPaused: [],
@@ -342,6 +349,8 @@ interface Kind {
     followUpCheck: boolean;
     // Many records opening at once hand OneUptime AI's held pages to people.
     aiOutageCheck: boolean;
+    // A new alert may have an incident declared from it (alert incident rules).
+    incidentRules: boolean;
   };
   // A create payload, as the create form or the API sends it.
   newRecord: (policyIds: Array<string>) => DatabaseBaseModel;
@@ -380,6 +389,7 @@ const INCIDENT: Kind = {
     videoCalls: true,
     followUpCheck: false,
     aiOutageCheck: true,
+    incidentRules: false,
   },
   newRecord: (policyIds: Array<string>): DatabaseBaseModel => {
     const incident: Incident = new Incident();
@@ -565,6 +575,7 @@ const ALERT: Kind = {
     videoCalls: true,
     followUpCheck: true,
     aiOutageCheck: true,
+    incidentRules: true,
   },
   newRecord: (policyIds: Array<string>): DatabaseBaseModel => {
     const alert: Alert = new Alert();
@@ -684,6 +695,16 @@ const ALERT: Kind = {
         return [];
       },
     );
+    stub(
+      AlertIncidentRuleEngineService,
+      "applyRulesToAlert",
+      (args: Array<unknown>) => {
+        probes.incidentRules.push(args[0]);
+      },
+      () => {
+        return { outcome: "NoRuleMatched" };
+      },
+    );
     stub(AlertFeedService, "createAlertFeedItem", (args: Array<unknown>) => {
       probes.feed.push(args[0] as Record<string, unknown>);
     });
@@ -727,6 +748,7 @@ const ALERT_EPISODE: Kind = {
     videoCalls: false,
     followUpCheck: false,
     aiOutageCheck: false,
+    incidentRules: false,
   },
   newRecord: (): DatabaseBaseModel => {
     const episode: AlertEpisode = new AlertEpisode();
@@ -832,6 +854,7 @@ const INCIDENT_EPISODE: Kind = {
     videoCalls: false,
     followUpCheck: false,
     aiOutageCheck: false,
+    incidentRules: false,
   },
   newRecord: (): DatabaseBaseModel => {
     const episode: IncidentEpisode = new IncidentEpisode();
@@ -1163,6 +1186,9 @@ describe.each(KINDS)(
         expect(probes.aiOutageChecks).toEqual(
           kind.has.aiOutageCheck ? [{ projectId: PROJECT_ID }] : [],
         );
+        expect(probes.incidentRules).toHaveLength(
+          kind.has.incidentRules ? 1 : 0,
+        );
         expect(probes.sla).toHaveLength(kind.has.sla ? 1 : 0);
         expect(probes.monitorStatus).toHaveLength(
           kind.has.monitorStatus ? 1 : 0,
@@ -1289,6 +1315,10 @@ describe.each(KINDS)(
         expect(probes.aiOutageChecks).toHaveLength(
           kind.has.aiOutageCheck ? 1 : 0,
         );
+        // Acknowledged is still unresolved: its incident rules still run.
+        expect(probes.incidentRules).toHaveLength(
+          kind.has.incidentRules ? 1 : 0,
+        );
         expect(probes.monitorStatus).toHaveLength(
           kind.has.monitorStatus ? 1 : 0,
         );
@@ -1355,6 +1385,15 @@ describe.each(KINDS)(
         const { probes } = await create(kind, RESOLVED);
 
         expect(probes.aiOutageChecks).toEqual([]);
+        expect(chainErrors()).toEqual([]);
+      });
+    }
+
+    if (kind.has.incidentRules) {
+      test("no alert incident rule declares an incident from it: it was over before it was recorded", async () => {
+        const { probes } = await create(kind, RESOLVED);
+
+        expect(probes.incidentRules).toEqual([]);
         expect(chainErrors()).toEqual([]);
       });
     }

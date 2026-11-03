@@ -965,6 +965,81 @@ describe("a root that marks its keys", () => {
     ).toBe("keys");
   });
 
+  test("DatabaseHealth gives the locales its words, each count as a plural, and none of its template ids or units", () => {
+    const file: string =
+      "packages/Common/Types/DatabaseServer/DatabaseHealth.ts";
+    const result: SourceScanResult = scanSourceRoots(
+      [{ directory: file, kind: "keys" }],
+      path.join(__dirname, "..", "..", "..", ".."),
+    );
+    const plurals: Record<string, string | undefined> = {};
+
+    for (const entry of result.strings) {
+      if (entry.kind === "plural") {
+        plurals[entry.text] = entry.pluralOne;
+      }
+    }
+
+    expect(plurals).toEqual({
+      "{{count}} sessions waiting on locks":
+        "{{count}} session waiting on a lock",
+      "{{count}} threads running": "{{count}} thread running",
+      "{{count}} clients connected": "{{count}} client connected",
+      "{{count}} blocked sessions": "{{count}} blocked session",
+      "{{count}} queries waiting for memory":
+        "{{count}} query waiting for memory",
+      "{{count}} cluster tasks pending": "{{count}} cluster task pending",
+    });
+    expect(textsOf(result)).toEqual(
+      expect.arrayContaining([
+        "Healthy",
+        "Degraded",
+        "Unhealthy",
+        "Engine metrics stopped",
+        "No engine metrics",
+        "Reporting",
+        // The categories a database's Needs attention groups its rows by.
+        "Availability",
+        "Connections",
+        "Replication",
+        "Memory",
+        "Performance",
+        "Storage",
+        // Each duration with its unit inside, so a language words it its way.
+        "A replica {{seconds}} s behind",
+        "A replica {{minutes}} min behind",
+        "A replica {{hours}} h behind",
+        "A transaction open for {{hours}} h",
+        "Restarted {{minutes}} min ago",
+        "Restarted less than a minute ago",
+        "Connections at {{percent}} of max_connections",
+        "Transaction IDs at {{percent}} of wraparound",
+        "Memory at {{percent}} of maxmemory",
+        "Cluster health red",
+        "Requests averaging {{seconds}} s",
+      ]),
+    );
+    // Only what the file marks: no template ids, units or state names.
+    for (const unmarked of [
+      "database-postgresql-restarted",
+      "database-postgresql-sessions-waiting-on-locks",
+      "TB",
+      "GB",
+      "ms",
+      "critical",
+      "warning",
+      "not-connected",
+    ]) {
+      expect(textsOf(result)).not.toContain(unmarked);
+    }
+    expect(result.hardcoded).toEqual([]);
+    expect(
+      SOURCE_ROOTS.find((root: { directory: string }): boolean => {
+        return root.directory === file;
+      })?.kind,
+    ).toBe("keys");
+  });
+
   test("TraceSpanType gives the locales its sentences and none of its names", () => {
     const file: string = "packages/Common/Types/Telemetry/TraceSpanType.ts";
     const result: SourceScanResult = scanSourceRoots(
@@ -1238,7 +1313,7 @@ describe("scanning a source tree", () => {
 });
 
 describe("the real source roots", () => {
-  test("cover the Dashboard, the shared UI, the data models, the vCenter collection errors, the security case and playbook catalogs, the AI and cloud connections' catalogs, the shared monitor helpers, the monitor type cards, the cron schedule words and its common schedules, the placeholders of a playbook's message, what is wrong with a detection rule exception, what is wrong with a watchlist or one of its values, what is wrong with a hunt or why its run could not be made, what each of the traces explorer's span types is, what a dashboard template's chart says while it draws its fallback query, how a change OneUptime AI proposes went before, a cloud change in plain words, and a Kubernetes object's status by the cluster's rules", () => {
+  test("cover the Dashboard, the shared UI, the data models, the vCenter collection errors, the security case and playbook catalogs, the AI and cloud connections' catalogs, the shared monitor helpers, the monitor type cards, the cron schedule words and its common schedules, the placeholders of a playbook's message, what is wrong with a detection rule exception, what is wrong with a watchlist or one of its values, what is wrong with a hunt or why its run could not be made, what each of the traces explorer's span types is, why Add or Delete is locked on the Global User Overrides page, what a dashboard template's chart says while it draws its fallback query, how a change OneUptime AI proposes went before, a cloud change in plain words, a Kubernetes object's status by the cluster's rules, a database's status by its engine's alert lines, a cloud resource's status by its key metrics and the kinds of saving the clouds recommend, what an AI action's approval card says and the kinds of resource it names, and how an AI remediation round reads", () => {
     expect(
       SOURCE_ROOTS.map((root: { directory: string; kind: string }) => {
         return `${root.kind} ${root.directory}`;
@@ -1271,10 +1346,14 @@ describe("the real source roots", () => {
       "ui packages/Common/Types/SecurityEvent/DetectionRuleException.ts",
       // What is wrong with a watchlist or one of its values.
       "ui packages/Common/Types/SecurityEvent/SecurityWatchlist.ts",
+      // What is wrong with a monitor's watchlist filters.
+      "ui packages/Common/Types/SecurityEvent/SecurityWatchlistFilter.ts",
       // What is wrong with a hunt, and why its scheduled run could not be made.
       "ui packages/Common/Types/SecurityEvent/SecurityHunt.ts",
       // What each span type is - its marked sentences, not its choices' names.
       "keys packages/Common/Types/Telemetry/TraceSpanType.ts",
+      // Why Add or Delete is locked on the Global User Overrides page.
+      "keys packages/Common/Types/OnCallDutyPolicy/GlobalUserOverrideAccess.ts",
       // Why a template's chart draws its fallback query, and where the fix is.
       "keys packages/Common/Types/Dashboard/DashboardTemplateFallbackHints.ts",
       // How a change OneUptime AI proposes went before, where it ran.
@@ -1285,12 +1364,22 @@ describe("the real source roots", () => {
       "keys packages/Common/Types/Kubernetes/KubernetesHealth.ts",
       // A host's status and reasons - not its mount points or unit names.
       "keys packages/Common/Types/Host/HostHealth.ts",
+      // A database's status and reasons - not its alert templates' ids.
+      "keys packages/Common/Types/DatabaseServer/DatabaseHealth.ts",
       // Where a database or a queue was found, and what kind of cloud resource one is.
       "keys packages/Common/Types/DatabaseServer/DatabaseServerDiscoverySource.ts",
       "keys packages/Common/Models/DatabaseModels/MessageQueue.ts",
       "keys packages/Common/Types/Cloud/CloudResourceCatalog.ts",
+      // A cloud resource's status by its key metrics, and the kinds of saving the clouds recommend.
+      "keys packages/Common/Types/Cloud/CloudResourceHealth.ts",
+      "keys packages/Common/Types/Cloud/CloudCost.ts",
       // The column titles of OneUptime AI's tables - not its prompts.
       "keys packages/Common/Server/Utils/AI/Toolbox",
+      // What an AI action's approval card says, and the kinds of resource it names.
+      "keys packages/Common/Types/AI/AIActionWords.ts",
+      "keys packages/Common/Types/AI/AiAffectedResources.ts",
+      // How an AI remediation round reads on the Remediation step.
+      "keys packages/Common/Types/AutoRemediation/RemediationRoundName.ts",
     ]);
   });
 

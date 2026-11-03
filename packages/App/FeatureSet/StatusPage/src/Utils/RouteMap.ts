@@ -40,6 +40,15 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.LOGIN]: new Route(`/login`),
   [PageMap.SSO]: new Route(`/sso`),
 
+  // Where a private user asks for a sign-in link (StatusPageMagicLink).
+  [PageMap.MAGIC_LINK]: new Route(`/magic-link`),
+  /*
+   * The page a sign-in link opens. Its last segment is the link's token,
+   * which SensitiveUrlToken takes out of the address bar before the page
+   * loads, so App also routes the token-free /magic-link-login here.
+   */
+  [PageMap.MAGIC_LINK_LOGIN]: new Route(`/magic-link-login/:token`),
+
   [PageMap.LOGOUT]: new Route(`/logout`),
   [PageMap.FORGOT_PASSWORD]: new Route(`/forgot-password`),
   [PageMap.RESET_PASSWORD]: new Route(`/reset-password/:token`),
@@ -113,6 +122,14 @@ const RouteMap: Dictionary<Route> = {
 
   [PageMap.PREVIEW_SSO]: new Route(
     `/status-page/${RouteParams.StatusPageId}/sso`,
+  ),
+
+  [PageMap.PREVIEW_MAGIC_LINK]: new Route(
+    `/status-page/${RouteParams.StatusPageId}/magic-link`,
+  ),
+
+  [PageMap.PREVIEW_MAGIC_LINK_LOGIN]: new Route(
+    `/status-page/${RouteParams.StatusPageId}/magic-link-login/:token`,
   ),
 
   [PageMap.PREVIEW_LOGOUT]: new Route(

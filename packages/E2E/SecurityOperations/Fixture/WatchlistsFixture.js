@@ -1,18 +1,25 @@
 /*
  * Watchlists on the fixture's synthetic month: the lists Security Events >
  * Detections > Watchlists shows, each list's values, the rule that reads
- * two of them, and what POST /security-watchlist/import answers.
+ * two of them, the Security Events monitor that reads a third, and what
+ * POST /security-watchlist/import and /security-watchlist/read-now answer.
  *
  *   vip_users         Users, kept by hand: the CEO, the CFO and the
  *                     finance admins' accounts (a pattern with *)
  *   admin_addresses   IP addresses, kept by hand: the office range, the
  *                     VPN's address and the bastion hosts' range
  *   c2_addresses      IP addresses, following the Feodo Tracker list
+ *   contractors       Users, read every day from HR's file at an https
+ *                     address: two contractors, one leaving the list in
+ *                     twelve days; the last read, two hours ago, left a
+ *                     line of the file out
  *   lab_hosts         Hosts, kept by hand, with no values yet
  *
  * So the common lists still offered are Critical hosts and Known-bad file
  * hashes. "VIP sign-in from outside the office" (off, while it is tuned)
- * reads vip_users and admin_addresses; no rule reads the other two.
+ * reads vip_users and admin_addresses; the Security Events monitor
+ * "Contractor sign-ins" reads contractors in its Filter by Watchlists;
+ * nothing reads the other two.
  *
  * The server's own bookkeeping is kept as the server keeps it: a list's
  * valueCount follows its values as they are added, imported and deleted,
@@ -21,13 +28,20 @@
  * list or replaces it, and answers what it did.
  */
 import DetectionRule from "Common/Models/DatabaseModels/DetectionRule";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
 import SecurityWatchlist from "Common/Models/DatabaseModels/SecurityWatchlist";
 import SecurityWatchlistItem from "Common/Models/DatabaseModels/SecurityWatchlistItem";
 import ThreatIntelFeed from "Common/Models/DatabaseModels/ThreatIntelFeed";
+import MonitorStep from "Common/Types/Monitor/MonitorStep";
+import { MonitorStepSecurityEventsMonitorUtil } from "Common/Types/Monitor/MonitorStepSecurityEventsMonitor";
+import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
+import MonitorType from "Common/Types/Monitor/MonitorType";
 import { SecurityEntityType } from "Common/Types/SecurityCase/SecurityEntity";
 import {
   SecurityWatchlistImportMode,
+  SecurityWatchlistImportSchedule,
   SecurityWatchlistSource,
+  getNextSecurityWatchlistImportAt,
   getSecurityWatchlistValueKey,
   normalizeSecurityWatchlistValue,
   parseSecurityWatchlistImport,
@@ -41,6 +55,29 @@ const DAY = 24 * HOUR;
 const PROBLEMS_SHOWN = 20;
 
 export const WATCHLIST_READING_RULE = "VIP sign-in from outside the office";
+
+export const WATCHLIST_READING_MONITOR = "Contractor sign-ins";
+
+// Where HR publishes its contractors: the list read from an address.
+export const CONTRACTORS_URL =
+  "https://hr.acme-commerce.example/exports/contractors.csv";
+
+// What the next read of HR's file finds: one more contractor.
+const NEXT_CONTRACTOR = "ana.ruiz@contractor.example";
+
+// A Security Events monitor whose watchlist filter reads a list.
+function securityEventsSteps(watchlist) {
+  const step = new MonitorStep();
+  step.setSecurityEventsMonitor({
+    ...MonitorStepSecurityEventsMonitorUtil.getDefault(),
+    classNames: ["Authentication"],
+    watchlistFilters: [{ field: "principalUser", watchlist }],
+  });
+
+  const steps = new MonitorSteps();
+  steps.setMonitorStepsInstanceArray([step]);
+  return steps;
+}
 
 const WATCHLIST_READING_RULE_YAML = `title: VIP sign-in from outside the office
 level: high
@@ -97,6 +134,8 @@ export function createWatchlistsFixture(options) {
     // Known even when empty: a page that reads them is answered, not refused.
     table(SecurityWatchlist);
     table(SecurityWatchlistItem);
+    // What reads a list: its Security Events monitors are read with its rules.
+    table(Monitor);
 
     if (isEmpty) {
       return;
@@ -139,6 +178,23 @@ export function createWatchlistsFixture(options) {
       createdByUserId: people.sam._id,
       createdAt: ago(2 * DAY),
     });
+    insert(SecurityWatchlist, {
+      _id: ID.watchlist(5),
+      name: "contractors",
+      description: "HR's list of contractors, read every day.",
+      entityType: SecurityEntityType.User,
+      source: SecurityWatchlistSource.Url,
+      importUrl: CONTRACTORS_URL,
+      importSchedule: SecurityWatchlistImportSchedule.EveryDay,
+      lastImportAt: ago(2 * HOUR),
+      lastImportSucceededAt: ago(2 * HOUR),
+      lastImportError: null,
+      lastImportErrorDetail: null,
+      lastImportLinesLeftOut: 1,
+      nextImportAt: ago(2 * HOUR - DAY),
+      createdByUserId: people.priya._id,
+      createdAt: ago(6 * DAY),
+    });
 
     const values = [
       [1, 1, "alice.wong@acme-commerce.example", "CEO", people.maya, 18 * DAY],
@@ -166,6 +222,32 @@ export function createWatchlistsFixture(options) {
         createdAt: ago(age),
       });
     }
+
+    // What HR's file held at its last read: nobody's hand put them there.
+    insert(SecurityWatchlistItem, {
+      _id: ID.watchlistValue(7),
+      securityWatchlistId: ID.watchlist(5),
+      value: "jo.kim@contractor.example",
+      note: "Design agency",
+      // Leaves the list when the contract ends.
+      expiresAt: ago(-12 * DAY),
+      createdAt: ago(2 * HOUR),
+    });
+    insert(SecurityWatchlistItem, {
+      _id: ID.watchlistValue(8),
+      securityWatchlistId: ID.watchlist(5),
+      value: "sam.lee@contractor.example",
+      note: "",
+      createdAt: ago(2 * HOUR),
+    });
+
+    insert(Monitor, {
+      _id: ID.monitor(1),
+      name: WATCHLIST_READING_MONITOR,
+      monitorType: MonitorType.SecurityEvents,
+      monitorSteps: securityEventsSteps("contractors"),
+      createdAt: ago(5 * DAY),
+    });
 
     insert(DetectionRule, {
       _id: ID.rule(32),
@@ -344,6 +426,76 @@ export function createWatchlistsFixture(options) {
     };
   }
 
+  /*
+   * POST /security-watchlist/read-now: { status, body }, as the server
+   * answers it - the list read at once, HR's file now holding one more
+   * contractor, the read recorded on the list as a scheduled one is.
+   */
+  function readNow(body) {
+    const request = body || {};
+    const watchlistId = String(request.securityWatchlistId || "");
+    const list = table(SecurityWatchlist).find((item) => {
+      return String(item._id) === watchlistId;
+    });
+
+    if (!list) {
+      return { status: 404, body: { message: "Watchlist not found." } };
+    }
+
+    if (list.source !== SecurityWatchlistSource.Url) {
+      return {
+        status: 400,
+        body: {
+          message: "Only a watchlist read from an address is read from one.",
+        },
+      };
+    }
+
+    const held = table(SecurityWatchlistItem).filter((item) => {
+      return listOf(item) === watchlistId;
+    });
+    const isNew = !held.some((item) => {
+      return (
+        getSecurityWatchlistValueKey(item.value) ===
+        getSecurityWatchlistValueKey(NEXT_CONTRACTOR)
+      );
+    });
+
+    if (isNew) {
+      insert(SecurityWatchlistItem, {
+        securityWatchlistId: watchlistId,
+        value: NEXT_CONTRACTOR,
+        note: "",
+        createdAt: ago(0),
+      });
+    }
+
+    const now = ago(0);
+    list.lastImportAt = now;
+    list.lastImportSucceededAt = now;
+    list.lastImportError = null;
+    list.lastImportErrorDetail = null;
+    list.lastImportLinesLeftOut = 0;
+    list.nextImportAt = getNextSecurityWatchlistImportAt({
+      schedule: list.importSchedule,
+      now,
+    });
+    recount(watchlistId);
+
+    return {
+      status: 200,
+      body: {
+        error: null,
+        errorDetail: null,
+        added: isNew ? 1 : 0,
+        removed: 0,
+        unchanged: held.length,
+        problemCount: 0,
+        valueCount: list.valueCount,
+      },
+    };
+  }
+
   return {
     seed,
     isWatchlistTable,
@@ -351,5 +503,6 @@ export function createWatchlistsFixture(options) {
     onCreate,
     afterWrite,
     importValues,
+    readNow,
   };
 }

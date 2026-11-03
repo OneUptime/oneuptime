@@ -46,6 +46,9 @@ const ANALYTICS_URL: string =
 const CONSENT_DEFAULT: string = "pushConsentSignal('default', isAllowed())";
 const CONSENT_UPDATE: string = "pushConsentSignal('update', granted)";
 const TAG_GATE: string = "window.oneUptimeConsent.whenAllowed(loadGoogleTag)";
+const URL_PASSTHROUGH: string = "window.gtag('set', 'url_passthrough', true);";
+// The website's container: loaded at once, in Consent Mode's advanced mode.
+const IMMEDIATE_LOAD: string = `${URL_PASSTHROUGH}\n        loadGoogleTag();`;
 
 interface Page {
   label: string;
@@ -231,18 +234,29 @@ describe("the shared analytics consent partial", () => {
     expect(source).toContain(CONSENT_UPDATE);
   });
 
-  test("loads both kinds of Google tag only through the consent gate", () => {
+  test("loads both kinds of Google tag through the one loader", () => {
     const loader: number = source.indexOf("function loadGoogleTag()");
-    const gate: number = source.indexOf(TAG_GATE);
 
     expect(loader).toBeGreaterThan(-1);
-    expect(gate).toBeGreaterThan(loader);
 
     for (const tag of [CONTAINER_URL, ANALYTICS_URL]) {
       expect([tag, count(source, tag)]).toEqual([tag, 1]);
       expect(source.indexOf(tag)).toBeGreaterThan(loader);
-      expect(source.indexOf(tag)).toBeLessThan(gate);
+      expect(source.indexOf(tag)).toBeLessThan(source.indexOf(TAG_GATE));
+      expect(source.indexOf(tag)).toBeLessThan(source.indexOf(IMMEDIATE_LOAD));
     }
+  });
+
+  /*
+   * Two ways in, and nothing else. The product's Google Analytics waits behind
+   * the gate; the website's container loads at once, in Consent Mode's
+   * advanced mode, with URL passthrough set before it boots - every tag in it
+   * that is not Google's waits for consent inside Tag Manager.
+   */
+  test("calls the loader only through the gate or in advanced mode", () => {
+    expect(count(source, TAG_GATE)).toBe(1);
+    expect(count(source, IMMEDIATE_LOAD)).toBe(1);
+    expect(count(source, "loadGoogleTag();")).toBe(1);
   });
 
   test("holds the tag back while a sign-in token is still in the address bar", () => {
@@ -303,15 +317,35 @@ for (const page of MEASURING_PAGES) {
       expect(consentIndex).toBeLessThan(html.indexOf(page.googleTag));
     });
 
-    test("loads the tag only once consent allows", () => {
-      const loader: number = html.indexOf("function loadGoogleTag()");
+    if (page.googleTag === ANALYTICS_URL) {
+      test("loads the tag only once consent allows", () => {
+        const loader: number = html.indexOf("function loadGoogleTag()");
 
-      expect(loader).toBeGreaterThan(-1);
-      expect(html.indexOf(page.googleTag)).toBeGreaterThan(loader);
-      expect(html.indexOf(TAG_GATE)).toBeGreaterThan(
-        html.indexOf(page.googleTag),
-      );
-    });
+        expect(loader).toBeGreaterThan(-1);
+        expect(html.indexOf(page.googleTag)).toBeGreaterThan(loader);
+        expect(html.indexOf(TAG_GATE)).toBeGreaterThan(
+          html.indexOf(page.googleTag),
+        );
+        expect(html).not.toContain(URL_PASSTHROUGH);
+      });
+    } else {
+      test("loads the container at once, in Consent Mode's advanced mode", () => {
+        const loader: number = html.indexOf("function loadGoogleTag()");
+
+        expect(loader).toBeGreaterThan(-1);
+        expect(html.indexOf(page.googleTag)).toBeGreaterThan(loader);
+        expect(html.indexOf(IMMEDIATE_LOAD)).toBeGreaterThan(
+          html.indexOf(page.googleTag),
+        );
+        expect(html).not.toContain(TAG_GATE);
+      });
+
+      test("tells tags that wait for consent when a visitor accepts", () => {
+        expect(html).toContain(
+          "window.dataLayer.push({ event: 'consent_granted' });",
+        );
+      });
+    }
 
     /*
      * A <noscript> iframe loads the container in a browser running no script
@@ -413,6 +447,32 @@ describe("the cookie policy tells the truth", () => {
     expect(policy).not.toContain("regardless of that answer");
     expect(policy).not.toContain(
       "regardless of the answer given on the cookie banner",
+    );
+  });
+
+  /*
+   * What is true instead, and narrower: Google's tags load either way in
+   * Consent Mode's advanced mode, cookieless until measurement is allowed,
+   * and nothing else runs before then.
+   */
+  test("says Google's tags load either way, and set no cookies until they are allowed", () => {
+    expect(policy).toContain(
+      "Google's tags on the Website load whichever answer you give, using Google Consent Mode.",
+    );
+    expect(policy).toContain(
+      "they set no cookies and store nothing on your device",
+    );
+    expect(policy).toContain(
+      "No other analytics or advertising tag runs while analytics and marketing cookies are not allowed.",
+    );
+  });
+
+  test("says a campaign's name travels in the address while cookies are not allowed", () => {
+    expect(policy).toContain(
+      "the links between pages of the Website carry that campaign's name",
+    );
+    expect(policy).toContain(
+      "Nothing is stored on your device, and nothing that identifies you or your visit is carried.",
     );
   });
 

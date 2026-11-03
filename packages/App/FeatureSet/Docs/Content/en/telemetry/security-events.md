@@ -256,6 +256,7 @@ The search bar speaks the same language as the other telemetry explorers (see [S
 | `<field>:a*` | `*` is any text, `?` one character | `host:web-*` |
 | `@<attribute>:*` | The attribute is present | `@threat.indicator_id:*` |
 | `@<attribute>:~text` | The attribute contains the text | `@finding_info.title:~ransom` |
+| `<field>:%<watchlist>%` | The field is on a [watchlist](#watchlists) | `user:%vip_users%` |
 
 A field is either a short name (`severity`, `class`, `category`, `activity`, `status`, `vendor`, `product`, `rule`, `user`, `host`, `ip`, `targetuser`, `targethost`, `targetip`, `processname`, `commandline`, `parentprocessname`, `observable`, `tactic`, `technique`, `requestoutcome`, `trace`, `session`) or the field's own name, such as `severityName` or `principalHost`. Any other name is read as a source attribute. `observable:<value>` finds every event that mentions a value, on whichever side of the activity it was.
 
@@ -281,7 +282,7 @@ A hunt is a search over your security events kept with a name: the search bar's 
 
 ### Save a search as a hunt
 
-On **Events**, search and filter until the list shows what you are after, then open **Hunts** on the toolbar and choose **Save as Hunt**. Name it, choose whether it runs on a schedule, and its page opens. **Events → Hunts** lists the project's hunts, each with its search, how often it runs, who it tells and what its last run found; **Create Hunt** there takes the search as you would type it on **Events**. A project keeps up to 200 hunts.
+On **Events**, search and filter until the list shows what you are after, then open **Hunts** on the toolbar and choose **Save as Hunt**. Name it, choose whether it runs on a schedule, and its page opens. **Events → Hunts** lists the project's hunts, each with its search, how often it runs, who it tells and what its last run found; **Create Hunt** there takes the search as you would type it on **Events**. A project keeps up to 200 hunts. A search can read a [watchlist](#watchlists), as `user:%vip_users%` does, and a hunt that reads a list the project does not have is refused when you save it.
 
 A hunt's page is its search, opened on the Events explorer. Change the search or the filters there, and the hunt's header offers **Save Changes** and **Discard Changes**. **Edit** changes its name, its search, how far back it looks, its schedule and who it tells, and **Delete Hunt** is in its menu. A Security Member or higher can save, change and delete hunts, and a Security Viewer can open them.
 
@@ -511,7 +512,7 @@ An exception is something a rule skips because you expect it, such as a vulnerab
 
 ### Watchlists
 
-A watchlist is a list your team keeps once and any rule can read, such as VIP users, critical hosts, known-bad file hashes or the addresses admins may sign in from. Every list is under **Products → Security Events → Detections → Watchlists**: create one there with **Create Watchlist**, which asks for its name and what it holds, or add a common one from **Start with a common list**. A list's page shows its values, and **Use It in a Rule** gives a selection that reads the list, to copy into a rule.
+A watchlist is a list your team keeps once and any rule can read, such as VIP users, critical hosts, known-bad file hashes or the addresses admins may sign in from. Every list is under **Products → Security Events → Detections → Watchlists**: create one there with **Create Watchlist**, which asks for its name and what it holds, or add a common one from **Start with a common list**. A list's page shows its values, and **Use This List** gives a selection that reads the list, to copy into a rule, and the search that reads it on **Events** or in a hunt.
 
 A rule reads a list with `expand` and the list's name between `%` signs. This rule fires when an admin signs in from an address that is not on the allowed list:
 
@@ -529,10 +530,14 @@ level: high
 
 - A list holds users, hosts, IP addresses, file hashes, domains, URLs, processes or other values, chosen when it is created. A value matches whatever its case, and `*` stands for any run of characters: `svc-*` matches every service account. An IP address list also takes ranges, such as `10.20.0.0/16`, and a file hash list takes MD5, SHA-1, SHA-256 and SHA-512 hashes.
 - Add values one at a time with **Add Value**, or many at once with **Import Values**: paste them, or choose a `.txt` or `.csv` file, one value a line, with an optional note after a comma. **Add to the list** keeps the values already on it, and **Replace the list** removes the ones the import does not have.
+- A value can have an **Expires At**: from then on no rule, monitor, hunt or search reads it, and OneUptime removes it from the list within a minute. Left empty, it stays until someone removes it.
+- **Export Values** downloads a list's values as a CSV file with the columns `value`, `note` and `expires`, which **Import Values** reads back. A file whose first line names these columns gives each value its note and when it expires: a date such as `2026-12-31`, or a date and time in UTC.
+- A list can be read from a file at an https address instead, again **Every Hour**, **Every 6 Hours** or **Every Day**: choose **A file at an address** under **More fields** when you create it. Each read makes the list what the file holds, read as an import reads it. A read that fails changes no value and the list's page says why, and **Read Now** reads it at once.
 - Instead of keeping values, a list of IP addresses, file hashes, domains or URLs can follow a threat intel feed: its values are the feed's active indicators of the list's kind, kept up to date as the feed is read.
-- `expand` is used alone, since the list's values say how they match. A field that holds several values, such as `observables`, matches when any of them is on the list. **Read By** names the rules that read each list, and under a rule's YAML its form names the lists the rule reads.
-- A rule names a list whatever the case. A rule that names a list the project does not have is refused when you save it, and a list that rules read cannot be renamed or deleted until no rule reads it.
+- `expand` is used alone, since the list's values say how they match. A field that holds several values, such as `observables`, matches when any of them is on the list. **Read By** names the rules, Security Events monitors and hunts that read each list, and under a rule's YAML its form names the lists the rule reads.
+- A rule names a list whatever the case. A rule, a monitor or a hunt that names a list the project does not have is refused when you save it, and a list that one of them reads cannot be renamed or deleted until nothing reads it.
 - A change to a list reaches every rule that reads it at the rule's next run. Correlation rules and **Run on Past Events** read lists too.
+- A Security Events monitor reads lists in its **Filter by Watchlists**, and a search on **Events** or in a hunt reads one as `user:%vip_users%`. A minus in front, as in `-ip:%admin_addresses%`, keeps the events whose field is not on the list.
 - A list holds at most 5,000 values, at most 100 of them with `*` and 100 of them ranges, and a project has at most 200 lists: for a longer list, follow a threat intel feed. Whoever may create, edit or delete detection rules may do the same to lists, and whoever may edit detection rules adds, changes and removes their values. Every Security role can read them, and each change is kept in the project's audit log.
 
 ### Run on Past Events
@@ -549,11 +554,11 @@ level: high
 
 A Security Events monitor counts the events that match its filters over a rolling window and runs the usual monitor criteria on the count: it changes the monitor's status, opens alerts or incidents, and pages on-call. Create one under **Monitors → Create Monitor**, with **Security Events** as the type; it is listed there with your other monitors.
 
-Its form shows **Monitor events that include this text**, **Monitor Security Events for (time)**, **Event Severity** and **Event Class**. **Filter by Telemetry Service** and **Filter by Attributes** wait under **More fields**, whose header shows the ones a monitor uses. Its criteria check **Security Event Count**.
+Its form shows **Monitor events that include this text**, **Monitor Security Events for (time)**, **Event Severity** and **Event Class**. **Filter by Telemetry Service**, **Filter by Attributes** and **Filter by Watchlists** wait under **More fields**, whose header shows the ones a monitor uses. **Filter by Watchlists** keeps the events whose field is, or is not, on one of your [watchlists](#watchlists). Its criteria check **Security Event Count**.
 
 | | Detection rule | Security Events monitor |
 | --- | --- | --- |
-| Matches | A Sigma rule | Filters on severity, class, message, service and attributes |
+| Matches | A Sigma rule | Filters on severity, class, message, service, attributes and watchlists |
 | Window | Back to back, one per run | Rolling: the last 5 seconds to 24 hours |
 | Counts per group | Yes, with **Group By Field** | No: one count for everything that matches |
 | Opens | Alerts, incidents and findings | A status, alerts and incidents |
@@ -610,11 +615,15 @@ Check its **Status** in **Rule Exceptions**: an **Expired** one skips nothing, a
 :::
 
 :::details A rule that reads a watchlist doesn't match
-Open the list and check its values: a value without `*` must equal the whole field, whatever its case, and a list that follows a threat intel feed holds only the feed's active indicators of its kind. Check that the rule reads the field your events fill: **Use It in a Rule** starts with the field a list of its kind is usually in. A change to a list reaches a rule at the rule's next run.
+Open the list and check its values: a value without `*` must equal the whole field, whatever its case, and a list that follows a threat intel feed holds only the feed's active indicators of its kind. Check that the rule reads the field your events fill: **Use This List** starts with the field a list of its kind is usually in. A change to a list reaches a rule at the rule's next run.
 :::
 
 :::details A watchlist can't be renamed or deleted
-Rules still read it by its name, and the message names them. Change the name in those rules, or take the list out of them, then rename or delete it.
+Rules, monitors or hunts still read it by its name, and the message names them. Change the name in them, or take the list out of them, then rename or delete it.
+:::
+
+:::details A list read from an address shows an error
+Its page says why under **Read From an Address**, with what the address answered, and the list keeps the values of its last read that worked. The address must start with `https`, answer from the internet without a sign-in, and download a text or CSV file of at most 4 MB, not a web page. Fix it in **Edit**, then choose **Read Now**.
 :::
 
 :::details Run on Past Events finds nothing

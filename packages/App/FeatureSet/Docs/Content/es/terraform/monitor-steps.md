@@ -333,6 +333,7 @@ Los valores de `check_on` que más usa cada tipo de monitor. El editor de criter
 | Procesos del servidor | `Is Executing`, `Is Not Executing` |
 | Scripts | `Evaluates To True` |
 | Anomalías, para métricas, logs y trazas | `Anomalously High`, `Anomalously Low`, `Anomalous` |
+| Previsiones, para métricas | `Forecast Above`, `Forecast Below` (el plazo es `forecast.horizonInHours` dentro de `metric_monitor_options`: una semana si no se indica) |
 
 Un filtro que coincide cuando un certificado SSL caduca en 14 días o menos:
 

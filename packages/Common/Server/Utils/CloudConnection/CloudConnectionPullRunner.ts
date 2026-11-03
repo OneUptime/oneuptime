@@ -20,10 +20,13 @@ import CloudConnectionResourceSync, {
 } from "./CloudConnectionResourceSync";
 import CloudConnectionLanes, {
   CloudChangesLaneOutcome,
+  CloudCostsLaneOutcome,
   CloudInventoryLaneOutcome,
+  CloudSavingsLaneOutcome,
 } from "./CloudConnectionLanes";
 import CloudConnectionScheduler from "./CloudConnectionScheduler";
 import CloudConnectorRegistry from "./CloudConnectorRegistry";
+import CloudResourceReadingsWriter from "./CloudResourceReadings";
 import {
   CloudConnectionPullState,
   CloudConnectionSettings,
@@ -52,7 +55,12 @@ import {
  *   5. on their own slower beat, lists every resource of the accounts (the
  *      inventory) and keeps the connection's cloud accounts
  *      (CloudConnectionLanes);
- *   6. records the outcome on the connection: when it read, what it found,
+ *   6. on their own beat again, reads what the accounts cost and the ways
+ *      to spend less (the costs and savings lanes), and checks the
+ *      project's budgets against the costs;
+ *   7. keeps, on each resource, the newest of the metrics that say whether
+ *      it is well, and what its rules find in them (CloudResourceReadings);
+ *   8. records the outcome on the connection: when it read, what it found,
  *      the error (secrets removed), where it got to and when it reads next.
  *
  * A failure never escapes as anything but a recorded outcome, and the
@@ -301,6 +309,57 @@ export default class CloudConnectionPullRunner {
           inventory.ran ||
           synced.newResources > 0 ||
           synced.archivedResources > 0,
+      });
+
+      /*
+       * What the accounts cost and how to spend less, on their own slower
+       * beat, once the accounts have their rows: costs every twelve hours
+       * (the project's budgets are checked against them), the ways to spend
+       * less once a day.
+       */
+      const costs: CloudCostsLaneOutcome = await CloudConnectionLanes.runCosts({
+        projectId: connection.projectId,
+        provider: definition.provider,
+        connectionId: connection.id!,
+        connector,
+        settings,
+        state,
+        transport,
+        now,
+        clock,
+        deadlineMs: startedAt + CLOUD_READ_DEADLINE_MS,
+        sleep: dependencies.sleep,
+      });
+
+      warnings.push(...costs.warnings);
+
+      const savings: CloudSavingsLaneOutcome =
+        await CloudConnectionLanes.runSavings({
+          projectId: connection.projectId,
+          provider: definition.provider,
+          connectionId: connection.id!,
+          connector,
+          settings,
+          state,
+          transport,
+          now,
+          clock,
+          deadlineMs: startedAt + CLOUD_READ_DEADLINE_MS,
+          sleep: dependencies.sleep,
+        });
+
+      warnings.push(...savings.warnings);
+
+      /*
+       * What each resource's newest metrics say of it - its readings and
+       * the severity of what its rules find - once every resource of this
+       * read has its row.
+       */
+      await CloudResourceReadingsWriter.writeFromPayloads({
+        projectId: connection.projectId,
+        connectionId: connection.id!,
+        payloads: read.payloads,
+        writtenAt: now,
       });
 
       // What the connection holds after the last sync of this read.

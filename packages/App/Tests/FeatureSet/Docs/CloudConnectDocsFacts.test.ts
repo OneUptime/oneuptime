@@ -1,4 +1,4 @@
-import { CLOUD_ACCOUNTS } from "./CloudDocsPages";
+import { CLOUD_ACCOUNTS, CLOUD_COSTS } from "./CloudDocsPages";
 import {
   DocsHeading,
   NAV_PAGES,
@@ -13,6 +13,7 @@ import {
   CloudConnectionAuthMethod,
   CloudConnectionCatalog,
   CloudConnectionDefinition,
+  GCP_BILLING_EXPORT_TABLE_FIELD_KEY,
   READ_INTERVAL_FIELD_KEY,
   READ_SCOPE_FIELD_KEY,
   getCloudConnectionDefinition,
@@ -40,14 +41,24 @@ import {
   GCP_USD_PER_MILLION_TIME_SERIES,
 } from "Common/Types/CloudConnection/CloudConnectionCost";
 import {
+  CLOUD_BUDGET_DEFAULT_THRESHOLDS,
+  CLOUD_COSTS_INTERVAL_MS,
+  CLOUD_COST_PACE_DAYS,
+  CLOUD_SAVINGS_INTERVAL_MS,
+} from "Common/Types/Cloud/CloudCost";
+import {
   AWS_ORGANIZATION_ACTION_GROUP,
   AWS_READ_ONLY_ACTION_GROUPS,
   AWS_READ_ONLY_ACTIONS,
+  AZURE_COST_ROLE,
   AZURE_READ_ONLY_ROLE,
   AwsReadOnlyActionGroup,
   CloudConnectionSetupScope,
+  GCP_COST_QUERY_ROLE,
+  GCP_COST_ROLES,
   GCP_READ_ONLY_ROLE,
   GCP_READ_ONLY_ROLES,
+  GCP_RECOMMENDER_ROLE,
   getAwsAccessKeySetupCommand,
   getAzureSetupCommand,
   getCloudConnectionSetupCommand,
@@ -93,6 +104,12 @@ const SOURCES: Record<string, string> = {
   aiAgentCard: `${DASHBOARD}/Components/Cloud/CloudAiAgentCard.tsx`,
   aiAgentDialog: `${DASHBOARD}/Components/Cloud/CloudAiAgentSetupModal.tsx`,
   aiAgentSetup: `${DASHBOARD}/Components/Cloud/CloudAiAgentSetup.ts`,
+  costWords: `${DASHBOARD}/Components/Cloud/CloudCostWords.ts`,
+  budgets: `${DASHBOARD}/Pages/Cloud/Budgets.tsx`,
+  costWindow: "packages/Common/Types/Cloud/CloudCost.ts",
+  budgetJob:
+    "packages/App/FeatureSet/Workers/Jobs/Cloud/EvaluateCloudBudgets.ts",
+  gcpCosts: `${SERVER}/Utils/CloudConnection/Gcp/GcpCosts.ts`,
 };
 
 const BASH_FENCE: RegExp = /```bash\n([\s\S]*?)\n```/g;
@@ -232,6 +249,8 @@ describe("Connect a Cloud Account", () => {
 
   it("names the roles the Azure and Google Cloud commands grant", () => {
     expect(section("Microsoft Azure")).toContain(`**${AZURE_READ_ONLY_ROLE}**`);
+    // The role costs are read with, on the same scope.
+    expect(section("Microsoft Azure")).toContain(`**${AZURE_COST_ROLE}**`);
     expect(GCP_READ_ONLY_ROLE).toBe("roles/monitoring.viewer");
 
     // Each Google Cloud role the command grants, by the name its console shows.
@@ -240,15 +259,39 @@ describe("Connect a Cloud Account", () => {
       "roles/cloudasset.viewer": "Cloud Asset Viewer",
       "roles/logging.viewer": "Logs Viewer",
       "roles/servicehealth.viewer": "Service Health Viewer",
+      "roles/bigquery.jobUser": "BigQuery Job User",
+      "roles/recommender.computeViewer": "Compute Recommender Viewer",
     };
 
     expect(Object.keys(consoleNames).sort()).toEqual(
-      [...GCP_READ_ONLY_ROLES].sort(),
+      [...GCP_READ_ONLY_ROLES, ...GCP_COST_ROLES].sort(),
     );
 
-    for (const role of GCP_READ_ONLY_ROLES) {
+    for (const role of [...GCP_READ_ONLY_ROLES, ...GCP_COST_ROLES]) {
       expect(section("Google Cloud")).toContain(`**${consoleNames[role]}**`);
     }
+
+    /*
+     * Another subscription gets both of the app's roles; another project
+     * every role but the query's, which runs in the key's own project.
+     */
+    expect(bashBlocks()).toContain(
+      [
+        `az role assignment create --assignee <APP_ID> --role "${AZURE_READ_ONLY_ROLE}" --scope /subscriptions/<SUBSCRIPTION_ID>`,
+        `az role assignment create --assignee <APP_ID> --role "${AZURE_COST_ROLE}" --scope /subscriptions/<SUBSCRIPTION_ID>`,
+      ].join("\n"),
+    );
+    expect(bashBlocks()).toContain(
+      `for ROLE in ${[...GCP_READ_ONLY_ROLES, GCP_RECOMMENDER_ROLE].join(" ")}; do gcloud projects add-iam-policy-binding <PROJECT_ID> --member "serviceAccount:oneuptime-read-only@<KEY_PROJECT_ID>.iam.gserviceaccount.com" --role "$ROLE"; done`,
+    );
+  });
+
+  it("says how often costs and the ways to spend less are read", () => {
+    expect(CLOUD_COSTS_INTERVAL_MS).toBe(12 * 60 * 60 * 1000);
+    expect(CLOUD_SAVINGS_INTERVAL_MS).toBe(24 * 60 * 60 * 1000);
+    expect(PAGE).toContain(
+      "Costs are read twice a day, and the ways to spend less once a day.",
+    );
   });
 
   it("names What to read as the form asks it, and the limits a connection reads to", () => {
@@ -423,6 +466,193 @@ describe("Connect a Cloud Account", () => {
 
     for (const cloud of CloudConnectionCatalog) {
       expect(PAGE).toContain(`pick **${cloud.title}**`);
+    }
+  });
+});
+
+/*
+ * Cloud Costs and Savings, held to the code that reads them: where the
+ * Dashboard's setup steps link, the roles and actions it names, how far a
+ * read goes back and how the month is projected, the billing export a
+ * Google Cloud connection is told about, and the budgets' form and checks.
+ */
+describe("Cloud Costs and Savings", () => {
+  const COSTS_PAGE: string = readPage("en", CLOUD_COSTS);
+
+  function costsSection(heading: string): string {
+    const headings: Array<DocsHeading> = scanMarkdown(COSTS_PAGE).headings;
+    const index: number = headings.findIndex((entry: DocsHeading): boolean => {
+      return entry.level === 2 && entry.text === heading;
+    });
+
+    expect({ heading, found: index >= 0 }).toEqual({ heading, found: true });
+
+    const next: DocsHeading | undefined = headings
+      .slice(index + 1)
+      .find((entry: DocsHeading): boolean => {
+        return entry.level <= 2;
+      });
+    const lines: Array<string> = COSTS_PAGE.split(LINE_BREAK);
+
+    return lines
+      .slice(
+        (headings[index] as DocsHeading).line,
+        next ? next.line - 1 : lines.length,
+      )
+      .join("\n");
+  }
+
+  it("is in the docs, under the Cloud group, after the account and its resources", () => {
+    expect(NAV_PAGES).toContain(CLOUD_COSTS);
+    // Connect a Cloud Account, Cloud Resources, then what the accounts cost.
+    expect(NAV_PAGES.indexOf(CLOUD_COSTS)).toBe(
+      NAV_PAGES.indexOf(CLOUD_ACCOUNTS) + 2,
+    );
+    expect(NAV_PAGES[NAV_PAGES.indexOf(CLOUD_ACCOUNTS) + 1]).toBe(
+      "telemetry/cloud-resources",
+    );
+  });
+
+  it("is where the Dashboard's cost and savings steps link, on each cloud's heading", () => {
+    const words: string = source("costWords");
+    const anchors: Set<string> = anchorsOf("en", CLOUD_COSTS);
+    const links: Array<string> = Array.from(
+      words.matchAll(/"\/docs\/telemetry\/cloud-costs#([a-z-]+)"/g),
+    ).map((match: RegExpMatchArray): string => {
+      return match[1] as string;
+    });
+
+    expect(links.sort()).toEqual(
+      ["amazon-web-services", "google-cloud", "microsoft-azure"].sort(),
+    );
+    // Savings link where costs do: each cloud's own section.
+    expect(words).toContain(
+      "SAVINGS_SETUP_DOCS_PATHS: Readonly<Record<CloudProvider, string>> =\n  COST_SETUP_DOCS_PATHS;",
+    );
+
+    for (const anchor of links) {
+      expect(anchors.has(anchor)).toBe(true);
+    }
+
+    for (const cloud of CloudConnectionCatalog) {
+      expect(scanMarkdown(COSTS_PAGE).headings).toContainEqual(
+        expect.objectContaining({ level: 2, text: cloud.title }),
+      );
+    }
+  });
+
+  it("names the AWS actions costs and recommendations are read with, as the access gets them", () => {
+    const aws: string = costsSection("Amazon Web Services");
+
+    for (const action of [
+      "ce:GetCostAndUsage",
+      "cost-optimization-hub:ListRecommendations",
+    ]) {
+      expect(AWS_READ_ONLY_ACTIONS).toContain(action);
+      expect(aws).toContain(`\`${action}\``);
+    }
+  });
+
+  it("names the roles Azure and Google Cloud read them with, and gives an older Azure app the role word for word", () => {
+    const azure: string = costsSection("Microsoft Azure");
+    const gcp: string = costsSection("Google Cloud");
+
+    expect(azure).toContain(`**${AZURE_COST_ROLE}**`);
+    expect(azure).toContain(`**${AZURE_READ_ONLY_ROLE}**`);
+    expect(azure).toContain(
+      `az role assignment create --assignee <APP_ID> --role "${AZURE_COST_ROLE}" --scope /subscriptions/<SUBSCRIPTION_ID>`,
+    );
+    expect(GCP_COST_QUERY_ROLE).toBe("roles/bigquery.jobUser");
+    expect(GCP_RECOMMENDER_ROLE).toBe("roles/recommender.computeViewer");
+    expect(gcp).toContain("**BigQuery Job User**");
+    expect(gcp).toContain("**Compute Recommender Viewer**");
+    // What the billing export's dataset is read with, as the read asks for it.
+    expect(source("gcpCosts")).toContain(
+      "Give it BigQuery Data Viewer on the export's dataset",
+    );
+    expect(gcp).toContain("**BigQuery Data Viewer**");
+  });
+
+  it("names the billing export's field as the form draws it, and the detailed export's table", () => {
+    const field: string | undefined = definition(
+      CloudProvider.GCP,
+    ).configFields.find((entry: { key: string }): boolean => {
+      return entry.key === GCP_BILLING_EXPORT_TABLE_FIELD_KEY;
+    })?.title;
+
+    expect(field).toBe("Billing export table");
+    expect(costsSection("Google Cloud")).toContain(`**${field}**`);
+    expect(PAGE).toContain(`**${field}**`);
+    expect(source("gcpCosts")).toContain('"gcp_billing_export_resource_v1_"');
+    expect(COSTS_PAGE).toContain(
+      "`<PROJECT_ID>.<DATASET>.gcp_billing_export_resource_v1_<BILLING_ACCOUNT_ID>`",
+    );
+    expect(COSTS_PAGE).toContain(`**${MORE_FIELDS_SECTION_TITLE}**`);
+  });
+
+  it("says how far a first read goes back, how the month is projected and how often each is read", () => {
+    const window: string = source("costWindow");
+
+    expect(window).toContain(
+      "return { start: addUtcMonths(startOfUtcMonth(today), -2), end };",
+    );
+    expect(COSTS_PAGE).toContain(
+      "A connection's first read goes back to the start of the month before last.",
+    );
+    expect(window).toContain("today.getUTCDate() <= 5 && lastMonth < weekBack");
+    expect(COSTS_PAGE).toContain(
+      "Each read takes the last week again, and all of last month in a month's first days",
+    );
+    expect(CLOUD_COST_PACE_DAYS).toBe(7);
+    expect(COSTS_PAGE).toContain("the average of the last seven full days");
+    expect(COSTS_PAGE).toContain("read twice a day");
+    expect(COSTS_PAGE).toContain("read once a day");
+    // Not set up: the next read of the costs, its interval at most.
+    expect(COSTS_PAGE).toContain(
+      "The first figures come with the next read, within 12 hours.",
+    );
+  });
+
+  it("names the budget form's fields as the page draws them, its default thresholds, and when budgets are checked", () => {
+    const budgets: string = source("budgets");
+    const section: string = costsSection("Budgets");
+
+    for (const title of [
+      "Monthly Amount",
+      "Account",
+      "Alert At",
+      "Alert When On Course To Pass",
+      "Alert Severity",
+      "On-Call Policies",
+    ]) {
+      expect(budgets).toContain(`title: "${title}",`);
+      expect(section).toContain(`**${title}**`);
+    }
+
+    expect(CLOUD_BUDGET_DEFAULT_THRESHOLDS).toEqual([80, 100]);
+    expect(section).toContain("80 and 100 to start with");
+    expect(source("budgetJob")).toContain("schedule: EVERY_HOUR");
+    expect(section).toContain(
+      "A budget is checked after every read of the costs and every hour.",
+    );
+    expect(source("sideMenu")).toContain('title: "Budgets"');
+    expect(COSTS_PAGE).toContain("**Cloud → Spend → Budgets**");
+  });
+
+  it("names Cloud's pages as the side menu draws them: the Spend pages under their section", () => {
+    const sideMenu: string = source("sideMenu");
+
+    expect(sideMenu).toContain('title: "Spend"');
+
+    for (const page of ["Overview", "Connect"]) {
+      expect(sideMenu).toContain(`title: "${page}"`);
+      expect(COSTS_PAGE).toContain(`**Cloud → ${page}**`);
+    }
+
+    for (const page of ["Costs", "Savings", "Budgets"]) {
+      expect(sideMenu).toContain(`title: "${page}"`);
+      expect(COSTS_PAGE).toContain(`**Cloud → Spend → ${page}**`);
+      expect(PAGE).toContain(`**Cloud → Spend → ${page}**`);
     }
   });
 });

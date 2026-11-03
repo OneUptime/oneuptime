@@ -18,6 +18,7 @@ import { AIChatCitationTargetType } from "../../../../Types/AI/AIChatTypes";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import { afterEach, describe, expect, test } from "@jest/globals";
+import { actionTitleText } from "../../../Helpers/AIActionText";
 
 /*
  * create_incident_note / create_alert_note file PRIVATE internal notes — the
@@ -171,9 +172,11 @@ describe("create_incident_note", () => {
 
   test("buildActionTitle names the incident from validated args", () => {
     expect(
-      CreateIncidentNoteTool.buildActionTitle!({
-        incidentId: INCIDENT_ID.toString(),
-      }),
+      actionTitleText(
+        CreateIncidentNoteTool.buildActionTitle!({
+          incidentId: INCIDENT_ID.toString(),
+        }),
+      ),
     ).toBe(`Add private internal note to incident ${INCIDENT_ID.toString()}`);
   });
 
@@ -255,9 +258,11 @@ describe("create_alert_note", () => {
 
   test("buildActionTitle names the alert from validated args", () => {
     expect(
-      CreateAlertNoteTool.buildActionTitle!({
-        alertId: ALERT_ID.toString(),
-      }),
+      actionTitleText(
+        CreateAlertNoteTool.buildActionTitle!({
+          alertId: ALERT_ID.toString(),
+        }),
+      ),
     ).toBe(`Add private internal note to alert ${ALERT_ID.toString()}`);
   });
 

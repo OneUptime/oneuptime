@@ -4,21 +4,36 @@ import {
   READ_BY_MORE,
   READ_BY_NO_RULE,
   READ_BY_UNKNOWN,
+  READ_FROM_ADDRESS,
+  URL_READ_FAILED_SHORT,
+  VALUE_EXPIRES,
   WATCHLISTS_TEST_IDS,
 } from "./WatchlistsCopy";
 import {
+  ShownWatchlistReader,
   WatchlistReaders,
   describeWatchlistValues,
   getWatchlistHoldsIcon,
   getWatchlistHoldsLabel,
+  getWatchlistReaderKindKey,
   isFeedWatchlist,
+  isUrlWatchlist,
   splitWatchlistName,
   summarizeWatchlistReaders,
 } from "./WatchlistsModel";
 import { SECURITY_LIST_NAME_DETAIL_CLASS_NAME } from "../SecurityListNameCell";
 import { RuleExceptionAddedLine } from "../RuleExceptions/RuleExceptionCells";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import Route from "Common/Types/API/Route";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
+import {
+  WatchlistReader,
+  WatchlistReaderKind,
+} from "Common/Types/SecurityEvent/SecurityWatchlistFilter";
+import { readSecurityWatchlistDate } from "Common/Types/SecurityEvent/SecurityWatchlist";
+import Link from "Common/UI/Components/Link/Link";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import { useAreTableColumnsFolded } from "Common/UI/Components/Table/TableCellContext";
@@ -62,9 +77,15 @@ export const WatchlistNameText: FunctionComponent<{ name: string }> = (props: {
   );
 };
 
-// The rules that read a list, and whether they could be read yet.
+// What reads a list, and whether it could be read yet.
 export interface WatchlistReadersState {
-  readers: ReadonlyArray<{ id: string; name: string }> | undefined;
+  readers:
+    | ReadonlyArray<{
+        id: string;
+        name: string;
+        kind?: WatchlistReaderKind | undefined;
+      }>
+    | undefined;
   isLoaded: boolean;
   hasError: boolean;
 }
@@ -75,7 +96,36 @@ export interface WatchlistValuesFacts {
   valueCount?: number | undefined;
   threatIntelFeedId?: unknown;
   feedName?: string | undefined;
+  // A list read from an address: where, and how its reads went.
+  importUrl?: string | undefined;
+  lastImportSucceededAt?: Date | undefined;
+  lastImportError?: string | undefined;
 }
+
+/*
+ * What a monitor or a hunt is, after its name - "(Monitor)" - quieter than
+ * the name; nothing after a rule's, the usual reader.
+ */
+export const WatchlistReaderKindWord: FunctionComponent<{
+  kind?: WatchlistReaderKind | undefined;
+}> = (props: { kind?: WatchlistReaderKind | undefined }): ReactElement => {
+  const translator: Translator = useTranslator();
+  const key: string | null = getWatchlistReaderKindKey(props.kind);
+
+  if (!key) {
+    return <></>;
+  }
+
+  return (
+    <span
+      className="whitespace-nowrap text-gray-400"
+      data-testid={WATCHLISTS_TEST_IDS.readerKind}
+    >
+      {" "}
+      ({translator.translateText(key) || key})
+    </span>
+  );
+};
 
 /*
  * A list's values in words, with no icon of their own: how many it keeps
@@ -124,7 +174,17 @@ export const WatchlistValuesText: FunctionComponent<
         valueCount: props.valueCount,
         threatIntelFeedId: props.threatIntelFeedId,
         feedName,
+        importUrl: props.importUrl,
+        lastImportSucceededAt: props.lastImportSucceededAt,
       })}
+      {/* A list whose last read failed says so, in red, wherever its values are named. */}
+      {isUrlWatchlist(props.source) && props.lastImportError ? (
+        <span className="block text-red-700">
+          {translator.translateText(URL_READ_FAILED_SHORT)}
+        </span>
+      ) : (
+        <></>
+      )}
     </span>
   );
 };
@@ -150,7 +210,7 @@ export const WatchlistReadByLine: FunctionComponent<WatchlistReadersState> = (
 
   const readers: WatchlistReaders = summarizeWatchlistReaders(props.readers);
 
-  if (readers.names.length === 0) {
+  if (readers.shown.length === 0) {
     return <>{translator.translateText(READ_BY_NO_RULE)}</>;
   }
 
@@ -158,14 +218,17 @@ export const WatchlistReadByLine: FunctionComponent<WatchlistReadersState> = (
     <>
       {translator.translateText(READ_BY_LABEL)}
       {": "}
-      {readers.names.map((name: string, index: number): ReactElement => {
-        return (
-          <Fragment key={index}>
-            {index > 0 ? ", " : ""}
-            <IsolatedText text={name} />
-          </Fragment>
-        );
-      })}
+      {readers.shown.map(
+        (reader: ShownWatchlistReader, index: number): ReactElement => {
+          return (
+            <Fragment key={index}>
+              {index > 0 ? ", " : ""}
+              <IsolatedText text={reader.name} />
+              <WatchlistReaderKindWord kind={reader.kind} />
+            </Fragment>
+          );
+        },
+      )}
       {readers.more > 0
         ? ` ${translator.translatePlural(READ_BY_MORE, readers.more, {
             count: translator.formatNumber(readers.more),
@@ -307,6 +370,9 @@ export const WatchlistHoldsColumnCell: FunctionComponent<
           valueCount={props.valueCount}
           threatIntelFeedId={props.threatIntelFeedId}
           feedName={props.feedName}
+          importUrl={props.importUrl}
+          lastImportSucceededAt={props.lastImportSucceededAt}
+          lastImportError={props.lastImportError}
           dataTestId={WATCHLISTS_TEST_IDS.valuesCell}
         />
       </span>
@@ -353,18 +419,47 @@ export const WatchlistValuesCell: FunctionComponent<WatchlistValuesFacts> = (
   );
 };
 
+// Where a monitor or a hunt that reads a list opens: its own page. A rule has none of its own.
+export function getWatchlistReaderRoute(
+  reader: Pick<WatchlistReader, "kind" | "id">,
+): Route | null {
+  if (!reader.id) {
+    return null;
+  }
+
+  if (reader.kind === WatchlistReaderKind.Monitor) {
+    return RouteUtil.populateRouteParams(
+      RouteMap[PageMap.MONITOR_VIEW] as Route,
+      { modelId: reader.id },
+    );
+  }
+
+  if (reader.kind === WatchlistReaderKind.Hunt) {
+    return RouteUtil.populateRouteParams(
+      RouteMap[PageMap.SECURITY_EVENTS_HUNT_VIEW] as Route,
+      { modelId: reader.id },
+    );
+  }
+
+  return null;
+}
+
 /*
- * Every rule that reads a list, by name (as written), on a list's page:
- * "VIP sign-in from outside the office, VIP new country". A list no rule
- * reads says so, quieter; while the rules are read, an ellipsis; when they
- * could not be read, it says so rather than "no rule".
+ * Everything that reads a list, by name (as written), on a list's page:
+ * "VIP sign-in from outside the office, VIP failures (Monitor)". A monitor
+ * or a hunt opens its own page. A list nothing reads says so, quieter;
+ * while they are read, an ellipsis; when they could not be read, it says
+ * so rather than "nothing".
  */
 export const WatchlistReadersList: FunctionComponent<WatchlistReadersState> = (
   props: WatchlistReadersState,
 ): ReactElement => {
   const translator: Translator = useTranslator();
-  const readers: ReadonlyArray<{ id: string; name: string }> =
-    props.readers || [];
+  const readers: ReadonlyArray<{
+    id: string;
+    name: string;
+    kind?: WatchlistReaderKind | undefined;
+  }> = props.readers || [];
 
   if (!props.isLoaded) {
     return (
@@ -396,11 +491,33 @@ export const WatchlistReadersList: FunctionComponent<WatchlistReadersState> = (
       data-testid={WATCHLISTS_TEST_IDS.readByLine}
     >
       {readers.map(
-        (reader: { id: string; name: string }, index: number): ReactElement => {
+        (
+          reader: {
+            id: string;
+            name: string;
+            kind?: WatchlistReaderKind | undefined;
+          },
+          index: number,
+        ): ReactElement => {
+          const route: Route | null = getWatchlistReaderRoute({
+            kind: reader.kind || WatchlistReaderKind.DetectionRule,
+            id: reader.id,
+          });
+
           return (
-            <Fragment key={reader.id || index}>
+            <Fragment key={`${reader.kind || ""}-${reader.id || index}`}>
               {index > 0 ? ", " : ""}
-              <IsolatedText text={reader.name} />
+              {route ? (
+                <Link
+                  to={route}
+                  className="text-indigo-600 hover:text-indigo-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                >
+                  <IsolatedText text={reader.name} />
+                </Link>
+              ) : (
+                <IsolatedText text={reader.name} />
+              )}
+              <WatchlistReaderKindWord kind={reader.kind} />
             </Fragment>
           );
         },
@@ -409,22 +526,61 @@ export const WatchlistReadersList: FunctionComponent<WatchlistReadersState> = (
   );
 };
 
+// Who put a value on its list, and when it leaves it: what a value's cells say under it.
+export interface WatchlistValueFacts {
+  note?: string | undefined;
+  addedBy?: string | undefined;
+  createdAt?: Date | undefined;
+  // When it leaves its list; none: it stays until someone removes it.
+  expiresAt?: Date | string | undefined;
+  // A list read from an address: its reads put every value there.
+  isReadFromUrl?: boolean | undefined;
+}
+
+/*
+ * When a value leaves its list, as a rule exception's expiry is written:
+ * "Expires in 3 days", the moment whole under the pointer. Nothing for a
+ * value that stays.
+ */
+export const WatchlistValueExpiresLine: FunctionComponent<{
+  expiresAt?: Date | string | undefined;
+}> = (props: { expiresAt?: Date | string | undefined }): ReactElement => {
+  const translator: Translator = useTranslator();
+  const expiresAt: Date | null = readSecurityWatchlistDate(props.expiresAt);
+
+  if (!expiresAt) {
+    return <></>;
+  }
+
+  return (
+    <span
+      className="mt-0.5 flex items-center gap-1 text-xs text-amber-700"
+      data-testid={WATCHLISTS_TEST_IDS.expiresLine}
+      title={OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(expiresAt)}
+    >
+      <Icon icon={IconProp.Clock} className="h-3.5 w-3.5 flex-shrink-0" />
+      <span>
+        {translator.translateTemplate(VALUE_EXPIRES, {
+          time: OneUptimeDate.fromNow(expiresAt),
+        })}
+      </span>
+    </span>
+  );
+};
+
 /*
  * Why a value is on the list, with who added it and when under it, as a
  * rule exception's reason reads: "Added by Maya Chen 3 days ago", or
- * "Added through the API" when no person did. A value with no note says
- * only who added it. The note reads the way it is written (IsolatedText);
- * the date whole is under the pointer.
+ * "Added through the API" when no person did - "Read from its address"
+ * on a list read from one - and, for a value kept for a while, when it
+ * leaves the list. A value with no note says only who added it. The note
+ * reads the way it is written (IsolatedText); the date whole is under the
+ * pointer.
  */
-export const WatchlistValueNoteCell: FunctionComponent<{
-  note?: string | undefined;
-  addedBy?: string | undefined;
-  createdAt?: Date | undefined;
-}> = (props: {
-  note?: string | undefined;
-  addedBy?: string | undefined;
-  createdAt?: Date | undefined;
-}): ReactElement => {
+export const WatchlistValueNoteCell: FunctionComponent<WatchlistValueFacts> = (
+  props: WatchlistValueFacts,
+): ReactElement => {
+  const translator: Translator = useTranslator();
   const note: string = (props.note || "").trim();
 
   return (
@@ -450,11 +606,18 @@ export const WatchlistValueNoteCell: FunctionComponent<{
             : undefined
         }
       >
-        <RuleExceptionAddedLine
-          addedBy={props.addedBy}
-          createdAt={props.createdAt}
-        />
+        {props.isReadFromUrl ? (
+          translator.translateTemplate(READ_FROM_ADDRESS, {
+            time: props.createdAt ? OneUptimeDate.fromNow(props.createdAt) : "",
+          })
+        ) : (
+          <RuleExceptionAddedLine
+            addedBy={props.addedBy}
+            createdAt={props.createdAt}
+          />
+        )}
       </span>
+      <WatchlistValueExpiresLine expiresAt={props.expiresAt} />
     </div>
   );
 };
@@ -467,17 +630,9 @@ export const WatchlistValueNoteCell: FunctionComponent<{
  * (hideBelowLargeScreen), and the note with who added it goes under the
  * value instead, so nothing runs under the row's buttons.
  */
-export const WatchlistValueCell: FunctionComponent<{
-  value: string;
-  note?: string | undefined;
-  addedBy?: string | undefined;
-  createdAt?: Date | undefined;
-}> = (props: {
-  value: string;
-  note?: string | undefined;
-  addedBy?: string | undefined;
-  createdAt?: Date | undefined;
-}): ReactElement => {
+export const WatchlistValueCell: FunctionComponent<
+  WatchlistValueFacts & { value: string }
+> = (props: WatchlistValueFacts & { value: string }): ReactElement => {
   const isNoteFolded: boolean = useAreTableColumnsFolded();
 
   return (
@@ -495,6 +650,8 @@ export const WatchlistValueCell: FunctionComponent<{
             note={props.note}
             addedBy={props.addedBy}
             createdAt={props.createdAt}
+            expiresAt={props.expiresAt}
+            isReadFromUrl={props.isReadFromUrl}
           />
         </div>
       ) : (
@@ -532,7 +689,7 @@ export const WatchlistReadByCell: FunctionComponent<WatchlistReadersState> = (
 
   const readers: WatchlistReaders = summarizeWatchlistReaders(props.readers);
 
-  if (readers.names.length === 0) {
+  if (readers.shown.length === 0) {
     return (
       <span
         className="text-sm text-gray-400"
@@ -548,13 +705,16 @@ export const WatchlistReadByCell: FunctionComponent<WatchlistReadersState> = (
       className="block space-y-0.5 whitespace-normal text-sm text-gray-700"
       data-testid={WATCHLISTS_TEST_IDS.readByCell}
     >
-      {readers.names.map((name: string, index: number): ReactElement => {
-        return (
-          <span key={index} className="block break-words">
-            <IsolatedText text={name} />
-          </span>
-        );
-      })}
+      {readers.shown.map(
+        (reader: ShownWatchlistReader, index: number): ReactElement => {
+          return (
+            <span key={index} className="block break-words">
+              <IsolatedText text={reader.name} />
+              <WatchlistReaderKindWord kind={reader.kind} />
+            </span>
+          );
+        },
+      )}
       {readers.more > 0 ? (
         <span className="block text-xs text-gray-500">
           {translator.translatePlural(READ_BY_MORE, readers.more, {

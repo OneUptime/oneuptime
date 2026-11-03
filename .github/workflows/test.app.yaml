@@ -331,12 +331,14 @@ jobs:
           # SNMP Walk (1.9 minutes on both of the last two runs) moved to the
           # new group 17 on 2026-11-03: about 22.5.
           # Trace Detail (2.5) joined it from group 3 the same day, when
-          # Meraki Traffic grew there: about 20.2.
+          # Meraki Traffic grew there: about 20.2. Postmortems (0.8) came from
+          # group 9 the same day, to make room there for Cloud Spend: about 21.
           - group: 1
             event_overview_shard: 1/2
             suites: >-
               test-event-overview-ui
               test-trace-detail-ui
+              test-postmortems-ui
           # The Alerts suite also runs in Firefox, and so do Code Editor (the
           # editor's text layers must line up in both) and Diagrams. Diagrams
           # and Navigation Search (about 8 minutes together) moved here from
@@ -616,6 +618,12 @@ jobs:
           # and 1.7) moved to the new group 17 on 2026-11-03, when the last two
           # runs (master's of 2026-11-02 23:47 and 14.0.102's first gate run)
           # took this group 25.0 and 24.2: about 21.
+          # Database Pages (22 tests, 1.4 minutes locally with its bundle,
+          # Chromium only: the Databases list's Needs attention card and each
+          # database's Status by its engine's alert lines, a database's Overview,
+          # its alerts and Recommendations, at 1280, 1024, 768 and 390 pixels,
+          # dark, German and Persian) joined it on 2026-11-03, the group with the
+          # most room in DashboardOfflineUiMinutes (19.2): about 20.6.
           - group: 5
             suites: >-
               test-incoming-call-policies-ui
@@ -630,6 +638,7 @@ jobs:
               test-side-by-side-pages-ui
               test-owner-filters-ui
               test-security-cases-detections-ui
+              test-database-pages-ui
           # Added when group 5 took 25.5 of the job's 30 minutes and groups 1,
           # 3 and 4 23.5 to 24.3 on one run: group 5's last five suites, with
           # Discovery from group 3, Status Page Theme from group 1 and Calendar
@@ -992,13 +1001,19 @@ jobs:
           # this group's step 14.9 to 21.4 minutes, about 17.5: about 22.
           # Home Overview (2.1 and 2.7 minutes on the last two runs) moved on to
           # the new group 17 the same day: about 20.
+          # Cloud Spend (24 tests: Cloud's Overview, Costs, Savings, Budgets,
+          # an account's Costs, a resource's page and an account's Overview at
+          # 1280 and 390, dark, German and Persian; 3.5 minutes locally with
+          # CI=1, its bundle built) joined it the same day, when group 1, where
+          # it had been, gained Trace Detail on master: Postmortems (0.8) went
+          # to group 1 to make room. About 21.3.
           - group: 9
             workflow_builder_shard: 2/2
             suites: >-
               test-workflow-builder-ui
               test-resource-topology-ui
               test-runbooks-menu-ui
-              test-postmortems-ui
+              test-cloud-spend-ui
               test-archivable-values-ui
               test-dashboard-playlists-ui
           # Added on 2026-10-22 with the second half of Event Overview (about
@@ -1645,6 +1660,8 @@ jobs:
             output/playwright/cloud-connect-ui/test-results
             output/playwright/app-platforms-ui/*.png
             output/playwright/app-platforms-ui/test-results
+            output/playwright/cloud-spend-ui/*.png
+            output/playwright/cloud-spend-ui/test-results
             output/playwright/host-collectors-ui/*.png
             output/playwright/host-collectors-ui/test-results
             output/playwright/resource-onboarding-ui/*.png
@@ -1689,4 +1706,6 @@ jobs:
             output/playwright/ceph-pages-ui/test-results
             output/playwright/storage-array-pages-ui/*.png
             output/playwright/storage-array-pages-ui/test-results
+            output/playwright/database-pages-ui/*.png
+            output/playwright/database-pages-ui/test-results
           retention-days: 7

@@ -7,11 +7,15 @@ import {
   AWS_READ_ONLY_ACTIONS,
   AWS_READ_ONLY_ACTION_GROUPS,
   AWS_SCOPED_READ_RESOURCES,
+  AZURE_COST_ROLE,
   AZURE_READ_ONLY_ROLE,
   CLOUD_CONNECTION_READ_ONLY_NAME,
   CloudConnectionSetupScope,
   GCP_AUDIT_LOG_ROLE,
+  GCP_COST_QUERY_ROLE,
+  GCP_COST_ROLES,
   GCP_INVENTORY_ROLE,
+  GCP_RECOMMENDER_ROLE,
   GCP_READ_ONLY_ROLE,
   GCP_READ_ONLY_ROLES,
   GCP_SERVICES,
@@ -193,11 +197,36 @@ describe("AWS", () => {
     ]);
   });
 
-  test("no action is one no reader calls: no billing, no health entities", () => {
-    for (const action of AWS_READ_ONLY_ACTIONS) {
-      expect(action.startsWith("ce:")).toBe(false);
-      expect(action.startsWith("aws-portal:")).toBe(false);
-    }
+  test("no action is one no reader calls: of billing, only the daily costs and the ways to spend less; no health entities", () => {
+    /*
+     * The costs lane reads Cost Explorer's daily costs and Cost
+     * Optimization Hub's recommendations, and nothing else of billing:
+     * no budgets, no invoices, no payment details (aws-portal).
+     */
+    expect(
+      AWS_READ_ONLY_ACTIONS.filter((action: string): boolean => {
+        return (
+          action.startsWith("ce:") ||
+          action.startsWith("cost-optimization-hub:") ||
+          action.startsWith("aws-portal:") ||
+          action.startsWith("budgets:") ||
+          action.startsWith("billing:")
+        );
+      }),
+    ).toEqual([
+      "ce:GetCostAndUsage",
+      "cost-optimization-hub:ListRecommendations",
+    ]);
+    expect(
+      AWS_READ_ONLY_ACTION_GROUPS.map((group: { purpose: string }): string => {
+        return group.purpose;
+      }),
+    ).toEqual(
+      expect.arrayContaining([
+        "Read what the account costs, from Cost Explorer",
+        "Read the ways to spend less, from Cost Optimization Hub",
+      ]),
+    );
 
     expect(AWS_READ_ONLY_ACTIONS).not.toContain(
       "health:DescribeAffectedEntities",
@@ -503,13 +532,16 @@ describe("Azure", () => {
       'SCOPE="/subscriptions/$(az account show --query id --output tsv)"',
       `OUT=$(az ad sp create-for-rbac --name ${CLOUD_CONNECTION_READ_ONLY_NAME} --role "Monitoring Reader" --scopes "$SCOPE")`,
       'APP=$(echo "$OUT" | jq -r .appId)',
+      // What the subscription costs, read-only, on the same scope.
+      'az role assignment create --assignee "$APP" --role "Cost Management Reader" --scope "$SCOPE" > /dev/null',
       'END=$(az ad app credential list --id "$APP" --query "max([].endDateTime)" --output tsv)',
       `echo "$OUT" | jq --arg end "$END" '. + {endDateTime: $end}'`,
     ]);
     expect(AZURE_READ_ONLY_ROLE).toBe("Monitoring Reader");
-    // No role a connection does not use: no billing reader.
-    expect(getAzureSetupCommand()).not.toContain("Cost Management");
-    expect(getAzureSetupCommand()).not.toContain("role assignment create");
+    expect(AZURE_COST_ROLE).toBe("Cost Management Reader");
+    // Of billing, the reader of costs only: never a contributor.
+    expect(getAzureSetupCommand()).not.toContain("Cost Management Contributor");
+    expect(getAzureSetupCommand()).not.toContain("Billing");
   });
 
   test("for every subscription, the same on the tenant's root management group", () => {
@@ -534,12 +566,28 @@ describe("Google Cloud", () => {
       "PROJECT_ID=$(gcloud config get-value project)",
       `gcloud services enable ${GCP_SERVICES.join(" ")}`,
       `gcloud iam service-accounts create ${GCP_SERVICE_ACCOUNT_ID} --display-name "OneUptime (read only)" > /dev/null 2>&1 || true`,
-      ...GCP_READ_ONLY_ROLES.map((role: string): string => {
-        return `gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:${member}" --role ${role} --condition=None > /dev/null`;
-      }),
+      ...[...GCP_READ_ONLY_ROLES, ...GCP_COST_ROLES].map(
+        (role: string): string => {
+          return `gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:${member}" --role ${role} --condition=None > /dev/null`;
+        },
+      ),
       `gcloud iam service-accounts keys create oneuptime-key.json --iam-account "${member}"`,
       "cat oneuptime-key.json && rm oneuptime-key.json",
     ]);
+    /*
+     * What costs and the ways to spend less need: running a query of the
+     * billing export (its dataset's own reader is given where the export
+     * is), and the Recommender's compute recommendations - read-only.
+     */
+    expect(GCP_COST_ROLES).toEqual([GCP_COST_QUERY_ROLE, GCP_RECOMMENDER_ROLE]);
+    expect(GCP_COST_QUERY_ROLE).toBe("roles/bigquery.jobUser");
+    expect(GCP_RECOMMENDER_ROLE).toBe("roles/recommender.computeViewer");
+    expect(GCP_SERVICES).toEqual(
+      expect.arrayContaining([
+        "bigquery.googleapis.com",
+        "recommender.googleapis.com",
+      ]),
+    );
     expect(GCP_READ_ONLY_ROLE).toBe("roles/monitoring.viewer");
     expect(GCP_READ_ONLY_ROLES).toEqual([
       "roles/monitoring.viewer",

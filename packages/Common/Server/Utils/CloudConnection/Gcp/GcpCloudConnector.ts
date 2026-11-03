@@ -6,7 +6,10 @@ import {
   getGcpKeyMetricTypes,
 } from "../../../../Types/Cloud/CloudKeyMetrics";
 import { CloudMonitoredResource } from "../../../../Types/Cloud/CloudMonitoredResource";
-import { splitCloudConnectionList } from "../../../../Types/CloudConnection/CloudConnectionCatalog";
+import {
+  GCP_BILLING_EXPORT_TABLE_FIELD_KEY,
+  splitCloudConnectionList,
+} from "../../../../Types/CloudConnection/CloudConnectionCatalog";
 import { CloudConnectionSetupScope } from "../../../../Types/CloudConnection/CloudConnectionSetupCommands";
 import {
   CloudConnectionFailureKind,
@@ -42,20 +45,36 @@ import {
   CloudChange,
   CloudChangesOptions,
   CloudChangesResult,
+  CloudCostAccountOutcome,
+  CloudCostsOptions,
+  CloudCostsResult,
   CloudDiscoveredResource,
   CloudInventoryItem,
   CloudInventoryOptions,
   CloudInventoryResult,
+  CloudKnownResource,
   CloudReadBudget,
   CloudReadBudgetSpent,
   CloudReadOptions,
   CloudReadResult,
+  CloudSavingRecord,
+  CloudSavingsOptions,
+  CloudSavingsResult,
   CLOUD_MAX_ORGANIZATION_ACCOUNTS,
   getCloudSecretValues,
   getOrganizationLimitWarning,
   orderLeastRecentlyRead,
   readCloudSetting,
 } from "../CloudConnectorTypes";
+import GcpCostClient, {
+  GCP_COST_RECOMMENDERS,
+  GcpRecommenderPlace,
+  describeGcpCostFailure,
+  getGcpPlaces,
+  isValidGcpBillingExportTable,
+  readGcpRecommendation,
+} from "./GcpCosts";
+import { CloudCostState } from "../../../../Types/Cloud/CloudCost";
 import GcpInventoryClient, {
   GCP_INVENTORY_TYPES,
   GcpAsset,
@@ -528,6 +547,270 @@ export default class GcpCloudConnector implements CloudConnector {
       }
 
       state.healthReadAt = now.toISOString();
+    }
+
+    return result;
+  }
+
+  // The client a read of costs or savings asks Google Cloud with.
+  private costClient(
+    settings: CloudConnectionSettings,
+    options: CloudConnectorCallOptions,
+    budget: CloudReadBudget,
+  ): GcpCostClient {
+    return new GcpCostClient({
+      serviceAccountJson: readCloudSetting(
+        settings.secrets,
+        "serviceAccountJson",
+      ),
+      transport: options.transport,
+      requestTimeoutInMs: options.requestTimeoutInMs,
+      budget,
+      sleep: options.sleep,
+    });
+  }
+
+  private static outcomesOf(
+    projects: Array<string>,
+    state: CloudCostState,
+    message?: string | undefined,
+  ): Array<CloudCostAccountOutcome> {
+    return projects.map((accountId: string): CloudCostAccountOutcome => {
+      return message ? { accountId, state, message } : { accountId, state };
+    });
+  }
+
+  /*
+   * What the connection's projects cost per day, from the billing export
+   * it names (GcpCosts): one query, run in the service account's own
+   * project. Without a billing export there is nothing to read, and the
+   * projects say how to choose one.
+   */
+  public async readCosts(
+    settings: CloudConnectionSettings,
+    options: CloudCostsOptions,
+  ): Promise<CloudCostsResult> {
+    const now: Date = options.now ? options.now() : new Date();
+    const projects: Array<string> = await this.resolveProjects({
+      settings,
+      options,
+      budget: options.budget,
+      state: options.state,
+      now,
+    });
+    const table: string = readCloudSetting(
+      settings.config,
+      GCP_BILLING_EXPORT_TABLE_FIELD_KEY,
+    );
+
+    if (!table || !isValidGcpBillingExportTable(table)) {
+      return {
+        records: [],
+        accounts: GcpCloudConnector.outcomesOf(
+          projects,
+          CloudCostState.NotSetUp,
+          table
+            ? "The billing export table must be written as project.dataset.table, as BigQuery shows it."
+            : "Google Cloud's costs come from your billing export to BigQuery. Turn it on in the console (Billing > Billing export), then name its table under the connection's More fields.",
+        ),
+        warnings: [],
+        complete: true,
+      };
+    }
+
+    const queryProject: string =
+      GcpCloudConnector.readKey(
+        readCloudSetting(settings.secrets, "serviceAccountJson"),
+      ).projectId ||
+      projects[0] ||
+      "";
+
+    try {
+      const read: { records: CloudCostsResult["records"]; complete: boolean } =
+        await this.costClient(
+          settings,
+          options,
+          options.budget,
+        ).readBillingExport({
+          queryProject,
+          table,
+          start: options.start,
+          end: options.end,
+        });
+
+      if (!read.complete) {
+        return {
+          records: [],
+          accounts: GcpCloudConnector.outcomesOf(
+            projects,
+            CloudCostState.Failed,
+            "The billing export query took longer than one read waits: it is run again shortly.",
+          ),
+          warnings: [
+            "The billing export query took longer than one read waits: it is run again shortly.",
+          ],
+          complete: false,
+        };
+      }
+
+      return {
+        records: read.records,
+        accounts: GcpCloudConnector.outcomesOf(
+          projects,
+          CloudCostState.Reading,
+        ),
+        warnings: [],
+        complete: true,
+      };
+    } catch (error) {
+      if (
+        error instanceof LlmProviderError &&
+        error.kind === CloudConnectionFailureKind.Authentication
+      ) {
+        throw error;
+      }
+
+      const failure: { state: CloudCostState; message: string } =
+        error instanceof CloudReadBudgetSpent
+          ? {
+              state: CloudCostState.Failed,
+              message:
+                "The read reached its limit before the costs: they are read again shortly.",
+            }
+          : describeGcpCostFailure({
+              error,
+              what: "costs",
+              table,
+              queryProject,
+            });
+
+      return {
+        records: [],
+        accounts: GcpCloudConnector.outcomesOf(
+          projects,
+          failure.state,
+          failure.message,
+        ),
+        warnings: [failure.message],
+        complete: false,
+      };
+    }
+  }
+
+  /*
+   * The ways to spend less in each project, from the Recommender (GcpCosts):
+   * each zonal recommender in every zone the project's machines are in,
+   * each regional one in their Regions, the global ones once. A project
+   * none of whose machines OneUptime knows is asked only the global ones.
+   */
+  public async readSavings(
+    settings: CloudConnectionSettings,
+    options: CloudSavingsOptions,
+  ): Promise<CloudSavingsResult> {
+    const now: Date = options.now ? options.now() : new Date();
+    const projects: Array<string> = await this.resolveProjects({
+      settings,
+      options,
+      budget: options.budget,
+      state: options.state,
+      now,
+    });
+    const client: GcpCostClient = this.costClient(
+      settings,
+      options,
+      options.budget,
+    );
+    const result: CloudSavingsResult = {
+      recommendations: [],
+      accounts: [],
+      warnings: [],
+      complete: true,
+    };
+
+    for (const project of projects) {
+      const places: { zones: Array<string>; regions: Array<string> } =
+        getGcpPlaces(
+          (options.knownResources || [])
+            .filter((resource: CloudKnownResource): boolean => {
+              return resource.accountId === project;
+            })
+            .map((resource: CloudKnownResource): string => {
+              return resource.providerResourceId;
+            }),
+        );
+      const calls: Array<{ recommender: string; location: string }> = [];
+
+      for (const entry of GCP_COST_RECOMMENDERS as ReadonlyArray<GcpRecommenderPlace>) {
+        const locations: Array<string> =
+          entry.level === "zone"
+            ? places.zones
+            : entry.level === "region"
+              ? places.regions
+              : ["global"];
+
+        for (const location of locations) {
+          calls.push({ recommender: entry.recommender, location });
+        }
+      }
+
+      const found: Array<CloudSavingRecord> = [];
+      let failure: { state: CloudCostState; message: string } | null = null;
+
+      for (const call of calls) {
+        try {
+          const items: Array<JSONObject> = await client.listRecommendations({
+            project,
+            location: call.location,
+            recommender: call.recommender,
+          });
+
+          for (const item of items) {
+            const record: CloudSavingRecord | null = readGcpRecommendation({
+              item,
+              project,
+              location: call.location,
+            });
+
+            if (record) {
+              found.push(record);
+            }
+          }
+        } catch (error) {
+          if (
+            error instanceof LlmProviderError &&
+            error.kind === CloudConnectionFailureKind.Authentication
+          ) {
+            throw error;
+          }
+
+          failure =
+            error instanceof CloudReadBudgetSpent
+              ? {
+                  state: CloudCostState.Failed,
+                  message:
+                    "The read reached its limit before every recommendation: they are read again tomorrow.",
+                }
+              : describeGcpCostFailure({ error, what: "savings" });
+          break;
+        }
+      }
+
+      if (failure) {
+        result.accounts.push({
+          accountId: project,
+          state: failure.state,
+          message: failure.message,
+        });
+        result.warnings.push(failure.message);
+        result.complete = false;
+        continue;
+      }
+
+      result.recommendations.push(...found);
+      result.accounts.push({
+        accountId: project,
+        state: CloudCostState.Reading,
+      });
     }
 
     return result;

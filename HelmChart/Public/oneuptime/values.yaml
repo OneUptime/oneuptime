@@ -4,6 +4,19 @@
 global:
   storageClass:
   clusterDomain: &global-cluster-domain cluster.local
+  # One registry for every image the chart runs, in place of Docker Hub: set
+  # it to the registry you mirror the images into, as an air-gapped install
+  # does (registry.example.com, or with a path, registry.example.com/mirror).
+  # OneUptime's images then come from <imageRegistry>/<image.repository>/<name>
+  # (image.registry is not used), and the bundled PostgreSQL, ClickHouse,
+  # Valkey, PgBouncer, vLLM and kubectl images from <imageRegistry>/<their
+  # repository>, so keep the names and tags when you mirror. A repository that
+  # already names a registry (ghcr.io/..., or one you wrote yourself) and every
+  # entry of image.overrides and global.azure.images are used as written. The
+  # operators this chart can install (KEDA, CloudNativePG and the Altinity
+  # ClickHouse operator) take their registry from their own values.
+  # Empty: every image comes from where its own values say.
+  imageRegistry: ""
 
 # Please change this to the domain name / IP where OneUptime server is hosted on.
 host: localhost
@@ -1385,7 +1398,8 @@ updateCheck:
 # version it runs, so OneUptime knows which installations still run a release
 # with a security issue and can reach the admins who registered them. Nothing
 # about your users, projects or monitoring data is sent.
-# Set disabled to true to make no call at all.
+# Set disabled to true to make no call at all. The sign-up form then no longer
+# offers release emails from oneuptime.com either, so nothing reports to it.
 instanceCheckIn:
   disabled: false
 

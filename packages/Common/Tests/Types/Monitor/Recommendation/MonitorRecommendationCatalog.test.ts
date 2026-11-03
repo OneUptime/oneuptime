@@ -45,6 +45,7 @@ import {
   getDatabaseAlertTemplates,
   getDatabaseEnginesWithAlertTemplates,
 } from "../../../../Types/Monitor/DatabaseAlertTemplates";
+import { getAllDataObservabilityAlertTemplates } from "../../../../Types/Monitor/DataObservabilityAlertTemplates";
 
 /*
  * Resource types whose recommendation set is EMPTY without context, on
@@ -251,6 +252,14 @@ const MODULE_EXPECTATIONS: Array<ModuleExpectation> = [
      */
     contextFreeTemplateCount: getDatabaseAlertTemplates(null).length,
     identifierFieldName: "databaseServerId",
+  },
+  {
+    resourceType: MonitorRecommendationResourceType.DataStore,
+    monitorTypes: [MonitorType.Metrics],
+    // The same set for every store, whatever its engine.
+    templateCount: getAllDataObservabilityAlertTemplates().length,
+    contextFreeTemplateCount: getAllDataObservabilityAlertTemplates().length,
+    identifierFieldName: "dataStoreId",
   },
 ];
 

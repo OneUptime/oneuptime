@@ -1778,6 +1778,61 @@ jobs:
           fi
 
 
+  # Signs every image this release publishes with Sigstore's cosign, keyless:
+  # the certificate names this workflow, which GitHub's OIDC token proves, and
+  # the signature is in Sigstore's public transparency log, so anyone can
+  # check an image before it crosses into an air-gapped network
+  # (docs: self-hosted/supply-chain-security). Each version tag, community
+  # and enterprise-, is signed by digest on Docker Hub and GHCR, recursively,
+  # so each platform's image verifies on its own too
+  # (Scripts/GHA/sign_docker_images.sh).
+  #
+  # It publishes signatures, so it starts after push-release-tags, as the
+  # release's other publishing does, and needs the merges of the four agents
+  # that move their own release tags. Nothing waits for it: the release goes
+  # out while it signs, and a failure (Sigstore unreachable, say) fails this
+  # job, which can be re-run, without holding the release back.
+  sign-images:
+    name: Sign the release's images
+    needs:
+      - read-version
+      - push-release-tags
+      - docker-agent-docker-image-merge
+      - kubernetes-cost-agent-docker-image-merge
+      - kubernetes-log-tailer-docker-image-merge
+      - podman-agent-docker-image-merge
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/release'
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          # Only `docker buildx imagetools inspect` runs here, as in
+          # push-release-tags: no buildkit container to boot.
+          driver: docker
+
+      - name: Login to Docker Hub
+        run: |
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | bash ./Scripts/GHA/docker_login.sh --username "${{ secrets.DOCKERHUB_USERNAME }}"
+
+      - name: Login to GitHub Container Registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | bash ./Scripts/GHA/docker_login.sh --registry ghcr.io --username "${{ github.repository_owner }}"
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v4
+
+      - name: Sign every image's version tags on Docker Hub and GHCR
+        run: |
+          bash ./Scripts/GHA/sign_docker_images.sh \
+            --version "${{needs.read-version.outputs.major_minor}}"
+
   # ─── The release's e2e jobs ──────────────────────────────────────────
   #
   # They boot the -amd64 tags the builds' amd64 legs push (the runners are
@@ -2628,6 +2683,51 @@ jobs:
           retention-days: 30
           overwrite: true
 
+  # A Grype vulnerability report for each SBOM generate-sboms wrote, and a
+  # summary by severity, for the release to attach: a security reviewer reads
+  # what each image carried on the day it shipped. Grype reads the SBOMs, so
+  # no image is pulled again. It reports and fails on nothing it finds; a
+  # failed scan lets the release go out without the reports, as a failed app
+  # build does (finalize-github-release attaches them only when this
+  # succeeded), so a vulnerability database that cannot be reached never
+  # holds a release back.
+  scan-sbom-vulnerabilities:
+    name: Scan the SBOMs for vulnerabilities
+    if: github.ref == 'refs/heads/release'
+    needs: [read-version, generate-sboms]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download the SBOMs
+        uses: actions/download-artifact@v4
+        with:
+          name: release-sboms
+          path: sbom
+
+      - name: Install grype
+        id: grype
+        uses: anchore/scan-action/download-grype@v7
+
+      - name: Write a vulnerability report for each SBOM
+        env:
+          GRYPE: ${{ steps.grype.outputs.cmd }}
+        run: |
+          PATH="$(dirname "$GRYPE"):$PATH" bash ./Scripts/GHA/scan_sbom_vulnerabilities.sh \
+            --input-dir sbom \
+            --output-dir vulnerabilities
+
+      - name: Keep the vulnerability reports for the GitHub release
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-vulnerability-reports
+          path: vulnerabilities/*
+          if-no-files-found: error
+          retention-days: 30
+          overwrite: true
+
   # The infrastructure agent's archives, packages, MSIs, checksums and SBOMs.
   # GoReleaser runs in --snapshot mode: it builds, and publishes nothing.
   infrastructure-agent-build:
@@ -2931,7 +3031,7 @@ jobs:
   # all of this.
   finalize-github-release:
     name: Publish GitHub release
-    needs: [draft-github-release, helm-chart-deploy, generate-sboms, infrastructure-agent-build, mobile-app-android-build, mobile-app-ios-build, generate-build-number, read-version]
+    needs: [draft-github-release, helm-chart-deploy, generate-sboms, scan-sbom-vulnerabilities, infrastructure-agent-build, mobile-app-android-build, mobile-app-ios-build, generate-build-number, read-version]
     runs-on: ubuntu-latest
     if: >-
       ${{ !cancelled()
@@ -2966,6 +3066,25 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: release-assets/sboms/*.cdx.json
+          fail_on_unmatched_files: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          draft: true
+          prerelease: false
+          tag_name: ${{needs.read-version.outputs.major_minor}}
+          target_commitish: ${{ github.sha }}
+
+      - name: Download the vulnerability reports
+        if: needs.scan-sbom-vulnerabilities.result == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          name: release-vulnerability-reports
+          path: release-assets/vulnerabilities
+
+      - name: Attach vulnerability reports to release
+        if: needs.scan-sbom-vulnerabilities.result == 'success'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-assets/vulnerabilities/*
           fail_on_unmatched_files: true
           token: ${{ secrets.GITHUB_TOKEN }}
           draft: true

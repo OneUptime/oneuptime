@@ -166,6 +166,7 @@ DATABASE_USERNAME=oneuptime_monitor
 DATABASE_PASSWORD='a-strong-password'
 DATABASE_TLS_INSECURE=true
 DATABASE_TLS_INSECURE_SKIP_VERIFY=false
+DATABASE_TLS_SSLMODE=disable
 DATABASE_COLLECTION_INTERVAL=30s
 DATABASE_QUERY_EVENTS=false
 DATABASE_SERVER_ID=
@@ -198,6 +199,7 @@ To run the agent inside Kubernetes (a Deployment next to the database, with `DAT
 | `DATABASE_PASSWORD` | PostgreSQL, SQL Server, Oracle | Its password. In `.env`, single-quote it and write every `$` as `$$` (`install.sh` does both for you) |
 | `DATABASE_TLS_INSECURE` | No | `true` (default) connects without TLS, `false` turns TLS on (for Elasticsearch / OpenSearch, the endpoint's `https://` does) |
 | `DATABASE_TLS_INSECURE_SKIP_VERIFY` | No | `true` accepts a certificate the collector image does not trust. Default `false` |
+| `DATABASE_TLS_SSLMODE` | PostgreSQL | The two TLS switches as libpq's `sslmode` for the PostgreSQL config's SQL checks: `disable`, `require` (TLS, certificate not verified) or `verify-full`. install.sh writes it; default `disable` |
 | `DATABASE_COLLECTION_INTERVAL` | No | How often statistics are read. Default `30s` |
 | `DATABASE_QUERY_EVENTS` | No | `true` ships query samples and top queries as logs (PostgreSQL, MySQL, MongoDB, SQL Server, Oracle). They contain query text. Default `false` |
 | `DATABASE_SERVER_ID` | No | The id of a database OneUptime already shows (its Documentation tab has it). The data then joins that database directly, whatever address it reports (or none), and shows on its pages — use it in Kubernetes and for private IPs |
@@ -205,6 +207,7 @@ To run the agent inside Kubernetes (a Deployment next to the database, with `DAT
 ## What the config does
 
 - Runs the engine's receiver against `DATABASE_ENDPOINT` and enables the useful metrics that are off upstream (for example `postgresql.blks_hit` / `postgresql.blks_read` for the cache hit ratio, `postgresql.wal.delay` for replication time lag, `mysql.query.count`, `sqlserver.deadlock.rate`, `oracledb.tablespace.utilization`, `redis.maxmemory`, `mongodb.uptime`, `jvm.memory.heap.utilization`). Each config lists further optional metrics in a comment.
+- The PostgreSQL config also reads, with one catalog query per collection interval over the same login (`pg_monitor` covers it), what the `postgresql` receiver does not report: `postgresql.uptime` (a restart), `postgresql.xid.oldest_age` (the oldest transaction ID age of any database — PostgreSQL stops accepting writes near 2.1 billion), `postgresql.transaction.longest_duration` (the oldest open transaction) and `postgresql.sessions.waiting_on_lock`. It runs the collector's `sqlquery` receiver, which cannot log in with a password that contains a space (install.sh warns); the other engine metrics are not affected.
 - Stamps `db.system.name` (from `DATABASE_SYSTEM`), `server.address`, `server.port`, `oneuptime.database.agent` and `oneuptime.agent.version`, plus `oneuptime.database.server.id` when `DATABASE_SERVER_ID` is set. `service.name` is deleted so the data can never register a phantom Service, and `k8s.cluster.name` is never stamped — OneUptime would read it as the Kubernetes agent's heartbeat. The SQL Server and Oracle configs switch off their receivers' `host.name`, which would name the database machine as a Host.
 - Has **no** `resourcedetection` processor on purpose: its `system` detector adds the agent machine's `host.name` / `os.type`, which would make that machine look like the thing being monitored instead of the database.
 - Ships query samples and top queries as logs when `DATABASE_QUERY_EVENTS=true`. The receivers send them with an empty body and the query in `db.query.text`, so the `transform/query_event_body` processor copies the query text into the body — it is the message the Logs tab shows — and keeps the attribute; an event without query text gets its event name (`db.server.query_sample`, `db.server.top_query`), and a record that already has a body keeps it.
