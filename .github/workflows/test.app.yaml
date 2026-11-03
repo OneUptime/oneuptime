@@ -1243,10 +1243,10 @@ jobs:
           # that take no AI code fixes) moved to group 4 and Asset Details (2.3
           # to 3.0) to group 16 on 2026-11-03: about 20.5.
           # Bulk Actions gained BulkRuns.spec.ts the same day (fu-bulk-actions:
-          # 9 tests, about 45 seconds locally - the Admin Users list's
+          # 10 tests, about 50 seconds locally - the Admin Users list's
           # two-factor and Add to Project runs and a status page's Add in
-          # Bulk, watched while they go on): its 1.1 minutes planned as 1.7,
-          # this group's sum 21.9.
+          # Bulk, watched while they go on): its 1.1 minutes planned as 1.8,
+          # this group's sum 22.0. Group 16 has the most room (18.9).
           - group: 13
             suites: >-
               test-logs-ai-ui

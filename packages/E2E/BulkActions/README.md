@@ -58,10 +58,13 @@ post waiting until the spec lets it through with
   time, each a team membership in the project and team picked; Stop, and a
   user the server refuses (`?refuse=<user id>`);
 - a status page's Email Subscribers: Add in Bulk, four addresses at once, a
-  line that is not an address skipped with why, and an address the server
-  refuses (`?refuse=<address>`);
+  line that is not an address skipped with why, an address the server
+  refuses (`?refuse=<address>`), and a paste with no address in it refused
+  under its field, with nothing sent;
+- the results in the actions' own words ("6 Users updated", "2 Users
+  added", "6 Subscribers added");
 - at 1280 and 390 pixels, dark, German, and Persian read right to left
-  (`?lang=fa`).
+  (`?lang=fa`), its progress percent in Persian digits.
 
 The fixture records every create on `window.__fixture.creates`, every
 two-factor post on `window.__fixture.posts`, and the most of each in flight at
