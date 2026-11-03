@@ -41513,5 +41513,6 @@
   "Windows event logs cleared": "已清除的 Windows 事件日志",
   "Windows shadow copies deleted with vssadmin, as ransomware does before it encrypts a machine.": "用 vssadmin 删除的 Windows 卷影副本，勒索软件在加密计算机之前就会这样做。",
   "{{count}} hunts": "{{count}} 个狩猎",
-  "{{count}} hunts_one": "{{count}} 个狩猎"
+  "{{count}} hunts_one": "{{count}} 个狩猎",
+  "No events of this kind arrived in the last 7 days. The hunt finds nothing until they do.": "过去 7 天内没有收到此类事件。在事件到达之前，狩猎不会发现任何内容。"
 }

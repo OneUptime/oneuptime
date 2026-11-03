@@ -41513,5 +41513,6 @@
   "Windows event logs cleared": "साफ़ किए गए Windows इवेंट लॉग",
   "Windows shadow copies deleted with vssadmin, as ransomware does before it encrypts a machine.": "vssadmin से हटाई गई Windows शैडो कॉपी, जैसा रैनसमवेयर किसी मशीन को एन्क्रिप्ट करने से पहले करता है।",
   "{{count}} hunts": "{{count}} हंट",
-  "{{count}} hunts_one": "{{count}} हंट"
+  "{{count}} hunts_one": "{{count}} हंट",
+  "No events of this kind arrived in the last 7 days. The hunt finds nothing until they do.": "पिछले 7 दिनों में इस तरह का कोई इवेंट नहीं आया। इवेंट आने तक हंट कुछ नहीं पाता।"
 }

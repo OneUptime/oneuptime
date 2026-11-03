@@ -2,14 +2,22 @@ import {
   ANY_SECURITY_EVENTS,
   HUNTS_TEST_IDS,
   HUNT_COLUMN_TITLE,
+  HUNT_DATA_NOT_RECEIVED,
   OPEN_HUNT,
   TRY_IT,
 } from "./HuntsCopy";
 import { HuntLibraryView } from "./HuntLibraryModel";
 import { HUNT_SEARCH_ONE_LINE_CLASS_NAME } from "./HuntCells";
 import { getHuntViewRoute } from "./HuntsModel";
-import { ADD, ADDED, DATA_COLUMN, DATA_KIND_TITLES } from "../RuleLibraryCopy";
+import {
+  ADD,
+  ADDED,
+  DATA_COLUMN,
+  DATA_KIND_TITLES,
+  DATA_STATUS_SENTENCES,
+} from "../RuleLibraryCopy";
 import RuleLibraryDataStatus from "../RuleLibraryDataStatus";
+import { LibraryRuleDataStatus } from "../RuleLibraryUtil";
 import {
   RULE_LIBRARY_ADDED_CLASS_NAME,
   RULE_LIBRARY_DATA_COLUMN_CLASS_NAME,
@@ -71,6 +79,20 @@ export interface ComponentProps {
   onAdd: (entry: SecurityHuntLibraryEntry) => void;
 }
 
+/*
+ * The sentence behind a starter's dot: that events of its kind arrived, as
+ * the Rule Library says it, or that none did and the hunt finds nothing
+ * until they do - a starter is no rule that runs.
+ */
+export const HUNT_DATA_STATUS_SENTENCES: Record<
+  Exclude<LibraryRuleDataStatus, LibraryRuleDataStatus.Unknown>,
+  string
+> = {
+  [LibraryRuleDataStatus.Received]:
+    DATA_STATUS_SENTENCES[LibraryRuleDataStatus.Received],
+  [LibraryRuleDataStatus.NotReceived]: HUNT_DATA_NOT_RECEIVED,
+};
+
 // The events a starter reads, and whether they arrive.
 const DataFacts: FunctionComponent<{ view: HuntLibraryView }> = (props: {
   view: HuntLibraryView;
@@ -89,6 +111,7 @@ const DataFacts: FunctionComponent<{ view: HuntLibraryView }> = (props: {
       <span>
         <RuleLibraryDataStatus
           status={props.view.dataStatus}
+          sentences={HUNT_DATA_STATUS_SENTENCES}
           dataTestId={`${HUNTS_TEST_IDS.libraryEntry}-data-status-${entry.id}`}
         />
       </span>

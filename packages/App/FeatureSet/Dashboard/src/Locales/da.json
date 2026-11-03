@@ -41513,5 +41513,6 @@
   "Windows event logs cleared": "Windows-hændelseslogge ryddet",
   "Windows shadow copies deleted with vssadmin, as ransomware does before it encrypts a machine.": "Windows-skyggekopier slettet med vssadmin, sådan som ransomware gør, før den krypterer en maskine.",
   "{{count}} hunts": "{{count}} hunts",
-  "{{count}} hunts_one": "{{count}} hunt"
+  "{{count}} hunts_one": "{{count}} hunt",
+  "No events of this kind arrived in the last 7 days. The hunt finds nothing until they do.": "Der er ikke kommet hændelser af denne type inden for de seneste 7 dage. Hunten finder intet, før de kommer."
 }

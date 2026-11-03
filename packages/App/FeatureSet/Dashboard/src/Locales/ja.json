@@ -41513,5 +41513,6 @@
   "Windows event logs cleared": "消去された Windows イベントログ",
   "Windows shadow copies deleted with vssadmin, as ransomware does before it encrypts a machine.": "vssadmin で削除された Windows のシャドウ コピー。ランサムウェアがマシンを暗号化する前に行う操作です。",
   "{{count}} hunts": "{{count}} 件のハント",
-  "{{count}} hunts_one": "{{count}} 件のハント"
+  "{{count}} hunts_one": "{{count}} 件のハント",
+  "No events of this kind arrived in the last 7 days. The hunt finds nothing until they do.": "過去 7 日間にこの種類のイベントは届いていません。イベントが届くまで、ハントは何も見つけません。"
 }

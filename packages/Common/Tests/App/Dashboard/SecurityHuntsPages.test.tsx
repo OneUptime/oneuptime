@@ -252,6 +252,7 @@ import SecurityEvent from "../../../Models/AnalyticsModels/SecurityEvent";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import SecurityCaseEvidence from "../../../Models/DatabaseModels/SecurityCaseEvidence";
 import SecurityHunt from "../../../Models/DatabaseModels/SecurityHunt";
+import SecurityHuntRun from "../../../Models/DatabaseModels/SecurityHuntRun";
 import Team from "../../../Models/DatabaseModels/Team";
 import User from "../../../Models/DatabaseModels/User";
 import Route from "../../../Types/API/Route";
@@ -508,14 +509,48 @@ describe("Security Events > Hunts", () => {
     });
   });
 
-  test("an empty list sends the team to Events, where hunts are saved from", async () => {
+  test("an empty list sends the team to the Hunt Library first, then to Events, where hunts are saved from", async () => {
     await renderList();
 
-    const [searchEvents] = table(HUNTS_TEST_IDS.table).emptyState!.actions!;
+    const [library, searchEvents] = table(HUNTS_TEST_IDS.table).emptyState!
+      .actions! as Array<{
+      title: string;
+      dataTestId?: string;
+      onClick: () => void;
+    }>;
+
+    // The quickest way to a first hunt: one of the library's, one click.
+    expect(library!.title).toBe("Hunt Library");
+    expect(library!.dataTestId).toBe(HUNTS_TEST_IDS.libraryButton);
+    library!.onClick();
+    expect(navigated[0]!.endsWith("/security-events/hunt-library")).toBe(true);
 
     expect(searchEvents!.title).toBe("Search Events");
     searchEvents!.onClick();
-    expect(navigated[0]!.endsWith("/security-events")).toBe(true);
+    expect(navigated[1]!.endsWith("/security-events")).toBe(true);
+  });
+
+  test("the list's card offers the Hunt Library beside Create Hunt, whatever the list holds", async () => {
+    await renderList();
+
+    const buttons: Array<{
+      title: string;
+      icon: unknown;
+      onClick: () => void;
+    }> = (
+      table(HUNTS_TEST_IDS.table).cardProps as unknown as {
+        buttons: Array<{ title: string; icon: unknown; onClick: () => void }>;
+      }
+    ).buttons;
+
+    expect(
+      buttons.map((button: { title: string }): string => {
+        return button.title;
+      }),
+    ).toEqual(["Hunt Library"]);
+    expect(buttons[0]!.icon).toBe(IconProp.SquareStack);
+    buttons[0]!.onClick();
+    expect(navigated[0]!.endsWith("/security-events/hunt-library")).toBe(true);
   });
 
   test("an empty list says how to make the first one, and not again what a hunt is", () => {
@@ -526,7 +561,7 @@ describe("Security Events > Hunts", () => {
      * a second time.
      */
     expect(HUNTS_EMPTY_DESCRIPTION).toBe(
-      "Search on Events and choose Save as Hunt from its Hunts list, or create one here.",
+      "Add one from the Hunt Library, save a search from Events with Save as Hunt, or create one here.",
     );
     expect(HUNTS_EMPTY_DESCRIPTION).not.toMatch(/one click|schedule/);
     expect(HUNTS_TABLE_DESCRIPTION).toMatch(/one click/);
@@ -704,8 +739,9 @@ describe("a hunt's page", () => {
 
     expect(flat(scheduleLine)).toMatch(/^Tells Maya Chen, SOC Tier 2/);
     expect(flat(scheduleLine)).toMatch(/Next run in 3 hours$/);
+    // What its runs found, then the way to every run of them.
     expect(seen(within(header).getByTestId(HUNTS_TEST_IDS.lastFound))).toBe(
-      "Last found 3 events 2 hours ago Show them",
+      "Last found 3 events 2 hours ago Show them · Run history",
     );
     // Its search is the explorer's search bar's, not said twice.
     expect(within(header).queryByTestId(HUNTS_TEST_IDS.searchLine)).toBeNull();
@@ -737,6 +773,93 @@ describe("a hunt's page", () => {
     await waitFor(() => {
       expect(viewerMounts).toBe(mounts + 1);
     });
+  });
+
+  test("Run history opens beside the page; Show them on a run closes it and opens the explorer on that run's window", async () => {
+    const pastRun: SecurityHuntRun = new SecurityHuntRun();
+    pastRun._id = "a1000000-0000-4000-8000-000000000001";
+    pastRun.createdAt = new Date(Date.now() - 26 * HOUR);
+    pastRun.windowStartAt = new Date(Date.now() - 50 * HOUR);
+    pastRun.windowEndAt = new Date(Date.now() - 26 * HOUR - 2 * 60 * 1000);
+    pastRun.eventCount = 5;
+
+    const runReads: Array<Record<string, unknown>> = [];
+
+    jest.spyOn(ModelAPI, "getList").mockImplementation((async (
+      options: Record<string, unknown>,
+    ) => {
+      if (options["modelType"] === SecurityHuntRun) {
+        runReads.push(options);
+        return { data: [pastRun], count: 1, skip: 0, limit: 10 };
+      }
+
+      return { data: listed, count: listed.length, skip: 0, limit: 200 };
+    }) as never);
+
+    await renderHunt();
+
+    // Closed until asked for: nothing read yet.
+    expect(screen.queryByTestId(HUNTS_TEST_IDS.runHistory)).toBeNull();
+    expect(runReads).toHaveLength(0);
+
+    const mounts: number = viewerMounts;
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(HUNTS_TEST_IDS.runHistoryLink));
+    });
+
+    const panel: HTMLElement = await screen.findByTestId(
+      HUNTS_TEST_IDS.runHistory,
+    );
+
+    expect(runReads[0]!["query"]).toEqual({
+      securityHuntId: new ObjectID(HUNT_ID),
+    });
+
+    const showThem: HTMLElement = await within(panel).findByTestId(
+      HUNTS_TEST_IDS.runShowThem,
+    );
+
+    await act(async () => {
+      fireEvent.click(showThem);
+    });
+
+    expect(screen.queryByTestId(HUNTS_TEST_IDS.runHistory)).toBeNull();
+    expect(queryStrings[queryStrings.length - 1]).toMatchObject({
+      range: TimeRange.CUSTOM,
+      start: pastRun.windowStartAt.toISOString(),
+      end: pastRun.windowEndAt.toISOString(),
+    });
+    await waitFor(() => {
+      expect(viewerMounts).toBe(mounts + 1);
+    });
+  });
+
+  test("a hunt that has not run yet offers no Run history", async () => {
+    stored = hunt({
+      lastRunAt: undefined,
+      lastFoundAt: undefined,
+      lastFoundSinceAt: undefined,
+      lastFoundEventCount: undefined,
+    });
+
+    await renderHunt();
+
+    expect(screen.queryByTestId(HUNTS_TEST_IDS.runHistoryLink)).toBeNull();
+  });
+
+  test("a hunt whose runs found nothing yet still opens its Run History", async () => {
+    stored = hunt({
+      lastFoundAt: undefined,
+      lastFoundSinceAt: undefined,
+      lastFoundEventCount: undefined,
+    });
+
+    await renderHunt();
+
+    expect(seen(screen.getByTestId(HUNTS_TEST_IDS.lastFound))).toBe(
+      "Its runs have found nothing yet. · Run history",
+    );
   });
 
   test("a changed search is the hunt's to save or discard, from the notice that says so", async () => {
@@ -1135,12 +1258,17 @@ describe("a hunt's page", () => {
     await renderHunt();
 
     const line: HTMLElement = screen.getByTestId(HUNTS_TEST_IDS.lastFound);
+    // The failure is the alert; Run history beside it is not part of it.
+    const alert: HTMLElement = within(line).getByRole("alert");
 
-    expect(line).toHaveAttribute("role", "alert");
     // Said as the line over it says what a run found ("Last found 3 events ...").
-    expect(line).toHaveTextContent(
+    expect(alert).toHaveTextContent(
       `Last run failed: ${SECURITY_HUNT_RUN_ERRORS.schedulerCannotRead.message}`,
     );
+    expect(alert).not.toHaveTextContent("Run history");
+    expect(
+      within(line).getByTestId(HUNTS_TEST_IDS.runHistoryLink),
+    ).toHaveTextContent("Run history");
   });
 
   test("a hunt that is not there says so; one that could not be read offers to try again", async () => {

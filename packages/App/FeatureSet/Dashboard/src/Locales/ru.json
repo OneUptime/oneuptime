@@ -41513,5 +41513,6 @@
   "Windows event logs cleared": "Очищенные журналы событий Windows",
   "Windows shadow copies deleted with vssadmin, as ransomware does before it encrypts a machine.": "Теневые копии Windows, удалённые через vssadmin, как делает программа-вымогатель перед шифрованием компьютера.",
   "{{count}} hunts": "Поисков угроз: {{count}}",
-  "{{count}} hunts_one": "Поисков угроз: {{count}}"
+  "{{count}} hunts_one": "Поисков угроз: {{count}}",
+  "No events of this kind arrived in the last 7 days. The hunt finds nothing until they do.": "За последние 7 дней события этого типа не поступали. Поиск угроз ничего не найдёт, пока они не начнут поступать."
 }

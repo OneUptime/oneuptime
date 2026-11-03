@@ -41513,5 +41513,6 @@
   "Windows event logs cleared": "Windows-Ereignisprotokolle gelöscht",
   "Windows shadow copies deleted with vssadmin, as ransomware does before it encrypts a machine.": "Mit vssadmin gelöschte Windows-Schattenkopien, wie es Ransomware tut, bevor sie einen Rechner verschlüsselt.",
   "{{count}} hunts": "{{count}} Bedrohungssuchen",
-  "{{count}} hunts_one": "{{count}} Bedrohungssuche"
+  "{{count}} hunts_one": "{{count}} Bedrohungssuche",
+  "No events of this kind arrived in the last 7 days. The hunt finds nothing until they do.": "In den letzten 7 Tagen sind keine Ereignisse dieser Art eingegangen. Die Bedrohungssuche findet nichts, bis welche eingehen."
 }

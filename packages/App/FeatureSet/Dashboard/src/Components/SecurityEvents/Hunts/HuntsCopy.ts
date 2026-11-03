@@ -309,6 +309,13 @@ export const HUNT_LIBRARY_NOTHING_SENT: string = translationKey(
 export const ANY_SECURITY_EVENTS: string = translationKey(
   "Any security events",
 );
+/*
+ * The sentence behind a starter's Not receiving dot (HuntLibraryTable):
+ * what a hunt finds, where the Rule Library's says that a rule runs.
+ */
+export const HUNT_DATA_NOT_RECEIVED: string = translationKey(
+  "No events of this kind arrived in the last 7 days. The hunt finds nothing until they do.",
+);
 // A starter's buttons: its search on Events, unsaved; added, its hunt's page.
 export const TRY_IT: string = translationKey("Try it");
 export const OPEN_HUNT: string = translationKey("Open");

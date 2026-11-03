@@ -41513,5 +41513,6 @@
   "Windows event logs cleared": "지워진 Windows 이벤트 로그",
   "Windows shadow copies deleted with vssadmin, as ransomware does before it encrypts a machine.": "vssadmin으로 삭제된 Windows 섀도 복사본입니다. 랜섬웨어가 컴퓨터를 암호화하기 전에 하는 일입니다.",
   "{{count}} hunts": "헌트 {{count}}개",
-  "{{count}} hunts_one": "헌트 {{count}}개"
+  "{{count}} hunts_one": "헌트 {{count}}개",
+  "No events of this kind arrived in the last 7 days. The hunt finds nothing until they do.": "최근 7일 동안 이 종류의 이벤트가 도착하지 않았습니다. 이벤트가 도착할 때까지 헌트는 아무것도 찾지 못합니다."
 }

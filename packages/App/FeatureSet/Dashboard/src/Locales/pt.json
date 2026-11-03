@@ -41513,5 +41513,6 @@
   "Windows event logs cleared": "Logs de eventos do Windows apagados",
   "Windows shadow copies deleted with vssadmin, as ransomware does before it encrypts a machine.": "Cópias de sombra do Windows excluídas com vssadmin, como o ransomware faz antes de criptografar uma máquina.",
   "{{count}} hunts": "{{count}} caçadas",
-  "{{count}} hunts_one": "{{count}} caçada"
+  "{{count}} hunts_one": "{{count}} caçada",
+  "No events of this kind arrived in the last 7 days. The hunt finds nothing until they do.": "Nenhum evento deste tipo chegou nos últimos 7 dias. A caçada não encontra nada até que eles cheguem."
 }

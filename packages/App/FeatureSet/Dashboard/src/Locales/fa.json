@@ -41513,5 +41513,6 @@
   "Windows event logs cleared": "گزارش‌های رویداد Windows پاک‌شده",
   "Windows shadow copies deleted with vssadmin, as ransomware does before it encrypts a machine.": "نسخه‌های سایهٔ Windows که با vssadmin حذف شده‌اند، همان کاری که باج‌افزار پیش از رمزگذاری دستگاه می‌کند.",
   "{{count}} hunts": "{{count}} شکار",
-  "{{count}} hunts_one": "{{count}} شکار"
+  "{{count}} hunts_one": "{{count}} شکار",
+  "No events of this kind arrived in the last 7 days. The hunt finds nothing until they do.": "در ۷ روز گذشته هیچ رویدادی از این نوع نرسیده است. شکار تا رسیدن آن‌ها چیزی پیدا نمی‌کند."
 }
