@@ -14,6 +14,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import type { SpyInstance } from "jest-mock";
 import * as React from "react";
@@ -258,6 +259,30 @@ describe("SecurityEventsMonitorStepForm field gating", () => {
     expect(screen.getByText("vip_users")).toBeInTheDocument();
     expect(screen.getByText("Is not on the list")).toBeInTheDocument();
     expect(getWatchlists).toHaveBeenCalledTimes(1);
+  });
+
+  test("a row's choices are changed by picking another, never emptied: its own remove button, beside them, takes it away", async () => {
+    await renderSettled({
+      watchlistFilters: [{ field: "principalUser", watchlist: "vip_users" }],
+    });
+
+    fireEvent.click(moreFields());
+
+    const row: HTMLElement = await screen.findByTestId(
+      "security-events-watchlist-filter",
+    );
+
+    // A dropdown that may be emptied draws react-select's clear button: the window's does.
+    expect(
+      document.querySelectorAll(".ou-select__clear-indicator").length,
+    ).toBeGreaterThan(0);
+    // None of the row's three choices does.
+    expect(row.querySelectorAll(".ou-select__clear-indicator")).toHaveLength(0);
+    expect(within(row).getAllByRole("combobox")).toHaveLength(3);
+    // The row's remove button is the row's own.
+    expect(
+      within(row).getByTestId("security-events-watchlist-filter-remove"),
+    ).toBeInTheDocument();
   });
 
   test("a watchlist filter added under More fields reaches the step, on the field its list's kind is usually in", async () => {

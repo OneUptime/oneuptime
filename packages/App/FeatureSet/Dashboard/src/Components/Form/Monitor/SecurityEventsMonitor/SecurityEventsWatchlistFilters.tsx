@@ -172,6 +172,10 @@ export interface ComponentProps {
  * A row's list is picked from the project's lists by name; picking one on a
  * row with no field yet sets the field a list of its kind is usually in.
  * A project with no list yet is sent to Watchlists to make one.
+ *
+ * A row reads as a sentence - Principal User, is on the list, vip_users -
+ * so its three choices are changed by picking another, never emptied: the
+ * row's own remove button, beside them at every width, takes it away.
  */
 const SecurityEventsWatchlistFilters: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -295,51 +299,60 @@ const SecurityEventsWatchlistFilters: FunctionComponent<ComponentProps> = (
           return (
             <div
               key={index}
-              className="grid grid-cols-1 gap-2 rounded-md border border-gray-200 p-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto] md:items-center"
+              className="flex items-start gap-2 rounded-md border border-gray-200 p-3 md:items-center"
               data-testid={WATCHLISTS_TEST_IDS.monitorFilter}
             >
-              <Dropdown
-                options={fieldOptions}
-                value={fieldOptions.find((option: DropdownOption): boolean => {
-                  return option.value === filter.field;
-                })}
-                placeholder={WATCHLIST_FILTER_FIELD_PLACEHOLDER}
-                ariaLabel={translator.translateText(WATCHLIST_FILTER_FIELD)}
-                onChange={(
-                  value: DropdownValue | Array<DropdownValue> | null,
-                ) => {
-                  change({ field: value ? String(value) : "" });
-                }}
-                dataTestId={`${WATCHLISTS_TEST_IDS.monitorFilter}-field`}
-              />
-              <Dropdown
-                options={matchOptions}
-                value={
-                  matchOptions[filter.isNotOnList ? 1 : 0] as DropdownOption
-                }
-                ariaLabel={translator.translateText(WATCHLIST_FILTER_MATCH)}
-                onChange={(
-                  value: DropdownValue | Array<DropdownValue> | null,
-                ) => {
-                  change({
-                    isNotOnList: value === WATCHLIST_FILTER_MATCH_NOT_ON,
-                  });
-                }}
-                dataTestId={`${WATCHLISTS_TEST_IDS.monitorFilter}-match`}
-              />
-              <Dropdown
-                options={listOptions}
-                value={findOption(listOptions, filter.watchlist)}
-                placeholder={WATCHLIST_FILTER_WATCHLIST_PLACEHOLDER}
-                ariaLabel={translator.translateText(WATCHLIST_FILTER_WATCHLIST)}
-                onChange={(
-                  value: DropdownValue | Array<DropdownValue> | null,
-                ) => {
-                  change({ watchlist: value ? String(value) : "" });
-                }}
-                dataTestId={`${WATCHLISTS_TEST_IDS.monitorFilter}-watchlist`}
-              />
-              <div className="flex justify-end">
+              <div className="grid min-w-0 flex-1 grid-cols-1 gap-2 md:grid-cols-3">
+                <Dropdown
+                  options={fieldOptions}
+                  value={fieldOptions.find(
+                    (option: DropdownOption): boolean => {
+                      return option.value === filter.field;
+                    },
+                  )}
+                  placeholder={WATCHLIST_FILTER_FIELD_PLACEHOLDER}
+                  ariaLabel={translator.translateText(WATCHLIST_FILTER_FIELD)}
+                  isClearable={false}
+                  onChange={(
+                    value: DropdownValue | Array<DropdownValue> | null,
+                  ) => {
+                    change({ field: value ? String(value) : "" });
+                  }}
+                  dataTestId={`${WATCHLISTS_TEST_IDS.monitorFilter}-field`}
+                />
+                <Dropdown
+                  options={matchOptions}
+                  value={
+                    matchOptions[filter.isNotOnList ? 1 : 0] as DropdownOption
+                  }
+                  ariaLabel={translator.translateText(WATCHLIST_FILTER_MATCH)}
+                  isClearable={false}
+                  onChange={(
+                    value: DropdownValue | Array<DropdownValue> | null,
+                  ) => {
+                    change({
+                      isNotOnList: value === WATCHLIST_FILTER_MATCH_NOT_ON,
+                    });
+                  }}
+                  dataTestId={`${WATCHLISTS_TEST_IDS.monitorFilter}-match`}
+                />
+                <Dropdown
+                  options={listOptions}
+                  value={findOption(listOptions, filter.watchlist)}
+                  placeholder={WATCHLIST_FILTER_WATCHLIST_PLACEHOLDER}
+                  ariaLabel={translator.translateText(
+                    WATCHLIST_FILTER_WATCHLIST,
+                  )}
+                  isClearable={false}
+                  onChange={(
+                    value: DropdownValue | Array<DropdownValue> | null,
+                  ) => {
+                    change({ watchlist: value ? String(value) : "" });
+                  }}
+                  dataTestId={`${WATCHLISTS_TEST_IDS.monitorFilter}-watchlist`}
+                />
+              </div>
+              <div className="flex flex-shrink-0">
                 <Button
                   title={WATCHLIST_FILTER_REMOVE}
                   buttonStyle={ButtonStyleType.ICON}
@@ -385,7 +398,8 @@ const SecurityEventsWatchlistFilters: FunctionComponent<ComponentProps> = (
       )}
 
       {!hasNoLists && filters.length < SECURITY_WATCHLIST_FILTERS_MAX ? (
-        <div>
+        // Level with Filter by Attributes' Add: past md a NORMAL button keeps a dialog footer's margin.
+        <div className="md:-ml-3">
           <Button
             title={WATCHLIST_FILTER_ADD}
             buttonStyle={ButtonStyleType.NORMAL}
