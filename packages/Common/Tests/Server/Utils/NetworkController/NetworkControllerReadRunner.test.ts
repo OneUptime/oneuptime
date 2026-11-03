@@ -13,6 +13,10 @@ import {
   ControllerInventoryCandidate,
   ControllerInventoryLookup,
 } from "../../../../Server/Utils/NetworkController/NetworkControllerInventory";
+import {
+  ControllerIdentityHolder,
+  ControllerIdentityLookup,
+} from "../../../../Server/Utils/NetworkController/NetworkControllerDeviceAdd";
 import { DiscoveredDetailsMerge } from "../../../../Server/Services/NetworkDeviceService";
 import { EndpointControllerClient } from "../../../../Server/Services/NetworkEndpointService";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
@@ -89,6 +93,12 @@ let lookups: Array<ControllerInventoryLookup>;
 let merged: Array<DiscoveredDetailsMerge>;
 // The Inventory items copied after a reading answered a refresh.
 let mirrored: Array<string>;
+/*
+ * The project's devices that hold one of the list's identities, archived
+ * ones too (what Add devices counts by), and what they were asked for.
+ */
+let identityHolders: Array<ControllerIdentityHolder>;
+let identityLookups: Array<ControllerIdentityLookup>;
 
 function rowTime(value: unknown): Date {
   return new Date(Date.parse(`${String(value).replace(" ", "T")}Z`));
@@ -183,6 +193,12 @@ function dependencies(
     mirrorRefreshedDevice: async (deviceId: ObjectID): Promise<void> => {
       mirrored.push(deviceId.toString());
     },
+    findIdentityHolders: async (data: {
+      lookup: ControllerIdentityLookup;
+    }): Promise<Array<ControllerIdentityHolder>> => {
+      identityLookups.push(data.lookup);
+      return identityHolders;
+    },
     ...overrides,
   };
 }
@@ -230,6 +246,8 @@ beforeEach(() => {
   lookups = [];
   merged = [];
   mirrored = [];
+  identityHolders = [];
+  identityLookups = [];
   clock = createTestClock(START);
   setApi();
 
@@ -943,6 +961,176 @@ describe("the devices' details the device list fills in", () => {
       describedDeviceCount: 2,
     });
     expect(lookups).toEqual([]);
+  });
+});
+
+describe("what Add devices would add, counted on every read", () => {
+  function withSwitchesAndAccessPoints(): void {
+    const organization: ReturnType<typeof buildBranchOrganization> =
+      buildBranchOrganization({ id: "549236", name: "Acme Retail", count: 2 });
+
+    organization.devices = [
+      {
+        serial: "Q2HP-SWCH-0001",
+        name: "Branch 1 core",
+        model: "MS225-48LP",
+        mac: "88:15:44:aa:00:01",
+        networkId: "L_1000",
+        productType: "switch",
+        lanIp: "10.0.0.2",
+      },
+      {
+        serial: "Q2HP-SWCH-0002",
+        name: "Branch 2 core",
+        model: "MS225-48LP",
+        mac: "88:15:44:aa:00:02",
+        networkId: "L_1001",
+        productType: "switch",
+        lanIp: "10.0.1.2",
+      },
+      {
+        serial: "Q2KD-WLAN-0001",
+        name: "Branch 1 lobby AP",
+        model: "MR46",
+        mac: "e0:55:3d:aa:00:01",
+        networkId: "L_1000",
+        productType: "wireless",
+        lanIp: "10.0.0.20",
+      },
+      {
+        serial: "Q3CA-SNSR-0001",
+        name: "Branch 1 freezer",
+        model: "MT10",
+        mac: "e8:2d:00:00:00:01",
+        networkId: "L_1000",
+        productType: "sensor",
+        lanIp: null,
+      },
+    ];
+
+    setApi({ organizations: [organization] });
+  }
+
+  test("by kind: what can be added, what has no address, and what another device here holds", async () => {
+    withSwitchesAndAccessPoints();
+    // The first MX is a device here, by its serial number.
+    candidates = [
+      {
+        id: MX_DEVICE.toString(),
+        name: "branch-1-mx",
+        hostname: "10.0.0.1",
+        serialNumber: "Q2XX-AAAA-0000",
+      },
+    ];
+    // Another branch's box at the second switch's address.
+    identityHolders = [{ hostname: "10.0.1.2", serialNumber: "FOC1234X0AB" }];
+
+    const outcome: NetworkControllerReadOutcome = await run();
+
+    expect(outcome.summary?.unaddedDevices).toEqual([
+      {
+        productType: "switch",
+        addable: 1,
+        withoutAddress: 0,
+        taken: 1,
+        archived: 0,
+      },
+      {
+        productType: "wireless",
+        addable: 1,
+        withoutAddress: 0,
+        taken: 0,
+        archived: 0,
+      },
+      // The second MX: Meraki lists no LAN address for an appliance.
+      {
+        productType: "appliance",
+        addable: 0,
+        withoutAddress: 1,
+        taken: 0,
+        archived: 0,
+      },
+    ]);
+    // Asked about the kinds that can be added only: the sensor is not.
+    expect(identityLookups).toHaveLength(1);
+    expect(identityLookups[0]!.serials).not.toContain("Q3CA-SNSR-0001");
+    expect(identityLookups[0]!.addresses).toEqual([
+      "10.0.0.2",
+      "10.0.1.2",
+      "10.0.0.20",
+    ]);
+  });
+
+  test("an organization whose devices are all here counts nothing - and says so, with an empty list", async () => {
+    candidates = [0, 1, 2, 3, 4].map(
+      (index: number): ControllerInventoryCandidate => {
+        return {
+          id: `40000000-0000-4000-8000-00000000000${index}`,
+          serialNumber: `Q2XX-AAAA-000${index}`,
+        };
+      },
+    );
+
+    const outcome: NetworkControllerReadOutcome = await run();
+
+    expect(outcome.summary?.unaddedDevices).toEqual([]);
+  });
+
+  test("a lookup that fails keeps the last read's counts, and never costs the read", async () => {
+    connection.lastPullResult = {
+      status: "success",
+      organizationName: "Acme Retail",
+      warnings: [],
+      unaddedDevices: [
+        {
+          productType: "switch",
+          addable: 7,
+          withoutAddress: 0,
+          taken: 0,
+          archived: 0,
+        },
+      ],
+    };
+
+    const outcome: NetworkControllerReadOutcome = await run({
+      findIdentityHolders: async () => {
+        throw new Error("Postgres is not answering");
+      },
+    });
+
+    expect(outcome.status).toBe("success");
+    expect(outcome.summary?.unaddedDevices).toEqual([
+      { productType: "switch", addable: 7, withoutAddress: 0, taken: 0, archived: 0 },
+    ]);
+  });
+
+  test("a read that fails keeps the last read's counts", async () => {
+    connection.lastPullResult = {
+      status: "success",
+      organizationName: "Acme Retail",
+      warnings: [],
+      unaddedDevices: [
+        {
+          productType: "wireless",
+          addable: 2,
+          withoutAddress: 0,
+          taken: 0,
+          archived: 0,
+        },
+      ],
+    };
+    setApi({
+      scripted: {
+        "/api/v1/organizations/549236": [merakiError(401, "Invalid API key")],
+      },
+    });
+
+    const outcome: NetworkControllerReadOutcome = await run();
+
+    expect(outcome.status).toBe("failed");
+    expect(outcome.summary?.unaddedDevices).toEqual([
+      { productType: "wireless", addable: 2, withoutAddress: 0, taken: 0, archived: 0 },
+    ]);
   });
 });
 

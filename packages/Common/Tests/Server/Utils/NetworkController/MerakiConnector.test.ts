@@ -7,6 +7,7 @@ import MerakiConnector, {
   readOrganizations,
 } from "../../../../Server/Utils/NetworkController/Meraki/MerakiConnector";
 import NetworkControllerConnectorRegistry from "../../../../Server/Utils/NetworkController/NetworkControllerConnectorRegistry";
+import { NetworkControllerDeviceListing } from "../../../../Server/Utils/NetworkController/NetworkControllerTypes";
 import { LlmConnectionFailureKind } from "../../../../Types/LlmObservability/LlmConnectionTest";
 import { MerakiRegion } from "../../../../Types/NetworkController/MerakiRegion";
 import { NetworkControllerConfig } from "../../../../Types/NetworkController/NetworkControllerConnectionSettings";
@@ -414,6 +415,42 @@ describe("reading the organizations Meraki lists", () => {
       { id: "1", name: "One", isApiEnabled: true },
       { id: "2", name: "2", isApiEnabled: false },
       { id: "3", name: "Three", isApiEnabled: true },
+    ]);
+  });
+});
+
+describe("listing the organization's devices", () => {
+  test("the connector lists them through the reader's own listing: the organization, its networks, its devices", async () => {
+    const env: Env = environment();
+
+    const listing: NetworkControllerDeviceListing =
+      await new MerakiConnector().listDevices(
+        {
+          provider: NetworkControllerProvider.Meraki,
+          projectId: "5b1c3e0e-7b3a-4c56-9a8e-2f6f0c1d9e11",
+          config: config({ organizationId: "549236" }),
+          apiKey: FAKE_API_KEY,
+        },
+        {
+          transport: env.api.transport,
+          now: env.clock.now,
+          sleep: env.clock.sleep,
+          maxRequests: 120,
+          maxDurationMs: 5 * 60 * 1000,
+        },
+      );
+
+    expect(listing.organizationName).toBe("Acme Retail");
+    expect(listing.devices).toHaveLength(5);
+    expect(listing.isDeviceListComplete).toBe(true);
+    expect(
+      env.api.requests.map((request: FakeMerakiRequest): string => {
+        return request.url.pathname;
+      }),
+    ).toEqual([
+      "/api/v1/organizations/549236",
+      "/api/v1/organizations/549236/networks",
+      "/api/v1/organizations/549236/devices",
     ]);
   });
 });

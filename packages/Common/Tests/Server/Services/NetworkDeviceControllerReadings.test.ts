@@ -22,7 +22,10 @@ import type { Mock, SpyInstance } from "jest-mock";
  *   - the controller's reading merged like every other discovered detail,
  *     and only a well-formed one;
  *   - a deleted connection's readings forgotten, in its project only;
- *   - refreshRequestedAt kept by the server alone.
+ *   - refreshRequestedAt kept by the server alone;
+ *   - Add devices' lookup of the devices that hold one of the list's
+ *     serial numbers, MACs or addresses - archived ones too - and the ask's
+ *     state on the connection, kept by the server alone.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -158,6 +161,99 @@ describe("the device list's lookup", () => {
     });
 
     expect(query.mock.calls[0]![1][5]).toBe(1);
+  });
+});
+
+describe("Add devices' lookup of the identities devices here hold", () => {
+  let query: Mock<QueryFunction>;
+  let service: NetworkDeviceServiceType;
+
+  beforeEach(() => {
+    jest.restoreAllMocks();
+    service = new NetworkDeviceServiceType();
+    query = jest.fn<QueryFunction>(async (): Promise<unknown> => {
+      return [
+        {
+          serialNumber: "Q2HP-SWCH-0001",
+          macAddress: null,
+          learnedMacAddress: "88:15:44:aa:00:01",
+          hostname: "10.0.0.2",
+          isArchived: true,
+        },
+      ];
+    });
+    jest
+      .spyOn(service, "getRepository")
+      .mockReturnValue({ manager: { query } } as never);
+  });
+
+  test("one statement, scoped to the project's devices that are not deleted - archived ones included - by serial number, MAC and address", async () => {
+    const rows: Awaited<
+      ReturnType<NetworkDeviceServiceType["findControllerIdentityHolders"]>
+    > = await service.findControllerIdentityHolders({
+      projectId: PROJECT_ID,
+      serials: ["Q2HP-SWCH-0001"],
+      macs: ["88:15:44:aa:00:01"],
+      addresses: ["10.0.0.2"],
+      limit: 50000,
+    });
+
+    expect(query).toHaveBeenCalledTimes(1);
+    const sql: string = flat(query.mock.calls[0]![0]);
+
+    expect(sql).toContain('WHERE nd."projectId" = $1');
+    expect(sql).toContain('AND nd."deletedAt" IS NULL');
+    // An archived box is never added again: it is looked up too.
+    expect(sql).not.toContain("isArchived\" = false");
+    expect(sql).toContain('upper(btrim(nd."serialNumber")) = ANY($2::text[])');
+    expect(sql).toContain('lower(nd."macAddress") = ANY($3::text[])');
+    expect(sql).toContain(
+      `(nd."discoveredDetails" -> 'macAddress' ->> 'value') = ANY($3::text[])`,
+    );
+    expect(sql).toContain('nd."hostname" = ANY($4::text[])');
+    expect(sql).toContain("LIMIT $5");
+    expect(query.mock.calls[0]![1]).toEqual([
+      PROJECT_ID.toString(),
+      ["Q2HP-SWCH-0001"],
+      ["88:15:44:aa:00:01"],
+      ["10.0.0.2"],
+      50000,
+    ]);
+
+    expect(rows).toEqual([
+      {
+        serialNumber: "Q2HP-SWCH-0001",
+        macAddress: null,
+        learnedMacAddress: "88:15:44:aa:00:01",
+        hostname: "10.0.0.2",
+        isArchived: true,
+      },
+    ]);
+  });
+
+  test("nothing to ask about asks nothing", async () => {
+    expect(
+      await service.findControllerIdentityHolders({
+        projectId: PROJECT_ID,
+        serials: [],
+        macs: [],
+        addresses: [],
+        limit: 50000,
+      }),
+    ).toEqual([]);
+    expect(query).not.toHaveBeenCalled();
+  });
+
+  test("a limit is a whole number of at least one", async () => {
+    await service.findControllerIdentityHolders({
+      projectId: PROJECT_ID,
+      serials: ["Q2HP-SWCH-0001"],
+      macs: [],
+      addresses: [],
+      limit: 0,
+    });
+
+    expect(query.mock.calls[0]![1][4]).toBe(1);
   });
 });
 
@@ -357,5 +453,23 @@ describe("refreshRequestedAt", () => {
     expect(column.create).toEqual([]);
     expect(column.update).toEqual([]);
     expect(column.read.length).toBeGreaterThan(0);
+  });
+});
+
+describe("lastDeviceAdd", () => {
+  test("is kept by the server alone: nobody creates or updates an ask's state through the API, and whoever sees the connection reads it", () => {
+    const connection: NetworkControllerConnection =
+      new NetworkControllerConnection();
+    const column: {
+      create: Array<unknown>;
+      update: Array<unknown>;
+      read: Array<unknown>;
+    } = connection.getColumnAccessControlFor("lastDeviceAdd") as never;
+    const lastPullResult: { read: Array<unknown> } =
+      connection.getColumnAccessControlFor("lastPullResult") as never;
+
+    expect(column.create).toEqual([]);
+    expect(column.update).toEqual([]);
+    expect(column.read).toEqual(lastPullResult.read);
   });
 });
