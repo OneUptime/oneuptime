@@ -317,8 +317,9 @@ export default class PermissionGate {
   public static getHeldPermissionsInProject(
     projectId: ObjectID | string | null | undefined,
   ): HeldPermissions | null {
-    const projectPermissions: UserTenantAccessPermission | null =
-      projectId ? PermissionUtil.getProjectPermissions(projectId) : null;
+    const projectPermissions: UserTenantAccessPermission | null = projectId
+      ? PermissionUtil.getProjectPermissions(projectId)
+      : null;
 
     if (!projectPermissions) {
       return null;
