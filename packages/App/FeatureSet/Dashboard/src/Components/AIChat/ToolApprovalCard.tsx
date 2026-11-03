@@ -15,6 +15,15 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import ToolActionSentence, { ToolActionSentences } from "./ToolActionSentence";
+import {
+  DrawnActionSentence,
+  getToolActionDescription,
+  getToolActionNamedArguments,
+  getToolActionShownValues,
+  getToolActionTitle,
+  getToolActionTitleLabel,
+} from "./ToolActionWords";
 
 export interface ToolDecision {
   toolCallId: string;
@@ -47,15 +56,20 @@ function isShownByTitle(value: string, title: string): boolean {
  * The action's arguments in one line. An action whose description names
  * what its lists stand for (the resources it links, by name) leaves those
  * lists out here: their IDs would only repeat the description, unreadably.
- * An argument the action's title ends with is left out too: the line is
- * cut at two lines, and repeating the title there pushed what only this
- * line says - the description an alert will carry - out of sight.
+ * An argument the action's title shows is left out too: the line is cut at
+ * two lines, and repeating the title there pushed what only this line says
+ * - the description an alert will carry - out of sight. The title's own
+ * values say which (shownValues), in every language; for an action saved
+ * before its title had values, the title ending with the argument does.
  */
 export function argsPreview(
   args: JSONObject,
   options?: {
     leaveOutLists?: boolean | undefined;
     title?: string | undefined;
+    shownValues?: Array<string> | undefined;
+    // Arguments the title names by name (an incident's ID, as "INC-42").
+    namedArguments?: Array<string> | undefined;
   },
 ): string {
   const parts: Array<string> = [];
@@ -64,13 +78,16 @@ export function argsPreview(
     if (value === undefined || value === null || value === "") {
       continue;
     }
+    if (options?.namedArguments?.includes(key)) {
+      continue;
+    }
     if (options?.leaveOutLists && typeof value === "object") {
       continue;
     }
     if (
-      options?.title &&
       typeof value === "string" &&
-      isShownByTitle(value, options.title)
+      ((options?.title && isShownByTitle(value, options.title)) ||
+        options?.shownValues?.includes(value.trim()))
     ) {
       continue;
     }
@@ -172,21 +189,36 @@ const ToolApprovalCard: FunctionComponent<ComponentProps> = (
       {resolved.length > 0 && (
         <div className="space-y-1.5">
           {resolved.map((action: AIChatToolAction) => {
+            const title: DrawnActionSentence = getToolActionTitle(
+              action,
+              translator,
+            );
             return (
               <div
                 key={action.id}
-                className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5"
+                data-testid="tool-approval-history"
+                className="flex items-start gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5"
               >
                 <span
-                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${statusChipTone[action.status]}`}
+                  className={`inline-flex flex-shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${statusChipTone[action.status]}`}
                 >
                   <Icon icon={statusIcon[action.status]} className="h-3 w-3" />
                   {translator.translateText(
                     statusLabel[action.status] || action.status,
                   )}
                 </span>
-                <span className="min-w-0 flex-1 truncate text-xs text-gray-700">
-                  {action.title}
+                {/*
+                 * What ran, whole, wrapped as the card's titles are: cut
+                 * at one line, a phone lost what it changed ("Schweregrad
+                 * von Vorfall INC-42 auf C..."), and a Persian line the
+                 * start of an English title. Its first line sits level
+                 * with the chip.
+                 */}
+                <span
+                  data-testid="tool-approval-history-title"
+                  className="line-clamp-3 min-w-0 flex-1 break-words text-xs leading-5 text-gray-700"
+                >
+                  <ToolActionSentence sentence={title} />
                 </span>
               </div>
             );
@@ -220,9 +252,17 @@ const ToolApprovalCard: FunctionComponent<ComponentProps> = (
           <div className="space-y-1.5">
             {pending.map((action: AIChatToolAction) => {
               const isApproved: boolean = selections[action.id] !== false;
+              const title: DrawnActionSentence = getToolActionTitle(
+                action,
+                translator,
+              );
+              const description: Array<DrawnActionSentence> =
+                getToolActionDescription(action, translator);
               const preview: string = argsPreview(action.arguments, {
-                leaveOutLists: Boolean(action.description),
+                leaveOutLists: description.length > 0,
                 title: action.title,
+                shownValues: getToolActionShownValues(action),
+                namedArguments: getToolActionNamedArguments(action),
               });
               /*
                * Allow and Skip sit beside the action where the card has
@@ -245,29 +285,32 @@ const ToolApprovalCard: FunctionComponent<ComponentProps> = (
                        * on a phone in full.
                        */}
                       {/*
-                       * The title, the description and the arguments are
-                       * written by the server and the model, in English
-                       * today: each is an isolate that reads its own way
-                       * (IsolatedText), so on a Persian page the period of
-                       * 'Linked to host "test01".' stays at its end, while
-                       * the line still starts where the card reads from.
+                       * The title and the description are the server's
+                       * sentences, said in the reader's language
+                       * (ToolActionWords): each an isolate that reads its
+                       * language's way, its values - a title the model
+                       * wrote, a host's name - set apart, so on a Persian
+                       * page a Persian sentence reads right to left and
+                       * the period of a name stays at its end. The
+                       * arguments are the model's, an isolate read the
+                       * way most of its letters are (IsolatedText).
                        */}
                       <div
                         data-testid="tool-approval-title"
                         className="line-clamp-3 break-words text-xs font-semibold text-gray-900"
                       >
-                        <IsolatedText text={action.title} />
+                        <ToolActionSentence sentence={title} />
                       </div>
                       {/*
                        * What the action names, by name (the resources an
                        * incident is linked to): read before approving it.
                        */}
-                      {action.description && (
+                      {description.length > 0 && (
                         <div
                           data-testid="tool-approval-description"
                           className="mt-1 break-words text-[11px] leading-relaxed text-gray-700"
                         >
-                          <IsolatedText text={action.description} />
+                          <ToolActionSentences sentences={description} />
                         </div>
                       )}
                       {preview && (
@@ -295,7 +338,7 @@ const ToolApprovalCard: FunctionComponent<ComponentProps> = (
                        */
                       <div
                         role="group"
-                        aria-label={action.title}
+                        aria-label={getToolActionTitleLabel(action, translator)}
                         data-testid="tool-approval-choice"
                         className="flex flex-shrink-0 self-start overflow-hidden rounded-md border border-gray-200"
                       >

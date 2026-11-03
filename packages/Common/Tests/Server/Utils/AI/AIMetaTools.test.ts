@@ -30,6 +30,7 @@ import ObjectID from "../../../../Types/ObjectID";
 import OneUptimeDate from "../../../../Types/Date";
 import PositiveNumber from "../../../../Types/PositiveNumber";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import { actionTitleText } from "../../../Helpers/AIActionText";
 
 /*
  * The AI meta tools make the chat aware of the platform's other AI lanes:
@@ -666,14 +667,18 @@ describe("start_investigation", () => {
 
   test("buildActionTitle names the subject from validated args", () => {
     expect(
-      StartInvestigationTool.buildActionTitle?.({
-        incidentId: INCIDENT_ID.toString(),
-      }),
+      actionTitleText(
+        StartInvestigationTool.buildActionTitle?.({
+          incidentId: INCIDENT_ID.toString(),
+        }),
+      ),
     ).toBe(`Start AI investigation for incident ${INCIDENT_ID.toString()}`);
     expect(
-      StartInvestigationTool.buildActionTitle?.({
-        alertId: ALERT_ID.toString(),
-      }),
+      actionTitleText(
+        StartInvestigationTool.buildActionTitle?.({
+          alertId: ALERT_ID.toString(),
+        }),
+      ),
     ).toBe(`Start AI investigation for alert ${ALERT_ID.toString()}`);
   });
 

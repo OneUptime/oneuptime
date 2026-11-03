@@ -70,6 +70,8 @@ Verlaat iemand het project, dan wordt elke overschrijving die die persoon noemt 
 
 **Projecteigenaar**, **Projectbeheerder**, **Projectlid**, **Bereikbaarheidsbeheerder** en **Bereikbaarheidslid** mogen overschrijvingen toevoegen en verwijderen; **Kijker** en **Bereikbaarheidskijker** mogen ze zien. In een aangepaste rol heten de rechten **Create On-Call Duty Policy User Override**, **Delete On-Call Duty Policy User Override** en **Read On-Call Duty Policy User Override**. Op de **Tijdlijn van bereikbaarheidsschema's** zien alleen mensen die overschrijvingen mogen lezen wiens dienst wordt vervangen.
 
+Een overschrijving op een beleid volgt het bereik van dat beleid. Geef een team **Bereikbaarheidslid**, beperkt tot het beleid dat het bezit of tot zijn label, en zijn leden voegen alleen op dat beleid overschrijvingen toe en verwijderen ze alleen daar. Een globale overschrijving geldt voor elk beleid, ook dat van een ander team, dus het toevoegen of verwijderen ervan vraagt het recht voor overschrijvingen over het hele project. Met een smaller recht zijn **Gebruikersoverschrijving toevoegen** en **Verwijderen** onder **Bereikbaarheidsdienst → Geavanceerd → Gebruikersoverschrijvingen** vergrendeld en zeggen ze waarom, en voegt het team zijn overschrijvingen toe op de eigen pagina **Gebruikersoverschrijvingen** van elk beleid. Hetzelfde geldt voor de API: een overschrijving zonder `onCallDutyPolicyId` wordt geweigerd voor een recht dat tot labels of tot eigen beleid is beperkt.
+
 In OneUptime Cloud hebben gebruikersoverschrijvingen het abonnement **Growth** nodig.
 
 ## API
@@ -111,7 +113,7 @@ Die wordt bereikt via de eigen persoonlijke bereikbaarheidsregels en geverifieer
 :::
 
 :::details Ik kan geen overschrijving toevoegen
-Daarvoor heb je een van de rollen hierboven nodig, en in OneUptime Cloud het abonnement **Growth**.
+Daarvoor heb je een van de rollen hierboven nodig, en in OneUptime Cloud het abonnement **Growth**. Een globale overschrijving vraagt de rol over het hele project: is de rol van je team beperkt tot zijn eigen beleid of tot enkele labels, voeg de overschrijving dan toe op de eigen pagina **Gebruikersoverschrijvingen** van het beleid.
 :::
 
 ## Volgende stappen

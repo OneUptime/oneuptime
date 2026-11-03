@@ -70,6 +70,8 @@ När någon lämnar projektet tas varje åsidosättning som nämner hen och inte
 
 **Projektägare**, **Projektadministratör**, **Projektmedlem**, **Jouradministratör** och **Jourmedlem** får lägga till och ta bort åsidosättningar; **Tittare** och **Jourtittare** får se dem. I en anpassad roll heter behörigheterna **Create On-Call Duty Policy User Override**, **Delete On-Call Duty Policy User Override** och **Read On-Call Duty Policy User Override**. På **Tidslinje för jourscheman** ser bara personer som får läsa åsidosättningar vems pass som täcks upp.
 
+En åsidosättning på en policy följer policyns omfattning. Ge ett team **Jourmedlem** begränsad till de policyer det äger, eller till sin etikett, så lägger dess medlemmar till och tar bort åsidosättningar bara på de policyerna. En global åsidosättning gäller för varje policy, även ett annat teams, så att lägga till eller ta bort en kräver behörigheten för åsidosättningar över hela projektet. Med en snävare behörighet är **Lägg till Användaråsidosättning** och **Ta bort** under **Jourtjänst → Avancerad → Användaråsidosättningar** låsta och säger varför, och teamet lägger till sina åsidosättningar på varje policys egen sida **Användaråsidosättningar**. Detsamma gäller API:et: en åsidosättning utan `onCallDutyPolicyId` avvisas för en behörighet som är begränsad till etiketter eller till ägda policyer.
+
 I OneUptime Cloud kräver användaråsidosättningar abonnemanget **Growth**.
 
 ## API
@@ -111,7 +113,7 @@ Hen nås via sina egna personliga jourregler och verifierade metoder. Slå upp h
 :::
 
 :::details Jag kan inte lägga till en åsidosättning
-Det kräver en av rollerna ovan, och i OneUptime Cloud abonnemanget **Growth**.
+Det kräver en av rollerna ovan, och i OneUptime Cloud abonnemanget **Growth**. En global åsidosättning kräver rollen över hela projektet: är ditt teams roll begränsad till dess egna policyer eller till några etiketter, lägg till åsidosättningen på policyns egen sida **Användaråsidosättningar**.
 :::
 
 ## Nästa steg

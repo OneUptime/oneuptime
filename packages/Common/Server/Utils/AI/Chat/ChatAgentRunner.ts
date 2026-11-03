@@ -26,6 +26,11 @@ import {
   AIRunEventResultSummary,
   AIRunPausedState,
 } from "../../../../Types/AI/AIChatTypes";
+import {
+  AIActionSentence,
+  AIActionWords,
+  describeAIActionWords,
+} from "../../../../Types/AI/AIActionWords";
 import AIService, { AILogResponse } from "../../../Services/AIService";
 import AIConversationMessageService from "../../../Services/AIConversationMessageService";
 import AIConversationService from "../../../Services/AIConversationService";
@@ -153,7 +158,8 @@ export interface ChatTurnRequest {
  */
 export interface ChatExtraTool extends ObservabilityAssistantExtraTool {
   isMutation?: boolean | undefined;
-  buildActionTitle?: ((args: JSONObject) => string) | undefined;
+  // As a toolbox tool's: a sentence of Types/AI/AIActionWords.
+  buildActionTitle?: ((args: JSONObject) => AIActionSentence) | undefined;
 }
 
 // The user's per-action approve/deny decision when resuming a paused turn.
@@ -167,7 +173,10 @@ export interface ResumeToolDecision {
  * prepare names the record better than buildActionTitle can, and its line
  * (PreparedMutation).
  */
-type PreparedActionWords = Pick<PreparedMutation, "title" | "description">;
+type PreparedActionWords = Pick<
+  PreparedMutation,
+  "title" | "description" | "namedArguments"
+>;
 
 /*
  * Per-turn limits. A turn is not rationed: no wall clock, and step counts
@@ -1451,7 +1460,14 @@ export default class ChatAgentRunner {
 
       return {
         ...(prepared.title ? { title: prepared.title } : {}),
-        ...(prepared.description ? { description: prepared.description } : {}),
+        ...(prepared.description && prepared.description.length > 0
+          ? { description: prepared.description }
+          : {}),
+        ...(prepared.title &&
+        prepared.namedArguments &&
+        prepared.namedArguments.length > 0
+          ? { namedArguments: prepared.namedArguments }
+          : {}),
       };
     } catch (error) {
       logger.error(
@@ -1482,14 +1498,42 @@ export default class ChatAgentRunner {
           return candidate.definition.name === toolCall.name;
         });
 
-    const title: string = words?.title
+    /*
+     * The card's title and line as sentences, which it says in the reader's
+     * language (Types/AI/AIActionWords), and in English, which the model
+     * reads in the turn's history and the exports print. A tool with no
+     * title of its own is named by its name, as written.
+     */
+    const titleSentence: AIActionSentence | undefined = words?.title
       ? words.title
       : tool?.buildActionTitle
         ? tool.buildActionTitle(toolCall.arguments)
         : extraTool?.buildActionTitle
           ? extraTool.buildActionTitle(toolCall.arguments)
-          : toolCall.name;
-    const description: string | undefined = words?.description;
+          : undefined;
+    const descriptionSentences: Array<AIActionSentence> =
+      words?.description || [];
+    const actionWords: AIActionWords | undefined = titleSentence
+      ? {
+          title: titleSentence,
+          ...(descriptionSentences.length > 0
+            ? { description: descriptionSentences }
+            : {}),
+          ...(words?.title && words.namedArguments
+            ? { namedArguments: words.namedArguments }
+            : {}),
+        }
+      : undefined;
+    // A tool with no title of its own is named by its name, as written.
+    const english: { title: string; description?: string | undefined } =
+      describeAIActionWords(
+        actionWords || {
+          title: { template: toolCall.name },
+          description: descriptionSentences,
+        },
+      );
+    const title: string = english.title;
+    const description: string | undefined = english.description;
 
     const existing: AIChatToolAction | undefined = state.toolActions.find(
       (action: AIChatToolAction) => {
@@ -1511,6 +1555,7 @@ export default class ChatAgentRunner {
       toolName: toolCall.name,
       title: title,
       ...(description ? { description } : {}),
+      ...(actionWords ? { words: actionWords } : {}),
       arguments: toolCall.arguments,
       isMutation: true,
       requiresApproval: requiresApproval,

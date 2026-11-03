@@ -12,8 +12,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * again after a stop part way: a column or key that is already there is
  * left as it is.
  */
-export class AddDataAssetFeedUser1808920000000 implements MigrationInterface {
-  public name: string = "AddDataAssetFeedUser1808920000000";
+export class AddDataAssetFeedUser1808930000000 implements MigrationInterface {
+  public name: string = "AddDataAssetFeedUser1808930000000";
 
   // The validation runs outside a transaction.
   public transaction: boolean = false;

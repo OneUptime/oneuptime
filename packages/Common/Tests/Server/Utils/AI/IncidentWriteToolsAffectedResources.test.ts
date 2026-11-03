@@ -27,6 +27,7 @@ import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedExc
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import { afterEach, describe, expect, test } from "@jest/globals";
+import { actionTitleText, actionLineText } from "../../../Helpers/AIActionText";
 
 /*
  * ISSUE #5293, IN THE INCIDENT TOOLS.
@@ -308,7 +309,9 @@ describe("create_incident, prepared for approval", () => {
       title: "High memory usage",
       affectedResources: [{ resourceType: "Host", resourceId: HOST_ID }],
     });
-    expect(prepared.description).toBe('Linked to host "test01".');
+    expect(actionLineText(prepared.description)).toBe(
+      'Linked to host "test01".',
+    );
   });
 
   test("a call's own list is kept as named, and named on the card", async () => {
@@ -329,7 +332,7 @@ describe("create_incident, prepared for approval", () => {
       await CreateIncidentTool.prepareMutation!(args, context(HOST_PAGE));
 
     expect(prepared.arguments).toEqual(args);
-    expect(prepared.description).toBe(
+    expect(actionLineText(prepared.description)).toBe(
       'Linked to Kubernetes cluster "prod-east".',
     );
   });
@@ -342,7 +345,7 @@ describe("create_incident, prepared for approval", () => {
       );
 
     expect(prepared.arguments).toEqual({ title: "Checkout down" });
-    expect(prepared.description).toBeUndefined();
+    expect(actionLineText(prepared.description)).toBeUndefined();
   });
 
   test("a resource the person may not view is flagged on the card before they approve", async () => {
@@ -354,7 +357,7 @@ describe("create_incident, prepared for approval", () => {
         context(HOST_PAGE),
       );
 
-    expect(prepared.description).toBe(
+    expect(actionLineText(prepared.description)).toBe(
       "The resources named will not be linked.",
     );
   });
@@ -665,7 +668,7 @@ describe("add_incident_affected_resources", () => {
       incidentId: INCIDENT_ID,
       affectedResources: [{ resourceType: "Host", resourceId: HOST_ID }],
     });
-    expect(prepared.description).toBe('Adds host "test01".');
+    expect(actionLineText(prepared.description)).toBe('Adds host "test01".');
   });
 
   test("prepared, the card is titled by the incident's number, read as the person - never its ID", async () => {
@@ -689,8 +692,10 @@ describe("add_incident_affected_resources", () => {
         ctx,
       );
 
-    expect(prepared.title).toBe("Link incident INC-12 to affected resources");
-    expect(prepared.title).not.toContain(INCIDENT_ID);
+    expect(actionTitleText(prepared.title)).toBe(
+      "Link incident INC-12 to affected resources",
+    );
+    expect(actionTitleText(prepared.title)).not.toContain(INCIDENT_ID);
     const args: { id: ObjectID; props: unknown } = read.mock.calls[0]![0] as {
       id: ObjectID;
       props: unknown;
@@ -718,7 +723,9 @@ describe("add_incident_affected_resources", () => {
         context(HOST_PAGE),
       );
 
-    expect(prepared.title).toBe("Link incident #12 to affected resources");
+    expect(actionTitleText(prepared.title)).toBe(
+      "Link incident #12 to affected resources",
+    );
   });
 
   test("prepared for an incident the person may not read, or that cannot be read, no title is offered", async () => {
@@ -738,8 +745,8 @@ describe("add_incident_affected_resources", () => {
         );
 
       // buildActionTitle's title stands, and the line still names the host.
-      expect(prepared.title).toBeUndefined();
-      expect(prepared.description).toBe('Adds host "test01".');
+      expect(actionTitleText(prepared.title)).toBeUndefined();
+      expect(actionLineText(prepared.description)).toBe('Adds host "test01".');
     }
 
     expect(read).toHaveBeenCalledTimes(2);
@@ -761,12 +768,14 @@ describe("add_incident_affected_resources", () => {
 
   test("buildActionTitle names the incident, and stays tidy with none", () => {
     expect(
-      AddIncidentAffectedResourcesTool.buildActionTitle!({
-        incidentId: INCIDENT_ID,
-      }),
+      actionTitleText(
+        AddIncidentAffectedResourcesTool.buildActionTitle!({
+          incidentId: INCIDENT_ID,
+        }),
+      ),
     ).toBe(`Link incident ${INCIDENT_ID} to affected resources`);
-    expect(AddIncidentAffectedResourcesTool.buildActionTitle!({})).toBe(
-      "Link this incident to affected resources",
-    );
+    expect(
+      actionTitleText(AddIncidentAffectedResourcesTool.buildActionTitle!({})),
+    ).toBe("Link this incident to affected resources");
   });
 });

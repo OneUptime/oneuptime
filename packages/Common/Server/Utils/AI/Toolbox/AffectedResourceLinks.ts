@@ -13,6 +13,13 @@ import {
   MAX_AI_AFFECTED_RESOURCES,
   readAiAffectedResourceArgument,
 } from "../../../../Types/AI/AiAffectedResources";
+import {
+  AI_ACTION_LINES,
+  AIActionSentence,
+  aiActionList,
+  aiActionResourceByName,
+  aiActionSentence,
+} from "../../../../Types/AI/AIActionWords";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import CephClusterService from "../../../Services/CephClusterService";
@@ -537,32 +544,51 @@ export default class AffectedResourceLinks {
 
   /*
    * The approval card's line: what an action links, by name - "Linked to
-   * host "test01"." - and what it will not link. Undefined when it names
-   * nothing.
+   * host "test01"." - and what it will not link, as sentences of
+   * Types/AI/AIActionWords, which the card says in the reader's language.
+   * None when it names nothing.
    */
   public static describeForPerson(data: {
     linked: Array<LinkedAffectedResource>;
     // Whether some resource named will not be linked (resolve's notLinked).
     hasNotLinked: boolean;
     verb: "Linked to" | "Adds";
-  }): string | undefined {
-    const parts: Array<string> = [];
+  }): Array<AIActionSentence> {
+    const sentences: Array<AIActionSentence> = [];
 
     if (data.linked.length > 0) {
-      parts.push(
-        `${data.verb} ${data.linked.map(describeLinkedResource).join(", ")}.`,
+      sentences.push(
+        aiActionSentence(
+          data.verb === "Adds"
+            ? AI_ACTION_LINES.adds
+            : AI_ACTION_LINES.linkedTo,
+          {
+            resources: aiActionList(
+              data.linked.map(
+                (resource: LinkedAffectedResource): AIActionSentence => {
+                  return aiActionResourceByName({
+                    noun: getAiAffectedResourceKindInfo(resource.kind).noun,
+                    name: resource.name,
+                  });
+                },
+              ),
+            ),
+          },
+        ),
       );
     }
 
     if (data.hasNotLinked) {
-      parts.push(
-        data.linked.length > 0
-          ? "Some of the other resources named will not be linked."
-          : "The resources named will not be linked.",
+      sentences.push(
+        aiActionSentence(
+          data.linked.length > 0
+            ? AI_ACTION_LINES.someNotLinked
+            : AI_ACTION_LINES.noneLinked,
+        ),
       );
     }
 
-    return parts.length > 0 ? parts.join(" ") : undefined;
+    return sentences;
   }
 
   // The answer's line for the model: what was linked, and what was not and why.

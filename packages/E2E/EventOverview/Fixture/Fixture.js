@@ -432,6 +432,14 @@ import {
   AIChatToolActionStatus,
   AIChatWidgetType,
 } from "Common/Types/AI/AIChatTypes";
+import {
+  AI_ACTION_LINES,
+  AI_ACTION_TITLES,
+  aiActionList,
+  aiActionResourceByName,
+  aiActionSentence,
+  describeAIActionWords,
+} from "Common/Types/AI/AIActionWords";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Includes from "Common/Types/BaseDatabase/Includes";
@@ -670,8 +678,12 @@ const CODE_FIX_MODES = ["act", "no-repository", "writing", "opened"];
 const codeFixMode = CODE_FIX_MODES.includes(params.get("codefix"))
   ? params.get("codefix")
   : "";
-// ?fixes=: more fixes, of every kind, on Incident #1042's Remediation step.
-const FIXES_MODES = ["many"];
+/*
+ * ?fixes=: more fixes on Incident #1042's Remediation step - of every kind
+ * (many), or the three rounds of a fix that ran, did not work and was
+ * rolled back (rolled-back, issue #5598).
+ */
+const FIXES_MODES = ["many", "rolled-back"];
 const fixesMode = FIXES_MODES.includes(params.get("fixes"))
   ? params.get("fixes")
   : "";
@@ -4628,9 +4640,21 @@ function kubectlFixCommand(sequence, tier, command, words) {
 }
 
 function kubectlFixPlan(hasRun) {
-  const execution = hasRun
-    ? { execution: { status: "Succeeded", exitCode: 0 } }
-    : {};
+  // Run the moment it is approved, as the approved-plan executor does.
+  const ranAt = new Date().toISOString();
+  const execution = (output) => {
+    return hasRun
+      ? {
+          execution: {
+            status: "Succeeded",
+            exitCode: 0,
+            output,
+            startedAt: ranAt,
+            completedAt: ranAt,
+          },
+        }
+      : {};
+  };
   return {
     commands: [
       kubectlFixCommand(
@@ -4644,7 +4668,7 @@ function kubectlFixPlan(hasRun) {
             "Fresh pods open up to 40 connections and the queue drains within 2 minutes.",
           rollbackCommand:
             "kubectl rollout undo deployment/checkout-api -n checkout",
-          ...execution,
+          ...execution("deployment.apps/checkout-api restarted"),
         },
       ),
       kubectlFixCommand(
@@ -4657,11 +4681,17 @@ function kubectlFixPlan(hasRun) {
           expectedEffect: "p95 latency falls back under 500 ms.",
           rollbackCommand:
             "kubectl scale deployment/checkout-api --replicas=4 -n checkout",
-          ...execution,
+          ...execution("deployment.apps/checkout-api scaled"),
         },
       ),
     ],
-    ...(hasRun ? { executionStatus: "Completed" } : {}),
+    ...(hasRun
+      ? {
+          executionStatus: "Completed",
+          executionStartedAt: ranAt,
+          executionCompletedAt: ranAt,
+        }
+      : {}),
   };
 }
 
@@ -4730,6 +4760,113 @@ if (fixesMode === "many") {
   });
 }
 
+/*
+ * ---------------------------------------------------------------------------
+ * A fix that ran, did not work and was rolled back (?fixes=rolled-back), the
+ * Remediation step of issue #5598: a kubectl fix OneUptime AI ran on its own
+ * on prod-eu-west-1 - raising checkout-api's memory request, which its Helm
+ * release puts back on the next upgrade - after which p95 latency did not
+ * recover, so the change was undone; the runbooks it looked through, none
+ * of which applies; and a second round, which found no safe fix.
+ * ---------------------------------------------------------------------------
+ */
+const ROLLED_BACK_FIX_SUGGESTION_ID = uuid("93000000", 5);
+const NO_RUNBOOK_SUGGESTION_ID = uuid("93000000", 6);
+const SECOND_ROUND_SUGGESTION_ID = uuid("93000000", 7);
+
+if (fixesMode === "rolled-back") {
+  insert(AutoRemediationSuggestion, {
+    _id: ROLLED_BACK_FIX_SUGGESTION_ID,
+    incidentId: new ObjectID(ID.incident(INCIDENT_NUMBER)),
+    status: "AutoExecuted",
+    suggestionType: "CommandPlan",
+    ruleNameSnapshot: 'AI remediation for cluster "prod-eu-west-1"',
+    kubernetesClusterId: new ObjectID(ID.kubernetesCluster(1)),
+    rationaleMarkdown:
+      "checkout-api's HPA is pinned at its 3-replica ceiling: each pod uses about **515Mi** against a **512Mi** memory request, so the memory-as-%-of-request metric reads ~99% against an 80% target and can never scale down. Raising the request to 1Gi brings the metric to ~50%.",
+    commandPlan: {
+      commands: [
+        {
+          ...kubectlFixCommand(
+            1,
+            "RiskyWrite",
+            "kubectl set resources deployment/checkout-api -n checkout -c checkout-api --requests=memory=1Gi",
+            {
+              rationale:
+                "Each pod's memory (~515Mi) exceeds its 512Mi request, so the HPA reads ~99% and stays at 3 replicas.",
+              expectedEffect:
+                "The deployment rolls out with a 1Gi memory request, and the HPA's metric falls from ~99% to ~50%.",
+              rollbackCommand:
+                "kubectl rollout undo deployment/checkout-api -n checkout",
+            },
+          ),
+          wasAutoExecuted: true,
+          gitOps: {
+            controller: "Helm",
+            ownerKind: "release",
+            ownerName: "checkout",
+            ownerNamespace: "checkout",
+            evidence: "annotation meta.helm.sh/release-name",
+            objectKind: "Deployment",
+            objectName: "checkout-api",
+            objectNamespace: "checkout",
+            putsBack: true,
+            reconcilesOnItsOwn: false,
+            summary:
+              "Helm release \"checkout\" (namespace checkout) declares deployment/checkout-api, and this change edits a container's resources: the release's next helm upgrade puts it back. Treat it as a stopgap - the lasting fix is the same change in the release's chart values.",
+          },
+          execution: {
+            status: "Succeeded",
+            exitCode: 0,
+            output:
+              "deployment.apps/checkout-api resource requirements updated",
+            startedAt: at("18:04", 18).toISOString(),
+            completedAt: at("18:04", 21).toISOString(),
+          },
+          rollbackExecution: {
+            status: "Succeeded",
+            exitCode: 0,
+            output: "deployment.apps/checkout-api rolled back",
+            startedAt: at("18:14", 25).toISOString(),
+            completedAt: at("18:14", 27).toISOString(),
+          },
+        },
+      ],
+      executionStatus: "Completed",
+      executionStartedAt: at("18:04", 18).toISOString(),
+      executionCompletedAt: at("18:04", 21).toISOString(),
+      rollbackStatus: "Completed",
+    },
+    verificationStatus: "Failed",
+    verificationNote:
+      "The AI command remediation completed but the service did not recover within the verification window — escalation continues as normal. Rollback completed: 1 command(s) undone.",
+    verificationWindowMinutes: 10,
+    verificationCompletedAt: at("18:14", 21),
+    createdAt: at("18:04", 10),
+  });
+  insert(AutoRemediationSuggestion, {
+    _id: NO_RUNBOOK_SUGGESTION_ID,
+    incidentId: new ObjectID(ID.incident(INCIDENT_NUMBER)),
+    status: "NoneApplicable",
+    suggestionType: "Runbook",
+    ruleNameSnapshot: "All incidents",
+    rationaleMarkdown:
+      "None of this project's 4 runbooks changes checkout-api's resources or restarts it, so none applies to this incident.",
+    createdAt: at("18:04", 30),
+  });
+  insert(AutoRemediationSuggestion, {
+    _id: SECOND_ROUND_SUGGESTION_ID,
+    incidentId: new ObjectID(ID.incident(INCIDENT_NUMBER)),
+    status: "NoneApplicable",
+    suggestionType: "CommandPlan",
+    ruleNameSnapshot: 'AI remediation for cluster "prod-eu-west-1" (round 2)',
+    kubernetesClusterId: new ObjectID(ID.kubernetesCluster(1)),
+    rationaleMarkdown:
+      "Raising the memory request again would repeat the change that was just rolled back, and nothing else on the cluster explains the latency, so OneUptime AI proposes no change.",
+    createdAt: at("18:15", 2),
+  });
+}
+
 // Approve & Run (POST /auto-remediation/approve) on a fix that waits.
 function approveFix(suggestionId) {
   const record = table(AutoRemediationSuggestion).find((row) => {
@@ -4745,6 +4882,9 @@ function approveFix(suggestionId) {
     throw fail(400, "Only suggested remediations can be approved.");
   }
   record.status = "Approved";
+  // Who approved it and when, as the server stamps them.
+  record.approvedAt = new Date();
+  record.approvedByUser = people.maya;
   if (String(record._id) === KUBECTL_FIX_SUGGESTION_ID) {
     record.commandPlan = kubectlFixPlan(true);
   }
@@ -4759,6 +4899,8 @@ function dismissFix(suggestionId) {
     throw fail(400, "Only suggested remediations can be dismissed.");
   }
   record.status = "Dismissed";
+  record.dismissedAt = new Date();
+  record.dismissedByUser = people.maya;
 }
 
 /*
@@ -6325,6 +6467,57 @@ function threadRunEvents(runId, startedAt, options) {
 const THREAD_ANSWER_TO_SENT_QUESTION =
   "checkout-api is still the only service above its latency threshold: its p95 is back under 500 ms since 18:12 and no other monitor has changed state [C1].";
 
+/*
+ * An action's card as the server stores it: its title and line as
+ * sentences (Common/Types/AI/AIActionWords), which the card says in the
+ * reader's language, the record by its number and the host by its name as
+ * data - beside their English, which the model and the exports read.
+ */
+function storedActionWords(words) {
+  const english = describeAIActionWords(words);
+
+  return {
+    title: english.title,
+    ...(english.description ? { description: english.description } : {}),
+    words,
+  };
+}
+
+// Acknowledging the thread's incident or alert, named by its number.
+function acknowledgeWords(kind, number) {
+  return storedActionWords({
+    title:
+      kind === "alert"
+        ? aiActionSentence(AI_ACTION_TITLES.acknowledgeAlert, {
+            alert: `#${number}`,
+          })
+        : aiActionSentence(AI_ACTION_TITLES.acknowledgeIncident, {
+            incident: `#${number}`,
+          }),
+    namedArguments: [`${kind}Id`],
+  });
+}
+
+// Linking it to host checkout-api-7f9c, as its prepare names both.
+function linkWords(kind, number) {
+  return storedActionWords({
+    title:
+      kind === "alert"
+        ? aiActionSentence(AI_ACTION_TITLES.linkAlert, { alert: `#${number}` })
+        : aiActionSentence(AI_ACTION_TITLES.linkIncident, {
+            incident: `#${number}`,
+          }),
+    description: [
+      aiActionSentence(AI_ACTION_LINES.adds, {
+        resources: aiActionList([
+          aiActionResourceByName({ noun: "host", name: "checkout-api-7f9c" }),
+        ]),
+      }),
+    ],
+    namedArguments: [`${kind}Id`],
+  });
+}
+
 function seedThread(kind, number) {
   const subject = `${kind} #${number}`;
   const messages = [];
@@ -6403,7 +6596,8 @@ function seedThread(kind, number) {
           {
             id: "call_acknowledge",
             toolName: `acknowledge_${kind}`,
-            title: `Acknowledge ${subject}`,
+            // "Acknowledge incident #1042", and its sentence.
+            ...acknowledgeWords(kind, number),
             arguments: { [`${kind}Number`]: number },
             isMutation: true,
             requiresApproval: false,
@@ -6524,7 +6718,8 @@ function seedThread(kind, number) {
         {
           id: "call_acknowledge",
           toolName: `acknowledge_${kind}`,
-          title: `Acknowledge ${subject}`,
+          // "Acknowledge incident #1042", and its sentence.
+          ...acknowledgeWords(kind, number),
           arguments: { [`${kind}Number`]: number },
           isMutation: true,
           requiresApproval: true,
@@ -6562,8 +6757,12 @@ function seedThread(kind, number) {
         {
           id: "call_link",
           toolName: `add_${kind}_affected_resources`,
-          title: `Link ${kind} #${number} to affected resources`,
-          description: 'Adds host "checkout-api-7f9c".',
+          /*
+           * "Link incident #1042 to affected resources" and 'Adds host
+           * "checkout-api-7f9c".', and their sentences: the title names
+           * the record, so the card leaves its ID out of the arguments.
+           */
+          ...linkWords(kind, number),
           arguments: {
             [`${kind}Id`]:
               kind === "incident" ? ID.incident(number) : ID.alert(number),

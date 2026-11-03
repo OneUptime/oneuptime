@@ -32,6 +32,8 @@ import SubscriberContactKey from "../../../Types/StatusPage/SubscriberContactKey
  *    the subscription the request names;
  *  - forgetting a status page private user's password
  *    (POST /identity/status-page/forgot-password);
+ *  - asking a status page for a sign-in link to its private user's address
+ *    (POST /identity/status-page/send-magic-link);
  *  - forgetting an account's password (POST /identity/forgot-password);
  *  - signing up for an account (POST /identity/signup), which emails the
  *    address signed up with;
@@ -64,9 +66,10 @@ import SubscriberContactKey from "../../../Types/StatusPage/SubscriberContactKey
  * sign-up refused or failed before anything went out (giveBack on the
  * permit assertMaySend hands the route). One that spends it has sent that
  * contact the message too: a password reset or a link that works, which its
- * owner can use. Manage links are the one exception, on purpose: they are
- * counted whether or not a subscription matches, so that a refusal says
- * nothing about who is subscribed.
+ * owner can use. Manage links and status page sign-in links are the
+ * exceptions, on purpose: they are counted whether or not a subscription,
+ * or a private user, matches, so that a refusal says nothing about who is
+ * subscribed or who may sign in.
  *
  * The limits are sized for people, generously, because the people behind
  * one address - an office, a campus, a carrier's network - sign up together
@@ -112,6 +115,9 @@ export enum PublicMessageKind {
 
   // POST /identity/status-page/forgot-password.
   StatusPagePasswordReset = "status-page-password-reset",
+
+  // POST /identity/status-page/send-magic-link: a private user's sign-in link.
+  StatusPageMagicLink = "status-page-magic-link",
 
   // POST /identity/forgot-password.
   PasswordReset = "password-reset",
@@ -310,6 +316,13 @@ const parsePositiveIntFromEnv: (name: string, fallback: number) => number = (
  * in an hour. Each reset link replaces the last, so a person needs one; five
  * is room for a slow inbox.
  *
+ * Sign-in links of a status page's private user: thirty from one address in
+ * a quarter of an hour, and ten to one address in an hour. Each link
+ * replaces the last and works once, so a reader who signs in on their
+ * laptop and then their phone asks twice; ten is room for a day of that
+ * and a slow inbox. Counted whether or not the address is a private user of
+ * the page, so a refusal says nothing about who may sign in.
+ *
  * The emails a sign-up for an account sends: sixty from one address in a
  * quarter of an hour - a class or a workshop signs up together, on one
  * network - and five to one address in an hour.
@@ -369,6 +382,16 @@ const CONFIG: PublicMessageRateLimitConfig = {
         5,
       ),
     },
+    [PublicMessageKind.StatusPageMagicLink]: {
+      perClientLimit: parsePositiveIntFromEnv(
+        "STATUS_PAGE_MAGIC_LINKS_PER_IP",
+        30,
+      ),
+      perContactLimit: parsePositiveIntFromEnv(
+        "STATUS_PAGE_MAGIC_LINKS_PER_CONTACT",
+        10,
+      ),
+    },
     [PublicMessageKind.PasswordReset]: {
       perClientLimit: parsePositiveIntFromEnv("PASSWORD_RESETS_PER_IP", 30),
       perContactLimit: parsePositiveIntFromEnv(
@@ -409,6 +432,8 @@ const CLIENT_REFUSALS: Record<PublicMessageKind, string> = {
     "Too many links asked for from your network. Please wait a few minutes and try again.",
   [PublicMessageKind.StatusPagePasswordReset]:
     "Too many password resets asked for from your network. Please wait a few minutes and try again.",
+  [PublicMessageKind.StatusPageMagicLink]:
+    "Too many sign-in links asked for from your network. Please wait a few minutes and try again.",
   [PublicMessageKind.PasswordReset]:
     "Too many password resets asked for from your network. Please wait a few minutes and try again.",
   [PublicMessageKind.SignUpEmail]:
@@ -423,6 +448,8 @@ const CLIENT_TEXT_MESSAGE_REFUSALS: Record<PublicMessageKind, string> = {
     "Too many links asked for by text message from your network. Please wait a few minutes and try again.",
   [PublicMessageKind.StatusPagePasswordReset]:
     CLIENT_REFUSALS[PublicMessageKind.StatusPagePasswordReset],
+  [PublicMessageKind.StatusPageMagicLink]:
+    CLIENT_REFUSALS[PublicMessageKind.StatusPageMagicLink],
   [PublicMessageKind.PasswordReset]:
     CLIENT_REFUSALS[PublicMessageKind.PasswordReset],
   [PublicMessageKind.SignUpEmail]:
@@ -457,6 +484,9 @@ const CONTACT_REFUSALS: Record<
   ): string => {
     return `Too many password resets asked for ${contactName} in the last hour. Please use the link in the latest email, or try again later.`;
   },
+  [PublicMessageKind.StatusPageMagicLink]: (contactName: string): string => {
+    return `Too many sign-in links asked for ${contactName} in the last hour. Please use the link in the latest email, or try again later.`;
+  },
   [PublicMessageKind.PasswordReset]: (contactName: string): string => {
     return `Too many password resets asked for ${contactName} in the last hour. Please use the link in the latest email, or try again later.`;
   },
@@ -488,6 +518,8 @@ const TEXT_MESSAGE_UNAVAILABLE_REFUSALS: Record<PublicMessageKind, string> = {
   [PublicMessageKind.StatusPageManageLink]:
     "Links cannot be sent by text message right now. Please try again in a few minutes.",
   [PublicMessageKind.StatusPagePasswordReset]:
+    "Text messages cannot be sent right now. Please try again in a few minutes.",
+  [PublicMessageKind.StatusPageMagicLink]:
     "Text messages cannot be sent right now. Please try again in a few minutes.",
   [PublicMessageKind.PasswordReset]:
     "Text messages cannot be sent right now. Please try again in a few minutes.",
@@ -553,6 +585,9 @@ export default class PublicMessageRateLimit {
         },
         [PublicMessageKind.StatusPagePasswordReset]: {
           ...CONFIG.kinds[PublicMessageKind.StatusPagePasswordReset],
+        },
+        [PublicMessageKind.StatusPageMagicLink]: {
+          ...CONFIG.kinds[PublicMessageKind.StatusPageMagicLink],
         },
         [PublicMessageKind.PasswordReset]: {
           ...CONFIG.kinds[PublicMessageKind.PasswordReset],
