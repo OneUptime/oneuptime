@@ -815,9 +815,10 @@ export class Service extends ProjectReferencesService<Model> {
 
   /**
    * Resources whose metrics stopped for CLOUD_RESOURCE_DISCONNECTED_MINUTES
-   * read "not reporting". One set-based UPDATE: a collector that stops can
-   * take thousands of resources with it, and each one is only a status.
-   * Returns how many rows changed.
+   * read "not reporting", and no longer need attention for what they
+   * reported last (CloudResourceHealth). One set-based UPDATE: a collector
+   * that stops can take thousands of resources with it, and each one is
+   * only a status. Returns how many rows changed.
    */
   @CaptureSpan()
   public async markUnreportedMonitoredResources(): Promise<number> {
@@ -833,7 +834,8 @@ export class Service extends ProjectReferencesService<Model> {
 
     const rows: unknown = await this.getRepository().manager.query(
       `UPDATE "CloudResource"
-        SET "otelCollectorStatus" = 'disconnected'
+        SET "otelCollectorStatus" = 'disconnected',
+          "healthSeverity" = NULL
         WHERE "deletedAt" IS NULL
           AND "cloudResourceKind" = $1
           AND "otelCollectorStatus" = 'connected'
@@ -903,6 +905,7 @@ export class Service extends ProjectReferencesService<Model> {
           "autoArchivedAt" = $3,
           "archivedByUserId" = NULL,
           "otelCollectorStatus" = 'disconnected',
+          "healthSeverity" = NULL,
           "updatedAt" = CURRENT_TIMESTAMP
         FROM "candidates"
         WHERE stale."_id" = "candidates"."_id"

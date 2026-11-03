@@ -9,6 +9,7 @@ import {
   EvaluateOverTimeType,
   FilterType,
   MetricAnomalyDetectionOptions,
+  MetricForecastOptions,
   MetricMonitorOptions,
   NoDataPolicy,
 } from "./CriteriaFilter";
@@ -137,6 +138,8 @@ export interface TelemetryAlertRule {
   thresholdUnit: string | undefined;
   // The anomaly conditions' sensitivity and baseline.
   anomalyDetection: MetricAnomalyDetectionOptions | undefined;
+  // Metrics only: how far ahead the forecast conditions look.
+  forecast?: MetricForecastOptions | undefined;
   // What happens when the rule matches.
   action: TelemetryAlertRuleAction;
   // The monitor's status while the rule matches.
@@ -174,6 +177,11 @@ const ANOMALY_COMPARISONS: Array<FilterType> = [
   FilterType.AnomalouslyHigh,
   FilterType.AnomalouslyLow,
   FilterType.Anomalous,
+];
+
+const FORECAST_COMPARISONS: Array<FilterType> = [
+  FilterType.ForecastAbove,
+  FilterType.ForecastBelow,
 ];
 
 const READ_ONLY_COMPARISONS: Array<FilterType> = [FilterType.NotEqualTo];
@@ -310,6 +318,10 @@ export default class TelemetryAlertRuleUtil {
       comparisons.push(...ANOMALY_COMPARISONS);
     }
 
+    if (TelemetryAlertRuleUtil.supportsForecast(data.monitorType)) {
+      comparisons.push(...FORECAST_COMPARISONS);
+    }
+
     if (data.current && !comparisons.includes(data.current)) {
       if (TelemetryAlertRuleUtil.isReadableComparison(data)) {
         comparisons.push(data.current);
@@ -321,6 +333,31 @@ export default class TelemetryAlertRuleUtil {
 
   public static isAnomaly(filterType: FilterType | undefined): boolean {
     return CriteriaFilterUtil.isAnomalyFilterType(filterType);
+  }
+
+  /*
+   * The forecast conditions are a metric's: a trend is fitted to a metric's
+   * values over its time window (MetricMonitorCriteria). A count of logs,
+   * spans or exceptions has no such series of values.
+   */
+  public static supportsForecast(monitorType: MonitorType): boolean {
+    return monitorType === MonitorType.Metrics;
+  }
+
+  public static isForecast(filterType: FilterType | undefined): boolean {
+    return CriteriaFilterUtil.isForecastFilterType(filterType);
+  }
+
+  /*
+   * Whether the rule has no opposite to recover on: an anomaly or a
+   * forecast is healthy again when it stops matching, so its monitor goes
+   * back to its default status then.
+   */
+  public static hasNoOpposite(filterType: FilterType | undefined): boolean {
+    return (
+      TelemetryAlertRuleUtil.isAnomaly(filterType) ||
+      TelemetryAlertRuleUtil.isForecast(filterType)
+    );
   }
 
   // The window of a count monitor, in seconds, as its step holds it.
@@ -533,6 +570,9 @@ export default class TelemetryAlertRuleUtil {
       onNoDataPolicy: isMetric ? metricOptions?.onNoDataPolicy : undefined,
       thresholdUnit: isMetric ? metricOptions?.thresholdUnit : undefined,
       anomalyDetection: metricOptions?.anomalyDetection,
+      ...(isMetric && metricOptions?.forecast
+        ? { forecast: metricOptions.forecast }
+        : {}),
       action: TelemetryAlertRuleUtil.getAction(ruleInstance),
       monitorStatusId: ruleData!.changeMonitorStatus
         ? ruleData!.monitorStatusId
@@ -625,12 +665,13 @@ export default class TelemetryAlertRuleUtil {
         instances[recoveryIndex]!;
 
       /*
-       * An anomaly has no opposite to write: the monitor is healthy again
-       * when no criteria matches, and its default status is the one this
-       * criteria set (read() requires that), so dropping it changes nothing.
+       * An anomaly or a forecast has no opposite to write: the monitor is
+       * healthy again when no criteria matches, and its default status is
+       * the one this criteria set (read() requires that), so dropping it
+       * changes nothing.
        */
       if (
-        TelemetryAlertRuleUtil.isAnomaly(rule.filterType) ||
+        TelemetryAlertRuleUtil.hasNoOpposite(rule.filterType) ||
         rule.recovery === TelemetryAlertRuleRecovery.DefaultStatus
       ) {
         instances.splice(recoveryIndex, 1);
@@ -800,6 +841,10 @@ export default class TelemetryAlertRuleUtil {
       return true;
     }
 
+    if (FORECAST_COMPARISONS.includes(data.current)) {
+      return TelemetryAlertRuleUtil.supportsForecast(data.monitorType);
+    }
+
     return (
       ANOMALY_COMPARISONS.includes(data.current) &&
       TelemetryAlertRuleUtil.supportsAnomaly(data.monitorType, data.measure)
@@ -917,8 +962,8 @@ export default class TelemetryAlertRuleUtil {
     if (
       recoveryFilter.checkOn !== ruleFilter.checkOn ||
       recoveryFilter.evaluateOverTime ||
-      TelemetryAlertRuleUtil.isAnomaly(ruleFilter.filterType) ||
-      TelemetryAlertRuleUtil.isAnomaly(recoveryFilter.filterType)
+      TelemetryAlertRuleUtil.hasNoOpposite(ruleFilter.filterType) ||
+      TelemetryAlertRuleUtil.hasNoOpposite(recoveryFilter.filterType)
     ) {
       return null;
     }
@@ -1182,6 +1227,8 @@ export default class TelemetryAlertRuleUtil {
         "anomalyDetection",
         rule.anomalyDetection,
       );
+      // Kept the same way: a rule switched back to a forecast finds its horizon.
+      TelemetryAlertRuleUtil.setOrDelete(options, "forecast", rule.forecast);
 
       filter.metricMonitorOptions = options;
     } else {

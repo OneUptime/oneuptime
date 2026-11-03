@@ -107,6 +107,7 @@ const WIDEST_LABEL_LINE: Record<string, number> = {
   "telemetry/cloud-other-platforms": 23,
   "telemetry/cloud-troubleshooting": 31,
   "telemetry/cloud-accounts": 24,
+  "telemetry/cloud-costs": 26,
   "telemetry/cloud-resources": 23,
 };
 

@@ -239,7 +239,7 @@
     };
 </script>
 
-<%# The partial loads the Google Tag Manager container once consent allows it. -%>
+<%# The partial loads the Google Tag Manager container, in Consent Mode's advanced mode. -%>
 <%- include('../../Common/Server/Views/Partials/AnalyticsConsent', {
     enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
 }) -%>

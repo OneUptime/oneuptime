@@ -333,6 +333,7 @@ De `check_on`-waarden die elk monitortype het meest gebruikt. De criteria-editor
 | Serverprocessen | `Is Executing`, `Is Not Executing` |
 | Scripts | `Evaluates To True` |
 | Afwijkingen, voor metrieken, logs en traces | `Anomalously High`, `Anomalously Low`, `Anomalous` |
+| Voorspellingen, voor metrieken | `Forecast Above`, `Forecast Below` (de termijn is `forecast.horizonInHours` in `metric_monitor_options`: een week als die ontbreekt) |
 
 Een filter die overeenkomt als een SSL-certificaat binnen 14 dagen of minder verloopt:
 

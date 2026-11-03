@@ -7,6 +7,7 @@ import {
   AnomalyDetectionSensitivity,
   CheckOn,
   DEFAULT_ANOMALY_WINDOW_DAYS,
+  DEFAULT_FORECAST_HORIZON_IN_HOURS,
   EvaluateOverTimeType,
   FilterType,
   MetricAnomalyDetectionOptions,
@@ -58,6 +59,8 @@ import {
   ANOMALY_SENSITIVITY_CHOICES,
   getComparisonChoices,
   getCountTitle,
+  getForecastHorizonChoices,
+  getRollingTimeInSeconds,
   getShapeProblemText,
   getWindowOptions,
   METRIC_AGGREGATION_CHOICES,
@@ -196,6 +199,36 @@ const NO_DATA_OPTIONS: Array<TelemetryRuleChoice<NoDataPolicy>> = [
   },
 ];
 
+/*
+ * What a rule switched to a forecast starts with: a week ahead, and - when
+ * it read a window under an hour, which holds no trend worth following - the
+ * last 7 days to draw the trend through. A rule that already forecast keeps
+ * the window it was given.
+ */
+export const getForecastStart: (data: {
+  rule: Pick<TelemetryAlertRule, "filterType" | "rollingTime" | "forecast">;
+  filterType: FilterType;
+}) => Partial<TelemetryAlertRule> = (data: {
+  rule: Pick<TelemetryAlertRule, "filterType" | "rollingTime" | "forecast">;
+  filterType: FilterType;
+}): Partial<TelemetryAlertRule> => {
+  const start: Partial<TelemetryAlertRule> = {
+    forecast: data.rule.forecast || {
+      horizonInHours: DEFAULT_FORECAST_HORIZON_IN_HOURS,
+    },
+  };
+
+  if (
+    !TelemetryAlertRuleUtil.isForecast(data.rule.filterType) &&
+    getRollingTimeInSeconds(data.rule.rollingTime || RollingTime.Past1Minute) <
+      3600
+  ) {
+    start.rollingTime = RollingTime.Past7Days;
+  }
+
+  return start;
+};
+
 const toDropdownOptions: <T extends string>(
   choices: Array<TelemetryRuleChoice<T>>,
 ) => Array<DropdownOption> = <T extends string>(
@@ -296,6 +329,7 @@ const TelemetryRuleEditor: FunctionComponent<ComponentProps> = (
   const noDataLabelId: string = useId();
   const measureLabelId: string = useId();
   const baselineWindowLabelId: string = useId();
+  const horizonLabelId: string = useId();
 
   /*
    * The value as typed: a box holding "1." or "-" while someone types is
@@ -525,6 +559,9 @@ const TelemetryRuleEditor: FunctionComponent<ComponentProps> = (
   }
 
   const isAnomaly: boolean = TelemetryAlertRuleUtil.isAnomaly(rule.filterType);
+  const isForecast: boolean = TelemetryAlertRuleUtil.isForecast(
+    rule.filterType,
+  );
 
   const comparisonOptions: Array<DropdownOption> = toDropdownOptions(
     getComparisonChoices({
@@ -622,37 +659,39 @@ const TelemetryRuleEditor: FunctionComponent<ComponentProps> = (
       <></>
     );
 
-  const aggregationField: ReactElement = isMetric ? (
-    <div data-testid="telemetry-rule-aggregation">
-      <FieldLabelElement
-        id={aggregationLabelId}
-        title={TelemetryRuleCopy.aggregationTitle}
-        hideOptionalLabel={true}
-      />
-      <Dropdown
-        ariaLabelledby={aggregationLabelId}
-        isClearable={false}
-        value={toDropdownOptions(METRIC_AGGREGATION_CHOICES).find(
-          (option: DropdownOption) => {
-            return (
-              option.value ===
-              (rule.metricAggregationType || EvaluateOverTimeType.AllValues)
-            );
-          },
-        )}
-        options={toDropdownOptions(METRIC_AGGREGATION_CHOICES)}
-        onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
-          if (value) {
-            changeCondition({
-              metricAggregationType: value as EvaluateOverTimeType,
-            });
-          }
-        }}
-      />
-    </div>
-  ) : (
-    <></>
-  );
+  // A forecast reads every value of the window into one trend.
+  const aggregationField: ReactElement =
+    isMetric && !isForecast ? (
+      <div data-testid="telemetry-rule-aggregation">
+        <FieldLabelElement
+          id={aggregationLabelId}
+          title={TelemetryRuleCopy.aggregationTitle}
+          hideOptionalLabel={true}
+        />
+        <Dropdown
+          ariaLabelledby={aggregationLabelId}
+          isClearable={false}
+          value={toDropdownOptions(METRIC_AGGREGATION_CHOICES).find(
+            (option: DropdownOption) => {
+              return (
+                option.value ===
+                (rule.metricAggregationType || EvaluateOverTimeType.AllValues)
+              );
+            },
+          )}
+          options={toDropdownOptions(METRIC_AGGREGATION_CHOICES)}
+          onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
+            if (value) {
+              changeCondition({
+                metricAggregationType: value as EvaluateOverTimeType,
+              });
+            }
+          }}
+        />
+      </div>
+    ) : (
+      <></>
+    );
 
   const windowField: ReactElement = isMetric
     ? renderWindowField({
@@ -739,6 +778,9 @@ const TelemetryRuleEditor: FunctionComponent<ComponentProps> = (
                       sensitivity: AnomalyDetectionSensitivity.Medium,
                     },
                   }
+                : {}),
+              ...(TelemetryAlertRuleUtil.isForecast(filterType)
+                ? getForecastStart({ rule, filterType })
                 : {}),
             });
           }
@@ -842,6 +884,45 @@ const TelemetryRuleEditor: FunctionComponent<ComponentProps> = (
         )}
       </div>
     </div>
+  );
+
+  // How far ahead a forecast rule follows the trend.
+  const horizonInHours: number =
+    rule.forecast?.horizonInHours || DEFAULT_FORECAST_HORIZON_IN_HOURS;
+  const horizonOptions: Array<DropdownOption> = getForecastHorizonChoices({
+    current: horizonInHours,
+    translator,
+  }).map((choice: TelemetryRuleChoice<number>): DropdownOption => {
+    return { value: choice.value, label: choice.label };
+  });
+  const horizonField: ReactElement = isForecast ? (
+    <div data-testid="telemetry-rule-forecast-horizon">
+      <FieldLabelElement
+        id={horizonLabelId}
+        title={TelemetryRuleCopy.forecastHorizonTitle}
+        hideOptionalLabel={true}
+      />
+      <Dropdown
+        ariaLabelledby={horizonLabelId}
+        isClearable={false}
+        value={horizonOptions.find((option: DropdownOption) => {
+          return option.value === horizonInHours;
+        })}
+        options={horizonOptions}
+        onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
+          if (value) {
+            changeCondition({
+              forecast: {
+                ...(rule.forecast || {}),
+                horizonInHours: Number(value),
+              },
+            });
+          }
+        }}
+      />
+    </div>
+  ) : (
+    <></>
   );
 
   /*
@@ -986,6 +1067,7 @@ const TelemetryRuleEditor: FunctionComponent<ComponentProps> = (
               {windowField}
               {comparisonField}
               {valueField}
+              {horizonField}
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -1002,6 +1084,17 @@ const TelemetryRuleEditor: FunctionComponent<ComponentProps> = (
           >
             {sentence}
           </p>
+
+          {isForecast ? (
+            <p
+              className="mt-2 text-xs text-gray-500"
+              data-testid="telemetry-rule-forecast-hint"
+            >
+              {translator.translateText(TelemetryRuleCopy.forecastHint)}
+            </p>
+          ) : (
+            <></>
+          )}
 
           {anomalyMoreFields}
 

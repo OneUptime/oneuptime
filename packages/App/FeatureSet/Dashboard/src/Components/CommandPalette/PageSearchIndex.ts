@@ -2498,6 +2498,72 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
     ],
   },
   {
+    id: "data-observability",
+    title: "Data Observability",
+    productPage: PageMap.DATA_OBSERVABILITY_OVERVIEW,
+    icon: IconProp.TableCells,
+    iconColor: "cyan",
+    // The menu's sections and their pages. A table's pages need the record, so they are not here.
+    sections: [
+      {
+        title: "Data Observability",
+        pages: [
+          {
+            page: PageMap.DATA_OBSERVABILITY_OVERVIEW,
+            title: "Overview",
+            icon: IconProp.Home,
+            keywords: ["data health", "late tables", "stale data"],
+          },
+          {
+            page: PageMap.DATA_OBSERVABILITY_TABLES,
+            title: "Tables",
+            icon: IconProp.TableCells,
+            keywords: [
+              "data catalog",
+              "row counts",
+              "table sizes",
+              "freshness",
+            ],
+          },
+          {
+            page: PageMap.DATA_OBSERVABILITY_SCHEMA_CHANGES,
+            title: "Schema Changes",
+            icon: IconProp.List,
+            keywords: ["columns added", "columns removed", "schema drift"],
+          },
+          {
+            page: PageMap.DATA_OBSERVABILITY_STORES,
+            title: "Databases",
+            icon: IconProp.Database,
+            keywords: ["connect a database", "collect now"],
+          },
+        ],
+      },
+      {
+        title: "Help",
+        pages: [
+          {
+            page: PageMap.DATA_OBSERVABILITY_DOCUMENTATION,
+            title: "Documentation",
+            icon: IconProp.Book,
+            keywords: ["read-only login", "probe", "metrics"],
+          },
+        ],
+      },
+      {
+        title: "Advanced",
+        pages: [
+          {
+            page: PageMap.DATA_OBSERVABILITY_TABLES_DROPPED,
+            title: "Dropped Tables",
+            icon: IconProp.Archive,
+            keywords: ["deleted tables", "gone tables"],
+          },
+        ],
+      },
+    ],
+  },
+  {
     id: "ai-insights",
     title: "Insights",
     productPage: PageMap.AI_INSIGHTS,
@@ -2935,13 +3001,25 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
   {
     id: "cloud",
     title: "Cloud",
-    productPage: PageMap.CLOUD_ACCOUNTS,
+    productPage: PageMap.CLOUD_OVERVIEW,
     icon: IconProp.Cloud,
     iconColor: "blue",
     sections: [
       {
         title: "Cloud",
         pages: [
+          {
+            page: PageMap.CLOUD_OVERVIEW,
+            title: "Overview",
+            icon: IconProp.Home,
+            keywords: [
+              "cloud overview",
+              "cloud health",
+              "needs attention",
+              "unhealthy resources",
+              "cloud spend",
+            ],
+          },
           {
             page: PageMap.CLOUD_ACCOUNTS,
             title: "Accounts",
@@ -2983,6 +3061,54 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "cloudwatch",
               "azure monitor",
               "cloud monitoring",
+            ],
+          },
+        ],
+      },
+      {
+        title: "Spend",
+        pages: [
+          {
+            page: PageMap.CLOUD_COSTS,
+            title: "Costs",
+            icon: IconProp.Billing,
+            keywords: [
+              "cloud costs",
+              "cloud spend",
+              "cloud bill",
+              "billing",
+              "aws cost explorer",
+              "azure cost management",
+              "gcp billing export",
+              "finops",
+            ],
+          },
+          {
+            page: PageMap.CLOUD_SAVINGS,
+            title: "Savings",
+            icon: IconProp.ArrowTrendingDown,
+            keywords: [
+              "right-sizing",
+              "rightsizing",
+              "cost optimization",
+              "idle resources",
+              "savings plans",
+              "reserved instances",
+              "azure advisor",
+              "cost optimization hub",
+              "recommender",
+            ],
+          },
+          {
+            page: PageMap.CLOUD_BUDGETS,
+            title: "Budgets",
+            icon: IconProp.Wallet,
+            keywords: [
+              "cloud budgets",
+              "spend alerts",
+              "budget alerts",
+              "spend controls",
+              "cost alerts",
             ],
           },
         ],

@@ -256,6 +256,7 @@ Sökfältet talar samma språk som de andra telemetriutforskarna (se [Söksyntax
 | `<field>:a*` | `*` är vilken text som helst, `?` ett tecken | `host:web-*` |
 | `@<attribute>:*` | Attributet finns | `@threat.indicator_id:*` |
 | `@<attribute>:~text` | Attributet innehåller texten | `@finding_info.title:~ransom` |
+| `<field>:%<watchlist>%` | Fältet finns på en [bevakningslista](#bevakningslistor) | `user:%vip_users%` |
 
 Ett fält är antingen ett kort namn (`severity`, `class`, `category`, `activity`, `status`, `vendor`, `product`, `rule`, `user`, `host`, `ip`, `targetuser`, `targethost`, `targetip`, `processname`, `commandline`, `parentprocessname`, `observable`, `tactic`, `technique`, `requestoutcome`, `trace`, `session`) eller fältets eget namn, till exempel `severityName` eller `principalHost`. Alla andra namn läses som ett källattribut. `observable:<value>` hittar varje händelse som nämner ett värde, oavsett på vilken sida av aktiviteten det fanns.
 
@@ -281,7 +282,7 @@ En hunt är en sökning i dina säkerhetshändelser som sparats med ett namn: s�
 
 ### Spara en sökning som en hunt
 
-Sök och filtrera under **Händelser** tills listan visar det du letar efter, öppna sedan **Hunts** i verktygsfältet och välj **Spara som hunt**. Ge den ett namn, välj om den körs enligt ett schema, så öppnas dess sida. **Händelser → Hunts** listar projektets hunts, var och en med sin sökning, hur ofta den körs, vem den aviserar och vad dess senaste körning hittade; **Skapa Hunt** tar där sökningen som du skulle skriva den under **Händelser**. Ett projekt kan ha upp till 200 hunts.
+Sök och filtrera under **Händelser** tills listan visar det du letar efter, öppna sedan **Hunts** i verktygsfältet och välj **Spara som hunt**. Ge den ett namn, välj om den körs enligt ett schema, så öppnas dess sida. **Händelser → Hunts** listar projektets hunts, var och en med sin sökning, hur ofta den körs, vem den aviserar och vad dess senaste körning hittade; **Skapa Hunt** tar där sökningen som du skulle skriva den under **Händelser**. Ett projekt kan ha upp till 200 hunts. En sökning kan läsa en [bevakningslista](#bevakningslistor), som `user:%vip_users%` gör, och en hunt som läser en lista som projektet inte har avvisas när du sparar den.
 
 En hunts sida är dess sökning, öppnad i händelseutforskaren. Ändra sökningen eller filtren där, så erbjuder huntens rubrik **Spara ändringar** och **Kasta ändringar**. **Redigera** ändrar dess namn, dess sökning, hur långt bakåt den tittar, dess schema och vem den aviserar, och **Ta bort hunt** finns i dess meny. Från Security Member och uppåt kan man spara, ändra och ta bort hunts, och en Security Viewer kan öppna dem.
 
@@ -511,7 +512,7 @@ Ett undantag är något en regel hoppar över eftersom du väntar dig det, som e
 
 ### Bevakningslistor
 
-En bevakningslista är en lista som ditt team underhåller en gång och som varje regel kan läsa, som VIP-användare, kritiska värdar, kända skadliga filhashar eller adresserna som administratörer får logga in från. Alla listor finns under **Produkter → Säkerhetshändelser → Detektioner → Bevakningslistor**: Skapa en där med **Skapa Bevakningslista**, som frågar efter dess namn och vad den innehåller, eller lägg till en vanlig från **Börja med en vanlig lista**. En listas sida visar dess värden, och **Använd den i en regel** ger ett urval som läser listan, att kopiera in i en regel.
+En bevakningslista är en lista som ditt team underhåller en gång och som varje regel kan läsa, som VIP-användare, kritiska värdar, kända skadliga filhashar eller adresserna som administratörer får logga in från. Alla listor finns under **Produkter → Säkerhetshändelser → Detektioner → Bevakningslistor**: Skapa en där med **Skapa Bevakningslista**, som frågar efter dess namn och vad den innehåller, eller lägg till en vanlig från **Börja med en vanlig lista**. En listas sida visar dess värden, och **Använd den här listan** ger ett urval som läser listan, att kopiera in i en regel, och sökningen som läser den under **Händelser** eller i en hunt.
 
 En regel läser en lista med `expand` och listans namn mellan två `%`-tecken. Den här regeln utlöses när en administratör loggar in från en adress som inte finns på den tillåtna listan:
 
@@ -529,10 +530,14 @@ level: high
 
 - En lista innehåller användare, värdar, IP-adresser, filhashar, domäner, URL:er, processer eller andra värden, valt när den skapas. Ett värde träffar oavsett versaler och gemener, och `*` står för vilken följd av tecken som helst: `svc-*` träffar alla tjänstekonton. En lista med IP-adresser tar också intervall som `10.20.0.0/16`, och en lista med filhashar MD5-, SHA-1-, SHA-256- och SHA-512-hashar.
 - Lägg till värden ett i taget med **Lägg till Värde**, eller många på en gång med **Importera värden**: klistra in dem, eller välj en `.txt`- eller `.csv`-fil, ett värde per rad, med en valfri anteckning efter ett kommatecken. **Lägg till i listan** behåller värdena som redan finns på den, och **Ersätt listan** tar bort dem som importen inte har.
+- Ett värde kan ha en **Upphör**: från och med då läser ingen regel, monitor, hunt eller sökning det, och OneUptime tar bort det från listan inom en minut. Lämnas fältet tomt finns värdet kvar tills någon tar bort det.
+- **Exportera värden** hämtar en listas värden som en CSV-fil med kolumnerna `value`, `note` och `expires`, som **Importera värden** läser in igen. En fil vars första rad nämner dessa kolumner ger varje värde dess anteckning och när det upphör: ett datum som `2026-12-31`, eller ett datum och en tid i UTC.
+- En lista kan i stället läsas från en fil på en https-adress, igen **Varje timme**, **Var 6:e timme** eller **Varje dag**: välj **En fil på en adress** under **Fler fält** när du skapar den. Varje läsning gör listan till det filen innehåller, läst som en import läser den. En misslyckad läsning ändrar inga värden och listans sida säger varför, och **Läs nu** läser den direkt.
 - I stället för att underhålla värden kan en lista med IP-adresser, filhashar, domäner eller URL:er följa ett flöde med hotinformation: Dess värden är då flödets aktiva indikatorer av listans typ, som hålls uppdaterade när flödet läses.
-- `expand` används ensamt, eftersom listans värden avgör hur de träffar. Ett fält med flera värden, som `observables`, träffar när något av dem finns på listan. **Läses av** nämner reglerna som läser varje lista, och under en regels YAML nämner dess formulär listorna som regeln läser.
-- En regel nämner en lista oavsett versaler och gemener. En regel som nämner en lista som projektet inte har avvisas när du sparar den, och en lista som regler läser kan inte byta namn eller tas bort förrän ingen regel läser den.
+- `expand` används ensamt, eftersom listans värden avgör hur de träffar. Ett fält med flera värden, som `observables`, träffar när något av dem finns på listan. **Läses av** nämner reglerna, Security Events-monitorerna och de hunts som läser varje lista, och under en regels YAML nämner dess formulär listorna som regeln läser.
+- En regel nämner en lista oavsett versaler och gemener. En regel, en monitor eller en hunt som nämner en lista som projektet inte har avvisas när du sparar den, och en lista som någon av dem läser kan inte byta namn eller tas bort förrän inget läser den.
 - En ändring i en lista når varje regel som läser den vid regelns nästa körning. Korrelationsregler och **Kör på tidigare händelser** läser också listor.
+- En Security Events-monitor läser listor i sin **Filtrera efter bevakningslistor**, och en sökning under **Händelser** eller i en hunt läser en som `user:%vip_users%`. Ett minus framför, som i `-ip:%admin_addresses%`, behåller händelserna vars fält inte finns på listan.
 - En lista innehåller högst 5 000 värden, varav högst 100 med `*` och 100 intervall, och ett projekt har högst 200 listor: Följ ett flöde med hotinformation för en längre lista. Den som får skapa, redigera eller ta bort detektionsregler får göra detsamma med listor, och den som får redigera detektionsregler lägger till, ändrar och tar bort deras värden. Alla Security-roller kan läsa dem, och varje ändring sparas i projektets granskningslogg.
 
 ### Kör på tidigare händelser
@@ -549,11 +554,11 @@ level: high
 
 En monitor för säkerhetshändelser räknar händelserna som träffar dess filter över ett glidande fönster och kör de vanliga monitorkriterierna på räkningen: den ändrar monitorns status, öppnar larm eller incidenter och larmar jourhavande. Skapa en under **Övervakare → Skapa monitor**, med **Säkerhetshändelser** som typ; den listas där med dina andra monitorer.
 
-Dess formulär visar **Monitor events that include this text**, **Monitor Security Events for (time)**, **Event Severity** och **Händelseklass**. **Filtrera efter telemetritjänst** och **Filtrera efter attribut** väntar under **Fler fält**, vars rubrik visar vilka en monitor använder. Dess kriterier kontrollerar **Security Event Count**.
+Dess formulär visar **Monitor events that include this text**, **Monitor Security Events for (time)**, **Event Severity** och **Händelseklass**. **Filtrera efter telemetritjänst**, **Filtrera efter attribut** och **Filtrera efter bevakningslistor** väntar under **Fler fält**, vars rubrik visar vilka en monitor använder. **Filtrera efter bevakningslistor** behåller händelserna vars fält finns eller inte finns på någon av dina [bevakningslistor](#bevakningslistor). Dess kriterier kontrollerar **Security Event Count**.
 
 | | Detektionsregel | Monitor för säkerhetshändelser |
 | --- | --- | --- |
-| Träffar | En Sigma-regel | Filter på allvarlighetsgrad, klass, meddelande, tjänst och attribut |
+| Träffar | En Sigma-regel | Filter på allvarlighetsgrad, klass, meddelande, tjänst, attribut och bevakningslistor |
 | Fönster | Efter varandra, ett per körning | Glidande: de senaste 5 sekunderna till 24 timmar |
 | Räknar per grupp | Ja, med **Grupperingsfält** | Nej: en räkning för allt som träffar |
 | Öppnar | Larm, incidenter och fynd | En status, larm och incidenter |
@@ -610,11 +615,15 @@ Kontrollera undantagets **Status** i **Regelundantag**: ett undantag med status 
 :::
 
 :::details En regel som läser en bevakningslista träffar inte
-Öppna listan och kontrollera dess värden: Ett värde utan `*` måste vara lika med hela fältet, oavsett versaler och gemener, och en lista som följer ett flöde med hotinformation innehåller bara flödets aktiva indikatorer av dess typ. Kontrollera att regeln läser fältet som dina händelser fyller: **Använd den i en regel** börjar med fältet som en lista av dess typ brukar finnas i. En ändring i en lista når en regel vid dess nästa körning.
+Öppna listan och kontrollera dess värden: Ett värde utan `*` måste vara lika med hela fältet, oavsett versaler och gemener, och en lista som följer ett flöde med hotinformation innehåller bara flödets aktiva indikatorer av dess typ. Kontrollera att regeln läser fältet som dina händelser fyller: **Använd den här listan** börjar med fältet som en lista av dess typ brukar finnas i. En ändring i en lista når en regel vid dess nästa körning.
 :::
 
 :::details En bevakningslista kan inte byta namn eller tas bort
-Regler läser den fortfarande via dess namn, och meddelandet nämner dem. Ändra namnet i de reglerna, eller ta bort listan från dem, och byt sedan namn på den eller ta bort den.
+Regler, monitorer eller hunts läser den fortfarande via dess namn, och meddelandet nämner dem. Ändra namnet i dem, eller ta bort listan från dem, och byt sedan namn på den eller ta bort den.
+:::
+
+:::details En lista som läses från en adress visar ett fel
+Dess sida säger varför under **Läst från en adress**, med vad adressen svarade, och listan behåller värdena från sin senaste lyckade läsning. Adressen måste börja med `https`, svara från internet utan inloggning och hämta en text- eller CSV-fil på högst 4 MB, inte en webbsida. Rätta den under **Redigera** och välj sedan **Läs nu**.
 :::
 
 :::details Att köra en regel på tidigare händelser hittar ingenting

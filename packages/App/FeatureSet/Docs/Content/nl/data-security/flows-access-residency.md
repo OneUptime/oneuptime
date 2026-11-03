@@ -80,6 +80,12 @@ Op AWS somt het uitlezen de gebruikers en rollen van het account één keer op, 
 
 De score is hoogstens 100. Een rol van een account van buiten die één opslag met kaartnummers kan wijzigen, scoort 50 + 15 + 15 + 1 = 81.
 
+## De paden van een opslag op één kaart
+
+Het **Overzicht** van een opslag tekent op één kaart wie erbij kan en waar de gegevens ervan naartoe kunnen, zodat een pad over meerdere stappen in één oogopslag te lezen is. Links staat wie bij de opslag kan: één kaart per identiteit, hoeveel toekenningen die ook heeft, met een pijl naar de opslag die zegt wat die ten hoogste mag: rood vanaf iedereen op het internet, oranje van buiten je accounts. Daarna komen de services die de opslag gebruiken, en rechts staat waar de gegevens vanuit die services naartoe kunnen: de AI-aanbieders en externe hosts die die services aanroepen, en de opslagen die kopieën ervan bevatten.
+
+Een pijl die gegevens draagt, is gekleurd naar hoe gevoelig die gegevens zijn, en gestippeld tot een scan de gegevens aan het andere eind heeft gevonden. De AI-aanroepen en externe aanroepen van een service zeggen waar de gegevens van de opslag naartoe kunnen, niet dat ze daar zijn gekomen, dus hun pijlen blijven gestippeld tot een scan ze bevestigt. Elke kolom toont eerst de kaarten met het meeste risico en vouwt de rest in één kaart die **Wie erbij kan** of **Gegevensstromen** opent, waar ze allemaal staan. Klik op een kaart om de identiteit, service of opslag ervan te openen.
+
 ## Residentieregels
 
 Een residentieregel zegt waar een soort gegevens mag staan. Voeg er een toe onder **Gegevensbeveiliging → Instellingen → Residentieregels**:

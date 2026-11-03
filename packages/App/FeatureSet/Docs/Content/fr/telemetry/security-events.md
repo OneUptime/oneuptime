@@ -256,6 +256,7 @@ La barre de recherche parle le même langage que les autres explorateurs de tél
 | `<field>:a*` | `*` est n'importe quel texte, `?` un caractère | `host:web-*` |
 | `@<attribute>:*` | L'attribut est présent | `@threat.indicator_id:*` |
 | `@<attribute>:~text` | L'attribut contient le texte | `@finding_info.title:~ransom` |
+| `<field>:%<watchlist>%` | Le champ est sur une [liste de surveillance](#listes-de-surveillance) | `user:%vip_users%` |
 
 Un champ est soit un nom court (`severity`, `class`, `category`, `activity`, `status`, `vendor`, `product`, `rule`, `user`, `host`, `ip`, `targetuser`, `targethost`, `targetip`, `processname`, `commandline`, `parentprocessname`, `observable`, `tactic`, `technique`, `requestoutcome`, `trace`, `session`), soit le nom propre du champ, comme `severityName` ou `principalHost`. Tout autre nom est lu comme un attribut de la source. `observable:<value>` trouve chaque événement qui mentionne une valeur, de quelque côté de l'activité qu'elle se trouve.
 
@@ -281,7 +282,7 @@ Une chasse est une recherche sur vos événements de sécurité enregistrée sou
 
 ### Enregistrer une recherche comme chasse
 
-Sur **Événements**, recherchez et filtrez jusqu'à ce que la liste montre ce que vous cherchez, puis ouvrez **Chasses** dans la barre d'outils et choisissez **Enregistrer comme chasse**. Nommez-la, choisissez si elle s'exécute selon une planification, et sa page s'ouvre. **Événements → Chasses** liste les chasses du projet, chacune avec sa recherche, sa fréquence, qui elle prévient et ce que sa dernière exécution a trouvé ; **Créer : Chasse** y prend la recherche telle que vous la taperiez sur **Événements**. Un projet conserve jusqu'à 200 chasses.
+Sur **Événements**, recherchez et filtrez jusqu'à ce que la liste montre ce que vous cherchez, puis ouvrez **Chasses** dans la barre d'outils et choisissez **Enregistrer comme chasse**. Nommez-la, choisissez si elle s'exécute selon une planification, et sa page s'ouvre. **Événements → Chasses** liste les chasses du projet, chacune avec sa recherche, sa fréquence, qui elle prévient et ce que sa dernière exécution a trouvé ; **Créer : Chasse** y prend la recherche telle que vous la taperiez sur **Événements**. Un projet conserve jusqu'à 200 chasses. Une recherche peut lire une [liste de surveillance](#listes-de-surveillance), comme le fait `user:%vip_users%`, et une chasse qui lit une liste que le projet n'a pas est refusée à l'enregistrement.
 
 La page d'une chasse est sa recherche, ouverte dans l'explorateur des événements. Modifiez-y la recherche ou les filtres, et l'en-tête de la chasse propose **Enregistrer les modifications** et **Annuler les modifications**. **Modifier** change son nom, sa recherche, jusqu'où elle remonte, sa planification et qui elle prévient, et **Supprimer la chasse** se trouve dans son menu. À partir de Security Member, on peut enregistrer, modifier et supprimer des chasses, et un Security Viewer peut les ouvrir.
 
@@ -511,7 +512,7 @@ Une exception est une chose qu'une règle ignore parce que vous vous y attendez,
 
 ### Listes de surveillance
 
-Une liste de surveillance est une liste que votre équipe tient une seule fois et que toute règle peut lire, comme les utilisateurs VIP, les hôtes critiques, les hachages de fichiers malveillants connus ou les adresses depuis lesquelles les administrateurs peuvent se connecter. Chaque liste se trouve sous **Produits → Événements de sécurité → Détections → Listes de surveillance** : créez-en une avec **Créer : Liste de surveillance**, qui demande son nom et ce qu'elle contient, ou ajoutez une liste courante depuis **Commencer par une liste courante**. La page d'une liste montre ses valeurs, et **L'utiliser dans une règle** donne une sélection qui lit la liste, à copier dans une règle.
+Une liste de surveillance est une liste que votre équipe tient une seule fois et que toute règle peut lire, comme les utilisateurs VIP, les hôtes critiques, les hachages de fichiers malveillants connus ou les adresses depuis lesquelles les administrateurs peuvent se connecter. Chaque liste se trouve sous **Produits → Événements de sécurité → Détections → Listes de surveillance** : créez-en une avec **Créer : Liste de surveillance**, qui demande son nom et ce qu'elle contient, ou ajoutez une liste courante depuis **Commencer par une liste courante**. La page d'une liste montre ses valeurs, et **Utiliser cette liste** donne une sélection qui lit la liste, à copier dans une règle, et la recherche qui la lit sur **Événements** ou dans une chasse.
 
 Une règle lit une liste avec `expand` et le nom de la liste entre deux signes `%`. Cette règle se déclenche quand un administrateur se connecte depuis une adresse qui n'est pas sur la liste autorisée :
 
@@ -529,10 +530,14 @@ level: high
 
 - Une liste contient des utilisateurs, des hôtes, des adresses IP, des hachages de fichiers, des domaines, des URL, des processus ou d'autres valeurs, choisis à sa création. Une valeur correspond quelle que soit la casse, et `*` remplace n'importe quelle suite de caractères : `svc-*` correspond à chaque compte de service. Une liste d'adresses IP accepte aussi des plages, comme `10.20.0.0/16`, et une liste de hachages de fichiers des hachages MD5, SHA-1, SHA-256 et SHA-512.
 - Ajoutez les valeurs une à une avec **Ajouter : Valeur**, ou plusieurs à la fois avec **Importer des valeurs** : collez-les, ou choisissez un fichier `.txt` ou `.csv`, une valeur par ligne, avec une note facultative après une virgule. **Ajouter à la liste** garde les valeurs déjà présentes, et **Remplacer la liste** retire celles que l'import ne contient pas.
+- Une valeur peut avoir un **Expire le** : dès lors, aucune règle, aucun moniteur, aucune chasse ni aucune recherche ne la lit, et OneUptime la retire de la liste dans la minute. Laissée vide, elle reste jusqu'à ce que quelqu'un la retire.
+- **Exporter les valeurs** télécharge les valeurs d'une liste dans un fichier CSV aux colonnes `value`, `note` et `expires`, que **Importer des valeurs** relit. Un fichier dont la première ligne nomme ces colonnes donne à chaque valeur sa note et sa date d'expiration : une date comme `2026-12-31`, ou une date et une heure en UTC.
+- Une liste peut plutôt être lue depuis un fichier à une adresse https, de nouveau **Chaque heure**, **Toutes les 6 heures** ou **Chaque jour** : choisissez **Un fichier à une adresse** sous **Plus de champs** en la créant. Chaque lecture fait de la liste ce que contient le fichier, lu comme un import le lit. Une lecture qui échoue ne change aucune valeur et la page de la liste dit pourquoi, et **Lire maintenant** la lit tout de suite.
 - Au lieu de tenir des valeurs, une liste d'adresses IP, de hachages de fichiers, de domaines ou d'URL peut suivre un flux de renseignements sur les menaces : ses valeurs sont alors les indicateurs actifs du flux qui sont du type de la liste, tenus à jour à chaque lecture du flux.
-- `expand` s'emploie seul, car les valeurs de la liste disent comment elles correspondent. Un champ qui contient plusieurs valeurs, comme `observables`, correspond quand l'une d'elles est sur la liste. **Lue par** nomme les règles qui lisent chaque liste, et sous le YAML d'une règle, son formulaire nomme les listes que la règle lit.
-- Une règle nomme une liste quelle que soit la casse. Une règle qui nomme une liste que le projet n'a pas est refusée à l'enregistrement, et une liste que des règles lisent ne peut être ni renommée ni supprimée tant qu'une règle la lit.
+- `expand` s'emploie seul, car les valeurs de la liste disent comment elles correspondent. Un champ qui contient plusieurs valeurs, comme `observables`, correspond quand l'une d'elles est sur la liste. **Lue par** nomme les règles, les moniteurs d'événements de sécurité et les chasses qui lisent chaque liste, et sous le YAML d'une règle, son formulaire nomme les listes que la règle lit.
+- Une règle nomme une liste quelle que soit la casse. Une règle, un moniteur ou une chasse qui nomme une liste que le projet n'a pas est refusé à l'enregistrement, et une liste que l'un d'eux lit ne peut être ni renommée ni supprimée tant que quelque chose la lit.
 - Une modification d'une liste atteint chaque règle qui la lit à la prochaine exécution de la règle. Les règles de corrélation et **Exécuter sur les événements passés** lisent aussi les listes.
+- Un moniteur d'événements de sécurité lit des listes dans son **Filtrer par listes de surveillance**, et une recherche sur **Événements** ou dans une chasse en lit une avec `user:%vip_users%`. Un signe moins devant, comme dans `-ip:%admin_addresses%`, garde les événements dont le champ n'est pas sur la liste.
 - Une liste contient au plus 5 000 valeurs, dont au plus 100 avec `*` et 100 plages, et un projet a au plus 200 listes : pour une liste plus longue, suivez un flux de renseignements sur les menaces. Quiconque peut créer, modifier ou supprimer des règles de détection peut faire de même avec les listes, et quiconque peut modifier les règles de détection ajoute, modifie et retire leurs valeurs. Chaque rôle Security peut les lire, et chaque changement est gardé dans le journal d'audit du projet.
 
 ### Exécuter sur les événements passés
@@ -549,11 +554,11 @@ level: high
 
 Un moniteur d'événements de sécurité compte les événements qui correspondent à ses filtres sur une fenêtre glissante et applique au comptage les critères habituels des moniteurs : il change le statut du moniteur, ouvre des alertes ou des incidents, et alerte l'astreinte. Créez-en un sous **Moniteurs → Créer un moniteur**, avec **Événements de sécurité** comme type ; il y est listé avec vos autres moniteurs.
 
-Son formulaire affiche **Surveiller les événements contenant ce texte**, **Surveiller les événements de sécurité pendant (durée)**, **Gravité de l'événement** et **Classe d'événements**. **Filtrer par service de télémétrie** et **Filtrer par attributs** attendent sous **Plus de champs**, dont l'en-tête montre ceux qu'un moniteur utilise. Ses critères vérifient **Security Event Count**.
+Son formulaire affiche **Surveiller les événements contenant ce texte**, **Surveiller les événements de sécurité pendant (durée)**, **Gravité de l'événement** et **Classe d'événements**. **Filtrer par service de télémétrie**, **Filtrer par attributs** et **Filtrer par listes de surveillance** attendent sous **Plus de champs**, dont l'en-tête montre ceux qu'un moniteur utilise. **Filtrer par listes de surveillance** garde les événements dont le champ est, ou n'est pas, sur l'une de vos [listes de surveillance](#listes-de-surveillance). Ses critères vérifient **Security Event Count**.
 
 | | Règle de détection | Moniteur d'événements de sécurité |
 | --- | --- | --- |
-| Correspond à | Une règle Sigma | Des filtres sur la gravité, la classe, le message, le service et les attributs |
+| Correspond à | Une règle Sigma | Des filtres sur la gravité, la classe, le message, le service, les attributs et les listes de surveillance |
 | Fenêtre | Bout à bout, une par exécution | Glissante : des 5 dernières secondes aux 24 dernières heures |
 | Compte par groupe | Oui, avec **Champ de regroupement** | Non : un seul comptage pour tout ce qui correspond |
 | Ouvre | Des alertes, des incidents et des constats | Un statut, des alertes et des incidents |
@@ -610,11 +615,15 @@ Vérifiez son **Statut** dans **Exceptions de règle** : une exception au statut
 :::
 
 :::details Une règle qui lit une liste de surveillance ne correspond pas
-Ouvrez la liste et vérifiez ses valeurs : une valeur sans `*` doit être égale au champ entier, quelle que soit la casse, et une liste qui suit un flux de renseignements sur les menaces ne contient que les indicateurs actifs du flux qui sont de son type. Vérifiez que la règle lit le champ que vos événements remplissent : **L'utiliser dans une règle** commence par le champ où se trouve d'habitude une liste de son type. Une modification d'une liste atteint une règle à sa prochaine exécution.
+Ouvrez la liste et vérifiez ses valeurs : une valeur sans `*` doit être égale au champ entier, quelle que soit la casse, et une liste qui suit un flux de renseignements sur les menaces ne contient que les indicateurs actifs du flux qui sont de son type. Vérifiez que la règle lit le champ que vos événements remplissent : **Utiliser cette liste** commence par le champ où se trouve d'habitude une liste de son type. Une modification d'une liste atteint une règle à sa prochaine exécution.
 :::
 
 :::details Une liste de surveillance ne peut être ni renommée ni supprimée
-Des règles la lisent encore par son nom, et le message les nomme. Changez le nom dans ces règles, ou retirez-en la liste, puis renommez-la ou supprimez-la.
+Des règles, des moniteurs ou des chasses la lisent encore par son nom, et le message les nomme. Changez le nom en eux, ou retirez-en la liste, puis renommez-la ou supprimez-la.
+:::
+
+:::details Une liste lue depuis une adresse affiche une erreur
+Sa page dit pourquoi sous **Lue depuis une adresse**, avec ce que l'adresse a répondu, et la liste garde les valeurs de sa dernière lecture réussie. L'adresse doit commencer par `https`, répondre depuis Internet sans connexion et télécharger un fichier texte ou CSV d'au plus 4 Mo, pas une page web. Corrigez-la dans **Modifier**, puis choisissez **Lire maintenant**.
 :::
 
 :::details L'exécution sur les événements passés ne trouve rien

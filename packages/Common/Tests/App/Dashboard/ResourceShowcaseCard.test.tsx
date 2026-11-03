@@ -41,8 +41,10 @@ import ResourceShowcaseCard, {
   RESOURCE_SHOWCASE_FEATURES_TITLE,
   RESOURCE_SHOWCASE_PREVIEW_TEST_ID,
   RESOURCE_SHOWCASE_TEST_ID,
+  SHOWCASE_CHART_RANGE_TEXT,
   getShowcaseAlertStatus,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceShowcase/ResourceShowcaseCard";
+import CLOUD_SHOWCASE from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudShowcase";
 import {
   ResourceShowcase,
   SHOWCASE_CHART_INSET,
@@ -227,6 +229,36 @@ describe("the showcase", () => {
         .getByTestId(RESOURCE_SHOWCASE_CHART_TEST_ID)
         .querySelectorAll("path"),
     ).toHaveLength(2);
+  });
+
+  /*
+   * The chart's corner says the span its line covers: a metric's last hour
+   * unless the showcase names another. Cloud's is a day's spend, so its
+   * corner says the last 30 days - "Daily spend · Last hour" said two
+   * things at once.
+   */
+  test("the chart's corner says the span its line covers", () => {
+    render(<ResourceShowcaseCard showcase={SHOWCASE} />);
+
+    expect(SHOWCASE.preview.chart.range).toBeUndefined();
+    expect(
+      screen.getByTestId(RESOURCE_SHOWCASE_PREVIEW_TEST_ID),
+    ).toHaveTextContent(SHOWCASE_CHART_RANGE_TEXT);
+    expect(SHOWCASE_CHART_RANGE_TEXT).toBe("Last hour");
+
+    cleanup();
+    render(<ResourceShowcaseCard showcase={CLOUD_SHOWCASE} />);
+
+    const cloud: HTMLElement = screen.getByTestId(
+      RESOURCE_SHOWCASE_PREVIEW_TEST_ID,
+    );
+    expect(CLOUD_SHOWCASE.preview.chart.label).toBe("Daily spend");
+    expect(CLOUD_SHOWCASE.preview.chart.range).toBe("Last 30 days");
+    expect(cloud).toHaveTextContent("Daily spend");
+    expect(cloud).toHaveTextContent("Last 30 days");
+    expect(cloud).not.toHaveTextContent("Last hour");
+    // A value a day.
+    expect(CLOUD_SHOWCASE.preview.chart.values).toHaveLength(30);
   });
 
   test("a screen reader hears one sentence for the example, not its made-up numbers", () => {

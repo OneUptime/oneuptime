@@ -23,6 +23,7 @@ export const DATA_SECURITY_API_ROUTES: {
   scanNow: (dataStoreId: string) => string;
   checkNow: (dataStoreId: string) => string;
   scrubFinding: (findingId: string) => string;
+  findingOccurrences: (findingId: string) => string;
   explainIssue: (issueId: string) => string;
   fixIssueWithAi: (issueId: string) => string;
   responseActions: (dataStoreId: string) => string;
@@ -39,6 +40,10 @@ export const DATA_SECURITY_API_ROUTES: {
   },
   scrubFinding: (findingId: string): string => {
     return `/data-store-finding/${findingId}/scrub`;
+  },
+  // The newest records a telemetry finding's data was seen in.
+  findingOccurrences: (findingId: string): string => {
+    return `/data-store-finding/${findingId}/occurrences`;
   },
   explainIssue: (issueId: string): string => {
     return `/data-security-issue/${issueId}/explain`;
@@ -128,6 +133,63 @@ export interface DataSecurityScrubResult {
   signal: "log" | "trace";
   scrubRuleId: string;
   scrubRuleName: string;
+}
+
+// What kind of record a telemetry finding's data was seen in.
+export enum DataSecurityOccurrenceRecordKind {
+  Log = "Log",
+  Span = "Span",
+  Exception = "Exception",
+  AiCall = "AI call",
+  Session = "Session",
+}
+
+// Why a telemetry finding's records are not shown.
+export enum DataSecurityOccurrencesUnavailableReason {
+  // The reader may not read the store's telemetry themselves.
+  NoTelemetryAccess = "NoTelemetryAccess",
+  // Records cannot be looked up at the finding's location.
+  UnreadableLocation = "UnreadableLocation",
+  // The service or RUM application the telemetry was sent under is gone.
+  NoOwner = "NoOwner",
+}
+
+/*
+ * One record a telemetry finding's data was seen in: enough to open it -
+ * the trace, the log line, the exception, the session - and the data,
+ * masked as a finding's samples are. Never the record's other contents.
+ */
+export interface DataSecurityFindingOccurrence {
+  // When the record was written (ISO 8601).
+  time: string;
+  recordKind: DataSecurityOccurrenceRecordKind;
+  // The service whose telemetry it is.
+  serviceId?: string | undefined;
+  // For a session replay store: the RUM application.
+  rumApplicationId?: string | undefined;
+  traceId?: string | undefined;
+  spanId?: string | undefined;
+  // A span's or an AI call's name, an exception's type.
+  name?: string | undefined;
+  // A log line's severity.
+  severity?: string | undefined;
+  // An exception's group.
+  fingerprint?: string | undefined;
+  sessionId?: string | undefined;
+  maskedValue: string;
+}
+
+export interface DataSecurityFindingOccurrences {
+  // The newest first.
+  occurrences: Array<DataSecurityFindingOccurrence>;
+  // The window read (ISO 8601).
+  since: string;
+  until: string;
+  // How many records with a value at the finding's location were read.
+  recordsRead: number;
+  // Every such record in the window was read.
+  isComplete: boolean;
+  unavailableReason?: DataSecurityOccurrencesUnavailableReason | undefined;
 }
 
 export interface DataSecurityExplainResult {

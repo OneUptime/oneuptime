@@ -7,7 +7,15 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import type { SpyInstance } from "jest-mock";
 import * as React from "react";
 import SecurityEventsMonitorStepForm from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/SecurityEventsMonitor/SecurityEventsMonitorStepForm";
@@ -15,8 +23,11 @@ import SecurityEventAttributeUtil from "../../../../App/FeatureSet/Dashboard/src
 import MonitorStepSecurityEventsMonitor, {
   MonitorStepSecurityEventsMonitorUtil,
 } from "../../../Types/Monitor/MonitorStepSecurityEventsMonitor";
+import SecurityWatchlist from "../../../Models/DatabaseModels/SecurityWatchlist";
 import Service from "../../../Models/DatabaseModels/Service";
+import { SecurityEntityType } from "../../../Types/SecurityCase/SecurityEntity";
 import AnalyticsModelAPI from "../../../UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
+import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "../../../UI/Utils/Project";
 import ObjectID from "../../../Types/ObjectID";
 import {
@@ -30,10 +41,10 @@ import {
  * issue #3398 - Event Severity are always on screen, because hiding them
  * behind the old "Show Advanced Options" link read as "monitors cannot
  * filter by class/severity" to anyone who did not know the link existed.
- * The service and attribute filters fold under More fields, the section
- * every form folds its rarely needed fields into: folded on a new monitor
- * and an edited one alike, its header naming them and showing the ones a
- * monitor uses as chips. No other test renders this form (the view-model
+ * The service, attribute and watchlist filters fold under More fields, the
+ * section every form folds its rarely needed fields into: folded on a new
+ * monitor and an edited one alike, its header naming them and showing the
+ * ones a monitor uses as chips. No other test renders this form (the view-model
  * and type tests cover different layers), so without this one a refactor
  * could quietly hide a field, or bring the old link back, and nothing
  * would fail.
@@ -51,6 +62,30 @@ const DETECTION_RULE_ID: string = "12121212-3434-4545-8567-787878787878";
 
 // The keys the project's security events carry, as the API lists them.
 const ATTRIBUTE_KEYS: Array<string> = ["threat.matched", "device.hostname"];
+
+// The project's watchlists, as the API lists them for the watchlist filters.
+function watchlist(
+  name: string,
+  entityType: SecurityEntityType,
+): SecurityWatchlist {
+  const item: SecurityWatchlist = new SecurityWatchlist();
+  item.name = name;
+  item.entityType = entityType;
+  return item;
+}
+
+const WATCHLISTS: Array<SecurityWatchlist> = [
+  watchlist("admin_addresses", SecurityEntityType.IpAddress),
+  watchlist("vip_users", SecurityEntityType.User),
+];
+
+// Picks an option of a react-select, the way a pointer does.
+function pick(combobox: HTMLElement, optionText: string): void {
+  fireEvent.keyDown(combobox, { key: "ArrowDown" });
+  const option: HTMLElement = screen.getByText(optionText);
+  fireEvent.mouseDown(option);
+  fireEvent.click(option);
+}
 
 function checkoutService(): Service {
   const service: Service = new Service();
@@ -135,9 +170,17 @@ function valueInput(): HTMLInputElement {
 
 describe("SecurityEventsMonitorStepForm field gating", () => {
   let getAttributeKeys: SpyInstance<() => Promise<Array<string>>>;
+  let getWatchlists: SpyInstance;
 
   beforeEach(() => {
     jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
+    // The watchlist filters list the project's lists by name.
+    getWatchlists = jest.spyOn(ModelAPI, "getList").mockResolvedValue({
+      data: WATCHLISTS,
+      count: WATCHLISTS.length,
+      skip: 0,
+      limit: 200,
+    } as never) as unknown as SpyInstance;
     // The live preview polls the event count; keep it quiet and offline.
     jest.spyOn(AnalyticsModelAPI, "count").mockResolvedValue(0 as never);
     getAttributeKeys = jest
@@ -165,13 +208,14 @@ describe("SecurityEventsMonitorStepForm field gating", () => {
     expect(listedNames(moreFields())).not.toContain("Event Class");
   });
 
-  test("a new monitor's service and attribute filters wait folded under More fields, named on its header", async () => {
+  test("a new monitor's service, attribute and watchlist filters wait folded under More fields, named on its header", async () => {
     await renderSettled();
 
     expect(moreFields()).toHaveAttribute("aria-expanded", "false");
     expect(listedNames(moreFields())).toEqual([
       "Filter by Telemetry Service",
       "Filter by Attributes",
+      "Filter by Watchlists",
     ]);
     // Nothing set on a new monitor.
     expect(setChips(moreFields())).toEqual([]);
@@ -179,12 +223,142 @@ describe("SecurityEventsMonitorStepForm field gating", () => {
     // Mounted, so they keep their values, but out of sight until opened.
     expect(fieldLabel("Filter by Telemetry Service")).not.toBeVisible();
     expect(fieldLabel("Filter by Attributes")).not.toBeVisible();
+    expect(fieldLabel("Filter by Watchlists")).not.toBeVisible();
 
     fireEvent.click(moreFields());
 
     expect(moreFields()).toHaveAttribute("aria-expanded", "true");
     expect(fieldLabel("Filter by Telemetry Service")).toBeVisible();
     expect(fieldLabel("Filter by Attributes")).toBeVisible();
+    expect(fieldLabel("Filter by Watchlists")).toBeVisible();
+  });
+
+  test("an edited monitor's watchlist filters stay folded, shown as a chip", async () => {
+    await renderSettled({
+      watchlistFilters: [
+        { field: "principalUser", watchlist: "vip_users" },
+        {
+          field: "principalIp",
+          watchlist: "admin_addresses",
+          isNotOnList: true,
+        },
+      ],
+    });
+
+    expect(moreFields()).toHaveAttribute("aria-expanded", "false");
+    expect(setChips(moreFields())).toEqual(["Filter by Watchlists: 2"]);
+
+    fireEvent.click(moreFields());
+
+    // Each row says its field, whether the field is on the list, and the list.
+    await waitFor(() => {
+      expect(
+        screen.getAllByTestId("security-events-watchlist-filter"),
+      ).toHaveLength(2);
+    });
+    expect(screen.getByText("vip_users")).toBeInTheDocument();
+    expect(screen.getByText("Is not on the list")).toBeInTheDocument();
+    expect(getWatchlists).toHaveBeenCalledTimes(1);
+  });
+
+  test("a row's choices are changed by picking another, never emptied: its own remove button, beside them, takes it away", async () => {
+    await renderSettled({
+      watchlistFilters: [{ field: "principalUser", watchlist: "vip_users" }],
+    });
+
+    fireEvent.click(moreFields());
+
+    const row: HTMLElement = await screen.findByTestId(
+      "security-events-watchlist-filter",
+    );
+
+    // A dropdown that may be emptied draws react-select's clear button: the window's does.
+    expect(
+      document.querySelectorAll(".ou-select__clear-indicator").length,
+    ).toBeGreaterThan(0);
+    // None of the row's three choices does.
+    expect(row.querySelectorAll(".ou-select__clear-indicator")).toHaveLength(0);
+    expect(within(row).getAllByRole("combobox")).toHaveLength(3);
+    // The row's remove button is the row's own.
+    expect(
+      within(row).getByTestId("security-events-watchlist-filter-remove"),
+    ).toBeInTheDocument();
+  });
+
+  test("a watchlist filter added under More fields reaches the step, on the field its list's kind is usually in", async () => {
+    const recorder: Recorder = await renderSettled({
+      classNames: ["Authentication"],
+    });
+
+    fireEvent.click(moreFields());
+
+    await act(async () => {
+      fireEvent.click(await screen.findByText("Add a Watchlist Filter"));
+    });
+
+    expect(recorder.latest?.watchlistFilters).toEqual([
+      { field: "", watchlist: "", isNotOnList: false },
+    ]);
+
+    pick(screen.getByLabelText("Watchlist"), "vip_users");
+
+    expect(recorder.latest).toMatchObject({
+      classNames: ["Authentication"],
+      watchlistFilters: [
+        { field: "principalUser", watchlist: "vip_users", isNotOnList: false },
+      ],
+    });
+
+    // Not on the list: an allow list.
+    pick(screen.getByLabelText("Match"), "Is not on the list");
+
+    expect(recorder.latest?.watchlistFilters).toEqual([
+      { field: "principalUser", watchlist: "vip_users", isNotOnList: true },
+    ]);
+
+    // Removed, the monitor reads no list.
+    fireEvent.click(
+      screen.getByTestId("security-events-watchlist-filter-remove"),
+    );
+
+    expect(recorder.latest?.watchlistFilters).toEqual([]);
+  });
+
+  test("a project with no watchlist is sent to make one, and offered no filter to add", async () => {
+    getWatchlists.mockResolvedValue({
+      data: [],
+      count: 0,
+      skip: 0,
+      limit: 200,
+    } as never);
+
+    await renderSettled();
+    fireEvent.click(moreFields());
+
+    expect(
+      await screen.findByText(
+        "No watchlists yet. Create one under Security Events > Detections > Watchlists.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Open Watchlists").closest("a")).toHaveAttribute(
+      "href",
+      expect.stringContaining("/security-events/watchlists"),
+    );
+    expect(
+      screen.queryByText("Add a Watchlist Filter"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("lists that could not be read say so, and a filter can still be added", async () => {
+    getWatchlists.mockRejectedValue(new Error("offline") as never);
+
+    await renderSettled();
+    fireEvent.click(moreFields());
+
+    expect(
+      await screen.findByText("Couldn't load the watchlists."),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Add a Watchlist Filter")).toBeInTheDocument();
   });
 
   test("the old Show / Hide Advanced Options link is gone", async () => {

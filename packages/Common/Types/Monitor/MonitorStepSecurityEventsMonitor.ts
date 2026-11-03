@@ -8,6 +8,12 @@ import Dictionary from "../Dictionary";
 import { JSONObject } from "../JSON";
 import ObjectID from "../ObjectID";
 import OcsfSeverity from "../SecurityEvent/OcsfSeverity";
+import {
+  SecurityWatchlistFilter,
+  applySecurityWatchlistFiltersToQuery,
+  readSecurityWatchlistFilters,
+  toSecurityWatchlistFiltersJSON,
+} from "../SecurityEvent/SecurityWatchlistFilter";
 
 export default interface MonitorStepSecurityEventsMonitor {
   attributes: Dictionary<string | number | boolean>;
@@ -16,6 +22,13 @@ export default interface MonitorStepSecurityEventsMonitor {
   classNames: Array<string>;
   telemetryServiceIds: Array<ObjectID>;
   lastXSecondsOfEvents: number;
+  /*
+   * Only the events whose field is - or is not - on one of the project's
+   * watchlists, read as a detection rule reads them
+   * (Types/SecurityEvent/SecurityWatchlistFilter). Left out by monitors
+   * saved before watchlists could be read: none.
+   */
+  watchlistFilters?: Array<SecurityWatchlistFilter> | undefined;
 }
 
 export class MonitorStepSecurityEventsMonitorUtil {
@@ -65,7 +78,10 @@ export class MonitorStepSecurityEventsMonitorUtil {
       query.time = new InBetween(startDate, endDate);
     }
 
-    return query;
+    return applySecurityWatchlistFiltersToQuery(
+      query,
+      monitorStep.watchlistFilters,
+    );
   }
 
   public static getDefault(): MonitorStepSecurityEventsMonitor {
@@ -76,6 +92,7 @@ export class MonitorStepSecurityEventsMonitorUtil {
       classNames: [],
       telemetryServiceIds: [],
       lastXSecondsOfEvents: 60,
+      watchlistFilters: [],
     };
   }
 
@@ -90,6 +107,7 @@ export class MonitorStepSecurityEventsMonitorUtil {
         (json["telemetryServiceIds"] as Array<JSONObject>) || [],
       ),
       lastXSecondsOfEvents: (json["lastXSecondsOfEvents"] as number) || 60,
+      watchlistFilters: readSecurityWatchlistFilters(json["watchlistFilters"]),
     };
   }
 
@@ -101,6 +119,9 @@ export class MonitorStepSecurityEventsMonitorUtil {
       classNames: monitor.classNames,
       telemetryServiceIds: ObjectID.toJSONArray(monitor.telemetryServiceIds),
       lastXSecondsOfEvents: monitor.lastXSecondsOfEvents,
+      watchlistFilters: toSecurityWatchlistFiltersJSON(
+        monitor.watchlistFilters,
+      ),
     };
   }
 }

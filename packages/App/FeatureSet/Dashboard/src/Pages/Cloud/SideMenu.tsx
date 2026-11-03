@@ -12,9 +12,9 @@ import { DeveloperDocsScope } from "../../Components/DeveloperDocs/DeveloperDocs
 
 /*
  * Cloud: the AWS accounts, Azure subscriptions and Google Cloud projects
- * connected to OneUptime, and every resource in them. The apps that managed
- * app and container platforms run (ECS, Cloud Run, App Service, ...) are
- * App Platforms' (Pages/AppPlatforms/SideMenu).
+ * connected to OneUptime, every resource in them, and what they cost. The
+ * apps that managed app and container platforms run (ECS, Cloud Run, App
+ * Service, ...) are App Platforms' (Pages/AppPlatforms/SideMenu).
  */
 const CloudSideMenu: FunctionComponent = (): ReactElement => {
   const sections: SideMenuSectionProps[] = [
@@ -22,10 +22,23 @@ const CloudSideMenu: FunctionComponent = (): ReactElement => {
       title: "Cloud",
       items: [
         /*
-         * Where Cloud opens: the AWS accounts, Azure subscriptions and
-         * Google Cloud projects the connections read, each with its
-         * resources, changes and map. While there is none, the way to
-         * connect one is on it.
+         * Where Cloud opens: every account at a glance - what needs
+         * attention now, what the month costs, what could be saved. While
+         * there is no account, what Cloud gives and the way to connect one.
+         */
+        {
+          link: {
+            title: "Overview",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.CLOUD_OVERVIEW] as Route,
+            ),
+          },
+          icon: IconProp.Home,
+        },
+        /*
+         * The AWS accounts, Azure subscriptions and Google Cloud projects
+         * the connections read, each with its resources, costs, changes
+         * and map.
          */
         {
           link: {
@@ -63,6 +76,43 @@ const CloudSideMenu: FunctionComponent = (): ReactElement => {
             ),
           },
           icon: IconProp.Link,
+        },
+      ],
+    },
+    /*
+     * What the accounts cost, from each cloud's own billing; the ways to
+     * spend less, from each cloud's own recommender; and the budgets that
+     * alert before a month costs more than it should.
+     */
+    {
+      title: "Spend",
+      items: [
+        {
+          link: {
+            title: "Costs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.CLOUD_COSTS] as Route,
+            ),
+          },
+          icon: IconProp.Billing,
+        },
+        {
+          link: {
+            title: "Savings",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.CLOUD_SAVINGS] as Route,
+            ),
+          },
+          icon: IconProp.ArrowTrendingDown,
+        },
+        {
+          link: {
+            title: "Budgets",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.CLOUD_BUDGETS] as Route,
+            ),
+          },
+          icon: IconProp.Wallet,
         },
       ],
     },

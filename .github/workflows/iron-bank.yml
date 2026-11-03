@@ -18,7 +18,7 @@ name: Iron Bank Preflight
 #      REGISTRY1_PASSWORD): fetches the manifest's resources as Iron Bank's
 #      pipeline does (Scripts/IronBank/fetch_resources.sh), builds the
 #      Dockerfile on Iron Bank's base image with the manifest's labels, checks
-#      it is the Community Edition, boots it with PostgreSQL, ClickHouse and
+#      it is the Enterprise Edition, boots it with PostgreSQL, ClickHouse and
 #      Valkey (Tests/Ops/AppImageRuntime.test.js), and scans it and its base
 #      image with Grype and Trivy, and its files with ClamAV.
 #      Scripts/IronBank/NewFindings.js sorts the findings against
@@ -172,9 +172,9 @@ jobs:
             -t "oneuptime/app:${IMAGE_TAG}" \
             "$PROJECT"
 
-      - name: Check it is the Community Edition
+      - name: Check it is the Enterprise Edition
         if: steps.registry1.outputs.available == 'true'
-        run: bash ./Scripts/GHA/check_app_image_edition.sh --image "oneuptime/app:${IMAGE_TAG}" --edition community
+        run: bash ./Scripts/GHA/check_app_image_edition.sh --image "oneuptime/app:${IMAGE_TAG}" --edition enterprise
 
       - name: Boot it with its datastores
         if: steps.registry1.outputs.available == 'true'

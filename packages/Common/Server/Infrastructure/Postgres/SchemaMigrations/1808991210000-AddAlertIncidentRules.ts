@@ -16,8 +16,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * catalogue, never rewrites a row or holds a long lock. Its index is built
  * online in AddAlertIncidentRuleCheckIndex.
  */
-export class AddAlertIncidentRules1808935210000 implements MigrationInterface {
-  public name: string = "AddAlertIncidentRules1808935210000";
+export class AddAlertIncidentRules1808991210000 implements MigrationInterface {
+  public name: string = "AddAlertIncidentRules1808991210000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

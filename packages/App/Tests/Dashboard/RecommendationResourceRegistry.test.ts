@@ -102,6 +102,7 @@ const EXPECTED_IDENTIFIER_FIELD: Record<
   [MonitorRecommendationResourceType.RumApplication]: "_id",
   [MonitorRecommendationResourceType.Service]: "_id",
   [MonitorRecommendationResourceType.DatabaseServer]: "_id",
+  [MonitorRecommendationResourceType.DataStore]: "_id",
 };
 
 function getDefinitionOrFail(

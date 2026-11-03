@@ -299,4 +299,133 @@ describe("getTableMetricValues", () => {
 
     expect(names).toEqual([DataObservabilityMetricName.SchemaChanges]);
   });
+
+  function valuesOf(data: {
+    table: CollectedTable;
+    plan: AssetPlan;
+    previousRowCount?: number | null | undefined;
+  }): Map<string, number> {
+    return new Map(
+      getTableMetricValues({
+        table: data.table,
+        plan: data.plan,
+        collectedAt: COLLECTED_AT,
+        previousRowCount: data.previousRowCount,
+      }).map((value: { name: DataObservabilityMetricName; value: number }) => {
+        return [value.name, value.value];
+      }),
+    );
+  }
+
+  test("a table on time writes 0 overdue, so its series exists before it is ever late", () => {
+    // Changed an hour ago, usually changes hourly: late only after two hours.
+    const unchanged: CollectedTable = table();
+    const plan: AssetPlan = planAssetUpdate(
+      previous(),
+      unchanged,
+      COLLECTED_AT,
+    );
+
+    expect(
+      valuesOf({ table: unchanged, plan }).get(
+        DataObservabilityMetricName.OverdueSeconds,
+      ),
+    ).toBe(0);
+  });
+
+  test("a late table writes how long it has been late, by the Late pill's rule", () => {
+    // Last changed three hours ago, usually hourly: late at two hours, so an hour over.
+    const unchanged: CollectedTable = table();
+    const plan: AssetPlan = planAssetUpdate(
+      previous({ lastChangedAt: new Date("2026-11-03T09:00:00.000Z") }),
+      unchanged,
+      COLLECTED_AT,
+    );
+
+    expect(
+      valuesOf({ table: unchanged, plan }).get(
+        DataObservabilityMetricName.OverdueSeconds,
+      ),
+    ).toBe(3600);
+  });
+
+  test("a table whose rhythm is not learned writes no overdue time, rather than 0", () => {
+    const fresh: CollectedTable = table();
+    const plan: AssetPlan = planAssetUpdate(
+      previous({ updateIntervalInSeconds: null }),
+      fresh,
+      COLLECTED_AT,
+    );
+
+    expect(
+      valuesOf({ table: fresh, plan }).has(
+        DataObservabilityMetricName.OverdueSeconds,
+      ),
+    ).toBe(false);
+  });
+
+  test("the change in rows is written as a percent of the rows before", () => {
+    const plan: AssetPlan = planAssetUpdate(
+      previous({ rowCount: 2000 }),
+      table(),
+      COLLECTED_AT,
+    );
+
+    expect(
+      valuesOf({ table: table(), plan, previousRowCount: 2000 }).get(
+        DataObservabilityMetricName.RowCountChangePercent,
+      ),
+    ).toBe(-50);
+
+    expect(
+      valuesOf({
+        table: table({ estimatedRows: 3001 }),
+        plan,
+        previousRowCount: 3000,
+      }).get(DataObservabilityMetricName.RowCountChangePercent),
+    ).toBe(0.03);
+
+    expect(
+      valuesOf({ table: table(), plan, previousRowCount: 1000 }).get(
+        DataObservabilityMetricName.RowCountChangePercent,
+      ),
+    ).toBe(0);
+  });
+
+  test("no change in rows for a new table, an unknown count, or a table too small to read as a percent", () => {
+    const plan: AssetPlan = planAssetUpdate(null, table(), COLLECTED_AT);
+
+    for (const data of [
+      { table: table(), previousRowCount: null },
+      { table: table(), previousRowCount: undefined },
+      { table: table({ estimatedRows: null }), previousRowCount: 5000 },
+      // 999 rows to 1 would read as -99.9%: below 1,000 rows a percent is noise.
+      { table: table({ estimatedRows: 1 }), previousRowCount: 999 },
+    ]) {
+      expect(
+        valuesOf({ ...data, plan }).has(
+          DataObservabilityMetricName.RowCountChangePercent,
+        ),
+      ).toBe(false);
+    }
+  });
+
+  test("a view writes neither overdue time nor a change in rows", () => {
+    const view: CollectedTable = table({
+      kind: DataAssetKind.View,
+      estimatedRows: 5000,
+      sizeInBytes: null,
+      writeCount: null,
+    });
+    const values: Map<string, number> = valuesOf({
+      table: view,
+      plan: planAssetUpdate(previous(), view, COLLECTED_AT),
+      previousRowCount: 5000,
+    });
+
+    expect(values.has(DataObservabilityMetricName.OverdueSeconds)).toBe(false);
+    expect(values.has(DataObservabilityMetricName.RowCountChangePercent)).toBe(
+      false,
+    );
+  });
 });

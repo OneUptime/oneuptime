@@ -295,7 +295,7 @@ describe("the conditions a rule offers", () => {
     ).toEqual(["More than", "At least", "Fewer than", "At most", "Exactly"]);
   });
 
-  test("a metric is above or below a value", () => {
+  test("a metric is above or below a value, or forecast to rise above or fall below one", () => {
     expect(
       labels(getComparisonChoices({ monitorType: MonitorType.Metrics })),
     ).toEqual([
@@ -307,6 +307,8 @@ describe("the conditions a rule offers", () => {
       "Unusually high",
       "Unusually low",
       "Unusually high or low",
+      "Forecast to rise above",
+      "Forecast to fall below",
     ]);
   });
 

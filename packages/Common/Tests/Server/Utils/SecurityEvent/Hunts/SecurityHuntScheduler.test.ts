@@ -12,6 +12,7 @@ import AnalyticsDatabaseService from "../../../../../Server/Services/AnalyticsDa
 import SecurityEventService from "../../../../../Server/Services/SecurityEventService";
 import SecurityHuntService from "../../../../../Server/Services/SecurityHuntService";
 import logger from "../../../../../Server/Utils/Logger";
+import { SecurityWatchlistMissingException } from "../../../../../Server/Utils/SecurityEvent/Watchlists/SecurityWatchlists";
 import SecurityHunt from "../../../../../Models/DatabaseModels/SecurityHunt";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../../../../Types/BaseDatabase/SortOrder";
@@ -342,6 +343,16 @@ describe("what a run counts", () => {
         new Error("Code: 62. DB::Exception: Syntax error near attributes"),
       ),
     ).toBe(SECURITY_HUNT_RUN_ERRORS.searchFailed.message);
+
+    // A watchlist its search reads is gone: the hunt says so, and how to mend it.
+    expect(
+      SecurityHuntScheduler.describeRunError(
+        new SecurityWatchlistMissingException(["vip_users"]),
+      ),
+    ).toBe(SECURITY_HUNT_RUN_ERRORS.watchlistMissing.message);
+    expect(SECURITY_HUNT_RUN_ERRORS.watchlistMissing.message).toBe(
+      "Its search reads a watchlist this project no longer has. Open the hunt to fix its search.",
+    );
   });
 });
 

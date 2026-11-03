@@ -26,13 +26,13 @@ const StatusPageMagicLinkCopy: {
   cardTitle: translationKey("Sign-In Links"),
   switchTitle: translationKey("Sign in with a link"),
   switchOnDescription: translationKey(
-    "Private users can ask for a one-time link on the sign-in page and sign in from their email, without a password. They can still sign in with their password.",
+    "Private users can ask for a one-time link on the sign-in page and sign in from their email, without a password. Their password still works.",
   ),
   switchOffDescription: translationKey(
     "Private users sign in with their email and password.",
   ),
   note: translationKey(
-    "Each link works once and expires after 15 minutes. Links are never offered while SSO is required. Turning this off stops new sign-ins with a link; readers already signed in stay signed in.",
+    "Each link works once and expires after 15 minutes; none is offered while SSO is required. Turning this off keeps signed-in readers signed in.",
   ),
   offValue: translationKey("Off"),
 };

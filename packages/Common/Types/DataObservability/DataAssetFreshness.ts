@@ -9,9 +9,9 @@ import DataAssetKind, { doesDataAssetKindHoldRows } from "./DataAssetKind";
  * usual interval without a change, and at least fifteen minutes past it,
  * so a table that changes every minute is not called late after a quiet
  * minute and one that loads nightly is called late the morning its load
- * does not come. Alerts go further - a Data monitor compares against the
- * table's learned baseline for that hour of the week - but this is what a
- * person scanning the list needs.
+ * does not come. Collection writes the same answer as a metric
+ * (oneuptime.data.table.overdue_seconds), so the "Table Is Late" alert
+ * fires exactly when the table turns Late on the page.
  */
 
 export enum DataAssetFreshness {

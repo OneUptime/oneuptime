@@ -80,6 +80,12 @@ På AWS listar läsningen kontots användare och roller en gång och avgör, så
 
 Poängen är högst 100. En roll i ett konto utanför som kan ändra ett datalager med kortnummer får 50 + 15 + 15 + 1 = 81.
 
+## Se ett datalagers vägar på en karta
+
+Ett datalagers **Översikt** ritar på en karta vem som kan nå det och vart dess data kan ta vägen, så att en väg genom flera steg kan läsas med en blick. Till vänster står vem som kan nå datalagret: ett kort för varje identitet, hur många behörigheter den än har, med en pil in i datalagret som anger det mesta den får göra: röd från vem som helst på internet, orange från utanför dina konton. Sedan kommer tjänsterna som använder datalagret, och till höger står vart dess data kan ta vägen från dem: AI-leverantörerna och de externa värdarna som tjänsterna anropar, och datalagren som har kopior av dessa data.
+
+En pil som bär data är färgad efter hur känsliga dessa data är, och streckad tills en skanning har hittat dessa data i andra änden. En tjänsts AI-anrop och externa anrop säger vart datalagrets data kan ta vägen, inte att de gjorde det, så deras pilar förblir streckade tills en skanning bekräftar dem. Varje kolumn visar sina mest riskfyllda kort först och samlar resten i ett kort som öppnar **Vem kan nå det** eller **Dataflöden**, där alla listas. Klicka på ett kort för att öppna dess identitet, tjänst eller datalager.
+
 ## Hemvistregler
 
 En hemvistregel anger var en sorts data får ligga. Lägg till en under **Datasäkerhet → Inställningar → Hemvistregler**:

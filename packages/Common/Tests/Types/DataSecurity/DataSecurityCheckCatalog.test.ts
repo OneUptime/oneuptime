@@ -382,15 +382,19 @@ describe("secrets-stored", () => {
     ).toEqual([DataSecurityCheckStatus.Fail, SecuritySeverity.Critical]);
   });
 
-  test("counts the kinds of secret it found", () => {
+  test("names the kinds of secret it found", () => {
     expect(
       evaluated(
         store({
-          dataTypeIds: ["github-token", "private-key", "email-address"],
+          dataTypeIds: ["private-key", "github-token", "email-address"],
         }),
         "secrets-stored",
       )?.result.evidence,
-    ).toBe("Found 2 kind(s) of secret.");
+    ).toBe("Found 2 kinds of secret: GitHub token, Private key.");
+    expect(
+      evaluated(store({ dataTypeIds: ["github-token"] }), "secrets-stored")
+        ?.result.evidence,
+    ).toBe("Found 1 kind of secret: GitHub token.");
   });
 
   test("fails on exactly the catalog's secrets", () => {
@@ -704,11 +708,16 @@ describe("the other checks", () => {
 
     expect(
       evaluated(logs, "sensitive-data-in-telemetry")?.result.evidence,
-    ).toBe("2 kind(s) of sensitive data are not scrubbed.");
+    ).toBe(
+      "2 kinds of sensitive data are not scrubbed: Email address, US Social Security number.",
+    );
     expect(outcome(logs, "secrets-in-telemetry")).toEqual([
       DataSecurityCheckStatus.Fail,
       SecuritySeverity.Critical,
     ]);
+    expect(evaluated(logs, "secrets-in-telemetry")?.result.evidence).toBe(
+      "1 kind of secret is not scrubbed: GitHub token.",
+    );
     expect(
       outcome(
         { ...logs, unscrubbedDataTypeIds: [] },

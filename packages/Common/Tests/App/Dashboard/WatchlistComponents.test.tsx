@@ -25,7 +25,7 @@ import type { Mock } from "jest-mock";
 /*
  * THE PIECES OF THE WATCHLISTS PAGES, drawn for real and driven as a person
  * drives them: a list's row cells, the common lists to start with, the
- * Import Values dialog, Use It in a Rule, and the line under a detection
+ * Import Values dialog, Use This List, and the line under a detection
  * rule's YAML that says which lists the rule reads.
  *
  * Pinned: a name always as rules write it, in the mono type, a long one
@@ -297,14 +297,14 @@ describe("a list's row", () => {
       <WatchlistReadByCell readers={[]} isLoaded={true} hasError={false} />,
     );
     expect(flat(screen.getByTestId(WATCHLISTS_TEST_IDS.readByCell))).toBe(
-      "No rule reads it yet",
+      "Nothing reads it yet",
     );
 
     rerender(
       <WatchlistReadByCell readers={[]} isLoaded={true} hasError={true} />,
     );
     expect(flat(screen.getByTestId(WATCHLISTS_TEST_IDS.readByCell))).toBe(
-      "Couldn't load the rules",
+      "Couldn't load what reads it",
     );
 
     rerender(
@@ -388,7 +388,7 @@ describe("a list's row, below lg and on a phone", () => {
       "IP addresses · Follows Feodo Tracker C2",
     );
     expect(flat(screen.getByTestId(WATCHLISTS_TEST_IDS.nameReadBy))).toBe(
-      "No rule reads it yet",
+      "Nothing reads it yet",
     );
   });
 
@@ -424,7 +424,7 @@ describe("a list's row, below lg and on a phone", () => {
     );
 
     expect(flat(screen.getByTestId(WATCHLISTS_TEST_IDS.nameReadBy))).toBe(
-      "Couldn't load the rules",
+      "Couldn't load what reads it",
     );
   });
 
@@ -550,14 +550,14 @@ describe("Read By on a list's page", () => {
       <WatchlistReadersList readers={[]} isLoaded={true} hasError={false} />,
     );
     expect(flat(screen.getByTestId(WATCHLISTS_TEST_IDS.readByLine))).toBe(
-      "No rule reads it yet",
+      "Nothing reads it yet",
     );
 
     rerender(
       <WatchlistReadersList readers={[]} isLoaded={true} hasError={true} />,
     );
     expect(flat(screen.getByTestId(WATCHLISTS_TEST_IDS.readByLine))).toBe(
-      "Couldn't load the rules",
+      "Couldn't load what reads it",
     );
 
     rerender(
@@ -1147,7 +1147,7 @@ describe("Import Values", () => {
   });
 });
 
-describe("Use It in a Rule", () => {
+describe("Use This List", () => {
   function renderSnippet(
     props: Partial<React.ComponentProps<typeof WatchlistRuleSnippet>> = {},
   ): void {
@@ -1218,6 +1218,29 @@ describe("Use It in a Rule", () => {
     expect(
       screen.getByTestId(WATCHLISTS_TEST_IDS.ruleSnippet).textContent,
     ).toContain("observables|expand: '%bad_domains%'");
+    expect(
+      screen.getByTestId(WATCHLISTS_TEST_IDS.searchSnippet).textContent,
+    ).toContain("observables:%bad_domains%");
+  });
+
+  test("the search that reads the list on Events or in a hunt, left to right, to copy", () => {
+    renderSnippet();
+
+    const search: HTMLElement = screen.getByTestId(
+      WATCHLISTS_TEST_IDS.searchSnippet,
+    );
+
+    expect(search).toHaveAttribute("dir", "ltr");
+    expect(search.textContent).toContain("principalIp:%admin_addresses%");
+    expect(
+      within(search).getByTestId("code-block-copy-button"),
+    ).toBeInTheDocument();
+    // Each snippet under the words that say where it goes.
+    expect(screen.getByText("In a rule's detection")).toBeInTheDocument();
+    expect(
+      screen.getByText("In a search on Events or a hunt"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Use This List")).toBeInTheDocument();
   });
 });
 

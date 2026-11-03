@@ -116,7 +116,7 @@ Hoe langer het venster, hoe breder elk tijdsinterval, dus één datapunt staat v
 
 ## Criteria
 
-Deze monitoren evalueren altijd de **Metric Value**: de geaggregeerde waarde van de ingestelde metriekquery of formule. **Wanneer waarschuwen** stelt één criterium in uit **Gemeten als**, **Tijdvenster**, **Voorwaarde** en **Waarde**. Heeft de metriek een eenheid, kies dan de eenheid van de waarde ernaast. De **Voorwaarde** is **Boven**, **Op of boven**, **Onder**, **Op of onder**, **Precies**, **Ongewoon hoog**, **Ongewoon laag** of **Ongewoon hoog of laag**. Voor meerdere criteria, zoals ernstbanden, klikt u op **Bewerken als eigen criteria** onder **Meer velden** in **Wat er gebeurt**: elk criterium daar heeft een **Metriek**, een **Aggregatie**, een **Voorwaarde** en een **Drempel**.
+Deze monitoren evalueren altijd de **Metric Value**: de geaggregeerde waarde van de ingestelde metriekquery of formule. **Wanneer waarschuwen** stelt één criterium in uit **Gemeten als**, **Tijdvenster**, **Voorwaarde** en **Waarde**. Heeft de metriek een eenheid, kies dan de eenheid van de waarde ernaast. De **Voorwaarde** is **Boven**, **Op of boven**, **Onder**, **Op of onder**, **Precies**, **Ongewoon hoog**, **Ongewoon laag**, **Ongewoon hoog of laag**, **Verwacht boven** of **Verwacht onder**. Voor meerdere criteria, zoals ernstbanden, klikt u op **Bewerken als eigen criteria** onder **Meer velden** in **Wat er gebeurt**: elk criterium daar heeft een **Metriek**, een **Aggregatie**, een **Voorwaarde** en een **Drempel**.
 
 | Voorwaarde | Komt overeen wanneer de waarde… |
 | --- | --- |
@@ -128,10 +128,14 @@ Deze monitoren evalueren altijd de **Metric Value**: de geaggregeerde waarde van
 | **Anomalously High** | boven het verwachte bereik voor dit uur van de week ligt |
 | **Anomalously Low** | onder dat bereik ligt |
 | **Anomalous** | buiten dat bereik ligt, in welke richting ook |
+| **Verwacht boven** | op weg is boven de drempel uit: de trend ligt er aan het eind van **Termijn** boven |
+| **Verwacht onder** | op weg is onder de drempel, aan het eind van **Termijn** |
 | **Geen gegevens** | ontbreekt: de query stuurde niets in het venster |
 | **Gegevens aanwezig** | aanwezig is: de query stuurde iets in het venster |
 
 De anomaliecondities hebben geen drempel. **Wanneer waarschuwen** toont in plaats daarvan **Gevoeligheid** (Laag, Gemiddeld, de standaard, of Hoog), en de eigen criteria ook een **Baseline-venster** (14 dagen, de standaard, 28, 60 of 90), en elk datapunt wordt vergeleken met hetzelfde uur van de week op eerdere dagen, zo ver als dat venster teruggaat. Wat er nu gebeurt, hoort nooit bij die vergelijking, dus een verandering die aanhoudt blijft waarschuwen totdat ze een week later in die eerdere dagen is opgenomen. Zolang dat uur van de week geen twee weken geschiedenis heeft, is het criterium nog aan het leren en levert het geen waarschuwingen op.
+
+De voorspellingsvoorwaarden vergelijken waar de metriek naartoe gaat met de drempel, zodat een schijf die elke dag een beetje voller wordt al dagen voordat hij vol is waarschuwt. Elke controle trekt een rechte lijn door de datapunten van elke reeks in het **Tijdvenster** en trekt die zo ver door als **Termijn** aangeeft, van 1 uur tot 30 dagen: een week, tenzij je het wijzigt. Het criterium komt overeen wanneer die lijn aan het eind van die tijd voorbij de drempel is, en het incident zegt waar de metriek naartoe gaat en wanneer hij de drempel passeert. Kies een lang venster, zoals **Laatste 7 dagen**, zodat de lijn volgt hoe de metriek groeit en niet de dagelijkse schommelingen. Een reeks wordt voorspeld zodra de gegevens de helft van het venster beslaan, en niet meer zodra er geen gegevens meer komen. Om gewaarschuwd te worden voordat een bestandssysteem volloopt, volg je `system.filesystem.utilization` met Max, gegroepeerd per host en mountpoint, en waarschuw je wanneer het naar verwachting binnen 7 dagen boven 90% uitkomt.
 
 Waarmee een datapunt wordt vergeleken, hangt af van de query:
 

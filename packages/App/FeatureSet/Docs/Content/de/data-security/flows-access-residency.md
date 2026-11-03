@@ -80,6 +80,12 @@ Bei AWS listet das Lesen die Benutzer und Rollen des Kontos einmal auf und entsc
 
 Der Wert beträgt höchstens 100. Eine Rolle eines Kontos außerhalb, die einen Datenspeicher mit Kartennummern ändern kann, erhält 50 + 15 + 15 + 1 = 81.
 
+## Die Wege eines Datenspeichers auf einer Karte
+
+Die **Übersicht** eines Datenspeichers zeigt auf einer Karte, wer ihn erreichen kann und wohin seine Daten gelangen können, sodass ein Weg über mehrere Schritte auf einen Blick lesbar ist. Links steht, wer den Datenspeicher erreichen kann: eine Karte für jede Identität, wie viele Berechtigungen sie auch hat, mit einem Pfeil zum Datenspeicher, beschriftet mit dem Höchsten, was sie tun darf: rot von jedem im Internet, orange von außerhalb Ihrer Konten. Danach folgen die Dienste, die den Datenspeicher nutzen, und rechts steht, wohin seine Daten von ihnen aus gelangen können: die KI-Anbieter und externen Hosts, die diese Dienste aufrufen, und die Datenspeicher, die Kopien davon enthalten.
+
+Ein Pfeil, der Daten trägt, ist danach eingefärbt, wie sensibel diese Daten sind, und gestrichelt, bis ein Scan die Daten am anderen Ende gefunden hat. Die KI-Aufrufe und externen Aufrufe eines Dienstes sagen, wohin die Daten des Datenspeichers gelangen können, nicht dass sie dorthin gelangt sind; ihre Pfeile bleiben daher gestrichelt, bis ein Scan sie bestätigt. Jede Spalte zeigt ihre riskantesten Karten zuerst und fasst den Rest in einer Karte zusammen, die **Wer ihn erreichen kann** oder **Datenflüsse** öffnet, wo jede von ihnen aufgeführt ist. Klicken Sie auf eine Karte, um ihre Identität, ihren Dienst oder ihren Datenspeicher zu öffnen.
+
 ## Residenzregeln
 
 Eine Residenzregel legt fest, wo eine Art von Daten liegen darf. Fügen Sie eine unter **Datensicherheit → Einstellungen → Residenzregeln** hinzu:

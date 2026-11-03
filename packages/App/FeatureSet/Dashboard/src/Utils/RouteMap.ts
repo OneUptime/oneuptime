@@ -603,6 +603,9 @@ export const CloudRoutePath: Dictionary<string> = {
   [PageMap.CLOUD_ARCHIVED]: `archived`,
   [PageMap.CLOUD_MONITORED_RESOURCES]: `resources`,
   [PageMap.CLOUD_CONNECT]: `connect`,
+  [PageMap.CLOUD_COSTS]: `costs`,
+  [PageMap.CLOUD_SAVINGS]: `savings`,
+  [PageMap.CLOUD_BUDGETS]: `budgets`,
   [PageMap.CLOUD_RESOURCE_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
   [PageMap.CLOUD_RESOURCE_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
   [PageMap.CLOUD_RESOURCE_VIEW_CHANGES]: `${RouteParams.ModelID}/changes`,
@@ -616,6 +619,7 @@ export const CloudRoutePath: Dictionary<string> = {
   [PageMap.CLOUD_ACCOUNT_VIEW_AI_AGENT]: `accounts/${RouteParams.ModelID}/ai/agent`,
   [PageMap.CLOUD_ACCOUNT_VIEW_AI_LOGS]: `accounts/${RouteParams.ModelID}/ai/logs`,
   [PageMap.CLOUD_ACCOUNT_VIEW_FEED]: `accounts/${RouteParams.ModelID}/feed`,
+  [PageMap.CLOUD_ACCOUNT_VIEW_COSTS]: `accounts/${RouteParams.ModelID}/costs`,
 };
 
 export const DatabaseRoutePath: Dictionary<string> = {
@@ -939,6 +943,26 @@ export const DataSecurityRoutePath: Dictionary<string> = {
   [PageMap.DATA_SECURITY_SETTINGS_LABEL_RULES]: "settings/label-rules",
   [PageMap.DATA_SECURITY_SETTINGS_LABEL_RULE_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
   [PageMap.DATA_SECURITY_DOCUMENTATION]: "documentation",
+};
+
+// Data Observability product routes
+export const DataObservabilityRoutePath: Dictionary<string> = {
+  [PageMap.DATA_OBSERVABILITY]: "",
+  [PageMap.DATA_OBSERVABILITY_OVERVIEW]: "overview",
+  [PageMap.DATA_OBSERVABILITY_TABLES]: "tables",
+  [PageMap.DATA_OBSERVABILITY_TABLES_DROPPED]: "tables/dropped",
+  [PageMap.DATA_OBSERVABILITY_TABLE_VIEW]: `tables/${RouteParams.ModelID}`,
+  [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_COLUMNS]: `tables/${RouteParams.ModelID}/columns`,
+  [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_METRICS]: `tables/${RouteParams.ModelID}/metrics`,
+  [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_TIMELINE]: `tables/${RouteParams.ModelID}/timeline`,
+  [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_SETTINGS]: `tables/${RouteParams.ModelID}/settings`,
+  [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_DELETE]: `tables/${RouteParams.ModelID}/delete`,
+  [PageMap.DATA_OBSERVABILITY_STORES]: "stores",
+  [PageMap.DATA_OBSERVABILITY_STORE_VIEW]: `stores/${RouteParams.ModelID}`,
+  [PageMap.DATA_OBSERVABILITY_STORE_VIEW_TABLES]: `stores/${RouteParams.ModelID}/tables`,
+  [PageMap.DATA_OBSERVABILITY_STORE_VIEW_RECOMMENDATIONS]: `stores/${RouteParams.ModelID}/recommendations`,
+  [PageMap.DATA_OBSERVABILITY_SCHEMA_CHANGES]: "schema-changes",
+  [PageMap.DATA_OBSERVABILITY_DOCUMENTATION]: "documentation",
 };
 
 // Metrics product routes
@@ -5835,6 +5859,28 @@ const RouteMap: Dictionary<Route> = {
 
   [PageMap.CLOUD_HOME]: new Route(`/dashboard/${RouteParams.ProjectID}/cloud`),
 
+  [PageMap.CLOUD_OVERVIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud`,
+  ),
+
+  [PageMap.CLOUD_COSTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_COSTS]
+    }`,
+  ),
+
+  [PageMap.CLOUD_SAVINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_SAVINGS]
+    }`,
+  ),
+
+  [PageMap.CLOUD_BUDGETS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_BUDGETS]
+    }`,
+  ),
+
   [PageMap.CLOUD_MONITORED_RESOURCES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/cloud/${
       CloudRoutePath[PageMap.CLOUD_MONITORED_RESOURCES]
@@ -5993,6 +6039,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.CLOUD_ACCOUNT_VIEW_FEED]: new Route(
     `/dashboard/${RouteParams.ProjectID}/cloud/${
       CloudRoutePath[PageMap.CLOUD_ACCOUNT_VIEW_FEED]
+    }`,
+  ),
+
+  [PageMap.CLOUD_ACCOUNT_VIEW_COSTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_ACCOUNT_VIEW_COSTS]
     }`,
   ),
 
@@ -7722,6 +7774,107 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.DATA_SECURITY_DOCUMENTATION]: new Route(
     `/dashboard/${RouteParams.ProjectID}/data-security/${
       DataSecurityRoutePath[PageMap.DATA_SECURITY_DOCUMENTATION]
+    }`,
+  ),
+
+  // Data Observability Product Routes
+  [PageMap.DATA_OBSERVABILITY_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/*`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_OVERVIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_OVERVIEW]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_TABLES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_TABLES]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_TABLES_DROPPED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_TABLES_DROPPED]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_TABLE_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_TABLE_VIEW]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_COLUMNS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_TABLE_VIEW_COLUMNS]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_METRICS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_TABLE_VIEW_METRICS]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_TIMELINE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_TABLE_VIEW_TIMELINE]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_TABLE_VIEW_SETTINGS]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_TABLE_VIEW_DELETE]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_STORES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_STORES]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_STORE_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_STORE_VIEW]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_STORE_VIEW_TABLES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_STORE_VIEW_TABLES]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_STORE_VIEW_RECOMMENDATIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[
+        PageMap.DATA_OBSERVABILITY_STORE_VIEW_RECOMMENDATIONS
+      ]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_SCHEMA_CHANGES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_SCHEMA_CHANGES]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_DOCUMENTATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_DOCUMENTATION]
     }`,
   ),
 

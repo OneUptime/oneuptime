@@ -20,10 +20,14 @@ import { ThreatIntelIndicatorType } from "./ThreatIntelConstants";
  *     condition: selection
  *
  * A watchlist holds one kind of thing (users, hosts, IP addresses...) and
- * its values come from one of two places:
+ * its values come from one of three places:
  *
  *   - values the team keeps: added by hand or imported from a file, each
- *     with an optional note;
+ *     with an optional note and, if it is only for a while, the moment it
+ *     leaves the list;
+ *   - a file at an https address, read again on a schedule: the list is
+ *     what the file holds at its last read (a CSV an HR or CMDB system
+ *     publishes, say);
  *   - a threat intel feed: the feed's active indicators of the list's kind,
  *     kept up to date by the feed itself (an IP address list follows a
  *     feed's addresses).
@@ -31,7 +35,9 @@ import { ThreatIntelIndicatorType } from "./ThreatIntelConstants";
  * Values are matched as rule exceptions, protected entities and entity
  * criticality match theirs: whatever the case, with * for any run of
  * characters (svc-* is every service account), and an IP address list may
- * hold ranges (10.20.0.0/16).
+ * hold ranges (10.20.0.0/16). Detection and correlation rules read a list
+ * with `expand`; a Security Events monitor, a hunt and the Events search
+ * read it too (SecurityWatchlistFilter).
  *
  * Kept free of anything server-side: the Dashboard's forms, the import and
  * the list read the same rules the API enforces. Each message below is a
@@ -46,10 +52,56 @@ export enum SecurityWatchlistSource {
   Values = "Values",
   // A threat intel feed's active indicators of the list's kind.
   ThreatIntelFeed = "Threat Intel Feed",
+  // A file at an https address, read again on a schedule.
+  Url = "URL",
 }
 
 export const SECURITY_WATCHLIST_SOURCES: ReadonlyArray<SecurityWatchlistSource> =
-  [SecurityWatchlistSource.Values, SecurityWatchlistSource.ThreatIntelFeed];
+  [
+    SecurityWatchlistSource.Values,
+    SecurityWatchlistSource.ThreatIntelFeed,
+    SecurityWatchlistSource.Url,
+  ];
+
+/*
+ * How often a list read from an address reads it again: the hunts'
+ * schedules that suit a list, the same words. A list changes with the
+ * people and machines on it - hours, not minutes.
+ */
+export enum SecurityWatchlistImportSchedule {
+  EveryHour = "Every Hour",
+  EverySixHours = "Every 6 Hours",
+  EveryDay = "Every Day",
+}
+
+// In the order the form offers them.
+export const SECURITY_WATCHLIST_IMPORT_SCHEDULES: ReadonlyArray<SecurityWatchlistImportSchedule> =
+  [
+    SecurityWatchlistImportSchedule.EveryHour,
+    SecurityWatchlistImportSchedule.EverySixHours,
+    SecurityWatchlistImportSchedule.EveryDay,
+  ];
+
+// What a new list read from an address does unless it says otherwise.
+export const DEFAULT_SECURITY_WATCHLIST_IMPORT_SCHEDULE: SecurityWatchlistImportSchedule =
+  SecurityWatchlistImportSchedule.EveryHour;
+
+const IMPORT_SCHEDULE_INTERVAL_IN_MINUTES: Readonly<
+  Record<SecurityWatchlistImportSchedule, number>
+> = {
+  [SecurityWatchlistImportSchedule.EveryHour]: 60,
+  [SecurityWatchlistImportSchedule.EverySixHours]: 6 * 60,
+  [SecurityWatchlistImportSchedule.EveryDay]: 24 * 60,
+};
+
+/*
+ * A read that failed is tried again sooner than a whole day later: within
+ * the hour, or the list's own interval when that is shorter.
+ */
+export const SECURITY_WATCHLIST_IMPORT_RETRY_IN_MINUTES: number = 60;
+
+// The longest address a list reads (SecurityWatchlist.importUrl).
+export const SECURITY_WATCHLIST_IMPORT_URL_MAX_LENGTH: number = 500;
 
 /*
  * What a watchlist can hold, in the order the form offers them: the kinds
@@ -167,12 +219,27 @@ export const SECURITY_WATCHLIST_MESSAGES: {
   notAnAddress: { message: string };
   notAHash: { message: string };
   noteTooLong: { message: string };
+  expiryNotADate: { message: string };
+  expiryPassed: { message: string };
+  importExpiryNotADate: { message: string };
+  importExpiryPassed: { message: string };
   enterName: { message: string };
   nameTooLong: { message: string };
   nameCharacters: { message: string };
   tooManyValues: { message: string };
   tooManyPatterns: { message: string };
   tooManyRanges: { message: string };
+  enterUrl: { message: string };
+  urlNotAnAddress: { message: string };
+  urlNotHttps: { message: string };
+  urlHasCredentials: { message: string };
+  urlTooLong: { message: string };
+  chooseSchedule: { message: string };
+  urlFileIsWebPage: { message: string };
+  urlFileHasNoValues: { message: string };
+  urlFileTooLarge: { message: string };
+  urlNotRead: { message: string };
+  keptByUrl: { message: string };
 } = {
   enterValue: { message: "Enter a value." },
   loneWildcard: { message: "A value of only * would match everything." },
@@ -184,6 +251,20 @@ export const SECURITY_WATCHLIST_MESSAGES: {
   },
   notAHash: { message: "Enter an MD5, SHA-1, SHA-256 or SHA-512 hash." },
   noteTooLong: { message: "A note is at most 500 characters." },
+  expiryNotADate: {
+    message: "Enter when the value leaves the list, or leave it empty.",
+  },
+  expiryPassed: {
+    message:
+      "A value leaves its list in the future. To take one off now, delete it.",
+  },
+  importExpiryNotADate: {
+    message:
+      "Write when the value leaves the list as a date such as 2026-12-31, or leave it empty.",
+  },
+  importExpiryPassed: {
+    message: "The date this value leaves the list has passed.",
+  },
   enterName: { message: "Enter a name, such as vip_users." },
   nameTooLong: { message: "A name is at most 50 characters." },
   nameCharacters: {
@@ -196,6 +277,37 @@ export const SECURITY_WATCHLIST_MESSAGES: {
   },
   tooManyPatterns: { message: "A watchlist holds at most 100 values with *." },
   tooManyRanges: { message: "A watchlist holds at most 100 address ranges." },
+  enterUrl: { message: "Enter the https address of the file to read." },
+  urlNotAnAddress: {
+    message: "Enter a whole address, with https and the host name.",
+  },
+  urlNotHttps: { message: "The address starts with https." },
+  urlHasCredentials: {
+    message:
+      "The address holds no user name or password: everyone who can read the list can read its address.",
+  },
+  urlTooLong: { message: "An address is at most 500 characters." },
+  chooseSchedule: { message: "Choose how often the file is read." },
+  urlFileIsWebPage: {
+    message:
+      "The address answered with a web page, not a file of values. Check that it downloads a text or CSV file, one value a line.",
+  },
+  urlFileHasNoValues: {
+    message:
+      "The file at the address holds no value the list can take, so the list keeps the values it had.",
+  },
+  urlFileTooLarge: {
+    message:
+      "The file at the address is larger than 4 MB, so the list keeps the values it had. Split the list into smaller files.",
+  },
+  urlNotRead: {
+    message:
+      "OneUptime could not download the file at the address, so the list keeps the values it had. Check that the address answers from the internet.",
+  },
+  keptByUrl: {
+    message:
+      "This watchlist is read from an address, which keeps its values. To keep values by hand, create a watchlist of your own.",
+  },
 };
 
 // How a value matches: as written, as a pattern with *, or as an address range.
@@ -376,6 +488,20 @@ export function getSecurityWatchlistRuleSnippet(data: {
   ].join("\n");
 }
 
+/*
+ * The search that reads the watchlist on Events or in a hunt, to copy:
+ * the list's usual field, the list's name between % signs -
+ * `principalUser:%vip_users%`. A minus in front reads it as an allow list.
+ */
+export function getSecurityWatchlistSearchSnippet(data: {
+  name: string;
+  entityType: unknown;
+}): string {
+  return `${getSecurityWatchlistSnippetField(
+    data.entityType,
+  )}:${getSecurityWatchlistPlaceholder(data.name)}`;
+}
+
 // A value as stored: trimmed, with no run of wildcards.
 export function normalizeSecurityWatchlistValue(value: unknown): string {
   if (typeof value !== "string") {
@@ -499,6 +625,98 @@ export function getSecurityWatchlistNoteProblem(value: unknown): string | null {
 }
 
 /*
+ * VALUES THAT LEAVE THEIR LIST. A value can be given the moment it leaves
+ * its list - a contractor's account for the length of a contract, an
+ * address blocked for a month. From that moment no rule, monitor, hunt or
+ * search reads it, and OneUptime takes it off the list within a minute
+ * (SecurityWatchlistExpiry), as if someone had deleted it. A value with no
+ * such moment stays until someone removes it.
+ */
+
+// A date as a form, the API or a stored row hands it over; null for none or for one that is not a date.
+export function readSecurityWatchlistDate(value: unknown): Date | null {
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value;
+  }
+
+  if (typeof value === "string" && value.trim()) {
+    const date: Date = new Date(value.trim());
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  return null;
+}
+
+/*
+ * What is wrong with the moment a value leaves its list, or null: a date,
+ * and one still to come - a value whose moment has passed is not on the
+ * list, so it is deleted instead. Asked only when the moment is written.
+ */
+export function getSecurityWatchlistExpiryProblem(
+  value: unknown,
+  now: Date,
+): string | null {
+  if (value === undefined || value === null || value === "") {
+    return null;
+  }
+
+  const expiresAt: Date | null = readSecurityWatchlistDate(value);
+
+  if (!expiresAt) {
+    return SECURITY_WATCHLIST_MESSAGES.expiryNotADate.message;
+  }
+
+  if (expiresAt.getTime() <= now.getTime()) {
+    return SECURITY_WATCHLIST_MESSAGES.expiryPassed.message;
+  }
+
+  return null;
+}
+
+// Whether a value has left its list by `now`: it had a moment to, and the moment has come.
+export function hasSecurityWatchlistValueExpired(
+  expiresAt: unknown,
+  now: Date,
+): boolean {
+  const date: Date | null = readSecurityWatchlistDate(expiresAt);
+  return Boolean(date && date.getTime() <= now.getTime());
+}
+
+// A date-only value in a file, 2026-12-31: the list leaves it that day, at its start in UTC.
+const DATE_ONLY_REGEX: RegExp = /^\d{4}-\d{2}-\d{2}$/;
+// A date and time in a file, ISO 8601 with its zone: 2026-12-31T18:00:00Z.
+const DATE_TIME_REGEX: RegExp =
+  /^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(?::\d{2}(?:\.\d{1,9})?)?(?:Z|[+-]\d{2}:?\d{2})$/i;
+
+/*
+ * When an imported line's value leaves the list, as the file writes it:
+ * a date (2026-12-31), or a date and time with its zone, as an export
+ * writes it (2026-12-31T18:00:00.000Z). Nothing else is read as a date - a
+ * file's "12/31/2026" means one day in one country and another elsewhere -
+ * so a line with anything else is left out, and says why.
+ */
+export function readSecurityWatchlistImportExpiry(text: string): Date | null {
+  const value: string = (text || "").trim();
+
+  if (DATE_ONLY_REGEX.test(value)) {
+    const date: Date = new Date(`${value}T00:00:00.000Z`);
+
+    // 2026-02-30 is not a day: a date that rolls over is not the one written.
+    return Number.isNaN(date.getTime()) ||
+      date.toISOString().slice(0, 10) !== value
+      ? null
+      : date;
+  }
+
+  if (DATE_TIME_REGEX.test(value)) {
+    const date: Date = new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  return null;
+}
+
+/*
  * WHAT IS WRONG WITH A WATCHLIST, field by field: the form shows each
  * problem under its own field, and the API answers a save with the first.
  */
@@ -507,7 +725,9 @@ export type SecurityWatchlistFormField =
   | "entityType"
   | "description"
   | "source"
-  | "threatIntelFeedId";
+  | "threatIntelFeedId"
+  | "importUrl"
+  | "importSchedule";
 
 export interface SecurityWatchlistProblem {
   field: SecurityWatchlistFormField;
@@ -521,6 +741,111 @@ export interface SecurityWatchlistShape {
   description?: string | null | undefined;
   source?: string | null | undefined;
   threatIntelFeedId?: unknown;
+  importUrl?: string | null | undefined;
+  importSchedule?: string | null | undefined;
+}
+
+// Whether a list's values are the team's own: added by hand or imported.
+export function isSecurityWatchlistKeptByHand(source: unknown): boolean {
+  return !source || source === SecurityWatchlistSource.Values;
+}
+
+// Whether a list's values are read from an address on a schedule.
+export function isSecurityWatchlistReadFromUrl(source: unknown): boolean {
+  return source === SecurityWatchlistSource.Url;
+}
+
+export function isSecurityWatchlistImportSchedule(
+  value: unknown,
+): value is SecurityWatchlistImportSchedule {
+  return (
+    typeof value === "string" &&
+    (SECURITY_WATCHLIST_IMPORT_SCHEDULES as ReadonlyArray<string>).includes(
+      value,
+    )
+  );
+}
+
+// How many minutes apart a list's reads are: its schedule's, else the default's.
+export function getSecurityWatchlistImportIntervalInMinutes(
+  schedule: unknown,
+): number {
+  return IMPORT_SCHEDULE_INTERVAL_IN_MINUTES[
+    isSecurityWatchlistImportSchedule(schedule)
+      ? schedule
+      : DEFAULT_SECURITY_WATCHLIST_IMPORT_SCHEDULE
+  ];
+}
+
+// When a list that was just read is read next: one interval on.
+export function getNextSecurityWatchlistImportAt(data: {
+  schedule: unknown;
+  now: Date;
+}): Date {
+  return new Date(
+    data.now.getTime() +
+      getSecurityWatchlistImportIntervalInMinutes(data.schedule) * 60 * 1000,
+  );
+}
+
+// When a list whose read failed is tried again: within the hour.
+export function getSecurityWatchlistImportRetryAt(data: {
+  schedule: unknown;
+  now: Date;
+}): Date {
+  const minutes: number = Math.min(
+    getSecurityWatchlistImportIntervalInMinutes(data.schedule),
+    SECURITY_WATCHLIST_IMPORT_RETRY_IN_MINUTES,
+  );
+
+  return new Date(data.now.getTime() + minutes * 60 * 1000);
+}
+
+// An address as stored: trimmed.
+export function normalizeSecurityWatchlistImportUrl(value: unknown): string {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+/*
+ * What is wrong with the address a list is read from, or null: a whole
+ * https address, with no user name or password in it - everyone who can
+ * read the list reads its address - and at most 500 characters. Whether
+ * OneUptime may reach it is the egress guard's to say when it is read.
+ */
+export function getSecurityWatchlistImportUrlProblem(
+  value: unknown,
+): string | null {
+  const url: string = normalizeSecurityWatchlistImportUrl(value);
+
+  if (!url) {
+    return SECURITY_WATCHLIST_MESSAGES.enterUrl.message;
+  }
+
+  if (url.length > SECURITY_WATCHLIST_IMPORT_URL_MAX_LENGTH) {
+    return SECURITY_WATCHLIST_MESSAGES.urlTooLong.message;
+  }
+
+  let parsed: URL;
+
+  try {
+    parsed = new URL(url);
+  } catch {
+    return SECURITY_WATCHLIST_MESSAGES.urlNotAnAddress.message;
+  }
+
+  if (parsed.protocol !== "https:") {
+    return SECURITY_WATCHLIST_MESSAGES.urlNotHttps.message;
+  }
+
+  if (!parsed.hostname) {
+    return SECURITY_WATCHLIST_MESSAGES.urlNotAnAddress.message;
+  }
+
+  if (parsed.username || parsed.password) {
+    return SECURITY_WATCHLIST_MESSAGES.urlHasCredentials.message;
+  }
+
+  return null;
 }
 
 export function getSecurityWatchlistNameProblem(value: unknown): string | null {
@@ -604,6 +929,27 @@ export function getSecurityWatchlistProblems(
     }
   }
 
+  if (source === SecurityWatchlistSource.Url) {
+    const urlProblem: string | null = getSecurityWatchlistImportUrlProblem(
+      watchlist.importUrl,
+    );
+
+    if (urlProblem) {
+      problems.push({ field: "importUrl", message: urlProblem });
+    }
+
+    // Read every hour unless it says otherwise.
+    if (
+      watchlist.importSchedule &&
+      !isSecurityWatchlistImportSchedule(watchlist.importSchedule)
+    ) {
+      problems.push({
+        field: "importSchedule",
+        message: SECURITY_WATCHLIST_MESSAGES.chooseSchedule.message,
+      });
+    }
+  }
+
   return problems;
 }
 
@@ -623,10 +969,19 @@ export function getSecurityWatchlistProblem(
  * note) imports as it is; a value in double quotes may hold a comma. Empty
  * lines and lines that start with # are skipped, and so is a first line
  * that is a CSV header (value, or value and note).
+ *
+ * A file whose header names more columns - an export's value, note,
+ * expires - is read column by column: the value from the first, the note
+ * and the moment the value leaves the list from the columns the header
+ * names them in (readSecurityWatchlistImportExpiry reads the dates), any
+ * other column skipped. A cell an export guarded against a spreadsheet
+ * reading it as a formula ('=...) is read as it was written.
  */
 export interface SecurityWatchlistImportValue {
   value: string;
   note: string;
+  // When the value leaves the list; none: it stays until someone removes it.
+  expiresAt?: Date | undefined;
 }
 
 export interface SecurityWatchlistImportProblem {
@@ -659,16 +1014,162 @@ export function isSecurityWatchlistImportMode(
   );
 }
 
-// A CSV header's first column, and its second: skipped on the first line.
+// A CSV header's first column, and the names of the columns an import reads past it.
 const HEADER_VALUE_NAMES: ReadonlyArray<string> = ["value", "values"];
-const HEADER_NOTE_NAMES: ReadonlyArray<string> = ["", "note", "notes"];
+const HEADER_NOTE_NAMES: ReadonlyArray<string> = ["note", "notes"];
+const HEADER_EXPIRES_NAMES: ReadonlyArray<string> = [
+  "expires",
+  "expires at",
+  "expires_at",
+  "expiresat",
+  "expiry",
+];
 
-// Whether a line read from the top of an import is a CSV header rather than a value.
-function isImportHeader(read: { value: string; note: string }): boolean {
+// The header an export writes, and the import reads back: value, note, expires.
+export const SECURITY_WATCHLIST_EXPORT_HEADER: ReadonlyArray<string> = [
+  "value",
+  "note",
+  "expires",
+];
+
+/*
+ * The characters a spreadsheet reads a cell as a formula by, when the cell
+ * starts with one: =, +, - and @. An export writes such a cell with an
+ * apostrophe in front, which a spreadsheet shows as text and an import
+ * takes off again. A cell that starts with an apostrophe already, before
+ * one of those or another apostrophe ('=x, ''), takes one more, so the
+ * import gives back what was written.
+ */
+const FORMULA_START_CHARACTERS: ReadonlyArray<string> = ["=", "+", "-", "@"];
+const FORMULA_GUARD: string = "'";
+
+// Whether a cell starts with the guard before a formula's first character, or before another guard.
+function startsWithGuard(text: string): boolean {
   return (
-    HEADER_VALUE_NAMES.includes(read.value.trim().toLowerCase()) &&
-    HEADER_NOTE_NAMES.includes(read.note.trim().toLowerCase())
+    text.length > 1 &&
+    text[0] === FORMULA_GUARD &&
+    (FORMULA_START_CHARACTERS.includes(text[1]!) || text[1] === FORMULA_GUARD)
   );
+}
+
+// A cell as an export writes it: guarded when a spreadsheet would read it as a formula.
+export function guardSecurityWatchlistCsvCell(text: string): string {
+  return (text.length > 0 && FORMULA_START_CHARACTERS.includes(text[0]!)) ||
+    startsWithGuard(text)
+    ? `${FORMULA_GUARD}${text}`
+    : text;
+}
+
+// A cell as it was before an export guarded it: the apostrophe an export put in front taken off.
+export function unguardSecurityWatchlistCsvCell(text: string): string {
+  return startsWithGuard(text) ? text.slice(1) : text;
+}
+
+// The byte order mark a file saved for Excel starts with: never part of a value.
+const BYTE_ORDER_MARK: string = String.fromCharCode(0xfeff);
+
+/*
+ * Where a header puts the columns an import reads: the note and the moment
+ * a value leaves the list, -1 for a column it does not name. `columns`
+ * says whether the lines are read column by column - a header that names
+ * the moment, or more than a value and a note - or as a value and, after
+ * it, the rest of the line as its note.
+ */
+interface ImportLayout {
+  columns: boolean;
+  noteIndex: number;
+  expiresIndex: number;
+}
+
+const LINE_LAYOUT: ImportLayout = {
+  columns: false,
+  noteIndex: 1,
+  expiresIndex: -1,
+};
+
+// The layout a first line names, or null when it is a value rather than a header.
+function readImportHeader(line: string): ImportLayout | null {
+  const names: Array<string> = readSecurityWatchlistImportFields(line).map(
+    (name: string): string => {
+      return name.trim().toLowerCase();
+    },
+  );
+
+  if (!HEADER_VALUE_NAMES.includes(names[0] || "")) {
+    return null;
+  }
+
+  const noteIndex: number = names.findIndex(
+    (name: string, index: number): boolean => {
+      return index > 0 && HEADER_NOTE_NAMES.includes(name);
+    },
+  );
+  const expiresIndex: number = names.findIndex(
+    (name: string, index: number): boolean => {
+      return index > 0 && HEADER_EXPIRES_NAMES.includes(name);
+    },
+  );
+
+  if (expiresIndex === -1 && names.length <= 2) {
+    // value, or value and a note: as a line without a header reads.
+    return LINE_LAYOUT;
+  }
+
+  return { columns: true, noteIndex, expiresIndex };
+}
+
+/*
+ * Every field of a line, CSV-style: split at each comma or tab outside
+ * double quotes; a quoted field drops its quotes and reads "" as ". Read in
+ * one pass, never with a regular expression.
+ */
+export function readSecurityWatchlistImportFields(line: string): Array<string> {
+  const fields: Array<string> = [];
+  let current: string = "";
+  let inQuotes: boolean = false;
+  let index: number = 0;
+
+  while (index < line.length) {
+    const char: string = line[index]!;
+
+    if (inQuotes) {
+      if (char === '"') {
+        if (line[index + 1] === '"') {
+          current += '"';
+          index += 2;
+          continue;
+        }
+
+        inQuotes = false;
+        index++;
+        continue;
+      }
+
+      current += char;
+      index++;
+      continue;
+    }
+
+    if (char === '"' && current.trim() === "") {
+      current = "";
+      inQuotes = true;
+      index++;
+      continue;
+    }
+
+    if (char === "," || char === "\t") {
+      fields.push(current.trim());
+      current = "";
+      index++;
+      continue;
+    }
+
+    current += char;
+    index++;
+  }
+
+  fields.push(current.trim());
+  return fields;
 }
 
 /*
@@ -738,17 +1239,82 @@ export function readSecurityWatchlistImportLine(line: string): {
   return { value: fields[0]!.trim(), note: note.trim() };
 }
 
+// One line of an import as its layout reads it: the value, its note, and when it leaves the list as written.
+function readImportLine(
+  line: string,
+  layout: ImportLayout,
+): { value: string; note: string; expires: string } {
+  if (!layout.columns) {
+    const read: { value: string; note: string } =
+      readSecurityWatchlistImportLine(line);
+
+    return {
+      value: unguardSecurityWatchlistCsvCell(read.value),
+      note: unguardSecurityWatchlistCsvCell(read.note),
+      expires: "",
+    };
+  }
+
+  const fields: Array<string> = readSecurityWatchlistImportFields(line);
+
+  return {
+    value: unguardSecurityWatchlistCsvCell(fields[0] || ""),
+    note:
+      layout.noteIndex >= 0
+        ? unguardSecurityWatchlistCsvCell(fields[layout.noteIndex] || "")
+        : "",
+    expires: layout.expiresIndex >= 0 ? fields[layout.expiresIndex] || "" : "",
+  };
+}
+
+/*
+ * What is wrong with when an imported line's value leaves the list, if it
+ * says: a date the import reads, still to come. The date otherwise.
+ */
+function readImportExpiry(
+  text: string,
+  now: Date,
+): { expiresAt?: Date | undefined; problem?: string | undefined } {
+  if (!text.trim()) {
+    return {};
+  }
+
+  const expiresAt: Date | null = readSecurityWatchlistImportExpiry(text);
+
+  if (!expiresAt) {
+    return {
+      problem: SECURITY_WATCHLIST_MESSAGES.importExpiryNotADate.message,
+    };
+  }
+
+  if (expiresAt.getTime() <= now.getTime()) {
+    return { problem: SECURITY_WATCHLIST_MESSAGES.importExpiryPassed.message };
+  }
+
+  return { expiresAt };
+}
+
 export function parseSecurityWatchlistImport(data: {
   text: string;
   entityType: unknown;
+  // When the import is read: a value whose moment to leave has come is left out.
+  now?: Date | undefined;
 }): SecurityWatchlistImportResult {
   const values: Array<SecurityWatchlistImportValue> = [];
   const problems: Array<SecurityWatchlistImportProblem> = [];
   const seen: Set<string> = new Set();
+  const now: Date = data.now || new Date();
   let duplicates: number = 0;
-  let isFirstLine: boolean = true;
+  let layout: ImportLayout | null = null;
 
-  const lines: Array<string> = (data.text || "").split("\n");
+  let text: string = data.text || "";
+
+  // A file Excel saved as "CSV UTF-8" starts with a byte order mark.
+  if (text.startsWith(BYTE_ORDER_MARK)) {
+    text = text.slice(BYTE_ORDER_MARK.length);
+  }
+
+  const lines: Array<string> = text.split("\n");
 
   lines.forEach((rawLine: string, index: number): void => {
     // A file written on Windows ends its lines with \r\n.
@@ -761,24 +1327,32 @@ export function parseSecurityWatchlistImport(data: {
       return;
     }
 
-    const read: { value: string; note: string } =
-      readSecurityWatchlistImportLine(trimmed);
+    // A CSV's header ("value", "value,note", "value,note,expires") is not a value.
+    if (!layout) {
+      const header: ImportLayout | null = readImportHeader(trimmed);
+      layout = header || LINE_LAYOUT;
 
-    // A CSV's header ("value", or "value,note") is not a value.
-    if (isFirstLine) {
-      isFirstLine = false;
-
-      if (isImportHeader(read)) {
+      if (header) {
         return;
       }
     }
 
+    const read: { value: string; note: string; expires: string } =
+      readImportLine(trimmed, layout);
+
     const value: string = normalizeSecurityWatchlistValue(read.value);
+    const expiry: {
+      expiresAt?: Date | undefined;
+      problem?: string | undefined;
+    } = readImportExpiry(read.expires, now);
     const problem: string | null =
       getSecurityWatchlistValueProblem({
         value,
         entityType: data.entityType,
-      }) || getSecurityWatchlistNoteProblem(read.note);
+      }) ||
+      getSecurityWatchlistNoteProblem(read.note) ||
+      expiry.problem ||
+      null;
 
     if (problem) {
       problems.push({
@@ -797,10 +1371,73 @@ export function parseSecurityWatchlistImport(data: {
     }
 
     seen.add(key);
-    values.push({ value, note: normalizeSecurityWatchlistNote(read.note) });
+    values.push({
+      value,
+      note: normalizeSecurityWatchlistNote(read.note),
+      ...(expiry.expiresAt ? { expiresAt: expiry.expiresAt } : {}),
+    });
   });
 
   return { values, problems, duplicates };
+}
+
+/*
+ * EXPORTING A LIST: its values as a CSV file an import reads back - the
+ * header value, note, expires, then a line a value: its note, and when it
+ * leaves the list (an ISO date and time in UTC; empty when it stays). A
+ * cell is quoted when it holds a comma, a tab or a quote, a note's line
+ * breaks become spaces (an import reads a line a value), and a cell a
+ * spreadsheet would read as a formula is guarded with an apostrophe.
+ */
+export interface SecurityWatchlistExportValue {
+  value: string;
+  note?: string | null | undefined;
+  expiresAt?: Date | string | null | undefined;
+}
+
+function writeCsvCell(text: string): string {
+  const cell: string = guardSecurityWatchlistCsvCell(text);
+
+  if (cell.includes(",") || cell.includes('"') || cell.includes("\t")) {
+    return `"${cell.split('"').join('""')}"`;
+  }
+
+  return cell;
+}
+
+// A note on one line: each run of line breaks a space.
+function toOneLine(text: string): string {
+  return text
+    .split("\r\n")
+    .join("\n")
+    .split("\r")
+    .join("\n")
+    .split("\n")
+    .map((part: string): string => {
+      return part.trim();
+    })
+    .filter(Boolean)
+    .join(" ");
+}
+
+export function writeSecurityWatchlistCsv(
+  values: ReadonlyArray<SecurityWatchlistExportValue>,
+): string {
+  const lines: Array<string> = [SECURITY_WATCHLIST_EXPORT_HEADER.join(",")];
+
+  for (const item of values) {
+    const expiresAt: Date | null = readSecurityWatchlistDate(item.expiresAt);
+
+    lines.push(
+      [
+        writeCsvCell(normalizeSecurityWatchlistValue(item.value)),
+        writeCsvCell(toOneLine(normalizeSecurityWatchlistNote(item.note))),
+        expiresAt ? expiresAt.toISOString() : "",
+      ].join(","),
+    );
+  }
+
+  return `${lines.join("\r\n")}\r\n`;
 }
 
 /*

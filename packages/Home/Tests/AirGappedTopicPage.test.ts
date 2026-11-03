@@ -530,6 +530,23 @@ describe.each(eachPage)("%s", (_slug: string, topic: AirGappedTopicPage) => {
     }
   });
 
+  test("under the steps, points at the installation guide and at the hub's evidence", () => {
+    const more: Element = page.querySelector(
+      '#install [data-testid="air-gapped-topic-install-more"]',
+    )!;
+    const links: Array<[string, string]> = all(more, "a").map(
+      (link: Element): [string, string] => {
+        return [textOf(link), link.getAttribute("href") || ""];
+      },
+    );
+
+    expect(links).toEqual([
+      ["air-gapped installation guide", "/docs/installation/air-gapped"],
+      ["see the evidence", "/enterprise/air-gapped#evidence"],
+    ]);
+    expect(hub.getElementById("evidence")?.tagName).toBe("SECTION");
+  });
+
   test("answers the questions buyers ask, folded, and the same answers for search engines", () => {
     const questions: Array<Element> = all(
       page,

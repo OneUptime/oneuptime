@@ -263,8 +263,13 @@ import { AddNetworkControllerConnectionLastDeviceAdd1808900000000 } from "./1808
 import { AddDataObservability1808910000000 } from "./1808910000000-AddDataObservability";
 import { AddDataObservabilityStoreIndex1808910100000 } from "./1808910100000-AddDataObservabilityStoreIndex";
 import { AddStatusPageMagicLinkLogin1808920000000 } from "./1808920000000-AddStatusPageMagicLinkLogin";
-import { AddAlertIncidentRules1808935210000 } from "./1808935210000-AddAlertIncidentRules";
-import { AddAlertIncidentRuleCheckIndex1808935220000 } from "./1808935220000-AddAlertIncidentRuleCheckIndex";
+import { AddDataAssetFeedUser1808930000000 } from "./1808930000000-AddDataAssetFeedUser";
+import { AddCloudCostsAndResourceHealth1808950000000 } from "./1808950000000-AddCloudCostsAndResourceHealth";
+import { AddCloudResourceHealthSeverityIndex1808960000000 } from "./1808960000000-AddCloudResourceHealthSeverityIndex";
+import { AddSecurityWatchlistExpiryAndUrlReads1808970000000 } from "./1808970000000-AddSecurityWatchlistExpiryAndUrlReads";
+import { AddSecurityWatchlistExpiryAndUrlReadIndexes1808980000000 } from "./1808980000000-AddSecurityWatchlistExpiryAndUrlReadIndexes";
+import { AddAlertIncidentRules1808991210000 } from "./1808991210000-AddAlertIncidentRules";
+import { AddAlertIncidentRuleCheckIndex1808991220000 } from "./1808991220000-AddAlertIncidentRuleCheckIndex";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1730,6 +1735,11 @@ export default [
   AddDataObservability1808910000000,
   AddDataObservabilityStoreIndex1808910100000,
   AddStatusPageMagicLinkLogin1808920000000,
-  AddAlertIncidentRules1808935210000,
-  AddAlertIncidentRuleCheckIndex1808935220000,
+  AddDataAssetFeedUser1808930000000,
+  AddCloudCostsAndResourceHealth1808950000000,
+  AddCloudResourceHealthSeverityIndex1808960000000,
+  AddSecurityWatchlistExpiryAndUrlReads1808970000000,
+  AddSecurityWatchlistExpiryAndUrlReadIndexes1808980000000,
+  AddAlertIncidentRules1808991210000,
+  AddAlertIncidentRuleCheckIndex1808991220000,
 ];
