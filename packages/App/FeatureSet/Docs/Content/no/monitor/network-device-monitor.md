@@ -518,7 +518,7 @@ Disse lagres ved siden av enhetens egne felter, skrives aldri inn i dem, og hver
 
 En Meraki-svitsj, et Meraki-tilgangspunkt eller en Meraki-appliance gir verken serienummer eller fastvare over SNMP: når enheten polles direkte, svarer den på systemgruppen og grensesnittabellene, som gir modellen og MAC-adressen, og ikke noe mer. Når en [Meraki-tilkobling](/docs/monitor/network-traffic#cisco-meraki-uten-netflow) leser organisasjonen dens, henter enheten disse, og alt annet pollingen lar stå tomt, fra Meraki-dashbordet, og kortet **Inventar** nevner tilkoblingen i en rad **Meraki**.
 
-For å lese en enhet på nytt nå trykker du på **Oppdater** på kortet **Inventar**. Sonden poller den innen et minutt, og Meraki-tilkoblingen leser organisasjonen på nytt. Kortet sier når den nye avlesningen er kommet inn, eller at sonden ikke nådde enheten. **Oppdater** finnes for dem som kan redigere nettverksenheter, på en enhet som en sonde poller eller som en Meraki-tilkobling beskriver.
+For å lese en enhet på nytt nå trykker du på **Oppdater** på kortet **Inventar**. Sonden poller den innen et minutt, og Meraki-tilkoblingen leser organisasjonen på nytt. Kortet sier når den nye avlesningen er kommet inn, eller at sonden ikke nådde enheten. **Oppdater** finnes for dem som kan redigere nettverksenheter, på en enhet som en sonde poller eller som en Meraki-tilkobling beskriver. Når den nye avlesningen er kommet inn, viser også enhetens tilstand og kortet **Enhetsdetaljer** den. Hvis bare Meraki-dashbordet ennå ikke er lest tre minutter senere, sier kortet det, med en lenke til Meraki-tilkoblingen på nettverkets side **Trafikk**, der raden sier hvorfor.
 
 ## Finn enheter med en nettverksskanning
 

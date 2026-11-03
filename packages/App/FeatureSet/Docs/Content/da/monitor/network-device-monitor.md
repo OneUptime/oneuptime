@@ -518,7 +518,7 @@ De gemmes ved siden af enhedens egne felter, skrives aldrig ind i dem, og hver s
 
 En Meraki-switch, et Meraki-adgangspunkt eller en Meraki-appliance giver hverken serienummer eller firmware over SNMP: når enheden polles direkte, svarer den på systemgruppen og interfacetabellerne, som giver dens model og dens MAC-adresse, og intet andet. Når en [Meraki-forbindelse](/docs/monitor/network-traffic#cisco-meraki-uden-netflow) læser dens organisation, henter enheden dem, og alt andet, dens polling lader stå tomt, fra Meraki-dashboardet, og dens kort **Inventar** nævner forbindelsen i en række **Meraki**.
 
-For at læse en enhed igen nu trykker du på **Opdater** på dens kort **Inventar**. Dens sonde poller den inden for et minut, og dens Meraki-forbindelse læser organisationen igen. Kortet fortæller, hvornår den nye aflæsning er landet, eller at sonden ikke kunne nå enheden. **Opdater** findes for dem, der må redigere netværksenheder, på en enhed, som en sonde poller, eller som en Meraki-forbindelse beskriver.
+For at læse en enhed igen nu trykker du på **Opdater** på dens kort **Inventar**. Dens sonde poller den inden for et minut, og dens Meraki-forbindelse læser organisationen igen. Kortet fortæller, hvornår den nye aflæsning er landet, eller at sonden ikke kunne nå enheden. **Opdater** findes for dem, der må redigere netværksenheder, på en enhed, som en sonde poller, eller som en Meraki-forbindelse beskriver. Når den nye aflæsning er landet, viser enhedens tilstand og dens kort **Enhedsoplysninger** den også. Hvis kun Meraki-dashboardet stadig ikke er læst tre minutter senere, siger kortet det, med et link til Meraki-forbindelsen på netværkets side **Trafik**, hvis række fortæller hvorfor.
 
 ## Find enheder med en netværksscanning
 
