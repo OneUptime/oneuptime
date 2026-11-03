@@ -15,6 +15,7 @@ import {
 } from "../../../../Types/AI/AIChatTypes";
 import { CodeRepositoryAllowance } from "../../../../Types/CodeRepository/CodeRepositoryAllowance";
 import { AIChatPageContext } from "../../../../Types/AI/AIChatPageContext";
+import { AIActionSentence } from "../../../../Types/AI/AIActionWords";
 
 /*
  * The execution context for a tool call. projectId is ALWAYS the tenant from
@@ -60,17 +61,25 @@ export interface PreparedMutation {
    * than buildActionTitle can from the arguments alone: "Link incident
    * #42 to affected resources", by the number the person knows it by,
    * never its ID. Read with the person's own permissions; left out,
-   * buildActionTitle's title stands.
+   * buildActionTitle's title stands. A sentence of Types/AI/AIActionWords,
+   * which the card says in the reader's language.
    */
-  title?: string | undefined;
+  title?: AIActionSentence | undefined;
   /*
-   * One sentence for the approval card, under its title, naming what the
-   * arguments name by ID: "Linked to host "test01"." - and what the
-   * prepare chose for the person, which the argument line, cut at two
-   * lines, may hide: "Severity: High." (create_alert). Read with the
-   * person's own permissions.
+   * The approval card's line, under its title, naming what the arguments
+   * name by ID: "Linked to host "test01"." - and what the prepare chose
+   * for the person, which the argument line, cut at two lines, may hide:
+   * "Severity: High." (create_alert). Sentences of Types/AI/AIActionWords,
+   * read in that order; read with the person's own permissions. Left out,
+   * or empty, the card has no line.
    */
-  description?: string | undefined;
+  description?: Array<AIActionSentence> | undefined;
+  /*
+   * The arguments the title names by name - incidentId, once it says
+   * "INC-42" - which the card's line of arguments then leaves out: their
+   * IDs would only repeat the title, unreadably.
+   */
+  namedArguments?: Array<string> | undefined;
 }
 
 export interface ToolExecutionResult {
@@ -121,11 +130,14 @@ export interface ObservabilityTool {
    */
   isMutation?: boolean | undefined;
   /*
-   * Optional human-readable label for the approval card, derived from the
-   * (already validated) tool arguments — e.g. "Create incident: Checkout down".
-   * Falls back to the tool name when omitted.
+   * The approval card's title, derived from the (already validated) tool
+   * arguments - "Create incident: Checkout down" - as a sentence of
+   * Types/AI/AIActionWords: the card says it in the reader's language, and
+   * the action keeps its English for the model and the exports. Every
+   * mutation has one (AIActionCardsGuard); the card would otherwise name
+   * the tool.
    */
-  buildActionTitle?: ((args: JSONObject) => string) | undefined;
+  buildActionTitle?: ((args: JSONObject) => AIActionSentence) | undefined;
   /*
    * For a mutation: what it will do, settled from the conversation before
    * the person approves it (ChatAgentRunner calls it as the model asks for

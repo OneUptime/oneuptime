@@ -11,6 +11,10 @@ import AutoRemediationVerificationStatus from "Common/Types/AutoRemediation/Auto
 import AutoRemediationSuggestionType from "Common/Types/AutoRemediation/AutoRemediationSuggestionType";
 import { isProjectRunbookPick } from "Common/Types/AutoRemediation/AutoRemediationFix";
 import {
+  describeRemediationRoundName,
+  parseClusterRoundNameSnapshot,
+} from "Common/Types/AutoRemediation/RemediationRoundName";
+import {
   AutoRemediationDecisionEntry,
   AutoRemediationDecisionReason,
   AutoRemediationDecisionStage,
@@ -1277,13 +1281,51 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
        */
       sourceLabel = translator.translateText("OneUptime AI") as string;
     } else if (suggestion.kubernetesClusterId) {
+      /*
+       * A round OneUptime AI ran on the cluster, in the reader's words
+       * with the cluster's name as data (RemediationRoundName) - its
+       * stored name is the server's English.
+       */
       sourceLabel =
+        describeRemediationRoundName(
+          {
+            ruleNameSnapshot: suggestion.ruleNameSnapshot,
+            isClusterRound: true,
+          },
+          translator,
+        ) ||
         suggestion.ruleNameSnapshot ||
         (translator.translateText("AI remediation for cluster") as string);
     } else if (suggestion.resourceId) {
       sourceLabel =
+        describeRemediationRoundName(
+          {
+            ruleNameSnapshot: suggestion.ruleNameSnapshot,
+            isClusterRound: false,
+            resourceType: suggestion.resourceType,
+          },
+          translator,
+        ) ||
         suggestion.ruleNameSnapshot ||
         (translator.translateText("AI remediation") as string);
+    } else if (
+      !suggestion.autoRemediationRuleId &&
+      parseClusterRoundNameSnapshot(suggestion.ruleNameSnapshot)
+    ) {
+      /*
+       * A round on a cluster deleted since (its link is gone, ON DELETE SET
+       * NULL), with no rule behind it: its name is all that says it was a
+       * cluster's, so it reads as one - never "Rule: AI remediation for
+       * cluster ...".
+       */
+      sourceLabel =
+        describeRemediationRoundName(
+          {
+            ruleNameSnapshot: suggestion.ruleNameSnapshot,
+            isClusterRound: true,
+          },
+          translator,
+        ) || sourceLabel;
     }
 
     const failedCount: number = getRemediationFixFailedCount({
@@ -1626,9 +1668,10 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
               {title}
             </span>
             {/*
-              The rule or round that proposed it, as the server named it:
-              set apart (bdi) so an English name keeps its quotes in place
-              on a right-to-left page, where it still sits under the title.
+              The rule or round that proposed it - a round in the reader's
+              words, a rule by the name it was given: set apart (bdi) so it
+              reads its own way and keeps its quotes in place on a
+              right-to-left page, where it still sits under the title.
             */}
             <span
               data-testid="remediation-fix-source"

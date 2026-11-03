@@ -79,6 +79,12 @@ import ResourceAiAccessService, {
   describeResourceNoun,
   ResourceAiAccessRow,
 } from "./ResourceAiAccessService";
+import {
+  getClusterRoundNameSnapshot,
+  getResourceRoundNameSnapshot,
+  parseClusterRoundNameSnapshot,
+  parseResourceRoundNumber,
+} from "../../Types/AutoRemediation/RemediationRoundName";
 import KubernetesClusterService from "./KubernetesClusterService";
 import KubernetesCluster from "../../Models/DatabaseModels/KubernetesCluster";
 import { JSONObject } from "../../Types/JSON";
@@ -325,46 +331,20 @@ export interface ClusterRoundHold {
   isSameSubject: boolean;
 }
 
-const CLUSTER_ROUND_NAME_PREFIX: string = "AI remediation for cluster";
-
 /*
- * The name a cluster-level round carries. Server-written, and parsed back
- * by parseClusterRoundNameSnapshot: a cluster delete nulls the round's
- * kubernetesClusterId (ON DELETE SET NULL), and this name is then the only
- * thing left that says the round belonged to a cluster rather than a rule.
+ * The names a cluster's and a resource's rounds carry, and their readers
+ * back, are Types/AutoRemediation/RemediationRoundName's: the Remediation
+ * step reads the same names to word a round in the reader's language. A
+ * cluster delete nulls the round's kubernetesClusterId (ON DELETE SET
+ * NULL), and the name is then the only thing left that says the round
+ * belonged to a cluster rather than a rule.
  */
-export function getClusterRoundNameSnapshot(
-  clusterName: string,
-  round: number,
-): string {
-  return `${CLUSTER_ROUND_NAME_PREFIX} "${clusterName}"${
-    round > 1 ? ` (round ${round})` : ""
-  }`;
-}
-
-/*
- * The cluster name inside a cluster round's name snapshot, or null when the
- * snapshot is not one. A rule can in principle be NAMED like a cluster
- * round, so callers only trust this on a row that has neither a rule nor a
- * cluster link left, where it is the best evidence there is.
- */
-export function parseClusterRoundNameSnapshot(
-  name: unknown,
-): { clusterName: string } | null {
-  if (typeof name !== "string") {
-    return null;
-  }
-
-  const match: RegExpMatchArray | null = name.match(
-    /^AI remediation for cluster "(.*)"(?: \(round \d+\))?$/,
-  );
-
-  if (!match) {
-    return null;
-  }
-
-  return { clusterName: match[1] || "" };
-}
+export {
+  getClusterRoundNameSnapshot,
+  getResourceRoundNameSnapshot,
+  parseClusterRoundNameSnapshot,
+  parseResourceRoundNumber,
+};
 
 /*
  * The resource-level siblings of the cluster breaker and hold types: the
@@ -373,42 +353,6 @@ export function parseClusterRoundNameSnapshot(
 export type ResourceBreakerState = ClusterBreakerState;
 export type ResourceRoundReference = ClusterRoundReference;
 export type ResourceRoundHold = ClusterRoundHold;
-
-/*
- * The name a resource-level round carries: 'AI remediation for Docker host
- * "web-1"', 'AI remediation for host "web-2" (round 2)'. Server-written.
- * Never "for cluster": parseClusterRoundNameSnapshot must not read a
- * resource round as a deleted cluster's.
- */
-export function getResourceRoundNameSnapshot(
-  resourceType: AiResourceType,
-  resourceName: string,
-  round: number,
-): string {
-  return `AI remediation for ${describeResourceNoun(resourceType)} "${resourceName}"${
-    round > 1 ? ` (round ${round})` : ""
-  }`;
-}
-
-const RESOURCE_ROUND_NAME_SUFFIX: RegExp = /" \(round (\d+)\)$/;
-
-/*
- * The round a resource round's server-written name carries (see
- * getResourceRoundNameSnapshot): N for '... "web-1" (round N)', 1 for
- * anything else. The suffix always follows the closing quote, so a
- * resource named 'web (round 2)' is never read as a round 2.
- */
-export function parseResourceRoundNumber(
-  ruleNameSnapshot: string | undefined | null,
-): number {
-  const match: RegExpExecArray | null = RESOURCE_ROUND_NAME_SUFFIX.exec(
-    ruleNameSnapshot || "",
-  );
-
-  const round: number = match ? parseInt(match[1]!, 10) : 1;
-
-  return Number.isFinite(round) && round > 1 ? round : 1;
-}
 
 /*
  * Does a resource on this mode run this round of a signal unattended?

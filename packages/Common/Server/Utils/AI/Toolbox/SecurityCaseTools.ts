@@ -61,6 +61,58 @@ import {
   ToolExecutionResult,
 } from "./ToolTypes";
 import { translationKey } from "../../../../Types/Translator";
+import {
+  AI_ACTION_TITLES,
+  AIActionSentence,
+  aiActionSentence,
+} from "../../../../Types/AI/AIActionWords";
+import {
+  getRecordTitleName,
+  prepareRecordNamesInTitle,
+  RecordNames,
+} from "./RecordNamesForPerson";
+
+/*
+ * The case writes' card titles: the case by its number and the playbook
+ * by its name once read, else by their IDs.
+ */
+function buildSecurityCaseNoteTitle(
+  args: JSONObject,
+  names: RecordNames,
+): AIActionSentence {
+  const securityCase: string | undefined = getRecordTitleName(
+    args,
+    names,
+    "securityCaseId",
+  );
+
+  return securityCase
+    ? aiActionSentence(AI_ACTION_TITLES.addSecurityCaseNote, { securityCase })
+    : aiActionSentence(AI_ACTION_TITLES.addSecurityCaseNoteUnnamed);
+}
+
+function buildRunSecurityPlaybookTitle(
+  args: JSONObject,
+  names: RecordNames,
+): AIActionSentence {
+  const securityCase: string | undefined = getRecordTitleName(
+    args,
+    names,
+    "securityCaseId",
+  );
+  const playbook: string | undefined = getRecordTitleName(
+    args,
+    names,
+    "securityPlaybookId",
+  );
+
+  return securityCase && playbook
+    ? aiActionSentence(AI_ACTION_TITLES.runSecurityPlaybook, {
+        playbook,
+        securityCase,
+      })
+    : aiActionSentence(AI_ACTION_TITLES.runSecurityPlaybookUnnamed);
+}
 
 /*
  * THE SECURITY CASE TOOLS: how OneUptime AI reads a security case and the
@@ -919,9 +971,14 @@ export const AddSecurityCaseNoteTool: ObservabilityTool = {
     });
   },
   isMutation: true,
-  buildActionTitle: (args: JSONObject): string => {
-    return `Add a note to security case ${ToolArgs.getString(args, "securityCaseId") || ""}`.trim();
+  buildActionTitle: (args: JSONObject): AIActionSentence => {
+    return buildSecurityCaseNoteTitle(args, {});
   },
+  // The case by its number, as the person knows it.
+  prepareMutation: prepareRecordNamesInTitle({
+    keys: ["securityCaseId"],
+    buildTitle: buildSecurityCaseNoteTitle,
+  }),
   execute: async (
     args: JSONObject,
     ctx: ToolContext,
@@ -1041,9 +1098,14 @@ export const RunSecurityPlaybookTool: ObservabilityTool = {
     );
   },
   isMutation: true,
-  buildActionTitle: (args: JSONObject): string => {
-    return `Run playbook ${ToolArgs.getString(args, "securityPlaybookId") || ""} on security case ${ToolArgs.getString(args, "securityCaseId") || ""}`.trim();
+  buildActionTitle: (args: JSONObject): AIActionSentence => {
+    return buildRunSecurityPlaybookTitle(args, {});
   },
+  // The playbook by its name and the case by its number.
+  prepareMutation: prepareRecordNamesInTitle({
+    keys: ["securityCaseId", "securityPlaybookId"],
+    buildTitle: buildRunSecurityPlaybookTitle,
+  }),
   execute: async (
     args: JSONObject,
     ctx: ToolContext,

@@ -31,7 +31,21 @@ import AffectedResourceLinks, {
 } from "./AffectedResourceLinks";
 import { AiAffectedResourceRelation } from "../../../../Types/AI/AiAffectedResources";
 import AIChatPageContextType from "../../../../Types/AI/AIChatPageContext";
+import {
+  AI_ACTION_LINES,
+  AI_ACTION_TERMS,
+  AI_ACTION_TITLES,
+  AIActionSentence,
+  aiActionSentence,
+  aiActionTerm,
+} from "../../../../Types/AI/AIActionWords";
 import DatabaseRequestType from "../../../Types/BaseDatabase/DatabaseRequestType";
+import {
+  getAlertNumberForPerson,
+  getRecordTitleName,
+  prepareRecordNamesInTitle,
+  RecordNames,
+} from "./RecordNamesForPerson";
 
 /*
  * Acknowledging or resolving an alert changes its state: the permission to
@@ -99,37 +113,46 @@ function getAlertId(args: JSONObject, ctx: ToolContext): ObjectID | undefined {
 }
 
 /*
- * How the person knows an alert - its number with the project's prefix -
- * read with their own props, for an approval card's title. Null when they
- * may not read it or the read fails: the card then keeps
- * buildActionTitle's title, and running the action says why.
+ * An acknowledge's or resolve's card title: the alert by its number, once
+ * the prepare read it (RecordNamesForPerson), else by what the call names
+ * - its ID - or nothing at all.
  */
-async function getAlertNumberForPerson(data: {
-  alertId: ObjectID;
-  ctx: ToolContext;
-}): Promise<string | null> {
-  try {
-    const alert: Alert | null = await AlertService.findOneById({
-      id: data.alertId,
-      select: {
-        _id: true,
-        alertNumber: true,
-        alertNumberWithPrefix: true,
-      },
-      props: data.ctx.props,
-    });
+function buildAlertStateChangeTitle(
+  verb: "acknowledge" | "resolve",
+): (args: JSONObject, names: RecordNames) => AIActionSentence {
+  return (args: JSONObject, names: RecordNames): AIActionSentence => {
+    const alert: string | undefined = getRecordTitleName(
+      args,
+      names,
+      "alertId",
+    );
 
-    if (alert?.alertNumberWithPrefix) {
-      return alert.alertNumberWithPrefix;
+    if (!alert) {
+      return aiActionSentence(
+        verb === "acknowledge"
+          ? AI_ACTION_TITLES.acknowledgeAlertUnnamed
+          : AI_ACTION_TITLES.resolveAlertUnnamed,
+      );
     }
 
-    return typeof alert?.alertNumber === "number"
-      ? `#${alert.alertNumber}`
-      : null;
-  } catch {
-    return null;
-  }
+    return aiActionSentence(
+      verb === "acknowledge"
+        ? AI_ACTION_TITLES.acknowledgeAlert
+        : AI_ACTION_TITLES.resolveAlert,
+      { alert },
+    );
+  };
 }
+
+const buildAcknowledgeAlertTitle: (
+  args: JSONObject,
+  names: RecordNames,
+) => AIActionSentence = buildAlertStateChangeTitle("acknowledge");
+
+const buildResolveAlertTitle: (
+  args: JSONObject,
+  names: RecordNames,
+) => AIActionSentence = buildAlertStateChangeTitle("resolve");
 
 // The severity a new alert takes, and whether it is the one the call named.
 export interface AlertSeverityChoice {
@@ -222,24 +245,24 @@ async function getAlertSeverityNameForPerson(data: {
  * alert takes, then what it is linked to - 'Severity: High. Linked to host
  * "test01".' The severity is said in words here because the argument line
  * under it is cut at two lines, and on a phone the severity, written last,
- * was never seen before the person approved (#5301's UI review). Undefined
- * when there is nothing to say.
+ * was never seen before the person approved (#5301's UI review). Each a
+ * sentence of Types/AI/AIActionWords, the severity's name as the project
+ * wrote it; none when there is nothing to say.
  */
 export function describeAlertForPerson(data: {
   severityName: string | null;
-  linked: string | undefined;
-}): string | undefined {
-  const parts: Array<string> = [];
-
-  if (data.severityName) {
-    parts.push(`Severity: ${data.severityName}.`);
-  }
-
-  if (data.linked) {
-    parts.push(data.linked);
-  }
-
-  return parts.length > 0 ? parts.join(" ") : undefined;
+  linked: Array<AIActionSentence>;
+}): Array<AIActionSentence> {
+  return [
+    ...(data.severityName
+      ? [
+          aiActionSentence(AI_ACTION_LINES.severity, {
+            severity: data.severityName,
+          }),
+        ]
+      : []),
+    ...data.linked,
+  ];
 }
 
 /*
@@ -291,8 +314,12 @@ export const CreateAlertTool: ObservabilityTool = {
     return resolveCreatePermissions();
   },
   isMutation: true,
-  buildActionTitle: (args: JSONObject): string => {
-    return `Create alert: ${ToolArgs.getString(args, "title") || "Untitled"}`;
+  buildActionTitle: (args: JSONObject): AIActionSentence => {
+    return aiActionSentence(AI_ACTION_TITLES.createAlert, {
+      title:
+        ToolArgs.getString(args, "title") ||
+        aiActionTerm(AI_ACTION_TERMS.untitled),
+    });
   },
   /*
    * The page's resource written out (the alert is raised from it), the
@@ -620,9 +647,14 @@ export const AcknowledgeAlertTool: ObservabilityTool = {
     return resolveStateChangePermissions();
   },
   isMutation: true,
-  buildActionTitle: (args: JSONObject): string => {
-    return `Acknowledge alert ${ToolArgs.getString(args, "alertId") || ""}`.trim();
+  buildActionTitle: (args: JSONObject): AIActionSentence => {
+    return buildAcknowledgeAlertTitle(args, {});
   },
+  // The alert by its number, as the person knows it.
+  prepareMutation: prepareRecordNamesInTitle({
+    keys: ["alertId"],
+    buildTitle: buildAcknowledgeAlertTitle,
+  }),
   execute: async (
     args: JSONObject,
     ctx: ToolContext,
@@ -649,9 +681,14 @@ export const ResolveAlertTool: ObservabilityTool = {
     return resolveStateChangePermissions();
   },
   isMutation: true,
-  buildActionTitle: (args: JSONObject): string => {
-    return `Resolve alert ${ToolArgs.getString(args, "alertId") || ""}`.trim();
+  buildActionTitle: (args: JSONObject): AIActionSentence => {
+    return buildResolveAlertTitle(args, {});
   },
+  // The alert by its number, as the person knows it.
+  prepareMutation: prepareRecordNamesInTitle({
+    keys: ["alertId"],
+    buildTitle: buildResolveAlertTitle,
+  }),
   execute: async (
     args: JSONObject,
     ctx: ToolContext,
@@ -685,12 +722,12 @@ export const AddAlertAffectedResourcesTool: ObservabilityTool = {
     return resolveUpdatePermissions();
   },
   isMutation: true,
-  buildActionTitle: (args: JSONObject): string => {
+  buildActionTitle: (args: JSONObject): AIActionSentence => {
     const alertId: string | undefined = ToolArgs.getString(args, "alertId");
 
     return alertId
-      ? `Link alert ${alertId} to affected resources`
-      : "Link this alert to affected resources";
+      ? aiActionSentence(AI_ACTION_TITLES.linkAlert, { alert: alertId })
+      : aiActionSentence(AI_ACTION_TITLES.linkThisAlert);
   },
   prepareMutation: async (
     args: JSONObject,
@@ -721,7 +758,12 @@ export const AddAlertAffectedResourcesTool: ObservabilityTool = {
     return {
       arguments: prepared,
       ...(alertNumber
-        ? { title: `Link alert ${alertNumber} to affected resources` }
+        ? {
+            title: aiActionSentence(AI_ACTION_TITLES.linkAlert, {
+              alert: alertNumber,
+            }),
+            namedArguments: ["alertId"],
+          }
         : {}),
       description: AffectedResourceLinks.describeForPerson({
         linked: toLink.linked,
